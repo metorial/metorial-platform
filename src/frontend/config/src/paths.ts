@@ -227,6 +227,12 @@ let InstancePaths = Object.assign(
       instance: EntityParam,
       ...subPages: SubPages
     ) => InstancePaths(organization, project, instance, 'portals', ...subPages),
+    workforce: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'workforce', ...subPages),
     portal: (
       organization: EntityParam,
       project: EntityParam,

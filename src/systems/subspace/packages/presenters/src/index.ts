@@ -21,6 +21,8 @@ export * from './customProviderDeployment';
 export * from './customProviderEnvironment';
 export * from './customProviderVersion';
 export * from './deployment';
+export * from './delegatedIntegrationInstance';
+export * from './delegatedIntegrationInstanceProvider';
 export * from './environment';
 export * from './identity';
 export * from './identityActor';

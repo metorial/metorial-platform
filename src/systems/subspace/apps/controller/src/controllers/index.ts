@@ -23,6 +23,8 @@ import { customProviderCommitController } from './customProviderCommit';
 import { customProviderDeploymentController } from './customProviderDeployment';
 import { customProviderEnvironmentController } from './customProviderEnvironment';
 import { customProviderVersionController } from './customProviderVersion';
+import { delegatedIntegrationInstanceController } from './delegatedIntegrationInstance';
+import { delegatedIntegrationInstanceProviderController } from './delegatedIntegrationInstanceProvider';
 import { environmentController } from './environment';
 import { identityController } from './identity';
 import { identityActorController } from './identityActor';
@@ -96,6 +98,8 @@ let systemControllers = {
   identityDelegation: identityDelegationController,
   identityDelegationConfig: identityDelegationConfigController,
   identityDelegationRequest: identityDelegationRequestController,
+  delegatedIntegrationInstance: delegatedIntegrationInstanceController,
+  delegatedIntegrationInstanceProvider: delegatedIntegrationInstanceProviderController,
   identityCredential: identityCredentialController,
   integration: integrationController,
   integrationInstance: integrationInstanceController,

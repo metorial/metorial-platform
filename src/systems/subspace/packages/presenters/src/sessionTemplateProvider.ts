@@ -1,4 +1,6 @@
 import type {
+  DelegatedIntegrationInstance,
+  DelegatedIntegrationInstanceProvider,
   IntegrationInstance,
   IntegrationInstanceProvider,
   Provider,
@@ -15,12 +17,14 @@ import { providerConfigPreviewPresenter } from './providerConfig';
 export let sessionTemplateProviderPresenter = (
   provider: SessionTemplateProvider & {
     integrationInstanceProvider: IntegrationInstanceProvider | null;
+    delegatedIntegrationInstanceProvider: DelegatedIntegrationInstanceProvider | null;
     provider: Provider;
     deployment: ProviderDeployment;
     config: ProviderConfig;
     authConfig: ProviderAuthConfig | null;
     sessionTemplate: SessionTemplate & {
       integrationInstance: IntegrationInstance | null;
+      delegatedIntegrationInstance: DelegatedIntegrationInstance | null;
     };
   }
 ) => ({
@@ -34,7 +38,11 @@ export let sessionTemplateProviderPresenter = (
   providerId: provider.provider.id,
   sessionTemplateId: provider.sessionTemplate.id,
   integrationInstanceId: provider.sessionTemplate.integrationInstance?.id ?? null,
+  delegatedIntegrationInstanceId:
+    provider.sessionTemplate.delegatedIntegrationInstance?.id ?? null,
   integrationInstanceProviderId: provider.integrationInstanceProvider?.id ?? null,
+  delegatedIntegrationInstanceProviderId:
+    provider.delegatedIntegrationInstanceProvider?.id ?? null,
 
   deployment: providerDeploymentPreviewPresenter({
     ...provider.deployment,

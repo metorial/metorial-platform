@@ -710,6 +710,154 @@ export let productExplorerSlice = createSlice([
   }
 ]);
 
+export let productIdentitySlice = createSlice([
+  {
+    element: <ProductWrapper />,
+
+    children: [
+      {
+        element: <InstanceLayout />,
+
+        children: [
+          {
+            element: <IdentityListLayout />,
+            children: [
+              {
+                path: 'identities',
+                element: <IdentitiesPage />
+              },
+
+              {
+                path: 'identity',
+                children: [
+                  {
+                    path: 'delegations',
+                    element: <IdentityDelegationsPage />
+                  },
+                  {
+                    path: 'delegation-configs',
+                    element: <IdentityDelegationConfigsPage />
+                  }
+                ]
+              }
+            ]
+          },
+
+          {
+            children: [
+              {
+                path: 'consumers',
+                element: <ConsumersPage />
+              },
+              {
+                path: 'actors',
+                element: <IdentityActorsPage />
+              }
+            ]
+          },
+
+          {
+            path: 'consumer/:consumerId',
+            element: (
+              <IdentityManagedPage>
+                <ConsumerLayout />
+              </IdentityManagedPage>
+            ),
+            children: [
+              {
+                path: '',
+                element: <ConsumerPage />
+              },
+              {
+                path: 'settings',
+                element: <ConsumerSettingsPage />
+              },
+              {
+                path: 'magic-mcp-servers',
+                element: <ConsumerMagicMcpServersPage />
+              }
+            ]
+          },
+
+          {
+            path: 'actor/:identityActorId',
+            element: (
+              <IdentityManagedPage>
+                <IdentityActorLayout />
+              </IdentityManagedPage>
+            ),
+            children: [
+              {
+                path: '',
+                element: <IdentityActorPage />
+              },
+              {
+                path: 'settings',
+                element: <IdentityActorSettingsPage />
+              }
+            ]
+          },
+
+          {
+            path: 'identity/:identityId',
+            element: (
+              <IdentityManagedPage>
+                <IdentityLayout />
+              </IdentityManagedPage>
+            ),
+            children: [
+              {
+                path: '',
+                element: <IdentityPage />
+              },
+              {
+                path: 'delegations',
+                element: <IdentityDetailsDelegationsPage />
+              },
+              {
+                path: 'delegation-requests',
+                element: <IdentityDelegationRequestsPage />
+              },
+              {
+                path: 'settings',
+                element: <IdentitySettingsPage />
+              }
+            ]
+          },
+          {
+            path: 'identity/delegation/:identityDelegationId',
+            element: (
+              <IdentityManagedPage>
+                <IdentityDelegationLayout />
+              </IdentityManagedPage>
+            ),
+            children: [
+              {
+                path: '',
+                element: <IdentityDelegationPage />
+              }
+            ]
+          },
+          {
+            path: 'identity/delegation-config/:identityDelegationConfigId',
+            element: (
+              <IdentityManagedPage>
+                <IdentityDelegationConfigLayout />
+              </IdentityManagedPage>
+            ),
+            children: [
+              {
+                path: '',
+                element: <IdentityDelegationConfigPage />
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]);
+
 export let productHomeSlice = createSlice([
   {
     element: <ProductWrapper />,
@@ -918,140 +1066,6 @@ export let productHomeSlice = createSlice([
               {
                 path: 'settings',
                 element: <SessionTemplateSettingsPage />
-              }
-            ]
-          },
-
-          {
-            element: <IdentityListLayout />,
-            children: [
-              {
-                path: 'identities',
-                element: <IdentitiesPage />
-              },
-
-              {
-                path: 'identity',
-                children: [
-                  {
-                    path: 'delegations',
-                    element: <IdentityDelegationsPage />
-                  },
-                  {
-                    path: 'delegation-configs',
-                    element: <IdentityDelegationConfigsPage />
-                  }
-                ]
-              }
-            ]
-          },
-
-          {
-            children: [
-              {
-                path: 'consumers',
-                element: <ConsumersPage />
-              },
-              {
-                path: 'actors',
-                element: <IdentityActorsPage />
-              }
-            ]
-          },
-
-          {
-            path: 'consumer/:consumerId',
-            element: (
-              <IdentityManagedPage>
-                <ConsumerLayout />
-              </IdentityManagedPage>
-            ),
-            children: [
-              {
-                path: '',
-                element: <ConsumerPage />
-              },
-              {
-                path: 'settings',
-                element: <ConsumerSettingsPage />
-              },
-              {
-                path: 'magic-mcp-servers',
-                element: <ConsumerMagicMcpServersPage />
-              }
-            ]
-          },
-
-          {
-            path: 'actor/:identityActorId',
-            element: (
-              <IdentityManagedPage>
-                <IdentityActorLayout />
-              </IdentityManagedPage>
-            ),
-            children: [
-              {
-                path: '',
-                element: <IdentityActorPage />
-              },
-              {
-                path: 'settings',
-                element: <IdentityActorSettingsPage />
-              }
-            ]
-          },
-
-          {
-            path: 'identity/:identityId',
-            element: (
-              <IdentityManagedPage>
-                <IdentityLayout />
-              </IdentityManagedPage>
-            ),
-            children: [
-              {
-                path: '',
-                element: <IdentityPage />
-              },
-              {
-                path: 'delegations',
-                element: <IdentityDetailsDelegationsPage />
-              },
-              {
-                path: 'delegation-requests',
-                element: <IdentityDelegationRequestsPage />
-              },
-              {
-                path: 'settings',
-                element: <IdentitySettingsPage />
-              }
-            ]
-          },
-          {
-            path: 'identity/delegation/:identityDelegationId',
-            element: (
-              <IdentityManagedPage>
-                <IdentityDelegationLayout />
-              </IdentityManagedPage>
-            ),
-            children: [
-              {
-                path: '',
-                element: <IdentityDelegationPage />
-              }
-            ]
-          },
-          {
-            path: 'identity/delegation-config/:identityDelegationConfigId',
-            element: (
-              <IdentityManagedPage>
-                <IdentityDelegationConfigLayout />
-              </IdentityManagedPage>
-            ),
-            children: [
-              {
-                path: '',
-                element: <IdentityDelegationConfigPage />
               }
             ]
           },
@@ -1301,6 +1315,7 @@ export let productSlice = createSlice([
       ...productTraceSlice.routes,
       ...productTraceDetailSlice.routes,
       ...productExplorerSlice.routes,
+      ...productIdentitySlice.routes,
       ...productHomeSlice.routes
     ]
   },

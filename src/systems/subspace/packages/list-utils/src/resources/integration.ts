@@ -49,6 +49,30 @@ export let resolveIntegrationInstanceProviders = createResolver(async ({ ts, ids
   })
 );
 
+export let resolveDelegatedIntegrationInstances = createResolver(async ({ ts, ids }) =>
+  db.delegatedIntegrationInstance.findMany({
+    where: {
+      id: { in: ids },
+      tenantOid: ts.tenantOid,
+      solutionOid: ts.solutionOid,
+      environmentOid: ts.environmentOid
+    },
+    select: { oid: true }
+  })
+);
+
+export let resolveDelegatedIntegrationInstanceProviders = createResolver(async ({ ts, ids }) =>
+  db.delegatedIntegrationInstanceProvider.findMany({
+    where: {
+      id: { in: ids },
+      tenantOid: ts.tenantOid,
+      solutionOid: ts.solutionOid,
+      environmentOid: ts.environmentOid
+    },
+    select: { oid: true }
+  })
+);
+
 export let resolveIntegrationProviderVersions = createResolver(async ({ ts, ids }) =>
   db.integrationProviderVersion.findMany({
     where: {
