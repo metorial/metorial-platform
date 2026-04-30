@@ -1,6 +1,13 @@
 import { combineQueueProcessors } from '@lowerdeck/queue';
 import { archiveIntegrationInstanceQueueProcessor } from './archiveIntegrationInstance';
 import {
+  delegatedIntegrationInstanceArchiveProvidersManyQueueProcessor,
+  delegatedIntegrationInstanceArchivedQueueProcessor,
+  delegatedIntegrationInstanceCreatedQueueProcessor,
+  delegatedIntegrationInstanceUpdatedQueueProcessor
+} from './delegatedIntegrationInstance';
+import { delegatedIntegrationInstanceProviderSetQueueProcessor } from './delegatedIntegrationInstanceProvider';
+import {
   integrationArchivedQueueProcessor,
   integrationArchiveInstancesManyQueueProcessor,
   integrationArchiveProvidersManyQueueProcessor,
@@ -9,13 +16,18 @@ import {
   integrationUpdatedQueueProcessor
 } from './integration';
 import {
+  integrationInstanceArchiveDelegatedSourcesManyQueueProcessor,
   integrationInstanceArchivedQueueProcessor,
   integrationInstanceCreatedQueueProcessor,
   integrationInstanceDeletedQueueProcessor,
   integrationInstanceUpdatedQueueProcessor
 } from './integrationInstance';
-import { integrationInstanceProviderSetQueueProcessor } from './integrationInstanceProvider';
 import {
+  integrationInstanceProviderSetQueueProcessor,
+  integrationInstanceProviderSyncDelegatedProvidersManyQueueProcessor
+} from './integrationInstanceProvider';
+import {
+  integrationProviderArchiveDelegatedProvidersManyQueueProcessor,
   integrationProviderArchiveInstanceProvidersManyQueueProcessor,
   integrationProviderArchivedQueueProcessor,
   integrationProviderCreatedQueueProcessor,
@@ -30,13 +42,21 @@ export let lifecycleQueues = combineQueueProcessors([
   integrationArchiveInstancesManyQueueProcessor,
   integrationArchiveProvidersManyQueueProcessor,
   integrationDeletedQueueProcessor,
+  delegatedIntegrationInstanceCreatedQueueProcessor,
+  delegatedIntegrationInstanceUpdatedQueueProcessor,
+  delegatedIntegrationInstanceArchivedQueueProcessor,
+  delegatedIntegrationInstanceArchiveProvidersManyQueueProcessor,
+  delegatedIntegrationInstanceProviderSetQueueProcessor,
   integrationInstanceCreatedQueueProcessor,
   integrationInstanceUpdatedQueueProcessor,
   integrationInstanceArchivedQueueProcessor,
+  integrationInstanceArchiveDelegatedSourcesManyQueueProcessor,
   integrationInstanceDeletedQueueProcessor,
   integrationInstanceProviderSetQueueProcessor,
+  integrationInstanceProviderSyncDelegatedProvidersManyQueueProcessor,
   integrationProviderCreatedQueueProcessor,
   integrationProviderUpdatedQueueProcessor,
   integrationProviderArchivedQueueProcessor,
-  integrationProviderArchiveInstanceProvidersManyQueueProcessor
+  integrationProviderArchiveInstanceProvidersManyQueueProcessor,
+  integrationProviderArchiveDelegatedProvidersManyQueueProcessor
 ]);

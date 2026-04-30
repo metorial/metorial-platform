@@ -6,6 +6,7 @@ import {
   archiveIntegrationInstanceSessionTemplatesQueue,
   syncIntegrationInstanceSessionTemplatesQueue
 } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedSessionTemplate';
+import { syncDelegatedIntegrationInstanceSessionTemplatesQueue } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedDelegatedIntegrationTemplate';
 import { env } from '../../env';
 import { indexIntegrationInstanceQueue } from '../search/integrationInstance';
 import { integrationInstanceProviderSetQueue } from './integrationInstanceProvider';
@@ -96,8 +97,75 @@ export let runIntegrationInstanceArchivedEffects = async (d: {
       }))
     );
   }
+  await integrationInstanceArchiveDelegatedSourcesManyQueue.add({
+    integrationInstanceId: d.integrationInstanceId
+  });
   await syncIntegrationInstanceProviderCredentials(d.integrationInstanceId);
 };
+
+export let integrationInstanceArchiveDelegatedSourcesManyQueue = createQueue<{
+  integrationInstanceId: string;
+  cursor?: string;
+}>({
+  name: 'sub/int/lc/integrationInstance/archiveDelegatedSourcesMany',
+  redisUrl: env.service.REDIS_URL
+});
+
+export let integrationInstanceArchiveDelegatedSourcesManyQueueProcessor =
+  integrationInstanceArchiveDelegatedSourcesManyQueue.process(async data => {
+    let integrationInstance = await db.integrationInstance.findUnique({
+      where: { id: data.integrationInstanceId }
+    });
+    if (!integrationInstance || integrationInstance.status !== 'archived') return;
+
+    let delegatedSources = await db.delegatedIntegrationInstanceSource.findMany({
+      where: {
+        integrationInstanceOid: integrationInstance.oid,
+        status: 'active',
+        id: data.cursor ? { gt: data.cursor } : undefined
+      },
+      orderBy: { id: 'asc' },
+      take: 100,
+      include: { delegatedIntegrationInstance: true }
+    });
+    if (delegatedSources.length === 0) return;
+
+    let archivedAt = integrationInstance.archivedAt ?? new Date();
+
+    await db.delegatedIntegrationInstanceSource.updateMany({
+      where: { oid: { in: delegatedSources.map(source => source.oid) } },
+      data: {
+        status: 'archived',
+        archivedAt
+      }
+    });
+    await db.delegatedIntegrationInstanceProvider.updateMany({
+      where: {
+        delegatedIntegrationInstanceSourceOid: {
+          in: delegatedSources.map(source => source.oid)
+        },
+        status: 'active'
+      },
+      data: {
+        status: 'archived',
+        archivedAt
+      }
+    });
+
+    await syncDelegatedIntegrationInstanceSessionTemplatesQueue.addMany(
+      Array.from(
+        new Set(delegatedSources.map(source => source.delegatedIntegrationInstance.id))
+      ).map(delegatedIntegrationInstanceId => ({ delegatedIntegrationInstanceId }))
+    );
+
+    let lastSource = delegatedSources[delegatedSources.length - 1];
+    if (!lastSource) return;
+
+    await integrationInstanceArchiveDelegatedSourcesManyQueue.add({
+      integrationInstanceId: data.integrationInstanceId,
+      cursor: lastSource.id
+    });
+  });
 
 export let integrationInstanceCreatedQueue = createQueue<{ integrationInstanceId: string }>({
   name: 'sub/int/lc/integrationInstance/created',

@@ -3,6 +3,7 @@ import { db } from '@metorial-subspace/db';
 import { providerAuthConfigService } from '@metorial-subspace/module-auth';
 import { providerConfigService } from '@metorial-subspace/module-deployment';
 import { identityInternalService } from '@metorial-subspace/module-identity';
+import { syncDelegatedIntegrationInstanceSessionTemplatesQueue } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedDelegatedIntegrationTemplate';
 import { syncIntegrationInstanceSessionTemplatesQueue } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedSessionTemplate';
 import { env } from '../../env';
 import { indexIntegrationInstanceQueue } from '../search/integrationInstance';
@@ -31,6 +32,10 @@ export let integrationInstanceProviderSetQueueProcessor =
     });
     await syncIntegrationInstanceSessionTemplatesQueue.add({
       integrationInstanceId: data.integrationInstanceId
+    });
+
+    await integrationInstanceProviderSyncDelegatedProvidersManyQueue.add({
+      integrationInstanceProviderId: data.integrationInstanceProviderId
     });
 
     if (integrationInstanceProvider.status === 'archived') {
@@ -69,4 +74,56 @@ export let integrationInstanceProviderSetQueueProcessor =
         }
       }
     }
+  });
+
+export let integrationInstanceProviderSyncDelegatedProvidersManyQueue = createQueue<{
+  integrationInstanceProviderId: string;
+  cursor?: string;
+}>({
+  name: 'sub/int/lc/integrationInstanceProvider/syncDelegatedProvidersMany',
+  redisUrl: env.service.REDIS_URL
+});
+
+export let integrationInstanceProviderSyncDelegatedProvidersManyQueueProcessor =
+  integrationInstanceProviderSyncDelegatedProvidersManyQueue.process(async data => {
+    let integrationInstanceProvider = await db.integrationInstanceProvider.findUnique({
+      where: { id: data.integrationInstanceProviderId }
+    });
+    if (!integrationInstanceProvider) return;
+
+    let delegatedProviders = await db.delegatedIntegrationInstanceProvider.findMany({
+      where: {
+        integrationInstanceProviderOid: integrationInstanceProvider.oid,
+        status: { not: 'deleted' },
+        id: data.cursor ? { gt: data.cursor } : undefined
+      },
+      orderBy: { id: 'asc' },
+      take: 100,
+      include: { delegatedIntegrationInstance: true }
+    });
+    if (delegatedProviders.length === 0) return;
+
+    if (integrationInstanceProvider.status === 'archived') {
+      await db.delegatedIntegrationInstanceProvider.updateMany({
+        where: {
+          oid: { in: delegatedProviders.map(provider => provider.oid) },
+          status: 'active'
+        },
+        data: { isParentDeleted: true }
+      });
+    }
+
+    await syncDelegatedIntegrationInstanceSessionTemplatesQueue.addMany(
+      Array.from(
+        new Set(delegatedProviders.map(provider => provider.delegatedIntegrationInstance.id))
+      ).map(delegatedIntegrationInstanceId => ({ delegatedIntegrationInstanceId }))
+    );
+
+    let lastProvider = delegatedProviders[delegatedProviders.length - 1];
+    if (!lastProvider) return;
+
+    await integrationInstanceProviderSyncDelegatedProvidersManyQueue.add({
+      integrationInstanceProviderId: data.integrationInstanceProviderId,
+      cursor: lastProvider.id
+    });
   });

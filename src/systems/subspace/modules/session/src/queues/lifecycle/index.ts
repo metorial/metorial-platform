@@ -1,5 +1,11 @@
 import { combineQueueProcessors } from '@lowerdeck/queue';
 import {
+  archiveDelegatedIntegrationInstanceSessionTemplateQueueProcessor,
+  archiveDelegatedIntegrationInstanceSessionTemplatesQueueProcessor,
+  syncDelegatedIntegrationInstanceSessionTemplateQueueProcessor,
+  syncDelegatedIntegrationInstanceSessionTemplatesQueueProcessor
+} from './linkedDelegatedIntegrationTemplate';
+import {
   archiveIntegrationInstanceSessionTemplateQueueProcessor,
   archiveIntegrationInstanceSessionTemplatesQueueProcessor,
   syncIntegrationInstanceSessionTemplateQueueProcessor,
@@ -29,6 +35,10 @@ export let lifecycleQueues = combineQueueProcessors([
   syncIntegrationInstanceSessionTemplateQueueProcessor,
   archiveIntegrationInstanceSessionTemplatesQueueProcessor,
   archiveIntegrationInstanceSessionTemplateQueueProcessor,
+  syncDelegatedIntegrationInstanceSessionTemplatesQueueProcessor,
+  syncDelegatedIntegrationInstanceSessionTemplateQueueProcessor,
+  archiveDelegatedIntegrationInstanceSessionTemplatesQueueProcessor,
+  archiveDelegatedIntegrationInstanceSessionTemplateQueueProcessor,
   sessionTemplateArchivedQueueProcessor,
   sessionTemplateArchiveSessionsManyQueueProcessor,
   sessionTemplateDeletedQueueProcessor,
