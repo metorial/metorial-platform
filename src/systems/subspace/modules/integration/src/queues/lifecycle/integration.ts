@@ -8,6 +8,7 @@ import {
 } from '../../lib/versions';
 import { indexIntegrationQueue } from '../search/integration';
 import { indexIntegrationInstanceQueue } from '../search/integrationInstance';
+import { archiveIntegrationInstanceQueue } from './archiveIntegrationInstance';
 import { integrationProviderArchivedQueue } from './integrationProvider';
 
 export let integrationCreatedQueue = createQueue<{ integrationId: string }>({
@@ -77,6 +78,11 @@ export let integrationArchiveInstancesManyQueueProcessor =
       data: { isParentDeleted: true }
     });
 
+    await archiveIntegrationInstanceQueue.addMany(
+      integrationInstances.map(integrationInstance => ({
+        integrationInstanceId: integrationInstance.id
+      }))
+    );
     await indexIntegrationInstanceQueue.addMany(
       integrationInstances.map(integrationInstance => ({
         integrationInstanceId: integrationInstance.id

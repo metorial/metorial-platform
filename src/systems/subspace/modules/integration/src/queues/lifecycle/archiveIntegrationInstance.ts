@@ -15,9 +15,21 @@ export let archiveIntegrationInstanceQueueProcessor = archiveIntegrationInstance
     let integrationInstance = await db.integrationInstance.findUnique({
       where: { id: data.integrationInstanceId }
     });
-    if (!integrationInstance || integrationInstance.status !== 'active') return;
+    if (
+      !integrationInstance ||
+      integrationInstance.status === 'archived' ||
+      integrationInstance.status === 'deleted'
+    ) {
+      return;
+    }
 
     let archivedAt = new Date();
+
+    await runIntegrationInstanceArchivedEffects({
+      integrationInstanceId: integrationInstance.id,
+      integrationInstanceOid: integrationInstance.oid,
+      archivedAt
+    });
 
     integrationInstance = await db.integrationInstance.update({
       where: { oid: integrationInstance.oid },
@@ -25,12 +37,6 @@ export let archiveIntegrationInstanceQueueProcessor = archiveIntegrationInstance
         status: 'archived',
         archivedAt
       }
-    });
-
-    await runIntegrationInstanceArchivedEffects({
-      integrationInstanceId: integrationInstance.id,
-      integrationInstanceOid: integrationInstance.oid,
-      archivedAt
     });
   }
 );

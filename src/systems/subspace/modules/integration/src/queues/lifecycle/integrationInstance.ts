@@ -4,6 +4,7 @@ import { identityInternalService } from '@metorial-subspace/module-identity';
 import { identityDeletedQueue } from '@metorial-subspace/module-identity/src/queues/lifecycle/identity';
 import { env } from '../../env';
 import { indexIntegrationInstanceQueue } from '../search/integrationInstance';
+import { integrationInstanceProviderSetQueue } from './integrationInstanceProvider';
 
 let syncIntegrationInstanceProviderCredentials = async (integrationInstanceId: string) => {
   let integrationInstanceProviders = await db.integrationInstanceProvider.findMany({
@@ -33,6 +34,11 @@ export let runIntegrationInstanceArchivedEffects = async (d: {
   integrationInstanceOid: bigint;
   archivedAt: Date;
 }) => {
+  let archivedIntegrationInstanceProviders = await db.integrationInstanceProvider.findMany({
+    where: { integrationInstanceOid: d.integrationInstanceOid, status: 'active' },
+    select: { id: true }
+  });
+
   await db.integrationInstanceProvider.updateMany({
     where: { integrationInstanceOid: d.integrationInstanceOid, status: 'active' },
     data: {
@@ -75,6 +81,14 @@ export let runIntegrationInstanceArchivedEffects = async (d: {
   await indexIntegrationInstanceQueue.add({
     integrationInstanceId: d.integrationInstanceId
   });
+  if (archivedIntegrationInstanceProviders.length) {
+    await integrationInstanceProviderSetQueue.addMany(
+      archivedIntegrationInstanceProviders.map(integrationInstanceProvider => ({
+        integrationInstanceId: d.integrationInstanceId,
+        integrationInstanceProviderId: integrationInstanceProvider.id
+      }))
+    );
+  }
   await syncIntegrationInstanceProviderCredentials(d.integrationInstanceId);
 };
 
