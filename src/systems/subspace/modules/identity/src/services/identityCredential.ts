@@ -245,6 +245,33 @@ class identityCredentialServiceImpl {
     checkDeletedEdit(d.identityCredential, 'archive');
     checkDeletedEdit(d.identityCredential.identity, 'archive');
 
+    let activeIntegrationInstanceProvider = d.identityCredential.integrationInstanceProviderOid
+      ? await db.integrationInstanceProvider.findFirst({
+          where: {
+            oid: d.identityCredential.integrationInstanceProviderOid,
+            status: 'active',
+            isParentDeleted: false
+          },
+          select: {
+            id: true,
+            name: true
+          }
+        })
+      : null;
+    if (activeIntegrationInstanceProvider) {
+      throw new ServiceError(
+        badRequestError({
+          message:
+            'Identity credential is linked to an active integration instance provider and cannot be deleted.',
+          code: 'identity_credential_in_use_by_active_integration_instance_provider',
+          data: {
+            integrationInstanceProviderId: activeIntegrationInstanceProvider.id,
+            integrationInstanceProviderName: activeIntegrationInstanceProvider.name
+          }
+        })
+      );
+    }
+
     return withTransaction(async db => {
       let identityCredential = await db.identityCredential.update({
         where: {

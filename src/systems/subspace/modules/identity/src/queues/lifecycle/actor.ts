@@ -1,4 +1,6 @@
 import { createQueue } from '@lowerdeck/queue';
+import { db } from '@metorial-subspace/db';
+import { archiveIntegrationInstanceQueue } from '@metorial-subspace/module-integration/src/queues/lifecycle/archiveIntegrationInstance';
 import { env } from '../../env';
 import { deleteIdentitiesForActorManyQueue } from '../archive/identity';
 import { indexIdentityActorQueue } from '../search/actor';
@@ -37,6 +39,25 @@ export let identityActorDeletedQueue = createQueue<{ identityActorId: string }>(
 export let identityActorDeletedQueueProcessor = identityActorDeletedQueue.process(
   async data => {
     await indexIdentityActorQueue.add({ identityActorId: data.identityActorId });
+
+    let integrationInstances = await db.integrationInstance.findMany({
+      where: {
+        identityActor: {
+          id: data.identityActorId
+        },
+        status: 'active'
+      },
+      select: {
+        id: true
+      }
+    });
+    if (integrationInstances.length) {
+      await archiveIntegrationInstanceQueue.addMany(
+        integrationInstances.map(integrationInstance => ({
+          integrationInstanceId: integrationInstance.id
+        }))
+      );
+    }
 
     await deleteIdentitiesForActorManyQueue.add({ identityActorId: data.identityActorId });
   }

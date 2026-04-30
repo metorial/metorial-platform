@@ -1,4 +1,4 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
@@ -239,6 +239,32 @@ class identityServiceImpl {
   }) {
     checkTenant(d, d.identity);
     checkDeletedEdit(d.identity, 'archive');
+
+    let activeIntegrationInstance = await db.integrationInstance.findFirst({
+      where: {
+        status: 'active',
+        OR: [
+          { identityOid: d.identity.oid },
+          { oid: d.identity.ownedByIntegrationInstanceOid ?? -1n }
+        ]
+      },
+      select: {
+        id: true,
+        name: true
+      }
+    });
+    if (activeIntegrationInstance) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Identity is linked to an active integration instance and cannot be deleted.',
+          code: 'identity_in_use_by_active_integration_instance',
+          data: {
+            integrationInstanceId: activeIntegrationInstance.id,
+            integrationInstanceName: activeIntegrationInstance.name
+          }
+        })
+      );
+    }
 
     return withTransaction(async db => {
       let identity = await db.identity.update({

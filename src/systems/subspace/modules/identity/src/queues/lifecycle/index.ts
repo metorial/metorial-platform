@@ -23,6 +23,7 @@ import {
   identityCredentialDeletedQueueProcessor,
   identityCredentialUpdatedQueueProcessor
 } from './identityCredential';
+import { integrationInstanceProviderCredentialSyncQueueProcessor } from './integrationInstanceProviderCredential';
 import {
   identityDelegationConfigCreatedQueueProcessor,
   identityDelegationConfigDeletedQueueProcessor,
@@ -42,6 +43,7 @@ export let lifecycleQueues = combineQueueProcessors([
   identityCredentialCreatedQueueProcessor,
   identityCredentialUpdatedQueueProcessor,
   identityCredentialDeletedQueueProcessor,
+  integrationInstanceProviderCredentialSyncQueueProcessor,
   identityDelegationCreatedQueueProcessor,
   identityDelegationUpdatedQueueProcessor,
   identityDelegationConfigCreatedQueueProcessor,
