@@ -41,8 +41,8 @@ import {
   providerDeploymentInternalService,
   resolveGrantedScopes
 } from '@metorial-subspace/module-provider-internal';
+import { ephemeralManagedSessionService } from '@metorial-subspace/module-session/src/services/ephemeralManagedSession';
 import { addDays, addMinutes } from 'date-fns';
-import { ephemeralManagedSessionService } from '../../../session/src/services/ephemeralManagedSession';
 import {
   DEFAULT_SESSION_EXPIRATION_DAYS,
   SESSION_PROVIDER_INSTANCE_EXPIRATION_INCREMENT,

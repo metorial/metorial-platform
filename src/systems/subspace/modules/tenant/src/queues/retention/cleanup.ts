@@ -277,7 +277,7 @@ let cleanupSessionConnections = async (d: { tenantOid: bigint; cutoffDate: Date 
       db.sessionConnection.findMany({
         where: {
           tenantOid: d.tenantOid,
-          createdAt: { lt: d.cutoffDate },
+          lastActiveAt: { lt: d.cutoffDate },
           state: 'disconnected',
           providerRuns: { none: {} }
         },
