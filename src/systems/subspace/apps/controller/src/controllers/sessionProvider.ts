@@ -61,6 +61,15 @@ export let toolFiltersValidator = v.nullable(
       toolFilterValidator,
       v.array(toolFilterValidator),
       v.object({
+        type: v.literal('v1.allow_all'),
+        ignoreParentFilters: v.optional(v.boolean())
+      }),
+      v.object({
+        type: v.literal('v1.filter'),
+        ignoreParentFilters: v.optional(v.boolean()),
+        filters: v.array(toolFilterValidator)
+      }),
+      v.object({
         ignoreParentFilters: v.optional(v.boolean()),
         filters: v.optional(
           v.nullable(v.union([toolFilterValidator, v.array(toolFilterValidator)]))

@@ -122,6 +122,8 @@ model DelegatedIntegrationInstanceProvider {
   /// [ToolFilter]
   toolFilter Json?
 
+  isOverrideToolFilter Boolean @default(false)
+
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
 

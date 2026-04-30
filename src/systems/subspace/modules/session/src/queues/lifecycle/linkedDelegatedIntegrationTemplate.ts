@@ -1,10 +1,9 @@
 import { createQueue } from '@lowerdeck/queue';
 import { db, getId, withTransaction } from '@metorial-subspace/db';
+import { buildIntegrationProviderToolFilterChain } from '@metorial-subspace/module-provider-internal';
 import { env } from '../../env';
 import { sessionTemplateArchivedQueue } from './sessionTemplate';
 import { sessionTemplateProviderCreatedQueue } from './sessionTemplateProvider';
-
-let defaultToolFilter = { type: 'v1.allow_all' } satisfies PrismaJson.ToolFilter;
 
 export let syncDelegatedIntegrationInstanceSessionTemplatesQueue = createQueue<{
   delegatedIntegrationInstanceId: string;
@@ -96,6 +95,7 @@ export let syncDelegatedIntegrationInstanceSessionTemplate = async (data: {
     },
     orderBy: { id: 'asc' },
     include: {
+      integration: true,
       integrationProvider: true,
       integrationInstanceProvider: {
         include: {
@@ -137,11 +137,18 @@ export let syncDelegatedIntegrationInstanceSessionTemplate = async (data: {
       let sourceProvider = delegatedProvider.integrationInstanceProvider;
       let currentVersion = sourceProvider.currentVersion!;
       let existing = existingByDelegatedProviderOid.get(delegatedProvider.oid);
-      let toolFilter =
-        (currentVersion.toolFilter as PrismaJson.ToolFilter | null) ??
-        (currentVersion.integrationProviderVersion
-          .toolFilter as PrismaJson.ToolFilter | null) ??
-        defaultToolFilter;
+      let toolFilter = buildIntegrationProviderToolFilterChain({
+        canAttachCustomToolFilters: delegatedProvider.integration.canAttachCustomToolFilters,
+        canOverrideToolFilters: delegatedProvider.integration.canOverrideToolFilters,
+        integrationProviderToolFilter: currentVersion.integrationProviderVersion
+          .toolFilter as PrismaJson.ToolFilter | null,
+        integrationInstanceProviderToolFilter:
+          currentVersion.toolFilter as PrismaJson.ToolFilter | null,
+        integrationInstanceProviderIsOverride: currentVersion.isOverrideToolFilter,
+        delegatedIntegrationInstanceProviderToolFilter:
+          delegatedProvider.toolFilter as PrismaJson.ToolFilter | null,
+        delegatedIntegrationInstanceProviderIsOverride: delegatedProvider.isOverrideToolFilter
+      });
 
       let data = {
         status: 'active' as const,

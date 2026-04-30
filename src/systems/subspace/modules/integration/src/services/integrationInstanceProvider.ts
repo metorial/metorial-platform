@@ -75,6 +75,24 @@ let requireCurrentIntegrationProviderVersion = async (integrationProviderOid: bi
 let isAllowAllToolFilter = (toolFilter: PrismaJson.ToolFilter | null | undefined) =>
   normalizeIntegrationProviderToolFilter(toolFilter).type === 'v1.allow_all';
 
+let stripToolFilterOverrideFlag = (
+  toolFilter: PrismaJson.ToolFilter
+): PrismaJson.ToolFilter => {
+  if (toolFilter.type === 'v1.allow_all') return { type: 'v1.allow_all' };
+
+  return {
+    type: 'v1.filter',
+    filters: toolFilter.filters
+  };
+};
+
+let getInputOverrideToolFilter = (input: SetIntegrationInstanceProviderInput) => {
+  if (input.isOverrideToolFilter !== undefined) return input.isOverrideToolFilter;
+  if (input.toolFilters === undefined) return undefined;
+
+  return normalizeIntegrationProviderToolFilter(input.toolFilters).ignoreParentFilters;
+};
+
 let configOwnershipError = (kind: 'config' | 'auth_config', id: string) =>
   badRequestError({
     message: `Provider ${kind === 'config' ? 'config' : 'auth config'} is already connected to another integration instance provider.`,
@@ -378,7 +396,9 @@ class integrationInstanceProviderServiceImpl {
       let sharedConfigId = materialProvider.currentVersion!.config?.id;
       let existing = existingByIntegrationProviderOid.get(integrationProviders[idx]!.oid);
       let isOverrideToolFilter =
-        input.isOverrideToolFilter ?? existing?.currentVersion?.isOverrideToolFilter ?? false;
+        getInputOverrideToolFilter(input) ??
+        existing?.currentVersion?.isOverrideToolFilter ??
+        false;
 
       if (
         !integration.canAttachCustomProviderConfig &&
@@ -442,17 +462,23 @@ class integrationInstanceProviderServiceImpl {
     let toolFilters = d.input.map((input, idx) => {
       let existing = existingByIntegrationProviderOid.get(integrationProviders[idx]!.oid);
       let isOverrideToolFilter =
-        input.isOverrideToolFilter ?? existing?.currentVersion?.isOverrideToolFilter ?? false;
+        getInputOverrideToolFilter(input) ??
+        existing?.currentVersion?.isOverrideToolFilter ??
+        false;
 
       let toolFilter: PrismaJson.ToolFilter | null;
       if (input.toolFilters === undefined) {
         toolFilter = existing?.currentVersion?.toolFilter
-          ? normalizeIntegrationProviderToolFilter(
-              existing.currentVersion.toolFilter as PrismaJson.ToolFilter
+          ? stripToolFilterOverrideFlag(
+              normalizeIntegrationProviderToolFilter(
+                existing.currentVersion.toolFilter as PrismaJson.ToolFilter
+              )
             )
           : null;
       } else {
-        toolFilter = normalizeIntegrationProviderToolFilter(input.toolFilters);
+        toolFilter = stripToolFilterOverrideFlag(
+          normalizeIntegrationProviderToolFilter(input.toolFilters)
+        );
       }
 
       if (!isOverrideToolFilter && (!toolFilter || isAllowAllToolFilter(toolFilter))) {
@@ -464,7 +490,9 @@ class integrationInstanceProviderServiceImpl {
     let isOverrideToolFilters = d.input.map((input, idx) => {
       let existing = existingByIntegrationProviderOid.get(integrationProviders[idx]!.oid);
       return (
-        input.isOverrideToolFilter ?? existing?.currentVersion?.isOverrideToolFilter ?? false
+        getInputOverrideToolFilter(input) ??
+        existing?.currentVersion?.isOverrideToolFilter ??
+        false
       );
     });
 

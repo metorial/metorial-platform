@@ -124,6 +124,8 @@ declare global {
           )[];
         };
 
+    type ToolFilterChain = ToolFilter | ToolFilter[];
+
     type ProviderSetupSessionProviderSearch = {
       groups?: { groupId: string }[];
       collections?: { collectionId: string }[];

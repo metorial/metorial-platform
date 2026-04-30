@@ -59,7 +59,7 @@ model SessionTemplateProvider {
 
   status SessionTemplateProviderStatus
 
-  /// [ToolFilter]
+  /// [ToolFilterChain]
   toolFilter Json
 
   sessionTemplateOid BigInt

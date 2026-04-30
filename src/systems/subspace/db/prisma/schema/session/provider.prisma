@@ -17,7 +17,7 @@ model SessionProvider {
 
   tag String
 
-  /// [ToolFilter]
+  /// [ToolFilterChain]
   toolFilter Json
 
   sessionOid BigInt

@@ -1,8 +1,62 @@
+import type {
+  DelegatedIntegrationInstance,
+  DelegatedIntegrationInstanceProvider,
+  DelegatedIntegrationInstanceSource,
+  Integration,
+  IntegrationInstance,
+  IntegrationProvider,
+  IntegrationProviderVersion,
+  Provider,
+  ProviderAuthCredentials,
+  ProviderAuthMethod,
+  ProviderConfig,
+  ProviderDeployment,
+  ProviderSpecification
+} from '@metorial-subspace/db';
 import { integrationInstanceProviderPresenter } from './integrationInstanceProvider';
 import { integrationProviderSnapshotPresenter } from './integrationProvider';
 import { providerPreviewPresenter } from './provider';
 
-export let delegatedIntegrationInstanceProviderPresenter = (provider: any) => ({
+let presentToolFilter = (
+  toolFilter: PrismaJson.ToolFilter | null,
+  isOverrideToolFilter?: boolean
+) => {
+  if (!toolFilter) return toolFilter;
+
+  return {
+    ...toolFilter,
+    ignoreParentFilters: isOverrideToolFilter || undefined
+  };
+};
+
+export type PresentedDelegatedIntegrationInstanceProvider =
+  DelegatedIntegrationInstanceProvider & {
+    delegatedIntegrationInstance: DelegatedIntegrationInstance;
+    delegatedIntegrationInstanceSource: DelegatedIntegrationInstanceSource & {
+      integrationInstance: IntegrationInstance;
+    };
+    integration: Integration;
+    integrationInstance: IntegrationInstance;
+    integrationInstanceProvider: Parameters<typeof integrationInstanceProviderPresenter>[0];
+    integrationProvider: IntegrationProvider & {
+      integration: Integration;
+      provider: Provider;
+      currentVersion:
+        | (IntegrationProviderVersion & {
+            deployment: ProviderDeployment;
+            authMethod:
+              | (ProviderAuthMethod & { specification: Omit<ProviderSpecification, 'value'> })
+              | null;
+            authCredentials: ProviderAuthCredentials | null;
+            config: ProviderConfig | null;
+          })
+        | null;
+    };
+  };
+
+export let delegatedIntegrationInstanceProviderPresenter = (
+  provider: PresentedDelegatedIntegrationInstanceProvider
+) => ({
   object: 'delegated.integration.instance.provider',
 
   id: provider.id,
@@ -20,7 +74,8 @@ export let delegatedIntegrationInstanceProviderPresenter = (provider: any) => ({
   integrationInstanceProviderId: provider.integrationInstanceProvider.id,
   integrationProviderId: provider.integrationProvider.id,
 
-  toolFilter: provider.toolFilter,
+  toolFilter: presentToolFilter(provider.toolFilter, provider.isOverrideToolFilter),
+  isOverrideToolFilter: provider.isOverrideToolFilter,
 
   provider: providerPreviewPresenter(provider.integrationProvider.provider),
 

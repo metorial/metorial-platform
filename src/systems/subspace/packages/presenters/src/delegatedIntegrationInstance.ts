@@ -1,6 +1,27 @@
-import { delegatedIntegrationInstanceProviderPresenter } from './delegatedIntegrationInstanceProvider';
+import type {
+  DelegatedIntegrationInstance,
+  DelegatedIntegrationInstanceSource,
+  IntegrationInstance
+} from '@metorial-subspace/db';
+import {
+  delegatedIntegrationInstanceProviderPresenter,
+  type PresentedDelegatedIntegrationInstanceProvider
+} from './delegatedIntegrationInstanceProvider';
 
-export let delegatedIntegrationInstanceSourcePresenter = (source: any) => ({
+export type PresentedDelegatedIntegrationInstanceSource =
+  DelegatedIntegrationInstanceSource & {
+    delegatedIntegrationInstance?: DelegatedIntegrationInstance | null;
+    integrationInstance: IntegrationInstance;
+  };
+
+export type PresentedDelegatedIntegrationInstance = DelegatedIntegrationInstance & {
+  sources: PresentedDelegatedIntegrationInstanceSource[];
+  providers: PresentedDelegatedIntegrationInstanceProvider[];
+};
+
+export let delegatedIntegrationInstanceSourcePresenter = (
+  source: PresentedDelegatedIntegrationInstanceSource
+) => ({
   object: 'delegated.integration.instance.source',
 
   id: source.id,
@@ -14,7 +35,9 @@ export let delegatedIntegrationInstanceSourcePresenter = (source: any) => ({
   archivedAt: source.archivedAt
 });
 
-export let delegatedIntegrationInstancePresenter = (delegatedIntegrationInstance: any) => ({
+export let delegatedIntegrationInstancePresenter = (
+  delegatedIntegrationInstance: PresentedDelegatedIntegrationInstance
+) => ({
   object: 'delegated.integration.instance',
 
   id: delegatedIntegrationInstance.id,

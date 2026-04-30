@@ -41,6 +41,17 @@ export type SetDelegatedIntegrationInstanceProviderInput = {
   toolFilters?: PrismaJson.ToolFilter | null;
 };
 
+let stripToolFilterOverrideFlag = (
+  toolFilter: PrismaJson.ToolFilter
+): PrismaJson.ToolFilter => {
+  if (toolFilter.type === 'v1.allow_all') return { type: 'v1.allow_all' };
+
+  return {
+    type: 'v1.filter',
+    filters: toolFilter.filters
+  };
+};
+
 class delegatedIntegrationInstanceProviderServiceImpl {
   async listDelegatedIntegrationInstanceProviders(d: {
     tenant: Tenant;
@@ -327,15 +338,22 @@ class delegatedIntegrationInstanceProviderServiceImpl {
         );
 
         let input = d.input[idx]!;
+        let existing = existingBySourceProviderOid.get(sourceProvider.oid);
+        let inputToolFilter =
+          input.toolFilters === undefined
+            ? undefined
+            : normalizeToolFilters(input.toolFilters);
+        let isOverrideToolFilter =
+          inputToolFilter?.ignoreParentFilters ?? existing?.isOverrideToolFilter ?? false;
         let toolFilter =
           input.toolFilters === undefined
-            ? ((existingBySourceProviderOid.get(sourceProvider.oid)?.toolFilter as
-                | PrismaJson.ToolFilter
-                | null
-                | undefined) ?? null)
-            : normalizeToolFilters(input.toolFilters);
+            ? existing?.toolFilter
+              ? stripToolFilterOverrideFlag(
+                  normalizeToolFilters(existing.toolFilter as PrismaJson.ToolFilter)
+                )
+              : null
+            : stripToolFilterOverrideFlag(inputToolFilter!);
 
-        let existing = existingBySourceProviderOid.get(sourceProvider.oid);
         let delegatedProvider = existing
           ? await db.delegatedIntegrationInstanceProvider.update({
               where: { oid: existing.oid },
@@ -351,7 +369,8 @@ class delegatedIntegrationInstanceProviderServiceImpl {
                 integrationOid: sourceProvider.integrationOid,
                 integrationInstanceOid: sourceProvider.integrationInstanceOid,
                 integrationProviderOid: sourceProvider.integrationProviderOid,
-                toolFilter: toolFilter ?? Prisma.JsonNull
+                toolFilter: toolFilter ?? Prisma.JsonNull,
+                isOverrideToolFilter
               }
             })
           : await db.delegatedIntegrationInstanceProvider.create({
@@ -369,6 +388,7 @@ class delegatedIntegrationInstanceProviderServiceImpl {
                 integrationInstanceProviderOid: sourceProvider.oid,
                 integrationProviderOid: sourceProvider.integrationProviderOid,
                 toolFilter: toolFilter ?? Prisma.JsonNull,
+                isOverrideToolFilter,
                 tenantOid: d.tenant.oid,
                 solutionOid: d.solution.oid,
                 environmentOid: d.environment.oid

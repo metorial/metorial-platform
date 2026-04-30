@@ -1,10 +1,9 @@
 import { createQueue } from '@lowerdeck/queue';
 import { db, getId, withTransaction } from '@metorial-subspace/db';
+import { buildIntegrationProviderToolFilterChain } from '@metorial-subspace/module-provider-internal';
 import { env } from '../../env';
 import { sessionTemplateArchivedQueue } from './sessionTemplate';
 import { sessionTemplateProviderCreatedQueue } from './sessionTemplateProvider';
-
-let defaultToolFilter = { type: 'v1.allow_all' } satisfies PrismaJson.ToolFilter;
 
 export let syncIntegrationInstanceSessionTemplatesQueue = createQueue<{
   integrationInstanceId: string;
@@ -87,6 +86,7 @@ export let syncIntegrationInstanceSessionTemplateQueueProcessor =
       },
       orderBy: { id: 'asc' },
       include: {
+        integration: true,
         integrationProvider: true,
         currentVersion: {
           include: {
@@ -125,11 +125,17 @@ export let syncIntegrationInstanceSessionTemplateQueueProcessor =
         let existing = existingByIntegrationInstanceProviderOid.get(
           integrationInstanceProvider.oid
         );
-        let toolFilter =
-          (currentVersion.toolFilter as PrismaJson.ToolFilter | null) ??
-          (currentVersion.integrationProviderVersion
-            .toolFilter as PrismaJson.ToolFilter | null) ??
-          defaultToolFilter;
+        let toolFilter = buildIntegrationProviderToolFilterChain({
+          canAttachCustomToolFilters:
+            integrationInstanceProvider.integration.canAttachCustomToolFilters,
+          canOverrideToolFilters:
+            integrationInstanceProvider.integration.canOverrideToolFilters,
+          integrationProviderToolFilter: currentVersion.integrationProviderVersion
+            .toolFilter as PrismaJson.ToolFilter | null,
+          integrationInstanceProviderToolFilter:
+            currentVersion.toolFilter as PrismaJson.ToolFilter | null,
+          integrationInstanceProviderIsOverride: currentVersion.isOverrideToolFilter
+        });
 
         let data = {
           status: 'active' as const,

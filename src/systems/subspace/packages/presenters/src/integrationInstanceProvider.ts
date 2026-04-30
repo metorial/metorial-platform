@@ -18,6 +18,18 @@ import { providerPreviewPresenter } from './provider';
 import { providerAuthConfigPreviewPresenter } from './providerAuthConfig';
 import { providerConfigPreviewPresenter } from './providerConfig';
 
+let presentToolFilter = (
+  toolFilter: PrismaJson.ToolFilter | null,
+  isOverrideToolFilter?: boolean
+) => {
+  if (!toolFilter) return toolFilter;
+
+  return {
+    ...toolFilter,
+    ignoreParentFilters: isOverrideToolFilter || undefined
+  };
+};
+
 export let integrationInstanceProviderVersionPresenter = (d: {
   provider: Provider;
   integrationProvider: IntegrationProvider & { provider: Provider };
@@ -85,7 +97,11 @@ export let integrationInstanceProviderPresenter = (
   integrationInstanceId: integrationInstanceProvider.integrationInstance.id,
   integrationProviderId: integrationInstanceProvider.integrationProvider.id,
 
-  toolFilter: integrationInstanceProvider.currentVersion!.toolFilter,
+  toolFilter: presentToolFilter(
+    integrationInstanceProvider.currentVersion!.toolFilter as PrismaJson.ToolFilter | null,
+    integrationInstanceProvider.currentVersion!.isOverrideToolFilter
+  ),
+  isOverrideToolFilter: integrationInstanceProvider.currentVersion!.isOverrideToolFilter,
 
   provider: providerPreviewPresenter(integrationInstanceProvider.integrationProvider.provider),
 
