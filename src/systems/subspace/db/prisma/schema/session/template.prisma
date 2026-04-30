@@ -14,6 +14,7 @@ model SessionTemplate {
 
   name            String?
   description     String?
+  hash            String?
   metadata        Json?
   privateMetadata Json?
 

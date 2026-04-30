@@ -13,7 +13,10 @@ import {
 } from '@metorial-subspace/db';
 import { providerCombinationService } from '@metorial-subspace/module-provider-internal';
 import { sessionProviderCreatedQueue } from '../queues/lifecycle/sessionProvider';
-import { sessionTemplateProviderCreatedQueue } from '../queues/lifecycle/sessionTemplateProvider';
+import {
+  sessionTemplateProviderCreatedQueue,
+  sessionTemplateSyncHashQueue
+} from '../queues/lifecycle/sessionTemplateProvider';
 import { sessionProviderInclude } from './sessionProvider';
 import { sessionTemplateProviderInclude } from './sessionTemplateProvider';
 
@@ -258,6 +261,12 @@ class sessionProviderInputServiceImpl {
           sessionTemplateProviderCreatedQueue.add({ sessionTemplateProviderId: stp.id })
         );
       }
+
+      await addAfterTransactionHook(async () =>
+        sessionTemplateSyncHashQueue.add({
+          sessionTemplateId: d.template.id
+        })
+      );
 
       return sessionTemplateProviders;
     });

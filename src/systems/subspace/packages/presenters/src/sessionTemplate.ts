@@ -31,6 +31,7 @@ export let sessionTemplatePresenter = (
   id: sessionTemplate.id,
 
   status: sessionTemplate.status,
+  hash: sessionTemplate.hash,
 
   name: sessionTemplate.name,
   description: sessionTemplate.description,

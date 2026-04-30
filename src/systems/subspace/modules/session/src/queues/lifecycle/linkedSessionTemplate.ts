@@ -3,7 +3,10 @@ import { db, getId, withTransaction } from '@metorial-subspace/db';
 import { buildIntegrationProviderToolFilterChain } from '@metorial-subspace/module-provider-internal';
 import { env } from '../../env';
 import { sessionTemplateArchivedQueue } from './sessionTemplate';
-import { sessionTemplateProviderCreatedQueue } from './sessionTemplateProvider';
+import {
+  sessionTemplateProviderCreatedQueue,
+  sessionTemplateSyncHashQueue
+} from './sessionTemplateProvider';
 
 export let syncIntegrationInstanceSessionTemplatesQueue = createQueue<{
   integrationInstanceId: string;
@@ -194,6 +197,10 @@ export let syncIntegrationInstanceSessionTemplateQueueProcessor =
         }))
       );
     }
+
+    await sessionTemplateSyncHashQueue.add({
+      sessionTemplateId: sessionTemplate.id
+    });
   });
 
 export let archiveIntegrationInstanceSessionTemplatesQueue = createQueue<{

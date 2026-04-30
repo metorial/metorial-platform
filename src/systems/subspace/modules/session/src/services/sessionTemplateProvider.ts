@@ -30,6 +30,7 @@ import {
   type DateFilter
 } from '@metorial-subspace/list-utils';
 import { checkTenant } from '@metorial-subspace/module-tenant';
+import { sessionTemplateSyncHashQueue } from '../queues/lifecycle/sessionTemplateProvider';
 import {
   sessionProviderInputService,
   type SessionProviderInput,
@@ -211,8 +212,7 @@ class sessionTemplateProviderServiceImpl {
                   : undefined!,
                 integrationInstanceGroupProviders
                   ? {
-                      integrationInstanceGroupProviderOid:
-                        integrationInstanceGroupProviders.in
+                      integrationInstanceGroupProviderOid: integrationInstanceGroupProviders.in
                     }
                   : undefined!,
 
@@ -323,7 +323,7 @@ class sessionTemplateProviderServiceImpl {
       assertCanWriteSessionTemplateProvider(d.sessionTemplateProvider, 'update');
     }
 
-    return await db.sessionTemplateProvider.update({
+    let sessionTemplateProvider = await db.sessionTemplateProvider.update({
       where: {
         oid: d.sessionTemplateProvider.oid,
         tenantOid: d.tenant.oid,
@@ -335,6 +335,12 @@ class sessionTemplateProviderServiceImpl {
       },
       include
     });
+
+    await sessionTemplateSyncHashQueue.add({
+      sessionTemplateId: sessionTemplateProvider.sessionTemplate.id
+    });
+
+    return sessionTemplateProvider;
   }
 
   async archiveSessionTemplateProvider(d: {
@@ -350,7 +356,7 @@ class sessionTemplateProviderServiceImpl {
       assertCanWriteSessionTemplateProvider(d.sessionTemplateProvider, 'archive');
     }
 
-    return await db.sessionTemplateProvider.update({
+    let sessionTemplateProvider = await db.sessionTemplateProvider.update({
       where: {
         oid: d.sessionTemplateProvider.oid,
         tenantOid: d.tenant.oid,
@@ -362,6 +368,12 @@ class sessionTemplateProviderServiceImpl {
       },
       include
     });
+
+    await sessionTemplateSyncHashQueue.add({
+      sessionTemplateId: sessionTemplateProvider.sessionTemplate.id
+    });
+
+    return sessionTemplateProvider;
   }
 }
 
