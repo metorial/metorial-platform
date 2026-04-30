@@ -7,6 +7,7 @@ export class OAuthDiscovery {
     '/.well-known/openid-configuration',
     '/.well-known/oauth-authorization-server',
     '/.well-known/oauth-protected-resource',
+    '/.well-known/oauth-authorization-server',
     '/oauth/metadata.json'
   ];
 
@@ -72,6 +73,29 @@ export class OAuthDiscovery {
   private static async fetchDiscoveryDocument(
     url: string
   ): Promise<OAuthConfiguration | null> {
+    let config = await this.fetchJsonDocument(url);
+    if (!config) return null;
+
+    if (this.isValidOAuthConfig(config)) {
+      return config;
+    }
+
+    let authServers = this.getProtectedResourceAuthorizationServers(config);
+    if (!authServers || authServers.length === 0) return null;
+
+    for (let serverUrl of authServers) {
+      try {
+        let serverConfig = await this.fetchAuthorizationServerConfig(serverUrl);
+        if (serverConfig) return serverConfig;
+      } catch (error) {
+        console.debug(`Failed to discover authorization server ${serverUrl}:`, error);
+      }
+    }
+
+    return null;
+  }
+
+  private static async fetchJsonDocument(url: string): Promise<any | null> {
     try {
       let response = await axiosWithoutSse(url, {
         method: 'GET',
@@ -89,15 +113,52 @@ export class OAuthDiscovery {
         return null;
       }
 
-      let config = response.data;
-      if (this.isValidOAuthConfig(config)) {
-        return config;
-      }
-
-      return null;
+      return response.data;
     } catch (error) {
       return null;
     }
+  }
+
+  private static async fetchAuthorizationServerConfig(
+    authorizationServerUrl: string
+  ): Promise<OAuthConfiguration | null> {
+    let discoveryUrls = this.getAuthorizationServerDiscoveryUrls(authorizationServerUrl);
+
+    for (let discoveryUrl of discoveryUrls) {
+      let config = await this.fetchJsonDocument(discoveryUrl);
+      if (this.isValidOAuthConfig(config)) return config;
+    }
+
+    return null;
+  }
+
+  private static getAuthorizationServerDiscoveryUrls(authorizationServerUrl: string) {
+    let url: URL;
+
+    try {
+      url = new URL(authorizationServerUrl);
+    } catch (error) {
+      return [];
+    }
+
+    if (url.protocol !== 'https:') return [];
+
+    if (url.pathname.includes('/.well-known/')) {
+      return [url.toString()];
+    }
+
+    let baseUrl = `${url.protocol}//${url.host}`;
+    let pathname = url.pathname === '/' ? '' : url.pathname.replace(/\/$/, '');
+
+    return Array.from(
+      new Set([
+        `${baseUrl}/.well-known/oauth-authorization-server${pathname}`,
+        `${baseUrl}/.well-known/openid-configuration${pathname}`,
+        `${baseUrl}${pathname}/.well-known/oauth-authorization-server`,
+        `${baseUrl}${pathname}/.well-known/openid-configuration`,
+        url.toString()
+      ])
+    );
   }
 
   private static async wwwAuthenticateDiscovery(
@@ -138,7 +199,7 @@ export class OAuthDiscovery {
 
       for (let serverUrl of authServers) {
         try {
-          let config = await this.fetchDiscoveryDocument(serverUrl);
+          let config = await this.fetchAuthorizationServerConfig(serverUrl);
           if (config) {
             return config;
           }
@@ -178,6 +239,22 @@ export class OAuthDiscovery {
     }
 
     return null;
+  }
+
+  private static getProtectedResourceAuthorizationServers(config: any): string[] | null {
+    if (
+      !config ||
+      typeof config !== 'object' ||
+      !Array.isArray(config.authorization_servers)
+    ) {
+      return null;
+    }
+
+    let servers = config.authorization_servers.filter(
+      (server: unknown) => typeof server === 'string'
+    );
+
+    return servers.length > 0 ? servers : null;
   }
 
   private static isValidOAuthConfig(config: any): boolean {
