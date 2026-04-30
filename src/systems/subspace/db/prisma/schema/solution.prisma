@@ -26,6 +26,7 @@ model Solution {
   sessionProviders                         SessionProvider[]
   sessionTemplates                         SessionTemplate[]
   sessionTemplateProviders                 SessionTemplateProvider[]
+  ephemeralManagedSessions                 EphemeralManagedSession[]
   sessionConnections                       SessionConnection[]
   sessionErrors                            SessionError[]
   sessionMessages                          SessionMessage[]

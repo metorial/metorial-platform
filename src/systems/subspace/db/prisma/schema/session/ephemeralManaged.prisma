@@ -1,0 +1,44 @@
+enum EphemeralManagedSessionStatus {
+  active
+  archived
+  deleted
+}
+
+model EphemeralManagedSession {
+  oid BigInt @id
+  id  String @unique
+
+  status     EphemeralManagedSessionStatus
+  archivedAt DateTime?
+
+  maxSessionDurationInMinutes Int
+  templateHash                String?
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  solutionOid Int
+  solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
+
+  sessionTemplateOid BigInt
+  sessionTemplate    SessionTemplate @relation(fields: [sessionTemplateOid], references: [oid])
+
+  currentSessionOid BigInt?  @unique
+  currentSession    Session? @relation("EphemeralManagedSessionCurrentSession", fields: [currentSessionOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  sessions Session[] @relation("EphemeralManagedSessionSessions")
+
+  @@index([createdAt])
+  @@index([updatedAt])
+  @@index([status])
+  @@index([archivedAt])
+  @@index([status, archivedAt])
+  @@index([sessionTemplateOid])
+  @@index([currentSessionOid, status])
+}

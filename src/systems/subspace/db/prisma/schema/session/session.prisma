@@ -35,6 +35,9 @@ model Session {
   solutionOid Int
   solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
 
+  ephemeralManagedSessionOid BigInt?
+  ephemeralManagedSession    EphemeralManagedSession? @relation("EphemeralManagedSessionSessions", fields: [ephemeralManagedSessionOid], references: [oid])
+
   totalProductiveClientMessageCount   Int @default(0)
   totalProductiveProviderMessageCount Int @default(0)
 
@@ -55,6 +58,7 @@ model Session {
   toolCalls                ToolCall[]
   sessionWarnings          SessionWarning[]
   sessionUsageRecords      SessionUsageRecord[]
+  currentForEphemeralManagedSession EphemeralManagedSession? @relation("EphemeralManagedSessionCurrentSession")
 
   @@index([createdAt])
   @@index([updatedAt])
@@ -64,4 +68,5 @@ model Session {
   @@index([archivedAt])
   @@index([status, archivedAt])
   @@index([isEphemeral])
+  @@index([ephemeralManagedSessionOid])
 }

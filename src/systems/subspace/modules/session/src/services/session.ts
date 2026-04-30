@@ -5,7 +5,6 @@ import {
   addAfterTransactionHook,
   db,
   type Environment,
-  getId,
   type Session,
   type SessionStatus,
   type Solution,
@@ -25,23 +24,9 @@ import {
   resolveSessionTemplates
 } from '@metorial-subspace/list-utils';
 import { checkTenant } from '@metorial-subspace/module-tenant';
-import {
-  sessionArchivedQueue,
-  sessionCreatedQueue,
-  sessionUpdatedQueue
-} from '../queues/lifecycle/session';
-import { sessionProviderInclude } from './sessionProvider';
-import {
-  type SessionProviderInput,
-  sessionProviderInputService
-} from './sessionProviderInput';
-
-let include = {
-  providers: {
-    include: sessionProviderInclude,
-    where: { status: 'active' as const }
-  }
-};
+import { sessionArchivedQueue, sessionUpdatedQueue } from '../queues/lifecycle/session';
+import { createSessionRecord, sessionInclude as include } from './_shared/createSession';
+import { type SessionProviderInput } from './sessionProviderInput';
 
 class sessionServiceImpl {
   async listSessions(d: {
@@ -173,51 +158,16 @@ class sessionServiceImpl {
       providers: SessionProviderInput[];
     };
   }) {
-    return withTransaction(async db => {
-      let session = await db.session.create({
-        data: {
-          ...getId('session'),
-          status: 'active',
-
-          isEphemeral: false,
-
-          name: d.input.name?.trim() || undefined,
-          description: d.input.description?.trim() || undefined,
-          metadata: d.input.metadata,
-          privateMetadata: d.input.privateMetadata,
-
-          tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
-          environmentOid: d.environment.oid,
-
-          sessionEvents: {
-            create: {
-              ...getId('sessionEvent'),
-              type: 'session_created',
-              tenantOid: d.tenant.oid,
-              solutionOid: d.solution.oid,
-              environmentOid: d.environment.oid
-            }
-          }
-        },
-        include
-      });
-
-      session.providers = await sessionProviderInputService.createSessionProvidersForInput({
+    return withTransaction(async db =>
+      createSessionRecord({
+        db,
         tenant: d.tenant,
         solution: d.solution,
         environment: d.environment,
-        session,
-
-        providers: d.input.providers
-      });
-
-      await addAfterTransactionHook(async () =>
-        sessionCreatedQueue.add({ sessionId: session.id })
-      );
-
-      return session;
-    });
+        input: d.input,
+        isEphemeral: false
+      })
+    );
   }
 
   async updateSession(d: {

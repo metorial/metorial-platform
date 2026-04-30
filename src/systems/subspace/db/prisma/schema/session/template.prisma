@@ -36,8 +36,9 @@ model SessionTemplate {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  providers        SessionTemplateProvider[]
-  sessionProviders SessionProvider[]
+  providers                SessionTemplateProvider[]
+  sessionProviders         SessionProvider[]
+  ephemeralManagedSessions EphemeralManagedSession[]
 
   @@index([createdAt])
   @@index([updatedAt])

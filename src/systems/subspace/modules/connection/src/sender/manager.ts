@@ -42,6 +42,7 @@ import {
   resolveGrantedScopes
 } from '@metorial-subspace/module-provider-internal';
 import { addDays, addMinutes } from 'date-fns';
+import { ephemeralManagedSessionService } from '../../../session/src/services/ephemeralManagedSession';
 import {
   DEFAULT_SESSION_EXPIRATION_DAYS,
   SESSION_PROVIDER_INSTANCE_EXPIRATION_INCREMENT,
@@ -157,10 +158,23 @@ export class SenderManager {
         solution: true
       }
     });
-    if (!session) return null;
+    if (session) {
+      return {
+        ...session,
+        connection: undefined
+      };
+    }
+
+    let ephemeralManagedSession =
+      await ephemeralManagedSessionService.resolveBackingSessionById({
+        sessionId: d.sessionId,
+        tenantId: d.tenantId,
+        solutionId: d.solutionId
+      });
+    if (!ephemeralManagedSession) return null;
 
     return {
-      ...session,
+      ...ephemeralManagedSession,
       connection: undefined
     };
   }

@@ -84,6 +84,7 @@ export let ID = createIdGenerator({
   upcomingCustomProvider: idType.sorted('ucp'),
 
   session: idType.sorted('ses'),
+  ephemeralManagedSession: idType.sorted('ems'),
   sessionTemplate: idType.sorted('set'),
   sessionTemplateProvider: idType.sorted('stp'),
   sessionProvider: idType.sorted('spv'),
