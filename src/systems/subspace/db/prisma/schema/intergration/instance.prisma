@@ -30,12 +30,20 @@ model IntegrationInstance {
   solutionOid Int
   solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
 
+  identityActorOid BigInt?
+  identityActor    IdentityActor? @relation(fields: [identityActorOid], references: [oid], onDelete: Cascade)
+
+  identityOid BigInt?
+  identity    Identity? @relation(fields: [identityOid], references: [oid], onDelete: Cascade)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
   integrationInstanceProviders IntegrationInstanceProvider[]
   providerConfigs              ProviderConfig[]
   providerAuthConfigs          ProviderAuthConfig[]
+  identityCredentials          IdentityCredential[]
+  ownedIdentities              Identity[]                    @relation("ownedIdentities")
 
   @@index([tenantOid, solutionOid, environmentOid, status])
   @@index([integrationOid, status])
@@ -91,6 +99,7 @@ model IntegrationInstanceProvider {
   integrationInstanceProviderVersions IntegrationInstanceProviderVersion[]
   providerConfigs                     ProviderConfig[]
   providerAuthConfigs                 ProviderAuthConfig[]
+  identityCredential                  IdentityCredential?
 
   @@unique([integrationInstanceOid, integrationProviderOid])
   @@index([tenantOid, solutionOid, environmentOid, status])

@@ -42,6 +42,7 @@ model IdentityActor {
   delegatedIdentities        DelegatedIdentity[]
   identityDelegations        IdentityDelegation[]        @relation("delegations")
   subDelegations             IdentityDelegation[]        @relation("subDelegatedTo")
+  integrationInstances       IntegrationInstance[]
 
   @@index([createdAt])
   @@index([updatedAt])
