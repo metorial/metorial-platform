@@ -1,8 +1,8 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { delegatedIntegrationInstanceService } from '@metorial-subspace/module-integration';
+import { integrationInstanceGroupService } from '@metorial-subspace/module-integration';
 import {
-  delegatedIntegrationInstancePresenter,
+  integrationInstanceGroupPresenter,
   sessionTemplatePresenter
 } from '@metorial-subspace/presenters';
 import { app } from './_app';
@@ -10,30 +10,30 @@ import { createdAtValidator, updatedAtValidator } from './_dateFilter';
 import { normalizeToolFilters, toolFiltersValidator } from './sessionProvider';
 import { tenantApp } from './tenant';
 
-let delegatedIntegrationInstanceProviderInputValidator = v.object({
+let integrationInstanceGroupProviderInputValidator = v.object({
   integrationInstanceProviderId: v.string(),
   toolFilters: toolFiltersValidator
 });
 
-export let delegatedIntegrationInstanceApp = tenantApp.use(async ctx => {
-  let delegatedIntegrationInstanceId = ctx.body.delegatedIntegrationInstanceId;
-  if (!delegatedIntegrationInstanceId) {
-    throw new Error('DelegatedIntegrationInstance ID is required');
+export let integrationInstanceGroupApp = tenantApp.use(async ctx => {
+  let integrationInstanceGroupId = ctx.body.integrationInstanceGroupId;
+  if (!integrationInstanceGroupId) {
+    throw new Error('IntegrationInstanceGroup ID is required');
   }
 
-  let delegatedIntegrationInstance =
-    await delegatedIntegrationInstanceService.getDelegatedIntegrationInstanceById({
-      delegatedIntegrationInstanceId,
+  let integrationInstanceGroup =
+    await integrationInstanceGroupService.getIntegrationInstanceGroupById({
+      integrationInstanceGroupId,
       tenant: ctx.tenant,
       environment: ctx.environment,
       solution: ctx.solution,
       allowDeleted: ctx.body.allowDeleted
     });
 
-  return { delegatedIntegrationInstance };
+  return { integrationInstanceGroup };
 });
 
-export let delegatedIntegrationInstanceController = app.controller({
+export let integrationInstanceGroupController = app.controller({
   list: tenantApp
     .handler()
     .input(
@@ -63,7 +63,7 @@ export let delegatedIntegrationInstanceController = app.controller({
     )
     .do(async ctx => {
       let paginator =
-        await delegatedIntegrationInstanceService.listDelegatedIntegrationInstances({
+        await integrationInstanceGroupService.listIntegrationInstanceGroups({
           tenant: ctx.tenant,
           environment: ctx.environment,
           solution: ctx.solution,
@@ -88,20 +88,20 @@ export let delegatedIntegrationInstanceController = app.controller({
 
       let list = await paginator.run(ctx.input);
 
-      return Paginator.presentLight(list, delegatedIntegrationInstancePresenter);
+      return Paginator.presentLight(list, integrationInstanceGroupPresenter);
     }),
 
-  get: delegatedIntegrationInstanceApp
+  get: integrationInstanceGroupApp
     .handler()
     .input(
       v.object({
         tenantId: v.string(),
         environmentId: v.string(),
-        delegatedIntegrationInstanceId: v.string(),
+        integrationInstanceGroupId: v.string(),
         allowDeleted: v.optional(v.boolean())
       })
     )
-    .do(async ctx => delegatedIntegrationInstancePresenter(ctx.delegatedIntegrationInstance)),
+    .do(async ctx => integrationInstanceGroupPresenter(ctx.integrationInstanceGroup)),
 
   create: tenantApp
     .handler()
@@ -114,12 +114,12 @@ export let delegatedIntegrationInstanceController = app.controller({
         description: v.optional(v.string()),
         metadata: v.optional(v.record(v.any())),
         privateMetadata: v.optional(v.record(v.any())),
-        providers: v.optional(v.array(delegatedIntegrationInstanceProviderInputValidator))
+        providers: v.optional(v.array(integrationInstanceGroupProviderInputValidator))
       })
     )
     .do(async ctx => {
-      let delegatedIntegrationInstance =
-        await delegatedIntegrationInstanceService.createDelegatedIntegrationInstance({
+      let integrationInstanceGroup =
+        await integrationInstanceGroupService.createIntegrationInstanceGroup({
           tenant: ctx.tenant,
           environment: ctx.environment,
           solution: ctx.solution,
@@ -137,32 +137,32 @@ export let delegatedIntegrationInstanceController = app.controller({
           }
         });
 
-      return delegatedIntegrationInstancePresenter(delegatedIntegrationInstance);
+      return integrationInstanceGroupPresenter(integrationInstanceGroup);
     }),
 
-  update: delegatedIntegrationInstanceApp
+  update: integrationInstanceGroupApp
     .handler()
     .input(
       v.object({
         tenantId: v.string(),
         environmentId: v.string(),
-        delegatedIntegrationInstanceId: v.string(),
+        integrationInstanceGroupId: v.string(),
         allowDeleted: v.optional(v.boolean()),
 
         name: v.optional(v.string()),
         description: v.optional(v.nullable(v.string())),
         metadata: v.optional(v.nullable(v.record(v.any()))),
         privateMetadata: v.optional(v.nullable(v.record(v.any()))),
-        providers: v.optional(v.array(delegatedIntegrationInstanceProviderInputValidator))
+        providers: v.optional(v.array(integrationInstanceGroupProviderInputValidator))
       })
     )
     .do(async ctx => {
-      let delegatedIntegrationInstance =
-        await delegatedIntegrationInstanceService.updateDelegatedIntegrationInstance({
+      let integrationInstanceGroup =
+        await integrationInstanceGroupService.updateIntegrationInstanceGroup({
           tenant: ctx.tenant,
           environment: ctx.environment,
           solution: ctx.solution,
-          delegatedIntegrationInstance: ctx.delegatedIntegrationInstance,
+          integrationInstanceGroup: ctx.integrationInstanceGroup,
           input: {
             name: ctx.input.name,
             description: ctx.input.description,
@@ -177,16 +177,16 @@ export let delegatedIntegrationInstanceController = app.controller({
           }
         });
 
-      return delegatedIntegrationInstancePresenter(delegatedIntegrationInstance);
+      return integrationInstanceGroupPresenter(integrationInstanceGroup);
     }),
 
-  createSessionTemplate: delegatedIntegrationInstanceApp
+  createSessionTemplate: integrationInstanceGroupApp
     .handler()
     .input(
       v.object({
         tenantId: v.string(),
         environmentId: v.string(),
-        delegatedIntegrationInstanceId: v.string(),
+        integrationInstanceGroupId: v.string(),
 
         name: v.optional(v.string()),
         description: v.optional(v.string()),
@@ -196,12 +196,12 @@ export let delegatedIntegrationInstanceController = app.controller({
     )
     .do(async ctx => {
       let sessionTemplate =
-        await delegatedIntegrationInstanceService.createSessionTemplateForDelegatedIntegrationInstance(
+        await integrationInstanceGroupService.createSessionTemplateForIntegrationInstanceGroup(
           {
             tenant: ctx.tenant,
             environment: ctx.environment,
             solution: ctx.solution,
-            delegatedIntegrationInstance: ctx.delegatedIntegrationInstance,
+            integrationInstanceGroup: ctx.integrationInstanceGroup,
             input: {
               name: ctx.input.name,
               description: ctx.input.description,
@@ -214,25 +214,25 @@ export let delegatedIntegrationInstanceController = app.controller({
       return sessionTemplatePresenter(sessionTemplate);
     }),
 
-  delete: delegatedIntegrationInstanceApp
+  delete: integrationInstanceGroupApp
     .handler()
     .input(
       v.object({
         tenantId: v.string(),
         environmentId: v.string(),
-        delegatedIntegrationInstanceId: v.string(),
+        integrationInstanceGroupId: v.string(),
         allowDeleted: v.optional(v.boolean())
       })
     )
     .do(async ctx => {
-      let delegatedIntegrationInstance =
-        await delegatedIntegrationInstanceService.archiveDelegatedIntegrationInstance({
+      let integrationInstanceGroup =
+        await integrationInstanceGroupService.archiveIntegrationInstanceGroup({
           tenant: ctx.tenant,
           environment: ctx.environment,
           solution: ctx.solution,
-          delegatedIntegrationInstance: ctx.delegatedIntegrationInstance
+          integrationInstanceGroup: ctx.integrationInstanceGroup
         });
 
-      return delegatedIntegrationInstancePresenter(delegatedIntegrationInstance);
+      return integrationInstanceGroupPresenter(integrationInstanceGroup);
     })
 });

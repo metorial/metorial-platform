@@ -131,9 +131,9 @@ export let ID = createIdGenerator({
   agentInstance: idType.sorted('agi'),
 
   integration: idType.sorted('int'),
-  delegatedIntegrationInstance: idType.sorted('dii'),
-  delegatedIntegrationInstanceSource: idType.sorted('dis'),
-  delegatedIntegrationInstanceProvider: idType.sorted('dip'),
+  integrationInstanceGroup: idType.sorted('dii'),
+  integrationInstanceGroupSource: idType.sorted('dis'),
+  integrationInstanceGroupProvider: idType.sorted('dip'),
   integrationInstance: idType.sorted('ini'),
   integrationInstanceProvider: idType.sorted('iip'),
   integrationInstanceProviderVersion: idType.sorted('iiv'),

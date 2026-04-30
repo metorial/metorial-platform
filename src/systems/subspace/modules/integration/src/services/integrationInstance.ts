@@ -88,7 +88,7 @@ export let integrationInstanceInclude = {
 
 let linkedSessionTemplateInclude = {
   integrationInstance: true,
-  delegatedIntegrationInstance: true,
+  integrationInstanceGroup: true,
   providers: {
     where: { status: 'active' as const },
     include: {
@@ -97,11 +97,11 @@ let linkedSessionTemplateInclude = {
       config: true,
       authConfig: true,
       integrationInstanceProvider: true,
-      delegatedIntegrationInstanceProvider: true,
+      integrationInstanceGroupProvider: true,
       sessionTemplate: {
         include: {
           integrationInstance: true,
-          delegatedIntegrationInstance: true
+          integrationInstanceGroup: true
         }
       }
     }

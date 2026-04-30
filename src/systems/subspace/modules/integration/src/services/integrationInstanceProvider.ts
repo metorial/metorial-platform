@@ -103,6 +103,16 @@ let configOwnershipError = (kind: 'config' | 'auth_config', id: string) =>
     data: { id }
   });
 
+let deploymentLockError = (kind: 'config' | 'auth_config', id: string) =>
+  badRequestError({
+    message: `Provider ${kind === 'config' ? 'config' : 'auth config'} is locked to a different deployment.`,
+    code:
+      kind === 'config'
+        ? 'provider_config_deployment_mismatch'
+        : 'provider_auth_config_deployment_mismatch',
+    data: { id }
+  });
+
 let assertCanUseOwnedResource = (d: {
   kind: 'config' | 'auth_config';
   resource: Pick<
@@ -511,6 +521,13 @@ class integrationInstanceProviderServiceImpl {
           integrationInstanceOid: d.integrationInstance.oid,
           integrationInstanceProviderOid: existing?.oid
         });
+        if (
+          combination.config.deploymentOid &&
+          combination.config.deploymentOid !== deploymentOid
+        ) {
+          throw new ServiceError(deploymentLockError('config', combination.config.id));
+        }
+
         if (combination.authConfig) {
           assertCanUseOwnedResource({
             kind: 'auth_config',
@@ -518,6 +535,12 @@ class integrationInstanceProviderServiceImpl {
             integrationInstanceOid: d.integrationInstance.oid,
             integrationInstanceProviderOid: existing?.oid
           });
+          if (
+            combination.authConfig.deploymentOid &&
+            combination.authConfig.deploymentOid !== deploymentOid
+          ) {
+            throw new ServiceError(deploymentLockError('auth_config', combination.authConfig.id));
+          }
         }
 
         let integrationInstanceProvider = existing
@@ -553,14 +576,21 @@ class integrationInstanceProviderServiceImpl {
         let configUpdate = await db.providerConfig.updateMany({
           where: {
             oid: combination.config.oid,
-            OR: [
+            AND: [
               {
-                owningIntegrationInstanceOid: null,
-                owningIntegrationInstanceProviderOid: null
+                OR: [
+                  {
+                    owningIntegrationInstanceOid: null,
+                    owningIntegrationInstanceProviderOid: null
+                  },
+                  {
+                    owningIntegrationInstanceOid: d.integrationInstance.oid,
+                    owningIntegrationInstanceProviderOid: integrationInstanceProvider.oid
+                  }
+                ]
               },
               {
-                owningIntegrationInstanceOid: d.integrationInstance.oid,
-                owningIntegrationInstanceProviderOid: integrationInstanceProvider.oid
+                OR: [{ deploymentOid: null }, { deploymentOid: deploymentOid }]
               }
             ]
           },
@@ -578,14 +608,21 @@ class integrationInstanceProviderServiceImpl {
           let authConfigUpdate = await db.providerAuthConfig.updateMany({
             where: {
               oid: combination.authConfig.oid,
-              OR: [
+              AND: [
                 {
-                  owningIntegrationInstanceOid: null,
-                  owningIntegrationInstanceProviderOid: null
+                  OR: [
+                    {
+                      owningIntegrationInstanceOid: null,
+                      owningIntegrationInstanceProviderOid: null
+                    },
+                    {
+                      owningIntegrationInstanceOid: d.integrationInstance.oid,
+                      owningIntegrationInstanceProviderOid: integrationInstanceProvider.oid
+                    }
+                  ]
                 },
                 {
-                  owningIntegrationInstanceOid: d.integrationInstance.oid,
-                  owningIntegrationInstanceProviderOid: integrationInstanceProvider.oid
+                  OR: [{ deploymentOid: null }, { deploymentOid: deploymentOid }]
                 }
               ]
             },

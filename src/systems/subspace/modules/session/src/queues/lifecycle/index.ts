@@ -1,10 +1,10 @@
 import { combineQueueProcessors } from '@lowerdeck/queue';
 import {
-  archiveDelegatedIntegrationInstanceSessionTemplateQueueProcessor,
-  archiveDelegatedIntegrationInstanceSessionTemplatesQueueProcessor,
-  syncDelegatedIntegrationInstanceSessionTemplateQueueProcessor,
-  syncDelegatedIntegrationInstanceSessionTemplatesQueueProcessor
-} from './linkedDelegatedIntegrationTemplate';
+  archiveIntegrationInstanceGroupSessionTemplateQueueProcessor,
+  archiveIntegrationInstanceGroupSessionTemplatesQueueProcessor,
+  syncIntegrationInstanceGroupSessionTemplateQueueProcessor,
+  syncIntegrationInstanceGroupSessionTemplatesQueueProcessor
+} from './linkedIntegrationInstanceGroupTemplate';
 import {
   archiveIntegrationInstanceSessionTemplateQueueProcessor,
   archiveIntegrationInstanceSessionTemplatesQueueProcessor,
@@ -35,10 +35,10 @@ export let lifecycleQueues = combineQueueProcessors([
   syncIntegrationInstanceSessionTemplateQueueProcessor,
   archiveIntegrationInstanceSessionTemplatesQueueProcessor,
   archiveIntegrationInstanceSessionTemplateQueueProcessor,
-  syncDelegatedIntegrationInstanceSessionTemplatesQueueProcessor,
-  syncDelegatedIntegrationInstanceSessionTemplateQueueProcessor,
-  archiveDelegatedIntegrationInstanceSessionTemplatesQueueProcessor,
-  archiveDelegatedIntegrationInstanceSessionTemplateQueueProcessor,
+  syncIntegrationInstanceGroupSessionTemplatesQueueProcessor,
+  syncIntegrationInstanceGroupSessionTemplateQueueProcessor,
+  archiveIntegrationInstanceGroupSessionTemplatesQueueProcessor,
+  archiveIntegrationInstanceGroupSessionTemplateQueueProcessor,
   sessionTemplateArchivedQueueProcessor,
   sessionTemplateArchiveSessionsManyQueueProcessor,
   sessionTemplateDeletedQueueProcessor,

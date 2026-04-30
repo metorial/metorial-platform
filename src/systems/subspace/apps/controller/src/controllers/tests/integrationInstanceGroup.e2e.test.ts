@@ -13,10 +13,10 @@ import {
   type Tenant
 } from '@metorial-subspace/db';
 import {
-  delegatedIntegrationInstanceProviderService,
-  delegatedIntegrationInstanceService
+  integrationInstanceGroupProviderService,
+  integrationInstanceGroupService
 } from '@metorial-subspace/module-integration';
-import { syncDelegatedIntegrationInstanceSessionTemplate } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedDelegatedIntegrationTemplate';
+import { syncIntegrationInstanceGroupSessionTemplate } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedIntegrationInstanceGroupTemplate';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createSubspaceControllerRootTestClient } from '../../test/client';
 import { cleanDatabase, testDb } from '../../test/setup';
@@ -389,7 +389,7 @@ let createIntegrationGraph = async (d: {
   };
 };
 
-describe('delegatedIntegrationInstance.e2e', () => {
+describe('integrationInstanceGroup.e2e', () => {
   beforeEach(async () => {
     await cleanDatabase();
   });
@@ -433,11 +433,11 @@ describe('delegatedIntegrationInstance.e2e', () => {
       solution: solutionRecord
     });
 
-    let delegated = await testDb.delegatedIntegrationInstance.create({
+    let group = await testDb.integrationInstanceGroup.create({
       data: {
-        ...getId('delegatedIntegrationInstance'),
+        ...getId('integrationInstanceGroup'),
         status: 'draft',
-        name: 'Delegated instance',
+        name: 'Instance group',
         tenantOid: tenantRecord.oid,
         solutionOid: solutionRecord.oid,
         environmentOid: environmentRecord.oid
@@ -445,12 +445,12 @@ describe('delegatedIntegrationInstance.e2e', () => {
     });
 
     let providers =
-      await delegatedIntegrationInstanceProviderService.setDelegatedIntegrationInstanceProviders(
+      await integrationInstanceGroupProviderService.setIntegrationInstanceGroupProviders(
         {
           tenant: tenantRecord,
           environment: environmentRecord,
           solution: solutionRecord,
-          delegatedIntegrationInstance: delegated,
+          integrationInstanceGroup: group,
           input: [
             {
               integrationInstanceProviderId: graph.firstInstanceProvider.id,
@@ -469,26 +469,26 @@ describe('delegatedIntegrationInstance.e2e', () => {
       filters: [{ type: 'tool_keys', keys: ['search'] }]
     });
 
-    let fetchedDelegated =
-      await delegatedIntegrationInstanceService.getDelegatedIntegrationInstanceById({
+    let fetchedGroup =
+      await integrationInstanceGroupService.getIntegrationInstanceGroupById({
         tenant: tenantRecord,
         environment: environmentRecord,
         solution: solutionRecord,
-        delegatedIntegrationInstanceId: delegated.id
+        integrationInstanceGroupId: group.id
       });
 
     let sessionTemplate =
-      await delegatedIntegrationInstanceService.createSessionTemplateForDelegatedIntegrationInstance(
+      await integrationInstanceGroupService.createSessionTemplateForIntegrationInstanceGroup(
         {
           tenant: tenantRecord,
           environment: environmentRecord,
           solution: solutionRecord,
-          delegatedIntegrationInstance: fetchedDelegated,
-          input: { name: 'Delegated template' }
+          integrationInstanceGroup: fetchedGroup,
+          input: { name: 'Instance group template' }
         }
       );
 
-    await syncDelegatedIntegrationInstanceSessionTemplate({
+    await syncIntegrationInstanceGroupSessionTemplate({
       sessionTemplateId: sessionTemplate.id
     });
 
@@ -500,20 +500,20 @@ describe('delegatedIntegrationInstance.e2e', () => {
       true
     );
     expect(
-      templateProviders.every(provider => provider.delegatedIntegrationInstanceProviderOid)
+      templateProviders.every(provider => provider.integrationInstanceGroupProviderOid)
     ).toBe(true);
 
     let session = await client.session.create({
       tenantId: tenant.id,
       environmentId: environmentRecord.id,
-      name: 'Delegated session',
+      name: 'Instance group session',
       providers: [{ sessionTemplateId: sessionTemplate.id }]
     });
 
     expect(session.providers).toHaveLength(2);
   });
 
-  it('rejects duplicate integration providers in one delegated instance', async () => {
+  it('rejects duplicate integration providers in one instance group', async () => {
     let anonymousClient = createSubspaceControllerRootTestClient();
     let solution = await anonymousClient.solution.upsert({
       name: 'Test Solution',
@@ -590,11 +590,11 @@ describe('delegatedIntegrationInstance.e2e', () => {
       data: { currentVersionOid: duplicateVersion.oid }
     });
 
-    let delegated = await testDb.delegatedIntegrationInstance.create({
+    let group = await testDb.integrationInstanceGroup.create({
       data: {
-        ...getId('delegatedIntegrationInstance'),
+        ...getId('integrationInstanceGroup'),
         status: 'draft',
-        name: 'Delegated instance',
+        name: 'Instance group',
         tenantOid: tenantRecord.oid,
         solutionOid: solutionRecord.oid,
         environmentOid: environmentRecord.oid
@@ -602,11 +602,11 @@ describe('delegatedIntegrationInstance.e2e', () => {
     });
 
     await expect(
-      delegatedIntegrationInstanceProviderService.setDelegatedIntegrationInstanceProviders({
+      integrationInstanceGroupProviderService.setIntegrationInstanceGroupProviders({
         tenant: tenantRecord,
         environment: environmentRecord,
         solution: solutionRecord,
-        delegatedIntegrationInstance: delegated,
+        integrationInstanceGroup: group,
         input: [
           { integrationInstanceProviderId: graph.firstInstanceProvider.id },
           { integrationInstanceProviderId: duplicateProvider.id }

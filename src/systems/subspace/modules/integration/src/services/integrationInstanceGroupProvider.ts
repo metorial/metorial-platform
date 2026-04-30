@@ -4,9 +4,9 @@ import { Service } from '@lowerdeck/service';
 import {
   addAfterTransactionHook,
   db,
-  type DelegatedIntegrationInstance,
-  type DelegatedIntegrationInstanceProvider,
-  type DelegatedIntegrationInstanceProviderStatus,
+  type IntegrationInstanceGroup,
+  type IntegrationInstanceGroupProvider,
+  type IntegrationInstanceGroupProviderStatus,
   type Environment,
   getId,
   Prisma,
@@ -33,10 +33,10 @@ import {
 } from '@metorial-subspace/list-utils';
 import { normalizeToolFilters } from '@metorial-subspace/module-provider-internal';
 import { checkTenant } from '@metorial-subspace/module-tenant';
-import { delegatedIntegrationInstanceProviderSetQueue } from '../queues/lifecycle/delegatedIntegrationInstanceProvider';
-import { delegatedIntegrationInstanceProviderInclude } from './delegatedIntegrationInstance';
+import { integrationInstanceGroupProviderSetQueue } from '../queues/lifecycle/integrationInstanceGroupProvider';
+import { integrationInstanceGroupProviderInclude } from './integrationInstanceGroup';
 
-export type SetDelegatedIntegrationInstanceProviderInput = {
+export type SetIntegrationInstanceGroupProviderInput = {
   integrationInstanceProviderId: string;
   toolFilters?: PrismaJson.ToolFilter | null;
 };
@@ -52,17 +52,17 @@ let stripToolFilterOverrideFlag = (
   };
 };
 
-class delegatedIntegrationInstanceProviderServiceImpl {
-  async listDelegatedIntegrationInstanceProviders(d: {
+class integrationInstanceGroupProviderServiceImpl {
+  async listIntegrationInstanceGroupProviders(d: {
     tenant: Tenant;
     solution: Solution;
     environment: Environment;
 
-    status?: DelegatedIntegrationInstanceProviderStatus[];
+    status?: IntegrationInstanceGroupProviderStatus[];
     allowDeleted?: boolean;
 
     ids?: string[];
-    delegatedIntegrationInstanceIds?: string[];
+    integrationInstanceGroupIds?: string[];
     integrationIds?: string[];
     integrationInstanceIds?: string[];
     integrationInstanceProviderIds?: string[];
@@ -92,7 +92,7 @@ class delegatedIntegrationInstanceProviderServiceImpl {
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
-          await db.delegatedIntegrationInstanceProvider.findMany({
+          await db.integrationInstanceGroupProvider.findMany({
             ...opts,
             where: {
               tenantOid: d.tenant.oid,
@@ -103,10 +103,10 @@ class delegatedIntegrationInstanceProviderServiceImpl {
 
               AND: [
                 d.ids ? { id: { in: d.ids } } : undefined!,
-                d.delegatedIntegrationInstanceIds
+                d.integrationInstanceGroupIds
                   ? {
-                      delegatedIntegrationInstance: {
-                        id: { in: d.delegatedIntegrationInstanceIds }
+                      integrationInstanceGroup: {
+                        id: { in: d.integrationInstanceGroupIds }
                       }
                     }
                   : undefined!,
@@ -157,34 +157,34 @@ class delegatedIntegrationInstanceProviderServiceImpl {
                 d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
               ].filter(Boolean)
             },
-            include: delegatedIntegrationInstanceProviderInclude
+            include: integrationInstanceGroupProviderInclude
           })
       )
     );
   }
 
-  async getDelegatedIntegrationInstanceProviderById(d: {
+  async getIntegrationInstanceGroupProviderById(d: {
     tenant: Tenant;
     solution: Solution;
     environment: Environment;
-    delegatedIntegrationInstanceProviderId: string;
+    integrationInstanceGroupProviderId: string;
     allowDeleted?: boolean;
   }) {
-    let provider = await db.delegatedIntegrationInstanceProvider.findFirst({
+    let provider = await db.integrationInstanceGroupProvider.findFirst({
       where: {
-        id: d.delegatedIntegrationInstanceProviderId,
+        id: d.integrationInstanceGroupProviderId,
         tenantOid: d.tenant.oid,
         solutionOid: d.solution.oid,
         environmentOid: d.environment.oid,
         ...normalizeStatusForGet(d).hasParent
       },
-      include: delegatedIntegrationInstanceProviderInclude
+      include: integrationInstanceGroupProviderInclude
     });
     if (!provider) {
       throw new ServiceError(
         notFoundError(
-          'delegated.integration.instance.provider',
-          d.delegatedIntegrationInstanceProviderId
+          'integration.instance.group.provider',
+          d.integrationInstanceGroupProviderId
         )
       );
     }
@@ -192,15 +192,15 @@ class delegatedIntegrationInstanceProviderServiceImpl {
     return provider;
   }
 
-  async setDelegatedIntegrationInstanceProviders(d: {
+  async setIntegrationInstanceGroupProviders(d: {
     tenant: Tenant;
     solution: Solution;
     environment: Environment;
-    delegatedIntegrationInstance: DelegatedIntegrationInstance;
-    input: SetDelegatedIntegrationInstanceProviderInput[];
+    integrationInstanceGroup: IntegrationInstanceGroup;
+    input: SetIntegrationInstanceGroupProviderInput[];
   }) {
-    checkTenant(d, d.delegatedIntegrationInstance);
-    checkDeletedRelation(d.delegatedIntegrationInstance);
+    checkTenant(d, d.integrationInstanceGroup);
+    checkDeletedRelation(d.integrationInstanceGroup);
 
     if (d.input.length === 0) return [];
 
@@ -258,8 +258,8 @@ class delegatedIntegrationInstanceProviderServiceImpl {
         throw new ServiceError(
           badRequestError({
             message:
-              'Delegated integration instance provider inputs contain duplicate integration providers.',
-            code: 'duplicate_delegated_integration_instance_provider'
+              'Integration instance group provider inputs contain duplicate integration providers.',
+            code: 'duplicate_integration_instance_group_provider'
           })
         );
       }
@@ -270,17 +270,17 @@ class delegatedIntegrationInstanceProviderServiceImpl {
         throw new ServiceError(
           badRequestError({
             message:
-              'Delegated integration instance provider inputs contain duplicate source providers.',
-            code: 'duplicate_delegated_integration_instance_source_provider'
+              'Integration instance group provider inputs contain duplicate source providers.',
+            code: 'duplicate_integration_instance_group_source_provider'
           })
         );
       }
       seenIntegrationInstanceProviderOids.add(sourceProviderOid);
     }
 
-    let existingSources = await db.delegatedIntegrationInstanceSource.findMany({
+    let existingSources = await db.integrationInstanceGroupSource.findMany({
       where: {
-        delegatedIntegrationInstanceOid: d.delegatedIntegrationInstance.oid,
+        integrationInstanceGroupOid: d.integrationInstanceGroup.oid,
         integrationInstanceOid: {
           in: orderedSourceProviders.map(provider => provider.integrationInstanceOid)
         }
@@ -290,16 +290,16 @@ class delegatedIntegrationInstanceProviderServiceImpl {
       existingSources.map(source => [source.integrationInstanceOid, source])
     );
 
-    let existingDelegatedProviders = await db.delegatedIntegrationInstanceProvider.findMany({
+    let existingGroupProviders = await db.integrationInstanceGroupProvider.findMany({
       where: {
-        delegatedIntegrationInstanceOid: d.delegatedIntegrationInstance.oid,
+        integrationInstanceGroupOid: d.integrationInstanceGroup.oid,
         integrationInstanceProviderOid: {
           in: orderedSourceProviders.map(provider => provider.oid)
         }
       }
     });
     let existingBySourceProviderOid = new Map(
-      existingDelegatedProviders.map(provider => [
+      existingGroupProviders.map(provider => [
         provider.integrationInstanceProviderOid,
         provider
       ])
@@ -313,7 +313,7 @@ class delegatedIntegrationInstanceProviderServiceImpl {
           sourceProvider.integrationInstanceOid
         );
         let source = existingSource
-          ? await db.delegatedIntegrationInstanceSource.update({
+          ? await db.integrationInstanceGroupSource.update({
               where: { oid: existingSource.oid },
               data: {
                 status: 'active',
@@ -321,11 +321,11 @@ class delegatedIntegrationInstanceProviderServiceImpl {
                 isParentDeleted: false
               }
             })
-          : await db.delegatedIntegrationInstanceSource.create({
+          : await db.integrationInstanceGroupSource.create({
               data: {
-                ...getId('delegatedIntegrationInstanceSource'),
+                ...getId('integrationInstanceGroupSource'),
                 status: 'active',
-                delegatedIntegrationInstanceOid: d.delegatedIntegrationInstance.oid,
+                integrationInstanceGroupOid: d.integrationInstanceGroup.oid,
                 integrationInstanceOid: sourceProvider.integrationInstanceOid,
                 tenantOid: d.tenant.oid,
                 solutionOid: d.solution.oid,
@@ -354,8 +354,8 @@ class delegatedIntegrationInstanceProviderServiceImpl {
               : null
             : stripToolFilterOverrideFlag(inputToolFilter!);
 
-        let delegatedProvider = existing
-          ? await db.delegatedIntegrationInstanceProvider.update({
+        let groupProvider = existing
+          ? await db.integrationInstanceGroupProvider.update({
               where: { oid: existing.oid },
               data: {
                 status: 'active',
@@ -365,7 +365,7 @@ class delegatedIntegrationInstanceProviderServiceImpl {
                 description: sourceProvider.description,
                 metadata: sourceProvider.metadata,
                 privateMetadata: sourceProvider.privateMetadata,
-                delegatedIntegrationInstanceSourceOid: source.oid,
+                integrationInstanceGroupSourceOid: source.oid,
                 integrationOid: sourceProvider.integrationOid,
                 integrationInstanceOid: sourceProvider.integrationInstanceOid,
                 integrationProviderOid: sourceProvider.integrationProviderOid,
@@ -373,16 +373,16 @@ class delegatedIntegrationInstanceProviderServiceImpl {
                 isOverrideToolFilter
               }
             })
-          : await db.delegatedIntegrationInstanceProvider.create({
+          : await db.integrationInstanceGroupProvider.create({
               data: {
-                ...getId('delegatedIntegrationInstanceProvider'),
+                ...getId('integrationInstanceGroupProvider'),
                 status: 'active',
                 name: sourceProvider.name,
                 description: sourceProvider.description,
                 metadata: sourceProvider.metadata,
                 privateMetadata: sourceProvider.privateMetadata,
-                delegatedIntegrationInstanceOid: d.delegatedIntegrationInstance.oid,
-                delegatedIntegrationInstanceSourceOid: source.oid,
+                integrationInstanceGroupOid: d.integrationInstanceGroup.oid,
+                integrationInstanceGroupSourceOid: source.oid,
                 integrationOid: sourceProvider.integrationOid,
                 integrationInstanceOid: sourceProvider.integrationInstanceOid,
                 integrationInstanceProviderOid: sourceProvider.oid,
@@ -395,26 +395,26 @@ class delegatedIntegrationInstanceProviderServiceImpl {
               }
             });
 
-        providerOids.push(delegatedProvider.oid);
+        providerOids.push(groupProvider.oid);
       }
 
-      await db.delegatedIntegrationInstance.update({
-        where: { oid: d.delegatedIntegrationInstance.oid },
+      await db.integrationInstanceGroup.update({
+        where: { oid: d.integrationInstanceGroup.oid },
         data: { status: 'active' }
       });
 
-      let providers = await db.delegatedIntegrationInstanceProvider.findMany({
+      let providers = await db.integrationInstanceGroupProvider.findMany({
         where: { oid: { in: providerOids } },
-        include: delegatedIntegrationInstanceProviderInclude
+        include: integrationInstanceGroupProviderInclude
       });
       let providersByOid = new Map(providers.map(provider => [provider.oid, provider]));
       let orderedProviders = providerOids.map(oid => providersByOid.get(oid)!);
 
       await addAfterTransactionHook(async () =>
-        delegatedIntegrationInstanceProviderSetQueue.addMany(
+        integrationInstanceGroupProviderSetQueue.addMany(
           orderedProviders.map(provider => ({
-            delegatedIntegrationInstanceId: d.delegatedIntegrationInstance.id,
-            delegatedIntegrationInstanceProviderId: provider.id
+            integrationInstanceGroupId: d.integrationInstanceGroup.id,
+            integrationInstanceGroupProviderId: provider.id
           }))
         )
       );
@@ -423,14 +423,14 @@ class delegatedIntegrationInstanceProviderServiceImpl {
     });
   }
 
-  async setDelegatedIntegrationInstanceProvider(d: {
+  async setIntegrationInstanceGroupProvider(d: {
     tenant: Tenant;
     solution: Solution;
     environment: Environment;
-    delegatedIntegrationInstance: DelegatedIntegrationInstance;
-    input: SetDelegatedIntegrationInstanceProviderInput;
+    integrationInstanceGroup: IntegrationInstanceGroup;
+    input: SetIntegrationInstanceGroupProviderInput;
   }) {
-    let [provider] = await this.setDelegatedIntegrationInstanceProviders({
+    let [provider] = await this.setIntegrationInstanceGroupProviders({
       ...d,
       input: [d.input]
     });
@@ -438,8 +438,8 @@ class delegatedIntegrationInstanceProviderServiceImpl {
     if (!provider) {
       throw new ServiceError(
         badRequestError({
-          message: 'Delegated integration instance provider could not be set.',
-          code: 'delegated_integration_instance_provider_not_set'
+          message: 'Integration instance group provider could not be set.',
+          code: 'integration_instance_group_provider_not_set'
         })
       );
     }
@@ -447,19 +447,19 @@ class delegatedIntegrationInstanceProviderServiceImpl {
     return provider;
   }
 
-  async archiveDelegatedIntegrationInstanceProvider(d: {
+  async archiveIntegrationInstanceGroupProvider(d: {
     tenant: Tenant;
     solution: Solution;
     environment: Environment;
-    delegatedIntegrationInstanceProvider: DelegatedIntegrationInstanceProvider;
+    integrationInstanceGroupProvider: IntegrationInstanceGroupProvider;
   }) {
-    checkTenant(d, d.delegatedIntegrationInstanceProvider);
-    checkDeletedEdit(d.delegatedIntegrationInstanceProvider, 'archive');
+    checkTenant(d, d.integrationInstanceGroupProvider);
+    checkDeletedEdit(d.integrationInstanceGroupProvider, 'archive');
 
     return await withTransaction(async db => {
-      let provider = await db.delegatedIntegrationInstanceProvider.update({
+      let provider = await db.integrationInstanceGroupProvider.update({
         where: {
-          oid: d.delegatedIntegrationInstanceProvider.oid,
+          oid: d.integrationInstanceGroupProvider.oid,
           tenantOid: d.tenant.oid,
           solutionOid: d.solution.oid,
           environmentOid: d.environment.oid
@@ -468,13 +468,13 @@ class delegatedIntegrationInstanceProviderServiceImpl {
           status: 'archived',
           archivedAt: new Date()
         },
-        include: delegatedIntegrationInstanceProviderInclude
+        include: integrationInstanceGroupProviderInclude
       });
 
       await addAfterTransactionHook(async () =>
-        delegatedIntegrationInstanceProviderSetQueue.add({
-          delegatedIntegrationInstanceId: provider.delegatedIntegrationInstance.id,
-          delegatedIntegrationInstanceProviderId: provider.id
+        integrationInstanceGroupProviderSetQueue.add({
+          integrationInstanceGroupId: provider.integrationInstanceGroup.id,
+          integrationInstanceGroupProviderId: provider.id
         })
       );
 
@@ -483,7 +483,7 @@ class delegatedIntegrationInstanceProviderServiceImpl {
   }
 }
 
-export let delegatedIntegrationInstanceProviderService = Service.create(
-  'delegatedIntegrationInstanceProvider',
-  () => new delegatedIntegrationInstanceProviderServiceImpl()
+export let integrationInstanceGroupProviderService = Service.create(
+  'integrationInstanceGroupProvider',
+  () => new integrationInstanceGroupProviderServiceImpl()
 ).build();

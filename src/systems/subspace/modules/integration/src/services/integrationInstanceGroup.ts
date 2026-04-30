@@ -4,10 +4,10 @@ import { Service } from '@lowerdeck/service';
 import {
   addAfterTransactionHook,
   db,
-  type DelegatedIntegrationInstance,
-  type DelegatedIntegrationInstanceStatus,
   type Environment,
   getId,
+  type IntegrationInstanceGroup,
+  type IntegrationInstanceGroupStatus,
   type Solution,
   type Tenant,
   withTransaction
@@ -29,22 +29,22 @@ import {
   resolveProviders,
   resolveSessionTemplates
 } from '@metorial-subspace/list-utils';
-import { syncDelegatedIntegrationInstanceSessionTemplateQueue } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedDelegatedIntegrationTemplate';
+import { syncIntegrationInstanceGroupSessionTemplateQueue } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedIntegrationInstanceGroupTemplate';
 import { checkTenant } from '@metorial-subspace/module-tenant';
 import {
-  delegatedIntegrationInstanceArchivedQueue,
-  delegatedIntegrationInstanceCreatedQueue,
-  delegatedIntegrationInstanceUpdatedQueue
-} from '../queues/lifecycle/delegatedIntegrationInstance';
-import {
-  delegatedIntegrationInstanceProviderService,
-  type SetDelegatedIntegrationInstanceProviderInput
-} from './delegatedIntegrationInstanceProvider';
+  integrationInstanceGroupArchivedQueue,
+  integrationInstanceGroupCreatedQueue,
+  integrationInstanceGroupUpdatedQueue
+} from '../queues/lifecycle/integrationInstanceGroup';
 import { integrationInstanceProviderInclude } from './integrationInstance';
+import {
+  integrationInstanceGroupProviderService,
+  type SetIntegrationInstanceGroupProviderInput
+} from './integrationInstanceGroupProvider';
 
-export let delegatedIntegrationInstanceProviderInclude = {
-  delegatedIntegrationInstance: true,
-  delegatedIntegrationInstanceSource: {
+export let integrationInstanceGroupProviderInclude = {
+  integrationInstanceGroup: true,
+  integrationInstanceGroupSource: {
     include: {
       integrationInstance: true
     }
@@ -76,7 +76,7 @@ export let delegatedIntegrationInstanceProviderInclude = {
   }
 } as const;
 
-export let delegatedIntegrationInstanceInclude = {
+export let integrationInstanceGroupInclude = {
   sources: {
     where: { status: 'active' as const, isParentDeleted: false },
     include: {
@@ -85,13 +85,13 @@ export let delegatedIntegrationInstanceInclude = {
   },
   providers: {
     where: { status: 'active' as const, isParentDeleted: false },
-    include: delegatedIntegrationInstanceProviderInclude
+    include: integrationInstanceGroupProviderInclude
   }
 } as const;
 
-let linkedDelegatedSessionTemplateInclude = {
+let linkedGroupSessionTemplateInclude = {
   integrationInstance: true,
-  delegatedIntegrationInstance: true,
+  integrationInstanceGroup: true,
   providers: {
     where: { status: 'active' as const },
     include: {
@@ -100,24 +100,24 @@ let linkedDelegatedSessionTemplateInclude = {
       config: true,
       authConfig: true,
       integrationInstanceProvider: true,
-      delegatedIntegrationInstanceProvider: true,
+      integrationInstanceGroupProvider: true,
       sessionTemplate: {
         include: {
           integrationInstance: true,
-          delegatedIntegrationInstance: true
+          integrationInstanceGroup: true
         }
       }
     }
   }
 } as const;
 
-class delegatedIntegrationInstanceServiceImpl {
-  async listDelegatedIntegrationInstances(d: {
+class integrationInstanceGroupServiceImpl {
+  async listIntegrationInstanceGroups(d: {
     tenant: Tenant;
     solution: Solution;
     environment: Environment;
 
-    status?: DelegatedIntegrationInstanceStatus[];
+    status?: IntegrationInstanceGroupStatus[];
     allowDeleted?: boolean;
 
     ids?: string[];
@@ -150,7 +150,7 @@ class delegatedIntegrationInstanceServiceImpl {
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
-          await db.delegatedIntegrationInstance.findMany({
+          await db.integrationInstanceGroup.findMany({
             ...opts,
             where: {
               tenantOid: d.tenant.oid,
@@ -230,39 +230,39 @@ class delegatedIntegrationInstanceServiceImpl {
                 d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
               ].filter(Boolean)
             },
-            include: delegatedIntegrationInstanceInclude
+            include: integrationInstanceGroupInclude
           })
       )
     );
   }
 
-  async getDelegatedIntegrationInstanceById(d: {
+  async getIntegrationInstanceGroupById(d: {
     tenant: Tenant;
     solution: Solution;
     environment: Environment;
-    delegatedIntegrationInstanceId: string;
+    integrationInstanceGroupId: string;
     allowDeleted?: boolean;
   }) {
-    let delegatedIntegrationInstance = await db.delegatedIntegrationInstance.findFirst({
+    let integrationInstanceGroup = await db.integrationInstanceGroup.findFirst({
       where: {
-        id: d.delegatedIntegrationInstanceId,
+        id: d.integrationInstanceGroupId,
         tenantOid: d.tenant.oid,
         solutionOid: d.solution.oid,
         environmentOid: d.environment.oid,
         ...normalizeStatusForGet(d).noParent
       },
-      include: delegatedIntegrationInstanceInclude
+      include: integrationInstanceGroupInclude
     });
-    if (!delegatedIntegrationInstance) {
+    if (!integrationInstanceGroup) {
       throw new ServiceError(
-        notFoundError('delegated.integration.instance', d.delegatedIntegrationInstanceId)
+        notFoundError('integration.instance.group', d.integrationInstanceGroupId)
       );
     }
 
-    return delegatedIntegrationInstance;
+    return integrationInstanceGroup;
   }
 
-  async createDelegatedIntegrationInstance(d: {
+  async createIntegrationInstanceGroup(d: {
     tenant: Tenant;
     solution: Solution;
     environment: Environment;
@@ -271,13 +271,13 @@ class delegatedIntegrationInstanceServiceImpl {
       description?: string;
       metadata?: Record<string, any>;
       privateMetadata?: Record<string, any>;
-      providers?: SetDelegatedIntegrationInstanceProviderInput[];
+      providers?: SetIntegrationInstanceGroupProviderInput[];
     };
   }) {
     return await withTransaction(async db => {
-      let delegatedIntegrationInstance = await db.delegatedIntegrationInstance.create({
+      let integrationInstanceGroup = await db.integrationInstanceGroup.create({
         data: {
-          ...getId('delegatedIntegrationInstance'),
+          ...getId('integrationInstanceGroup'),
           status: 'draft',
           name: d.input.name.trim(),
           description: d.input.description?.trim(),
@@ -287,114 +287,106 @@ class delegatedIntegrationInstanceServiceImpl {
           solutionOid: d.solution.oid,
           environmentOid: d.environment.oid
         },
-        include: delegatedIntegrationInstanceInclude
+        include: integrationInstanceGroupInclude
       });
 
       if (d.input.providers?.length) {
-        await delegatedIntegrationInstanceProviderService.setDelegatedIntegrationInstanceProviders(
-          {
-            tenant: d.tenant,
-            solution: d.solution,
-            environment: d.environment,
-            delegatedIntegrationInstance,
-            input: d.input.providers
-          }
-        );
+        await integrationInstanceGroupProviderService.setIntegrationInstanceGroupProviders({
+          tenant: d.tenant,
+          solution: d.solution,
+          environment: d.environment,
+          integrationInstanceGroup,
+          input: d.input.providers
+        });
 
-        delegatedIntegrationInstance = await db.delegatedIntegrationInstance.findUniqueOrThrow(
-          {
-            where: { oid: delegatedIntegrationInstance.oid },
-            include: delegatedIntegrationInstanceInclude
-          }
-        );
+        integrationInstanceGroup = await db.integrationInstanceGroup.findUniqueOrThrow({
+          where: { oid: integrationInstanceGroup.oid },
+          include: integrationInstanceGroupInclude
+        });
       }
 
       await addAfterTransactionHook(async () =>
-        delegatedIntegrationInstanceCreatedQueue.add({
-          delegatedIntegrationInstanceId: delegatedIntegrationInstance.id
+        integrationInstanceGroupCreatedQueue.add({
+          integrationInstanceGroupId: integrationInstanceGroup.id
         })
       );
 
-      return delegatedIntegrationInstance;
+      return integrationInstanceGroup;
     });
   }
 
-  async updateDelegatedIntegrationInstance(d: {
+  async updateIntegrationInstanceGroup(d: {
     tenant: Tenant;
     solution: Solution;
     environment: Environment;
-    delegatedIntegrationInstance: DelegatedIntegrationInstance;
+    integrationInstanceGroup: IntegrationInstanceGroup;
     input: {
       name?: string;
       description?: string | null;
       metadata?: Record<string, any> | null;
       privateMetadata?: Record<string, any> | null;
-      providers?: SetDelegatedIntegrationInstanceProviderInput[];
+      providers?: SetIntegrationInstanceGroupProviderInput[];
     };
   }) {
-    checkTenant(d, d.delegatedIntegrationInstance);
-    checkDeletedEdit(d.delegatedIntegrationInstance, 'update');
+    checkTenant(d, d.integrationInstanceGroup);
+    checkDeletedEdit(d.integrationInstanceGroup, 'update');
 
     return await withTransaction(async db => {
-      let delegatedIntegrationInstance = await db.delegatedIntegrationInstance.update({
+      let integrationInstanceGroup = await db.integrationInstanceGroup.update({
         where: {
-          oid: d.delegatedIntegrationInstance.oid,
+          oid: d.integrationInstanceGroup.oid,
           tenantOid: d.tenant.oid,
           solutionOid: d.solution.oid,
           environmentOid: d.environment.oid
         },
         data: {
-          name: d.input.name?.trim() ?? d.delegatedIntegrationInstance.name,
+          name: d.input.name?.trim() ?? d.integrationInstanceGroup.name,
           description:
             d.input.description === undefined
-              ? d.delegatedIntegrationInstance.description
+              ? d.integrationInstanceGroup.description
               : d.input.description?.trim() || null,
           metadata:
             d.input.metadata === undefined
-              ? d.delegatedIntegrationInstance.metadata
+              ? d.integrationInstanceGroup.metadata
               : d.input.metadata,
           privateMetadata:
             d.input.privateMetadata === undefined
-              ? d.delegatedIntegrationInstance.privateMetadata
+              ? d.integrationInstanceGroup.privateMetadata
               : d.input.privateMetadata
         },
-        include: delegatedIntegrationInstanceInclude
+        include: integrationInstanceGroupInclude
       });
 
       if (d.input.providers?.length) {
-        await delegatedIntegrationInstanceProviderService.setDelegatedIntegrationInstanceProviders(
-          {
-            tenant: d.tenant,
-            solution: d.solution,
-            environment: d.environment,
-            delegatedIntegrationInstance,
-            input: d.input.providers
-          }
-        );
+        await integrationInstanceGroupProviderService.setIntegrationInstanceGroupProviders({
+          tenant: d.tenant,
+          solution: d.solution,
+          environment: d.environment,
+          integrationInstanceGroup,
+          input: d.input.providers
+        });
 
-        delegatedIntegrationInstance = await db.delegatedIntegrationInstance.findUniqueOrThrow(
-          {
-            where: { oid: delegatedIntegrationInstance.oid },
-            include: delegatedIntegrationInstanceInclude
-          }
-        );
+        integrationInstanceGroup = await db.integrationInstanceGroup.findUniqueOrThrow({
+          where: { oid: integrationInstanceGroup.oid },
+          include: integrationInstanceGroupInclude
+        });
       }
 
       await addAfterTransactionHook(async () =>
-        delegatedIntegrationInstanceUpdatedQueue.add({
-          delegatedIntegrationInstanceId: delegatedIntegrationInstance.id
+        integrationInstanceGroupUpdatedQueue.add({
+          integrationInstanceGroupId: integrationInstanceGroup.id
         })
       );
 
-      return delegatedIntegrationInstance;
+      return integrationInstanceGroup;
     });
   }
 
-  async createSessionTemplateForDelegatedIntegrationInstance(d: {
+  async createSessionTemplateForIntegrationInstanceGroup(d: {
     tenant: Tenant;
     solution: Solution;
     environment: Environment;
-    delegatedIntegrationInstance: DelegatedIntegrationInstance;
+    integrationInstanceGroup: IntegrationInstanceGroup;
     input: {
       name?: string;
       description?: string;
@@ -402,8 +394,8 @@ class delegatedIntegrationInstanceServiceImpl {
       privateMetadata?: Record<string, any>;
     };
   }) {
-    checkTenant(d, d.delegatedIntegrationInstance);
-    checkDeletedRelation(d.delegatedIntegrationInstance);
+    checkTenant(d, d.integrationInstanceGroup);
+    checkDeletedRelation(d.integrationInstanceGroup);
 
     return await withTransaction(async db => {
       let sessionTemplate = await db.sessionTemplate.create({
@@ -415,16 +407,16 @@ class delegatedIntegrationInstanceServiceImpl {
           metadata: d.input.metadata,
           privateMetadata: d.input.privateMetadata,
           isInternal: false,
-          delegatedIntegrationInstanceOid: d.delegatedIntegrationInstance.oid,
+          integrationInstanceGroupOid: d.integrationInstanceGroup.oid,
           tenantOid: d.tenant.oid,
           solutionOid: d.solution.oid,
           environmentOid: d.environment.oid
         },
-        include: linkedDelegatedSessionTemplateInclude
+        include: linkedGroupSessionTemplateInclude
       });
 
       await addAfterTransactionHook(async () =>
-        syncDelegatedIntegrationInstanceSessionTemplateQueue.add({
+        syncIntegrationInstanceGroupSessionTemplateQueue.add({
           sessionTemplateId: sessionTemplate.id
         })
       );
@@ -433,19 +425,19 @@ class delegatedIntegrationInstanceServiceImpl {
     });
   }
 
-  async archiveDelegatedIntegrationInstance(d: {
+  async archiveIntegrationInstanceGroup(d: {
     tenant: Tenant;
     solution: Solution;
     environment: Environment;
-    delegatedIntegrationInstance: DelegatedIntegrationInstance;
+    integrationInstanceGroup: IntegrationInstanceGroup;
   }) {
-    checkTenant(d, d.delegatedIntegrationInstance);
-    checkDeletedEdit(d.delegatedIntegrationInstance, 'archive');
+    checkTenant(d, d.integrationInstanceGroup);
+    checkDeletedEdit(d.integrationInstanceGroup, 'archive');
 
     return await withTransaction(async db => {
-      let delegatedIntegrationInstance = await db.delegatedIntegrationInstance.update({
+      let integrationInstanceGroup = await db.integrationInstanceGroup.update({
         where: {
-          oid: d.delegatedIntegrationInstance.oid,
+          oid: d.integrationInstanceGroup.oid,
           tenantOid: d.tenant.oid,
           solutionOid: d.solution.oid,
           environmentOid: d.environment.oid
@@ -454,30 +446,30 @@ class delegatedIntegrationInstanceServiceImpl {
           status: 'archived',
           archivedAt: new Date()
         },
-        include: delegatedIntegrationInstanceInclude
+        include: integrationInstanceGroupInclude
       });
 
       await addAfterTransactionHook(async () =>
-        delegatedIntegrationInstanceArchivedQueue.add({
-          delegatedIntegrationInstanceId: delegatedIntegrationInstance.id
+        integrationInstanceGroupArchivedQueue.add({
+          integrationInstanceGroupId: integrationInstanceGroup.id
         })
       );
 
-      return delegatedIntegrationInstance;
+      return integrationInstanceGroup;
     });
   }
 
-  async deleteDelegatedIntegrationInstance(d: {
+  async deleteIntegrationInstanceGroup(d: {
     tenant: Tenant;
     solution: Solution;
     environment: Environment;
-    delegatedIntegrationInstance: DelegatedIntegrationInstance;
+    integrationInstanceGroup: IntegrationInstanceGroup;
   }) {
-    return await this.archiveDelegatedIntegrationInstance(d);
+    return await this.archiveIntegrationInstanceGroup(d);
   }
 }
 
-export let delegatedIntegrationInstanceService = Service.create(
-  'delegatedIntegrationInstance',
-  () => new delegatedIntegrationInstanceServiceImpl()
+export let integrationInstanceGroupService = Service.create(
+  'integrationInstanceGroup',
+  () => new integrationInstanceGroupServiceImpl()
 ).build();

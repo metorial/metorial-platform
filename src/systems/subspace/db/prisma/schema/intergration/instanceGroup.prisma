@@ -1,15 +1,15 @@
-enum DelegatedIntegrationInstanceStatus {
+enum IntegrationInstanceGroupStatus {
   draft
   active
   archived
   deleted
 }
 
-model DelegatedIntegrationInstance {
+model IntegrationInstanceGroup {
   oid BigInt @id
   id  String @unique
 
-  status     DelegatedIntegrationInstanceStatus
+  status     IntegrationInstanceGroupStatus
   archivedAt DateTime?
 
   name            String
@@ -29,8 +29,8 @@ model DelegatedIntegrationInstance {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  sources          DelegatedIntegrationInstanceSource[]
-  providers        DelegatedIntegrationInstanceProvider[]
+  sources          IntegrationInstanceGroupSource[]
+  providers        IntegrationInstanceGroupProvider[]
   sessionTemplates SessionTemplate[]
 
   @@index([tenantOid, solutionOid, environmentOid, status])
@@ -41,22 +41,22 @@ model DelegatedIntegrationInstance {
   @@index([status, archivedAt])
 }
 
-enum DelegatedIntegrationInstanceSourceStatus {
+enum IntegrationInstanceGroupSourceStatus {
   active
   archived
   deleted
 }
 
-model DelegatedIntegrationInstanceSource {
+model IntegrationInstanceGroupSource {
   oid BigInt @id
   id  String @unique
 
-  status          DelegatedIntegrationInstanceSourceStatus
-  isParentDeleted Boolean                                  @default(false)
+  status          IntegrationInstanceGroupSourceStatus
+  isParentDeleted Boolean                              @default(false)
   archivedAt      DateTime?
 
-  delegatedIntegrationInstanceOid BigInt
-  delegatedIntegrationInstance    DelegatedIntegrationInstance @relation(fields: [delegatedIntegrationInstanceOid], references: [oid], onDelete: Cascade)
+  integrationInstanceGroupOid BigInt
+  integrationInstanceGroup    IntegrationInstanceGroup @relation(fields: [integrationInstanceGroupOid], references: [oid], onDelete: Cascade)
 
   integrationInstanceOid BigInt
   integrationInstance    IntegrationInstance @relation(fields: [integrationInstanceOid], references: [oid], onDelete: Cascade)
@@ -73,27 +73,27 @@ model DelegatedIntegrationInstanceSource {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  providers DelegatedIntegrationInstanceProvider[]
+  providers IntegrationInstanceGroupProvider[]
 
-  @@unique([delegatedIntegrationInstanceOid, integrationInstanceOid])
+  @@unique([integrationInstanceGroupOid, integrationInstanceOid])
   @@index([tenantOid, solutionOid, environmentOid, status])
-  @@index([delegatedIntegrationInstanceOid, status])
+  @@index([integrationInstanceGroupOid, status])
   @@index([integrationInstanceOid, status])
   @@index([status, archivedAt])
 }
 
-enum DelegatedIntegrationInstanceProviderStatus {
+enum IntegrationInstanceGroupProviderStatus {
   active
   archived
   deleted
 }
 
-model DelegatedIntegrationInstanceProvider {
+model IntegrationInstanceGroupProvider {
   oid BigInt @id
   id  String @unique
 
-  status          DelegatedIntegrationInstanceProviderStatus
-  isParentDeleted Boolean                                    @default(false)
+  status          IntegrationInstanceGroupProviderStatus
+  isParentDeleted Boolean                                @default(false)
   archivedAt      DateTime?
 
   name            String
@@ -101,11 +101,11 @@ model DelegatedIntegrationInstanceProvider {
   metadata        Json?
   privateMetadata Json?
 
-  delegatedIntegrationInstanceOid BigInt
-  delegatedIntegrationInstance    DelegatedIntegrationInstance @relation(fields: [delegatedIntegrationInstanceOid], references: [oid], onDelete: Cascade, map: "dii_provider_dii_fkey")
+  integrationInstanceGroupOid BigInt
+  integrationInstanceGroup    IntegrationInstanceGroup @relation(fields: [integrationInstanceGroupOid], references: [oid], onDelete: Cascade, map: "dii_provider_dii_fkey")
 
-  delegatedIntegrationInstanceSourceOid BigInt
-  delegatedIntegrationInstanceSource    DelegatedIntegrationInstanceSource @relation(fields: [delegatedIntegrationInstanceSourceOid], references: [oid], onDelete: Cascade, map: "dii_provider_source_fkey")
+  integrationInstanceGroupSourceOid BigInt
+  integrationInstanceGroupSource    IntegrationInstanceGroupSource @relation(fields: [integrationInstanceGroupSourceOid], references: [oid], onDelete: Cascade, map: "dii_provider_source_fkey")
 
   integrationOid BigInt
   integration    Integration @relation(fields: [integrationOid], references: [oid])
@@ -138,11 +138,11 @@ model DelegatedIntegrationInstanceProvider {
 
   sessionTemplateProviders SessionTemplateProvider[]
 
-  @@unique([delegatedIntegrationInstanceOid, integrationProviderOid], map: "dii_provider_integration_provider_key")
-  @@unique([delegatedIntegrationInstanceOid, integrationInstanceProviderOid], map: "dii_provider_source_provider_key")
+  @@unique([integrationInstanceGroupOid, integrationProviderOid], map: "dii_provider_integration_provider_key")
+  @@unique([integrationInstanceGroupOid, integrationInstanceProviderOid], map: "dii_provider_source_provider_key")
   @@index([tenantOid, solutionOid, environmentOid, status])
-  @@index([delegatedIntegrationInstanceOid, status], map: "dii_provider_dii_status_idx")
-  @@index([delegatedIntegrationInstanceSourceOid, status], map: "dii_provider_source_status_idx")
+  @@index([integrationInstanceGroupOid, status], map: "dii_provider_dii_status_idx")
+  @@index([integrationInstanceGroupSourceOid, status], map: "dii_provider_source_status_idx")
   @@index([integrationInstanceOid, status])
   @@index([integrationInstanceProviderOid, status])
   @@index([integrationProviderOid, status])

@@ -1,7 +1,7 @@
 import type {
-  DelegatedIntegrationInstance,
-  DelegatedIntegrationInstanceProvider,
-  DelegatedIntegrationInstanceSource,
+  IntegrationInstanceGroup,
+  IntegrationInstanceGroupProvider,
+  IntegrationInstanceGroupSource,
   Integration,
   IntegrationInstance,
   IntegrationProvider,
@@ -29,10 +29,10 @@ let presentToolFilter = (
   };
 };
 
-export type PresentedDelegatedIntegrationInstanceProvider =
-  DelegatedIntegrationInstanceProvider & {
-    delegatedIntegrationInstance: DelegatedIntegrationInstance;
-    delegatedIntegrationInstanceSource: DelegatedIntegrationInstanceSource & {
+export type PresentedIntegrationInstanceGroupProvider =
+  IntegrationInstanceGroupProvider & {
+    integrationInstanceGroup: IntegrationInstanceGroup;
+    integrationInstanceGroupSource: IntegrationInstanceGroupSource & {
       integrationInstance: IntegrationInstance;
     };
     integration: Integration;
@@ -54,10 +54,10 @@ export type PresentedDelegatedIntegrationInstanceProvider =
     };
   };
 
-export let delegatedIntegrationInstanceProviderPresenter = (
-  provider: PresentedDelegatedIntegrationInstanceProvider
+export let integrationInstanceGroupProviderPresenter = (
+  provider: PresentedIntegrationInstanceGroupProvider
 ) => ({
-  object: 'delegated.integration.instance.provider',
+  object: 'integration.instance.group.provider',
 
   id: provider.id,
   status: provider.status,
@@ -67,8 +67,8 @@ export let delegatedIntegrationInstanceProviderPresenter = (
   metadata: provider.metadata,
   privateMetadata: provider.privateMetadata,
 
-  delegatedIntegrationInstanceId: provider.delegatedIntegrationInstance.id,
-  delegatedIntegrationInstanceSourceId: provider.delegatedIntegrationInstanceSource.id,
+  integrationInstanceGroupId: provider.integrationInstanceGroup.id,
+  integrationInstanceGroupSourceId: provider.integrationInstanceGroupSource.id,
   integrationId: provider.integration.id,
   integrationInstanceId: provider.integrationInstance.id,
   integrationInstanceProviderId: provider.integrationInstanceProvider.id,

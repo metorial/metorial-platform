@@ -1,25 +1,25 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import {
-  delegatedIntegrationInstanceProviderService,
-  delegatedIntegrationInstanceService
+  integrationInstanceGroupProviderService,
+  integrationInstanceGroupService
 } from '@metorial-subspace/module-integration';
-import { delegatedIntegrationInstanceProviderPresenter } from '@metorial-subspace/presenters';
+import { integrationInstanceGroupProviderPresenter } from '@metorial-subspace/presenters';
 import { app } from './_app';
 import { createdAtValidator, updatedAtValidator } from './_dateFilter';
 import { normalizeToolFilters, toolFiltersValidator } from './sessionProvider';
 import { tenantApp } from './tenant';
 
-export let delegatedIntegrationInstanceProviderApp = tenantApp.use(async ctx => {
-  let delegatedIntegrationInstanceProviderId = ctx.body.delegatedIntegrationInstanceProviderId;
-  if (!delegatedIntegrationInstanceProviderId) {
-    throw new Error('DelegatedIntegrationInstanceProvider ID is required');
+export let integrationInstanceGroupProviderApp = tenantApp.use(async ctx => {
+  let integrationInstanceGroupProviderId = ctx.body.integrationInstanceGroupProviderId;
+  if (!integrationInstanceGroupProviderId) {
+    throw new Error('IntegrationInstanceGroupProvider ID is required');
   }
 
-  let delegatedIntegrationInstanceProvider =
-    await delegatedIntegrationInstanceProviderService.getDelegatedIntegrationInstanceProviderById(
+  let integrationInstanceGroupProvider =
+    await integrationInstanceGroupProviderService.getIntegrationInstanceGroupProviderById(
       {
-        delegatedIntegrationInstanceProviderId,
+        integrationInstanceGroupProviderId,
         tenant: ctx.tenant,
         environment: ctx.environment,
         solution: ctx.solution,
@@ -27,10 +27,10 @@ export let delegatedIntegrationInstanceProviderApp = tenantApp.use(async ctx => 
       }
     );
 
-  return { delegatedIntegrationInstanceProvider };
+  return { integrationInstanceGroupProvider };
 });
 
-export let delegatedIntegrationInstanceProviderController = app.controller({
+export let integrationInstanceGroupProviderController = app.controller({
   list: tenantApp
     .handler()
     .input(
@@ -43,7 +43,7 @@ export let delegatedIntegrationInstanceProviderController = app.controller({
           status: v.optional(v.array(v.enumOf(['active', 'archived', 'deleted']))),
 
           ids: v.optional(v.array(v.string())),
-          delegatedIntegrationInstanceIds: v.optional(v.array(v.string())),
+          integrationInstanceGroupIds: v.optional(v.array(v.string())),
           integrationIds: v.optional(v.array(v.string())),
           integrationInstanceIds: v.optional(v.array(v.string())),
           integrationInstanceProviderIds: v.optional(v.array(v.string())),
@@ -61,7 +61,7 @@ export let delegatedIntegrationInstanceProviderController = app.controller({
     )
     .do(async ctx => {
       let paginator =
-        await delegatedIntegrationInstanceProviderService.listDelegatedIntegrationInstanceProviders(
+        await integrationInstanceGroupProviderService.listIntegrationInstanceGroupProviders(
           {
             tenant: ctx.tenant,
             environment: ctx.environment,
@@ -71,7 +71,7 @@ export let delegatedIntegrationInstanceProviderController = app.controller({
             status: ctx.input.status,
 
             ids: ctx.input.ids,
-            delegatedIntegrationInstanceIds: ctx.input.delegatedIntegrationInstanceIds,
+            integrationInstanceGroupIds: ctx.input.integrationInstanceGroupIds,
             integrationIds: ctx.input.integrationIds,
             integrationInstanceIds: ctx.input.integrationInstanceIds,
             integrationInstanceProviderIds: ctx.input.integrationInstanceProviderIds,
@@ -89,21 +89,21 @@ export let delegatedIntegrationInstanceProviderController = app.controller({
 
       let list = await paginator.run(ctx.input);
 
-      return Paginator.presentLight(list, delegatedIntegrationInstanceProviderPresenter);
+      return Paginator.presentLight(list, integrationInstanceGroupProviderPresenter);
     }),
 
-  get: delegatedIntegrationInstanceProviderApp
+  get: integrationInstanceGroupProviderApp
     .handler()
     .input(
       v.object({
         tenantId: v.string(),
         environmentId: v.string(),
-        delegatedIntegrationInstanceProviderId: v.string(),
+        integrationInstanceGroupProviderId: v.string(),
         allowDeleted: v.optional(v.boolean())
       })
     )
     .do(async ctx =>
-      delegatedIntegrationInstanceProviderPresenter(ctx.delegatedIntegrationInstanceProvider)
+      integrationInstanceGroupProviderPresenter(ctx.integrationInstanceGroupProvider)
     ),
 
   set: tenantApp
@@ -113,27 +113,27 @@ export let delegatedIntegrationInstanceProviderController = app.controller({
         tenantId: v.string(),
         environmentId: v.string(),
 
-        delegatedIntegrationInstanceId: v.string(),
+        integrationInstanceGroupId: v.string(),
         integrationInstanceProviderId: v.string(),
         toolFilters: toolFiltersValidator
       })
     )
     .do(async ctx => {
-      let delegatedIntegrationInstance =
-        await delegatedIntegrationInstanceService.getDelegatedIntegrationInstanceById({
-          delegatedIntegrationInstanceId: ctx.input.delegatedIntegrationInstanceId,
+      let integrationInstanceGroup =
+        await integrationInstanceGroupService.getIntegrationInstanceGroupById({
+          integrationInstanceGroupId: ctx.input.integrationInstanceGroupId,
           tenant: ctx.tenant,
           environment: ctx.environment,
           solution: ctx.solution
         });
 
-      let delegatedIntegrationInstanceProvider =
-        await delegatedIntegrationInstanceProviderService.setDelegatedIntegrationInstanceProvider(
+      let integrationInstanceGroupProvider =
+        await integrationInstanceGroupProviderService.setIntegrationInstanceGroupProvider(
           {
             tenant: ctx.tenant,
             environment: ctx.environment,
             solution: ctx.solution,
-            delegatedIntegrationInstance,
+            integrationInstanceGroup,
             input: {
               integrationInstanceProviderId: ctx.input.integrationInstanceProviderId,
               ...(ctx.input.toolFilters !== undefined
@@ -143,34 +143,34 @@ export let delegatedIntegrationInstanceProviderController = app.controller({
           }
         );
 
-      return delegatedIntegrationInstanceProviderPresenter(
-        delegatedIntegrationInstanceProvider
+      return integrationInstanceGroupProviderPresenter(
+        integrationInstanceGroupProvider
       );
     }),
 
-  delete: delegatedIntegrationInstanceProviderApp
+  delete: integrationInstanceGroupProviderApp
     .handler()
     .input(
       v.object({
         tenantId: v.string(),
         environmentId: v.string(),
-        delegatedIntegrationInstanceProviderId: v.string(),
+        integrationInstanceGroupProviderId: v.string(),
         allowDeleted: v.optional(v.boolean())
       })
     )
     .do(async ctx => {
-      let delegatedIntegrationInstanceProvider =
-        await delegatedIntegrationInstanceProviderService.archiveDelegatedIntegrationInstanceProvider(
+      let integrationInstanceGroupProvider =
+        await integrationInstanceGroupProviderService.archiveIntegrationInstanceGroupProvider(
           {
             tenant: ctx.tenant,
             environment: ctx.environment,
             solution: ctx.solution,
-            delegatedIntegrationInstanceProvider: ctx.delegatedIntegrationInstanceProvider
+            integrationInstanceGroupProvider: ctx.integrationInstanceGroupProvider
           }
         );
 
-      return delegatedIntegrationInstanceProviderPresenter(
-        delegatedIntegrationInstanceProvider
+      return integrationInstanceGroupProviderPresenter(
+        integrationInstanceGroupProvider
       );
     })
 });

@@ -1,7 +1,7 @@
 import { createQueue } from '@lowerdeck/queue';
 import { db } from '@metorial-subspace/db';
 import { identityInternalService } from '@metorial-subspace/module-identity';
-import { syncDelegatedIntegrationInstanceSessionTemplatesQueue } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedDelegatedIntegrationTemplate';
+import { syncIntegrationInstanceGroupSessionTemplatesQueue } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedIntegrationInstanceGroupTemplate';
 import { syncIntegrationInstanceSessionTemplatesQueue } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedSessionTemplate';
 import { env } from '../../env';
 import { indexIntegrationQueue } from '../search/integration';
@@ -63,7 +63,7 @@ export let integrationProviderArchivedQueueProcessor =
     await integrationProviderArchiveInstanceProvidersManyQueue.add({
       integrationProviderId: data.integrationProviderId
     });
-    await integrationProviderArchiveDelegatedProvidersManyQueue.add({
+    await integrationProviderArchiveGroupProvidersManyQueue.add({
       integrationProviderId: data.integrationProviderId
     });
     await indexParentIntegration(data.integrationProviderId);
@@ -132,22 +132,22 @@ export let integrationProviderArchiveInstanceProvidersManyQueueProcessor =
     });
   });
 
-export let integrationProviderArchiveDelegatedProvidersManyQueue = createQueue<{
+export let integrationProviderArchiveGroupProvidersManyQueue = createQueue<{
   integrationProviderId: string;
   cursor?: string;
 }>({
-  name: 'sub/int/lc/integrationProvider/archiveDelegatedProvidersMany',
+  name: 'sub/int/lc/integrationProvider/archiveGroupProvidersMany',
   redisUrl: env.service.REDIS_URL
 });
 
-export let integrationProviderArchiveDelegatedProvidersManyQueueProcessor =
-  integrationProviderArchiveDelegatedProvidersManyQueue.process(async data => {
+export let integrationProviderArchiveGroupProvidersManyQueueProcessor =
+  integrationProviderArchiveGroupProvidersManyQueue.process(async data => {
     let integrationProvider = await db.integrationProvider.findUnique({
       where: { id: data.integrationProviderId }
     });
     if (!integrationProvider || integrationProvider.status !== 'archived') return;
 
-    let delegatedProviders = await db.delegatedIntegrationInstanceProvider.findMany({
+    let groupProviders = await db.integrationInstanceGroupProvider.findMany({
       where: {
         integrationProviderOid: integrationProvider.oid,
         status: 'active',
@@ -155,25 +155,25 @@ export let integrationProviderArchiveDelegatedProvidersManyQueueProcessor =
       },
       orderBy: { id: 'asc' },
       take: 100,
-      include: { delegatedIntegrationInstance: true }
+      include: { integrationInstanceGroup: true }
     });
-    if (delegatedProviders.length === 0) return;
+    if (groupProviders.length === 0) return;
 
-    await db.delegatedIntegrationInstanceProvider.updateMany({
-      where: { oid: { in: delegatedProviders.map(provider => provider.oid) } },
+    await db.integrationInstanceGroupProvider.updateMany({
+      where: { oid: { in: groupProviders.map(provider => provider.oid) } },
       data: { isParentDeleted: true }
     });
 
-    await syncDelegatedIntegrationInstanceSessionTemplatesQueue.addMany(
+    await syncIntegrationInstanceGroupSessionTemplatesQueue.addMany(
       Array.from(
-        new Set(delegatedProviders.map(provider => provider.delegatedIntegrationInstance.id))
-      ).map(delegatedIntegrationInstanceId => ({ delegatedIntegrationInstanceId }))
+        new Set(groupProviders.map(provider => provider.integrationInstanceGroup.id))
+      ).map(integrationInstanceGroupId => ({ integrationInstanceGroupId }))
     );
 
-    let lastProvider = delegatedProviders[delegatedProviders.length - 1];
+    let lastProvider = groupProviders[groupProviders.length - 1];
     if (!lastProvider) return;
 
-    await integrationProviderArchiveDelegatedProvidersManyQueue.add({
+    await integrationProviderArchiveGroupProvidersManyQueue.add({
       integrationProviderId: data.integrationProviderId,
       cursor: lastProvider.id
     });

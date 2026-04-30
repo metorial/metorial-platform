@@ -2,11 +2,11 @@ import { createQueue } from '@lowerdeck/queue';
 import { db } from '@metorial-subspace/db';
 import { identityInternalService } from '@metorial-subspace/module-identity';
 import { identityDeletedQueue } from '@metorial-subspace/module-identity/src/queues/lifecycle/identity';
+import { syncIntegrationInstanceGroupSessionTemplatesQueue } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedIntegrationInstanceGroupTemplate';
 import {
   archiveIntegrationInstanceSessionTemplatesQueue,
   syncIntegrationInstanceSessionTemplatesQueue
 } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedSessionTemplate';
-import { syncDelegatedIntegrationInstanceSessionTemplatesQueue } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedDelegatedIntegrationTemplate';
 import { env } from '../../env';
 import { indexIntegrationInstanceQueue } from '../search/integrationInstance';
 import { integrationInstanceProviderSetQueue } from './integrationInstanceProvider';
@@ -97,28 +97,28 @@ export let runIntegrationInstanceArchivedEffects = async (d: {
       }))
     );
   }
-  await integrationInstanceArchiveDelegatedSourcesManyQueue.add({
+  await integrationInstanceArchiveGroupSourcesManyQueue.add({
     integrationInstanceId: d.integrationInstanceId
   });
   await syncIntegrationInstanceProviderCredentials(d.integrationInstanceId);
 };
 
-export let integrationInstanceArchiveDelegatedSourcesManyQueue = createQueue<{
+export let integrationInstanceArchiveGroupSourcesManyQueue = createQueue<{
   integrationInstanceId: string;
   cursor?: string;
 }>({
-  name: 'sub/int/lc/integrationInstance/archiveDelegatedSourcesMany',
+  name: 'sub/int/lc/integrationInstance/archiveGroupSourcesMany',
   redisUrl: env.service.REDIS_URL
 });
 
-export let integrationInstanceArchiveDelegatedSourcesManyQueueProcessor =
-  integrationInstanceArchiveDelegatedSourcesManyQueue.process(async data => {
+export let integrationInstanceArchiveGroupSourcesManyQueueProcessor =
+  integrationInstanceArchiveGroupSourcesManyQueue.process(async data => {
     let integrationInstance = await db.integrationInstance.findUnique({
       where: { id: data.integrationInstanceId }
     });
     if (!integrationInstance || integrationInstance.status !== 'archived') return;
 
-    let delegatedSources = await db.delegatedIntegrationInstanceSource.findMany({
+    let groupSources = await db.integrationInstanceGroupSource.findMany({
       where: {
         integrationInstanceOid: integrationInstance.oid,
         status: 'active',
@@ -126,23 +126,23 @@ export let integrationInstanceArchiveDelegatedSourcesManyQueueProcessor =
       },
       orderBy: { id: 'asc' },
       take: 100,
-      include: { delegatedIntegrationInstance: true }
+      include: { integrationInstanceGroup: true }
     });
-    if (delegatedSources.length === 0) return;
+    if (groupSources.length === 0) return;
 
     let archivedAt = integrationInstance.archivedAt ?? new Date();
 
-    await db.delegatedIntegrationInstanceSource.updateMany({
-      where: { oid: { in: delegatedSources.map(source => source.oid) } },
+    await db.integrationInstanceGroupSource.updateMany({
+      where: { oid: { in: groupSources.map(source => source.oid) } },
       data: {
         status: 'archived',
         archivedAt
       }
     });
-    await db.delegatedIntegrationInstanceProvider.updateMany({
+    await db.integrationInstanceGroupProvider.updateMany({
       where: {
-        delegatedIntegrationInstanceSourceOid: {
-          in: delegatedSources.map(source => source.oid)
+        integrationInstanceGroupSourceOid: {
+          in: groupSources.map(source => source.oid)
         },
         status: 'active'
       },
@@ -152,16 +152,16 @@ export let integrationInstanceArchiveDelegatedSourcesManyQueueProcessor =
       }
     });
 
-    await syncDelegatedIntegrationInstanceSessionTemplatesQueue.addMany(
+    await syncIntegrationInstanceGroupSessionTemplatesQueue.addMany(
       Array.from(
-        new Set(delegatedSources.map(source => source.delegatedIntegrationInstance.id))
-      ).map(delegatedIntegrationInstanceId => ({ delegatedIntegrationInstanceId }))
+        new Set(groupSources.map(source => source.integrationInstanceGroup.id))
+      ).map(integrationInstanceGroupId => ({ integrationInstanceGroupId }))
     );
 
-    let lastSource = delegatedSources[delegatedSources.length - 1];
+    let lastSource = groupSources[groupSources.length - 1];
     if (!lastSource) return;
 
-    await integrationInstanceArchiveDelegatedSourcesManyQueue.add({
+    await integrationInstanceArchiveGroupSourcesManyQueue.add({
       integrationInstanceId: data.integrationInstanceId,
       cursor: lastSource.id
     });

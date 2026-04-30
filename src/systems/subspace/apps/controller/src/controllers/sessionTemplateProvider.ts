@@ -46,10 +46,10 @@ export let sessionTemplateProviderController = app.controller({
           providerAuthConfigIds: v.optional(v.array(v.string())),
           integrationIds: v.optional(v.array(v.string())),
           integrationInstanceIds: v.optional(v.array(v.string())),
-          delegatedIntegrationInstanceIds: v.optional(v.array(v.string())),
+          integrationInstanceGroupIds: v.optional(v.array(v.string())),
           integrationProviderIds: v.optional(v.array(v.string())),
           integrationInstanceProviderIds: v.optional(v.array(v.string())),
-          delegatedIntegrationInstanceProviderIds: v.optional(v.array(v.string())),
+          integrationInstanceGroupProviderIds: v.optional(v.array(v.string())),
 
           createdAt: createdAtValidator,
           updatedAt: updatedAtValidator
@@ -70,11 +70,11 @@ export let sessionTemplateProviderController = app.controller({
         providerAuthConfigIds: ctx.input.providerAuthConfigIds,
         integrationIds: ctx.input.integrationIds,
         integrationInstanceIds: ctx.input.integrationInstanceIds,
-        delegatedIntegrationInstanceIds: ctx.input.delegatedIntegrationInstanceIds,
+        integrationInstanceGroupIds: ctx.input.integrationInstanceGroupIds,
         integrationProviderIds: ctx.input.integrationProviderIds,
         integrationInstanceProviderIds: ctx.input.integrationInstanceProviderIds,
-        delegatedIntegrationInstanceProviderIds:
-          ctx.input.delegatedIntegrationInstanceProviderIds,
+        integrationInstanceGroupProviderIds:
+          ctx.input.integrationInstanceGroupProviderIds,
 
         createdAt: ctx.input.createdAt,
         updatedAt: ctx.input.updatedAt

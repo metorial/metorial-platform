@@ -10,6 +10,10 @@ import {
   type IntegrationProvider,
   type IntegrationProviderStatus,
   type Provider,
+  type ProviderDeployment,
+  type ProviderDeploymentVersion,
+  type ProviderType,
+  type ProviderVariant,
   type Solution,
   type Tenant,
   withTransaction
@@ -34,7 +38,10 @@ import {
   providerConfigService,
   providerDeploymentService
 } from '@metorial-subspace/module-deployment';
-import { checkProviderMatch } from '@metorial-subspace/module-provider-internal';
+import {
+  checkProviderMatch,
+  providerDeploymentInternalService
+} from '@metorial-subspace/module-provider-internal';
 import { checkTenant } from '@metorial-subspace/module-tenant';
 import {
   createIntegrationProviderVersion,
@@ -57,25 +64,70 @@ export let integrationProviderInclude = {
   }
 };
 
+let resolveAuthMethod = async (d: {
+  tenant: Tenant;
+  solution: Solution;
+  environment: Environment;
+  provider: Provider & { type: ProviderType; defaultVariant: ProviderVariant | null };
+  deployment: ProviderDeployment & { currentVersion: ProviderDeploymentVersion | null };
+  hasAuthCredentials: boolean;
+}) => {
+  let version = await providerDeploymentInternalService.getCurrentVersion({
+    environment: d.environment,
+    deployment: d.deployment,
+    provider: d.provider
+  });
+  if (!version) return null;
+
+  let paginator = await providerAuthMethodService.listProviderAuthMethods({
+    solution: d.solution,
+    tenant: d.tenant,
+    environment: d.environment,
+    providerVersion: version
+  });
+  let authMethods = await paginator.run({ limit: 100 });
+  if (!authMethods.items.length) return null;
+
+  if (!d.hasAuthCredentials && !d.provider.type.supportsOAuthAutoRegistration) {
+    let nonOAuth = authMethods.items.find(m => m.type !== 'oauth');
+    if (nonOAuth) return nonOAuth;
+  }
+
+  let oauth = authMethods.items.find(m => m.type === 'oauth');
+  if (oauth) return oauth;
+
+  let defaultAM = authMethods.items.find(m => m.isDefault);
+  if (defaultAM) return defaultAM;
+
+  return authMethods.items[0];
+};
+
 let validateMaterialInput = async (d: {
   tenant: Tenant;
   solution: Solution;
   environment: Environment;
-  provider: Provider;
+  provider: Provider & { type: ProviderType; defaultVariant: ProviderVariant | null };
   input: {
-    providerDeploymentId: string;
+    providerDeploymentId?: string | null;
     providerAuthMethodId?: string | null;
     providerAuthCredentialsId?: string | null;
     providerConfigId?: string | null;
   };
 }) => {
-  let [deployment, authMethod, authCredentials, config] = await Promise.all([
-    providerDeploymentService.getProviderDeploymentById({
-      tenant: d.tenant,
-      solution: d.solution,
-      environment: d.environment,
-      providerDeploymentId: d.input.providerDeploymentId
-    }),
+  let [deployment, explicitAuthMethod, explicitAuthCredentials, config] = await Promise.all([
+    d.input.providerDeploymentId
+      ? providerDeploymentService.getProviderDeploymentById({
+          tenant: d.tenant,
+          solution: d.solution,
+          environment: d.environment,
+          providerDeploymentId: d.input.providerDeploymentId
+        })
+      : providerDeploymentService.ensureDefaultProviderDeployment({
+          tenant: d.tenant,
+          solution: d.solution,
+          environment: d.environment,
+          provider: d.provider
+        }),
     d.input.providerAuthMethodId
       ? providerAuthMethodService.getProviderAuthMethodById({
           tenant: d.tenant,
@@ -104,8 +156,8 @@ let validateMaterialInput = async (d: {
 
   checkDeletedRelation(deployment);
   checkProviderMatch(d.provider, deployment);
-  checkProviderMatch(d.provider, authMethod);
-  checkProviderMatch(d.provider, authCredentials);
+  checkProviderMatch(d.provider, explicitAuthMethod);
+  checkProviderMatch(d.provider, explicitAuthCredentials);
   checkProviderMatch(d.provider, config);
 
   if (config?.deploymentOid && config.deploymentOid !== deployment.oid) {
@@ -117,6 +169,20 @@ let validateMaterialInput = async (d: {
     );
   }
 
+  let authMethod = explicitAuthMethod;
+  let authCredentials = explicitAuthCredentials;
+
+  if (!authMethod && d.provider.type.supportsAuth) {
+    authMethod = await resolveAuthMethod({
+      tenant: d.tenant,
+      solution: d.solution,
+      environment: d.environment,
+      provider: d.provider,
+      deployment,
+      hasAuthCredentials: !!authCredentials
+    });
+  }
+
   if (authCredentials && !authMethod) {
     throw new ServiceError(
       badRequestError({
@@ -126,7 +192,11 @@ let validateMaterialInput = async (d: {
     );
   }
 
-  if (authMethod?.type == 'oauth' && !authCredentials) {
+  if (
+    authMethod?.type === 'oauth' &&
+    !authCredentials &&
+    !d.provider.type.supportsOAuthAutoRegistration
+  ) {
     throw new ServiceError(
       badRequestError({
         message: 'OAuth provider auth method requires auth credentials.',
@@ -252,7 +322,7 @@ class integrationProviderServiceImpl {
     integration: Integration;
     input: {
       providerId: string;
-      providerDeploymentId: string;
+      providerDeploymentId?: string | null;
       providerAuthMethodId?: string | null;
       providerAuthCredentialsId?: string | null;
       providerConfigId?: string | null;
@@ -379,7 +449,7 @@ class integrationProviderServiceImpl {
     let current = await db.integrationProvider.findUniqueOrThrow({
       where: { oid: d.integrationProvider.oid },
       include: {
-        provider: true,
+        provider: { include: { defaultVariant: true, type: true } },
         currentVersion: {
           include: {
             deployment: true,

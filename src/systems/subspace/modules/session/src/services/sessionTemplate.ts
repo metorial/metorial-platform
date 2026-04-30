@@ -18,8 +18,8 @@ import {
   normalizeDateFilter,
   normalizeStatusForGet,
   normalizeStatusForList,
-  resolveDelegatedIntegrationInstanceProviders,
-  resolveDelegatedIntegrationInstances,
+  resolveIntegrationInstanceGroupProviders,
+  resolveIntegrationInstanceGroups,
   resolveIntegrationInstanceProviders,
   resolveIntegrationInstances,
   resolveIntegrationProviders,
@@ -42,7 +42,7 @@ import { sessionTemplateProviderInclude } from './sessionTemplateProvider';
 
 let include = {
   integrationInstance: true,
-  delegatedIntegrationInstance: true,
+  integrationInstanceGroup: true,
   providers: {
     include: sessionTemplateProviderInclude,
     where: { status: 'active' as const }
@@ -67,10 +67,10 @@ class sessionTemplateServiceImpl {
     providerAuthConfigIds?: string[];
     integrationIds?: string[];
     integrationInstanceIds?: string[];
-    delegatedIntegrationInstanceIds?: string[];
+    integrationInstanceGroupIds?: string[];
     integrationProviderIds?: string[];
     integrationInstanceProviderIds?: string[];
-    delegatedIntegrationInstanceProviderIds?: string[];
+    integrationInstanceGroupProviderIds?: string[];
     createdAt?: DateFilter;
     updatedAt?: DateFilter;
   }) {
@@ -82,20 +82,19 @@ class sessionTemplateServiceImpl {
     let authConfigs = await resolveProviderAuthConfigs(d, d.providerAuthConfigIds);
     let integrations = await resolveIntegrations(d, d.integrationIds);
     let integrationInstances = await resolveIntegrationInstances(d, d.integrationInstanceIds);
-    let delegatedIntegrationInstances = await resolveDelegatedIntegrationInstances(
+    let integrationInstanceGroups = await resolveIntegrationInstanceGroups(
       d,
-      d.delegatedIntegrationInstanceIds
+      d.integrationInstanceGroupIds
     );
     let integrationProviders = await resolveIntegrationProviders(d, d.integrationProviderIds);
     let integrationInstanceProviders = await resolveIntegrationInstanceProviders(
       d,
       d.integrationInstanceProviderIds
     );
-    let delegatedIntegrationInstanceProviders =
-      await resolveDelegatedIntegrationInstanceProviders(
-        d,
-        d.delegatedIntegrationInstanceProviderIds
-      );
+    let integrationInstanceGroupProviders = await resolveIntegrationInstanceGroupProviders(
+      d,
+      d.integrationInstanceGroupProviderIds
+    );
 
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -137,8 +136,8 @@ class sessionTemplateServiceImpl {
                 integrationInstances
                   ? { integrationInstanceOid: integrationInstances.in }
                   : undefined!,
-                delegatedIntegrationInstances
-                  ? { delegatedIntegrationInstanceOid: delegatedIntegrationInstances.in }
+                integrationInstanceGroups
+                  ? { integrationInstanceGroupOid: integrationInstanceGroups.in }
                   : undefined!,
                 integrationProviders
                   ? {
@@ -160,12 +159,12 @@ class sessionTemplateServiceImpl {
                       }
                     }
                   : undefined!,
-                delegatedIntegrationInstanceProviders
+                integrationInstanceGroupProviders
                   ? {
                       providers: {
                         some: {
-                          delegatedIntegrationInstanceProviderOid:
-                            delegatedIntegrationInstanceProviders.in
+                          integrationInstanceGroupProviderOid:
+                            integrationInstanceGroupProviders.in
                         }
                       }
                     }

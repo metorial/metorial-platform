@@ -117,7 +117,7 @@ describe('buildIntegrationProviderToolFilterChain', () => {
     let chain = buildIntegrationProviderToolFilterChain({
       integrationProviderToolFilter: toolKeysFilter(['add', 'divide']),
       integrationInstanceProviderToolFilter: toolKeysFilter(['add', 'divide']),
-      delegatedIntegrationInstanceProviderToolFilter: toolKeysFilter(['add'])
+      integrationInstanceGroupProviderToolFilter: toolKeysFilter(['add'])
     });
 
     expect(checkToolAccess(addTool, chain as PrismaJson.ToolFilter[], 'list')).toEqual({
@@ -134,8 +134,8 @@ describe('buildIntegrationProviderToolFilterChain', () => {
     let chain = buildIntegrationProviderToolFilterChain({
       integrationProviderToolFilter: toolKeysFilter(['add']),
       integrationInstanceProviderToolFilter: toolKeysFilter(['add']),
-      delegatedIntegrationInstanceProviderToolFilter: toolKeysFilter(['divide']),
-      delegatedIntegrationInstanceProviderIsOverride: true
+      integrationInstanceGroupProviderToolFilter: toolKeysFilter(['divide']),
+      integrationInstanceGroupProviderIsOverride: true
     });
 
     expect(checkToolAccess(addTool, [chain as PrismaJson.ToolFilter], 'list')).toEqual({
@@ -153,7 +153,7 @@ describe('buildIntegrationProviderToolFilterChain', () => {
       canAttachCustomToolFilters: false,
       integrationProviderToolFilter: toolKeysFilter(['add']),
       integrationInstanceProviderToolFilter: toolKeysFilter(['divide']),
-      delegatedIntegrationInstanceProviderToolFilter: toolKeysFilter(['divide'])
+      integrationInstanceGroupProviderToolFilter: toolKeysFilter(['divide'])
     });
 
     expect(checkToolAccess(addTool, [chain as PrismaJson.ToolFilter], 'list')).toEqual({

@@ -1,5 +1,5 @@
-export * from './delegatedIntegrationInstance';
-export * from './delegatedIntegrationInstanceProvider';
+export * from './integrationInstanceGroup';
+export * from './integrationInstanceGroupProvider';
 export * from './integration';
 export * from './integrationInstance';
 export * from './integrationInstanceProvider';

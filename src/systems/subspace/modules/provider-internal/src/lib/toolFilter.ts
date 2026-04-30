@@ -142,8 +142,8 @@ export let buildIntegrationProviderToolFilterChain = (d: {
   integrationProviderToolFilter?: ToolFilter | null;
   integrationInstanceProviderToolFilter?: ToolFilter | null;
   integrationInstanceProviderIsOverride?: boolean | null;
-  delegatedIntegrationInstanceProviderToolFilter?: ToolFilter | null;
-  delegatedIntegrationInstanceProviderIsOverride?: boolean | null;
+  integrationInstanceGroupProviderToolFilter?: ToolFilter | null;
+  integrationInstanceGroupProviderIsOverride?: boolean | null;
 }): ToolFilterChain => {
   let chain: ToolFilter[] = [];
   let canAttachCustomToolFilters = d.canAttachCustomToolFilters ?? true;
@@ -167,8 +167,8 @@ export let buildIntegrationProviderToolFilterChain = (d: {
       d.integrationInstanceProviderIsOverride
     );
     addFilter(
-      d.delegatedIntegrationInstanceProviderToolFilter,
-      d.delegatedIntegrationInstanceProviderIsOverride
+      d.integrationInstanceGroupProviderToolFilter,
+      d.integrationInstanceGroupProviderIsOverride
     );
   }
 

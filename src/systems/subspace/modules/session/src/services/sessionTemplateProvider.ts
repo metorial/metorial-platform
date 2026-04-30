@@ -16,8 +16,8 @@ import {
   normalizeDateFilter,
   normalizeStatusForGet,
   normalizeStatusForList,
-  resolveDelegatedIntegrationInstanceProviders,
-  resolveDelegatedIntegrationInstances,
+  resolveIntegrationInstanceGroupProviders,
+  resolveIntegrationInstanceGroups,
   resolveIntegrationInstanceProviders,
   resolveIntegrationInstances,
   resolveIntegrationProviders,
@@ -42,11 +42,11 @@ let include = {
   config: true,
   authConfig: true,
   integrationInstanceProvider: true,
-  delegatedIntegrationInstanceProvider: true,
+  integrationInstanceGroupProvider: true,
   sessionTemplate: {
     include: {
       integrationInstance: true,
-      delegatedIntegrationInstance: true
+      integrationInstanceGroup: true
     }
   }
 };
@@ -54,19 +54,19 @@ export let sessionTemplateProviderInclude = include;
 
 let assertCanWriteSessionTemplateProvider = (
   provider: Pick<SessionTemplateProvider, 'integrationInstanceProviderOid'> & {
-    delegatedIntegrationInstanceProviderOid?: bigint | null;
+    integrationInstanceGroupProviderOid?: bigint | null;
     sessionTemplate?: Pick<
       SessionTemplate,
-      'integrationInstanceOid' | 'delegatedIntegrationInstanceOid'
+      'integrationInstanceOid' | 'integrationInstanceGroupOid'
     > | null;
   },
   action: 'create' | 'update' | 'archive'
 ) => {
   if (
     !provider.integrationInstanceProviderOid &&
-    !provider.delegatedIntegrationInstanceProviderOid &&
+    !provider.integrationInstanceGroupProviderOid &&
     !provider.sessionTemplate?.integrationInstanceOid &&
-    !provider.sessionTemplate?.delegatedIntegrationInstanceOid
+    !provider.sessionTemplate?.integrationInstanceGroupOid
   ) {
     return;
   }
@@ -96,10 +96,10 @@ class sessionTemplateProviderServiceImpl {
     providerAuthConfigIds?: string[];
     integrationIds?: string[];
     integrationInstanceIds?: string[];
-    delegatedIntegrationInstanceIds?: string[];
+    integrationInstanceGroupIds?: string[];
     integrationProviderIds?: string[];
     integrationInstanceProviderIds?: string[];
-    delegatedIntegrationInstanceProviderIds?: string[];
+    integrationInstanceGroupProviderIds?: string[];
     createdAt?: DateFilter;
     updatedAt?: DateFilter;
   }) {
@@ -110,20 +110,19 @@ class sessionTemplateProviderServiceImpl {
     let authConfigs = await resolveProviderAuthConfigs(d, d.providerAuthConfigIds);
     let integrations = await resolveIntegrations(d, d.integrationIds);
     let integrationInstances = await resolveIntegrationInstances(d, d.integrationInstanceIds);
-    let delegatedIntegrationInstances = await resolveDelegatedIntegrationInstances(
+    let integrationInstanceGroups = await resolveIntegrationInstanceGroups(
       d,
-      d.delegatedIntegrationInstanceIds
+      d.integrationInstanceGroupIds
     );
     let integrationProviders = await resolveIntegrationProviders(d, d.integrationProviderIds);
     let integrationInstanceProviders = await resolveIntegrationInstanceProviders(
       d,
       d.integrationInstanceProviderIds
     );
-    let delegatedIntegrationInstanceProviders =
-      await resolveDelegatedIntegrationInstanceProviders(
-        d,
-        d.delegatedIntegrationInstanceProviderIds
-      );
+    let integrationInstanceGroupProviders = await resolveIntegrationInstanceGroupProviders(
+      d,
+      d.integrationInstanceGroupProviderIds
+    );
 
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -182,17 +181,17 @@ class sessionTemplateProviderServiceImpl {
                       ]
                     }
                   : undefined!,
-                delegatedIntegrationInstances
+                integrationInstanceGroups
                   ? {
                       OR: [
                         {
                           sessionTemplate: {
-                            delegatedIntegrationInstanceOid: delegatedIntegrationInstances.in
+                            integrationInstanceGroupOid: integrationInstanceGroups.in
                           }
                         },
                         {
-                          delegatedIntegrationInstanceProvider: {
-                            delegatedIntegrationInstanceOid: delegatedIntegrationInstances.in
+                          integrationInstanceGroupProvider: {
+                            integrationInstanceGroupOid: integrationInstanceGroups.in
                           }
                         }
                       ]
@@ -210,10 +209,10 @@ class sessionTemplateProviderServiceImpl {
                       integrationInstanceProviderOid: integrationInstanceProviders.in
                     }
                   : undefined!,
-                delegatedIntegrationInstanceProviders
+                integrationInstanceGroupProviders
                   ? {
-                      delegatedIntegrationInstanceProviderOid:
-                        delegatedIntegrationInstanceProviders.in
+                      integrationInstanceGroupProviderOid:
+                        integrationInstanceGroupProviders.in
                     }
                   : undefined!,
 

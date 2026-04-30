@@ -5,30 +5,30 @@ import { env } from '../../env';
 import { sessionTemplateArchivedQueue } from './sessionTemplate';
 import { sessionTemplateProviderCreatedQueue } from './sessionTemplateProvider';
 
-export let syncDelegatedIntegrationInstanceSessionTemplatesQueue = createQueue<{
-  delegatedIntegrationInstanceId: string;
+export let syncIntegrationInstanceGroupSessionTemplatesQueue = createQueue<{
+  integrationInstanceGroupId: string;
   cursor?: string;
 }>({
-  name: 'sub/ses/lc/linkedDelegatedIntegrationTemplate/syncMany',
+  name: 'sub/ses/lc/linkedIntegrationInstanceGroupTemplate/syncMany',
   redisUrl: env.service.REDIS_URL
 });
 
-export let syncDelegatedIntegrationInstanceSessionTemplatesQueueProcessor =
-  syncDelegatedIntegrationInstanceSessionTemplatesQueue.process(async data => {
-    let delegatedIntegrationInstance = await db.delegatedIntegrationInstance.findUnique({
-      where: { id: data.delegatedIntegrationInstanceId }
+export let syncIntegrationInstanceGroupSessionTemplatesQueueProcessor =
+  syncIntegrationInstanceGroupSessionTemplatesQueue.process(async data => {
+    let integrationInstanceGroup = await db.integrationInstanceGroup.findUnique({
+      where: { id: data.integrationInstanceGroupId }
     });
     if (
-      !delegatedIntegrationInstance ||
-      delegatedIntegrationInstance.status === 'archived' ||
-      delegatedIntegrationInstance.status === 'deleted'
+      !integrationInstanceGroup ||
+      integrationInstanceGroup.status === 'archived' ||
+      integrationInstanceGroup.status === 'deleted'
     ) {
       return;
     }
 
     let sessionTemplates = await db.sessionTemplate.findMany({
       where: {
-        delegatedIntegrationInstanceOid: delegatedIntegrationInstance.oid,
+        integrationInstanceGroupOid: integrationInstanceGroup.oid,
         status: 'active',
         id: data.cursor ? { gt: data.cursor } : undefined
       },
@@ -38,7 +38,7 @@ export let syncDelegatedIntegrationInstanceSessionTemplatesQueueProcessor =
     });
     if (sessionTemplates.length === 0) return;
 
-    await syncDelegatedIntegrationInstanceSessionTemplateQueue.addMany(
+    await syncIntegrationInstanceGroupSessionTemplateQueue.addMany(
       sessionTemplates.map(sessionTemplate => ({
         sessionTemplateId: sessionTemplate.id
       }))
@@ -47,44 +47,44 @@ export let syncDelegatedIntegrationInstanceSessionTemplatesQueueProcessor =
     let lastSessionTemplate = sessionTemplates[sessionTemplates.length - 1];
     if (!lastSessionTemplate) return;
 
-    await syncDelegatedIntegrationInstanceSessionTemplatesQueue.add({
-      delegatedIntegrationInstanceId: data.delegatedIntegrationInstanceId,
+    await syncIntegrationInstanceGroupSessionTemplatesQueue.add({
+      integrationInstanceGroupId: data.integrationInstanceGroupId,
       cursor: lastSessionTemplate.id
     });
   });
 
-export let syncDelegatedIntegrationInstanceSessionTemplateQueue = createQueue<{
+export let syncIntegrationInstanceGroupSessionTemplateQueue = createQueue<{
   sessionTemplateId: string;
 }>({
-  name: 'sub/ses/lc/linkedDelegatedIntegrationTemplate/sync',
+  name: 'sub/ses/lc/linkedIntegrationInstanceGroupTemplate/sync',
   redisUrl: env.service.REDIS_URL
 });
 
-export let syncDelegatedIntegrationInstanceSessionTemplate = async (data: {
+export let syncIntegrationInstanceGroupSessionTemplate = async (data: {
   sessionTemplateId: string;
 }) => {
   let sessionTemplate = await db.sessionTemplate.findUnique({
     where: { id: data.sessionTemplateId },
-    include: { delegatedIntegrationInstance: true }
+    include: { integrationInstanceGroup: true }
   });
-  let delegatedIntegrationInstance = sessionTemplate?.delegatedIntegrationInstance;
+  let integrationInstanceGroup = sessionTemplate?.integrationInstanceGroup;
   if (
     !sessionTemplate ||
-    !delegatedIntegrationInstance ||
-    !sessionTemplate.delegatedIntegrationInstanceOid ||
+    !integrationInstanceGroup ||
+    !sessionTemplate.integrationInstanceGroupOid ||
     sessionTemplate.status !== 'active' ||
-    delegatedIntegrationInstance.status === 'archived' ||
-    delegatedIntegrationInstance.status === 'deleted'
+    integrationInstanceGroup.status === 'archived' ||
+    integrationInstanceGroup.status === 'deleted'
   ) {
     return;
   }
 
-  let delegatedProviders = await db.delegatedIntegrationInstanceProvider.findMany({
+  let groupProviders = await db.integrationInstanceGroupProvider.findMany({
     where: {
-      delegatedIntegrationInstanceOid: sessionTemplate.delegatedIntegrationInstanceOid,
+      integrationInstanceGroupOid: sessionTemplate.integrationInstanceGroupOid,
       status: 'active',
       isParentDeleted: false,
-      delegatedIntegrationInstanceSource: {
+      integrationInstanceGroupSource: {
         status: 'active',
         isParentDeleted: false
       },
@@ -110,12 +110,11 @@ export let syncDelegatedIntegrationInstanceSessionTemplate = async (data: {
     }
   });
 
-  let materialProviders = delegatedProviders.filter(
-    delegatedProvider =>
-      !!delegatedProvider.integrationInstanceProvider.currentVersion?.configOid
+  let materialProviders = groupProviders.filter(
+    groupProvider => !!groupProvider.integrationInstanceProvider.currentVersion?.configOid
   );
   let materialProviderOids = new Set(
-    materialProviders.map(delegatedProvider => delegatedProvider.oid.toString())
+    materialProviders.map(groupProvider => groupProvider.oid.toString())
   );
 
   let existingTemplateProviders = await db.sessionTemplateProvider.findMany({
@@ -126,28 +125,28 @@ export let syncDelegatedIntegrationInstanceSessionTemplate = async (data: {
   });
   let existingByDelegatedProviderOid = new Map(
     existingTemplateProviders
-      .filter(provider => provider.delegatedIntegrationInstanceProviderOid)
-      .map(provider => [provider.delegatedIntegrationInstanceProviderOid!, provider])
+      .filter(provider => provider.integrationInstanceGroupProviderOid)
+      .map(provider => [provider.integrationInstanceGroupProviderOid!, provider])
   );
 
   let createdSessionTemplateProviderIds = await withTransaction(async db => {
     let createdSessionTemplateProviderIds: string[] = [];
 
-    for (let delegatedProvider of materialProviders) {
-      let sourceProvider = delegatedProvider.integrationInstanceProvider;
+    for (let groupProvider of materialProviders) {
+      let sourceProvider = groupProvider.integrationInstanceProvider;
       let currentVersion = sourceProvider.currentVersion!;
-      let existing = existingByDelegatedProviderOid.get(delegatedProvider.oid);
+      let existing = existingByDelegatedProviderOid.get(groupProvider.oid);
       let toolFilter = buildIntegrationProviderToolFilterChain({
-        canAttachCustomToolFilters: delegatedProvider.integration.canAttachCustomToolFilters,
-        canOverrideToolFilters: delegatedProvider.integration.canOverrideToolFilters,
+        canAttachCustomToolFilters: groupProvider.integration.canAttachCustomToolFilters,
+        canOverrideToolFilters: groupProvider.integration.canOverrideToolFilters,
         integrationProviderToolFilter: currentVersion.integrationProviderVersion
           .toolFilter as PrismaJson.ToolFilter | null,
         integrationInstanceProviderToolFilter:
           currentVersion.toolFilter as PrismaJson.ToolFilter | null,
         integrationInstanceProviderIsOverride: currentVersion.isOverrideToolFilter,
-        delegatedIntegrationInstanceProviderToolFilter:
-          delegatedProvider.toolFilter as PrismaJson.ToolFilter | null,
-        delegatedIntegrationInstanceProviderIsOverride: delegatedProvider.isOverrideToolFilter
+        integrationInstanceGroupProviderToolFilter:
+          groupProvider.toolFilter as PrismaJson.ToolFilter | null,
+        integrationInstanceGroupProviderIsOverride: groupProvider.isOverrideToolFilter
       });
 
       let data = {
@@ -159,7 +158,7 @@ export let syncDelegatedIntegrationInstanceSessionTemplate = async (data: {
         configOid: currentVersion.configOid!,
         authConfigOid: currentVersion.authConfigOid,
         integrationInstanceProviderOid: sourceProvider.oid,
-        delegatedIntegrationInstanceProviderOid: delegatedProvider.oid,
+        integrationInstanceGroupProviderOid: groupProvider.oid,
         tenantOid: sessionTemplate.tenantOid,
         solutionOid: sessionTemplate.solutionOid,
         environmentOid: sessionTemplate.environmentOid
@@ -187,9 +186,9 @@ export let syncDelegatedIntegrationInstanceSessionTemplate = async (data: {
         sessionTemplateOid: sessionTemplate.oid,
         status: 'active',
         OR: [
-          { delegatedIntegrationInstanceProviderOid: null },
+          { integrationInstanceGroupProviderOid: null },
           {
-            delegatedIntegrationInstanceProviderOid: {
+            integrationInstanceGroupProviderOid: {
               notIn: Array.from(materialProviderOids).map(oid => BigInt(oid))
             }
           }
@@ -210,31 +209,31 @@ export let syncDelegatedIntegrationInstanceSessionTemplate = async (data: {
   }
 };
 
-export let syncDelegatedIntegrationInstanceSessionTemplateQueueProcessor =
-  syncDelegatedIntegrationInstanceSessionTemplateQueue.process(
-    syncDelegatedIntegrationInstanceSessionTemplate
+export let syncIntegrationInstanceGroupSessionTemplateQueueProcessor =
+  syncIntegrationInstanceGroupSessionTemplateQueue.process(
+    syncIntegrationInstanceGroupSessionTemplate
   );
 
-export let archiveDelegatedIntegrationInstanceSessionTemplatesQueue = createQueue<{
-  delegatedIntegrationInstanceId: string;
+export let archiveIntegrationInstanceGroupSessionTemplatesQueue = createQueue<{
+  integrationInstanceGroupId: string;
   cursor?: string;
 }>({
-  name: 'sub/ses/lc/linkedDelegatedIntegrationTemplate/archiveMany',
+  name: 'sub/ses/lc/linkedIntegrationInstanceGroupTemplate/archiveMany',
   redisUrl: env.service.REDIS_URL
 });
 
-export let archiveDelegatedIntegrationInstanceSessionTemplatesQueueProcessor =
-  archiveDelegatedIntegrationInstanceSessionTemplatesQueue.process(async data => {
-    let delegatedIntegrationInstance = await db.delegatedIntegrationInstance.findUnique({
-      where: { id: data.delegatedIntegrationInstanceId }
+export let archiveIntegrationInstanceGroupSessionTemplatesQueueProcessor =
+  archiveIntegrationInstanceGroupSessionTemplatesQueue.process(async data => {
+    let integrationInstanceGroup = await db.integrationInstanceGroup.findUnique({
+      where: { id: data.integrationInstanceGroupId }
     });
-    if (!delegatedIntegrationInstance || delegatedIntegrationInstance.status !== 'archived') {
+    if (!integrationInstanceGroup || integrationInstanceGroup.status !== 'archived') {
       return;
     }
 
     let sessionTemplates = await db.sessionTemplate.findMany({
       where: {
-        delegatedIntegrationInstanceOid: delegatedIntegrationInstance.oid,
+        integrationInstanceGroupOid: integrationInstanceGroup.oid,
         status: 'active',
         id: data.cursor ? { gt: data.cursor } : undefined
       },
@@ -244,7 +243,7 @@ export let archiveDelegatedIntegrationInstanceSessionTemplatesQueueProcessor =
     });
     if (sessionTemplates.length === 0) return;
 
-    await archiveDelegatedIntegrationInstanceSessionTemplateQueue.addMany(
+    await archiveIntegrationInstanceGroupSessionTemplateQueue.addMany(
       sessionTemplates.map(sessionTemplate => ({
         sessionTemplateId: sessionTemplate.id
       }))
@@ -253,37 +252,37 @@ export let archiveDelegatedIntegrationInstanceSessionTemplatesQueueProcessor =
     let lastSessionTemplate = sessionTemplates[sessionTemplates.length - 1];
     if (!lastSessionTemplate) return;
 
-    await archiveDelegatedIntegrationInstanceSessionTemplatesQueue.add({
-      delegatedIntegrationInstanceId: data.delegatedIntegrationInstanceId,
+    await archiveIntegrationInstanceGroupSessionTemplatesQueue.add({
+      integrationInstanceGroupId: data.integrationInstanceGroupId,
       cursor: lastSessionTemplate.id
     });
   });
 
-export let archiveDelegatedIntegrationInstanceSessionTemplateQueue = createQueue<{
+export let archiveIntegrationInstanceGroupSessionTemplateQueue = createQueue<{
   sessionTemplateId: string;
 }>({
-  name: 'sub/ses/lc/linkedDelegatedIntegrationTemplate/archive',
+  name: 'sub/ses/lc/linkedIntegrationInstanceGroupTemplate/archive',
   redisUrl: env.service.REDIS_URL
 });
 
-export let archiveDelegatedIntegrationInstanceSessionTemplateQueueProcessor =
-  archiveDelegatedIntegrationInstanceSessionTemplateQueue.process(async data => {
+export let archiveIntegrationInstanceGroupSessionTemplateQueueProcessor =
+  archiveIntegrationInstanceGroupSessionTemplateQueue.process(async data => {
     let sessionTemplate = await db.sessionTemplate.findUnique({
       where: { id: data.sessionTemplateId },
-      include: { delegatedIntegrationInstance: true }
+      include: { integrationInstanceGroup: true }
     });
-    let delegatedIntegrationInstance = sessionTemplate?.delegatedIntegrationInstance;
+    let integrationInstanceGroup = sessionTemplate?.integrationInstanceGroup;
     if (
       !sessionTemplate ||
-      !delegatedIntegrationInstance ||
-      !sessionTemplate.delegatedIntegrationInstanceOid ||
+      !integrationInstanceGroup ||
+      !sessionTemplate.integrationInstanceGroupOid ||
       sessionTemplate.status !== 'active' ||
-      delegatedIntegrationInstance.status !== 'archived'
+      integrationInstanceGroup.status !== 'archived'
     ) {
       return;
     }
 
-    let archivedAt = delegatedIntegrationInstance.archivedAt ?? new Date();
+    let archivedAt = integrationInstanceGroup.archivedAt ?? new Date();
 
     await withTransaction(async db => {
       await db.sessionTemplateProvider.updateMany({

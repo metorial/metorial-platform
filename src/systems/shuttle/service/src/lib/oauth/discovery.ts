@@ -5,7 +5,6 @@ import type { OAuthConfiguration } from './types';
 export class OAuthDiscovery {
   private static readonly WELL_KNOWN_PATHS = [
     '/.well-known/openid-configuration',
-    '/.well-known/oauth-authorization-server',
     '/.well-known/oauth-protected-resource',
     '/.well-known/oauth-authorization-server',
     '/oauth/metadata.json'
