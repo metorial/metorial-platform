@@ -1,4 +1,6 @@
 import type {
+  Identity,
+  IdentityActor,
   Integration,
   IntegrationInstance,
   IntegrationInstanceProvider,
@@ -18,6 +20,8 @@ import { integrationInstanceProviderPresenter } from './integrationInstanceProvi
 export let integrationInstancePresenter = (
   integrationInstance: IntegrationInstance & {
     integration: Integration;
+    identityActor: IdentityActor | null;
+    identity: Identity | null;
     integrationInstanceProviders: (IntegrationInstanceProvider & {
       integration: Integration;
       integrationInstance: IntegrationInstance;
@@ -67,6 +71,8 @@ export let integrationInstancePresenter = (
   privateMetadata: integrationInstance.privateMetadata,
 
   integrationId: integrationInstance.integration.id,
+  identityActorId: integrationInstance.identityActor?.id ?? null,
+  identityId: integrationInstance.identity?.id ?? null,
 
   providers: integrationInstance.integrationInstanceProviders.map(provider =>
     integrationInstanceProviderPresenter(provider)

@@ -51,6 +51,12 @@ export let integrationInstanceController = app.controller({
           integrationIds: v.optional(v.array(v.string())),
           providerIds: v.optional(v.array(v.string())),
           integrationProviderIds: v.optional(v.array(v.string())),
+          identityIds: v.optional(v.array(v.string())),
+          identityCredentialIds: v.optional(v.array(v.string())),
+          actorIds: v.optional(v.array(v.string())),
+          providerDeploymentIds: v.optional(v.array(v.string())),
+          providerConfigIds: v.optional(v.array(v.string())),
+          providerAuthConfigIds: v.optional(v.array(v.string())),
 
           createdAt: createdAtValidator,
           updatedAt: updatedAtValidator
@@ -72,6 +78,12 @@ export let integrationInstanceController = app.controller({
         integrationIds: ctx.input.integrationIds,
         providerIds: ctx.input.providerIds,
         integrationProviderIds: ctx.input.integrationProviderIds,
+        identityIds: ctx.input.identityIds,
+        identityCredentialIds: ctx.input.identityCredentialIds,
+        actorIds: ctx.input.actorIds,
+        providerDeploymentIds: ctx.input.providerDeploymentIds,
+        providerConfigIds: ctx.input.providerConfigIds,
+        providerAuthConfigIds: ctx.input.providerAuthConfigIds,
 
         createdAt: ctx.input.createdAt,
         updatedAt: ctx.input.updatedAt
@@ -106,6 +118,8 @@ export let integrationInstanceController = app.controller({
         description: v.optional(v.string()),
         metadata: v.optional(v.record(v.any())),
         privateMetadata: v.optional(v.record(v.any())),
+        identityActorId: v.optional(v.nullable(v.string())),
+        identityId: v.optional(v.nullable(v.string())),
         providers: v.optional(v.array(integrationInstanceProviderInputValidator))
       })
     )
@@ -127,6 +141,8 @@ export let integrationInstanceController = app.controller({
           description: ctx.input.description,
           metadata: ctx.input.metadata,
           privateMetadata: ctx.input.privateMetadata,
+          identityActorId: ctx.input.identityActorId,
+          identityId: ctx.input.identityId,
           providers: ctx.input.providers?.map(provider => ({
             providerId: provider.providerId,
             providerConfigId: provider.providerConfigId,
@@ -155,6 +171,8 @@ export let integrationInstanceController = app.controller({
         description: v.optional(v.nullable(v.string())),
         metadata: v.optional(v.nullable(v.record(v.any()))),
         privateMetadata: v.optional(v.nullable(v.record(v.any()))),
+        identityActorId: v.optional(v.nullable(v.string())),
+        identityId: v.optional(v.nullable(v.string())),
         providers: v.optional(v.array(integrationInstanceProviderInputValidator))
       })
     )
@@ -169,6 +187,8 @@ export let integrationInstanceController = app.controller({
           description: ctx.input.description,
           metadata: ctx.input.metadata,
           privateMetadata: ctx.input.privateMetadata,
+          identityActorId: ctx.input.identityActorId,
+          identityId: ctx.input.identityId,
           providers: ctx.input.providers?.map(provider => ({
             providerId: provider.providerId,
             providerConfigId: provider.providerConfigId,

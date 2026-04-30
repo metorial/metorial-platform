@@ -22,8 +22,14 @@ import {
   normalizeDateFilter,
   normalizeStatusForGet,
   normalizeStatusForList,
+  resolveIdentities,
+  resolveIdentityActors,
+  resolveIdentityCredentials,
   resolveIntegrationProviders,
   resolveIntegrations,
+  resolveProviderAuthConfigs,
+  resolveProviderConfigs,
+  resolveProviderDeployments,
   resolveProviders
 } from '@metorial-subspace/list-utils';
 import {
@@ -49,7 +55,7 @@ export let integrationInstanceProviderVersionInclude = {
   },
   config: { include: { provider: true } },
   authConfig: { include: { provider: true } }
-};
+} as const;
 
 export let integrationInstanceProviderInclude = {
   integration: true,
@@ -66,7 +72,7 @@ export let integrationInstanceProviderInclude = {
   currentVersion: {
     include: integrationInstanceProviderVersionInclude
   }
-};
+} as const;
 
 export let integrationInstanceInclude = {
   integration: true,
@@ -76,7 +82,7 @@ export let integrationInstanceInclude = {
     where: { status: 'active' as const, isParentDeleted: false },
     include: integrationInstanceProviderInclude
   }
-};
+} as const;
 
 type IntegrationIdentityInput = {
   identityActorId?: string | null;
@@ -148,6 +154,12 @@ class integrationInstanceServiceImpl {
     integrationIds?: string[];
     providerIds?: string[];
     integrationProviderIds?: string[];
+    identityIds?: string[];
+    identityCredentialIds?: string[];
+    actorIds?: string[];
+    providerDeploymentIds?: string[];
+    providerConfigIds?: string[];
+    providerAuthConfigIds?: string[];
 
     createdAt?: DateFilter;
     updatedAt?: DateFilter;
@@ -158,6 +170,12 @@ class integrationInstanceServiceImpl {
     let integrations = await resolveIntegrations(d, d.integrationIds);
     let providers = await resolveProviders(d, d.providerIds);
     let integrationProviders = await resolveIntegrationProviders(d, d.integrationProviderIds);
+    let identities = await resolveIdentities(d, d.identityIds);
+    let credentials = await resolveIdentityCredentials(d, d.identityCredentialIds);
+    let actors = await resolveIdentityActors(d, d.actorIds);
+    let deployments = await resolveProviderDeployments(d, d.providerDeploymentIds);
+    let configs = await resolveProviderConfigs(d, d.providerConfigIds);
+    let authConfigs = await resolveProviderAuthConfigs(d, d.providerAuthConfigIds);
     let search = d.search
       ? await voyager.record.search({
           tenantId: d.tenant.id,
@@ -195,6 +213,71 @@ class integrationInstanceServiceImpl {
                       integrationInstanceProviders: {
                         some: { integrationProviderOid: integrationProviders.in }
                       }
+                    }
+                  : undefined!,
+                identities
+                  ? {
+                      OR: [
+                        { identityOid: { in: identities.oids } },
+                        { ownedIdentities: { some: { oid: { in: identities.oids } } } },
+                        {
+                          identityCredentials: {
+                            some: { identityOid: { in: identities.oids } }
+                          }
+                        }
+                      ]
+                    }
+                  : undefined!,
+                credentials
+                  ? { identityCredentials: { some: { oid: { in: credentials.oids } } } }
+                  : undefined!,
+                actors
+                  ? {
+                      OR: [
+                        { identityActorOid: actors.in },
+                        { identity: { actorOid: actors.in } },
+                        { ownedIdentities: { some: { actorOid: actors.in } } }
+                      ]
+                    }
+                  : undefined!,
+                deployments
+                  ? {
+                      OR: [
+                        {
+                          integrationInstanceProviders: {
+                            some: {
+                              currentVersion: {
+                                integrationProviderVersion: { deploymentOid: deployments.in }
+                              }
+                            }
+                          }
+                        },
+                        { identityCredentials: { some: { deploymentOid: deployments.in } } }
+                      ]
+                    }
+                  : undefined!,
+                configs
+                  ? {
+                      OR: [
+                        {
+                          integrationInstanceProviders: {
+                            some: { currentVersion: { configOid: configs.in } }
+                          }
+                        },
+                        { identityCredentials: { some: { configOid: configs.in } } }
+                      ]
+                    }
+                  : undefined!,
+                authConfigs
+                  ? {
+                      OR: [
+                        {
+                          integrationInstanceProviders: {
+                            some: { currentVersion: { authConfigOid: authConfigs.in } }
+                          }
+                        },
+                        { identityCredentials: { some: { authConfigOid: authConfigs.in } } }
+                      ]
                     }
                   : undefined!,
                 d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,

@@ -51,8 +51,10 @@ let include = {
   deployment: true,
   config: true,
   authConfig: true,
-  delegationConfig: true
-};
+  delegationConfig: true,
+  integrationInstance: true,
+  integrationInstanceProvider: true
+} as const;
 
 class identityCredentialServiceImpl {
   async listIdentityCredentials(d: {

@@ -1,4 +1,4 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { createLock } from '@lowerdeck/lock';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
@@ -492,6 +492,7 @@ class providerDeploymentServiceImpl {
   }) {
     checkTenant(d, d.providerDeployment);
     checkDeletedEdit(d.providerDeployment, 'archive');
+    await this.assertNoActiveIntegrationProviderLink(d);
 
     return withTransaction(async db => {
       let archivedAt = new Date();
@@ -541,6 +542,50 @@ class providerDeploymentServiceImpl {
           include: { ...include, currentVersion: true }
         }),
       { ifExists: true }
+    );
+  }
+
+  private async assertNoActiveIntegrationProviderLink(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    providerDeployment: ProviderDeployment;
+  }) {
+    let integrationProvider = await db.integrationProvider.findFirst({
+      where: {
+        tenantOid: d.tenant.oid,
+        solutionOid: d.solution.oid,
+        environmentOid: d.environment.oid,
+        status: 'active',
+        integration: {
+          status: 'active'
+        },
+        currentVersion: {
+          deploymentOid: d.providerDeployment.oid
+        }
+      },
+      select: {
+        id: true,
+        integration: {
+          select: {
+            id: true
+          }
+        }
+      }
+    });
+    if (!integrationProvider) return;
+
+    throw new ServiceError(
+      badRequestError({
+        message:
+          'Provider deployment is linked to an active integration provider and cannot be archived directly.',
+        code: 'provider_deployment_integration_provider_archive_not_allowed',
+        data: {
+          id: d.providerDeployment.id,
+          integrationProviderId: integrationProvider.id,
+          integrationId: integrationProvider.integration.id
+        }
+      })
     );
   }
 }

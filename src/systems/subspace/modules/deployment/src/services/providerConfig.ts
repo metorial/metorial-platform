@@ -599,6 +599,7 @@ class providerConfigServiceImpl {
     await this.assertNotForVault(d);
     checkTenant(d, d.providerConfig);
     checkDeletedEdit(d.providerConfig, 'archive');
+    await this.assertNoActiveIntegrationProviderLink(d);
     this.assertCanArchiveOwned(d);
 
     return withTransaction(async db => {
@@ -655,6 +656,50 @@ class providerConfigServiceImpl {
         })
       );
     }
+  }
+
+  private async assertNoActiveIntegrationProviderLink(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    providerConfig: ProviderConfig;
+  }) {
+    let integrationProvider = await db.integrationProvider.findFirst({
+      where: {
+        tenantOid: d.tenant.oid,
+        solutionOid: d.solution.oid,
+        environmentOid: d.environment.oid,
+        status: 'active',
+        integration: {
+          status: 'active'
+        },
+        currentVersion: {
+          configOid: d.providerConfig.oid
+        }
+      },
+      select: {
+        id: true,
+        integration: {
+          select: {
+            id: true
+          }
+        }
+      }
+    });
+    if (!integrationProvider) return;
+
+    throw new ServiceError(
+      badRequestError({
+        message:
+          'Provider config is linked to an active integration provider and cannot be archived directly.',
+        code: 'provider_config_integration_provider_archive_not_allowed',
+        data: {
+          id: d.providerConfig.id,
+          integrationProviderId: integrationProvider.id,
+          integrationId: integrationProvider.integration.id
+        }
+      })
+    );
   }
 
   private assertCanArchiveOwned(d: {

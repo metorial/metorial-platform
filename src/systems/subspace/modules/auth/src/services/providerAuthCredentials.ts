@@ -30,12 +30,12 @@ import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-
 import { checkTenant } from '@metorial-subspace/module-tenant';
 import { getBackend } from '@metorial-subspace/provider';
 import { env } from '../env';
+import { normalizeManagedOAuthScopeIds } from '../lib/managedOAuthScopes';
 import {
   ensureManagedProviderAuthCredentialsBacking,
   type ManagedProviderAuthCredentialsBackingSource,
   managedProviderAuthCredentialsBackingSourceInclude
 } from '../lib/managedProviderAuthCredentialsBacking';
-import { normalizeManagedOAuthScopeIds } from '../lib/managedOAuthScopes';
 import {
   providerAuthCredentialsArchivedQueue,
   providerAuthCredentialsCreatedQueue,
@@ -349,7 +349,9 @@ class providerAuthCredentialsServiceImpl {
     });
 
     if (d.input.scopes && managedCredentials) {
-      let allowedScopes = new Set(normalizeManagedOAuthScopeIds(managedCredentials.oauthScopes));
+      let allowedScopes = new Set(
+        normalizeManagedOAuthScopeIds(managedCredentials.oauthScopes)
+      );
       let invalidScopes = d.input.scopes.filter(scope => !allowedScopes.has(scope));
       if (invalidScopes.length > 0) {
         throw new ServiceError(
@@ -463,6 +465,8 @@ class providerAuthCredentialsServiceImpl {
         })
       );
     }
+
+    await this.assertNoActiveIntegrationProviderLink(d);
 
     return withTransaction(async db => {
       let creds = await db.providerAuthCredentials.update({
@@ -672,6 +676,50 @@ class providerAuthCredentialsServiceImpl {
     });
 
     return managedBacking.managedCredentials;
+  }
+
+  private async assertNoActiveIntegrationProviderLink(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    providerAuthCredentials: ProviderAuthCredentials;
+  }) {
+    let integrationProvider = await db.integrationProvider.findFirst({
+      where: {
+        tenantOid: d.tenant.oid,
+        solutionOid: d.solution.oid,
+        environmentOid: d.environment.oid,
+        status: 'active',
+        integration: {
+          status: 'active'
+        },
+        currentVersion: {
+          authCredentialsOid: d.providerAuthCredentials.oid
+        }
+      },
+      select: {
+        id: true,
+        integration: {
+          select: {
+            id: true
+          }
+        }
+      }
+    });
+    if (!integrationProvider) return;
+
+    throw new ServiceError(
+      badRequestError({
+        message:
+          'Provider auth credentials are linked to an active integration provider and cannot be archived directly.',
+        code: 'provider_auth_credentials_integration_provider_archive_not_allowed',
+        data: {
+          id: d.providerAuthCredentials.id,
+          integrationProviderId: integrationProvider.id,
+          integrationId: integrationProvider.integration.id
+        }
+      })
+    );
   }
 
   private async getProviderAuthCredentialsForTenantRead(d: {
