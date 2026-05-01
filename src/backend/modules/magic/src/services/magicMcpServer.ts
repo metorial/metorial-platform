@@ -106,7 +106,6 @@ let upsertMagicMcpServerBacking = async (d: {
   instance: Instance;
   magicMcpServerId: string;
   providerTemplateId?: string | null;
-  sessionTemplateId?: string | null;
   name?: string | null;
   description?: string | null;
   metadata?: Record<string, unknown> | null;
@@ -121,7 +120,6 @@ let upsertMagicMcpServerBacking = async (d: {
     instance: d.instance,
     magicMcpServerBackingId: d.magicMcpServerId,
     providerTemplateBackingId: d.providerTemplateId,
-    sessionTemplateId: d.sessionTemplateId,
     name: d.name,
     description: d.description,
     metadata: d.metadata ?? undefined,
@@ -144,7 +142,6 @@ export let ensureMagicMcpServerBacking = async (d: {
     instance: d.instance,
     magicMcpServerId: d.server.id,
     providerTemplateId: d.server.providerTemplateId,
-    sessionTemplateId: d.server.subspaceSessionTemplateId,
     name: d.server.name,
     description: d.server.description,
     metadata: d.server.metadata as Record<string, unknown>,
@@ -268,7 +265,6 @@ class MagicMcpServerImpl {
       metadata?: Record<string, unknown>;
       source?: MagicMcpServerSource;
       providerTemplateId?: string;
-      sessionTemplateId?: string;
       providers?: MagicMcpServerProviderInput[];
     };
   }) {
@@ -277,7 +273,6 @@ class MagicMcpServerImpl {
       instance: d.instance,
       magicMcpServerId,
       providerTemplateId: d.input.providerTemplateId,
-      sessionTemplateId: d.input.sessionTemplateId,
       name: d.input.name,
       description: d.input.description,
       metadata: d.input.metadata,

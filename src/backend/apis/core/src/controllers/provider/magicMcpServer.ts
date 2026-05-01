@@ -1,21 +1,33 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { MagicMcpServerStatus } from '@metorial/db';
 import {
-  grantConsumerOwnedMagicMcpServerAccess,
   consumerProfileService,
-  consumerService
+  consumerService,
+  grantConsumerOwnedMagicMcpServerAccess
 } from '@metorial/module-consumer';
 import { magicMcpServerService } from '@metorial/module-magic';
-import { subspaceSessionTemplateService } from '@metorial/module-subspace';
+import {
+  subspaceIntegrationInstanceProviderService,
+  subspaceIntegrationInstanceService,
+  subspaceIntegrationProviderService,
+  subspaceIntegrationService,
+  subspaceMagicMcpBackingService
+} from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
+import { dateFilterValidator } from '../../lib/dateFilter';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { hasFlags } from '../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../middleware/requireConsumerTokenForPublishableKey';
-import { magicMcpServerPresenter, providerToolsPresenter } from '../../presenters';
+import {
+  magicMcpServerProviderPresenter,
+  magicMcpServerPresenter,
+  providerToolsPresenter
+} from '../../presenters';
+import { toolFiltersValidator } from './session';
 
 export let magicMcpServerGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.magicMcpServerId) {
@@ -119,6 +131,136 @@ let getConsumerFilterAccessTags = async (d: {
   });
 };
 
+let getMagicMcpServerPresentationData = async (d: {
+  instance: Parameters<typeof magicMcpServerService.getMagicMcpServerById>[0]['instance'];
+  magicMcpServer: Awaited<ReturnType<typeof magicMcpServerService.getMagicMcpServerById>>;
+  portal?: Parameters<typeof magicMcpServerPresenter.present>[0]['portal'];
+}) => {
+  if (!d.magicMcpServer.hasSubspaceBacking) {
+    return {
+      magicMcpServer: d.magicMcpServer,
+      portal: d.portal,
+      integration: null,
+      integrationInstance: null,
+      integrationInstanceProviders: [],
+      sessionTemplateId: d.magicMcpServer.subspaceSessionTemplateId
+    };
+  }
+
+  let backing = await subspaceMagicMcpBackingService.getServer({
+    instance: d.instance,
+    magicMcpServerBackingId: d.magicMcpServer.id
+  });
+  let integration = backing.integrationId
+    ? await subspaceIntegrationService.get({
+        instance: d.instance,
+        integrationId: backing.integrationId,
+        allowDeleted: true
+      })
+    : null;
+  let integrationInstance = await subspaceIntegrationInstanceService.get({
+    instance: d.instance,
+    integrationInstanceId: backing.integrationInstanceId,
+    allowDeleted: true
+  });
+  let integrationInstanceProvidersPaginator =
+    await subspaceIntegrationInstanceProviderService.list({
+      instance: d.instance,
+      includeMagicMcpBackings: true,
+      allowDeleted: true,
+      integrationInstanceIds: [backing.integrationInstanceId]
+    });
+  let integrationInstanceProviders = (
+    await integrationInstanceProvidersPaginator.run({ limit: 100 })
+  ).items;
+
+  return {
+    magicMcpServer: d.magicMcpServer,
+    portal: d.portal,
+    integration,
+    integrationInstance,
+    integrationInstanceProviders,
+    sessionTemplateId: backing.sessionTemplateId
+  };
+};
+
+let getMagicMcpServerBacking = async (d: {
+  instance: Parameters<typeof magicMcpServerService.getMagicMcpServerById>[0]['instance'];
+  magicMcpServer: Awaited<ReturnType<typeof magicMcpServerService.getMagicMcpServerById>>;
+}) =>
+  await subspaceMagicMcpBackingService.getServer({
+    instance: d.instance,
+    magicMcpServerBackingId: d.magicMcpServer.id
+  });
+
+let assertMagicMcpServerProviderWriteAllowed = (magicMcpServer: {
+  providerTemplateId: string | null;
+}) => {
+  if (!magicMcpServer.providerTemplateId) return;
+
+  throw new ServiceError(
+    badRequestError({
+      message:
+        'This magic MCP server inherits its integration from a provider template and its providers cannot be changed.',
+      code: 'magic_mcp_server_provider_inherited'
+    })
+  );
+};
+
+let magicMcpServerInstanceProviderGroup = magicMcpServerGroup.use(async ctx => {
+  if (!ctx.params.integrationInstanceProviderId) {
+    throw new ServiceError(
+      badRequestError({
+        message: 'integrationInstanceProviderId is required',
+        description: 'The integrationInstanceProviderId path parameter is required.'
+      })
+    );
+  }
+
+  let integrationInstanceProvider = await subspaceIntegrationInstanceProviderService.get({
+    instance: ctx.instance,
+    integrationInstanceProviderId: ctx.params.integrationInstanceProviderId,
+    allowDeleted: true
+  });
+  let backing = await getMagicMcpServerBacking({
+    instance: ctx.instance,
+    magicMcpServer: ctx.magicMcpServer
+  });
+
+  if (integrationInstanceProvider.integrationInstanceId !== backing.integrationInstanceId) {
+    throw new ServiceError(notFoundError('integration.instance.provider'));
+  }
+
+  return { integrationInstanceProvider, magicMcpServerBacking: backing };
+});
+
+let magicMcpServerIntegrationProviderGroup = magicMcpServerGroup.use(async ctx => {
+  if (!ctx.params.integrationProviderId) {
+    throw new ServiceError(
+      badRequestError({
+        message: 'integrationProviderId is required',
+        description: 'The integrationProviderId path parameter is required.'
+      })
+    );
+  }
+
+  let integrationProvider = await subspaceIntegrationProviderService.get({
+    instance: ctx.instance,
+    integrationProviderId: ctx.params.integrationProviderId,
+    allowDeleted: true
+  });
+  let backing = await getMagicMcpServerBacking({
+    instance: ctx.instance,
+    magicMcpServer: ctx.magicMcpServer
+  });
+
+  if (integrationProvider.integrationId !== backing.integrationId) {
+    throw new ServiceError(notFoundError('integration.provider'));
+  }
+
+  return { integrationProvider, magicMcpServerBacking: backing };
+});
+
 export let magicMcpServerController = Controller.create(
   {
     name: 'Magic MCP Servers',
@@ -185,7 +327,7 @@ export let magicMcpServerController = Controller.create(
         let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, magicMcpServer =>
-          magicMcpServerPresenter.present({ magicMcpServer, portal: ctx.portal })
+          magicMcpServerPresenter.present({ magicMcpServer })
         );
       }),
 
@@ -206,10 +348,13 @@ export let magicMcpServerController = Controller.create(
       .output(magicMcpServerPresenter)
       .use(hasFlags(['magic-mcp-enabled']))
       .do(async ctx => {
-        return magicMcpServerPresenter.present({
-          magicMcpServer: ctx.magicMcpServer,
-          portal: ctx.portal
-        });
+        return magicMcpServerPresenter.present(
+          await getMagicMcpServerPresentationData({
+            instance: ctx.instance,
+            magicMcpServer: ctx.magicMcpServer,
+            portal: ctx.portal
+          })
+        );
       }),
 
     listTools: magicMcpServerGroup
@@ -240,6 +385,323 @@ export let magicMcpServerController = Controller.create(
         });
 
         return providerToolsPresenter.present({ items });
+      }),
+
+    listProviders: magicMcpServerGroup
+      .get(
+        instancePath(
+          'magic-mcp-servers/:magicMcpServerId/providers',
+          'magicMcpServers.providers.list'
+        ),
+        {
+          name: 'List magic MCP server providers',
+          description:
+            'Returns the backing integration instance providers configured for a magic MCP server.'
+        }
+      )
+      .use(
+        checkAccess({
+          possibleScopes: [
+            'instance.provider.session:read',
+            'consumer#instance.magic_mcp:read'
+          ]
+        })
+      )
+      .use(requireConsumerTokenForPublishableKey())
+      .outputList(magicMcpServerProviderPresenter)
+      .query(
+        'default',
+        Paginator.validate(
+          v.object({
+            status: v.optional(
+              v.union([
+                v.enumOf(['active', 'archived', 'deleted']),
+                v.array(v.enumOf(['active', 'archived', 'deleted']))
+              ])
+            ),
+            id: v.optional(v.union([v.string(), v.array(v.string())])),
+            provider_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            integration_provider_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            provider_deployment_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            provider_config_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            provider_auth_config_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            created_at: dateFilterValidator('magic MCP server provider creation time'),
+            updated_at: dateFilterValidator('magic MCP server provider last update time')
+          })
+        )
+      )
+      .use(hasFlags(['magic-mcp-enabled']))
+      .do(async ctx => {
+        let backing = await getMagicMcpServerBacking({
+          instance: ctx.instance,
+          magicMcpServer: ctx.magicMcpServer
+        });
+
+        let paginator = await subspaceIntegrationInstanceProviderService.list({
+          instance: ctx.instance,
+          includeMagicMcpBackings: true,
+          allowDeleted: true,
+          status: normalizeArrayParam(ctx.query.status),
+          ids: normalizeArrayParam(ctx.query.id),
+          integrationInstanceIds: [backing.integrationInstanceId],
+          providerIds: normalizeArrayParam(ctx.query.provider_id),
+          integrationProviderIds: normalizeArrayParam(ctx.query.integration_provider_id),
+          providerDeploymentIds: normalizeArrayParam(ctx.query.provider_deployment_id),
+          providerConfigIds: normalizeArrayParam(ctx.query.provider_config_id),
+          providerAuthConfigIds: normalizeArrayParam(ctx.query.provider_auth_config_id),
+          createdAt: ctx.query.created_at,
+          updatedAt: ctx.query.updated_at
+        });
+
+        let list = await paginator.run(ctx.query);
+
+        return Paginator.present(list, integrationInstanceProvider =>
+          magicMcpServerProviderPresenter.present({
+            magicMcpServer: ctx.magicMcpServer,
+            integrationInstanceProvider
+          })
+        );
+      }),
+
+    createProvider: magicMcpServerGroup
+      .post(
+        instancePath(
+          'magic-mcp-servers/:magicMcpServerId/providers',
+          'magicMcpServers.providers.create'
+        ),
+        {
+          name: 'Create magic MCP server provider',
+          description:
+            'Creates a backing integration provider and then sets the corresponding integration instance provider for a magic MCP server.'
+        }
+      )
+      .use(
+        checkAccess({
+          possibleScopes: [
+            'instance.provider.session:write',
+            'consumer#instance.magic_mcp:write'
+          ],
+          fineGrainedPolicy: 'deny'
+        })
+      )
+      .body(
+        'default',
+        v.object({
+          provider_id: v.string(),
+          provider_deployment_id: v.string(),
+          provider_config_id: v.optional(v.nullable(v.string())),
+          provider_auth_config_id: v.optional(v.nullable(v.string())),
+          tool_filters: toolFiltersValidator
+        })
+      )
+      .use(hasFlags(['magic-mcp-enabled']))
+      .use(requireConsumerTokenForPublishableKey())
+      .output(magicMcpServerProviderPresenter)
+      .do(async ctx => {
+        await magicMcpServerService.checkWriteAccess({
+          server: ctx.magicMcpServer,
+          instance: ctx.instance,
+          accessTags: ctx.accessTags
+        });
+        assertMagicMcpServerProviderWriteAllowed(ctx.magicMcpServer);
+
+        let backing = await getMagicMcpServerBacking({
+          instance: ctx.instance,
+          magicMcpServer: ctx.magicMcpServer
+        });
+        let integration = backing.integrationId
+          ? await subspaceIntegrationService.get({
+              instance: ctx.instance,
+              integrationId: backing.integrationId,
+              allowDeleted: true
+            })
+          : null;
+        if (!integration) {
+          throw new ServiceError(notFoundError('integration'));
+        }
+
+        let integrationProvider = await subspaceIntegrationProviderService.create({
+          instance: ctx.instance,
+          integrationId: integration.id,
+          providerId: ctx.body.provider_id,
+          providerDeploymentId: ctx.body.provider_deployment_id,
+          providerConfigId: ctx.body.provider_config_id,
+          toolFilters: ctx.body.tool_filters
+        });
+
+        let integrationInstanceProvider = await subspaceIntegrationInstanceProviderService.set(
+          {
+            instance: ctx.instance,
+            integrationInstanceId: backing.integrationInstanceId,
+            providerId: integrationProvider.id,
+            providerAuthConfigId: ctx.body.provider_auth_config_id ?? undefined,
+            toolFilters: ctx.body.tool_filters
+          }
+        );
+
+        return magicMcpServerProviderPresenter.present({
+          magicMcpServer: ctx.magicMcpServer,
+          integrationInstanceProvider
+        });
+      }),
+
+    getProvider: magicMcpServerInstanceProviderGroup
+      .get(
+        instancePath(
+          'magic-mcp-servers/:magicMcpServerId/providers/:integrationInstanceProviderId',
+          'magicMcpServers.providers.get'
+        ),
+        {
+          name: 'Get magic MCP server provider',
+          description:
+            'Retrieves a specific backing integration instance provider for a magic MCP server.'
+        }
+      )
+      .use(
+        checkAccess({
+          possibleScopes: [
+            'instance.provider.session:read',
+            'consumer#instance.magic_mcp:read'
+          ]
+        })
+      )
+      .use(requireConsumerTokenForPublishableKey())
+      .use(hasFlags(['magic-mcp-enabled']))
+      .output(magicMcpServerProviderPresenter)
+      .do(async ctx => {
+        return magicMcpServerProviderPresenter.present({
+          magicMcpServer: ctx.magicMcpServer,
+          integrationInstanceProvider: ctx.integrationInstanceProvider
+        });
+      }),
+
+    updateProvider: magicMcpServerIntegrationProviderGroup
+      .patch(
+        instancePath(
+          'magic-mcp-servers/:magicMcpServerId/providers/:integrationProviderId',
+          'magicMcpServers.providers.update'
+        ),
+        {
+          name: 'Update magic MCP server provider',
+          description:
+            'Updates a backing integration provider and then sets the corresponding integration instance provider for a magic MCP server.'
+        }
+      )
+      .use(
+        checkAccess({
+          possibleScopes: [
+            'instance.provider.session:write',
+            'consumer#instance.magic_mcp:write'
+          ],
+          fineGrainedPolicy: 'deny'
+        })
+      )
+      .body(
+        'default',
+        v.object({
+          provider_deployment_id: v.optional(v.string()),
+          provider_config_id: v.optional(v.nullable(v.string())),
+          provider_auth_config_id: v.optional(v.nullable(v.string())),
+          tool_filters: toolFiltersValidator
+        })
+      )
+      .use(hasFlags(['magic-mcp-enabled']))
+      .use(requireConsumerTokenForPublishableKey())
+      .output(magicMcpServerProviderPresenter)
+      .do(async ctx => {
+        await magicMcpServerService.checkWriteAccess({
+          server: ctx.magicMcpServer,
+          instance: ctx.instance,
+          accessTags: ctx.accessTags
+        });
+        assertMagicMcpServerProviderWriteAllowed(ctx.magicMcpServer);
+
+        let integrationProvider = await subspaceIntegrationProviderService.update({
+          instance: ctx.instance,
+          integrationProviderId: ctx.integrationProvider.id,
+          allowDeleted: true,
+          providerDeploymentId: ctx.body.provider_deployment_id,
+          providerConfigId: ctx.body.provider_config_id,
+          toolFilters: ctx.body.tool_filters
+        });
+
+        let integrationInstanceProvider = await subspaceIntegrationInstanceProviderService.set(
+          {
+            instance: ctx.instance,
+            integrationInstanceId: ctx.magicMcpServerBacking.integrationInstanceId,
+            providerId: integrationProvider.id,
+            providerAuthConfigId: ctx.body.provider_auth_config_id ?? undefined,
+            toolFilters: ctx.body.tool_filters
+          }
+        );
+
+        return magicMcpServerProviderPresenter.present({
+          magicMcpServer: ctx.magicMcpServer,
+          integrationInstanceProvider
+        });
+      }),
+
+    deleteProvider: magicMcpServerInstanceProviderGroup
+      .delete(
+        instancePath(
+          'magic-mcp-servers/:magicMcpServerId/providers/:integrationInstanceProviderId',
+          'magicMcpServers.providers.delete'
+        ),
+        {
+          name: 'Delete magic MCP server provider',
+          description:
+            'Archives a backing integration instance provider from a magic MCP server and removes the shared integration provider when unused.'
+        }
+      )
+      .use(
+        checkAccess({
+          possibleScopes: [
+            'instance.provider.session:write',
+            'consumer#instance.magic_mcp:write'
+          ],
+          fineGrainedPolicy: 'deny'
+        })
+      )
+      .use(hasFlags(['magic-mcp-enabled']))
+      .use(requireConsumerTokenForPublishableKey())
+      .output(magicMcpServerProviderPresenter)
+      .do(async ctx => {
+        await magicMcpServerService.checkWriteAccess({
+          server: ctx.magicMcpServer,
+          instance: ctx.instance,
+          accessTags: ctx.accessTags
+        });
+        assertMagicMcpServerProviderWriteAllowed(ctx.magicMcpServer);
+
+        let deletedIntegrationInstanceProvider =
+          await subspaceIntegrationInstanceProviderService.delete({
+            instance: ctx.instance,
+            integrationInstanceProviderId: ctx.integrationInstanceProvider.id,
+            allowDeleted: true
+          });
+
+        let remainingPaginator = await subspaceIntegrationInstanceProviderService.list({
+          instance: ctx.instance,
+          includeMagicMcpBackings: true,
+          allowDeleted: true,
+          status: ['active'],
+          integrationInstanceIds: [ctx.magicMcpServerBacking.integrationInstanceId],
+          integrationProviderIds: [ctx.integrationInstanceProvider.integrationProviderId]
+        });
+        let remainingProviders = await remainingPaginator.run({ limit: 1 });
+
+        if (remainingProviders.items.length === 0) {
+          await subspaceIntegrationProviderService.delete({
+            instance: ctx.instance,
+            integrationProviderId: ctx.integrationInstanceProvider.integrationProviderId,
+            allowDeleted: true
+          });
+        }
+
+        return magicMcpServerProviderPresenter.present({
+          magicMcpServer: ctx.magicMcpServer,
+          integrationInstanceProvider: deletedIntegrationInstanceProvider
+        });
       }),
 
     create: instanceGroup
@@ -294,7 +756,13 @@ export let magicMcpServerController = Controller.create(
           });
         }
 
-        return magicMcpServerPresenter.present({ magicMcpServer, portal: ctx.portal });
+        return magicMcpServerPresenter.present(
+          await getMagicMcpServerPresentationData({
+            instance: ctx.instance,
+            magicMcpServer,
+            portal: ctx.portal
+          })
+        );
       }),
 
     delete: magicMcpServerGroup
@@ -325,7 +793,13 @@ export let magicMcpServerController = Controller.create(
           server: ctx.magicMcpServer
         });
 
-        return magicMcpServerPresenter.present({ magicMcpServer, portal: ctx.portal });
+        return magicMcpServerPresenter.present(
+          await getMagicMcpServerPresentationData({
+            instance: ctx.instance,
+            magicMcpServer,
+            portal: ctx.portal
+          })
+        );
       }),
 
     update: magicMcpServerGroup
@@ -348,24 +822,13 @@ export let magicMcpServerController = Controller.create(
           name: v.optional(v.string()),
           description: v.optional(v.string()),
           metadata: v.optional(v.record(v.any())),
-          aliases: v.optional(v.array(v.string())),
-          session_template_id: v.optional(v.string())
+          aliases: v.optional(v.array(v.string()))
         })
       )
       .output(magicMcpServerPresenter)
       .use(hasFlags(['magic-mcp-enabled']))
       .use(requireConsumerTokenForPublishableKey())
       .do(async ctx => {
-        let sessionTemplateId = ctx.body.session_template_id;
-        if (sessionTemplateId && !ctx.accessTags) {
-          sessionTemplateId = (
-            await subspaceSessionTemplateService.get({
-              instance: ctx.instance,
-              sessionTemplateId
-            })
-          ).id;
-        }
-
         await magicMcpServerService.checkWriteAccess({
           server: ctx.magicMcpServer,
           instance: ctx.instance,
@@ -380,12 +843,17 @@ export let magicMcpServerController = Controller.create(
             name: ctx.body.name,
             description: ctx.body.description,
             metadata: ctx.body.metadata,
-            aliases: ctx.body.aliases,
-            sessionTemplateId
+            aliases: ctx.body.aliases
           }
         });
 
-        return magicMcpServerPresenter.present({ magicMcpServer, portal: ctx.portal });
+        return magicMcpServerPresenter.present(
+          await getMagicMcpServerPresentationData({
+            instance: ctx.instance,
+            magicMcpServer,
+            portal: ctx.portal
+          })
+        );
       })
   }
 );
