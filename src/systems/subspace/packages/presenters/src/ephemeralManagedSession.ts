@@ -15,6 +15,7 @@ export let ephemeralManagedSessionPresenter = (
   currentSessionId: ephemeralManagedSession.currentSession?.id ?? null,
 
   maxSessionDurationInMinutes: ephemeralManagedSession.maxSessionDurationInMinutes,
+  willRotateAt: ephemeralManagedSession.willRotateAt,
 
   createdAt: ephemeralManagedSession.createdAt,
   updatedAt: ephemeralManagedSession.updatedAt,

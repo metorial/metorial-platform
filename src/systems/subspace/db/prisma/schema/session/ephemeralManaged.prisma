@@ -13,6 +13,7 @@ model EphemeralManagedSession {
 
   maxSessionDurationInMinutes Int
   templateHash                String?
+  willRotateAt                DateTime?
 
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
@@ -29,10 +30,15 @@ model EphemeralManagedSession {
   currentSessionOid BigInt?  @unique
   currentSession    Session? @relation("EphemeralManagedSessionCurrentSession", fields: [currentSessionOid], references: [oid])
 
+  actorOid BigInt?
+  actor    IdentityActor? @relation(fields: [actorOid], references: [oid], onDelete: SetNull)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  sessions Session[] @relation("EphemeralManagedSessionSessions")
+  sessions                 Session[]                 @relation("EphemeralManagedSessionSessions")
+  magicMcpServerBackings   MagicMcpServerBacking[]
+  magicMcpEndpointBackings MagicMcpEndpointBacking[]
 
   @@index([createdAt])
   @@index([updatedAt])

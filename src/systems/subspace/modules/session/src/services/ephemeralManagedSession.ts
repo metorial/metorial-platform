@@ -5,6 +5,7 @@ import {
   addAfterTransactionHook,
   db,
   type Environment,
+  type EphemeralManagedSession,
   getId,
   type Session,
   type SessionTemplate,
@@ -78,6 +79,11 @@ let shouldRotateBackingSession = (ephemeralManagedSession: EphemeralManagedSessi
   return Date.now() - currentSession.createdAt.getTime() >= maxDurationInMinutes * 60 * 1000;
 };
 
+let getWillRotateAt = (d: { session: Session; maxSessionDurationInMinutes: number }) => {
+  if (d.maxSessionDurationInMinutes <= 0) return null;
+  return new Date(d.session.createdAt.getTime() + d.maxSessionDurationInMinutes * 60 * 1000);
+};
+
 class ephemeralManagedSessionServiceImpl {
   async getEphemeralManagedSessionById(d: {
     ephemeralManagedSessionId: string;
@@ -149,7 +155,57 @@ class ephemeralManagedSessionServiceImpl {
         where: { oid: ephemeralManagedSession.oid },
         data: {
           currentSessionOid: session.oid,
-          templateHash: d.sessionTemplate.hash ?? null
+          templateHash: d.sessionTemplate.hash ?? null,
+          willRotateAt: getWillRotateAt({
+            session,
+            maxSessionDurationInMinutes: d.input.maxSessionDurationInMinutes
+          })
+        },
+        include
+      });
+    });
+  }
+
+  async upsertPlaceholderEphemeralManagedSession(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    ephemeralManagedSession?: EphemeralManagedSession | null;
+    sessionTemplate: SessionTemplate;
+    input: {
+      maxSessionDurationInMinutes: number;
+      actorOid?: bigint | null;
+    };
+  }) {
+    return withTransaction(async tx => {
+      let data = {
+        status: 'active' as const,
+        archivedAt: null,
+        maxSessionDurationInMinutes: d.input.maxSessionDurationInMinutes,
+        sessionTemplateOid: d.sessionTemplate.oid,
+        actorOid: d.input.actorOid ?? null
+      };
+
+      if (d.ephemeralManagedSession) {
+        return await tx.ephemeralManagedSession.update({
+          where: {
+            oid: d.ephemeralManagedSession.oid,
+            tenantOid: d.tenant.oid,
+            solutionOid: d.solution.oid,
+            environmentOid: d.environment.oid
+          },
+          data,
+          include
+        });
+      }
+
+      return await tx.ephemeralManagedSession.create({
+        data: {
+          ...getId('ephemeralManagedSession'),
+          ...data,
+          tenantOid: d.tenant.oid,
+          solutionOid: d.solution.oid,
+          environmentOid: d.environment.oid
         },
         include
       });
@@ -212,7 +268,8 @@ class ephemeralManagedSessionServiceImpl {
             where: { oid: ephemeralManagedSession.oid },
             data: {
               status: 'archived',
-              archivedAt
+              archivedAt,
+              willRotateAt: null
             },
             include
           });
@@ -269,15 +326,10 @@ class ephemeralManagedSessionServiceImpl {
             name: ephemeralManagedSession.sessionTemplate.name ?? undefined,
             description: ephemeralManagedSession.sessionTemplate.description ?? undefined,
             metadata:
-              (ephemeralManagedSession.sessionTemplate.metadata as Record<
-                string,
-                any
-              > | null) ?? undefined,
+              (ephemeralManagedSession.sessionTemplate.metadata as any | null) ?? undefined,
             privateMetadata:
-              (ephemeralManagedSession.sessionTemplate.privateMetadata as Record<
-                string,
-                any
-              > | null) ?? undefined,
+              (ephemeralManagedSession.sessionTemplate.privateMetadata as any | null) ??
+              undefined,
             providers: [{ sessionTemplateId: ephemeralManagedSession.sessionTemplate.id }]
           }
         });
@@ -286,7 +338,11 @@ class ephemeralManagedSessionServiceImpl {
           where: { oid: ephemeralManagedSession.oid },
           data: {
             currentSessionOid: session.oid,
-            templateHash: ephemeralManagedSession.sessionTemplate.hash ?? null
+            templateHash: ephemeralManagedSession.sessionTemplate.hash ?? null,
+            willRotateAt: getWillRotateAt({
+              session,
+              maxSessionDurationInMinutes: ephemeralManagedSession.maxSessionDurationInMinutes
+            })
           }
         });
 
