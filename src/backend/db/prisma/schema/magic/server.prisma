@@ -16,6 +16,7 @@ model MagicMcpServer {
   status               MagicMcpServerStatus
   source               MagicMcpServerSource @default(manual)
   isConsumerReconciled Boolean              @default(false)
+  hasSubspaceBacking   Boolean              @default(false)
 
   providerTemplateId                String?
   subspaceSessionTemplateId         String

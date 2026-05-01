@@ -78,6 +78,89 @@ let getMagicMcpSessionDurationMinutes = async (instance: Instance) => {
   return project.magicMcpSessionDurationMinutes;
 };
 
+let upsertProviderTemplateBackingForMagicMcpServer = async (d: {
+  instance: Instance;
+  providerTemplateId?: string | null;
+}) => {
+  if (!d.providerTemplateId) return;
+
+  let providerTemplate = await db.providerTemplate.findFirst({
+    where: {
+      id: d.providerTemplateId,
+      instanceOid: d.instance.oid
+    }
+  });
+  if (!providerTemplate) throw new ServiceError(notFoundError('provider.template'));
+
+  await subspaceMagicMcpBackingService.upsertProviderTemplate({
+    instance: d.instance,
+    providerTemplateId: providerTemplate.id,
+    name: providerTemplate.name,
+    description: providerTemplate.description,
+    metadata: providerTemplate.metadata as Record<string, any>,
+    providerDeploymentId: providerTemplate.providerDeploymentId
+  });
+};
+
+let upsertMagicMcpServerBacking = async (d: {
+  instance: Instance;
+  magicMcpServerId: string;
+  providerTemplateId?: string | null;
+  sessionTemplateId?: string | null;
+  name?: string | null;
+  description?: string | null;
+  metadata?: Record<string, unknown> | null;
+  providers?: MagicMcpServerProviderInput[];
+}) => {
+  await upsertProviderTemplateBackingForMagicMcpServer({
+    instance: d.instance,
+    providerTemplateId: d.providerTemplateId
+  });
+
+  return await subspaceMagicMcpBackingService.upsertServer({
+    instance: d.instance,
+    magicMcpServerBackingId: d.magicMcpServerId,
+    providerTemplateBackingId: d.providerTemplateId,
+    sessionTemplateId: d.sessionTemplateId,
+    name: d.name,
+    description: d.description,
+    metadata: d.metadata ?? undefined,
+    maxSessionDurationInMinutes: await getMagicMcpSessionDurationMinutes(d.instance),
+    providers: d.providers
+  });
+};
+
+export let ensureMagicMcpServerBacking = async (d: {
+  instance: Instance;
+  server: MagicMcpServer;
+  providers?: MagicMcpServerProviderInput[];
+  force?: boolean;
+}) => {
+  if (!d.force && d.server.hasSubspaceBacking && d.server.subspaceEphemeralManagedSessionId) {
+    return d.server;
+  }
+
+  let backing = await upsertMagicMcpServerBacking({
+    instance: d.instance,
+    magicMcpServerId: d.server.id,
+    providerTemplateId: d.server.providerTemplateId,
+    sessionTemplateId: d.server.subspaceSessionTemplateId,
+    name: d.server.name,
+    description: d.server.description,
+    metadata: d.server.metadata as Record<string, unknown>,
+    providers: d.providers
+  });
+
+  return await db.magicMcpServer.update({
+    where: { oid: d.server.oid },
+    data: {
+      hasSubspaceBacking: true,
+      subspaceSessionTemplateId: backing.sessionTemplateId,
+      subspaceEphemeralManagedSessionId: backing.ephemeralManagedSessionId
+    }
+  });
+};
+
 class MagicMcpServerImpl {
   async getMagicMcpServerById(d: {
     instance: Instance;
@@ -159,9 +242,14 @@ class MagicMcpServerImpl {
       accessTags: d.accessTags
     });
 
+    let server = await ensureMagicMcpServerBacking({
+      instance: d.instance,
+      server: d.server
+    });
+
     let tools = await subspaceSessionTemplateService.listTools({
       instance: d.instance,
-      sessionTemplateId: d.server.subspaceSessionTemplateId
+      sessionTemplateId: server.subspaceSessionTemplateId
     });
 
     return tools.sort((a: { name: string }, b: { name: string }) =>
@@ -185,17 +273,16 @@ class MagicMcpServerImpl {
     };
   }) {
     let magicMcpServerId = await ID.generateId('magicMcpServer');
-    let backing = await subspaceMagicMcpBackingService.upsertServer({
+    let backing = await upsertMagicMcpServerBacking({
       instance: d.instance,
-      organizationActor: d.performedBy,
-      magicMcpServerBackingId: magicMcpServerId,
-      providerTemplateBackingId: d.input.providerTemplateId,
+      magicMcpServerId,
+      providerTemplateId: d.input.providerTemplateId,
+      sessionTemplateId: d.input.sessionTemplateId,
       name: d.input.name,
       description: d.input.description,
       metadata: d.input.metadata,
-      maxSessionDurationInMinutes: await getMagicMcpSessionDurationMinutes(d.instance),
       providers: d.input.providers
-    } as any);
+    });
 
     let magicMcpServer = await db.magicMcpServer.create({
       data: {
@@ -203,8 +290,10 @@ class MagicMcpServerImpl {
         status: 'active',
         source: d.input.source ?? 'manual',
         isConsumerReconciled: true,
+        hasSubspaceBacking: true,
         providerTemplateId: d.input.providerTemplateId,
         subspaceSessionTemplateId: backing.sessionTemplateId,
+        subspaceEphemeralManagedSessionId: backing.ephemeralManagedSessionId,
         name: d.input.name,
         description: d.input.description,
         metadata: d.input.metadata ?? {},
@@ -285,13 +374,15 @@ class MagicMcpServerImpl {
     let magicMcpServer = await db.magicMcpServer.update({
       where: { id: d.server.id },
       data: { status: 'archived', deletedAt: new Date() },
-      include
+      include: { ...include, instance: true }
     });
 
-    await subspaceMagicMcpBackingService.archiveServer({
-      instance: { oid: d.server.instanceOid } as Instance,
-      magicMcpServerBackingId: d.server.id
-    });
+    if (d.server.hasSubspaceBacking) {
+      await subspaceMagicMcpBackingService.archiveServer({
+        instance: magicMcpServer.instance,
+        magicMcpServerBackingId: d.server.id
+      });
+    }
     await magicMcpServerDeletedQueue.add({ magicMcpServerId: magicMcpServer.id });
 
     return magicMcpServer;
@@ -393,22 +484,15 @@ class MagicMcpServerImpl {
 
     await magicMcpServerUpdatedQueue.add({ magicMcpServerId: server.id });
     if (d.instance) {
-      let backing = await subspaceMagicMcpBackingService.upsertServer({
+      let syncedServer = await ensureMagicMcpServerBacking({
         instance: d.instance,
-        magicMcpServerBackingId: server.id,
-        providerTemplateBackingId: server.providerTemplateId,
-        name: server.name,
-        description: server.description,
-        metadata: server.metadata as Record<string, unknown>,
-        maxSessionDurationInMinutes: await getMagicMcpSessionDurationMinutes(d.instance)
+        server,
+        force: true
       });
-      if (backing.sessionTemplateId !== server.subspaceSessionTemplateId) {
-        server = await db.magicMcpServer.update({
-          where: { id: server.id },
-          data: { subspaceSessionTemplateId: backing.sessionTemplateId },
-          include
-        });
-      }
+      server = await db.magicMcpServer.findUniqueOrThrow({
+        where: { id: syncedServer.id },
+        include
+      });
     }
 
     return server;

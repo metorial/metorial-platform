@@ -29,6 +29,7 @@ import {
   magicMcpEndpointUpdatedQueue
 } from '../queues/lifecycle/magicMcpEndpoint';
 import { getAccessTagFilter, getActiveStatusFilter } from './consumerAccess';
+import { ensureMagicMcpServerBacking } from './magicMcpServer';
 
 let buildSlug = (name?: string | null) => {
   let base = slugify(name ?? '');
@@ -148,19 +149,38 @@ export type MagicMcpEndpointWithRelations = Prisma.MagicMcpEndpointGetPayload<{
   include: typeof magicMcpEndpointInclude;
 }>;
 
-let syncMagicMcpEndpointBacking = async (d: {
-  instance: Instance | Pick<Instance, 'oid'>;
+export let ensureMagicMcpEndpointBacking = async (d: {
+  instance: Instance;
   endpoint: MagicMcpEndpointWithRelations;
+  force?: boolean;
 }) => {
+  if (
+    !d.force &&
+    d.endpoint.hasSubspaceBacking &&
+    d.endpoint.subspaceEphemeralManagedSessionId
+  ) {
+    return {
+      ...d.endpoint,
+      instance: d.instance
+    };
+  }
+
+  await Promise.all(
+    d.endpoint.servers.map(server =>
+      ensureMagicMcpServerBacking({
+        instance: d.instance,
+        server: server.magicMcpServer
+      })
+    )
+  );
+
   let backing = await subspaceMagicMcpBackingService.upsertEndpoint({
-    instance: d.instance as Instance,
+    instance: d.instance,
     magicMcpEndpointBackingId: d.endpoint.id,
     name: d.endpoint.name,
     description: d.endpoint.description,
-    metadata: d.endpoint.metadata as Record<string, unknown>,
-    maxSessionDurationInMinutes: await getMagicMcpSessionDurationMinutes(
-      d.instance as Instance
-    ),
+    metadata: d.endpoint.metadata as any,
+    maxSessionDurationInMinutes: await getMagicMcpSessionDurationMinutes(d.instance),
     servers: d.endpoint.servers.map(server => ({
       id: `${d.endpoint.id}:${server.magicMcpServer.id}`,
       magicMcpServerBackingId: server.magicMcpServer.id,
@@ -170,18 +190,18 @@ let syncMagicMcpEndpointBacking = async (d: {
     }))
   });
 
-  if (backing.sessionTemplateId !== d.endpoint.subspaceSessionTemplateId) {
-    return await db.magicMcpEndpoint.update({
-      where: { oid: d.endpoint.oid },
-      data: {
-        subspaceSessionTemplateId: backing.sessionTemplateId,
-        configurationHash: null
-      },
-      include: magicMcpEndpointInclude
-    });
-  }
+  let isSessionTemplateChanged = backing.sessionTemplateId !== d.endpoint.subspaceSessionTemplateId;
 
-  return d.endpoint;
+  return await db.magicMcpEndpoint.update({
+    where: { oid: d.endpoint.oid },
+    data: {
+      hasSubspaceBacking: true,
+      subspaceSessionTemplateId: backing.sessionTemplateId,
+      subspaceEphemeralManagedSessionId: backing.ephemeralManagedSessionId,
+      configurationHash: isSessionTemplateChanged ? null : undefined
+    },
+    include: { ...magicMcpEndpointInclude, instance: true }
+  });
 };
 
 class MagicMcpEndpointImpl {
@@ -349,8 +369,9 @@ class MagicMcpEndpointImpl {
         },
         include: magicMcpEndpointInclude
       });
-      magicMcpEndpoint = await syncMagicMcpEndpointBacking({
+      magicMcpEndpoint = await ensureMagicMcpEndpointBacking({
         instance: d.instance,
+        force: true,
         endpoint: magicMcpEndpoint
       });
 
@@ -387,13 +408,18 @@ class MagicMcpEndpointImpl {
         status: 'archived',
         deletedAt: new Date()
       },
-      include: magicMcpEndpointInclude
+      include: {
+        ...magicMcpEndpointInclude,
+        instance: true
+      }
     });
 
-    await subspaceMagicMcpBackingService.archiveEndpoint({
-      instance: { oid: d.endpoint.instanceOid } as Instance,
-      magicMcpEndpointBackingId: d.endpoint.id
-    });
+    if (d.endpoint.hasSubspaceBacking) {
+      await subspaceMagicMcpBackingService.archiveEndpoint({
+        instance: magicMcpEndpoint.instance,
+        magicMcpEndpointBackingId: d.endpoint.id
+      });
+    }
     await magicMcpEndpointDeletedQueue.add({ magicMcpEndpointId: magicMcpEndpoint.id });
 
     return magicMcpEndpoint;
@@ -425,10 +451,11 @@ class MagicMcpEndpointImpl {
           d.input.description === undefined ? d.endpoint.description : d.input.description,
         metadata: d.input.metadata === undefined ? d.endpoint.metadata : d.input.metadata
       },
-      include: magicMcpEndpointInclude
+      include: { ...magicMcpEndpointInclude, instance: true }
     });
-    magicMcpEndpoint = await syncMagicMcpEndpointBacking({
-      instance: { oid: magicMcpEndpoint.instanceOid },
+    magicMcpEndpoint = await ensureMagicMcpEndpointBacking({
+      instance: magicMcpEndpoint.instance,
+      force: true,
       endpoint: magicMcpEndpoint
     });
 
@@ -483,10 +510,11 @@ class MagicMcpEndpointImpl {
       where: {
         id: d.endpoint.id
       },
-      include: magicMcpEndpointInclude
+      include: { ...magicMcpEndpointInclude, instance: true }
     });
-    magicMcpEndpoint = await syncMagicMcpEndpointBacking({
-      instance: { oid: magicMcpEndpoint.instanceOid },
+    magicMcpEndpoint = await ensureMagicMcpEndpointBacking({
+      instance: magicMcpEndpoint.instance,
+      force: true,
       endpoint: magicMcpEndpoint
     });
 
@@ -519,10 +547,11 @@ class MagicMcpEndpointImpl {
       where: {
         id: d.endpoint.id
       },
-      include: magicMcpEndpointInclude
+      include: { ...magicMcpEndpointInclude, instance: true }
     });
-    magicMcpEndpoint = await syncMagicMcpEndpointBacking({
-      instance: { oid: magicMcpEndpoint.instanceOid },
+    magicMcpEndpoint = await ensureMagicMcpEndpointBacking({
+      instance: magicMcpEndpoint.instance,
+      force: true,
       endpoint: magicMcpEndpoint
     });
 

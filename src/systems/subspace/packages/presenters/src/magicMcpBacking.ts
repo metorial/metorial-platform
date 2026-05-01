@@ -3,6 +3,7 @@ import type {
   IdentityActor,
   Integration,
   IntegrationInstance,
+  IntegrationInstanceGroup,
   MagicMcpEndpointBacking,
   MagicMcpEndpointServerBacking,
   MagicMcpServerBacking,
@@ -56,7 +57,7 @@ export let magicMcpEndpointServerBackingPresenter = (
 
 export let magicMcpEndpointBackingPresenter = (
   backing: MagicMcpEndpointBacking & {
-    integrationGroup: Integration;
+    integrationGroup: IntegrationInstanceGroup;
     sessionTemplate: SessionTemplate;
     ephemeralManagedSession: EphemeralManagedSession;
     actor: IdentityActor | null;

@@ -1,5 +1,7 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { db, ID, Instance, MagicMcpEndpoint, MagicMcpServer, Prisma } from '@metorial/db';
+import { ensureMagicMcpEndpointBacking } from '../services/magicMcpEndpoint';
+import { ensureMagicMcpServerBacking } from '../services/magicMcpServer';
 import { MagicMcpResolvedTarget } from './magicMcpTarget';
 
 type MagicMcpServerForSession = MagicMcpServer & {
@@ -115,6 +117,20 @@ let deleteSubspaceSessionSafe = async (d: {
 };
 
 export let ensureMagicMcpSubspaceSession = async (magicMcpTarget: MagicMcpResolvedTarget) => {
+  if (magicMcpTarget.type === 'server') {
+    let server = await ensureMagicMcpServerBacking({
+      instance: magicMcpTarget.target.instance,
+      server: magicMcpTarget.target
+    });
+    Object.assign(magicMcpTarget.target, server);
+  } else {
+    let endpoint = await ensureMagicMcpEndpointBacking({
+      instance: magicMcpTarget.target.instance,
+      endpoint: magicMcpTarget.target
+    });
+    Object.assign(magicMcpTarget.target, endpoint);
+  }
+
   let subspaceSessionId = magicMcpTarget.target.subspaceEphemeralManagedSessionId;
   if (!subspaceSessionId) {
     throw new ServiceError(
@@ -208,6 +224,4 @@ export let syncMagicMcpSubspaceSession = async (
   }
 };
 
-export type MagicMcpSubspaceMapping = Awaited<
-  ReturnType<typeof syncMagicMcpSubspaceSession>
->;
+export type MagicMcpSubspaceMapping = Awaited<ReturnType<typeof syncMagicMcpSubspaceSession>>;

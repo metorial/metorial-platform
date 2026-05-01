@@ -17,8 +17,8 @@ import {
 } from '@metorial/module-access';
 import { searchProviderTemplateIds } from '@metorial/module-search';
 import {
-  subspaceProviderDeploymentService,
   subspaceMagicMcpBackingService,
+  subspaceProviderDeploymentService,
   type SubspaceProviderDeployment
 } from '@metorial/module-subspace';
 import {

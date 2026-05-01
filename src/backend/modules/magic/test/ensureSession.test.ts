@@ -34,8 +34,33 @@ vi.mock('../src/services', () => ({
   magicMcpEndpointInclude: {}
 }));
 
+vi.mock('../src/services/magicMcpServer', () => ({
+  ensureMagicMcpServerBacking: vi.fn(async ({ server }) => ({
+    ...server,
+    hasSubspaceBacking: true,
+    subspaceSessionTemplateId: server.subspaceSessionTemplateId ?? 'tmpl_1',
+    subspaceEphemeralManagedSessionId:
+      server.subspaceEphemeralManagedSessionId ?? 'ephemeral_managed_session_1'
+  }))
+}));
+
+vi.mock('../src/services/magicMcpEndpoint', () => ({
+  ensureMagicMcpEndpointBacking: vi.fn(async ({ endpoint }) => ({
+    ...endpoint,
+    hasSubspaceBacking: true,
+    subspaceSessionTemplateId: endpoint.subspaceSessionTemplateId ?? 'tmpl_endpoint_1',
+    subspaceEphemeralManagedSessionId:
+      endpoint.subspaceEphemeralManagedSessionId ?? 'ephemeral_managed_endpoint_1'
+  })),
+  magicMcpEndpointInclude: {}
+}));
+
 import { db } from '@metorial/db';
-import { syncMagicMcpSubspaceSession } from '../src/lib/ensureSession';
+import {
+  ensureMagicMcpSubspaceSession,
+  syncMagicMcpSubspaceSession
+} from '../src/lib/ensureSession';
+import { ensureMagicMcpServerBacking } from '../src/services/magicMcpServer';
 
 describe('syncMagicMcpSubspaceSession', () => {
   beforeEach(() => {
@@ -137,5 +162,43 @@ describe('syncMagicMcpSubspaceSession', () => {
       }
     });
     expect(result).toEqual(nextMapping);
+  });
+});
+
+describe('ensureMagicMcpSubspaceSession', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.useRealTimers();
+  });
+
+  it('lazily ensures backing and returns the ephemeral managed session id', async () => {
+    let target = {
+      type: 'server' as const,
+      target: {
+        oid: 10n,
+        id: 'mcp_server_1',
+        name: 'Claude',
+        description: 'Magic MCP server',
+        hasSubspaceBacking: false,
+        subspaceSessionTemplateId: 'tmpl_1',
+        subspaceEphemeralManagedSessionId: null,
+        instance: {
+          oid: 20n,
+          id: 'ins_1',
+          projectOid: 30n
+        }
+      } as any
+    };
+
+    let result = await ensureMagicMcpSubspaceSession(target);
+
+    expect(result).toBe('ephemeral_managed_session_1');
+    expect(ensureMagicMcpServerBacking).toHaveBeenCalledWith({
+      instance: expect.objectContaining({ id: 'ins_1' }),
+      server: target.target
+    });
+    expect(target.target.subspaceEphemeralManagedSessionId).toBe(
+      'ephemeral_managed_session_1'
+    );
   });
 });
