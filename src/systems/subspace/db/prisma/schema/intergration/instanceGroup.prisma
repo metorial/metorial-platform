@@ -12,6 +12,8 @@ model IntegrationInstanceGroup {
   status     IntegrationInstanceGroupStatus
   archivedAt DateTime?
 
+  isMagicMcpBacking Boolean @default(false)
+
   name            String
   description     String?
   metadata        Json?
@@ -29,9 +31,10 @@ model IntegrationInstanceGroup {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  sources          IntegrationInstanceGroupSource[]
-  providers        IntegrationInstanceGroupProvider[]
-  sessionTemplates SessionTemplate[]
+  sources                 IntegrationInstanceGroupSource[]
+  providers               IntegrationInstanceGroupProvider[]
+  sessionTemplates        SessionTemplate[]
+  magicMcpEndpointBacking MagicMcpEndpointBacking?
 
   @@index([tenantOid, solutionOid, environmentOid, status])
   @@index([createdAt])

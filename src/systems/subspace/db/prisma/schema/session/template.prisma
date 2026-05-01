@@ -39,6 +39,8 @@ model SessionTemplate {
   providers                SessionTemplateProvider[]
   sessionProviders         SessionProvider[]
   ephemeralManagedSessions EphemeralManagedSession[]
+  magicMcpServerBackings   MagicMcpServerBacking[]
+  magicMcpEndpointBackings MagicMcpEndpointBacking[]
 
   @@index([createdAt])
   @@index([updatedAt])

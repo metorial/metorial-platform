@@ -11,6 +11,8 @@ model Integration {
   status     IntegrationStatus
   archivedAt DateTime?
 
+  isMagicMcpBacking Boolean @default(false)
+
   slug            String  @unique
   name            String
   description     String?
@@ -43,6 +45,8 @@ model Integration {
   integrationInstances              IntegrationInstance[]
   integrationInstanceProviders      IntegrationInstanceProvider[]
   integrationInstanceGroupProviders IntegrationInstanceGroupProvider[]
+  providerTemplateBacking           ProviderTemplateBacking?
+  magicMcpServerBacking             MagicMcpServerBacking?
 
   @@index([createdAt])
   @@index([updatedAt])

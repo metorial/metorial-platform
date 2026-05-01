@@ -13,6 +13,8 @@ model IntegrationInstance {
   isParentDeleted Boolean                   @default(false)
   archivedAt      DateTime?
 
+  isMagicMcpBacking Boolean @default(false)
+
   name            String
   description     String?
   metadata        Json?
@@ -47,6 +49,7 @@ model IntegrationInstance {
   sessionTemplates                  SessionTemplate[]
   integrationInstanceGroupSources   IntegrationInstanceGroupSource[]
   integrationInstanceGroupProviders IntegrationInstanceGroupProvider[]
+  magicMcpServerBacking             MagicMcpServerBacking?
 
   @@index([tenantOid, solutionOid, environmentOid, status])
   @@index([integrationOid, status])

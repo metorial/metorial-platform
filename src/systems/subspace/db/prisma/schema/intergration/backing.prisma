@@ -1,0 +1,72 @@
+model MagicMcpServerBacking {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  providerTemplateBackingOid BigInt?
+  providerTemplateBacking    ProviderTemplateBacking? @relation(fields: [providerTemplateBackingOid], references: [oid], onDelete: SetNull)
+
+  integrationOid BigInt?      @unique // Null if it's connected to a ProviderTemplate
+  integration    Integration? @relation(fields: [integrationOid], references: [oid], onDelete: Cascade)
+
+  integrationInstanceOid BigInt              @unique
+  integrationInstance    IntegrationInstance @relation(fields: [integrationInstanceOid], references: [oid], onDelete: Cascade)
+
+  sessionTemplateOid BigInt
+  sessionTemplate    SessionTemplate @relation(fields: [sessionTemplateOid], references: [oid], onDelete: Cascade)
+
+  ephemeralManagedSessionOid BigInt
+  ephemeralManagedSession    EphemeralManagedSession @relation(fields: [ephemeralManagedSessionOid], references: [oid], onDelete: Cascade)
+
+  actorOid BigInt?
+  actor    IdentityActor? @relation(fields: [actorOid], references: [oid], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  endpoints MagicMcpEndpointServerBacking[]
+}
+
+model MagicMcpEndpointBacking {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  createdAt DateTime @default(now())
+
+  integrationGroupOid BigInt                   @unique
+  integrationGroup    IntegrationInstanceGroup @relation(fields: [integrationGroupOid], references: [oid], onDelete: Cascade)
+
+  sessionTemplateOid BigInt
+  sessionTemplate    SessionTemplate @relation(fields: [sessionTemplateOid], references: [oid], onDelete: Cascade)
+
+  ephemeralManagedSessionOid BigInt
+  ephemeralManagedSession    EphemeralManagedSession @relation(fields: [ephemeralManagedSessionOid], references: [oid], onDelete: Cascade)
+
+  actorOid BigInt?
+  actor    IdentityActor? @relation(fields: [actorOid], references: [oid], onDelete: SetNull)
+
+  servers MagicMcpEndpointServerBacking[]
+}
+
+model MagicMcpEndpointServerBacking {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  magicMcpEndpointBackingOid BigInt
+  magicMcpEndpointBacking    MagicMcpEndpointBacking @relation(fields: [magicMcpEndpointBackingOid], references: [oid], onDelete: Cascade)
+
+  magicMcpServerBackingOid BigInt
+  magicMcpServerBacking    MagicMcpServerBacking @relation(fields: [magicMcpServerBackingOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}
+
+model ProviderTemplateBacking {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  integrationOid BigInt      @unique
+  integration    Integration @relation(fields: [integrationOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  magicMcpServers MagicMcpServerBacking[]
+}
