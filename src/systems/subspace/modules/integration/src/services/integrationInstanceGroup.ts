@@ -162,6 +162,7 @@ class integrationInstanceGroupServiceImpl {
     tenant: Tenant;
     solution: Solution;
     environment: Environment;
+    includeMagicMcpBackings?: boolean;
 
     status?: IntegrationInstanceGroupStatus[];
     allowDeleted?: boolean;
@@ -202,7 +203,7 @@ class integrationInstanceGroupServiceImpl {
               tenantOid: d.tenant.oid,
               solutionOid: d.solution.oid,
               environmentOid: d.environment.oid,
-              isMagicMcpBacking: false,
+              isMagicMcpBacking: d.includeMagicMcpBackings ? undefined : false,
 
               ...normalizeStatusForList(d).noParent,
 

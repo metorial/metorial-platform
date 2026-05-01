@@ -8,7 +8,6 @@ import {
   getId,
   type IntegrationInstance,
   type IntegrationInstanceGroup,
-  Prisma,
   type SessionTemplate,
   type SessionTemplateProvider,
   type SessionTemplateProviderStatus,
@@ -19,6 +18,7 @@ import {
 import {
   checkDeletedEdit,
   checkDeletedRelation,
+  type DateFilter,
   normalizeDateFilter,
   normalizeStatusForGet,
   normalizeStatusForList,
@@ -32,8 +32,7 @@ import {
   resolveProviderConfigs,
   resolveProviderDeployments,
   resolveProviders,
-  resolveSessionTemplates,
-  type DateFilter
+  resolveSessionTemplates
 } from '@metorial-subspace/list-utils';
 import { checkTenant } from '@metorial-subspace/module-tenant';
 import {
@@ -42,8 +41,8 @@ import {
   syncSessionTemplateHash
 } from '../queues/lifecycle/sessionTemplateProvider';
 import {
-  sessionProviderInputService,
   type SessionProviderInput,
+  sessionProviderInputService,
   type SessionProviderInputToolFilters
 } from './sessionProviderInput';
 
@@ -335,7 +334,8 @@ class sessionTemplateProviderServiceImpl {
         let data = {
           status: 'active' as const,
           toolFilter:
-            (currentVersion.toolFilter as PrismaJson.ToolFilter | null) ?? allowAllToolFilter(),
+            (currentVersion.toolFilter as PrismaJson.ToolFilter | null) ??
+            allowAllToolFilter(),
           sessionTemplateOid: d.sessionTemplate.oid,
           providerOid: provider.integrationProvider.providerOid,
           deploymentOid: currentVersion.integrationProviderVersion.deploymentOid,

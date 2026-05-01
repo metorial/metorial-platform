@@ -12,7 +12,7 @@ export let v1SessionTemplateProviderPresenter = Presenter.create(sessionTemplate
     id: sessionTemplateProvider.id,
 
     status: sessionTemplateProvider.status,
-    tool_filter: toolFilterPresenter(sessionTemplateProvider.toolFilter),
+    tool_filter: toolFilterPresenter(sessionTemplateProvider.toolFilter as any),
 
     provider_id: sessionTemplateProvider.providerId,
     session_template_id: sessionTemplateProvider.sessionTemplateId,

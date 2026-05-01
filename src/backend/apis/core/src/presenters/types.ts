@@ -99,6 +99,12 @@ import {
   SubspaceIdentityDelegation,
   SubspaceIdentityDelegationConfig,
   SubspaceIdentityDelegationRequest,
+  SubspaceIntegration,
+  SubspaceIntegrationInstance,
+  SubspaceIntegrationInstanceGroup,
+  SubspaceIntegrationInstanceGroupProvider,
+  SubspaceIntegrationInstanceProvider,
+  SubspaceIntegrationProvider,
   SubspaceProvider,
   SubspaceProviderAuthConfig,
   SubspaceProviderAuthConfigSchema,
@@ -405,8 +411,17 @@ export let magicMcpServerType = PresentableType.create<{
       consumerProfile: ConsumerProfile;
     })[];
   };
+  integration?: SubspaceIntegration | null;
+  integrationInstance?: SubspaceIntegrationInstance | null;
+  integrationInstanceProviders?: SubspaceIntegrationInstanceProvider[] | null;
+  sessionTemplateId?: string | null;
   portal?: Portal | null;
 }>()('magic_mcp.server');
+
+export let magicMcpServerProviderType = PresentableType.create<{
+  magicMcpServer: MagicMcpServer;
+  integrationInstanceProvider: SubspaceIntegrationInstanceProvider;
+}>()('magic_mcp.server.provider');
 
 export let magicMcpEndpointType = PresentableType.create<{
   magicMcpEndpoint: MagicMcpEndpoint & {
@@ -942,10 +957,29 @@ export let sessionTemplateProviderType = PresentableType.create<{
   sessionTemplateProvider: SubspaceSessionTemplateProvider;
 }>()('sessionTemplateProvider');
 
-export let magicMcpServerProviderType = PresentableType.create<{
-  magicMcpServer: MagicMcpServer;
-  sessionTemplateProvider: SubspaceSessionTemplateProvider;
-}>()('magicMcpServerProvider');
+export let integrationType = PresentableType.create<{
+  integration: SubspaceIntegration;
+}>()('integration');
+
+export let integrationProviderType = PresentableType.create<{
+  integrationProvider: SubspaceIntegrationProvider;
+}>()('integration.provider');
+
+export let integrationInstanceType = PresentableType.create<{
+  integrationInstance: SubspaceIntegrationInstance;
+}>()('integration.instance');
+
+export let integrationInstanceProviderType = PresentableType.create<{
+  integrationInstanceProvider: SubspaceIntegrationInstanceProvider;
+}>()('integration.instance.provider');
+
+export let integrationInstanceGroupType = PresentableType.create<{
+  integrationInstanceGroup: SubspaceIntegrationInstanceGroup;
+}>()('integration.instance.group');
+
+export let integrationInstanceGroupProviderType = PresentableType.create<{
+  integrationInstanceGroupProvider: SubspaceIntegrationInstanceGroupProvider;
+}>()('integration.instance.group.provider');
 
 export let sessionProviderType = PresentableType.create<{
   sessionProvider: SubspaceSessionProvider;

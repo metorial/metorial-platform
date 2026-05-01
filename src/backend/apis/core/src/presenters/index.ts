@@ -78,6 +78,12 @@ import {
   v1IdentityDelegationPresenter,
   v1IdentityDelegationRequestPresenter,
   v1IdentityPresenter,
+  v1IntegrationInstanceGroupPresenter,
+  v1IntegrationInstanceGroupProviderPresenter,
+  v1IntegrationInstancePresenter,
+  v1IntegrationInstanceProviderPresenter,
+  v1IntegrationPresenter,
+  v1IntegrationProviderPresenter,
   v1MagicMcpEndpointPresenter,
   v1MagicMcpGroupPresenter,
   v1MagicMcpServerPresenter,
@@ -194,6 +200,12 @@ import {
   identityType,
   instanceListType,
   instanceType,
+  integrationInstanceGroupProviderType,
+  integrationInstanceGroupType,
+  integrationInstanceProviderType,
+  integrationInstanceType,
+  integrationProviderType,
+  integrationType,
   machineAccessType,
   magicMcpEndpointType,
   magicMcpGroupType,
@@ -596,6 +608,12 @@ export let magicMcpServerPresenter = declarePresenter(magicMcpServerType, {
   mt_2026_04_01_consumer: consumerMagicMcpServerPresenter
 });
 
+export let magicMcpServerProviderPresenter = declarePresenter(magicMcpServerProviderType, {
+  mt_2025_01_01_dashboard: v1MagicMcpServerProviderPresenter,
+  mt_2026_01_01_magnetar: v1MagicMcpServerProviderPresenter,
+  mt_2026_04_01_consumer: v1MagicMcpServerProviderPresenter
+});
+
 export let magicMcpEndpointPresenter = declarePresenter(magicMcpEndpointType, {
   mt_2025_01_01_dashboard: v1MagicMcpEndpointPresenter,
   mt_2026_01_01_magnetar: v1MagicMcpEndpointPresenter,
@@ -777,6 +795,42 @@ export let providerAuthCredentialsPresenter = declarePresenter(providerAuthCrede
   mt_2026_01_01_magnetar: v1ProviderAuthCredentialsPresenter
 });
 
+export let integrationPresenter = declarePresenter(integrationType, {
+  mt_2025_01_01_dashboard: v1IntegrationPresenter,
+  mt_2026_01_01_magnetar: v1IntegrationPresenter
+});
+
+export let integrationProviderPresenter = declarePresenter(integrationProviderType, {
+  mt_2025_01_01_dashboard: v1IntegrationProviderPresenter,
+  mt_2026_01_01_magnetar: v1IntegrationProviderPresenter
+});
+
+export let integrationInstancePresenter = declarePresenter(integrationInstanceType, {
+  mt_2025_01_01_dashboard: v1IntegrationInstancePresenter,
+  mt_2026_01_01_magnetar: v1IntegrationInstancePresenter
+});
+
+export let integrationInstanceProviderPresenter = declarePresenter(
+  integrationInstanceProviderType,
+  {
+    mt_2025_01_01_dashboard: v1IntegrationInstanceProviderPresenter,
+    mt_2026_01_01_magnetar: v1IntegrationInstanceProviderPresenter
+  }
+);
+
+export let integrationInstanceGroupPresenter = declarePresenter(integrationInstanceGroupType, {
+  mt_2025_01_01_dashboard: v1IntegrationInstanceGroupPresenter,
+  mt_2026_01_01_magnetar: v1IntegrationInstanceGroupPresenter
+});
+
+export let integrationInstanceGroupProviderPresenter = declarePresenter(
+  integrationInstanceGroupProviderType,
+  {
+    mt_2025_01_01_dashboard: v1IntegrationInstanceGroupProviderPresenter,
+    mt_2026_01_01_magnetar: v1IntegrationInstanceGroupProviderPresenter
+  }
+);
+
 export let providerSetupSessionPresenter = declarePresenter(providerSetupSessionType, {
   mt_2025_01_01_dashboard: v1SetupSessionPresenter,
   mt_2026_01_01_magnetar: v1SetupSessionPresenter,
@@ -801,12 +855,6 @@ export let sessionTemplatePresenter = declarePresenter(sessionTemplateType, {
 export let sessionTemplateProviderPresenter = declarePresenter(sessionTemplateProviderType, {
   mt_2025_01_01_dashboard: v1SessionTemplateProviderPresenter,
   mt_2026_01_01_magnetar: v1SessionTemplateProviderPresenter
-});
-
-export let magicMcpServerProviderPresenter = declarePresenter(magicMcpServerProviderType, {
-  mt_2025_01_01_dashboard: v1MagicMcpServerProviderPresenter,
-  mt_2026_01_01_magnetar: v1MagicMcpServerProviderPresenter,
-  mt_2026_04_01_consumer: v1MagicMcpServerProviderPresenter
 });
 
 export let sessionProviderPresenter = declarePresenter(sessionProviderType, {

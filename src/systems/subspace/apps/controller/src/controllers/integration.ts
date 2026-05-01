@@ -31,6 +31,7 @@ export let integrationController = app.controller({
           environmentId: v.string(),
 
           search: v.optional(v.string()),
+          includeMagicMcpBackings: v.optional(v.boolean()),
 
           status: v.optional(v.array(v.enumOf(['active', 'archived', 'deleted']))),
           allowDeleted: v.optional(v.boolean()),
@@ -51,6 +52,7 @@ export let integrationController = app.controller({
         solution: ctx.solution,
 
         search: ctx.input.search,
+        includeMagicMcpBackings: ctx.input.includeMagicMcpBackings,
 
         status: ctx.input.status,
         allowDeleted: ctx.input.allowDeleted,

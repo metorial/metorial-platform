@@ -1,9 +1,9 @@
 import type {
+  Integration,
+  IntegrationInstance,
   IntegrationInstanceGroup,
   IntegrationInstanceGroupProvider,
   IntegrationInstanceGroupSource,
-  Integration,
-  IntegrationInstance,
   IntegrationProvider,
   IntegrationProviderVersion,
   Provider,
@@ -29,30 +29,29 @@ let presentToolFilter = (
   };
 };
 
-export type PresentedIntegrationInstanceGroupProvider =
-  IntegrationInstanceGroupProvider & {
-    integrationInstanceGroup: IntegrationInstanceGroup;
-    integrationInstanceGroupSource: IntegrationInstanceGroupSource & {
-      integrationInstance: IntegrationInstance;
-    };
-    integration: Integration;
+export type PresentedIntegrationInstanceGroupProvider = IntegrationInstanceGroupProvider & {
+  integrationInstanceGroup: IntegrationInstanceGroup;
+  integrationInstanceGroupSource: IntegrationInstanceGroupSource & {
     integrationInstance: IntegrationInstance;
-    integrationInstanceProvider: Parameters<typeof integrationInstanceProviderPresenter>[0];
-    integrationProvider: IntegrationProvider & {
-      integration: Integration;
-      provider: Provider;
-      currentVersion:
-        | (IntegrationProviderVersion & {
-            deployment: ProviderDeployment;
-            authMethod:
-              | (ProviderAuthMethod & { specification: Omit<ProviderSpecification, 'value'> })
-              | null;
-            authCredentials: ProviderAuthCredentials | null;
-            config: ProviderConfig | null;
-          })
-        | null;
-    };
   };
+  integration: Integration;
+  integrationInstance: IntegrationInstance;
+  integrationInstanceProvider: Parameters<typeof integrationInstanceProviderPresenter>[0];
+  integrationProvider: IntegrationProvider & {
+    integration: Integration;
+    provider: Provider;
+    currentVersion:
+      | (IntegrationProviderVersion & {
+          deployment: ProviderDeployment;
+          authMethod:
+            | (ProviderAuthMethod & { specification: Omit<ProviderSpecification, 'value'> })
+            | null;
+          authCredentials: ProviderAuthCredentials | null;
+          config: ProviderConfig | null;
+        })
+      | null;
+  };
+};
 
 export let integrationInstanceGroupProviderPresenter = (
   provider: PresentedIntegrationInstanceGroupProvider

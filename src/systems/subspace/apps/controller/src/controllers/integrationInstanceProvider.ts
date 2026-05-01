@@ -37,6 +37,7 @@ export let integrationInstanceProviderController = app.controller({
           environmentId: v.string(),
 
           search: v.optional(v.string()),
+          includeMagicMcpBackings: v.optional(v.boolean()),
 
           allowDeleted: v.optional(v.boolean()),
           status: v.optional(v.array(v.enumOf(['active', 'archived', 'deleted']))),
@@ -64,6 +65,7 @@ export let integrationInstanceProviderController = app.controller({
           solution: ctx.solution,
 
           search: ctx.input.search,
+          includeMagicMcpBackings: ctx.input.includeMagicMcpBackings,
 
           allowDeleted: ctx.input.allowDeleted,
           status: ctx.input.status,
@@ -137,6 +139,28 @@ export let integrationInstanceProviderController = app.controller({
               ? { toolFilters: normalizeToolFilters(ctx.input.toolFilters) }
               : {})
           }
+        });
+
+      return integrationInstanceProviderPresenter(integrationInstanceProvider);
+    }),
+
+  delete: integrationInstanceProviderApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        environmentId: v.string(),
+        integrationInstanceProviderId: v.string(),
+        allowDeleted: v.optional(v.boolean())
+      })
+    )
+    .do(async ctx => {
+      let integrationInstanceProvider =
+        await integrationInstanceProviderService.archiveIntegrationInstanceProvider({
+          tenant: ctx.tenant,
+          environment: ctx.environment,
+          solution: ctx.solution,
+          integrationInstanceProvider: ctx.integrationInstanceProvider
         });
 
       return integrationInstanceProviderPresenter(integrationInstanceProvider);

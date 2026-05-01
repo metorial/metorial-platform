@@ -17,15 +17,13 @@ export let integrationInstanceGroupProviderApp = tenantApp.use(async ctx => {
   }
 
   let integrationInstanceGroupProvider =
-    await integrationInstanceGroupProviderService.getIntegrationInstanceGroupProviderById(
-      {
-        integrationInstanceGroupProviderId,
-        tenant: ctx.tenant,
-        environment: ctx.environment,
-        solution: ctx.solution,
-        allowDeleted: ctx.body.allowDeleted
-      }
-    );
+    await integrationInstanceGroupProviderService.getIntegrationInstanceGroupProviderById({
+      integrationInstanceGroupProviderId,
+      tenant: ctx.tenant,
+      environment: ctx.environment,
+      solution: ctx.solution,
+      allowDeleted: ctx.body.allowDeleted
+    });
 
   return { integrationInstanceGroupProvider };
 });
@@ -38,6 +36,7 @@ export let integrationInstanceGroupProviderController = app.controller({
         v.object({
           tenantId: v.string(),
           environmentId: v.string(),
+          includeMagicMcpBackings: v.optional(v.boolean()),
 
           allowDeleted: v.optional(v.boolean()),
           status: v.optional(v.array(v.enumOf(['active', 'archived', 'deleted']))),
@@ -61,31 +60,30 @@ export let integrationInstanceGroupProviderController = app.controller({
     )
     .do(async ctx => {
       let paginator =
-        await integrationInstanceGroupProviderService.listIntegrationInstanceGroupProviders(
-          {
-            tenant: ctx.tenant,
-            environment: ctx.environment,
-            solution: ctx.solution,
+        await integrationInstanceGroupProviderService.listIntegrationInstanceGroupProviders({
+          tenant: ctx.tenant,
+          environment: ctx.environment,
+          solution: ctx.solution,
+          includeMagicMcpBackings: ctx.input.includeMagicMcpBackings,
 
-            allowDeleted: ctx.input.allowDeleted,
-            status: ctx.input.status,
+          allowDeleted: ctx.input.allowDeleted,
+          status: ctx.input.status,
 
-            ids: ctx.input.ids,
-            integrationInstanceGroupIds: ctx.input.integrationInstanceGroupIds,
-            integrationIds: ctx.input.integrationIds,
-            integrationInstanceIds: ctx.input.integrationInstanceIds,
-            integrationInstanceProviderIds: ctx.input.integrationInstanceProviderIds,
-            providerIds: ctx.input.providerIds,
-            integrationProviderIds: ctx.input.integrationProviderIds,
-            providerDeploymentIds: ctx.input.providerDeploymentIds,
-            providerConfigIds: ctx.input.providerConfigIds,
-            providerAuthConfigIds: ctx.input.providerAuthConfigIds,
-            sessionTemplateIds: ctx.input.sessionTemplateIds,
+          ids: ctx.input.ids,
+          integrationInstanceGroupIds: ctx.input.integrationInstanceGroupIds,
+          integrationIds: ctx.input.integrationIds,
+          integrationInstanceIds: ctx.input.integrationInstanceIds,
+          integrationInstanceProviderIds: ctx.input.integrationInstanceProviderIds,
+          providerIds: ctx.input.providerIds,
+          integrationProviderIds: ctx.input.integrationProviderIds,
+          providerDeploymentIds: ctx.input.providerDeploymentIds,
+          providerConfigIds: ctx.input.providerConfigIds,
+          providerAuthConfigIds: ctx.input.providerAuthConfigIds,
+          sessionTemplateIds: ctx.input.sessionTemplateIds,
 
-            createdAt: ctx.input.createdAt,
-            updatedAt: ctx.input.updatedAt
-          }
-        );
+          createdAt: ctx.input.createdAt,
+          updatedAt: ctx.input.updatedAt
+        });
 
       let list = await paginator.run(ctx.input);
 
@@ -128,24 +126,20 @@ export let integrationInstanceGroupProviderController = app.controller({
         });
 
       let integrationInstanceGroupProvider =
-        await integrationInstanceGroupProviderService.setIntegrationInstanceGroupProvider(
-          {
-            tenant: ctx.tenant,
-            environment: ctx.environment,
-            solution: ctx.solution,
-            integrationInstanceGroup,
-            input: {
-              integrationInstanceProviderId: ctx.input.integrationInstanceProviderId,
-              ...(ctx.input.toolFilters !== undefined
-                ? { toolFilters: normalizeToolFilters(ctx.input.toolFilters) }
-                : {})
-            }
+        await integrationInstanceGroupProviderService.setIntegrationInstanceGroupProvider({
+          tenant: ctx.tenant,
+          environment: ctx.environment,
+          solution: ctx.solution,
+          integrationInstanceGroup,
+          input: {
+            integrationInstanceProviderId: ctx.input.integrationInstanceProviderId,
+            ...(ctx.input.toolFilters !== undefined
+              ? { toolFilters: normalizeToolFilters(ctx.input.toolFilters) }
+              : {})
           }
-        );
+        });
 
-      return integrationInstanceGroupProviderPresenter(
-        integrationInstanceGroupProvider
-      );
+      return integrationInstanceGroupProviderPresenter(integrationInstanceGroupProvider);
     }),
 
   delete: integrationInstanceGroupProviderApp
@@ -160,17 +154,13 @@ export let integrationInstanceGroupProviderController = app.controller({
     )
     .do(async ctx => {
       let integrationInstanceGroupProvider =
-        await integrationInstanceGroupProviderService.archiveIntegrationInstanceGroupProvider(
-          {
-            tenant: ctx.tenant,
-            environment: ctx.environment,
-            solution: ctx.solution,
-            integrationInstanceGroupProvider: ctx.integrationInstanceGroupProvider
-          }
-        );
+        await integrationInstanceGroupProviderService.archiveIntegrationInstanceGroupProvider({
+          tenant: ctx.tenant,
+          environment: ctx.environment,
+          solution: ctx.solution,
+          integrationInstanceGroupProvider: ctx.integrationInstanceGroupProvider
+        });
 
-      return integrationInstanceGroupProviderPresenter(
-        integrationInstanceGroupProvider
-      );
+      return integrationInstanceGroupProviderPresenter(integrationInstanceGroupProvider);
     })
 });

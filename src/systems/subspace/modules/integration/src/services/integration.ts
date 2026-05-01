@@ -100,7 +100,9 @@ class integrationServiceImpl {
     };
   }
 
-  private integrationUpdateData(input: IntegrationWriteInput & { isMagicMcpBacking?: boolean }) {
+  private integrationUpdateData(
+    input: IntegrationWriteInput & { isMagicMcpBacking?: boolean }
+  ) {
     return {
       status: 'active' as const,
       archivedAt: null,
@@ -121,6 +123,7 @@ class integrationServiceImpl {
     environment: Environment;
 
     search?: string;
+    includeMagicMcpBackings?: boolean;
 
     status?: IntegrationStatus[];
     allowDeleted?: boolean;
@@ -155,7 +158,7 @@ class integrationServiceImpl {
               tenantOid: d.tenant.oid,
               solutionOid: d.solution.oid,
               environmentOid: d.environment.oid,
-              isMagicMcpBacking: false,
+              isMagicMcpBacking: d.includeMagicMcpBackings ? undefined : false,
 
               ...normalizeStatusForList(d).noParent,
 

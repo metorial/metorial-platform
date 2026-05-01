@@ -278,6 +278,7 @@ class integrationInstanceServiceImpl {
     environment: Environment;
 
     search?: string;
+    includeMagicMcpBackings?: boolean;
 
     status?: IntegrationInstanceStatus[];
     allowDeleted?: boolean;
@@ -328,7 +329,7 @@ class integrationInstanceServiceImpl {
               tenantOid: d.tenant.oid,
               solutionOid: d.solution.oid,
               environmentOid: d.environment.oid,
-              isMagicMcpBacking: false,
+              isMagicMcpBacking: d.includeMagicMcpBackings ? undefined : false,
 
               ...normalizeStatusForList(d).hasParent,
 
@@ -559,7 +560,7 @@ class integrationInstanceServiceImpl {
         environment: d.environment,
         integrationInstance,
         input: d.input,
-        current: integrationInstance,
+        current: integrationInstance
       });
 
       await addAfterTransactionHook(async () => {

@@ -153,6 +153,7 @@ class integrationInstanceProviderServiceImpl {
     environment: Environment;
 
     search?: string;
+    includeMagicMcpBackings?: boolean;
 
     status?: IntegrationInstanceProviderStatus[];
     allowDeleted?: boolean;
@@ -191,7 +192,9 @@ class integrationInstanceProviderServiceImpl {
               tenantOid: d.tenant.oid,
               solutionOid: d.solution.oid,
               environmentOid: d.environment.oid,
-              integrationInstance: { isMagicMcpBacking: false },
+              integrationInstance: d.includeMagicMcpBackings
+                ? undefined
+                : { isMagicMcpBacking: false },
 
               ...normalizeStatusForList(d).hasParent,
 
@@ -467,7 +470,8 @@ class integrationInstanceProviderServiceImpl {
       solution: d.solution,
       environment: d.environment,
       providers: d.input.map((input, idx) => ({
-        deploymentId: input.providerDeploymentId ?? materialProviders[idx]!.currentVersion!.deployment.id,
+        deploymentId:
+          input.providerDeploymentId ?? materialProviders[idx]!.currentVersion!.deployment.id,
         configId: configIds[idx],
         authConfigId: input.providerAuthConfigId
       }))

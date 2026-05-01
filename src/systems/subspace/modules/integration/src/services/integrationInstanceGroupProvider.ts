@@ -57,6 +57,7 @@ class integrationInstanceGroupProviderServiceImpl {
     tenant: Tenant;
     solution: Solution;
     environment: Environment;
+    includeMagicMcpBackings?: boolean;
 
     status?: IntegrationInstanceGroupProviderStatus[];
     allowDeleted?: boolean;
@@ -98,7 +99,9 @@ class integrationInstanceGroupProviderServiceImpl {
               tenantOid: d.tenant.oid,
               solutionOid: d.solution.oid,
               environmentOid: d.environment.oid,
-              integrationInstanceGroup: { isMagicMcpBacking: false },
+              integrationInstanceGroup: d.includeMagicMcpBackings
+                ? undefined
+                : { isMagicMcpBacking: false },
 
               ...normalizeStatusForList(d).hasParent,
 

@@ -266,6 +266,7 @@ class integrationProviderServiceImpl {
     environment: Environment;
 
     search?: string;
+    includeMagicMcpBackings?: boolean;
 
     status?: IntegrationProviderStatus[];
     allowDeleted?: boolean;
@@ -303,7 +304,9 @@ class integrationProviderServiceImpl {
               tenantOid: d.tenant.oid,
               solutionOid: d.solution.oid,
               environmentOid: d.environment.oid,
-              integration: { isMagicMcpBacking: false },
+              integration: d.includeMagicMcpBackings
+                ? undefined
+                : { isMagicMcpBacking: false },
 
               ...normalizeStatusForList(d).noParent,
 

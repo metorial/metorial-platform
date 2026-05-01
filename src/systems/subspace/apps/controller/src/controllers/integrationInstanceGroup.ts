@@ -41,6 +41,7 @@ export let integrationInstanceGroupController = app.controller({
         v.object({
           tenantId: v.string(),
           environmentId: v.string(),
+          includeMagicMcpBackings: v.optional(v.boolean()),
 
           status: v.optional(v.array(v.enumOf(['draft', 'active', 'archived', 'deleted']))),
           allowDeleted: v.optional(v.boolean()),
@@ -67,6 +68,7 @@ export let integrationInstanceGroupController = app.controller({
           tenant: ctx.tenant,
           environment: ctx.environment,
           solution: ctx.solution,
+          includeMagicMcpBackings: ctx.input.includeMagicMcpBackings,
 
           status: ctx.input.status,
           allowDeleted: ctx.input.allowDeleted,
