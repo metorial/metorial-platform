@@ -4,12 +4,14 @@ import type {
   IntegrationProviderVersion,
   IntegrationVersion,
   IntegrationVersionProvider,
+  MagicMcpServerBacking,
   Provider,
   ProviderAuthCredentials,
   ProviderAuthMethod,
   ProviderConfig,
   ProviderDeployment,
-  ProviderSpecification
+  ProviderSpecification,
+  ProviderTemplateBacking
 } from '@metorial-subspace/db';
 import { integrationProviderPresenter } from './integrationProvider';
 import { integrationVersionPresenter } from './integrationVersion';
@@ -50,6 +52,8 @@ export let integrationPresenter = (
           })
         | null;
     })[];
+    providerTemplateBacking: ProviderTemplateBacking | null;
+    magicMcpServerBacking: MagicMcpServerBacking | null;
   }
 ) => ({
   object: 'integration',
@@ -66,6 +70,9 @@ export let integrationPresenter = (
   canAttachCustomToolFilters: integration.canAttachCustomToolFilters,
   canAttachCustomProviderConfig: integration.canAttachCustomProviderConfig,
   canOverrideToolFilters: integration.canOverrideToolFilters,
+
+  providerTemplateBackingId: integration.providerTemplateBacking?.id ?? null,
+  magicMcpServerBackingId: integration.magicMcpServerBacking?.id ?? null,
 
   providers: integration.providers.map(provider =>
     integrationProviderPresenter({

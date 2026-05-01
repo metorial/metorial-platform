@@ -7,6 +7,7 @@ import type {
   IntegrationInstanceProviderVersion,
   IntegrationProvider,
   IntegrationProviderVersion,
+  MagicMcpServerBacking,
   Provider,
   ProviderAuthConfig,
   ProviderAuthCredentials,
@@ -58,6 +59,7 @@ export let integrationInstancePresenter = (
           })
         | null;
     })[];
+    magicMcpServerBacking: MagicMcpServerBacking | null;
   }
 ) => ({
   object: 'integration.instance',
@@ -73,6 +75,7 @@ export let integrationInstancePresenter = (
   integrationId: integrationInstance.integration.id,
   identityActorId: integrationInstance.identityActor?.id ?? null,
   identityId: integrationInstance.identity?.id ?? null,
+  magicMcpServerBackingId: integrationInstance.magicMcpServerBacking?.id ?? null,
 
   providers: integrationInstance.integrationInstanceProviders.map(provider =>
     integrationInstanceProviderPresenter(provider)

@@ -35,6 +35,7 @@ export * from './integrationInstance';
 export * from './integrationInstanceProvider';
 export * from './integrationProvider';
 export * from './integrationVersion';
+export * from './magicMcpBacking';
 export * from './managedProviderAuthCredentials';
 export * from './oauthSetup';
 export * from './provider';

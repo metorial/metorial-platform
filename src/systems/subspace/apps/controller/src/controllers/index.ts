@@ -38,6 +38,7 @@ import { integrationInstanceController } from './integrationInstance';
 import { integrationInstanceProviderController } from './integrationInstanceProvider';
 import { integrationProviderController } from './integrationProvider';
 import { integrationVersionController } from './integrationVersion';
+import { magicMcpBackingController } from './magicMcpBacking';
 import { managedProviderAuthCredentialsController } from './managedProviderAuthCredentials';
 import { networkingRulesetController } from './networkingRuleset';
 import { providerController } from './provider';
@@ -107,6 +108,7 @@ let systemControllers = {
   integrationInstanceProvider: integrationInstanceProviderController,
   integrationProvider: integrationProviderController,
   integrationVersion: integrationVersionController,
+  magicMcpBacking: magicMcpBackingController,
   solution: solutionController,
   tenant: tenantController
 };

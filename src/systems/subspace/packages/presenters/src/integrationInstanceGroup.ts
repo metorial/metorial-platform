@@ -1,7 +1,8 @@
 import type {
   IntegrationInstanceGroup,
   IntegrationInstanceGroupSource,
-  IntegrationInstance
+  IntegrationInstance,
+  MagicMcpEndpointBacking
 } from '@metorial-subspace/db';
 import {
   integrationInstanceGroupProviderPresenter,
@@ -10,13 +11,14 @@ import {
 
 export type PresentedIntegrationInstanceGroupSource =
   IntegrationInstanceGroupSource & {
-    integrationInstanceGroup?: IntegrationInstanceGroup | null;
+    integrationInstanceGroup: IntegrationInstanceGroup | null;
     integrationInstance: IntegrationInstance;
   };
 
 export type PresentedIntegrationInstanceGroup = IntegrationInstanceGroup & {
   sources: PresentedIntegrationInstanceGroupSource[];
   providers: PresentedIntegrationInstanceGroupProvider[];
+  magicMcpEndpointBacking: MagicMcpEndpointBacking | null;
 };
 
 export let integrationInstanceGroupSourcePresenter = (
@@ -47,6 +49,7 @@ export let integrationInstanceGroupPresenter = (
   description: integrationInstanceGroup.description,
   metadata: integrationInstanceGroup.metadata,
   privateMetadata: integrationInstanceGroup.privateMetadata,
+  magicMcpEndpointBackingId: integrationInstanceGroup.magicMcpEndpointBacking?.id ?? null,
 
   sources: integrationInstanceGroup.sources.map(
     integrationInstanceGroupSourcePresenter
