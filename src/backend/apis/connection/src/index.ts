@@ -21,6 +21,10 @@ export let startMcpServer = (d: { port: number; authenticate: Authenticator<Auth
         'Access-Control-Allow-Headers',
         'Content-Type, Authorization, metorial-version, mcp-protocol-version, MCP-Session-ID, Last-Event-ID'
       );
+      c.res.headers.set(
+        'Access-Control-Expose-Headers',
+        'Metorial-Connection-Id, Metorial-Connection-Token, Metorial-Session-Id, MCP-Session-ID'
+      );
       c.res.headers.set('Access-Control-Allow-Credentials', 'true');
       c.res.headers.set('Access-Control-Max-Age', '86400');
     })
