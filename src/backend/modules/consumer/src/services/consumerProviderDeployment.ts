@@ -15,9 +15,7 @@ import { magicMcpServerService } from '@metorial/module-magic';
 import {
   subspaceIdentityCredentialService,
   subspaceProviderAuthConfigService,
-  subspaceProviderConfigService,
-  subspaceSessionTemplateProviderService,
-  subspaceSessionTemplateService
+  subspaceProviderConfigService
 } from '@metorial/module-subspace';
 import {
   loadTemplateContextForDeployment,
@@ -30,7 +28,6 @@ let Sentry = getSentry();
 
 type ConsumerProviderDeployRollbackState = {
   magicMcpServer?: MagicMcpServer;
-  sessionTemplateProviderId?: string;
 };
 
 type ConsumerProviderDeployInput = {
@@ -195,28 +192,6 @@ class ConsumerProviderDeploymentServiceImpl {
         }
       }
 
-      let sessionTemplate = await subspaceSessionTemplateService.create({
-        instance: d.instance,
-        name: d.input.name ?? providerContext.providerTemplate.name,
-        description:
-          d.input.description ??
-          providerContext.providerTemplate.description ??
-          providerContext.provider.description ??
-          undefined,
-        metadata: d.input.metadata ?? {},
-        providers: [],
-        isInternal: true
-      });
-      let sessionTemplateProvider = await subspaceSessionTemplateProviderService.create({
-        instance: d.instance,
-        sessionTemplateId: sessionTemplate.id,
-        providerDeploymentId: providerContext.deployment.id,
-        providerConfigId,
-        providerAuthConfigId
-      });
-
-      rollbackState.sessionTemplateProviderId = sessionTemplateProvider.id;
-
       let magicMcpServer = await magicMcpServerService.createMagicMcpServer({
         organization: d.organization,
         performedBy: d.performedBy,
@@ -233,7 +208,13 @@ class ConsumerProviderDeploymentServiceImpl {
             providerDeploymentDescription: providerContext.deployment.description,
             providerTemplateId: providerContext.providerTemplate.id
           }),
-          sessionTemplateId: sessionTemplate.id
+          providers: [
+            {
+              providerDeploymentId: providerContext.deployment.id,
+              providerConfigId,
+              providerAuthConfigId
+            }
+          ]
         }
       });
 
@@ -384,12 +365,6 @@ class ConsumerProviderDeploymentServiceImpl {
       d.rollbackState.magicMcpServer
         ? magicMcpServerService.archiveMagicMcpServer({
             server: d.rollbackState.magicMcpServer
-          })
-        : Promise.resolve(),
-      d.rollbackState.sessionTemplateProviderId
-        ? subspaceSessionTemplateProviderService.delete({
-            instance: d.instance,
-            sessionTemplateProviderId: d.rollbackState.sessionTemplateProviderId
           })
         : Promise.resolve()
     ]);

@@ -45,23 +45,6 @@ type ConsumerMagicMcpCatalogServer = Prisma.MagicMcpServerGetPayload<{
   include: typeof magicMcpCatalogInclude;
 }>;
 
-type ConsumerAccessListingCatalogInclude = {
-  providerTemplate: true;
-  magicMcpServer: {
-    include: typeof magicMcpCatalogInclude;
-  };
-  consumerAccesses: {
-    where: {
-      consumerGroupOid: {
-        in: bigint[];
-      };
-    };
-    select: {
-      id: true;
-    };
-  };
-};
-
 type ConsumerCatalogRecord = ConsumerAccessListing & {
   providerTemplate: ProviderTemplate | null;
   magicMcpServer: ConsumerMagicMcpCatalogServer | null;
@@ -1186,7 +1169,7 @@ class ConsumerProviderCatalogServiceImpl {
     });
   }
 
-  private getCatalogInclude(groupOids: bigint[]): ConsumerAccessListingCatalogInclude {
+  private getCatalogInclude(groupOids: bigint[]) {
     return {
       providerTemplate: true,
       magicMcpServer: {

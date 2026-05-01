@@ -30,31 +30,14 @@ vi.mock('@metorial/db', () => {
   };
 });
 
-vi.mock('@metorial/module-subspace', () => ({
-  subspaceSessionService: {
-    create: vi.fn(),
-    delete: vi.fn()
-  },
-  subspaceSessionTemplateProviderService: {
-    getMany: vi.fn()
-  },
-  subspaceSessionTemplateService: {
-    create: vi.fn()
-  }
-}));
-
 vi.mock('../src/services', () => ({
   magicMcpEndpointInclude: {}
 }));
 
 import { db } from '@metorial/db';
-import {
-  subspaceSessionService,
-  subspaceSessionTemplateProviderService
-} from '@metorial/module-subspace';
-import { ensureMagicMcpSubspaceSession } from '../src/lib/ensureSession';
+import { syncMagicMcpSubspaceSession } from '../src/lib/ensureSession';
 
-describe('ensureMagicMcpSubspaceSession', () => {
+describe('syncMagicMcpSubspaceSession', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useRealTimers();
@@ -73,28 +56,30 @@ describe('ensureMagicMcpSubspaceSession', () => {
 
     vi.mocked(db.magicMcpSession.findUnique).mockResolvedValue(mapping as any);
 
-    let result = await ensureMagicMcpSubspaceSession({
-      type: 'server',
-      target: {
-        oid: 10n,
-        id: 'mcp_server_1',
-        name: 'Claude',
-        description: 'Magic MCP server',
-        subspaceSessionTemplateId: 'tmpl_1',
-        instance: {
-          oid: 20n,
-          id: 'ins_1',
-          projectOid: 30n
-        }
-      } as any
-    });
+    let result = await syncMagicMcpSubspaceSession(
+      {
+        type: 'server',
+        target: {
+          oid: 10n,
+          id: 'mcp_server_1',
+          name: 'Claude',
+          description: 'Magic MCP server',
+          subspaceSessionTemplateId: 'tmpl_1',
+          instance: {
+            oid: 20n,
+            id: 'ins_1',
+            projectOid: 30n
+          }
+        } as any
+      },
+      'ses_existing'
+    );
 
     expect(result).toBe(mapping);
-    expect(subspaceSessionTemplateProviderService.getMany).not.toHaveBeenCalled();
-    expect(subspaceSessionService.create).not.toHaveBeenCalled();
+    expect(db.project.findUniqueOrThrow).not.toHaveBeenCalled();
   });
 
-  it('rotates an expired mapping using the project duration and a friendly name', async () => {
+  it('updates an expired mapping using the concrete subspace session id', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-04-24T09:15:00.000Z'));
 
@@ -119,35 +104,25 @@ describe('ensureMagicMcpSubspaceSession', () => {
     vi.mocked(db.project.findUniqueOrThrow).mockResolvedValue({
       magicMcpSessionDurationMinutes: 60
     } as any);
-    vi.mocked(subspaceSessionTemplateProviderService.getMany).mockResolvedValue([]);
-    vi.mocked(subspaceSessionService.create).mockResolvedValue({
-      id: 'ses_new',
-      providers: []
-    } as any);
-    vi.mocked(subspaceSessionService.delete).mockResolvedValue({} as any);
+    let result = await syncMagicMcpSubspaceSession(
+      {
+        type: 'server',
+        target: {
+          oid: 10n,
+          id: 'mcp_server_1',
+          name: 'Claude',
+          description: 'Magic MCP server',
+          subspaceSessionTemplateId: 'tmpl_1',
+          instance: {
+            oid: 20n,
+            id: 'ins_1',
+            projectOid: 30n
+          }
+        } as any
+      },
+      'ses_new'
+    );
 
-    let result = await ensureMagicMcpSubspaceSession({
-      type: 'server',
-      target: {
-        oid: 10n,
-        id: 'mcp_server_1',
-        name: 'Claude',
-        description: 'Magic MCP server',
-        subspaceSessionTemplateId: 'tmpl_1',
-        instance: {
-          oid: 20n,
-          id: 'ins_1',
-          projectOid: 30n
-        }
-      } as any
-    });
-
-    expect(subspaceSessionService.create).toHaveBeenCalledWith({
-      instance: expect.objectContaining({ id: 'ins_1' }),
-      name: 'Magic MCP Claude - 2026-04-24',
-      description: 'Magic MCP server',
-      providers: []
-    });
     expect(db.magicMcpSession.updateMany).toHaveBeenCalledWith({
       where: {
         oid: 1n,

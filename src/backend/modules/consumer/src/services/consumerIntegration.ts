@@ -35,6 +35,34 @@ let consumerTokenInclude = {
   magicMcpToken: true
 } satisfies Prisma.ConsumerTokenInclude;
 
+let consumerTokenForMagicMcpInclude = {
+  consumerProfile: true,
+  magicMcpToken: {
+    include: {
+      consumerAuthAttempts: {
+        orderBy: {
+          updatedAt: 'desc'
+        },
+        take: 1,
+        select: {
+          consumerAuthClient: {
+            select: {
+              id: true,
+              name: true,
+              consumerClient: {
+                select: {
+                  id: true,
+                  name: true
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+} satisfies Prisma.ConsumerTokenInclude;
+
 let consumerIntegrationInclude = {
   magicMcpServer: true
 } satisfies Prisma.ConsumerIntegrationInclude;
@@ -121,7 +149,7 @@ class ConsumerIntegrationServiceImpl {
       where: {
         magicMcpTokenOid: d.magicMcpToken.oid
       },
-      include: consumerTokenInclude
+      include: consumerTokenForMagicMcpInclude
     });
   }
 

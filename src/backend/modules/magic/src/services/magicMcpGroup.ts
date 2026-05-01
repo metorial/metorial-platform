@@ -1,3 +1,12 @@
+import {
+  goneError,
+  notFoundError,
+  preconditionFailedError,
+  ServiceError
+} from '@lowerdeck/error';
+import { Paginator } from '@lowerdeck/pagination';
+import { Service } from '@lowerdeck/service';
+import { slugify } from '@lowerdeck/slugify';
 import { Context } from '@metorial/context';
 import {
   db,
@@ -9,17 +18,8 @@ import {
   OrganizationActor,
   withTransaction
 } from '@metorial/db';
-import {
-  goneError,
-  notFoundError,
-  preconditionFailedError,
-  ServiceError
-} from '@lowerdeck/error';
 import { generatePlainId } from '@metorial/id';
 import { searchMagicMcpGroupIds } from '@metorial/module-search';
-import { Paginator } from '@lowerdeck/pagination';
-import { Service } from '@lowerdeck/service';
-import { slugify } from '@lowerdeck/slugify';
 import {
   magicMcpGroupCreatedQueue,
   magicMcpGroupDeletedQueue,

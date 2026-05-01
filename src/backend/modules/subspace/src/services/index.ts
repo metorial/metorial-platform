@@ -22,6 +22,7 @@ export * from './identityDelegation';
 export * from './identityDelegationConfig';
 export * from './identityDelegationRequest';
 export * from './managedProviderAuthCredentials';
+export * from './magicMcpBacking';
 export * from './provider';
 export * from './providerAuthConfig';
 export * from './providerAuthCredentials';

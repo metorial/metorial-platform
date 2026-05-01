@@ -30,6 +30,10 @@ export let proxyMcpRequestToSubspace = async (
   sessionId: string,
   d?: {
     agentClient?: SubspaceProxyAgentClient | null;
+    onSubspaceSessionResolved?: (d: {
+      subspaceSessionId: string;
+      response: Response;
+    }) => Promise<void> | void;
   }
 ): Promise<Response> => {
   let inputUrl = new URL(c.req.url);
@@ -86,6 +90,14 @@ export let proxyMcpRequestToSubspace = async (
     signal: c.req.raw.signal,
     body: c.req.raw.body
   });
+
+  let subspaceSessionId = response.headers.get('Metorial-Session-Id');
+  if (subspaceSessionId) {
+    await d?.onSubspaceSessionResolved?.({
+      subspaceSessionId,
+      response
+    });
+  }
 
   return new Response(response.body, {
     status: response.status,

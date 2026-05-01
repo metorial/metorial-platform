@@ -18,6 +18,7 @@ import {
 import { searchProviderTemplateIds } from '@metorial/module-search';
 import {
   subspaceProviderDeploymentService,
+  subspaceMagicMcpBackingService,
   type SubspaceProviderDeployment
 } from '@metorial/module-subspace';
 import {
@@ -106,6 +107,15 @@ class ProviderTemplateServiceImpl {
       await providerTemplateUpdatedQueue.add({
         providerTemplateId: providerTemplate.id
       });
+      await subspaceMagicMcpBackingService.upsertProviderTemplate({
+        instance: d.instance,
+        providerTemplateId: providerTemplate.id,
+        name: providerTemplate.name,
+        description: providerTemplate.description,
+        metadata: providerTemplate.metadata as Record<string, any>,
+        providerDeploymentId: providerTemplate.providerDeploymentId,
+        ...(d.input.toolFilters ? { toolFilters: d.input.toolFilters } : {})
+      });
 
       return await this.enrichOne(providerTemplate, d.instance);
     }
@@ -132,6 +142,15 @@ class ProviderTemplateServiceImpl {
     });
 
     await providerTemplateCreatedQueue.add({ providerTemplateId: providerTemplate.id });
+    await subspaceMagicMcpBackingService.upsertProviderTemplate({
+      instance: d.instance,
+      providerTemplateId: providerTemplate.id,
+      name: providerTemplate.name,
+      description: providerTemplate.description,
+      metadata: providerTemplate.metadata as Record<string, any>,
+      providerDeploymentId: providerTemplate.providerDeploymentId,
+      ...(d.input.toolFilters ? { toolFilters: d.input.toolFilters } : {})
+    });
 
     return await this.enrichOne(providerTemplate, d.instance);
   }
@@ -174,6 +193,15 @@ class ProviderTemplateServiceImpl {
     }
 
     await providerTemplateUpdatedQueue.add({ providerTemplateId: providerTemplate.id });
+    await subspaceMagicMcpBackingService.upsertProviderTemplate({
+      instance: d.instance,
+      providerTemplateId: providerTemplate.id,
+      name: providerTemplate.name,
+      description: providerTemplate.description,
+      metadata: providerTemplate.metadata as Record<string, any>,
+      providerDeploymentId: providerTemplate.providerDeploymentId,
+      ...(d.input.toolFilters ? { toolFilters: d.input.toolFilters } : {})
+    });
 
     return await this.enrichOne(providerTemplate, d.instance);
   }

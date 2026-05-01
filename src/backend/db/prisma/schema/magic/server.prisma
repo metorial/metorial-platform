@@ -17,8 +17,9 @@ model MagicMcpServer {
   source               MagicMcpServerSource @default(manual)
   isConsumerReconciled Boolean              @default(false)
 
-  providerTemplateId        String?
-  subspaceSessionTemplateId String
+  providerTemplateId                String?
+  subspaceSessionTemplateId         String
+  subspaceEphemeralManagedSessionId String?
 
   instanceOid BigInt
   instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)

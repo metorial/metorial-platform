@@ -22,6 +22,7 @@ import {
   consumerMagicMcpWriteRoles,
   type AnyAccessTagSelector
 } from '@metorial/module-access';
+import { subspaceMagicMcpBackingService } from '@metorial/module-subspace';
 import {
   magicMcpEndpointCreatedQueue,
   magicMcpEndpointDeletedQueue,
@@ -90,6 +91,38 @@ let dedupeServerInputs = (servers?: MagicMcpEndpointServerInput[]) => {
   return Array.from(entries.values());
 };
 
+let getMagicMcpSessionDurationMinutes = async (
+  instance: Pick<Instance, 'oid' | 'projectOid'>
+) => {
+  let projectOid =
+    'projectOid' in instance && instance.projectOid
+      ? instance.projectOid
+      : (
+          await db.instance.findUniqueOrThrow({
+            where: { oid: instance.oid },
+            select: { projectOid: true }
+          })
+        ).projectOid;
+  let project = await db.project.findUniqueOrThrow({
+    where: { oid: projectOid },
+    select: { magicMcpSessionDurationMinutes: true }
+  });
+
+  return project.magicMcpSessionDurationMinutes;
+};
+
+let normalizeEndpointToolFilters = (
+  toolFilters: MagicMcpEndpointToolFilters | undefined
+): PrismaJson.ToolFilter | null | undefined => {
+  if (toolFilters === undefined) return undefined;
+  if (toolFilters === null) return null;
+
+  return {
+    type: 'v1.filter',
+    filters: Array.isArray(toolFilters) ? toolFilters : [toolFilters]
+  } as PrismaJson.ToolFilter;
+};
+
 export let magicMcpEndpointInclude = {
   consumerProfile: true,
   consumerIntegrationEndpoints: {
@@ -114,6 +147,42 @@ export let magicMcpEndpointInclude = {
 export type MagicMcpEndpointWithRelations = Prisma.MagicMcpEndpointGetPayload<{
   include: typeof magicMcpEndpointInclude;
 }>;
+
+let syncMagicMcpEndpointBacking = async (d: {
+  instance: Instance | Pick<Instance, 'oid'>;
+  endpoint: MagicMcpEndpointWithRelations;
+}) => {
+  let backing = await subspaceMagicMcpBackingService.upsertEndpoint({
+    instance: d.instance as Instance,
+    magicMcpEndpointBackingId: d.endpoint.id,
+    name: d.endpoint.name,
+    description: d.endpoint.description,
+    metadata: d.endpoint.metadata as Record<string, unknown>,
+    maxSessionDurationInMinutes: await getMagicMcpSessionDurationMinutes(
+      d.instance as Instance
+    ),
+    servers: d.endpoint.servers.map(server => ({
+      id: `${d.endpoint.id}:${server.magicMcpServer.id}`,
+      magicMcpServerBackingId: server.magicMcpServer.id,
+      toolFilters: normalizeEndpointToolFilters(
+        server.toolFilters as MagicMcpEndpointToolFilters | undefined
+      )
+    }))
+  });
+
+  if (backing.sessionTemplateId !== d.endpoint.subspaceSessionTemplateId) {
+    return await db.magicMcpEndpoint.update({
+      where: { oid: d.endpoint.oid },
+      data: {
+        subspaceSessionTemplateId: backing.sessionTemplateId,
+        configurationHash: null
+      },
+      include: magicMcpEndpointInclude
+    });
+  }
+
+  return d.endpoint;
+};
 
 class MagicMcpEndpointImpl {
   async getMagicMcpEndpointById(d: {
@@ -280,6 +349,10 @@ class MagicMcpEndpointImpl {
         },
         include: magicMcpEndpointInclude
       });
+      magicMcpEndpoint = await syncMagicMcpEndpointBacking({
+        instance: d.instance,
+        endpoint: magicMcpEndpoint
+      });
 
       await magicMcpEndpointCreatedQueue.add({ magicMcpEndpointId: magicMcpEndpoint.id });
 
@@ -317,6 +390,10 @@ class MagicMcpEndpointImpl {
       include: magicMcpEndpointInclude
     });
 
+    await subspaceMagicMcpBackingService.archiveEndpoint({
+      instance: { oid: d.endpoint.instanceOid } as Instance,
+      magicMcpEndpointBackingId: d.endpoint.id
+    });
     await magicMcpEndpointDeletedQueue.add({ magicMcpEndpointId: magicMcpEndpoint.id });
 
     return magicMcpEndpoint;
@@ -349,6 +426,10 @@ class MagicMcpEndpointImpl {
         metadata: d.input.metadata === undefined ? d.endpoint.metadata : d.input.metadata
       },
       include: magicMcpEndpointInclude
+    });
+    magicMcpEndpoint = await syncMagicMcpEndpointBacking({
+      instance: { oid: magicMcpEndpoint.instanceOid },
+      endpoint: magicMcpEndpoint
     });
 
     await magicMcpEndpointUpdatedQueue.add({ magicMcpEndpointId: magicMcpEndpoint.id });
@@ -404,6 +485,10 @@ class MagicMcpEndpointImpl {
       },
       include: magicMcpEndpointInclude
     });
+    magicMcpEndpoint = await syncMagicMcpEndpointBacking({
+      instance: { oid: magicMcpEndpoint.instanceOid },
+      endpoint: magicMcpEndpoint
+    });
 
     await magicMcpEndpointUpdatedQueue.add({ magicMcpEndpointId: magicMcpEndpoint.id });
 
@@ -435,6 +520,10 @@ class MagicMcpEndpointImpl {
         id: d.endpoint.id
       },
       include: magicMcpEndpointInclude
+    });
+    magicMcpEndpoint = await syncMagicMcpEndpointBacking({
+      instance: { oid: magicMcpEndpoint.instanceOid },
+      endpoint: magicMcpEndpoint
     });
 
     await magicMcpEndpointUpdatedQueue.add({ magicMcpEndpointId: magicMcpEndpoint.id });
