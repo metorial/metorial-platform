@@ -6,6 +6,7 @@ import {
   db,
   type Environment,
   getId,
+  type Integration,
   type IntegrationInstance,
   type IntegrationInstanceProvider,
   type IntegrationInstanceProviderStatus,
@@ -44,6 +45,7 @@ import {
   integrationInstanceProviderInclude,
   integrationInstanceProviderVersionInclude
 } from './integrationInstance';
+import { integrationProviderService } from './integrationProvider';
 
 let requireCurrentIntegrationProviderVersion = async (integrationProviderOid: bigint) => {
   let integrationProvider = await db.integrationProvider.findUniqueOrThrow({
@@ -137,6 +139,7 @@ let assertCanUseOwnedResource = (d: {
 
 export type SetIntegrationInstanceProviderInput = {
   providerId: string;
+  providerDeploymentId?: string;
   providerConfigId?: string | null;
   providerAuthConfigId?: string;
   toolFilters?: PrismaJson.ToolFilter | null;
@@ -188,6 +191,7 @@ class integrationInstanceProviderServiceImpl {
               tenantOid: d.tenant.oid,
               solutionOid: d.solution.oid,
               environmentOid: d.environment.oid,
+              integrationInstance: { isMagicMcpBacking: false },
 
               ...normalizeStatusForList(d).hasParent,
 
@@ -463,7 +467,7 @@ class integrationInstanceProviderServiceImpl {
       solution: d.solution,
       environment: d.environment,
       providers: d.input.map((input, idx) => ({
-        deploymentId: materialProviders[idx]!.currentVersion!.deployment.id,
+        deploymentId: input.providerDeploymentId ?? materialProviders[idx]!.currentVersion!.deployment.id,
         configId: configIds[idx],
         authConfigId: input.providerAuthConfigId
       }))
@@ -539,7 +543,9 @@ class integrationInstanceProviderServiceImpl {
             combination.authConfig.deploymentOid &&
             combination.authConfig.deploymentOid !== deploymentOid
           ) {
-            throw new ServiceError(deploymentLockError('auth_config', combination.authConfig.id));
+            throw new ServiceError(
+              deploymentLockError('auth_config', combination.authConfig.id)
+            );
           }
         }
 
@@ -703,6 +709,52 @@ class integrationInstanceProviderServiceImpl {
     }
 
     return integrationInstanceProvider;
+  }
+
+  async setMagicMcpIntegrationInstanceProviders(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    integration: Integration;
+    integrationInstance: IntegrationInstance;
+    input: {
+      providerDeploymentId: string;
+      providerConfigId?: string | null;
+      providerAuthConfigId?: string | null;
+      toolFilters?: PrismaJson.ToolFilter | null;
+    }[];
+  }) {
+    if (!d.input.length) return [];
+
+    let integrationProviders = [];
+    for (let input of d.input) {
+      integrationProviders.push(
+        await integrationProviderService.ensureIntegrationProviderForDeployment({
+          tenant: d.tenant,
+          solution: d.solution,
+          environment: d.environment,
+          integration: d.integration,
+          input: {
+            providerDeploymentId: input.providerDeploymentId,
+            toolFilters: input.toolFilters
+          }
+        })
+      );
+    }
+
+    return await this.setIntegrationInstanceProviders({
+      tenant: d.tenant,
+      solution: d.solution,
+      environment: d.environment,
+      integrationInstance: d.integrationInstance,
+      input: d.input.map((input, idx) => ({
+        providerId: integrationProviders[idx]!.id,
+        providerDeploymentId: input.providerDeploymentId,
+        providerConfigId: input.providerConfigId ?? null,
+        providerAuthConfigId: input.providerAuthConfigId ?? undefined,
+        toolFilters: input.toolFilters
+      }))
+    });
   }
 
   async archiveIntegrationInstanceProvider(d: {

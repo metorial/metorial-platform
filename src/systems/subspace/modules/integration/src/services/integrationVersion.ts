@@ -63,7 +63,8 @@ class integrationVersionServiceImpl {
               integration: {
                 tenantOid: d.tenant.oid,
                 solutionOid: d.solution.oid,
-                environmentOid: d.environment.oid
+                environmentOid: d.environment.oid,
+                isMagicMcpBacking: false
               },
 
               AND: [

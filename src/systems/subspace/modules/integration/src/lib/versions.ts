@@ -15,8 +15,8 @@ export let createIntegrationProviderVersion = async (d: {
   configOid?: bigint | null;
   toolFilter: PrismaJson.ToolFilter;
 }) => {
-  return await withTransaction(async () => {
-    let integrationProvider = await db.integrationProvider.update({
+  return await withTransaction(async tx => {
+    let integrationProvider = await tx.integrationProvider.update({
       where: { oid: d.integrationProviderOid },
       data: { currentVersionIndex: { increment: 1 } },
       select: {
@@ -25,7 +25,7 @@ export let createIntegrationProviderVersion = async (d: {
       }
     });
 
-    let version = await db.integrationProviderVersion.create({
+    let version = await tx.integrationProviderVersion.create({
       data: {
         ...getId('integrationProviderVersion'),
         status: d.status,
@@ -39,7 +39,7 @@ export let createIntegrationProviderVersion = async (d: {
       }
     });
 
-    await db.integrationProvider.updateMany({
+    await tx.integrationProvider.updateMany({
       where: { oid: integrationProvider.oid, currentVersionIndex: version.index },
       data: { currentVersionOid: version.oid }
     });
@@ -49,8 +49,8 @@ export let createIntegrationProviderVersion = async (d: {
 };
 
 export let createIntegrationVersion = async (d: { integrationOid: bigint }) => {
-  return await withTransaction(async () => {
-    let integration = await db.integration.update({
+  return await withTransaction(async tx => {
+    let integration = await tx.integration.update({
       where: { oid: d.integrationOid },
       data: {
         currentVersionIndex: { increment: 1 }
@@ -58,7 +58,7 @@ export let createIntegrationVersion = async (d: { integrationOid: bigint }) => {
       select: { oid: true, currentVersionIndex: true }
     });
 
-    let version = await db.integrationVersion.create({
+    let version = await tx.integrationVersion.create({
       data: {
         ...getId('integrationVersion'),
         status: 'active',
@@ -67,7 +67,7 @@ export let createIntegrationVersion = async (d: { integrationOid: bigint }) => {
       }
     });
 
-    let providers = await db.integrationProvider.findMany({
+    let providers = await tx.integrationProvider.findMany({
       where: {
         integrationOid: integration.oid,
         status: 'active',
@@ -79,7 +79,7 @@ export let createIntegrationVersion = async (d: { integrationOid: bigint }) => {
     });
 
     if (providers.length) {
-      await db.integrationVersionProvider.createMany({
+      await tx.integrationVersionProvider.createMany({
         data: providers.map((provider: { currentVersionOid: bigint | null }) => ({
           ...getId('integrationVersionProvider'),
           integrationVersionOid: version.oid,
@@ -88,7 +88,7 @@ export let createIntegrationVersion = async (d: { integrationOid: bigint }) => {
       });
     }
 
-    await db.integration.updateMany({
+    await tx.integration.updateMany({
       where: {
         oid: integration.oid,
         currentVersionIndex: version.index
@@ -109,8 +109,8 @@ export let createIntegrationInstanceProviderVersion = async (d: {
   toolFilter?: PrismaJson.ToolFilter | null;
   isOverrideToolFilter?: boolean;
 }) => {
-  return await withTransaction(async () => {
-    let version = await db.integrationInstanceProviderVersion.create({
+  return await withTransaction(async tx => {
+    let version = await tx.integrationInstanceProviderVersion.create({
       data: {
         ...getId('integrationInstanceProviderVersion'),
         status: d.status,
@@ -123,7 +123,7 @@ export let createIntegrationInstanceProviderVersion = async (d: {
       }
     });
 
-    await db.integrationInstanceProvider.updateMany({
+    await tx.integrationInstanceProvider.updateMany({
       where: { oid: d.integrationInstanceProviderOid },
       data: { currentVersionOid: version.oid }
     });
@@ -135,15 +135,15 @@ export let createIntegrationInstanceProviderVersion = async (d: {
 export let refreshIntegrationInstanceStatus = async (d: {
   integrationInstanceOid: bigint;
 }) => {
-  return await withTransaction(async () => {
-    let integrationInstance = await db.integrationInstance.findUnique({
+  return await withTransaction(async tx => {
+    let integrationInstance = await tx.integrationInstance.findUnique({
       where: { oid: d.integrationInstanceOid },
       select: { oid: true, integrationOid: true, status: true }
     });
     if (!integrationInstance || integrationInstance.status !== 'draft')
       return integrationInstance;
 
-    let requiredCount = await db.integrationProvider.count({
+    let requiredCount = await tx.integrationProvider.count({
       where: {
         integrationOid: integrationInstance.integrationOid,
         status: 'active'
@@ -151,7 +151,7 @@ export let refreshIntegrationInstanceStatus = async (d: {
     });
     if (requiredCount === 0) return integrationInstance;
 
-    let setCount = await db.integrationInstanceProvider.count({
+    let setCount = await tx.integrationInstanceProvider.count({
       where: {
         integrationInstanceOid: integrationInstance.oid,
         status: 'active',
@@ -162,7 +162,7 @@ export let refreshIntegrationInstanceStatus = async (d: {
     });
     if (setCount < requiredCount) return integrationInstance;
 
-    return await db.integrationInstance.update({
+    return await tx.integrationInstance.update({
       where: { oid: integrationInstance.oid },
       data: { status: 'active' }
     });

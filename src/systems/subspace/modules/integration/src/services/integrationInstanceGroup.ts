@@ -1,4 +1,4 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
@@ -80,13 +80,15 @@ export let integrationInstanceGroupInclude = {
   sources: {
     where: { status: 'active' as const, isParentDeleted: false },
     include: {
+      integrationInstanceGroup: true,
       integrationInstance: true
     }
   },
   providers: {
     where: { status: 'active' as const, isParentDeleted: false },
     include: integrationInstanceGroupProviderInclude
-  }
+  },
+  magicMcpEndpointBacking: true
 } as const;
 
 let linkedGroupSessionTemplateInclude = {
@@ -111,7 +113,51 @@ let linkedGroupSessionTemplateInclude = {
   }
 } as const;
 
+type IntegrationInstanceGroupWriteInput = {
+  name: string;
+  description?: string | null;
+  metadata?: Record<string, any> | null;
+  privateMetadata?: Record<string, any> | null;
+};
+
 class integrationInstanceGroupServiceImpl {
+  private integrationInstanceGroupCreateData(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    id: ReturnType<typeof getId>;
+    input: IntegrationInstanceGroupWriteInput;
+    isMagicMcpBacking?: boolean;
+  }) {
+    return {
+      ...d.id,
+      status: 'draft' as const,
+      isMagicMcpBacking: !!d.isMagicMcpBacking,
+      name: d.input.name.trim(),
+      description: d.input.description?.trim() || null,
+      metadata: d.input.metadata,
+      privateMetadata: d.input.privateMetadata,
+      tenantOid: d.tenant.oid,
+      solutionOid: d.solution.oid,
+      environmentOid: d.environment.oid
+    };
+  }
+
+  private integrationInstanceGroupUpdateData(d: {
+    input: IntegrationInstanceGroupWriteInput;
+    isMagicMcpBacking?: boolean;
+  }) {
+    return {
+      status: d.isMagicMcpBacking ? ('active' as const) : undefined,
+      archivedAt: d.isMagicMcpBacking ? null : undefined,
+      isMagicMcpBacking: d.isMagicMcpBacking,
+      name: d.input.name.trim(),
+      description: d.input.description?.trim() || null,
+      metadata: d.input.metadata,
+      privateMetadata: d.input.privateMetadata
+    };
+  }
+
   async listIntegrationInstanceGroups(d: {
     tenant: Tenant;
     solution: Solution;
@@ -156,6 +202,7 @@ class integrationInstanceGroupServiceImpl {
               tenantOid: d.tenant.oid,
               solutionOid: d.solution.oid,
               environmentOid: d.environment.oid,
+              isMagicMcpBacking: false,
 
               ...normalizeStatusForList(d).noParent,
 
@@ -275,18 +322,15 @@ class integrationInstanceGroupServiceImpl {
     };
   }) {
     return await withTransaction(async db => {
+      let newId = getId('integrationInstanceGroup');
       let integrationInstanceGroup = await db.integrationInstanceGroup.create({
-        data: {
-          ...getId('integrationInstanceGroup'),
-          status: 'draft',
-          name: d.input.name.trim(),
-          description: d.input.description?.trim(),
-          metadata: d.input.metadata,
-          privateMetadata: d.input.privateMetadata,
-          tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
-          environmentOid: d.environment.oid
-        },
+        data: this.integrationInstanceGroupCreateData({
+          tenant: d.tenant,
+          solution: d.solution,
+          environment: d.environment,
+          id: newId,
+          input: d.input
+        }),
         include: integrationInstanceGroupInclude
       });
 
@@ -315,6 +359,68 @@ class integrationInstanceGroupServiceImpl {
     });
   }
 
+  async upsertMagicMcpIntegrationInstanceGroup(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    integrationInstanceGroup?: IntegrationInstanceGroup | null;
+    input: {
+      name: string;
+      description?: string | null;
+      metadata?: Record<string, any> | null;
+      privateMetadata?: Record<string, any> | null;
+    };
+  }) {
+    return await withTransaction(async db => {
+      if (d.integrationInstanceGroup) {
+        checkTenant(d, d.integrationInstanceGroup);
+
+        let integrationInstanceGroup = await db.integrationInstanceGroup.update({
+          where: {
+            oid: d.integrationInstanceGroup.oid,
+            tenantOid: d.tenant.oid,
+            solutionOid: d.solution.oid,
+            environmentOid: d.environment.oid
+          },
+          data: this.integrationInstanceGroupUpdateData({
+            input: d.input,
+            isMagicMcpBacking: true
+          }),
+          include: integrationInstanceGroupInclude
+        });
+
+        await addAfterTransactionHook(async () =>
+          integrationInstanceGroupUpdatedQueue.add({
+            integrationInstanceGroupId: integrationInstanceGroup.id
+          })
+        );
+
+        return integrationInstanceGroup;
+      }
+
+      let newId = getId('integrationInstanceGroup');
+      let integrationInstanceGroup = await db.integrationInstanceGroup.create({
+        data: this.integrationInstanceGroupCreateData({
+          tenant: d.tenant,
+          solution: d.solution,
+          environment: d.environment,
+          id: newId,
+          input: d.input,
+          isMagicMcpBacking: true
+        }),
+        include: integrationInstanceGroupInclude
+      });
+
+      await addAfterTransactionHook(async () =>
+        integrationInstanceGroupCreatedQueue.add({
+          integrationInstanceGroupId: integrationInstanceGroup.id
+        })
+      );
+
+      return integrationInstanceGroup;
+    });
+  }
+
   async updateIntegrationInstanceGroup(d: {
     tenant: Tenant;
     solution: Solution;
@@ -330,6 +436,14 @@ class integrationInstanceGroupServiceImpl {
   }) {
     checkTenant(d, d.integrationInstanceGroup);
     checkDeletedEdit(d.integrationInstanceGroup, 'update');
+    if (d.integrationInstanceGroup.isMagicMcpBacking) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Magic MCP backed integration instance groups cannot be updated directly.',
+          code: 'magic_mcp_backing_integration_group_update_blocked'
+        })
+      );
+    }
 
     return await withTransaction(async db => {
       let integrationInstanceGroup = await db.integrationInstanceGroup.update({
@@ -430,9 +544,18 @@ class integrationInstanceGroupServiceImpl {
     solution: Solution;
     environment: Environment;
     integrationInstanceGroup: IntegrationInstanceGroup;
+    _canModifyMagicMcpBacking?: boolean;
   }) {
     checkTenant(d, d.integrationInstanceGroup);
     checkDeletedEdit(d.integrationInstanceGroup, 'archive');
+    if (d.integrationInstanceGroup.isMagicMcpBacking && !d._canModifyMagicMcpBacking) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Magic MCP backed integration instance groups cannot be deleted directly.',
+          code: 'magic_mcp_backing_integration_group_delete_blocked'
+        })
+      );
+    }
 
     return await withTransaction(async db => {
       let integrationInstanceGroup = await db.integrationInstanceGroup.update({

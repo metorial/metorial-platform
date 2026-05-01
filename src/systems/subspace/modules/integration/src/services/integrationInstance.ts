@@ -1,4 +1,4 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
@@ -13,6 +13,7 @@ import {
   type IntegrationInstanceStatus,
   type Solution,
   type Tenant,
+  type TransactionDB,
   withTransaction
 } from '@metorial-subspace/db';
 import {
@@ -83,7 +84,8 @@ export let integrationInstanceInclude = {
   integrationInstanceProviders: {
     where: { status: 'active' as const, isParentDeleted: false },
     include: integrationInstanceProviderInclude
-  }
+  },
+  magicMcpServerBacking: true
 } as const;
 
 let linkedSessionTemplateInclude = {
@@ -111,6 +113,16 @@ let linkedSessionTemplateInclude = {
 type IntegrationIdentityInput = {
   identityActorId?: string | null;
   identityId?: string | null;
+};
+
+type IntegrationInstanceWriteInput = {
+  name: string;
+  description?: string | null;
+  metadata?: Record<string, any> | null;
+  privateMetadata?: Record<string, any> | null;
+  identityActorId?: string | null;
+  identityId?: string | null;
+  providers?: SetIntegrationInstanceProviderInput[];
 };
 
 let mergeIntegrationIdentityInput = (d: {
@@ -164,6 +176,102 @@ let resolveIntegrationIdentity = async (d: {
 };
 
 class integrationInstanceServiceImpl {
+  private integrationInstanceCreateData(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    integration: Integration;
+    id: ReturnType<typeof getId>;
+    input: IntegrationInstanceWriteInput;
+    isMagicMcpBacking?: boolean;
+  }) {
+    return {
+      ...d.id,
+      status: 'draft' as const,
+      isMagicMcpBacking: !!d.isMagicMcpBacking,
+      name: d.input.name.trim(),
+      description: d.input.description?.trim() || null,
+      metadata: d.input.metadata,
+      privateMetadata: d.input.privateMetadata,
+      integrationOid: d.integration.oid,
+      tenantOid: d.tenant.oid,
+      solutionOid: d.solution.oid,
+      environmentOid: d.environment.oid
+    };
+  }
+
+  private integrationInstanceUpdateData(d: {
+    integrationInstance: IntegrationInstance;
+    integration: Integration;
+    input: IntegrationInstanceWriteInput;
+    isMagicMcpBacking?: boolean;
+  }) {
+    return {
+      status: d.isMagicMcpBacking
+        ? d.integrationInstance.status === 'deleted'
+          ? ('deleted' as const)
+          : ('active' as const)
+        : undefined,
+      isMagicMcpBacking: d.isMagicMcpBacking,
+      name: d.input.name.trim(),
+      description: d.input.description?.trim() || null,
+      metadata: d.input.metadata,
+      privateMetadata: d.input.privateMetadata,
+      integrationOid: d.integration.oid
+    };
+  }
+
+  private async applyIdentityAndProviders(d: {
+    db: TransactionDB;
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    integrationInstance: IntegrationInstance;
+    input: IntegrationInstanceWriteInput;
+    current?: Parameters<typeof mergeIntegrationIdentityInput>[0]['current'];
+  }) {
+    let mergedIdentityInput = mergeIntegrationIdentityInput({
+      current: d.current,
+      input: {
+        identityActorId: d.input.identityActorId,
+        identityId: d.input.identityId
+      }
+    });
+    let { actor, identity } = await resolveIntegrationIdentity({
+      tenant: d.tenant,
+      solution: d.solution,
+      environment: d.environment,
+      integrationInstance: d.integrationInstance,
+      input: mergedIdentityInput
+    });
+
+    let integrationInstance = await d.db.integrationInstance.update({
+      where: { oid: d.integrationInstance.oid },
+      data: {
+        identityActorOid: actor?.oid ?? null,
+        identityOid: identity?.oid ?? null
+      },
+      include: integrationInstanceInclude
+    });
+
+    if (d.input.providers?.length) {
+      await integrationInstanceProviderService.setIntegrationInstanceProviders({
+        tenant: d.tenant,
+        solution: d.solution,
+        environment: d.environment,
+        integrationInstance,
+        input: d.input.providers
+      });
+
+      integrationInstance = await d.db.integrationInstance.findUniqueOrThrow({
+        where: { oid: integrationInstance.oid },
+        include: integrationInstanceInclude
+      });
+    }
+
+    return integrationInstance;
+  }
+
   async listIntegrationInstances(d: {
     tenant: Tenant;
     solution: Solution;
@@ -220,6 +328,7 @@ class integrationInstanceServiceImpl {
               tenantOid: d.tenant.oid,
               solutionOid: d.solution.oid,
               environmentOid: d.environment.oid,
+              isMagicMcpBacking: false,
 
               ...normalizeStatusForList(d).hasParent,
 
@@ -360,64 +469,110 @@ class integrationInstanceServiceImpl {
     checkTenant(d, d.integration);
     checkDeletedRelation(d.integration);
 
-    let mergedIdentityInput = mergeIntegrationIdentityInput({
-      input: {
-        identityActorId: d.input.identityActorId,
-        identityId: d.input.identityId
-      }
-    });
-
     return await withTransaction(async db => {
+      let newId = getId('integrationInstance');
       let integrationInstance = await db.integrationInstance.create({
-        data: {
-          ...getId('integrationInstance'),
-          status: 'draft',
-          name: d.input.name.trim(),
-          description: d.input.description?.trim(),
-          metadata: d.input.metadata,
-          privateMetadata: d.input.privateMetadata,
-          integrationOid: d.integration.oid,
-          tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
-          environmentOid: d.environment.oid
-        },
+        data: this.integrationInstanceCreateData({
+          tenant: d.tenant,
+          solution: d.solution,
+          environment: d.environment,
+          integration: d.integration,
+          id: newId,
+          input: d.input
+        }),
         include: integrationInstanceInclude
       });
 
-      let { actor, identity } = await resolveIntegrationIdentity({
+      integrationInstance = await this.applyIdentityAndProviders({
+        db,
         tenant: d.tenant,
         solution: d.solution,
         environment: d.environment,
         integrationInstance,
-        input: mergedIdentityInput
+        input: d.input
       });
-      integrationInstance = await db.integrationInstance.update({
-        where: { oid: integrationInstance.oid },
-        data: {
-          identityActorOid: actor?.oid ?? null,
-          identityOid: identity?.oid ?? null
-        },
-        include: integrationInstanceInclude
-      });
-
-      if (d.input.providers?.length) {
-        await integrationInstanceProviderService.setIntegrationInstanceProviders({
-          tenant: d.tenant,
-          solution: d.solution,
-          environment: d.environment,
-          integrationInstance,
-          input: d.input.providers
-        });
-
-        integrationInstance = await db.integrationInstance.findUniqueOrThrow({
-          where: { oid: integrationInstance.oid },
-          include: integrationInstanceInclude
-        });
-      }
 
       await addAfterTransactionHook(async () =>
         integrationInstanceCreatedQueue.add({ integrationInstanceId: integrationInstance.id })
       );
+
+      return integrationInstance;
+    });
+  }
+
+  async upsertMagicMcpIntegrationInstance(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    integration: Integration;
+    integrationInstance?: IntegrationInstance | null;
+    input: {
+      name: string;
+      description?: string | null;
+      metadata?: Record<string, any> | null;
+      privateMetadata?: Record<string, any> | null;
+      identityActorId?: string | null;
+      identityId?: string | null;
+    };
+  }) {
+    checkTenant(d, d.integration);
+    checkDeletedRelation(d.integration);
+
+    return await withTransaction(async db => {
+      if (d.integrationInstance) checkTenant(d, d.integrationInstance);
+
+      let newId = getId('integrationInstance');
+      let integrationInstance = d.integrationInstance
+        ? await db.integrationInstance.update({
+            where: {
+              oid: d.integrationInstance.oid,
+              tenantOid: d.tenant.oid,
+              solutionOid: d.solution.oid,
+              environmentOid: d.environment.oid
+            },
+            data: this.integrationInstanceUpdateData({
+              integrationInstance: d.integrationInstance,
+              integration: d.integration,
+              input: d.input,
+              isMagicMcpBacking: true
+            }),
+            include: integrationInstanceInclude
+          })
+        : await db.integrationInstance.create({
+            data: this.integrationInstanceCreateData({
+              tenant: d.tenant,
+              solution: d.solution,
+              environment: d.environment,
+              integration: d.integration,
+              id: newId,
+              input: d.input,
+              isMagicMcpBacking: true
+            }),
+            include: integrationInstanceInclude
+          });
+      let isNew = integrationInstance.id === newId.id;
+
+      integrationInstance = await this.applyIdentityAndProviders({
+        db,
+        tenant: d.tenant,
+        solution: d.solution,
+        environment: d.environment,
+        integrationInstance,
+        input: d.input,
+        current: integrationInstance,
+      });
+
+      await addAfterTransactionHook(async () => {
+        if (isNew) {
+          await integrationInstanceCreatedQueue.add({
+            integrationInstanceId: integrationInstance.id
+          });
+        } else {
+          await integrationInstanceUpdatedQueue.add({
+            integrationInstanceId: integrationInstance.id
+          });
+        }
+      });
 
       return integrationInstance;
     });
@@ -564,9 +719,18 @@ class integrationInstanceServiceImpl {
     solution: Solution;
     environment: Environment;
     integrationInstance: IntegrationInstance;
+    _canModifyMagicMcpBacking?: boolean;
   }) {
     checkTenant(d, d.integrationInstance);
     checkDeletedEdit(d.integrationInstance, 'archive');
+    if (d.integrationInstance.isMagicMcpBacking && !d._canModifyMagicMcpBacking) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Magic MCP backed integration instances cannot be deleted directly.',
+          code: 'magic_mcp_backing_integration_instance_delete_blocked'
+        })
+      );
+    }
 
     return await withTransaction(async db => {
       let integrationInstance = await db.integrationInstance.update({

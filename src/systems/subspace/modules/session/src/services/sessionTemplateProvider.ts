@@ -2,13 +2,19 @@ import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
+  addAfterTransactionHook,
   db,
   type Environment,
+  getId,
+  type IntegrationInstance,
+  type IntegrationInstanceGroup,
+  Prisma,
   type SessionTemplate,
   type SessionTemplateProvider,
   type SessionTemplateProviderStatus,
   type Solution,
-  type Tenant
+  type Tenant,
+  withTransaction
 } from '@metorial-subspace/db';
 import {
   checkDeletedEdit,
@@ -30,7 +36,11 @@ import {
   type DateFilter
 } from '@metorial-subspace/list-utils';
 import { checkTenant } from '@metorial-subspace/module-tenant';
-import { sessionTemplateSyncHashQueue } from '../queues/lifecycle/sessionTemplateProvider';
+import {
+  sessionTemplateProviderCreatedQueue,
+  sessionTemplateSyncHashQueue,
+  syncSessionTemplateHash
+} from '../queues/lifecycle/sessionTemplateProvider';
 import {
   sessionProviderInputService,
   type SessionProviderInput,
@@ -52,6 +62,8 @@ let include = {
   }
 };
 export let sessionTemplateProviderInclude = include;
+
+let allowAllToolFilter = (): PrismaJson.ToolFilter => ({ type: 'v1.allow_all' });
 
 let assertCanWriteSessionTemplateProvider = (
   provider: Pick<SessionTemplateProvider, 'integrationInstanceProviderOid'> & {
@@ -273,6 +285,226 @@ class sessionTemplateProviderServiceImpl {
       },
       include
     });
+  }
+
+  async syncForIntegrationInstance(d: {
+    sessionTemplate: SessionTemplate;
+    integrationInstance: IntegrationInstance;
+  }) {
+    await withTransaction(async tx => {
+      let instanceProviders = await tx.integrationInstanceProvider.findMany({
+        where: {
+          integrationInstanceOid: d.integrationInstance.oid,
+          status: 'active',
+          isParentDeleted: false,
+          currentVersion: { configOid: { not: null } }
+        },
+        include: {
+          integration: true,
+          integrationProvider: true,
+          currentVersion: {
+            include: {
+              integrationProviderVersion: true
+            }
+          }
+        }
+      });
+
+      let activeProviderOids = instanceProviders.map(provider => provider.oid);
+      let createdIds: string[] = [];
+
+      let existingProviders = await tx.sessionTemplateProvider.findMany({
+        where: {
+          sessionTemplateOid: d.sessionTemplate.oid,
+          integrationInstanceProviderOid: { in: activeProviderOids }
+        },
+        select: {
+          id: true,
+          integrationInstanceProviderOid: true
+        }
+      });
+      let existingByProviderOid = new Map(
+        existingProviders.map(provider => [
+          provider.integrationInstanceProviderOid!.toString(),
+          provider
+        ])
+      );
+
+      for (let provider of instanceProviders) {
+        let currentVersion = provider.currentVersion!;
+        let data = {
+          status: 'active' as const,
+          toolFilter:
+            (currentVersion.toolFilter as PrismaJson.ToolFilter | null) ?? allowAllToolFilter(),
+          sessionTemplateOid: d.sessionTemplate.oid,
+          providerOid: provider.integrationProvider.providerOid,
+          deploymentOid: currentVersion.integrationProviderVersion.deploymentOid,
+          configOid: currentVersion.configOid!,
+          authConfigOid: currentVersion.authConfigOid,
+          integrationInstanceProviderOid: provider.oid,
+          tenantOid: provider.tenantOid,
+          solutionOid: provider.solutionOid,
+          environmentOid: provider.environmentOid
+        };
+
+        let createdBefore = existingByProviderOid.has(provider.oid.toString());
+        let synced = await tx.sessionTemplateProvider.upsert({
+          where: {
+            sessionTemplateOid_integrationInstanceProviderOid: {
+              sessionTemplateOid: d.sessionTemplate.oid,
+              integrationInstanceProviderOid: provider.oid
+            }
+          },
+          create: {
+            ...getId('sessionTemplateProvider'),
+            ...data
+          },
+          update: data,
+          select: { id: true }
+        });
+        if (!createdBefore) createdIds.push(synced.id);
+      }
+
+      await tx.sessionTemplateProvider.updateMany({
+        where: {
+          sessionTemplateOid: d.sessionTemplate.oid,
+          status: 'active',
+          OR: [
+            { integrationInstanceProviderOid: null },
+            {
+              integrationInstanceProviderOid: {
+                notIn: activeProviderOids
+              }
+            }
+          ]
+        },
+        data: { status: 'archived' }
+      });
+
+      await addAfterTransactionHook(async () => {
+        if (createdIds.length) {
+          await sessionTemplateProviderCreatedQueue.addMany(
+            createdIds.map(sessionTemplateProviderId => ({ sessionTemplateProviderId }))
+          );
+        }
+      });
+    });
+  }
+
+  async syncForIntegrationInstanceGroup(d: {
+    sessionTemplate: SessionTemplate;
+    integrationInstanceGroup: IntegrationInstanceGroup;
+  }) {
+    await withTransaction(async tx => {
+      let groupProviders = await tx.integrationInstanceGroupProvider.findMany({
+        where: {
+          integrationInstanceGroupOid: d.integrationInstanceGroup.oid,
+          status: 'active',
+          isParentDeleted: false,
+          integrationInstanceProvider: {
+            status: 'active',
+            isParentDeleted: false,
+            currentVersion: { configOid: { not: null } }
+          }
+        },
+        include: {
+          integrationProvider: true,
+          integrationInstanceProvider: {
+            include: {
+              currentVersion: {
+                include: {
+                  integrationProviderVersion: true
+                }
+              }
+            }
+          }
+        }
+      });
+
+      let activeProviderOids = groupProviders.map(provider => provider.oid);
+      let createdIds: string[] = [];
+
+      let existingProviders = await tx.sessionTemplateProvider.findMany({
+        where: {
+          sessionTemplateOid: d.sessionTemplate.oid,
+          integrationInstanceGroupProviderOid: { in: activeProviderOids }
+        },
+        select: {
+          id: true,
+          integrationInstanceGroupProviderOid: true
+        }
+      });
+      let existingByProviderOid = new Map(
+        existingProviders.map(provider => [
+          provider.integrationInstanceGroupProviderOid!.toString(),
+          provider
+        ])
+      );
+
+      for (let provider of groupProviders) {
+        let currentVersion = provider.integrationInstanceProvider.currentVersion!;
+        let data = {
+          status: 'active' as const,
+          toolFilter:
+            (provider.toolFilter as PrismaJson.ToolFilter | null) ?? allowAllToolFilter(),
+          sessionTemplateOid: d.sessionTemplate.oid,
+          providerOid: provider.integrationProvider.providerOid,
+          deploymentOid: currentVersion.integrationProviderVersion.deploymentOid,
+          configOid: currentVersion.configOid!,
+          authConfigOid: currentVersion.authConfigOid,
+          integrationInstanceProviderOid: provider.integrationInstanceProviderOid,
+          integrationInstanceGroupProviderOid: provider.oid,
+          tenantOid: provider.tenantOid,
+          solutionOid: provider.solutionOid,
+          environmentOid: provider.environmentOid
+        };
+
+        let createdBefore = existingByProviderOid.has(provider.oid.toString());
+        let synced = await tx.sessionTemplateProvider.upsert({
+          where: {
+            sessionTemplateOid_integrationInstanceGroupProviderOid: {
+              sessionTemplateOid: d.sessionTemplate.oid,
+              integrationInstanceGroupProviderOid: provider.oid
+            }
+          },
+          create: {
+            ...getId('sessionTemplateProvider'),
+            ...data
+          },
+          update: data,
+          select: { id: true }
+        });
+        if (!createdBefore) createdIds.push(synced.id);
+      }
+
+      await tx.sessionTemplateProvider.updateMany({
+        where: {
+          sessionTemplateOid: d.sessionTemplate.oid,
+          status: 'active',
+          OR: [
+            { integrationInstanceGroupProviderOid: null },
+            {
+              integrationInstanceGroupProviderOid: {
+                notIn: activeProviderOids
+              }
+            }
+          ]
+        },
+        data: { status: 'archived' }
+      });
+
+      await addAfterTransactionHook(async () => {
+        if (createdIds.length) {
+          await sessionTemplateProviderCreatedQueue.addMany(
+            createdIds.map(sessionTemplateProviderId => ({ sessionTemplateProviderId }))
+          );
+        }
+      });
+    });
+  }
+
+  async syncHash(d: { sessionTemplateId: string }) {
+    return await syncSessionTemplateHash(d);
   }
 
   async createSessionTemplateProvider(d: {

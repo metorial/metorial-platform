@@ -209,6 +209,57 @@ let validateMaterialInput = async (d: {
 };
 
 class integrationProviderServiceImpl {
+  private integrationProviderCreateData(d: {
+    context: {
+      tenant: Tenant;
+      solution: Solution;
+      environment: Environment;
+      integration: Pick<Integration, 'oid'>;
+    };
+    id: ReturnType<typeof getId>;
+    provider: Pick<Provider, 'oid' | 'name'>;
+    input: {
+      name?: string | null;
+      description?: string | null;
+      metadata?: unknown;
+    };
+    toolFilter: PrismaJson.ToolFilter;
+  }) {
+    return {
+      ...d.id,
+      status: 'active' as const,
+      currentVersionIndex: 0,
+      name: d.input.name?.trim() || d.provider.name,
+      description: d.input.description?.trim() || null,
+      metadata: d.input.metadata,
+      toolFilter: d.toolFilter,
+      integrationOid: d.context.integration.oid,
+      providerOid: d.provider.oid,
+      tenantOid: d.context.tenant.oid,
+      solutionOid: d.context.solution.oid,
+      environmentOid: d.context.environment.oid
+    };
+  }
+
+  private integrationProviderUpdateData(d: {
+    provider: Pick<Provider, 'name'>;
+    input: {
+      name?: string | null;
+      description?: string | null;
+      metadata?: unknown;
+    };
+    toolFilter: PrismaJson.ToolFilter;
+  }) {
+    return {
+      status: 'active' as const,
+      archivedAt: null,
+      name: d.input.name?.trim() || d.provider.name,
+      description: d.input.description?.trim() || null,
+      metadata: d.input.metadata,
+      toolFilter: d.toolFilter
+    };
+  }
+
   async listIntegrationProviders(d: {
     tenant: Tenant;
     solution: Solution;
@@ -252,6 +303,7 @@ class integrationProviderServiceImpl {
               tenantOid: d.tenant.oid,
               solutionOid: d.solution.oid,
               environmentOid: d.environment.oid,
+              integration: { isMagicMcpBacking: false },
 
               ...normalizeStatusForList(d).noParent,
 
@@ -373,33 +425,24 @@ class integrationProviderServiceImpl {
         );
       }
 
+      let newId = getId('integrationProvider');
       let integrationProvider = existing
         ? await db.integrationProvider.update({
             where: { oid: existing.oid },
-            data: {
-              status: 'active',
-              archivedAt: null,
-              name: d.input.name?.trim() || provider.name,
-              description: d.input.description?.trim(),
-              metadata: d.input.metadata,
+            data: this.integrationProviderUpdateData({
+              provider,
+              input: d.input,
               toolFilter
-            }
+            })
           })
         : await db.integrationProvider.create({
-            data: {
-              ...getId('integrationProvider'),
-              status: 'active',
-              currentVersionIndex: 0,
-              name: d.input.name?.trim() || provider.name,
-              description: d.input.description?.trim(),
-              metadata: d.input.metadata,
-              toolFilter,
-              integrationOid: d.integration.oid,
-              providerOid: provider.oid,
-              tenantOid: d.tenant.oid,
-              solutionOid: d.solution.oid,
-              environmentOid: d.environment.oid
-            }
+            data: this.integrationProviderCreateData({
+              context: d,
+              id: newId,
+              provider,
+              input: d.input,
+              toolFilter
+            })
           });
 
       await createIntegrationProviderVersion({
@@ -422,6 +465,111 @@ class integrationProviderServiceImpl {
       await addAfterTransactionHook(async () =>
         integrationProviderCreatedQueue.add({ integrationProviderId: res.id })
       );
+
+      return res;
+    });
+  }
+
+  async ensureIntegrationProviderForDeployment(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    integration: Pick<Integration, 'oid' | 'tenantOid' | 'solutionOid' | 'environmentOid'>;
+    input: {
+      providerDeploymentId: string;
+      toolFilters?: PrismaJson.ToolFilter | null;
+    };
+  }) {
+    checkTenant(d, d.integration);
+
+    let deployment = await providerDeploymentService.getProviderDeploymentById({
+      tenant: d.tenant,
+      solution: d.solution,
+      environment: d.environment,
+      providerDeploymentId: d.input.providerDeploymentId
+    });
+    let toolFilter = normalizeIntegrationProviderToolFilter(d.input.toolFilters);
+
+    return await withTransaction(async db => {
+      let existing = await db.integrationProvider.findUnique({
+        where: {
+          integrationOid_providerOid: {
+            integrationOid: d.integration.oid,
+            providerOid: deployment.providerOid
+          }
+        },
+        include: { currentVersion: true }
+      });
+
+      let newId = getId('integrationProvider');
+      let integrationProvider = await db.integrationProvider.upsert({
+        where: {
+          integrationOid_providerOid: {
+            integrationOid: d.integration.oid,
+            providerOid: deployment.providerOid
+          }
+        },
+        create: this.integrationProviderCreateData({
+          context: d,
+          id: newId,
+          provider: deployment.provider,
+          input: {
+            description: deployment.description ?? deployment.provider.description,
+            metadata: deployment.metadata
+          },
+          toolFilter
+        }),
+        update: this.integrationProviderUpdateData({
+          provider: deployment.provider,
+          input: {
+            description: deployment.description ?? deployment.provider.description,
+            metadata: deployment.metadata
+          },
+          toolFilter
+        })
+      });
+      let isNew = integrationProvider.id === newId.id;
+
+      let materialInput = {
+        deploymentOid: deployment.oid,
+        authMethodOid: existing?.currentVersion?.authMethodOid ?? null,
+        authCredentialsOid: existing?.currentVersion?.authCredentialsOid ?? null,
+        configOid: existing?.currentVersion?.configOid ?? null,
+        toolFilter
+      };
+      let materialChanged =
+        !existing?.currentVersion ||
+        hasMaterialIntegrationProviderChange({
+          currentVersion: existing.currentVersion,
+          input: materialInput
+        });
+
+      if (isNew || materialChanged) {
+        await createIntegrationProviderVersion({
+          integrationProviderOid: integrationProvider.oid,
+          status: 'active',
+          deploymentOid: deployment.oid,
+          authMethodOid: existing?.currentVersion?.authMethodOid,
+          authCredentialsOid: existing?.currentVersion?.authCredentialsOid,
+          configOid: existing?.currentVersion?.configOid,
+          toolFilter
+        });
+
+        await createIntegrationVersion({ integrationOid: d.integration.oid });
+      }
+
+      let res = await db.integrationProvider.findUniqueOrThrow({
+        where: { oid: integrationProvider.oid },
+        include: integrationProviderInclude
+      });
+
+      await addAfterTransactionHook(async () => {
+        if (isNew) {
+          await integrationProviderCreatedQueue.add({ integrationProviderId: res.id });
+        } else {
+          await integrationProviderUpdatedQueue.add({ integrationProviderId: res.id });
+        }
+      });
 
       return res;
     });

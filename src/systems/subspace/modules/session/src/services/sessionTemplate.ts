@@ -6,6 +6,9 @@ import {
   db,
   type Environment,
   getId,
+  type IntegrationInstance,
+  type IntegrationInstanceGroup,
+  Prisma,
   type SessionTemplate,
   type SessionTemplateStatus,
   type Solution,
@@ -266,6 +269,58 @@ class sessionTemplateServiceImpl {
         });
 
       return template;
+    });
+  }
+
+  async upsertInternalLinkedSessionTemplate(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    sessionTemplate?: SessionTemplate | null;
+    input: {
+      name?: string | null;
+      description?: string | null;
+      metadata?: Record<string, any> | null;
+      privateMetadata?: Record<string, any> | null;
+      integrationInstance?: IntegrationInstance | null;
+      integrationInstanceGroup?: IntegrationInstanceGroup | null;
+    };
+  }) {
+    return withTransaction(async db => {
+      let data = {
+        status: 'active' as const,
+        name: d.input.name?.trim() || undefined,
+        description: d.input.description?.trim() || null,
+        metadata: d.input.metadata ?? Prisma.JsonNull,
+        privateMetadata: d.input.privateMetadata ?? Prisma.JsonNull,
+        isInternal: true,
+        integrationInstanceOid: d.input.integrationInstance?.oid ?? null,
+        integrationInstanceGroupOid: d.input.integrationInstanceGroup?.oid ?? null
+      };
+
+      if (d.sessionTemplate) {
+        return await db.sessionTemplate.update({
+          where: {
+            oid: d.sessionTemplate.oid,
+            tenantOid: d.tenant.oid,
+            solutionOid: d.solution.oid,
+            environmentOid: d.environment.oid
+          },
+          data,
+          include
+        });
+      }
+
+      return await db.sessionTemplate.create({
+        data: {
+          ...getId('sessionTemplate'),
+          ...data,
+          tenantOid: d.tenant.oid,
+          solutionOid: d.solution.oid,
+          environmentOid: d.environment.oid
+        },
+        include
+      });
     });
   }
 

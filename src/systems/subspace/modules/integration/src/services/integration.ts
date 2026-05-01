@@ -1,4 +1,4 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { generatePlainId } from '@lowerdeck/id';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
@@ -53,13 +53,68 @@ export let integrationInclude = {
         include: integrationProviderVersionInclude
       }
     }
-  }
+  },
+  providerTemplateBacking: true,
+  magicMcpServerBacking: true
 };
 
 let getSlug = (input: { name: string }) =>
   `${slugify(input.name)}-${generatePlainId(7).toLowerCase()}`.toLowerCase();
 
+type IntegrationWriteInput = {
+  name: string;
+  description?: string | null;
+  metadata?: Record<string, any> | null;
+  privateMetadata?: Record<string, any> | null;
+  canAttachCustomToolFilters?: boolean;
+  canAttachCustomProviderConfig?: boolean;
+  canOverrideToolFilters?: boolean;
+};
+
 class integrationServiceImpl {
+  private integrationCreateData(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    id: ReturnType<typeof getId>;
+    slug: string;
+    input: IntegrationWriteInput;
+    isMagicMcpBacking?: boolean;
+  }) {
+    return {
+      ...d.id,
+      status: 'active' as const,
+      isMagicMcpBacking: !!d.isMagicMcpBacking,
+      slug: d.slug,
+      name: d.input.name.trim(),
+      description: d.input.description?.trim() || null,
+      metadata: d.input.metadata,
+      privateMetadata: d.input.privateMetadata,
+      canAttachCustomToolFilters: d.input.canAttachCustomToolFilters ?? true,
+      canAttachCustomProviderConfig: d.input.canAttachCustomProviderConfig ?? false,
+      canOverrideToolFilters: d.input.canOverrideToolFilters ?? false,
+      currentVersionIndex: 0,
+      tenantOid: d.tenant.oid,
+      solutionOid: d.solution.oid,
+      environmentOid: d.environment.oid
+    };
+  }
+
+  private integrationUpdateData(input: IntegrationWriteInput & { isMagicMcpBacking?: boolean }) {
+    return {
+      status: 'active' as const,
+      archivedAt: null,
+      isMagicMcpBacking: input.isMagicMcpBacking,
+      name: input.name.trim(),
+      description: input.description?.trim() || null,
+      metadata: input.metadata,
+      privateMetadata: input.privateMetadata,
+      canAttachCustomToolFilters: input.canAttachCustomToolFilters,
+      canAttachCustomProviderConfig: input.canAttachCustomProviderConfig,
+      canOverrideToolFilters: input.canOverrideToolFilters
+    };
+  }
+
   async listIntegrations(d: {
     tenant: Tenant;
     solution: Solution;
@@ -100,6 +155,7 @@ class integrationServiceImpl {
               tenantOid: d.tenant.oid,
               solutionOid: d.solution.oid,
               environmentOid: d.environment.oid,
+              isMagicMcpBacking: false,
 
               ...normalizeStatusForList(d).noParent,
 
@@ -159,23 +215,16 @@ class integrationServiceImpl {
     };
   }) {
     return await withTransaction(async db => {
+      let newId = getId('integration');
       let integration = await db.integration.create({
-        data: {
-          ...getId('integration'),
-          status: 'active',
+        data: this.integrationCreateData({
+          tenant: d.tenant,
+          solution: d.solution,
+          environment: d.environment,
+          id: newId,
           slug: getSlug(d.input),
-          name: d.input.name.trim(),
-          description: d.input.description?.trim(),
-          metadata: d.input.metadata,
-          privateMetadata: d.input.privateMetadata,
-          canAttachCustomToolFilters: d.input.canAttachCustomToolFilters ?? true,
-          canAttachCustomProviderConfig: d.input.canAttachCustomProviderConfig ?? false,
-          canOverrideToolFilters: d.input.canOverrideToolFilters ?? false,
-          currentVersionIndex: 0,
-          tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
-          environmentOid: d.environment.oid
-        }
+          input: d.input
+        })
       });
 
       await createIntegrationVersion({ integrationOid: integration.oid });
@@ -190,6 +239,78 @@ class integrationServiceImpl {
       );
 
       return res;
+    });
+  }
+
+  async upsertMagicMcpIntegration(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    integration?: Integration | null;
+    input: {
+      slug: string;
+      name: string;
+      description?: string | null;
+      metadata?: Record<string, any> | null;
+      privateMetadata?: Record<string, any> | null;
+      canAttachCustomToolFilters?: boolean;
+      canAttachCustomProviderConfig?: boolean;
+      canOverrideToolFilters?: boolean;
+    };
+  }) {
+    return await withTransaction(async db => {
+      if (d.integration) {
+        checkTenant(d, d.integration);
+
+        let integration = await db.integration.update({
+          where: {
+            oid: d.integration.oid,
+            tenantOid: d.tenant.oid,
+            solutionOid: d.solution.oid,
+            environmentOid: d.environment.oid
+          },
+          data: this.integrationUpdateData({ ...d.input, isMagicMcpBacking: true }),
+          include: integrationInclude
+        });
+
+        await addAfterTransactionHook(async () =>
+          integrationUpdatedQueue.add({ integrationId: integration.id })
+        );
+
+        return integration;
+      }
+
+      let newId = getId('integration');
+      let integration = await db.integration.upsert({
+        where: { slug: d.input.slug },
+        create: this.integrationCreateData({
+          tenant: d.tenant,
+          solution: d.solution,
+          environment: d.environment,
+          id: newId,
+          slug: d.input.slug,
+          input: d.input,
+          isMagicMcpBacking: true
+        }),
+        update: this.integrationUpdateData({ ...d.input, isMagicMcpBacking: true }),
+        include: integrationInclude
+      });
+      let isNew = integration.id === newId.id;
+
+      if (isNew || !integration.currentVersionOid) {
+        await createIntegrationVersion({ integrationOid: integration.oid });
+        integration = await db.integration.findUniqueOrThrow({
+          where: { oid: integration.oid },
+          include: integrationInclude
+        });
+      }
+
+      await addAfterTransactionHook(async () => {
+        if (isNew) await integrationCreatedQueue.add({ integrationId: integration.id });
+        else await integrationUpdatedQueue.add({ integrationId: integration.id });
+      });
+
+      return integration;
     });
   }
 
@@ -247,9 +368,18 @@ class integrationServiceImpl {
     solution: Solution;
     environment: Environment;
     integration: Integration;
+    _canModifyMagicMcpBacking?: boolean;
   }) {
     checkTenant(d, d.integration);
     checkDeletedEdit(d.integration, 'archive');
+    if (d.integration.isMagicMcpBacking && !d._canModifyMagicMcpBacking) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Magic MCP backed integrations cannot be deleted directly.',
+          code: 'magic_mcp_backing_integration_delete_blocked'
+        })
+      );
+    }
 
     return await withTransaction(async db => {
       let integration = await db.integration.update({

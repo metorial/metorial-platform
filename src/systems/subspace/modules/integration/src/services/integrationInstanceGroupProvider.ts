@@ -4,11 +4,11 @@ import { Service } from '@lowerdeck/service';
 import {
   addAfterTransactionHook,
   db,
+  type Environment,
+  getId,
   type IntegrationInstanceGroup,
   type IntegrationInstanceGroupProvider,
   type IntegrationInstanceGroupProviderStatus,
-  type Environment,
-  getId,
   Prisma,
   type Solution,
   type Tenant,
@@ -98,6 +98,7 @@ class integrationInstanceGroupProviderServiceImpl {
               tenantOid: d.tenant.oid,
               solutionOid: d.solution.oid,
               environmentOid: d.environment.oid,
+              integrationInstanceGroup: { isMagicMcpBacking: false },
 
               ...normalizeStatusForList(d).hasParent,
 
@@ -198,9 +199,19 @@ class integrationInstanceGroupProviderServiceImpl {
     environment: Environment;
     integrationInstanceGroup: IntegrationInstanceGroup;
     input: SetIntegrationInstanceGroupProviderInput[];
+    _allowMagicMcpBacking?: boolean;
   }) {
     checkTenant(d, d.integrationInstanceGroup);
     checkDeletedRelation(d.integrationInstanceGroup);
+    if (d.integrationInstanceGroup.isMagicMcpBacking && !d._allowMagicMcpBacking) {
+      throw new ServiceError(
+        badRequestError({
+          message:
+            'Magic MCP backed integration instance group providers cannot be updated directly.',
+          code: 'magic_mcp_backing_integration_group_provider_update_blocked'
+        })
+      );
+    }
 
     if (d.input.length === 0) return [];
 
@@ -309,29 +320,28 @@ class integrationInstanceGroupProviderServiceImpl {
       let providerOids: bigint[] = [];
 
       for (let [idx, sourceProvider] of orderedSourceProviders.entries()) {
-        let existingSource = existingSourcesByIntegrationInstanceOid.get(
-          sourceProvider.integrationInstanceOid
-        );
-        let source = existingSource
-          ? await db.integrationInstanceGroupSource.update({
-              where: { oid: existingSource.oid },
-              data: {
-                status: 'active',
-                archivedAt: null,
-                isParentDeleted: false
-              }
-            })
-          : await db.integrationInstanceGroupSource.create({
-              data: {
-                ...getId('integrationInstanceGroupSource'),
-                status: 'active',
-                integrationInstanceGroupOid: d.integrationInstanceGroup.oid,
-                integrationInstanceOid: sourceProvider.integrationInstanceOid,
-                tenantOid: d.tenant.oid,
-                solutionOid: d.solution.oid,
-                environmentOid: d.environment.oid
-              }
-            });
+        let source = await db.integrationInstanceGroupSource.upsert({
+          where: {
+            integrationInstanceGroupOid_integrationInstanceOid: {
+              integrationInstanceGroupOid: d.integrationInstanceGroup.oid,
+              integrationInstanceOid: sourceProvider.integrationInstanceOid
+            }
+          },
+          create: {
+            ...getId('integrationInstanceGroupSource'),
+            status: 'active',
+            integrationInstanceGroupOid: d.integrationInstanceGroup.oid,
+            integrationInstanceOid: sourceProvider.integrationInstanceOid,
+            tenantOid: d.tenant.oid,
+            solutionOid: d.solution.oid,
+            environmentOid: d.environment.oid
+          },
+          update: {
+            status: 'active',
+            archivedAt: null,
+            isParentDeleted: false
+          }
+        });
         existingSourcesByIntegrationInstanceOid.set(
           sourceProvider.integrationInstanceOid,
           source
@@ -354,46 +364,48 @@ class integrationInstanceGroupProviderServiceImpl {
               : null
             : stripToolFilterOverrideFlag(inputToolFilter!);
 
-        let groupProvider = existing
-          ? await db.integrationInstanceGroupProvider.update({
-              where: { oid: existing.oid },
-              data: {
-                status: 'active',
-                archivedAt: null,
-                isParentDeleted: false,
-                name: sourceProvider.name,
-                description: sourceProvider.description,
-                metadata: sourceProvider.metadata,
-                privateMetadata: sourceProvider.privateMetadata,
-                integrationInstanceGroupSourceOid: source.oid,
-                integrationOid: sourceProvider.integrationOid,
-                integrationInstanceOid: sourceProvider.integrationInstanceOid,
-                integrationProviderOid: sourceProvider.integrationProviderOid,
-                toolFilter: toolFilter ?? Prisma.JsonNull,
-                isOverrideToolFilter
-              }
-            })
-          : await db.integrationInstanceGroupProvider.create({
-              data: {
-                ...getId('integrationInstanceGroupProvider'),
-                status: 'active',
-                name: sourceProvider.name,
-                description: sourceProvider.description,
-                metadata: sourceProvider.metadata,
-                privateMetadata: sourceProvider.privateMetadata,
-                integrationInstanceGroupOid: d.integrationInstanceGroup.oid,
-                integrationInstanceGroupSourceOid: source.oid,
-                integrationOid: sourceProvider.integrationOid,
-                integrationInstanceOid: sourceProvider.integrationInstanceOid,
-                integrationInstanceProviderOid: sourceProvider.oid,
-                integrationProviderOid: sourceProvider.integrationProviderOid,
-                toolFilter: toolFilter ?? Prisma.JsonNull,
-                isOverrideToolFilter,
-                tenantOid: d.tenant.oid,
-                solutionOid: d.solution.oid,
-                environmentOid: d.environment.oid
-              }
-            });
+        let groupProvider = await db.integrationInstanceGroupProvider.upsert({
+          where: {
+            integrationInstanceGroupOid_integrationInstanceProviderOid: {
+              integrationInstanceGroupOid: d.integrationInstanceGroup.oid,
+              integrationInstanceProviderOid: sourceProvider.oid
+            }
+          },
+          create: {
+            ...getId('integrationInstanceGroupProvider'),
+            status: 'active',
+            name: sourceProvider.name,
+            description: sourceProvider.description,
+            metadata: sourceProvider.metadata,
+            privateMetadata: sourceProvider.privateMetadata,
+            integrationInstanceGroupOid: d.integrationInstanceGroup.oid,
+            integrationInstanceGroupSourceOid: source.oid,
+            integrationOid: sourceProvider.integrationOid,
+            integrationInstanceOid: sourceProvider.integrationInstanceOid,
+            integrationInstanceProviderOid: sourceProvider.oid,
+            integrationProviderOid: sourceProvider.integrationProviderOid,
+            toolFilter: toolFilter ?? Prisma.JsonNull,
+            isOverrideToolFilter,
+            tenantOid: d.tenant.oid,
+            solutionOid: d.solution.oid,
+            environmentOid: d.environment.oid
+          },
+          update: {
+            status: 'active',
+            archivedAt: null,
+            isParentDeleted: false,
+            name: sourceProvider.name,
+            description: sourceProvider.description,
+            metadata: sourceProvider.metadata,
+            privateMetadata: sourceProvider.privateMetadata,
+            integrationInstanceGroupSourceOid: source.oid,
+            integrationOid: sourceProvider.integrationOid,
+            integrationInstanceOid: sourceProvider.integrationInstanceOid,
+            integrationProviderOid: sourceProvider.integrationProviderOid,
+            toolFilter: toolFilter ?? Prisma.JsonNull,
+            isOverrideToolFilter
+          }
+        });
 
         providerOids.push(groupProvider.oid);
       }
@@ -447,6 +459,42 @@ class integrationInstanceGroupProviderServiceImpl {
     return provider;
   }
 
+  async syncMagicMcpIntegrationInstanceGroupProviders(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    integrationInstanceGroup: IntegrationInstanceGroup;
+    input: SetIntegrationInstanceGroupProviderInput[];
+  }) {
+    let providers = await this.setIntegrationInstanceGroupProviders({
+      ...d,
+      _allowMagicMcpBacking: true
+    });
+
+    await withTransaction(async db => {
+      await db.integrationInstanceGroupProvider.updateMany({
+        where: {
+          integrationInstanceGroupOid: d.integrationInstanceGroup.oid,
+          integrationInstanceProviderOid: {
+            notIn: providers.map(provider => provider.integrationInstanceProviderOid)
+          },
+          status: 'active'
+        },
+        data: {
+          status: 'archived',
+          archivedAt: new Date()
+        }
+      });
+
+      await db.integrationInstanceGroup.update({
+        where: { oid: d.integrationInstanceGroup.oid },
+        data: { status: d.input.length ? 'active' : 'draft' }
+      });
+    });
+
+    return providers;
+  }
+
   async archiveIntegrationInstanceGroupProvider(d: {
     tenant: Tenant;
     solution: Solution;
@@ -455,6 +503,19 @@ class integrationInstanceGroupProviderServiceImpl {
   }) {
     checkTenant(d, d.integrationInstanceGroupProvider);
     checkDeletedEdit(d.integrationInstanceGroupProvider, 'archive');
+    let integrationInstanceGroup = await db.integrationInstanceGroup.findUnique({
+      where: { oid: d.integrationInstanceGroupProvider.integrationInstanceGroupOid },
+      select: { isMagicMcpBacking: true }
+    });
+    if (integrationInstanceGroup?.isMagicMcpBacking) {
+      throw new ServiceError(
+        badRequestError({
+          message:
+            'Magic MCP backed integration instance group providers cannot be deleted directly.',
+          code: 'magic_mcp_backing_integration_group_provider_delete_blocked'
+        })
+      );
+    }
 
     return await withTransaction(async db => {
       let provider = await db.integrationInstanceGroupProvider.update({
