@@ -1,7 +1,7 @@
 let isObject = (value: unknown): value is Record<string, any> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
-export let getToolCallAttachmentPath = (urlKey: string) => `/tool-call-artifacts/${urlKey}`;
+export let getToolCallAttachmentPath = (urlKey: string) => `/tool-call-attachments/${urlKey}`;
 
 export let getToolCallAttachmentPublicUrl = (urlKey: string) => {
   let path = getToolCallAttachmentPath(urlKey);
