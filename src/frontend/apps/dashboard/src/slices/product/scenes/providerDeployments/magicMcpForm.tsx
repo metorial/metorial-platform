@@ -68,6 +68,8 @@ export let MagicMcpServerForm = (
       });
       if (!res) return;
 
+      if (!res.sessionTemplateId) return;
+
       p.close?.();
 
       showAddProviderSidePanel({

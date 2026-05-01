@@ -23,8 +23,8 @@ import {
 } from '../resources';
 
 /**
- * @name Magic MCP Server Providers controller
- * @description Magic MCP server providers define which providers are included in the setup session template backing a magic MCP server.
+ * @name Magic MCP Servers controller
+ * @description Magic MCP servers are stable MCP entrypoints backed by one Subspace session template.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -51,7 +51,7 @@ export class MetorialMagicMcpServersProvidersEndpoint {
 
   /**
    * @name List magic MCP server providers
-   * @description Returns a paginated list of providers configured for a magic MCP server.
+   * @description Returns the backing integration instance providers configured for a magic MCP server.
    *
    * @param `magicMcpServerId` - string
    * @param `query` - DashboardInstanceMagicMcpServersProvidersListQuery
@@ -84,37 +84,8 @@ export class MetorialMagicMcpServersProvidersEndpoint {
   }
 
   /**
-   * @name Get magic MCP server provider
-   * @description Retrieves a specific provider configuration from a magic MCP server.
-   *
-   * @param `magicMcpServerId` - string
-   * @param `magicMcpServerProviderId` - string
-   * @param `opts` - { headers?: Record<string, string> }
-   * @returns DashboardInstanceMagicMcpServersProvidersGetOutput
-   * @see https://metorial.com/api
-   * @see https://metorial.com/docs
-   */
-  get(
-    magicMcpServerId: string,
-    magicMcpServerProviderId: string,
-    opts?: { headers?: Record<string, string> }
-  ): Promise<DashboardInstanceMagicMcpServersProvidersGetOutput> {
-    let path = `magic-mcp-servers/${magicMcpServerId}/providers/${magicMcpServerProviderId}`;
-
-    let request = {
-      path,
-
-      ...(opts?.headers ? { headers: opts.headers } : {})
-    } as any;
-
-    return this._get(request).transform(
-      mapDashboardInstanceMagicMcpServersProvidersGetOutput
-    );
-  }
-
-  /**
    * @name Create magic MCP server provider
-   * @description Adds a new provider configuration to a magic MCP server.
+   * @description Creates a backing integration provider and then sets the corresponding integration instance provider for a magic MCP server.
    *
    * @param `magicMcpServerId` - string
    * @param `body` - DashboardInstanceMagicMcpServersProvidersCreateBody
@@ -145,11 +116,40 @@ export class MetorialMagicMcpServersProvidersEndpoint {
   }
 
   /**
-   * @name Update magic MCP server provider
-   * @description Updates a provider configuration in a magic MCP server.
+   * @name Get magic MCP server provider
+   * @description Retrieves a specific backing integration instance provider for a magic MCP server.
    *
    * @param `magicMcpServerId` - string
-   * @param `magicMcpServerProviderId` - string
+   * @param `integrationInstanceProviderId` - string
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardInstanceMagicMcpServersProvidersGetOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  get(
+    magicMcpServerId: string,
+    integrationInstanceProviderId: string,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceMagicMcpServersProvidersGetOutput> {
+    let path = `magic-mcp-servers/${magicMcpServerId}/providers/${integrationInstanceProviderId}`;
+
+    let request = {
+      path,
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._get(request).transform(
+      mapDashboardInstanceMagicMcpServersProvidersGetOutput
+    );
+  }
+
+  /**
+   * @name Update magic MCP server provider
+   * @description Updates a backing integration provider and then sets the corresponding integration instance provider for a magic MCP server.
+   *
+   * @param `magicMcpServerId` - string
+   * @param `integrationProviderId` - string
    * @param `body` - DashboardInstanceMagicMcpServersProvidersUpdateBody
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceMagicMcpServersProvidersUpdateOutput
@@ -158,11 +158,11 @@ export class MetorialMagicMcpServersProvidersEndpoint {
    */
   update(
     magicMcpServerId: string,
-    magicMcpServerProviderId: string,
+    integrationProviderId: string,
     body: DashboardInstanceMagicMcpServersProvidersUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceMagicMcpServersProvidersUpdateOutput> {
-    let path = `magic-mcp-servers/${magicMcpServerId}/providers/${magicMcpServerProviderId}`;
+    let path = `magic-mcp-servers/${magicMcpServerId}/providers/${integrationProviderId}`;
 
     let request = {
       path,
@@ -180,10 +180,10 @@ export class MetorialMagicMcpServersProvidersEndpoint {
 
   /**
    * @name Delete magic MCP server provider
-   * @description Removes a provider configuration from a magic MCP server.
+   * @description Archives a backing integration instance provider from a magic MCP server and removes the shared integration provider when unused.
    *
    * @param `magicMcpServerId` - string
-   * @param `magicMcpServerProviderId` - string
+   * @param `integrationInstanceProviderId` - string
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceMagicMcpServersProvidersDeleteOutput
    * @see https://metorial.com/api
@@ -191,10 +191,10 @@ export class MetorialMagicMcpServersProvidersEndpoint {
    */
   delete(
     magicMcpServerId: string,
-    magicMcpServerProviderId: string,
+    integrationInstanceProviderId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceMagicMcpServersProvidersDeleteOutput> {
-    let path = `magic-mcp-servers/${magicMcpServerId}/providers/${magicMcpServerProviderId}`;
+    let path = `magic-mcp-servers/${magicMcpServerId}/providers/${integrationInstanceProviderId}`;
 
     let request = {
       path,

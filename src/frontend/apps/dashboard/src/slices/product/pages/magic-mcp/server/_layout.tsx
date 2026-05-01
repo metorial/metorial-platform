@@ -112,7 +112,7 @@ export let MagicMcpServerLayout = () => {
 
                       showAddProviderSidePanel({
                         instanceId: instance.data!.id,
-                        sessionTemplateId: server.data.sessionTemplateId,
+                        sessionTemplateId: server.data.sessionTemplateId!,
                         onComplete: () => providers.refetch()
                       });
                     }}

@@ -6,9 +6,6 @@ export type ManagementInstanceMagicMcpEndpointsAddServersOutput = {
   status: 'active' | 'archived' | 'deleted';
   slug: string;
   url: string;
-  consumerProfileId: string | null;
-  sessionTemplateId: string | null;
-  sessionId: string | null;
   servers: ({
     object: 'magic_mcp.server#preview';
     id: string;
@@ -49,15 +46,6 @@ export let mapManagementInstanceMagicMcpEndpointsAddServersOutput =
     status: mtMap.objectField('status', mtMap.passthrough()),
     slug: mtMap.objectField('slug', mtMap.passthrough()),
     url: mtMap.objectField('url', mtMap.passthrough()),
-    consumerProfileId: mtMap.objectField(
-      'consumer_profile_id',
-      mtMap.passthrough()
-    ),
-    sessionTemplateId: mtMap.objectField(
-      'session_template_id',
-      mtMap.passthrough()
-    ),
-    sessionId: mtMap.objectField('session_id', mtMap.passthrough()),
     servers: mtMap.objectField(
       'servers',
       mtMap.array(
@@ -132,8 +120,7 @@ export let mapManagementInstanceMagicMcpEndpointsAddServersOutput =
   });
 
 export type ManagementInstanceMagicMcpEndpointsAddServersBody = {
-  magicMcpServerIds?: string[] | undefined;
-  servers?:
+  magicMcpServers?:
     | {
         magicMcpServerId: string;
         toolFilters?:
@@ -161,12 +148,8 @@ export type ManagementInstanceMagicMcpEndpointsAddServersBody = {
 
 export let mapManagementInstanceMagicMcpEndpointsAddServersBody =
   mtMap.object<ManagementInstanceMagicMcpEndpointsAddServersBody>({
-    magicMcpServerIds: mtMap.objectField(
-      'magic_mcp_server_ids',
-      mtMap.array(mtMap.passthrough())
-    ),
-    servers: mtMap.objectField(
-      'servers',
+    magicMcpServers: mtMap.objectField(
+      'magic_mcp_servers',
       mtMap.array(
         mtMap.object({
           magicMcpServerId: mtMap.objectField(

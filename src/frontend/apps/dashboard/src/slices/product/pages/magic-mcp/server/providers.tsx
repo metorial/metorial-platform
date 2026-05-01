@@ -18,12 +18,14 @@ export let MagicMcpServerProvidersPage = () => {
   );
   let deployments = useProviderDeployments(instance.data?.id);
 
-  return renderWithLoader({ server, templateProviders, deployments })(({ server }) => (
-    <>
-      <SessionTemplateProvidersManager
-        instanceId={instance.data!.id}
-        sessionTemplateId={server.data.sessionTemplateId}
-      />
-    </>
-  ));
+  return renderWithLoader({ server, templateProviders, deployments })(({ server }) =>
+    server.data.sessionTemplateId ? (
+      <>
+        <SessionTemplateProvidersManager
+          instanceId={instance.data!.id}
+          sessionTemplateId={server.data.sessionTemplateId}
+        />
+      </>
+    ) : null
+  );
 };
