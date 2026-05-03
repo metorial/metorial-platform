@@ -17,6 +17,7 @@ export let renderWithLoader =
             mutators?: {
               [key: string]: (...args: any[]) => Promise<any>;
             };
+            refetch: () => void;
           }
         | boolean;
     }
@@ -36,6 +37,7 @@ export let renderWithLoader =
             input: Loaders[K]['input'];
             mutators: Loaders[K]['mutators'];
             data: NonNullable<Loaders[K]['data']>;
+            refetch: () => void;
           }
         : undefined;
     }) => React.ReactNode
@@ -95,6 +97,7 @@ export let renderWithPagination =
       };
       next: () => void;
       previous: () => void;
+      refetch: () => void;
     }
   >(
     loader: Loader,
@@ -113,6 +116,7 @@ export let renderWithPagination =
       input: Loader['input'];
       mutators: Loader['mutators'];
       data: NonNullable<Loader['data']>;
+      refetch: () => void;
     }) => React.ReactNode
   ) => {
     let initialLoadRef = useRef(true);

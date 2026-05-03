@@ -45,11 +45,11 @@ export let useDeleteProviderAuthCredentials =
 
 export let useProviderAuthCredentials = (
   instanceId: string | null | undefined,
-  query?: DashboardInstanceProviderDeploymentsAuthCredentialsListQuery
+  query?: DashboardInstanceProviderDeploymentsAuthCredentialsListQuery | null
 ) => {
   let data = usePaginator(pagination =>
     providerAuthCredentialsLoader.use(
-      instanceId ? { ...pagination, ...query, instanceId } : null
+      instanceId && query ? { ...pagination, ...query, instanceId } : null
     )
   );
 
