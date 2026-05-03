@@ -25,6 +25,10 @@ import {
   MetorialDashboardInstanceIdentitiesDelegationsEndpoint,
   MetorialDashboardInstanceIdentitiesEndpoint,
   MetorialDashboardInstanceIdentityActorsEndpoint,
+  MetorialDashboardInstanceIntegrationInstanceProvidersEndpoint,
+  MetorialDashboardInstanceIntegrationInstancesEndpoint,
+  MetorialDashboardInstanceIntegrationProvidersEndpoint,
+  MetorialDashboardInstanceIntegrationsEndpoint,
   MetorialDashboardInstanceMagicMcpGroupsEndpoint,
   MetorialDashboardInstanceMagicMcpServersEndpoint,
   MetorialDashboardInstanceMagicMcpServersProvidersEndpoint,
@@ -355,6 +359,16 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
       providers: new MetorialDashboardInstanceSessionTemplatesProvidersEndpoint(manager)
     }
   ),
+
+  integration: Object.assign(new MetorialDashboardInstanceIntegrationsEndpoint(manager), {
+    providers: new MetorialDashboardInstanceIntegrationProvidersEndpoint(manager),
+    instances: Object.assign(
+      new MetorialDashboardInstanceIntegrationInstancesEndpoint(manager),
+      {
+        providers: new MetorialDashboardInstanceIntegrationInstanceProvidersEndpoint(manager)
+      }
+    )
+  }),
 
   scm: {
     installation: new MetorialDashboardInstanceScmInstallationEndpoint(manager),
