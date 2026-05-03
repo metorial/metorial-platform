@@ -82,6 +82,7 @@ let useProviderSetupVisibility = (p: {
   existingConfigId?: string | null;
   allowAuthConfig?: boolean;
   respectIntegrationCustomConfigPolicy?: boolean;
+  isUpdate?: boolean;
 }) => {
   let provider = useProvider(p.instanceId, p.providerId);
   let providerSupportsConfig = provider.data?.type.config.status === 'enabled';
@@ -101,17 +102,28 @@ let useProviderSetupVisibility = (p: {
   let allowToolFilters = p.integration?.configuration?.canOverrideToolFilters ?? true;
   let providerSupportsAuth = provider.data?.type.auth.status === 'enabled';
   let hasConfigInputs = configCapabilities.hasSchemaFields;
+  // Auto-creating an empty config silently is only desirable on initial
+  // creation. In update flows, the user opened the panel deliberately and
+  // should be given a chance to set/clear a config explicitly.
   let shouldAutoCreateEmptyConfig =
+    !p.isUpdate &&
     allowCustomConfigs &&
     providerSupportsConfig &&
     !p.existingConfigId &&
     !hasConfigInputs &&
     !configCapabilities.isLoading;
+  // In update mode the user explicitly opened the panel to make changes -- we
+  // surface the config picker even for providers whose config support isn't
+  // strictly "enabled" (e.g. providers that only ever take an empty config),
+  // because the API still accepts a configId for them.
+  let showConfig = p.isUpdate
+    ? allowCustomConfigs
+    : allowCustomConfigs && providerSupportsConfig && !shouldAutoCreateEmptyConfig;
 
   return {
     provider,
     isLoading: provider.isLoading || configCapabilities.isLoading,
-    showConfig: allowCustomConfigs && providerSupportsConfig && !shouldAutoCreateEmptyConfig,
+    showConfig,
     showAuth: (p.allowAuthConfig ?? true) && providerSupportsAuth,
     showToolFilters: allowToolFilters,
     shouldAutoCreateEmptyConfig,
@@ -457,12 +469,14 @@ let IntegrationProviderSetupStep = (p: {
   let createIntegrationProvider = useCreateIntegrationProvider();
   let updateIntegrationProvider = useUpdateIntegrationProvider();
   let autoSubmitAttemptedRef = useRef(false);
+  let isUpdate = !!p.integrationProvider;
   let visibility = useProviderSetupVisibility({
     instanceId: instance.data?.id,
     providerId: p.providerId,
     integration: p.integration,
     existingConfigId: p.integrationProvider?.config?.id,
-    respectIntegrationCustomConfigPolicy: false
+    respectIntegrationCustomConfigPolicy: false,
+    isUpdate
   });
   let authMethods = useProviderAuthMethods(
     instance.data?.id,
@@ -470,6 +484,14 @@ let IntegrationProviderSetupStep = (p: {
       ? { providerVersionId: visibility.provider.data.currentVersion.id }
       : null
   );
+  // In update mode, skip the auth section entirely if the provider exposes no
+  // auth methods -- there is nothing the user can pick, so we shouldn't show
+  // an empty section. In create mode we keep the existing behavior so the
+  // empty-state copy still renders for transparency.
+  let effectiveShowAuth =
+    visibility.showAuth &&
+    (!isUpdate ||
+      (!authMethods.isLoading && (authMethods.data?.items.length ?? 0) > 0));
 
   let submitProviderSetup = async (values: IntegrationProviderFormValues) => {
     if (!instance.data) return false;
@@ -555,7 +577,7 @@ let IntegrationProviderSetupStep = (p: {
         method => method.id === values.selectedAuthMethodId
       );
 
-      if (visibility.showAuth) {
+      if (effectiveShowAuth) {
         if (!values.selectedAuthMethodId) {
           form.setFieldTouched('selectedAuthMethodId', true, false);
           form.setFieldError('selectedAuthMethodId', 'Select an auth method');
@@ -585,7 +607,7 @@ let IntegrationProviderSetupStep = (p: {
   );
   let authCredentials = useProviderAuthCredentials(
     instance.data?.id,
-    visibility.showAuth
+    effectiveShowAuth
       ? {
           providerId: p.providerId,
           ...(form.values.selectedAuthMethodId
@@ -597,14 +619,14 @@ let IntegrationProviderSetupStep = (p: {
   );
 
   useEffect(() => {
-    if (!visibility.showAuth) return;
+    if (!effectiveShowAuth) return;
     if (authMethods.isLoading) return;
     if (form.values.selectedAuthMethodId) return;
     if ((authMethods.data?.items.length ?? 0) !== 1) return;
 
     form.setFieldValue('selectedAuthMethodId', authMethods.data!.items[0]!.id);
   }, [
-    visibility.showAuth,
+    effectiveShowAuth,
     authMethods.isLoading,
     authMethods.data?.items,
     form.values.selectedAuthMethodId
@@ -639,7 +661,7 @@ let IntegrationProviderSetupStep = (p: {
   ]);
 
   let hasVisibleInputs =
-    visibility.showConfig || visibility.showAuth || visibility.showToolFilters;
+    visibility.showConfig || effectiveShowAuth || visibility.showToolFilters;
   let isSaving =
     createDeployment.isPending ||
     createConfig.isLoading ||
@@ -647,14 +669,22 @@ let IntegrationProviderSetupStep = (p: {
     updateIntegrationProvider.isPending;
 
   useEffect(() => {
+    // Update flows must always show the panel so the user can change settings;
+    // never silently submit on their behalf.
+    if (isUpdate) return;
     if (visibility.isLoading || hasVisibleInputs || isSaving) return;
     if (autoSubmitAttemptedRef.current) return;
     autoSubmitAttemptedRef.current = true;
     void submitProviderSetup(form.values);
-  }, [visibility.isLoading, hasVisibleInputs, isSaving, form.values]);
+  }, [isUpdate, visibility.isLoading, hasVisibleInputs, isSaving, form.values]);
 
   if (visibility.isLoading || (!hasVisibleInputs && isSaving)) return <CenteredSpinner />;
-  if (!hasVisibleInputs) {
+  // In create mode with nothing to configure, the auto-submit useEffect above
+  // handles the silent submission, so showing a fallback "Cancel" UI is enough.
+  // In update mode we never auto-submit, so we always need to render the form
+  // so the user has Save / Cancel controls and access to whatever sections do
+  // apply (config, auth, tool filters).
+  if (!hasVisibleInputs && !isUpdate) {
     return (
       <Flex direction="column" gap={12}>
         <createDeployment.RenderError />
@@ -685,7 +715,7 @@ let IntegrationProviderSetupStep = (p: {
           providerName={visibility.providerName}
         />
 
-        {visibility.showAuth ? (
+        {effectiveShowAuth ? (
           <IntegrationProviderAuthSection
             instanceId={instance.data!.id}
             providerId={p.providerId}
@@ -725,6 +755,7 @@ let IntegrationProviderSetupStep = (p: {
           selectedToolKeys={form.values.selectedToolKeys}
           onSelectedToolKeysChange={keys => form.setFieldValue('selectedToolKeys', keys)}
           showConfigSection={visibility.showConfig}
+          forceConfigSectionVisible={isUpdate}
           showAuthSection={false}
           showToolFilters={visibility.showToolFilters}
           configRequirement="optional"
@@ -873,11 +904,13 @@ let IntegrationInstanceProviderPanel = (p: {
   let setProvider = useSetIntegrationInstanceProvider();
   let createConfig = useCreateProviderConfig();
   let autoSubmitAttemptedRef = useRef(false);
+  let isUpdate = !!p.instanceProvider;
   let visibility = useProviderSetupVisibility({
     instanceId: instance.data?.id,
     providerId,
     integration: p.integration,
-    existingConfigId: p.integrationProvider.config?.id
+    existingConfigId: p.instanceProvider?.config?.id ?? p.integrationProvider.config?.id,
+    isUpdate
   });
 
   let submitProviderSetup = async (values: IntegrationInstanceProviderFormValues) => {
@@ -944,24 +977,32 @@ let IntegrationInstanceProviderPanel = (p: {
   });
 
   let shouldAutoCreateWithoutPanel =
-    !p.instanceProvider && !visibility.showConfig && !visibility.showAuth;
+    !isUpdate && !visibility.showConfig && !visibility.showAuth;
   let hasVisibleInputs = shouldAutoCreateWithoutPanel
     ? false
     : visibility.showConfig || visibility.showAuth || visibility.showToolFilters;
   let isSaving = setProvider.isPending || createConfig.isLoading;
 
   useEffect(() => {
+    // Update flows must always show the panel so the user can change settings;
+    // never silently submit on their behalf.
+    if (isUpdate) return;
     if (visibility.isLoading || hasVisibleInputs || isSaving) return;
     if (autoSubmitAttemptedRef.current) return;
 
     autoSubmitAttemptedRef.current = true;
     void submitProviderSetup(form.values);
-  }, [visibility.isLoading, hasVisibleInputs, isSaving, form.values]);
+  }, [isUpdate, visibility.isLoading, hasVisibleInputs, isSaving, form.values]);
 
   if (!providerId || visibility.isLoading || (!hasVisibleInputs && isSaving)) {
     return <CenteredSpinner />;
   }
-  if (!hasVisibleInputs) {
+  // In create mode with nothing to configure, the auto-submit useEffect above
+  // handles the silent submission, so showing a fallback "Close" UI is enough.
+  // In update mode we never auto-submit, so we always need to render the form
+  // so the user has Save / Cancel controls and access to whatever sections do
+  // apply (config, auth, tool filters).
+  if (!hasVisibleInputs && !isUpdate) {
     return (
       <Flex direction="column" gap={12}>
         <setProvider.RenderError />
@@ -1007,6 +1048,7 @@ let IntegrationInstanceProviderPanel = (p: {
                     form.setFieldValue('selectedToolKeys', keys)
                   }
                   showConfigSection={visibility.showConfig}
+                  forceConfigSectionVisible={isUpdate}
                   showAuthSection={visibility.showAuth}
                   showToolFilters={visibility.showToolFilters}
                   configRequirement="optional"

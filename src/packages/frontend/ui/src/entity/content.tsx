@@ -1,6 +1,7 @@
 import React from 'react';
 import { styled } from 'styled-components';
 import { theme } from '../theme';
+import { useEntityContext } from './context';
 
 let Wrapper = styled('main')`
   display: flex;
@@ -22,9 +23,19 @@ let Wrapper = styled('main')`
   }
 `;
 
-let ContentEntityWrapper = styled('div')`
+let ContentEntityWrapper = styled('div').withConfig({
+  shouldForwardProp: prop => prop !== '$aligned'
+})<{ $aligned?: boolean }>`
   display: flex;
-  flex-grow: 1;
+  ${({ $aligned }) =>
+    $aligned
+      ? `
+        flex: 1 1 0;
+        min-width: 0;
+      `
+      : `
+        flex-grow: 1;
+      `}
 `;
 
 let MobileBorderStyle = styled(ContentEntityWrapper)`
@@ -33,19 +44,40 @@ let MobileBorderStyle = styled(ContentEntityWrapper)`
   }
 `;
 
-let ContentEntity = ({ children, last }: { children: React.ReactNode; last: boolean }) => {
+let ContentEntity = ({
+  children,
+  last,
+  aligned
+}: {
+  children: React.ReactNode;
+  last: boolean;
+  aligned: boolean;
+}) => {
   let Element = last ? ContentEntityWrapper : MobileBorderStyle;
 
-  return <Element>{children}</Element>;
+  return <Element $aligned={aligned}>{children}</Element>;
 };
 
-export let EntityContent = ({ children }: { children: React.ReactNode }) => {
+export let EntityContent = ({
+  children,
+  aligned
+}: {
+  children: React.ReactNode;
+  aligned?: boolean;
+}) => {
+  let context = useEntityContext();
+  let isAligned = aligned ?? context.aligned;
+
   let childArray = Array.isArray(children) ? children : [children];
 
   return (
     <Wrapper>
       {childArray.map((child, i) => (
-        <ContentEntity key={i} last={i == childArray.length - 1}>
+        <ContentEntity
+          key={i}
+          last={i == childArray.length - 1}
+          aligned={isAligned}
+        >
           {child}
         </ContentEntity>
       ))}

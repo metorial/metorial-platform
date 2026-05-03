@@ -5,6 +5,7 @@ import type {
   DashboardInstanceIntegrationProvidersUpdateBody
 } from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
+import { autoPaginate } from '../../lib/autoPaginate';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
 import { integrationLoader, integrationsLoader } from './integrations';
@@ -32,6 +33,30 @@ export let useIntegrationProviders = (
   );
 
   return data;
+};
+
+export let allIntegrationProvidersLoader = createLoader({
+  name: 'allIntegrationProviders',
+  parents: [integrationsLoader, integrationLoader, integrationProvidersLoader],
+  fetch: (i: { instanceId: string; integrationId: string }) =>
+    withAuth(sdk =>
+      autoPaginate(cursor =>
+        sdk.integration.providers.list(i.instanceId, {
+          ...cursor,
+          integrationId: i.integrationId
+        })
+      )
+    ),
+  mutators: {}
+});
+
+export let useAllIntegrationProviders = (
+  instanceId: string | null | undefined,
+  integrationId: string | null | undefined
+) => {
+  return allIntegrationProvidersLoader.use(
+    instanceId && integrationId ? { instanceId, integrationId } : null
+  );
 };
 
 export let useCreateIntegrationProvider = integrationProvidersLoader.createExternalMutator(

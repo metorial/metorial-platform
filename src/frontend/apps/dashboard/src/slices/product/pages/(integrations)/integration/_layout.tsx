@@ -8,9 +8,9 @@ import {
   useIntegration
 } from '@metorial/state';
 import { Button, Flex, LinkTabs } from '@metorial/ui';
-import { Outlet, useLocation, useParams } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { DeletedRecordCallout } from '../../../scenes/deletedRecordCallout';
-import { showIntegrationFormModal } from '../../../scenes/integrations/modal';
+import { showIntegrationInstanceFormModal } from '../../../scenes/integrations/instancesTable';
 
 export let IntegrationLayout = () => {
   let instance = useCurrentInstance();
@@ -19,6 +19,7 @@ export let IntegrationLayout = () => {
   let { integrationId } = useParams();
   let integration = useIntegration(instance.data?.id, integrationId);
   let pathname = useLocation().pathname;
+  let navigate = useNavigate();
 
   let params = [
     organization.data,
@@ -45,7 +46,7 @@ export let IntegrationLayout = () => {
         actions={
           instance.data && integration.data ? (
             <Flex gap={8}>
-              <Button
+              {/* <Button
                 size="2"
                 variant="outline"
                 onClick={() =>
@@ -58,6 +59,29 @@ export let IntegrationLayout = () => {
                 }
               >
                 Edit
+              </Button> */}
+
+              <Button
+                size="2"
+                onClick={() =>
+                  instance.data &&
+                  showIntegrationInstanceFormModal({
+                    instanceId: instance.data.id,
+                    integration: integration.data!,
+                    onCreate: created => {
+                      navigate(
+                        Paths.instance.integrationInstance(
+                          organization.data,
+                          project.data,
+                          instance.data,
+                          created.id
+                        )
+                      );
+                    }
+                  })
+                }
+              >
+                Create Instance
               </Button>
             </Flex>
           ) : undefined

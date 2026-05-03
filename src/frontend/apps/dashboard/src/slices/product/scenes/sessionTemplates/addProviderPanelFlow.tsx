@@ -626,6 +626,13 @@ type ProviderSetupSectionsProps = {
   showToolFilters?: boolean;
   showConfigSection?: boolean;
   showAuthSection?: boolean;
+  /**
+   * Render the config section even when `provider.data?.type.config.status`
+   * isn't strictly `'enabled'`. Useful for providers that only ever take an
+   * empty config but still accept a `configId` -- callers (e.g. the edit
+   * provider flow) can opt in to surfacing the picker for those.
+   */
+  forceConfigSectionVisible?: boolean;
   configRequirement?: 'required' | 'optional';
   authRequirement?: 'required' | 'optional';
   showExistingConfigOptions?: boolean;
@@ -672,7 +679,8 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
   );
   let toolItems = tools.data?.items ?? [];
   let requiresProviderConfig =
-    showConfigSection && provider.data?.type.config.status == 'enabled';
+    showConfigSection &&
+    (p.forceConfigSectionVisible || provider.data?.type.config.status == 'enabled');
   let normalizedTools = toolItems.map(tool => ({
     key: tool.key ?? tool.name,
     name: tool.name,

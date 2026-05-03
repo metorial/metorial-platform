@@ -273,6 +273,13 @@ export let dashboardController = Controller.create<any>(
     projectManagementController,
     dashboardUserController,
 
+    integrationController,
+    integrationProviderController,
+    integrationInstanceController,
+    integrationInstanceProviderController,
+    integrationInstanceGroupController,
+    integrationInstanceGroupProviderController,
+
     fileController,
     fileLinkController,
 
