@@ -9,6 +9,7 @@ import {
   useCreateProviderDeployment,
   useCurrentInstance,
   useProvider,
+  useProviderAuthCredential,
   useProviderAuthCredentials,
   useProviderAuthMethods,
   useProviderConfigSchemaTarget,
@@ -21,10 +22,10 @@ import {
   Badge,
   Button,
   CenteredSpinner,
+  Combobox,
   Dialog,
   Entity,
   Flex,
-  Select,
   Text,
   theme
 } from '@metorial/ui';
@@ -108,7 +109,6 @@ let useProviderSetupVisibility = (p: {
   let shouldAutoCreateEmptyConfig =
     !p.isUpdate &&
     allowCustomConfigs &&
-    providerSupportsConfig &&
     !p.existingConfigId &&
     !hasConfigInputs &&
     !configCapabilities.isLoading;
@@ -299,6 +299,7 @@ let IntegrationProviderSummaryCard = (p: {
 let IntegrationProviderAuthSection = (p: {
   instanceId: string;
   providerId: string;
+  providerDeploymentId?: string;
   authMethods: {
     data?: {
       items: {
@@ -316,32 +317,15 @@ let IntegrationProviderAuthSection = (p: {
         type: 'oauth' | 'token' | 'custom';
       }
     | undefined;
-  authCredentials: {
-    data?: {
-      items: {
-        id: string;
-        name: string | null;
-        isManaged: boolean;
-        isDefault: boolean;
-      }[];
-    } | null;
-    isLoading: boolean;
-  };
   selectedAuthMethodId: string;
   onSelectedAuthMethodIdChange: (value: string) => void;
   selectedAuthCredentialsId: string;
+  selectedAuthCredentialsLabel?: string;
   onSelectedAuthCredentialsIdChange: (value: string) => void;
   authMethodError?: React.ReactNode;
   authCredentialsError?: React.ReactNode;
 }) => {
   let authMethodItems = p.authMethods.data?.items ?? [];
-  let credentialItems = (p.authCredentials.data?.items ?? []).map(credentials => ({
-    id: credentials.id,
-    label: credentials.name ?? credentials.id
-  }));
-  let selectedCredentialsLabel =
-    credentialItems.find(credentials => credentials.id === p.selectedAuthCredentialsId)
-      ?.label ?? p.selectedAuthCredentialsId;
 
   return (
     <Flex direction="column" gap={12}>
@@ -390,55 +374,67 @@ let IntegrationProviderAuthSection = (p: {
                   completed={Boolean(p.selectedAuthCredentialsId)}
                 >
                   <Flex direction="column" gap={10}>
-                    {p.selectedAuthCredentialsId ? (
-                      <Flex justify="space-between" align="center" gap={12} wrap="wrap">
-                        <Text size="2">
-                          Selected auth credentials:{' '}
-                          <strong>{selectedCredentialsLabel}</strong>
-                        </Text>
+                    <Flex gap={8} align="end">
+                      <div style={{ flex: 1 }}>
+                        <Combobox
+                          label="Auth Credentials"
+                          placeholder="Search auth credentials"
+                          value={p.selectedAuthCredentialsId || null}
+                          valueLabel={p.selectedAuthCredentialsLabel}
+                          provider={({ searchQuery }) => {
+                            let comboboxCredentials = useProviderAuthCredentials(
+                              p.instanceId,
+                              {
+                                ...(p.providerDeploymentId
+                                  ? { providerDeploymentId: p.providerDeploymentId }
+                                  : { providerId: p.providerId }),
+                                ...(p.selectedAuthMethodId
+                                  ? { providerAuthMethodId: p.selectedAuthMethodId }
+                                  : {}),
+                                origin: ['custom', 'managed'],
+                                limit: 25,
+                                search: searchQuery || undefined
+                              }
+                            );
+
+                            return {
+                              items: (comboboxCredentials.data?.items ?? []).map(
+                                credentials => ({
+                                  id: credentials.id,
+                                  label: credentials.name ?? credentials.id
+                                })
+                              ),
+                              isLoading: comboboxCredentials.isLoading,
+                              empty: searchQuery
+                                ? 'No matching auth credentials found.'
+                                : 'No auth credentials available.'
+                            };
+                          }}
+                          onChange={value => {
+                            p.onSelectedAuthCredentialsIdChange(value ?? '');
+                          }}
+                        />
+                      </div>
+                      <div>
                         <Button
                           type="button"
-                          size="2"
-                          variant="outline"
-                          onClick={() => p.onSelectedAuthCredentialsIdChange('')}
+                          size="3"
+                          iconLeft={<RiAddLine />}
+                          onClick={() =>
+                            showProviderAuthCredentialsFormModal({
+                              instanceId: p.instanceId,
+                              providerId: p.providerId,
+                              deploymentId: p.providerDeploymentId,
+                              onCreate: credentials => {
+                                p.onSelectedAuthCredentialsIdChange(credentials.id);
+                              }
+                            })
+                          }
                         >
-                          Choose another
+                          Create Auth Credentials
                         </Button>
-                      </Flex>
-                    ) : (
-                      <Flex gap={8} align="end">
-                        <div style={{ flex: 1 }}>
-                          <Select
-                            label="Auth Credentials"
-                            value={p.selectedAuthCredentialsId}
-                            placeholder="Select auth credentials"
-                            items={credentialItems}
-                            onChange={value => {
-                              p.onSelectedAuthCredentialsIdChange(value);
-                            }}
-                            disabled={p.authCredentials.isLoading}
-                          />
-                        </div>
-                        <div>
-                          <Button
-                            type="button"
-                            size="3"
-                            iconLeft={<RiAddLine />}
-                            onClick={() =>
-                              showProviderAuthCredentialsFormModal({
-                                instanceId: p.instanceId,
-                                providerId: p.providerId,
-                                onCreate: credentials => {
-                                  p.onSelectedAuthCredentialsIdChange(credentials.id);
-                                }
-                              })
-                            }
-                          >
-                            Create Auth Credentials
-                          </Button>
-                        </div>
-                      </Flex>
-                    )}
+                      </div>
+                    </Flex>
                     {p.authCredentialsError}
                   </Flex>
                 </ConfigureSectionCard>
@@ -596,8 +592,8 @@ let IntegrationProviderSetupStep = (p: {
       yup.object({
         selectedProviderId: yup.string().required(),
         selectedConfiguration: yup.mixed<ConfigurationSelection>().defined(),
-        selectedAuthMethodId: yup.string().defined(),
-        selectedAuthCredentialsId: yup.string().defined(),
+        selectedAuthMethodId: yup.string().optional().default(''),
+        selectedAuthCredentialsId: yup.string().optional().default(''),
         toolFilterMode: yup.mixed<'all' | 'select'>().oneOf(['all', 'select']).required(),
         selectedToolKeys: yup.array().of(yup.string().required()).defined()
       })
@@ -617,6 +613,10 @@ let IntegrationProviderSetupStep = (p: {
         }
       : null
   );
+  let selectedAuthCredential = useProviderAuthCredential(
+    instance.data?.id,
+    form.values.selectedAuthCredentialsId || null
+  );
 
   useEffect(() => {
     if (!effectiveShowAuth) return;
@@ -633,15 +633,17 @@ let IntegrationProviderSetupStep = (p: {
   ]);
 
   useEffect(() => {
+    if (authMethods.isLoading) return;
     if (selectedAuthMethod?.type === 'oauth') return;
     if (!form.values.selectedAuthCredentialsId) return;
 
     form.setFieldValue('selectedAuthCredentialsId', '');
     form.setFieldTouched('selectedAuthCredentialsId', false, false);
     form.setFieldError('selectedAuthCredentialsId', undefined);
-  }, [selectedAuthMethod?.type, form.values.selectedAuthCredentialsId]);
+  }, [authMethods.isLoading, selectedAuthMethod?.type, form.values.selectedAuthCredentialsId]);
 
   useEffect(() => {
+    if (!effectiveShowAuth) return;
     if (!form.values.selectedAuthCredentialsId) return;
     if (authCredentials.isLoading) return;
 
@@ -655,6 +657,7 @@ let IntegrationProviderSetupStep = (p: {
       form.setFieldError('selectedAuthCredentialsId', undefined);
     }
   }, [
+    effectiveShowAuth,
     authCredentials.isLoading,
     authCredentials.data?.items,
     form.values.selectedAuthCredentialsId
@@ -667,18 +670,20 @@ let IntegrationProviderSetupStep = (p: {
     createConfig.isLoading ||
     createIntegrationProvider.isPending ||
     updateIntegrationProvider.isPending;
+  let isLoadingInitialData =
+    visibility.isLoading || (effectiveShowAuth && authMethods.isLoading);
 
   useEffect(() => {
     // Update flows must always show the panel so the user can change settings;
     // never silently submit on their behalf.
     if (isUpdate) return;
-    if (visibility.isLoading || hasVisibleInputs || isSaving) return;
+    if (isLoadingInitialData || hasVisibleInputs || isSaving) return;
     if (autoSubmitAttemptedRef.current) return;
     autoSubmitAttemptedRef.current = true;
     void submitProviderSetup(form.values);
-  }, [isUpdate, visibility.isLoading, hasVisibleInputs, isSaving, form.values]);
+  }, [isUpdate, isLoadingInitialData, hasVisibleInputs, isSaving, form.values]);
 
-  if (visibility.isLoading || (!hasVisibleInputs && isSaving)) return <CenteredSpinner />;
+  if (isLoadingInitialData || (!hasVisibleInputs && isSaving)) return <CenteredSpinner />;
   // In create mode with nothing to configure, the auto-submit useEffect above
   // handles the silent submission, so showing a fallback "Cancel" UI is enough.
   // In update mode we never auto-submit, so we always need to render the form
@@ -707,7 +712,7 @@ let IntegrationProviderSetupStep = (p: {
   }
 
   return (
-    <form onSubmit={form.handleSubmit}>
+    <form noValidate onSubmit={form.handleSubmit}>
       <Flex direction="column" gap={12}>
         <IntegrationProviderSummaryCard
           instanceId={instance.data!.id}
@@ -719,9 +724,9 @@ let IntegrationProviderSetupStep = (p: {
           <IntegrationProviderAuthSection
             instanceId={instance.data!.id}
             providerId={p.providerId}
+            providerDeploymentId={p.integrationProvider?.deployment.id}
             authMethods={authMethods}
             selectedAuthMethod={selectedAuthMethod}
-            authCredentials={authCredentials}
             selectedAuthMethodId={form.values.selectedAuthMethodId}
             onSelectedAuthMethodIdChange={value => {
               form.setFieldValue('selectedAuthMethodId', value);
@@ -729,6 +734,14 @@ let IntegrationProviderSetupStep = (p: {
               form.setFieldError('selectedAuthMethodId', undefined);
             }}
             selectedAuthCredentialsId={form.values.selectedAuthCredentialsId}
+            selectedAuthCredentialsLabel={
+              selectedAuthCredential.data?.name ??
+              selectedAuthCredential.data?.id ??
+              authCredentials.data?.items.find(
+                credential => credential.id === form.values.selectedAuthCredentialsId
+              )?.name ??
+              form.values.selectedAuthCredentialsId
+            }
             onSelectedAuthCredentialsIdChange={value => {
               form.setFieldValue('selectedAuthCredentialsId', value);
               form.setFieldTouched('selectedAuthCredentialsId', false, false);
@@ -742,6 +755,7 @@ let IntegrationProviderSetupStep = (p: {
         <ProviderSetupSections
           instanceId={instance.data!.id}
           providerId={p.providerId}
+          providerDeploymentId={p.integrationProvider?.deployment.id}
           providerName={visibility.providerName}
           showProviderSummary={false}
           selectedConfiguration={form.values.selectedConfiguration}
@@ -780,7 +794,13 @@ let IntegrationProviderSetupStep = (p: {
                   Cancel
                 </Button>
               )}
-              <Button type="submit" loading={isSaving}>
+              <Button
+                type="button"
+                loading={isSaving}
+                onClick={() => {
+                  void form.submitForm();
+                }}
+              >
                 {p.integrationProvider ? 'Save Provider' : 'Add Provider'}
               </Button>
             </Dialog.Actions>
@@ -881,15 +901,21 @@ export let showIntegrationProviderPanelFlow = (p: {
   integrationProvider?: IntegrationProvider;
   onComplete: () => void;
 }) =>
-  showProviderCreationPanel(({ close, setWidth }) => (
-    <AddIntegrationProviderPanel
-      integration={p.integration}
-      integrationProvider={p.integrationProvider}
-      close={close}
-      setPanelWidth={setWidth}
-      onComplete={p.onComplete}
-    />
-  ));
+  showProviderCreationPanel(
+    ({ close, setWidth }) => (
+      <AddIntegrationProviderPanel
+        integration={p.integration}
+        integrationProvider={p.integrationProvider}
+        close={close}
+        setPanelWidth={setWidth}
+        onComplete={p.onComplete}
+      />
+    ),
+    // Edit flow opens directly on the configure step (660px). Without this,
+    // the panel mounts at the default width and visibly shrinks after the
+    // step's useEffect runs setPanelWidth(660).
+    p.integrationProvider ? { width: 660 } : undefined
+  );
 
 let IntegrationInstanceProviderPanel = (p: {
   integration: IntegrationPreview;
@@ -970,7 +996,7 @@ let IntegrationInstanceProviderPanel = (p: {
       yup.object({
         selectedProviderId: yup.string().required(),
         selectedConfiguration: yup.mixed<ConfigurationSelection>().defined(),
-        selectedAuthConfigId: yup.string().defined(),
+        selectedAuthConfigId: yup.string().optional().default(''),
         toolFilterMode: yup.mixed<'all' | 'select'>().oneOf(['all', 'select']).required(),
         selectedToolKeys: yup.array().of(yup.string().required()).defined()
       })
@@ -1028,10 +1054,13 @@ let IntegrationInstanceProviderPanel = (p: {
           {
             title: 'Configure',
             render: () => (
-              <form onSubmit={form.handleSubmit}>
+              <form noValidate onSubmit={form.handleSubmit}>
                 <ProviderSetupSections
                   instanceId={instance.data!.id}
                   providerId={providerId}
+                  providerDeploymentId={p.integrationProvider.deployment.id}
+                  fixedAuthMethodId={p.integrationProvider.authMethod?.id}
+                  fixedAuthCredentialsId={p.integrationProvider.authCredentials?.id}
                   providerName={visibility.providerName}
                   selectedConfiguration={form.values.selectedConfiguration}
                   onSelectedConfigurationChange={value =>
@@ -1052,7 +1081,7 @@ let IntegrationInstanceProviderPanel = (p: {
                   showAuthSection={visibility.showAuth}
                   showToolFilters={visibility.showToolFilters}
                   configRequirement="optional"
-                  authRequirement="optional"
+                  authRequirement={visibility.showAuth ? 'required' : 'optional'}
                   supplementaryContent={
                     <>
                       <setProvider.RenderError />
@@ -1064,7 +1093,13 @@ let IntegrationInstanceProviderPanel = (p: {
                       <Button type="button" variant="outline" onClick={p.close}>
                         Cancel
                       </Button>
-                      <Button type="submit" loading={isSaving}>
+                      <Button
+                        type="button"
+                        loading={isSaving}
+                        onClick={() => {
+                          void form.submitForm();
+                        }}
+                      >
                         Save Provider
                       </Button>
                     </Dialog.Actions>

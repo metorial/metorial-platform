@@ -613,6 +613,8 @@ type ProviderSetupSectionsProps = {
   showProviderSummary?: boolean;
   defaultAuthConfigName?: string;
   providerDeploymentId?: string | null;
+  fixedAuthMethodId?: string;
+  fixedAuthCredentialsId?: string;
   selectedConfiguration: ConfigurationSelection;
   onSelectedConfigurationChange: (value: ConfigurationSelection) => void;
   selectedAuthConfigId: string;
@@ -909,7 +911,8 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
                         providerId: p.providerId,
                         limit: 25,
                         search: searchQuery || undefined,
-                        providerDeploymentId: p.providerDeploymentId ?? undefined
+                        providerDeploymentId: p.providerDeploymentId ?? undefined,
+                        providerAuthMethodId: p.fixedAuthMethodId ?? undefined
                       });
 
                       return {
@@ -934,6 +937,8 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
                 instanceId={p.instanceId}
                 providerDeploymentId={p.providerDeploymentId ?? undefined}
                 providerId={p.providerId}
+                fixedAuthMethodId={p.fixedAuthMethodId}
+                fixedAuthCredentialsId={p.fixedAuthCredentialsId}
                 defaultAuthConfigName={p.defaultAuthConfigName}
                 autoStartManagedCredentialSetup={autoStartManagedCredentialSetup}
                 onCreate={async authConfig => {

@@ -34,6 +34,7 @@ import {
   resolveProviders,
   resolveSessionTemplates
 } from '@metorial-subspace/list-utils';
+import { providerConfigService } from '@metorial-subspace/module-deployment';
 import {
   identityActorService,
   identityInternalService
@@ -272,6 +273,82 @@ class integrationInstanceServiceImpl {
     return integrationInstance;
   }
 
+  private async getAutomaticProviderInputs(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    integration: Integration;
+    input: Pick<IntegrationInstanceWriteInput, 'providers'>;
+  }) {
+    let integrationProviders = await db.integrationProvider.findMany({
+      where: {
+        integrationOid: d.integration.oid,
+        tenantOid: d.tenant.oid,
+        solutionOid: d.solution.oid,
+        environmentOid: d.environment.oid,
+        status: 'active'
+      },
+      include: {
+        provider: {
+          include: {
+            type: true,
+            defaultVariant: true
+          }
+        },
+        currentVersion: {
+          include: {
+            deployment: true
+          }
+        }
+      }
+    });
+
+    let explicitProviderReferences = new Set(
+      (d.input.providers ?? []).map(provider => provider.providerId)
+    );
+
+    let automaticInputs: SetIntegrationInstanceProviderInput[] = [];
+    for (let integrationProvider of integrationProviders) {
+      let provider = integrationProvider.provider;
+      let deployment = integrationProvider.currentVersion?.deployment;
+      if (!deployment) continue;
+
+      if (
+        explicitProviderReferences.has(integrationProvider.id) ||
+        explicitProviderReferences.has(provider.id)
+      ) {
+        continue;
+      }
+
+      if (
+        provider.type.attributes.auth.status !== 'disabled' ||
+        provider.type.attributes.config.status !== 'disabled'
+      ) {
+        continue;
+      }
+
+      checkDeletedRelation(integrationProvider);
+      checkDeletedRelation(provider);
+      checkDeletedRelation(deployment);
+
+      let defaultConfig = await providerConfigService.ensureDefaultEmptyProviderConfig({
+        tenant: d.tenant,
+        solution: d.solution,
+        environment: d.environment,
+        provider,
+        providerDeployment: deployment
+      });
+
+      automaticInputs.push({
+        providerId: integrationProvider.id,
+        providerDeploymentId: deployment.id,
+        providerConfigId: defaultConfig.id
+      });
+    }
+
+    return automaticInputs;
+  }
+
   async listIntegrationInstances(d: {
     tenant: Tenant;
     solution: Solution;
@@ -471,6 +548,14 @@ class integrationInstanceServiceImpl {
     checkDeletedRelation(d.integration);
 
     return await withTransaction(async db => {
+      let automaticProviders = await this.getAutomaticProviderInputs({
+        tenant: d.tenant,
+        solution: d.solution,
+        environment: d.environment,
+        integration: d.integration,
+        input: d.input
+      });
+
       let newId = getId('integrationInstance');
       let integrationInstance = await db.integrationInstance.create({
         data: this.integrationInstanceCreateData({
@@ -490,7 +575,10 @@ class integrationInstanceServiceImpl {
         solution: d.solution,
         environment: d.environment,
         integrationInstance,
-        input: d.input
+        input: {
+          ...d.input,
+          providers: [...(d.input.providers ?? []), ...automaticProviders]
+        }
       });
 
       await addAfterTransactionHook(async () =>

@@ -13,6 +13,7 @@ import {
   type Tenant
 } from '@metorial-subspace/db';
 import {
+  integrationInstanceService,
   integrationInstanceGroupProviderService,
   integrationInstanceGroupService
 } from '@metorial-subspace/module-integration';
@@ -613,5 +614,72 @@ describe('integrationInstanceGroup.e2e', () => {
         ]
       })
     ).rejects.toThrow(/duplicate integration providers/i);
+  });
+
+  it('auto-materializes configless integration providers when creating an integration instance', async () => {
+    let anonymousClient = createSubspaceControllerRootTestClient();
+    let solution = await anonymousClient.solution.upsert({
+      name: 'Test Solution',
+      identifier: `test-solution-${suffix()}`
+    });
+    let client = createSubspaceControllerRootTestClient({
+      headers: { 'Subspace-Solution-Id': solution.id }
+    });
+    let tenant = await client.tenant.upsert({
+      name: 'Test Tenant',
+      identifier: `test-tenant-${suffix()}`,
+      environments: [
+        {
+          name: 'Development',
+          identifier: `test-tenant-dev-${suffix()}`,
+          type: 'development'
+        }
+      ]
+    });
+
+    let [tenantRecord, environmentRecord, solutionRecord] = await Promise.all([
+      testDb.tenant.findUnique({ where: { id: tenant.id } }),
+      testDb.environment.findFirst({ where: { tenant: { id: tenant.id } } }),
+      testDb.solution.findUnique({ where: { id: solution.id } })
+    ]);
+    if (!tenantRecord || !environmentRecord || !solutionRecord) {
+      throw new Error('Test setup failed to resolve tenant/environment/solution records');
+    }
+
+    let graph = await createIntegrationGraph({
+      tenant: tenantRecord,
+      environment: environmentRecord,
+      solution: solutionRecord
+    });
+
+    let integrationInstance = await integrationInstanceService.createIntegrationInstance({
+      tenant: tenantRecord,
+      environment: environmentRecord,
+      solution: solutionRecord,
+      integration: graph.integration,
+      input: {
+        name: 'Auto-configured instance'
+      }
+    });
+
+    expect(integrationInstance.integrationInstanceProviders).toHaveLength(2);
+    expect(
+      integrationInstance.integrationInstanceProviders.every(
+        provider => provider.currentVersion?.config?.isDefault === true
+      )
+    ).toBe(true);
+
+    let defaultConfigs = await testDb.providerConfig.findMany({
+      where: {
+        oid: {
+          in: integrationInstance.integrationInstanceProviders
+            .map(provider => provider.currentVersion?.configOid)
+            .filter(Boolean) as bigint[]
+        }
+      }
+    });
+
+    expect(defaultConfigs).toHaveLength(2);
+    expect(defaultConfigs.every(config => config.isDefault)).toBe(true);
   });
 });

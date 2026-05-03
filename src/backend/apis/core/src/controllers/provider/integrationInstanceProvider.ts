@@ -186,30 +186,6 @@ export let integrationInstanceProviderController = Controller.create(
         );
 
         return integrationInstanceProviderPresenter.present({ integrationInstanceProvider });
-      }),
-
-    delete: integrationInstanceProviderGroup
-      .delete(
-        instancePath(
-          'integration-instance-providers/:integrationInstanceProviderId',
-          'integrationInstanceProviders.delete'
-        ),
-        {
-          name: 'Delete integration instance provider',
-          description: 'Archives a specific integration instance provider.'
-        }
-      )
-      .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
-      .output(integrationInstanceProviderPresenter)
-      .do(async ctx => {
-        let integrationInstanceProvider =
-          await subspaceIntegrationInstanceProviderService.delete({
-            instance: ctx.instance,
-            integrationInstanceProviderId: ctx.integrationInstanceProvider.id,
-            allowDeleted: true
-          });
-
-        return integrationInstanceProviderPresenter.present({ integrationInstanceProvider });
       })
   }
 );

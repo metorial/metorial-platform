@@ -192,7 +192,7 @@ let providerDeploymentsTable = new DashboardTable<
     },
     {
       id: 'version',
-      isDefault: true,
+      isDefault: false,
       header: 'Version',
       render: deployment =>
         deployment.lockedVersion ? (

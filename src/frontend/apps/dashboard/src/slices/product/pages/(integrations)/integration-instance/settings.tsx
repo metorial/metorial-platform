@@ -6,7 +6,8 @@ import {
   useCurrentProject,
   useIntegrationInstance
 } from '@metorial/state';
-import { Button, Dialog, Flex, Input, Spacer, confirm } from '@metorial/ui';
+import { Button, Input, Spacer, confirm } from '@metorial/ui';
+import { Box } from '@metorial/ui-product';
 import { useNavigate, useParams } from 'react-router-dom';
 
 export let IntegrationInstanceSettingsPage = () => {
@@ -15,44 +16,65 @@ export let IntegrationInstanceSettingsPage = () => {
   let project = useCurrentProject();
   let { integrationInstanceId } = useParams();
   let integrationInstance = useIntegrationInstance(instance.data?.id, integrationInstanceId);
-  let integrationInstanceRoot = integrationInstance;
   let navigate = useNavigate();
+  let updateMutator = integrationInstance.useUpdateMutator();
+  let deleteMutator = integrationInstance.useDeleteMutator();
+
+  let form = useForm({
+    initialValues: {
+      name: integrationInstance.data?.name ?? '',
+      description: integrationInstance.data?.description ?? ''
+    },
+    updateInitialValues: true,
+    onSubmit: async values => {
+      await updateMutator.mutate({
+        name: values.name.trim(),
+        description: values.description.trim() || null
+      });
+    },
+    schema: yup =>
+      yup.object({
+        name: yup.string().trim().required('Name is required'),
+        description: yup.string()
+      })
+  });
 
   return renderWithLoader({ integrationInstance })(({ integrationInstance }) => {
-    let update = integrationInstanceRoot.useUpdateMutator();
-    let deleteMutator = integrationInstanceRoot.useDeleteMutator();
-    let form = useForm({
-      initialValues: {
-        name: integrationInstance.data.name ?? '',
-        description: integrationInstance.data.description ?? ''
-      },
-      enableReinitialize: true,
-      onSubmit: async values => {
-        await update.mutate({
-          name: values.name.trim(),
-          description: values.description.trim() || null
-        });
-      },
-      schema: yup =>
-        yup.object({
-          name: yup.string().trim().required('Name is required'),
-          description: yup.string()
-        })
-    });
-
     return (
-      <form onSubmit={form.handleSubmit}>
-        <Input label="Name" required {...form.getFieldProps('name')} />
-        <form.RenderError field="name" />
-        <Spacer size={10} />
-        <Input label="Description" {...form.getFieldProps('description')} />
-        <Spacer size={15} />
-        <Dialog.Actions>
-          <Button type="submit" loading={update.isPending}>
-            Save Changes
-          </Button>
+      <>
+        <Box
+          title="Instance Settings"
+          description="Modify the saved details for this integration instance."
+        >
+          <form onSubmit={form.handleSubmit}>
+            <Input label="Name" required {...form.getFieldProps('name')} />
+            <form.RenderError field="name" />
+
+            <Spacer size={15} />
+
+            <Input label="Description" {...form.getFieldProps('description')} />
+            <form.RenderError field="description" />
+
+            <Spacer size={15} />
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <Button size="2" type="submit" loading={updateMutator.isPending}>
+                Save
+              </Button>
+            </div>
+
+            <updateMutator.RenderError />
+          </form>
+        </Box>
+
+        <Spacer size={20} />
+
+        <Box
+          title="Danger Zone"
+          description="Delete this integration instance and remove any provider overrides attached to it."
+        >
           <Button
-            type="button"
+            size="2"
             color="red"
             variant="soft"
             loading={deleteMutator.isPending}
@@ -79,12 +101,9 @@ export let IntegrationInstanceSettingsPage = () => {
           >
             Delete Instance
           </Button>
-        </Dialog.Actions>
-        <Flex direction="column" gap={4}>
-          <update.RenderError />
           <deleteMutator.RenderError />
-        </Flex>
-      </form>
+        </Box>
+      </>
     );
   });
 };
