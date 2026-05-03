@@ -34,7 +34,8 @@ let magicMcpGroupStatusValues = ['active', 'archived', 'deleted'] as const;
 export let magicMcpGroupController = Controller.create(
   {
     name: 'Magic MCP Groups',
-    description: 'Magic MCP groups categorize servers and can be bound to token access.'
+    description: 'Magic MCP groups categorize servers and can be bound to token access.',
+    hideInDocs: true
   },
   {
     list: instanceGroup

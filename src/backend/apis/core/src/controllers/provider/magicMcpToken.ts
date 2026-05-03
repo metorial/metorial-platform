@@ -42,7 +42,8 @@ export let magicMcpTokenController = Controller.create(
   {
     name: 'Magic MCP Tokens',
     description:
-      'Magic MCP tokens authorize access to Magic MCP servers via the /magic connection API.'
+      'Magic MCP tokens authorize access to Magic MCP servers via the /magic connection API.',
+    hideInDocs: true
   },
   {
     list: instanceGroup

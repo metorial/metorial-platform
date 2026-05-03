@@ -57,7 +57,8 @@ export let providerTemplateController = Controller.create(
   {
     name: 'Provider Templates',
     description:
-      'Provider templates are reusable, consumer-facing wrappers around provider deployments.'
+      'Provider templates are reusable, consumer-facing wrappers around provider deployments.',
+    hideInDocs: true
   },
   {
     list: instanceGroup
