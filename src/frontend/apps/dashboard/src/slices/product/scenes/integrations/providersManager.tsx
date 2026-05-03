@@ -205,8 +205,8 @@ let integrationProvidersTable = new DashboardTable<
       if (!provider) return;
 
       confirm({
-        title: 'Remove Provider',
-        description: `Remove ${getProviderLabel(provider)} from this integration?`,
+        title: `Remove ${getProviderLabel(provider)}?`,
+        description: `Remove the ${getProviderLabel(provider)} provider from this integration?`,
         confirmText: 'Remove',
         onConfirm: async () => {
           await deleteIntegrationProviderImmediately(provider, state);

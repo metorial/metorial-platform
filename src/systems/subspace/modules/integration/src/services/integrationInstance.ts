@@ -297,7 +297,8 @@ class integrationInstanceServiceImpl {
         },
         currentVersion: {
           include: {
-            deployment: true
+            deployment: true,
+            config: true
           }
         }
       }
@@ -311,6 +312,7 @@ class integrationInstanceServiceImpl {
     for (let integrationProvider of integrationProviders) {
       let provider = integrationProvider.provider;
       let deployment = integrationProvider.currentVersion?.deployment;
+      let sharedConfig = integrationProvider.currentVersion?.config;
       if (!deployment) continue;
 
       if (
@@ -331,18 +333,45 @@ class integrationInstanceServiceImpl {
       checkDeletedRelation(provider);
       checkDeletedRelation(deployment);
 
-      let defaultConfig = await providerConfigService.ensureDefaultEmptyProviderConfig({
-        tenant: d.tenant,
-        solution: d.solution,
-        environment: d.environment,
-        provider,
-        providerDeployment: deployment
-      });
+      let providerConfigId: string | null;
+      if (sharedConfig) {
+        providerConfigId = null;
+      } else {
+        let materialDeployment = await db.providerDeployment.findFirstOrThrow({
+          where: {
+            oid: deployment.oid,
+            tenantOid: d.tenant.oid,
+            solutionOid: d.solution.oid,
+            environmentOid: d.environment.oid
+          },
+          include: {
+            provider: true,
+            providerVariant: true,
+            currentVersion: {
+              include: { lockedVersion: true }
+            }
+          }
+        });
+
+        let emptyConfig = await providerConfigService.createProviderConfig({
+          tenant: d.tenant,
+          solution: d.solution,
+          environment: d.environment,
+          provider,
+          providerDeployment: materialDeployment,
+          input: {
+            name: `${integrationProvider.name} Config`,
+            description: 'Auto-created for integration instance',
+            config: { type: 'inline', data: {} }
+          }
+        });
+        providerConfigId = emptyConfig.id;
+      }
 
       automaticInputs.push({
         providerId: integrationProvider.id,
         providerDeploymentId: deployment.id,
-        providerConfigId: defaultConfig.id
+        providerConfigId
       });
     }
 

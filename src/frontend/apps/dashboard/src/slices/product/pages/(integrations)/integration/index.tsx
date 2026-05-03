@@ -177,8 +177,8 @@ export let IntegrationOverviewPage = () => {
         listing?.name ?? provider.provider.name ?? provider.provider.slug ?? 'this provider';
 
       confirm({
-        title: 'Remove Provider',
-        description: `Remove ${displayName} from this integration?`,
+        title: `Remove ${displayName}?`,
+        description: `Remove the ${displayName} provider from this integration?`,
         confirmText: 'Remove',
         onConfirm: async () => {
           if (!instance.data) return;

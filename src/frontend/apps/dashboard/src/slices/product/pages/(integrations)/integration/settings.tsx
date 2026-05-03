@@ -126,7 +126,7 @@ export let IntegrationSettingsPage = () => {
           success={deleteMutator.isSuccess}
           onClick={() =>
             confirm({
-              title: 'Delete integration',
+              title: `Delete ${integration.data?.name ?? 'this integration'}?`,
               description: `Are you sure you want to delete ${integration.data.name}?`,
               onConfirm: async () => {
                 let [res] = await deleteMutator.mutate(undefined as never);

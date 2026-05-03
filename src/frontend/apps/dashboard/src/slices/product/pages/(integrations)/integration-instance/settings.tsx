@@ -58,7 +58,12 @@ export let IntegrationInstanceSettingsPage = () => {
             <Spacer size={15} />
 
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <Button size="2" type="submit" loading={updateMutator.isPending}>
+              <Button
+                size="2"
+                type="submit"
+                loading={updateMutator.isPending}
+                success={updateMutator.isSuccess}
+              >
                 Save
               </Button>
             </div>
@@ -76,12 +81,11 @@ export let IntegrationInstanceSettingsPage = () => {
           <Button
             size="2"
             color="red"
-            variant="soft"
             loading={deleteMutator.isPending}
             onClick={() =>
               confirm({
-                title: 'Delete instance',
-                description: `Delete ${integrationInstance.data.name}?`,
+                title: `Delete ${integrationInstance.data?.name ?? 'this instance'}?`,
+                description: `Are you sure you want to delete this instance? This action cannot be undone.`,
                 confirmText: 'Delete',
                 onConfirm: async () => {
                   let [deleted] = await deleteMutator.mutate(undefined as never);

@@ -59,6 +59,7 @@ let Wrapper = styled.div`
     max-width: 620px;
     z-index: 2;
     position: relative;
+    text-wrap: balance;
   }
 `;
 

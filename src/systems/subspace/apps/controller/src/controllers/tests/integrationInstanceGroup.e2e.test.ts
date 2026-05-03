@@ -661,15 +661,25 @@ describe('integrationInstanceGroup.e2e', () => {
         name: 'Auto-configured instance'
       }
     });
+    let secondIntegrationInstance = await integrationInstanceService.createIntegrationInstance({
+      tenant: tenantRecord,
+      environment: environmentRecord,
+      solution: solutionRecord,
+      integration: graph.integration,
+      input: {
+        name: 'Second auto-configured instance'
+      }
+    });
 
     expect(integrationInstance.integrationInstanceProviders).toHaveLength(2);
     expect(
       integrationInstance.integrationInstanceProviders.every(
-        provider => provider.currentVersion?.config?.isDefault === true
+        provider => provider.currentVersion?.config?.isDefault === false
       )
     ).toBe(true);
+    expect(secondIntegrationInstance.integrationInstanceProviders).toHaveLength(2);
 
-    let defaultConfigs = await testDb.providerConfig.findMany({
+    let reusedConfigs = await testDb.providerConfig.findMany({
       where: {
         oid: {
           in: integrationInstance.integrationInstanceProviders
@@ -679,7 +689,20 @@ describe('integrationInstanceGroup.e2e', () => {
       }
     });
 
-    expect(defaultConfigs).toHaveLength(2);
-    expect(defaultConfigs.every(config => config.isDefault)).toBe(true);
+    expect(reusedConfigs).toHaveLength(2);
+    expect(reusedConfigs.every(config => !config.isDefault)).toBe(true);
+    expect(
+      reusedConfigs.every(
+        config =>
+          config.owningIntegrationInstanceOid === null &&
+          config.owningIntegrationInstanceProviderOid === null
+      )
+    ).toBe(true);
+    let firstConfigIds = reusedConfigs.map(config => config.id).sort();
+    let secondConfigIds = secondIntegrationInstance.integrationInstanceProviders
+      .map(provider => provider.currentVersion?.config?.id)
+      .filter((id): id is string => !!id)
+      .sort();
+    expect(secondConfigIds).toEqual(firstConfigIds);
   });
 });

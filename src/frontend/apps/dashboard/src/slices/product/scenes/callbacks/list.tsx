@@ -235,7 +235,7 @@ export let CallbacksList = () => {
       <EmptyState
         extra="Callbacks"
         title="Create your first callback"
-        description="Callbacks let your deployed providers notify your application when interesting events happen, like new messages or status changes."
+        description="Callbacks let providers notify your application when interesting events happen, like new messages or status changes."
         action={{
           label: 'Add Callback',
           onClick: () => {
