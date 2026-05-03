@@ -392,7 +392,6 @@ export let MethodSelectionStep = (p: {
         )}
 
         <AuthMethodPicker
-          label="Authentication Method"
           hideLabel
           focusOnMount
           value={p.selectedMethodId}

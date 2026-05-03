@@ -55,6 +55,7 @@ export let ProviderSelectionStep = (p: {
   emptyText?: string;
   internalScrollHeight?: string | number;
   providerListingsFilter?: DashboardInstanceProviderListingsListQuery;
+  excludeProviderIds?: string[];
 }) => {
   return (
     <ProvidersWithDeploymentsSearch
@@ -69,6 +70,7 @@ export let ProviderSelectionStep = (p: {
       internalScrollHeight={p.internalScrollHeight ?? 'calc(100vh - 260px)'}
       selectionMode={p.selectionMode}
       providerListingsFilter={p.providerListingsFilter}
+      excludeProviderIds={p.excludeProviderIds}
       emptyText={p.emptyText ?? 'No providers found.'}
       onSelect={provider => {
         p.onSelect(provider.id);

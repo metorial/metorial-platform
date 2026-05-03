@@ -11,6 +11,8 @@ import {
 } from '@metorial/state';
 import { Badge, RenderDate, Text } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
+import { useNavigate } from 'react-router-dom';
+import { EmptyState } from '../../../../components/emptyState';
 import { Table as DashboardTable } from '../../../../components/table';
 import { FilterPayload } from '../../../../components/table/filter';
 import {
@@ -22,6 +24,7 @@ import {
   getEnumListFilterValue,
   getStringFilterValue
 } from '../../../../lib/dataTableUtils';
+import { showCallbackFormModal } from './modal';
 
 type Callback = DashboardInstanceCallbacksListOutput['items'][number];
 
@@ -85,9 +88,11 @@ let callbacksTable = new DashboardTable<CallbacksTableProps, Callback>('callback
           <Text size="2" weight="strong">
             {callback.name || `Callback ${callback.id.slice(0, 8)}...`}
           </Text>
-          <Text size="1" color="gray600">
-            {callback.description || 'No description'}
-          </Text>
+          {callback.description && (
+            <Text size="1" color="gray600">
+              {callback.description}
+            </Text>
+          )}
         </div>
       )
     },
@@ -219,12 +224,39 @@ export let CallbacksList = () => {
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
+  let navigate = useNavigate();
 
   return callbacksTable({
     instanceId: instance.data!.id,
     organization,
     project,
     instance,
-    emptyState: 'No callbacks found.'
+    emptyState: () => (
+      <EmptyState
+        extra="Callbacks"
+        title="Create your first callback"
+        description="Callbacks let your deployed providers notify your application when interesting events happen, like new messages or status changes."
+        action={{
+          label: 'Add Callback',
+          onClick: () => {
+            if (!instance.data) return;
+
+            showCallbackFormModal({
+              instanceId: instance.data.id,
+              onCreate: callback => {
+                navigate(
+                  Paths.instance.callback(
+                    organization.data,
+                    project.data,
+                    instance.data,
+                    callback.id
+                  )
+                );
+              }
+            });
+          }
+        }}
+      />
+    )
   });
 };

@@ -106,9 +106,11 @@ let customProviderTableColumns: TableColumn<CustomProvider, CustomProvidersTable
         <Text size="2" weight="strong">
           {provider.name || 'Untitled'}
         </Text>
-        <Text size="1" color="gray600">
-          {provider.description || 'No description'}
-        </Text>
+        {provider.description && (
+          <Text size="1" color="gray600">
+            {provider.description}
+          </Text>
+        )}
       </div>
     )
   },
