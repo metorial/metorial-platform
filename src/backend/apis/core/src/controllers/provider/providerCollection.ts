@@ -30,7 +30,8 @@ export let providerCollectionController = Controller.create(
   {
     name: 'Provider Collections',
     description:
-      "A collection is a curated set of providers like 'Featured', 'Most Popular', or 'New Arrivals'."
+      "A collection is a curated set of providers like 'Featured', 'Most Popular', or 'New Arrivals'.",
+    hideInDocs: true
   },
   {
     list: instanceGroup

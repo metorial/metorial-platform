@@ -56,7 +56,8 @@ export let magicMcpServerProviderController = Controller.create(
   {
     name: 'Magic MCP Server Providers',
     description:
-      'Magic MCP server providers define which providers are included in the setup session template backing a magic MCP server.'
+      'Magic MCP server providers define which providers are included in the setup session template backing a magic MCP server.',
+    hideInDocs: true
   },
   {
     list: magicMcpServerGroup

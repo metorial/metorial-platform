@@ -9,7 +9,7 @@ export let providerDocsCategory = createCategory({
 export let customProviderDocsCategory = createCategory({
   id: 'custom-provider',
   name: 'Custom Providers',
-  indexHint: 20
+  indexHint: 35
 });
 
 export let sessionDocsCategory = createCategory({
@@ -27,7 +27,7 @@ export let identityDocsCategory = createCategory({
 export let configurationDocsCategory = createCategory({
   id: 'configuration',
   name: 'Configurations',
-  indexHint: 50
+  indexHint: 15
 });
 
 export let callbackDocsCategory = createCategory({
