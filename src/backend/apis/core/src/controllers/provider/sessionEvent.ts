@@ -45,7 +45,8 @@ export let sessionEventController = Controller.create(
   {
     name: 'Session Events',
     description:
-      'Session events represent significant occurrences during a session, such as errors or state changes. This read-only resource provides visibility into session activity.'
+      'Session events represent significant occurrences during a session, such as errors or state changes. This read-only resource provides visibility into session activity.',
+    hideInDocs: true
   },
   {
     list: instanceGroup

@@ -3,9 +3,9 @@ import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { MagicMcpServerStatus } from '@metorial/db';
 import {
-  grantConsumerOwnedMagicMcpServerAccess,
   consumerProfileService,
-  consumerService
+  consumerService,
+  grantConsumerOwnedMagicMcpServerAccess
 } from '@metorial/module-consumer';
 import { magicMcpServerService } from '@metorial/module-magic';
 import { subspaceSessionTemplateService } from '@metorial/module-subspace';
@@ -123,7 +123,8 @@ export let magicMcpServerController = Controller.create(
   {
     name: 'Magic MCP Servers',
     description:
-      'Magic MCP servers are stable MCP entrypoints backed by one Subspace session template.'
+      'Magic MCP servers are stable MCP entrypoints backed by one Subspace session template.',
+    hideInDocs: true
   },
   {
     list: instanceGroup

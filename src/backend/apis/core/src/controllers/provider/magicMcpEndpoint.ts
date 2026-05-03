@@ -80,7 +80,8 @@ let resolveMagicMcpEndpointServers = (d: {
     throw new ServiceError(
       badRequestError({
         message: 'At least one server is required.',
-        description: 'Provide either `magic_mcp_server_ids` or `servers` with at least one entry.'
+        description:
+          'Provide either `magic_mcp_server_ids` or `servers` with at least one entry.'
       })
     );
   }
@@ -92,7 +93,8 @@ export let magicMcpEndpointController = Controller.create(
   {
     name: 'Magic MCP Endpoints',
     description:
-      'Magic MCP endpoints combine multiple Magic MCP servers behind one routed connection target.'
+      'Magic MCP endpoints combine multiple Magic MCP servers behind one routed connection target.',
+    hideInDocs: true
   },
   {
     list: instanceGroup
