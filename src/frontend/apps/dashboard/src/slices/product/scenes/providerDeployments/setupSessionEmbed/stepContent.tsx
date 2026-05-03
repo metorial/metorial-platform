@@ -191,6 +191,7 @@ let CredentialsSelector = (p: {
   isCreatingCredentials: boolean;
   redirectUri?: string;
   isCustomSelected: boolean;
+  disableCredentialSelection?: boolean;
   disabled?: boolean;
 }) => {
   let shouldShowRedirectUri =
@@ -202,20 +203,24 @@ let CredentialsSelector = (p: {
     <>
       <Select
         label="Credentials"
-        description="Select existing credentials or add new ones for this provider."
+        description={
+          p.disableCredentialSelection
+            ? 'Credentials are fixed by the integration provider for this auth config.'
+            : 'Select existing credentials or add new ones for this provider.'
+        }
         value={
           p.credentialsForm.values.credentialMode === 'new'
             ? '__create_new__'
             : p.selectedCredentialId
         }
         placeholder="Select or add credentials"
-        disabled={p.disabled}
+        disabled={p.disabled || p.disableCredentialSelection}
         onChange={p.handleCredentialSelectionChange}
         items={p.credentialSelectItems}
       />
       <p.credentialsForm.RenderError field="selectedCredentialId" />
 
-      {p.hasManagedVisibleCredentials && (
+      {p.hasManagedVisibleCredentials && !p.disableCredentialSelection && (
         <>
           <Spacer size={5} />
           <Text size="1" color="gray600">
@@ -229,7 +234,7 @@ let CredentialsSelector = (p: {
         <RedirectUriField redirectUri={p.redirectUri} />
       )}
 
-      {p.isCreatingCredentials && (
+      {p.isCreatingCredentials && !p.disableCredentialSelection && (
         <NewCredentialsFields credentialsForm={p.credentialsForm} disabled={p.disabled} />
       )}
     </>
@@ -392,7 +397,6 @@ export let MethodSelectionStep = (p: {
         )}
 
         <AuthMethodPicker
-          label="Authentication Method"
           hideLabel
           focusOnMount
           value={p.selectedMethodId}
@@ -436,6 +440,7 @@ export let CredentialsSelectionStep = (p: {
   redirectUri?: string;
   isCustomSelected: boolean;
   isCreatingCredentials: boolean;
+  disableCredentialSelection?: boolean;
   projectBrandImageUrl?: string | null;
   projectBrandName: string;
   providerName: string;
@@ -480,6 +485,7 @@ export let CredentialsSelectionStep = (p: {
                 isCreatingCredentials={p.isCreatingCredentials}
                 redirectUri={p.redirectUri}
                 isCustomSelected={p.isCustomSelected}
+                disableCredentialSelection={p.disableCredentialSelection}
               />
             </ManagedCredentialsColumn>
 
@@ -504,6 +510,7 @@ export let CredentialsSelectionStep = (p: {
             isCreatingCredentials={p.isCreatingCredentials}
             redirectUri={p.redirectUri}
             isCustomSelected={p.isCustomSelected}
+            disableCredentialSelection={p.disableCredentialSelection}
           />
         )}
 
@@ -566,6 +573,7 @@ export let FlatOAuthConnectStep = (p: {
   isCustomSelected: boolean;
   credentialsForm: AnyForm;
   isCreatingCredentials: boolean;
+  disableCredentialSelection?: boolean;
   credentialSelectItems: CredentialSelectItem[];
   handleCredentialSelectionChange: (value: string) => void;
   hasManagedVisibleCredentials: boolean;
@@ -625,6 +633,7 @@ export let FlatOAuthConnectStep = (p: {
                 redirectUri={p.redirectUri}
                 isCreatingCredentials={p.isCreatingCredentials}
                 isCustomSelected={p.isCustomSelected}
+                disableCredentialSelection={p.disableCredentialSelection}
                 disabled={isWindowOpen}
               />
             </FlatConnectSection>

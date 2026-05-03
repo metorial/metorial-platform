@@ -211,6 +211,40 @@ let SessionTemplateSettingsPage = dynamicPage(() =>
   )
 );
 
+let IntegrationsListLayout = dynamicPage(() =>
+  import('./pages/(integrations)/(list)/_layout').then(c => c.IntegrationsListLayout)
+);
+let IntegrationsPage = dynamicPage(() =>
+  import('./pages/(integrations)/(list)/integrations').then(c => c.IntegrationsPage)
+);
+let IntegrationLayout = dynamicPage(() =>
+  import('./pages/(integrations)/integration/_layout').then(c => c.IntegrationLayout)
+);
+let IntegrationOverviewPage = dynamicPage(() =>
+  import('./pages/(integrations)/integration').then(c => c.IntegrationOverviewPage)
+);
+let IntegrationInstancesPage = dynamicPage(() =>
+  import('./pages/(integrations)/integration/instances').then(c => c.IntegrationInstancesPage)
+);
+let IntegrationSettingsPage = dynamicPage(() =>
+  import('./pages/(integrations)/integration/settings').then(c => c.IntegrationSettingsPage)
+);
+let IntegrationInstanceLayout = dynamicPage(() =>
+  import('./pages/(integrations)/integration-instance/_layout').then(
+    c => c.IntegrationInstanceLayout
+  )
+);
+let IntegrationInstanceOverviewPage = dynamicPage(() =>
+  import('./pages/(integrations)/integration-instance').then(
+    c => c.IntegrationInstanceOverviewPage
+  )
+);
+let IntegrationInstanceSettingsPage = dynamicPage(() =>
+  import('./pages/(integrations)/integration-instance/settings').then(
+    c => c.IntegrationInstanceSettingsPage
+  )
+);
+
 let IdentityListLayout = dynamicPage(() =>
   import('./pages/(identity)/(list)/_layout').then(c => c.IdentityListLayout)
 );
@@ -879,6 +913,51 @@ export let productHomeSlice = createSlice([
               {
                 path: '',
                 element: <ProvidersPage />
+              }
+            ]
+          },
+
+          {
+            path: 'integrations',
+            element: <IntegrationsListLayout />,
+            children: [
+              {
+                path: '',
+                element: <IntegrationsPage />
+              }
+            ]
+          },
+
+          {
+            path: 'integration/:integrationId',
+            element: <IntegrationLayout />,
+            children: [
+              {
+                path: '',
+                element: <IntegrationOverviewPage />
+              },
+              {
+                path: 'instances',
+                element: <IntegrationInstancesPage />
+              },
+              {
+                path: 'settings',
+                element: <IntegrationSettingsPage />
+              }
+            ]
+          },
+
+          {
+            path: 'integration-instance/:integrationInstanceId',
+            element: <IntegrationInstanceLayout />,
+            children: [
+              {
+                path: '',
+                element: <IntegrationInstanceOverviewPage />
+              },
+              {
+                path: 'settings',
+                element: <IntegrationInstanceSettingsPage />
               }
             ]
           },

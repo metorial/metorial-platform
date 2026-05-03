@@ -13,6 +13,7 @@ import {
   type Tenant
 } from '@metorial-subspace/db';
 import {
+  integrationInstanceService,
   integrationInstanceGroupProviderService,
   integrationInstanceGroupService
 } from '@metorial-subspace/module-integration';
@@ -613,5 +614,95 @@ describe('integrationInstanceGroup.e2e', () => {
         ]
       })
     ).rejects.toThrow(/duplicate integration providers/i);
+  });
+
+  it('auto-materializes configless integration providers when creating an integration instance', async () => {
+    let anonymousClient = createSubspaceControllerRootTestClient();
+    let solution = await anonymousClient.solution.upsert({
+      name: 'Test Solution',
+      identifier: `test-solution-${suffix()}`
+    });
+    let client = createSubspaceControllerRootTestClient({
+      headers: { 'Subspace-Solution-Id': solution.id }
+    });
+    let tenant = await client.tenant.upsert({
+      name: 'Test Tenant',
+      identifier: `test-tenant-${suffix()}`,
+      environments: [
+        {
+          name: 'Development',
+          identifier: `test-tenant-dev-${suffix()}`,
+          type: 'development'
+        }
+      ]
+    });
+
+    let [tenantRecord, environmentRecord, solutionRecord] = await Promise.all([
+      testDb.tenant.findUnique({ where: { id: tenant.id } }),
+      testDb.environment.findFirst({ where: { tenant: { id: tenant.id } } }),
+      testDb.solution.findUnique({ where: { id: solution.id } })
+    ]);
+    if (!tenantRecord || !environmentRecord || !solutionRecord) {
+      throw new Error('Test setup failed to resolve tenant/environment/solution records');
+    }
+
+    let graph = await createIntegrationGraph({
+      tenant: tenantRecord,
+      environment: environmentRecord,
+      solution: solutionRecord
+    });
+
+    let integrationInstance = await integrationInstanceService.createIntegrationInstance({
+      tenant: tenantRecord,
+      environment: environmentRecord,
+      solution: solutionRecord,
+      integration: graph.integration,
+      input: {
+        name: 'Auto-configured instance'
+      }
+    });
+    let secondIntegrationInstance = await integrationInstanceService.createIntegrationInstance({
+      tenant: tenantRecord,
+      environment: environmentRecord,
+      solution: solutionRecord,
+      integration: graph.integration,
+      input: {
+        name: 'Second auto-configured instance'
+      }
+    });
+
+    expect(integrationInstance.integrationInstanceProviders).toHaveLength(2);
+    expect(
+      integrationInstance.integrationInstanceProviders.every(
+        provider => provider.currentVersion?.config?.isDefault === false
+      )
+    ).toBe(true);
+    expect(secondIntegrationInstance.integrationInstanceProviders).toHaveLength(2);
+
+    let reusedConfigs = await testDb.providerConfig.findMany({
+      where: {
+        oid: {
+          in: integrationInstance.integrationInstanceProviders
+            .map(provider => provider.currentVersion?.configOid)
+            .filter(Boolean) as bigint[]
+        }
+      }
+    });
+
+    expect(reusedConfigs).toHaveLength(2);
+    expect(reusedConfigs.every(config => !config.isDefault)).toBe(true);
+    expect(
+      reusedConfigs.every(
+        config =>
+          config.owningIntegrationInstanceOid === null &&
+          config.owningIntegrationInstanceProviderOid === null
+      )
+    ).toBe(true);
+    let firstConfigIds = reusedConfigs.map(config => config.id).sort();
+    let secondConfigIds = secondIntegrationInstance.integrationInstanceProviders
+      .map(provider => provider.currentVersion?.config?.id)
+      .filter((id): id is string => !!id)
+      .sort();
+    expect(secondConfigIds).toEqual(firstConfigIds);
   });
 });

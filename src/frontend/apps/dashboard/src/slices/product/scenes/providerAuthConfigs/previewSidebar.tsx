@@ -6,7 +6,6 @@ import {
 } from '@metorial/state';
 import { Button, Spacer, Text, Title, theme } from '@metorial/ui';
 import { RiCheckLine } from '@remixicon/react';
-import { Link } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
 
 export type PreviewMode = 'managed' | 'manual_existing' | 'manual_new';
@@ -218,7 +217,7 @@ let SetupFlowPreviewFooterLink = styled.a`
   font-weight: 500;
 `;
 
-let SetupFlowPreviewBrandingLink = styled(Link)`
+let SetupFlowPreviewBrandingLink = styled.a`
   font-size: 12px;
   color: ${theme.colors.gray600};
   text-decoration: none;
@@ -433,7 +432,7 @@ export let SetupFlowPreviewSidebar = (p: {
 
         <SetupFlowPreviewBrandingSlot>
           {brandingPath && p.showBrandingLink && (
-            <SetupFlowPreviewBrandingLink to={brandingPath}>
+            <SetupFlowPreviewBrandingLink href={brandingPath}>
               <Button as="span" size="2">
                 Customize branding
               </Button>

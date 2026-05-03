@@ -52,7 +52,7 @@ let requireCurrentIntegrationProviderVersion = async (integrationProviderOid: bi
     where: { oid: integrationProviderOid },
     include: {
       integration: { include: { currentVersion: true } },
-      provider: true,
+      provider: { include: { type: true } },
       currentVersion: {
         include: {
           deployment: true,
@@ -93,6 +93,14 @@ let getInputOverrideToolFilter = (input: SetIntegrationInstanceProviderInput) =>
   if (input.toolFilters === undefined) return undefined;
 
   return normalizeIntegrationProviderToolFilter(input.toolFilters).ignoreParentFilters;
+};
+
+let shouldInheritSharedConfig = (d: {
+  input: SetIntegrationInstanceProviderInput;
+  sharedConfigId?: string | null;
+}) => {
+  if (!d.sharedConfigId) return false;
+  return d.input.providerConfigId === null || d.input.providerConfigId === d.sharedConfigId;
 };
 
 let configOwnershipError = (kind: 'config' | 'auth_config', id: string) =>
@@ -419,6 +427,7 @@ class integrationInstanceProviderServiceImpl {
 
       if (
         !integration.canAttachCustomProviderConfig &&
+        materialProvider.provider.type.attributes.config.status !== 'disabled' &&
         input.providerConfigId &&
         sharedConfigId &&
         input.providerConfigId !== sharedConfigId
@@ -454,7 +463,17 @@ class integrationInstanceProviderServiceImpl {
       }
     }
 
+    let inheritSharedConfigs = d.input.map((input, idx) =>
+      shouldInheritSharedConfig({
+        input,
+        sharedConfigId: materialProviders[idx]!.currentVersion!.config?.id
+      })
+    );
+
     let configIds = d.input.map((input, idx) => {
+      let sharedConfigId = materialProviders[idx]!.currentVersion!.config?.id;
+      if (inheritSharedConfigs[idx] && sharedConfigId) return sharedConfigId;
+
       if (input.providerConfigId === undefined) {
         return existingByIntegrationProviderOid.get(integrationProviders[idx]!.oid)
           ?.currentVersion?.config?.id;
@@ -522,13 +541,18 @@ class integrationInstanceProviderServiceImpl {
         let combination = combinations[idx]!;
         let existing = existingByIntegrationProviderOid.get(integrationProvider.oid);
         let deploymentOid = materialProvider.currentVersion!.deploymentOid;
+        let isInheritedSharedConfig =
+          inheritSharedConfigs[idx] &&
+          materialProvider.currentVersion!.config?.oid === combination.config.oid;
 
-        assertCanUseOwnedResource({
-          kind: 'config',
-          resource: combination.config,
-          integrationInstanceOid: d.integrationInstance.oid,
-          integrationInstanceProviderOid: existing?.oid
-        });
+        if (!isInheritedSharedConfig) {
+          assertCanUseOwnedResource({
+            kind: 'config',
+            resource: combination.config,
+            integrationInstanceOid: d.integrationInstance.oid,
+            integrationInstanceProviderOid: existing?.oid
+          });
+        }
         if (
           combination.config.deploymentOid &&
           combination.config.deploymentOid !== deploymentOid
@@ -583,35 +607,37 @@ class integrationInstanceProviderServiceImpl {
               }
             });
 
-        let configUpdate = await db.providerConfig.updateMany({
-          where: {
-            oid: combination.config.oid,
-            AND: [
-              {
-                OR: [
-                  {
-                    owningIntegrationInstanceOid: null,
-                    owningIntegrationInstanceProviderOid: null
-                  },
-                  {
-                    owningIntegrationInstanceOid: d.integrationInstance.oid,
-                    owningIntegrationInstanceProviderOid: integrationInstanceProvider.oid
-                  }
-                ]
-              },
-              {
-                OR: [{ deploymentOid: null }, { deploymentOid: deploymentOid }]
-              }
-            ]
-          },
-          data: {
-            owningIntegrationInstanceOid: d.integrationInstance.oid,
-            owningIntegrationInstanceProviderOid: integrationInstanceProvider.oid,
-            deploymentOid
+        if (!isInheritedSharedConfig) {
+          let configUpdate = await db.providerConfig.updateMany({
+            where: {
+              oid: combination.config.oid,
+              AND: [
+                {
+                  OR: [
+                    {
+                      owningIntegrationInstanceOid: null,
+                      owningIntegrationInstanceProviderOid: null
+                    },
+                    {
+                      owningIntegrationInstanceOid: d.integrationInstance.oid,
+                      owningIntegrationInstanceProviderOid: integrationInstanceProvider.oid
+                    }
+                  ]
+                },
+                {
+                  OR: [{ deploymentOid: null }, { deploymentOid: deploymentOid }]
+                }
+              ]
+            },
+            data: {
+              owningIntegrationInstanceOid: d.integrationInstance.oid,
+              owningIntegrationInstanceProviderOid: integrationInstanceProvider.oid,
+              deploymentOid
+            }
+          });
+          if (configUpdate.count !== 1) {
+            throw new ServiceError(configOwnershipError('config', combination.config.id));
           }
-        });
-        if (configUpdate.count !== 1) {
-          throw new ServiceError(configOwnershipError('config', combination.config.id));
         }
 
         if (combination.authConfig) {

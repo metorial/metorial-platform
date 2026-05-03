@@ -4,13 +4,11 @@ import {
 } from '@metorial/util-endpoint';
 
 import {
-  mapDashboardInstanceIntegrationInstanceProvidersDeleteOutput,
   mapDashboardInstanceIntegrationInstanceProvidersGetOutput,
   mapDashboardInstanceIntegrationInstanceProvidersListOutput,
   mapDashboardInstanceIntegrationInstanceProvidersListQuery,
   mapDashboardInstanceIntegrationInstanceProvidersSetBody,
   mapDashboardInstanceIntegrationInstanceProvidersSetOutput,
-  type DashboardInstanceIntegrationInstanceProvidersDeleteOutput,
   type DashboardInstanceIntegrationInstanceProvidersGetOutput,
   type DashboardInstanceIntegrationInstanceProvidersListOutput,
   type DashboardInstanceIntegrationInstanceProvidersListQuery,
@@ -141,35 +139,6 @@ export class MetorialManagementInstanceIntegrationInstanceProvidersEndpoint {
 
     return this._put(request).transform(
       mapDashboardInstanceIntegrationInstanceProvidersSetOutput
-    );
-  }
-
-  /**
-   * @name Delete integration instance provider
-   * @description Archives a specific integration instance provider.
-   *
-   * @param `instanceId` - string
-   * @param `integrationInstanceProviderId` - string
-   * @param `opts` - { headers?: Record<string, string> }
-   * @returns DashboardInstanceIntegrationInstanceProvidersDeleteOutput
-   * @see https://metorial.com/api
-   * @see https://metorial.com/docs
-   */
-  delete(
-    instanceId: string,
-    integrationInstanceProviderId: string,
-    opts?: { headers?: Record<string, string> }
-  ): Promise<DashboardInstanceIntegrationInstanceProvidersDeleteOutput> {
-    let path = `instances/${instanceId}/integration-instance-providers/${integrationInstanceProviderId}`;
-
-    let request = {
-      path,
-
-      ...(opts?.headers ? { headers: opts.headers } : {})
-    } as any;
-
-    return this._delete(request).transform(
-      mapDashboardInstanceIntegrationInstanceProvidersDeleteOutput
     );
   }
 }

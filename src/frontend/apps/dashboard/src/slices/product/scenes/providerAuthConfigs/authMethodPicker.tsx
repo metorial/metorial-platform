@@ -1,6 +1,6 @@
+import { Text, theme } from '@metorial/ui';
 import * as RadixToggleGroup from '@radix-ui/react-toggle-group';
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
-import { Text, theme } from '@metorial/ui';
 import { type ReactNode, useEffect, useId, useRef } from 'react';
 import styled from 'styled-components';
 
@@ -30,7 +30,7 @@ let MethodsRoot = styled(RadixToggleGroup.Root)`
   flex-direction: column;
   width: 100%;
   border: 0;
-  border-radius: 20px;
+  border-radius: 10px;
   background: ${theme.colors.background};
   overflow: hidden;
   box-shadow: inset 0 0 0 1px ${theme.colors.gray300};
@@ -56,13 +56,13 @@ let MethodItem = styled(RadixToggleGroup.Item)`
     box-shadow 0.18s ease;
 
   &:first-child {
-    border-top-left-radius: 19px;
-    border-top-right-radius: 19px;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
   }
 
   &:last-child {
-    border-bottom-left-radius: 19px;
-    border-bottom-right-radius: 19px;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
   }
 
   & + & {

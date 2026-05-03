@@ -610,8 +610,11 @@ type ProviderSetupSectionsProps = {
   instanceId: string;
   providerId: string;
   providerName: string;
+  showProviderSummary?: boolean;
   defaultAuthConfigName?: string;
   providerDeploymentId?: string | null;
+  fixedAuthMethodId?: string;
+  fixedAuthCredentialsId?: string;
   selectedConfiguration: ConfigurationSelection;
   onSelectedConfigurationChange: (value: ConfigurationSelection) => void;
   selectedAuthConfigId: string;
@@ -623,6 +626,17 @@ type ProviderSetupSectionsProps = {
   configError?: ReactNode;
   authError?: ReactNode;
   showToolFilters?: boolean;
+  showConfigSection?: boolean;
+  showAuthSection?: boolean;
+  /**
+   * Render the config section even when `provider.data?.type.config.status`
+   * isn't strictly `'enabled'`. Useful for providers that only ever take an
+   * empty config but still accept a `configId` -- callers (e.g. the edit
+   * provider flow) can opt in to surfacing the picker for those.
+   */
+  forceConfigSectionVisible?: boolean;
+  configRequirement?: 'required' | 'optional';
+  authRequirement?: 'required' | 'optional';
   showExistingConfigOptions?: boolean;
   showExistingAuthOptions?: boolean;
   autoStartManagedCredentialSetup?: boolean;
@@ -653,6 +667,11 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
   let selectedAuthConfig = useProviderAuthConfig(p.instanceId, p.selectedAuthConfigId || null);
   let providerVersionId = provider.data?.currentVersion?.id ?? null;
   let showToolFilters = p.showToolFilters ?? true;
+  let showConfigSection = p.showConfigSection ?? true;
+  let showAuthSection = p.showAuthSection ?? true;
+  let showProviderSummary = p.showProviderSummary ?? true;
+  let configRequirement = p.configRequirement ?? 'required';
+  let authRequirement = p.authRequirement ?? 'required';
   let showExistingConfigOptions = p.showExistingConfigOptions ?? true;
   let showExistingAuthOptions = p.showExistingAuthOptions ?? true;
   let autoStartManagedCredentialSetup = p.autoStartManagedCredentialSetup ?? false;
@@ -661,7 +680,9 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
     showToolFilters && providerVersionId ? { providerVersionId } : null
   );
   let toolItems = tools.data?.items ?? [];
-  let requiresProviderConfig = provider.data?.type.config.status == 'enabled';
+  let requiresProviderConfig =
+    showConfigSection &&
+    (p.forceConfigSectionVisible || provider.data?.type.config.status == 'enabled');
   let normalizedTools = toolItems.map(tool => ({
     key: tool.key ?? tool.name,
     name: tool.name,
@@ -673,7 +694,7 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
   let readOnlyTools = normalizedTools.filter(tool => tool.group === 'read');
   let writeTools = normalizedTools.filter(tool => tool.group === 'write');
   let destructiveTools = normalizedTools.filter(tool => tool.group === 'destructive');
-  let requiresAuthConfig = provider.data?.type.auth.status == 'enabled';
+  let requiresAuthConfig = showAuthSection && provider.data?.type.auth.status == 'enabled';
   let pendingCreatedAuthConfigIdRef = useRef<string | null>(null);
   let selectedToolKeys = p.selectedToolKeys ?? [];
   let toolFilterMode = p.toolFilterMode ?? 'all';
@@ -798,27 +819,29 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
     : `Log in with ${providerDisplayName}`;
   let providerImageUrl = providerListing.data?.imageUrl;
 
-  sectionItems.push(
-    <Entity.Wrapper key="provider-summary">
-      <Entity.Content>
-        <Entity.Field
-          title={providerDisplayName}
-          prefix={
-            <Avatar
-              entity={{
-                name: providerDisplayName,
-                photoUrl: providerImageUrl ?? undefined
-              }}
-              size={32}
-              radius={8}
-              noTooltip
-              imageFit="contain"
-            />
-          }
-        />
-      </Entity.Content>
-    </Entity.Wrapper>
-  );
+  if (showProviderSummary) {
+    sectionItems.push(
+      <Entity.Wrapper key="provider-summary">
+        <Entity.Content>
+          <Entity.Field
+            title={providerDisplayName}
+            prefix={
+              <Avatar
+                entity={{
+                  name: providerDisplayName,
+                  photoUrl: providerImageUrl ?? undefined
+                }}
+                size={32}
+                radius={8}
+                noTooltip
+                imageFit="contain"
+              />
+            }
+          />
+        </Entity.Content>
+      </Entity.Wrapper>
+    );
+  }
 
   if (requiresProviderConfig) {
     sectionItems.push(
@@ -826,7 +849,7 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
         key="config"
         title="Config"
         description="Choose the provider configuration or vault this setup should use."
-        requirement="required"
+        requirement={configRequirement}
         completed={isConfigCompleted}
       >
         <div>
@@ -854,7 +877,7 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
         key="auth"
         title="Auth Config"
         description="Select the authentication settings this setup should use when it connects to the provider."
-        requirement="required"
+        requirement={authRequirement}
         completed={isAuthCompleted}
       >
         <div>
@@ -888,7 +911,8 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
                         providerId: p.providerId,
                         limit: 25,
                         search: searchQuery || undefined,
-                        providerDeploymentId: p.providerDeploymentId ?? undefined
+                        providerDeploymentId: p.providerDeploymentId ?? undefined,
+                        providerAuthMethodId: p.fixedAuthMethodId ?? undefined
                       });
 
                       return {
@@ -913,6 +937,8 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
                 instanceId={p.instanceId}
                 providerDeploymentId={p.providerDeploymentId ?? undefined}
                 providerId={p.providerId}
+                fixedAuthMethodId={p.fixedAuthMethodId}
+                fixedAuthCredentialsId={p.fixedAuthCredentialsId}
                 defaultAuthConfigName={p.defaultAuthConfigName}
                 autoStartManagedCredentialSetup={autoStartManagedCredentialSetup}
                 onCreate={async authConfig => {

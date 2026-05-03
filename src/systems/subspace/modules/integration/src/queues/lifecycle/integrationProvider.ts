@@ -1,4 +1,4 @@
-import { createQueue } from '@lowerdeck/queue';
+import { createQueue, QueueRetryError } from '@lowerdeck/queue';
 import { db } from '@metorial-subspace/db';
 import { identityInternalService } from '@metorial-subspace/module-identity';
 import { syncIntegrationInstanceGroupSessionTemplatesQueue } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedIntegrationInstanceGroupTemplate';
@@ -32,7 +32,18 @@ export let integrationProviderCreatedQueue = createQueue<{ integrationProviderId
 
 export let integrationProviderCreatedQueueProcessor = integrationProviderCreatedQueue.process(
   async data => {
+    let integrationProvider = await db.integrationProvider.findUnique({
+      where: { id: data.integrationProviderId },
+      include: { integration: true }
+    });
+    if (!integrationProvider) throw new QueueRetryError();
+
     await indexParentIntegration(data.integrationProviderId);
+
+    await db.integrationInstanceProvider.updateMany({
+      where: { integrationProviderOid: integrationProvider.oid },
+      data: { isParentDeleted: false }
+    });
   }
 );
 
