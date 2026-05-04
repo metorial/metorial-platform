@@ -14,6 +14,7 @@ import {
   type ProviderConfig,
   type Solution,
   type Tenant,
+  type TransactionDB,
   withTransaction
 } from '@metorial-subspace/db';
 import {
@@ -41,15 +42,20 @@ import {
   refreshIntegrationInstanceStatus
 } from '../lib/versions';
 import { integrationInstanceProviderSetQueue } from '../queues/lifecycle/integrationInstanceProvider';
+import { getIntegrationToolFilterCapabilities } from './integration';
 import {
   integrationInstanceProviderInclude,
   integrationInstanceProviderVersionInclude
 } from './integrationInstance';
 import { integrationProviderService } from './integrationProvider';
 
-let requireCurrentIntegrationProviderVersion = async (integrationProviderOid: bigint) => {
-  let integrationProvider = await db.integrationProvider.findUniqueOrThrow({
-    where: { oid: integrationProviderOid },
+let requireCurrentIntegrationProviderVersion = async (d: {
+  db?: TransactionDB;
+  integrationProviderOid: bigint;
+}) => {
+  let tx = d.db ?? db;
+  let integrationProvider = await tx.integrationProvider.findUniqueOrThrow({
+    where: { oid: d.integrationProviderOid },
     include: {
       integration: { include: { currentVersion: true } },
       provider: { include: { type: true } },
@@ -152,6 +158,7 @@ export type SetIntegrationInstanceProviderInput = {
   providerAuthConfigId?: string;
   toolFilters?: PrismaJson.ToolFilter | null;
   isOverrideToolFilter?: boolean;
+  lockProviderResources?: boolean;
 };
 
 class integrationInstanceProviderServiceImpl {
@@ -201,8 +208,8 @@ class integrationInstanceProviderServiceImpl {
               solutionOid: d.solution.oid,
               environmentOid: d.environment.oid,
               integrationInstance: d.includeMagicMcpBackings
-                ? undefined
-                : { isMagicMcpBacking: false },
+                ? { isHiddenDraft: false }
+                : { isMagicMcpBacking: false, isHiddenDraft: false },
 
               ...normalizeStatusForList(d).hasParent,
 
@@ -301,239 +308,247 @@ class integrationInstanceProviderServiceImpl {
 
     if (d.input.length === 0) return [];
 
-    let providerReferences = d.input.map(input => input.providerId);
+    return await withTransaction(async db => {
+      let providerReferences = d.input.map(input => input.providerId);
 
-    let directIntegrationProviders = await db.integrationProvider.findMany({
-      where: {
-        id: { in: providerReferences },
-        tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
-        environmentOid: d.environment.oid
-      }
-    });
-    let integrationProvidersByReference = new Map(
-      directIntegrationProviders.map(integrationProvider => [
-        integrationProvider.id,
-        integrationProvider
-      ])
-    );
-
-    let missingReferences = providerReferences.filter(
-      reference => !integrationProvidersByReference.has(reference!)
-    );
-    let fallbackProviders = await Promise.all(
-      missingReferences.map(async reference => ({
-        reference: reference!,
-        provider: await providerService.getProviderById({
-          providerId: reference!,
-          tenant: d.tenant,
-          solution: d.solution,
-          environment: d.environment
-        })
-      }))
-    );
-
-    if (fallbackProviders.length) {
-      let fallbackIntegrationProviders = await db.integrationProvider.findMany({
+      let directIntegrationProviders = await db.integrationProvider.findMany({
         where: {
-          integrationOid: d.integrationInstance.integrationOid,
-          providerOid: { in: fallbackProviders.map(({ provider }) => provider.oid) },
+          id: { in: providerReferences },
           tenantOid: d.tenant.oid,
           solutionOid: d.solution.oid,
-          environmentOid: d.environment.oid,
-          status: 'active'
+          environmentOid: d.environment.oid
         }
       });
+      let integrationProvidersByReference = new Map(
+        directIntegrationProviders.map(integrationProvider => [
+          integrationProvider.id,
+          integrationProvider
+        ])
+      );
 
-      for (let { reference, provider } of fallbackProviders) {
-        let integrationProvider = fallbackIntegrationProviders.find(
-          integrationProvider => integrationProvider.providerOid === provider.oid
-        );
-        if (integrationProvider) {
-          integrationProvidersByReference.set(reference, integrationProvider);
-        }
-      }
-    }
-
-    let integrationProviders = providerReferences.map(reference => {
-      let integrationProvider = integrationProvidersByReference.get(reference!);
-      if (!integrationProvider) {
-        throw new ServiceError(notFoundError('integration.provider', reference));
-      }
-      return integrationProvider;
-    });
-
-    let seenIntegrationProviderOids = new Set<string>();
-    for (let integrationProvider of integrationProviders) {
-      checkDeletedRelation(integrationProvider);
-      if (integrationProvider.integrationOid !== d.integrationInstance.integrationOid) {
-        throw new ServiceError(
-          badRequestError({
-            message: 'Integration provider does not belong to this integration instance.',
-            code: 'integration_instance_provider_mismatch'
+      let missingReferences = providerReferences.filter(
+        reference => !integrationProvidersByReference.has(reference!)
+      );
+      let fallbackProviders = await Promise.all(
+        missingReferences.map(async reference => ({
+          reference: reference!,
+          provider: await providerService.getProviderById({
+            providerId: reference!,
+            tenant: d.tenant,
+            solution: d.solution,
+            environment: d.environment
           })
-        );
-      }
+        }))
+      );
 
-      let oid = integrationProvider.oid.toString();
-      if (seenIntegrationProviderOids.has(oid)) {
-        throw new ServiceError(
-          badRequestError({
-            message: 'Integration instance provider inputs contain duplicates.',
-            code: 'duplicate_integration_instance_provider'
-          })
-        );
-      }
-      seenIntegrationProviderOids.add(oid);
-    }
+      if (fallbackProviders.length) {
+        let fallbackIntegrationProviders = await db.integrationProvider.findMany({
+          where: {
+            integrationOid: d.integrationInstance.integrationOid,
+            providerOid: { in: fallbackProviders.map(({ provider }) => provider.oid) },
+            tenantOid: d.tenant.oid,
+            solutionOid: d.solution.oid,
+            environmentOid: d.environment.oid,
+            status: 'active'
+          }
+        });
 
-    let materialProviders = await Promise.all(
-      integrationProviders.map(integrationProvider =>
-        requireCurrentIntegrationProviderVersion(integrationProvider.oid)
-      )
-    );
-
-    let existingIntegrationInstanceProviders = await db.integrationInstanceProvider.findMany({
-      where: {
-        integrationInstanceOid: d.integrationInstance.oid,
-        integrationProviderOid: {
-          in: integrationProviders.map(integrationProvider => integrationProvider.oid)
-        }
-      },
-      include: {
-        currentVersion: {
-          include: {
-            config: true
+        for (let { reference, provider } of fallbackProviders) {
+          let integrationProvider = fallbackIntegrationProviders.find(
+            integrationProvider => integrationProvider.providerOid === provider.oid
+          );
+          if (integrationProvider) {
+            integrationProvidersByReference.set(reference, integrationProvider);
           }
         }
       }
-    });
-    let existingByIntegrationProviderOid = new Map(
-      existingIntegrationInstanceProviders.map(integrationInstanceProvider => [
-        integrationInstanceProvider.integrationProviderOid,
-        integrationInstanceProvider
-      ])
-    );
 
-    for (let [idx, input] of d.input.entries()) {
-      let materialProvider = materialProviders[idx]!;
-      let integration = materialProvider.integration;
-      let sharedConfigId = materialProvider.currentVersion!.config?.id;
-      let existing = existingByIntegrationProviderOid.get(integrationProviders[idx]!.oid);
-      let isOverrideToolFilter =
-        getInputOverrideToolFilter(input) ??
-        existing?.currentVersion?.isOverrideToolFilter ??
-        false;
+      let integrationProviders = providerReferences.map(reference => {
+        let integrationProvider = integrationProvidersByReference.get(reference!);
+        if (!integrationProvider) {
+          throw new ServiceError(notFoundError('integration.provider', reference));
+        }
+        return integrationProvider;
+      });
 
-      if (
-        !integration.canAttachCustomProviderConfig &&
-        materialProvider.provider.type.attributes.config.status !== 'disabled' &&
-        input.providerConfigId &&
-        sharedConfigId &&
-        input.providerConfigId !== sharedConfigId
-      ) {
-        throw new ServiceError(
-          badRequestError({
-            message: 'Integration does not allow custom provider configs.',
-            code: 'custom_provider_config_not_allowed'
+      let seenIntegrationProviderOids = new Set<string>();
+      for (let integrationProvider of integrationProviders) {
+        checkDeletedRelation(integrationProvider);
+        if (integrationProvider.integrationOid !== d.integrationInstance.integrationOid) {
+          throw new ServiceError(
+            badRequestError({
+              message: 'Integration provider does not belong to this integration instance.',
+              code: 'integration_instance_provider_mismatch'
+            })
+          );
+        }
+
+        let oid = integrationProvider.oid.toString();
+        if (seenIntegrationProviderOids.has(oid)) {
+          throw new ServiceError(
+            badRequestError({
+              message: 'Integration instance provider inputs contain duplicates.',
+              code: 'duplicate_integration_instance_provider'
+            })
+          );
+        }
+        seenIntegrationProviderOids.add(oid);
+      }
+
+      let materialProviders = await Promise.all(
+        integrationProviders.map(integrationProvider =>
+          requireCurrentIntegrationProviderVersion({
+            db,
+            integrationProviderOid: integrationProvider.oid
           })
-        );
-      }
-
-      if (isOverrideToolFilter && !integration.canOverrideToolFilters) {
-        throw new ServiceError(
-          badRequestError({
-            message: 'Integration does not allow overriding tool filters.',
-            code: 'tool_filter_override_not_allowed'
-          })
-        );
-      }
-
-      if (
-        !integration.canAttachCustomToolFilters &&
-        input.toolFilters &&
-        !isAllowAllToolFilter(input.toolFilters)
-      ) {
-        throw new ServiceError(
-          badRequestError({
-            message: 'Integration does not allow custom tool filters.',
-            code: 'custom_tool_filters_not_allowed'
-          })
-        );
-      }
-    }
-
-    let inheritSharedConfigs = d.input.map((input, idx) =>
-      shouldInheritSharedConfig({
-        input,
-        sharedConfigId: materialProviders[idx]!.currentVersion!.config?.id
-      })
-    );
-
-    let configIds = d.input.map((input, idx) => {
-      let sharedConfigId = materialProviders[idx]!.currentVersion!.config?.id;
-      if (inheritSharedConfigs[idx] && sharedConfigId) return sharedConfigId;
-
-      if (input.providerConfigId === undefined) {
-        return existingByIntegrationProviderOid.get(integrationProviders[idx]!.oid)
-          ?.currentVersion?.config?.id;
-      }
-
-      if (input.providerConfigId === null) return undefined;
-
-      return input.providerConfigId;
-    });
-
-    let combinations = await providerCombinationService.getCombinations({
-      tenant: d.tenant,
-      solution: d.solution,
-      environment: d.environment,
-      providers: d.input.map((input, idx) => ({
-        deploymentId:
-          input.providerDeploymentId ?? materialProviders[idx]!.currentVersion!.deployment.id,
-        configId: configIds[idx],
-        authConfigId: input.providerAuthConfigId
-      }))
-    });
-
-    let toolFilters = d.input.map((input, idx) => {
-      let existing = existingByIntegrationProviderOid.get(integrationProviders[idx]!.oid);
-      let isOverrideToolFilter =
-        getInputOverrideToolFilter(input) ??
-        existing?.currentVersion?.isOverrideToolFilter ??
-        false;
-
-      let toolFilter: PrismaJson.ToolFilter | null;
-      if (input.toolFilters === undefined) {
-        toolFilter = existing?.currentVersion?.toolFilter
-          ? stripToolFilterOverrideFlag(
-              normalizeIntegrationProviderToolFilter(
-                existing.currentVersion.toolFilter as PrismaJson.ToolFilter
-              )
-            )
-          : null;
-      } else {
-        toolFilter = stripToolFilterOverrideFlag(
-          normalizeIntegrationProviderToolFilter(input.toolFilters)
-        );
-      }
-
-      if (!isOverrideToolFilter && (!toolFilter || isAllowAllToolFilter(toolFilter))) {
-        return null;
-      }
-
-      return toolFilter ?? normalizeIntegrationProviderToolFilter(null);
-    });
-    let isOverrideToolFilters = d.input.map((input, idx) => {
-      let existing = existingByIntegrationProviderOid.get(integrationProviders[idx]!.oid);
-      return (
-        getInputOverrideToolFilter(input) ??
-        existing?.currentVersion?.isOverrideToolFilter ??
-        false
+        )
       );
-    });
 
-    return await withTransaction(async db => {
+      let existingIntegrationInstanceProviders = await db.integrationInstanceProvider.findMany(
+        {
+          where: {
+            integrationInstanceOid: d.integrationInstance.oid,
+            integrationProviderOid: {
+              in: integrationProviders.map(integrationProvider => integrationProvider.oid)
+            }
+          },
+          include: {
+            currentVersion: {
+              include: {
+                config: true
+              }
+            }
+          }
+        }
+      );
+      let existingByIntegrationProviderOid = new Map(
+        existingIntegrationInstanceProviders.map(integrationInstanceProvider => [
+          integrationInstanceProvider.integrationProviderOid,
+          integrationInstanceProvider
+        ])
+      );
+
+      for (let [idx, input] of d.input.entries()) {
+        let materialProvider = materialProviders[idx]!;
+        let integration = materialProvider.integration;
+        let sharedConfigId = materialProvider.currentVersion!.config?.id;
+        let existing = existingByIntegrationProviderOid.get(integrationProviders[idx]!.oid);
+        let isOverrideToolFilter =
+          getInputOverrideToolFilter(input) ??
+          existing?.currentVersion?.isOverrideToolFilter ??
+          false;
+
+        if (
+          !integration.canAttachCustomProviderConfig &&
+          materialProvider.provider.type.attributes.config.status !== 'disabled' &&
+          input.providerConfigId &&
+          sharedConfigId &&
+          input.providerConfigId !== sharedConfigId
+        ) {
+          throw new ServiceError(
+            badRequestError({
+              message: 'Integration does not allow custom provider configs.',
+              code: 'custom_provider_config_not_allowed'
+            })
+          );
+        }
+
+        let capabilities = getIntegrationToolFilterCapabilities(integration);
+
+        if (isOverrideToolFilter && !capabilities.canOverrideToolFilters) {
+          throw new ServiceError(
+            badRequestError({
+              message: 'Integration does not allow overriding tool filters.',
+              code: 'tool_filter_override_not_allowed'
+            })
+          );
+        }
+
+        if (
+          !capabilities.canAttachCustomToolFilters &&
+          input.toolFilters &&
+          !isAllowAllToolFilter(input.toolFilters)
+        ) {
+          throw new ServiceError(
+            badRequestError({
+              message: 'Integration does not allow custom tool filters.',
+              code: 'custom_tool_filters_not_allowed'
+            })
+          );
+        }
+      }
+
+      let inheritSharedConfigs = d.input.map((input, idx) =>
+        shouldInheritSharedConfig({
+          input,
+          sharedConfigId: materialProviders[idx]!.currentVersion!.config?.id
+        })
+      );
+
+      let configIds = d.input.map((input, idx) => {
+        let sharedConfigId = materialProviders[idx]!.currentVersion!.config?.id;
+        if (inheritSharedConfigs[idx] && sharedConfigId) return sharedConfigId;
+
+        if (input.providerConfigId === undefined) {
+          return existingByIntegrationProviderOid.get(integrationProviders[idx]!.oid)
+            ?.currentVersion?.config?.id;
+        }
+
+        if (input.providerConfigId === null) return undefined;
+
+        return input.providerConfigId;
+      });
+
+      let combinations = await providerCombinationService.getCombinations({
+        tenant: d.tenant,
+        solution: d.solution,
+        environment: d.environment,
+        providers: d.input.map((input, idx) => ({
+          deploymentId:
+            input.providerDeploymentId ??
+            materialProviders[idx]!.currentVersion!.deployment.id,
+          configId: configIds[idx],
+          authConfigId: input.providerAuthConfigId
+        }))
+      });
+
+      let toolFilters = d.input.map((input, idx) => {
+        let existing = existingByIntegrationProviderOid.get(integrationProviders[idx]!.oid);
+        let isOverrideToolFilter =
+          getInputOverrideToolFilter(input) ??
+          existing?.currentVersion?.isOverrideToolFilter ??
+          false;
+
+        let toolFilter: PrismaJson.ToolFilter | null;
+        if (input.toolFilters === undefined) {
+          toolFilter = existing?.currentVersion?.toolFilter
+            ? stripToolFilterOverrideFlag(
+                normalizeIntegrationProviderToolFilter(
+                  existing.currentVersion.toolFilter as PrismaJson.ToolFilter
+                )
+              )
+            : null;
+        } else {
+          toolFilter = stripToolFilterOverrideFlag(
+            normalizeIntegrationProviderToolFilter(input.toolFilters)
+          );
+        }
+
+        if (!isOverrideToolFilter && (!toolFilter || isAllowAllToolFilter(toolFilter))) {
+          return null;
+        }
+
+        return toolFilter ?? normalizeIntegrationProviderToolFilter(null);
+      });
+      let isOverrideToolFilters = d.input.map((input, idx) => {
+        let existing = existingByIntegrationProviderOid.get(integrationProviders[idx]!.oid);
+        return (
+          getInputOverrideToolFilter(input) ??
+          existing?.currentVersion?.isOverrideToolFilter ??
+          false
+        );
+      });
+
       let integrationInstanceProviderOids: bigint[] = [];
 
       for (let [idx, integrationProvider] of integrationProviders.entries()) {
@@ -607,7 +622,7 @@ class integrationInstanceProviderServiceImpl {
               }
             });
 
-        if (!isInheritedSharedConfig) {
+        if (!isInheritedSharedConfig && d.input[idx]!.lockProviderResources) {
           let configUpdate = await db.providerConfig.updateMany({
             where: {
               oid: combination.config.oid,
@@ -640,7 +655,7 @@ class integrationInstanceProviderServiceImpl {
           }
         }
 
-        if (combination.authConfig) {
+        if (combination.authConfig && d.input[idx]!.lockProviderResources) {
           let authConfigUpdate = await db.providerAuthConfig.updateMany({
             where: {
               oid: combination.authConfig.oid,

@@ -9,15 +9,16 @@ import {
 } from '@metorial-subspace/db';
 import {
   ephemeralManagedSessionService,
-  sessionTemplateProviderService,
   sessionTemplateService
 } from '@metorial-subspace/module-session';
 import { checkTenant } from '@metorial-subspace/module-tenant';
 import { integrationService } from '../integration';
 import { integrationInstanceService } from '../integrationInstance';
 import { integrationInstanceProviderService } from '../integrationInstanceProvider';
+import { reconcileMagicMcpServerProvidersForBackingWithExistingLock } from './serverProvider';
 import {
   type BackingProviderInput,
+  getMagicMcpOwnerType,
   type MagicMcpBackingInputBase,
   magicMcpProviderTemplateBackingInclude,
   magicMcpServerBackingInclude,
@@ -31,6 +32,7 @@ type UpsertMagicMcpServerBackingInput = {
   environment: Environment;
   input: MagicMcpBackingInputBase & {
     providerTemplateBackingId?: string | null;
+    ownerIntegrationId?: string | null;
     providers?: BackingProviderInput[];
   };
 };
@@ -38,6 +40,14 @@ type UpsertMagicMcpServerBackingInput = {
 class magicMcpServerBackingServiceImpl {
   async upsertMagicMcpServerBacking(d: UpsertMagicMcpServerBackingInput) {
     let actorOid = await resolveActorOid({ ...d, identityActorId: d.input.identityActorId });
+    if (d.input.providerTemplateBackingId && d.input.ownerIntegrationId) {
+      throw new ServiceError(
+        notFoundError(
+          'magic_mcp.server_backing',
+          'Cannot assign both providerTemplateBackingId and ownerIntegrationId.'
+        )
+      );
+    }
     let providerTemplateBacking = d.input.providerTemplateBackingId
       ? await db.providerTemplateBacking.findUnique({
           where: { id: d.input.providerTemplateBackingId },
@@ -49,32 +59,53 @@ class magicMcpServerBackingServiceImpl {
         notFoundError('provider_template.backing', d.input.providerTemplateBackingId)
       );
     }
+    let ownerIntegration = d.input.ownerIntegrationId
+      ? await integrationService.getIntegrationById({
+          tenant: d.tenant,
+          solution: d.solution,
+          environment: d.environment,
+          integrationId: d.input.ownerIntegrationId
+        })
+      : null;
+    let ownerType =
+      providerTemplateBacking?.id != null
+        ? ('provider_template' as const)
+        : ownerIntegration?.id != null
+          ? ('integration' as const)
+          : ('server_owned' as const);
 
     await withMagicMcpBackingLock(
       `server:${d.tenant.id}:${d.solution.id}:${d.environment.id}:${d.input.id}`,
-      async () =>
+      async () => {
         await withTransaction(async tx => {
           let existing = await tx.magicMcpServerBacking.findUnique({
             where: { id: d.input.id },
             include: magicMcpServerBackingInclude
           });
 
-          let integration = await integrationService.upsertMagicMcpIntegration({
-            tenant: d.tenant,
-            solution: d.solution,
-            environment: d.environment,
-            integration: providerTemplateBacking?.integration ?? existing?.integration,
-            input: {
-              slug: `magic-mcp-server-${d.input.id}`,
-              name: d.input.name?.trim() || d.input.id,
-              description: d.input.description,
-              metadata: d.input.metadata,
-              privateMetadata: d.input.privateMetadata,
-              canAttachCustomToolFilters: true,
-              canAttachCustomProviderConfig: providerTemplateBacking ? undefined : true,
-              canOverrideToolFilters: providerTemplateBacking ? undefined : true
-            }
-          });
+          let integration =
+            providerTemplateBacking?.integration ?? ownerIntegration ?? existing?.integration;
+          if (ownerType === 'server_owned') {
+            integration = await integrationService.upsertMagicMcpIntegration({
+              tenant: d.tenant,
+              solution: d.solution,
+              environment: d.environment,
+              integration,
+              input: {
+                slug: `magic-mcp-server-${d.input.id}`,
+                name: d.input.name?.trim() || d.input.id,
+                description: d.input.description,
+                metadata: d.input.metadata,
+                privateMetadata: d.input.privateMetadata,
+                canAttachCustomToolFilters: true,
+                canAttachCustomProviderConfig: true,
+                canOverrideToolFilters: true
+              }
+            });
+          }
+          if (!integration) {
+            throw new ServiceError(notFoundError('integration'));
+          }
 
           let integrationInstance =
             await integrationInstanceService.upsertMagicMcpIntegrationInstance({
@@ -124,16 +155,20 @@ class magicMcpServerBackingServiceImpl {
             where: { id: d.input.id },
             create: {
               id: d.input.id,
+              ownerType,
               providerTemplateBackingOid: providerTemplateBacking?.oid,
-              integrationOid: providerTemplateBacking ? null : integration.oid,
+              ownerIntegrationOid: ownerType === 'integration' ? integration.oid : null,
+              integrationOid: ownerType === 'server_owned' ? integration.oid : null,
               integrationInstanceOid: integrationInstance.oid,
               sessionTemplateOid: sessionTemplate.oid,
               ephemeralManagedSessionOid: ephemeralManagedSession.oid,
               actorOid
             },
             update: {
+              ownerType,
               providerTemplateBackingOid: providerTemplateBacking?.oid ?? null,
-              integrationOid: providerTemplateBacking ? null : integration.oid,
+              ownerIntegrationOid: ownerType === 'integration' ? integration.oid : null,
+              integrationOid: ownerType === 'server_owned' ? integration.oid : null,
               integrationInstanceOid: integrationInstance.oid,
               sessionTemplateOid: sessionTemplate.oid,
               ephemeralManagedSessionOid: ephemeralManagedSession.oid,
@@ -151,15 +186,15 @@ class magicMcpServerBackingServiceImpl {
               input: d.input.providers
             });
           }
+        });
 
-          await sessionTemplateProviderService.syncForIntegrationInstance({
-            sessionTemplate,
-            integrationInstance
-          });
-          await sessionTemplateProviderService.syncHash({
-            sessionTemplateId: sessionTemplate.id
-          });
-        })
+        await reconcileMagicMcpServerProvidersForBackingWithExistingLock({
+          tenant: d.tenant,
+          solution: d.solution,
+          environment: d.environment,
+          magicMcpServerBackingId: d.input.id
+        });
+      }
     );
 
     return await db.magicMcpServerBacking.findUniqueOrThrow({
@@ -210,7 +245,7 @@ class magicMcpServerBackingServiceImpl {
       integrationInstance: backing.integrationInstance,
       _canModifyMagicMcpBacking: true
     });
-    if (backing.integration) {
+    if (getMagicMcpOwnerType(backing) === 'server_owned' && backing.integration) {
       await integrationService.archiveIntegration({
         tenant: d.tenant,
         solution: d.solution,

@@ -185,10 +185,12 @@ class integrationInstanceServiceImpl {
     id: ReturnType<typeof getId>;
     input: IntegrationInstanceWriteInput;
     isMagicMcpBacking?: boolean;
+    isHiddenDraft?: boolean;
   }) {
     return {
       ...d.id,
       status: 'draft' as const,
+      isHiddenDraft: d.isHiddenDraft ?? false,
       isMagicMcpBacking: !!d.isMagicMcpBacking,
       name: d.input.name.trim(),
       description: d.input.description?.trim() || null,
@@ -436,6 +438,7 @@ class integrationInstanceServiceImpl {
               solutionOid: d.solution.oid,
               environmentOid: d.environment.oid,
               isMagicMcpBacking: d.includeMagicMcpBackings ? undefined : false,
+              isHiddenDraft: false,
 
               ...normalizeStatusForList(d).hasParent,
 
@@ -563,6 +566,7 @@ class integrationInstanceServiceImpl {
     solution: Solution;
     environment: Environment;
     integration: Integration;
+    isHiddenDraft?: boolean;
     input: {
       name: string;
       description?: string;
@@ -593,7 +597,8 @@ class integrationInstanceServiceImpl {
           environment: d.environment,
           integration: d.integration,
           id: newId,
-          input: d.input
+          input: d.input,
+          isHiddenDraft: d.isHiddenDraft
         }),
         include: integrationInstanceInclude
       });

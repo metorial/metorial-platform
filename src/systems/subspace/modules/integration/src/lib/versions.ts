@@ -164,7 +164,10 @@ export let refreshIntegrationInstanceStatus = async (d: {
 
     return await tx.integrationInstance.update({
       where: { oid: integrationInstance.oid },
-      data: { status: 'active' }
+      data: {
+        status: 'active',
+        isHiddenDraft: false
+      }
     });
   });
 };

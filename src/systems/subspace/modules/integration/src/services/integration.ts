@@ -61,6 +61,14 @@ export let integrationInclude = {
 let getSlug = (input: { name: string }) =>
   `${slugify(input.name)}-${generatePlainId(7).toLowerCase()}`.toLowerCase();
 
+export let getIntegrationToolFilterCapabilities = (
+  integration: Pick<Integration, 'canAttachCustomToolFilters' | 'canOverrideToolFilters'>
+) => ({
+  canAttachCustomToolFilters:
+    integration.canOverrideToolFilters || integration.canAttachCustomToolFilters,
+  canOverrideToolFilters: integration.canOverrideToolFilters
+});
+
 type IntegrationWriteInput = {
   name: string;
   description?: string | null;
@@ -81,6 +89,8 @@ class integrationServiceImpl {
     input: IntegrationWriteInput;
     isMagicMcpBacking?: boolean;
   }) {
+    let canOverrideToolFilters = d.input.canOverrideToolFilters ?? false;
+
     return {
       ...d.id,
       status: 'active' as const,
@@ -90,9 +100,10 @@ class integrationServiceImpl {
       description: d.input.description?.trim() || null,
       metadata: d.input.metadata,
       privateMetadata: d.input.privateMetadata,
-      canAttachCustomToolFilters: d.input.canAttachCustomToolFilters ?? true,
+      canAttachCustomToolFilters:
+        canOverrideToolFilters || (d.input.canAttachCustomToolFilters ?? true),
       canAttachCustomProviderConfig: d.input.canAttachCustomProviderConfig ?? false,
-      canOverrideToolFilters: d.input.canOverrideToolFilters ?? false,
+      canOverrideToolFilters,
       currentVersionIndex: 0,
       tenantOid: d.tenant.oid,
       solutionOid: d.solution.oid,
@@ -111,7 +122,9 @@ class integrationServiceImpl {
       description: input.description?.trim() || null,
       metadata: input.metadata,
       privateMetadata: input.privateMetadata,
-      canAttachCustomToolFilters: input.canAttachCustomToolFilters,
+      canAttachCustomToolFilters: input.canOverrideToolFilters
+        ? true
+        : input.canAttachCustomToolFilters,
       canAttachCustomProviderConfig: input.canAttachCustomProviderConfig,
       canOverrideToolFilters: input.canOverrideToolFilters
     };
@@ -335,6 +348,12 @@ class integrationServiceImpl {
     checkTenant(d, d.integration);
     checkDeletedEdit(d.integration, 'update');
 
+    let canOverrideToolFilters =
+      d.input.canOverrideToolFilters ?? d.integration.canOverrideToolFilters;
+    let canAttachCustomToolFilters = canOverrideToolFilters
+      ? true
+      : (d.input.canAttachCustomToolFilters ?? d.integration.canAttachCustomToolFilters);
+
     return await withTransaction(async db => {
       let integration = await db.integration.update({
         where: {
@@ -351,9 +370,9 @@ class integrationServiceImpl {
               : d.input.description?.trim() || null,
           metadata: d.input.metadata,
           privateMetadata: d.input.privateMetadata,
-          canAttachCustomToolFilters: d.input.canAttachCustomToolFilters,
+          canAttachCustomToolFilters,
           canAttachCustomProviderConfig: d.input.canAttachCustomProviderConfig,
-          canOverrideToolFilters: d.input.canOverrideToolFilters
+          canOverrideToolFilters
         },
         include: integrationInclude
       });

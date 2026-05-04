@@ -27,6 +27,8 @@ export type MagicMcpBackingInputBase = {
   maxSessionDurationInMinutes: number;
 };
 
+export type MagicMcpOwnerType = 'provider_template' | 'integration' | 'server_owned';
+
 let magicMcpBackingLock = createLock({
   name: 'sub/int/magicMcpBacking/upsert/lock',
   redisUrl: env.service.REDIS_URL
@@ -55,6 +57,9 @@ export let magicMcpServerBackingInclude = {
   providerTemplateBacking: {
     include: magicMcpProviderTemplateBackingInclude
   },
+  ownerIntegration: {
+    include: integrationInclude
+  },
   integration: {
     include: integrationInclude
   },
@@ -73,6 +78,42 @@ export let magicMcpServerBackingInclude = {
   ephemeralManagedSession: true,
   actor: true
 } as const;
+
+export let getMagicMcpOwnerType = (d: {
+  ownerType: MagicMcpOwnerType;
+  providerTemplateBackingOid?: bigint | null;
+  ownerIntegrationOid?: bigint | null;
+}) => {
+  if (d.ownerType === 'provider_template' || d.providerTemplateBackingOid) {
+    return 'provider_template' as const;
+  }
+  if (d.ownerType === 'integration' || d.ownerIntegrationOid) {
+    return 'integration' as const;
+  }
+
+  return 'server_owned' as const;
+};
+
+export let getMagicMcpOwnerIntegration = <
+  T extends {
+    ownerType: MagicMcpOwnerType;
+    providerTemplateBacking: { integration: any } | null;
+    ownerIntegration: any | null;
+    integration: any | null;
+  }
+>(
+  backing: T
+) => {
+  let ownerType = getMagicMcpOwnerType(backing);
+  if (ownerType === 'provider_template') {
+    return backing.providerTemplateBacking?.integration ?? null;
+  }
+  if (ownerType === 'integration') {
+    return backing.ownerIntegration ?? null;
+  }
+
+  return backing.integration ?? null;
+};
 
 export let magicMcpEndpointBackingInclude = {
   integrationGroup: {

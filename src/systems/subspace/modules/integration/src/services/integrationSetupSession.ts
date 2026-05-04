@@ -30,18 +30,23 @@ import { checkTenant } from '@metorial-subspace/module-tenant';
 import { addMinutes } from 'date-fns';
 import { normalizeIntegrationProviderToolFilter } from '../lib/versions';
 import {
+  getIntegrationToolFilterCapabilities,
+  integrationProviderVersionInclude
+} from './integration';
+import {
   integrationInstanceInclude,
   integrationInstanceProviderInclude,
   integrationInstanceService
 } from './integrationInstance';
 import { integrationInstanceProviderService } from './integrationInstanceProvider';
-import { integrationProviderVersionInclude } from './integration';
 
 export let integrationSetupSessionProviderInclude = {
   integrationProvider: {
     include: {
       integration: true,
-      provider: true,
+      provider: {
+        include: { listing: true }
+      },
       currentVersion: {
         include: integrationProviderVersionInclude
       }
@@ -83,21 +88,25 @@ export let integrationSetupSessionInclude = {
 let normalizeIntegrationSetupSessionConfiguration = (d: {
   integration: Pick<Integration, 'canAttachCustomToolFilters' | 'canOverrideToolFilters'>;
   configuration?: PrismaJson.ProviderSetupSessionConfiguration | null;
-}): PrismaJson.ProviderSetupSessionConfiguration => ({
-  providerSearch: {
-    groups: d.configuration?.providerSearch?.groups ?? [],
-    collections: d.configuration?.providerSearch?.collections ?? [],
-    categories: d.configuration?.providerSearch?.categories ?? []
-  },
-  toolFilters: {
-    enabled:
-      (d.configuration?.toolFilters?.enabled ?? false) &&
-      d.integration.canAttachCustomToolFilters
-  },
-  ui: {
-    layout: d.configuration?.ui?.layout ?? 'box'
-  }
-});
+}): PrismaJson.ProviderSetupSessionConfiguration => {
+  let capabilities = getIntegrationToolFilterCapabilities(d.integration);
+
+  return {
+    providerSearch: {
+      groups: d.configuration?.providerSearch?.groups ?? [],
+      collections: d.configuration?.providerSearch?.collections ?? [],
+      categories: d.configuration?.providerSearch?.categories ?? []
+    },
+    toolFilters: {
+      enabled:
+        (d.configuration?.toolFilters?.enabled ?? false) &&
+        capabilities.canAttachCustomToolFilters
+    },
+    ui: {
+      layout: d.configuration?.ui?.layout ?? 'box'
+    }
+  };
+};
 
 let getPresentedSetupStatus = (setupSession: ProviderSetupSession | null) => {
   if (!setupSession) return 'pending' as const;
@@ -107,6 +116,25 @@ let getPresentedSetupStatus = (setupSession: ProviderSetupSession | null) => {
 };
 
 class integrationSetupSessionServiceImpl {
+  private async canAutoCreateIntegrationInstanceProviderFromSetupSession(d: {
+    setupSession: Pick<IntegrationSetupSession, 'configuration'>;
+    providerSetupSession: Pick<ProviderSetupSession, 'oid'>;
+  }) {
+    let configuration = d.setupSession
+      .configuration as PrismaJson.ProviderSetupSessionConfiguration | null;
+    if (!configuration?.toolFilters?.enabled) return true;
+
+    let explicitSetupEvent = await db.providerSetupSessionEvent.findFirst({
+      where: {
+        sessionOid: d.providerSetupSession.oid,
+        type: { in: ['config_set', 'auth_config_set'] }
+      },
+      select: { oid: true }
+    });
+
+    return !!explicitSetupEvent;
+  }
+
   async listIntegrationSetupSessions(d: {
     tenant: Tenant;
     solution: Solution;
@@ -174,6 +202,21 @@ class integrationSetupSessionServiceImpl {
         notFoundError('integration.setup_session', d.integrationSetupSessionId)
       );
 
+    if (integrationSetupSession.status === 'pending') {
+      await this.reconcileCompletedProviderSetupSessions({
+        setupSessionOid: integrationSetupSession.oid
+      });
+
+      await this.recalculateIntegrationSetupSessionStatus({
+        setupSessionOid: integrationSetupSession.oid
+      });
+
+      integrationSetupSession = await db.integrationSetupSession.findFirstOrThrow({
+        where: { oid: integrationSetupSession.oid },
+        include: integrationSetupSessionInclude
+      });
+    }
+
     return integrationSetupSession;
   }
 
@@ -191,6 +234,21 @@ class integrationSetupSessionServiceImpl {
     });
     if (!integrationSetupSession)
       throw new ServiceError(notFoundError('integration.setup_session'));
+
+    if (integrationSetupSession.status === 'pending') {
+      await this.reconcileCompletedProviderSetupSessions({
+        setupSessionOid: integrationSetupSession.oid
+      });
+
+      await this.recalculateIntegrationSetupSessionStatus({
+        setupSessionOid: integrationSetupSession.oid
+      });
+
+      integrationSetupSession = await db.integrationSetupSession.findFirstOrThrow({
+        where: { oid: integrationSetupSession.oid },
+        include: integrationSetupSessionInclude
+      });
+    }
 
     return integrationSetupSession;
   }
@@ -276,104 +334,103 @@ class integrationSetupSessionServiceImpl {
     checkDeletedRelation(d.integration);
     checkDeletedRelation(d.brand);
 
-    return await withTransaction(async db => {
-      let integration = await db.integration.findFirstOrThrow({
-        where: {
-          oid: d.integration.oid,
-          tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
-          environmentOid: d.environment.oid,
-          status: 'active'
-        }
-      });
-      let configuration = normalizeIntegrationSetupSessionConfiguration({
-        integration,
-        configuration: d.input.configuration
-      });
-      let expiresAt = d.input.expiresAt ?? addMinutes(new Date(), 30);
-
-      let integrationProviders = await this.getActiveIntegrationProviders({
-        integration
-      });
-      if (!integrationProviders.length) {
-        throw new ServiceError(
-          badRequestError({
-            message: 'Integration setup sessions require at least one active provider.',
-            code: 'integration_provider_required'
-          })
-        );
+    let integration = await db.integration.findFirstOrThrow({
+      where: {
+        oid: d.integration.oid,
+        tenantOid: d.tenant.oid,
+        solutionOid: d.solution.oid,
+        environmentOid: d.environment.oid,
+        status: 'active'
       }
+    });
+    let configuration = normalizeIntegrationSetupSessionConfiguration({
+      integration,
+      configuration: d.input.configuration
+    });
+    let expiresAt = d.input.expiresAt ?? addMinutes(new Date(), 30);
 
-      let integrationInstance = await integrationInstanceService.createIntegrationInstance({
+    let integrationProviders = await this.getActiveIntegrationProviders({
+      integration
+    });
+    if (!integrationProviders.length) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Integration setup sessions require at least one active provider.',
+          code: 'integration_provider_required'
+        })
+      );
+    }
+
+    let integrationInstance = await integrationInstanceService.createIntegrationInstance({
+      tenant: d.tenant,
+      solution: d.solution,
+      environment: d.environment,
+      integration,
+      isHiddenDraft: true,
+      input: {
+        name: d.input.name,
+        description: d.input.description,
+        metadata: d.input.metadata,
+        privateMetadata: d.input.privateMetadata,
+        identityActorId: d.input.identityActorId,
+        identityId: d.input.identityId
+      }
+    });
+
+    let setupSession = await db.integrationSetupSession.create({
+      data: {
+        ...getId('integrationSetupSession'),
+        status: 'pending',
+        clientSecret: await ID.generateId('integrationSetupSession_clientSecret'),
+        name: d.input.name?.trim() || undefined,
+        description: d.input.description?.trim() || undefined,
+        metadata: d.input.metadata,
+        privateMetadata: d.input.privateMetadata,
+        configuration,
+        redirectUrl: d.input.redirectUrl,
+        tenantOid: d.tenant.oid,
+        solutionOid: d.solution.oid,
+        environmentOid: d.environment.oid,
+        integrationOid: integration.oid,
+        integrationInstanceOid: integrationInstance.oid,
+        brandOid: d.brand?.oid,
+        expiresAt
+      }
+    });
+
+    await db.integrationSetupSessionEvent.create({
+      data: {
+        ...getId('integrationSetupSessionEvent'),
+        type: 'created',
+        integrationSetupSessionOid: setupSession.oid,
+        ip: d.import.ip,
+        ua: d.import.ua
+      }
+    });
+
+    for (let [idx, integrationProvider] of integrationProviders.entries()) {
+      await this.createChildProviderSetupSession({
         tenant: d.tenant,
         solution: d.solution,
         environment: d.environment,
+        brand: d.brand,
         integration,
-        input: {
-          name: d.input.name,
-          description: d.input.description,
-          metadata: d.input.metadata,
-          privateMetadata: d.input.privateMetadata,
-          identityActorId: d.input.identityActorId,
-          identityId: d.input.identityId
-        }
+        setupSession,
+        integrationProvider,
+        configuration,
+        expiresAt,
+        context: d.import,
+        stepIndex: idx
       });
+    }
 
-      let setupSession = await db.integrationSetupSession.create({
-        data: {
-          ...getId('integrationSetupSession'),
-          status: 'pending',
-          clientSecret: await ID.generateId('integrationSetupSession_clientSecret'),
-          name: d.input.name?.trim() || undefined,
-          description: d.input.description?.trim() || undefined,
-          metadata: d.input.metadata,
-          privateMetadata: d.input.privateMetadata,
-          configuration,
-          redirectUrl: d.input.redirectUrl,
-          tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
-          environmentOid: d.environment.oid,
-          integrationOid: integration.oid,
-          integrationInstanceOid: integrationInstance.oid,
-          brandOid: d.brand?.oid,
-          expiresAt
-        }
-      });
+    await this.recalculateIntegrationSetupSessionStatus({
+      setupSessionOid: setupSession.oid
+    });
 
-      await db.integrationSetupSessionEvent.create({
-        data: {
-          ...getId('integrationSetupSessionEvent'),
-          type: 'created',
-          integrationSetupSessionOid: setupSession.oid,
-          ip: d.import.ip,
-          ua: d.import.ua
-        }
-      });
-
-      for (let [idx, integrationProvider] of integrationProviders.entries()) {
-        await this.createChildProviderSetupSession({
-          tenant: d.tenant,
-          solution: d.solution,
-          environment: d.environment,
-          brand: d.brand,
-          integration,
-          setupSession,
-          integrationProvider,
-          configuration,
-          expiresAt,
-          context: d.import,
-          stepIndex: idx
-        });
-      }
-
-      await this.recalculateIntegrationSetupSessionStatus({
-        setupSessionOid: setupSession.oid
-      });
-
-      return await db.integrationSetupSession.findUniqueOrThrow({
-        where: { oid: setupSession.oid },
-        include: integrationSetupSessionInclude
-      });
+    return await db.integrationSetupSession.findUniqueOrThrow({
+      where: { oid: setupSession.oid },
+      include: integrationSetupSessionInclude
     });
   }
 
@@ -433,6 +490,18 @@ class integrationSetupSessionServiceImpl {
       }
 
       let currentStatus = getPresentedSetupStatus(providerRow.providerSetupSession);
+      if (providerRow.providerSetupSession && currentStatus === 'completed') {
+        await this.reconcileProviderSetupSessionCompleted({
+          providerSetupSession: providerRow.providerSetupSession,
+          context: d.context
+        });
+
+        return await db.integrationSetupSession.findUniqueOrThrow({
+          where: { oid: setupSession.oid },
+          include: integrationSetupSessionInclude
+        });
+      }
+
       if (
         providerRow.providerSetupSession &&
         currentStatus !== 'failed' &&
@@ -518,7 +587,7 @@ class integrationSetupSessionServiceImpl {
 
   async reconcileProviderSetupSessionCompleted(d: {
     providerSetupSession: Pick<ProviderSetupSession, 'oid' | 'status'>;
-    context: { ip: string; ua: string };
+    context?: { ip: string; ua: string };
   }) {
     if (d.providerSetupSession.status !== 'completed') return null;
 
@@ -556,8 +625,21 @@ class integrationSetupSessionServiceImpl {
         });
       }
 
+      if (
+        !(await this.canAutoCreateIntegrationInstanceProviderFromSetupSession({
+          setupSession: setupProvider.integrationSetupSession,
+          providerSetupSession: child
+        }))
+      ) {
+        return await db.integrationSetupSessionProvider.findUniqueOrThrow({
+          where: { oid: setupProvider.oid },
+          include: integrationSetupSessionProviderInclude
+        });
+      }
+
       let integration = setupProvider.integrationSetupSession.integration;
-      let toolFilter = integration.canAttachCustomToolFilters
+      let capabilities = getIntegrationToolFilterCapabilities(integration);
+      let toolFilter = capabilities.canAttachCustomToolFilters
         ? ((child.config?.toolFilter ||
             child.authConfig?.toolFilter ||
             null) as PrismaJson.ToolFilter | null)
@@ -565,7 +647,7 @@ class integrationSetupSessionServiceImpl {
       let normalizedToolFilter = toolFilter
         ? normalizeIntegrationProviderToolFilter(toolFilter)
         : undefined;
-      if (normalizedToolFilter && !integration.canOverrideToolFilters) {
+      if (normalizedToolFilter && !capabilities.canOverrideToolFilters) {
         normalizedToolFilter.ignoreParentFilters = undefined;
       }
 
@@ -586,6 +668,7 @@ class integrationSetupSessionServiceImpl {
             providerConfigId:
               child.config?.id ?? setupProvider.integrationProvider.currentVersion?.config?.id,
             providerAuthConfigId: child.authConfig?.id ?? undefined,
+            lockProviderResources: true,
             ...(normalizedToolFilter ? { toolFilters: normalizedToolFilter } : {}),
             ...(normalizedToolFilter?.ignoreParentFilters !== undefined
               ? { isOverrideToolFilter: !!normalizedToolFilter.ignoreParentFilters }
@@ -604,8 +687,8 @@ class integrationSetupSessionServiceImpl {
           type: 'provider_completed',
           integrationSetupSessionOid: setupProvider.integrationSetupSessionOid,
           integrationSetupSessionProviderOid: setupProvider.oid,
-          ip: d.context.ip,
-          ua: d.context.ua
+          ip: d.context?.ip,
+          ua: d.context?.ua
         }
       });
 
@@ -619,6 +702,29 @@ class integrationSetupSessionServiceImpl {
         include: integrationSetupSessionProviderInclude
       });
     });
+  }
+
+  private async reconcileCompletedProviderSetupSessions(d: { setupSessionOid: bigint }) {
+    let completedProviders = await db.integrationSetupSessionProvider.findMany({
+      where: {
+        integrationSetupSessionOid: d.setupSessionOid,
+        integrationInstanceProviderOid: null,
+        providerSetupSession: {
+          status: 'completed'
+        }
+      },
+      include: {
+        providerSetupSession: true
+      }
+    });
+
+    for (let provider of completedProviders) {
+      if (!provider.providerSetupSession) continue;
+
+      await this.reconcileProviderSetupSessionCompleted({
+        providerSetupSession: provider.providerSetupSession
+      });
+    }
   }
 
   private async getActiveIntegrationProviders(d: {
