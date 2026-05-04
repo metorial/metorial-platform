@@ -58,6 +58,40 @@ let InstancePaths = Object.assign(
       return InstancePaths(organization, project, instance, 'provider', id, ...subPages);
     },
 
+    integrations: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'integrations', ...subPages),
+    integration: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: SubPages
+    ) => {
+      if (!id) return '#';
+      return InstancePaths(organization, project, instance, 'integration', id, ...subPages);
+    },
+    integrationInstance: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: SubPages
+    ) => {
+      if (!id) return '#';
+      return InstancePaths(
+        organization,
+        project,
+        instance,
+        'integration-instance',
+        id,
+        ...subPages
+      );
+    },
+
     providerDeployments: (
       organization: EntityParam,
       project: EntityParam,

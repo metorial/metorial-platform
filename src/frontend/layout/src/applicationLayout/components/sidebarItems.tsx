@@ -118,7 +118,7 @@ let Item = styled('div').withConfig({
     width: 4px;
     border-radius: 7px;
     transition: all 0.2s;
-    background: ${theme.colors.blue800};
+    background: ${theme.colors.primary};
     opacity: ${p => (p.activeBar ? 1 : 0)};
     transform: ${p => (p.activeBar ? 'scaleY(1)' : 'scaleY(0)')};
   }

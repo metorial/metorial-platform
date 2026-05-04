@@ -32,7 +32,8 @@ export let customProviderCommitController = Controller.create(
   {
     name: 'Custom Provider Commits',
     description:
-      'Commits represent version promotions between environments. Merge versions from one environment to another or rollback to a previous version.'
+      'Commits represent version promotions between environments. Merge versions from one environment to another or rollback to a previous version.',
+    hideInDocs: true
   },
   {
     list: instanceGroup

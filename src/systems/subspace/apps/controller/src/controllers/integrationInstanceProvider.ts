@@ -142,27 +142,5 @@ export let integrationInstanceProviderController = app.controller({
         });
 
       return integrationInstanceProviderPresenter(integrationInstanceProvider);
-    }),
-
-  delete: integrationInstanceProviderApp
-    .handler()
-    .input(
-      v.object({
-        tenantId: v.string(),
-        environmentId: v.string(),
-        integrationInstanceProviderId: v.string(),
-        allowDeleted: v.optional(v.boolean())
-      })
-    )
-    .do(async ctx => {
-      let integrationInstanceProvider =
-        await integrationInstanceProviderService.archiveIntegrationInstanceProvider({
-          tenant: ctx.tenant,
-          environment: ctx.environment,
-          solution: ctx.solution,
-          integrationInstanceProvider: ctx.integrationInstanceProvider
-        });
-
-      return integrationInstanceProviderPresenter(integrationInstanceProvider);
     })
 });

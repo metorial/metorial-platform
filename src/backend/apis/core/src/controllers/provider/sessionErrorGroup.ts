@@ -30,7 +30,8 @@ export let sessionErrorGroupController = Controller.create(
   {
     name: 'Session Error Groups',
     description:
-      'Session error groups aggregate similar errors that occurred during a session. This read-only resource helps identify patterns in errors.'
+      'Session error groups aggregate similar errors that occurred during a session. This read-only resource helps identify patterns in errors.',
+    hideInDocs: true
   },
   {
     list: instanceGroup

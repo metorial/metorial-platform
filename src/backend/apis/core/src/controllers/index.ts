@@ -44,13 +44,16 @@ import { teamManagementController } from './management/team';
 import {
   callbackController,
   callbackDestinationController,
+  callbackDocsCategory,
   callbackEventController,
   callbackInstanceController,
   callbackNotificationController,
+  configurationDocsCategory,
   customProviderCodeController,
   customProviderCommitController,
   customProviderController,
   customProviderDeploymentController,
+  customProviderDocsCategory,
   customProviderEnvironmentController,
   customProviderVersionController,
   identityActorController,
@@ -59,7 +62,9 @@ import {
   identityDelegationConfigController,
   identityDelegationController,
   identityDelegationRequestController,
+  identityDocsCategory,
   integrationController,
+  integrationDocsCategory,
   integrationInstanceController,
   integrationInstanceGroupController,
   integrationInstanceGroupProviderController,
@@ -83,6 +88,7 @@ import {
   providerConfigVaultController,
   providerController,
   providerDeploymentController,
+  providerDocsCategory,
   providerGroupController,
   providerInvocationController,
   providerListingController,
@@ -95,6 +101,7 @@ import {
   publisherController,
   sessionConnectionController,
   sessionController,
+  sessionDocsCategory,
   sessionErrorController,
   sessionErrorGroupController,
   sessionEventController,
@@ -114,6 +121,121 @@ import {
   scmReposController
 } from './scm';
 
+let setControllerDocsMetadata = <
+  T extends { descriptor: Record<string, any>; handlers: Record<string, any> }
+>(
+  controller: T,
+  descriptor: Partial<T['descriptor']>
+) => {
+  Object.assign(controller.descriptor, descriptor);
+  return controller;
+};
+
+[
+  publisherController,
+  providerController,
+  providerCategoryController,
+  providerCollectionController,
+  providerGroupController,
+  providerListingController,
+  providerVersionController,
+  providerSpecificationController,
+  providerTriggerController,
+  providerToolController,
+  providerAuthMethodController
+].forEach(controller =>
+  setControllerDocsMetadata(controller, {
+    category: providerDocsCategory
+  })
+);
+
+[
+  customProviderController,
+  customProviderCodeController,
+  customProviderVersionController,
+  customProviderDeploymentController,
+  customProviderCommitController,
+  customProviderEnvironmentController
+].forEach(controller =>
+  setControllerDocsMetadata(controller, {
+    category: customProviderDocsCategory
+  })
+);
+
+[
+  sessionController,
+  sessionTemplateController,
+  sessionTemplateProviderController,
+  sessionProviderController,
+  sessionParticipantController,
+  sessionMessageController,
+  sessionConnectionController,
+  sessionErrorController,
+  sessionErrorGroupController,
+  sessionEventController,
+  toolCallController,
+  providerRunController
+].forEach(controller =>
+  setControllerDocsMetadata(controller, {
+    category: sessionDocsCategory
+  })
+);
+
+[
+  identityController,
+  identityActorController,
+  identityCredentialController,
+  identityDelegationController,
+  identityDelegationConfigController,
+  identityDelegationRequestController
+].forEach(controller =>
+  setControllerDocsMetadata(controller, {
+    category: identityDocsCategory
+  })
+);
+
+[
+  providerDeploymentController,
+  providerConfigController,
+  providerConfigVaultController,
+  providerAuthConfigController,
+  providerAuthConfigEventController,
+  providerAuthConfigErrorController,
+  providerAuthCredentialsController,
+  providerSetupSessionController,
+  providerAuthImportController,
+  providerAuthExportController
+].forEach(controller =>
+  setControllerDocsMetadata(controller, {
+    category: configurationDocsCategory
+  })
+);
+
+[
+  callbackController,
+  callbackDestinationController,
+  callbackEventController,
+  callbackInstanceController,
+  callbackNotificationController
+].forEach(controller =>
+  setControllerDocsMetadata(controller, {
+    category: callbackDocsCategory
+  })
+);
+
+[
+  integrationController,
+  integrationProviderController,
+  integrationInstanceController,
+  integrationInstanceProviderController,
+  integrationInstanceGroupController,
+  integrationInstanceGroupProviderController
+].forEach(controller =>
+  setControllerDocsMetadata(controller, {
+    category: integrationDocsCategory
+  })
+);
+
 export let magnetarController = Controller.create<any>(
   {
     name: 'Magnetar API',
@@ -127,38 +249,38 @@ export let magnetarController = Controller.create<any>(
 
     publisherController,
     providerController,
-    identityController,
-    identityActorController,
-    identityCredentialController,
-    identityDelegationController,
-    identityDelegationConfigController,
-    identityDelegationRequestController,
-    integrationController,
-    integrationProviderController,
-    integrationInstanceController,
-    integrationInstanceProviderController,
-    integrationInstanceGroupController,
-    integrationInstanceGroupProviderController,
     providerCategoryController,
     providerCollectionController,
     providerGroupController,
     providerListingController,
-
     providerVersionController,
     providerSpecificationController,
     providerTriggerController,
     providerToolController,
     providerAuthMethodController,
 
+    identityController,
+    identityActorController,
+    identityCredentialController,
+    identityDelegationController,
+    identityDelegationConfigController,
+    identityDelegationRequestController,
+
     providerDeploymentController,
     providerConfigController,
     providerConfigVaultController,
-
     providerAuthConfigController,
     providerAuthCredentialsController,
     providerSetupSessionController,
     providerAuthImportController,
     providerAuthExportController,
+
+    integrationController,
+    integrationProviderController,
+    integrationInstanceController,
+    integrationInstanceProviderController,
+    integrationInstanceGroupController,
+    integrationInstanceGroupProviderController,
 
     callbackController,
     callbackDestinationController,
@@ -272,6 +394,13 @@ export let dashboardController = Controller.create<any>(
     organizationMemberManagementController,
     projectManagementController,
     dashboardUserController,
+
+    integrationController,
+    integrationProviderController,
+    integrationInstanceController,
+    integrationInstanceProviderController,
+    integrationInstanceGroupController,
+    integrationInstanceGroupProviderController,
 
     fileController,
     fileLinkController,

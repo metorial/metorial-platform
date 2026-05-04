@@ -129,6 +129,8 @@ export class McpSender {
         });
       }
 
+      if (res.mcp == null) return null;
+
       return {
         message,
         mcp: res.mcp

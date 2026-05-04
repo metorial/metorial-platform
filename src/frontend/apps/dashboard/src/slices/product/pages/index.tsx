@@ -328,8 +328,8 @@ export let ProjectHomePage = () => {
           {portalsEnabled && !!portals.data?.items.length && (
             <>
               <PageHeader
-                title="Your Portals"
-                description="Portals let you give employees, partners, or customers access to specific integrations and configurations."
+                title="Metorial Workforce"
+                description="Give your team governed access to integrations on Metorial."
                 size="5"
               />
 
@@ -373,8 +373,8 @@ export let ProjectHomePage = () => {
           )}
 
           <PageHeader
-            title="Your Integrations"
-            description="Your providers and popular providers on Metorial at a glance."
+            title="Integration Providers"
+            description="Providers you have used recently or ones that are popular on Metorial."
             size="5"
             actions={
               <Link to={Paths.instance.providers(...pathItems)}>

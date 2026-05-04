@@ -23,8 +23,8 @@ import { hasFlags } from '../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../middleware/requireConsumerTokenForPublishableKey';
 import {
-  magicMcpServerProviderPresenter,
   magicMcpServerPresenter,
+  magicMcpServerProviderPresenter,
   providerToolsPresenter
 } from '../../presenters';
 import { toolFiltersValidator } from './session';
@@ -265,7 +265,8 @@ export let magicMcpServerController = Controller.create(
   {
     name: 'Magic MCP Servers',
     description:
-      'Magic MCP servers are stable MCP entrypoints backed by one Subspace session template.'
+      'Magic MCP servers are stable MCP entrypoints backed by one Subspace session template.',
+    hideInDocs: true
   },
   {
     list: instanceGroup

@@ -32,7 +32,8 @@ export let customProviderEnvironmentController = Controller.create(
   {
     name: 'Custom Provider Environments',
     description:
-      'Environments represent deployment targets for custom provider versions (e.g., staging, production).'
+      'Environments represent deployment targets for custom provider versions (e.g., staging, production).',
+    hideInDocs: true
   },
   {
     list: instanceGroup

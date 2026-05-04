@@ -1,5 +1,6 @@
 import type { DashboardInstanceProviderListingsListQuery } from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
+import { autoPaginate } from '../../lib/autoPaginate';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
 
@@ -22,6 +23,31 @@ export let useProviderListings = (
   );
 
   return data;
+};
+
+export let allProviderListingsLoader = createLoader({
+  name: 'allProviderListings',
+  parents: [providerListingsLoader],
+  fetch: (i: { instanceId: string; ids: string[] }) => {
+    if (i.ids.length === 0) return [];
+
+    return withAuth(sdk =>
+      autoPaginate(cursor =>
+        sdk.providers.listings.list(i.instanceId, {
+          ...cursor,
+          id: i.ids
+        })
+      )
+    );
+  },
+  mutators: {}
+});
+
+export let useAllProviderListings = (
+  instanceId: string | null | undefined,
+  ids: string[] | null | undefined
+) => {
+  return allProviderListingsLoader.use(instanceId && ids ? { instanceId, ids } : null);
 };
 
 export let providerListingLoader = createLoader({

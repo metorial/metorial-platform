@@ -33,7 +33,8 @@ export let magicMcpSessionController = Controller.create(
   {
     name: 'Magic MCP Sessions',
     description:
-      'Magic MCP sessions map a Magic MCP server to one Subspace session and are created on demand by the MCP connection API.'
+      'Magic MCP sessions map a Magic MCP server to one Subspace session and are created on demand by the MCP connection API.',
+    hideInDocs: true
   },
   {
     list: instanceGroup

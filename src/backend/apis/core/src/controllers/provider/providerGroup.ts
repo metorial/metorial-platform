@@ -31,7 +31,8 @@ export let providerGroupController = Controller.create(
   {
     name: 'Provider Groups',
     description:
-      "A group is a user-defined custom folder for organizing providers in your instance like 'Sales Tools' or 'Engineering'."
+      "A group is a user-defined custom folder for organizing providers in your instance like 'Sales Tools' or 'Engineering'.",
+    hideInDocs: true
   },
   {
     list: instanceGroup

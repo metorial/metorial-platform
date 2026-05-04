@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { styled } from 'styled-components';
 import { theme } from '../theme';
+import { EntityContext } from './context';
 
 let Wrapper = styled('div')`
   border-radius: 12px;
@@ -14,11 +15,19 @@ let Wrapper = styled('div')`
 export let EntityWrapper = ({
   children,
   style,
+  aligned,
   skeleton
 }: {
   children: React.ReactNode;
   style?: React.CSSProperties;
+  aligned?: boolean;
   skeleton?: boolean;
 }) => {
-  return <Wrapper style={style}>{children}</Wrapper>;
+  let contextValue = useMemo(() => ({ aligned: !!aligned }), [aligned]);
+
+  return (
+    <EntityContext.Provider value={contextValue}>
+      <Wrapper style={style}>{children}</Wrapper>
+    </EntityContext.Provider>
+  );
 };

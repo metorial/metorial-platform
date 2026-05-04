@@ -34,6 +34,7 @@ import {
   resolveProviders,
   resolveSessionTemplates
 } from '@metorial-subspace/list-utils';
+import { providerConfigService } from '@metorial-subspace/module-deployment';
 import {
   identityActorService,
   identityInternalService
@@ -272,6 +273,111 @@ class integrationInstanceServiceImpl {
     return integrationInstance;
   }
 
+  private async getAutomaticProviderInputs(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    integration: Integration;
+    input: Pick<IntegrationInstanceWriteInput, 'providers'>;
+  }) {
+    let integrationProviders = await db.integrationProvider.findMany({
+      where: {
+        integrationOid: d.integration.oid,
+        tenantOid: d.tenant.oid,
+        solutionOid: d.solution.oid,
+        environmentOid: d.environment.oid,
+        status: 'active'
+      },
+      include: {
+        provider: {
+          include: {
+            type: true,
+            defaultVariant: true
+          }
+        },
+        currentVersion: {
+          include: {
+            deployment: true,
+            config: true
+          }
+        }
+      }
+    });
+
+    let explicitProviderReferences = new Set(
+      (d.input.providers ?? []).map(provider => provider.providerId)
+    );
+
+    let automaticInputs: SetIntegrationInstanceProviderInput[] = [];
+    for (let integrationProvider of integrationProviders) {
+      let provider = integrationProvider.provider;
+      let deployment = integrationProvider.currentVersion?.deployment;
+      let sharedConfig = integrationProvider.currentVersion?.config;
+      if (!deployment) continue;
+
+      if (
+        explicitProviderReferences.has(integrationProvider.id) ||
+        explicitProviderReferences.has(provider.id)
+      ) {
+        continue;
+      }
+
+      if (
+        provider.type.attributes.auth.status !== 'disabled' ||
+        provider.type.attributes.config.status !== 'disabled'
+      ) {
+        continue;
+      }
+
+      checkDeletedRelation(integrationProvider);
+      checkDeletedRelation(provider);
+      checkDeletedRelation(deployment);
+
+      let providerConfigId: string | null;
+      if (sharedConfig) {
+        providerConfigId = null;
+      } else {
+        let materialDeployment = await db.providerDeployment.findFirstOrThrow({
+          where: {
+            oid: deployment.oid,
+            tenantOid: d.tenant.oid,
+            solutionOid: d.solution.oid,
+            environmentOid: d.environment.oid
+          },
+          include: {
+            provider: true,
+            providerVariant: true,
+            currentVersion: {
+              include: { lockedVersion: true }
+            }
+          }
+        });
+
+        let emptyConfig = await providerConfigService.createProviderConfig({
+          tenant: d.tenant,
+          solution: d.solution,
+          environment: d.environment,
+          provider,
+          providerDeployment: materialDeployment,
+          input: {
+            name: `${integrationProvider.name} Config`,
+            description: 'Auto-created for integration instance',
+            config: { type: 'inline', data: {} }
+          }
+        });
+        providerConfigId = emptyConfig.id;
+      }
+
+      automaticInputs.push({
+        providerId: integrationProvider.id,
+        providerDeploymentId: deployment.id,
+        providerConfigId
+      });
+    }
+
+    return automaticInputs;
+  }
+
   async listIntegrationInstances(d: {
     tenant: Tenant;
     solution: Solution;
@@ -471,6 +577,14 @@ class integrationInstanceServiceImpl {
     checkDeletedRelation(d.integration);
 
     return await withTransaction(async db => {
+      let automaticProviders = await this.getAutomaticProviderInputs({
+        tenant: d.tenant,
+        solution: d.solution,
+        environment: d.environment,
+        integration: d.integration,
+        input: d.input
+      });
+
       let newId = getId('integrationInstance');
       let integrationInstance = await db.integrationInstance.create({
         data: this.integrationInstanceCreateData({
@@ -490,7 +604,10 @@ class integrationInstanceServiceImpl {
         solution: d.solution,
         environment: d.environment,
         integrationInstance,
-        input: d.input
+        input: {
+          ...d.input,
+          providers: [...(d.input.providers ?? []), ...automaticProviders]
+        }
       });
 
       await addAfterTransactionHook(async () =>

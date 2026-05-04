@@ -509,6 +509,7 @@ export let ProvidersWithDeploymentsSearch = ({
   includeAllProviders = false,
   prioritizeProvidersWithDeployments = false,
   providerListingsFilter,
+  excludeProviderIds,
   hideSearch = false,
   internalScroll = false,
   internalScrollHeight,
@@ -526,12 +527,14 @@ export let ProvidersWithDeploymentsSearch = ({
   includeAllProviders?: boolean;
   prioritizeProvidersWithDeployments?: boolean;
   providerListingsFilter?: DashboardInstanceProviderListingsListQuery;
+  excludeProviderIds?: string[];
   hideSearch?: boolean;
   internalScroll?: boolean;
   internalScrollHeight?: string | number;
   selectedProviderId?: string;
 }) => {
   let deployments = useProviderDeployments(instanceId, limit ? { limit } : undefined);
+  let excludedProviderIds = useMemo(() => new Set(excludeProviderIds ?? []), [excludeProviderIds]);
   let providerIds = useMemo(
     () =>
       [
@@ -585,10 +588,13 @@ export let ProvidersWithDeploymentsSearch = ({
             return a.idx - b.idx;
           })
         : providerItems;
+      let visibleItems = sortedItems
+        .map(i => i.item)
+        .filter(item => !excludedProviderIds.has(item.id));
 
       return (
         <ProviderSearchGrid
-          items={sortedItems.map(i => i.item)}
+          items={visibleItems}
           stickyTop={stickyTop}
           sectionLabel="Providers"
           emptyText={emptyText}
@@ -643,6 +649,7 @@ export let ProvidersWithDeploymentsSearch = ({
     for (let deployment of deployments.data.items) {
       if (seen.has(deployment.providerId)) continue;
       seen.add(deployment.providerId);
+      if (excludedProviderIds.has(deployment.providerId)) continue;
 
       let provider = providerLookup.get(deployment.providerId);
 

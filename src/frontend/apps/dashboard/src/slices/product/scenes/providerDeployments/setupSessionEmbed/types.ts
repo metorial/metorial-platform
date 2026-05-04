@@ -14,6 +14,7 @@ export type ProviderSetupSessionEmbedProps = {
   instanceId: string;
   providerId: string;
   deploymentId?: string;
+  fixedCredentialId?: string;
   onComplete: (setupSession: DashboardInstanceProviderDeploymentsSetupSessionsGetOutput | null) => void;
   onCancel?: () => void;
   cancelLabel?: string;

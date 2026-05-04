@@ -3,11 +3,11 @@ import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { subspaceCallbackNotificationService } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
-import { callbackGroup } from './callback';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instancePath } from '../../middleware/instanceGroup';
 import { callbackNotificationPresenter } from '../../presenters';
+import { callbackGroup } from './callback';
 
 let callbackNotificationGroup = callbackGroup.use(async ctx => {
   if (!ctx.params.callbackNotificationId) {
@@ -31,14 +31,18 @@ let callbackNotificationGroup = callbackGroup.use(async ctx => {
 export let callbackNotificationController = Controller.create(
   {
     name: 'Callback Notifications',
-    description: 'Read callback notification deliveries.'
+    description: 'Read callback notification deliveries.',
+    hideInDocs: true
   },
   {
     list: callbackGroup
-      .get(instancePath('callbacks/:callbackId/notifications', 'callbacks.notifications.list'), {
-        name: 'List callback notifications',
-        description: 'Returns a paginated list of callback notifications.'
-      })
+      .get(
+        instancePath('callbacks/:callbackId/notifications', 'callbacks.notifications.list'),
+        {
+          name: 'List callback notifications',
+          description: 'Returns a paginated list of callback notifications.'
+        }
+      )
       .use(checkAccess({ possibleScopes: ['instance.callback:read'] }))
       .outputList(callbackNotificationPresenter)
       .query(
@@ -91,7 +95,9 @@ export let callbackNotificationController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.callback:read'] }))
       .output(callbackNotificationPresenter)
       .do(async ctx =>
-        callbackNotificationPresenter.present({ callbackNotification: ctx.callbackNotification })
+        callbackNotificationPresenter.present({
+          callbackNotification: ctx.callbackNotification
+        })
       )
   }
 );

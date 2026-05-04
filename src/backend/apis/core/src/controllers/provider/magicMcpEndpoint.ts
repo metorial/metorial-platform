@@ -75,7 +75,8 @@ export let magicMcpEndpointController = Controller.create(
   {
     name: 'Magic MCP Endpoints',
     description:
-      'Magic MCP endpoints combine multiple Magic MCP servers behind one routed connection target.'
+      'Magic MCP endpoints combine multiple Magic MCP servers behind one routed connection target.',
+    hideInDocs: true
   },
   {
     list: instanceGroup
