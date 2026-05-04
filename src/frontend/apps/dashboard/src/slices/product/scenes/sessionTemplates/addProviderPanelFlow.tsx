@@ -69,12 +69,30 @@ type InitialToolFilter =
     }
   | null;
 
+export type ProviderPanelSubmitInput = {
+  providerId: string;
+  providerDeploymentId?: string;
+  providerConfigId?: string;
+  providerConfigVaultId?: string;
+  providerAuthConfigId?: string;
+  toolFilters?:
+    | {
+        type: 'tool_keys';
+        keys: string[];
+      }
+    | {
+        type: 'tool_keys';
+        keys: string[];
+      }[];
+};
+
 type AddProviderPanelFlowProps = {
   close: () => void;
   setPanelWidth: (width: number) => void;
   instanceId: string;
-  sessionTemplateId: string;
+  sessionTemplateId?: string;
   sessionTemplateProviderId?: string;
+  excludeProviderIds?: string[];
   providerId?: string;
   hideProviderStep?: boolean;
   initialDeploymentId?: string;
@@ -84,6 +102,10 @@ type AddProviderPanelFlowProps = {
   title?: string;
   description?: string;
   action?: string;
+  onSubmitProvider?: (
+    input: ProviderPanelSubmitInput,
+    currentProviderId?: string
+  ) => Promise<{ error?: unknown; success?: boolean }>;
   onComplete: () => void;
 };
 
@@ -91,12 +113,15 @@ let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
   let createConfigMutation = useCreateProviderConfig();
   let createMutation = useCreateSessionTemplateProvider();
   let deleteMutation = useDeleteSessionTemplateProvider();
+  let [isSubmitting, setIsSubmitting] = useState(false);
+  let [submitError, setSubmitError] = useState<unknown>(null);
   let selectedProvider = useProvider(p.instanceId, p.providerId);
   let resolvedProviderName =
     selectedProvider.data?.name ?? selectedProvider.data?.slug ?? p.providerId ?? '';
   let selectedProviderRequiresConfig = selectedProvider.data?.type.config.status == 'enabled';
   let selectedProviderRequiresAuth = selectedProvider.data?.type.auth.status == 'enabled';
   let [step, setStep] = useState(p.hideProviderStep ? 0 : p.providerId ? 1 : 0);
+  let toolFilterHydrationKeyRef = useRef<string | null>(null);
   let initialSelectedToolKeys =
     p.initialToolFilter?.type === 'filter'
       ? p.initialToolFilter.filters
@@ -104,9 +129,7 @@ let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
           .flatMap(filter => filter.keys ?? [])
       : [];
   let initialToolFilterMode: 'all' | 'select' =
-    p.initialToolFilter?.type === 'filter' && initialSelectedToolKeys.length > 0
-      ? 'select'
-      : 'all';
+    p.initialToolFilter?.type === 'filter' ? 'select' : 'all';
 
   useEffect(() => {
     if (p.hideProviderStep || step === 1) {
@@ -130,6 +153,7 @@ let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
       selectedToolKeys: initialSelectedToolKeys
     },
     onSubmit: async values => {
+      setSubmitError(null);
       let fallbackProviderConfigId: string | undefined;
       let needsFallbackConfig =
         !values.selectedDeploymentId &&
@@ -153,9 +177,8 @@ let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
         fallbackProviderConfigId = config.id;
       }
 
-      let createInput = {
-        instanceId: p.instanceId,
-        sessionTemplateId: p.sessionTemplateId,
+      let submitInput: ProviderPanelSubmitInput = {
+        providerId: values.selectedProviderId,
         ...(values.selectedDeploymentId
           ? { providerDeploymentId: values.selectedDeploymentId }
           : {}),
@@ -179,14 +202,34 @@ let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
               providerAuthConfigId: values.selectedAuthConfigId
             }
           : {}),
-        ...(values.toolFilterMode === 'select'
-          ? {
-              toolFilters: {
+        toolFilters:
+          values.toolFilterMode === 'select'
+            ? {
                 type: 'tool_keys' as const,
                 keys: values.selectedToolKeys
               }
-            }
-          : {})
+            : []
+      };
+
+      if (p.onSubmitProvider) {
+        setIsSubmitting(true);
+        let result = await p.onSubmitProvider(submitInput, p.sessionTemplateProviderId);
+        setIsSubmitting(false);
+
+        if (result.success && !result.error) {
+          p.onComplete();
+          p.close();
+          return { success: true };
+        }
+
+        setSubmitError(result.error ?? null);
+        return { error: result.error };
+      }
+
+      let createInput = {
+        instanceId: p.instanceId,
+        sessionTemplateId: p.sessionTemplateId!,
+        ...submitInput
       };
 
       if (p.sessionTemplateProviderId) {
@@ -282,10 +325,6 @@ let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
       form.setFieldValue('selectedAuthConfigId', p.initialAuthConfigId);
     }
 
-    if (initialToolFilterMode === 'select' && form.values.selectedToolKeys.length === 0) {
-      form.setFieldValue('toolFilterMode', 'select');
-      form.setFieldValue('selectedToolKeys', initialSelectedToolKeys);
-    }
   }, [
     p.hideProviderStep,
     p.providerId,
@@ -295,14 +334,38 @@ let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
     selectedProviderRequiresConfig,
     selectedProviderRequiresAuth,
     resolvedProviderName,
-    initialToolFilterMode,
-    initialSelectedToolKeys,
     form.values.selectedProviderId,
     form.values.selectedProviderName,
     form.values.selectedDeploymentId,
     form.values.selectedConfiguration.kind,
-    form.values.selectedAuthConfigId,
-    form.values.selectedToolKeys.length
+    form.values.selectedAuthConfigId
+  ]);
+
+  useEffect(() => {
+    if (!p.hideProviderStep) {
+      toolFilterHydrationKeyRef.current = null;
+      return;
+    }
+
+    let hydrationKey = [
+      p.sessionTemplateProviderId ?? '',
+      p.providerId ?? '',
+      initialToolFilterMode,
+      ...initialSelectedToolKeys
+    ].join('::');
+
+    if (toolFilterHydrationKeyRef.current === hydrationKey) return;
+
+    toolFilterHydrationKeyRef.current = hydrationKey;
+    form.setFieldValue('toolFilterMode', initialToolFilterMode);
+    form.setFieldValue('selectedToolKeys', initialSelectedToolKeys);
+  }, [
+    p.hideProviderStep,
+    p.sessionTemplateProviderId,
+    p.providerId,
+    initialToolFilterMode,
+    initialSelectedToolKeys,
+    form
   ]);
 
   let resetConfigurationState = () => {
@@ -343,6 +406,7 @@ let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
               providerName={form.values.selectedProviderName}
               saving={
                 createConfigMutation.isLoading ||
+                isSubmitting ||
                 createMutation.isPending ||
                 deleteMutation.isPending
               }
@@ -372,6 +436,7 @@ let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
         render: () => (
           <PickProviderStep
             instanceId={p.instanceId}
+            excludeProviderIds={p.excludeProviderIds}
             selectedProviderId={form.values.selectedProviderId || undefined}
             onSelect={handleProviderSelect}
           />
@@ -386,6 +451,8 @@ let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
     form.values.selectedProviderName,
     resolvedProviderName,
     createConfigMutation.isLoading,
+    isSubmitting,
+    submitError,
     createMutation.isPending,
     deleteMutation.isPending,
     form.handleSubmit,
@@ -807,7 +874,7 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
   let sectionItems: ReactNode[] = [];
   let isConfigCompleted = p.selectedConfiguration.kind !== 'none';
   let isAuthCompleted = Boolean(p.selectedAuthConfigId);
-  let isToolsCompleted = toolFilterMode === 'all' || selectedToolKeys.length > 0;
+  let isToolsCompleted = toolFilterMode === 'all' || toolFilterMode === 'select';
   let providerDisplayName =
     providerListing.data?.name ??
     provider.data?.name ??
@@ -1220,6 +1287,7 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
 
 let PickProviderStep = (p: {
   instanceId: string;
+  excludeProviderIds?: string[];
   selectedProviderId?: string;
   onSelect: (providerId: string, providerName: string) => void;
 }) => {
@@ -1247,6 +1315,7 @@ let PickProviderStep = (p: {
         includeAllProviders
         prioritizeProvidersWithDeployments
         providerListingsFilter={providerListingsFilter}
+        excludeProviderIds={p.excludeProviderIds}
         hideSearch
         internalScroll
         internalScrollHeight="calc(100vh - 360px)"
@@ -1362,9 +1431,10 @@ let ConfigureStep = (p: {
 
 export let showAddProviderPanelFlow = (p: {
   instanceId: string;
-  sessionTemplateId: string;
+  sessionTemplateId?: string;
   onComplete: () => void;
   sessionTemplateProviderId?: string;
+  excludeProviderIds?: string[];
   providerId?: string;
   hideProviderStep?: boolean;
   initialDeploymentId?: string;
@@ -1374,6 +1444,10 @@ export let showAddProviderPanelFlow = (p: {
   title?: string;
   description?: string;
   action?: string;
+  onSubmitProvider?: (
+    input: ProviderPanelSubmitInput,
+    currentProviderId?: string
+  ) => Promise<{ error?: unknown; success?: boolean }>;
 }) =>
   showProviderCreationPanel(({ close, setWidth }) => (
     <AddProviderPanelFlow
@@ -1382,6 +1456,7 @@ export let showAddProviderPanelFlow = (p: {
       instanceId={p.instanceId}
       sessionTemplateId={p.sessionTemplateId}
       sessionTemplateProviderId={p.sessionTemplateProviderId}
+      excludeProviderIds={p.excludeProviderIds}
       providerId={p.providerId}
       hideProviderStep={p.hideProviderStep}
       initialDeploymentId={p.initialDeploymentId}
@@ -1391,6 +1466,7 @@ export let showAddProviderPanelFlow = (p: {
       title={p.title}
       description={p.description}
       action={p.action}
+      onSubmitProvider={p.onSubmitProvider}
       onComplete={p.onComplete}
     />
   ));

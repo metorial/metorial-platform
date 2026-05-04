@@ -70,7 +70,7 @@ export let ConsumerPage = () => {
 
         <Box
           title="Profiles"
-          description="Profiles linked to this consumer across consumer surfaces."
+          description="Profiles linked to this account across account surfaces."
         >
           {renderWithPagination(profiles)(profiles => (
             <>
@@ -100,7 +100,7 @@ export let ConsumerPage = () => {
 
               {profiles.data.items.length === 0 && (
                 <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-                  No profiles for this consumer.
+                  No profiles for this account.
                 </Text>
               )}
             </>
@@ -109,7 +109,7 @@ export let ConsumerPage = () => {
 
         <Spacer size={20} />
 
-        <Box title="Actors" description="Identity actors linked to this consumer.">
+        <Box title="Actors" description="Identity actors linked to this account.">
           {renderWithPagination(actors)(actors => (
             <>
               <Table
@@ -142,7 +142,7 @@ export let ConsumerPage = () => {
 
               {actors.data.items.length === 0 && (
                 <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-                  No actors for this consumer.
+                  No actors for this account.
                 </Text>
               )}
             </>

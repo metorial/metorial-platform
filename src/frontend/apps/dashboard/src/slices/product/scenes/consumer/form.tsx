@@ -60,7 +60,7 @@ export let ConsumerForm = ({
           Cancel
         </Button>
         <Button type="submit" loading={createMutation.isLoading} size="2">
-          Create Consumer
+          Create Account
         </Button>
       </Dialog.Actions>
     </form>

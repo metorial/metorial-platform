@@ -1,5 +1,8 @@
 import {
   DashboardInstanceMagicMcpServersCreateBody,
+  DashboardInstanceMagicMcpServersProvidersCreateBody,
+  DashboardInstanceMagicMcpServersProvidersListQuery,
+  DashboardInstanceMagicMcpServersProvidersUpdateBody,
   DashboardInstanceMagicMcpServersListQuery,
   DashboardInstanceMagicMcpServersUpdateBody
 } from '@metorial/dashboard-sdk';
@@ -104,3 +107,86 @@ export let updateMagicMcpServer = (
   }
 ) =>
   withAuth(sdk => sdk.magicMcp.servers.update(body.instanceId, body.magicMcpServerId, body));
+
+export let magicMcpServerProvidersLoader = createLoader({
+  name: 'magicMcpServerProviders',
+  parents: [magicMcpServerLoader],
+  fetch: (
+    i: {
+      instanceId: string;
+      magicMcpServerId: string;
+    } & DashboardInstanceMagicMcpServersProvidersListQuery
+  ) =>
+    withAuth(sdk => {
+      let { instanceId, magicMcpServerId, ...query } = i;
+      return sdk.magicMcp.servers.providers.list(instanceId, magicMcpServerId, query);
+    }),
+  mutators: {}
+});
+
+export let useMagicMcpServerProviders = (
+  instanceId: string | null | undefined,
+  magicMcpServerId: string | null | undefined,
+  query?: DashboardInstanceMagicMcpServersProvidersListQuery
+) => {
+  let data = usePaginator(
+    pagination =>
+      magicMcpServerProvidersLoader.use(
+        instanceId && magicMcpServerId
+          ? { instanceId, magicMcpServerId, ...pagination, ...query }
+          : null
+      ),
+    instanceId && magicMcpServerId ? `${instanceId}:${magicMcpServerId}` : null
+  );
+
+  return data;
+};
+
+export let useCreateMagicMcpServerProvider =
+  magicMcpServerProvidersLoader.createExternalMutator(
+    (
+      i: {
+        instanceId: string;
+        magicMcpServerId: string;
+      } & DashboardInstanceMagicMcpServersProvidersCreateBody
+    ) =>
+      withAuth(sdk => {
+        let { instanceId, magicMcpServerId, ...body } = i;
+        return sdk.magicMcp.servers.providers.create(instanceId, magicMcpServerId, body);
+      }),
+    { disableToast: true }
+  );
+
+export let useUpdateMagicMcpServerProvider =
+  magicMcpServerProvidersLoader.createExternalMutator(
+    (
+      i: {
+        instanceId: string;
+        magicMcpServerId: string;
+        magicMcpServerProviderId: string;
+      } & DashboardInstanceMagicMcpServersProvidersUpdateBody
+    ) =>
+      withAuth(sdk => {
+        let { instanceId, magicMcpServerId, magicMcpServerProviderId, ...body } = i;
+        return sdk.magicMcp.servers.providers.update(
+          instanceId,
+          magicMcpServerId,
+          magicMcpServerProviderId,
+          body
+        );
+      }),
+    { disableToast: true }
+  );
+
+export let useDeleteMagicMcpServerProvider =
+  magicMcpServerProvidersLoader.createExternalMutator(
+    (i: { instanceId: string; magicMcpServerId: string; magicMcpServerProviderId: string }) =>
+      withAuth(sdk =>
+        sdk.magicMcp.servers.providers.delete(
+          i.instanceId,
+          i.magicMcpServerId,
+          i.magicMcpServerProviderId
+        )
+      ),
+    { disableToast: true }
+  );

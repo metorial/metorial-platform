@@ -3,11 +3,13 @@ import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
 import {
   useCreateSession,
+  useCreateMagicMcpServerProvider,
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
   useMagicMcpServer,
-  useSessionTemplateProviders
+  useMagicMcpServerProviders,
+  useUpdateMagicMcpServerProvider
 } from '@metorial/state';
 import { Button, Flex, LinkTabs } from '@metorial/ui';
 import { useState } from 'react';
@@ -22,11 +24,14 @@ export let MagicMcpServerLayout = () => {
   let navigate = useNavigate();
   let { magicMcpServerId } = useParams();
   let server = useMagicMcpServer(instance.data?.id, magicMcpServerId);
-  let providers = useSessionTemplateProviders(
+  let providers = useMagicMcpServerProviders(
     instance.data?.id,
-    server.data?.sessionTemplateId
+    magicMcpServerId,
+    { status: ['active'] }
   );
   let createSession = useCreateSession(instance.data?.id);
+  let createProvider = useCreateMagicMcpServerProvider();
+  let updateProvider = useUpdateMagicMcpServerProvider();
   let [isCreatingSession, setIsCreatingSession] = useState(false);
   let pathname = useLocation().pathname;
   let isTokensPage = pathname.endsWith('/tokens');
@@ -39,19 +44,26 @@ export let MagicMcpServerLayout = () => {
   ] as const;
 
   let handleOpenExplorer = async () => {
-    let activeSessionTemplateId = server.data?.sessionTemplateId;
-    if (
-      isCreatingSession ||
-      !instance.data ||
-      !activeSessionTemplateId ||
-      !providers.data?.items.length
-    )
+    let activeProviders =
+      server.data?.providers.filter(
+        provider => provider.status === 'active' && !!provider.deployment?.id
+      ) ?? [];
+    if (isCreatingSession || !instance.data || activeProviders.length === 0)
       return;
 
     setIsCreatingSession(true);
 
     let [res] = await createSession.mutate({
-      providers: [{ sessionTemplateId: activeSessionTemplateId }]
+      providers: activeProviders
+        .filter(provider => provider.deployment?.id)
+        .map(provider => ({
+          providerDeploymentId: provider.deployment!.id,
+          ...(provider.config?.id ? { providerConfigId: provider.config.id } : {}),
+          ...(provider.authConfig?.id
+            ? { providerAuthConfigId: provider.authConfig.id }
+            : {}),
+          ...(provider.toolFilter ? { toolFilters: provider.toolFilter } : {})
+        }))
     });
     setIsCreatingSession(false);
 
@@ -112,7 +124,36 @@ export let MagicMcpServerLayout = () => {
 
                       showAddProviderSidePanel({
                         instanceId: instance.data!.id,
-                        sessionTemplateId: server.data.sessionTemplateId!,
+                        excludeProviderIds: Array.from(
+                          new Set((server.data.providers ?? []).map(provider => provider.provider.id))
+                        ),
+                        onSubmitProvider: async (input, currentProviderId) => {
+                          if (currentProviderId) {
+                            let [, error] = await updateProvider.mutate({
+                              instanceId: instance.data!.id,
+                              magicMcpServerId: server.data.id,
+                              magicMcpServerProviderId: currentProviderId,
+                              providerDeploymentId: input.providerDeploymentId,
+                              providerConfigId: input.providerConfigId,
+                              providerAuthConfigId: input.providerAuthConfigId,
+                              toolFilters: input.toolFilters
+                            });
+
+                            return error ? { error } : { success: true };
+                          }
+
+                          let [, error] = await createProvider.mutate({
+                            instanceId: instance.data!.id,
+                            magicMcpServerId: server.data.id,
+                            providerId: input.providerId,
+                            providerDeploymentId: input.providerDeploymentId!,
+                            providerConfigId: input.providerConfigId,
+                            providerAuthConfigId: input.providerAuthConfigId,
+                            toolFilters: input.toolFilters
+                          });
+
+                          return error ? { error } : { success: true };
+                        },
                         onComplete: () => providers.refetch()
                       });
                     }}

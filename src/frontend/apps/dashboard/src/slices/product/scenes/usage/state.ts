@@ -25,7 +25,7 @@ export let useUsageState = (opts: {
   let toNormalized = useMemo(() => (to > now ? now : to), [to, now]);
 
   let [interval, setInterval] = useState(
-    () => opts.interval || { unit: 'hour' as const, count: 1 }
+    () => opts.interval || { unit: 'day' as const, count: 1 }
   );
 
   let usage = useUsage(

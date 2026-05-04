@@ -128,12 +128,6 @@ let magicServersTable = new DashboardTable<MagicMcpServersTableProps, Server>(
       )
     },
     {
-      id: 'sessionTemplateId',
-      isDefault: false,
-      header: 'Session Template ID',
-      render: server => <ID id={server.sessionTemplateId ?? undefined} />
-    },
-    {
       id: 'providerTemplateId',
       isDefault: false,
       header: 'Provider Template ID',

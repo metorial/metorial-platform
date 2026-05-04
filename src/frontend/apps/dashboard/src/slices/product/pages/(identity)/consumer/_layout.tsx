@@ -25,7 +25,7 @@ export let ConsumerLayout = () => {
         description={consumer.data?.email ?? undefined}
         pagination={[
           {
-            label: 'Consumers',
+            label: 'Accounts',
             href: Paths.instance.identity.consumers(
               organization.data,
               project.data,

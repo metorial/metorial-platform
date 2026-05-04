@@ -1,16 +1,126 @@
-import { renderWithLoader } from '@metorial/data-hooks';
+import { renderWithLoader, useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
 import {
+  IntegrationPreview,
+  useCreateIntegrationSetupSession,
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
   useIntegration
 } from '@metorial/state';
-import { Button, Flex, LinkTabs } from '@metorial/ui';
+import {
+  Button,
+  Checkbox,
+  Copy,
+  Dialog,
+  Flex,
+  Input,
+  LinkTabs,
+  Spacer,
+  Text,
+  showModal
+} from '@metorial/ui';
+import { useState } from 'react';
 import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { DeletedRecordCallout } from '../../../scenes/deletedRecordCallout';
 import { showIntegrationInstanceFormModal } from '../../../scenes/integrations/instancesTable';
+
+let showIntegrationSetupSessionModal = (p: {
+  instanceId: string;
+  integration: IntegrationPreview;
+}) =>
+  showModal(({ dialogProps, close }) => {
+    let createSetupSession = useCreateIntegrationSetupSession();
+    let [toolFiltersEnabled, setToolFiltersEnabled] = useState(false);
+    let [createdUrl, setCreatedUrl] = useState<string | null>(null);
+    let form = useForm({
+      initialValues: {
+        name: `${p.integration.name} Setup`,
+        description: ''
+      },
+      onSubmit: async values => {
+        let [created] = await createSetupSession.mutate({
+          instanceId: p.instanceId,
+          integrationId: p.integration.id,
+          name: values.name.trim(),
+          description: values.description.trim() || undefined,
+          toolFiltersEnabled
+        });
+
+        if (!created) return;
+        setCreatedUrl(created.url);
+      },
+      schema: yup =>
+        yup.object({
+          name: yup.string().trim().required('Name is required'),
+          description: yup.string()
+        })
+    });
+
+    return (
+      <Dialog.Wrapper {...dialogProps} width={650}>
+        <Dialog.Title>Create Setup Session</Dialog.Title>
+        <Dialog.Description>
+          Create a shared setup link for configuring all providers in {p.integration.name}.
+        </Dialog.Description>
+
+        {createdUrl ? (
+          <>
+            <Text size="2" color="gray600">
+              Share this setup link with the user who should configure the integration.
+            </Text>
+            <Spacer size={12} />
+            <Copy label="Setup Link" value={createdUrl} />
+            <Spacer size={18} />
+            <Dialog.Actions>
+              <Button type="button" variant="outline" onClick={close}>
+                Close
+              </Button>
+              <Button
+                type="button"
+                onClick={() => window.open(createdUrl, '_blank', 'noopener,noreferrer')}
+              >
+                Open
+              </Button>
+            </Dialog.Actions>
+          </>
+        ) : (
+          <form onSubmit={form.handleSubmit}>
+            <Input label="Name" required {...form.getFieldProps('name')} />
+            <form.RenderError field="name" />
+
+            <Spacer size={10} />
+
+            <Input label="Description" {...form.getFieldProps('description')} />
+            <form.RenderError field="description" />
+
+            <Spacer size={12} />
+
+            <Checkbox
+              checked={toolFiltersEnabled}
+              label="Enable tool filters"
+              description="Let the setup flow collect tool filter settings when the integration allows it."
+              onCheckedChange={checked => setToolFiltersEnabled(!!checked)}
+            />
+
+            <Spacer size={18} />
+
+            <Dialog.Actions>
+              <Button type="button" variant="outline" onClick={close}>
+                Cancel
+              </Button>
+              <Button type="submit" loading={createSetupSession.isPending}>
+                Create Setup Session
+              </Button>
+            </Dialog.Actions>
+
+            <createSetupSession.RenderError />
+          </form>
+        )}
+      </Dialog.Wrapper>
+    );
+  });
 
 export let IntegrationLayout = () => {
   let instance = useCurrentInstance();
@@ -60,6 +170,20 @@ export let IntegrationLayout = () => {
               >
                 Edit
               </Button> */}
+
+              <Button
+                size="2"
+                variant="outline"
+                onClick={() =>
+                  instance.data &&
+                  showIntegrationSetupSessionModal({
+                    instanceId: instance.data.id,
+                    integration: integration.data!
+                  })
+                }
+              >
+                Create Setup Session
+              </Button>
 
               <Button
                 size="2"

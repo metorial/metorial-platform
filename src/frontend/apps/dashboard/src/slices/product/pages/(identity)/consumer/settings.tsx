@@ -30,7 +30,7 @@ export let ConsumerSettingsPage = () => {
   });
 
   return renderWithLoader({ consumer })(() => (
-    <Box title="Consumer Settings" description="Update the saved details for this consumer.">
+    <Box title="Account Settings" description="Update the saved details for this account.">
       <form onSubmit={form.handleSubmit}>
         <Input label="Name" required {...form.getFieldProps('name')} />
         <form.RenderError field="name" />

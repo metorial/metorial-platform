@@ -228,7 +228,7 @@ export let ProjectPageLayout = () => {
           items: [
             {
               icon: <RiUser3Line />,
-              label: 'Consumers',
+              label: 'Accounts',
               to: Paths.instance.identity.consumers(...params),
               getProps: i => ({
                 isActive: checkPath(i) || i.pathname.includes('/identity/consumer/')

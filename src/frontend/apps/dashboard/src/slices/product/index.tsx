@@ -757,6 +757,10 @@ export let productIdentitySlice = createSlice([
             element: <IdentityListLayout />,
             children: [
               {
+                path: 'actors',
+                element: <IdentityActorsPage />
+              },
+              {
                 path: 'identities',
                 element: <IdentitiesPage />
               },
@@ -776,18 +780,9 @@ export let productIdentitySlice = createSlice([
               }
             ]
           },
-
           {
-            children: [
-              {
-                path: 'consumers',
-                element: <ConsumersPage />
-              },
-              {
-                path: 'actors',
-                element: <IdentityActorsPage />
-              }
-            ]
+            path: 'consumers',
+            element: <ConsumersPage />
           },
 
           {
