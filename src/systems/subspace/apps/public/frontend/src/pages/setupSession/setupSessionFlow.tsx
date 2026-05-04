@@ -257,6 +257,15 @@ export let SetupSessionFlow = ({
       setFlowSession(current => ({ ...current, config: { id: 'pending' } as any }));
     }
 
+    if (toolFiltersEnabled && !needsConfig && !needsAuthConfig) {
+      await client.setupSession.setConfig({
+        sessionId: flowSession.id,
+        clientSecret,
+        configInput: {},
+        toolFilters: toolFilterPayload
+      });
+    }
+
     if (toolFiltersEnabled) {
       setToolAccessStepCompleted(true);
     }

@@ -1,10 +1,10 @@
-import { CenteredSpinner, Group, Title } from '@metorial/ui';
-import React from 'react';
-import styled from 'styled-components';
 import { useHideBootSpinner } from '../../hooks/useHideBootSpinner';
 import { useSetupSession } from '../../state/setupSession';
+import {
+  PublicSetupLoadingPage,
+  PublicSetupStatusPage
+} from './components/publicSetupChrome';
 import { ErrorIcon, SuccessIcon, WarningIcon } from './components/statusIcons';
-import { SecuredByFooter } from './components/stepLayout';
 import { SetupSessionFlow } from './setupSessionFlow';
 
 export let SetupSessionPage = () => {
@@ -13,7 +13,7 @@ export let SetupSessionPage = () => {
 
   if (setupSession.error) {
     return (
-      <StatusPageView
+      <PublicSetupStatusPage
         icon={<ErrorIcon />}
         title="Something went wrong"
         description={(setupSession.error as Error).message}
@@ -22,16 +22,20 @@ export let SetupSessionPage = () => {
   }
 
   if (!setupSession.data) {
-    return <LoadingPage />;
+    return <PublicSetupLoadingPage />;
   }
 
   let { session, brand, provider, completionRedirect, isWhitelabel } = setupSession.data;
   let clientSecret = new URLSearchParams(window.location.search).get('client_secret') || '';
+  let shouldKeepCompletedToolFilterSessionOpen =
+    session.status === 'completed' &&
+    completionRedirect?.type === 'integration_setup_session' &&
+    !!session.configuration?.toolFilters?.enabled;
 
-  if (session.status === 'completed') {
+  if (session.status === 'completed' && !shouldKeepCompletedToolFilterSessionOpen) {
     if (completionRedirect?.url || session.redirectUrl) {
       window.location.href = completionRedirect?.url ?? session.redirectUrl!;
-      return <LoadingPage />;
+      return <PublicSetupLoadingPage />;
     }
 
     setTimeout(() => {
@@ -41,7 +45,7 @@ export let SetupSessionPage = () => {
     }, 2000);
 
     return (
-      <StatusPageView
+      <PublicSetupStatusPage
         icon={<SuccessIcon />}
         title="Setup Complete"
         description="This setup session has already been completed. You can close this window."
@@ -52,7 +56,7 @@ export let SetupSessionPage = () => {
 
   if (session.status === 'expired') {
     return (
-      <StatusPageView
+      <PublicSetupStatusPage
         icon={<WarningIcon />}
         title="Session Expired"
         description="This setup session has expired. Please request a new setup link."
@@ -63,7 +67,7 @@ export let SetupSessionPage = () => {
 
   if (session.status === 'failed') {
     return (
-      <StatusPageView
+      <PublicSetupStatusPage
         icon={<ErrorIcon />}
         title="Setup Failed"
         description="This authentication session has failed. Please request a new setup link or contact support."
@@ -83,133 +87,3 @@ export let SetupSessionPage = () => {
     />
   );
 };
-
-let Wrapper = styled.div`
-  min-height: 100dvh;
-  padding: 60px 20px;
-  background: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  @media (max-width: 640px) {
-    padding: 0;
-    background: white;
-    align-items: flex-start;
-  }
-`;
-
-let Inner = styled.div`
-  width: 420px;
-  max-width: 100%;
-  margin: 0 auto;
-`;
-
-let Card = styled.div`
-  overflow: hidden;
-
-  & > div {
-    border: none;
-    border-radius: 0;
-  }
-
-  @media (max-width: 640px) {
-    min-height: 100dvh;
-    display: flex;
-    flex-direction: column;
-    box-shadow: none;
-    border-radius: 0;
-    border: none;
-
-    & > div {
-      display: flex;
-      flex-direction: column;
-      flex: 1;
-
-      & > *:first-child {
-        margin: auto 0;
-        border-bottom: none !important;
-      }
-
-      & > *:last-child {
-        border-bottom: none !important;
-      }
-    }
-  }
-`;
-
-let StatusContent = styled(Group.Content)`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 48px 24px;
-`;
-
-let IconWrapper = styled.div`
-  margin-bottom: 24px;
-`;
-
-let StatusTitle = styled(Title)`
-  text-align: center;
-`;
-
-let StatusDescription = styled.p`
-  text-align: center;
-  line-height: 1.5;
-  margin-top: 12px;
-  color: #666;
-  font-size: 14px;
-  text-wrap: balance;
-`;
-
-let Footer = styled(Group.Footer)`
-  justify-content: center;
-  border-top: none;
-  display: flex;
-  padding: 16px 0;
-
-  @media (max-width: 640px) {
-    margin-top: auto;
-    padding: 24px;
-  }
-`;
-
-interface StatusPageViewProps {
-  icon: React.ReactElement;
-  title: string;
-  description: string;
-  noPadding?: boolean;
-  isWhitelabel?: boolean;
-}
-
-let StatusPageView = ({
-  icon,
-  title,
-  description,
-  noPadding,
-  isWhitelabel
-}: StatusPageViewProps) => {
-  return (
-    <Wrapper>
-      <Inner>
-        <Card>
-          <StatusContent>
-            <IconWrapper>{icon}</IconWrapper>
-            <StatusTitle size="3" weight="bold">
-              {title}
-            </StatusTitle>
-            <StatusDescription>{description}</StatusDescription>
-          </StatusContent>
-
-          {!isWhitelabel && (
-            <Footer>
-              <SecuredByFooter logoSize={16} isMetorialElement />
-            </Footer>
-          )}
-        </Card>
-      </Inner>
-    </Wrapper>
-  );
-};
-
-let LoadingPage = () => <CenteredSpinner size={32} />;

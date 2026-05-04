@@ -1,79 +1,15 @@
 import { Spacer, Title } from '@metorial/ui';
 import { AnimatePresence, motion } from 'framer-motion';
 import React from 'react';
-import { keyframes, styled } from 'styled-components';
+import { styled } from 'styled-components';
 import { SecuredByFooter } from './stepLayout';
+import { SetupBrandHeader } from './setupProgress';
 import type { Brand } from '../types';
 
 let AnimatedInner = styled(motion.div)`
   display: flex;
   flex-direction: column;
   justify-content: center;
-`;
-
-let ProviderHeader = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-`;
-
-let IconsRow = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 12px;
-`;
-
-let BrandIcon = styled.img`
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  object-fit: contain;
-  background: white;
-`;
-
-let chevronPulse = keyframes`
-  0%, 100% {
-    opacity: 0.3;
-  }
-  50% {
-    opacity: 1;
-  }
-`;
-
-let Chevrons = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  color: rgba(0, 0, 0, 0.45);
-`;
-
-let ChevronSvg = styled.svg<{ $delay: number }>`
-  animation: ${chevronPulse} 1.5s ease-in-out infinite;
-  animation-delay: ${p => p.$delay}s;
-`;
-
-let ChevronIcon = ({ delay = 0 }: { delay?: number }) => (
-  <ChevronSvg $delay={delay} width="16" height="16" viewBox="0 0 16 16" fill="none">
-    <path
-      d="M6 4L10 8L6 12"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </ChevronSvg>
-);
-
-let ProviderIcon = styled.div`
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-`;
-
-let ProviderHeaderText = styled(Title)`
-  text-wrap: balance;
 `;
 
 let isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
@@ -130,31 +66,12 @@ export let SetupLayout = ({
             transition={{ duration, ease: 'anticipate' }}
           >
             {brand ? (
-              <>
-                <ProviderHeader>
-                  <IconsRow>
-                    <BrandIcon src={brand.imageUrl} alt={brand.name} />
-                    {providerImageUrl ? (
-                      <>
-                        <Chevrons>
-                          <ChevronIcon delay={0} />
-                          <ChevronIcon delay={0.3} />
-                          <ChevronIcon delay={0.6} />
-                        </Chevrons>
-                        <ProviderIcon
-                          style={{
-                            background: `url(${providerImageUrl}) center/contain no-repeat`
-                          }}
-                        />
-                      </>
-                    ) : null}
-                  </IconsRow>
-
-                  <ProviderHeaderText size="5" weight="bold">
-                    {providerName ? `Connect to ${providerName}` : 'Choose a provider'}
-                  </ProviderHeaderText>
-                </ProviderHeader>
-              </>
+              <SetupBrandHeader
+                brand={brand}
+                providerName={providerName}
+                providerImageUrl={providerImageUrl}
+                align="start"
+              />
             ) : (
               <Title as="h1" size="5" weight="bold">
                 {main.title}

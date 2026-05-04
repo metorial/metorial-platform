@@ -1,7 +1,14 @@
 import { Flex } from '@metorial/ui';
 import { RiAlertLine, RiCheckLine, RiCloseLine } from '@remixicon/react';
+import type React from 'react';
 
-export let SuccessIcon = () => {
+let StatusIcon = ({
+  background,
+  children
+}: {
+  background: string;
+  children: React.ReactNode;
+}) => {
   return (
     <Flex
       align="center"
@@ -10,44 +17,34 @@ export let SuccessIcon = () => {
         width: 64,
         height: 64,
         borderRadius: '50%',
-        background: '#10b981'
+        background
       }}
     >
-      <RiCheckLine size={32} color="white" />
+      {children}
     </Flex>
+  );
+};
+
+export let SuccessIcon = () => {
+  return (
+    <StatusIcon background="#10b981">
+      <RiCheckLine size={32} color="white" />
+    </StatusIcon>
   );
 };
 
 export let WarningIcon = () => {
   return (
-    <Flex
-      align="center"
-      justify="center"
-      style={{
-        width: 64,
-        height: 64,
-        borderRadius: '50%',
-        background: '#f59e0b'
-      }}
-    >
+    <StatusIcon background="#f59e0b">
       <RiAlertLine size={32} color="white" />
-    </Flex>
+    </StatusIcon>
   );
 };
 
 export let ErrorIcon = () => {
   return (
-    <Flex
-      align="center"
-      justify="center"
-      style={{
-        width: 64,
-        height: 64,
-        borderRadius: '50%',
-        background: '#dc2626'
-      }}
-    >
+    <StatusIcon background="#dc2626">
       <RiCloseLine size={32} color="white" />
-    </Flex>
+    </StatusIcon>
   );
 };
