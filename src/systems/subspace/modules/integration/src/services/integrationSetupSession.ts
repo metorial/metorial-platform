@@ -212,6 +212,43 @@ class integrationSetupSessionServiceImpl {
     return setupProvider?.integrationSetupSession ?? null;
   }
 
+  async listIntegrationSetupSessionEvents(d: {
+    integrationSetupSession: IntegrationSetupSession;
+  }) {
+    let [events, providerSetupSessionEvents] = await Promise.all([
+      db.integrationSetupSessionEvent.findMany({
+        where: { integrationSetupSessionOid: d.integrationSetupSession.oid },
+        orderBy: { createdAt: 'asc' }
+      }),
+      db.providerSetupSessionEvent.findMany({
+        where: {
+          session: {
+            integrationSetupSessionProvider: {
+              integrationSetupSessionOid: d.integrationSetupSession.oid
+            }
+          }
+        },
+        include: {
+          session: {
+            select: {
+              id: true,
+              integrationSetupSessionProvider: {
+                select: {
+                  id: true,
+                  integrationProvider: { select: { id: true } },
+                  step: { select: { id: true, index: true } }
+                }
+              }
+            }
+          }
+        },
+        orderBy: { createdAt: 'asc' }
+      })
+    ]);
+
+    return { events, providerSetupSessionEvents };
+  }
+
   async createIntegrationSetupSession(d: {
     tenant: Tenant;
     solution: Solution;

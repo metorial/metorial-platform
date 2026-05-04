@@ -5,7 +5,11 @@ import {
   integrationSetupSessionService
 } from '@metorial-subspace/module-integration';
 import { brandService } from '@metorial-subspace/module-tenant';
-import { integrationSetupSessionPresenter } from '@metorial-subspace/presenters';
+import {
+  integrationSetupSessionEventPresenter,
+  integrationSetupSessionPresenter,
+  integrationSetupSessionProviderSetupSessionEventPresenter
+} from '@metorial-subspace/presenters';
 import { app } from './_app';
 import { createdAtValidator, updatedAtValidator } from './_dateFilter';
 import { tenantApp } from './tenant';
@@ -98,6 +102,29 @@ export let integrationSetupSessionController = app.controller({
       })
     )
     .do(async ctx => integrationSetupSessionPresenter(ctx.integrationSetupSession)),
+
+  events: integrationSetupSessionApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        environmentId: v.string(),
+        integrationSetupSessionId: v.string(),
+        allowDeleted: v.optional(v.boolean())
+      })
+    )
+    .do(async ctx => {
+      let events = await integrationSetupSessionService.listIntegrationSetupSessionEvents({
+        integrationSetupSession: ctx.integrationSetupSession
+      });
+
+      return {
+        events: events.events.map(integrationSetupSessionEventPresenter),
+        providerSetupSessionEvents: events.providerSetupSessionEvents.map(
+          integrationSetupSessionProviderSetupSessionEventPresenter
+        )
+      };
+    }),
 
   create: tenantApp
     .handler()

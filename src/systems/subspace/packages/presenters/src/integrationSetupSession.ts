@@ -5,14 +5,17 @@ import type {
   IntegrationInstanceProvider,
   IntegrationProvider,
   IntegrationSetupSession,
+  IntegrationSetupSessionEvent,
   IntegrationSetupSessionProvider,
   IntegrationSetupSessionStep,
   Provider,
-  ProviderSetupSession
+  ProviderSetupSession,
+  ProviderSetupSessionEvent
 } from '@metorial-subspace/db';
 import { env } from './env';
 import { integrationInstancePresenter } from './integrationInstance';
 import { providerPreviewPresenter } from './provider';
+import { providerSetupSessionEventPresenter } from './setupSession';
 
 export let integrationSetupSessionUrl = (integrationSetupSession: IntegrationSetupSession) =>
   `${env.service.PUBLIC_SERVICE_URL}/integration-setup-session/${integrationSetupSession.id}?client_secret=${integrationSetupSession.clientSecret}`;
@@ -32,6 +35,38 @@ let setupStatus = (providerSetupSession: ProviderSetupSession | null) => {
     return 'expired' as const;
   return providerSetupSession.status;
 };
+
+export let integrationSetupSessionEventPresenter = (event: IntegrationSetupSessionEvent) => ({
+  object: 'integration.setup_session.event',
+  id: event.id,
+  type: event.type,
+  ip: event.ip,
+  ua: event.ua,
+  createdAt: event.createdAt
+});
+
+export let integrationSetupSessionProviderSetupSessionEventPresenter = (
+  event: ProviderSetupSessionEvent & {
+    session: {
+      id: string;
+      integrationSetupSessionProvider: {
+        id: string;
+        integrationProvider: { id: string };
+        step: { id: string; index: number } | null;
+      } | null;
+    };
+  }
+) => ({
+  ...providerSetupSessionEventPresenter(event),
+  providerSetupSessionId: event.session.id,
+  integrationSetupSessionProviderId: event.session.integrationSetupSessionProvider?.id ?? null,
+  integrationProviderId:
+    event.session.integrationSetupSessionProvider?.integrationProvider.id ?? null,
+  integrationSetupSessionStepId:
+    event.session.integrationSetupSessionProvider?.step?.id ?? null,
+  integrationSetupSessionStepIndex:
+    event.session.integrationSetupSessionProvider?.step?.index ?? null
+});
 
 export let integrationSetupSessionStepPresenter = (d: {
   integrationSetupSession: IntegrationSetupSession;

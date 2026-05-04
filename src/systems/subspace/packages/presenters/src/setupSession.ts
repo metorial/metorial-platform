@@ -9,6 +9,7 @@ import type {
   ProviderConfigVault,
   ProviderDeployment,
   ProviderSetupSession,
+  ProviderSetupSessionEvent,
   ProviderSpecification
 } from '@metorial-subspace/db';
 import { providerAuthCredentialsPresenter } from './authCredentials';
@@ -17,6 +18,15 @@ import { env } from './env';
 import { providerAuthConfigPresenter } from './providerAuthConfig';
 import { providerAuthMethodPresenter } from './providerAuthMethod';
 import { providerConfigPresenter } from './providerConfig';
+
+export let providerSetupSessionEventPresenter = (event: ProviderSetupSessionEvent) => ({
+  object: 'provider.setup_session.event',
+  id: event.id,
+  type: event.type,
+  ip: event.ip,
+  ua: event.ua,
+  createdAt: event.createdAt
+});
 
 export let providerSetupSessionPresenter = (
   providerSetupSession: ProviderSetupSession & {

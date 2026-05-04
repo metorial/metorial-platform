@@ -379,6 +379,13 @@ class providerSetupSessionServiceImpl {
     });
   }
 
+  async listProviderSetupSessionEvents(d: { providerSetupSession: ProviderSetupSession }) {
+    return await db.providerSetupSessionEvent.findMany({
+      where: { sessionOid: d.providerSetupSession.oid },
+      orderBy: { createdAt: 'asc' }
+    });
+  }
+
   async updateProviderSetupSession(d: {
     tenant: Tenant;
     solution: Solution;
