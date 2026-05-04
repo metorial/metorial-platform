@@ -123,7 +123,7 @@ describe('ensureMagicMcpServerBacking', () => {
         ownerType: 'server_owned',
         providerTemplateId: null,
         subspaceOwnerIntegrationId: null,
-        hasSubspaceBacking: true,
+        hasSubspaceBacking: false,
         legacySubspaceSessionTemplateId: 'template-legacy',
         newSubspaceSessionTemplateId: null,
         subspaceEphemeralManagedSessionId: null,

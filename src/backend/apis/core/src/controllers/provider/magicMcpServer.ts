@@ -135,9 +135,7 @@ let getMagicMcpServerPresentationData = async (d: {
   portal?: Parameters<typeof magicMcpServerPresenter.present>[0]['portal'];
 }) => {
   let magicMcpServer =
-    !d.magicMcpServer.hasSubspaceBacking ||
-    !d.magicMcpServer.newSubspaceSessionTemplateId ||
-    !d.magicMcpServer.subspaceEphemeralManagedSessionId
+    !d.magicMcpServer.hasSubspaceBacking
       ? await ensureMagicMcpServerBacking({
           instance: d.instance,
           server: d.magicMcpServer

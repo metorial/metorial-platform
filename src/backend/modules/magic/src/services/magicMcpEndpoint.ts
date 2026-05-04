@@ -158,12 +158,7 @@ export let ensureMagicMcpEndpointBacking = async (d: {
   endpoint: MagicMcpEndpointWithRelations;
   force?: boolean;
 }) => {
-  if (
-    !d.force &&
-    d.endpoint.hasSubspaceBacking &&
-    d.endpoint.newSubspaceSessionTemplateId &&
-    d.endpoint.subspaceEphemeralManagedSessionId
-  ) {
+  if (!d.force && d.endpoint.hasSubspaceBacking) {
     return {
       ...d.endpoint,
       instance: d.instance

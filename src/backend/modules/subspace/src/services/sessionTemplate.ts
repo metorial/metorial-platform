@@ -37,7 +37,15 @@ export let subspaceSessionTemplateService = createSubspaceService(
           ]
         }
       });
-      if ((magicMcpLink1 || magicMcpLink2) && !arg0._allowMagicMcpUpdate) {
+      let magicMcpLink3 = await db.magicMcpEndpoint.findFirst({
+        where: {
+          OR: [
+            { legacySubspaceSessionTemplateId: arg0.sessionTemplateId },
+            { newSubspaceSessionTemplateId: arg0.sessionTemplateId }
+          ]
+        }
+      });
+      if ((magicMcpLink1 || magicMcpLink2 || magicMcpLink3) && !arg0._allowMagicMcpUpdate) {
         throw new ServiceError(
           badRequestError({
             message: 'This session template cannot be updated.'
@@ -72,7 +80,15 @@ export let subspaceSessionTemplateService = createSubspaceService(
           ]
         }
       });
-      if ((magicMcpLink1 || magicMcpLink2) && !arg0._allowMagicMcpDelete) {
+      let magicMcpLink3 = await db.magicMcpEndpoint.findFirst({
+        where: {
+          OR: [
+            { legacySubspaceSessionTemplateId: arg0.sessionTemplateId },
+            { newSubspaceSessionTemplateId: arg0.sessionTemplateId }
+          ]
+        }
+      });
+      if ((magicMcpLink1 || magicMcpLink2 || magicMcpLink3) && !arg0._allowMagicMcpDelete) {
         throw new ServiceError(
           badRequestError({
             message: 'This session template cannot be deleted.'

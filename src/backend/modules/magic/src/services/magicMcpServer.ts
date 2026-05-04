@@ -214,7 +214,7 @@ let listMagicMcpServerProviderInputsForSessionTemplate = async (d: {
     status: ['active'],
     sessionTemplateIds: [d.sessionTemplateId]
   });
-  let providers = (await paginator.run({ limit: 1000 })).items;
+  let providers = (await paginator.run({ limit: 100 })).items;
 
   return providers.map(provider => ({
     providerDeploymentId: provider.deployment.id,
@@ -259,12 +259,7 @@ export let ensureMagicMcpServerBacking = async (d: {
   providers?: MagicMcpServerProviderInput[];
   force?: boolean;
 }) => {
-  if (
-    !d.force &&
-    d.server.hasSubspaceBacking &&
-    d.server.newSubspaceSessionTemplateId &&
-    d.server.subspaceEphemeralManagedSessionId
-  ) {
+  if (!d.force && d.server.hasSubspaceBacking) {
     return d.server;
   }
 

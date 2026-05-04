@@ -2,7 +2,6 @@ import type { DashboardInstanceIntegrationsListQuery } from '@metorial/dashboard
 import { renderWithLoader, renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import {
-  IntegrationPreview,
   useAllProviderListings,
   useCurrentInstance,
   useCurrentOrganization,
@@ -33,7 +32,6 @@ let Alias = styled.div`
 let ProviderAvatarStack = styled.div`
   display: flex;
   align-items: center;
-  padding-left: 8px;
 `;
 
 let ProviderAvatarItem = styled.div<{ $index: number }>`
@@ -43,12 +41,6 @@ let ProviderAvatarItem = styled.div<{ $index: number }>`
   border-radius: 999px;
   box-shadow: 0 0 0 2px ${theme.colors.background};
 `;
-
-let getStatusColor = (status: IntegrationPreview['status']) => {
-  if (status === 'active') return 'green';
-  if (status === 'archived') return 'gray';
-  return 'red';
-};
 
 export let IntegrationsGrid = (
   p: { instanceId: string } & Omit<
@@ -68,11 +60,13 @@ export let IntegrationsGrid = (
   });
   let providerIds = useMemo(
     () =>
-      [...new Set(
-        (integrations.data?.items ?? []).flatMap(integration =>
-          (integration.providers ?? []).map(provider => provider.provider.id)
+      [
+        ...new Set(
+          (integrations.data?.items ?? []).flatMap(integration =>
+            (integration.providers ?? []).map(provider => provider.provider.id)
+          )
         )
-      )].sort(),
+      ].sort(),
     [integrations.data?.items]
   );
   let providerListings = useAllProviderListings(instanceId, providerIds);
@@ -104,7 +98,7 @@ export let IntegrationsGrid = (
     });
   };
 
-  return renderWithPagination(integrations)(integrations => (
+  return renderWithPagination(integrations)(integrations =>
     renderWithLoader({ providerListings })(({ providerListings }) => {
       let listingLookup = new Map<
         string,
@@ -214,5 +208,5 @@ export let IntegrationsGrid = (
         </>
       );
     })
-  ));
+  );
 };

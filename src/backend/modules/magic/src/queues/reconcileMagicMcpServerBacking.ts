@@ -27,11 +27,7 @@ export let reconcileMagicMcpServerBackingManyQueueProcessor =
       where: {
         status: 'active',
         id: data.cursor ? { gt: data.cursor } : undefined,
-        OR: [
-          { hasSubspaceBacking: false },
-          { newSubspaceSessionTemplateId: null },
-          { subspaceEphemeralManagedSessionId: null }
-        ]
+        hasSubspaceBacking: false
       },
       select: { id: true },
       take: BATCH_SIZE,
