@@ -76,9 +76,10 @@ export let magicMcpServerDeletedQueueProcessor = magicMcpServerDeletedQueue.proc
     let uniqueSubspaceTemplateIds = Array.from(
       new Set([
         ...uniqueSubspaceTemplatesRaw.map(record => record.subspaceSessionTemplateId),
-        magicMcpServer.subspaceSessionTemplateId
+        magicMcpServer.legacySubspaceSessionTemplateId,
+        magicMcpServer.newSubspaceSessionTemplateId
       ])
-    );
+    ).filter((value): value is string => !!value);
 
     let uniqueSubspaceSessionsRaw = await db.magicMcpSession.findMany({
       where: { magicMcpServerOid: magicMcpServer.oid },

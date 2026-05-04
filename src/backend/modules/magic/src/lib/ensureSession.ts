@@ -1,7 +1,13 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { db, ID, Instance, MagicMcpEndpoint, MagicMcpServer, Prisma } from '@metorial/db';
-import { ensureMagicMcpEndpointBacking } from '../services/magicMcpEndpoint';
-import { ensureMagicMcpServerBacking } from '../services/magicMcpServer';
+import {
+  ensureMagicMcpEndpointBacking,
+  getMagicMcpEndpointSessionTemplateId
+} from '../services/magicMcpEndpoint';
+import {
+  ensureMagicMcpServerBacking,
+  getMagicMcpServerSessionTemplateId
+} from '../services/magicMcpServer';
 import { MagicMcpResolvedTarget } from './magicMcpTarget';
 
 type MagicMcpServerForSession = MagicMcpServer & {
@@ -23,7 +29,8 @@ let getMagicMcpSessionExpiresAt = async (instance: Instance, now: Date) => {
 
 let getMagicMcpTargetInfo = async (d: MagicMcpResolvedTarget) => {
   if (d.type === 'server') {
-    if (!d.target.subspaceSessionTemplateId) {
+    let sessionTemplateId = getMagicMcpServerSessionTemplateId(d.target);
+    if (!sessionTemplateId) {
       throw new ServiceError(
         badRequestError({
           message: 'Magic MCP server is missing subspace session template configuration'
@@ -41,14 +48,15 @@ let getMagicMcpTargetInfo = async (d: MagicMcpResolvedTarget) => {
       mappingData: {
         magicMcpServerOid: d.target.oid
       },
-      sessionTemplateId: d.target.subspaceSessionTemplateId,
+      sessionTemplateId,
       name: d.target.name ?? d.target.id,
       description: d.target.description ?? undefined
     };
   }
 
   let magicMcpEndpoint = d.target as MagicMcpEndpointForSession;
-  if (!magicMcpEndpoint.subspaceSessionTemplateId) {
+  let sessionTemplateId = getMagicMcpEndpointSessionTemplateId(magicMcpEndpoint);
+  if (!sessionTemplateId) {
     throw new ServiceError(
       badRequestError({
         message: 'Magic MCP endpoint is missing subspace session template configuration'
@@ -66,7 +74,7 @@ let getMagicMcpTargetInfo = async (d: MagicMcpResolvedTarget) => {
     mappingData: {
       magicMcpEndpointOid: magicMcpEndpoint.oid
     },
-    sessionTemplateId: magicMcpEndpoint.subspaceSessionTemplateId,
+    sessionTemplateId,
     name: magicMcpEndpoint.name ?? magicMcpEndpoint.id,
     description: magicMcpEndpoint.description ?? undefined
   };

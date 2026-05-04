@@ -149,6 +149,10 @@ export type MagicMcpEndpointWithRelations = Prisma.MagicMcpEndpointGetPayload<{
   include: typeof magicMcpEndpointInclude;
 }>;
 
+export let getMagicMcpEndpointSessionTemplateId = (
+  endpoint: Pick<MagicMcpEndpoint, 'legacySubspaceSessionTemplateId' | 'newSubspaceSessionTemplateId'>
+) => endpoint.newSubspaceSessionTemplateId ?? endpoint.legacySubspaceSessionTemplateId ?? null;
+
 export let ensureMagicMcpEndpointBacking = async (d: {
   instance: Instance;
   endpoint: MagicMcpEndpointWithRelations;
@@ -157,6 +161,7 @@ export let ensureMagicMcpEndpointBacking = async (d: {
   if (
     !d.force &&
     d.endpoint.hasSubspaceBacking &&
+    d.endpoint.newSubspaceSessionTemplateId &&
     d.endpoint.subspaceEphemeralManagedSessionId
   ) {
     return {
@@ -190,13 +195,13 @@ export let ensureMagicMcpEndpointBacking = async (d: {
     }))
   });
 
-  let isSessionTemplateChanged = backing.sessionTemplateId !== d.endpoint.subspaceSessionTemplateId;
+  let isSessionTemplateChanged = backing.sessionTemplateId !== d.endpoint.newSubspaceSessionTemplateId;
 
   return await db.magicMcpEndpoint.update({
     where: { oid: d.endpoint.oid },
     data: {
       hasSubspaceBacking: true,
-      subspaceSessionTemplateId: backing.sessionTemplateId,
+      newSubspaceSessionTemplateId: backing.sessionTemplateId,
       subspaceEphemeralManagedSessionId: backing.ephemeralManagedSessionId,
       configurationHash: isSessionTemplateChanged ? null : undefined
     },

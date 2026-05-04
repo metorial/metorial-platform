@@ -64,6 +64,10 @@ export let magicMcpEndpointDeletedQueueProcessor = magicMcpEndpointDeletedQueue.
     });
     let uniqueSubspaceTemplateIds = uniqueSubspaceTemplatesRaw
       .map(record => record.subspaceSessionTemplateId)
+      .concat([
+        magicMcpEndpoint.legacySubspaceSessionTemplateId,
+        magicMcpEndpoint.newSubspaceSessionTemplateId
+      ])
       .filter((value): value is string => !!value);
 
     let uniqueSubspaceSessionsRaw = await db.magicMcpSession.findMany({

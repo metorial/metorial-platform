@@ -1,4 +1,5 @@
 import {
+  badRequestError,
   conflictError,
   forbiddenError,
   notFoundError,
@@ -15,6 +16,7 @@ import {
   ID,
   Instance,
   MagicMcpServer,
+  MagicMcpServerOwnerType,
   MagicMcpServerSource,
   MagicMcpServerStatus,
   Organization,
@@ -31,6 +33,8 @@ import {
 import { searchMagicMcpServerIds } from '@metorial/module-search';
 import {
   subspaceMagicMcpBackingService,
+  subspaceMagicMcpServerProviderService,
+  subspaceSessionTemplateProviderService,
   subspaceSessionTemplateService
 } from '@metorial/module-subspace';
 import {
@@ -55,6 +59,14 @@ type MagicMcpServerWithRelations = Prisma.MagicMcpServerGetPayload<{
   include: typeof include;
 }>;
 
+type MagicMcpServerWithTemplateState = Pick<
+  MagicMcpServer,
+  | 'hasSubspaceBacking'
+  | 'legacySubspaceSessionTemplateId'
+  | 'newSubspaceSessionTemplateId'
+  | 'subspaceEphemeralManagedSessionId'
+>;
+
 let buildAlias = (name?: string | null) => {
   let base = slugify(name ?? '');
   if (base.length > 0) return `${base}-${generatePlainId(4)}`;
@@ -62,11 +74,20 @@ let buildAlias = (name?: string | null) => {
   return `magic-${generatePlainId(10)}`;
 };
 
+export let getMagicMcpServerSessionTemplateId = (server: MagicMcpServerWithTemplateState) =>
+  server.newSubspaceSessionTemplateId ?? server.legacySubspaceSessionTemplateId ?? null;
+
 type MagicMcpServerProviderInput = {
   providerDeploymentId: string;
   providerConfigId?: string | null;
   providerAuthConfigId?: string | null;
   toolFilters?: PrismaJson.ToolFilter | null;
+};
+
+type MagicMcpServerOwnerInput = {
+  ownerType?: MagicMcpServerOwnerType;
+  providerTemplateId?: string | null;
+  subspaceOwnerIntegrationId?: string | null;
 };
 
 let getMagicMcpSessionDurationMinutes = async (instance: Instance) => {
@@ -77,6 +98,57 @@ let getMagicMcpSessionDurationMinutes = async (instance: Instance) => {
 
   return project.magicMcpSessionDurationMinutes;
 };
+
+let normalizeMagicMcpServerOwnerInput = (d: MagicMcpServerOwnerInput) => {
+  let ownerType =
+    d.ownerType ??
+    (d.providerTemplateId
+      ? ('provider_template' as const)
+      : d.subspaceOwnerIntegrationId
+        ? ('integration' as const)
+        : ('server_owned' as const));
+
+  if (ownerType === 'provider_template') {
+    if (!d.providerTemplateId) {
+      throw new ServiceError(
+        badRequestError({
+          message:
+            'providerTemplateId is required for provider-template-owned magic MCP servers.',
+          code: 'magic_mcp_server_provider_template_required'
+        })
+      );
+    }
+    return {
+      ownerType,
+      providerTemplateId: d.providerTemplateId,
+      subspaceOwnerIntegrationId: null
+    };
+  }
+  if (ownerType === 'integration') {
+    if (!d.subspaceOwnerIntegrationId) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'ownerIntegrationId is required for integration-owned magic MCP servers.',
+          code: 'magic_mcp_server_owner_integration_required'
+        })
+      );
+    }
+    return {
+      ownerType,
+      providerTemplateId: null,
+      subspaceOwnerIntegrationId: d.subspaceOwnerIntegrationId
+    };
+  }
+
+  return {
+    ownerType: 'server_owned' as const,
+    providerTemplateId: null,
+    subspaceOwnerIntegrationId: null
+  };
+};
+
+let isInheritedMagicMcpServer = (server: Pick<MagicMcpServer, 'ownerType'>) =>
+  server.ownerType === 'provider_template' || server.ownerType === 'integration';
 
 let upsertProviderTemplateBackingForMagicMcpServer = async (d: {
   instance: Instance;
@@ -105,21 +177,25 @@ let upsertProviderTemplateBackingForMagicMcpServer = async (d: {
 let upsertMagicMcpServerBacking = async (d: {
   instance: Instance;
   magicMcpServerId: string;
+  ownerType?: MagicMcpServerOwnerType;
   providerTemplateId?: string | null;
+  subspaceOwnerIntegrationId?: string | null;
   name?: string | null;
   description?: string | null;
   metadata?: Record<string, unknown> | null;
   providers?: MagicMcpServerProviderInput[];
 }) => {
+  let owner = normalizeMagicMcpServerOwnerInput(d);
   await upsertProviderTemplateBackingForMagicMcpServer({
     instance: d.instance,
-    providerTemplateId: d.providerTemplateId
+    providerTemplateId: owner.providerTemplateId
   });
 
   return await subspaceMagicMcpBackingService.upsertServer({
     instance: d.instance,
     magicMcpServerBackingId: d.magicMcpServerId,
-    providerTemplateBackingId: d.providerTemplateId,
+    providerTemplateBackingId: owner.providerTemplateId,
+    ownerIntegrationId: owner.subspaceOwnerIntegrationId,
     name: d.name,
     description: d.description,
     metadata: d.metadata ?? undefined,
@@ -128,31 +204,96 @@ let upsertMagicMcpServerBacking = async (d: {
   });
 };
 
+let listMagicMcpServerProviderInputsForSessionTemplate = async (d: {
+  instance: Instance;
+  sessionTemplateId: string;
+}) => {
+  let paginator = await subspaceSessionTemplateProviderService.list({
+    instance: d.instance,
+    allowDeleted: false,
+    status: ['active'],
+    sessionTemplateIds: [d.sessionTemplateId]
+  });
+  let providers = (await paginator.run({ limit: 1000 })).items;
+
+  return providers.map(provider => ({
+    providerDeploymentId: provider.deployment.id,
+    providerConfigId: provider.config?.id ?? null,
+    providerAuthConfigId: provider.authConfig?.id ?? null,
+    toolFilters: (provider.toolFilter as PrismaJson.ToolFilter | null | undefined) ?? null
+  }));
+};
+
+let resolveMagicMcpServerProviderInputs = async (d: {
+  instance: Instance;
+  server: MagicMcpServer & MagicMcpServerWithTemplateState;
+  providers?: MagicMcpServerProviderInput[];
+}) => {
+  if (d.providers !== undefined) {
+    return d.providers;
+  }
+
+  let sessionTemplateId = getMagicMcpServerSessionTemplateId(d.server);
+  if (sessionTemplateId) {
+    return await listMagicMcpServerProviderInputsForSessionTemplate({
+      instance: d.instance,
+      sessionTemplateId
+    });
+  }
+
+  if (d.server.hasSubspaceBacking) {
+    throw new ServiceError(
+      preconditionFailedError({
+        message:
+          'Cannot reconcile a magic MCP server without an existing session template to copy provider setup from.'
+      })
+    );
+  }
+
+  return undefined;
+};
+
 export let ensureMagicMcpServerBacking = async (d: {
   instance: Instance;
   server: MagicMcpServer;
   providers?: MagicMcpServerProviderInput[];
   force?: boolean;
 }) => {
-  if (!d.force && d.server.hasSubspaceBacking && d.server.subspaceEphemeralManagedSessionId) {
+  if (
+    !d.force &&
+    d.server.hasSubspaceBacking &&
+    d.server.newSubspaceSessionTemplateId &&
+    d.server.subspaceEphemeralManagedSessionId
+  ) {
     return d.server;
   }
+
+  let providers = await resolveMagicMcpServerProviderInputs({
+    instance: d.instance,
+    server: d.server,
+    providers: d.providers
+  });
 
   let backing = await upsertMagicMcpServerBacking({
     instance: d.instance,
     magicMcpServerId: d.server.id,
+    ownerType: d.server.ownerType,
     providerTemplateId: d.server.providerTemplateId,
+    subspaceOwnerIntegrationId: d.server.subspaceOwnerIntegrationId,
     name: d.server.name,
     description: d.server.description,
     metadata: d.server.metadata as Record<string, unknown>,
-    providers: d.providers
+    providers
   });
 
   return await db.magicMcpServer.update({
     where: { oid: d.server.oid },
     data: {
       hasSubspaceBacking: true,
-      subspaceSessionTemplateId: backing.sessionTemplateId,
+      ownerType: d.server.ownerType,
+      providerTemplateId: d.server.providerTemplateId,
+      subspaceOwnerIntegrationId: d.server.subspaceOwnerIntegrationId,
+      newSubspaceSessionTemplateId: backing.sessionTemplateId,
       subspaceEphemeralManagedSessionId: backing.ephemeralManagedSessionId
     }
   });
@@ -246,12 +387,182 @@ class MagicMcpServerImpl {
 
     let tools = await subspaceSessionTemplateService.listTools({
       instance: d.instance,
-      sessionTemplateId: server.subspaceSessionTemplateId
+      sessionTemplateId:
+        getMagicMcpServerSessionTemplateId(server) ??
+        (() => {
+          throw new ServiceError(
+            preconditionFailedError({
+              message: 'Magic MCP server is missing session template configuration'
+            })
+          );
+        })()
     });
 
     return tools.sort((a: { name: string }, b: { name: string }) =>
       a.name.localeCompare(b.name)
     );
+  }
+
+  async listMagicMcpServerProviders(d: {
+    server: MagicMcpServer;
+    instance: Instance;
+    accessTags?: AnyAccessTagSelector;
+    allowDeleted?: boolean;
+    status?: ('pending' | 'active' | 'archived' | 'deleted')[];
+    ids?: string[];
+    providerIds?: string[];
+    integrationProviderIds?: string[];
+    integrationInstanceProviderIds?: string[];
+    providerDeploymentIds?: string[];
+    providerConfigIds?: string[];
+    providerAuthConfigIds?: string[];
+    createdAt?: { gt?: Date; lt?: Date };
+    updatedAt?: { gt?: Date; lt?: Date };
+  }) {
+    await this.checkWriteOrReadAccess({
+      server: d.server,
+      instance: d.instance,
+      accessTags: d.accessTags
+    });
+    let server = await ensureMagicMcpServerBacking({
+      instance: d.instance,
+      server: d.server
+    });
+
+    return await subspaceMagicMcpServerProviderService.list({
+      instance: d.instance,
+      allowDeleted: d.allowDeleted,
+      status: d.status,
+      ids: d.ids,
+      magicMcpServerBackingIds: [server.id],
+      providerIds: d.providerIds,
+      integrationProviderIds: d.integrationProviderIds,
+      integrationInstanceProviderIds: d.integrationInstanceProviderIds,
+      providerDeploymentIds: d.providerDeploymentIds,
+      providerConfigIds: d.providerConfigIds,
+      providerAuthConfigIds: d.providerAuthConfigIds,
+      createdAt: d.createdAt,
+      updatedAt: d.updatedAt
+    });
+  }
+
+  async getMagicMcpServerProviderById(d: {
+    server: MagicMcpServer;
+    instance: Instance;
+    accessTags?: AnyAccessTagSelector;
+    magicMcpServerProviderId: string;
+    allowDeleted?: boolean;
+  }) {
+    await this.checkWriteOrReadAccess({
+      server: d.server,
+      instance: d.instance,
+      accessTags: d.accessTags
+    });
+    let server = await ensureMagicMcpServerBacking({
+      instance: d.instance,
+      server: d.server
+    });
+    let row = await subspaceMagicMcpServerProviderService.get({
+      instance: d.instance,
+      magicMcpServerProviderId: d.magicMcpServerProviderId,
+      allowDeleted: d.allowDeleted
+    });
+    if (row.magicMcpServerId !== server.id) {
+      throw new ServiceError(notFoundError('magic_mcp.server_provider'));
+    }
+
+    return row;
+  }
+
+  async createMagicMcpServerProvider(d: {
+    server: MagicMcpServer;
+    instance: Instance;
+    accessTags?: AnyAccessTagSelector;
+    input: {
+      providerId: string;
+      providerDeploymentId?: string;
+      providerConfigId?: string | null;
+      providerAuthConfigId?: string | null;
+      toolFilters?: any | null;
+    };
+  }) {
+    await this.checkWriteAccess({
+      server: d.server,
+      instance: d.instance,
+      accessTags: d.accessTags
+    });
+    let server = await ensureMagicMcpServerBacking({
+      instance: d.instance,
+      server: d.server
+    });
+
+    return await subspaceMagicMcpServerProviderService.create({
+      instance: d.instance,
+      magicMcpServerBackingId: server.id,
+      providerId: d.input.providerId,
+      providerDeploymentId: d.input.providerDeploymentId,
+      providerConfigId: d.input.providerConfigId,
+      providerAuthConfigId: d.input.providerAuthConfigId,
+      toolFilters: d.input.toolFilters
+    });
+  }
+
+  async updateMagicMcpServerProvider(d: {
+    server: MagicMcpServer;
+    instance: Instance;
+    accessTags?: AnyAccessTagSelector;
+    magicMcpServerProviderId: string;
+    input: {
+      providerDeploymentId?: string;
+      providerConfigId?: string | null;
+      providerAuthConfigId?: string | null;
+      toolFilters?: any | null;
+    };
+  }) {
+    await this.checkWriteAccess({
+      server: d.server,
+      instance: d.instance,
+      accessTags: d.accessTags
+    });
+    await this.getMagicMcpServerProviderById({
+      server: d.server,
+      instance: d.instance,
+      accessTags: d.accessTags,
+      magicMcpServerProviderId: d.magicMcpServerProviderId
+    });
+
+    return await subspaceMagicMcpServerProviderService.update({
+      instance: d.instance,
+      magicMcpServerProviderId: d.magicMcpServerProviderId,
+      providerDeploymentId: d.input.providerDeploymentId,
+      providerConfigId: d.input.providerConfigId,
+      providerAuthConfigId: d.input.providerAuthConfigId,
+      toolFilters: d.input.toolFilters
+    });
+  }
+
+  async archiveMagicMcpServerProvider(d: {
+    server: MagicMcpServer;
+    instance: Instance;
+    accessTags?: AnyAccessTagSelector;
+    magicMcpServerProviderId: string;
+  }) {
+    await this.checkWriteAccess({
+      server: d.server,
+      instance: d.instance,
+      accessTags: d.accessTags
+    });
+    await this.getMagicMcpServerProviderById({
+      server: d.server,
+      instance: d.instance,
+      accessTags: d.accessTags,
+      magicMcpServerProviderId: d.magicMcpServerProviderId
+    });
+
+    return await subspaceMagicMcpServerProviderService.delete({
+      instance: d.instance,
+      magicMcpServerProviderId: d.magicMcpServerProviderId
+    });
   }
 
   async createMagicMcpServer(d: {
@@ -264,15 +575,20 @@ class MagicMcpServerImpl {
       description?: string;
       metadata?: Record<string, unknown>;
       source?: MagicMcpServerSource;
+      ownerType?: MagicMcpServerOwnerType;
       providerTemplateId?: string;
+      subspaceOwnerIntegrationId?: string | null;
       providers?: MagicMcpServerProviderInput[];
     };
   }) {
     let magicMcpServerId = await ID.generateId('magicMcpServer');
+    let owner = normalizeMagicMcpServerOwnerInput(d.input);
     let backing = await upsertMagicMcpServerBacking({
       instance: d.instance,
       magicMcpServerId,
-      providerTemplateId: d.input.providerTemplateId,
+      ownerType: owner.ownerType,
+      providerTemplateId: owner.providerTemplateId,
+      subspaceOwnerIntegrationId: owner.subspaceOwnerIntegrationId,
       name: d.input.name,
       description: d.input.description,
       metadata: d.input.metadata,
@@ -284,10 +600,12 @@ class MagicMcpServerImpl {
         id: magicMcpServerId,
         status: 'active',
         source: d.input.source ?? 'manual',
+        ownerType: owner.ownerType,
         isConsumerReconciled: true,
         hasSubspaceBacking: true,
-        providerTemplateId: d.input.providerTemplateId,
-        subspaceSessionTemplateId: backing.sessionTemplateId,
+        providerTemplateId: owner.providerTemplateId,
+        subspaceOwnerIntegrationId: owner.subspaceOwnerIntegrationId,
+        newSubspaceSessionTemplateId: backing.sessionTemplateId,
         subspaceEphemeralManagedSessionId: backing.ephemeralManagedSessionId,
         name: d.input.name,
         description: d.input.description,
@@ -393,6 +711,9 @@ class MagicMcpServerImpl {
       metadata?: Record<string, unknown> | null;
       aliases?: string[];
       sessionTemplateId?: string;
+      ownerType?: MagicMcpServerOwnerType;
+      providerTemplateId?: string | null;
+      subspaceOwnerIntegrationId?: string | null;
     };
   }) {
     await this.checkWriteAccess({
@@ -437,10 +758,21 @@ class MagicMcpServerImpl {
 
     let nextSessionTemplateId =
       d.input.sessionTemplateId === undefined
-        ? d.server.subspaceSessionTemplateId
+        ? d.server.newSubspaceSessionTemplateId
         : d.input.sessionTemplateId;
+    let owner = normalizeMagicMcpServerOwnerInput({
+      ownerType: d.input.ownerType ?? d.server.ownerType,
+      providerTemplateId:
+        d.input.providerTemplateId === undefined
+          ? d.server.providerTemplateId
+          : d.input.providerTemplateId,
+      subspaceOwnerIntegrationId:
+        d.input.subspaceOwnerIntegrationId === undefined
+          ? d.server.subspaceOwnerIntegrationId
+          : d.input.subspaceOwnerIntegrationId
+    });
     let isSessionTemplateChanged =
-      nextSessionTemplateId !== d.server.subspaceSessionTemplateId;
+      nextSessionTemplateId !== d.server.newSubspaceSessionTemplateId;
 
     if (d.accessTags && isSessionTemplateChanged) {
       throw new ServiceError(
@@ -459,7 +791,10 @@ class MagicMcpServerImpl {
           description:
             d.input.description === undefined ? d.server.description : d.input.description,
           metadata: d.input.metadata === undefined ? d.server.metadata : d.input.metadata,
-          subspaceSessionTemplateId: nextSessionTemplateId,
+          ownerType: owner.ownerType,
+          providerTemplateId: owner.providerTemplateId,
+          subspaceOwnerIntegrationId: owner.subspaceOwnerIntegrationId,
+          newSubspaceSessionTemplateId: nextSessionTemplateId,
           aliases: {
             create: nextAliases.map(slug => ({ slug }))
           }

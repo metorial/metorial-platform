@@ -35,20 +35,27 @@ vi.mock('../src/services', () => ({
 }));
 
 vi.mock('../src/services/magicMcpServer', () => ({
+  getMagicMcpServerSessionTemplateId: vi.fn(
+    server => server.newSubspaceSessionTemplateId ?? server.legacySubspaceSessionTemplateId ?? null
+  ),
   ensureMagicMcpServerBacking: vi.fn(async ({ server }) => ({
     ...server,
     hasSubspaceBacking: true,
-    subspaceSessionTemplateId: server.subspaceSessionTemplateId ?? 'tmpl_1',
+    newSubspaceSessionTemplateId: server.newSubspaceSessionTemplateId ?? 'tmpl_1',
     subspaceEphemeralManagedSessionId:
       server.subspaceEphemeralManagedSessionId ?? 'ephemeral_managed_session_1'
   }))
 }));
 
 vi.mock('../src/services/magicMcpEndpoint', () => ({
+  getMagicMcpEndpointSessionTemplateId: vi.fn(
+    endpoint =>
+      endpoint.newSubspaceSessionTemplateId ?? endpoint.legacySubspaceSessionTemplateId ?? null
+  ),
   ensureMagicMcpEndpointBacking: vi.fn(async ({ endpoint }) => ({
     ...endpoint,
     hasSubspaceBacking: true,
-    subspaceSessionTemplateId: endpoint.subspaceSessionTemplateId ?? 'tmpl_endpoint_1',
+    newSubspaceSessionTemplateId: endpoint.newSubspaceSessionTemplateId ?? 'tmpl_endpoint_1',
     subspaceEphemeralManagedSessionId:
       endpoint.subspaceEphemeralManagedSessionId ?? 'ephemeral_managed_endpoint_1'
   })),
@@ -89,7 +96,7 @@ describe('syncMagicMcpSubspaceSession', () => {
           id: 'mcp_server_1',
           name: 'Claude',
           description: 'Magic MCP server',
-          subspaceSessionTemplateId: 'tmpl_1',
+          newSubspaceSessionTemplateId: 'tmpl_1',
           instance: {
             oid: 20n,
             id: 'ins_1',
@@ -137,7 +144,7 @@ describe('syncMagicMcpSubspaceSession', () => {
           id: 'mcp_server_1',
           name: 'Claude',
           description: 'Magic MCP server',
-          subspaceSessionTemplateId: 'tmpl_1',
+          newSubspaceSessionTemplateId: 'tmpl_1',
           instance: {
             oid: 20n,
             id: 'ins_1',
@@ -180,7 +187,7 @@ describe('ensureMagicMcpSubspaceSession', () => {
         name: 'Claude',
         description: 'Magic MCP server',
         hasSubspaceBacking: false,
-        subspaceSessionTemplateId: 'tmpl_1',
+        legacySubspaceSessionTemplateId: 'tmpl_1',
         subspaceEphemeralManagedSessionId: null,
         instance: {
           oid: 20n,

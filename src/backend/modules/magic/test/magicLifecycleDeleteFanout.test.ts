@@ -71,7 +71,8 @@ describe('magic MCP lifecycle delete fanout', () => {
     vi.mocked(db.magicMcpServer.findUnique).mockResolvedValue({
       oid: 10n,
       id: 'server-1',
-      subspaceSessionTemplateId: 'template-inline',
+      legacySubspaceSessionTemplateId: 'template-inline',
+      newSubspaceSessionTemplateId: 'template-new',
       instance: {
         id: 'instance-1'
       }
@@ -93,7 +94,7 @@ describe('magic MCP lifecycle delete fanout', () => {
     expect(indexMagicMcpServerSearchQueue.add).toHaveBeenCalledWith({
       magicMcpServerId: 'server-1'
     });
-    expect(subspaceSessionTemplateService.delete).toHaveBeenCalledTimes(3);
+    expect(subspaceSessionTemplateService.delete).toHaveBeenCalledTimes(4);
     expect(magicMcpServerDeletedSubspaceSessionQueue.addMany).toHaveBeenCalledWith([
       {
         instanceId: 'instance-1',
@@ -111,6 +112,8 @@ describe('magic MCP lifecycle delete fanout', () => {
     vi.mocked(db.magicMcpEndpoint.findUnique).mockResolvedValue({
       oid: 20n,
       id: 'endpoint-1',
+      legacySubspaceSessionTemplateId: 'template-legacy',
+      newSubspaceSessionTemplateId: 'template-new',
       instance: {
         id: 'instance-2'
       }
@@ -134,7 +137,7 @@ describe('magic MCP lifecycle delete fanout', () => {
         magicMcpEndpointOid: 20n
       }
     });
-    expect(subspaceSessionTemplateService.delete).toHaveBeenCalledTimes(1);
+    expect(subspaceSessionTemplateService.delete).toHaveBeenCalledTimes(3);
     expect(magicMcpEndpointDeletedSubspaceSessionQueue.addMany).toHaveBeenCalledWith([
       {
         instanceId: 'instance-2',
