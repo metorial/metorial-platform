@@ -70,6 +70,7 @@ import {
   integrationInstanceGroupProviderController,
   integrationInstanceProviderController,
   integrationProviderController,
+  integrationSetupSessionController,
   magicMcpEndpointController,
   magicMcpGroupController,
   magicMcpServerController,
@@ -226,6 +227,7 @@ let setControllerDocsMetadata = <
 [
   integrationController,
   integrationProviderController,
+  integrationSetupSessionController,
   integrationInstanceController,
   integrationInstanceProviderController,
   integrationInstanceGroupController,
@@ -277,6 +279,7 @@ export let magnetarController = Controller.create<any>(
 
     integrationController,
     integrationProviderController,
+    integrationSetupSessionController,
     integrationInstanceController,
     integrationInstanceProviderController,
     integrationInstanceGroupController,
@@ -397,6 +400,7 @@ export let dashboardController = Controller.create<any>(
 
     integrationController,
     integrationProviderController,
+    integrationSetupSessionController,
     integrationInstanceController,
     integrationInstanceProviderController,
     integrationInstanceGroupController,

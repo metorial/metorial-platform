@@ -105,6 +105,8 @@ import {
   SubspaceIntegrationInstanceGroupProvider,
   SubspaceIntegrationInstanceProvider,
   SubspaceIntegrationProvider,
+  SubspaceIntegrationSetupSession,
+  SubspaceMagicMcpServerProvider,
   SubspaceProvider,
   SubspaceProviderAuthConfig,
   SubspaceProviderAuthConfigSchema,
@@ -413,14 +415,13 @@ export let magicMcpServerType = PresentableType.create<{
   };
   integration?: SubspaceIntegration | null;
   integrationInstance?: SubspaceIntegrationInstance | null;
-  integrationInstanceProviders?: SubspaceIntegrationInstanceProvider[] | null;
-  sessionTemplateId?: string | null;
+  magicMcpServerProviders?: SubspaceMagicMcpServerProvider[] | null;
   portal?: Portal | null;
 }>()('magic_mcp.server');
 
 export let magicMcpServerProviderType = PresentableType.create<{
   magicMcpServer: MagicMcpServer;
-  integrationInstanceProvider: SubspaceIntegrationInstanceProvider;
+  magicMcpServerProvider: SubspaceMagicMcpServerProvider;
 }>()('magic_mcp.server.provider');
 
 export let magicMcpEndpointType = PresentableType.create<{
@@ -968,6 +969,10 @@ export let integrationProviderType = PresentableType.create<{
 export let integrationInstanceType = PresentableType.create<{
   integrationInstance: SubspaceIntegrationInstance;
 }>()('integration.instance');
+
+export let integrationSetupSessionType = PresentableType.create<{
+  integrationSetupSession: SubspaceIntegrationSetupSession;
+}>()('integration.setup_session');
 
 export let integrationInstanceProviderType = PresentableType.create<{
   integrationInstanceProvider: SubspaceIntegrationInstanceProvider;

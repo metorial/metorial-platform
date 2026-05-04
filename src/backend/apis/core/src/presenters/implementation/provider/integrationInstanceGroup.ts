@@ -3,17 +3,6 @@ import { Presenter } from '@metorial/presenter';
 import { integrationInstanceGroupType } from '../../types';
 import { v1IntegrationInstanceGroupProviderPresenter } from './integrationInstanceGroupProvider';
 
-let integrationInstanceGroupSourceSchema = v.object({
-  object: v.literal('integration.instance.group.source'),
-  id: v.string(),
-  status: v.enumOf(['active', 'archived', 'deleted']),
-  integration_instance_group_id: v.nullable(v.string()),
-  integration_instance_id: v.string(),
-  created_at: v.date(),
-  updated_at: v.date(),
-  archived_at: v.nullable(v.date())
-});
-
 export let v1IntegrationInstanceGroupPresenter = Presenter.create(integrationInstanceGroupType)
   .presenter(async ({ integrationInstanceGroup }, opts) => ({
     object: 'integration.instance.group' as const,
@@ -25,7 +14,7 @@ export let v1IntegrationInstanceGroupPresenter = Presenter.create(integrationIns
     implementation: integrationInstanceGroup.magicMcpEndpointBackingId
       ? {
           type: 'magic_mcp_endpoint' as const,
-          magic_mcp_endpoint_backing_id: integrationInstanceGroup.magicMcpEndpointBackingId
+          magic_mcp_endpoint_id: integrationInstanceGroup.magicMcpEndpointBackingId
         }
       : null,
     providers: await Promise.all(
@@ -50,7 +39,7 @@ export let v1IntegrationInstanceGroupPresenter = Presenter.create(integrationIns
       implementation: v.nullable(
         v.object({
           type: v.literal('magic_mcp_endpoint'),
-          magic_mcp_endpoint_backing_id: v.string()
+          magic_mcp_endpoint_id: v.string()
         })
       ),
       providers: v.array(v1IntegrationInstanceGroupProviderPresenter.schema),

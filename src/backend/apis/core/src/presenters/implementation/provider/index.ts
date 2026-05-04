@@ -40,6 +40,7 @@ export * from './identityDelegationRequest';
 export * from './integration';
 export * from './integrationProvider';
 export * from './integrationInstance';
+export * from './integrationSetupSession';
 export * from './integrationInstanceProvider';
 export * from './integrationInstanceGroup';
 export * from './integrationInstanceGroupProvider';

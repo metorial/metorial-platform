@@ -10,6 +10,7 @@ model IntegrationInstance {
   id  String @unique
 
   status          IntegrationInstanceStatus
+  isHiddenDraft   Boolean                  @default(false)
   isParentDeleted Boolean                   @default(false)
   archivedAt      DateTime?
 
@@ -52,9 +53,9 @@ model IntegrationInstance {
   integrationInstanceGroupProviders IntegrationInstanceGroupProvider[]
   magicMcpServerBacking             MagicMcpServerBacking?
 
-  @@index([tenantOid, solutionOid, environmentOid, status])
+  @@index([tenantOid, solutionOid, environmentOid, status, isHiddenDraft])
   @@index([integrationOid, status])
-  @@index([status, archivedAt])
+  @@index([status, isHiddenDraft, archivedAt])
 }
 
 enum IntegrationInstanceProviderStatus {
@@ -110,6 +111,7 @@ model IntegrationInstanceProvider {
   sessionTemplateProviders            SessionTemplateProvider[]
   integrationInstanceGroupProviders   IntegrationInstanceGroupProvider[]
   integrationSetupSessionProviders    IntegrationSetupSessionProvider[]
+  magicMcpServerProviders             MagicMcpServerProvider[]
 
   @@unique([integrationInstanceOid, integrationProviderOid])
   @@index([tenantOid, solutionOid, environmentOid, status])

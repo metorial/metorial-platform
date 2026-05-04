@@ -72,6 +72,7 @@ export let magicMcpBackingController = app.controller({
         actorId: v.optional(v.nullable(v.string())),
         magicMcpServerBackingId: v.string(),
         providerTemplateBackingId: v.optional(v.nullable(v.string())),
+        ownerIntegrationId: v.optional(v.nullable(v.string())),
         name: v.optional(v.nullable(v.string())),
         description: v.optional(v.nullable(v.string())),
         metadata: v.optional(v.nullable(v.record(v.any()))),
@@ -88,6 +89,7 @@ export let magicMcpBackingController = app.controller({
         input: {
           id: ctx.input.magicMcpServerBackingId,
           providerTemplateBackingId: ctx.input.providerTemplateBackingId,
+          ownerIntegrationId: ctx.input.ownerIntegrationId,
           identityActorId: ctx.input.actorId,
           name: ctx.input.name,
           description: ctx.input.description,

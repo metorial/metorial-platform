@@ -47,7 +47,8 @@ model Integration {
   integrationInstanceProviders      IntegrationInstanceProvider[]
   integrationInstanceGroupProviders IntegrationInstanceGroupProvider[]
   providerTemplateBacking           ProviderTemplateBacking?
-  magicMcpServerBacking             MagicMcpServerBacking?
+  ownerMagicMcpServerBackings       MagicMcpServerBacking[]              @relation("MagicMcpServerOwnerIntegration")
+  magicMcpServerBacking             MagicMcpServerBacking?               @relation("MagicMcpServerBackingIntegration")
 
   @@index([createdAt])
   @@index([updatedAt])
@@ -101,6 +102,7 @@ model IntegrationProvider {
   integrationInstanceProviders      IntegrationInstanceProvider[]
   integrationInstanceGroupProviders IntegrationInstanceGroupProvider[]
   integrationSetupSessionProviders  IntegrationSetupSessionProvider[]
+  magicMcpServerProviders           MagicMcpServerProvider[]
 
   @@unique([integrationOid, providerOid])
   @@index([createdAt])

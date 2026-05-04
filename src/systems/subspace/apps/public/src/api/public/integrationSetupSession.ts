@@ -41,7 +41,17 @@ export let integrationSetupSessionApp = createHono()
 
     let step = session.steps.find(step => step.id === stepId);
     let providerSetupSession = step?.integrationSetupSessionProvider.providerSetupSession;
-    if (!providerSetupSession) {
+    let shouldOpenCompletedToolFilterSession =
+      !!providerSetupSession &&
+      providerSetupSession.status === 'completed' &&
+      !step?.integrationSetupSessionProvider.integrationInstanceProviderOid &&
+      !!providerSetupSession.configuration?.toolFilters?.enabled;
+
+    if (
+      !providerSetupSession ||
+      step?.integrationSetupSessionProvider.integrationInstanceProviderOid ||
+      (providerSetupSession.status === 'completed' && !shouldOpenCompletedToolFilterSession)
+    ) {
       return c.redirect(
         `/integration-setup-session/${session.id}?client_secret=${clientSecret}`
       );

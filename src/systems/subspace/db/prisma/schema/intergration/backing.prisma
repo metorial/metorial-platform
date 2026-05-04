@@ -1,12 +1,30 @@
+enum MagicMcpServerOwnerType {
+  server_owned
+  provider_template
+  integration
+}
+
+enum MagicMcpServerProviderStatus {
+  pending
+  active
+  archived
+  deleted
+}
+
 model MagicMcpServerBacking {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
+  ownerType MagicMcpServerOwnerType @default(server_owned)
+
   providerTemplateBackingOid BigInt?
   providerTemplateBacking    ProviderTemplateBacking? @relation(fields: [providerTemplateBackingOid], references: [oid], onDelete: SetNull)
 
-  integrationOid BigInt?      @unique // Null if it's connected to a ProviderTemplate
-  integration    Integration? @relation(fields: [integrationOid], references: [oid], onDelete: Cascade)
+  ownerIntegrationOid BigInt?
+  ownerIntegration    Integration? @relation("MagicMcpServerOwnerIntegration", fields: [ownerIntegrationOid], references: [oid], onDelete: SetNull)
+
+  integrationOid BigInt?      @unique
+  integration    Integration? @relation("MagicMcpServerBackingIntegration", fields: [integrationOid], references: [oid], onDelete: Cascade)
 
   integrationInstanceOid BigInt              @unique
   integrationInstance    IntegrationInstance @relation(fields: [integrationInstanceOid], references: [oid], onDelete: Cascade)
@@ -22,7 +40,33 @@ model MagicMcpServerBacking {
 
   createdAt DateTime @default(now())
 
-  endpoints MagicMcpEndpointServerBacking[]
+  endpoints               MagicMcpEndpointServerBacking[]
+  magicMcpServerProviders MagicMcpServerProvider[]
+}
+
+model MagicMcpServerProvider {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status     MagicMcpServerProviderStatus
+  archivedAt DateTime?
+
+  magicMcpServerBackingOid BigInt
+  magicMcpServerBacking    MagicMcpServerBacking @relation(fields: [magicMcpServerBackingOid], references: [oid], onDelete: Cascade)
+
+  integrationProviderOid BigInt
+  integrationProvider    IntegrationProvider @relation(fields: [integrationProviderOid], references: [oid], onDelete: Cascade)
+
+  integrationInstanceProviderOid BigInt? @unique
+  integrationInstanceProvider    IntegrationInstanceProvider? @relation(fields: [integrationInstanceProviderOid], references: [oid], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([magicMcpServerBackingOid, integrationProviderOid])
+  @@index([status])
+  @@index([magicMcpServerBackingOid, status])
+  @@index([integrationProviderOid, status])
 }
 
 model MagicMcpEndpointBacking {

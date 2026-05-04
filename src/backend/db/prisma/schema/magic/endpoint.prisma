@@ -18,7 +18,8 @@ model MagicMcpEndpoint {
   consumerProfileOid BigInt?
   consumerProfile    ConsumerProfile? @relation(fields: [consumerProfileOid], references: [oid], onDelete: SetNull)
 
-  subspaceSessionTemplateId         String?
+  legacySubspaceSessionTemplateId   String? @map("subspaceSessionTemplateId")
+  newSubspaceSessionTemplateId      String? @map("newSubspaceSessionTemplateId")
   subspaceEphemeralManagedSessionId String?
   configurationHash                 String?
 

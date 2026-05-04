@@ -1,6 +1,7 @@
 import type {
   Provider,
   ProviderEntry,
+  ProviderListing,
   ProviderSpecification,
   ProviderType,
   ProviderVariant,
@@ -14,6 +15,7 @@ import { providerVariantPresenter } from './providerVariant';
 import { providerVersionPresenter } from './providerVersion';
 import { publisherPresenter } from './publisher';
 import { tenantPresenter } from './tenant';
+import { getImageUrl } from './brand';
 
 export let providerPresenter = (
   provider: Provider & {
@@ -96,7 +98,9 @@ export let providerPresenter = (
   };
 };
 
-export let providerPreviewPresenter = (provider: Provider) => ({
+export let providerPreviewPresenter = (
+  provider: Provider & { listing?: ProviderListing | null }
+) => ({
   object: 'provider',
 
   id: provider.id,
@@ -110,6 +114,12 @@ export let providerPreviewPresenter = (provider: Provider) => ({
   description: provider.description,
   slug: provider.prettySlug ?? provider.slug,
   metadata: provider.metadata,
+  imageUrl: provider.listing
+    ? getImageUrl({
+        id: provider.listing.id,
+        image: provider.listing.image
+      })
+    : null,
 
   createdAt: provider.createdAt,
   updatedAt: provider.updatedAt

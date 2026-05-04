@@ -18,6 +18,7 @@ export * from './identityDelegationConfig';
 export * from './identityDelegationRequest';
 export * from './integration';
 export * from './integrationProvider';
+export * from './integrationSetupSession';
 export * from './integrationInstance';
 export * from './integrationInstanceProvider';
 export * from './integrationInstanceGroup';

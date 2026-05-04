@@ -139,6 +139,7 @@ export let ID = createIdGenerator({
   integrationInstanceProvider: idType.sorted('iip'),
   integrationInstanceProviderVersion: idType.sorted('iiv'),
   integrationProvider: idType.sorted('inp'),
+  magicMcpServerProvider: idType.sorted('msp'),
   integrationProviderVersion: idType.sorted('ipv'),
   integrationVersion: idType.sorted('inv'),
   integrationVersionProvider: idType.sorted('ivp'),

@@ -6,16 +6,24 @@ import { magicMcpServerType } from '../../types';
 import { v1ConsumerIntegrationPresenter } from './consumerOwnership';
 import { v1IntegrationPresenter } from './integration';
 import { v1IntegrationInstancePresenter } from './integrationInstance';
-import { v1IntegrationInstanceProviderPresenter } from './integrationInstanceProvider';
+import {
+  dashboardMagicMcpServerProviderPresenter,
+  v1MagicMcpServerProviderPresenter
+} from './magicMcpServerProvider';
 
 let magicMcpServerSchema = v.object({
   object: v.literal('magic_mcp.server'),
   id: v.string(),
   status: v.enumOf(['active', 'archived', 'deleted']),
   source: v.enumOf(['manual', 'consumer_provider_template']),
-  provider_management_mode: v.enumOf(['manual', 'inherited_from_provider_template']),
+  provider_management_mode: v.enumOf([
+    'manual',
+    'inherited_from_provider_template',
+    'inherited_from_integration'
+  ]),
   provider_template_id: v.nullable(v.string()),
   provider_template_backing_id: v.nullable(v.string()),
+  owner_integration_id: v.nullable(v.string()),
   integration_id: v.nullable(v.string()),
   integration_instance_id: v.nullable(v.string()),
   endpoints: v.array(
@@ -27,7 +35,7 @@ let magicMcpServerSchema = v.object({
   ),
   integration: v.nullable(v1IntegrationPresenter.schema),
   integration_instance: v.nullable(v1IntegrationInstancePresenter.schema),
-  providers: v.array(v1IntegrationInstanceProviderPresenter.schema),
+  providers: v.array(v1MagicMcpServerProviderPresenter.schema),
   name: v.nullable(v.string()),
   description: v.nullable(v.string()),
   metadata: v.record(v.any()),
@@ -38,52 +46,46 @@ let magicMcpServerSchema = v.object({
 export let v1MagicMcpServerPresenter = Presenter.create(magicMcpServerType)
   .presenter(
     async (
-      {
-        magicMcpServer,
-        integration,
-        integrationInstance,
-        integrationInstanceProviders,
-        portal
-      },
+      { magicMcpServer, integration, integrationInstance, magicMcpServerProviders, portal },
       opts
-    ) => ({
-      object: 'magic_mcp.server' as const,
-      id: magicMcpServer.id,
-      status: magicMcpServer.status,
-      source: magicMcpServer.source,
-      provider_management_mode: magicMcpServer.providerTemplateId
-        ? ('inherited_from_provider_template' as const)
-        : ('manual' as const),
-      provider_template_id: magicMcpServer.providerTemplateId,
-      provider_template_backing_id: magicMcpServer.providerTemplateId,
-      integration_id: integration?.id ?? null,
-      integration_instance_id: integrationInstance?.id ?? null,
-      endpoints: magicMcpServer.aliases.map(a => ({
-        id: shadowId('mgse_', [magicMcpServer.id], [a.slug]),
-        alias: a.slug,
-        url: portal?.id
-          ? `${getConfig().urls.apiUrl}/connect/portal/${portal.slug}/${a.slug}`
-          : `${getConfig().urls.apiUrl}/connect/magic/${a.slug}`
-      })),
-      integration: integration
-        ? await v1IntegrationPresenter.present({ integration }, opts).run()
-        : null,
-      integration_instance: integrationInstance
-        ? await v1IntegrationInstancePresenter.present({ integrationInstance }, opts).run()
-        : null,
-      providers: await Promise.all(
-        (integrationInstanceProviders ?? []).map(integrationInstanceProvider =>
-          v1IntegrationInstanceProviderPresenter
-            .present({ integrationInstanceProvider }, opts)
-            .run()
-        )
-      ),
-      name: magicMcpServer.name,
-      description: magicMcpServer.description,
-      metadata: magicMcpServer.metadata,
-      created_at: magicMcpServer.createdAt,
-      updated_at: magicMcpServer.updatedAt
-    })
+    ) => {
+      let providerManagementMode =
+        magicMcpServer.ownerType === 'provider_template'
+          ? ('inherited_from_provider_template' as const)
+          : magicMcpServer.ownerType === 'integration'
+            ? ('inherited_from_integration' as const)
+            : ('manual' as const);
+
+      return {
+        object: 'magic_mcp.server' as const,
+        id: magicMcpServer.id,
+        status: magicMcpServer.status,
+        source: magicMcpServer.source,
+        provider_management_mode: providerManagementMode,
+
+        endpoints: magicMcpServer.aliases.map(a => ({
+          id: shadowId('mgse_', [magicMcpServer.id], [a.slug]),
+          alias: a.slug,
+          url: portal?.id
+            ? `${getConfig().urls.apiUrl}/connect/portal/${portal.slug}/${a.slug}`
+            : `${getConfig().urls.apiUrl}/connect/magic/${a.slug}`
+        })),
+
+        providers: await Promise.all(
+          (magicMcpServerProviders ?? []).map(magicMcpServerProvider =>
+            v1MagicMcpServerProviderPresenter
+              .present({ magicMcpServer, magicMcpServerProvider }, opts)
+              .run()
+          )
+        ),
+
+        name: magicMcpServer.name,
+        description: magicMcpServer.description,
+        metadata: magicMcpServer.metadata,
+        created_at: magicMcpServer.createdAt,
+        updated_at: magicMcpServer.updatedAt
+      };
+    }
   )
   .schema(magicMcpServerSchema)
   .build();
@@ -93,10 +95,25 @@ export let dashboardMagicMcpServerPresenter = Presenter.create(magicMcpServerTyp
     let inner = await v1MagicMcpServerPresenter.present(input, opts).run();
 
     return {
-      ...inner
+      ...inner,
+
+      providers: await Promise.all(
+        (input.magicMcpServerProviders ?? []).map(magicMcpServerProvider =>
+          dashboardMagicMcpServerProviderPresenter
+            .present({ magicMcpServer: input.magicMcpServer, magicMcpServerProvider }, opts)
+            .run()
+        )
+      )
     };
   })
-  .schema(v.intersection([magicMcpServerSchema, v.object({})]))
+  .schema(
+    v.intersection([
+      magicMcpServerSchema,
+      v.object({
+        providers: v.array(dashboardMagicMcpServerProviderPresenter.schema)
+      })
+    ])
+  )
   .build();
 
 export let consumerMagicMcpServerPresenter = Presenter.create(magicMcpServerType)

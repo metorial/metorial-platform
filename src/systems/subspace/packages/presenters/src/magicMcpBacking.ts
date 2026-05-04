@@ -25,6 +25,7 @@ export let providerTemplateBackingPresenter = (
 export let magicMcpServerBackingPresenter = (
   backing: MagicMcpServerBacking & {
     providerTemplateBacking: ProviderTemplateBacking | null;
+    ownerIntegration: Integration | null;
     integration: Integration | null;
     integrationInstance: IntegrationInstance;
     sessionTemplate: SessionTemplate;
@@ -34,7 +35,9 @@ export let magicMcpServerBackingPresenter = (
 ) => ({
   object: 'magic_mcp.server_backing',
   id: backing.id,
+  ownerType: backing.ownerType,
   providerTemplateBackingId: backing.providerTemplateBacking?.id ?? null,
+  ownerIntegrationId: backing.ownerIntegration?.id ?? null,
   integrationId: backing.integration?.id ?? null,
   integrationInstanceId: backing.integrationInstance.id,
   sessionTemplateId: backing.sessionTemplate.id,
