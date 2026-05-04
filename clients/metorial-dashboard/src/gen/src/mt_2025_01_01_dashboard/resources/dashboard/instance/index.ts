@@ -11,6 +11,7 @@ export * from './integration-instance-groups';
 export * from './integration-instance-providers';
 export * from './integration-instances';
 export * from './integration-providers';
+export * from './integration-setup-sessions';
 export * from './integrations';
 export * from './magic-mcp-endpoints';
 export * from './magic-mcp-groups';
