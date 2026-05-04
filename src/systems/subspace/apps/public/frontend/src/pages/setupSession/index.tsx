@@ -25,12 +25,12 @@ export let SetupSessionPage = () => {
     return <LoadingPage />;
   }
 
-  let { session, brand, provider, isWhitelabel } = setupSession.data;
+  let { session, brand, provider, completionRedirect, isWhitelabel } = setupSession.data;
   let clientSecret = new URLSearchParams(window.location.search).get('client_secret') || '';
 
   if (session.status === 'completed') {
-    if (session.redirectUrl) {
-      window.location.href = session.redirectUrl;
+    if (completionRedirect?.url || session.redirectUrl) {
+      window.location.href = completionRedirect?.url ?? session.redirectUrl!;
       return <LoadingPage />;
     }
 
@@ -79,6 +79,7 @@ export let SetupSessionPage = () => {
       provider={provider}
       clientSecret={clientSecret}
       isWhitelabel={isWhitelabel}
+      completionRedirectUrl={completionRedirect?.url}
     />
   );
 };

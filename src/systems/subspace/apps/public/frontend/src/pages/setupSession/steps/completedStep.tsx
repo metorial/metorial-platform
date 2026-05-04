@@ -4,20 +4,23 @@ import { useEffect } from 'react';
 
 interface CompletedStepProps {
   redirectUrl: string | null;
+  completionRedirectUrl?: string | null;
 }
 
-export let CompletedStep = ({ redirectUrl }: CompletedStepProps) => {
+export let CompletedStep = ({ redirectUrl, completionRedirectUrl }: CompletedStepProps) => {
+  let finalRedirectUrl = completionRedirectUrl ?? redirectUrl;
+
   useEffect(() => {
-    if (!redirectUrl) return;
+    if (!finalRedirectUrl) return;
 
     let timeout = setTimeout(() => {
-      window.location.href = redirectUrl;
+      window.location.href = finalRedirectUrl;
     }, 1500);
 
     return () => clearTimeout(timeout);
-  }, [redirectUrl]);
+  }, [finalRedirectUrl]);
 
-  let description = redirectUrl
+  let description = finalRedirectUrl
     ? 'Your configuration has been saved. Redirecting you back...'
     : 'Your configuration has been saved successfully. You can close this window.';
 
@@ -51,7 +54,7 @@ export let CompletedStep = ({ redirectUrl }: CompletedStepProps) => {
         {description}
       </Text>
 
-      {redirectUrl && (
+      {finalRedirectUrl && (
         <>
           <Spacer size={24} />
           <Flex align="center" gap={8} style={{ color: '#999', fontSize: 13 }}>

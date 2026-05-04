@@ -26,6 +26,7 @@ interface SetupSessionFlowProps {
   provider: Provider | null;
   clientSecret: string;
   isWhitelabel?: boolean;
+  completionRedirectUrl?: string | null;
 }
 
 interface ProviderSelectionPaneProps {
@@ -107,7 +108,8 @@ export let SetupSessionFlow = ({
   brand,
   clientSecret,
   provider,
-  isWhitelabel
+  isWhitelabel,
+  completionRedirectUrl
 }: SetupSessionFlowProps) => {
   let [flowSession, setFlowSession] = useState(session);
   let [flowProvider, setFlowProvider] = useState(provider);
@@ -491,7 +493,12 @@ export let SetupSessionFlow = ({
       );
     }
 
-    return <CompletedStep redirectUrl={flowSession.redirectUrl} />;
+    return (
+      <CompletedStep
+        redirectUrl={flowSession.redirectUrl}
+        completionRedirectUrl={completionRedirectUrl}
+      />
+    );
   };
 
   let activeLoaders: Record<string, typeof authSchemaLoader | typeof configSchemaLoader> = {};

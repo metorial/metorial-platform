@@ -1,6 +1,7 @@
 import { ModalRoot, Toaster } from '@metorial-io/ui';
 import { createBrowserRouter, Outlet, RouterProvider } from 'react-router-dom';
 import { RouterErrorPage } from './pages/_error/routerError';
+import { IntegrationSetupSessionPage } from './pages/integrationSetupSession';
 import { SetupSessionPage } from './pages/setupSession';
 
 let router = createBrowserRouter([
@@ -17,7 +18,13 @@ let router = createBrowserRouter([
     children: [
       {
         path: '',
-        children: [{ path: 'setup-session/:sessionId', element: <SetupSessionPage /> }]
+        children: [
+          { path: 'setup-session/:sessionId', element: <SetupSessionPage /> },
+          {
+            path: 'integration-setup-session/:sessionId',
+            element: <IntegrationSetupSessionPage />
+          }
+        ]
       }
     ]
   }

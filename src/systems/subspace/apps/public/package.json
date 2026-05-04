@@ -38,6 +38,7 @@
     "@metorial-io/pages": "^1.0.0",
     "@metorial-subspace/app-controller": "workspace:*",
     "@metorial-subspace/module-auth": "^1.0.0",
+    "@metorial-subspace/module-integration": "^1.0.0",
     "@lowerdeck/telemetry": "^1.1.1",
     "@metorial-subspace/module-tenant": "^1.0.0",
     "@metorial-subspace/presenters": "^1.0.0",
