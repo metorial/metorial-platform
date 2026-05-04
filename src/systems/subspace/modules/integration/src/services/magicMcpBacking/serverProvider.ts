@@ -584,7 +584,8 @@ class magicMcpServerProviderServiceImpl {
             integrationInstance: backing.integrationInstance as IntegrationInstance,
             input: {
               providerId: row.integrationProvider.id,
-              providerConfigId: d.input.providerConfigId ?? null,
+              providerConfigId:
+                d.input.providerConfigId === undefined ? undefined : d.input.providerConfigId,
               providerAuthConfigId: d.input.providerAuthConfigId ?? undefined,
               toolFilters: d.input.toolFilters
             }

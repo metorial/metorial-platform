@@ -90,7 +90,6 @@ export let v1IntegrationSetupSessionPresenter = Presenter.create(integrationSetu
         v.object({
           object: v.literal('integration.setup_session.step'),
           id: v.string(),
-          index: v.number(),
           status: v.enumOf([
             'configured',
             'pending',

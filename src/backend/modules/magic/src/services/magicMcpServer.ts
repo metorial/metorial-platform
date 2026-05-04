@@ -147,9 +147,6 @@ let normalizeMagicMcpServerOwnerInput = (d: MagicMcpServerOwnerInput) => {
   };
 };
 
-let isInheritedMagicMcpServer = (server: Pick<MagicMcpServer, 'ownerType'>) =>
-  server.ownerType === 'provider_template' || server.ownerType === 'integration';
-
 let upsertProviderTemplateBackingForMagicMcpServer = async (d: {
   instance: Instance;
   providerTemplateId?: string | null;

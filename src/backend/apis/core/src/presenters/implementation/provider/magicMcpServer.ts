@@ -4,8 +4,6 @@ import { getConfig } from '@metorial/config';
 import { Presenter } from '@metorial/presenter';
 import { magicMcpServerType } from '../../types';
 import { v1ConsumerIntegrationPresenter } from './consumerOwnership';
-import { v1IntegrationPresenter } from './integration';
-import { v1IntegrationInstancePresenter } from './integrationInstance';
 import {
   dashboardMagicMcpServerProviderPresenter,
   v1MagicMcpServerProviderPresenter
@@ -21,11 +19,6 @@ let magicMcpServerSchema = v.object({
     'inherited_from_provider_template',
     'inherited_from_integration'
   ]),
-  provider_template_id: v.nullable(v.string()),
-  provider_template_backing_id: v.nullable(v.string()),
-  owner_integration_id: v.nullable(v.string()),
-  integration_id: v.nullable(v.string()),
-  integration_instance_id: v.nullable(v.string()),
   endpoints: v.array(
     v.object({
       id: v.string(),
@@ -33,8 +26,6 @@ let magicMcpServerSchema = v.object({
       url: v.string()
     })
   ),
-  integration: v.nullable(v1IntegrationPresenter.schema),
-  integration_instance: v.nullable(v1IntegrationInstancePresenter.schema),
   providers: v.array(v1MagicMcpServerProviderPresenter.schema),
   name: v.nullable(v.string()),
   description: v.nullable(v.string()),
