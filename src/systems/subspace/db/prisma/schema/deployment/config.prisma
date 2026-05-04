@@ -62,7 +62,7 @@ model ProviderConfig {
 
   defaultForDeployment                ProviderDeployment?                  @relation("defaultConfig")
   vault                               ProviderConfigVault?
-  providerSetupSession                ProviderSetupSession?
+  providerSetupSessions               ProviderSetupSession[]
   sessionProviders                    SessionProvider[]
   sessionTemplateProviders            SessionTemplateProvider[]
   providerConfigVersions              ProviderConfigVersion[]

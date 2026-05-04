@@ -44,6 +44,7 @@ model Tenant {
   providerAuthExports                      ProviderAuthExport[]
   providerAuthImports                      ProviderAuthImport[]
   providerSetupSessions                    ProviderSetupSession[]
+  integrationSetupSessions                 IntegrationSetupSession[]
   brand                                    Brand?
   sessionProviders                         SessionProvider[]
   sessionTemplates                         SessionTemplate[]
@@ -143,6 +144,7 @@ model Environment {
   ephemeralManagedSessions                 EphemeralManagedSession[]
   sessionTemplateProviders                 SessionTemplateProvider[]
   providerSetupSessions                    ProviderSetupSession[]
+  integrationSetupSessions                 IntegrationSetupSession[]
   providerEnvironments                     ProviderEnvironment[]
   customProviderEnvironments               CustomProviderEnvironment[]
   customProviderEnvironmentVersions        CustomProviderEnvironmentVersion[]

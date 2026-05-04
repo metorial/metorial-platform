@@ -43,6 +43,7 @@ model Integration {
   providers                         IntegrationProvider[]
   versions                          IntegrationVersion[]
   integrationInstances              IntegrationInstance[]
+  integrationSetupSessions          IntegrationSetupSession[]
   integrationInstanceProviders      IntegrationInstanceProvider[]
   integrationInstanceGroupProviders IntegrationInstanceGroupProvider[]
   providerTemplateBacking           ProviderTemplateBacking?
@@ -99,6 +100,7 @@ model IntegrationProvider {
   versions                          IntegrationProviderVersion[]
   integrationInstanceProviders      IntegrationInstanceProvider[]
   integrationInstanceGroupProviders IntegrationInstanceGroupProvider[]
+  integrationSetupSessionProviders  IntegrationSetupSessionProvider[]
 
   @@unique([integrationOid, providerOid])
   @@index([createdAt])

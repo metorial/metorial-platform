@@ -34,6 +34,7 @@ import { identityDelegationController } from './identityDelegation';
 import { identityDelegationConfigController } from './identityDelegationConfig';
 import { identityDelegationRequestController } from './identityDelegationRequest';
 import { integrationController } from './integration';
+import { integrationSetupSessionController } from './integrationSetupSession';
 import { integrationInstanceController } from './integrationInstance';
 import { integrationInstanceProviderController } from './integrationInstanceProvider';
 import { integrationProviderController } from './integrationProvider';
@@ -104,6 +105,7 @@ let systemControllers = {
   integrationInstanceGroupProvider: integrationInstanceGroupProviderController,
   identityCredential: identityCredentialController,
   integration: integrationController,
+  integrationSetupSession: integrationSetupSessionController,
   integrationInstance: integrationInstanceController,
   integrationInstanceProvider: integrationInstanceProviderController,
   integrationProvider: integrationProviderController,

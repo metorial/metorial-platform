@@ -1,4 +1,5 @@
 export * from './integration';
+export * from './integrationSetupSession';
 export * from './integrationInstance';
 export * from './integrationInstanceGroup';
 export * from './integrationInstanceGroupProvider';

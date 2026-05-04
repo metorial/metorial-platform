@@ -31,6 +31,7 @@ export * from './identityCredential';
 export * from './identityDelegation';
 export * from './identityDelegationConfig';
 export * from './integration';
+export * from './integrationSetupSession';
 export * from './integrationInstance';
 export * from './integrationInstanceProvider';
 export * from './integrationProvider';

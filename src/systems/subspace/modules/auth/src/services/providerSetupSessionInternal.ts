@@ -7,6 +7,7 @@ import {
   type Provider,
   type ProviderAuthCredentials,
   type ProviderAuthMethod,
+  type ProviderConfig,
   type ProviderDeployment,
   type ProviderDeploymentVersion,
   type ProviderOAuthSetup,
@@ -52,6 +53,7 @@ class providerSetupSessionInternalServiceImpl {
       type: ProviderSetupSessionTypeConcrete | 'auto';
       authConfigInput?: Record<string, any>;
       configInput?: Record<string, any>;
+      providerConfig?: ProviderConfig;
       toolFilters?: PrismaJson.ToolFilter | null;
       requiresToolFiltersSelection?: boolean;
     };
@@ -185,6 +187,7 @@ class providerSetupSessionInternalServiceImpl {
         if (
           concreteType !== 'auth_only' &&
           !configInput &&
+          !d.input.providerConfig &&
           !(concreteType === 'config_only' && d.input.requiresToolFiltersSelection)
         ) {
           let configSchema = await this.getProviderConfigSchemaType({
@@ -217,6 +220,11 @@ class providerSetupSessionInternalServiceImpl {
           });
 
           inner = { ...inner, ...configInner };
+        }
+
+        if (concreteType !== 'auth_only' && d.input.providerConfig) {
+          inner.configOid = d.input.providerConfig.oid;
+          inner.deploymentOid = inner.deploymentOid ?? d.input.providerConfig.deploymentOid;
         }
 
         return { concreteType, inner };

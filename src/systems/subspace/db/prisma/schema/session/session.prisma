@@ -48,17 +48,17 @@ model Session {
   lastMessageAt           DateTime?
   lastActiveAt            DateTime?
 
-  providers                SessionProvider[]
-  providerRuns             ProviderRun[]
-  sessionMessages          SessionMessage[]
-  sessionEvents            SessionEvent[]
-  connections              SessionConnection[]
-  sessionErrors            SessionError[]
-  sessionProviderInstances SessionProviderInstance[]
-  toolCalls                ToolCall[]
-  sessionWarnings          SessionWarning[]
-  sessionUsageRecords      SessionUsageRecord[]
-  currentForEphemeralManagedSession EphemeralManagedSession? @relation("EphemeralManagedSessionCurrentSession")
+  providers                         SessionProvider[]
+  providerRuns                      ProviderRun[]
+  sessionMessages                   SessionMessage[]
+  sessionEvents                     SessionEvent[]
+  connections                       SessionConnection[]
+  sessionErrors                     SessionError[]
+  sessionProviderInstances          SessionProviderInstance[]
+  toolCalls                         ToolCall[]
+  sessionWarnings                   SessionWarning[]
+  sessionUsageRecords               SessionUsageRecord[]
+  currentForEphemeralManagedSession EphemeralManagedSession?  @relation("EphemeralManagedSessionCurrentSession")
 
   @@index([createdAt])
   @@index([updatedAt])

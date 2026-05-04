@@ -141,7 +141,11 @@ export let ID = createIdGenerator({
   integrationProvider: idType.sorted('inp'),
   integrationProviderVersion: idType.sorted('ipv'),
   integrationVersion: idType.sorted('inv'),
-  integrationVersionProvider: idType.sorted('ivp')
+  integrationVersionProvider: idType.sorted('ivp'),
+  integrationSetupSession: idType.sorted('iss'),
+  integrationSetupSession_clientSecret: idType.key('iss_secret'),
+  integrationSetupSessionProvider: idType.sorted('isp'),
+  integrationSetupSessionEvent: idType.sorted('ise')
 });
 
 let workerIdBits = 12;
