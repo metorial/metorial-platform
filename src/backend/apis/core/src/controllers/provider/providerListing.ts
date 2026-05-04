@@ -52,14 +52,14 @@ let orderByUseMapper = {
 export let providerListingController = Controller.create(
   {
     name: 'Provider Listings',
-    description: 'A listing is a provider enriched with marketplace metadata.'
+    description: 'A listing is a provider enriched with marketplace metadata.',
+    hideInDocs: true
   },
   {
     list: instanceGroup
       .get(instancePath('provider-listings', 'providerListings.list'), {
         name: 'List provider listings',
-        description: 'Returns a paginated list of provider listings.',
-        hideInDocs: true
+        description: 'Returns a paginated list of provider listings.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.listing:read'] }))
       .outputList(providerListingPresenter)

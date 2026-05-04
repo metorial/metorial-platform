@@ -29,7 +29,8 @@ export let publisherController = Controller.create(
   {
     name: 'Publishers',
     description:
-      'A publisher is the organization or individual who created and maintains a provider.'
+      'A publisher is the organization or individual who created and maintains a provider.',
+    hideInDocs: true
   },
   {
     list: instanceGroup

@@ -76,6 +76,47 @@ describe('mcp.e2e', () => {
   );
 
   it(
+    'returns 202 Accepted with no body for streamable HTTP notifications',
+    { timeout: 120_000 },
+    async () => {
+      let ctx = await createMcpE2eContext(testDb, {
+        remoteServerBaseUrl: lifecycle.getRemoteServerBaseUrl(),
+        transportCase: defaultTransportCase
+      });
+
+      let mcp = createMcpTestClient({
+        baseUrl: ctx.proxyUrl,
+        transportType: defaultTransportCase.clientTransport,
+        fetch: localFetch
+      });
+
+      try {
+        await mcp.connect();
+
+        expect(mcp.transport).toBeInstanceOf(StreamableHTTPClientTransport);
+
+        let response = await localFetch(ctx.proxyUrl, {
+          method: 'POST',
+          headers: {
+            Accept: 'application/json, text/event-stream',
+            'Content-Type': 'application/json',
+            'MCP-Session-ID': (mcp.transport as StreamableHTTPClientTransport).sessionId!
+          },
+          body: JSON.stringify({
+            jsonrpc: '2.0',
+            method: 'notifications/initialized'
+          })
+        });
+
+        expect(response.status).toBe(202);
+        expect(await response.text()).toBe('');
+      } finally {
+        await mcp.cleanup();
+      }
+    }
+  );
+
+  it(
     'continuously narrows deployment and session provider filters across tools, prompts, and resources',
     { timeout: 120_000 },
     async () => {

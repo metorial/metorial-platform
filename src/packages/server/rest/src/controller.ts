@@ -29,6 +29,20 @@ export type EndpointDescriptor = {
   deprecated?: boolean;
 };
 
+export type ControllerCategory = {
+  id: string;
+  name: string;
+  description?: string;
+  indexHint?: number;
+};
+
+export type ControllerDescriptor = EndpointDescriptor & {
+  category?: ControllerCategory;
+};
+
+export let createCategory = <Category extends ControllerCategory>(category: Category): Category =>
+  category;
+
 export type GetHandlerContext<
   AuthInfo,
   Body,
@@ -168,11 +182,11 @@ export class Group<AuthInfo, Context extends { [key: string]: any } = {}> {
 export type IController<AuthInfo> = {
   [key: string]:
     | Handler<AuthInfo, any, any, any>
-    | { handlers: IController<AuthInfo>; descriptor: EndpointDescriptor };
+    | { handlers: IController<AuthInfo>; descriptor: ControllerDescriptor };
 };
 
 export class Controller {
-  static create<AuthInfo>(descriptor: EndpointDescriptor, handlers: IController<AuthInfo>) {
+  static create<AuthInfo>(descriptor: ControllerDescriptor, handlers: IController<AuthInfo>) {
     return {
       descriptor,
       handlers

@@ -9,6 +9,7 @@ export * from './customProviderCommit';
 export * from './customProviderDeployment';
 export * from './customProviderEnvironment';
 export * from './customProviderVersion';
+export * from './docsCategories';
 export * from './identity';
 export * from './identityActor';
 export * from './identityCredential';

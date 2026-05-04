@@ -7,21 +7,24 @@ export type ScopeSource = {
   authCredentials?: { scopes?: PrismaJson.ProviderAuthScopes | null } | null;
 };
 
-/**
- * Resolve the list of granted scopes from an auth config / credentials pair.
- * Credentials take precedence over the auth config because they represent the
- * tenant-specific grant and may be narrower than the auth config's scopes.
- *
- * Returns `null` when no scope information is available. Callers should treat
- * `null` as "do not filter" to avoid accidentally blocking tools when no
- * authentication context is attached.
- */
-export let resolveGrantedScopes = (source: ScopeSource): string[] | null => {
-  let credentialScopes = source.authCredentials?.scopes;
-  if (credentialScopes?.length) return credentialScopes;
+let intersectArrays = (
+  arr1: string[] | null | undefined,
+  arr2: string[] | null | undefined
+): string[] | null => {
+  if (!arr1?.length) return arr2 ?? null;
+  if (!arr2?.length) return arr1;
 
+  let set2 = new Set(arr2);
+  return arr1.filter(item => set2.has(item));
+};
+
+export let resolveGrantedScopes = (source: ScopeSource): string[] | null => {
   let configScopes = source.authConfig?.scopes;
-  if (configScopes?.length) return configScopes;
+  let credentialScopes = source.authCredentials?.scopes;
+
+  if (configScopes?.length || credentialScopes?.length) {
+    return intersectArrays(configScopes, credentialScopes);
+  }
 
   return null;
 };

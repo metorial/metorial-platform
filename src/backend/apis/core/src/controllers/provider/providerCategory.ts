@@ -29,7 +29,8 @@ let providerCategoryGroup = instanceGroup.use(async ctx => {
 export let providerCategoryController = Controller.create(
   {
     name: 'Provider Categories',
-    description: "A category groups providers by function like 'Developer Tools' or 'ERPs'."
+    description: "A category groups providers by function like 'Developer Tools' or 'ERPs'.",
+    hideInDocs: true
   },
   {
     list: instanceGroup
