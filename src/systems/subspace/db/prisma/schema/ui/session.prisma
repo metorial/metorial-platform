@@ -196,6 +196,7 @@ model IntegrationSetupSession {
   expiresAt DateTime
 
   providers IntegrationSetupSessionProvider[]
+  steps     IntegrationSetupSessionStep[]
   events    IntegrationSetupSessionEvent[]
 
   @@index([createdAt])
@@ -222,6 +223,7 @@ model IntegrationSetupSessionProvider {
   integrationInstanceProvider    IntegrationInstanceProvider? @relation(fields: [integrationInstanceProviderOid], references: [oid])
 
   providerSetupSessions ProviderSetupSession[]         @relation("integrationSetupProviderSessionAttempts")
+  step                  IntegrationSetupSessionStep?
   events                IntegrationSetupSessionEvent[]
 
   createdAt DateTime @default(now())
@@ -230,6 +232,26 @@ model IntegrationSetupSessionProvider {
   @@unique([integrationSetupSessionOid, integrationProviderOid])
   @@index([integrationSetupSessionOid])
   @@index([integrationProviderOid])
+}
+
+model IntegrationSetupSessionStep {
+  oid BigInt @id
+  id  String @unique
+
+  index Int
+
+  integrationSetupSessionOid BigInt
+  integrationSetupSession    IntegrationSetupSession @relation(fields: [integrationSetupSessionOid], references: [oid], onDelete: Cascade)
+
+  integrationSetupSessionProviderOid BigInt                          @unique
+  integrationSetupSessionProvider    IntegrationSetupSessionProvider @relation(fields: [integrationSetupSessionProviderOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([integrationSetupSessionOid, index])
+  @@index([integrationSetupSessionOid])
+  @@index([index])
 }
 
 model IntegrationSetupSessionEvent {

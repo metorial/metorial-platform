@@ -1,5 +1,7 @@
 import { badRequestError, internalServerError, isServiceError } from '@lowerdeck/error';
-import { createHono } from '@lowerdeck/hono';
+import { createHono, useRequestContext } from '@lowerdeck/hono';
+import { integrationSetupSessionService } from '@metorial-subspace/module-integration';
+import { providerSetupSessionPresenter } from '@metorial-subspace/presenters';
 import { getFullIntegrationSetupSession } from '../internal/integrationSetupSession';
 import { renderIndexHtml } from './setupSession';
 
@@ -14,6 +16,38 @@ export let integrationSetupSessionApp = createHono()
     );
     c.res.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     c.res.headers.set('Access-Control-Allow-Credentials', 'true');
+  })
+  .get('/:sessionId/:stepId', async c => {
+    let sessionId = c.req.param('sessionId');
+    let stepId = c.req.param('stepId');
+    let clientSecret = c.req.query('client_secret');
+    if (!clientSecret) return c.text('Missing client_secret', 400);
+
+    let session =
+      await integrationSetupSessionService.getIntegrationSetupSessionByClientSecret({
+        sessionId,
+        clientSecret
+      });
+    let context = useRequestContext(c);
+
+    session = await integrationSetupSessionService.startIntegrationSetupSessionStep({
+      integrationSetupSession: session,
+      stepId,
+      context: {
+        ip: context.ip,
+        ua: context.ua ?? 'unknown'
+      }
+    });
+
+    let step = session.steps.find(step => step.id === stepId);
+    let providerSetupSession = step?.integrationSetupSessionProvider.providerSetupSession;
+    if (!providerSetupSession) {
+      return c.redirect(
+        `/integration-setup-session/${session.id}?client_secret=${clientSecret}`
+      );
+    }
+
+    return c.redirect(providerSetupSessionPresenter(providerSetupSession).url);
   })
   .get('/:sessionId/:key*?', async c => {
     let sessionId = c.req.param('sessionId');

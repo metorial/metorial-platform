@@ -1,54 +1,15 @@
 import { Button, CenteredSpinner, Flex, Group, Text, Title } from '@metorial/ui';
 import type React from 'react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect } from 'react';
 import styled from 'styled-components';
 import { useHideBootSpinner } from '../../hooks/useHideBootSpinner';
-import { client } from '../../state/client';
 import { useIntegrationSetupSession } from '../../state/setupSession';
 import { ErrorIcon, SuccessIcon, WarningIcon } from '../setupSession/components/statusIcons';
 import { SecuredByFooter } from '../setupSession/components/stepLayout';
 
 export let IntegrationSetupSessionPage = () => {
   let setupSession = useIntegrationSetupSession();
-  let [startingProviderId, setStartingProviderId] = useState<string | null>(null);
-  let [startError, setStartError] = useState<string | null>(null);
   useHideBootSpinner(!!setupSession.data || !!setupSession.error);
-
-  let input = useMemo(() => {
-    let match = window.location.pathname.match(/\/integration-setup-session\/([^/?]+)/);
-    let sessionId = match?.[1];
-    let clientSecret = new URLSearchParams(window.location.search).get('client_secret');
-    if (sessionId && clientSecret) return { sessionId, clientSecret };
-    return null;
-  }, []);
-
-  let startProvider = useCallback(
-    async (integrationProviderId: string) => {
-      if (!input) return;
-
-      setStartError(null);
-      setStartingProviderId(integrationProviderId);
-      try {
-        let result = await client.integrationSetupSession.startProvider({
-          ...input,
-          integrationProviderId
-        });
-        let provider = result.session.providers.find(
-          provider => provider.integrationProviderId === integrationProviderId
-        );
-        if (provider?.providerSetupSessionUrl) {
-          window.location.href = provider.providerSetupSessionUrl;
-          return;
-        }
-
-        window.location.reload();
-      } catch (e) {
-        setStartError((e as Error).message);
-        setStartingProviderId(null);
-      }
-    },
-    [input]
-  );
 
   if (setupSession.error) {
     return (
@@ -65,9 +26,7 @@ export let IntegrationSetupSessionPage = () => {
   }
 
   let { session, isWhitelabel } = setupSession.data;
-  let pendingProviders = session.providers.filter(
-    provider => provider.status !== 'configured'
-  );
+  let pendingSteps = session.steps.filter(step => step.status !== 'configured');
 
   if (session.status === 'successful') {
     if (session.redirectUrl) {
@@ -96,17 +55,12 @@ export let IntegrationSetupSessionPage = () => {
     );
   }
 
-  if (pendingProviders.length === 0) {
+  if (pendingSteps.length === 0) {
     return <LoadingPage />;
   }
 
-  if (pendingProviders.length === 1) {
-    return (
-      <SingleProviderRedirect
-        integrationProviderId={pendingProviders[0]!.integrationProviderId}
-        startProvider={startProvider}
-      />
-    );
+  if (pendingSteps.length === 1) {
+    return <SingleStepRedirect url={pendingSteps[0]!.url} />;
   }
 
   return (
@@ -122,17 +76,16 @@ export let IntegrationSetupSessionPage = () => {
                   configured.
                 </Text>
 
-                {startError && <ErrorText>{startError}</ErrorText>}
-
                 <ProviderList>
-                  {session.providers.map(provider => {
-                    let isConfigured = provider.status === 'configured';
-                    let isStarting = startingProviderId === provider.integrationProviderId;
+                  {session.steps.map(step => {
+                    let isConfigured = step.status === 'configured';
 
                     return (
-                      <ProviderRow key={provider.id}>
+                      <ProviderRow key={step.id}>
                         <ProviderInfo>
-                          <ProviderName>{provider.provider.name}</ProviderName>
+                          <ProviderName>
+                            {step.index + 1}. {step.provider.name}
+                          </ProviderName>
                           <ProviderStatus>
                             {isConfigured ? 'Configured' : 'Pending'}
                           </ProviderStatus>
@@ -142,10 +95,11 @@ export let IntegrationSetupSessionPage = () => {
                           size="2"
                           variant={isConfigured ? 'outline' : 'solid'}
                           disabled={isConfigured}
-                          loading={isStarting}
-                          onClick={() => startProvider(provider.integrationProviderId)}
+                          onClick={() => {
+                            window.location.href = step.url;
+                          }}
                         >
-                          {provider.status === 'failed' || provider.status === 'expired'
+                          {step.status === 'failed' || step.status === 'expired'
                             ? 'Retry'
                             : 'Configure'}
                         </Button>
@@ -168,16 +122,10 @@ export let IntegrationSetupSessionPage = () => {
   );
 };
 
-let SingleProviderRedirect = ({
-  integrationProviderId,
-  startProvider
-}: {
-  integrationProviderId: string;
-  startProvider: (integrationProviderId: string) => Promise<void>;
-}) => {
+let SingleStepRedirect = ({ url }: { url: string }) => {
   useEffect(() => {
-    void startProvider(integrationProviderId);
-  }, [integrationProviderId, startProvider]);
+    window.location.href = url;
+  }, [url]);
 
   return <LoadingPage />;
 };
@@ -235,11 +183,6 @@ let ProviderStatus = styled.div`
   color: #6b7280;
   font-size: 13px;
   margin-top: 2px;
-`;
-
-let ErrorText = styled.div`
-  color: #dc2626;
-  font-size: 14px;
 `;
 
 let Footer = styled(Group.Footer)`

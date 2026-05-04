@@ -55,6 +55,12 @@ export let integrationSetupSessionProviderInclude = {
   }
 } as const;
 
+export let integrationSetupSessionStepInclude = {
+  integrationSetupSessionProvider: {
+    include: integrationSetupSessionProviderInclude
+  }
+} as const;
+
 export let integrationSetupSessionInclude = {
   tenant: true,
   solution: true,
@@ -67,6 +73,10 @@ export let integrationSetupSessionInclude = {
   providers: {
     include: integrationSetupSessionProviderInclude,
     orderBy: { createdAt: 'asc' as const }
+  },
+  steps: {
+    include: integrationSetupSessionStepInclude,
+    orderBy: { index: 'asc' as const }
   }
 } as const;
 
@@ -303,7 +313,7 @@ class integrationSetupSessionServiceImpl {
         }
       });
 
-      for (let integrationProvider of integrationProviders) {
+      for (let [idx, integrationProvider] of integrationProviders.entries()) {
         await this.createChildProviderSetupSession({
           tenant: d.tenant,
           solution: d.solution,
@@ -314,7 +324,8 @@ class integrationSetupSessionServiceImpl {
           integrationProvider,
           configuration,
           expiresAt,
-          context: d.import
+          context: d.import,
+          stepIndex: idx
         });
       }
 
@@ -437,6 +448,34 @@ class integrationSetupSessionServiceImpl {
         where: { oid: setupSession.oid },
         include: integrationSetupSessionInclude
       });
+    });
+  }
+
+  async startIntegrationSetupSessionStep(d: {
+    integrationSetupSession: IntegrationSetupSession;
+    stepId: string;
+    context: { ip: string; ua: string };
+  }) {
+    let step = await db.integrationSetupSessionStep.findFirst({
+      where: {
+        id: d.stepId,
+        integrationSetupSessionOid: d.integrationSetupSession.oid
+      },
+      include: {
+        integrationSetupSessionProvider: {
+          include: {
+            integrationProvider: true
+          }
+        }
+      }
+    });
+    if (!step)
+      throw new ServiceError(notFoundError('integration.setup_session.step', d.stepId));
+
+    return await this.startIntegrationSetupSessionProvider({
+      integrationSetupSession: d.integrationSetupSession,
+      integrationProviderId: step.integrationSetupSessionProvider.integrationProvider.id,
+      context: d.context
     });
   }
 
@@ -591,6 +630,7 @@ class integrationSetupSessionServiceImpl {
     expiresAt: Date;
     context: { ip: string; ua: string };
     setupSessionProviderOid?: bigint;
+    stepIndex?: number;
   }) {
     let setupSessionProviderOid =
       d.setupSessionProviderOid ??
@@ -603,6 +643,36 @@ class integrationSetupSessionServiceImpl {
           }
         })
       ).oid;
+
+    let existingStep = await db.integrationSetupSessionStep.findUnique({
+      where: { integrationSetupSessionProviderOid: setupSessionProviderOid }
+    });
+    let stepIndex = d.stepIndex ?? existingStep?.index;
+
+    if (stepIndex === undefined) {
+      let lastStep = await db.integrationSetupSessionStep.findFirst({
+        where: { integrationSetupSessionOid: d.setupSession.oid },
+        orderBy: { index: 'desc' },
+        select: { index: true }
+      });
+      stepIndex = (lastStep?.index ?? -1) + 1;
+    }
+
+    if (!existingStep) {
+      await db.integrationSetupSessionStep.create({
+        data: {
+          ...getId('integrationSetupSessionStep'),
+          index: stepIndex,
+          integrationSetupSessionOid: d.setupSession.oid,
+          integrationSetupSessionProviderOid: setupSessionProviderOid
+        }
+      });
+    } else if (d.stepIndex !== undefined && existingStep.index !== d.stepIndex) {
+      await db.integrationSetupSessionStep.update({
+        where: { oid: existingStep.oid },
+        data: { index: d.stepIndex }
+      });
+    }
 
     let material = d.integrationProvider.currentVersion!;
     let configuration = normalizeIntegrationSetupSessionConfiguration({

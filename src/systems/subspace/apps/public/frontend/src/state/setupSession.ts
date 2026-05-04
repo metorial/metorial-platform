@@ -92,14 +92,14 @@ export let integrationSetupSessionState = createLoader({
       clientSecret: d.clientSecret
     }),
   mutators: {
-    startProvider: (
-      i: { integrationProviderId: string },
+    startStep: (
+      i: { stepId: string },
       d: { input: { sessionId: string; clientSecret: string } }
     ) =>
-      client.integrationSetupSession.startProvider({
+      client.integrationSetupSession.startStep({
         sessionId: d.input.sessionId,
         clientSecret: d.input.clientSecret,
-        integrationProviderId: i.integrationProviderId
+        stepId: i.stepId
       })
   }
 });

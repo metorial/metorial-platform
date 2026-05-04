@@ -145,6 +145,7 @@ export let ID = createIdGenerator({
   integrationSetupSession: idType.sorted('iss'),
   integrationSetupSession_clientSecret: idType.key('iss_secret'),
   integrationSetupSessionProvider: idType.sorted('isp'),
+  integrationSetupSessionStep: idType.sorted('isst'),
   integrationSetupSessionEvent: idType.sorted('ise')
 });
 

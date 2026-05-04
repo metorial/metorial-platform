@@ -66,19 +66,19 @@ export let integrationSetupSessionController = app.controller({
         )
     ),
 
-  startProvider: integrationSetupSessionApp
+  startStep: integrationSetupSessionApp
     .handler()
     .input(
       v.object({
         sessionId: v.string(),
         clientSecret: v.string(),
-        integrationProviderId: v.string()
+        stepId: v.string()
       })
     )
     .do(async ctx => {
-      let session = await integrationSetupSessionService.startIntegrationSetupSessionProvider({
+      let session = await integrationSetupSessionService.startIntegrationSetupSessionStep({
         integrationSetupSession: ctx.session,
-        integrationProviderId: ctx.input.integrationProviderId,
+        stepId: ctx.input.stepId,
         context: ctx.context
       });
 
