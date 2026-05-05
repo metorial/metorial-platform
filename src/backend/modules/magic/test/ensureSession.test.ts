@@ -7,6 +7,7 @@ vi.mock('@metorial/db', () => {
     },
     magicMcpSession: {
       findUnique: vi.fn(),
+      upsert: vi.fn(),
       updateMany: vi.fn(),
       create: vi.fn()
     }
@@ -127,12 +128,8 @@ describe('syncMagicMcpSubspaceSession', () => {
       expiresAt: new Date('2026-04-24T10:15:00.000Z')
     };
 
-    vi.mocked(db.magicMcpSession.findUnique)
-      .mockResolvedValueOnce(existingMapping as any)
-      .mockResolvedValueOnce(nextMapping as any);
-    vi.mocked(db.magicMcpSession.updateMany).mockResolvedValue({
-      count: 1
-    } as any);
+    vi.mocked(db.magicMcpSession.findUnique).mockResolvedValue(existingMapping as any);
+    vi.mocked(db.magicMcpSession.upsert).mockResolvedValue(nextMapping as any);
     vi.mocked(db.project.findUniqueOrThrow).mockResolvedValue({
       magicMcpSessionDurationMinutes: 60
     } as any);
@@ -155,12 +152,21 @@ describe('syncMagicMcpSubspaceSession', () => {
       'ses_new'
     );
 
-    expect(db.magicMcpSession.updateMany).toHaveBeenCalledWith({
+    expect(db.magicMcpSession.upsert).toHaveBeenCalledWith({
       where: {
-        oid: 1n,
-        subspaceSessionId: 'ses_old'
+        magicMcpServerOid: 10n
       },
-      data: {
+      update: {
+        subspaceSessionId: 'ses_new',
+        subspaceSessionTemplateId: 'tmpl_1',
+        expiresAt: new Date('2026-04-24T10:15:00.000Z'),
+        isActive: true,
+        isConsumerReconciled: true
+      },
+      create: {
+        id: 'magic-session-link-1',
+        instanceOid: 20n,
+        magicMcpServerOid: 10n,
         subspaceSessionId: 'ses_new',
         subspaceSessionTemplateId: 'tmpl_1',
         expiresAt: new Date('2026-04-24T10:15:00.000Z'),
