@@ -84,22 +84,16 @@ let getExistingMapping = async (d: Awaited<ReturnType<typeof getMagicMcpTargetIn
   if (d.targetType === 'server') {
     return await db.magicMcpSession.findUnique({
       where: {
-        magicMcpServerOid: d.mappingWhere.magicMcpServerOid,
-        isActive: true
+        magicMcpServerOid: d.mappingWhere.magicMcpServerOid
       }
     });
   }
 
   return await db.magicMcpSession.findUnique({
     where: {
-      magicMcpEndpointOid: d.mappingWhere.magicMcpEndpointOid,
-      isActive: true
+      magicMcpEndpointOid: d.mappingWhere.magicMcpEndpointOid
     }
   });
-};
-
-let getWinnerMapping = async (d: Awaited<ReturnType<typeof getMagicMcpTargetInfo>>) => {
-  return await getExistingMapping(d);
 };
 
 let isReusableMapping = (
@@ -115,13 +109,6 @@ let isReusableMapping = (
   if (mapping.expiresAt <= now) return false;
 
   return true;
-};
-
-let deleteSubspaceSessionSafe = async (d: {
-  instance: Instance;
-  subspaceSessionId: string;
-}) => {
-  void d;
 };
 
 export let ensureMagicMcpSubspaceSession = async (magicMcpTarget: MagicMcpResolvedTarget) => {
@@ -162,48 +149,19 @@ export let syncMagicMcpSubspaceSession = async (
   if (isReusableMapping(mapping, target, subspaceSessionId, now)) return mapping!;
 
   let expiresAt = await getMagicMcpSessionExpiresAt(target.instance, now);
-
-  try {
-    if (mapping) {
-      let updated = await db.magicMcpSession.updateMany({
-        where: {
-          oid: mapping.oid,
-          subspaceSessionId: mapping.subspaceSessionId
-        },
-        data: {
-          subspaceSessionId,
-          subspaceSessionTemplateId: target.sessionTemplateId,
-          expiresAt,
-          isActive: true,
-          isConsumerReconciled: true
-        }
-      });
-      let winner = await getWinnerMapping(target);
-      if (!winner) {
-        throw new ServiceError(
-          badRequestError({
-            message: 'Failed to persist magic MCP session mapping'
-          })
-        );
-      }
-      if (updated.count === 0 && winner.subspaceSessionId !== subspaceSessionId) {
-        void deleteSubspaceSessionSafe({
-          instance: target.instance,
-          subspaceSessionId
-        });
-      }
-      if (updated.count > 0 && mapping.subspaceSessionId !== winner.subspaceSessionId) {
-        void deleteSubspaceSessionSafe({
-          instance: target.instance,
-          subspaceSessionId: mapping.subspaceSessionId
-        });
-      }
-
-      return winner;
-    }
-
-    return await db.magicMcpSession.create({
-      data: {
+  if (target.targetType === 'server') {
+    return await db.magicMcpSession.upsert({
+      where: {
+        magicMcpServerOid: target.mappingWhere.magicMcpServerOid
+      },
+      update: {
+        subspaceSessionId,
+        subspaceSessionTemplateId: target.sessionTemplateId,
+        expiresAt,
+        isActive: true,
+        isConsumerReconciled: true
+      },
+      create: {
         id: await ID.generateId('magicMcpServerSubspaceSession'),
         instanceOid: target.instance.oid,
         subspaceSessionId,
@@ -214,22 +172,30 @@ export let syncMagicMcpSubspaceSession = async (
         ...target.mappingData
       }
     });
-  } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-      let winner = await getWinnerMapping(target);
-      if (winner) {
-        if (winner.subspaceSessionId !== subspaceSessionId) {
-          void deleteSubspaceSessionSafe({
-            instance: target.instance,
-            subspaceSessionId
-          });
-        }
-        return winner;
-      }
-    }
-
-    throw error;
   }
+
+  return await db.magicMcpSession.upsert({
+    where: {
+      magicMcpEndpointOid: target.mappingWhere.magicMcpEndpointOid
+    },
+    update: {
+      subspaceSessionId,
+      subspaceSessionTemplateId: target.sessionTemplateId,
+      expiresAt,
+      isActive: true,
+      isConsumerReconciled: true
+    },
+    create: {
+      id: await ID.generateId('magicMcpServerSubspaceSession'),
+      instanceOid: target.instance.oid,
+      subspaceSessionId,
+      subspaceSessionTemplateId: target.sessionTemplateId,
+      expiresAt,
+      isActive: true,
+      isConsumerReconciled: true,
+      ...target.mappingData
+    }
+  });
 };
 
 export type MagicMcpSubspaceMapping = Awaited<ReturnType<typeof syncMagicMcpSubspaceSession>>;

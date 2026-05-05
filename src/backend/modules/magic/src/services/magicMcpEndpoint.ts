@@ -1,4 +1,5 @@
 import {
+  badRequestError,
   conflictError,
   notFoundError,
   preconditionFailedError,
@@ -90,6 +91,44 @@ let dedupeServerInputs = (servers?: MagicMcpEndpointServerInput[]) => {
   }
 
   return Array.from(entries.values());
+};
+
+let listActiveServersForEndpoint = async (d: {
+  instanceOid: bigint;
+  requestedServers: MagicMcpEndpointServerInput[];
+}) => {
+  if (d.requestedServers.length === 0) return [];
+
+  let servers = await db.magicMcpServer.findMany({
+    where: {
+      id: { in: d.requestedServers.map(server => server.magicMcpServerId) },
+      instanceOid: d.instanceOid,
+      status: 'active'
+    },
+    select: {
+      id: true,
+      oid: true
+    }
+  });
+
+  if (servers.length !== d.requestedServers.length) {
+    let resolvedIds = new Set(servers.map(server => server.id));
+    let invalidIds = d.requestedServers
+      .map(server => server.magicMcpServerId)
+      .filter(serverId => !resolvedIds.has(serverId));
+
+    throw new ServiceError(
+      badRequestError({
+        message:
+          'All linked magic MCP servers must exist, be active, and belong to the same instance.',
+        description: invalidIds.length
+          ? `Invalid server IDs: ${invalidIds.join(', ')}`
+          : undefined
+      })
+    );
+  }
+
+  return servers;
 };
 
 let getMagicMcpSessionDurationMinutes = async (
@@ -329,18 +368,10 @@ class MagicMcpEndpointImpl {
     let serverInputsById = new Map(
       requestedServers.map(server => [server.magicMcpServerId, server] as const)
     );
-    let servers = requestedServers.length
-      ? await db.magicMcpServer.findMany({
-          where: {
-            id: { in: requestedServers.map(server => server.magicMcpServerId) },
-            instanceOid: d.instance.oid
-          },
-          select: {
-            id: true,
-            oid: true
-          }
-        })
-      : [];
+    let servers = await listActiveServersForEndpoint({
+      instanceOid: d.instance.oid,
+      requestedServers
+    });
 
     try {
       let magicMcpEndpoint = await db.magicMcpEndpoint.create({
@@ -472,15 +503,9 @@ class MagicMcpEndpointImpl {
     let serverInputsById = new Map(
       serverInputs.map(server => [server.magicMcpServerId, server] as const)
     );
-    let servers = await db.magicMcpServer.findMany({
-      where: {
-        id: { in: serverInputs.map(server => server.magicMcpServerId) },
-        instanceOid: d.endpoint.instanceOid
-      },
-      select: {
-        id: true,
-        oid: true
-      }
+    let servers = await listActiveServersForEndpoint({
+      instanceOid: d.endpoint.instanceOid,
+      requestedServers: serverInputs
     });
 
     if (servers.length) {

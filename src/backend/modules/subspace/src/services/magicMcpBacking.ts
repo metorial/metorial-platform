@@ -8,6 +8,7 @@ export let subspaceMagicMcpBackingService = createSubspaceService(
     'upsertServer',
     'upsertEndpoint',
     'getServer',
+    'getServerSession',
     'getEndpoint',
     'archiveServer',
     'archiveEndpoint'

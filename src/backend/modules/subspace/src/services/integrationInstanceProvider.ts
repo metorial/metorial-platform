@@ -3,7 +3,7 @@ import { subspace } from '../subspace';
 
 export let subspaceIntegrationInstanceProviderService = createSubspaceService(
   subspace.integrationInstanceProvider,
-  ['get', 'list', 'delete', 'set'],
+  ['get', 'list', 'set'],
   inner => ({})
 );
 
