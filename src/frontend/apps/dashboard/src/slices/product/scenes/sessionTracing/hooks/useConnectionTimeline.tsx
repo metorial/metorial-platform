@@ -156,6 +156,7 @@ export let useConnectionTimeline = ({
 
     if (capabilityMessages.length > 0) {
       items.push({
+        id: capabilityMessages[0]?.id,
         component: (
           <ExplorerCapabilitiesMessageGroup
             aggregatedMessages={aggregatedMessages}
@@ -171,6 +172,7 @@ export let useConnectionTimeline = ({
       if (capabilityMessageIds.has(message.id)) continue;
 
       items.push({
+        id: message.id,
         component: <Message message={message} aggregatedMessages={aggregatedMessages} />,
         time: message.createdAt
       });
@@ -208,6 +210,7 @@ export let useConnectionTimeline = ({
             ? `${evt.error.code} - ${evt.error.message}`
             : (evt.error?.message ?? evt.warning?.message ?? null);
         items.push({
+          id: evt.message?.id ?? evt.id,
           component: (
             <Entry
               icon={<RiErrorWarningLine />}
@@ -224,6 +227,7 @@ export let useConnectionTimeline = ({
             ? `${evt.warning.code} - ${evt.warning.message}`
             : (evt.warning?.message ?? evt.warning?.message ?? null);
         items.push({
+          id: evt.message?.id ?? evt.id,
           component: (
             <Entry
               icon={<RiErrorWarningLine />}
@@ -236,6 +240,7 @@ export let useConnectionTimeline = ({
         });
       } else if (type === 'provider_run_started') {
         items.push({
+          id: evt.message?.id ?? evt.id,
           component: (
             <Entry icon={<RiServerLine />} title="Provider started" time={evt.createdAt} />
           ),
@@ -244,12 +249,14 @@ export let useConnectionTimeline = ({
         if (!hasInvocations && runId && !renderedProviderRunLogs.has(runId)) {
           renderedProviderRunLogs.add(runId);
           items.push({
+            id: runId,
             component: <ProviderRunLogs providerRunId={runId} lazy />,
             time: providerRunLogTime
           });
         }
       } else if (type === 'provider_run_stopped') {
         items.push({
+          id: evt.message?.id ?? evt.id,
           component: (
             <Entry icon={<RiServerLine />} title="Provider stopped" time={evt.createdAt} />
           ),
@@ -258,12 +265,14 @@ export let useConnectionTimeline = ({
         if (!hasInvocations && runId && !renderedProviderRunLogs.has(runId)) {
           renderedProviderRunLogs.add(runId);
           items.push({
+            id: runId,
             component: <ProviderRunLogs providerRunId={runId} lazy />,
             time: providerRunLogTime
           });
         }
       } else if (type === 'connection_disconnected') {
         items.push({
+          id: evt.message?.id ?? evt.id,
           component: (
             <Entry
               icon={<RiPlugLine />}
@@ -286,6 +295,7 @@ export let useConnectionTimeline = ({
           );
           if (evtForConn) {
             items.push({
+              id: run.id,
               component: <ProviderRunLogs providerRunId={run.id} lazy />,
               time: run.createdAt
             });
@@ -308,6 +318,7 @@ export let useConnectionTimeline = ({
       }
 
       items.push({
+        id: invocation.id,
         component: <ProviderInvocationEntry invocation={invocation} />,
         time
       });
@@ -327,12 +338,14 @@ export let useConnectionTimeline = ({
   let timelineItems = useMemo<TimelineItem[]>(
     () => [
       {
+        id: connection.id,
         component: (
           <Entry icon={<RiRadarLine />} title="Client connected" time={connection.createdAt} />
         ),
         time: connection.createdAt
       },
       {
+        id: `${connection.id}__created`,
         component: (
           <Entry
             icon={<RiSendPlane2Line />}

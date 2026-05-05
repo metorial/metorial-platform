@@ -2,7 +2,7 @@ import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
 import {
-  useConsumer,
+  useAgent,
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject
@@ -10,103 +10,83 @@ import {
 import { LinkTabs } from '@metorial/ui';
 import { Outlet, useLocation, useParams } from 'react-router-dom';
 
-export let ConsumerLayout = () => {
+export let AgentLayout = () => {
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
-  let { consumerId } = useParams();
-  let consumer = useConsumer(instance.data?.id, consumerId);
-  let pathname = useLocation().pathname;
+  let location = useLocation();
+  let { agentId } = useParams();
+  let agent = useAgent(instance.data?.id, agentId);
 
   return (
     <ContentLayout>
       <PageHeader
-        title={consumer.data?.name ?? '...'}
-        description={consumer.data?.email ?? undefined}
+        title={agent.data?.name ?? '...'}
+        description={agent.data?.description ?? undefined}
         pagination={[
           {
-            label: 'Accounts',
-            href: Paths.instance.identity.consumers(
+            label: 'Agents',
+            href: Paths.instance.identity.agents(
               organization.data,
               project.data,
               instance.data
             )
           },
           {
-            label: consumer.data?.name ?? '...',
-            href: Paths.instance.identity.consumer(
+            label: agent.data?.name ?? agentId ?? '...',
+            href: Paths.instance.identity.agent(
               organization.data,
               project.data,
               instance.data,
-              consumer.data?.id ?? consumerId
+              agent.data?.id ?? agentId
             )
           }
         ]}
       />
 
-      {renderWithLoader({ instance, organization, project, consumer })(
-        ({ instance, organization, project, consumer }) => (
+      {renderWithLoader({ instance, organization, project, agent })(
+        ({ instance, organization, project, agent }) => (
           <>
             <LinkTabs
-              current={pathname}
+              current={location.pathname}
               links={[
                 {
                   label: 'Overview',
-                  to: Paths.instance.identity.consumer(
+                  to: Paths.instance.identity.agent(
                     organization.data,
                     project.data,
                     instance.data,
-                    consumer.data.id
+                    agent.data.id
                   )
                 },
                 {
                   label: 'Operations',
-                  to: Paths.instance.identity.consumer(
+                  to: Paths.instance.identity.agent(
                     organization.data,
                     project.data,
                     instance.data,
-                    consumer.data.id,
+                    agent.data.id,
                     'operations'
                   )
                 },
                 {
                   label: 'Connections',
-                  to: Paths.instance.identity.consumer(
+                  to: Paths.instance.identity.agent(
                     organization.data,
                     project.data,
                     instance.data,
-                    consumer.data.id,
+                    agent.data.id,
                     'connections'
                   )
                 },
                 {
                   label: 'Delegations',
-                  to: Paths.instance.identity.consumer(
+                  to: Paths.instance.identity.agent(
                     organization.data,
                     project.data,
                     instance.data,
-                    consumer.data.id,
+                    agent.data.id,
                     'delegations'
-                  )
-                },
-                {
-                  label: 'Magic MCP Servers',
-                  to: Paths.instance.identity.consumer(
-                    organization.data,
-                    project.data,
-                    instance.data,
-                    consumer.data.id,
-                    'magic-mcp-servers'
-                  )
-                },
-                {
-                  label: 'Settings',
-                  to: Paths.instance.identity.consumer(
-                    organization.data,
-                    project.data,
-                    instance.data,
-                    consumer.data.id,
-                    'settings'
                   )
                 }
               ]}

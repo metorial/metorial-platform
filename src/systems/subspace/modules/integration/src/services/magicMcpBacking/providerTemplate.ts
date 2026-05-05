@@ -29,10 +29,10 @@ type UpsertProviderTemplateBackingInput = {
 class providerTemplateBackingServiceImpl {
   async upsertProviderTemplateBacking(d: UpsertProviderTemplateBackingInput) {
     await withMagicMcpBackingLock(
-      `provider_template:${d.tenant.id}:${d.solution.id}:${d.environment.id}:${d.input.providerTemplateId}`,
+      `provider_template:${d.input.providerTemplateId}`,
       async () =>
-        await withTransaction(async tx => {
-          let existing = await tx.providerTemplateBacking.findUnique({
+        await withTransaction(async db => {
+          let existing = await db.providerTemplateBacking.findUnique({
             where: { id: d.input.providerTemplateId },
             include: magicMcpProviderTemplateBackingInclude
           });
@@ -54,7 +54,7 @@ class providerTemplateBackingServiceImpl {
             }
           });
 
-          await tx.providerTemplateBacking.upsert({
+          await db.providerTemplateBacking.upsert({
             where: { id: d.input.providerTemplateId },
             create: {
               id: d.input.providerTemplateId,

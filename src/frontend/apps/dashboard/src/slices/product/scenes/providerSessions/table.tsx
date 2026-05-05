@@ -29,6 +29,10 @@ type ProviderSessionsTableProps = {
   providerId?: string;
   status?: string;
   limit?: DashboardInstanceSessionsListQuery['limit'];
+  agentId?: string;
+  actorId?: string;
+  consumerId?: string;
+  identityId?: string;
   providerDeploymentId?: string;
   providerAuthConfigId?: string;
   providerConfigId?: string;
@@ -82,6 +86,10 @@ let useProviderSessionsTableState: TableStateProvider<
     order: 'desc',
     limit: props.limit,
     providerId: getStringFilterValue(opts.filter.providerId) ?? props.providerId ?? undefined,
+    agentId: getStringFilterValue(opts.filter.agentId) ?? props.agentId,
+    actorId: getStringFilterValue(opts.filter.actorId) ?? props.actorId,
+    consumerId: getStringFilterValue(opts.filter.consumerId) ?? props.consumerId,
+    identityId: getStringFilterValue(opts.filter.identityId) ?? props.identityId,
     status: getSessionStatusFilterValue(opts.filter.status) ?? (props.status as any),
     providerDeploymentId:
       getStringFilterValue(opts.filter.providerDeploymentId) ?? props.providerDeploymentId,
@@ -236,6 +244,34 @@ let providerSessionsTable = new DashboardTable<ProviderSessionsTableProps, Sessi
       type: 'string'
     },
     {
+      id: 'agentId',
+      fields: ['agentId'],
+      label: 'Agent ID',
+      description: 'Filter by connected agent ID',
+      type: 'string'
+    },
+    {
+      id: 'actorId',
+      fields: ['actorId'],
+      label: 'Actor ID',
+      description: 'Filter by connected actor ID',
+      type: 'string'
+    },
+    {
+      id: 'consumerId',
+      fields: ['consumerId'],
+      label: 'Consumer ID',
+      description: 'Filter by connected consumer ID',
+      type: 'string'
+    },
+    {
+      id: 'identityId',
+      fields: ['identityId'],
+      label: 'Identity ID',
+      description: 'Filter by connected identity ID',
+      type: 'string'
+    },
+    {
       id: 'providerDeploymentId',
       fields: ['providerDeploymentId'],
       label: 'Deployment ID',
@@ -307,6 +343,10 @@ export let ProviderSessionsTable = ({
   providerId,
   status,
   limit,
+  agentId,
+  actorId,
+  consumerId,
+  identityId,
   providerDeploymentId,
   providerAuthConfigId,
   providerConfigId
@@ -314,6 +354,10 @@ export let ProviderSessionsTable = ({
   providerId?: string;
   status?: string;
   limit?: DashboardInstanceSessionsListQuery['limit'];
+  agentId?: string;
+  actorId?: string;
+  consumerId?: string;
+  identityId?: string;
   providerDeploymentId?: string;
   providerAuthConfigId?: string;
   providerConfigId?: string;
@@ -326,6 +370,10 @@ export let ProviderSessionsTable = ({
     providerId,
     status,
     limit,
+    agentId,
+    actorId,
+    consumerId,
+    identityId,
     providerDeploymentId,
     providerAuthConfigId,
     providerConfigId,

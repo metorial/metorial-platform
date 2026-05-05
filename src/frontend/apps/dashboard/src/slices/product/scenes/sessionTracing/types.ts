@@ -23,4 +23,4 @@ export type GroupedConnectionItems = {
   items: TracingConnectionRowItem[];
   dayTime: number;
 };
-export type TimelineItem = { component: ReactNode; time: Date };
+export type TimelineItem = { id?: string; component: ReactNode; time: Date };

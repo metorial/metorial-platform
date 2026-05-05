@@ -108,23 +108,8 @@ class sessionTemplateServiceImpl {
               tenantOid: d.tenant.oid,
               solutionOid: d.solution.oid,
               environmentOid: d.environment.oid,
-              OR: [
-                { isInternal: false },
-                {
-                  integrationInstance: {
-                    is: {
-                      isMagicMcpBacking: false
-                    }
-                  }
-                },
-                {
-                  integrationInstanceGroup: {
-                    is: {
-                      isMagicMcpBacking: false
-                    }
-                  }
-                }
-              ],
+
+              isInternal: false,
 
               ...normalizeStatusForList(d).noParent,
 

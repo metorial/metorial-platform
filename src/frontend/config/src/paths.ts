@@ -430,6 +430,24 @@ let InstancePaths = Object.assign(
     },
 
     identity: {
+      agents: (
+        organization: EntityParam,
+        project: EntityParam,
+        instance: EntityParam,
+        ...subPages: SubPages
+      ) => InstancePaths(organization, project, instance, 'agents', ...subPages),
+
+      agent: (
+        organization: EntityParam,
+        project: EntityParam,
+        instance: EntityParam,
+        id?: string,
+        ...subPages: SubPages
+      ) => {
+        if (!id) return '#';
+        return InstancePaths(organization, project, instance, 'agent', id, ...subPages);
+      },
+
       consumers: (
         organization: EntityParam,
         project: EntityParam,
@@ -653,6 +671,18 @@ let InstancePaths = Object.assign(
       instance: EntityParam,
       ...subPages: SubPages
     ) => InstancePaths(organization, project, instance, 'provider-sessions', ...subPages),
+    sessionConnections: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'session-connections', ...subPages),
+    toolCalls: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'tool-calls', ...subPages),
     providerSession: (
       organization: EntityParam,
       project: EntityParam,

@@ -240,7 +240,7 @@ let getMagicMcpServerBackingLockKey = (d: {
   solution: Solution;
   environment: Environment;
   magicMcpServerBackingId: string;
-}) => `server:${d.tenant.id}:${d.solution.id}:${d.environment.id}:${d.magicMcpServerBackingId}`;
+}) => `server:${d.magicMcpServerBackingId}`;
 
 let getMagicMcpServerProviderOrThrow = async (d: {
   tenant: Tenant;
@@ -475,18 +475,20 @@ class magicMcpServerProviderServiceImpl {
             throw new ServiceError(notFoundError('integration'));
           }
 
-          let integrationProvider = await integrationProviderService.createIntegrationProvider({
-            tenant: d.tenant,
-            solution: d.solution,
-            environment: d.environment,
-            integration: ownerIntegration,
-            input: {
-              providerId: d.input.providerId,
-              providerDeploymentId: d.input.providerDeploymentId,
-              providerConfigId: d.input.providerConfigId ?? undefined,
-              toolFilters: d.input.toolFilters
+          let integrationProvider = await integrationProviderService.createIntegrationProvider(
+            {
+              tenant: d.tenant,
+              solution: d.solution,
+              environment: d.environment,
+              integration: ownerIntegration,
+              input: {
+                providerId: d.input.providerId,
+                providerDeploymentId: d.input.providerDeploymentId,
+                providerConfigId: d.input.providerConfigId ?? undefined,
+                toolFilters: d.input.toolFilters
+              }
             }
-          });
+          );
 
           await integrationInstanceProviderService.setIntegrationInstanceProvider({
             tenant: d.tenant,
@@ -564,7 +566,9 @@ class magicMcpServerProviderServiceImpl {
               input: {
                 providerDeploymentId: d.input.providerDeploymentId,
                 providerConfigId:
-                  d.input.providerConfigId === undefined ? undefined : d.input.providerConfigId,
+                  d.input.providerConfigId === undefined
+                    ? undefined
+                    : d.input.providerConfigId,
                 toolFilters: d.input.toolFilters
               }
             });

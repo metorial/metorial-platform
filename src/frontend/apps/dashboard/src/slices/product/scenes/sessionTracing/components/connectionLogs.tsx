@@ -1,5 +1,6 @@
 import { DashboardInstanceSessionsGetOutput } from '@metorial/dashboard-sdk';
 import { Callout, CenteredSpinner } from '@metorial/ui';
+import { useEffect } from 'react';
 import styled from 'styled-components';
 import { ItemList } from '../../session/components/itemList';
 import { useConnectionTimeline } from '../hooks/useConnectionTimeline';
@@ -29,10 +30,12 @@ let LoadingWrap = styled.div`
 
 export let ConnectionLogs = ({
   session,
-  connection
+  connection,
+  focusedItemId
 }: {
   session: DashboardInstanceSessionsGetOutput;
   connection: SessionConnection;
+  focusedItemId?: string | null;
 }) => {
   let {
     connection: connectionDetails,
@@ -47,6 +50,19 @@ export let ConnectionLogs = ({
     connection
   });
 
+  useEffect(() => {
+    if (!focusedItemId) return;
+
+    let id = window.requestAnimationFrame(() => {
+      let element = document.querySelector(
+        `[data-timeline-item-id="${focusedItemId}"]`
+      ) as HTMLElement | null;
+      element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+
+    return () => window.cancelAnimationFrame(id);
+  }, [focusedItemId, timelineItems]);
+
   return (
     <DetailContent>
       <ConnectionTraceHeader
@@ -59,7 +75,7 @@ export let ConnectionLogs = ({
       <DetailTimeline>
         {sessionEntry}
 
-        <ItemList items={timelineItems} />
+        <ItemList items={timelineItems} selectedItemId={focusedItemId} />
 
         {!hasTimelineActivity && !isLoading && (
           <Callout color="gray">

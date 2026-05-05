@@ -150,3 +150,31 @@ export let IdentityListLayout = () => {
     )
   );
 };
+
+export let AgentsListLayout = () => {
+  let instance = useCurrentInstance();
+  let organization = useCurrentOrganization();
+  let project = useCurrentProject();
+  let flags = useDashboardFlags();
+
+  return renderWithLoader({ instance, organization, project, flags })(
+    ({ flags }) => (
+      <ContentLayout>
+        <PageHeader
+          title="Agents"
+          description="Inspect first-class agents, linked clients, and their activity across sessions."
+        />
+
+        {!isIdentityEnabled(flags.data.flags) ? (
+          getIdentityUnavailableError()
+        ) : !isPaidIdentityEnabled(flags.data.flags) ? (
+          getIdentityUpgrade()
+        ) : (
+          <PaginationSearchParamsProvider enabled={true}>
+            <Outlet />
+          </PaginationSearchParamsProvider>
+        )}
+      </ContentLayout>
+    )
+  );
+};

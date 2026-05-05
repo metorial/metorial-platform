@@ -159,7 +159,7 @@ export let useAccumulatedSessionConnections = (
   };
 };
 
-type AllConnectionsQuery = Omit<DashboardInstanceSessionsConnectionsListQuery, 'sessionId'>;
+type AllConnectionsQuery = DashboardInstanceSessionsConnectionsListQuery;
 
 export let allSessionConnectionsLoader = createLoader({
   name: 'allSessionConnections',

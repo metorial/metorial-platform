@@ -89,6 +89,36 @@ export let IdentityActorLayout = () => {
                   )
                 },
                 {
+                  label: 'Operations',
+                  to: Paths.instance.identity.actor(
+                    organization.data,
+                    project.data,
+                    instance.data,
+                    actor.data.id,
+                    'operations'
+                  )
+                },
+                {
+                  label: 'Connections',
+                  to: Paths.instance.identity.actor(
+                    organization.data,
+                    project.data,
+                    instance.data,
+                    actor.data.id,
+                    'connections'
+                  )
+                },
+                {
+                  label: 'Delegations',
+                  to: Paths.instance.identity.actor(
+                    organization.data,
+                    project.data,
+                    instance.data,
+                    actor.data.id,
+                    'delegations'
+                  )
+                },
+                {
                   label: 'Settings',
                   to: Paths.instance.identity.actor(
                     organization.data,

@@ -25,9 +25,10 @@ import {
 
 export let useSessionTracing = (
   session: DashboardInstanceSessionsGetOutput,
-  options?: { initialExplorerTab?: boolean }
+  options?: { initialExplorerTab?: boolean; initialConnectionId?: string | null }
 ) => {
   let initialExplorerTab = options?.initialExplorerTab ?? false;
+  let initialConnectionId = options?.initialConnectionId ?? null;
   let instance = useCurrentInstance();
   let instanceId = instance.data?.id;
   let [openTabIds, setOpenTabIds] = useState<string[]>([]);
@@ -198,13 +199,23 @@ export let useSessionTracing = (
       return;
     }
 
+    if (initialConnectionId) {
+      let requestedConnection = connectionItems.find(connection => connection.id === initialConnectionId);
+      if (requestedConnection) {
+        setOpenTabIds([requestedConnection.id]);
+        setActiveTabId(requestedConnection.id);
+        setDidInitializeTabs(true);
+        return;
+      }
+    }
+
     let firstConnection = connectionItems[0];
     if (!firstConnection) return;
 
     setOpenTabIds([firstConnection.id]);
     setActiveTabId(firstConnection.id);
     setDidInitializeTabs(true);
-  }, [connectionItems, didInitializeTabs, initialExplorerTab]);
+  }, [connectionItems, didInitializeTabs, initialConnectionId, initialExplorerTab]);
 
   useEffect(() => {
     let previousIds = previousConnectionIdsRef.current;

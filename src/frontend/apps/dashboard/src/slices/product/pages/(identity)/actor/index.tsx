@@ -1,17 +1,28 @@
 import { renderWithLoader } from '@metorial/data-hooks';
-import { useCurrentInstance, useIdentityActor } from '@metorial/state';
+import { Paths } from '@metorial/frontend-config';
+import {
+  useCurrentInstance,
+  useCurrentOrganization,
+  useCurrentProject,
+  useIdentityActor
+} from '@metorial/state';
 import { Attributes, RenderDate, Spacer } from '@metorial/ui';
 import { Box, ID } from '@metorial/ui-product';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { IdentitiesTable } from '../../../scenes/identity/identitiesTable';
+import { SessionConnectionsTable } from '../../../scenes/logs/sessionConnectionsTable';
+import { ToolCallsTable } from '../../../scenes/logs/toolCallsTable';
 import { UsageScene } from '../../../scenes/usage/usage';
 
 export let IdentityActorPage = () => {
   let instance = useCurrentInstance();
+  let organization = useCurrentOrganization();
+  let project = useCurrentProject();
   let { identityActorId } = useParams();
   let actor = useIdentityActor(instance.data?.id, identityActorId);
 
-  return renderWithLoader({ instance, actor })(({ instance, actor }) => (
+  return renderWithLoader({ instance, organization, project, actor })(
+    ({ instance, organization, project, actor }) => (
     <>
       <Attributes
         itemWidth="240px"
@@ -26,7 +37,20 @@ export let IdentityActorPage = () => {
           },
           {
             label: 'Agent ID',
-            content: actor.data.agentId ? <ID id={actor.data.agentId} /> : '—'
+            content: actor.data.agentId ? (
+                <Link
+                  to={Paths.instance.identity.agent(
+                    organization.data,
+                    project.data,
+                    instance.data,
+                    actor.data.agentId
+                  )}
+                >
+                  {actor.data.agentId}
+                </Link>
+            ) : (
+                '—'
+            )
           },
           {
             label: 'Created At',
@@ -34,6 +58,46 @@ export let IdentityActorPage = () => {
           }
         ]}
       />
+
+      <Spacer size={20} />
+
+      {actor.data.agentId ? (
+        <>
+          <Box
+            title="Linked Agent"
+            description="This actor is backed by a first-class agent resource."
+          >
+            <Link
+              to={Paths.instance.identity.agent(
+                organization.data,
+                project.data,
+                instance.data,
+                actor.data.agentId
+              )}
+            >
+              {actor.data.agentId}
+            </Link>
+          </Box>
+
+          <Spacer size={20} />
+        </>
+      ) : null}
+
+      <Box
+        title="Recent Operations"
+        description="Recent tool calls associated with this actor."
+      >
+        <ToolCallsTable instanceId={instance.data.id} filters={{ actorId: actor.data.id }} />
+      </Box>
+
+      <Spacer size={20} />
+
+      <Box
+        title="Recent Connections"
+        description="Connections associated with this actor and its agents."
+      >
+        <SessionConnectionsTable instanceId={instance.data.id} filters={{ actorId: actor.data.id }} />
+      </Box>
 
       <Spacer size={20} />
 
@@ -50,5 +114,6 @@ export let IdentityActorPage = () => {
         <IdentitiesTable instanceId={instance.data.id} filters={{ actorId: actor.data.id }} />
       </Box>
     </>
-  ));
+    )
+  );
 };

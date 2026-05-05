@@ -11,8 +11,8 @@ let disconnectConsumerSurfaceAres = async (d: {
   if (!d.consumerSurface.consumerAuthTenantOid) return;
   let consumerAuthTenantOid = d.consumerSurface.consumerAuthTenantOid;
 
-  await withTransaction(async tx => {
-    let consumerAuthTenant = await tx.consumerAuthTenant.findUniqueOrThrow({
+  await withTransaction(async db => {
+    let consumerAuthTenant = await db.consumerAuthTenant.findUniqueOrThrow({
       where: {
         oid: consumerAuthTenantOid
       }
@@ -27,7 +27,7 @@ let disconnectConsumerSurfaceAres = async (d: {
         redirectDomains: ['invalid.invalid']
       });
 
-      await tx.consumerAuthTenant.update({
+      await db.consumerAuthTenant.update({
         where: {
           oid: consumerAuthTenant.oid
         },
@@ -45,11 +45,11 @@ let deactivateConsumerSurfaceResources = async (d: {
   publishableApiKeyOid: bigint;
   consumerSurfaceOid?: bigint;
 }) => {
-  await withTransaction(async tx => {
+  await withTransaction(async db => {
     let now = new Date();
 
     if (d.consumerSurfaceOid) {
-      await tx.consumerSession.updateMany({
+      await db.consumerSession.updateMany({
         where: {
           loggedOutAt: null,
           consumerProfile: {
@@ -62,7 +62,7 @@ let deactivateConsumerSurfaceResources = async (d: {
       });
     }
 
-    let apiKey = await tx.apiKey.findUnique({
+    let apiKey = await db.apiKey.findUnique({
       where: {
         oid: d.publishableApiKeyOid
       },
@@ -71,7 +71,7 @@ let deactivateConsumerSurfaceResources = async (d: {
       }
     });
 
-    await tx.apiKey.update({
+    await db.apiKey.update({
       where: {
         oid: d.publishableApiKeyOid
       },
@@ -82,7 +82,7 @@ let deactivateConsumerSurfaceResources = async (d: {
     });
 
     if (apiKey) {
-      await tx.machineAccess.update({
+      await db.machineAccess.update({
         where: {
           oid: apiKey.machineAccessOid
         },

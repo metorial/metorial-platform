@@ -171,7 +171,9 @@ class integrationServiceImpl {
               tenantOid: d.tenant.oid,
               solutionOid: d.solution.oid,
               environmentOid: d.environment.oid,
-              isMagicMcpBacking: d.includeMagicMcpBackings ? undefined : false,
+              OR: d.includeMagicMcpBackings
+                ? undefined
+                : [{ isMagicMcpBacking: false }, { providerTemplateBacking: { isNot: null } }],
 
               ...normalizeStatusForList(d).noParent,
 

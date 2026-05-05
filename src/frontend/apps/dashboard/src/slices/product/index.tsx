@@ -248,8 +248,14 @@ let IntegrationInstanceSettingsPage = dynamicPage(() =>
 let IdentityListLayout = dynamicPage(() =>
   import('./pages/(identity)/(list)/_layout').then(c => c.IdentityListLayout)
 );
+let AgentsListLayout = dynamicPage(() =>
+  import('./pages/(identity)/(list)/_layout').then(c => c.AgentsListLayout)
+);
 let ConsumersPage = dynamicPage(() =>
   import('./pages/(identity)/(list)/consumers').then(c => c.ConsumersPage)
+);
+let AgentsPage = dynamicPage(() =>
+  import('./pages/(identity)/(list)/agents').then(c => c.AgentsPage)
 );
 let IdentityActorsPage = dynamicPage(() =>
   import('./pages/(identity)/(list)/actors').then(c => c.IdentityActorsPage)
@@ -268,11 +274,23 @@ let IdentityDelegationConfigsPage = dynamicPage(() =>
 let IdentityActorLayout = dynamicPage(() =>
   import('./pages/(identity)/actor/_layout').then(c => c.IdentityActorLayout)
 );
+let AgentLayout = dynamicPage(() =>
+  import('./pages/(identity)/agent/_layout').then(c => c.AgentLayout)
+);
 let ConsumerLayout = dynamicPage(() =>
   import('./pages/(identity)/consumer/_layout').then(c => c.ConsumerLayout)
 );
 let ConsumerPage = dynamicPage(() =>
   import('./pages/(identity)/consumer').then(c => c.ConsumerPage)
+);
+let ConsumerOperationsPage = dynamicPage(() =>
+  import('./pages/(identity)/consumer/operations').then(c => c.ConsumerOperationsPage)
+);
+let ConsumerConnectionsPage = dynamicPage(() =>
+  import('./pages/(identity)/consumer/connections').then(c => c.ConsumerConnectionsPage)
+);
+let ConsumerDelegationsPage = dynamicPage(() =>
+  import('./pages/(identity)/consumer/delegations').then(c => c.ConsumerDelegationsPage)
 );
 let ConsumerSettingsPage = dynamicPage(() =>
   import('./pages/(identity)/consumer/settings').then(c => c.ConsumerSettingsPage)
@@ -284,6 +302,27 @@ let ConsumerMagicMcpServersPage = dynamicPage(() =>
 );
 let IdentityActorPage = dynamicPage(() =>
   import('./pages/(identity)/actor').then(c => c.IdentityActorPage)
+);
+let IdentityActorOperationsPage = dynamicPage(() =>
+  import('./pages/(identity)/actor/operations').then(c => c.IdentityActorOperationsPage)
+);
+let IdentityActorConnectionsPage = dynamicPage(() =>
+  import('./pages/(identity)/actor/connections').then(c => c.IdentityActorConnectionsPage)
+);
+let IdentityActorDelegationsPage = dynamicPage(() =>
+  import('./pages/(identity)/actor/delegations').then(c => c.IdentityActorDelegationsPage)
+);
+let AgentPage = dynamicPage(() =>
+  import('./pages/(identity)/agent').then(c => c.AgentPage)
+);
+let AgentOperationsPage = dynamicPage(() =>
+  import('./pages/(identity)/agent/operations').then(c => c.AgentOperationsPage)
+);
+let AgentConnectionsPage = dynamicPage(() =>
+  import('./pages/(identity)/agent/connections').then(c => c.AgentConnectionsPage)
+);
+let AgentDelegationsPage = dynamicPage(() =>
+  import('./pages/(identity)/agent/delegations').then(c => c.AgentDelegationsPage)
 );
 let IdentityActorSettingsPage = dynamicPage(() =>
   import('./pages/(identity)/actor/settings').then(c => c.IdentityActorSettingsPage)
@@ -471,6 +510,12 @@ let ServerRunsPage = dynamicPage(() =>
 let SessionsPage = dynamicPage(() =>
   import('./pages/(logs)/(list)/sessions').then(c => c.SessionsPage)
 );
+let SessionConnectionsPage = dynamicPage(() =>
+  import('./pages/(logs)/(list)/connections').then(c => c.SessionConnectionsPage)
+);
+let ToolCallsPage = dynamicPage(() =>
+  import('./pages/(logs)/(list)/tool-calls').then(c => c.ToolCallsPage)
+);
 let ServerErrorPage = dynamicPage(() =>
   import('./pages/(logs)/provider-error').then(c => c.ProviderErrorPage)
 );
@@ -581,6 +626,14 @@ export let productTraceSlice = createSlice([
                     element: <SessionsPage />
                   },
                   {
+                    path: 'session-connections',
+                    element: <SessionConnectionsPage />
+                  },
+                  {
+                    path: 'tool-calls',
+                    element: <ToolCallsPage />
+                  },
+                  {
                     path: 'provider-runs',
                     element: <ServerRunsPage />
                   },
@@ -615,6 +668,26 @@ export let productTraceSlice = createSlice([
               {
                 path: '',
                 element: <ProviderSessionsPage />
+              }
+            ]
+          },
+          {
+            path: 'session-connections',
+            element: <ProviderSessionsListLayout />,
+            children: [
+              {
+                path: '',
+                element: <SessionConnectionsPage />
+              }
+            ]
+          },
+          {
+            path: 'tool-calls',
+            element: <ProviderSessionsListLayout />,
+            children: [
+              {
+                path: '',
+                element: <ToolCallsPage />
               }
             ]
           },
@@ -754,6 +827,16 @@ export let productIdentitySlice = createSlice([
 
         children: [
           {
+            path: 'agents',
+            element: <AgentsListLayout />,
+            children: [
+              {
+                path: '',
+                element: <AgentsPage />
+              }
+            ]
+          },
+          {
             element: <IdentityListLayout />,
             children: [
               {
@@ -786,6 +869,33 @@ export let productIdentitySlice = createSlice([
           },
 
           {
+            path: 'agent/:agentId',
+            element: (
+              <IdentityManagedPage>
+                <AgentLayout />
+              </IdentityManagedPage>
+            ),
+            children: [
+              {
+                path: '',
+                element: <AgentPage />
+              },
+              {
+                path: 'operations',
+                element: <AgentOperationsPage />
+              },
+              {
+                path: 'connections',
+                element: <AgentConnectionsPage />
+              },
+              {
+                path: 'delegations',
+                element: <AgentDelegationsPage />
+              }
+            ]
+          },
+
+          {
             path: 'consumer/:consumerId',
             element: (
               <IdentityManagedPage>
@@ -796,6 +906,18 @@ export let productIdentitySlice = createSlice([
               {
                 path: '',
                 element: <ConsumerPage />
+              },
+              {
+                path: 'operations',
+                element: <ConsumerOperationsPage />
+              },
+              {
+                path: 'connections',
+                element: <ConsumerConnectionsPage />
+              },
+              {
+                path: 'delegations',
+                element: <ConsumerDelegationsPage />
               },
               {
                 path: 'settings',
@@ -819,6 +941,18 @@ export let productIdentitySlice = createSlice([
               {
                 path: '',
                 element: <IdentityActorPage />
+              },
+              {
+                path: 'operations',
+                element: <IdentityActorOperationsPage />
+              },
+              {
+                path: 'connections',
+                element: <IdentityActorConnectionsPage />
+              },
+              {
+                path: 'delegations',
+                element: <IdentityActorDelegationsPage />
               },
               {
                 path: 'settings',

@@ -92,6 +92,18 @@ export let ProviderSessionsListLayout = () => {
             to: Paths.instance.providerSessions(organization.data, project.data, instance.data)
           },
           {
+            label: 'Connections',
+            to: Paths.instance.sessionConnections(
+              organization.data,
+              project.data,
+              instance.data
+            )
+          },
+          {
+            label: 'Tool Calls',
+            to: Paths.instance.toolCalls(organization.data, project.data, instance.data)
+          },
+          {
             label: 'Provider Runs',
             to: Paths.instance.providerRuns(organization.data, project.data, instance.data)
           },

@@ -109,6 +109,54 @@ export let ConsumerPage = () => {
 
         <Spacer size={20} />
 
+        <Box title="Agents" description="Agents that were used by this account.">
+          {renderWithPagination(actors)(actors => {
+            let agentActors = actors.data.items.filter(actor => !!actor.agentId);
+
+            return (
+              <>
+                <Table
+                  headers={['Actor', 'Agent ID', 'Status', 'Created']}
+                  data={agentActors.map(actor => ({
+                    href: Paths.instance.identity.actor(
+                      organization.data,
+                      project.data,
+                      instance.data,
+                      actor.id
+                    ),
+                    data: [
+                      <Text size="2" weight="strong">
+                        {actor.name}
+                      </Text>,
+                      actor.agentId ? <ID id={actor.agentId} /> : '—',
+                      <Badge
+                        color={
+                          actor.status === 'active'
+                            ? 'green'
+                            : actor.status === 'archived'
+                              ? 'orange'
+                              : 'gray'
+                        }
+                      >
+                        {actor.status}
+                      </Badge>,
+                      <RenderDate date={actor.createdAt} />
+                    ]
+                  }))}
+                />
+
+                {agentActors.length === 0 && (
+                  <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
+                    No agent-backed actors linked to this account.
+                  </Text>
+                )}
+              </>
+            );
+          })}
+        </Box>
+
+        <Spacer size={20} />
+
         <Box title="Actors" description="Identity actors linked to this account.">
           {renderWithPagination(actors)(actors => (
             <>

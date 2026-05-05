@@ -77,6 +77,7 @@ export let SessionTraceTabsPane = ({
   activeTabId,
   connectionIdByExplorerTabId,
   explorerTabIds,
+  focusedItemId,
   inspectorOptions,
   isExplorerActive,
   onCloseTab,
@@ -90,6 +91,7 @@ export let SessionTraceTabsPane = ({
   activeTabId: string | null;
   connectionIdByExplorerTabId: Record<string, string>;
   explorerTabIds: string[];
+  focusedItemId?: string | null;
   inspectorOptions?: {
     sessionTemplateId?: string | null;
     magicMcpServerId?: string | null;
@@ -131,7 +133,11 @@ export let SessionTraceTabsPane = ({
           {activeTabId === CONNECT_TAB_ID ? (
             <ConnectTabPanel session={session} />
           ) : activeConnection ? (
-            <ConnectionLogs session={session} connection={activeConnection} />
+            <ConnectionLogs
+              session={session}
+              connection={activeConnection}
+              focusedItemId={focusedItemId}
+            />
           ) : (
             <DetailEmptyState>
               Select a connection from the left to inspect its logs.
