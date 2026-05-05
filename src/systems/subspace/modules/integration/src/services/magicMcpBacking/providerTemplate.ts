@@ -1,4 +1,6 @@
+import { Hash } from '@lowerdeck/hash';
 import { Service } from '@lowerdeck/service';
+import { slugify } from '@lowerdeck/slugify';
 import {
   db,
   type Environment,
@@ -43,7 +45,7 @@ class providerTemplateBackingServiceImpl {
             environment: d.environment,
             integration: existing?.integration,
             input: {
-              slug: `magic-mcp-template-${d.input.providerTemplateId}`,
+              slug: `magic-${slugify(d.input.name)}-${(await Hash.sha256(d.input.providerTemplateId)).slice(0, 6)}`,
               name: d.input.name,
               description: d.input.description,
               metadata: d.input.metadata,

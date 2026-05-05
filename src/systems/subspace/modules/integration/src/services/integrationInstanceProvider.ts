@@ -302,6 +302,7 @@ class integrationInstanceProviderServiceImpl {
     environment: Environment;
     integrationInstance: IntegrationInstance;
     input: SetIntegrationInstanceProviderInput[];
+    _canBreakIntegrationCanRules?: boolean;
   }) {
     checkTenant(d, d.integrationInstance);
     checkDeletedRelation(d.integrationInstance);
@@ -439,6 +440,7 @@ class integrationInstanceProviderServiceImpl {
           false;
 
         if (
+          !d._canBreakIntegrationCanRules &&
           !integration.canAttachCustomProviderConfig &&
           materialProvider.provider.type.attributes.config.status !== 'disabled' &&
           input.providerConfigId &&
@@ -455,7 +457,11 @@ class integrationInstanceProviderServiceImpl {
 
         let capabilities = getIntegrationToolFilterCapabilities(integration);
 
-        if (isOverrideToolFilter && !capabilities.canOverrideToolFilters) {
+        if (
+          !d._canBreakIntegrationCanRules &&
+          isOverrideToolFilter &&
+          !capabilities.canOverrideToolFilters
+        ) {
           throw new ServiceError(
             badRequestError({
               message: 'Integration does not allow overriding tool filters.',
@@ -465,6 +471,7 @@ class integrationInstanceProviderServiceImpl {
         }
 
         if (
+          !d._canBreakIntegrationCanRules &&
           !capabilities.canAttachCustomToolFilters &&
           input.toolFilters &&
           !isAllowAllToolFilter(input.toolFilters)
@@ -792,6 +799,9 @@ class integrationInstanceProviderServiceImpl {
       solution: d.solution,
       environment: d.environment,
       integrationInstance: d.integrationInstance,
+      // Magic MCP backing reconciliation must preserve explicit provider config/filter choices
+      // even when the linked integration would normally reject them.
+      _canBreakIntegrationCanRules: true,
       input: d.input.map((input, idx) => ({
         providerId: integrationProviders[idx]!.id,
         providerDeploymentId: input.providerDeploymentId,

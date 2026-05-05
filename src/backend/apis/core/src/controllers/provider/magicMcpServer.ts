@@ -612,11 +612,7 @@ export let magicMcpServerController = Controller.create(
           name: v.optional(v.string()),
           description: v.optional(v.string()),
           metadata: v.optional(v.record(v.any())),
-          owner_type: v.optional(
-            v.enumOf(['server_owned', 'provider_template', 'integration'])
-          ),
           provider_template_id: v.optional(v.string()),
-          owner_integration_id: v.optional(v.string()),
           consumer_profile_id: v.optional(v.string())
         })
       )
@@ -640,9 +636,7 @@ export let magicMcpServerController = Controller.create(
             name: ctx.body.name,
             description: ctx.body.description,
             metadata: ctx.body.metadata,
-            ownerType: ctx.body.owner_type,
-            providerTemplateId: ctx.body.provider_template_id,
-            subspaceOwnerIntegrationId: ctx.body.owner_integration_id
+            providerTemplateId: ctx.body.provider_template_id
           }
         });
 
@@ -720,12 +714,7 @@ export let magicMcpServerController = Controller.create(
           name: v.optional(v.string()),
           description: v.optional(v.string()),
           metadata: v.optional(v.record(v.any())),
-          aliases: v.optional(v.array(v.string())),
-          owner_type: v.optional(
-            v.enumOf(['server_owned', 'provider_template', 'integration'])
-          ),
-          provider_template_id: v.optional(v.nullable(v.string())),
-          owner_integration_id: v.optional(v.nullable(v.string()))
+          aliases: v.optional(v.array(v.string()))
         })
       )
       .output(magicMcpServerPresenter)
@@ -746,10 +735,7 @@ export let magicMcpServerController = Controller.create(
             name: ctx.body.name,
             description: ctx.body.description,
             metadata: ctx.body.metadata,
-            aliases: ctx.body.aliases,
-            ownerType: ctx.body.owner_type,
-            providerTemplateId: ctx.body.provider_template_id,
-            subspaceOwnerIntegrationId: ctx.body.owner_integration_id
+            aliases: ctx.body.aliases
           }
         });
 

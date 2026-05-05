@@ -95,7 +95,7 @@ class integrationServiceImpl {
       ...d.id,
       status: 'active' as const,
       isMagicMcpBacking: !!d.isMagicMcpBacking,
-      slug: d.slug,
+      slug: slugify(d.slug),
       name: d.input.name.trim(),
       description: d.input.description?.trim() || null,
       metadata: d.input.metadata,

@@ -77,15 +77,22 @@ let buildAlias = (name?: string | null) => {
 export let getMagicMcpServerSessionTemplateId = (server: MagicMcpServerWithTemplateState) =>
   server.newSubspaceSessionTemplateId ?? server.legacySubspaceSessionTemplateId ?? null;
 
+type MagicMcpToolFilterRule =
+  | { type: 'tool_keys'; keys: string[] }
+  | { type: 'tool_regex'; pattern: string }
+  | { type: 'resource_regex'; pattern: string }
+  | { type: 'resource_uris'; uris: string[] }
+  | { type: 'prompt_keys'; keys: string[] }
+  | { type: 'prompt_regex'; pattern: string };
+
 type MagicMcpServerProviderInput = {
   providerDeploymentId: string;
   providerConfigId?: string | null;
   providerAuthConfigId?: string | null;
-  toolFilters?: PrismaJson.ToolFilter | null;
+  toolFilters?: any | null;
 };
 
 type MagicMcpServerOwnerInput = {
-  ownerType?: MagicMcpServerOwnerType;
   providerTemplateId?: string | null;
   subspaceOwnerIntegrationId?: string | null;
 };
@@ -99,14 +106,47 @@ let getMagicMcpSessionDurationMinutes = async (instance: Instance) => {
   return project.magicMcpSessionDurationMinutes;
 };
 
+let isMagicMcpToolFilterRule = (input: unknown): input is MagicMcpToolFilterRule => {
+  if (!input || typeof input !== 'object' || !('type' in input)) return false;
+
+  return (
+    input.type === 'tool_keys' ||
+    input.type === 'tool_regex' ||
+    input.type === 'resource_regex' ||
+    input.type === 'resource_uris' ||
+    input.type === 'prompt_keys' ||
+    input.type === 'prompt_regex'
+  );
+};
+
+let flattenMagicMcpToolFilters = (input: unknown): MagicMcpToolFilterRule[] => {
+  if (!input) return [];
+  if (Array.isArray(input)) {
+    return input.flatMap(filter => flattenMagicMcpToolFilters(filter));
+  }
+  if (isMagicMcpToolFilterRule(input)) return [input];
+  if (typeof input !== 'object' || !('type' in input)) return [];
+
+  if (input.type === 'v1.allow_all' || input.type === 'allow_all') return [];
+  if (input.type === 'v1.filter' || input.type === 'filter') {
+    return 'filters' in input ? flattenMagicMcpToolFilters(input.filters) : [];
+  }
+
+  return [];
+};
+
+let normalizeMagicMcpToolFiltersForBacking = (input: unknown) => {
+  let filters = flattenMagicMcpToolFilters(input);
+  if (!filters.length) return null;
+  return filters.length === 1 ? filters[0] : filters;
+};
+
 let normalizeMagicMcpServerOwnerInput = (d: MagicMcpServerOwnerInput) => {
-  let ownerType =
-    d.ownerType ??
-    (d.providerTemplateId
-      ? ('provider_template' as const)
-      : d.subspaceOwnerIntegrationId
-        ? ('integration' as const)
-        : ('server_owned' as const));
+  let ownerType = d.providerTemplateId
+    ? ('provider_template' as const)
+    : d.subspaceOwnerIntegrationId
+      ? ('integration' as const)
+      : ('server_owned' as const);
 
   if (ownerType === 'provider_template') {
     if (!d.providerTemplateId) {
@@ -217,7 +257,7 @@ let listMagicMcpServerProviderInputsForSessionTemplate = async (d: {
     providerDeploymentId: provider.deployment.id,
     providerConfigId: provider.config?.id ?? null,
     providerAuthConfigId: provider.authConfig?.id ?? null,
-    toolFilters: (provider.toolFilter as PrismaJson.ToolFilter | null | undefined) ?? null
+    toolFilters: normalizeMagicMcpToolFiltersForBacking(provider.toolFilter)
   }));
 };
 
@@ -567,9 +607,7 @@ class MagicMcpServerImpl {
       description?: string;
       metadata?: Record<string, unknown>;
       source?: MagicMcpServerSource;
-      ownerType?: MagicMcpServerOwnerType;
       providerTemplateId?: string;
-      subspaceOwnerIntegrationId?: string | null;
       providers?: MagicMcpServerProviderInput[];
     };
   }) {
@@ -753,7 +791,6 @@ class MagicMcpServerImpl {
         ? d.server.newSubspaceSessionTemplateId
         : d.input.sessionTemplateId;
     let owner = normalizeMagicMcpServerOwnerInput({
-      ownerType: d.input.ownerType ?? d.server.ownerType,
       providerTemplateId:
         d.input.providerTemplateId === undefined
           ? d.server.providerTemplateId
