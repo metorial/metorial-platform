@@ -3,6 +3,8 @@ import { MetorialAuthEndpoint } from './auth';
 import { MetorialKeyPrefix, sdkBuilder } from './builder';
 import {
   MetorialDashboardEndpoint,
+  MetorialDashboardInstanceAgentsEndpoint,
+  MetorialDashboardInstanceAgentsInstancesEndpoint,
   MetorialDashboardInstanceCallbacksDestinationsEndpoint,
   MetorialDashboardInstanceCallbacksEndpoint,
   MetorialDashboardInstanceCallbacksEventsEndpoint,
@@ -89,6 +91,7 @@ import {
   MetorialDashboardInstanceSessionsProvidersEndpoint,
   MetorialDashboardInstanceSessionTemplatesEndpoint,
   MetorialDashboardInstanceSessionTemplatesProvidersEndpoint,
+  MetorialDashboardInstanceToolCallsEndpoint,
   MetorialDashboardOauthAuthorizationRequestsEndpoint,
   MetorialDashboardOrganizationsAccessPoliciesEndpoint,
   MetorialDashboardOrganizationsAccessRolesEndpoint,
@@ -338,10 +341,15 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
     events: new MetorialDashboardInstanceSessionsEventsEndpoint(manager),
     messages: new MetorialDashboardInstanceSessionsMessagesEndpoint(manager),
     connections: new MetorialDashboardInstanceSessionsConnectionsEndpoint(manager),
+    toolCalls: new MetorialDashboardInstanceToolCallsEndpoint(manager),
     providers: new MetorialDashboardInstanceSessionsProvidersEndpoint(manager),
     participants: new MetorialDashboardInstanceSessionsParticipantsEndpoint(manager),
     errors: new MetorialDashboardInstanceSessionsErrorsEndpoint(manager),
     errorGroups: new MetorialDashboardInstanceSessionsErrorGroupsEndpoint(manager)
+  }),
+
+  agents: Object.assign(new MetorialDashboardInstanceAgentsEndpoint(manager), {
+    instances: new MetorialDashboardInstanceAgentsInstancesEndpoint(manager)
   }),
 
   providerRuns: new MetorialDashboardInstanceProviderRunsEndpoint(manager),
@@ -406,11 +414,24 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
 }));
 
 export type MetorialDashboardSDK = ReturnType<typeof createMetorialDashboardSDK> & {
+  agents: MetorialDashboardInstanceAgentsEndpoint & {
+    instances: MetorialDashboardInstanceAgentsInstancesEndpoint;
+  };
   callbacks: MetorialDashboardInstanceCallbacksEndpoint & {
     destinations: MetorialDashboardInstanceCallbacksDestinationsEndpoint;
     events: MetorialDashboardInstanceCallbacksEventsEndpoint;
     notifications: MetorialDashboardInstanceCallbacksNotificationsEndpoint;
     instances: MetorialDashboardInstanceCallbacksInstancesEndpoint;
+  };
+  sessions: MetorialDashboardInstanceSessionsEndpoint & {
+    events: MetorialDashboardInstanceSessionsEventsEndpoint;
+    messages: MetorialDashboardInstanceSessionsMessagesEndpoint;
+    connections: MetorialDashboardInstanceSessionsConnectionsEndpoint;
+    toolCalls: MetorialDashboardInstanceToolCallsEndpoint;
+    providers: MetorialDashboardInstanceSessionsProvidersEndpoint;
+    participants: MetorialDashboardInstanceSessionsParticipantsEndpoint;
+    errors: MetorialDashboardInstanceSessionsErrorsEndpoint;
+    errorGroups: MetorialDashboardInstanceSessionsErrorGroupsEndpoint;
   };
   consumers: MetorialDashboardInstanceConsumersEndpoint & {
     profiles: MetorialDashboardInstanceConsumersProfilesEndpoint;

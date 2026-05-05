@@ -1,3 +1,4 @@
+export * from './agents';
 export * from './callbacks';
 export * from './consumer-surfaces';
 export * from './consumers';

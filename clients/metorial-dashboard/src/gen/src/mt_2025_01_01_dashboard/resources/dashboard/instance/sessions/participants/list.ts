@@ -9,6 +9,12 @@ export type DashboardInstanceSessionsParticipantsListOutput = {
     name: string;
     data: { identifier: string; name: string };
     providerId: string | null;
+    connectionType: 'mcp' | 'metorial_protocol' | 'tool_call' | null;
+    agentId: string | null;
+    agentInstanceId: string | null;
+    identityActorId: string | null;
+    agentClientId: string | null;
+    consumerId: string | null;
     createdAt: Date;
   }[];
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
@@ -33,6 +39,24 @@ export let mapDashboardInstanceSessionsParticipantsListOutput =
             })
           ),
           providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
+          connectionType: mtMap.objectField(
+            'connection_type',
+            mtMap.passthrough()
+          ),
+          agentId: mtMap.objectField('agent_id', mtMap.passthrough()),
+          agentInstanceId: mtMap.objectField(
+            'agent_instance_id',
+            mtMap.passthrough()
+          ),
+          identityActorId: mtMap.objectField(
+            'identity_actor_id',
+            mtMap.passthrough()
+          ),
+          agentClientId: mtMap.objectField(
+            'agent_client_id',
+            mtMap.passthrough()
+          ),
+          consumerId: mtMap.objectField('consumer_id', mtMap.passthrough()),
           createdAt: mtMap.objectField('created_at', mtMap.date())
         })
       )
@@ -73,6 +97,11 @@ export type DashboardInstanceSessionsParticipantsListQuery = {
       )[]
     | undefined;
   id?: string | string[] | undefined;
+  agentId?: string | string[] | undefined;
+  actorId?: string | string[] | undefined;
+  consumerId?: string | string[] | undefined;
+  identityId?: string | string[] | undefined;
+  agentInstanceId?: string | string[] | undefined;
   sessionId?: string | string[] | undefined;
   sessionConnectionId?: string | string[] | undefined;
   sessionMessageId?: string | string[] | undefined;
@@ -95,6 +124,56 @@ export let mapDashboardInstanceSessionsParticipantsListQuery = mtMap.union([
       ),
       id: mtMap.objectField(
         'id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      agentId: mtMap.objectField(
+        'agent_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      actorId: mtMap.objectField(
+        'actor_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      consumerId: mtMap.objectField(
+        'consumer_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      identityId: mtMap.objectField(
+        'identity_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      agentInstanceId: mtMap.objectField(
+        'agent_instance_id',
         mtMap.union([
           mtMap.unionOption('string', mtMap.passthrough()),
           mtMap.unionOption(
