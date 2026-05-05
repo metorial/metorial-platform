@@ -74,6 +74,7 @@ import {
   magicMcpEndpointController,
   magicMcpGroupController,
   magicMcpServerController,
+  magicMcpServerControllerDashboard,
   magicMcpSessionController,
   magicMcpTokenController,
   providerAuthConfigController,
@@ -470,7 +471,7 @@ export let dashboardController = Controller.create<any>(
     toolCallController,
 
     magicMcpEndpointController,
-    magicMcpServerController,
+    magicMcpServerControllerDashboard,
     magicMcpSessionController,
     magicMcpTokenController,
     magicMcpGroupController,

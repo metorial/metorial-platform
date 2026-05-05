@@ -14,6 +14,9 @@ export let v1SessionTemplatePresenter = Presenter.create(sessionTemplateType)
     description: sessionTemplate.description,
     metadata: sessionTemplate.metadata,
 
+    integration_instance_id: sessionTemplate.integrationInstanceId,
+    integration_instance_group_id: sessionTemplate.integrationInstanceGroupId,
+
     providers: await Promise.all(
       sessionTemplate.providers
         .sort((a, b) => a.id.localeCompare(b.id))
@@ -60,6 +63,8 @@ export let v1SessionTemplatePresenter = Presenter.create(sessionTemplateType)
           examples: [{ environment: 'production' }]
         })
       ),
+      integration_instance_id: v.nullable(v.string()),
+      integration_instance_group_id: v.nullable(v.string()),
       providers: v.array(v1SessionTemplateProviderPresenter.schema, {
         name: 'providers',
         description: 'Template providers'

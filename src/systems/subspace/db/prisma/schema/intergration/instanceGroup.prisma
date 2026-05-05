@@ -28,6 +28,8 @@ model IntegrationInstanceGroup {
   solutionOid Int
   solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
 
+  defaultSessionTemplate SessionTemplate? @relation("defaultSessionTemplateForIntegrationInstanceGroup")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 

@@ -11,7 +11,8 @@ import { ensureMagicMcpServerBacking, magicMcpServerService } from '@metorial/mo
 import {
   subspaceIntegrationInstanceService,
   subspaceIntegrationService,
-  subspaceMagicMcpBackingService
+  subspaceMagicMcpBackingService,
+  subspaceSessionService
 } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../lib/dateFilter';
@@ -23,6 +24,7 @@ import { requireConsumerTokenForPublishableKey } from '../../middleware/requireC
 import {
   magicMcpServerPresenter,
   magicMcpServerProviderPresenter,
+  providerSessionPresenter,
   providerToolsPresenter
 } from '../../presenters';
 import { toolFiltersValidator } from './session';
@@ -134,13 +136,17 @@ let getMagicMcpServerPresentationData = async (d: {
   magicMcpServer: Awaited<ReturnType<typeof magicMcpServerService.getMagicMcpServerById>>;
   portal?: Parameters<typeof magicMcpServerPresenter.present>[0]['portal'];
 }) => {
-  let magicMcpServer =
-    !d.magicMcpServer.hasSubspaceBacking
-      ? await ensureMagicMcpServerBacking({
-          instance: d.instance,
-          server: d.magicMcpServer
-        })
-      : d.magicMcpServer;
+  let magicMcpServer = d.magicMcpServer;
+  if (!magicMcpServer.hasSubspaceBacking) {
+    let updatedMagicMcpServer = await ensureMagicMcpServerBacking({
+      instance: d.instance,
+      server: magicMcpServer
+    });
+    magicMcpServer = {
+      ...magicMcpServer,
+      ...updatedMagicMcpServer
+    };
+  }
 
   if (!magicMcpServer.hasSubspaceBacking) {
     return {
@@ -754,6 +760,60 @@ export let magicMcpServerController = Controller.create(
             portal: ctx.portal
           })
         );
+      })
+  }
+);
+
+export let magicMcpServerControllerDashboard = Controller.create(
+  {
+    name: 'Magic MCP Servers - Dashboard',
+    description: 'Endpoints for magic MCP server management within the provider dashboard.',
+    hideInDocs: true
+  },
+  {
+    ...magicMcpServerController.handlers,
+
+    createLinkedSession: magicMcpServerGroup
+      .post(
+        instancePath(
+          'magic-mcp-servers/:magicMcpServerId/session',
+          'magicMcpServers.session.create'
+        ),
+        {
+          name: 'Create linked magic MCP server session',
+          description:
+            'Resolves the current internal ephemeral managed session for a magic MCP server and returns it as a dashboard session.'
+        }
+      )
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.provider.session:write'],
+          fineGrainedPolicy: 'deny'
+        })
+      )
+      .use(hasFlags(['magic-mcp-enabled']))
+      .output(providerSessionPresenter)
+      .do(async ctx => {
+        await magicMcpServerService.checkWriteAccess({
+          server: ctx.magicMcpServer,
+          instance: ctx.instance,
+          accessTags: ctx.accessTags
+        });
+
+        let magicMcpServer = await ensureMagicMcpServerBacking({
+          instance: ctx.instance,
+          server: ctx.magicMcpServer
+        });
+        let { sessionId } = await subspaceMagicMcpBackingService.getServerSession({
+          instance: ctx.instance,
+          magicMcpServerBackingId: magicMcpServer.id
+        });
+        let session = await subspaceSessionService.get({
+          instance: ctx.instance,
+          sessionId
+        });
+
+        return providerSessionPresenter.present({ session });
       })
   }
 );

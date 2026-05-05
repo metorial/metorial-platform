@@ -39,6 +39,7 @@ import {
   identityActorService,
   identityInternalService
 } from '@metorial-subspace/module-identity';
+import { sessionTemplateService } from '@metorial-subspace/module-session';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
 import { syncIntegrationInstanceSessionTemplateQueue } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedSessionTemplate';
 import { checkTenant } from '@metorial-subspace/module-tenant';
@@ -82,33 +83,12 @@ export let integrationInstanceInclude = {
   integration: true,
   identityActor: true,
   identity: true,
+  defaultSessionTemplate: true,
   integrationInstanceProviders: {
     where: { status: 'active' as const, isParentDeleted: false },
     include: integrationInstanceProviderInclude
   },
   magicMcpServerBacking: true
-} as const;
-
-let linkedSessionTemplateInclude = {
-  integrationInstance: true,
-  integrationInstanceGroup: true,
-  providers: {
-    where: { status: 'active' as const },
-    include: {
-      provider: true,
-      deployment: true,
-      config: true,
-      authConfig: true,
-      integrationInstanceProvider: true,
-      integrationInstanceGroupProvider: true,
-      sessionTemplate: {
-        include: {
-          integrationInstance: true,
-          integrationInstanceGroup: true
-        }
-      }
-    }
-  }
 } as const;
 
 type IntegrationIdentityInput = {
@@ -810,21 +790,25 @@ class integrationInstanceServiceImpl {
     checkDeletedRelation(d.integrationInstance);
 
     return await withTransaction(async db => {
-      let sessionTemplate = await db.sessionTemplate.create({
-        data: {
-          ...getId('sessionTemplate'),
-          status: 'active',
-          name: d.input.name?.trim() || undefined,
-          description: d.input.description?.trim() || undefined,
+      let currentIntegrationInstance = await db.integrationInstance.findUniqueOrThrow({
+        where: { oid: d.integrationInstance.oid },
+        include: {
+          defaultSessionTemplate: true
+        }
+      });
+
+      let sessionTemplate = await sessionTemplateService.upsertInternalLinkedSessionTemplate({
+        tenant: d.tenant,
+        solution: d.solution,
+        environment: d.environment,
+        sessionTemplate: currentIntegrationInstance.defaultSessionTemplate,
+        input: {
+          name: d.input.name,
+          description: d.input.description,
           metadata: d.input.metadata,
           privateMetadata: d.input.privateMetadata,
-          isInternal: false,
-          integrationInstanceOid: d.integrationInstance.oid,
-          tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
-          environmentOid: d.environment.oid
-        },
-        include: linkedSessionTemplateInclude
+          integrationInstance: d.integrationInstance
+        }
       });
 
       await addAfterTransactionHook(async () =>

@@ -5,6 +5,9 @@ import { toolFilterPresenter } from '../_lib/toolFilter';
 import { v1ProviderConfigPreviewPresenter } from './configPreview';
 import { v1ProviderDeploymentPreviewPresenter } from './deploymentPreview';
 
+let presentToolFilter = (toolFilter: PrismaJson.ToolFilter | PrismaJson.ToolFilterChain) =>
+  toolFilterPresenter(toolFilter as any);
+
 export let v1SessionProviderPresenter = Presenter.create(sessionProviderType)
   .presenter(async ({ sessionProvider }, opts) => ({
     object: 'session.provider' as const,
@@ -19,7 +22,7 @@ export let v1SessionProviderPresenter = Presenter.create(sessionProviderType)
         sessionProvider.usage.totalProductiveProviderMessageCount
     },
 
-    tool_filter: toolFilterPresenter(sessionProvider.toolFilter),
+    tool_filter: presentToolFilter(sessionProvider.toolFilter),
 
     provider_id: sessionProvider.providerId,
     session_id: sessionProvider.sessionId,

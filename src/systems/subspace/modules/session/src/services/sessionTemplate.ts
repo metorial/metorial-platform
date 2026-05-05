@@ -295,7 +295,10 @@ class sessionTemplateServiceImpl {
         privateMetadata: d.input.privateMetadata ?? Prisma.JsonNull,
         isInternal: true,
         integrationInstanceOid: d.input.integrationInstance?.oid ?? null,
-        integrationInstanceGroupOid: d.input.integrationInstanceGroup?.oid ?? null
+        integrationInstanceGroupOid: d.input.integrationInstanceGroup?.oid ?? null,
+        defaultSessionTemplateForIntegrationInstanceOid: d.input.integrationInstance?.oid ?? null,
+        defaultSessionTemplateForIntegrationInstanceGroupOid:
+          d.input.integrationInstanceGroup?.oid ?? null
       };
 
       if (d.sessionTemplate) {

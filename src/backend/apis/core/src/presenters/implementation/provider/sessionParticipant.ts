@@ -28,14 +28,7 @@ export let v1SessionParticipantPresenter = Presenter.create(sessionParticipantTy
         examples: ['spt_5eFgHjKlMnPqRsTu']
       }),
       type: v.enumOf(
-        [
-          'unknown',
-          'provider',
-          'mcp_client',
-          'metorial_protocol_client',
-          'system',
-          'tool_call'
-        ] as const,
+        ['unknown', 'provider', 'agent', 'system'] as const,
         {
           name: 'type',
           description: 'Participant type'

@@ -434,7 +434,7 @@ class providerSetupSessionUiServiceImpl {
           );
         }
 
-        let session = currentSession;
+        let session: ProviderSetupSession = currentSession;
 
         if (allowToolFilterConfirmation && currentSession.config) {
           let nextConfig = currentSession.config.isEphemeral

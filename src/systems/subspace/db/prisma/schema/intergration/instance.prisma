@@ -39,6 +39,8 @@ model IntegrationInstance {
   identityOid BigInt?
   identity    Identity? @relation(fields: [identityOid], references: [oid], onDelete: Cascade)
 
+  defaultSessionTemplate SessionTemplate? @relation("defaultSessionTemplateForIntegrationInstance")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 

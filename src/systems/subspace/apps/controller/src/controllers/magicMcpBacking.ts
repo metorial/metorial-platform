@@ -1,9 +1,11 @@
+import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { v } from '@lowerdeck/validation';
 import {
   magicMcpEndpointBackingService,
   magicMcpServerBackingService,
   providerTemplateBackingService
 } from '@metorial-subspace/module-integration';
+import { ephemeralManagedSessionService } from '@metorial-subspace/module-session';
 import {
   magicMcpEndpointBackingPresenter,
   magicMcpServerBackingPresenter,
@@ -170,6 +172,40 @@ export let magicMcpBackingController = app.controller({
       });
 
       return magicMcpServerBackingPresenter(backing);
+    }),
+
+  getServerSession: tenantApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        environmentId: v.string(),
+        magicMcpServerBackingId: v.string()
+      })
+    )
+    .do(async ctx => {
+      let backing = await magicMcpServerBackingService.getMagicMcpServerBackingById({
+        tenant: ctx.tenant,
+        solution: ctx.solution,
+        environment: ctx.environment,
+        magicMcpServerBackingId: ctx.input.magicMcpServerBackingId
+      });
+
+      let session = await ephemeralManagedSessionService.resolveBackingSessionById({
+        sessionId: backing.ephemeralManagedSession.id,
+        tenantId: ctx.tenant.id,
+        solutionId: ctx.solution.id
+      });
+      if (!session) {
+        throw new ServiceError(
+          notFoundError('session', backing.ephemeralManagedSession.currentSessionOid?.toString())
+        );
+      }
+
+      return {
+        object: 'magic_mcp.server_backing.session',
+        sessionId: session.id
+      };
     }),
 
   getEndpoint: tenantApp

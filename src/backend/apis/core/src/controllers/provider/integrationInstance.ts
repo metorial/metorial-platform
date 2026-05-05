@@ -1,13 +1,20 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { subspaceIntegrationInstanceService } from '@metorial/module-subspace';
+import {
+  subspaceIntegrationInstanceService,
+  subspaceSessionService
+} from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../lib/dateFilter';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
-import { integrationInstancePresenter } from '../../presenters';
+import {
+  integrationInstancePresenter,
+  providerSessionPresenter,
+  sessionTemplatePresenter
+} from '../../presenters';
 import { toolFiltersValidator } from './session';
 
 let integrationInstanceProviderInputValidator = v.object({
@@ -122,6 +129,88 @@ export let integrationInstanceController = Controller.create(
       .do(async ctx =>
         integrationInstancePresenter.present({ integrationInstance: ctx.integrationInstance })
       ),
+
+    createSessionTemplate: integrationInstanceGroup
+      .post(
+        instancePath(
+          'integration-instances/:integrationInstanceId/session-template',
+          'integrationInstances.createSessionTemplate'
+        ),
+        {
+          name: 'Create integration instance session template',
+          description:
+            'Creates or updates the shared session template for a specific integration instance.'
+        }
+      )
+      .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
+      .body(
+        'default',
+        v.object({
+          name: v.optional(v.string()),
+          description: v.optional(v.string()),
+          metadata: v.optional(v.record(v.any()))
+        })
+      )
+      .output(sessionTemplatePresenter)
+      .do(async ctx => {
+        let sessionTemplate = await subspaceIntegrationInstanceService.createSessionTemplate({
+          instance: ctx.instance,
+          integrationInstanceId: ctx.integrationInstance.id,
+          name: ctx.body.name,
+          description: ctx.body.description,
+          metadata: ctx.body.metadata
+        });
+
+        return sessionTemplatePresenter.present({ sessionTemplate });
+      }),
+
+    createSession: integrationInstanceGroup
+      .post(
+        instancePath(
+          'integration-instances/:integrationInstanceId/session',
+          'integrationInstances.createSession'
+        ),
+        {
+          name: 'Create integration instance session',
+          description:
+            'Creates a session from the shared session template of a specific integration instance.'
+        }
+      )
+      .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
+      .body(
+        'default',
+        v.object({
+          name: v.optional(v.string()),
+          description: v.optional(v.string()),
+          metadata: v.optional(v.record(v.any()))
+        })
+      )
+      .output(providerSessionPresenter)
+      .do(async ctx => {
+        if (!ctx.integrationInstance.defaultSessionTemplateId) {
+          throw new ServiceError(
+            badRequestError({
+              message:
+                'This integration instance does not have a shared session template yet.',
+              code: 'integration_instance_shared_session_template_missing'
+            })
+          );
+        }
+
+        let session = await subspaceSessionService.create({
+          instance: ctx.instance,
+          name: ctx.body.name ?? `Session ${new Date().toISOString()}`,
+          description: ctx.body.description,
+          metadata: ctx.body.metadata,
+          providers: [
+            {
+              sessionTemplateId: ctx.integrationInstance.defaultSessionTemplateId
+            }
+          ]
+        });
+
+        return providerSessionPresenter.present({ session });
+      }),
 
     create: instanceGroup
       .post(instancePath('integration-instances', 'integrationInstances.create'), {

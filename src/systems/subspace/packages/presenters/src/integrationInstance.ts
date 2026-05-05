@@ -14,7 +14,8 @@ import type {
   ProviderAuthMethod,
   ProviderConfig,
   ProviderDeployment,
-  ProviderSpecification
+  ProviderSpecification,
+  SessionTemplate
 } from '@metorial-subspace/db';
 import { integrationInstanceProviderPresenter } from './integrationInstanceProvider';
 
@@ -59,6 +60,7 @@ export let integrationInstancePresenter = (
           })
         | null;
     })[];
+    defaultSessionTemplate: SessionTemplate | null;
     magicMcpServerBacking: MagicMcpServerBacking | null;
   }
 ) => ({
@@ -75,6 +77,7 @@ export let integrationInstancePresenter = (
   integrationId: integrationInstance.integration.id,
   identityActorId: integrationInstance.identityActor?.id ?? null,
   identityId: integrationInstance.identity?.id ?? null,
+  defaultSessionTemplateId: integrationInstance.defaultSessionTemplate?.id ?? null,
   magicMcpServerBackingId: integrationInstance.magicMcpServerBacking?.id ?? null,
 
   providers: integrationInstance.integrationInstanceProviders.map(provider =>
