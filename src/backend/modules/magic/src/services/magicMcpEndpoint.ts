@@ -1,5 +1,4 @@
 import {
-  badRequestError,
   conflictError,
   notFoundError,
   preconditionFailedError,
@@ -23,14 +22,12 @@ import {
   consumerMagicMcpWriteRoles,
   type AnyAccessTagSelector
 } from '@metorial/module-access';
-import { subspaceMagicMcpBackingService } from '@metorial/module-subspace';
 import {
   magicMcpEndpointCreatedQueue,
   magicMcpEndpointDeletedQueue,
   magicMcpEndpointUpdatedQueue
 } from '../queues/lifecycle/magicMcpEndpoint';
 import { getAccessTagFilter, getActiveStatusFilter } from './consumerAccess';
-import { ensureMagicMcpServerBacking } from './magicMcpServer';
 
 let buildSlug = (name?: string | null) => {
   let base = slugify(name ?? '');
@@ -93,76 +90,6 @@ let dedupeServerInputs = (servers?: MagicMcpEndpointServerInput[]) => {
   return Array.from(entries.values());
 };
 
-let listActiveServersForEndpoint = async (d: {
-  instanceOid: bigint;
-  requestedServers: MagicMcpEndpointServerInput[];
-}) => {
-  if (d.requestedServers.length === 0) return [];
-
-  let servers = await db.magicMcpServer.findMany({
-    where: {
-      id: { in: d.requestedServers.map(server => server.magicMcpServerId) },
-      instanceOid: d.instanceOid,
-      status: 'active'
-    },
-    select: {
-      id: true,
-      oid: true
-    }
-  });
-
-  if (servers.length !== d.requestedServers.length) {
-    let resolvedIds = new Set(servers.map(server => server.id));
-    let invalidIds = d.requestedServers
-      .map(server => server.magicMcpServerId)
-      .filter(serverId => !resolvedIds.has(serverId));
-
-    throw new ServiceError(
-      badRequestError({
-        message:
-          'All linked magic MCP servers must exist, be active, and belong to the same instance.',
-        description: invalidIds.length
-          ? `Invalid server IDs: ${invalidIds.join(', ')}`
-          : undefined
-      })
-    );
-  }
-
-  return servers;
-};
-
-let getMagicMcpSessionDurationMinutes = async (
-  instance: Pick<Instance, 'oid' | 'projectOid'>
-) => {
-  let projectOid =
-    'projectOid' in instance && instance.projectOid
-      ? instance.projectOid
-      : (
-          await db.instance.findUniqueOrThrow({
-            where: { oid: instance.oid },
-            select: { projectOid: true }
-          })
-        ).projectOid;
-  let project = await db.project.findUniqueOrThrow({
-    where: { oid: projectOid },
-    select: { magicMcpSessionDurationMinutes: true }
-  });
-
-  return project.magicMcpSessionDurationMinutes;
-};
-
-let normalizeEndpointToolFilters = (
-  toolFilters: MagicMcpEndpointToolFilters | undefined
-): PrismaJson.ToolFilter | null | undefined => {
-  if (toolFilters === undefined) return undefined;
-  if (toolFilters === null) return null;
-
-  return {
-    type: 'v1.filter',
-    filters: Array.isArray(toolFilters) ? toolFilters : [toolFilters]
-  } as PrismaJson.ToolFilter;
-};
-
 export let magicMcpEndpointInclude = {
   consumerProfile: true,
   consumerIntegrationEndpoints: {
@@ -187,61 +114,6 @@ export let magicMcpEndpointInclude = {
 export type MagicMcpEndpointWithRelations = Prisma.MagicMcpEndpointGetPayload<{
   include: typeof magicMcpEndpointInclude;
 }>;
-
-export let getMagicMcpEndpointSessionTemplateId = (
-  endpoint: Pick<MagicMcpEndpoint, 'legacySubspaceSessionTemplateId' | 'newSubspaceSessionTemplateId'>
-) => endpoint.newSubspaceSessionTemplateId ?? endpoint.legacySubspaceSessionTemplateId ?? null;
-
-export let ensureMagicMcpEndpointBacking = async (d: {
-  instance: Instance;
-  endpoint: MagicMcpEndpointWithRelations;
-  force?: boolean;
-}) => {
-  if (!d.force && d.endpoint.hasSubspaceBacking) {
-    return {
-      ...d.endpoint,
-      instance: d.instance
-    };
-  }
-
-  await Promise.all(
-    d.endpoint.servers.map(server =>
-      ensureMagicMcpServerBacking({
-        instance: d.instance,
-        server: server.magicMcpServer
-      })
-    )
-  );
-
-  let backing = await subspaceMagicMcpBackingService.upsertEndpoint({
-    instance: d.instance,
-    magicMcpEndpointBackingId: d.endpoint.id,
-    name: d.endpoint.name,
-    description: d.endpoint.description,
-    metadata: d.endpoint.metadata as any,
-    maxSessionDurationInMinutes: await getMagicMcpSessionDurationMinutes(d.instance),
-    servers: d.endpoint.servers.map(server => ({
-      id: `${d.endpoint.id}:${server.magicMcpServer.id}`,
-      magicMcpServerBackingId: server.magicMcpServer.id,
-      toolFilters: normalizeEndpointToolFilters(
-        server.toolFilters as MagicMcpEndpointToolFilters | undefined
-      )
-    }))
-  });
-
-  let isSessionTemplateChanged = backing.sessionTemplateId !== d.endpoint.newSubspaceSessionTemplateId;
-
-  return await db.magicMcpEndpoint.update({
-    where: { oid: d.endpoint.oid },
-    data: {
-      hasSubspaceBacking: true,
-      newSubspaceSessionTemplateId: backing.sessionTemplateId,
-      subspaceEphemeralManagedSessionId: backing.ephemeralManagedSessionId,
-      configurationHash: isSessionTemplateChanged ? null : undefined
-    },
-    include: { ...magicMcpEndpointInclude, instance: true }
-  });
-};
 
 class MagicMcpEndpointImpl {
   async getMagicMcpEndpointById(d: {
@@ -368,10 +240,18 @@ class MagicMcpEndpointImpl {
     let serverInputsById = new Map(
       requestedServers.map(server => [server.magicMcpServerId, server] as const)
     );
-    let servers = await listActiveServersForEndpoint({
-      instanceOid: d.instance.oid,
-      requestedServers
-    });
+    let servers = requestedServers.length
+      ? await db.magicMcpServer.findMany({
+          where: {
+            id: { in: requestedServers.map(server => server.magicMcpServerId) },
+            instanceOid: d.instance.oid
+          },
+          select: {
+            id: true,
+            oid: true
+          }
+        })
+      : [];
 
     try {
       let magicMcpEndpoint = await db.magicMcpEndpoint.create({
@@ -399,11 +279,6 @@ class MagicMcpEndpointImpl {
             : undefined
         },
         include: magicMcpEndpointInclude
-      });
-      magicMcpEndpoint = await ensureMagicMcpEndpointBacking({
-        instance: d.instance,
-        force: true,
-        endpoint: magicMcpEndpoint
       });
 
       await magicMcpEndpointCreatedQueue.add({ magicMcpEndpointId: magicMcpEndpoint.id });
@@ -439,18 +314,9 @@ class MagicMcpEndpointImpl {
         status: 'archived',
         deletedAt: new Date()
       },
-      include: {
-        ...magicMcpEndpointInclude,
-        instance: true
-      }
+      include: magicMcpEndpointInclude
     });
 
-    if (d.endpoint.hasSubspaceBacking) {
-      await subspaceMagicMcpBackingService.archiveEndpoint({
-        instance: magicMcpEndpoint.instance,
-        magicMcpEndpointBackingId: d.endpoint.id
-      });
-    }
     await magicMcpEndpointDeletedQueue.add({ magicMcpEndpointId: magicMcpEndpoint.id });
 
     return magicMcpEndpoint;
@@ -482,12 +348,7 @@ class MagicMcpEndpointImpl {
           d.input.description === undefined ? d.endpoint.description : d.input.description,
         metadata: d.input.metadata === undefined ? d.endpoint.metadata : d.input.metadata
       },
-      include: { ...magicMcpEndpointInclude, instance: true }
-    });
-    magicMcpEndpoint = await ensureMagicMcpEndpointBacking({
-      instance: magicMcpEndpoint.instance,
-      force: true,
-      endpoint: magicMcpEndpoint
+      include: magicMcpEndpointInclude
     });
 
     await magicMcpEndpointUpdatedQueue.add({ magicMcpEndpointId: magicMcpEndpoint.id });
@@ -503,9 +364,15 @@ class MagicMcpEndpointImpl {
     let serverInputsById = new Map(
       serverInputs.map(server => [server.magicMcpServerId, server] as const)
     );
-    let servers = await listActiveServersForEndpoint({
-      instanceOid: d.endpoint.instanceOid,
-      requestedServers: serverInputs
+    let servers = await db.magicMcpServer.findMany({
+      where: {
+        id: { in: serverInputs.map(server => server.magicMcpServerId) },
+        instanceOid: d.endpoint.instanceOid
+      },
+      select: {
+        id: true,
+        oid: true
+      }
     });
 
     if (servers.length) {
@@ -535,12 +402,7 @@ class MagicMcpEndpointImpl {
       where: {
         id: d.endpoint.id
       },
-      include: { ...magicMcpEndpointInclude, instance: true }
-    });
-    magicMcpEndpoint = await ensureMagicMcpEndpointBacking({
-      instance: magicMcpEndpoint.instance,
-      force: true,
-      endpoint: magicMcpEndpoint
+      include: magicMcpEndpointInclude
     });
 
     await magicMcpEndpointUpdatedQueue.add({ magicMcpEndpointId: magicMcpEndpoint.id });
@@ -572,12 +434,7 @@ class MagicMcpEndpointImpl {
       where: {
         id: d.endpoint.id
       },
-      include: { ...magicMcpEndpointInclude, instance: true }
-    });
-    magicMcpEndpoint = await ensureMagicMcpEndpointBacking({
-      instance: magicMcpEndpoint.instance,
-      force: true,
-      endpoint: magicMcpEndpoint
+      include: magicMcpEndpointInclude
     });
 
     await magicMcpEndpointUpdatedQueue.add({ magicMcpEndpointId: magicMcpEndpoint.id });
