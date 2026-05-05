@@ -23,8 +23,8 @@ import {
 } from '../resources';
 
 /**
- * @name Magic MCP Servers controller
- * @description Magic MCP servers are stable MCP entrypoints backed by one Subspace session template.
+ * @name Magic MCP Servers - Dashboard controller
+ * @description Endpoints for magic MCP server management within the provider dashboard.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs

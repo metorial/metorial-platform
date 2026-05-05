@@ -201,7 +201,6 @@ export type ManagementInstanceIntegrationSetupSessionsListOutput = {
     steps: {
       object: 'integration.setup_session.step';
       id: string;
-      index: number;
       status:
         | 'configured'
         | 'pending'
@@ -817,7 +816,6 @@ export let mapManagementInstanceIntegrationSetupSessionsListOutput =
               mtMap.object({
                 object: mtMap.objectField('object', mtMap.passthrough()),
                 id: mtMap.objectField('id', mtMap.passthrough()),
-                index: mtMap.objectField('index', mtMap.passthrough()),
                 status: mtMap.objectField('status', mtMap.passthrough()),
                 url: mtMap.objectField('url', mtMap.passthrough()),
                 integrationProviderId: mtMap.objectField(

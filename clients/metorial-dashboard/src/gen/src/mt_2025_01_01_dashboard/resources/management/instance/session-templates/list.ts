@@ -8,6 +8,8 @@ export type ManagementInstanceSessionTemplatesListOutput = {
     name: string;
     description: string | null;
     metadata: Record<string, any> | null;
+    integrationInstanceId: string | null;
+    integrationInstanceGroupId: string | null;
     providers: {
       object: 'session.template.provider';
       id: string;
@@ -72,6 +74,14 @@ export let mapManagementInstanceSessionTemplatesListOutput =
           name: mtMap.objectField('name', mtMap.passthrough()),
           description: mtMap.objectField('description', mtMap.passthrough()),
           metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+          integrationInstanceId: mtMap.objectField(
+            'integration_instance_id',
+            mtMap.passthrough()
+          ),
+          integrationInstanceGroupId: mtMap.objectField(
+            'integration_instance_group_id',
+            mtMap.passthrough()
+          ),
           providers: mtMap.objectField(
             'providers',
             mtMap.array(

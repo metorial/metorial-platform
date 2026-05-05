@@ -10,7 +10,7 @@ export type DashboardInstanceIntegrationInstanceGroupsListOutput = {
     metadata: Record<string, any> | null;
     implementation: {
       type: 'magic_mcp_endpoint';
-      magicMcpEndpointBackingId: string;
+      magicMcpEndpointId: string;
     } | null;
     providers: {
       object: 'integration.instance.group.provider';
@@ -349,8 +349,8 @@ export let mapDashboardInstanceIntegrationInstanceGroupsListOutput =
             'implementation',
             mtMap.object({
               type: mtMap.objectField('type', mtMap.passthrough()),
-              magicMcpEndpointBackingId: mtMap.objectField(
-                'magic_mcp_endpoint_backing_id',
+              magicMcpEndpointId: mtMap.objectField(
+                'magic_mcp_endpoint_id',
                 mtMap.passthrough()
               )
             })

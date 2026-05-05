@@ -35,6 +35,7 @@ import {
   MetorialDashboardInstanceMagicMcpGroupsEndpoint,
   MetorialDashboardInstanceMagicMcpServersEndpoint,
   MetorialDashboardInstanceMagicMcpServersProvidersEndpoint,
+  MetorialDashboardInstanceMagicMcpServersSessionEndpoint,
   MetorialDashboardInstanceMagicMcpSessionsEndpoint,
   MetorialDashboardInstanceMagicMcpTokensEndpoint,
   MetorialDashboardInstancePortalsAccessRequestsEndpoint,
@@ -199,7 +200,8 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
 
   magicMcp: {
     servers: Object.assign(new MetorialDashboardInstanceMagicMcpServersEndpoint(manager), {
-      providers: new MetorialDashboardInstanceMagicMcpServersProvidersEndpoint(manager)
+      providers: new MetorialDashboardInstanceMagicMcpServersProvidersEndpoint(manager),
+      session: new MetorialDashboardInstanceMagicMcpServersSessionEndpoint(manager)
     }),
     sessions: new MetorialDashboardInstanceMagicMcpSessionsEndpoint(manager),
     tokens: new MetorialDashboardInstanceMagicMcpTokensEndpoint(manager),

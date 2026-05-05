@@ -6,6 +6,10 @@ import {
 import {
   mapDashboardInstanceIntegrationInstanceGroupsCreateBody,
   mapDashboardInstanceIntegrationInstanceGroupsCreateOutput,
+  mapDashboardInstanceIntegrationInstanceGroupsCreateSessionBody,
+  mapDashboardInstanceIntegrationInstanceGroupsCreateSessionOutput,
+  mapDashboardInstanceIntegrationInstanceGroupsCreateSessionTemplateBody,
+  mapDashboardInstanceIntegrationInstanceGroupsCreateSessionTemplateOutput,
   mapDashboardInstanceIntegrationInstanceGroupsDeleteOutput,
   mapDashboardInstanceIntegrationInstanceGroupsGetOutput,
   mapDashboardInstanceIntegrationInstanceGroupsListOutput,
@@ -14,6 +18,10 @@ import {
   mapDashboardInstanceIntegrationInstanceGroupsUpdateOutput,
   type DashboardInstanceIntegrationInstanceGroupsCreateBody,
   type DashboardInstanceIntegrationInstanceGroupsCreateOutput,
+  type DashboardInstanceIntegrationInstanceGroupsCreateSessionBody,
+  type DashboardInstanceIntegrationInstanceGroupsCreateSessionOutput,
+  type DashboardInstanceIntegrationInstanceGroupsCreateSessionTemplateBody,
+  type DashboardInstanceIntegrationInstanceGroupsCreateSessionTemplateOutput,
   type DashboardInstanceIntegrationInstanceGroupsDeleteOutput,
   type DashboardInstanceIntegrationInstanceGroupsGetOutput,
   type DashboardInstanceIntegrationInstanceGroupsListOutput,
@@ -105,6 +113,70 @@ export class MetorialIntegrationInstanceGroupsEndpoint {
 
     return this._get(request).transform(
       mapDashboardInstanceIntegrationInstanceGroupsGetOutput
+    );
+  }
+
+  /**
+   * @name Create integration instance group session template
+   * @description Creates or updates the shared session template for a specific integration instance group.
+   *
+   * @param `integrationInstanceGroupId` - string
+   * @param `body` - DashboardInstanceIntegrationInstanceGroupsCreateSessionTemplateBody
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardInstanceIntegrationInstanceGroupsCreateSessionTemplateOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  createSessionTemplate(
+    integrationInstanceGroupId: string,
+    body: DashboardInstanceIntegrationInstanceGroupsCreateSessionTemplateBody,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceIntegrationInstanceGroupsCreateSessionTemplateOutput> {
+    let path = `integration-instance-groups/${integrationInstanceGroupId}/session-template`;
+
+    let request = {
+      path,
+      body: mapDashboardInstanceIntegrationInstanceGroupsCreateSessionTemplateBody.transformTo(
+        body
+      ),
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._post(request).transform(
+      mapDashboardInstanceIntegrationInstanceGroupsCreateSessionTemplateOutput
+    );
+  }
+
+  /**
+   * @name Create integration instance group session
+   * @description Creates a session from the shared session template of a specific integration instance group.
+   *
+   * @param `integrationInstanceGroupId` - string
+   * @param `body` - DashboardInstanceIntegrationInstanceGroupsCreateSessionBody
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardInstanceIntegrationInstanceGroupsCreateSessionOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  createSession(
+    integrationInstanceGroupId: string,
+    body: DashboardInstanceIntegrationInstanceGroupsCreateSessionBody,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceIntegrationInstanceGroupsCreateSessionOutput> {
+    let path = `integration-instance-groups/${integrationInstanceGroupId}/session`;
+
+    let request = {
+      path,
+      body: mapDashboardInstanceIntegrationInstanceGroupsCreateSessionBody.transformTo(
+        body
+      ),
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._post(request).transform(
+      mapDashboardInstanceIntegrationInstanceGroupsCreateSessionOutput
     );
   }
 

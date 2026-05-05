@@ -1,3 +1,5 @@
+export * from './create-session-template';
+export * from './create-session';
 export * from './create';
 export * from './delete';
 export * from './get';

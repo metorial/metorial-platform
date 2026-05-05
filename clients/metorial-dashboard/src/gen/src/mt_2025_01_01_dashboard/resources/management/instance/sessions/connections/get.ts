@@ -18,13 +18,7 @@ export type ManagementInstanceSessionsConnectionsGetOutput = {
   participant: {
     object: 'session.participant';
     id: string;
-    type:
-      | 'unknown'
-      | 'provider'
-      | 'mcp_client'
-      | 'metorial_protocol_client'
-      | 'system'
-      | 'tool_call';
+    type: 'unknown' | 'provider' | 'agent' | 'system';
     identifier: string;
     name: string;
     data: { identifier: string; name: string };
