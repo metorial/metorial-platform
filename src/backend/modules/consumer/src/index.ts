@@ -17,7 +17,6 @@ import {
   syncOrgMemberQueue,
   syncOrgMemberQueueProcessor
 } from './queues/syncOrgMember';
-import { tempFixSearchProcessors } from './queues/tempFixSearch';
 
 export * from './env';
 export * from './lib/oauth';
@@ -34,7 +33,6 @@ export let consumerQueueProcessor = combineQueueProcessors([
   backfillAccessListingsProcessors,
   reconcileMagicMcpConsumerOwnershipProcessors,
   reconcileConsumerClientProcessors,
-  tempFixSearchProcessors,
 
   syncOrgMemberQueueProcessor,
   syncOrgMemberConsumerQueueProcessor,

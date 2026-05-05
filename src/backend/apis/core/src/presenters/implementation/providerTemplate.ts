@@ -2,7 +2,6 @@ import { v } from '@lowerdeck/validation';
 import { ProviderTemplate } from '@metorial/db';
 import { Presenter } from '@metorial/presenter';
 import { providerTemplateType } from '../types';
-import { toolFilterPresenter } from './_lib/toolFilter';
 
 export let v1ProviderTemplatePreview = Object.assign(
   (providerTemplate: ProviderTemplate) => ({
@@ -12,7 +11,6 @@ export let v1ProviderTemplatePreview = Object.assign(
     name: providerTemplate.name,
     description: providerTemplate.description,
     metadata: providerTemplate.metadata,
-    provider_deployment_id: providerTemplate.providerDeploymentId,
     created_at: providerTemplate.createdAt,
     updated_at: providerTemplate.updatedAt
   }),
@@ -39,10 +37,6 @@ export let v1ProviderTemplatePresenter = Presenter.create(providerTemplateType)
     name: providerTemplate.name,
     description: providerTemplate.description,
     metadata: providerTemplate.metadata,
-    provider_deployment_id: providerTemplate.providerDeploymentId,
-    tool_filters: providerTemplate.providerDeployment
-      ? toolFilterPresenter(providerTemplate.providerDeployment.toolFilter)
-      : { type: 'allow_all' as const },
     created_at: providerTemplate.createdAt,
     updated_at: providerTemplate.updatedAt
   }))
@@ -54,8 +48,6 @@ export let v1ProviderTemplatePresenter = Presenter.create(providerTemplateType)
       name: v.string(),
       description: v.nullable(v.string()),
       metadata: v.record(v.any()),
-      provider_deployment_id: v.string(),
-      tool_filters: toolFilterPresenter.schema,
       created_at: v.date(),
       updated_at: v.date()
     })

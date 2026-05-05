@@ -7,34 +7,62 @@
       "persistent": true
     },
     "build": {
-      "dependsOn": ["^build"]
+      "dependsOn": [
+        "^build"
+      ]
     },
     "prisma:generate": {
-      "dependsOn": ["^prisma:generate"]
+      "dependsOn": [
+        "^prisma:generate"
+      ]
     },
     "prisma:push": {
       "cache": false,
-      "dependsOn": ["^prisma:push"],
-      "env": ["DATABASE_URL", "PAYMENT_DATABASE_URL", "FEDERATION_CORE_DATABASE_URL"]
+      "dependsOn": [
+        "^prisma:push"
+      ],
+      "env": [
+        "DATABASE_URL",
+        "PAYMENT_DATABASE_URL",
+        "FEDERATION_CORE_DATABASE_URL"
+      ]
     },
     "generate:client": {
-      "dependsOn": ["^generate:client"],
+      "dependsOn": [
+        "^generate:client"
+      ],
       "cache": false,
-      "env": ["API_URL"]
+      "env": [
+        "API_URL"
+      ]
     },
     "generate:client:dashboard": {
-      "dependsOn": ["^generate:client:dashboard"],
+      "dependsOn": [
+        "^generate:client:dashboard"
+      ],
       "cache": false,
-      "env": ["API_URL"]
+      "env": [
+        "API_URL"
+      ]
     },
     "generate:client:consumer": {
-      "dependsOn": ["^generate:client:consumer"],
+      "dependsOn": [
+        "^generate:client:consumer"
+      ],
       "cache": false,
-      "env": ["API_URL"]
+      "env": [
+        "API_URL"
+      ]
     },
     "frontend:build": {
-      "dependsOn": ["^frontend:build"],
-      "env": ["SENTRY_AUTH_TOKEN", "METORIAL_ENV", "VITE_*"]
+      "dependsOn": [
+        "^frontend:build"
+      ],
+      "env": [
+        "SENTRY_AUTH_TOKEN",
+        "METORIAL_ENV",
+        "VITE_*"
+      ]
     },
     "deploy:only": {
       "env": [
@@ -55,18 +83,34 @@
       ]
     },
     "server:build": {
-      "dependsOn": ["^build", "^server:build"],
-      "env": ["SENTRY_AUTH_TOKEN", "METORIAL_ENV"]
+      "dependsOn": [
+        "^build",
+        "^server:build"
+      ],
+      "env": [
+        "SENTRY_AUTH_TOKEN",
+        "METORIAL_ENV"
+      ]
     },
     "oss:server:build": {
-      "dependsOn": ["^build", "^server:build", "^oss:server:build"],
-      "env": ["METORIAL_ENV"]
+      "dependsOn": [
+        "^build",
+        "^server:build",
+        "^oss:server:build"
+      ],
+      "env": [
+        "METORIAL_ENV"
+      ]
     },
     "test": {
-      "dependsOn": ["^test"]
+      "dependsOn": [
+        "^test"
+      ]
     },
     "check-types": {
-      "dependsOn": ["^check-types"]
+      "dependsOn": [
+        "^check-types"
+      ]
     },
     "dev": {
       "cache": false,

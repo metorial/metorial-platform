@@ -941,6 +941,12 @@ class MagicMcpServerImpl {
       }
     }
 
+    if (!d.accessTags && !d.filterAccessTags && !d.consumerSurface) {
+      andFilters.push({
+        AND: [{ consumerIntegrations: { none: {} } }, { accessTagEntities: { none: {} } }]
+      });
+    }
+
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {
         return await db.magicMcpServer.findMany({

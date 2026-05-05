@@ -198,7 +198,10 @@ export let magicMcpBackingController = app.controller({
       });
       if (!session) {
         throw new ServiceError(
-          notFoundError('session', backing.ephemeralManagedSession.currentSessionOid?.toString())
+          notFoundError(
+            'session',
+            backing.ephemeralManagedSession.currentSessionOid?.toString()
+          )
         );
       }
 

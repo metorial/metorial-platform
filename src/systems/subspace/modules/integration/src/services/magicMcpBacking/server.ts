@@ -114,7 +114,6 @@ class magicMcpServerBackingServiceImpl {
             integrationInstance: existing?.integrationInstance,
             input: {
               name: d.input.name?.trim() || d.input.id,
-              description: d.input.description,
               metadata: d.input.metadata,
               privateMetadata: d.input.privateMetadata,
               identityActorId: d.input.identityActorId

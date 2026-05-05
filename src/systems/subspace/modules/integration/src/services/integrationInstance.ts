@@ -39,8 +39,8 @@ import {
   identityActorService,
   identityInternalService
 } from '@metorial-subspace/module-identity';
-import { sessionTemplateService } from '@metorial-subspace/module-session';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
+import { sessionTemplateService } from '@metorial-subspace/module-session';
 import { syncIntegrationInstanceSessionTemplateQueue } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedSessionTemplate';
 import { checkTenant } from '@metorial-subspace/module-tenant';
 import {
@@ -417,7 +417,8 @@ class integrationInstanceServiceImpl {
               tenantOid: d.tenant.oid,
               solutionOid: d.solution.oid,
               environmentOid: d.environment.oid,
-              isMagicMcpBacking: d.includeMagicMcpBackings ? undefined : false,
+              isMagicMcpBacking:
+                d.includeMagicMcpBackings || integrations?.oids.length ? undefined : false,
               isHiddenDraft: false,
 
               ...normalizeStatusForList(d).hasParent,

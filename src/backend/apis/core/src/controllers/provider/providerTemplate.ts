@@ -9,14 +9,12 @@ import { checkAccess } from '../../middleware/checkAccess';
 import { hasFlags } from '../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { providerTemplatePresenter } from '../../presenters';
-import { toolFiltersValidator } from './session';
 
 let providerTemplateCreateBodyValidator = v.intersection([
   v.object({
     name: v.string(),
     description: v.optional(v.string()),
-    metadata: v.optional(v.record(v.any())),
-    tool_filers: toolFiltersValidator
+    metadata: v.optional(v.record(v.any()))
   }),
   v.union([
     v.object({
@@ -150,14 +148,12 @@ export let providerTemplateController = Controller.create(
                   name: ctx.body.name,
                   description: ctx.body.description,
                   metadata: ctx.body.metadata,
-                  toolFilters: ctx.body.tool_filers,
                   providerDeploymentId: ctx.body.provider_deployment_id
                 }
               : {
                   name: ctx.body.name,
                   description: ctx.body.description,
                   metadata: ctx.body.metadata,
-                  toolFilters: ctx.body.tool_filers,
                   providerDeployment: {
                     providerId: ctx.body.provider_deployment.provider_id,
                     name: ctx.body.provider_deployment.name,
@@ -189,8 +185,7 @@ export let providerTemplateController = Controller.create(
         v.object({
           name: v.optional(v.string()),
           description: v.optional(v.string()),
-          metadata: v.optional(v.record(v.any())),
-          tool_filters: toolFiltersValidator
+          metadata: v.optional(v.record(v.any()))
         })
       )
       .output(providerTemplatePresenter)
@@ -201,8 +196,7 @@ export let providerTemplateController = Controller.create(
           input: {
             name: ctx.body.name,
             description: ctx.body.description,
-            metadata: ctx.body.metadata,
-            toolFilters: ctx.body.tool_filters
+            metadata: ctx.body.metadata
           }
         });
 
