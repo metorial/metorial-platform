@@ -3,6 +3,7 @@ import { v } from '@lowerdeck/validation';
 import { agentService } from '@metorial-subspace/module-agent';
 import { agentPresenter } from '@metorial-subspace/presenters';
 import { app } from './_app';
+import { createdAtValidator, updatedAtValidator } from './_dateFilter';
 import { tenantApp } from './tenant';
 
 export let agentApp = tenantApp.use(async ctx => {
@@ -35,7 +36,10 @@ export let agentController = app.controller({
           allowDeleted: v.optional(v.boolean()),
 
           ids: v.optional(v.array(v.string())),
-          agentIds: v.optional(v.array(v.string()))
+          actorIds: v.optional(v.array(v.string())),
+          types: v.optional(v.array(v.enumOf(['mcp_client', 'custom', 'tool_call']))),
+          createdAt: createdAtValidator,
+          updatedAt: updatedAtValidator
         })
       )
     )
@@ -51,7 +55,10 @@ export let agentController = app.controller({
         allowDeleted: ctx.input.allowDeleted,
 
         ids: ctx.input.ids,
-        agentIds: ctx.input.agentIds
+        actorIds: ctx.input.actorIds,
+        types: ctx.input.types,
+        createdAt: ctx.input.createdAt,
+        updatedAt: ctx.input.updatedAt
       });
 
       let list = await paginator.run(ctx.input);

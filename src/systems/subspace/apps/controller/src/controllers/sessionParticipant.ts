@@ -45,7 +45,14 @@ export let sessionParticipantController = app.controller({
             )
           ),
 
+          connectionTypes: v.optional(
+            v.array(v.enumOf(['mcp', 'metorial_protocol', 'tool_call']))
+          ),
+
           ids: v.optional(v.array(v.string())),
+          agentIds: v.optional(v.array(v.string())),
+          actorIds: v.optional(v.array(v.string())),
+          agentInstanceIds: v.optional(v.array(v.string())),
           sessionIds: v.optional(v.array(v.string())),
           sessionConnectionIds: v.optional(v.array(v.string())),
           sessionMessageIds: v.optional(v.array(v.string())),
@@ -79,7 +86,11 @@ export let sessionParticipantController = app.controller({
           return t;
         }),
 
+        connectionTypes: ctx.input.connectionTypes,
         ids: ctx.input.ids,
+        agentIds: ctx.input.agentIds,
+        actorIds: ctx.input.actorIds,
+        agentInstanceIds: ctx.input.agentInstanceIds,
         sessionIds: ctx.input.sessionIds,
         sessionConnectionIds: ctx.input.sessionConnectionIds,
         sessionMessageIds: ctx.input.sessionMessageIds,

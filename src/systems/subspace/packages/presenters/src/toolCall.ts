@@ -11,6 +11,7 @@ import {
 } from '@metorial-subspace/db';
 import { providerToolPresenter } from './providerTool';
 import { sessionErrorPresenter } from './sessionError';
+import { sessionParticipantPresenter } from './sessionParticipant';
 import type { SessionMessagePresenterProps } from './sessionMessage';
 
 export type ToolCallPresenterProps = ToolCall & {
@@ -50,6 +51,10 @@ export let toolCallPresenter = async (toolCall: ToolCallPresenterProps) => {
     sessionProviderId: toolCall.message.sessionProvider?.id || null,
     connectionId: toolCall.message.connection?.id || null,
     providerRunId: toolCall.message.providerRun?.id || null,
+    senderParticipant: sessionParticipantPresenter(toolCall.message.senderParticipant),
+    responderParticipant: toolCall.message.responderParticipant
+      ? sessionParticipantPresenter(toolCall.message.responderParticipant)
+      : null,
 
     tool: providerToolPresenter(toolCall.tool),
 

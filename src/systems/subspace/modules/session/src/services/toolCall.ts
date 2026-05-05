@@ -18,6 +18,8 @@ import {
   normalizeDateFilter,
   normalizeStatusForGet,
   normalizeStatusForList,
+  resolveAgents,
+  resolveIdentityActors,
   resolveProviderAuthConfigs,
   resolveProviderConfigs,
   resolveProviderDeployments,
@@ -73,6 +75,9 @@ class toolCallServiceImpl {
     allowDeleted?: boolean;
 
     ids?: string[];
+    agentIds?: string[];
+    actorIds?: string[];
+    agentInstanceIds?: string[];
     sessionTemplateIds?: string[];
     sessionProviderIds?: string[];
     providerIds?: string[];
@@ -83,6 +88,8 @@ class toolCallServiceImpl {
     createdAt?: DateFilter;
     updatedAt?: DateFilter;
   }) {
+    let agents = await resolveAgents(d, d.agentIds);
+    let actors = await resolveIdentityActors(d, d.actorIds);
     let sessionTemplates = await resolveSessionTemplates(d, d.sessionTemplateIds);
     let sessionProviders = await resolveProviders(d, d.sessionProviderIds);
     let providers = await resolveProviders(d, d.providerIds);
@@ -104,6 +111,64 @@ class toolCallServiceImpl {
 
             AND: [
               d.ids ? { id: { in: d.ids } } : undefined!,
+              d.agentInstanceIds
+                ? {
+                    message: {
+                      OR: [
+                        {
+                          senderParticipant: {
+                            agentInstance: { id: { in: d.agentInstanceIds } }
+                          }
+                        },
+                        {
+                          responderParticipant: {
+                            agentInstance: { id: { in: d.agentInstanceIds } }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                : undefined!,
+              agents
+                ? {
+                    message: {
+                      OR: [
+                        {
+                          senderParticipant: {
+                            agentInstance: { agentOid: agents.in }
+                          }
+                        },
+                        {
+                          responderParticipant: {
+                            agentInstance: { agentOid: agents.in }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                : undefined!,
+              actors
+                ? {
+                    message: {
+                      OR: [
+                        {
+                          senderParticipant: {
+                            agentInstance: {
+                              agent: { actorOid: actors.in }
+                            }
+                          }
+                        },
+                        {
+                          responderParticipant: {
+                            agentInstance: {
+                              agent: { actorOid: actors.in }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                : undefined!,
 
               tools
                 ? {

@@ -17,6 +17,8 @@ import {
   normalizeDateFilter,
   normalizeStatusForGet,
   normalizeStatusForList,
+  resolveAgents,
+  resolveIdentityActors,
   resolveProviderAuthConfigs,
   resolveProviderConfigs,
   resolveProviderDeployments,
@@ -54,6 +56,8 @@ class sessionServiceImpl {
     allowDeleted?: boolean;
 
     ids?: string[];
+    agentIds?: string[];
+    actorIds?: string[];
     sessionTemplateIds?: string[];
     sessionProviderIds?: string[];
     providerIds?: string[];
@@ -63,6 +67,8 @@ class sessionServiceImpl {
     createdAt?: DateFilter;
     updatedAt?: DateFilter;
   }) {
+    let agents = await resolveAgents(d, d.agentIds);
+    let actors = await resolveIdentityActors(d, d.actorIds);
     let sessionTemplates = await resolveSessionTemplates(d, d.sessionTemplateIds);
     let sessionProviders = await resolveProviders(d, d.sessionProviderIds);
     let providers = await resolveProviders(d, d.providerIds);
@@ -86,6 +92,28 @@ class sessionServiceImpl {
 
               AND: [
                 d.ids ? { id: { in: d.ids } } : undefined!,
+                agents
+                  ? {
+                      sessionConnections: {
+                        some: {
+                          participant: {
+                            agentInstance: { agentOid: agents.in }
+                          }
+                        }
+                      }
+                    }
+                  : undefined!,
+                actors
+                  ? {
+                      sessionConnections: {
+                        some: {
+                          participant: {
+                            agentInstance: { agent: { actorOid: actors.in } }
+                          }
+                        }
+                      }
+                    }
+                  : undefined!,
 
                 sessionTemplates
                   ? { providers: { some: { fromTemplateOid: sessionTemplates.in } } }

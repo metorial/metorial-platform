@@ -1,8 +1,25 @@
-import type { Provider, SessionParticipant } from '@metorial-subspace/db';
+import type {
+  Agent,
+  AgentClient,
+  AgentClientRegistration,
+  AgentInstance,
+  IdentityActor,
+  Provider,
+  SessionParticipant
+} from '@metorial-subspace/db';
 
 export let sessionParticipantPresenter = (
   participant: SessionParticipant & {
     provider: Provider | null;
+    agentInstance:
+      | (AgentInstance & {
+          agent: Agent & {
+            actor: IdentityActor;
+          };
+          agentClient: AgentClient | null;
+          agentClientRegistration: AgentClientRegistration | null;
+        })
+      | null;
   }
 ) => ({
   object: 'session.participant',
@@ -20,6 +37,11 @@ export let sessionParticipantPresenter = (
   data: participant.payload,
 
   providerId: participant.provider?.id,
+  connectionType: participant.connectionType ?? null,
+  agentId: participant.agentInstance?.agent.id ?? null,
+  agentInstanceId: participant.agentInstance?.id ?? null,
+  identityActorId: participant.agentInstance?.agent.actor.id ?? null,
+  agentClientId: participant.agentInstance?.agentClient?.id ?? null,
 
   createdAt: participant.createdAt
 });

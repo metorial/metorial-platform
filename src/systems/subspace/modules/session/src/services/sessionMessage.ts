@@ -24,6 +24,7 @@ import {
   resolveSessions
 } from '@metorial-subspace/list-utils';
 import { sessionErrorInclude } from './sessionError';
+import { sessionParticipantInclude } from './sessionParticipant';
 
 let include = {
   session: true,
@@ -44,7 +45,7 @@ class sessionMessageServiceImpl {
           ]
         }
       },
-      include: { provider: true }
+      include: sessionParticipantInclude
     });
     let toolCalls = await db.toolCall.findMany({
       where: {

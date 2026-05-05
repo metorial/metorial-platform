@@ -14,6 +14,8 @@ import {
   normalizeDateFilter,
   normalizeStatusForGet,
   normalizeStatusForList,
+  resolveAgents,
+  resolveIdentityActors,
   resolveSessionParticipants,
   resolveSessionProviders,
   resolveSessions
@@ -37,12 +39,17 @@ class sessionConnectionServiceImpl {
     allowDeleted?: boolean;
 
     ids?: string[];
+    agentIds?: string[];
+    actorIds?: string[];
+    agentInstanceIds?: string[];
     sessionIds?: string[];
     sessionProviderIds?: string[];
     participantIds?: string[];
     createdAt?: DateFilter;
     updatedAt?: DateFilter;
   }) {
+    let agents = await resolveAgents(d, d.agentIds);
+    let actors = await resolveIdentityActors(d, d.actorIds);
     let sessions = await resolveSessions(d, d.sessionIds);
     let sessionProviders = await resolveSessionProviders(d, d.sessionProviderIds);
     let participants = await resolveSessionParticipants(d, d.participantIds);
@@ -65,6 +72,13 @@ class sessionConnectionServiceImpl {
 
               AND: [
                 d.ids ? { id: { in: d.ids } } : undefined!,
+                d.agentInstanceIds
+                  ? { participant: { agentInstance: { id: { in: d.agentInstanceIds } } } }
+                  : undefined!,
+                agents ? { participant: { agentInstance: { agentOid: agents.in } } } : undefined!,
+                actors
+                  ? { participant: { agentInstance: { agent: { actorOid: actors.in } } } }
+                  : undefined!,
 
                 sessions ? { sessionOid: sessions.in } : undefined!,
                 sessionProviders

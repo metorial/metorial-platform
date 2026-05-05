@@ -108,8 +108,23 @@ class sessionTemplateServiceImpl {
               tenantOid: d.tenant.oid,
               solutionOid: d.solution.oid,
               environmentOid: d.environment.oid,
-
-              isInternal: false,
+              OR: [
+                { isInternal: false },
+                {
+                  integrationInstance: {
+                    is: {
+                      isMagicMcpBacking: false
+                    }
+                  }
+                },
+                {
+                  integrationInstanceGroup: {
+                    is: {
+                      isMagicMcpBacking: false
+                    }
+                  }
+                }
+              ],
 
               ...normalizeStatusForList(d).noParent,
 
@@ -296,7 +311,8 @@ class sessionTemplateServiceImpl {
         isInternal: true,
         integrationInstanceOid: d.input.integrationInstance?.oid ?? null,
         integrationInstanceGroupOid: d.input.integrationInstanceGroup?.oid ?? null,
-        defaultSessionTemplateForIntegrationInstanceOid: d.input.integrationInstance?.oid ?? null,
+        defaultSessionTemplateForIntegrationInstanceOid:
+          d.input.integrationInstance?.oid ?? null,
         defaultSessionTemplateForIntegrationInstanceGroupOid:
           d.input.integrationInstanceGroup?.oid ?? null
       };

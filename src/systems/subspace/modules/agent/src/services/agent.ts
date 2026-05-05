@@ -15,9 +15,11 @@ import {
   withTransaction
 } from '@metorial-subspace/db';
 import {
+  type DateFilter,
+  normalizeDateFilter,
   normalizeStatusForGet,
   normalizeStatusForList,
-  resolveProviders
+  resolveIdentityActors
 } from '@metorial-subspace/list-utils';
 import { identityActorService } from '@metorial-subspace/module-identity';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
@@ -39,10 +41,13 @@ class agentServiceImpl {
     status?: AgentStatus[];
     allowDeleted?: boolean;
 
+    types?: AgentType[];
     ids?: string[];
-    agentIds?: string[];
+    actorIds?: string[];
+    createdAt?: DateFilter;
+    updatedAt?: DateFilter;
   }) {
-    let agents = await resolveProviders(d, d.agentIds);
+    let actors = await resolveIdentityActors(d, d.actorIds);
 
     let search = d.search
       ? await voyager.record.search({
@@ -67,9 +72,11 @@ class agentServiceImpl {
 
               AND: [
                 d.ids ? { id: { in: d.ids } } : undefined!,
+                d.types ? { type: { in: d.types } } : undefined!,
                 search ? { id: { in: search.map(r => r.documentId) } } : undefined!,
-
-                agents ? { agent: agents.oidIn } : undefined!
+                actors ? { actorOid: actors.in } : undefined!,
+                d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
+                d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
               ].filter(Boolean)
             },
             include
