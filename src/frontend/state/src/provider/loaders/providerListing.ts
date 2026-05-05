@@ -29,7 +29,7 @@ export let allProviderListingsLoader = createLoader({
   name: 'allProviderListings',
   parents: [providerListingsLoader],
   fetch: (i: { instanceId: string; ids: string[] }) => {
-    if (i.ids.length === 0) return [];
+    if (i.ids.length === 0) return Promise.resolve([]);
 
     return withAuth(sdk =>
       autoPaginate(cursor =>

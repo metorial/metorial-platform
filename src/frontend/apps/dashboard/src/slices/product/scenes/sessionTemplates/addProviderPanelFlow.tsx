@@ -232,7 +232,7 @@ let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
         ...submitInput
       };
 
-      if (p.sessionTemplateProviderId) {
+      if (p.sessionTemplateProviderId && p.sessionTemplateId) {
         // Replace flow for "edit": create the new mapping first,
         // then remove the old row to avoid losing config on create failure.
         let [created, createError] = await createMutation.mutate(createInput);
@@ -324,7 +324,6 @@ let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
     ) {
       form.setFieldValue('selectedAuthConfigId', p.initialAuthConfigId);
     }
-
   }, [
     p.hideProviderStep,
     p.providerId,

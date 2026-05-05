@@ -3,10 +3,11 @@ import {
   DashboardInstanceMagicMcpServersProvidersCreateBody,
   DashboardInstanceMagicMcpServersProvidersListQuery,
   DashboardInstanceMagicMcpServersProvidersUpdateBody,
+  DashboardInstanceMagicMcpServersSessionCreateOutput,
   DashboardInstanceMagicMcpServersListQuery,
   DashboardInstanceMagicMcpServersUpdateBody
 } from '@metorial/dashboard-sdk';
-import { createLoader } from '@metorial/data-hooks';
+import { createLoader, useMutation } from '@metorial/data-hooks';
 import { autoPaginate } from '../../lib/autoPaginate';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
@@ -188,5 +189,15 @@ export let useDeleteMagicMcpServerProvider =
           i.magicMcpServerProviderId
         )
       ),
+    { disableToast: true }
+  );
+
+export let useCreateMagicMcpServerSession = () =>
+  useMutation(
+    (i: {
+      instanceId: string;
+      magicMcpServerId: string;
+    }): Promise<DashboardInstanceMagicMcpServersSessionCreateOutput> =>
+      withAuth(sdk => sdk.magicMcp.servers.session.create(i.instanceId, i.magicMcpServerId)),
     { disableToast: true }
   );

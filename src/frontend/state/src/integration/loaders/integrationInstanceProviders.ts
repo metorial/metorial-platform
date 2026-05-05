@@ -60,14 +60,3 @@ export let useSetIntegrationInstanceProvider =
     { disableToast: true }
   );
 
-export let useDeleteIntegrationInstanceProvider =
-  integrationInstanceProvidersLoader.createExternalMutator(
-    (i: { instanceId: string; integrationInstanceProviderId: string }) =>
-      withAuth(sdk =>
-        sdk.integration.instances.providers.delete(
-          i.instanceId,
-          i.integrationInstanceProviderId
-        )
-      ),
-    { disableToast: true }
-  );

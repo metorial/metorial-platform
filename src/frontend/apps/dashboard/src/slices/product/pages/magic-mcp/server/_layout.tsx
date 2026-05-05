@@ -2,8 +2,8 @@ import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
 import {
-  useCreateSession,
   useCreateMagicMcpServerProvider,
+  useCreateMagicMcpServerSession,
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
@@ -24,12 +24,10 @@ export let MagicMcpServerLayout = () => {
   let navigate = useNavigate();
   let { magicMcpServerId } = useParams();
   let server = useMagicMcpServer(instance.data?.id, magicMcpServerId);
-  let providers = useMagicMcpServerProviders(
-    instance.data?.id,
-    magicMcpServerId,
-    { status: ['active'] }
-  );
-  let createSession = useCreateSession(instance.data?.id);
+  let providers = useMagicMcpServerProviders(instance.data?.id, magicMcpServerId, {
+    status: ['active']
+  });
+  let createSession = useCreateMagicMcpServerSession();
   let createProvider = useCreateMagicMcpServerProvider();
   let updateProvider = useUpdateMagicMcpServerProvider();
   let [isCreatingSession, setIsCreatingSession] = useState(false);
@@ -44,26 +42,13 @@ export let MagicMcpServerLayout = () => {
   ] as const;
 
   let handleOpenExplorer = async () => {
-    let activeProviders =
-      server.data?.providers.filter(
-        provider => provider.status === 'active' && !!provider.deployment?.id
-      ) ?? [];
-    if (isCreatingSession || !instance.data || activeProviders.length === 0)
-      return;
+    if (isCreatingSession || !instance.data || !magicMcpServerId) return;
 
     setIsCreatingSession(true);
 
     let [res] = await createSession.mutate({
-      providers: activeProviders
-        .filter(provider => provider.deployment?.id)
-        .map(provider => ({
-          providerDeploymentId: provider.deployment!.id,
-          ...(provider.config?.id ? { providerConfigId: provider.config.id } : {}),
-          ...(provider.authConfig?.id
-            ? { providerAuthConfigId: provider.authConfig.id }
-            : {}),
-          ...(provider.toolFilter ? { toolFilters: provider.toolFilter } : {})
-        }))
+      instanceId: instance.data.id,
+      magicMcpServerId
     });
     setIsCreatingSession(false);
 
@@ -125,7 +110,9 @@ export let MagicMcpServerLayout = () => {
                       showAddProviderSidePanel({
                         instanceId: instance.data!.id,
                         excludeProviderIds: Array.from(
-                          new Set((server.data.providers ?? []).map(provider => provider.provider.id))
+                          new Set(
+                            (server.data.providers ?? []).map(provider => provider.provider.id)
+                          )
                         ),
                         onSubmitProvider: async (input, currentProviderId) => {
                           if (currentProviderId) {
