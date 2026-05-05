@@ -3,6 +3,8 @@ export * from './authConfigErrorGlobal';
 export * from './authConfigEvent';
 export * from './brand';
 export * from './bucket';
+export * from './agent';
+export * from './agentInstance';
 export * from './callback';
 export * from './callbackDestination';
 export * from './callbackEvent';

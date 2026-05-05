@@ -3,6 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { subspaceToolCallService } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
+import { resolveActorIdsForLogFilters } from './_logFilterActors';
 import { dateFilterValidator } from '../../lib/dateFilter';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
@@ -63,6 +64,21 @@ export let toolCallController = Controller.create(
             provider_auth_config_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by provider auth config ID(s)'
             }),
+            agent_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by agent ID(s)'
+            }),
+            actor_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by identity actor ID(s)'
+            }),
+            consumer_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by consumer ID(s)'
+            }),
+            identity_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by identity ID(s)'
+            }),
+            agent_instance_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by agent instance ID(s)'
+            }),
             tool_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by tool ID(s)'
             }),
@@ -72,9 +88,19 @@ export let toolCallController = Controller.create(
         )
       )
       .do(async ctx => {
+        let actorIds = await resolveActorIdsForLogFilters({
+          instance: ctx.instance,
+          actorIds: normalizeArrayParam(ctx.query.actor_id),
+          consumerIds: normalizeArrayParam(ctx.query.consumer_id),
+          identityIds: normalizeArrayParam(ctx.query.identity_id)
+        });
+
         let paginator = await subspaceToolCallService.list({
           instance: ctx.instance,
           allowDeleted: false,
+          agentIds: normalizeArrayParam(ctx.query.agent_id),
+          actorIds,
+          agentInstanceIds: normalizeArrayParam(ctx.query.agent_instance_id),
           sessionTemplateIds: normalizeArrayParam(ctx.query.session_template_id),
           sessionProviderIds: normalizeArrayParam(ctx.query.session_provider_id),
           providerIds: normalizeArrayParam(ctx.query.provider_id),

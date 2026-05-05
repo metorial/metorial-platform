@@ -14,6 +14,13 @@ export let v1SessionParticipantPresenter = Presenter.create(sessionParticipantTy
     data: sessionParticipant.data,
 
     provider_id: sessionParticipant.providerId ?? null,
+    connection_type: sessionParticipant.connectionType ?? null,
+    agent_id: sessionParticipant.agentId ?? null,
+    agent_instance_id: sessionParticipant.agentInstanceId ?? null,
+    identity_actor_id: sessionParticipant.identityActorId ?? null,
+    agent_client_id: sessionParticipant.agentClientId ?? null,
+    consumer_id:
+      'consumerId' in sessionParticipant ? (sessionParticipant.consumerId ?? null) : null,
 
     created_at: sessionParticipant.createdAt
   }))
@@ -27,13 +34,10 @@ export let v1SessionParticipantPresenter = Presenter.create(sessionParticipantTy
         description: 'Unique session participant identifier',
         examples: ['spt_5eFgHjKlMnPqRsTu']
       }),
-      type: v.enumOf(
-        ['unknown', 'provider', 'agent', 'system'] as const,
-        {
-          name: 'type',
-          description: 'Participant type'
-        }
-      ),
+      type: v.enumOf(['unknown', 'provider', 'agent', 'system'] as const, {
+        name: 'type',
+        description: 'Participant type'
+      }),
       identifier: v.string({
         name: 'identifier',
         description: 'Participant identifier',
@@ -69,6 +73,14 @@ export let v1SessionParticipantPresenter = Presenter.create(sessionParticipantTy
           examples: ['pro_5gHjKlMnPqRsTuVw']
         })
       ),
+      connection_type: v.nullable(
+        v.enumOf(['mcp', 'metorial_protocol', 'tool_call'] as const)
+      ),
+      agent_id: v.nullable(v.string()),
+      agent_instance_id: v.nullable(v.string()),
+      identity_actor_id: v.nullable(v.string()),
+      agent_client_id: v.nullable(v.string()),
+      consumer_id: v.nullable(v.string()),
       created_at: v.date({
         name: 'created_at',
         description: 'Timestamp when created',

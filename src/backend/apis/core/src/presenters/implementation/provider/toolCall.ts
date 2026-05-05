@@ -3,6 +3,7 @@ import { Presenter } from '@metorial/presenter';
 import { toolCallType } from '../../types';
 import { v1ProviderToolPresenter } from './providerTool';
 import { v1SessionErrorPresenter } from './sessionError';
+import { v1SessionParticipantPresenter } from './sessionParticipant';
 
 export let v1ProviderToolCallPresenter = Presenter.create(toolCallType)
   .presenter(async ({ toolCall }, opts) => ({
@@ -22,6 +23,17 @@ export let v1ProviderToolCallPresenter = Presenter.create(toolCallType)
     session_provider_id: toolCall.sessionProviderId,
     connection_id: toolCall.connectionId,
     provider_run_id: toolCall.providerRunId,
+
+    sender_participant: toolCall.senderParticipant
+      ? await v1SessionParticipantPresenter
+          .present({ sessionParticipant: toolCall.senderParticipant }, opts)
+          .run()
+      : null,
+    responder_participant: toolCall.responderParticipant
+      ? await v1SessionParticipantPresenter
+          .present({ sessionParticipant: toolCall.responderParticipant }, opts)
+          .run()
+      : null,
 
     tool: await v1ProviderToolPresenter.present({ tool: toolCall.tool }, opts).run(),
 
@@ -99,6 +111,8 @@ export let v1ProviderToolCallPresenter = Presenter.create(toolCallType)
           examples: ['prn_8hJkLmNpQrStUvWx']
         })
       ),
+      sender_participant: v.nullable(v1SessionParticipantPresenter.schema),
+      responder_participant: v.nullable(v1SessionParticipantPresenter.schema),
 
       tool: v1ProviderToolPresenter.schema,
       error: v.nullable(v1SessionErrorPresenter.schema),

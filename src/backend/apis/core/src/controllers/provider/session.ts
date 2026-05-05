@@ -3,6 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { v, ValidationTypeValue } from '@lowerdeck/validation';
 import { subspaceSessionService } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
+import { resolveActorIdsForLogFilters } from './_logFilterActors';
 import { dateFilterValidator } from '../../lib/dateFilter';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import {
@@ -194,6 +195,18 @@ export let sessionController = Controller.create(
             id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by session ID(s)'
             }),
+            agent_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by connected agent ID(s)'
+            }),
+            actor_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by connected identity actor ID(s)'
+            }),
+            consumer_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by connected consumer ID(s)'
+            }),
+            identity_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by connected identity ID(s)'
+            }),
             session_template_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by session template ID(s)'
             }),
@@ -218,6 +231,13 @@ export let sessionController = Controller.create(
         )
       )
       .do(async ctx => {
+        let actorIds = await resolveActorIdsForLogFilters({
+          instance: ctx.instance,
+          actorIds: normalizeArrayParam(ctx.query.actor_id),
+          consumerIds: normalizeArrayParam(ctx.query.consumer_id),
+          identityIds: normalizeArrayParam(ctx.query.identity_id)
+        });
+
         let paginator = await subspaceSessionService.list({
           instance: ctx.instance,
           accessTagSessionIds: getFineGrainedAllowedSessionIds(ctx),
@@ -225,6 +245,8 @@ export let sessionController = Controller.create(
 
           status: normalizeArrayParam(ctx.query.status),
           ids: normalizeArrayParam(ctx.query.id),
+          agentIds: normalizeArrayParam(ctx.query.agent_id),
+          actorIds,
           sessionTemplateIds: normalizeArrayParam(ctx.query.session_template_id),
           sessionProviderIds: normalizeArrayParam(ctx.query.session_provider_id),
           providerIds: normalizeArrayParam(ctx.query.provider_id),

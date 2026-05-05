@@ -1,3 +1,5 @@
+export * from './agent';
+export * from './agentInstance';
 export * from './actorPreview';
 export * from './authConfig';
 export * from './authConfigError';

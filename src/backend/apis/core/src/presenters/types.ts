@@ -78,6 +78,8 @@ import type {
 } from '@metorial/module-machine-access';
 import type { PolicyDocument, ProjectBrandOverride } from '@metorial/module-organization';
 import {
+  SubspaceAgent,
+  SubspaceAgentInstance,
   SubspaceAuthConfigError,
   SubspaceAuthConfigErrorGlobal,
   SubspaceAuthConfigEvent,
@@ -824,6 +826,14 @@ export let oauthScopePermissionsType = PresentableType.create<{
 export let publisherType = PresentableType.create<{ publisher: SubspacePublisher }>()(
   'publisher'
 );
+
+export let agentType = PresentableType.create<{
+  agent: SubspaceAgent;
+}>()('agent');
+
+export let agentInstanceType = PresentableType.create<{
+  agentInstance: SubspaceAgentInstance;
+}>()('agent.instance');
 
 export let providerVersionType = PresentableType.create<{
   version: SubspaceProviderVersion;

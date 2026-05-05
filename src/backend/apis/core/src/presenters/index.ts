@@ -48,6 +48,8 @@ import { v1ProfilePresenter } from './implementation/profile';
 import { v1ProjectPresenter } from './implementation/project';
 import { v1ProjectBrandPresenter } from './implementation/projectBrand';
 import {
+  v1AgentInstancePresenter,
+  v1AgentPresenter,
   consumerMagicMcpEndpointPresenter,
   consumerMagicMcpServerPresenter,
   consumerMagicMcpSessionPresenter,
@@ -158,6 +160,8 @@ import {
   accessPolicyVersionType,
   accessRoleType,
   accessRoleVersionType,
+  agentInstanceType,
+  agentType,
   apiKeyType,
   authConfigSchemaType,
   authImportSchemaType,
@@ -644,6 +648,16 @@ export let magicMcpGroupPresenter = declarePresenter(magicMcpGroupType, {
 export let publisherPresenter = declarePresenter(publisherType, {
   mt_2025_01_01_dashboard: v1PublisherPresenter,
   mt_2026_01_01_magnetar: v1PublisherPresenter
+});
+
+export let agentPresenter = declarePresenter(agentType, {
+  mt_2025_01_01_dashboard: v1AgentPresenter,
+  mt_2026_01_01_magnetar: v1AgentPresenter
+});
+
+export let agentInstancePresenter = declarePresenter(agentInstanceType, {
+  mt_2025_01_01_dashboard: v1AgentInstancePresenter,
+  mt_2026_01_01_magnetar: v1AgentInstancePresenter
 });
 
 export let providerVersionPresenter = declarePresenter(providerVersionType, {

@@ -3,6 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { subspaceSessionConnectionService } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
+import { resolveActorIdsForLogFilters } from './_logFilterActors';
 import { dateFilterValidator } from '../../lib/dateFilter';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
@@ -84,6 +85,21 @@ export let sessionConnectionController = Controller.create(
             id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by session connection ID(s)'
             }),
+            agent_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by connected agent ID(s)'
+            }),
+            actor_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by connected identity actor ID(s)'
+            }),
+            consumer_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by connected consumer ID(s)'
+            }),
+            identity_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by connected identity ID(s)'
+            }),
+            agent_instance_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by connected agent instance ID(s)'
+            }),
             session_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by session ID(s)'
             }),
@@ -99,11 +115,21 @@ export let sessionConnectionController = Controller.create(
         )
       )
       .do(async ctx => {
+        let actorIds = await resolveActorIdsForLogFilters({
+          instance: ctx.instance,
+          actorIds: normalizeArrayParam(ctx.query.actor_id),
+          consumerIds: normalizeArrayParam(ctx.query.consumer_id),
+          identityIds: normalizeArrayParam(ctx.query.identity_id)
+        });
+
         let paginator = await subspaceSessionConnectionService.list({
           instance: ctx.instance,
           accessTagSessionIds: getFineGrainedAllowedSessionIds(ctx),
           allowDeleted: false,
           ids: normalizeArrayParam(ctx.query.id),
+          agentIds: normalizeArrayParam(ctx.query.agent_id),
+          actorIds,
+          agentInstanceIds: normalizeArrayParam(ctx.query.agent_instance_id),
           sessionIds: normalizeArrayParam(ctx.query.session_id),
           status: normalizeArrayParam(ctx.query.status),
           connectionState: normalizeArrayParam(ctx.query.connection_state),

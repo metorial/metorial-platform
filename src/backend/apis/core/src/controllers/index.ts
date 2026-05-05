@@ -42,6 +42,7 @@ import { projectManagementController } from './management/project';
 import { serviceAccountManagementController } from './management/serviceAccount';
 import { teamManagementController } from './management/team';
 import {
+  agentController,
   callbackController,
   callbackDestinationController,
   callbackDocsCategory,
@@ -185,6 +186,7 @@ let setControllerDocsMetadata = <
 
 [
   identityController,
+  agentController,
   identityActorController,
   identityCredentialController,
   identityDelegationController,
@@ -262,6 +264,7 @@ export let magnetarController = Controller.create<any>(
     providerToolController,
     providerAuthMethodController,
 
+    agentController,
     identityController,
     identityActorController,
     identityCredentialController,
@@ -419,6 +422,7 @@ export let dashboardController = Controller.create<any>(
     teamManagementController,
 
     providerController,
+    agentController,
     identityController,
     identityActorController,
     identityCredentialController,
