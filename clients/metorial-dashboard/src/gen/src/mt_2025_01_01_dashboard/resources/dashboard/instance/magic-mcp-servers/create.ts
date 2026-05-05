@@ -10,6 +10,7 @@ export type DashboardInstanceMagicMcpServersCreateOutput = {
     | 'inherited_from_provider_template'
     | 'inherited_from_integration';
   endpoints: { id: string; alias: string; url: string }[];
+  providerTemplateId: string | null;
   providers: {
     object: 'magic_mcp.server.provider';
     id: string;
@@ -263,6 +264,10 @@ export let mapDashboardInstanceMagicMcpServersCreateOutput = mtMap.union([
             url: mtMap.objectField('url', mtMap.passthrough())
           })
         )
+      ),
+      providerTemplateId: mtMap.objectField(
+        'providerTemplateId',
+        mtMap.passthrough()
       ),
       providers: mtMap.objectField(
         'providers',
@@ -546,9 +551,7 @@ export type DashboardInstanceMagicMcpServersCreateBody = {
   name?: string | undefined;
   description?: string | undefined;
   metadata?: Record<string, any> | undefined;
-  ownerType?: 'server_owned' | 'provider_template' | 'integration' | undefined;
   providerTemplateId?: string | undefined;
-  ownerIntegrationId?: string | undefined;
   consumerProfileId?: string | undefined;
 };
 
@@ -557,13 +560,8 @@ export let mapDashboardInstanceMagicMcpServersCreateBody =
     name: mtMap.objectField('name', mtMap.passthrough()),
     description: mtMap.objectField('description', mtMap.passthrough()),
     metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-    ownerType: mtMap.objectField('owner_type', mtMap.passthrough()),
     providerTemplateId: mtMap.objectField(
       'provider_template_id',
-      mtMap.passthrough()
-    ),
-    ownerIntegrationId: mtMap.objectField(
-      'owner_integration_id',
       mtMap.passthrough()
     ),
     consumerProfileId: mtMap.objectField(

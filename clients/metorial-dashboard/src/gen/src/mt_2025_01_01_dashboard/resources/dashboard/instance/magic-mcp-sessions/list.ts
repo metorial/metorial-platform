@@ -14,6 +14,7 @@ export type DashboardInstanceMagicMcpSessionsListOutput = {
         | 'inherited_from_provider_template'
         | 'inherited_from_integration';
       endpoints: { id: string; alias: string; url: string }[];
+      providerTemplateId: string | null;
       providers: {
         object: 'magic_mcp.server.provider';
         id: string;
@@ -214,6 +215,10 @@ export let mapDashboardInstanceMagicMcpSessionsListOutput =
                     url: mtMap.objectField('url', mtMap.passthrough())
                   })
                 )
+              ),
+              providerTemplateId: mtMap.objectField(
+                'providerTemplateId',
+                mtMap.passthrough()
               ),
               providers: mtMap.objectField(
                 'providers',

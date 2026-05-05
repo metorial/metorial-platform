@@ -16,7 +16,7 @@ export type ManagementInstancePortalsConsumerAccessUpdateOutput = {
           name: string;
           description: string | null;
           metadata: Record<string, any>;
-          providerDeploymentId: string;
+          integrationId: string | null;
           createdAt: Date;
           updatedAt: Date;
         };
@@ -72,8 +72,8 @@ export let mapManagementInstancePortalsConsumerAccessUpdateOutput =
                   mtMap.passthrough()
                 ),
                 metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-                providerDeploymentId: mtMap.objectField(
-                  'provider_deployment_id',
+                integrationId: mtMap.objectField(
+                  'integration_id',
                   mtMap.passthrough()
                 ),
                 createdAt: mtMap.objectField('created_at', mtMap.date()),
