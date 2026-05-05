@@ -30,16 +30,6 @@ export let CodeViewer = ({
     url.searchParams.set('repo', repo);
     url.searchParams.set('owner', owner);
     url.searchParams.set('path', path);
-    if (title) url.searchParams.set('title', title);
-    if (initialFile) url.searchParams.set('initial_file', initialFile);
-    if (replacements) {
-      let final: Record<string, string> = {};
-      for (let [key, value] of Object.entries(replacements)) {
-        if (value) final[key] = value;
-      }
-      url.searchParams.set('replacements', btoa(JSON.stringify(final)));
-    }
-
     return url.toString();
   }, [repo, owner, path, title]);
 
