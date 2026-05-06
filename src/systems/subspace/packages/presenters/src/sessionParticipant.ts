@@ -8,8 +8,7 @@ import type {
   SessionParticipant
 } from '@metorial-subspace/db';
 
-export let sessionParticipantPresenter = (
-  participant: SessionParticipant & {
+export type SessionParticipantPresenterProps = SessionParticipant & {
     provider: Provider | null;
     agentInstance:
       | (AgentInstance & {
@@ -20,8 +19,9 @@ export let sessionParticipantPresenter = (
           agentClientRegistration: AgentClientRegistration | null;
         })
       | null;
-  }
-) => ({
+  };
+
+export let sessionParticipantPresenter = (participant: SessionParticipantPresenterProps) => ({
   object: 'session.participant',
 
   id: participant.id,

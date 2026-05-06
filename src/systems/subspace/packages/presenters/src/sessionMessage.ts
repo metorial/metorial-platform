@@ -8,20 +8,22 @@ import {
   type Session,
   type SessionConnection,
   type SessionMessage,
-  type SessionParticipant,
   type SessionProvider,
   type ToolCall,
   type ToolCallAttachment
 } from '@metorial-subspace/db';
 import { sessionErrorPresenter, type SessionErrorPresenterProps } from './sessionError';
-import { sessionParticipantPresenter } from './sessionParticipant';
+import {
+  sessionParticipantPresenter,
+  type SessionParticipantPresenterProps
+} from './sessionParticipant';
 import { toolCallPresenter } from './toolCall';
 
 export type SessionMessagePresenterProps = SessionMessage & {
   session: Session;
   sessionProvider: SessionProvider | null;
-  senderParticipant: SessionParticipant & { provider: Provider | null };
-  responderParticipant: (SessionParticipant & { provider: Provider | null }) | null;
+  senderParticipant: SessionParticipantPresenterProps;
+  responderParticipant: SessionParticipantPresenterProps | null;
   connection: SessionConnection | null;
   providerRun: ProviderRun | null;
   toolCall:
