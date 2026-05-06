@@ -37,8 +37,7 @@ import {
 import { checkTenant } from '@metorial-subspace/module-tenant';
 import {
   sessionTemplateProviderCreatedQueue,
-  sessionTemplateSyncHashQueue,
-  syncSessionTemplateHash
+  sessionTemplateSyncHashQueue
 } from '../queues/lifecycle/sessionTemplateProvider';
 import {
   type SessionProviderInput,
@@ -501,10 +500,6 @@ class sessionTemplateProviderServiceImpl {
         }
       });
     });
-  }
-
-  async syncHash(d: { sessionTemplateId: string }) {
-    return await syncSessionTemplateHash(d);
   }
 
   async createSessionTemplateProvider(d: {

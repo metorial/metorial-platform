@@ -1,6 +1,7 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import {
+  addAfterTransactionHook,
   db,
   type Environment,
   snowflake,
@@ -13,6 +14,7 @@ import {
   sessionTemplateProviderService,
   sessionTemplateService
 } from '@metorial-subspace/module-session';
+import { sessionTemplateSyncHashQueue } from '@metorial-subspace/module-session/src/queues/lifecycle/sessionTemplateProvider';
 import { checkTenant } from '@metorial-subspace/module-tenant';
 import { integrationInstanceGroupService } from '../integrationInstanceGroup';
 import { integrationInstanceGroupProviderService } from '../integrationInstanceGroupProvider';
@@ -207,9 +209,9 @@ class magicMcpEndpointBackingServiceImpl {
             sessionTemplate,
             integrationInstanceGroup: group
           });
-          await sessionTemplateProviderService.syncHash({
-            sessionTemplateId: sessionTemplate.id
-          });
+          await addAfterTransactionHook(async () =>
+            sessionTemplateSyncHashQueue.add({ sessionTemplateId: sessionTemplate.id })
+          );
         })
     );
 

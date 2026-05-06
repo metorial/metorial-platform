@@ -52,54 +52,53 @@ export let sessionTemplateSyncHashQueue = createQueue<{
   redisUrl: env.service.REDIS_URL
 });
 
-export let syncSessionTemplateHash = async (data: { sessionTemplateId: string }) => {
-  let sessionTemplate = await db.sessionTemplate.findUnique({
-    where: { id: data.sessionTemplateId }
-  });
-  if (!sessionTemplate || sessionTemplate.status !== 'active') {
-    return;
-  }
-
-  let providers = await db.sessionTemplateProvider.findMany({
-    where: {
-      sessionTemplateOid: sessionTemplate.oid,
-      status: 'active'
-    },
-    select: {
-      providerOid: true,
-      deploymentOid: true,
-      configOid: true,
-      authConfigOid: true,
-      toolFilter: true
+export let sessionTemplateSyncHashQueueProcessor = sessionTemplateSyncHashQueue.process(
+  async data => {
+    let sessionTemplate = await db.sessionTemplate.findUnique({
+      where: { id: data.sessionTemplateId }
+    });
+    if (!sessionTemplate || sessionTemplate.status !== 'active') {
+      return;
     }
-  });
 
-  let hash = await Hash.sha256(
-    canonicalize([
-      sessionTemplate.oid.toString(),
-      sessionTemplate.status,
-      sessionTemplate.integrationInstanceGroupOid?.toString() ?? null,
-      sessionTemplate.integrationInstanceOid?.toString() ?? null,
-      sessionTemplate.identityActorOid?.toString() ?? null,
-      sessionTemplate.identityOid?.toString() ?? null,
-      providers
-        .map(provider => ({
-          providerOid: provider.providerOid.toString(),
-          deploymentOid: provider.deploymentOid.toString(),
-          configOid: provider.configOid.toString(),
-          authConfigOid: provider.authConfigOid?.toString() ?? null,
-          toolFilter: provider.toolFilter
-        }))
-        .map(p => canonicalize(p))
-        .sort()
-    ])
-  );
+    let providers = await db.sessionTemplateProvider.findMany({
+      where: {
+        sessionTemplateOid: sessionTemplate.oid,
+        status: 'active'
+      },
+      select: {
+        providerOid: true,
+        deploymentOid: true,
+        configOid: true,
+        authConfigOid: true,
+        toolFilter: true
+      }
+    });
 
-  await db.sessionTemplate.update({
-    where: { oid: sessionTemplate.oid },
-    data: { hash }
-  });
-};
+    let hash = await Hash.sha256(
+      canonicalize([
+        sessionTemplate.oid.toString(),
+        sessionTemplate.status,
+        sessionTemplate.integrationInstanceGroupOid?.toString() ?? null,
+        sessionTemplate.integrationInstanceOid?.toString() ?? null,
+        sessionTemplate.identityActorOid?.toString() ?? null,
+        sessionTemplate.identityOid?.toString() ?? null,
+        providers
+          .map(provider => ({
+            providerOid: provider.providerOid.toString(),
+            deploymentOid: provider.deploymentOid.toString(),
+            configOid: provider.configOid.toString(),
+            authConfigOid: provider.authConfigOid?.toString() ?? null,
+            toolFilter: provider.toolFilter
+          }))
+          .map(p => canonicalize(p))
+          .sort()
+      ])
+    );
 
-export let sessionTemplateSyncHashQueueProcessor =
-  sessionTemplateSyncHashQueue.process(syncSessionTemplateHash);
+    await db.sessionTemplate.update({
+      where: { oid: sessionTemplate.oid },
+      data: { hash }
+    });
+  }
+);
