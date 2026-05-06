@@ -47,7 +47,7 @@ import {
   integrationInstanceProviderInclude,
   integrationInstanceProviderVersionInclude
 } from './integrationInstance';
-import { integrationProviderService } from './integrationProvider';
+import { integrationProviderService, MAX_INTEGRATION_PROVIDERS } from './integrationProvider';
 
 let requireCurrentIntegrationProviderVersion = async (d: {
   db?: TransactionDB;
@@ -395,6 +395,27 @@ class integrationInstanceProviderServiceImpl {
           );
         }
         seenIntegrationProviderOids.add(oid);
+      }
+
+      let existingActiveProviderCount = await db.integrationInstanceProvider.count({
+        where: {
+          integrationInstanceOid: d.integrationInstance.oid,
+          status: 'active' as const,
+          isParentDeleted: false,
+          integrationProviderOid: {
+            notIn: integrationProviders.map(integrationProvider => integrationProvider.oid)
+          }
+        }
+      });
+      if (
+        existingActiveProviderCount + integrationProviders.length >
+        MAX_INTEGRATION_PROVIDERS
+      ) {
+        throw new ServiceError(
+          badRequestError({
+            message: `Cannot associate more than ${MAX_INTEGRATION_PROVIDERS} providers to an integration instance`
+          })
+        );
       }
 
       let materialProviders = await Promise.all(
@@ -782,6 +803,13 @@ class integrationInstanceProviderServiceImpl {
     }[];
   }) {
     if (!d.input.length) return [];
+    if (d.input.length > MAX_INTEGRATION_PROVIDERS) {
+      throw new ServiceError(
+        badRequestError({
+          message: `Cannot associate more than ${MAX_INTEGRATION_PROVIDERS} providers to an integration instance`
+        })
+      );
+    }
 
     let integrationProviders = [];
     for (let input of d.input) {

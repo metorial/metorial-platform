@@ -64,6 +64,13 @@ export let integrationProviderInclude = {
   }
 };
 
+export let MAX_INTEGRATION_PROVIDERS = 50;
+
+let maxIntegrationProvidersError = () =>
+  badRequestError({
+    message: `Cannot associate more than ${MAX_INTEGRATION_PROVIDERS} providers to an integration`
+  });
+
 let resolveAuthMethod = async (d: {
   tenant: Tenant;
   solution: Solution;
@@ -478,6 +485,16 @@ class integrationProviderServiceImpl {
         );
       }
 
+      let activeProviderCount = await db.integrationProvider.count({
+        where: {
+          integrationOid: d.integration.oid,
+          status: 'active' as const
+        }
+      });
+      if (activeProviderCount >= MAX_INTEGRATION_PROVIDERS) {
+        throw new ServiceError(maxIntegrationProvidersError());
+      }
+
       let newId = getId('integrationProvider');
       let integrationProvider = existing
         ? await db.integrationProvider.update({
@@ -559,6 +576,18 @@ class integrationProviderServiceImpl {
         },
         include: { currentVersion: true }
       });
+
+      if (existing?.status !== 'active') {
+        let activeProviderCount = await db.integrationProvider.count({
+          where: {
+            integrationOid: d.integration.oid,
+            status: 'active' as const
+          }
+        });
+        if (activeProviderCount >= MAX_INTEGRATION_PROVIDERS) {
+          throw new ServiceError(maxIntegrationProvidersError());
+        }
+      }
 
       let newId = getId('integrationProvider');
       let integrationProvider = await db.integrationProvider.upsert({

@@ -3,6 +3,7 @@ import { Service } from '@lowerdeck/service';
 import {
   db,
   type Environment,
+  snowflake,
   type Solution,
   type Tenant,
   withTransaction
@@ -254,6 +255,7 @@ class magicMcpServerBackingServiceImpl {
         await db.magicMcpServerBacking.upsert({
           where: { id: d.input.id },
           create: {
+            oid: snowflake.nextId(),
             id: d.input.id,
             ownerType,
             providerTemplateBackingOid: providerTemplateBacking?.oid,

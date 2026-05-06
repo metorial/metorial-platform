@@ -1,4 +1,4 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Hash } from '@lowerdeck/hash';
 import { Service } from '@lowerdeck/service';
 import { slugify } from '@lowerdeck/slugify';
@@ -7,12 +7,13 @@ import {
   type Environment,
   type Integration,
   type IntegrationProvider,
+  snowflake,
   type Solution,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
 import { integrationService } from '../integration';
-import { integrationProviderService } from '../integrationProvider';
+import { integrationProviderService, MAX_INTEGRATION_PROVIDERS } from '../integrationProvider';
 import { reconcileMagicMcpServerProvidersForBacking } from './serverProvider';
 import { magicMcpProviderTemplateBackingInclude, withMagicMcpBackingLock } from './shared';
 
@@ -65,6 +66,14 @@ class providerTemplateBackingServiceImpl {
     integration: Integration;
     providers: ProviderTemplateBackingProviderInput[];
   }) {
+    if (d.providers.length > MAX_INTEGRATION_PROVIDERS) {
+      throw new ServiceError(
+        badRequestError({
+          message: `Cannot associate more than ${MAX_INTEGRATION_PROVIDERS} providers to an integration`
+        })
+      );
+    }
+
     let existing = await db.integrationProvider.findMany({
       where: {
         integrationOid: d.integration.oid
@@ -151,6 +160,7 @@ class providerTemplateBackingServiceImpl {
           await db.providerTemplateBacking.upsert({
             where: { id: d.input.providerTemplateId },
             create: {
+              oid: snowflake.nextId(),
               id: d.input.providerTemplateId,
               integrationOid: integration.oid
             },

@@ -12,7 +12,7 @@ enum MagicMcpServerProviderStatus {
 }
 
 model MagicMcpServerBacking {
-  oid BigInt @id @default(autoincrement())
+  oid BigInt @id
   id  String @unique
 
   ownerType MagicMcpServerOwnerType @default(server_owned)
@@ -45,7 +45,7 @@ model MagicMcpServerBacking {
 }
 
 model MagicMcpServerProvider {
-  oid BigInt @id @default(autoincrement())
+  oid BigInt @id
   id  String @unique
 
   status     MagicMcpServerProviderStatus
@@ -70,7 +70,7 @@ model MagicMcpServerProvider {
 }
 
 model MagicMcpEndpointBacking {
-  oid BigInt @id @default(autoincrement())
+  oid BigInt @id
   id  String @unique
 
   createdAt DateTime @default(now())
@@ -91,7 +91,7 @@ model MagicMcpEndpointBacking {
 }
 
 model MagicMcpEndpointServerBacking {
-  oid BigInt @id @default(autoincrement())
+  oid BigInt @id
   id  String @unique
 
   magicMcpEndpointBackingOid BigInt
@@ -104,7 +104,7 @@ model MagicMcpEndpointServerBacking {
 }
 
 model ProviderTemplateBacking {
-  oid BigInt @id @default(autoincrement())
+  oid BigInt @id
   id  String @unique
 
   integrationOid BigInt      @unique
