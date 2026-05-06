@@ -1,7 +1,9 @@
+import { preconditionFailedError, ServiceError } from '@lowerdeck/error';
 import { type Instance, type ProviderTemplate } from '@metorial/db';
 import { type AnyAccessTagSelector } from '@metorial/module-access';
 import { providerTemplateService } from '@metorial/module-magic';
 import {
+  subspaceMagicMcpBackingService,
   subspaceProviderAuthMethodService,
   subspaceProviderConfigService,
   subspaceProviderDeploymentService,
@@ -10,6 +12,10 @@ import {
 
 export type ConsumerProviderDeployment = Awaited<
   ReturnType<typeof subspaceProviderDeploymentService.get>
+>;
+
+export type ConsumerProviderTemplateBacking = Awaited<
+  ReturnType<typeof subspaceMagicMcpBackingService.getProviderTemplate>
 >;
 
 export type ConsumerProvider = Awaited<ReturnType<typeof subspaceProviderService.get>>;
@@ -38,21 +44,6 @@ let getProviderVersionIdForAuthMethods = (d: {
     return d.deployment.lockedVersion.id;
   }
 
-  let currentVersion = (d.deployment as any).currentVersion as
-    | {
-        lockedVersionId?: string | null;
-        providerVersionId?: string | null;
-      }
-    | null
-    | undefined;
-
-  if (currentVersion?.lockedVersionId) {
-    return currentVersion.lockedVersionId;
-  }
-  if (currentVersion?.providerVersionId) {
-    return currentVersion.providerVersionId;
-  }
-
   return d.provider.defaultVariant?.currentVersion?.id ?? null;
 };
 
@@ -66,10 +57,23 @@ let loadBaseTemplateContext = async (d: {
     providerTemplateId: d.providerTemplateId,
     accessTags: d.accessTags
   });
+  let backing = await subspaceMagicMcpBackingService.getProviderTemplate({
+    instance: d.instance,
+    providerTemplateBackingId: providerTemplate.id
+  });
+  let primaryProvider = backing.providers[0];
+
+  if (!primaryProvider) {
+    throw new ServiceError(
+      preconditionFailedError({
+        message: 'This provider template does not have a provider yet.'
+      })
+    );
+  }
 
   let deployment = await subspaceProviderDeploymentService.get({
     instance: d.instance,
-    providerDeploymentId: providerTemplate.legacyProviderDeploymentId
+    providerDeploymentId: primaryProvider.deployment.id
   });
   let provider = await subspaceProviderService.get({
     instance: d.instance,
@@ -78,6 +82,7 @@ let loadBaseTemplateContext = async (d: {
 
   return {
     providerTemplate,
+    backing,
     deployment,
     provider
   };

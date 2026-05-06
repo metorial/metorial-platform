@@ -100,11 +100,11 @@ describe('magic MCP consumer-owned grants', () => {
         personalConsumerGroup: {
           oid: 55n
         }
-      },
+      } as any,
       magicMcpServer: {
         oid: 61n,
         instanceOid: 62n
-      }
+      } as any
     });
 
     expect(consumerAccessService.createConsumerAccess).toHaveBeenCalledWith({

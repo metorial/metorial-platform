@@ -161,14 +161,14 @@ export let buildSlateDeploymentFiles = (files: DeploymentArchiveFile[]) => {
             let messages = [];
 
             for (let m of input.messages) {
-              console.log('[Slates:] Processing input message', m.method + (m.id ? \`(\${m.id})\` : ''));
+              console.log('[Metorial Runtime]: Processing input message', m.method + (m.id ? \`(\${m.id})\` : ''));
               let result = await SlatesProviderProtoHandlerManager.handleInput(manager, m);
               if (result) {
                 if (m.id) result.id = m.id;
                 messages.push(result);
 
                 if (typeof result.error == 'object' && result.error) {
-                  console.error('[Slates:] Error in processing:', result.error);
+                  console.error('[Metorial Runtime]: Error in processing:', result.error);
                   break;
                 }
               }

@@ -20,10 +20,10 @@ import {
   consumerAccessRequestPresenter,
   consumerProviderPresenter,
   consumerSurfaceProviderGroupPresenter,
+  integrationSetupSessionPresenter,
   magicMcpServerPresenter,
   portalOAuthAuthorizationPresenter,
-  portalOAuthClientPresenter,
-  providerSetupSessionPresenter
+  portalOAuthClientPresenter
 } from '../../presenters';
 
 let consumerProviderItemGroup = consumerGroup.use(async ctx => {
@@ -389,7 +389,7 @@ export let consumerProviderController = Controller.create(
     startSetup: consumerProviderItemGroup
       .post(consumerPath('providers/:catalogItemId/setup', 'providers.setup'), {
         name: 'Start consumer provider setup',
-        description: 'Starts an OAuth setup flow for a portal provider template.'
+        description: 'Starts an integration setup flow for a portal provider template.'
       })
       .use(hasFlags(['paid-portals', 'portals-access']))
       .body(
@@ -398,7 +398,7 @@ export let consumerProviderController = Controller.create(
           provider_auth_method_id: v.optional(v.string())
         })
       )
-      .output(providerSetupSessionPresenter)
+      .output(integrationSetupSessionPresenter)
       .do(async ctx => {
         let consumerProvider = requireProviderTemplate(ctx.consumerProvider);
         let setupSession = await consumerProviderSetupSessionService.startSetupSession({
@@ -413,8 +413,8 @@ export let consumerProviderController = Controller.create(
           }
         });
 
-        return providerSetupSessionPresenter.present({
-          setupSession
+        return integrationSetupSessionPresenter.present({
+          integrationSetupSession: setupSession
         });
       }),
 
@@ -427,22 +427,22 @@ export let consumerProviderController = Controller.create(
         {
           name: 'Get consumer provider setup',
           description:
-            'Reads the status of an OAuth setup flow for a portal provider template.'
+            'Reads the status of an integration setup flow for a portal provider template.'
         }
       )
       .use(hasFlags(['paid-portals', 'portals-access']))
-      .output(providerSetupSessionPresenter)
+      .output(integrationSetupSessionPresenter)
       .do(async ctx => {
         let consumerProvider = requireProviderTemplate(ctx.consumerProvider);
         let setupSession = await consumerProviderSetupSessionService.getSetupSession({
           instance: ctx.instance,
           consumerProfile: ctx.consumerProfile,
           providerTemplate: consumerProvider.providerTemplate,
-          providerSetupSessionId: ctx.params.providerSetupSessionId
+          integrationSetupSessionId: ctx.params.providerSetupSessionId
         });
 
-        return providerSetupSessionPresenter.present({
-          setupSession
+        return integrationSetupSessionPresenter.present({
+          integrationSetupSession: setupSession
         });
       }),
 
@@ -458,24 +458,7 @@ export let consumerProviderController = Controller.create(
           name: v.optional(v.string()),
           description: v.optional(v.string()),
           metadata: v.optional(v.record(v.any())),
-          config: v.optional(v.record(v.any())),
-          auth: v.optional(
-            v.union([
-              v.object({
-                type: v.literal('setup_session'),
-                provider_setup_session_id: v.string()
-              }),
-              v.object({
-                type: v.literal('auth_config'),
-                provider_auth_config_id: v.string()
-              }),
-              v.object({
-                type: v.literal('manual'),
-                provider_auth_method_id: v.string(),
-                value: v.record(v.any())
-              })
-            ])
-          )
+          integration_setup_session_id: v.string()
         })
       )
       .output(magicMcpServerPresenter)
@@ -493,25 +476,7 @@ export let consumerProviderController = Controller.create(
             name: ctx.body.name,
             description: ctx.body.description,
             metadata: ctx.body.metadata,
-            config: ctx.body.config,
-            auth:
-              ctx.body.auth?.type == 'setup_session'
-                ? {
-                    type: 'setup_session',
-                    providerSetupSessionId: ctx.body.auth.provider_setup_session_id
-                  }
-                : ctx.body.auth?.type == 'auth_config'
-                  ? {
-                      type: 'auth_config',
-                      providerAuthConfigId: ctx.body.auth.provider_auth_config_id
-                    }
-                  : ctx.body.auth?.type == 'manual'
-                    ? {
-                        type: 'manual',
-                        providerAuthMethodId: ctx.body.auth.provider_auth_method_id,
-                        value: ctx.body.auth.value
-                      }
-                    : undefined
+            integrationSetupSessionId: ctx.body.integration_setup_session_id
           }
         });
 

@@ -180,6 +180,7 @@ class MagicMcpServerImpl {
       metadata?: Record<string, unknown>;
       source?: MagicMcpServerSource;
       providerTemplateId?: string;
+      subspaceIntegrationInstanceId?: string | null;
       providers?: {
         providerDeploymentId: string;
         providerConfigId?: string | null;
@@ -196,6 +197,7 @@ class MagicMcpServerImpl {
           source: d.input.source ?? 'manual',
           isConsumerReconciled: true,
           providerTemplateId: d.input.providerTemplateId,
+          subspaceIntegrationInstanceId: d.input.subspaceIntegrationInstanceId,
           name: d.input.name,
           description: d.input.description,
           metadata: d.input.metadata ?? {},
@@ -657,7 +659,7 @@ class MagicMcpServerImpl {
 
     if (!d.accessTags && !d.filterAccessTags && !d.consumerSurface) {
       andFilters.push({
-        AND: [{ accessTagEntities: { none: {} } }, { consumerIntegrations: { none: {} } }]
+        source: 'manual'
       });
     }
 

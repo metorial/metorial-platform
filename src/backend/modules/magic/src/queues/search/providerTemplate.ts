@@ -31,7 +31,6 @@ export let indexProviderTemplateSearchQueueProcessor =
       instanceId: providerTemplate.instance.id,
       status: providerTemplate.status,
       name: providerTemplate.name,
-      description: providerTemplate.description,
-      providerDeploymentId: providerTemplate.legacyProviderDeploymentId
+      description: providerTemplate.description
     });
   });

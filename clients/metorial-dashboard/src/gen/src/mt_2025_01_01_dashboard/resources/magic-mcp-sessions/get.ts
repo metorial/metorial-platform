@@ -210,7 +210,7 @@ export let mapMagicMcpSessionsGetOutput =
           )
         ),
         providerTemplateId: mtMap.objectField(
-          'providerTemplateId',
+          'provider_template_id',
           mtMap.passthrough()
         ),
         providers: mtMap.objectField(

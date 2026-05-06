@@ -60,7 +60,7 @@ export let mcpRouter = createHono().all(`/:key?`, async c => {
   }
 
   let queryConnectionId = c.req.query('connection_token');
-  let mcpSessionId = c.req.header('Mcp-Session-Id');
+  let mcpSessionId = c.req.header('mcp-session-id');
 
   let transport: Transports = 'sse';
   if (mcpSessionId || (c.req.method === 'POST' && !queryConnectionId))
@@ -166,7 +166,7 @@ export let mcpRouter = createHono().all(`/:key?`, async c => {
     return c.text('Method Not Allowed', 405);
   } else {
     if (c.req.method === 'GET') {
-      if (baseParams.connectionToken) {
+      if (!baseParams.connectionToken) {
         return c.text('Mcp-Session-Id header must be set for this endpoint', 400);
       }
 

@@ -253,7 +253,8 @@ class magicMcpEndpointBackingServiceImpl {
       tenant: d.tenant,
       solution: d.solution,
       environment: d.environment,
-      sessionTemplate: backing.sessionTemplate
+      sessionTemplate: backing.sessionTemplate,
+      _allowLinked: true
     });
     await ephemeralManagedSessionService.archiveEphemeralManagedSession({
       tenant: d.tenant,

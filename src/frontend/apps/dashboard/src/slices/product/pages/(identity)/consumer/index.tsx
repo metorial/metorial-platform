@@ -68,14 +68,14 @@ export let ConsumerPage = () => {
 
         <Spacer size={20} />
 
-        <Box
+        {/* <Box
           title="Profiles"
-          description="Profiles linked to this account across account surfaces."
+          description="Profiles linked to this account across account portals."
         >
           {renderWithPagination(profiles)(profiles => (
             <>
               <Table
-                headers={['Name', 'Email', 'Surface', 'Groups', 'ID', 'Created']}
+                headers={['Name', 'Email', 'Portal', 'Groups', 'ID', 'Created']}
                 data={profiles.data.items.map(profile => ({
                   data: [
                     <Text size="2" weight="strong">
@@ -107,7 +107,7 @@ export let ConsumerPage = () => {
           ))}
         </Box>
 
-        <Spacer size={20} />
+        <Spacer size={20} /> */}
 
         <Box title="Agents" description="Agents that were used by this account.">
           {renderWithPagination(actors)(actors => {

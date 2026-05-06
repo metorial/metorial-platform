@@ -193,7 +193,7 @@ class integrationSetupSessionServiceImpl {
         tenantOid: d.tenant.oid,
         solutionOid: d.solution.oid,
         environmentOid: d.environment.oid,
-        ...normalizeStatusForGet(d).onlyParent
+        ...normalizeStatusForGet(d).noParent
       },
       include: integrationSetupSessionInclude
     });

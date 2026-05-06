@@ -163,7 +163,7 @@ export let mapConsumerProvidersDeployOutput = mtMap.union([
         )
       ),
       providerTemplateId: mtMap.objectField(
-        'providerTemplateId',
+        'provider_template_id',
         mtMap.passthrough()
       ),
       providers: mtMap.objectField(
@@ -422,16 +422,7 @@ export type ConsumerProvidersDeployBody = {
   name?: string | undefined;
   description?: string | undefined;
   metadata?: Record<string, any> | undefined;
-  config?: Record<string, any> | undefined;
-  auth?:
-    | { type: 'setup_session'; providerSetupSessionId: string }
-    | { type: 'auth_config'; providerAuthConfigId: string }
-    | {
-        type: 'manual';
-        providerAuthMethodId: string;
-        value: Record<string, any>;
-      }
-    | undefined;
+  integrationSetupSessionId: string;
 };
 
 export let mapConsumerProvidersDeployBody =
@@ -439,30 +430,9 @@ export let mapConsumerProvidersDeployBody =
     name: mtMap.objectField('name', mtMap.passthrough()),
     description: mtMap.objectField('description', mtMap.passthrough()),
     metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-    config: mtMap.objectField('config', mtMap.passthrough()),
-    auth: mtMap.objectField(
-      'auth',
-      mtMap.union([
-        mtMap.unionOption(
-          'object',
-          mtMap.object({
-            type: mtMap.objectField('type', mtMap.passthrough()),
-            providerSetupSessionId: mtMap.objectField(
-              'provider_setup_session_id',
-              mtMap.passthrough()
-            ),
-            providerAuthConfigId: mtMap.objectField(
-              'provider_auth_config_id',
-              mtMap.passthrough()
-            ),
-            providerAuthMethodId: mtMap.objectField(
-              'provider_auth_method_id',
-              mtMap.passthrough()
-            ),
-            value: mtMap.objectField('value', mtMap.passthrough())
-          })
-        )
-      ])
+    integrationSetupSessionId: mtMap.objectField(
+      'integration_setup_session_id',
+      mtMap.passthrough()
     )
   });
 

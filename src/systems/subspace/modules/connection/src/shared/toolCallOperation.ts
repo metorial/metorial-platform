@@ -31,7 +31,7 @@ export let injectToolCallOperationIntoInputSchema = (inputSchema: unknown) => {
     type: schema.type ?? 'object',
     properties: {
       ...properties,
-      $operation: TOOL_CALL_OPERATION_FIELD_SCHEMA
+      _operation: TOOL_CALL_OPERATION_FIELD_SCHEMA
     }
   };
 };
@@ -63,8 +63,8 @@ export let extractToolCallOperation = (d: {
   let operation = d.operation;
 
   if (d.input.type === 'tool.call' && isJsonObject(d.input.data)) {
-    let { $operation, ...inputData } = d.input.data;
-    let operationData = getToolCallOperationData($operation);
+    let { _operation, ...inputData } = d.input.data;
+    let operationData = getToolCallOperationData(_operation);
 
     return {
       input: {
@@ -97,8 +97,8 @@ export let extractToolCallOperation = (d: {
       };
     }
 
-    let { $operation, ...argumentsInput } = argumentsData;
-    let operationData = getToolCallOperationData($operation);
+    let { _operation, ...argumentsInput } = argumentsData;
+    let operationData = getToolCallOperationData(_operation);
 
     return {
       input: {

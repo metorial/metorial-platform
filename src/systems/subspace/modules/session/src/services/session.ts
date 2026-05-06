@@ -86,7 +86,7 @@ class sessionServiceImpl {
               solutionOid: d.solution.oid,
               environmentOid: d.environment.oid,
 
-              isEphemeral: false,
+              // isEphemeral: false,
 
               ...normalizeStatusForList(d).noParent,
 

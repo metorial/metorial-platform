@@ -1,4 +1,4 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import {
   db,
@@ -33,6 +33,7 @@ type UpsertMagicMcpServerBackingInput = {
   input: MagicMcpBackingInputBase & {
     providerTemplateBackingId?: string | null;
     ownerIntegrationId?: string | null;
+    ownerIntegrationInstanceId?: string | null;
     providers?: BackingProviderInput[];
     legacySessionTemplateId?: string | null;
     isReconciliation?: boolean;
@@ -102,6 +103,62 @@ class magicMcpServerBackingServiceImpl {
           integrationId: d.input.ownerIntegrationId
         })
       : null;
+    let ownerIntegrationInstance = d.input.ownerIntegrationInstanceId
+      ? await db.integrationInstance.findFirst({
+          where: {
+            id: d.input.ownerIntegrationInstanceId,
+            tenantOid: d.tenant.oid,
+            solutionOid: d.solution.oid,
+            environmentOid: d.environment.oid,
+            status: { notIn: ['deleted', 'archived'] }
+          },
+          include: {
+            integration: true
+          }
+        })
+      : null;
+    if (d.input.ownerIntegrationInstanceId && !ownerIntegrationInstance) {
+      throw new ServiceError(
+        notFoundError('integration.instance', d.input.ownerIntegrationInstanceId)
+      );
+    }
+    if (ownerIntegrationInstance && ownerIntegrationInstance.status !== 'active') {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Magic MCP server backing requires an active integration instance.',
+          code: 'integration_instance_not_active',
+          data: {
+            integration_instance_id: ownerIntegrationInstance.id,
+            status: ownerIntegrationInstance.status
+          }
+        })
+      );
+    }
+    if (
+      ownerIntegrationInstance &&
+      providerTemplateBacking &&
+      ownerIntegrationInstance.integrationOid !== providerTemplateBacking.integrationOid
+    ) {
+      throw new ServiceError(
+        badRequestError({
+          message:
+            'Integration instance does not belong to the selected provider template backing.',
+          code: 'integration_instance_provider_template_mismatch'
+        })
+      );
+    }
+    if (
+      ownerIntegrationInstance &&
+      ownerIntegration &&
+      ownerIntegrationInstance.integrationOid !== ownerIntegration.oid
+    ) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Integration instance does not belong to the selected owner integration.',
+          code: 'integration_instance_owner_mismatch'
+        })
+      );
+    }
     let ownerType =
       providerTemplateBacking?.id != null
         ? ('provider_template' as const)
@@ -117,7 +174,10 @@ class magicMcpServerBackingServiceImpl {
         });
 
         let integration =
-          providerTemplateBacking?.integration ?? ownerIntegration ?? existing?.integration;
+          providerTemplateBacking?.integration ??
+          ownerIntegration ??
+          ownerIntegrationInstance?.integration ??
+          existing?.integration;
         if (ownerType === 'server_owned') {
           integration = await integrationService.upsertMagicMcpIntegration({
             tenant: d.tenant,
@@ -141,7 +201,8 @@ class magicMcpServerBackingServiceImpl {
         }
 
         let integrationInstance =
-          await integrationInstanceService.upsertMagicMcpIntegrationInstance({
+          ownerIntegrationInstance ??
+          (await integrationInstanceService.upsertMagicMcpIntegrationInstance({
             tenant: d.tenant,
             solution: d.solution,
             environment: d.environment,
@@ -155,7 +216,7 @@ class magicMcpServerBackingServiceImpl {
               identityActorId: d.input.identityActorId,
               identityId: d.input.identityId
             }
-          });
+          }));
 
         let sessionTemplate = await sessionTemplateService.upsertInternalLinkedSessionTemplate(
           {
@@ -222,7 +283,7 @@ class magicMcpServerBackingServiceImpl {
               })
             : []);
 
-        if (providers.length) {
+        if (providers.length && !ownerIntegrationInstance) {
           await integrationInstanceProviderService.setMagicMcpIntegrationInstanceProviders({
             tenant: d.tenant,
             solution: d.solution,
@@ -304,7 +365,8 @@ class magicMcpServerBackingServiceImpl {
       tenant: d.tenant,
       solution: d.solution,
       environment: d.environment,
-      sessionTemplate: backing.sessionTemplate
+      sessionTemplate: backing.sessionTemplate,
+      _allowLinked: true
     });
     await ephemeralManagedSessionService.archiveEphemeralManagedSession({
       tenant: d.tenant,

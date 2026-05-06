@@ -87,7 +87,7 @@ let getConsumerOwnerForServer = async (d: {
 let toBackingToolFilter = (toolFilter: unknown) => {
   if (!toolFilter) return null;
 
-  return toolFilter as any;
+  return toolFilter;
 };
 
 export let ensureProviderTemplateBacking = async (d: {
@@ -112,7 +112,6 @@ export let ensureProviderTemplateBacking = async (d: {
     name: d.providerTemplate.name,
     description: d.providerTemplate.description,
     metadata: d.providerTemplate.metadata as Record<string, any>,
-    providerDeploymentId: d.providerTemplate.legacyProviderDeploymentId,
     providers: d.providers,
     ...(d.toolFilters !== undefined ? { toolFilters: d.toolFilters } : {})
   });
@@ -168,6 +167,7 @@ export let ensureMagicMcpServerBacking = async (d: {
     instance: d.instance,
     magicMcpServerBackingId: d.server.id,
     providerTemplateBackingId,
+    ownerIntegrationInstanceId: d.server.subspaceIntegrationInstanceId,
     name: d.server.name,
     description: d.server.description,
     metadata: d.server.metadata as Record<string, any>,
@@ -182,7 +182,7 @@ export let ensureMagicMcpServerBacking = async (d: {
     where: { oid: d.server.oid },
     data: {
       hasSubspaceBacking: true,
-      ownerType: backing.ownerType as any,
+      ownerType: backing.ownerType,
       subspaceEphemeralManagedSessionId: backing.ephemeralManagedSessionId
     }
   });

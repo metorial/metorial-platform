@@ -16,18 +16,12 @@ import {
   type AnyAccessTagSelector
 } from '@metorial/module-access';
 import { searchProviderTemplateIds } from '@metorial/module-search';
-import { subspaceProviderDeploymentService } from '@metorial/module-subspace';
 import { ensureProviderTemplateBacking } from '../lib/backing';
 import {
   providerTemplateArchivedQueue,
   providerTemplateCreatedQueue,
   providerTemplateUpdatedQueue
 } from '../queues/lifecycle/providerTemplate';
-
-type ProviderTemplateDeploymentCreateInput = Pick<
-  Parameters<typeof subspaceProviderDeploymentService.create>[0],
-  'providerId' | 'name' | 'description' | 'metadata' | 'lockedProviderVersionId'
->;
 
 export type EnrichedProviderTemplate = ProviderTemplate & {
   subspaceIntegrationId: string | null;
@@ -139,8 +133,7 @@ class ProviderTemplateServiceImpl {
         data: {
           name: d.input.name,
           description: d.input.description,
-          metadata: d.input.metadata,
-          legacyProviderDeploymentId: d.input.providers?.[0]?.providerDeploymentId ?? undefined
+          metadata: d.input.metadata
         }
       });
     });
@@ -188,7 +181,6 @@ class ProviderTemplateServiceImpl {
     instance: Instance;
     status?: ProviderTemplateStatus[];
     ids?: string[];
-    providerDeploymentIds?: string[];
     integrationIds?: string[];
     search?: string;
     accessTags?: AnyAccessTagSelector;
@@ -222,13 +214,6 @@ class ProviderTemplateServiceImpl {
                 ? [
                     {
                       id: { in: d.ids }
-                    }
-                  ]
-                : []),
-              ...(d.providerDeploymentIds?.length
-                ? [
-                    {
-                      legacyProviderDeploymentId: { in: d.providerDeploymentIds }
                     }
                   ]
                 : []),

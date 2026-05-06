@@ -128,6 +128,9 @@ class providerTemplateBackingServiceImpl {
             include: magicMcpProviderTemplateBackingInclude
           });
 
+          let hasProvidersWithoutConfig =
+            !!d.input.providers && d.input.providers.some(p => !p.providerConfigId);
+
           let integration = await integrationService.upsertMagicMcpIntegration({
             tenant: d.tenant,
             solution: d.solution,
@@ -140,7 +143,7 @@ class providerTemplateBackingServiceImpl {
               metadata: d.input.metadata,
               privateMetadata: d.input.privateMetadata,
               canAttachCustomToolFilters: true,
-              canAttachCustomProviderConfig: false,
+              canAttachCustomProviderConfig: hasProvidersWithoutConfig,
               canOverrideToolFilters: false
             }
           });

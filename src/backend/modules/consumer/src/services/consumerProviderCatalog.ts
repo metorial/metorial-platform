@@ -19,6 +19,7 @@ import {
 } from '@metorial/module-access';
 import { searchMagicMcpServerIds, searchProviderTemplateIds } from '@metorial/module-search';
 import {
+  subspaceMagicMcpBackingService,
   subspaceProviderConfigService,
   subspaceProviderDeploymentService,
   subspaceProviderService
@@ -686,9 +687,28 @@ class ConsumerProviderCatalogServiceImpl {
       providerTemplates
     });
 
+    let backings = await subspaceMagicMcpBackingService.getManyProviderTemplates({
+      instance: d.instance,
+      providerTemplateBackingIds: providerTemplates.map(providerTemplate => providerTemplate.id)
+    });
+    let backingMap = new Map(backings.map(backing => [backing.id, backing]));
+    let primaryProviderEntries: [
+      string,
+      (typeof backings)[number]['providers'][number]
+    ][] = [];
+    for (let backing of backings) {
+      let provider = backing.providers[0];
+      if (provider) {
+        primaryProviderEntries.push([backing.id, provider]);
+      }
+    }
+    let primaryProviderByTemplateId = new Map(primaryProviderEntries);
+
     let deploymentIds = Array.from(
       new Set(
-        providerTemplates.map(providerTemplate => providerTemplate.legacyProviderDeploymentId)
+        Array.from(primaryProviderByTemplateId.values()).map(provider => {
+          return provider.deployment.id;
+        })
       )
     );
     let deployments = await Promise.all(
@@ -729,7 +749,7 @@ class ConsumerProviderCatalogServiceImpl {
     >();
 
     if (d.includeCapabilities) {
-      let accessibleDeploymentIds = new Set<string>();
+      let accessibleProviderTemplateIds = new Set<string>();
       let oidsWithConsumerAccess = new Set(
         d.records
           .filter(record => record.consumerAccesses.length > 0)
@@ -744,12 +764,17 @@ class ConsumerProviderCatalogServiceImpl {
             availabilityState
           }) == 'available_now'
         ) {
-          accessibleDeploymentIds.add(providerTemplate.legacyProviderDeploymentId);
+          accessibleProviderTemplateIds.add(providerTemplate.id);
         }
       }
 
       await Promise.all(
-        Array.from(accessibleDeploymentIds).map(async providerDeploymentId => {
+        Array.from(accessibleProviderTemplateIds).map(async providerTemplateId => {
+          let primaryProvider = primaryProviderByTemplateId.get(providerTemplateId);
+          if (!primaryProvider) {
+            throw new ServiceError(notFoundError('provider.template'));
+          }
+          let providerDeploymentId = primaryProvider.deployment.id;
           let deployment = deploymentMap.get(providerDeploymentId);
           if (!deployment) {
             throw new ServiceError(notFoundError('provider.deployment'));
@@ -773,7 +798,7 @@ class ConsumerProviderCatalogServiceImpl {
             })
           ]);
 
-          capabilityMap.set(providerDeploymentId, {
+          capabilityMap.set(providerTemplateId, {
             configSchema,
             authMethods
           });
@@ -783,7 +808,17 @@ class ConsumerProviderCatalogServiceImpl {
 
     return d.records.map(record => {
       let providerTemplate = record.providerTemplate;
-      let deployment = deploymentMap.get(providerTemplate.legacyProviderDeploymentId);
+      let backing = backingMap.get(providerTemplate.id);
+      if (!backing) {
+        throw new ServiceError(notFoundError('provider.template'));
+      }
+
+      let primaryProvider = primaryProviderByTemplateId.get(providerTemplate.id);
+      if (!primaryProvider) {
+        throw new ServiceError(notFoundError('provider'));
+      }
+
+      let deployment = deploymentMap.get(primaryProvider.deployment.id);
       if (!deployment) {
         throw new ServiceError(notFoundError('provider.deployment'));
       }
@@ -800,7 +835,7 @@ class ConsumerProviderCatalogServiceImpl {
             availabilityState
           })
         : 'request_access';
-      let capabilities = capabilityMap.get(providerTemplate.legacyProviderDeploymentId);
+      let capabilities = capabilityMap.get(providerTemplate.id);
 
       return {
         id: record.id,

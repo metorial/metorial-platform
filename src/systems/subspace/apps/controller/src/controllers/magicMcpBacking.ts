@@ -1,7 +1,6 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { createdAtValidator, updatedAtValidator } from './_dateFilter';
 import {
   magicMcpEndpointBackingService,
   magicMcpServerBackingService,
@@ -16,6 +15,7 @@ import {
   providerTemplateBackingPresenter
 } from '@metorial-subspace/presenters';
 import { app } from './_app';
+import { createdAtValidator, updatedAtValidator } from './_dateFilter';
 import { normalizeToolFilters, toolFiltersValidator } from './sessionProvider';
 import { tenantApp } from './tenant';
 
@@ -142,6 +142,7 @@ export let magicMcpBackingController = app.controller({
         magicMcpServerBackingId: v.string(),
         providerTemplateBackingId: v.optional(v.nullable(v.string())),
         ownerIntegrationId: v.optional(v.nullable(v.string())),
+        ownerIntegrationInstanceId: v.optional(v.nullable(v.string())),
         legacySessionTemplateId: v.optional(v.nullable(v.string())),
         name: v.optional(v.nullable(v.string())),
         description: v.optional(v.nullable(v.string())),
@@ -161,6 +162,7 @@ export let magicMcpBackingController = app.controller({
           id: ctx.input.magicMcpServerBackingId,
           providerTemplateBackingId: ctx.input.providerTemplateBackingId,
           ownerIntegrationId: ctx.input.ownerIntegrationId,
+          ownerIntegrationInstanceId: ctx.input.ownerIntegrationInstanceId,
           legacySessionTemplateId: ctx.input.legacySessionTemplateId,
           identityActorId: ctx.input.actorId,
           identityId: ctx.input.identityId,

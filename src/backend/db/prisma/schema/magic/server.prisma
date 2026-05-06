@@ -27,6 +27,7 @@ model MagicMcpServer {
 
   providerTemplateId                String?
   legacySubspaceSessionTemplateId   String? @map("subspaceSessionTemplateId")
+  subspaceIntegrationInstanceId     String?
   subspaceEphemeralManagedSessionId String?
 
   instanceOid BigInt

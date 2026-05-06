@@ -249,7 +249,7 @@ describe('mcp.e2e', () => {
   );
 
   it(
-    'injects $operation into tool schemas and stores extracted tool call metadata',
+    'injects _operation into tool schemas and stores extracted tool call metadata',
     { timeout: 120_000 },
     async () => {
       let ctx = await createMcpE2eContext(testDb, {
@@ -270,7 +270,7 @@ describe('mcp.e2e', () => {
         let addTool = tools.tools.find(tool => /(^|[_.-])add([_.-]|$)/.test(tool.name));
         expect(addTool).toBeTruthy();
 
-        let operationSchema = (addTool!.inputSchema as any)?.properties?.$operation;
+        let operationSchema = (addTool!.inputSchema as any)?.properties?._operation;
         expect(operationSchema.description).toContain('MUST be provided');
 
         let result = await mcp.client.callTool({
@@ -278,7 +278,7 @@ describe('mcp.e2e', () => {
           arguments: {
             a: 1,
             b: 2,
-            $operation: {
+            _operation: {
               callRationale: 'We need the calculator tool to compute the user-requested sum.',
               callDescription: 'Add the two provided numbers and return the result.'
             }
@@ -312,7 +312,7 @@ describe('mcp.e2e', () => {
           }
         });
         expect(
-          (toolCall.message.input as any)?.data?.params?.arguments?.$operation
+          (toolCall.message.input as any)?.data?.params?.arguments?._operation
         ).toBeUndefined();
       } finally {
         await mcp.cleanup();

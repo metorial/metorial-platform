@@ -1,10 +1,8 @@
-import { notFoundError, preconditionFailedError, ServiceError } from '@lowerdeck/error';
-import { getSentry } from '@lowerdeck/sentry';
+import { preconditionFailedError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import { Context } from '@metorial/context';
 import {
   ConsumerProfile,
-  db,
   MagicMcpServer,
   Organization,
   OrganizationActor,
@@ -13,18 +11,11 @@ import {
 import { type AnyAccessTagSelector } from '@metorial/module-access';
 import { magicMcpServerService } from '@metorial/module-magic';
 import {
-  subspaceIdentityCredentialService,
-  subspaceProviderAuthConfigService,
-  subspaceProviderConfigService
-} from '@metorial/module-subspace';
-import {
   loadTemplateContextForDeployment,
   type ConsumerProviderTemplateContext
 } from '../lib/consumerProviderContext';
 import { consumerAccessPolicyService } from './accessPolicy';
 import { consumerProviderSetupSessionService } from './consumerProviderSetupSession';
-
-let Sentry = getSentry();
 
 type ConsumerProviderDeployRollbackState = {
   magicMcpServer?: MagicMcpServer;
@@ -34,21 +25,34 @@ type ConsumerProviderDeployInput = {
   name?: string;
   description?: string;
   metadata?: Record<string, unknown>;
-  config?: Record<string, unknown>;
-  auth?:
-    | {
-        type: 'setup_session';
-        providerSetupSessionId: string;
-      }
-    | {
-        type: 'auth_config';
-        providerAuthConfigId: string;
-      }
-    | {
-        type: 'manual';
-        providerAuthMethodId: string;
-        value: Record<string, unknown>;
-      };
+  integrationSetupSessionId: string;
+};
+
+type SetupSessionIntegrationInstanceProvider = {
+  currentVersion?: {
+    integrationProviderVersion?: {
+      deployment?: {
+        id?: string | null;
+      } | null;
+    } | null;
+    config?: {
+      id?: string | null;
+    } | null;
+    authConfig?: {
+      id?: string | null;
+    } | null;
+    toolFilter?: unknown;
+  } | null;
+  integrationProvider?: {
+    currentVersion?: {
+      deployment?: {
+        id?: string | null;
+      } | null;
+      config?: {
+        id?: string | null;
+      } | null;
+    } | null;
+  } | null;
 };
 
 let buildConsumerMagicMcpServerCreateInput = (d: {
@@ -86,25 +90,56 @@ let hasProviderConfigFields = (providerContext: ConsumerProviderTemplateContext)
   return !!Object.keys(schema?.properties ?? {}).length;
 };
 
-let assertProviderCanBeDeployed = (d: {
-  providerContext: ConsumerProviderTemplateContext;
-  input: ConsumerProviderDeployInput;
-}) => {
+let assertProviderCanBeDeployed = (providerContext: ConsumerProviderTemplateContext) => {
   let requiresConfig =
-    hasProviderConfigFields(d.providerContext) && !d.providerContext.deployment.defaultConfig;
+    hasProviderConfigFields(providerContext) && !providerContext.deployment.defaultConfig;
 
-  if (requiresConfig && d.input.config == undefined) {
+  if (requiresConfig && !providerContext.providerTemplate.subspaceIntegrationId) {
     throw new ServiceError(
       preconditionFailedError({
-        message: 'This provider template requires configuration before deployment.'
+        message: 'This provider template requires integration setup before deployment.'
+      })
+    );
+  }
+};
+
+let getIntegrationInstanceProviders = (setupSession: any) =>
+  (setupSession.integrationInstance?.integrationInstanceProviders ??
+    setupSession.integrationInstance?.providers ??
+    []) as SetupSessionIntegrationInstanceProvider[];
+
+let assertActiveSetupSessionInstance = (setupSession: any) => {
+  if (setupSession.status != 'successful') {
+    throw new ServiceError(
+      preconditionFailedError({
+        message: 'The selected setup session is not completed yet.'
       })
     );
   }
 
-  if (!d.input.auth && d.providerContext.authMethods.length > 0) {
+  if (!setupSession.integrationInstance) {
     throw new ServiceError(
       preconditionFailedError({
-        message: 'This provider template requires authentication before deployment.'
+        message: 'The selected setup session did not create an integration instance.'
+      })
+    );
+  }
+
+  if (setupSession.integrationInstance.status != 'active') {
+    throw new ServiceError(
+      preconditionFailedError({
+        message:
+          setupSession.integrationInstance.status == 'draft'
+            ? 'The selected setup session is still a draft and cannot be deployed yet.'
+            : 'The selected setup session integration instance is not active.'
+      })
+    );
+  }
+
+  if (!getIntegrationInstanceProviders(setupSession).length) {
+    throw new ServiceError(
+      preconditionFailedError({
+        message: 'The selected integration setup session did not configure any providers.'
       })
     );
   }
@@ -127,70 +162,19 @@ class ConsumerProviderDeploymentServiceImpl {
       providerTemplateId: d.providerTemplateId
     });
 
-    assertProviderCanBeDeployed({
-      providerContext,
-      input: d.input
-    });
+    assertProviderCanBeDeployed(providerContext);
 
     let rollbackState: ConsumerProviderDeployRollbackState = {};
 
-    let instanceConsumer = await db.instanceConsumer.findFirst({
-      where: {
-        instanceOid: d.instance.oid,
-        consumerOid: d.consumerProfile.consumerOid
-      }
-    });
-    let consumerActor = instanceConsumer
-      ? await db.consumerActor.findFirst({
-          where: {
-            instanceConsumerOid: instanceConsumer.oid,
-            consumerProfileOid: d.consumerProfile.oid,
-            isDefault: true
-          }
-        })
-      : undefined;
-
     try {
-      let providerConfigId = await this.createProviderConfig({
+      let setupSession = await consumerProviderSetupSessionService.getCompletedSetupSession({
         instance: d.instance,
-        providerContext,
-        input: d.input
-      });
-      let providerAuthConfigIdRes = await this.createProviderAuthConfig({
-        instance: d.instance,
-        context: d.context,
         consumerProfile: d.consumerProfile,
-        providerContext,
-        input: d.input
+        providerTemplate: providerContext.providerTemplate,
+        integrationSetupSessionId: d.input.integrationSetupSessionId
       });
-      let providerAuthConfigId = providerAuthConfigIdRes?.authConfigId;
-      if (providerAuthConfigIdRes?.configId)
-        providerConfigId = providerAuthConfigIdRes.configId;
 
-      if (consumerActor?.defaultIdentityId) {
-        try {
-          await subspaceIdentityCredentialService.create({
-            instance: d.instance,
-            identityId: consumerActor.defaultIdentityId,
-            deploymentId: providerContext.deployment.id,
-            authConfigId: providerAuthConfigId,
-            configId: providerConfigId
-          });
-        } catch (error) {
-          Sentry.captureException(error, {
-            tags: {
-              module: 'consumerProviderDeployment',
-              step: 'createIdentityCredential'
-            },
-            extra: {
-              instanceId: d.instance.id,
-              providerDeploymentId: providerContext.deployment.id,
-              authConfigId: providerAuthConfigId,
-              configId: providerConfigId
-            }
-          });
-        }
-      }
+      assertActiveSetupSessionInstance(setupSession);
 
       let magicMcpServer = await magicMcpServerService.createMagicMcpServer({
         organization: d.organization,
@@ -208,13 +192,7 @@ class ConsumerProviderDeploymentServiceImpl {
             providerDeploymentDescription: providerContext.deployment.description,
             providerTemplateId: providerContext.providerTemplate.id
           }),
-          providers: [
-            {
-              providerDeploymentId: providerContext.deployment.id,
-              providerConfigId,
-              providerAuthConfigId
-            }
-          ]
+          subspaceIntegrationInstanceId: setupSession.integrationInstance.id
         }
       });
 
@@ -251,110 +229,6 @@ class ConsumerProviderDeploymentServiceImpl {
 
       throw error;
     }
-  }
-
-  private async createProviderConfig(d: {
-    instance: Instance;
-    providerContext: ConsumerProviderTemplateContext;
-    input: ConsumerProviderDeployInput;
-  }) {
-    if (d.input.config == undefined) {
-      return undefined;
-    }
-
-    let providerConfig = await subspaceProviderConfigService.create({
-      instance: d.instance,
-      providerId: d.providerContext.provider.id,
-      providerDeployment: {
-        type: 'reference',
-        providerDeploymentId: d.providerContext.deployment.id
-      },
-      name: `${d.providerContext.provider.name} Config`,
-      description: `Portal configuration for ${d.providerContext.provider.name}`,
-      config: {
-        type: 'inline',
-        data: d.input.config
-      }
-    });
-
-    return providerConfig.id;
-  }
-
-  private async createProviderAuthConfig(d: {
-    instance: Instance;
-    context: Context;
-    consumerProfile: Pick<ConsumerProfile, 'oid'>;
-    providerContext: ConsumerProviderTemplateContext;
-    input: ConsumerProviderDeployInput;
-  }) {
-    let authInput = d.input.auth;
-
-    if (!authInput) {
-      return undefined;
-    }
-
-    if (authInput.type == 'setup_session') {
-      let setupSession = await consumerProviderSetupSessionService.getCompletedSetupSession({
-        instance: d.instance,
-        consumerProfile: d.consumerProfile,
-        providerTemplate: d.providerContext.providerTemplate,
-        providerSetupSessionId: authInput.providerSetupSessionId
-      });
-
-      return {
-        authConfigId: setupSession.authConfig!.id,
-        configId: setupSession.config?.id
-      };
-    }
-
-    if (authInput.type == 'auth_config') {
-      let authConfig = await subspaceProviderAuthConfigService.get({
-        instance: d.instance,
-        providerAuthConfigId: authInput.providerAuthConfigId
-      });
-
-      if (authConfig.providerId != d.providerContext.provider.id) {
-        throw new ServiceError(notFoundError('provider.auth_config'));
-      }
-
-      if (
-        authConfig.deploymentPreview &&
-        authConfig.deploymentPreview.id != d.providerContext.deployment.id
-      ) {
-        throw new ServiceError(notFoundError('provider.auth_config'));
-      }
-
-      return {
-        authConfigId: authConfig.id
-      };
-    }
-
-    let authMethod = d.providerContext.authMethods.find(method => {
-      return method.id == authInput.providerAuthMethodId;
-    });
-
-    if (!authMethod) {
-      throw new ServiceError(notFoundError('provider.auth_method'));
-    }
-
-    let authConfig = await subspaceProviderAuthConfigService.create({
-      instance: d.instance,
-      providerId: d.providerContext.provider.id,
-      providerAuthMethodId: authMethod.id,
-      providerDeployment: {
-        type: 'reference',
-        providerDeploymentId: d.providerContext.deployment.id
-      },
-      name: `${d.providerContext.provider.name} Auth`,
-      description: `Portal authentication for ${d.providerContext.provider.name}`,
-      ip: d.context.ip,
-      ua: d.context.ua ?? '',
-      config: authInput.value
-    });
-
-    return {
-      authConfigId: authConfig.id
-    };
   }
 
   private async rollbackFailedDeployment(d: {

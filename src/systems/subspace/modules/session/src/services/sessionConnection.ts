@@ -64,7 +64,7 @@ class sessionConnectionServiceImpl {
               solutionOid: d.solution.oid,
               environmentOid: d.environment.oid,
 
-              isEphemeral: false,
+              // isEphemeral: false,
 
               ...normalizeStatusForList(d).hasParent,
 
@@ -75,7 +75,9 @@ class sessionConnectionServiceImpl {
                 d.agentInstanceIds
                   ? { participant: { agentInstance: { id: { in: d.agentInstanceIds } } } }
                   : undefined!,
-                agents ? { participant: { agentInstance: { agentOid: agents.in } } } : undefined!,
+                agents
+                  ? { participant: { agentInstance: { agentOid: agents.in } } }
+                  : undefined!,
                 actors
                   ? { participant: { agentInstance: { agent: { actorOid: actors.in } } } }
                   : undefined!,

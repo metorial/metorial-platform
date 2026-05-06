@@ -829,7 +829,8 @@ export let integrationInstancePresenter = declarePresenter(integrationInstanceTy
 
 export let integrationSetupSessionPresenter = declarePresenter(integrationSetupSessionType, {
   mt_2025_01_01_dashboard: v1IntegrationSetupSessionPresenter,
-  mt_2026_01_01_magnetar: v1IntegrationSetupSessionPresenter
+  mt_2026_01_01_magnetar: v1IntegrationSetupSessionPresenter,
+  mt_2026_04_01_consumer: v1IntegrationSetupSessionPresenter
 });
 
 export let integrationInstanceProviderPresenter = declarePresenter(

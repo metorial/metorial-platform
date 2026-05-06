@@ -1,5 +1,3 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
-import { db } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { resolveConsumerActorIds } from '../lib/resolveConsumerActors';
 import { createSubspaceService, toEventBase } from '../lib/subspaceService';
@@ -45,20 +43,6 @@ export let subspaceProviderDeploymentService = createSubspaceService(
     delete: async (arg0: Parameters<typeof inner.delete>[0]) => {
       let eventBase = toEventBase(arg0);
       await Fabric.fire('provider.deployment.deleted:before', eventBase);
-
-      let providerTemplate = await db.providerTemplate.findFirst({
-        where: {
-          legacyProviderDeploymentId: arg0.providerDeploymentId,
-          status: 'active'
-        }
-      });
-      if (providerTemplate) {
-        throw new ServiceError(
-          badRequestError({
-            message: 'Cannot delete deployment with active templates'
-          })
-        );
-      }
 
       let deployment = await inner.delete(arg0);
 

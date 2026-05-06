@@ -1,4 +1,4 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
@@ -50,6 +50,36 @@ let include = {
     include: sessionTemplateProviderInclude,
     where: { status: 'active' as const }
   }
+};
+
+let assertCanWriteSessionTemplate = async (
+  template: Pick<
+    SessionTemplate,
+    | 'oid'
+    | 'defaultSessionTemplateForIntegrationInstanceOid'
+    | 'defaultSessionTemplateForIntegrationInstanceGroupOid'
+  >,
+  action: 'update' | 'archive'
+) => {
+  let hasDefaultLink =
+    !!template.defaultSessionTemplateForIntegrationInstanceOid ||
+    !!template.defaultSessionTemplateForIntegrationInstanceGroupOid;
+  let hasEphemeralManagedSession =
+    (await db.ephemeralManagedSession.count({
+      where: {
+        sessionTemplateOid: template.oid,
+        status: { not: 'deleted' }
+      }
+    })) > 0;
+
+  if (!hasDefaultLink && !hasEphemeralManagedSession) return;
+
+  throw new ServiceError(
+    badRequestError({
+      message: `Cannot ${action} an internally managed session template.`,
+      code: 'internal_session_template_readonly'
+    })
+  );
 };
 
 class sessionTemplateServiceImpl {
@@ -339,9 +369,11 @@ class sessionTemplateServiceImpl {
       metadata?: Record<string, any>;
       privateMetadata?: Record<string, any>;
     };
+    _allowLinked?: boolean;
   }) {
     checkTenant(d, d.template);
     checkDeletedEdit(d.template, 'update');
+    if (!d._allowLinked) await assertCanWriteSessionTemplate(d.template, 'update');
 
     return withTransaction(async db => {
       let template = await db.sessionTemplate.update({
@@ -368,9 +400,11 @@ class sessionTemplateServiceImpl {
     solution: Solution;
     environment: Environment;
     sessionTemplate: SessionTemplate;
+    _allowLinked?: boolean;
   }) {
     checkTenant(d, d.sessionTemplate);
     checkDeletedEdit(d.sessionTemplate, 'archive');
+    if (!d._allowLinked) await assertCanWriteSessionTemplate(d.sessionTemplate, 'archive');
 
     return withTransaction(async db => {
       let archivedAt = new Date();
@@ -410,6 +444,7 @@ class sessionTemplateServiceImpl {
     solution: Solution;
     environment: Environment;
     sessionTemplate: SessionTemplate;
+    _allowLinked?: boolean;
   }) {
     return this.archiveSessionTemplate(d);
   }

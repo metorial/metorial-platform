@@ -8,6 +8,7 @@ import { Service } from '@lowerdeck/service';
 import { Context } from '@metorial/context';
 import {
   ConsumerProfile,
+  ConsumerProviderSetupSessionType,
   ConsumerSurface,
   db,
   ID,
@@ -15,11 +16,8 @@ import {
   type Instance
 } from '@metorial/db';
 import { type AnyAccessTagSelector } from '@metorial/module-access';
-import {
-  subspaceProviderAuthCredentialsService,
-  subspaceProviderSetupSessionService
-} from '@metorial/module-subspace';
-import { loadTemplateContextForSetup } from '../lib/consumerProviderContext';
+import { providerTemplateService } from '@metorial/module-magic';
+import { subspaceIntegrationSetupSessionService } from '@metorial/module-subspace';
 
 let buildProviderSetupRedirectUrl = (portalSlug: string) => {
   let template = process.env.PORTAL_HOST_TEMPLATE;
@@ -41,26 +39,74 @@ let buildProviderSetupRedirectUrl = (portalSlug: string) => {
   return `${baseUrl}/provider-setup-complete`;
 };
 
+let getSetupSessionBindingMetadata = (d: {
+  consumerProfile: Pick<ConsumerProfile, 'oid'>;
+  providerTemplate: Pick<ProviderTemplate, 'oid' | 'id'>;
+}) => ({
+  $owner: 'consumer' as const,
+  consumerProfileOid: d.consumerProfile.oid.toString(),
+  providerTemplateOid: d.providerTemplate.oid.toString(),
+  providerTemplateId: d.providerTemplate.id
+});
+
+let getConsumerIdentityContext = async (d: {
+  instance: Instance;
+  consumerProfile: Pick<ConsumerProfile, 'oid' | 'consumerOid'>;
+}) => {
+  let instanceConsumer = await db.instanceConsumer.findFirst({
+    where: {
+      instanceOid: d.instance.oid,
+      consumerOid: d.consumerProfile.consumerOid
+    }
+  });
+
+  if (!instanceConsumer) {
+    return {
+      identityActorId: null,
+      identityId: null
+    };
+  }
+
+  let consumerActor = await db.consumerActor.findFirst({
+    where: {
+      instanceOid: d.instance.oid,
+      instanceConsumerOid: instanceConsumer.oid,
+      consumerProfileOid: d.consumerProfile.oid,
+      isDefault: true
+    },
+    select: {
+      id: true,
+      defaultIdentityId: true
+    }
+  });
+
+  return {
+    identityActorId: consumerActor?.id ?? null,
+    identityId: consumerActor?.defaultIdentityId ?? null
+  };
+};
+
 let assertSetupSessionBindingMatchesConsumerProvider = (d: {
   binding: {
     consumerProfileOid: bigint;
     providerTemplateOid: bigint;
+    type: ConsumerProviderSetupSessionType;
   } | null;
   consumerProfile: Pick<ConsumerProfile, 'oid'>;
   providerTemplate: Pick<ProviderTemplate, 'oid'>;
 }) => {
-  if (!d.binding || d.binding.consumerProfileOid != d.consumerProfile.oid) {
+  if (!d.binding || d.binding.consumerProfileOid !== d.consumerProfile.oid) {
     throw new ServiceError(
       unauthorizedError({
-        message: 'The selected provider setup session does not belong to this consumer.'
+        message: 'The selected setup session does not belong to this consumer.'
       })
     );
   }
 
-  if (d.binding.providerTemplateOid != d.providerTemplate.oid) {
+  if (d.binding.providerTemplateOid !== d.providerTemplate.oid) {
     throw new ServiceError(
       unauthorizedError({
-        message: 'The selected provider setup session does not belong to this template.'
+        message: 'The selected setup session does not belong to this template.'
       })
     );
   }
@@ -78,10 +124,10 @@ class ConsumerProviderSetupSessionServiceImpl {
       providerAuthMethodId?: string;
     };
   }) {
-    let providerContext = await loadTemplateContextForSetup({
+    let providerTemplate = await providerTemplateService.getProviderTemplateById({
       instance: d.instance,
-      accessTags: d.accessTags,
-      providerTemplateId: d.providerTemplateId
+      providerTemplateId: d.providerTemplateId,
+      accessTags: d.accessTags
     });
 
     let portal = await db.portal.findFirst({
@@ -98,31 +144,34 @@ class ConsumerProviderSetupSessionServiceImpl {
       throw new ServiceError(notFoundError('portal'));
     }
 
-    let credentials = await (
-      await subspaceProviderAuthCredentialsService.list({
-        instance: d.instance,
-        status: ['active'],
-        providerIds: [providerContext.provider.id],
-        providerAuthMethodIds: d.input.providerAuthMethodId
-          ? [d.input.providerAuthMethodId]
-          : undefined
-      })
-    ).run({ limit: 1 });
-    let creds = credentials.items[0];
+    if (!providerTemplate.subspaceIntegrationId) {
+      throw new ServiceError(
+        preconditionFailedError({
+          message: 'This provider template does not have integration backing yet.'
+        })
+      );
+    }
 
-    let setupSession = await subspaceProviderSetupSessionService.create({
+    let consumerIdentity = await getConsumerIdentityContext({
       instance: d.instance,
-      providerId: providerContext.provider.id,
-      providerDeploymentId: providerContext.deployment.id,
-      name: providerContext.provider.name,
-      description: providerContext.provider.description ?? undefined,
-      uiMode: 'metorial_elements',
-      type: 'auth_only',
+      consumerProfile: d.consumerProfile
+    });
+
+    let setupSession = await subspaceIntegrationSetupSessionService.create({
+      instance: d.instance,
+      integrationId: providerTemplate.subspaceIntegrationId,
+      name: providerTemplate.name,
+      description: providerTemplate.description ?? undefined,
+      metadata: (providerTemplate.metadata as Record<string, unknown> | null) ?? {},
+      privateMetadata: getSetupSessionBindingMetadata({
+        consumerProfile: d.consumerProfile,
+        providerTemplate
+      }),
+      identityActorId: consumerIdentity.identityActorId,
+      identityId: consumerIdentity.identityId,
       ip: d.context.ip,
       ua: d.context.ua ?? '',
       redirectUrl: buildProviderSetupRedirectUrl(portal.slug),
-      providerAuthCredentialsId: creds?.id,
-      providerAuthMethodId: d.input.providerAuthMethodId ?? 'oauth',
       configuration: {
         ui: {
           layout: 'side'
@@ -134,8 +183,9 @@ class ConsumerProviderSetupSessionServiceImpl {
       data: {
         id: await ID.generateId('consumerProviderSetupSessionBinding'),
         providerSetupSessionId: setupSession.id,
+        type: 'integration_setup_session',
         consumerProfileOid: d.consumerProfile.oid,
-        providerTemplateOid: providerContext.providerTemplate.oid,
+        providerTemplateOid: providerTemplate.oid,
         instanceOid: d.instance.oid
       }
     });
@@ -147,11 +197,11 @@ class ConsumerProviderSetupSessionServiceImpl {
     instance: Instance;
     consumerProfile: Pick<ConsumerProfile, 'oid'>;
     providerTemplate: Pick<ProviderTemplate, 'oid'>;
-    providerSetupSessionId: string;
+    integrationSetupSessionId: string;
   }) {
     return await this.getBoundSetupSession({
       instance: d.instance,
-      providerSetupSessionId: d.providerSetupSessionId,
+      integrationSetupSessionId: d.integrationSetupSessionId,
       consumerProfile: d.consumerProfile,
       providerTemplate: d.providerTemplate
     });
@@ -161,7 +211,7 @@ class ConsumerProviderSetupSessionServiceImpl {
     instance: Instance;
     consumerProfile: Pick<ConsumerProfile, 'oid'>;
     providerTemplate: Pick<ProviderTemplate, 'oid'>;
-    providerSetupSessionId: string;
+    integrationSetupSessionId: string;
   }) {
     return await this.getBoundSetupSession({
       ...d,
@@ -171,40 +221,69 @@ class ConsumerProviderSetupSessionServiceImpl {
 
   private async getBoundSetupSession(d: {
     instance: Instance;
-    providerSetupSessionId: string;
+    integrationSetupSessionId: string;
     consumerProfile: Pick<ConsumerProfile, 'oid'>;
     providerTemplate: Pick<ProviderTemplate, 'oid'>;
     requireCompleted?: boolean;
   }) {
-    let setupSession = await subspaceProviderSetupSessionService.get({
-      instance: d.instance,
-      providerSetupSessionId: d.providerSetupSessionId
-    });
     let binding = await db.consumerProviderSetupSessionBinding.findUnique({
       where: {
         instanceOid_providerSetupSessionId: {
           instanceOid: d.instance.oid,
-          providerSetupSessionId: d.providerSetupSessionId
+          providerSetupSessionId: d.integrationSetupSessionId
         }
+      },
+      select: {
+        consumerProfileOid: true,
+        providerTemplateOid: true,
+        type: true
       }
     });
-
-    if (
-      d.requireCompleted &&
-      (setupSession.status != 'completed' || !setupSession.authConfig?.id)
-    ) {
-      throw new ServiceError(
-        preconditionFailedError({
-          message: 'The selected provider setup session is not completed yet.'
-        })
-      );
-    }
 
     assertSetupSessionBindingMatchesConsumerProvider({
       binding,
       consumerProfile: d.consumerProfile,
       providerTemplate: d.providerTemplate
     });
+
+    if (binding?.type == 'provider_setup_session') {
+      // let setupSession = await subspaceProviderSetupSessionService.get({
+      //   instance: d.instance,
+      //   providerSetupSessionId: d.integrationSetupSessionId
+      // });
+
+      // if (
+      //   d.requireCompleted &&
+      //   (setupSession.status != 'completed' || !setupSession.authConfig?.id)
+      // ) {
+      //   throw new ServiceError(
+      //     preconditionFailedError({
+      //       message: 'The selected setup session is not completed yet.'
+      //     })
+      //   );
+      // }
+
+      // return setupSession;
+
+      throw new ServiceError(
+        preconditionFailedError({
+          message: 'The selected setup session is not an integration setup session.'
+        })
+      );
+    }
+
+    let setupSession = await subspaceIntegrationSetupSessionService.get({
+      instance: d.instance,
+      integrationSetupSessionId: d.integrationSetupSessionId
+    });
+
+    if (d.requireCompleted && setupSession.status != 'successful') {
+      throw new ServiceError(
+        preconditionFailedError({
+          message: 'The selected setup session is not completed yet.'
+        })
+      );
+    }
 
     return setupSession;
   }

@@ -4,21 +4,57 @@ import type {
   Integration,
   IntegrationInstance,
   IntegrationInstanceGroup,
+  IntegrationProvider,
+  IntegrationProviderVersion,
   MagicMcpEndpointBacking,
   MagicMcpEndpointServerBacking,
+  Provider,
+  ProviderAuthCredentials,
+  ProviderAuthMethod,
+  ProviderConfig,
+  ProviderDeployment,
+  ProviderSpecification,
   MagicMcpServerBacking,
   ProviderTemplateBacking,
   SessionTemplate
 } from '@metorial-subspace/db';
+import { integrationProviderPresenter } from './integrationProvider';
+
+type ProviderTemplateBackingIntegration = Integration & {
+  providers: (IntegrationProvider & {
+    provider: Provider;
+    currentVersion:
+      | (IntegrationProviderVersion & {
+          deployment: ProviderDeployment;
+          authMethod:
+            | (ProviderAuthMethod & {
+                specification: Omit<ProviderSpecification, 'value'>;
+              })
+            | null;
+          authCredentials: ProviderAuthCredentials | null;
+          config: ProviderConfig | null;
+        })
+      | null;
+  })[];
+};
 
 export let providerTemplateBackingPresenter = (
   backing: ProviderTemplateBacking & {
-    integration: Integration;
+    integration: ProviderTemplateBackingIntegration;
   }
 ) => ({
   object: 'magic_mcp.provider_template_backing',
   id: backing.id,
   integrationId: backing.integration.id,
+  providers: backing.integration.providers
+    .filter(provider => !!provider.currentVersion)
+    .map(provider =>
+      integrationProviderPresenter({
+        ...provider,
+        integration: backing.integration,
+        currentVersion: provider.currentVersion
+      })
+    ),
   createdAt: backing.createdAt
 });
 
