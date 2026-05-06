@@ -32,6 +32,7 @@ let include = {
   tenant: true,
   solution: true,
   environment: true,
+  identity: true,
   sessionTemplate: true,
   currentSession: {
     include: {
@@ -128,6 +129,8 @@ class ephemeralManagedSessionServiceImpl {
           solutionOid: d.solution.oid,
           environmentOid: d.environment.oid,
           sessionTemplateOid: d.sessionTemplate.oid,
+          actorOid: d.sessionTemplate.identityActorOid ?? null,
+          identityOid: d.sessionTemplate.identityOid ?? null,
           maxSessionDurationInMinutes: d.input.maxSessionDurationInMinutes,
           templateHash: d.sessionTemplate.hash ?? null
         },
@@ -141,6 +144,8 @@ class ephemeralManagedSessionServiceImpl {
         environment: d.environment,
         isEphemeral: true,
         ephemeralManagedSessionOid: ephemeralManagedSession.oid,
+        identityActorOid: d.sessionTemplate.identityActorOid ?? null,
+        identityOid: d.sessionTemplate.identityOid ?? null,
         input: {
           name: d.sessionTemplate.name ?? undefined,
           description: d.sessionTemplate.description ?? undefined,
@@ -183,7 +188,8 @@ class ephemeralManagedSessionServiceImpl {
         archivedAt: null,
         maxSessionDurationInMinutes: d.input.maxSessionDurationInMinutes,
         sessionTemplateOid: d.sessionTemplate.oid,
-        actorOid: d.input.actorOid ?? null
+        actorOid: d.input.actorOid ?? d.sessionTemplate.identityActorOid ?? null,
+        identityOid: d.sessionTemplate.identityOid ?? null
       };
 
       if (d.ephemeralManagedSession) {
@@ -322,6 +328,8 @@ class ephemeralManagedSessionServiceImpl {
           environment: ephemeralManagedSession.environment,
           isEphemeral: true,
           ephemeralManagedSessionOid: ephemeralManagedSession.oid,
+          identityActorOid: ephemeralManagedSession.sessionTemplate.identityActorOid ?? null,
+          identityOid: ephemeralManagedSession.sessionTemplate.identityOid ?? null,
           input: {
             name: ephemeralManagedSession.sessionTemplate.name ?? undefined,
             description: ephemeralManagedSession.sessionTemplate.description ?? undefined,

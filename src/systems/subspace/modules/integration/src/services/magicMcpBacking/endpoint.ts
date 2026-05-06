@@ -38,7 +38,11 @@ type UpsertMagicMcpEndpointBackingInput = {
 
 class magicMcpEndpointBackingServiceImpl {
   async upsertMagicMcpEndpointBacking(d: UpsertMagicMcpEndpointBackingInput) {
-    let actorOid = await resolveActorOid({ ...d, identityActorId: d.input.identityActorId });
+    let actorOid = await resolveActorOid({
+      ...d,
+      identityActorId: d.input.identityActorId,
+      identityId: d.input.identityId
+    });
 
     await withMagicMcpBackingLock(
       [
@@ -94,7 +98,12 @@ class magicMcpEndpointBackingServiceImpl {
                 name: d.input.name?.trim() || d.input.id,
                 description: d.input.description,
                 metadata: d.input.metadata,
-                privateMetadata: d.input.privateMetadata
+                privateMetadata: d.input.privateMetadata,
+                identityActorId: d.input.identityActorId,
+                identityId: d.input.identityId,
+                identitySourceIntegrationInstances: serverBackings.map(
+                  backing => backing.integrationInstance
+                )
               }
             });
 

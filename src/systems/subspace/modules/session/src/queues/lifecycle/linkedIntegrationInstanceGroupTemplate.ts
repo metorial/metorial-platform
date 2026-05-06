@@ -135,6 +135,14 @@ export let syncIntegrationInstanceGroupSessionTemplate = async (data: {
   let createdSessionTemplateProviderIds = await withTransaction(async db => {
     let createdSessionTemplateProviderIds: string[] = [];
 
+    await db.sessionTemplate.update({
+      where: { oid: sessionTemplate.oid },
+      data: {
+        identityActorOid: integrationInstanceGroup.identityActorOid ?? null,
+        identityOid: integrationInstanceGroup.identityOid ?? null
+      }
+    });
+
     for (let groupProvider of materialProviders) {
       let sourceProvider = groupProvider.integrationInstanceProvider;
       let currentVersion = sourceProvider.currentVersion!;

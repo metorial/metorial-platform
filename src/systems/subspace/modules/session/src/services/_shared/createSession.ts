@@ -14,6 +14,8 @@ import {
 } from '../sessionProviderInput';
 
 export let sessionInclude = {
+  identityActor: true,
+  identity: true,
   providers: {
     include: sessionProviderInclude,
     where: { status: 'active' as const }
@@ -23,10 +25,13 @@ export let sessionInclude = {
 export let createSessionRecord = async (d: {
   db: {
     session: typeof db.session;
+    sessionTemplate: typeof db.sessionTemplate;
   };
   tenant: Tenant;
   solution: Solution;
   environment: Environment;
+  identityActorOid?: bigint | null;
+  identityOid?: bigint | null;
   input: {
     name?: string;
     description?: string;
@@ -37,6 +42,26 @@ export let createSessionRecord = async (d: {
   isEphemeral: boolean;
   ephemeralManagedSessionOid?: bigint | null;
 }) => {
+  let templateId = d.input.providers.find(
+    provider => provider.sessionTemplateId
+  )?.sessionTemplateId;
+  let templateIdentity =
+    d.identityActorOid === undefined && d.identityOid === undefined && templateId
+      ? await d.db.sessionTemplate.findFirst({
+          where: {
+            id: templateId,
+            tenantOid: d.tenant.oid,
+            solutionOid: d.solution.oid,
+            environmentOid: d.environment.oid,
+            status: 'active'
+          },
+          select: {
+            identityActorOid: true,
+            identityOid: true
+          }
+        })
+      : null;
+
   let session = await d.db.session.create({
     data: {
       ...getId('session'),
@@ -52,6 +77,8 @@ export let createSessionRecord = async (d: {
       tenantOid: d.tenant.oid,
       solutionOid: d.solution.oid,
       environmentOid: d.environment.oid,
+      identityActorOid: d.identityActorOid ?? templateIdentity?.identityActorOid ?? null,
+      identityOid: d.identityOid ?? templateIdentity?.identityOid ?? null,
       ephemeralManagedSessionOid: d.ephemeralManagedSessionOid ?? undefined,
 
       sessionEvents: {

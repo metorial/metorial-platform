@@ -123,6 +123,14 @@ export let syncIntegrationInstanceSessionTemplateQueueProcessor =
     let createdSessionTemplateProviderIds = await withTransaction(async db => {
       let createdSessionTemplateProviderIds: string[] = [];
 
+      await db.sessionTemplate.update({
+        where: { oid: sessionTemplate.oid },
+        data: {
+          identityActorOid: integrationInstance.identityActorOid ?? null,
+          identityOid: integrationInstance.identityOid ?? null
+        }
+      });
+
       for (let integrationInstanceProvider of materialProviders) {
         let currentVersion = integrationInstanceProvider.currentVersion!;
         let existing = existingByIntegrationInstanceProviderOid.get(

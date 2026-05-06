@@ -44,6 +44,8 @@ import {
 import { sessionTemplateProviderInclude } from './sessionTemplateProvider';
 
 let include = {
+  identityActor: true,
+  identity: true,
   integrationInstance: true,
   integrationInstanceGroup: true,
   providers: {
@@ -326,6 +328,14 @@ class sessionTemplateServiceImpl {
         isInternal: true,
         integrationInstanceOid: d.input.integrationInstance?.oid ?? null,
         integrationInstanceGroupOid: d.input.integrationInstanceGroup?.oid ?? null,
+        identityActorOid:
+          d.input.integrationInstance?.identityActorOid ??
+          d.input.integrationInstanceGroup?.identityActorOid ??
+          null,
+        identityOid:
+          d.input.integrationInstance?.identityOid ??
+          d.input.integrationInstanceGroup?.identityOid ??
+          null,
         defaultSessionTemplateForIntegrationInstanceOid:
           d.input.integrationInstance?.oid ?? null,
         defaultSessionTemplateForIntegrationInstanceGroupOid:

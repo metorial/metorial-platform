@@ -80,6 +80,8 @@ export let syncSessionTemplateHash = async (data: { sessionTemplateId: string })
       sessionTemplate.status,
       sessionTemplate.integrationInstanceGroupOid?.toString() ?? null,
       sessionTemplate.integrationInstanceOid?.toString() ?? null,
+      sessionTemplate.identityActorOid?.toString() ?? null,
+      sessionTemplate.identityOid?.toString() ?? null,
       providers
         .map(provider => ({
           providerOid: provider.providerOid.toString(),

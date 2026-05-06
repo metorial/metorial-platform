@@ -27,6 +27,12 @@ model SessionTemplate {
   solutionOid Int
   solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
 
+  identityActorOid BigInt?
+  identityActor    IdentityActor? @relation(fields: [identityActorOid], references: [oid], onDelete: SetNull)
+
+  identityOid BigInt?
+  identity    Identity? @relation(fields: [identityOid], references: [oid], onDelete: SetNull)
+
   integrationInstanceOid BigInt?
   integrationInstance    IntegrationInstance? @relation(fields: [integrationInstanceOid], references: [oid], onDelete: Cascade)
 
@@ -53,6 +59,8 @@ model SessionTemplate {
   @@index([status])
   @@index([archivedAt])
   @@index([status, archivedAt])
+  @@index([identityActorOid])
+  @@index([identityOid])
   @@index([integrationInstanceOid, status])
   @@index([integrationInstanceGroupOid, status])
   @@index([defaultSessionTemplateForIntegrationInstanceOid, status], map: "stm_default_for_instance_status_idx")

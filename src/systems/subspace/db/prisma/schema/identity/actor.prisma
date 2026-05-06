@@ -43,6 +43,9 @@ model IdentityActor {
   identityDelegations        IdentityDelegation[]        @relation("delegations")
   subDelegations             IdentityDelegation[]        @relation("subDelegatedTo")
   integrationInstances       IntegrationInstance[]
+  integrationInstanceGroups  IntegrationInstanceGroup[]
+  sessionTemplates           SessionTemplate[]
+  sessions                   Session[]
   magicMcpEndpointBackings   MagicMcpEndpointBacking[]
   magicMcpServerBackings     MagicMcpServerBacking[]
   ephemeralManagedSessions   EphemeralManagedSession[]

@@ -33,6 +33,9 @@ model EphemeralManagedSession {
   actorOid BigInt?
   actor    IdentityActor? @relation(fields: [actorOid], references: [oid], onDelete: SetNull)
 
+  identityOid BigInt?
+  identity    Identity? @relation(fields: [identityOid], references: [oid], onDelete: SetNull)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
@@ -46,5 +49,6 @@ model EphemeralManagedSession {
   @@index([archivedAt])
   @@index([status, archivedAt])
   @@index([sessionTemplateOid])
+  @@index([identityOid])
   @@index([currentSessionOid, status])
 }

@@ -6,6 +6,7 @@ import {
   db,
   type Environment,
   getId,
+  type IntegrationInstance,
   type IntegrationInstanceGroup,
   type IntegrationInstanceGroupStatus,
   type Solution,
@@ -29,6 +30,7 @@ import {
   resolveProviders,
   resolveSessionTemplates
 } from '@metorial-subspace/list-utils';
+import { identityActorService, identityService } from '@metorial-subspace/module-identity';
 import { sessionTemplateService } from '@metorial-subspace/module-session';
 import { syncIntegrationInstanceGroupSessionTemplateQueue } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedIntegrationInstanceGroupTemplate';
 import { checkTenant } from '@metorial-subspace/module-tenant';
@@ -78,6 +80,8 @@ export let integrationInstanceGroupProviderInclude = {
 } as const;
 
 export let integrationInstanceGroupInclude = {
+  identityActor: true,
+  identity: true,
   defaultSessionTemplate: true,
   sources: {
     where: { status: 'active' as const, isParentDeleted: false },
@@ -98,9 +102,100 @@ type IntegrationInstanceGroupWriteInput = {
   description?: string | null;
   metadata?: Record<string, any> | null;
   privateMetadata?: Record<string, any> | null;
+  identityActorId?: string | null;
+  identityId?: string | null;
+  identitySourceIntegrationInstances?: Pick<
+    IntegrationInstance,
+    'identityActorOid' | 'identityOid'
+  >[];
 };
 
 class integrationInstanceGroupServiceImpl {
+  private async resolveIdentitySnapshot(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    current?: Pick<IntegrationInstanceGroup, 'identityActorOid' | 'identityOid'> | null;
+    input: Pick<
+      IntegrationInstanceGroupWriteInput,
+      'identityActorId' | 'identityId' | 'identitySourceIntegrationInstances'
+    >;
+  }) {
+    if (d.input.identityActorId !== undefined || d.input.identityId !== undefined) {
+      let identity = d.input.identityId
+        ? await identityService.getIdentityById({
+            tenant: d.tenant,
+            solution: d.solution,
+            environment: d.environment,
+            identityId: d.input.identityId
+          })
+        : null;
+
+      let actor = d.input.identityActorId
+        ? await identityActorService.getIdentityActorById({
+            tenant: d.tenant,
+            solution: d.solution,
+            environment: d.environment,
+            identityActorId: d.input.identityActorId
+          })
+        : null;
+
+      return {
+        identityActorOid: actor?.oid ?? identity?.actorOid ?? null,
+        identityOid: identity?.oid ?? null
+      };
+    }
+
+    let source = d.input.identitySourceIntegrationInstances?.find(
+      integrationInstance =>
+        integrationInstance.identityActorOid || integrationInstance.identityOid
+    );
+    if (source) {
+      return {
+        identityActorOid: source.identityActorOid ?? null,
+        identityOid: source.identityOid ?? null
+      };
+    }
+
+    return {
+      identityActorOid: d.current?.identityActorOid ?? null,
+      identityOid: d.current?.identityOid ?? null
+    };
+  }
+
+  private async applyIdentity(d: {
+    db: {
+      integrationInstanceGroup: typeof db.integrationInstanceGroup;
+    };
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    integrationInstanceGroup: IntegrationInstanceGroup & {
+      sources?: { integrationInstance: IntegrationInstance }[];
+    };
+    input: IntegrationInstanceGroupWriteInput;
+  }) {
+    let identity = await this.resolveIdentitySnapshot({
+      tenant: d.tenant,
+      solution: d.solution,
+      environment: d.environment,
+      current: d.integrationInstanceGroup,
+      input: {
+        identityActorId: d.input.identityActorId,
+        identityId: d.input.identityId,
+        identitySourceIntegrationInstances:
+          d.input.identitySourceIntegrationInstances ??
+          d.integrationInstanceGroup.sources?.map(source => source.integrationInstance)
+      }
+    });
+
+    return await d.db.integrationInstanceGroup.update({
+      where: { oid: d.integrationInstanceGroup.oid },
+      data: identity,
+      include: integrationInstanceGroupInclude
+    });
+  }
+
   private integrationInstanceGroupCreateData(d: {
     tenant: Tenant;
     solution: Solution;
@@ -299,6 +394,8 @@ class integrationInstanceGroupServiceImpl {
       description?: string;
       metadata?: Record<string, any>;
       privateMetadata?: Record<string, any>;
+      identityActorId?: string | null;
+      identityId?: string | null;
       providers?: SetIntegrationInstanceGroupProviderInput[];
     };
   }) {
@@ -330,6 +427,15 @@ class integrationInstanceGroupServiceImpl {
         });
       }
 
+      integrationInstanceGroup = await this.applyIdentity({
+        db,
+        tenant: d.tenant,
+        solution: d.solution,
+        environment: d.environment,
+        integrationInstanceGroup,
+        input: d.input
+      });
+
       await addAfterTransactionHook(async () =>
         integrationInstanceGroupCreatedQueue.add({
           integrationInstanceGroupId: integrationInstanceGroup.id
@@ -350,6 +456,12 @@ class integrationInstanceGroupServiceImpl {
       description?: string | null;
       metadata?: Record<string, any> | null;
       privateMetadata?: Record<string, any> | null;
+      identityActorId?: string | null;
+      identityId?: string | null;
+      identitySourceIntegrationInstances?: Pick<
+        IntegrationInstance,
+        'identityActorOid' | 'identityOid'
+      >[];
     };
   }) {
     return await withTransaction(async db => {
@@ -368,6 +480,15 @@ class integrationInstanceGroupServiceImpl {
             isMagicMcpBacking: true
           }),
           include: integrationInstanceGroupInclude
+        });
+
+        integrationInstanceGroup = await this.applyIdentity({
+          db,
+          tenant: d.tenant,
+          solution: d.solution,
+          environment: d.environment,
+          integrationInstanceGroup,
+          input: d.input
         });
 
         await addAfterTransactionHook(async () =>
@@ -392,6 +513,15 @@ class integrationInstanceGroupServiceImpl {
         include: integrationInstanceGroupInclude
       });
 
+      integrationInstanceGroup = await this.applyIdentity({
+        db,
+        tenant: d.tenant,
+        solution: d.solution,
+        environment: d.environment,
+        integrationInstanceGroup,
+        input: d.input
+      });
+
       await addAfterTransactionHook(async () =>
         integrationInstanceGroupCreatedQueue.add({
           integrationInstanceGroupId: integrationInstanceGroup.id
@@ -412,6 +542,8 @@ class integrationInstanceGroupServiceImpl {
       description?: string | null;
       metadata?: Record<string, any> | null;
       privateMetadata?: Record<string, any> | null;
+      identityActorId?: string | null;
+      identityId?: string | null;
       providers?: SetIntegrationInstanceGroupProviderInput[];
     };
   }) {
@@ -467,6 +599,25 @@ class integrationInstanceGroupServiceImpl {
         });
       }
 
+      integrationInstanceGroup = await this.applyIdentity({
+        db,
+        tenant: d.tenant,
+        solution: d.solution,
+        environment: d.environment,
+        integrationInstanceGroup,
+        input: {
+          name: integrationInstanceGroup.name,
+          description: integrationInstanceGroup.description,
+          metadata: integrationInstanceGroup.metadata as Record<string, any> | null,
+          privateMetadata: integrationInstanceGroup.privateMetadata as Record<
+            string,
+            any
+          > | null,
+          identityActorId: d.input.identityActorId,
+          identityId: d.input.identityId
+        }
+      });
+
       await addAfterTransactionHook(async () =>
         integrationInstanceGroupUpdatedQueue.add({
           integrationInstanceGroupId: integrationInstanceGroup.id
@@ -493,12 +644,11 @@ class integrationInstanceGroupServiceImpl {
     checkDeletedRelation(d.integrationInstanceGroup);
 
     return await withTransaction(async db => {
-      let currentIntegrationInstanceGroup = await db.integrationInstanceGroup.findUniqueOrThrow({
-        where: { oid: d.integrationInstanceGroup.oid },
-        include: {
-          defaultSessionTemplate: true
-        }
-      });
+      let currentIntegrationInstanceGroup =
+        await db.integrationInstanceGroup.findUniqueOrThrow({
+          where: { oid: d.integrationInstanceGroup.oid },
+          include: integrationInstanceGroupInclude
+        });
 
       let sessionTemplate = await sessionTemplateService.upsertInternalLinkedSessionTemplate({
         tenant: d.tenant,
@@ -510,7 +660,7 @@ class integrationInstanceGroupServiceImpl {
           description: d.input.description,
           metadata: d.input.metadata,
           privateMetadata: d.input.privateMetadata,
-          integrationInstanceGroup: d.integrationInstanceGroup
+          integrationInstanceGroup: currentIntegrationInstanceGroup
         }
       });
 

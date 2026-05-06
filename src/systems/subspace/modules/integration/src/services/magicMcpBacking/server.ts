@@ -75,7 +75,11 @@ class magicMcpServerBackingServiceImpl {
   }
 
   async upsertMagicMcpServerBacking(d: UpsertMagicMcpServerBackingInput) {
-    let actorOid = await resolveActorOid({ ...d, identityActorId: d.input.identityActorId });
+    let actorOid = await resolveActorOid({
+      ...d,
+      identityActorId: d.input.identityActorId,
+      identityId: d.input.identityId
+    });
     if (d.input.providerTemplateBackingId && d.input.ownerIntegrationId) {
       throw new ServiceError(
         notFoundError(

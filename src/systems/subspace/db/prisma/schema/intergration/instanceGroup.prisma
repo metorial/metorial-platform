@@ -28,6 +28,12 @@ model IntegrationInstanceGroup {
   solutionOid Int
   solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
 
+  identityActorOid BigInt?
+  identityActor    IdentityActor? @relation(fields: [identityActorOid], references: [oid], onDelete: SetNull)
+
+  identityOid BigInt?
+  identity    Identity? @relation(fields: [identityOid], references: [oid], onDelete: SetNull)
+
   defaultSessionTemplate SessionTemplate? @relation("defaultSessionTemplateForIntegrationInstanceGroup")
 
   createdAt DateTime @default(now())
@@ -44,6 +50,8 @@ model IntegrationInstanceGroup {
   @@index([status])
   @@index([archivedAt])
   @@index([status, archivedAt])
+  @@index([identityActorOid])
+  @@index([identityOid])
 }
 
 enum IntegrationInstanceGroupSourceStatus {

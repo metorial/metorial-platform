@@ -110,11 +110,14 @@ vi.mock('@metorial-subspace/module-search', () => ({
   voyagerSource: Promise.resolve({ id: 'voyager-source' })
 }));
 
-vi.mock('@metorial-subspace/module-session/src/queues/lifecycle/linkedSessionTemplate', () => ({
-  syncIntegrationInstanceSessionTemplateQueue: {
-    add: syncIntegrationInstanceSessionTemplateQueueAddMock
-  }
-}));
+vi.mock(
+  '@metorial-subspace/module-session/src/queues/lifecycle/linkedSessionTemplate',
+  () => ({
+    syncIntegrationInstanceSessionTemplateQueue: {
+      add: syncIntegrationInstanceSessionTemplateQueueAddMock
+    }
+  })
+);
 
 vi.mock(
   '@metorial-subspace/module-session/src/queues/lifecycle/linkedIntegrationInstanceGroupTemplate',
@@ -163,7 +166,9 @@ import { integrationInstanceService } from '../src/services/integrationInstance'
 describe('shared integration session templates', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    withTransactionMock.mockImplementation(async (callback: (db: any) => Promise<any>) => callback(db));
+    withTransactionMock.mockImplementation(async (callback: (db: any) => Promise<any>) =>
+      callback(db)
+    );
     addAfterTransactionHookMock.mockImplementation(async (callback: () => Promise<void>) => {
       await callback();
     });
@@ -178,7 +183,12 @@ describe('shared integration session templates', () => {
     } as any);
     upsertInternalLinkedSessionTemplateMock.mockResolvedValue(createdTemplate);
 
-    let integrationInstance = { oid: 11n, id: 'int_instance_1' } as any;
+    let integrationInstance = {
+      oid: 11n,
+      id: 'int_instance_1',
+      identityActorOid: 501n,
+      identityOid: 601n
+    } as any;
 
     let result = await integrationInstanceService.createSessionTemplateForIntegrationInstance({
       tenant: { oid: 1n } as any,
@@ -214,13 +224,18 @@ describe('shared integration session templates', () => {
   it('upserts the default shared template for an integration instance group', async () => {
     let existingTemplate = { oid: 202n, id: 'stm_group_existing' };
     let createdTemplate = { id: 'stm_group_default' };
-
-    vi.mocked(db.integrationInstanceGroup.findUniqueOrThrow).mockResolvedValue({
-      defaultSessionTemplate: existingTemplate
-    } as any);
-    upsertInternalLinkedSessionTemplateMock.mockResolvedValue(createdTemplate);
-
     let integrationInstanceGroup = { oid: 22n, id: 'int_group_1' } as any;
+    let currentIntegrationInstanceGroup = {
+      ...integrationInstanceGroup,
+      identityActorOid: 502n,
+      identityOid: 602n,
+      defaultSessionTemplate: existingTemplate
+    };
+
+    vi.mocked(db.integrationInstanceGroup.findUniqueOrThrow).mockResolvedValue(
+      currentIntegrationInstanceGroup as any
+    );
+    upsertInternalLinkedSessionTemplateMock.mockResolvedValue(createdTemplate);
 
     let result =
       await integrationInstanceGroupService.createSessionTemplateForIntegrationInstanceGroup({
@@ -245,7 +260,7 @@ describe('shared integration session templates', () => {
         description: 'Used for grouped sessions',
         metadata: { region: 'eu-central' },
         privateMetadata: undefined,
-        integrationInstanceGroup
+        integrationInstanceGroup: currentIntegrationInstanceGroup
       }
     });
     expect(syncIntegrationInstanceGroupSessionTemplateQueueAddMock).toHaveBeenCalledWith({

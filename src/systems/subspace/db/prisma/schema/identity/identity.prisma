@@ -46,6 +46,10 @@ model Identity {
   identityDelegationRequests IdentityDelegationRequest[]
   delegatedIdentities        DelegatedIdentity[]
   integrationInstances       IntegrationInstance[]
+  integrationInstanceGroups  IntegrationInstanceGroup[]
+  sessionTemplates           SessionTemplate[]
+  sessions                   Session[]
+  ephemeralManagedSessions   EphemeralManagedSession[]
 
   @@index([createdAt])
   @@index([updatedAt])
