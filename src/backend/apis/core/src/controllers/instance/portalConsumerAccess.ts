@@ -1,12 +1,8 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import {
-  consumerAccessService,
-  consumerGroupService,
-  providerTemplateService
-} from '@metorial/module-consumer';
-import { magicMcpServerService } from '@metorial/module-magic';
+import { consumerAccessService, consumerGroupService } from '@metorial/module-consumer';
+import { magicMcpServerService, providerTemplateService } from '@metorial/module-magic';
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';

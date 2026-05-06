@@ -1,12 +1,12 @@
 import { type Instance, type ProviderTemplate } from '@metorial/db';
 import { type AnyAccessTagSelector } from '@metorial/module-access';
+import { providerTemplateService } from '@metorial/module-magic';
 import {
   subspaceProviderAuthMethodService,
   subspaceProviderConfigService,
   subspaceProviderDeploymentService,
   subspaceProviderService
 } from '@metorial/module-subspace';
-import { providerTemplateService } from '../services/providerTemplate';
 
 export type ConsumerProviderDeployment = Awaited<
   ReturnType<typeof subspaceProviderDeploymentService.get>
@@ -69,7 +69,7 @@ let loadBaseTemplateContext = async (d: {
 
   let deployment = await subspaceProviderDeploymentService.get({
     instance: d.instance,
-    providerDeploymentId: providerTemplate.providerDeploymentId
+    providerDeploymentId: providerTemplate.legacyProviderDeploymentId
   });
   let provider = await subspaceProviderService.get({
     instance: d.instance,

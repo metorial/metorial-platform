@@ -687,7 +687,9 @@ class ConsumerProviderCatalogServiceImpl {
     });
 
     let deploymentIds = Array.from(
-      new Set(providerTemplates.map(providerTemplate => providerTemplate.providerDeploymentId))
+      new Set(
+        providerTemplates.map(providerTemplate => providerTemplate.legacyProviderDeploymentId)
+      )
     );
     let deployments = await Promise.all(
       deploymentIds.map(async providerDeploymentId => {
@@ -742,7 +744,7 @@ class ConsumerProviderCatalogServiceImpl {
             availabilityState
           }) == 'available_now'
         ) {
-          accessibleDeploymentIds.add(providerTemplate.providerDeploymentId);
+          accessibleDeploymentIds.add(providerTemplate.legacyProviderDeploymentId);
         }
       }
 
@@ -781,7 +783,7 @@ class ConsumerProviderCatalogServiceImpl {
 
     return d.records.map(record => {
       let providerTemplate = record.providerTemplate;
-      let deployment = deploymentMap.get(providerTemplate.providerDeploymentId);
+      let deployment = deploymentMap.get(providerTemplate.legacyProviderDeploymentId);
       if (!deployment) {
         throw new ServiceError(notFoundError('provider.deployment'));
       }
@@ -798,7 +800,7 @@ class ConsumerProviderCatalogServiceImpl {
             availabilityState
           })
         : 'request_access';
-      let capabilities = capabilityMap.get(providerTemplate.providerDeploymentId);
+      let capabilities = capabilityMap.get(providerTemplate.legacyProviderDeploymentId);
 
       return {
         id: record.id,

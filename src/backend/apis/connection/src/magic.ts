@@ -32,6 +32,9 @@ type MagicMcpTargetForRouting = Awaited<ReturnType<typeof resolveMagicMcpTargetB
 type MagicMcpTokenForRouting = Awaited<
   ReturnType<typeof magicMcpTokenService.getMagicMcpTokenBySecret>
 >;
+type MagicMcpSessionOwnerConsumerProfile = Parameters<
+  (typeof consumerIntegrationService)['materializeMagicMcpSessionOwnership']
+>[0]['consumerProfile'];
 
 export type MagicMcpSubspaceSessionInfo = {
   type: 'magic_mcp_subspace_session';
@@ -41,6 +44,7 @@ export type MagicMcpSubspaceSessionInfo = {
   consumerToken: Awaited<
     ReturnType<(typeof consumerIntegrationService)['findConsumerTokenByMagicMcpToken']>
   > | null;
+  consumerProfileForOwnership: MagicMcpSessionOwnerConsumerProfile | null;
   agentClient?: SubspaceProxyAgentClient | null;
 };
 
@@ -101,7 +105,7 @@ let ensureMagicMcpApiKeyAccess = async (d: {
   url: URL;
   authenticate: Authenticator<AuthInfo>;
   magicMcpTarget: MagicMcpTargetForRouting;
-}) => {
+}): Promise<MagicMcpSessionOwnerConsumerProfile | null> => {
   let requestForAuth = toApiKeyRequest(d.request, d.tokenSecret);
   let { instance, auth } = await authenticateAndResolveInstance(
     requestForAuth,
@@ -141,7 +145,11 @@ let ensureMagicMcpApiKeyAccess = async (d: {
         accessTags: auth.restrictions.consumer.accessTags
       });
     }
+
+    return auth.restrictions.consumer.consumerProfile;
   }
+
+  return null;
 };
 
 let resolveAgentClientForConsumerToken = (d: {
@@ -149,7 +157,8 @@ let resolveAgentClientForConsumerToken = (d: {
     ReturnType<(typeof consumerIntegrationService)['findConsumerTokenByMagicMcpToken']>
   >;
 }): SubspaceProxyAgentClient | null => {
-  let consumerAuthClient = d.consumerToken?.magicMcpToken.consumerAuthAttempts[0]?.consumerAuthClient;
+  let consumerAuthClient =
+    d.consumerToken?.magicMcpToken.consumerAuthAttempts[0]?.consumerAuthClient;
   if (!consumerAuthClient) return null;
 
   return {
@@ -218,6 +227,8 @@ export let resolveMagicMcpSubspaceSession = async (d: {
     );
   }
 
+  let consumerProfileForOwnership: MagicMcpSessionOwnerConsumerProfile | null = null;
+
   if (magicMcpToken) {
     await ensureMagicMcpTokenAccess({
       token: magicMcpToken,
@@ -232,7 +243,7 @@ export let resolveMagicMcpSubspaceSession = async (d: {
       ua: d.ua
     });
   } else {
-    await ensureMagicMcpApiKeyAccess({
+    consumerProfileForOwnership = await ensureMagicMcpApiKeyAccess({
       tokenSecret,
       request: d.request,
       url: d.url,
@@ -247,6 +258,7 @@ export let resolveMagicMcpSubspaceSession = async (d: {
         magicMcpToken
       })
     : null;
+  consumerProfileForOwnership = consumerToken?.consumerProfile ?? consumerProfileForOwnership;
   let agentClient = resolveAgentClientForConsumerToken({ consumerToken });
 
   return {
@@ -255,6 +267,7 @@ export let resolveMagicMcpSubspaceSession = async (d: {
     subspaceSessionId,
     magicMcpToken,
     consumerToken,
+    consumerProfileForOwnership,
     agentClient
   };
 };
@@ -294,36 +307,16 @@ export let handleMagicMcpRequest = async (d: {
         {
           agentClient: sessionInfo.agentClient,
           onSubspaceSessionResolved: async ({ subspaceSessionId }) => {
-            let magicMcpSessionMapping = await syncMagicMcpSubspaceSession(
+            let magicMcpSession = await syncMagicMcpSubspaceSession(
               sessionInfo.magicMcpTarget,
               subspaceSessionId
             );
-
-            if (!sessionInfo.consumerToken) return;
+            if (!sessionInfo.consumerProfileForOwnership) return;
 
             await consumerIntegrationService.materializeMagicMcpSessionOwnership({
-              consumerProfile: sessionInfo.consumerToken.consumerProfile,
+              consumerProfile: sessionInfo.consumerProfileForOwnership,
               magicMcpTarget: sessionInfo.magicMcpTarget,
-              magicMcpSession: magicMcpSessionMapping
-            });
-
-            await consumerIntegrationService.markMagicMcpResourcesConsumerReconciled({
-              magicMcpToken: sessionInfo.magicMcpToken,
-              magicMcpServer:
-                sessionInfo.magicMcpTarget.type === 'server'
-                  ? sessionInfo.magicMcpTarget.target
-                  : null,
-              magicMcpEndpoint:
-                sessionInfo.magicMcpTarget.type === 'endpoint'
-                  ? sessionInfo.magicMcpTarget.target
-                  : null,
-              magicMcpServers:
-                sessionInfo.magicMcpTarget.type === 'endpoint'
-                  ? sessionInfo.magicMcpTarget.target.servers.map(
-                      server => server.magicMcpServer
-                    )
-                  : undefined,
-              magicMcpSession: magicMcpSessionMapping
+              magicMcpSession
             });
           }
         }

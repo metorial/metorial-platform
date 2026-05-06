@@ -19,7 +19,6 @@ model MagicMcpEndpoint {
   consumerProfile    ConsumerProfile? @relation(fields: [consumerProfileOid], references: [oid], onDelete: SetNull)
 
   legacySubspaceSessionTemplateId   String? @map("subspaceSessionTemplateId")
-  newSubspaceSessionTemplateId      String? @map("newSubspaceSessionTemplateId")
   subspaceEphemeralManagedSessionId String?
   configurationHash                 String?
 
@@ -43,7 +42,8 @@ model MagicMcpEndpoint {
 }
 
 model MagicMcpEndpointServer {
-  oid BigInt @id @default(autoincrement())
+  oid BigInt  @id @default(autoincrement())
+  id  String? @unique
 
   magicMcpEndpointOid BigInt
   magicMcpEndpoint    MagicMcpEndpoint @relation(fields: [magicMcpEndpointOid], references: [oid], onDelete: Cascade)

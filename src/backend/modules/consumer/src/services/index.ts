@@ -1,8 +1,3 @@
-export * from '../lib/consumerProviderContext';
-export * from '../lib/consumerSurfaceEmailWhitelist';
-export * from '../lib/magicMcpEndpointAccess';
-export * from '../lib/magicMcpServerAccess';
-export * from '../lib/magicMcpTokenAccess';
 export * from './accessPolicy';
 export * from './ares';
 export * from './consumer';
@@ -21,4 +16,3 @@ export * from './consumerProviderSetupSession';
 export * from './consumerSurface';
 export * from './consumerSurfaceProviderGroup';
 export * from './portal';
-export * from './providerTemplate';

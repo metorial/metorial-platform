@@ -57,7 +57,7 @@ export let v1MagicMcpServerPresenter = Presenter.create(magicMcpServerType)
         providerTemplateId: magicMcpServer.providerTemplateId,
 
         endpoints: magicMcpServer.aliases.map(a => ({
-          id: shadowId('mgse_', [magicMcpServer.id], [a.slug]),
+          id: shadowId('mgsea_', [magicMcpServer.id], [a.slug]),
           alias: a.slug,
           url: portal?.id
             ? `${getConfig().urls.apiUrl}/connect/portal/${portal.slug}/${a.slug}`

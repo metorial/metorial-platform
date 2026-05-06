@@ -68,10 +68,10 @@ import {
   ConsumerAresSsoConnection,
   ConsumerAresSsoTenant,
   ConsumerAresSsoTenantSetup,
-  ConsumerProviderCatalogEntry,
-  type EnrichedProviderTemplate
+  ConsumerProviderCatalogEntry
 } from '@metorial/module-consumer';
 import { Flags } from '@metorial/module-flags';
+import type { EnrichedProviderTemplate } from '@metorial/module-magic';
 import type {
   OAuthAuthorizationLogWithRelations,
   OAuthAuthorizationRequestWithRelations

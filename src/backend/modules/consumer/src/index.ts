@@ -19,6 +19,11 @@ import {
 } from './queues/syncOrgMember';
 
 export * from './env';
+export * from './lib/consumerProviderContext';
+export * from './lib/consumerSurfaceEmailWhitelist';
+export * from './lib/magicMcpEndpointAccess';
+export * from './lib/magicMcpServerAccess';
+export * from './lib/magicMcpTokenAccess';
 export * from './lib/oauth';
 export * from './portalUrlTemplate';
 export * from './services';

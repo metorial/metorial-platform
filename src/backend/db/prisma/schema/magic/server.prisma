@@ -26,9 +26,7 @@ model MagicMcpServer {
   hasSubspaceBacking   Boolean                 @default(false)
 
   providerTemplateId                String?
-  subspaceOwnerIntegrationId        String?
   legacySubspaceSessionTemplateId   String? @map("subspaceSessionTemplateId")
-  newSubspaceSessionTemplateId      String? @map("newSubspaceSessionTemplateId")
   subspaceEphemeralManagedSessionId String?
 
   instanceOid BigInt

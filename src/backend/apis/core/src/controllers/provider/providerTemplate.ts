@@ -2,7 +2,7 @@ import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { consumerProviderTemplateReadRoles } from '@metorial/module-access';
-import { providerTemplateService } from '@metorial/module-consumer';
+import { providerTemplateService } from '@metorial/module-magic';
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
@@ -10,27 +10,49 @@ import { hasFlags } from '../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { providerTemplatePresenter } from '../../presenters';
 
-let providerTemplateCreateBodyValidator = v.intersection([
-  v.object({
-    name: v.string(),
-    description: v.optional(v.string()),
-    metadata: v.optional(v.record(v.any()))
-  }),
-  v.union([
-    v.object({
-      provider_deployment_id: v.string()
-    }),
-    v.object({
-      provider_deployment: v.object({
-        provider_id: v.string(),
-        name: v.optional(v.string()),
-        description: v.optional(v.string()),
-        metadata: v.optional(v.record(v.any())),
-        locked_provider_version_id: v.optional(v.string())
-      })
-    })
-  ])
-]);
+let providerTemplateProviderValidator = v.object({
+  provider_id: v.string(),
+  provider_deployment_id: v.optional(v.nullable(v.string())),
+  provider_auth_method_id: v.optional(v.nullable(v.string())),
+  provider_auth_credentials_id: v.optional(v.nullable(v.string())),
+  provider_config_id: v.optional(v.nullable(v.string())),
+  name: v.optional(v.string()),
+  description: v.optional(v.nullable(v.string())),
+  metadata: v.optional(v.nullable(v.record(v.any()))),
+  tool_filters: v.optional(v.any())
+});
+
+let providerTemplateCreateBodyValidator = v.object({
+  name: v.string(),
+  description: v.optional(v.string()),
+  metadata: v.optional(v.record(v.any())),
+  providers: v.array(providerTemplateProviderValidator)
+});
+
+let normalizeProviderTemplateProviders = (
+  providers: {
+    provider_id: string;
+    provider_deployment_id?: string | null;
+    provider_auth_method_id?: string | null;
+    provider_auth_credentials_id?: string | null;
+    provider_config_id?: string | null;
+    name?: string;
+    description?: string | null;
+    metadata?: Record<string, any> | null;
+    tool_filters?: any;
+  }[]
+) =>
+  providers.map(provider => ({
+    providerId: provider.provider_id,
+    providerDeploymentId: provider.provider_deployment_id,
+    providerAuthMethodId: provider.provider_auth_method_id,
+    providerAuthCredentialsId: provider.provider_auth_credentials_id,
+    providerConfigId: provider.provider_config_id,
+    name: provider.name,
+    description: provider.description,
+    metadata: provider.metadata,
+    toolFilters: provider.tool_filters
+  }));
 
 let providerTemplateGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerTemplateId) {
@@ -79,7 +101,7 @@ export let providerTemplateController = Controller.create(
         Paginator.validate(
           v.object({
             id: v.optional(v.union([v.string(), v.array(v.string())])),
-            provider_deployment_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            integration_id: v.optional(v.union([v.string(), v.array(v.string())])),
             search: v.optional(v.string()),
             status: v.optional(
               v.union([
@@ -94,7 +116,7 @@ export let providerTemplateController = Controller.create(
         let paginator = await providerTemplateService.listProviderTemplates({
           instance: ctx.instance,
           ids: normalizeArrayParam(ctx.query.id),
-          providerDeploymentIds: normalizeArrayParam(ctx.query.provider_deployment_id),
+          integrationIds: normalizeArrayParam(ctx.query.integration_id),
           search: ctx.query.search,
           status: normalizeArrayParam(ctx.query.status),
           accessTags: ctx.accessTags
@@ -142,27 +164,12 @@ export let providerTemplateController = Controller.create(
         let providerTemplate = await providerTemplateService.createProviderTemplate({
           organization: ctx.organization,
           instance: ctx.instance,
-          input:
-            'provider_deployment_id' in ctx.body
-              ? {
-                  name: ctx.body.name,
-                  description: ctx.body.description,
-                  metadata: ctx.body.metadata,
-                  providerDeploymentId: ctx.body.provider_deployment_id
-                }
-              : {
-                  name: ctx.body.name,
-                  description: ctx.body.description,
-                  metadata: ctx.body.metadata,
-                  providerDeployment: {
-                    providerId: ctx.body.provider_deployment.provider_id,
-                    name: ctx.body.provider_deployment.name,
-                    description: ctx.body.provider_deployment.description,
-                    metadata: ctx.body.provider_deployment.metadata,
-                    lockedProviderVersionId:
-                      ctx.body.provider_deployment.locked_provider_version_id
-                  }
-                }
+          input: {
+            name: ctx.body.name,
+            description: ctx.body.description,
+            metadata: ctx.body.metadata,
+            providers: normalizeProviderTemplateProviders(ctx.body.providers)
+          }
         });
 
         return providerTemplatePresenter.present({
@@ -185,7 +192,8 @@ export let providerTemplateController = Controller.create(
         v.object({
           name: v.optional(v.string()),
           description: v.optional(v.string()),
-          metadata: v.optional(v.record(v.any()))
+          metadata: v.optional(v.record(v.any())),
+          providers: v.optional(v.array(providerTemplateProviderValidator))
         })
       )
       .output(providerTemplatePresenter)
@@ -196,7 +204,10 @@ export let providerTemplateController = Controller.create(
           input: {
             name: ctx.body.name,
             description: ctx.body.description,
-            metadata: ctx.body.metadata
+            metadata: ctx.body.metadata,
+            providers: ctx.body.providers
+              ? normalizeProviderTemplateProviders(ctx.body.providers)
+              : undefined
           }
         });
 
