@@ -10,6 +10,7 @@ import {
 } from '@metorial-subspace/db';
 import {
   ephemeralManagedSessionService,
+  sessionTemplateProviderService,
   sessionTemplateService
 } from '@metorial-subspace/module-session';
 import { checkTenant } from '@metorial-subspace/module-tenant';
@@ -300,6 +301,14 @@ class magicMcpServerBackingServiceImpl {
             input: providers
           });
         }
+
+        await sessionTemplateProviderService.syncForIntegrationInstance({
+          sessionTemplate,
+          integrationInstance
+        });
+        await sessionTemplateProviderService.syncHash({
+          sessionTemplateId: sessionTemplate.id
+        });
       });
 
       await reconcileMagicMcpServerProvidersForBackingWithExistingLock({
