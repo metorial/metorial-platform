@@ -654,7 +654,16 @@ export class SenderManager {
       return null;
     }
 
-    let provider = await this.getProviderByTag({ tag: providerTag! });
+    let provider: Awaited<ReturnType<SenderManager['getProviderByTag']>> | null = null;
+    try {
+      provider = await this.getProviderByTag({ tag: providerTag! });
+    } catch (error) {
+      if (error instanceof ServiceError) {
+        return null;
+      }
+
+      throw error;
+    }
 
     return {
       provider,

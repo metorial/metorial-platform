@@ -392,6 +392,8 @@ export class McpSender {
         t.value.mcpToolType.type === 'tool.callable' || t.value.mcpToolType.type === 'mcp.tool'
     );
 
+    let isMetorialExplorer = this.connection?.participant?.name === 'Metorial Explorer';
+
     return {
       store: true,
       mcp: {
@@ -406,9 +408,9 @@ export class McpSender {
               name: presented.key,
               title: presented.title ?? presented.name,
 
-              inputSchema: injectToolCallOperationIntoInputSchema(
-                presented.inputJsonSchema
-              ) as any,
+              inputSchema: isMetorialExplorer
+                ? presented.inputJsonSchema
+                : (injectToolCallOperationIntoInputSchema(presented.inputJsonSchema) as any),
               outputSchema:
                 presented.outputJsonSchema?.type === 'object'
                   ? (mcpOutputSchemaNormalizer(presented.outputJsonSchema, {
