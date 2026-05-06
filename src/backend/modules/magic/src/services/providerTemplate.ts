@@ -1,9 +1,4 @@
-import {
-  badRequestError,
-  notFoundError,
-  preconditionFailedError,
-  ServiceError
-} from '@lowerdeck/error';
+import { notFoundError, preconditionFailedError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
@@ -21,10 +16,7 @@ import {
   type AnyAccessTagSelector
 } from '@metorial/module-access';
 import { searchProviderTemplateIds } from '@metorial/module-search';
-import {
-  subspaceMagicMcpBackingService,
-  subspaceProviderDeploymentService
-} from '@metorial/module-subspace';
+import { subspaceProviderDeploymentService } from '@metorial/module-subspace';
 import { ensureProviderTemplateBacking } from '../lib/backing';
 import {
   providerTemplateArchivedQueue,
@@ -84,7 +76,7 @@ class ProviderTemplateServiceImpl {
           providerTemplate
         });
 
-    return await this.enrichOne(backedProviderTemplate, d.instance);
+    return backedProviderTemplate;
   }
 
   async createProviderTemplate(d: {
@@ -95,56 +87,8 @@ class ProviderTemplateServiceImpl {
       description?: string;
       metadata?: Record<string, unknown>;
       providers: ProviderTemplateProviderInput[];
-      toolFilters?: any;
-      providerDeploymentId?: string;
-      providerDeployment?: ProviderTemplateDeploymentCreateInput;
     };
   }): Promise<EnrichedProviderTemplate> {
-    let providerDeploymentId = await this.getOrCreateProviderDeployment(d);
-
-    let existing = await db.providerTemplate.findFirst({
-      where: {
-        instanceOid: d.instance.oid,
-        legacyProviderDeploymentId: providerDeploymentId
-      }
-    });
-    if (existing) {
-      let providerTemplate = await withTransaction(async db => {
-        return await db.providerTemplate.update({
-          where: {
-            oid: existing.oid
-          },
-          data: {
-            status: 'active',
-            name: d.input.name,
-            description: d.input.description,
-            metadata: d.input.metadata ?? {},
-            archivedAt: null
-          }
-        });
-      });
-
-      await providerTemplateUpdatedQueue.add({
-        providerTemplateId: providerTemplate.id
-      });
-      await ensureProviderTemplateBacking({
-        instance: d.instance,
-        providerTemplate,
-        providers: d.input.providers,
-        ...(d.input.toolFilters ? { toolFilters: d.input.toolFilters } : {})
-      });
-
-      return await this.enrichOne(providerTemplate, d.instance);
-    }
-
-    if (d.input.toolFilters) {
-      await subspaceProviderDeploymentService.update({
-        instance: d.instance,
-        providerDeploymentId,
-        toolFilters: d.input.toolFilters
-      });
-    }
-
     let providerTemplate = await withTransaction(async db => {
       return await db.providerTemplate.create({
         data: {
@@ -153,7 +97,6 @@ class ProviderTemplateServiceImpl {
           name: d.input.name,
           description: d.input.description,
           metadata: d.input.metadata ?? {},
-          legacyProviderDeploymentId: providerDeploymentId,
           organizationOid: d.organization.oid,
           instanceOid: d.instance.oid
         }
@@ -161,14 +104,13 @@ class ProviderTemplateServiceImpl {
     });
 
     await providerTemplateCreatedQueue.add({ providerTemplateId: providerTemplate.id });
-    await ensureProviderTemplateBacking({
+    let backedProviderTemplate = await ensureProviderTemplateBacking({
       instance: d.instance,
       providerTemplate,
-      providers: d.input.providers,
-      ...(d.input.toolFilters ? { toolFilters: d.input.toolFilters } : {})
+      providers: d.input.providers
     });
 
-    return await this.enrichOne(providerTemplate, d.instance);
+    return backedProviderTemplate;
   }
 
   async updateProviderTemplate(d: {
@@ -179,7 +121,6 @@ class ProviderTemplateServiceImpl {
       description?: string;
       metadata?: Record<string, unknown>;
       providers?: ProviderTemplateProviderInput[];
-      toolFilters?: any;
     };
   }): Promise<EnrichedProviderTemplate> {
     if (d.providerTemplate.status != 'active') {
@@ -204,23 +145,14 @@ class ProviderTemplateServiceImpl {
       });
     });
 
-    if (d.input.toolFilters) {
-      await subspaceProviderDeploymentService.update({
-        instance: d.instance,
-        providerDeploymentId: providerTemplate.legacyProviderDeploymentId,
-        toolFilters: d.input.toolFilters
-      });
-    }
-
     await providerTemplateUpdatedQueue.add({ providerTemplateId: providerTemplate.id });
-    await ensureProviderTemplateBacking({
+    let backedProviderTemplate = await ensureProviderTemplateBacking({
       instance: d.instance,
       providerTemplate,
-      providers: d.input.providers,
-      ...(d.input.toolFilters ? { toolFilters: d.input.toolFilters } : {})
+      providers: d.input.providers
     });
 
-    return await this.enrichOne(providerTemplate, d.instance);
+    return backedProviderTemplate;
   }
 
   async archiveProviderTemplate(d: {
@@ -249,7 +181,7 @@ class ProviderTemplateServiceImpl {
 
     await providerTemplateArchivedQueue.add({ providerTemplateId: providerTemplate.id });
 
-    return await this.enrichOne(providerTemplate, d.instance);
+    return providerTemplate;
   }
 
   async listProviderTemplates(d: {
@@ -275,7 +207,7 @@ class ProviderTemplateServiceImpl {
         })
       : undefined;
 
-    let paginator = Paginator.create(({ prisma }) =>
+    return Paginator.create(({ prisma }) =>
       prisma(async opts => {
         return await db.providerTemplate.findMany({
           ...opts,
@@ -303,11 +235,8 @@ class ProviderTemplateServiceImpl {
               ...(d.integrationIds?.length
                 ? [
                     {
-                      id: {
-                        in: await this.getProviderTemplateIdsForIntegrationIds({
-                          instance: d.instance,
-                          integrationIds: d.integrationIds
-                        })
+                      subspaceIntegrationId: {
+                        in: d.integrationIds
                       }
                     }
                   ]
@@ -326,16 +255,6 @@ class ProviderTemplateServiceImpl {
         });
       })
     );
-
-    return {
-      run: async (input: Parameters<typeof paginator.run>[0]) => {
-        let result = await paginator.run(input);
-        return {
-          ...result,
-          items: await this.enrich(result.items, d.instance)
-        };
-      }
-    };
   }
 
   async checkConsumerReadAccess(d: {
@@ -354,124 +273,6 @@ class ProviderTemplateServiceImpl {
         });
       }
     });
-  }
-
-  private async enrich(
-    templates: ProviderTemplate[],
-    instance: Instance
-  ): Promise<EnrichedProviderTemplate[]> {
-    if (templates.length === 0) return [];
-
-    let integrationIdMap = await this.getIntegrationIdMap({
-      instance,
-      templates
-    });
-
-    console.log('enriching provider templates with integration ids', {
-      templateIds: templates.map(t => t.id),
-      integrationIdMap
-    });
-
-    return templates.map(t => ({
-      ...t,
-      subspaceIntegrationId: integrationIdMap.get(t.id) ?? null
-    }));
-  }
-
-  private async enrichOne(
-    providerTemplate: ProviderTemplate,
-    instance: Instance
-  ): Promise<EnrichedProviderTemplate> {
-    let [enrichedProviderTemplate] = await this.enrich([providerTemplate], instance);
-    return enrichedProviderTemplate!;
-  }
-
-  private async getOrCreateProviderDeployment(d: {
-    instance: Instance;
-    input: {
-      name: string;
-      description?: string;
-      providers?: ProviderTemplateProviderInput[];
-      providerDeploymentId?: string;
-      providerDeployment?: ProviderTemplateDeploymentCreateInput;
-    };
-  }) {
-    let firstProviderDeploymentId = d.input.providers?.[0]?.providerDeploymentId;
-    if (firstProviderDeploymentId) {
-      await subspaceProviderDeploymentService.get({
-        instance: d.instance,
-        providerDeploymentId: firstProviderDeploymentId
-      });
-
-      return firstProviderDeploymentId;
-    }
-
-    if ('providerDeploymentId' in d.input && d.input.providerDeploymentId) {
-      await subspaceProviderDeploymentService.get({
-        instance: d.instance,
-        providerDeploymentId: d.input.providerDeploymentId
-      });
-
-      return d.input.providerDeploymentId;
-    }
-
-    let providerDeployment = d.input.providerDeployment;
-    if (!providerDeployment) {
-      throw new ServiceError(
-        badRequestError({
-          message: 'At least one provider with provider_deployment_id is required.',
-          code: 'provider_template_provider_deployment_missing'
-        })
-      );
-    }
-
-    let deployment = await subspaceProviderDeploymentService.create({
-      instance: d.instance,
-      providerId: providerDeployment.providerId,
-      name: providerDeployment.name ?? d.input.name,
-      description: providerDeployment.description ?? d.input.description,
-      metadata: providerDeployment.metadata,
-      lockedProviderVersionId: providerDeployment.lockedProviderVersionId
-    });
-
-    return deployment.id;
-  }
-
-  private async getIntegrationIdMap(d: {
-    instance: Instance;
-    templates: Pick<ProviderTemplate, 'id' | 'hasSubspaceBacking'>[];
-  }) {
-    let providerTemplateBackingIds = [
-      ...new Set(
-        d.templates
-          .filter(template => template.hasSubspaceBacking)
-          .map(template => template.id)
-      )
-    ];
-    if (providerTemplateBackingIds.length === 0) return new Map<string, string>();
-
-    let backings = await subspaceMagicMcpBackingService.getManyProviderTemplates({
-      instance: d.instance,
-      providerTemplateBackingIds
-    });
-
-    return new Map(backings.map(backing => [backing.id, backing.integrationId]));
-  }
-
-  private async getProviderTemplateIdsForIntegrationIds(d: {
-    instance: Instance;
-    integrationIds: string[];
-  }) {
-    let integrationIds = [...new Set(d.integrationIds)];
-    if (integrationIds.length === 0) return [];
-
-    let backings =
-      await subspaceMagicMcpBackingService.getManyProviderTemplatesByIntegrationIds({
-        instance: d.instance,
-        integrationIds
-      });
-
-    return backings.map(backing => backing.id);
   }
 }
 

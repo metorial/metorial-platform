@@ -23,21 +23,21 @@ export let IdentityActorPage = () => {
 
   return renderWithLoader({ instance, organization, project, actor })(
     ({ instance, organization, project, actor }) => (
-    <>
-      <Attributes
-        itemWidth="240px"
-        attributes={[
-          {
-            label: 'ID',
-            content: <ID id={actor.data.id} />
-          },
-          {
-            label: 'Type',
-            content: actor.data.type
-          },
-          {
-            label: 'Agent ID',
-            content: actor.data.agentId ? (
+      <>
+        <Attributes
+          itemWidth="240px"
+          attributes={[
+            {
+              label: 'ID',
+              content: <ID id={actor.data.id} />
+            },
+            {
+              label: 'Type',
+              content: actor.data.type
+            },
+            {
+              label: 'Agent ID',
+              content: actor.data.agentId ? (
                 <Link
                   to={Paths.instance.identity.agent(
                     organization.data,
@@ -48,72 +48,56 @@ export let IdentityActorPage = () => {
                 >
                   {actor.data.agentId}
                 </Link>
-            ) : (
+              ) : (
                 '—'
-            )
-          },
-          {
-            label: 'Created At',
-            content: <RenderDate date={actor.data.createdAt} />
-          }
-        ]}
-      />
+              )
+            },
+            {
+              label: 'Created At',
+              content: <RenderDate date={actor.data.createdAt} />
+            }
+          ]}
+        />
 
-      <Spacer size={20} />
+        <Spacer size={20} />
 
-      {actor.data.agentId ? (
-        <>
-          <Box
-            title="Linked Agent"
-            description="This actor is backed by a first-class agent resource."
-          >
-            <Link
-              to={Paths.instance.identity.agent(
-                organization.data,
-                project.data,
-                instance.data,
-                actor.data.agentId
-              )}
-            >
-              {actor.data.agentId}
-            </Link>
-          </Box>
+        <Box
+          title="Recent Operations"
+          description="Recent tool calls associated with this actor."
+        >
+          <ToolCallsTable instanceId={instance.data.id} filters={{ actorId: actor.data.id }} />
+        </Box>
 
-          <Spacer size={20} />
-        </>
-      ) : null}
+        <Spacer size={20} />
 
-      <Box
-        title="Recent Operations"
-        description="Recent tool calls associated with this actor."
-      >
-        <ToolCallsTable instanceId={instance.data.id} filters={{ actorId: actor.data.id }} />
-      </Box>
+        <Box
+          title="Recent Connections"
+          description="Connections associated with this actor and its agents."
+        >
+          <SessionConnectionsTable
+            instanceId={instance.data.id}
+            filters={{ actorId: actor.data.id }}
+          />
+        </Box>
 
-      <Spacer size={20} />
+        <Spacer size={20} />
 
-      <Box
-        title="Recent Connections"
-        description="Connections associated with this actor and its agents."
-      >
-        <SessionConnectionsTable instanceId={instance.data.id} filters={{ actorId: actor.data.id }} />
-      </Box>
+        <UsageScene
+          title="Usage"
+          description="See how this actor is being used across identities, delegations, and requests."
+          entities={[{ type: 'identity_actor', id: actor.data.id }]}
+          entityNames={{ [actor.data.id]: actor.data.name }}
+        />
 
-      <Spacer size={20} />
+        <Spacer size={20} />
 
-      <UsageScene
-        title="Usage"
-        description="See how this actor is being used across identities, delegations, and requests."
-        entities={[{ type: 'identity_actor', id: actor.data.id }]}
-        entityNames={{ [actor.data.id]: actor.data.name }}
-      />
-
-      <Spacer size={20} />
-
-      <Box title="Identities" description="Identities owned by this actor.">
-        <IdentitiesTable instanceId={instance.data.id} filters={{ actorId: actor.data.id }} />
-      </Box>
-    </>
+        <Box title="Identities" description="Identities owned by this actor.">
+          <IdentitiesTable
+            instanceId={instance.data.id}
+            filters={{ actorId: actor.data.id }}
+          />
+        </Box>
+      </>
     )
   );
 };

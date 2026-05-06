@@ -14,8 +14,9 @@ model ProviderTemplate {
   description String?
   metadata    Json
 
-  legacyProviderDeploymentId String  @map("providerDeploymentId")
+  legacyProviderDeploymentId String? @map("providerDeploymentId")
   hasSubspaceBacking         Boolean @default(false)
+  subspaceIntegrationId      String?
 
   organizationOid BigInt
   organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)

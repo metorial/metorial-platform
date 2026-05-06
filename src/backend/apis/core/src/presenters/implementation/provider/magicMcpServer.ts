@@ -26,7 +26,7 @@ let magicMcpServerSchema = v.object({
       url: v.string()
     })
   ),
-  providerTemplateId: v.nullable(v.string()),
+  provider_template_id: v.nullable(v.string()),
   providers: v.array(v1MagicMcpServerProviderPresenter.schema),
   name: v.nullable(v.string()),
   description: v.nullable(v.string()),
@@ -54,7 +54,7 @@ export let v1MagicMcpServerPresenter = Presenter.create(magicMcpServerType)
         status: magicMcpServer.status,
         source: magicMcpServer.source,
         provider_management_mode: providerManagementMode,
-        providerTemplateId: magicMcpServer.providerTemplateId,
+        provider_template_id: magicMcpServer.providerTemplateId,
 
         endpoints: magicMcpServer.aliases.map(a => ({
           id: shadowId('mgsea_', [magicMcpServer.id], [a.slug]),

@@ -1,6 +1,6 @@
 import { DashboardInstanceSessionsGetOutput } from '@metorial/dashboard-sdk';
 import { Callout, CenteredSpinner } from '@metorial/ui';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import { ItemList } from '../../session/components/itemList';
 import { useConnectionTimeline } from '../hooks/useConnectionTimeline';
@@ -49,19 +49,25 @@ export let ConnectionLogs = ({
     session,
     connection
   });
+  let handledFocusKeysRef = useRef(new Set<string>());
 
   useEffect(() => {
     if (!focusedItemId) return;
+    let focusKey = `${connection.id}:${focusedItemId}`;
+    if (handledFocusKeysRef.current.has(focusKey)) return;
 
     let id = window.requestAnimationFrame(() => {
       let element = document.querySelector(
         `[data-timeline-item-id="${focusedItemId}"]`
       ) as HTMLElement | null;
-      element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (!element) return;
+
+      handledFocusKeysRef.current.add(focusKey);
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
 
     return () => window.cancelAnimationFrame(id);
-  }, [focusedItemId, timelineItems]);
+  }, [connection.id, focusedItemId, timelineItems]);
 
   return (
     <DetailContent>

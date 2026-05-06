@@ -1,4 +1,5 @@
 import { renderWithLoader } from '@metorial/data-hooks';
+import { PageHeader } from '@metorial/layout';
 import {
   IntegrationPreview,
   IntegrationProvider,
@@ -9,7 +10,7 @@ import {
   useProviderListings
 } from '@metorial/state';
 import { Attributes, Avatar, Button, confirm, Entity, Menu, Spacer, Text } from '@metorial/ui';
-import { Box, ID } from '@metorial/ui-product';
+import { ID } from '@metorial/ui-product';
 import { RiMore2Line } from '@remixicon/react';
 import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
@@ -57,15 +58,18 @@ let ProvidersList = ({
   onDeleteProvider: (provider: IntegrationProvider) => void;
 }) => {
   return (
-    <Box
-      title="Providers"
-      description="Providers define the shared deployment, config, auth, and tool contract for this integration."
-      rightActions={
-        <Button size="2" onClick={onAddProvider}>
-          Add Provider
-        </Button>
-      }
-    >
+    <>
+      <PageHeader
+        title="Providers"
+        description="Choose which providers are connected to this integration and manage their configuration and authentication settings."
+        actions={
+          <Button size="2" onClick={onAddProvider}>
+            Add Provider
+          </Button>
+        }
+        size="4"
+      />
+
       {providers.length === 0 ? (
         <Text size="2" color="gray600" align="center" style={{ padding: '20px 0' }}>
           No providers are attached to this integration yet.
@@ -137,7 +141,7 @@ let ProvidersList = ({
           })}
         </Items>
       )}
-    </Box>
+    </>
   );
 };
 

@@ -106,7 +106,7 @@ export let ensureProviderTemplateBacking = async (d: {
   }[];
   toolFilters?: any;
 }) => {
-  await subspaceMagicMcpBackingService.reconcileProviderTemplate({
+  let backing = await subspaceMagicMcpBackingService.reconcileProviderTemplate({
     instance: d.instance,
     providerTemplateId: d.providerTemplate.id,
     name: d.providerTemplate.name,
@@ -117,10 +117,16 @@ export let ensureProviderTemplateBacking = async (d: {
     ...(d.toolFilters !== undefined ? { toolFilters: d.toolFilters } : {})
   });
 
-  if (!d.providerTemplate.hasSubspaceBacking) {
+  if (
+    !d.providerTemplate.hasSubspaceBacking ||
+    d.providerTemplate.subspaceIntegrationId !== backing.integrationId
+  ) {
     return await db.providerTemplate.update({
       where: { oid: d.providerTemplate.oid },
-      data: { hasSubspaceBacking: true }
+      data: {
+        hasSubspaceBacking: true,
+        subspaceIntegrationId: backing.integrationId
+      }
     });
   }
 

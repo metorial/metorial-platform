@@ -28,7 +28,7 @@ let reconcileProviderTemplatesManyQueueProcessor = reconcileProviderTemplatesMan
       where: {
         id: data.cursor ? { gt: data.cursor } : undefined,
         status: 'active',
-        hasSubspaceBacking: false
+        OR: [{ hasSubspaceBacking: false }, { subspaceIntegrationId: null }]
       },
       take: BATCH_SIZE,
       orderBy: {
@@ -77,7 +77,6 @@ let reconcileProviderTemplatesSingleQueueProcessor =
       }
     });
     if (!providerTemplate || providerTemplate.status !== 'active') return;
-    if (providerTemplate.hasSubspaceBacking) return;
 
     await ensureProviderTemplateBacking({
       instance: providerTemplate.instance,

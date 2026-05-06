@@ -1,6 +1,11 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
-import { useAgent, useCurrentInstance, useCurrentOrganization, useCurrentProject } from '@metorial/state';
+import {
+  useAgent,
+  useCurrentInstance,
+  useCurrentOrganization,
+  useCurrentProject
+} from '@metorial/state';
 import { Attributes, RenderDate, Spacer, Text } from '@metorial/ui';
 import { Box, ID } from '@metorial/ui-product';
 import { Link, useParams } from 'react-router-dom';
@@ -17,7 +22,7 @@ export let AgentPage = () => {
     ({ instance, organization, project, agent }) => (
       <>
         <Attributes
-          itemWidth="240px"
+          itemWidth="300px"
           attributes={[
             {
               label: 'ID',
