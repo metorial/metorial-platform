@@ -1,7 +1,7 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import { useCurrentInstance, useIdentityActor } from '@metorial/state';
 import { useParams } from 'react-router-dom';
-import { ToolCallsTable } from '../../../scenes/logs/toolCallsTable';
+import { ToolCallsTable } from '../../../scenes/logsTable/toolCallsTable';
 
 export let IdentityActorOperationsPage = () => {
   let instance = useCurrentInstance();

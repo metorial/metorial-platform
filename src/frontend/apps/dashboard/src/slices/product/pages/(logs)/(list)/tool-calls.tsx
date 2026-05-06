@@ -1,6 +1,6 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import { useCurrentInstance } from '@metorial/state';
-import { ToolCallsTable } from '../../../scenes/logs/toolCallsTable';
+import { ToolCallsTable } from '../../../scenes/logsTable/toolCallsTable';
 
 export let ToolCallsPage = () => {
   let instance = useCurrentInstance();

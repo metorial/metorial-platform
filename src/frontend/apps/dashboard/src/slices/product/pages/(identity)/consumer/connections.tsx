@@ -1,7 +1,7 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import { useConsumer, useCurrentInstance } from '@metorial/state';
 import { useParams } from 'react-router-dom';
-import { SessionConnectionsTable } from '../../../scenes/logs/sessionConnectionsTable';
+import { SessionConnectionsTable } from '../../../scenes/logsTable/sessionConnectionsTable';
 
 export let ConsumerConnectionsPage = () => {
   let instance = useCurrentInstance();

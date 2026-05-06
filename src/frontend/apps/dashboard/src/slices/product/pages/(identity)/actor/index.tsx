@@ -10,8 +10,8 @@ import { Attributes, RenderDate, Spacer } from '@metorial/ui';
 import { Box, ID } from '@metorial/ui-product';
 import { Link, useParams } from 'react-router-dom';
 import { IdentitiesTable } from '../../../scenes/identity/identitiesTable';
-import { SessionConnectionsTable } from '../../../scenes/logs/sessionConnectionsTable';
-import { ToolCallsTable } from '../../../scenes/logs/toolCallsTable';
+import { SessionConnectionsTable } from '../../../scenes/logsTable/sessionConnectionsTable';
+import { ToolCallsTable } from '../../../scenes/logsTable/toolCallsTable';
 import { UsageScene } from '../../../scenes/usage/usage';
 
 export let IdentityActorPage = () => {
