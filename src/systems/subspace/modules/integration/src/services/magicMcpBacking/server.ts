@@ -1,7 +1,6 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import {
-  addAfterTransactionHook,
   db,
   type Environment,
   snowflake,
@@ -19,7 +18,7 @@ import { checkTenant } from '@metorial-subspace/module-tenant';
 import { integrationService } from '../integration';
 import { integrationInstanceService } from '../integrationInstance';
 import { integrationInstanceProviderService } from '../integrationInstanceProvider';
-import { reconcileMagicMcpServerProvidersForBackingWithExistingLock } from './serverProvider';
+import { reconcileMagicMcpServerProvidersForBackingWithoutLock } from './serverProvider';
 import {
   type BackingProviderInput,
   getMagicMcpOwnerType,
@@ -174,151 +173,154 @@ class magicMcpServerBackingServiceImpl {
           ? ('integration' as const)
           : ('server_owned' as const);
 
-    await withMagicMcpBackingLock(`server:${d.input.id}`, async () => {
-      await withTransaction(async db => {
-        let existing = await db.magicMcpServerBacking.findUnique({
-          where: { id: d.input.id },
-          include: magicMcpServerBackingInclude
-        });
-
-        let integration =
-          providerTemplateBacking?.integration ??
-          ownerIntegration ??
-          ownerIntegrationInstance?.integration ??
-          existing?.integration;
-        if (ownerType === 'server_owned') {
-          integration = await integrationService.upsertMagicMcpIntegration({
+    let providers =
+      d.input.providers ??
+      (d.input.isReconciliation
+        ? await this.getLegacyProvidersFromSessionTemplate({
             tenant: d.tenant,
             solution: d.solution,
             environment: d.environment,
-            integration,
-            input: {
-              slug: `magic-mcp-server-${d.input.id}`,
-              name: d.input.name?.trim() || d.input.id,
-              description: d.input.description,
-              metadata: d.input.metadata,
-              privateMetadata: d.input.privateMetadata,
-              canAttachCustomToolFilters: true,
-              canAttachCustomProviderConfig: true,
-              canOverrideToolFilters: true
-            }
+            sessionTemplateId: d.input.legacySessionTemplateId
+          })
+        : []);
+
+    let syncTarget = await withMagicMcpBackingLock(
+      `server:${d.input.id}`,
+      async () =>
+        await withTransaction(async db => {
+          let existing = await db.magicMcpServerBacking.findUnique({
+            where: { id: d.input.id },
+            include: magicMcpServerBackingInclude
           });
-        }
-        if (!integration) {
-          throw new ServiceError(notFoundError('integration'));
-        }
 
-        let integrationInstance =
-          ownerIntegrationInstance ??
-          (await integrationInstanceService.upsertMagicMcpIntegrationInstance({
-            tenant: d.tenant,
-            solution: d.solution,
-            environment: d.environment,
-            integration,
-            integrationInstance: existing?.integrationInstance,
-            input: {
-              name: d.input.name?.trim() || d.input.id,
-              description: d.input.description,
-              metadata: d.input.metadata,
-              privateMetadata: d.input.privateMetadata,
-              identityActorId: d.input.identityActorId,
-              identityId: d.input.identityId
-            }
-          }));
-
-        let sessionTemplate = await sessionTemplateService.upsertInternalLinkedSessionTemplate(
-          {
-            tenant: d.tenant,
-            solution: d.solution,
-            environment: d.environment,
-            sessionTemplate: existing?.sessionTemplate,
-            input: {
-              name: d.input.name?.trim() || d.input.id,
-              description: d.input.description,
-              metadata: d.input.metadata,
-              privateMetadata: d.input.privateMetadata,
-              integrationInstance
-            }
+          let integration =
+            providerTemplateBacking?.integration ??
+            ownerIntegration ??
+            ownerIntegrationInstance?.integration ??
+            existing?.integration;
+          if (ownerType === 'server_owned') {
+            integration = await integrationService.upsertMagicMcpIntegration({
+              tenant: d.tenant,
+              solution: d.solution,
+              environment: d.environment,
+              integration,
+              input: {
+                slug: `magic-mcp-server-${d.input.id}`,
+                name: d.input.name?.trim() || d.input.id,
+                description: d.input.description,
+                metadata: d.input.metadata,
+                privateMetadata: d.input.privateMetadata,
+                canAttachCustomToolFilters: true,
+                canAttachCustomProviderConfig: true,
+                canOverrideToolFilters: true
+              }
+            });
           }
-        );
+          if (!integration) {
+            throw new ServiceError(notFoundError('integration'));
+          }
 
-        let ephemeralManagedSession =
-          await ephemeralManagedSessionService.upsertPlaceholderEphemeralManagedSession({
-            tenant: d.tenant,
-            solution: d.solution,
-            environment: d.environment,
-            ephemeralManagedSession: existing?.ephemeralManagedSession,
-            sessionTemplate,
-            input: {
-              maxSessionDurationInMinutes: d.input.maxSessionDurationInMinutes,
+          let integrationInstance =
+            ownerIntegrationInstance ??
+            (await integrationInstanceService.upsertMagicMcpIntegrationInstance({
+              tenant: d.tenant,
+              solution: d.solution,
+              environment: d.environment,
+              integration,
+              integrationInstance: existing?.integrationInstance,
+              input: {
+                name: d.input.name?.trim() || d.input.id,
+                description: d.input.description,
+                metadata: d.input.metadata,
+                privateMetadata: d.input.privateMetadata,
+                identityActorId: d.input.identityActorId,
+                identityId: d.input.identityId
+              }
+            }));
+
+          let sessionTemplate =
+            await sessionTemplateService.upsertInternalLinkedSessionTemplate({
+              tenant: d.tenant,
+              solution: d.solution,
+              environment: d.environment,
+              sessionTemplate: existing?.sessionTemplate,
+              input: {
+                name: d.input.name?.trim() || d.input.id,
+                description: d.input.description,
+                metadata: d.input.metadata,
+                privateMetadata: d.input.privateMetadata,
+                integrationInstance
+              }
+            });
+
+          let ephemeralManagedSession =
+            await ephemeralManagedSessionService.upsertPlaceholderEphemeralManagedSession({
+              tenant: d.tenant,
+              solution: d.solution,
+              environment: d.environment,
+              ephemeralManagedSession: existing?.ephemeralManagedSession,
+              sessionTemplate,
+              input: {
+                maxSessionDurationInMinutes: d.input.maxSessionDurationInMinutes,
+                actorOid
+              }
+            });
+
+          await db.magicMcpServerBacking.upsert({
+            where: { id: d.input.id },
+            create: {
+              oid: snowflake.nextId(),
+              id: d.input.id,
+              ownerType,
+              providerTemplateBackingOid: providerTemplateBacking?.oid,
+              ownerIntegrationOid: ownerType === 'integration' ? integration.oid : null,
+              integrationOid: ownerType === 'server_owned' ? integration.oid : null,
+              integrationInstanceOid: integrationInstance.oid,
+              sessionTemplateOid: sessionTemplate.oid,
+              ephemeralManagedSessionOid: ephemeralManagedSession.oid,
+              actorOid
+            },
+            update: {
+              ownerType,
+              providerTemplateBackingOid: providerTemplateBacking?.oid ?? null,
+              ownerIntegrationOid: ownerType === 'integration' ? integration.oid : null,
+              integrationOid: ownerType === 'server_owned' ? integration.oid : null,
+              integrationInstanceOid: integrationInstance.oid,
+              sessionTemplateOid: sessionTemplate.oid,
+              ephemeralManagedSessionOid: ephemeralManagedSession.oid,
               actorOid
             }
           });
 
-        await db.magicMcpServerBacking.upsert({
-          where: { id: d.input.id },
-          create: {
-            oid: snowflake.nextId(),
-            id: d.input.id,
-            ownerType,
-            providerTemplateBackingOid: providerTemplateBacking?.oid,
-            ownerIntegrationOid: ownerType === 'integration' ? integration.oid : null,
-            integrationOid: ownerType === 'server_owned' ? integration.oid : null,
-            integrationInstanceOid: integrationInstance.oid,
-            sessionTemplateOid: sessionTemplate.oid,
-            ephemeralManagedSessionOid: ephemeralManagedSession.oid,
-            actorOid
-          },
-          update: {
-            ownerType,
-            providerTemplateBackingOid: providerTemplateBacking?.oid ?? null,
-            ownerIntegrationOid: ownerType === 'integration' ? integration.oid : null,
-            integrationOid: ownerType === 'server_owned' ? integration.oid : null,
-            integrationInstanceOid: integrationInstance.oid,
-            sessionTemplateOid: sessionTemplate.oid,
-            ephemeralManagedSessionOid: ephemeralManagedSession.oid,
-            actorOid
-          }
-        });
+          return { integration, integrationInstance, sessionTemplate };
+        })
+    );
 
-        let providers =
-          d.input.providers ??
-          (d.input.isReconciliation
-            ? await this.getLegacyProvidersFromSessionTemplate({
-                tenant: d.tenant,
-                solution: d.solution,
-                environment: d.environment,
-                sessionTemplateId: d.input.legacySessionTemplateId
-              })
-            : []);
-
-        if (providers.length) {
-          await integrationInstanceProviderService.setMagicMcpIntegrationInstanceProviders({
-            tenant: d.tenant,
-            solution: d.solution,
-            environment: d.environment,
-            integration,
-            integrationInstance,
-            isReconciliation: d.input.isReconciliation,
-            input: providers
-          });
-        }
-
-        await sessionTemplateProviderService.syncForIntegrationInstance({
-          sessionTemplate,
-          integrationInstance
-        });
-        await addAfterTransactionHook(async () =>
-          sessionTemplateSyncHashQueue.add({ sessionTemplateId: sessionTemplate.id })
-        );
-      });
-
-      await reconcileMagicMcpServerProvidersForBackingWithExistingLock({
+    if (providers.length) {
+      await integrationInstanceProviderService.setMagicMcpIntegrationInstanceProviders({
         tenant: d.tenant,
         solution: d.solution,
         environment: d.environment,
-        magicMcpServerBackingId: d.input.id
+        integration: syncTarget.integration,
+        integrationInstance: syncTarget.integrationInstance,
+        isReconciliation: d.input.isReconciliation,
+        input: providers
       });
+    }
+
+    await sessionTemplateProviderService.syncForIntegrationInstance({
+      sessionTemplate: syncTarget.sessionTemplate,
+      integrationInstance: syncTarget.integrationInstance
+    });
+    await sessionTemplateSyncHashQueue.add({
+      sessionTemplateId: syncTarget.sessionTemplate.id
+    });
+
+    await reconcileMagicMcpServerProvidersForBackingWithoutLock({
+      tenant: d.tenant,
+      solution: d.solution,
+      environment: d.environment,
+      magicMcpServerBackingId: d.input.id
     });
 
     return await db.magicMcpServerBacking.findUniqueOrThrow({

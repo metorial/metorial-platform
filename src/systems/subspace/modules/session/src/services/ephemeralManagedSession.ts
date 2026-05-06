@@ -17,6 +17,7 @@ import { checkDeletedEdit } from '@metorial-subspace/list-utils';
 import { env } from '../env';
 import { sessionArchivedQueue } from '../queues/lifecycle/session';
 import { createSessionRecord } from './_shared/createSession';
+import { type SessionProviderTemplateInput } from './sessionProviderInput';
 
 let ephemeralManagedSessionResolveLock = createLock({
   name: 'sub/ses/epms/resolve/lock',
@@ -33,7 +34,18 @@ let include = {
   solution: true,
   environment: true,
   identity: true,
-  sessionTemplate: true,
+  sessionTemplate: {
+    include: {
+      providers: {
+        where: { status: 'active' as const },
+        include: {
+          deployment: true,
+          config: true,
+          authConfig: true
+        }
+      }
+    }
+  },
   currentSession: {
     include: {
       tenant: true,
@@ -72,6 +84,10 @@ let shouldRotateBackingSession = (ephemeralManagedSession: EphemeralManagedSessi
     (ephemeralManagedSession.sessionTemplate.hash ?? null)
   ) {
     return true;
+  }
+
+  if (ephemeralManagedSession.willRotateAt) {
+    return ephemeralManagedSession.willRotateAt.getTime() <= Date.now();
   }
 
   let maxDurationInMinutes = ephemeralManagedSession.maxSessionDurationInMinutes;
@@ -115,13 +131,13 @@ class ephemeralManagedSessionServiceImpl {
     tenant: Tenant;
     solution: Solution;
     environment: Environment;
-    sessionTemplate: SessionTemplate;
+    sessionTemplate: SessionProviderTemplateInput;
     input: {
       maxSessionDurationInMinutes: number;
     };
   }) {
-    return withTransaction(async tx => {
-      let ephemeralManagedSession = await tx.ephemeralManagedSession.create({
+    return withTransaction(async db => {
+      let ephemeralManagedSession = await db.ephemeralManagedSession.create({
         data: {
           ...getId('ephemeralManagedSession'),
           status: 'active',
@@ -138,7 +154,7 @@ class ephemeralManagedSessionServiceImpl {
       });
 
       let session = await createSessionRecord({
-        db: tx,
+        db: db,
         tenant: d.tenant,
         solution: d.solution,
         environment: d.environment,
@@ -152,11 +168,16 @@ class ephemeralManagedSessionServiceImpl {
           metadata: (d.sessionTemplate.metadata as Record<string, any> | null) ?? undefined,
           privateMetadata:
             (d.sessionTemplate.privateMetadata as Record<string, any> | null) ?? undefined,
-          providers: [{ sessionTemplateId: d.sessionTemplate.id }]
+          providers: [
+            {
+              sessionTemplateId: d.sessionTemplate.id,
+              __sessionTemplate: d.sessionTemplate
+            }
+          ]
         }
       });
 
-      return await tx.ephemeralManagedSession.update({
+      return await db.ephemeralManagedSession.update({
         where: { oid: ephemeralManagedSession.oid },
         data: {
           currentSessionOid: session.oid,
@@ -182,7 +203,7 @@ class ephemeralManagedSessionServiceImpl {
       actorOid?: bigint | null;
     };
   }) {
-    return withTransaction(async tx => {
+    return withTransaction(async db => {
       let data = {
         status: 'active' as const,
         archivedAt: null,
@@ -193,7 +214,7 @@ class ephemeralManagedSessionServiceImpl {
       };
 
       if (d.ephemeralManagedSession) {
-        return await tx.ephemeralManagedSession.update({
+        return await db.ephemeralManagedSession.update({
           where: {
             oid: d.ephemeralManagedSession.oid,
             tenantOid: d.tenant.oid,
@@ -205,7 +226,7 @@ class ephemeralManagedSessionServiceImpl {
         });
       }
 
-      return await tx.ephemeralManagedSession.create({
+      return await db.ephemeralManagedSession.create({
         data: {
           ...getId('ephemeralManagedSession'),
           ...data,
@@ -238,9 +259,9 @@ class ephemeralManagedSessionServiceImpl {
 
         checkDeletedEdit(ephemeralManagedSession, 'archive');
 
-        return withTransaction(async tx => {
+        return withTransaction(async db => {
           let archivedAt = new Date();
-          let sessions = await tx.session.findMany({
+          let sessions = await db.session.findMany({
             where: {
               ephemeralManagedSessionOid: ephemeralManagedSession.oid,
               status: 'active'
@@ -249,7 +270,7 @@ class ephemeralManagedSessionServiceImpl {
           });
 
           if (sessions.length > 0) {
-            await tx.sessionProvider.updateMany({
+            await db.sessionProvider.updateMany({
               where: {
                 sessionOid: { in: sessions.map(session => session.oid) }
               },
@@ -258,7 +279,7 @@ class ephemeralManagedSessionServiceImpl {
               }
             });
 
-            await tx.session.updateMany({
+            await db.session.updateMany({
               where: {
                 oid: { in: sessions.map(session => session.oid) }
               },
@@ -270,7 +291,7 @@ class ephemeralManagedSessionServiceImpl {
             });
           }
 
-          let archived = await tx.ephemeralManagedSession.update({
+          let archived = await db.ephemeralManagedSession.update({
             where: { oid: ephemeralManagedSession.oid },
             data: {
               status: 'archived',
@@ -320,9 +341,9 @@ class ephemeralManagedSessionServiceImpl {
         return ephemeralManagedSession.currentSession;
       }
 
-      return await withTransaction(async tx => {
+      return await withTransaction(async db => {
         let session = await createSessionRecord({
-          db: tx,
+          db: db,
           tenant: ephemeralManagedSession.tenant,
           solution: ephemeralManagedSession.solution,
           environment: ephemeralManagedSession.environment,
@@ -338,11 +359,16 @@ class ephemeralManagedSessionServiceImpl {
             privateMetadata:
               (ephemeralManagedSession.sessionTemplate.privateMetadata as any | null) ??
               undefined,
-            providers: [{ sessionTemplateId: ephemeralManagedSession.sessionTemplate.id }]
+            providers: [
+              {
+                sessionTemplateId: ephemeralManagedSession.sessionTemplate.id,
+                __sessionTemplate: ephemeralManagedSession.sessionTemplate
+              }
+            ]
           }
         });
 
-        await tx.ephemeralManagedSession.update({
+        await db.ephemeralManagedSession.update({
           where: { oid: ephemeralManagedSession.oid },
           data: {
             currentSessionOid: session.oid,

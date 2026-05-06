@@ -1,7 +1,6 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import {
-  addAfterTransactionHook,
   db,
   type Environment,
   snowflake,
@@ -47,7 +46,7 @@ class magicMcpEndpointBackingServiceImpl {
       identityId: d.input.identityId
     });
 
-    await withMagicMcpBackingLock(
+    let syncTarget = await withMagicMcpBackingLock(
       [
         `endpoint:${d.input.id}`,
         ...d.input.servers.map(server => `server:${server.magicMcpServerBackingId}`)
@@ -194,26 +193,28 @@ class magicMcpEndpointBackingServiceImpl {
               }));
           });
 
-          await integrationInstanceGroupProviderService.syncMagicMcpIntegrationInstanceGroupProviders(
-            {
-              tenant: d.tenant,
-              solution: d.solution,
-              environment: d.environment,
-              integrationInstanceGroup: group,
-              isReconciliation: d.input.isReconciliation,
-              input: groupProviderInput
-            }
-          );
-
-          await sessionTemplateProviderService.syncForIntegrationInstanceGroup({
-            sessionTemplate,
-            integrationInstanceGroup: group
-          });
-          await addAfterTransactionHook(async () =>
-            sessionTemplateSyncHashQueue.add({ sessionTemplateId: sessionTemplate.id })
-          );
+          return { group, sessionTemplate, groupProviderInput };
         })
     );
+
+    await integrationInstanceGroupProviderService.syncMagicMcpIntegrationInstanceGroupProviders(
+      {
+        tenant: d.tenant,
+        solution: d.solution,
+        environment: d.environment,
+        integrationInstanceGroup: syncTarget.group,
+        isReconciliation: d.input.isReconciliation,
+        input: syncTarget.groupProviderInput
+      }
+    );
+
+    await sessionTemplateProviderService.syncForIntegrationInstanceGroup({
+      sessionTemplate: syncTarget.sessionTemplate,
+      integrationInstanceGroup: syncTarget.group
+    });
+    await sessionTemplateSyncHashQueue.add({
+      sessionTemplateId: syncTarget.sessionTemplate.id
+    });
 
     return await db.magicMcpEndpointBacking.findUniqueOrThrow({
       where: { id: d.input.id },

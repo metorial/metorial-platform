@@ -289,8 +289,8 @@ class sessionTemplateProviderServiceImpl {
     sessionTemplate: SessionTemplate;
     integrationInstance: IntegrationInstance;
   }) {
-    await withTransaction(async tx => {
-      let instanceProviders = await tx.integrationInstanceProvider.findMany({
+    await withTransaction(async db => {
+      let instanceProviders = await db.integrationInstanceProvider.findMany({
         where: {
           integrationInstanceOid: d.integrationInstance.oid,
           status: 'active',
@@ -311,7 +311,7 @@ class sessionTemplateProviderServiceImpl {
       let activeProviderOids = instanceProviders.map(provider => provider.oid);
       let createdIds: string[] = [];
 
-      let existingProviders = await tx.sessionTemplateProvider.findMany({
+      let existingProviders = await db.sessionTemplateProvider.findMany({
         where: {
           sessionTemplateOid: d.sessionTemplate.oid,
           integrationInstanceProviderOid: { in: activeProviderOids }
@@ -347,7 +347,7 @@ class sessionTemplateProviderServiceImpl {
         };
 
         let createdBefore = existingByProviderOid.has(provider.oid.toString());
-        let synced = await tx.sessionTemplateProvider.upsert({
+        let synced = await db.sessionTemplateProvider.upsert({
           where: {
             sessionTemplateOid_integrationInstanceProviderOid: {
               sessionTemplateOid: d.sessionTemplate.oid,
@@ -364,7 +364,7 @@ class sessionTemplateProviderServiceImpl {
         if (!createdBefore) createdIds.push(synced.id);
       }
 
-      await tx.sessionTemplateProvider.updateMany({
+      await db.sessionTemplateProvider.updateMany({
         where: {
           sessionTemplateOid: d.sessionTemplate.oid,
           status: 'active',
@@ -394,8 +394,8 @@ class sessionTemplateProviderServiceImpl {
     sessionTemplate: SessionTemplate;
     integrationInstanceGroup: IntegrationInstanceGroup;
   }) {
-    await withTransaction(async tx => {
-      let groupProviders = await tx.integrationInstanceGroupProvider.findMany({
+    await withTransaction(async db => {
+      let groupProviders = await db.integrationInstanceGroupProvider.findMany({
         where: {
           integrationInstanceGroupOid: d.integrationInstanceGroup.oid,
           status: 'active',
@@ -423,7 +423,7 @@ class sessionTemplateProviderServiceImpl {
       let activeProviderOids = groupProviders.map(provider => provider.oid);
       let createdIds: string[] = [];
 
-      let existingProviders = await tx.sessionTemplateProvider.findMany({
+      let existingProviders = await db.sessionTemplateProvider.findMany({
         where: {
           sessionTemplateOid: d.sessionTemplate.oid,
           integrationInstanceGroupProviderOid: { in: activeProviderOids }
@@ -459,7 +459,7 @@ class sessionTemplateProviderServiceImpl {
         };
 
         let createdBefore = existingByProviderOid.has(provider.oid.toString());
-        let synced = await tx.sessionTemplateProvider.upsert({
+        let synced = await db.sessionTemplateProvider.upsert({
           where: {
             sessionTemplateOid_integrationInstanceGroupProviderOid: {
               sessionTemplateOid: d.sessionTemplate.oid,
@@ -476,7 +476,7 @@ class sessionTemplateProviderServiceImpl {
         if (!createdBefore) createdIds.push(synced.id);
       }
 
-      await tx.sessionTemplateProvider.updateMany({
+      await db.sessionTemplateProvider.updateMany({
         where: {
           sessionTemplateOid: d.sessionTemplate.oid,
           status: 'active',

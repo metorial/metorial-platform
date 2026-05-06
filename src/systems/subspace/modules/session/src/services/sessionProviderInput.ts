@@ -1,4 +1,4 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { generatePlainId } from '@lowerdeck/id';
 import { Service } from '@lowerdeck/service';
 import {
@@ -7,6 +7,7 @@ import {
   getId,
   type Session,
   type SessionTemplate,
+  type SessionTemplateProvider,
   type Solution,
   type Tenant,
   withTransaction
@@ -22,6 +23,14 @@ import { sessionTemplateProviderInclude } from './sessionTemplateProvider';
 
 export type SessionProviderInputToolFilters = PrismaJson.ToolFilter | null;
 
+export type SessionProviderTemplateInput = SessionTemplate & {
+  providers: (SessionTemplateProvider & {
+    deployment: { id: string };
+    config: { id: string } | null;
+    authConfig: { id: string } | null;
+  })[];
+};
+
 export type SessionProviderInput = {
   sessionTemplateId?: string;
 
@@ -32,6 +41,7 @@ export type SessionProviderInput = {
   toolFilters?: SessionProviderInputToolFilters;
 
   __allowEphemeral?: boolean;
+  __sessionTemplate?: SessionProviderTemplateInput;
 };
 
 let providerMismatchError = badRequestError({
@@ -71,19 +81,31 @@ class sessionProviderInputServiceImpl {
           await Promise.all(
             d.providers.map(async s => {
               if (s.sessionTemplateId) {
-                let template = await db.sessionTemplate.findFirstOrThrow({
-                  where: { ...ts, id: s.sessionTemplateId, status: 'active' as const },
-                  include: {
-                    providers: {
-                      where: { status: 'active' as const },
-                      include: {
-                        deployment: true,
-                        config: true,
-                        authConfig: true
+                let template =
+                  s.__sessionTemplate ??
+                  (await db.sessionTemplate.findFirst({
+                    where: { ...ts, id: s.sessionTemplateId, status: 'active' as const },
+                    include: {
+                      providers: {
+                        where: { status: 'active' as const },
+                        include: {
+                          deployment: true,
+                          config: true,
+                          authConfig: true
+                        }
                       }
                     }
-                  }
-                });
+                  }));
+                if (!template) {
+                  throw new ServiceError(
+                    notFoundError('session.template', s.sessionTemplateId)
+                  );
+                }
+                if (template.status !== 'active') {
+                  throw new ServiceError(
+                    notFoundError('session.template', s.sessionTemplateId)
+                  );
+                }
 
                 return template.providers.map(tp => ({
                   deploymentId: tp.deployment.id,

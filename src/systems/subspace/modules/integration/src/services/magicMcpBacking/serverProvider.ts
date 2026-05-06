@@ -133,7 +133,7 @@ let getRowStatus = (d: {
   return 'pending' as const;
 };
 
-export let reconcileMagicMcpServerProvidersForBackingWithExistingLock = async (d: {
+export let reconcileMagicMcpServerProvidersForBackingWithoutLock = async (d: {
   tenant: Tenant;
   solution: Solution;
   environment: Environment;
@@ -221,6 +221,9 @@ export let reconcileMagicMcpServerProvidersForBackingWithExistingLock = async (d
   });
 };
 
+export let reconcileMagicMcpServerProvidersForBackingWithExistingLock =
+  reconcileMagicMcpServerProvidersForBackingWithoutLock;
+
 export let reconcileMagicMcpServerProvidersForBacking = async (d: {
   tenant: Tenant;
   solution: Solution;
@@ -231,7 +234,7 @@ export let reconcileMagicMcpServerProvidersForBacking = async (d: {
     getMagicMcpServerBackingLockKey(d),
     async () =>
       await withTransaction(
-        async () => await reconcileMagicMcpServerProvidersForBackingWithExistingLock(d)
+        async () => await reconcileMagicMcpServerProvidersForBackingWithoutLock(d)
       )
   );
 

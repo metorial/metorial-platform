@@ -27,6 +27,25 @@ type ConsumerOwner = {
   identityId?: string | null;
 };
 
+let localBackingLocks = new Map<string, Promise<unknown>>();
+
+let withLocalBackingLock = async <T>(key: string, cb: () => Promise<T>) => {
+  let previous = localBackingLocks.get(key) ?? Promise.resolve();
+  let current: Promise<T>;
+  current = previous
+    .catch(() => {})
+    .then(cb)
+    .finally(() => {
+      if (localBackingLocks.get(key) === current) {
+        localBackingLocks.delete(key);
+      }
+    });
+
+  localBackingLocks.set(key, current);
+
+  return await current;
+};
+
 let getMagicMcpSessionDuration = async (instance: Instance) => {
   let project = await db.project.findUniqueOrThrow({
     where: { oid: instance.projectOid },
@@ -105,33 +124,34 @@ export let ensureProviderTemplateBacking = async (d: {
     toolFilters?: any;
   }[];
   toolFilters?: any;
-}) => {
-  let backing = await subspaceMagicMcpBackingService.reconcileProviderTemplate({
-    instance: d.instance,
-    providerTemplateId: d.providerTemplate.id,
-    name: d.providerTemplate.name,
-    description: d.providerTemplate.description,
-    metadata: d.providerTemplate.metadata as Record<string, any>,
-    providerDeploymentId: d.providerTemplate.legacyProviderDeploymentId,
-    providers: d.providers,
-    ...(d.toolFilters !== undefined ? { toolFilters: d.toolFilters } : {})
-  });
-
-  if (
-    !d.providerTemplate.hasSubspaceBacking ||
-    d.providerTemplate.subspaceIntegrationId !== backing.integrationId
-  ) {
-    return await db.providerTemplate.update({
-      where: { oid: d.providerTemplate.oid },
-      data: {
-        hasSubspaceBacking: true,
-        subspaceIntegrationId: backing.integrationId
-      }
+}) =>
+  withLocalBackingLock(`provider-template:${d.providerTemplate.id}`, async () => {
+    let backing = await subspaceMagicMcpBackingService.reconcileProviderTemplate({
+      instance: d.instance,
+      providerTemplateId: d.providerTemplate.id,
+      name: d.providerTemplate.name,
+      description: d.providerTemplate.description,
+      metadata: d.providerTemplate.metadata as Record<string, any>,
+      providerDeploymentId: d.providerTemplate.legacyProviderDeploymentId,
+      providers: d.providers,
+      ...(d.toolFilters !== undefined ? { toolFilters: d.toolFilters } : {})
     });
-  }
 
-  return d.providerTemplate;
-};
+    if (
+      !d.providerTemplate.hasSubspaceBacking ||
+      d.providerTemplate.subspaceIntegrationId !== backing.integrationId
+    ) {
+      return await db.providerTemplate.update({
+        where: { oid: d.providerTemplate.oid },
+        data: {
+          hasSubspaceBacking: true,
+          subspaceIntegrationId: backing.integrationId
+        }
+      });
+    }
+
+    return d.providerTemplate;
+  });
 
 export let ensureMagicMcpServerBacking = async (d: {
   instance: Instance;
@@ -144,53 +164,67 @@ export let ensureMagicMcpServerBacking = async (d: {
     toolFilters?: any;
   }[];
   isReconciliation?: boolean;
-}) => {
-  let owner =
-    d.owner ??
-    (await getConsumerOwnerForServer({
+}) =>
+  withLocalBackingLock(`server:${d.server.id}`, async () => {
+    if (d.isReconciliation && !d.providers?.length) {
+      let existing = await db.magicMcpServer.findFirst({
+        where: {
+          instanceOid: d.instance.oid,
+          id: d.server.id
+        }
+      });
+
+      if (existing?.hasSubspaceBacking && existing.subspaceEphemeralManagedSessionId) {
+        return existing;
+      }
+    }
+
+    let owner =
+      d.owner ??
+      (await getConsumerOwnerForServer({
+        instance: d.instance,
+        server: d.server
+      }));
+    let providerTemplateBackingId: string | null = null;
+    if (d.server.providerTemplateId) {
+      let providerTemplate = await db.providerTemplate.findFirst({
+        where: {
+          instanceOid: d.instance.oid,
+          id: d.server.providerTemplateId
+        }
+      });
+      if (providerTemplate) {
+        await ensureProviderTemplateBacking({ instance: d.instance, providerTemplate });
+        providerTemplateBackingId = providerTemplate.id;
+      }
+    }
+
+    let providers = d.providers ?? undefined;
+    let maxSessionDurationInMinutes = await getMagicMcpSessionDuration(d.instance);
+    let backing = await subspaceMagicMcpBackingService.upsertServer({
       instance: d.instance,
-      server: d.server
-    }));
-  let providerTemplateBackingId: string | null = null;
-  if (d.server.providerTemplateId) {
-    let providerTemplate = await db.providerTemplate.findFirst({
-      where: {
-        instanceOid: d.instance.oid,
-        id: d.server.providerTemplateId
+      magicMcpServerBackingId: d.server.id,
+      providerTemplateBackingId,
+      ownerIntegrationInstanceId: d.server.subspaceIntegrationInstanceId,
+      name: d.server.name,
+      description: d.server.description,
+      metadata: d.server.metadata as Record<string, any>,
+      maxSessionDurationInMinutes,
+      isReconciliation: d.isReconciliation,
+      legacySessionTemplateId: d.server.legacySubspaceSessionTemplateId,
+      ...owner,
+      ...(providers?.length ? { providers } : {})
+    });
+
+    return await db.magicMcpServer.update({
+      where: { oid: d.server.oid },
+      data: {
+        hasSubspaceBacking: true,
+        ownerType: backing.ownerType,
+        subspaceEphemeralManagedSessionId: backing.ephemeralManagedSessionId
       }
     });
-    if (providerTemplate) {
-      await ensureProviderTemplateBacking({ instance: d.instance, providerTemplate });
-      providerTemplateBackingId = providerTemplate.id;
-    }
-  }
-
-  let providers = d.providers ?? undefined;
-  let maxSessionDurationInMinutes = await getMagicMcpSessionDuration(d.instance);
-  let backing = await subspaceMagicMcpBackingService.upsertServer({
-    instance: d.instance,
-    magicMcpServerBackingId: d.server.id,
-    providerTemplateBackingId,
-    ownerIntegrationInstanceId: d.server.subspaceIntegrationInstanceId,
-    name: d.server.name,
-    description: d.server.description,
-    metadata: d.server.metadata as Record<string, any>,
-    maxSessionDurationInMinutes,
-    isReconciliation: d.isReconciliation,
-    legacySessionTemplateId: d.server.legacySubspaceSessionTemplateId,
-    ...owner,
-    ...(providers?.length ? { providers } : {})
   });
-
-  return await db.magicMcpServer.update({
-    where: { oid: d.server.oid },
-    data: {
-      hasSubspaceBacking: true,
-      ownerType: backing.ownerType,
-      subspaceEphemeralManagedSessionId: backing.ephemeralManagedSessionId
-    }
-  });
-};
 
 let ensureEndpointServerIds = async (endpoint: Pick<MagicMcpEndpoint, 'oid'>) => {
   let rows = await db.magicMcpEndpointServer.findMany({
@@ -217,51 +251,66 @@ export let ensureMagicMcpEndpointBacking = async (d: {
   instance: Instance;
   endpoint: MagicMcpEndpointWithBackingRelations;
   isReconciliation?: boolean;
-}) => {
-  await ensureEndpointServerIds(d.endpoint);
+}) =>
+  withLocalBackingLock(`endpoint:${d.endpoint.id}`, async () => {
+    if (d.isReconciliation) {
+      let existing = await db.magicMcpEndpoint.findFirst({
+        where: {
+          instanceOid: d.instance.oid,
+          id: d.endpoint.id
+        },
+        include: magicMcpEndpointBackingInclude
+      });
 
-  let endpoint = await db.magicMcpEndpoint.findUniqueOrThrow({
-    where: { oid: d.endpoint.oid },
-    include: magicMcpEndpointBackingInclude
-  });
+      if (existing?.hasSubspaceBacking && existing.subspaceEphemeralManagedSessionId) {
+        return existing;
+      }
+    }
 
-  let owner = await getConsumerOwnerForProfile({
-    instance: d.instance,
-    consumerProfileOid: endpoint.consumerProfileOid
-  });
+    await ensureEndpointServerIds(d.endpoint);
 
-  for (let server of endpoint.servers) {
-    await ensureMagicMcpServerBacking({
-      instance: d.instance,
-      server: server.magicMcpServer,
-      ...(endpoint.consumerProfileOid ? { owner } : {}),
-      isReconciliation: d.isReconciliation
+    let endpoint = await db.magicMcpEndpoint.findUniqueOrThrow({
+      where: { oid: d.endpoint.oid },
+      include: magicMcpEndpointBackingInclude
     });
-  }
 
-  let maxSessionDurationInMinutes = await getMagicMcpSessionDuration(d.instance);
-  let backing = await subspaceMagicMcpBackingService.upsertEndpoint({
-    instance: d.instance,
-    magicMcpEndpointBackingId: endpoint.id,
-    name: endpoint.name,
-    description: endpoint.description,
-    metadata: endpoint.metadata as Record<string, any>,
-    maxSessionDurationInMinutes,
-    isReconciliation: d.isReconciliation,
-    ...owner,
-    servers: endpoint.servers.map(server => ({
-      id: server.id!,
-      magicMcpServerBackingId: server.magicMcpServer.id,
-      toolFilters: toBackingToolFilter(server.toolFilters)
-    }))
-  });
+    let owner = await getConsumerOwnerForProfile({
+      instance: d.instance,
+      consumerProfileOid: endpoint.consumerProfileOid
+    });
 
-  return await db.magicMcpEndpoint.update({
-    where: { oid: endpoint.oid },
-    data: {
-      hasSubspaceBacking: true,
-      subspaceEphemeralManagedSessionId: backing.ephemeralManagedSessionId
-    },
-    include: magicMcpEndpointBackingInclude
+    for (let server of endpoint.servers) {
+      await ensureMagicMcpServerBacking({
+        instance: d.instance,
+        server: server.magicMcpServer,
+        ...(endpoint.consumerProfileOid ? { owner } : {}),
+        isReconciliation: d.isReconciliation
+      });
+    }
+
+    let maxSessionDurationInMinutes = await getMagicMcpSessionDuration(d.instance);
+    let backing = await subspaceMagicMcpBackingService.upsertEndpoint({
+      instance: d.instance,
+      magicMcpEndpointBackingId: endpoint.id,
+      name: endpoint.name,
+      description: endpoint.description,
+      metadata: endpoint.metadata as Record<string, any>,
+      maxSessionDurationInMinutes,
+      isReconciliation: d.isReconciliation,
+      ...owner,
+      servers: endpoint.servers.map(server => ({
+        id: server.id!,
+        magicMcpServerBackingId: server.magicMcpServer.id,
+        toolFilters: toBackingToolFilter(server.toolFilters)
+      }))
+    });
+
+    return await db.magicMcpEndpoint.update({
+      where: { oid: endpoint.oid },
+      data: {
+        hasSubspaceBacking: true,
+        subspaceEphemeralManagedSessionId: backing.ephemeralManagedSessionId
+      },
+      include: magicMcpEndpointBackingInclude
+    });
   });
-};

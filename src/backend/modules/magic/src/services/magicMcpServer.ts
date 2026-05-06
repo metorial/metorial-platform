@@ -147,11 +147,13 @@ class MagicMcpServerImpl {
     let sessionTemplateId = d.server.legacySubspaceSessionTemplateId;
 
     if (!sessionTemplateId) {
-      let server = await ensureMagicMcpServerBacking({
-        instance: d.instance,
-        server: d.server,
-        isReconciliation: true
-      });
+      let server = d.server.hasSubspaceBacking
+        ? d.server
+        : await ensureMagicMcpServerBacking({
+            instance: d.instance,
+            server: d.server,
+            isReconciliation: true
+          });
       let backing = await subspaceMagicMcpBackingService.getServer({
         instance: d.instance,
         magicMcpServerBackingId: server.id
@@ -409,11 +411,13 @@ class MagicMcpServerImpl {
       accessTags: d.accessTags
     });
 
-    let server = await ensureMagicMcpServerBacking({
-      instance: d.instance,
-      server: d.server,
-      isReconciliation: true
-    });
+    let server = d.server.hasSubspaceBacking
+      ? d.server
+      : await ensureMagicMcpServerBacking({
+          instance: d.instance,
+          server: d.server,
+          isReconciliation: true
+        });
 
     return {
       run: async (query: {
@@ -463,11 +467,13 @@ class MagicMcpServerImpl {
       accessTags: d.accessTags
     });
 
-    let server = await ensureMagicMcpServerBacking({
-      instance: d.instance,
-      server: d.server,
-      isReconciliation: true
-    });
+    let server = d.server.hasSubspaceBacking
+      ? d.server
+      : await ensureMagicMcpServerBacking({
+          instance: d.instance,
+          server: d.server,
+          isReconciliation: true
+        });
     let provider = await subspaceMagicMcpBackingService.getServerProvider({
       instance: d.instance,
       magicMcpServerProviderId: d.magicMcpServerProviderId,
