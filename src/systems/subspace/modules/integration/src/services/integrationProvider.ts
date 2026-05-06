@@ -250,7 +250,8 @@ let inferReconciliationAuthMaterial = async (d: {
 
   return {
     authMethodOid: authMethod?.oid ?? null,
-    authCredentialsOid: authCredentials && authMethod?.type === 'oauth' ? authCredentials.oid : null
+    authCredentialsOid:
+      authCredentials && authMethod?.type === 'oauth' ? authCredentials.oid : null
   };
 };
 
@@ -593,7 +594,7 @@ class integrationProviderServiceImpl {
         authMethodOid: existing?.currentVersion?.authMethodOid ?? inferredAuth.authMethodOid,
         authCredentialsOid:
           existing?.currentVersion?.authCredentialsOid ?? inferredAuth.authCredentialsOid,
-        configOid: existing?.currentVersion?.configOid ?? null,
+        configOid: existing?.currentVersion?.configOid ?? deployment.defaultConfigOid ?? null,
         toolFilter
       };
       let materialChanged =

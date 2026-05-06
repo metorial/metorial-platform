@@ -112,6 +112,7 @@ export let ensureProviderTemplateBacking = async (d: {
     name: d.providerTemplate.name,
     description: d.providerTemplate.description,
     metadata: d.providerTemplate.metadata as Record<string, any>,
+    providerDeploymentId: d.providerTemplate.legacyProviderDeploymentId,
     providers: d.providers,
     ...(d.toolFilters !== undefined ? { toolFilters: d.toolFilters } : {})
   });

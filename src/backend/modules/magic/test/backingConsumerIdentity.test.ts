@@ -12,7 +12,8 @@ vi.mock('@metorial/db', () => {
       findFirst: vi.fn()
     },
     providerTemplate: {
-      findFirst: vi.fn()
+      findFirst: vi.fn(),
+      update: vi.fn()
     },
     magicMcpServer: {
       update: vi.fn()
@@ -46,6 +47,7 @@ vi.mock('@metorial/module-subspace', () => ({
 import { db } from '@metorial/db';
 import { subspaceMagicMcpBackingService } from '@metorial/module-subspace';
 import {
+  ensureProviderTemplateBacking,
   ensureMagicMcpEndpointBacking,
   ensureMagicMcpServerBacking
 } from '../src/lib/backing';
@@ -64,6 +66,9 @@ describe('Magic MCP consumer identity backing', () => {
     vi.mocked(subspaceMagicMcpBackingService.upsertEndpoint).mockResolvedValue({
       ephemeralManagedSessionId: 'ems_endpoint'
     } as any);
+    vi.mocked(subspaceMagicMcpBackingService.reconcileProviderTemplate).mockResolvedValue({
+      integrationId: 'integration_existing'
+    } as any);
     vi.mocked(db.magicMcpServer.update).mockImplementation(
       (async (args: any) => args.data as any) as any
     );
@@ -71,6 +76,29 @@ describe('Magic MCP consumer identity backing', () => {
       (async (args: any) => args.data as any) as any
     );
     vi.mocked(db.providerTemplate.findFirst).mockResolvedValue(null);
+  });
+
+  it('passes legacy provider deployment ids to provider template backing reconciliation', async () => {
+    await ensureProviderTemplateBacking({
+      instance: { oid: 10n } as any,
+      providerTemplate: {
+        oid: 20n,
+        id: 'provider_template',
+        name: 'Template',
+        description: null,
+        metadata: {},
+        hasSubspaceBacking: true,
+        subspaceIntegrationId: 'integration_existing',
+        legacyProviderDeploymentId: 'provider_deployment_legacy'
+      } as any
+    });
+
+    expect(subspaceMagicMcpBackingService.reconcileProviderTemplate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        providerTemplateId: 'provider_template',
+        providerDeploymentId: 'provider_deployment_legacy'
+      })
+    );
   });
 
   it('passes managed consumer actor and identity ids to server backings', async () => {
