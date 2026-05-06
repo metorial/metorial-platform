@@ -1,6 +1,6 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
-import { v } from '@lowerdeck/validation';
+import { v, type ValidationTypeValue } from '@lowerdeck/validation';
 import {
   magicMcpEndpointBackingService,
   magicMcpServerBackingService,
@@ -19,6 +19,18 @@ import { createdAtValidator, updatedAtValidator } from './_dateFilter';
 import { normalizeToolFilters, toolFiltersValidator } from './sessionProvider';
 import { tenantApp } from './tenant';
 
+type ProviderTemplateBackingProviderInput = {
+  providerId: string;
+  providerDeploymentId?: string | null;
+  providerAuthMethodId?: string | null;
+  providerAuthCredentialsId?: string | null;
+  providerConfigId?: string | null;
+  name?: string;
+  description?: string | null;
+  metadata?: Record<string, any> | null;
+  toolFilters?: PrismaJson.ToolFilter | null;
+};
+
 let backingProviderValidator = v.object({
   providerDeploymentId: v.string(),
   providerConfigId: v.optional(v.nullable(v.string())),
@@ -36,6 +48,22 @@ let providerTemplateBackingProviderValidator = v.object({
   description: v.optional(v.nullable(v.string())),
   metadata: v.optional(v.nullable(v.record(v.any()))),
   toolFilters: toolFiltersValidator
+});
+
+let normalizeProviderTemplateBackingProvider = (
+  provider: ValidationTypeValue<typeof providerTemplateBackingProviderValidator>
+): ProviderTemplateBackingProviderInput => ({
+  providerId: provider.providerId!,
+  providerDeploymentId: provider.providerDeploymentId,
+  providerAuthMethodId: provider.providerAuthMethodId,
+  providerAuthCredentialsId: provider.providerAuthCredentialsId,
+  providerConfigId: provider.providerConfigId,
+  name: provider.name,
+  description: provider.description,
+  metadata: provider.metadata,
+  ...(provider.toolFilters !== undefined
+    ? { toolFilters: normalizeToolFilters(provider.toolFilters) }
+    : {})
 });
 
 let endpointServerValidator = v.object({
@@ -73,12 +101,7 @@ export let magicMcpBackingController = app.controller({
           metadata: ctx.input.metadata,
           privateMetadata: ctx.input.privateMetadata,
           providerDeploymentId: ctx.input.providerDeploymentId,
-          providers: ctx.input.providers?.map(provider => ({
-            ...provider,
-            ...(provider.toolFilters !== undefined
-              ? { toolFilters: normalizeToolFilters(provider.toolFilters) as any }
-              : {})
-          })),
+          providers: ctx.input.providers?.map(normalizeProviderTemplateBackingProvider),
           ...(ctx.input.toolFilters !== undefined
             ? { toolFilters: normalizeToolFilters(ctx.input.toolFilters) }
             : {})
@@ -116,12 +139,7 @@ export let magicMcpBackingController = app.controller({
           metadata: ctx.input.metadata,
           privateMetadata: ctx.input.privateMetadata,
           providerDeploymentId: ctx.input.providerDeploymentId,
-          providers: ctx.input.providers?.map(provider => ({
-            ...provider,
-            ...(provider.toolFilters !== undefined
-              ? { toolFilters: normalizeToolFilters(provider.toolFilters) as any }
-              : {})
-          })),
+          providers: ctx.input.providers?.map(normalizeProviderTemplateBackingProvider),
           ...(ctx.input.toolFilters !== undefined
             ? { toolFilters: normalizeToolFilters(ctx.input.toolFilters) }
             : {})
