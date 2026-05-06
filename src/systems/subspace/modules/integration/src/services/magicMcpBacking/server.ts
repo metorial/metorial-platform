@@ -278,7 +278,7 @@ class magicMcpServerBackingServiceImpl {
 
         let providers =
           d.input.providers ??
-          (ownerType === 'server_owned' && d.input.isReconciliation
+          (d.input.isReconciliation
             ? await this.getLegacyProvidersFromSessionTemplate({
                 tenant: d.tenant,
                 solution: d.solution,
@@ -287,7 +287,7 @@ class magicMcpServerBackingServiceImpl {
               })
             : []);
 
-        if (providers.length && !ownerIntegrationInstance) {
+        if (providers.length) {
           await integrationInstanceProviderService.setMagicMcpIntegrationInstanceProviders({
             tenant: d.tenant,
             solution: d.solution,
