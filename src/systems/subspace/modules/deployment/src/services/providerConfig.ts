@@ -86,6 +86,8 @@ class providerConfigServiceImpl {
     providerIds?: string[];
     providerSpecificationIds?: string[];
     providerDeploymentIds?: string[];
+    availableForUse?: boolean;
+    availableForProviderDeploymentId?: string;
     providerConfigVaultIds?: string[];
     actorIds?: string[];
     identityIds?: string[];
@@ -97,6 +99,17 @@ class providerConfigServiceImpl {
     let providers = await resolveProviders(d, d.providerIds);
     let specifications = await resolveProviderSpecifications(d, d.providerSpecificationIds);
     let deployments = await resolveProviderDeployments(d, d.providerDeploymentIds);
+    let availableForDeployment = d.availableForProviderDeploymentId
+      ? await db.providerDeployment.findFirst({
+          where: {
+            tenantOid: d.tenant.oid,
+            solutionOid: d.solution.oid,
+            environmentOid: d.environment.oid,
+            id: d.availableForProviderDeploymentId
+          },
+          select: { oid: true }
+        })
+      : null;
     let vaults = await resolveProviderConfigs(d, d.providerConfigVaultIds);
     let actors = await resolveIdentityActors(d, d.actorIds);
     let identities = await resolveIdentities(d, d.identityIds);
@@ -131,6 +144,22 @@ class providerConfigServiceImpl {
                 providers ? { providerOid: providers.in } : undefined!,
                 specifications ? { specificationOid: specifications.in } : undefined!,
                 deployments ? { deploymentOid: deployments.in } : undefined!,
+                d.availableForUse
+                  ? {
+                      owningIntegrationInstanceOid: null,
+                      owningIntegrationInstanceProviderOid: null
+                    }
+                  : undefined!,
+                d.availableForProviderDeploymentId
+                  ? {
+                      OR: [
+                        { deploymentOid: null },
+                        ...(availableForDeployment
+                          ? [{ deploymentOid: availableForDeployment.oid }]
+                          : [])
+                      ]
+                    }
+                  : undefined!,
                 vaults ? { fromVaultOid: vaults.in } : undefined!,
                 actors
                   ? { identityCredentials: { some: { identity: { actor: actors.oidIn } } } }

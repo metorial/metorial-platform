@@ -99,6 +99,7 @@ type AddProviderPanelFlowProps = {
   initialConfigId?: string;
   initialAuthConfigId?: string;
   initialToolFilter?: InitialToolFilter;
+  filterAvailableResources?: boolean;
   title?: string;
   description?: string;
   action?: string;
@@ -417,6 +418,7 @@ let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
                 </>
               }
               submitLabel={p.action || 'Add Provider'}
+              filterAvailableResources={p.filterAvailableResources}
               onBack={p.hideProviderStep ? p.close : () => setStep(0)}
             />
           </form>
@@ -705,6 +707,7 @@ type ProviderSetupSectionsProps = {
   authRequirement?: 'required' | 'optional';
   showExistingConfigOptions?: boolean;
   showExistingAuthOptions?: boolean;
+  filterAvailableResources?: boolean;
   autoStartManagedCredentialSetup?: boolean;
   emptyState?: ReactNode;
   supplementaryContent?: ReactNode;
@@ -740,6 +743,7 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
   let authRequirement = p.authRequirement ?? 'required';
   let showExistingConfigOptions = p.showExistingConfigOptions ?? true;
   let showExistingAuthOptions = p.showExistingAuthOptions ?? true;
+  let filterAvailableResources = p.filterAvailableResources ?? false;
   let autoStartManagedCredentialSetup = p.autoStartManagedCredentialSetup ?? false;
   let tools = useProviderTools(
     p.instanceId,
@@ -929,6 +933,7 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
             includeVaults
             createConfigButtonLabel="Create Config"
             showExistingOptions={showExistingConfigOptions}
+            filterAvailableResources={filterAvailableResources}
             disabled={p.disabled}
           />
           {p.configError}
@@ -977,7 +982,15 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
                         providerId: p.providerId,
                         limit: 25,
                         search: searchQuery || undefined,
-                        providerDeploymentId: p.providerDeploymentId ?? undefined,
+                        ...(filterAvailableResources
+                          ? {
+                              availableForUse: true,
+                              availableForProviderDeploymentId:
+                                p.providerDeploymentId ?? undefined
+                            }
+                          : {
+                              providerDeploymentId: p.providerDeploymentId ?? undefined
+                            }),
                         providerAuthMethodId: p.fixedAuthMethodId ?? undefined
                       });
 
@@ -1338,6 +1351,7 @@ let ConfigureStep = (p: {
   saving: boolean;
   mutationError: ReactNode;
   submitLabel: string;
+  filterAvailableResources?: boolean;
   onBack: () => void;
 }) => {
   let provider = useProvider(p.instanceId, p.providerId);
@@ -1378,6 +1392,7 @@ let ConfigureStep = (p: {
       providerId={p.providerId}
       providerName={p.providerName}
       providerDeploymentId={p.form.values.selectedDeploymentId || undefined}
+      filterAvailableResources={p.filterAvailableResources}
       selectedConfiguration={p.form.values.selectedConfiguration}
       onSelectedConfigurationChange={value => {
         p.form.setFieldValue('selectedConfiguration', value);
@@ -1440,6 +1455,7 @@ export let showAddProviderPanelFlow = (p: {
   initialConfigId?: string;
   initialAuthConfigId?: string;
   initialToolFilter?: InitialToolFilter;
+  filterAvailableResources?: boolean;
   title?: string;
   description?: string;
   action?: string;
@@ -1462,6 +1478,7 @@ export let showAddProviderPanelFlow = (p: {
       initialConfigId={p.initialConfigId}
       initialAuthConfigId={p.initialAuthConfigId}
       initialToolFilter={p.initialToolFilter}
+      filterAvailableResources={p.filterAvailableResources}
       title={p.title}
       description={p.description}
       action={p.action}

@@ -109,6 +109,7 @@ export let MagicMcpServerLayout = () => {
 
                       showAddProviderSidePanel({
                         instanceId: instance.data!.id,
+                        filterAvailableResources: true,
                         excludeProviderIds: Array.from(
                           new Set(
                             (server.data.providers ?? []).map(provider => provider.provider.id)

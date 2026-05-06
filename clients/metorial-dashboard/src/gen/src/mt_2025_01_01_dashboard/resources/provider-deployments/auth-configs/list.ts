@@ -264,6 +264,8 @@ export type ProviderDeploymentsAuthConfigsListQuery = {
   id?: string | string[] | undefined;
   providerId?: string | string[] | undefined;
   providerDeploymentId?: string | string[] | undefined;
+  availableForUse?: boolean | undefined;
+  availableForProviderDeploymentId?: string | undefined;
   providerAuthCredentialsId?: string | string[] | undefined;
   providerAuthMethodId?: string | string[] | undefined;
   actorId?: string | string[] | undefined;
@@ -317,6 +319,14 @@ export let mapProviderDeploymentsAuthConfigsListQuery = mtMap.union([
             mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
           )
         ])
+      ),
+      availableForUse: mtMap.objectField(
+        'available_for_use',
+        mtMap.passthrough()
+      ),
+      availableForProviderDeploymentId: mtMap.objectField(
+        'available_for_provider_deployment_id',
+        mtMap.passthrough()
       ),
       providerAuthCredentialsId: mtMap.objectField(
         'provider_auth_credentials_id',

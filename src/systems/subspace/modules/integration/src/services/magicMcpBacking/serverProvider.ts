@@ -19,6 +19,7 @@ import {
   normalizeStatusForGet,
   normalizeStatusForList
 } from '@metorial-subspace/list-utils';
+import { providerCombinationService } from '@metorial-subspace/module-provider-internal';
 import { integrationInclude } from '../integration';
 import { integrationInstanceProviderInclude } from '../integrationInstance';
 import { integrationInstanceProviderService } from '../integrationInstanceProvider';
@@ -335,6 +336,58 @@ let assertCanMutateIntegrationProvider = (
   );
 };
 
+let resolveIntegrationProviderMaterialInput = async (d: {
+  tenant: Tenant;
+  solution: Solution;
+  environment: Environment;
+  input: Pick<
+    MagicMcpServerProviderInput,
+    'providerDeploymentId' | 'providerConfigId' | 'providerAuthConfigId'
+  >;
+}) => {
+  if (
+    !d.input.providerDeploymentId &&
+    !d.input.providerConfigId &&
+    !d.input.providerAuthConfigId
+  ) {
+    return {};
+  }
+
+  let [combination] = await providerCombinationService.getCombinations({
+    tenant: d.tenant,
+    solution: d.solution,
+    environment: d.environment,
+    providers: [
+      {
+        deploymentId: d.input.providerDeploymentId,
+        configId: d.input.providerConfigId ?? undefined,
+        authConfigId: d.input.providerAuthConfigId ?? undefined
+      }
+    ]
+  });
+
+  let authConfig = combination.authConfig
+    ? await db.providerAuthConfig.findFirstOrThrow({
+        where: {
+          tenantOid: d.tenant.oid,
+          solutionOid: d.solution.oid,
+          environmentOid: d.environment.oid,
+          oid: combination.authConfig.oid
+        },
+        include: {
+          authMethod: true,
+          authCredentials: true
+        }
+      })
+    : null;
+
+  return {
+    providerDeploymentId: combination.deployment.id,
+    providerAuthMethodId: authConfig?.authMethod.id,
+    providerAuthCredentialsId: authConfig?.authCredentials?.id
+  };
+};
+
 class magicMcpServerProviderServiceImpl {
   async listMagicMcpServerProviders(d: {
     tenant: Tenant;
@@ -478,6 +531,13 @@ class magicMcpServerProviderServiceImpl {
             throw new ServiceError(notFoundError('integration'));
           }
 
+          let materialInput = await resolveIntegrationProviderMaterialInput({
+            tenant: d.tenant,
+            solution: d.solution,
+            environment: d.environment,
+            input: d.input
+          });
+
           let integrationProvider = await integrationProviderService.createIntegrationProvider(
             {
               tenant: d.tenant,
@@ -486,7 +546,9 @@ class magicMcpServerProviderServiceImpl {
               integration: ownerIntegration,
               input: {
                 providerId: d.input.providerId,
-                providerDeploymentId: d.input.providerDeploymentId,
+                providerDeploymentId: materialInput.providerDeploymentId,
+                providerAuthMethodId: materialInput.providerAuthMethodId,
+                providerAuthCredentialsId: materialInput.providerAuthCredentialsId,
                 providerConfigId: d.input.providerConfigId ?? undefined,
                 toolFilters: d.input.toolFilters
               }
@@ -500,6 +562,7 @@ class magicMcpServerProviderServiceImpl {
             integrationInstance: backing.integrationInstance as IntegrationInstance,
             input: {
               providerId: integrationProvider.id,
+              providerDeploymentId: materialInput.providerDeploymentId,
               providerConfigId: d.input.providerConfigId ?? null,
               providerAuthConfigId: d.input.providerAuthConfigId ?? undefined,
               toolFilters: d.input.toolFilters
@@ -559,6 +622,12 @@ class magicMcpServerProviderServiceImpl {
             environment: d.environment,
             magicMcpServerBackingId: row.magicMcpServerBacking.id
           });
+          let materialInput = await resolveIntegrationProviderMaterialInput({
+            tenant: d.tenant,
+            solution: d.solution,
+            environment: d.environment,
+            input: d.input
+          });
 
           if (ownerType === 'server_owned') {
             await integrationProviderService.updateIntegrationProvider({
@@ -567,7 +636,9 @@ class magicMcpServerProviderServiceImpl {
               environment: d.environment,
               integrationProvider: row.integrationProvider,
               input: {
-                providerDeploymentId: d.input.providerDeploymentId,
+                providerDeploymentId: materialInput.providerDeploymentId,
+                providerAuthMethodId: materialInput.providerAuthMethodId,
+                providerAuthCredentialsId: materialInput.providerAuthCredentialsId,
                 providerConfigId:
                   d.input.providerConfigId === undefined
                     ? undefined
@@ -591,6 +662,7 @@ class magicMcpServerProviderServiceImpl {
             integrationInstance: backing.integrationInstance as IntegrationInstance,
             input: {
               providerId: row.integrationProvider.id,
+              providerDeploymentId: materialInput.providerDeploymentId,
               providerConfigId:
                 d.input.providerConfigId === undefined ? undefined : d.input.providerConfigId,
               providerAuthConfigId: d.input.providerAuthConfigId ?? undefined,

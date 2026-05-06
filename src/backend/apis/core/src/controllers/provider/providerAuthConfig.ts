@@ -67,6 +67,14 @@ export let providerAuthConfigController = Controller.create(
             provider_deployment_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by provider deployment ID(s)'
             }),
+            available_for_use: v.optional(v.boolean(), {
+              description:
+                'Only return auth configs that are not owned by another integration instance provider.'
+            }),
+            available_for_provider_deployment_id: v.optional(v.string(), {
+              description:
+                'Only return auth configs that are not locked to a different provider deployment.'
+            }),
             provider_auth_credentials_id: v.optional(
               v.union([v.string(), v.array(v.string())]),
               {
@@ -104,6 +112,8 @@ export let providerAuthConfigController = Controller.create(
           ids: normalizeArrayParam(ctx.query.id),
           providerIds: normalizeArrayParam(ctx.query.provider_id),
           providerDeploymentIds: normalizeArrayParam(ctx.query.provider_deployment_id),
+          availableForUse: ctx.query.available_for_use,
+          availableForProviderDeploymentId: ctx.query.available_for_provider_deployment_id,
           providerAuthCredentialsIds: normalizeArrayParam(
             ctx.query.provider_auth_credentials_id
           ),

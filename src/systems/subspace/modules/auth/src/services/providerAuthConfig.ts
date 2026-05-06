@@ -71,6 +71,8 @@ class providerAuthConfigServiceImpl {
     ids?: string[];
     providerIds?: string[];
     providerDeploymentIds?: string[];
+    availableForUse?: boolean;
+    availableForProviderDeploymentId?: string;
     providerAuthCredentialsIds?: string[];
     providerAuthMethodIds?: string[];
     actorIds?: string[];
@@ -82,6 +84,17 @@ class providerAuthConfigServiceImpl {
   }) {
     let providers = await resolveProviders(d, d.providerIds);
     let deployments = await resolveProviderDeployments(d, d.providerDeploymentIds);
+    let availableForDeployment = d.availableForProviderDeploymentId
+      ? await db.providerDeployment.findFirst({
+          where: {
+            tenantOid: d.tenant.oid,
+            solutionOid: d.solution.oid,
+            environmentOid: d.environment.oid,
+            id: d.availableForProviderDeploymentId
+          },
+          select: { oid: true }
+        })
+      : null;
     let credentials = await resolveProviderAuthCredentials(d, d.providerAuthCredentialsIds);
     let authMethods = await resolveProviderAuthMethods(d, d.providerAuthMethodIds);
     let actors = await resolveIdentityActors(d, d.actorIds);
@@ -115,6 +128,22 @@ class providerAuthConfigServiceImpl {
                 search ? { id: { in: search.map(r => r.documentId) } } : undefined!,
                 providers ? { providerOid: providers.in } : undefined!,
                 deployments ? { deploymentOid: deployments.in } : undefined!,
+                d.availableForUse
+                  ? {
+                      owningIntegrationInstanceOid: null,
+                      owningIntegrationInstanceProviderOid: null
+                    }
+                  : undefined!,
+                d.availableForProviderDeploymentId
+                  ? {
+                      OR: [
+                        { deploymentOid: null },
+                        ...(availableForDeployment
+                          ? [{ deploymentOid: availableForDeployment.oid }]
+                          : [])
+                      ]
+                    }
+                  : undefined!,
                 credentials ? { authCredentialsOid: credentials.in } : undefined!,
                 authMethods ? { authMethodOid: authMethods.in } : undefined!,
                 actors

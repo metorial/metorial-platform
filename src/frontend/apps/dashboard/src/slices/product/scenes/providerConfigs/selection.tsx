@@ -39,6 +39,7 @@ export let ProviderConfigurationSelection = ({
   includeVaults = true,
   createConfigButtonLabel,
   showExistingOptions = true,
+  filterAvailableResources = false,
   disabled = false
 }: {
   instanceId: string;
@@ -50,15 +51,29 @@ export let ProviderConfigurationSelection = ({
   includeVaults?: boolean;
   createConfigButtonLabel?: string;
   showExistingOptions?: boolean;
+  filterAvailableResources?: boolean;
   disabled?: boolean;
 }) => {
-  let query = providerDeploymentId
+  let query = filterAvailableResources
+    ? {
+        ...(providerId ? { providerId } : {}),
+        availableForUse: true,
+        ...(providerDeploymentId
+          ? { availableForProviderDeploymentId: providerDeploymentId }
+          : {})
+      }
+    : providerDeploymentId
+      ? { providerDeploymentId }
+      : providerId
+        ? { providerId }
+        : {};
+  let vaultQuery = providerDeploymentId
     ? { providerDeploymentId }
     : providerId
       ? { providerId }
       : {};
   let configs = useProviderConfigs(instanceId, query);
-  let vaults = useProviderConfigVaults(instanceId, query);
+  let vaults = useProviderConfigVaults(instanceId, vaultQuery);
   let configSchema = useProviderConfigSchemaTarget(
     instanceId,
     providerDeploymentId ? { providerDeploymentId } : providerId ? { providerId } : null
@@ -162,7 +177,7 @@ export let ProviderConfigurationSelection = ({
                     includeVaults ? instanceId : null,
                     includeVaults
                       ? {
-                          ...query,
+                          ...vaultQuery,
                           limit: 25,
                           search: searchQuery || undefined
                         }

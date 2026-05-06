@@ -211,6 +211,8 @@ export type ManagementInstanceProviderDeploymentsConfigsListQuery = {
   providerId?: string | string[] | undefined;
   providerSpecificationId?: string | string[] | undefined;
   providerDeploymentId?: string | string[] | undefined;
+  availableForUse?: boolean | undefined;
+  availableForProviderDeploymentId?: string | undefined;
   providerConfigVaultId?: string | string[] | undefined;
   actorId?: string | string[] | undefined;
   consumerId?: string | string[] | undefined;
@@ -274,6 +276,14 @@ export let mapManagementInstanceProviderDeploymentsConfigsListQuery =
               mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
             )
           ])
+        ),
+        availableForUse: mtMap.objectField(
+          'available_for_use',
+          mtMap.passthrough()
+        ),
+        availableForProviderDeploymentId: mtMap.objectField(
+          'available_for_provider_deployment_id',
+          mtMap.passthrough()
         ),
         providerConfigVaultId: mtMap.objectField(
           'provider_config_vault_id',

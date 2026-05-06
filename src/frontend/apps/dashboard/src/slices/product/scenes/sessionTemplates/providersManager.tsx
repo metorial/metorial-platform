@@ -135,6 +135,7 @@ export let showAddProviderSidePanel = (p: {
   initialConfigId?: string;
   initialAuthConfigId?: string;
   initialToolFilter?: SessionTemplateProviderToolFilter;
+  filterAvailableResources?: boolean;
   title?: string;
   description?: string;
   action?: string;

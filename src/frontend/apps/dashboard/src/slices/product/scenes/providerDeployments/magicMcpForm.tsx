@@ -80,6 +80,7 @@ export let MagicMcpServerForm = (
         action: 'Create Magic MCP Server',
 
         instanceId: instance.data.id,
+        filterAvailableResources: true,
         providerId: p.type === 'create' ? p.for?.providerId : undefined,
         onSubmitProvider: async (input, currentProviderId) => {
           if (currentProviderId) {

@@ -47,10 +47,7 @@ class magicMcpEndpointBackingServiceImpl {
     });
 
     let syncTarget = await withMagicMcpBackingLock(
-      [
-        `endpoint:${d.input.id}`,
-        ...d.input.servers.map(server => `server:${server.magicMcpServerBackingId}`)
-      ],
+      [`endpoint:${d.input.id}`],
       async () =>
         await withTransaction(async db => {
           let serverBackings = await db.magicMcpServerBacking.findMany({

@@ -65,6 +65,14 @@ export let providerConfigController = Controller.create(
             provider_deployment_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by provider deployment ID(s)'
             }),
+            available_for_use: v.optional(v.boolean(), {
+              description:
+                'Only return configs that are not owned by another integration instance provider.'
+            }),
+            available_for_provider_deployment_id: v.optional(v.string(), {
+              description:
+                'Only return configs that are not locked to a different provider deployment.'
+            }),
             provider_config_vault_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by config vault ID(s)'
             }),
@@ -97,6 +105,8 @@ export let providerConfigController = Controller.create(
           providerIds: normalizeArrayParam(ctx.query.provider_id),
           providerSpecificationIds: normalizeArrayParam(ctx.query.provider_specification_id),
           providerDeploymentIds: normalizeArrayParam(ctx.query.provider_deployment_id),
+          availableForUse: ctx.query.available_for_use,
+          availableForProviderDeploymentId: ctx.query.available_for_provider_deployment_id,
           providerConfigVaultIds: normalizeArrayParam(ctx.query.provider_config_vault_id),
           actorIds: normalizeArrayParam(ctx.query.actor_id),
           consumerIds: normalizeArrayParam(ctx.query.consumer_id),
