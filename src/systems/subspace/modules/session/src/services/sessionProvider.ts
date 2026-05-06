@@ -13,7 +13,6 @@ import {
 import {
   checkDeletedEdit,
   checkDeletedRelation,
-  type DateFilter,
   normalizeDateFilter,
   normalizeStatusForGet,
   normalizeStatusForList,
@@ -22,7 +21,8 @@ import {
   resolveProviderDeployments,
   resolveProviders,
   resolveSessions,
-  resolveSessionTemplates
+  resolveSessionTemplates,
+  type DateFilter
 } from '@metorial-subspace/list-utils';
 import { checkTenant } from '@metorial-subspace/module-tenant';
 import {
@@ -30,6 +30,7 @@ import {
   type SessionProviderInput,
   type SessionProviderInputToolFilters
 } from './sessionProviderInput';
+import { sessionProviderNameTemplateService } from './sessionProviderNameTemplate';
 
 let include = {
   provider: true,
@@ -120,7 +121,7 @@ class sessionProviderServiceImpl {
     if (!sessionProvider)
       throw new ServiceError(notFoundError('sessionProvider', d.sessionProviderId));
 
-    return sessionProvider;
+    return await sessionProviderNameTemplateService.ensureForSessionProvider(sessionProvider);
   }
 
   async createSessionProvider(d: {

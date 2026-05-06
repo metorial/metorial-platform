@@ -19,6 +19,10 @@ import {
   type SessionConnectionMcpConnectionTransport
 } from '@metorial-subspace/db';
 import {
+  applySessionProviderNameTemplate,
+  parseNameFromSessionProviderTemplates
+} from '@metorial-subspace/module-session';
+import {
   type CallToolRequest,
   CallToolRequestSchema,
   type GetPromptRequest,
@@ -73,6 +77,29 @@ export class McpSender {
 
   get connection() {
     return this.manager.connection;
+  }
+
+  private encodeResourceCursor(d: { providerId: string; cursor?: string }) {
+    return Buffer.from(JSON.stringify(d)).toString('base64url');
+  }
+
+  private decodeResourceCursor(cursor: string) {
+    try {
+      let decoded = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8'));
+      if (typeof decoded?.providerId !== 'string' || !decoded.providerId.trim()) {
+        return null;
+      }
+
+      return {
+        providerId: decoded.providerId,
+        cursor:
+          typeof decoded.cursor === 'string' && decoded.cursor.trim()
+            ? decoded.cursor
+            : undefined
+      };
+    } catch {
+      return null;
+    }
   }
 
   async handleMessage(msg: JSONRPCMessage, opts: HandleResponseOpts) {
@@ -478,7 +505,10 @@ export class McpSender {
               title: presented.title,
               description: presented.description || undefined,
               mimeType: mcp?.mimeType,
-              uriTemplate: `${mcp?.uriTemplate}_${t.sessionProvider.tag}`,
+              uriTemplate: applySessionProviderNameTemplate(
+                t.sessionProvider.nameTemplate!,
+                mcp?.uriTemplate ?? ''
+              ),
               icons: mcp?.icons
             };
           })
@@ -525,17 +555,30 @@ export class McpSender {
 
     let resourceListTools = uniqBy(
       allTools.tools.filter(t => t.value.mcpToolType.type === 'mcp.resources_list'),
-      t => t.sessionProvider.tag
+      t => t.sessionProvider.id
     );
 
     let internalCursor: string | undefined;
 
     if (opts?.cursor) {
-      let parts = opts.cursor.split('_');
-      let tag = parts.pop()!;
-      let remainingCursor = parts.join('_').trim();
+      let decodedCursor = this.decodeResourceCursor(opts.cursor);
+      if (!decodedCursor) {
+        return {
+          store: true,
+          mcp: {
+            jsonrpc: '2.0',
+            id,
+            error: {
+              code: -32000,
+              message: 'Invalid cursor'
+            }
+          } satisfies JSONRPCErrorResponse
+        };
+      }
 
-      let firstToolIndex = resourceListTools.findIndex(t => t.sessionProvider.tag === tag);
+      let firstToolIndex = resourceListTools.findIndex(
+        t => t.sessionProvider.id === decodedCursor.providerId
+      );
       if (firstToolIndex < 0) {
         return {
           store: true,
@@ -544,7 +587,7 @@ export class McpSender {
             id,
             error: {
               code: -32000,
-              message: `Invalid cursor: provider with tag "${tag}" not found`
+              message: `Invalid cursor: provider "${decodedCursor.providerId}" not found`
             }
           } satisfies JSONRPCErrorResponse
         };
@@ -553,7 +596,7 @@ export class McpSender {
       let remainingTools = resourceListTools.slice(firstToolIndex); // Include the found tool
       resourceListTools = remainingTools;
 
-      if (remainingCursor.length) internalCursor = remainingCursor;
+      internalCursor = decodedCursor.cursor;
     }
 
     if (!resourceListTools.length) {
@@ -630,7 +673,10 @@ export class McpSender {
           .filter(resource => checkResourceAccess(resource.uri).allowed)
           .map(resource => ({
             ...resource,
-            uri: `${resource.uri}_${tool.sessionProvider.tag}`
+            uri: applySessionProviderNameTemplate(
+              tool.sessionProvider.nameTemplate!,
+              resource.uri
+            )
           }));
 
         resources.push(...newResources);
@@ -644,13 +690,21 @@ export class McpSender {
       }
     }
 
+    let nextCursor =
+      resourceListTools.length > 0
+        ? this.encodeResourceCursor({
+            providerId: resourceListTools[0]!.sessionProvider.id,
+            cursor: internalCursor
+          })
+        : undefined;
+
     return {
       store: true,
       message,
       mcp: {
         jsonrpc: '2.0',
         id,
-        result: { resources } satisfies ListResourcesResult
+        result: { resources, nextCursor } satisfies ListResourcesResult
       } satisfies JSONRPCResponse
     };
   }
@@ -659,23 +713,16 @@ export class McpSender {
     id: ID,
     opts: { uri: string; waitForResponse: boolean }
   ) {
-    let parts = opts.uri.split('_');
-    let tag = parts.pop()!;
-    let remainingUri = parts.join('_').trim();
+    let providers = await this.manager.listProviders();
 
-    let allTools = await this.manager.listToolsIncludingInternalAndNonAllowed();
-    if (allTools.status == 'discovery_failed') {
-      return {
-        store: true,
-        mcp: { jsonrpc: '2.0', id, error: allTools.mcpError } satisfies JSONRPCErrorResponse
-      };
-    }
-
-    let resourceReadTool = allTools.tools.find(
-      t => t.value.mcpToolType.type === 'mcp.resources_read' && t.sessionProvider.tag === tag
-    );
-
-    if (!resourceReadTool) {
+    let match: {
+      provider: (typeof providers)[number];
+      originalName: string;
+      finalName: string;
+    } | null = null;
+    try {
+      match = parseNameFromSessionProviderTemplates(opts.uri, providers);
+    } catch (error: any) {
       return {
         store: true,
         mcp: {
@@ -683,14 +730,33 @@ export class McpSender {
           id,
           error: {
             code: -32000,
-            message: `No resource read tool found for provider with tag "${tag}"`
+            message: error.message
           }
         } satisfies JSONRPCErrorResponse
       };
     }
 
+    if (!match) {
+      return {
+        store: true,
+        mcp: {
+          jsonrpc: '2.0',
+          id,
+          error: {
+            code: -32000,
+            message: 'No provider found for resource URI'
+          }
+        } satisfies JSONRPCErrorResponse
+      };
+    }
+
+    let resourceReadTool = await this.manager.getInternalToolByProviderType({
+      provider: match.provider,
+      type: 'mcp.resources_read'
+    });
+
     let checkResourceAccess = checkResourceAccessManager(resourceReadTool.sessionProvider);
-    if (!checkResourceAccess(remainingUri).allowed) {
+    if (!checkResourceAccess(match.originalName).allowed) {
       return {
         store: true,
         mcp: {
@@ -713,7 +779,7 @@ export class McpSender {
           method: 'resources/read',
           id,
           params: {
-            uri: remainingUri
+            uri: match.originalName
           }
         } satisfies JSONRPCRequest & ReadResourceRequest
       },

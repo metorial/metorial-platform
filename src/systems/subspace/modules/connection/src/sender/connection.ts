@@ -114,6 +114,12 @@ export class SenderConnection {
     return this.manager.listProviders();
   }
 
+  getInternalToolByProviderType(
+    d: Parameters<SenderManager['getInternalToolByProviderType']>[0]
+  ) {
+    return this.manager.getInternalToolByProviderType(d);
+  }
+
   getToolById(d: { toolId: string }) {
     return this.manager.getToolById(d);
   }

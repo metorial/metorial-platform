@@ -41,6 +41,11 @@ import {
   providerDeploymentInternalService,
   resolveGrantedScopes
 } from '@metorial-subspace/module-provider-internal';
+import {
+  applySessionProviderNameTemplate,
+  parseNameFromSessionProviderTemplates,
+  sessionProviderNameTemplateService
+} from '@metorial-subspace/module-session';
 import { ephemeralManagedSessionService } from '@metorial-subspace/module-session/src/services/ephemeralManagedSession';
 import { addDays, addMinutes } from 'date-fns';
 import {
@@ -507,6 +512,7 @@ export class SenderManager {
 
   private async listToolsForProvider(
     provider: SessionProvider & {
+      provider: { name: string };
       deployment: ProviderDeployment;
       authConfig?:
         | (ProviderAuthConfig & { authCredentials?: ProviderAuthCredentials | null })
@@ -549,7 +555,7 @@ export class SenderManager {
       status: 'ok' as const,
       tools: scopeFilteredTools.map(t => ({
         ...t,
-        key: `${t.key}_${provider.tag}`,
+        key: applySessionProviderNameTemplate(provider.nameTemplate!, t.key),
         sessionProvider: provider,
         sessionProviderInstance: res.instance
       }))
@@ -557,7 +563,7 @@ export class SenderManager {
   }
 
   async listProviders() {
-    return await db.sessionProvider.findMany({
+    let providers = await db.sessionProvider.findMany({
       where: { sessionOid: this.session.oid, status: 'active', isParentDeleted: false },
       include: {
         provider: true,
@@ -566,6 +572,8 @@ export class SenderManager {
         authConfig: { include: { authCredentials: true } }
       }
     });
+
+    return await sessionProviderNameTemplateService.ensureForSessionProviders(providers);
   }
 
   async listToolsIncludingInternalAndNonAllowed() {
@@ -628,6 +636,7 @@ export class SenderManager {
         status: 'active'
       },
       include: {
+        provider: true,
         deployment: true,
         config: true,
         authConfig: { include: { authCredentials: true } }
@@ -637,20 +646,34 @@ export class SenderManager {
     return provider;
   }
 
-  async getToolById(d: { toolId: string }) {
+  private async getLegacyToolMatch(d: { toolId: string }) {
     let parts = d.toolId.split('_');
     let providerTag = parts.pop();
     let toolKeyParts = parts;
     if (toolKeyParts.length === 0 || !providerTag?.trim()) {
-      throw new ServiceError(badRequestError({ message: 'Invalid tool ID format' }));
+      return null;
     }
-
-    let toolKey = toolKeyParts.join('_');
 
     let provider = await this.getProviderByTag({ tag: providerTag! });
 
-    // Get the current instance for the provider
-    let instanceRes = await this.ensureProviderInstance(provider);
+    return {
+      provider,
+      originalToolName: toolKeyParts.join('_'),
+      finalToolName: d.toolId
+    };
+  }
+
+  private async getProviderToolByResolvedName(d: {
+    provider: SessionProvider & {
+      provider: { name: string };
+      authConfig?:
+        | (ProviderAuthConfig & { authCredentials?: ProviderAuthCredentials | null })
+        | null;
+    };
+    originalToolName: string;
+    finalToolName: string;
+  }) {
+    let instanceRes = await this.ensureProviderInstance(d.provider);
     if (!instanceRes) throw new ServiceError(notFoundError('provider.instance'));
 
     if (instanceRes.status === 'discovery_failed') {
@@ -672,26 +695,26 @@ export class SenderManager {
 
       await delay(2000);
 
-      instanceRes = (await this.ensureProviderInstance(provider))! as any;
+      instanceRes = (await this.ensureProviderInstance(d.provider))! as any;
     }
 
     // Find the tool by key in the specification of the current instance
     let tool = await db.providerTool.findFirst({
       where: {
-        key: toolKey,
+        key: d.originalToolName,
         specificationOid: instanceRes.instance.pairVersion.specificationOid
       }
     });
-    if (!tool) throw new ServiceError(notFoundError('tool', d.toolId));
+    if (!tool) return null;
 
-    let { allowed } = checkToolAccess(tool, provider, 'call');
+    let { allowed } = checkToolAccess(tool, d.provider, 'call');
     if (!allowed) {
       throw new ServiceError(badRequestError({ message: 'Tool access not allowed' }));
     }
 
     let grantedScopes = resolveGrantedScopes({
-      authConfig: provider.authConfig,
-      authCredentials: provider.authConfig?.authCredentials
+      authConfig: d.provider.authConfig,
+      authCredentials: d.provider.authConfig?.authCredentials
     });
     if (grantedScopes !== null) {
       let scopeCheck = checkToolScopesSatisfied(tool, grantedScopes);
@@ -705,15 +728,74 @@ export class SenderManager {
     }
 
     return {
-      provider,
+      provider: d.provider,
       instance: instanceRes.instance,
       tool: {
         ...tool,
-        key: `${tool.key}_${provider.tag}`,
-        sessionProvider: provider,
+        key: d.finalToolName,
+        sessionProvider: d.provider,
         sessionProviderInstance: instanceRes.instance
       }
     };
+  }
+
+  async getToolById(d: { toolId: string }) {
+    let providers = await this.listProviders();
+
+    let templateMatch: {
+      provider: (typeof providers)[number];
+      originalToolName: string;
+      finalToolName: string;
+    } | null = null;
+
+    try {
+      let match = parseNameFromSessionProviderTemplates(d.toolId, providers);
+      if (match) {
+        templateMatch = {
+          provider: match.provider,
+          originalToolName: match.originalName,
+          finalToolName: match.finalName
+        };
+      }
+    } catch (error: any) {
+      throw new ServiceError(badRequestError({ message: error.message }));
+    }
+
+    let legacyMatch = await this.getLegacyToolMatch(d);
+    let matches = [templateMatch, legacyMatch].filter(Boolean);
+
+    if (matches.length === 0) {
+      throw new ServiceError(badRequestError({ message: 'Invalid tool ID format' }));
+    }
+
+    for (let match of matches) {
+      let resolved = await this.getProviderToolByResolvedName(match!);
+      if (resolved) return resolved;
+    }
+
+    throw new ServiceError(notFoundError('tool', d.toolId));
+  }
+
+  async getInternalToolByProviderType(d: {
+    provider: Awaited<ReturnType<SenderManager['listProviders']>>[number];
+    type: string;
+  }) {
+    let toolsRes = await this.listToolsForProvider(d.provider);
+    if (toolsRes.status === 'discovery_failed') {
+      throw new ServiceError(
+        preconditionFailedError({
+          message: 'Failed to discover provider specification',
+          _mcpError: toolsRes.mcpError
+        })
+      );
+    }
+
+    let tool = toolsRes.tools.find(item => item.value.mcpToolType.type === d.type);
+    if (!tool) {
+      throw new ServiceError(notFoundError('tool', d.type));
+    }
+
+    return tool;
   }
 
   async createMessage(d: CreateMessageProps) {

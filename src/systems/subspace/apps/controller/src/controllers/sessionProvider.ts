@@ -1,7 +1,11 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v, type ValidationTypeValue } from '@lowerdeck/validation';
 import { normalizeToolFilters as normalizeProviderToolFilters } from '@metorial-subspace/module-provider-internal';
-import { sessionProviderService, sessionService } from '@metorial-subspace/module-session';
+import {
+  sessionProviderNameTemplateService,
+  sessionProviderService,
+  sessionService
+} from '@metorial-subspace/module-session';
 import { sessionProviderPresenter } from '@metorial-subspace/presenters';
 import { app } from './_app';
 import { createdAtValidator, updatedAtValidator } from './_dateFilter';
@@ -130,6 +134,9 @@ export let sessionProviderController = app.controller({
       });
 
       let list = await paginator.run(ctx.input);
+      list.items = await sessionProviderNameTemplateService.ensureForSessionProviders(
+        list.items
+      );
 
       return Paginator.presentLight(list, sessionProviderPresenter);
     }),

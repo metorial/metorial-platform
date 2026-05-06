@@ -64,6 +64,12 @@ export class McpManager {
     return this._connection.listProviders();
   }
 
+  getInternalToolByProviderType(
+    d: Parameters<SenderConnection['getInternalToolByProviderType']>[0]
+  ) {
+    return this._connection.getInternalToolByProviderType(d);
+  }
+
   getToolById(d: { toolId: string }) {
     return this._connection.getToolById(d);
   }

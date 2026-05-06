@@ -135,6 +135,7 @@ export let ensureProviderTemplateBacking = async (d: {
 export let ensureMagicMcpServerBacking = async (d: {
   instance: Instance;
   server: MagicMcpServer;
+  owner?: ConsumerOwner;
   providers?: {
     providerDeploymentId: string;
     providerConfigId?: string | null;
@@ -143,10 +144,12 @@ export let ensureMagicMcpServerBacking = async (d: {
   }[];
   isReconciliation?: boolean;
 }) => {
-  let owner = await getConsumerOwnerForServer({
-    instance: d.instance,
-    server: d.server
-  });
+  let owner =
+    d.owner ??
+    (await getConsumerOwnerForServer({
+      instance: d.instance,
+      server: d.server
+    }));
   let providerTemplateBackingId: string | null = null;
   if (d.server.providerTemplateId) {
     let providerTemplate = await db.providerTemplate.findFirst({
@@ -221,18 +224,20 @@ export let ensureMagicMcpEndpointBacking = async (d: {
     include: magicMcpEndpointBackingInclude
   });
 
-  for (let server of endpoint.servers) {
-    await ensureMagicMcpServerBacking({
-      instance: d.instance,
-      server: server.magicMcpServer,
-      isReconciliation: d.isReconciliation
-    });
-  }
-
   let owner = await getConsumerOwnerForProfile({
     instance: d.instance,
     consumerProfileOid: endpoint.consumerProfileOid
   });
+
+  for (let server of endpoint.servers) {
+    await ensureMagicMcpServerBacking({
+      instance: d.instance,
+      server: server.magicMcpServer,
+      ...(endpoint.consumerProfileOid ? { owner } : {}),
+      isReconciliation: d.isReconciliation
+    });
+  }
+
   let maxSessionDurationInMinutes = await getMagicMcpSessionDuration(d.instance);
   let backing = await subspaceMagicMcpBackingService.upsertEndpoint({
     instance: d.instance,

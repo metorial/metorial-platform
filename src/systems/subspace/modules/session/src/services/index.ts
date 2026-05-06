@@ -1,8 +1,8 @@
+export * from './ephemeralManagedSession';
 export * from './providerInvocation';
 export * from './providerRun';
 export * from './providerRunLogs';
 export * from './providerRunUsageRecord';
-export * from './ephemeralManagedSession';
 export * from './session';
 export * from './sessionConnection';
 export * from './sessionError';
@@ -12,6 +12,7 @@ export * from './sessionMessage';
 export * from './sessionParticipant';
 export * from './sessionProvider';
 export * from './sessionProviderInput';
+export * from './sessionProviderNameTemplate';
 export * from './sessionTemplate';
 export * from './sessionTemplateProvider';
 export * from './sessionUsageRecord';
