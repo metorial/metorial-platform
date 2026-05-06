@@ -303,6 +303,7 @@ class integrationInstanceProviderServiceImpl {
     integrationInstance: IntegrationInstance;
     input: SetIntegrationInstanceProviderInput[];
     _canBreakIntegrationCanRules?: boolean;
+    _allowMissingProviderAuthConfig?: boolean;
   }) {
     checkTenant(d, d.integrationInstance);
     checkDeletedRelation(d.integrationInstance);
@@ -510,6 +511,7 @@ class integrationInstanceProviderServiceImpl {
         tenant: d.tenant,
         solution: d.solution,
         environment: d.environment,
+        allowMissingAuthConfig: d._allowMissingProviderAuthConfig,
         providers: d.input.map((input, idx) => ({
           deploymentId:
             input.providerDeploymentId ??
@@ -745,6 +747,8 @@ class integrationInstanceProviderServiceImpl {
     environment: Environment;
     integrationInstance: IntegrationInstance;
     input: SetIntegrationInstanceProviderInput;
+    _canBreakIntegrationCanRules?: boolean;
+    _allowMissingProviderAuthConfig?: boolean;
   }) {
     let [integrationInstanceProvider] = await this.setIntegrationInstanceProviders({
       ...d,
@@ -769,6 +773,7 @@ class integrationInstanceProviderServiceImpl {
     environment: Environment;
     integration: Integration;
     integrationInstance: IntegrationInstance;
+    isReconciliation?: boolean;
     input: {
       providerDeploymentId: string;
       providerConfigId?: string | null;
@@ -802,6 +807,7 @@ class integrationInstanceProviderServiceImpl {
       // Magic MCP backing reconciliation must preserve explicit provider config/filter choices
       // even when the linked integration would normally reject them.
       _canBreakIntegrationCanRules: true,
+      _allowMissingProviderAuthConfig: d.isReconciliation,
       input: d.input.map((input, idx) => ({
         providerId: integrationProviders[idx]!.id,
         providerDeploymentId: input.providerDeploymentId,

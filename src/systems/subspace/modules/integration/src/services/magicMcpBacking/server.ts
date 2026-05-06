@@ -34,10 +34,45 @@ type UpsertMagicMcpServerBackingInput = {
     providerTemplateBackingId?: string | null;
     ownerIntegrationId?: string | null;
     providers?: BackingProviderInput[];
+    legacySessionTemplateId?: string | null;
+    isReconciliation?: boolean;
   };
 };
 
 class magicMcpServerBackingServiceImpl {
+  private async getLegacyProvidersFromSessionTemplate(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    sessionTemplateId?: string | null;
+  }): Promise<BackingProviderInput[]> {
+    if (!d.sessionTemplateId) return [];
+
+    let providers = await db.sessionTemplateProvider.findMany({
+      where: {
+        status: 'active',
+        sessionTemplate: {
+          id: d.sessionTemplateId,
+          tenantOid: d.tenant.oid,
+          solutionOid: d.solution.oid,
+          environmentOid: d.environment.oid
+        }
+      },
+      include: {
+        deployment: true,
+        config: true,
+        authConfig: true
+      }
+    });
+
+    return providers.map(provider => ({
+      providerDeploymentId: provider.deployment.id,
+      providerConfigId: provider.config.id,
+      providerAuthConfigId: provider.authConfig?.id ?? null,
+      toolFilters: provider.toolFilter as PrismaJson.ToolFilter
+    }));
+  }
+
   async upsertMagicMcpServerBacking(d: UpsertMagicMcpServerBackingInput) {
     let actorOid = await resolveActorOid({ ...d, identityActorId: d.input.identityActorId });
     if (d.input.providerTemplateBackingId && d.input.ownerIntegrationId) {
@@ -56,7 +91,7 @@ class magicMcpServerBackingServiceImpl {
       : null;
     if (d.input.providerTemplateBackingId && !providerTemplateBacking) {
       throw new ServiceError(
-        notFoundError('provider_template.backing', d.input.providerTemplateBackingId)
+        notFoundError('provider_template', d.input.providerTemplateBackingId)
       );
     }
     let ownerIntegration = d.input.ownerIntegrationId
@@ -75,8 +110,8 @@ class magicMcpServerBackingServiceImpl {
           : ('server_owned' as const);
 
     await withMagicMcpBackingLock(`server:${d.input.id}`, async () => {
-      await withTransaction(async tx => {
-        let existing = await tx.magicMcpServerBacking.findUnique({
+      await withTransaction(async db => {
+        let existing = await db.magicMcpServerBacking.findUnique({
           where: { id: d.input.id },
           include: magicMcpServerBackingInclude
         });
@@ -114,9 +149,11 @@ class magicMcpServerBackingServiceImpl {
             integrationInstance: existing?.integrationInstance,
             input: {
               name: d.input.name?.trim() || d.input.id,
+              description: d.input.description,
               metadata: d.input.metadata,
               privateMetadata: d.input.privateMetadata,
-              identityActorId: d.input.identityActorId
+              identityActorId: d.input.identityActorId,
+              identityId: d.input.identityId
             }
           });
 
@@ -149,7 +186,7 @@ class magicMcpServerBackingServiceImpl {
             }
           });
 
-        await tx.magicMcpServerBacking.upsert({
+        await db.magicMcpServerBacking.upsert({
           where: { id: d.input.id },
           create: {
             id: d.input.id,
@@ -174,14 +211,26 @@ class magicMcpServerBackingServiceImpl {
           }
         });
 
-        if (d.input.providers?.length) {
+        let providers =
+          d.input.providers ??
+          (ownerType === 'server_owned' && d.input.isReconciliation
+            ? await this.getLegacyProvidersFromSessionTemplate({
+                tenant: d.tenant,
+                solution: d.solution,
+                environment: d.environment,
+                sessionTemplateId: d.input.legacySessionTemplateId
+              })
+            : []);
+
+        if (providers.length) {
           await integrationInstanceProviderService.setMagicMcpIntegrationInstanceProviders({
             tenant: d.tenant,
             solution: d.solution,
             environment: d.environment,
             integration,
             integrationInstance,
-            input: d.input.providers
+            isReconciliation: d.input.isReconciliation,
+            input: providers
           });
         }
       });

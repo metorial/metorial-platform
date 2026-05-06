@@ -467,6 +467,7 @@ class integrationInstanceGroupProviderServiceImpl {
     solution: Solution;
     environment: Environment;
     integrationInstanceGroup: IntegrationInstanceGroup;
+    isReconciliation?: boolean;
     input: SetIntegrationInstanceGroupProviderInput[];
   }) {
     let providers = await this.setIntegrationInstanceGroupProviders({

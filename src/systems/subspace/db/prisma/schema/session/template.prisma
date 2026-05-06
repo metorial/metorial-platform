@@ -33,10 +33,10 @@ model SessionTemplate {
   integrationInstanceGroupOid BigInt?
   integrationInstanceGroup    IntegrationInstanceGroup? @relation(fields: [integrationInstanceGroupOid], references: [oid], onDelete: Cascade)
 
-  defaultSessionTemplateForIntegrationInstanceOid BigInt? @unique(map: "stm_default_for_instance_key")
+  defaultSessionTemplateForIntegrationInstanceOid BigInt?              @unique(map: "stm_default_for_instance_key")
   defaultSessionTemplateForIntegrationInstance    IntegrationInstance? @relation("defaultSessionTemplateForIntegrationInstance", fields: [defaultSessionTemplateForIntegrationInstanceOid], references: [oid], onDelete: Cascade, map: "stm_default_for_instance_fkey")
 
-  defaultSessionTemplateForIntegrationInstanceGroupOid BigInt? @unique(map: "stm_default_for_instance_group_key")
+  defaultSessionTemplateForIntegrationInstanceGroupOid BigInt?                   @unique(map: "stm_default_for_instance_group_key")
   defaultSessionTemplateForIntegrationInstanceGroup    IntegrationInstanceGroup? @relation("defaultSessionTemplateForIntegrationInstanceGroup", fields: [defaultSessionTemplateForIntegrationInstanceGroupOid], references: [oid], onDelete: Cascade, map: "stm_default_for_instance_group_fkey")
 
   createdAt DateTime @default(now())

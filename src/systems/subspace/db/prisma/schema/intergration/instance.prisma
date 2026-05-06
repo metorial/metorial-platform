@@ -10,7 +10,7 @@ model IntegrationInstance {
   id  String @unique
 
   status          IntegrationInstanceStatus
-  isHiddenDraft   Boolean                  @default(false)
+  isHiddenDraft   Boolean                   @default(false)
   isParentDeleted Boolean                   @default(false)
   archivedAt      DateTime?
 

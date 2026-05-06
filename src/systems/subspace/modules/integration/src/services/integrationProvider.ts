@@ -208,6 +208,52 @@ let validateMaterialInput = async (d: {
   return { deployment, authMethod, authCredentials, config };
 };
 
+let inferReconciliationAuthMaterial = async (d: {
+  tenant: Tenant;
+  solution: Solution;
+  environment: Environment;
+  deployment: ProviderDeployment & {
+    provider: Provider;
+    currentVersion: ProviderDeploymentVersion | null;
+  };
+}) => {
+  let provider = await providerService.getProviderById({
+    tenant: d.tenant,
+    solution: d.solution,
+    environment: d.environment,
+    providerId: d.deployment.provider.id
+  });
+  if (!provider.type.supportsAuth) {
+    return {
+      authMethodOid: null,
+      authCredentialsOid: null
+    };
+  }
+
+  let credentialsPaginator = await providerAuthCredentialsService.listProviderAuthCredentials({
+    tenant: d.tenant,
+    solution: d.solution,
+    environment: d.environment,
+    providerIds: [provider.id],
+    status: ['active']
+  });
+  let credentials = await credentialsPaginator.run({ limit: 100 });
+  let authCredentials = credentials.items[0] ?? null;
+  let authMethod = await resolveAuthMethod({
+    tenant: d.tenant,
+    solution: d.solution,
+    environment: d.environment,
+    provider,
+    deployment: d.deployment,
+    hasAuthCredentials: !!authCredentials
+  });
+
+  return {
+    authMethodOid: authMethod?.oid ?? null,
+    authCredentialsOid: authCredentials && authMethod?.type === 'oauth' ? authCredentials.oid : null
+  };
+};
+
 class integrationProviderServiceImpl {
   private integrationProviderCreateData(d: {
     context: {
@@ -495,6 +541,12 @@ class integrationProviderServiceImpl {
       providerDeploymentId: d.input.providerDeploymentId
     });
     let toolFilter = normalizeIntegrationProviderToolFilter(d.input.toolFilters);
+    let inferredAuth = await inferReconciliationAuthMaterial({
+      tenant: d.tenant,
+      solution: d.solution,
+      environment: d.environment,
+      deployment
+    });
 
     return await withTransaction(async db => {
       let existing = await db.integrationProvider.findUnique({
@@ -538,8 +590,9 @@ class integrationProviderServiceImpl {
 
       let materialInput = {
         deploymentOid: deployment.oid,
-        authMethodOid: existing?.currentVersion?.authMethodOid ?? null,
-        authCredentialsOid: existing?.currentVersion?.authCredentialsOid ?? null,
+        authMethodOid: existing?.currentVersion?.authMethodOid ?? inferredAuth.authMethodOid,
+        authCredentialsOid:
+          existing?.currentVersion?.authCredentialsOid ?? inferredAuth.authCredentialsOid,
         configOid: existing?.currentVersion?.configOid ?? null,
         toolFilter
       };
@@ -555,9 +608,9 @@ class integrationProviderServiceImpl {
           integrationProviderOid: integrationProvider.oid,
           status: 'active',
           deploymentOid: deployment.oid,
-          authMethodOid: existing?.currentVersion?.authMethodOid,
-          authCredentialsOid: existing?.currentVersion?.authCredentialsOid,
-          configOid: existing?.currentVersion?.configOid,
+          authMethodOid: materialInput.authMethodOid,
+          authCredentialsOid: materialInput.authCredentialsOid,
+          configOid: materialInput.configOid,
           toolFilter
         });
 

@@ -32,6 +32,7 @@ type UpsertMagicMcpEndpointBackingInput = {
       magicMcpServerBackingId: string;
       toolFilters?: PrismaJson.ToolFilter | null;
     }[];
+    isReconciliation?: boolean;
   };
 };
 
@@ -45,8 +46,8 @@ class magicMcpEndpointBackingServiceImpl {
         ...d.input.servers.map(server => `server:${server.magicMcpServerBackingId}`)
       ],
       async () =>
-        await withTransaction(async tx => {
-          let serverBackings = await tx.magicMcpServerBacking.findMany({
+        await withTransaction(async db => {
+          let serverBackings = await db.magicMcpServerBacking.findMany({
             where: {
               id: { in: d.input.servers.map(server => server.magicMcpServerBackingId) },
               integrationInstance: {
@@ -78,7 +79,7 @@ class magicMcpEndpointBackingServiceImpl {
             }
           }
 
-          let existing = await tx.magicMcpEndpointBacking.findUnique({
+          let existing = await db.magicMcpEndpointBacking.findUnique({
             where: { id: d.input.id },
             include: magicMcpEndpointBackingInclude
           });
@@ -125,7 +126,7 @@ class magicMcpEndpointBackingServiceImpl {
               }
             });
 
-          await tx.magicMcpEndpointBacking.upsert({
+          await db.magicMcpEndpointBacking.upsert({
             where: { id: d.input.id },
             create: {
               id: d.input.id,
@@ -142,11 +143,11 @@ class magicMcpEndpointBackingServiceImpl {
             }
           });
 
-          let backing = await tx.magicMcpEndpointBacking.findUniqueOrThrow({
+          let backing = await db.magicMcpEndpointBacking.findUniqueOrThrow({
             where: { id: d.input.id }
           });
           let requestedJoinIds = new Set(d.input.servers.map(server => server.id));
-          await tx.magicMcpEndpointServerBacking.deleteMany({
+          await db.magicMcpEndpointServerBacking.deleteMany({
             where: {
               magicMcpEndpointBackingOid: backing.oid,
               id: { notIn: Array.from(requestedJoinIds) }
@@ -155,7 +156,7 @@ class magicMcpEndpointBackingServiceImpl {
 
           for (let serverInput of d.input.servers) {
             let serverBacking = serverBackingsById.get(serverInput.magicMcpServerBackingId)!;
-            await tx.magicMcpEndpointServerBacking.upsert({
+            await db.magicMcpEndpointServerBacking.upsert({
               where: { id: serverInput.id },
               create: {
                 id: serverInput.id,
@@ -185,6 +186,7 @@ class magicMcpEndpointBackingServiceImpl {
               solution: d.solution,
               environment: d.environment,
               integrationInstanceGroup: group,
+              isReconciliation: d.input.isReconciliation,
               input: groupProviderInput
             }
           );

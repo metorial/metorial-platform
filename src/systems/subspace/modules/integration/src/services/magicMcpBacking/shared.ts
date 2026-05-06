@@ -1,10 +1,6 @@
 import { createLock } from '@lowerdeck/lock';
-import {
-  type Environment,
-  type Solution,
-  type Tenant
-} from '@metorial-subspace/db';
-import { identityActorService } from '@metorial-subspace/module-identity';
+import { type Environment, type Solution, type Tenant } from '@metorial-subspace/db';
+import { identityActorService, identityService } from '@metorial-subspace/module-identity';
 import { env } from '../../env';
 import { integrationInclude } from '../integration';
 import { integrationInstanceProviderInclude } from '../integrationInstance';
@@ -24,6 +20,7 @@ export type MagicMcpBackingInputBase = {
   metadata?: Record<string, any> | null;
   privateMetadata?: Record<string, any> | null;
   identityActorId?: string | null;
+  identityId?: string | null;
   maxSessionDurationInMinutes: number;
 };
 
@@ -34,7 +31,10 @@ let magicMcpBackingLock = createLock({
   redisUrl: env.service.REDIS_URL
 });
 
-export let withMagicMcpBackingLock = async <T>(keys: string | string[], cb: () => Promise<T>) => {
+export let withMagicMcpBackingLock = async <T>(
+  keys: string | string[],
+  cb: () => Promise<T>
+) => {
   let sortedKeys = Array.isArray(keys) ? Array.from(new Set(keys)).sort() : [keys];
 
   let run = async (idx: number): Promise<T> => {
@@ -136,7 +136,19 @@ export let resolveActorOid = async (d: {
   solution: Solution;
   environment: Environment;
   identityActorId?: string | null;
+  identityId?: string | null;
 }) => {
+  if (!d.identityActorId && d.identityId) {
+    let identity = await identityService.getIdentityById({
+      tenant: d.tenant,
+      solution: d.solution,
+      environment: d.environment,
+      identityId: d.identityId
+    });
+
+    return identity?.actorOid ?? null;
+  }
+
   if (!d.identityActorId) return null;
 
   let actor = await identityActorService.getIdentityActorById({

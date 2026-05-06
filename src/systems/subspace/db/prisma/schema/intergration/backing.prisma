@@ -57,7 +57,7 @@ model MagicMcpServerProvider {
   integrationProviderOid BigInt
   integrationProvider    IntegrationProvider @relation(fields: [integrationProviderOid], references: [oid], onDelete: Cascade)
 
-  integrationInstanceProviderOid BigInt? @unique
+  integrationInstanceProviderOid BigInt?                      @unique
   integrationInstanceProvider    IntegrationInstanceProvider? @relation(fields: [integrationInstanceProviderOid], references: [oid], onDelete: SetNull)
 
   createdAt DateTime @default(now())
