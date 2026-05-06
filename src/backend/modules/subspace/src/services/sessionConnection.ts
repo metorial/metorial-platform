@@ -38,7 +38,9 @@ export let subspaceSessionConnectionService = createSubspaceService(
       return paginator.map(async items => {
         let participants = await enrichSessionParticipantsWithConsumer({
           instanceOid: input.instance.oid,
-          participants: items.map(item => item.participant).filter(Boolean)
+          participants: items
+            .map(item => item.participant)
+            .filter((participant): participant is NonNullable<typeof participant> => !!participant)
         });
 
         let participantMap = new Map(participants.map(participant => [participant.id, participant]));

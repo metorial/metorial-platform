@@ -30,20 +30,10 @@ export let subspaceSessionTemplateService = createSubspaceService(
         where: { subspaceSessionTemplateId: arg0.sessionTemplateId }
       });
       let magicMcpLink2 = await db.magicMcpServer.findFirst({
-        where: {
-          OR: [
-            { legacySubspaceSessionTemplateId: arg0.sessionTemplateId },
-            { newSubspaceSessionTemplateId: arg0.sessionTemplateId }
-          ]
-        }
+        where: { legacySubspaceSessionTemplateId: arg0.sessionTemplateId }
       });
       let magicMcpLink3 = await db.magicMcpEndpoint.findFirst({
-        where: {
-          OR: [
-            { legacySubspaceSessionTemplateId: arg0.sessionTemplateId },
-            { newSubspaceSessionTemplateId: arg0.sessionTemplateId }
-          ]
-        }
+        where: { legacySubspaceSessionTemplateId: arg0.sessionTemplateId }
       });
       if ((magicMcpLink1 || magicMcpLink2 || magicMcpLink3) && !arg0._allowMagicMcpUpdate) {
         throw new ServiceError(
@@ -73,20 +63,10 @@ export let subspaceSessionTemplateService = createSubspaceService(
         where: { subspaceSessionTemplateId: arg0.sessionTemplateId }
       });
       let magicMcpLink2 = await db.magicMcpServer.findFirst({
-        where: {
-          OR: [
-            { legacySubspaceSessionTemplateId: arg0.sessionTemplateId },
-            { newSubspaceSessionTemplateId: arg0.sessionTemplateId }
-          ]
-        }
+        where: { legacySubspaceSessionTemplateId: arg0.sessionTemplateId }
       });
       let magicMcpLink3 = await db.magicMcpEndpoint.findFirst({
-        where: {
-          OR: [
-            { legacySubspaceSessionTemplateId: arg0.sessionTemplateId },
-            { newSubspaceSessionTemplateId: arg0.sessionTemplateId }
-          ]
-        }
+        where: { legacySubspaceSessionTemplateId: arg0.sessionTemplateId }
       });
       if ((magicMcpLink1 || magicMcpLink2 || magicMcpLink3) && !arg0._allowMagicMcpDelete) {
         throw new ServiceError(

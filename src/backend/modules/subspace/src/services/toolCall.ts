@@ -11,7 +11,9 @@ export let subspaceToolCallService = createSubspaceService(
       let toolCall = await inner.get(...params);
       let participants = await enrichSessionParticipantsWithConsumer({
         instanceOid: params[0].instance.oid,
-        participants: [toolCall.senderParticipant, toolCall.responderParticipant].filter(Boolean)
+        participants: [toolCall.senderParticipant, toolCall.responderParticipant].filter(
+          (participant): participant is NonNullable<typeof participant> => !!participant
+        )
       });
       let participantMap = new Map(participants.map(participant => [participant.id, participant]));
 
@@ -30,7 +32,9 @@ export let subspaceToolCallService = createSubspaceService(
         let participants = await enrichSessionParticipantsWithConsumer({
           instanceOid: params[0].instance.oid,
           participants: items.flatMap(item =>
-            [item.senderParticipant, item.responderParticipant].filter(Boolean)
+            [item.senderParticipant, item.responderParticipant].filter(
+              (participant): participant is NonNullable<typeof participant> => !!participant
+            )
           )
         });
         let participantMap = new Map(participants.map(participant => [participant.id, participant]));

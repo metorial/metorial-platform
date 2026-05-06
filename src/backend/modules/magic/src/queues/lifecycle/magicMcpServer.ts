@@ -1,8 +1,5 @@
 import { db } from '@metorial/db';
-import {
-  subspaceSessionService,
-  subspaceSessionTemplateService
-} from '@metorial/module-subspace';
+import { subspaceMagicMcpBackingService } from '@metorial/module-subspace';
 import { createQueue } from '@metorial/queue';
 import { indexMagicMcpServerSearchQueue } from '../search/magicMcpServer';
 
@@ -34,30 +31,6 @@ export let magicMcpServerDeletedQueue = createQueue<{ magicMcpServerId: string }
   name: 'mgc/lc/server/deleted'
 });
 
-export let magicMcpServerDeletedSubspaceSessionQueue = createQueue<{
-  instanceId: string;
-  subspaceSessionId: string;
-}>({
-  name: 'mgc/lc/server/deleted/subspaceSession',
-  workerOpts: {
-    concurrency: 20
-  }
-});
-
-export let magicMcpServerDeletedSubspaceSessionQueueProcessor =
-  magicMcpServerDeletedSubspaceSessionQueue.process(async data => {
-    let instance = await db.instance.findUnique({
-      where: { id: data.instanceId }
-    });
-    if (!instance) return;
-
-    await subspaceSessionService.delete({
-      instance,
-      sessionId: data.subspaceSessionId,
-      _allowMagicMcpDelete: true
-    });
-  });
-
 export let magicMcpServerDeletedQueueProcessor = magicMcpServerDeletedQueue.process(
   async data => {
     let magicMcpServer = await db.magicMcpServer.findUnique({
@@ -68,42 +41,11 @@ export let magicMcpServerDeletedQueueProcessor = magicMcpServerDeletedQueue.proc
 
     await queueMagicMcpServerIndex(data.magicMcpServerId);
 
-    let uniqueSubspaceTemplatesRaw = await db.magicMcpSession.findMany({
-      where: { magicMcpServerOid: magicMcpServer.oid },
-      select: { subspaceSessionTemplateId: true },
-      distinct: ['subspaceSessionTemplateId']
-    });
-    let uniqueSubspaceTemplateIds = Array.from(
-      new Set([
-        ...uniqueSubspaceTemplatesRaw.map(record => record.subspaceSessionTemplateId),
-        magicMcpServer.subspaceSessionTemplateId
-      ])
-    );
-
-    let uniqueSubspaceSessionsRaw = await db.magicMcpSession.findMany({
-      where: { magicMcpServerOid: magicMcpServer.oid },
-      select: { subspaceSessionId: true },
-      distinct: ['subspaceSessionId']
-    });
-    let uniqueSubspaceSessionIds = uniqueSubspaceSessionsRaw.map(
-      record => record.subspaceSessionId
-    );
-
-    for (let subspaceSessionTemplateId of uniqueSubspaceTemplateIds) {
-      await subspaceSessionTemplateService.delete({
+    if (magicMcpServer.hasSubspaceBacking) {
+      await subspaceMagicMcpBackingService.archiveServer({
         instance: magicMcpServer.instance,
-        sessionTemplateId: subspaceSessionTemplateId,
-        _allowMagicMcpDelete: true
+        magicMcpServerBackingId: magicMcpServer.id
       });
-    }
-
-    if (uniqueSubspaceSessionIds.length) {
-      await magicMcpServerDeletedSubspaceSessionQueue.addMany(
-        uniqueSubspaceSessionIds.map(subspaceSessionId => ({
-          instanceId: magicMcpServer.instance.id,
-          subspaceSessionId
-        }))
-      );
     }
   }
 );

@@ -48,7 +48,7 @@ export let subspaceProviderDeploymentService = createSubspaceService(
 
       let providerTemplate = await db.providerTemplate.findFirst({
         where: {
-          providerDeploymentId: arg0.providerDeploymentId,
+          legacyProviderDeploymentId: arg0.providerDeploymentId,
           status: 'active'
         }
       });

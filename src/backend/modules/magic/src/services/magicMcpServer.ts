@@ -1,6 +1,5 @@
 import {
   conflictError,
-  forbiddenError,
   notFoundError,
   preconditionFailedError,
   ServiceError
@@ -19,7 +18,8 @@ import {
   MagicMcpServerStatus,
   Organization,
   OrganizationActor,
-  Prisma
+  Prisma,
+  withTransaction
 } from '@metorial/db';
 import { generatePlainId } from '@metorial/id';
 import {
@@ -29,7 +29,11 @@ import {
   type AnyAccessTagSelector
 } from '@metorial/module-access';
 import { searchMagicMcpServerIds } from '@metorial/module-search';
-import { subspaceSessionTemplateService } from '@metorial/module-subspace';
+import {
+  subspaceMagicMcpBackingService,
+  subspaceSessionTemplateService
+} from '@metorial/module-subspace';
+import { ensureMagicMcpServerBacking } from '../lib/backing';
 import {
   magicMcpServerCreatedQueue,
   magicMcpServerDeletedQueue,
@@ -140,9 +144,26 @@ class MagicMcpServerImpl {
       accessTags: d.accessTags
     });
 
+    let sessionTemplateId = d.server.legacySubspaceSessionTemplateId;
+
+    if (!sessionTemplateId) {
+      let server = await ensureMagicMcpServerBacking({
+        instance: d.instance,
+        server: d.server,
+        isReconciliation: true
+      });
+      let backing = await subspaceMagicMcpBackingService.getServer({
+        instance: d.instance,
+        magicMcpServerBackingId: server.id
+      });
+      sessionTemplateId = backing.sessionTemplateId;
+    }
+
+    if (!sessionTemplateId) return [];
+
     let tools = await subspaceSessionTemplateService.listTools({
       instance: d.instance,
-      sessionTemplateId: d.server.subspaceSessionTemplateId
+      sessionTemplateId
     });
 
     return tools.sort((a, b) => a.name.localeCompare(b.name));
@@ -159,46 +180,46 @@ class MagicMcpServerImpl {
       metadata?: Record<string, unknown>;
       source?: MagicMcpServerSource;
       providerTemplateId?: string;
-      sessionTemplateId?: string;
+      providers?: {
+        providerDeploymentId: string;
+        providerConfigId?: string | null;
+        providerAuthConfigId?: string | null;
+        toolFilters?: any;
+      }[];
     };
   }) {
-    let sessionTemplateId =
-      d.input.sessionTemplateId ??
-      (
-        await subspaceSessionTemplateService.create({
-          instance: d.instance,
-          name: `Magic MCP Template ${d.input.name ?? new Date().toISOString().slice(0, 10)}`,
-          description: 'Auto-created for Magic MCP server',
-          isInternal: true,
-          metadata: d.input.metadata,
-          providers: []
-        })
-      ).id;
-
-    let magicMcpServer = await db.magicMcpServer.create({
-      data: {
-        id: await ID.generateId('magicMcpServer'),
-        status: 'active',
-        source: d.input.source ?? 'manual',
-        isConsumerReconciled: true,
-        providerTemplateId: d.input.providerTemplateId,
-        subspaceSessionTemplateId: sessionTemplateId,
-        name: d.input.name,
-        description: d.input.description,
-        metadata: d.input.metadata ?? {},
-        instanceOid: d.instance.oid,
-        aliases: {
-          create: {
-            slug: buildAlias(d.input.name)
+    let magicMcpServer = await withTransaction(async db => {
+      return await db.magicMcpServer.create({
+        data: {
+          id: await ID.generateId('magicMcpServer'),
+          status: 'active',
+          source: d.input.source ?? 'manual',
+          isConsumerReconciled: true,
+          providerTemplateId: d.input.providerTemplateId,
+          name: d.input.name,
+          description: d.input.description,
+          metadata: d.input.metadata ?? {},
+          instanceOid: d.instance.oid,
+          aliases: {
+            create: {
+              slug: buildAlias(d.input.name)
+            }
           }
+        },
+        include: {
+          instance: true
         }
-      },
-      include: {
-        instance: true
-      }
+      });
     });
 
     await magicMcpServerCreatedQueue.add({ magicMcpServerId: magicMcpServer.id });
+
+    await ensureMagicMcpServerBacking({
+      instance: d.instance,
+      server: magicMcpServer,
+      providers: d.input.providers,
+      isReconciliation: false
+    });
 
     return await db.magicMcpServer.findUniqueOrThrow({
       where: { id: magicMcpServer.id },
@@ -260,10 +281,12 @@ class MagicMcpServerImpl {
       );
     }
 
-    let magicMcpServer = await db.magicMcpServer.update({
-      where: { id: d.server.id },
-      data: { status: 'archived', deletedAt: new Date() },
-      include
+    let magicMcpServer = await withTransaction(async db => {
+      return await db.magicMcpServer.update({
+        where: { id: d.server.id },
+        data: { status: 'archived', deletedAt: new Date() },
+        include
+      });
     });
 
     await magicMcpServerDeletedQueue.add({ magicMcpServerId: magicMcpServer.id });
@@ -280,7 +303,6 @@ class MagicMcpServerImpl {
       description?: string | null;
       metadata?: Record<string, unknown> | null;
       aliases?: string[];
-      sessionTemplateId?: string;
     };
   }) {
     await this.checkWriteAccess({
@@ -323,36 +345,22 @@ class MagicMcpServerImpl {
       }
     }
 
-    let nextSessionTemplateId =
-      d.input.sessionTemplateId === undefined
-        ? d.server.subspaceSessionTemplateId
-        : d.input.sessionTemplateId;
-    let isSessionTemplateChanged =
-      nextSessionTemplateId !== d.server.subspaceSessionTemplateId;
-
-    if (d.accessTags && isSessionTemplateChanged) {
-      throw new ServiceError(
-        forbiddenError({
-          message: 'Consumers cannot change the session template for a magic MCP server'
-        })
-      );
-    }
-
     let server;
     try {
-      server = await db.magicMcpServer.update({
-        where: { id: d.server.id },
-        data: {
-          name: d.input.name === undefined ? d.server.name : d.input.name,
-          description:
-            d.input.description === undefined ? d.server.description : d.input.description,
-          metadata: d.input.metadata === undefined ? d.server.metadata : d.input.metadata,
-          subspaceSessionTemplateId: nextSessionTemplateId,
-          aliases: {
-            create: nextAliases.map(slug => ({ slug }))
-          }
-        },
-        include
+      server = await withTransaction(async db => {
+        return await db.magicMcpServer.update({
+          where: { id: d.server.id },
+          data: {
+            name: d.input.name === undefined ? d.server.name : d.input.name,
+            description:
+              d.input.description === undefined ? d.server.description : d.input.description,
+            metadata: d.input.metadata === undefined ? d.server.metadata : d.input.metadata,
+            aliases: {
+              create: nextAliases.map(slug => ({ slug }))
+            }
+          },
+          include
+        });
       });
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
@@ -366,8 +374,201 @@ class MagicMcpServerImpl {
     }
 
     await magicMcpServerUpdatedQueue.add({ magicMcpServerId: server.id });
+    if (d.instance) {
+      await ensureMagicMcpServerBacking({
+        instance: d.instance,
+        server,
+        isReconciliation: false
+      });
+    }
 
     return server;
+  }
+
+  async listMagicMcpServerProviders(d: {
+    server: MagicMcpServer;
+    instance: Instance;
+    accessTags?: AnyAccessTagSelector;
+    allowDeleted?: boolean;
+    status?: ('pending' | 'active' | 'archived' | 'deleted')[];
+    ids?: string[];
+    providerIds?: string[];
+    integrationProviderIds?: string[];
+    integrationInstanceProviderIds?: string[];
+    providerDeploymentIds?: string[];
+    providerConfigIds?: string[];
+    providerAuthConfigIds?: string[];
+    createdAt?: any;
+    updatedAt?: any;
+  }) {
+    await this.checkWriteOrReadAccess({
+      server: d.server,
+      instance: d.instance,
+      accessTags: d.accessTags
+    });
+
+    let server = await ensureMagicMcpServerBacking({
+      instance: d.instance,
+      server: d.server,
+      isReconciliation: true
+    });
+
+    return {
+      run: async (query: {
+        limit?: number;
+        after?: string;
+        before?: string;
+        cursor?: string;
+      }) => {
+        let result = await subspaceMagicMcpBackingService.listServerProviders({
+          instance: d.instance,
+          allowDeleted: d.allowDeleted,
+          status: d.status,
+          ids: d.ids,
+          magicMcpServerBackingIds: [server.id],
+          providerIds: d.providerIds,
+          integrationProviderIds: d.integrationProviderIds,
+          integrationInstanceProviderIds: d.integrationInstanceProviderIds,
+          providerDeploymentIds: d.providerDeploymentIds,
+          providerConfigIds: d.providerConfigIds,
+          providerAuthConfigIds: d.providerAuthConfigIds,
+          createdAt: d.createdAt,
+          updatedAt: d.updatedAt,
+          ...query
+        });
+
+        return {
+          items: result.items,
+          pagination: {
+            hasNextPage: result.pagination.has_more_after,
+            hasPreviousPage: result.pagination.has_more_before
+          }
+        };
+      }
+    };
+  }
+
+  async getMagicMcpServerProviderById(d: {
+    server: MagicMcpServer;
+    instance: Instance;
+    accessTags?: AnyAccessTagSelector;
+    magicMcpServerProviderId: string;
+    allowDeleted?: boolean;
+  }) {
+    await this.checkWriteOrReadAccess({
+      server: d.server,
+      instance: d.instance,
+      accessTags: d.accessTags
+    });
+
+    let server = await ensureMagicMcpServerBacking({
+      instance: d.instance,
+      server: d.server,
+      isReconciliation: true
+    });
+    let provider = await subspaceMagicMcpBackingService.getServerProvider({
+      instance: d.instance,
+      magicMcpServerProviderId: d.magicMcpServerProviderId,
+      allowDeleted: d.allowDeleted
+    });
+    if (provider.magicMcpServerId !== server.id) {
+      throw new ServiceError(notFoundError('magic_mcp.server_provider'));
+    }
+
+    return provider;
+  }
+
+  async createMagicMcpServerProvider(d: {
+    server: MagicMcpServer;
+    instance: Instance;
+    accessTags?: AnyAccessTagSelector;
+    input: {
+      providerId: string;
+      providerDeploymentId?: string;
+      providerConfigId?: string | null;
+      providerAuthConfigId?: string | null;
+      toolFilters?: any;
+    };
+  }) {
+    await this.checkWriteAccess({
+      server: d.server,
+      instance: d.instance,
+      accessTags: d.accessTags
+    });
+
+    let server = await ensureMagicMcpServerBacking({
+      instance: d.instance,
+      server: d.server,
+      isReconciliation: false
+    });
+
+    return await subspaceMagicMcpBackingService.createServerProvider({
+      instance: d.instance,
+      magicMcpServerBackingId: server.id,
+      providerId: d.input.providerId,
+      providerDeploymentId: d.input.providerDeploymentId,
+      providerConfigId: d.input.providerConfigId,
+      providerAuthConfigId: d.input.providerAuthConfigId,
+      toolFilters: d.input.toolFilters
+    });
+  }
+
+  async updateMagicMcpServerProvider(d: {
+    server: MagicMcpServer;
+    instance: Instance;
+    accessTags?: AnyAccessTagSelector;
+    magicMcpServerProviderId: string;
+    input: {
+      providerDeploymentId?: string;
+      providerConfigId?: string | null;
+      providerAuthConfigId?: string | null;
+      toolFilters?: any;
+    };
+  }) {
+    await this.checkWriteAccess({
+      server: d.server,
+      instance: d.instance,
+      accessTags: d.accessTags
+    });
+    await this.getMagicMcpServerProviderById({
+      server: d.server,
+      instance: d.instance,
+      magicMcpServerProviderId: d.magicMcpServerProviderId,
+      allowDeleted: true
+    });
+
+    return await subspaceMagicMcpBackingService.updateServerProvider({
+      instance: d.instance,
+      magicMcpServerProviderId: d.magicMcpServerProviderId,
+      providerDeploymentId: d.input.providerDeploymentId,
+      providerConfigId: d.input.providerConfigId,
+      providerAuthConfigId: d.input.providerAuthConfigId,
+      toolFilters: d.input.toolFilters
+    });
+  }
+
+  async archiveMagicMcpServerProvider(d: {
+    server: MagicMcpServer;
+    instance: Instance;
+    accessTags?: AnyAccessTagSelector;
+    magicMcpServerProviderId: string;
+  }) {
+    await this.checkWriteAccess({
+      server: d.server,
+      instance: d.instance,
+      accessTags: d.accessTags
+    });
+    await this.getMagicMcpServerProviderById({
+      server: d.server,
+      instance: d.instance,
+      magicMcpServerProviderId: d.magicMcpServerProviderId,
+      allowDeleted: true
+    });
+
+    return await subspaceMagicMcpBackingService.archiveServerProvider({
+      instance: d.instance,
+      magicMcpServerProviderId: d.magicMcpServerProviderId
+    });
   }
 
   async listMagicMcpServers(d: {
@@ -452,6 +653,12 @@ class MagicMcpServerImpl {
           accessTagEntities: accessTagFilter
         });
       }
+    }
+
+    if (!d.accessTags && !d.filterAccessTags && !d.consumerSurface) {
+      andFilters.push({
+        AND: [{ accessTagEntities: { none: {} } }, { consumerIntegrations: { none: {} } }]
+      });
     }
 
     return Paginator.create(({ prisma }) =>
