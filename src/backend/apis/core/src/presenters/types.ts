@@ -7,6 +7,13 @@ import {
   AccessPolicyVersion,
   AccessRole,
   AccessRoleVersion,
+  Assistant,
+  AssistantConversation,
+  AssistantImplementation,
+  AssistantMessage,
+  AssistantModel,
+  AssistantModelProvider,
+  AssistantRequest,
   ApiKey,
   ApiKeySecret,
   ApiKeyType,
@@ -72,6 +79,11 @@ import {
 } from '@metorial/module-consumer';
 import { Flags } from '@metorial/module-flags';
 import type { EnrichedProviderTemplate } from '@metorial/module-magic';
+import type {
+  AssistantConversationWithAssistant,
+  AssistantConversationItemWithMessage,
+  AvailableAssistant
+} from '@metorial/module-assistant';
 import type {
   OAuthAuthorizationLogWithRelations,
   OAuthAuthorizationRequestWithRelations
@@ -240,6 +252,18 @@ export let organizationActorType = PresentableType.create<{
     teams?: (TeamMember & { team: Team })[] | null | undefined;
   };
 }>()('organization_actor');
+
+export let assistantType = PresentableType.create<{
+  assistant: AvailableAssistant;
+}>()('assistant');
+
+export let assistantConversationType = PresentableType.create<{
+  assistantConversation: AssistantConversationWithAssistant;
+}>()('assistant_conversation');
+
+export let assistantMessageType = PresentableType.create<{
+  assistantConversationItem: AssistantConversationItemWithMessage;
+}>()('assistant_message');
 
 export let machineAccessType = PresentableType.create<{
   machineAccess: MachineAccess & {

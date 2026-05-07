@@ -3,6 +3,11 @@ import { v1AccessPolicyPresenter } from './implementation/accessPolicy';
 import { v1AccessPolicyVersionPresenter } from './implementation/accessPolicyVersion';
 import { v1AccessRolePresenter } from './implementation/accessRole';
 import { v1AccessRoleVersionPresenter } from './implementation/accessRoleVersion';
+import {
+  v1AssistantConversationPresenter,
+  v1AssistantMessagePresenter,
+  v1AssistantPresenter
+} from './implementation/assistant';
 import { dashboardApiKeyPresenter, v1ApiKeyPresenter } from './implementation/apiKey';
 import { v1BootPresenter } from './implementation/boot';
 import { v1CliDevicePresenter } from './implementation/cliDevice';
@@ -162,6 +167,9 @@ import {
   accessRoleVersionType,
   agentInstanceType,
   agentType,
+  assistantConversationType,
+  assistantMessageType,
+  assistantType,
   apiKeyType,
   authConfigSchemaType,
   authImportSchemaType,
@@ -300,6 +308,21 @@ import {
 export let apiKeyPresenter = declarePresenter(apiKeyType, {
   mt_2025_01_01_dashboard: dashboardApiKeyPresenter,
   mt_2026_01_01_magnetar: v1ApiKeyPresenter
+});
+
+export let assistantPresenter = declarePresenter(assistantType, {
+  mt_2025_01_01_dashboard: v1AssistantPresenter,
+  mt_2026_01_01_magnetar: v1AssistantPresenter
+});
+
+export let assistantConversationPresenter = declarePresenter(assistantConversationType, {
+  mt_2025_01_01_dashboard: v1AssistantConversationPresenter,
+  mt_2026_01_01_magnetar: v1AssistantConversationPresenter
+});
+
+export let assistantMessagePresenter = declarePresenter(assistantMessageType, {
+  mt_2025_01_01_dashboard: v1AssistantMessagePresenter,
+  mt_2026_01_01_magnetar: v1AssistantMessagePresenter
 });
 
 export let oauthAuthorizationRequestPresenter = declarePresenter(

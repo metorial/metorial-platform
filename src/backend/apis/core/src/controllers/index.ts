@@ -1,6 +1,7 @@
 import { Controller } from '@metorial/rest';
 import { consumerProviderController } from './consumer/provider';
 import { consumerSessionController } from './consumer/session';
+import { dashboardAssistantController } from './dashboard/assistant';
 import { dashboardBootController } from './dashboard/boot';
 import { flagsController } from './dashboard/flags';
 import { dashboardOAuthAuthorizationRequestController } from './dashboard/oauthAuthorizationRequest';
@@ -382,6 +383,7 @@ export let dashboardController = Controller.create<any>(
     dashboardOAuthAuthorizationRequestController,
     dashboardBootController,
     dashboardUsageController,
+    dashboardAssistantController,
     flagsController,
 
     managementApiKeyController,
