@@ -152,4 +152,15 @@ export let PublicSetupStatusPage = ({
   );
 };
 
-export let PublicSetupLoadingPage = () => <CenteredSpinner size={32} />;
+let SpinnerCenter = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100dvh;
+`;
+
+export let PublicSetupLoadingPage = () => (
+  <SpinnerCenter>
+    <CenteredSpinner />
+  </SpinnerCenter>
+);
