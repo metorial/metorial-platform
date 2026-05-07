@@ -304,6 +304,7 @@ class integrationInstanceProviderServiceImpl {
     input: SetIntegrationInstanceProviderInput[];
     _canBreakIntegrationCanRules?: boolean;
     _allowMissingProviderAuthConfig?: boolean;
+    _canBypassProviderResourceOwnershipChecks?: boolean;
   }) {
     checkTenant(d, d.integrationInstance);
     checkDeletedRelation(d.integrationInstance);
@@ -591,12 +592,14 @@ class integrationInstanceProviderServiceImpl {
           materialProvider.currentVersion!.config?.oid === combination.config.oid;
 
         if (!isInheritedSharedConfig) {
-          assertCanUseOwnedResource({
-            kind: 'config',
-            resource: combination.config,
-            integrationInstanceOid: d.integrationInstance.oid,
-            integrationInstanceProviderOid: existing?.oid
-          });
+          if (!d._canBypassProviderResourceOwnershipChecks) {
+            assertCanUseOwnedResource({
+              kind: 'config',
+              resource: combination.config,
+              integrationInstanceOid: d.integrationInstance.oid,
+              integrationInstanceProviderOid: existing?.oid
+            });
+          }
         }
         if (
           combination.config.deploymentOid &&
@@ -606,12 +609,14 @@ class integrationInstanceProviderServiceImpl {
         }
 
         if (combination.authConfig) {
-          assertCanUseOwnedResource({
-            kind: 'auth_config',
-            resource: combination.authConfig,
-            integrationInstanceOid: d.integrationInstance.oid,
-            integrationInstanceProviderOid: existing?.oid
-          });
+          if (!d._canBypassProviderResourceOwnershipChecks) {
+            assertCanUseOwnedResource({
+              kind: 'auth_config',
+              resource: combination.authConfig,
+              integrationInstanceOid: d.integrationInstance.oid,
+              integrationInstanceProviderOid: existing?.oid
+            });
+          }
           if (
             combination.authConfig.deploymentOid &&
             combination.authConfig.deploymentOid !== deploymentOid
@@ -770,6 +775,7 @@ class integrationInstanceProviderServiceImpl {
     input: SetIntegrationInstanceProviderInput;
     _canBreakIntegrationCanRules?: boolean;
     _allowMissingProviderAuthConfig?: boolean;
+    _canBypassProviderResourceOwnershipChecks?: boolean;
   }) {
     let [integrationInstanceProvider] = await this.setIntegrationInstanceProviders({
       ...d,
@@ -836,6 +842,7 @@ class integrationInstanceProviderServiceImpl {
       // even when the linked integration would normally reject them.
       _canBreakIntegrationCanRules: true,
       _allowMissingProviderAuthConfig: d.isReconciliation,
+      _canBypassProviderResourceOwnershipChecks: d.isReconciliation,
       input: d.input.map((input, idx) => ({
         providerId: integrationProviders[idx]!.id,
         providerDeploymentId: input.providerDeploymentId,

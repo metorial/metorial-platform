@@ -622,12 +622,29 @@ class magicMcpServerProviderServiceImpl {
             environment: d.environment,
             magicMcpServerBackingId: row.magicMcpServerBacking.id
           });
-          let materialInput = await resolveIntegrationProviderMaterialInput({
-            tenant: d.tenant,
-            solution: d.solution,
-            environment: d.environment,
-            input: d.input
-          });
+          let providerAuthMethodId: string | null | undefined;
+          let providerAuthCredentialsId: string | null | undefined;
+          let providerDeploymentId =
+            d.input.providerDeploymentId ??
+            row.integrationProvider.currentVersion?.deployment.id;
+
+          if (d.input.providerAuthConfigId === null) {
+            providerAuthMethodId = null;
+            providerAuthCredentialsId = null;
+          } else if (d.input.providerAuthConfigId !== undefined) {
+            let materialInput = await resolveIntegrationProviderMaterialInput({
+              tenant: d.tenant,
+              solution: d.solution,
+              environment: d.environment,
+              input: {
+                providerDeploymentId,
+                providerAuthConfigId: d.input.providerAuthConfigId
+              }
+            });
+            providerAuthMethodId = materialInput.providerAuthMethodId;
+            providerAuthCredentialsId = materialInput.providerAuthCredentialsId ?? null;
+            providerDeploymentId = materialInput.providerDeploymentId ?? providerDeploymentId;
+          }
 
           if (ownerType === 'server_owned') {
             await integrationProviderService.updateIntegrationProvider({
@@ -636,9 +653,9 @@ class magicMcpServerProviderServiceImpl {
               environment: d.environment,
               integrationProvider: row.integrationProvider,
               input: {
-                providerDeploymentId: materialInput.providerDeploymentId,
-                providerAuthMethodId: materialInput.providerAuthMethodId,
-                providerAuthCredentialsId: materialInput.providerAuthCredentialsId,
+                providerDeploymentId: d.input.providerDeploymentId,
+                providerAuthMethodId,
+                providerAuthCredentialsId,
                 providerConfigId:
                   d.input.providerConfigId === undefined
                     ? undefined
@@ -662,7 +679,7 @@ class magicMcpServerProviderServiceImpl {
             integrationInstance: backing.integrationInstance as IntegrationInstance,
             input: {
               providerId: row.integrationProvider.id,
-              providerDeploymentId: materialInput.providerDeploymentId,
+              providerDeploymentId: d.input.providerDeploymentId,
               providerConfigId:
                 d.input.providerConfigId === undefined ? undefined : d.input.providerConfigId,
               providerAuthConfigId: d.input.providerAuthConfigId ?? undefined,

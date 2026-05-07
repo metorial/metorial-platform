@@ -146,7 +146,7 @@ class providerTemplateBackingServiceImpl {
             environment: d.environment,
             integration: existing?.integration,
             input: {
-              slug: `${slugify(d.input.name)}-${(await Hash.sha256(d.input.providerTemplateId)).slice(0, 6)}[template]`,
+              slug: `template-${slugify(d.input.name)}-${(await Hash.sha256(d.input.providerTemplateId)).slice(0, 6)}`,
               name: d.input.name,
               description: d.input.description,
               metadata: d.input.metadata,
