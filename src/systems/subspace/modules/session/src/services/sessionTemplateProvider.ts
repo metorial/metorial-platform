@@ -421,24 +421,108 @@ class sessionTemplateProviderServiceImpl {
       });
 
       let activeProviderOids = groupProviders.map(provider => provider.oid);
+      let activeInstanceProviderOids = groupProviders.map(
+        provider => provider.integrationInstanceProviderOid
+      );
       let createdIds: string[] = [];
 
       let existingProviders = await db.sessionTemplateProvider.findMany({
         where: {
           sessionTemplateOid: d.sessionTemplate.oid,
-          integrationInstanceGroupProviderOid: { in: activeProviderOids }
+          OR: [
+            { integrationInstanceGroupProviderOid: { in: activeProviderOids } },
+            { integrationInstanceProviderOid: { in: activeInstanceProviderOids } }
+          ]
         },
         select: {
+          oid: true,
           id: true,
+          integrationInstanceProviderOid: true,
           integrationInstanceGroupProviderOid: true
         }
       });
-      let existingByProviderOid = new Map(
-        existingProviders.map(provider => [
-          provider.integrationInstanceGroupProviderOid!.toString(),
-          provider
-        ])
+      let existingByGroupProviderOid = new Map(
+        existingProviders
+          .filter(provider => provider.integrationInstanceGroupProviderOid)
+          .map(provider => [
+            provider.integrationInstanceGroupProviderOid!.toString(),
+            provider
+          ])
       );
+      let existingByInstanceProviderOid = new Map(
+        existingProviders
+          .filter(provider => provider.integrationInstanceProviderOid)
+          .map(provider => [provider.integrationInstanceProviderOid!.toString(), provider])
+      );
+
+      let freeGroupProviderIdentity = async (input: {
+        groupProviderOid: bigint;
+        exceptSessionTemplateProviderOid?: bigint;
+      }) => {
+        await db.sessionTemplateProvider.updateMany({
+          where: {
+            sessionTemplateOid: d.sessionTemplate.oid,
+            integrationInstanceGroupProviderOid: input.groupProviderOid,
+            oid: input.exceptSessionTemplateProviderOid
+              ? { not: input.exceptSessionTemplateProviderOid }
+              : undefined
+          },
+          data: {
+            status: 'archived',
+            integrationInstanceGroupProviderOid: null
+          }
+        });
+      };
+
+      let updateOrCreateByInstanceProvider = async (d: {
+        existing?: (typeof existingProviders)[number];
+        data: {
+          status: 'active';
+          toolFilter: PrismaJson.ToolFilter;
+          sessionTemplateOid: bigint;
+          providerOid: bigint;
+          deploymentOid: bigint;
+          configOid: bigint;
+          authConfigOid: bigint | null;
+          integrationInstanceProviderOid: bigint;
+          integrationInstanceGroupProviderOid: bigint;
+          tenantOid: bigint;
+          solutionOid: number;
+          environmentOid: bigint;
+        };
+      }) => {
+        if (d.existing) {
+          await freeGroupProviderIdentity({
+            groupProviderOid: d.data.integrationInstanceGroupProviderOid,
+            exceptSessionTemplateProviderOid: d.existing.oid
+          });
+
+          return await db.sessionTemplateProvider.update({
+            where: { oid: d.existing.oid },
+            data: d.data,
+            select: { id: true }
+          });
+        }
+
+        await freeGroupProviderIdentity({
+          groupProviderOid: d.data.integrationInstanceGroupProviderOid
+        });
+
+        return await db.sessionTemplateProvider.upsert({
+          where: {
+            sessionTemplateOid_integrationInstanceProviderOid: {
+              sessionTemplateOid: d.data.sessionTemplateOid,
+              integrationInstanceProviderOid: d.data.integrationInstanceProviderOid
+            }
+          },
+          create: {
+            ...getId('sessionTemplateProvider'),
+            ...d.data
+          },
+          update: d.data,
+          select: { id: true }
+        });
+      };
 
       for (let provider of groupProviders) {
         let currentVersion = provider.integrationInstanceProvider.currentVersion!;
@@ -458,21 +542,12 @@ class sessionTemplateProviderServiceImpl {
           environmentOid: provider.environmentOid
         };
 
-        let createdBefore = existingByProviderOid.has(provider.oid.toString());
-        let synced = await db.sessionTemplateProvider.upsert({
-          where: {
-            sessionTemplateOid_integrationInstanceGroupProviderOid: {
-              sessionTemplateOid: d.sessionTemplate.oid,
-              integrationInstanceGroupProviderOid: provider.oid
-            }
-          },
-          create: {
-            ...getId('sessionTemplateProvider'),
-            ...data
-          },
-          update: data,
-          select: { id: true }
-        });
+        let existing =
+          existingByInstanceProviderOid.get(
+            provider.integrationInstanceProviderOid.toString()
+          ) ?? existingByGroupProviderOid.get(provider.oid.toString());
+        let createdBefore = !!existing;
+        let synced = await updateOrCreateByInstanceProvider({ existing, data });
         if (!createdBefore) createdIds.push(synced.id);
       }
 

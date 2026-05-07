@@ -653,7 +653,7 @@ class magicMcpServerProviderServiceImpl {
               environment: d.environment,
               integrationProvider: row.integrationProvider,
               input: {
-                providerDeploymentId: d.input.providerDeploymentId,
+                providerDeploymentId,
                 providerAuthMethodId,
                 providerAuthCredentialsId,
                 providerConfigId:
