@@ -3,6 +3,7 @@ enum OrganizationActorType {
   machine_access
   system
   oauth_application
+  agent
 }
 
 model OrganizationActor {
@@ -25,19 +26,22 @@ model OrganizationActor {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  member              OrganizationMember?
-  createdInvites      OrganizationInvite[]
-  machineAccess       MachineAccess[]
-  secretEvents        SecretEvent[]
-  profileUpdates      ProfileUpdate[]
-  accessLimiters      AccessLimiter[]
-  teams               TeamMember[]
-  oauthInstallations  OAuthInstallation[]
-  projectBrandUpdates ProjectBrandUpdate[]
-  consumers           Consumer[]
-  instanceConsumers   InstanceConsumer[]
-  consumerProfiles    ConsumerProfile[]
-  consumerInvites     ConsumerInvite[]
+  member                 OrganizationMember?
+  createdInvites         OrganizationInvite[]
+  machineAccess          MachineAccess[]
+  secretEvents           SecretEvent[]
+  profileUpdates         ProfileUpdate[]
+  accessLimiters         AccessLimiter[]
+  teams                  TeamMember[]
+  oauthInstallations     OAuthInstallation[]
+  projectBrandUpdates    ProjectBrandUpdate[]
+  consumers              Consumer[]
+  instanceConsumers      InstanceConsumer[]
+  consumerProfiles       ConsumerProfile[]
+  consumerInvites        ConsumerInvite[]
+  assistantInstances     AssistantInstance[]
+  assistantConversations AssistantConversation[]
+  assistantRequests      AssistantRequest[]
 
   @@unique([isSystem, organizationOid])
 }

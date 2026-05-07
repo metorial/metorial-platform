@@ -1,0 +1,132 @@
+model AssistantConversation {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  title String?
+
+  assistantInstanceOid BigInt
+  assistantInstance    AssistantInstance @relation(fields: [assistantInstanceOid], references: [oid], onDelete: Cascade)
+
+  assistantOid BigInt
+  assistant    Assistant @relation(fields: [assistantOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  createdByActorOid BigInt
+  createdByActor    OrganizationActor @relation(fields: [createdByActorOid], references: [oid], onDelete: Cascade)
+
+  rootMessageOid BigInt
+  rootMessage    AssistantMessage @relation(fields: [rootMessageOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  runs  AssistantRun[]
+  items AssistantConversationItem[]
+}
+
+model AssistantRun {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  conversationOid BigInt
+  conversation    AssistantConversation @relation(fields: [conversationOid], references: [oid], onDelete: Cascade)
+
+  assistantInstanceOid BigInt
+  assistantInstance    AssistantInstance @relation(fields: [assistantInstanceOid], references: [oid], onDelete: Cascade)
+
+  assistantOid BigInt
+  assistant    Assistant @relation(fields: [assistantOid], references: [oid], onDelete: Cascade)
+
+  /// [AssistantRunCost]
+  cost Json
+
+  /// [AssistantRunMetadata]
+  metadata Json
+
+  createdAt DateTime @default(now())
+
+  messages AssistantMessage[]
+}
+
+enum AssistantRequestStatus {
+  pending
+  completed
+  cancelled
+  failed
+}
+
+model AssistantRequest {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status AssistantRequestStatus
+
+  actorOid BigInt?
+  actor    OrganizationActor? @relation(fields: [actorOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  messages AssistantMessage[]
+}
+
+enum AssistantMessageType {
+  root
+  user
+  assistant
+}
+
+model AssistantMessage {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  type AssistantMessageType
+
+  runOid BigInt?
+  run    AssistantRun? @relation(fields: [runOid], references: [oid], onDelete: Cascade)
+
+  requestOid BigInt
+  request    AssistantRequest @relation(fields: [requestOid], references: [oid], onDelete: Cascade)
+
+  assistantInstanceOid BigInt?
+  assistantInstance    AssistantInstance? @relation(fields: [assistantInstanceOid], references: [oid], onDelete: Cascade)
+
+  assistantOid BigInt?
+  assistant    Assistant? @relation(fields: [assistantOid], references: [oid], onDelete: Cascade)
+
+  parentMessageOid BigInt?
+  parentMessage    AssistantMessage? @relation("ParentMessage", fields: [parentMessageOid], references: [oid], onDelete: Cascade)
+
+  modelOid BigInt?
+  model    AssistantModel? @relation(fields: [modelOid], references: [oid], onDelete: Cascade)
+
+  /// [AssistantMessageStateContent]
+  state Json
+
+  /// [AssistantMessageSerializedContent]
+  serialized Json
+
+  createdAt DateTime @default(now())
+
+  childMessages  AssistantMessage[]          @relation("ParentMessage")
+  conversations  AssistantConversationItem[]
+  rootMessageFor AssistantConversation[]
+}
+
+model AssistantConversationItem {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  conversationOid BigInt
+  conversation    AssistantConversation @relation(fields: [conversationOid], references: [oid], onDelete: Cascade)
+
+  messageOid BigInt
+  message    AssistantMessage @relation(fields: [messageOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}

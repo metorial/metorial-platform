@@ -73,6 +73,10 @@ model Organization {
   apiKeyCreatedEmailSends ApiKeyCreatedEmailSend[]
   apiKeyExpiredEmailSends ApiKeyExpiredEmailSend[]
   consumerActors          ConsumerActor[]
+  assistantInstances      AssistantInstance[]
+  assistantConfig         AssistantConfig?
+  assistantConversations  AssistantConversation[]
+  assistants              Assistant[]
 
   @@index([authVersion])
 }

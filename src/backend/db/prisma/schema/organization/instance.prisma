@@ -62,4 +62,5 @@ model Instance {
   consumerIntegrationEndpoints         ConsumerIntegrationEndpoint[]
   consumerIntegrationSessions          ConsumerIntegrationSession[]
   magicMcpSessions                     MagicMcpSession[]
+  assistantConversations               AssistantConversation[]
 }
