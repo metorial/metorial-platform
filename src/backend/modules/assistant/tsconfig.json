@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "@metorial/tsconfig/base.json",
+  "exclude": ["dist"],
+  "compilerOptions": {
+    "jsx": "react",
+    "moduleResolution": "bundler",
+    "outDir": "dist"
+  }
+}
