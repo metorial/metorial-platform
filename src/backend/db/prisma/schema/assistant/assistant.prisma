@@ -38,6 +38,7 @@ model Assistant {
   assistantInstances     AssistantInstance[]
   assistantConversations AssistantConversation[]
   assistantRuns          AssistantRun[]
+  assistantRequests      AssistantRequest[]
   assistantMessages      AssistantMessage[]
 }
 
@@ -71,6 +72,7 @@ model AssistantInstance {
 
   assistantConversations AssistantConversation[]
   assistantRuns          AssistantRun[]
+  assistantRequests      AssistantRequest[]
   assistantMessages      AssistantMessage[]
 
   @@unique([assistantOid, organizationOid])
@@ -93,7 +95,8 @@ model AssistantModel {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  messages AssistantMessage[]
+  messages          AssistantMessage[]
+  assistantRequests AssistantRequest[]
 
   @@unique([slug, providerOid])
 }

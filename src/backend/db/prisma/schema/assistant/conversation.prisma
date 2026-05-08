@@ -25,13 +25,19 @@ model AssistantConversation {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  runs  AssistantRun[]
-  items AssistantConversationItem[]
+  runs              AssistantRun[]
+  items             AssistantConversationItem[]
+  assistantRequests AssistantRequest[]
 }
 
 model AssistantRun {
   oid BigInt @id @default(autoincrement())
   id  String @unique
+
+  status AssistantRunStatus
+
+  requestOid BigInt
+  request    AssistantRequest @relation(fields: [requestOid], references: [oid], onDelete: Cascade)
 
   conversationOid BigInt
   conversation    AssistantConversation @relation(fields: [conversationOid], references: [oid], onDelete: Cascade)
@@ -49,8 +55,17 @@ model AssistantRun {
   metadata Json
 
   createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 
   messages AssistantMessage[]
+}
+
+enum AssistantRunStatus {
+  pending
+  running
+  completed
+  cancelled
+  failed
 }
 
 enum AssistantRequestStatus {
@@ -66,6 +81,23 @@ model AssistantRequest {
 
   status AssistantRequestStatus
 
+  conversationOid BigInt
+  conversation    AssistantConversation @relation(fields: [conversationOid], references: [oid], onDelete: Cascade)
+
+  assistantInstanceOid BigInt
+  assistantInstance    AssistantInstance @relation(fields: [assistantInstanceOid], references: [oid], onDelete: Cascade)
+
+  assistantOid BigInt
+  assistant    Assistant @relation(fields: [assistantOid], references: [oid], onDelete: Cascade)
+
+  modelOid BigInt
+  model    AssistantModel @relation(fields: [modelOid], references: [oid], onDelete: Cascade)
+
+  messageOid BigInt
+  message    AssistantMessage @relation("AssistantRequestParentMessage", fields: [messageOid], references: [oid], onDelete: Cascade)
+
+  historySize Int?
+
   actorOid BigInt?
   actor    OrganizationActor? @relation(fields: [actorOid], references: [oid], onDelete: Cascade)
 
@@ -73,6 +105,7 @@ model AssistantRequest {
   updatedAt DateTime @default(now()) @updatedAt
 
   messages AssistantMessage[]
+  runs     AssistantRun[]
 }
 
 enum AssistantMessageType {
@@ -90,8 +123,8 @@ model AssistantMessage {
   runOid BigInt?
   run    AssistantRun? @relation(fields: [runOid], references: [oid], onDelete: Cascade)
 
-  requestOid BigInt
-  request    AssistantRequest @relation(fields: [requestOid], references: [oid], onDelete: Cascade)
+  requestOid BigInt? // Must always be set - nullable due to cycle
+  request    AssistantRequest? @relation(fields: [requestOid], references: [oid], onDelete: Cascade)
 
   assistantInstanceOid BigInt?
   assistantInstance    AssistantInstance? @relation(fields: [assistantInstanceOid], references: [oid], onDelete: Cascade)
@@ -114,6 +147,7 @@ model AssistantMessage {
   createdAt DateTime @default(now())
 
   childMessages  AssistantMessage[]          @relation("ParentMessage")
+  childRequests  AssistantRequest[]          @relation("AssistantRequestParentMessage")
   conversations  AssistantConversationItem[]
   rootMessageFor AssistantConversation[]
 }
