@@ -157,6 +157,12 @@ export let ProjectPageLayout = () => {
               to: Paths.instance.explorer(...params),
               getProps: i => ({ isActive: checkPath(i, { exact: true }) })
             },
+            {
+              icon: <RiChatVoiceAiLine />,
+              label: 'Assistant',
+              to: Paths.instance.assistant(...params),
+              getProps: i => ({ isActive: checkPath(i) })
+            },
 
             {
               icon: <RiWebhookLine />,

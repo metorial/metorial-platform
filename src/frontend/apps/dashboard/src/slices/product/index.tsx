@@ -312,9 +312,7 @@ let IdentityActorConnectionsPage = dynamicPage(() =>
 let IdentityActorDelegationsPage = dynamicPage(() =>
   import('./pages/(identity)/actor/delegations').then(c => c.IdentityActorDelegationsPage)
 );
-let AgentPage = dynamicPage(() =>
-  import('./pages/(identity)/agent').then(c => c.AgentPage)
-);
+let AgentPage = dynamicPage(() => import('./pages/(identity)/agent').then(c => c.AgentPage));
 let AgentOperationsPage = dynamicPage(() =>
   import('./pages/(identity)/agent/operations').then(c => c.AgentOperationsPage)
 );
@@ -562,6 +560,10 @@ let ProjectDeveloperAPIPage = dynamicPage(() =>
   import('./pages/developer/api').then(c => c.ProjectDeveloperAPIPage)
 );
 let ExplorerPage = dynamicPage(() => import('./pages/explorer').then(c => c.ExplorerPage));
+let AssistantPage = dynamicPage(() => import('./pages/assistant').then(c => c.AssistantPage));
+let AssistantConversationPage = dynamicPage(() =>
+  import('./pages/assistant/conversation').then(c => c.AssistantConversationPage)
+);
 let FlaggedPage = ({ children, flag }: { children: React.ReactNode; flag: string }) => {
   let flags = useDashboardFlags();
 
@@ -1429,6 +1431,19 @@ export let productHomeSlice = createSlice([
               {
                 path: 'api',
                 element: <ProjectDeveloperAPIPage />
+              }
+            ]
+          },
+          {
+            path: 'assistant',
+            children: [
+              {
+                path: '',
+                element: <AssistantPage />
+              },
+              {
+                path: 'conversation/:assistantConversationId',
+                element: <AssistantConversationPage />
               }
             ]
           }
