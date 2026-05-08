@@ -13,8 +13,6 @@ export type ManagementOrganizationConversationsMessagesGetOutput = {
     slug: string;
     name: string;
     contextWindow: number;
-    inputCostPerMillionTokens: number;
-    outputCostPerMillionTokens: number;
     provider: {
       object: 'assistant.model_provider';
       id: string;
@@ -32,7 +30,6 @@ export type ManagementOrganizationConversationsMessagesGetOutput = {
     updatedAt: Date;
   };
   state: Record<string, any>;
-  serialized: Record<string, any>;
   createdAt: Date;
 };
 
@@ -58,14 +55,6 @@ export let mapManagementOrganizationConversationsMessagesGetOutput =
         slug: mtMap.objectField('slug', mtMap.passthrough()),
         name: mtMap.objectField('name', mtMap.passthrough()),
         contextWindow: mtMap.objectField('context_window', mtMap.passthrough()),
-        inputCostPerMillionTokens: mtMap.objectField(
-          'input_cost_per_million_tokens',
-          mtMap.passthrough()
-        ),
-        outputCostPerMillionTokens: mtMap.objectField(
-          'output_cost_per_million_tokens',
-          mtMap.passthrough()
-        ),
         provider: mtMap.objectField(
           'provider',
           mtMap.object({
@@ -90,7 +79,6 @@ export let mapManagementOrganizationConversationsMessagesGetOutput =
       })
     ),
     state: mtMap.objectField('state', mtMap.passthrough()),
-    serialized: mtMap.objectField('serialized', mtMap.passthrough()),
     createdAt: mtMap.objectField('created_at', mtMap.date())
   });
 

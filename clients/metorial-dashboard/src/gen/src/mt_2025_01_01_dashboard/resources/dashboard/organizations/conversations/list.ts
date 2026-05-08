@@ -17,22 +17,12 @@ export type DashboardOrganizationsConversationsListOutput = {
       name: string;
       ownerType: 'metorial' | 'organization';
       organizationId: string | null;
-      implementation: {
-        object: 'assistant.implementation';
-        id: string;
-        slug: string;
-        name: string;
-        createdAt: Date;
-        updatedAt: Date;
-      };
       defaultModel: {
         object: 'assistant.model';
         id: string;
         slug: string;
         name: string;
         contextWindow: number;
-        inputCostPerMillionTokens: number;
-        outputCostPerMillionTokens: number;
         provider: {
           object: 'assistant.model_provider';
           id: string;
@@ -47,8 +37,6 @@ export type DashboardOrganizationsConversationsListOutput = {
         slug: string;
         name: string;
         contextWindow: number;
-        inputCostPerMillionTokens: number;
-        outputCostPerMillionTokens: number;
         provider: {
           object: 'assistant.model_provider';
           id: string;
@@ -101,17 +89,6 @@ export let mapDashboardOrganizationsConversationsListOutput =
                 'organization_id',
                 mtMap.passthrough()
               ),
-              implementation: mtMap.objectField(
-                'implementation',
-                mtMap.object({
-                  object: mtMap.objectField('object', mtMap.passthrough()),
-                  id: mtMap.objectField('id', mtMap.passthrough()),
-                  slug: mtMap.objectField('slug', mtMap.passthrough()),
-                  name: mtMap.objectField('name', mtMap.passthrough()),
-                  createdAt: mtMap.objectField('created_at', mtMap.date()),
-                  updatedAt: mtMap.objectField('updated_at', mtMap.date())
-                })
-              ),
               defaultModel: mtMap.objectField(
                 'default_model',
                 mtMap.object({
@@ -121,14 +98,6 @@ export let mapDashboardOrganizationsConversationsListOutput =
                   name: mtMap.objectField('name', mtMap.passthrough()),
                   contextWindow: mtMap.objectField(
                     'context_window',
-                    mtMap.passthrough()
-                  ),
-                  inputCostPerMillionTokens: mtMap.objectField(
-                    'input_cost_per_million_tokens',
-                    mtMap.passthrough()
-                  ),
-                  outputCostPerMillionTokens: mtMap.objectField(
-                    'output_cost_per_million_tokens',
                     mtMap.passthrough()
                   ),
                   provider: mtMap.objectField(
@@ -156,14 +125,6 @@ export let mapDashboardOrganizationsConversationsListOutput =
                     name: mtMap.objectField('name', mtMap.passthrough()),
                     contextWindow: mtMap.objectField(
                       'context_window',
-                      mtMap.passthrough()
-                    ),
-                    inputCostPerMillionTokens: mtMap.objectField(
-                      'input_cost_per_million_tokens',
-                      mtMap.passthrough()
-                    ),
-                    outputCostPerMillionTokens: mtMap.objectField(
-                      'output_cost_per_million_tokens',
                       mtMap.passthrough()
                     ),
                     provider: mtMap.objectField(
