@@ -16,18 +16,7 @@ let assistantModelSchema = v.object({
   slug: v.string(),
   name: v.string(),
   context_window: v.number(),
-  input_cost_per_million_tokens: v.number(),
-  output_cost_per_million_tokens: v.number(),
   provider: assistantModelProviderSchema
-});
-
-let assistantImplementationSchema = v.object({
-  object: v.literal('assistant.implementation'),
-  id: v.string(),
-  slug: v.string(),
-  name: v.string(),
-  created_at: v.date(),
-  updated_at: v.date()
 });
 
 let presentModel = (model: {
@@ -49,8 +38,6 @@ let presentModel = (model: {
   slug: model.slug,
   name: model.name,
   context_window: model.contextWindow,
-  input_cost_per_million_tokens: model.inputCostPerMillionTokens,
-  output_cost_per_million_tokens: model.outputCostPerMillionTokens,
   provider: {
     object: 'assistant.model_provider' as const,
     id: model.provider.id,
@@ -68,14 +55,6 @@ export let v1AssistantPresenter = Presenter.create(assistantType)
     name: assistant.name,
     owner_type: assistant.ownerType,
     organization_id: assistant.organization?.id ?? null,
-    implementation: {
-      object: 'assistant.implementation' as const,
-      id: assistant.implementation.id,
-      slug: assistant.implementation.slug,
-      name: assistant.implementation.name,
-      created_at: assistant.implementation.createdAt,
-      updated_at: assistant.implementation.updatedAt
-    },
     default_model: assistant.defaultModel ? presentModel(assistant.defaultModel) : null,
     available_models: assistant.availableModels.map(presentModel),
     created_at: assistant.createdAt,
@@ -89,7 +68,6 @@ export let v1AssistantPresenter = Presenter.create(assistantType)
       name: v.string(),
       owner_type: v.enumOf(['metorial', 'organization']),
       organization_id: v.nullable(v.string()),
-      implementation: assistantImplementationSchema,
       default_model: v.nullable(assistantModelSchema),
       available_models: v.array(assistantModelSchema),
       created_at: v.date(),
@@ -134,6 +112,9 @@ export let v1AssistantConversationPresenter = Presenter.create(assistantConversa
 export let v1AssistantMessagePresenter = Presenter.create(assistantMessageType)
   .presenter(async ({ assistantConversationItem }) => {
     let message = assistantConversationItem.message;
+    if (!message.request) {
+      throw new Error(`Assistant message ${message.id} is missing a request`);
+    }
 
     return {
       object: 'assistant.message' as const,
@@ -152,7 +133,6 @@ export let v1AssistantMessagePresenter = Presenter.create(assistantMessageType)
         updated_at: message.request.updatedAt
       },
       state: message.state as Record<string, any>,
-      serialized: message.serialized as Record<string, any>,
       created_at: message.createdAt
     };
   })
@@ -174,7 +154,6 @@ export let v1AssistantMessagePresenter = Presenter.create(assistantMessageType)
         updated_at: v.date()
       }),
       state: v.record(v.any()),
-      serialized: v.record(v.any()),
       created_at: v.date()
     })
   )

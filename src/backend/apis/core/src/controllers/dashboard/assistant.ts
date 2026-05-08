@@ -5,6 +5,7 @@ import { OrganizationActor } from '@metorial/db';
 import {
   assistantConversationService,
   assistantMessageService,
+  assistantRequestService,
   assistantService
 } from '@metorial/module-assistant';
 import { Controller } from '@metorial/rest';
@@ -32,6 +33,20 @@ let requireActor = (ctx: { actor?: OrganizationActor }) => {
 
   return ctx.actor;
 };
+
+let assistantMessagePartSchema = v.union([
+  v.object({
+    type: v.literal('text'),
+    text: v.string()
+  }),
+  v.object({
+    type: v.literal('file'),
+    data: v.string(),
+    encoding: v.enumOf(['utf-8', 'base64']),
+    media_type: v.string(),
+    filename: v.optional(v.string())
+  })
+]);
 
 let assistantConversationGroup = instanceGroup.use(async ctx => {
   let assistantConversationId = requireParam(ctx.params, 'assistantConversationId');
@@ -266,6 +281,66 @@ export let dashboardAssistantController = Controller.create(
         return Paginator.present(list, assistantConversationItem =>
           assistantMessagePresenter.present({ assistantConversationItem })
         );
+      }),
+
+    createMessage: assistantConversationGroup
+      .use(isDashboardGroup())
+      .post(
+        organizationManagementPath(
+          'instances/:instanceId/conversations/:assistantConversationId/messages',
+          'conversations.messages.create'
+        ),
+        {
+          name: 'Create assistant message',
+          description: 'Create a user message and assistant request in a specific conversation.'
+        }
+      )
+      .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
+      .body(
+        'default',
+        v.object({
+          message: v.object({
+            parts: v.array(assistantMessagePartSchema)
+          }),
+          parent_message_id: v.optional(v.string()),
+          history_size: v.optional(v.number({ modifiers: [v.integer(), v.minValue(0)] })),
+          model_id: v.optional(v.string())
+        })
+      )
+      .output(assistantMessagePresenter)
+      .do(async ctx => {
+        let { item } = await assistantRequestService.createAssistantRequest({
+          organization: ctx.organization,
+          instance: ctx.instance,
+          actor: requireActor(ctx),
+          conversation: ctx.assistantConversation,
+          context: ctx.context,
+          input: {
+            message: {
+              parts: ctx.body.message.parts.map(part =>
+                part.type == 'text'
+                  ? {
+                      type: 'text' as const,
+                      text: part.text
+                    }
+                  : {
+                      type: 'file' as const,
+                      filename: part.filename,
+                      mediaType: part.media_type,
+                      data: part.data,
+                      encoding: part.encoding
+                    }
+              )
+            },
+            parentMessageId: ctx.body.parent_message_id,
+            historySize: ctx.body.history_size,
+            modelId: ctx.body.model_id
+          }
+        });
+
+        return assistantMessagePresenter.present({
+          assistantConversationItem: item
+        });
       }),
 
     getMessage: assistantMessageGroup
