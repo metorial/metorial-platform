@@ -1,23 +1,26 @@
 import { CodeBlock } from '@metorial/code';
+import { AnimatePresence, motion } from 'framer-motion';
+import type { ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import { Text, theme } from '@metorial/ui';
 import styled from 'styled-components';
 
-export let ToolSurfaceCard = styled.div`
+export let ToolSurfaceCard = styled.div<{ $status?: 'running' | 'completed' | 'failed' }>`
   display: flex;
   flex-direction: column;
-  gap: 12px;
   width: 100%;
-  border-radius: 18px;
-  border: 1px solid color-mix(in srgb, ${theme.colors.foreground} 10%, transparent);
-  background: ${theme.colors.gray100};
-  padding: 12px 14px;
-  box-shadow:
-    0 1px 2px rgba(15, 23, 42, 0.04),
-    0 10px 24px rgba(15, 23, 42, 0.03);
+  border-radius: 16px;
+  border: 1px solid
+    ${p =>
+      p.$status == 'failed'
+        ? `color-mix(in srgb, ${theme.colors.red800} 45%, transparent)`
+        : `color-mix(in srgb, ${theme.colors.foreground} 8%, transparent)`};
+  background: color-mix(in srgb, ${theme.colors.background} 88%, ${theme.colors.gray100});
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
 `;
 
 export let NestedToolSurfaceCard = styled(ToolSurfaceCard)`
-  background: color-mix(in srgb, ${theme.colors.foreground} 2%, ${theme.colors.background});
+  background: color-mix(in srgb, ${theme.colors.background} 94%, ${theme.colors.gray100});
   box-shadow: none;
 `;
 
@@ -91,7 +94,7 @@ export let ToolStatusBadge = styled.span<{ $status?: string }>`
 export let ToolContentStack = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 `;
 
 export let ToolSection = styled.div`
@@ -169,14 +172,176 @@ export let ToolMetaChip = styled.span<{
 export let ScrollSection = styled.div`
   max-height: 420px;
   overflow: auto;
-  border-radius: 14px;
-  border: 1px solid color-mix(in srgb, ${theme.colors.foreground} 9%, transparent);
-  background: ${theme.colors.background};
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, ${theme.colors.foreground} 7%, transparent);
+  background: color-mix(in srgb, ${theme.colors.background} 96%, ${theme.colors.gray100});
+`;
+
+let SummaryButton = styled.button<{ $clickable: boolean }>`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  border: none;
+  border-radius: 16px;
+  background: transparent;
+  padding: 10px 12px;
+  text-align: left;
+  cursor: ${p => (p.$clickable ? 'pointer' : 'default')};
+
+  &:hover {
+    background: ${p =>
+      p.$clickable
+        ? `color-mix(in srgb, ${theme.colors.foreground} 3%, transparent)`
+        : 'transparent'};
+  }
+`;
+
+let SummaryMain = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+`;
+
+let SummaryText = styled(Text).attrs({
+  size: '2'
+})`
+  font-weight: 500;
+  color: ${theme.colors.foreground};
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+let SummarySecondary = styled(Text).attrs({
+  size: '1'
+})`
+  color: color-mix(in srgb, ${theme.colors.foreground} 56%, transparent);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+let SummaryRight = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+`;
+
+let SummaryPill = styled.span<{ $status?: string }>`
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 9px;
+  border-radius: 999px;
+  background: ${p =>
+    p.$status == 'failed'
+      ? `color-mix(in srgb, ${theme.colors.red800} 10%, transparent)`
+      : `color-mix(in srgb, ${theme.colors.orange800} 10%, transparent)`};
+  color: ${p => (p.$status == 'failed' ? theme.colors.red800 : theme.colors.orange800)};
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  text-transform: capitalize;
+`;
+
+let Chevron = styled(motion.span)`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  color: color-mix(in srgb, ${theme.colors.foreground} 56%, transparent);
+`;
+
+let ContentArea = styled(motion.div)`
+  overflow: hidden;
+`;
+
+let ContentInner = styled.div`
+  padding: 0 12px 12px;
 `;
 
 export let getStatusLabel = (status?: string) => {
   if (!status) return null;
   return status.replaceAll('_', ' ');
+};
+
+let ChevronIcon = () => (
+  <svg viewBox="0 0 12 12" width="12" height="12" fill="none" aria-hidden="true">
+    <path
+      d="M4 2.5L7.5 6L4 9.5"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+export let ToolDisclosureCard = (p: {
+  summary: string;
+  secondaryText?: string | null;
+  status?: 'running' | 'completed' | 'failed';
+  defaultOpen?: boolean;
+  autoCollapseOnComplete?: boolean;
+  children?: ReactNode;
+}) => {
+  let hasContent = !!p.children;
+  let [isOpen, setIsOpen] = useState(p.defaultOpen ?? true);
+
+  useEffect(() => {
+    if (p.autoCollapseOnComplete && p.status == 'completed') {
+      setIsOpen(false);
+    }
+  }, [p.autoCollapseOnComplete, p.status]);
+
+  let showStatus = p.status == 'running' || p.status == 'failed';
+
+  return (
+    <ToolSurfaceCard $status={p.status}>
+      <SummaryButton
+        type="button"
+        $clickable={hasContent}
+        onClick={() => {
+          if (!hasContent) return;
+          setIsOpen(open => !open);
+        }}
+      >
+        <SummaryMain>
+          <SummaryText>{p.summary}</SummaryText>
+          {p.secondaryText ? <SummarySecondary>{p.secondaryText}</SummarySecondary> : null}
+        </SummaryMain>
+
+        <SummaryRight>
+          {showStatus ? (
+            <SummaryPill $status={p.status}>{getStatusLabel(p.status)}</SummaryPill>
+          ) : null}
+          {hasContent ? (
+            <Chevron animate={{ rotate: isOpen ? 90 : 0 }} transition={{ duration: 0.16 }}>
+              <ChevronIcon />
+            </Chevron>
+          ) : null}
+        </SummaryRight>
+      </SummaryButton>
+
+      <AnimatePresence initial={false}>
+        {hasContent && isOpen ? (
+          <ContentArea
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.18, ease: 'easeOut' }}
+          >
+            <ContentInner>{p.children}</ContentInner>
+          </ContentArea>
+        ) : null}
+      </AnimatePresence>
+    </ToolSurfaceCard>
+  );
 };
 
 export let getDisplayPath = (filePath: string) => {
@@ -276,14 +441,15 @@ export let JsonBlock = (p: {
   value: unknown;
   language?: string;
   lineNumbers?: boolean;
+  variant?: 'bordered' | 'seamless';
 }) => {
   if (p.value === undefined) return null;
 
   return (
     <CodeBlock
-      lineNumbers={p.lineNumbers ?? true}
+      lineNumbers={p.lineNumbers ?? false}
       language={p.language ?? 'json'}
-      variant="bordered"
+      variant={p.variant ?? 'seamless'}
       code={formatStructuredValue(p.value)}
     />
   );

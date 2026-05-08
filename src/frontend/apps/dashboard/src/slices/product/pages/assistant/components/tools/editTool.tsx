@@ -3,23 +3,13 @@ import { Error, theme } from '@metorial/ui';
 import { useMemo } from 'react';
 import styled from 'styled-components';
 import {
-  getCodeLanguage,
   getDisplayPath,
-  getStatusLabel,
-  JsonBlock,
   ScrollSection,
   ToolContentStack,
-  ToolDetail,
-  ToolHeader,
-  ToolHeaderMain,
-  ToolMetaChip,
-  ToolMetaRow,
+  ToolDisclosureCard,
   ToolPathTag,
   ToolSection,
-  ToolSectionLabel,
-  ToolStatusBadge,
-  ToolSurfaceCard,
-  ToolTitle
+  ToolSectionLabel
 } from './shared';
 
 type EditItem = Extract<AssistantLiveStateItem, { type: 'files/write' }>;
@@ -54,16 +44,6 @@ let DiffLine = styled.div<{ $type: DiffRow['type'] }>`
         : p.$type == 'fold'
           ? `color-mix(in srgb, ${theme.colors.foreground} 3%, ${theme.colors.background})`
           : 'transparent'};
-
-  & + & {
-    border-top: 1px solid
-      ${p =>
-        p.$type == 'add'
-          ? `color-mix(in srgb, ${theme.colors.green800} 8%, transparent)`
-          : p.$type == 'remove'
-            ? `color-mix(in srgb, ${theme.colors.red800} 8%, transparent)`
-            : `color-mix(in srgb, ${theme.colors.foreground} 6%, transparent)`};
-  }
 `;
 
 let DiffLineNumber = styled.div`
@@ -273,7 +253,6 @@ let getDiffData = (item: EditItem) => {
 export let EditToolCard = (p: { item: EditItem }) => {
   let item = p.item;
   let displayPath = getDisplayPath(item.path || 'file');
-  let language = getCodeLanguage(displayPath);
   let verb =
     item.operation == 'write' ? 'Created file' : item.operation == 'delete' ? 'Deleted file' : 'Edited file';
 
@@ -283,26 +262,14 @@ export let EditToolCard = (p: { item: EditItem }) => {
     return collapseContextRows(buildDiffRows(diffData.oldText, diffData.newText));
   }, [diffData]);
 
-  let addedCount = diffRows?.filter(row => row.type == 'add').length ?? 0;
-  let removedCount = diffRows?.filter(row => row.type == 'remove').length ?? 0;
-
   return (
-    <ToolSurfaceCard>
-      <ToolHeader>
-        <ToolHeaderMain>
-          <ToolTitle>{verb}</ToolTitle>
-          <ToolDetail>{displayPath}</ToolDetail>
-        </ToolHeaderMain>
-        <ToolStatusBadge $status={item.status}>{getStatusLabel(item.status)}</ToolStatusBadge>
-      </ToolHeader>
-
+    <ToolDisclosureCard
+      summary={`${item.status == 'running' ? verb.replace(/ed /, 'ing ') : verb} ${displayPath}`}
+      status={item.status}
+      defaultOpen={true}
+    >
       <ToolContentStack>
-        <ToolMetaRow>
-          <ToolPathTag>{displayPath}</ToolPathTag>
-          {addedCount > 0 && <ToolMetaChip $tone="added">+{addedCount}</ToolMetaChip>}
-          {removedCount > 0 && <ToolMetaChip $tone="removed">-{removedCount}</ToolMetaChip>}
-          {item.changes.type == 'delete' && <ToolMetaChip $tone="danger">File removed</ToolMetaChip>}
-        </ToolMetaRow>
+        <ToolPathTag>{displayPath}</ToolPathTag>
 
         {diffRows && (
           <ToolSection>
@@ -326,15 +293,8 @@ export let EditToolCard = (p: { item: EditItem }) => {
           <Error>This step deletes `{displayPath}`.</Error>
         )}
 
-        {item.output !== undefined && (
-          <ToolSection>
-            <ToolSectionLabel>Tool output</ToolSectionLabel>
-            <JsonBlock value={item.output} language={language == 'text' ? 'json' : language} />
-          </ToolSection>
-        )}
-
         {item.error && <Error>{item.error.message}</Error>}
       </ToolContentStack>
-    </ToolSurfaceCard>
+    </ToolDisclosureCard>
   );
 };

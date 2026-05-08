@@ -1,27 +1,47 @@
 import type { AssistantLiveStateItem } from '@metorial/state';
 import { Error } from '@metorial/ui';
+import styled from 'styled-components';
 import {
   getDisplayPath,
-  getStatusLabel,
-  JsonBlock,
-  NestedToolSurfaceCard,
   ToolContentStack,
-  ToolDetail,
-  ToolHeader,
-  ToolHeaderMain,
-  ToolMetaChip,
-  ToolMetaRow,
-  ToolSection,
-  ToolSectionLabel,
-  ToolStatusBadge,
-  ToolSurfaceCard,
-  ToolTitle
+  ToolDisclosureCard
 } from './shared';
 
 type SearchItem = Extract<AssistantLiveStateItem, { type: 'files/explore' }>;
 
+let OperationList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+`;
+
+let OperationRow = styled.div`
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 8px 0;
+  min-width: 0;
+
+  & + & {
+    border-top: 1px solid color-mix(in srgb, currentColor 8%, transparent);
+  }
+`;
+
+let OperationTitle = styled.div`
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+`;
+
+let OperationDetail = styled.div`
+  font-size: 12px;
+  color: color-mix(in srgb, currentColor 58%, transparent);
+  word-break: break-word;
+  min-width: 0;
+`;
+
 let getOperationTitle = (type: SearchItem['operations'][number]['type']) => {
-  return type == 'read' ? 'Read file' : 'Searched files';
+  return type == 'read' ? 'Read' : 'Explore';
 };
 
 let getOperationDetail = (operation: SearchItem['operations'][number]) => {
@@ -31,80 +51,54 @@ let getOperationDetail = (operation: SearchItem['operations'][number]) => {
   return operation.pattern ? `${operation.pattern} in ${base}` : base;
 };
 
-let renderOperationOutput = (output: unknown) => {
-  if (output === undefined) return null;
+let getExploredCount = (item: SearchItem) => {
+  let total = 0;
 
-  if (Array.isArray(output) && output.every(value => typeof value == 'string')) {
-    return (
-      <ToolSection>
-        <ToolSectionLabel>Results</ToolSectionLabel>
-        <JsonBlock value={output.join('\n')} language="text" />
-      </ToolSection>
-    );
+  for (let operation of item.operations) {
+    let output = operation.output;
+
+    if (Array.isArray(output)) {
+      total += output.length;
+      continue;
+    }
+
+    if (output && typeof output == 'object' && 'numFiles' in output) {
+      let numFiles = (output as { numFiles?: unknown }).numFiles;
+      if (typeof numFiles == 'number') total += numFiles;
+    }
   }
 
-  if (typeof output == 'string') {
-    return (
-      <ToolSection>
-        <ToolSectionLabel>Results</ToolSectionLabel>
-        <JsonBlock value={output} language="text" />
-      </ToolSection>
-    );
-  }
-
-  return (
-    <ToolSection>
-      <ToolSectionLabel>Results</ToolSectionLabel>
-      <JsonBlock value={output} />
-    </ToolSection>
-  );
+  return total > 0 ? total : null;
 };
 
 export let SearchToolCard = (p: { item: SearchItem }) => {
   let item = p.item;
-  let completedCount = item.operations.filter(operation => operation.status == 'completed').length;
+  let exploredCount = getExploredCount(item);
+  let summary =
+    item.operations.some(operation => operation.status == 'running')
+      ? 'Exploring files'
+      : exploredCount
+        ? `Explored ${exploredCount} files`
+        : 'Explored files';
 
   return (
-    <ToolSurfaceCard>
-      <ToolHeader>
-        <ToolHeaderMain>
-          <ToolTitle>Search</ToolTitle>
-          <ToolDetail>
-            {item.operations.length} operation{item.operations.length == 1 ? '' : 's'}
-          </ToolDetail>
-        </ToolHeaderMain>
-      </ToolHeader>
-
+    <ToolDisclosureCard
+      summary={summary}
+      status={item.operations.some(operation => operation.status == 'failed') ? 'failed' : item.operations.some(operation => operation.status == 'running') ? 'running' : 'completed'}
+      defaultOpen={true}
+      autoCollapseOnComplete={!item.operations.some(operation => operation.status == 'failed')}
+    >
       <ToolContentStack>
-        <ToolMetaRow>
-          <ToolMetaChip>{completedCount} completed</ToolMetaChip>
-          {item.operations.some(operation => operation.status == 'running') && (
-            <ToolMetaChip $tone="warning">running</ToolMetaChip>
-          )}
-          {item.operations.some(operation => operation.status == 'failed') && (
-            <ToolMetaChip $tone="danger">errors</ToolMetaChip>
-          )}
-        </ToolMetaRow>
-
-        {item.operations.map(operation => (
-          <NestedToolSurfaceCard key={operation.id}>
-            <ToolHeader>
-              <ToolHeaderMain>
-                <ToolTitle>{getOperationTitle(operation.type)}</ToolTitle>
-                <ToolDetail>{getOperationDetail(operation)}</ToolDetail>
-              </ToolHeaderMain>
-              <ToolStatusBadge $status={operation.status}>
-                {getStatusLabel(operation.status)}
-              </ToolStatusBadge>
-            </ToolHeader>
-
-            <ToolContentStack>
-              {renderOperationOutput(operation.output)}
+        <OperationList>
+          {item.operations.map(operation => (
+            <OperationRow key={operation.id}>
+              <OperationTitle>{getOperationTitle(operation.type)}</OperationTitle>
+              <OperationDetail>{getOperationDetail(operation)}</OperationDetail>
               {operation.error && <Error>{operation.error.message}</Error>}
-            </ToolContentStack>
-          </NestedToolSurfaceCard>
-        ))}
+            </OperationRow>
+          ))}
+        </OperationList>
       </ToolContentStack>
-    </ToolSurfaceCard>
+    </ToolDisclosureCard>
   );
 };

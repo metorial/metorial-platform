@@ -1,6 +1,6 @@
+import type { AssistantConversationMessage, AssistantLiveState } from '@metorial/state';
 import { Text, theme } from '@metorial/ui';
 import styled from 'styled-components';
-import type { AssistantConversationMessage, AssistantLiveState } from '@metorial/state';
 import { getTranscriptEntries } from './helpers';
 import { TextShimmer } from './textShimmer';
 import { AssistantStateItemCard } from './toolCards';
@@ -10,7 +10,6 @@ let TranscriptWrapper = styled.div`
   flex-direction: column;
   gap: 18px;
   width: 100%;
-  max-width: 860px;
   margin: 0 auto;
   padding: 4px 0 28px;
 `;

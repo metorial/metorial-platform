@@ -1,6 +1,5 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
-import { ContentLayout } from '@metorial/layout';
 import {
   defaultAssistantSlug,
   useAssistant,
@@ -15,13 +14,14 @@ import styled from 'styled-components';
 import type { AssistantModelOption, AssistantSuggestion } from './components';
 import { AssistantComposer } from './components';
 
-let CenterLayout = styled(ContentLayout)`
-  min-height: calc(100vh - 220px);
+let CenterLayout = styled.div`
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
+  gap: 18px;
+  min-height: calc(100vh - 220px);
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 50px 20px 0px 20px;
 `;
 
 let Hero = styled.div`

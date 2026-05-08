@@ -1,24 +1,40 @@
 import type { AssistantLiveStateItem } from '@metorial/state';
 import { Error } from '@metorial/ui';
+import styled from 'styled-components';
 import {
-  getStatusLabel,
   JsonBlock,
-  NestedToolSurfaceCard,
   ToolContentStack,
-  ToolDetail,
-  ToolHeader,
-  ToolHeaderMain,
+  ToolDisclosureCard,
   ToolMetaChip,
   ToolMetaRow,
   ToolSection,
   ToolSectionLabel,
-  ToolStatusBadge,
-  ToolSurfaceCard,
-  ToolTitle,
   unwrapMcpOutput
 } from './shared';
 
 type McpItem = Extract<AssistantLiveStateItem, { type: 'tool' }>;
+
+let CallBlock = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 0;
+
+  & + & {
+    border-top: 1px solid color-mix(in srgb, currentColor 8%, transparent);
+  }
+`;
+
+let CallTitle = styled.div`
+  font-size: 13px;
+  font-weight: 500;
+`;
+
+let CallSummary = styled.div`
+  font-size: 12px;
+  color: color-mix(in srgb, currentColor 58%, transparent);
+  word-break: break-word;
+`;
 
 let getCallSummary = (input: unknown) => {
   if (!input || typeof input != 'object' || Array.isArray(input)) return null;
@@ -37,16 +53,18 @@ let getCallSummary = (input: unknown) => {
 
 export let McpToolCard = (p: { item: McpItem }) => {
   let item = p.item;
+  let status: 'running' | 'completed' | 'failed' = item.calls.some(call => call.status == 'failed')
+    ? 'failed'
+    : item.calls.some(call => call.status == 'running')
+      ? 'running'
+      : 'completed';
 
   return (
-    <ToolSurfaceCard>
-      <ToolHeader>
-        <ToolHeaderMain>
-          <ToolTitle>Tool call</ToolTitle>
-          <ToolDetail>{item.tool.name}</ToolDetail>
-        </ToolHeaderMain>
-      </ToolHeader>
-
+    <ToolDisclosureCard
+      summary={`${status == 'running' ? 'Running' : 'Ran'} tool ${item.tool.name}`}
+      status={status}
+      defaultOpen={true}
+    >
       <ToolContentStack>
         <ToolMetaRow>
           <ToolMetaChip>{item.calls.length} call{item.calls.length == 1 ? '' : 's'}</ToolMetaChip>
@@ -59,33 +77,28 @@ export let McpToolCard = (p: { item: McpItem }) => {
         </ToolMetaRow>
 
         {item.calls.map(call => (
-          <NestedToolSurfaceCard key={call.id}>
-            <ToolHeader>
-              <ToolHeaderMain>
-                <ToolTitle>{item.tool.name}</ToolTitle>
-                <ToolDetail>{getCallSummary(call.input) ?? 'Tool call'}</ToolDetail>
-              </ToolHeaderMain>
-              <ToolStatusBadge $status={call.status}>{getStatusLabel(call.status)}</ToolStatusBadge>
-            </ToolHeader>
+          <CallBlock key={call.id}>
+            <div>
+              <CallTitle>{item.tool.name}</CallTitle>
+              <CallSummary>{getCallSummary(call.input) ?? 'Tool call'}</CallSummary>
+            </div>
 
-            <ToolContentStack>
+            <ToolSection>
+              <ToolSectionLabel>Input</ToolSectionLabel>
+              <JsonBlock value={call.input} />
+            </ToolSection>
+
+            {call.output !== undefined && (
               <ToolSection>
-                <ToolSectionLabel>Input</ToolSectionLabel>
-                <JsonBlock value={call.input} />
+                <ToolSectionLabel>Output</ToolSectionLabel>
+                <JsonBlock value={unwrapMcpOutput(call.output)} />
               </ToolSection>
+            )}
 
-              {call.output !== undefined && (
-                <ToolSection>
-                  <ToolSectionLabel>Output</ToolSectionLabel>
-                  <JsonBlock value={unwrapMcpOutput(call.output)} />
-                </ToolSection>
-              )}
-
-              {call.error && <Error>{call.error.message}</Error>}
-            </ToolContentStack>
-          </NestedToolSurfaceCard>
+            {call.error && <Error>{call.error.message}</Error>}
+          </CallBlock>
         ))}
       </ToolContentStack>
-    </ToolSurfaceCard>
+    </ToolDisclosureCard>
   );
 };

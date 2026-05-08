@@ -1,6 +1,7 @@
 import type { AssistantConversationMessage, AssistantLiveStateItem } from '@metorial/state';
 import { Error, Text, theme } from '@metorial/ui';
-import ReactMarkdown from 'react-markdown';
+import ReactMarkdown, { type Components } from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import styled from 'styled-components';
 import { TextShimmer } from './textShimmer';
 import { BashToolCard } from './tools/bashTool';
@@ -49,8 +50,7 @@ let MessageSurface = styled.div<{ $tone?: 'user' | 'assistant' | 'system' }>`
     p.$tone == 'assistant'
       ? 'none'
       : `1px solid color-mix(in srgb, ${theme.colors.foreground} 10%, transparent)`};
-  box-shadow: ${p =>
-    p.$tone == 'assistant' ? 'none' : '0 1px 2px rgba(15, 23, 42, 0.04)'};
+  box-shadow: ${p => (p.$tone == 'assistant' ? 'none' : '0 1px 2px rgba(15, 23, 42, 0.04)')};
 `;
 
 let MessageMeta = styled.div`
@@ -102,6 +102,49 @@ let MarkdownWrapper = styled.div`
   }
 `;
 
+let MarkdownTableScroll = styled.div`
+  overflow-x: auto;
+  margin: 0 0 12px;
+  border: 1px solid color-mix(in srgb, ${theme.colors.foreground} 10%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, ${theme.colors.foreground} 2%, ${theme.colors.background});
+`;
+
+let MarkdownTable = styled.table`
+  width: 100%;
+  min-width: 480px;
+  border-collapse: collapse;
+  font-size: 13px;
+  line-height: 1.5;
+`;
+
+let MarkdownTableHeadCell = styled.th`
+  padding: 10px 12px;
+  text-align: left;
+  vertical-align: top;
+  font-weight: 600;
+  color: ${theme.colors.foreground};
+  background: color-mix(in srgb, ${theme.colors.foreground} 4%, ${theme.colors.background});
+`;
+
+let MarkdownTableCell = styled.td`
+  padding: 10px 12px;
+  vertical-align: top;
+  border-top: 1px solid color-mix(in srgb, ${theme.colors.foreground} 8%, transparent);
+`;
+
+let markdownComponents: Components = {
+  table: ({ children, ...props }) => (
+    <MarkdownTableScroll>
+      <MarkdownTable {...props}>{children}</MarkdownTable>
+    </MarkdownTableScroll>
+  ),
+  th: ({ children, ...props }) => (
+    <MarkdownTableHeadCell {...props}>{children}</MarkdownTableHeadCell>
+  ),
+  td: ({ children, ...props }) => <MarkdownTableCell {...props}>{children}</MarkdownTableCell>
+};
+
 let MessagePart = (p: {
   part:
     | { type: 'text'; text: string }
@@ -114,7 +157,9 @@ let MessagePart = (p: {
   if (p.part.type == 'text') {
     return (
       <MarkdownWrapper>
-        <ReactMarkdown>{p.part.text}</ReactMarkdown>
+        <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+          {p.part.text}
+        </ReactMarkdown>
       </MarkdownWrapper>
     );
   }
@@ -140,9 +185,10 @@ let MessageCard = (p: {
       <MessageColumn $tone={tone}>
         {(role == 'assistant' || role == 'system' || showStatus) && (
           <MessageMeta>
-            {role != 'user' && <MetaLabel>{role == 'assistant' ? 'Assistant' : 'System'}</MetaLabel>}
             {showStatus && (
-              <ToolStatusBadge $status={p.item.status}>{getStatusLabel(p.item.status)}</ToolStatusBadge>
+              <ToolStatusBadge $status={p.item.status}>
+                {getStatusLabel(p.item.status)}
+              </ToolStatusBadge>
             )}
           </MessageMeta>
         )}
@@ -165,23 +211,33 @@ let ReasoningCard = (p: { item: Extract<AssistantLiveStateItem, { type: 'reasoni
       <ToolHeader>
         <ToolHeaderMain>
           <ToolTitle>Thinking</ToolTitle>
-          {!!p.item.text && p.item.status == 'running' && <ToolDetail>{p.item.text}</ToolDetail>}
+          {!!p.item.text && p.item.status == 'running' && (
+            <ToolDetail>{p.item.text}</ToolDetail>
+          )}
         </ToolHeaderMain>
-        <ToolStatusBadge $status={p.item.status}>{getStatusLabel(p.item.status)}</ToolStatusBadge>
+        {p.item.status != 'completed' ? (
+          <ToolStatusBadge $status={p.item.status}>
+            {getStatusLabel(p.item.status)}
+          </ToolStatusBadge>
+        ) : null}
       </ToolHeader>
 
       {p.item.status == 'running' ? (
         <TextShimmer>{p.item.text || 'Thinking...'}</TextShimmer>
       ) : (
         <MarkdownWrapper>
-          <ReactMarkdown>{p.item.text}</ReactMarkdown>
+          <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+            {p.item.text}
+          </ReactMarkdown>
         </MarkdownWrapper>
       )}
     </ToolSurfaceCard>
   );
 };
 
-let CompactionCard = (p: { item: Extract<AssistantLiveStateItem, { type: 'compaction' }> }) => {
+let CompactionCard = (p: {
+  item: Extract<AssistantLiveStateItem, { type: 'compaction' }>;
+}) => {
   return (
     <ToolSurfaceCard>
       <ToolHeader>
@@ -189,7 +245,11 @@ let CompactionCard = (p: { item: Extract<AssistantLiveStateItem, { type: 'compac
           <ToolTitle>Compaction</ToolTitle>
           <ToolDetail>{p.item.summary ?? 'Compressing conversation history.'}</ToolDetail>
         </ToolHeaderMain>
-        <ToolStatusBadge $status={p.item.status}>{getStatusLabel(p.item.status)}</ToolStatusBadge>
+        {p.item.status != 'completed' ? (
+          <ToolStatusBadge $status={p.item.status}>
+            {getStatusLabel(p.item.status)}
+          </ToolStatusBadge>
+        ) : null}
       </ToolHeader>
     </ToolSurfaceCard>
   );

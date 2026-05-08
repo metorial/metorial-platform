@@ -1,5 +1,5 @@
 import { renderWithLoader } from '@metorial/data-hooks';
-import { ContentLayout, PageHeader } from '@metorial/layout';
+import { PageHeader } from '@metorial/layout';
 import {
   useConversationHistory,
   useCreateConversationMessage,
@@ -13,11 +13,14 @@ import styled from 'styled-components';
 import type { AssistantModelOption, AssistantSuggestion } from './components';
 import { AssistantComposer, AssistantTranscript } from './components';
 
-let ConversationLayout = styled(ContentLayout)`
+let ConversationLayout = styled.div`
   display: flex;
   flex-direction: column;
   gap: 18px;
   min-height: calc(100vh - 220px);
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 50px 20px 0px 20px;
 `;
 
 let TranscriptPanel = styled.div`
@@ -29,12 +32,29 @@ let TranscriptPanel = styled.div`
 `;
 
 let ComposerDock = styled.div`
+  position: relative;
   position: sticky;
   bottom: 0;
   display: flex;
+  flex-direction: column;
   justify-content: center;
+  margin-top: -24px;
+  padding-top: 24px;
   background: ${theme.colors.background};
-  padding-top: 18px;
+`;
+
+let ComposerDockSpacer = styled.div`
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 24px;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    rgb(255 255 255 / 0%) 0%,
+    rgb(255 255 255 / 100%) 100%
+  );
 `;
 
 let defaultSuggestions: AssistantSuggestion[] = [
@@ -106,7 +126,9 @@ export let AssistantConversationPage = () => {
   let initialPrompt =
     typeof locationState?.initialPrompt == 'string' ? locationState.initialPrompt.trim() : '';
   let initialModelId =
-    typeof locationState?.initialModelId == 'string' ? locationState.initialModelId : undefined;
+    typeof locationState?.initialModelId == 'string'
+      ? locationState.initialModelId
+      : undefined;
 
   let modelOptions = useMemo(
     () => getModelOptions(history.conversation.data?.assistant.availableModels),
@@ -156,7 +178,8 @@ export let AssistantConversationPage = () => {
     if (!initialPrompt || didConsumeInitialPromptRef.current) return;
     if (!organization.data || !instance.data || !assistantConversationId) return;
 
-    let parentMessageId = history.latestMessage?.id ?? history.conversation.data?.rootMessageId;
+    let parentMessageId =
+      history.latestMessage?.id ?? history.conversation.data?.rootMessageId;
     if (!parentMessageId) return;
 
     didConsumeInitialPromptRef.current = true;
@@ -241,6 +264,8 @@ export let AssistantConversationPage = () => {
       </TranscriptPanel>
 
       <ComposerDock>
+        <ComposerDockSpacer />
+
         <AssistantComposer
           value={draft}
           onChange={setDraft}

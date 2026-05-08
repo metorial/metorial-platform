@@ -11,7 +11,6 @@ let ComposerRoot = styled.div`
   flex-direction: column;
   gap: 16px;
   width: 100%;
-  max-width: 860px;
   margin: 0 auto;
 `;
 

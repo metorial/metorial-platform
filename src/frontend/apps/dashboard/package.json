@@ -69,6 +69,7 @@
     "react-textarea-autosize": "^8.5.9",
     "react-trend": "^1.2.5",
     "react-use": "^17.5.1",
+    "remark-gfm": "^4.0.1",
     "styled-components": "^6.1.13",
     "tiptap-markdown": "^0.9.0"
   },
