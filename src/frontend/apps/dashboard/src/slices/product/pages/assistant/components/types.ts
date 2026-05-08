@@ -1,4 +1,8 @@
-import type { AssistantConversationMessage, AssistantLiveStateItem } from '@metorial/state';
+import type {
+  AssistantConversationHistoryNode,
+  AssistantConversationMessage,
+  AssistantLiveStateItem
+} from '@metorial/state';
 
 export type AssistantSuggestion = {
   id: string;
@@ -17,4 +21,13 @@ export type AssistantTranscriptEntry = {
   source: 'persisted' | 'live';
   item: AssistantLiveStateItem;
   message?: AssistantConversationMessage;
+};
+
+export type AssistantTranscriptMessageMeta = {
+  node: AssistantConversationHistoryNode;
+  parent: AssistantConversationHistoryNode | null;
+  previousSibling: AssistantConversationHistoryNode | null;
+  nextSibling: AssistantConversationHistoryNode | null;
+  siblingIndex: number;
+  siblingCount: number;
 };

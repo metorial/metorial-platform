@@ -120,7 +120,6 @@ export class AgentRun {
 
     try {
       for await (let event of iterator) {
-        console.log('Received event:', event);
         runState.pipe(event);
       }
 

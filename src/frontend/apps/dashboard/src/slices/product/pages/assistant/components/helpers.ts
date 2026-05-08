@@ -69,6 +69,33 @@ let getSerializedMessageItem = (
   };
 };
 
+export let getMessageItem = (
+  message: AssistantConversationMessage
+): Extract<AssistantLiveStateItem, { type: 'message' }> | null => {
+  let items = getStateItems(message);
+  let messageItem = items.find(item => item.type == 'message');
+
+  if (messageItem?.type == 'message') {
+    return messageItem;
+  }
+
+  let fallbackItem = getSerializedMessageItem(message);
+  return fallbackItem?.type == 'message' ? fallbackItem : null;
+};
+
+export let getMessageText = (message: AssistantConversationMessage) => {
+  let messageItem = getMessageItem(message);
+  if (!messageItem) return '';
+
+  return messageItem.message.parts
+    .map(part => {
+      if (part.type == 'text') return part.text;
+      return part.filename ?? `${part.mediaType} attachment`;
+    })
+    .join('\n\n')
+    .trim();
+};
+
 export let getTranscriptEntries = (
   messages: AssistantConversationMessage[],
   liveState?: AssistantLiveState | null

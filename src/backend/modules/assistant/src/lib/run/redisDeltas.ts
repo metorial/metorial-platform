@@ -11,6 +11,7 @@ type RedisAgentRunOptions = AgentRunStateOptions & {
 export let assistantRunDeltaKeys = (runId: string) => ({
   snapshot: `assistant:run:${runId}:snapshot`,
   deltaChannel: `assistant:run:${runId}:delta`,
+  deltaReplay: `assistant:run:${runId}:delta-replay`,
   snapshotWrittenChannel: `assistant:run:${runId}:snapshot-written`
 });
 
@@ -20,6 +21,7 @@ let messageIndex = (message: WireMessage) =>
 let parseWireMessage = (raw: string) => JSON.parse(raw) as AgentRunWireMessage;
 
 let createClient = async () => await createRedisClient({}).eager();
+let deltaReplayLimit = 15;
 
 export let createAssistantRunDeltaPublisher = async (d: {
   runId: string;
@@ -34,6 +36,13 @@ export let createAssistantRunDeltaPublisher = async (d: {
   let ttlSeconds = d.ttlSeconds ?? 60 * 60;
 
   let publishDelta = async (message: AgentRunWireMessage) => {
+    if (message[0] == 'd') {
+      let encoded = JSON.stringify(message);
+      await redis.lPush(keys.deltaReplay, encoded);
+      await redis.lTrim(keys.deltaReplay, 0, deltaReplayLimit - 1);
+      await redis.expire(keys.deltaReplay, ttlSeconds);
+    }
+
     await redis.publish(keys.deltaChannel, JSON.stringify(message));
   };
 
@@ -80,6 +89,7 @@ export let listenToAssistantRunDeltas = async (d: {
   await subscriber.connect();
 
   let started = false;
+  let starting = false;
   let closed = false;
   let bufferedDeltas: AgentRunWireMessage[] = [];
   let cleanupFns: (() => void)[] = [];
@@ -88,6 +98,25 @@ export let listenToAssistantRunDeltas = async (d: {
   let emit = async (message: AgentRunWireMessage) => {
     if (closed) return;
     await d.onMessage(message);
+  };
+
+  let getReplayDeltas = async (snapshotIndex: number) => {
+    let cached = await redis.lRange(keys.deltaReplay, 0, deltaReplayLimit - 1);
+    let live = bufferedDeltas.map(message => JSON.stringify(message));
+    let deduped = new Map<number, AgentRunWireMessage>();
+
+    for (let raw of [...cached.reverse(), ...live]) {
+      let message = parseWireMessage(raw);
+      if (message[0] != 'd') continue;
+
+      let index = messageIndex(message);
+      if (index <= snapshotIndex) continue;
+      deduped.set(index, message);
+    }
+
+    return [...deduped.entries()]
+      .sort((a, b) => a[0] - b[0])
+      .map(([, message]) => message);
   };
 
   let fail = async (error: Error) => {
@@ -101,18 +130,29 @@ export let listenToAssistantRunDeltas = async (d: {
   };
 
   let startFromSnapshot = async (snapshot: WireSnapshot) => {
-    if (started || closed) return;
+    if (started || starting || closed) return;
 
-    started = true;
-    if (snapshotTimeout) clearTimeout(snapshotTimeout);
-    await emit(snapshot);
+    starting = true;
+    try {
+      if (snapshotTimeout) clearTimeout(snapshotTimeout);
+      await emit(snapshot);
 
-    let snapshotIndex = snapshot[1];
-    let deltas = bufferedDeltas.filter(message => messageIndex(message) > snapshotIndex);
-    bufferedDeltas = [];
+      let lastIndex = snapshot[1];
 
-    for (let delta of deltas) {
-      await emit(delta);
+      while (true) {
+        let deltas = await getReplayDeltas(lastIndex);
+        bufferedDeltas = [];
+        if (deltas.length == 0) break;
+
+        for (let delta of deltas) {
+          await emit(delta);
+          lastIndex = messageIndex(delta);
+        }
+      }
+
+      started = true;
+    } finally {
+      starting = false;
     }
   };
 

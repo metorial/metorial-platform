@@ -21,7 +21,6 @@ let ShimmerText = styled(BaseText)`
   display: inline-block;
   position: relative;
   color: #999;
-  font-size: 13px;
 `;
 
 let ShimmerOverlay = styled(BaseText)`

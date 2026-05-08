@@ -34,6 +34,52 @@ describe('AgentRunState delta integration', () => {
     });
   });
 
+  it('includes the first streamed text chunk in the first emitted delta batch', () => {
+    let messages: AgentRunWireMessage[] = [];
+    let runState = new AgentRunState([], {
+      onWireMessage: message => messages.push(message)
+    });
+
+    runState.pipe(event({ type: 'text.delta', text: 'Tr' }));
+    runState.pipe(event({ type: 'text.delta', text: 'ains' }));
+
+    expect(messages).toEqual([
+      [
+        1,
+        [
+          2,
+          ['items'],
+          0,
+          [
+            {
+              id: 'message:0',
+              type: 'message',
+              status: 'running',
+              message: {
+                role: 'assistant',
+                parts: [{ type: 'text', text: 'Tr' }]
+              }
+            }
+          ]
+        ]
+      ],
+      [2, [5, ['items', '0', 'message', 'parts', '0', 'text'], 'ains']]
+    ]);
+    expect(runState.result().state).toEqual({
+      items: [
+        {
+          id: 'message:0',
+          type: 'message',
+          status: 'running',
+          message: {
+            role: 'assistant',
+            parts: [{ type: 'text', text: 'Trains' }]
+          }
+        }
+      ]
+    });
+  });
+
   it('emits deltas that a client replica can apply', () => {
     let replica = createClientReplica<JsonValue>({
       initial: { items: [] }

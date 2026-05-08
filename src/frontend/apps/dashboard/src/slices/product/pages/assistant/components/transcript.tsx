@@ -4,6 +4,7 @@ import styled from 'styled-components';
 import { getTranscriptEntries } from './helpers';
 import { TextShimmer } from './textShimmer';
 import { AssistantStateItemCard } from './toolCards';
+import type { AssistantTranscriptMessageMeta } from './types';
 
 let TranscriptWrapper = styled.div`
   display: flex;
@@ -28,6 +29,15 @@ export let AssistantTranscript = (p: {
   messages: AssistantConversationMessage[];
   liveState?: AssistantLiveState | null;
   isWaitingForResponse?: boolean;
+  messageMetaById?: Map<string, AssistantTranscriptMessageMeta>;
+  editingMessageId?: string | null;
+  editingValue?: string;
+  isSubmittingEdit?: boolean;
+  onStartEdit?: (message: AssistantConversationMessage) => void;
+  onEditingChange?: (value: string) => void;
+  onCancelEdit?: () => void;
+  onSubmitEdit?: () => void;
+  onSelectReferenceMessage?: (messageId: string) => void;
 }) => {
   let entries = getTranscriptEntries(p.messages, p.liveState);
 
@@ -42,7 +52,20 @@ export let AssistantTranscript = (p: {
   return (
     <TranscriptWrapper>
       {entries.map(entry => (
-        <AssistantStateItemCard key={entry.id} item={entry.item} message={entry.message} />
+        <AssistantStateItemCard
+          key={entry.id}
+          item={entry.item}
+          message={entry.message}
+          messageMeta={entry.message ? p.messageMetaById?.get(entry.message.id) : undefined}
+          isEditing={entry.message?.id == p.editingMessageId}
+          editingValue={p.editingValue}
+          isSubmittingEdit={p.isSubmittingEdit}
+          onStartEdit={p.onStartEdit}
+          onEditingChange={p.onEditingChange}
+          onCancelEdit={p.onCancelEdit}
+          onSubmitEdit={p.onSubmitEdit}
+          onSelectReferenceMessage={p.onSelectReferenceMessage}
+        />
       ))}
 
       {p.isWaitingForResponse && (

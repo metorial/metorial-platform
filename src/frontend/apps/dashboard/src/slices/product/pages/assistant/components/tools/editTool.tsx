@@ -269,7 +269,7 @@ export let EditToolCard = (p: { item: EditItem }) => {
     <ToolDisclosureCard
       summary={`${item.status == 'running' ? verb.replace(/ed /, 'ing ') : verb} ${displayPath}`}
       status={item.status}
-      defaultOpen={true}
+      defaultOpen={item.changes.type !== 'delete'}
     >
       <ToolContentStack>
         {diffRows && (
