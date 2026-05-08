@@ -147,7 +147,7 @@ export let AssistantComposer = (p: {
           value={p.value}
           disabled={p.disabled}
           minRows={1}
-          placeholder={p.placeholder ?? 'Ask Metorial Assistant to help with this instance'}
+          placeholder={p.placeholder ?? 'Ask the Metorial Assistant...'}
           onChange={event => p.onChange(event.currentTarget.value)}
           onKeyDown={event => {
             if (event.key == 'Enter' && !event.shiftKey) {

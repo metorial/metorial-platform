@@ -1,4 +1,4 @@
-import { ServiceError, notFoundError } from '@lowerdeck/error';
+import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { db, ID, Prisma, withTransaction } from '@metorial/db';
 import { createQueue, QueueRetryError, type IQueue } from '@metorial/queue';
 import { assistants } from '../definitions/assistants';
@@ -119,14 +119,7 @@ export let processAssistantRequestQueueProcessor = processAssistantRequestQueue.
     }
 
     let conversation = request.conversation;
-    let inputMessage = request.message;
-    let requestModel = request.model;
-    let parentMessage = request.message.parentMessage;
-    let historySize = request.historySize ?? 100;
-    let conversationOid = request.conversationOid;
-    let assistantOid = request.assistantOid;
-    let assistantInstanceOid = request.assistantInstanceOid;
-    let modelOid = request.modelOid;
+
     let startedAt = new Date();
     let run = await withTransaction(async db => {
       let existingRun = await db.assistantRun.findFirst({
@@ -144,9 +137,9 @@ export let processAssistantRequestQueueProcessor = processAssistantRequestQueue.
           id: await ID.generateId('assistantRun'),
           status: 'running',
           requestOid: request.oid,
-          conversationOid,
-          assistantOid,
-          assistantInstanceOid,
+          conversationOid: request.conversationOid,
+          assistantOid: request.assistantOid,
+          assistantInstanceOid: request.assistantInstanceOid,
           cost: zeroCost,
           metadata: {
             startedAt: startedAt.toISOString()
@@ -156,7 +149,7 @@ export let processAssistantRequestQueueProcessor = processAssistantRequestQueue.
 
       await db.assistantMessage.update({
         where: {
-          oid: inputMessage.oid
+          oid: request.message.oid
         },
         data: {
           runOid: run.oid
@@ -184,9 +177,9 @@ export let processAssistantRequestQueueProcessor = processAssistantRequestQueue.
         conversation.assistant.implementation.slug
       );
       let model = definition.implementation.availableModels.find(
-        model => model._persisted.oid == modelOid
+        model => model._persisted.oid == request.modelOid
       );
-      if (!model) throw new ServiceError(notFoundError('assistant_model', requestModel.id));
+      if (!model) throw new ServiceError(notFoundError('assistant_model', request.model.id));
 
       let agent = await definition.implementation.getAgent({
         model,
@@ -205,10 +198,10 @@ export let processAssistantRequestQueueProcessor = processAssistantRequestQueue.
         definition.implementation
       );
       let result = await runner.run({
-        input: getInputMessage(inputMessage.state),
+        input: getInputMessage(request.message.state),
         conversation,
-        lastMessageId: parentMessage.id,
-        historySize,
+        lastMessageId: request.message.parentMessage.id,
+        historySize: request.historySize ?? 100,
         delta: publisher.delta
       });
       let completedAt = new Date();
@@ -223,7 +216,7 @@ export let processAssistantRequestQueueProcessor = processAssistantRequestQueue.
             requestOid: request.oid,
             assistantOid: conversation.assistantOid,
             assistantInstanceOid: conversation.assistantInstanceOid,
-            parentMessageOid: inputMessage.oid,
+            parentMessageOid: request.message.oid,
             modelOid: model._persisted.oid,
             state: result.state,
             serialized: result.serialized

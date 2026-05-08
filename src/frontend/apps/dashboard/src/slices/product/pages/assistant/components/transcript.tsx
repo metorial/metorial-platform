@@ -47,7 +47,7 @@ export let AssistantTranscript = (p: {
 
       {p.isWaitingForResponse && (
         <ShimmerRow>
-          <TextShimmer>Working our your request</TextShimmer>
+          <TextShimmer>Working on your request</TextShimmer>
         </ShimmerRow>
       )}
     </TranscriptWrapper>

@@ -39,6 +39,6 @@ if (env.scout.SCOUT_TOKEN && env.scout.SCOUT_URL) {
     inputSchema: z.object({
       url: z.string().describe('The URL of the web page to fetch.')
     }),
-    execute: async input => await scout.crawl.extract({ url: input.url })
+    execute: async input => (await scout.crawl.extract({ url: input.url })).markdown
   });
 }

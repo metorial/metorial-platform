@@ -1,11 +1,7 @@
 import type { AssistantLiveStateItem } from '@metorial/state';
 import { Error } from '@metorial/ui';
 import styled from 'styled-components';
-import {
-  getDisplayPath,
-  ToolContentStack,
-  ToolDisclosureCard
-} from './shared';
+import { getDisplayPath, ToolContentStack, ToolDisclosureCard } from './shared';
 
 type SearchItem = Extract<AssistantLiveStateItem, { type: 'files/explore' }>;
 
@@ -19,7 +15,6 @@ let OperationRow = styled.div`
   display: flex;
   align-items: baseline;
   gap: 8px;
-  padding: 8px 0;
   min-width: 0;
 
   & + & {
@@ -74,17 +69,22 @@ let getExploredCount = (item: SearchItem) => {
 export let SearchToolCard = (p: { item: SearchItem }) => {
   let item = p.item;
   let exploredCount = getExploredCount(item);
-  let summary =
-    item.operations.some(operation => operation.status == 'running')
-      ? 'Exploring files'
-      : exploredCount
-        ? `Explored ${exploredCount} files`
-        : 'Explored files';
+  let summary = item.operations.some(operation => operation.status == 'running')
+    ? 'Exploring files'
+    : exploredCount
+      ? `Explored ${exploredCount} files`
+      : 'Explored files';
 
   return (
     <ToolDisclosureCard
       summary={summary}
-      status={item.operations.some(operation => operation.status == 'failed') ? 'failed' : item.operations.some(operation => operation.status == 'running') ? 'running' : 'completed'}
+      status={
+        item.operations.some(operation => operation.status == 'failed')
+          ? 'failed'
+          : item.operations.some(operation => operation.status == 'running')
+            ? 'running'
+            : 'completed'
+      }
       defaultOpen={true}
       autoCollapseOnComplete={!item.operations.some(operation => operation.status == 'failed')}
     >

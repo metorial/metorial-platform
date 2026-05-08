@@ -5,7 +5,8 @@ import {
   useAssistant,
   useCreateConversation,
   useCurrentInstance,
-  useCurrentOrganization
+  useCurrentOrganization,
+  useUser
 } from '@metorial/state';
 import { Text, theme } from '@metorial/ui';
 import { useEffect, useMemo, useState } from 'react';
@@ -22,6 +23,7 @@ let CenterLayout = styled.div`
   max-width: 1000px;
   margin: 0 auto;
   padding: 50px 20px 0px 20px;
+  justify-content: center;
 `;
 
 let Hero = styled.div`
@@ -35,9 +37,11 @@ let Hero = styled.div`
 
 let Title = styled.h1`
   margin: 0;
-  font-size: 40px;
+  font-size: 28px;
   line-height: 1.1;
   text-align: center;
+  font-weight: 500;
+  color: #333;
 `;
 
 let Description = styled(Text)`
@@ -82,6 +86,7 @@ export let AssistantPage = () => {
   let instance = useCurrentInstance();
   let assistant = useAssistant(organization.data?.id, instance.data?.id, defaultAssistantSlug);
   let createConversation = useCreateConversation();
+  let user = useUser();
 
   let [draft, setDraft] = useState('');
   let [selectedModelId, setSelectedModelId] = useState<string>();
@@ -128,7 +133,7 @@ export let AssistantPage = () => {
     <CenterLayout>
       <Hero>
         <div>
-          <Title>How can I help you</Title>
+          <Title>How can I help you, {user.data?.firstName}?</Title>
         </div>
 
         <AssistantComposer

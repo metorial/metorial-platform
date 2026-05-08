@@ -7,9 +7,7 @@ import {
   ScrollSection,
   ToolContentStack,
   ToolDisclosureCard,
-  ToolPathTag,
-  ToolSection,
-  ToolSectionLabel
+  ToolSection
 } from './shared';
 
 type EditItem = Extract<AssistantLiveStateItem, { type: 'files/write' }>;
@@ -27,7 +25,8 @@ let DiffWrapper = styled(ScrollSection)`
 
 let DiffTable = styled.div`
   min-width: 100%;
-  font-family: 'JetBrains Mono', 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-family:
+    'JetBrains Mono', 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
   font-size: 12px;
   line-height: 1.6;
 `;
@@ -254,7 +253,11 @@ export let EditToolCard = (p: { item: EditItem }) => {
   let item = p.item;
   let displayPath = getDisplayPath(item.path || 'file');
   let verb =
-    item.operation == 'write' ? 'Created file' : item.operation == 'delete' ? 'Deleted file' : 'Edited file';
+    item.operation == 'write'
+      ? 'Created file'
+      : item.operation == 'delete'
+        ? 'Deleted file'
+        : 'Edited file';
 
   let diffData = useMemo(() => getDiffData(item), [item]);
   let diffRows = useMemo(() => {
@@ -269,17 +272,18 @@ export let EditToolCard = (p: { item: EditItem }) => {
       defaultOpen={true}
     >
       <ToolContentStack>
-        <ToolPathTag>{displayPath}</ToolPathTag>
-
         {diffRows && (
           <ToolSection>
-            <ToolSectionLabel>Diff</ToolSectionLabel>
             <DiffWrapper>
               <DiffTable>
                 {diffRows.map((row, index) => (
                   <DiffLine key={`${item.id}:${index}`} $type={row.type}>
-                    <DiffLineNumber>{row.oldNumber ?? <EmptyCell>0</EmptyCell>}</DiffLineNumber>
-                    <DiffLineNumber>{row.newNumber ?? <EmptyCell>0</EmptyCell>}</DiffLineNumber>
+                    <DiffLineNumber>
+                      {row.oldNumber ?? <EmptyCell>0</EmptyCell>}
+                    </DiffLineNumber>
+                    <DiffLineNumber>
+                      {row.newNumber ?? <EmptyCell>0</EmptyCell>}
+                    </DiffLineNumber>
                     <DiffMarker $type={row.type}>{getDiffMarker(row.type)}</DiffMarker>
                     <DiffText>{row.text || ' '}</DiffText>
                   </DiffLine>

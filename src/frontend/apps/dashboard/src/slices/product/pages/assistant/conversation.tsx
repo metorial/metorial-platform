@@ -38,14 +38,13 @@ let ComposerDock = styled.div`
   display: flex;
   flex-direction: column;
   justify-content: center;
-  margin-top: -24px;
-  padding-top: 24px;
   background: ${theme.colors.background};
+  padding-bottom: 20px;
 `;
 
 let ComposerDockSpacer = styled.div`
   position: absolute;
-  top: 0;
+  top: -24px;
   right: 0;
   left: 0;
   height: 24px;

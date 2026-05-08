@@ -1,5 +1,5 @@
 import type { AssistantConversationMessage, AssistantLiveStateItem } from '@metorial/state';
-import { Error, Text, theme } from '@metorial/ui';
+import { Error, theme } from '@metorial/ui';
 import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import styled from 'styled-components';
@@ -39,31 +39,14 @@ let MessageSurface = styled.div<{ $tone?: 'user' | 'assistant' | 'system' }>`
   width: ${p => (p.$tone == 'assistant' ? '100%' : 'auto')};
   max-width: 100%;
   border-radius: ${p => (p.$tone == 'user' ? '20px' : '16px')};
-  padding: ${p => (p.$tone == 'assistant' ? '0' : '12px 14px')};
+  padding: ${p => (p.$tone == 'assistant' ? '0' : '12px 16px')};
   background: ${p =>
     p.$tone == 'user'
       ? `color-mix(in srgb, ${theme.colors.foreground} 4%, ${theme.colors.background})`
       : p.$tone == 'system'
         ? theme.colors.gray100
         : 'transparent'};
-  border: ${p =>
-    p.$tone == 'assistant'
-      ? 'none'
-      : `1px solid color-mix(in srgb, ${theme.colors.foreground} 10%, transparent)`};
   box-shadow: ${p => (p.$tone == 'assistant' ? 'none' : '0 1px 2px rgba(15, 23, 42, 0.04)')};
-`;
-
-let MessageMeta = styled.div`
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-`;
-
-let MetaLabel = styled(Text).attrs({
-  size: '1'
-})`
-  color: color-mix(in srgb, ${theme.colors.foreground} 56%, transparent);
-  font-weight: 500;
 `;
 
 let MarkdownWrapper = styled.div`
@@ -100,6 +83,14 @@ let MarkdownWrapper = styled.div`
     background: transparent;
     padding: 0;
   }
+`;
+
+let PlainTextWrapper = styled.div`
+  font-size: 14px;
+  line-height: 1.65;
+  color: ${theme.colors.foreground};
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 `;
 
 let MarkdownTableScroll = styled.div`
@@ -146,6 +137,7 @@ let markdownComponents: Components = {
 };
 
 let MessagePart = (p: {
+  renderMarkdown?: boolean;
   part:
     | { type: 'text'; text: string }
     | {
@@ -155,6 +147,10 @@ let MessagePart = (p: {
       };
 }) => {
   if (p.part.type == 'text') {
+    if (p.renderMarkdown === false) {
+      return <PlainTextWrapper>{p.part.text}</PlainTextWrapper>;
+    }
+
     return (
       <MarkdownWrapper>
         <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
@@ -183,20 +179,14 @@ let MessageCard = (p: {
   return (
     <Row $align={role == 'user' ? 'end' : 'start'}>
       <MessageColumn $tone={tone}>
-        {(role == 'assistant' || role == 'system' || showStatus) && (
-          <MessageMeta>
-            {showStatus && (
-              <ToolStatusBadge $status={p.item.status}>
-                {getStatusLabel(p.item.status)}
-              </ToolStatusBadge>
-            )}
-          </MessageMeta>
-        )}
-
         <MessageSurface $tone={tone}>
           <ToolContentStack>
             {p.item.message.parts.map((part, index) => (
-              <MessagePart key={`${p.item.id}:${index}`} part={part as any} />
+              <MessagePart
+                key={`${p.item.id}:${index}`}
+                part={part as any}
+                renderMarkdown={role != 'user'}
+              />
             ))}
           </ToolContentStack>
         </MessageSurface>

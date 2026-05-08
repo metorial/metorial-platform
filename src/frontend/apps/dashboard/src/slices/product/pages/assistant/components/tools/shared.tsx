@@ -1,8 +1,8 @@
 import { CodeBlock } from '@metorial/code';
+import { Text, theme } from '@metorial/ui';
 import { AnimatePresence, motion } from 'framer-motion';
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
-import { Text, theme } from '@metorial/ui';
 import styled from 'styled-components';
 
 export let ToolSurfaceCard = styled.div<{ $status?: 'running' | 'completed' | 'failed' }>`
@@ -369,7 +369,9 @@ export let normalizeCommandForDisplay = (command: string) => {
   if (!command) return '';
 
   let normalized = command.replace(/\\\s*\n\s*/g, ' ').trim();
-  return normalized.replace(/\/(?:Users|home|root)\/[^\s"']+/g, match => getDisplayPath(match));
+  return normalized.replace(/\/(?:Users|home|root)\/[^\s"']+/g, match =>
+    getDisplayPath(match)
+  );
 };
 
 export let extractCommandSummary = (command: string) => {
@@ -449,7 +451,7 @@ export let JsonBlock = (p: {
     <CodeBlock
       lineNumbers={p.lineNumbers ?? false}
       language={p.language ?? 'json'}
-      variant={p.variant ?? 'seamless'}
+      variant={p.variant ?? 'bordered'}
       code={formatStructuredValue(p.value)}
     />
   );

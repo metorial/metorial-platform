@@ -3,8 +3,8 @@ import { Agent, DefaultCompactionStrategy, Session } from '@openharness/core';
 import { FilePart, TextPart } from 'ai';
 import { summaryModel } from '../../definitions/models';
 import { InputMessage } from '../../proto/types';
-import { getConversationHistory } from '../history/getHistory';
 import { Implementation, Model } from '../definitions';
+import { getConversationHistory } from '../history/getHistory';
 import {
   AgentRunResult,
   AgentRunState,
@@ -36,10 +36,10 @@ export class AgentRun {
       agent: this.agent,
       autoCompact: true,
       contextWindow: Math.ceil(this.model.contextWindow * 0.9),
-      reservedTokens: 20_000,
+      reservedTokens: 30_000,
       compactionStrategy: new DefaultCompactionStrategy({
         protectedTokens: 20_000,
-        minPruneSavings: 10_000,
+        minPruneSavings: 30_000,
         summaryModel: (await summaryModel).model
       }),
       retry: { maxRetries: 5 }
@@ -120,11 +120,13 @@ export class AgentRun {
 
     try {
       for await (let event of iterator) {
+        console.log('Received event:', event);
         runState.pipe(event);
       }
 
       return runState.result();
     } catch (error) {
+      console.error('Error during agent run:', error);
       runState.pipe({
         type: 'error',
         error
