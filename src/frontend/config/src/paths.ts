@@ -334,6 +334,31 @@ let InstancePaths = Object.assign(
       ...subPages: SubPages
     ) => InstancePaths(organization, project, instance, 'explorer', ...subPages),
 
+    assistant: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'assistant', ...subPages),
+    assistantConversation: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: SubPages
+    ) => {
+      if (!id) return '#';
+      return InstancePaths(
+        organization,
+        project,
+        instance,
+        'assistant',
+        'conversation',
+        id,
+        ...subPages
+      );
+    },
+
     magicMcp: {
       server: (
         organization: EntityParam,

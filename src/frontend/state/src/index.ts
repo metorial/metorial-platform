@@ -3,6 +3,7 @@ export type { MetorialEnterpriseWindow } from './types/metorialEnterpriseWindow'
 
 export { withDashboardSDK } from './sdk';
 
+export * from './assistant';
 export * from './agent';
 export * from './callback';
 export * from './consumer';
