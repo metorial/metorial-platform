@@ -1,7 +1,7 @@
 // cspell:ignore openharness
 import { Agent } from '@openharness/core';
-import { detag } from '../../lib/detag';
 import { createSandbox, implementation } from '../../lib/definitions';
+import { detag } from '../../lib/detag';
 import { claudeSonnet46 } from '../models/anthropic';
 import { webSearchTools } from '../tools/webSearch';
 import { baseSystemPrompt } from './_systemPrompt';
@@ -27,7 +27,7 @@ Don't focus on individual commands/tools you used, instead focus on the overall 
 export let skillsAssistantImplementation = implementation({
   defaultModel: claudeSonnet46,
   availableModels: [claudeSonnet46],
-  slug: 'metorial/skills-assistant',
+  slug: 'skills',
   name: 'Skills Assistant',
 
   async getAgent(d) {
