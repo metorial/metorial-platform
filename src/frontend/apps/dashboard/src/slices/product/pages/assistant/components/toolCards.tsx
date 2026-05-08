@@ -8,6 +8,7 @@ import { BashToolCard } from './tools/bashTool';
 import { EditToolCard } from './tools/editTool';
 import { McpToolCard } from './tools/mcpTool';
 import { SearchToolCard } from './tools/searchTool';
+import { WebToolCard } from './tools/webTool';
 import {
   getStatusLabel,
   ToolContentStack,
@@ -267,6 +268,10 @@ export let AssistantStateItemCard = (p: {
 
   if (p.item.type == 'files/explore') {
     return <SearchToolCard item={p.item} />;
+  }
+
+  if (p.item.type == 'web') {
+    return <WebToolCard item={p.item} />;
   }
 
   if (p.item.type == 'tool') {

@@ -63,6 +63,67 @@ describe('AgentRunState delta integration', () => {
     expect(replica.getState()).toEqual(runState.result().state);
   });
 
+  it('stores web search calls as native web state items', () => {
+    let runState = new AgentRunState([], {});
+
+    runState.pipe(
+      event({
+        type: 'tool.start',
+        toolName: 'webSearch',
+        toolCallId: 'tool-web-1',
+        input: { query: 'test', country: 'us', type: 'web' }
+      })
+    );
+    runState.pipe(
+      event({
+        type: 'tool.done',
+        toolName: 'webSearch',
+        toolCallId: 'tool-web-1',
+        output: [
+          {
+            title: 'Example result',
+            url: 'https://example.com',
+            description: 'Example description'
+          }
+        ]
+      })
+    );
+
+    expect(runState.result().state).toEqual({
+      items: [
+        {
+          id: 'web',
+          type: 'web',
+          operations: [
+            {
+              id: 'tool-web-1',
+              type: 'search',
+              query: 'test',
+              country: 'us',
+              searchType: 'web',
+              input: { query: 'test', country: 'us', type: 'web' },
+              output: [
+                {
+                  title: 'Example result',
+                  url: 'https://example.com',
+                  description: 'Example description'
+                }
+              ],
+              results: [
+                {
+                  title: 'Example result',
+                  url: 'https://example.com',
+                  description: 'Example description'
+                }
+              ],
+              status: 'completed'
+            }
+          ]
+        }
+      ]
+    });
+  });
+
   it('can emit tagged delta messages for transports that include message type', () => {
     let messages: AgentRunWireMessage[] = [];
     let runState = new AgentRunState([], {

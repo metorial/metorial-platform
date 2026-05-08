@@ -5,7 +5,8 @@ import type {
   ItemStatus,
   Message,
   State,
-  StateItem
+  StateItem,
+  WebSearchResult
 } from '../../proto/types';
 import {
   DeltaTransportSink,
@@ -61,6 +62,27 @@ let getBoolean = (value: unknown, key: string) => {
   if (!isRecord(value)) return undefined;
   let item = value[key];
   return typeof item == 'boolean' ? item : undefined;
+};
+
+let getWebSearchResults = (value: unknown): WebSearchResult[] => {
+  if (!Array.isArray(value)) return [];
+
+  return value.flatMap(result => {
+    if (!isRecord(result)) return [];
+
+    let title = getString(result, 'title');
+    let url = getString(result, 'url');
+    if (!title || !url) return [];
+
+    return [
+      {
+        title,
+        url,
+        description: getString(result, 'description'),
+        category: getString(result, 'category')
+      }
+    ];
+  });
 };
 
 let getErrorMessage = (error: unknown) => {
@@ -238,6 +260,15 @@ export class AgentRunState {
         if (event.toolName == 'bash') {
           this.createShellItem({
             toolCallId: event.toolCallId,
+            input: event.input
+          });
+          break;
+        }
+
+        if (['webSearch', 'getWebContent'].includes(event.toolName)) {
+          this.upsertWebOperation({
+            toolCallId: event.toolCallId,
+            toolName: event.toolName,
             input: event.input
           });
           break;
@@ -550,6 +581,71 @@ export class AgentRunState {
     return item;
   }
 
+  private upsertWebOperation(d: { toolCallId: string; toolName: string; input: unknown }) {
+    let buildOperation = () =>
+      d.toolName == 'webSearch'
+        ? {
+            id: d.toolCallId,
+            type: 'search' as const,
+            query: getString(d.input, 'query') ?? '',
+            country: getString(d.input, 'country'),
+            searchType: getString(d.input, 'type'),
+            input: d.input,
+            status: 'running' as const
+          }
+        : {
+            id: d.toolCallId,
+            type: 'fetch' as const,
+            url: getString(d.input, 'url') ?? '',
+            input: d.input,
+            status: 'running' as const
+          };
+
+    let item = this.state.items.find(
+      (item): item is Extract<StateItem, { type: 'web' }> => item.type == 'web'
+    );
+
+    if (!item) {
+      let operation = buildOperation();
+      item = {
+        id: 'web',
+        type: 'web',
+        operations: [operation]
+      };
+      this.state.items.push(item);
+      return operation;
+    }
+
+    let operation = item.operations.find(operation => operation.id == d.toolCallId);
+
+    if (!operation) {
+      operation = buildOperation();
+      item.operations.push(operation);
+    }
+
+    operation.input = d.input;
+    operation.status = 'running';
+
+    if (operation.type == 'search') {
+      operation.query = getString(d.input, 'query') ?? operation.query;
+      operation.country = getString(d.input, 'country');
+      operation.searchType = getString(d.input, 'type');
+    } else {
+      operation.url = getString(d.input, 'url') ?? operation.url;
+    }
+
+    return operation;
+  }
+
+  private findWebOperation(toolCallId: string) {
+    for (let item of this.state.items) {
+      if (item.type != 'web') continue;
+
+      let operation = item.operations.find(operation => operation.id == toolCallId);
+      if (operation) return operation;
+    }
+  }
+
   private upsertGenericToolCall(d: { toolCallId: string; toolName: string; input: unknown }) {
     let item = this.state.items.find(
       (item): item is Extract<StateItem, { type: 'tool' }> =>
@@ -634,6 +730,20 @@ export class AgentRunState {
       }
     }
 
+    if (['webSearch', 'getWebContent'].includes(d.toolName)) {
+      let operation = this.findWebOperation(d.toolCallId);
+      if (operation) {
+        operation.output = d.output;
+        operation.status = 'completed';
+        if (operation.type == 'search') {
+          operation.results = getWebSearchResults(d.output);
+        } else {
+          operation.content = typeof d.output == 'string' ? d.output : getString(d.output, 'content');
+        }
+        return;
+      }
+    }
+
     let call = this.findGenericToolCall(d.toolCallId);
     if (call) {
       call.output = d.output;
@@ -675,6 +785,15 @@ export class AgentRunState {
         item.status = 'failed';
         item.stderr = d.error;
         item.exitCode = 1;
+        return;
+      }
+    }
+
+    if (['webSearch', 'getWebContent'].includes(d.toolName)) {
+      let operation = this.findWebOperation(d.toolCallId);
+      if (operation) {
+        operation.error = error;
+        operation.status = 'failed';
         return;
       }
     }

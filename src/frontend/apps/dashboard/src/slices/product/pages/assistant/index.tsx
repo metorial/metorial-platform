@@ -19,7 +19,7 @@ let CenterLayout = styled.div`
   display: flex;
   flex-direction: column;
   gap: 18px;
-  min-height: calc(100vh - 220px);
+  min-height: calc(100vh - 120px);
   max-width: 1000px;
   margin: 0 auto;
   padding: 50px 20px 0px 20px;
