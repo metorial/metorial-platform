@@ -1,0 +1,103 @@
+import { SessionEvent } from '@openharness/core';
+import { describe, expect, it } from 'vitest';
+import { JsonValue, createClientReplica } from '../src/lib/delta';
+import { AgentRunState, AgentRunWireMessage } from '../src/lib/run/state';
+
+let event = (event: Partial<SessionEvent> & { type: string }) => event as SessionEvent;
+
+describe('AgentRunState delta integration', () => {
+  it('emits one delta batch per streamed event and keeps the final state snapshot', () => {
+    let messages: AgentRunWireMessage[] = [];
+    let runState = new AgentRunState([], {
+      onWireMessage: message => messages.push(message)
+    });
+
+    runState.pipe(event({ type: 'text.delta', text: 'hello' }));
+    runState.pipe(event({ type: 'text.delta', text: ' world' }));
+    runState.pipe(event({ type: 'text.done', text: 'hello world' }));
+
+    expect(messages).toHaveLength(3);
+    expect(messages.map(message => message[0])).toEqual([1, 2, 3]);
+    expect(runState.version).toBe(3);
+    expect(runState.result().state).toEqual({
+      items: [
+        {
+          id: 'message:0',
+          type: 'message',
+          status: 'completed',
+          message: {
+            role: 'assistant',
+            parts: [{ type: 'text', text: 'hello world' }]
+          }
+        }
+      ]
+    });
+  });
+
+  it('emits deltas that a client replica can apply', () => {
+    let replica = createClientReplica<JsonValue>({
+      initial: { items: [] }
+    });
+    let runState = new AgentRunState([], {
+      onWireMessage: message => replica.receive(message)
+    });
+
+    runState.pipe(
+      event({
+        type: 'tool.start',
+        toolName: 'bash',
+        toolCallId: 'tool-1',
+        input: { command: 'echo hello' }
+      })
+    );
+    runState.pipe(
+      event({
+        type: 'tool.done',
+        toolName: 'bash',
+        toolCallId: 'tool-1',
+        output: { stdout: 'hello\n', stderr: '', exitCode: 0 }
+      })
+    );
+
+    expect(replica.getIndex()).toBe(runState.version);
+    expect(replica.getState()).toEqual(runState.result().state);
+  });
+
+  it('can emit tagged delta messages for transports that include message type', () => {
+    let messages: AgentRunWireMessage[] = [];
+    let runState = new AgentRunState([], {
+      deltaFormat: 'message',
+      onWireMessage: message => messages.push(message)
+    });
+
+    runState.pipe(event({ type: 'reasoning.delta', text: 'thinking' }));
+
+    expect(messages[0]?.[0]).toBe('d');
+  });
+
+  it('includes snapshot index and usage metadata in the final result', () => {
+    let runState = new AgentRunState([], {});
+
+    runState.pipe(event({ type: 'text.delta', text: 'hello' }));
+    runState.pipe(
+      event({
+        type: 'step.done',
+        usage: {
+          inputTokens: 10,
+          outputTokens: 5,
+          totalTokens: 15
+        }
+      })
+    );
+
+    let result = runState.result();
+
+    expect(result.snapshotIndex).toBe(runState.version);
+    expect(result.usage).toEqual({
+      inputTokens: 10,
+      outputTokens: 5,
+      totalTokens: 15
+    });
+    expect(result.metadata.usage).toEqual(result.usage);
+  });
+});
