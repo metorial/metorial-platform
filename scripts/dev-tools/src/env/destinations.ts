@@ -2,6 +2,7 @@ import { backendEnv } from './backend';
 import { frontendEnv } from './frontend';
 import {
   aresServiceEnv,
+  cargoServiceEnv,
   forgeServiceEnv,
   functionBayServiceEnv,
   horizonServiceEnv,
@@ -68,6 +69,11 @@ export let destinations: Destination[] = [
     type: 'oss',
     env: signalServiceEnv,
     path: 'src/systems/signal/service'
+  },
+  {
+    type: 'oss',
+    env: cargoServiceEnv,
+    path: 'src/systems/cargo/service'
   },
   {
     type: 'oss',

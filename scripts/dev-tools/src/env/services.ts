@@ -114,6 +114,41 @@ export let signalServiceEnv: Env = [
   }
 ];
 
+export let cargoServiceEnv: Env = [
+  {
+    key: 'DATABASE_URL',
+    defaultValue: 'postgresql://postgres:postgres@localhost:35432/cargo'
+  },
+  {
+    key: 'OBJECT_STORAGE_URL',
+    defaultValue: 'http://services:52010'
+  },
+  {
+    key: 'FILES_BUCKET_NAME',
+    defaultValue: 'mte-files'
+  },
+  {
+    key: 'DOWNLOAD_PUBLIC_URL',
+    defaultValue: `http://${HOSTNAME}:52151`
+  },
+  {
+    key: 'CARGO_REGION',
+    defaultValue: 'dev'
+  },
+  {
+    key: 'CARGO_API_PORT',
+    defaultValue: '52150'
+  },
+  {
+    key: 'CARGO_CONTENT_PORT',
+    defaultValue: '52151'
+  },
+  {
+    key: 'CARGO_HEALTH_PORT',
+    defaultValue: '12121'
+  }
+];
+
 export let slatesHubEnv: Env = [
   {
     key: 'DATABASE_URL',

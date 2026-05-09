@@ -66,6 +66,10 @@ export let backendEnv: Env = [
     key: 'SUBSPACE_URL',
     defaultValue: 'http://localhost:52070/subspace-controller'
   },
+  {
+    key: 'CARGO_API_URL',
+    defaultValue: 'http://localhost:52150/metorial-cargo'
+  },
 
   { key: 'PROVIDER_OAUTH_TICKET_SECRET', defaultValue: `provider-oauth-ticket-secret` },
 
