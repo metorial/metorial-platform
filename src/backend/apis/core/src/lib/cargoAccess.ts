@@ -36,3 +36,6 @@ export let getInstanceCargoAccess = (ctx: InstanceCargoAccessContext) => {
 
   return {};
 };
+
+export let hasInstanceConsumerAccess = (ctx: InstanceCargoAccessContext) =>
+  !!ctx.consumerProfile?.consumer && !ctx.member?.actor;

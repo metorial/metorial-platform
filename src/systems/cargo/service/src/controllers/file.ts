@@ -141,18 +141,26 @@ export let fileController = app.controller({
       return filePresenter(file);
     }),
 
-  delete: fileApp
+  delete: tenantApp
     .handler()
     .input(
       v.object({
         tenantId: v.string(),
         environmentId: v.string(),
-        fileId: v.string()
+        fileId: v.string(),
+        actorId: v.optional(v.string()),
+        defaultPermissions: v.optional(storePermissionsSchema),
+        overridePermissions: v.optional(v.boolean())
       })
     )
     .do(async ctx => {
-      let file = await fileService.deleteFile({
-        file: ctx.file
+      let file = await fileService.deleteFileById({
+        tenant: ctx.tenant,
+        environment: ctx.environment,
+        fileId: ctx.input.fileId,
+        actorId: ctx.input.actorId,
+        defaultPermissions: ctx.input.defaultPermissions,
+        overridePermissions: ctx.input.overridePermissions
       });
 
       return filePresenter(file);

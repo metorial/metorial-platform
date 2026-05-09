@@ -1,41 +1,54 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { Instance, Organization } from '@metorial/db';
 import { type CargoFile, type CargoFileLink, cargo } from '../cargo';
 import type { FileOwner } from './file';
+import { type CargoAccessActor, resolveCargoAccess } from './access';
 import { fileReferenceService } from './fileReference';
-import { resolveCargoScopeForOwner } from './scope';
 
 class FileLinkServiceImpl {
-  private async getScopeForOwner(owner: FileOwner) {
-    return await resolveCargoScopeForOwner(owner);
-  }
-
   async createFileLink(d: {
     file: CargoFile;
     owner: FileOwner;
+    accessActor?: CargoAccessActor;
     input: {
       expiresAt?: Date;
     };
   }) {
-    let scope = await this.getScopeForOwner(d.owner);
+    let { scope, actorId } = await resolveCargoAccess({
+      owner: d.owner,
+      accessActor: d.accessActor
+    });
 
     let fileLink = await cargo.fileLink.create({
       tenantId: scope.tenantId,
       environmentId: scope.environmentId,
       fileId: d.file.id,
-      expiresAt: d.input.expiresAt
+      expiresAt: d.input.expiresAt,
+      actorId
     });
 
     return fileLink;
   }
 
-  async deleteFileLink(d: { fileLink: CargoFileLink; owner: FileOwner }) {
-    let scope = await this.getScopeForOwner(d.owner);
+  async deleteFileLink(d: {
+    fileLink: CargoFileLink;
+    owner: FileOwner;
+    accessActor?: CargoAccessActor;
+  }) {
+    let fileLink = d.accessActor
+      ? await this.getFileLinkById({
+          owner: d.owner,
+          fileLinkId: d.fileLink.id,
+          accessActor: d.accessActor
+        })
+      : d.fileLink;
+    let { scope } = await resolveCargoAccess({
+      owner: d.owner
+    });
 
     let hasRefs = await fileReferenceService.hasReferences({
-      fileLink: d.fileLink,
+      fileLink,
       owner: d.owner
     });
     if (hasRefs) {
@@ -46,42 +59,31 @@ class FileLinkServiceImpl {
       );
     }
 
-    let fileLink = await cargo.fileLink.delete({
+    let deletedFileLink = await cargo.fileLink.delete({
       tenantId: scope.tenantId,
       environmentId: scope.environmentId,
-      fileLinkId: d.fileLink.id
+      fileLinkId: fileLink.id
     });
 
-    return fileLink;
+    return deletedFileLink;
   }
 
-  private async getScope(d: { organization: Organization; instance?: Instance }) {
-    return await resolveCargoScopeForOwner(
-      d.instance
-        ? {
-            type: 'instance',
-            organization: d.organization,
-            instance: d.instance
-          }
-        : {
-            type: 'organization',
-            organization: d.organization
-          }
-    );
-  }
-
-  async listFileLinksForOrganization(d: {
-    organization: Organization;
-    instance?: Instance;
+  async listFileLinks(d: {
+    owner: FileOwner;
     fileId?: string;
+    accessActor?: CargoAccessActor;
   }) {
-    let scope = await this.getScope(d);
+    let { scope, actorId } = await resolveCargoAccess({
+      owner: d.owner,
+      accessActor: d.accessActor
+    });
 
     return Paginator.create(() => async input => {
       let result = await cargo.fileLink.list({
         tenantId: scope.tenantId,
         environmentId: scope.environmentId,
         fileId: d.fileId,
+        actorId,
         ...input
       });
 
@@ -95,17 +97,21 @@ class FileLinkServiceImpl {
     });
   }
 
-  async getFileLinkByIdForOrganization(d: {
+  async getFileLinkById(d: {
     fileLinkId: string;
-    organization: Organization;
-    instance?: Instance;
+    owner: FileOwner;
+    accessActor?: CargoAccessActor;
   }) {
-    let scope = await this.getScope(d);
+    let { scope, actorId } = await resolveCargoAccess({
+      owner: d.owner,
+      accessActor: d.accessActor
+    });
 
     let fileLink = await cargo.fileLink.get({
       tenantId: scope.tenantId,
       environmentId: scope.environmentId,
-      fileLinkId: d.fileLinkId
+      fileLinkId: d.fileLinkId,
+      actorId
     });
 
     return fileLink;

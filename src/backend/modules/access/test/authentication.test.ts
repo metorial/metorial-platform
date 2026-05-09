@@ -115,6 +115,13 @@ describe('AuthenticationService', () => {
         expect.arrayContaining(instancePublishableTokenScopes)
       );
     });
+
+    it('adds file and file-link scopes for cargo-backed consumer access', () => {
+      expect(instancePublishableTokenWithConsumerScopes).toContain('instance.file:read');
+      expect(instancePublishableTokenWithConsumerScopes).toContain('instance.file:write');
+      expect(instancePublishableTokenWithConsumerScopes).toContain('instance.file_link:read');
+      expect(instancePublishableTokenWithConsumerScopes).toContain('instance.file_link:write');
+    });
   });
 
   describe('authenticate', () => {

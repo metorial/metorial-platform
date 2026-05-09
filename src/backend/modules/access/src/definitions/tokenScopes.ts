@@ -129,6 +129,11 @@ export let instancePublishableTokenScopes: Scope[] = [
 export let instancePublishableTokenWithConsumerScopes: Scope[] = [
   'organization.instance:read' as const,
 
+  'instance.file:read' as const,
+  'instance.file:write' as const,
+  'instance.file_link:read' as const,
+  'instance.file_link:write' as const,
+
   'instance.portal:read' as const,
   'instance.portal.access:read' as const,
 

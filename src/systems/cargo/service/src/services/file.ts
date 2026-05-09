@@ -273,6 +273,44 @@ class FileServiceImpl {
     });
   }
 
+  async deleteFileById(
+    d: CargoTenantEnvironment & {
+      fileId: string;
+      client?: DbClient;
+    } & FileAccessInput
+  ) {
+    let file = await db.file.findFirst({
+      where: {
+        tenantOid: d.tenant.oid,
+        environmentOid: d.environment.oid,
+        id: d.fileId
+      },
+      include
+    });
+
+    if (!file) throw new ServiceError(notFoundError('file', d.fileId));
+
+    if (d.actorId) {
+      let actor = await actorService.getActorById({
+        tenant: d.tenant,
+        actorId: d.actorId
+      });
+
+      if (!actor.organizationActorId && file.createdByTenantActorOid !== actor.oid) {
+        throw new ServiceError(
+          forbiddenError({
+            message: `Only the creating actor can delete file ${file.id}`
+          })
+        );
+      }
+    }
+
+    return await this.deleteFile({
+      file,
+      client: d.client
+    });
+  }
+
   async deleteFile(d: { file: File; client?: DbClient }) {
     await this.ensureFileActive(d.file);
     let hasRefs = await fileReferenceService.hasReferencesForFile({

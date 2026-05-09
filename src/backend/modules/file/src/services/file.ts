@@ -125,10 +125,14 @@ class FileServiceImpl {
     return file;
   }
 
-  async deleteFile(d: { file: CargoFile; owner: FileOwner }) {
-    let { scope } = await resolveCargoAccess({
-      owner: d.owner
-    });
+  async deleteFile(d: {
+    file: CargoFile;
+    owner: FileOwner;
+    accessActor?: CargoAccessActor;
+    defaultPermissions?: CargoStorePermission[];
+    overridePermissions?: boolean;
+  }) {
+    let { scope, actorId, defaultPermissions, overridePermissions } = await resolveCargoAccess(d);
 
     let hasRefs = await fileReferenceService.hasReferencesForFile({
       file: d.file,
@@ -145,7 +149,10 @@ class FileServiceImpl {
     let file = await cargo.file.delete({
       tenantId: scope.tenantId,
       environmentId: scope.environmentId,
-      fileId: d.file.id
+      fileId: d.file.id,
+      actorId,
+      defaultPermissions,
+      overridePermissions
     });
 
     return file;

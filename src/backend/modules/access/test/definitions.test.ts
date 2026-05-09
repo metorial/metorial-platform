@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   instancePublishableTokenScopes,
+  instancePublishableTokenWithConsumerScopes,
   instanceSecretTokenScopes,
   orgManagementTokenScopes,
   scopes
@@ -224,6 +225,21 @@ describe('definitions', () => {
     it('should not contain write scopes', () => {
       instancePublishableTokenScopes.forEach(scope => {
         expect(scope).not.toMatch(/:write$/);
+      });
+    });
+  });
+
+  describe('instancePublishableTokenWithConsumerScopes', () => {
+    it('should include base file and file-link scopes for consumer cargo access', () => {
+      expect(instancePublishableTokenWithConsumerScopes).toContain('instance.file:read');
+      expect(instancePublishableTokenWithConsumerScopes).toContain('instance.file:write');
+      expect(instancePublishableTokenWithConsumerScopes).toContain('instance.file_link:read');
+      expect(instancePublishableTokenWithConsumerScopes).toContain('instance.file_link:write');
+    });
+
+    it('should still contain all publishable scopes', () => {
+      instancePublishableTokenScopes.forEach(scope => {
+        expect(instancePublishableTokenWithConsumerScopes).toContain(scope);
       });
     });
   });

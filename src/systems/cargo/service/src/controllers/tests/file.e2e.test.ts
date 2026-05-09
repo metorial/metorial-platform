@@ -578,6 +578,82 @@ describe('cargo file.e2e', () => {
     expect(deniedList.items).toHaveLength(0);
   });
 
+  it('allows file deletion only for the creating actor when actorId is set', async () => {
+    let tenant = await cargoClient.tenant.upsert({
+      identifier: 'tenant-file-delete-access',
+      name: 'Tenant File Delete Access'
+    });
+
+    let environment = await cargoClient.environment.upsert({
+      tenantId: tenant.id,
+      identifier: 'prod',
+      name: 'Production',
+      type: 'production'
+    });
+
+    let creator = await createActor({
+      tenantId: tenant.id,
+      identifier: 'file-delete-creator',
+      name: 'File Delete Creator'
+    });
+    let otherActor = await createActor({
+      tenantId: tenant.id,
+      identifier: 'file-delete-other',
+      name: 'File Delete Other'
+    });
+
+    let purpose = await cargoClient.filePurpose.upsert({
+      slug: 'organization_image_file_delete_access',
+      name: 'Organization Image File Delete Access',
+      ownerType: 'organization',
+      canHaveLinks: true
+    });
+
+    let creatorFile = await cargoClient.file.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      purpose: purpose.id,
+      storeId: 'file-delete-own',
+      name: 'own-delete.png',
+      mimeType: 'image/png',
+      size: 64,
+      title: 'Own Delete',
+      actorId: creator.id
+    });
+
+    await expect(
+      cargoClient.file.delete({
+        tenantId: tenant.id,
+        environmentId: environment.id,
+        fileId: creatorFile.id,
+        actorId: otherActor.id
+      })
+    ).rejects.toThrow(`Only the creating actor can delete file ${creatorFile.id}`);
+
+    let deniedRecord = await db.file.findFirst({
+      where: {
+        id: creatorFile.id
+      }
+    });
+
+    expect(deniedRecord?.status).toBe('active');
+
+    await cargoClient.file.delete({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      fileId: creatorFile.id,
+      actorId: creator.id
+    });
+
+    let deletedRecord = await db.file.findFirst({
+      where: {
+        id: creatorFile.id
+      }
+    });
+
+    expect(deletedRecord?.status).toBe('deleted');
+  });
+
   it('restricts file link reads to the creating actor when actorId is set', async () => {
     let tenant = await cargoClient.tenant.upsert({
       identifier: 'tenant-file-link-access',

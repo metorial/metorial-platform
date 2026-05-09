@@ -45,7 +45,8 @@ vi.mock('../src/cargo', () => ({
 vi.mock('../src/services/fileReference', () => ({
   fileReferenceService: {
     getFileReferenceById: vi.fn(),
-    listFileReferences: vi.fn()
+    listFileReferences: vi.fn(),
+    hasReferencesForFile: vi.fn()
   }
 }));
 
@@ -207,6 +208,44 @@ describe('file services access forwarding', () => {
       defaultPermissions: undefined,
       overridePermissions: undefined,
       limit: 5
+    });
+  });
+
+  it('forwards consumer ownership context on file delete', async () => {
+    vi.mocked(cargo.actor.upsert).mockResolvedValue({
+      id: 'act_consumer'
+    } as any);
+    vi.mocked(cargo.file.delete).mockResolvedValue({
+      id: 'fil_delete',
+      status: 'deleted'
+    } as any);
+
+    await fileService.deleteFile({
+      owner: owner as any,
+      file: {
+        id: 'fil_delete'
+      } as any,
+      accessActor: {
+        identifier: 'consumer:con_1',
+        name: 'Portal Consumer',
+        consumerId: 'con_1'
+      }
+    });
+
+    expect(cargo.actor.upsert).toHaveBeenCalledWith({
+      tenantId: 'ten_1',
+      identifier: 'consumer:con_1',
+      name: 'Portal Consumer',
+      organizationActorId: undefined,
+      consumerId: 'con_1'
+    });
+    expect(cargo.file.delete).toHaveBeenCalledWith({
+      tenantId: 'ten_1',
+      environmentId: 'env_1',
+      fileId: 'fil_delete',
+      actorId: 'act_consumer',
+      defaultPermissions: undefined,
+      overridePermissions: undefined
     });
   });
 });

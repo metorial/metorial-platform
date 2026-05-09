@@ -1,11 +1,22 @@
 import { Paginator } from '@lowerdeck/pagination';
+import { forbiddenError, ServiceError } from '@lowerdeck/error';
 import { v } from '@lowerdeck/validation';
 import { storeService } from '@metorial/module-file';
 import { Controller } from '@metorial/rest';
-import { getInstanceCargoAccess } from '../../lib/cargoAccess';
+import { getInstanceCargoAccess, hasInstanceConsumerAccess } from '../../lib/cargoAccess';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { storeItemPresenter, storePresenter } from '../../presenters';
+
+let assertStoreCrudAllowed = (ctx: Parameters<typeof hasInstanceConsumerAccess>[0]) => {
+  if (hasInstanceConsumerAccess(ctx)) {
+    throw new ServiceError(
+      forbiddenError({
+        message: 'Consumers cannot create, update, or delete stores'
+      })
+    );
+  }
+};
 
 export let storeGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.storeId) {
@@ -67,6 +78,8 @@ export let storeController = Controller.create(
       )
       .output(storePresenter)
       .do(async ctx => {
+        assertStoreCrudAllowed(ctx);
+
         let store = await storeService.createStore({
           owner: {
             type: 'instance',
@@ -104,6 +117,8 @@ export let storeController = Controller.create(
       )
       .output(storePresenter)
       .do(async ctx => {
+        assertStoreCrudAllowed(ctx);
+
         let store = await storeService.updateStore({
           store: ctx.store,
           owner: {
@@ -128,6 +143,8 @@ export let storeController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.file:write'] }))
       .output(storePresenter)
       .do(async ctx => {
+        assertStoreCrudAllowed(ctx);
+
         let store = await storeService.deleteStore({
           store: ctx.store,
           owner: {
@@ -172,7 +189,7 @@ export let storeController = Controller.create(
                   instance: ctx.instance,
                   organization: ctx.organization
                 },
-              ...getInstanceCargoAccess(ctx),
+                ...getInstanceCargoAccess(ctx),
                 operations: ctx.body.operations
               })
             ).map(async result => ({

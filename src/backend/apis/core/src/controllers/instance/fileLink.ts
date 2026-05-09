@@ -2,6 +2,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { fileLinkService, fileService } from '@metorial/module-file';
 import { Controller } from '@metorial/rest';
+import { getInstanceCargoAccess, hasInstanceConsumerAccess } from '../../lib/cargoAccess';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { fileLinkPresenter } from '../../presenters';
@@ -9,11 +10,24 @@ import { fileLinkPresenter } from '../../presenters';
 let fileLinkRootGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.linkId) throw new Error('linkId is required');
 
-  let fileLink = await fileLinkService.getFileLinkByIdForOrganization({
-    fileLinkId: ctx.params.linkId,
-    organization: ctx.organization,
-    instance: ctx.instance
-  });
+  let fileLink = hasInstanceConsumerAccess(ctx)
+    ? await fileLinkService.getFileLinkById({
+        fileLinkId: ctx.params.linkId,
+        owner: {
+          type: 'instance',
+          organization: ctx.organization,
+          instance: ctx.instance
+        },
+        ...getInstanceCargoAccess(ctx)
+      })
+    : await fileLinkService.getFileLinkById({
+        fileLinkId: ctx.params.linkId,
+        owner: {
+          type: 'instance',
+          organization: ctx.organization,
+          instance: ctx.instance
+        }
+      });
 
   return { fileLink };
 });
@@ -44,10 +58,14 @@ export let fileLinkController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await fileLinkService.listFileLinksForOrganization({
-          organization: ctx.organization,
-          instance: ctx.instance,
-          fileId: ctx.query.file_id
+        let paginator = await fileLinkService.listFileLinks({
+          owner: {
+            type: 'instance',
+            organization: ctx.organization,
+            instance: ctx.instance
+          },
+          fileId: ctx.query.file_id,
+          ...(hasInstanceConsumerAccess(ctx) ? getInstanceCargoAccess(ctx) : {})
         });
 
         let list = await paginator.run(ctx.query);
@@ -89,7 +107,8 @@ export let fileLinkController = Controller.create(
             type: 'instance',
             instance: ctx.instance,
             organization: ctx.organization
-          }
+          },
+          ...(hasInstanceConsumerAccess(ctx) ? getInstanceCargoAccess(ctx) : {})
         });
 
         let fileLink = await fileLinkService.createFileLink({
@@ -99,6 +118,7 @@ export let fileLinkController = Controller.create(
             instance: ctx.instance,
             organization: ctx.organization
           },
+          ...(hasInstanceConsumerAccess(ctx) ? getInstanceCargoAccess(ctx) : {}),
           input: {
             expiresAt: ctx.body.expires_at
           }
@@ -123,7 +143,8 @@ export let fileLinkController = Controller.create(
             type: 'instance',
             instance: ctx.instance,
             organization: ctx.organization
-          }
+          },
+          ...(hasInstanceConsumerAccess(ctx) ? getInstanceCargoAccess(ctx) : {})
         });
 
         return fileLinkPresenter.present({ fileLink });

@@ -85,7 +85,8 @@ export let fileController = Controller.create(
             type: 'instance',
             instance: ctx.instance,
             organization: ctx.organization
-          }
+          },
+          ...getInstanceCargoAccess(ctx)
         });
 
         return filePresenter.present({ file });
