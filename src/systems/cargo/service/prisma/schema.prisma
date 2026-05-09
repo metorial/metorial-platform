@@ -1,0 +1,151 @@
+generator client {
+  provider = "prisma-client"
+  output   = "./generated"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum EnvironmentType {
+  development
+  production
+}
+
+model Tenant {
+  oid BigInt @id
+  id  String @unique
+
+  identifier String @unique
+  name       String
+
+  createdAt DateTime @default(now())
+
+  environments   Environment[]
+  files          File[]
+  fileLinks      FileLink[]
+  fileReferences FileReference[]
+}
+
+model Environment {
+  oid BigInt @id
+  id  String @unique
+
+  type EnvironmentType
+
+  identifier String
+  name       String
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  files          File[]
+  fileLinks      FileLink[]
+  fileReferences FileReference[]
+
+  @@unique([tenantOid, identifier])
+  @@index([tenantOid])
+}
+
+enum FilePurposeOwnerType {
+  user
+  organization
+  instance
+}
+
+enum FileStatus {
+  active
+  deleted
+}
+
+model FilePurpose {
+  oid BigInt @id
+  id  String @unique
+
+  ownerType    FilePurposeOwnerType
+  canHaveLinks Boolean              @default(false)
+
+  slug String @unique
+  name String
+
+  createdAt DateTime @default(now())
+
+  files File[]
+}
+
+model File {
+  oid    BigInt     @id
+  id     String     @unique
+  status FileStatus @default(active)
+
+  storeId String @unique
+
+  fileName String
+  fileSize Int
+  fileType String
+
+  purposeOid BigInt
+  purpose    FilePurpose @relation(fields: [purposeOid], references: [oid], onDelete: Cascade)
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  title String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  links FileLink[]
+
+  @@index([tenantOid, environmentOid, status])
+}
+
+model FileLink {
+  oid BigInt @id
+  id  String @unique
+
+  key String @unique
+
+  fileOid BigInt
+  file    File   @relation(fields: [fileOid], references: [oid], onDelete: Cascade)
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime  @default(now())
+  expiresAt DateTime?
+
+  references FileReference[]
+
+  @@index([tenantOid, environmentOid, fileOid])
+}
+
+model FileReference {
+  oid BigInt @id
+  id  String @unique
+
+  fileLinkOid BigInt
+  fileLink    FileLink @relation(fields: [fileLinkOid], references: [oid], onDelete: Cascade)
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  entityType String
+  entityId   String
+
+  createdAt DateTime @default(now())
+
+  @@unique([fileLinkOid, entityType, entityId])
+  @@index([tenantOid, environmentOid, entityType, entityId])
+}
