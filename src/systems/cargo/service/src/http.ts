@@ -3,7 +3,13 @@ import { createExecutionContext, provideExecutionContext } from '@lowerdeck/exec
 import { extractIp } from '@lowerdeck/forwarded-for';
 import { cors, createHono } from '@lowerdeck/hono';
 import type { Context } from '@lowerdeck/hono';
-import { environmentService, fileLinkService, fileService, tenantService } from './services';
+import {
+  documentService,
+  environmentService,
+  fileLinkService,
+  fileService,
+  tenantService
+} from './services';
 import { generatePlainId } from '@lowerdeck/id';
 import { getCargoFilesBucketName, getStorage } from './storage';
 
@@ -90,6 +96,11 @@ let getServedContentType = (contentType?: string | null) => {
   return 'application/octet-stream';
 };
 
+let getDocumentContentType = (contentType?: string | null) =>
+  contentType && contentType !== 'application/octet-stream'
+    ? contentType
+    : 'text/plain; charset=utf-8';
+
 let getFileContentHandler = async (c: Context) => {
   let { fileId, key } = c.req.param();
   if (!fileId || !key) {
@@ -111,6 +122,19 @@ let getFileContentHandler = async (c: Context) => {
         message: 'Link has expired'
       })
     );
+  }
+
+  let document = await documentService.getDocumentByFileId({
+    fileId: file.id
+  });
+  if (document) {
+    return new Response(document.resolvedContent ?? document.content.content, {
+      headers: {
+        'Content-Type': getDocumentContentType(file.fileType),
+        'Cache-Control': 'private, no-store',
+        'X-Content-Type-Options': 'nosniff'
+      }
+    });
   }
 
   let res = await getStorage().getObject(getCargoFilesBucketName(), file.storeId);

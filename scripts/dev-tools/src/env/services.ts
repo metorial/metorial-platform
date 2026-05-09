@@ -120,6 +120,10 @@ export let cargoServiceEnv: Env = [
     defaultValue: 'postgresql://postgres:postgres@localhost:35432/cargo'
   },
   {
+    key: 'REDIS_URL',
+    defaultValue: 'redis://localhost:36379/0'
+  },
+  {
     key: 'OBJECT_STORAGE_URL',
     defaultValue: 'http://services:52010'
   },

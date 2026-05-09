@@ -1,3 +1,7 @@
+export * from './actor';
+export * from './document';
+export * from './documentParticipant';
+export * from './documentVersion';
 export * from './environment';
 export * from './file';
 export * from './fileLink';

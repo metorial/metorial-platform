@@ -4,10 +4,16 @@ import { Snowflake } from '@lowerdeck/snowflake';
 export let ID = createIdGenerator({
   tenant: idType.sorted('ctn_'),
   environment: idType.sorted('cen_'),
+  tenantActor: idType.sorted('cta_'),
   filePurpose: idType.sorted('cfp_'),
   file: idType.sorted('cfi_'),
   fileLink: idType.sorted('cfl_'),
-  fileRef: idType.sorted('cfr_')
+  fileRef: idType.sorted('cfr_'),
+  document: idType.sorted('cdoc_'),
+  documentContent: idType.sorted('cdocn_'),
+  documentParticipant: idType.sorted('cdocp_'),
+  documentVersion: idType.sorted('cdocv_'),
+  documentVersionEditor: idType.sorted('cdocve_')
 });
 
 let workerIdBits = 12;

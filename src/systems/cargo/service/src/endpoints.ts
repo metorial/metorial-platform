@@ -1,5 +1,6 @@
 import { apiMux } from '@lowerdeck/api-mux';
 import { rpcMux } from '@lowerdeck/rpc-server';
+import { RedisClient } from 'bun';
 import { CargoRPC } from './controllers';
 import { db } from './db';
 import { env } from './env';
@@ -30,6 +31,10 @@ let contentServer = Bun.serve({
   port: env.service.CARGO_CONTENT_PORT
 });
 
+let redis = new RedisClient(env.service.REDIS_URL?.replace('rediss://', 'redis://'), {
+  tls: env.service.REDIS_URL?.startsWith('rediss://')
+});
+
 console.log(`Cargo API running on http://localhost:${apiServer.port}`);
 console.log(`Cargo content running on http://localhost:${contentServer.port}`);
 
@@ -38,6 +43,7 @@ if (process.env.NODE_ENV === 'production') {
     fetch: async _ => {
       try {
         await db.tenant.count();
+        await redis.ping();
         return new Response('OK');
       } catch (error) {
         console.error(error);

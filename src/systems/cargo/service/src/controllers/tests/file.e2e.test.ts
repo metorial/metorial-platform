@@ -52,7 +52,7 @@ describe('cargo file.e2e', () => {
     await cargoClient.fileReference.create({
       tenantId: tenant.id,
       environmentId: environment.id,
-      fileLinkId: links[100].id,
+      fileLinkId: links[100]!.id,
       entityType: 'organization',
       entityId: 'org_101'
     });
@@ -158,5 +158,39 @@ describe('cargo file.e2e', () => {
     });
 
     expect(deleted.status).toBe('deleted');
+  });
+
+  it('rejects document-purpose files from the normal file API', async () => {
+    let tenant = await cargoClient.tenant.upsert({
+      identifier: 'tenant-document-purpose',
+      name: 'Tenant Document Purpose'
+    });
+
+    let environment = await cargoClient.environment.upsert({
+      tenantId: tenant.id,
+      identifier: 'prod',
+      name: 'Production',
+      type: 'production'
+    });
+
+    await cargoClient.filePurpose.upsert({
+      slug: 'document',
+      name: 'Document',
+      ownerType: 'organization',
+      canHaveLinks: true
+    });
+
+    await expect(
+      cargoClient.file.create({
+        tenantId: tenant.id,
+        environmentId: environment.id,
+        purpose: 'document',
+        storeId: 'store-file-document',
+        name: 'document.md',
+        mimeType: 'text/markdown',
+        size: 64,
+        title: 'Document'
+      })
+    ).rejects.toThrow('Document purpose cannot be used for normal file creation');
   });
 });
