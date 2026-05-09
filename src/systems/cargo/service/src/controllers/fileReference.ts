@@ -3,6 +3,7 @@ import { v } from '@lowerdeck/validation';
 import { fileReferencePresenter } from '../presenters';
 import { fileReferenceService } from '../services';
 import { app } from './_app';
+import { fileApp } from './file';
 import { fileLinkApp } from './fileLink';
 import { tenantApp } from './tenant';
 
@@ -34,6 +35,36 @@ export let fileReferenceController = app.controller({
 
       return {};
     }),
+
+  hasReferences: fileLinkApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        environmentId: v.string(),
+        fileLinkId: v.string()
+      })
+    )
+    .do(async ctx => ({
+      hasReferences: await fileReferenceService.hasReferences({
+        fileLink: ctx.fileLink
+      })
+    })),
+
+  hasReferencesForFile: fileApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        environmentId: v.string(),
+        fileId: v.string()
+      })
+    )
+    .do(async ctx => ({
+      hasReferences: await fileReferenceService.hasReferencesForFile({
+        file: ctx.file
+      })
+    })),
 
   create: fileLinkApp
     .handler()

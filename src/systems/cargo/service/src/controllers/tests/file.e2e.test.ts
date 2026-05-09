@@ -7,6 +7,65 @@ describe('cargo file.e2e', () => {
     await cleanDatabase();
   });
 
+  it('detects references beyond the first 100 file links', async () => {
+    let tenant = await cargoClient.tenant.upsert({
+      identifier: 'tenant-file-reference-limit',
+      name: 'Tenant File Reference Limit'
+    });
+
+    let environment = await cargoClient.environment.upsert({
+      tenantId: tenant.id,
+      identifier: 'prod',
+      name: 'Production',
+      type: 'production'
+    });
+
+    let purpose = await cargoClient.filePurpose.upsert({
+      slug: 'organization_image',
+      name: 'Organization Image',
+      ownerType: 'organization',
+      canHaveLinks: true
+    });
+
+    let file = await cargoClient.file.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      purpose: purpose.id,
+      storeId: 'store-file-many-links',
+      name: 'avatar.png',
+      mimeType: 'image/png',
+      size: 128,
+      title: 'Avatar'
+    });
+
+    let links = await Promise.all(
+      Array.from({ length: 101 }, async (_, index) =>
+        cargoClient.fileLink.create({
+          tenantId: tenant.id,
+          environmentId: environment.id,
+          fileId: file.id,
+          key: `link-${index + 1}`
+        })
+      )
+    );
+
+    await cargoClient.fileReference.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      fileLinkId: links[100].id,
+      entityType: 'organization',
+      entityId: 'org_101'
+    });
+
+    let result = await cargoClient.fileReference.hasReferencesForFile({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      fileId: file.id
+    });
+
+    expect(result.hasReferences).toBe(true);
+  });
+
   it('creates, links, protects, and deletes files within one tenant environment', async () => {
     let tenant = await cargoClient.tenant.upsert({
       identifier: 'tenant-files',
@@ -51,6 +110,14 @@ describe('cargo file.e2e', () => {
       entityType: 'organization',
       entityId: 'org_123'
     });
+
+    let linkHasReferences = await cargoClient.fileReference.hasReferences({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      fileLinkId: link.id
+    });
+
+    expect(linkHasReferences.hasReferences).toBe(true);
 
     let listed = await cargoClient.file.list({
       tenantId: tenant.id,

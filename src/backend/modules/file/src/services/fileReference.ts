@@ -30,39 +30,24 @@ class FileReferenceServiceImpl {
 
   async hasReferences(d: { fileLink: CargoFileLink; owner: FileOwner }) {
     let scope = await this.getScopeForOwner(d.owner);
-
-    let references = await cargo.fileReference.list({
+    let result = await cargo.fileReference.hasReferences({
       tenantId: scope.tenantId,
       environmentId: scope.environmentId,
-      fileLinkId: d.fileLink.id,
-      limit: 1
+      fileLinkId: d.fileLink.id
     });
 
-    return references.items.length > 0;
+    return result.hasReferences;
   }
 
   async hasReferencesForFile(d: { file: CargoFile; owner: FileOwner }) {
     let scope = await this.getScopeForOwner(d.owner);
-
-    let links = await cargo.fileLink.list({
+    let result = await cargo.fileReference.hasReferencesForFile({
       tenantId: scope.tenantId,
       environmentId: scope.environmentId,
-      fileId: d.file.id,
-      limit: 100
+      fileId: d.file.id
     });
 
-    for (let link of links.items) {
-      let references = await cargo.fileReference.list({
-        tenantId: scope.tenantId,
-        environmentId: scope.environmentId,
-        fileLinkId: link.id,
-        limit: 1
-      });
-
-      if (references.items.length > 0) return true;
-    }
-
-    return false;
+    return result.hasReferences;
   }
 
   async createImageEntityImage(d: {

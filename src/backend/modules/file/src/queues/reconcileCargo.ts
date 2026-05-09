@@ -1,4 +1,3 @@
-import { createCron } from '@metorial/cron';
 import { db } from '@metorial/db';
 import { combineQueueProcessors, createQueue } from '@metorial/queue';
 import {
@@ -46,35 +45,12 @@ let getReconcileFileSnapshot = async (fileId: string) => {
   };
 };
 
-export let reconcileCargoPurposesCron = createCron(
-  {
-    name: 'file/cargo/purpose/cron',
-    cron: '* * * * *'
-  },
-  async () => {
-    await reconcileCargoPurposesQueue.add({});
-  }
-);
-
-export let reconcileCargoPurposesQueue = createQueue<{}>({
-  name: 'file/cargo/purpose'
-});
-
-export let reconcileCargoPurposesQueueProcessor = reconcileCargoPurposesQueue.process(
-  async () => {
-    await reconcileCargoPurposes();
-  }
-);
-
-export let reconcileCargoFilesCron = createCron(
-  {
-    name: 'file/cargo/rec/cron',
-    cron: '* * * * *'
-  },
-  async () => {
-    await reconcileCargoFilesManyQueue.add({});
-  }
-);
+setTimeout(async () => {
+  console.log('Starting cargo file reconciliation...');
+  await reconcileCargoPurposes();
+  console.log('Enqueueing cargo file reconciliation...');
+  await reconcileCargoFilesManyQueue.add({});
+}, 10000);
 
 export let reconcileCargoFilesManyQueue = createQueue<{ cursor?: string }>({
   name: 'file/cargo/rec/many',
@@ -140,9 +116,6 @@ export let reconcileCargoFileSingleQueueProcessor = reconcileCargoFileSingleQueu
 );
 
 export let reconcileCargoProcessors = combineQueueProcessors([
-  reconcileCargoPurposesCron,
-  reconcileCargoPurposesQueueProcessor,
-  reconcileCargoFilesCron,
   reconcileCargoFilesManyQueueProcessor,
   reconcileCargoFileSingleQueueProcessor
 ]);
