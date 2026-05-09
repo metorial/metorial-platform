@@ -3,6 +3,7 @@ import { v } from '@lowerdeck/validation';
 import { storeItemPresenter } from '../presenters';
 import { storeItemService } from '../services';
 import { app } from './_app';
+import { storePermissionsSchema } from './document';
 import { tenantApp } from './tenant';
 
 export let storeItemApp = tenantApp.use(async ctx => {
@@ -28,7 +29,10 @@ export let storeItemController = app.controller({
           environmentId: v.string(),
           storeId: v.optional(v.string()),
           fileId: v.optional(v.string()),
-          documentId: v.optional(v.string())
+          documentId: v.optional(v.string()),
+          actorId: v.optional(v.string()),
+          defaultPermissions: v.optional(storePermissionsSchema),
+          overridePermissions: v.optional(v.boolean())
         })
       )
     )
@@ -38,7 +42,10 @@ export let storeItemController = app.controller({
         environment: ctx.environment,
         storeId: ctx.input.storeId,
         fileId: ctx.input.fileId,
-        documentId: ctx.input.documentId
+        documentId: ctx.input.documentId,
+        actorId: ctx.input.actorId,
+        defaultPermissions: ctx.input.defaultPermissions,
+        overridePermissions: ctx.input.overridePermissions
       });
       let list = await paginator.run(ctx.input);
 
@@ -51,8 +58,22 @@ export let storeItemController = app.controller({
       v.object({
         tenantId: v.string(),
         environmentId: v.string(),
-        itemId: v.string()
+        itemId: v.string(),
+        actorId: v.optional(v.string()),
+        defaultPermissions: v.optional(storePermissionsSchema),
+        overridePermissions: v.optional(v.boolean())
       })
     )
-    .do(async ctx => storeItemPresenter(ctx.item))
+    .do(async ctx =>
+      storeItemPresenter(
+        await storeItemService.getStoreItemById({
+          tenant: ctx.tenant,
+          environment: ctx.environment,
+          itemId: ctx.input.itemId,
+          actorId: ctx.input.actorId,
+          defaultPermissions: ctx.input.defaultPermissions,
+          overridePermissions: ctx.input.overridePermissions
+        })
+      )
+    )
 });

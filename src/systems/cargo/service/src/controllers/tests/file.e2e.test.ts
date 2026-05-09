@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
+import { db } from '../../db';
 import { cargoClient } from '../../test/client';
 import { cleanDatabase } from '../../test/setup';
 
@@ -326,5 +327,97 @@ describe('cargo file.e2e', () => {
         documentId: document.id
       })
     ).rejects.toThrow();
+  });
+
+  it('attaches files to stores on create when write access is available', async () => {
+    let tenant = await cargoClient.tenant.upsert({
+      identifier: 'tenant-file-store-shortcut',
+      name: 'Tenant File Store Shortcut'
+    });
+
+    let environment = await cargoClient.environment.upsert({
+      tenantId: tenant.id,
+      identifier: 'prod',
+      name: 'Production',
+      type: 'production'
+    });
+
+    let actor = await cargoClient.actor.upsert({
+      tenantId: tenant.id,
+      identifier: 'file-store-actor',
+      name: 'File Store Actor'
+    });
+
+    let purpose = await cargoClient.filePurpose.upsert({
+      slug: 'organization_image_store_shortcut',
+      name: 'Organization Image Store Shortcut',
+      ownerType: 'organization',
+      canHaveLinks: true
+    });
+
+    let store = await cargoClient.store.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      name: 'Shortcut Store'
+    });
+
+    let file = await cargoClient.file.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      purpose: purpose.id,
+      storeId: 'shortcut-file',
+      name: 'shortcut.png',
+      mimeType: 'image/png',
+      size: 128,
+      title: 'Shortcut',
+      actorId: actor.id,
+      defaultPermissions: ['content_write'],
+      overridePermissions: true,
+      store: {
+        id: store.id,
+        path: '/shortcut.png'
+      }
+    });
+
+    let items = await cargoClient.storeItem.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: store.id,
+      limit: 10
+    });
+
+    expect(items.items).toHaveLength(1);
+    expect(items.items[0]).toMatchObject({
+      fileId: file.id,
+      path: '/shortcut.png'
+    });
+
+    await expect(
+      cargoClient.file.create({
+        tenantId: tenant.id,
+        environmentId: environment.id,
+        purpose: purpose.id,
+        storeId: 'shortcut-file-denied',
+        name: 'denied.png',
+        mimeType: 'image/png',
+        size: 128,
+        title: 'Denied',
+        actorId: actor.id,
+        defaultPermissions: ['content_read'],
+        overridePermissions: true,
+        store: {
+          id: store.id,
+          path: '/denied.png'
+        }
+      })
+    ).rejects.toThrow('Missing content_write access');
+
+    let deniedFile = await db.file.findFirst({
+      where: {
+        storeId: 'shortcut-file-denied'
+      }
+    });
+
+    expect(deniedFile).toBeNull();
   });
 });

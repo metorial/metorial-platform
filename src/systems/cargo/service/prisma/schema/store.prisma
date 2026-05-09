@@ -25,6 +25,7 @@ model Store {
 
   items             StoreItem[]
   storeParticipants StoreParticipant[]
+  skill             Skill?
 }
 
 model StoreItem {
@@ -45,8 +46,33 @@ model StoreItem {
   documentOid BigInt?
   document    Document? @relation(fields: [documentOid], references: [oid], onDelete: Cascade)
 
+  lastModifiedByTenantActorOid BigInt?
+  lastModifiedByTenantActor    TenantActor? @relation(fields: [lastModifiedByTenantActorOid], references: [oid], onDelete: Cascade)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
   @@unique([storeOid, path])
+}
+
+enum StoreParticipantPermissions {
+  content_read
+  content_write
+}
+
+model StoreParticipant {
+  oid BigInt @id
+  id  String @unique
+
+  permissions StoreParticipantPermissions[]
+
+  storeOid BigInt
+  store    Store  @relation(fields: [storeOid], references: [oid], onDelete: Cascade)
+
+  tenantActorOid BigInt
+  tenantActor    TenantActor @relation(fields: [tenantActorOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([storeOid, tenantActorOid])
 }

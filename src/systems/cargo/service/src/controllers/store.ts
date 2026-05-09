@@ -3,6 +3,7 @@ import { v } from '@lowerdeck/validation';
 import { storeItemPresenter, storePresenter } from '../presenters';
 import { storeService } from '../services';
 import { app } from './_app';
+import { storePermissionsSchema } from './document';
 import { tenantApp } from './tenant';
 
 export let storeApp = tenantApp.use(async ctx => {
@@ -56,14 +57,20 @@ export let storeController = app.controller({
       Paginator.validate(
         v.object({
           tenantId: v.string(),
-          environmentId: v.string()
+          environmentId: v.string(),
+          actorId: v.optional(v.string()),
+          defaultPermissions: v.optional(storePermissionsSchema),
+          overridePermissions: v.optional(v.boolean())
         })
       )
     )
     .do(async ctx => {
       let paginator = await storeService.listStores({
         tenant: ctx.tenant,
-        environment: ctx.environment
+        environment: ctx.environment,
+        actorId: ctx.input.actorId,
+        defaultPermissions: ctx.input.defaultPermissions,
+        overridePermissions: ctx.input.overridePermissions
       });
       let list = await paginator.run(ctx.input);
 
@@ -76,10 +83,24 @@ export let storeController = app.controller({
       v.object({
         tenantId: v.string(),
         environmentId: v.string(),
-        storeId: v.string()
+        storeId: v.string(),
+        actorId: v.optional(v.string()),
+        defaultPermissions: v.optional(storePermissionsSchema),
+        overridePermissions: v.optional(v.boolean())
       })
     )
-    .do(async ctx => storePresenter(ctx.store)),
+    .do(async ctx =>
+      storePresenter(
+        await storeService.getStoreById({
+          tenant: ctx.tenant,
+          environment: ctx.environment,
+          storeId: ctx.input.storeId,
+          actorId: ctx.input.actorId,
+          defaultPermissions: ctx.input.defaultPermissions,
+          overridePermissions: ctx.input.overridePermissions
+        })
+      )
+    ),
 
   update: storeApp
     .handler()
@@ -88,12 +109,20 @@ export let storeController = app.controller({
         tenantId: v.string(),
         environmentId: v.string(),
         storeId: v.string(),
-        name: v.optional(v.string())
+        name: v.optional(v.string()),
+        actorId: v.optional(v.string()),
+        defaultPermissions: v.optional(storePermissionsSchema),
+        overridePermissions: v.optional(v.boolean())
       })
     )
     .do(async ctx => {
       let store = await storeService.updateStore({
+        tenant: ctx.tenant,
+        environment: ctx.environment,
         store: ctx.store,
+        actorId: ctx.input.actorId,
+        defaultPermissions: ctx.input.defaultPermissions,
+        overridePermissions: ctx.input.overridePermissions,
         input: {
           name: ctx.input.name
         }
@@ -108,12 +137,20 @@ export let storeController = app.controller({
       v.object({
         tenantId: v.string(),
         environmentId: v.string(),
-        storeId: v.string()
+        storeId: v.string(),
+        actorId: v.optional(v.string()),
+        defaultPermissions: v.optional(storePermissionsSchema),
+        overridePermissions: v.optional(v.boolean())
       })
     )
     .do(async ctx => {
       let store = await storeService.deleteStore({
-        store: ctx.store
+        tenant: ctx.tenant,
+        environment: ctx.environment,
+        store: ctx.store,
+        actorId: ctx.input.actorId,
+        defaultPermissions: ctx.input.defaultPermissions,
+        overridePermissions: ctx.input.overridePermissions
       });
 
       return storePresenter(store);
@@ -126,7 +163,10 @@ export let storeController = app.controller({
         tenantId: v.string(),
         environmentId: v.string(),
         storeId: v.string(),
-        operations: v.array(storeItemOperationSchema)
+        operations: v.array(storeItemOperationSchema),
+        actorId: v.optional(v.string()),
+        defaultPermissions: v.optional(storePermissionsSchema),
+        overridePermissions: v.optional(v.boolean())
       })
     )
     .do(async ctx =>
@@ -135,7 +175,10 @@ export let storeController = app.controller({
           tenant: ctx.tenant,
           environment: ctx.environment,
           store: ctx.store,
-          operations: ctx.input.operations as any
+          operations: ctx.input.operations as any,
+          actorId: ctx.input.actorId,
+          defaultPermissions: ctx.input.defaultPermissions,
+          overridePermissions: ctx.input.overridePermissions
         })
       ).map(result => ({
         type: result.type,

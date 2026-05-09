@@ -26,11 +26,24 @@ let createScope = async () => {
   };
 };
 
-let createActor = async (tenantId: string) =>
+let createActor = async (
+  tenantId: string,
+  d: {
+    identifier?: string;
+    name?: string;
+  } = {}
+) =>
   await cargoClient.actor.upsert({
     tenantId,
-    identifier: 'actor-1',
-    name: 'Actor One'
+    identifier: d.identifier ?? 'actor-1',
+    name: d.name ?? 'Actor One'
+  });
+
+let createStore = async (tenantId: string, environmentId: string, name = 'Docs Store') =>
+  await cargoClient.store.create({
+    tenantId,
+    environmentId,
+    name
   });
 
 let flushDocument = async (documentId: string) =>
@@ -151,26 +164,31 @@ describe('cargo document.e2e', () => {
     });
   });
 
-  it('upserts viewer participants on get and promotes them on edit', async () => {
+  it('upserts viewer participants from store permissions on get and promotes them on edit', async () => {
     let { tenant, environment } = await createScope();
-    let viewer = await cargoClient.actor.upsert({
-      tenantId: tenant.id,
+    let viewer = await createActor(tenant.id, {
       identifier: 'viewer-1',
       name: 'Viewer One'
     });
+    let store = await createStore(tenant.id, environment.id);
 
     let created = await cargoClient.document.create({
       tenantId: tenant.id,
       environmentId: environment.id,
       title: 'Viewed',
-      content: 'hello world'
+      content: 'hello world',
+      store: {
+        id: store.id,
+        path: '/viewed.md'
+      }
     });
 
     await cargoClient.document.get({
       tenantId: tenant.id,
       environmentId: environment.id,
       documentId: created.id,
-      actorId: viewer.id
+      actorId: viewer.id,
+      defaultPermissions: ['content_read']
     });
 
     let participantsAfterView = await cargoClient.documentParticipant.list({
@@ -198,7 +216,9 @@ describe('cargo document.e2e', () => {
       environmentId: environment.id,
       documentId: created.id,
       content: 'updated',
-      actorId: viewer.id
+      actorId: viewer.id,
+      defaultPermissions: ['content_write'],
+      overridePermissions: true
     });
     await flushDocument(created.id);
 
@@ -220,6 +240,113 @@ describe('cargo document.e2e', () => {
     });
     expect(participantsAfterEdit.items[0]!.lastViewedAt!.getTime()).toBeGreaterThanOrEqual(
       viewedAt!.getTime()
+    );
+  });
+
+  it('stores creator ownership, allows owner access, and persists clone ownership', async () => {
+    let { tenant, environment } = await createScope();
+    let owner = await createActor(tenant.id, {
+      identifier: 'owner-1',
+      name: 'Owner One'
+    });
+    let reader = await createActor(tenant.id, {
+      identifier: 'reader-1',
+      name: 'Reader One'
+    });
+    let store = await createStore(tenant.id, environment.id, 'Owned Store');
+
+    let created = await cargoClient.document.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      title: 'Owned',
+      content: 'owner content',
+      actorId: owner.id,
+      defaultPermissions: ['content_write'],
+      overridePermissions: true,
+      store: {
+        id: store.id,
+        path: '/owned.md'
+      }
+    });
+
+    let createdRecord = await db.document.findUnique({
+      where: {
+        id: created.id
+      }
+    });
+
+    expect(createdRecord?.createdByTenantActorOid).toBeTruthy();
+
+    let ownedGet = await cargoClient.document.get({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: created.id,
+      actorId: owner.id
+    });
+
+    expect(ownedGet.id).toBe(created.id);
+
+    let cloned = await cargoClient.document.clone({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: created.id,
+      actorId: reader.id,
+      defaultPermissions: ['content_read']
+    });
+
+    let clonedRecord = await db.document.findUnique({
+      where: {
+        id: cloned.id
+      }
+    });
+    let clonedParticipants = await cargoClient.documentParticipant.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: cloned.id,
+      limit: 10
+    });
+
+    expect(clonedRecord?.createdByTenantActorOid).toBeTruthy();
+    expect(clonedParticipants.items.map(item => item.actor.id)).toContain(reader.id);
+  });
+
+  it('materializes transient store participants in document participant lists', async () => {
+    let { tenant, environment } = await createScope();
+    let creator = await createActor(tenant.id, {
+      identifier: 'creator-2',
+      name: 'Creator Two'
+    });
+    let viewer = await createActor(tenant.id, {
+      identifier: 'viewer-2',
+      name: 'Viewer Two'
+    });
+    let store = await createStore(tenant.id, environment.id, 'Participant Store');
+
+    let created = await cargoClient.document.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      title: 'Participants',
+      content: 'participant content',
+      actorId: creator.id,
+      defaultPermissions: ['content_write'],
+      overridePermissions: true,
+      store: {
+        id: store.id,
+        path: '/participants.md'
+      }
+    });
+
+    let participants = await cargoClient.documentParticipant.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: created.id,
+      actorId: viewer.id,
+      defaultPermissions: ['content_read'],
+      limit: 10
+    });
+
+    expect(participants.items.map(item => item.actor.id)).toEqual(
+      expect.arrayContaining([creator.id, viewer.id])
     );
   });
 

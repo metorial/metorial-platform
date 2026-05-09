@@ -20,6 +20,7 @@ model Tenant {
   tenantActors     TenantActor[]
   documentVersions DocumentVersion[]
   stores           Store[]
+  skills           Skill[]
 }
 
 model Environment {
@@ -42,6 +43,7 @@ model Environment {
   documents        Document[]
   documentVersions DocumentVersion[]
   stores           Store[]
+  skills           Skill[]
 
   @@unique([tenantOid, identifier])
   @@index([tenantOid])
@@ -69,7 +71,10 @@ model TenantActor {
   createdAt DateTime @default(now())
 
   documentParticipants   DocumentParticipant[]
+  createdDocuments       Document[] @relation("DocumentCreator")
   documentVersionEditors DocumentVersionEditors[]
+  storeParticipants      StoreParticipant[]
+  storeItems             StoreItem[]
 
   @@unique([tenantOid, identifier])
 }

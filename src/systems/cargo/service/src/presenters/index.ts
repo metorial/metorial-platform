@@ -7,6 +7,8 @@ export * from './file';
 export * from './fileLink';
 export * from './filePurpose';
 export * from './fileReference';
+export * from './skill';
 export * from './store';
 export * from './storeItem';
+export * from './storeParticipant';
 export * from './tenant';

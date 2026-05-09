@@ -7,9 +7,11 @@ import {
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type {
+  Document,
   DocumentParticipantRole,
   Prisma,
   PrismaClient,
+  StoreParticipantPermissions,
   TenantActor
 } from '../../prisma/generated/client';
 import { db } from '../db';
@@ -19,6 +21,8 @@ import { actorService } from './actor';
 import { documentDraftService, type DocumentDraft } from './documentDraft';
 import { fileService } from './file';
 import { filePurposeService, type CargoTenantEnvironment } from './filePurpose';
+import { storeAccessService, storeReadPermission, storeWritePermission } from './storeAccess';
+import { storeItemMutationService } from './storeItemMutation';
 
 let activeVersionWindowMs = 3 * 60 * 60 * 1000;
 let draftFlushDelayMs = 60 * 1000;
@@ -53,6 +57,11 @@ type TransactionClient = Prisma.TransactionClient;
 type DocumentRecord = Prisma.DocumentGetPayload<{
   include: typeof documentInclude;
 }>;
+type DocumentAccessInput = {
+  actorId?: string;
+  defaultPermissions?: StoreParticipantPermissions[];
+  overridePermissions?: boolean;
+};
 
 let getTextByteSize = (content: string) => new TextEncoder().encode(content).length;
 
@@ -168,6 +177,83 @@ class DocumentServiceImpl {
           : {})
       }
     });
+  }
+
+  async ensureDocumentParticipant(d: {
+    document: { oid: bigint };
+    actor: { oid: bigint };
+    mode: 'view' | 'edit';
+    client?: TransactionClient;
+  }) {
+    if (d.client) {
+      return await this.upsertParticipant(d.client, d);
+    }
+
+    return await db.$transaction(async tx => await this.upsertParticipant(tx, d));
+  }
+
+  async materializeDocumentParticipantsFromStores(d: {
+    document: Document;
+    client?: TransactionClient;
+  }) {
+    let client = d.client ?? db;
+    let storeActors = await storeAccessService.listStoreParticipantActorsForDocument({
+      document: d.document,
+      client
+    });
+
+    if (d.document.createdByTenantActorOid) {
+      let creator = await client.tenantActor.findFirst({
+        where: {
+          oid: d.document.createdByTenantActorOid
+        }
+      });
+
+      if (creator) {
+        storeActors.push({
+          actor: creator,
+          mode: 'edit'
+        });
+      }
+    }
+
+    let actorsById = new Map<
+      bigint,
+      {
+        actor: TenantActor;
+        mode: 'view' | 'edit';
+      }
+    >();
+
+    for (let item of storeActors) {
+      let existing = actorsById.get(item.actor.oid);
+      if (existing?.mode === 'edit') continue;
+
+      actorsById.set(item.actor.oid, {
+        actor: item.actor,
+        mode: item.mode === 'edit' ? 'edit' : 'view'
+      });
+    }
+
+    if (!d.client) {
+      return await db.$transaction(async transactionClient => {
+        for (let item of actorsById.values()) {
+          await this.upsertParticipant(transactionClient, {
+            document: d.document,
+            actor: item.actor,
+            mode: item.mode
+          });
+        }
+      });
+    }
+
+    for (let item of actorsById.values()) {
+      await this.upsertParticipant(d.client, {
+        document: d.document,
+        actor: item.actor,
+        mode: item.mode
+      });
+    }
   }
 
   private async ensureVersionEditor(
@@ -460,6 +546,12 @@ class DocumentServiceImpl {
         title: string;
         content: string;
         actorId?: string;
+        store?: {
+          id: string;
+          path: string;
+        };
+        defaultPermissions?: StoreParticipantPermissions[];
+        overridePermissions?: boolean;
       };
     }
   ) {
@@ -510,7 +602,8 @@ class DocumentServiceImpl {
           title: d.input.title,
           isContentOwner: true,
           maxVersionNumber: 1,
-          contentOid: contentIds.oid
+          contentOid: contentIds.oid,
+          createdByTenantActorOid: actor?.oid
         },
         include: documentInclude
       });
@@ -538,7 +631,7 @@ class DocumentServiceImpl {
         });
       }
 
-      return await tx.document.update({
+      let createdDocument = await tx.document.update({
         where: {
           id: document.id
         },
@@ -547,6 +640,44 @@ class DocumentServiceImpl {
         },
         include: documentInclude
       });
+
+      if (d.input.store) {
+        let store = await storeAccessService.getStoreById({
+          tenant: d.tenant,
+          environment: d.environment,
+          storeId: d.input.store.id,
+          client: tx
+        });
+
+        await storeAccessService.assertStoreAccessForStore({
+          tenant: d.tenant,
+          environment: d.environment,
+          store,
+          actorId: d.input.actorId,
+          defaultPermissions: d.input.defaultPermissions,
+          overridePermissions: d.input.overridePermissions,
+          requiredPermission: storeWritePermission,
+          client: tx
+        });
+
+        await storeItemMutationService.attachTargetToStore({
+          tenant: d.tenant,
+          environment: d.environment,
+          store,
+          path: d.input.store.path,
+          target: {
+            file: createdDocument.file,
+            document: {
+              oid: createdDocument.oid,
+              id: createdDocument.id
+            }
+          },
+          actor,
+          client: tx
+        });
+      }
+
+      return createdDocument;
     });
   }
 
@@ -555,27 +686,30 @@ class DocumentServiceImpl {
       documentId: string;
       includeDeleted?: boolean;
       actorId?: string;
+      defaultPermissions?: StoreParticipantPermissions[];
+      overridePermissions?: boolean;
     }
   ) {
-    let actor = d.actorId
-      ? await actorService.getActorById({
-          tenant: d.tenant,
-          actorId: d.actorId
-        })
-      : undefined;
-
     let document = await this.getDocumentRecord(db, d);
-    let resolved = await this.resolveDocument(document);
-
-    if (!actor) return resolved;
-
-    await db.$transaction(async tx => {
-      await this.upsertParticipant(tx, {
-        document,
-        actor,
-        mode: 'view'
-      });
+    let access = await storeAccessService.assertStoreAccessForDocument({
+      tenant: d.tenant,
+      environment: d.environment,
+      document,
+      actorId: d.actorId,
+      defaultPermissions: d.defaultPermissions,
+      overridePermissions: d.overridePermissions,
+      requiredPermission: storeReadPermission
     });
+
+    if (access.actor) {
+      await db.$transaction(async tx => {
+        await this.upsertParticipant(tx, {
+          document,
+          actor: access.actor!,
+          mode: 'view'
+        });
+      });
+    }
 
     return await this.resolveDocument(document);
   }
@@ -594,7 +728,35 @@ class DocumentServiceImpl {
     return await this.resolveDocument(document);
   }
 
-  async listDocuments(d: CargoTenantEnvironment) {
+  async listDocuments(d: CargoTenantEnvironment & DocumentAccessInput) {
+    if (!d.actorId) {
+      return Paginator.create(({ prisma }) =>
+        prisma(
+          async opts =>
+            await db.document.findMany({
+              ...opts,
+              where: {
+                tenantOid: d.tenant.oid,
+                environmentOid: d.environment.oid,
+                file: {
+                  status: 'active'
+                }
+              },
+              include: documentInclude
+            })
+        )
+      );
+    }
+
+    let access = await storeAccessService.listAccessibleStoreOidsForTenantEnvironment({
+      tenant: d.tenant,
+      environment: d.environment,
+      actorId: d.actorId,
+      defaultPermissions: d.defaultPermissions,
+      overridePermissions: d.overridePermissions,
+      requiredPermission: storeReadPermission
+    });
+
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
@@ -605,7 +767,21 @@ class DocumentServiceImpl {
               environmentOid: d.environment.oid,
               file: {
                 status: 'active'
-              }
+              },
+              OR: [
+                {
+                  createdByTenantActorOid: access.actor?.oid
+                },
+                {
+                  storeItems: {
+                    some: {
+                      storeOid: {
+                        in: access.accessibleStoreOids
+                      }
+                    }
+                  }
+                }
+              ]
             },
             include: documentInclude
           })
@@ -620,6 +796,8 @@ class DocumentServiceImpl {
         title?: string;
         content?: string;
         actorId?: string;
+        defaultPermissions?: StoreParticipantPermissions[];
+        overridePermissions?: boolean;
       };
     }
   ) {
@@ -631,12 +809,17 @@ class DocumentServiceImpl {
       );
     }
 
-    let actor = d.input.actorId
-      ? await actorService.getActorById({
-          tenant: d.tenant,
-          actorId: d.input.actorId
-        })
-      : undefined;
+    let access = await storeAccessService.assertStoreAccessForDocument({
+      tenant: d.tenant,
+      environment: d.environment,
+      document: d.document,
+      actorId: d.input.actorId,
+      defaultPermissions: d.input.defaultPermissions,
+      overridePermissions: d.input.overridePermissions,
+      requiredPermission: storeWritePermission
+    });
+
+    let actor = access.actor;
 
     this.ensureDocumentActive(d.document);
 
@@ -748,9 +931,23 @@ class DocumentServiceImpl {
       input: {
         id?: string;
         title?: string;
+        actorId?: string;
+        defaultPermissions?: StoreParticipantPermissions[];
+        overridePermissions?: boolean;
       };
     }
   ) {
+    let access = await storeAccessService.assertStoreAccessForDocument({
+      tenant: d.tenant,
+      environment: d.environment,
+      document: d.document,
+      actorId: d.input.actorId,
+      defaultPermissions: d.input.defaultPermissions,
+      overridePermissions: d.input.overridePermissions,
+      requiredPermission: storeReadPermission
+    });
+    let actor = access.actor;
+
     this.ensureDocumentActive(d.document);
 
     let purpose = await filePurposeService.ensureDocumentFilePurpose();
@@ -789,7 +986,8 @@ class DocumentServiceImpl {
           isContentOwner: false,
           maxVersionNumber: 1,
           contentOid: d.document.contentOid,
-          parentDocumentOid: d.document.oid
+          parentDocumentOid: d.document.oid,
+          createdByTenantActorOid: actor?.oid
         },
         include: documentInclude
       });
@@ -803,7 +1001,7 @@ class DocumentServiceImpl {
         listEditedAt: new Date()
       });
 
-      return await tx.document.update({
+      let clonedDocument = await tx.document.update({
         where: {
           id: document.id
         },
@@ -812,10 +1010,43 @@ class DocumentServiceImpl {
         },
         include: documentInclude
       });
+
+      if (actor) {
+        await this.upsertParticipant(tx, {
+          document: clonedDocument,
+          actor,
+          mode: 'edit'
+        });
+
+        await this.ensureVersionEditor(tx, {
+          version,
+          document: clonedDocument,
+          actor
+        });
+      }
+
+      return clonedDocument;
     });
   }
 
-  async deleteDocument(d: { document: ResolvedDocumentRecord }) {
+  async deleteDocument(
+    d: CargoTenantEnvironment & {
+      document: ResolvedDocumentRecord;
+      actorId?: string;
+      defaultPermissions?: StoreParticipantPermissions[];
+      overridePermissions?: boolean;
+    }
+  ) {
+    await storeAccessService.assertStoreAccessForDocument({
+      tenant: d.tenant,
+      environment: d.environment,
+      document: d.document,
+      actorId: d.actorId,
+      defaultPermissions: d.defaultPermissions,
+      overridePermissions: d.overridePermissions,
+      requiredPermission: storeWritePermission
+    });
+
     this.ensureDocumentActive(d.document);
 
     let deletedDocument = await db.$transaction(async tx => {

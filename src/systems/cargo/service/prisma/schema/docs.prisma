@@ -35,6 +35,9 @@ model Document {
   parentDocument    Document?  @relation("DocumentToSubdocument", fields: [parentDocumentOid], references: [oid], onDelete: Cascade)
   subdocuments      Document[] @relation("DocumentToSubdocument")
 
+  createdByTenantActorOid BigInt?
+  createdByTenantActor    TenantActor? @relation("DocumentCreator", fields: [createdByTenantActorOid], references: [oid], onDelete: SetNull)
+
   createdAt            DateTime              @default(now())
   updatedAt            DateTime              @default(now()) @updatedAt
   documentParticipants DocumentParticipant[]

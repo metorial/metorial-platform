@@ -3,6 +3,7 @@ import { v } from '@lowerdeck/validation';
 import { documentParticipantPresenter } from '../presenters';
 import { documentParticipantService } from '../services';
 import { app } from './_app';
+import { storePermissionsSchema } from './document';
 import { tenantApp } from './tenant';
 
 export let documentParticipantApp = tenantApp.use(async ctx => {
@@ -26,7 +27,10 @@ export let documentParticipantController = app.controller({
         v.object({
           tenantId: v.string(),
           environmentId: v.string(),
-          documentId: v.string()
+          documentId: v.string(),
+          actorId: v.optional(v.string()),
+          defaultPermissions: v.optional(storePermissionsSchema),
+          overridePermissions: v.optional(v.boolean())
         })
       )
     )
@@ -34,7 +38,10 @@ export let documentParticipantController = app.controller({
       let paginator = await documentParticipantService.listDocumentParticipants({
         tenant: ctx.tenant,
         environment: ctx.environment,
-        documentId: ctx.input.documentId
+        documentId: ctx.input.documentId,
+        actorId: ctx.input.actorId,
+        defaultPermissions: ctx.input.defaultPermissions,
+        overridePermissions: ctx.input.overridePermissions
       });
       let list = await paginator.run(ctx.input);
 
@@ -47,8 +54,22 @@ export let documentParticipantController = app.controller({
       v.object({
         tenantId: v.string(),
         environmentId: v.string(),
-        documentParticipantId: v.string()
+        documentParticipantId: v.string(),
+        actorId: v.optional(v.string()),
+        defaultPermissions: v.optional(storePermissionsSchema),
+        overridePermissions: v.optional(v.boolean())
       })
     )
-    .do(async ctx => documentParticipantPresenter(ctx.documentParticipant))
+    .do(async ctx =>
+      documentParticipantPresenter(
+        await documentParticipantService.getDocumentParticipantById({
+          tenant: ctx.tenant,
+          environment: ctx.environment,
+          documentParticipantId: ctx.input.documentParticipantId,
+          actorId: ctx.input.actorId,
+          defaultPermissions: ctx.input.defaultPermissions,
+          overridePermissions: ctx.input.overridePermissions
+        })
+      )
+    )
 });

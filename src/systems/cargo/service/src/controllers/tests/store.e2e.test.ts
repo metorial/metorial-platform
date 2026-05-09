@@ -31,6 +31,19 @@ let createPurpose = async () =>
     canHaveLinks: true
   });
 
+let createActor = async (
+  tenantId: string,
+  d: {
+    identifier: string;
+    name: string;
+  }
+) =>
+  await cargoClient.actor.upsert({
+    tenantId,
+    identifier: d.identifier,
+    name: d.name
+  });
+
 let createFile = async (d: {
   tenantId: string;
   environmentId: string;
@@ -411,5 +424,194 @@ describe('cargo store.e2e', () => {
         ]
       })
     ).rejects.toThrow('Store cannot contain more than 1000 items');
+  });
+
+  it('enforces actor-scoped store read and write access', async () => {
+    let { tenant, environment } = await createScope();
+    let viewer = await createActor(tenant.id, {
+      identifier: 'store-viewer',
+      name: 'Store Viewer'
+    });
+    let store = await cargoClient.store.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      name: 'Secured Store'
+    });
+
+    let readable = await cargoClient.store.get({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: store.id,
+      actorId: viewer.id,
+      defaultPermissions: ['content_read']
+    });
+
+    expect(readable.id).toBe(store.id);
+
+    await expect(
+      cargoClient.store.update({
+        tenantId: tenant.id,
+        environmentId: environment.id,
+        storeId: store.id,
+        actorId: viewer.id,
+        name: 'Should Fail'
+      })
+    ).rejects.toThrow('Missing content_write access');
+
+    let updated = await cargoClient.store.update({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: store.id,
+      actorId: viewer.id,
+      name: 'Writable Store',
+      defaultPermissions: ['content_write'],
+      overridePermissions: true
+    });
+
+    expect(updated.name).toBe('Writable Store');
+  });
+
+  it('enforces actor-scoped store item mutations', async () => {
+    let { tenant, environment } = await createScope();
+    let purpose = await createPurpose();
+    let actor = await createActor(tenant.id, {
+      identifier: 'store-writer',
+      name: 'Store Writer'
+    });
+    let file = await createFile({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      purposeId: purpose.id,
+      storeId: 'store-file-write',
+      name: 'writer.png'
+    });
+    let store = await cargoClient.store.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      name: 'Writer Store'
+    });
+
+    await expect(
+      cargoClient.store.modifyItems({
+        tenantId: tenant.id,
+        environmentId: environment.id,
+        storeId: store.id,
+        actorId: actor.id,
+        defaultPermissions: ['content_read'],
+        operations: [
+          {
+            fileId: file.id,
+            path: '/denied.png'
+          }
+        ]
+      })
+    ).rejects.toThrow('Missing content_write access');
+
+    let added = await cargoClient.store.modifyItems({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: store.id,
+      actorId: actor.id,
+      defaultPermissions: ['content_write'],
+      overridePermissions: true,
+      operations: [
+        {
+          fileId: file.id,
+          path: '/allowed.png'
+        }
+      ]
+    });
+
+    let itemRecord = await db.storeItem.findUnique({
+      where: {
+        id: added[0]!.item.id
+      }
+    });
+
+    expect(added[0]!.item.path).toBe('/allowed.png');
+    expect(itemRecord?.lastModifiedByTenantActorOid).toBeTruthy();
+  });
+
+  it('gets and lists store participants with an optional store filter', async () => {
+    let { tenant, environment } = await createScope();
+    let firstActor = await createActor(tenant.id, {
+      identifier: 'participant-one',
+      name: 'Participant One'
+    });
+    let secondActor = await createActor(tenant.id, {
+      identifier: 'participant-two',
+      name: 'Participant Two'
+    });
+
+    let firstStore = await cargoClient.store.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      name: 'First Store'
+    });
+    let secondStore = await cargoClient.store.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      name: 'Second Store'
+    });
+
+    await cargoClient.store.get({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: firstStore.id,
+      actorId: firstActor.id,
+      defaultPermissions: ['content_read']
+    });
+    await cargoClient.store.get({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: secondStore.id,
+      actorId: secondActor.id,
+      defaultPermissions: ['content_read', 'content_write']
+    });
+
+    let firstParticipantRecord = await db.storeParticipant.findFirst({
+      where: {
+        store: {
+          id: firstStore.id
+        },
+        tenantActor: {
+          id: firstActor.id
+        }
+      }
+    });
+
+    let fetched = await cargoClient.storeParticipant.get({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeParticipantId: firstParticipantRecord!.id
+    });
+    let listedAll = await cargoClient.storeParticipant.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      limit: 10
+    });
+    let listedFiltered = await cargoClient.storeParticipant.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: firstStore.id,
+      limit: 10
+    });
+
+    expect(fetched).toMatchObject({
+      id: firstParticipantRecord!.id,
+      storeId: firstStore.id,
+      permissions: ['content_read'],
+      actor: {
+        id: firstActor.id
+      }
+    });
+    expect(listedAll.items).toHaveLength(2);
+    expect(listedFiltered.items).toHaveLength(1);
+    expect(listedFiltered.items[0]).toMatchObject({
+      storeId: firstStore.id,
+      actor: {
+        id: firstActor.id
+      }
+    });
   });
 });

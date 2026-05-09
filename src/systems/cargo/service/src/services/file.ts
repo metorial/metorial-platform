@@ -6,9 +6,10 @@ import {
 } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import type { File, Prisma, PrismaClient } from '../../prisma/generated/client';
+import type { File, Prisma, PrismaClient, StoreParticipantPermissions } from '../../prisma/generated/client';
 import { db } from '../db';
 import { getId } from '../id';
+import { actorService } from './actor';
 import { documentDraftService } from './documentDraft';
 import {
   documentFilePurposeSlug,
@@ -16,6 +17,8 @@ import {
   type CargoTenantEnvironment
 } from './filePurpose';
 import { fileReferenceService } from './fileReference';
+import { storeAccessService, storeWritePermission } from './storeAccess';
+import { storeItemMutationService } from './storeItemMutation';
 
 let include = {
   purpose: true,
@@ -29,6 +32,9 @@ let include = {
 } satisfies Prisma.FileInclude;
 
 type DbClient = PrismaClient | Prisma.TransactionClient;
+type FileRecord = Prisma.FileGetPayload<{
+  include: typeof include;
+}>;
 
 class FileServiceImpl {
   private async ensureFileActive(file: File) {
@@ -53,9 +59,25 @@ class FileServiceImpl {
         mimeType: string;
         size: number;
         title?: string;
+        actorId?: string;
+        store?: {
+          id: string;
+          path: string;
+        };
+        defaultPermissions?: StoreParticipantPermissions[];
+        overridePermissions?: boolean;
       };
     }
-  ) {
+  ): Promise<FileRecord> {
+    if (d.input.store && !d.client) {
+      return await db.$transaction(async tx =>
+        await this.createFile({
+          ...d,
+          client: tx
+        })
+      );
+    }
+
     let purpose = await filePurposeService.getFilePurposeById({
       id: d.purpose
     });
@@ -68,6 +90,13 @@ class FileServiceImpl {
     }
 
     let client = d.client ?? db;
+    let actor =
+      d.input.store && d.input.actorId
+        ? await actorService.getActorById({
+            tenant: d.tenant,
+            actorId: d.input.actorId
+          })
+        : undefined;
 
     let existing = d.input.id
       ? await client.file.findFirst({
@@ -80,7 +109,7 @@ class FileServiceImpl {
       : undefined;
 
     if (existing) {
-      return await client.file.update({
+      let updatedFile = await client.file.update({
         where: {
           id: existing.id
         },
@@ -95,11 +124,46 @@ class FileServiceImpl {
         },
         include
       });
+
+      if (d.input.store) {
+        let store = await storeAccessService.getStoreById({
+          tenant: d.tenant,
+          environment: d.environment,
+          storeId: d.input.store.id,
+          client
+        });
+
+        await storeAccessService.assertStoreAccessForStore({
+          tenant: d.tenant,
+          environment: d.environment,
+          store,
+          actorId: d.input.actorId,
+          defaultPermissions: d.input.defaultPermissions,
+          overridePermissions: d.input.overridePermissions,
+          requiredPermission: storeWritePermission,
+          client
+        });
+
+        await storeItemMutationService.attachTargetToStore({
+          tenant: d.tenant,
+          environment: d.environment,
+          store,
+          path: d.input.store.path,
+          target: {
+            file: updatedFile,
+            document: null
+          },
+          actor,
+          client
+        });
+      }
+
+      return updatedFile;
     }
 
     let generated = getId('file');
 
-    return await client.file.create({
+    let createdFile = await client.file.create({
       data: {
         oid: generated.oid,
         id: d.input.id ?? generated.id,
@@ -114,6 +178,41 @@ class FileServiceImpl {
       },
       include
     });
+
+    if (d.input.store) {
+      let store = await storeAccessService.getStoreById({
+        tenant: d.tenant,
+        environment: d.environment,
+        storeId: d.input.store.id,
+        client
+      });
+
+      await storeAccessService.assertStoreAccessForStore({
+        tenant: d.tenant,
+        environment: d.environment,
+        store,
+        actorId: d.input.actorId,
+        defaultPermissions: d.input.defaultPermissions,
+        overridePermissions: d.input.overridePermissions,
+        requiredPermission: storeWritePermission,
+        client
+      });
+
+      await storeItemMutationService.attachTargetToStore({
+        tenant: d.tenant,
+        environment: d.environment,
+        store,
+        path: d.input.store.path,
+        target: {
+          file: createdFile,
+          document: null
+        },
+        actor,
+        client
+      });
+    }
+
+    return createdFile;
   }
 
   async getFileById(

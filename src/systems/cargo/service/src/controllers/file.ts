@@ -4,6 +4,7 @@ import { normalizeArrayParam } from '../../../../../backend/apis/core/src/lib/no
 import { filePresenter } from '../presenters';
 import { fileService } from '../services';
 import { app } from './_app';
+import { storePermissionsSchema, storeShortcutSchema } from './document';
 import { tenantApp } from './tenant';
 
 export let fileApp = tenantApp.use(async ctx => {
@@ -32,7 +33,11 @@ export let fileController = app.controller({
         name: v.string(),
         mimeType: v.string(),
         size: v.number(),
-        title: v.optional(v.string())
+        title: v.optional(v.string()),
+        actorId: v.optional(v.string()),
+        store: v.optional(storeShortcutSchema),
+        defaultPermissions: v.optional(storePermissionsSchema),
+        overridePermissions: v.optional(v.boolean())
       })
     )
     .do(async ctx => {
@@ -46,7 +51,11 @@ export let fileController = app.controller({
           name: ctx.input.name,
           mimeType: ctx.input.mimeType,
           size: ctx.input.size,
-          title: ctx.input.title
+          title: ctx.input.title,
+          actorId: ctx.input.actorId,
+          store: ctx.input.store,
+          defaultPermissions: ctx.input.defaultPermissions,
+          overridePermissions: ctx.input.overridePermissions
         }
       });
 

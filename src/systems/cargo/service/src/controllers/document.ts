@@ -5,6 +5,12 @@ import { documentService } from '../services';
 import { app } from './_app';
 import { tenantApp } from './tenant';
 
+export let storePermissionsSchema = v.array(v.enumOf(['content_read', 'content_write']));
+export let storeShortcutSchema = v.object({
+  id: v.string(),
+  path: v.string()
+});
+
 export let documentApp = tenantApp.use(async ctx => {
   let documentId = ctx.body.documentId;
   if (!documentId) throw new Error('Document ID is required');
@@ -28,7 +34,10 @@ export let documentController = app.controller({
         documentId: v.optional(v.string()),
         title: v.string(),
         content: v.string(),
-        actorId: v.optional(v.string())
+        actorId: v.optional(v.string()),
+        store: v.optional(storeShortcutSchema),
+        defaultPermissions: v.optional(storePermissionsSchema),
+        overridePermissions: v.optional(v.boolean())
       })
     )
     .do(async ctx => {
@@ -39,7 +48,10 @@ export let documentController = app.controller({
           id: ctx.input.documentId,
           title: ctx.input.title,
           content: ctx.input.content,
-          actorId: ctx.input.actorId
+          actorId: ctx.input.actorId,
+          store: ctx.input.store,
+          defaultPermissions: ctx.input.defaultPermissions,
+          overridePermissions: ctx.input.overridePermissions
         }
       });
 
@@ -52,14 +64,20 @@ export let documentController = app.controller({
       Paginator.validate(
         v.object({
           tenantId: v.string(),
-          environmentId: v.string()
+          environmentId: v.string(),
+          actorId: v.optional(v.string()),
+          defaultPermissions: v.optional(storePermissionsSchema),
+          overridePermissions: v.optional(v.boolean())
         })
       )
     )
     .do(async ctx => {
       let paginator = await documentService.listDocuments({
         tenant: ctx.tenant,
-        environment: ctx.environment
+        environment: ctx.environment,
+        actorId: ctx.input.actorId,
+        defaultPermissions: ctx.input.defaultPermissions,
+        overridePermissions: ctx.input.overridePermissions
       });
       let list = await paginator.run(ctx.input);
 
@@ -73,7 +91,9 @@ export let documentController = app.controller({
         tenantId: v.string(),
         environmentId: v.string(),
         documentId: v.string(),
-        actorId: v.optional(v.string())
+        actorId: v.optional(v.string()),
+        defaultPermissions: v.optional(storePermissionsSchema),
+        overridePermissions: v.optional(v.boolean())
       })
     )
     .do(async ctx => {
@@ -81,7 +101,9 @@ export let documentController = app.controller({
         tenant: ctx.tenant,
         environment: ctx.environment,
         documentId: ctx.document.id,
-        actorId: ctx.input.actorId
+        actorId: ctx.input.actorId,
+        defaultPermissions: ctx.input.defaultPermissions,
+        overridePermissions: ctx.input.overridePermissions
       });
 
       return documentPresenter(document);
@@ -96,7 +118,9 @@ export let documentController = app.controller({
         documentId: v.string(),
         title: v.optional(v.string()),
         content: v.optional(v.string()),
-        actorId: v.optional(v.string())
+        actorId: v.optional(v.string()),
+        defaultPermissions: v.optional(storePermissionsSchema),
+        overridePermissions: v.optional(v.boolean())
       })
     )
     .do(async ctx => {
@@ -107,7 +131,9 @@ export let documentController = app.controller({
         input: {
           title: ctx.input.title,
           content: ctx.input.content,
-          actorId: ctx.input.actorId
+          actorId: ctx.input.actorId,
+          defaultPermissions: ctx.input.defaultPermissions,
+          overridePermissions: ctx.input.overridePermissions
         }
       });
 
@@ -120,12 +146,20 @@ export let documentController = app.controller({
       v.object({
         tenantId: v.string(),
         environmentId: v.string(),
-        documentId: v.string()
+        documentId: v.string(),
+        actorId: v.optional(v.string()),
+        defaultPermissions: v.optional(storePermissionsSchema),
+        overridePermissions: v.optional(v.boolean())
       })
     )
     .do(async ctx => {
       let document = await documentService.deleteDocument({
-        document: ctx.document
+        tenant: ctx.tenant,
+        environment: ctx.environment,
+        document: ctx.document,
+        actorId: ctx.input.actorId,
+        defaultPermissions: ctx.input.defaultPermissions,
+        overridePermissions: ctx.input.overridePermissions
       });
 
       return documentPresenter(document);
@@ -139,7 +173,10 @@ export let documentController = app.controller({
         environmentId: v.string(),
         documentId: v.string(),
         targetDocumentId: v.optional(v.string()),
-        title: v.optional(v.string())
+        title: v.optional(v.string()),
+        actorId: v.optional(v.string()),
+        defaultPermissions: v.optional(storePermissionsSchema),
+        overridePermissions: v.optional(v.boolean())
       })
     )
     .do(async ctx => {
@@ -149,7 +186,10 @@ export let documentController = app.controller({
         document: ctx.document,
         input: {
           id: ctx.input.targetDocumentId,
-          title: ctx.input.title
+          title: ctx.input.title,
+          actorId: ctx.input.actorId,
+          defaultPermissions: ctx.input.defaultPermissions,
+          overridePermissions: ctx.input.overridePermissions
         }
       });
 
