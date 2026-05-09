@@ -1,6 +1,6 @@
 import { createHono } from '@lowerdeck/hono';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
-import z from 'zod/v4';
+import z from 'zod';
 import { db } from '../../db';
 import { useValidation } from '../../lib/hono/validator';
 import { remoteOauthAuthorizationService, serverOAuthSetupService } from '../../services';
