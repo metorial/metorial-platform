@@ -6,10 +6,14 @@ import {
 } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import type { File } from '../../prisma/generated/client';
+import type { File, Prisma, PrismaClient } from '../../prisma/generated/client';
 import { db } from '../db';
 import { getId } from '../id';
-import { filePurposeService, type CargoTenantEnvironment } from './filePurpose';
+import {
+  documentFilePurposeSlug,
+  filePurposeService,
+  type CargoTenantEnvironment
+} from './filePurpose';
 import { fileReferenceService } from './fileReference';
 
 let include = {
@@ -17,6 +21,8 @@ let include = {
   tenant: true,
   environment: true
 };
+
+type DbClient = PrismaClient | Prisma.TransactionClient;
 
 class FileServiceImpl {
   private async ensureFileActive(file: File) {
@@ -33,6 +39,8 @@ class FileServiceImpl {
     d: CargoTenantEnvironment & {
       purpose: string;
       storeId: string;
+      _isDocument?: boolean;
+      client?: DbClient;
       input: {
         id?: string;
         name: string;
@@ -45,9 +53,18 @@ class FileServiceImpl {
     let purpose = await filePurposeService.getFilePurposeById({
       id: d.purpose
     });
+    if (purpose.slug === documentFilePurposeSlug && !d._isDocument) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Document purpose cannot be used for normal file creation'
+        })
+      );
+    }
+
+    let client = d.client ?? db;
 
     let existing = d.input.id
-      ? await db.file.findFirst({
+      ? await client.file.findFirst({
           where: {
             tenantOid: d.tenant.oid,
             environmentOid: d.environment.oid,
@@ -57,7 +74,7 @@ class FileServiceImpl {
       : undefined;
 
     if (existing) {
-      return await db.file.update({
+      return await client.file.update({
         where: {
           id: existing.id
         },
@@ -76,7 +93,7 @@ class FileServiceImpl {
 
     let generated = getId('file');
 
-    return await db.file.create({
+    return await client.file.create({
       data: {
         oid: generated.oid,
         id: d.input.id ?? generated.id,

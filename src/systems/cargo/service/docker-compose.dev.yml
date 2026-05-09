@@ -21,6 +21,21 @@ services:
     networks:
       - cargo-network
 
+  redis:
+    profiles: ['infra']
+    image: redis:7-alpine
+    container_name: cargo-redis
+    restart: unless-stopped
+    ports:
+      - '56379:6379'
+    networks:
+      - cargo-network
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   object-storage:
     profiles: ['infra']
     image: ghcr.io/metorial/object-storage:latest
@@ -61,6 +76,7 @@ services:
       - '52151:52151'
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgresql://cargo:cargo@postgres:5432/cargo}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
       OBJECT_STORAGE_URL: ${OBJECT_STORAGE_URL:-http://object-storage:52010}
       FILES_BUCKET_NAME: ${FILES_BUCKET_NAME:-mte-files}
       DOWNLOAD_PUBLIC_URL: ${DOWNLOAD_PUBLIC_URL:-http://localhost:52151}
@@ -74,6 +90,8 @@ services:
       - ./tsconfig.json:/app/tsconfig.json:ro
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
       object-storage:
         condition: service_healthy

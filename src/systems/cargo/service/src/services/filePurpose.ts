@@ -9,6 +9,9 @@ export type CargoTenantEnvironment = {
   environment: { oid: bigint; id: string };
 };
 
+export let documentFilePurposeSlug = 'document';
+export let documentFilePurposeName = 'Document';
+
 class FilePurposeServiceImpl {
   async upsertFilePurpose(
     d: {
@@ -81,6 +84,17 @@ class FilePurposeServiceImpl {
         })
       )
     );
+  }
+
+  async ensureDocumentFilePurpose() {
+    return await this.upsertFilePurpose({
+      input: {
+        slug: documentFilePurposeSlug,
+        name: documentFilePurposeName,
+        ownerType: 'organization',
+        canHaveLinks: true
+      }
+    });
   }
 }
 
