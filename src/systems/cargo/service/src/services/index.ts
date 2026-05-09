@@ -10,4 +10,6 @@ export * from './fileLink';
 export * from './filePurpose';
 export * from './fileReference';
 export * from './reconcile';
+export * from './store';
+export * from './storeItem';
 export * from './tenant';

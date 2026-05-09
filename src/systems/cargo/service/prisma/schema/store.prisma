@@ -1,0 +1,52 @@
+enum StoreStatus {
+  active
+  archived
+}
+
+model Store {
+  oid BigInt @id
+  id  String @unique
+
+  name      String
+  itemCount Int    @default(0)
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  parentStoreOid BigInt?
+  parentStore    Store?  @relation("StoreHierarchy", fields: [parentStoreOid], references: [oid], onDelete: Cascade)
+  childStores    Store[] @relation("StoreHierarchy")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  items             StoreItem[]
+  storeParticipants StoreParticipant[]
+}
+
+model StoreItem {
+  oid BigInt @id
+  id  String @unique
+
+  path String
+
+  storeOid BigInt
+  store    Store  @relation(fields: [storeOid], references: [oid], onDelete: Cascade)
+
+  fileOid BigInt
+  file    File   @relation(fields: [fileOid], references: [oid], onDelete: Cascade)
+
+  referenceOid BigInt
+  reference    FileReference @relation(fields: [referenceOid], references: [oid], onDelete: Cascade)
+
+  documentOid BigInt?
+  document    Document? @relation(fields: [documentOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([storeOid, path])
+}

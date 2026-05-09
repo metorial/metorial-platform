@@ -7,13 +7,23 @@ async function main() {
   await import('./init');
   await import('./instrument');
 
-  let [{ runQueueProcessors }, { documentCleanupProcessors }, { documentFlushProcessor }] = await Promise.all([
+  let [
+    { runQueueProcessors },
+    { documentCleanupProcessors },
+    { documentFlushProcessor },
+    { storeCleanupProcessors }
+  ] = await Promise.all([
     import('@lowerdeck/queue'),
     import('./queues/documentCleanup'),
-    import('./queues/documentFlush')
+    import('./queues/documentFlush'),
+    import('./queues/storeCleanup')
   ]);
 
-  await runQueueProcessors([documentFlushProcessor, documentCleanupProcessors]);
+  await runQueueProcessors([
+    documentFlushProcessor,
+    documentCleanupProcessors,
+    storeCleanupProcessors
+  ]);
 }
 
 main().catch(err => {

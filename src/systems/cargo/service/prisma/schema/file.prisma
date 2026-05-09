@@ -49,8 +49,9 @@ model File {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  links    FileLink[]
-  document Document?
+  links      FileLink[]
+  document   Document?
+  storeItems StoreItem[]
 
   @@index([tenantOid, environmentOid, status])
 }
@@ -95,6 +96,8 @@ model FileReference {
   entityId   String
 
   createdAt DateTime @default(now())
+
+  storeItems StoreItem[]
 
   @@unique([fileLinkOid, entityType, entityId])
   @@index([tenantOid, environmentOid, entityType, entityId])

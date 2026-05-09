@@ -7,7 +7,7 @@ import {
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { generatePlainId } from '@lowerdeck/id';
-import type { FileLink } from '../../prisma/generated/client';
+import type { FileLink, Prisma, PrismaClient } from '../../prisma/generated/client';
 import { db } from '../db';
 import { env } from '../env';
 import { getId } from '../id';
@@ -29,6 +29,8 @@ let include = {
   environment: true
 };
 
+type DbClient = PrismaClient | Prisma.TransactionClient;
+
 class FileLinkServiceImpl {
   private getGeneratedKey() {
     return `${generatePlainId(30)}_${env.service.CARGO_REGION ?? 'ext'}`;
@@ -48,6 +50,7 @@ class FileLinkServiceImpl {
         key?: string;
         expiresAt?: Date;
       };
+      client?: DbClient;
     }
   ) {
     if (!d.file.purpose.canHaveLinks) {
@@ -58,8 +61,10 @@ class FileLinkServiceImpl {
       );
     }
 
+    let client = d.client ?? db;
+
     let existing = d.input.id
-      ? await db.fileLink.findFirst({
+      ? await client.fileLink.findFirst({
           where: {
             tenantOid: d.tenant.oid,
             environmentOid: d.environment.oid,
@@ -67,7 +72,7 @@ class FileLinkServiceImpl {
           }
         })
       : d.input.key
-        ? await db.fileLink.findFirst({
+        ? await client.fileLink.findFirst({
             where: {
               tenantOid: d.tenant.oid,
               environmentOid: d.environment.oid,
@@ -77,7 +82,7 @@ class FileLinkServiceImpl {
         : undefined;
 
     if (existing) {
-      return await db.fileLink.update({
+      return await client.fileLink.update({
         where: {
           id: existing.id
         },
@@ -92,7 +97,7 @@ class FileLinkServiceImpl {
 
     let generated = getId('fileLink');
 
-    return await db.fileLink.create({
+    return await client.fileLink.create({
       data: {
         oid: generated.oid,
         id: d.input.id ?? generated.id,

@@ -9,6 +9,8 @@ export let ID = createIdGenerator({
   file: idType.sorted('cfi_'),
   fileLink: idType.sorted('cfl_'),
   fileRef: idType.sorted('cfr_'),
+  store: idType.sorted('cst_'),
+  storeItem: idType.sorted('csti_'),
   document: idType.sorted('cdoc_'),
   documentContent: idType.sorted('cdocn_'),
   documentParticipant: idType.sorted('cdocp_'),

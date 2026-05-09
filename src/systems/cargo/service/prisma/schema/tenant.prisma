@@ -19,6 +19,7 @@ model Tenant {
   documents        Document[]
   tenantActors     TenantActor[]
   documentVersions DocumentVersion[]
+  stores           Store[]
 }
 
 model Environment {
@@ -40,6 +41,7 @@ model Environment {
   fileReferences   FileReference[]
   documents        Document[]
   documentVersions DocumentVersion[]
+  stores           Store[]
 
   @@unique([tenantOid, identifier])
   @@index([tenantOid])
@@ -64,7 +66,8 @@ model TenantActor {
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
 
-  createdAt              DateTime                 @default(now())
+  createdAt DateTime @default(now())
+
   documentParticipants   DocumentParticipant[]
   documentVersionEditors DocumentVersionEditors[]
 

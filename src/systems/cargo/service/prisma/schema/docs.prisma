@@ -39,6 +39,7 @@ model Document {
   updatedAt            DateTime              @default(now()) @updatedAt
   documentParticipants DocumentParticipant[]
   documentVersions     DocumentVersion[]
+  storeItems           StoreItem[]
 
   @@index([tenantOid, environmentOid])
 }

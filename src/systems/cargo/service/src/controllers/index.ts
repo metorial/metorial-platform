@@ -10,6 +10,8 @@ import { fileLinkController } from './fileLink';
 import { filePurposeController } from './filePurpose';
 import { fileReferenceController } from './fileReference';
 import { reconcileController } from './reconcile';
+import { storeController } from './store';
+import { storeItemController } from './storeItem';
 import { tenantController } from './tenant';
 
 export let rootController = app.controller({
@@ -20,6 +22,8 @@ export let rootController = app.controller({
   file: fileController,
   fileLink: fileLinkController,
   fileReference: fileReferenceController,
+  store: storeController,
+  storeItem: storeItemController,
   document: documentController,
   documentVersion: documentVersionController,
   documentParticipant: documentParticipantController,
