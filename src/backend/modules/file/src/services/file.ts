@@ -1,16 +1,11 @@
-import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { Instance, Organization, User } from '@metorial/db';
-import {
-  cargo,
-  type CargoFile,
-  ensureCargoScope,
-  reconcileCargoPurposes,
-  resolveCargoScopeDescriptorForOwner
-} from '../cargo';
+import { cargo, type CargoFile, reconcileCargoPurposes } from '../cargo';
 import { purposes } from '../definitions';
 import { fileReferenceService } from './fileReference';
+import { resolveCargoScopeForOwner } from './scope';
 
 export type FileOwner =
   | {
@@ -29,17 +24,7 @@ export type FileOwner =
 
 class FileServiceImpl {
   private async getScope(owner: FileOwner) {
-    let descriptor = await resolveCargoScopeDescriptorForOwner(owner);
-    if (!descriptor) {
-      throw new ServiceError(
-        notFoundError(
-          'file.scope',
-          owner.type === 'user' ? owner.user.id : owner.organization.id
-        )
-      );
-    }
-
-    return await ensureCargoScope(descriptor);
+    return await resolveCargoScopeForOwner(owner);
   }
 
   private validatePurposeOwner(d: { purpose: { ownerType: string }; owner: FileOwner }) {

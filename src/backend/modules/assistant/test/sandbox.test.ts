@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createSandbox } from '../src/lib/definitions';
+import { createSandbox } from '../src/lib/definitions/sandbox';
 
 describe('createSandbox', () => {
   it('shares filesystem state between fs and shell providers', async () => {

@@ -11,6 +11,7 @@ import {
   resolveCargoScopeDescriptorForProject
 } from '../cargo';
 import type { FileOwner } from './file';
+import { resolveCargoScopeForOwner } from './scope';
 
 export type ImageFileOwner =
   | {
@@ -24,17 +25,7 @@ export type ImageFileOwner =
 
 class FileReferenceServiceImpl {
   private async getScopeForOwner(owner: FileOwner) {
-    let descriptor = await resolveCargoScopeDescriptorForOwner(owner);
-    if (!descriptor) {
-      throw new ServiceError(
-        notFoundError(
-          'file.scope',
-          owner.type === 'user' ? owner.user.id : owner.organization.id
-        )
-      );
-    }
-
-    return await ensureCargoScope(descriptor);
+    return await resolveCargoScopeForOwner(owner);
   }
 
   async hasReferences(d: { fileLink: CargoFileLink; owner: FileOwner }) {
@@ -97,8 +88,7 @@ class FileReferenceServiceImpl {
               : {
                   type: 'organization',
                   organization: {
-                    id: d.owner.organizationId,
-                    name: d.owner.organizationId
+                    id: d.owner.organizationId
                   }
                 }
           );

@@ -1,30 +1,15 @@
-import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { Instance, Organization } from '@metorial/db';
-import {
-  type CargoFile,
-  type CargoFileLink,
-  cargo,
-  ensureCargoScope,
-  resolveCargoScopeDescriptorForOwner
-} from '../cargo';
+import { type CargoFile, type CargoFileLink, cargo } from '../cargo';
 import type { FileOwner } from './file';
 import { fileReferenceService } from './fileReference';
+import { resolveCargoScopeForOwner } from './scope';
 
 class FileLinkServiceImpl {
   private async getScopeForOwner(owner: FileOwner) {
-    let descriptor = await resolveCargoScopeDescriptorForOwner(owner);
-    if (!descriptor) {
-      throw new ServiceError(
-        notFoundError(
-          'file.scope',
-          owner.type === 'user' ? owner.user.id : owner.organization.id
-        )
-      );
-    }
-
-    return await ensureCargoScope(descriptor);
+    return await resolveCargoScopeForOwner(owner);
   }
 
   async createFileLink(d: {
@@ -71,7 +56,7 @@ class FileLinkServiceImpl {
   }
 
   private async getScope(d: { organization: Organization; instance?: Instance }) {
-    let descriptor = await resolveCargoScopeDescriptorForOwner(
+    return await resolveCargoScopeForOwner(
       d.instance
         ? {
             type: 'instance',
@@ -83,11 +68,6 @@ class FileLinkServiceImpl {
             organization: d.organization
           }
     );
-    if (!descriptor) {
-      throw new ServiceError(notFoundError('file.scope', d.organization.id));
-    }
-
-    return await ensureCargoScope(descriptor);
   }
 
   async listFileLinksForOrganization(d: {

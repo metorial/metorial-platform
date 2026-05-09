@@ -1,0 +1,41 @@
+enum EnvironmentType {
+  development
+  production
+}
+
+model Tenant {
+  oid BigInt @id
+  id  String @unique
+
+  identifier String @unique
+  name       String
+
+  createdAt DateTime @default(now())
+
+  environments   Environment[]
+  files          File[]
+  fileLinks      FileLink[]
+  fileReferences FileReference[]
+}
+
+model Environment {
+  oid BigInt @id
+  id  String @unique
+
+  type EnvironmentType
+
+  identifier String
+  name       String
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  files          File[]
+  fileLinks      FileLink[]
+  fileReferences FileReference[]
+
+  @@unique([tenantOid, identifier])
+  @@index([tenantOid])
+}

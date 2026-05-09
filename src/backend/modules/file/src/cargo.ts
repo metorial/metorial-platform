@@ -40,12 +40,12 @@ type CargoScopeOwner =
     }
   | {
       type: 'organization';
-      organization: Pick<Organization, 'id' | 'name'>;
+      organization: Pick<Organization, 'id'>;
     }
   | {
       type: 'instance';
-      organization: Pick<Organization, 'id' | 'name'>;
-      instance: Pick<Instance, 'id' | 'name' | 'type'>;
+      organization: Pick<Organization, 'id'>;
+      instance: Pick<Instance, 'id' | 'type'>;
     };
 
 export type CargoFile = Awaited<ReturnType<typeof cargo.file.create>>;
