@@ -122,7 +122,8 @@ export let getTenantForSubspace = async (
       identifier: instance.subspaceTenantIdentifier!
     },
     solution,
-    environmentId: instance.subspaceEnvironmentId!
+    environmentId: instance.subspaceEnvironmentId!,
+    environmentIdentifier: instance.subspaceEnvironmentIdentifier!
   };
 };
 
