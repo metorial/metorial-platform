@@ -6,10 +6,10 @@ import { authenticate } from '@metorial/auth';
 import { generatePlainId } from '@metorial/id';
 import {
   fileLinkService,
-  fileService,
   getOssFilesBucketName,
   getStorage,
-  purposeSlugs
+  purposeSlugs,
+  uploadCargoFile
 } from '@metorial/module-file';
 import { organizationService } from '@metorial/module-organization';
 
@@ -69,42 +69,34 @@ let createFileUploadHandler =
           );
         }
 
-        let storeId = generatePlainId(20);
-        await getStorage().putObject(
-          getOssFilesBucketName(),
-          storeId,
-          file,
-          file.type ?? 'application/octet-stream'
-        );
-
-        let createdFile = await fileService.createFile({
-          owner:
-            auth.type == 'machine'
+        let owner =
+          auth.type == 'machine'
+            ? {
+                type: 'organization' as const,
+                organization: auth.restrictions.organization
+              }
+            : organizationId
               ? {
-                  type: 'organization',
-                  organization: auth.restrictions.organization
+                  type: 'organization' as const,
+                  organization: (
+                    await organizationService.getOrganizationByIdForUser({
+                      organizationId,
+                      user: auth.user
+                    })
+                  ).organization
                 }
-              : organizationId
-                ? {
-                    type: 'organization',
-                    organization: (
-                      await organizationService.getOrganizationByIdForUser({
-                        organizationId,
-                        user: auth.user
-                      })
-                    ).organization
-                  }
-                : {
-                    type: 'user',
-                    user: auth.user
-                  },
+              : {
+                  type: 'user' as const,
+                  user: auth.user
+                };
+
+        let storeId = generatePlainId(20);
+        let createdFile = await uploadCargoFile({
+          owner,
           storeId,
           purpose,
-          input: {
-            name: file.name,
-            mimeType: file.type ?? 'application/octet-stream',
-            size: file.size
-          }
+          file,
+          fileName: file.name
         });
 
         return c.json({

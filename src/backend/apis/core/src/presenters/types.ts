@@ -89,6 +89,7 @@ import type {
   OAuthAuthorizationRequestWithRelations
 } from '@metorial/module-machine-access';
 import type { PolicyDocument, ProjectBrandOverride } from '@metorial/module-organization';
+import type { CargoFile, CargoFileLink } from '@metorial/module-file';
 import {
   SubspaceAgent,
   SubspaceAgentInstance,
@@ -400,11 +401,11 @@ export let serviceAccountCredentialType = PresentableType.create<{
 }>()('service_account_credential');
 
 export let fileType = PresentableType.create<{
-  file: File & { purpose: FilePurpose };
+  file: CargoFile;
 }>()('file');
 
 export let fileLinkType = PresentableType.create<{
-  fileLink: FileLink & { file: File };
+  fileLink: CargoFileLink;
 }>()('fileLink');
 
 export let secretType = PresentableType.create<{

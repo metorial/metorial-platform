@@ -11,7 +11,8 @@ let fileLinkRootGroup = instanceGroup.use(async ctx => {
 
   let fileLink = await fileLinkService.getFileLinkByIdForOrganization({
     fileLinkId: ctx.params.linkId,
-    organization: ctx.organization
+    organization: ctx.organization,
+    instance: ctx.instance
   });
 
   return { fileLink };
@@ -45,6 +46,7 @@ export let fileLinkController = Controller.create(
       .do(async ctx => {
         let paginator = await fileLinkService.listFileLinksForOrganization({
           organization: ctx.organization,
+          instance: ctx.instance,
           fileId: ctx.query.file_id
         });
 
@@ -92,6 +94,11 @@ export let fileLinkController = Controller.create(
 
         let fileLink = await fileLinkService.createFileLink({
           file,
+          owner: {
+            type: 'instance',
+            instance: ctx.instance,
+            organization: ctx.organization
+          },
           input: {
             expiresAt: ctx.body.expires_at
           }
@@ -111,7 +118,12 @@ export let fileLinkController = Controller.create(
       .output(fileLinkPresenter)
       .do(async ctx => {
         let fileLink = await fileLinkService.deleteFileLink({
-          fileLink: ctx.fileLink
+          fileLink: ctx.fileLink,
+          owner: {
+            type: 'instance',
+            instance: ctx.instance,
+            organization: ctx.organization
+          }
         });
 
         return fileLinkPresenter.present({ fileLink });

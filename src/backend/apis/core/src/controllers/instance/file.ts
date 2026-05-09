@@ -79,7 +79,12 @@ export let fileController = Controller.create(
       .output(filePresenter)
       .do(async ctx => {
         let file = await fileService.deleteFile({
-          file: ctx.file
+          file: ctx.file,
+          owner: {
+            type: 'instance',
+            instance: ctx.instance,
+            organization: ctx.organization
+          }
         });
 
         return filePresenter.present({ file });

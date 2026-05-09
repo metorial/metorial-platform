@@ -1,19 +1,21 @@
-import {
-  badRequestError,
-  forbiddenError,
-  notFoundError,
-  ServiceError
-} from '@lowerdeck/error';
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { db, File, ID, Instance, Organization } from '@metorial/db';
+import { Instance, Organization, User } from '@metorial/db';
+import {
+  cargo,
+  type CargoFile,
+  ensureCargoScope,
+  reconcileCargoPurposes,
+  resolveCargoScopeDescriptorForOwner
+} from '../cargo';
 import { purposes } from '../definitions';
 import { fileReferenceService } from './fileReference';
 
 export type FileOwner =
   | {
       type: 'user';
-      user: { id: string };
+      user: User;
     }
   | {
       type: 'organization';
@@ -26,22 +28,28 @@ export type FileOwner =
     };
 
 class FileServiceImpl {
-  private async ensureFileActive(file: File) {
-    if (file.status !== 'active') {
+  private async getScope(owner: FileOwner) {
+    let descriptor = await resolveCargoScopeDescriptorForOwner(owner);
+    if (!descriptor) {
       throw new ServiceError(
-        forbiddenError({
-          message: 'Cannot perform this action on a deleted file'
+        notFoundError(
+          'file.scope',
+          owner.type === 'user' ? owner.user.id : owner.organization.id
+        )
+      );
+    }
+
+    return await ensureCargoScope(descriptor);
+  }
+
+  private validatePurposeOwner(d: { purpose: { ownerType: string }; owner: FileOwner }) {
+    if (d.purpose.ownerType !== d.owner.type) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Invalid file purpose for owner'
         })
       );
     }
-  }
-
-  private async getUserOid(userId: string) {
-    let user = await db.user.findFirst({
-      where: { id: userId }
-    });
-    if (!user) throw new Error('WTF - user not found');
-    return user.oid;
   }
 
   async createFile(d: {
@@ -65,101 +73,62 @@ class FileServiceImpl {
       );
     }
 
-    if (purpose.ownerType !== d.owner.type) {
-      throw new ServiceError(
-        badRequestError({
-          message: 'Invalid file purpose for owner'
-        })
-      );
-    }
+    this.validatePurposeOwner({ purpose, owner: d.owner });
 
-    return await db.file.create({
-      data: {
-        id: await ID.generateId('file'),
-        storeId: d.storeId,
-        purposeOid: purpose.oid,
-        organizationOid: d.owner.type === 'organization' ? d.owner.organization.oid : null,
-        userOid: d.owner.type === 'user' ? await this.getUserOid(d.owner.user.id) : null,
+    await reconcileCargoPurposes();
 
-        fileName: d.input.name,
-        fileSize: d.input.size,
-        fileType: d.input.mimeType,
+    let scope = await this.getScope(d.owner);
 
-        title: d.input.title
-      },
-      include: {
-        purpose: true
-      }
+    let file = await cargo.file.create({
+      tenantId: scope.tenantId,
+      environmentId: scope.environmentId,
+      purpose: d.purpose,
+      storeId: d.storeId,
+      name: d.input.name,
+      mimeType: d.input.mimeType,
+      size: d.input.size,
+      title: d.input.title
     });
+
+    return file;
   }
 
   async getFileById(d: { fileId: string; owner: FileOwner }) {
-    let userOid = d.owner.type === 'user' ? await this.getUserOid(d.owner.user.id) : null;
-
-    let file = await db.file.findUnique({
-      where: {
-        id: d.fileId,
-
-        ...(d.owner.type === 'organization' || d.owner.type === 'instance'
-          ? {
-              organizationOid: d.owner.organization.oid
-            }
-          : {
-              OR: [
-                {
-                  userOid: userOid!
-                },
-                {
-                  organization: {
-                    members: {
-                      some: {
-                        userOid: userOid!
-                      }
-                    }
-                  }
-                }
-              ]
-            })
-      },
-      include: {
-        purpose: true
-      }
+    let scope = await this.getScope(d.owner);
+    let file = await cargo.file.get({
+      tenantId: scope.tenantId,
+      environmentId: scope.environmentId,
+      fileId: d.fileId
     });
-    if (!file) {
-      throw new ServiceError(notFoundError('file', d.fileId));
-    }
 
     return file;
   }
 
   async updateFile(d: {
-    file: File;
+    file: CargoFile;
+    owner: FileOwner;
     input: {
       title?: string;
     };
   }) {
-    await this.ensureFileActive(d.file);
+    let scope = await this.getScope(d.owner);
 
-    let file = await db.file.update({
-      where: {
-        id: d.file.id
-      },
-      data: {
-        title: d.input.title
-      },
-      include: {
-        purpose: true
-      }
+    let file = await cargo.file.update({
+      tenantId: scope.tenantId,
+      environmentId: scope.environmentId,
+      fileId: d.file.id,
+      title: d.input.title
     });
 
     return file;
   }
 
-  async deleteFile(d: { file: File }) {
-    await this.ensureFileActive(d.file);
+  async deleteFile(d: { file: CargoFile; owner: FileOwner }) {
+    let scope = await this.getScope(d.owner);
 
     let hasRefs = await fileReferenceService.hasReferencesForFile({
-      file: d.file
+      file: d.file,
+      owner: d.owner
     });
     if (hasRefs) {
       throw new ServiceError(
@@ -169,51 +138,39 @@ class FileServiceImpl {
       );
     }
 
-    return await db.file.update({
-      where: {
-        id: d.file.id
-      },
-      data: {
-        status: 'deleted'
-      },
-      include: {
-        purpose: true
-      }
+    let file = await cargo.file.delete({
+      tenantId: scope.tenantId,
+      environmentId: scope.environmentId,
+      fileId: d.file.id
     });
+
+    return file;
   }
 
   async listFiles(d: { owner: FileOwner; purpose?: string }) {
     let purpose = d.purpose ? await purposes[d.purpose as keyof typeof purposes] : undefined;
     if (purpose && purpose.ownerType !== d.owner.type) {
-      throw new ServiceError(
-        badRequestError({
-          message: 'Invalid file purpose for owner'
-        })
-      );
+      this.validatePurposeOwner({ purpose, owner: d.owner });
     }
 
-    return Paginator.create(({ prisma }) =>
-      prisma(
-        async opts =>
-          await db.file.findMany({
-            ...opts,
-            where: {
-              status: 'active',
-              ...(d.owner.type === 'organization' || d.owner.type === 'instance'
-                ? {
-                    organizationOid: d.owner.organization.oid
-                  }
-                : {
-                    userOid: await this.getUserOid(d.owner.user.id)
-                  }),
-              purposeOid: purpose?.oid
-            },
-            include: {
-              purpose: true
-            }
-          })
-      )
-    );
+    let scope = await this.getScope(d.owner);
+
+    return Paginator.create(() => async input => {
+      let result = await cargo.file.list({
+        tenantId: scope.tenantId,
+        environmentId: scope.environmentId,
+        purpose: d.purpose,
+        ...input
+      });
+
+      return {
+        items: result.items,
+        pagination: {
+          hasNextPage: result.pagination.has_more_after,
+          hasPreviousPage: result.pagination.has_more_before
+        }
+      };
+    });
   }
 }
 

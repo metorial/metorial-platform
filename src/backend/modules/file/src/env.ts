@@ -3,7 +3,8 @@ import { v } from '@lowerdeck/validation';
 
 export let env = createValidatedEnv({
   service: {
-    METORIAL_REGION: v.optional(v.enumOf(['us1', 'eu1']))
+    METORIAL_REGION: v.optional(v.enumOf(['us1', 'eu1'])),
+    CARGO_API_URL: v.string()
   },
 
   storage: {
