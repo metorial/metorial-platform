@@ -1,12 +1,49 @@
 import { createHono } from '@lowerdeck/hono';
+import { validationError } from '@lowerdeck/error';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import z from 'zod';
 import { db } from '../../db';
-import { useValidation } from '../../lib/hono/validator';
 import { remoteOauthAuthorizationService, serverOAuthSetupService } from '../../services';
 import { delegatedOauthAuthorizationService } from '../../services/oauth/delegated';
 
 let STATE_COOKIE_NAME = 'subspace_oauth_state';
+
+let shuttleOauthStartQuerySchema = z.object({
+  setup_id: z.string()
+});
+
+let shuttleOauthCallbackQuerySchema = z.object({
+  code: z.optional(z.string()),
+  state: z.optional(z.string()),
+  error: z.optional(z.string()),
+  error_description: z.optional(z.string())
+});
+
+let parseQuery = <T extends z.ZodTypeAny>(c: any, schema: T) => {
+  let result = schema.safeParse(c.req.query());
+
+  if (!result.success) {
+    return {
+      ok: false as const,
+      response: c.json(
+        validationError({
+          entity: 'query',
+          errors: result.error.issues.map(e => ({
+            code: e.code,
+            message: e.message,
+            path: e.path.map(p => p.toString())
+          }))
+        }).toResponse(),
+        400
+      )
+    };
+  }
+
+  return {
+    ok: true as const,
+    data: result.data
+  };
+};
 
 export let publicApp = createHono()
   .use(async (c, next) => {
@@ -21,16 +58,11 @@ export let publicApp = createHono()
     c.res.headers.set('Access-Control-Allow-Credentials', 'true');
   })
   .get('/ping', c => c.text('OK'))
-  .get(
-    '/shuttle-oauth/start',
-    useValidation(
-      'query',
-      z.object({
-        setup_id: z.string()
-      })
-    ),
-    async c => {
-      let query = c.req.valid('query');
+  .get('/shuttle-oauth/start', async c => {
+      let parsedQuery = parseQuery(c, shuttleOauthStartQuerySchema);
+      if (!parsedQuery.ok) return parsedQuery.response;
+
+      let query = parsedQuery.data;
       let setup = await serverOAuthSetupService.consumeServerOAuthSetup({
         serverOAuthSetupId: query.setup_id
       });
@@ -40,21 +72,12 @@ export let publicApp = createHono()
       }
 
       return c.redirect(setup.url);
-    }
-  )
-  .get(
-    '/shuttle-oauth/callback',
-    useValidation(
-      'query',
-      z.object({
-        code: z.optional(z.string()),
-        state: z.optional(z.string()),
-        error: z.optional(z.string()),
-        error_description: z.optional(z.string())
-      })
-    ),
-    async c => {
-      let query = c.req.query();
+    })
+  .get('/shuttle-oauth/callback', async c => {
+      let parsedQuery = parseQuery(c, shuttleOauthCallbackQuerySchema);
+      if (!parsedQuery.ok) return parsedQuery.response;
+
+      let query = { ...parsedQuery.data };
 
       if (!query.state) {
         let stateCookie = getCookie(c, STATE_COOKIE_NAME);
@@ -98,5 +121,4 @@ export let publicApp = createHono()
       deleteCookie(c, STATE_COOKIE_NAME, { path: '/' });
 
       return c.redirect(redirectUrl, 302);
-    }
-  );
+    });

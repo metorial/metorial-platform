@@ -66,10 +66,6 @@ export let reconcileCargoFileSingleQueue = createQueue<{ fileId: string }>({
   }
 });
 
-export let enqueueCargoFileReconcile = async (fileId: string) => {
-  await reconcileCargoFileSingleQueue.add({ fileId });
-};
-
 export let reconcileCargoFilesManyQueueProcessor = reconcileCargoFilesManyQueue.process(
   async data => {
     let files = await db.file.findMany({
