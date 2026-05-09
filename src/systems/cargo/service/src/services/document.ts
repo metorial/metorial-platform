@@ -6,7 +6,12 @@ import {
 } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import type { Prisma, PrismaClient, TenantActor } from '../../prisma/generated/client';
+import type {
+  DocumentParticipantRole,
+  Prisma,
+  PrismaClient,
+  TenantActor
+} from '../../prisma/generated/client';
 import { db } from '../db';
 import { getId } from '../id';
 import { documentFlushQueue } from '../queues/documentFlush';
@@ -110,13 +115,15 @@ class DocumentServiceImpl {
     }
   }
 
-  private async ensureParticipant(
+  private async upsertParticipant(
     tx: TransactionClient,
     d: {
       document: { oid: bigint };
       actor: { oid: bigint };
+      mode: 'view' | 'edit';
     }
   ) {
+    let now = new Date();
     let existing = await tx.documentParticipant.findFirst({
       where: {
         documentOid: d.document.oid,
@@ -124,7 +131,25 @@ class DocumentServiceImpl {
       }
     });
 
-    if (existing) return existing;
+    let role: DocumentParticipantRole =
+      d.mode === 'edit' || existing?.role === 'editor' ? 'editor' : 'viewer';
+
+    if (existing) {
+      return await tx.documentParticipant.update({
+        where: {
+          id: existing.id
+        },
+        data: {
+          role,
+          lastViewedAt: now,
+          ...(d.mode === 'edit'
+            ? {
+                lastEditedAt: now
+              }
+            : {})
+        }
+      });
+    }
 
     let generated = getId('documentParticipant');
 
@@ -132,8 +157,15 @@ class DocumentServiceImpl {
       data: {
         oid: generated.oid,
         id: generated.id,
+        role,
         documentOid: d.document.oid,
-        tenantActorOid: d.actor.oid
+        tenantActorOid: d.actor.oid,
+        lastViewedAt: now,
+        ...(d.mode === 'edit'
+          ? {
+              lastEditedAt: now
+            }
+          : {})
       }
     });
   }
@@ -142,6 +174,7 @@ class DocumentServiceImpl {
     tx: TransactionClient,
     d: {
       version: { oid: bigint };
+      document: { oid: bigint };
       actor: { oid: bigint };
     }
   ) {
@@ -155,6 +188,18 @@ class DocumentServiceImpl {
     if (existing) return existing;
 
     let generated = getId('documentVersionEditor');
+
+    await tx.documentParticipant.updateMany({
+      where: {
+        documentOid: d.document.oid,
+        tenantActorOid: d.actor.oid
+      },
+      data: {
+        editCount: {
+          increment: 1
+        }
+      }
+    });
 
     return await tx.documentVersionEditors.create({
       data: {
@@ -331,13 +376,6 @@ class DocumentServiceImpl {
     let hasTitleChange = nextTitle !== d.document.title;
 
     if (!hasContentChange && !hasTitleChange) {
-      for (let actor of d.actors) {
-        await this.ensureParticipant(tx, {
-          document: d.document,
-          actor
-        });
-      }
-
       return d.document;
     }
 
@@ -394,14 +432,10 @@ class DocumentServiceImpl {
     });
 
     for (let actor of d.actors) {
-      await this.ensureParticipant(tx, {
-        document: updatedDocument,
-        actor
-      });
-
       if (hasContentChange && activeVersion) {
         await this.ensureVersionEditor(tx, {
           version: activeVersion,
+          document: updatedDocument,
           actor
         });
       }
@@ -481,13 +515,15 @@ class DocumentServiceImpl {
       });
 
       if (actor) {
-        await this.ensureParticipant(tx, {
+        await this.upsertParticipant(tx, {
           document,
-          actor
+          actor,
+          mode: 'edit'
         });
 
         await this.ensureVersionEditor(tx, {
           version,
+          document,
           actor
         });
       }
@@ -508,9 +544,29 @@ class DocumentServiceImpl {
     d: CargoTenantEnvironment & {
       documentId: string;
       includeDeleted?: boolean;
+      actorId?: string;
     }
   ) {
+    let actor = d.actorId
+      ? await actorService.getActorById({
+          tenant: d.tenant,
+          actorId: d.actorId
+        })
+      : undefined;
+
     let document = await this.getDocumentRecord(db, d);
+    let resolved = await this.resolveDocument(document);
+
+    if (!actor) return resolved;
+
+    await db.$transaction(async tx => {
+      await this.upsertParticipant(tx, {
+        document,
+        actor,
+        mode: 'view'
+      });
+    });
+
     return await this.resolveDocument(document);
   }
 
@@ -606,6 +662,16 @@ class DocumentServiceImpl {
         draftUpdatedAt: new Date(nextDraft.updatedAt)
       } satisfies ResolvedDocumentRecord;
     });
+
+    if (actor) {
+      await db.$transaction(async tx => {
+        await this.upsertParticipant(tx, {
+          document: d.document,
+          actor,
+          mode: 'edit'
+        });
+      });
+    }
 
     await this.queueDocumentFlush(d.document.id, draftFlushDelayMs);
 

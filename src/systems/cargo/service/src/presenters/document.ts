@@ -21,21 +21,22 @@ export let documentPresenter = (
       purpose: FilePurpose;
     };
   }
-) => ({
-  object: 'cargo#document',
-  id: document.id,
-  title: document.resolvedTitle ?? document.title,
-  status: document.file.status,
-  fileId: document.file.id,
-  file: filePresenter(document.file),
-  parentDocumentId: document.parentDocument?.id,
-  isContentOwner: document.isContentOwner,
-  maxVersionNumber: document.maxVersionNumber,
-  currentVersionId: document.currentVersion?.id,
-  content: document.resolvedContent ?? document.content.content,
-  hasDraft: document.hasDraft ?? false,
-  draftUpdatedAt: document.draftUpdatedAt,
-  draftRevision: document.draftRevision,
-  createdAt: document.createdAt,
-  updatedAt: document.updatedAt
-});
+) => {
+  let updatedAt = document.draftUpdatedAt
+    ? new Date(Math.max(document.updatedAt.getTime(), document.draftUpdatedAt.getTime()))
+    : document.updatedAt;
+
+  return {
+    object: 'cargo#document',
+    id: document.id,
+    title: document.resolvedTitle ?? document.title,
+    status: document.file.status,
+    fileId: document.file.id,
+    file: filePresenter(document.file),
+    parentDocumentId: document.parentDocument?.id,
+    currentVersionId: document.currentVersion?.id,
+    content: document.resolvedContent ?? document.content.content,
+    createdAt: document.createdAt,
+    updatedAt
+  };
+};

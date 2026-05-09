@@ -43,24 +43,22 @@ class DocumentParticipantServiceImpl {
     }
   ) {
     return Paginator.create(({ prisma }) =>
-      prisma(async opts =>
-        await db.documentParticipant.findMany({
-          ...opts,
-          where: {
-            document: {
-              tenantOid: d.tenant.oid,
-              environmentOid: d.environment.oid,
-              id: d.documentId,
-              file: {
-                status: 'active'
+      prisma(
+        async opts =>
+          await db.documentParticipant.findMany({
+            ...opts,
+            where: {
+              document: {
+                tenantOid: d.tenant.oid,
+                environmentOid: d.environment.oid,
+                id: d.documentId,
+                file: {
+                  status: 'active'
+                }
               }
-            }
-          },
-          include: documentParticipantInclude,
-          orderBy: {
-            createdAt: 'asc'
-          }
-        })
+            },
+            include: documentParticipantInclude
+          })
       )
     );
   }

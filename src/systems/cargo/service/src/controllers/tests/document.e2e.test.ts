@@ -101,9 +101,13 @@ describe('cargo document.e2e', () => {
     });
     expect(participants.items).toHaveLength(1);
     expect(participants.items[0]).toMatchObject({
+      role: 'editor',
+      editCount: 1,
       actor: {
         id: actor.id
-      }
+      },
+      lastEditedAt: expect.any(Date),
+      lastViewedAt: expect.any(Date)
     });
     expect(versions.items).toHaveLength(1);
     expect(versions.items[0]).toMatchObject({
@@ -127,6 +131,78 @@ describe('cargo document.e2e', () => {
     });
 
     expect(listedAfterDelete.items).toHaveLength(0);
+  });
+
+  it('upserts viewer participants on get and promotes them on edit', async () => {
+    let { tenant, environment } = await createScope();
+    let viewer = await cargoClient.actor.upsert({
+      tenantId: tenant.id,
+      identifier: 'viewer-1',
+      name: 'Viewer One'
+    });
+
+    let created = await cargoClient.document.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      title: 'Viewed',
+      content: 'hello world'
+    });
+
+    await cargoClient.document.get({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: created.id,
+      actorId: viewer.id
+    });
+
+    let participantsAfterView = await cargoClient.documentParticipant.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: created.id,
+      limit: 10
+    });
+
+    expect(participantsAfterView.items).toHaveLength(1);
+    expect(participantsAfterView.items[0]).toMatchObject({
+      role: 'viewer',
+      editCount: 0,
+      actor: {
+        id: viewer.id
+      },
+      lastEditedAt: null,
+      lastViewedAt: expect.any(Date)
+    });
+
+    let viewedAt = participantsAfterView.items[0]!.lastViewedAt;
+
+    await cargoClient.document.update({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: created.id,
+      content: 'updated',
+      actorId: viewer.id
+    });
+    await flushDocument(created.id);
+
+    let participantsAfterEdit = await cargoClient.documentParticipant.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: created.id,
+      limit: 10
+    });
+
+    expect(participantsAfterEdit.items[0]).toMatchObject({
+      role: 'editor',
+      editCount: 1,
+      actor: {
+        id: viewer.id
+      },
+      lastEditedAt: expect.any(Date),
+      lastViewedAt: expect.any(Date)
+    });
+    expect(participantsAfterEdit.items[0]!.lastViewedAt!.getTime()).toBeGreaterThanOrEqual(
+      viewedAt!.getTime()
+    );
   });
 
   it('reuses the active version for writes within three hours', async () => {

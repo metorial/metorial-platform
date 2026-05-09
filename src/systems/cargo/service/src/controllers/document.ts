@@ -72,10 +72,20 @@ export let documentController = app.controller({
       v.object({
         tenantId: v.string(),
         environmentId: v.string(),
-        documentId: v.string()
+        documentId: v.string(),
+        actorId: v.optional(v.string())
       })
     )
-    .do(async ctx => documentPresenter(ctx.document)),
+    .do(async ctx => {
+      let document = await documentService.getDocumentById({
+        tenant: ctx.tenant,
+        environment: ctx.environment,
+        documentId: ctx.document.id,
+        actorId: ctx.input.actorId
+      });
+
+      return documentPresenter(document);
+    }),
 
   update: documentApp
     .handler()

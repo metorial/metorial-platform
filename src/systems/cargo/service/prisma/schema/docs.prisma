@@ -43,15 +43,27 @@ model Document {
   @@index([tenantOid, environmentOid])
 }
 
+enum DocumentParticipantRole {
+  editor
+  viewer
+}
+
 model DocumentParticipant {
   oid BigInt @id
   id  String @unique
+
+  role DocumentParticipantRole
 
   documentOid BigInt
   document    Document @relation(fields: [documentOid], references: [oid], onDelete: Cascade)
 
   tenantActorOid BigInt
   tenantActor    TenantActor @relation(fields: [tenantActorOid], references: [oid], onDelete: Cascade)
+
+  editCount Int @default(0)
+
+  lastEditedAt DateTime?
+  lastViewedAt DateTime? @default(now())
 
   createdAt DateTime @default(now())
 
