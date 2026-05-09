@@ -338,6 +338,7 @@ describe('file document services', () => {
       documentId: 'doc_1',
       versionNumber: 2,
       previousVersionId: 'dvr_0',
+      listEditedAt: new Date('2026-05-09T13:00:00.000Z'),
       content: 'Updated',
       editors: [
         {
@@ -363,6 +364,7 @@ describe('file document services', () => {
         consumerProfile: null
       }
     ]);
+    expect(version.listEditedAt).toEqual(new Date('2026-05-09T13:00:00.000Z'));
   });
 
   it('maps nested participant and version lists through cargo pagination', async () => {
@@ -404,6 +406,7 @@ describe('file document services', () => {
           documentId: 'doc_1',
           versionNumber: 2,
           previousVersionId: 'dvr_1',
+          listEditedAt: new Date('2026-05-09T13:00:00.000Z'),
           content: 'Version',
           editors: [
             {
@@ -455,5 +458,6 @@ describe('file document services', () => {
       hasNextPage: true,
       hasPreviousPage: false
     });
+    expect(versionResult.items[0]?.listEditedAt).toEqual(new Date('2026-05-09T13:00:00.000Z'));
   });
 });

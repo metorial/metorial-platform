@@ -24,6 +24,7 @@ export let documentVersionPresenter = (
   documentId: version.document.id,
   versionNumber: version.versionNumber,
   previousVersionId: version.previousVersion?.id,
+  listEditedAt: version.listEditedAt,
   content: version.content.content,
   editors: version.documentVersionEditors.map(editor => actorPresenter(editor.tenantActor)),
   createdAt: version.createdAt

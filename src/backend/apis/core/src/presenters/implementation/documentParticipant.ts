@@ -9,6 +9,7 @@ import { v1OrganizationActorPresenter } from './organizationActor';
 export let documentParticipantActorSchema = v.object({
   type: v.enumOf(['organization_actor', 'consumer_profile', 'unknown']),
   name: v.string(),
+  image_url: v.nullable(v.string()),
   organization_actor: v.nullable(v1OrganizationActorPresenter.schema),
   consumer_profile: v.nullable(previewConsumerProfilePresenter.schema)
 });
@@ -16,22 +17,13 @@ export let documentParticipantActorSchema = v.object({
 export let presentDocumentParticipantActor = async (
   actor: EnrichedCargoDocumentActor,
   opts: PresenterContext
-) => ({
-  type: actor.organizationActor
-    ? ('organization_actor' as const)
-    : actor.consumerProfile
-      ? ('consumer_profile' as const)
-      : ('unknown' as const),
-
-  name: actor.name,
-
-  organization_actor: actor.organizationActor
+) => {
+  let orgActor = actor.organizationActor
     ? await v1OrganizationActorPresenter
         .present({ organizationActor: actor.organizationActor }, opts)
         .run()
-    : null,
-
-  consumer_profile: actor.consumerProfile
+    : null;
+  let consumer = actor.consumerProfile
     ? await previewConsumerProfilePresenter
         .present(
           {
@@ -42,8 +34,22 @@ export let presentDocumentParticipantActor = async (
           opts
         )
         .run()
-    : null
-});
+    : null;
+
+  return {
+    type: actor.organizationActor
+      ? ('organization_actor' as const)
+      : actor.consumerProfile
+        ? ('consumer_profile' as const)
+        : ('unknown' as const),
+
+    name: actor.name,
+    image_url: orgActor?.image_url ?? consumer?.image_url ?? null,
+
+    organization_actor: orgActor,
+    consumer_profile: consumer
+  };
+};
 
 export let v1DocumentParticipantPresenter = Presenter.create(documentParticipantType)
   .presenter(async ({ documentParticipant }, opts) => ({

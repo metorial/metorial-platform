@@ -218,6 +218,7 @@ class DocumentServiceImpl {
       versionNumber: number;
       contentOid: bigint;
       previousVersionOid?: bigint | null;
+      listEditedAt?: Date;
     }
   ) {
     let generated = getId('documentVersion');
@@ -231,7 +232,8 @@ class DocumentServiceImpl {
         documentOid: d.document.oid,
         versionNumber: d.versionNumber,
         contentOid: d.contentOid,
-        previousVersionOid: d.previousVersionOid ?? null
+        previousVersionOid: d.previousVersionOid ?? null,
+        listEditedAt: d.listEditedAt
       },
       include: {
         content: true
@@ -244,6 +246,7 @@ class DocumentServiceImpl {
     d: CargoTenantEnvironment & {
       document: DocumentRecord;
       nextContent: string;
+      listEditedAt?: Date;
     }
   ) {
     let now = new Date();
@@ -306,7 +309,8 @@ class DocumentServiceImpl {
         document: d.document,
         versionNumber: nextVersionNumber,
         contentOid: liveContentOid,
-        previousVersionOid: d.document.currentVersion?.oid
+        previousVersionOid: d.document.currentVersion?.oid,
+        listEditedAt: d.listEditedAt
       });
     } else if (d.document.isContentOwner) {
       await tx.documentContent.update({
@@ -335,7 +339,8 @@ class DocumentServiceImpl {
           environment: d.environment,
           document: d.document,
           versionNumber: d.document.maxVersionNumber + 1,
-          contentOid: liveContentOid
+          contentOid: liveContentOid,
+          listEditedAt: d.listEditedAt
         });
 
         nextVersionNumber += 1;
@@ -345,7 +350,8 @@ class DocumentServiceImpl {
             id: d.document.currentVersion.id
           },
           data: {
-            contentOid: liveContentOid
+            contentOid: liveContentOid,
+            listEditedAt: d.listEditedAt
           },
           include: {
             content: true
@@ -385,11 +391,14 @@ class DocumentServiceImpl {
     let isContentOwner = d.document.isContentOwner;
 
     if (hasContentChange) {
+      let listEditedAt = new Date();
+
       let writeResult = await this.writeDocumentContent(tx, {
         tenant: d.tenant,
         environment: d.environment,
         document: d.document,
-        nextContent
+        nextContent,
+        listEditedAt
       });
 
       activeVersion = writeResult.activeVersion;
@@ -511,7 +520,8 @@ class DocumentServiceImpl {
         environment: d.environment,
         document,
         versionNumber: 1,
-        contentOid: contentIds.oid
+        contentOid: contentIds.oid,
+        listEditedAt: new Date()
       });
 
       if (actor) {
@@ -694,7 +704,11 @@ class DocumentServiceImpl {
           where: {
             id: d.documentId
           },
-          include: documentInclude
+          include: {
+            ...documentInclude,
+            tenant: true,
+            environment: true
+          }
         });
         if (!currentDocument) {
           throw new ServiceError(notFoundError('document', d.documentId));
@@ -714,14 +728,8 @@ class DocumentServiceImpl {
             : [];
 
         return await this.persistDraftToDocument(tx, {
-          tenant: {
-            oid: currentDocument.tenantOid,
-            id: currentDocument.id
-          },
-          environment: {
-            oid: currentDocument.environmentOid,
-            id: currentDocument.id
-          },
+          tenant: currentDocument.tenant,
+          environment: currentDocument.environment,
           document: currentDocument,
           draft,
           actors
@@ -791,7 +799,8 @@ class DocumentServiceImpl {
         environment: d.environment,
         document,
         versionNumber: 1,
-        contentOid: d.document.contentOid
+        contentOid: d.document.contentOid,
+        listEditedAt: new Date()
       });
 
       return await tx.document.update({

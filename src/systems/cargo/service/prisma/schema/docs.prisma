@@ -75,6 +75,7 @@ model DocumentVersion {
   id  String @unique
 
   versionNumber Int
+  listEditedAt  DateTime?
 
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)

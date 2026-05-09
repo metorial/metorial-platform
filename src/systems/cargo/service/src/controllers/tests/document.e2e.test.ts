@@ -118,6 +118,7 @@ describe('cargo document.e2e', () => {
     expect(versions.items[0]).toMatchObject({
       documentId: created.id,
       content: 'hello world',
+      listEditedAt: expect.any(Date),
       editors: [{ id: actor.id }]
     });
 
@@ -267,7 +268,8 @@ describe('cargo document.e2e', () => {
     expect(versions.items).toHaveLength(1);
     expect(versions.items[0]).toMatchObject({
       id: created.currentVersionId!,
-      content: 'v2'
+      content: 'v2',
+      listEditedAt: expect.any(Date)
     });
 
     let flushed = await cargoClient.document.get({
@@ -335,6 +337,7 @@ describe('cargo document.e2e', () => {
     expect(versions.items[0]).toMatchObject({
       id: flushed.currentVersionId,
       content: 'second',
+      listEditedAt: expect.any(Date),
       previousVersionId: created.currentVersionId!
     });
     expect(versions.items[1]).toMatchObject({
@@ -470,7 +473,8 @@ describe('cargo document.e2e', () => {
     expect(remainingVersions.items[0]).toMatchObject({
       id: flushed.currentVersionId,
       previousVersionId: undefined,
-      content: 'second'
+      content: 'second',
+      listEditedAt: expect.any(Date)
     });
     expect(contentCountAfter).toBe(contentCountBefore - 1);
   });
