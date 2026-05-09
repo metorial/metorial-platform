@@ -2,8 +2,8 @@
 import { Agent } from '@openharness/core';
 import { createSandbox, implementation } from '../../lib/definitions';
 import { detag } from '../../lib/detag';
-import { openaiGpt54, openaiGpt55 } from '../models';
-import { claudeSonnet46 } from '../models/anthropic';
+import { openaiGpt54 } from '../models';
+import { claudeSonnet45, claudeSonnet46 } from '../models/anthropic';
 import { webSearchTools } from '../tools/webSearch';
 import { baseSystemPrompt } from './_systemPrompt';
 
@@ -26,8 +26,8 @@ Don't focus on individual commands/tools you used, instead focus on the overall 
 `;
 
 export let skillsAssistantImplementation = implementation({
-  defaultModel: openaiGpt54,
-  availableModels: [claudeSonnet46, openaiGpt54, openaiGpt55],
+  defaultModel: claudeSonnet46,
+  availableModels: [claudeSonnet46, claudeSonnet45, openaiGpt54],
   slug: 'skills',
   name: 'Skills Assistant',
 
