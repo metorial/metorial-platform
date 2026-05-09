@@ -148,9 +148,20 @@ class ConsumerServiceImpl {
     return await db.instanceConsumer.findMany({
       where: {
         instanceOid: d.instance.oid,
-        id: {
-          in: d.consumerIds
-        }
+        OR: [
+          {
+            id: {
+              in: d.consumerIds
+            }
+          },
+          {
+            consumer: {
+              id: {
+                in: d.consumerIds
+              }
+            }
+          }
+        ]
       },
       include: getInclude({ instanceOid: d.instance.oid })
     });

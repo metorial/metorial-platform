@@ -124,7 +124,7 @@ describe('file services access forwarding', () => {
       identifier: 'organization_actor:ora_1',
       name: 'Member Name',
       organizationActorId: 'ora_1',
-      consumerProfileId: undefined
+      consumerId: undefined
     });
     expect(cargo.file.get).toHaveBeenCalledWith({
       tenantId: 'ten_1',
@@ -168,14 +168,16 @@ describe('file services access forwarding', () => {
       fileId: 'fil_2',
       accessActor: {
         identifier: 'consumer:con_1',
-        name: 'Portal Consumer'
+        name: 'Portal Consumer',
+        consumerId: 'con_1'
       }
     });
     let paginator = await fileService.listFiles({
       owner: owner as any,
       accessActor: {
         identifier: 'consumer:con_1',
-        name: 'Portal Consumer'
+        name: 'Portal Consumer',
+        consumerId: 'con_1'
       }
     });
     await paginator.run({
@@ -187,7 +189,7 @@ describe('file services access forwarding', () => {
       identifier: 'consumer:con_1',
       name: 'Portal Consumer',
       organizationActorId: undefined,
-      consumerProfileId: undefined
+      consumerId: 'con_1'
     });
     expect(cargo.file.get).toHaveBeenCalledWith({
       tenantId: 'ten_1',

@@ -28,7 +28,8 @@ export let getInstanceCargoAccess = (ctx: InstanceCargoAccessContext) => {
     return {
       accessActor: {
         identifier: `consumer:${ctx.consumerProfile.consumer.id}`,
-        name: ctx.consumerProfile.consumer.name
+        name: ctx.consumerProfile.consumer.name,
+        consumerId: ctx.consumerProfile.consumer.id
       }
     };
   }

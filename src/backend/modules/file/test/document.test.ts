@@ -53,13 +53,13 @@ vi.mock('@metorial/db', () => ({
 }));
 
 vi.mock('@metorial/module-consumer', () => ({
-  consumerProfileService: {
-    findConsumerProfilesByIdForInstance: vi.fn()
+  consumerService: {
+    findConsumersById: vi.fn()
   }
 }));
 
 import { db } from '@metorial/db';
-import { consumerProfileService } from '@metorial/module-consumer';
+import { consumerService } from '@metorial/module-consumer';
 import { cargo } from '../src/cargo';
 import { documentService } from '../src/services/document';
 import { documentParticipantService } from '../src/services/documentParticipant';
@@ -117,7 +117,7 @@ describe('file document services', () => {
       identifier: 'organization_actor:ora_1',
       name: 'Member Name',
       organizationActorId: 'ora_1',
-      consumerProfileId: undefined
+      consumerId: undefined
     });
     expect(cargo.document.create).toHaveBeenCalledWith({
       tenantId: 'ten_1',
@@ -151,14 +151,16 @@ describe('file document services', () => {
       documentId: 'doc_consumer',
       accessActor: {
         identifier: 'consumer:con_1',
-        name: 'Portal Consumer'
+        name: 'Portal Consumer',
+        consumerId: 'con_1'
       }
     });
     let paginator = await documentService.listDocuments({
       owner: owner as any,
       accessActor: {
         identifier: 'consumer:con_1',
-        name: 'Portal Consumer'
+        name: 'Portal Consumer',
+        consumerId: 'con_1'
       }
     });
     await paginator.run({
@@ -170,7 +172,7 @@ describe('file document services', () => {
       identifier: 'consumer:con_1',
       name: 'Portal Consumer',
       organizationActorId: undefined,
-      consumerProfileId: undefined
+      consumerId: 'con_1'
     });
     expect(cargo.document.get).toHaveBeenCalledWith({
       tenantId: 'ten_1',
@@ -334,18 +336,26 @@ describe('file document services', () => {
         teams: []
       }
     ] as any);
-    vi.mocked(consumerProfileService.findConsumerProfilesByIdForInstance).mockResolvedValue([
+    vi.mocked(consumerService.findConsumersById).mockResolvedValue([
       {
-        id: 'cpr_1',
-        name: 'Consumer Profile',
+        id: 'inst_cons_1',
         consumer: {
-          id: 'con_1'
-        },
-        surface: {
-          id: 'csf_1'
-        },
-        groups: [],
-        instanceConsumer: null
+          id: 'con_1',
+          profiles: [
+            {
+              id: 'cpr_1',
+              name: 'Consumer Profile',
+              consumer: {
+                id: 'con_1'
+              },
+              surface: {
+                id: 'csf_1'
+              },
+              groups: [],
+              instanceConsumer: null
+            }
+          ]
+        }
       }
     ] as any);
 
@@ -363,7 +373,7 @@ describe('file document services', () => {
           actor: {
             name: 'Cargo Actor',
             organizationActorId: 'ora_1',
-            consumerProfileId: 'cpr_1'
+            consumerId: 'con_1'
           }
         },
         {
@@ -376,7 +386,7 @@ describe('file document services', () => {
           createdAt: participantDate,
           actor: {
             name: 'Cargo Consumer',
-            consumerProfileId: 'cpr_1'
+            consumerId: 'con_1'
           }
         },
         {

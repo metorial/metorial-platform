@@ -191,7 +191,7 @@ describe('file store services', () => {
       identifier: 'organization_actor:ora_1',
       name: 'Editor',
       organizationActorId: 'ora_1',
-      consumerProfileId: undefined
+      consumerId: undefined
     });
     expect(cargo.store.modifyItems).toHaveBeenCalledWith({
       tenantId: 'ten_1',
@@ -230,14 +230,16 @@ describe('file store services', () => {
       storeId: 'sto_consumer',
       accessActor: {
         identifier: 'consumer:con_1',
-        name: 'Portal Consumer'
+        name: 'Portal Consumer',
+        consumerId: 'con_1'
       }
     });
     let paginator = await storeService.listStores({
       owner: owner as any,
       accessActor: {
         identifier: 'consumer:con_1',
-        name: 'Portal Consumer'
+        name: 'Portal Consumer',
+        consumerId: 'con_1'
       }
     });
     await paginator.run({
@@ -249,7 +251,7 @@ describe('file store services', () => {
       identifier: 'consumer:con_1',
       name: 'Portal Consumer',
       organizationActorId: undefined,
-      consumerProfileId: undefined
+      consumerId: 'con_1'
     });
     expect(cargo.store.get).toHaveBeenCalledWith({
       tenantId: 'ten_1',

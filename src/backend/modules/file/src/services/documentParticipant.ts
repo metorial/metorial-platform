@@ -11,7 +11,7 @@ import type {
   Team,
   TeamMember
 } from '@metorial/db';
-import { consumerProfileService } from '@metorial/module-consumer';
+import { consumerService } from '@metorial/module-consumer';
 import { db } from '@metorial/db';
 import { resolveCargoAccess, type CargoAccessActor, type CargoStorePermission } from './access';
 import {
@@ -39,7 +39,7 @@ type EnrichedOrganizationActor = OrganizationActor & {
 
 type EnrichedConsumerProfile = ConsumerProfile & {
   consumer: Awaited<
-    ReturnType<typeof consumerProfileService.getConsumerProfileByIdForInstance>
+    ReturnType<typeof consumerService.getConsumerById>
   >['consumer'];
   surface: ConsumerSurface;
   groups: (ConsumerProfileGroup & {
@@ -70,10 +70,10 @@ class DocumentParticipantServiceImpl {
     let organizationActorIds = Array.from(
       new Set(d.actors.flatMap(actor => (actor.organizationActorId ? [actor.organizationActorId] : [])))
     );
-    let consumerProfileIds = Array.from(
+    let consumerIds = Array.from(
       new Set(
         d.actors.flatMap(actor =>
-          !actor.organizationActorId && actor.consumerProfileId ? [actor.consumerProfileId] : []
+          !actor.organizationActorId && actor.consumerId ? [actor.consumerId] : []
         )
       )
     );
@@ -91,19 +91,35 @@ class DocumentParticipantServiceImpl {
           })
         : [];
 
-    let consumerProfiles =
+    let consumers =
       d.owner.type === 'instance'
-        ? await consumerProfileService.findConsumerProfilesByIdForInstance({
+        ? await consumerService.findConsumersById({
             instance: d.owner.instance,
-            consumerProfileIds
+            consumerIds
           })
         : [];
 
     let organizationActorById = new Map(
       organizationActors.map(organizationActor => [organizationActor.id, organizationActor])
     );
-    let consumerProfileById = new Map(
-      consumerProfiles.map(consumerProfile => [consumerProfile.id, consumerProfile])
+    let consumerProfileByConsumerId = new Map(
+      consumers.flatMap(instanceConsumer => {
+        let profiles = instanceConsumer.consumer.profiles;
+        let selectedProfile = profiles[0];
+        return selectedProfile
+          ? [
+              [
+                instanceConsumer.consumer.id,
+                {
+                  ...selectedProfile,
+                  consumer: instanceConsumer.consumer,
+                  groups: [],
+                  instanceConsumer
+                } satisfies EnrichedConsumerProfile
+              ]
+            ]
+          : [];
+      })
     );
 
     return d.actors.map(actor => {
@@ -112,8 +128,8 @@ class DocumentParticipantServiceImpl {
           ? (organizationActorById.get(actor.organizationActorId) ?? null)
           : null;
       let consumerProfile =
-        !organizationActor && actor.consumerProfileId
-          ? (consumerProfileById.get(actor.consumerProfileId) ?? null)
+        !organizationActor && actor.consumerId
+          ? (consumerProfileByConsumerId.get(actor.consumerId) ?? null)
           : null;
 
       return {

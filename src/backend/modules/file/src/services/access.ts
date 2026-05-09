@@ -6,7 +6,7 @@ export type CargoAccessActor = {
   identifier: string;
   name: string;
   organizationActorId?: string;
-  consumerProfileId?: string;
+  consumerId?: string;
 };
 
 export type CargoStorePermission = 'content_read' | 'content_write';
@@ -26,7 +26,7 @@ export let resolveCargoAccess = async (d: CargoAccessInput) => {
         identifier: d.accessActor.identifier,
         name: d.accessActor.name,
         organizationActorId: d.accessActor.organizationActorId,
-        consumerProfileId: d.accessActor.consumerProfileId
+        consumerId: d.accessActor.consumerId
       })
     : undefined;
 
