@@ -13,7 +13,7 @@ class ActorServiceImpl {
         type?: 'external' | 'system';
         name: string;
         organizationActorId?: string;
-        consumerProfileId?: string;
+        consumerId?: string;
       };
     }
   ) {
@@ -41,7 +41,7 @@ class ActorServiceImpl {
           type: d.input.type ?? existing.type,
           name: d.input.name,
           organizationActorId: d.input.organizationActorId,
-          consumerProfileId: d.input.consumerProfileId
+          consumerId: d.input.consumerId
         }
       });
     }
@@ -57,7 +57,7 @@ class ActorServiceImpl {
         type: d.input.type ?? 'external',
         name: d.input.name,
         organizationActorId: d.input.organizationActorId,
-        consumerProfileId: d.input.consumerProfileId
+        consumerId: d.input.consumerId
       }
     });
   }

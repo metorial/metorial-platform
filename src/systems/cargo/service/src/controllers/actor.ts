@@ -27,7 +27,7 @@ export let actorController = app.controller({
         type: v.optional(v.enumOf(['external', 'system'])),
         name: v.string(),
         organizationActorId: v.optional(v.string()),
-        consumerProfileId: v.optional(v.string())
+        consumerId: v.optional(v.string())
       })
     )
     .do(async ctx => {
@@ -39,7 +39,7 @@ export let actorController = app.controller({
           type: ctx.input.type,
           name: ctx.input.name,
           organizationActorId: ctx.input.organizationActorId,
-          consumerProfileId: ctx.input.consumerProfileId
+          consumerId: ctx.input.consumerId
         }
       });
 

@@ -2,6 +2,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { fileService, purposeSlugs } from '@metorial/module-file';
 import { Controller } from '@metorial/rest';
+import { getInstanceCargoAccess } from '../../lib/cargoAccess';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { filePresenter } from '../../presenters';
@@ -15,7 +16,8 @@ export let fileGroup = instanceGroup.use(async ctx => {
       type: 'instance',
       instance: ctx.instance,
       organization: ctx.organization
-    }
+    },
+    ...getInstanceCargoAccess(ctx)
   });
 
   return { file };
@@ -51,7 +53,8 @@ export let fileController = Controller.create(
             type: 'instance',
             instance: ctx.instance,
             organization: ctx.organization
-          }
+          },
+          ...getInstanceCargoAccess(ctx)
         });
 
         let list = await paginator.run(ctx.query);
@@ -66,9 +69,7 @@ export let fileController = Controller.create(
       })
       .use(checkAccess({ possibleScopes: ['instance.file:read'] }))
       .output(filePresenter)
-      .do(async ctx => {
-        return filePresenter.present({ file: ctx.file });
-      }),
+      .do(async ctx => filePresenter.present({ file: ctx.file })),
 
     delete: fileGroup
       .delete(instancePath('files/:fileId', 'files.delete'), {

@@ -63,7 +63,7 @@ model TenantActor {
   identifier          String
   name                String
   organizationActorId String?
-  consumerProfileId   String?
+  consumerId          String?
 
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)

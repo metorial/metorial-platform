@@ -2,10 +2,10 @@ import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { storeService } from '@metorial/module-file';
 import { Controller } from '@metorial/rest';
+import { getInstanceCargoAccess } from '../../lib/cargoAccess';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { storeItemPresenter, storePresenter } from '../../presenters';
-import { getDocumentMemberActor } from './document';
 
 export let storeGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.storeId) {
@@ -18,7 +18,8 @@ export let storeGroup = instanceGroup.use(async ctx => {
       type: 'instance',
       instance: ctx.instance,
       organization: ctx.organization
-    }
+    },
+    ...getInstanceCargoAccess(ctx)
   });
 
   return { store };
@@ -44,7 +45,8 @@ export let storeController = Controller.create(
             type: 'instance',
             instance: ctx.instance,
             organization: ctx.organization
-          }
+          },
+          ...getInstanceCargoAccess(ctx)
         });
         let list = await paginator.run(ctx.query);
 
@@ -109,6 +111,7 @@ export let storeController = Controller.create(
             instance: ctx.instance,
             organization: ctx.organization
           },
+          ...getInstanceCargoAccess(ctx),
           input: {
             name: ctx.body.name
           }
@@ -131,7 +134,8 @@ export let storeController = Controller.create(
             type: 'instance',
             instance: ctx.instance,
             organization: ctx.organization
-          }
+          },
+          ...getInstanceCargoAccess(ctx)
         });
 
         return storePresenter.present({ store });
@@ -168,7 +172,7 @@ export let storeController = Controller.create(
                   instance: ctx.instance,
                   organization: ctx.organization
                 },
-                performedByMember: getDocumentMemberActor(ctx),
+              ...getInstanceCargoAccess(ctx),
                 operations: ctx.body.operations
               })
             ).map(async result => ({

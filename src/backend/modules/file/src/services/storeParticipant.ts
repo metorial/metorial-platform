@@ -1,22 +1,18 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { cargo, type CargoStoreParticipant } from '../cargo';
+import { resolveCargoAccess, type CargoAccessActor } from './access';
 import type { FileOwner } from './file';
 import {
   documentParticipantService,
   type EnrichedCargoDocumentActor
 } from './documentParticipant';
-import { resolveCargoScopeForOwner } from './scope';
 
 export type EnrichedCargoStoreParticipant = Omit<CargoStoreParticipant, 'actor'> & {
   actor: EnrichedCargoDocumentActor;
 };
 
 class StoreParticipantServiceImpl {
-  private async getScope(owner: FileOwner) {
-    return await resolveCargoScopeForOwner(owner);
-  }
-
   private async enrichStoreParticipant(d: {
     owner: FileOwner;
     storeParticipant: CargoStoreParticipant;
@@ -32,8 +28,12 @@ class StoreParticipantServiceImpl {
     };
   }
 
-  async getStoreParticipantById(d: { owner: FileOwner; storeParticipantId: string }) {
-    let scope = await this.getScope(d.owner);
+  async getStoreParticipantById(d: {
+    owner: FileOwner;
+    storeParticipantId: string;
+    accessActor?: CargoAccessActor;
+  }) {
+    let { scope } = await resolveCargoAccess(d);
     let storeParticipant = await cargo.storeParticipant.get({
       tenantId: scope.tenantId,
       environmentId: scope.environmentId,
@@ -46,8 +46,12 @@ class StoreParticipantServiceImpl {
     });
   }
 
-  async listStoreParticipants(d: { owner: FileOwner; storeId?: string }) {
-    let scope = await this.getScope(d.owner);
+  async listStoreParticipants(d: {
+    owner: FileOwner;
+    storeId?: string;
+    accessActor?: CargoAccessActor;
+  }) {
+    let { scope } = await resolveCargoAccess(d);
 
     return Paginator.create(() => async input => {
       let result = await cargo.storeParticipant.list({

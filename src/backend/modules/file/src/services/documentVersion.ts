@@ -1,22 +1,18 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { cargo, type CargoDocumentVersion } from '../cargo';
+import { resolveCargoAccess, type CargoAccessActor, type CargoStorePermission } from './access';
 import type { FileOwner } from './file';
 import {
   documentParticipantService,
   type EnrichedCargoDocumentActor
 } from './documentParticipant';
-import { resolveCargoScopeForOwner } from './scope';
 
 export type EnrichedCargoDocumentVersion = Omit<CargoDocumentVersion, 'editors'> & {
   editors: EnrichedCargoDocumentActor[];
 };
 
 class DocumentVersionServiceImpl {
-  private async getScope(owner: FileOwner) {
-    return await resolveCargoScopeForOwner(owner);
-  }
-
   private async enrichVersion(d: {
     owner: FileOwner;
     version: CargoDocumentVersion;
@@ -33,14 +29,20 @@ class DocumentVersionServiceImpl {
   async listDocumentVersions(d: {
     owner: FileOwner;
     documentId: string[];
+    accessActor?: CargoAccessActor;
+    defaultPermissions?: CargoStorePermission[];
+    overridePermissions?: boolean;
   }) {
-    let scope = await this.getScope(d.owner);
+    let { scope, actorId, defaultPermissions, overridePermissions } = await resolveCargoAccess(d);
 
     return Paginator.create(() => async input => {
       let result = await cargo.documentVersion.list({
         tenantId: scope.tenantId,
         environmentId: scope.environmentId,
         documentId: d.documentId,
+        actorId,
+        defaultPermissions,
+        overridePermissions,
         ...input
       } as any);
 
@@ -64,12 +66,18 @@ class DocumentVersionServiceImpl {
   async getDocumentVersionById(d: {
     owner: FileOwner;
     documentVersionId: string;
+    accessActor?: CargoAccessActor;
+    defaultPermissions?: CargoStorePermission[];
+    overridePermissions?: boolean;
   }) {
-    let scope = await this.getScope(d.owner);
+    let { scope, actorId, defaultPermissions, overridePermissions } = await resolveCargoAccess(d);
     let version = await cargo.documentVersion.get({
       tenantId: scope.tenantId,
       environmentId: scope.environmentId,
-      documentVersionId: d.documentVersionId
+      documentVersionId: d.documentVersionId,
+      actorId,
+      defaultPermissions,
+      overridePermissions
     });
 
     return await this.enrichVersion({

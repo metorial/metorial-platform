@@ -3,6 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { documentParticipantService } from '@metorial/module-file';
 import { Controller } from '@metorial/rest';
+import { getInstanceCargoAccess } from '../../lib/cargoAccess';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instancePath } from '../../middleware/instanceGroup';
@@ -20,7 +21,8 @@ export let documentParticipantGroup = documentGroup.use(async ctx => {
       type: 'instance',
       instance: ctx.instance,
       organization: ctx.organization
-    }
+    },
+    ...getInstanceCargoAccess(ctx)
   });
 
   if (documentParticipant.documentId !== ctx.document.id) {
@@ -58,7 +60,8 @@ export let documentParticipantController = Controller.create(
             type: 'instance',
             instance: ctx.instance,
             organization: ctx.organization
-          }
+          },
+          ...getInstanceCargoAccess(ctx)
         });
         let list = await paginator.run(ctx.query);
 

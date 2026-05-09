@@ -1,21 +1,26 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { cargo } from '../cargo';
+import { resolveCargoAccess, type CargoAccessActor, type CargoStorePermission } from './access';
 import type { FileOwner } from './file';
-import { resolveCargoScopeForOwner } from './scope';
 
 class StoreItemServiceImpl {
-  private async getScope(owner: FileOwner) {
-    return await resolveCargoScopeForOwner(owner);
-  }
-
-  async getStoreItemById(d: { owner: FileOwner; itemId: string }) {
-    let scope = await this.getScope(d.owner);
+  async getStoreItemById(d: {
+    owner: FileOwner;
+    itemId: string;
+    accessActor?: CargoAccessActor;
+    defaultPermissions?: CargoStorePermission[];
+    overridePermissions?: boolean;
+  }) {
+    let { scope, actorId, defaultPermissions, overridePermissions } = await resolveCargoAccess(d);
 
     return await cargo.storeItem.get({
       tenantId: scope.tenantId,
       environmentId: scope.environmentId,
-      itemId: d.itemId
+      itemId: d.itemId,
+      actorId,
+      defaultPermissions,
+      overridePermissions
     });
   }
 
@@ -24,8 +29,11 @@ class StoreItemServiceImpl {
     storeId?: string;
     fileId?: string;
     documentId?: string;
+    accessActor?: CargoAccessActor;
+    defaultPermissions?: CargoStorePermission[];
+    overridePermissions?: boolean;
   }) {
-    let scope = await this.getScope(d.owner);
+    let { scope, actorId, defaultPermissions, overridePermissions } = await resolveCargoAccess(d);
 
     return Paginator.create(() => async input => {
       let result = await cargo.storeItem.list({
@@ -34,6 +42,9 @@ class StoreItemServiceImpl {
         storeId: d.storeId,
         fileId: d.fileId,
         documentId: d.documentId,
+        actorId,
+        defaultPermissions,
+        overridePermissions,
         ...input
       });
 

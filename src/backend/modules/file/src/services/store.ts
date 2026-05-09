@@ -2,13 +2,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { cargo, type CargoStore } from '../cargo';
 import type { FileOwner } from './file';
-import { resolveCargoScopeForOwner } from './scope';
-
-export type CargoStoreMemberActor = {
-  organizationActorId: string;
-  name: string;
-  consumerProfileId?: string;
-};
+import { resolveCargoAccess, type CargoAccessActor, type CargoStorePermission } from './access';
 
 export type CargoStoreItemOperation = {
   type?: 'add' | 'modify' | 'remove';
@@ -18,40 +12,7 @@ export type CargoStoreItemOperation = {
   path?: string;
 };
 
-let getCargoMemberActorIdentifier = (organizationActorId: string) =>
-  `organization_actor:${organizationActorId}`;
-
 class StoreServiceImpl {
-  private async getScope(owner: FileOwner) {
-    return await resolveCargoScopeForOwner(owner);
-  }
-
-  private async getScopeAndActorId(d: {
-    owner: FileOwner;
-    performedByMember?: CargoStoreMemberActor;
-  }) {
-    let scope = await this.getScope(d.owner);
-    if (!d.performedByMember) {
-      return {
-        scope,
-        actorId: undefined
-      };
-    }
-
-    let actor = await cargo.actor.upsert({
-      tenantId: scope.tenantId,
-      identifier: getCargoMemberActorIdentifier(d.performedByMember.organizationActorId),
-      name: d.performedByMember.name,
-      organizationActorId: d.performedByMember.organizationActorId,
-      consumerProfileId: d.performedByMember.consumerProfileId
-    });
-
-    return {
-      scope,
-      actorId: actor.id
-    };
-  }
-
   async createStore(d: {
     owner: FileOwner;
     input: {
@@ -59,7 +20,9 @@ class StoreServiceImpl {
       name: string;
     };
   }) {
-    let scope = await this.getScope(d.owner);
+    let { scope } = await resolveCargoAccess({
+      owner: d.owner
+    });
 
     return await cargo.store.create({
       tenantId: scope.tenantId,
@@ -69,13 +32,21 @@ class StoreServiceImpl {
     });
   }
 
-  async listStores(d: { owner: FileOwner }) {
-    let scope = await this.getScope(d.owner);
+  async listStores(d: {
+    owner: FileOwner;
+    accessActor?: CargoAccessActor;
+    defaultPermissions?: CargoStorePermission[];
+    overridePermissions?: boolean;
+  }) {
+    let { scope, actorId, defaultPermissions, overridePermissions } = await resolveCargoAccess(d);
 
     return Paginator.create(() => async input => {
       let result = await cargo.store.list({
         tenantId: scope.tenantId,
         environmentId: scope.environmentId,
+        actorId,
+        defaultPermissions,
+        overridePermissions,
         ...input
       });
 
@@ -89,57 +60,85 @@ class StoreServiceImpl {
     });
   }
 
-  async getStoreById(d: { owner: FileOwner; storeId: string }) {
-    let scope = await this.getScope(d.owner);
+  async getStoreById(d: {
+    owner: FileOwner;
+    storeId: string;
+    accessActor?: CargoAccessActor;
+    defaultPermissions?: CargoStorePermission[];
+    overridePermissions?: boolean;
+  }) {
+    let { scope, actorId, defaultPermissions, overridePermissions } = await resolveCargoAccess(d);
 
     return await cargo.store.get({
       tenantId: scope.tenantId,
       environmentId: scope.environmentId,
-      storeId: d.storeId
+      storeId: d.storeId,
+      actorId,
+      defaultPermissions,
+      overridePermissions
     });
   }
 
   async updateStore(d: {
     owner: FileOwner;
     store: CargoStore;
+    accessActor?: CargoAccessActor;
+    defaultPermissions?: CargoStorePermission[];
+    overridePermissions?: boolean;
     input: {
       name?: string;
     };
   }) {
-    let scope = await this.getScope(d.owner);
+    let { scope, actorId, defaultPermissions, overridePermissions } = await resolveCargoAccess(d);
 
     return await cargo.store.update({
       tenantId: scope.tenantId,
       environmentId: scope.environmentId,
       storeId: d.store.id,
-      name: d.input.name
+      name: d.input.name,
+      actorId,
+      defaultPermissions,
+      overridePermissions
     });
   }
 
-  async deleteStore(d: { owner: FileOwner; store: CargoStore }) {
-    let scope = await this.getScope(d.owner);
+  async deleteStore(d: {
+    owner: FileOwner;
+    store: CargoStore;
+    accessActor?: CargoAccessActor;
+    defaultPermissions?: CargoStorePermission[];
+    overridePermissions?: boolean;
+  }) {
+    let { scope, actorId, defaultPermissions, overridePermissions } = await resolveCargoAccess(d);
 
     return await cargo.store.delete({
       tenantId: scope.tenantId,
       environmentId: scope.environmentId,
-      storeId: d.store.id
+      storeId: d.store.id,
+      actorId,
+      defaultPermissions,
+      overridePermissions
     });
   }
 
   async modifyStoreItems(d: {
     owner: FileOwner;
     store: CargoStore;
-    performedByMember?: CargoStoreMemberActor;
+    accessActor?: CargoAccessActor;
+    defaultPermissions?: CargoStorePermission[];
+    overridePermissions?: boolean;
     operations: CargoStoreItemOperation[];
   }) {
-    let { scope, actorId } = await this.getScopeAndActorId(d);
+    let { scope, actorId, defaultPermissions, overridePermissions } = await resolveCargoAccess(d);
 
     return await cargo.store.modifyItems({
       tenantId: scope.tenantId,
       environmentId: scope.environmentId,
       storeId: d.store.id,
       operations: d.operations as any,
-      actorId
+      actorId,
+      defaultPermissions,
+      overridePermissions
     });
   }
 }

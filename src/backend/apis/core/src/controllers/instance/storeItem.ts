@@ -3,6 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { storeItemService } from '@metorial/module-file';
 import { Controller } from '@metorial/rest';
+import { getInstanceCargoAccess } from '../../lib/cargoAccess';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instancePath } from '../../middleware/instanceGroup';
 import { storeItemPresenter } from '../../presenters';
@@ -19,7 +20,8 @@ export let storeItemGroup = storeGroup.use(async ctx => {
       type: 'instance',
       instance: ctx.instance,
       organization: ctx.organization
-    }
+    },
+    ...getInstanceCargoAccess(ctx)
   });
 
   if (storeItem.storeId !== ctx.store.id) {
@@ -50,7 +52,8 @@ export let storeItemController = Controller.create(
             type: 'instance',
             instance: ctx.instance,
             organization: ctx.organization
-          }
+          },
+          ...getInstanceCargoAccess(ctx)
         });
         let list = await paginator.run(ctx.query);
 

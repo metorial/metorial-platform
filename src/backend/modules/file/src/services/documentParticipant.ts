@@ -13,13 +13,13 @@ import type {
 } from '@metorial/db';
 import { consumerProfileService } from '@metorial/module-consumer';
 import { db } from '@metorial/db';
+import { resolveCargoAccess, type CargoAccessActor, type CargoStorePermission } from './access';
 import {
   cargo,
   type CargoActor,
   type CargoDocumentParticipant
 } from '../cargo';
 import type { FileOwner } from './file';
-import { resolveCargoScopeForOwner } from './scope';
 
 let organizationActorInclude = {
   organization: true,
@@ -59,10 +59,6 @@ export type EnrichedCargoDocumentParticipant = Omit<CargoDocumentParticipant, 'a
 };
 
 class DocumentParticipantServiceImpl {
-  private async getScope(owner: FileOwner) {
-    return await resolveCargoScopeForOwner(owner);
-  }
-
   async enrichActors(d: {
     owner: FileOwner;
     actors: CargoActor[];
@@ -146,14 +142,20 @@ class DocumentParticipantServiceImpl {
   async listDocumentParticipants(d: {
     owner: FileOwner;
     documentId: string[];
+    accessActor?: CargoAccessActor;
+    defaultPermissions?: CargoStorePermission[];
+    overridePermissions?: boolean;
   }) {
-    let scope = await this.getScope(d.owner);
+    let { scope, actorId, defaultPermissions, overridePermissions } = await resolveCargoAccess(d);
 
     return Paginator.create(() => async input => {
       let result = await cargo.documentParticipant.list({
         tenantId: scope.tenantId,
         environmentId: scope.environmentId,
         documentId: d.documentId,
+        actorId,
+        defaultPermissions,
+        overridePermissions,
         ...input
       } as any);
 
@@ -173,12 +175,18 @@ class DocumentParticipantServiceImpl {
   async getDocumentParticipantById(d: {
     owner: FileOwner;
     documentParticipantId: string;
+    accessActor?: CargoAccessActor;
+    defaultPermissions?: CargoStorePermission[];
+    overridePermissions?: boolean;
   }) {
-    let scope = await this.getScope(d.owner);
+    let { scope, actorId, defaultPermissions, overridePermissions } = await resolveCargoAccess(d);
     let participant = await cargo.documentParticipant.get({
       tenantId: scope.tenantId,
       environmentId: scope.environmentId,
-      documentParticipantId: d.documentParticipantId
+      documentParticipantId: d.documentParticipantId,
+      actorId,
+      defaultPermissions,
+      overridePermissions
     });
 
     return (

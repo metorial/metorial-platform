@@ -143,10 +143,13 @@ describe('file store services', () => {
     await storeService.modifyStoreItems({
       owner: owner as any,
       store: store as any,
-      performedByMember: {
+      accessActor: {
+        identifier: 'organization_actor:ora_1',
         organizationActorId: 'ora_1',
         name: 'Editor'
       },
+      defaultPermissions: ['content_read', 'content_write'],
+      overridePermissions: true,
       operations: [
         {
           type: 'add',
@@ -201,7 +204,68 @@ describe('file store services', () => {
           documentId: 'doc_1'
         }
       ],
-      actorId: 'act_1'
+      actorId: 'act_1',
+      defaultPermissions: ['content_read', 'content_write'],
+      overridePermissions: true
+    });
+  });
+
+  it('uses consumer actors for access-controlled store reads', async () => {
+    vi.mocked(cargo.actor.upsert).mockResolvedValue({
+      id: 'act_con_1'
+    } as any);
+    vi.mocked(cargo.store.get).mockResolvedValue({
+      id: 'sto_consumer'
+    } as any);
+    vi.mocked(cargo.store.list).mockResolvedValue({
+      items: [{ id: 'sto_consumer' }],
+      pagination: {
+        has_more_after: false,
+        has_more_before: false
+      }
+    } as any);
+
+    await storeService.getStoreById({
+      owner: owner as any,
+      storeId: 'sto_consumer',
+      accessActor: {
+        identifier: 'consumer:con_1',
+        name: 'Portal Consumer'
+      }
+    });
+    let paginator = await storeService.listStores({
+      owner: owner as any,
+      accessActor: {
+        identifier: 'consumer:con_1',
+        name: 'Portal Consumer'
+      }
+    });
+    await paginator.run({
+      limit: 5
+    } as any);
+
+    expect(cargo.actor.upsert).toHaveBeenCalledWith({
+      tenantId: 'ten_1',
+      identifier: 'consumer:con_1',
+      name: 'Portal Consumer',
+      organizationActorId: undefined,
+      consumerProfileId: undefined
+    });
+    expect(cargo.store.get).toHaveBeenCalledWith({
+      tenantId: 'ten_1',
+      environmentId: 'env_1',
+      storeId: 'sto_consumer',
+      actorId: 'act_con_1',
+      defaultPermissions: undefined,
+      overridePermissions: undefined
+    });
+    expect(cargo.store.list).toHaveBeenCalledWith({
+      tenantId: 'ten_1',
+      environmentId: 'env_1',
+      actorId: 'act_con_1',
+      defaultPermissions: undefined,
+      overridePermissions: undefined,
+      limit: 5
     });
   });
 
@@ -232,7 +296,10 @@ describe('file store services', () => {
     expect(cargo.storeItem.get).toHaveBeenCalledWith({
       tenantId: 'ten_1',
       environmentId: 'env_1',
-      itemId: 'sti_1'
+      itemId: 'sti_1',
+      actorId: undefined,
+      defaultPermissions: undefined,
+      overridePermissions: undefined
     });
     expect(cargo.storeItem.list).toHaveBeenCalledWith({
       tenantId: 'ten_1',
@@ -240,6 +307,9 @@ describe('file store services', () => {
       storeId: 'sto_1',
       fileId: undefined,
       documentId: undefined,
+      actorId: undefined,
+      defaultPermissions: undefined,
+      overridePermissions: undefined,
       limit: 5
     });
     expect(result.pagination).toEqual({

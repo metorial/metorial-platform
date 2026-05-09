@@ -4,6 +4,7 @@ import { v } from '@lowerdeck/validation';
 import { documentVersionService } from '@metorial/module-file';
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
+import { getInstanceCargoAccess } from '../../lib/cargoAccess';
 import { checkAccess } from '../../middleware/checkAccess';
 import { documentGroup } from './document';
 import { instancePath } from '../../middleware/instanceGroup';
@@ -20,7 +21,8 @@ export let documentVersionGroup = documentGroup.use(async ctx => {
       type: 'instance',
       instance: ctx.instance,
       organization: ctx.organization
-    }
+    },
+    ...getInstanceCargoAccess(ctx)
   });
 
   if (documentVersion.documentId !== ctx.document.id) {
@@ -56,7 +58,8 @@ export let documentVersionController = Controller.create(
             type: 'instance',
             instance: ctx.instance,
             organization: ctx.organization
-          }
+          },
+          ...getInstanceCargoAccess(ctx)
         });
         let list = await paginator.run(ctx.query);
 

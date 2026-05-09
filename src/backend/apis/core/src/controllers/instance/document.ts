@@ -1,21 +1,11 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { OrganizationActor, OrganizationMember } from '@metorial/db';
 import { documentService } from '@metorial/module-file';
 import { Controller } from '@metorial/rest';
+import { getInstanceCargoAccess } from '../../lib/cargoAccess';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { documentPresenter } from '../../presenters';
-
-export let getDocumentMemberActor = (ctx: {
-  member?: OrganizationMember & { actor: OrganizationActor };
-}) =>
-  ctx.member?.actor
-    ? {
-        name: ctx.member.actor.name,
-        organizationActorId: ctx.member.actor.id
-      }
-    : undefined;
 
 export let documentGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.documentId) {
@@ -28,7 +18,8 @@ export let documentGroup = instanceGroup.use(async ctx => {
       type: 'instance',
       instance: ctx.instance,
       organization: ctx.organization
-    }
+    },
+    ...getInstanceCargoAccess(ctx)
   });
 
   return { document };
@@ -54,7 +45,8 @@ export let documentController = Controller.create(
             type: 'instance',
             instance: ctx.instance,
             organization: ctx.organization
-          }
+          },
+          ...getInstanceCargoAccess(ctx)
         });
         let list = await paginator.run(ctx.query);
 
@@ -82,7 +74,7 @@ export let documentController = Controller.create(
             instance: ctx.instance,
             organization: ctx.organization
           },
-          performedByMember: getDocumentMemberActor(ctx),
+          ...getInstanceCargoAccess(ctx),
           input: {
             title: ctx.body.title,
             content: ctx.body.content
@@ -99,19 +91,7 @@ export let documentController = Controller.create(
       })
       .use(checkAccess({ possibleScopes: ['instance.file:read'] }))
       .output(documentPresenter)
-      .do(async ctx => {
-        let document = await documentService.getDocumentById({
-          documentId: ctx.document.id,
-          owner: {
-            type: 'instance',
-            instance: ctx.instance,
-            organization: ctx.organization
-          },
-          performedByMember: getDocumentMemberActor(ctx)
-        });
-
-        return documentPresenter.present({ document });
-      }),
+      .do(async ctx => documentPresenter.present({ document: ctx.document })),
 
     update: documentGroup
       .patch(instancePath('documents/:documentId', 'documents.update'), {
@@ -135,7 +115,7 @@ export let documentController = Controller.create(
             instance: ctx.instance,
             organization: ctx.organization
           },
-          performedByMember: getDocumentMemberActor(ctx),
+          ...getInstanceCargoAccess(ctx),
           input: {
             title: ctx.body.title,
             content: ctx.body.content
@@ -159,7 +139,8 @@ export let documentController = Controller.create(
             type: 'instance',
             instance: ctx.instance,
             organization: ctx.organization
-          }
+          },
+          ...getInstanceCargoAccess(ctx)
         });
 
         return documentPresenter.present({ document });
@@ -187,6 +168,7 @@ export let documentController = Controller.create(
             instance: ctx.instance,
             organization: ctx.organization
           },
+          ...getInstanceCargoAccess(ctx),
           input: {
             id: ctx.body.target_document_id,
             title: ctx.body.title

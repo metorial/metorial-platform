@@ -99,10 +99,13 @@ describe('file document services', () => {
 
     await documentService.createDocument({
       owner: owner as any,
-      performedByMember: {
+      accessActor: {
+        identifier: 'organization_actor:ora_1',
         organizationActorId: 'ora_1',
         name: 'Member Name'
       },
+      defaultPermissions: ['content_read', 'content_write'],
+      overridePermissions: true,
       input: {
         title: 'Notes',
         content: 'Hello'
@@ -122,7 +125,68 @@ describe('file document services', () => {
       documentId: undefined,
       title: 'Notes',
       content: 'Hello',
-      actorId: 'act_1'
+      actorId: 'act_1',
+      defaultPermissions: ['content_read', 'content_write'],
+      overridePermissions: true
+    });
+  });
+
+  it('uses consumer-based cargo actors for access-controlled document reads', async () => {
+    vi.mocked(cargo.actor.upsert).mockResolvedValue({
+      id: 'act_con_1'
+    } as any);
+    vi.mocked(cargo.document.get).mockResolvedValue({
+      id: 'doc_consumer'
+    } as any);
+    vi.mocked(cargo.document.list).mockResolvedValue({
+      items: [{ id: 'doc_consumer' }],
+      pagination: {
+        has_more_after: false,
+        has_more_before: false
+      }
+    } as any);
+
+    await documentService.getDocumentById({
+      owner: owner as any,
+      documentId: 'doc_consumer',
+      accessActor: {
+        identifier: 'consumer:con_1',
+        name: 'Portal Consumer'
+      }
+    });
+    let paginator = await documentService.listDocuments({
+      owner: owner as any,
+      accessActor: {
+        identifier: 'consumer:con_1',
+        name: 'Portal Consumer'
+      }
+    });
+    await paginator.run({
+      limit: 5
+    } as any);
+
+    expect(cargo.actor.upsert).toHaveBeenCalledWith({
+      tenantId: 'ten_1',
+      identifier: 'consumer:con_1',
+      name: 'Portal Consumer',
+      organizationActorId: undefined,
+      consumerProfileId: undefined
+    });
+    expect(cargo.document.get).toHaveBeenCalledWith({
+      tenantId: 'ten_1',
+      environmentId: 'env_1',
+      documentId: 'doc_consumer',
+      actorId: 'act_con_1',
+      defaultPermissions: undefined,
+      overridePermissions: undefined
+    });
+    expect(cargo.document.list).toHaveBeenCalledWith({
+      tenantId: 'ten_1',
+      environmentId: 'env_1',
+      actorId: 'act_con_1',
+      defaultPermissions: undefined,
+      overridePermissions: undefined,
+      limit: 5
     });
   });
 
@@ -178,20 +242,26 @@ describe('file document services', () => {
     await documentService.getDocumentById({
       owner: owner as any,
       documentId: 'doc_2',
-      performedByMember: {
+      accessActor: {
+        identifier: 'organization_actor:ora_2',
         organizationActorId: 'ora_2',
         name: 'Reader'
-      }
+      },
+      defaultPermissions: ['content_read', 'content_write'],
+      overridePermissions: true
     });
     await documentService.updateDocument({
       owner: owner as any,
       document: {
         id: 'doc_2'
       } as any,
-      performedByMember: {
+      accessActor: {
+        identifier: 'organization_actor:ora_2',
         organizationActorId: 'ora_2',
         name: 'Reader'
       },
+      defaultPermissions: ['content_read', 'content_write'],
+      overridePermissions: true,
       input: {
         title: 'Updated'
       }
@@ -217,7 +287,9 @@ describe('file document services', () => {
       tenantId: 'ten_1',
       environmentId: 'env_1',
       documentId: 'doc_2',
-      actorId: 'act_2'
+      actorId: 'act_2',
+      defaultPermissions: ['content_read', 'content_write'],
+      overridePermissions: true
     });
     expect(cargo.document.update).toHaveBeenCalledWith({
       tenantId: 'ten_1',
@@ -225,19 +297,27 @@ describe('file document services', () => {
       documentId: 'doc_2',
       title: 'Updated',
       content: undefined,
-      actorId: 'act_2'
+      actorId: 'act_2',
+      defaultPermissions: ['content_read', 'content_write'],
+      overridePermissions: true
     });
     expect(cargo.document.delete).toHaveBeenCalledWith({
       tenantId: 'ten_1',
       environmentId: 'env_1',
-      documentId: 'doc_2'
+      documentId: 'doc_2',
+      actorId: undefined,
+      defaultPermissions: undefined,
+      overridePermissions: undefined
     });
     expect(cargo.document.clone).toHaveBeenCalledWith({
       tenantId: 'ten_1',
       environmentId: 'env_1',
       documentId: 'doc_2',
       targetDocumentId: 'doc_3',
-      title: 'Clone'
+      title: 'Clone',
+      actorId: undefined,
+      defaultPermissions: undefined,
+      overridePermissions: undefined
     });
   });
 
@@ -353,6 +433,14 @@ describe('file document services', () => {
       documentVersionId: 'dvr_1'
     });
 
+    expect(cargo.documentVersion.get).toHaveBeenCalledWith({
+      tenantId: 'ten_1',
+      environmentId: 'env_1',
+      documentVersionId: 'dvr_1',
+      actorId: undefined,
+      defaultPermissions: undefined,
+      overridePermissions: undefined
+    });
     expect(documentParticipantService.enrichActors).toHaveBeenCalledWith({
       owner,
       actors: [{ name: 'Cargo Editor' }]
@@ -442,12 +530,18 @@ describe('file document services', () => {
       tenantId: 'ten_1',
       environmentId: 'env_1',
       documentId: ['doc_1'],
+      actorId: undefined,
+      defaultPermissions: undefined,
+      overridePermissions: undefined,
       limit: 5
     });
     expect(cargo.documentVersion.list).toHaveBeenCalledWith({
       tenantId: 'ten_1',
       environmentId: 'env_1',
       documentId: ['doc_1'],
+      actorId: undefined,
+      defaultPermissions: undefined,
+      overridePermissions: undefined,
       limit: 5
     });
     expect(participantResult.pagination).toEqual({

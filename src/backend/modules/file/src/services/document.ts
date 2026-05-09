@@ -2,58 +2,21 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { cargo, type CargoDocument } from '../cargo';
 import type { FileOwner } from './file';
-import { resolveCargoScopeForOwner } from './scope';
-
-export type CargoDocumentMemberActor = {
-  organizationActorId: string;
-  name: string;
-  consumerProfileId?: string;
-};
-
-let getCargoMemberActorIdentifier = (organizationActorId: string) =>
-  `organization_actor:${organizationActorId}`;
+import { resolveCargoAccess, type CargoAccessActor, type CargoStorePermission } from './access';
 
 class DocumentServiceImpl {
-  private async getScope(owner: FileOwner) {
-    return await resolveCargoScopeForOwner(owner);
-  }
-
-  private async getScopeAndActorId(d: {
-    owner: FileOwner;
-    performedByMember?: CargoDocumentMemberActor;
-  }) {
-    let scope = await this.getScope(d.owner);
-    if (!d.performedByMember) {
-      return {
-        scope,
-        actorId: undefined
-      };
-    }
-
-    let actor = await cargo.actor.upsert({
-      tenantId: scope.tenantId,
-      identifier: getCargoMemberActorIdentifier(d.performedByMember.organizationActorId),
-      name: d.performedByMember.name,
-      organizationActorId: d.performedByMember.organizationActorId,
-      consumerProfileId: d.performedByMember.consumerProfileId
-    });
-
-    return {
-      scope,
-      actorId: actor.id
-    };
-  }
-
   async createDocument(d: {
     owner: FileOwner;
-    performedByMember?: CargoDocumentMemberActor;
+    accessActor?: CargoAccessActor;
+    defaultPermissions?: CargoStorePermission[];
+    overridePermissions?: boolean;
     input: {
       id?: string;
       title: string;
       content: string;
     };
   }) {
-    let { scope, actorId } = await this.getScopeAndActorId(d);
+    let { scope, actorId, defaultPermissions, overridePermissions } = await resolveCargoAccess(d);
 
     return await cargo.document.create({
       tenantId: scope.tenantId,
@@ -61,19 +24,27 @@ class DocumentServiceImpl {
       documentId: d.input.id,
       title: d.input.title,
       content: d.input.content,
-      actorId
+      actorId,
+      defaultPermissions,
+      overridePermissions
     });
   }
 
   async listDocuments(d: {
     owner: FileOwner;
+    accessActor?: CargoAccessActor;
+    defaultPermissions?: CargoStorePermission[];
+    overridePermissions?: boolean;
   }) {
-    let scope = await this.getScope(d.owner);
+    let { scope, actorId, defaultPermissions, overridePermissions } = await resolveCargoAccess(d);
 
     return Paginator.create(() => async input => {
       let result = await cargo.document.list({
         tenantId: scope.tenantId,
         environmentId: scope.environmentId,
+        actorId,
+        defaultPermissions,
+        overridePermissions,
         ...input
       });
 
@@ -90,28 +61,34 @@ class DocumentServiceImpl {
   async getDocumentById(d: {
     owner: FileOwner;
     documentId: string;
-    performedByMember?: CargoDocumentMemberActor;
+    accessActor?: CargoAccessActor;
+    defaultPermissions?: CargoStorePermission[];
+    overridePermissions?: boolean;
   }) {
-    let { scope, actorId } = await this.getScopeAndActorId(d);
+    let { scope, actorId, defaultPermissions, overridePermissions } = await resolveCargoAccess(d);
 
     return await cargo.document.get({
       tenantId: scope.tenantId,
       environmentId: scope.environmentId,
       documentId: d.documentId,
-      actorId
+      actorId,
+      defaultPermissions,
+      overridePermissions
     });
   }
 
   async updateDocument(d: {
     owner: FileOwner;
     document: CargoDocument;
-    performedByMember?: CargoDocumentMemberActor;
+    accessActor?: CargoAccessActor;
+    defaultPermissions?: CargoStorePermission[];
+    overridePermissions?: boolean;
     input: {
       title?: string;
       content?: string;
     };
   }) {
-    let { scope, actorId } = await this.getScopeAndActorId(d);
+    let { scope, actorId, defaultPermissions, overridePermissions } = await resolveCargoAccess(d);
 
     return await cargo.document.update({
       tenantId: scope.tenantId,
@@ -119,39 +96,53 @@ class DocumentServiceImpl {
       documentId: d.document.id,
       title: d.input.title,
       content: d.input.content,
-      actorId
+      actorId,
+      defaultPermissions,
+      overridePermissions
     });
   }
 
   async deleteDocument(d: {
     owner: FileOwner;
     document: CargoDocument;
+    accessActor?: CargoAccessActor;
+    defaultPermissions?: CargoStorePermission[];
+    overridePermissions?: boolean;
   }) {
-    let scope = await this.getScope(d.owner);
+    let { scope, actorId, defaultPermissions, overridePermissions } = await resolveCargoAccess(d);
 
     return await cargo.document.delete({
       tenantId: scope.tenantId,
       environmentId: scope.environmentId,
-      documentId: d.document.id
+      documentId: d.document.id,
+      actorId,
+      defaultPermissions,
+      overridePermissions
     });
   }
 
   async cloneDocument(d: {
     owner: FileOwner;
     document: CargoDocument;
+    accessActor?: CargoAccessActor;
+    defaultPermissions?: CargoStorePermission[];
+    overridePermissions?: boolean;
     input: {
       id?: string;
       title?: string;
     };
   }) {
-    let scope = await this.getScope(d.owner);
+    let { scope, actorId, defaultPermissions, overridePermissions } = await resolveCargoAccess(d);
 
     return await cargo.document.clone({
       tenantId: scope.tenantId,
       environmentId: scope.environmentId,
       documentId: d.document.id,
       targetDocumentId: d.input.id,
-      title: d.input.title
+      title: d.input.title,
+      actorId,
+      defaultPermissions,
+      overridePermissions
     });
   }
 }
