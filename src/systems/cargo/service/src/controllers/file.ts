@@ -70,7 +70,10 @@ export let fileController = app.controller({
           tenantId: v.string(),
           environmentId: v.string(),
           purpose: v.optional(v.union([v.string(), v.array(v.string())])),
-          includeDeleted: v.optional(v.boolean())
+          includeDeleted: v.optional(v.boolean()),
+          actorId: v.optional(v.string()),
+          defaultPermissions: v.optional(storePermissionsSchema),
+          overridePermissions: v.optional(v.boolean())
         })
       )
     )
@@ -81,7 +84,10 @@ export let fileController = app.controller({
         tenant: ctx.tenant,
         environment: ctx.environment,
         purpose,
-        includeDeleted: ctx.input.includeDeleted
+        includeDeleted: ctx.input.includeDeleted,
+        actorId: ctx.input.actorId,
+        defaultPermissions: ctx.input.defaultPermissions,
+        overridePermissions: ctx.input.overridePermissions
       });
 
       let list = await paginator.run(ctx.input);
@@ -95,10 +101,24 @@ export let fileController = app.controller({
       v.object({
         tenantId: v.string(),
         environmentId: v.string(),
-        fileId: v.string()
+        fileId: v.string(),
+        actorId: v.optional(v.string()),
+        defaultPermissions: v.optional(storePermissionsSchema),
+        overridePermissions: v.optional(v.boolean())
       })
     )
-    .do(async ctx => filePresenter(ctx.file)),
+    .do(async ctx =>
+      filePresenter(
+        await fileService.getFileById({
+          tenant: ctx.tenant,
+          environment: ctx.environment,
+          fileId: ctx.input.fileId,
+          actorId: ctx.input.actorId,
+          defaultPermissions: ctx.input.defaultPermissions,
+          overridePermissions: ctx.input.overridePermissions
+        })
+      )
+    ),
 
   update: fileApp
     .handler()

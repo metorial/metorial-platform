@@ -17,7 +17,7 @@ export let filePresenter = (
   fileName: file.fileName,
   fileSize: file.fileSize,
   fileType: file.fileType,
-  title: file.title,
+  title: file.title || file.fileName,
   purpose: filePurposePresenter(file.purpose),
   createdAt: file.createdAt,
   updatedAt: file.updatedAt

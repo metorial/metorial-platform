@@ -44,6 +44,9 @@ model File {
   environmentOid BigInt
   environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
 
+  createdByTenantActorOid BigInt?
+  createdByTenantActor    TenantActor? @relation("FileCreator", fields: [createdByTenantActorOid], references: [oid], onDelete: SetNull)
+
   title String?
 
   createdAt DateTime @default(now())
@@ -54,6 +57,7 @@ model File {
   storeItems StoreItem[]
 
   @@index([tenantOid, environmentOid, status])
+  @@index([tenantOid, environmentOid, createdByTenantActorOid, status])
 }
 
 model FileLink {
@@ -71,12 +75,16 @@ model FileLink {
   environmentOid BigInt
   environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
 
+  createdByTenantActorOid BigInt?
+  createdByTenantActor    TenantActor? @relation("FileLinkCreator", fields: [createdByTenantActorOid], references: [oid], onDelete: SetNull)
+
   createdAt DateTime  @default(now())
   expiresAt DateTime?
 
   references FileReference[]
 
   @@index([tenantOid, environmentOid, fileOid])
+  @@index([tenantOid, environmentOid, createdByTenantActorOid])
 }
 
 model FileReference {

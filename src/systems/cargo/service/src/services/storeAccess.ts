@@ -97,6 +97,29 @@ class StoreAccessServiceImpl {
     return stores.map(store => store.oid);
   }
 
+  async listRelevantStoreOidsForFile(d: {
+    file: {
+      oid: bigint;
+    };
+    client?: DbClient;
+  }) {
+    let client = this.getClient(d.client);
+    let stores = await client.store.findMany({
+      where: {
+        items: {
+          some: {
+            fileOid: d.file.oid
+          }
+        }
+      },
+      select: {
+        oid: true
+      }
+    });
+
+    return stores.map(store => store.oid);
+  }
+
   async listStoreParticipantActorsForDocument(d: {
     document: {
       oid: bigint;
@@ -377,6 +400,52 @@ class StoreAccessServiceImpl {
       throw new ServiceError(
         forbiddenError({
           message: `Missing ${d.requiredPermission} access for document ${d.document.id}`
+        })
+      );
+    }
+
+    return {
+      actor,
+      isOwner,
+      relevantStoreOids: access.relevantStoreOids,
+      accessibleStoreOids: access.accessibleStoreOids
+    } satisfies StoreAccessResult;
+  }
+
+  async assertStoreAccessForFile(
+    d: CargoTenantEnvironment &
+      StoreAccessInput & {
+        file: {
+          id: string;
+          oid: bigint;
+          createdByTenantActorOid?: bigint | null;
+        };
+        requiredPermission: StoreParticipantPermissions;
+        client?: DbClient;
+      }
+  ) {
+    let actor = await this.getActorForAccess(d);
+    let isOwner = !!actor && d.file.createdByTenantActorOid === actor.oid;
+    let client = this.getClient(d.client);
+    let relevantStoreOids = await this.listRelevantStoreOidsForFile({
+      file: d.file,
+      client
+    });
+    let access = await this.resolveAccessibleStoreOids({
+      tenant: d.tenant,
+      environment: d.environment,
+      actorId: d.actorId,
+      defaultPermissions: d.defaultPermissions,
+      overridePermissions: d.overridePermissions,
+      requiredPermission: d.requiredPermission,
+      storeOids: relevantStoreOids,
+      client
+    });
+
+    if (d.actorId && !isOwner && access.accessibleStoreOids.length === 0) {
+      throw new ServiceError(
+        forbiddenError({
+          message: `Missing ${d.requiredPermission} access for file ${d.file.id}`
         })
       );
     }

@@ -17,7 +17,11 @@ import {
   type CargoTenantEnvironment
 } from './filePurpose';
 import { fileReferenceService } from './fileReference';
-import { storeAccessService, storeWritePermission } from './storeAccess';
+import {
+  storeAccessService,
+  storeReadPermission,
+  storeWritePermission
+} from './storeAccess';
 import { storeItemMutationService } from './storeItemMutation';
 
 let include = {
@@ -35,6 +39,11 @@ type DbClient = PrismaClient | Prisma.TransactionClient;
 type FileRecord = Prisma.FileGetPayload<{
   include: typeof include;
 }>;
+type FileAccessInput = {
+  actorId?: string;
+  defaultPermissions?: StoreParticipantPermissions[];
+  overridePermissions?: boolean;
+};
 
 class FileServiceImpl {
   private async ensureFileActive(file: File) {
@@ -90,13 +99,12 @@ class FileServiceImpl {
     }
 
     let client = d.client ?? db;
-    let actor =
-      d.input.store && d.input.actorId
-        ? await actorService.getActorById({
-            tenant: d.tenant,
-            actorId: d.input.actorId
-          })
-        : undefined;
+    let actor = d.input.actorId
+      ? await actorService.getActorById({
+          tenant: d.tenant,
+          actorId: d.input.actorId
+        })
+      : undefined;
 
     let existing = d.input.id
       ? await client.file.findFirst({
@@ -120,7 +128,8 @@ class FileServiceImpl {
           fileType: d.input.mimeType,
           title: d.input.title,
           status: 'active',
-          purposeOid: purpose.oid
+          purposeOid: purpose.oid,
+          createdByTenantActorOid: existing.createdByTenantActorOid ?? actor?.oid
         },
         include
       });
@@ -174,7 +183,8 @@ class FileServiceImpl {
         fileName: d.input.name,
         fileSize: d.input.size,
         fileType: d.input.mimeType,
-        title: d.input.title
+        title: d.input.title,
+        createdByTenantActorOid: actor?.oid
       },
       include
     });
@@ -218,7 +228,7 @@ class FileServiceImpl {
   async getFileById(
     d: CargoTenantEnvironment & {
       fileId: string;
-    }
+    } & FileAccessInput
   ) {
     let file = await db.file.findFirst({
       where: {
@@ -230,6 +240,16 @@ class FileServiceImpl {
     });
 
     if (!file) throw new ServiceError(notFoundError('file', d.fileId));
+
+    await storeAccessService.assertStoreAccessForFile({
+      tenant: d.tenant,
+      environment: d.environment,
+      file,
+      actorId: d.actorId,
+      defaultPermissions: d.defaultPermissions,
+      overridePermissions: d.overridePermissions,
+      requiredPermission: storeReadPermission
+    });
 
     return file;
   }
@@ -311,7 +331,7 @@ class FileServiceImpl {
     d: CargoTenantEnvironment & {
       purpose?: string[];
       includeDeleted?: boolean;
-    }
+    } & FileAccessInput
   ) {
     let purposes = d.purpose
       ? await Promise.all(
@@ -322,6 +342,37 @@ class FileServiceImpl {
           )
         )
       : undefined;
+
+    if (!d.actorId) {
+      return Paginator.create(({ prisma }) =>
+        prisma(
+          async opts =>
+            await db.file.findMany({
+              ...opts,
+              where: {
+                tenantOid: d.tenant.oid,
+                environmentOid: d.environment.oid,
+                status: d.includeDeleted ? undefined : 'active',
+                purposeOid: purposes
+                  ? {
+                      in: purposes.map(purpose => purpose.oid)
+                    }
+                  : undefined
+              },
+              include
+            })
+        )
+      );
+    }
+
+    let access = await storeAccessService.listAccessibleStoreOidsForTenantEnvironment({
+      tenant: d.tenant,
+      environment: d.environment,
+      actorId: d.actorId,
+      defaultPermissions: d.defaultPermissions,
+      overridePermissions: d.overridePermissions,
+      requiredPermission: storeReadPermission
+    });
 
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -336,7 +387,21 @@ class FileServiceImpl {
                 ? {
                     in: purposes.map(purpose => purpose.oid)
                   }
-                : undefined
+                : undefined,
+              OR: [
+                {
+                  createdByTenantActorOid: access.actor?.oid
+                },
+                {
+                  storeItems: {
+                    some: {
+                      storeOid: {
+                        in: access.accessibleStoreOids
+                      }
+                    }
+                  }
+                }
+              ]
             },
             include
           })

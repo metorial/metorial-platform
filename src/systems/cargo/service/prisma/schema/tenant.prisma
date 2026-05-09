@@ -72,6 +72,8 @@ model TenantActor {
 
   documentParticipants   DocumentParticipant[]
   createdDocuments       Document[] @relation("DocumentCreator")
+  createdFiles           File[] @relation("FileCreator")
+  createdFileLinks       FileLink[] @relation("FileLinkCreator")
   documentVersionEditors DocumentVersionEditors[]
   storeParticipants      StoreParticipant[]
   storeItems             StoreItem[]

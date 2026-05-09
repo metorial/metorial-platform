@@ -159,6 +159,9 @@ import {
 import { v1SecretPresenter } from './implementation/secret';
 import { v1ServiceAccountPresenter } from './implementation/serviceAccount';
 import { v1ServiceAccountCredentialPresenter } from './implementation/serviceAccountCredential';
+import { v1StoreItemPresenter } from './implementation/storeItem';
+import { v1StoreParticipantPresenter } from './implementation/storeParticipant';
+import { v1StorePresenter } from './implementation/store';
 import { v1TeamPresenter } from './implementation/team';
 import { v1TokenPresenter } from './implementation/token';
 import { v1UsagePresenter } from './implementation/usage';
@@ -304,6 +307,9 @@ import {
   sessionProviderType,
   sessionTemplateProviderType,
   sessionTemplateType,
+  storeItemType,
+  storeParticipantType,
+  storeType,
   teamType,
   tokenType,
   toolCallType,
@@ -490,6 +496,21 @@ export let documentVersionPresenter = declarePresenter(documentVersionType, {
 export let documentParticipantPresenter = declarePresenter(documentParticipantType, {
   mt_2025_01_01_dashboard: v1DocumentParticipantPresenter,
   mt_2026_01_01_magnetar: v1DocumentParticipantPresenter
+});
+
+export let storePresenter = declarePresenter(storeType, {
+  mt_2025_01_01_dashboard: v1StorePresenter,
+  mt_2026_01_01_magnetar: v1StorePresenter
+});
+
+export let storeItemPresenter = declarePresenter(storeItemType, {
+  mt_2025_01_01_dashboard: v1StoreItemPresenter,
+  mt_2026_01_01_magnetar: v1StoreItemPresenter
+});
+
+export let storeParticipantPresenter = declarePresenter(storeParticipantType, {
+  mt_2025_01_01_dashboard: v1StoreParticipantPresenter,
+  mt_2026_01_01_magnetar: v1StoreParticipantPresenter
 });
 
 export let secretPresenter = declarePresenter(secretType, {

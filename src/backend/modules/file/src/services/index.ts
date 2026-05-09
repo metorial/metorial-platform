@@ -9,7 +9,10 @@ export type {
   CargoFileLink,
   CargoFileLinkByKeyResult,
   CargoFileReference,
-  CargoScope
+  CargoScope,
+  CargoStore,
+  CargoStoreItem,
+  CargoStoreParticipant
 } from '../cargo';
 export { uploadCargoFile } from '../cargo';
 export * from './document';
@@ -18,3 +21,6 @@ export * from './documentVersion';
 export * from './file';
 export * from './fileLink';
 export * from './fileReference';
+export * from './store';
+export * from './storeItem';
+export * from './storeParticipant';

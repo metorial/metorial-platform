@@ -3,6 +3,17 @@ import { db } from '../../db';
 import { cargoClient } from '../../test/client';
 import { cleanDatabase } from '../../test/setup';
 
+let createActor = async (d: {
+  tenantId: string;
+  identifier: string;
+  name: string;
+}) =>
+  await cargoClient.actor.upsert({
+    tenantId: d.tenantId,
+    identifier: d.identifier,
+    name: d.name
+  });
+
 describe('cargo file.e2e', () => {
   beforeEach(async () => {
     await cleanDatabase();
@@ -419,5 +430,245 @@ describe('cargo file.e2e', () => {
     });
 
     expect(deniedFile).toBeNull();
+  });
+
+  it('restricts file reads to creators or accessible store participants when actorId is set', async () => {
+    let tenant = await cargoClient.tenant.upsert({
+      identifier: 'tenant-file-access',
+      name: 'Tenant File Access'
+    });
+
+    let environment = await cargoClient.environment.upsert({
+      tenantId: tenant.id,
+      identifier: 'prod',
+      name: 'Production',
+      type: 'production'
+    });
+
+    let creator = await createActor({
+      tenantId: tenant.id,
+      identifier: 'file-creator',
+      name: 'File Creator'
+    });
+    let reader = await createActor({
+      tenantId: tenant.id,
+      identifier: 'file-reader',
+      name: 'File Reader'
+    });
+    let denied = await createActor({
+      tenantId: tenant.id,
+      identifier: 'file-denied',
+      name: 'File Denied'
+    });
+
+    let purpose = await cargoClient.filePurpose.upsert({
+      slug: 'organization_image_file_access',
+      name: 'Organization Image File Access',
+      ownerType: 'organization',
+      canHaveLinks: true
+    });
+
+    let ownFile = await cargoClient.file.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      purpose: purpose.id,
+      storeId: 'file-access-own',
+      name: 'own.png',
+      mimeType: 'image/png',
+      size: 64,
+      title: 'Own',
+      actorId: creator.id
+    });
+
+    let ownFileRecord = await db.file.findFirst({
+      where: {
+        id: ownFile.id
+      }
+    });
+
+    expect(ownFileRecord?.createdByTenantActorOid).toBeTruthy();
+
+    let store = await cargoClient.store.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      name: 'File Access Store'
+    });
+
+    let storeFile = await cargoClient.file.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      purpose: purpose.id,
+      storeId: 'file-access-store',
+      name: 'store.png',
+      mimeType: 'image/png',
+      size: 96,
+      title: 'Store',
+      store: {
+        id: store.id,
+        path: '/store.png'
+      }
+    });
+
+    let creatorRead = await cargoClient.file.get({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      fileId: ownFile.id,
+      actorId: creator.id
+    });
+
+    expect(creatorRead.id).toBe(ownFile.id);
+
+    let creatorList = await cargoClient.file.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      actorId: creator.id,
+      limit: 10
+    });
+
+    expect(creatorList.items.map(file => file.id)).toContain(ownFile.id);
+
+    await expect(
+      cargoClient.file.get({
+        tenantId: tenant.id,
+        environmentId: environment.id,
+        fileId: ownFile.id,
+        actorId: denied.id
+      })
+    ).rejects.toThrow('Missing content_read access for file');
+
+    let readerStoreFile = await cargoClient.file.get({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      fileId: storeFile.id,
+      actorId: reader.id,
+      defaultPermissions: ['content_read'],
+      overridePermissions: true
+    });
+
+    expect(readerStoreFile.id).toBe(storeFile.id);
+
+    let readerList = await cargoClient.file.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      actorId: reader.id,
+      defaultPermissions: ['content_read'],
+      overridePermissions: true,
+      limit: 10
+    });
+
+    expect(readerList.items.map(file => file.id)).toContain(storeFile.id);
+    expect(readerList.items.map(file => file.id)).not.toContain(ownFile.id);
+
+    await expect(
+      cargoClient.file.get({
+        tenantId: tenant.id,
+        environmentId: environment.id,
+        fileId: storeFile.id,
+        actorId: denied.id
+      })
+    ).rejects.toThrow('Missing content_read access for file');
+
+    let deniedList = await cargoClient.file.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      actorId: denied.id,
+      limit: 10
+    });
+
+    expect(deniedList.items).toHaveLength(0);
+  });
+
+  it('restricts file link reads to the creating actor when actorId is set', async () => {
+    let tenant = await cargoClient.tenant.upsert({
+      identifier: 'tenant-file-link-access',
+      name: 'Tenant File Link Access'
+    });
+
+    let environment = await cargoClient.environment.upsert({
+      tenantId: tenant.id,
+      identifier: 'prod',
+      name: 'Production',
+      type: 'production'
+    });
+
+    let creator = await createActor({
+      tenantId: tenant.id,
+      identifier: 'file-link-creator',
+      name: 'File Link Creator'
+    });
+    let otherActor = await createActor({
+      tenantId: tenant.id,
+      identifier: 'file-link-other',
+      name: 'File Link Other'
+    });
+
+    let purpose = await cargoClient.filePurpose.upsert({
+      slug: 'organization_image_file_link_access',
+      name: 'Organization Image File Link Access',
+      ownerType: 'organization',
+      canHaveLinks: true
+    });
+
+    let file = await cargoClient.file.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      purpose: purpose.id,
+      storeId: 'file-link-access-file',
+      name: 'link.png',
+      mimeType: 'image/png',
+      size: 64,
+      title: 'Linkable'
+    });
+
+    let fileLink = await cargoClient.fileLink.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      fileId: file.id,
+      actorId: creator.id
+    });
+
+    let fileLinkRecord = await db.fileLink.findFirst({
+      where: {
+        id: fileLink.id
+      }
+    });
+
+    expect(fileLinkRecord?.createdByTenantActorOid).toBeTruthy();
+
+    let creatorGet = await cargoClient.fileLink.get({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      fileLinkId: fileLink.id,
+      actorId: creator.id
+    });
+
+    expect(creatorGet.id).toBe(fileLink.id);
+
+    let creatorList = await cargoClient.fileLink.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      actorId: creator.id,
+      limit: 10
+    });
+
+    expect(creatorList.items.map(link => link.id)).toEqual([fileLink.id]);
+
+    await expect(
+      cargoClient.fileLink.get({
+        tenantId: tenant.id,
+        environmentId: environment.id,
+        fileLinkId: fileLink.id,
+        actorId: otherActor.id
+      })
+    ).rejects.toThrow();
+
+    let otherList = await cargoClient.fileLink.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      actorId: otherActor.id,
+      limit: 10
+    });
+
+    expect(otherList.items).toHaveLength(0);
   });
 });

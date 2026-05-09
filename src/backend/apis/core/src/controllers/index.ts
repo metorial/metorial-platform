@@ -28,6 +28,9 @@ import { portalConsumerGroupController } from './instance/portalConsumerGroup';
 import { portalConsumerInviteController } from './instance/portalConsumerInvite';
 import { portalConsumerProfileController } from './instance/portalConsumerProfile';
 import { portalConsumerSurfaceProviderGroupController } from './instance/portalConsumerSurfaceProviderGroup';
+import { storeController } from './instance/store';
+import { storeItemController } from './instance/storeItem';
+import { storeParticipantController } from './instance/storeParticipant';
 import { tokenController } from './instance/token';
 import { accessPolicyManagementController } from './management/accessPolicy';
 import { accessRoleManagementController } from './management/accessRole';
@@ -328,6 +331,9 @@ export let magnetarController = Controller.create<any>(
     documentController,
     documentVersionController,
     documentParticipantController,
+    storeController,
+    storeItemController,
+    storeParticipantController,
     fileController,
     fileLinkController,
 
@@ -421,6 +427,9 @@ export let dashboardController = Controller.create<any>(
     documentController,
     documentVersionController,
     documentParticipantController,
+    storeController,
+    storeItemController,
+    storeParticipantController,
     fileController,
     fileLinkController,
 

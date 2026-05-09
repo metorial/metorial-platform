@@ -74,8 +74,11 @@ import {
 } from '@metorial/module-consumer';
 import type {
   CargoDocument,
+  CargoStore,
+  CargoStoreItem,
   CargoFile,
   CargoFileLink,
+  EnrichedCargoStoreParticipant,
   EnrichedCargoDocumentParticipant,
   EnrichedCargoDocumentVersion
 } from '@metorial/module-file';
@@ -415,6 +418,18 @@ export let documentVersionType = PresentableType.create<{
 export let documentParticipantType = PresentableType.create<{
   documentParticipant: EnrichedCargoDocumentParticipant;
 }>()('documentParticipant');
+
+export let storeType = PresentableType.create<{
+  store: CargoStore;
+}>()('store');
+
+export let storeItemType = PresentableType.create<{
+  storeItem: CargoStoreItem;
+}>()('storeItem');
+
+export let storeParticipantType = PresentableType.create<{
+  storeParticipant: EnrichedCargoStoreParticipant;
+}>()('storeParticipant');
 
 export let secretType = PresentableType.create<{
   secret: Secret & { type: SecretType; organization: Organization; instance: Instance };

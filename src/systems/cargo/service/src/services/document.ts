@@ -581,7 +581,8 @@ class DocumentServiceImpl {
           name: d.input.title,
           mimeType: documentMimeType,
           size: getTextByteSize(d.input.content),
-          title: d.input.title
+          title: d.input.title,
+          actorId: d.input.actorId
         }
       });
 
@@ -971,7 +972,8 @@ class DocumentServiceImpl {
           name: nextTitle,
           mimeType: documentMimeType,
           size: getTextByteSize(sourceContent),
-          title: nextTitle
+          title: nextTitle,
+          actorId: d.input.actorId
         }
       });
 

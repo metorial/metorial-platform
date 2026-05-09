@@ -51,7 +51,8 @@ export let fileLinkController = app.controller({
         fileId: v.string(),
         fileLinkId: v.optional(v.string()),
         key: v.optional(v.string()),
-        expiresAt: v.optional(v.date())
+        expiresAt: v.optional(v.date()),
+        actorId: v.optional(v.string())
       })
     )
     .do(async ctx => {
@@ -62,7 +63,8 @@ export let fileLinkController = app.controller({
         input: {
           id: ctx.input.fileLinkId,
           key: ctx.input.key,
-          expiresAt: ctx.input.expiresAt
+          expiresAt: ctx.input.expiresAt,
+          actorId: ctx.input.actorId
         }
       });
 
@@ -76,7 +78,8 @@ export let fileLinkController = app.controller({
         v.object({
           tenantId: v.string(),
           environmentId: v.string(),
-          fileId: v.optional(v.union([v.string(), v.array(v.string())]))
+          fileId: v.optional(v.union([v.string(), v.array(v.string())])),
+          actorId: v.optional(v.string())
         })
       )
     )
@@ -86,7 +89,8 @@ export let fileLinkController = app.controller({
       let paginator = await fileLinkService.listFileLinks({
         tenant: ctx.tenant,
         environment: ctx.environment,
-        fileId
+        fileId,
+        actorId: ctx.input.actorId
       });
 
       let list = await paginator.run(ctx.input);
@@ -100,10 +104,20 @@ export let fileLinkController = app.controller({
       v.object({
         tenantId: v.string(),
         environmentId: v.string(),
-        fileLinkId: v.string()
+        fileLinkId: v.string(),
+        actorId: v.optional(v.string())
       })
     )
-    .do(async ctx => fileLinkPresenter(ctx.fileLink)),
+    .do(async ctx =>
+      fileLinkPresenter(
+        await fileLinkService.getFileLinkById({
+          tenant: ctx.tenant,
+          environment: ctx.environment,
+          fileLinkId: ctx.input.fileLinkId,
+          actorId: ctx.input.actorId
+        })
+      )
+    ),
 
   delete: fileLinkApp
     .handler()

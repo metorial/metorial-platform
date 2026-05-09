@@ -66,6 +66,14 @@ export type CargoDocumentParticipant = Awaited<
 export type CargoDocumentParticipantList = Awaited<
   ReturnType<typeof cargo.documentParticipant.list>
 >;
+export type CargoStore = Awaited<ReturnType<typeof cargo.store.create>>;
+export type CargoStoreList = Awaited<ReturnType<typeof cargo.store.list>>;
+export type CargoStoreItem = Awaited<ReturnType<typeof cargo.storeItem.get>>;
+export type CargoStoreItemList = Awaited<ReturnType<typeof cargo.storeItem.list>>;
+export type CargoStoreParticipant = Awaited<ReturnType<typeof cargo.storeParticipant.get>>;
+export type CargoStoreParticipantList = Awaited<
+  ReturnType<typeof cargo.storeParticipant.list>
+>;
 
 let defaultEnvironmentIdentifier = 'default';
 let getOrganizationTenantIdentifier = (organization: { oid: bigint }) =>
