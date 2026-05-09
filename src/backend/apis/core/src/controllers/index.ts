@@ -12,6 +12,9 @@ import { dashboardUsageController } from './dashboard/usage';
 import { dashboardUserController } from './dashboard/user';
 import { consumerController } from './instance/consumer';
 import { consumerSurfaceController } from './instance/consumerSurface';
+import { documentController } from './instance/document';
+import { documentParticipantController } from './instance/documentParticipant';
+import { documentVersionController } from './instance/documentVersion';
 import { fileController } from './instance/file';
 import { fileLinkController } from './instance/fileLink';
 import { instanceController } from './instance/instance';
@@ -322,6 +325,9 @@ export let magnetarController = Controller.create<any>(
     customProviderCommitController,
     customProviderEnvironmentController,
 
+    documentController,
+    documentVersionController,
+    documentParticipantController,
     fileController,
     fileLinkController,
 
@@ -412,6 +418,9 @@ export let dashboardController = Controller.create<any>(
     integrationInstanceGroupController,
     integrationInstanceGroupProviderController,
 
+    documentController,
+    documentVersionController,
+    documentParticipantController,
     fileController,
     fileLinkController,
 

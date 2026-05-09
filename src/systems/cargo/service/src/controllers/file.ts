@@ -1,5 +1,6 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
+import { normalizeArrayParam } from '../../../../../backend/apis/core/src/lib/normalizeArrayParam';
 import { filePresenter } from '../presenters';
 import { fileService } from '../services';
 import { app } from './_app';
@@ -59,16 +60,18 @@ export let fileController = app.controller({
         v.object({
           tenantId: v.string(),
           environmentId: v.string(),
-          purpose: v.optional(v.string()),
+          purpose: v.optional(v.union([v.string(), v.array(v.string())])),
           includeDeleted: v.optional(v.boolean())
         })
       )
     )
     .do(async ctx => {
+      let purpose = normalizeArrayParam(ctx.input.purpose);
+
       let paginator = await fileService.listFiles({
         tenant: ctx.tenant,
         environment: ctx.environment,
-        purpose: ctx.input.purpose,
+        purpose,
         includeDeleted: ctx.input.includeDeleted
       });
 

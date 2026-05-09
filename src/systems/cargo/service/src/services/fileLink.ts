@@ -17,6 +17,11 @@ import type { CargoTenantEnvironment } from './filePurpose';
 let include = {
   file: {
     include: {
+      document: {
+        select: {
+          id: true
+        }
+      },
       purpose: true
     }
   },
@@ -126,7 +131,7 @@ class FileLinkServiceImpl {
 
   async listFileLinks(
     d: CargoTenantEnvironment & {
-      fileId?: string;
+      fileId?: string[];
     }
   ) {
     return Paginator.create(({ prisma }) =>
@@ -138,7 +143,13 @@ class FileLinkServiceImpl {
             environmentOid: d.environment.oid,
             file: {
               status: 'active',
-              ...(d.fileId ? { id: d.fileId } : {})
+              ...(d.fileId
+                ? {
+                    id: {
+                      in: d.fileId
+                    }
+                  }
+                : {})
             }
           },
           include

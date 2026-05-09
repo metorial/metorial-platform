@@ -17,7 +17,7 @@ export let documentParticipantPresenter = (
   role: participant.role,
   editCount: participant.editCount,
   lastEditedAt: participant.lastEditedAt,
-  lastViewedAt: participant.lastViewedAt ?? participant.createdAt,
+  lastViewedAt: participant.lastViewedAt,
   actor: actorPresenter(participant.tenantActor),
   createdAt: participant.createdAt
 });

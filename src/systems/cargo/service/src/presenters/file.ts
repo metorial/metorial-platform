@@ -1,9 +1,18 @@
-import type { File, FilePurpose } from '../../prisma/generated/client';
+import type { Document, File, FilePurpose } from '../../prisma/generated/client';
 
-export let filePresenter = (file: File & { purpose: FilePurpose }) => ({
+import { filePurposePresenter } from './filePurpose';
+
+export let filePresenter = (
+  file: File & {
+    purpose: FilePurpose;
+    document: Pick<Document, 'id'> | null;
+  }
+) => ({
   object: 'cargo#file',
   id: file.id,
+  type: file.document ? 'document' : 'file',
   status: file.status,
+  documentId: file.document?.id,
   storeId: file.storeId,
   fileName: file.fileName,
   fileSize: file.fileSize,
@@ -13,5 +22,3 @@ export let filePresenter = (file: File & { purpose: FilePurpose }) => ({
   createdAt: file.createdAt,
   updatedAt: file.updatedAt
 });
-
-import { filePurposePresenter } from './filePurpose';

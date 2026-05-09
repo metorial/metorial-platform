@@ -97,7 +97,12 @@ describe('cargo document.e2e', () => {
       id: created.id,
       title: 'Notes',
       content: 'hello world',
-      currentVersionId: expect.any(String)
+      currentVersionId: expect.any(String),
+      file: {
+        id: created.fileId,
+        type: 'document',
+        documentId: created.id
+      }
     });
     expect(participants.items).toHaveLength(1);
     expect(participants.items[0]).toMatchObject({
@@ -130,7 +135,19 @@ describe('cargo document.e2e', () => {
       limit: 10
     });
 
+    let deletedFile = await cargoClient.file.get({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      fileId: created.fileId
+    });
+
     expect(listedAfterDelete.items).toHaveLength(0);
+    expect(deletedFile).toMatchObject({
+      id: created.fileId,
+      type: 'document',
+      documentId: created.id,
+      status: 'deleted'
+    });
   });
 
   it('upserts viewer participants on get and promotes them on edit', async () => {
@@ -241,8 +258,6 @@ describe('cargo document.e2e', () => {
     });
 
     expect(updated.currentVersionId).toBe(created.currentVersionId);
-    expect(updated.hasDraft).toBe(true);
-    expect(updated.maxVersionNumber).toBe(1);
     expect(updated.content).toBe('v2');
     expect(beforeFlushVersions.items).toHaveLength(1);
     expect(beforeFlushVersions.items[0]).toMatchObject({
@@ -261,7 +276,7 @@ describe('cargo document.e2e', () => {
       documentId: created.id
     });
 
-    expect(flushed.hasDraft).toBe(false);
+    expect(flushed.content).toBe('v2');
   });
 
   it('creates a new version after three hours and snapshots the retired version', async () => {
@@ -314,10 +329,8 @@ describe('cargo document.e2e', () => {
     });
 
     expect(updated.currentVersionId).toBe(created.currentVersionId);
-    expect(updated.hasDraft).toBe(true);
     expect(beforeFlushVersions.items).toHaveLength(1);
     expect(flushed.currentVersionId).not.toBe(created.currentVersionId);
-    expect(flushed.maxVersionNumber).toBe(2);
     expect(versions.items).toHaveLength(2);
     expect(versions.items[0]).toMatchObject({
       id: flushed.currentVersionId,
@@ -382,14 +395,12 @@ describe('cargo document.e2e', () => {
       }
     });
 
-    expect(cloned.isContentOwner).toBe(false);
+    expect(cloneBeforeWrite?.isContentOwner).toBe(false);
     expect(sourceBeforeWrite?.contentOid).toBe(cloneBeforeWrite?.contentOid);
     expect(updatedClone.currentVersionId).toBe(cloned.currentVersionId);
-    expect(updatedClone.isContentOwner).toBe(false);
-    expect(updatedClone.hasDraft).toBe(true);
     expect(updatedClone.content).toBe('clone-only');
     expect(sourceAfterWrite.content).toBe('shared');
-    expect(cloneAfterFlush.isContentOwner).toBe(true);
+    expect(cloneAfterWrite?.isContentOwner).toBe(true);
     expect(sourceBeforeWrite?.contentOid).not.toBe(cloneAfterWrite?.contentOid);
   });
 

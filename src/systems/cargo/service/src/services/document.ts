@@ -810,13 +810,9 @@ class DocumentServiceImpl {
     this.ensureDocumentActive(d.document);
 
     let deletedDocument = await db.$transaction(async tx => {
-      await tx.file.update({
-        where: {
-          id: d.document.file.id
-        },
-        data: {
-          status: 'deleted'
-        }
+      await fileService.deleteFile({
+        file: d.document.file,
+        client: tx
       });
 
       return await this.getDocumentRecord(tx, {
@@ -832,8 +828,6 @@ class DocumentServiceImpl {
         includeDeleted: true
       });
     });
-
-    await documentDraftService.deleteDraft(d.document.id);
 
     return deletedDocument;
   }

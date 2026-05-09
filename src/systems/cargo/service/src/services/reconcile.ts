@@ -119,6 +119,11 @@ class ReconcileServiceImpl {
             status: 'deleted'
           },
           include: {
+            document: {
+              select: {
+                id: true
+              }
+            },
             purpose: true,
             tenant: true,
             environment: true

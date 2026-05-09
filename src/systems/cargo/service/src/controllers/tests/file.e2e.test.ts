@@ -128,6 +128,8 @@ describe('cargo file.e2e', () => {
     expect(listed.items).toHaveLength(1);
     expect(listed.items[0]).toMatchObject({
       id: file.id,
+      type: 'file',
+      documentId: undefined,
       title: 'Avatar'
     });
 
@@ -158,6 +160,88 @@ describe('cargo file.e2e', () => {
     });
 
     expect(deleted.status).toBe('deleted');
+    expect(deleted.type).toBe('file');
+    expect(deleted.documentId).toBeUndefined();
+  });
+
+  it('filters files and file links with array params', async () => {
+    let tenant = await cargoClient.tenant.upsert({
+      identifier: 'tenant-file-array-filters',
+      name: 'Tenant File Array Filters'
+    });
+
+    let environment = await cargoClient.environment.upsert({
+      tenantId: tenant.id,
+      identifier: 'prod',
+      name: 'Production',
+      type: 'production'
+    });
+
+    let firstPurpose = await cargoClient.filePurpose.upsert({
+      slug: 'organization_image_array',
+      name: 'Organization Image Array',
+      ownerType: 'organization',
+      canHaveLinks: true
+    });
+
+    let secondPurpose = await cargoClient.filePurpose.upsert({
+      slug: 'organization_avatar_array',
+      name: 'Organization Avatar Array',
+      ownerType: 'organization',
+      canHaveLinks: true
+    });
+
+    let firstFile = await cargoClient.file.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      purpose: firstPurpose.id,
+      storeId: 'store-file-array-1',
+      name: 'first.png',
+      mimeType: 'image/png',
+      size: 128,
+      title: 'First'
+    });
+
+    let secondFile = await cargoClient.file.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      purpose: secondPurpose.id,
+      storeId: 'store-file-array-2',
+      name: 'second.png',
+      mimeType: 'image/png',
+      size: 256,
+      title: 'Second'
+    });
+
+    let firstLink = await cargoClient.fileLink.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      fileId: firstFile.id
+    });
+
+    let secondLink = await cargoClient.fileLink.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      fileId: secondFile.id
+    });
+
+    let files = await cargoClient.file.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      purpose: [firstPurpose.id, secondPurpose.id],
+      limit: 10
+    });
+
+    expect(files.items.map(file => file.id).sort()).toEqual([firstFile.id, secondFile.id].sort());
+
+    let fileLinks = await cargoClient.fileLink.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      fileId: [firstFile.id, secondFile.id],
+      limit: 10
+    });
+
+    expect(fileLinks.items.map(link => link.id).sort()).toEqual([firstLink.id, secondLink.id].sort());
   });
 
   it('rejects document-purpose files from the normal file API', async () => {
@@ -192,5 +276,55 @@ describe('cargo file.e2e', () => {
         title: 'Document'
       })
     ).rejects.toThrow('Document purpose cannot be used for normal file creation');
+  });
+
+  it('archives linked documents when deleting a document-backed file', async () => {
+    let tenant = await cargoClient.tenant.upsert({
+      identifier: 'tenant-file-document-delete',
+      name: 'Tenant File Document Delete'
+    });
+
+    let environment = await cargoClient.environment.upsert({
+      tenantId: tenant.id,
+      identifier: 'prod',
+      name: 'Production',
+      type: 'production'
+    });
+
+    let document = await cargoClient.document.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      title: 'Document',
+      content: 'body'
+    });
+
+    let deletedFile = await cargoClient.file.delete({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      fileId: document.fileId
+    });
+
+    expect(deletedFile).toMatchObject({
+      id: document.fileId,
+      type: 'document',
+      documentId: document.id,
+      status: 'deleted'
+    });
+
+    let listedDocuments = await cargoClient.document.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      limit: 10
+    });
+
+    expect(listedDocuments.items).toHaveLength(0);
+
+    await expect(
+      cargoClient.document.get({
+        tenantId: tenant.id,
+        environmentId: environment.id,
+        documentId: document.id
+      })
+    ).rejects.toThrow();
   });
 });

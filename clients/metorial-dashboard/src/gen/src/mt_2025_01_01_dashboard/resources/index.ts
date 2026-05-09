@@ -4,6 +4,7 @@ export * from './consumer-surfaces';
 export * from './consumers';
 export * from './custom-providers';
 export * from './dashboard';
+export * from './documents';
 export * from './file-links';
 export * from './files';
 export * from './identities';

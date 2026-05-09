@@ -7,13 +7,6 @@ import {
   AccessPolicyVersion,
   AccessRole,
   AccessRoleVersion,
-  Assistant,
-  AssistantConversation,
-  AssistantImplementation,
-  AssistantMessage,
-  AssistantModel,
-  AssistantModelProvider,
-  AssistantRequest,
   ApiKey,
   ApiKeySecret,
   ApiKeyType,
@@ -35,9 +28,6 @@ import {
   ConsumerSurface,
   ConsumerSurfaceProviderGroup,
   ConsumerToken,
-  File,
-  FileLink,
-  FilePurpose,
   Instance,
   InstanceConsumer,
   MachineAccess,
@@ -70,6 +60,11 @@ import {
   TeamProject,
   User
 } from '@metorial/db';
+import type {
+  AssistantConversationItemWithMessage,
+  AssistantConversationWithAssistant,
+  AvailableAssistant
+} from '@metorial/module-assistant';
 import {
   ConsumerAresApp,
   ConsumerAresSsoConnection,
@@ -77,19 +72,20 @@ import {
   ConsumerAresSsoTenantSetup,
   ConsumerProviderCatalogEntry
 } from '@metorial/module-consumer';
-import { Flags } from '@metorial/module-flags';
-import type { EnrichedProviderTemplate } from '@metorial/module-magic';
 import type {
-  AssistantConversationWithAssistant,
-  AssistantConversationItemWithMessage,
-  AvailableAssistant
-} from '@metorial/module-assistant';
+  CargoDocument,
+  CargoFile,
+  CargoFileLink,
+  EnrichedCargoDocumentParticipant,
+  EnrichedCargoDocumentVersion
+} from '@metorial/module-file';
+import { Flags } from '@metorial/module-flags';
 import type {
   OAuthAuthorizationLogWithRelations,
   OAuthAuthorizationRequestWithRelations
 } from '@metorial/module-machine-access';
+import type { EnrichedProviderTemplate } from '@metorial/module-magic';
 import type { PolicyDocument, ProjectBrandOverride } from '@metorial/module-organization';
-import type { CargoFile, CargoFileLink } from '@metorial/module-file';
 import {
   SubspaceAgent,
   SubspaceAgentInstance,
@@ -407,6 +403,18 @@ export let fileType = PresentableType.create<{
 export let fileLinkType = PresentableType.create<{
   fileLink: CargoFileLink;
 }>()('fileLink');
+
+export let documentType = PresentableType.create<{
+  document: CargoDocument;
+}>()('document');
+
+export let documentVersionType = PresentableType.create<{
+  documentVersion: EnrichedCargoDocumentVersion;
+}>()('documentVersion');
+
+export let documentParticipantType = PresentableType.create<{
+  documentParticipant: EnrichedCargoDocumentParticipant;
+}>()('documentParticipant');
 
 export let secretType = PresentableType.create<{
   secret: Secret & { type: SecretType; organization: Organization; instance: Instance };

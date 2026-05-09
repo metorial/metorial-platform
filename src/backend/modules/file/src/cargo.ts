@@ -55,6 +55,17 @@ export type CargoFileLinkList = Awaited<ReturnType<typeof cargo.fileLink.list>>;
 export type CargoFileLinkByKeyResult = Awaited<ReturnType<typeof cargo.fileLink.getByKey>>;
 export type CargoFileReference = Awaited<ReturnType<typeof cargo.fileReference.create>>;
 export type CargoFileReferenceList = Awaited<ReturnType<typeof cargo.fileReference.list>>;
+export type CargoActor = Awaited<ReturnType<typeof cargo.actor.upsert>>;
+export type CargoDocument = Awaited<ReturnType<typeof cargo.document.create>>;
+export type CargoDocumentList = Awaited<ReturnType<typeof cargo.document.list>>;
+export type CargoDocumentVersion = Awaited<ReturnType<typeof cargo.documentVersion.get>>;
+export type CargoDocumentVersionList = Awaited<ReturnType<typeof cargo.documentVersion.list>>;
+export type CargoDocumentParticipant = Awaited<
+  ReturnType<typeof cargo.documentParticipant.get>
+>;
+export type CargoDocumentParticipantList = Awaited<
+  ReturnType<typeof cargo.documentParticipant.list>
+>;
 
 let defaultEnvironmentIdentifier = 'default';
 let getOrganizationTenantIdentifier = (organization: { oid: bigint }) =>

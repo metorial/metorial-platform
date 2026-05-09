@@ -1,12 +1,17 @@
 import { mtMap } from '@metorial/util-resource-mapper';
 
 export type ConsumersProfilesListOutput = {
-  items: ({
+  items: (({
     object: 'consumer.profile';
     id: string;
     name: string;
     email: string;
     imageUrl: string;
+    consumerId: string;
+    status: 'active' | 'invited';
+    createdAt: Date;
+    updatedAt: Date;
+  } & {
     groups:
       | {
           object: 'consumer.profile.group_assignment';
@@ -24,11 +29,7 @@ export type ConsumersProfilesListOutput = {
           assignedVia: 'default' | 'manual' | 'sso' | 'user';
         }[]
       | null;
-    consumerId: string;
-    status: 'active' | 'invited';
-    createdAt: Date;
-    updatedAt: Date;
-  } & {
+  }) & {
     surface: {
       object: 'consumer.surface';
       id: string;
@@ -61,6 +62,10 @@ export let mapConsumersProfilesListOutput =
               name: mtMap.objectField('name', mtMap.passthrough()),
               email: mtMap.objectField('email', mtMap.passthrough()),
               imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
+              consumerId: mtMap.objectField('consumer_id', mtMap.passthrough()),
+              status: mtMap.objectField('status', mtMap.passthrough()),
+              createdAt: mtMap.objectField('created_at', mtMap.date()),
+              updatedAt: mtMap.objectField('updated_at', mtMap.date()),
               groups: mtMap.objectField(
                 'groups',
                 mtMap.array(
@@ -105,10 +110,6 @@ export let mapConsumersProfilesListOutput =
                   })
                 )
               ),
-              consumerId: mtMap.objectField('consumer_id', mtMap.passthrough()),
-              status: mtMap.objectField('status', mtMap.passthrough()),
-              createdAt: mtMap.objectField('created_at', mtMap.date()),
-              updatedAt: mtMap.objectField('updated_at', mtMap.date()),
               surface: mtMap.objectField(
                 'surface',
                 mtMap.object({

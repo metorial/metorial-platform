@@ -32,7 +32,12 @@ export let documentPresenter = (
     title: document.resolvedTitle ?? document.title,
     status: document.file.status,
     fileId: document.file.id,
-    file: filePresenter(document.file),
+    file: filePresenter({
+      ...document.file,
+      document: {
+        id: document.id
+      }
+    }),
     parentDocumentId: document.parentDocument?.id,
     currentVersionId: document.currentVersion?.id,
     content: document.resolvedContent ?? document.content.content,

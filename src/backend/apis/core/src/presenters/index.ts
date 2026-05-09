@@ -3,12 +3,12 @@ import { v1AccessPolicyPresenter } from './implementation/accessPolicy';
 import { v1AccessPolicyVersionPresenter } from './implementation/accessPolicyVersion';
 import { v1AccessRolePresenter } from './implementation/accessRole';
 import { v1AccessRoleVersionPresenter } from './implementation/accessRoleVersion';
+import { dashboardApiKeyPresenter, v1ApiKeyPresenter } from './implementation/apiKey';
 import {
   v1AssistantConversationPresenter,
   v1AssistantMessagePresenter,
   v1AssistantPresenter
 } from './implementation/assistant';
-import { dashboardApiKeyPresenter, v1ApiKeyPresenter } from './implementation/apiKey';
 import { v1BootPresenter } from './implementation/boot';
 import { v1CliDevicePresenter } from './implementation/cliDevice';
 import { dashboardConsumerPresenter, v1ConsumerPresenter } from './implementation/consumer';
@@ -26,6 +26,9 @@ import { v1ConsumerProviderPresenter } from './implementation/consumerProvider';
 import { v1ConsumerSessionPresenter } from './implementation/consumerSession';
 import { v1ConsumerSurfacePresenter } from './implementation/consumerSurface';
 import { v1ConsumerSurfaceProviderGroupPresenter } from './implementation/consumerSurfaceProviderGroup';
+import { v1DocumentPresenter } from './implementation/document';
+import { v1DocumentParticipantPresenter } from './implementation/documentParticipant';
+import { v1DocumentVersionPresenter } from './implementation/documentVersion';
 import { v1FilePresenter } from './implementation/file';
 import { v1FileLinkPresenter } from './implementation/fileLink';
 import { v1FlagsPresenter } from './implementation/flags';
@@ -53,8 +56,6 @@ import { v1ProfilePresenter } from './implementation/profile';
 import { v1ProjectPresenter } from './implementation/project';
 import { v1ProjectBrandPresenter } from './implementation/projectBrand';
 import {
-  v1AgentInstancePresenter,
-  v1AgentPresenter,
   consumerMagicMcpEndpointPresenter,
   consumerMagicMcpServerPresenter,
   consumerMagicMcpSessionPresenter,
@@ -63,8 +64,11 @@ import {
   dashboardCustomProviderPresenter,
   dashboardIdentityActorPresenter,
   dashboardMagicMcpServerPresenter,
+  dashboardMagicMcpServerProviderPresenter,
   dashboardProviderListingPresenter,
   dashboardProviderPresenter,
+  v1AgentInstancePresenter,
+  v1AgentPresenter,
   v1BucketEditorTokenPresenter,
   v1CallbackDestinationPresenter,
   v1CallbackEventPresenter,
@@ -89,14 +93,13 @@ import {
   v1IntegrationInstanceGroupProviderPresenter,
   v1IntegrationInstancePresenter,
   v1IntegrationInstanceProviderPresenter,
-  v1IntegrationSetupSessionPresenter,
   v1IntegrationPresenter,
   v1IntegrationProviderPresenter,
+  v1IntegrationSetupSessionPresenter,
   v1MagicMcpEndpointPresenter,
   v1MagicMcpGroupPresenter,
   v1MagicMcpServerPresenter,
   v1MagicMcpServerProviderPresenter,
-  dashboardMagicMcpServerProviderPresenter,
   v1MagicMcpSessionPresenter,
   v1MagicMcpTokenPresenter,
   v1ProviderAuthConfigErrorGroupPresenter,
@@ -167,10 +170,10 @@ import {
   accessRoleVersionType,
   agentInstanceType,
   agentType,
+  apiKeyType,
   assistantConversationType,
   assistantMessageType,
   assistantType,
-  apiKeyType,
   authConfigSchemaType,
   authImportSchemaType,
   bootType,
@@ -203,6 +206,9 @@ import {
   customProviderType,
   customProviderVersionType,
   deploymentPreviewType,
+  documentParticipantType,
+  documentType,
+  documentVersionType,
   fileLinkType,
   fileType,
   flagsType,
@@ -217,9 +223,9 @@ import {
   integrationInstanceGroupProviderType,
   integrationInstanceGroupType,
   integrationInstanceProviderType,
-  integrationSetupSessionType,
   integrationInstanceType,
   integrationProviderType,
+  integrationSetupSessionType,
   integrationType,
   machineAccessType,
   magicMcpEndpointType,
@@ -469,6 +475,21 @@ export let filePresenter = declarePresenter(fileType, {
 export let fileLinkPresenter = declarePresenter(fileLinkType, {
   mt_2025_01_01_dashboard: v1FileLinkPresenter,
   mt_2026_01_01_magnetar: v1FileLinkPresenter
+});
+
+export let documentPresenter = declarePresenter(documentType, {
+  mt_2025_01_01_dashboard: v1DocumentPresenter,
+  mt_2026_01_01_magnetar: v1DocumentPresenter
+});
+
+export let documentVersionPresenter = declarePresenter(documentVersionType, {
+  mt_2025_01_01_dashboard: v1DocumentVersionPresenter,
+  mt_2026_01_01_magnetar: v1DocumentVersionPresenter
+});
+
+export let documentParticipantPresenter = declarePresenter(documentParticipantType, {
+  mt_2025_01_01_dashboard: v1DocumentParticipantPresenter,
+  mt_2026_01_01_magnetar: v1DocumentParticipantPresenter
 });
 
 export let secretPresenter = declarePresenter(secretType, {

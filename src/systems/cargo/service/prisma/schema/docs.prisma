@@ -63,7 +63,7 @@ model DocumentParticipant {
   editCount Int @default(0)
 
   lastEditedAt DateTime?
-  lastViewedAt DateTime? @default(now())
+  lastViewedAt DateTime?
 
   createdAt DateTime @default(now())
 

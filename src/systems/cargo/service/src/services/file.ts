@@ -9,6 +9,7 @@ import { Service } from '@lowerdeck/service';
 import type { File, Prisma, PrismaClient } from '../../prisma/generated/client';
 import { db } from '../db';
 import { getId } from '../id';
+import { documentDraftService } from './documentDraft';
 import {
   documentFilePurposeSlug,
   filePurposeService,
@@ -18,9 +19,14 @@ import { fileReferenceService } from './fileReference';
 
 let include = {
   purpose: true,
+  document: {
+    select: {
+      id: true
+    }
+  },
   tenant: true,
   environment: true
-};
+} satisfies Prisma.FileInclude;
 
 type DbClient = PrismaClient | Prisma.TransactionClient;
 
@@ -148,9 +154,8 @@ class FileServiceImpl {
     });
   }
 
-  async deleteFile(d: { file: File }) {
+  async deleteFile(d: { file: File; client?: DbClient }) {
     await this.ensureFileActive(d.file);
-
     let hasRefs = await fileReferenceService.hasReferencesForFile({
       file: d.file
     });
@@ -163,27 +168,60 @@ class FileServiceImpl {
       );
     }
 
-    return await db.file.update({
+    let client = d.client ?? db;
+
+    let { file, document } =
+      client === db
+        ? await db.$transaction(async tx => await this.deleteFileWithClient(tx, d.file))
+        : await this.deleteFileWithClient(client, d.file);
+
+    if (document) {
+      await documentDraftService.deleteDraft(document.id);
+    }
+
+    return file;
+  }
+
+  private async deleteFileWithClient(client: DbClient, file: File) {
+    let document = await client.document.findFirst({
       where: {
-        id: d.file.id
+        fileOid: file.oid
+      },
+      select: {
+        id: true
+      }
+    });
+
+    let deletedFile = await client.file.update({
+      where: {
+        id: file.id
       },
       data: {
         status: 'deleted'
       },
       include
     });
+
+    return {
+      file: deletedFile,
+      document
+    };
   }
 
   async listFiles(
     d: CargoTenantEnvironment & {
-      purpose?: string;
+      purpose?: string[];
       includeDeleted?: boolean;
     }
   ) {
-    let purpose = d.purpose
-      ? await filePurposeService.getFilePurposeById({
-          id: d.purpose
-        })
+    let purposes = d.purpose
+      ? await Promise.all(
+          d.purpose.map(async id =>
+            await filePurposeService.getFilePurposeById({
+              id
+            })
+          )
+        )
       : undefined;
 
     return Paginator.create(({ prisma }) =>
@@ -195,7 +233,11 @@ class FileServiceImpl {
               tenantOid: d.tenant.oid,
               environmentOid: d.environment.oid,
               status: d.includeDeleted ? undefined : 'active',
-              purposeOid: purpose?.oid
+              purposeOid: purposes
+                ? {
+                    in: purposes.map(purpose => purpose.oid)
+                  }
+                : undefined
             },
             include
           })

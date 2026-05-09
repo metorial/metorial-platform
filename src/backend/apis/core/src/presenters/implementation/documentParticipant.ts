@@ -1,0 +1,73 @@
+import { v } from '@lowerdeck/validation';
+import type { EnrichedCargoDocumentActor } from '@metorial/module-file';
+import type { PresenterContext } from '@metorial/presenter';
+import { Presenter } from '@metorial/presenter';
+import { documentParticipantType } from '../types';
+import { previewConsumerProfilePresenter } from './consumerProfile';
+import { v1OrganizationActorPresenter } from './organizationActor';
+
+export let documentParticipantActorSchema = v.object({
+  type: v.enumOf(['organization_actor', 'consumer_profile', 'unknown']),
+  name: v.string(),
+  organization_actor: v.nullable(v1OrganizationActorPresenter.schema),
+  consumer_profile: v.nullable(previewConsumerProfilePresenter.schema)
+});
+
+export let presentDocumentParticipantActor = async (
+  actor: EnrichedCargoDocumentActor,
+  opts: PresenterContext
+) => ({
+  type: actor.organizationActor
+    ? ('organization_actor' as const)
+    : actor.consumerProfile
+      ? ('consumer_profile' as const)
+      : ('unknown' as const),
+
+  name: actor.name,
+
+  organization_actor: actor.organizationActor
+    ? await v1OrganizationActorPresenter
+        .present({ organizationActor: actor.organizationActor }, opts)
+        .run()
+    : null,
+
+  consumer_profile: actor.consumerProfile
+    ? await previewConsumerProfilePresenter
+        .present(
+          {
+            consumerProfile: actor.consumerProfile,
+            instanceConsumer: actor.consumerProfile.instanceConsumer,
+            assignedConsumerGroups: undefined
+          },
+          opts
+        )
+        .run()
+    : null
+});
+
+export let v1DocumentParticipantPresenter = Presenter.create(documentParticipantType)
+  .presenter(async ({ documentParticipant }, opts) => ({
+    object: 'document.participant',
+    id: documentParticipant.id,
+    role: documentParticipant.role,
+    edit_count: documentParticipant.editCount,
+    last_edited_at: documentParticipant.lastEditedAt,
+    last_viewed_at: documentParticipant.lastViewedAt,
+    actor: await presentDocumentParticipantActor(documentParticipant.actor, opts),
+    created_at: documentParticipant.createdAt
+  }))
+  .schema(
+    v.object({
+      object: v.literal('document.participant', {
+        description: "String representing the object's type"
+      }),
+      id: v.string(),
+      role: v.enumOf(['editor', 'viewer']),
+      edit_count: v.number(),
+      last_edited_at: v.nullable(v.date()),
+      last_viewed_at: v.nullable(v.date()),
+      actor: documentParticipantActorSchema,
+      created_at: v.date()
+    })
+  )
+  .build();
