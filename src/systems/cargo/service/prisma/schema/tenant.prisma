@@ -12,10 +12,13 @@ model Tenant {
 
   createdAt DateTime @default(now())
 
-  environments   Environment[]
-  files          File[]
-  fileLinks      FileLink[]
-  fileReferences FileReference[]
+  environments     Environment[]
+  files            File[]
+  fileLinks        FileLink[]
+  fileReferences   FileReference[]
+  documents        Document[]
+  tenantActors     TenantActor[]
+  documentVersions DocumentVersion[]
 }
 
 model Environment {
@@ -32,10 +35,38 @@ model Environment {
 
   createdAt DateTime @default(now())
 
-  files          File[]
-  fileLinks      FileLink[]
-  fileReferences FileReference[]
+  files            File[]
+  fileLinks        FileLink[]
+  fileReferences   FileReference[]
+  documents        Document[]
+  documentVersions DocumentVersion[]
 
   @@unique([tenantOid, identifier])
   @@index([tenantOid])
+}
+
+enum TenantActorType {
+  external
+  system
+}
+
+model TenantActor {
+  oid BigInt @id
+  id  String @unique
+
+  type TenantActorType
+
+  identifier          String
+  name                String
+  organizationActorId String?
+  consumerProfileId   String?
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  createdAt              DateTime                 @default(now())
+  documentParticipants   DocumentParticipant[]
+  documentVersionEditors DocumentVersionEditors[]
+
+  @@unique([tenantOid, identifier])
 }

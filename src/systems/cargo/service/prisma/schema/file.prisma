@@ -49,7 +49,8 @@ model File {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  links FileLink[]
+  links    FileLink[]
+  document Document?
 
   @@index([tenantOid, environmentOid, status])
 }

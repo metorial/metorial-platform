@@ -1,0 +1,102 @@
+model DocumentContent {
+  oid BigInt @id
+
+  content String
+
+  documents        Document[]
+  documentVersions DocumentVersion[]
+}
+
+model Document {
+  oid BigInt @id
+  id  String @unique
+
+  title String
+
+  isContentOwner   Boolean
+  maxVersionNumber Int
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  contentOid BigInt
+  content    DocumentContent @relation(fields: [contentOid], references: [oid], onDelete: Cascade)
+
+  fileOid BigInt @unique
+  file    File   @relation(fields: [fileOid], references: [oid], onDelete: Cascade)
+
+  currentVersionOid BigInt?
+  currentVersion    DocumentVersion? @relation(fields: [currentVersionOid], references: [oid], onDelete: Cascade, name: "DocumentToCurrentVersion")
+
+  parentDocumentOid BigInt?
+  parentDocument    Document?  @relation("DocumentToSubdocument", fields: [parentDocumentOid], references: [oid], onDelete: Cascade)
+  subdocuments      Document[] @relation("DocumentToSubdocument")
+
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @default(now()) @updatedAt
+  documentParticipants DocumentParticipant[]
+  documentVersions     DocumentVersion[]
+
+  @@index([tenantOid, environmentOid])
+}
+
+model DocumentParticipant {
+  oid BigInt @id
+  id  String @unique
+
+  documentOid BigInt
+  document    Document @relation(fields: [documentOid], references: [oid], onDelete: Cascade)
+
+  tenantActorOid BigInt
+  tenantActor    TenantActor @relation(fields: [tenantActorOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([documentOid, tenantActorOid])
+}
+
+model DocumentVersion {
+  oid BigInt @id
+  id  String @unique
+
+  versionNumber Int
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  documentOid BigInt
+  document    Document @relation(fields: [documentOid], references: [oid], onDelete: Cascade)
+
+  contentOid BigInt
+  content    DocumentContent @relation(fields: [contentOid], references: [oid], onDelete: Cascade)
+
+  previousVersionOid BigInt?
+  previousVersion    DocumentVersion?  @relation("DocumentVersionHistory", fields: [previousVersionOid], references: [oid], onDelete: Cascade)
+  nextVersions       DocumentVersion[] @relation("DocumentVersionHistory")
+
+  currentVersionOfDocuments Document[] @relation("DocumentToCurrentVersion")
+
+  createdAt              DateTime                 @default(now())
+  documentVersionEditors DocumentVersionEditors[]
+
+  @@unique([tenantOid, environmentOid, documentOid, versionNumber])
+}
+
+model DocumentVersionEditors {
+  oid BigInt @id
+  id  String @unique
+
+  documentVersionOid BigInt
+  documentVersion    DocumentVersion @relation(fields: [documentVersionOid], references: [oid], onDelete: Cascade)
+
+  tenantActorOid BigInt
+  tenantActor    TenantActor @relation(fields: [tenantActorOid], references: [oid], onDelete: Cascade)
+
+  @@unique([documentVersionOid, tenantActorOid])
+}
