@@ -31,8 +31,7 @@ export let consumerInviteGroup = portalGroup.use(async ctx => {
 export let portalConsumerInviteController = Controller.create(
   {
     name: 'Portal Consumer Invites',
-    description: 'List and inspect consumer invites for a portal.',
-    hideInDocs: true
+    description: 'List and inspect consumer invites for a portal.'
   },
   {
     list: portalGroup

@@ -34,8 +34,7 @@ export let portalConsumerSurfaceProviderGroupController = Controller.create(
   {
     name: 'Portal Consumer Surface Provider Groups',
     description:
-      'Manage the provider groups linked to a portal consumer surface for organizing providers.',
-    hideInDocs: true
+      'Manage the provider groups linked to a portal consumer surface for organizing providers.'
   },
   {
     list: portalGroup

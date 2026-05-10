@@ -31,8 +31,7 @@ export let consumerGroupGroup = portalGroup.use(async ctx => {
 export let portalConsumerGroupController = Controller.create(
   {
     name: 'Portal Consumer Groups',
-    description: 'Manage the consumer groups that drive portal visibility and access rules.',
-    hideInDocs: true
+    description: 'Manage the consumer groups that drive portal visibility and access rules.'
   },
   {
     list: portalGroup

@@ -31,8 +31,7 @@ export let consumerProfileGroup = portalGroup.use(async ctx => {
 export let portalConsumerProfileController = Controller.create(
   {
     name: 'Portal Consumer Profiles',
-    description: 'Manage the consumers and effective group assignments for a portal.',
-    hideInDocs: true
+    description: 'Manage the consumers and effective group assignments for a portal.'
   },
   {
     list: portalGroup

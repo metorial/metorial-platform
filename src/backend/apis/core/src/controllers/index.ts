@@ -12,6 +12,7 @@ import { dashboardUsageController } from './dashboard/usage';
 import { dashboardUserController } from './dashboard/user';
 import { consumerController } from './instance/consumer';
 import { consumerSurfaceController } from './instance/consumerSurface';
+import { fileCollectionDocsCategory, portalDocsCategory } from './instance/docsCategories';
 import { documentController } from './instance/document';
 import { documentParticipantController } from './instance/documentParticipant';
 import { documentVersionController } from './instance/documentVersion';
@@ -242,6 +243,38 @@ let setControllerDocsMetadata = <
 ].forEach(controller =>
   setControllerDocsMetadata(controller, {
     category: integrationDocsCategory
+  })
+);
+
+[
+  documentController,
+  documentVersionController,
+  documentParticipantController,
+  storeController,
+  storeItemController,
+  storeParticipantController,
+  fileController,
+  fileLinkController
+].forEach(controller =>
+  setControllerDocsMetadata(controller, {
+    category: fileCollectionDocsCategory
+  })
+);
+
+[
+  portalController,
+  portalAuthDashboardController,
+  portalConsumerAccessController,
+  portalConsumerAccessListingController,
+  portalConsumerAccessRequestController,
+  portalConsumerGroupController,
+  portalConsumerProfileController,
+  portalConsumerInviteController,
+  portalConsumerSurfaceProviderGroupController,
+  providerTemplateController
+].forEach(controller =>
+  setControllerDocsMetadata(controller, {
+    category: portalDocsCategory
   })
 );
 
