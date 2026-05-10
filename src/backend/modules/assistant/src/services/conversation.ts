@@ -1,134 +1,29 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { Context } from '@metorial/context';
+import { type Instance, type Organization, type OrganizationActor } from '@metorial/db';
 import {
-  AssistantConversation,
-  db,
-  ID,
-  Instance,
-  Organization,
-  OrganizationActor,
-  Prisma,
-  withTransaction
-} from '@metorial/db';
-import { State } from '../proto/types';
-import { assistantService, AvailableAssistant } from './assistant';
+  enrichSynthesisActors,
+  ensureSynthesisActor,
+  ensureSynthesisScope,
+  synthesis,
+  type EnrichedAssistantActor
+} from '../synthesis';
 
-export let assistantConversationInclude = {
-  assistant: {
-    include: {
-      implementation: true
-    }
-  },
-  assistantInstance: {
-    include: {
-      organizationActor: true
-    }
-  },
-  createdByActor: true,
-  instance: true,
-  organization: true,
-  rootMessage: true
-} satisfies Prisma.AssistantConversationInclude;
+type SynthesisConversation = Awaited<ReturnType<typeof synthesis.conversation.get>>;
 
-export type AssistantConversationWithRelations = Prisma.AssistantConversationGetPayload<{
-  include: typeof assistantConversationInclude;
-}>;
-
-export type AssistantConversationWithAssistant = AssistantConversationWithRelations & {
-  availableAssistant: AvailableAssistant;
+export type AssistantConversationWithAssistant = Omit<SynthesisConversation, 'createdByActor'> & {
+  createdByActor: EnrichedAssistantActor;
 };
 
-let emptySerializedMessage = {
-  b: 'ai-sdk-1',
-  messages: []
-} satisfies PrismaJson.AssistantMessageSerializedContent;
-
 class AssistantConversationServiceImpl {
-  private async enrichConversations(d: {
-    organization: Organization;
-    conversations: AssistantConversationWithRelations[];
-  }): Promise<AssistantConversationWithAssistant[]> {
-    let assistantsById = await assistantService.getAvailableAssistantsByIds({
-      organization: d.organization,
-      assistantIds: d.conversations.map(conversation => conversation.assistant.id)
-    });
-
-    return d.conversations.map(conversation => {
-      let availableAssistant = assistantsById.get(conversation.assistant.id);
-      if (!availableAssistant) {
-        throw new ServiceError(notFoundError('assistant', conversation.assistant.id));
-      }
-
-      return {
-        ...conversation,
-        availableAssistant
-      };
-    });
-  }
-
-  private async enrichConversation(d: {
-    organization: Organization;
-    conversation: AssistantConversationWithRelations;
-  }) {
-    return (
-      await this.enrichConversations({
-        organization: d.organization,
-        conversations: [d.conversation]
-      })
-    )[0];
-  }
-
   private ensureScope(d: {
     organization: Organization;
     instance: Instance;
     actor: OrganizationActor;
   }) {
-    if (d.instance.organizationOid !== d.organization.oid) {
-      throw new ServiceError(notFoundError('instance', d.instance.id));
+    if (d.instance.organizationOid !== d.organization.oid || d.actor.organizationOid !== d.organization.oid) {
+      throw new Error('Assistant conversation scope is invalid');
     }
-
-    if (d.actor.organizationOid !== d.organization.oid) {
-      throw new ServiceError(notFoundError('organization_actor', d.actor.id));
-    }
-  }
-
-  private conversationWhere(d: {
-    organization: Organization;
-    instance: Instance;
-    actor: OrganizationActor;
-    conversationId?: string;
-    assistantId?: string;
-    assistantIds?: string[];
-  }) {
-    return {
-      organizationOid: d.organization.oid,
-      instanceOid: d.instance.oid,
-      createdByActorOid: d.actor.oid,
-      id: d.conversationId,
-      assistant:
-        d.assistantId || d.assistantIds
-          ? {
-              OR: [
-                ...(d.assistantId
-                  ? [
-                      { id: d.assistantId },
-                      { slug: d.assistantId },
-                      { systemIdentifier: d.assistantId }
-                    ]
-                  : []),
-                ...(d.assistantIds
-                  ? [
-                      { id: { in: d.assistantIds } },
-                      { slug: { in: d.assistantIds } },
-                      { systemIdentifier: { in: d.assistantIds } }
-                    ]
-                  : [])
-              ]
-            }
-          : undefined
-    } satisfies Prisma.AssistantConversationWhereInput;
   }
 
   async getAssistantConversationById(d: {
@@ -136,21 +31,32 @@ class AssistantConversationServiceImpl {
     instance: Instance;
     actor: OrganizationActor;
     conversationId: string;
-    assistantId?: string;
   }) {
     this.ensureScope(d);
 
-    let conversation = await db.assistantConversation.findFirst({
-      where: this.conversationWhere(d),
-      include: assistantConversationInclude
+    let scope = await ensureSynthesisScope({
+      instance: d.instance
     });
-    if (!conversation)
-      throw new ServiceError(notFoundError('assistant_conversation', d.conversationId));
+    let actor = await ensureSynthesisActor({
+      scope,
+      actor: d.actor
+    });
 
-    return await this.enrichConversation({
-      organization: d.organization,
-      conversation
+    let conversation = await synthesis.conversation.get({
+      tenantId: scope.tenantId,
+      environmentId: scope.environmentId,
+      actorId: actor.id,
+      conversationId: d.conversationId
     });
+    let [createdByActor] = await enrichSynthesisActors({
+      instance: d.instance,
+      actors: [conversation.createdByActor]
+    });
+
+    return {
+      ...conversation,
+      createdByActor: createdByActor!
+    };
   }
 
   async listAssistantConversations(d: {
@@ -161,25 +67,44 @@ class AssistantConversationServiceImpl {
   }) {
     this.ensureScope(d);
 
-    return Paginator.create(({ prisma }) =>
-      prisma(async opts =>
-        this.enrichConversations({
-          organization: d.organization,
-          conversations: await db.assistantConversation.findMany({
-            ...opts,
-            where: this.conversationWhere(d),
-            include: assistantConversationInclude
-          })
-        })
-      )
-    );
+    let scope = await ensureSynthesisScope({
+      instance: d.instance
+    });
+    let actor = await ensureSynthesisActor({
+      scope,
+      actor: d.actor
+    });
+
+    return Paginator.create(() => async input => {
+      let result = await synthesis.conversation.list({
+        tenantId: scope.tenantId,
+        environmentId: scope.environmentId,
+        actorId: actor.id,
+        assistantIds: d.assistantIds,
+        ...input
+      });
+      let createdByActors = await enrichSynthesisActors({
+        instance: d.instance,
+        actors: result.items.map(item => item.createdByActor)
+      });
+
+      return {
+        items: result.items.map((item, index) => ({
+          ...item,
+          createdByActor: createdByActors[index]!
+        })),
+        pagination: {
+          hasNextPage: result.pagination.has_more_after,
+          hasPreviousPage: result.pagination.has_more_before
+        }
+      };
+    });
   }
 
   async createAssistantConversation(d: {
     organization: Organization;
     instance: Instance;
     actor: OrganizationActor;
-    context?: Context;
     input: {
       assistantId: string;
       title?: string | null;
@@ -187,117 +112,69 @@ class AssistantConversationServiceImpl {
   }) {
     this.ensureScope(d);
 
-    let assistant = await assistantService.getAvailableAssistant({
-      organization: d.organization,
-      assistantId: d.input.assistantId
+    let scope = await ensureSynthesisScope({
+      instance: d.instance
     });
-    let assistantInstance = await assistantService.getOrCreateAssistantInstance({
-      assistant,
-      organization: d.organization,
-      context: d.context,
-      performedBy: d.actor
+    let actor = await ensureSynthesisActor({
+      scope,
+      actor: d.actor
     });
-    if (!assistant.defaultModel) {
-      throw new ServiceError(notFoundError('assistant_model', assistant.id));
-    }
-    let defaultModel = assistant.defaultModel;
 
-    return await withTransaction(async db => {
-      let rootMessage = await db.assistantMessage.create({
-        data: {
-          id: await ID.generateId('assistantMessage'),
-          type: 'root',
-          assistantOid: assistant.oid,
-          assistantInstanceOid: assistantInstance.oid,
-          state: { items: [] } satisfies State,
-          serialized: emptySerializedMessage
-        }
-      });
-
-      let conversation = await db.assistantConversation.create({
-        data: {
-          id: await ID.generateId('assistantConversation'),
-          title: d.input.title,
-          assistantOid: assistant.oid,
-          assistantInstanceOid: assistantInstance.oid,
-          instanceOid: d.instance.oid,
-          organizationOid: d.organization.oid,
-          createdByActorOid: d.actor.oid,
-          rootMessageOid: rootMessage.oid,
-          items: {
-            create: {
-              id: await ID.generateId('assistantConversationItem'),
-              messageOid: rootMessage.oid
-            }
-          }
-        },
-        include: assistantConversationInclude
-      });
-
-      let request = await db.assistantRequest.create({
-        data: {
-          id: await ID.generateId('assistantRequest'),
-          status: 'completed',
-          conversationOid: conversation.oid,
-          assistantOid: assistant.oid,
-          assistantInstanceOid: assistantInstance.oid,
-          modelOid: defaultModel.oid,
-          messageOid: rootMessage.oid,
-          historySize: 0,
-          actorOid: d.actor.oid
-        }
-      });
-
-      await db.assistantMessage.update({
-        where: {
-          oid: rootMessage.oid
-        },
-        data: {
-          requestOid: request.oid
-        }
-      });
-
-      return {
-        ...conversation,
-        availableAssistant: assistant
-      };
+    let conversation = await synthesis.conversation.create({
+      tenantId: scope.tenantId,
+      environmentId: scope.environmentId,
+      actorId: actor.id,
+      assistantId: d.input.assistantId,
+      title: d.input.title ?? undefined
     });
+    let [createdByActor] = await enrichSynthesisActors({
+      instance: d.instance,
+      actors: [conversation.createdByActor]
+    });
+
+    return {
+      ...conversation,
+      createdByActor: createdByActor!
+    };
   }
 
   async updateAssistantConversation(d: {
     organization: Organization;
     instance: Instance;
     actor: OrganizationActor;
-    conversation: AssistantConversation;
-    context?: Context;
+    conversation: {
+      id: string;
+    };
     input: {
       title?: string | null;
     };
   }) {
     this.ensureScope(d);
 
-    if (
-      d.conversation.organizationOid !== d.organization.oid ||
-      d.conversation.instanceOid !== d.instance.oid ||
-      d.conversation.createdByActorOid !== d.actor.oid
-    ) {
-      throw new ServiceError(notFoundError('assistant_conversation', d.conversation.id));
-    }
-
-    let conversation = await db.assistantConversation.update({
-      where: {
-        oid: d.conversation.oid
-      },
-      data: {
-        title: d.input.title
-      },
-      include: assistantConversationInclude
+    let scope = await ensureSynthesisScope({
+      instance: d.instance
+    });
+    let actor = await ensureSynthesisActor({
+      scope,
+      actor: d.actor
     });
 
-    return await this.enrichConversation({
-      organization: d.organization,
-      conversation
+    let conversation = await synthesis.conversation.update({
+      tenantId: scope.tenantId,
+      environmentId: scope.environmentId,
+      actorId: actor.id,
+      conversationId: d.conversation.id,
+      title: d.input.title ?? undefined
     });
+    let [createdByActor] = await enrichSynthesisActors({
+      instance: d.instance,
+      actors: [conversation.createdByActor]
+    });
+
+    return {
+      ...conversation,
+      createdByActor: createdByActor!
+    };
   }
 }
 

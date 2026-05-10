@@ -1,6 +1,9 @@
 import type { DashboardOrganizationsConversationsMessagesListQuery } from '@metorial/dashboard-sdk';
-import { createClientReplica } from '@metorial/module-assistant/src/lib/delta/client';
-import type { JsonValue, WireMessage } from '@metorial/module-assistant/src/lib/delta/types';
+import {
+  createClientReplica,
+  type JsonValue,
+  type WireMessage
+} from '@metorial-platform-systems/synthesis-client';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { withAuth } from '../user';
 import type {

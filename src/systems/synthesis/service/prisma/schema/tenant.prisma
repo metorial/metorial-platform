@@ -1,0 +1,71 @@
+enum EnvironmentType {
+  development
+  production
+}
+
+model Tenant {
+  oid BigInt @id
+  id  String @unique
+
+  identifier String @unique
+  name       String
+
+  createdAt DateTime @default(now())
+
+  environments           Environment[]
+  tenantActors           TenantActor[]
+  assistants             Assistant[]
+  assistantConfig        AssistantConfig?
+  assistantInstances     AssistantInstance[]
+  assistantConversations AssistantConversation[]
+  modelRuns              ModelRun[]
+}
+
+model Environment {
+  oid BigInt @id
+  id  String @unique
+
+  type EnvironmentType
+
+  identifier String
+  name       String
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  assistantConversations AssistantConversation[]
+
+  @@unique([tenantOid, identifier])
+  @@index([tenantOid])
+}
+
+enum TenantActorType {
+  external
+  system
+}
+
+model TenantActor {
+  oid BigInt @id
+  id  String @unique
+
+  type TenantActorType
+
+  identifier          String
+  name                String
+  organizationActorId String?
+  consumerId          String?
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  createdAssistantConversations     AssistantConversation[]            @relation("AssistantConversationCreator")
+  assistantRequests                 AssistantRequest[]
+  assistantConversationParticipants AssistantConversationParticipant[]
+
+  @@unique([tenantOid, identifier])
+  @@index([tenantOid])
+}

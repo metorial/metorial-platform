@@ -255,10 +255,13 @@ export let organizationActorType = PresentableType.create<{
 
 export let assistantType = PresentableType.create<{
   assistant: AvailableAssistant;
+  organization: Organization;
 }>()('assistant');
 
 export let assistantConversationType = PresentableType.create<{
   assistantConversation: AssistantConversationWithAssistant;
+  organization: Organization;
+  instance: Instance;
 }>()('assistant_conversation');
 
 export let assistantMessageType = PresentableType.create<{

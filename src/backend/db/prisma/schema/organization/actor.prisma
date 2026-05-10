@@ -26,22 +26,19 @@ model OrganizationActor {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  member                 OrganizationMember?
-  createdInvites         OrganizationInvite[]
-  machineAccess          MachineAccess[]
-  secretEvents           SecretEvent[]
-  profileUpdates         ProfileUpdate[]
-  accessLimiters         AccessLimiter[]
-  teams                  TeamMember[]
-  oauthInstallations     OAuthInstallation[]
-  projectBrandUpdates    ProjectBrandUpdate[]
-  consumers              Consumer[]
-  instanceConsumers      InstanceConsumer[]
-  consumerProfiles       ConsumerProfile[]
-  consumerInvites        ConsumerInvite[]
-  assistantInstances     AssistantInstance[]
-  assistantConversations AssistantConversation[]
-  assistantRequests      AssistantRequest[]
+  member              OrganizationMember?
+  createdInvites      OrganizationInvite[]
+  machineAccess       MachineAccess[]
+  secretEvents        SecretEvent[]
+  profileUpdates      ProfileUpdate[]
+  accessLimiters      AccessLimiter[]
+  teams               TeamMember[]
+  oauthInstallations  OAuthInstallation[]
+  projectBrandUpdates ProjectBrandUpdate[]
+  consumers           Consumer[]
+  instanceConsumers   InstanceConsumer[]
+  consumerProfiles    ConsumerProfile[]
+  consumerInvites     ConsumerInvite[]
 
   @@unique([isSystem, organizationOid])
 }
