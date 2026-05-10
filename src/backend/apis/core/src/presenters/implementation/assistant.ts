@@ -1,6 +1,10 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
 import { assistantConversationType, assistantMessageType, assistantType } from '../types';
+import {
+  documentParticipantActorSchema,
+  presentDocumentParticipantActor
+} from './documentParticipant';
 
 let assistantModelProviderSchema = v.object({
   object: v.literal('assistant.model_provider'),
@@ -48,13 +52,13 @@ let presentModel = (model: {
 });
 
 export let v1AssistantPresenter = Presenter.create(assistantType)
-  .presenter(async ({ assistant }) => ({
+  .presenter(async ({ assistant, organization }) => ({
     object: 'assistant' as const,
     id: assistant.id,
     slug: assistant.slug,
     name: assistant.name,
-    owner_type: assistant.ownerType,
-    organization_id: assistant.organization?.id ?? null,
+    owner_type: assistant.ownerType == 'tenant' ? 'organization' : assistant.ownerType,
+    organization_id: assistant.ownerType == 'tenant' ? organization.id : null,
     default_model: assistant.defaultModel ? presentModel(assistant.defaultModel) : null,
     available_models: assistant.availableModels.map(presentModel),
     created_at: assistant.createdAt,
@@ -77,17 +81,20 @@ export let v1AssistantPresenter = Presenter.create(assistantType)
   .build();
 
 export let v1AssistantConversationPresenter = Presenter.create(assistantConversationType)
-  .presenter(async ({ assistantConversation }, opts) => ({
+  .presenter(async ({ assistantConversation, organization, instance }, opts) => ({
     object: 'assistant.conversation' as const,
     id: assistantConversation.id,
     title: assistantConversation.title,
-    assistant_id: assistantConversation.assistant.id,
-    instance_id: assistantConversation.instance.id,
-    organization_id: assistantConversation.organization.id,
-    created_by_actor_id: assistantConversation.createdByActor.id,
-    root_message_id: assistantConversation.rootMessage.id,
+    assistant_id: assistantConversation.assistantId,
+    instance_id: instance.id,
+    organization_id: organization.id,
+    created_by_actor: await presentDocumentParticipantActor(
+      assistantConversation.createdByActor,
+      opts
+    ),
+    root_message_id: assistantConversation.rootMessageId,
     assistant: await v1AssistantPresenter
-      .present({ assistant: assistantConversation.availableAssistant }, opts)
+      .present({ assistant: assistantConversation.assistant, organization }, opts)
       .run(),
     created_at: assistantConversation.createdAt,
     updated_at: assistantConversation.updatedAt
@@ -100,7 +107,7 @@ export let v1AssistantConversationPresenter = Presenter.create(assistantConversa
       assistant_id: v.string(),
       instance_id: v.string(),
       organization_id: v.string(),
-      created_by_actor_id: v.string(),
+      created_by_actor: documentParticipantActorSchema,
       root_message_id: v.string(),
       assistant: v1AssistantPresenter.schema,
       created_at: v.date(),
@@ -110,30 +117,42 @@ export let v1AssistantConversationPresenter = Presenter.create(assistantConversa
   .build();
 
 export let v1AssistantMessagePresenter = Presenter.create(assistantMessageType)
-  .presenter(async ({ assistantConversationItem }) => {
-    let message = assistantConversationItem.message;
-    if (!message.request) {
-      throw new Error(`Assistant message ${message.id} is missing a request`);
+  .presenter(async ({ assistantConversationItem }, opts) => {
+    if (!assistantConversationItem.request) {
+      throw new Error(
+        `Assistant message ${assistantConversationItem.id} is missing a request`
+      );
     }
 
     return {
       object: 'assistant.message' as const,
-      id: message.id,
-      conversation_item_id: assistantConversationItem.id,
-      type: message.type,
-      assistant_id: message.assistant?.id ?? null,
-      parent_message_id: message.parentMessage?.id ?? null,
-      model: message.model ? presentModel(message.model) : null,
+      id: assistantConversationItem.id,
+      conversation_item_id: assistantConversationItem.conversationItemId,
+      type: assistantConversationItem.type,
+      assistant_id: assistantConversationItem.assistantId ?? null,
+      parent_message_id: assistantConversationItem.parentMessageId ?? null,
+      model: assistantConversationItem.model
+        ? presentModel(assistantConversationItem.model)
+        : null,
       request: {
         object: 'assistant.request' as const,
-        id: message.request.id,
-        status: message.request.status,
-        actor_id: message.request.actor?.id ?? null,
-        created_at: message.request.createdAt,
-        updated_at: message.request.updatedAt
+        id: assistantConversationItem.request.id,
+        status: assistantConversationItem.request.status,
+        actor_id:
+          assistantConversationItem.request.organizationActorId ??
+          assistantConversationItem.request.actorId ??
+          null,
+        actor: assistantConversationItem.request.actor
+          ? await presentDocumentParticipantActor(
+              assistantConversationItem.request.actor,
+              opts
+            )
+          : null,
+        created_at: assistantConversationItem.request.createdAt,
+        updated_at: assistantConversationItem.request.updatedAt
       },
-      state: message.state as Record<string, any>,
-      created_at: message.createdAt
+      state: assistantConversationItem.state as Record<string, any>,
+      created_at: assistantConversationItem.createdAt
     };
   })
   .schema(
@@ -150,6 +169,7 @@ export let v1AssistantMessagePresenter = Presenter.create(assistantMessageType)
         id: v.string(),
         status: v.enumOf(['pending', 'completed', 'cancelled', 'failed']),
         actor_id: v.nullable(v.string()),
+        actor: v.nullable(documentParticipantActorSchema),
         created_at: v.date(),
         updated_at: v.date()
       }),

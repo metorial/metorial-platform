@@ -12,7 +12,7 @@ import { createLoader } from '@metorial/data-hooks';
 import type {
   State as AssistantRunState,
   StateItem as AssistantRunStateItem
-} from '@metorial/module-assistant/src/proto/types';
+} from '@metorial-platform-systems/synthesis-client';
 import { useEffect } from 'react';
 import { autoPaginate } from '../../lib/autoPaginate';
 import { usePaginator } from '../../lib/usePaginator';

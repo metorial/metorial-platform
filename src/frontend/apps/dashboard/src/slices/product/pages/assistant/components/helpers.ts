@@ -3,7 +3,7 @@ import type {
   AssistantLiveState,
   AssistantLiveStateItem
 } from '@metorial/state';
-import type { MessagePart } from '@metorial/module-assistant/src/proto/types';
+import type { MessagePart } from '@metorial-platform-systems/synthesis-client';
 import type { AssistantTranscriptEntry } from './types';
 
 let isRecord = (value: unknown): value is Record<string, unknown> =>

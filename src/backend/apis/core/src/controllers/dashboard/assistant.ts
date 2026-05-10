@@ -92,11 +92,13 @@ export let dashboardAssistantController = Controller.create(
       .outputList(assistantPresenter)
       .do(async ctx => {
         let paginator = await assistantService.listAvailableAssistants({
-          organization: ctx.organization
+          instance: ctx.instance
         });
         let list = await paginator.run(ctx.query);
 
-        return Paginator.present(list, assistant => assistantPresenter.present({ assistant }));
+        return Paginator.present(list, assistant =>
+          assistantPresenter.present({ assistant, organization: ctx.organization })
+        );
       }),
 
     getAssistant: instanceGroup
@@ -115,11 +117,11 @@ export let dashboardAssistantController = Controller.create(
       .output(assistantPresenter)
       .do(async ctx => {
         let assistant = await assistantService.getAvailableAssistant({
-          organization: ctx.organization,
+          instance: ctx.instance,
           assistantId: requireParam(ctx.params, 'assistantId')
         });
 
-        return assistantPresenter.present({ assistant });
+        return assistantPresenter.present({ assistant, organization: ctx.organization });
       }),
 
     listConversations: instanceGroup
@@ -156,7 +158,9 @@ export let dashboardAssistantController = Controller.create(
 
         return Paginator.present(list, assistantConversation =>
           assistantConversationPresenter.present({
-            assistantConversation
+            assistantConversation,
+            organization: ctx.organization,
+            instance: ctx.instance
           })
         );
       }),
@@ -188,14 +192,17 @@ export let dashboardAssistantController = Controller.create(
             organization: ctx.organization,
             instance: ctx.instance,
             actor: requireActor(ctx),
-            context: ctx.context,
             input: {
               assistantId: ctx.body.assistant_id,
               title: ctx.body.title
             }
           });
 
-        return assistantConversationPresenter.present({ assistantConversation });
+        return assistantConversationPresenter.present({
+          assistantConversation,
+          organization: ctx.organization,
+          instance: ctx.instance
+        });
       }),
 
     getConversation: assistantConversationGroup
@@ -214,7 +221,9 @@ export let dashboardAssistantController = Controller.create(
       .output(assistantConversationPresenter)
       .do(async ctx => {
         return assistantConversationPresenter.present({
-          assistantConversation: ctx.assistantConversation
+          assistantConversation: ctx.assistantConversation,
+          organization: ctx.organization,
+          instance: ctx.instance
         });
       }),
 
@@ -245,13 +254,16 @@ export let dashboardAssistantController = Controller.create(
             instance: ctx.instance,
             actor: requireActor(ctx),
             conversation: ctx.assistantConversation,
-            context: ctx.context,
             input: {
               title: ctx.body.title
             }
           });
 
-        return assistantConversationPresenter.present({ assistantConversation });
+        return assistantConversationPresenter.present({
+          assistantConversation,
+          organization: ctx.organization,
+          instance: ctx.instance
+        });
       }),
 
     listMessages: assistantConversationGroup
@@ -292,7 +304,8 @@ export let dashboardAssistantController = Controller.create(
         ),
         {
           name: 'Create assistant message',
-          description: 'Create a user message and assistant request in a specific conversation.'
+          description:
+            'Create a user message and assistant request in a specific conversation.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
@@ -314,7 +327,6 @@ export let dashboardAssistantController = Controller.create(
           instance: ctx.instance,
           actor: requireActor(ctx),
           conversation: ctx.assistantConversation,
-          context: ctx.context,
           input: {
             message: {
               parts: ctx.body.message.parts.map(part =>

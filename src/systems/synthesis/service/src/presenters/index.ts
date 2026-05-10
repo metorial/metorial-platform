@@ -152,6 +152,7 @@ export let assistantMessagePresenter = (
         id: item.message.request.id,
         status: item.message.request.status,
         actorId: item.message.request.tenantActor?.id ?? null,
+        organizationActorId: item.message.request.tenantActor?.organizationActorId ?? null,
         createdAt: item.message.request.createdAt,
         updatedAt: item.message.request.updatedAt
       }
@@ -176,6 +177,7 @@ export let assistantRequestPresenter = (request: AssistantRequestWithRelations) 
   messageId: request.message.id,
   historySize: request.historySize,
   actorId: request.tenantActor?.id ?? null,
+  organizationActorId: request.tenantActor?.organizationActorId ?? null,
   latestRunId: request.runs[0]?.id ?? null,
   createdAt: request.createdAt,
   updatedAt: request.updatedAt

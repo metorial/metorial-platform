@@ -66,6 +66,34 @@ export type FileWriteChange =
       count?: number;
     };
 
+export type WebSearchResult = {
+  title: string;
+  url: string;
+  description?: string;
+  category?: string;
+};
+
+export type WebOperation = (
+  | {
+      type: 'search';
+      query: string;
+      country?: string;
+      searchType?: string;
+      results?: WebSearchResult[];
+    }
+  | {
+      type: 'fetch';
+      url: string;
+      content?: string;
+    }
+) & {
+  id: string;
+  input: unknown;
+  output?: unknown;
+  error?: { message: string };
+  status: ItemStatus;
+};
+
 export type StateItem = {
   id: string;
 } & (
@@ -100,6 +128,10 @@ export type StateItem = {
       input: unknown;
       output?: unknown;
       error?: { message: string };
+    }
+  | {
+      type: 'web';
+      operations: WebOperation[];
     }
   | {
       type: 'message';

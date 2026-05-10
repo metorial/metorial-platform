@@ -1,119 +1,52 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import { Context } from '@metorial/context';
+import { createAssistantRequestDeltasConnection } from '@metorial-platform-systems/synthesis-client';
+import { type Instance, type Organization, type OrganizationActor } from '@metorial/db';
 import {
-  AssistantConversation,
-  AssistantModel,
-  db,
-  ID,
-  Instance,
-  Organization,
-  OrganizationActor,
-  Prisma,
-  withTransaction
-} from '@metorial/db';
-import { assistants } from '../definitions/assistants';
-import { Implementation } from '../lib/definitions';
-import { AgentRunWireMessage } from '../lib/run/state';
-import { listenToAssistantRunDeltas } from '../lib/run/redisDeltas';
-import { InputMessage, State } from '../proto/types';
-import { generateAssistantConversationTitleQueue } from '../queues/generateConversationTitle';
-import { processAssistantRequestQueue } from '../queues/processRequest';
-import { assistantConversationItemInclude } from './message';
+  enrichSynthesisActors,
+  ensureSynthesisActor,
+  ensureSynthesisScope,
+  getSynthesisLiveEndpoint,
+  resolveMetorialInstanceBySynthesisScope,
+  synthesis,
+  type AssistantInputMessage,
+  type EnrichedAssistantActor,
+  type SynthesisScope
+} from '../synthesis';
+import { enrichMessage } from './message';
 
-let serializeInputMessage = (
-  input: InputMessage
-): PrismaJson.AssistantMessageSerializedContent => ({
-  b: 'ai-sdk-1',
-  messages: [
-    [
-      Date.now(),
-      {
-        role: 'user',
-        content: input.parts.map(part => {
-          if (part.type == 'text') {
-            return {
-              type: 'text',
-              text: part.text
-            };
-          }
+export type AgentRunWireMessage = any;
+type SynthesisRequest = Awaited<ReturnType<typeof synthesis.request.get>>;
 
-          return {
-            type: 'file',
-            filename: part.filename,
-            mediaType: part.mediaType,
-            data: part.data
-          };
-        })
-      }
-    ]
-  ]
-});
-
-let inputMessageState = (input: InputMessage) =>
-  ({
-    items: [
-      {
-        id: 'message:0',
-        type: 'message',
-        status: 'completed',
-        message: {
-          role: 'user',
-          parts: input.parts
-        }
-      }
-    ]
-  }) satisfies State;
-
-type AssistantDefinition = Awaited<(typeof assistants)[keyof typeof assistants]>;
-
-export let assistantRequestInclude = {
-  actor: true,
-  conversation: true,
-  message: true,
-  runs: {
-    orderBy: {
-      oid: 'desc'
-    }
-  }
-} satisfies Prisma.AssistantRequestInclude;
-
-export type AssistantRequestWithRelations = Prisma.AssistantRequestGetPayload<{
-  include: typeof assistantRequestInclude;
-}>;
-
-let getAssistantDefinition = async (
-  implementationSlug: string
-): Promise<AssistantDefinition> => {
-  let definitions = await Promise.all(Object.values(assistants));
-  let definition = definitions.find(
-    definition => definition.implementation._persisted.slug == implementationSlug
-  );
-
-  if (!definition) {
-    throw new ServiceError(notFoundError('assistant_implementation', implementationSlug));
-  }
-
-  return definition;
+export type AssistantRequestWithRelations = SynthesisRequest & {
+  actor: EnrichedAssistantActor | null;
 };
 
-let chooseModel = (d: {
-  implementation: Implementation;
-  modelId?: string;
-}): AssistantModel => {
-  if (!d.modelId) return d.implementation.defaultModel._persisted;
+let enrichRequest = async (d: {
+  scope: SynthesisScope;
+  instance: Instance;
+  request: SynthesisRequest;
+}): Promise<AssistantRequestWithRelations> => {
+  if (!d.request.actorId) {
+    return {
+      ...d.request,
+      actor: null
+    };
+  }
 
-  let model = d.implementation.availableModels.find(
-    model =>
-      model.slug == d.modelId ||
-      model.name == d.modelId ||
-      model._persisted.id == d.modelId ||
-      model._persisted.slug == d.modelId
-  );
+  let [actor] = await enrichSynthesisActors({
+    instance: d.instance,
+    actors: [
+      await synthesis.actor.get({
+        tenantId: d.scope.tenantId,
+        actorId: d.request.actorId
+      })
+    ]
+  });
 
-  if (!model) throw new ServiceError(notFoundError('assistant_model', d.modelId));
-
-  return model._persisted;
+  return {
+    ...d.request,
+    actor: actor ?? null
+  };
 };
 
 class AssistantRequestServiceImpl {
@@ -121,124 +54,15 @@ class AssistantRequestServiceImpl {
     organization: Organization;
     instance: Instance;
     actor: OrganizationActor;
-    conversation: AssistantConversation;
+    conversation: {
+      id: string;
+    };
   }) {
     if (
-      d.conversation.organizationOid !== d.organization.oid ||
-      d.conversation.instanceOid !== d.instance.oid ||
-      d.conversation.createdByActorOid !== d.actor.oid
+      d.instance.organizationOid !== d.organization.oid ||
+      d.actor.organizationOid !== d.organization.oid
     ) {
-      throw new ServiceError(notFoundError('assistant_conversation', d.conversation.id));
-    }
-  }
-
-  private async resolveParentMessage(d: {
-    conversation: AssistantConversation;
-    parentMessageId?: string;
-  }) {
-    let item = await db.assistantConversationItem.findFirst({
-      where: {
-        conversationOid: d.conversation.oid,
-        message: d.parentMessageId
-          ? {
-              id: d.parentMessageId
-            }
-          : undefined
-      },
-      include: {
-        message: true
-      },
-      orderBy: {
-        oid: 'desc'
-      }
-    });
-
-    if (!item) {
-      throw new ServiceError(
-        notFoundError(
-          'assistant_message',
-          d.parentMessageId ?? d.conversation.rootMessageOid.toString()
-        )
-      );
-    }
-
-    return item.message;
-  }
-
-  private async getScopedAssistantRequestById(d: {
-    organization: Organization;
-    instance: Instance;
-    actor: OrganizationActor;
-    requestId: string;
-  }) {
-    let request = await db.assistantRequest.findFirst({
-      where: {
-        id: d.requestId,
-        conversation: {
-          organizationOid: d.organization.oid,
-          instanceOid: d.instance.oid,
-          createdByActorOid: d.actor.oid
-        }
-      },
-      include: assistantRequestInclude
-    });
-    if (!request) {
-      throw new ServiceError(notFoundError('assistant_request', d.requestId));
-    }
-
-    return request;
-  }
-
-  private async waitForAssistantRequestRunId(d: {
-    request: AssistantRequestWithRelations;
-    signal?: AbortSignal;
-    pollIntervalMs?: number;
-    timeoutMs?: number;
-  }) {
-    let pollIntervalMs = d.pollIntervalMs ?? 100;
-    let timeoutMs = d.timeoutMs ?? 15_000;
-    let startedAt = Date.now();
-
-    while (true) {
-      if (d.signal?.aborted) {
-        throw new Error('Assistant request delta listener aborted');
-      }
-
-      let latest = await db.assistantRequest.findUnique({
-        where: {
-          oid: d.request.oid
-        },
-        include: assistantRequestInclude
-      });
-      if (!latest) {
-        throw new ServiceError(notFoundError('assistant_request', d.request.id));
-      }
-
-      let runId = latest.runs[0]?.id;
-      if (runId) return runId;
-
-      if (Date.now() - startedAt >= timeoutMs) {
-        throw new Error(`Timed out waiting for assistant run for request ${d.request.id}`);
-      }
-
-      await new Promise<void>((resolve, reject) => {
-        let timeout = setTimeout(() => {
-          cleanup();
-          resolve();
-        }, pollIntervalMs);
-
-        let onAbort = () => {
-          cleanup();
-          reject(new Error('Assistant request delta listener aborted'));
-        };
-
-        let cleanup = () => {
-          clearTimeout(timeout);
-          d.signal?.removeEventListener('abort', onAbort);
-        };
-
-        d.signal?.addEventListener('abort', onAbort, { once: true });
-      });
+      throw new Error('Assistant request scope is invalid');
     }
   }
 
@@ -248,17 +72,60 @@ class AssistantRequestServiceImpl {
     actor: OrganizationActor;
     requestId: string;
   }) {
-    return await this.getScopedAssistantRequestById(d);
+    let scope = await ensureSynthesisScope({
+      instance: d.instance
+    });
+    let actor = await ensureSynthesisActor({
+      scope,
+      actor: d.actor
+    });
+    let request = await synthesis.request.get({
+      tenantId: scope.tenantId,
+      environmentId: scope.environmentId,
+      actorId: actor.id,
+      requestId: d.requestId
+    });
+
+    return await enrichRequest({
+      scope,
+      instance: d.instance,
+      request
+    });
+  }
+
+  async lookupAssistantRequestById(d: { requestId: string }) {
+    let lookup = await synthesis.request.lookup({
+      requestId: d.requestId
+    });
+    let instance = await resolveMetorialInstanceBySynthesisScope({
+      tenantIdentifier: lookup.tenant.identifier,
+      environmentIdentifier: lookup.environment.identifier
+    });
+    let lookupActor =
+      lookup.request.actorId != null
+        ? await synthesis.actor.get({
+            tenantId: lookup.tenant.id,
+            actorId: lookup.request.actorId
+          })
+        : null;
+
+    return {
+      request: lookup.request,
+      organization: instance.organization,
+      instance,
+      actorId: lookupActor?.organizationActorId ?? lookup.request.actorId ?? null
+    };
   }
 
   async createAssistantRequest(d: {
     organization: Organization;
     instance: Instance;
     actor: OrganizationActor;
-    conversation: AssistantConversation;
-    context?: Context;
+    conversation: {
+      id: string;
+    };
     input: {
-      message: InputMessage;
+      message: AssistantInputMessage;
       parentMessageId?: string;
       historySize?: number;
       modelId?: string;
@@ -266,110 +133,36 @@ class AssistantRequestServiceImpl {
   }) {
     this.ensureScope(d);
 
-    let parentMessage = await this.resolveParentMessage({
-      conversation: d.conversation,
-      parentMessageId: d.input.parentMessageId
+    let scope = await ensureSynthesisScope({
+      instance: d.instance
     });
-    let historySize = d.input.historySize ?? 100;
-    let assistant = await db.assistant.findUnique({
-      where: {
-        oid: d.conversation.assistantOid
-      },
-      include: {
-        implementation: true
-      }
+    let actor = await ensureSynthesisActor({
+      scope,
+      actor: d.actor
     });
-    if (!assistant) {
-      throw new ServiceError(
-        notFoundError('assistant', d.conversation.assistantOid.toString())
-      );
-    }
-
-    let definition = await getAssistantDefinition(assistant.implementation.slug);
-    let model = chooseModel({
-      implementation: definition.implementation,
+    let result = await synthesis.request.create({
+      tenantId: scope.tenantId,
+      environmentId: scope.environmentId,
+      actorId: actor.id,
+      conversationId: d.conversation.id,
+      message: d.input.message,
+      parentMessageId: d.input.parentMessageId,
+      historySize: d.input.historySize,
       modelId: d.input.modelId
     });
 
-    let shouldGenerateTitle = !d.conversation.title?.trim();
-    let result = await withTransaction(async db => {
-      let userMessage = await db.assistantMessage.create({
-        data: {
-          id: await ID.generateId('assistantMessage'),
-          type: 'user',
-          assistantOid: d.conversation.assistantOid,
-          assistantInstanceOid: d.conversation.assistantInstanceOid,
-          parentMessageOid: parentMessage.oid,
-          modelOid: model.oid,
-          state: inputMessageState(d.input.message),
-          serialized: serializeInputMessage(d.input.message)
-        }
-      });
-
-      let request = await db.assistantRequest.create({
-        data: {
-          id: await ID.generateId('assistantRequest'),
-          status: 'pending',
-          conversationOid: d.conversation.oid,
-          assistantOid: d.conversation.assistantOid,
-          assistantInstanceOid: d.conversation.assistantInstanceOid,
-          modelOid: model.oid,
-          messageOid: userMessage.oid,
-          historySize,
-          actorOid: d.actor.oid
-        }
-      });
-
-      userMessage = await db.assistantMessage.update({
-        where: {
-          oid: userMessage.oid
-        },
-        data: {
-          requestOid: request.oid
-        }
-      });
-
-      let item = await db.assistantConversationItem.create({
-        data: {
-          id: await ID.generateId('assistantConversationItem'),
-          conversationOid: d.conversation.oid,
-          messageOid: userMessage.oid
-        },
-        include: assistantConversationItemInclude
-      });
-
-      if (shouldGenerateTitle) {
-        let userMessageCount = await db.assistantConversationItem.count({
-          where: {
-            conversationOid: d.conversation.oid,
-            message: {
-              type: 'user'
-            }
-          }
-        });
-
-        shouldGenerateTitle = userMessageCount == 1;
-      }
-
-      return {
-        request,
-        userMessage,
-        item,
-        shouldGenerateTitle
-      };
-    });
-
-    await processAssistantRequestQueue.add({
-      assistantRequestId: result.request.id
-    });
-    if (result.shouldGenerateTitle) {
-      await generateAssistantConversationTitleQueue.add({
-        conversationId: d.conversation.id,
-        messageId: result.userMessage.id
-      });
-    }
-
-    return result;
+    return {
+      request: await enrichRequest({
+        scope,
+        instance: d.instance,
+        request: result.request
+      }),
+      item: await enrichMessage({
+        scope,
+        instance: d.instance,
+        message: result.message
+      })
+    };
   }
 
   async listenToAssistantRequestDeltas(d: {
@@ -378,29 +171,102 @@ class AssistantRequestServiceImpl {
     actor: OrganizationActor;
     requestId: string;
     signal?: AbortSignal;
-    pollIntervalMs?: number;
-    runWaitTimeoutMs?: number;
-    snapshotWaitTimeoutMs?: number;
     onMessage: (message: AgentRunWireMessage) => void | Promise<void>;
     onError?: (error: Error) => void | Promise<void>;
+    onDone?: (message: {
+      status: 'completed' | 'cancelled' | 'failed';
+    }) => void | Promise<void>;
   }) {
-    let request = await this.getScopedAssistantRequestById(d);
-    let runId =
-      request.runs[0]?.id ??
-      (await this.waitForAssistantRequestRunId({
-        request,
-        signal: d.signal,
-        pollIntervalMs: d.pollIntervalMs,
-        timeoutMs: d.runWaitTimeoutMs
-      }));
+    let request = await this.getAssistantRequestById(d);
+    let connection = createAssistantRequestDeltasConnection(
+      {
+        liveEndpoint: getSynthesisLiveEndpoint()
+      },
+      {
+        assistantRequestId: request.id
+      }
+    );
+    let finished = false;
 
-    return await listenToAssistantRunDeltas({
-      runId,
-      signal: d.signal,
-      snapshotWaitTimeoutMs: d.snapshotWaitTimeoutMs,
-      onMessage: d.onMessage,
-      onError: d.onError
+    let close = () => {
+      if (finished) return;
+      finished = true;
+      connection.close();
+    };
+
+    let emitError = async (error: unknown) => {
+      if (finished) return;
+      let nextError = error instanceof Error ? error : new Error('Assistant stream failed');
+      if (d.onError) {
+        await d.onError(nextError);
+      }
+      close();
+    };
+
+    let onAbort = () => {
+      close();
+    };
+
+    d.signal?.addEventListener('abort', onAbort, { once: true });
+
+    connection.addEventListener('snapshot', (event: MessageEvent<string>) => {
+      void (async () => {
+        try {
+          await d.onMessage(JSON.parse((event as MessageEvent).data) as AgentRunWireMessage);
+        } catch (error) {
+          await emitError(error);
+        }
+      })();
     });
+
+    connection.addEventListener('delta', (event: MessageEvent<string>) => {
+      void (async () => {
+        try {
+          await d.onMessage(JSON.parse((event as MessageEvent).data) as AgentRunWireMessage);
+        } catch (error) {
+          await emitError(error);
+        }
+      })();
+    });
+
+    connection.addEventListener('done', (event: MessageEvent<string>) => {
+      void (async () => {
+        try {
+          if (d.onDone) {
+            await d.onDone(
+              JSON.parse((event as MessageEvent).data) as {
+                status: 'completed' | 'cancelled' | 'failed';
+              }
+            );
+          }
+        } finally {
+          close();
+        }
+      })();
+    });
+
+    connection.addEventListener('error', (event: MessageEvent<string>) => {
+      void (async () => {
+        let payload = (event as MessageEvent).data;
+        if (typeof payload == 'string' && payload) {
+          try {
+            let parsed = JSON.parse(payload) as { message?: string };
+            await emitError(new Error(parsed.message ?? 'Assistant stream failed'));
+            return;
+          } catch {
+            await emitError(new Error(payload));
+            return;
+          }
+        }
+
+        await emitError(new Error('Assistant stream connection failed'));
+      })();
+    });
+
+    return async () => {
+      d.signal?.removeEventListener('abort', onAbort);
+      close();
+    };
   }
 }
 
