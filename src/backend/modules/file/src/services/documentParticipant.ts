@@ -1,24 +1,22 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type {
-  ConsumerGroup,
+  Consumer,
   ConsumerProfile,
-  ConsumerProfileGroup,
   ConsumerSurface,
   InstanceConsumer,
   Organization,
   OrganizationActor,
-  Team,
-  TeamMember
+  OrganizationMember
 } from '@metorial/db';
-import { consumerService } from '@metorial/module-consumer';
 import { db } from '@metorial/db';
-import { resolveCargoAccess, type CargoAccessActor, type CargoStorePermission } from './access';
+import { consumerService } from '@metorial/module-consumer';
+import { cargo, type CargoActor, type CargoDocumentParticipant } from '../cargo';
 import {
-  cargo,
-  type CargoActor,
-  type CargoDocumentParticipant
-} from '../cargo';
+  resolveCargoAccess,
+  type CargoAccessActor,
+  type CargoStorePermission
+} from './access';
 import type { FileOwner } from './file';
 
 let organizationActorInclude = {
@@ -32,26 +30,21 @@ let organizationActorInclude = {
 
 type EnrichedOrganizationActor = OrganizationActor & {
   organization: Organization;
-  teams: (TeamMember & {
-    team: Team;
-  })[];
 };
 
-type EnrichedConsumerProfile = ConsumerProfile & {
-  consumer: Awaited<
-    ReturnType<typeof consumerService.getConsumerById>
-  >['consumer'];
-  surface: ConsumerSurface;
-  groups: (ConsumerProfileGroup & {
-    group: ConsumerGroup;
-  })[];
-  instanceConsumer: InstanceConsumer | null;
+type EnrichedConsumer = InstanceConsumer & {
+  consumer: Consumer & {
+    organizationMember: OrganizationMember | null;
+    profiles: (ConsumerProfile & {
+      surface: ConsumerSurface;
+    })[];
+  };
 };
 
 export type EnrichedCargoDocumentActor = {
   name: string;
   organizationActor: EnrichedOrganizationActor | null;
-  consumerProfile: EnrichedConsumerProfile | null;
+  consumer: EnrichedConsumer | null;
 };
 
 export type EnrichedCargoDocumentParticipant = Omit<CargoDocumentParticipant, 'actor'> & {
@@ -68,7 +61,11 @@ class DocumentParticipantServiceImpl {
     }
 
     let organizationActorIds = Array.from(
-      new Set(d.actors.flatMap(actor => (actor.organizationActorId ? [actor.organizationActorId] : [])))
+      new Set(
+        d.actors.flatMap(actor =>
+          actor.organizationActorId ? [actor.organizationActorId] : []
+        )
+      )
     );
     let consumerIds = Array.from(
       new Set(
@@ -102,40 +99,21 @@ class DocumentParticipantServiceImpl {
     let organizationActorById = new Map(
       organizationActors.map(organizationActor => [organizationActor.id, organizationActor])
     );
-    let consumerProfileByConsumerId = new Map(
-      consumers.flatMap(instanceConsumer => {
-        let profiles = instanceConsumer.consumer.profiles;
-        let selectedProfile = profiles[0];
-        return selectedProfile
-          ? [
-              [
-                instanceConsumer.consumer.id,
-                {
-                  ...selectedProfile,
-                  consumer: instanceConsumer.consumer,
-                  groups: [],
-                  instanceConsumer
-                } satisfies EnrichedConsumerProfile
-              ]
-            ]
-          : [];
-      })
-    );
+    let consumerById = new Map(consumers.map(consumer => [consumer.consumer.id, consumer]));
 
     return d.actors.map(actor => {
-      let organizationActor =
-        actor.organizationActorId
-          ? (organizationActorById.get(actor.organizationActorId) ?? null)
-          : null;
-      let consumerProfile =
+      let organizationActor = actor.organizationActorId
+        ? (organizationActorById.get(actor.organizationActorId) ?? null)
+        : null;
+      let consumer =
         !organizationActor && actor.consumerId
-          ? (consumerProfileByConsumerId.get(actor.consumerId) ?? null)
+          ? (consumerById.get(actor.consumerId) ?? null)
           : null;
 
       return {
-        name: organizationActor?.name ?? consumerProfile?.name ?? actor.name,
+        name: organizationActor?.name ?? consumer?.name ?? actor.name,
         organizationActor,
-        consumerProfile
+        consumer
       };
     });
   }
@@ -162,7 +140,8 @@ class DocumentParticipantServiceImpl {
     defaultPermissions?: CargoStorePermission[];
     overridePermissions?: boolean;
   }) {
-    let { scope, actorId, defaultPermissions, overridePermissions } = await resolveCargoAccess(d);
+    let { scope, actorId, defaultPermissions, overridePermissions } =
+      await resolveCargoAccess(d);
 
     return Paginator.create(() => async input => {
       let result = await cargo.documentParticipant.list({
@@ -195,7 +174,8 @@ class DocumentParticipantServiceImpl {
     defaultPermissions?: CargoStorePermission[];
     overridePermissions?: boolean;
   }) {
-    let { scope, actorId, defaultPermissions, overridePermissions } = await resolveCargoAccess(d);
+    let { scope, actorId, defaultPermissions, overridePermissions } =
+      await resolveCargoAccess(d);
     let participant = await cargo.documentParticipant.get({
       tenantId: scope.tenantId,
       environmentId: scope.environmentId,

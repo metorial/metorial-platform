@@ -12,7 +12,7 @@ export let previewConsumerProfilePresenter = Presenter.create(consumerProfileTyp
     name: consumerProfile.name,
     email: consumerProfile.email,
     image_url: await getImageUrl({
-      id: consumerProfile.id,
+      id: consumerProfile.consumer.id,
       name: consumerProfile.name,
       email: consumerProfile.email,
       image: null

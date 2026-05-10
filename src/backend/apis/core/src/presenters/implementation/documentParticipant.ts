@@ -3,15 +3,15 @@ import type { EnrichedCargoDocumentActor } from '@metorial/module-file';
 import type { PresenterContext } from '@metorial/presenter';
 import { Presenter } from '@metorial/presenter';
 import { documentParticipantType } from '../types';
-import { previewConsumerProfilePresenter } from './consumerProfile';
+import { v1ConsumerPresenter } from './consumer';
 import { v1OrganizationActorPresenter } from './organizationActor';
 
 export let documentParticipantActorSchema = v.object({
-  type: v.enumOf(['organization_actor', 'consumer_profile', 'unknown']),
+  type: v.enumOf(['organization_actor', 'consumer', 'unknown']),
   name: v.string(),
   image_url: v.nullable(v.string()),
   organization_actor: v.nullable(v1OrganizationActorPresenter.schema),
-  consumer_profile: v.nullable(previewConsumerProfilePresenter.schema)
+  consumer: v.nullable(v1ConsumerPresenter.schema)
 });
 
 export let presentDocumentParticipantActor = async (
@@ -23,31 +23,21 @@ export let presentDocumentParticipantActor = async (
         .present({ organizationActor: actor.organizationActor }, opts)
         .run()
     : null;
-  let consumer = actor.consumerProfile
-    ? await previewConsumerProfilePresenter
-        .present(
-          {
-            consumerProfile: actor.consumerProfile,
-            instanceConsumer: actor.consumerProfile.instanceConsumer,
-            assignedConsumerGroups: undefined
-          },
-          opts
-        )
-        .run()
+  let consumer = actor.consumer
+    ? await v1ConsumerPresenter.present({ consumer: actor.consumer }, opts).run()
     : null;
 
   return {
     type: actor.organizationActor
       ? ('organization_actor' as const)
-      : actor.consumerProfile
-        ? ('consumer_profile' as const)
+      : actor.consumer
+        ? ('consumer' as const)
         : ('unknown' as const),
 
     name: actor.name,
     image_url: orgActor?.image_url ?? consumer?.image_url ?? null,
-
     organization_actor: orgActor,
-    consumer_profile: consumer
+    consumer: consumer
   };
 };
 

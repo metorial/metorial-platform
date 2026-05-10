@@ -3,12 +3,12 @@ import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { documentVersionService } from '@metorial/module-file';
 import { Controller } from '@metorial/rest';
-import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { getInstanceCargoAccess } from '../../lib/cargoAccess';
+import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
-import { documentGroup } from './document';
 import { instancePath } from '../../middleware/instanceGroup';
 import { documentVersionPresenter } from '../../presenters';
+import { documentGroup } from './document';
 
 export let documentVersionGroup = documentGroup.use(async ctx => {
   if (!ctx.params.documentVersionId) {
@@ -70,7 +70,10 @@ export let documentVersionController = Controller.create(
 
     get: documentVersionGroup
       .get(
-        instancePath('documents/:documentId/versions/:documentVersionId', 'documents.versions.get'),
+        instancePath(
+          'documents/:documentId/versions/:documentVersionId',
+          'documents.versions.get'
+        ),
         {
           name: 'Get document version by ID',
           description: 'Retrieves a specific document version by its ID.'
@@ -78,6 +81,8 @@ export let documentVersionController = Controller.create(
       )
       .use(checkAccess({ possibleScopes: ['instance.file:read'] }))
       .output(documentVersionPresenter)
-      .do(async ctx => documentVersionPresenter.present({ documentVersion: ctx.documentVersion }))
+      .do(async ctx =>
+        documentVersionPresenter.present({ documentVersion: ctx.documentVersion })
+      )
   }
 );

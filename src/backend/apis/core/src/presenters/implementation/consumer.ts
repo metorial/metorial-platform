@@ -1,4 +1,5 @@
 import { v } from '@lowerdeck/validation';
+import { getImageUrl } from '@metorial/db';
 import { Presenter } from '@metorial/presenter';
 import { consumerType } from '../types';
 
@@ -8,6 +9,12 @@ export let v1ConsumerPresenter = Presenter.create(consumerType)
     id: consumer.id,
     name: consumer.name,
     email: consumer.email,
+    image_url: await getImageUrl({
+      id: consumer.consumer.id,
+      name: consumer.name,
+      email: consumer.email,
+      image: null
+    }),
     created_at: consumer.createdAt,
     updated_at: consumer.updatedAt
   }))
@@ -17,6 +24,7 @@ export let v1ConsumerPresenter = Presenter.create(consumerType)
       id: v.string(),
       name: v.string(),
       email: v.string(),
+      image_url: v.string(),
       created_at: v.date(),
       updated_at: v.date()
     })

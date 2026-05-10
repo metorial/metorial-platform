@@ -10,24 +10,15 @@ import { fileLinkPresenter } from '../../presenters';
 let fileLinkRootGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.linkId) throw new Error('linkId is required');
 
-  let fileLink = hasInstanceConsumerAccess(ctx)
-    ? await fileLinkService.getFileLinkById({
-        fileLinkId: ctx.params.linkId,
-        owner: {
-          type: 'instance',
-          organization: ctx.organization,
-          instance: ctx.instance
-        },
-        ...getInstanceCargoAccess(ctx)
-      })
-    : await fileLinkService.getFileLinkById({
-        fileLinkId: ctx.params.linkId,
-        owner: {
-          type: 'instance',
-          organization: ctx.organization,
-          instance: ctx.instance
-        }
-      });
+  let fileLink = await fileLinkService.getFileLinkById({
+    fileLinkId: ctx.params.linkId,
+    owner: {
+      type: 'instance',
+      organization: ctx.organization,
+      instance: ctx.instance
+    },
+    ...(hasInstanceConsumerAccess(ctx) ? getInstanceCargoAccess(ctx) : {})
+  });
 
   return { fileLink };
 });

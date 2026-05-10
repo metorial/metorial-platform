@@ -73,21 +73,7 @@ class ConsumerServiceImpl {
         instanceOid: d.instance.oid,
         OR: [{ id: d.consumerId }, { consumer: { id: d.consumerId } }]
       },
-      include: {
-        consumer: {
-          include: {
-            organizationMember: true,
-            profiles: {
-              where: {
-                instanceOid: d.instance.oid
-              },
-              include: {
-                surface: true
-              }
-            }
-          }
-        }
-      }
+      include: getInclude({ instanceOid: d.instance.oid })
     });
     if (!consumer) {
       throw new ServiceError(notFoundError('consumer'));
@@ -120,21 +106,7 @@ class ConsumerServiceImpl {
               ...(id ? [{ OR: [{ id }, { consumer: { id } }] }] : [])
             ]
           },
-          include: {
-            consumer: {
-              include: {
-                organizationMember: true,
-                profiles: {
-                  where: {
-                    instanceOid: d.instance.oid
-                  },
-                  include: {
-                    surface: true
-                  }
-                }
-              }
-            }
-          }
+          include: getInclude({ instanceOid: d.instance.oid })
         });
       })
     );
