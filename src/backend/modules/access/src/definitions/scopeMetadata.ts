@@ -65,6 +65,14 @@ let scopeResourceMetadata: Record<string, { name: string; description: string }>
     name: 'Instance Secrets',
     description: 'These endpoints manage instance-level secret values.'
   },
+  'instance.assistant': {
+    name: 'Assistants',
+    description: 'These endpoints list assistants and read assistant metadata in an instance.'
+  },
+  'instance.assistant.conversation': {
+    name: 'Assistant Conversations',
+    description: 'These endpoints manage assistant conversations and messages in an instance.'
+  },
   'instance.session': {
     name: 'Sessions',
     description: 'These endpoints manage session records and session lifecycle.'
@@ -234,6 +242,14 @@ let scopeResourceMetadata: Record<string, { name: string; description: string }>
   'consumer#instance.magic_mcp': {
     name: 'Consumer Magic MCP',
     description: 'These endpoints manage consumer access to Magic MCP functionality.'
+  },
+  'consumer#instance.assistant': {
+    name: 'Consumer Assistants',
+    description: 'These endpoints list assistants and read assistant metadata for consumers.'
+  },
+  'consumer#instance.assistant.conversation': {
+    name: 'Consumer Assistant Conversations',
+    description: 'These endpoints manage assistant conversations and messages for consumers.'
   },
   'consumer#instance.provider_template': {
     name: 'Consumer Provider Templates',

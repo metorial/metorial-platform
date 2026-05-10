@@ -69,6 +69,26 @@ let getSynthesisActorType = (actor: Pick<OrganizationActor, 'type'>) =>
   actor.type == 'system' ? 'system' : 'external';
 
 let getSynthesisActorIdentifier = (actor: Pick<OrganizationActor, 'id'>) => `mte-oac-${actor.id}`;
+let getSynthesisConsumerIdentifier = (consumer: Pick<Consumer, 'id'>) => `mte-con-${consumer.id}`;
+
+export type AssistantActorInput =
+  | {
+      actor: Pick<OrganizationActor, 'id' | 'name' | 'type' | 'organizationOid'>;
+      consumer?: undefined;
+    }
+  | {
+      actor?: undefined;
+      consumer: Pick<Consumer, 'id' | 'name'>;
+    };
+
+export let getAssistantActorInput = (d: AssistantActorInput): AssistantActorInput =>
+  d.consumer
+    ? {
+        consumer: d.consumer
+      }
+    : {
+        actor: d.actor
+      };
 
 let getScopedInstanceById = async (instanceId: string) => {
   let instance = await db.instance.findUnique({
@@ -126,17 +146,29 @@ export let ensureSynthesisScope = async (d: { instance: Pick<Instance, 'id'> }) 
   } satisfies SynthesisScope;
 };
 
-export let ensureSynthesisActor = async (d: {
-  scope: Pick<SynthesisScope, 'tenantId'>;
-  actor: Pick<OrganizationActor, 'id' | 'name' | 'type'>;
-}) =>
-  await synthesis.actor.upsert({
+export let ensureSynthesisActor = async (
+  d: {
+    scope: Pick<SynthesisScope, 'tenantId'>;
+  } & AssistantActorInput
+) => {
+  if (d.consumer) {
+    return await synthesis.actor.upsert({
+      tenantId: d.scope.tenantId,
+      identifier: getSynthesisConsumerIdentifier(d.consumer),
+      name: d.consumer.name,
+      type: 'external',
+      consumerId: d.consumer.id
+    });
+  }
+
+  return await synthesis.actor.upsert({
     tenantId: d.scope.tenantId,
     identifier: getSynthesisActorIdentifier(d.actor),
     name: d.actor.name,
     type: getSynthesisActorType(d.actor),
     organizationActorId: d.actor.id
   });
+};
 
 export let getSynthesisActorsByIds = async (d: {
   scope: Pick<SynthesisScope, 'tenantId'>;
@@ -246,8 +278,11 @@ export let resolveMetorialInstanceBySynthesisScope = async (d: {
   return instance;
 };
 
-export let getMetorialActorId = (actor?: { organizationActorId?: string | null; id?: string | null }) =>
-  actor?.organizationActorId ?? actor?.id ?? null;
+export let getMetorialActorId = (actor?: {
+  organizationActorId?: string | null;
+  consumerId?: string | null;
+  id?: string | null;
+}) => actor?.organizationActorId ?? actor?.consumerId ?? actor?.id ?? null;
 
 type SynthesisRequestCreateInput = Parameters<typeof synthesis.request.create>[0];
 type SynthesisMessageGetOutput = Awaited<ReturnType<typeof synthesis.message.get>>;

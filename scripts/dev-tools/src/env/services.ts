@@ -114,6 +114,25 @@ export let signalServiceEnv: Env = [
   }
 ];
 
+export let synthesisServiceEnv: Env = [
+  {
+    key: 'SYNTHESIS_DATABASE_URL',
+    defaultValue: 'postgresql://postgres:postgres@localhost:35432/synthesis'
+  },
+  {
+    key: 'REDIS_URL',
+    defaultValue: 'redis://localhost:36379/0'
+  },
+  {
+    key: 'SYNTHESIS_API_PORT',
+    defaultValue: '52160'
+  },
+  {
+    key: 'SYNTHESIS_HEALTH_PORT',
+    defaultValue: '12121'
+  }
+];
+
 export let cargoServiceEnv: Env = [
   {
     key: 'DATABASE_URL',

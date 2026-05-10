@@ -7,6 +7,11 @@ export let instanceScopes = [
   'instance.secret:read' as const,
   'instance.secret:write' as const,
 
+  'instance.assistant:read' as const,
+  'instance.assistant:write' as const,
+  'instance.assistant.conversation:read' as const,
+  'instance.assistant.conversation:write' as const,
+
   'instance.session:read' as const,
   'instance.session:write' as const,
 
@@ -105,6 +110,11 @@ export let instanceScopes = [
 ] satisfies readonly `instance.${string}`[];
 
 export let consumerScopes = [
+  'consumer#instance.assistant:read' as const,
+  'consumer#instance.assistant:write' as const,
+  'consumer#instance.assistant.conversation:read' as const,
+  'consumer#instance.assistant.conversation:write' as const,
+
   'consumer#instance.magic_mcp:read' as const,
   'consumer#instance.magic_mcp:connect' as const,
   'consumer#instance.magic_mcp:write' as const,

@@ -9,6 +9,7 @@ import {
   originCodeBucketEnv,
   originServiceEnv,
   signalServiceEnv,
+  synthesisServiceEnv,
   shuttleServiceEnv,
   slatesHubEnv,
   slatesRegistryEnv,
@@ -69,6 +70,11 @@ export let destinations: Destination[] = [
     type: 'oss',
     env: signalServiceEnv,
     path: 'src/systems/signal/service'
+  },
+  {
+    type: 'oss',
+    env: synthesisServiceEnv,
+    path: 'src/systems/synthesis/service'
   },
   {
     type: 'oss',

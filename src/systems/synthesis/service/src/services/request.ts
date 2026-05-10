@@ -1,10 +1,5 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import {
-  Prisma,
-  db,
-  withTransaction
-} from '../db';
 import type {
   AssistantConversation,
   Environment,
@@ -12,14 +7,15 @@ import type {
   Tenant,
   TenantActor
 } from '../db';
+import { db, Prisma, withTransaction } from '../db';
 import { assistants } from '../definitions/assistants';
 import { getId } from '../id';
-import { type InputMessage, type State } from '../types';
 import type { Implementation } from '../lib/definitions';
-import type { AgentRunWireMessage } from '../lib/run/state';
 import { listenToAssistantRunDeltas } from '../lib/run/redisDeltas';
+import type { AgentRunWireMessage } from '../lib/run/state';
 import { generateAssistantConversationTitleQueue } from '../queues/generateConversationTitle';
 import { processAssistantRequestQueue } from '../queues/processRequest';
+import { type InputMessage, type State } from '../types';
 import { assistantConversationItemInclude } from './message';
 import { assistantConversationParticipantService } from './participant';
 
@@ -264,7 +260,6 @@ class AssistantRequestServiceImpl {
     input: {
       message: InputMessage;
       parentMessageId?: string;
-      historySize?: number;
       modelId?: string;
       allowAllActors?: boolean;
     };
@@ -273,7 +268,7 @@ class AssistantRequestServiceImpl {
       conversation: d.conversation,
       parentMessageId: d.input.parentMessageId
     });
-    let historySize = d.input.historySize ?? 100;
+
     let assistant = await db.assistant.findUnique({
       where: {
         oid: d.conversation.assistantOid
@@ -283,7 +278,9 @@ class AssistantRequestServiceImpl {
       }
     });
     if (!assistant) {
-      throw new ServiceError(notFoundError('assistant', d.conversation.assistantOid.toString()));
+      throw new ServiceError(
+        notFoundError('assistant', d.conversation.assistantOid.toString())
+      );
     }
 
     let definition = await getAssistantDefinition(assistant.implementation.slug);
@@ -325,7 +322,7 @@ class AssistantRequestServiceImpl {
           assistantInstanceOid: d.conversation.assistantInstanceOid,
           modelOid: model.oid,
           messageOid: userMessage.oid,
-          historySize,
+          historySize: 100,
           tenantActorOid: d.actor.oid
         }
       });
@@ -390,7 +387,9 @@ class AssistantRequestServiceImpl {
     snapshotWaitTimeoutMs?: number;
     onMessage: (message: AgentRunWireMessage) => void | Promise<void>;
     onError?: (error: Error) => void | Promise<void>;
-    onDone?: (message: { status: 'completed' | 'cancelled' | 'failed' }) => void | Promise<void>;
+    onDone?: (message: {
+      status: 'completed' | 'cancelled' | 'failed';
+    }) => void | Promise<void>;
   }) {
     let request = await this.getAssistantRequestById({ requestId: d.requestId });
     let runId =

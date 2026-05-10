@@ -139,6 +139,8 @@ export let v1AssistantMessagePresenter = Presenter.create(assistantMessageType)
         id: assistantConversationItem.request.id,
         status: assistantConversationItem.request.status,
         actor_id:
+          assistantConversationItem.request.actor?.organizationActor?.id ??
+          assistantConversationItem.request.actor?.consumer?.id ??
           assistantConversationItem.request.organizationActorId ??
           assistantConversationItem.request.actorId ??
           null,

@@ -1,5 +1,5 @@
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
-import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { v } from '@lowerdeck/validation';
 import { db } from '../db';
 import { assistantConversationPresenter } from '../presenters';
@@ -43,7 +43,14 @@ export let conversationActorOptionalApp = conversationApp.use(async ctx => {
 });
 
 export let conversationActorApp = conversationActorOptionalApp.use(async ctx => {
-  if (!ctx.actor) throw new Error('Actor ID is required');
+  if (!ctx.actor) {
+    throw new ServiceError(
+      badRequestError({
+        message: 'actorId is required for this endpoint'
+      })
+    );
+  }
+
   return { actor: ctx.actor };
 });
 

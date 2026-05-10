@@ -1,7 +1,7 @@
 import { forbiddenError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { OrganizationActor } from '@metorial/db';
+import { Consumer, OrganizationActor } from '@metorial/db';
 import {
   assistantConversationService,
   assistantMessageService,
@@ -12,27 +12,45 @@ import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { requireParam } from '../../lib/requireParam';
 import { checkAccess } from '../../middleware/checkAccess';
-import { instanceGroup } from '../../middleware/instanceGroup';
-import { isDashboardGroup } from '../../middleware/isDashboard';
-import { organizationManagementPath } from '../../middleware/organizationGroup';
+import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
+import { requireConsumerTokenForPublishableKey } from '../../middleware/requireConsumerTokenForPublishableKey';
 import {
   assistantConversationPresenter,
   assistantMessagePresenter,
   assistantPresenter
 } from '../../presenters';
 
-let requireActor = (ctx: { actor?: OrganizationActor }) => {
-  if (!ctx.actor) {
-    throw new ServiceError(
-      forbiddenError({
-        message: 'Organization actor context is required',
-        description: 'Assistant endpoints require an authenticated organization actor.'
-      })
-    );
+let getAssistantActorContext = (ctx: {
+  actor?: OrganizationActor;
+  consumerProfile?: {
+    consumer: Consumer;
+  };
+}) => {
+  if (ctx.consumerProfile?.consumer) {
+    return {
+      consumer: ctx.consumerProfile.consumer
+    } as const;
   }
 
-  return ctx.actor;
+  if (ctx.actor) {
+    return {
+      actor: ctx.actor
+    } as const;
+  }
+
+  throw new ServiceError(
+    forbiddenError({
+      message: 'Assistant actor context is required',
+      description:
+        'Assistant endpoints require an authenticated organization actor or consumer.'
+    })
+  );
 };
+
+let requireAssistantActor = (ctx: {
+  actor?: OrganizationActor;
+  consumerProfile?: { consumer: Consumer };
+}) => getAssistantActorContext(ctx);
 
 let assistantMessagePartSchema = v.union([
   v.object({
@@ -54,7 +72,7 @@ let assistantConversationGroup = instanceGroup.use(async ctx => {
   let assistantConversation = await assistantConversationService.getAssistantConversationById({
     organization: ctx.organization,
     instance: ctx.instance,
-    actor: requireActor(ctx),
+    ...requireAssistantActor(ctx),
     conversationId: assistantConversationId
   });
 
@@ -67,7 +85,7 @@ let assistantMessageGroup = assistantConversationGroup.use(async ctx => {
   let assistantConversationItem = await assistantMessageService.getAssistantMessageById({
     organization: ctx.organization,
     instance: ctx.instance,
-    actor: requireActor(ctx),
+    ...requireAssistantActor(ctx),
     conversation: ctx.assistantConversation,
     messageId: assistantMessageId
   });
@@ -78,16 +96,20 @@ let assistantMessageGroup = assistantConversationGroup.use(async ctx => {
 export let dashboardAssistantController = Controller.create(
   {
     name: 'Assistants',
-    description: 'Dashboard-only assistant and conversation endpoints'
+    description: 'Assistant and conversation endpoints'
   },
   {
     listAssistants: instanceGroup
-      .use(isDashboardGroup())
-      .get(organizationManagementPath('instances/:instanceId/assistants', 'assistants.list'), {
+      .get(instancePath('assistants', 'assistants.list'), {
         name: 'List assistants',
-        description: 'List assistants available to an organization.'
+        description: 'List assistants available in an instance.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.assistant:read', 'consumer#instance.assistant:read']
+        })
+      )
+      .use(requireConsumerTokenForPublishableKey())
       .query('default', Paginator.validate(v.object({})))
       .outputList(assistantPresenter)
       .do(async ctx => {
@@ -102,18 +124,16 @@ export let dashboardAssistantController = Controller.create(
       }),
 
     getAssistant: instanceGroup
-      .use(isDashboardGroup())
-      .get(
-        organizationManagementPath(
-          'instances/:instanceId/assistants/:assistantId',
-          'assistants.get'
-        ),
-        {
-          name: 'Get assistant',
-          description: 'Get an assistant available to an organization.'
-        }
+      .get(instancePath('assistants/:assistantId', 'assistants.get'), {
+        name: 'Get assistant',
+        description: 'Get an assistant available in an instance.'
+      })
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.assistant:read', 'consumer#instance.assistant:read']
+        })
       )
-      .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
+      .use(requireConsumerTokenForPublishableKey())
       .output(assistantPresenter)
       .do(async ctx => {
         let assistant = await assistantService.getAvailableAssistant({
@@ -125,18 +145,19 @@ export let dashboardAssistantController = Controller.create(
       }),
 
     listConversations: instanceGroup
-      .use(isDashboardGroup())
-      .get(
-        organizationManagementPath(
-          'instances/:instanceId/conversations',
-          'conversations.list'
-        ),
-        {
-          name: 'List assistant conversations',
-          description: 'List assistant conversations in an instance.'
-        }
+      .get(instancePath('conversations', 'conversations.list'), {
+        name: 'List assistant conversations',
+        description: 'List assistant conversations in an instance.'
+      })
+      .use(
+        checkAccess({
+          possibleScopes: [
+            'instance.assistant.conversation:read',
+            'consumer#instance.assistant.conversation:read'
+          ]
+        })
       )
-      .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
+      .use(requireConsumerTokenForPublishableKey())
       .query(
         'default',
         Paginator.validate(
@@ -151,7 +172,7 @@ export let dashboardAssistantController = Controller.create(
         let paginator = await assistantConversationService.listAssistantConversations({
           organization: ctx.organization,
           instance: ctx.instance,
-          actor: requireActor(ctx),
+          ...requireAssistantActor(ctx),
           assistantIds
         });
         let list = await paginator.run(ctx.query);
@@ -166,18 +187,19 @@ export let dashboardAssistantController = Controller.create(
       }),
 
     createConversation: instanceGroup
-      .use(isDashboardGroup())
-      .post(
-        organizationManagementPath(
-          'instances/:instanceId/conversations',
-          'conversations.create'
-        ),
-        {
-          name: 'Create assistant conversation',
-          description: 'Create a new assistant conversation in an instance.'
-        }
+      .post(instancePath('conversations', 'conversations.create'), {
+        name: 'Create assistant conversation',
+        description: 'Create a new assistant conversation in an instance.'
+      })
+      .use(
+        checkAccess({
+          possibleScopes: [
+            'instance.assistant.conversation:write',
+            'consumer#instance.assistant.conversation:write'
+          ]
+        })
       )
-      .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
+      .use(requireConsumerTokenForPublishableKey())
       .body(
         'default',
         v.object({
@@ -191,7 +213,7 @@ export let dashboardAssistantController = Controller.create(
           await assistantConversationService.createAssistantConversation({
             organization: ctx.organization,
             instance: ctx.instance,
-            actor: requireActor(ctx),
+            ...requireAssistantActor(ctx),
             input: {
               assistantId: ctx.body.assistant_id,
               title: ctx.body.title
@@ -206,18 +228,19 @@ export let dashboardAssistantController = Controller.create(
       }),
 
     getConversation: assistantConversationGroup
-      .use(isDashboardGroup())
-      .get(
-        organizationManagementPath(
-          'instances/:instanceId/conversations/:assistantConversationId',
-          'conversations.get'
-        ),
-        {
-          name: 'Get assistant conversation',
-          description: 'Get a specific assistant conversation.'
-        }
+      .get(instancePath('conversations/:assistantConversationId', 'conversations.get'), {
+        name: 'Get assistant conversation',
+        description: 'Get a specific assistant conversation.'
+      })
+      .use(
+        checkAccess({
+          possibleScopes: [
+            'instance.assistant.conversation:read',
+            'consumer#instance.assistant.conversation:read'
+          ]
+        })
       )
-      .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
+      .use(requireConsumerTokenForPublishableKey())
       .output(assistantConversationPresenter)
       .do(async ctx => {
         return assistantConversationPresenter.present({
@@ -228,18 +251,19 @@ export let dashboardAssistantController = Controller.create(
       }),
 
     updateConversation: assistantConversationGroup
-      .use(isDashboardGroup())
-      .patch(
-        organizationManagementPath(
-          'instances/:instanceId/conversations/:assistantConversationId',
-          'conversations.update'
-        ),
-        {
-          name: 'Update assistant conversation',
-          description: 'Update a specific assistant conversation.'
-        }
+      .patch(instancePath('conversations/:assistantConversationId', 'conversations.update'), {
+        name: 'Update assistant conversation',
+        description: 'Update a specific assistant conversation.'
+      })
+      .use(
+        checkAccess({
+          possibleScopes: [
+            'instance.assistant.conversation:write',
+            'consumer#instance.assistant.conversation:write'
+          ]
+        })
       )
-      .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
+      .use(requireConsumerTokenForPublishableKey())
       .body(
         'default',
         v.object({
@@ -252,7 +276,7 @@ export let dashboardAssistantController = Controller.create(
           await assistantConversationService.updateAssistantConversation({
             organization: ctx.organization,
             instance: ctx.instance,
-            actor: requireActor(ctx),
+            ...requireAssistantActor(ctx),
             conversation: ctx.assistantConversation,
             input: {
               title: ctx.body.title
@@ -267,10 +291,9 @@ export let dashboardAssistantController = Controller.create(
       }),
 
     listMessages: assistantConversationGroup
-      .use(isDashboardGroup())
       .get(
-        organizationManagementPath(
-          'instances/:instanceId/conversations/:assistantConversationId/messages',
+        instancePath(
+          'conversations/:assistantConversationId/messages',
           'conversations.messages.list'
         ),
         {
@@ -278,14 +301,22 @@ export let dashboardAssistantController = Controller.create(
           description: 'List messages in a specific assistant conversation.'
         }
       )
-      .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
+      .use(
+        checkAccess({
+          possibleScopes: [
+            'instance.assistant.conversation:read',
+            'consumer#instance.assistant.conversation:read'
+          ]
+        })
+      )
+      .use(requireConsumerTokenForPublishableKey())
       .query('default', Paginator.validate(v.object({})))
       .outputList(assistantMessagePresenter)
       .do(async ctx => {
         let paginator = await assistantMessageService.listAssistantMessages({
           organization: ctx.organization,
           instance: ctx.instance,
-          actor: requireActor(ctx),
+          ...requireAssistantActor(ctx),
           conversation: ctx.assistantConversation
         });
         let list = await paginator.run(ctx.query);
@@ -296,10 +327,9 @@ export let dashboardAssistantController = Controller.create(
       }),
 
     createMessage: assistantConversationGroup
-      .use(isDashboardGroup())
       .post(
-        organizationManagementPath(
-          'instances/:instanceId/conversations/:assistantConversationId/messages',
+        instancePath(
+          'conversations/:assistantConversationId/messages',
           'conversations.messages.create'
         ),
         {
@@ -308,7 +338,15 @@ export let dashboardAssistantController = Controller.create(
             'Create a user message and assistant request in a specific conversation.'
         }
       )
-      .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
+      .use(
+        checkAccess({
+          possibleScopes: [
+            'instance.assistant.conversation:write',
+            'consumer#instance.assistant.conversation:write'
+          ]
+        })
+      )
+      .use(requireConsumerTokenForPublishableKey())
       .body(
         'default',
         v.object({
@@ -316,7 +354,6 @@ export let dashboardAssistantController = Controller.create(
             parts: v.array(assistantMessagePartSchema)
           }),
           parent_message_id: v.optional(v.string()),
-          history_size: v.optional(v.number({ modifiers: [v.integer(), v.minValue(0)] })),
           model_id: v.optional(v.string())
         })
       )
@@ -325,7 +362,7 @@ export let dashboardAssistantController = Controller.create(
         let { item } = await assistantRequestService.createAssistantRequest({
           organization: ctx.organization,
           instance: ctx.instance,
-          actor: requireActor(ctx),
+          ...requireAssistantActor(ctx),
           conversation: ctx.assistantConversation,
           input: {
             message: {
@@ -345,7 +382,6 @@ export let dashboardAssistantController = Controller.create(
               )
             },
             parentMessageId: ctx.body.parent_message_id,
-            historySize: ctx.body.history_size,
             modelId: ctx.body.model_id
           }
         });
@@ -356,10 +392,9 @@ export let dashboardAssistantController = Controller.create(
       }),
 
     getMessage: assistantMessageGroup
-      .use(isDashboardGroup())
       .get(
-        organizationManagementPath(
-          'instances/:instanceId/conversations/:assistantConversationId/messages/:assistantMessageId',
+        instancePath(
+          'conversations/:assistantConversationId/messages/:assistantMessageId',
           'conversations.messages.get'
         ),
         {
@@ -367,7 +402,15 @@ export let dashboardAssistantController = Controller.create(
           description: 'Get a specific assistant message.'
         }
       )
-      .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
+      .use(
+        checkAccess({
+          possibleScopes: [
+            'instance.assistant.conversation:read',
+            'consumer#instance.assistant.conversation:read'
+          ]
+        })
+      )
+      .use(requireConsumerTokenForPublishableKey())
       .output(assistantMessagePresenter)
       .do(async ctx =>
         assistantMessagePresenter.present({

@@ -70,6 +70,10 @@ export let backendEnv: Env = [
     key: 'CARGO_API_URL',
     defaultValue: 'http://localhost:52150/metorial-cargo'
   },
+  {
+    key: 'SYNTHESIS_API_URL',
+    defaultValue: 'http://localhost:52160/metorial-synthesis'
+  },
 
   { key: 'PROVIDER_OAUTH_TICKET_SECRET', defaultValue: `provider-oauth-ticket-secret` },
 

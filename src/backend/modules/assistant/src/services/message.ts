@@ -2,13 +2,14 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
   type Instance,
-  type Organization,
-  type OrganizationActor
+  type Organization
 } from '@metorial/db';
 import {
   enrichSynthesisActors,
+  type AssistantActorInput,
   ensureSynthesisActor,
   ensureSynthesisScope,
+  getAssistantActorInput,
   getSynthesisActorsByIds,
   synthesis,
   type EnrichedAssistantActor,
@@ -70,32 +71,36 @@ class AssistantMessageServiceImpl {
   private ensureScope(d: {
     organization: Organization;
     instance: Instance;
-    actor: OrganizationActor;
     conversation: {
       id: string;
     };
-  }) {
-    if (d.instance.organizationOid !== d.organization.oid || d.actor.organizationOid !== d.organization.oid) {
+  } & AssistantActorInput) {
+    if (d.instance.organizationOid !== d.organization.oid) {
+      throw new Error('Assistant message scope is invalid');
+    }
+
+    if (d.actor && d.actor.organizationOid !== d.organization.oid) {
       throw new Error('Assistant message scope is invalid');
     }
   }
 
-  async getAssistantMessageById(d: {
+  async getAssistantMessageById(
+    d: {
     organization: Organization;
     instance: Instance;
-    actor: OrganizationActor;
     conversation: {
       id: string;
     };
     messageId: string;
-  }) {
+  } & AssistantActorInput
+  ) {
     this.ensureScope(d);
     let scope = await ensureSynthesisScope({
       instance: d.instance
     });
     let actor = await ensureSynthesisActor({
       scope,
-      actor: d.actor
+      ...getAssistantActorInput(d)
     });
     let item = await synthesis.message.get({
       tenantId: scope.tenantId,
@@ -112,21 +117,22 @@ class AssistantMessageServiceImpl {
     });
   }
 
-  async listAssistantMessages(d: {
+  async listAssistantMessages(
+    d: {
     organization: Organization;
     instance: Instance;
-    actor: OrganizationActor;
     conversation: {
       id: string;
     };
-  }) {
+  } & AssistantActorInput
+  ) {
     this.ensureScope(d);
     let scope = await ensureSynthesisScope({
       instance: d.instance
     });
     let actor = await ensureSynthesisActor({
       scope,
-      actor: d.actor
+      ...getAssistantActorInput(d)
     });
 
     return Paginator.create(() => async input => {

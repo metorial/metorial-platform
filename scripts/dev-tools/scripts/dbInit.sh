@@ -13,6 +13,7 @@ export MAIN_GLOBAL_DATABASE_URL="postgres://postgres:postgres@localhost:35432/$D
 
 export ORIGIN_DATABASE_URL="postgres://postgres:postgres@localhost:35432/origin"
 export SIGNAL_DATABASE_URL="postgres://postgres:postgres@localhost:35432/signal"
+export SYNTHESIS_DATABASE_URL="postgres://postgres:postgres@localhost:35432/synthesis"
 export SLATES_HUB_DATABASE_URL="postgres://postgres:postgres@localhost:35432/slates-hub"
 export SLATES_REGISTRY_DATABASE_URL="postgres://postgres:postgres@localhost:35432/slates-registry"
 export SUBSPACE_DATABASE_URL="postgres://postgres:postgres@localhost:35432/subspace"

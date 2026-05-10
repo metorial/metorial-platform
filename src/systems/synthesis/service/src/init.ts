@@ -16,7 +16,7 @@ if (!process.env.DATABASE_URL && !process.env.SYNTHESIS_DATABASE_URL) {
   process.env.DATABASE_URL = `postgres://${process.env.DATABASE_USERNAME}:${process.env.DATABASE_PASSWORD}@${process.env.DATABASE_HOST}:${process.env.DATABASE_PORT}/${process.env.DATABASE_NAME}?schema=public&sslmode=no-verify&connection_limit=20`;
 }
 
-process.env.SYNTHESIS_API_PORT ??= '52060';
+process.env.SYNTHESIS_API_PORT ??= '52160';
 process.env.SYNTHESIS_HEALTH_PORT ??= '12121';
 
 if (!process.env.REDIS_URL) {

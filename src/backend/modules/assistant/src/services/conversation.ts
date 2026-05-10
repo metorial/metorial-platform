@@ -1,11 +1,13 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { type Instance, type Organization, type OrganizationActor } from '@metorial/db';
+import { type Instance, type Organization } from '@metorial/db';
 import {
   enrichSynthesisActors,
   ensureSynthesisActor,
   ensureSynthesisScope,
+  getAssistantActorInput,
   synthesis,
+  type AssistantActorInput,
   type EnrichedAssistantActor
 } from '../synthesis';
 
@@ -19,19 +21,23 @@ class AssistantConversationServiceImpl {
   private ensureScope(d: {
     organization: Organization;
     instance: Instance;
-    actor: OrganizationActor;
-  }) {
-    if (d.instance.organizationOid !== d.organization.oid || d.actor.organizationOid !== d.organization.oid) {
+  } & AssistantActorInput) {
+    if (d.instance.organizationOid !== d.organization.oid) {
+      throw new Error('Assistant conversation scope is invalid');
+    }
+
+    if (d.actor && d.actor.organizationOid !== d.organization.oid) {
       throw new Error('Assistant conversation scope is invalid');
     }
   }
 
-  async getAssistantConversationById(d: {
+  async getAssistantConversationById(
+    d: {
     organization: Organization;
     instance: Instance;
-    actor: OrganizationActor;
     conversationId: string;
-  }) {
+  } & AssistantActorInput
+  ) {
     this.ensureScope(d);
 
     let scope = await ensureSynthesisScope({
@@ -39,7 +45,7 @@ class AssistantConversationServiceImpl {
     });
     let actor = await ensureSynthesisActor({
       scope,
-      actor: d.actor
+      ...getAssistantActorInput(d)
     });
 
     let conversation = await synthesis.conversation.get({
@@ -59,12 +65,13 @@ class AssistantConversationServiceImpl {
     };
   }
 
-  async listAssistantConversations(d: {
+  async listAssistantConversations(
+    d: {
     organization: Organization;
     instance: Instance;
-    actor: OrganizationActor;
     assistantIds?: string[];
-  }) {
+  } & AssistantActorInput
+  ) {
     this.ensureScope(d);
 
     let scope = await ensureSynthesisScope({
@@ -72,7 +79,7 @@ class AssistantConversationServiceImpl {
     });
     let actor = await ensureSynthesisActor({
       scope,
-      actor: d.actor
+      ...getAssistantActorInput(d)
     });
 
     return Paginator.create(() => async input => {
@@ -101,15 +108,16 @@ class AssistantConversationServiceImpl {
     });
   }
 
-  async createAssistantConversation(d: {
+  async createAssistantConversation(
+    d: {
     organization: Organization;
     instance: Instance;
-    actor: OrganizationActor;
     input: {
       assistantId: string;
       title?: string | null;
     };
-  }) {
+  } & AssistantActorInput
+  ) {
     this.ensureScope(d);
 
     let scope = await ensureSynthesisScope({
@@ -117,7 +125,7 @@ class AssistantConversationServiceImpl {
     });
     let actor = await ensureSynthesisActor({
       scope,
-      actor: d.actor
+      ...getAssistantActorInput(d)
     });
 
     let conversation = await synthesis.conversation.create({
@@ -138,17 +146,18 @@ class AssistantConversationServiceImpl {
     };
   }
 
-  async updateAssistantConversation(d: {
+  async updateAssistantConversation(
+    d: {
     organization: Organization;
     instance: Instance;
-    actor: OrganizationActor;
     conversation: {
       id: string;
     };
     input: {
       title?: string | null;
     };
-  }) {
+  } & AssistantActorInput
+  ) {
     this.ensureScope(d);
 
     let scope = await ensureSynthesisScope({
@@ -156,7 +165,7 @@ class AssistantConversationServiceImpl {
     });
     let actor = await ensureSynthesisActor({
       scope,
-      actor: d.actor
+      ...getAssistantActorInput(d)
     });
 
     let conversation = await synthesis.conversation.update({

@@ -1,13 +1,15 @@
 import { Service } from '@lowerdeck/service';
 import { createAssistantRequestDeltasConnection } from '@metorial-platform-systems/synthesis-client';
-import { type Instance, type Organization, type OrganizationActor } from '@metorial/db';
+import { type Instance, type Organization } from '@metorial/db';
 import {
   enrichSynthesisActors,
   ensureSynthesisActor,
   ensureSynthesisScope,
+  getAssistantActorInput,
   getSynthesisLiveEndpoint,
   resolveMetorialInstanceBySynthesisScope,
   synthesis,
+  type AssistantActorInput,
   type AssistantInputMessage,
   type EnrichedAssistantActor,
   type SynthesisScope
@@ -50,34 +52,37 @@ let enrichRequest = async (d: {
 };
 
 class AssistantRequestServiceImpl {
-  private ensureScope(d: {
-    organization: Organization;
-    instance: Instance;
-    actor: OrganizationActor;
-    conversation: {
-      id: string;
-    };
-  }) {
-    if (
-      d.instance.organizationOid !== d.organization.oid ||
-      d.actor.organizationOid !== d.organization.oid
-    ) {
+  private ensureScope(
+    d: {
+      organization: Organization;
+      instance: Instance;
+      conversation: {
+        id: string;
+      };
+    } & AssistantActorInput
+  ) {
+    if (d.instance.organizationOid !== d.organization.oid) {
+      throw new Error('Assistant request scope is invalid');
+    }
+
+    if (d.actor && d.actor.organizationOid !== d.organization.oid) {
       throw new Error('Assistant request scope is invalid');
     }
   }
 
-  async getAssistantRequestById(d: {
-    organization: Organization;
-    instance: Instance;
-    actor: OrganizationActor;
-    requestId: string;
-  }) {
+  async getAssistantRequestById(
+    d: {
+      organization: Organization;
+      instance: Instance;
+      requestId: string;
+    } & AssistantActorInput
+  ) {
     let scope = await ensureSynthesisScope({
       instance: d.instance
     });
     let actor = await ensureSynthesisActor({
       scope,
-      actor: d.actor
+      ...getAssistantActorInput(d)
     });
     let request = await synthesis.request.get({
       tenantId: scope.tenantId,
@@ -113,24 +118,28 @@ class AssistantRequestServiceImpl {
       request: lookup.request,
       organization: instance.organization,
       instance,
-      actorId: lookupActor?.organizationActorId ?? lookup.request.actorId ?? null
+      actorId:
+        lookupActor?.organizationActorId ??
+        lookupActor?.consumerId ??
+        lookup.request.actorId ??
+        null
     };
   }
 
-  async createAssistantRequest(d: {
-    organization: Organization;
-    instance: Instance;
-    actor: OrganizationActor;
-    conversation: {
-      id: string;
-    };
-    input: {
-      message: AssistantInputMessage;
-      parentMessageId?: string;
-      historySize?: number;
-      modelId?: string;
-    };
-  }) {
+  async createAssistantRequest(
+    d: {
+      organization: Organization;
+      instance: Instance;
+      conversation: {
+        id: string;
+      };
+      input: {
+        message: AssistantInputMessage;
+        parentMessageId?: string;
+        modelId?: string;
+      };
+    } & AssistantActorInput
+  ) {
     this.ensureScope(d);
 
     let scope = await ensureSynthesisScope({
@@ -138,7 +147,7 @@ class AssistantRequestServiceImpl {
     });
     let actor = await ensureSynthesisActor({
       scope,
-      actor: d.actor
+      ...getAssistantActorInput(d)
     });
     let result = await synthesis.request.create({
       tenantId: scope.tenantId,
@@ -147,7 +156,6 @@ class AssistantRequestServiceImpl {
       conversationId: d.conversation.id,
       message: d.input.message,
       parentMessageId: d.input.parentMessageId,
-      historySize: d.input.historySize,
       modelId: d.input.modelId
     });
 
@@ -165,18 +173,19 @@ class AssistantRequestServiceImpl {
     };
   }
 
-  async listenToAssistantRequestDeltas(d: {
-    organization: Organization;
-    instance: Instance;
-    actor: OrganizationActor;
-    requestId: string;
-    signal?: AbortSignal;
-    onMessage: (message: AgentRunWireMessage) => void | Promise<void>;
-    onError?: (error: Error) => void | Promise<void>;
-    onDone?: (message: {
-      status: 'completed' | 'cancelled' | 'failed';
-    }) => void | Promise<void>;
-  }) {
+  async listenToAssistantRequestDeltas(
+    d: {
+      organization: Organization;
+      instance: Instance;
+      requestId: string;
+      signal?: AbortSignal;
+      onMessage: (message: AgentRunWireMessage) => void | Promise<void>;
+      onError?: (error: Error) => void | Promise<void>;
+      onDone?: (message: {
+        status: 'completed' | 'cancelled' | 'failed';
+      }) => void | Promise<void>;
+    } & AssistantActorInput
+  ) {
     let request = await this.getAssistantRequestById(d);
     let connection = createAssistantRequestDeltasConnection(
       {

@@ -1,5 +1,5 @@
-import { v } from '@lowerdeck/validation';
 import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { v } from '@lowerdeck/validation';
 import { db } from '../db';
 import {
   assistantMessagePresenter,
@@ -109,7 +109,6 @@ export let requestController = app.controller({
           parts: v.array(messagePartSchema)
         }),
         parentMessageId: v.optional(v.string()),
-        historySize: v.optional(v.number()),
         modelId: v.optional(v.string()),
         allowAllActors: v.optional(v.boolean())
       })
@@ -123,7 +122,6 @@ export let requestController = app.controller({
         input: {
           message: ctx.input.message,
           parentMessageId: ctx.input.parentMessageId,
-          historySize: ctx.input.historySize,
           modelId: ctx.input.modelId,
           allowAllActors: ctx.input.allowAllActors
         }

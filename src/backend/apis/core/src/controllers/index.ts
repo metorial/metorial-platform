@@ -378,7 +378,8 @@ export let magnetarController = Controller.create<any>(
     consumerSessionController,
     consumerProviderController,
 
-    managementApiKeyController
+    managementApiKeyController,
+    dashboardAssistantController
 
     // teamManagementController,
     // portalConsumerGroupController,
@@ -413,7 +414,8 @@ export let consumerApiController = Controller.create<any>(
     magicMcpGroupController,
 
     consumerSessionController,
-    consumerProviderController
+    consumerProviderController,
+    dashboardAssistantController
   }
 );
 
