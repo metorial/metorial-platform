@@ -3,9 +3,11 @@ import { serialize } from '@lowerdeck/serialize';
 
 type StubState = { counter: number };
 type RpcCall = { id: string; name: string; payload: any };
+type RecordedCall = { name: string; payload: any };
 
 let stubState: StubState | null = null;
 let fetchRouter: ReturnType<typeof createFetchRouter> | null = null;
+let recordedCalls: RecordedCall[] = [];
 
 let rpcHandlers: Record<string, (payload: any, state: StubState) => any> = {
   'source:upsert': (p, s) => ({
@@ -67,6 +69,8 @@ export function setupVoyagerStub() {
     let results: Array<{ __typename: string; id: string; name: string; status: number; result: any }> = [];
 
     for (let call of body.calls ?? []) {
+      recordedCalls.push({ name: call.name, payload: call.payload });
+
       let handler = rpcHandlers[call.name];
       if (!handler) {
         return new Response(
@@ -93,4 +97,9 @@ export function setupVoyagerStub() {
 
 export function resetVoyagerStub() {
   if (stubState) stubState.counter = 0;
+  recordedCalls = [];
+}
+
+export function getVoyagerStubCalls(name?: string) {
+  return name ? recordedCalls.filter(call => call.name === name) : recordedCalls;
 }

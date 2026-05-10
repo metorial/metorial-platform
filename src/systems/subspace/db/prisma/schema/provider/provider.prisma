@@ -103,6 +103,8 @@ model Provider {
   identityCredentials            IdentityCredential[]
   managedProviderAuthCredentials ManagedProviderAuthCredentials[]
   integrationProviders           IntegrationProvider[]
+  skillProviders                 SkillProvider[]
+  skillProviderLinks             SkillProviderLink[]
 
   @@index([status])
   @@index([access])

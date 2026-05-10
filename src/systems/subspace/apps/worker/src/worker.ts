@@ -13,6 +13,7 @@ import { identityQueueProcessor } from '@metorial-subspace/module-identity';
 import { integrationQueueProcessor } from '@metorial-subspace/module-integration';
 import { providerInternalQueueProcessor } from '@metorial-subspace/module-provider-internal';
 import { sessionQueueProcessor } from '@metorial-subspace/module-session';
+import { skillsQueueProcessor } from '@metorial-subspace/module-skills';
 import { tenantQueueProcessors } from '@metorial-subspace/module-tenant';
 import { nativeProviderQueues } from '@metorial-subspace/provider-native';
 import { shuttleProviderQueues } from '@metorial-subspace/provider-shuttle';
@@ -33,6 +34,7 @@ runQueueProcessors([
   callbackQueueProcessor,
   identityQueueProcessor,
   integrationQueueProcessor,
+  skillsQueueProcessor,
   agentQueueProcessor
 ]);
 

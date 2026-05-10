@@ -147,7 +147,15 @@ export let ID = createIdGenerator({
   integrationSetupSession_clientSecret: idType.key('iss_secret'),
   integrationSetupSessionProvider: idType.sorted('isp'),
   integrationSetupSessionStep: idType.sorted('isst'),
-  integrationSetupSessionEvent: idType.sorted('ise')
+  integrationSetupSessionEvent: idType.sorted('ise'),
+
+  skillGroup: idType.sorted('skg'),
+  skill: idType.sorted('skl'),
+  skillFork: idType.sorted('skf'),
+  skillItem: idType.sorted('ski'),
+  skillIntegration: idType.sorted('skn'),
+  skillProvider: idType.sorted('skp'),
+  skillProviderLink: idType.sorted('skpl')
 });
 
 let workerIdBits = 12;

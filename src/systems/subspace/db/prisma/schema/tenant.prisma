@@ -97,6 +97,8 @@ model Tenant {
   integrationInstanceGroups                IntegrationInstanceGroup[]
   integrationInstanceGroupSources          IntegrationInstanceGroupSource[]
   integrationInstanceGroupProviders        IntegrationInstanceGroupProvider[]
+  skillGroups                              SkillGroup[]
+  skills                                   Skill[]
 }
 
 enum EnvironmentType {
@@ -167,6 +169,8 @@ model Environment {
   integrationInstanceGroups                IntegrationInstanceGroup[]
   integrationInstanceGroupSources          IntegrationInstanceGroupSource[]
   integrationInstanceGroupProviders        IntegrationInstanceGroupProvider[]
+  skillGroups                              SkillGroup[]
+  skills                                   Skill[]
 }
 
 enum TenantActorType {
@@ -185,6 +189,7 @@ model TenantActor {
   identifier          String
   name                String
   organizationActorId String?
+  consumerId          String?
 
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)

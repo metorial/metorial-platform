@@ -25,6 +25,7 @@
     "@metorial-subspace/module-deployment": "^1.0.0",
     "@metorial-subspace/module-integration": "^1.0.0",
     "@metorial-subspace/module-provider-internal": "^1.0.0",
+    "@metorial-subspace/module-skills": "^1.0.0",
     "@lowerdeck/telemetry": "^1.1.1",
     "@metorial-subspace/module-tenant": "^1.0.0",
     "@metorial-subspace/provider-native": "^1.0.0",
