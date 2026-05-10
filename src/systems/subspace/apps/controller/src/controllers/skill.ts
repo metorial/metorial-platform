@@ -83,7 +83,6 @@ export let skillController = app.controller({
       v.object({
         tenantId: v.string(),
         environmentId: v.string(),
-        skillGroupId: v.string(),
         name: v.string(),
         description: v.optional(v.string()),
         metadata: v.optional(v.record(v.any())),
@@ -96,7 +95,6 @@ export let skillController = app.controller({
         environment: ctx.environment,
         solution: ctx.solution,
         input: {
-          skillGroupId: ctx.input.skillGroupId,
           name: ctx.input.name,
           description: ctx.input.description,
           metadata: ctx.input.metadata,
@@ -116,7 +114,6 @@ export let skillController = app.controller({
         skillId: v.string(),
         allowDeleted: v.optional(v.boolean()),
 
-        skillGroupId: v.optional(v.string()),
         name: v.optional(v.string()),
         description: v.optional(v.nullable(v.string())),
         metadata: v.optional(v.nullable(v.record(v.any()))),
@@ -130,7 +127,6 @@ export let skillController = app.controller({
         solution: ctx.solution,
         skill: ctx.skill,
         input: {
-          skillGroupId: ctx.input.skillGroupId,
           name: ctx.input.name,
           description: ctx.input.description,
           metadata: ctx.input.metadata,
@@ -170,7 +166,6 @@ export let skillController = app.controller({
         environmentId: v.string(),
         skillId: v.string(),
         allowDeleted: v.optional(v.boolean()),
-        skillGroupId: v.optional(v.string()),
         name: v.string(),
         description: v.optional(v.string()),
         metadata: v.optional(v.record(v.any())),
@@ -184,7 +179,6 @@ export let skillController = app.controller({
         solution: ctx.solution,
         skill: ctx.skill,
         input: {
-          skillGroupId: ctx.input.skillGroupId,
           name: ctx.input.name,
           description: ctx.input.description,
           metadata: ctx.input.metadata,

@@ -9,7 +9,6 @@ import {
   type Environment,
   getId,
   type Skill,
-  type SkillGroup,
   type SkillStatus,
   type Solution,
   type Tenant,
@@ -59,8 +58,6 @@ let getSlug = (input: { name: string }) =>
   `${slugify(input.name)}-${generatePlainId(7).toLowerCase()}`.toLowerCase();
 
 type SkillWriteInput = {
-  skillGroupId?: string;
-  parentSkillId?: string | null;
   name?: string;
   description?: string | null;
   metadata?: Record<string, any> | null;
@@ -68,25 +65,6 @@ type SkillWriteInput = {
 };
 
 class skillServiceImpl {
-  private async resolveSkillGroup(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    skillGroupId: string;
-  }) {
-    let skillGroup = await db.skillGroup.findFirst({
-      where: {
-        id: d.skillGroupId,
-        tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
-        environmentOid: d.environment.oid
-      }
-    });
-    if (!skillGroup) throw new ServiceError(notFoundError('skillGroup', d.skillGroupId));
-
-    return skillGroup;
-  }
-
   private async resolveParentSkill(d: {
     tenant: Tenant;
     solution: Solution;
@@ -100,7 +78,8 @@ class skillServiceImpl {
         solutionOid: d.solution.oid,
         environmentOid: d.environment.oid,
         ...normalizeStatusForGet({ allowDeleted: false }).noParent
-      }
+      },
+      include: { skillGroup: true }
     });
     if (!parentSkill) throw new ServiceError(notFoundError('skill', d.parentSkillId));
 
@@ -113,7 +92,6 @@ class skillServiceImpl {
     tenant: Tenant;
     solution: Solution;
     environment: Environment;
-    skillGroup: SkillGroup;
     parentSkill: Skill | null;
     input: Required<Pick<SkillWriteInput, 'name'>> &
       Omit<SkillWriteInput, 'name' | 'skillGroupId' | 'parentSkillId'>;
@@ -126,7 +104,6 @@ class skillServiceImpl {
       description: d.input.description?.trim() || null,
       metadata: d.input.metadata,
       privateMetadata: d.input.privateMetadata,
-      skillGroupOid: d.skillGroup.oid,
       parentSkillOid: d.parentSkill?.oid ?? null,
       tenantOid: d.tenant.oid,
       solutionOid: d.solution.oid,
@@ -134,12 +111,7 @@ class skillServiceImpl {
     };
   }
 
-  private skillUpdateData(d: {
-    current: Skill;
-    skillGroup: SkillGroup;
-    parentSkill: Skill | null;
-    input: SkillWriteInput;
-  }) {
+  private skillUpdateData(d: { current: Skill; input: SkillWriteInput }) {
     return {
       status: 'active' as const,
       name: d.input.name?.trim() || d.current.name,
@@ -151,10 +123,7 @@ class skillServiceImpl {
       privateMetadata:
         d.input.privateMetadata === undefined
           ? d.current.privateMetadata
-          : d.input.privateMetadata,
-      skillGroupOid: d.skillGroup.oid,
-      parentSkillOid:
-        d.input.parentSkillId === undefined ? d.current.parentSkillOid : d.parentSkill?.oid ?? null
+          : d.input.privateMetadata
     };
   }
 
@@ -198,7 +167,9 @@ class skillServiceImpl {
               AND: [
                 d.ids ? { id: { in: d.ids } } : undefined!,
                 d.skillGroupIds ? { skillGroup: { id: { in: d.skillGroupIds } } } : undefined!,
-                d.parentSkillIds ? { parentSkill: { id: { in: d.parentSkillIds } } } : undefined!,
+                d.parentSkillIds
+                  ? { parentSkill: { id: { in: d.parentSkillIds } } }
+                  : undefined!,
                 d.integrationIds
                   ? {
                       skillIntegrations: {
@@ -254,13 +225,12 @@ class skillServiceImpl {
     solution: Solution;
     environment: Environment;
     input: {
-      skillGroupId: string;
-      parentSkillId?: string | null;
       name: string;
       description?: string | null;
       metadata?: Record<string, any> | null;
       privateMetadata?: Record<string, any> | null;
     };
+    _parentSkillId?: string | null;
   }) {
     let name = d.input.name.trim();
     if (!name.length) {
@@ -272,40 +242,60 @@ class skillServiceImpl {
       );
     }
 
-    let [skillGroup, parentSkill] = await Promise.all([
-      this.resolveSkillGroup({
-        tenant: d.tenant,
-        solution: d.solution,
-        environment: d.environment,
-        skillGroupId: d.input.skillGroupId
-      }),
-      d.input.parentSkillId
-        ? this.resolveParentSkill({
-            tenant: d.tenant,
-            solution: d.solution,
-            environment: d.environment,
-            parentSkillId: d.input.parentSkillId
-          })
-        : null
-    ]);
-
-    return await withTransaction(async db => {
-      let skill = await db.skill.create({
-        data: this.skillCreateData({
+    let parentSkill = d._parentSkillId
+      ? await this.resolveParentSkill({
           tenant: d.tenant,
           solution: d.solution,
           environment: d.environment,
-          skillGroup,
-          parentSkill,
-          input: {
-            name,
-            description: d.input.description,
-            metadata: d.input.metadata,
-            privateMetadata: d.input.privateMetadata
+          parentSkillId: d._parentSkillId
+        })
+      : null;
+
+    return await withTransaction(async db => {
+      let skillData = this.skillCreateData({
+        tenant: d.tenant,
+        solution: d.solution,
+        environment: d.environment,
+        parentSkill,
+        input: {
+          name,
+          description: d.input.description,
+          metadata: d.input.metadata,
+          privateMetadata: d.input.privateMetadata
+        }
+      });
+
+      let skillGroup = parentSkill?.skillGroup;
+      let isNewSkillGroup = !skillGroup;
+
+      if (!skillGroup) {
+        skillGroup = await db.skillGroup.create({
+          data: {
+            ...getId('skillGroup'),
+            tenantOid: d.tenant.oid,
+            solutionOid: d.solution.oid,
+            environmentOid: d.environment.oid,
+            name: skillData.name,
+            description: skillData.description,
+            slug: skillData.slug
           }
-        }),
+        });
+      }
+
+      let skill = await db.skill.create({
+        data: {
+          ...skillData,
+          skillGroupOid: skillGroup.oid
+        },
         include: skillInclude
       });
+
+      if (!isNewSkillGroup) {
+        skillGroup = await db.skillGroup.update({
+          where: { oid: skillGroup.oid },
+          data: { ownerSkillOid: skill.oid }
+        });
+      }
 
       await addAfterTransactionHook(async () => skillCreatedQueue.add({ skillId: skill.id }));
 
@@ -319,7 +309,6 @@ class skillServiceImpl {
     environment: Environment;
     skill: Skill;
     input: {
-      skillGroupId?: string;
       name: string;
       description?: string | null;
       metadata?: Record<string, any> | null;
@@ -329,52 +318,17 @@ class skillServiceImpl {
     checkTenant(d, d.skill);
     checkDeletedRelation(d.skill);
 
-    let skillGroup = d.input.skillGroupId
-      ? await this.resolveSkillGroup({
-          tenant: d.tenant,
-          solution: d.solution,
-          environment: d.environment,
-          skillGroupId: d.input.skillGroupId
-        })
-      : await db.skillGroup.findUniqueOrThrow({
-          where: { oid: d.skill.skillGroupOid }
-        });
-
-    let createdSkill = await this.createSkill({
+    return await this.createSkill({
       tenant: d.tenant,
       solution: d.solution,
       environment: d.environment,
       input: {
-        skillGroupId: skillGroup.id,
-        parentSkillId: d.skill.id,
         name: d.input.name,
         description: d.input.description,
         metadata: d.input.metadata,
         privateMetadata: d.input.privateMetadata
-      }
-    });
-
-    await withTransaction(async db => {
-      let existingFork = await db.skillFork.findFirst({
-        where: {
-          parentSkillOid: d.skill.oid,
-          childSkillOid: createdSkill.oid
-        }
-      });
-      if (existingFork) return;
-
-      await db.skillFork.create({
-        data: {
-          ...getId('skillFork'),
-          parentSkillOid: d.skill.oid,
-          childSkillOid: createdSkill.oid
-        }
-      });
-    });
-
-    return await db.skill.findUniqueOrThrow({
-      where: { oid: createdSkill.oid },
-      include: skillInclude
+      },
+      _parentSkillId: d.skill.id
     });
   }
 
@@ -392,40 +346,6 @@ class skillServiceImpl {
       where: { oid: d.skill.oid }
     });
 
-    let [skillGroup, parentSkill] = await Promise.all([
-      d.input.skillGroupId
-        ? this.resolveSkillGroup({
-            tenant: d.tenant,
-            solution: d.solution,
-            environment: d.environment,
-            skillGroupId: d.input.skillGroupId
-          })
-        : db.skillGroup.findUniqueOrThrow({
-            where: { oid: current.skillGroupOid }
-          }),
-      d.input.parentSkillId
-        ? this.resolveParentSkill({
-            tenant: d.tenant,
-            solution: d.solution,
-            environment: d.environment,
-            parentSkillId: d.input.parentSkillId
-          })
-        : d.input.parentSkillId === null
-          ? null
-          : current.parentSkillOid
-            ? await db.skill.findUnique({ where: { oid: current.parentSkillOid } })
-            : null
-    ]);
-
-    if (parentSkill?.oid === current.oid) {
-      throw new ServiceError(
-        badRequestError({
-          message: 'Skill cannot be its own parent.',
-          code: 'skill_parent_self'
-        })
-      );
-    }
-
     return await withTransaction(async db => {
       let skill = await db.skill.update({
         where: {
@@ -436,12 +356,21 @@ class skillServiceImpl {
         },
         data: this.skillUpdateData({
           current,
-          skillGroup,
-          parentSkill,
           input: d.input
         }),
         include: skillInclude
       });
+
+      if (skill.skillGroup.ownerSkillOid === skill.oid) {
+        await db.skillGroup.update({
+          where: { oid: skill.skillGroup.oid },
+          data: {
+            name: skill.name,
+            description: skill.description,
+            slug: skill.slug
+          }
+        });
+      }
 
       await addAfterTransactionHook(async () => skillUpdatedQueue.add({ skillId: skill.id }));
 

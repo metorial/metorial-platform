@@ -46,22 +46,6 @@ let createTenantContext = async () => {
   };
 };
 
-let createSkillGroup = async (d: {
-  tenantOid: bigint;
-  environmentOid: bigint;
-  solutionOid: number;
-}) =>
-  await testDb.skillGroup.create({
-    data: {
-      ...getId('skillGroup'),
-      slug: 'test-skill-group',
-      name: 'Test Skill Group',
-      tenantOid: d.tenantOid,
-      environmentOid: d.environmentOid,
-      solutionOid: d.solutionOid
-    }
-  });
-
 let createIntegration = async (d: {
   tenantOid: bigint;
   environmentOid: bigint;
@@ -210,24 +194,29 @@ describe('skill.e2e', () => {
   it('creates, updates, and archives a skill through the controller', async () => {
     let { client, tenant, tenantRecord, environmentRecord, solutionRecord } =
       await createTenantContext();
-    let skillGroup = await createSkillGroup({
-      tenantOid: tenantRecord.oid,
-      environmentOid: environmentRecord.oid,
-      solutionOid: solutionRecord.oid
-    });
 
     let created = await client.skill.create({
       tenantId: tenant.id,
       environmentId: environmentRecord.id,
-      skillGroupId: skillGroup.id,
       name: 'Draft Skill',
       description: 'Initial description'
     });
 
+    let createdSkillRecord = await testDb.skill.findUniqueOrThrow({
+      where: { id: created.id }
+    });
+    let createdSkillGroupRecord = await testDb.skillGroup.findUniqueOrThrow({
+      where: { id: created.skillGroupId }
+    });
+
     expect(created.name).toBe('Draft Skill');
-    expect(created.skillGroupId).toBe(skillGroup.id);
+    expect(created.skillGroupId).toBe(createdSkillGroupRecord.id);
     expect(created.integrations).toEqual([]);
     expect(created.providers).toEqual([]);
+    expect(createdSkillGroupRecord.ownerSkillOid).toBe(createdSkillRecord.oid);
+    expect(createdSkillGroupRecord.slug).toBe(created.slug);
+    expect(createdSkillGroupRecord.name).toBe(created.name);
+    expect(createdSkillGroupRecord.description).toBe(created.description);
 
     let updated = await client.skill.update({
       tenantId: tenant.id,
@@ -239,6 +228,14 @@ describe('skill.e2e', () => {
 
     expect(updated.name).toBe('Updated Skill');
     expect(updated.description).toBe('Updated description');
+
+    let updatedSkillGroupRecord = await testDb.skillGroup.findUniqueOrThrow({
+      where: { id: created.skillGroupId }
+    });
+
+    expect(updatedSkillGroupRecord.slug).toBe(updated.slug);
+    expect(updatedSkillGroupRecord.name).toBe(updated.name);
+    expect(updatedSkillGroupRecord.description).toBe(updated.description);
 
     let archived = await client.skill.delete({
       tenantId: tenant.id,
@@ -257,11 +254,6 @@ describe('skill.e2e', () => {
   it('resurrects an archived integration skill item when it is added again', async () => {
     let { client, tenant, tenantRecord, environmentRecord, solutionRecord } =
       await createTenantContext();
-    let skillGroup = await createSkillGroup({
-      tenantOid: tenantRecord.oid,
-      environmentOid: environmentRecord.oid,
-      solutionOid: solutionRecord.oid
-    });
     let integration = await createIntegration({
       tenantOid: tenantRecord.oid,
       environmentOid: environmentRecord.oid,
@@ -271,7 +263,6 @@ describe('skill.e2e', () => {
     let skill = await client.skill.create({
       tenantId: tenant.id,
       environmentId: environmentRecord.id,
-      skillGroupId: skillGroup.id,
       name: 'Resurrection Skill'
     });
 
@@ -319,19 +310,13 @@ describe('skill.e2e', () => {
     expect(skillIntegrationRecord.status).toBe('active');
   });
 
-  it('forks a skill through the controller without exposing parentSkillId in the write api', async () => {
+  it('passes the owner skill group through fork chains', async () => {
     let { client, tenant, tenantRecord, environmentRecord, solutionRecord } =
       await createTenantContext();
-    let skillGroup = await createSkillGroup({
-      tenantOid: tenantRecord.oid,
-      environmentOid: environmentRecord.oid,
-      solutionOid: solutionRecord.oid
-    });
 
     let original = await client.skill.create({
       tenantId: tenant.id,
       environmentId: environmentRecord.id,
-      skillGroupId: skillGroup.id,
       name: 'Original Skill'
     });
 
@@ -341,27 +326,63 @@ describe('skill.e2e', () => {
       skillId: original.id,
       name: 'Forked Skill'
     });
+    let transientFork = await client.skill.fork({
+      tenantId: tenant.id,
+      environmentId: environmentRecord.id,
+      skillId: fork.id,
+      name: 'Transient Fork'
+    });
 
     expect(fork.name).toBe('Forked Skill');
     expect(fork.forkedFromId).toBe(original.id);
+    expect(fork.skillGroupId).toBe(original.skillGroupId);
+    expect(transientFork.forkedFromId).toBe(fork.id);
+    expect(transientFork.skillGroupId).toBe(original.skillGroupId);
 
-    let forkRecord = await testDb.skill.findUniqueOrThrow({
-      where: { id: fork.id },
-      include: { forkedFrom: true }
-    });
+    let [originalRecord, forkRecord, transientForkRecord, skillGroupRecord] = await Promise.all([
+      testDb.skill.findUniqueOrThrow({
+        where: { id: original.id }
+      }),
+      testDb.skill.findUniqueOrThrow({
+        where: { id: fork.id },
+        include: { forkedFrom: true }
+      }),
+      testDb.skill.findUniqueOrThrow({
+        where: { id: transientFork.id },
+        include: { forkedFrom: true }
+      }),
+      testDb.skillGroup.findUniqueOrThrow({
+        where: { id: original.skillGroupId }
+      })
+    ]);
 
+    expect(skillGroupRecord.ownerSkillOid).toBe(originalRecord.oid);
+    expect(forkRecord.skillGroupOid).toBe(originalRecord.skillGroupOid);
+    expect(transientForkRecord.skillGroupOid).toBe(originalRecord.skillGroupOid);
     expect(forkRecord.parentSkillOid).toBeTruthy();
     expect(forkRecord.forkedFrom?.parentSkillOid).toBeTruthy();
+    expect(transientForkRecord.parentSkillOid).toBeTruthy();
+    expect(transientForkRecord.forkedFrom?.parentSkillOid).toBeTruthy();
+
+    let updatedOriginal = await client.skill.update({
+      tenantId: tenant.id,
+      environmentId: environmentRecord.id,
+      skillId: original.id,
+      name: 'Updated Original Skill',
+      description: 'Updated original description'
+    });
+    let updatedSkillGroupRecord = await testDb.skillGroup.findUniqueOrThrow({
+      where: { id: original.skillGroupId }
+    });
+
+    expect(updatedSkillGroupRecord.slug).toBe(updatedOriginal.slug);
+    expect(updatedSkillGroupRecord.name).toBe(updatedOriginal.name);
+    expect(updatedSkillGroupRecord.description).toBe(updatedOriginal.description);
   });
 
   it('reconciles provider links and indexes integrations/providers into the skill document', async () => {
     let { client, tenant, tenantRecord, environmentRecord, solutionRecord } =
       await createTenantContext();
-    let skillGroup = await createSkillGroup({
-      tenantOid: tenantRecord.oid,
-      environmentOid: environmentRecord.oid,
-      solutionOid: solutionRecord.oid
-    });
     let integration = await createIntegration({
       tenantOid: tenantRecord.oid,
       environmentOid: environmentRecord.oid,
@@ -383,7 +404,6 @@ describe('skill.e2e', () => {
     let skill = await client.skill.create({
       tenantId: tenant.id,
       environmentId: environmentRecord.id,
-      skillGroupId: skillGroup.id,
       name: 'Indexed Skill'
     });
 
