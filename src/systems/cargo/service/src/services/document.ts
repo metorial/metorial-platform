@@ -10,11 +10,10 @@ import type {
   Document,
   DocumentParticipantRole,
   Prisma,
-  PrismaClient,
   StoreParticipantPermissions,
   TenantActor
 } from '../../prisma/generated/client';
-import { db } from '../db';
+import { db, withTransaction } from '../db';
 import { getId } from '../id';
 import { documentFlushQueue } from '../queues/documentFlush';
 import { documentVersionSyncManyQueue } from '../queues/documentVersionSync';
@@ -68,7 +67,6 @@ export type ScopedResolvedDocumentRecord = {
   document: ResolvedDocumentRecord;
 };
 
-type TransactionClient = Prisma.TransactionClient;
 type DocumentRecord = Prisma.DocumentGetPayload<{
   include: typeof documentInclude;
 }>;
@@ -112,25 +110,29 @@ class DocumentServiceImpl {
   }
 
   private async getDocumentRecord(
-    client: PrismaClient | TransactionClient,
     d: CargoTenantEnvironment & {
       documentId: string;
       includeDeleted?: boolean;
     }
   ) {
-    let document = await client.document.findFirst({
-      where: {
-        tenantOid: d.tenant.oid,
-        environmentOid: d.environment.oid,
-        id: d.documentId,
-        ...(d.includeDeleted ? {} : { file: { status: 'active' } })
+    return await withTransaction(
+      async db => {
+        let document = await db.document.findFirst({
+          where: {
+            tenantOid: d.tenant.oid,
+            environmentOid: d.environment.oid,
+            id: d.documentId,
+            ...(d.includeDeleted ? {} : { file: { status: 'active' } })
+          },
+          include: documentInclude
+        });
+
+        if (!document) throw new ServiceError(notFoundError('document', d.documentId));
+
+        return document;
       },
-      include: documentInclude
-    });
-
-    if (!document) throw new ServiceError(notFoundError('document', d.documentId));
-
-    return document;
+      { ifExists: true }
+    );
   }
 
   private async resolveDocument(document: DocumentRecord): Promise<ResolvedDocumentRecord> {
@@ -162,40 +164,39 @@ class DocumentServiceImpl {
     } satisfies DocumentWithEffectiveStoreId<T>;
   }
 
-  private async getParentLiveContent(
-    client: PrismaClient | TransactionClient,
-    document: Pick<DocumentRecord, 'isContentOwner' | 'parentDocumentOid'>
-  ) {
-    if (!document.parentDocumentOid) {
-      return null;
-    }
+  private async getParentLiveContent(document: Pick<DocumentRecord, 'isContentOwner' | 'parentDocumentOid'>) {
+    return await withTransaction(
+      async db => {
+        if (!document.parentDocumentOid) {
+          return null;
+        }
 
-    return await client.document.findFirst({
-      where: {
-        oid: document.parentDocumentOid,
-        file: {
-          status: 'active'
-        }
-      },
-      select: {
-        contentOid: true,
-        content: {
+        return await db.document.findFirst({
+          where: {
+            oid: document.parentDocumentOid,
+            file: {
+              status: 'active'
+            }
+          },
           select: {
-            content: true
+            contentOid: true,
+            content: {
+              select: {
+                content: true
+              }
+            }
           }
-        }
-      }
-    });
+        });
+      },
+      { ifExists: true }
+    );
   }
 
-  private async getParentSyncState(
-    client: PrismaClient | TransactionClient,
-    d: {
-      document: Pick<DocumentRecord, 'isContentOwner' | 'parentDocumentOid'>;
-      nextContent: string;
-    }
-  ) {
-    let parentLiveContent = await this.getParentLiveContent(client, d.document);
+  private async getParentSyncState(d: {
+    document: Pick<DocumentRecord, 'isContentOwner' | 'parentDocumentOid'>;
+    nextContent: string;
+  }) {
+    let parentLiveContent = await this.getParentLiveContent(d.document);
     let shouldKeepParentSync =
       !d.document.isContentOwner &&
       !!parentLiveContent &&
@@ -218,31 +219,50 @@ class DocumentServiceImpl {
   }
 
   private async upsertParticipant(
-    tx: TransactionClient,
     d: {
       document: { oid: bigint };
       actor: { oid: bigint };
       mode: 'view' | 'edit';
     }
   ) {
-    let now = new Date();
-    let existing = await tx.documentParticipant.findFirst({
-      where: {
-        documentOid: d.document.oid,
-        tenantActorOid: d.actor.oid
-      }
-    });
-
-    let role: DocumentParticipantRole =
-      d.mode === 'edit' || existing?.role === 'editor' ? 'editor' : 'viewer';
-
-    if (existing) {
-      return await tx.documentParticipant.update({
+    return await withTransaction(async tx => {
+      let now = new Date();
+      let existing = await tx.documentParticipant.findFirst({
         where: {
-          id: existing.id
-        },
+          documentOid: d.document.oid,
+          tenantActorOid: d.actor.oid
+        }
+      });
+
+      let role: DocumentParticipantRole =
+        d.mode === 'edit' || existing?.role === 'editor' ? 'editor' : 'viewer';
+
+      if (existing) {
+        return await tx.documentParticipant.update({
+          where: {
+            id: existing.id
+          },
+          data: {
+            role,
+            lastViewedAt: now,
+            ...(d.mode === 'edit'
+              ? {
+                  lastEditedAt: now
+                }
+              : {})
+          }
+        });
+      }
+
+      let generated = getId('documentParticipant');
+
+      return await tx.documentParticipant.create({
         data: {
+          oid: generated.oid,
+          id: generated.id,
           role,
+          documentOid: d.document.oid,
+          tenantActorOid: d.actor.oid,
           lastViewedAt: now,
           ...(d.mode === 'edit'
             ? {
@@ -251,24 +271,6 @@ class DocumentServiceImpl {
             : {})
         }
       });
-    }
-
-    let generated = getId('documentParticipant');
-
-    return await tx.documentParticipant.create({
-      data: {
-        oid: generated.oid,
-        id: generated.id,
-        role,
-        documentOid: d.document.oid,
-        tenantActorOid: d.actor.oid,
-        lastViewedAt: now,
-        ...(d.mode === 'edit'
-          ? {
-              lastEditedAt: now
-            }
-          : {})
-      }
     });
   }
 
@@ -276,122 +278,104 @@ class DocumentServiceImpl {
     document: { oid: bigint };
     actor: { oid: bigint };
     mode: 'view' | 'edit';
-    client?: TransactionClient;
   }) {
-    if (d.client) {
-      return await this.upsertParticipant(d.client, d);
-    }
-
-    return await db.$transaction(async tx => await this.upsertParticipant(tx, d));
+    return await this.upsertParticipant(d);
   }
 
   async materializeDocumentParticipantsFromStores(d: {
     document: Document;
-    client?: TransactionClient;
   }) {
-    let client = d.client ?? db;
-    let storeActors = await storeAccessService.listStoreParticipantActorsForDocument({
-      document: d.document,
-      client
-    });
-
-    if (d.document.createdByTenantActorOid) {
-      let creator = await client.tenantActor.findFirst({
-        where: {
-          oid: d.document.createdByTenantActorOid
-        }
+    return await withTransaction(async client => {
+      let storeActors = await storeAccessService.listStoreParticipantActorsForDocument({
+        document: d.document
       });
 
-      if (creator) {
-        storeActors.push({
-          actor: creator,
-          mode: 'edit'
+      if (d.document.createdByTenantActorOid) {
+        let creator = await client.tenantActor.findFirst({
+          where: {
+            oid: d.document.createdByTenantActorOid
+          }
         });
-      }
-    }
 
-    let actorsById = new Map<
-      bigint,
-      {
-        actor: TenantActor;
-        mode: 'view' | 'edit';
-      }
-    >();
-
-    for (let item of storeActors) {
-      let existing = actorsById.get(item.actor.oid);
-      if (existing?.mode === 'edit') continue;
-
-      actorsById.set(item.actor.oid, {
-        actor: item.actor,
-        mode: item.mode === 'edit' ? 'edit' : 'view'
-      });
-    }
-
-    if (!d.client) {
-      return await db.$transaction(async transactionClient => {
-        for (let item of actorsById.values()) {
-          await this.upsertParticipant(transactionClient, {
-            document: d.document,
-            actor: item.actor,
-            mode: item.mode
+        if (creator) {
+          storeActors.push({
+            actor: creator,
+            mode: 'edit'
           });
         }
-      });
-    }
+      }
 
-    for (let item of actorsById.values()) {
-      await this.upsertParticipant(d.client, {
-        document: d.document,
-        actor: item.actor,
-        mode: item.mode
-      });
-    }
+      let actorsById = new Map<
+        bigint,
+        {
+          actor: TenantActor;
+          mode: 'view' | 'edit';
+        }
+      >();
+
+      for (let item of storeActors) {
+        let existing = actorsById.get(item.actor.oid);
+        if (existing?.mode === 'edit') continue;
+
+        actorsById.set(item.actor.oid, {
+          actor: item.actor,
+          mode: item.mode === 'edit' ? 'edit' : 'view'
+        });
+      }
+
+      for (let item of actorsById.values()) {
+        await this.upsertParticipant({
+          document: d.document,
+          actor: item.actor,
+          mode: item.mode
+        });
+      }
+    });
   }
 
   private async ensureVersionEditor(
-    tx: TransactionClient,
     d: {
       version: { oid: bigint };
       document: { oid: bigint };
       actor: { oid: bigint };
     }
   ) {
-    let existing = await tx.documentVersionEditors.findFirst({
-      where: {
-        documentVersionOid: d.version.oid,
-        tenantActorOid: d.actor.oid
-      }
-    });
-
-    if (existing) return existing;
-
-    let generated = getId('documentVersionEditor');
-
-    await tx.documentParticipant.updateMany({
-      where: {
-        documentOid: d.document.oid,
-        tenantActorOid: d.actor.oid
-      },
-      data: {
-        editCount: {
-          increment: 1
+    return await withTransaction(async tx => {
+      let existing = await tx.documentVersionEditors.findFirst({
+        where: {
+          documentVersionOid: d.version.oid,
+          tenantActorOid: d.actor.oid
         }
-      }
-    });
+      });
 
-    return await tx.documentVersionEditors.create({
-      data: {
-        oid: generated.oid,
-        id: generated.id,
-        documentVersionOid: d.version.oid,
-        tenantActorOid: d.actor.oid
-      }
+      if (existing) return existing;
+
+      let generated = getId('documentVersionEditor');
+
+      await tx.documentParticipant.updateMany({
+        where: {
+          documentOid: d.document.oid,
+          tenantActorOid: d.actor.oid
+        },
+        data: {
+          editCount: {
+            increment: 1
+          }
+        }
+      });
+
+      return await tx.documentVersionEditors.create({
+        data: {
+          oid: generated.oid,
+          id: generated.id,
+          documentVersionOid: d.version.oid,
+          tenantActorOid: d.actor.oid
+        }
+      });
     });
   }
 
   private async createVersion(
-    tx: TransactionClient,
     d: VersionContext & {
       document: { oid: bigint };
       versionNumber: number;
@@ -400,74 +384,125 @@ class DocumentServiceImpl {
       listEditedAt?: Date;
     }
   ) {
-    let generated = getId('documentVersion');
+    return await withTransaction(async tx => {
+      let generated = getId('documentVersion');
 
-    return await tx.documentVersion.create({
-      data: {
-        oid: generated.oid,
-        id: generated.id,
-        tenantOid: d.tenant.oid,
-        environmentOid: d.environment.oid,
-        documentOid: d.document.oid,
-        versionNumber: d.versionNumber,
-        contentOid: d.contentOid,
-        previousVersionOid: d.previousVersionOid ?? null,
-        listEditedAt: d.listEditedAt
-      },
-      include: {
-        content: true
-      }
+      return await tx.documentVersion.create({
+        data: {
+          oid: generated.oid,
+          id: generated.id,
+          tenantOid: d.tenant.oid,
+          environmentOid: d.environment.oid,
+          documentOid: d.document.oid,
+          versionNumber: d.versionNumber,
+          contentOid: d.contentOid,
+          previousVersionOid: d.previousVersionOid ?? null,
+          listEditedAt: d.listEditedAt
+        },
+        include: {
+          content: true
+        }
+      });
     });
   }
 
   private async writeDocumentContent(
-    tx: TransactionClient,
     d: CargoTenantEnvironment & {
       document: DocumentRecord;
       nextContent: string;
       listEditedAt?: Date;
     }
   ) {
-    let now = new Date();
-    let shouldCreateNewVersion =
-      !d.document.currentVersion ||
-      now.getTime() - d.document.currentVersion.createdAt.getTime() >= activeVersionWindowMs;
+    return await withTransaction(async tx => {
+      let now = new Date();
+      let shouldCreateNewVersion =
+        !d.document.currentVersion ||
+        now.getTime() - d.document.currentVersion.createdAt.getTime() >= activeVersionWindowMs;
 
-    let liveContentOid = d.document.contentOid;
-    let activeVersion = d.document.currentVersion;
-    let nextVersionNumber = d.document.maxVersionNumber;
-    let didCreateVersion = false;
-    let { parentLiveContent, shouldKeepParentSync } = await this.getParentSyncState(tx, {
-      document: d.document,
-      nextContent: d.nextContent
-    });
-    let shouldDetachOwnedContent =
-      d.document.isContentOwner &&
-      !!parentLiveContent &&
-      parentLiveContent.contentOid === d.document.contentOid;
+      let liveContentOid = d.document.contentOid;
+      let activeVersion = d.document.currentVersion;
+      let nextVersionNumber = d.document.maxVersionNumber;
+      let didCreateVersion = false;
+      let { parentLiveContent, shouldKeepParentSync } = await this.getParentSyncState({
+        document: d.document,
+        nextContent: d.nextContent
+      });
+      let shouldDetachOwnedContent =
+        d.document.isContentOwner &&
+        !!parentLiveContent &&
+        parentLiveContent.contentOid === d.document.contentOid;
 
-    if (shouldCreateNewVersion) {
-      if (d.document.currentVersion) {
-        let retiredContentIds = getId('documentContent');
+      if (shouldCreateNewVersion) {
+        if (d.document.currentVersion) {
+          let retiredContentIds = getId('documentContent');
 
-        await tx.documentContent.create({
-          data: {
-            oid: retiredContentIds.oid,
-            content: d.document.content.content
+          await tx.documentContent.create({
+            data: {
+              oid: retiredContentIds.oid,
+              content: d.document.content.content
+            }
+          });
+
+          await tx.documentVersion.update({
+            where: {
+              id: d.document.currentVersion.id
+            },
+            data: {
+              contentOid: retiredContentIds.oid
+            }
+          });
+        }
+
+        if (d.document.isContentOwner) {
+          if (shouldDetachOwnedContent) {
+            let liveContentIds = getId('documentContent');
+
+            await tx.documentContent.create({
+              data: {
+                oid: liveContentIds.oid,
+                content: d.nextContent
+              }
+            });
+
+            liveContentOid = liveContentIds.oid;
+          } else {
+            await tx.documentContent.update({
+              where: {
+                oid: d.document.contentOid
+              },
+              data: {
+                content: d.nextContent
+              }
+            });
           }
-        });
+        } else if (shouldKeepParentSync) {
+          liveContentOid = parentLiveContent!.contentOid;
+        } else {
+          let liveContentIds = getId('documentContent');
 
-        await tx.documentVersion.update({
-          where: {
-            id: d.document.currentVersion.id
-          },
-          data: {
-            contentOid: retiredContentIds.oid
-          }
-        });
-      }
+          await tx.documentContent.create({
+            data: {
+              oid: liveContentIds.oid,
+              content: d.nextContent
+            }
+          });
 
-      if (d.document.isContentOwner) {
+          liveContentOid = liveContentIds.oid;
+        }
+
+        nextVersionNumber += 1;
+
+        activeVersion = await this.createVersion({
+          tenant: d.tenant,
+          environment: d.environment,
+          document: d.document,
+          versionNumber: nextVersionNumber,
+          contentOid: liveContentOid,
+          previousVersionOid: d.document.currentVersion?.oid,
+          listEditedAt: d.listEditedAt
+        });
+        didCreateVersion = true;
+      } else if (d.document.isContentOwner) {
         if (shouldDetachOwnedContent) {
           let liveContentIds = getId('documentContent');
 
@@ -479,6 +514,33 @@ class DocumentServiceImpl {
           });
 
           liveContentOid = liveContentIds.oid;
+
+          if (!d.document.currentVersion) {
+            activeVersion = await this.createVersion({
+              tenant: d.tenant,
+              environment: d.environment,
+              document: d.document,
+              versionNumber: d.document.maxVersionNumber + 1,
+              contentOid: liveContentOid,
+              listEditedAt: d.listEditedAt
+            });
+
+            nextVersionNumber += 1;
+            didCreateVersion = true;
+          } else {
+            activeVersion = await tx.documentVersion.update({
+              where: {
+                id: d.document.currentVersion.id
+              },
+              data: {
+                contentOid: liveContentOid,
+                listEditedAt: d.listEditedAt
+              },
+              include: {
+                content: true
+              }
+            });
+          }
         } else {
           await tx.documentContent.update({
             where: {
@@ -491,46 +553,9 @@ class DocumentServiceImpl {
         }
       } else if (shouldKeepParentSync) {
         liveContentOid = parentLiveContent!.contentOid;
-      } else {
-        let liveContentIds = getId('documentContent');
-
-        await tx.documentContent.create({
-          data: {
-            oid: liveContentIds.oid,
-            content: d.nextContent
-          }
-        });
-
-        liveContentOid = liveContentIds.oid;
-      }
-
-      nextVersionNumber += 1;
-
-      activeVersion = await this.createVersion(tx, {
-        tenant: d.tenant,
-        environment: d.environment,
-        document: d.document,
-        versionNumber: nextVersionNumber,
-        contentOid: liveContentOid,
-        previousVersionOid: d.document.currentVersion?.oid,
-        listEditedAt: d.listEditedAt
-      });
-      didCreateVersion = true;
-    } else if (d.document.isContentOwner) {
-      if (shouldDetachOwnedContent) {
-        let liveContentIds = getId('documentContent');
-
-        await tx.documentContent.create({
-          data: {
-            oid: liveContentIds.oid,
-            content: d.nextContent
-          }
-        });
-
-        liveContentOid = liveContentIds.oid;
 
         if (!d.document.currentVersion) {
-          activeVersion = await this.createVersion(tx, {
+          activeVersion = await this.createVersion({
             tenant: d.tenant,
             environment: d.environment,
             document: d.document,
@@ -556,184 +581,147 @@ class DocumentServiceImpl {
           });
         }
       } else {
-        await tx.documentContent.update({
-          where: {
-            oid: d.document.contentOid
-          },
+        let liveContentIds = getId('documentContent');
+
+        await tx.documentContent.create({
           data: {
+            oid: liveContentIds.oid,
             content: d.nextContent
           }
         });
-      }
-    } else if (shouldKeepParentSync) {
-      liveContentOid = parentLiveContent!.contentOid;
 
-      if (!d.document.currentVersion) {
-        activeVersion = await this.createVersion(tx, {
-          tenant: d.tenant,
-          environment: d.environment,
-          document: d.document,
-          versionNumber: d.document.maxVersionNumber + 1,
-          contentOid: liveContentOid,
-          listEditedAt: d.listEditedAt
-        });
+        liveContentOid = liveContentIds.oid;
 
-        nextVersionNumber += 1;
-        didCreateVersion = true;
-      } else {
-        activeVersion = await tx.documentVersion.update({
-          where: {
-            id: d.document.currentVersion.id
-          },
-          data: {
+        if (!d.document.currentVersion) {
+          activeVersion = await this.createVersion({
+            tenant: d.tenant,
+            environment: d.environment,
+            document: d.document,
+            versionNumber: d.document.maxVersionNumber + 1,
             contentOid: liveContentOid,
             listEditedAt: d.listEditedAt
-          },
-          include: {
-            content: true
-          }
-        });
-      }
-    } else {
-      let liveContentIds = getId('documentContent');
+          });
 
-      await tx.documentContent.create({
-        data: {
-          oid: liveContentIds.oid,
-          content: d.nextContent
+          nextVersionNumber += 1;
+          didCreateVersion = true;
+        } else {
+          activeVersion = await tx.documentVersion.update({
+            where: {
+              id: d.document.currentVersion.id
+            },
+            data: {
+              contentOid: liveContentOid,
+              listEditedAt: d.listEditedAt
+            },
+            include: {
+              content: true
+            }
+          });
         }
-      });
-
-      liveContentOid = liveContentIds.oid;
-
-      if (!d.document.currentVersion) {
-        activeVersion = await this.createVersion(tx, {
-          tenant: d.tenant,
-          environment: d.environment,
-          document: d.document,
-          versionNumber: d.document.maxVersionNumber + 1,
-          contentOid: liveContentOid,
-          listEditedAt: d.listEditedAt
-        });
-
-        nextVersionNumber += 1;
-        didCreateVersion = true;
-      } else {
-        activeVersion = await tx.documentVersion.update({
-          where: {
-            id: d.document.currentVersion.id
-          },
-          data: {
-            contentOid: liveContentOid,
-            listEditedAt: d.listEditedAt
-          },
-          include: {
-            content: true
-          }
-        });
       }
-    }
 
-    return {
-      activeVersion,
-      liveContentOid,
-      nextVersionNumber,
-      isContentOwner: d.document.isContentOwner || !shouldKeepParentSync,
-      didCreateVersion
-    };
+      return {
+        activeVersion,
+        liveContentOid,
+        nextVersionNumber,
+        isContentOwner: d.document.isContentOwner || !shouldKeepParentSync,
+        didCreateVersion
+      };
+    });
   }
 
   private async persistDraftToDocument(
-    tx: TransactionClient,
     d: CargoTenantEnvironment & {
       document: DocumentRecord;
       draft: DocumentDraft;
       actors: TenantActor[];
     }
   ) {
-    let nextTitle = d.draft.title;
-    let nextContent = d.draft.content;
-    let hasContentChange = nextContent !== d.document.content.content;
-    let hasTitleChange = nextTitle !== d.document.title;
+    return await withTransaction(async tx => {
+      let nextTitle = d.draft.title;
+      let nextContent = d.draft.content;
+      let hasContentChange = nextContent !== d.document.content.content;
+      let hasTitleChange = nextTitle !== d.document.title;
 
-    if (!hasContentChange && !hasTitleChange) {
-      return {
-        document: d.document,
-        createdVersionId: null
-      };
-    }
+      if (!hasContentChange && !hasTitleChange) {
+        return {
+          document: d.document,
+          createdVersionId: null
+        };
+      }
 
-    let activeVersion = d.document.currentVersion;
-    let liveContentOid = d.document.contentOid;
-    let maxVersionNumber = d.document.maxVersionNumber;
-    let isContentOwner = d.document.isContentOwner;
-    let createdVersionId: string | null = null;
+      let activeVersion = d.document.currentVersion;
+      let liveContentOid = d.document.contentOid;
+      let maxVersionNumber = d.document.maxVersionNumber;
+      let isContentOwner = d.document.isContentOwner;
+      let createdVersionId: string | null = null;
 
-    if (hasContentChange) {
-      let listEditedAt = new Date();
+      if (hasContentChange) {
+        let listEditedAt = new Date();
 
-      let writeResult = await this.writeDocumentContent(tx, {
-        tenant: d.tenant,
-        environment: d.environment,
-        document: d.document,
-        nextContent,
-        listEditedAt
+        let writeResult = await this.writeDocumentContent({
+          tenant: d.tenant,
+          environment: d.environment,
+          document: d.document,
+          nextContent,
+          listEditedAt
+        });
+
+        activeVersion = writeResult.activeVersion;
+        liveContentOid = writeResult.liveContentOid;
+        maxVersionNumber = writeResult.nextVersionNumber;
+        isContentOwner = writeResult.isContentOwner;
+        createdVersionId = writeResult.didCreateVersion ? (writeResult.activeVersion?.id ?? null) : null;
+      }
+
+      await tx.file.update({
+        where: {
+          id: d.document.file.id
+        },
+        data: {
+          fileName: nextTitle,
+          title: nextTitle,
+          ...(hasContentChange
+            ? {
+                fileSize: getTextByteSize(nextContent)
+              }
+            : {})
+        }
       });
 
-      activeVersion = writeResult.activeVersion;
-      liveContentOid = writeResult.liveContentOid;
-      maxVersionNumber = writeResult.nextVersionNumber;
-      isContentOwner = writeResult.isContentOwner;
-      createdVersionId = writeResult.didCreateVersion ? (writeResult.activeVersion?.id ?? null) : null;
-    }
+      let updatedDocument = await tx.document.update({
+        where: {
+          id: d.document.id
+        },
+        data: {
+          title: nextTitle,
+          ...(hasContentChange
+            ? {
+                contentOid: liveContentOid,
+                isContentOwner,
+                maxVersionNumber,
+                currentVersionOid: activeVersion?.oid ?? null
+              }
+            : {})
+        },
+        include: documentInclude
+      });
 
-    await tx.file.update({
-      where: {
-        id: d.document.file.id
-      },
-      data: {
-        fileName: nextTitle,
-        title: nextTitle,
-        ...(hasContentChange
-          ? {
-              fileSize: getTextByteSize(nextContent)
-            }
-          : {})
+      for (let actor of d.actors) {
+        if (hasContentChange && activeVersion) {
+          await this.ensureVersionEditor({
+            version: activeVersion,
+            document: updatedDocument,
+            actor
+          });
+        }
       }
+
+      return {
+        document: updatedDocument,
+        createdVersionId
+      };
     });
-
-    let updatedDocument = await tx.document.update({
-      where: {
-        id: d.document.id
-      },
-      data: {
-        title: nextTitle,
-        ...(hasContentChange
-          ? {
-              contentOid: liveContentOid,
-              isContentOwner,
-              maxVersionNumber,
-              currentVersionOid: activeVersion?.oid ?? null
-            }
-          : {})
-      },
-      include: documentInclude
-    });
-
-    for (let actor of d.actors) {
-      if (hasContentChange && activeVersion) {
-        await this.ensureVersionEditor(tx, {
-          version: activeVersion,
-          document: updatedDocument,
-          actor
-        });
-      }
-    }
-
-    return {
-      document: updatedDocument,
-      createdVersionId
-    };
   }
 
   async createDocument(
@@ -761,7 +749,7 @@ class DocumentServiceImpl {
         })
       : undefined;
 
-    return await db.$transaction(async tx => {
+    return await withTransaction(async tx => {
       let documentIds = d.input.id
         ? { oid: getId('document').oid, id: d.input.id }
         : getId('document');
@@ -773,7 +761,6 @@ class DocumentServiceImpl {
         purpose: purpose.id,
         storeId: getDocumentStoreId(documentIds.id),
         _isDocument: true,
-        client: tx,
         input: {
           name: d.input.title,
           mimeType: documentMimeType,
@@ -806,7 +793,7 @@ class DocumentServiceImpl {
         include: documentInclude
       });
 
-      let version = await this.createVersion(tx, {
+      let version = await this.createVersion({
         tenant: d.tenant,
         environment: d.environment,
         document,
@@ -816,13 +803,13 @@ class DocumentServiceImpl {
       });
 
       if (actor) {
-        await this.upsertParticipant(tx, {
+        await this.upsertParticipant({
           document,
           actor,
           mode: 'edit'
         });
 
-        await this.ensureVersionEditor(tx, {
+        await this.ensureVersionEditor({
           version,
           document,
           actor
@@ -843,8 +830,7 @@ class DocumentServiceImpl {
         let store = await storeAccessService.getStoreById({
           tenant: d.tenant,
           environment: d.environment,
-          storeId: d.input.store.id,
-          client: tx
+          storeId: d.input.store.id
         });
 
         await storeAccessService.assertStoreAccessForStore({
@@ -854,8 +840,7 @@ class DocumentServiceImpl {
           actorId: d.input.actorId,
           defaultPermissions: d.input.defaultPermissions,
           overridePermissions: d.input.overridePermissions,
-          requiredPermission: storeWritePermission,
-          client: tx
+          requiredPermission: storeWritePermission
         });
 
         await storeItemMutationService.attachTargetToStore({
@@ -870,8 +855,7 @@ class DocumentServiceImpl {
               id: createdDocument.id
             }
           },
-          actor,
-          client: tx
+          actor
         });
       }
 
@@ -888,7 +872,7 @@ class DocumentServiceImpl {
       overridePermissions?: boolean;
     }
   ) {
-    let document = await this.getDocumentRecord(db, d);
+    let document = await this.getDocumentRecord(d);
     let access = await storeAccessService.assertStoreAccessForDocument({
       tenant: d.tenant,
       environment: d.environment,
@@ -900,8 +884,8 @@ class DocumentServiceImpl {
     });
 
     if (access.actor) {
-      await db.$transaction(async tx => {
-        await this.upsertParticipant(tx, {
+      await withTransaction(async () => {
+        await this.upsertParticipant({
           document,
           actor: access.actor!,
           mode: 'view'
@@ -1081,7 +1065,7 @@ class DocumentServiceImpl {
         currentContent !== nextDraft.content &&
         !d.document.isContentOwner
       ) {
-        let { shouldKeepParentSync } = await this.getParentSyncState(db, {
+        let { shouldKeepParentSync } = await this.getParentSyncState({
           document: d.document,
           nextContent: nextDraft.content
         });
@@ -1120,8 +1104,8 @@ class DocumentServiceImpl {
     });
 
     if (actor) {
-      await db.$transaction(async tx => {
-        await this.upsertParticipant(tx, {
+      await withTransaction(async () => {
+        await this.upsertParticipant({
           document: d.document,
           actor,
           mode: 'edit'
@@ -1154,7 +1138,7 @@ class DocumentServiceImpl {
         return null;
       }
 
-      let result = await db.$transaction(async tx => {
+      let result = await withTransaction(async tx => {
         let currentDocument = await tx.document.findFirst({
           where: {
             id: d.documentId
@@ -1182,7 +1166,7 @@ class DocumentServiceImpl {
               })
             : [];
 
-        return await this.persistDraftToDocument(tx, {
+        return await this.persistDraftToDocument({
           tenant: currentDocument.tenant,
           environment: currentDocument.environment,
           document: currentDocument,
@@ -1313,7 +1297,7 @@ class DocumentServiceImpl {
       let draft = await documentDraftService.getDraftByDocumentId(d.childDocumentId);
       if (draft) return null;
 
-      return await db.$transaction(async tx => {
+      return await withTransaction(async tx => {
         let parentVersion = await tx.documentVersion.findFirst({
           where: {
             id: d.parentDocumentVersionId,
@@ -1359,7 +1343,7 @@ class DocumentServiceImpl {
         }
 
         let nextVersionNumber = childDocument.maxVersionNumber + 1;
-        let nextVersion = await this.createVersion(tx, {
+        let nextVersion = await this.createVersion({
           tenant: {
             oid: parentVersion.tenantOid
           },
@@ -1414,7 +1398,6 @@ class DocumentServiceImpl {
   async cloneDocument(
     d: CargoTenantEnvironment & {
       document: ResolvedDocumentRecord;
-      client?: TransactionClient;
       input: {
         id?: string;
         title?: string;
@@ -1431,8 +1414,7 @@ class DocumentServiceImpl {
       actorId: d.input.actorId,
       defaultPermissions: d.input.defaultPermissions,
       overridePermissions: d.input.overridePermissions,
-      requiredPermission: storeReadPermission,
-      client: d.client
+      requiredPermission: storeReadPermission
     });
     let actor = access.actor;
 
@@ -1440,7 +1422,7 @@ class DocumentServiceImpl {
 
     let purpose = await filePurposeService.ensureDocumentFilePurpose();
 
-    let cloneWithClient = async (tx: TransactionClient) => {
+    let cloneWithClient = async (tx: Prisma.TransactionClient) => {
       let documentIds = d.input.id
         ? { oid: getId('document').oid, id: d.input.id }
         : getId('document');
@@ -1454,7 +1436,6 @@ class DocumentServiceImpl {
         purpose: purpose.id,
         storeId: getDocumentStoreId(documentIds.id),
         _isDocument: true,
-        client: tx,
         input: {
           name: nextTitle,
           mimeType: documentMimeType,
@@ -1481,7 +1462,7 @@ class DocumentServiceImpl {
         include: documentInclude
       });
 
-      let version = await this.createVersion(tx, {
+      let version = await this.createVersion({
         tenant: d.tenant,
         environment: d.environment,
         document,
@@ -1501,13 +1482,13 @@ class DocumentServiceImpl {
       });
 
       if (actor) {
-        await this.upsertParticipant(tx, {
+        await this.upsertParticipant({
           document: clonedDocument,
           actor,
           mode: 'edit'
         });
 
-        await this.ensureVersionEditor(tx, {
+        await this.ensureVersionEditor({
           version,
           document: clonedDocument,
           actor
@@ -1517,11 +1498,7 @@ class DocumentServiceImpl {
       return clonedDocument;
     };
 
-    if (d.client) {
-      return await this.withEffectiveFileStore(await cloneWithClient(d.client));
-    }
-
-    return await this.withEffectiveFileStore(await db.$transaction(async tx => await cloneWithClient(tx)));
+    return await this.withEffectiveFileStore(await withTransaction(async tx => await cloneWithClient(tx)));
   }
 
   async deleteDocument(
@@ -1544,13 +1521,12 @@ class DocumentServiceImpl {
 
     this.ensureDocumentActive(d.document);
 
-    let deletedDocument = await db.$transaction(async tx => {
+    let deletedDocument = await withTransaction(async tx => {
       await fileService.deleteFile({
-        file: d.document.file,
-        client: tx
+        file: d.document.file
       });
 
-      return await this.getDocumentRecord(tx, {
+      return await this.getDocumentRecord({
         tenant: {
           oid: d.document.tenantOid,
           id: d.document.id

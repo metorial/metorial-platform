@@ -1,8 +1,8 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import type { Prisma, PrismaClient, Store } from '../../prisma/generated/client';
-import { db } from '../db';
+import type { Prisma, Store } from '../../prisma/generated/client';
+import { db, withTransaction } from '../db';
 import { getId } from '../id';
 import { storeCleanupManyQueue } from '../queues/storeCleanup';
 import { documentInclude, documentService } from './document';
@@ -18,31 +18,28 @@ import { storeItemInclude, type StoreItemRecord } from './storeItem';
 import { storeItemMutationService, type StoreItemOperationInput } from './storeItemMutation';
 import { storeVersionService } from './storeVersion';
 
-type DbClient = PrismaClient | Prisma.TransactionClient;
-
 class StoreServiceImpl {
-  private async getStoreRecord(
-    client: DbClient,
-    d: CargoTenantEnvironment & {
-      storeId: string;
-    }
-  ) {
-    let store = await client.store.findFirst({
-      where: {
-        tenantOid: d.tenant.oid,
-        environmentOid: d.environment.oid,
-        id: d.storeId
-      }
-    });
+  private async getStoreRecord(d: CargoTenantEnvironment & { storeId: string }) {
+    return await withTransaction(
+      async db => {
+        let store = await db.store.findFirst({
+          where: {
+            tenantOid: d.tenant.oid,
+            environmentOid: d.environment.oid,
+            id: d.storeId
+          }
+        });
 
-    if (!store) throw new ServiceError(notFoundError('store', d.storeId));
+        if (!store) throw new ServiceError(notFoundError('store', d.storeId));
 
-    return store;
+        return store;
+      },
+      { ifExists: true }
+    );
   }
 
   async createStore(
     d: CargoTenantEnvironment & {
-      client?: DbClient;
       input: {
         id?: string;
         name: string;
@@ -50,19 +47,20 @@ class StoreServiceImpl {
       };
     }
   ) {
-    let storeIds = d.input.id ? { oid: getId('store').oid, id: d.input.id } : getId('store');
-    let client = d.client ?? db;
+    return await withTransaction(async db => {
+      let storeIds = d.input.id ? { oid: getId('store').oid, id: d.input.id } : getId('store');
 
-    return await client.store.create({
-      data: {
-        oid: storeIds.oid,
-        id: storeIds.id,
-        name: d.input.name,
-        itemCount: 0,
-        tenantOid: d.tenant.oid,
-        environmentOid: d.environment.oid,
-        parentStoreOid: d.input.parentStore?.oid
-      }
+      return await db.store.create({
+        data: {
+          oid: storeIds.oid,
+          id: storeIds.id,
+          name: d.input.name,
+          itemCount: 0,
+          tenantOid: d.tenant.oid,
+          environmentOid: d.environment.oid,
+          parentStoreOid: d.input.parentStore?.oid
+        }
+      });
     });
   }
 
@@ -104,7 +102,7 @@ class StoreServiceImpl {
         storeId: string;
       }
   ) {
-    let store = await this.getStoreRecord(db, d);
+    let store = await this.getStoreRecord(d);
     await storeAccessService.assertStoreAccessForStore({
       tenant: d.tenant,
       environment: d.environment,
@@ -175,11 +173,10 @@ class StoreServiceImpl {
       requiredPermission: storeReadPermission
     });
 
-    return await db.$transaction(async tx => {
+    return await withTransaction(async () => {
       let clonedStore = await this.createStore({
         tenant: d.tenant,
         environment: d.environment,
-        client: tx,
         input: {
           id: d.input.id,
           name: d.input.name ?? d.store.name,
@@ -187,7 +184,7 @@ class StoreServiceImpl {
         }
       });
 
-      let items = await tx.storeItem.findMany({
+      let items = await db.storeItem.findMany({
         where: {
           storeOid: d.store.oid
         },
@@ -198,7 +195,7 @@ class StoreServiceImpl {
       });
 
       for (let item of items) {
-        await this.cloneStoreItemIntoStore(tx, {
+        await this.cloneStoreItemIntoStore({
           tenant: d.tenant,
           environment: d.environment,
           targetStore: clonedStore,
@@ -211,11 +208,10 @@ class StoreServiceImpl {
       }
 
       await storeVersionService.markStoreDirtyIfNeeded({
-        storeOid: clonedStore.oid,
-        client: tx
+        storeOid: clonedStore.oid
       });
 
-      return (await tx.store.findUnique({
+      return (await db.store.findUnique({
         where: {
           id: clonedStore.id
         }
@@ -259,8 +255,8 @@ class StoreServiceImpl {
       }
     }
 
-    let { deletedStore, fileReferenceIds } = await db.$transaction(async client => {
-      let items = await client.storeItem.findMany({
+    let { deletedStore, fileReferenceIds } = await withTransaction(async db => {
+      let items = await db.storeItem.findMany({
         where: {
           storeOid: d.store.oid
         },
@@ -273,7 +269,7 @@ class StoreServiceImpl {
         }
       });
 
-      let deletedStore = await client.store.delete({
+      let deletedStore = await db.store.delete({
         where: {
           id: d.store.id
         }
@@ -327,7 +323,6 @@ class StoreServiceImpl {
   }
 
   private async cloneStoreItemIntoStore(
-    client: DbClient,
     d: CargoTenantEnvironment &
       StoreAccessInput & {
         targetStore: Store;
@@ -337,27 +332,45 @@ class StoreServiceImpl {
         >['actor'];
       }
   ) {
-    if (d.item.document) {
-      let sourceDocument = await client.document.findFirst({
-        where: {
-          tenantOid: d.tenant.oid,
-          environmentOid: d.environment.oid,
-          id: d.item.document.id
-        },
-        include: documentInclude
-      });
+    return await withTransaction(async db => {
+      if (d.item.document) {
+        let sourceDocument = await db.document.findFirst({
+          where: {
+            tenantOid: d.tenant.oid,
+            environmentOid: d.environment.oid,
+            id: d.item.document.id
+          },
+          include: documentInclude
+        });
 
-      if (!sourceDocument) {
-        throw new ServiceError(notFoundError('document', d.item.document.id));
+        if (!sourceDocument) {
+          throw new ServiceError(notFoundError('document', d.item.document.id));
+        }
+
+        let clonedDocument = await documentService.cloneDocument({
+          tenant: d.tenant,
+          environment: d.environment,
+          document: sourceDocument,
+          input: {}
+        });
+
+        await storeItemMutationService.attachTargetToStore({
+          tenant: d.tenant,
+          environment: d.environment,
+          store: d.targetStore,
+          path: d.item.path,
+          target: {
+            file: clonedDocument.file,
+            document: {
+              oid: clonedDocument.oid,
+              id: clonedDocument.id
+            }
+          },
+          actor: d.actor
+        });
+
+        return;
       }
-
-      let clonedDocument = await documentService.cloneDocument({
-        tenant: d.tenant,
-        environment: d.environment,
-        document: sourceDocument,
-        client,
-        input: {}
-      });
 
       await storeItemMutationService.attachTargetToStore({
         tenant: d.tenant,
@@ -365,30 +378,11 @@ class StoreServiceImpl {
         store: d.targetStore,
         path: d.item.path,
         target: {
-          file: clonedDocument.file,
-          document: {
-            oid: clonedDocument.oid,
-            id: clonedDocument.id
-          }
+          file: d.item.file,
+          document: null
         },
-        actor: d.actor,
-        client
+        actor: d.actor
       });
-
-      return;
-    }
-
-    await storeItemMutationService.attachTargetToStore({
-      tenant: d.tenant,
-      environment: d.environment,
-      store: d.targetStore,
-      path: d.item.path,
-      target: {
-        file: d.item.file,
-        document: null
-      },
-      actor: d.actor,
-      client
     });
   }
 }

@@ -1,8 +1,8 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import type { Prisma, PrismaClient } from '../../prisma/generated/client';
-import { db } from '../db';
+import type { Prisma } from '../../prisma/generated/client';
+import { db, withTransaction } from '../db';
 import { getId } from '../id';
 import type { CargoTenantEnvironment } from './filePurpose';
 import { storeService } from './store';
@@ -15,27 +15,25 @@ export type SkillRecord = Prisma.SkillGetPayload<{
   include: typeof skillInclude;
 }>;
 
-type DbClient = PrismaClient | Prisma.TransactionClient;
-
 class SkillServiceImpl {
-  private async getSkillRecord(
-    client: DbClient,
-    d: CargoTenantEnvironment & {
-      skillId: string;
-    }
-  ) {
-    let skill = await client.skill.findFirst({
-      where: {
-        tenantOid: d.tenant.oid,
-        environmentOid: d.environment.oid,
-        id: d.skillId
+  private async getSkillRecord(d: CargoTenantEnvironment & { skillId: string }) {
+    return await withTransaction(
+      async db => {
+        let skill = await db.skill.findFirst({
+          where: {
+            tenantOid: d.tenant.oid,
+            environmentOid: d.environment.oid,
+            id: d.skillId
+          },
+          include: skillInclude
+        });
+
+        if (!skill) throw new ServiceError(notFoundError('skill', d.skillId));
+
+        return skill;
       },
-      include: skillInclude
-    });
-
-    if (!skill) throw new ServiceError(notFoundError('skill', d.skillId));
-
-    return skill;
+      { ifExists: true }
+    );
   }
 
   async createSkill(
@@ -55,19 +53,18 @@ class SkillServiceImpl {
       );
     }
 
-    return await db.$transaction(async client => {
+    return await withTransaction(async db => {
       let skillIds = d.input.id ? { oid: getId('skill').oid, id: d.input.id } : getId('skill');
       let store = await storeService.createStore({
         tenant: d.tenant,
         environment: d.environment,
-        client,
         input: {
           id: d.input.storeId,
           name: d.input.name
         }
       });
 
-      return await client.skill.create({
+      return await db.skill.create({
         data: {
           oid: skillIds.oid,
           id: skillIds.id,
@@ -101,7 +98,7 @@ class SkillServiceImpl {
       skillId: string;
     }
   ) {
-    return await this.getSkillRecord(db, d);
+    return await this.getSkillRecord(d);
   }
 
   async updateSkill(

@@ -1,8 +1,8 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import type { Prisma, PrismaClient } from '../../prisma/generated/client';
-import { db } from '../db';
+import type { Prisma } from '../../prisma/generated/client';
+import { db, withTransaction } from '../db';
 import { getId } from '../id';
 import type { CargoTenantEnvironment } from './filePurpose';
 import {
@@ -10,8 +10,6 @@ import {
   storeReadPermission,
   type StoreAccessInput
 } from './storeAccess';
-
-type DbClient = PrismaClient | Prisma.TransactionClient;
 
 let currentStoreVersionItemInclude = {
   file: {
@@ -150,43 +148,49 @@ class StoreVersionServiceImpl {
   async markStoreDirtyIfNeeded(d: {
     storeOid: bigint;
     at?: Date;
-    client?: DbClient;
   }) {
-    let client = d.client ?? db;
-    let dirtyAt = d.at ?? new Date();
+    return await withTransaction(
+      async db => {
+        let dirtyAt = d.at ?? new Date();
 
-    return await client.store.updateMany({
-      where: {
-        oid: d.storeOid,
-        dirtyAt: null
+        return await db.store.updateMany({
+          where: {
+            oid: d.storeOid,
+            dirtyAt: null
+          },
+          data: {
+            dirtyAt
+          }
+        });
       },
-      data: {
-        dirtyAt
-      }
-    });
+      { ifExists: true }
+    );
   }
 
   async markStoresDirtyForDocument(d: {
     documentOid: bigint;
     at?: Date;
-    client?: DbClient;
   }) {
-    let client = d.client ?? db;
-    let dirtyAt = d.at ?? new Date();
+    return await withTransaction(
+      async db => {
+        let dirtyAt = d.at ?? new Date();
 
-    return await client.store.updateMany({
-      where: {
-        dirtyAt: null,
-        items: {
-          some: {
-            documentOid: d.documentOid
+        return await db.store.updateMany({
+          where: {
+            dirtyAt: null,
+            items: {
+              some: {
+                documentOid: d.documentOid
+              }
+            }
+          },
+          data: {
+            dirtyAt
           }
-        }
+        });
       },
-      data: {
-        dirtyAt
-      }
-    });
+      { ifExists: true }
+    );
   }
 
   async listStoreIdsReadyForVersioning(d: {
@@ -230,44 +234,43 @@ class StoreVersionServiceImpl {
     };
   }
 
-  private async hasStoreLiveChangesSince(
-    client: DbClient,
-    d: {
-      storeOid: bigint;
-      since: Date;
-    }
-  ) {
-    let changedStoreItem = await client.storeItem.findFirst({
-      where: {
-        storeOid: d.storeOid,
-        OR: [
-          {
-            createdAt: {
-              gt: d.since
-            }
-          },
-          {
-            updatedAt: {
-              gt: d.since
-            }
-          },
-          {
-            document: {
-              currentVersion: {
+  private async hasStoreLiveChangesSince(d: { storeOid: bigint; since: Date }) {
+    return await withTransaction(
+      async db => {
+        let changedStoreItem = await db.storeItem.findFirst({
+          where: {
+            storeOid: d.storeOid,
+            OR: [
+              {
                 createdAt: {
                   gt: d.since
                 }
+              },
+              {
+                updatedAt: {
+                  gt: d.since
+                }
+              },
+              {
+                document: {
+                  currentVersion: {
+                    createdAt: {
+                      gt: d.since
+                    }
+                  }
+                }
               }
-            }
+            ]
+          },
+          select: {
+            id: true
           }
-        ]
-      },
-      select: {
-        id: true
-      }
-    });
+        });
 
-    return !!changedStoreItem;
+        return !!changedStoreItem;
+      },
+      { ifExists: true }
+    );
   }
 
   async createStoreVersionSnapshot(d: {
@@ -276,8 +279,8 @@ class StoreVersionServiceImpl {
   }) {
     let snapshotStartedAt = new Date();
 
-    return await db.$transaction(async tx => {
-      let store = await tx.store.findUnique({
+    return await withTransaction(async db => {
+      let store = await db.store.findUnique({
         where: {
           id: d.storeId
         },
@@ -295,7 +298,7 @@ class StoreVersionServiceImpl {
       if (!store?.dirtyAt) return null;
       if (store.dirtyAt.getTime() !== d.expectedDirtyAt.getTime()) return null;
 
-      let existingVersion = await tx.storeVersion.findFirst({
+      let existingVersion = await db.storeVersion.findFirst({
         where: {
           storeOid: store.oid,
           sourceDirtyAt: store.dirtyAt
@@ -311,7 +314,7 @@ class StoreVersionServiceImpl {
         };
       }
 
-      let currentItems = await tx.storeItem.findMany({
+      let currentItems = await db.storeItem.findMany({
         where: {
           storeOid: store.oid
         },
@@ -326,7 +329,7 @@ class StoreVersionServiceImpl {
         ]
       });
 
-      let latestVersion = await tx.storeVersion.findFirst({
+      let latestVersion = await db.storeVersion.findFirst({
         where: {
           storeOid: store.oid
         },
@@ -339,7 +342,7 @@ class StoreVersionServiceImpl {
       });
 
       let versionIds = getId('storeVersion');
-      let version = await tx.storeVersion.create({
+      let version = await db.storeVersion.create({
         data: {
           oid: versionIds.oid,
           id: versionIds.id,
@@ -350,7 +353,7 @@ class StoreVersionServiceImpl {
       });
 
       if (currentItems.length > 0) {
-        await tx.storeVersionItem.createMany({
+        await db.storeVersionItem.createMany({
           data: currentItems.map(item => {
             let itemIds = getId('storeVersionItem');
 
@@ -367,7 +370,7 @@ class StoreVersionServiceImpl {
         });
       }
 
-      let shouldKeepDirty = await this.hasStoreLiveChangesSince(tx, {
+      let shouldKeepDirty = await this.hasStoreLiveChangesSince({
         storeOid: store.oid,
         since: snapshotStartedAt
       });
@@ -375,7 +378,7 @@ class StoreVersionServiceImpl {
       let didClearDirtyAt = false;
 
       if (!shouldKeepDirty) {
-        let cleared = await tx.store.updateMany({
+        let cleared = await db.store.updateMany({
           where: {
             oid: store.oid,
             dirtyAt: d.expectedDirtyAt
@@ -388,7 +391,7 @@ class StoreVersionServiceImpl {
         didClearDirtyAt = cleared.count > 0;
       }
 
-      let createdVersion = await tx.storeVersion.findUnique({
+      let createdVersion = await db.storeVersion.findUnique({
         where: {
           id: version.id
         },

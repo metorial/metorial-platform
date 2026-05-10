@@ -1,7 +1,7 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import type { Prisma, PrismaClient, Store, TenantActor } from '../../prisma/generated/client';
-import { db } from '../db';
+import { db, withTransaction } from '../db';
 import { getId } from '../id';
 import { fileLinkService } from './fileLink';
 import type { CargoTenantEnvironment } from './filePurpose';
@@ -287,7 +287,6 @@ class StoreItemMutationServiceImpl {
     let link = await fileLinkService.createFileLink({
       tenant: d.tenant,
       environment: d.environment,
-      client,
       file: d.target.file,
       input: {}
     });
@@ -295,7 +294,6 @@ class StoreItemMutationServiceImpl {
     return await fileReferenceService.upsertFileReference({
       tenant: d.tenant,
       environment: d.environment,
-      client,
       fileLink: link,
       input: {
         entityType: 'store_item',
@@ -309,7 +307,6 @@ class StoreItemMutationServiceImpl {
     fileReference: StoreItemRecord['reference']
   ) {
     await fileReferenceService.deleteReferenceAndLinkIfUnused({
-      client,
       fileReference
     });
   }
@@ -468,34 +465,9 @@ class StoreItemMutationServiceImpl {
       path: string;
       target: ResolvedStoreItemTarget;
       actor?: Pick<TenantActor, 'oid'>;
-      client?: DbClient;
     }
   ) {
-    if (d.client) {
-      let result = await this.addStoreItem(d.client, d);
-
-      if (result.created) {
-        await d.client.store.update({
-          where: {
-            id: d.store.id
-          },
-          data: {
-            itemCount: {
-              increment: 1
-            }
-          }
-        });
-      }
-
-      await storeVersionService.markStoreDirtyIfNeeded({
-        storeOid: d.store.oid,
-        client: d.client
-      });
-
-      return result.item;
-    }
-
-    return await db.$transaction(async client => {
+    return await withTransaction(async client => {
       let result = await this.addStoreItem(client, d);
 
       if (result.created) {
@@ -512,8 +484,7 @@ class StoreItemMutationServiceImpl {
       }
 
       await storeVersionService.markStoreDirtyIfNeeded({
-        storeOid: d.store.oid,
-        client
+        storeOid: d.store.oid
       });
 
       return result.item;
@@ -580,7 +551,7 @@ class StoreItemMutationServiceImpl {
       );
     }
 
-    return await db.$transaction(async client => {
+    return await withTransaction(async client => {
       let results: StoreItemMutationResult[] = [];
 
       for (let operation of operations) {
@@ -656,8 +627,7 @@ class StoreItemMutationServiceImpl {
 
       if (results.length > 0) {
         await storeVersionService.markStoreDirtyIfNeeded({
-          storeOid: d.store.oid,
-          client
+          storeOid: d.store.oid
         });
       }
 

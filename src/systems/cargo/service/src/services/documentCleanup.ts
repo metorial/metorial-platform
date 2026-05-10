@@ -1,5 +1,5 @@
 import { Service } from '@lowerdeck/service';
-import { db } from '../db';
+import { db, withTransaction } from '../db';
 
 let documentVersionRetentionMs = 30 * 24 * 60 * 60 * 1000;
 
@@ -74,7 +74,7 @@ class DocumentCleanupServiceImpl {
 
     let contentOid = version.contentOid;
 
-    await db.$transaction(async tx => {
+    await withTransaction(async tx => {
       await tx.documentVersion.updateMany({
         where: {
           previousVersionOid: version.oid

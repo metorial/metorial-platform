@@ -5,10 +5,9 @@ import type {
   File,
   FileLink,
   FileReference,
-  Prisma,
-  PrismaClient
+  Prisma
 } from '../../prisma/generated/client';
-import { db } from '../db';
+import { db, withTransaction } from '../db';
 import { getId } from '../id';
 import type { CargoTenantEnvironment } from './filePurpose';
 
@@ -22,8 +21,6 @@ let include = {
   environment: true
 };
 
-type DbClient = PrismaClient | Prisma.TransactionClient;
-
 class FileReferenceServiceImpl {
   async upsertFileReference(
     d: CargoTenantEnvironment & {
@@ -33,63 +30,62 @@ class FileReferenceServiceImpl {
         entityType: string;
         entityId: string;
       };
-      client?: DbClient;
     }
   ) {
-    let client = d.client ?? db;
+    return await withTransaction(async db => {
+      let existing = d.input.id
+        ? await db.fileReference.findFirst({
+            where: {
+              tenantOid: d.tenant.oid,
+              environmentOid: d.environment.oid,
+              OR: [
+                { id: d.input.id },
+                {
+                  fileLinkOid: d.fileLink.oid,
+                  entityType: d.input.entityType,
+                  entityId: d.input.entityId
+                }
+              ]
+            }
+          })
+        : await db.fileReference.findFirst({
+            where: {
+              tenantOid: d.tenant.oid,
+              environmentOid: d.environment.oid,
+              fileLinkOid: d.fileLink.oid,
+              entityType: d.input.entityType,
+              entityId: d.input.entityId
+            }
+          });
 
-    let existing = d.input.id
-      ? await client.fileReference.findFirst({
+      if (existing) {
+        return await db.fileReference.update({
           where: {
-            tenantOid: d.tenant.oid,
-            environmentOid: d.environment.oid,
-            OR: [
-              { id: d.input.id },
-              {
-                fileLinkOid: d.fileLink.oid,
-                entityType: d.input.entityType,
-                entityId: d.input.entityId
-              }
-            ]
-          }
-        })
-      : await client.fileReference.findFirst({
-          where: {
-            tenantOid: d.tenant.oid,
-            environmentOid: d.environment.oid,
+            id: existing.id
+          },
+          data: {
             fileLinkOid: d.fileLink.oid,
             entityType: d.input.entityType,
             entityId: d.input.entityId
-          }
+          },
+          include
         });
+      }
 
-    if (existing) {
-      return await client.fileReference.update({
-        where: {
-          id: existing.id
-        },
+      let generated = getId('fileRef');
+
+      return await db.fileReference.create({
         data: {
+          oid: generated.oid,
+          id: d.input.id ?? generated.id,
           fileLinkOid: d.fileLink.oid,
+          tenantOid: d.tenant.oid,
+          environmentOid: d.environment.oid,
           entityType: d.input.entityType,
           entityId: d.input.entityId
         },
         include
       });
-    }
-
-    let generated = getId('fileRef');
-
-    return await client.fileReference.create({
-      data: {
-        oid: generated.oid,
-        id: d.input.id ?? generated.id,
-        fileLinkOid: d.fileLink.oid,
-        tenantOid: d.tenant.oid,
-        environmentOid: d.environment.oid,
-        entityType: d.input.entityType,
-        entityId: d.input.entityId
-      },
-      include
     });
   }
 
@@ -172,35 +168,28 @@ class FileReferenceServiceImpl {
 
   async deleteReferenceAndLinkIfUnused(d: {
     fileReference: FileReference;
-    client?: DbClient;
   }) {
-    let runCleanup = async (client: DbClient) => {
-      await client.fileReference.delete({
+    return await withTransaction(async db => {
+      await db.fileReference.delete({
         where: {
           id: d.fileReference.id
         }
       });
 
-      let remainingReferences = await client.fileReference.count({
+      let remainingReferences = await db.fileReference.count({
         where: {
           fileLinkOid: d.fileReference.fileLinkOid
         }
       });
 
       if (remainingReferences === 0) {
-        await client.fileLink.deleteMany({
+        await db.fileLink.deleteMany({
           where: {
             oid: d.fileReference.fileLinkOid
           }
         });
       }
-    };
-
-    if (d.client) {
-      return await runCleanup(d.client);
-    }
-
-    return await db.$transaction(async client => await runCleanup(client));
+    });
   }
 
   async deleteFileReferenceByIdAndCleanup(d: { fileReferenceId: string }) {

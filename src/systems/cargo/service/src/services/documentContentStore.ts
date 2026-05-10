@@ -1,7 +1,5 @@
-import type { Prisma, PrismaClient } from '../../prisma/generated/client';
-import { db } from '../db';
-
-type DbClient = PrismaClient | Prisma.TransactionClient;
+import type { Prisma } from '../../prisma/generated/client';
+import { withTransaction } from '../db';
 
 type DocumentStoreSource = {
   id: string;
@@ -27,54 +25,57 @@ let effectiveDocumentStoreSelect = {
   }
 } satisfies Prisma.DocumentSelect;
 
-let getClient = (client?: DbClient) => client ?? db;
-
 let getEffectiveDocumentStoreSource = async (
-  document: DocumentStoreSource,
-  client?: DbClient
-): Promise<DocumentStoreSource> => {
-  let resolved = document;
-  let dbClient = getClient(client);
+  document: DocumentStoreSource
+): Promise<DocumentStoreSource> =>
+  await withTransaction(
+    async db => {
+      let resolved = document;
 
-  while (!resolved.isContentOwner && resolved.parentDocumentOid) {
-    let parent = await dbClient.document.findFirst({
-      where: {
-        oid: resolved.parentDocumentOid,
-        file: {
-          status: 'active'
+      while (!resolved.isContentOwner && resolved.parentDocumentOid) {
+        let parent = await db.document.findFirst({
+          where: {
+            oid: resolved.parentDocumentOid,
+            file: {
+              status: 'active'
+            }
+          },
+          select: effectiveDocumentStoreSelect
+        });
+
+        if (!parent) {
+          return resolved;
         }
-      },
-      select: effectiveDocumentStoreSelect
-    });
 
-    if (!parent) {
+        resolved = parent;
+      }
+
       return resolved;
-    }
-
-    resolved = parent;
-  }
-
-  return resolved;
-};
+    },
+    { ifExists: true }
+  );
 
 let getEffectiveDocumentStoreSourceByDocumentId = async (
-  documentId: string,
-  client?: DbClient
-): Promise<DocumentStoreSource | null> => {
-  let document = await getClient(client).document.findFirst({
-    where: {
-      id: documentId,
-      file: {
-        status: 'active'
-      }
+  documentId: string
+): Promise<DocumentStoreSource | null> =>
+  await withTransaction(
+    async db => {
+      let document = await db.document.findFirst({
+        where: {
+          id: documentId,
+          file: {
+            status: 'active'
+          }
+        },
+        select: effectiveDocumentStoreSelect
+      });
+
+      if (!document) return null;
+
+      return await getEffectiveDocumentStoreSource(document);
     },
-    select: effectiveDocumentStoreSelect
-  });
-
-  if (!document) return null;
-
-  return await getEffectiveDocumentStoreSource(document, client);
-};
+    { ifExists: true }
+  );
 
 export {
   effectiveDocumentStoreSelect,

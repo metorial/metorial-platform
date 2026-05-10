@@ -7,8 +7,8 @@ import {
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { generatePlainId } from '@lowerdeck/id';
-import type { FileLink, Prisma, PrismaClient } from '../../prisma/generated/client';
-import { db } from '../db';
+import type { FileLink, Prisma } from '../../prisma/generated/client';
+import { db, withTransaction } from '../db';
 import { env } from '../env';
 import { getId } from '../id';
 import { actorService } from './actor';
@@ -30,8 +30,6 @@ let include = {
   environment: true
 };
 
-type DbClient = PrismaClient | Prisma.TransactionClient;
-
 class FileLinkServiceImpl {
   private getGeneratedKey() {
     return `${generatePlainId(30)}_${env.service.CARGO_REGION ?? 'ext'}`;
@@ -52,7 +50,6 @@ class FileLinkServiceImpl {
         expiresAt?: Date;
         actorId?: string;
       };
-      client?: DbClient;
     }
   ) {
     if (!d.file.purpose.canHaveLinks) {
@@ -63,61 +60,62 @@ class FileLinkServiceImpl {
       );
     }
 
-    let client = d.client ?? db;
-    let actor = d.input.actorId
-      ? await actorService.getActorById({
-          tenant: d.tenant,
-          actorId: d.input.actorId
-        })
-      : undefined;
-
-    let existing = d.input.id
-      ? await client.fileLink.findFirst({
-          where: {
-            tenantOid: d.tenant.oid,
-            environmentOid: d.environment.oid,
-            OR: [{ id: d.input.id }, ...(d.input.key ? [{ key: d.input.key }] : [])]
-          }
-        })
-      : d.input.key
-        ? await client.fileLink.findFirst({
-            where: {
-              tenantOid: d.tenant.oid,
-              environmentOid: d.environment.oid,
-              key: d.input.key
-            }
+    return await withTransaction(async db => {
+      let actor = d.input.actorId
+        ? await actorService.getActorById({
+            tenant: d.tenant,
+            actorId: d.input.actorId
           })
         : undefined;
 
-    if (existing) {
-      return await client.fileLink.update({
-        where: {
-          id: existing.id
-        },
+      let existing = d.input.id
+        ? await db.fileLink.findFirst({
+            where: {
+              tenantOid: d.tenant.oid,
+              environmentOid: d.environment.oid,
+              OR: [{ id: d.input.id }, ...(d.input.key ? [{ key: d.input.key }] : [])]
+            }
+          })
+        : d.input.key
+          ? await db.fileLink.findFirst({
+              where: {
+                tenantOid: d.tenant.oid,
+                environmentOid: d.environment.oid,
+                key: d.input.key
+              }
+            })
+          : undefined;
+
+      if (existing) {
+        return await db.fileLink.update({
+          where: {
+            id: existing.id
+          },
+          data: {
+            fileOid: d.file.oid,
+            expiresAt: d.input.expiresAt,
+            key: d.input.key ?? existing.key,
+            createdByTenantActorOid: existing.createdByTenantActorOid ?? actor?.oid
+          },
+          include
+        });
+      }
+
+      let generated = getId('fileLink');
+
+      return await db.fileLink.create({
         data: {
+          oid: generated.oid,
+          id: d.input.id ?? generated.id,
+          key: d.input.key ?? this.getGeneratedKey(),
           fileOid: d.file.oid,
+          tenantOid: d.tenant.oid,
+          environmentOid: d.environment.oid,
           expiresAt: d.input.expiresAt,
-          key: d.input.key ?? existing.key,
-          createdByTenantActorOid: existing.createdByTenantActorOid ?? actor?.oid
+          createdByTenantActorOid: actor?.oid
         },
         include
       });
-    }
-
-    let generated = getId('fileLink');
-
-    return await client.fileLink.create({
-      data: {
-        oid: generated.oid,
-        id: d.input.id ?? generated.id,
-        key: d.input.key ?? this.getGeneratedKey(),
-        fileOid: d.file.oid,
-        tenantOid: d.tenant.oid,
-        environmentOid: d.environment.oid,
-        expiresAt: d.input.expiresAt,
-        createdByTenantActorOid: actor?.oid
-      },
-      include
     });
   }
 

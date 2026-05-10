@@ -2,18 +2,15 @@ import { forbiddenError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import type {
   Prisma,
-  PrismaClient,
   Store,
   StoreParticipant,
   StoreParticipantPermissions,
   TenantActor
 } from '../../prisma/generated/client';
-import { db } from '../db';
+import { withTransaction } from '../db';
 import { getId } from '../id';
 import { actorService } from './actor';
 import type { CargoTenantEnvironment } from './filePurpose';
-
-type DbClient = PrismaClient | Prisma.TransactionClient;
 
 export type StoreAccessInput = {
   actorId?: string;
@@ -40,10 +37,6 @@ let samePermissions = (
   JSON.stringify([...(left ?? [])].sort()) === JSON.stringify([...(right ?? [])].sort());
 
 class StoreAccessServiceImpl {
-  private getClient(client?: DbClient) {
-    return client ?? db;
-  }
-
   async getActorForAccess(d: Pick<CargoTenantEnvironment, 'tenant'> & StoreAccessInput) {
     if (!d.actorId) return undefined;
 
@@ -56,21 +49,24 @@ class StoreAccessServiceImpl {
   async getStoreById(
     d: CargoTenantEnvironment & {
       storeId: string;
-      client?: DbClient;
     }
   ) {
-    let client = this.getClient(d.client);
-    let store = await client.store.findFirst({
-      where: {
-        tenantOid: d.tenant.oid,
-        environmentOid: d.environment.oid,
-        id: d.storeId
-      }
-    });
+    return await withTransaction(
+      async db => {
+        let store = await db.store.findFirst({
+          where: {
+            tenantOid: d.tenant.oid,
+            environmentOid: d.environment.oid,
+            id: d.storeId
+          }
+        });
 
-    if (!store) throw new ServiceError(notFoundError('store', d.storeId));
+        if (!store) throw new ServiceError(notFoundError('store', d.storeId));
 
-    return store;
+        return store;
+      },
+      { ifExists: true }
+    );
   }
 
   async listRelevantStoreOidsForDocument(d: {
@@ -78,46 +74,52 @@ class StoreAccessServiceImpl {
       oid: bigint;
       fileOid: bigint;
     };
-    client?: DbClient;
   }) {
-    let client = this.getClient(d.client);
-    let stores = await client.store.findMany({
-      where: {
-        items: {
-          some: {
-            OR: [{ documentOid: d.document.oid }, { fileOid: d.document.fileOid }]
+    return await withTransaction(
+      async db => {
+        let stores = await db.store.findMany({
+          where: {
+            items: {
+              some: {
+                OR: [{ documentOid: d.document.oid }, { fileOid: d.document.fileOid }]
+              }
+            }
+          },
+          select: {
+            oid: true
           }
-        }
-      },
-      select: {
-        oid: true
-      }
-    });
+        });
 
-    return stores.map(store => store.oid);
+        return stores.map(store => store.oid);
+      },
+      { ifExists: true }
+    );
   }
 
   async listRelevantStoreOidsForFile(d: {
     file: {
       oid: bigint;
     };
-    client?: DbClient;
   }) {
-    let client = this.getClient(d.client);
-    let stores = await client.store.findMany({
-      where: {
-        items: {
-          some: {
-            fileOid: d.file.oid
+    return await withTransaction(
+      async db => {
+        let stores = await db.store.findMany({
+          where: {
+            items: {
+              some: {
+                fileOid: d.file.oid
+              }
+            }
+          },
+          select: {
+            oid: true
           }
-        }
-      },
-      select: {
-        oid: true
-      }
-    });
+        });
 
-    return stores.map(store => store.oid);
+        return stores.map(store => store.oid);
+      },
+      { ifExists: true }
+    );
   }
 
   async listStoreParticipantActorsForDocument(d: {
@@ -125,134 +127,141 @@ class StoreAccessServiceImpl {
       oid: bigint;
       fileOid: bigint;
     };
-    client?: DbClient;
   }) {
-    let client = this.getClient(d.client);
-    let storeOids = await this.listRelevantStoreOidsForDocument(d);
-    if (storeOids.length === 0) return [];
+    return await withTransaction(
+      async db => {
+        let storeOids = await this.listRelevantStoreOidsForDocument(d);
+        if (storeOids.length === 0) return [];
 
-    let participants = await client.storeParticipant.findMany({
-      where: {
-        storeOid: {
-          in: storeOids
-        }
-      },
-      include: {
-        tenantActor: true
-      }
-    });
-
-    let permissionsByActor = new Map<
-      bigint,
-      {
-        actor: TenantActor;
-        permissions: Set<StoreParticipantPermissions>;
-      }
-    >();
-
-    for (let participant of participants) {
-      let existing = permissionsByActor.get(participant.tenantActorOid);
-      if (existing) {
-        for (let permission of participant.permissions) {
-          existing.permissions.add(permission);
-        }
-        continue;
-      }
-
-      permissionsByActor.set(participant.tenantActorOid, {
-        actor: participant.tenantActor,
-        permissions: new Set(participant.permissions)
-      });
-    }
-
-    return [...permissionsByActor.values()].map(item => ({
-      actor: item.actor,
-      mode: item.permissions.has(storeWritePermission) ? 'edit' : 'view'
-    }));
-  }
-
-  private async upsertStoreParticipants(
-    client: DbClient,
-    d: {
-      storeOids: bigint[];
-      actor: TenantActor;
-      defaultPermissions?: StoreParticipantPermissions[];
-      overridePermissions?: boolean;
-    }
-  ) {
-    if (d.storeOids.length === 0) return [] as StoreParticipant[];
-
-    let participants = await client.storeParticipant.findMany({
-      where: {
-        storeOid: {
-          in: d.storeOids
-        },
-        tenantActorOid: d.actor.oid
-      }
-    });
-
-    let byStoreOid = new Map(participants.map(participant => [participant.storeOid.toString(), participant]));
-    let nextPermissions = d.defaultPermissions ?? [];
-
-    if (d.overridePermissions) {
-      let updatedParticipants: StoreParticipant[] = [];
-
-      for (let storeOid of d.storeOids) {
-        let existing = byStoreOid.get(storeOid.toString());
-
-        if (existing) {
-          if (!samePermissions(existing.permissions, nextPermissions)) {
-            existing = await client.storeParticipant.update({
-              where: {
-                id: existing.id
-              },
-              data: {
-                permissions: nextPermissions
-              }
-            });
-          }
-
-          updatedParticipants.push(existing);
-          continue;
-        }
-
-        let ids = getId('storeParticipant');
-        updatedParticipants.push(
-          await client.storeParticipant.create({
-            data: {
-              oid: ids.oid,
-              id: ids.id,
-              storeOid,
-              tenantActorOid: d.actor.oid,
-              permissions: nextPermissions
+        let participants = await db.storeParticipant.findMany({
+          where: {
+            storeOid: {
+              in: storeOids
             }
-          })
-        );
-      }
-
-      return updatedParticipants;
-    }
-
-    if (d.defaultPermissions !== undefined) {
-      for (let storeOid of d.storeOids) {
-        if (byStoreOid.has(storeOid.toString())) continue;
-
-        let ids = getId('storeParticipant');
-        let participant = await client.storeParticipant.create({
-          data: {
-            oid: ids.oid,
-            id: ids.id,
-            storeOid,
-            tenantActorOid: d.actor.oid,
-            permissions: nextPermissions
+          },
+          include: {
+            tenantActor: true
           }
         });
 
-        participants.push(participant);
-      }
-    }
+        let permissionsByActor = new Map<
+          bigint,
+          {
+            actor: TenantActor;
+            permissions: Set<StoreParticipantPermissions>;
+          }
+        >();
 
-    return participants;
+        for (let participant of participants) {
+          let existing = permissionsByActor.get(participant.tenantActorOid);
+          if (existing) {
+            for (let permission of participant.permissions) {
+              existing.permissions.add(permission);
+            }
+            continue;
+          }
+
+          permissionsByActor.set(participant.tenantActorOid, {
+            actor: participant.tenantActor,
+            permissions: new Set(participant.permissions)
+          });
+        }
+
+        return [...permissionsByActor.values()].map(item => ({
+          actor: item.actor,
+          mode: item.permissions.has(storeWritePermission) ? 'edit' : 'view'
+        }));
+      },
+      { ifExists: true }
+    );
+  }
+
+  private async upsertStoreParticipants(d: {
+    storeOids: bigint[];
+    actor: TenantActor;
+    defaultPermissions?: StoreParticipantPermissions[];
+    overridePermissions?: boolean;
+  }) {
+    return await withTransaction(
+      async client => {
+        if (d.storeOids.length === 0) return [] as StoreParticipant[];
+
+        let participants = await client.storeParticipant.findMany({
+          where: {
+            storeOid: {
+              in: d.storeOids
+            },
+            tenantActorOid: d.actor.oid
+          }
+        });
+
+        let byStoreOid = new Map(
+          participants.map(participant => [participant.storeOid.toString(), participant])
+        );
+        let nextPermissions = d.defaultPermissions ?? [];
+
+        if (d.overridePermissions) {
+          let updatedParticipants: StoreParticipant[] = [];
+
+          for (let storeOid of d.storeOids) {
+            let existing = byStoreOid.get(storeOid.toString());
+
+            if (existing) {
+              if (!samePermissions(existing.permissions, nextPermissions)) {
+                existing = await client.storeParticipant.update({
+                  where: {
+                    id: existing.id
+                  },
+                  data: {
+                    permissions: nextPermissions
+                  }
+                });
+              }
+
+              updatedParticipants.push(existing);
+              continue;
+            }
+
+            let ids = getId('storeParticipant');
+            updatedParticipants.push(
+              await client.storeParticipant.create({
+                data: {
+                  oid: ids.oid,
+                  id: ids.id,
+                  storeOid,
+                  tenantActorOid: d.actor.oid,
+                  permissions: nextPermissions
+                }
+              })
+            );
+          }
+
+          return updatedParticipants;
+        }
+
+        if (d.defaultPermissions !== undefined) {
+          for (let storeOid of d.storeOids) {
+            if (byStoreOid.has(storeOid.toString())) continue;
+
+            let ids = getId('storeParticipant');
+            let participant = await client.storeParticipant.create({
+              data: {
+                oid: ids.oid,
+                id: ids.id,
+                storeOid,
+                tenantActorOid: d.actor.oid,
+                permissions: nextPermissions
+              }
+            });
+
+            participants.push(participant);
+          }
+        }
+
+        return participants;
+      },
+      { ifExists: true }
+    );
   }
 
   private getAccessibleStoreOids(
@@ -269,64 +278,69 @@ class StoreAccessServiceImpl {
       StoreAccessInput & {
         requiredPermission: StoreParticipantPermissions;
         storeOids: bigint[];
-        client?: DbClient;
       }
   ) {
-    let relevantStoreOids = uniqueBigInts(d.storeOids);
-    if (!d.actorId) {
-      return {
-        actor: undefined,
-        relevantStoreOids,
-        accessibleStoreOids: relevantStoreOids
-      };
-    }
+    return await withTransaction(
+      async db => {
+        let relevantStoreOids = uniqueBigInts(d.storeOids);
+        if (!d.actorId) {
+          return {
+            actor: undefined,
+            relevantStoreOids,
+            accessibleStoreOids: relevantStoreOids
+          };
+        }
 
-    let actor = await this.getActorForAccess(d);
-    let client = this.getClient(d.client);
-    let participants = actor
-      ? await this.upsertStoreParticipants(client, {
-          storeOids: relevantStoreOids,
+        let actor = await this.getActorForAccess(d);
+        let participants = actor
+          ? await this.upsertStoreParticipants({
+              storeOids: relevantStoreOids,
+              actor,
+              defaultPermissions: d.defaultPermissions,
+              overridePermissions: d.overridePermissions
+            })
+          : [];
+
+        return {
           actor,
-          defaultPermissions: d.defaultPermissions,
-          overridePermissions: d.overridePermissions
-        })
-      : [];
-
-    return {
-      actor,
-      relevantStoreOids,
-      accessibleStoreOids: this.getAccessibleStoreOids(participants, d.requiredPermission)
-    };
+          relevantStoreOids,
+          accessibleStoreOids: this.getAccessibleStoreOids(participants, d.requiredPermission)
+        };
+      },
+      { ifExists: true }
+    );
   }
 
   async listAccessibleStoreOidsForTenantEnvironment(
     d: CargoTenantEnvironment &
       StoreAccessInput & {
         requiredPermission: StoreParticipantPermissions;
-        client?: DbClient;
       }
   ) {
-    let client = this.getClient(d.client);
-    let stores = await client.store.findMany({
-      where: {
-        tenantOid: d.tenant.oid,
-        environmentOid: d.environment.oid
-      },
-      select: {
-        oid: true
-      }
-    });
+    return await withTransaction(
+      async db => {
+        let stores = await db.store.findMany({
+          where: {
+            tenantOid: d.tenant.oid,
+            environmentOid: d.environment.oid
+          },
+          select: {
+            oid: true
+          }
+        });
 
-    return await this.resolveAccessibleStoreOids({
-      tenant: d.tenant,
-      environment: d.environment,
-      actorId: d.actorId,
-      defaultPermissions: d.defaultPermissions,
-      overridePermissions: d.overridePermissions,
-      requiredPermission: d.requiredPermission,
-      storeOids: stores.map(store => store.oid),
-      client
-    });
+        return await this.resolveAccessibleStoreOids({
+          tenant: d.tenant,
+          environment: d.environment,
+          actorId: d.actorId,
+          defaultPermissions: d.defaultPermissions,
+          overridePermissions: d.overridePermissions,
+          requiredPermission: d.requiredPermission,
+          storeOids: stores.map(store => store.oid)
+        });
+      },
+      { ifExists: true }
+    );
   }
 
   async assertStoreAccessForStore(
@@ -334,7 +348,6 @@ class StoreAccessServiceImpl {
       StoreAccessInput & {
         store: Pick<Store, 'oid' | 'id'>;
         requiredPermission: StoreParticipantPermissions;
-        client?: DbClient;
       }
   ) {
     let result = await this.resolveAccessibleStoreOids({
@@ -344,8 +357,7 @@ class StoreAccessServiceImpl {
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
       requiredPermission: d.requiredPermission,
-      storeOids: [d.store.oid],
-      client: d.client
+      storeOids: [d.store.oid]
     });
 
     if (
@@ -375,15 +387,12 @@ class StoreAccessServiceImpl {
           createdByTenantActorOid?: bigint | null;
         };
         requiredPermission: StoreParticipantPermissions;
-        client?: DbClient;
       }
   ) {
     let actor = await this.getActorForAccess(d);
     let isOwner = !!actor && d.document.createdByTenantActorOid === actor.oid;
-    let client = this.getClient(d.client);
     let relevantStoreOids = await this.listRelevantStoreOidsForDocument({
-      document: d.document,
-      client
+      document: d.document
     });
     let access = await this.resolveAccessibleStoreOids({
       tenant: d.tenant,
@@ -392,8 +401,7 @@ class StoreAccessServiceImpl {
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
       requiredPermission: d.requiredPermission,
-      storeOids: relevantStoreOids,
-      client
+      storeOids: relevantStoreOids
     });
 
     if (d.actorId && !isOwner && access.accessibleStoreOids.length === 0) {
@@ -421,15 +429,12 @@ class StoreAccessServiceImpl {
           createdByTenantActorOid?: bigint | null;
         };
         requiredPermission: StoreParticipantPermissions;
-        client?: DbClient;
       }
   ) {
     let actor = await this.getActorForAccess(d);
     let isOwner = !!actor && d.file.createdByTenantActorOid === actor.oid;
-    let client = this.getClient(d.client);
     let relevantStoreOids = await this.listRelevantStoreOidsForFile({
-      file: d.file,
-      client
+      file: d.file
     });
     let access = await this.resolveAccessibleStoreOids({
       tenant: d.tenant,
@@ -438,8 +443,7 @@ class StoreAccessServiceImpl {
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
       requiredPermission: d.requiredPermission,
-      storeOids: relevantStoreOids,
-      client
+      storeOids: relevantStoreOids
     });
 
     if (d.actorId && !isOwner && access.accessibleStoreOids.length === 0) {
@@ -466,7 +470,6 @@ class StoreAccessServiceImpl {
           storeOid: bigint;
         };
         requiredPermission: StoreParticipantPermissions;
-        client?: DbClient;
       }
   ) {
     let access = await this.resolveAccessibleStoreOids({
@@ -476,8 +479,7 @@ class StoreAccessServiceImpl {
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
       requiredPermission: d.requiredPermission,
-      storeOids: [d.item.storeOid],
-      client: d.client
+      storeOids: [d.item.storeOid]
     });
 
     if (d.actorId && access.accessibleStoreOids.length === 0) {
