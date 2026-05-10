@@ -31,8 +31,7 @@ let consumerAccessListingGroup = portalGroup.use(async ctx => {
 export let portalConsumerAccessListingController = Controller.create(
   {
     name: 'Portal Consumer Access Listings',
-    description: 'Read the shared consumer access listings available on a portal surface.',
-    hideInDocs: true
+    description: 'Read the shared consumer access listings available on a portal surface.'
   },
   {
     list: portalGroup

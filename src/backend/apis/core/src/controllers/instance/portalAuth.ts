@@ -60,8 +60,7 @@ let portalAuthManagementSsoTenantGroup = portalAuthManagementGroup.use(async ctx
 export let portalAuthDashboardController = Controller.create(
   {
     name: 'Portal Auth',
-    description: 'Manage the Ares-backed authentication configuration for a portal.',
-    hideInDocs: true
+    description: 'Manage the Ares-backed authentication configuration for a portal.'
   },
   {
     getApp: portalAuthManagementGroup

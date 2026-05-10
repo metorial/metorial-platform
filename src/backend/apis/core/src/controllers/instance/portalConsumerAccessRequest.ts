@@ -31,8 +31,7 @@ let portalConsumerAccessRequestGroup = portalGroup.use(async ctx => {
 export let portalConsumerAccessRequestController = Controller.create(
   {
     name: 'Portal Consumer Access Requests',
-    description: 'Review and resolve consumer access requests for a portal.',
-    hideInDocs: true
+    description: 'Review and resolve consumer access requests for a portal.'
   },
   {
     list: portalGroup
