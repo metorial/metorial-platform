@@ -1,0 +1,6 @@
+node_modules
+dist
+dist-worker
+prisma/generated
+.env
+.env.test
