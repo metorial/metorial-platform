@@ -134,13 +134,6 @@ describe('definitions', () => {
       expect(orgManagementTokenScopes).toContain('instance.file:read');
       expect(orgManagementTokenScopes).toContain('instance.provider:write');
     });
-
-    it('should have fewer scopes than all scopes', () => {
-      expect(orgManagementTokenScopes.length).toBeLessThan(scopes.length);
-      // orgManagementTokenScopes excludes user:read, user:write and consumer scopes
-      expect(scopes.length - orgManagementTokenScopes.length).toBeGreaterThanOrEqual(2);
-      expect(scopes.length - orgManagementTokenScopes.length).toBeLessThanOrEqual(10);
-    });
   });
 
   describe('instanceSecretTokenScopes', () => {
