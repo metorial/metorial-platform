@@ -14,7 +14,9 @@ export type {
   CargoStoreItem,
   CargoStoreParticipant
 } from '../cargo';
+export type { CargoAccessActor, CargoAccessInput, CargoStorePermission } from './access';
 export { uploadCargoFile } from '../cargo';
+export * from './access';
 export * from './document';
 export * from './documentParticipant';
 export * from './documentVersion';

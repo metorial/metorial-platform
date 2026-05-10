@@ -5,8 +5,16 @@ import { CargoRPC } from './controllers';
 import { db } from './db';
 import { env } from './env';
 import { cargoContentApi, cargoUploadApi } from './http';
+import { documentLiveApi, websocket } from './live/document';
 
 let combinedApi = apiMux([
+  {
+    endpoint: {
+      path: '/document-live',
+      fetch: documentLiveApi.fetch as any
+    }
+  },
+
   {
     methods: ['POST', 'OPTIONS'],
     endpoint: {
@@ -23,7 +31,9 @@ let combinedApi = apiMux([
 
 let apiServer = Bun.serve({
   fetch: combinedApi,
-  port: env.service.CARGO_API_PORT
+  port: env.service.CARGO_API_PORT,
+  websocket,
+  idleTimeout: 240
 });
 
 let contentServer = Bun.serve({

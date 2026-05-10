@@ -54,6 +54,18 @@ export type ResolvedDocumentRecord = Prisma.DocumentGetPayload<{
   draftRevision?: number;
 };
 
+export type ScopedResolvedDocumentRecord = {
+  tenant: {
+    id: string;
+    oid: bigint;
+  };
+  environment: {
+    id: string;
+    oid: bigint;
+  };
+  document: ResolvedDocumentRecord;
+};
+
 type TransactionClient = Prisma.TransactionClient;
 type DocumentRecord = Prisma.DocumentGetPayload<{
   include: typeof documentInclude;
@@ -358,6 +370,29 @@ class DocumentServiceImpl {
     let activeVersion = d.document.currentVersion;
     let nextVersionNumber = d.document.maxVersionNumber;
     let didCreateVersion = false;
+    let parentLiveContent =
+      !d.document.isContentOwner && d.document.parentDocumentOid
+        ? await tx.document.findFirst({
+            where: {
+              oid: d.document.parentDocumentOid,
+              file: {
+                status: 'active'
+              }
+            },
+            select: {
+              contentOid: true,
+              content: {
+                select: {
+                  content: true
+                }
+              }
+            }
+          })
+        : null;
+    let shouldKeepParentSync =
+      !d.document.isContentOwner &&
+      !!parentLiveContent &&
+      parentLiveContent.content.content === d.nextContent;
 
     if (shouldCreateNewVersion) {
       if (d.document.currentVersion) {
@@ -389,6 +424,8 @@ class DocumentServiceImpl {
             content: d.nextContent
           }
         });
+      } else if (shouldKeepParentSync) {
+        liveContentOid = parentLiveContent!.contentOid;
       } else {
         let liveContentIds = getId('documentContent');
 
@@ -423,6 +460,35 @@ class DocumentServiceImpl {
           content: d.nextContent
         }
       });
+    } else if (shouldKeepParentSync) {
+      liveContentOid = parentLiveContent!.contentOid;
+
+      if (!d.document.currentVersion) {
+        activeVersion = await this.createVersion(tx, {
+          tenant: d.tenant,
+          environment: d.environment,
+          document: d.document,
+          versionNumber: d.document.maxVersionNumber + 1,
+          contentOid: liveContentOid,
+          listEditedAt: d.listEditedAt
+        });
+
+        nextVersionNumber += 1;
+        didCreateVersion = true;
+      } else {
+        activeVersion = await tx.documentVersion.update({
+          where: {
+            id: d.document.currentVersion.id
+          },
+          data: {
+            contentOid: liveContentOid,
+            listEditedAt: d.listEditedAt
+          },
+          include: {
+            content: true
+          }
+        });
+      }
     } else {
       let liveContentIds = getId('documentContent');
 
@@ -467,7 +533,7 @@ class DocumentServiceImpl {
       activeVersion,
       liveContentOid,
       nextVersionNumber,
-      isContentOwner: true,
+      isContentOwner: d.document.isContentOwner || !shouldKeepParentSync,
       didCreateVersion
     };
   }
@@ -755,6 +821,42 @@ class DocumentServiceImpl {
     return await this.resolveDocument(document);
   }
 
+  async getScopedDocumentById(d: { documentId: string; includeDeleted?: boolean }) {
+    let scopedDocument = await db.document.findFirst({
+      where: {
+        id: d.documentId,
+        ...(d.includeDeleted ? {} : { file: { status: 'active' } })
+      },
+      include: {
+        ...documentInclude,
+        tenant: {
+          select: {
+            id: true,
+            oid: true
+          }
+        },
+        environment: {
+          select: {
+            id: true,
+            oid: true
+          }
+        }
+      }
+    });
+
+    if (!scopedDocument) {
+      throw new ServiceError(notFoundError('document', d.documentId));
+    }
+
+    let { tenant, environment, ...document } = scopedDocument;
+
+    return {
+      tenant,
+      environment,
+      document: await this.resolveDocument(document)
+    } satisfies ScopedResolvedDocumentRecord;
+  }
+
   async listDocuments(d: CargoTenantEnvironment & DocumentAccessInput) {
     if (!d.actorId) {
       return Paginator.create(({ prisma }) =>
@@ -1028,6 +1130,45 @@ class DocumentServiceImpl {
     };
   }
 
+  async listLinkedChildDocumentsForLiveSync(d: { parentDocumentId: string }) {
+    let parentDocument = await db.document.findFirst({
+      where: {
+        id: d.parentDocumentId,
+        file: {
+          status: 'active'
+        }
+      },
+      select: {
+        oid: true
+      }
+    });
+    if (!parentDocument) {
+      throw new ServiceError(notFoundError('document', d.parentDocumentId));
+    }
+
+    let children = await db.document.findMany({
+      where: {
+        parentDocumentOid: parentDocument.oid,
+        isContentOwner: false,
+        file: {
+          status: 'active'
+        }
+      },
+      include: documentInclude
+    });
+
+    let childDrafts = await Promise.all(
+      children.map(async child => ({
+        child,
+        draft: await documentDraftService.getDraftByDocumentId(child.id)
+      }))
+    );
+
+    return childDrafts
+      .filter(child => child.draft === null)
+      .map(child => child.child);
+  }
+
   async syncChildDocumentVersionFromParentVersion(d: {
     parentDocumentVersionId: string;
     childDocumentId: string;
@@ -1075,7 +1216,10 @@ class DocumentServiceImpl {
           currentVersion.contentOid === parentVersion.contentOid &&
           currentListEditedAt === parentListEditedAt
         ) {
-          return childDocument;
+          return {
+            document: childDocument,
+            createdVersionId: null
+          };
         }
 
         let nextVersionNumber = childDocument.maxVersionNumber + 1;
@@ -1102,7 +1246,7 @@ class DocumentServiceImpl {
           }
         });
 
-        return await tx.document.update({
+        let syncedDocument = await tx.document.update({
           where: {
             id: childDocument.id
           },
@@ -1114,6 +1258,11 @@ class DocumentServiceImpl {
           },
           include: documentInclude
         });
+
+        return {
+          document: syncedDocument,
+          createdVersionId: nextVersion.id
+        };
       });
     });
   }

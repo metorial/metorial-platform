@@ -10,6 +10,10 @@ export type CargoHttpEndpoints = {
   headers?: CargoHeaders;
 };
 
+export type CargoDocumentLiveEndpoints = {
+  liveEndpoint: string;
+};
+
 export type CargoUploadInput = {
   tenantId: string;
   environmentId: string;
@@ -45,6 +49,76 @@ export type CargoUploadResult = {
   updatedAt: string | Date;
 };
 
+export type CargoDocumentLiveInput = {
+  documentId: string;
+  actorId?: string;
+  instanceId?: string;
+  organizationId?: string;
+};
+
+export type CargoDocumentLiveClientMessage =
+  | {
+      type: 'ping';
+    }
+  | {
+      type: 'document_update';
+      data: {
+        content: string;
+        title?: string;
+      };
+    };
+
+export type CargoDocumentLiveServerMessage =
+  | {
+      type: 'document_snapshot';
+      data: {
+        object: 'cargo#document';
+        id: string;
+        title: string;
+        status: string;
+        fileId: string;
+        file: unknown;
+        parentDocumentId: string | null;
+        currentVersionId: string | null;
+        content: string;
+        createdAt: string | Date;
+        updatedAt: string | Date;
+      };
+    }
+  | {
+      type: 'participant_list';
+      data: Array<{
+        object: 'cargo#documentParticipant';
+        id: string;
+        documentId: string;
+        role: 'editor' | 'viewer';
+        editCount: number;
+        lastEditedAt: string | Date | null;
+        lastViewedAt: string | Date | null;
+        actor: {
+          object: 'cargo#actor';
+          id: string;
+          identifier: string;
+          type: string;
+          name: string;
+          organizationActorId?: string | null;
+          consumerId?: string | null;
+          createdAt: string | Date;
+        };
+        createdAt: string | Date;
+      }>;
+    }
+  | {
+      type: 'pong';
+      data: {
+        documentId: string;
+      };
+    }
+  | {
+      type: 'error';
+      data: unknown;
+    };
+
 export let createCargoClient = (o: RpcClientOpts): CargoClient => createClient<CargoClient>(o);
 
 export let getFileDownloadUrl = (d: {
@@ -52,6 +126,27 @@ export let getFileDownloadUrl = (d: {
   fileId: string;
   key: string;
 }) => `${d.contentEndpoint.replace(/\/$/, '')}/files/${d.fileId}/${d.key}`;
+
+export let getDocumentLiveUrl = (
+  endpoints: CargoDocumentLiveEndpoints,
+  input: CargoDocumentLiveInput
+) => {
+  let url = new URL(`${endpoints.liveEndpoint.replace(/\/$/, '')}/documents-live`);
+  if (url.protocol === 'https:') url.protocol = 'wss:';
+  if (url.protocol === 'http:') url.protocol = 'ws:';
+
+  url.searchParams.set('documentId', input.documentId);
+  if (input.actorId) url.searchParams.set('actorId', input.actorId);
+  if (input.instanceId) url.searchParams.set('instanceId', input.instanceId);
+  if (input.organizationId) url.searchParams.set('organizationId', input.organizationId);
+
+  return url.toString();
+};
+
+export let createDocumentLiveConnection = (
+  endpoints: CargoDocumentLiveEndpoints,
+  input: CargoDocumentLiveInput
+) => new WebSocket(getDocumentLiveUrl(endpoints, input));
 
 export let uploadFile = async (
   endpoints: CargoHttpEndpoints,

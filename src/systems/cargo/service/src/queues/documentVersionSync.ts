@@ -53,10 +53,16 @@ export let documentVersionSyncManyProcessor = documentVersionSyncManyQueue.proce
 
 export let documentVersionSyncSingleProcessor = documentVersionSyncSingleQueue.process(
   async data => {
-    await documentService.syncChildDocumentVersionFromParentVersion({
+    let result = await documentService.syncChildDocumentVersionFromParentVersion({
       parentDocumentVersionId: data.parentDocumentVersionId,
       childDocumentId: data.childDocumentId
     });
+
+    if (result?.createdVersionId) {
+      await documentVersionSyncManyQueue.add({
+        parentDocumentVersionId: result.createdVersionId
+      });
+    }
   }
 );
 

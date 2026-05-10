@@ -1,14 +1,17 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, forbiddenError, ServiceError } from '@lowerdeck/error';
 import { createExecutionContext, provideExecutionContext } from '@lowerdeck/execution-context';
 import { extractIp } from '@lowerdeck/forwarded-for';
 import { Context, cors, createHono } from '@lowerdeck/hono';
 import { authenticate } from '@metorial/auth';
 import { generatePlainId } from '@metorial/id';
+import { upgradeWebSocket, websocket } from 'hono/bun';
 import {
+  documentService,
   fileLinkService,
   getOssFilesBucketName,
   getStorage,
   purposeSlugs,
+  resolveCargoAccess,
   uploadCargoFile
 } from '@metorial/module-file';
 import { resolveUploadTarget } from './uploadAccess';
@@ -23,6 +26,8 @@ type FileApiOptions = {
     auth: FileApiAuthResult['auth'];
   }>;
 };
+
+export { websocket };
 
 let createFileUploadHandler =
   (authenticateRequest: NonNullable<FileApiOptions['authenticateRequest']>) =>
@@ -153,6 +158,164 @@ let getFileContentHandler = async (c: Context) => {
   });
 };
 
+let getQueryParam = (url: URL, keys: string[]) => {
+  for (let key of keys) {
+    let value = url.searchParams.get(key);
+    if (value) return value;
+  }
+
+  return null;
+};
+
+let getCargoDocumentLiveUrl = (d: { actorId: string; documentId: string }) => {
+  if (!process.env.CARGO_API_URL) {
+    throw new Error('CARGO_API_URL is required');
+  }
+
+  let url = new URL(process.env.CARGO_API_URL);
+
+  if (url.pathname.endsWith('/metorial-cargo')) {
+    url.pathname = url.pathname.slice(0, -'/metorial-cargo'.length) || '/';
+  }
+
+  url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+  url.pathname = `${url.pathname.replace(/\/$/, '')}/document-live`;
+  url.search = '';
+  url.searchParams.set('actorId', d.actorId);
+  url.searchParams.set('documentId', d.documentId);
+
+  return url.toString();
+};
+
+let createDocumentsLiveHandler =
+  (authenticateRequest: NonNullable<FileApiOptions['authenticateRequest']>) =>
+  createHono()
+    .use(async (c, next) => {
+      c.res.headers.set('Access-Control-Allow-Origin', c.req.header('Origin') || '*');
+      c.res.headers.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
+      c.res.headers.set(
+        'Access-Control-Allow-Headers',
+        'Content-Type, Authorization, Cookies, metorial-version, metorial-instance-id, metorial-consumer-profile-id, metorial-organization-id, baggage, sentry-trace, metorial-client, metorial-consumer-session-client-secret'
+      );
+      c.res.headers.set('Access-Control-Allow-Credentials', 'true');
+      c.res.headers.set('Access-Control-Max-Age', '86400');
+
+      if (c.req.method === 'OPTIONS') {
+        return c.text('OK', 200);
+      }
+
+      await next();
+    })
+    .options('*', c => c.text(''))
+    .get(
+      '/documents-live',
+      upgradeWebSocket(async c => {
+        let url = new URL(c.req.url);
+        let documentId = getQueryParam(url, ['documentId', 'document_id']);
+        let instanceId = getQueryParam(url, ['instanceId', 'instance_id']);
+        let organizationId = getQueryParam(url, ['organizationId', 'organization_id']);
+
+        if (!documentId) {
+          throw new ServiceError(
+            badRequestError({
+              message: 'Missing documentId query parameter'
+            })
+          );
+        }
+
+        let { auth } = await authenticateRequest(c.req.raw, url);
+        let target = await resolveUploadTarget({
+          auth,
+          instanceId,
+          organizationId
+        });
+
+        if (!target.cargoAccess?.accessActor) {
+          throw new ServiceError(
+            forbiddenError({
+              message: 'Actor context is required',
+              description:
+                'Live document connections require an organization actor or consumer actor context.'
+            })
+          );
+        }
+
+        await documentService.getDocumentById({
+          owner: target.owner,
+          documentId,
+          ...target.cargoAccess
+        });
+
+        let { actorId } = await resolveCargoAccess({
+          owner: target.owner,
+          ...target.cargoAccess
+        });
+        if (!actorId) {
+          throw new ServiceError(
+            forbiddenError({
+              message: 'Actor context is required'
+            })
+          );
+        }
+
+        let upstreamUrl = getCargoDocumentLiveUrl({
+          actorId,
+          documentId
+        });
+        let upstream: WebSocket | null = null;
+
+        return {
+          onOpen: async (_, ws) => {
+            upstream = new WebSocket(upstreamUrl);
+
+            upstream.onmessage = event => {
+              ws.send(typeof event.data === 'string' ? event.data : event.data.toString());
+            };
+
+            upstream.onerror = () => {
+              try {
+                ws.close(1011, 'upstream_error');
+              } catch {}
+            };
+
+            upstream.onclose = event => {
+              try {
+                ws.close(event.code || 1000, event.reason);
+              } catch {}
+            };
+          },
+
+          onMessage: async event => {
+            if (!upstream || upstream.readyState !== WebSocket.OPEN) {
+              return;
+            }
+
+            upstream.send(event.data.toString());
+          },
+
+          onClose: async () => {
+            if (!upstream) return;
+            if (
+              upstream.readyState === WebSocket.OPEN ||
+              upstream.readyState === WebSocket.CONNECTING
+            ) {
+              upstream.close();
+            }
+          },
+
+          onError: async () => {
+            if (!upstream) return;
+            if (
+              upstream.readyState === WebSocket.OPEN ||
+              upstream.readyState === WebSocket.CONNECTING
+            ) {
+              upstream.close();
+            }
+          }
+        };
+      })
+    );
+
 export let createFileUploadApi = (d?: FileApiOptions) => {
   let authenticateRequest = d?.authenticateRequest ?? authenticate;
 
@@ -172,6 +335,11 @@ export let createFileUploadApi = (d?: FileApiOptions) => {
       })
     )
     .post('/files', createFileUploadHandler(authenticateRequest));
+};
+
+export let createDocumentsLiveApi = (d?: FileApiOptions) => {
+  let authenticateRequest = d?.authenticateRequest ?? authenticate;
+  return createDocumentsLiveHandler(authenticateRequest);
 };
 
 export let createFileContentApi = () =>
@@ -195,3 +363,4 @@ export let createFileContentApi = () =>
 
 export let fileUploadApi = createFileUploadApi();
 export let fileContentApi = createFileContentApi();
+export let documentsLiveApi = createDocumentsLiveApi();

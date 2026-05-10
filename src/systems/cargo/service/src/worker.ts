@@ -1,26 +1,14 @@
+import { runQueueProcessors } from '@lowerdeck/queue';
 import { createRequire } from 'module';
+import { documentCleanupProcessors } from './queues/documentCleanup';
+import { documentFlushProcessors } from './queues/documentFlush';
+import { documentVersionSyncProcessors } from './queues/documentVersionSync';
+import { storeCleanupProcessors } from './queues/storeCleanup';
 
 let require = createRequire(import.meta.url);
 (globalThis as any).require = require;
 
 async function main() {
-  await import('./init');
-  await import('./instrument');
-
-  let [
-    { runQueueProcessors },
-    { documentCleanupProcessors },
-    { documentFlushProcessors },
-    { documentVersionSyncProcessors },
-    { storeCleanupProcessors }
-  ] = await Promise.all([
-    import('@lowerdeck/queue'),
-    import('./queues/documentCleanup'),
-    import('./queues/documentFlush'),
-    import('./queues/documentVersionSync'),
-    import('./queues/storeCleanup')
-  ]);
-
   await runQueueProcessors([
     documentFlushProcessors,
     documentCleanupProcessors,
