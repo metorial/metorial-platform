@@ -16,6 +16,7 @@ import {
 } from './storeAccess';
 import { storeItemInclude, type StoreItemRecord } from './storeItem';
 import { storeItemMutationService, type StoreItemOperationInput } from './storeItemMutation';
+import { storeVersionService } from './storeVersion';
 
 type DbClient = PrismaClient | Prisma.TransactionClient;
 
@@ -208,6 +209,11 @@ class StoreServiceImpl {
           actor: access.actor
         });
       }
+
+      await storeVersionService.markStoreDirtyIfNeeded({
+        storeOid: clonedStore.oid,
+        client: tx
+      });
 
       return (await tx.store.findUnique({
         where: {

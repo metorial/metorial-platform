@@ -340,6 +340,75 @@ describe('cargo file.e2e', () => {
     ).rejects.toThrow();
   });
 
+  it('uses the parent store for linked document files until the first divergent write', async () => {
+    let tenant = await cargoClient.tenant.upsert({
+      identifier: 'tenant-file-linked-document-store',
+      name: 'Tenant File Linked Document Store'
+    });
+
+    let environment = await cargoClient.environment.upsert({
+      tenantId: tenant.id,
+      identifier: 'prod',
+      name: 'Production',
+      type: 'production'
+    });
+
+    let parent = await cargoClient.document.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      title: 'Parent',
+      content: 'shared'
+    });
+
+    let child = await cargoClient.document.clone({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: parent.id,
+      title: 'Child'
+    });
+    let childFileRecord = await db.file.findUnique({
+      where: {
+        id: child.fileId
+      }
+    });
+
+    let childFileBeforeFork = await cargoClient.file.get({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      fileId: child.fileId
+    });
+    let listedBeforeFork = await cargoClient.file.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      limit: 10
+    });
+
+    await cargoClient.document.update({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: child.id,
+      content: 'child-owned'
+    });
+
+    let childFileAfterFork = await cargoClient.file.get({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      fileId: child.fileId
+    });
+    let listedAfterFork = await cargoClient.file.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      limit: 10
+    });
+    let listedChildBeforeFork = listedBeforeFork.items.find(item => item.id === child.fileId);
+    let listedChildAfterFork = listedAfterFork.items.find(item => item.id === child.fileId);
+
+    expect(childFileBeforeFork.storeId).toBe(parent.file.storeId);
+    expect(listedChildBeforeFork?.storeId).toBe(parent.file.storeId);
+    expect(childFileAfterFork.storeId).toBe(childFileRecord?.storeId);
+    expect(listedChildAfterFork?.storeId).toBe(childFileRecord?.storeId);
+  });
+
   it('attaches files to stores on create when write access is available', async () => {
     let tenant = await cargoClient.tenant.upsert({
       identifier: 'tenant-file-store-shortcut',

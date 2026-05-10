@@ -9,6 +9,7 @@ model Store {
 
   name      String
   itemCount Int    @default(0)
+  dirtyAt   DateTime?
 
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
@@ -24,8 +25,11 @@ model Store {
   updatedAt DateTime @default(now()) @updatedAt
 
   items             StoreItem[]
+  versions          StoreVersion[]
   storeParticipants StoreParticipant[]
   skill             Skill?
+
+  @@index([tenantOid, environmentOid, dirtyAt])
 }
 
 model StoreItem {
@@ -53,6 +57,52 @@ model StoreItem {
   updatedAt DateTime @default(now()) @updatedAt
 
   @@unique([storeOid, path])
+  @@index([documentOid])
+}
+
+model StoreVersion {
+  oid BigInt @id
+  id  String @unique
+
+  versionNumber Int
+  sourceDirtyAt DateTime
+
+  storeOid BigInt
+  store    Store   @relation(fields: [storeOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  items StoreVersionItem[]
+
+  @@unique([storeOid, versionNumber])
+  @@unique([storeOid, sourceDirtyAt])
+  @@index([storeOid, createdAt])
+}
+
+model StoreVersionItem {
+  oid BigInt @id
+  id  String @unique
+
+  path String
+
+  storeVersionOid BigInt
+  storeVersion    StoreVersion @relation(fields: [storeVersionOid], references: [oid], onDelete: Cascade)
+
+  fileOid BigInt
+  file    File   @relation(fields: [fileOid], references: [oid], onDelete: Cascade)
+
+  documentOid BigInt?
+  document    Document? @relation(fields: [documentOid], references: [oid], onDelete: Cascade)
+
+  documentVersionOid BigInt?
+  documentVersion    DocumentVersion? @relation(fields: [documentVersionOid], references: [oid], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@unique([storeVersionOid, path])
+  @@index([fileOid])
+  @@index([documentOid])
+  @@index([documentVersionOid])
 }
 
 enum StoreParticipantPermissions {

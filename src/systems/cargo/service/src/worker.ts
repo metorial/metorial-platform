@@ -4,6 +4,7 @@ import { documentCleanupProcessors } from './queues/documentCleanup';
 import { documentFlushProcessors } from './queues/documentFlush';
 import { documentVersionSyncProcessors } from './queues/documentVersionSync';
 import { storeCleanupProcessors } from './queues/storeCleanup';
+import { storeVersionProcessors } from './queues/storeVersion';
 
 let require = createRequire(import.meta.url);
 (globalThis as any).require = require;
@@ -13,7 +14,8 @@ async function main() {
     documentFlushProcessors,
     documentCleanupProcessors,
     documentVersionSyncProcessors,
-    storeCleanupProcessors
+    storeCleanupProcessors,
+    storeVersionProcessors
   ]);
 }
 

@@ -19,11 +19,13 @@ import { getId } from '../id';
 import { documentFlushQueue } from '../queues/documentFlush';
 import { documentVersionSyncManyQueue } from '../queues/documentVersionSync';
 import { actorService } from './actor';
+import { getEffectiveDocumentStoreSource } from './documentContentStore';
 import { documentDraftService, type DocumentDraft } from './documentDraft';
 import { fileService } from './file';
 import { filePurposeService, type CargoTenantEnvironment } from './filePurpose';
 import { storeAccessService, storeReadPermission, storeWritePermission } from './storeAccess';
 import { storeItemMutationService } from './storeItemMutation';
+import { storeVersionService } from './storeVersion';
 
 let activeVersionWindowMs = 3 * 60 * 60 * 1000;
 let draftFlushDelayMs = 60 * 1000;
@@ -73,6 +75,11 @@ type DocumentRecord = Prisma.DocumentGetPayload<{
 type VersionContext = {
   tenant: { oid: bigint };
   environment: { oid: bigint };
+};
+type DocumentWithEffectiveStoreId<T extends { file: { storeId: string } }> = T & {
+  file: T['file'] & {
+    effectiveStoreId?: string;
+  };
 };
 type DocumentAccessInput = {
   actorId?: string;
@@ -128,15 +135,75 @@ class DocumentServiceImpl {
 
   private async resolveDocument(document: DocumentRecord): Promise<ResolvedDocumentRecord> {
     let draft = await documentDraftService.getDraftByDocumentId(document.id);
-    if (!draft) return document;
+    if (!draft) return await this.withEffectiveFileStore(document);
 
-    return {
+    return await this.withEffectiveFileStore({
       ...document,
       resolvedTitle: draft.title,
       resolvedContent: draft.content,
       hasDraft: true,
       draftRevision: draft.revision,
       draftUpdatedAt: new Date(draft.updatedAt)
+    });
+  }
+
+  private async withEffectiveFileStore<T extends DocumentRecord | ResolvedDocumentRecord>(document: T) {
+    let effectiveStoreSource = await getEffectiveDocumentStoreSource(document);
+    if (effectiveStoreSource.file.storeId === document.file.storeId) {
+      return document as DocumentWithEffectiveStoreId<T>;
+    }
+
+    return {
+      ...document,
+      file: {
+        ...document.file,
+        effectiveStoreId: effectiveStoreSource.file.storeId
+      }
+    } satisfies DocumentWithEffectiveStoreId<T>;
+  }
+
+  private async getParentLiveContent(
+    client: PrismaClient | TransactionClient,
+    document: Pick<DocumentRecord, 'isContentOwner' | 'parentDocumentOid'>
+  ) {
+    if (!document.parentDocumentOid) {
+      return null;
+    }
+
+    return await client.document.findFirst({
+      where: {
+        oid: document.parentDocumentOid,
+        file: {
+          status: 'active'
+        }
+      },
+      select: {
+        contentOid: true,
+        content: {
+          select: {
+            content: true
+          }
+        }
+      }
+    });
+  }
+
+  private async getParentSyncState(
+    client: PrismaClient | TransactionClient,
+    d: {
+      document: Pick<DocumentRecord, 'isContentOwner' | 'parentDocumentOid'>;
+      nextContent: string;
+    }
+  ) {
+    let parentLiveContent = await this.getParentLiveContent(client, d.document);
+    let shouldKeepParentSync =
+      !d.document.isContentOwner &&
+      !!parentLiveContent &&
+      parentLiveContent.content.content === d.nextContent;
+
+    return {
+      parentLiveContent,
+      shouldKeepParentSync
     };
   }
 
@@ -370,29 +437,14 @@ class DocumentServiceImpl {
     let activeVersion = d.document.currentVersion;
     let nextVersionNumber = d.document.maxVersionNumber;
     let didCreateVersion = false;
-    let parentLiveContent =
-      !d.document.isContentOwner && d.document.parentDocumentOid
-        ? await tx.document.findFirst({
-            where: {
-              oid: d.document.parentDocumentOid,
-              file: {
-                status: 'active'
-              }
-            },
-            select: {
-              contentOid: true,
-              content: {
-                select: {
-                  content: true
-                }
-              }
-            }
-          })
-        : null;
-    let shouldKeepParentSync =
-      !d.document.isContentOwner &&
+    let { parentLiveContent, shouldKeepParentSync } = await this.getParentSyncState(tx, {
+      document: d.document,
+      nextContent: d.nextContent
+    });
+    let shouldDetachOwnedContent =
+      d.document.isContentOwner &&
       !!parentLiveContent &&
-      parentLiveContent.content.content === d.nextContent;
+      parentLiveContent.contentOid === d.document.contentOid;
 
     if (shouldCreateNewVersion) {
       if (d.document.currentVersion) {
@@ -416,14 +468,27 @@ class DocumentServiceImpl {
       }
 
       if (d.document.isContentOwner) {
-        await tx.documentContent.update({
-          where: {
-            oid: d.document.contentOid
-          },
-          data: {
-            content: d.nextContent
-          }
-        });
+        if (shouldDetachOwnedContent) {
+          let liveContentIds = getId('documentContent');
+
+          await tx.documentContent.create({
+            data: {
+              oid: liveContentIds.oid,
+              content: d.nextContent
+            }
+          });
+
+          liveContentOid = liveContentIds.oid;
+        } else {
+          await tx.documentContent.update({
+            where: {
+              oid: d.document.contentOid
+            },
+            data: {
+              content: d.nextContent
+            }
+          });
+        }
       } else if (shouldKeepParentSync) {
         liveContentOid = parentLiveContent!.contentOid;
       } else {
@@ -452,14 +517,54 @@ class DocumentServiceImpl {
       });
       didCreateVersion = true;
     } else if (d.document.isContentOwner) {
-      await tx.documentContent.update({
-        where: {
-          oid: d.document.contentOid
-        },
-        data: {
-          content: d.nextContent
+      if (shouldDetachOwnedContent) {
+        let liveContentIds = getId('documentContent');
+
+        await tx.documentContent.create({
+          data: {
+            oid: liveContentIds.oid,
+            content: d.nextContent
+          }
+        });
+
+        liveContentOid = liveContentIds.oid;
+
+        if (!d.document.currentVersion) {
+          activeVersion = await this.createVersion(tx, {
+            tenant: d.tenant,
+            environment: d.environment,
+            document: d.document,
+            versionNumber: d.document.maxVersionNumber + 1,
+            contentOid: liveContentOid,
+            listEditedAt: d.listEditedAt
+          });
+
+          nextVersionNumber += 1;
+          didCreateVersion = true;
+        } else {
+          activeVersion = await tx.documentVersion.update({
+            where: {
+              id: d.document.currentVersion.id
+            },
+            data: {
+              contentOid: liveContentOid,
+              listEditedAt: d.listEditedAt
+            },
+            include: {
+              content: true
+            }
+          });
         }
-      });
+      } else {
+        await tx.documentContent.update({
+          where: {
+            oid: d.document.contentOid
+          },
+          data: {
+            content: d.nextContent
+          }
+        });
+      }
     } else if (shouldKeepParentSync) {
       liveContentOid = parentLiveContent!.contentOid;
 
@@ -954,6 +1059,7 @@ class DocumentServiceImpl {
 
     let resolved = await documentDraftService.withDocumentLock(d.document.id, async () => {
       let currentDraft = await documentDraftService.getDraftByDocumentId(d.document.id);
+      let currentContent = currentDraft?.content ?? d.document.resolvedContent ?? d.document.content.content;
       let nextDraft: DocumentDraft = {
         documentId: d.document.id,
         title:
@@ -968,6 +1074,32 @@ class DocumentServiceImpl {
         updatedAt: new Date().toISOString(),
         flushAfter: new Date(Date.now() + draftFlushDelayMs).toISOString()
       };
+      let nextIsContentOwner = d.document.isContentOwner;
+
+      if (
+        d.input.content !== undefined &&
+        currentContent !== nextDraft.content &&
+        !d.document.isContentOwner
+      ) {
+        let { shouldKeepParentSync } = await this.getParentSyncState(db, {
+          document: d.document,
+          nextContent: nextDraft.content
+        });
+
+        if (!shouldKeepParentSync) {
+          await db.document.updateMany({
+            where: {
+              id: d.document.id,
+              isContentOwner: false
+            },
+            data: {
+              isContentOwner: true
+            }
+          });
+
+          nextIsContentOwner = true;
+        }
+      }
 
       if (actor) {
         nextDraft.actorIds = [...new Set([...nextDraft.actorIds, actor.id])];
@@ -978,6 +1110,7 @@ class DocumentServiceImpl {
 
       return {
         ...d.document,
+        isContentOwner: nextIsContentOwner,
         resolvedTitle: nextDraft.title,
         resolvedContent: nextDraft.content,
         hasDraft: true,
@@ -998,7 +1131,7 @@ class DocumentServiceImpl {
 
     await this.queueDocumentFlush(d.document.id, draftFlushDelayMs);
 
-    return resolved;
+    return await this.withEffectiveFileStore(resolved);
   }
 
   async flushDocumentDraft(d: { documentId: string; force?: boolean; queuedRevision?: number }) {
@@ -1061,6 +1194,9 @@ class DocumentServiceImpl {
       await documentDraftService.deleteDraft(d.documentId);
       await documentDraftService.clearDocumentMarkersUpToRevision(d.documentId, draft.revision);
       if (result.createdVersionId) {
+        await storeVersionService.markStoresDirtyForDocument({
+          documentOid: result.document.oid
+        });
         await this.queueDocumentVersionSync(result.createdVersionId);
       }
 
@@ -1173,7 +1309,7 @@ class DocumentServiceImpl {
     parentDocumentVersionId: string;
     childDocumentId: string;
   }) {
-    return await documentDraftService.withDocumentLock(d.childDocumentId, async () => {
+    let result = await documentDraftService.withDocumentLock(d.childDocumentId, async () => {
       let draft = await documentDraftService.getDraftByDocumentId(d.childDocumentId);
       if (draft) return null;
 
@@ -1265,6 +1401,14 @@ class DocumentServiceImpl {
         };
       });
     });
+
+    if (result?.createdVersionId) {
+      await storeVersionService.markStoresDirtyForDocument({
+        documentOid: result.document.oid
+      });
+    }
+
+    return result;
   }
 
   async cloneDocument(
@@ -1374,10 +1518,10 @@ class DocumentServiceImpl {
     };
 
     if (d.client) {
-      return await cloneWithClient(d.client);
+      return await this.withEffectiveFileStore(await cloneWithClient(d.client));
     }
 
-    return await db.$transaction(async tx => await cloneWithClient(tx));
+    return await this.withEffectiveFileStore(await db.$transaction(async tx => await cloneWithClient(tx)));
   }
 
   async deleteDocument(

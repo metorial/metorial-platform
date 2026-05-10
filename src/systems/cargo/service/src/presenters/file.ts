@@ -6,6 +6,7 @@ export let filePresenter = (
   file: File & {
     purpose: FilePurpose;
     document: Pick<Document, 'id'> | null;
+    effectiveStoreId?: string;
   }
 ) => ({
   object: 'cargo#file',
@@ -13,7 +14,7 @@ export let filePresenter = (
   type: file.document ? 'document' : 'file',
   status: file.status,
   documentId: file.document?.id,
-  storeId: file.storeId,
+  storeId: file.effectiveStoreId ?? file.storeId,
   fileName: file.fileName,
   fileSize: file.fileSize,
   fileType: file.fileType,

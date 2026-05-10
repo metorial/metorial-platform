@@ -18,6 +18,7 @@ export let documentPresenter = (
     draftUpdatedAt?: Date;
     draftRevision?: number;
     file: File & {
+      effectiveStoreId?: string;
       purpose: FilePurpose;
     };
   }

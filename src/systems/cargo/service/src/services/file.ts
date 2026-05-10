@@ -10,6 +10,7 @@ import type { File, Prisma, PrismaClient, StoreParticipantPermissions } from '..
 import { db } from '../db';
 import { getId } from '../id';
 import { actorService } from './actor';
+import { getEffectiveDocumentStoreSourceByDocumentId } from './documentContentStore';
 import { documentDraftService } from './documentDraft';
 import {
   documentFilePurposeSlug,
@@ -46,6 +47,22 @@ type FileAccessInput = {
 };
 
 class FileServiceImpl {
+  private async withEffectiveStoreId<T extends FileRecord>(file: T) {
+    if (!file.document?.id) {
+      return file as T & { effectiveStoreId?: string };
+    }
+
+    let effectiveStoreSource = await getEffectiveDocumentStoreSourceByDocumentId(file.document.id);
+    if (!effectiveStoreSource || effectiveStoreSource.file.storeId === file.storeId) {
+      return file as T & { effectiveStoreId?: string };
+    }
+
+    return {
+      ...file,
+      effectiveStoreId: effectiveStoreSource.file.storeId
+    } satisfies T & { effectiveStoreId?: string };
+  }
+
   private async ensureFileActive(file: File) {
     if (file.status !== 'active') {
       throw new ServiceError(
@@ -167,7 +184,7 @@ class FileServiceImpl {
         });
       }
 
-      return updatedFile;
+      return await this.withEffectiveStoreId(updatedFile);
     }
 
     let generated = getId('file');
@@ -222,7 +239,7 @@ class FileServiceImpl {
       });
     }
 
-    return createdFile;
+    return await this.withEffectiveStoreId(createdFile);
   }
 
   async getFileById(
@@ -251,7 +268,7 @@ class FileServiceImpl {
       requiredPermission: storeReadPermission
     });
 
-    return file;
+    return await this.withEffectiveStoreId(file);
   }
 
   async updateFile(d: {
@@ -383,22 +400,25 @@ class FileServiceImpl {
 
     if (!d.actorId) {
       return Paginator.create(({ prisma }) =>
-        prisma(
-          async opts =>
-            await db.file.findMany({
-              ...opts,
-              where: {
-                tenantOid: d.tenant.oid,
-                environmentOid: d.environment.oid,
-                status: d.includeDeleted ? undefined : 'active',
-                purposeOid: purposes
-                  ? {
-                      in: purposes.map(purpose => purpose.oid)
-                    }
-                  : undefined
-              },
-              include
-            })
+        prisma(async opts =>
+          await Promise.all(
+            (
+              await db.file.findMany({
+                ...opts,
+                where: {
+                  tenantOid: d.tenant.oid,
+                  environmentOid: d.environment.oid,
+                  status: d.includeDeleted ? undefined : 'active',
+                  purposeOid: purposes
+                    ? {
+                        in: purposes.map(purpose => purpose.oid)
+                      }
+                    : undefined
+                },
+                include
+              })
+            ).map(async file => await this.withEffectiveStoreId(file))
+          )
         )
       );
     }
@@ -413,36 +433,39 @@ class FileServiceImpl {
     });
 
     return Paginator.create(({ prisma }) =>
-      prisma(
-        async opts =>
-          await db.file.findMany({
-            ...opts,
-            where: {
-              tenantOid: d.tenant.oid,
-              environmentOid: d.environment.oid,
-              status: d.includeDeleted ? undefined : 'active',
-              purposeOid: purposes
-                ? {
-                    in: purposes.map(purpose => purpose.oid)
-                  }
-                : undefined,
-              OR: [
-                {
-                  createdByTenantActorOid: access.actor?.oid
-                },
-                {
-                  storeItems: {
-                    some: {
-                      storeOid: {
-                        in: access.accessibleStoreOids
+      prisma(async opts =>
+        await Promise.all(
+          (
+            await db.file.findMany({
+              ...opts,
+              where: {
+                tenantOid: d.tenant.oid,
+                environmentOid: d.environment.oid,
+                status: d.includeDeleted ? undefined : 'active',
+                purposeOid: purposes
+                  ? {
+                      in: purposes.map(purpose => purpose.oid)
+                    }
+                  : undefined,
+                OR: [
+                  {
+                    createdByTenantActorOid: access.actor?.oid
+                  },
+                  {
+                    storeItems: {
+                      some: {
+                        storeOid: {
+                          in: access.accessibleStoreOids
+                        }
                       }
                     }
                   }
-                }
-              ]
-            },
-            include
-          })
+                ]
+              },
+              include
+            })
+          ).map(async file => await this.withEffectiveStoreId(file))
+        )
       )
     );
   }

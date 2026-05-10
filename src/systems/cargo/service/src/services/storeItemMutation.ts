@@ -7,6 +7,7 @@ import { fileLinkService } from './fileLink';
 import type { CargoTenantEnvironment } from './filePurpose';
 import { fileReferenceService } from './fileReference';
 import { storeItemInclude, type StoreItemRecord } from './storeItem';
+import { storeVersionService } from './storeVersion';
 
 type DbClient = PrismaClient | Prisma.TransactionClient;
 
@@ -486,6 +487,11 @@ class StoreItemMutationServiceImpl {
         });
       }
 
+      await storeVersionService.markStoreDirtyIfNeeded({
+        storeOid: d.store.oid,
+        client: d.client
+      });
+
       return result.item;
     }
 
@@ -504,6 +510,11 @@ class StoreItemMutationServiceImpl {
           }
         });
       }
+
+      await storeVersionService.markStoreDirtyIfNeeded({
+        storeOid: d.store.oid,
+        client
+      });
 
       return result.item;
     });
@@ -640,6 +651,13 @@ class StoreItemMutationServiceImpl {
             target: operation.target,
             actor: d.actor
           })
+        });
+      }
+
+      if (results.length > 0) {
+        await storeVersionService.markStoreDirtyIfNeeded({
+          storeOid: d.store.oid,
+          client
         });
       }
 

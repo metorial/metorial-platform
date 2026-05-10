@@ -55,6 +55,7 @@ model File {
   links      FileLink[]
   document   Document?
   storeItems StoreItem[]
+  storeVersionItems StoreVersionItem[]
 
   @@index([tenantOid, environmentOid, status])
   @@index([tenantOid, environmentOid, createdByTenantActorOid, status])

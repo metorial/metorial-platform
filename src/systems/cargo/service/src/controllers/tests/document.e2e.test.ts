@@ -539,6 +539,11 @@ describe('cargo document.e2e', () => {
       documentId: cloned.id,
       content: 'clone-only'
     });
+    let cloneAfterFirstWrite = await db.document.findUnique({
+      where: {
+        id: cloned.id
+      }
+    });
     await flushDocument(cloned.id);
 
     let sourceAfterWrite = await cargoClient.document.get({
@@ -557,13 +562,94 @@ describe('cargo document.e2e', () => {
       }
     });
 
+    expect(cloned.file.storeId).toBe(source.file.storeId);
     expect(cloneBeforeWrite?.isContentOwner).toBe(false);
     expect(sourceBeforeWrite?.contentOid).toBe(cloneBeforeWrite?.contentOid);
     expect(updatedClone.currentVersionId).toBe(cloned.currentVersionId);
     expect(updatedClone.content).toBe('clone-only');
+    expect(cloneAfterFirstWrite?.isContentOwner).toBe(true);
     expect(sourceAfterWrite.content).toBe('shared');
     expect(cloneAfterWrite?.isContentOwner).toBe(true);
     expect(sourceBeforeWrite?.contentOid).not.toBe(cloneAfterWrite?.contentOid);
+  });
+
+  it('does not flip ownership on title-only updates for linked children', async () => {
+    let { tenant, environment } = await createScope();
+
+    let parent = await cargoClient.document.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      title: 'Parent',
+      content: 'shared'
+    });
+
+    let child = await cargoClient.document.clone({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: parent.id,
+      title: 'Child'
+    });
+
+    let updatedChild = await cargoClient.document.update({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: child.id,
+      title: 'Child Renamed'
+    });
+    let childRecord = await db.document.findUnique({
+      where: {
+        id: child.id
+      }
+    });
+
+    expect(updatedChild.title).toBe('Child Renamed');
+    expect(updatedChild.file.storeId).toBe(parent.file.storeId);
+    expect(childRecord?.isContentOwner).toBe(false);
+  });
+
+  it('stops treating a child as linked immediately after a divergent write', async () => {
+    let { tenant, environment } = await createScope();
+
+    let parent = await cargoClient.document.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      title: 'Parent',
+      content: 'shared'
+    });
+
+    let child = await cargoClient.document.clone({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: parent.id,
+      title: 'Child'
+    });
+
+    await cargoClient.document.update({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: child.id,
+      content: 'child-owned'
+    });
+
+    let childRecord = await db.document.findUnique({
+      where: {
+        id: child.id
+      }
+    });
+
+    await documentDraftService.clearDocumentState(child.id);
+
+    let linkedChildren = await documentService.listLinkedChildDocumentsForLiveSync({
+      parentDocumentId: parent.id
+    });
+    let syncableChildren = await documentService.listSyncableChildDocumentIdsForVersionSync({
+      parentDocumentVersionId: parent.currentVersionId!,
+      limit: 10
+    });
+
+    expect(childRecord?.isContentOwner).toBe(true);
+    expect(linkedChildren.map(document => document.id)).not.toContain(child.id);
+    expect(syncableChildren.childDocumentIds).not.toContain(child.id);
   });
 
   it('keeps parent sync when a child writes the same content as the parent', async () => {

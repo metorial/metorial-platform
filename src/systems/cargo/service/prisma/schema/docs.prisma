@@ -43,8 +43,10 @@ model Document {
   documentParticipants DocumentParticipant[]
   documentVersions     DocumentVersion[]
   storeItems           StoreItem[]
+  storeVersionItems    StoreVersionItem[]
 
   @@index([tenantOid, environmentOid])
+  @@index([isContentOwner])
 }
 
 enum DocumentParticipantRole {
@@ -101,6 +103,7 @@ model DocumentVersion {
 
   createdAt              DateTime                 @default(now())
   documentVersionEditors DocumentVersionEditors[]
+  storeVersionItems      StoreVersionItem[]
 
   @@unique([tenantOid, environmentOid, documentOid, versionNumber])
 }
