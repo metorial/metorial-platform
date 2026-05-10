@@ -95,11 +95,24 @@ export let skillItemController = app.controller({
     .handler()
     .input(createSkillItemValidator)
     .do(async ctx => {
+      let input =
+        ctx.input.type === 'integration'
+          ? {
+              skillId: ctx.input.skillId,
+              type: 'integration' as const,
+              integrationId: ctx.input.integrationId
+            }
+          : {
+              skillId: ctx.input.skillId,
+              type: 'provider' as const,
+              providerId: ctx.input.providerId
+            };
+
       let skillItem = await skillItemService.createSkillItem({
         tenant: ctx.tenant,
         environment: ctx.environment,
         solution: ctx.solution,
-        input: ctx.input
+        input
       });
 
       return skillItemPresenter(skillItem);
