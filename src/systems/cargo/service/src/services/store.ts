@@ -1,7 +1,7 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import type { Prisma, Store } from '../../prisma/generated/client';
+import type { Store } from '../../prisma/generated/client';
 import { db, withTransaction } from '../db';
 import { getId } from '../id';
 import { storeCleanupManyQueue } from '../queues/storeCleanup';
@@ -173,7 +173,7 @@ class StoreServiceImpl {
       requiredPermission: storeReadPermission
     });
 
-    return await withTransaction(async () => {
+    return await withTransaction(async db => {
       let clonedStore = await this.createStore({
         tenant: d.tenant,
         environment: d.environment,
