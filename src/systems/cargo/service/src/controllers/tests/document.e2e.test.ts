@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { db } from '../../db';
-import { documentCleanupService, documentService } from '../../services';
+import { documentCleanupService, documentDraftService, documentService } from '../../services';
 import { cargoClient } from '../../test/client';
 import { cleanDatabase } from '../../test/setup';
 
@@ -51,6 +51,29 @@ let flushDocument = async (documentId: string) =>
     documentId,
     force: true
   });
+
+let syncChildVersions = async (parentDocumentVersionId: string, limit = 100) => {
+  let cursor: string | undefined;
+
+  while (true) {
+    let result = await documentService.listSyncableChildDocumentIdsForVersionSync({
+      parentDocumentVersionId,
+      cursor,
+      limit
+    });
+
+    for (let childDocumentId of result.childDocumentIds) {
+      await documentService.syncChildDocumentVersionFromParentVersion({
+        parentDocumentVersionId,
+        childDocumentId
+      });
+    }
+
+    if (!result.nextCursor) return;
+
+    cursor = result.nextCursor;
+  }
+};
 
 describe('cargo document.e2e', () => {
   beforeEach(async () => {
@@ -534,6 +557,285 @@ describe('cargo document.e2e', () => {
     expect(sourceBeforeWrite?.contentOid).not.toBe(cloneAfterWrite?.contentOid);
   });
 
+  it('syncs a new parent version to cloned children that still follow the parent', async () => {
+    let { tenant, environment } = await createScope();
+
+    let parent = await cargoClient.document.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      title: 'Parent',
+      content: 'first'
+    });
+
+    let child = await cargoClient.document.clone({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: parent.id,
+      title: 'Child'
+    });
+
+    await db.documentVersion.update({
+      where: {
+        id: parent.currentVersionId!
+      },
+      data: {
+        createdAt: subtractHours(new Date(), 4)
+      }
+    });
+
+    await cargoClient.document.update({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: parent.id,
+      content: 'second'
+    });
+    let flushedParent = await flushDocument(parent.id);
+
+    await syncChildVersions(flushedParent!.currentVersion!.id);
+
+    let parentAfterSync = await cargoClient.document.get({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: parent.id
+    });
+    let childAfterSync = await cargoClient.document.get({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: child.id
+    });
+    let childVersions = await cargoClient.documentVersion.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: child.id,
+      limit: 10
+    });
+    let childRecord = await db.document.findUnique({
+      where: {
+        id: child.id
+      }
+    });
+
+    expect(parentAfterSync.currentVersionId).toBe(flushedParent!.currentVersion!.id);
+    expect(parentAfterSync.content).toBe('second');
+    expect(childAfterSync.content).toBe('second');
+    expect(childRecord?.isContentOwner).toBe(false);
+    expect(childVersions.items).toHaveLength(2);
+    expect(childVersions.items[0]).toMatchObject({
+      content: 'second',
+      previousVersionId: child.currentVersionId!,
+      listEditedAt: expect.any(Date)
+    });
+    expect(childVersions.items[1]).toMatchObject({
+      id: child.currentVersionId!,
+      content: 'first'
+    });
+  });
+
+  it('does not sync children that already have a local draft', async () => {
+    let { tenant, environment } = await createScope();
+
+    let parent = await cargoClient.document.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      title: 'Parent',
+      content: 'first'
+    });
+
+    let child = await cargoClient.document.clone({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: parent.id,
+      title: 'Child'
+    });
+
+    await cargoClient.document.update({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: child.id,
+      content: 'child draft'
+    });
+
+    await db.documentVersion.update({
+      where: {
+        id: parent.currentVersionId!
+      },
+      data: {
+        createdAt: subtractHours(new Date(), 4)
+      }
+    });
+
+    await cargoClient.document.update({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: parent.id,
+      content: 'second'
+    });
+    let flushedParent = await flushDocument(parent.id);
+
+    let firstPage = await documentService.listSyncableChildDocumentIdsForVersionSync({
+      parentDocumentVersionId: flushedParent!.currentVersion!.id,
+      limit: 100
+    });
+    let syncResult = await documentService.syncChildDocumentVersionFromParentVersion({
+      parentDocumentVersionId: flushedParent!.currentVersion!.id,
+      childDocumentId: child.id
+    });
+    let childAfterAttempt = await cargoClient.document.get({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: child.id
+    });
+    let childVersions = await cargoClient.documentVersion.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: child.id,
+      limit: 10
+    });
+
+    expect(firstPage.childDocumentIds).not.toContain(child.id);
+    expect(syncResult).toBeNull();
+    expect(childAfterAttempt.content).toBe('child draft');
+    expect(childVersions.items).toHaveLength(1);
+  });
+
+  it('does not sync children that already forked into their own content', async () => {
+    let { tenant, environment } = await createScope();
+
+    let parent = await cargoClient.document.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      title: 'Parent',
+      content: 'first'
+    });
+
+    let child = await cargoClient.document.clone({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: parent.id,
+      title: 'Child'
+    });
+
+    await cargoClient.document.update({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: child.id,
+      content: 'child edit'
+    });
+    await flushDocument(child.id);
+
+    await db.documentVersion.update({
+      where: {
+        id: parent.currentVersionId!
+      },
+      data: {
+        createdAt: subtractHours(new Date(), 4)
+      }
+    });
+
+    await cargoClient.document.update({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: parent.id,
+      content: 'second'
+    });
+    let flushedParent = await flushDocument(parent.id);
+
+    let firstPage = await documentService.listSyncableChildDocumentIdsForVersionSync({
+      parentDocumentVersionId: flushedParent!.currentVersion!.id,
+      limit: 100
+    });
+    let childAfterAttempt = await cargoClient.document.get({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: child.id
+    });
+    let childRecord = await db.document.findUnique({
+      where: {
+        id: child.id
+      }
+    });
+
+    expect(firstPage.childDocumentIds).not.toContain(child.id);
+    expect(childRecord?.isContentOwner).toBe(true);
+    expect(childAfterAttempt.content).toBe('child edit');
+  });
+
+  it('paginates follower children when syncing parent versions', async () => {
+    let { tenant, environment } = await createScope();
+
+    let parent = await cargoClient.document.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      title: 'Parent',
+      content: 'first'
+    });
+
+    let children = await Promise.all(
+      ['Child A', 'Child B', 'Child C'].map(title =>
+        cargoClient.document.clone({
+          tenantId: tenant.id,
+          environmentId: environment.id,
+          documentId: parent.id,
+          title
+        })
+      )
+    );
+
+    await db.documentVersion.update({
+      where: {
+        id: parent.currentVersionId!
+      },
+      data: {
+        createdAt: subtractHours(new Date(), 4)
+      }
+    });
+
+    await cargoClient.document.update({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: parent.id,
+      content: 'second'
+    });
+    let flushedParent = await flushDocument(parent.id);
+
+    let firstPage = await documentService.listSyncableChildDocumentIdsForVersionSync({
+      parentDocumentVersionId: flushedParent!.currentVersion!.id,
+      limit: 2
+    });
+    let secondPage = await documentService.listSyncableChildDocumentIdsForVersionSync({
+      parentDocumentVersionId: flushedParent!.currentVersion!.id,
+      cursor: firstPage.nextCursor,
+      limit: 2
+    });
+
+    expect(firstPage.childDocumentIds).toHaveLength(2);
+    expect(secondPage.childDocumentIds).toHaveLength(1);
+
+    await syncChildVersions(flushedParent!.currentVersion!.id, 2);
+
+    let syncedChildren = await Promise.all(
+      children.map(async child => ({
+        child,
+        document: await cargoClient.document.get({
+          tenantId: tenant.id,
+          environmentId: environment.id,
+          documentId: child.id
+        }),
+        versions: await cargoClient.documentVersion.list({
+          tenantId: tenant.id,
+          environmentId: environment.id,
+          documentId: child.id,
+          limit: 10
+        })
+      }))
+    );
+
+    for (let item of syncedChildren) {
+      expect(item.document.content).toBe('second');
+      expect(item.versions.items).toHaveLength(2);
+    }
+  });
+
   it('cleans up stale versions and orphaned document content', async () => {
     let { tenant, environment } = await createScope();
     let actor = await createActor(tenant.id);
@@ -604,5 +906,58 @@ describe('cargo document.e2e', () => {
       listEditedAt: expect.any(Date)
     });
     expect(contentCountAfter).toBe(contentCountBefore - 1);
+  });
+
+  it('keeps dirty backstop markers until the latest claimed revision is flushed', async () => {
+    let { tenant, environment } = await createScope();
+    let actor = await createActor(tenant.id);
+
+    let created = await cargoClient.document.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      title: 'Dirty Backstop',
+      content: 'first',
+      actorId: actor.id
+    });
+
+    await cargoClient.document.update({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: created.id,
+      content: 'second',
+      actorId: actor.id
+    });
+
+    expect(await documentDraftService.listDirtyDocumentIds()).toContain(created.id);
+
+    let claimedRevision = await documentDraftService.claimDirtyDocumentRevision(created.id);
+
+    expect(claimedRevision).toBe(1);
+
+    await cargoClient.document.update({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: created.id,
+      content: 'third',
+      actorId: actor.id
+    });
+
+    let flushed = await documentService.flushDocumentDraft({
+      documentId: created.id,
+      force: true,
+      queuedRevision: claimedRevision!
+    });
+
+    let fetched = await cargoClient.document.get({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: created.id
+    });
+
+    expect(flushed?.id).toBe(created.id);
+    expect(fetched.content).toBe('third');
+    expect(await documentDraftService.getDraftByDocumentId(created.id)).toBeNull();
+    expect(await documentDraftService.listDirtyDocumentIds()).not.toContain(created.id);
+    expect(await documentDraftService.claimDirtyDocumentRevision(created.id)).toBeNull();
   });
 });

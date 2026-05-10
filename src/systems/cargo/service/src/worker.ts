@@ -10,18 +10,21 @@ async function main() {
   let [
     { runQueueProcessors },
     { documentCleanupProcessors },
-    { documentFlushProcessor },
+    { documentFlushProcessors },
+    { documentVersionSyncProcessors },
     { storeCleanupProcessors }
   ] = await Promise.all([
     import('@lowerdeck/queue'),
     import('./queues/documentCleanup'),
     import('./queues/documentFlush'),
+    import('./queues/documentVersionSync'),
     import('./queues/storeCleanup')
   ]);
 
   await runQueueProcessors([
-    documentFlushProcessor,
+    documentFlushProcessors,
     documentCleanupProcessors,
+    documentVersionSyncProcessors,
     storeCleanupProcessors
   ]);
 }

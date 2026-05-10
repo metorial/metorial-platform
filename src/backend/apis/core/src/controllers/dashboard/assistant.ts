@@ -220,7 +220,7 @@ export let dashboardAssistantController = Controller.create(
 
     updateConversation: assistantConversationGroup
       .use(isDashboardGroup())
-      .post(
+      .patch(
         organizationManagementPath(
           'instances/:instanceId/conversations/:assistantConversationId',
           'conversations.update'
@@ -292,7 +292,8 @@ export let dashboardAssistantController = Controller.create(
         ),
         {
           name: 'Create assistant message',
-          description: 'Create a user message and assistant request in a specific conversation.'
+          description:
+            'Create a user message and assistant request in a specific conversation.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))

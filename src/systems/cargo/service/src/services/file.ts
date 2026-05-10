@@ -333,7 +333,7 @@ class FileServiceImpl {
         : await this.deleteFileWithClient(client, d.file);
 
     if (document) {
-      await documentDraftService.deleteDraft(document.id);
+      await documentDraftService.clearDocumentState(document.id);
     }
 
     return file;
