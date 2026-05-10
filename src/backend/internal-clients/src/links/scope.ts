@@ -24,6 +24,10 @@ import {
 import type { InternalActorRef, InternalScopeOwner, InternalService } from './types';
 import { ensureCargoUserScope, ensureSynthesisUserScope } from './user';
 
+let unsupportedInternalService = (service: never): never => {
+  throw new Error(`unsupported internal service: ${service}`);
+};
+
 export let ensureInternalScope = async (d: {
   service: InternalService;
   owner: InternalScopeOwner;
@@ -38,6 +42,8 @@ export let ensureInternalScope = async (d: {
         case 'subspace':
           return await ensureSubspaceInstanceScope(d.owner.instance);
       }
+
+      return unsupportedInternalService(d.service);
 
     case 'organization':
       if (d.service == 'subspace') {
@@ -75,6 +81,8 @@ export let ensureInternalActor = async (d: {
           return await ensureSubspaceOrganizationActor(d.tenantId, d.actor.organizationActor);
       }
 
+      return unsupportedInternalService(d.service);
+
     case 'consumer':
       switch (d.service) {
         case 'cargo':
@@ -84,6 +92,8 @@ export let ensureInternalActor = async (d: {
         case 'subspace':
           return await ensureSubspaceConsumerActor(d.tenantId, d.actor.consumer);
       }
+
+      return unsupportedInternalService(d.service);
   }
 };
 
