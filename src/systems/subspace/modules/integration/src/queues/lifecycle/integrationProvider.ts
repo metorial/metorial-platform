@@ -3,6 +3,7 @@ import { db } from '@metorial-subspace/db';
 import { identityInternalService } from '@metorial-subspace/module-identity';
 import { syncIntegrationInstanceGroupSessionTemplatesQueue } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedIntegrationInstanceGroupTemplate';
 import { syncIntegrationInstanceSessionTemplatesQueue } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedSessionTemplate';
+import { reconcileSkillProviderLinksForIntegrationProviderQueue } from '@metorial-subspace/module-skills';
 import { env } from '../../env';
 import { indexIntegrationQueue } from '../search/integration';
 import { indexIntegrationInstanceQueue } from '../search/integrationInstance';
@@ -39,6 +40,9 @@ export let integrationProviderCreatedQueueProcessor = integrationProviderCreated
     if (!integrationProvider) throw new QueueRetryError();
 
     await indexParentIntegration(data.integrationProviderId);
+    await reconcileSkillProviderLinksForIntegrationProviderQueue.add({
+      integrationProviderId: data.integrationProviderId
+    });
 
     await db.integrationInstanceProvider.updateMany({
       where: { integrationProviderOid: integrationProvider.oid },
@@ -55,6 +59,9 @@ export let integrationProviderUpdatedQueue = createQueue<{ integrationProviderId
 export let integrationProviderUpdatedQueueProcessor = integrationProviderUpdatedQueue.process(
   async data => {
     await indexParentIntegration(data.integrationProviderId);
+    await reconcileSkillProviderLinksForIntegrationProviderQueue.add({
+      integrationProviderId: data.integrationProviderId
+    });
   }
 );
 
@@ -78,6 +85,9 @@ export let integrationProviderArchivedQueueProcessor =
       integrationProviderId: data.integrationProviderId
     });
     await indexParentIntegration(data.integrationProviderId);
+    await reconcileSkillProviderLinksForIntegrationProviderQueue.add({
+      integrationProviderId: data.integrationProviderId
+    });
   });
 
 export let integrationProviderArchiveInstanceProvidersManyQueue = createQueue<{

@@ -89,6 +89,12 @@ export let voyagerIndex = {
     name: 'Integrations'
   }),
 
+  skill: await voyager.index.upsert({
+    sourceId: (await voyagerSource).id,
+    identifier: getIndexName('skill'),
+    name: 'Skills'
+  }),
+
   integrationInstance: await voyager.index.upsert({
     sourceId: (await voyagerSource).id,
     identifier: getIndexName('integration_instance'),

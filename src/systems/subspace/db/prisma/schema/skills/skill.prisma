@@ -1,0 +1,178 @@
+model SkillGroup {
+  oid BigInt @id
+  id  String @unique
+
+  slug        String  @unique
+  name        String
+  description String?
+
+  ownerSkillOid BigInt? @unique
+  ownerSkill    Skill?  @relation("SkillGroupOwner", fields: [ownerSkillOid], references: [oid], onDelete: SetNull)
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  solutionOid Int
+  solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  skills Skill[]
+}
+
+enum SkillStatus {
+  active
+  archived
+  deleted
+}
+
+model Skill {
+  oid BigInt @id
+  id  String @unique
+
+  status SkillStatus
+
+  slug            String  @unique
+  name            String
+  description     String?
+  metadata        Json?
+  privateMetadata Json?
+
+  skillGroupOid BigInt
+  skillGroup    SkillGroup @relation(fields: [skillGroupOid], references: [oid], onDelete: Cascade)
+
+  parentSkillOid BigInt?
+  parentSkill    Skill?  @relation("SkillParentChild", fields: [parentSkillOid], references: [oid], onDelete: SetNull)
+  childSkills    Skill[] @relation("SkillParentChild")
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  solutionOid Int
+  solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
+
+  owningSkillGroup SkillGroup? @relation("SkillGroupOwner")
+  forks            SkillFork[] @relation("SkillForkParent")
+  forkedFrom       SkillFork?  @relation("SkillForkChild")
+
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @default(now()) @updatedAt
+  skillIntegrations  SkillIntegration[]
+  skillProviders     SkillProvider[]
+  skillItems         SkillItem[]
+  skillProviderLinks SkillProviderLink[]
+}
+
+model SkillFork {
+  oid BigInt @id
+  id  String @unique
+
+  parentSkillOid BigInt
+  parentSkill    Skill  @relation("SkillForkParent", fields: [parentSkillOid], references: [oid], onDelete: Cascade)
+
+  childSkillOid BigInt @unique
+  childSkill    Skill  @relation("SkillForkChild", fields: [childSkillOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}
+
+enum SkillIntegrationStatus {
+  active
+  archived
+  deleted
+}
+
+model SkillIntegration {
+  oid BigInt @id
+  id  String @unique
+
+  status SkillIntegrationStatus
+
+  skillOid BigInt
+  skill    Skill  @relation(fields: [skillOid], references: [oid], onDelete: Cascade)
+
+  integrationOid BigInt
+  integration    Integration @relation(fields: [integrationOid], references: [oid], onDelete: Cascade)
+
+  itemOid BigInt    @unique
+  item    SkillItem @relation(fields: [itemOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([skillOid, integrationOid])
+}
+
+enum SkillProviderStatus {
+  active
+  archived
+  deleted
+}
+
+model SkillProvider {
+  oid BigInt @id
+  id  String @unique
+
+  status SkillProviderStatus
+
+  skillOid BigInt
+  skill    Skill  @relation(fields: [skillOid], references: [oid], onDelete: Cascade)
+
+  providerOid BigInt
+  provider    Provider @relation(fields: [providerOid], references: [oid], onDelete: Cascade)
+
+  itemOid BigInt    @unique
+  item    SkillItem @relation(fields: [itemOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([skillOid, providerOid])
+}
+
+model SkillProviderLink {
+  oid BigInt @id
+  id  String @unique
+
+  skillOid BigInt
+  skill    Skill  @relation(fields: [skillOid], references: [oid], onDelete: Cascade)
+
+  providerOid BigInt
+  provider    Provider @relation(fields: [providerOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([skillOid, providerOid])
+}
+
+enum SkillItemType {
+  integration
+  provider
+}
+
+enum SkillItemStatus {
+  active
+  archived
+  deleted
+}
+
+model SkillItem {
+  oid BigInt @id
+  id  String @unique
+
+  status SkillItemStatus
+  type   SkillItemType
+
+  skillOid BigInt
+  skill    Skill  @relation(fields: [skillOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  integration SkillIntegration?
+  provider    SkillProvider?
+}
