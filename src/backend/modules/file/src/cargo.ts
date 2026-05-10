@@ -4,6 +4,7 @@ import {
   createCargoClient,
   uploadFile as uploadCargoHttpFile
 } from '../../../../systems/_clients/cargo/src';
+import type { CargoAccessActor, CargoStorePermission } from './services/access';
 import { purposes, purposeSlugs } from './definitions';
 import { env } from './env';
 
@@ -280,6 +281,23 @@ export let ensureCargoScope = async (scope: CargoScopeDescriptor): Promise<Cargo
   };
 };
 
+let resolveCargoUploadActorId = async (d: {
+  scope: CargoScope;
+  accessActor?: CargoAccessActor;
+}) => {
+  if (!d.accessActor) return undefined;
+
+  let actor = await cargo.actor.upsert({
+    tenantId: d.scope.tenantId,
+    identifier: d.accessActor.identifier,
+    name: d.accessActor.name,
+    organizationActorId: d.accessActor.organizationActorId,
+    consumerId: d.accessActor.consumerId
+  });
+
+  return actor.id;
+};
+
 export let uploadCargoFile = async (d: {
   owner: CargoScopeOwner;
   purpose: string;
@@ -288,6 +306,13 @@ export let uploadCargoFile = async (d: {
   storeId?: string;
   title?: string;
   fileId?: string;
+  accessActor?: CargoAccessActor;
+  defaultPermissions?: CargoStorePermission[];
+  overridePermissions?: boolean;
+  store?: {
+    id: string;
+    path: string;
+  };
 }) => {
   let descriptor = await resolveCargoScopeDescriptorForOwner(d.owner);
   if (!descriptor) {
@@ -295,6 +320,10 @@ export let uploadCargoFile = async (d: {
   }
 
   let scope = await ensureCargoScope(descriptor);
+  let actorId = await resolveCargoUploadActorId({
+    scope,
+    accessActor: d.accessActor
+  });
 
   return await uploadCargoHttpFile(
     {
@@ -307,10 +336,14 @@ export let uploadCargoFile = async (d: {
       purpose: d.purpose,
       file: d.file,
       fileName: d.fileName,
+      actorId,
+      defaultPermissions: d.defaultPermissions,
+      overridePermissions: d.overridePermissions,
       storeId: d.storeId,
+      store: d.store,
       title: d.title,
       fileId: d.fileId
-    }
+    } as any
   );
 };
 

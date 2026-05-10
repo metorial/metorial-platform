@@ -131,6 +131,37 @@ export let storeController = app.controller({
       return storePresenter(store);
     }),
 
+  clone: storeApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        environmentId: v.string(),
+        storeId: v.string(),
+        targetStoreId: v.optional(v.string()),
+        name: v.optional(v.string()),
+        actorId: v.optional(v.string()),
+        defaultPermissions: v.optional(storePermissionsSchema),
+        overridePermissions: v.optional(v.boolean())
+      })
+    )
+    .do(async ctx => {
+      let store = await storeService.cloneStore({
+        tenant: ctx.tenant,
+        environment: ctx.environment,
+        store: ctx.store,
+        actorId: ctx.input.actorId,
+        defaultPermissions: ctx.input.defaultPermissions,
+        overridePermissions: ctx.input.overridePermissions,
+        input: {
+          id: ctx.input.targetStoreId,
+          name: ctx.input.name
+        }
+      });
+
+      return storePresenter(store);
+    }),
+
   delete: storeApp
     .handler()
     .input(

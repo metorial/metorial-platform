@@ -135,6 +135,122 @@ describe('cargo store.e2e', () => {
     expect(listedAfterDelete.items).toHaveLength(0);
   });
 
+  it('clones a store by reusing file items and duplicating document items at the same paths', async () => {
+    let { tenant, environment } = await createScope();
+    let purpose = await createPurpose();
+    let sourceStore = await cargoClient.store.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: 'cst_store_source_clone',
+      name: 'Source Store'
+    });
+    let file = await createFile({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      purposeId: purpose.id,
+      id: 'cfi_store_clone_file',
+      storeId: 'store-clone-file',
+      name: 'logo.png'
+    });
+    let document = await cargoClient.document.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      title: 'Readme',
+      content: 'clone me'
+    });
+
+    await cargoClient.store.modifyItems({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: sourceStore.id,
+      operations: [
+        {
+          fileId: file.id,
+          path: '/assets/logo.png'
+        },
+        {
+          documentId: document.id,
+          path: '/docs/readme.md'
+        }
+      ]
+    });
+
+    let clonedStore = await cargoClient.store.clone({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: sourceStore.id,
+      targetStoreId: 'cst_store_cloned',
+      name: 'Cloned Store'
+    });
+
+    let sourceItems = await cargoClient.storeItem.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: sourceStore.id,
+      limit: 10
+    });
+    let clonedItems = await cargoClient.storeItem.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: clonedStore.id,
+      limit: 10
+    });
+    let clonedFileItem = clonedItems.items.find(item => item.path === '/assets/logo.png');
+    let clonedDocumentItem = clonedItems.items.find(item => item.path === '/docs/readme.md');
+    let sourceDocumentItem = sourceItems.items.find(item => item.path === '/docs/readme.md');
+    let clonedDocument = await cargoClient.document.get({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: clonedDocumentItem!.documentId!
+    });
+    let clonedDocumentRecord = await db.document.findUnique({
+      where: {
+        id: clonedDocument.id
+      }
+    });
+    let sourceStoreRecord = await db.store.findUnique({
+      where: {
+        id: sourceStore.id
+      }
+    });
+    let clonedStoreRecord = await db.store.findUnique({
+      where: {
+        id: clonedStore.id
+      }
+    });
+    let sourceDocumentRecord = await db.document.findUnique({
+      where: {
+        id: document.id
+      }
+    });
+
+    expect(clonedStore).toMatchObject({
+      id: 'cst_store_cloned',
+      name: 'Cloned Store',
+      itemCount: 2
+    });
+    expect(clonedItems.items.map(item => item.path).sort()).toEqual(
+      sourceItems.items.map(item => item.path).sort()
+    );
+    expect(clonedFileItem).toMatchObject({
+      fileId: file.id,
+      documentId: undefined,
+      path: '/assets/logo.png'
+    });
+    expect(clonedDocumentItem).toMatchObject({
+      path: '/docs/readme.md'
+    });
+    expect(clonedDocumentItem?.documentId).toBeTruthy();
+    expect(clonedDocumentItem?.documentId).not.toBe(document.id);
+    expect(clonedDocumentItem?.fileId).not.toBe(sourceDocumentItem?.fileId);
+    expect(clonedDocument).toMatchObject({
+      title: document.title,
+      content: document.content
+    });
+    expect(clonedStoreRecord?.parentStoreOid).toBe(sourceStoreRecord?.oid);
+    expect(clonedDocumentRecord?.parentDocumentOid).toBe(sourceDocumentRecord?.oid);
+  });
+
   it('adds, overwrites, modifies, removes, and cleans up store items', async () => {
     let { tenant, environment } = await createScope();
     let purpose = await createPurpose();

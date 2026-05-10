@@ -2,6 +2,7 @@ import { combineQueueProcessors } from '@metorial/queue';
 import { reconcileCargoProcessors } from './queues/reconcileCargo';
 
 export { purposeSlugs } from './definitions';
+export * from './instanceAccess';
 export * from './services';
 export * from './storage';
 

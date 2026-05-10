@@ -929,6 +929,7 @@ class DocumentServiceImpl {
   async cloneDocument(
     d: CargoTenantEnvironment & {
       document: ResolvedDocumentRecord;
+      client?: TransactionClient;
       input: {
         id?: string;
         title?: string;
@@ -945,7 +946,8 @@ class DocumentServiceImpl {
       actorId: d.input.actorId,
       defaultPermissions: d.input.defaultPermissions,
       overridePermissions: d.input.overridePermissions,
-      requiredPermission: storeReadPermission
+      requiredPermission: storeReadPermission,
+      client: d.client
     });
     let actor = access.actor;
 
@@ -953,7 +955,7 @@ class DocumentServiceImpl {
 
     let purpose = await filePurposeService.ensureDocumentFilePurpose();
 
-    return await db.$transaction(async tx => {
+    let cloneWithClient = async (tx: TransactionClient) => {
       let documentIds = d.input.id
         ? { oid: getId('document').oid, id: d.input.id }
         : getId('document');
@@ -1028,7 +1030,13 @@ class DocumentServiceImpl {
       }
 
       return clonedDocument;
-    });
+    };
+
+    if (d.client) {
+      return await cloneWithClient(d.client);
+    }
+
+    return await db.$transaction(async tx => await cloneWithClient(tx));
   }
 
   async deleteDocument(

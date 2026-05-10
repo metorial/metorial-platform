@@ -28,6 +28,13 @@ let createFileUploadHandler = async (c: Context) =>
       let tenantId = body.get('tenantId');
       let environmentId = body.get('environmentId');
       let purpose = body.get('purpose');
+      let actorId = body.get('actorId');
+      let overridePermissions = body.get('overridePermissions');
+      let attachedStoreId = body.get('attachedStoreId');
+      let attachedStorePath = body.get('attachedStorePath');
+      let defaultPermissions = body
+        .getAll('defaultPermissions')
+        .filter((value): value is string => typeof value == 'string');
 
       if (
         !(file instanceof File) ||
@@ -38,6 +45,39 @@ let createFileUploadHandler = async (c: Context) =>
         throw new ServiceError(
           badRequestError({
             message: 'Missing required upload fields'
+          })
+        );
+      }
+
+      if (!!attachedStoreId !== !!attachedStorePath) {
+        throw new ServiceError(
+          badRequestError({
+            message: 'attachedStoreId and attachedStorePath must be provided together'
+          })
+        );
+      }
+
+      if (
+        defaultPermissions.some(
+          permission => permission !== 'content_read' && permission !== 'content_write'
+        )
+      ) {
+        throw new ServiceError(
+          badRequestError({
+            message: 'Invalid defaultPermissions'
+          })
+        );
+      }
+
+      if (
+        overridePermissions !== null &&
+        typeof overridePermissions === 'string' &&
+        overridePermissions !== 'true' &&
+        overridePermissions !== 'false'
+      ) {
+        throw new ServiceError(
+          badRequestError({
+            message: 'Invalid overridePermissions'
           })
         );
       }
@@ -67,7 +107,20 @@ let createFileUploadHandler = async (c: Context) =>
           name: file.name,
           mimeType: file.type ?? 'application/octet-stream',
           size: file.size,
-          title: (body.get('title') as string | null) ?? undefined
+          title: (body.get('title') as string | null) ?? undefined,
+          actorId: typeof actorId == 'string' ? actorId : undefined,
+          defaultPermissions: defaultPermissions.length ? (defaultPermissions as any) : undefined,
+          overridePermissions:
+            typeof overridePermissions == 'string'
+              ? overridePermissions === 'true'
+              : undefined,
+          store:
+            typeof attachedStoreId == 'string' && typeof attachedStorePath == 'string'
+              ? {
+                  id: attachedStoreId,
+                  path: attachedStorePath
+                }
+              : undefined
         }
       });
 

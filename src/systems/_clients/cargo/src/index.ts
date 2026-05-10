@@ -19,6 +19,13 @@ export type CargoUploadInput = {
   fileId?: string;
   storeId?: string;
   title?: string;
+  actorId?: string;
+  defaultPermissions?: Array<'content_read' | 'content_write'>;
+  overridePermissions?: boolean;
+  store?: {
+    id: string;
+    path: string;
+  };
 };
 
 export type CargoUploadResult = {
@@ -60,6 +67,17 @@ export let uploadFile = async (
   if (input.fileId) body.set('fileId', input.fileId);
   if (input.storeId) body.set('storeId', input.storeId);
   if (input.title) body.set('title', input.title);
+  if (input.actorId) body.set('actorId', input.actorId);
+  if (input.overridePermissions !== undefined) {
+    body.set('overridePermissions', input.overridePermissions ? 'true' : 'false');
+  }
+  if (input.store) {
+    body.set('attachedStoreId', input.store.id);
+    body.set('attachedStorePath', input.store.path);
+  }
+  for (let permission of input.defaultPermissions ?? []) {
+    body.append('defaultPermissions', permission);
+  }
 
   let response = await fetch(`${endpoints.uploadEndpoint.replace(/\/$/, '')}/files`, {
     method: 'POST',

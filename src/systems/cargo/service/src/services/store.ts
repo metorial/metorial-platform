@@ -5,6 +5,7 @@ import type { Prisma, PrismaClient, Store } from '../../prisma/generated/client'
 import { db } from '../db';
 import { getId } from '../id';
 import { storeCleanupManyQueue } from '../queues/storeCleanup';
+import { documentInclude, documentService } from './document';
 import type { CargoTenantEnvironment } from './filePurpose';
 import { fileReferenceService } from './fileReference';
 import {
@@ -13,6 +14,7 @@ import {
   storeWritePermission,
   type StoreAccessInput
 } from './storeAccess';
+import { storeItemInclude, type StoreItemRecord } from './storeItem';
 import { storeItemMutationService, type StoreItemOperationInput } from './storeItemMutation';
 
 type DbClient = PrismaClient | Prisma.TransactionClient;
@@ -43,6 +45,7 @@ class StoreServiceImpl {
       input: {
         id?: string;
         name: string;
+        parentStore?: Store;
       };
     }
   ) {
@@ -56,7 +59,8 @@ class StoreServiceImpl {
         name: d.input.name,
         itemCount: 0,
         tenantOid: d.tenant.oid,
-        environmentOid: d.environment.oid
+        environmentOid: d.environment.oid,
+        parentStoreOid: d.input.parentStore?.oid
       }
     });
   }
@@ -147,6 +151,69 @@ class StoreServiceImpl {
       data: {
         name: d.input.name
       }
+    });
+  }
+
+  async cloneStore(
+    d: CargoTenantEnvironment &
+      StoreAccessInput & {
+        store: Store;
+        input: {
+          id?: string;
+          name?: string;
+        };
+      }
+  ) {
+    let access = await storeAccessService.assertStoreAccessForStore({
+      tenant: d.tenant,
+      environment: d.environment,
+      store: d.store,
+      actorId: d.actorId,
+      defaultPermissions: d.defaultPermissions,
+      overridePermissions: d.overridePermissions,
+      requiredPermission: storeReadPermission
+    });
+
+    return await db.$transaction(async tx => {
+      let clonedStore = await this.createStore({
+        tenant: d.tenant,
+        environment: d.environment,
+        client: tx,
+        input: {
+          id: d.input.id,
+          name: d.input.name ?? d.store.name,
+          parentStore: d.store
+        }
+      });
+
+      let items = await tx.storeItem.findMany({
+        where: {
+          storeOid: d.store.oid
+        },
+        include: storeItemInclude,
+        orderBy: {
+          createdAt: 'asc'
+        }
+      });
+
+      for (let item of items) {
+        await this.cloneStoreItemIntoStore(tx, {
+          tenant: d.tenant,
+          environment: d.environment,
+          targetStore: clonedStore,
+          item,
+          actorId: d.actorId,
+          defaultPermissions: d.defaultPermissions,
+          overridePermissions: d.overridePermissions,
+          actor: access.actor
+        });
+      }
+
+      return (await tx.store.findUnique({
+        where: {
+          id: clonedStore.id
+        }
+      }))!;
     });
   }
 
@@ -250,6 +317,72 @@ class StoreServiceImpl {
       store: d.store,
       operations: d.operations,
       actor: access.actor
+    });
+  }
+
+  private async cloneStoreItemIntoStore(
+    client: DbClient,
+    d: CargoTenantEnvironment &
+      StoreAccessInput & {
+        targetStore: Store;
+        item: StoreItemRecord;
+        actor: Awaited<
+          ReturnType<typeof storeAccessService.assertStoreAccessForStore>
+        >['actor'];
+      }
+  ) {
+    if (d.item.document) {
+      let sourceDocument = await client.document.findFirst({
+        where: {
+          tenantOid: d.tenant.oid,
+          environmentOid: d.environment.oid,
+          id: d.item.document.id
+        },
+        include: documentInclude
+      });
+
+      if (!sourceDocument) {
+        throw new ServiceError(notFoundError('document', d.item.document.id));
+      }
+
+      let clonedDocument = await documentService.cloneDocument({
+        tenant: d.tenant,
+        environment: d.environment,
+        document: sourceDocument,
+        client,
+        input: {}
+      });
+
+      await storeItemMutationService.attachTargetToStore({
+        tenant: d.tenant,
+        environment: d.environment,
+        store: d.targetStore,
+        path: d.item.path,
+        target: {
+          file: clonedDocument.file,
+          document: {
+            oid: clonedDocument.oid,
+            id: clonedDocument.id
+          }
+        },
+        actor: d.actor,
+        client
+      });
+
+      return;
+    }
+
+    await storeItemMutationService.attachTargetToStore({
+      tenant: d.tenant,
+      environment: d.environment,
+      store: d.targetStore,
+      path: d.item.path,
+      target: {
+        file: d.item.file,
+        document: null
+      },
+      actor: d.actor,
+      client
     });
   }
 }

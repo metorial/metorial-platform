@@ -1,4 +1,4 @@
-import { badRequestError, forbiddenError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { createExecutionContext, provideExecutionContext } from '@lowerdeck/execution-context';
 import { extractIp } from '@lowerdeck/forwarded-for';
 import { Context, cors, createHono } from '@lowerdeck/hono';
@@ -11,7 +11,7 @@ import {
   purposeSlugs,
   uploadCargoFile
 } from '@metorial/module-file';
-import { organizationService } from '@metorial/module-organization';
+import { resolveUploadTarget } from './uploadAccess';
 
 type FileApiAuthResult = Awaited<ReturnType<typeof authenticate>>;
 
@@ -37,21 +37,13 @@ let createFileUploadHandler =
       async () => {
         let { auth } = await authenticateRequest(c.req.raw, new URL(c.req.url));
 
-        if (
-          auth.type == 'fine_grained' ||
-          (auth.type == 'machine' && auth.restrictions.type == 'instance')
-        ) {
-          throw new ServiceError(
-            forbiddenError({
-              message: 'Instance API keys are not allowed to upload files'
-            })
-          );
-        }
-
         let body = await c.req.formData();
         let file = body.get('file') as File;
         let purpose = body.get('purpose') as string;
-        let organizationId = body.get('organization_id') as string;
+        let organizationId = body.get('organization_id');
+        let instanceId = body.get('instance_id');
+        let attachedStoreId = body.get('store_id');
+        let attachedStorePath = body.get('path');
 
         if (!file || !purpose) {
           throw new ServiceError(
@@ -69,34 +61,41 @@ let createFileUploadHandler =
           );
         }
 
-        let owner =
-          auth.type == 'machine'
-            ? {
-                type: 'organization' as const,
-                organization: auth.restrictions.organization
-              }
-            : organizationId
-              ? {
-                  type: 'organization' as const,
-                  organization: (
-                    await organizationService.getOrganizationByIdForUser({
-                      organizationId,
-                      user: auth.user
-                    })
-                  ).organization
-                }
-              : {
-                  type: 'user' as const,
-                  user: auth.user
-                };
+        if (!!attachedStoreId !== !!attachedStorePath) {
+          throw new ServiceError(
+            badRequestError({
+              message: 'store_id and path must be provided together'
+            })
+          );
+        }
 
-        let storeId = generatePlainId(20);
+        let target = await resolveUploadTarget({
+          auth,
+          instanceId: typeof instanceId == 'string' ? instanceId : null,
+          organizationId: typeof organizationId == 'string' ? organizationId : null
+        });
+
+        if ((attachedStoreId || attachedStorePath) && !target.isInstanceOwner) {
+          throw new ServiceError(
+            badRequestError({
+              message: 'Files can only be attached to stores when uploading to an instance'
+            })
+          );
+        }
+
         let createdFile = await uploadCargoFile({
-          owner,
-          storeId,
+          owner: target.owner,
           purpose,
           file,
-          fileName: file.name
+          fileName: file.name,
+          ...target.cargoAccess,
+          store:
+            typeof attachedStoreId == 'string' && typeof attachedStorePath == 'string'
+              ? {
+                  id: attachedStoreId,
+                  path: attachedStorePath
+                }
+              : undefined
         });
 
         return c.json({
