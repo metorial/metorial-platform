@@ -1,5 +1,10 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
-import { createSynthesisClient } from '@metorial-platform-systems/synthesis-client';
+import {
+  ensureInternalActor,
+  ensureInternalScope,
+  synthesis as internalSynthesis,
+  type InternalScope
+} from '@metorial/internal-clients';
 import {
   db,
   type Consumer,
@@ -14,22 +19,10 @@ import {
   type TeamMember
 } from '@metorial/db';
 import { consumerService } from '@metorial/module-consumer';
-import { getTenantForSubspace } from '@metorial/module-subspace';
 import { env } from './env';
 
-export let synthesis = createSynthesisClient({
-  endpoint: env.service.SYNTHESIS_API_URL
-});
-
-export type SynthesisScope = {
-  tenantId: string;
-  environmentId: string;
-  tenantIdentifier: string;
-  environmentIdentifier: string;
-  tenantName: string;
-  environmentName: string;
-  environmentType: 'development' | 'production';
-};
+export let synthesis = internalSynthesis;
+export type SynthesisScope = InternalScope;
 
 type SynthesisActor = Awaited<ReturnType<typeof synthesis.actor.get>>;
 
@@ -65,20 +58,14 @@ export type EnrichedAssistantActor = {
   synthesisActor: SynthesisActor;
 };
 
-let getSynthesisActorType = (actor: Pick<OrganizationActor, 'type'>) =>
-  actor.type == 'system' ? 'system' : 'external';
-
-let getSynthesisActorIdentifier = (actor: Pick<OrganizationActor, 'id'>) => `mte-oac-${actor.id}`;
-let getSynthesisConsumerIdentifier = (consumer: Pick<Consumer, 'id'>) => `mte-con-${consumer.id}`;
-
 export type AssistantActorInput =
   | {
-      actor: Pick<OrganizationActor, 'id' | 'name' | 'type' | 'organizationOid'>;
+      actor: OrganizationActor;
       consumer?: undefined;
     }
   | {
       actor?: undefined;
-      consumer: Pick<Consumer, 'id' | 'name'>;
+      consumer: Consumer;
     };
 
 export let getAssistantActorInput = (d: AssistantActorInput): AssistantActorInput =>
@@ -90,23 +77,6 @@ export let getAssistantActorInput = (d: AssistantActorInput): AssistantActorInpu
         actor: d.actor
       };
 
-let getScopedInstanceById = async (instanceId: string) => {
-  let instance = await db.instance.findUnique({
-    where: {
-      id: instanceId
-    },
-    include: {
-      project: true,
-      organization: true
-    }
-  });
-  if (!instance) {
-    throw new ServiceError(notFoundError('instance', instanceId));
-  }
-
-  return instance;
-};
-
 export let getSynthesisLiveEndpoint = () => {
   let url = new URL(env.service.SYNTHESIS_API_URL);
 
@@ -117,33 +87,14 @@ export let getSynthesisLiveEndpoint = () => {
   return url.toString().replace(/\/$/, '');
 };
 
-export let ensureSynthesisScope = async (d: { instance: Pick<Instance, 'id'> }) => {
-  let instance = await getScopedInstanceById(d.instance.id);
-  let { tenant, environmentIdentifier } = await getTenantForSubspace(instance);
-  let tenantIdentifier = instance.project.subspaceTenantIdentifier ?? tenant.identifier;
-  let environmentScopeIdentifier = instance.subspaceEnvironmentIdentifier ?? environmentIdentifier;
-
-  let synthesisTenant = await synthesis.tenant.upsert({
-    identifier: tenantIdentifier,
-    name: instance.project.name
-  });
-
-  let synthesisEnvironment = await synthesis.environment.upsert({
-    tenantId: synthesisTenant.id,
-    identifier: environmentScopeIdentifier,
-    name: instance.name,
-    type: instance.type
-  });
-
-  return {
-    tenantId: synthesisTenant.id,
-    environmentId: synthesisEnvironment.id,
-    tenantIdentifier: synthesisTenant.identifier,
-    environmentIdentifier: synthesisEnvironment.identifier,
-    tenantName: synthesisTenant.name,
-    environmentName: synthesisEnvironment.name,
-    environmentType: synthesisEnvironment.type
-  } satisfies SynthesisScope;
+export let ensureSynthesisScope = async (d: { instance: Instance }) => {
+  return (await ensureInternalScope({
+    service: 'synthesis',
+    owner: {
+      type: 'instance',
+      instance: d.instance
+    }
+  })) satisfies SynthesisScope;
 };
 
 export let ensureSynthesisActor = async (
@@ -152,21 +103,23 @@ export let ensureSynthesisActor = async (
   } & AssistantActorInput
 ) => {
   if (d.consumer) {
-    return await synthesis.actor.upsert({
+    return await ensureInternalActor({
+      service: 'synthesis',
       tenantId: d.scope.tenantId,
-      identifier: getSynthesisConsumerIdentifier(d.consumer),
-      name: d.consumer.name,
-      type: 'external',
-      consumerId: d.consumer.id
+      actor: {
+        type: 'consumer',
+        consumer: d.consumer
+      }
     });
   }
 
-  return await synthesis.actor.upsert({
+  return await ensureInternalActor({
+    service: 'synthesis',
     tenantId: d.scope.tenantId,
-    identifier: getSynthesisActorIdentifier(d.actor),
-    name: d.actor.name,
-    type: getSynthesisActorType(d.actor),
-    organizationActorId: d.actor.id
+    actor: {
+      type: 'organizationActor',
+      organizationActor: d.actor
+    }
   });
 };
 
@@ -259,9 +212,9 @@ export let resolveMetorialInstanceBySynthesisScope = async (d: {
 }) => {
   let instance = await db.instance.findFirst({
     where: {
-      subspaceEnvironmentIdentifier: d.environmentIdentifier,
+      internalEnvironmentIdentifier: d.environmentIdentifier,
       project: {
-        subspaceTenantIdentifier: d.tenantIdentifier
+        internalTenantIdentifier: d.tenantIdentifier
       }
     },
     include: {

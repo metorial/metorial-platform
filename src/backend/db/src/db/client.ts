@@ -9,7 +9,6 @@ import type {
 } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { readReplicas } from '@prisma/extension-read-replicas';
-import { ModelMessage } from 'ai';
 import type { JSONSchema4, JSONSchema6, JSONSchema7 } from 'json-schema';
 import { PrismaClient } from '../../prisma/generated/client.js';
 export * from '../../prisma/generated/client.js';
@@ -293,24 +292,5 @@ declare global {
     type PortalAllowedRedirectUrlFilters = {
       url: string;
     }[];
-
-    type AssistantRunCost = {
-      inputTokens: number;
-      outputTokens: number;
-      totalTokens: number;
-
-      inputCost: number;
-      outputCost: number;
-      totalCost: number;
-    };
-
-    type AssistantRunMetadata = { [key: string]: any };
-
-    type AssistantMessageStateContent = any;
-
-    type AssistantMessageSerializedContent = {
-      b: 'ai-sdk-1';
-      messages: [number, ModelMessage][]; // TS + AI SDK messages
-    };
   }
 }

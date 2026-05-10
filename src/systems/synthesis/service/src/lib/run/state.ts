@@ -1,5 +1,6 @@
 import type { SessionEvent } from '@openharness/core';
 import type { ModelMessage } from 'ai';
+import { generatePlainId } from '@lowerdeck/id';
 import type {
   FileWriteChange,
   ItemStatus,
@@ -49,6 +50,8 @@ let emptyUsage = (): AgentRunUsage => ({
   outputTokens: 0,
   totalTokens: 0
 });
+
+let createItemId = () => generatePlainId(8);
 
 let isRecord = (value: unknown): value is Record<string, unknown> =>
   !!value && typeof value == 'object' && !Array.isArray(value);
@@ -271,7 +274,7 @@ export class AgentRunState {
 
       case 'compaction.start':
         this.state.items.push({
-          id: `compaction:${this.state.items.length}`,
+          id: createItemId(),
           type: 'compaction',
           status: 'running',
           reason: event.reason,
@@ -362,7 +365,7 @@ export class AgentRunState {
 
     if (!item || item.status == 'completed') {
       item = {
-        id: `message:${this.state.items.length}`,
+        id: createItemId(),
         type: 'message',
         status: 'running',
         message: {
@@ -399,7 +402,7 @@ export class AgentRunState {
 
     if (!item || item.status == 'completed') {
       item = {
-        id: `reasoning:${this.state.items.length}`,
+        id: createItemId(),
         type: 'reasoning',
         status: 'running',
         text: ''
@@ -433,7 +436,7 @@ export class AgentRunState {
 
     if (!item) {
       item = {
-        id: 'files/explore',
+        id: createItemId(),
         type: 'files/explore',
         operations: []
       };
@@ -516,7 +519,7 @@ export class AgentRunState {
             };
 
     let item: StateItem = {
-      id: `files/write:${d.toolCallId}`,
+      id: createItemId(),
       type: 'files/write',
       status: 'running',
       toolCallId: d.toolCallId,
@@ -538,7 +541,7 @@ export class AgentRunState {
     if (existing) return existing;
 
     let item: StateItem = {
-      id: `shell:${d.toolCallId}`,
+      id: createItemId(),
       type: 'shell',
       status: 'running',
       toolCallId: d.toolCallId,
@@ -556,12 +559,12 @@ export class AgentRunState {
   private upsertGenericToolCall(d: { toolCallId: string; toolName: string; input: unknown }) {
     let item = this.state.items.find(
       (item): item is Extract<StateItem, { type: 'tool' }> =>
-        item.type == 'tool' && item.id == d.toolName
+        item.type == 'tool' && item.tool.key == d.toolName
     );
 
     if (!item) {
       item = {
-        id: d.toolName,
+        id: createItemId(),
         type: 'tool',
         tool: {
           key: d.toolName,
@@ -691,7 +694,7 @@ export class AgentRunState {
 
   private addErrorItem(error: unknown) {
     this.state.items.push({
-      id: `error:${this.state.items.length}`,
+      id: createItemId(),
       type: 'error',
       error: {
         message: getErrorMessage(error)

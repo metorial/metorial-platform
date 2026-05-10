@@ -8,6 +8,7 @@ export let actorPresenter = (actor: TenantActor) => ({
   identifier: actor.identifier,
   name: actor.name,
   organizationActorId: actor.organizationActorId,
+  consumerId: actor.consumerId,
 
   createdAt: actor.createdAt
 });

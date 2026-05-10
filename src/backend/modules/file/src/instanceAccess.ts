@@ -15,7 +15,7 @@ export let getInstanceCargoAccess = (ctx: InstanceCargoAccessContext) => {
   if (ctx.member?.actor) {
     return {
       accessActor: {
-        identifier: `organization_actor:${ctx.member.actor.id}`,
+        identifier: `mte-oac-${ctx.member.actor.id}`,
         name: ctx.member.actor.name,
         organizationActorId: ctx.member.actor.id
       },
@@ -27,7 +27,7 @@ export let getInstanceCargoAccess = (ctx: InstanceCargoAccessContext) => {
   if (ctx.consumerProfile?.consumer) {
     return {
       accessActor: {
-        identifier: `consumer:${ctx.consumerProfile.consumer.id}`,
+        identifier: `mte-con-${ctx.consumerProfile.consumer.id}`,
         name: ctx.consumerProfile.consumer.name,
         consumerId: ctx.consumerProfile.consumer.id
       }

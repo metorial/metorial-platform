@@ -35,7 +35,13 @@ model Organization {
   /// [EntityImage]
   image Json
 
-  subspaceTenantIds String[]
+  internalTenantIdentifier String?
+
+  subspaceTenantIds     String[]
+  cargoTenantId         String?
+  cargoEnvironmentId    String?
+  synthesisTenantId     String?
+  synthesisEnvironmentId String?
 
   deletedAt DateTime?
   createdAt DateTime  @default(now())

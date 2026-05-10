@@ -1,16 +1,19 @@
-import { db, Instance, Organization, User } from '@metorial/db';
-import { getTenantForSubspace } from '@metorial/module-subspace';
 import {
-  createCargoClient,
+  cargo as internalCargo,
+  ensureInternalActor,
+  ensureInternalScope,
+  type InternalScope,
+  type InternalScopeOwner
+} from '@metorial/internal-clients';
+import { db, type Instance, type Organization, type User } from '@metorial/db';
+import {
   uploadFile as uploadCargoHttpFile
 } from '../../../../systems/_clients/cargo/src';
 import type { CargoAccessActor, CargoStorePermission } from './services/access';
 import { purposes, purposeSlugs } from './definitions';
 import { env } from './env';
 
-export let cargo = createCargoClient({
-  endpoint: env.service.CARGO_API_URL
-});
+export let cargo = internalCargo;
 
 let getCargoUploadEndpoint = () => {
   let url = new URL(env.service.CARGO_API_URL);
@@ -22,31 +25,23 @@ let getCargoUploadEndpoint = () => {
   return url.toString().replace(/\/$/, '');
 };
 
-export type CargoScope = {
-  tenantId: string;
-  environmentId: string;
-  tenantIdentifier: string;
-  environmentIdentifier: string;
-  tenantName: string;
-  environmentName: string;
-  environmentType: 'development' | 'production';
-};
+export type CargoScope = InternalScope;
 
-type CargoScopeDescriptor = Omit<CargoScope, 'tenantId' | 'environmentId'>;
+type CargoScopeDescriptor = InternalScopeOwner;
 
 type CargoScopeOwner =
   | {
       type: 'user';
-      user: Pick<User, 'id'>;
+      user: Pick<User, 'id'> & Partial<User>;
     }
   | {
       type: 'organization';
-      organization: Pick<Organization, 'id'>;
+      organization: Pick<Organization, 'id'> & Partial<Organization>;
     }
   | {
       type: 'instance';
-      organization: Pick<Organization, 'id'>;
-      instance: Pick<Instance, 'id' | 'type'>;
+      organization?: Pick<Organization, 'id'> & Partial<Organization>;
+      instance: Pick<Instance, 'id'> & Partial<Instance>;
     };
 
 export type CargoFile = Awaited<ReturnType<typeof cargo.file.create>>;
@@ -75,11 +70,6 @@ export type CargoStoreParticipant = Awaited<ReturnType<typeof cargo.storePartici
 export type CargoStoreParticipantList = Awaited<
   ReturnType<typeof cargo.storeParticipant.list>
 >;
-
-let defaultEnvironmentIdentifier = 'default';
-let getOrganizationTenantIdentifier = (organization: { oid: bigint }) =>
-  `mte-org-${organization.oid}`;
-let getUserTenantIdentifier = (user: { oid: bigint }) => `mte-usr-${user.oid}`;
 
 let pickPreferredInstance = <
   T extends {
@@ -143,11 +133,8 @@ let getScopeDescriptorFromOrganization = async (
   if (!organization) return null;
 
   return {
-    tenantIdentifier: getOrganizationTenantIdentifier(organization),
-    environmentIdentifier: defaultEnvironmentIdentifier,
-    tenantName: organization.name,
-    environmentName: 'Default',
-    environmentType: 'production'
+    type: 'organization',
+    organization
   };
 };
 
@@ -162,11 +149,8 @@ let getScopeDescriptorFromUser = async (
   if (!user) return null;
 
   return {
-    tenantIdentifier: getUserTenantIdentifier(user),
-    environmentIdentifier: defaultEnvironmentIdentifier,
-    tenantName: user.name,
-    environmentName: 'Default',
-    environmentType: 'production'
+    type: 'user',
+    user
   };
 };
 
@@ -184,14 +168,9 @@ let getScopeDescriptorFromInstance = async (
   });
   if (!instance) return null;
 
-  let { tenant, environmentIdentifier } = await getTenantForSubspace(instance);
-
   return {
-    tenantIdentifier: instance.project.subspaceTenantIdentifier ?? tenant.identifier,
-    environmentIdentifier: instance.subspaceEnvironmentIdentifier ?? environmentIdentifier,
-    tenantName: instance.project.name,
-    environmentName: instance.name,
-    environmentType: instance.type
+    type: 'instance',
+    instance
   };
 };
 
@@ -257,29 +236,11 @@ export let resolveCargoScopeDescriptorForFile = async (
   return null;
 };
 
-export let ensureCargoScope = async (scope: CargoScopeDescriptor): Promise<CargoScope> => {
-  let tenant = await cargo.tenant.upsert({
-    identifier: scope.tenantIdentifier,
-    name: scope.tenantName
+export let ensureCargoScope = async (scope: CargoScopeDescriptor): Promise<CargoScope> =>
+  await ensureInternalScope({
+    service: 'cargo',
+    owner: scope
   });
-
-  let environment = await cargo.environment.upsert({
-    tenantId: tenant.id,
-    identifier: scope.environmentIdentifier,
-    name: scope.environmentName,
-    type: scope.environmentType
-  });
-
-  return {
-    tenantId: tenant.id,
-    environmentId: environment.id,
-    tenantIdentifier: tenant.identifier,
-    environmentIdentifier: environment.identifier,
-    tenantName: tenant.name,
-    environmentName: environment.name,
-    environmentType: environment.type
-  };
-};
 
 let resolveCargoUploadActorId = async (d: {
   scope: CargoScope;
@@ -287,12 +248,41 @@ let resolveCargoUploadActorId = async (d: {
 }) => {
   if (!d.accessActor) return undefined;
 
+  if (d.accessActor.organizationActorId) {
+    return (
+      await ensureInternalActor({
+        service: 'cargo',
+        tenantId: d.scope.tenantId,
+        actor: {
+          type: 'organizationActor',
+          organizationActor: {
+            id: d.accessActor.organizationActorId
+          }
+        }
+      })
+    ).id;
+  }
+
+  if (d.accessActor.consumerId) {
+    return (
+      await ensureInternalActor({
+        service: 'cargo',
+        tenantId: d.scope.tenantId,
+        actor: {
+          type: 'consumer',
+          consumer: {
+            id: d.accessActor.consumerId
+          }
+        }
+      })
+    ).id;
+  }
+
   let actor = await cargo.actor.upsert({
     tenantId: d.scope.tenantId,
-    identifier: d.accessActor.identifier,
+    identifier: d.accessActor.identifier ?? d.accessActor.name,
     name: d.accessActor.name,
-    organizationActorId: d.accessActor.organizationActorId,
-    consumerId: d.accessActor.consumerId
+    type: 'external'
   });
 
   return actor.id;

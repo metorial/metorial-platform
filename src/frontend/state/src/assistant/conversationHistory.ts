@@ -1,9 +1,9 @@
-import type { DashboardOrganizationsConversationsMessagesListQuery } from '@metorial/dashboard-sdk';
 import {
   createClientReplica,
   type JsonValue,
   type WireMessage
 } from '@metorial-platform-systems/synthesis-client';
+import type { DashboardOrganizationsConversationsMessagesListQuery } from '@metorial/dashboard-sdk';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { withAuth } from '../user';
 import type {
@@ -133,9 +133,6 @@ let createOptimisticMessage = (d: {
           }
         }
       ]
-    },
-    serialized: {
-      messages: [['user', { content: [{ type: 'text', text: d.text }] }]]
     },
     createdAt: d.createdAt
   };

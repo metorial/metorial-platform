@@ -51,13 +51,11 @@ export let v1FilePresenter = Presenter.create(fileType)
         description: `The file's MIME type`,
         examples: ['image/png']
       }),
-      title: v.nullable(
-        v.string({
-          name: 'title',
-          description: `The file's title`,
-          examples: ['Company Logo']
-        })
-      ),
+      title: v.string({
+        name: 'title',
+        description: `The file's title`,
+        examples: ['Company Logo']
+      }),
       purpose: v.object({
         name: v.string({
           name: 'name',
