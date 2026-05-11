@@ -21,6 +21,7 @@ export let serverVersionCreatedQueueProcessor = serverVersionCreatedQueue.proces
       await db.serverVersion.updateMany({
         where: {
           serverOid: serverVersion.serverOid,
+          isCurrent: true,
           oid: { not: serverVersion.oid }
         },
         data: {
@@ -28,7 +29,7 @@ export let serverVersionCreatedQueueProcessor = serverVersionCreatedQueue.proces
         }
       });
 
-      await db.serverVersion.updateMany({
+      await db.serverVersion.update({
         where: { oid: serverVersion.oid },
         data: {
           isCurrent: true,
