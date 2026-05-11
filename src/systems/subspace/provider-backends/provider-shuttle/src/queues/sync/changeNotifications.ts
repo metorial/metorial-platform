@@ -26,16 +26,26 @@ let lock = createLock({
 let isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value == 'object' && value !== null;
 
-let isLockContentionError = (error: unknown) => {
+let isLockContentionError = async (error: unknown) => {
   if (!isRecord(error)) return false;
   if (error.name !== 'ExecutionError') return false;
 
   let attempts = error.attempts;
   if (!Array.isArray(attempts)) return false;
 
-  let voteErrors = attempts.flatMap(attempt => {
-    if (!isRecord(attempt)) return [];
+  let attemptStats = await Promise.all(
+    attempts.map(async attempt => {
+      try {
+        return await attempt;
+      } catch {
+        return null;
+      }
+    })
+  );
 
+  if (!attemptStats.length || !attemptStats.every(isRecord)) return false;
+
+  let voteErrors = attemptStats.flatMap(attempt => {
     let votesAgainst = attempt.votesAgainst;
     if (votesAgainst instanceof Map) return [...votesAgainst.values()];
     if (Array.isArray(votesAgainst)) return votesAgainst;
@@ -92,7 +102,7 @@ export let syncChangeNotificationsQueueProcessor = syncChangeNotificationsQueue.
         await syncChangeNotificationsQueue.add({});
       });
     } catch (error) {
-      if (isLockContentionError(error)) return;
+      if (await isLockContentionError(error)) return;
       throw error;
     }
   }
