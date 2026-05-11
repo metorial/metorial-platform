@@ -1,7 +1,9 @@
 export * from './agents';
+export * from './assistants';
 export * from './callbacks';
 export * from './consumer-surfaces';
 export * from './consumers';
+export * from './conversations';
 export * from './custom-providers';
 export * from './dashboard';
 export * from './documents';
@@ -39,4 +41,7 @@ export * from './publishers';
 export * from './scm';
 export * from './session-templates';
 export * from './sessions';
+export * from './skill-templates';
+export * from './skills';
+export * from './stores';
 export * from './tool-calls';

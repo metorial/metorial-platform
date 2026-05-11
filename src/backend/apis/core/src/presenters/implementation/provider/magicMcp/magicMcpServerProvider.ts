@@ -2,13 +2,17 @@ import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
 import { magicMcpServerProviderType } from '../../../types';
 import { toolFilterPresenter } from '../../_shared/toolFilter';
-import { v1ProviderAuthConfigPreviewPresenter } from '../auth/authConfigPreview';
-import { v1ProviderAuthCredentialsPresenter } from '../auth/authCredentials';
-import { v1ProviderAuthMethodPresenter } from '../auth/authMethod';
-import { v1ProviderConfigPreviewPresenter } from '../config/configPreview';
-import { v1ProviderDeploymentPreviewPresenter } from '../config/deploymentPreview';
-import { v1IntegrationProviderSnapshot } from '../integrations/integrationProvider';
-import { v1ProviderPreview } from '../core/providerPreview';
+import {
+  v1ProviderAuthConfigPreviewPresenter,
+  v1ProviderAuthCredentialsPresenter,
+  v1ProviderAuthMethodPresenter
+} from '../auth';
+import {
+  v1ProviderConfigPreviewPresenter,
+  v1ProviderDeploymentPreviewPresenter
+} from '../config';
+import { v1IntegrationProviderSnapshot } from '../integrations';
+import { v1ProviderPreview } from '../provider';
 
 let presentToolFilter = (toolFilter: PrismaJson.ToolFilter | null | undefined) =>
   toolFilter ? toolFilterPresenter(toolFilter as any) : null;

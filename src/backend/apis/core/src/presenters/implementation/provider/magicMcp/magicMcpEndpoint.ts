@@ -2,8 +2,8 @@ import { v } from '@lowerdeck/validation';
 import { getConfig } from '@metorial/config';
 import { Presenter } from '@metorial/presenter';
 import { magicMcpEndpointType } from '../../../types';
-import { v1MagicMcpServerPreview } from './magicMcpServerPreview';
 import { v1ConsumerIntegrationEndpointPresenter } from './consumerOwnership';
+import { v1MagicMcpServerPreview } from './magicMcpServerPreview';
 
 let endpointToolFilterSchema = v.union([
   v.object({

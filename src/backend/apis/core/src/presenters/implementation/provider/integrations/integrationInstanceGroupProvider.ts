@@ -2,9 +2,9 @@ import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
 import { integrationInstanceGroupProviderType } from '../../../types';
 import { toolFilterPresenter } from '../../_shared/toolFilter';
+import { v1ProviderPreview } from '../provider';
 import { v1IntegrationInstanceProviderPresenter } from './integrationInstanceProvider';
 import { v1IntegrationProviderSnapshot } from './integrationProvider';
-import { v1ProviderPreview } from '../core/providerPreview';
 
 let presentToolFilter = (toolFilter: PrismaJson.ToolFilter | null | undefined) =>
   toolFilter ? toolFilterPresenter(toolFilter as any) : null;

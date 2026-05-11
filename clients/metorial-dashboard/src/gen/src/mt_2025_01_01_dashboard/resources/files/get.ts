@@ -7,8 +7,8 @@ export type FilesGetOutput = {
   fileName: string;
   fileSize: number;
   fileType: string;
-  title: string | null;
-  purpose: { name: string; identifier: string };
+  title: string;
+  purpose: string;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -21,13 +21,7 @@ export let mapFilesGetOutput = mtMap.object<FilesGetOutput>({
   fileSize: mtMap.objectField('file_size', mtMap.passthrough()),
   fileType: mtMap.objectField('file_type', mtMap.passthrough()),
   title: mtMap.objectField('title', mtMap.passthrough()),
-  purpose: mtMap.objectField(
-    'purpose',
-    mtMap.object({
-      name: mtMap.objectField('name', mtMap.passthrough()),
-      identifier: mtMap.objectField('identifier', mtMap.passthrough())
-    })
-  ),
+  purpose: mtMap.objectField('purpose', mtMap.passthrough()),
   createdAt: mtMap.objectField('created_at', mtMap.date()),
   updatedAt: mtMap.objectField('updated_at', mtMap.date())
 });

@@ -1,10 +1,12 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
 import { callbackInstanceType } from '../../../types';
-import { v1ProviderAuthConfigPreviewPresenter } from '../auth/authConfigPreview';
-import { v1ProviderConfigPreviewPresenter } from '../config/configPreview';
-import { v1ProviderDeploymentPreviewPresenter } from '../config/deploymentPreview';
-import { v1ProviderTriggerPresenter } from '../core/providerTrigger';
+import { v1ProviderAuthConfigPreviewPresenter } from '../auth';
+import {
+  v1ProviderConfigPreviewPresenter,
+  v1ProviderDeploymentPreviewPresenter
+} from '../config';
+import { v1ProviderTriggerPresenter } from '../provider';
 
 let callbackInstanceTriggerSchema = v.object({
   object: v.literal('callback.instance.trigger', {

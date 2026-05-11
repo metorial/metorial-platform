@@ -6,10 +6,12 @@ export type ManagementInstanceDocumentsVersionsGetOutput = {
   documentId: string;
   versionNumber: number;
   previousVersionId: string | null;
+  listEditedAt: Date | null;
   content: string;
   editors: {
-    type: 'organization_actor' | 'consumer_profile' | 'unknown';
+    type: 'organization_actor' | 'consumer' | 'unknown';
     name: string;
+    imageUrl: string | null;
     organizationActor: {
       object: 'organization.actor';
       id: string;
@@ -29,14 +31,12 @@ export type ManagementInstanceDocumentsVersionsGetOutput = {
       createdAt: Date;
       updatedAt: Date;
     } | null;
-    consumerProfile: {
-      object: 'consumer.profile';
+    consumer: {
+      object: 'consumer';
       id: string;
       name: string;
       email: string;
       imageUrl: string;
-      consumerId: string;
-      status: 'active' | 'invited';
       createdAt: Date;
       updatedAt: Date;
     } | null;
@@ -54,6 +54,7 @@ export let mapManagementInstanceDocumentsVersionsGetOutput =
       'previous_version_id',
       mtMap.passthrough()
     ),
+    listEditedAt: mtMap.objectField('list_edited_at', mtMap.date()),
     content: mtMap.objectField('content', mtMap.passthrough()),
     editors: mtMap.objectField(
       'editors',
@@ -61,6 +62,7 @@ export let mapManagementInstanceDocumentsVersionsGetOutput =
         mtMap.object({
           type: mtMap.objectField('type', mtMap.passthrough()),
           name: mtMap.objectField('name', mtMap.passthrough()),
+          imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
           organizationActor: mtMap.objectField(
             'organization_actor',
             mtMap.object({
@@ -94,16 +96,14 @@ export let mapManagementInstanceDocumentsVersionsGetOutput =
               updatedAt: mtMap.objectField('updated_at', mtMap.date())
             })
           ),
-          consumerProfile: mtMap.objectField(
-            'consumer_profile',
+          consumer: mtMap.objectField(
+            'consumer',
             mtMap.object({
               object: mtMap.objectField('object', mtMap.passthrough()),
               id: mtMap.objectField('id', mtMap.passthrough()),
               name: mtMap.objectField('name', mtMap.passthrough()),
               email: mtMap.objectField('email', mtMap.passthrough()),
               imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
-              consumerId: mtMap.objectField('consumer_id', mtMap.passthrough()),
-              status: mtMap.objectField('status', mtMap.passthrough()),
               createdAt: mtMap.objectField('created_at', mtMap.date()),
               updatedAt: mtMap.objectField('updated_at', mtMap.date())
             })

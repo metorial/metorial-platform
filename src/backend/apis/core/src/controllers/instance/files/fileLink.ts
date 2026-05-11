@@ -36,7 +36,15 @@ export let fileLinkController = Controller.create(
         description:
           'Returns a paginated list of file links owned by the instance organization.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.file:read', 'instance.file_link:read'] }))
+      .use(
+        checkAccess({
+          possibleScopes: [
+            'instance.file:read',
+            'instance.file_link:read',
+            'consumer#instance.file_link:read'
+          ]
+        })
+      )
       .outputList(fileLinkPresenter)
       .query(
         'default',
@@ -69,7 +77,15 @@ export let fileLinkController = Controller.create(
         name: 'Get file link by ID',
         description: 'Retrieves the details of a specific file link by its ID.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.file:read', 'instance.file_link:read'] }))
+      .use(
+        checkAccess({
+          possibleScopes: [
+            'instance.file:read',
+            'instance.file_link:read',
+            'consumer#instance.file_link:read'
+          ]
+        })
+      )
       .output(fileLinkPresenter)
       .do(async ctx => {
         return fileLinkPresenter.present({ fileLink: ctx.fileLink });
@@ -81,7 +97,13 @@ export let fileLinkController = Controller.create(
         description: 'Creates a new link for a specific file.'
       })
       .use(
-        checkAccess({ possibleScopes: ['instance.file:write', 'instance.file_link:write'] })
+        checkAccess({
+          possibleScopes: [
+            'instance.file:write',
+            'instance.file_link:write',
+            'consumer#instance.file_link:write'
+          ]
+        })
       )
       .body(
         'default',
@@ -124,7 +146,13 @@ export let fileLinkController = Controller.create(
         description: 'Deletes a specific file link by its ID.'
       })
       .use(
-        checkAccess({ possibleScopes: ['instance.file:write', 'instance.file_link:write'] })
+        checkAccess({
+          possibleScopes: [
+            'instance.file:write',
+            'instance.file_link:write',
+            'consumer#instance.file_link:write'
+          ]
+        })
       )
       .output(fileLinkPresenter)
       .do(async ctx => {

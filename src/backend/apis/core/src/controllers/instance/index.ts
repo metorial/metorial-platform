@@ -11,5 +11,7 @@ export * from './portal';
 export * from './provider';
 export * from './provider-auth';
 export * from './provider-config';
+export * from './scm';
 export * from './sessions';
+export * from './skills';
 export * from './token';

@@ -1,10 +1,12 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
 import { consumerProviderType } from '../../types';
-import { v1MagicMcpServerPreview } from '../provider/magicMcp/magicMcpServerPreview';
-import { v1ProviderAuthMethodPresenter } from '../provider/auth/authMethod';
-import { v1ProviderPresenter } from '../provider/core/provider';
-import { v1ProviderTemplatePreview } from '../provider/integrations/providerTemplate';
+import {
+  v1MagicMcpServerPreview,
+  v1ProviderAuthMethodPresenter,
+  v1ProviderTemplatePreview
+} from '../provider';
+import { v1ProviderPresenter } from '../provider/provider';
 
 export let v1ConsumerProviderPresenter = Presenter.create(consumerProviderType)
   .presenter(async ({ consumerProvider }, opts) => {

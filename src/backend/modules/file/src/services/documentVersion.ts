@@ -1,12 +1,16 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { cargo, type CargoDocumentVersion } from '../cargo';
-import { resolveCargoAccess, type CargoAccessActor, type CargoStorePermission } from './access';
-import type { FileOwner } from './file';
+import {
+  resolveCargoAccess,
+  type CargoAccessActor,
+  type CargoStorePermission
+} from './access';
 import {
   documentParticipantService,
   type EnrichedCargoDocumentActor
 } from './documentParticipant';
+import type { FileOwner } from './file';
 
 export type EnrichedCargoDocumentVersion = Omit<CargoDocumentVersion, 'editors'> & {
   editors: EnrichedCargoDocumentActor[];
@@ -33,7 +37,8 @@ class DocumentVersionServiceImpl {
     defaultPermissions?: CargoStorePermission[];
     overridePermissions?: boolean;
   }) {
-    let { scope, actorId, defaultPermissions, overridePermissions } = await resolveCargoAccess(d);
+    let { scope, actorId, defaultPermissions, overridePermissions } =
+      await resolveCargoAccess(d);
 
     return Paginator.create(() => async input => {
       let result = await cargo.documentVersion.list({
@@ -44,15 +49,16 @@ class DocumentVersionServiceImpl {
         defaultPermissions,
         overridePermissions,
         ...input
-      } as any);
+      });
 
       return {
         items: await Promise.all(
-          result.items.map(async version =>
-            await this.enrichVersion({
-              owner: d.owner,
-              version
-            })
+          result.items.map(
+            async version =>
+              await this.enrichVersion({
+                owner: d.owner,
+                version
+              })
           )
         ),
         pagination: {
@@ -70,7 +76,8 @@ class DocumentVersionServiceImpl {
     defaultPermissions?: CargoStorePermission[];
     overridePermissions?: boolean;
   }) {
-    let { scope, actorId, defaultPermissions, overridePermissions } = await resolveCargoAccess(d);
+    let { scope, actorId, defaultPermissions, overridePermissions } =
+      await resolveCargoAccess(d);
     let version = await cargo.documentVersion.get({
       tenantId: scope.tenantId,
       environmentId: scope.environmentId,

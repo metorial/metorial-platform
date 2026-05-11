@@ -1,4 +1,5 @@
 import { v } from '@lowerdeck/validation';
+import { SubspaceIntegrationPreview } from '@metorial/module-subspace';
 import { Presenter } from '@metorial/presenter';
 import { integrationType } from '../../../types';
 import { v1IntegrationProviderPresenter } from './integrationProvider';
@@ -73,3 +74,40 @@ export let v1IntegrationPresenter = Presenter.create(integrationType)
     })
   )
   .build();
+
+export let v1IntegrationPreviewPresenter = Object.assign(
+  (integration: SubspaceIntegrationPreview) => ({
+    object: 'integration#preview' as const,
+    id: integration.id,
+    slug: integration.slug,
+    name: integration.name,
+    description: integration.description,
+    metadata: integration.metadata,
+    configuration: {
+      can_attach_custom_tool_filters: integration.canAttachCustomToolFilters,
+      can_attach_custom_provider_config: integration.canAttachCustomProviderConfig,
+      can_override_tool_filters: integration.canOverrideToolFilters
+    },
+    created_at: integration.createdAt,
+    updated_at: integration.updatedAt,
+    archived_at: integration.archivedAt
+  }),
+  {
+    schema: v.object({
+      object: v.literal('integration#preview'),
+      id: v.string(),
+      slug: v.string(),
+      name: v.string(),
+      description: v.nullable(v.string()),
+      metadata: v.nullable(v.record(v.any())),
+      configuration: v.object({
+        can_attach_custom_tool_filters: v.boolean(),
+        can_attach_custom_provider_config: v.boolean(),
+        can_override_tool_filters: v.boolean()
+      }),
+      created_at: v.date(),
+      updated_at: v.date(),
+      archived_at: v.nullable(v.date())
+    })
+  }
+);

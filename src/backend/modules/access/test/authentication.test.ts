@@ -116,11 +116,30 @@ describe('AuthenticationService', () => {
       );
     });
 
-    it('adds file and file-link scopes for cargo-backed consumer access', () => {
-      expect(instancePublishableTokenWithConsumerScopes).toContain('instance.file:read');
-      expect(instancePublishableTokenWithConsumerScopes).toContain('instance.file:write');
-      expect(instancePublishableTokenWithConsumerScopes).toContain('instance.file_link:read');
-      expect(instancePublishableTokenWithConsumerScopes).toContain('instance.file_link:write');
+    it('adds consumer cargo scopes without the regular file scopes', () => {
+      expect(instancePublishableTokenWithConsumerScopes).toContain('consumer#instance.file:read');
+      expect(instancePublishableTokenWithConsumerScopes).toContain(
+        'consumer#instance.file:write'
+      );
+      expect(instancePublishableTokenWithConsumerScopes).toContain(
+        'consumer#instance.file_link:read'
+      );
+      expect(instancePublishableTokenWithConsumerScopes).toContain(
+        'consumer#instance.file_link:write'
+      );
+      expect(instancePublishableTokenWithConsumerScopes).toContain(
+        'consumer#instance.document:read'
+      );
+      expect(instancePublishableTokenWithConsumerScopes).toContain(
+        'consumer#instance.document:write'
+      );
+      expect(instancePublishableTokenWithConsumerScopes).toContain('consumer#instance.store:read');
+      expect(instancePublishableTokenWithConsumerScopes).not.toContain('instance.file:read');
+      expect(instancePublishableTokenWithConsumerScopes).not.toContain('instance.file:write');
+      expect(instancePublishableTokenWithConsumerScopes).not.toContain('instance.file_link:read');
+      expect(instancePublishableTokenWithConsumerScopes).not.toContain(
+        'instance.file_link:write'
+      );
     });
   });
 

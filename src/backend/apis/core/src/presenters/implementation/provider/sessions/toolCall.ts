@@ -1,7 +1,7 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
 import { toolCallType } from '../../../types';
-import { v1ProviderToolPresenter } from '../core/providerTool';
+import { v1ProviderToolPresenter } from '../provider';
 import { v1SessionErrorPresenter } from './sessionError';
 import { v1SessionParticipantPresenter } from './sessionParticipant';
 

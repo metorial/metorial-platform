@@ -4,8 +4,8 @@ import { integrationInstanceProviderType } from '../../../types';
 import { toolFilterPresenter } from '../../_shared/toolFilter';
 import { v1ProviderAuthConfigPreviewPresenter } from '../auth/authConfigPreview';
 import { v1ProviderConfigPreviewPresenter } from '../config/configPreview';
+import { v1ProviderPreview } from '../provider';
 import { v1IntegrationProviderSnapshot } from './integrationProvider';
-import { v1ProviderPreview } from '../core/providerPreview';
 
 let presentToolFilter = (toolFilter: PrismaJson.ToolFilter | null | undefined) =>
   toolFilter ? toolFilterPresenter(toolFilter as any) : null;

@@ -1,6 +1,3 @@
-export * from './accounts';
-export * from './connections';
-export * from './installation';
 export * from './provider';
 export * from './providerAuthMethod';
 export * from './providerCategory';
@@ -12,5 +9,3 @@ export * from './providerSpecification';
 export * from './providerTool';
 export * from './providerTrigger';
 export * from './providerVersion';
-export * from './providers';
-export * from './repos';

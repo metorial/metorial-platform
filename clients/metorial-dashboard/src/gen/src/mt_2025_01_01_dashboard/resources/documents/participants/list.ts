@@ -9,8 +9,9 @@ export type DocumentsParticipantsListOutput = {
     lastEditedAt: Date | null;
     lastViewedAt: Date | null;
     actor: {
-      type: 'organization_actor' | 'consumer_profile' | 'unknown';
+      type: 'organization_actor' | 'consumer' | 'unknown';
       name: string;
+      imageUrl: string | null;
       organizationActor: {
         object: 'organization.actor';
         id: string;
@@ -30,14 +31,12 @@ export type DocumentsParticipantsListOutput = {
         createdAt: Date;
         updatedAt: Date;
       } | null;
-      consumerProfile: {
-        object: 'consumer.profile';
+      consumer: {
+        object: 'consumer';
         id: string;
         name: string;
         email: string;
         imageUrl: string;
-        consumerId: string;
-        status: 'active' | 'invited';
         createdAt: Date;
         updatedAt: Date;
       } | null;
@@ -64,6 +63,7 @@ export let mapDocumentsParticipantsListOutput =
             mtMap.object({
               type: mtMap.objectField('type', mtMap.passthrough()),
               name: mtMap.objectField('name', mtMap.passthrough()),
+              imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
               organizationActor: mtMap.objectField(
                 'organization_actor',
                 mtMap.object({
@@ -100,19 +100,14 @@ export let mapDocumentsParticipantsListOutput =
                   updatedAt: mtMap.objectField('updated_at', mtMap.date())
                 })
               ),
-              consumerProfile: mtMap.objectField(
-                'consumer_profile',
+              consumer: mtMap.objectField(
+                'consumer',
                 mtMap.object({
                   object: mtMap.objectField('object', mtMap.passthrough()),
                   id: mtMap.objectField('id', mtMap.passthrough()),
                   name: mtMap.objectField('name', mtMap.passthrough()),
                   email: mtMap.objectField('email', mtMap.passthrough()),
                   imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
-                  consumerId: mtMap.objectField(
-                    'consumer_id',
-                    mtMap.passthrough()
-                  ),
-                  status: mtMap.objectField('status', mtMap.passthrough()),
                   createdAt: mtMap.objectField('created_at', mtMap.date()),
                   updatedAt: mtMap.objectField('updated_at', mtMap.date())
                 })

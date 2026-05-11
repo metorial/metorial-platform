@@ -36,7 +36,9 @@ export let documentController = Controller.create(
         name: 'List documents',
         description: 'Returns a paginated list of documents owned by the instance.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.file:read'] }))
+      .use(
+        checkAccess({ possibleScopes: ['instance.file:read', 'consumer#instance.document:read'] })
+      )
       .outputList(documentPresenter)
       .query('default', Paginator.validate(v.object({})))
       .do(async ctx => {
@@ -58,7 +60,11 @@ export let documentController = Controller.create(
         name: 'Create document',
         description: 'Creates a new document for the instance.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.file:write'] }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.file:write', 'consumer#instance.document:write']
+        })
+      )
       .body(
         'default',
         v.object({
@@ -89,7 +95,9 @@ export let documentController = Controller.create(
         name: 'Get document by ID',
         description: 'Retrieves a document by its ID.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.file:read'] }))
+      .use(
+        checkAccess({ possibleScopes: ['instance.file:read', 'consumer#instance.document:read'] })
+      )
       .output(documentPresenter)
       .do(async ctx => documentPresenter.present({ document: ctx.document })),
 
@@ -99,7 +107,9 @@ export let documentController = Controller.create(
         description:
           'Returns the effective Cargo permissions for the current actor on a specific document.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.file:read'] }))
+      .use(
+        checkAccess({ possibleScopes: ['instance.file:read', 'consumer#instance.document:read'] })
+      )
       .output(documentPermissionsPresenter)
       .do(async ctx => {
         let permissions = await documentService.getDocumentPermissions({
@@ -120,7 +130,11 @@ export let documentController = Controller.create(
         name: 'Update document by ID',
         description: 'Updates a specific document.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.file:write'] }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.file:write', 'consumer#instance.document:write']
+        })
+      )
       .body(
         'default',
         v.object({
@@ -152,7 +166,11 @@ export let documentController = Controller.create(
         name: 'Delete document by ID',
         description: 'Deletes a specific document.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.file:write'] }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.file:write', 'consumer#instance.document:write']
+        })
+      )
       .output(documentPresenter)
       .do(async ctx => {
         let document = await documentService.deleteDocument({
@@ -173,7 +191,11 @@ export let documentController = Controller.create(
         name: 'Clone document by ID',
         description: 'Clones a specific document.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.file:write'] }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.file:write', 'consumer#instance.document:write']
+        })
+      )
       .body(
         'default',
         v.object({

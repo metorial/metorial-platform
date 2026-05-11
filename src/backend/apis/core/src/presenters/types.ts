@@ -75,14 +75,14 @@ import {
 import type {
   CargoDocument,
   CargoDocumentPermissions,
-  CargoStore,
-  CargoStorePermissions,
-  CargoStoreItem,
   CargoFile,
   CargoFileLink,
-  EnrichedCargoStoreParticipant,
+  CargoStore,
+  CargoStoreItem,
+  CargoStorePermissions,
   EnrichedCargoDocumentParticipant,
-  EnrichedCargoDocumentVersion
+  EnrichedCargoDocumentVersion,
+  EnrichedCargoStoreParticipant
 } from '@metorial/module-file';
 import { Flags } from '@metorial/module-flags';
 import type {
@@ -157,6 +157,10 @@ import {
   SubspaceScmProviderSetupSession,
   SubspaceScmRepository,
   SubspaceScmRepositoryPreviews,
+  SubspaceSkill,
+  SubspaceSkillItem,
+  SubspaceSkillTemplate,
+  SubspaceSkillTemplateItem,
   SubspaceSession,
   SubspaceSessionConnection,
   SubspaceSessionError,
@@ -439,6 +443,10 @@ export let storePermissionsType = PresentableType.create<{
 export let storeItemType = PresentableType.create<{
   storeItem: CargoStoreItem;
 }>()('storeItem');
+
+export let storeItemListType = PresentableType.create<{
+  storeItems: CargoStoreItem[];
+}>()('storeItemList');
 
 export let storeParticipantType = PresentableType.create<{
   storeParticipant: EnrichedCargoStoreParticipant;
@@ -1028,6 +1036,22 @@ export let sessionTemplateType = PresentableType.create<{
 export let sessionTemplateProviderType = PresentableType.create<{
   sessionTemplateProvider: SubspaceSessionTemplateProvider;
 }>()('sessionTemplateProvider');
+
+export let skillType = PresentableType.create<{
+  skill: SubspaceSkill;
+}>()('skill');
+
+export let skillItemType = PresentableType.create<{
+  skillItem: SubspaceSkillItem;
+}>()('skill.item');
+
+export let skillTemplateType = PresentableType.create<{
+  skillTemplate: SubspaceSkillTemplate;
+}>()('skill.template');
+
+export let skillTemplateItemType = PresentableType.create<{
+  skillTemplateItem: SubspaceSkillTemplateItem;
+}>()('skill.template.item');
 
 export let integrationType = PresentableType.create<{
   integration: SubspaceIntegration;

@@ -4,5 +4,6 @@ export * from './delete';
 export * from './get';
 export * from './list';
 export * from './participants';
+export * from './permissions';
 export * from './update';
 export * from './versions';

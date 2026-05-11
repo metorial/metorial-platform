@@ -2,8 +2,8 @@ import { v } from '@lowerdeck/validation';
 import { SubspaceIntegrationSetupSession } from '@metorial/module-subspace';
 import { Presenter } from '@metorial/presenter';
 import { integrationSetupSessionType } from '../../../types';
+import { v1ProviderPreview } from '../provider';
 import { v1IntegrationInstancePresenter } from './integrationInstance';
-import { v1ProviderPreview } from '../core/providerPreview';
 
 let setupSessionConfigurationPresenter = (
   configuration: SubspaceIntegrationSetupSession['configuration']

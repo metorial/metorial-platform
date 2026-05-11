@@ -71,4 +71,7 @@ export * from './sessionParticipant';
 export * from './sessionProvider';
 export * from './sessionTemplate';
 export * from './sessionTemplateProvider';
+export * from './skill';
+export * from './skillItem';
+export * from './skillTemplate';
 export * from './toolCall';

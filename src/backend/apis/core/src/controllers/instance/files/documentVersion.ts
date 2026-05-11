@@ -4,7 +4,6 @@ import { v } from '@lowerdeck/validation';
 import { documentVersionService } from '@metorial/module-file';
 import { Controller } from '@metorial/rest';
 import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
-import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instancePath } from '../../../middleware/instanceGroup';
 import { documentVersionPresenter } from '../../../presenters';
@@ -43,17 +42,16 @@ export let documentVersionController = Controller.create(
         name: 'List document versions',
         description: 'Returns a paginated list of versions for a specific document.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.file:read'] }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.file:read', 'consumer#instance.document:read']
+        })
+      )
       .outputList(documentVersionPresenter)
       .query('default', Paginator.validate(v.object({})))
       .do(async ctx => {
-        let documentId = normalizeArrayParam(ctx.params.documentId);
-        if (!documentId) {
-          throw new Error('documentId is required');
-        }
-
         let paginator = await documentVersionService.listDocumentVersions({
-          documentId,
+          documentId: [ctx.document.id],
           owner: {
             type: 'instance',
             instance: ctx.instance,
@@ -79,7 +77,11 @@ export let documentVersionController = Controller.create(
           description: 'Retrieves a specific document version by its ID.'
         }
       )
-      .use(checkAccess({ possibleScopes: ['instance.file:read'] }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.file:read', 'consumer#instance.document:read']
+        })
+      )
       .output(documentVersionPresenter)
       .do(async ctx =>
         documentVersionPresenter.present({ documentVersion: ctx.documentVersion })

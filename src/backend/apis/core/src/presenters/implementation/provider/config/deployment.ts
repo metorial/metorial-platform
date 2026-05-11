@@ -2,8 +2,8 @@ import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
 import { providerDeploymentType } from '../../../types';
 import { toolFilterPresenter } from '../../_shared/toolFilter';
+import { v1ProviderVersionPresenter } from '../provider';
 import { v1ProviderConfigPreviewPresenter } from './configPreview';
-import { v1ProviderVersionPresenter } from '../core/providerVersion';
 
 export let v1ProviderDeploymentPresenter = Presenter.create(providerDeploymentType)
   .presenter(async ({ deployment }, opts) => ({

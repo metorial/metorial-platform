@@ -7,7 +7,7 @@ import { getInstanceCargoAccess, hasInstanceConsumerAccess } from '../../../lib/
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import {
-  storeItemPresenter,
+  storeItemListPresenter,
   storePermissionsPresenter,
   storePresenter
 } from '../../../presenters';
@@ -53,7 +53,7 @@ export let storeController = Controller.create(
         name: 'List stores',
         description: 'Returns a paginated list of stores owned by the instance.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.file:read'] }))
+      .use(checkAccess({ possibleScopes: ['instance.file:read', 'consumer#instance.store:read'] }))
       .outputList(storePresenter)
       .query('default', Paginator.validate(v.object({})))
       .do(async ctx => {
@@ -112,7 +112,7 @@ export let storeController = Controller.create(
         name: 'Get store by ID',
         description: 'Retrieves a store by its ID.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.file:read'] }))
+      .use(checkAccess({ possibleScopes: ['instance.file:read', 'consumer#instance.store:read'] }))
       .output(storePresenter)
       .do(async ctx => storePresenter.present({ store: ctx.store })),
 
@@ -122,7 +122,7 @@ export let storeController = Controller.create(
         description:
           'Returns the effective Cargo permissions for the current actor on a specific store.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.file:read'] }))
+      .use(checkAccess({ possibleScopes: ['instance.file:read', 'consumer#instance.store:read'] }))
       .output(storePermissionsPresenter)
       .do(async ctx => {
         let permissions = await storeService.getStorePermissions({
@@ -215,27 +215,20 @@ export let storeController = Controller.create(
           )
         })
       )
-      .do(
-        async ctx =>
-          await Promise.all(
-            (
-              await storeService.modifyStoreItems({
-                store: ctx.store,
-                owner: {
-                  type: 'instance',
-                  instance: ctx.instance,
-                  organization: ctx.organization
-                },
-                ...getInstanceCargoAccess(ctx),
-                operations: ctx.body.operations
-              })
-            ).map(async result => ({
-              type: result.type,
-              item: await storeItemPresenter
-                .present({ storeItem: result.item })(ctx as any)
-                .run()
-            }))
-          )
-      )
+      .output(storeItemListPresenter)
+      .do(async ctx => {
+        let items = await storeService.modifyStoreItems({
+          store: ctx.store,
+          owner: {
+            type: 'instance',
+            instance: ctx.instance,
+            organization: ctx.organization
+          },
+          ...getInstanceCargoAccess(ctx),
+          operations: ctx.body.operations
+        });
+
+        return storeItemListPresenter.present({ storeItems: items.map(i => i.item) });
+      })
   }
 );

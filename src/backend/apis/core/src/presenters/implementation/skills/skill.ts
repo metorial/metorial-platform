@@ -1,0 +1,69 @@
+import { v } from '@lowerdeck/validation';
+import { Presenter } from '@metorial/presenter';
+import { skillType } from '../../types';
+import { v1IntegrationPreviewPresenter, v1ProviderPreview } from '../provider';
+
+export let v1SkillPresenter = Presenter.create(skillType)
+  .presenter(async ({ skill }) => ({
+    object: 'skill' as const,
+    id: skill.id,
+    status: skill.status,
+    slug: skill.slug,
+    name: skill.name,
+    description: skill.description,
+    metadata: skill.metadata,
+    store_id: skill.storeId,
+    hierarchy: {
+      object: 'skill.hierarchy' as const,
+      type: skill.hierarchy.type,
+      parent_skill_id: skill.hierarchy.parentSkillId,
+      fork_id: skill.hierarchy.forkId,
+      entity: {
+        object: 'skill.entity' as const,
+        id: skill.hierarchy.entity.id,
+        name: skill.hierarchy.entity.name,
+        slug: skill.hierarchy.entity.slug,
+        description: skill.hierarchy.entity.description,
+        parent_skill_id: skill.hierarchy.entity.parentSkillId,
+        created_at: skill.hierarchy.entity.createdAt,
+        updated_at: skill.hierarchy.entity.updatedAt
+      }
+    },
+    integrations: skill.integrations.map(i => v1IntegrationPreviewPresenter(i)),
+    providers: skill.providers.map(p => v1ProviderPreview(p)),
+    created_at: skill.createdAt,
+    updated_at: skill.updatedAt
+  }))
+  .schema(
+    v.object({
+      object: v.literal('skill'),
+      id: v.string(),
+      status: v.enumOf(['active', 'archived', 'deleted']),
+      slug: v.string(),
+      name: v.string(),
+      description: v.nullable(v.string()),
+      metadata: v.record(v.any()),
+      store_id: v.string(),
+      hierarchy: v.object({
+        object: v.literal('skill.hierarchy'),
+        type: v.enumOf(['root', 'fork', 'duplicated']),
+        parent_skill_id: v.nullable(v.string()),
+        fork_id: v.nullable(v.string()),
+        entity: v.object({
+          object: v.literal('skill.entity'),
+          id: v.string(),
+          name: v.string(),
+          slug: v.string(),
+          description: v.nullable(v.string()),
+          parent_skill_id: v.string(),
+          created_at: v.date(),
+          updated_at: v.date()
+        })
+      }),
+      integrations: v.array(v1IntegrationPreviewPresenter.schema),
+      providers: v.array(v1ProviderPreview.schema),
+      created_at: v.date(),
+      updated_at: v.date()
+    })
+  )
+  .build();

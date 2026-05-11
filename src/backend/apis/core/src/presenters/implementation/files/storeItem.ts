@@ -1,6 +1,6 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
-import { storeItemType } from '../../types';
+import { storeItemListType, storeItemType } from '../../types';
 import { v1DocumentPresenter } from './document';
 import { v1FilePresenter } from './file';
 
@@ -37,6 +37,23 @@ export let v1StoreItemPresenter = Presenter.create(storeItemType)
       document: v.nullable(v1DocumentPresenter.schema),
       created_at: v.date(),
       updated_at: v.date()
+    })
+  )
+  .build();
+
+export let v1StoreItemListPresenter = Presenter.create(storeItemListType)
+  .presenter(async ({ storeItems }, opts) => ({
+    object: 'list(store.item)',
+    items: await Promise.all(
+      storeItems.map(storeItem => v1StoreItemPresenter.present({ storeItem }, opts).run())
+    )
+  }))
+  .schema(
+    v.object({
+      object: v.literal('list(store.item)', {
+        description: "String representing the object's type"
+      }),
+      items: v.array(v1StoreItemPresenter.schema)
     })
   )
   .build();

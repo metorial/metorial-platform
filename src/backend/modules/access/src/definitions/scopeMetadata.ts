@@ -61,6 +61,22 @@ let scopeResourceMetadata: Record<string, { name: string; description: string }>
     name: 'Instance File Links',
     description: 'These endpoints manage file link records and access links.'
   },
+  'consumer#instance.file': {
+    name: 'Consumer Files',
+    description: 'These endpoints manage consumer access to instance files.'
+  },
+  'consumer#instance.file_link': {
+    name: 'Consumer File Links',
+    description: 'These endpoints manage consumer access to instance file links.'
+  },
+  'consumer#instance.document': {
+    name: 'Consumer Documents',
+    description: 'These endpoints manage consumer access to instance documents.'
+  },
+  'consumer#instance.store': {
+    name: 'Consumer Stores',
+    description: 'These endpoints manage consumer read access to instance stores.'
+  },
   'instance.secret': {
     name: 'Instance Secrets',
     description: 'These endpoints manage instance-level secret values.'
@@ -72,6 +88,10 @@ let scopeResourceMetadata: Record<string, { name: string; description: string }>
   'instance.assistant.conversation': {
     name: 'Assistant Conversations',
     description: 'These endpoints manage assistant conversations and messages in an instance.'
+  },
+  'instance.skill': {
+    name: 'Skills',
+    description: 'These endpoints manage skills, skill items, templates, and template items.'
   },
   'instance.session': {
     name: 'Sessions',
@@ -250,6 +270,10 @@ let scopeResourceMetadata: Record<string, { name: string; description: string }>
   'consumer#instance.assistant.conversation': {
     name: 'Consumer Assistant Conversations',
     description: 'These endpoints manage assistant conversations and messages for consumers.'
+  },
+  'consumer#instance.skill': {
+    name: 'Consumer Skills',
+    description: 'These endpoints manage consumer skill access and consumer-owned forks.'
   },
   'consumer#instance.provider_template': {
     name: 'Consumer Provider Templates',
