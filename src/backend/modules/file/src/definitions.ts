@@ -20,6 +20,13 @@ export let purposes = {
     slug: 'project_brand_image',
     ownerType: 'organization',
     canHaveLinks: true
+  })),
+
+  generic: ensureFilePurpose(() => ({
+    name: 'Generic',
+    slug: 'generic',
+    ownerType: 'instance',
+    canHaveLinks: true
   }))
 };
 

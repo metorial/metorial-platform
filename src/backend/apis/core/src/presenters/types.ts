@@ -74,7 +74,9 @@ import {
 } from '@metorial/module-consumer';
 import type {
   CargoDocument,
+  CargoDocumentPermissions,
   CargoStore,
+  CargoStorePermissions,
   CargoStoreItem,
   CargoFile,
   CargoFileLink,
@@ -414,6 +416,10 @@ export let documentType = PresentableType.create<{
   document: CargoDocument;
 }>()('document');
 
+export let documentPermissionsType = PresentableType.create<{
+  permissions: CargoDocumentPermissions;
+}>()('documentPermissions');
+
 export let documentVersionType = PresentableType.create<{
   documentVersion: EnrichedCargoDocumentVersion;
 }>()('documentVersion');
@@ -425,6 +431,10 @@ export let documentParticipantType = PresentableType.create<{
 export let storeType = PresentableType.create<{
   store: CargoStore;
 }>()('store');
+
+export let storePermissionsType = PresentableType.create<{
+  permissions: CargoStorePermissions;
+}>()('storePermissions');
 
 export let storeItemType = PresentableType.create<{
   storeItem: CargoStoreItem;

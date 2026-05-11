@@ -54,6 +54,7 @@ export type CargoFileReferenceList = Awaited<ReturnType<typeof cargo.fileReferen
 export type CargoActor = Awaited<ReturnType<typeof cargo.actor.upsert>>;
 export type CargoDocument = Awaited<ReturnType<typeof cargo.document.create>>;
 export type CargoDocumentList = Awaited<ReturnType<typeof cargo.document.list>>;
+export type CargoDocumentPermissions = Awaited<ReturnType<typeof cargo.document.getPermissions>>;
 export type CargoDocumentVersion = Awaited<ReturnType<typeof cargo.documentVersion.get>>;
 export type CargoDocumentVersionList = Awaited<ReturnType<typeof cargo.documentVersion.list>>;
 export type CargoDocumentParticipant = Awaited<
@@ -64,6 +65,7 @@ export type CargoDocumentParticipantList = Awaited<
 >;
 export type CargoStore = Awaited<ReturnType<typeof cargo.store.create>>;
 export type CargoStoreList = Awaited<ReturnType<typeof cargo.store.list>>;
+export type CargoStorePermissions = Awaited<ReturnType<typeof cargo.store.getPermissions>>;
 export type CargoStoreItemType = 'file' | 'document' | 'directory';
 export type CargoStoreItem = Awaited<ReturnType<typeof cargo.storeItem.get>>;
 export type CargoStoreItemList = Awaited<ReturnType<typeof cargo.storeItem.list>>;

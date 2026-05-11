@@ -5,7 +5,7 @@ import { Controller } from '@metorial/rest';
 import { getInstanceCargoAccess } from '../../lib/cargoAccess';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
-import { documentPresenter } from '../../presenters';
+import { documentPermissionsPresenter, documentPresenter } from '../../presenters';
 
 export let documentGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.documentId) {
@@ -92,6 +92,28 @@ export let documentController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.file:read'] }))
       .output(documentPresenter)
       .do(async ctx => documentPresenter.present({ document: ctx.document })),
+
+    permissions: documentGroup
+      .get(instancePath('documents/:documentId/permissions', 'documents.permissions.get'), {
+        name: 'Get document permissions',
+        description:
+          'Returns the effective Cargo permissions for the current actor on a specific document.'
+      })
+      .use(checkAccess({ possibleScopes: ['instance.file:read'] }))
+      .output(documentPermissionsPresenter)
+      .do(async ctx => {
+        let permissions = await documentService.getDocumentPermissions({
+          documentId: ctx.document.id,
+          owner: {
+            type: 'instance',
+            instance: ctx.instance,
+            organization: ctx.organization
+          },
+          ...getInstanceCargoAccess(ctx)
+        });
+
+        return documentPermissionsPresenter.present({ permissions });
+      }),
 
     update: documentGroup
       .patch(instancePath('documents/:documentId', 'documents.update'), {

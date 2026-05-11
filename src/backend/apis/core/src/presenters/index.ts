@@ -45,6 +45,10 @@ import { v1OrganizationPresenter } from './implementation/organization';
 import { v1OrganizationActorPresenter } from './implementation/organizationActor';
 import { v1OrganizationInvitePresenter } from './implementation/organizationInvite';
 import { v1OrganizationMemberPresenter } from './implementation/organizationMember';
+import {
+  v1DocumentPermissionsPresenter,
+  v1StorePermissionsPresenter
+} from './implementation/permissions';
 import { v1PortalPresenter } from './implementation/portal';
 import { v1PortalAuthAppPresenter } from './implementation/portalAuthApp';
 import { v1PortalAuthSsoConnectionPresenter } from './implementation/portalAuthSsoConnection';
@@ -210,6 +214,7 @@ import {
   customProviderVersionType,
   deploymentPreviewType,
   documentParticipantType,
+  documentPermissionsType,
   documentType,
   documentVersionType,
   fileLinkType,
@@ -308,6 +313,7 @@ import {
   sessionTemplateProviderType,
   sessionTemplateType,
   storeItemType,
+  storePermissionsType,
   storeParticipantType,
   storeType,
   teamType,
@@ -488,6 +494,11 @@ export let documentPresenter = declarePresenter(documentType, {
   mt_2026_01_01_magnetar: v1DocumentPresenter
 });
 
+export let documentPermissionsPresenter = declarePresenter(documentPermissionsType, {
+  mt_2025_01_01_dashboard: v1DocumentPermissionsPresenter,
+  mt_2026_01_01_magnetar: v1DocumentPermissionsPresenter
+});
+
 export let documentVersionPresenter = declarePresenter(documentVersionType, {
   mt_2025_01_01_dashboard: v1DocumentVersionPresenter,
   mt_2026_01_01_magnetar: v1DocumentVersionPresenter
@@ -501,6 +512,11 @@ export let documentParticipantPresenter = declarePresenter(documentParticipantTy
 export let storePresenter = declarePresenter(storeType, {
   mt_2025_01_01_dashboard: v1StorePresenter,
   mt_2026_01_01_magnetar: v1StorePresenter
+});
+
+export let storePermissionsPresenter = declarePresenter(storePermissionsType, {
+  mt_2025_01_01_dashboard: v1StorePermissionsPresenter,
+  mt_2026_01_01_magnetar: v1StorePermissionsPresenter
 });
 
 export let storeItemPresenter = declarePresenter(storeItemType, {

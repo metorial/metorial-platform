@@ -3,6 +3,7 @@ export type {
   CargoDocument,
   CargoDocumentParticipant,
   CargoDocumentParticipantList,
+  CargoDocumentPermissions,
   CargoDocumentVersion,
   CargoDocumentVersionList,
   CargoFile,
@@ -12,6 +13,7 @@ export type {
   CargoScope,
   CargoStore,
   CargoStoreItem,
+  CargoStorePermissions,
   CargoStoreParticipant
 } from '../cargo';
 export type { CargoAccessActor, CargoAccessInput, CargoStorePermission } from './access';
