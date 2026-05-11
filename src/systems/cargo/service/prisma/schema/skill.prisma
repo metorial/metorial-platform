@@ -11,5 +11,9 @@ model Skill {
   storeOid BigInt @unique
   store    Store  @relation(fields: [storeOid], references: [oid], onDelete: Cascade)
 
+  parentSkillOid BigInt?
+  parentSkill    Skill?  @relation("SkillHierarchy", fields: [parentSkillOid], references: [oid], onDelete: Cascade)
+  childSkills    Skill[] @relation("SkillHierarchy")
+
   createdAt DateTime @default(now())
 }

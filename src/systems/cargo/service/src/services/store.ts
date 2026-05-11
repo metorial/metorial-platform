@@ -1,7 +1,7 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import type { Store } from '../../prisma/generated/client';
+import type { Store, StoreAccess } from '../../prisma/generated/client';
 import { db, withTransaction } from '../db';
 import { getId } from '../id';
 import { storeCleanupManyQueue } from '../queues/storeCleanup';
@@ -43,6 +43,7 @@ class StoreServiceImpl {
       input: {
         id?: string;
         name: string;
+        access?: StoreAccess;
         parentStore?: Store;
       };
     }
@@ -55,6 +56,7 @@ class StoreServiceImpl {
           oid: storeIds.oid,
           id: storeIds.id,
           name: d.input.name,
+          access: d.input.access ?? 'private',
           itemCount: 0,
           tenantOid: d.tenant.oid,
           environmentOid: d.environment.oid,
@@ -122,10 +124,11 @@ class StoreServiceImpl {
         store: Store;
         input: {
           name?: string;
+          access?: StoreAccess;
         };
       }
   ) {
-    if (d.input.name === undefined) {
+    if (d.input.name === undefined && d.input.access === undefined) {
       throw new ServiceError(
         badRequestError({
           message: 'At least one store field must be updated'
@@ -148,7 +151,8 @@ class StoreServiceImpl {
         id: d.store.id
       },
       data: {
-        name: d.input.name
+        name: d.input.name,
+        access: d.input.access
       }
     });
   }
@@ -160,6 +164,7 @@ class StoreServiceImpl {
         input: {
           id?: string;
           name?: string;
+          access?: StoreAccess;
         };
       }
   ) {
@@ -180,6 +185,7 @@ class StoreServiceImpl {
         input: {
           id: d.input.id,
           name: d.input.name ?? d.store.name,
+          access: d.input.access ?? d.store.access,
           parentStore: d.store
         }
       });

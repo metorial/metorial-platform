@@ -4,6 +4,7 @@ export let storePresenter = (store: Store) => ({
   object: 'cargo#store',
   id: store.id,
   name: store.name,
+  access: store.access,
   itemCount: store.itemCount,
   createdAt: store.createdAt,
   updatedAt: store.updatedAt

@@ -7,6 +7,7 @@ export let v1StorePresenter = Presenter.create(storeType)
     object: 'store',
     id: store.id,
     name: store.name,
+    access: store.access,
     item_count: store.itemCount,
     created_at: store.createdAt,
     updated_at: store.updatedAt
@@ -18,6 +19,7 @@ export let v1StorePresenter = Presenter.create(storeType)
       }),
       id: v.string(),
       name: v.string(),
+      access: v.enumOf(['private', 'public_read', 'public_write']),
       item_count: v.number(),
       created_at: v.date(),
       updated_at: v.date()

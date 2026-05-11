@@ -107,12 +107,14 @@ export let upsertSubspaceActor = async (d: {
   tenantId: string;
   identifier: string;
   name: string;
-  organizationActorId: string;
+  organizationActorId?: string;
+  consumerId?: string;
 }): Promise<InternalActorLink> =>
   await subspace.actor.upsert({
     tenantId: d.tenantId,
     identifier: d.identifier,
     name: d.name,
     type: 'external',
-    organizationActorId: d.organizationActorId
+    organizationActorId: d.organizationActorId,
+    consumerId: d.consumerId
   });
