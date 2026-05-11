@@ -58,3 +58,22 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
+
+  test:
+    name: 'Cargo Test'
+    permissions:
+      contents: read
+      packages: read
+    uses: metorial/.github/.github/workflows/reusable-e2e-tests.yml@main
+    secrets: inherit
+    with:
+      service_directory: src/systems/cargo/service
+      compose_project_prefix: cargo-ci
+      compose_profiles: 'infra service'
+      wait_services: |
+        cargo-postgres
+        cargo-redis
+        cargo-object-storage
+        cargo-service
+      test_container: cargo-service
+      test_command: cd /app && bun run test

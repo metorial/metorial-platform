@@ -66,24 +66,48 @@ export type CargoDocumentLiveClientMessage =
         content: string;
         title?: string;
       };
+    }
+  | {
+      type: 'document_title_update';
+      data: {
+        title: string;
+      };
     };
+
+export type CargoDocumentSnapshotFile = {
+  object: 'cargo#file';
+  id: string;
+  type: 'document' | 'file';
+  status: string;
+  documentId: string | null;
+  storeId: string;
+  fileName: string;
+  fileSize: number;
+  fileType: string;
+  title: string;
+  purpose: unknown;
+  createdAt: string | Date;
+  updatedAt: string | Date;
+};
+
+export type CargoDocumentSnapshot = {
+  object: 'cargo#document';
+  id: string;
+  title: string;
+  status: string;
+  fileId: string;
+  file: CargoDocumentSnapshotFile;
+  parentDocumentId: string | null;
+  currentVersionId: string | null;
+  content: string;
+  createdAt: string | Date;
+  updatedAt: string | Date;
+};
 
 export type CargoDocumentLiveServerMessage =
   | {
       type: 'document_snapshot';
-      data: {
-        object: 'cargo#document';
-        id: string;
-        title: string;
-        status: string;
-        fileId: string;
-        file: unknown;
-        parentDocumentId: string | null;
-        currentVersionId: string | null;
-        content: string;
-        createdAt: string | Date;
-        updatedAt: string | Date;
-      };
+      data: CargoDocumentSnapshot;
     }
   | {
       type: 'participant_list';

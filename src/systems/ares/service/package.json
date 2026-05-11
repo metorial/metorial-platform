@@ -48,7 +48,7 @@
     "@lowerdeck/api-mux": "^1.0.4",
     "@lowerdeck/cache": "^1.0.2",
     "@lowerdeck/canonicalize": "^1.0.4",
-    "@lowerdeck/cron": "^1.1.1",
+    "@lowerdeck/cron": "^1.1.2",
     "@lowerdeck/encryption": "^1.0.8",
     "@lowerdeck/env": "^1.0.6",
     "@lowerdeck/error": "^1.2.3",

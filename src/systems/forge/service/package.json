@@ -41,7 +41,7 @@
     "@aws-sdk/client-codebuild": "^3.957.0",
     "@aws-sdk/client-iam": "^3.957.0",
     "@lowerdeck/api-mux": "^1.0.4",
-    "@lowerdeck/cron": "^1.1.1",
+    "@lowerdeck/cron": "^1.1.2",
     "@lowerdeck/delay": "^1.0.4",
     "@lowerdeck/encryption": "^1.0.8",
     "@lowerdeck/env": "^1.0.6",
