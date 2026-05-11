@@ -338,14 +338,16 @@ describe('cargo storeVersion.e2e', () => {
       kind: 'snapshot',
       storeId: readyStore.id,
       versionNumber: 1,
-      itemCount: 2
+      itemCount: 5
     });
 
     let documentSnapshotItem = snapshotResult!.version.items.find(
       item => item.documentId === document.id
     );
+    let directorySnapshotItem = snapshotResult!.version.items.find(item => item.path === '/docs/');
 
     expect(documentSnapshotItem?.documentVersionId).toBe(documentRecord?.currentVersion?.id);
+    expect(directorySnapshotItem?.kind).toBe('directory');
 
     let listedVersions = await (
       await storeVersionService.listStoreVersions({
@@ -371,8 +373,9 @@ describe('cargo storeVersion.e2e', () => {
       id: 'latest',
       kind: 'latest',
       storeId: readyStore.id,
-      itemCount: 2
+      itemCount: 5
     });
+    expect(latestVersion.items.find(item => item.path === '/')?.kind).toBe('directory');
 
     let refreshedReadyStore = await db.store.findUnique({
       where: {

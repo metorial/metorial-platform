@@ -8,6 +8,7 @@ import { storeCleanupManyQueue } from '../queues/storeCleanup';
 import { documentInclude, documentService } from './document';
 import type { CargoTenantEnvironment } from './filePurpose';
 import { fileReferenceService } from './fileReference';
+import { normalizeStorePath } from '../lib/storePath';
 import {
   storeAccessService,
   storeReadPermission,
@@ -51,7 +52,7 @@ class StoreServiceImpl {
     return await withTransaction(async db => {
       let storeIds = d.input.id ? { oid: getId('store').oid, id: d.input.id } : getId('store');
 
-      return await db.store.create({
+      let createdStore = await db.store.create({
         data: {
           oid: storeIds.oid,
           id: storeIds.id,
@@ -63,6 +64,18 @@ class StoreServiceImpl {
           parentStoreOid: d.input.parentStore?.oid
         }
       });
+
+      await storeItemMutationService.ensureStoreRootDirectory({
+        tenant: d.tenant,
+        environment: d.environment,
+        store: createdStore
+      });
+
+      return (await db.store.findUnique({
+        where: {
+          id: createdStore.id
+        }
+      }))!;
     });
   }
 
@@ -283,7 +296,9 @@ class StoreServiceImpl {
 
       return {
         deletedStore,
-        fileReferenceIds: items.map(item => item.reference.id)
+        fileReferenceIds: items
+          .map(item => item.reference?.id)
+          .filter((id): id is string => !!id)
       };
     });
 
@@ -339,6 +354,41 @@ class StoreServiceImpl {
       }
   ) {
     return await withTransaction(async db => {
+      let normalizedItemPath = normalizeStorePath({
+        path: d.item.path,
+        kind: d.item.kind === 'directory' ? 'directory' : 'file'
+      });
+
+      if (d.item.kind === 'directory') {
+        if (normalizedItemPath.path === '/') {
+          return;
+        }
+
+        let sourceDirectory = await db.storeDirectory.findFirst({
+          where: {
+            storeOid: d.item.storeOid,
+            path: normalizedItemPath.path
+          }
+        });
+
+        if (!sourceDirectory?.isAutoCreated) {
+          await storeItemMutationService.modifyStoreItems({
+            tenant: d.tenant,
+            environment: d.environment,
+            store: d.targetStore,
+            operations: [
+              {
+                type: 'add',
+                path: normalizedItemPath.path
+              }
+            ],
+            actor: d.actor ?? undefined
+          });
+        }
+
+        return;
+      }
+
       if (d.item.document) {
         let sourceDocument = await db.document.findFirst({
           where: {
@@ -364,7 +414,7 @@ class StoreServiceImpl {
           tenant: d.tenant,
           environment: d.environment,
           store: d.targetStore,
-          path: d.item.path,
+          path: normalizedItemPath.path,
           target: {
             file: clonedDocument.file,
             document: {
@@ -378,11 +428,15 @@ class StoreServiceImpl {
         return;
       }
 
+      if (!d.item.file) {
+        throw new ServiceError(notFoundError('file', d.item.id));
+      }
+
       await storeItemMutationService.attachTargetToStore({
         tenant: d.tenant,
         environment: d.environment,
         store: d.targetStore,
-        path: d.item.path,
+        path: normalizedItemPath.path,
         target: {
           file: d.item.file,
           document: null

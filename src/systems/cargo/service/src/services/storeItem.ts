@@ -1,7 +1,7 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import type { Prisma, StoreParticipantPermissions } from '../../prisma/generated/client';
+import type { Prisma, StoreItemKind, StoreParticipantPermissions } from '../../prisma/generated/client';
 import { db } from '../db';
 import { getEffectiveDocumentStoreSource } from './documentContentStore';
 import type { CargoTenantEnvironment } from './filePurpose';
@@ -11,6 +11,20 @@ export let storeItemInclude = {
   store: {
     select: {
       id: true
+    }
+  },
+  directory: {
+    select: {
+      id: true,
+      path: true,
+      isAutoCreated: true
+    }
+  },
+  parentDirectory: {
+    select: {
+      id: true,
+      path: true,
+      isAutoCreated: true
     }
   },
   file: {
@@ -104,11 +118,14 @@ class StoreItemServiceImpl {
       storeId?: string;
       fileId?: string;
       documentId?: string;
+      types?: StoreItemKind[];
       actorId?: string;
       defaultPermissions?: StoreParticipantPermissions[];
       overridePermissions?: boolean;
     }
   ) {
+    let types = d.types ?? ['file', 'document'];
+
     let accessibleStoreOids = d.actorId
       ? d.storeId
         ? (
@@ -143,41 +160,45 @@ class StoreItemServiceImpl {
       : undefined;
 
     return Paginator.create(({ prisma }) =>
-      prisma(async opts =>
-        await Promise.all(
-          (
-            await db.storeItem.findMany({
-              ...opts,
-              where: {
-                store: {
-                  tenantOid: d.tenant.oid,
-                  environmentOid: d.environment.oid,
-                  oid: accessibleStoreOids
+      prisma(
+        async opts =>
+          await Promise.all(
+            (
+              await db.storeItem.findMany({
+                ...opts,
+                where: {
+                  store: {
+                    tenantOid: d.tenant.oid,
+                    environmentOid: d.environment.oid,
+                    oid: accessibleStoreOids
+                      ? {
+                          in: accessibleStoreOids
+                        }
+                      : undefined,
+                    ...(d.storeId
+                      ? {
+                          id: d.storeId
+                        }
+                      : {})
+                  },
+                  file: d.fileId
                     ? {
-                        in: accessibleStoreOids
+                        id: d.fileId
                       }
                     : undefined,
-                  ...(d.storeId
+                  document: d.documentId
                     ? {
-                        id: d.storeId
+                        id: d.documentId
                       }
-                    : {})
+                    : undefined,
+                  kind: {
+                    in: types
+                  }
                 },
-                file: d.fileId
-                  ? {
-                      id: d.fileId
-                    }
-                  : undefined,
-                document: d.documentId
-                  ? {
-                      id: d.documentId
-                    }
-                  : undefined
-              },
-              include: storeItemInclude
-            })
-          ).map(async item => await this.withEffectiveDocumentStore(item))
-        )
+                include: storeItemInclude
+              })
+            ).map(async item => await this.withEffectiveDocumentStore(item))
+          )
       )
     );
   }

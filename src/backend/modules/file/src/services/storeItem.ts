@@ -1,6 +1,7 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { cargo } from '../cargo';
+import type { CargoStoreItemType } from '../cargo';
 import { resolveCargoAccess, type CargoAccessActor, type CargoStorePermission } from './access';
 import type { FileOwner } from './file';
 
@@ -29,6 +30,7 @@ class StoreItemServiceImpl {
     storeId?: string;
     fileId?: string;
     documentId?: string;
+    types?: CargoStoreItemType[];
     accessActor?: CargoAccessActor;
     defaultPermissions?: CargoStorePermission[];
     overridePermissions?: boolean;
@@ -42,6 +44,7 @@ class StoreItemServiceImpl {
         storeId: d.storeId,
         fileId: d.fileId,
         documentId: d.documentId,
+        types: d.types,
         actorId,
         defaultPermissions,
         overridePermissions,

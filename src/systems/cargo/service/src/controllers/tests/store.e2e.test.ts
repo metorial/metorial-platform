@@ -127,11 +127,11 @@ describe('cargo store.e2e', () => {
       id: expect.any(String),
       name: 'Assets',
       access: 'private',
-      itemCount: 0
+      itemCount: 1
     });
     expect(listed.items).toHaveLength(1);
     expect(fetched.id).toBe(created.id);
-    expect(fetched.itemCount).toBe(0);
+    expect(fetched.itemCount).toBe(1);
     expect(fetched.access).toBe('private');
     expect(updated.name).toBe('Brand Assets');
     expect(updated.access).toBe('public_read');
@@ -231,7 +231,7 @@ describe('cargo store.e2e', () => {
     expect(clonedStore).toMatchObject({
       id: 'cst_store_cloned',
       name: 'Cloned Store',
-      itemCount: 2
+      itemCount: 5
     });
     expect(clonedItems.items.map(item => item.path).sort()).toEqual(
       sourceItems.items.map(item => item.path).sort()
@@ -346,7 +346,11 @@ describe('cargo store.e2e', () => {
       documentId: document.id
     });
     expect(listedItems.items).toHaveLength(2);
-    expect(storeAfterAdds.itemCount).toBe(2);
+    expect(listedItems.items.map(item => item.path).sort()).toEqual([
+      '/assets/avatar.png',
+      '/docs/readme.md'
+    ]);
+    expect(storeAfterAdds.itemCount).toBe(5);
 
     let modified = await cargoClient.store.modifyItems({
       tenantId: tenant.id,
@@ -413,7 +417,7 @@ describe('cargo store.e2e', () => {
 
     expect(overwrittenReferences.items).toHaveLength(1);
     expect(overwrittenReferences.items[0]!.id).toBe(overwrittenItem.referenceId);
-    expect(storeAfterOverwrite.itemCount).toBe(2);
+    expect(storeAfterOverwrite.itemCount).toBe(5);
 
     let removed = await cargoClient.store.modifyItems({
       tenantId: tenant.id,
@@ -453,7 +457,7 @@ describe('cargo store.e2e', () => {
     expect(removedReferences.items).toHaveLength(0);
     expect(itemsAfterRemove.items).toHaveLength(1);
     expect(itemsAfterRemove.items[0]!.id).toBe(overwrittenItem.id);
-    expect(storeAfterRemove.itemCount).toBe(1);
+    expect(storeAfterRemove.itemCount).toBe(3);
 
     await cargoClient.store.delete({
       tenantId: tenant.id,
@@ -492,6 +496,264 @@ describe('cargo store.e2e', () => {
     });
 
     expect(referencesAfterCleanup.items).toHaveLength(0);
+  });
+
+  it('normalizes paths and keeps explicit directories until they are explicitly removed', async () => {
+    let { tenant, environment } = await createScope();
+    let purpose = await createPurpose();
+    let file = await createFile({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      purposeId: purpose.id,
+      id: 'cfi_store_normalized_file',
+      storeId: 'store-normalized-file',
+      name: 'notes.txt'
+    });
+    let store = await cargoClient.store.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: 'cst_store_normalized',
+      name: 'Normalized Store'
+    });
+
+    let explicitDirectory = await cargoClient.store.modifyItems({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: store.id,
+      operations: [
+        {
+          path: 'drafts/tmp'
+        }
+      ]
+    });
+    let normalizedFile = await cargoClient.store.modifyItems({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: store.id,
+      operations: [
+        {
+          fileId: file.id,
+          path: 'dir1/.././my-dir'
+        }
+      ]
+    });
+
+    let storeRecord = (await db.store.findUnique({
+      where: {
+        id: store.id
+      }
+    }))!;
+    let directoriesAfterAdds = await db.storeDirectory.findMany({
+      where: {
+        storeOid: storeRecord.oid
+      },
+      orderBy: {
+        path: 'asc'
+      }
+    });
+    let storeItemsAfterAdds = await db.storeItem.findMany({
+      where: {
+        storeOid: storeRecord.oid
+      },
+      orderBy: {
+        path: 'asc'
+      }
+    });
+    let itemsAfterAdds = await cargoClient.storeItem.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: store.id,
+      types: ['file', 'document', 'directory'],
+      limit: 20
+    });
+    let directoryItemsOnly = await cargoClient.storeItem.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: store.id,
+      types: ['directory'],
+      limit: 20
+    });
+
+    expect(explicitDirectory[0]!.item).toMatchObject({
+      kind: 'directory',
+      path: '/drafts/tmp/'
+    });
+    expect(normalizedFile[0]!.item).toMatchObject({
+      kind: 'file',
+      path: '/dir1/my-dir'
+    });
+    expect(directoriesAfterAdds).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ path: '/', isAutoCreated: true }),
+        expect.objectContaining({ path: '/drafts/', isAutoCreated: true }),
+        expect.objectContaining({ path: '/drafts/tmp/', isAutoCreated: false }),
+        expect.objectContaining({ path: '/dir1/', isAutoCreated: true })
+      ])
+    );
+    expect(itemsAfterAdds.items.map(item => item.path).sort()).toEqual([
+      '/',
+      '/dir1/',
+      '/dir1/my-dir',
+      '/drafts/',
+      '/drafts/tmp/'
+    ]);
+    expect(directoryItemsOnly.items.map(item => item.path).sort()).toEqual([
+      '/',
+      '/dir1/',
+      '/drafts/',
+      '/drafts/tmp/'
+    ]);
+    expect(storeItemsAfterAdds).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          path: '/',
+          directoryOid: directoriesAfterAdds.find(directory => directory.path === '/')?.oid,
+          parentDirectoryOid: null
+        }),
+        expect.objectContaining({
+          path: '/drafts/tmp/',
+          directoryOid: directoriesAfterAdds.find(directory => directory.path === '/drafts/tmp/')?.oid,
+          parentDirectoryOid: directoriesAfterAdds.find(directory => directory.path === '/drafts/')?.oid
+        }),
+        expect.objectContaining({
+          path: '/dir1/my-dir',
+          directoryOid: null,
+          parentDirectoryOid: directoriesAfterAdds.find(directory => directory.path === '/dir1/')?.oid
+        })
+      ])
+    );
+
+    await cargoClient.store.modifyItems({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: store.id,
+      operations: [
+        {
+          itemId: normalizedFile[0]!.item.id
+        }
+      ]
+    });
+
+    let itemsAfterFileRemove = await cargoClient.storeItem.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: store.id,
+      types: ['file', 'document', 'directory'],
+      limit: 20
+    });
+    let directoriesAfterFileRemove = await db.storeDirectory.findMany({
+      where: {
+        storeOid: storeRecord.oid
+      },
+      orderBy: {
+        path: 'asc'
+      }
+    });
+
+    expect(itemsAfterFileRemove.items.map(item => item.path).sort()).toEqual([
+      '/',
+      '/drafts/',
+      '/drafts/tmp/'
+    ]);
+    expect(directoriesAfterFileRemove.map(directory => directory.path).sort()).toEqual([
+      '/',
+      '/drafts/',
+      '/drafts/tmp/'
+    ]);
+
+    await cargoClient.store.modifyItems({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: store.id,
+      operations: [
+        {
+          itemId: explicitDirectory[0]!.item.id
+        }
+      ]
+    });
+
+    let itemsAfterDirectoryRemove = await cargoClient.storeItem.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: store.id,
+      types: ['file', 'document', 'directory'],
+      limit: 20
+    });
+    let directoriesAfterDirectoryRemove = await db.storeDirectory.findMany({
+      where: {
+        storeOid: storeRecord.oid
+      },
+      orderBy: {
+        path: 'asc'
+      }
+    });
+    let storeAfterDirectoryRemove = await cargoClient.store.get({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: store.id
+    });
+
+    expect(itemsAfterDirectoryRemove.items.map(item => item.path)).toEqual(['/']);
+    expect(directoriesAfterDirectoryRemove.map(directory => directory.path)).toEqual(['/']);
+    expect(storeAfterDirectoryRemove.itemCount).toBe(1);
+  });
+
+  it('keeps the root directory fixed and reserves the root path', async () => {
+    let { tenant, environment } = await createScope();
+    let store = await cargoClient.store.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: 'cst_store_root_guards',
+      name: 'Root Guards Store'
+    });
+
+    let explicitDirectory = await cargoClient.store.modifyItems({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: store.id,
+      operations: [
+        {
+          path: '/drafts/tmp/'
+        }
+      ]
+    });
+    let directoryItems = await cargoClient.storeItem.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: store.id,
+      types: ['directory'],
+      limit: 20
+    });
+    let rootItem = directoryItems.items.find(item => item.path === '/');
+
+    await expect(
+      cargoClient.store.modifyItems({
+        tenantId: tenant.id,
+        environmentId: environment.id,
+        storeId: store.id,
+        operations: [
+          {
+            type: 'modify',
+            itemId: rootItem!.id
+          }
+        ]
+      })
+    ).rejects.toThrow('The root directory cannot be modified');
+
+    await expect(
+      cargoClient.store.modifyItems({
+        tenantId: tenant.id,
+        environmentId: environment.id,
+        storeId: store.id,
+        operations: [
+          {
+            type: 'modify',
+            itemId: explicitDirectory[0]!.item.id,
+            path: '/'
+          }
+        ]
+      })
+    ).rejects.toThrow('Only the root directory can use the root path');
   });
 
   it('rejects modify requests above the operation and item limits', async () => {

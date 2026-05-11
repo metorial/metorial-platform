@@ -1,9 +1,8 @@
 import { forbiddenError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import type {
-  Prisma,
-  StoreAccess,
   Store,
+  StoreAccess,
   StoreParticipant,
   StoreParticipantPermissions,
   TenantActor
@@ -29,14 +28,14 @@ export type StoreAccessResult = {
 let storeReadPermission: StoreParticipantPermissions = 'content_read';
 let storeWritePermission: StoreParticipantPermissions = 'content_write';
 
-let uniqueBigInts = (values: bigint[]) => [...new Set(values.map(value => value.toString()))].map(BigInt);
+let uniqueBigInts = (values: bigint[]) =>
+  [...new Set(values.map(value => value.toString()))].map(BigInt);
 let uniquePermissions = (values: StoreParticipantPermissions[]) => [...new Set(values)];
 
 let samePermissions = (
   left: StoreParticipantPermissions[] | undefined,
   right: StoreParticipantPermissions[] | undefined
-) =>
-  JSON.stringify([...(left ?? [])].sort()) === JSON.stringify([...(right ?? [])].sort());
+) => JSON.stringify([...(left ?? [])].sort()) === JSON.stringify([...(right ?? [])].sort());
 
 let mergePermissions = (
   left: StoreParticipantPermissions[] | undefined,
@@ -314,7 +313,10 @@ class StoreAccessServiceImpl {
         });
 
         let byStoreOid = new Map(
-          existingParticipants.map(participant => [participant.storeOid.toString(), participant])
+          existingParticipants.map(participant => [
+            participant.storeOid.toString(),
+            participant
+          ])
         );
         let participants: StoreParticipant[] = [];
 
@@ -481,10 +483,7 @@ class StoreAccessServiceImpl {
       storeOids: [d.store.oid]
     });
 
-    if (
-      d.actorId &&
-      !result.accessibleStoreOids.some(storeOid => storeOid === d.store.oid)
-    ) {
+    if (d.actorId && !result.accessibleStoreOids.some(storeOid => storeOid === d.store.oid)) {
       throw new ServiceError(
         forbiddenError({
           message: `Missing ${d.requiredPermission} access for store ${d.store.id}`
@@ -623,7 +622,4 @@ export let storeAccessService = Service.create(
   () => new StoreAccessServiceImpl()
 ).build();
 
-export {
-  storeReadPermission,
-  storeWritePermission
-};
+export { storeReadPermission, storeWritePermission };

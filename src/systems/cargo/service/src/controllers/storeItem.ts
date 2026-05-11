@@ -19,6 +19,8 @@ export let storeItemApp = tenantApp.use(async ctx => {
   return { item };
 });
 
+let storeItemTypeSchema = v.enumOf(['file', 'document', 'directory']);
+
 export let storeItemController = app.controller({
   list: tenantApp
     .handler()
@@ -30,6 +32,7 @@ export let storeItemController = app.controller({
           storeId: v.optional(v.string()),
           fileId: v.optional(v.string()),
           documentId: v.optional(v.string()),
+          types: v.optional(v.array(storeItemTypeSchema)),
           actorId: v.optional(v.string()),
           defaultPermissions: v.optional(storePermissionsSchema),
           overridePermissions: v.optional(v.boolean())
@@ -43,6 +46,7 @@ export let storeItemController = app.controller({
         storeId: ctx.input.storeId,
         fileId: ctx.input.fileId,
         documentId: ctx.input.documentId,
+        types: ctx.input.types,
         actorId: ctx.input.actorId,
         defaultPermissions: ctx.input.defaultPermissions,
         overridePermissions: ctx.input.overridePermissions
