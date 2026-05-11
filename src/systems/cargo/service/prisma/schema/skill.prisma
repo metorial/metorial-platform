@@ -15,5 +15,32 @@ model Skill {
   parentSkill    Skill?  @relation("SkillHierarchy", fields: [parentSkillOid], references: [oid], onDelete: Cascade)
   childSkills    Skill[] @relation("SkillHierarchy")
 
+  parentSkillTemplateOid BigInt?
+  parentSkillTemplate    SkillTemplate? @relation("SkillTemplateHierarchy", fields: [parentSkillTemplateOid], references: [oid], onDelete: SetNull)
+
+  createdByTenantActorOid BigInt?
+  createdByTenantActor    TenantActor? @relation("SkillCreator", fields: [createdByTenantActorOid], references: [oid], onDelete: Cascade)
+
   createdAt DateTime @default(now())
+}
+
+model SkillTemplate {
+  oid BigInt @id
+  id  String @unique
+
+  systemIdentifier String? @unique
+
+  storeTemplateOid BigInt        @unique
+  storeTemplate    StoreTemplate @relation(fields: [storeTemplateOid], references: [oid], onDelete: Cascade)
+
+  tenantOid BigInt?
+  tenant    Tenant? @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  environmentOid BigInt?
+  environment    Environment? @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  instantiatedSkills Skill[] @relation("SkillTemplateHierarchy")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 }

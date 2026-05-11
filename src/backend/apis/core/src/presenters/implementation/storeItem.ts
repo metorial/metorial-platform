@@ -11,14 +11,15 @@ export let v1StoreItemPresenter = Presenter.create(storeItemType)
     kind: storeItem.kind,
     path: storeItem.path,
     store_id: storeItem.storeId,
-    parent_directory_id: storeItem.parentDirectoryId ?? null,
-    file_id: storeItem.fileId ?? null,
-    document_id: storeItem.documentId ?? null,
-    reference_id: storeItem.referenceId ?? null,
-    file: storeItem.file ? await v1FilePresenter.present({ file: storeItem.file }, opts).run() : null,
+    directory_id: storeItem.parentDirectoryId ?? null,
+
+    file: storeItem.file
+      ? await v1FilePresenter.present({ file: storeItem.file }, opts).run()
+      : null,
     document: storeItem.document
       ? await v1DocumentPresenter.present({ document: storeItem.document }, opts).run()
       : null,
+
     created_at: storeItem.createdAt,
     updated_at: storeItem.updatedAt
   }))
@@ -31,10 +32,7 @@ export let v1StoreItemPresenter = Presenter.create(storeItemType)
       kind: v.enumOf(['file', 'document', 'directory']),
       path: v.string(),
       store_id: v.string(),
-      parent_directory_id: v.nullable(v.string()),
-      file_id: v.nullable(v.string()),
-      document_id: v.nullable(v.string()),
-      reference_id: v.nullable(v.string()),
+      directory_id: v.nullable(v.string()),
       file: v.nullable(v1FilePresenter.schema),
       document: v.nullable(v1DocumentPresenter.schema),
       created_at: v.date(),

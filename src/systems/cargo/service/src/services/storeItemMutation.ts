@@ -1,8 +1,6 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import type {
-  Prisma,
-  PrismaClient,
   Store,
   StoreDirectory,
   StoreItemKind,
@@ -20,8 +18,6 @@ import type { CargoTenantEnvironment } from './filePurpose';
 import { fileReferenceService } from './fileReference';
 import { storeItemInclude, type StoreItemRecord } from './storeItem';
 import { storeVersionService } from './storeVersion';
-
-type DbClient = PrismaClient | Prisma.TransactionClient;
 
 export type StoreItemOperationInput = {
   type?: 'add' | 'modify' | 'remove';
@@ -102,54 +98,64 @@ class StoreItemMutationServiceImpl {
   }
 
   private async getStoreItemRecord(
-    client: DbClient,
     d: {
       store: Pick<Store, 'oid'>;
       itemId: string;
     }
   ) {
-    let item = await client.storeItem.findFirst({
-      where: {
-        storeOid: d.store.oid,
-        id: d.itemId
+    return await withTransaction(
+      async client => {
+        let item = await client.storeItem.findFirst({
+          where: {
+            storeOid: d.store.oid,
+            id: d.itemId
+          },
+          include: storeItemInclude
+        });
+
+        if (!item) throw new ServiceError(notFoundError('storeItem', d.itemId));
+
+        return item;
       },
-      include: storeItemInclude
-    });
-
-    if (!item) throw new ServiceError(notFoundError('storeItem', d.itemId));
-
-    return item;
+      { ifExists: true }
+    );
   }
 
   private async getStoreItemByPath(
-    client: DbClient,
     d: {
       store: Pick<Store, 'oid'>;
       path: string;
     }
   ) {
-    return await client.storeItem.findFirst({
-      where: {
-        storeOid: d.store.oid,
-        path: d.path
-      },
-      include: storeItemInclude
-    });
+    return await withTransaction(
+      async client =>
+        await client.storeItem.findFirst({
+          where: {
+            storeOid: d.store.oid,
+            path: d.path
+          },
+          include: storeItemInclude
+        }),
+      { ifExists: true }
+    );
   }
 
   private async getStoreDirectoryByPath(
-    client: DbClient,
     d: {
       store: Pick<Store, 'oid'>;
       path: string;
     }
   ) {
-    return await client.storeDirectory.findFirst({
-      where: {
-        storeOid: d.store.oid,
-        path: d.path
-      }
-    });
+    return await withTransaction(
+      async client =>
+        await client.storeDirectory.findFirst({
+          where: {
+            storeOid: d.store.oid,
+            path: d.path
+          }
+        }),
+      { ifExists: true }
+    );
   }
 
   private ensureOnlyOneTarget(fileId?: string, documentId?: string) {
@@ -310,122 +316,147 @@ class StoreItemMutationServiceImpl {
   }
 
   private async createItemReference(
-    client: DbClient,
     d: CargoTenantEnvironment & {
       itemId: string;
       target: ResolvedStoreItemTarget;
     }
   ) {
-    let link = await fileLinkService.createFileLink({
-      tenant: d.tenant,
-      environment: d.environment,
-      file: d.target.file,
-      input: {}
-    });
+    return await withTransaction(async () => {
+      let link = await fileLinkService.createFileLink({
+        tenant: d.tenant,
+        environment: d.environment,
+        file: d.target.file,
+        input: {}
+      });
 
-    return await fileReferenceService.upsertFileReference({
-      tenant: d.tenant,
-      environment: d.environment,
-      fileLink: link,
-      input: {
-        entityType: 'store_item',
-        entityId: d.itemId
-      }
+      return await fileReferenceService.upsertFileReference({
+        tenant: d.tenant,
+        environment: d.environment,
+        fileLink: link,
+        input: {
+          entityType: 'store_item',
+          entityId: d.itemId
+        }
+      });
     });
   }
 
   private async ensureDirectoryRecord(
-    client: DbClient,
     d: {
       store: Pick<Store, 'oid'>;
       path: string;
       isAutoCreated: boolean;
     }
   ) {
-    let normalizedPath = normalizeStorePath({
-      path: d.path,
-      kind: 'directory'
-    });
-    let existingDirectory = await this.getStoreDirectoryByPath(client, {
-      store: d.store,
-      path: normalizedPath.path
-    });
+    return await withTransaction(async client => {
+      let normalizedPath = normalizeStorePath({
+        path: d.path,
+        kind: 'directory'
+      });
+      let existingDirectory = await this.getStoreDirectoryByPath({
+        store: d.store,
+        path: normalizedPath.path
+      });
 
-    if (existingDirectory) {
-      if (!d.isAutoCreated && existingDirectory.isAutoCreated) {
-        return await client.storeDirectory.update({
-          where: {
-            id: existingDirectory.id
-          },
-          data: {
-            isAutoCreated: false
-          }
-        });
-      }
-
-      return existingDirectory;
-    }
-
-    let parentDirectory =
-      normalizedPath.parentPath === null
-        ? null
-        : await this.getStoreDirectoryByPath(client, {
-            store: d.store,
-            path: normalizedPath.parentPath
+      if (existingDirectory) {
+        if (!d.isAutoCreated && existingDirectory.isAutoCreated) {
+          return await client.storeDirectory.update({
+            where: {
+              id: existingDirectory.id
+            },
+            data: {
+              isAutoCreated: false
+            }
           });
-
-    let directoryIds = getId('storeDirectory');
-    return await client.storeDirectory.create({
-      data: {
-        oid: directoryIds.oid,
-        id: directoryIds.id,
-        storeOid: d.store.oid,
-        path: normalizedPath.path,
-        isAutoCreated: d.isAutoCreated,
-        parentDirectoryOid: parentDirectory?.oid ?? null
       }
+
+        return existingDirectory;
+      }
+
+      let parentDirectory =
+        normalizedPath.parentPath === null
+          ? null
+          : await this.getStoreDirectoryByPath({
+              store: d.store,
+              path: normalizedPath.parentPath
+            });
+
+      let directoryIds = getId('storeDirectory');
+      return await client.storeDirectory.create({
+        data: {
+          oid: directoryIds.oid,
+          id: directoryIds.id,
+          storeOid: d.store.oid,
+          path: normalizedPath.path,
+          isAutoCreated: d.isAutoCreated,
+          parentDirectoryOid: parentDirectory?.oid ?? null
+        }
+      });
     });
   }
 
   private async ensureDirectoryItem(
-    client: DbClient,
     d: CargoTenantEnvironment & {
       store: Store;
       directory: StoreDirectory;
       actor?: Pick<TenantActor, 'oid'>;
     }
   ) {
-    let existingItem = await this.getStoreItemByPath(client, {
-      store: d.store,
-      path: d.directory.path
-    });
+    return await withTransaction(async client => {
+      let existingItem = await this.getStoreItemByPath({
+        store: d.store,
+        path: d.directory.path
+      });
 
-    if (existingItem) {
-      if (existingItem.kind !== 'directory') {
-        throw new ServiceError(
-          badRequestError({
-            message: `Store item path already exists: ${d.directory.path}`
-          })
-        );
-      }
+      if (existingItem) {
+        if (existingItem.kind !== 'directory') {
+          throw new ServiceError(
+            badRequestError({
+              message: `Store item path already exists: ${d.directory.path}`
+            })
+          );
+        }
 
-      if (
-        existingItem.directoryOid === d.directory.oid &&
-        existingItem.parentDirectoryOid === (d.directory.parentDirectoryOid ?? null)
-      ) {
+        if (
+          existingItem.directoryOid === d.directory.oid &&
+          existingItem.parentDirectoryOid === (d.directory.parentDirectoryOid ?? null)
+        ) {
+          return {
+            item: existingItem,
+            created: false
+          };
+        }
+
         return {
-          item: existingItem,
-          created: false
+          created: false,
+          item: await client.storeItem.update({
+            where: {
+              id: existingItem.id
+            },
+            data: {
+              directoryOid: d.directory.oid,
+              parentDirectoryOid: d.directory.parentDirectoryOid ?? null,
+              ...(d.actor
+                ? {
+                    lastModifiedByTenantActorOid: d.actor.oid
+                  }
+                : {})
+            },
+            include: storeItemInclude
+          })
         };
       }
 
+      let itemIds = getId('storeItem');
       return {
-        created: false,
-        item: await client.storeItem.update({
-          where: {
-            id: existingItem.id
-          },
+        created: true,
+        item: await client.storeItem.create({
           data: {
+            oid: itemIds.oid,
+            id: itemIds.id,
+            kind: 'directory',
+            path: d.directory.path,
+            storeOid: d.store.oid,
             directoryOid: d.directory.oid,
             parentDirectoryOid: d.directory.parentDirectoryOid ?? null,
             ...(d.actor
@@ -437,33 +468,10 @@ class StoreItemMutationServiceImpl {
           include: storeItemInclude
         })
       };
-    }
-
-    let itemIds = getId('storeItem');
-    return {
-      created: true,
-      item: await client.storeItem.create({
-        data: {
-          oid: itemIds.oid,
-          id: itemIds.id,
-          kind: 'directory',
-          path: d.directory.path,
-          storeOid: d.store.oid,
-          directoryOid: d.directory.oid,
-          parentDirectoryOid: d.directory.parentDirectoryOid ?? null,
-          ...(d.actor
-            ? {
-                lastModifiedByTenantActorOid: d.actor.oid
-              }
-            : {})
-        },
-        include: storeItemInclude
-      })
-    };
+    });
   }
 
   private async ensureDirectoryHierarchy(
-    client: DbClient,
     d: CargoTenantEnvironment & {
       store: Store;
       path: NormalizedStorePath;
@@ -472,133 +480,140 @@ class StoreItemMutationServiceImpl {
       explicitSelf?: boolean;
     }
   ) {
-    let createdItemCount = 0;
-    let ensuredItem: StoreItemRecord | null = null;
-    let directoryPaths = listAncestorDirectoryPaths(d.path, {
-      includeSelf: d.includeSelf
+    return await withTransaction(async () => {
+      let createdItemCount = 0;
+      let ensuredItem: StoreItemRecord | null = null;
+      let directoryPaths = listAncestorDirectoryPaths(d.path, {
+        includeSelf: d.includeSelf
+      });
+
+      for (let directoryPath of directoryPaths) {
+        let directory = await this.ensureDirectoryRecord({
+          store: d.store,
+          path: directoryPath,
+          isAutoCreated: !(d.explicitSelf && directoryPath === d.path.path)
+        });
+        let ensured = await this.ensureDirectoryItem({
+          tenant: d.tenant,
+          environment: d.environment,
+          store: d.store,
+          directory,
+          actor: d.actor
+        });
+
+        if (ensured.created) {
+          createdItemCount += 1;
+        }
+        if (directoryPath === d.path.path) {
+          ensuredItem = ensured.item;
+        }
+      }
+
+      return {
+        createdItemCount,
+        item: ensuredItem
+      };
     });
-
-    for (let directoryPath of directoryPaths) {
-      let directory = await this.ensureDirectoryRecord(client, {
-        store: d.store,
-        path: directoryPath,
-        isAutoCreated: !(d.explicitSelf && directoryPath === d.path.path)
-      });
-      let ensured = await this.ensureDirectoryItem(client, {
-        tenant: d.tenant,
-        environment: d.environment,
-        store: d.store,
-        directory,
-        actor: d.actor
-      });
-
-      if (ensured.created) {
-        createdItemCount += 1;
-      }
-      if (directoryPath === d.path.path) {
-        ensuredItem = ensured.item;
-      }
-    }
-
-    return {
-      createdItemCount,
-      item: ensuredItem
-    };
   }
 
   private async pruneImplicitDirectories(
-    client: DbClient,
     d: {
       store: Store;
       startPath: string | null | undefined;
     }
   ) {
-    let removedItemCount = 0;
-    let currentPath = d.startPath;
+    return await withTransaction(async client => {
+      let removedItemCount = 0;
+      let currentPath = d.startPath;
 
-    while (currentPath && currentPath !== '/') {
-      let directory = await this.getStoreDirectoryByPath(client, {
-        store: d.store,
-        path: currentPath
-      });
-      if (!directory || !directory.isAutoCreated) break;
+      while (currentPath && currentPath !== '/') {
+        let directory = await this.getStoreDirectoryByPath({
+          store: d.store,
+          path: currentPath
+        });
+        if (!directory || !directory.isAutoCreated) break;
 
-      let childItemCount = await client.storeItem.count({
-        where: {
-          storeOid: d.store.oid,
-          parentDirectoryOid: directory.oid
-        }
-      });
-      if (childItemCount > 0) break;
-
-      let directoryItem = await this.getStoreItemByPath(client, {
-        store: d.store,
-        path: directory.path
-      });
-      if (directoryItem) {
-        await client.storeItem.delete({
+        let childItemCount = await client.storeItem.count({
           where: {
-            id: directoryItem.id
+            storeOid: d.store.oid,
+            parentDirectoryOid: directory.oid
           }
         });
-        removedItemCount += 1;
+        if (childItemCount > 0) break;
+
+        let directoryItem = await this.getStoreItemByPath({
+          store: d.store,
+          path: directory.path
+        });
+        if (directoryItem) {
+          await client.storeItem.delete({
+            where: {
+              id: directoryItem.id
+            }
+          });
+          removedItemCount += 1;
+        }
+
+        let parentPath = normalizeStorePath({
+          path: directory.path,
+          kind: 'directory'
+        }).parentPath;
+
+        await client.storeDirectory.delete({
+          where: {
+            id: directory.id
+          }
+        });
+
+        currentPath = parentPath;
       }
 
-      let parentPath = normalizeStorePath({
-        path: directory.path,
-        kind: 'directory'
-      }).parentPath;
-
-      await client.storeDirectory.delete({
-        where: {
-          id: directory.id
-        }
-      });
-
-      currentPath = parentPath;
-    }
-
-    return removedItemCount;
+      return removedItemCount;
+    });
   }
 
   private async ensureStoreRootDirectoryInTransaction(
-    client: DbClient,
     d: CargoTenantEnvironment & {
       store: Store;
       actor?: Pick<TenantActor, 'oid'>;
     }
   ) {
-    let result = await this.ensureDirectoryHierarchy(client, {
-      tenant: d.tenant,
-      environment: d.environment,
-      store: d.store,
-      path: normalizeStorePath({
-        path: '/',
-        kind: 'directory'
-      }),
-      actor: d.actor,
-      includeSelf: true
-    });
+    return await withTransaction(async () => {
+      let result = await this.ensureDirectoryHierarchy({
+        tenant: d.tenant,
+        environment: d.environment,
+        store: d.store,
+        path: normalizeStorePath({
+          path: '/',
+          kind: 'directory'
+        }),
+        actor: d.actor,
+        includeSelf: true
+      });
 
-    return {
-      item: result.item!,
-      createdItemCount: result.createdItemCount
-    };
+      return {
+        item: result.item!,
+        createdItemCount: result.createdItemCount
+      };
+    });
   }
 
   private async cleanupFileReference(
-    client: DbClient,
     fileReference: StoreItemRecord['reference']
   ) {
-    if (!fileReference) return;
+    return await withTransaction(
+      async () => {
+        if (!fileReference) return;
 
-    await fileReferenceService.deleteReferenceAndLinkIfUnused({
-      fileReference
-    });
+        await fileReferenceService.deleteReferenceAndLinkIfUnused({
+          fileReference
+        });
+      },
+      { ifExists: true }
+    );
   }
 
   private async updateContentStoreItem(
-    client: DbClient,
     d: CargoTenantEnvironment & {
       store: Store;
       item: StoreItemRecord;
@@ -607,97 +622,98 @@ class StoreItemMutationServiceImpl {
       actor?: Pick<TenantActor, 'oid'>;
     }
   ) {
-    this.validateContentItem(d.item);
+    return await withTransaction(async client => {
+      this.validateContentItem(d.item);
 
-    let parentDirectory = await this.getStoreDirectoryByPath(client, {
-      store: d.store,
-      path: d.path.parentPath!
-    });
-    if (!parentDirectory) {
-      throw new ServiceError(
-        badRequestError({
-          message: `Store directory does not exist: ${d.path.parentPath}`
-        })
-      );
-    }
-
-    let nextPath = d.path.path;
-    let targetChanged =
-      !!d.target &&
-      (d.item.fileOid !== d.target.file.oid ||
-        (d.item.documentOid ?? null) !== (d.target.document?.oid ?? null));
-    let nextKind = d.target ? this.getContentItemKind(d.target) : d.item.kind;
-
-    if (nextPath !== d.item.path) {
-      let conflictingItem = await client.storeItem.findFirst({
-        where: {
-          storeOid: d.item.storeOid,
-          path: nextPath,
-          NOT: {
-            id: d.item.id
-          }
-        },
-        select: {
-          id: true
-        }
+      let parentDirectory = await this.getStoreDirectoryByPath({
+        store: d.store,
+        path: d.path.parentPath!
       });
-
-      if (conflictingItem) {
+      if (!parentDirectory) {
         throw new ServiceError(
           badRequestError({
-            message: `Store item path already exists: ${nextPath}`
+            message: `Store directory does not exist: ${d.path.parentPath}`
           })
         );
       }
-    }
 
-    let nextReferenceOid = d.item.referenceOid;
+      let nextPath = d.path.path;
+      let targetChanged =
+        !!d.target &&
+        (d.item.fileOid !== d.target.file.oid ||
+          (d.item.documentOid ?? null) !== (d.target.document?.oid ?? null));
+      let nextKind = d.target ? this.getContentItemKind(d.target) : d.item.kind;
 
-    if (targetChanged) {
-      let reference = await this.createItemReference(client, {
-        tenant: d.tenant,
-        environment: d.environment,
-        itemId: d.item.id,
-        target: d.target!
+      if (nextPath !== d.item.path) {
+        let conflictingItem = await client.storeItem.findFirst({
+          where: {
+            storeOid: d.item.storeOid,
+            path: nextPath,
+            NOT: {
+              id: d.item.id
+            }
+          },
+          select: {
+            id: true
+          }
+        });
+
+        if (conflictingItem) {
+          throw new ServiceError(
+            badRequestError({
+              message: `Store item path already exists: ${nextPath}`
+            })
+          );
+        }
+      }
+
+      let nextReferenceOid = d.item.referenceOid;
+
+      if (targetChanged) {
+        let reference = await this.createItemReference({
+          tenant: d.tenant,
+          environment: d.environment,
+          itemId: d.item.id,
+          target: d.target!
+        });
+
+        nextReferenceOid = reference.oid;
+      }
+
+      let updatedItem = await client.storeItem.update({
+        where: {
+          id: d.item.id
+        },
+        data: {
+          kind: nextKind,
+          path: nextPath,
+          directoryOid: null,
+          parentDirectoryOid: parentDirectory.oid,
+          ...(d.actor
+            ? {
+                lastModifiedByTenantActorOid: d.actor.oid
+              }
+            : {}),
+          ...(targetChanged
+            ? {
+                fileOid: d.target!.file.oid,
+                documentOid: d.target!.document?.oid ?? null,
+                referenceOid: nextReferenceOid
+              }
+            : {})
+        },
+        include: storeItemInclude
       });
 
-      nextReferenceOid = reference.oid;
-    }
+      if (targetChanged) {
+        await this.cleanupFileReference(d.item.reference);
+      }
 
-    let updatedItem = await client.storeItem.update({
-      where: {
-        id: d.item.id
-      },
-      data: {
-        kind: nextKind,
-        path: nextPath,
-        directoryOid: null,
-        parentDirectoryOid: parentDirectory.oid,
-        ...(d.actor
-          ? {
-              lastModifiedByTenantActorOid: d.actor.oid
-            }
-          : {}),
-        ...(targetChanged
-          ? {
-              fileOid: d.target!.file.oid,
-              documentOid: d.target!.document?.oid ?? null,
-              referenceOid: nextReferenceOid
-            }
-          : {})
-      },
-      include: storeItemInclude
+      return updatedItem;
     });
-
-    if (targetChanged) {
-      await this.cleanupFileReference(client, d.item.reference);
-    }
-
-    return updatedItem;
   }
 
   private async addContentStoreItem(
-    client: DbClient,
     d: CargoTenantEnvironment & {
       store: Store;
       path: NormalizedStorePath;
@@ -705,143 +721,168 @@ class StoreItemMutationServiceImpl {
       actor?: Pick<TenantActor, 'oid'>;
     }
   ) {
-    let parentDirectory = await this.getStoreDirectoryByPath(client, {
-      store: d.store,
-      path: d.path.parentPath!
-    });
-    if (!parentDirectory) {
-      throw new ServiceError(
-        badRequestError({
-          message: `Store directory does not exist: ${d.path.parentPath}`
-        })
-      );
-    }
-
-    let existingItem = await this.getStoreItemByPath(client, {
-      store: d.store,
-      path: d.path.path
-    });
-
-    if (existingItem) {
-      if (existingItem.kind === 'directory') {
+    return await withTransaction(async client => {
+      let parentDirectory = await this.getStoreDirectoryByPath({
+        store: d.store,
+        path: d.path.parentPath!
+      });
+      if (!parentDirectory) {
         throw new ServiceError(
           badRequestError({
-            message: `Store item path already exists: ${d.path.path}`
+            message: `Store directory does not exist: ${d.path.parentPath}`
           })
         );
       }
 
+      let existingItem = await this.getStoreItemByPath({
+        store: d.store,
+        path: d.path.path
+      });
+
+      if (existingItem) {
+        if (existingItem.kind === 'directory') {
+          throw new ServiceError(
+            badRequestError({
+              message: `Store item path already exists: ${d.path.path}`
+            })
+          );
+        }
+
+        return {
+          item: await this.updateContentStoreItem({
+            tenant: d.tenant,
+            environment: d.environment,
+            store: d.store,
+            item: existingItem,
+            path: d.path,
+            target: d.target,
+            actor: d.actor
+          }),
+          created: false
+        };
+      }
+
+      let itemIds = getId('storeItem');
+      let reference = await this.createItemReference({
+        tenant: d.tenant,
+        environment: d.environment,
+        itemId: itemIds.id,
+        target: d.target
+      });
+
       return {
-        item: await this.updateContentStoreItem(client, {
-          tenant: d.tenant,
-          environment: d.environment,
-          store: d.store,
-          item: existingItem,
-          path: d.path,
-          target: d.target,
-          actor: d.actor
-        }),
-        created: false
+        created: true,
+        item: await client.storeItem.create({
+          data: {
+            oid: itemIds.oid,
+            id: itemIds.id,
+            kind: this.getContentItemKind(d.target),
+            path: d.path.path,
+            storeOid: d.store.oid,
+            directoryOid: null,
+            parentDirectoryOid: parentDirectory.oid,
+            fileOid: d.target.file.oid,
+            documentOid: d.target.document?.oid ?? null,
+            referenceOid: reference.oid,
+            ...(d.actor
+              ? {
+                  lastModifiedByTenantActorOid: d.actor.oid
+                }
+              : {})
+          },
+          include: storeItemInclude
+        })
       };
-    }
-
-    let itemIds = getId('storeItem');
-    let reference = await this.createItemReference(client, {
-      tenant: d.tenant,
-      environment: d.environment,
-      itemId: itemIds.id,
-      target: d.target
     });
-
-    return {
-      created: true,
-      item: await client.storeItem.create({
-        data: {
-          oid: itemIds.oid,
-          id: itemIds.id,
-          kind: this.getContentItemKind(d.target),
-          path: d.path.path,
-          storeOid: d.store.oid,
-          directoryOid: null,
-          parentDirectoryOid: parentDirectory.oid,
-          fileOid: d.target.file.oid,
-          documentOid: d.target.document?.oid ?? null,
-          referenceOid: reference.oid,
-          ...(d.actor
-            ? {
-                lastModifiedByTenantActorOid: d.actor.oid
-              }
-            : {})
-        },
-        include: storeItemInclude
-      })
-    };
   }
 
   private async assertDirectoryIsEmpty(
-    client: DbClient,
     d: {
       store: Store;
       directory: StoreDirectory;
     }
   ) {
-    let childItemCount = await client.storeItem.count({
-      where: {
-        storeOid: d.store.oid,
-        parentDirectoryOid: d.directory.oid
-      }
-    });
+    return await withTransaction(
+      async client => {
+        let childItemCount = await client.storeItem.count({
+          where: {
+            storeOid: d.store.oid,
+            parentDirectoryOid: d.directory.oid
+          }
+        });
 
-    if (childItemCount > 0) {
-      throw new ServiceError(
-        badRequestError({
-          message: `Directory is not empty: ${d.directory.path}`
-        })
-      );
-    }
+        if (childItemCount > 0) {
+          throw new ServiceError(
+            badRequestError({
+              message: `Directory is not empty: ${d.directory.path}`
+            })
+          );
+        }
+      },
+      { ifExists: true }
+    );
   }
 
   private async removeStoreItem(
-    client: DbClient,
     d: {
       store: Store;
       item: StoreItemRecord;
     }
   ) {
-    if (d.item.kind === 'directory') {
-      let normalizedPath = this.normalizeExistingItemPath(d.item);
+    return await withTransaction(async client => {
+      if (d.item.kind === 'directory') {
+        let normalizedPath = this.normalizeExistingItemPath(d.item);
 
-      if (normalizedPath.path === '/') {
-        throw new ServiceError(
-          badRequestError({
-            message: 'The root directory cannot be removed'
-          })
-        );
+        if (normalizedPath.path === '/') {
+          throw new ServiceError(
+            badRequestError({
+              message: 'The root directory cannot be removed'
+            })
+          );
+        }
+
+        let directory = await this.getStoreDirectoryByPath({
+          store: d.store,
+          path: normalizedPath.path
+        });
+        if (!directory) {
+          throw new ServiceError(notFoundError('storeDirectory', normalizedPath.path));
+        }
+
+        await this.assertDirectoryIsEmpty({
+          store: d.store,
+          directory
+        });
+
+        await client.storeItem.delete({
+          where: {
+            id: d.item.id
+          }
+        });
+        await client.storeDirectory.delete({
+          where: {
+            id: directory.id
+          }
+        });
+
+        return {
+          item: d.item,
+          removedItemCount: 1,
+          pruneStartPath: d.item.parentDirectory?.path
+            ? normalizeStorePath({
+                path: d.item.parentDirectory.path,
+                kind: 'directory'
+              }).path
+            : null
+        };
       }
-
-      let directory = await this.getStoreDirectoryByPath(client, {
-        store: d.store,
-        path: normalizedPath.path
-      });
-      if (!directory) {
-        throw new ServiceError(notFoundError('storeDirectory', normalizedPath.path));
-      }
-
-      await this.assertDirectoryIsEmpty(client, {
-        store: d.store,
-        directory
-      });
 
       await client.storeItem.delete({
         where: {
           id: d.item.id
         }
       });
-      await client.storeDirectory.delete({
-        where: {
-          id: directory.id
-        }
-      });
+      await this.cleanupFileReference(d.item.reference);
 
       return {
         item: d.item,
@@ -853,29 +894,10 @@ class StoreItemMutationServiceImpl {
             }).path
           : null
       };
-    }
-
-    await client.storeItem.delete({
-      where: {
-        id: d.item.id
-      }
     });
-    await this.cleanupFileReference(client, d.item.reference);
-
-    return {
-      item: d.item,
-      removedItemCount: 1,
-      pruneStartPath: d.item.parentDirectory?.path
-        ? normalizeStorePath({
-            path: d.item.parentDirectory.path,
-            kind: 'directory'
-          }).path
-        : null
-    };
   }
 
   private async moveDirectoryItem(
-    client: DbClient,
     d: CargoTenantEnvironment & {
       store: Store;
       item: StoreItemRecord;
@@ -883,122 +905,124 @@ class StoreItemMutationServiceImpl {
       actor?: Pick<TenantActor, 'oid'>;
     }
   ) {
-    let normalizedCurrentPath = this.normalizeExistingItemPath(d.item);
+    return await withTransaction(async client => {
+      let normalizedCurrentPath = this.normalizeExistingItemPath(d.item);
 
-    if (normalizedCurrentPath.path === '/') {
-      throw new ServiceError(
-        badRequestError({
-          message: 'The root directory cannot be moved'
-        })
-      );
-    }
-
-    let directory = await this.getStoreDirectoryByPath(client, {
-      store: d.store,
-      path: normalizedCurrentPath.path
-    });
-    if (!directory) {
-      throw new ServiceError(notFoundError('storeDirectory', normalizedCurrentPath.path));
-    }
-
-    await this.assertDirectoryIsEmpty(client, {
-      store: d.store,
-      directory
-    });
-
-    if (d.nextPath.path === '/') {
-      throw new ServiceError(
-        badRequestError({
-          message: 'Only the root directory can use the root path'
-        })
-      );
-    }
-
-    if (d.nextPath.path !== normalizedCurrentPath.path) {
-      let conflictingItem = await client.storeItem.findFirst({
-        where: {
-          storeOid: d.store.oid,
-          path: d.nextPath.path,
-          NOT: {
-            id: d.item.id
-          }
-        },
-        select: {
-          id: true
-        }
-      });
-
-      if (conflictingItem) {
+      if (normalizedCurrentPath.path === '/') {
         throw new ServiceError(
           badRequestError({
-            message: `Store item path already exists: ${d.nextPath.path}`
+            message: 'The root directory cannot be moved'
           })
         );
       }
-    }
 
-    let existingDirectory = await this.getStoreDirectoryByPath(client, {
-      store: d.store,
-      path: d.nextPath.path
-    });
-    if (existingDirectory && existingDirectory.id !== directory.id) {
-      throw new ServiceError(
-        badRequestError({
-          message: `Store directory path already exists: ${d.nextPath.path}`
-        })
-      );
-    }
-
-    let nextParentDirectory = await this.getStoreDirectoryByPath(client, {
-      store: d.store,
-      path: d.nextPath.parentPath!
-    });
-    if (!nextParentDirectory) {
-      throw new ServiceError(
-        badRequestError({
-          message: `Store directory does not exist: ${d.nextPath.parentPath}`
-        })
-      );
-    }
-
-    let previousParentPath = d.item.parentDirectory?.path
-      ? normalizeStorePath({
-          path: d.item.parentDirectory.path,
-          kind: 'directory'
-        }).path
-      : null;
-
-    await client.storeDirectory.update({
-      where: {
-        id: directory.id
-      },
-      data: {
-        path: d.nextPath.path,
-        parentDirectoryOid: nextParentDirectory.oid
+      let directory = await this.getStoreDirectoryByPath({
+        store: d.store,
+        path: normalizedCurrentPath.path
+      });
+      if (!directory) {
+        throw new ServiceError(notFoundError('storeDirectory', normalizedCurrentPath.path));
       }
-    });
 
-    let updatedItem = await client.storeItem.update({
-      where: {
-        id: d.item.id
-      },
-      data: {
-        path: d.nextPath.path,
-        directoryOid: directory.oid,
-        parentDirectoryOid: nextParentDirectory.oid,
-        ...(d.actor
-          ? {
-              lastModifiedByTenantActorOid: d.actor.oid
+      await this.assertDirectoryIsEmpty({
+        store: d.store,
+        directory
+      });
+
+      if (d.nextPath.path === '/') {
+        throw new ServiceError(
+          badRequestError({
+            message: 'Only the root directory can use the root path'
+          })
+        );
+      }
+
+      if (d.nextPath.path !== normalizedCurrentPath.path) {
+        let conflictingItem = await client.storeItem.findFirst({
+          where: {
+            storeOid: d.store.oid,
+            path: d.nextPath.path,
+            NOT: {
+              id: d.item.id
             }
-          : {})
-      },
-      include: storeItemInclude
-    });
+          },
+          select: {
+            id: true
+          }
+        });
 
-    return {
-      item: updatedItem,
-      pruneStartPath: previousParentPath
-    };
+        if (conflictingItem) {
+          throw new ServiceError(
+            badRequestError({
+              message: `Store item path already exists: ${d.nextPath.path}`
+            })
+          );
+        }
+      }
+
+      let existingDirectory = await this.getStoreDirectoryByPath({
+        store: d.store,
+        path: d.nextPath.path
+      });
+      if (existingDirectory && existingDirectory.id !== directory.id) {
+        throw new ServiceError(
+          badRequestError({
+            message: `Store directory path already exists: ${d.nextPath.path}`
+          })
+        );
+      }
+
+      let nextParentDirectory = await this.getStoreDirectoryByPath({
+        store: d.store,
+        path: d.nextPath.parentPath!
+      });
+      if (!nextParentDirectory) {
+        throw new ServiceError(
+          badRequestError({
+            message: `Store directory does not exist: ${d.nextPath.parentPath}`
+          })
+        );
+      }
+
+      let previousParentPath = d.item.parentDirectory?.path
+        ? normalizeStorePath({
+            path: d.item.parentDirectory.path,
+            kind: 'directory'
+          }).path
+        : null;
+
+      await client.storeDirectory.update({
+        where: {
+          id: directory.id
+        },
+        data: {
+          path: d.nextPath.path,
+          parentDirectoryOid: nextParentDirectory.oid
+        }
+      });
+
+      let updatedItem = await client.storeItem.update({
+        where: {
+          id: d.item.id
+        },
+        data: {
+          path: d.nextPath.path,
+          directoryOid: directory.oid,
+          parentDirectoryOid: nextParentDirectory.oid,
+          ...(d.actor
+            ? {
+                lastModifiedByTenantActorOid: d.actor.oid
+              }
+            : {})
+        },
+        include: storeItemInclude
+      });
+
+      return {
+        item: updatedItem,
+        pruneStartPath: previousParentPath
+      };
+    });
   }
 
   async attachTargetToStore(
@@ -1018,13 +1042,13 @@ class StoreItemMutationServiceImpl {
           itemCount: true
         }
       }))!;
-      let root = await this.ensureStoreRootDirectoryInTransaction(client, d);
+      let root = await this.ensureStoreRootDirectoryInTransaction(d);
       let itemCountDelta = root.createdItemCount;
       let normalizedPath = normalizeStorePath({
         path: d.path,
         kind: 'file'
       });
-      let hierarchy = await this.ensureDirectoryHierarchy(client, {
+      let hierarchy = await this.ensureDirectoryHierarchy({
         tenant: d.tenant,
         environment: d.environment,
         store: d.store,
@@ -1033,7 +1057,7 @@ class StoreItemMutationServiceImpl {
       });
       itemCountDelta += hierarchy.createdItemCount;
 
-      let result = await this.addContentStoreItem(client, {
+      let result = await this.addContentStoreItem({
         tenant: d.tenant,
         environment: d.environment,
         store: d.store,
@@ -1079,7 +1103,7 @@ class StoreItemMutationServiceImpl {
     }
   ) {
     return await withTransaction(async client => {
-      let result = await this.ensureStoreRootDirectoryInTransaction(client, d);
+      let result = await this.ensureStoreRootDirectoryInTransaction(d);
       if (result.createdItemCount > 0) {
         await client.store.update({
           where: {
@@ -1134,7 +1158,7 @@ class StoreItemMutationServiceImpl {
           itemCount: true
         }
       }))!;
-      let root = await this.ensureStoreRootDirectoryInTransaction(client, d);
+      let root = await this.ensureStoreRootDirectoryInTransaction(d);
       let itemCount = currentStore.itemCount + root.createdItemCount;
 
       if (itemCount > maxStoreItems) {
@@ -1148,7 +1172,7 @@ class StoreItemMutationServiceImpl {
       for (let operation of operations) {
         if (operation.type === 'add') {
           if (operation.kind === 'directory') {
-            let hierarchy = await this.ensureDirectoryHierarchy(client, {
+            let hierarchy = await this.ensureDirectoryHierarchy({
               tenant: d.tenant,
               environment: d.environment,
               store: d.store,
@@ -1175,7 +1199,7 @@ class StoreItemMutationServiceImpl {
             continue;
           }
 
-          let hierarchy = await this.ensureDirectoryHierarchy(client, {
+          let hierarchy = await this.ensureDirectoryHierarchy({
             tenant: d.tenant,
             environment: d.environment,
             store: d.store,
@@ -1184,7 +1208,7 @@ class StoreItemMutationServiceImpl {
           });
           itemCount += hierarchy.createdItemCount;
 
-          let result = await this.addContentStoreItem(client, {
+          let result = await this.addContentStoreItem({
             tenant: d.tenant,
             environment: d.environment,
             store: d.store,
@@ -1212,18 +1236,18 @@ class StoreItemMutationServiceImpl {
           continue;
         }
 
-        let item = await this.getStoreItemRecord(client, {
+        let item = await this.getStoreItemRecord({
           store: d.store,
           itemId: operation.itemId
         });
 
         if (operation.type === 'remove') {
-          let removedItem = await this.removeStoreItem(client, {
+          let removedItem = await this.removeStoreItem({
             store: d.store,
             item
           });
           itemCount -= removedItem.removedItemCount;
-          itemCount -= await this.pruneImplicitDirectories(client, {
+          itemCount -= await this.pruneImplicitDirectories({
             store: d.store,
             startPath: removedItem.pruneStartPath
           });
@@ -1267,7 +1291,7 @@ class StoreItemMutationServiceImpl {
             path: operation.path,
             kind: 'directory'
           });
-          let hierarchy = await this.ensureDirectoryHierarchy(client, {
+          let hierarchy = await this.ensureDirectoryHierarchy({
             tenant: d.tenant,
             environment: d.environment,
             store: d.store,
@@ -1276,7 +1300,7 @@ class StoreItemMutationServiceImpl {
           });
           itemCount += hierarchy.createdItemCount;
 
-          let movedItem = await this.moveDirectoryItem(client, {
+          let movedItem = await this.moveDirectoryItem({
             tenant: d.tenant,
             environment: d.environment,
             store: d.store,
@@ -1284,7 +1308,7 @@ class StoreItemMutationServiceImpl {
             nextPath,
             actor: d.actor
           });
-          itemCount -= await this.pruneImplicitDirectories(client, {
+          itemCount -= await this.pruneImplicitDirectories({
             store: d.store,
             startPath: movedItem.pruneStartPath
           });
@@ -1315,7 +1339,7 @@ class StoreItemMutationServiceImpl {
               kind: 'directory'
             }).path
           : null;
-        let hierarchy = await this.ensureDirectoryHierarchy(client, {
+        let hierarchy = await this.ensureDirectoryHierarchy({
           tenant: d.tenant,
           environment: d.environment,
           store: d.store,
@@ -1326,7 +1350,7 @@ class StoreItemMutationServiceImpl {
 
         results.push({
           type: 'modify',
-          item: await this.updateContentStoreItem(client, {
+          item: await this.updateContentStoreItem({
             tenant: d.tenant,
             environment: d.environment,
             store: d.store,
@@ -1336,7 +1360,7 @@ class StoreItemMutationServiceImpl {
             actor: d.actor
           })
         });
-        itemCount -= await this.pruneImplicitDirectories(client, {
+        itemCount -= await this.pruneImplicitDirectories({
           store: d.store,
           startPath: previousParentPath
         });

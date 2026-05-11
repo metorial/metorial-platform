@@ -20,22 +20,28 @@ export type CargoStoreItemOperation = {
 class StoreServiceImpl {
   async createStore(d: {
     owner: FileOwner;
+    accessActor?: CargoAccessActor;
+    defaultPermissions?: CargoStorePermission[];
+    overridePermissions?: boolean;
     input: {
       id?: string;
       name: string;
       access?: CargoStoreAccess;
+      templateId?: string;
+      parentId?: string;
     };
   }) {
-    let { scope } = await resolveCargoAccess({
-      owner: d.owner
-    });
+    let { scope, actorId } = await resolveCargoAccess(d);
 
     return await cargo.store.create({
       tenantId: scope.tenantId,
       environmentId: scope.environmentId,
       storeId: d.input.id,
       name: d.input.name,
-      access: d.input.access
+      access: d.input.access,
+      actorId,
+      templateId: d.input.templateId,
+      parentId: d.input.parentId
     });
   }
 
@@ -77,6 +83,25 @@ class StoreServiceImpl {
     let { scope, actorId, defaultPermissions, overridePermissions } = await resolveCargoAccess(d);
 
     return await cargo.store.get({
+      tenantId: scope.tenantId,
+      environmentId: scope.environmentId,
+      storeId: d.storeId,
+      actorId,
+      defaultPermissions,
+      overridePermissions
+    });
+  }
+
+  async getStorePermissions(d: {
+    owner: FileOwner;
+    storeId: string;
+    accessActor?: CargoAccessActor;
+    defaultPermissions?: CargoStorePermission[];
+    overridePermissions?: boolean;
+  }) {
+    let { scope, actorId, defaultPermissions, overridePermissions } = await resolveCargoAccess(d);
+
+    return await cargo.store.getPermissions({
       tenantId: scope.tenantId,
       environmentId: scope.environmentId,
       storeId: d.storeId,

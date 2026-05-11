@@ -11,6 +11,8 @@ export type CargoTenantEnvironment = {
 
 export let documentFilePurposeSlug = 'document';
 export let documentFilePurposeName = 'Document';
+export let genericFilePurposeSlug = 'generic';
+export let genericFilePurposeName = 'Generic';
 
 class FilePurposeServiceImpl {
   async upsertFilePurpose(
@@ -91,6 +93,17 @@ class FilePurposeServiceImpl {
       input: {
         slug: documentFilePurposeSlug,
         name: documentFilePurposeName,
+        ownerType: 'organization',
+        canHaveLinks: true
+      }
+    });
+  }
+
+  async ensureGenericFilePurpose() {
+    return await this.upsertFilePurpose({
+      input: {
+        slug: genericFilePurposeSlug,
+        name: genericFilePurposeName,
         ownerType: 'organization',
         canHaveLinks: true
       }

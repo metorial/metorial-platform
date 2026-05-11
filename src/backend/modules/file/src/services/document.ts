@@ -77,6 +77,25 @@ class DocumentServiceImpl {
     });
   }
 
+  async getDocumentPermissions(d: {
+    owner: FileOwner;
+    documentId: string;
+    accessActor?: CargoAccessActor;
+    defaultPermissions?: CargoStorePermission[];
+    overridePermissions?: boolean;
+  }) {
+    let { scope, actorId, defaultPermissions, overridePermissions } = await resolveCargoAccess(d);
+
+    return await cargo.document.getPermissions({
+      tenantId: scope.tenantId,
+      environmentId: scope.environmentId,
+      documentId: d.documentId,
+      actorId,
+      defaultPermissions,
+      overridePermissions
+    });
+  }
+
   async updateDocument(d: {
     owner: FileOwner;
     document: CargoDocument;

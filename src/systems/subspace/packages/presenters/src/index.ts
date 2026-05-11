@@ -73,6 +73,7 @@ export * from './sessionTemplateProvider';
 export * from './sessionUsageRecord';
 export * from './setupSession';
 export * from './skill';
+export * from './skillTemplate';
 export * from './solution';
 export * from './tenant';
 export * from './toolCall';

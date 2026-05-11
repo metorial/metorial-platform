@@ -1,8 +1,12 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { db } from '../../db';
-import { storeService } from '../../services';
+import { getCargoFilesBucketName, getStorage } from '../../storage';
+import { documentService, storeService } from '../../services';
 import { cargoClient } from '../../test/client';
 import { cleanDatabase } from '../../test/setup';
+
+let subtractHours = (date: Date, hours: number) =>
+  new Date(date.getTime() - hours * 60 * 60 * 1000);
 
 let createScope = async () => {
   let tenant = await cargoClient.tenant.upsert({
@@ -77,6 +81,38 @@ let listStoreItemReferences = async (d: {
     limit: 20
   });
 
+let syncChildVersions = async (parentDocumentVersionId: string, limit = 100) => {
+  let cursor: string | undefined;
+  let downstreamVersionIds: string[] = [];
+
+  while (true) {
+    let result = await documentService.listSyncableChildDocumentIdsForVersionSync({
+      parentDocumentVersionId,
+      cursor,
+      limit
+    });
+
+    for (let childDocumentId of result.childDocumentIds) {
+      let syncResult = await documentService.syncChildDocumentVersionFromParentVersion({
+        parentDocumentVersionId,
+        childDocumentId
+      });
+
+      if (syncResult?.createdVersionId) {
+        downstreamVersionIds.push(syncResult.createdVersionId);
+      }
+    }
+
+    if (!result.nextCursor) break;
+
+    cursor = result.nextCursor;
+  }
+
+  for (let downstreamVersionId of downstreamVersionIds) {
+    await syncChildVersions(downstreamVersionId, limit);
+  }
+};
+
 describe('cargo store.e2e', () => {
   beforeEach(async () => {
     await cleanDatabase();
@@ -139,6 +175,40 @@ describe('cargo store.e2e', () => {
     expect(listedAfterDelete.items).toHaveLength(0);
   });
 
+  it('persists store creators as writable participants when created with actorId', async () => {
+    let { tenant, environment } = await createScope();
+    let actor = await createActor(tenant.id, {
+      identifier: 'store-creator',
+      name: 'Store Creator'
+    });
+
+    let created = await cargoClient.store.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      actorId: actor.id,
+      name: 'Actor Owned Store'
+    });
+
+    let createdStoreRecord = await db.store.findUnique({
+      where: {
+        id: created.id
+      }
+    });
+    let participant = await db.storeParticipant.findFirst({
+      where: {
+        store: {
+          id: created.id
+        },
+        tenantActor: {
+          id: actor.id
+        }
+      }
+    });
+
+    expect(createdStoreRecord?.createdByTenantActorOid).toBeTruthy();
+    expect(participant?.permissions).toEqual(['content_read', 'content_write']);
+  });
+
   it('clones a store by reusing file items and duplicating document items at the same paths', async () => {
     let { tenant, environment } = await createScope();
     let purpose = await createPurpose();
@@ -184,7 +254,8 @@ describe('cargo store.e2e', () => {
       environmentId: environment.id,
       storeId: sourceStore.id,
       targetStoreId: 'cst_store_cloned',
-      name: 'Cloned Store'
+      name: 'Cloned Store',
+      cloneType: 'sync_until_change'
     });
 
     let sourceItems = await cargoClient.storeItem.list({
@@ -231,6 +302,7 @@ describe('cargo store.e2e', () => {
     expect(clonedStore).toMatchObject({
       id: 'cst_store_cloned',
       name: 'Cloned Store',
+      cloneType: 'sync_until_change',
       itemCount: 5
     });
     expect(clonedItems.items.map(item => item.path).sort()).toEqual(
@@ -252,7 +324,201 @@ describe('cargo store.e2e', () => {
       content: document.content
     });
     expect(clonedStoreRecord?.parentStoreOid).toBe(sourceStoreRecord?.oid);
+    expect(clonedStoreRecord?.cloneType).toBe('sync_until_change');
     expect(clonedDocumentRecord?.parentDocumentOid).toBe(sourceDocumentRecord?.oid);
+  });
+
+  it('skips cloned directory items when the source directory record is missing', async () => {
+    let { tenant, environment } = await createScope();
+    let sourceStore = await cargoClient.store.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: 'cst_store_orphaned_directory_source',
+      name: 'Source Store'
+    });
+
+    let createdDirectory = await cargoClient.store.modifyItems({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: sourceStore.id,
+      operations: [
+        {
+          path: '/orphaned/'
+        }
+      ]
+    });
+    let sourceStoreRecord = (await db.store.findUnique({
+      where: {
+        id: sourceStore.id
+      }
+    }))!;
+    let sourceDirectory = (await db.storeDirectory.findFirst({
+      where: {
+        storeOid: sourceStoreRecord.oid,
+        path: '/orphaned/'
+      }
+    }))!;
+
+    await db.storeItem.update({
+      where: {
+        id: createdDirectory[0]!.item.id
+      },
+      data: {
+        directoryOid: null
+      }
+    });
+    await db.storeDirectory.delete({
+      where: {
+        id: sourceDirectory.id
+      }
+    });
+
+    let clonedStore = await cargoClient.store.clone({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: sourceStore.id,
+      targetStoreId: 'cst_store_orphaned_directory_clone',
+      name: 'Cloned Store',
+      cloneType: 'sync_until_change'
+    });
+    let clonedItems = await cargoClient.storeItem.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: clonedStore.id,
+      types: ['directory'],
+      limit: 10
+    });
+
+    expect(clonedItems.items.map(item => item.path)).toEqual(['/']);
+    expect(clonedStore.itemCount).toBe(1);
+  });
+
+  it('keeps sync-until-change store clones linked while duplicate clones stay detached', async () => {
+    let { tenant, environment } = await createScope();
+    let sourceStore = await cargoClient.store.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: 'cst_store_source_clone_modes',
+      name: 'Source Store'
+    });
+    let sourceDocument = await cargoClient.document.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      title: 'Readme',
+      content: 'v1'
+    });
+
+    await cargoClient.store.modifyItems({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: sourceStore.id,
+      operations: [
+        {
+          documentId: sourceDocument.id,
+          path: '/docs/readme.md'
+        }
+      ]
+    });
+
+    let syncCloneStore = await cargoClient.store.clone({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: sourceStore.id,
+      targetStoreId: 'cst_store_sync_clone',
+      name: 'Sync Clone',
+      cloneType: 'sync_until_change'
+    });
+    let duplicateCloneStore = await cargoClient.store.clone({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: sourceStore.id,
+      targetStoreId: 'cst_store_duplicate_clone',
+      name: 'Duplicate Clone',
+      cloneType: 'duplicate'
+    });
+
+    let syncCloneItems = await cargoClient.storeItem.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: syncCloneStore.id,
+      limit: 10
+    });
+    let duplicateCloneItems = await cargoClient.storeItem.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: duplicateCloneStore.id,
+      limit: 10
+    });
+    let syncCloneDocumentId = syncCloneItems.items.find(item => item.path === '/docs/readme.md')!.documentId!;
+    let duplicateCloneDocumentId = duplicateCloneItems.items.find(
+      item => item.path === '/docs/readme.md'
+    )!.documentId!;
+
+    let syncCloneRecordBeforeUpdate = await db.document.findUnique({
+      where: {
+        id: syncCloneDocumentId
+      }
+    });
+    let duplicateCloneRecordBeforeUpdate = await db.document.findUnique({
+      where: {
+        id: duplicateCloneDocumentId
+      }
+    });
+
+    await db.documentVersion.update({
+      where: {
+        id: sourceDocument.currentVersionId!
+      },
+      data: {
+        createdAt: subtractHours(new Date(), 4)
+      }
+    });
+
+    await cargoClient.document.update({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: sourceDocument.id,
+      content: 'v2'
+    });
+    let flushedSource = await documentService.flushDocumentDraft({
+      documentId: sourceDocument.id,
+      force: true
+    });
+
+    await syncChildVersions(flushedSource!.currentVersion!.id);
+
+    let syncCloneDocument = await cargoClient.document.get({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: syncCloneDocumentId
+    });
+    let duplicateCloneDocument = await cargoClient.document.get({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: duplicateCloneDocumentId
+    });
+    let syncCloneRecordAfterUpdate = await db.document.findUnique({
+      where: {
+        id: syncCloneDocumentId
+      }
+    });
+    let duplicateCloneRecordAfterUpdate = await db.document.findUnique({
+      where: {
+        id: duplicateCloneDocumentId
+      }
+    });
+
+    expect(syncCloneStore.cloneType).toBe('sync_until_change');
+    expect(duplicateCloneStore.cloneType).toBe('duplicate');
+    expect(syncCloneRecordBeforeUpdate?.parentDocumentOid).toBeTruthy();
+    expect(syncCloneRecordBeforeUpdate?.isContentOwner).toBe(false);
+    expect(duplicateCloneRecordBeforeUpdate?.parentDocumentOid).toBeNull();
+    expect(duplicateCloneRecordBeforeUpdate?.isContentOwner).toBe(true);
+    expect(syncCloneDocument.content).toBe('v2');
+    expect(duplicateCloneDocument.content).toBe('v1');
+    expect(syncCloneRecordAfterUpdate?.isContentOwner).toBe(false);
+    expect(duplicateCloneRecordAfterUpdate?.isContentOwner).toBe(true);
+    expect(duplicateCloneRecordAfterUpdate?.parentDocumentOid).toBeNull();
   });
 
   it('adds, overwrites, modifies, removes, and cleans up store items', async () => {
@@ -1001,6 +1267,123 @@ describe('cargo store.e2e', () => {
     );
   });
 
+  it('returns full permissions when no actor id is provided', async () => {
+    let { tenant, environment } = await createScope();
+    let store = await cargoClient.store.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      name: 'Permissioned Store',
+      access: 'private'
+    });
+    let document = await cargoClient.document.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      title: 'Permissioned Document',
+      content: 'hello world',
+      store: {
+        id: store.id,
+        path: '/docs/permissioned.md'
+      }
+    });
+
+    let storePermissions = await cargoClient.store.getPermissions({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: store.id
+    });
+    let documentPermissions = await cargoClient.document.getPermissions({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: document.id
+    });
+
+    expect(storePermissions).toMatchObject({
+      storeId: store.id,
+      actorId: null,
+      hasFullAccess: true,
+      permissions: ['content_read', 'content_write'],
+      relevantStoreIds: [store.id],
+      readableStoreIds: [store.id],
+      writableStoreIds: [store.id]
+    });
+    expect(documentPermissions).toMatchObject({
+      documentId: document.id,
+      actorId: null,
+      isOwner: false,
+      hasFullAccess: true,
+      permissions: ['content_read', 'content_write'],
+      relevantStoreIds: [store.id],
+      readableStoreIds: [store.id],
+      writableStoreIds: [store.id]
+    });
+  });
+
+  it('returns actor-scoped read permissions for public_read stores and attached documents', async () => {
+    let { tenant, environment } = await createScope();
+    let actor = await createActor(tenant.id, {
+      identifier: 'permissions-reader',
+      name: 'Permissions Reader'
+    });
+    let store = await cargoClient.store.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      name: 'Public Permissions Store',
+      access: 'public_read'
+    });
+    let document = await cargoClient.document.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      title: 'Public Permissions Document',
+      content: 'read me',
+      store: {
+        id: store.id,
+        path: '/docs/public-permissions.md'
+      }
+    });
+
+    let storePermissions = await cargoClient.store.getPermissions({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: store.id,
+      actorId: actor.id
+    });
+    let documentPermissions = await cargoClient.document.getPermissions({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: document.id,
+      actorId: actor.id
+    });
+    let participant = await db.storeParticipant.findFirst({
+      where: {
+        store: {
+          id: store.id
+        },
+        tenantActor: {
+          id: actor.id
+        }
+      }
+    });
+
+    expect(storePermissions).toMatchObject({
+      storeId: store.id,
+      hasFullAccess: false,
+      permissions: ['content_read'],
+      relevantStoreIds: [store.id],
+      readableStoreIds: [store.id],
+      writableStoreIds: []
+    });
+    expect(documentPermissions).toMatchObject({
+      documentId: document.id,
+      isOwner: false,
+      hasFullAccess: false,
+      permissions: ['content_read'],
+      relevantStoreIds: [store.id],
+      readableStoreIds: [store.id],
+      writableStoreIds: []
+    });
+    expect(participant?.permissions).toEqual(['content_read']);
+  });
+
   it('enforces actor-scoped store item mutations', async () => {
     let { tenant, environment } = await createScope();
     let purpose = await createPurpose();
@@ -1143,5 +1526,470 @@ describe('cargo store.e2e', () => {
         id: firstActor.id
       }
     });
+  });
+
+  it('lists and gets global store templates from scoped reads and blocks scoped deletes', async () => {
+    let { tenant, environment } = await createScope();
+    let content = Buffer.from('template file payload', 'utf8').toString('base64');
+
+    let created = await cargoClient.storeTemplate.create({
+      name: 'Starter Template',
+      items: [
+        {
+          path: '/docs/',
+          type: 'directory'
+        },
+        {
+          path: '/docs/readme.md',
+          type: 'document',
+          content: '# Hello Template',
+          encoding: 'utf-8'
+        },
+        {
+          path: '/logo.bin',
+          type: 'file',
+          content,
+          encoding: 'base64'
+        }
+      ]
+    });
+
+    let listed = await cargoClient.storeTemplate.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      limit: 10
+    });
+    let fetched = await cargoClient.storeTemplate.get({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeTemplateId: created.id
+    });
+
+    expect(created).toMatchObject({
+      id: expect.any(String),
+      name: 'Starter Template',
+      itemCount: 3,
+      sourceStoreId: undefined
+    });
+    expect(created.items).toEqual([
+      {
+        id: expect.any(String),
+        type: 'directory',
+        path: '/docs/',
+        content: undefined,
+        encoding: undefined
+      },
+      {
+        id: expect.any(String),
+        type: 'document',
+        path: '/docs/readme.md',
+        content: '# Hello Template',
+        encoding: 'utf-8'
+      },
+      {
+        id: expect.any(String),
+        type: 'file',
+        path: '/logo.bin',
+        content,
+        encoding: 'base64'
+      }
+    ]);
+    expect(listed.items).toHaveLength(1);
+    expect(fetched).toMatchObject({
+      id: created.id,
+      itemCount: 3
+    });
+    await expect(
+      cargoClient.storeTemplate.delete({
+        tenantId: tenant.id,
+        environmentId: environment.id,
+        storeTemplateId: created.id
+      })
+    ).rejects.toThrow(
+      'Store template updates and deletes are only allowed within the matching tenant and environment'
+    );
+  });
+
+  it('updates and deletes scoped store templates only from the matching tenant and environment', async () => {
+    let { tenant, environment } = await createScope();
+    let otherTenant = await cargoClient.tenant.upsert({
+      identifier: 'tenant-stores-other',
+      name: 'Tenant Stores Other'
+    });
+    let otherEnvironment = await cargoClient.environment.upsert({
+      tenantId: otherTenant.id,
+      identifier: 'prod-other',
+      name: 'Production Other',
+      type: 'production'
+    });
+
+    let created = await cargoClient.storeTemplate.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      name: 'Scoped Template',
+      items: [
+        {
+          path: '/docs/readme.md',
+          type: 'document',
+          content: 'scoped template',
+          encoding: 'utf-8'
+        }
+      ]
+    });
+
+    await expect(
+      cargoClient.storeTemplate.update({
+        tenantId: otherTenant.id,
+        environmentId: otherEnvironment.id,
+        storeTemplateId: created.id,
+        name: 'Wrong Scope Update'
+      })
+    ).rejects.toThrow('storeTemplate');
+
+    let updated = await cargoClient.storeTemplate.update({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeTemplateId: created.id,
+      name: 'Scoped Template Updated'
+    });
+
+    expect(updated.name).toBe('Scoped Template Updated');
+
+    await expect(
+      cargoClient.storeTemplate.delete({
+        tenantId: otherTenant.id,
+        environmentId: otherEnvironment.id,
+        storeTemplateId: created.id
+      })
+    ).rejects.toThrow('storeTemplate');
+
+    let deleted = await cargoClient.storeTemplate.delete({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeTemplateId: created.id
+    });
+
+    expect(deleted.id).toBe(created.id);
+  });
+
+  it('creates linked store templates and instantiates them as duplicate clones', async () => {
+    let { tenant, environment } = await createScope();
+    let purpose = await createPurpose();
+    let actor = await createActor(tenant.id, {
+      identifier: 'linked-template-creator',
+      name: 'Linked Template Creator'
+    });
+    let sourceStore = await cargoClient.store.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: 'cst_store_template_source',
+      name: 'Template Source'
+    });
+    let file = await createFile({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      purposeId: purpose.id,
+      id: 'cfi_store_template_file',
+      storeId: 'store-template-file',
+      name: 'logo.png'
+    });
+    let document = await cargoClient.document.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      title: 'Template Readme',
+      content: 'template copy'
+    });
+
+    await cargoClient.store.modifyItems({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: sourceStore.id,
+      operations: [
+        {
+          fileId: file.id,
+          path: '/assets/logo.png'
+        },
+        {
+          documentId: document.id,
+          path: '/docs/readme.md'
+        }
+      ]
+    });
+
+    let template = await cargoClient.storeTemplate.create({
+      name: 'Linked Template',
+      storeId: sourceStore.id
+    });
+
+    let createdFromTemplate = await cargoClient.store.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: 'cst_store_from_template',
+      actorId: actor.id,
+      templateId: template.id,
+      name: 'Created From Template'
+    });
+
+    let sourceStoreRecord = await db.store.findUnique({
+      where: {
+        id: sourceStore.id
+      }
+    });
+    let templateRecord = await db.storeTemplate.findUnique({
+      where: {
+        id: template.id
+      }
+    });
+    let createdStoreRecord = await db.store.findUnique({
+      where: {
+        id: createdFromTemplate.id
+      }
+    });
+    let createdItems = await cargoClient.storeItem.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: createdFromTemplate.id,
+      limit: 20
+    });
+    let createdDocumentItem = createdItems.items.find(item => item.path === '/docs/readme.md');
+    let createdDocument = await cargoClient.document.get({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: createdDocumentItem!.documentId!
+    });
+    let createdDocumentRecord = await db.document.findUnique({
+      where: {
+        id: createdDocument.id
+      }
+    });
+    let participant = await db.storeParticipant.findFirst({
+      where: {
+        store: {
+          id: createdFromTemplate.id
+        },
+        tenantActor: {
+          id: actor.id
+        }
+      }
+    });
+
+    expect(template).toMatchObject({
+      name: 'Linked Template',
+      sourceStoreId: sourceStore.id,
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      itemCount: 0
+    });
+    expect(createdFromTemplate).toMatchObject({
+      id: 'cst_store_from_template',
+      name: 'Created From Template',
+      cloneType: 'duplicate'
+    });
+    expect(createdStoreRecord?.parentStoreOid).toBe(sourceStoreRecord?.oid);
+    expect(createdStoreRecord?.parentStoreTemplateOid).toBe(templateRecord?.oid);
+    expect(createdStoreRecord?.createdByTenantActorOid).toBeTruthy();
+    expect(createdItems.items.map(item => item.path).sort()).toEqual([
+      '/assets/logo.png',
+      '/docs/readme.md'
+    ]);
+    expect(createdItems.items.find(item => item.path === '/assets/logo.png')?.fileId).toBe(file.id);
+    expect(createdDocument.content).toBe('template copy');
+    expect(createdDocumentRecord?.parentDocumentOid).toBeNull();
+    expect(createdDocumentRecord?.isContentOwner).toBe(true);
+    expect(createdDocumentRecord?.createdByTenantActorOid).toBeTruthy();
+    expect(participant?.permissions).toEqual(['content_read', 'content_write']);
+
+    await expect(
+      cargoClient.store.delete({
+        tenantId: tenant.id,
+        environmentId: environment.id,
+        storeId: sourceStore.id
+      })
+    ).rejects.toThrow('Cannot delete store: it is linked to a store template');
+
+    await expect(
+      cargoClient.store.delete({
+        tenantId: tenant.id,
+        environmentId: environment.id,
+        storeId: createdFromTemplate.id
+      })
+    ).rejects.toThrow('Cannot delete store: it is linked to a store template');
+  });
+
+  it('materializes standalone store templates into concrete files and documents', async () => {
+    let { tenant, environment } = await createScope();
+    let actor = await createActor(tenant.id, {
+      identifier: 'standalone-template-creator',
+      name: 'Standalone Template Creator'
+    });
+    let template = await cargoClient.storeTemplate.create({
+      name: 'Standalone Materialized Template',
+      items: [
+        {
+          path: '/docs/',
+          type: 'directory'
+        },
+        {
+          path: '/docs/readme.md',
+          type: 'document',
+          content: 'hello from template',
+          encoding: 'utf-8'
+        },
+        {
+          path: '/logo.bin',
+          type: 'file',
+          content: Buffer.from('binary-from-template', 'utf8').toString('base64'),
+          encoding: 'base64'
+        }
+      ]
+    });
+
+    let createdStore = await cargoClient.store.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: 'cst_store_from_standalone_template',
+      actorId: actor.id,
+      templateId: template.id,
+      name: 'From Standalone Template'
+    });
+
+    let createdStoreRecord = await db.store.findUnique({
+      where: {
+        id: createdStore.id
+      }
+    });
+    let templateRecord = await db.storeTemplate.findUnique({
+      where: {
+        id: template.id
+      }
+    });
+    let items = await cargoClient.storeItem.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: createdStore.id,
+      types: ['file', 'document', 'directory'],
+      limit: 20
+    });
+    let documentItem = items.items.find(item => item.path === '/docs/readme.md');
+    let fileItem = items.items.find(item => item.path === '/logo.bin');
+    let createdDocument = await cargoClient.document.get({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: documentItem!.documentId!
+    });
+    let createdFileRecord = await db.file.findUnique({
+      where: {
+        id: fileItem!.fileId!
+      },
+      include: {
+        purpose: true
+      }
+    });
+    let createdDocumentRecord = await db.document.findUnique({
+      where: {
+        id: createdDocument.id
+      }
+    });
+    let participant = await db.storeParticipant.findFirst({
+      where: {
+        store: {
+          id: createdStore.id
+        },
+        tenantActor: {
+          id: actor.id
+        }
+      }
+    });
+    let storedFile = await getStorage().getObject(
+      getCargoFilesBucketName(),
+      createdFileRecord!.storeId
+    );
+
+    expect(createdStoreRecord?.parentStoreOid).toBeNull();
+    expect(createdStoreRecord?.parentStoreTemplateOid).toBe(templateRecord?.oid);
+    expect(createdStoreRecord?.createdByTenantActorOid).toBeTruthy();
+    expect(items.items.map(item => item.path).sort()).toEqual([
+      '/',
+      '/docs/',
+      '/docs/readme.md',
+      '/logo.bin'
+    ]);
+    expect(createdDocument.content).toBe('hello from template');
+    expect(createdDocumentRecord?.createdByTenantActorOid).toBeTruthy();
+    expect(createdFileRecord?.purpose.slug).toBe('generic');
+    expect(createdFileRecord?.createdByTenantActorOid).toBeTruthy();
+    expect(storedFile.data.toString('utf-8')).toBe('binary-from-template');
+    expect(participant?.permissions).toEqual(['content_read', 'content_write']);
+  });
+
+  it('rejects invalid store-template create targets and template-parent conflicts', async () => {
+    let { tenant, environment } = await createScope();
+    let secondEnvironment = await cargoClient.environment.upsert({
+      tenantId: tenant.id,
+      identifier: 'staging',
+      name: 'Staging',
+      type: 'development'
+    });
+    let otherTenant = await cargoClient.tenant.upsert({
+      identifier: 'tenant-store-template-other',
+      name: 'Tenant Store Template Other'
+    });
+    let otherEnvironment = await cargoClient.environment.upsert({
+      tenantId: otherTenant.id,
+      identifier: 'prod',
+      name: 'Production',
+      type: 'production'
+    });
+    let sourceStore = await cargoClient.store.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: 'cst_store_template_scope_source',
+      name: 'Scoped Source'
+    });
+    let linkedTemplate = await cargoClient.storeTemplate.create({
+      name: 'Scoped Linked Template',
+      storeId: sourceStore.id
+    });
+    let standaloneScopedTemplate = await cargoClient.storeTemplate.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      name: 'Scoped Standalone Template',
+      items: [
+        {
+          path: '/readme.md',
+          type: 'document',
+          content: 'scoped',
+          encoding: 'utf-8'
+        }
+      ]
+    });
+
+    await expect(
+      cargoClient.store.create({
+        tenantId: tenant.id,
+        environmentId: secondEnvironment.id,
+        templateId: linkedTemplate.id,
+        name: 'Wrong Environment Clone'
+      })
+    ).rejects.toThrow('linked environment');
+
+    await expect(
+      cargoClient.store.create({
+        tenantId: otherTenant.id,
+        environmentId: otherEnvironment.id,
+        templateId: standaloneScopedTemplate.id,
+        name: 'Wrong Tenant Clone'
+      })
+    ).rejects.toThrow('linked tenant');
+
+    await expect(
+      cargoClient.store.create({
+        tenantId: tenant.id,
+        environmentId: environment.id,
+        templateId: linkedTemplate.id,
+        parentId: sourceStore.id,
+        name: 'Conflicting Clone Inputs'
+      })
+    ).rejects.toThrow('mutually exclusive');
   });
 });

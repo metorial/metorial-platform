@@ -5,6 +5,7 @@ export let storePresenter = (store: Store) => ({
   id: store.id,
   name: store.name,
   access: store.access,
+  cloneType: store.cloneType ?? undefined,
   itemCount: store.itemCount,
   createdAt: store.createdAt,
   updatedAt: store.updatedAt

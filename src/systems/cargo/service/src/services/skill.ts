@@ -4,11 +4,23 @@ import { Service } from '@lowerdeck/service';
 import type { Prisma } from '../../prisma/generated/client';
 import { db, withTransaction } from '../db';
 import { getId } from '../id';
+import { actorService } from './actor';
 import type { CargoTenantEnvironment } from './filePurpose';
+import type { SkillTemplateRecord } from './skillTemplate';
 import { storeService } from './store';
 
 let skillInclude = {
-  store: true
+  store: true,
+  parentSkill: {
+    select: {
+      id: true
+    }
+  },
+  parentSkillTemplate: {
+    select: {
+      id: true
+    }
+  }
 } satisfies Prisma.SkillInclude;
 
 export type SkillRecord = Prisma.SkillGetPayload<{
@@ -39,9 +51,11 @@ class SkillServiceImpl {
   async createSkill(
     d: CargoTenantEnvironment & {
       parentSkill?: SkillRecord;
+      parentSkillTemplate?: SkillTemplateRecord;
+      parentSkillCloneType?: 'fork' | 'duplicate';
       input: {
         id?: string;
-        storeId?: string;
+        actorId?: string;
         name: string;
       };
     }
@@ -54,18 +68,46 @@ class SkillServiceImpl {
       );
     }
 
+    if (d.parentSkill && d.parentSkillTemplate) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Skill can only have one parent source'
+        })
+      );
+    }
+
+    let actor = d.input.actorId
+      ? await actorService.getActorById({
+          tenant: d.tenant,
+          actorId: d.input.actorId
+        })
+      : undefined;
+
     return await withTransaction(async db => {
       let skillIds = d.input.id ? { oid: getId('skill').oid, id: d.input.id } : getId('skill');
-      let store = await storeService.createStore({
-        tenant: d.tenant,
-        environment: d.environment,
-        input: {
-          id: d.input.storeId,
-          name: d.input.name,
-          access: 'public_read',
-          parentStore: d.parentSkill?.store
-        }
-      });
+      let store = d.parentSkillTemplate
+        ? await storeService.createStoreFromTemplate({
+            tenant: d.tenant,
+            environment: d.environment,
+            input: {
+              templateId: d.parentSkillTemplate.storeTemplate.id,
+              name: d.input.name,
+              actor,
+              access: 'public_read'
+            }
+          })
+        : await storeService.createStore({
+            tenant: d.tenant,
+            environment: d.environment,
+            input: {
+              name: d.input.name,
+              actor,
+              access: 'public_read',
+              parentStore: d.parentSkill?.store,
+              cloneType:
+                d.parentSkillCloneType === 'duplicate' ? 'duplicate' : 'sync_until_change'
+            }
+          });
 
       return await db.skill.create({
         data: {
@@ -74,7 +116,9 @@ class SkillServiceImpl {
           tenantOid: d.tenant.oid,
           environmentOid: d.environment.oid,
           storeOid: store.oid,
-          parentSkillOid: d.parentSkill?.oid
+          parentSkillOid: d.parentSkill?.oid,
+          parentSkillTemplateOid: d.parentSkillTemplate?.oid,
+          createdByTenantActorOid: actor?.oid
         },
         include: skillInclude
       });
@@ -149,7 +193,8 @@ class SkillServiceImpl {
       tenant: d.tenant,
       environment: d.environment,
       store: d.skill.store,
-      allowLinkedSkillDelete: true
+      allowLinkedSkillDelete: true,
+      allowLinkedStoreTemplateDelete: true
     });
 
     return d.skill;

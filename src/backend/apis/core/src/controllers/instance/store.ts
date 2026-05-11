@@ -6,7 +6,7 @@ import { Controller } from '@metorial/rest';
 import { getInstanceCargoAccess, hasInstanceConsumerAccess } from '../../lib/cargoAccess';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
-import { storeItemPresenter, storePresenter } from '../../presenters';
+import { storeItemPresenter, storePermissionsPresenter, storePresenter } from '../../presenters';
 
 let storeAccessSchema = v.enumOf(['private', 'public_read', 'public_write']);
 
@@ -76,7 +76,9 @@ export let storeController = Controller.create(
         'default',
         v.object({
           name: v.string(),
-          access: v.optional(storeAccessSchema)
+          access: v.optional(storeAccessSchema),
+          template_id: v.optional(v.string()),
+          parent_id: v.optional(v.string())
         })
       )
       .output(storePresenter)
@@ -89,9 +91,12 @@ export let storeController = Controller.create(
             instance: ctx.instance,
             organization: ctx.organization
           },
+          ...getInstanceCargoAccess(ctx),
           input: {
             name: ctx.body.name,
-            access: ctx.body.access
+            access: ctx.body.access,
+            templateId: ctx.body.template_id,
+            parentId: ctx.body.parent_id
           }
         });
 
@@ -106,6 +111,28 @@ export let storeController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.file:read'] }))
       .output(storePresenter)
       .do(async ctx => storePresenter.present({ store: ctx.store })),
+
+    permissions: storeGroup
+      .get(instancePath('stores/:storeId/permissions', 'stores.permissions.get'), {
+        name: 'Get store permissions',
+        description:
+          'Returns the effective Cargo permissions for the current actor on a specific store.'
+      })
+      .use(checkAccess({ possibleScopes: ['instance.file:read'] }))
+      .output(storePermissionsPresenter)
+      .do(async ctx => {
+        let permissions = await storeService.getStorePermissions({
+          storeId: ctx.store.id,
+          owner: {
+            type: 'instance',
+            instance: ctx.instance,
+            organization: ctx.organization
+          },
+          ...getInstanceCargoAccess(ctx)
+        });
+
+        return storePermissionsPresenter.present({ permissions });
+      }),
 
     update: storeGroup
       .patch(instancePath('stores/:storeId', 'stores.update'), {

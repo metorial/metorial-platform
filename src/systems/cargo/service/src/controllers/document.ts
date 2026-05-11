@@ -1,6 +1,6 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { documentPresenter } from '../presenters';
+import { documentPermissionsPresenter, documentPresenter } from '../presenters';
 import { documentService } from '../services';
 import { app } from './_app';
 import { tenantApp } from './tenant';
@@ -108,6 +108,31 @@ export let documentController = app.controller({
 
       return documentPresenter(document);
     }),
+
+  getPermissions: documentApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        environmentId: v.string(),
+        documentId: v.string(),
+        actorId: v.optional(v.string()),
+        defaultPermissions: v.optional(storePermissionsSchema),
+        overridePermissions: v.optional(v.boolean())
+      })
+    )
+    .do(async ctx =>
+      documentPermissionsPresenter(
+        await documentService.getDocumentPermissions({
+          tenant: ctx.tenant,
+          environment: ctx.environment,
+          document: ctx.document,
+          actorId: ctx.input.actorId,
+          defaultPermissions: ctx.input.defaultPermissions,
+          overridePermissions: ctx.input.overridePermissions
+        })
+      )
+    ),
 
   update: documentApp
     .handler()

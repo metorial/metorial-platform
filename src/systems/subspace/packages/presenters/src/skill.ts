@@ -3,8 +3,8 @@ import type {
   Provider,
   ProviderListing,
   Skill,
+  SkillEntity,
   SkillFork,
-  SkillGroup,
   SkillIntegration,
   SkillItem,
   SkillProvider,
@@ -31,8 +31,11 @@ export let skillPreviewPresenter = (skill: Skill) => ({
 
 export let skillPresenter = (
   skill: Skill & {
-    skillGroup: SkillGroup;
-    forkedFrom:
+    skillEntity: SkillEntity & {
+      ownerSkill: Skill;
+    };
+    duplicatedFromSkill: Skill | null;
+    fork:
       | (SkillFork & {
           parentSkill: Skill;
         })
@@ -47,12 +50,28 @@ export let skillPresenter = (
 ) => ({
   ...skillPreviewPresenter(skill),
 
-  skillGroupId: skill.skillGroup.id,
-  forkedFromId: skill.forkedFrom?.parentSkill.id ?? null,
+  storeId: skill.storeId,
+
+  hierarchy: {
+    type: skill.fork ? 'fork' : skill.duplicatedFromSkill ? 'duplicated' : 'root',
+    parentSkillId: skill.fork?.parentSkill.id ?? skill.duplicatedFromSkill?.id ?? null,
+    forkId: skill.fork?.id ?? null,
+
+    entity: {
+      id: skill.skillEntity.id,
+      name: skill.skillEntity.name,
+      slug: skill.skillEntity.slug,
+      description: skill.skillEntity.description,
+      parentSkillId: skill.skillEntity.ownerSkill.id,
+      createdAt: skill.skillEntity.createdAt,
+      updatedAt: skill.skillEntity.updatedAt
+    }
+  },
 
   integrations: skill.skillIntegrations.map(item =>
     integrationPreviewPresenter(item.integration)
   ),
+
   providers: skill.skillProviderLinks.map(link => providerPreviewPresenter(link.provider))
 });
 

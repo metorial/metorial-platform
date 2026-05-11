@@ -10,8 +10,10 @@ import {
   getId,
   type Skill,
   type SkillStatus,
+  SkillTemplate,
   type Solution,
   type Tenant,
+  TenantActor,
   withTransaction
 } from '@metorial-subspace/db';
 import {
@@ -24,22 +26,22 @@ import {
 } from '@metorial-subspace/list-utils';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
 import { checkTenant } from '@metorial-subspace/module-tenant';
+import { cargo, ensureCargoActor, ensureCargoScope } from '../cargo';
+import { plainTemplate } from '../definitions';
 import {
   skillArchivedQueue,
   skillCreatedQueue,
   skillUpdatedQueue
 } from '../queues/lifecycle/skill';
+import { skillTemplateService } from './skillTemplate';
 
 export let skillInclude = {
-  skillGroup: true,
-  parentSkill: true,
-  forkedFrom: {
+  skillEntity: true,
+  duplicatedFromSkill: true,
+  fork: {
     include: {
       parentSkill: true
     }
-  },
-  childSkills: {
-    where: { status: 'active' as const }
   },
   skillIntegrations: {
     where: { status: 'active' as const },
@@ -79,7 +81,7 @@ class skillServiceImpl {
         environmentOid: d.environment.oid,
         ...normalizeStatusForGet({ allowDeleted: false }).noParent
       },
-      include: { skillGroup: true }
+      include: { skillEntity: true }
     });
     if (!parentSkill) throw new ServiceError(notFoundError('skill', d.parentSkillId));
 
@@ -92,11 +94,15 @@ class skillServiceImpl {
     tenant: Tenant;
     solution: Solution;
     environment: Environment;
-    parentSkill: Skill | null;
+    parentSkill: {
+      type: 'fork' | 'duplicate';
+      skill: Skill;
+    } | null;
+    template: SkillTemplate | null;
     input: Required<Pick<SkillWriteInput, 'name'>> &
-      Omit<SkillWriteInput, 'name' | 'skillGroupId' | 'parentSkillId'>;
+      Omit<SkillWriteInput, 'name' | 'skillEntityId' | 'parentSkillId'>;
   }) {
-    return {
+    let res = {
       ...getId('skill'),
       status: 'active' as const,
       slug: getSlug({ name: d.input.name }),
@@ -104,11 +110,20 @@ class skillServiceImpl {
       description: d.input.description?.trim() || null,
       metadata: d.input.metadata,
       privateMetadata: d.input.privateMetadata,
-      parentSkillOid: d.parentSkill?.oid ?? null,
       tenantOid: d.tenant.oid,
       solutionOid: d.solution.oid,
-      environmentOid: d.environment.oid
-    };
+      environmentOid: d.environment.oid,
+      forkedFromSkillOid: null as bigint | null,
+      duplicatedFromSkillOid: null as bigint | null
+    } satisfies Partial<Skill>;
+
+    if (d.parentSkill?.type === 'fork') {
+      res.forkedFromSkillOid = d.parentSkill.skill.oid;
+    } else if (d.parentSkill?.type === 'duplicate') {
+      res.duplicatedFromSkillOid = d.parentSkill.skill.oid;
+    }
+
+    return res;
   }
 
   private skillUpdateData(d: { current: Skill; input: SkillWriteInput }) {
@@ -135,7 +150,7 @@ class skillServiceImpl {
     status?: SkillStatus[];
     allowDeleted?: boolean;
     ids?: string[];
-    skillGroupIds?: string[];
+    skillEntityIds?: string[];
     parentSkillIds?: string[];
     integrationIds?: string[];
     providerIds?: string[];
@@ -166,7 +181,9 @@ class skillServiceImpl {
               ...normalizeStatusForList(d).noParent,
               AND: [
                 d.ids ? { id: { in: d.ids } } : undefined!,
-                d.skillGroupIds ? { skillGroup: { id: { in: d.skillGroupIds } } } : undefined!,
+                d.skillEntityIds
+                  ? { skillEntity: { id: { in: d.skillEntityIds } } }
+                  : undefined!,
                 d.parentSkillIds
                   ? { parentSkill: { id: { in: d.parentSkillIds } } }
                   : undefined!,
@@ -229,49 +246,99 @@ class skillServiceImpl {
       description?: string | null;
       metadata?: Record<string, any> | null;
       privateMetadata?: Record<string, any> | null;
+      templateId?: string | null;
     };
-    _parentSkillId?: string | null;
+    _operation?:
+      | {
+          type: 'fork';
+          parentSkillId: string;
+          tenantActor: TenantActor;
+        }
+      | {
+          type: 'duplicate';
+          parentSkillId: string;
+        };
   }) {
-    let name = d.input.name.trim();
-    if (!name.length) {
+    if (d._operation && d.input.templateId) {
       throw new ServiceError(
         badRequestError({
-          message: 'Skill name is required.',
-          code: 'skill_name_required'
+          message: 'Cannot specify a template when forking or duplicating a skill.',
+          code: 'template_not_allowed_for_fork_or_duplicate'
         })
       );
     }
 
-    let parentSkill = d._parentSkillId
+    let parentSkill = d._operation?.parentSkillId
       ? await this.resolveParentSkill({
           tenant: d.tenant,
           solution: d.solution,
           environment: d.environment,
-          parentSkillId: d._parentSkillId
+          parentSkillId: d._operation.parentSkillId
         })
       : null;
 
+    let template = d.input.templateId
+      ? await skillTemplateService.getSkillTemplateById({
+          tenant: d.tenant,
+          solution: d.solution,
+          environment: d.environment,
+          skillTemplateId: d.input.templateId,
+          allowDeleted: false
+        })
+      : parentSkill
+        ? null
+        : await plainTemplate;
+
+    let skillData = this.skillCreateData({
+      tenant: d.tenant,
+      solution: d.solution,
+      environment: d.environment,
+      template,
+      parentSkill:
+        parentSkill && d._operation
+          ? {
+              type: d._operation.type,
+              skill: parentSkill
+            }
+          : null,
+      input: {
+        name: d.input.name.trim(),
+        description: d.input.description?.trim() || null,
+        metadata: d.input.metadata,
+        privateMetadata: d.input.privateMetadata
+      }
+    });
+
+    let cargoScope = await ensureCargoScope(d);
+    let cargoActor =
+      d._operation?.type === 'fork'
+        ? await ensureCargoActor(cargoScope, d._operation.tenantActor)
+        : undefined;
+    let cargoSkill = await cargo.skill.create({
+      ...cargoScope,
+      name: skillData.name,
+      actorId: cargoActor?.id,
+      parentSkill: parentSkill
+        ? {
+            skillId: parentSkill.id,
+            type: d._operation?.type ?? 'duplicate'
+          }
+        : undefined,
+      parentSkillTemplateId: template?.id
+    });
+
     return await withTransaction(async db => {
-      let skillData = this.skillCreateData({
-        tenant: d.tenant,
-        solution: d.solution,
-        environment: d.environment,
-        parentSkill,
-        input: {
-          name,
-          description: d.input.description,
-          metadata: d.input.metadata,
-          privateMetadata: d.input.privateMetadata
-        }
-      });
+      // Duplicates are stand alone skills and get their own entities
+      let skillEntity =
+        d._operation?.type === 'fork' && parentSkill?.skillEntity
+          ? parentSkill?.skillEntity
+          : null;
+      let isNewSkillEntity = !skillEntity;
 
-      let skillGroup = parentSkill?.skillGroup;
-      let isNewSkillGroup = !skillGroup;
-
-      if (!skillGroup) {
-        skillGroup = await db.skillGroup.create({
+      if (!skillEntity) {
+        skillEntity = await db.skillEntity.create({
           data: {
-            ...getId('skillGroup'),
+            ...getId('skillEntity'),
             tenantOid: d.tenant.oid,
             solutionOid: d.solution.oid,
             environmentOid: d.environment.oid,
@@ -285,25 +352,77 @@ class skillServiceImpl {
       let skill = await db.skill.create({
         data: {
           ...skillData,
-          skillGroupOid: skillGroup.oid
+          storeId: cargoSkill.storeId,
+          skillEntityOid: skillEntity.oid
         },
         include: skillInclude
       });
 
-      if (!isNewSkillGroup) {
-        skillGroup = await db.skillGroup.update({
-          where: { oid: skillGroup.oid },
+      if (!isNewSkillEntity) {
+        skillEntity = await db.skillEntity.update({
+          where: { oid: skillEntity.oid },
           data: { ownerSkillOid: skill.oid }
+        });
+      }
+
+      if (d._operation?.type === 'fork') {
+        await db.skillFork.create({
+          data: {
+            ...getId('skillFork'),
+            tenantOid: d.tenant.oid,
+            solutionOid: d.solution.oid,
+            environmentOid: d.environment.oid,
+            parentSkillOid: parentSkill!.oid,
+            childSkillOid: skill.oid,
+            tenantActorOid: d._operation.tenantActor.oid
+          }
         });
       }
 
       await addAfterTransactionHook(async () => skillCreatedQueue.add({ skillId: skill.id }));
 
-      return skill;
+      return await db.skill.findUniqueOrThrow({
+        where: { oid: skill.oid },
+        include: skillInclude
+      });
     });
   }
 
   async forkSkill(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    skill: Skill;
+    tenantActor: TenantActor;
+    input: {
+      name: string;
+      description?: string | null;
+      metadata?: Record<string, any> | null;
+      privateMetadata?: Record<string, any> | null;
+    };
+  }) {
+    checkTenant(d, d.skill);
+    checkDeletedRelation(d.skill);
+
+    return await this.createSkill({
+      tenant: d.tenant,
+      solution: d.solution,
+      environment: d.environment,
+      input: {
+        name: d.input.name,
+        description: d.input.description,
+        metadata: d.input.metadata,
+        privateMetadata: d.input.privateMetadata
+      },
+      _operation: {
+        type: 'fork',
+        parentSkillId: d.skill.id,
+        tenantActor: d.tenantActor
+      }
+    });
+  }
+
+  async duplicateSkill(d: {
     tenant: Tenant;
     solution: Solution;
     environment: Environment;
@@ -328,7 +447,10 @@ class skillServiceImpl {
         metadata: d.input.metadata,
         privateMetadata: d.input.privateMetadata
       },
-      _parentSkillId: d.skill.id
+      _operation: {
+        type: 'duplicate',
+        parentSkillId: d.skill.id
+      }
     });
   }
 
@@ -361,9 +483,9 @@ class skillServiceImpl {
         include: skillInclude
       });
 
-      if (skill.skillGroup.ownerSkillOid === skill.oid) {
-        await db.skillGroup.update({
-          where: { oid: skill.skillGroup.oid },
+      if (skill.skillEntity.ownerSkillOid === skill.oid) {
+        await db.skillEntity.update({
+          where: { oid: skill.skillEntity.oid },
           data: {
             name: skill.name,
             description: skill.description,

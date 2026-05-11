@@ -15,10 +15,7 @@ export let v1FilePresenter = Presenter.create(fileType)
 
     title: file.title,
 
-    purpose: {
-      name: file.purpose.name,
-      identifier: file.purpose.slug
-    },
+    purpose: file.purpose.slug,
 
     created_at: file.createdAt,
     updated_at: file.updatedAt
@@ -56,17 +53,10 @@ export let v1FilePresenter = Presenter.create(fileType)
         description: `The file's title`,
         examples: ['Company Logo']
       }),
-      purpose: v.object({
-        name: v.string({
-          name: 'name',
-          description: `The file's purpose name`,
-          examples: ['Organization Image']
-        }),
-        identifier: v.string({
-          name: 'identifier',
-          description: `The file's purpose identifier`,
-          examples: ['organization_logo']
-        })
+      purpose: v.string({
+        name: 'identifier',
+        description: `The file's purpose identifier`,
+        examples: ['organization_logo']
       }),
       created_at: v.date({ name: 'created_at', description: `The files's creation date` }),
       updated_at: v.date({
