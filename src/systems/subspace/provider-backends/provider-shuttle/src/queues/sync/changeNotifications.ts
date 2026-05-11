@@ -17,9 +17,6 @@ export let syncChangeNotificationsQueue = createQueue<{}>({
   }
 });
 
-let isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value == 'object' && value !== null;
-
 export let syncChangeNotificationsQueueProcessor = syncChangeNotificationsQueue.process(
   async () => {
     let backend = await db.backend.findFirst({
