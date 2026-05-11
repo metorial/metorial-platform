@@ -9,7 +9,7 @@
     "lint": "prettier src/**/*.ts --check"
   },
   "dependencies": {
-    "@lowerdeck/delay": "^1.0.0",
+    "@lowerdeck/delay": "^1.0.4",
     "@lowerdeck/env": "^1.0.6",
     "@lowerdeck/programmable-promise": "^1.0.6",
     "@lowerdeck/validation": "^1.0.10",

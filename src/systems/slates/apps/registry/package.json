@@ -56,7 +56,7 @@
     "@lowerdeck/lock": "^1.0.6",
     "@lowerdeck/once": "^1.0.4",
     "@lowerdeck/pagination": "^1.0.8",
-    "@lowerdeck/queue": "^1.0.9",
+    "@lowerdeck/queue": "^1.0.11",
     "@lowerdeck/rpc-client": "^1.1.3",
     "@lowerdeck/rpc-server": "^1.0.11",
     "@lowerdeck/sentry": "^1.0.2",

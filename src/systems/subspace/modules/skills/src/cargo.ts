@@ -1,5 +1,5 @@
 import { createCargoClient } from '@metorial-platform-systems/cargo-client';
-import { Environment, Tenant, TenantActor } from '@metorial-subspace/db';
+import type { Environment, Tenant, TenantActor } from '@metorial-subspace/db';
 import { env } from './env';
 
 export let cargo = createCargoClient({

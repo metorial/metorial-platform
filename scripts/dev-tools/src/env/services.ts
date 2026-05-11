@@ -344,6 +344,10 @@ export let subspaceDevEnv: Env = [
   {
     key: 'SCOUT_TOKEN',
     isRequired: false
+  },
+  {
+    key: 'CARGO_API_URL',
+    defaultValue: 'http://localhost:52150/metorial-cargo'
   }
 ];
 

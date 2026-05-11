@@ -1,5 +1,5 @@
 import { createCron } from '@lowerdeck/cron';
-import { combineQueueProcessors, createQueue } from '@lowerdeck/queue';
+import { combineQueueProcessors, createQueue, type IQueueProcessor } from '@lowerdeck/queue';
 import { env } from '../env';
 import { documentDraftService, documentService } from '../services';
 
@@ -38,7 +38,7 @@ export let documentFlushDirtyProcessor = documentFlushDirtyQueue.process(async d
   });
 });
 
-export let documentFlushDirtyCron = createCron(
+export let documentFlushDirtyCron: IQueueProcessor = createCron(
   {
     redisUrl,
     name: 'cargo/doc/flush/dirty/cron',

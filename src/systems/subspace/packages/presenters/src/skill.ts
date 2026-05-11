@@ -32,7 +32,7 @@ export let skillPreviewPresenter = (skill: Skill) => ({
 export let skillPresenter = (
   skill: Skill & {
     skillEntity: SkillEntity & {
-      ownerSkill: Skill;
+      ownerSkill: Skill | null;
     };
     duplicatedFromSkill: Skill | null;
     fork:
@@ -62,7 +62,7 @@ export let skillPresenter = (
       name: skill.skillEntity.name,
       slug: skill.skillEntity.slug,
       description: skill.skillEntity.description,
-      parentSkillId: skill.skillEntity.ownerSkill.id,
+      parentSkillId: skill.skillEntity.ownerSkill!.id,
       createdAt: skill.skillEntity.createdAt,
       updatedAt: skill.skillEntity.updatedAt
     }

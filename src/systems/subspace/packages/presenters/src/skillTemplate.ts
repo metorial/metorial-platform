@@ -24,7 +24,6 @@ export let skillTemplateItemPresenter = (
 ) => ({
   object: 'skill.template.item',
   id: item.id,
-  skillItemId: item.integration?.item.id ?? item.provider?.item.id ?? null,
   type: item.integration ? 'integration' : 'provider',
   integration: item.integration
     ? integrationPreviewPresenter(item.integration.integration)

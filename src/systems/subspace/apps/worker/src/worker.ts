@@ -1,20 +1,20 @@
 import { runQueueProcessors } from '@lowerdeck/queue';
-import { agentQueueProcessor } from '@metorial-subspace/module-agent';
+import { agentQueueProcessor } from '@metorial-subspace/module-agent/src/queues';
 import {
   authQueueProcessor,
   reconcileManagedCredentialProviderManyQueue
-} from '@metorial-subspace/module-auth';
-import { callbackQueueProcessor } from '@metorial-subspace/module-callback';
-import { catalogQueueProcessor } from '@metorial-subspace/module-catalog';
-import { connectionQueueProcessor } from '@metorial-subspace/module-connection';
-import { customProviderQueueProcessor } from '@metorial-subspace/module-custom-provider';
-import { deploymentQueueProcessor } from '@metorial-subspace/module-deployment';
-import { identityQueueProcessor } from '@metorial-subspace/module-identity';
-import { integrationQueueProcessor } from '@metorial-subspace/module-integration';
-import { providerInternalQueueProcessor } from '@metorial-subspace/module-provider-internal';
-import { sessionQueueProcessor } from '@metorial-subspace/module-session';
-import { skillsQueueProcessor } from '@metorial-subspace/module-skills';
-import { tenantQueueProcessors } from '@metorial-subspace/module-tenant';
+} from '@metorial-subspace/module-auth/src/queues';
+import { callbackQueueProcessor } from '@metorial-subspace/module-callback/src/queues';
+import { catalogQueueProcessor } from '@metorial-subspace/module-catalog/src/queues';
+import { connectionQueueProcessor } from '@metorial-subspace/module-connection/src/queueProcessor';
+import { customProviderQueueProcessor } from '@metorial-subspace/module-custom-provider/src/queues';
+import { deploymentQueueProcessor } from '@metorial-subspace/module-deployment/src/queues';
+import { identityQueueProcessor } from '@metorial-subspace/module-identity/src/queues';
+import { integrationQueueProcessor } from '@metorial-subspace/module-integration/src/queues';
+import { providerInternalQueueProcessor } from '@metorial-subspace/module-provider-internal/src/queues';
+import { sessionQueueProcessor } from '@metorial-subspace/module-session/src/queues';
+import { skillsQueueProcessor } from '@metorial-subspace/module-skills/src/queues';
+import { tenantQueueProcessors } from '@metorial-subspace/module-tenant/src/queues';
 import { nativeProviderQueues } from '@metorial-subspace/provider-native';
 import { shuttleProviderQueues } from '@metorial-subspace/provider-shuttle';
 import { slatesProviderQueues } from '@metorial-subspace/provider-slates';

@@ -1,6 +1,7 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { skillService } from '@metorial-subspace/module-skills';
+import { actorService } from '@metorial-subspace/module-tenant';
 import { skillPresenter } from '@metorial-subspace/presenters';
 import { app } from './_app';
 import { createdAtValidator, updatedAtValidator } from './_dateFilter';
@@ -36,7 +37,6 @@ export let skillController = app.controller({
           allowDeleted: v.optional(v.boolean()),
 
           ids: v.optional(v.array(v.string())),
-          skillGroupIds: v.optional(v.array(v.string())),
           integrationIds: v.optional(v.array(v.string())),
           providerIds: v.optional(v.array(v.string())),
 
@@ -54,7 +54,6 @@ export let skillController = app.controller({
         status: ctx.input.status,
         allowDeleted: ctx.input.allowDeleted,
         ids: ctx.input.ids,
-        skillGroupIds: ctx.input.skillGroupIds,
         integrationIds: ctx.input.integrationIds,
         providerIds: ctx.input.providerIds,
         createdAt: ctx.input.createdAt,
@@ -165,6 +164,7 @@ export let skillController = app.controller({
         tenantId: v.string(),
         environmentId: v.string(),
         skillId: v.string(),
+        actorId: v.string(),
         allowDeleted: v.optional(v.boolean()),
         name: v.string(),
         description: v.optional(v.string()),
@@ -173,7 +173,44 @@ export let skillController = app.controller({
       })
     )
     .do(async ctx => {
+      let tenantActor = await actorService.getActorById({
+        tenant: ctx.tenant,
+        id: ctx.input.actorId
+      });
+
       let skill = await skillService.forkSkill({
+        tenant: ctx.tenant,
+        environment: ctx.environment,
+        solution: ctx.solution,
+        skill: ctx.skill,
+        tenantActor,
+        input: {
+          name: ctx.input.name,
+          description: ctx.input.description,
+          metadata: ctx.input.metadata,
+          privateMetadata: ctx.input.privateMetadata
+        }
+      });
+
+      return skillPresenter(skill);
+    }),
+
+  duplicate: skillApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        environmentId: v.string(),
+        skillId: v.string(),
+        allowDeleted: v.optional(v.boolean()),
+        name: v.string(),
+        description: v.optional(v.string()),
+        metadata: v.optional(v.record(v.any())),
+        privateMetadata: v.optional(v.record(v.any()))
+      })
+    )
+    .do(async ctx => {
+      let skill = await skillService.duplicateSkill({
         tenant: ctx.tenant,
         environment: ctx.environment,
         solution: ctx.solution,

@@ -36,7 +36,11 @@ import {
 import { skillTemplateService } from './skillTemplate';
 
 export let skillInclude = {
-  skillEntity: true,
+  skillEntity: {
+    include: {
+      ownerSkill: true
+    }
+  },
   duplicatedFromSkill: true,
   fork: {
     include: {
@@ -150,7 +154,6 @@ class skillServiceImpl {
     status?: SkillStatus[];
     allowDeleted?: boolean;
     ids?: string[];
-    skillEntityIds?: string[];
     parentSkillIds?: string[];
     integrationIds?: string[];
     providerIds?: string[];
@@ -181,9 +184,6 @@ class skillServiceImpl {
               ...normalizeStatusForList(d).noParent,
               AND: [
                 d.ids ? { id: { in: d.ids } } : undefined!,
-                d.skillEntityIds
-                  ? { skillEntity: { id: { in: d.skillEntityIds } } }
-                  : undefined!,
                 d.parentSkillIds
                   ? { parentSkill: { id: { in: d.parentSkillIds } } }
                   : undefined!,
