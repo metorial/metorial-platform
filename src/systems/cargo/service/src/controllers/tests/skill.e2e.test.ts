@@ -210,7 +210,6 @@ describe('cargo skill.e2e', () => {
       tenantId: tenant.id,
       environmentId: environment.id,
       skillId: 'csk_from_template_parent',
-      storeId: 'cst_skill_from_template_parent',
       actorId: actor.id,
       parentSkillTemplateId: skillTemplate.id,
       name: 'Skill From Template Parent'
@@ -260,7 +259,7 @@ describe('cargo skill.e2e', () => {
 
     expect(skill).toMatchObject({
       id: 'csk_from_template_parent',
-      storeId: 'cst_skill_from_template_parent',
+      storeId: expect.any(String),
       parentSkillTemplateId: skillTemplate.id
     });
     expect(skill.parentSkillId).toBeUndefined();

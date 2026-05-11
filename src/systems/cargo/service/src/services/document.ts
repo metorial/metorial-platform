@@ -647,7 +647,8 @@ class DocumentServiceImpl {
       if (!hasContentChange && !hasTitleChange) {
         return {
           document: d.document,
-          createdVersionId: null
+          createdVersionId: null,
+          didPersistChange: false
         };
       }
 
@@ -720,7 +721,8 @@ class DocumentServiceImpl {
 
       return {
         document: updatedDocument,
-        createdVersionId
+        createdVersionId,
+        didPersistChange: true
       };
     });
   }
@@ -1201,6 +1203,12 @@ class DocumentServiceImpl {
 
       await documentDraftService.deleteDraft(d.documentId);
       await documentDraftService.clearDocumentMarkersUpToRevision(d.documentId, draft.revision);
+      if (result.didPersistChange) {
+        await storeVersionService.touchStoresLastEditedAtForDocument({
+          documentOid: result.document.oid
+        });
+      }
+
       if (result.createdVersionId) {
         await storeVersionService.markStoresDirtyForDocument({
           documentOid: result.document.oid
@@ -1411,6 +1419,10 @@ class DocumentServiceImpl {
     });
 
     if (result?.createdVersionId) {
+      await storeVersionService.touchStoresLastEditedAtForDocument({
+        documentOid: result.document.oid
+      });
+
       await storeVersionService.markStoresDirtyForDocument({
         documentOid: result.document.oid
       });

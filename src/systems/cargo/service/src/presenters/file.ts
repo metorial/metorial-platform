@@ -7,6 +7,8 @@ export let filePresenter = (
     purpose: FilePurpose;
     document: Pick<Document, 'id'> | null;
     effectiveStoreId?: string;
+    resolvedTitle?: string;
+    resolvedUpdatedAt?: Date;
   }
 ) => ({
   object: 'cargo#file',
@@ -18,8 +20,8 @@ export let filePresenter = (
   fileName: file.fileName,
   fileSize: file.fileSize,
   fileType: file.fileType,
-  title: file.title || file.fileName,
+  title: file.resolvedTitle ?? file.title ?? file.fileName,
   purpose: filePurposePresenter(file.purpose),
   createdAt: file.createdAt,
-  updatedAt: file.updatedAt
+  updatedAt: file.resolvedUpdatedAt ?? file.updatedAt
 });

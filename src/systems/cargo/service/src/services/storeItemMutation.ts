@@ -1088,6 +1088,10 @@ class StoreItemMutationServiceImpl {
         });
       }
 
+      await storeVersionService.touchStoreLastEditedAt({
+        storeOid: d.store.oid
+      });
+
       await storeVersionService.markStoreDirtyIfNeeded({
         storeOid: d.store.oid
       });
@@ -1386,6 +1390,10 @@ class StoreItemMutationServiceImpl {
       }
 
       if (results.length > 0) {
+        await storeVersionService.touchStoreLastEditedAt({
+          storeOid: d.store.oid
+        });
+
         await storeVersionService.markStoreDirtyIfNeeded({
           storeOid: d.store.oid
         });

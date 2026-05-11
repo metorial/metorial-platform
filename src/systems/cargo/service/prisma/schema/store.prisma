@@ -39,6 +39,7 @@ model Store {
   cloneType StoreCloneType?
   itemCount Int             @default(0)
   dirtyAt   DateTime?
+  lastEditedAt DateTime     @default(now())
 
   createdByTenantActorOid BigInt?
   createdByTenantActor    TenantActor? @relation("StoreCreator", fields: [createdByTenantActorOid], references: [oid], onDelete: Cascade)

@@ -146,6 +146,46 @@ let toResolvedStoreVersion = (version: StoreVersionRecord): ResolvedStoreVersion
 });
 
 class StoreVersionServiceImpl {
+  async touchStoreLastEditedAt(d: { storeOid: bigint; at?: Date }) {
+    return await withTransaction(
+      async db => {
+        let lastEditedAt = d.at ?? new Date();
+
+        return await db.store.updateMany({
+          where: {
+            oid: d.storeOid
+          },
+          data: {
+            lastEditedAt
+          }
+        });
+      },
+      { ifExists: true }
+    );
+  }
+
+  async touchStoresLastEditedAtForDocument(d: { documentOid: bigint; at?: Date }) {
+    return await withTransaction(
+      async db => {
+        let lastEditedAt = d.at ?? new Date();
+
+        return await db.store.updateMany({
+          where: {
+            items: {
+              some: {
+                documentOid: d.documentOid
+              }
+            }
+          },
+          data: {
+            lastEditedAt
+          }
+        });
+      },
+      { ifExists: true }
+    );
+  }
+
   async markStoreDirtyIfNeeded(d: { storeOid: bigint; at?: Date }) {
     return await withTransaction(
       async db => {

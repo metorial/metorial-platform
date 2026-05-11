@@ -22,6 +22,12 @@ type DocumentLiveClientMessage =
         content: string;
         title?: string;
       };
+    }
+  | {
+      type: 'document_title_update';
+      data: {
+        title: string;
+      };
     };
 
 type LiveSession = {
@@ -88,11 +94,23 @@ let buildDocumentPayload = (
     content?: string;
     updatedAt?: Date;
   }
-) => ({
-  ...documentPresenter(document),
-  ...(d?.content !== undefined ? { content: d.content } : {}),
-  ...(d?.updatedAt ? { updatedAt: d.updatedAt } : {})
-});
+) => {
+  let payload = documentPresenter(document);
+
+  return {
+    ...payload,
+    ...(d?.content !== undefined ? { content: d.content } : {}),
+    ...(d?.updatedAt
+      ? {
+          updatedAt: d.updatedAt,
+          file: {
+            ...payload.file,
+            updatedAt: d.updatedAt
+          }
+        }
+      : {})
+  };
+};
 
 let broadcastParticipantList = async (documentId: string) => {
   let actorIds = getActiveActorIds(documentId);
@@ -241,7 +259,24 @@ export let documentLiveApi = createHono()
               return;
             }
 
-            if (parsed.type !== 'document_update' || typeof parsed.data?.content !== 'string') {
+            if (
+              parsed.type !== 'document_update' &&
+              parsed.type !== 'document_title_update'
+            ) {
+              throw new Error('Invalid live document payload');
+            }
+
+            if (
+              parsed.type === 'document_update' &&
+              typeof parsed.data?.content !== 'string'
+            ) {
+              throw new Error('Invalid live document payload');
+            }
+
+            if (
+              parsed.type === 'document_title_update' &&
+              typeof parsed.data?.title !== 'string'
+            ) {
               throw new Error('Invalid live document payload');
             }
 
@@ -263,7 +298,7 @@ export let documentLiveApi = createHono()
               input: {
                 actorId: session.actorId,
                 title: parsed.data.title,
-                content: parsed.data.content
+                content: parsed.type === 'document_update' ? parsed.data.content : undefined
               }
             });
 

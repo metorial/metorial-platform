@@ -35,6 +35,8 @@ export let documentPresenter = (
     fileId: document.file.id,
     file: filePresenter({
       ...document.file,
+      resolvedTitle: document.resolvedTitle ?? document.title,
+      resolvedUpdatedAt: updatedAt,
       document: {
         id: document.id
       }

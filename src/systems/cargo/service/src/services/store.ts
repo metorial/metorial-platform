@@ -208,6 +208,7 @@ class StoreServiceImpl {
 
     return await withTransaction(async db => {
       let storeIds = d.input.id ? { oid: getId('store').oid, id: d.input.id } : getId('store');
+      let lastEditedAt = new Date();
 
       let createdStore = await db.store.create({
         data: {
@@ -221,7 +222,8 @@ class StoreServiceImpl {
           environmentOid: d.environment.oid,
           parentStoreOid: d.input.parentStore?.oid,
           parentStoreTemplateOid: d.input.parentStoreTemplate?.oid,
-          createdByTenantActorOid: d.input.actor?.oid
+          createdByTenantActorOid: d.input.actor?.oid,
+          lastEditedAt
         }
       });
 
@@ -413,14 +415,29 @@ class StoreServiceImpl {
       requiredPermission: storeWritePermission
     });
 
-    return await db.store.update({
-      where: {
-        id: d.store.id
-      },
-      data: {
-        name: d.input.name,
-        access: d.input.access
-      }
+    return await withTransaction(async db => {
+      let lastEditedAt = new Date();
+
+      await db.store.update({
+        where: {
+          id: d.store.id
+        },
+        data: {
+          name: d.input.name,
+          access: d.input.access
+        }
+      });
+
+      await storeVersionService.touchStoreLastEditedAt({
+        storeOid: d.store.oid,
+        at: lastEditedAt
+      });
+
+      return (await db.store.findUnique({
+        where: {
+          id: d.store.id
+        }
+      }))!;
     });
   }
 
