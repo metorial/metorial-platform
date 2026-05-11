@@ -97,8 +97,10 @@ model Tenant {
   integrationInstanceGroups                IntegrationInstanceGroup[]
   integrationInstanceGroupSources          IntegrationInstanceGroupSource[]
   integrationInstanceGroupProviders        IntegrationInstanceGroupProvider[]
-  skillGroups                              SkillGroup[]
   skills                                   Skill[]
+  skillEntities                            SkillEntity[]
+  skillForks                               SkillFork[]
+  skillTemplates                           SkillTemplate[]
 }
 
 enum EnvironmentType {
@@ -169,8 +171,10 @@ model Environment {
   integrationInstanceGroups                IntegrationInstanceGroup[]
   integrationInstanceGroupSources          IntegrationInstanceGroupSource[]
   integrationInstanceGroupProviders        IntegrationInstanceGroupProvider[]
-  skillGroups                              SkillGroup[]
   skills                                   Skill[]
+  skillEntities                            SkillEntity[]
+  skillForks                               SkillFork[]
+  skillTemplates                           SkillTemplate[]
 }
 
 enum TenantActorType {
@@ -200,6 +204,9 @@ model TenantActor {
   customProviderDeployments CustomProviderDeployment[]
   customProviderCommits     CustomProviderCommit[]
   upcomingCustomProviders   UpcomingCustomProvider[]
+  skills                    Skill[]
+  skillForks                SkillFork[]
+  skillEvents               SkillEvent[]
 
   @@unique([tenantOid, identifier])
   @@map("Actor")

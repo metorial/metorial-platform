@@ -1,18 +1,23 @@
-import { generatePlainId } from '@lowerdeck/id';
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
+import { generatePlainId } from '@lowerdeck/id';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { posix as pathPosix } from 'node:path';
-import type { Store, StoreAccess, StoreCloneType } from '../../prisma/generated/client';
+import type {
+  Store,
+  StoreAccess,
+  StoreCloneType,
+  TenantActor
+} from '../../prisma/generated/client';
 import { db, withTransaction } from '../db';
 import { getId } from '../id';
+import { normalizeStorePath } from '../lib/storePath';
 import { storeCleanupManyQueue } from '../queues/storeCleanup';
+import { getCargoFilesBucketName, getStorage } from '../storage';
 import { documentInclude, documentService } from './document';
 import { fileService } from './file';
 import { filePurposeService, type CargoTenantEnvironment } from './filePurpose';
 import { fileReferenceService } from './fileReference';
-import { normalizeStorePath } from '../lib/storePath';
-import { getCargoFilesBucketName, getStorage } from '../storage';
 import {
   storeAccessService,
   storeReadPermission,
@@ -23,6 +28,10 @@ import { storeItemInclude, type StoreItemRecord } from './storeItem';
 import { storeItemMutationService, type StoreItemOperationInput } from './storeItemMutation';
 import { storeTemplateService, type StoreTemplateRecord } from './storeTemplate';
 import { storeVersionService } from './storeVersion';
+
+type StoreServiceAccessInput = Omit<StoreAccessInput, 'actorId'> & {
+  actor?: TenantActor;
+};
 
 class StoreServiceImpl {
   private async getStoreRecord(d: CargoTenantEnvironment & { storeId: string }) {
@@ -57,7 +66,10 @@ class StoreServiceImpl {
       );
     }
 
-    if (d.storeTemplate.environmentOid && d.storeTemplate.environmentOid !== d.environment.oid) {
+    if (
+      d.storeTemplate.environmentOid &&
+      d.storeTemplate.environmentOid !== d.environment.oid
+    ) {
       throw new ServiceError(
         badRequestError({
           message: `Store template ${d.storeTemplate.id} can only be cloned within its linked environment`
@@ -91,6 +103,7 @@ class StoreServiceImpl {
     d: CargoTenantEnvironment & {
       store: Store;
       storeTemplate: StoreTemplateRecord;
+      actor?: TenantActor;
     }
   ) {
     let filePurpose = await filePurposeService.ensureGenericFilePurpose();
@@ -132,6 +145,7 @@ class StoreServiceImpl {
           input: {
             title: name,
             content: content.toString('utf8'),
+            actorId: d.actor?.id,
             store: {
               id: d.store.id,
               path: item.path
@@ -161,6 +175,7 @@ class StoreServiceImpl {
           mimeType: 'application/octet-stream',
           size: content.length,
           title: name,
+          actorId: d.actor?.id,
           store: {
             id: d.store.id,
             path: item.path
@@ -175,6 +190,7 @@ class StoreServiceImpl {
       input: {
         id?: string;
         name: string;
+        actor?: TenantActor;
         access?: StoreAccess;
         cloneType?: StoreCloneType;
         parentStore?: Store;
@@ -204,7 +220,8 @@ class StoreServiceImpl {
           tenantOid: d.tenant.oid,
           environmentOid: d.environment.oid,
           parentStoreOid: d.input.parentStore?.oid,
-          parentStoreTemplateOid: d.input.parentStoreTemplate?.oid
+          parentStoreTemplateOid: d.input.parentStoreTemplate?.oid,
+          createdByTenantActorOid: d.input.actor?.oid
         }
       });
 
@@ -213,6 +230,14 @@ class StoreServiceImpl {
         environment: d.environment,
         store: createdStore
       });
+
+      if (d.input.actor) {
+        await storeAccessService.ensureActorStorePermissions({
+          store: createdStore,
+          actor: d.input.actor,
+          permissions: [storeReadPermission, storeWritePermission]
+        });
+      }
 
       return (await db.store.findUnique({
         where: {
@@ -228,11 +253,12 @@ class StoreServiceImpl {
         templateId: string;
         id?: string;
         name: string;
+        actor?: TenantActor;
         access?: StoreAccess;
       };
     }
   ) {
-    let storeTemplate = await storeTemplateService.getStoreTemplateById({
+    let storeTemplate = await storeTemplateService.getStoreTemplateByIdUnsafe({
       storeTemplateId: d.input.templateId
     });
 
@@ -253,6 +279,7 @@ class StoreServiceImpl {
         tenant: d.tenant,
         environment: d.environment,
         store: sourceStore,
+        actor: d.input.actor,
         input: {
           id: d.input.id,
           name: d.input.name,
@@ -270,6 +297,7 @@ class StoreServiceImpl {
         id: d.input.id,
         name: d.input.name,
         access: d.input.access,
+        actor: d.input.actor,
         parentStoreTemplate: storeTemplate
       }
     });
@@ -278,7 +306,8 @@ class StoreServiceImpl {
       tenant: d.tenant,
       environment: d.environment,
       store: createdStore,
-      storeTemplate
+      storeTemplate,
+      actor: d.input.actor
     });
 
     return (await db.store.findUnique({
@@ -288,15 +317,15 @@ class StoreServiceImpl {
     }))!;
   }
 
-  async listStores(d: CargoTenantEnvironment & StoreAccessInput) {
+  async listStores(d: CargoTenantEnvironment & StoreServiceAccessInput) {
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {
-        let accessibleStoreOids = d.actorId
+        let accessibleStoreOids = d.actor
           ? (
               await storeAccessService.listAccessibleStoreOidsForTenantEnvironment({
                 tenant: d.tenant,
                 environment: d.environment,
-                actorId: d.actorId,
+                actorId: d.actor.id,
                 defaultPermissions: d.defaultPermissions,
                 overridePermissions: d.overridePermissions,
                 requiredPermission: storeReadPermission
@@ -322,7 +351,7 @@ class StoreServiceImpl {
 
   async getStoreById(
     d: CargoTenantEnvironment &
-      StoreAccessInput & {
+      StoreServiceAccessInput & {
         storeId: string;
       }
   ) {
@@ -331,7 +360,7 @@ class StoreServiceImpl {
       tenant: d.tenant,
       environment: d.environment,
       store,
-      actorId: d.actorId,
+      actorId: d.actor?.id,
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
       requiredPermission: storeReadPermission
@@ -342,7 +371,7 @@ class StoreServiceImpl {
 
   async getStorePermissions(
     d: CargoTenantEnvironment &
-      StoreAccessInput & {
+      StoreServiceAccessInput & {
         store: Pick<Store, 'oid' | 'id'>;
       }
   ) {
@@ -350,7 +379,7 @@ class StoreServiceImpl {
       tenant: d.tenant,
       environment: d.environment,
       store: d.store,
-      actorId: d.actorId,
+      actorId: d.actor?.id,
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions
     });
@@ -358,7 +387,7 @@ class StoreServiceImpl {
 
   async updateStore(
     d: CargoTenantEnvironment &
-      StoreAccessInput & {
+      StoreServiceAccessInput & {
         store: Store;
         input: {
           name?: string;
@@ -378,7 +407,7 @@ class StoreServiceImpl {
       tenant: d.tenant,
       environment: d.environment,
       store: d.store,
-      actorId: d.actorId,
+      actorId: d.actor?.id,
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
       requiredPermission: storeWritePermission
@@ -397,7 +426,7 @@ class StoreServiceImpl {
 
   async cloneStore(
     d: CargoTenantEnvironment &
-      StoreAccessInput & {
+      StoreServiceAccessInput & {
         store: Store;
         input: {
           id?: string;
@@ -408,11 +437,11 @@ class StoreServiceImpl {
         };
       }
   ) {
-    let access = await storeAccessService.assertStoreAccessForStore({
+    await storeAccessService.assertStoreAccessForStore({
       tenant: d.tenant,
       environment: d.environment,
       store: d.store,
-      actorId: d.actorId,
+      actorId: d.actor?.id,
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
       requiredPermission: storeReadPermission
@@ -427,6 +456,7 @@ class StoreServiceImpl {
           id: d.input.id,
           name: d.input.name ?? d.store.name,
           access: d.input.access ?? d.store.access,
+          actor: d.actor,
           cloneType,
           parentStore: d.store,
           parentStoreTemplate: d.input.parentStoreTemplate
@@ -449,10 +479,9 @@ class StoreServiceImpl {
           environment: d.environment,
           targetStore: clonedStore,
           item,
-          actorId: d.actorId,
+          actor: d.actor,
           defaultPermissions: d.defaultPermissions,
           overridePermissions: d.overridePermissions,
-          actor: access.actor,
           cloneType
         });
       }
@@ -471,16 +500,17 @@ class StoreServiceImpl {
 
   async deleteStore(
     d: CargoTenantEnvironment &
-      StoreAccessInput & {
+      StoreServiceAccessInput & {
         store: Store;
         allowLinkedSkillDelete?: boolean;
+        allowLinkedStoreTemplateDelete?: boolean;
       }
   ) {
     await storeAccessService.assertStoreAccessForStore({
       tenant: d.tenant,
       environment: d.environment,
       store: d.store,
-      actorId: d.actorId,
+      actorId: d.actor?.id,
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
       requiredPermission: storeWritePermission
@@ -500,6 +530,27 @@ class StoreServiceImpl {
         throw new ServiceError(
           badRequestError({
             message: 'Cannot delete store: it is linked to a skill'
+          })
+        );
+      }
+    }
+
+    if (!d.allowLinkedStoreTemplateDelete) {
+      let linkedStoreTemplate = d.store.parentStoreTemplateOid
+        ? { id: d.store.id }
+        : await db.storeTemplate.findFirst({
+            where: {
+              sourceStoreOid: d.store.oid
+            },
+            select: {
+              id: true
+            }
+          });
+
+      if (linkedStoreTemplate) {
+        throw new ServiceError(
+          badRequestError({
+            message: 'Cannot delete store: it is linked to a store template'
           })
         );
       }
@@ -550,16 +601,16 @@ class StoreServiceImpl {
 
   async modifyStoreItems(
     d: CargoTenantEnvironment &
-      StoreAccessInput & {
+      StoreServiceAccessInput & {
         store: Store;
         operations: StoreItemOperationInput[];
       }
   ) {
-    let access = await storeAccessService.assertStoreAccessForStore({
+    await storeAccessService.assertStoreAccessForStore({
       tenant: d.tenant,
       environment: d.environment,
       store: d.store,
-      actorId: d.actorId,
+      actorId: d.actor?.id,
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
       requiredPermission: storeWritePermission
@@ -570,18 +621,15 @@ class StoreServiceImpl {
       environment: d.environment,
       store: d.store,
       operations: d.operations,
-      actor: access.actor
+      actor: d.actor
     });
   }
 
   private async cloneStoreItemIntoStore(
     d: CargoTenantEnvironment &
-      StoreAccessInput & {
+      StoreServiceAccessInput & {
         targetStore: Store;
         item: StoreItemRecord;
-        actor: Awaited<
-          ReturnType<typeof storeAccessService.assertStoreAccessForStore>
-        >['actor'];
         cloneType: StoreCloneType;
       }
   ) {
@@ -614,7 +662,7 @@ class StoreServiceImpl {
                 path: normalizedItemPath.path
               }
             ],
-            actor: d.actor ?? undefined
+            actor: d.actor
           });
         }
 
@@ -640,7 +688,9 @@ class StoreServiceImpl {
           environment: d.environment,
           document: sourceDocument,
           input: {
-            cloneType: d.cloneType
+            cloneType: d.cloneType,
+            actorId: d.actor?.id,
+            creatorActorId: d.actor?.id
           }
         });
 

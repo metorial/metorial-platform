@@ -4,6 +4,7 @@ import { Service } from '@lowerdeck/service';
 import type { Prisma } from '../../prisma/generated/client';
 import { db, withTransaction } from '../db';
 import { getId } from '../id';
+import { actorService } from './actor';
 import type { CargoTenantEnvironment } from './filePurpose';
 import type { SkillTemplateRecord } from './skillTemplate';
 import { storeService } from './store';
@@ -51,9 +52,10 @@ class SkillServiceImpl {
     d: CargoTenantEnvironment & {
       parentSkill?: SkillRecord;
       parentSkillTemplate?: SkillTemplateRecord;
+      parentSkillCloneType?: 'fork' | 'duplicate';
       input: {
         id?: string;
-        storeId?: string;
+        actorId?: string;
         name: string;
       };
     }
@@ -74,6 +76,13 @@ class SkillServiceImpl {
       );
     }
 
+    let actor = d.input.actorId
+      ? await actorService.getActorById({
+          tenant: d.tenant,
+          actorId: d.input.actorId
+        })
+      : undefined;
+
     return await withTransaction(async db => {
       let skillIds = d.input.id ? { oid: getId('skill').oid, id: d.input.id } : getId('skill');
       let store = d.parentSkillTemplate
@@ -82,8 +91,8 @@ class SkillServiceImpl {
             environment: d.environment,
             input: {
               templateId: d.parentSkillTemplate.storeTemplate.id,
-              id: d.input.storeId,
               name: d.input.name,
+              actor,
               access: 'public_read'
             }
           })
@@ -91,10 +100,12 @@ class SkillServiceImpl {
             tenant: d.tenant,
             environment: d.environment,
             input: {
-              id: d.input.storeId,
               name: d.input.name,
+              actor,
               access: 'public_read',
-              parentStore: d.parentSkill?.store
+              parentStore: d.parentSkill?.store,
+              cloneType:
+                d.parentSkillCloneType === 'duplicate' ? 'duplicate' : 'sync_until_change'
             }
           });
 
@@ -106,7 +117,8 @@ class SkillServiceImpl {
           environmentOid: d.environment.oid,
           storeOid: store.oid,
           parentSkillOid: d.parentSkill?.oid,
-          parentSkillTemplateOid: d.parentSkillTemplate?.oid
+          parentSkillTemplateOid: d.parentSkillTemplate?.oid,
+          createdByTenantActorOid: actor?.oid
         },
         include: skillInclude
       });
@@ -181,7 +193,8 @@ class SkillServiceImpl {
       tenant: d.tenant,
       environment: d.environment,
       store: d.skill.store,
-      allowLinkedSkillDelete: true
+      allowLinkedSkillDelete: true,
+      allowLinkedStoreTemplateDelete: true
     });
 
     return d.skill;

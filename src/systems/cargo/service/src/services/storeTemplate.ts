@@ -11,6 +11,11 @@ export type StoreTemplateScope = {
   environment?: { oid: bigint; id: string };
 };
 
+export type RequiredStoreTemplateScope = {
+  tenant: NonNullable<StoreTemplateScope['tenant']>;
+  environment: NonNullable<StoreTemplateScope['environment']>;
+};
+
 export type StoreTemplateItemInput = {
   path: string;
   type: 'file' | 'document' | 'directory';
@@ -172,9 +177,55 @@ class StoreTemplateServiceImpl {
     );
   }
 
-  private assertStandaloneTemplate(
-    storeTemplate: Pick<StoreTemplateRecord, 'id' | 'type'>
-  ) {
+  private assertRequiredScope(d: StoreTemplateScope): asserts d is RequiredStoreTemplateScope {
+    this.assertValidScope(d);
+
+    if (!d.tenant || !d.environment) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'tenantId and environmentId are required'
+        })
+      );
+    }
+  }
+
+  private getReadableScopeWhere(d: {
+    tenant: { oid: bigint };
+    environment: { oid: bigint };
+  }): Prisma.StoreTemplateWhereInput {
+    return {
+      OR: [
+        {
+          tenantOid: d.tenant.oid,
+          environmentOid: d.environment.oid
+        },
+        {
+          tenantOid: null,
+          environmentOid: null
+        }
+      ]
+    };
+  }
+
+  private assertMatchingScope(d: {
+    storeTemplate: Pick<StoreTemplateRecord, 'id' | 'tenant' | 'environment'>;
+    tenant: { oid: bigint; id: string };
+    environment: { oid: bigint; id: string };
+  }) {
+    if (
+      d.storeTemplate.tenant?.id !== d.tenant.id ||
+      d.storeTemplate.environment?.id !== d.environment.id
+    ) {
+      throw new ServiceError(
+        badRequestError({
+          message:
+            'Store template updates and deletes are only allowed within the matching tenant and environment'
+        })
+      );
+    }
+  }
+
+  private assertStandaloneTemplate(storeTemplate: Pick<StoreTemplateRecord, 'id' | 'type'>) {
     if (storeTemplate.type !== 'standalone') {
       throw new ServiceError(
         badRequestError({
@@ -223,9 +274,7 @@ class StoreTemplateServiceImpl {
     };
   }
 
-  private normalizeStandaloneItems(d: {
-    items: StoreTemplateItemInput[];
-  }) {
+  private normalizeStandaloneItems(d: { items: StoreTemplateItemInput[] }) {
     let seenPaths = new Set<string>();
 
     return d.items.map(item => {
@@ -355,31 +404,68 @@ class StoreTemplateServiceImpl {
     });
   }
 
-  async listStoreTemplates(d: StoreTemplateScope) {
-    this.assertValidScope(d);
+  async listStoreTemplates(d: RequiredStoreTemplateScope) {
+    this.assertRequiredScope(d);
 
     return Paginator.create(({ prisma }) =>
-      prisma(async opts =>
-        await db.storeTemplate.findMany({
-          ...opts,
-          where: {
-            tenantOid: d.tenant?.oid,
-            environmentOid: d.environment?.oid
-          },
-          include: storeTemplateSummaryInclude
-        })
+      prisma(
+        async opts =>
+          await db.storeTemplate.findMany({
+            ...opts,
+            where: this.getReadableScopeWhere(d),
+            include: storeTemplateSummaryInclude
+          })
       )
     );
   }
 
-  async getStoreTemplateById(d: { storeTemplateId: string }) {
+  async getStoreTemplateById(
+    d: RequiredStoreTemplateScope & {
+      storeTemplateId: string;
+    }
+  ) {
+    this.assertRequiredScope(d);
+
+    return await withTransaction(
+      async db => {
+        let storeTemplate = await db.storeTemplate.findFirst({
+          where: {
+            id: d.storeTemplateId,
+            ...this.getReadableScopeWhere(d)
+          },
+          include: storeTemplateInclude
+        });
+
+        if (!storeTemplate) {
+          throw new ServiceError(notFoundError('storeTemplate', d.storeTemplateId));
+        }
+
+        return storeTemplate;
+      },
+      { ifExists: true }
+    );
+  }
+
+  async getStoreTemplateByIdUnsafe(d: { storeTemplateId: string }) {
     return await this.getStoreTemplateRecord(d);
   }
 
   async updateStoreTemplate(d: {
     storeTemplate: StoreTemplateRecord;
     input: StoreTemplateUpdateInput;
+    tenant?: { oid: bigint; id: string };
+    environment?: { oid: bigint; id: string };
+    skipScopeCheck?: true;
   }) {
+    if (!d.skipScopeCheck) {
+      this.assertRequiredScope(d);
+      this.assertMatchingScope({
+        storeTemplate: d.storeTemplate,
+        tenant: d.tenant,
+        environment: d.environment
+      });
+    }
+
     if (d.input.name === undefined && d.input.items === undefined) {
       throw new ServiceError(
         badRequestError({
@@ -445,8 +531,31 @@ class StoreTemplateServiceImpl {
     });
   }
 
-  async deleteStoreTemplate(d: { storeTemplateId: string }) {
-    let storeTemplate = await this.getStoreTemplateRecord(d);
+  async deleteStoreTemplate(d: {
+    storeTemplateId: string;
+    tenant?: { oid: bigint; id: string };
+    environment?: { oid: bigint; id: string };
+    skipScopeCheck?: true;
+  }) {
+    if (!d.skipScopeCheck) {
+      this.assertRequiredScope(d);
+    }
+
+    let storeTemplate = d.skipScopeCheck
+      ? await this.getStoreTemplateRecord(d)
+      : await this.getStoreTemplateById({
+          tenant: d.tenant!,
+          environment: d.environment!,
+          storeTemplateId: d.storeTemplateId
+        });
+
+    if (!d.skipScopeCheck && d.tenant && d.environment) {
+      this.assertMatchingScope({
+        storeTemplate,
+        tenant: d.tenant,
+        environment: d.environment
+      });
+    }
 
     await db.storeTemplate.delete({
       where: {

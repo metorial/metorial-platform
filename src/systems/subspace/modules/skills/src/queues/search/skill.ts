@@ -13,7 +13,7 @@ export let indexSkillRecord = async (d: { skillId: string }) => {
     where: { id: d.skillId },
     include: {
       tenant: true,
-      skillGroup: true,
+      skillEntity: true,
       skillIntegrations: {
         where: { status: 'active' },
         include: {
@@ -45,7 +45,7 @@ export let indexSkillRecord = async (d: { skillId: string }) => {
     tenantIds: [skill.tenant.id],
     fields: {
       skillId: skill.id,
-      skillGroupId: skill.skillGroup.id,
+      skillEntityId: skill.skillEntity.id,
       integrationIds: skill.skillIntegrations.map(item => item.integration.id),
       providerIds: skill.skillProviderLinks.map(link => link.provider.id)
     },

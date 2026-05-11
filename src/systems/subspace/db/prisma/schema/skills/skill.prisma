@@ -1,4 +1,4 @@
-model SkillGroup {
+model SkillEntity {
   oid BigInt @id
   id  String @unique
 
@@ -7,7 +7,7 @@ model SkillGroup {
   description String?
 
   ownerSkillOid BigInt? @unique
-  ownerSkill    Skill?  @relation("SkillGroupOwner", fields: [ownerSkillOid], references: [oid], onDelete: SetNull)
+  ownerSkill    Skill?  @relation("SkillEntityOwner", fields: [ownerSkillOid], references: [oid], onDelete: SetNull)
 
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
@@ -42,12 +42,18 @@ model Skill {
   metadata        Json?
   privateMetadata Json?
 
-  skillGroupOid BigInt
-  skillGroup    SkillGroup @relation(fields: [skillGroupOid], references: [oid], onDelete: Cascade)
+  storeId String
 
-  parentSkillOid BigInt?
-  parentSkill    Skill?  @relation("SkillParentChild", fields: [parentSkillOid], references: [oid], onDelete: SetNull)
-  childSkills    Skill[] @relation("SkillParentChild")
+  skillEntityOid BigInt
+  skillEntity    SkillEntity @relation(fields: [skillEntityOid], references: [oid], onDelete: Cascade)
+
+  forkedFromSkillOid BigInt?
+  forkedFromSkill    Skill?  @relation("SkillParentChild", fields: [forkedFromSkillOid], references: [oid], onDelete: SetNull)
+  forkedToSkill      Skill[] @relation("SkillParentChild")
+
+  duplicatedFromSkillOid BigInt?
+  duplicatedFromSkill    Skill?  @relation("SkillDuplicatedFrom", fields: [duplicatedFromSkillOid], references: [oid], onDelete: SetNull)
+  duplicatedToSkill      Skill[] @relation("SkillDuplicatedFrom")
 
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
@@ -58,16 +64,46 @@ model Skill {
   solutionOid Int
   solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
 
-  owningSkillGroup SkillGroup? @relation("SkillGroupOwner")
-  forks            SkillFork[] @relation("SkillForkParent")
-  forkedFrom       SkillFork?  @relation("SkillForkChild")
+  owningSkillEntity SkillEntity? @relation("SkillEntityOwner")
+  forks             SkillFork[]  @relation("SkillForkParent")
+  fork              SkillFork?   @relation("SkillForkChild")
 
-  createdAt          DateTime            @default(now())
-  updatedAt          DateTime            @default(now()) @updatedAt
+  parentTemplateOid BigInt?
+  parentTemplate    SkillTemplate? @relation(fields: [parentTemplateOid], references: [oid], onDelete: SetNull)
+
+  ownerTenantActorOid BigInt?
+  ownerTenantActor    TenantActor? @relation(fields: [ownerTenantActorOid], references: [oid], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
   skillIntegrations  SkillIntegration[]
   skillProviders     SkillProvider[]
   skillItems         SkillItem[]
   skillProviderLinks SkillProviderLink[]
+  skillEvents        SkillEvent[]
+}
+
+enum SkillEventType {
+  created
+  updated
+  forked
+  duplicated
+}
+
+model SkillEvent {
+  oid BigInt @id
+  id  String @unique
+
+  type SkillEventType
+
+  skillOid BigInt
+  skill    Skill  @relation(fields: [skillOid], references: [oid], onDelete: Cascade)
+
+  tenantActorOid BigInt
+  tenantActor    TenantActor @relation(fields: [tenantActorOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
 }
 
 model SkillFork {
@@ -79,6 +115,18 @@ model SkillFork {
 
   childSkillOid BigInt @unique
   childSkill    Skill  @relation("SkillForkChild", fields: [childSkillOid], references: [oid], onDelete: Cascade)
+
+  tenantActorOid BigInt
+  tenantActor    TenantActor @relation(fields: [tenantActorOid], references: [oid], onDelete: Cascade)
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  solutionOid Int
+  solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
 
   createdAt DateTime @default(now())
 }
@@ -104,7 +152,8 @@ model SkillIntegration {
   itemOid BigInt    @unique
   item    SkillItem @relation(fields: [itemOid], references: [oid], onDelete: Cascade)
 
-  createdAt DateTime @default(now())
+  createdAt          DateTime            @default(now())
+  skillTemplateItems SkillTemplateItem[]
 
   @@unique([skillOid, integrationOid])
 }
@@ -130,7 +179,8 @@ model SkillProvider {
   itemOid BigInt    @unique
   item    SkillItem @relation(fields: [itemOid], references: [oid], onDelete: Cascade)
 
-  createdAt DateTime @default(now())
+  createdAt          DateTime            @default(now())
+  skillTemplateItems SkillTemplateItem[]
 
   @@unique([skillOid, providerOid])
 }

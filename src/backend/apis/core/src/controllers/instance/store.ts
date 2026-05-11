@@ -91,6 +91,7 @@ export let storeController = Controller.create(
             instance: ctx.instance,
             organization: ctx.organization
           },
+          ...getInstanceCargoAccess(ctx),
           input: {
             name: ctx.body.name,
             access: ctx.body.access,

@@ -108,7 +108,10 @@ class StoreAccessServiceImpl {
     writableStoreIds: string[];
   }) {
     if (!d.actorId || d.isOwner) {
-      return [storeReadPermission, storeWritePermission] satisfies StoreParticipantPermissions[];
+      return [
+        storeReadPermission,
+        storeWritePermission
+      ] satisfies StoreParticipantPermissions[];
     }
 
     let permissions: StoreParticipantPermissions[] = [];
@@ -427,6 +430,24 @@ class StoreAccessServiceImpl {
     );
   }
 
+  async ensureActorStorePermissions(d: {
+    store: Pick<Store, 'oid'>;
+    actor: TenantActor;
+    permissions: StoreParticipantPermissions[];
+  }) {
+    let [participant] = await this.ensureStoreParticipantsHavePermissions({
+      actor: d.actor,
+      items: [
+        {
+          storeOid: d.store.oid,
+          permissions: d.permissions
+        }
+      ]
+    });
+
+    return participant;
+  }
+
   async resolveAccessibleStoreOids(
     d: CargoTenantEnvironment &
       StoreAccessInput & {
@@ -616,7 +637,8 @@ class StoreAccessServiceImpl {
       storeId: d.store.id,
       actorId: d.actorId,
       hasFullAccess:
-        permissions.includes(storeReadPermission) && permissions.includes(storeWritePermission),
+        permissions.includes(storeReadPermission) &&
+        permissions.includes(storeWritePermission),
       permissions,
       relevantStoreIds: [d.store.id],
       readableStoreIds,
@@ -733,7 +755,8 @@ class StoreAccessServiceImpl {
       actorId: d.actorId,
       isOwner,
       hasFullAccess:
-        permissions.includes(storeReadPermission) && permissions.includes(storeWritePermission),
+        permissions.includes(storeReadPermission) &&
+        permissions.includes(storeWritePermission),
       permissions,
       relevantStoreIds,
       readableStoreIds,

@@ -20,6 +20,9 @@ export type CargoStoreItemOperation = {
 class StoreServiceImpl {
   async createStore(d: {
     owner: FileOwner;
+    accessActor?: CargoAccessActor;
+    defaultPermissions?: CargoStorePermission[];
+    overridePermissions?: boolean;
     input: {
       id?: string;
       name: string;
@@ -28,9 +31,7 @@ class StoreServiceImpl {
       parentId?: string;
     };
   }) {
-    let { scope } = await resolveCargoAccess({
-      owner: d.owner
-    });
+    let { scope, actorId } = await resolveCargoAccess(d);
 
     return await cargo.store.create({
       tenantId: scope.tenantId,
@@ -38,6 +39,7 @@ class StoreServiceImpl {
       storeId: d.input.id,
       name: d.input.name,
       access: d.input.access,
+      actorId,
       templateId: d.input.templateId,
       parentId: d.input.parentId
     });

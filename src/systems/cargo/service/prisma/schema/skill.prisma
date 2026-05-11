@@ -18,6 +18,9 @@ model Skill {
   parentSkillTemplateOid BigInt?
   parentSkillTemplate    SkillTemplate? @relation("SkillTemplateHierarchy", fields: [parentSkillTemplateOid], references: [oid], onDelete: SetNull)
 
+  createdByTenantActorOid BigInt?
+  createdByTenantActor    TenantActor? @relation("SkillCreator", fields: [createdByTenantActorOid], references: [oid], onDelete: Cascade)
+
   createdAt DateTime @default(now())
 }
 

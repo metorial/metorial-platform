@@ -40,6 +40,9 @@ model Store {
   itemCount Int             @default(0)
   dirtyAt   DateTime?
 
+  createdByTenantActorOid BigInt?
+  createdByTenantActor    TenantActor? @relation("StoreCreator", fields: [createdByTenantActorOid], references: [oid], onDelete: Cascade)
+
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
 

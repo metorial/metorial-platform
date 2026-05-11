@@ -26,22 +26,30 @@ export let skillController = app.controller({
         tenantId: v.string(),
         environmentId: v.string(),
         skillId: v.optional(v.string()),
-        storeId: v.optional(v.string()),
-        parentSkillId: v.optional(v.string()),
+        actorId: v.optional(v.string()),
+        parentSkill: v.optional(
+          v.object({
+            skillId: v.string(),
+            type: v.enumOf(['fork', 'duplicate'])
+          })
+        ),
         parentSkillTemplateId: v.optional(v.string()),
+
         name: v.string()
       })
     )
     .do(async ctx => {
-      let parentSkill = ctx.input.parentSkillId
+      let parentSkill = ctx.input.parentSkill
         ? await skillService.getSkillById({
             tenant: ctx.tenant,
             environment: ctx.environment,
-            skillId: ctx.input.parentSkillId
+            skillId: ctx.input.parentSkill.skillId
           })
         : undefined;
       let parentSkillTemplate = ctx.input.parentSkillTemplateId
         ? await skillTemplateService.getSkillTemplateById({
+            tenant: ctx.tenant,
+            environment: ctx.environment,
             skillTemplateId: ctx.input.parentSkillTemplateId
           })
         : undefined;
@@ -50,10 +58,11 @@ export let skillController = app.controller({
         tenant: ctx.tenant,
         environment: ctx.environment,
         parentSkill,
+        parentSkillCloneType: ctx.input.parentSkill?.type,
         parentSkillTemplate,
         input: {
           id: ctx.input.skillId,
-          storeId: ctx.input.storeId,
+          actorId: ctx.input.actorId,
           name: ctx.input.name
         }
       });

@@ -2,9 +2,10 @@ import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type { Prisma } from '../../prisma/generated/client';
-import { db, type TransactionDB, withTransaction } from '../db';
+import { db, withTransaction } from '../db';
 import { getId } from '../id';
 import type {
+  RequiredStoreTemplateScope,
   StoreTemplateCreateInput,
   StoreTemplateScope,
   StoreTemplateUpdateInput
@@ -99,10 +100,60 @@ let isSystemIdentifierUniqueConstraintError = (error: any) => {
 };
 
 class SkillTemplateServiceImpl {
-  private async getSkillTemplateRecord(d: { skillTemplateId: string }) {
+  private getReadableStoreTemplateScopeWhere(d: {
+    tenant: { oid: bigint };
+    environment: { oid: bigint };
+  }): Prisma.StoreTemplateWhereInput {
+    return {
+      OR: [
+        {
+          tenantOid: d.tenant.oid,
+          environmentOid: d.environment.oid
+        },
+        {
+          tenantOid: null,
+          environmentOid: null
+        }
+      ]
+    };
+  }
+
+  private assertMatchingScope(d: {
+    skillTemplate: SkillTemplateRecord;
+    tenant: { id: string };
+    environment: { id: string };
+  }) {
+    if (
+      d.skillTemplate.storeTemplate.tenant?.id !== d.tenant.id ||
+      d.skillTemplate.storeTemplate.environment?.id !== d.environment.id
+    ) {
+      throw new ServiceError(
+        badRequestError({
+          message:
+            'Skill template updates and deletes are only allowed within the matching tenant and environment'
+        })
+      );
+    }
+  }
+
+  private async getSkillTemplateRecord(d: {
+    skillTemplateId: string;
+    tenant?: { oid: bigint; id: string };
+    environment?: { oid: bigint; id: string };
+  }) {
     let skillTemplate = await db.skillTemplate.findFirst({
       where: {
-        id: d.skillTemplateId
+        id: d.skillTemplateId,
+        ...(d.tenant && d.environment
+          ? {
+              storeTemplate: {
+                is: this.getReadableStoreTemplateScopeWhere({
+                  tenant: d.tenant,
+                  environment: d.environment
+                })
+              }
+            }
+          : {})
       },
       include: skillTemplateInclude
     });
@@ -129,48 +180,46 @@ class SkillTemplateServiceImpl {
   }
 
   private async createSkillTemplateRecord(
-    tx: TransactionDB,
     d: StoreTemplateScope & {
       input: SkillTemplateCreateInput & {
         systemIdentifier?: string | null;
       };
     }
   ) {
-    let storeTemplate = await storeTemplateService.createStoreTemplate({
-      ...d,
-      input: {
-        id: d.input.id,
-        name: d.input.name,
-        storeId: d.input.storeId,
-        items: d.input.items
-      }
-    });
+    return await withTransaction(async tx => {
+      let storeTemplate = await storeTemplateService.createStoreTemplate({
+        ...d,
+        input: {
+          id: d.input.id,
+          name: d.input.name,
+          storeId: d.input.storeId,
+          items: d.input.items
+        }
+      });
 
-    let skillTemplateIds = d.input.skillTemplateId
-      ? { oid: getId('skillTemplate').oid, id: d.input.skillTemplateId }
-      : getId('skillTemplate');
+      let skillTemplateIds = d.input.skillTemplateId
+        ? { oid: getId('skillTemplate').oid, id: d.input.skillTemplateId }
+        : getId('skillTemplate');
 
-    return await tx.skillTemplate.create({
-      data: {
-        oid: skillTemplateIds.oid,
-        id: skillTemplateIds.id,
-        systemIdentifier: d.input.systemIdentifier ?? null,
-        storeTemplateOid: storeTemplate.oid
-      },
-      include: skillTemplateInclude
+      return await tx.skillTemplate.create({
+        data: {
+          oid: skillTemplateIds.oid,
+          id: skillTemplateIds.id,
+          systemIdentifier: d.input.systemIdentifier ?? null,
+          storeTemplateOid: storeTemplate.oid
+        },
+        include: skillTemplateInclude
+      });
     });
   }
 
-  private async updateSkillTemplateRecord(
-    tx: TransactionDB,
-    d: {
-      skillTemplate: SkillTemplateRecord;
-      input: SkillTemplateUpdateInput & {
-        systemIdentifier?: string;
-        storeId?: string;
-      };
-    }
-  ) {
+  private async updateSkillTemplateRecord(d: {
+    skillTemplate: SkillTemplateRecord;
+    input: SkillTemplateUpdateInput & {
+      systemIdentifier?: string;
+      storeId?: string;
+    };
+  }) {
     if (
       d.input.storeId !== undefined &&
       d.skillTemplate.storeTemplate.sourceStore?.id !== d.input.storeId
@@ -182,27 +231,30 @@ class SkillTemplateServiceImpl {
       );
     }
 
-    let storeTemplate = await storeTemplateService.updateStoreTemplate({
-      storeTemplate: d.skillTemplate.storeTemplate,
-      input: {
-        name: d.input.name,
-        items: d.input.items
-      }
-    });
+    return await withTransaction(async tx => {
+      let storeTemplate = await storeTemplateService.updateStoreTemplate({
+        storeTemplate: d.skillTemplate.storeTemplate,
+        skipScopeCheck: true,
+        input: {
+          name: d.input.name,
+          items: d.input.items
+        }
+      });
 
-    return await tx.skillTemplate.update({
-      where: {
-        oid: d.skillTemplate.oid
-      },
-      data: {
-        systemIdentifier: d.input.systemIdentifier,
-        storeTemplateOid: storeTemplate.oid
-      },
-      include: skillTemplateInclude
+      return await tx.skillTemplate.update({
+        where: {
+          oid: d.skillTemplate.oid
+        },
+        data: {
+          systemIdentifier: d.input.systemIdentifier,
+          storeTemplateOid: storeTemplate.oid
+        },
+        include: skillTemplateInclude
+      });
     });
   }
 
-  async listSkillTemplates(d: StoreTemplateScope) {
+  async listSkillTemplates(d: RequiredStoreTemplateScope) {
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
@@ -210,10 +262,7 @@ class SkillTemplateServiceImpl {
             ...opts,
             where: {
               storeTemplate: {
-                is: {
-                  tenantOid: d.tenant?.oid,
-                  environmentOid: d.environment?.oid
-                }
+                is: this.getReadableStoreTemplateScopeWhere(d)
               }
             },
             include: skillTemplateSummaryInclude
@@ -222,7 +271,11 @@ class SkillTemplateServiceImpl {
     );
   }
 
-  async getSkillTemplateById(d: { skillTemplateId: string }) {
+  async getSkillTemplateById(
+    d: RequiredStoreTemplateScope & {
+      skillTemplateId: string;
+    }
+  ) {
     return await this.getSkillTemplateRecord(d);
   }
 
@@ -231,22 +284,13 @@ class SkillTemplateServiceImpl {
       input: SkillTemplateCreateInput;
     }
   ) {
-    return await withTransaction(
-      async tx =>
-        await this.createSkillTemplateRecord(tx, {
-          ...d,
-          input: {
-            ...d.input
-          }
-        })
-    );
+    return await this.createSkillTemplateRecord({
+      ...d,
+      input: d.input
+    });
   }
 
-  async upsertSkillTemplate(
-    d: StoreTemplateScope & {
-      input: SkillTemplateUpsertInput;
-    }
-  ) {
+  async upsertSkillTemplate(d: { input: SkillTemplateUpsertInput }) {
     let systemIdentifier = this.normalizeSystemIdentifier({
       systemIdentifier: d.input.systemIdentifier
     });
@@ -262,7 +306,7 @@ class SkillTemplateServiceImpl {
           });
 
           if (existing) {
-            return await this.updateSkillTemplateRecord(tx, {
+            return await this.updateSkillTemplateRecord({
               skillTemplate: existing,
               input: {
                 name: d.input.name,
@@ -273,7 +317,7 @@ class SkillTemplateServiceImpl {
             });
           }
 
-          return await this.createSkillTemplateRecord(tx, {
+          return await this.createSkillTemplateRecord({
             ...d,
             input: {
               ...d.input,
@@ -293,23 +337,46 @@ class SkillTemplateServiceImpl {
     throw new Error('Unreachable');
   }
 
-  async updateSkillTemplate(d: {
-    skillTemplate: SkillTemplateRecord;
-    input: SkillTemplateUpdateInput;
-  }) {
-    return await withTransaction(
-      async tx =>
-        await this.updateSkillTemplateRecord(tx, {
-          skillTemplate: d.skillTemplate,
-          input: d.input
-        })
-    );
+  async updateSkillTemplate(
+    d: RequiredStoreTemplateScope & {
+      skillTemplateId: string;
+      input: SkillTemplateUpdateInput;
+    }
+  ) {
+    let skillTemplate = await this.getSkillTemplateById({
+      tenant: d.tenant,
+      environment: d.environment,
+      skillTemplateId: d.skillTemplateId
+    });
+
+    this.assertMatchingScope({
+      skillTemplate,
+      tenant: d.tenant,
+      environment: d.environment
+    });
+
+    return await this.updateSkillTemplateRecord({
+      skillTemplate,
+      input: d.input
+    });
   }
 
-  async deleteSkillTemplate(d: { skillTemplateId: string }) {
-    let skillTemplate = await this.getSkillTemplateRecord(d);
+  async deleteSkillTemplate(
+    d: RequiredStoreTemplateScope & {
+      skillTemplateId: string;
+    }
+  ) {
+    let skillTemplate = await this.getSkillTemplateById(d);
+
+    this.assertMatchingScope({
+      skillTemplate,
+      tenant: d.tenant,
+      environment: d.environment
+    });
 
     await storeTemplateService.deleteStoreTemplate({
+      tenant: d.tenant,
+      environment: d.environment,
       storeTemplateId: skillTemplate.storeTemplate.id
     });
 

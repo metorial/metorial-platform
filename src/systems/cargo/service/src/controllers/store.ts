@@ -2,13 +2,25 @@ import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { storeItemPresenter, storePermissionsPresenter, storePresenter } from '../presenters';
-import { storeService } from '../services';
+import { actorService, storeService } from '../services';
 import { app } from './_app';
 import { storePermissionsSchema } from './document';
 import { tenantApp } from './tenant';
 
 export let storeAccessSchema = v.enumOf(['private', 'public_read', 'public_write']);
 export let storeCloneTypeSchema = v.enumOf(['sync_until_change', 'duplicate']);
+
+let getInputActor = async (d: {
+  tenant: Parameters<typeof actorService.getActorById>[0]['tenant'];
+  actorId?: string;
+}) => {
+  if (!d.actorId) return undefined;
+
+  return await actorService.getActorById({
+    tenant: d.tenant,
+    actorId: d.actorId
+  });
+};
 
 export let storeApp = tenantApp.use(async ctx => {
   let storeId = ctx.body.storeId;
@@ -41,6 +53,7 @@ export let storeController = app.controller({
         storeId: v.optional(v.string()),
         name: v.string(),
         access: v.optional(storeAccessSchema),
+        actorId: v.optional(v.string()),
         templateId: v.optional(v.string()),
         parentId: v.optional(v.string())
       })
@@ -54,6 +67,11 @@ export let storeController = app.controller({
         );
       }
 
+      let actor = await getInputActor({
+        tenant: ctx.tenant,
+        actorId: ctx.input.actorId
+      });
+
       let store = ctx.input.templateId
         ? await storeService.createStoreFromTemplate({
             tenant: ctx.tenant,
@@ -62,7 +80,8 @@ export let storeController = app.controller({
               templateId: ctx.input.templateId,
               id: ctx.input.storeId,
               name: ctx.input.name,
-              access: ctx.input.access
+              access: ctx.input.access,
+              actor
             }
           })
         : ctx.input.parentId
@@ -78,7 +97,8 @@ export let storeController = app.controller({
                 id: ctx.input.storeId,
                 name: ctx.input.name,
                 access: ctx.input.access
-              }
+              },
+              actor
             })
         : await storeService.createStore({
             tenant: ctx.tenant,
@@ -86,7 +106,8 @@ export let storeController = app.controller({
             input: {
               id: ctx.input.storeId,
               name: ctx.input.name,
-              access: ctx.input.access
+              access: ctx.input.access,
+              actor
             }
           });
 
@@ -107,10 +128,15 @@ export let storeController = app.controller({
       )
     )
     .do(async ctx => {
+      let actor = await getInputActor({
+        tenant: ctx.tenant,
+        actorId: ctx.input.actorId
+      });
+
       let paginator = await storeService.listStores({
         tenant: ctx.tenant,
         environment: ctx.environment,
-        actorId: ctx.input.actorId,
+        actor,
         defaultPermissions: ctx.input.defaultPermissions,
         overridePermissions: ctx.input.overridePermissions
       });
@@ -137,7 +163,10 @@ export let storeController = app.controller({
           tenant: ctx.tenant,
           environment: ctx.environment,
           storeId: ctx.input.storeId,
-          actorId: ctx.input.actorId,
+          actor: await getInputActor({
+            tenant: ctx.tenant,
+            actorId: ctx.input.actorId
+          }),
           defaultPermissions: ctx.input.defaultPermissions,
           overridePermissions: ctx.input.overridePermissions
         })
@@ -162,7 +191,10 @@ export let storeController = app.controller({
           tenant: ctx.tenant,
           environment: ctx.environment,
           store: ctx.store,
-          actorId: ctx.input.actorId,
+          actor: await getInputActor({
+            tenant: ctx.tenant,
+            actorId: ctx.input.actorId
+          }),
           defaultPermissions: ctx.input.defaultPermissions,
           overridePermissions: ctx.input.overridePermissions
         })
@@ -184,11 +216,16 @@ export let storeController = app.controller({
       })
     )
     .do(async ctx => {
+      let actor = await getInputActor({
+        tenant: ctx.tenant,
+        actorId: ctx.input.actorId
+      });
+
       let store = await storeService.updateStore({
         tenant: ctx.tenant,
         environment: ctx.environment,
         store: ctx.store,
-        actorId: ctx.input.actorId,
+        actor,
         defaultPermissions: ctx.input.defaultPermissions,
         overridePermissions: ctx.input.overridePermissions,
         input: {
@@ -217,11 +254,16 @@ export let storeController = app.controller({
       })
     )
     .do(async ctx => {
+      let actor = await getInputActor({
+        tenant: ctx.tenant,
+        actorId: ctx.input.actorId
+      });
+
       let store = await storeService.cloneStore({
         tenant: ctx.tenant,
         environment: ctx.environment,
         store: ctx.store,
-        actorId: ctx.input.actorId,
+        actor,
         defaultPermissions: ctx.input.defaultPermissions,
         overridePermissions: ctx.input.overridePermissions,
         input: {
@@ -248,11 +290,16 @@ export let storeController = app.controller({
       })
     )
     .do(async ctx => {
+      let actor = await getInputActor({
+        tenant: ctx.tenant,
+        actorId: ctx.input.actorId
+      });
+
       let store = await storeService.deleteStore({
         tenant: ctx.tenant,
         environment: ctx.environment,
         store: ctx.store,
-        actorId: ctx.input.actorId,
+        actor,
         defaultPermissions: ctx.input.defaultPermissions,
         overridePermissions: ctx.input.overridePermissions
       });
@@ -280,7 +327,10 @@ export let storeController = app.controller({
           environment: ctx.environment,
           store: ctx.store,
           operations: ctx.input.operations as any,
-          actorId: ctx.input.actorId,
+          actor: await getInputActor({
+            tenant: ctx.tenant,
+            actorId: ctx.input.actorId
+          }),
           defaultPermissions: ctx.input.defaultPermissions,
           overridePermissions: ctx.input.overridePermissions
         })

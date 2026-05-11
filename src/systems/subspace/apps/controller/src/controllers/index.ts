@@ -86,6 +86,7 @@ import { sessionTemplateProviderController } from './sessionTemplateProvider';
 import { sessionUsageRecordController } from './sessionUsageRecord';
 import { skillController } from './skill';
 import { skillItemController } from './skillItem';
+import { skillTemplateController } from './skillTemplate';
 import { solutionController } from './solution';
 import { tenantController } from './tenant';
 import { toolCallController } from './toolCall';
@@ -187,7 +188,8 @@ let sessionControllers = {
 
 let skillControllers = {
   skill: skillController,
-  skillItem: skillItemController
+  skillItem: skillItemController,
+  skillTemplate: skillTemplateController
 };
 
 let extensionControllers = {

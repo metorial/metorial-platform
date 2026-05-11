@@ -38,6 +38,22 @@ let resolveOptionalStoreTemplateScope = async (d: {
   };
 };
 
+let resolveRequiredStoreTemplateScope = async (d: {
+  tenantId: string;
+  environmentId: string;
+}) => {
+  let tenant = await tenantService.getTenantById({ id: d.tenantId });
+  let environment = await environmentService.getEnvironmentById({
+    tenant,
+    id: d.environmentId
+  });
+
+  return {
+    tenant,
+    environment
+  };
+};
+
 export let storeTemplateController = app.controller({
   create: app
     .handler()
@@ -75,13 +91,13 @@ export let storeTemplateController = app.controller({
     .input(
       Paginator.validate(
         v.object({
-          tenantId: v.optional(v.string()),
-          environmentId: v.optional(v.string())
+          tenantId: v.string(),
+          environmentId: v.string()
         })
       )
     )
     .do(async ctx => {
-      let scope = await resolveOptionalStoreTemplateScope({
+      let scope = await resolveRequiredStoreTemplateScope({
         tenantId: ctx.input.tenantId,
         environmentId: ctx.input.environmentId
       });
@@ -95,30 +111,47 @@ export let storeTemplateController = app.controller({
     .handler()
     .input(
       v.object({
+        tenantId: v.string(),
+        environmentId: v.string(),
         storeTemplateId: v.string()
       })
     )
-    .do(async ctx =>
-      storeTemplateDetailPresenter(
+    .do(async ctx => {
+      let scope = await resolveRequiredStoreTemplateScope({
+        tenantId: ctx.input.tenantId,
+        environmentId: ctx.input.environmentId
+      });
+
+      return storeTemplateDetailPresenter(
         await storeTemplateService.getStoreTemplateById({
+          ...scope,
           storeTemplateId: ctx.input.storeTemplateId
         })
-      )
-    ),
+      );
+    }),
 
   update: app
     .handler()
     .input(
       v.object({
+        tenantId: v.string(),
+        environmentId: v.string(),
         storeTemplateId: v.string(),
         name: v.optional(v.string()),
         items: v.optional(v.array(storeTemplateItemSchema))
       })
     )
-    .do(async ctx =>
-      storeTemplateDetailPresenter(
+    .do(async ctx => {
+      let scope = await resolveRequiredStoreTemplateScope({
+        tenantId: ctx.input.tenantId,
+        environmentId: ctx.input.environmentId
+      });
+
+      return storeTemplateDetailPresenter(
         await storeTemplateService.updateStoreTemplate({
+          ...scope,
           storeTemplate: await storeTemplateService.getStoreTemplateById({
+            ...scope,
             storeTemplateId: ctx.input.storeTemplateId
           }),
           input: {
@@ -126,21 +159,29 @@ export let storeTemplateController = app.controller({
             items: ctx.input.items
           }
         })
-      )
-    ),
+      );
+    }),
 
   delete: app
     .handler()
     .input(
       v.object({
+        tenantId: v.string(),
+        environmentId: v.string(),
         storeTemplateId: v.string()
       })
     )
-    .do(async ctx =>
-      storeTemplateDetailPresenter(
+    .do(async ctx => {
+      let scope = await resolveRequiredStoreTemplateScope({
+        tenantId: ctx.input.tenantId,
+        environmentId: ctx.input.environmentId
+      });
+
+      return storeTemplateDetailPresenter(
         await storeTemplateService.deleteStoreTemplate({
+          ...scope,
           storeTemplateId: ctx.input.storeTemplateId
         })
-      )
-    )
+      );
+    })
 });

@@ -1427,6 +1427,7 @@ class DocumentServiceImpl {
         title?: string;
         cloneType?: StoreCloneType;
         actorId?: string;
+        creatorActorId?: string;
         defaultPermissions?: StoreParticipantPermissions[];
         overridePermissions?: boolean;
       };
@@ -1441,14 +1442,19 @@ class DocumentServiceImpl {
       overridePermissions: d.input.overridePermissions,
       requiredPermission: storeReadPermission
     });
-    let actor = access.actor;
+    let creatorActor = d.input.creatorActorId
+      ? await actorService.getActorById({
+          tenant: d.tenant,
+          actorId: d.input.creatorActorId
+        })
+      : access.actor;
 
     this.ensureDocumentActive(d.document);
 
     let purpose = await filePurposeService.ensureDocumentFilePurpose();
     let cloneType = d.input.cloneType ?? 'sync_until_change';
 
-    let cloneWithClient = async (tx: Prisma.TransactionClient) => {
+    let clonedDocument = await withTransaction(async tx => {
       let documentIds = d.input.id
         ? { oid: getId('document').oid, id: d.input.id }
         : getId('document');
@@ -1468,7 +1474,7 @@ class DocumentServiceImpl {
           mimeType: documentMimeType,
           size: getTextByteSize(sourceContent),
           title: nextTitle,
-          actorId: d.input.actorId
+          actorId: creatorActor?.id
         }
       });
 
@@ -1493,7 +1499,7 @@ class DocumentServiceImpl {
           maxVersionNumber: 1,
           contentOid: cloneType === 'duplicate' ? contentIds.oid : d.document.contentOid,
           parentDocumentOid: cloneType === 'sync_until_change' ? d.document.oid : null,
-          createdByTenantActorOid: actor?.oid
+          createdByTenantActorOid: creatorActor?.oid
         },
         include: documentInclude
       });
@@ -1507,7 +1513,7 @@ class DocumentServiceImpl {
         listEditedAt: new Date()
       });
 
-      let clonedDocument = await tx.document.update({
+      let nextDocument = await tx.document.update({
         where: {
           id: document.id
         },
@@ -1517,24 +1523,24 @@ class DocumentServiceImpl {
         include: documentInclude
       });
 
-      if (actor) {
+      if (creatorActor) {
         await this.upsertParticipant({
-          document: clonedDocument,
-          actor,
+          document: nextDocument,
+          actor: creatorActor,
           mode: 'edit'
         });
 
         await this.ensureVersionEditor({
           version,
-          document: clonedDocument,
-          actor
+          document: nextDocument,
+          actor: creatorActor
         });
       }
 
-      return clonedDocument;
-    };
+      return nextDocument;
+    });
 
-    return await this.withEffectiveFileStore(await withTransaction(async tx => await cloneWithClient(tx)));
+    return await this.withEffectiveFileStore(clonedDocument);
   }
 
   async deleteDocument(

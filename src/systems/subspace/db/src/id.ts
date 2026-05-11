@@ -149,9 +149,11 @@ export let ID = createIdGenerator({
   integrationSetupSessionStep: idType.sorted('isst'),
   integrationSetupSessionEvent: idType.sorted('ise'),
 
-  skillGroup: idType.sorted('skg'),
+  skillEntity: idType.sorted('ske'),
   skill: idType.sorted('skl'),
   skillFork: idType.sorted('skf'),
+  skillTemplate: idType.sorted('skt'),
+  skillTemplateItem: idType.sorted('skti'),
   skillItem: idType.sorted('ski'),
   skillIntegration: idType.sorted('skn'),
   skillProvider: idType.sorted('skp'),
