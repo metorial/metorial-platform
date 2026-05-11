@@ -8,6 +8,8 @@ import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { storeItemPresenter, storePresenter } from '../../presenters';
 
+let storeAccessSchema = v.enumOf(['private', 'public_read', 'public_write']);
+
 let assertStoreCrudAllowed = (ctx: Parameters<typeof hasInstanceConsumerAccess>[0]) => {
   if (hasInstanceConsumerAccess(ctx)) {
     throw new ServiceError(
@@ -73,7 +75,8 @@ export let storeController = Controller.create(
       .body(
         'default',
         v.object({
-          name: v.string()
+          name: v.string(),
+          access: v.optional(storeAccessSchema)
         })
       )
       .output(storePresenter)
@@ -87,7 +90,8 @@ export let storeController = Controller.create(
             organization: ctx.organization
           },
           input: {
-            name: ctx.body.name
+            name: ctx.body.name,
+            access: ctx.body.access
           }
         });
 
@@ -112,7 +116,8 @@ export let storeController = Controller.create(
       .body(
         'default',
         v.object({
-          name: v.optional(v.string())
+          name: v.optional(v.string()),
+          access: v.optional(storeAccessSchema)
         })
       )
       .output(storePresenter)
@@ -128,7 +133,8 @@ export let storeController = Controller.create(
           },
           ...getInstanceCargoAccess(ctx),
           input: {
-            name: ctx.body.name
+            name: ctx.body.name,
+            access: ctx.body.access
           }
         });
 

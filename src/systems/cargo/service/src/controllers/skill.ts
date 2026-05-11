@@ -27,13 +27,23 @@ export let skillController = app.controller({
         environmentId: v.string(),
         skillId: v.optional(v.string()),
         storeId: v.optional(v.string()),
+        parentSkillId: v.optional(v.string()),
         name: v.string()
       })
     )
     .do(async ctx => {
+      let parentSkill = ctx.input.parentSkillId
+        ? await skillService.getSkillById({
+            tenant: ctx.tenant,
+            environment: ctx.environment,
+            skillId: ctx.input.parentSkillId
+          })
+        : undefined;
+
       let skill = await skillService.createSkill({
         tenant: ctx.tenant,
         environment: ctx.environment,
+        parentSkill,
         input: {
           id: ctx.input.skillId,
           storeId: ctx.input.storeId,

@@ -6,6 +6,8 @@ import { app } from './_app';
 import { storePermissionsSchema } from './document';
 import { tenantApp } from './tenant';
 
+export let storeAccessSchema = v.enumOf(['private', 'public_read', 'public_write']);
+
 export let storeApp = tenantApp.use(async ctx => {
   let storeId = ctx.body.storeId;
   if (!storeId) throw new Error('Store ID is required');
@@ -35,7 +37,8 @@ export let storeController = app.controller({
         tenantId: v.string(),
         environmentId: v.string(),
         storeId: v.optional(v.string()),
-        name: v.string()
+        name: v.string(),
+        access: v.optional(storeAccessSchema)
       })
     )
     .do(async ctx => {
@@ -44,7 +47,8 @@ export let storeController = app.controller({
         environment: ctx.environment,
         input: {
           id: ctx.input.storeId,
-          name: ctx.input.name
+          name: ctx.input.name,
+          access: ctx.input.access
         }
       });
 
@@ -110,6 +114,7 @@ export let storeController = app.controller({
         environmentId: v.string(),
         storeId: v.string(),
         name: v.optional(v.string()),
+        access: v.optional(storeAccessSchema),
         actorId: v.optional(v.string()),
         defaultPermissions: v.optional(storePermissionsSchema),
         overridePermissions: v.optional(v.boolean())
@@ -124,7 +129,8 @@ export let storeController = app.controller({
         defaultPermissions: ctx.input.defaultPermissions,
         overridePermissions: ctx.input.overridePermissions,
         input: {
-          name: ctx.input.name
+          name: ctx.input.name,
+          access: ctx.input.access
         }
       });
 
@@ -140,6 +146,7 @@ export let storeController = app.controller({
         storeId: v.string(),
         targetStoreId: v.optional(v.string()),
         name: v.optional(v.string()),
+        access: v.optional(storeAccessSchema),
         actorId: v.optional(v.string()),
         defaultPermissions: v.optional(storePermissionsSchema),
         overridePermissions: v.optional(v.boolean())
@@ -155,7 +162,8 @@ export let storeController = app.controller({
         overridePermissions: ctx.input.overridePermissions,
         input: {
           id: ctx.input.targetStoreId,
-          name: ctx.input.name
+          name: ctx.input.name,
+          access: ctx.input.access
         }
       });
 

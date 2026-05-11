@@ -107,7 +107,8 @@ describe('cargo store.e2e', () => {
       tenantId: tenant.id,
       environmentId: environment.id,
       storeId: created.id,
-      name: 'Brand Assets'
+      name: 'Brand Assets',
+      access: 'public_read'
     });
 
     let deleted = await cargoClient.store.delete({
@@ -125,12 +126,15 @@ describe('cargo store.e2e', () => {
     expect(created).toMatchObject({
       id: expect.any(String),
       name: 'Assets',
+      access: 'private',
       itemCount: 0
     });
     expect(listed.items).toHaveLength(1);
     expect(fetched.id).toBe(created.id);
     expect(fetched.itemCount).toBe(0);
+    expect(fetched.access).toBe('private');
     expect(updated.name).toBe('Brand Assets');
+    expect(updated.access).toBe('public_read');
     expect(deleted.id).toBe(created.id);
     expect(listedAfterDelete.items).toHaveLength(0);
   });
@@ -542,7 +546,7 @@ describe('cargo store.e2e', () => {
     ).rejects.toThrow('Store cannot contain more than 1000 items');
   });
 
-  it('enforces actor-scoped store read and write access', async () => {
+  it('keeps private stores actor-scoped unless permissions are granted explicitly', async () => {
     let { tenant, environment } = await createScope();
     let viewer = await createActor(tenant.id, {
       identifier: 'store-viewer',
@@ -551,7 +555,8 @@ describe('cargo store.e2e', () => {
     let store = await cargoClient.store.create({
       tenantId: tenant.id,
       environmentId: environment.id,
-      name: 'Secured Store'
+      name: 'Secured Store',
+      access: 'private'
     });
 
     let readable = await cargoClient.store.get({
@@ -585,6 +590,153 @@ describe('cargo store.e2e', () => {
     });
 
     expect(updated.name).toBe('Writable Store');
+  });
+
+  it('allows actor-backed reads for public_read stores and creates participants', async () => {
+    let { tenant, environment } = await createScope();
+    let actor = await createActor(tenant.id, {
+      identifier: 'public-store-reader',
+      name: 'Public Store Reader'
+    });
+    let store = await cargoClient.store.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      name: 'Readable Store',
+      access: 'public_read'
+    });
+
+    let fetched = await cargoClient.store.get({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: store.id,
+      actorId: actor.id
+    });
+    let participant = await db.storeParticipant.findFirst({
+      where: {
+        store: {
+          id: store.id
+        },
+        tenantActor: {
+          id: actor.id
+        }
+      }
+    });
+
+    await expect(
+      cargoClient.store.update({
+        tenantId: tenant.id,
+        environmentId: environment.id,
+        storeId: store.id,
+        actorId: actor.id,
+        name: 'Should Fail'
+      })
+    ).rejects.toThrow('Missing content_write access');
+
+    expect(fetched).toMatchObject({
+      id: store.id,
+      access: 'public_read'
+    });
+    expect(participant?.permissions).toEqual(['content_read']);
+  });
+
+  it('allows actor-backed writes for public_write stores and creates writable participants', async () => {
+    let { tenant, environment } = await createScope();
+    let purpose = await createPurpose();
+    let actor = await createActor(tenant.id, {
+      identifier: 'public-store-writer',
+      name: 'Public Store Writer'
+    });
+    let file = await createFile({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      purposeId: purpose.id,
+      storeId: 'public-store-file',
+      name: 'public-write.png'
+    });
+    let store = await cargoClient.store.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      name: 'Writable By Anyone',
+      access: 'public_write'
+    });
+
+    let updated = await cargoClient.store.update({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: store.id,
+      actorId: actor.id,
+      name: 'Still Writable'
+    });
+    let added = await cargoClient.store.modifyItems({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: store.id,
+      actorId: actor.id,
+      operations: [
+        {
+          fileId: file.id,
+          path: '/public-write.png'
+        }
+      ]
+    });
+    let participant = await db.storeParticipant.findFirst({
+      where: {
+        store: {
+          id: store.id
+        },
+        tenantActor: {
+          id: actor.id
+        }
+      }
+    });
+
+    expect(updated).toMatchObject({
+      id: store.id,
+      name: 'Still Writable',
+      access: 'public_write'
+    });
+    expect(added[0]!.item.path).toBe('/public-write.png');
+    expect(participant?.permissions).toEqual(['content_read', 'content_write']);
+  });
+
+  it('keeps no-actor requests unrestricted regardless of store access mode', async () => {
+    let { tenant, environment } = await createScope();
+    let privateStore = await cargoClient.store.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      name: 'No Actor Private',
+      access: 'private'
+    });
+    let publicStore = await cargoClient.store.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      name: 'No Actor Public',
+      access: 'public_write'
+    });
+
+    let privateUpdated = await cargoClient.store.update({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: privateStore.id,
+      name: 'No Actor Private Updated'
+    });
+    let publicUpdated = await cargoClient.store.update({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: publicStore.id,
+      name: 'No Actor Public Updated'
+    });
+    let listed = await cargoClient.store.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      limit: 10
+    });
+
+    expect(privateUpdated.name).toBe('No Actor Private Updated');
+    expect(publicUpdated.name).toBe('No Actor Public Updated');
+    expect(listed.items.map(store => store.id).sort()).toEqual(
+      [privateStore.id, publicStore.id].sort()
+    );
   });
 
   it('enforces actor-scoped store item mutations', async () => {

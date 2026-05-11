@@ -3,12 +3,19 @@ enum StoreStatus {
   archived
 }
 
+enum StoreAccess {
+  private
+  public_read
+  public_write
+}
+
 model Store {
   oid BigInt @id
   id  String @unique
 
   name      String
-  itemCount Int    @default(0)
+  access    StoreAccess @default(private)
+  itemCount Int       @default(0)
   dirtyAt   DateTime?
 
   tenantOid BigInt
@@ -28,6 +35,7 @@ model Store {
   versions          StoreVersion[]
   storeParticipants StoreParticipant[]
   skill             Skill?
+  storeDirectories  StoreDirectory[]
 
   @@index([tenantOid, environmentOid, dirtyAt])
 }
@@ -41,14 +49,17 @@ model StoreItem {
   storeOid BigInt
   store    Store  @relation(fields: [storeOid], references: [oid], onDelete: Cascade)
 
-  fileOid BigInt
-  file    File   @relation(fields: [fileOid], references: [oid], onDelete: Cascade)
+  fileOid BigInt?
+  file    File?   @relation(fields: [fileOid], references: [oid], onDelete: Cascade)
 
-  referenceOid BigInt
-  reference    FileReference @relation(fields: [referenceOid], references: [oid], onDelete: Cascade)
+  referenceOid BigInt?
+  reference    FileReference? @relation(fields: [referenceOid], references: [oid], onDelete: Cascade)
 
   documentOid BigInt?
   document    Document? @relation(fields: [documentOid], references: [oid], onDelete: Cascade)
+
+  directoryOid BigInt?
+  directory    StoreDirectory? @relation(fields: [directoryOid], references: [oid], onDelete: Cascade)
 
   lastModifiedByTenantActorOid BigInt?
   lastModifiedByTenantActor    TenantActor? @relation(fields: [lastModifiedByTenantActorOid], references: [oid], onDelete: Cascade)
@@ -68,7 +79,7 @@ model StoreVersion {
   sourceDirtyAt DateTime
 
   storeOid BigInt
-  store    Store   @relation(fields: [storeOid], references: [oid], onDelete: Cascade)
+  store    Store  @relation(fields: [storeOid], references: [oid], onDelete: Cascade)
 
   createdAt DateTime @default(now())
 
@@ -125,4 +136,25 @@ model StoreParticipant {
   createdAt DateTime @default(now())
 
   @@unique([storeOid, tenantActorOid])
+}
+
+model StoreDirectory {
+  oid BigInt @id
+  id  String @unique
+
+  isAutoCreated Boolean
+
+  path String
+
+  storeOid BigInt
+  store    Store  @relation(fields: [storeOid], references: [oid], onDelete: Cascade)
+
+  parentDirectoryOid BigInt?
+  parentDirectory    StoreDirectory?  @relation("StoreDirectoryHierarchy", fields: [parentDirectoryOid], references: [oid], onDelete: Cascade)
+  childDirectories   StoreDirectory[] @relation("StoreDirectoryHierarchy")
+
+  createdAt  DateTime    @default(now())
+  storeItems StoreItem[]
+
+  @@unique([storeOid, path])
 }

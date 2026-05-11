@@ -38,6 +38,7 @@ class SkillServiceImpl {
 
   async createSkill(
     d: CargoTenantEnvironment & {
+      parentSkill?: SkillRecord;
       input: {
         id?: string;
         storeId?: string;
@@ -60,7 +61,9 @@ class SkillServiceImpl {
         environment: d.environment,
         input: {
           id: d.input.storeId,
-          name: d.input.name
+          name: d.input.name,
+          access: 'public_read',
+          parentStore: d.parentSkill?.store
         }
       });
 
@@ -70,7 +73,8 @@ class SkillServiceImpl {
           id: skillIds.id,
           tenantOid: d.tenant.oid,
           environmentOid: d.environment.oid,
-          storeOid: store.oid
+          storeOid: store.oid,
+          parentSkillOid: d.parentSkill?.oid
         },
         include: skillInclude
       });

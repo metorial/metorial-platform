@@ -155,5 +155,20 @@ export let ensureSubspaceConsumerActor = async (
   if (actorId) return { id: actorId };
 
   let loadedConsumer = await loadConsumer(consumer);
-  throw new Error(`Subspace actors do not support consumer linking: ${loadedConsumer.id}`);
+  let actorIdentifier = getConsumerActorIdentifier(loadedConsumer);
+  let actor = await upsertSubspaceActor({
+    tenantId,
+    identifier: actorIdentifier,
+    name: loadedConsumer.name,
+    consumerId: loadedConsumer.id
+  });
+
+  await persistConsumerLink({
+    service: 'subspace',
+    consumer: loadedConsumer,
+    actorId: actor.id,
+    actorIdentifier
+  });
+
+  return actor;
 };
