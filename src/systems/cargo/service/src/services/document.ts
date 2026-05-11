@@ -10,6 +10,7 @@ import type {
   Document,
   DocumentParticipantRole,
   Prisma,
+  StoreCloneType,
   StoreParticipantPermissions,
   TenantActor
 } from '../../prisma/generated/client';
@@ -896,6 +897,29 @@ class DocumentServiceImpl {
     return await this.resolveDocument(document);
   }
 
+  async getDocumentPermissions(
+    d: CargoTenantEnvironment & {
+      document: {
+        id: string;
+        oid: bigint;
+        fileOid: bigint;
+        createdByTenantActorOid?: bigint | null;
+      };
+      actorId?: string;
+      defaultPermissions?: StoreParticipantPermissions[];
+      overridePermissions?: boolean;
+    }
+  ) {
+    return await storeAccessService.getDocumentPermissions({
+      tenant: d.tenant,
+      environment: d.environment,
+      document: d.document,
+      actorId: d.actorId,
+      defaultPermissions: d.defaultPermissions,
+      overridePermissions: d.overridePermissions
+    });
+  }
+
   async getDocumentByFileId(d: { fileId: string }) {
     let document = await db.document.findFirst({
       where: {
@@ -1401,6 +1425,7 @@ class DocumentServiceImpl {
       input: {
         id?: string;
         title?: string;
+        cloneType?: StoreCloneType;
         actorId?: string;
         defaultPermissions?: StoreParticipantPermissions[];
         overridePermissions?: boolean;
@@ -1421,11 +1446,13 @@ class DocumentServiceImpl {
     this.ensureDocumentActive(d.document);
 
     let purpose = await filePurposeService.ensureDocumentFilePurpose();
+    let cloneType = d.input.cloneType ?? 'sync_until_change';
 
     let cloneWithClient = async (tx: Prisma.TransactionClient) => {
       let documentIds = d.input.id
         ? { oid: getId('document').oid, id: d.input.id }
         : getId('document');
+      let contentIds = getId('documentContent');
       let sourceTitle = d.document.resolvedTitle ?? d.document.title;
       let sourceContent = d.document.resolvedContent ?? d.document.content.content;
       let nextTitle = d.input.title ?? sourceTitle;
@@ -1445,6 +1472,15 @@ class DocumentServiceImpl {
         }
       });
 
+      if (cloneType === 'duplicate') {
+        await tx.documentContent.create({
+          data: {
+            oid: contentIds.oid,
+            content: sourceContent
+          }
+        });
+      }
+
       let document = await tx.document.create({
         data: {
           oid: documentIds.oid,
@@ -1453,10 +1489,10 @@ class DocumentServiceImpl {
           environmentOid: d.environment.oid,
           fileOid: file.oid,
           title: nextTitle,
-          isContentOwner: false,
+          isContentOwner: cloneType === 'duplicate',
           maxVersionNumber: 1,
-          contentOid: d.document.contentOid,
-          parentDocumentOid: d.document.oid,
+          contentOid: cloneType === 'duplicate' ? contentIds.oid : d.document.contentOid,
+          parentDocumentOid: cloneType === 'sync_until_change' ? d.document.oid : null,
           createdByTenantActorOid: actor?.oid
         },
         include: documentInclude
@@ -1467,7 +1503,7 @@ class DocumentServiceImpl {
         environment: d.environment,
         document,
         versionNumber: 1,
-        contentOid: d.document.contentOid,
+        contentOid: cloneType === 'duplicate' ? contentIds.oid : d.document.contentOid,
         listEditedAt: new Date()
       });
 

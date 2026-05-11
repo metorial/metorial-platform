@@ -11,9 +11,11 @@ import { filePurposeController } from './filePurpose';
 import { fileReferenceController } from './fileReference';
 import { reconcileController } from './reconcile';
 import { skillController } from './skill';
+import { skillTemplateController } from './skillTemplate';
 import { storeController } from './store';
 import { storeItemController } from './storeItem';
 import { storeParticipantController } from './storeParticipant';
+import { storeTemplateController } from './storeTemplate';
 import { tenantController } from './tenant';
 
 export let rootController = app.controller({
@@ -25,9 +27,11 @@ export let rootController = app.controller({
   fileLink: fileLinkController,
   fileReference: fileReferenceController,
   skill: skillController,
+  skillTemplate: skillTemplateController,
   store: storeController,
   storeItem: storeItemController,
   storeParticipant: storeParticipantController,
+  storeTemplate: storeTemplateController,
   document: documentController,
   documentVersion: documentVersionController,
   documentParticipant: documentParticipantController,

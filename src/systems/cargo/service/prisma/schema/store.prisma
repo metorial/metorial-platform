@@ -9,6 +9,21 @@ enum StoreAccess {
   public_write
 }
 
+enum StoreCloneType {
+  sync_until_change
+  duplicate
+}
+
+enum StoreTemplateItemEncoding {
+  utf_8 @map("utf-8")
+  base64
+}
+
+enum StoreTemplateType {
+  linked_store
+  standalone
+}
+
 enum StoreItemKind {
   file
   document
@@ -20,8 +35,9 @@ model Store {
   id  String @unique
 
   name      String
-  access    StoreAccess @default(private)
-  itemCount Int         @default(0)
+  access    StoreAccess     @default(private)
+  cloneType StoreCloneType?
+  itemCount Int             @default(0)
   dirtyAt   DateTime?
 
   tenantOid BigInt
@@ -34,6 +50,9 @@ model Store {
   parentStore    Store?  @relation("StoreHierarchy", fields: [parentStoreOid], references: [oid], onDelete: Cascade)
   childStores    Store[] @relation("StoreHierarchy")
 
+  parentStoreTemplateOid BigInt?
+  parentStoreTemplate    StoreTemplate? @relation("StoreTemplateParent", fields: [parentStoreTemplateOid], references: [oid], onDelete: SetNull)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
@@ -42,8 +61,55 @@ model Store {
   storeParticipants StoreParticipant[]
   skill             Skill?
   storeDirectories  StoreDirectory[]
+  sourceTemplates   StoreTemplate[] @relation("StoreTemplateSource")
 
   @@index([tenantOid, environmentOid, dirtyAt])
+}
+
+model StoreTemplate {
+  oid BigInt @id
+  id  String @unique
+
+  name String
+  type StoreTemplateType
+
+  tenantOid BigInt?
+  tenant    Tenant? @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  environmentOid BigInt?
+  environment    Environment? @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  sourceStoreOid BigInt?
+  sourceStore    Store? @relation("StoreTemplateSource", fields: [sourceStoreOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  items              StoreTemplateItem[]
+  instantiatedStores Store[] @relation("StoreTemplateParent")
+  skillTemplate      SkillTemplate?
+
+  @@index([tenantOid, environmentOid])
+  @@index([sourceStoreOid])
+}
+
+model StoreTemplateItem {
+  oid BigInt @id
+  id  String @unique
+
+  kind StoreItemKind
+  path String
+
+  content  String?
+  encoding StoreTemplateItemEncoding?
+
+  storeTemplateOid BigInt
+  storeTemplate    StoreTemplate @relation(fields: [storeTemplateOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([storeTemplateOid, path])
 }
 
 model StoreItem {

@@ -25,6 +25,24 @@ export type StoreAccessResult = {
   accessibleStoreOids: bigint[];
 };
 
+type BasePermissionsResult = {
+  actorId?: string;
+  hasFullAccess: boolean;
+  permissions: StoreParticipantPermissions[];
+  relevantStoreIds: string[];
+  readableStoreIds: string[];
+  writableStoreIds: string[];
+};
+
+export type StorePermissionsResult = BasePermissionsResult & {
+  storeId: string;
+};
+
+export type DocumentPermissionsResult = BasePermissionsResult & {
+  documentId: string;
+  isOwner: boolean;
+};
+
 let storeReadPermission: StoreParticipantPermissions = 'content_read';
 let storeWritePermission: StoreParticipantPermissions = 'content_write';
 
@@ -56,6 +74,56 @@ let getPublicStorePermissions = (d: {
 };
 
 class StoreAccessServiceImpl {
+  private async resolveStoreIds(storeOids: bigint[]) {
+    let uniqueStoreOids = uniqueBigInts(storeOids);
+    if (uniqueStoreOids.length === 0) return [];
+
+    let stores = await withTransaction(
+      async db =>
+        await db.store.findMany({
+          where: {
+            oid: {
+              in: uniqueStoreOids
+            }
+          },
+          select: {
+            oid: true,
+            id: true
+          }
+        }),
+      { ifExists: true }
+    );
+
+    let storeIdByOid = new Map(stores.map(store => [store.oid.toString(), store.id]));
+
+    return uniqueStoreOids
+      .map(storeOid => storeIdByOid.get(storeOid.toString()))
+      .filter((storeId): storeId is string => !!storeId);
+  }
+
+  private buildPermissions(d: {
+    actorId?: string;
+    isOwner?: boolean;
+    readableStoreIds: string[];
+    writableStoreIds: string[];
+  }) {
+    if (!d.actorId || d.isOwner) {
+      return [storeReadPermission, storeWritePermission] satisfies StoreParticipantPermissions[];
+    }
+
+    let permissions: StoreParticipantPermissions[] = [];
+
+    if (d.readableStoreIds.length > 0) {
+      permissions.push(storeReadPermission);
+    }
+
+    if (d.writableStoreIds.length > 0) {
+      permissions.push(storeWritePermission);
+    }
+
+    return permissions;
+  }
+
   async getActorForAccess(d: Pick<CargoTenantEnvironment, 'tenant'> & StoreAccessInput) {
     if (!d.actorId) return undefined;
 
@@ -497,6 +565,65 @@ class StoreAccessServiceImpl {
     } satisfies StoreAccessResult;
   }
 
+  async getStorePermissions(
+    d: CargoTenantEnvironment &
+      StoreAccessInput & {
+        store: Pick<Store, 'oid' | 'id'>;
+      }
+  ) {
+    if (!d.actorId) {
+      return {
+        storeId: d.store.id,
+        actorId: d.actorId || undefined,
+        hasFullAccess: true,
+        permissions: [storeReadPermission, storeWritePermission],
+        relevantStoreIds: [d.store.id],
+        readableStoreIds: [d.store.id],
+        writableStoreIds: [d.store.id]
+      } satisfies StorePermissionsResult;
+    }
+
+    let [readAccess, writeAccess] = await Promise.all([
+      this.resolveAccessibleStoreOids({
+        tenant: d.tenant,
+        environment: d.environment,
+        actorId: d.actorId,
+        defaultPermissions: d.defaultPermissions,
+        overridePermissions: d.overridePermissions,
+        requiredPermission: storeReadPermission,
+        storeOids: [d.store.oid]
+      }),
+      this.resolveAccessibleStoreOids({
+        tenant: d.tenant,
+        environment: d.environment,
+        actorId: d.actorId,
+        defaultPermissions: d.defaultPermissions,
+        overridePermissions: d.overridePermissions,
+        requiredPermission: storeWritePermission,
+        storeOids: [d.store.oid]
+      })
+    ]);
+
+    let readableStoreIds = await this.resolveStoreIds(readAccess.accessibleStoreOids);
+    let writableStoreIds = await this.resolveStoreIds(writeAccess.accessibleStoreOids);
+    let permissions = this.buildPermissions({
+      actorId: d.actorId,
+      readableStoreIds,
+      writableStoreIds
+    });
+
+    return {
+      storeId: d.store.id,
+      actorId: d.actorId,
+      hasFullAccess:
+        permissions.includes(storeReadPermission) && permissions.includes(storeWritePermission),
+      permissions,
+      relevantStoreIds: [d.store.id],
+      readableStoreIds,
+      writableStoreIds
+    } satisfies StorePermissionsResult;
+  }
+
   async assertStoreAccessForDocument(
     d: CargoTenantEnvironment &
       StoreAccessInput & {
@@ -538,6 +665,80 @@ class StoreAccessServiceImpl {
       relevantStoreOids: access.relevantStoreOids,
       accessibleStoreOids: access.accessibleStoreOids
     } satisfies StoreAccessResult;
+  }
+
+  async getDocumentPermissions(
+    d: CargoTenantEnvironment &
+      StoreAccessInput & {
+        document: {
+          id: string;
+          oid: bigint;
+          fileOid: bigint;
+          createdByTenantActorOid?: bigint | null;
+        };
+      }
+  ) {
+    let actor = await this.getActorForAccess(d);
+    let isOwner = !!actor && d.document.createdByTenantActorOid === actor.oid;
+    let relevantStoreOids = await this.listRelevantStoreOidsForDocument({
+      document: d.document
+    });
+    let relevantStoreIds = await this.resolveStoreIds(relevantStoreOids);
+
+    if (!d.actorId || isOwner) {
+      return {
+        documentId: d.document.id,
+        actorId: d.actorId || undefined,
+        isOwner,
+        hasFullAccess: true,
+        permissions: [storeReadPermission, storeWritePermission],
+        relevantStoreIds,
+        readableStoreIds: relevantStoreIds,
+        writableStoreIds: relevantStoreIds
+      } satisfies DocumentPermissionsResult;
+    }
+
+    let [readAccess, writeAccess] = await Promise.all([
+      this.resolveAccessibleStoreOids({
+        tenant: d.tenant,
+        environment: d.environment,
+        actorId: d.actorId,
+        defaultPermissions: d.defaultPermissions,
+        overridePermissions: d.overridePermissions,
+        requiredPermission: storeReadPermission,
+        storeOids: relevantStoreOids
+      }),
+      this.resolveAccessibleStoreOids({
+        tenant: d.tenant,
+        environment: d.environment,
+        actorId: d.actorId,
+        defaultPermissions: d.defaultPermissions,
+        overridePermissions: d.overridePermissions,
+        requiredPermission: storeWritePermission,
+        storeOids: relevantStoreOids
+      })
+    ]);
+
+    let readableStoreIds = await this.resolveStoreIds(readAccess.accessibleStoreOids);
+    let writableStoreIds = await this.resolveStoreIds(writeAccess.accessibleStoreOids);
+    let permissions = this.buildPermissions({
+      actorId: d.actorId,
+      isOwner,
+      readableStoreIds,
+      writableStoreIds
+    });
+
+    return {
+      documentId: d.document.id,
+      actorId: d.actorId,
+      isOwner,
+      hasFullAccess:
+        permissions.includes(storeReadPermission) && permissions.includes(storeWritePermission),
+      permissions,
+      relevantStoreIds,
+      readableStoreIds,
+      writableStoreIds
+    } satisfies DocumentPermissionsResult;
   }
 
   async assertStoreAccessForFile(

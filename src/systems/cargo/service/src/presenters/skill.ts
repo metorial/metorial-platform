@@ -6,5 +6,7 @@ export let skillPresenter = (skill: SkillRecord) => ({
   id: skill.id,
   storeId: skill.store.id,
   store: storePresenter(skill.store),
+  parentSkillId: skill.parentSkill?.id,
+  parentSkillTemplateId: skill.parentSkillTemplate?.id,
   createdAt: skill.createdAt
 });

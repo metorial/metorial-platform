@@ -131,4 +131,89 @@ describe('cargo skill.e2e', () => {
     expect(deletedSkill).toBeNull();
     expect(deletedStore).toBeNull();
   });
+
+  it('creates skills from skill-template parents by cloning the underlying store template', async () => {
+    let { tenant, environment } = await createScope();
+    let sourceStore = await cargoClient.store.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: 'cst_skill_template_source_store',
+      name: 'Skill Template Source'
+    });
+
+    await cargoClient.document.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: 'cdoc_skill_template_source_document',
+      title: 'Readme',
+      content: 'template-backed content',
+      store: {
+        id: sourceStore.id,
+        path: '/docs/readme.md'
+      }
+    });
+
+    let skillTemplate = await cargoClient.skillTemplate.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillTemplateId: 'cskt_skill_parent_template',
+      storeId: sourceStore.id,
+      name: 'Starter Skill Template'
+    });
+
+    let skill = await cargoClient.skill.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillId: 'csk_from_template_parent',
+      storeId: 'cst_skill_from_template_parent',
+      parentSkillTemplateId: skillTemplate.id,
+      name: 'Skill From Template Parent'
+    });
+
+    let skillRecord = await db.skill.findUnique({
+      where: {
+        id: skill.id
+      }
+    });
+    let skillTemplateRecord = await db.skillTemplate.findUnique({
+      where: {
+        id: skillTemplate.id
+      }
+    });
+    let createdStoreRecord = await db.store.findUnique({
+      where: {
+        id: skill.storeId
+      }
+    });
+    let createdItems = await cargoClient.storeItem.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: skill.storeId,
+      limit: 20
+    });
+    let createdDocument = await cargoClient.document.get({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: createdItems.items.find(item => item.path === '/docs/readme.md')!.documentId!
+    });
+    let createdDocumentRecord = await db.document.findUnique({
+      where: {
+        id: createdDocument.id
+      }
+    });
+
+    expect(skill).toMatchObject({
+      id: 'csk_from_template_parent',
+      storeId: 'cst_skill_from_template_parent',
+      parentSkillTemplateId: skillTemplate.id
+    });
+    expect(skill.parentSkillId).toBeUndefined();
+    expect(skill.store.cloneType).toBe('duplicate');
+    expect(skillRecord?.parentSkillTemplateOid).toBe(skillTemplateRecord?.oid);
+    expect(createdStoreRecord?.parentStoreTemplateOid).toBe(skillTemplateRecord?.storeTemplateOid);
+    expect(createdItems.items.map(item => item.path)).toContain('/docs/readme.md');
+    expect(createdDocument.content).toBe('template-backed content');
+    expect(createdDocumentRecord?.parentDocumentOid).toBeNull();
+    expect(createdDocumentRecord?.isContentOwner).toBe(true);
+  });
 });

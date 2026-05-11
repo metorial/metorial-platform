@@ -20,7 +20,9 @@ model Tenant {
   tenantActors     TenantActor[]
   documentVersions DocumentVersion[]
   stores           Store[]
+  storeTemplates   StoreTemplate[]
   skills           Skill[]
+  skillTemplates   SkillTemplate[]
 }
 
 model Environment {
@@ -43,7 +45,9 @@ model Environment {
   documents        Document[]
   documentVersions DocumentVersion[]
   stores           Store[]
+  storeTemplates   StoreTemplate[]
   skills           Skill[]
+  skillTemplates   SkillTemplate[]
 
   @@unique([tenantOid, identifier])
   @@index([tenantOid])
@@ -71,9 +75,9 @@ model TenantActor {
   createdAt DateTime @default(now())
 
   documentParticipants   DocumentParticipant[]
-  createdDocuments       Document[] @relation("DocumentCreator")
-  createdFiles           File[] @relation("FileCreator")
-  createdFileLinks       FileLink[] @relation("FileLinkCreator")
+  createdDocuments       Document[]               @relation("DocumentCreator")
+  createdFiles           File[]                   @relation("FileCreator")
+  createdFileLinks       FileLink[]               @relation("FileLinkCreator")
   documentVersionEditors DocumentVersionEditors[]
   storeParticipants      StoreParticipant[]
   storeItems             StoreItem[]

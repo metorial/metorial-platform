@@ -1,7 +1,7 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { skillPresenter } from '../presenters';
-import { skillService } from '../services';
+import { skillService, skillTemplateService } from '../services';
 import { app } from './_app';
 import { tenantApp } from './tenant';
 
@@ -28,6 +28,7 @@ export let skillController = app.controller({
         skillId: v.optional(v.string()),
         storeId: v.optional(v.string()),
         parentSkillId: v.optional(v.string()),
+        parentSkillTemplateId: v.optional(v.string()),
         name: v.string()
       })
     )
@@ -39,11 +40,17 @@ export let skillController = app.controller({
             skillId: ctx.input.parentSkillId
           })
         : undefined;
+      let parentSkillTemplate = ctx.input.parentSkillTemplateId
+        ? await skillTemplateService.getSkillTemplateById({
+            skillTemplateId: ctx.input.parentSkillTemplateId
+          })
+        : undefined;
 
       let skill = await skillService.createSkill({
         tenant: ctx.tenant,
         environment: ctx.environment,
         parentSkill,
+        parentSkillTemplate,
         input: {
           id: ctx.input.skillId,
           storeId: ctx.input.storeId,

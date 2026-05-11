@@ -1,12 +1,14 @@
+import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { storeItemPresenter, storePresenter } from '../presenters';
+import { storeItemPresenter, storePermissionsPresenter, storePresenter } from '../presenters';
 import { storeService } from '../services';
 import { app } from './_app';
 import { storePermissionsSchema } from './document';
 import { tenantApp } from './tenant';
 
 export let storeAccessSchema = v.enumOf(['private', 'public_read', 'public_write']);
+export let storeCloneTypeSchema = v.enumOf(['sync_until_change', 'duplicate']);
 
 export let storeApp = tenantApp.use(async ctx => {
   let storeId = ctx.body.storeId;
@@ -38,19 +40,55 @@ export let storeController = app.controller({
         environmentId: v.string(),
         storeId: v.optional(v.string()),
         name: v.string(),
-        access: v.optional(storeAccessSchema)
+        access: v.optional(storeAccessSchema),
+        templateId: v.optional(v.string()),
+        parentId: v.optional(v.string())
       })
     )
     .do(async ctx => {
-      let store = await storeService.createStore({
-        tenant: ctx.tenant,
-        environment: ctx.environment,
-        input: {
-          id: ctx.input.storeId,
-          name: ctx.input.name,
-          access: ctx.input.access
-        }
-      });
+      if (ctx.input.templateId && ctx.input.parentId) {
+        throw new ServiceError(
+          badRequestError({
+            message: 'templateId and parentId are mutually exclusive'
+          })
+        );
+      }
+
+      let store = ctx.input.templateId
+        ? await storeService.createStoreFromTemplate({
+            tenant: ctx.tenant,
+            environment: ctx.environment,
+            input: {
+              templateId: ctx.input.templateId,
+              id: ctx.input.storeId,
+              name: ctx.input.name,
+              access: ctx.input.access
+            }
+          })
+        : ctx.input.parentId
+          ? await storeService.cloneStore({
+              tenant: ctx.tenant,
+              environment: ctx.environment,
+              store: await storeService.getStoreById({
+                tenant: ctx.tenant,
+                environment: ctx.environment,
+                storeId: ctx.input.parentId
+              }),
+              input: {
+                id: ctx.input.storeId,
+                name: ctx.input.name,
+                access: ctx.input.access
+              }
+            })
+        : await storeService.createStore({
+            tenant: ctx.tenant,
+            environment: ctx.environment,
+            input: {
+              id: ctx.input.storeId,
+              name: ctx.input.name,
+              access: ctx.input.access
+            }
+          });
 
       return storePresenter(store);
     }),
@@ -106,6 +144,31 @@ export let storeController = app.controller({
       )
     ),
 
+  getPermissions: storeApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        environmentId: v.string(),
+        storeId: v.string(),
+        actorId: v.optional(v.string()),
+        defaultPermissions: v.optional(storePermissionsSchema),
+        overridePermissions: v.optional(v.boolean())
+      })
+    )
+    .do(async ctx =>
+      storePermissionsPresenter(
+        await storeService.getStorePermissions({
+          tenant: ctx.tenant,
+          environment: ctx.environment,
+          store: ctx.store,
+          actorId: ctx.input.actorId,
+          defaultPermissions: ctx.input.defaultPermissions,
+          overridePermissions: ctx.input.overridePermissions
+        })
+      )
+    ),
+
   update: storeApp
     .handler()
     .input(
@@ -147,6 +210,7 @@ export let storeController = app.controller({
         targetStoreId: v.optional(v.string()),
         name: v.optional(v.string()),
         access: v.optional(storeAccessSchema),
+        cloneType: v.optional(storeCloneTypeSchema),
         actorId: v.optional(v.string()),
         defaultPermissions: v.optional(storePermissionsSchema),
         overridePermissions: v.optional(v.boolean())
@@ -163,7 +227,8 @@ export let storeController = app.controller({
         input: {
           id: ctx.input.targetStoreId,
           name: ctx.input.name,
-          access: ctx.input.access
+          access: ctx.input.access,
+          cloneType: ctx.input.cloneType
         }
       });
 
