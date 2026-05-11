@@ -1,79 +1,56 @@
 import { Controller } from '@metorial/rest';
-import { consumerProviderController } from './consumer/provider';
-import { consumerSessionController } from './consumer/session';
-import { dashboardAssistantController } from './dashboard/assistant';
-import { dashboardBootController } from './dashboard/boot';
-import { flagsController } from './dashboard/flags';
-import { dashboardOAuthAuthorizationRequestController } from './dashboard/oauthAuthorizationRequest';
-import { dashboardOrganizationController } from './dashboard/organization';
-import { dashboardOrganizationInviteController } from './dashboard/organizationInvite';
-import { profileController } from './dashboard/profile';
-import { dashboardUsageController } from './dashboard/usage';
-import { dashboardUserController } from './dashboard/user';
-import { consumerController } from './instance/consumer';
-import { consumerSurfaceController } from './instance/consumerSurface';
-import { fileCollectionDocsCategory, portalDocsCategory } from './instance/docsCategories';
-import { documentController } from './instance/document';
-import { documentParticipantController } from './instance/documentParticipant';
-import { documentVersionController } from './instance/documentVersion';
-import { fileController } from './instance/file';
-import { fileLinkController } from './instance/fileLink';
-import { instanceController } from './instance/instance';
-import { instancesController } from './instance/instances';
-import { portalController } from './instance/portal';
-import { portalAuthDashboardController } from './instance/portalAuth';
-import { portalConsumerAccessController } from './instance/portalConsumerAccess';
-import { portalConsumerAccessListingController } from './instance/portalConsumerAccessListing';
-import { portalConsumerAccessRequestController } from './instance/portalConsumerAccessRequest';
-import { portalConsumerGroupController } from './instance/portalConsumerGroup';
-import { portalConsumerInviteController } from './instance/portalConsumerInvite';
-import { portalConsumerProfileController } from './instance/portalConsumerProfile';
-import { portalConsumerSurfaceProviderGroupController } from './instance/portalConsumerSurfaceProviderGroup';
-import { storeController } from './instance/store';
-import { storeItemController } from './instance/storeItem';
-import { storeParticipantController } from './instance/storeParticipant';
-import { tokenController } from './instance/token';
-import { accessPolicyManagementController } from './management/accessPolicy';
-import { accessRoleManagementController } from './management/accessRole';
-import { managementApiKeyController } from './management/apiKey';
-import { cliDeviceManagementController } from './management/cliDevice';
-import { instanceManagementController } from './management/instance';
-import { oauthApplicationManagementController } from './management/oauthApplication';
-import { oauthAuthorizationManagementController } from './management/oauthAuthorization';
-import { oauthAuthorizationLogManagementController } from './management/oauthAuthorizationLog';
-import { oauthInstallationManagementController } from './management/oauthInstallation';
-import { oauthScopeManagementController } from './management/oauthScope';
-import { organizationManagementController } from './management/organization';
-import { organizationInviteManagementController } from './management/organizationInvite';
-import { organizationMemberManagementController } from './management/organizationMember';
-import { projectManagementController } from './management/project';
-import { serviceAccountManagementController } from './management/serviceAccount';
-import { teamManagementController } from './management/team';
+import {
+  callbackDocsCategory,
+  configurationDocsCategory,
+  customProviderDocsCategory,
+  fileCollectionDocsCategory,
+  identityDocsCategory,
+  integrationDocsCategory,
+  portalDocsCategory,
+  providerDocsCategory,
+  sessionDocsCategory
+} from './_categories';
+import { consumerProviderController, consumerSessionController } from './consumer';
+import {
+  dashboardAssistantController,
+  dashboardBootController,
+  dashboardOAuthAuthorizationRequestController,
+  dashboardOrganizationController,
+  dashboardOrganizationInviteController,
+  dashboardUsageController,
+  dashboardUserController,
+  flagsController,
+  profileController
+} from './dashboard';
 import {
   agentController,
   callbackController,
   callbackDestinationController,
-  callbackDocsCategory,
   callbackEventController,
   callbackInstanceController,
   callbackNotificationController,
-  configurationDocsCategory,
+  consumerController,
+  consumerSurfaceController,
   customProviderCodeController,
   customProviderCommitController,
   customProviderController,
   customProviderDeploymentController,
-  customProviderDocsCategory,
   customProviderEnvironmentController,
   customProviderVersionController,
+  documentController,
+  documentParticipantController,
+  documentVersionController,
+  fileController,
+  fileLinkController,
   identityActorController,
   identityController,
   identityCredentialController,
   identityDelegationConfigController,
   identityDelegationController,
   identityDelegationRequestController,
-  identityDocsCategory,
+  instanceController,
+  instancesController,
   integrationController,
-  integrationDocsCategory,
   integrationInstanceController,
   integrationInstanceGroupController,
   integrationInstanceGroupProviderController,
@@ -86,6 +63,15 @@ import {
   magicMcpServerControllerDashboard,
   magicMcpSessionController,
   magicMcpTokenController,
+  portalAuthDashboardController,
+  portalConsumerAccessController,
+  portalConsumerAccessListingController,
+  portalConsumerAccessRequestController,
+  portalConsumerGroupController,
+  portalConsumerInviteController,
+  portalConsumerProfileController,
+  portalConsumerSurfaceProviderGroupController,
+  portalController,
   providerAuthConfigController,
   providerAuthConfigErrorController,
   providerAuthConfigEventController,
@@ -99,20 +85,24 @@ import {
   providerConfigVaultController,
   providerController,
   providerDeploymentController,
-  providerDocsCategory,
   providerGroupController,
   providerInvocationController,
   providerListingController,
   providerRunController,
   providerSetupSessionController,
   providerSpecificationController,
+  providerTemplateController,
   providerToolController,
   providerTriggerController,
   providerVersionController,
   publisherController,
+  scmAccountsController,
+  scmConnectionsController,
+  scmInstallationController,
+  scmProvidersController,
+  scmReposController,
   sessionConnectionController,
   sessionController,
-  sessionDocsCategory,
   sessionErrorController,
   sessionErrorGroupController,
   sessionEventController,
@@ -120,17 +110,31 @@ import {
   sessionParticipantController,
   sessionProviderController,
   sessionTemplateController,
-  sessionTemplateProviderController
-} from './provider';
-import { providerTemplateController } from './provider/providerTemplate';
-import { toolCallController } from './provider/toolCall';
+  sessionTemplateProviderController,
+  storeController,
+  storeItemController,
+  storeParticipantController,
+  tokenController,
+  toolCallController
+} from './instance';
 import {
-  scmAccountsController,
-  scmConnectionsController,
-  scmInstallationController,
-  scmProvidersController,
-  scmReposController
-} from './scm';
+  accessPolicyManagementController,
+  accessRoleManagementController,
+  cliDeviceManagementController,
+  instanceManagementController,
+  managementApiKeyController,
+  oauthApplicationManagementController,
+  oauthAuthorizationLogManagementController,
+  oauthAuthorizationManagementController,
+  oauthInstallationManagementController,
+  oauthScopeManagementController,
+  organizationInviteManagementController,
+  organizationManagementController,
+  organizationMemberManagementController,
+  projectManagementController,
+  serviceAccountManagementController,
+  teamManagementController
+} from './management';
 
 let setControllerDocsMetadata = <
   T extends { descriptor: Record<string, any>; handlers: Record<string, any> }

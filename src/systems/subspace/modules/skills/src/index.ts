@@ -3,9 +3,6 @@ import { lifecycleQueues } from './queues/lifecycle';
 import { reconcilerQueues } from './queues/reconciler';
 import { searchQueues } from './queues/search';
 
-export * from './queues/lifecycle';
-export * from './queues/reconciler';
-export * from './queues/search';
 export * from './services';
 
 import './definitions';

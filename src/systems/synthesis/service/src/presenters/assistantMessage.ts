@@ -1,9 +1,7 @@
 import type { AssistantConversationItemWithMessage } from '../services/message';
 import { modelPresenter } from './model';
 
-export let assistantMessagePresenter = (
-  item: AssistantConversationItemWithMessage
-) => ({
+export let assistantMessagePresenter = (item: AssistantConversationItemWithMessage) => ({
   object: 'synthesis#message',
   id: item.message.id,
   conversationItemId: item.id,
@@ -27,6 +25,5 @@ export let assistantMessagePresenter = (
   parentMessageId: item.message.parentMessage?.id ?? null,
   model: item.message.model ? modelPresenter(item.message.model) : null,
   state: item.message.state,
-  serialized: item.message.serialized,
   createdAt: item.message.createdAt
 });
