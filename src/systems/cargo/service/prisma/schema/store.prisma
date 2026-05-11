@@ -67,7 +67,10 @@ model StoreItem {
   document    Document? @relation(fields: [documentOid], references: [oid], onDelete: Cascade)
 
   directoryOid BigInt?
-  directory    StoreDirectory? @relation(fields: [directoryOid], references: [oid], onDelete: Cascade)
+  directory    StoreDirectory? @relation("StoreItemDirectory", fields: [directoryOid], references: [oid], onDelete: Cascade)
+
+  parentDirectoryOid BigInt?
+  parentDirectory    StoreDirectory? @relation("StoreItemParentDirectory", fields: [parentDirectoryOid], references: [oid], onDelete: Cascade)
 
   lastModifiedByTenantActorOid BigInt?
   lastModifiedByTenantActor    TenantActor? @relation(fields: [lastModifiedByTenantActorOid], references: [oid], onDelete: Cascade)
@@ -76,7 +79,8 @@ model StoreItem {
   updatedAt DateTime @default(now()) @updatedAt
 
   @@unique([storeOid, path])
-  @@index([directoryOid])
+  @@unique([directoryOid])
+  @@index([parentDirectoryOid])
   @@index([documentOid])
 }
 
@@ -164,7 +168,8 @@ model StoreDirectory {
   parentDirectory    StoreDirectory?  @relation("StoreDirectoryHierarchy", fields: [parentDirectoryOid], references: [oid], onDelete: Cascade)
   childDirectories   StoreDirectory[] @relation("StoreDirectoryHierarchy")
 
-  storeItems StoreItem[]
+  storeItem  StoreItem?  @relation("StoreItemDirectory")
+  storeItems StoreItem[] @relation("StoreItemParentDirectory")
 
   createdAt DateTime @default(now())
 

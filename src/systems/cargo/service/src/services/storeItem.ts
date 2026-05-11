@@ -1,7 +1,7 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import type { Prisma, StoreParticipantPermissions } from '../../prisma/generated/client';
+import type { Prisma, StoreItemKind, StoreParticipantPermissions } from '../../prisma/generated/client';
 import { db } from '../db';
 import { getEffectiveDocumentStoreSource } from './documentContentStore';
 import type { CargoTenantEnvironment } from './filePurpose';
@@ -14,6 +14,13 @@ export let storeItemInclude = {
     }
   },
   directory: {
+    select: {
+      id: true,
+      path: true,
+      isAutoCreated: true
+    }
+  },
+  parentDirectory: {
     select: {
       id: true,
       path: true,
@@ -111,11 +118,14 @@ class StoreItemServiceImpl {
       storeId?: string;
       fileId?: string;
       documentId?: string;
+      types?: StoreItemKind[];
       actorId?: string;
       defaultPermissions?: StoreParticipantPermissions[];
       overridePermissions?: boolean;
     }
   ) {
+    let types = d.types ?? ['file', 'document'];
+
     let accessibleStoreOids = d.actorId
       ? d.storeId
         ? (
@@ -180,7 +190,10 @@ class StoreItemServiceImpl {
                     ? {
                         id: d.documentId
                       }
-                    : undefined
+                    : undefined,
+                  kind: {
+                    in: types
+                  }
                 },
                 include: storeItemInclude
               })

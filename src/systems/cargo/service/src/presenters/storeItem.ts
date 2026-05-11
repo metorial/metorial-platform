@@ -8,6 +8,7 @@ export let storeItemPresenter = (item: StoreItemRecord) => ({
   kind: item.kind,
   path: item.path,
   storeId: item.store.id,
+  parentDirectoryId: item.parentDirectory?.id,
   fileId: item.file?.id,
   documentId: item.document?.id ?? item.file?.document?.id,
   referenceId: item.reference?.id,

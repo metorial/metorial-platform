@@ -64,6 +64,7 @@ export type CargoDocumentParticipantList = Awaited<
 >;
 export type CargoStore = Awaited<ReturnType<typeof cargo.store.create>>;
 export type CargoStoreList = Awaited<ReturnType<typeof cargo.store.list>>;
+export type CargoStoreItemType = 'file' | 'document' | 'directory';
 export type CargoStoreItem = Awaited<ReturnType<typeof cargo.storeItem.get>>;
 export type CargoStoreItemList = Awaited<ReturnType<typeof cargo.storeItem.list>>;
 export type CargoStoreParticipant = Awaited<ReturnType<typeof cargo.storeParticipant.get>>;

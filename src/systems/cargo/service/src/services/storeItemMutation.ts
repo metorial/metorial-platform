@@ -409,7 +409,10 @@ class StoreItemMutationServiceImpl {
         );
       }
 
-      if (existingItem.directoryOid === d.directory.parentDirectoryOid) {
+      if (
+        existingItem.directoryOid === d.directory.oid &&
+        existingItem.parentDirectoryOid === (d.directory.parentDirectoryOid ?? null)
+      ) {
         return {
           item: existingItem,
           created: false
@@ -423,7 +426,8 @@ class StoreItemMutationServiceImpl {
             id: existingItem.id
           },
           data: {
-            directoryOid: d.directory.parentDirectoryOid ?? null,
+            directoryOid: d.directory.oid,
+            parentDirectoryOid: d.directory.parentDirectoryOid ?? null,
             ...(d.actor
               ? {
                   lastModifiedByTenantActorOid: d.actor.oid
@@ -445,7 +449,8 @@ class StoreItemMutationServiceImpl {
           kind: 'directory',
           path: d.directory.path,
           storeOid: d.store.oid,
-          directoryOid: d.directory.parentDirectoryOid ?? null,
+          directoryOid: d.directory.oid,
+          parentDirectoryOid: d.directory.parentDirectoryOid ?? null,
           ...(d.actor
             ? {
                 lastModifiedByTenantActorOid: d.actor.oid
@@ -521,7 +526,7 @@ class StoreItemMutationServiceImpl {
       let childItemCount = await client.storeItem.count({
         where: {
           storeOid: d.store.oid,
-          directoryOid: directory.oid
+          parentDirectoryOid: directory.oid
         }
       });
       if (childItemCount > 0) break;
@@ -666,7 +671,8 @@ class StoreItemMutationServiceImpl {
       data: {
         kind: nextKind,
         path: nextPath,
-        directoryOid: parentDirectory.oid,
+        directoryOid: null,
+        parentDirectoryOid: parentDirectory.oid,
         ...(d.actor
           ? {
               lastModifiedByTenantActorOid: d.actor.oid
@@ -756,7 +762,8 @@ class StoreItemMutationServiceImpl {
           kind: this.getContentItemKind(d.target),
           path: d.path.path,
           storeOid: d.store.oid,
-          directoryOid: parentDirectory.oid,
+          directoryOid: null,
+          parentDirectoryOid: parentDirectory.oid,
           fileOid: d.target.file.oid,
           documentOid: d.target.document?.oid ?? null,
           referenceOid: reference.oid,
@@ -781,7 +788,7 @@ class StoreItemMutationServiceImpl {
     let childItemCount = await client.storeItem.count({
       where: {
         storeOid: d.store.oid,
-        directoryOid: d.directory.oid
+        parentDirectoryOid: d.directory.oid
       }
     });
 
@@ -839,9 +846,9 @@ class StoreItemMutationServiceImpl {
       return {
         item: d.item,
         removedItemCount: 1,
-        pruneStartPath: d.item.directory?.path
+        pruneStartPath: d.item.parentDirectory?.path
           ? normalizeStorePath({
-              path: d.item.directory.path,
+              path: d.item.parentDirectory.path,
               kind: 'directory'
             }).path
           : null
@@ -858,9 +865,9 @@ class StoreItemMutationServiceImpl {
     return {
       item: d.item,
       removedItemCount: 1,
-      pruneStartPath: d.item.directory?.path
+      pruneStartPath: d.item.parentDirectory?.path
         ? normalizeStorePath({
-            path: d.item.directory.path,
+            path: d.item.parentDirectory.path,
             kind: 'directory'
           }).path
         : null
@@ -898,6 +905,14 @@ class StoreItemMutationServiceImpl {
       store: d.store,
       directory
     });
+
+    if (d.nextPath.path === '/') {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Only the root directory can use the root path'
+        })
+      );
+    }
 
     if (d.nextPath.path !== normalizedCurrentPath.path) {
       let conflictingItem = await client.storeItem.findFirst({
@@ -946,9 +961,9 @@ class StoreItemMutationServiceImpl {
       );
     }
 
-    let previousParentPath = d.item.directory?.path
+    let previousParentPath = d.item.parentDirectory?.path
       ? normalizeStorePath({
-          path: d.item.directory.path,
+          path: d.item.parentDirectory.path,
           kind: 'directory'
         }).path
       : null;
@@ -969,7 +984,8 @@ class StoreItemMutationServiceImpl {
       },
       data: {
         path: d.nextPath.path,
-        directoryOid: nextParentDirectory.oid,
+        directoryOid: directory.oid,
+        parentDirectoryOid: nextParentDirectory.oid,
         ...(d.actor
           ? {
               lastModifiedByTenantActorOid: d.actor.oid
@@ -1221,6 +1237,15 @@ class StoreItemMutationServiceImpl {
         }
 
         if (item.kind === 'directory') {
+          let normalizedCurrentPath = this.normalizeExistingItemPath(item);
+          if (normalizedCurrentPath.path === '/') {
+            throw new ServiceError(
+              badRequestError({
+                message: 'The root directory cannot be modified'
+              })
+            );
+          }
+
           if (operation.target) {
             throw new ServiceError(
               badRequestError({
@@ -1284,9 +1309,9 @@ class StoreItemMutationServiceImpl {
           path: operation.path ?? item.path,
           kind: 'file'
         });
-        let previousParentPath = item.directory?.path
+        let previousParentPath = item.parentDirectory?.path
           ? normalizeStorePath({
-              path: item.directory.path,
+              path: item.parentDirectory.path,
               kind: 'directory'
             }).path
           : null;

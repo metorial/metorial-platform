@@ -3,6 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { storeItemService } from '@metorial/module-file';
 import { Controller } from '@metorial/rest';
+import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { getInstanceCargoAccess } from '../../lib/cargoAccess';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instancePath } from '../../middleware/instanceGroup';
@@ -44,10 +45,27 @@ export let storeItemController = Controller.create(
       })
       .use(checkAccess({ possibleScopes: ['instance.file:read'] }))
       .outputList(storeItemPresenter)
-      .query('default', Paginator.validate(v.object({})))
+      .query(
+        'default',
+        Paginator.validate(
+          v.object({
+            type: v.optional(
+              v.union([
+                v.enumOf(['file', 'document', 'directory']),
+                v.array(v.enumOf(['file', 'document', 'directory']))
+              ]),
+              {
+                description:
+                  'Filter by store item type. Repeat `type` to include multiple values. Defaults to `file` and `document`.'
+              }
+            )
+          })
+        )
+      )
       .do(async ctx => {
         let paginator = await storeItemService.listStoreItems({
           storeId: ctx.store.id,
+          types: normalizeArrayParam(ctx.query.type),
           owner: {
             type: 'instance',
             instance: ctx.instance,
