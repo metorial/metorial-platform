@@ -2,7 +2,12 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { cargo, type CargoStore } from '../cargo';
 import type { FileOwner } from './file';
-import { resolveCargoAccess, type CargoAccessActor, type CargoStorePermission } from './access';
+import {
+  resolveCargoAccess,
+  type CargoAccessActor,
+  type CargoStoreAccess,
+  type CargoStorePermission
+} from './access';
 
 export type CargoStoreItemOperation = {
   type?: 'add' | 'modify' | 'remove';
@@ -18,6 +23,7 @@ class StoreServiceImpl {
     input: {
       id?: string;
       name: string;
+      access?: CargoStoreAccess;
     };
   }) {
     let { scope } = await resolveCargoAccess({
@@ -28,7 +34,8 @@ class StoreServiceImpl {
       tenantId: scope.tenantId,
       environmentId: scope.environmentId,
       storeId: d.input.id,
-      name: d.input.name
+      name: d.input.name,
+      access: d.input.access
     });
   }
 
@@ -87,6 +94,7 @@ class StoreServiceImpl {
     overridePermissions?: boolean;
     input: {
       name?: string;
+      access?: CargoStoreAccess;
     };
   }) {
     let { scope, actorId, defaultPermissions, overridePermissions } = await resolveCargoAccess(d);
@@ -96,6 +104,7 @@ class StoreServiceImpl {
       environmentId: scope.environmentId,
       storeId: d.store.id,
       name: d.input.name,
+      access: d.input.access,
       actorId,
       defaultPermissions,
       overridePermissions

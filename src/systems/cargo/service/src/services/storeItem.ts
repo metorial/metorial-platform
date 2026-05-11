@@ -13,6 +13,13 @@ export let storeItemInclude = {
       id: true
     }
   },
+  directory: {
+    select: {
+      id: true,
+      path: true,
+      isAutoCreated: true
+    }
+  },
   file: {
     include: {
       purpose: true,
@@ -143,41 +150,42 @@ class StoreItemServiceImpl {
       : undefined;
 
     return Paginator.create(({ prisma }) =>
-      prisma(async opts =>
-        await Promise.all(
-          (
-            await db.storeItem.findMany({
-              ...opts,
-              where: {
-                store: {
-                  tenantOid: d.tenant.oid,
-                  environmentOid: d.environment.oid,
-                  oid: accessibleStoreOids
+      prisma(
+        async opts =>
+          await Promise.all(
+            (
+              await db.storeItem.findMany({
+                ...opts,
+                where: {
+                  store: {
+                    tenantOid: d.tenant.oid,
+                    environmentOid: d.environment.oid,
+                    oid: accessibleStoreOids
+                      ? {
+                          in: accessibleStoreOids
+                        }
+                      : undefined,
+                    ...(d.storeId
+                      ? {
+                          id: d.storeId
+                        }
+                      : {})
+                  },
+                  file: d.fileId
                     ? {
-                        in: accessibleStoreOids
+                        id: d.fileId
                       }
                     : undefined,
-                  ...(d.storeId
+                  document: d.documentId
                     ? {
-                        id: d.storeId
+                        id: d.documentId
                       }
-                    : {})
+                    : undefined
                 },
-                file: d.fileId
-                  ? {
-                      id: d.fileId
-                    }
-                  : undefined,
-                document: d.documentId
-                  ? {
-                      id: d.documentId
-                    }
-                  : undefined
-              },
-              include: storeItemInclude
-            })
-          ).map(async item => await this.withEffectiveDocumentStore(item))
-        )
+                include: storeItemInclude
+              })
+            ).map(async item => await this.withEffectiveDocumentStore(item))
+          )
       )
     );
   }

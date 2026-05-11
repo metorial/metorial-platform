@@ -8,12 +8,13 @@ export let v1StoreItemPresenter = Presenter.create(storeItemType)
   .presenter(async ({ storeItem }, opts) => ({
     object: 'store.item',
     id: storeItem.id,
+    kind: storeItem.kind,
     path: storeItem.path,
     store_id: storeItem.storeId,
-    file_id: storeItem.fileId,
+    file_id: storeItem.fileId ?? null,
     document_id: storeItem.documentId ?? null,
-    reference_id: storeItem.referenceId,
-    file: await v1FilePresenter.present({ file: storeItem.file }, opts).run(),
+    reference_id: storeItem.referenceId ?? null,
+    file: storeItem.file ? await v1FilePresenter.present({ file: storeItem.file }, opts).run() : null,
     document: storeItem.document
       ? await v1DocumentPresenter.present({ document: storeItem.document }, opts).run()
       : null,
@@ -26,12 +27,13 @@ export let v1StoreItemPresenter = Presenter.create(storeItemType)
         description: "String representing the object's type"
       }),
       id: v.string(),
+      kind: v.enumOf(['file', 'document', 'directory']),
       path: v.string(),
       store_id: v.string(),
-      file_id: v.string(),
+      file_id: v.nullable(v.string()),
       document_id: v.nullable(v.string()),
-      reference_id: v.string(),
-      file: v1FilePresenter.schema,
+      reference_id: v.nullable(v.string()),
+      file: v.nullable(v1FilePresenter.schema),
       document: v.nullable(v1DocumentPresenter.schema),
       created_at: v.date(),
       updated_at: v.date()

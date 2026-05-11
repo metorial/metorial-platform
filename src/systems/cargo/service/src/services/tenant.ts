@@ -24,7 +24,7 @@ class TenantServiceImpl {
         id,
         name: d.input.name,
         identifier: d.input.identifier
-      },
+      }
     });
   }
 
@@ -32,7 +32,7 @@ class TenantServiceImpl {
     let tenant = await db.tenant.findFirst({
       where: {
         OR: [{ id: d.id }, { identifier: d.id }]
-      },
+      }
     });
 
     if (!tenant) throw new ServiceError(notFoundError('tenant', d.id));

@@ -9,13 +9,19 @@ enum StoreAccess {
   public_write
 }
 
+enum StoreItemKind {
+  file
+  document
+  directory
+}
+
 model Store {
   oid BigInt @id
   id  String @unique
 
   name      String
   access    StoreAccess @default(private)
-  itemCount Int       @default(0)
+  itemCount Int         @default(0)
   dirtyAt   DateTime?
 
   tenantOid BigInt
@@ -44,6 +50,8 @@ model StoreItem {
   oid BigInt @id
   id  String @unique
 
+  kind StoreItemKind
+
   path String
 
   storeOid BigInt
@@ -68,6 +76,7 @@ model StoreItem {
   updatedAt DateTime @default(now()) @updatedAt
 
   @@unique([storeOid, path])
+  @@index([directoryOid])
   @@index([documentOid])
 }
 
@@ -94,13 +103,15 @@ model StoreVersionItem {
   oid BigInt @id
   id  String @unique
 
+  kind StoreItemKind
+
   path String
 
   storeVersionOid BigInt
   storeVersion    StoreVersion @relation(fields: [storeVersionOid], references: [oid], onDelete: Cascade)
 
-  fileOid BigInt
-  file    File   @relation(fields: [fileOid], references: [oid], onDelete: Cascade)
+  fileOid BigInt?
+  file    File?   @relation(fields: [fileOid], references: [oid], onDelete: Cascade)
 
   documentOid BigInt?
   document    Document? @relation(fields: [documentOid], references: [oid], onDelete: Cascade)
@@ -153,8 +164,9 @@ model StoreDirectory {
   parentDirectory    StoreDirectory?  @relation("StoreDirectoryHierarchy", fields: [parentDirectoryOid], references: [oid], onDelete: Cascade)
   childDirectories   StoreDirectory[] @relation("StoreDirectoryHierarchy")
 
-  createdAt  DateTime    @default(now())
   storeItems StoreItem[]
+
+  createdAt DateTime @default(now())
 
   @@unique([storeOid, path])
 }

@@ -5,11 +5,7 @@ import type { Prisma } from '../../prisma/generated/client';
 import { db, withTransaction } from '../db';
 import { getId } from '../id';
 import type { CargoTenantEnvironment } from './filePurpose';
-import {
-  storeAccessService,
-  storeReadPermission,
-  type StoreAccessInput
-} from './storeAccess';
+import { storeAccessService, storeReadPermission, type StoreAccessInput } from './storeAccess';
 
 let currentStoreVersionItemInclude = {
   file: {
@@ -80,8 +76,9 @@ type StoreVersionRecord = Prisma.StoreVersionGetPayload<{
 
 export type ResolvedStoreVersionItem = {
   id: string;
+  kind: 'file' | 'document' | 'directory';
   path: string;
-  fileId: string;
+  fileId?: string;
   documentId?: string;
   documentVersionId?: string;
   createdAt: Date;
@@ -104,10 +101,13 @@ export type ResolvedStoreVersion = {
 
 export type ResolvedStoreVersionSummary = Omit<ResolvedStoreVersion, 'items'>;
 
-let toCurrentStoreVersionItem = (item: CurrentStoreVersionItemRecord): ResolvedStoreVersionItem => ({
+let toCurrentStoreVersionItem = (
+  item: CurrentStoreVersionItemRecord
+): ResolvedStoreVersionItem => ({
   id: item.id,
+  kind: item.kind,
   path: item.path,
-  fileId: item.file.id,
+  fileId: item.file?.id ?? undefined,
   documentId: item.document?.id ?? undefined,
   documentVersionId: item.document?.currentVersion?.id ?? undefined,
   createdAt: item.createdAt,
@@ -118,8 +118,9 @@ let toSnapshotStoreVersionItem = (
   item: StoreVersionRecord['items'][number]
 ): ResolvedStoreVersionItem => ({
   id: item.id,
+  kind: item.kind,
   path: item.path,
-  fileId: item.file.id,
+  fileId: item.file?.id ?? undefined,
   documentId: item.document?.id ?? undefined,
   documentVersionId: item.documentVersion?.id ?? undefined,
   createdAt: item.createdAt,
@@ -145,10 +146,7 @@ let toResolvedStoreVersion = (version: StoreVersionRecord): ResolvedStoreVersion
 });
 
 class StoreVersionServiceImpl {
-  async markStoreDirtyIfNeeded(d: {
-    storeOid: bigint;
-    at?: Date;
-  }) {
+  async markStoreDirtyIfNeeded(d: { storeOid: bigint; at?: Date }) {
     return await withTransaction(
       async db => {
         let dirtyAt = d.at ?? new Date();
@@ -167,10 +165,7 @@ class StoreVersionServiceImpl {
     );
   }
 
-  async markStoresDirtyForDocument(d: {
-    documentOid: bigint;
-    at?: Date;
-  }) {
+  async markStoresDirtyForDocument(d: { documentOid: bigint; at?: Date }) {
     return await withTransaction(
       async db => {
         let dirtyAt = d.at ?? new Date();
@@ -273,10 +268,7 @@ class StoreVersionServiceImpl {
     );
   }
 
-  async createStoreVersionSnapshot(d: {
-    storeId: string;
-    expectedDirtyAt: Date;
-  }) {
+  async createStoreVersionSnapshot(d: { storeId: string; expectedDirtyAt: Date }) {
     let snapshotStartedAt = new Date();
 
     return await withTransaction(async db => {
@@ -361,8 +353,9 @@ class StoreVersionServiceImpl {
               oid: itemIds.oid,
               id: itemIds.id,
               storeVersionOid: version.oid,
+              kind: item.kind,
               path: item.path,
-              fileOid: item.fileOid,
+              fileOid: item.fileOid ?? null,
               documentOid: item.documentOid,
               documentVersionOid: item.document?.currentVersion?.oid ?? null
             };
@@ -429,17 +422,18 @@ class StoreVersionServiceImpl {
     });
 
     return Paginator.create(({ prisma }) =>
-      prisma(async opts =>
-        await db.storeVersion.findMany({
-          ...opts,
-          where: {
-            storeOid: store.oid
-          },
-          include: storeVersionInclude,
-          orderBy: {
-            versionNumber: 'desc'
-          }
-        })
+      prisma(
+        async opts =>
+          await db.storeVersion.findMany({
+            ...opts,
+            where: {
+              storeOid: store.oid
+            },
+            include: storeVersionInclude,
+            orderBy: {
+              versionNumber: 'desc'
+            }
+          })
       )
     );
   }

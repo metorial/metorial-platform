@@ -10,6 +10,7 @@ export type CargoAccessActor = {
 };
 
 export type CargoStorePermission = 'content_read' | 'content_write';
+export type CargoStoreAccess = 'private' | 'public_read' | 'public_write';
 
 export type CargoAccessInput = {
   owner: FileOwner;

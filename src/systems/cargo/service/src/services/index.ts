@@ -1,3 +1,4 @@
+export * from '../lib/storePath';
 export * from './actor';
 export * from './document';
 export * from './documentCleanup';
