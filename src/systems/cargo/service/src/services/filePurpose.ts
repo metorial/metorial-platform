@@ -1,5 +1,5 @@
-import { Paginator } from '@lowerdeck/pagination';
 import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { db } from '../db';
 import { getId } from '../id';
@@ -15,17 +15,15 @@ export let genericFilePurposeSlug = 'generic';
 export let genericFilePurposeName = 'Generic';
 
 class FilePurposeServiceImpl {
-  async upsertFilePurpose(
-    d: {
-      input: {
-        id?: string;
-        slug: string;
-        name: string;
-        ownerType: 'user' | 'organization' | 'instance';
-        canHaveLinks: boolean;
-      };
-    }
-  ) {
+  async upsertFilePurpose(d: {
+    input: {
+      id?: string;
+      slug: string;
+      name: string;
+      ownerType: 'user' | 'organization' | 'instance';
+      canHaveLinks: boolean;
+    };
+  }) {
     let existing = d.input.id
       ? await db.filePurpose.findFirst({
           where: {
@@ -80,10 +78,11 @@ class FilePurposeServiceImpl {
 
   async listFilePurposes() {
     return Paginator.create(({ prisma }) =>
-      prisma(async opts =>
-        await db.filePurpose.findMany({
-          ...opts
-        })
+      prisma(
+        async opts =>
+          await db.filePurpose.findMany({
+            ...opts
+          })
       )
     );
   }
@@ -93,7 +92,7 @@ class FilePurposeServiceImpl {
       input: {
         slug: documentFilePurposeSlug,
         name: documentFilePurposeName,
-        ownerType: 'organization',
+        ownerType: 'instance',
         canHaveLinks: true
       }
     });
@@ -104,7 +103,7 @@ class FilePurposeServiceImpl {
       input: {
         slug: genericFilePurposeSlug,
         name: genericFilePurposeName,
-        ownerType: 'organization',
+        ownerType: 'instance',
         canHaveLinks: true
       }
     });

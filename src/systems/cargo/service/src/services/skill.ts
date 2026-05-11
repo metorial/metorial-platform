@@ -104,8 +104,11 @@ class SkillServiceImpl {
               actor,
               access: 'public_read',
               parentStore: d.parentSkill?.store,
-              cloneType:
-                d.parentSkillCloneType === 'duplicate' ? 'duplicate' : 'sync_until_change'
+              cloneType: !d.parentSkill
+                ? undefined
+                : d.parentSkillCloneType === 'duplicate'
+                  ? 'duplicate'
+                  : 'sync_until_change'
             }
           });
 

@@ -1,11 +1,11 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { accessService, type AuthInfo } from '@metorial/module-access';
 import { organizationService } from '@metorial/module-organization';
-import type { FileOwner } from '../../../modules/file/src/services/file';
 import {
   getInstanceCargoAccess,
   type InstanceCargoAccessContext
 } from '../../../modules/file/src/instanceAccess';
+import type { FileOwner } from '../../../modules/file/src/services/file';
 
 let uploadScopes = ['instance.file:write'] as const;
 
@@ -28,6 +28,14 @@ export let resolveUploadTarget = async (d: {
   instanceId?: string | null;
   organizationId?: string | null;
 }): Promise<ResolvedUploadTarget> => {
+  if (d.auth.type === 'fine_grained') {
+    throw new ServiceError(
+      badRequestError({
+        message: 'Fine-grained API keys are not allowed to upload files'
+      })
+    );
+  }
+
   let instanceId = d.instanceId ?? getRestrictedInstanceId(d.auth);
 
   if (instanceId) {
@@ -69,7 +77,7 @@ export let resolveUploadTarget = async (d: {
     };
   }
 
-  if (d.auth.type == 'machine' || d.auth.type == 'fine_grained') {
+  if (d.auth.type == 'machine') {
     throw new ServiceError(
       badRequestError({
         message: 'Missing instance_id for machine API key'

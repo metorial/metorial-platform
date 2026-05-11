@@ -4,7 +4,6 @@ import { extractIp } from '@lowerdeck/forwarded-for';
 import { Context, cors, createHono } from '@lowerdeck/hono';
 import { authenticate } from '@metorial/auth';
 import { generatePlainId } from '@metorial/id';
-import { upgradeWebSocket, websocket } from 'hono/bun';
 import {
   documentService,
   fileLinkService,
@@ -14,6 +13,7 @@ import {
   resolveCargoAccess,
   uploadCargoFile
 } from '@metorial/module-file';
+import { upgradeWebSocket, websocket } from 'hono/bun';
 import { resolveUploadTarget } from './uploadAccess';
 
 type FileApiAuthResult = Awaited<ReturnType<typeof authenticate>>;
@@ -187,8 +187,9 @@ let getCargoDocumentLiveUrl = (d: { actorId: string; documentId: string }) => {
   return url.toString();
 };
 
-let createDocumentsLiveHandler =
-  (authenticateRequest: NonNullable<FileApiOptions['authenticateRequest']>) =>
+let createDocumentsLiveHandler = (
+  authenticateRequest: NonNullable<FileApiOptions['authenticateRequest']>
+) =>
   createHono()
     .use(async (c, next) => {
       c.res.headers.set('Access-Control-Allow-Origin', c.req.header('Origin') || '*');
