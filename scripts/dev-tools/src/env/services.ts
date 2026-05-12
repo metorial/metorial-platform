@@ -160,6 +160,10 @@ export let cargoServiceEnv: Env = [
     defaultValue: 'dev'
   },
   {
+    key: 'SIGNED_DOWNLOAD_URL_TOKEN_SECRET',
+    defaultValue: 'dev-cargo-download-token-secret'
+  },
+  {
     key: 'CARGO_API_PORT',
     defaultValue: '52150'
   },

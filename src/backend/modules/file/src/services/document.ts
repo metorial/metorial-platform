@@ -1,8 +1,12 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { cargo, type CargoDocument } from '../cargo';
+import {
+  resolveCargoAccess,
+  type CargoAccessActor,
+  type CargoStorePermission
+} from './access';
 import type { FileOwner } from './file';
-import { resolveCargoAccess, type CargoAccessActor, type CargoStorePermission } from './access';
 
 class DocumentServiceImpl {
   async createDocument(d: {
@@ -16,7 +20,8 @@ class DocumentServiceImpl {
       content: string;
     };
   }) {
-    let { scope, actorId, defaultPermissions, overridePermissions } = await resolveCargoAccess(d);
+    let { scope, actorId, defaultPermissions, overridePermissions } =
+      await resolveCargoAccess(d);
 
     return await cargo.document.create({
       tenantId: scope.tenantId,
@@ -36,7 +41,8 @@ class DocumentServiceImpl {
     defaultPermissions?: CargoStorePermission[];
     overridePermissions?: boolean;
   }) {
-    let { scope, actorId, defaultPermissions, overridePermissions } = await resolveCargoAccess(d);
+    let { scope, actorId, defaultPermissions, overridePermissions } =
+      await resolveCargoAccess(d);
 
     return Paginator.create(() => async input => {
       let result = await cargo.document.list({
@@ -65,7 +71,8 @@ class DocumentServiceImpl {
     defaultPermissions?: CargoStorePermission[];
     overridePermissions?: boolean;
   }) {
-    let { scope, actorId, defaultPermissions, overridePermissions } = await resolveCargoAccess(d);
+    let { scope, actorId, defaultPermissions, overridePermissions } =
+      await resolveCargoAccess(d);
 
     return await cargo.document.get({
       tenantId: scope.tenantId,
@@ -84,7 +91,8 @@ class DocumentServiceImpl {
     defaultPermissions?: CargoStorePermission[];
     overridePermissions?: boolean;
   }) {
-    let { scope, actorId, defaultPermissions, overridePermissions } = await resolveCargoAccess(d);
+    let { scope, actorId, defaultPermissions, overridePermissions } =
+      await resolveCargoAccess(d);
 
     return await cargo.document.getPermissions({
       tenantId: scope.tenantId,
@@ -107,7 +115,8 @@ class DocumentServiceImpl {
       content?: string;
     };
   }) {
-    let { scope, actorId, defaultPermissions, overridePermissions } = await resolveCargoAccess(d);
+    let { scope, actorId, defaultPermissions, overridePermissions } =
+      await resolveCargoAccess(d);
 
     return await cargo.document.update({
       tenantId: scope.tenantId,
@@ -128,7 +137,8 @@ class DocumentServiceImpl {
     defaultPermissions?: CargoStorePermission[];
     overridePermissions?: boolean;
   }) {
-    let { scope, actorId, defaultPermissions, overridePermissions } = await resolveCargoAccess(d);
+    let { scope, actorId, defaultPermissions, overridePermissions } =
+      await resolveCargoAccess(d);
 
     return await cargo.document.delete({
       tenantId: scope.tenantId,
@@ -151,7 +161,8 @@ class DocumentServiceImpl {
       title?: string;
     };
   }) {
-    let { scope, actorId, defaultPermissions, overridePermissions } = await resolveCargoAccess(d);
+    let { scope, actorId, defaultPermissions, overridePermissions } =
+      await resolveCargoAccess(d);
 
     return await cargo.document.clone({
       tenantId: scope.tenantId,

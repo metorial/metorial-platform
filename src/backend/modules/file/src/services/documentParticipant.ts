@@ -135,7 +135,7 @@ class DocumentParticipantServiceImpl {
 
   async listDocumentParticipants(d: {
     owner: FileOwner;
-    documentId: string[];
+    documentId: string;
     accessActor?: CargoAccessActor;
     defaultPermissions?: CargoStorePermission[];
     overridePermissions?: boolean;
@@ -152,7 +152,7 @@ class DocumentParticipantServiceImpl {
         defaultPermissions,
         overridePermissions,
         ...input
-      } as any);
+      });
 
       return {
         items: await this.enrichParticipants({

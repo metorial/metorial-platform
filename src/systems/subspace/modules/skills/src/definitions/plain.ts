@@ -1,3 +1,4 @@
+import { detag } from '../lib/detag';
 import { template } from '../lib/template';
 
 export let plainTemplate = template({
@@ -7,40 +8,33 @@ export let plainTemplate = template({
   items: [
     {
       path: '/SKILL.md',
-      type: 'file',
-      content: `---
-name: your-skill-name
-description: Describe what the skill does, when to use it, and which tasks it helps with.
-license: Proprietary. LICENSE.txt has complete terms
-compatibility: Requires git, docker, jq, and access to the internet
----
+      type: 'document',
+      content: detag`
+  # Skill Template
 
-# Skill Template
+  Set the scene, define the problem and task. Give the agent a personality, basic instructions, scope out the purpose of the skill.
 
-Set the scene, define the problem and task. Give the agent a personality, basic instructions, scope out the purpose of the skill.
+  ## Prerequisites
 
-## Prerequisites
+  List what the agent should prepare before using the skill. For example, a certain file structure, or certain requirements that must be met.
 
-List what the agent should prepare before using the skill. For example, a certain file structure, or certain requirements that must be met.
+  1. ...
+  2. ...
 
-1. ...
-2. ...
+  ## Instructions
 
-## Instructions
+  How should the agent use the skill? Are there specific steps to follow. Use sub headings to group different workloads and scenarios.
 
-How should the agent use the skill? Are there specific steps to follow. Use sub headings to group different workloads and scenarios.
+  ### Scenario 1
 
-### Scenario 1
+  Describe the scenario and how to handle it. Reference integrations and tools that should be used.d
 
-Describe the scenario and how to handle it. Reference integrations and tools that should be used.d
+  1. ...
+  2. ...
 
-1. ...
-2. ...
+  ## References
 
-## References
-
-Include any references to markdown files in the references directory, web links, or other assets in the assets directory.
-      
+  Include any references to markdown files in the references directory, web links, or other assets in the assets directory.
 `,
       encoding: 'utf-8'
     },

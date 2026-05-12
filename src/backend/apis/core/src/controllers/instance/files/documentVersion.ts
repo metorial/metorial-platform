@@ -51,7 +51,7 @@ export let documentVersionController = Controller.create(
       .query('default', Paginator.validate(v.object({})))
       .do(async ctx => {
         let paginator = await documentVersionService.listDocumentVersions({
-          documentId: [ctx.document.id],
+          documentId: ctx.document.id,
           owner: {
             type: 'instance',
             instance: ctx.instance,

@@ -32,7 +32,7 @@ class DocumentVersionServiceImpl {
 
   async listDocumentVersions(d: {
     owner: FileOwner;
-    documentId: string[];
+    documentId: string;
     accessActor?: CargoAccessActor;
     defaultPermissions?: CargoStorePermission[];
     overridePermissions?: boolean;

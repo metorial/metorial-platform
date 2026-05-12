@@ -66,3 +66,22 @@ export let v1FilePresenter = Presenter.create(fileType)
     })
   )
   .build();
+
+export let dashboardFilePresenter = Presenter.create(fileType)
+  .presenter(async ({ file }, opts) => {
+    let inner = await v1FilePresenter.present({ file }, opts).run();
+
+    return {
+      ...inner,
+      download_url: file.signedDownloadUrl ?? null
+    };
+  })
+  .schema(
+    v.intersection([
+      v1FilePresenter.schema,
+      v.object({
+        download_url: v.nullable(v.string())
+      })
+    ])
+  )
+  .build();

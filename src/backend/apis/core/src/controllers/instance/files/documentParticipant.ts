@@ -45,13 +45,15 @@ export let documentParticipantController = Controller.create(
         description: 'Returns a paginated list of participants for a specific document.'
       })
       .use(
-        checkAccess({ possibleScopes: ['instance.file:read', 'consumer#instance.document:read'] })
+        checkAccess({
+          possibleScopes: ['instance.file:read', 'consumer#instance.document:read']
+        })
       )
       .outputList(documentParticipantPresenter)
       .query('default', Paginator.validate(v.object({})))
       .do(async ctx => {
         let paginator = await documentParticipantService.listDocumentParticipants({
-          documentId: [ctx.document.id],
+          documentId: ctx.document.id,
           owner: {
             type: 'instance',
             instance: ctx.instance,
@@ -78,7 +80,9 @@ export let documentParticipantController = Controller.create(
         }
       )
       .use(
-        checkAccess({ possibleScopes: ['instance.file:read', 'consumer#instance.document:read'] })
+        checkAccess({
+          possibleScopes: ['instance.file:read', 'consumer#instance.document:read']
+        })
       )
       .output(documentParticipantPresenter)
       .do(async ctx =>

@@ -3,6 +3,7 @@ import { MetorialEndpointManager, MetorialSDKError } from '@metorial/util-endpoi
 import { MetorialAuthEndpoint } from './auth';
 import { MetorialKeyPrefix, sdkBuilder } from './builder';
 import {
+  mapDashboardInstanceFilesGetOutput,
   MetorialDashboardEndpoint,
   MetorialDashboardInstanceAgentsEndpoint,
   MetorialDashboardInstanceAgentsInstancesEndpoint,
@@ -405,7 +406,34 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
   dashboard: new MetorialDashboardEndpoint(manager),
 
   files: Object.assign(new MetorialDashboardInstanceFilesEndpoint(manager), {
-    links: new MetorialDashboardInstanceFileLinksEndpoint(manager)
+    links: new MetorialDashboardInstanceFileLinksEndpoint(manager),
+    upload: async (input: {
+      instanceId: string;
+      file: File | Blob;
+      purpose: string;
+      title?: string;
+      store?: {
+        id: string;
+        path: string;
+      };
+    }) => {
+      let body = new FormData();
+      body.append('file', input.file);
+      body.append('purpose', input.purpose);
+      body.append('instance_id', input.instanceId);
+      if (input.title) body.append('title', input.title);
+      if (input.store) {
+        body.append('store_id', input.store.id);
+        body.append('path', input.store.path);
+      }
+
+      return await manager
+        ._post({
+          path: ['files'],
+          body
+        })
+        .transform(mapDashboardInstanceFilesGetOutput);
+    }
   }),
 
   documents: Object.assign(new MetorialDashboardInstanceDocumentsEndpoint(manager), {

@@ -49,6 +49,7 @@ let createFileUploadHandler =
         let instanceId = body.get('instance_id');
         let attachedStoreId = body.get('store_id');
         let attachedStorePath = body.get('path');
+        let title = (body.get('title') || undefined) as string | undefined;
 
         if (!file || !purpose) {
           throw new ServiceError(
@@ -92,6 +93,7 @@ let createFileUploadHandler =
           owner: target.owner,
           purpose,
           file,
+          title,
           fileName: file.name,
           ...target.cargoAccess,
           store:

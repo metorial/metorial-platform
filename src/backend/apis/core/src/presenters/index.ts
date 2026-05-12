@@ -56,6 +56,7 @@ import {
   v1DocumentPermissionsPresenter,
   v1DocumentPresenter,
   v1DocumentVersionPresenter,
+  dashboardFilePresenter,
   v1FileLinkPresenter,
   v1FilePresenter,
   v1FlagsPresenter,
@@ -485,7 +486,7 @@ export let bootPresenter = declarePresenter(bootType, {
 });
 
 export let filePresenter = declarePresenter(fileType, {
-  mt_2025_01_01_dashboard: v1FilePresenter,
+  mt_2025_01_01_dashboard: dashboardFilePresenter,
   mt_2026_01_01_magnetar: v1FilePresenter
 });
 

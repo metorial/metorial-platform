@@ -399,7 +399,7 @@ class skillServiceImpl {
     });
 
     return await withTransaction(async db => {
-      // Duplicates are stand alone skills and get their own entities
+      // Forks share the parent skill entity; root skills and duplicates get a new one.
       let skillEntity =
         d._operation?.type === 'fork' && parentSkill?.skillEntity
           ? parentSkill?.skillEntity
@@ -429,7 +429,7 @@ class skillServiceImpl {
         include: skillInclude
       });
 
-      if (!isNewSkillEntity) {
+      if (isNewSkillEntity) {
         skillEntity = await db.skillEntity.update({
           where: { oid: skillEntity.oid },
           data: { ownerSkillOid: skill.oid }
