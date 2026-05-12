@@ -215,7 +215,8 @@ export let skillController = Controller.create(
       .post(instancePath('skills/:skillId/fork', 'skills.fork'), {
         name: 'Fork skill',
         description:
-          'Forks a skill for the current consumer. Non-consumer callers duplicate the skill instead.'
+          'Forks a skill for the current consumer. Non-consumer callers duplicate the skill instead.',
+        hideInDocs: true
       })
       .use(checkAccess({ possibleScopes: [...skillWriteScopes] }))
       .use(requireConsumerTokenForPublishableKey())

@@ -666,7 +666,7 @@ export let SkillLinkProvidersScene = (p: {
       return (
         <Box
           title="Providers"
-          description="Link providers or integrations to be used with this skill."
+          description="Link providers and integrations to be used with this skill."
           rightActions={
             <AddSkillItemMenu disabled={!p.instanceId || !p.skillId} onSelect={openPicker} />
           }

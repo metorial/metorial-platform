@@ -544,10 +544,20 @@ let PdfFilePreview = (p: { downloadUrl: string }) => {
 
     let cancelled = false;
     let renderTask: { cancel: () => void; promise: Promise<void> } | null = null;
-    let loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) });
+    let loadingTask: pdfjsLib.PDFDocumentLoadingTask | null = null;
 
     setRendering(true);
     setRenderError(null);
+
+    try {
+      // pdf.js transfers/detaches the buffer it receives. Keep the state-held buffer intact
+      // so changing pages can create a fresh document from the same fetched bytes.
+      loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer.slice(0)) });
+    } catch (err) {
+      setRenderError(err instanceof Error ? err.message : 'Failed to load PDF');
+      setRendering(false);
+      return;
+    }
 
     loadingTask.promise
       .then(async pdf => {
@@ -597,7 +607,7 @@ let PdfFilePreview = (p: { downloadUrl: string }) => {
     return () => {
       cancelled = true;
       renderTask?.cancel();
-      void loadingTask.destroy();
+      void loadingTask?.destroy();
     };
   }, [arrayBuffer, pageNumber]);
 
