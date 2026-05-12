@@ -7,7 +7,8 @@ import {
   type ProviderSpecification,
   type ProviderVersion,
   type Solution,
-  type Tenant
+  type Tenant,
+  withTransaction
 } from '@metorial-subspace/db';
 import { getProviderTenantFilter } from './provider';
 
@@ -96,20 +97,24 @@ class providerAuthMethodServiceImpl {
     providerAuthMethodId: string;
     includeDeprecated?: boolean;
   }) {
-    let providerAuthMethod = await db.providerAuthMethod.findFirst({
-      where: {
-        provider: getProviderTenantFilter({
-          ...d,
-          includeDeprecated: true
+    let providerAuthMethod = await withTransaction(
+      async db =>
+        await db.providerAuthMethod.findFirst({
+          where: {
+            provider: getProviderTenantFilter({
+              ...d,
+              includeDeprecated: true
+            }),
+            id: d.providerAuthMethodId
+          },
+          include: {
+            global: true,
+            provider: true,
+            specification: { omit: { value: true } }
+          }
         }),
-        id: d.providerAuthMethodId
-      },
-      include: {
-        global: true,
-        provider: true,
-        specification: { omit: { value: true } }
-      }
-    });
+      { ifExists: true }
+    );
     if (!providerAuthMethod) {
       throw new ServiceError(notFoundError('provider_tool', d.providerAuthMethodId));
     }
