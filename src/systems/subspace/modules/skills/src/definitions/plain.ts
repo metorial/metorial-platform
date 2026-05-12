@@ -8,7 +8,14 @@ export let plainTemplate = template({
     {
       path: '/SKILL.md',
       type: 'file',
-      content: `# Skill Template
+      content: `---
+name: your-skill-name
+description: Describe what the skill does, when to use it, and which tasks it helps with.
+license: Proprietary. LICENSE.txt has complete terms
+compatibility: Requires git, docker, jq, and access to the internet
+---
+
+# Skill Template
 
 Set the scene, define the problem and task. Give the agent a personality, basic instructions, scope out the purpose of the skill.
 

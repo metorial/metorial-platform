@@ -42,6 +42,12 @@ model Skill {
   metadata        Json?
   privateMetadata Json?
 
+  clientName        String
+  clientDescription String?
+  clientMetadata    Json?
+  license           String?
+  compatibility     String?
+
   storeId String
 
   skillEntityOid BigInt

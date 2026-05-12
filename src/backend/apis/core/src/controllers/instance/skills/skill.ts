@@ -10,6 +10,28 @@ import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
 import { skillPresenter } from '../../../presenters';
 
+let skillClientNameValidator = v.string({
+  modifiers: [
+    v.minLength(1),
+    v.regex(/^(?!-)(?!.*--)[a-z0-9-]+(?<!-)$/, {
+      message:
+        'Must use lowercase alphanumeric characters or hyphens, cannot start or end with a hyphen, and cannot contain consecutive hyphens.'
+    })
+  ]
+});
+
+let skillClientDescriptionValidator = v.string({
+  modifiers: [v.minLength(1)]
+});
+
+let skillLicenseValidator = v.string({
+  modifiers: [v.minLength(1)]
+});
+
+let skillCompatibilityValidator = v.string({
+  modifiers: [v.minLength(1)]
+});
+
 export let skillGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.skillId) {
     throw new ServiceError(
@@ -106,6 +128,11 @@ export let skillController = Controller.create(
         v.object({
           name: v.string(),
           description: v.optional(v.string()),
+          client_name: v.optional(skillClientNameValidator),
+          client_description: v.optional(skillClientDescriptionValidator),
+          license: v.optional(skillLicenseValidator),
+          compatibility: v.optional(skillCompatibilityValidator),
+          client_metadata: v.optional(v.record(v.any())),
           metadata: v.optional(v.record(v.any()))
         })
       )
@@ -115,6 +142,11 @@ export let skillController = Controller.create(
           instance: ctx.instance,
           name: ctx.body.name,
           description: ctx.body.description,
+          clientName: ctx.body.client_name,
+          clientDescription: ctx.body.client_description,
+          license: ctx.body.license,
+          compatibility: ctx.body.compatibility,
+          clientMetadata: ctx.body.client_metadata,
           metadata: ctx.body.metadata
         });
 
@@ -133,6 +165,11 @@ export let skillController = Controller.create(
         v.object({
           name: v.optional(v.string()),
           description: v.optional(v.nullable(v.string())),
+          client_name: v.optional(skillClientNameValidator),
+          client_description: v.optional(skillClientDescriptionValidator),
+          license: v.optional(v.nullable(skillLicenseValidator)),
+          compatibility: v.optional(v.nullable(skillCompatibilityValidator)),
+          client_metadata: v.optional(v.nullable(v.record(v.any()))),
           metadata: v.optional(v.nullable(v.record(v.any())))
         })
       )
@@ -144,6 +181,11 @@ export let skillController = Controller.create(
           allowDeleted: true,
           name: ctx.body.name,
           description: ctx.body.description,
+          clientName: ctx.body.client_name,
+          clientDescription: ctx.body.client_description,
+          license: ctx.body.license,
+          compatibility: ctx.body.compatibility,
+          clientMetadata: ctx.body.client_metadata,
           metadata: ctx.body.metadata
         });
 
@@ -181,6 +223,11 @@ export let skillController = Controller.create(
         v.object({
           name: v.string(),
           description: v.optional(v.string()),
+          client_name: v.optional(skillClientNameValidator),
+          client_description: v.optional(skillClientDescriptionValidator),
+          license: v.optional(skillLicenseValidator),
+          compatibility: v.optional(skillCompatibilityValidator),
+          client_metadata: v.optional(v.record(v.any())),
           metadata: v.optional(v.record(v.any()))
         })
       )
@@ -194,6 +241,11 @@ export let skillController = Controller.create(
               consumer: ctx.consumerProfile.consumer,
               name: ctx.body.name,
               description: ctx.body.description,
+              clientName: ctx.body.client_name,
+              clientDescription: ctx.body.client_description,
+              license: ctx.body.license,
+              compatibility: ctx.body.compatibility,
+              clientMetadata: ctx.body.client_metadata,
               metadata: ctx.body.metadata
             })
           : await subspaceSkillService.duplicate({
@@ -202,6 +254,11 @@ export let skillController = Controller.create(
               allowDeleted: true,
               name: ctx.body.name,
               description: ctx.body.description,
+              clientName: ctx.body.client_name,
+              clientDescription: ctx.body.client_description,
+              license: ctx.body.license,
+              compatibility: ctx.body.compatibility,
+              clientMetadata: ctx.body.client_metadata,
               metadata: ctx.body.metadata
             });
 
@@ -219,6 +276,11 @@ export let skillController = Controller.create(
         v.object({
           name: v.string(),
           description: v.optional(v.string()),
+          client_name: v.optional(skillClientNameValidator),
+          client_description: v.optional(skillClientDescriptionValidator),
+          license: v.optional(skillLicenseValidator),
+          compatibility: v.optional(skillCompatibilityValidator),
+          client_metadata: v.optional(v.record(v.any())),
           metadata: v.optional(v.record(v.any()))
         })
       )
@@ -230,6 +292,11 @@ export let skillController = Controller.create(
           allowDeleted: true,
           name: ctx.body.name,
           description: ctx.body.description,
+          clientName: ctx.body.client_name,
+          clientDescription: ctx.body.client_description,
+          license: ctx.body.license,
+          compatibility: ctx.body.compatibility,
+          clientMetadata: ctx.body.client_metadata,
           metadata: ctx.body.metadata
         });
 

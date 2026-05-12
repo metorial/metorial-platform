@@ -10,10 +10,10 @@ import {
   getId,
   type Skill,
   type SkillStatus,
-  SkillTemplate,
+  type SkillTemplate,
   type Solution,
   type Tenant,
-  TenantActor,
+  type TenantActor,
   withTransaction
 } from '@metorial-subspace/db';
 import {
@@ -28,6 +28,7 @@ import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-
 import { checkTenant } from '@metorial-subspace/module-tenant';
 import { cargo, ensureCargoActor, ensureCargoScope } from '../cargo';
 import { plainTemplate } from '../definitions';
+import { inferClientName, normalizeSkillClientFields } from '../lib/clientMetadata';
 import {
   skillArchivedQueue,
   skillCreatedQueue,
@@ -66,6 +67,11 @@ let getSlug = (input: { name: string }) =>
 type SkillWriteInput = {
   name?: string;
   description?: string | null;
+  clientName?: string;
+  clientDescription?: string;
+  license?: string | null;
+  compatibility?: string | null;
+  clientMetadata?: Record<string, any> | null;
   metadata?: Record<string, any> | null;
   privateMetadata?: Record<string, any> | null;
 };
@@ -106,12 +112,37 @@ class skillServiceImpl {
     input: Required<Pick<SkillWriteInput, 'name'>> &
       Omit<SkillWriteInput, 'name' | 'skillEntityId' | 'parentSkillId'>;
   }) {
+    let inferredClientName = inferClientName(d.input.name);
+
+    let clientFields = normalizeSkillClientFields({
+      current: {
+        clientName: null,
+        clientDescription: null,
+        license: null,
+        compatibility: null,
+        clientMetadata: null
+      },
+      inferredClientName,
+      input: {
+        clientName: d.input.clientName,
+        clientDescription: d.input.clientDescription,
+        license: d.input.license,
+        compatibility: d.input.compatibility,
+        clientMetadata: d.input.clientMetadata
+      }
+    });
+
     let res = {
       ...getId('skill'),
       status: 'active' as const,
       slug: getSlug({ name: d.input.name }),
       name: d.input.name.trim(),
       description: d.input.description?.trim() || null,
+      clientName: clientFields.clientName,
+      clientDescription: clientFields.clientDescription,
+      license: clientFields.license,
+      compatibility: clientFields.compatibility,
+      clientMetadata: clientFields.clientMetadata,
       metadata: d.input.metadata,
       privateMetadata: d.input.privateMetadata,
       tenantOid: d.tenant.oid,
@@ -131,6 +162,30 @@ class skillServiceImpl {
   }
 
   private skillUpdateData(d: { current: Skill; input: SkillWriteInput }) {
+    let nextName = d.input.name?.trim() || d.current.name;
+    let inferredCurrentClientName = inferClientName(d.current.name);
+    let inferredNextClientName = inferClientName(nextName);
+    let shouldAutoUpdateClientName =
+      d.input.clientName === undefined && d.current.clientName === inferredCurrentClientName;
+
+    let clientFields = normalizeSkillClientFields({
+      current: {
+        clientName: shouldAutoUpdateClientName ? inferredNextClientName : d.current.clientName,
+        clientDescription: d.current.clientDescription,
+        license: d.current.license,
+        compatibility: d.current.compatibility,
+        clientMetadata: d.current.clientMetadata
+      },
+      inferredClientName: inferredNextClientName,
+      input: {
+        clientName: d.input.clientName,
+        clientDescription: d.input.clientDescription,
+        license: d.input.license,
+        compatibility: d.input.compatibility,
+        clientMetadata: d.input.clientMetadata
+      }
+    });
+
     return {
       status: 'active' as const,
       name: d.input.name?.trim() || d.current.name,
@@ -138,6 +193,11 @@ class skillServiceImpl {
         d.input.description === undefined
           ? d.current.description
           : d.input.description?.trim() || null,
+      clientName: clientFields.clientName,
+      clientDescription: clientFields.clientDescription,
+      license: clientFields.license,
+      compatibility: clientFields.compatibility,
+      clientMetadata: clientFields.clientMetadata,
       metadata: d.input.metadata === undefined ? d.current.metadata : d.input.metadata,
       privateMetadata:
         d.input.privateMetadata === undefined
@@ -244,6 +304,11 @@ class skillServiceImpl {
     input: {
       name: string;
       description?: string | null;
+      clientName?: string;
+      clientDescription?: string;
+      license?: string | null;
+      compatibility?: string | null;
+      clientMetadata?: Record<string, any> | null;
       metadata?: Record<string, any> | null;
       privateMetadata?: Record<string, any> | null;
       templateId?: string | null;
@@ -304,6 +369,11 @@ class skillServiceImpl {
       input: {
         name: d.input.name.trim(),
         description: d.input.description?.trim() || null,
+        clientName: d.input.clientName,
+        clientDescription: d.input.clientDescription,
+        license: d.input.license,
+        compatibility: d.input.compatibility,
+        clientMetadata: d.input.clientMetadata,
         metadata: d.input.metadata,
         privateMetadata: d.input.privateMetadata
       }
@@ -397,6 +467,11 @@ class skillServiceImpl {
     input: {
       name: string;
       description?: string | null;
+      clientName?: string;
+      clientDescription?: string;
+      license?: string | null;
+      compatibility?: string | null;
+      clientMetadata?: Record<string, any> | null;
       metadata?: Record<string, any> | null;
       privateMetadata?: Record<string, any> | null;
     };
@@ -411,6 +486,11 @@ class skillServiceImpl {
       input: {
         name: d.input.name,
         description: d.input.description,
+        clientName: d.input.clientName,
+        clientDescription: d.input.clientDescription,
+        license: d.input.license,
+        compatibility: d.input.compatibility,
+        clientMetadata: d.input.clientMetadata,
         metadata: d.input.metadata,
         privateMetadata: d.input.privateMetadata
       },
@@ -430,6 +510,11 @@ class skillServiceImpl {
     input: {
       name: string;
       description?: string | null;
+      clientName?: string;
+      clientDescription?: string;
+      license?: string | null;
+      compatibility?: string | null;
+      clientMetadata?: Record<string, any> | null;
       metadata?: Record<string, any> | null;
       privateMetadata?: Record<string, any> | null;
     };
@@ -444,6 +529,11 @@ class skillServiceImpl {
       input: {
         name: d.input.name,
         description: d.input.description,
+        clientName: d.input.clientName,
+        clientDescription: d.input.clientDescription,
+        license: d.input.license,
+        compatibility: d.input.compatibility,
+        clientMetadata: d.input.clientMetadata,
         metadata: d.input.metadata,
         privateMetadata: d.input.privateMetadata
       },

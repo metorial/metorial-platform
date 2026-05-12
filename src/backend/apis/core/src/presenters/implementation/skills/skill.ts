@@ -11,6 +11,11 @@ export let v1SkillPresenter = Presenter.create(skillType)
     slug: skill.slug,
     name: skill.name,
     description: skill.description,
+    client_name: skill.clientName,
+    client_description: skill.clientDescription,
+    client_metadata: skill.clientMetadata,
+    license: skill.license,
+    compatibility: skill.compatibility,
     metadata: skill.metadata,
     store_id: skill.storeId,
     hierarchy: {
@@ -42,6 +47,11 @@ export let v1SkillPresenter = Presenter.create(skillType)
       slug: v.string(),
       name: v.string(),
       description: v.nullable(v.string()),
+      client_name: v.string(),
+      client_description: v.nullable(v.string()),
+      client_metadata: v.nullable(v.record(v.any())),
+      license: v.nullable(v.string()),
+      compatibility: v.nullable(v.string()),
       metadata: v.record(v.any()),
       store_id: v.string(),
       hierarchy: v.object({

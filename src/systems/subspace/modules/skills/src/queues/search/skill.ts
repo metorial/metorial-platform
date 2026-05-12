@@ -52,6 +52,8 @@ export let indexSkillRecord = async (d: { skillId: string }) => {
     body: {
       name: skill.name,
       description: skill.description,
+      clientName: skill.clientName,
+      clientDescription: skill.clientDescription,
       integrationNames: skill.skillIntegrations.map(item => item.integration.name),
       providerNames: skill.skillProviderLinks.map(link => link.provider.name)
     }

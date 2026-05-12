@@ -84,6 +84,11 @@ export let skillController = app.controller({
         environmentId: v.string(),
         name: v.string(),
         description: v.optional(v.string()),
+        clientName: v.optional(v.string()),
+        clientDescription: v.optional(v.string()),
+        license: v.optional(v.string()),
+        compatibility: v.optional(v.string()),
+        clientMetadata: v.optional(v.record(v.any())),
         metadata: v.optional(v.record(v.any())),
         privateMetadata: v.optional(v.record(v.any()))
       })
@@ -96,6 +101,11 @@ export let skillController = app.controller({
         input: {
           name: ctx.input.name,
           description: ctx.input.description,
+          clientName: ctx.input.clientName,
+          clientDescription: ctx.input.clientDescription,
+          license: ctx.input.license,
+          compatibility: ctx.input.compatibility,
+          clientMetadata: ctx.input.clientMetadata,
           metadata: ctx.input.metadata,
           privateMetadata: ctx.input.privateMetadata
         }
@@ -115,6 +125,11 @@ export let skillController = app.controller({
 
         name: v.optional(v.string()),
         description: v.optional(v.nullable(v.string())),
+        clientName: v.optional(v.string()),
+        clientDescription: v.optional(v.string()),
+        license: v.optional(v.nullable(v.string())),
+        compatibility: v.optional(v.nullable(v.string())),
+        clientMetadata: v.optional(v.nullable(v.record(v.any()))),
         metadata: v.optional(v.nullable(v.record(v.any()))),
         privateMetadata: v.optional(v.nullable(v.record(v.any())))
       })
@@ -128,6 +143,11 @@ export let skillController = app.controller({
         input: {
           name: ctx.input.name,
           description: ctx.input.description,
+          clientName: ctx.input.clientName,
+          clientDescription: ctx.input.clientDescription,
+          license: ctx.input.license,
+          compatibility: ctx.input.compatibility,
+          clientMetadata: ctx.input.clientMetadata,
           metadata: ctx.input.metadata,
           privateMetadata: ctx.input.privateMetadata
         }
@@ -168,6 +188,11 @@ export let skillController = app.controller({
         allowDeleted: v.optional(v.boolean()),
         name: v.string(),
         description: v.optional(v.string()),
+        clientName: v.optional(v.string()),
+        clientDescription: v.optional(v.string()),
+        license: v.optional(v.string()),
+        compatibility: v.optional(v.string()),
+        clientMetadata: v.optional(v.record(v.any())),
         metadata: v.optional(v.record(v.any())),
         privateMetadata: v.optional(v.record(v.any()))
       })
@@ -187,6 +212,11 @@ export let skillController = app.controller({
         input: {
           name: ctx.input.name,
           description: ctx.input.description,
+          clientName: ctx.input.clientName,
+          clientDescription: ctx.input.clientDescription,
+          license: ctx.input.license,
+          compatibility: ctx.input.compatibility,
+          clientMetadata: ctx.input.clientMetadata,
           metadata: ctx.input.metadata,
           privateMetadata: ctx.input.privateMetadata
         }
@@ -205,6 +235,11 @@ export let skillController = app.controller({
         allowDeleted: v.optional(v.boolean()),
         name: v.string(),
         description: v.optional(v.string()),
+        clientName: v.optional(v.string()),
+        clientDescription: v.optional(v.string()),
+        license: v.optional(v.string()),
+        compatibility: v.optional(v.string()),
+        clientMetadata: v.optional(v.record(v.any())),
         metadata: v.optional(v.record(v.any())),
         privateMetadata: v.optional(v.record(v.any()))
       })
@@ -218,6 +253,11 @@ export let skillController = app.controller({
         input: {
           name: ctx.input.name,
           description: ctx.input.description,
+          clientName: ctx.input.clientName,
+          clientDescription: ctx.input.clientDescription,
+          license: ctx.input.license,
+          compatibility: ctx.input.compatibility,
+          clientMetadata: ctx.input.clientMetadata,
           metadata: ctx.input.metadata,
           privateMetadata: ctx.input.privateMetadata
         }

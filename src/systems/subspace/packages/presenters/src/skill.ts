@@ -13,21 +13,29 @@ import type {
 import { integrationPreviewPresenter } from './integration';
 import { providerPreviewPresenter } from './provider';
 
-export let skillPreviewPresenter = (skill: Skill) => ({
-  object: 'skill',
+export let skillPreviewPresenter = (skill: Skill) => {
+  return {
+    object: 'skill',
 
-  id: skill.id,
-  status: skill.status,
+    id: skill.id,
+    status: skill.status,
 
-  slug: skill.slug,
-  name: skill.name,
-  description: skill.description,
-  metadata: skill.metadata,
-  privateMetadata: skill.privateMetadata,
+    slug: skill.slug,
+    name: skill.name,
+    description: skill.description,
+    metadata: skill.metadata,
+    privateMetadata: skill.privateMetadata,
 
-  createdAt: skill.createdAt,
-  updatedAt: skill.updatedAt
-});
+    clientName: skill.clientName,
+    clientDescription: skill.clientDescription,
+    clientMetadata: skill.clientMetadata,
+    license: skill.license,
+    compatibility: skill.compatibility,
+
+    createdAt: skill.createdAt,
+    updatedAt: skill.updatedAt
+  };
+};
 
 export let skillPresenter = (
   skill: Skill & {
