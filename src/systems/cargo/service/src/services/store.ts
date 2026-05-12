@@ -85,6 +85,13 @@ class StoreServiceImpl {
     return name || 'template-item';
   }
 
+  private inferMarkdownTitle(content: string) {
+    let firstLine = content.match(/^[^\r\n]*/)?.[0] ?? '';
+    if (!firstLine.startsWith('#')) return undefined;
+
+    return firstLine.replace(/^#+\s*/, '').trim() || undefined;
+  }
+
   private decodeStoreTemplateItemContent(item: StoreTemplateRecord['items'][number]) {
     if (item.kind === 'directory' || item.content === null || item.encoding === null) {
       throw new ServiceError(
@@ -139,12 +146,14 @@ class StoreServiceImpl {
       let name = this.getStoreTemplateItemName(item.path);
 
       if (item.kind === 'document') {
+        let documentContent = content.toString('utf8');
+
         await documentService.createDocument({
           tenant: d.tenant,
           environment: d.environment,
           input: {
-            title: name,
-            content: content.toString('utf8'),
+            title: item.title ?? this.inferMarkdownTitle(documentContent) ?? name,
+            content: documentContent,
             actorId: d.actor?.id,
             store: {
               id: d.store.id,
@@ -157,12 +166,13 @@ class StoreServiceImpl {
       }
 
       let fileStoreId = `template_${generatePlainId(20)}`;
+      let mimeType = item.mimeType ?? 'application/octet-stream';
 
       await getStorage().putObject(
         getCargoFilesBucketName(),
         fileStoreId,
         new Blob([content]),
-        'application/octet-stream'
+        mimeType
       );
 
       await fileService.createFile({
@@ -172,7 +182,7 @@ class StoreServiceImpl {
         storeId: fileStoreId,
         input: {
           name,
-          mimeType: 'application/octet-stream',
+          mimeType,
           size: content.length,
           title: name,
           actorId: d.actor?.id,
@@ -241,11 +251,7 @@ class StoreServiceImpl {
         });
       }
 
-      return (await db.store.findUnique({
-        where: {
-          id: createdStore.id
-        }
-      }))!;
+      return createdStore;
     });
   }
 
@@ -312,11 +318,7 @@ class StoreServiceImpl {
       actor: d.input.actor
     });
 
-    return (await db.store.findUnique({
-      where: {
-        id: createdStore.id
-      }
-    }))!;
+    return createdStore;
   }
 
   async listStores(d: CargoTenantEnvironment & StoreServiceAccessInput) {
@@ -418,7 +420,7 @@ class StoreServiceImpl {
     return await withTransaction(async db => {
       let lastEditedAt = new Date();
 
-      await db.store.update({
+      let updatedStore = await db.store.update({
         where: {
           id: d.store.id
         },
@@ -433,11 +435,7 @@ class StoreServiceImpl {
         at: lastEditedAt
       });
 
-      return (await db.store.findUnique({
-        where: {
-          id: d.store.id
-        }
-      }))!;
+      return updatedStore;
     });
   }
 
@@ -507,11 +505,7 @@ class StoreServiceImpl {
         storeOid: clonedStore.oid
       });
 
-      return (await db.store.findUnique({
-        where: {
-          id: clonedStore.id
-        }
-      }))!;
+      return clonedStore;
     });
   }
 

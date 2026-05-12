@@ -1,11 +1,17 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { normalizeArrayParam } from '../../../../../backend/apis/core/src/lib/normalizeArrayParam';
+import { getSignedFileDownloadUrl } from '../lib/signedDownloadUrl';
 import { filePresenter } from '../presenters';
 import { fileService } from '../services';
 import { app } from './_app';
 import { storePermissionsSchema, storeShortcutSchema } from './document';
 import { tenantApp } from './tenant';
+
+let filePresenterWithSignedDownloadUrl = async (file: Parameters<typeof filePresenter>[0]) =>
+  filePresenter(file, {
+    signedDownloadUrl: await getSignedFileDownloadUrl(file)
+  });
 
 export let fileApp = tenantApp.use(async ctx => {
   let fileId = ctx.body.fileId;
@@ -59,7 +65,7 @@ export let fileController = app.controller({
         }
       });
 
-      return filePresenter(file);
+      return await filePresenterWithSignedDownloadUrl(file);
     }),
 
   list: tenantApp
@@ -107,17 +113,18 @@ export let fileController = app.controller({
         overridePermissions: v.optional(v.boolean())
       })
     )
-    .do(async ctx =>
-      filePresenter(
-        await fileService.getFileById({
-          tenant: ctx.tenant,
-          environment: ctx.environment,
-          fileId: ctx.input.fileId,
-          actorId: ctx.input.actorId,
-          defaultPermissions: ctx.input.defaultPermissions,
-          overridePermissions: ctx.input.overridePermissions
-        })
-      )
+    .do(
+      async ctx =>
+        await filePresenterWithSignedDownloadUrl(
+          await fileService.getFileById({
+            tenant: ctx.tenant,
+            environment: ctx.environment,
+            fileId: ctx.input.fileId,
+            actorId: ctx.input.actorId,
+            defaultPermissions: ctx.input.defaultPermissions,
+            overridePermissions: ctx.input.overridePermissions
+          })
+        )
     ),
 
   update: fileApp
@@ -138,7 +145,7 @@ export let fileController = app.controller({
         }
       });
 
-      return filePresenter(file);
+      return await filePresenterWithSignedDownloadUrl(file);
     }),
 
   delete: tenantApp
@@ -163,6 +170,6 @@ export let fileController = app.controller({
         overridePermissions: ctx.input.overridePermissions
       });
 
-      return filePresenter(file);
+      return await filePresenterWithSignedDownloadUrl(file);
     })
 });

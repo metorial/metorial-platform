@@ -6,6 +6,7 @@ process.env.OBJECT_STORAGE_URL ??= 'http://object-storage.test';
 process.env.FILES_BUCKET_NAME ??= 'cargo-files-test';
 process.env.DOWNLOAD_PUBLIC_URL ??= 'http://cargo-content.test';
 process.env.CARGO_REGION ??= 'tst';
+process.env.SIGNED_DOWNLOAD_URL_TOKEN_SECRET ??= 'cargo-download-test-secret';
 
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../../prisma/generated/client';

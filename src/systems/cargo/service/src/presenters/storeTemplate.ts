@@ -28,6 +28,7 @@ export let storeTemplateDetailPresenter = (storeTemplate: StoreTemplateRecord) =
     type: item.kind,
     path: item.path,
     content: item.content ?? undefined,
-    encoding: presentStoreTemplateEncoding(item.encoding)
+    encoding: presentStoreTemplateEncoding(item.encoding),
+    title: item.title ?? undefined
   }))
 });

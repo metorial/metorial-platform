@@ -21,6 +21,8 @@ export type StoreTemplateItemInput = {
   type: 'file' | 'document' | 'directory';
   content?: string;
   encoding?: 'utf-8' | 'base64';
+  mimeType?: string;
+  title?: string;
 };
 
 export type StoreTemplateCreateInput = {
@@ -116,6 +118,8 @@ type NormalizedStoreTemplateItem = {
   path: string;
   content?: string;
   encoding?: 'utf_8' | 'base64';
+  mimeType?: string;
+  title?: string;
 };
 
 class StoreTemplateServiceImpl {
@@ -235,6 +239,21 @@ class StoreTemplateServiceImpl {
     }
   }
 
+  private normalizeDocumentTitle(title: string | undefined) {
+    if (title === undefined) return undefined;
+
+    let normalizedTitle = title.trim();
+    if (!normalizedTitle) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Document template item title cannot be empty'
+        })
+      );
+    }
+
+    return normalizedTitle;
+  }
+
   private normalizeStandaloneItem(d: {
     item: StoreTemplateItemInput;
   }): NormalizedStoreTemplateItem {
@@ -244,10 +263,15 @@ class StoreTemplateServiceImpl {
     }).path;
 
     if (d.item.type === 'directory') {
-      if (d.item.content !== undefined || d.item.encoding !== undefined) {
+      if (
+        d.item.content !== undefined ||
+        d.item.encoding !== undefined ||
+        d.item.mimeType !== undefined ||
+        d.item.title !== undefined
+      ) {
         throw new ServiceError(
           badRequestError({
-            message: 'Directory template items cannot include content or encoding'
+            message: 'Directory template items cannot include content, encoding, mimeType, or title'
           })
         );
       }
@@ -266,11 +290,29 @@ class StoreTemplateServiceImpl {
       );
     }
 
+    if (d.item.type !== 'file' && d.item.mimeType !== undefined) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Only file template items can include mimeType'
+        })
+      );
+    }
+
+    if (d.item.type !== 'document' && d.item.title !== undefined) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Only document template items can include title'
+        })
+      );
+    }
+
     return {
       kind: d.item.type,
       path,
       content: d.item.content,
-      encoding: d.item.encoding === 'utf-8' ? 'utf_8' : 'base64'
+      encoding: d.item.encoding === 'utf-8' ? 'utf_8' : 'base64',
+      mimeType: d.item.mimeType,
+      title: this.normalizeDocumentTitle(d.item.title)
     };
   }
 
@@ -306,7 +348,9 @@ class StoreTemplateServiceImpl {
         kind: item.kind,
         path: item.path,
         content: item.content ?? null,
-        encoding: item.encoding ?? null
+        encoding: item.encoding ?? null,
+        mimeType: item.mimeType ?? null,
+        title: item.title ?? null
       };
     });
   }

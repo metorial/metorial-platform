@@ -10,7 +10,9 @@ let storeTemplateItemSchema = v.object({
   path: v.string(),
   type: v.enumOf(['file', 'document', 'directory']),
   content: v.optional(v.string()),
-  encoding: v.optional(v.enumOf(['utf-8', 'base64']))
+  encoding: v.optional(v.enumOf(['utf-8', 'base64'])),
+  mimeType: v.optional(v.string()),
+  title: v.optional(v.string())
 });
 
 let resolveOptionalStoreTemplateScope = async (d: {

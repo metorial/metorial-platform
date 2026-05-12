@@ -50,6 +50,7 @@ describe('cargo skill.e2e', () => {
     let created = await cargoClient.skill.create({
       tenantId: tenant.id,
       environmentId: environment.id,
+      skillId: 'csk_support',
       actorId: actor.id,
       name: 'Support'
     });
@@ -366,6 +367,67 @@ describe('cargo skill.e2e', () => {
     expect(instantiatedItems.items.map(item => item.path)).not.toContain('/docs/later.md');
   });
 
+  it('preserves standalone file template mime types when instantiating skills', async () => {
+    let { tenant, environment } = await createScope();
+    let actor = await createActor(tenant.id, {
+      identifier: 'skill-template-file-creator',
+      name: 'Skill Template File Creator'
+    });
+    let skillTemplate = await cargoClient.skillTemplate.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillTemplateId: 'cskt_standalone_file_template',
+      name: 'Standalone File Template',
+      items: [
+        {
+          path: '/assets/',
+          type: 'directory'
+        },
+        {
+          path: '/assets/readme.txt',
+          type: 'file',
+          content: 'template file content',
+          encoding: 'utf-8',
+          mimeType: 'text/plain'
+        }
+      ]
+    });
+
+    let instantiatedSkill = await cargoClient.skill.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillId: 'csk_from_standalone_file_template',
+      actorId: actor.id,
+      parentSkillTemplateId: skillTemplate.id,
+      name: 'From Standalone File Template'
+    });
+    let skillTemplateRecord = await db.skillTemplate.findUniqueOrThrow({
+      where: {
+        id: skillTemplate.id
+      }
+    });
+    let templateItemRecord = await db.storeTemplateItem.findFirst({
+      where: {
+        storeTemplateOid: skillTemplateRecord.storeTemplateOid,
+        path: '/assets/readme.txt'
+      }
+    });
+    let createdFileItem = await db.storeItem.findFirst({
+      where: {
+        store: {
+          id: instantiatedSkill.storeId
+        },
+        path: '/assets/readme.txt'
+      },
+      include: {
+        file: true
+      }
+    });
+
+    expect(templateItemRecord?.mimeType).toBe('text/plain');
+    expect(createdFileItem?.file?.fileType).toBe('text/plain');
+  });
+
   it('rejects skill template creation when more than one source input is provided', async () => {
     let { tenant, environment } = await createScope();
     let skill = await cargoClient.skill.create({
@@ -379,6 +441,7 @@ describe('cargo skill.e2e', () => {
       cargoClient.skillTemplate.create({
         tenantId: tenant.id,
         environmentId: environment.id,
+        skillTemplateId: 'cskt_invalid_template_source',
         skillId: skill.id,
         storeId: skill.storeId,
         name: 'Invalid Template Source'
@@ -400,6 +463,7 @@ describe('cargo skill.e2e', () => {
     });
 
     let globalTemplate = await cargoClient.skillTemplate.create({
+      skillTemplateId: 'cskt_global_skill_template',
       name: 'Global Skill Template',
       items: [
         {
@@ -413,6 +477,7 @@ describe('cargo skill.e2e', () => {
     let scopedTemplate = await cargoClient.skillTemplate.create({
       tenantId: tenant.id,
       environmentId: environment.id,
+      skillTemplateId: 'cskt_scoped_skill_template',
       name: 'Scoped Skill Template',
       items: [
         {

@@ -9,7 +9,8 @@ export let env = createValidatedEnv({
     DATABASE_URL: v.string(),
     REDIS_URL: v.string(),
     CARGO_REGION: v.optional(v.string()),
-    DOWNLOAD_PUBLIC_URL: v.optional(v.string())
+    DOWNLOAD_PUBLIC_URL: v.optional(v.string()),
+    SIGNED_DOWNLOAD_URL_TOKEN_SECRET: v.string()
   },
 
   storage: {

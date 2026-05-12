@@ -112,6 +112,28 @@ describe('cargo http.e2e', () => {
 
     expect(await response.text()).toBe('hello-cargo');
     expect(response.headers.get('Content-Type')).toBe('image/png');
+
+    fetchRouter.registerRoute(
+      getFileDownloadUrl({
+        contentEndpoint: 'http://cargo-content.test',
+        fileId: uploaded.id,
+        key: link.key,
+        download: true
+      }),
+      request => cargoContentApi.fetch(request)
+    );
+
+    let downloadResponse = await downloadFile({
+      contentEndpoint: 'http://cargo-content.test',
+      fileId: uploaded.id,
+      key: link.key,
+      download: true
+    });
+
+    expect(await downloadResponse.text()).toBe('hello-cargo');
+    expect(downloadResponse.headers.get('Content-Disposition')).toBe(
+      `attachment; filename="avatar.png"; filename*=UTF-8''avatar.png`
+    );
   });
 
   it('serves live document content without object storage for document-backed files', async () => {

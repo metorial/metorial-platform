@@ -6,7 +6,7 @@ import type { Context } from '@lowerdeck/hono';
 import {
   documentService,
   environmentService,
-  fileLinkService,
+  fileDownloadService,
   fileService,
   tenantService
 } from './services';
@@ -109,7 +109,9 @@ let createFileUploadHandler = async (c: Context) =>
           size: file.size,
           title: (body.get('title') as string | null) ?? undefined,
           actorId: typeof actorId == 'string' ? actorId : undefined,
-          defaultPermissions: defaultPermissions.length ? (defaultPermissions as any) : undefined,
+          defaultPermissions: defaultPermissions.length
+            ? (defaultPermissions as any)
+            : undefined,
           overridePermissions:
             typeof overridePermissions == 'string'
               ? overridePermissions === 'true'
@@ -154,6 +156,12 @@ let getDocumentContentType = (contentType?: string | null) =>
     ? contentType
     : 'text/plain; charset=utf-8';
 
+let getContentDispositionHeader = (fileName: string) => {
+  let fallbackName = fileName.replace(/["\\\r\n]/g, '_').replace(/[^\x20-\x7e]/g, '_');
+
+  return `attachment; filename="${fallbackName}"; filename*=UTF-8''${encodeURIComponent(fileName)}`;
+};
+
 let getFileContentHandler = async (c: Context) => {
   let { fileId, key } = c.req.param();
   if (!fileId || !key) {
@@ -164,7 +172,7 @@ let getFileContentHandler = async (c: Context) => {
     );
   }
 
-  let { link, file } = await fileLinkService.getFileLinkByKey({
+  let { link, file } = await fileDownloadService.getFileByDownloadKey({
     fileId,
     key
   });
@@ -176,6 +184,10 @@ let getFileContentHandler = async (c: Context) => {
       })
     );
   }
+  let shouldDownload = new URL(c.req.url).searchParams.has('download');
+  let contentDisposition = shouldDownload
+    ? getContentDispositionHeader(file.fileName)
+    : undefined;
 
   let document = await documentService.getDocumentByFileId({
     fileId: file.id
@@ -185,7 +197,8 @@ let getFileContentHandler = async (c: Context) => {
       headers: {
         'Content-Type': getDocumentContentType(file.fileType),
         'Cache-Control': 'private, no-store',
-        'X-Content-Type-Options': 'nosniff'
+        'X-Content-Type-Options': 'nosniff',
+        ...(contentDisposition ? { 'Content-Disposition': contentDisposition } : {})
       }
     });
   }
@@ -199,7 +212,8 @@ let getFileContentHandler = async (c: Context) => {
       'Cache-Control': link.expiresAt
         ? 'private, no-store'
         : 'public, max-age=31536000, immutable',
-      'X-Content-Type-Options': 'nosniff'
+      'X-Content-Type-Options': 'nosniff',
+      ...(contentDisposition ? { 'Content-Disposition': contentDisposition } : {})
     }
   });
 };

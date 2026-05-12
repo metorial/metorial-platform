@@ -149,7 +149,13 @@ export let getFileDownloadUrl = (d: {
   contentEndpoint: string;
   fileId: string;
   key: string;
-}) => `${d.contentEndpoint.replace(/\/$/, '')}/files/${d.fileId}/${d.key}`;
+  download?: boolean;
+}) => {
+  let url = `${d.contentEndpoint.replace(/\/$/, '')}/files/${d.fileId}/${d.key}`;
+  if (d.download) url += '?download';
+
+  return url;
+};
 
 export let getDocumentLiveUrl = (
   endpoints: CargoDocumentLiveEndpoints,
@@ -215,6 +221,7 @@ export let downloadFile = async (d: {
   contentEndpoint: string;
   fileId: string;
   key: string;
+  download?: boolean;
   headers?: CargoHeaders;
 }) => {
   let response = await fetch(getFileDownloadUrl(d), {

@@ -9,6 +9,9 @@ export let filePresenter = (
     effectiveStoreId?: string;
     resolvedTitle?: string;
     resolvedUpdatedAt?: Date;
+  },
+  opts?: {
+    signedDownloadUrl?: string;
   }
 ) => ({
   object: 'cargo#file',
@@ -22,6 +25,7 @@ export let filePresenter = (
   fileType: file.fileType,
   title: file.resolvedTitle ?? file.title ?? file.fileName,
   purpose: filePurposePresenter(file.purpose),
+  signedDownloadUrl: opts?.signedDownloadUrl,
   createdAt: file.createdAt,
   updatedAt: file.resolvedUpdatedAt ?? file.updatedAt
 });

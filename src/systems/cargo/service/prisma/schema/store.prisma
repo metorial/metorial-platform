@@ -106,6 +106,8 @@ model StoreTemplateItem {
 
   content  String?
   encoding StoreTemplateItemEncoding?
+  mimeType String?
+  title    String?
 
   storeTemplateOid BigInt
   storeTemplate    StoreTemplate @relation(fields: [storeTemplateOid], references: [oid], onDelete: Cascade)

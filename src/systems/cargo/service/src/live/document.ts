@@ -1,5 +1,5 @@
-import { createHono } from '@lowerdeck/hono';
 import { internalServerError, isServiceError } from '@lowerdeck/error';
+import { createHono } from '@lowerdeck/hono';
 import { generatePlainId } from '@lowerdeck/id';
 import { upgradeWebSocket, websocket } from 'hono/bun';
 import type { WSContext } from 'hono/ws';
@@ -63,9 +63,11 @@ let getActiveSessionIds = (documentId: string) => {
 };
 
 let getActiveActorIds = (documentId: string) =>
-  [...new Set(getActiveSessionIds(documentId).map(sessionId => liveSessions.get(sessionId)?.actorId))].filter(
-    (actorId): actorId is string => !!actorId
-  );
+  [
+    ...new Set(
+      getActiveSessionIds(documentId).map(sessionId => liveSessions.get(sessionId)?.actorId)
+    )
+  ].filter((actorId): actorId is string => !!actorId);
 
 let send = (ws: WSContext<any>, type: string, data: any) => {
   ws.send(JSON.stringify({ type, data }));
@@ -144,7 +146,11 @@ let broadcastParticipantList = async (documentId: string) => {
           })
         )
           .map(documentParticipantPresenter)
-          .sort((left, right) => left.actor.name.localeCompare(right.actor.name) || left.id.localeCompare(right.id));
+          .sort(
+            (left, right) =>
+              left.actor.name.localeCompare(right.actor.name) ||
+              left.id.localeCompare(right.id)
+          );
 
   let serialized = JSON.stringify(payload);
   if (lastParticipantPayloadByDocumentId.get(documentId) === serialized) {
@@ -259,10 +265,7 @@ export let documentLiveApi = createHono()
               return;
             }
 
-            if (
-              parsed.type !== 'document_update' &&
-              parsed.type !== 'document_title_update'
-            ) {
+            if (parsed.type !== 'document_update' && parsed.type !== 'document_title_update') {
               throw new Error('Invalid live document payload');
             }
 
@@ -311,7 +314,8 @@ export let documentLiveApi = createHono()
             let childDocuments = await documentService.listLinkedChildDocumentsForLiveSync({
               parentDocumentId: updatedDocument.id
             });
-            let sharedContent = updatedDocument.resolvedContent ?? updatedDocument.content.content;
+            let sharedContent =
+              updatedDocument.resolvedContent ?? updatedDocument.content.content;
             let sharedUpdatedAt = updatedDocument.draftUpdatedAt ?? updatedDocument.updatedAt;
 
             for (let childDocument of childDocuments) {

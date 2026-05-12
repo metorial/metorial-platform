@@ -7,6 +7,7 @@ export * from './documentParticipant';
 export * from './documentVersion';
 export * from './environment';
 export * from './file';
+export * from './fileDownload';
 export * from './fileLink';
 export * from './filePurpose';
 export * from './fileReference';
