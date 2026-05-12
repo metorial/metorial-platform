@@ -1,3 +1,4 @@
+import React from 'react';
 import type { AssistantLiveStateItem } from '@metorial/state';
 import { Error } from '@metorial/ui';
 import {

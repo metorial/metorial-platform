@@ -5,22 +5,19 @@ import type {
 } from '@metorial/state';
 import type { AssistantTranscriptEntry } from './types';
 
-let isRecord = (value: unknown): value is Record<string, unknown> =>
-  !!value && typeof value == 'object' && !Array.isArray(value);
-
-let getStateItems = (message: AssistantConversationMessage): AssistantLiveStateItem[] => {
-  let items = isRecord(message.state) ? message.state.items : null;
-  return Array.isArray(items) ? (items as AssistantLiveStateItem[]) : [];
+let getPersistedMessageItems = (message: AssistantConversationMessage): AssistantLiveStateItem[] => {
+  return Array.isArray((message as any).items)
+    ? ((message as any).items as AssistantLiveStateItem[])
+    : [];
 };
 
 export let getMessageItem = (
   message: AssistantConversationMessage
 ): Extract<AssistantLiveStateItem, { type: 'message' }> | null => {
-  let items = getStateItems(message);
-  let messageItem = items.find(item => item.type == 'message');
+  let messageItem = getPersistedMessageItems(message).find(item => item.type == 'message');
 
   if (messageItem?.type == 'message') {
-    return messageItem;
+    return messageItem as any;
   }
 
   return null;
@@ -46,13 +43,11 @@ export let getTranscriptEntries = (
   let entries: AssistantTranscriptEntry[] = [];
 
   for (let message of messages) {
-    let items = getStateItems(message);
-
-    for (let item of items) {
+    for (let item of getPersistedMessageItems(message)) {
       entries.push({
         id: `${message.id}:${item.id}`,
         source: 'persisted',
-        item,
+        item: item as any,
         message
       });
     }

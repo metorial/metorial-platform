@@ -1,27 +1,26 @@
 import type {
-  DashboardOrganizationsAssistantsGetOutput,
-  DashboardOrganizationsAssistantsListQuery,
-  DashboardOrganizationsConversationsCreateBody,
-  DashboardOrganizationsConversationsGetOutput,
-  DashboardOrganizationsConversationsListQuery,
-  DashboardOrganizationsConversationsMessagesCreateBody,
-  DashboardOrganizationsConversationsMessagesGetOutput,
-  DashboardOrganizationsConversationsMessagesListQuery
-} from '@metorial/dashboard-sdk';
-import { createLoader } from '@metorial/data-hooks';
-import type {
   State as AssistantRunState,
   StateItem as AssistantRunStateItem
 } from '@metorial-platform-systems/synthesis-client';
+import type {
+  DashboardInstanceAssistantsGetOutput,
+  DashboardInstanceAssistantsListQuery,
+  DashboardInstanceConversationsCreateBody,
+  DashboardInstanceConversationsGetOutput,
+  DashboardInstanceConversationsListQuery,
+  DashboardInstanceConversationsMessagesCreateBody,
+  DashboardInstanceConversationsMessagesGetOutput,
+  DashboardInstanceConversationsMessagesListQuery
+} from '@metorial/dashboard-sdk';
+import { createLoader } from '@metorial/data-hooks';
 import { useEffect } from 'react';
 import { autoPaginate } from '../../lib/autoPaginate';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
 
-export type Assistant = DashboardOrganizationsAssistantsGetOutput;
-export type AssistantConversation = DashboardOrganizationsConversationsGetOutput;
-export type AssistantConversationMessage =
-  DashboardOrganizationsConversationsMessagesGetOutput;
+export type Assistant = DashboardInstanceAssistantsGetOutput;
+export type AssistantConversation = DashboardInstanceConversationsGetOutput;
+export type AssistantConversationMessage = DashboardInstanceConversationsMessagesGetOutput;
 export type AssistantLiveState = AssistantRunState;
 export type AssistantLiveStateItem = AssistantRunStateItem;
 
@@ -59,15 +58,15 @@ let usePollingRefetch = (
 export let assistantsLoader = createLoader({
   name: 'assistants',
   parents: [],
-  fetch: (i: AssistantScope & DashboardOrganizationsAssistantsListQuery) =>
-    withAuth(sdk => sdk.assistant.assistants.list(i.organizationId, i.instanceId, i)),
+  fetch: (i: AssistantScope & DashboardInstanceAssistantsListQuery) =>
+    withAuth(sdk => sdk.assistant.assistants.list(i.instanceId, i)),
   mutators: {}
 });
 
 export let useAssistants = (
   organizationId: string | null | undefined,
   instanceId: string | null | undefined,
-  query?: DashboardOrganizationsAssistantsListQuery | null
+  query?: DashboardInstanceAssistantsListQuery | null
 ) => {
   return usePaginator(
     pagination =>
@@ -89,9 +88,7 @@ export let assistantLoader = createLoader({
   name: 'assistant',
   parents: [assistantsLoader],
   fetch: (i: AssistantScope & { assistantId: string }) =>
-    withAuth(sdk =>
-      sdk.assistant.assistants.get(i.organizationId, i.instanceId, i.assistantId)
-    ),
+    withAuth(sdk => sdk.assistant.assistants.get(i.instanceId, i.assistantId)),
   mutators: {}
 });
 
@@ -122,15 +119,15 @@ export let useFixedAssistant = (
 export let conversationsLoader = createLoader({
   name: 'assistantConversations',
   parents: [],
-  fetch: (i: AssistantScope & DashboardOrganizationsConversationsListQuery) =>
-    withAuth(sdk => sdk.assistant.conversations.list(i.organizationId, i.instanceId, i)),
+  fetch: (i: AssistantScope & DashboardInstanceConversationsListQuery) =>
+    withAuth(sdk => sdk.assistant.conversations.list(i.instanceId, i)),
   mutators: {}
 });
 
 export let useConversations = (
   organizationId: string | null | undefined,
   instanceId: string | null | undefined,
-  query?: DashboardOrganizationsConversationsListQuery | null
+  query?: DashboardInstanceConversationsListQuery | null
 ) => {
   return usePaginator(
     pagination =>
@@ -149,8 +146,8 @@ export let useConversations = (
 };
 
 export let useCreateConversation = conversationsLoader.createExternalMutator(
-  (i: DashboardOrganizationsConversationsCreateBody & AssistantScope) =>
-    withAuth(sdk => sdk.assistant.conversations.create(i.organizationId, i.instanceId, i)),
+  (i: DashboardInstanceConversationsCreateBody & AssistantScope) =>
+    withAuth(sdk => sdk.assistant.conversations.create(i.instanceId, i)),
   {
     disableToast: true
   }
@@ -160,13 +157,7 @@ export let conversationLoader = createLoader({
   name: 'assistantConversation',
   parents: [conversationsLoader],
   fetch: (i: ConversationScope) =>
-    withAuth(sdk =>
-      sdk.assistant.conversations.get(
-        i.organizationId,
-        i.instanceId,
-        i.assistantConversationId
-      )
-    ),
+    withAuth(sdk => sdk.assistant.conversations.get(i.instanceId, i.assistantConversationId)),
   mutators: {}
 });
 
@@ -189,14 +180,9 @@ export let useConversation = (
 export let conversationMessagesLoader = createLoader({
   name: 'assistantConversationMessages',
   parents: [conversationLoader],
-  fetch: (i: ConversationScope & DashboardOrganizationsConversationsMessagesListQuery) =>
+  fetch: (i: ConversationScope & DashboardInstanceConversationsMessagesListQuery) =>
     withAuth(sdk =>
-      sdk.assistant.conversations.messages.list(
-        i.organizationId,
-        i.instanceId,
-        i.assistantConversationId,
-        i
-      )
+      sdk.assistant.conversations.messages.list(i.instanceId, i.assistantConversationId, i)
     ),
   mutators: {}
 });
@@ -205,7 +191,7 @@ export let useConversationMessages = (
   organizationId: string | null | undefined,
   instanceId: string | null | undefined,
   assistantConversationId: string | null | undefined,
-  query?: DashboardOrganizationsConversationsMessagesListQuery | null
+  query?: DashboardInstanceConversationsMessagesListQuery | null
 ) => {
   return usePaginator(
     pagination =>
@@ -232,7 +218,6 @@ export let conversationMessageLoader = createLoader({
   fetch: (i: ConversationScope & { assistantMessageId: string }) =>
     withAuth(sdk =>
       sdk.assistant.conversations.messages.get(
-        i.organizationId,
         i.instanceId,
         i.assistantConversationId,
         i.assistantMessageId
@@ -260,14 +245,9 @@ export let useConversationMessage = (
 };
 
 export let useCreateConversationMessage = conversationMessagesLoader.createExternalMutator(
-  (i: DashboardOrganizationsConversationsMessagesCreateBody & ConversationScope) =>
+  (i: DashboardInstanceConversationsMessagesCreateBody & ConversationScope) =>
     withAuth(sdk =>
-      sdk.assistant.conversations.messages.create(
-        i.organizationId,
-        i.instanceId,
-        i.assistantConversationId,
-        i
-      )
+      sdk.assistant.conversations.messages.create(i.instanceId, i.assistantConversationId, i)
     ),
   {
     disableToast: true
@@ -279,21 +259,16 @@ export let allConversationMessagesLoader = createLoader({
   parents: [conversationLoader, conversationMessagesLoader],
   fetch: (
     i: ConversationScope &
-      Omit<DashboardOrganizationsConversationsMessagesListQuery, 'after' | 'before' | 'cursor'>
+      Omit<DashboardInstanceConversationsMessagesListQuery, 'after' | 'before' | 'cursor'>
   ) =>
     withAuth(sdk =>
       autoPaginate(cursor =>
-        sdk.assistant.conversations.messages.list(
-          i.organizationId,
-          i.instanceId,
-          i.assistantConversationId,
-          {
-            ...i,
-            ...cursor,
-            limit: i.limit ?? 100,
-            order: i.order ?? 'asc'
-          }
-        )
+        sdk.assistant.conversations.messages.list(i.instanceId, i.assistantConversationId, {
+          ...i,
+          ...cursor,
+          limit: i.limit ?? 100,
+          order: i.order ?? 'asc'
+        })
       )
     ),
   mutators: {}
@@ -304,7 +279,7 @@ export let useAllConversationMessages = (
   instanceId: string | null | undefined,
   assistantConversationId: string | null | undefined,
   query?: Omit<
-    DashboardOrganizationsConversationsMessagesListQuery,
+    DashboardInstanceConversationsMessagesListQuery,
     'after' | 'before' | 'cursor'
   > &
     PollingOptions

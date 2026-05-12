@@ -1,3 +1,4 @@
+import React from 'react';
 import type { AssistantConversationMessage, AssistantLiveStateItem } from '@metorial/state';
 import { Button, Error, Text, theme, useCopy } from '@metorial/ui';
 import {

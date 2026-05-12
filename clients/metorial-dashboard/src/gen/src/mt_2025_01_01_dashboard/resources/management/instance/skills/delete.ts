@@ -7,6 +7,11 @@ export type ManagementInstanceSkillsDeleteOutput = {
   slug: string;
   name: string;
   description: string | null;
+  clientName: string;
+  clientDescription: string | null;
+  clientMetadata: Record<string, any> | null;
+  license: string | null;
+  compatibility: string | null;
   metadata: Record<string, any>;
   storeId: string;
   hierarchy: {
@@ -62,6 +67,14 @@ export let mapManagementInstanceSkillsDeleteOutput =
     slug: mtMap.objectField('slug', mtMap.passthrough()),
     name: mtMap.objectField('name', mtMap.passthrough()),
     description: mtMap.objectField('description', mtMap.passthrough()),
+    clientName: mtMap.objectField('client_name', mtMap.passthrough()),
+    clientDescription: mtMap.objectField(
+      'client_description',
+      mtMap.passthrough()
+    ),
+    clientMetadata: mtMap.objectField('client_metadata', mtMap.passthrough()),
+    license: mtMap.objectField('license', mtMap.passthrough()),
+    compatibility: mtMap.objectField('compatibility', mtMap.passthrough()),
     metadata: mtMap.objectField('metadata', mtMap.passthrough()),
     storeId: mtMap.objectField('store_id', mtMap.passthrough()),
     hierarchy: mtMap.objectField(

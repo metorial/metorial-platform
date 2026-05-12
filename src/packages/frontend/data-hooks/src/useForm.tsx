@@ -6,20 +6,6 @@ import { useFormik } from 'formik';
 import { useEffect, useMemo, useRef } from 'react';
 import * as Yup from 'yup';
 
-// any
-// array
-// boolean
-// data
-// enum
-// intersection
-// literal
-// null
-// number
-// object
-// record
-// string
-// union
-
 let validationTypeToYup = (t: ValidationType<any>): Yup.Schema<any> => {
   let elementary = (() => {
     if (t.type == 'any') return Yup.mixed();

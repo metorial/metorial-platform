@@ -7,6 +7,11 @@ export type ManagementInstanceSkillsUpdateOutput = {
   slug: string;
   name: string;
   description: string | null;
+  clientName: string;
+  clientDescription: string | null;
+  clientMetadata: Record<string, any> | null;
+  license: string | null;
+  compatibility: string | null;
   metadata: Record<string, any>;
   storeId: string;
   hierarchy: {
@@ -62,6 +67,14 @@ export let mapManagementInstanceSkillsUpdateOutput =
     slug: mtMap.objectField('slug', mtMap.passthrough()),
     name: mtMap.objectField('name', mtMap.passthrough()),
     description: mtMap.objectField('description', mtMap.passthrough()),
+    clientName: mtMap.objectField('client_name', mtMap.passthrough()),
+    clientDescription: mtMap.objectField(
+      'client_description',
+      mtMap.passthrough()
+    ),
+    clientMetadata: mtMap.objectField('client_metadata', mtMap.passthrough()),
+    license: mtMap.objectField('license', mtMap.passthrough()),
+    compatibility: mtMap.objectField('compatibility', mtMap.passthrough()),
     metadata: mtMap.objectField('metadata', mtMap.passthrough()),
     storeId: mtMap.objectField('store_id', mtMap.passthrough()),
     hierarchy: mtMap.objectField(
@@ -146,6 +159,11 @@ export let mapManagementInstanceSkillsUpdateOutput =
 export type ManagementInstanceSkillsUpdateBody = {
   name?: string | undefined;
   description?: string | null | undefined;
+  clientName?: string | undefined;
+  clientDescription?: string | undefined;
+  license?: string | null | undefined;
+  compatibility?: string | null | undefined;
+  clientMetadata?: Record<string, any> | null | undefined;
   metadata?: Record<string, any> | null | undefined;
 };
 
@@ -153,6 +171,14 @@ export let mapManagementInstanceSkillsUpdateBody =
   mtMap.object<ManagementInstanceSkillsUpdateBody>({
     name: mtMap.objectField('name', mtMap.passthrough()),
     description: mtMap.objectField('description', mtMap.passthrough()),
+    clientName: mtMap.objectField('client_name', mtMap.passthrough()),
+    clientDescription: mtMap.objectField(
+      'client_description',
+      mtMap.passthrough()
+    ),
+    license: mtMap.objectField('license', mtMap.passthrough()),
+    compatibility: mtMap.objectField('compatibility', mtMap.passthrough()),
+    clientMetadata: mtMap.objectField('client_metadata', mtMap.passthrough()),
     metadata: mtMap.objectField('metadata', mtMap.passthrough())
   });
 

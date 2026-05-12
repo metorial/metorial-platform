@@ -1,6 +1,6 @@
+import React, { useMemo } from 'react';
 import { Select, Text, theme } from '@metorial/ui';
 import { RiArrowUpLine } from '@remixicon/react';
-import { useMemo } from 'react';
 import TextareaAutosize from 'react-textarea-autosize';
 import styled from 'styled-components';
 import { AssistantSuggestions } from './suggestions';

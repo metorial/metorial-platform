@@ -296,6 +296,14 @@ export let listenToAssistantRunDeltas = async (d: {
 
   let persistedStatus = await getPersistedRunStatus();
   if (persistedStatus && !terminalMessage) {
+    if (!started) {
+      await emitPersistedSnapshot();
+    }
+
+    if (closed || terminalMessage) {
+      return close;
+    }
+
     await emitDoneAndClose(persistedStatus);
   }
 

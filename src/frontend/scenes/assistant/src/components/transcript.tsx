@@ -1,3 +1,4 @@
+import React from 'react';
 import type { AssistantConversationMessage, AssistantLiveState } from '@metorial/state';
 import { Text, theme } from '@metorial/ui';
 import styled from 'styled-components';

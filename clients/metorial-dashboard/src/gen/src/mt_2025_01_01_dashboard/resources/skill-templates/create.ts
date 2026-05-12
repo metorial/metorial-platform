@@ -126,13 +126,15 @@ export type SkillTemplatesCreateBody = {
   name: string;
   description?: string | undefined;
   metadata?: Record<string, any> | undefined;
+  fromSkillId?: string | undefined;
 };
 
 export let mapSkillTemplatesCreateBody = mtMap.object<SkillTemplatesCreateBody>(
   {
     name: mtMap.objectField('name', mtMap.passthrough()),
     description: mtMap.objectField('description', mtMap.passthrough()),
-    metadata: mtMap.objectField('metadata', mtMap.passthrough())
+    metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+    fromSkillId: mtMap.objectField('from_skill_Id', mtMap.passthrough())
   }
 );
 

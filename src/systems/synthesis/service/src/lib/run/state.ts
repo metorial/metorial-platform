@@ -367,13 +367,14 @@ export class AgentRunState {
       item = {
         id: createItemId(),
         type: 'message',
-        status: 'running',
+        status,
         message: {
           role: 'assistant',
-          parts: []
+          parts: [{ type: 'text', text }]
         }
       };
       this.state.items.push(item);
+      return;
     }
 
     appendTextPart(item.message, text);
@@ -404,10 +405,11 @@ export class AgentRunState {
       item = {
         id: createItemId(),
         type: 'reasoning',
-        status: 'running',
-        text: ''
+        status,
+        text
       };
       this.state.items.push(item);
+      return;
     }
 
     item.text += text;

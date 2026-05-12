@@ -1,8 +1,7 @@
+import React, { useEffect, useState, type ReactNode } from 'react';
 import { CodeBlock } from '@metorial/code';
 import { Text, theme } from '@metorial/ui';
 import { AnimatePresence, motion } from 'framer-motion';
-import type { ReactNode } from 'react';
-import { useEffect, useState } from 'react';
 import styled from 'styled-components';
 
 export let ToolSurfaceCard = styled.div<{ $status?: 'running' | 'completed' | 'failed' }>`

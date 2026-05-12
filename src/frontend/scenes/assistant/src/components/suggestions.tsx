@@ -1,3 +1,4 @@
+import React from 'react';
 import { theme } from '@metorial/ui';
 import styled from 'styled-components';
 import type { AssistantSuggestion } from './types';

@@ -1,6 +1,6 @@
+import React, { useMemo } from 'react';
 import type { AssistantLiveStateItem } from '@metorial/state';
 import { Error, theme } from '@metorial/ui';
-import { useMemo } from 'react';
 import styled from 'styled-components';
 import {
   getDisplayPath,

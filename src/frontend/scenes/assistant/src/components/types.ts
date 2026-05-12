@@ -31,3 +31,8 @@ export type AssistantTranscriptMessageMeta = {
   siblingIndex: number;
   siblingCount: number;
 };
+
+export type AssistantConversationNavigationState = {
+  initialPrompt?: string;
+  initialModelId?: string;
+} | null;

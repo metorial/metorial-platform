@@ -3,7 +3,7 @@ import {
   type JsonValue,
   type WireMessage
 } from '@metorial-platform-systems/synthesis-client';
-import type { DashboardOrganizationsConversationsMessagesListQuery } from '@metorial/dashboard-sdk';
+import type { DashboardInstanceConversationsMessagesListQuery } from '@metorial/dashboard-sdk';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { withAuth } from '../user';
 import type {
@@ -19,7 +19,7 @@ import {
 } from './loaders/assistant';
 
 export type AssistantHistoryMessageQuery = Omit<
-  DashboardOrganizationsConversationsMessagesListQuery,
+  DashboardInstanceConversationsMessagesListQuery,
   'after' | 'before' | 'cursor'
 >;
 
@@ -36,15 +36,10 @@ export type AssistantConversationHistoryNode = {
   latestLeaf: AssistantConversationHistoryNode | null;
 };
 
-type PollingOptions = {
-  pollingIntervalMs?: number | null;
-};
-
 type AssistantSubmitMessageInput = {
   text: string;
   parentMessageId?: string | null;
   modelId?: string;
-  historySize?: number;
 };
 
 let usePollingRefetch = (
@@ -105,6 +100,18 @@ let createOptimisticMessage = (d: {
   text: string;
   createdAt: Date;
 }): AssistantConversationMessage => {
+  let items = [
+    {
+      id: `${d.id}:message`,
+      type: 'message',
+      status: 'completed',
+      message: {
+        role: 'user',
+        parts: [{ type: 'text', text: d.text }]
+      }
+    }
+  ];
+
   return {
     object: 'assistant.message',
     id: d.id,
@@ -117,25 +124,14 @@ let createOptimisticMessage = (d: {
       object: 'assistant.request',
       id: `optimistic-request:${d.id}`,
       status: 'completed',
+      actor: null,
       actorId: null,
       createdAt: d.createdAt,
       updatedAt: d.createdAt
     },
-    state: {
-      items: [
-        {
-          id: `${d.id}:message`,
-          type: 'message',
-          status: 'completed',
-          message: {
-            role: 'user',
-            parts: [{ type: 'text', text: d.text }]
-          }
-        }
-      ]
-    },
+    items,
     createdAt: d.createdAt
-  };
+  } as AssistantConversationMessage;
 };
 
 let buildHistoryTree = (d: {
@@ -559,7 +555,6 @@ export let useConversationHistory = (
           instanceId,
           assistantConversationId,
           parentMessageId: fallbackParentMessageId ?? undefined,
-          historySize: input.historySize,
           modelId: input.modelId,
           message: {
             parts: [{ type: 'text', text }]

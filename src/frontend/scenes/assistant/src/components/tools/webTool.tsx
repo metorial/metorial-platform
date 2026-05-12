@@ -1,3 +1,4 @@
+import React from 'react';
 import type { AssistantLiveStateItem } from '@metorial/state';
 import { Error, theme } from '@metorial/ui';
 import { Fragment } from 'react/jsx-runtime';
