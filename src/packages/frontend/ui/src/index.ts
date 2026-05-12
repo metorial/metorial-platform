@@ -12,6 +12,7 @@ export * from './callout';
 export * from './cardLinks';
 export * from './checkbox';
 export * from './control';
+export * from './contextMenu';
 export * from './copy';
 export * from './combobox';
 export * from './datalist';

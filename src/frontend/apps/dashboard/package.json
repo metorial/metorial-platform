@@ -24,6 +24,7 @@
     "@metorial/layout": "^1.0.0",
     "@metorial/microfrontend": "^1.0.0",
     "@metorial/pages": "^1.0.0",
+    "@metorial/scene-docs": "^1.0.0",
     "@metorial/state": "^1.0.0",
     "@metorial/storage": "^1.0.0",
     "@metorial/ui": "^1.0.0",

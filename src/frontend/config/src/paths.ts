@@ -74,6 +74,22 @@ let InstancePaths = Object.assign(
       if (!id) return '#';
       return InstancePaths(organization, project, instance, 'integration', id, ...subPages);
     },
+    skills: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'skills', ...subPages),
+    skill: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: SubPages
+    ) => {
+      if (!id) return '#';
+      return InstancePaths(organization, project, instance, 'skill', id, ...subPages);
+    },
     integrationInstance: (
       organization: EntityParam,
       project: EntityParam,

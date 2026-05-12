@@ -203,7 +203,7 @@ let SessionTemplateLayout = dynamicPage(() =>
   import('./pages/(session)/session-template/_layout').then(c => c.SessionTemplateLayout)
 );
 let SessionTemplateOverviewPage = dynamicPage(() =>
-  import('./pages/(session)/session-template/index').then(c => c.SessionTemplateOverviewPage)
+  import('./pages/(session)/session-template').then(c => c.SessionTemplateOverviewPage)
 );
 let SessionTemplateSettingsPage = dynamicPage(() =>
   import('./pages/(session)/session-template/settings').then(
@@ -216,6 +216,19 @@ let IntegrationsListLayout = dynamicPage(() =>
 );
 let IntegrationsPage = dynamicPage(() =>
   import('./pages/(integrations)/(list)/integrations').then(c => c.IntegrationsPage)
+);
+let SkillsListLayout = dynamicPage(() =>
+  import('./pages/(skills)/(list)/_layout').then(c => c.SkillsListLayout)
+);
+let SkillsPage = dynamicPage(() =>
+  import('./pages/(skills)/(list)/skills').then(c => c.SkillsPage)
+);
+let SkillLayout = dynamicPage(() =>
+  import('./pages/(skills)/skill/_layout').then(c => c.SkillLayout)
+);
+let SkillPage = dynamicPage(() => import('./pages/(skills)/skill').then(c => c.SkillPage));
+let SkillSettingsPage = dynamicPage(() =>
+  import('./pages/(skills)/skill/settings').then(c => c.SkillSettingsPage)
 );
 let IntegrationLayout = dynamicPage(() =>
   import('./pages/(integrations)/integration/_layout').then(c => c.IntegrationLayout)
@@ -564,6 +577,7 @@ let AssistantPage = dynamicPage(() => import('./pages/assistant').then(c => c.As
 let AssistantConversationPage = dynamicPage(() =>
   import('./pages/assistant/conversation').then(c => c.AssistantConversationPage)
 );
+let DocumentPage = dynamicPage(() => import('./pages/doc').then(c => c.DocumentPage));
 let FlaggedPage = ({ children, flag }: { children: React.ReactNode; flag: string }) => {
   let flags = useDashboardFlags();
 
@@ -819,6 +833,19 @@ export let productExplorerSlice = createSlice([
   }
 ]);
 
+export let productDocumentSlice = createSlice([
+  {
+    element: <ProductWrapper />,
+
+    children: [
+      {
+        path: 'doc/:id',
+        element: <DocumentPage />
+      }
+    ]
+  }
+]);
+
 export let productIdentitySlice = createSlice([
   {
     element: <ProductWrapper />,
@@ -1058,6 +1085,16 @@ export let productHomeSlice = createSlice([
               }
             ]
           },
+          {
+            path: 'skills',
+            element: <SkillsListLayout />,
+            children: [
+              {
+                path: '',
+                element: <SkillsPage />
+              }
+            ]
+          },
 
           {
             path: 'integration/:integrationId',
@@ -1074,6 +1111,20 @@ export let productHomeSlice = createSlice([
               {
                 path: 'settings',
                 element: <IntegrationSettingsPage />
+              }
+            ]
+          },
+          {
+            path: 'skill/:skillId',
+            element: <SkillLayout />,
+            children: [
+              {
+                path: '',
+                element: <SkillPage />
+              },
+              {
+                path: 'settings',
+                element: <SkillSettingsPage />
               }
             ]
           },
@@ -1538,6 +1589,7 @@ export let productSlice = createSlice([
       ...productTraceSlice.routes,
       ...productTraceDetailSlice.routes,
       ...productExplorerSlice.routes,
+      ...productDocumentSlice.routes,
       ...productIdentitySlice.routes,
       ...productHomeSlice.routes
     ]

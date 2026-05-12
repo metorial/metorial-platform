@@ -1,0 +1,171 @@
+import type {
+  DashboardInstanceSkillTemplatesCreateBody,
+  DashboardInstanceSkillTemplatesGetOutput,
+  DashboardInstanceSkillTemplatesItemsCreateBody,
+  DashboardInstanceSkillTemplatesItemsGetOutput,
+  DashboardInstanceSkillTemplatesItemsListQuery,
+  DashboardInstanceSkillTemplatesListQuery,
+  DashboardInstanceSkillTemplatesUpdateBody
+} from '@metorial/dashboard-sdk';
+import { createLoader } from '@metorial/data-hooks';
+import { usePaginator } from '../../lib/usePaginator';
+import { withAuth } from '../../user';
+
+export type SkillTemplate = DashboardInstanceSkillTemplatesGetOutput;
+export type SkillTemplateItem = DashboardInstanceSkillTemplatesItemsGetOutput;
+
+let toArrayIfString = <T extends string>(value: T | T[] | undefined) =>
+  typeof value === 'string' ? [value] : value;
+
+let normalizeSkillTemplatesListQuery = (
+  query: DashboardInstanceSkillTemplatesListQuery
+): DashboardInstanceSkillTemplatesListQuery => ({
+  ...query,
+  status: toArrayIfString(query.status),
+  owner: toArrayIfString(query.owner)
+});
+
+export let skillTemplatesLoader = createLoader({
+  name: 'skillTemplates',
+  parents: [],
+  fetch: (i: { instanceId: string } & DashboardInstanceSkillTemplatesListQuery) =>
+    withAuth(sdk =>
+      sdk.skillTemplates.list(i.instanceId, normalizeSkillTemplatesListQuery(i))
+    ),
+  mutators: {}
+});
+
+export let useCreateSkillTemplate = skillTemplatesLoader.createExternalMutator(
+  (i: DashboardInstanceSkillTemplatesCreateBody & { instanceId: string }) =>
+    withAuth(sdk => sdk.skillTemplates.create(i.instanceId, i))
+);
+
+export let useSkillTemplates = (
+  instanceId: string | null | undefined,
+  query?: DashboardInstanceSkillTemplatesListQuery | null
+) => {
+  return usePaginator(
+    pagination =>
+      skillTemplatesLoader.use(
+        instanceId && query !== null ? { instanceId, ...pagination, ...(query ?? {}) } : null
+      ),
+    instanceId ? `${instanceId}:${JSON.stringify(query ?? {})}` : null
+  );
+};
+
+export let skillTemplateLoader = createLoader({
+  name: 'skillTemplate',
+  parents: [skillTemplatesLoader],
+  fetch: (i: { instanceId: string; skillTemplateId: string }) =>
+    withAuth(sdk => sdk.skillTemplates.get(i.instanceId, i.skillTemplateId)),
+  mutators: {
+    update: (
+      i: DashboardInstanceSkillTemplatesUpdateBody,
+      {
+        input: { instanceId, skillTemplateId }
+      }: { input: { instanceId: string; skillTemplateId: string } }
+    ) => withAuth(sdk => sdk.skillTemplates.update(instanceId, skillTemplateId, i)),
+
+    delete: (
+      _: void,
+      {
+        input: { instanceId, skillTemplateId }
+      }: { input: { instanceId: string; skillTemplateId: string } }
+    ) => withAuth(sdk => sdk.skillTemplates.delete(instanceId, skillTemplateId))
+  }
+});
+
+export let useSkillTemplate = (
+  instanceId: string | null | undefined,
+  skillTemplateId: string | null | undefined
+) => {
+  let data = skillTemplateLoader.use(
+    instanceId && skillTemplateId ? { instanceId, skillTemplateId } : null
+  );
+
+  return {
+    ...data,
+    updateMutator: data.useMutator('update'),
+    deleteMutator: data.useMutator('delete')
+  };
+};
+
+export let skillTemplateItemsLoader = createLoader({
+  name: 'skillTemplateItems',
+  parents: [skillTemplateLoader, skillTemplatesLoader],
+  fetch: (
+    i: {
+      instanceId: string;
+      skillTemplateId: string;
+    } & DashboardInstanceSkillTemplatesItemsListQuery
+  ) => withAuth(sdk => sdk.skillTemplates.items.list(i.instanceId, i.skillTemplateId, i)),
+  mutators: {}
+});
+
+export let useCreateSkillTemplateItem = skillTemplateItemsLoader.createExternalMutator(
+  (
+    i: DashboardInstanceSkillTemplatesItemsCreateBody & {
+      instanceId: string;
+      skillTemplateId: string;
+    }
+  ) => withAuth(sdk => sdk.skillTemplates.items.create(i.instanceId, i.skillTemplateId, i))
+);
+
+export let useSkillTemplateItems = (
+  instanceId: string | null | undefined,
+  skillTemplateId: string | null | undefined,
+  query?: DashboardInstanceSkillTemplatesItemsListQuery | null
+) => {
+  return usePaginator(
+    pagination =>
+      skillTemplateItemsLoader.use(
+        instanceId && skillTemplateId && query !== null
+          ? { instanceId, skillTemplateId, ...pagination, ...(query ?? {}) }
+          : null
+      ),
+    instanceId && skillTemplateId ? `${instanceId}:${skillTemplateId}` : null
+  );
+};
+
+export let skillTemplateItemLoader = createLoader({
+  name: 'skillTemplateItem',
+  parents: [skillTemplateItemsLoader, skillTemplateLoader],
+  fetch: (i: { instanceId: string; skillTemplateId: string; skillTemplateItemId: string }) =>
+    withAuth(sdk =>
+      sdk.skillTemplates.items.get(i.instanceId, i.skillTemplateId, i.skillTemplateItemId)
+    ),
+  mutators: {
+    delete: (
+      _: void,
+      {
+        input: { instanceId, skillTemplateId, skillTemplateItemId }
+      }: {
+        input: {
+          instanceId: string;
+          skillTemplateId: string;
+          skillTemplateItemId: string;
+        };
+      }
+    ) =>
+      withAuth(sdk =>
+        sdk.skillTemplates.items.delete(instanceId, skillTemplateId, skillTemplateItemId)
+      )
+  }
+});
+
+export let useSkillTemplateItem = (
+  instanceId: string | null | undefined,
+  skillTemplateId: string | null | undefined,
+  skillTemplateItemId: string | null | undefined
+) => {
+  let data = skillTemplateItemLoader.use(
+    instanceId && skillTemplateId && skillTemplateItemId
+      ? { instanceId, skillTemplateId, skillTemplateItemId }
+      : null
+  );
+
+  return {
+    ...data,
+    deleteMutator: data.useMutator('delete')
+  };
+};
