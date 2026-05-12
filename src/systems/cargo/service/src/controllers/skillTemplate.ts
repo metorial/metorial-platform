@@ -44,9 +44,10 @@ export let skillTemplateController = app.controller({
     .handler()
     .input(
       v.object({
-        skillTemplateId: v.optional(v.string()),
+        skillTemplateId: v.string(),
         tenantId: v.optional(v.string()),
         environmentId: v.optional(v.string()),
+        skillId: v.optional(v.string()),
         storeId: v.optional(v.string()),
         name: v.string(),
         items: v.optional(v.array(storeTemplateItemSchema))
@@ -61,7 +62,8 @@ export let skillTemplateController = app.controller({
       let skillTemplate = await skillTemplateService.createSkillTemplate({
         ...scope,
         input: {
-          skillTemplateId: ctx.input.skillTemplateId,
+          id: ctx.input.skillTemplateId,
+          skillId: ctx.input.skillId,
           storeId: ctx.input.storeId,
           name: ctx.input.name,
           items: ctx.input.items
@@ -158,7 +160,7 @@ export let skillTemplateController = app.controller({
     .handler()
     .input(
       v.object({
-        skillTemplateId: v.optional(v.string()),
+        skillTemplateId: v.string(),
         systemIdentifier: v.string(),
         storeId: v.optional(v.string()),
         name: v.string(),
@@ -168,7 +170,7 @@ export let skillTemplateController = app.controller({
     .do(async ctx => {
       let skillTemplate = await skillTemplateService.upsertSkillTemplate({
         input: {
-          skillTemplateId: ctx.input.skillTemplateId,
+          id: ctx.input.skillTemplateId,
           systemIdentifier: ctx.input.systemIdentifier,
           storeId: ctx.input.storeId,
           name: ctx.input.name,

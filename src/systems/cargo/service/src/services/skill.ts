@@ -3,7 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type { Prisma } from '../../prisma/generated/client';
 import { db, withTransaction } from '../db';
-import { getId } from '../id';
+import { snowflake } from '../id';
 import { actorService } from './actor';
 import type { CargoTenantEnvironment } from './filePurpose';
 import type { SkillTemplateRecord } from './skillTemplate';
@@ -54,7 +54,7 @@ class SkillServiceImpl {
       parentSkillTemplate?: SkillTemplateRecord;
       parentSkillCloneType?: 'fork' | 'duplicate';
       input: {
-        id?: string;
+        id: string;
         actorId?: string;
         name: string;
       };
@@ -84,7 +84,6 @@ class SkillServiceImpl {
       : undefined;
 
     return await withTransaction(async db => {
-      let skillIds = d.input.id ? { oid: getId('skill').oid, id: d.input.id } : getId('skill');
       let store = d.parentSkillTemplate
         ? await storeService.createStoreFromTemplate({
             tenant: d.tenant,
@@ -114,8 +113,8 @@ class SkillServiceImpl {
 
       return await db.skill.create({
         data: {
-          oid: skillIds.oid,
-          id: skillIds.id,
+          oid: snowflake.nextId(),
+          id: d.input.id,
           tenantOid: d.tenant.oid,
           environmentOid: d.environment.oid,
           storeOid: store.oid,

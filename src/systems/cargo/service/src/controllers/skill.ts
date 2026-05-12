@@ -25,7 +25,7 @@ export let skillController = app.controller({
       v.object({
         tenantId: v.string(),
         environmentId: v.string(),
-        skillId: v.optional(v.string()),
+        skillId: v.string(),
         actorId: v.optional(v.string()),
         parentSkill: v.optional(
           v.object({

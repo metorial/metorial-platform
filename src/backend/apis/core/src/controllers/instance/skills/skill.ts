@@ -128,12 +128,13 @@ export let skillController = Controller.create(
         v.object({
           name: v.string(),
           description: v.optional(v.string()),
+          metadata: v.optional(v.record(v.any())),
+
           client_name: v.optional(skillClientNameValidator),
           client_description: v.optional(skillClientDescriptionValidator),
           license: v.optional(skillLicenseValidator),
           compatibility: v.optional(skillCompatibilityValidator),
-          client_metadata: v.optional(v.record(v.any())),
-          metadata: v.optional(v.record(v.any()))
+          client_metadata: v.optional(v.record(v.any()))
         })
       )
       .output(skillPresenter)

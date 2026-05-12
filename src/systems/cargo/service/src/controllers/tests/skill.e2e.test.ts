@@ -183,7 +183,8 @@ describe('cargo skill.e2e', () => {
       tenantId: tenant.id,
       environmentId: environment.id,
       storeId: 'cst_skill_template_source_store',
-      name: 'Skill Template Source'
+      name: 'Skill Template Source',
+      access: 'public_read'
     });
 
     await cargoClient.document.create({
@@ -274,6 +275,115 @@ describe('cargo skill.e2e', () => {
     expect(createdDocumentRecord?.isContentOwner).toBe(true);
     expect(createdDocumentRecord?.createdByTenantActorOid).toBeTruthy();
     expect(participant?.permissions).toEqual(['content_read', 'content_write']);
+  });
+
+  it('creates skill templates from skillId by snapshotting the skill store into a duplicated source store', async () => {
+    let { tenant, environment } = await createScope();
+    let skill = await cargoClient.skill.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillId: 'csk_template_source_skill',
+      name: 'Template Source Skill'
+    });
+
+    await cargoClient.document.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: 'cdoc_template_source_skill',
+      title: 'Readme',
+      content: 'snapshot me',
+      store: {
+        id: skill.storeId,
+        path: '/docs/readme.md'
+      }
+    });
+
+    let created = await cargoClient.skillTemplate.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillTemplateId: 'cskt_from_skill',
+      skillId: skill.id,
+      name: 'Template From Skill'
+    });
+
+    let templateSourceStore = await cargoClient.store.get({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: created.storeTemplate.sourceStoreId!
+    });
+    let templateSourceItems = await cargoClient.storeItem.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: templateSourceStore.id,
+      limit: 20
+    });
+    let templateSourceDocument = await cargoClient.document.get({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: templateSourceItems.items.find(item => item.path === '/docs/readme.md')!.documentId!
+    });
+
+    await cargoClient.document.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: 'cdoc_template_source_late_change',
+      title: 'Later Change',
+      content: 'should not be included',
+      store: {
+        id: skill.storeId,
+        path: '/docs/later.md'
+      }
+    });
+
+    let instantiatedSkill = await cargoClient.skill.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillId: 'csk_instantiated_from_skill_template',
+      parentSkillTemplateId: created.id,
+      name: 'Instantiated From Template'
+    });
+    let instantiatedItems = await cargoClient.storeItem.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: instantiatedSkill.storeId,
+      limit: 20
+    });
+    let templateRecord = await db.skillTemplate.findUnique({
+      where: {
+        id: created.id
+      }
+    });
+
+    expect(created.storeTemplate.type).toBe('linked_store');
+    expect(created.storeTemplate.sourceStoreId).toBeTruthy();
+    expect(created.storeTemplate.sourceStoreId).not.toBe(skill.storeId);
+    expect(templateSourceStore.cloneType).toBe('duplicate');
+    expect(templateSourceItems.items.map(item => item.path)).toContain('/docs/readme.md');
+    expect(templateSourceItems.items.map(item => item.path)).not.toContain('/docs/later.md');
+    expect(templateSourceDocument.content).toBe('snapshot me');
+    expect(templateRecord?.storeTemplateOid).toBeTruthy();
+    expect(instantiatedItems.items.map(item => item.path)).toContain('/docs/readme.md');
+    expect(instantiatedItems.items.map(item => item.path)).not.toContain('/docs/later.md');
+  });
+
+  it('rejects skill template creation when more than one source input is provided', async () => {
+    let { tenant, environment } = await createScope();
+    let skill = await cargoClient.skill.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillId: 'csk_source_for_validation',
+      name: 'Validation Source Skill'
+    });
+
+    await expect(
+      cargoClient.skillTemplate.create({
+        tenantId: tenant.id,
+        environmentId: environment.id,
+        skillId: skill.id,
+        storeId: skill.storeId,
+        name: 'Invalid Template Source'
+      })
+    ).rejects.toThrow('Provide exactly one of skillId, storeId, or items when creating a skill template');
   });
 
   it('lists and gets global skill templates but only mutates matching scoped templates', async () => {

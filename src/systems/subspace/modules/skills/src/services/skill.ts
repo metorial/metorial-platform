@@ -386,6 +386,7 @@ class skillServiceImpl {
         : undefined;
     let cargoSkill = await cargo.skill.create({
       ...cargoScope,
+      skillId: skillData.id,
       name: skillData.name,
       actorId: cargoActor?.id,
       parentSkill: parentSkill

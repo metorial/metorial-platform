@@ -132,12 +132,16 @@ export let skillItemController = Controller.create(
                 instance: ctx.instance,
                 skillId: ctx.skill.id,
                 type: 'integration',
+
+                // @ts-ignore
                 integrationId: ctx.body.integration_id
               })
             : await subspaceSkillItemService.create({
                 instance: ctx.instance,
                 skillId: ctx.skill.id,
                 type: 'provider',
+
+                // @ts-ignore
                 providerId: ctx.body.provider_id
               });
 

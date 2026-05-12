@@ -18,14 +18,11 @@ import {
 } from '@metorial-subspace/db';
 import {
   checkDeletedEdit,
-  checkDeletedRelation,
   type DateFilter,
   normalizeDateFilter,
   normalizeStatusForGet,
   normalizeStatusForList
 } from '@metorial-subspace/list-utils';
-import { providerService } from '@metorial-subspace/module-catalog';
-import { integrationService } from '@metorial-subspace/module-integration';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
 import { checkTenant } from '@metorial-subspace/module-tenant';
 import { cargo, ensureCargoScope } from '../cargo';
@@ -34,26 +31,8 @@ import {
   skillTemplateCreatedQueue,
   skillTemplateUpdatedQueue
 } from '../queues/lifecycle/skillTemplate';
-import { skillItemService } from './skillItem';
-
-export let skillTemplateItemInclude = {
-  integration: {
-    include: {
-      item: true,
-      integration: true
-    }
-  },
-  provider: {
-    include: {
-      item: true,
-      provider: {
-        include: {
-          listing: true
-        }
-      }
-    }
-  }
-};
+import { skillService } from './skill';
+import { skillTemplateItemInclude, skillTemplateItemService } from './skillTemplateItem';
 
 export let skillTemplateInclude = {
   skillTemplateItems: {
@@ -66,30 +45,12 @@ export type SkillTemplateRecord = Prisma.SkillTemplateGetPayload<{
   include: typeof skillTemplateInclude;
 }>;
 
-export type SkillTemplateItemRecord = Prisma.SkillTemplateItemGetPayload<{
-  include: typeof skillTemplateItemInclude;
-}>;
-
 type SkillTemplateWriteInput = {
   name?: string;
   description?: string | null;
   metadata?: Record<string, any> | null;
   privateMetadata?: Record<string, any> | null;
 };
-
-type SkillTemplateItemInput = {
-  skillItemId: string;
-};
-
-type SkillTemplateItemCreateInput =
-  | {
-      type: 'provider';
-      providerId: string;
-    }
-  | {
-      type: 'integration';
-      integrationId: string;
-    };
 
 let getSlug = (input: { name: string }) =>
   `${slugify(input.name)}-${generatePlainId(7).toLowerCase()}`.toLowerCase();
@@ -154,42 +115,6 @@ class skillTemplateServiceImpl {
         code: 'skill_template_readonly'
       })
     );
-  }
-
-  private async getWritableSkillTemplateById(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    skillTemplateId: string;
-  }) {
-    let skillTemplate = await this.getSkillTemplateById({
-      ...d,
-      allowDeleted: false
-    });
-
-    checkTenant(d, skillTemplate);
-    this.assertTenantOwnedTemplate(skillTemplate);
-    checkDeletedEdit(skillTemplate, 'update');
-
-    return skillTemplate;
-  }
-
-  private async getSkillTemplateItemById(d: {
-    skillTemplate: SkillTemplate;
-    skillTemplateItemId: string;
-  }) {
-    let item = await db.skillTemplateItem.findFirst({
-      where: {
-        id: d.skillTemplateItemId,
-        skillTemplateOid: d.skillTemplate.oid
-      },
-      include: skillTemplateItemInclude
-    });
-    if (!item) {
-      throw new ServiceError(notFoundError('skillTemplateItem', d.skillTemplateItemId));
-    }
-
-    return item;
   }
 
   async listSkillTemplates(d: {
@@ -301,6 +226,7 @@ class skillTemplateServiceImpl {
       description?: string | null;
       metadata?: Record<string, any> | null;
       privateMetadata?: Record<string, any> | null;
+      skillId?: string;
     };
   }) {
     let name = d.input.name.trim();
@@ -316,38 +242,86 @@ class skillTemplateServiceImpl {
     let newId = getId('skillTemplate');
 
     let cargoScope = await ensureCargoScope(d);
-    let cargoStore = await cargo.store.create({
-      ...cargoScope,
-      name: `Skill Template Store - ${name}`,
-      access: 'public_read'
-    });
-    let cargoTemplate = await cargo.skillTemplate.create({
-      ...cargoScope,
-      name,
-      storeId: cargoStore.id,
-      skillTemplateId: newId.id
-    });
+    let sourceSkill = d.input.skillId
+      ? await skillService.getActiveSkillById({
+          tenant: d.tenant,
+          solution: d.solution,
+          environment: d.environment,
+          skillId: d.input.skillId
+        })
+      : null;
+    let cargoTemplate = sourceSkill
+      ? await cargo.skillTemplate.create({
+          ...cargoScope,
+          name,
+          skillId: sourceSkill.id,
+          skillTemplateId: newId.id
+        })
+      : await (async () => {
+          let cargoStore = await cargo.store.create({
+            ...cargoScope,
+            name: `Skill Template Store - ${name}`,
+            access: 'public_read'
+          });
 
-    let skillTemplate = await db.skillTemplate.create({
-      data: {
-        ...newId,
-        tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
-        environmentOid: d.environment.oid,
+          return await cargo.skillTemplate.create({
+            ...cargoScope,
+            name,
+            storeId: cargoStore.id,
+            skillTemplateId: newId.id
+          });
+        })();
 
-        status: 'active',
-        owner: 'tenant',
+    let cargoStoreId = cargoTemplate.storeTemplate.sourceStoreId;
+    if (!cargoStoreId) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Cargo skill template is missing a source store.',
+          code: 'skill_template_store_missing'
+        })
+      );
+    }
 
-        name,
-        slug: getSlug({ name }),
-        description: d.input.description?.trim() || null,
-        metadata: d.input.metadata,
-        privateMetadata: d.input.privateMetadata,
+    let skillTemplate = await withTransaction(async db => {
+      let skillTemplate = await db.skillTemplate.create({
+        data: {
+          ...newId,
+          tenantOid: d.tenant.oid,
+          solutionOid: d.solution.oid,
+          environmentOid: d.environment.oid,
 
-        storeTemplateId: cargoTemplate.storeTemplate.id,
-        storeId: cargoStore.id
-      },
-      include: skillTemplateInclude
+          status: 'active',
+          owner: 'tenant',
+
+          name,
+          slug: getSlug({ name }),
+          description: d.input.description?.trim() || null,
+          metadata: d.input.metadata,
+          privateMetadata: d.input.privateMetadata,
+
+          storeTemplateId: cargoTemplate.storeTemplate.id,
+          storeId: cargoStoreId
+        }
+      });
+
+      if (sourceSkill) {
+        let skillTemplateItems =
+          await skillTemplateItemService.buildSkillTemplateItemsFromSkill({
+            skillOid: sourceSkill.oid,
+            skillTemplateOid: skillTemplate.oid
+          });
+
+        if (skillTemplateItems.length > 0) {
+          await db.skillTemplateItem.createMany({
+            data: skillTemplateItems
+          });
+        }
+      }
+
+      return await db.skillTemplate.findUniqueOrThrow({
+        where: { oid: skillTemplate.oid },
+        include: skillTemplateInclude
+      });
     });
 
     await skillTemplateCreatedQueue.add({ skillTemplateId: skillTemplate.id });
@@ -421,373 +395,6 @@ class skillTemplateServiceImpl {
     await skillTemplateArchivedQueue.add({ skillTemplateId: skillTemplate.id });
 
     return skillTemplate;
-  }
-
-  async addSkillTemplateItem(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    skillTemplateId: string;
-    input: SkillTemplateItemInput;
-  }) {
-    let skillTemplate = await this.getWritableSkillTemplateById(d);
-    let skillItem = await skillItemService.getSkillItemById({
-      tenant: d.tenant,
-      solution: d.solution,
-      environment: d.environment,
-      skillItemId: d.input.skillItemId,
-      allowDeleted: false
-    });
-
-    checkDeletedRelation(skillItem);
-
-    if (skillItem.integration) {
-      let existing = await db.skillTemplateItem.findFirst({
-        where: {
-          skillTemplateOid: skillTemplate.oid,
-          integrationOid: skillItem.integration.oid
-        }
-      });
-      if (existing) {
-        throw new ServiceError(
-          badRequestError({
-            message: 'Skill item already exists on skill template.',
-            code: 'skill_template_item_exists'
-          })
-        );
-      }
-
-      return await withTransaction(async db => {
-        await db.skillTemplateItem.create({
-          data: {
-            ...getId('skillTemplateItem'),
-            skillTemplateOid: skillTemplate.oid,
-            integrationOid: skillItem.integration!.oid
-          }
-        });
-
-        await addAfterTransactionHook(async () =>
-          skillTemplateUpdatedQueue.add({ skillTemplateId: skillTemplate.id })
-        );
-
-        return await db.skillTemplate.findUniqueOrThrow({
-          where: { oid: skillTemplate.oid },
-          include: skillTemplateInclude
-        });
-      });
-    }
-
-    if (skillItem.provider) {
-      let existing = await db.skillTemplateItem.findFirst({
-        where: {
-          skillTemplateOid: skillTemplate.oid,
-          providerOid: skillItem.provider.oid
-        }
-      });
-      if (existing) {
-        throw new ServiceError(
-          badRequestError({
-            message: 'Skill item already exists on skill template.',
-            code: 'skill_template_item_exists'
-          })
-        );
-      }
-
-      return await withTransaction(async db => {
-        await db.skillTemplateItem.create({
-          data: {
-            ...getId('skillTemplateItem'),
-            skillTemplateOid: skillTemplate.oid,
-            providerOid: skillItem.provider!.oid
-          }
-        });
-
-        await addAfterTransactionHook(async () =>
-          skillTemplateUpdatedQueue.add({ skillTemplateId: skillTemplate.id })
-        );
-
-        return await db.skillTemplate.findUniqueOrThrow({
-          where: { oid: skillTemplate.oid },
-          include: skillTemplateInclude
-        });
-      });
-    }
-
-    throw new ServiceError(
-      badRequestError({
-        message: 'Skill template items must reference a provider or integration skill item.',
-        code: 'skill_template_item_invalid'
-      })
-    );
-  }
-
-  async listSkillTemplateItems(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    skillTemplateId: string;
-  }) {
-    let skillTemplate = await this.getSkillTemplateById({
-      tenant: d.tenant,
-      solution: d.solution,
-      environment: d.environment,
-      skillTemplateId: d.skillTemplateId,
-      allowDeleted: false
-    });
-
-    return Paginator.create(({ prisma }) =>
-      prisma(
-        async opts =>
-          await db.skillTemplateItem.findMany({
-            ...opts,
-            where: {
-              skillTemplateOid: skillTemplate.oid
-            },
-            orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
-            include: skillTemplateItemInclude
-          })
-      )
-    );
-  }
-
-  async getSkillTemplateItem(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    skillTemplateId: string;
-    skillTemplateItemId: string;
-  }) {
-    let skillTemplate = await this.getSkillTemplateById({
-      tenant: d.tenant,
-      solution: d.solution,
-      environment: d.environment,
-      skillTemplateId: d.skillTemplateId,
-      allowDeleted: false
-    });
-
-    return await this.getSkillTemplateItemById({
-      skillTemplate,
-      skillTemplateItemId: d.skillTemplateItemId
-    });
-  }
-
-  async createSkillTemplateItem(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    skillTemplateId: string;
-    input: SkillTemplateItemCreateInput;
-  }) {
-    let skillTemplate = await this.getWritableSkillTemplateById(d);
-
-    if (d.input.type === 'integration') {
-      let integration = await integrationService.getIntegrationById({
-        tenant: d.tenant,
-        solution: d.solution,
-        environment: d.environment,
-        integrationId: d.input.integrationId,
-        allowDeleted: false
-      });
-
-      checkDeletedRelation(integration);
-
-      let backingIntegration = await db.skillIntegration.findFirst({
-        where: {
-          integrationOid: integration.oid,
-          status: 'active',
-          skill: {
-            tenantOid: d.tenant.oid,
-            solutionOid: d.solution.oid,
-            environmentOid: d.environment.oid,
-            status: 'active'
-          },
-          item: {
-            status: 'active'
-          }
-        }
-      });
-      if (!backingIntegration) {
-        throw new ServiceError(
-          badRequestError({
-            message: 'Integration must exist on an active skill before it can be added to a template.',
-            code: 'skill_template_item_missing_skill_item'
-          })
-        );
-      }
-
-      let existing = await db.skillTemplateItem.findFirst({
-        where: {
-          skillTemplateOid: skillTemplate.oid,
-          integrationOid: backingIntegration.oid
-        }
-      });
-      if (existing) {
-        throw new ServiceError(
-          badRequestError({
-            message: 'Skill item already exists on skill template.',
-            code: 'skill_template_item_exists'
-          })
-        );
-      }
-
-      return await withTransaction(async db => {
-        let item = await db.skillTemplateItem.create({
-          data: {
-            ...getId('skillTemplateItem'),
-            skillTemplateOid: skillTemplate.oid,
-            integrationOid: backingIntegration.oid
-          },
-          include: skillTemplateItemInclude
-        });
-
-        await addAfterTransactionHook(async () =>
-          skillTemplateUpdatedQueue.add({ skillTemplateId: skillTemplate.id })
-        );
-
-        return item;
-      });
-    }
-
-    let provider = await providerService.getProviderById({
-      tenant: d.tenant,
-      solution: d.solution,
-      environment: d.environment,
-      providerId: d.input.providerId,
-      includeDeprecated: true
-    });
-
-    checkDeletedRelation(provider);
-
-    let backingProvider = await db.skillProvider.findFirst({
-      where: {
-        providerOid: provider.oid,
-        status: 'active',
-        skill: {
-          tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
-          environmentOid: d.environment.oid,
-          status: 'active'
-        },
-        item: {
-          status: 'active'
-        }
-      }
-    });
-    if (!backingProvider) {
-      throw new ServiceError(
-        badRequestError({
-          message: 'Provider must exist on an active skill before it can be added to a template.',
-          code: 'skill_template_item_missing_skill_item'
-        })
-      );
-    }
-
-    let existing = await db.skillTemplateItem.findFirst({
-      where: {
-        skillTemplateOid: skillTemplate.oid,
-        providerOid: backingProvider.oid
-      }
-    });
-    if (existing) {
-      throw new ServiceError(
-        badRequestError({
-          message: 'Skill item already exists on skill template.',
-          code: 'skill_template_item_exists'
-        })
-      );
-    }
-
-    return await withTransaction(async db => {
-      let item = await db.skillTemplateItem.create({
-        data: {
-          ...getId('skillTemplateItem'),
-          skillTemplateOid: skillTemplate.oid,
-          providerOid: backingProvider.oid
-        },
-        include: skillTemplateItemInclude
-      });
-
-      await addAfterTransactionHook(async () =>
-        skillTemplateUpdatedQueue.add({ skillTemplateId: skillTemplate.id })
-      );
-
-      return item;
-    });
-  }
-
-  async removeSkillTemplateItem(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    skillTemplateId: string;
-    skillTemplateItemId: string;
-  }) {
-    let skillTemplate = await this.getWritableSkillTemplateById({
-      tenant: d.tenant,
-      solution: d.solution,
-      environment: d.environment,
-      skillTemplateId: d.skillTemplateId
-    });
-
-    let item = await db.skillTemplateItem.findFirst({
-      where: {
-        id: d.skillTemplateItemId,
-        skillTemplateOid: skillTemplate.oid
-      }
-    });
-    if (!item) {
-      throw new ServiceError(notFoundError('skillTemplateItem', d.skillTemplateItemId));
-    }
-
-    return await withTransaction(async db => {
-      await db.skillTemplateItem.delete({
-        where: {
-          oid: item.oid
-        }
-      });
-
-      await addAfterTransactionHook(async () =>
-        skillTemplateUpdatedQueue.add({ skillTemplateId: skillTemplate.id })
-      );
-
-      return await db.skillTemplate.findUniqueOrThrow({
-        where: { oid: skillTemplate.oid },
-        include: skillTemplateInclude
-      });
-    });
-  }
-
-  async deleteSkillTemplateItem(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    skillTemplateId: string;
-    skillTemplateItemId: string;
-  }) {
-    let skillTemplate = await this.getWritableSkillTemplateById({
-      tenant: d.tenant,
-      solution: d.solution,
-      environment: d.environment,
-      skillTemplateId: d.skillTemplateId
-    });
-    let item = await this.getSkillTemplateItemById({
-      skillTemplate,
-      skillTemplateItemId: d.skillTemplateItemId
-    });
-
-    await withTransaction(async db => {
-      await db.skillTemplateItem.delete({
-        where: {
-          oid: item.oid
-        }
-      });
-
-      await addAfterTransactionHook(async () =>
-        skillTemplateUpdatedQueue.add({ skillTemplateId: skillTemplate.id })
-      );
-    });
-
-    return item;
   }
 }
 

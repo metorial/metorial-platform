@@ -6,18 +6,18 @@ export let ID = createIdGenerator({
   environment: idType.sorted('syn_env_'),
   tenantActor: idType.sorted('syn_ta_'),
 
-  assistant: idType.sorted('syn_ast_'),
-  assistantImplementation: idType.sorted('syn_aim_'),
-  assistantInstance: idType.sorted('syn_asi_'),
-  assistantConversation: idType.sorted('syn_asc_'),
-  assistantConversationParticipant: idType.sorted('syn_acp_'),
-  assistantConversationItem: idType.sorted('syn_aci_'),
-  assistantMessage: idType.sorted('syn_asm_'),
-  model: idType.sorted('syn_mod_'),
-  modelProvider: idType.sorted('syn_mpr_'),
-  assistantRequest: idType.sorted('syn_asq_'),
-  modelRun: idType.sorted('syn_mrn_'),
-  assistantConfig: idType.sorted('syn_acf_')
+  assistant: idType.sorted('ast_'),
+  assistantImplementation: idType.sorted('aim_'),
+  assistantInstance: idType.sorted('asi_'),
+  assistantConversation: idType.sorted('asc_'),
+  assistantConversationParticipant: idType.sorted('acp_'),
+  assistantConversationItem: idType.sorted('aci_'),
+  assistantMessage: idType.sorted('asm_'),
+  model: idType.sorted('mod_'),
+  modelProvider: idType.sorted('mpr_'),
+  assistantRequest: idType.sorted('asq_'),
+  modelRun: idType.sorted('mrn_'),
+  assistantConfig: idType.sorted('acf_')
 });
 
 let workerIdBits = 12;

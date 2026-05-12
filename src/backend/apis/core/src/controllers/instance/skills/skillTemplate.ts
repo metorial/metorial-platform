@@ -107,7 +107,8 @@ export let skillTemplateController = Controller.create(
         v.object({
           name: v.string(),
           description: v.optional(v.string()),
-          metadata: v.optional(v.record(v.any()))
+          metadata: v.optional(v.record(v.any())),
+          from_skill_Id: v.optional(v.string())
         })
       )
       .output(skillTemplatePresenter)
@@ -116,7 +117,8 @@ export let skillTemplateController = Controller.create(
           instance: ctx.instance,
           name: ctx.body.name,
           description: ctx.body.description,
-          metadata: ctx.body.metadata
+          metadata: ctx.body.metadata,
+          skillId: ctx.body.from_skill_Id
         });
 
         return skillTemplatePresenter.present({ skillTemplate });

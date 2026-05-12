@@ -74,4 +74,5 @@ export * from './sessionTemplateProvider';
 export * from './skill';
 export * from './skillItem';
 export * from './skillTemplate';
+export * from './skillTemplateItem';
 export * from './toolCall';

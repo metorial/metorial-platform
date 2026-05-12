@@ -2,28 +2,30 @@ import { createIdGenerator, idType } from '@lowerdeck/id';
 import { Snowflake } from '@lowerdeck/snowflake';
 
 export let ID = createIdGenerator({
-  tenant: idType.sorted('ctn_'),
-  environment: idType.sorted('cen_'),
-  tenantActor: idType.sorted('cta_'),
-  filePurpose: idType.sorted('cfp_'),
-  file: idType.sorted('cfi_'),
-  fileLink: idType.sorted('cfl_'),
-  fileRef: idType.sorted('cfr_'),
-  store: idType.sorted('cst_'),
-  storeTemplate: idType.sorted('cstt_'),
-  storeTemplateItem: idType.sorted('cstti_'),
-  skill: idType.sorted('csk_'),
-  skillTemplate: idType.sorted('cskt_'),
-  storeItem: idType.sorted('csti_'),
-  storeDirectory: idType.sorted('cstd_'),
-  storeVersion: idType.sorted('cstv_'),
-  storeVersionItem: idType.sorted('cstvi_'),
-  storeParticipant: idType.sorted('cstp_'),
-  document: idType.sorted('cdoc_'),
-  documentContent: idType.sorted('cdocn_'),
-  documentParticipant: idType.sorted('cdocp_'),
-  documentVersion: idType.sorted('cdocv_'),
-  documentVersionEditor: idType.sorted('cdocve_')
+  tenant: idType.sorted('crg_tn_'),
+  environment: idType.sorted('crg_en_'),
+  tenantActor: idType.sorted('crg_ta_'),
+
+  filePurpose: idType.sorted('fp_'),
+  file: idType.sorted('fil_'),
+  fileLink: idType.sorted('fln_'),
+  fileRef: idType.sorted('fr_'),
+
+  storeTemplate: idType.sorted('stt_'),
+  storeTemplateItem: idType.sorted('stti_'),
+
+  store: idType.sorted('str_'),
+  storeItem: idType.sorted('sti_'),
+  storeDirectory: idType.sorted('std_'),
+  storeVersion: idType.sorted('stv_'),
+  storeVersionItem: idType.sorted('stvi_'),
+  storeParticipant: idType.sorted('stp_'),
+
+  document: idType.sorted('doc_'),
+  documentContent: idType.sorted('docn_'),
+  documentParticipant: idType.sorted('docp_'),
+  documentVersion: idType.sorted('docv_'),
+  documentVersionEditor: idType.sorted('docve_')
 });
 
 let workerIdBits = 12;

@@ -130,7 +130,8 @@ export let synthesisServiceEnv: Env = [
   {
     key: 'SYNTHESIS_HEALTH_PORT',
     defaultValue: '12121'
-  }
+  },
+  { key: 'AI_GATEWAY_API_KEY', isRequired: false }
 ];
 
 export let cargoServiceEnv: Env = [

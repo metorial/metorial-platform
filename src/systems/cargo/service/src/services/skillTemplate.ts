@@ -3,7 +3,9 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type { Prisma } from '../../prisma/generated/client';
 import { db, withTransaction } from '../db';
-import { getId } from '../id';
+import { snowflake } from '../id';
+import { skillService } from './skill';
+import { storeService } from './store';
 import type {
   RequiredStoreTemplateScope,
   StoreTemplateCreateInput,
@@ -79,13 +81,14 @@ export type SkillTemplateRecord = Prisma.SkillTemplateGetPayload<{
   include: typeof skillTemplateInclude;
 }>;
 
-export type SkillTemplateCreateInput = StoreTemplateCreateInput & {
-  skillTemplateId?: string;
+export type SkillTemplateCreateInput = Omit<StoreTemplateCreateInput, 'id'> & {
+  id: string;
+  skillId?: string;
 };
 
 export type SkillTemplateUpdateInput = StoreTemplateUpdateInput;
 
-export type SkillTemplateUpsertInput = SkillTemplateCreateInput & {
+export type SkillTemplateUpsertInput = Omit<SkillTemplateCreateInput, 'skillId'> & {
   systemIdentifier: string;
 };
 
@@ -136,6 +139,16 @@ class SkillTemplateServiceImpl {
     }
   }
 
+  private assertRequiredScope(d: StoreTemplateScope): asserts d is RequiredStoreTemplateScope {
+    if (!d.tenant || !d.environment) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'tenantId and environmentId are required'
+        })
+      );
+    }
+  }
+
   private async getSkillTemplateRecord(d: {
     skillTemplateId: string;
     tenant?: { oid: bigint; id: string };
@@ -179,6 +192,59 @@ class SkillTemplateServiceImpl {
     return systemIdentifier;
   }
 
+  private assertCreateSourceInput(d: {
+    skillId?: string;
+    storeId?: string;
+    items?: StoreTemplateCreateInput['items'];
+  }) {
+    let sourceCount = [
+      d.skillId !== undefined,
+      d.storeId !== undefined,
+      d.items !== undefined
+    ].filter(Boolean).length;
+
+    if (sourceCount !== 1) {
+      throw new ServiceError(
+        badRequestError({
+          message:
+            'Provide exactly one of skillId, storeId, or items when creating a skill template'
+        })
+      );
+    }
+  }
+
+  private async resolveCreateStoreId(
+    d: StoreTemplateScope & {
+      input: SkillTemplateCreateInput;
+    }
+  ) {
+    this.assertCreateSourceInput(d.input);
+
+    if (!d.input.skillId) {
+      return d.input.storeId;
+    }
+
+    this.assertRequiredScope(d);
+
+    let skill = await skillService.getSkillById({
+      tenant: d.tenant,
+      environment: d.environment,
+      skillId: d.input.skillId
+    });
+    let clonedStore = await storeService.cloneStore({
+      tenant: d.tenant,
+      environment: d.environment,
+      store: skill.store,
+      input: {
+        name: `Skill Template Store - ${d.input.name.trim()}`,
+        access: 'public_read',
+        cloneType: 'duplicate'
+      }
+    });
+
+    return clonedStore.id;
+  }
+
   private async createSkillTemplateRecord(
     d: StoreTemplateScope & {
       input: SkillTemplateCreateInput & {
@@ -186,25 +252,24 @@ class SkillTemplateServiceImpl {
       };
     }
   ) {
-    return await withTransaction(async tx => {
+    let storeId = await this.resolveCreateStoreId(d);
+
+    return await withTransaction(async db => {
       let storeTemplate = await storeTemplateService.createStoreTemplate({
         ...d,
         input: {
-          id: d.input.id,
           name: d.input.name,
-          storeId: d.input.storeId,
+          storeId,
           items: d.input.items
         }
       });
 
-      let skillTemplateIds = d.input.skillTemplateId
-        ? { oid: getId('skillTemplate').oid, id: d.input.skillTemplateId }
-        : getId('skillTemplate');
-
-      return await tx.skillTemplate.create({
+      return await db.skillTemplate.create({
         data: {
-          oid: skillTemplateIds.oid,
-          id: skillTemplateIds.id,
+          tenantOid: d.tenant?.oid,
+          environmentOid: d.environment?.oid,
+          oid: snowflake.nextId(),
+          id: d.input.id,
           systemIdentifier: d.input.systemIdentifier ?? null,
           storeTemplateOid: storeTemplate.oid
         },
@@ -231,7 +296,7 @@ class SkillTemplateServiceImpl {
       );
     }
 
-    return await withTransaction(async tx => {
+    return await withTransaction(async db => {
       let storeTemplate = await storeTemplateService.updateStoreTemplate({
         storeTemplate: d.skillTemplate.storeTemplate,
         skipScopeCheck: true,
@@ -241,7 +306,7 @@ class SkillTemplateServiceImpl {
         }
       });
 
-      return await tx.skillTemplate.update({
+      return await db.skillTemplate.update({
         where: {
           oid: d.skillTemplate.oid
         },
@@ -297,8 +362,8 @@ class SkillTemplateServiceImpl {
 
     for (let attempt = 0; attempt < 5; attempt++) {
       try {
-        return await withTransaction(async tx => {
-          let existing = await tx.skillTemplate.findUnique({
+        return await withTransaction(async db => {
+          let existing = await db.skillTemplate.findUnique({
             where: {
               systemIdentifier
             },

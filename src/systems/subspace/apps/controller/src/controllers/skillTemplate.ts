@@ -1,27 +1,10 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { skillTemplateService } from '@metorial-subspace/module-skills';
-import { skillTemplateItemPresenter, skillTemplatePresenter } from '@metorial-subspace/presenters';
+import { skillTemplatePresenter } from '@metorial-subspace/presenters';
 import { app } from './_app';
 import { createdAtValidator, updatedAtValidator } from './_dateFilter';
 import { tenantApp } from './tenant';
-
-let createSkillTemplateItemValidator = v.union([
-  v.object({
-    tenantId: v.string(),
-    environmentId: v.string(),
-    skillTemplateId: v.string(),
-    type: v.literal('provider'),
-    providerId: v.string()
-  }),
-  v.object({
-    tenantId: v.string(),
-    environmentId: v.string(),
-    skillTemplateId: v.string(),
-    type: v.literal('integration'),
-    integrationId: v.string()
-  })
-]);
 
 export let skillTemplateApp = tenantApp.use(async ctx => {
   let skillTemplateId = ctx.body.skillTemplateId;
@@ -36,21 +19,6 @@ export let skillTemplateApp = tenantApp.use(async ctx => {
   });
 
   return { skillTemplate };
-});
-
-export let skillTemplateItemApp = skillTemplateApp.use(async ctx => {
-  let skillTemplateItemId = ctx.body.skillTemplateItemId;
-  if (!skillTemplateItemId) throw new Error('SkillTemplateItem ID is required');
-
-  let skillTemplateItem = await skillTemplateService.getSkillTemplateItem({
-    tenant: ctx.tenant,
-    environment: ctx.environment,
-    solution: ctx.solution,
-    skillTemplateId: ctx.skillTemplate.id,
-    skillTemplateItemId
-  });
-
-  return { skillTemplateItem };
 });
 
 export let skillTemplateController = app.controller({
@@ -115,6 +83,7 @@ export let skillTemplateController = app.controller({
         tenantId: v.string(),
         environmentId: v.string(),
         name: v.string(),
+        skillId: v.optional(v.string()),
         description: v.optional(v.string()),
         metadata: v.optional(v.record(v.any())),
         privateMetadata: v.optional(v.record(v.any()))
@@ -127,6 +96,7 @@ export let skillTemplateController = app.controller({
         solution: ctx.solution,
         input: {
           name: ctx.input.name,
+          skillId: ctx.input.skillId,
           description: ctx.input.description,
           metadata: ctx.input.metadata,
           privateMetadata: ctx.input.privateMetadata
@@ -187,88 +157,5 @@ export let skillTemplateController = app.controller({
       });
 
       return skillTemplatePresenter(skillTemplate);
-    }),
-
-  listItems: skillTemplateApp
-    .handler()
-    .input(
-      Paginator.validate(
-        v.object({
-          tenantId: v.string(),
-          environmentId: v.string(),
-          skillTemplateId: v.string()
-        })
-      )
-    )
-    .do(async ctx => {
-      let paginator = await skillTemplateService.listSkillTemplateItems({
-        tenant: ctx.tenant,
-        environment: ctx.environment,
-        solution: ctx.solution,
-        skillTemplateId: ctx.skillTemplate.id
-      });
-
-      let list = await paginator.run(ctx.input);
-      return Paginator.presentLight(list, skillTemplateItemPresenter);
-    }),
-
-  getItem: skillTemplateItemApp
-    .handler()
-    .input(
-      v.object({
-        tenantId: v.string(),
-        environmentId: v.string(),
-        skillTemplateId: v.string(),
-        skillTemplateItemId: v.string()
-      })
-    )
-    .do(async ctx => skillTemplateItemPresenter(ctx.skillTemplateItem)),
-
-  createItem: tenantApp
-    .handler()
-    .input(createSkillTemplateItemValidator)
-    .do(async ctx => {
-      let input =
-        ctx.input.type === 'integration'
-          ? {
-              type: 'integration' as const,
-              integrationId: ctx.input.integrationId
-            }
-          : {
-              type: 'provider' as const,
-              providerId: ctx.input.providerId
-            };
-
-      let item = await skillTemplateService.createSkillTemplateItem({
-        tenant: ctx.tenant,
-        environment: ctx.environment,
-        solution: ctx.solution,
-        skillTemplateId: ctx.input.skillTemplateId,
-        input
-      });
-
-      return skillTemplateItemPresenter(item);
-    }),
-
-  deleteItem: skillTemplateItemApp
-    .handler()
-    .input(
-      v.object({
-        tenantId: v.string(),
-        environmentId: v.string(),
-        skillTemplateId: v.string(),
-        skillTemplateItemId: v.string()
-      })
-    )
-    .do(async ctx => {
-      let skillTemplateItem = await skillTemplateService.deleteSkillTemplateItem({
-        tenant: ctx.tenant,
-        environment: ctx.environment,
-        solution: ctx.solution,
-        skillTemplateId: ctx.skillTemplate.id,
-        skillTemplateItemId: ctx.skillTemplateItem.id
-      });
-
-      return skillTemplateItemPresenter(skillTemplateItem);
     })
 });
