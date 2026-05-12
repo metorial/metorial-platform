@@ -172,21 +172,25 @@ class providerAuthConfigServiceImpl {
     providerAuthConfigId: string;
     allowDeleted?: boolean;
   }) {
-    let providerAuthConfig = await db.providerAuthConfig.findFirst({
-      where: {
-        tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
-        environmentOid: d.environment.oid,
+    let providerAuthConfig = await withTransaction(
+      async db =>
+        await db.providerAuthConfig.findFirst({
+          where: {
+            tenantOid: d.tenant.oid,
+            solutionOid: d.solution.oid,
+            environmentOid: d.environment.oid,
 
-        OR: [
-          { id: d.providerAuthConfigId },
-          { providerSetupSession: { id: d.providerAuthConfigId } }
-        ],
+            OR: [
+              { id: d.providerAuthConfigId },
+              { providerSetupSession: { id: d.providerAuthConfigId } }
+            ],
 
-        ...normalizeStatusForGet(d).hasParent
-      },
-      include
-    });
+            ...normalizeStatusForGet(d).hasParent
+          },
+          include
+        }),
+      { ifExists: true }
+    );
     if (!providerAuthConfig)
       throw new ServiceError(notFoundError('provider.auth_config', d.providerAuthConfigId));
 
