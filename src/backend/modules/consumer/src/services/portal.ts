@@ -174,6 +174,8 @@ class PortalServiceImpl {
       description?: string;
       sessionExpiryTimeInSeconds?: number;
       allowedRedirectUrlFilters?: PortalAllowedRedirectUrlFilter[];
+      allowConsumerSkillAuthoring?: boolean;
+      allowConsumerSkillPublishing?: boolean;
     };
   }) {
     let portalId = await ID.generateId('portal');
@@ -188,7 +190,9 @@ class PortalServiceImpl {
       input: {
         name: d.input.name,
         description: d.input.description,
-        sessionExpiryTimeInSeconds: d.input.sessionExpiryTimeInSeconds ?? 60 * 60 * 24 * 7
+        sessionExpiryTimeInSeconds: d.input.sessionExpiryTimeInSeconds ?? 60 * 60 * 24 * 7,
+        allowConsumerSkillAuthoring: d.input.allowConsumerSkillAuthoring,
+        allowConsumerSkillPublishing: d.input.allowConsumerSkillPublishing
       }
     });
 
@@ -246,6 +250,8 @@ class PortalServiceImpl {
       description?: string;
       sessionExpiryTimeInSeconds?: number;
       allowedRedirectUrlFilters?: PortalAllowedRedirectUrlFilter[];
+      allowConsumerSkillAuthoring?: boolean;
+      allowConsumerSkillPublishing?: boolean;
     };
   }) {
     if (d.portal.status != 'active') {
@@ -261,7 +267,9 @@ class PortalServiceImpl {
       input: {
         name: d.input.name,
         description: d.input.description,
-        sessionExpiryTimeInSeconds: d.input.sessionExpiryTimeInSeconds
+        sessionExpiryTimeInSeconds: d.input.sessionExpiryTimeInSeconds,
+        allowConsumerSkillAuthoring: d.input.allowConsumerSkillAuthoring,
+        allowConsumerSkillPublishing: d.input.allowConsumerSkillPublishing
       }
     });
 

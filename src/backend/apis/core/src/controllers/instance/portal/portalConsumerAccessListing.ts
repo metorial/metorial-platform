@@ -59,10 +59,27 @@ export let portalConsumerAccessListingController = Controller.create(
             ),
             provider_template_id: v.optional(v.union([v.string(), v.array(v.string())])),
             magic_mcp_server_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            skill_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            skill_template_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            skill_group_id: v.optional(v.union([v.string(), v.array(v.string())])),
             type: v.optional(
               v.union([
-                v.enumOf(['provider_template', 'magic_mcp_server']),
-                v.array(v.enumOf(['provider_template', 'magic_mcp_server']))
+                v.enumOf([
+                  'provider_template',
+                  'magic_mcp_server',
+                  'skill',
+                  'skill_template',
+                  'skill_group'
+                ]),
+                v.array(
+                  v.enumOf([
+                    'provider_template',
+                    'magic_mcp_server',
+                    'skill',
+                    'skill_template',
+                    'skill_group'
+                  ])
+                )
               ])
             )
           })
@@ -76,6 +93,9 @@ export let portalConsumerAccessListingController = Controller.create(
           ),
           providerTemplateIds: normalizeArrayParam(ctx.query.provider_template_id),
           magicMcpServerIds: normalizeArrayParam(ctx.query.magic_mcp_server_id),
+          skillIds: normalizeArrayParam(ctx.query.skill_id),
+          skillTemplateIds: normalizeArrayParam(ctx.query.skill_template_id),
+          skillGroupIds: normalizeArrayParam(ctx.query.skill_group_id),
           types: normalizeArrayParam(ctx.query.type),
           search: ctx.query.search
         });
@@ -104,6 +124,148 @@ export let portalConsumerAccessListingController = Controller.create(
         return consumerAccessListingPresenter.present({
           consumerAccessListing: ctx.consumerAccessListing
         });
+      }),
+
+    create: portalGroup
+      .post(
+        instancePath(
+          'portals/:portalId/consumer-access-listings',
+          'portals.consumerAccessListings.create'
+        ),
+        {
+          name: 'Create portal consumer access listing',
+          description: 'Creates a shared consumer access listing for a portal.'
+        }
+      )
+      .use(checkAccess({ possibleScopes: ['instance.portal.access:write'] }))
+      .use(hasFlags(['paid-portals', 'portals-access']))
+      .body(
+        'default',
+        v.object({
+          name: v.optional(v.string()),
+          description: v.optional(v.nullable(v.string())),
+          readme: v.optional(v.nullable(v.string())),
+          access: v.union([
+            v.object({
+              type: v.literal('provider_template'),
+              provider_template_id: v.string()
+            }),
+            v.object({
+              type: v.literal('magic_mcp_server'),
+              magic_mcp_server_id: v.string()
+            }),
+            v.object({
+              type: v.literal('skill'),
+              skill_id: v.string()
+            }),
+            v.object({
+              type: v.literal('skill_template'),
+              skill_template_id: v.string()
+            }),
+            v.object({
+              type: v.literal('skill_group'),
+              skill_group_id: v.string()
+            })
+          ])
+        })
+      )
+      .output(consumerAccessListingPresenter)
+      .do(async ctx => {
+        let access = ctx.body.access;
+        let consumerAccessListing = await consumerAccessListingService.create({
+          consumerSurface: ctx.portal.surface,
+          input: {
+            name: ctx.body.name,
+            description: ctx.body.description,
+            readme: ctx.body.readme,
+            access:
+              access.type == 'provider_template'
+                ? {
+                    type: 'provider_template',
+                    providerTemplateId: access.provider_template_id
+                  }
+                : access.type == 'magic_mcp_server'
+                  ? {
+                      type: 'magic_mcp_server',
+                      magicMcpServerId: access.magic_mcp_server_id
+                    }
+                  : access.type == 'skill'
+                    ? {
+                        type: 'skill',
+                        skillId: access.skill_id
+                      }
+                    : access.type == 'skill_template'
+                      ? {
+                          type: 'skill_template',
+                          skillTemplateId: access.skill_template_id
+                        }
+                      : {
+                          type: 'skill_group',
+                          skillGroupId: access.skill_group_id
+                        }
+          }
+        });
+
+        return consumerAccessListingPresenter.present({ consumerAccessListing });
+      }),
+
+    update: consumerAccessListingGroup
+      .patch(
+        instancePath(
+          'portals/:portalId/consumer-access-listings/:consumerAccessListingId',
+          'portals.consumerAccessListings.update'
+        ),
+        {
+          name: 'Update portal consumer access listing',
+          description: 'Updates listing metadata for a portal consumer access listing.'
+        }
+      )
+      .use(checkAccess({ possibleScopes: ['instance.portal.access:write'] }))
+      .use(hasFlags(['paid-portals', 'portals-access']))
+      .body(
+        'default',
+        v.object({
+          name: v.optional(v.string()),
+          description: v.optional(v.nullable(v.string())),
+          readme: v.optional(v.nullable(v.string()))
+        })
+      )
+      .output(consumerAccessListingPresenter)
+      .do(async ctx => {
+        let consumerAccessListing = await consumerAccessListingService.update({
+          consumerAccessListing: ctx.consumerAccessListing,
+          input: {
+            name: ctx.body.name,
+            description: ctx.body.description,
+            readme: ctx.body.readme
+          }
+        });
+
+        return consumerAccessListingPresenter.present({ consumerAccessListing });
+      }),
+
+    delete: consumerAccessListingGroup
+      .delete(
+        instancePath(
+          'portals/:portalId/consumer-access-listings/:consumerAccessListingId',
+          'portals.consumerAccessListings.delete'
+        ),
+        {
+          name: 'Delete portal consumer access listing',
+          description:
+            'Deletes a portal consumer access listing and all consumer access attached to it.'
+        }
+      )
+      .use(checkAccess({ possibleScopes: ['instance.portal.access:write'] }))
+      .use(hasFlags(['paid-portals', 'portals-access']))
+      .output(consumerAccessListingPresenter)
+      .do(async ctx => {
+        let consumerAccessListing = await consumerAccessListingService.delete({
+          organization: ctx.organization,
+          consumerAccessListing: ctx.consumerAccessListing
+        });
+
+        return consumerAccessListingPresenter.present({ consumerAccessListing });
       })
   }
 );

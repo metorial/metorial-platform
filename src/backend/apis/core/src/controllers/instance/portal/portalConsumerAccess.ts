@@ -3,6 +3,11 @@ import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { consumerAccessService, consumerGroupService } from '@metorial/module-consumer';
 import { magicMcpServerService, providerTemplateService } from '@metorial/module-magic';
+import {
+  subspaceSkillGroupService,
+  subspaceSkillTemplateService,
+  subspaceSkillService
+} from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
@@ -52,10 +57,30 @@ export let portalConsumerAccessController = Controller.create(
             consumer_group_id: v.optional(v.union([v.string(), v.array(v.string())])),
             provider_template_id: v.optional(v.union([v.string(), v.array(v.string())])),
             magic_mcp_server_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            skill_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            skill_template_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            skill_group_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            consumer_access_listing_id: v.optional(
+              v.union([v.string(), v.array(v.string())])
+            ),
             type: v.optional(
               v.union([
-                v.enumOf(['provider_template', 'magic_mcp_server']),
-                v.array(v.enumOf(['provider_template', 'magic_mcp_server']))
+                v.enumOf([
+                  'provider_template',
+                  'magic_mcp_server',
+                  'skill',
+                  'skill_template',
+                  'skill_group'
+                ]),
+                v.array(
+                  v.enumOf([
+                    'provider_template',
+                    'magic_mcp_server',
+                    'skill',
+                    'skill_template',
+                    'skill_group'
+                  ])
+                )
               ])
             )
           })
@@ -67,6 +92,12 @@ export let portalConsumerAccessController = Controller.create(
           consumerGroupIds: normalizeArrayParam(ctx.query.consumer_group_id),
           providerTemplateIds: normalizeArrayParam(ctx.query.provider_template_id),
           magicMcpServerIds: normalizeArrayParam(ctx.query.magic_mcp_server_id),
+          skillIds: normalizeArrayParam(ctx.query.skill_id),
+          skillTemplateIds: normalizeArrayParam(ctx.query.skill_template_id),
+          skillGroupIds: normalizeArrayParam(ctx.query.skill_group_id),
+          consumerAccessListingIds: normalizeArrayParam(
+            ctx.query.consumer_access_listing_id
+          ),
           types: normalizeArrayParam(ctx.query.type),
           search: ctx.query.search
         });
@@ -122,6 +153,18 @@ export let portalConsumerAccessController = Controller.create(
             v.object({
               type: v.literal('magic_mcp_server'),
               magic_mcp_server_id: v.string()
+            }),
+            v.object({
+              type: v.literal('skill'),
+              skill_id: v.string()
+            }),
+            v.object({
+              type: v.literal('skill_template'),
+              skill_template_id: v.string()
+            }),
+            v.object({
+              type: v.literal('skill_group'),
+              skill_group_id: v.string()
             })
           ])
         })
@@ -134,42 +177,103 @@ export let portalConsumerAccessController = Controller.create(
           types: ['default', 'user_access']
         });
 
+        let access = ctx.body.access;
+        let input = {
+          name: ctx.body.name,
+          description: ctx.body.description,
+          readme: ctx.body.readme
+        };
+        let localSkill = null;
+        let localSkillTemplate = null;
+        let localSkillGroup = null;
+
+        if (access.type == 'skill') {
+          let skill = await subspaceSkillService.get({
+            instance: ctx.instance,
+            skillId: access.skill_id,
+            allowDeleted: true
+          });
+          localSkill = skill.localSkill;
+        }
+
+        if (access.type == 'skill_template') {
+          let skillTemplate = await subspaceSkillTemplateService.get({
+            instance: ctx.instance,
+            skillTemplateId: access.skill_template_id,
+            allowDeleted: true
+          });
+          localSkillTemplate = skillTemplate.localSkillTemplate;
+        }
+
+        if (access.type == 'skill_group') {
+          let skillGroup = await subspaceSkillGroupService.get({
+            instance: ctx.instance,
+            skillGroupId: access.skill_group_id,
+            allowDeleted: true
+          });
+          localSkillGroup = skillGroup.localSkillGroup;
+        }
         let consumerAccess =
-          ctx.body.access.type == 'provider_template'
+          access.type == 'provider_template'
             ? await consumerAccessService.createConsumerAccess({
                 organization: ctx.organization,
                 consumerSurface: ctx.portal.surface,
                 consumerGroup,
-                input: {
-                  name: ctx.body.name,
-                  description: ctx.body.description,
-                  readme: ctx.body.readme
-                },
+                input,
                 access: {
                   type: 'provider_template',
                   providerTemplate: await providerTemplateService.getProviderTemplateById({
                     instance: ctx.instance,
-                    providerTemplateId: ctx.body.access.provider_template_id
+                    providerTemplateId: access.provider_template_id
                   })
                 }
               })
-            : await consumerAccessService.createConsumerAccess({
-                organization: ctx.organization,
-                consumerSurface: ctx.portal.surface,
-                consumerGroup,
-                input: {
-                  name: ctx.body.name,
-                  description: ctx.body.description,
-                  readme: ctx.body.readme
-                },
-                access: {
-                  type: 'magic_mcp_server',
-                  magicMcpServer: await magicMcpServerService.getMagicMcpServerById({
-                    instance: ctx.instance,
-                    magicMcpServerId: ctx.body.access.magic_mcp_server_id
+            : access.type == 'magic_mcp_server'
+              ? await consumerAccessService.createConsumerAccess({
+                  organization: ctx.organization,
+                  consumerSurface: ctx.portal.surface,
+                  consumerGroup,
+                  input,
+                  access: {
+                    type: 'magic_mcp_server',
+                    magicMcpServer: await magicMcpServerService.getMagicMcpServerById({
+                      instance: ctx.instance,
+                      magicMcpServerId: access.magic_mcp_server_id
+                    })
+                  }
+                })
+              : access.type == 'skill'
+                ? await consumerAccessService.createConsumerAccess({
+                    organization: ctx.organization,
+                    consumerSurface: ctx.portal.surface,
+                    consumerGroup,
+                    input,
+                    access: {
+                      type: 'skill',
+                      skill: localSkill!
+                    }
                   })
-                }
-              });
+                : access.type == 'skill_template'
+                  ? await consumerAccessService.createConsumerAccess({
+                      organization: ctx.organization,
+                      consumerSurface: ctx.portal.surface,
+                      consumerGroup,
+                      input,
+                      access: {
+                        type: 'skill_template',
+                        skillTemplate: localSkillTemplate!
+                      }
+                    })
+                  : await consumerAccessService.createConsumerAccess({
+                      organization: ctx.organization,
+                      consumerSurface: ctx.portal.surface,
+                      consumerGroup,
+                      input,
+                      access: {
+                        type: 'skill_group',
+                        skillGroup: localSkillGroup!
+                      }
+                    });
 
         return consumerAccessPresenter.present({ consumerAccess });
       }),

@@ -4,12 +4,22 @@ import {
 } from '@metorial/util-endpoint';
 
 import {
+  mapDashboardInstancePortalsConsumerAccessListingsCreateBody,
+  mapDashboardInstancePortalsConsumerAccessListingsCreateOutput,
+  mapDashboardInstancePortalsConsumerAccessListingsDeleteOutput,
   mapDashboardInstancePortalsConsumerAccessListingsGetOutput,
   mapDashboardInstancePortalsConsumerAccessListingsListOutput,
   mapDashboardInstancePortalsConsumerAccessListingsListQuery,
+  mapDashboardInstancePortalsConsumerAccessListingsUpdateBody,
+  mapDashboardInstancePortalsConsumerAccessListingsUpdateOutput,
+  type DashboardInstancePortalsConsumerAccessListingsCreateBody,
+  type DashboardInstancePortalsConsumerAccessListingsCreateOutput,
+  type DashboardInstancePortalsConsumerAccessListingsDeleteOutput,
   type DashboardInstancePortalsConsumerAccessListingsGetOutput,
   type DashboardInstancePortalsConsumerAccessListingsListOutput,
-  type DashboardInstancePortalsConsumerAccessListingsListQuery
+  type DashboardInstancePortalsConsumerAccessListingsListQuery,
+  type DashboardInstancePortalsConsumerAccessListingsUpdateBody,
+  type DashboardInstancePortalsConsumerAccessListingsUpdateOutput
 } from '../resources';
 
 /**
@@ -99,6 +109,101 @@ export class MetorialPortalsConsumerAccessListingsEndpoint {
 
     return this._get(request).transform(
       mapDashboardInstancePortalsConsumerAccessListingsGetOutput
+    );
+  }
+
+  /**
+   * @name Create portal consumer access listing
+   * @description Creates a shared consumer access listing for a portal.
+   *
+   * @param `portalId` - string
+   * @param `body` - DashboardInstancePortalsConsumerAccessListingsCreateBody
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardInstancePortalsConsumerAccessListingsCreateOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  create(
+    portalId: string,
+    body: DashboardInstancePortalsConsumerAccessListingsCreateBody,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstancePortalsConsumerAccessListingsCreateOutput> {
+    let path = `portals/${portalId}/consumer-access-listings`;
+
+    let request = {
+      path,
+      body: mapDashboardInstancePortalsConsumerAccessListingsCreateBody.transformTo(
+        body
+      ),
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._post(request).transform(
+      mapDashboardInstancePortalsConsumerAccessListingsCreateOutput
+    );
+  }
+
+  /**
+   * @name Update portal consumer access listing
+   * @description Updates listing metadata for a portal consumer access listing.
+   *
+   * @param `portalId` - string
+   * @param `consumerAccessListingId` - string
+   * @param `body` - DashboardInstancePortalsConsumerAccessListingsUpdateBody
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardInstancePortalsConsumerAccessListingsUpdateOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  update(
+    portalId: string,
+    consumerAccessListingId: string,
+    body: DashboardInstancePortalsConsumerAccessListingsUpdateBody,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstancePortalsConsumerAccessListingsUpdateOutput> {
+    let path = `portals/${portalId}/consumer-access-listings/${consumerAccessListingId}`;
+
+    let request = {
+      path,
+      body: mapDashboardInstancePortalsConsumerAccessListingsUpdateBody.transformTo(
+        body
+      ),
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._patch(request).transform(
+      mapDashboardInstancePortalsConsumerAccessListingsUpdateOutput
+    );
+  }
+
+  /**
+   * @name Delete portal consumer access listing
+   * @description Deletes a portal consumer access listing and all consumer access attached to it.
+   *
+   * @param `portalId` - string
+   * @param `consumerAccessListingId` - string
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardInstancePortalsConsumerAccessListingsDeleteOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  delete(
+    portalId: string,
+    consumerAccessListingId: string,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstancePortalsConsumerAccessListingsDeleteOutput> {
+    let path = `portals/${portalId}/consumer-access-listings/${consumerAccessListingId}`;
+
+    let request = {
+      path,
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._delete(request).transform(
+      mapDashboardInstancePortalsConsumerAccessListingsDeleteOutput
     );
   }
 }

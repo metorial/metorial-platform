@@ -4,7 +4,6 @@ import {
   preconditionFailedError,
   ServiceError
 } from '@lowerdeck/error';
-import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
   Consumer,
@@ -16,11 +15,12 @@ import {
   ID,
   Instance,
   Organization,
+  Prisma,
   Skill,
   SkillStatus,
   withTransaction
 } from '@metorial/db';
-import { subspaceSkillService, type SubspaceSkill } from '@metorial/module-subspace';
+import { subspaceSkillService, subspaceSkillTemplateService } from '@metorial/module-subspace';
 import { consumerAccessPolicyService } from './accessPolicy';
 import { consumerAccessService } from './consumerAccess';
 
@@ -28,11 +28,11 @@ let consumerSkillInclude = {
   skill: true
 } as const;
 
-type ConsumerProfileForSkill = ConsumerProfile & {
+export type ConsumerProfileForSkill = ConsumerProfile & {
   consumer: Consumer;
 };
 
-type ConsumerSkillVisibilityInput = {
+export type ConsumerSkillVisibilityInput = {
   consumerProfile: ConsumerProfile;
   consumerGroups: Pick<ConsumerGroup, 'oid'>[];
 };
@@ -47,6 +47,7 @@ type ConsumerSkillCreateInput = {
   clientMetadata?: Record<string, unknown>;
   metadata?: Record<string, unknown>;
   privateMetadata?: Record<string, unknown>;
+  templateId?: string;
 };
 
 type ConsumerSkillForkInput = ConsumerSkillCreateInput & {
@@ -65,33 +66,63 @@ type ConsumerSkillUpdateInput = {
   privateMetadata?: Record<string, unknown> | null;
 };
 
-let statusFromSubspace = (status: SubspaceSkill['status']): SkillStatus => status;
-let skillEntityIdFromSubspace = (skill: SubspaceSkill) => skill.hierarchy.entity.id;
+export type SubspaceSkillListInput = Parameters<typeof subspaceSkillService.list>[0];
 
-let uniquePermissions = (permissions: ConsumerSkillPermission[]) => [...new Set(permissions)];
+export let uniquePermissions = (permissions: ConsumerSkillPermission[]) => [
+  ...new Set(permissions)
+];
+export let intersectIds = (allowedIds: string[], requestedIds?: string[]) => {
+  let uniqueAllowedIds = [...new Set(allowedIds)];
+  if (!requestedIds?.length) return uniqueAllowedIds;
 
-class ConsumerSkillServiceImpl {
-  private getVisibleSkillWhere(d: ConsumerSkillVisibilityInput) {
-    let groupOids = d.consumerGroups.map(group => group.oid);
+  let requestedIdSet = new Set(requestedIds);
+  return uniqueAllowedIds.filter(id => requestedIdSet.has(id));
+};
+export let toSubspacePaginationQuery = (opts: { take?: number; cursor?: { id: string } }) => ({
+  limit: opts.take,
+  cursor: opts.cursor?.id
+});
 
-    return {
-      OR: [
-        {
-          createdByConsumerProfileOid: d.consumerProfile.oid
-        },
-        {
-          consumerAccesses: {
-            some: {
-              consumerGroupOid: {
-                in: groupOids
+export let getVisibleSkillWhere = (
+  d: ConsumerSkillVisibilityInput
+): Prisma.SkillWhereInput => {
+  let groupOids = d.consumerGroups.map(group => group.oid);
+
+  return {
+    OR: [
+      {
+        createdByConsumerProfileOid: d.consumerProfile.oid
+      },
+      {
+        consumerAccesses: {
+          some: {
+            consumerGroupOid: {
+              in: groupOids
+            }
+          }
+        }
+      },
+      {
+        skillGroupItems: {
+          some: {
+            status: 'active' as const,
+            skillGroup: {
+              consumerAccesses: {
+                some: {
+                  consumerGroupOid: {
+                    in: groupOids
+                  }
+                }
               }
             }
           }
         }
-      ]
-    };
-  }
+      }
+    ]
+  };
+};
 
+class ConsumerSkillServiceImpl {
   private async assertConsumerCanReadSkill(d: {
     skill: Skill;
     consumerProfile: ConsumerProfile;
@@ -100,7 +131,7 @@ class ConsumerSkillServiceImpl {
     let localSkill = await db.skill.findFirst({
       where: {
         oid: d.skill.oid,
-        ...this.getVisibleSkillWhere(d)
+        ...getVisibleSkillWhere(d)
       }
     });
 
@@ -134,160 +165,6 @@ class ConsumerSkillServiceImpl {
         })
       );
     }
-  }
-
-  async syncSkillFromSubspace(d: {
-    organization: Organization;
-    instance: Instance;
-    skill: SubspaceSkill;
-    owner?: {
-      consumerProfile?: ConsumerProfileForSkill;
-    };
-  }) {
-    return await db.skill.upsert({
-      where: {
-        id: d.skill.id
-      },
-      create: {
-        id: d.skill.id,
-        status: statusFromSubspace(d.skill.status),
-        name: d.skill.name,
-        storeId: d.skill.storeId,
-        skillEntityId: skillEntityIdFromSubspace(d.skill),
-        ownerType: d.owner?.consumerProfile ? 'consumer' : 'instance',
-        organizationOid: d.organization.oid,
-        instanceOid: d.instance.oid,
-        createdByConsumerOid: d.owner?.consumerProfile?.consumerOid,
-        createdByConsumerProfileOid: d.owner?.consumerProfile?.oid
-      },
-      update: {
-        status: statusFromSubspace(d.skill.status),
-        name: d.skill.name,
-        storeId: d.skill.storeId,
-        skillEntityId: skillEntityIdFromSubspace(d.skill),
-        ownerType: d.owner?.consumerProfile ? 'consumer' : undefined,
-        createdByConsumerOid: d.owner?.consumerProfile?.consumerOid,
-        createdByConsumerProfileOid: d.owner?.consumerProfile?.oid,
-        archivedAt: d.skill.status === 'archived' ? new Date() : undefined,
-        deletedAt: d.skill.status === 'deleted' ? new Date() : undefined
-      }
-    });
-  }
-
-  private async hydrateSubspaceSkills(d: { instance: Instance; skills: Skill[] }) {
-    if (!d.skills.length) {
-      return [];
-    }
-
-    let hydrated = await subspaceSkillService.getMany({
-      instance: d.instance,
-      skillIds: d.skills.map(skill => skill.id),
-      allowDeleted: true
-    });
-    let byId = new Map(hydrated.map(skill => [skill.id, skill]));
-
-    return d.skills
-      .map(skill => byId.get(skill.id))
-      .filter((skill): skill is SubspaceSkill => !!skill);
-  }
-
-  async listConsumerSkills(d: {
-    organization: Organization;
-    instance: Instance;
-    consumerSurface: ConsumerSurface;
-    consumerProfile: ConsumerProfileForSkill;
-    consumerGroups: Pick<ConsumerGroup, 'oid'>[];
-    search?: string;
-    status?: SkillStatus[];
-    ids?: string[];
-  }) {
-    let search = d.search?.trim();
-
-    return Paginator.create(({ prisma }) =>
-      prisma(async opts => {
-        let skills = await db.skill.findMany({
-          ...opts,
-          where: {
-            instanceOid: d.instance.oid,
-            status: d.status?.length ? { in: d.status } : 'active',
-            id: d.ids?.length ? { in: d.ids } : undefined,
-            name: search
-              ? {
-                  contains: search,
-                  mode: 'insensitive'
-                }
-              : undefined,
-            ...this.getVisibleSkillWhere(d)
-          }
-        });
-
-        let hydrated = await this.hydrateSubspaceSkills({
-          instance: d.instance,
-          skills
-        });
-
-        await this.ensureConsumerSkills({
-          organization: d.organization,
-          instance: d.instance,
-          consumerSurface: d.consumerSurface,
-          consumerProfile: d.consumerProfile,
-          skills,
-          permissions: ['read']
-        });
-
-        return hydrated;
-      })
-    );
-  }
-
-  async getConsumerSkill(d: {
-    organization: Organization;
-    instance: Instance;
-    consumerSurface: ConsumerSurface;
-    consumerProfile: ConsumerProfileForSkill;
-    consumerGroups: Pick<ConsumerGroup, 'oid'>[];
-    skillId: string;
-    allowDeleted?: boolean;
-  }) {
-    let skill = await db.skill.findFirst({
-      where: {
-        instanceOid: d.instance.oid,
-        id: d.skillId,
-        ...(d.allowDeleted ? {} : { status: 'active' as const })
-      }
-    });
-    if (!skill) {
-      throw new ServiceError(notFoundError('skill', d.skillId));
-    }
-
-    await this.assertConsumerCanReadSkill({
-      skill,
-      consumerProfile: d.consumerProfile,
-      consumerGroups: d.consumerGroups
-    });
-
-    let subspaceSkill = await subspaceSkillService.get({
-      instance: d.instance,
-      skillId: skill.id,
-      allowDeleted: d.allowDeleted
-    });
-
-    await this.syncSkillFromSubspace({
-      organization: d.organization,
-      instance: d.instance,
-      skill: subspaceSkill
-    });
-
-    await this.ensureConsumerSkill({
-      organization: d.organization,
-      instance: d.instance,
-      consumerSurface: d.consumerSurface,
-      consumerProfile: d.consumerProfile,
-      skill,
-      permissions: ['read']
-    });
-
-    return subspaceSkill;
   }
 
   async ensureConsumerSkill(d: {
@@ -409,6 +286,7 @@ class ConsumerSkillServiceImpl {
     instance: Instance;
     consumerSurface: ConsumerSurface;
     consumerProfile: ConsumerProfileForSkill;
+    consumerGroups: Pick<ConsumerGroup, 'oid'>[];
     input: ConsumerSkillCreateInput;
   }) {
     if (!d.consumerSurface.allowConsumerSkillAuthoring) {
@@ -419,19 +297,22 @@ class ConsumerSkillServiceImpl {
       );
     }
 
+    if (d.input.templateId) {
+      await subspaceSkillTemplateService.get({
+        instance: d.instance,
+        consumerProfile: d.consumerProfile,
+        consumerGroups: d.consumerGroups,
+        skillTemplateId: d.input.templateId
+      });
+    }
+
     let skill = await subspaceSkillService.create({
       ...d.input,
       instance: d.instance,
-      consumer: d.consumerProfile.consumer
+      consumer: d.consumerProfile.consumer,
+      consumerProfile: d.consumerProfile
     });
-    let localSkill = await this.syncSkillFromSubspace({
-      organization: d.organization,
-      instance: d.instance,
-      skill,
-      owner: {
-        consumerProfile: d.consumerProfile
-      }
-    });
+    let localSkill = await db.skill.findUniqueOrThrow({ where: { id: skill.id } });
 
     await this.ensureConsumerSkill({
       organization: d.organization,
@@ -483,16 +364,10 @@ class ConsumerSkillServiceImpl {
       ...d.input,
       instance: d.instance,
       consumer: d.consumerProfile.consumer,
+      consumerProfile: d.consumerProfile,
       skillId: parentSkill.id
     });
-    let localSkill = await this.syncSkillFromSubspace({
-      organization: d.organization,
-      instance: d.instance,
-      skill,
-      owner: {
-        consumerProfile: d.consumerProfile
-      }
-    });
+    let localSkill = await db.skill.findUniqueOrThrow({ where: { id: skill.id } });
 
     await this.ensureConsumerSkill({
       organization: d.organization,
@@ -535,12 +410,6 @@ class ConsumerSkillServiceImpl {
       allowDeleted: true
     });
 
-    await this.syncSkillFromSubspace({
-      organization: d.organization,
-      instance: d.instance,
-      skill
-    });
-
     return skill;
   }
 
@@ -569,12 +438,6 @@ class ConsumerSkillServiceImpl {
       instance: d.instance,
       skillId: d.skillId,
       allowDeleted: true
-    });
-
-    await this.syncSkillFromSubspace({
-      organization: d.organization,
-      instance: d.instance,
-      skill
     });
 
     return skill;
@@ -637,10 +500,8 @@ class ConsumerSkillServiceImpl {
       }
     });
 
-    return await this.getConsumerSkill({
-      organization: d.organization,
+    return await subspaceSkillService.get({
       instance: d.instance,
-      consumerSurface: d.consumerSurface,
       consumerProfile: d.consumerProfile,
       consumerGroups: d.consumerGroups,
       skillId: d.skillId

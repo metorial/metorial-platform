@@ -96,7 +96,9 @@ export let portalController = Controller.create(
             v.number({
               modifiers: [v.minValue(600), v.maxValue(60 * 60 * 24 * 30 * 2)]
             })
-          )
+          ),
+          allow_consumer_skill_authoring: v.optional(v.boolean()),
+          allow_consumer_skill_publishing: v.optional(v.boolean())
         })
       )
       .output(portalPresenter)
@@ -109,7 +111,9 @@ export let portalController = Controller.create(
             name: ctx.body.name,
             description: ctx.body.description,
             allowedRedirectUrlFilters: ctx.body.allowed_redirect_url_filters,
-            sessionExpiryTimeInSeconds: ctx.body.session_expiry_time_in_seconds
+            sessionExpiryTimeInSeconds: ctx.body.session_expiry_time_in_seconds,
+            allowConsumerSkillAuthoring: ctx.body.allow_consumer_skill_authoring,
+            allowConsumerSkillPublishing: ctx.body.allow_consumer_skill_publishing
           }
         });
 
@@ -138,7 +142,9 @@ export let portalController = Controller.create(
             v.number({
               modifiers: [v.minValue(600), v.maxValue(60 * 60 * 24 * 30 * 2)]
             })
-          )
+          ),
+          allow_consumer_skill_authoring: v.optional(v.boolean()),
+          allow_consumer_skill_publishing: v.optional(v.boolean())
         })
       )
       .output(portalPresenter)
@@ -149,7 +155,9 @@ export let portalController = Controller.create(
             name: ctx.body.name,
             description: ctx.body.description,
             allowedRedirectUrlFilters: ctx.body.allowed_redirect_url_filters,
-            sessionExpiryTimeInSeconds: ctx.body.session_expiry_time_in_seconds
+            sessionExpiryTimeInSeconds: ctx.body.session_expiry_time_in_seconds,
+            allowConsumerSkillAuthoring: ctx.body.allow_consumer_skill_authoring,
+            allowConsumerSkillPublishing: ctx.body.allow_consumer_skill_publishing
           }
         });
 

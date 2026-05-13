@@ -187,6 +187,9 @@ export let ID = createIdGenerator({
   consumerSurfaceProviderGroup: idType.sorted('cspg'),
   consumerProviderSetupSessionBinding: idType.sorted('cpsb'),
   consumerSkill: idType.sorted('cosk'),
+  skillTemplate: idType.sorted('skt'),
+  skillGroup: idType.sorted('skg'),
+  skillGroupItem: idType.sorted('skgi'),
   providerTemplate: idType.sorted('ptm'),
 
   portal: idType.sorted('ptl'),

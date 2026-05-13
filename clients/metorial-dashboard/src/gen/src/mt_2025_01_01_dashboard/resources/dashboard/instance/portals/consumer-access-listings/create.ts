@@ -1,7 +1,7 @@
 import { mtMap } from '@metorial/util-resource-mapper';
 
-export type PortalsConsumerAccessGetOutput = {
-  object: 'consumer.access';
+export type DashboardInstancePortalsConsumerAccessListingsCreateOutput = {
+  object: 'consumer.access_listing';
   id: string;
   name: string;
   description: string | null;
@@ -61,23 +61,18 @@ export type PortalsConsumerAccessGetOutput = {
           description: string | null;
         };
       };
-  consumerGroup: {
-    object: 'consumer.group';
+  groups: {
     id: string;
-    status: 'active' | 'archived' | 'deleted';
     name: string;
     description: string | null;
-    isDefault: boolean;
-    ssoGroupIds: string[];
-    createdAt: Date;
-    updatedAt: Date;
-  };
+    index: number;
+  }[];
   createdAt: Date;
   updatedAt: Date;
 };
 
-export let mapPortalsConsumerAccessGetOutput =
-  mtMap.object<PortalsConsumerAccessGetOutput>({
+export let mapDashboardInstancePortalsConsumerAccessListingsCreateOutput =
+  mtMap.object<DashboardInstancePortalsConsumerAccessListingsCreateOutput>({
     object: mtMap.objectField('object', mtMap.passthrough()),
     id: mtMap.objectField('id', mtMap.passthrough()),
     name: mtMap.objectField('name', mtMap.passthrough()),
@@ -163,24 +158,65 @@ export let mapPortalsConsumerAccessGetOutput =
         )
       ])
     ),
-    consumerGroup: mtMap.objectField(
-      'consumer_group',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        status: mtMap.objectField('status', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        description: mtMap.objectField('description', mtMap.passthrough()),
-        isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
-        ssoGroupIds: mtMap.objectField(
-          'sso_group_ids',
-          mtMap.array(mtMap.passthrough())
-        ),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        updatedAt: mtMap.objectField('updated_at', mtMap.date())
-      })
+    groups: mtMap.objectField(
+      'groups',
+      mtMap.array(
+        mtMap.object({
+          id: mtMap.objectField('id', mtMap.passthrough()),
+          name: mtMap.objectField('name', mtMap.passthrough()),
+          description: mtMap.objectField('description', mtMap.passthrough()),
+          index: mtMap.objectField('index', mtMap.passthrough())
+        })
+      )
     ),
     createdAt: mtMap.objectField('created_at', mtMap.date()),
     updatedAt: mtMap.objectField('updated_at', mtMap.date())
+  });
+
+export type DashboardInstancePortalsConsumerAccessListingsCreateBody = {
+  name?: string | undefined;
+  description?: string | null | undefined;
+  readme?: string | null | undefined;
+  access:
+    | { type: 'provider_template'; providerTemplateId: string }
+    | { type: 'magic_mcp_server'; magicMcpServerId: string }
+    | { type: 'skill'; skillId: string }
+    | { type: 'skill_template'; skillTemplateId: string }
+    | { type: 'skill_group'; skillGroupId: string };
+};
+
+export let mapDashboardInstancePortalsConsumerAccessListingsCreateBody =
+  mtMap.object<DashboardInstancePortalsConsumerAccessListingsCreateBody>({
+    name: mtMap.objectField('name', mtMap.passthrough()),
+    description: mtMap.objectField('description', mtMap.passthrough()),
+    readme: mtMap.objectField('readme', mtMap.passthrough()),
+    access: mtMap.objectField(
+      'access',
+      mtMap.union([
+        mtMap.unionOption(
+          'object',
+          mtMap.object({
+            type: mtMap.objectField('type', mtMap.passthrough()),
+            providerTemplateId: mtMap.objectField(
+              'provider_template_id',
+              mtMap.passthrough()
+            ),
+            magicMcpServerId: mtMap.objectField(
+              'magic_mcp_server_id',
+              mtMap.passthrough()
+            ),
+            skillId: mtMap.objectField('skill_id', mtMap.passthrough()),
+            skillTemplateId: mtMap.objectField(
+              'skill_template_id',
+              mtMap.passthrough()
+            ),
+            skillGroupId: mtMap.objectField(
+              'skill_group_id',
+              mtMap.passthrough()
+            )
+          })
+        )
+      ])
+    )
   });
 

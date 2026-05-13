@@ -7,6 +7,7 @@ import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
 import { skillGroupPresenter } from '../../../presenters';
 
 export let skillGroupGroup = instanceGroup.use(async ctx => {
@@ -22,7 +23,9 @@ export let skillGroupGroup = instanceGroup.use(async ctx => {
   let skillGroup = await subspaceSkillGroupService.get({
     instance: ctx.instance,
     skillGroupId: ctx.params.skillGroupId,
-    allowDeleted: true
+    allowDeleted: true,
+    consumerProfile: ctx.consumerProfile,
+    consumerGroups: ctx.consumerGroups
   });
 
   return { skillGroup };
@@ -39,7 +42,12 @@ export let skillGroupController = Controller.create(
         name: 'List skill groups',
         description: 'Returns a paginated list of skill groups.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.skill:read'] }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.skill:read', 'consumer#instance.skill:read']
+        })
+      )
+      .use(requireConsumerTokenForPublishableKey())
       .outputList(skillGroupPresenter)
       .query(
         'default',
@@ -62,6 +70,8 @@ export let skillGroupController = Controller.create(
       .do(async ctx => {
         let paginator = await subspaceSkillGroupService.list({
           instance: ctx.instance,
+          consumerProfile: ctx.consumerProfile,
+          consumerGroups: ctx.consumerGroups,
           search: ctx.query.search,
           allowDeleted: true,
           status: normalizeArrayParam(ctx.query.status),
@@ -83,9 +93,16 @@ export let skillGroupController = Controller.create(
         name: 'Get skill group',
         description: 'Retrieves a specific skill group.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.skill:read'] }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.skill:read', 'consumer#instance.skill:read']
+        })
+      )
+      .use(requireConsumerTokenForPublishableKey())
       .output(skillGroupPresenter)
-      .do(async ctx => skillGroupPresenter.present({ skillGroup: ctx.skillGroup })),
+      .do(async ctx => {
+        return skillGroupPresenter.present({ skillGroup: ctx.skillGroup });
+      }),
 
     create: instanceGroup
       .post(instancePath('skill-groups', 'skillGroups.create'), {

@@ -7,6 +7,7 @@ import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
 import { skillTemplatePresenter } from '../../../presenters';
 
 export let skillTemplateGroup = instanceGroup.use(async ctx => {
@@ -22,7 +23,9 @@ export let skillTemplateGroup = instanceGroup.use(async ctx => {
   let skillTemplate = await subspaceSkillTemplateService.get({
     instance: ctx.instance,
     skillTemplateId: ctx.params.skillTemplateId,
-    allowDeleted: true
+    allowDeleted: true,
+    consumerProfile: ctx.consumerProfile,
+    consumerGroups: ctx.consumerGroups
   });
 
   return { skillTemplate };
@@ -39,7 +42,12 @@ export let skillTemplateController = Controller.create(
         name: 'List skill templates',
         description: 'Returns a paginated list of skill templates.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.skill:read'] }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.skill:read', 'consumer#instance.skill:read']
+        })
+      )
+      .use(requireConsumerTokenForPublishableKey())
       .outputList(skillTemplatePresenter)
       .query(
         'default',
@@ -69,6 +77,8 @@ export let skillTemplateController = Controller.create(
       .do(async ctx => {
         let paginator = await subspaceSkillTemplateService.list({
           instance: ctx.instance,
+          consumerProfile: ctx.consumerProfile,
+          consumerGroups: ctx.consumerGroups,
           search: ctx.query.search,
           allowDeleted: true,
           status: normalizeArrayParam(ctx.query.status),
@@ -92,9 +102,16 @@ export let skillTemplateController = Controller.create(
         name: 'Get skill template',
         description: 'Retrieves a specific skill template.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.skill:read'] }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.skill:read', 'consumer#instance.skill:read']
+        })
+      )
+      .use(requireConsumerTokenForPublishableKey())
       .output(skillTemplatePresenter)
-      .do(async ctx => skillTemplatePresenter.present({ skillTemplate: ctx.skillTemplate })),
+      .do(async ctx => {
+        return skillTemplatePresenter.present({ skillTemplate: ctx.skillTemplate });
+      }),
 
     create: instanceGroup
       .post(instancePath('skill-template', 'skillTemplates.create'), {

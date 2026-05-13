@@ -8,5 +8,7 @@ export let portalPresenter = async (d: { portal: PortalWithSurface }) => ({
   status: d.portal.status,
   name: d.portal.name,
   slug: d.portal.slug,
-  description: d.portal.description
+  description: d.portal.description,
+  allowConsumerSkillAuthoring: d.portal.surface.allowConsumerSkillAuthoring,
+  allowConsumerSkillPublishing: d.portal.surface.allowConsumerSkillPublishing
 });

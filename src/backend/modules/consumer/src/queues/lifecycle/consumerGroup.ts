@@ -57,6 +57,8 @@ export let consumerGroupArchivedQueueProcessor = consumerGroupArchivedQueue.proc
         providerTemplate: true,
         magicMcpServer: true,
         skill: true,
+        skillTemplate: true,
+        skillGroup: true,
         listing: true,
         surface: { include: { organization: true } }
       }

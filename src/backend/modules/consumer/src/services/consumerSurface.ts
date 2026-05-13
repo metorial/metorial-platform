@@ -179,6 +179,8 @@ class ConsumerSurfaceServiceImpl {
       description?: string;
       sessionExpiryTimeInSeconds: number;
       emailWhitelist?: string[];
+      allowConsumerSkillAuthoring?: boolean;
+      allowConsumerSkillPublishing?: boolean;
     };
     internalSurfaceUniqueIdentifier?: string;
   }) {
@@ -213,6 +215,8 @@ class ConsumerSurfaceServiceImpl {
             name: d.input.name,
             description: d.input.description,
             sessionExpiryTimeInSeconds: d.input.sessionExpiryTimeInSeconds,
+            allowConsumerSkillAuthoring: d.input.allowConsumerSkillAuthoring,
+            allowConsumerSkillPublishing: d.input.allowConsumerSkillPublishing,
             emailWhitelist: normalizeConsumerSurfaceEmailWhitelist(
               d.input.emailWhitelist ?? []
             ),
@@ -331,6 +335,8 @@ class ConsumerSurfaceServiceImpl {
       description?: string;
       sessionExpiryTimeInSeconds?: number;
       emailWhitelist?: string[];
+      allowConsumerSkillAuthoring?: boolean;
+      allowConsumerSkillPublishing?: boolean;
     };
   }) {
     if (d.consumerSurface.status !== 'active') {
@@ -349,6 +355,8 @@ class ConsumerSurfaceServiceImpl {
         name: d.input.name,
         description: d.input.description,
         sessionExpiryTimeInSeconds: d.input.sessionExpiryTimeInSeconds,
+        allowConsumerSkillAuthoring: d.input.allowConsumerSkillAuthoring,
+        allowConsumerSkillPublishing: d.input.allowConsumerSkillPublishing,
         emailWhitelist:
           d.input.emailWhitelist === undefined
             ? undefined

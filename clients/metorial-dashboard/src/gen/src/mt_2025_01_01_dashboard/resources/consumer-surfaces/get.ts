@@ -6,6 +6,8 @@ export type ConsumerSurfacesGetOutput = {
   status: 'active' | 'archived' | 'deleted';
   name: string;
   description: string | null;
+  allowConsumerSkillAuthoring: boolean;
+  allowConsumerSkillPublishing: boolean;
   auth: {
     object: 'consumer.surface.auth';
     sessionExpiryTimeInSeconds: number;
@@ -22,6 +24,14 @@ export let mapConsumerSurfacesGetOutput =
     status: mtMap.objectField('status', mtMap.passthrough()),
     name: mtMap.objectField('name', mtMap.passthrough()),
     description: mtMap.objectField('description', mtMap.passthrough()),
+    allowConsumerSkillAuthoring: mtMap.objectField(
+      'allow_consumer_skill_authoring',
+      mtMap.passthrough()
+    ),
+    allowConsumerSkillPublishing: mtMap.objectField(
+      'allow_consumer_skill_publishing',
+      mtMap.passthrough()
+    ),
     auth: mtMap.objectField(
       'auth',
       mtMap.object({

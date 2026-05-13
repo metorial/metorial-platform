@@ -30,6 +30,36 @@ export type DashboardInstancePortalsConsumerAccessCreateOutput = {
           name: string | null;
           description: string | null;
         };
+      }
+    | {
+        type: 'skill';
+        skill: {
+          object: 'skill';
+          id: string;
+          status: 'active' | 'archived' | 'deleted';
+          name: string;
+        };
+      }
+    | {
+        type: 'skill_template';
+        skillTemplate: {
+          object: 'skill.template';
+          id: string;
+          status: 'active' | 'archived' | 'deleted';
+          owner: 'system' | 'tenant';
+          name: string;
+          description: string | null;
+        };
+      }
+    | {
+        type: 'skill_group';
+        skillGroup: {
+          object: 'skill.group';
+          id: string;
+          status: 'active' | 'archived' | 'deleted';
+          name: string;
+          description: string | null;
+        };
       };
   consumerGroup: {
     object: 'consumer.group';
@@ -92,6 +122,42 @@ export let mapDashboardInstancePortalsConsumerAccessCreateOutput =
                   mtMap.passthrough()
                 )
               })
+            ),
+            skill: mtMap.objectField(
+              'skill',
+              mtMap.object({
+                object: mtMap.objectField('object', mtMap.passthrough()),
+                id: mtMap.objectField('id', mtMap.passthrough()),
+                status: mtMap.objectField('status', mtMap.passthrough()),
+                name: mtMap.objectField('name', mtMap.passthrough())
+              })
+            ),
+            skillTemplate: mtMap.objectField(
+              'skill_template',
+              mtMap.object({
+                object: mtMap.objectField('object', mtMap.passthrough()),
+                id: mtMap.objectField('id', mtMap.passthrough()),
+                status: mtMap.objectField('status', mtMap.passthrough()),
+                owner: mtMap.objectField('owner', mtMap.passthrough()),
+                name: mtMap.objectField('name', mtMap.passthrough()),
+                description: mtMap.objectField(
+                  'description',
+                  mtMap.passthrough()
+                )
+              })
+            ),
+            skillGroup: mtMap.objectField(
+              'skill_group',
+              mtMap.object({
+                object: mtMap.objectField('object', mtMap.passthrough()),
+                id: mtMap.objectField('id', mtMap.passthrough()),
+                status: mtMap.objectField('status', mtMap.passthrough()),
+                name: mtMap.objectField('name', mtMap.passthrough()),
+                description: mtMap.objectField(
+                  'description',
+                  mtMap.passthrough()
+                )
+              })
             )
           })
         )
@@ -125,7 +191,10 @@ export type DashboardInstancePortalsConsumerAccessCreateBody = {
   readme?: string | null | undefined;
   access:
     | { type: 'provider_template'; providerTemplateId: string }
-    | { type: 'magic_mcp_server'; magicMcpServerId: string };
+    | { type: 'magic_mcp_server'; magicMcpServerId: string }
+    | { type: 'skill'; skillId: string }
+    | { type: 'skill_template'; skillTemplateId: string }
+    | { type: 'skill_group'; skillGroupId: string };
 };
 
 export let mapDashboardInstancePortalsConsumerAccessCreateBody =
@@ -150,6 +219,15 @@ export let mapDashboardInstancePortalsConsumerAccessCreateBody =
             ),
             magicMcpServerId: mtMap.objectField(
               'magic_mcp_server_id',
+              mtMap.passthrough()
+            ),
+            skillId: mtMap.objectField('skill_id', mtMap.passthrough()),
+            skillTemplateId: mtMap.objectField(
+              'skill_template_id',
+              mtMap.passthrough()
+            ),
+            skillGroupId: mtMap.objectField(
+              'skill_group_id',
               mtMap.passthrough()
             )
           })

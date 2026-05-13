@@ -165,6 +165,7 @@ export type ManagementInstanceSkillsCreateBody = {
   license?: string | undefined;
   compatibility?: string | undefined;
   clientMetadata?: Record<string, any> | undefined;
+  templateId?: string | undefined;
 };
 
 export let mapManagementInstanceSkillsCreateBody =
@@ -179,6 +180,7 @@ export let mapManagementInstanceSkillsCreateBody =
     ),
     license: mtMap.objectField('license', mtMap.passthrough()),
     compatibility: mtMap.objectField('compatibility', mtMap.passthrough()),
-    clientMetadata: mtMap.objectField('client_metadata', mtMap.passthrough())
+    clientMetadata: mtMap.objectField('client_metadata', mtMap.passthrough()),
+    templateId: mtMap.objectField('template_id', mtMap.passthrough())
   });
 

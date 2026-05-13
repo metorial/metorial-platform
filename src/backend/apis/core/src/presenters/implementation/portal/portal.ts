@@ -11,6 +11,8 @@ export let v1PortalPresenter = Presenter.create(portalType)
     name: portal.name,
     slug: portal.slug,
     description: portal.description,
+    allow_consumer_skill_authoring: portal.surface.allowConsumerSkillAuthoring,
+    allow_consumer_skill_publishing: portal.surface.allowConsumerSkillPublishing,
     auth: {
       object: 'portal.auth' as const,
       session_expiry_time_in_seconds: portal.surface.sessionExpiryTimeInSeconds,
@@ -35,6 +37,8 @@ export let v1PortalPresenter = Presenter.create(portalType)
       name: v.string(),
       slug: v.string(),
       description: v.nullable(v.string()),
+      allow_consumer_skill_authoring: v.boolean(),
+      allow_consumer_skill_publishing: v.boolean(),
       auth: v.object({
         object: v.literal('portal.auth'),
         session_expiry_time_in_seconds: v.number(),

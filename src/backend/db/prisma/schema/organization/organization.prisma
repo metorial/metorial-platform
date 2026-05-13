@@ -69,6 +69,8 @@ model Organization {
   portals                 Portal[]
   providerTemplates       ProviderTemplate[]
   skills                  Skill[]
+  skillTemplates          SkillTemplate[]
+  skillGroups             SkillGroup[]
   consumerSkills          ConsumerSkill[]
   oauthApplications       OAuthApplication[]
   oauthInstallations      OAuthInstallation[]

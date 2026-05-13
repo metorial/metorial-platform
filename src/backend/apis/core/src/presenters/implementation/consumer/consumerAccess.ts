@@ -5,6 +5,74 @@ import { v1ConsumerGroupPresenter } from './consumerGroup';
 import { v1MagicMcpServerPreview } from '../provider/magicMcp/magicMcpServerPreview';
 import { v1ProviderTemplatePreview } from '../provider/integrations/providerTemplate';
 
+let localSkillPreview = Object.assign(
+  (skill: { id: string; status: 'active' | 'archived' | 'deleted'; name: string }) => ({
+    object: 'skill' as const,
+    id: skill.id,
+    status: skill.status,
+    name: skill.name
+  }),
+  {
+    schema: v.object({
+      object: v.literal('skill'),
+      id: v.string(),
+      status: v.enumOf(['active', 'archived', 'deleted']),
+      name: v.string()
+    })
+  }
+);
+
+let localSkillTemplatePreview = Object.assign(
+  (skillTemplate: {
+    id: string;
+    status: 'active' | 'archived' | 'deleted';
+    owner: 'system' | 'tenant';
+    name: string;
+    description: string | null;
+  }) => ({
+    object: 'skill.template' as const,
+    id: skillTemplate.id,
+    status: skillTemplate.status,
+    owner: skillTemplate.owner,
+    name: skillTemplate.name,
+    description: skillTemplate.description
+  }),
+  {
+    schema: v.object({
+      object: v.literal('skill.template'),
+      id: v.string(),
+      status: v.enumOf(['active', 'archived', 'deleted']),
+      owner: v.enumOf(['system', 'tenant']),
+      name: v.string(),
+      description: v.nullable(v.string())
+    })
+  }
+);
+
+let localSkillGroupPreview = Object.assign(
+  (skillGroup: {
+    id: string;
+    status: 'active' | 'archived' | 'deleted';
+    name: string;
+    description: string | null;
+  }) => ({
+    object: 'skill.group' as const,
+    id: skillGroup.id,
+    status: skillGroup.status,
+    name: skillGroup.name,
+    description: skillGroup.description
+  }),
+  {
+    schema: v.object({
+      object: v.literal('skill.group'),
+      id: v.string(),
+      status: v.enumOf(['active', 'archived', 'deleted']),
+      name: v.string(),
+      description: v.nullable(v.string())
+    })
+  }
+);
+
 export let v1ConsumerAccessPresenter = Presenter.create(consumerAccessType)
   .presenter(async ({ consumerAccess }, opts) => ({
     object: 'consumer.access' as const,
@@ -13,12 +81,24 @@ export let v1ConsumerAccessPresenter = Presenter.create(consumerAccessType)
       consumerAccess.listing?.name ??
       (consumerAccess.type == 'provider_template'
         ? consumerAccess.providerTemplate!.name
-        : (consumerAccess.magicMcpServer!.name ?? consumerAccess.magicMcpServer!.id)),
+        : consumerAccess.type == 'magic_mcp_server'
+          ? (consumerAccess.magicMcpServer!.name ?? consumerAccess.magicMcpServer!.id)
+          : consumerAccess.type == 'skill'
+            ? consumerAccess.skill!.name
+            : consumerAccess.type == 'skill_template'
+              ? consumerAccess.skillTemplate!.name
+              : consumerAccess.skillGroup!.name),
     description:
       consumerAccess.listing?.description ??
       (consumerAccess.type == 'provider_template'
         ? consumerAccess.providerTemplate!.description
-        : consumerAccess.magicMcpServer!.description),
+        : consumerAccess.type == 'magic_mcp_server'
+          ? consumerAccess.magicMcpServer!.description
+          : consumerAccess.type == 'skill_template'
+            ? consumerAccess.skillTemplate!.description
+            : consumerAccess.type == 'skill_group'
+              ? consumerAccess.skillGroup!.description
+              : null),
     readme: consumerAccess.listing?.readme ?? null,
 
     access:
@@ -27,10 +107,25 @@ export let v1ConsumerAccessPresenter = Presenter.create(consumerAccessType)
             type: 'provider_template' as const,
             provider_template: v1ProviderTemplatePreview(consumerAccess.providerTemplate!)
           }
-        : {
-            type: 'magic_mcp_server' as const,
-            magic_mcp_server: v1MagicMcpServerPreview(consumerAccess.magicMcpServer!)
-          },
+        : consumerAccess.type == 'magic_mcp_server'
+          ? {
+              type: 'magic_mcp_server' as const,
+              magic_mcp_server: v1MagicMcpServerPreview(consumerAccess.magicMcpServer!)
+            }
+          : consumerAccess.type == 'skill'
+            ? {
+                type: 'skill' as const,
+                skill: localSkillPreview(consumerAccess.skill!)
+              }
+            : consumerAccess.type == 'skill_template'
+              ? {
+                  type: 'skill_template' as const,
+                  skill_template: localSkillTemplatePreview(consumerAccess.skillTemplate!)
+                }
+              : {
+                  type: 'skill_group' as const,
+                  skill_group: localSkillGroupPreview(consumerAccess.skillGroup!)
+                },
 
     consumer_group: await v1ConsumerGroupPresenter
       .present({ consumerGroup: consumerAccess.consumerGroup }, opts)
@@ -54,6 +149,18 @@ export let v1ConsumerAccessPresenter = Presenter.create(consumerAccessType)
         v.object({
           type: v.literal('magic_mcp_server'),
           magic_mcp_server: v1MagicMcpServerPreview.schema
+        }),
+        v.object({
+          type: v.literal('skill'),
+          skill: localSkillPreview.schema
+        }),
+        v.object({
+          type: v.literal('skill_template'),
+          skill_template: localSkillTemplatePreview.schema
+        }),
+        v.object({
+          type: v.literal('skill_group'),
+          skill_group: localSkillGroupPreview.schema
         })
       ]),
       consumer_group: v1ConsumerGroupPresenter.schema,

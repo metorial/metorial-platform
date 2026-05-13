@@ -12,6 +12,8 @@ import {
   Organization,
   ProviderTemplate,
   Skill,
+  SkillGroup,
+  SkillTemplate,
   withTransaction
 } from '@metorial/db';
 import {
@@ -44,7 +46,9 @@ type ConsumerAccessResource =
   | { magicMcpToken: Pick<MagicMcpToken, 'oid'> }
   | { magicMcpGroup: Pick<MagicMcpGroup, 'oid'> }
   | { providerTemplate: Pick<ProviderTemplate, 'oid'> }
-  | { skill: Pick<Skill, 'oid'> };
+  | { skill: Pick<Skill, 'oid'> }
+  | { skillTemplate: Pick<SkillTemplate, 'oid'> }
+  | { skillGroup: Pick<SkillGroup, 'oid'> };
 
 type ConsumerAccessSubject =
   | {
@@ -133,13 +137,17 @@ let getStoredConsumerAccessResource = (
     providerTemplate: Pick<ProviderTemplate, 'oid'> | null;
     magicMcpServer: Pick<MagicMcpServer, 'oid'> | null;
     skill?: Pick<Skill, 'oid'> | null;
+    skillTemplate?: Pick<SkillTemplate, 'oid'> | null;
+    skillGroup?: Pick<SkillGroup, 'oid'> | null;
   }
 ) => {
   if (consumerAccess.type == 'provider_template') {
     if (
       !consumerAccess.providerTemplate ||
       consumerAccess.magicMcpServer ||
-      consumerAccess.skill
+      consumerAccess.skill ||
+      consumerAccess.skillTemplate ||
+      consumerAccess.skillGroup
     ) {
       throw invalidConsumerAccessTargetError();
     }
@@ -154,7 +162,9 @@ let getStoredConsumerAccessResource = (
     if (
       !consumerAccess.skill ||
       consumerAccess.providerTemplate ||
-      consumerAccess.magicMcpServer
+      consumerAccess.magicMcpServer ||
+      consumerAccess.skillTemplate ||
+      consumerAccess.skillGroup
     ) {
       throw invalidConsumerAccessTargetError();
     }
@@ -165,10 +175,46 @@ let getStoredConsumerAccessResource = (
     };
   }
 
+  if (consumerAccess.type == 'skill_template') {
+    if (
+      !consumerAccess.skillTemplate ||
+      consumerAccess.providerTemplate ||
+      consumerAccess.magicMcpServer ||
+      consumerAccess.skill ||
+      consumerAccess.skillGroup
+    ) {
+      throw invalidConsumerAccessTargetError();
+    }
+
+    return {
+      type: 'skill_template' as const,
+      skillTemplate: consumerAccess.skillTemplate
+    };
+  }
+
+  if (consumerAccess.type == 'skill_group') {
+    if (
+      !consumerAccess.skillGroup ||
+      consumerAccess.providerTemplate ||
+      consumerAccess.magicMcpServer ||
+      consumerAccess.skill ||
+      consumerAccess.skillTemplate
+    ) {
+      throw invalidConsumerAccessTargetError();
+    }
+
+    return {
+      type: 'skill_group' as const,
+      skillGroup: consumerAccess.skillGroup
+    };
+  }
+
   if (
     !consumerAccess.magicMcpServer ||
     consumerAccess.providerTemplate ||
-    consumerAccess.skill
+    consumerAccess.skill ||
+    consumerAccess.skillTemplate ||
+    consumerAccess.skillGroup
   ) {
     throw invalidConsumerAccessTargetError();
   }
@@ -293,6 +339,18 @@ class ConsumerAccessPolicyServiceImpl {
       };
     }
 
+    if ('skillTemplate' in resource) {
+      return {
+        skillTemplateOid: resource.skillTemplate.oid
+      };
+    }
+
+    if ('skillGroup' in resource) {
+      return {
+        skillGroupOid: resource.skillGroup.oid
+      };
+    }
+
     return {
       providerTemplateOid: resource.providerTemplate.oid
     };
@@ -308,8 +366,13 @@ class ConsumerAccessPolicyServiceImpl {
       );
     }
 
-    if (isSkillPermission(d.permission) && !('skill' in d.resource)) {
-      throw new Error('Skill permissions can only be attached to skills');
+    if (
+      isSkillPermission(d.permission) &&
+      !('skill' in d.resource) &&
+      !('skillTemplate' in d.resource) &&
+      !('skillGroup' in d.resource)
+    ) {
+      throw new Error('Skill permissions can only be attached to skill resources');
     }
 
     if (
@@ -320,8 +383,15 @@ class ConsumerAccessPolicyServiceImpl {
       throw new Error('Magic MCP permissions can only be attached to Magic MCP resources');
     }
 
-    if (!isSkillPermission(d.permission) && 'skill' in d.resource) {
-      throw new Error('Non-skill permissions cannot be attached to skills');
+    if (
+      !isSkillPermission(d.permission) &&
+      ('skill' in d.resource || 'skillTemplate' in d.resource || 'skillGroup' in d.resource)
+    ) {
+      throw new Error('Non-skill permissions cannot be attached to skill resources');
+    }
+
+    if (d.permission == 'skill_write' && !('skill' in d.resource)) {
+      throw new Error('Skill write permissions can only be attached to skills');
     }
   }
 
@@ -412,6 +482,8 @@ class ConsumerAccessPolicyServiceImpl {
       providerTemplate: Pick<ProviderTemplate, 'oid'> | null;
       magicMcpServer: Pick<MagicMcpServer, 'oid'> | null;
       skill: Pick<Skill, 'oid'> | null;
+      skillTemplate?: Pick<SkillTemplate, 'oid'> | null;
+      skillGroup?: Pick<SkillGroup, 'oid'> | null;
     };
   }) {
     let resource = getStoredConsumerAccessResource(d.consumerAccess);
@@ -452,6 +524,44 @@ class ConsumerAccessPolicyServiceImpl {
           }
         });
       }
+
+      return;
+    }
+
+    if (resource.type == 'skill_template') {
+      await this.revokeAccess({
+        organization: d.organization,
+        permission: 'skill_read',
+        subject: {
+          consumerGroup: d.consumerAccess.consumerGroup
+        },
+        resource: {
+          skillTemplate: resource.skillTemplate
+        },
+        policyScope: {
+          type: 'consumer_access',
+          consumerAccessId: d.consumerAccess.id
+        }
+      });
+
+      return;
+    }
+
+    if (resource.type == 'skill_group') {
+      await this.revokeAccess({
+        organization: d.organization,
+        permission: 'skill_read',
+        subject: {
+          consumerGroup: d.consumerAccess.consumerGroup
+        },
+        resource: {
+          skillGroup: resource.skillGroup
+        },
+        policyScope: {
+          type: 'consumer_access',
+          consumerAccessId: d.consumerAccess.id
+        }
+      });
 
       return;
     }

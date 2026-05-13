@@ -55,6 +55,9 @@ import {
   SecretType,
   ServiceAccount,
   ServiceAccountCredential,
+  Skill,
+  SkillGroup,
+  SkillTemplate,
   Team,
   TeamMember,
   TeamProject,
@@ -616,6 +619,9 @@ export let consumerAccessType = PresentableType.create<{
     consumerGroup: ConsumerGroup;
     providerTemplate: ProviderTemplate | null;
     magicMcpServer: MagicMcpServer | null;
+    skill: Skill | null;
+    skillTemplate: SkillTemplate | null;
+    skillGroup: SkillGroup | null;
     listing: ConsumerAccessListing | null;
   };
 }>()('consumer.access');
@@ -624,6 +630,9 @@ export let consumerAccessListingType = PresentableType.create<{
   consumerAccessListing: ConsumerAccessListing & {
     providerTemplate: ProviderTemplate | null;
     magicMcpServer: MagicMcpServer | null;
+    skill: Skill | null;
+    skillTemplate: SkillTemplate | null;
+    skillGroup: SkillGroup | null;
     consumerSurfaceProviderGroups: {
       consumerSurfaceProviderGroup: ConsumerSurfaceProviderGroup;
     }[];

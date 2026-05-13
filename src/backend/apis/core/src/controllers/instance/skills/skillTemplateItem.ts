@@ -1,10 +1,14 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { subspaceSkillTemplateItemService } from '@metorial/module-subspace';
+import {
+  subspaceSkillTemplateItemService,
+  subspaceSkillTemplateService
+} from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instancePath } from '../../../middleware/instanceGroup';
+import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
 import { skillTemplateItemPresenter } from '../../../presenters';
 import { skillTemplateGroup } from './skillTemplate';
 
@@ -53,10 +57,25 @@ export let skillTemplateItemController = Controller.create(
           description: 'Returns a paginated list of items for a skill template.'
         }
       )
-      .use(checkAccess({ possibleScopes: ['instance.skill:read'] }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.skill:read', 'consumer#instance.skill:read']
+        })
+      )
+      .use(requireConsumerTokenForPublishableKey())
       .outputList(skillTemplateItemPresenter)
       .query('default', Paginator.validate(v.object({})))
       .do(async ctx => {
+        if (ctx.consumerProfile) {
+          await subspaceSkillTemplateService.get({
+            instance: ctx.instance,
+            consumerProfile: ctx.consumerProfile,
+            consumerGroups: ctx.consumerGroups!,
+            skillTemplateId: ctx.skillTemplate.id,
+            allowDeleted: true
+          });
+        }
+
         let paginator = await subspaceSkillTemplateItemService.list({
           instance: ctx.instance,
           skillTemplateId: ctx.skillTemplate.id
@@ -79,11 +98,28 @@ export let skillTemplateItemController = Controller.create(
           description: 'Retrieves a specific skill template item.'
         }
       )
-      .use(checkAccess({ possibleScopes: ['instance.skill:read'] }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.skill:read', 'consumer#instance.skill:read']
+        })
+      )
+      .use(requireConsumerTokenForPublishableKey())
       .output(skillTemplateItemPresenter)
-      .do(async ctx =>
-        skillTemplateItemPresenter.present({ skillTemplateItem: ctx.skillTemplateItem })
-      ),
+      .do(async ctx => {
+        if (ctx.consumerProfile) {
+          await subspaceSkillTemplateService.get({
+            instance: ctx.instance,
+            consumerProfile: ctx.consumerProfile,
+            consumerGroups: ctx.consumerGroups!,
+            skillTemplateId: ctx.skillTemplate.id,
+            allowDeleted: true
+          });
+        }
+
+        return skillTemplateItemPresenter.present({
+          skillTemplateItem: ctx.skillTemplateItem
+        });
+      }),
 
     create: skillTemplateGroup
       .post(

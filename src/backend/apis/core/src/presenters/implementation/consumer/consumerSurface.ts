@@ -9,6 +9,8 @@ export let v1ConsumerSurfacePresenter = Presenter.create(consumerSurfaceType)
     status: consumerSurface.status,
     name: consumerSurface.name,
     description: consumerSurface.description,
+    allow_consumer_skill_authoring: consumerSurface.allowConsumerSkillAuthoring,
+    allow_consumer_skill_publishing: consumerSurface.allowConsumerSkillPublishing,
 
     auth: {
       object: 'consumer.surface.auth' as const,
@@ -26,6 +28,8 @@ export let v1ConsumerSurfacePresenter = Presenter.create(consumerSurfaceType)
       status: v.enumOf(['active', 'archived', 'deleted']),
       name: v.string(),
       description: v.nullable(v.string()),
+      allow_consumer_skill_authoring: v.boolean(),
+      allow_consumer_skill_publishing: v.boolean(),
       auth: v.object({
         object: v.literal('consumer.surface.auth'),
         session_expiry_time_in_seconds: v.number(),

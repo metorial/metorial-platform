@@ -30,6 +30,36 @@ export type PortalsConsumerAccessDeleteOutput = {
           name: string | null;
           description: string | null;
         };
+      }
+    | {
+        type: 'skill';
+        skill: {
+          object: 'skill';
+          id: string;
+          status: 'active' | 'archived' | 'deleted';
+          name: string;
+        };
+      }
+    | {
+        type: 'skill_template';
+        skillTemplate: {
+          object: 'skill.template';
+          id: string;
+          status: 'active' | 'archived' | 'deleted';
+          owner: 'system' | 'tenant';
+          name: string;
+          description: string | null;
+        };
+      }
+    | {
+        type: 'skill_group';
+        skillGroup: {
+          object: 'skill.group';
+          id: string;
+          status: 'active' | 'archived' | 'deleted';
+          name: string;
+          description: string | null;
+        };
       };
   consumerGroup: {
     object: 'consumer.group';
@@ -82,6 +112,42 @@ export let mapPortalsConsumerAccessDeleteOutput =
             ),
             magicMcpServer: mtMap.objectField(
               'magic_mcp_server',
+              mtMap.object({
+                object: mtMap.objectField('object', mtMap.passthrough()),
+                id: mtMap.objectField('id', mtMap.passthrough()),
+                status: mtMap.objectField('status', mtMap.passthrough()),
+                name: mtMap.objectField('name', mtMap.passthrough()),
+                description: mtMap.objectField(
+                  'description',
+                  mtMap.passthrough()
+                )
+              })
+            ),
+            skill: mtMap.objectField(
+              'skill',
+              mtMap.object({
+                object: mtMap.objectField('object', mtMap.passthrough()),
+                id: mtMap.objectField('id', mtMap.passthrough()),
+                status: mtMap.objectField('status', mtMap.passthrough()),
+                name: mtMap.objectField('name', mtMap.passthrough())
+              })
+            ),
+            skillTemplate: mtMap.objectField(
+              'skill_template',
+              mtMap.object({
+                object: mtMap.objectField('object', mtMap.passthrough()),
+                id: mtMap.objectField('id', mtMap.passthrough()),
+                status: mtMap.objectField('status', mtMap.passthrough()),
+                owner: mtMap.objectField('owner', mtMap.passthrough()),
+                name: mtMap.objectField('name', mtMap.passthrough()),
+                description: mtMap.objectField(
+                  'description',
+                  mtMap.passthrough()
+                )
+              })
+            ),
+            skillGroup: mtMap.objectField(
+              'skill_group',
               mtMap.object({
                 object: mtMap.objectField('object', mtMap.passthrough()),
                 id: mtMap.objectField('id', mtMap.passthrough()),

@@ -7,6 +7,8 @@ export type DashboardInstancePortalsGetOutput = {
   name: string;
   slug: string;
   description: string | null;
+  allowConsumerSkillAuthoring: boolean;
+  allowConsumerSkillPublishing: boolean;
   auth: {
     object: 'portal.auth';
     sessionExpiryTimeInSeconds: number;
@@ -25,6 +27,14 @@ export let mapDashboardInstancePortalsGetOutput =
     name: mtMap.objectField('name', mtMap.passthrough()),
     slug: mtMap.objectField('slug', mtMap.passthrough()),
     description: mtMap.objectField('description', mtMap.passthrough()),
+    allowConsumerSkillAuthoring: mtMap.objectField(
+      'allow_consumer_skill_authoring',
+      mtMap.passthrough()
+    ),
+    allowConsumerSkillPublishing: mtMap.objectField(
+      'allow_consumer_skill_publishing',
+      mtMap.passthrough()
+    ),
     auth: mtMap.objectField(
       'auth',
       mtMap.object({

@@ -46,7 +46,9 @@ export let skillGroup = instanceGroup.use(async ctx => {
   let skill = await subspaceSkillService.get({
     instance: ctx.instance,
     skillId: ctx.params.skillId,
-    allowDeleted: true
+    allowDeleted: true,
+    consumerProfile: ctx.consumerProfile,
+    consumerGroups: ctx.consumerGroups
   });
 
   return { skill };
@@ -91,24 +93,10 @@ export let skillController = Controller.create(
         )
       )
       .do(async ctx => {
-        if (ctx.consumerProfile) {
-          let paginator = await consumerSkillService.listConsumerSkills({
-            organization: ctx.organization,
-            instance: ctx.instance,
-            consumerSurface: ctx.consumerSurface!,
-            consumerProfile: ctx.consumerProfile,
-            consumerGroups: ctx.consumerGroups!,
-            search: ctx.query.search,
-            status: normalizeArrayParam(ctx.query.status),
-            ids: normalizeArrayParam(ctx.query.id)
-          });
-          let list = await paginator.run(ctx.query);
-
-          return Paginator.present(list, skill => skillPresenter.present({ skill }));
-        }
-
         let paginator = await subspaceSkillService.list({
           instance: ctx.instance,
+          consumerProfile: ctx.consumerProfile,
+          consumerGroups: ctx.consumerGroups,
           search: ctx.query.search,
           allowDeleted: true,
           status: normalizeArrayParam(ctx.query.status),
@@ -134,27 +122,7 @@ export let skillController = Controller.create(
       .use(requireConsumerTokenForPublishableKey())
       .output(skillPresenter)
       .do(async ctx => {
-        let skill = ctx.consumerProfile
-          ? await consumerSkillService.getConsumerSkill({
-              organization: ctx.organization,
-              instance: ctx.instance,
-              consumerSurface: ctx.consumerSurface!,
-              consumerProfile: ctx.consumerProfile,
-              consumerGroups: ctx.consumerGroups!,
-              skillId: ctx.params.skillId!,
-              allowDeleted: true
-            })
-          : ctx.skill;
-
-        if (!ctx.consumerProfile) {
-          await consumerSkillService.syncSkillFromSubspace({
-            organization: ctx.organization,
-            instance: ctx.instance,
-            skill
-          });
-        }
-
-        return skillPresenter.present({ skill });
+        return skillPresenter.present({ skill: ctx.skill });
       }),
 
     create: instanceGroup
@@ -175,7 +143,8 @@ export let skillController = Controller.create(
           client_description: v.optional(skillClientDescriptionValidator),
           license: v.optional(skillLicenseValidator),
           compatibility: v.optional(skillCompatibilityValidator),
-          client_metadata: v.optional(v.record(v.any()))
+          client_metadata: v.optional(v.record(v.any())),
+          template_id: v.optional(v.string())
         })
       )
       .output(skillPresenter)
@@ -188,7 +157,8 @@ export let skillController = Controller.create(
           license: ctx.body.license,
           compatibility: ctx.body.compatibility,
           clientMetadata: ctx.body.client_metadata,
-          metadata: ctx.body.metadata
+          metadata: ctx.body.metadata,
+          templateId: ctx.body.template_id
         };
         let skill = ctx.consumerProfile
           ? await consumerSkillService.createConsumerSkill({
@@ -196,20 +166,13 @@ export let skillController = Controller.create(
               instance: ctx.instance,
               consumerSurface: ctx.consumerSurface!,
               consumerProfile: ctx.consumerProfile,
+              consumerGroups: ctx.consumerGroups!,
               input
             })
           : await subspaceSkillService.create({
               instance: ctx.instance,
               ...input
             });
-
-        if (!ctx.consumerProfile) {
-          await consumerSkillService.syncSkillFromSubspace({
-            organization: ctx.organization,
-            instance: ctx.instance,
-            skill
-          });
-        }
 
         return skillPresenter.present({ skill });
       }),
@@ -261,14 +224,6 @@ export let skillController = Controller.create(
               ...input
             });
 
-        if (!ctx.consumerProfile) {
-          await consumerSkillService.syncSkillFromSubspace({
-            organization: ctx.organization,
-            instance: ctx.instance,
-            skill
-          });
-        }
-
         return skillPresenter.present({ skill });
       }),
 
@@ -293,14 +248,6 @@ export let skillController = Controller.create(
               skillId: ctx.skill.id,
               allowDeleted: true
             });
-
-        if (!ctx.consumerProfile) {
-          await consumerSkillService.syncSkillFromSubspace({
-            organization: ctx.organization,
-            instance: ctx.instance,
-            skill
-          });
-        }
 
         return skillPresenter.present({ skill });
       }),
@@ -355,14 +302,6 @@ export let skillController = Controller.create(
               skillId: ctx.skill.id,
               ...input
             });
-
-        if (!ctx.consumerProfile) {
-          await consumerSkillService.syncSkillFromSubspace({
-            organization: ctx.organization,
-            instance: ctx.instance,
-            skill
-          });
-        }
 
         return skillPresenter.present({ skill });
       }),
@@ -430,12 +369,6 @@ export let skillController = Controller.create(
           compatibility: ctx.body.compatibility,
           clientMetadata: ctx.body.client_metadata,
           metadata: ctx.body.metadata
-        });
-
-        await consumerSkillService.syncSkillFromSubspace({
-          organization: ctx.organization,
-          instance: ctx.instance,
-          skill
         });
 
         return skillPresenter.present({ skill });

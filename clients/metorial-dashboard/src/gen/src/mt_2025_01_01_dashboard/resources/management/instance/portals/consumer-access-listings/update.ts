@@ -1,7 +1,7 @@
 import { mtMap } from '@metorial/util-resource-mapper';
 
-export type PortalsConsumerAccessGetOutput = {
-  object: 'consumer.access';
+export type ManagementInstancePortalsConsumerAccessListingsUpdateOutput = {
+  object: 'consumer.access_listing';
   id: string;
   name: string;
   description: string | null;
@@ -61,23 +61,18 @@ export type PortalsConsumerAccessGetOutput = {
           description: string | null;
         };
       };
-  consumerGroup: {
-    object: 'consumer.group';
+  groups: {
     id: string;
-    status: 'active' | 'archived' | 'deleted';
     name: string;
     description: string | null;
-    isDefault: boolean;
-    ssoGroupIds: string[];
-    createdAt: Date;
-    updatedAt: Date;
-  };
+    index: number;
+  }[];
   createdAt: Date;
   updatedAt: Date;
 };
 
-export let mapPortalsConsumerAccessGetOutput =
-  mtMap.object<PortalsConsumerAccessGetOutput>({
+export let mapManagementInstancePortalsConsumerAccessListingsUpdateOutput =
+  mtMap.object<ManagementInstancePortalsConsumerAccessListingsUpdateOutput>({
     object: mtMap.objectField('object', mtMap.passthrough()),
     id: mtMap.objectField('id', mtMap.passthrough()),
     name: mtMap.objectField('name', mtMap.passthrough()),
@@ -163,24 +158,31 @@ export let mapPortalsConsumerAccessGetOutput =
         )
       ])
     ),
-    consumerGroup: mtMap.objectField(
-      'consumer_group',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        status: mtMap.objectField('status', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        description: mtMap.objectField('description', mtMap.passthrough()),
-        isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
-        ssoGroupIds: mtMap.objectField(
-          'sso_group_ids',
-          mtMap.array(mtMap.passthrough())
-        ),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        updatedAt: mtMap.objectField('updated_at', mtMap.date())
-      })
+    groups: mtMap.objectField(
+      'groups',
+      mtMap.array(
+        mtMap.object({
+          id: mtMap.objectField('id', mtMap.passthrough()),
+          name: mtMap.objectField('name', mtMap.passthrough()),
+          description: mtMap.objectField('description', mtMap.passthrough()),
+          index: mtMap.objectField('index', mtMap.passthrough())
+        })
+      )
     ),
     createdAt: mtMap.objectField('created_at', mtMap.date()),
     updatedAt: mtMap.objectField('updated_at', mtMap.date())
+  });
+
+export type ManagementInstancePortalsConsumerAccessListingsUpdateBody = {
+  name?: string | undefined;
+  description?: string | null | undefined;
+  readme?: string | null | undefined;
+};
+
+export let mapManagementInstancePortalsConsumerAccessListingsUpdateBody =
+  mtMap.object<ManagementInstancePortalsConsumerAccessListingsUpdateBody>({
+    name: mtMap.objectField('name', mtMap.passthrough()),
+    description: mtMap.objectField('description', mtMap.passthrough()),
+    readme: mtMap.objectField('readme', mtMap.passthrough())
   });
 

@@ -57,6 +57,12 @@ model AccessTagEntity {
   skillOid BigInt?
   skill    Skill?  @relation(fields: [skillOid], references: [oid], onDelete: Cascade)
 
+  skillTemplateOid BigInt?
+  skillTemplate    SkillTemplate? @relation(fields: [skillTemplateOid], references: [oid], onDelete: Cascade)
+
+  skillGroupOid BigInt?
+  skillGroup    SkillGroup? @relation(fields: [skillGroupOid], references: [oid], onDelete: Cascade)
+
   // serverOAuthSession    ServerOAuthSession? @relation(fields: [serverOAuthSessionOid], references: [oid])
   // serverOAuthSessionOid BigInt?
 }
