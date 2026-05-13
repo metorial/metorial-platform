@@ -88,6 +88,7 @@ model Skill {
   skillItems         SkillItem[]
   skillProviderLinks SkillProviderLink[]
   skillEvents        SkillEvent[]
+  skillGroupItems    SkillGroupItem[]
 }
 
 enum SkillEventType {

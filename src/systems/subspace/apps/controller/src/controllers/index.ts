@@ -85,6 +85,8 @@ import { sessionTemplateController } from './sessionTemplate';
 import { sessionTemplateProviderController } from './sessionTemplateProvider';
 import { sessionUsageRecordController } from './sessionUsageRecord';
 import { skillController } from './skill';
+import { skillGroupController } from './skillGroup';
+import { skillGroupItemController } from './skillGroupItem';
 import { skillItemController } from './skillItem';
 import { skillTemplateController } from './skillTemplate';
 import { skillTemplateItemController } from './skillTemplateItem';
@@ -189,6 +191,8 @@ let sessionControllers = {
 
 let skillControllers = {
   skill: skillController,
+  skillGroup: skillGroupController,
+  skillGroupItem: skillGroupItemController,
   skillItem: skillItemController,
   skillTemplate: skillTemplateController,
   skillTemplateItem: skillTemplateItemController

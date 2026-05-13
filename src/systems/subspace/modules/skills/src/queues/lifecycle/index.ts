@@ -4,6 +4,11 @@ import {
   skillCreatedQueueProcessor,
   skillUpdatedQueueProcessor
 } from './skill';
+import {
+  skillGroupArchivedQueueProcessor,
+  skillGroupCreatedQueueProcessor,
+  skillGroupUpdatedQueueProcessor
+} from './skillGroup';
 import { skillItemArchivedQueueProcessor, skillItemCreatedQueueProcessor } from './skillItem';
 import {
   skillTemplateArchivedQueueProcessor,
@@ -15,6 +20,9 @@ export let lifecycleQueues = combineQueueProcessors([
   skillCreatedQueueProcessor,
   skillUpdatedQueueProcessor,
   skillArchivedQueueProcessor,
+  skillGroupCreatedQueueProcessor,
+  skillGroupUpdatedQueueProcessor,
+  skillGroupArchivedQueueProcessor,
   skillItemCreatedQueueProcessor,
   skillItemArchivedQueueProcessor,
   skillTemplateCreatedQueueProcessor,

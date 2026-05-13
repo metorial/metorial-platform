@@ -95,6 +95,12 @@ export let voyagerIndex = {
     name: 'Skills'
   }),
 
+  skillGroup: await voyager.index.upsert({
+    sourceId: (await voyagerSource).id,
+    identifier: getIndexName('skill_group'),
+    name: 'Skill Groups'
+  }),
+
   skillTemplate: await voyager.index.upsert({
     sourceId: (await voyagerSource).id,
     identifier: getIndexName('skill_template'),

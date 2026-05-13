@@ -5,6 +5,8 @@ import type {
   Skill,
   SkillEntity,
   SkillFork,
+  SkillGroup,
+  SkillGroupItem,
   SkillIntegration,
   SkillItem,
   SkillProvider,
@@ -108,4 +110,43 @@ export let skillItemPresenter = (
   provider: skillItem.provider ? providerPreviewPresenter(skillItem.provider.provider) : null,
 
   createdAt: skillItem.createdAt
+});
+
+export let skillGroupPresenter = (
+  skillGroup: SkillGroup & {
+    skillGroupItems: (SkillGroupItem & {
+      skill: Skill;
+    })[];
+  }
+) => ({
+  object: 'skillGroup',
+
+  id: skillGroup.id,
+  status: skillGroup.status,
+
+  name: skillGroup.name,
+  description: skillGroup.description,
+  metadata: skillGroup.metadata,
+
+  skills: skillGroup.skillGroupItems.map(item => skillPreviewPresenter(item.skill)),
+
+  createdAt: skillGroup.createdAt,
+  updatedAt: skillGroup.updatedAt
+});
+
+export let skillGroupItemPresenter = (
+  skillGroupItem: SkillGroupItem & {
+    skillGroup: SkillGroup;
+    skill: Skill;
+  }
+) => ({
+  object: 'skillGroupItem',
+
+  id: skillGroupItem.id,
+  status: skillGroupItem.status,
+
+  skillGroupId: skillGroupItem.skillGroup.id,
+  skill: skillPreviewPresenter(skillGroupItem.skill),
+
+  createdAt: skillGroupItem.createdAt
 });

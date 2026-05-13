@@ -152,6 +152,8 @@ export let ID = createIdGenerator({
   skillEntity: idType.sorted('ske'),
   skill: idType.sorted('skl'),
   skillFork: idType.sorted('skf'),
+  skillGroup: idType.sorted('skg'),
+  skillGroupItem: idType.sorted('skgi'),
   skillTemplate: idType.sorted('skt'),
   skillTemplateItem: idType.sorted('skti'),
   skillItem: idType.sorted('ski'),
