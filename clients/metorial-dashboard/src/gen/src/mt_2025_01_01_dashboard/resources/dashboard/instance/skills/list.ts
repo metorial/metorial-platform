@@ -206,6 +206,7 @@ export type DashboardInstanceSkillsListQuery = {
     | ('active' | 'archived' | 'deleted')[]
     | undefined;
   id?: string | string[] | undefined;
+  skillGroupId?: string | string[] | undefined;
   integrationId?: string | string[] | undefined;
   providerId?: string | string[] | undefined;
   createdAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
@@ -228,6 +229,16 @@ export let mapDashboardInstanceSkillsListQuery = mtMap.union([
       ),
       id: mtMap.objectField(
         'id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      skillGroupId: mtMap.objectField(
+        'skill_group_id',
         mtMap.union([
           mtMap.unionOption('string', mtMap.passthrough()),
           mtMap.unionOption(

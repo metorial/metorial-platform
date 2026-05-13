@@ -589,9 +589,21 @@ class StoreAccessServiceImpl {
   async getStorePermissions(
     d: CargoTenantEnvironment &
       StoreAccessInput & {
-        store: Pick<Store, 'oid' | 'id'>;
+        store: Pick<Store, 'oid' | 'id' | 'isReadOnly'>;
       }
   ) {
+    if (d.store.isReadOnly) {
+      return {
+        storeId: d.store.id,
+        actorId: d.actorId || undefined,
+        hasFullAccess: false,
+        permissions: [storeReadPermission],
+        relevantStoreIds: [d.store.id],
+        readableStoreIds: [d.store.id],
+        writableStoreIds: []
+      } satisfies StorePermissionsResult;
+    }
+
     if (!d.actorId) {
       return {
         storeId: d.store.id,

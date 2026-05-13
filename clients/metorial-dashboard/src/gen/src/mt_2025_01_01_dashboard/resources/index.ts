@@ -41,6 +41,7 @@ export * from './publishers';
 export * from './scm';
 export * from './session-templates';
 export * from './sessions';
+export * from './skill-groups';
 export * from './skill-templates';
 export * from './skills';
 export * from './stores';

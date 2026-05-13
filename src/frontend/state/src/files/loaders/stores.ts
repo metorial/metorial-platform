@@ -5,6 +5,7 @@ import type {
   DashboardInstanceStoresItemsListQuery,
   DashboardInstanceStoresItemsModifyBody,
   DashboardInstanceStoresListQuery,
+  DashboardInstanceStoresPermissionsGetOutput,
   DashboardInstanceStoresUpdateBody
 } from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
@@ -14,6 +15,7 @@ import { withAuth } from '../../user';
 
 export type Store = DashboardInstanceStoresGetOutput;
 export type StoreItem = DashboardInstanceStoresItemsGetOutput;
+export type StorePermissions = DashboardInstanceStoresPermissionsGetOutput;
 
 let toArrayIfString = <T extends string>(value: T | T[] | undefined) =>
   typeof value === 'string' ? [value] : value;
@@ -80,6 +82,21 @@ export let useStore = (
     updateMutator: data.useMutator('update'),
     deleteMutator: data.useMutator('delete')
   };
+};
+
+export let storePermissionsLoader = createLoader({
+  name: 'storePermissions',
+  parents: [storeLoader],
+  fetch: (i: { instanceId: string; storeId: string }) =>
+    withAuth(sdk => sdk.stores.permissions.get(i.instanceId, i.storeId)),
+  mutators: {}
+});
+
+export let useStorePermissions = (
+  instanceId: string | null | undefined,
+  storeId: string | null | undefined
+) => {
+  return storePermissionsLoader.use(instanceId && storeId ? { instanceId, storeId } : null);
 };
 
 export let storeItemsLoader = createLoader({

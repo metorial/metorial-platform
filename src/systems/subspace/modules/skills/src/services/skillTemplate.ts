@@ -45,6 +45,14 @@ export type SkillTemplateRecord = Prisma.SkillTemplateGetPayload<{
   include: typeof skillTemplateInclude;
 }>;
 
+export type SkillTemplateWithEnrichedStoreId<
+  T extends {
+    storeId: string | null;
+  }
+> = T & {
+  storeId: string | null;
+};
+
 type SkillTemplateWriteInput = {
   name?: string;
   description?: string | null;
@@ -117,6 +125,26 @@ class skillTemplateServiceImpl {
     );
   }
 
+  async enrichSkillTemplates<T extends SkillTemplateRecord>(d: {
+    tenant: Tenant;
+    environment: Environment;
+    skillTemplates: T[];
+  }): Promise<SkillTemplateWithEnrichedStoreId<T>[]> {
+    if (d.skillTemplates.length === 0) return [];
+
+    let cargoScope = await ensureCargoScope(d);
+    let cargoTemplates = await cargo.skillTemplate.getMany({
+      ...cargoScope,
+      skillTemplateIds: d.skillTemplates.map(template => template.id)
+    });
+    let cargoTemplateById = new Map(cargoTemplates.map(template => [template.id, template]));
+
+    return d.skillTemplates.map(template => ({
+      ...template,
+      storeId: cargoTemplateById.get(template.id)?.storeId ?? template.storeId
+    }));
+  }
+
   async listSkillTemplates(d: {
     tenant: Tenant;
     solution: Solution;
@@ -145,53 +173,58 @@ class skillTemplateServiceImpl {
       : null;
 
     return Paginator.create(({ prisma }) =>
-      prisma(
-        async opts =>
-          await db.skillTemplate.findMany({
-            ...opts,
-            where: {
-              ...normalizeStatusForList(d).noParent,
-              OR: accessibleScope.length ? accessibleScope : undefined,
-              AND: [
-                d.ids ? { id: { in: d.ids } } : undefined!,
-                search ? { id: { in: search.map(r => r.documentId) } } : undefined!,
-                d.providerIds
-                  ? {
-                      skillTemplateItems: {
-                        some: {
-                          provider: {
-                            is: {
-                              provider: {
-                                id: { in: d.providerIds }
-                              }
+      prisma(async opts => {
+        let skillTemplates = await db.skillTemplate.findMany({
+          ...opts,
+          where: {
+            ...normalizeStatusForList(d).noParent,
+            OR: accessibleScope.length ? accessibleScope : undefined,
+            AND: [
+              d.ids ? { id: { in: d.ids } } : undefined!,
+              search ? { id: { in: search.map(r => r.documentId) } } : undefined!,
+              d.providerIds
+                ? {
+                    skillTemplateItems: {
+                      some: {
+                        provider: {
+                          is: {
+                            provider: {
+                              id: { in: d.providerIds }
                             }
                           }
                         }
                       }
                     }
-                  : undefined!,
-                d.integrationIds
-                  ? {
-                      skillTemplateItems: {
-                        some: {
-                          integration: {
-                            is: {
-                              integration: {
-                                id: { in: d.integrationIds }
-                              }
+                  }
+                : undefined!,
+              d.integrationIds
+                ? {
+                    skillTemplateItems: {
+                      some: {
+                        integration: {
+                          is: {
+                            integration: {
+                              id: { in: d.integrationIds }
                             }
                           }
                         }
                       }
                     }
-                  : undefined!,
-                d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
-                d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
-              ].filter(Boolean)
-            },
-            include: skillTemplateInclude
-          })
-      )
+                  }
+                : undefined!,
+              d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
+              d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
+            ].filter(Boolean)
+          },
+          include: skillTemplateInclude
+        });
+
+        return await this.enrichSkillTemplates({
+          tenant: d.tenant,
+          environment: d.environment,
+          skillTemplates
+        });
+      })
     );
   }
 
@@ -214,7 +247,13 @@ class skillTemplateServiceImpl {
       throw new ServiceError(notFoundError('skillTemplate', d.skillTemplateId));
     }
 
-    return skillTemplate;
+    let [enrichedSkillTemplate] = await this.enrichSkillTemplates({
+      tenant: d.tenant,
+      environment: d.environment,
+      skillTemplates: [skillTemplate]
+    });
+
+    return enrichedSkillTemplate ?? skillTemplate;
   }
 
   async createSkillTemplate(d: {
@@ -326,7 +365,13 @@ class skillTemplateServiceImpl {
 
     await skillTemplateCreatedQueue.add({ skillTemplateId: skillTemplate.id });
 
-    return skillTemplate;
+    let [enrichedSkillTemplate] = await this.enrichSkillTemplates({
+      tenant: d.tenant,
+      environment: d.environment,
+      skillTemplates: [skillTemplate]
+    });
+
+    return enrichedSkillTemplate ?? skillTemplate;
   }
 
   async updateSkillTemplate(d: {
@@ -346,7 +391,7 @@ class skillTemplateServiceImpl {
 
     let cargoScope = await ensureCargoScope(d);
 
-    return await withTransaction(async db => {
+    let template = await withTransaction(async db => {
       let template = await db.skillTemplate.update({
         where: {
           oid: d.skillTemplate.oid
@@ -370,6 +415,14 @@ class skillTemplateServiceImpl {
 
       return template;
     });
+
+    let [enrichedTemplate] = await this.enrichSkillTemplates({
+      tenant: d.tenant,
+      environment: d.environment,
+      skillTemplates: [template]
+    });
+
+    return enrichedTemplate ?? template;
   }
 
   async archiveSkillTemplate(d: {
@@ -394,7 +447,13 @@ class skillTemplateServiceImpl {
 
     await skillTemplateArchivedQueue.add({ skillTemplateId: skillTemplate.id });
 
-    return skillTemplate;
+    let [enrichedSkillTemplate] = await this.enrichSkillTemplates({
+      tenant: d.tenant,
+      environment: d.environment,
+      skillTemplates: [skillTemplate]
+    });
+
+    return enrichedSkillTemplate ?? skillTemplate;
   }
 }
 

@@ -418,7 +418,7 @@ class StoreServiceImpl {
   async getStorePermissions(
     d: CargoTenantEnvironment &
       StoreServiceAccessInput & {
-        store: Pick<Store, 'oid' | 'id'>;
+        store: Pick<Store, 'oid' | 'id' | 'isReadOnly'>;
       }
   ) {
     return await storeAccessService.getStorePermissions({

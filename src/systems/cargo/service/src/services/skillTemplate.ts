@@ -32,6 +32,17 @@ let skillTemplateSummaryInclude = {
           id: true
         }
       },
+      backingStores: {
+        select: {
+          tenantOid: true,
+          environmentOid: true,
+          store: {
+            select: {
+              id: true
+            }
+          }
+        }
+      },
       items: {
         select: {
           id: true
@@ -59,6 +70,17 @@ let skillTemplateInclude = {
           id: true
         }
       },
+      backingStores: {
+        select: {
+          tenantOid: true,
+          environmentOid: true,
+          store: {
+            select: {
+              id: true
+            }
+          }
+        }
+      },
       items: {
         orderBy: [
           {
@@ -80,6 +102,10 @@ export type SkillTemplateSummaryRecord = Prisma.SkillTemplateGetPayload<{
 export type SkillTemplateRecord = Prisma.SkillTemplateGetPayload<{
   include: typeof skillTemplateInclude;
 }>;
+
+export type SkillTemplateWithScopedStoreId<T> = T & {
+  storeTemplate: T extends { storeTemplate: infer S } ? S & { storeId?: string } : never;
+};
 
 export type SkillTemplateCreateInput = Omit<StoreTemplateCreateInput, 'id'> & {
   id: string;
@@ -190,6 +216,37 @@ class SkillTemplateServiceImpl {
     }
 
     return systemIdentifier;
+  }
+
+  private withScopedStoreId<T extends SkillTemplateSummaryRecord | SkillTemplateRecord>(
+    skillTemplate: T,
+    scope?: RequiredStoreTemplateScope
+  ): SkillTemplateWithScopedStoreId<T> {
+    if (skillTemplate.storeTemplate.sourceStore?.id) {
+      return {
+        ...skillTemplate,
+        storeTemplate: {
+          ...skillTemplate.storeTemplate,
+          storeId: skillTemplate.storeTemplate.sourceStore.id
+        }
+      } as SkillTemplateWithScopedStoreId<T>;
+    }
+
+    if (!scope) return skillTemplate as SkillTemplateWithScopedStoreId<T>;
+
+    let backing = skillTemplate.storeTemplate.backingStores.find(
+      backing =>
+        backing.tenantOid === scope.tenant.oid &&
+        backing.environmentOid === scope.environment.oid
+    );
+
+    return {
+      ...skillTemplate,
+      storeTemplate: {
+        ...skillTemplate.storeTemplate,
+        storeId: backing?.store.id
+      }
+    } as SkillTemplateWithScopedStoreId<T>;
   }
 
   private assertCreateSourceInput(d: {
@@ -323,15 +380,17 @@ class SkillTemplateServiceImpl {
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
-          await db.skillTemplate.findMany({
-            ...opts,
-            where: {
-              storeTemplate: {
-                is: this.getReadableStoreTemplateScopeWhere(d)
-              }
-            },
-            include: skillTemplateSummaryInclude
-          })
+          (
+            await db.skillTemplate.findMany({
+              ...opts,
+              where: {
+                storeTemplate: {
+                  is: this.getReadableStoreTemplateScopeWhere(d)
+                }
+              },
+              include: skillTemplateSummaryInclude
+            })
+          ).map(skillTemplate => this.withScopedStoreId(skillTemplate, d))
       )
     );
   }
@@ -341,7 +400,27 @@ class SkillTemplateServiceImpl {
       skillTemplateId: string;
     }
   ) {
-    return await this.getSkillTemplateRecord(d);
+    return this.withScopedStoreId(await this.getSkillTemplateRecord(d), d);
+  }
+
+  async getManySkillTemplatesByIds(
+    d: RequiredStoreTemplateScope & {
+      skillTemplateIds: string[];
+    }
+  ) {
+    if (d.skillTemplateIds.length === 0) return [];
+
+    return (
+      await db.skillTemplate.findMany({
+        where: {
+          id: { in: d.skillTemplateIds },
+          storeTemplate: {
+            is: this.getReadableStoreTemplateScopeWhere(d)
+          }
+        },
+        include: skillTemplateSummaryInclude
+      })
+    ).map(skillTemplate => this.withScopedStoreId(skillTemplate, d));
   }
 
   async createSkillTemplate(

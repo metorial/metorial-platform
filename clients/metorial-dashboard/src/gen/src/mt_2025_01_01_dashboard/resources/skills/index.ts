@@ -5,4 +5,5 @@ export * from './fork';
 export * from './get';
 export * from './items';
 export * from './list';
+export * from './publish-consumer-skill';
 export * from './update';

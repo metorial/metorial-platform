@@ -495,6 +495,7 @@ let RenameItemRow = (p: {
 let SkillFileTreeRow = (p: {
   depth: number;
   creatingItem: { parentPath: string; kind: SkillFileTreeCreateKind } | null;
+  canWrite: boolean;
   isCreating?: boolean;
   expandedPaths: Set<string>;
   node: SkillFileTreeNode;
@@ -521,7 +522,11 @@ let SkillFileTreeRow = (p: {
   let isOpen = p.expandedPaths.has(p.node.path);
   let creatingInDirectory = p.creatingItem?.parentPath == p.node.path;
   let canDelete =
-    !isDirectory && !p.node.isPending && p.node.name != 'SKILL.md' && !!p.node.itemId;
+    p.canWrite &&
+    !isDirectory &&
+    !p.node.isPending &&
+    p.node.name != 'SKILL.md' &&
+    !!p.node.itemId;
   let documentPath =
     p.node.kind == 'document' && p.node.documentId
       ? p.getDocumentPath(p.node.documentId)
@@ -531,13 +536,16 @@ let SkillFileTreeRow = (p: {
   let [fileError, setFileError] = useState<string | null>(null);
   let isDropTarget = p.dragTargetPath == p.node.path;
   let isEditing = p.editingItemPath == p.node.path;
-  let canDrag = !isDirectory && !p.node.isPending && !!p.node.itemId && !!p.node.parentPath;
+  let canDrag =
+    p.canWrite && !isDirectory && !p.node.isPending && !!p.node.itemId && !!p.node.parentPath;
 
   let moveDraggedItem = async (
     e: DragEvent,
     targetParentPath: string,
     existingNames: string[]
   ) => {
+    if (!p.canWrite) return false;
+
     let draggedItem = getStoreItemDragData(e);
     if (!draggedItem) return false;
 
@@ -606,6 +614,7 @@ let SkillFileTreeRow = (p: {
         }}
         onDragEnd={() => p.onDragTargetChange(null)}
         onDragEnter={e => {
+          if (!p.canWrite) return;
           if (!dragEventHasFiles(e) && !dragEventHasStoreItem(e)) return;
           e.preventDefault();
           p.onDragTargetChange(dropTargetPath);
@@ -615,12 +624,14 @@ let SkillFileTreeRow = (p: {
           p.onDragTargetChange(null);
         }}
         onDragOver={e => {
+          if (!p.canWrite) return;
           if (!dragEventHasFiles(e) && !dragEventHasStoreItem(e)) return;
           e.preventDefault();
           e.dataTransfer.dropEffect = dragEventHasStoreItem(e) ? 'move' : 'copy';
           p.onDragTargetChange(dropTargetPath);
         }}
         onDrop={async e => {
+          if (!p.canWrite) return;
           if (await moveDraggedItem(e, dropTargetPath, p.siblingNames)) return;
           if (!dragEventHasFiles(e)) return;
           e.preventDefault();
@@ -751,6 +762,8 @@ let SkillFileTreeRow = (p: {
   }
 
   let startDirectoryAction = (itemId: string) => {
+    if (!p.canWrite) return;
+
     if (!isOpen) p.onToggle(p.node.path);
 
     if (itemId == 'file') {
@@ -767,20 +780,24 @@ let SkillFileTreeRow = (p: {
       <TreeItemStack>
         <ContextMenu
           label={`Add item to ${getDisplayName(p.node)}`}
-          items={[
-            {
-              id: 'file',
-              label: 'Upload File'
-            },
-            {
-              id: 'document',
-              label: 'Create Document'
-            },
-            {
-              id: 'directory',
-              label: 'Create Directory'
-            }
-          ]}
+          items={
+            p.canWrite
+              ? [
+                  {
+                    id: 'file',
+                    label: 'Upload File'
+                  },
+                  {
+                    id: 'document',
+                    label: 'Create Document'
+                  },
+                  {
+                    id: 'directory',
+                    label: 'Create Directory'
+                  }
+                ]
+              : []
+          }
           onItemClick={startDirectoryAction}
         >
           <TreeRowShell
@@ -790,6 +807,7 @@ let SkillFileTreeRow = (p: {
               p.onToggle(p.node.path);
             }}
             onDragEnter={e => {
+              if (!p.canWrite) return;
               if (!dragEventHasFiles(e) && !dragEventHasStoreItem(e)) return;
               e.preventDefault();
               if (!isOpen) p.onToggle(p.node.path);
@@ -800,6 +818,7 @@ let SkillFileTreeRow = (p: {
               p.onDragTargetChange(null);
             }}
             onDragOver={e => {
+              if (!p.canWrite) return;
               if (!dragEventHasFiles(e) && !dragEventHasStoreItem(e)) return;
               e.preventDefault();
               e.dataTransfer.dropEffect = dragEventHasStoreItem(e) ? 'move' : 'copy';
@@ -807,6 +826,7 @@ let SkillFileTreeRow = (p: {
               p.onDragTargetChange(p.node.path);
             }}
             onDrop={async e => {
+              if (!p.canWrite) return;
               if (
                 await moveDraggedItem(
                   e,
@@ -872,49 +892,54 @@ let SkillFileTreeRow = (p: {
               </TreeLabel>
             </TreeRowButton>
 
-            <Menu
-              label={`Add item to ${getDisplayName(p.node)}`}
-              items={[
-                {
-                  id: 'file',
-                  label: 'Upload File'
-                },
-                {
-                  id: 'document',
-                  label: 'Create Document'
-                },
-                {
-                  id: 'directory',
-                  label: 'Create Directory'
-                }
-              ]}
-              onItemClick={startDirectoryAction}
-            >
-              <TreeAction data-tree-action type="button">
-                <RiAddLine size={16} strokeWidth={2.4} />
-              </TreeAction>
-            </Menu>
-            <HiddenFileInput
-              ref={fileInputRef}
-              type="file"
-              onChange={async e => {
-                let file = e.currentTarget.files?.[0];
-                e.currentTarget.value = '';
-                if (!file) return;
+            {p.canWrite ? (
+              <>
+                <Menu
+                  label={`Add item to ${getDisplayName(p.node)}`}
+                  items={[
+                    {
+                      id: 'file',
+                      label: 'Upload File'
+                    },
+                    {
+                      id: 'document',
+                      label: 'Create Document'
+                    },
+                    {
+                      id: 'directory',
+                      label: 'Create Directory'
+                    }
+                  ]}
+                  onItemClick={startDirectoryAction}
+                >
+                  <TreeAction data-tree-action type="button">
+                    <RiAddLine size={16} strokeWidth={2.4} />
+                  </TreeAction>
+                </Menu>
+                <HiddenFileInput
+                  ref={fileInputRef}
+                  type="file"
+                  onChange={async e => {
+                    let file = e.currentTarget.files?.[0];
+                    e.currentTarget.value = '';
+                    if (!file) return;
 
-                let alreadyExists = p.node.children.some(
-                  child => child.name.trim().toLowerCase() == file.name.trim().toLowerCase()
-                );
+                    let alreadyExists = p.node.children.some(
+                      child =>
+                        child.name.trim().toLowerCase() == file.name.trim().toLowerCase()
+                    );
 
-                if (alreadyExists) {
-                  setFileError('A file with this name already exists.');
-                  return;
-                }
+                    if (alreadyExists) {
+                      setFileError('A file with this name already exists.');
+                      return;
+                    }
 
-                setFileError(null);
-                await p.onFileSelect(p.node.path, file);
-              }}
-            />
+                    setFileError(null);
+                    await p.onFileSelect(p.node.path, file);
+                  }}
+                />
+              </>
+            ) : null}
           </TreeRowShell>
         </ContextMenu>
 
@@ -943,6 +968,7 @@ let SkillFileTreeRow = (p: {
               p.node.children.map(child => (
                 <SkillFileTreeRow
                   creatingItem={p.creatingItem}
+                  canWrite={p.canWrite}
                   depth={p.depth + 1}
                   expandedPaths={p.expandedPaths}
                   isCreating={p.isCreating}
@@ -987,6 +1013,7 @@ let SkillFileTreeInner = (p: {
   onToggle: (path: string) => void;
   emptyLabel?: string;
   creatingItem: { parentPath: string; kind: SkillFileTreeCreateKind } | null;
+  canWrite: boolean;
   isCreating?: boolean;
   onCancelCreate: () => void;
   onCreate: (parentPath: string, kind: SkillFileTreeCreateKind, name: string) => Promise<void>;
@@ -1010,6 +1037,7 @@ let SkillFileTreeInner = (p: {
         p.nodes.map(node => (
           <SkillFileTreeRow
             creatingItem={p.creatingItem}
+            canWrite={p.canWrite}
             depth={0}
             expandedPaths={p.expandedPaths}
             isCreating={p.isCreating}
@@ -1050,6 +1078,7 @@ export let SkillFileTree = (p: {
   expandedPaths: Set<string>;
   onToggle: (path: string) => void;
   emptyLabel?: string;
+  canWrite: boolean;
   isCreating?: boolean;
   onCreate: (parentPath: string, kind: SkillFileTreeCreateKind, name: string) => Promise<void>;
   onDelete: (itemId: string) => Promise<void>;
@@ -1074,6 +1103,7 @@ export let SkillFileTree = (p: {
       editingItemPath={editingItemPath}
       emptyLabel={p.emptyLabel}
       expandedPaths={p.expandedPaths}
+      canWrite={p.canWrite}
       isCreating={p.isCreating}
       nodes={p.nodes}
       onCancelCreate={() => setCreatingItem(null)}

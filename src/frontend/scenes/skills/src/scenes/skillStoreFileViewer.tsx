@@ -5,6 +5,7 @@ import {
   useCreateDocument,
   useModifyStoreItems,
   useSkill,
+  useStorePermissions,
   useUploadFile
 } from '@metorial/state';
 import { Box } from '@metorial/ui-product';
@@ -192,6 +193,7 @@ export let SkillStoreFileViewerScene = (p: {
     order: 'asc',
     type: ['directory', 'document', 'file']
   });
+  let storePermissions = useStorePermissions(p.instanceId, skill.data?.storeId);
   let createDocument = useCreateDocument();
   let uploadFile = useUploadFile();
   let modifyStoreItems = useModifyStoreItems();
@@ -410,7 +412,7 @@ export let SkillStoreFileViewerScene = (p: {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [optimisticItems.length]);
 
-  return renderWithLoader({ skill, storeItems })(() => (
+  return renderWithLoader({ skill, storeItems, storePermissions })(() => (
     <Box
       title="Skill Files"
       description="Manage the documents and files of this skill. Describe workflows, behaviors, and tasks for agentic workflows."
@@ -422,6 +424,7 @@ export let SkillStoreFileViewerScene = (p: {
           isCreating={isCreating}
           nodes={treeNodes}
           instanceId={p.instanceId}
+          canWrite={!!storePermissions.data?.permissions.includes('content_write')}
           onCreate={createStoreItem}
           onDelete={deleteStoreItem}
           onFileSelect={createStoreFile}

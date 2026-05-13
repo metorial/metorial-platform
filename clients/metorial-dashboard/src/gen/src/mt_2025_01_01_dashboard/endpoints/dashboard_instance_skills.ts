@@ -14,6 +14,7 @@ import {
   mapDashboardInstanceSkillsGetOutput,
   mapDashboardInstanceSkillsListOutput,
   mapDashboardInstanceSkillsListQuery,
+  mapDashboardInstanceSkillsPublishConsumerSkillOutput,
   mapDashboardInstanceSkillsUpdateBody,
   mapDashboardInstanceSkillsUpdateOutput,
   type DashboardInstanceSkillsCreateBody,
@@ -26,6 +27,7 @@ import {
   type DashboardInstanceSkillsGetOutput,
   type DashboardInstanceSkillsListOutput,
   type DashboardInstanceSkillsListQuery,
+  type DashboardInstanceSkillsPublishConsumerSkillOutput,
   type DashboardInstanceSkillsUpdateBody,
   type DashboardInstanceSkillsUpdateOutput
 } from '../resources';
@@ -233,6 +235,35 @@ export class MetorialDashboardInstanceSkillsEndpoint {
     } as any;
 
     return this._post(request).transform(mapDashboardInstanceSkillsForkOutput);
+  }
+
+  /**
+   * @name Publish consumer skill
+   * @description Publishes a consumer-owned skill to the consumer groups they belong to.
+   *
+   * @param `instanceId` - string
+   * @param `skillId` - string
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardInstanceSkillsPublishConsumerSkillOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  publishConsumerSkill(
+    instanceId: string,
+    skillId: string,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceSkillsPublishConsumerSkillOutput> {
+    let path = `dashboard/instances/${instanceId}/skills/${skillId}/publish`;
+
+    let request = {
+      path,
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._post(request).transform(
+      mapDashboardInstanceSkillsPublishConsumerSkillOutput
+    );
   }
 
   /**

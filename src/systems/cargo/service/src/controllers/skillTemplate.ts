@@ -114,6 +114,25 @@ export let skillTemplateController = app.controller({
       );
     }),
 
+  getMany: tenantApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        environmentId: v.string(),
+        skillTemplateIds: v.array(v.string())
+      })
+    )
+    .do(async ctx => {
+      let skillTemplates = await skillTemplateService.getManySkillTemplatesByIds({
+        tenant: ctx.tenant,
+        environment: ctx.environment,
+        skillTemplateIds: ctx.input.skillTemplateIds
+      });
+
+      return skillTemplates.map(skillTemplatePresenter);
+    }),
+
   update: tenantApp
     .handler()
     .input(

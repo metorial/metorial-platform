@@ -57,6 +57,17 @@ let storeTemplateSummaryInclude = {
       id: true
     }
   },
+  backingStores: {
+    select: {
+      tenantOid: true,
+      environmentOid: true,
+      store: {
+        select: {
+          id: true
+        }
+      }
+    }
+  },
   items: {
     select: {
       id: true
@@ -80,6 +91,17 @@ let storeTemplateInclude = {
       id: true
     }
   },
+  backingStores: {
+    select: {
+      tenantOid: true,
+      environmentOid: true,
+      store: {
+        select: {
+          id: true
+        }
+      }
+    }
+  },
   items: {
     orderBy: [
       {
@@ -99,6 +121,10 @@ export type StoreTemplateSummaryRecord = Prisma.StoreTemplateGetPayload<{
 export type StoreTemplateRecord = Prisma.StoreTemplateGetPayload<{
   include: typeof storeTemplateInclude;
 }>;
+
+export type StoreTemplateWithScopedStoreId<T> = T & {
+  storeId?: string;
+};
 
 type SourceStoreRecord = Prisma.StoreGetPayload<{
   include: {
@@ -382,6 +408,31 @@ class StoreTemplateServiceImpl {
     );
   }
 
+  private withScopedStoreId<T extends StoreTemplateSummaryRecord | StoreTemplateRecord>(
+    storeTemplate: T,
+    scope?: RequiredStoreTemplateScope
+  ): StoreTemplateWithScopedStoreId<T> {
+    if (storeTemplate.sourceStore?.id) {
+      return {
+        ...storeTemplate,
+        storeId: storeTemplate.sourceStore.id
+      };
+    }
+
+    if (!scope) return storeTemplate;
+
+    let backing = storeTemplate.backingStores.find(
+      backing =>
+        backing.tenantOid === scope.tenant.oid &&
+        backing.environmentOid === scope.environment.oid
+    );
+
+    return {
+      ...storeTemplate,
+      storeId: backing?.store.id
+    };
+  }
+
   async createStoreTemplate(
     d: StoreTemplateScope & {
       input: StoreTemplateCreateInput;
@@ -505,11 +556,13 @@ class StoreTemplateServiceImpl {
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
-          await db.storeTemplate.findMany({
-            ...opts,
-            where: this.getReadableScopeWhere(d),
-            include: storeTemplateSummaryInclude
-          })
+          (
+            await db.storeTemplate.findMany({
+              ...opts,
+              where: this.getReadableScopeWhere(d),
+              include: storeTemplateSummaryInclude
+            })
+          ).map(storeTemplate => this.withScopedStoreId(storeTemplate, d))
       )
     );
   }
@@ -535,7 +588,7 @@ class StoreTemplateServiceImpl {
           throw new ServiceError(notFoundError('storeTemplate', d.storeTemplateId));
         }
 
-        return storeTemplate;
+        return this.withScopedStoreId(storeTemplate, d);
       },
       { ifExists: true }
     );
@@ -676,7 +729,15 @@ class StoreTemplateServiceImpl {
         });
       }
 
-      return updatedTemplate;
+      return this.withScopedStoreId(
+        updatedTemplate,
+        d.tenant && d.environment
+          ? {
+              tenant: d.tenant,
+              environment: d.environment
+            }
+          : undefined
+      );
     });
   }
 

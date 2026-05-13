@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { db } from '../../db';
+import { storeTemplateSyncService } from '../../services';
 import { cargoClient } from '../../test/client';
 import { cleanDatabase } from '../../test/setup';
 
@@ -34,6 +35,50 @@ let createActor = async (
     identifier: d.identifier,
     name: d.name
   });
+
+let syncStandaloneTemplate = async (storeTemplateId: string) => {
+  let template = await db.storeTemplate.findUniqueOrThrow({
+    where: {
+      id: storeTemplateId
+    },
+    include: {
+      items: true
+    }
+  });
+
+  for (let item of template.items) {
+    await storeTemplateSyncService.refreshStoreTemplateItemHash({
+      storeTemplateItemId: item.id
+    });
+  }
+
+  let hashResult = await storeTemplateSyncService.refreshStoreTemplateHash({
+    storeTemplateId,
+    forceFullReconcile: true
+  });
+  expect(hashResult.missingItemIds).toEqual([]);
+
+  let cursorOid: string | undefined;
+  while (true) {
+    let targets = await storeTemplateSyncService.listStoreTemplateSyncTargets({
+      storeTemplateId,
+      cursorOid,
+      limit: 100
+    });
+
+    for (let target of targets.targets) {
+      await storeTemplateSyncService.syncStoreTemplateBackingStore({
+        storeTemplateId,
+        tenantId: target.tenant.id,
+        environmentId: target.environment.id,
+        forceFullReconcile: true
+      });
+    }
+
+    if (!targets.nextCursorOid) break;
+    cursorOid = targets.nextCursorOid;
+  }
+};
 
 describe('cargo skill.e2e', () => {
   beforeEach(async () => {
@@ -296,6 +341,8 @@ describe('cargo skill.e2e', () => {
       storeId: expect.any(String),
       parentSkillTemplateId: skillTemplate.id
     });
+    expect(skillTemplate.storeId).toBe(sourceStore.id);
+    expect(skillTemplate.storeTemplate.storeId).toBe(sourceStore.id);
     expect(skill.parentSkillId).toBeUndefined();
     expect(skill.store.cloneType).toBe('duplicate');
     expect(skillRecord?.parentSkillTemplateOid).toBe(skillTemplateRecord?.oid);
@@ -520,6 +567,41 @@ describe('cargo skill.e2e', () => {
         }
       ]
     });
+    await syncStandaloneTemplate(globalTemplate.storeTemplateId);
+    await syncStandaloneTemplate(scopedTemplate.storeTemplateId);
+
+    let globalBacking = await db.storeTemplateBacking.findFirstOrThrow({
+      where: {
+        storeTemplate: {
+          id: globalTemplate.storeTemplateId
+        },
+        tenant: {
+          id: tenant.id
+        },
+        environment: {
+          id: environment.id
+        }
+      },
+      include: {
+        store: true
+      }
+    });
+    let scopedBacking = await db.storeTemplateBacking.findFirstOrThrow({
+      where: {
+        storeTemplate: {
+          id: scopedTemplate.storeTemplateId
+        },
+        tenant: {
+          id: tenant.id
+        },
+        environment: {
+          id: environment.id
+        }
+      },
+      include: {
+        store: true
+      }
+    });
 
     let listed = await cargoClient.skillTemplate.list({
       tenantId: tenant.id,
@@ -531,11 +613,33 @@ describe('cargo skill.e2e', () => {
       environmentId: environment.id,
       skillTemplateId: globalTemplate.id
     });
+    let fetchedMany = await cargoClient.skillTemplate.getMany({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillTemplateIds: [globalTemplate.id, scopedTemplate.id, 'cskt_missing_template']
+    });
 
     expect(listed.items.map(item => item.id).sort()).toEqual(
       [globalTemplate.id, scopedTemplate.id].sort()
     );
     expect(fetchedGlobal.id).toBe(globalTemplate.id);
+    expect(fetchedMany.map(item => item.id).sort()).toEqual(
+      [globalTemplate.id, scopedTemplate.id].sort()
+    );
+    expect(listed.items.find(item => item.id === globalTemplate.id)?.storeId).toBe(
+      globalBacking.store.id
+    );
+    expect(listed.items.find(item => item.id === scopedTemplate.id)?.storeId).toBe(
+      scopedBacking.store.id
+    );
+    expect(fetchedGlobal.storeId).toBe(globalBacking.store.id);
+    expect(fetchedGlobal.storeTemplate.storeId).toBe(globalBacking.store.id);
+    expect(fetchedMany.find(item => item.id === globalTemplate.id)?.storeId).toBe(
+      globalBacking.store.id
+    );
+    expect(fetchedMany.find(item => item.id === scopedTemplate.id)?.storeId).toBe(
+      scopedBacking.store.id
+    );
 
     await expect(
       cargoClient.skillTemplate.delete({

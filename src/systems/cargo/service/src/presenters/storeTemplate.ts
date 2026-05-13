@@ -1,13 +1,16 @@
 import type {
   StoreTemplateRecord,
-  StoreTemplateSummaryRecord
+  StoreTemplateSummaryRecord,
+  StoreTemplateWithScopedStoreId
 } from '../services/storeTemplate';
 
 let presentStoreTemplateEncoding = (encoding?: 'utf_8' | 'base64' | null) =>
   encoding === 'utf_8' ? 'utf-8' : (encoding ?? undefined);
 
 export let storeTemplatePresenter = (
-  storeTemplate: StoreTemplateSummaryRecord | StoreTemplateRecord
+  storeTemplate:
+    | StoreTemplateWithScopedStoreId<StoreTemplateSummaryRecord>
+    | StoreTemplateWithScopedStoreId<StoreTemplateRecord>
 ) => ({
   object: 'cargo#storeTemplate',
   id: storeTemplate.id,
@@ -15,13 +18,16 @@ export let storeTemplatePresenter = (
   type: storeTemplate.type,
   tenantId: storeTemplate.tenant?.id ?? undefined,
   environmentId: storeTemplate.environment?.id ?? undefined,
+  storeId: storeTemplate.storeId ?? storeTemplate.sourceStore?.id ?? undefined,
   sourceStoreId: storeTemplate.sourceStore?.id ?? undefined,
   itemCount: storeTemplate.items.length,
   createdAt: storeTemplate.createdAt,
   updatedAt: storeTemplate.updatedAt
 });
 
-export let storeTemplateDetailPresenter = (storeTemplate: StoreTemplateRecord) => ({
+export let storeTemplateDetailPresenter = (
+  storeTemplate: StoreTemplateWithScopedStoreId<StoreTemplateRecord>
+) => ({
   ...storeTemplatePresenter(storeTemplate),
   items: storeTemplate.items.map(item => ({
     id: item.id,

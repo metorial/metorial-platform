@@ -1367,6 +1367,97 @@ describe('cargo store.e2e', () => {
     });
   });
 
+  it('returns read-only store permissions regardless of baseline or actor write access', async () => {
+    let { tenant, environment } = await createScope();
+    let actor = await createActor(tenant.id, {
+      identifier: 'readonly-permissions-writer',
+      name: 'Read Only Permissions Writer'
+    });
+    let noActorStore = await cargoClient.store.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      name: 'Read Only No Actor',
+      access: 'private'
+    });
+    let actorWriteStore = await cargoClient.store.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      name: 'Read Only Actor Writer',
+      access: 'private'
+    });
+    let publicWriteStore = await cargoClient.store.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      name: 'Read Only Public Writer',
+      access: 'public_write'
+    });
+
+    await cargoClient.store.get({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: actorWriteStore.id,
+      actorId: actor.id,
+      defaultPermissions: ['content_read', 'content_write'],
+      overridePermissions: true
+    });
+    await db.store.updateMany({
+      where: {
+        id: {
+          in: [noActorStore.id, actorWriteStore.id, publicWriteStore.id]
+        }
+      },
+      data: {
+        isReadOnly: true
+      }
+    });
+
+    let noActorPermissions = await cargoClient.store.getPermissions({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: noActorStore.id
+    });
+    let actorWritePermissions = await cargoClient.store.getPermissions({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: actorWriteStore.id,
+      actorId: actor.id
+    });
+    let publicWritePermissions = await cargoClient.store.getPermissions({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: publicWriteStore.id,
+      actorId: actor.id
+    });
+
+    expect(noActorPermissions).toMatchObject({
+      storeId: noActorStore.id,
+      actorId: null,
+      hasFullAccess: false,
+      permissions: ['content_read'],
+      relevantStoreIds: [noActorStore.id],
+      readableStoreIds: [noActorStore.id],
+      writableStoreIds: []
+    });
+    expect(actorWritePermissions).toMatchObject({
+      storeId: actorWriteStore.id,
+      actorId: actor.id,
+      hasFullAccess: false,
+      permissions: ['content_read'],
+      relevantStoreIds: [actorWriteStore.id],
+      readableStoreIds: [actorWriteStore.id],
+      writableStoreIds: []
+    });
+    expect(publicWritePermissions).toMatchObject({
+      storeId: publicWriteStore.id,
+      actorId: actor.id,
+      hasFullAccess: false,
+      permissions: ['content_read'],
+      relevantStoreIds: [publicWriteStore.id],
+      readableStoreIds: [publicWriteStore.id],
+      writableStoreIds: []
+    });
+  });
+
   it('returns actor-scoped read permissions for public_read stores and attached documents', async () => {
     let { tenant, environment } = await createScope();
     let actor = await createActor(tenant.id, {
@@ -1824,6 +1915,7 @@ describe('cargo store.e2e', () => {
 
     expect(template).toMatchObject({
       name: 'Linked Template',
+      storeId: sourceStore.id,
       sourceStoreId: sourceStore.id,
       tenantId: tenant.id,
       environmentId: environment.id,
@@ -2063,6 +2155,16 @@ describe('cargo store.e2e', () => {
       environmentId: environment.id,
       storeId: prodBacking.store.id
     });
+    let listedTemplates = await cargoClient.storeTemplate.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      limit: 10
+    });
+    let fetchedTemplate = await cargoClient.storeTemplate.get({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeTemplateId: template.id
+    });
     let listedStores = await cargoClient.store.list({
       tenantId: tenant.id,
       environmentId: environment.id,
@@ -2127,6 +2229,10 @@ describe('cargo store.e2e', () => {
       isReadOnly: true,
       isTemplateBacking: true
     });
+    expect(listedTemplates.items.find(item => item.id === template.id)?.storeId).toBe(
+      prodBacking.store.id
+    );
+    expect(fetchedTemplate.storeId).toBe(prodBacking.store.id);
     expect(listedStores.items).toHaveLength(0);
     expect(backingItems.items.map(item => item.path).sort()).toEqual([
       '/',
