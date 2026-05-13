@@ -45,12 +45,12 @@ let TreeItemStack = styled.div`
 let TreeRowButton = styled.button`
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   width: 100%;
   min-width: 0;
   flex: 1;
-  min-height: 26px;
-  padding: 2px 6px;
+  min-height: 30px;
+  padding: 3px 8px;
   border: none;
   border-radius: 6px;
   background: transparent;
@@ -66,7 +66,7 @@ let TreeRowButton = styled.button`
 let TreeRowLink = styled(Link)`
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   align-self: stretch;
   min-width: 0;
   flex: 1;
@@ -83,10 +83,10 @@ let TreeRowLink = styled(Link)`
 let TreeRowShell = styled.div<{ $dropTarget?: boolean }>`
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   width: 100%;
-  min-height: 26px;
-  padding: 2px 6px;
+  min-height: 30px;
+  padding: 3px 8px;
   border: none;
   border-radius: 6px;
   background: ${p =>
@@ -116,8 +116,8 @@ let TreeChevron = styled(RiArrowRightSLine)<{ $open: boolean }>`
   transition: transform 0.2s ease;
   transform: rotate(${p => (p.$open ? 90 : 0)}deg);
   color: color-mix(in srgb, ${theme.colors.foreground} 56%, transparent);
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
 `;
 
 let TreeIconWrap = styled.span<{ $kind: SkillFileTreeNode['kind'] }>`
@@ -134,14 +134,14 @@ let TreeIconWrap = styled.span<{ $kind: SkillFileTreeNode['kind'] }>`
 `;
 
 let ChevronSpacer = styled.div`
-  width: 12px;
+  width: 14px;
   flex: 0 0 auto;
 `;
 
 let TreeLabel = styled.div`
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   min-width: 0;
   flex: 1;
 `;
@@ -150,8 +150,8 @@ let TreeAction = styled.button`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   border: none;
   border-radius: 6px;
   background: transparent;
@@ -177,8 +177,8 @@ let TreeSpinnerWrap = styled.div`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   flex: 0 0 auto;
 `;
 
@@ -196,12 +196,12 @@ let ChildrenWrap = styled.div`
 `;
 
 let EmptyState = styled.div`
-  min-height: 26px;
-  padding: 2px 6px;
+  min-height: 30px;
+  padding: 3px 8px;
 `;
 
 let DirectoryMessage = styled.div`
-  padding: 2px 6px 2px 30px;
+  padding: 3px 8px 3px 34px;
 `;
 
 let HiddenFileInput = styled.input`
@@ -211,8 +211,8 @@ let HiddenFileInput = styled.input`
 let CreateInput = styled.input<{ $hasError?: boolean }>`
   width: 100%;
   min-width: 0;
-  height: 22px;
-  padding: 0 6px;
+  height: 24px;
+  padding: 0 8px;
   border-radius: 6px;
   border: 1px solid
     ${p =>
@@ -222,7 +222,7 @@ let CreateInput = styled.input<{ $hasError?: boolean }>`
   background: ${theme.colors.background};
   color: ${theme.colors.foreground};
   font: inherit;
-  font-size: 12px;
+  font-size: 13px;
   outline: none;
 `;
 
@@ -238,11 +238,11 @@ export type SkillFileTreeCreateKind = 'file' | 'document' | 'directory';
 
 let TreeIcon = (p: { kind: SkillFileTreeNode['kind']; open?: boolean }) => {
   if (p.kind == 'directory') {
-    return p.open ? <RiFolderOpenLine size={14} /> : <RiFolder2Line size={14} />;
+    return p.open ? <RiFolderOpenLine size={16} /> : <RiFolder2Line size={16} />;
   }
 
-  if (p.kind == 'document') return <RiFileTextLine size={14} />;
-  return <RiFile3Line size={14} />;
+  if (p.kind == 'document') return <RiFileTextLine size={16} />;
+  return <RiFile3Line size={16} />;
 };
 
 let getDisplayName = (node: SkillFileTreeNode) => {
@@ -651,7 +651,7 @@ let SkillFileTreeRow = (p: {
               <TreeIcon kind={p.node.kind} />
             </TreeIconWrap>
             <TreeNameWrap>
-              <Text size="1">{getDisplayName(p.node)}</Text>
+              <Text size="2">{getDisplayName(p.node)}</Text>
             </TreeNameWrap>
           </TreeRowLink>
         ) : p.node.kind == 'file' && p.node.fileId ? (
@@ -667,7 +667,7 @@ let SkillFileTreeRow = (p: {
               <TreeIcon kind={p.node.kind} />
             </TreeIconWrap>
             <TreeNameWrap>
-              <Text size="1">{getDisplayName(p.node)}</Text>
+              <Text size="2">{getDisplayName(p.node)}</Text>
             </TreeNameWrap>
           </SkillFilePreviewLightbox>
         ) : (
@@ -678,7 +678,7 @@ let SkillFileTreeRow = (p: {
               <TreeIcon kind={p.node.kind} />
             </TreeIconWrap>
             <TreeNameWrap>
-              <Text size="1">{getDisplayName(p.node)}</Text>
+              <Text size="2">{getDisplayName(p.node)}</Text>
             </TreeNameWrap>
           </TreeLabel>
         )}
@@ -714,7 +714,7 @@ let SkillFileTreeRow = (p: {
               disabled={p.isCreating}
               type="button"
             >
-              <RiMore2Line size={14} />
+              <RiMore2Line size={16} strokeWidth={2.4} />
             </TreeAction>
           </Menu>
         ) : null}
@@ -867,7 +867,7 @@ let SkillFileTreeRow = (p: {
                   <TreeIcon kind={p.node.kind} open={isOpen} />
                 </TreeIconWrap>
                 <TreeNameWrap>
-                  <Text size="1">{getDisplayName(p.node)}</Text>
+                  <Text size="2">{getDisplayName(p.node)}</Text>
                 </TreeNameWrap>
               </TreeLabel>
             </TreeRowButton>
@@ -891,7 +891,7 @@ let SkillFileTreeRow = (p: {
               onItemClick={startDirectoryAction}
             >
               <TreeAction data-tree-action type="button">
-                <RiAddLine size={14} />
+                <RiAddLine size={16} strokeWidth={2.4} />
               </TreeAction>
             </Menu>
             <HiddenFileInput

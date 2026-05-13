@@ -37,6 +37,9 @@ import { GlobalStyles } from '../styles/GlobalStyles';
 import { lightTheme } from '../styles/theme';
 
 let AUTOSAVE_DELAY_MS = 5000;
+let MIN_PREVIEW_WIDTH = 360;
+let DEFAULT_PREVIEW_WIDTH = 520;
+let MIN_EDITOR_WIDTH = 420;
 
 let Shell = styled.div`
   display: flex;
@@ -140,6 +143,31 @@ let Main = styled.div`
   flex: 1;
   min-height: 0;
   overflow: hidden;
+`;
+
+let PreviewResizeHandle = styled.div<{ $active?: boolean }>`
+  flex: 0 0 1px;
+  width: 1px;
+  cursor: col-resize;
+  position: relative;
+  z-index: 5;
+  background: ${({ theme }) => theme.color.border};
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -3px;
+    width: 7px;
+    background: transparent;
+    transition: background ${({ theme }) => theme.motion.fast};
+  }
+
+  &:hover::after,
+  ${({ $active }) => ($active ? '&::after' : '')} {
+    background: ${({ theme }) => theme.color.accent};
+  }
 `;
 
 let Toast = styled.div<{ $visible?: boolean }>`
@@ -590,10 +618,13 @@ let DocumentEditorLoaded = (p: {
   let [versionHistoryOpen, setVersionHistoryOpen] = useState(false);
   let [shortcutsOpen, setShortcutsOpen] = useState(false);
   let [pageInfoOpen, setPageInfoOpen] = useState(false);
+  let [previewWidth, setPreviewWidth] = useState(DEFAULT_PREVIEW_WIDTH);
+  let [resizingPreview, setResizingPreview] = useState(false);
   let [lastUpdatedAt, setLastUpdatedAt] = useState(p.document.updatedAt);
   let [saveStatus, setSaveStatus] = useState<SaveStatus>('saved');
   let [allowInitialHashScroll, setAllowInitialHashScroll] = useState(true);
   let navigate = useNavigate();
+  let mainRef = useRef<HTMLDivElement | null>(null);
   let toastTimer = useRef<number | null>(null);
   let fileInputRef = useRef<HTMLInputElement | null>(null);
   let saveTimerRef = useRef<number | null>(null);
@@ -759,6 +790,45 @@ let DocumentEditorLoaded = (p: {
   let handleRequestLinkEdit = useCallback(() => {
     setLinkPromptToken(t => t + 1);
   }, []);
+
+  let handlePreviewResizeStart = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      e.preventDefault();
+
+      let main = mainRef.current;
+      if (!main) return;
+
+      let startX = e.clientX;
+      let startWidth = previewWidth;
+      let mainWidth = main.getBoundingClientRect().width;
+      let maxWidth = Math.max(MIN_PREVIEW_WIDTH, mainWidth - MIN_EDITOR_WIDTH);
+      let previousCursor = document.body.style.cursor;
+      let previousUserSelect = document.body.style.userSelect;
+
+      setResizingPreview(true);
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+
+      let onPointerMove = (event: PointerEvent) => {
+        let nextWidth = startWidth - (event.clientX - startX);
+        setPreviewWidth(Math.min(maxWidth, Math.max(MIN_PREVIEW_WIDTH, nextWidth)));
+      };
+
+      let onPointerUp = () => {
+        setResizingPreview(false);
+        document.body.style.cursor = previousCursor;
+        document.body.style.userSelect = previousUserSelect;
+        window.removeEventListener('pointermove', onPointerMove);
+        window.removeEventListener('pointerup', onPointerUp);
+        window.removeEventListener('pointercancel', onPointerUp);
+      };
+
+      window.addEventListener('pointermove', onPointerMove);
+      window.addEventListener('pointerup', onPointerUp);
+      window.addEventListener('pointercancel', onPointerUp);
+    },
+    [previewWidth]
+  );
 
   let people = useMemo(() => p.participants.map(mapParticipantToPerson), [p.participants]);
   let versionHistory = useMemo(() => p.versions.map(mapVersion), [p.versions]);
@@ -1041,7 +1111,7 @@ let DocumentEditorLoaded = (p: {
             />
           </Header>
 
-          <Main>
+          <Main ref={mainRef}>
             {viewMode !== 'preview' && (
               <Editor
                 key={editorKey}
@@ -1074,9 +1144,19 @@ let DocumentEditorLoaded = (p: {
                 onInitialHashScrollComplete={() => setAllowInitialHashScroll(false)}
               />
             )}
+            {viewMode === 'split' && (
+              <PreviewResizeHandle
+                role="separator"
+                aria-orientation="vertical"
+                aria-label="Resize markdown preview"
+                $active={resizingPreview}
+                onPointerDown={handlePreviewResizeStart}
+              />
+            )}
             {viewMode !== 'editor' && (
               <Preview
                 markdown={fullMarkdown}
+                width={viewMode === 'split' ? previewWidth : undefined}
                 onCopy={handleCopy}
                 onDownload={handleDownload}
               />

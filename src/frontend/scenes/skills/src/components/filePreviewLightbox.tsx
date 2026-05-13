@@ -68,7 +68,7 @@ let Overlay = styled(RadixDialog.Overlay)`
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 1000;
+  z-index: 10000;
   overflow: hidden;
   background: rgba(100, 100, 100, 0.1);
   backdrop-filter: blur(5px);
@@ -86,7 +86,7 @@ let Content = styled(RadixDialog.Content)`
   position: fixed;
   top: 50%;
   left: 50%;
-  z-index: 1001;
+  z-index: 10001;
   transform: translate(-50%, -50%);
   outline: none;
 
@@ -754,6 +754,7 @@ export let SkillFilePreviewLightbox = (p: {
   title: string;
   children: ReactNode;
   triggerRef?: Ref<HTMLButtonElement>;
+  onOpenChange?: (open: boolean) => void;
 }) => {
   let [open, setOpen] = useState(false);
   let file = useFile(open ? p.instanceId : null, open ? p.fileId : null);
@@ -774,7 +775,13 @@ export let SkillFilePreviewLightbox = (p: {
   let isCodePreview = downloadUrl != null && previewKind == 'text';
 
   return (
-    <RadixDialog.Root open={open} onOpenChange={setOpen}>
+    <RadixDialog.Root
+      open={open}
+      onOpenChange={nextOpen => {
+        setOpen(nextOpen);
+        p.onOpenChange?.(nextOpen);
+      }}
+    >
       <RadixDialog.Trigger asChild>
         <TriggerButton data-tree-primary-action ref={p.triggerRef} type="button">
           {p.children}

@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import styled from 'styled-components';
+import { menuEnter, menuExit } from '../animations';
 import { lowlight } from './lowlight';
 import { usePresence } from '../usePresence';
 
@@ -18,6 +20,84 @@ function buildLanguages(): string[] {
 }
 
 let LANGUAGES = buildLanguages();
+
+let PopoverWrap = styled.div`
+  position: fixed;
+  z-index: 1000;
+  width: 240px;
+  max-height: 320px;
+  display: flex;
+  flex-direction: column;
+  background: ${({ theme }) => theme.color.bg};
+  border: 1px solid ${({ theme }) => theme.color.border};
+  border-radius: 12px;
+  box-shadow: 0 8px 24px ${({ theme }) => theme.color.shadow};
+  overflow: hidden;
+  font-family: ${({ theme }) => theme.font.sans};
+  transform-origin: top left;
+
+  &[data-state='open'] {
+    ${menuEnter(160)}
+  }
+
+  &[data-state='closed'] {
+    ${menuExit(140)}
+    pointer-events: none;
+  }
+`;
+
+let Search = styled.input`
+  padding: 8px 10px;
+  margin: 6px;
+  border: 1px solid ${({ theme }) => theme.color.border};
+  border-radius: 6px;
+  background: ${({ theme }) => theme.color.bgAlt};
+  color: ${({ theme }) => theme.color.text};
+  font-size: 13px;
+  outline: none;
+
+  &:focus {
+    border-color: ${({ theme }) => theme.color.accent};
+  }
+
+  &::placeholder {
+    color: ${({ theme }) => theme.color.textSubtle};
+  }
+`;
+
+let List = styled.ul`
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+  overflow-y: auto;
+  flex: 1;
+`;
+
+let Item = styled.li`
+  padding: 6px 10px;
+  border-radius: 5px;
+  font-family: ${({ theme }) => theme.font.mono};
+  font-size: 13px;
+  color: ${({ theme }) => theme.color.text};
+  cursor: pointer;
+  user-select: none;
+
+  &.is-focused {
+    background: ${({ theme }) => theme.color.bgAlt};
+  }
+
+  &.is-active {
+    color: ${({ theme }) => theme.color.accent};
+    font-weight: 600;
+  }
+`;
+
+let Empty = styled.li`
+  padding: 10px;
+  color: ${({ theme }) => theme.color.textSubtle};
+  font-size: 13px;
+  text-align: center;
+`;
 
 interface Props {
   value: string;
@@ -129,14 +209,14 @@ export function LanguagePicker({ value, onChange }: Props) {
       {presence.shouldRender &&
         coords &&
         createPortal(
-          <div
+          <PopoverWrap
             ref={popoverRef}
             className="code-block-lang-popover"
             data-state={presence.dataState}
             style={{ left: coords.left, top: coords.top }}
             contentEditable={false}
           >
-            <input
+            <Search
               autoFocus
               className="code-block-lang-search"
               placeholder="Search language…"
@@ -147,10 +227,12 @@ export function LanguagePicker({ value, onChange }: Props) {
               }}
               onKeyDown={handleKey}
             />
-            <ul className="code-block-lang-list" role="listbox">
-              {filtered.length === 0 && <li className="code-block-lang-empty">No matches</li>}
+            <List className="code-block-lang-list" role="listbox">
+              {filtered.length === 0 && (
+                <Empty className="code-block-lang-empty">No matches</Empty>
+              )}
               {filtered.map((lang, i) => (
-                <li
+                <Item
                   key={lang}
                   className={
                     'code-block-lang-item' +
@@ -164,10 +246,10 @@ export function LanguagePicker({ value, onChange }: Props) {
                   }}
                 >
                   {lang}
-                </li>
+                </Item>
               ))}
-            </ul>
-          </div>,
+            </List>
+          </PopoverWrap>,
           document.body
         )}
     </>

@@ -66,7 +66,7 @@ let SectionTitle = styled.h3`
 
 let StatsGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
 `;
 
@@ -178,6 +178,7 @@ export function PageInfoDialog({
 }: PageInfoDialogProps) {
   let editors = useMemo(() => people.filter(p => p.role === 'editor'), [people]);
   let viewers = useMemo(() => people.filter(p => p.role === 'viewer'), [people]);
+  let tokenCount = Math.max(0, Math.round(charCount / 4));
 
   return (
     <Dialog.Wrapper isOpen={open} onOpenChange={onOpenChange} width={560}>
@@ -186,6 +187,10 @@ export function PageInfoDialog({
         <Section>
           <SectionTitle>General</SectionTitle>
           <StatsGrid>
+            <StatCard>
+              <span className="label">Tokens</span>
+              <span className="value">~{tokenCount.toLocaleString()}</span>
+            </StatCard>
             <StatCard>
               <span className="label">Words</span>
               <span className="value">{wordCount.toLocaleString()}</span>

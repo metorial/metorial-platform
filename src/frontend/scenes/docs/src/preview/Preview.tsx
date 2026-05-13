@@ -1,10 +1,11 @@
 import styled from 'styled-components';
 import { IconCopy, IconDownload } from '../editor/icons';
 
-let Wrap = styled.aside`
+let Wrap = styled.aside<{ $width?: number }>`
   display: flex;
   flex-direction: column;
-  flex: 1 1 0;
+  flex: ${({ $width }) => ($width ? `0 0 ${$width}px` : '1 1 0')};
+  width: ${({ $width }) => ($width ? `${$width}px` : 'auto')};
   min-width: 360px;
   border-left: 1px solid ${({ theme }) => theme.color.border};
   background: ${({ theme }) => theme.color.bgAlt};
@@ -90,13 +91,14 @@ let Source = styled.pre`
 
 interface Props {
   markdown: string;
+  width?: number;
   onCopy: () => void;
   onDownload: () => void;
 }
 
-export function Preview({ markdown, onCopy, onDownload }: Props) {
+export function Preview({ markdown, width, onCopy, onDownload }: Props) {
   return (
-    <Wrap>
+    <Wrap $width={width}>
       <Header>
         <Title>Markdown</Title>
         <Actions>
