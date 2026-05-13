@@ -46,6 +46,16 @@ type FileAccessInput = {
 };
 
 class FileServiceImpl {
+  private assertFileWritable(file: Pick<File, 'id' | 'isReadOnly'>) {
+    if (file.isReadOnly) {
+      throw new ServiceError(
+        forbiddenError({
+          message: `File ${file.id} is read-only`
+        })
+      );
+    }
+  }
+
   private async withEffectiveStoreId<T extends FileRecord>(file: T) {
     if (!file.document?.id) {
       return file as T & { effectiveStoreId?: string };
@@ -77,6 +87,11 @@ class FileServiceImpl {
       purpose: string;
       storeId: string;
       _isDocument?: boolean;
+      internal?: {
+        isReadOnly?: boolean;
+        isTemplateBacking?: boolean;
+        allowReadOnlyStore?: boolean;
+      };
       input: {
         id?: string;
         name: string;
@@ -135,6 +150,8 @@ class FileServiceImpl {
             title: d.input.title,
             status: 'active',
             purposeOid: purpose.oid,
+            isReadOnly: d.internal?.isReadOnly ?? existing.isReadOnly,
+            isTemplateBacking: d.internal?.isTemplateBacking ?? existing.isTemplateBacking,
             createdByTenantActorOid: existing.createdByTenantActorOid ?? actor?.oid
           },
           include
@@ -166,7 +183,8 @@ class FileServiceImpl {
               file: updatedFile,
               document: null
             },
-            actor
+            actor,
+            allowReadOnly: d.internal?.allowReadOnlyStore
           });
         }
 
@@ -187,6 +205,8 @@ class FileServiceImpl {
           fileSize: d.input.size,
           fileType: d.input.mimeType,
           title: d.input.title,
+          isReadOnly: d.internal?.isReadOnly ?? false,
+          isTemplateBacking: d.internal?.isTemplateBacking ?? false,
           createdByTenantActorOid: actor?.oid
         },
         include
@@ -218,7 +238,8 @@ class FileServiceImpl {
             file: createdFile,
             document: null
           },
-          actor
+            actor,
+            allowReadOnly: d.internal?.allowReadOnlyStore
         });
       }
 
@@ -262,6 +283,7 @@ class FileServiceImpl {
     };
   }) {
     await this.ensureFileActive(d.file);
+    this.assertFileWritable(d.file);
 
     return await db.file.update({
       where: {
@@ -312,6 +334,7 @@ class FileServiceImpl {
 
   async deleteFile(d: { file: File }) {
     await this.ensureFileActive(d.file);
+    this.assertFileWritable(d.file);
     let hasRefs = await fileReferenceService.hasReferencesForFile({
       file: d.file
     });
@@ -388,6 +411,7 @@ class FileServiceImpl {
                   tenantOid: d.tenant.oid,
                   environmentOid: d.environment.oid,
                   status: d.includeDeleted ? undefined : 'active',
+                  isTemplateBacking: false,
                   purposeOid: purposes
                     ? {
                         in: purposes.map(purpose => purpose.oid)
@@ -421,6 +445,7 @@ class FileServiceImpl {
                 tenantOid: d.tenant.oid,
                 environmentOid: d.environment.oid,
                 status: d.includeDeleted ? undefined : 'active',
+                isTemplateBacking: false,
                 purposeOid: purposes
                   ? {
                       in: purposes.map(purpose => purpose.oid)

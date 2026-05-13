@@ -24,6 +24,8 @@ export let filePresenter = (
   fileSize: file.fileSize,
   fileType: file.fileType,
   title: file.resolvedTitle ?? file.title ?? file.fileName,
+  isReadOnly: file.isReadOnly,
+  isTemplateBacking: file.isTemplateBacking,
   purpose: filePurposePresenter(file.purpose),
   signedDownloadUrl: opts?.signedDownloadUrl,
   createdAt: file.createdAt,

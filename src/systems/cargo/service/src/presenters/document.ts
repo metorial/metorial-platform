@@ -44,6 +44,8 @@ export let documentPresenter = (
     parentDocumentId: document.parentDocument?.id,
     currentVersionId: document.currentVersion?.id,
     content: document.resolvedContent ?? document.content.content,
+    isReadOnly: document.isReadOnly,
+    isTemplateBacking: document.isTemplateBacking,
     createdAt: document.createdAt,
     updatedAt
   };

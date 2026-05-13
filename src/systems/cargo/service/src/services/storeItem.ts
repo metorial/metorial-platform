@@ -170,6 +170,7 @@ class StoreItemServiceImpl {
                   store: {
                     tenantOid: d.tenant.oid,
                     environmentOid: d.environment.oid,
+                    isTemplateBacking: d.storeId ? undefined : false,
                     oid: accessibleStoreOids
                       ? {
                           in: accessibleStoreOids
