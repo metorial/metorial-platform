@@ -26,6 +26,7 @@ import {
 import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
 import { checkTenant } from '@metorial-subspace/module-tenant';
 import { cargo, ensureCargoScope } from '../cargo';
+import { createStoreForPlainTemplate } from '../definitions';
 import {
   skillTemplateArchivedQueue,
   skillTemplateCreatedQueue,
@@ -63,38 +64,44 @@ type SkillTemplateWriteInput = {
 let getSlug = (input: { name: string }) =>
   `${slugify(input.name)}-${generatePlainId(7).toLowerCase()}`.toLowerCase();
 
-class skillTemplateServiceImpl {
-  private getAccessibleScope(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    owner?: SkillTemplateOwner[];
-  }) {
-    let scope: Prisma.SkillTemplateWhereInput[] = [];
-    let includeSystem = !d.owner?.length || d.owner.includes('system');
-    let includeTenant = !d.owner?.length || d.owner.includes('tenant');
+export let getAccessibleScope = (d: {
+  tenant: Tenant;
+  solution: Solution;
+  environment: Environment;
+  owner?: SkillTemplateOwner[];
+}) => {
+  let scope: Prisma.SkillTemplateWhereInput[] = [];
+  let includeSystem = !d.owner?.length || d.owner.includes('system');
+  let includeTenant = !d.owner?.length || d.owner.includes('tenant');
 
-    if (includeSystem) {
-      scope.push({
-        owner: 'system',
-        solutionOid: d.solution.oid,
-        tenantOid: null,
-        environmentOid: null
-      });
-    }
-
-    if (includeTenant) {
-      scope.push({
-        owner: 'tenant',
-        solutionOid: d.solution.oid,
-        tenantOid: d.tenant.oid,
-        environmentOid: d.environment.oid
-      });
-    }
-
-    return scope;
+  if (includeSystem) {
+    scope.push({
+      owner: 'system',
+      solutionOid: d.solution.oid,
+      tenantOid: null,
+      environmentOid: null
+    });
+    scope.push({
+      owner: 'system',
+      solutionOid: null,
+      tenantOid: null,
+      environmentOid: null
+    });
   }
 
+  if (includeTenant) {
+    scope.push({
+      owner: 'tenant',
+      solutionOid: d.solution.oid,
+      tenantOid: d.tenant.oid,
+      environmentOid: d.environment.oid
+    });
+  }
+
+  return scope;
+};
+
+class skillTemplateServiceImpl {
   private getTemplateUpdateData(d: {
     current: SkillTemplate;
     input: SkillTemplateWriteInput;
@@ -162,7 +169,7 @@ class skillTemplateServiceImpl {
     d.search = d.search?.trim();
     if (!d.search?.length) d.search = undefined;
 
-    let accessibleScope = this.getAccessibleScope(d);
+    let accessibleScope = getAccessibleScope(d);
     let search = d.search
       ? await voyager.record.search({
           tenantId: d.tenant.id,
@@ -188,9 +195,7 @@ class skillTemplateServiceImpl {
                       some: {
                         provider: {
                           is: {
-                            provider: {
-                              id: { in: d.providerIds }
-                            }
+                            id: { in: d.providerIds }
                           }
                         }
                       }
@@ -203,9 +208,7 @@ class skillTemplateServiceImpl {
                       some: {
                         integration: {
                           is: {
-                            integration: {
-                              id: { in: d.integrationIds }
-                            }
+                            id: { in: d.integrationIds }
                           }
                         }
                       }
@@ -239,7 +242,7 @@ class skillTemplateServiceImpl {
       where: {
         id: d.skillTemplateId,
         ...normalizeStatusForGet(d).noParent,
-        OR: this.getAccessibleScope(d)
+        OR: getAccessibleScope(d)
       },
       include: skillTemplateInclude
     });
@@ -297,11 +300,7 @@ class skillTemplateServiceImpl {
           skillTemplateId: newId.id
         })
       : await (async () => {
-          let cargoStore = await cargo.store.create({
-            ...cargoScope,
-            name: `Skill Template Store - ${name}`,
-            access: 'public_read'
-          });
+          let cargoStore = await createStoreForPlainTemplate(cargoScope, name);
 
           return await cargo.skillTemplate.create({
             ...cargoScope,

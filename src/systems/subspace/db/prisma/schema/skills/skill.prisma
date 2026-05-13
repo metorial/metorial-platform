@@ -159,8 +159,7 @@ model SkillIntegration {
   itemOid BigInt    @unique
   item    SkillItem @relation(fields: [itemOid], references: [oid], onDelete: Cascade)
 
-  createdAt          DateTime            @default(now())
-  skillTemplateItems SkillTemplateItem[]
+  createdAt DateTime @default(now())
 
   @@unique([skillOid, integrationOid])
 }
@@ -186,8 +185,7 @@ model SkillProvider {
   itemOid BigInt    @unique
   item    SkillItem @relation(fields: [itemOid], references: [oid], onDelete: Cascade)
 
-  createdAt          DateTime            @default(now())
-  skillTemplateItems SkillTemplateItem[]
+  createdAt DateTime @default(now())
 
   @@unique([skillOid, providerOid])
 }

@@ -1,8 +1,6 @@
 import type {
   Integration,
   Provider,
-  SkillIntegration,
-  SkillProvider,
   SkillTemplate,
   SkillTemplateItem
 } from '@metorial-subspace/db';
@@ -11,24 +9,15 @@ import { providerPreviewPresenter } from './provider';
 
 export let skillTemplateItemPresenter = (
   item: SkillTemplateItem & {
-    integration:
-      | (SkillIntegration & { integration: Integration; item: { id: string } })
-      | null;
-    provider:
-      | (SkillProvider & {
-          item: { id: string };
-          provider: Provider & { listing?: { id: string; image: string } | null };
-        })
-      | null;
+    integration: Integration | null;
+    provider: (Provider & { listing?: { id: string; image: string } | null }) | null;
   }
 ) => ({
   object: 'skill.template.item',
   id: item.id,
   type: item.integration ? 'integration' : 'provider',
-  integration: item.integration
-    ? integrationPreviewPresenter(item.integration.integration)
-    : null,
-  provider: item.provider ? providerPreviewPresenter(item.provider.provider) : null,
+  integration: item.integration ? integrationPreviewPresenter(item.integration) : null,
+  provider: item.provider ? providerPreviewPresenter(item.provider) : null,
   createdAt: item.createdAt,
   updatedAt: item.updatedAt
 });
@@ -36,15 +25,8 @@ export let skillTemplateItemPresenter = (
 export let skillTemplatePresenter = (
   skillTemplate: SkillTemplate & {
     skillTemplateItems: (SkillTemplateItem & {
-      integration:
-        | (SkillIntegration & { integration: Integration; item: { id: string } })
-        | null;
-      provider:
-        | (SkillProvider & {
-            item: { id: string };
-            provider: Provider & { listing?: { id: string; image: string } | null };
-          })
-        | null;
+      integration: Integration | null;
+      provider: (Provider & { listing?: { id: string; image: string } | null }) | null;
     })[];
   }
 ) => ({
@@ -58,6 +40,7 @@ export let skillTemplatePresenter = (
   metadata: skillTemplate.metadata,
   privateMetadata: skillTemplate.privateMetadata,
   storeId: skillTemplate.storeId,
+  storeTemplateId: skillTemplate.storeTemplateId,
   items: skillTemplate.skillTemplateItems.map(skillTemplateItemPresenter),
   createdAt: skillTemplate.createdAt,
   updatedAt: skillTemplate.updatedAt

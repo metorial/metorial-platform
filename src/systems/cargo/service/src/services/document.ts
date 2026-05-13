@@ -925,6 +925,7 @@ class DocumentServiceImpl {
         id: string;
         oid: bigint;
         fileOid: bigint;
+        isReadOnly?: boolean;
         createdByTenantActorOid?: bigint | null;
       };
       actorId?: string;

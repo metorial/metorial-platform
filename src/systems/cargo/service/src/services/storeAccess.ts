@@ -274,12 +274,13 @@ class StoreAccessServiceImpl {
   }) {
     return await withTransaction(
       async client => {
-        if (d.storeOids.length === 0) return [] as StoreParticipant[];
+        let storeOids = uniqueBigInts(d.storeOids);
+        if (storeOids.length === 0) return [] as StoreParticipant[];
 
         let participants = await client.storeParticipant.findMany({
           where: {
             storeOid: {
-              in: d.storeOids
+              in: storeOids
             },
             tenantActorOid: d.actor.oid
           }
@@ -293,7 +294,7 @@ class StoreAccessServiceImpl {
         if (d.overridePermissions) {
           let updatedParticipants: StoreParticipant[] = [];
 
-          for (let storeOid of d.storeOids) {
+          for (let storeOid of storeOids) {
             let existing = byStoreOid.get(storeOid.toString());
 
             if (existing) {
@@ -313,29 +314,45 @@ class StoreAccessServiceImpl {
             }
 
             let ids = getId('storeParticipant');
-            updatedParticipants.push(
-              await client.storeParticipant.create({
-                data: {
-                  oid: ids.oid,
-                  id: ids.id,
+            let participant = await client.storeParticipant.upsert({
+              where: {
+                storeOid_tenantActorOid: {
                   storeOid,
-                  tenantActorOid: d.actor.oid,
-                  permissions: nextPermissions
+                  tenantActorOid: d.actor.oid
                 }
-              })
-            );
+              },
+              update: {
+                permissions: nextPermissions
+              },
+              create: {
+                oid: ids.oid,
+                id: ids.id,
+                storeOid,
+                tenantActorOid: d.actor.oid,
+                permissions: nextPermissions
+              }
+            });
+            byStoreOid.set(storeOid.toString(), participant);
+            updatedParticipants.push(participant);
           }
 
           return updatedParticipants;
         }
 
         if (d.defaultPermissions !== undefined) {
-          for (let storeOid of d.storeOids) {
+          for (let storeOid of storeOids) {
             if (byStoreOid.has(storeOid.toString())) continue;
 
             let ids = getId('storeParticipant');
-            let participant = await client.storeParticipant.create({
-              data: {
+            let participant = await client.storeParticipant.upsert({
+              where: {
+                storeOid_tenantActorOid: {
+                  storeOid,
+                  tenantActorOid: d.actor.oid
+                }
+              },
+              update: {},
+              create: {
                 oid: ids.oid,
                 id: ids.id,
                 storeOid,
@@ -344,6 +361,7 @@ class StoreAccessServiceImpl {
               }
             });
 
+            byStoreOid.set(storeOid.toString(), participant);
             participants.push(participant);
           }
         }
@@ -665,11 +683,20 @@ class StoreAccessServiceImpl {
           id: string;
           oid: bigint;
           fileOid: bigint;
+          isReadOnly?: boolean;
           createdByTenantActorOid?: bigint | null;
         };
         requiredPermission: StoreParticipantPermissions;
       }
   ) {
+    if (d.document.isReadOnly && d.requiredPermission === storeWritePermission) {
+      throw new ServiceError(
+        forbiddenError({
+          message: `Document ${d.document.id} is read-only`
+        })
+      );
+    }
+
     let actor = await this.getActorForAccess(d);
     let isOwner = !!actor && d.document.createdByTenantActorOid === actor.oid;
     let relevantStoreOids = await this.listRelevantStoreOidsForDocument({
@@ -708,6 +735,7 @@ class StoreAccessServiceImpl {
           id: string;
           oid: bigint;
           fileOid: bigint;
+          isReadOnly?: boolean;
           createdByTenantActorOid?: bigint | null;
         };
       }
@@ -718,6 +746,19 @@ class StoreAccessServiceImpl {
       document: d.document
     });
     let relevantStoreIds = await this.resolveStoreIds(relevantStoreOids);
+
+    if (d.document.isReadOnly) {
+      return {
+        documentId: d.document.id,
+        actorId: d.actorId || undefined,
+        isOwner,
+        hasFullAccess: false,
+        permissions: [storeReadPermission],
+        relevantStoreIds,
+        readableStoreIds: relevantStoreIds,
+        writableStoreIds: []
+      } satisfies DocumentPermissionsResult;
+    }
 
     if (!d.actorId || isOwner) {
       return {

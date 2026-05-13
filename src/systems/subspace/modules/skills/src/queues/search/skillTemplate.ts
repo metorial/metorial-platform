@@ -15,16 +15,8 @@ export let indexSkillTemplateRecord = async (d: { skillTemplateId: string }) => 
       tenant: true,
       skillTemplateItems: {
         include: {
-          integration: {
-            include: {
-              integration: true
-            }
-          },
-          provider: {
-            include: {
-              provider: true
-            }
-          }
+          integration: true,
+          provider: true
         }
       }
     }
@@ -52,10 +44,10 @@ export let indexSkillTemplateRecord = async (d: { skillTemplateId: string }) => 
       skillTemplateId: skillTemplate.id,
       owner: skillTemplate.owner,
       providerIds: skillTemplate.skillTemplateItems
-        .map(item => item.provider?.provider.id)
+        .map(item => item.provider?.id)
         .filter(Boolean),
       integrationIds: skillTemplate.skillTemplateItems
-        .map(item => item.integration?.integration.id)
+        .map(item => item.integration?.id)
         .filter(Boolean)
     },
     body: {
@@ -63,10 +55,10 @@ export let indexSkillTemplateRecord = async (d: { skillTemplateId: string }) => 
       description: skillTemplate.description,
       systemIdentifier: skillTemplate.systemIdentifier,
       providerNames: skillTemplate.skillTemplateItems
-        .map(item => item.provider?.provider.name)
+        .map(item => item.provider?.name)
         .filter(Boolean),
       integrationNames: skillTemplate.skillTemplateItems
-        .map(item => item.integration?.integration.name)
+        .map(item => item.integration?.name)
         .filter(Boolean)
     }
   });

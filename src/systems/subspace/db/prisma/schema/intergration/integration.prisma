@@ -50,6 +50,7 @@ model Integration {
   ownerMagicMcpServerBackings       MagicMcpServerBacking[]            @relation("MagicMcpServerOwnerIntegration")
   magicMcpServerBacking             MagicMcpServerBacking?             @relation("MagicMcpServerBackingIntegration")
   skillIntegrations                 SkillIntegration[]
+  skillTemplateItems                SkillTemplateItem[]
 
   @@index([createdAt])
   @@index([updatedAt])

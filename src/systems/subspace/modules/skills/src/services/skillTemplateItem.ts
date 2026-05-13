@@ -22,22 +22,13 @@ import { integrationService } from '@metorial-subspace/module-integration';
 import { checkTenant } from '@metorial-subspace/module-tenant';
 import { skillTemplateUpdatedQueue } from '../queues/lifecycle/skillTemplate';
 import { skillItemService } from './skillItem';
+import { getAccessibleScope } from './skillTemplate';
 
 export let skillTemplateItemInclude = {
-  integration: {
-    include: {
-      item: true,
-      integration: true
-    }
-  },
+  integration: true,
   provider: {
     include: {
-      item: true,
-      provider: {
-        include: {
-          listing: true
-        }
-      }
+      listing: true
     }
   }
 };
@@ -55,25 +46,6 @@ type SkillTemplateItemCreateInput =
       type: 'integration';
       integrationId: string;
     };
-
-let getAccessibleScope = (d: {
-  tenant: Tenant;
-  solution: Solution;
-  environment: Environment;
-}) => [
-  {
-    owner: 'system' as const,
-    solutionOid: d.solution.oid,
-    tenantOid: null,
-    environmentOid: null
-  },
-  {
-    owner: 'tenant' as const,
-    solutionOid: d.solution.oid,
-    tenantOid: d.tenant.oid,
-    environmentOid: d.environment.oid
-  }
-];
 
 let assertTenantOwnedTemplate = (template: SkillTemplate) => {
   if (template.owner === 'tenant') return;
@@ -155,19 +127,15 @@ class skillTemplateItemServiceImpl {
           }
         },
         select: {
-          oid: true
+          integrationOid: true
         }
       }),
-      db.skillProvider.findMany({
+      db.skillProviderLink.findMany({
         where: {
-          skillOid: d.skillOid,
-          status: 'active',
-          item: {
-            status: 'active'
-          }
+          skillOid: d.skillOid
         },
         select: {
-          oid: true
+          providerOid: true
         }
       })
     ]);
@@ -176,14 +144,14 @@ class skillTemplateItemServiceImpl {
       ...integrations.map(integration => ({
         ...getId('skillTemplateItem'),
         skillTemplateOid: d.skillTemplateOid,
-        integrationOid: integration.oid,
+        integrationOid: integration.integrationOid,
         providerOid: null
       })),
       ...providers.map(provider => ({
         ...getId('skillTemplateItem'),
         skillTemplateOid: d.skillTemplateOid,
         integrationOid: null,
-        providerOid: provider.oid
+        providerOid: provider.providerOid
       }))
     ];
   }
@@ -258,35 +226,10 @@ class skillTemplateItemServiceImpl {
 
       checkDeletedRelation(integration);
 
-      let backingIntegration = await db.skillIntegration.findFirst({
-        where: {
-          integrationOid: integration.oid,
-          status: 'active',
-          skill: {
-            tenantOid: d.tenant.oid,
-            solutionOid: d.solution.oid,
-            environmentOid: d.environment.oid,
-            status: 'active'
-          },
-          item: {
-            status: 'active'
-          }
-        }
-      });
-      if (!backingIntegration) {
-        throw new ServiceError(
-          badRequestError({
-            message:
-              'Integration must exist on an active skill before it can be added to a template.',
-            code: 'skill_template_item_missing_skill_item'
-          })
-        );
-      }
-
       let existing = await db.skillTemplateItem.findFirst({
         where: {
           skillTemplateOid: skillTemplate.oid,
-          integrationOid: backingIntegration.oid
+          integrationOid: integration.oid
         }
       });
       if (existing) {
@@ -303,7 +246,7 @@ class skillTemplateItemServiceImpl {
           data: {
             ...getId('skillTemplateItem'),
             skillTemplateOid: skillTemplate.oid,
-            integrationOid: backingIntegration.oid
+            integrationOid: integration.oid
           },
           include: skillTemplateItemInclude
         });
@@ -326,35 +269,10 @@ class skillTemplateItemServiceImpl {
 
     checkDeletedRelation(provider);
 
-    let backingProvider = await db.skillProvider.findFirst({
-      where: {
-        providerOid: provider.oid,
-        status: 'active',
-        skill: {
-          tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
-          environmentOid: d.environment.oid,
-          status: 'active'
-        },
-        item: {
-          status: 'active'
-        }
-      }
-    });
-    if (!backingProvider) {
-      throw new ServiceError(
-        badRequestError({
-          message:
-            'Provider must exist on an active skill before it can be added to a template.',
-          code: 'skill_template_item_missing_skill_item'
-        })
-      );
-    }
-
     let existing = await db.skillTemplateItem.findFirst({
       where: {
         skillTemplateOid: skillTemplate.oid,
-        providerOid: backingProvider.oid
+        providerOid: provider.oid
       }
     });
     if (existing) {
@@ -371,7 +289,7 @@ class skillTemplateItemServiceImpl {
         data: {
           ...getId('skillTemplateItem'),
           skillTemplateOid: skillTemplate.oid,
-          providerOid: backingProvider.oid
+          providerOid: provider.oid
         },
         include: skillTemplateItemInclude
       });
@@ -441,7 +359,7 @@ class skillTemplateItemServiceImpl {
       let existing = await db.skillTemplateItem.findFirst({
         where: {
           skillTemplateOid: skillTemplate.oid,
-          integrationOid: skillItem.integration.oid
+          integrationOid: skillItem.integration.integrationOid
         }
       });
       if (existing) {
@@ -458,7 +376,7 @@ class skillTemplateItemServiceImpl {
           data: {
             ...getId('skillTemplateItem'),
             skillTemplateOid: skillTemplate.oid,
-            integrationOid: skillItem.integration!.oid
+            integrationOid: skillItem.integration!.integrationOid
           },
           include: skillTemplateItemInclude
         });
@@ -475,7 +393,7 @@ class skillTemplateItemServiceImpl {
       let existing = await db.skillTemplateItem.findFirst({
         where: {
           skillTemplateOid: skillTemplate.oid,
-          providerOid: skillItem.provider.oid
+          providerOid: skillItem.provider.providerOid
         }
       });
       if (existing) {
@@ -492,7 +410,7 @@ class skillTemplateItemServiceImpl {
           data: {
             ...getId('skillTemplateItem'),
             skillTemplateOid: skillTemplate.oid,
-            providerOid: skillItem.provider!.oid
+            providerOid: skillItem.provider!.providerOid
           },
           include: skillTemplateItemInclude
         });

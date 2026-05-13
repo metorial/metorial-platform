@@ -275,6 +275,91 @@ describe('cargo document.e2e', () => {
     );
   });
 
+  it('never returns or grants write permissions for read-only documents', async () => {
+    let { tenant, environment } = await createScope();
+    let owner = await createActor(tenant.id, {
+      identifier: 'readonly-document-owner',
+      name: 'Readonly Document Owner'
+    });
+    let writer = await createActor(tenant.id, {
+      identifier: 'readonly-document-writer',
+      name: 'Readonly Document Writer'
+    });
+    let store = await createStore(tenant.id, environment.id, 'Read Only Document Store');
+    let created = await cargoClient.document.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      title: 'Read Only',
+      content: 'locked',
+      actorId: owner.id,
+      defaultPermissions: ['content_write'],
+      overridePermissions: true,
+      store: {
+        id: store.id,
+        path: '/readonly.md'
+      }
+    });
+
+    await db.document.update({
+      where: {
+        id: created.id
+      },
+      data: {
+        isReadOnly: true
+      }
+    });
+
+    let anonymousPermissions = await cargoClient.document.getPermissions({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: created.id
+    });
+    let ownerPermissions = await cargoClient.document.getPermissions({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: created.id,
+      actorId: owner.id
+    });
+    let overriddenWriterPermissions = await cargoClient.document.getPermissions({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: created.id,
+      actorId: writer.id,
+      defaultPermissions: ['content_read', 'content_write'],
+      overridePermissions: true
+    });
+
+    expect(anonymousPermissions).toMatchObject({
+      hasFullAccess: false,
+      permissions: ['content_read'],
+      readableStoreIds: [store.id],
+      writableStoreIds: []
+    });
+    expect(ownerPermissions).toMatchObject({
+      isOwner: true,
+      hasFullAccess: false,
+      permissions: ['content_read'],
+      writableStoreIds: []
+    });
+    expect(overriddenWriterPermissions).toMatchObject({
+      hasFullAccess: false,
+      permissions: ['content_read'],
+      writableStoreIds: []
+    });
+
+    await expect(
+      cargoClient.document.update({
+        tenantId: tenant.id,
+        environmentId: environment.id,
+        documentId: created.id,
+        actorId: writer.id,
+        content: 'blocked',
+        defaultPermissions: ['content_write'],
+        overridePermissions: true
+      })
+    ).rejects.toThrow('read-only');
+  });
+
   it('stores creator ownership, allows owner access, and persists clone ownership', async () => {
     let { tenant, environment } = await createScope();
     let owner = await createActor(tenant.id, {
