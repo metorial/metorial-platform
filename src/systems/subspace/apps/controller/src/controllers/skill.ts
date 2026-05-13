@@ -37,6 +37,7 @@ export let skillController = app.controller({
           allowDeleted: v.optional(v.boolean()),
 
           ids: v.optional(v.array(v.string())),
+          skillGroupIds: v.optional(v.array(v.string())),
           integrationIds: v.optional(v.array(v.string())),
           providerIds: v.optional(v.array(v.string())),
 
@@ -54,6 +55,7 @@ export let skillController = app.controller({
         status: ctx.input.status,
         allowDeleted: ctx.input.allowDeleted,
         ids: ctx.input.ids,
+        skillGroupIds: ctx.input.skillGroupIds,
         integrationIds: ctx.input.integrationIds,
         providerIds: ctx.input.providerIds,
         createdAt: ctx.input.createdAt,

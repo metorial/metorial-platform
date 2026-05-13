@@ -471,6 +471,17 @@ class StoreTemplateServiceImpl {
         include: storeTemplateInclude
       });
 
+      if (sourceStore?.access === 'private') {
+        await db.store.update({
+          where: {
+            id: sourceStore.id
+          },
+          data: {
+            access: 'public_read'
+          }
+        });
+      }
+
       if (createdTemplate.type === 'standalone') {
         let itemIds = createdTemplate.items.map(item => item.id);
         await addAfterTransactionHook(async () => {

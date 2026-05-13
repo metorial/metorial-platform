@@ -13,7 +13,7 @@ export let v1SkillTemplatePresenter = Presenter.create(skillTemplateType)
     name: skillTemplate.name,
     description: skillTemplate.description,
     metadata: skillTemplate.metadata,
-    store_id: skillTemplate.storeId,
+    store_id: skillTemplate.storeId!,
     items: await Promise.all(
       skillTemplate.items.map(item =>
         v1SkillTemplateItemPresenter.present({ skillTemplateItem: item }, opts).run()

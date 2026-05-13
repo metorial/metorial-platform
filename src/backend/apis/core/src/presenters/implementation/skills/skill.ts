@@ -1,7 +1,62 @@
 import { v } from '@lowerdeck/validation';
+import { SubspaceSkill } from '@metorial/module-subspace';
 import { Presenter } from '@metorial/presenter';
 import { skillType } from '../../types';
 import { v1IntegrationPreviewPresenter, v1ProviderPreview } from '../provider';
+
+export let v1SkillPreviewPresenter = Object.assign(
+  (
+    skill: Pick<
+      SubspaceSkill,
+      | 'id'
+      | 'status'
+      | 'slug'
+      | 'name'
+      | 'description'
+      | 'clientName'
+      | 'clientDescription'
+      | 'clientMetadata'
+      | 'license'
+      | 'compatibility'
+      | 'metadata'
+      | 'createdAt'
+      | 'updatedAt'
+    >
+  ) => ({
+    object: 'skill' as const,
+    id: skill.id,
+    status: skill.status,
+    slug: skill.slug,
+    name: skill.name,
+    description: skill.description,
+    client_name: skill.clientName,
+    client_description: skill.clientDescription,
+    client_metadata: skill.clientMetadata,
+    license: skill.license,
+    compatibility: skill.compatibility,
+    metadata: skill.metadata,
+    created_at: skill.createdAt,
+    updated_at: skill.updatedAt
+  }),
+  {
+    schema: v.object({
+      object: v.literal('skill'),
+      id: v.string(),
+      status: v.enumOf(['active', 'archived', 'deleted']),
+      slug: v.string(),
+      name: v.string(),
+      description: v.nullable(v.string()),
+      client_name: v.string(),
+      client_description: v.nullable(v.string()),
+      client_metadata: v.nullable(v.record(v.any())),
+      license: v.nullable(v.string()),
+      compatibility: v.nullable(v.string()),
+      metadata: v.nullable(v.record(v.any())),
+      created_at: v.date(),
+      updated_at: v.date()
+    })
+  }
+);
 
 export let v1SkillPresenter = Presenter.create(skillType)
   .presenter(async ({ skill }) => ({

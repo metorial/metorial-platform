@@ -44,6 +44,28 @@ class StoreServiceImpl {
     }
   }
 
+  private getTemplateLinkedStoreAccess(d: {
+    access?: StoreAccess;
+    isTemplateLinked?: boolean;
+  }) {
+    if (!d.isTemplateLinked) return d.access ?? 'private';
+    if (d.access === 'public_write') return 'public_write';
+
+    return 'public_read';
+  }
+
+  private async isTemplateLinkedStore(store: Pick<Store, 'oid' | 'parentStoreTemplateOid'>) {
+    if (store.parentStoreTemplateOid) return true;
+
+    return (
+      (await db.storeTemplate.count({
+        where: {
+          sourceStoreOid: store.oid
+        }
+      })) > 0
+    );
+  }
+
   private async getStoreRecord(d: CargoTenantEnvironment & { storeId: string }) {
     return await withTransaction(
       async db => {
@@ -235,7 +257,10 @@ class StoreServiceImpl {
           oid: storeIds.oid,
           id: storeIds.id,
           name: d.input.name,
-          access: d.input.access ?? 'private',
+          access: this.getTemplateLinkedStoreAccess({
+            access: d.input.access,
+            isTemplateLinked: !!d.input.parentStoreTemplate
+          }),
           cloneType: d.input.parentStore ? (d.input.cloneType ?? 'sync_until_change') : null,
           itemCount: 0,
           tenantOid: d.tenant.oid,
@@ -440,6 +465,13 @@ class StoreServiceImpl {
 
     return await withTransaction(async db => {
       let lastEditedAt = new Date();
+      let access =
+        d.input.access === undefined
+          ? undefined
+          : this.getTemplateLinkedStoreAccess({
+              access: d.input.access,
+              isTemplateLinked: await this.isTemplateLinkedStore(d.store)
+            });
 
       let updatedStore = await db.store.update({
         where: {
@@ -447,7 +479,7 @@ class StoreServiceImpl {
         },
         data: {
           name: d.input.name,
-          access: d.input.access
+          access
         }
       });
 

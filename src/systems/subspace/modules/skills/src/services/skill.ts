@@ -214,6 +214,7 @@ class skillServiceImpl {
     status?: SkillStatus[];
     allowDeleted?: boolean;
     ids?: string[];
+    skillGroupIds?: string[];
     parentSkillIds?: string[];
     integrationIds?: string[];
     providerIds?: string[];
@@ -244,6 +245,19 @@ class skillServiceImpl {
               ...normalizeStatusForList(d).noParent,
               AND: [
                 d.ids ? { id: { in: d.ids } } : undefined!,
+                d.skillGroupIds
+                  ? {
+                      skillGroupItems: {
+                        some: {
+                          status: 'active' as const,
+                          skillGroup: {
+                            id: { in: d.skillGroupIds },
+                            status: 'active' as const
+                          }
+                        }
+                      }
+                    }
+                  : undefined!,
                 d.parentSkillIds
                   ? { parentSkill: { id: { in: d.parentSkillIds } } }
                   : undefined!,

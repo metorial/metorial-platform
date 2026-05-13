@@ -158,6 +158,8 @@ import {
   SubspaceScmRepository,
   SubspaceScmRepositoryPreviews,
   SubspaceSkill,
+  SubspaceSkillGroup,
+  SubspaceSkillGroupItem,
   SubspaceSkillItem,
   SubspaceSkillTemplate,
   SubspaceSkillTemplateItem,
@@ -1040,6 +1042,14 @@ export let sessionTemplateProviderType = PresentableType.create<{
 export let skillType = PresentableType.create<{
   skill: SubspaceSkill;
 }>()('skill');
+
+export let skillGroupType = PresentableType.create<{
+  skillGroup: SubspaceSkillGroup;
+}>()('skill.group');
+
+export let skillGroupItemType = PresentableType.create<{
+  skillGroupItem: SubspaceSkillGroupItem;
+}>()('skill.group.item');
 
 export let skillItemType = PresentableType.create<{
   skillItem: SubspaceSkillItem;

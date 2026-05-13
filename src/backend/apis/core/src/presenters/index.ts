@@ -155,6 +155,8 @@ import {
   v1SessionTemplatePresenter,
   v1SessionTemplateProviderPresenter,
   v1SetupSessionPresenter,
+  v1SkillGroupItemPresenter,
+  v1SkillGroupPresenter,
   v1SkillItemPresenter,
   v1SkillPresenter,
   v1SkillTemplateItemPresenter,
@@ -313,6 +315,8 @@ import {
   sessionProviderType,
   sessionTemplateProviderType,
   sessionTemplateType,
+  skillGroupItemType,
+  skillGroupType,
   skillItemType,
   skillTemplateItemType,
   skillTemplateType,
@@ -975,6 +979,16 @@ export let sessionTemplateProviderPresenter = declarePresenter(sessionTemplatePr
 export let skillPresenter = declarePresenter(skillType, {
   mt_2025_01_01_dashboard: v1SkillPresenter,
   mt_2026_01_01_magnetar: v1SkillPresenter
+});
+
+export let skillGroupPresenter = declarePresenter(skillGroupType, {
+  mt_2025_01_01_dashboard: v1SkillGroupPresenter,
+  mt_2026_01_01_magnetar: v1SkillGroupPresenter
+});
+
+export let skillGroupItemPresenter = declarePresenter(skillGroupItemType, {
+  mt_2025_01_01_dashboard: v1SkillGroupItemPresenter,
+  mt_2026_01_01_magnetar: v1SkillGroupItemPresenter
 });
 
 export let skillItemPresenter = declarePresenter(skillItemType, {

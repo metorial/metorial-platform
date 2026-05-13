@@ -112,6 +112,8 @@ import {
   sessionTemplateController,
   sessionTemplateProviderController,
   skillController,
+  skillGroupController,
+  skillGroupItemController,
   skillItemController,
   skillTemplateController,
   skillTemplateItemController,
@@ -379,6 +381,8 @@ export let magnetarController = Controller.create<any>(
     fileLinkController,
 
     skillController,
+    skillGroupController,
+    skillGroupItemController,
     skillItemController,
     skillTemplateController,
     skillTemplateItemController,
@@ -482,6 +486,8 @@ export let dashboardController = Controller.create<any>(
     fileLinkController,
 
     skillController,
+    skillGroupController,
+    skillGroupItemController,
     skillItemController,
     skillTemplateController,
     skillTemplateItemController,

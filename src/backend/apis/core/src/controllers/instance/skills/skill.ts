@@ -82,6 +82,7 @@ export let skillController = Controller.create(
               ])
             ),
             id: v.optional(v.union([v.string(), v.array(v.string())])),
+            skill_group_id: v.optional(v.union([v.string(), v.array(v.string())])),
             integration_id: v.optional(v.union([v.string(), v.array(v.string())])),
             provider_id: v.optional(v.union([v.string(), v.array(v.string())])),
             created_at: dateFilterValidator('skill creation time'),
@@ -112,6 +113,7 @@ export let skillController = Controller.create(
           allowDeleted: true,
           status: normalizeArrayParam(ctx.query.status),
           ids: normalizeArrayParam(ctx.query.id),
+          skillGroupIds: normalizeArrayParam(ctx.query.skill_group_id),
           integrationIds: normalizeArrayParam(ctx.query.integration_id),
           providerIds: normalizeArrayParam(ctx.query.provider_id),
           createdAt: ctx.query.created_at,

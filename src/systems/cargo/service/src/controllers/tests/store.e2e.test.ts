@@ -1832,8 +1832,10 @@ describe('cargo store.e2e', () => {
     expect(createdFromTemplate).toMatchObject({
       id: 'cst_store_from_template',
       name: 'Created From Template',
+      access: 'public_read',
       cloneType: 'duplicate'
     });
+    expect(sourceStoreRecord?.access).toBe('public_read');
     expect(createdStoreRecord?.parentStoreOid).toBe(sourceStoreRecord?.oid);
     expect(createdStoreRecord?.parentStoreTemplateOid).toBe(templateRecord?.oid);
     expect(createdStoreRecord?.createdByTenantActorOid).toBeTruthy();
@@ -1847,6 +1849,22 @@ describe('cargo store.e2e', () => {
     expect(createdDocumentRecord?.isContentOwner).toBe(true);
     expect(createdDocumentRecord?.createdByTenantActorOid).toBeTruthy();
     expect(participant?.permissions).toEqual(['content_read', 'content_write']);
+
+    let privateAccessAttempt = await cargoClient.store.update({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: createdFromTemplate.id,
+      access: 'private'
+    });
+    let sourcePrivateAccessAttempt = await cargoClient.store.update({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: sourceStore.id,
+      access: 'private'
+    });
+
+    expect(privateAccessAttempt.access).toBe('public_read');
+    expect(sourcePrivateAccessAttempt.access).toBe('public_read');
 
     await expect(
       cargoClient.store.delete({
@@ -1956,6 +1974,7 @@ describe('cargo store.e2e', () => {
 
     expect(createdStoreRecord?.parentStoreOid).toBeNull();
     expect(createdStoreRecord?.parentStoreTemplateOid).toBe(templateRecord?.oid);
+    expect(createdStoreRecord?.access).toBe('public_read');
     expect(createdStoreRecord?.createdByTenantActorOid).toBeTruthy();
     expect(items.items.map(item => item.path).sort()).toEqual([
       '/',
