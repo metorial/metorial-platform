@@ -1,9 +1,14 @@
 import { Paths } from '@metorial/frontend-config';
-import { SkillLinkProvidersScene, SkillStoreFileViewerScene } from '@metorial/scene-skills';
+import {
+  SkillGroupsForSkillScene,
+  SkillLinkProvidersScene,
+  StoreFileViewerScene
+} from '@metorial/scene-skills';
 import {
   useCurrentInstance,
   useCurrentOrganization,
-  useCurrentProject
+  useCurrentProject,
+  useSkill
 } from '@metorial/state';
 import { useParams } from 'react-router-dom';
 import styled from 'styled-components';
@@ -19,17 +24,32 @@ export let SkillPage = () => {
   let project = useCurrentProject();
   let instance = useCurrentInstance();
   let { skillId } = useParams();
+  let skill = useSkill(instance.data?.id, skillId);
 
   return (
     <PageStack>
-      <SkillStoreFileViewerScene
+      <StoreFileViewerScene
         instanceId={instance.data?.id}
-        skillId={skillId}
+        storeId={skill.data?.storeId}
+        title="Skill Files"
+        description="Manage the documents and files of this skill. Describe workflows, behaviors, and tasks for agentic workflows."
         getDocumentPath={documentId =>
           Paths.instance(organization.data, project.data, instance.data, 'doc', documentId)
         }
       />
       <SkillLinkProvidersScene instanceId={instance.data?.id} skillId={skillId} />
+      <SkillGroupsForSkillScene
+        instanceId={instance.data?.id}
+        skillId={skillId}
+        getSkillGroupPath={skillGroupId =>
+          Paths.instance.skillGroup(
+            organization.data,
+            project.data,
+            instance.data,
+            skillGroupId
+          )
+        }
+      />
     </PageStack>
   );
 };

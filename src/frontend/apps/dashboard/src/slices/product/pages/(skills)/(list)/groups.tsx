@@ -4,14 +4,14 @@ import { Spacer } from '@metorial/ui';
 import { useState } from 'react';
 import { useFilterQuery } from '../../../../../components/table/components/query';
 import { TableFilterState } from '../../../../../components/table/filter';
-import { SkillResourceFilters, useSkillFilters } from '../../../scenes/skills/filters';
-import { SkillsGrid } from '../../../scenes/skills/grid';
+import { SkillResourceFilters, useSkillGroupFilters } from '../../../scenes/skills/filters';
+import { SkillGroupsGrid } from '../../../scenes/skills/groupGrid';
 
-export let SkillsPage = () => {
+export let SkillGroupsPage = () => {
   let instance = useCurrentInstance();
   let [search, setSearch] = useState('');
   let [filterState, setFilterState] = useState<TableFilterState[]>([]);
-  let { filters, searchDebounced, skillsFilter } = useSkillFilters({
+  let { filters, searchDebounced, skillGroupsFilter } = useSkillGroupFilters({
     search,
     filterState
   });
@@ -29,12 +29,12 @@ export let SkillsPage = () => {
         searchState={[search, setSearch]}
         filterState={[filterState, setFilterState]}
         filters={filters}
-        placeholder="Search skills..."
+        placeholder="Search groups..."
       />
 
       <Spacer size={15} />
 
-      <SkillsGrid instanceId={instance.data.id} {...skillsFilter} />
+      <SkillGroupsGrid instanceId={instance.data.id} {...skillGroupsFilter} />
     </>
   ));
 };

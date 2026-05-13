@@ -79,7 +79,7 @@ export let ProvidersGrid = (filter: DashboardInstanceProviderListingsListQuery) 
                           </Badge>
                         )}
 
-                        {(listing.attributes.isMetorial || listing.attributes.isOfficial) && (
+                        {listing.attributes.isOfficial && (
                           <Badge size="1" color="gray">
                             Official
                           </Badge>

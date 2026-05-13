@@ -1,4 +1,5 @@
 import type {
+  DashboardInstanceSkillsCreateOutput,
   DashboardInstanceSkillTemplatesCreateBody,
   DashboardInstanceSkillTemplatesGetOutput,
   DashboardInstanceSkillTemplatesItemsCreateBody,
@@ -8,6 +9,7 @@ import type {
   DashboardInstanceSkillTemplatesUpdateBody
 } from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
+import { autoPaginate } from '../../lib/autoPaginate';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
 
@@ -38,6 +40,77 @@ export let skillTemplatesLoader = createLoader({
 export let useCreateSkillTemplate = skillTemplatesLoader.createExternalMutator(
   (i: DashboardInstanceSkillTemplatesCreateBody & { instanceId: string }) =>
     withAuth(sdk => sdk.skillTemplates.create(i.instanceId, i))
+);
+
+export let useCreateSkillFromTemplate = skillTemplatesLoader.createExternalMutator(
+  (i: { instanceId: string; skillTemplateId: string; name?: string; description?: string }) =>
+    withAuth(async sdk => {
+      let skillTemplate = await sdk.skillTemplates.get(i.instanceId, i.skillTemplateId);
+      let skill = await sdk.skills.create(i.instanceId, {
+        name: i.name ?? skillTemplate.name,
+        description: i.description ?? skillTemplate.description ?? undefined,
+        metadata: skillTemplate.metadata ?? undefined
+      });
+
+      let [skillTemplateItems, storeItems] = await Promise.all([
+        autoPaginate(cursor =>
+          sdk.skillTemplates.items.list(i.instanceId, i.skillTemplateId, {
+            ...cursor,
+            limit: 100,
+            order: 'asc'
+          })
+        ),
+        autoPaginate(cursor =>
+          sdk.stores.items.list(i.instanceId, skillTemplate.storeId, {
+            ...cursor,
+            limit: 100,
+            order: 'asc',
+            type: ['directory', 'document', 'file']
+          })
+        )
+      ]);
+
+      await Promise.all(
+        skillTemplateItems.map(item =>
+          item.type === 'provider' && item.provider
+            ? sdk.skills.items.create(i.instanceId, skill.id, {
+                type: 'provider',
+                providerId: item.provider.id
+              })
+            : item.type === 'integration' && item.integration
+              ? sdk.skills.items.create(i.instanceId, skill.id, {
+                  type: 'integration',
+                  integrationId: item.integration.id
+                })
+              : Promise.resolve(null)
+        )
+      );
+
+      let operations = storeItems
+        .map(item => {
+          if (!item.path) return null;
+          if (item.kind === 'directory') return { type: 'add' as const, path: item.path };
+          if (item.kind === 'document' && item.document?.id) {
+            return {
+              type: 'add' as const,
+              path: item.path,
+              documentId: item.document.id
+            };
+          }
+          if (item.kind === 'file' && item.file?.id) {
+            return { type: 'add' as const, path: item.path, fileId: item.file.id };
+          }
+
+          return null;
+        })
+        .filter((operation): operation is NonNullable<typeof operation> => !!operation);
+
+      if (operations.length > 0) {
+        await sdk.stores.items.modify(i.instanceId, skill.storeId, { operations });
+      }
+
+      return skill;
+    }) as Promise<DashboardInstanceSkillsCreateOutput>
 );
 
 export let useSkillTemplates = (
@@ -111,6 +184,13 @@ export let useCreateSkillTemplateItem = skillTemplateItemsLoader.createExternalM
   ) => withAuth(sdk => sdk.skillTemplates.items.create(i.instanceId, i.skillTemplateId, i))
 );
 
+export let useDeleteSkillTemplateItem = skillTemplateItemsLoader.createExternalMutator(
+  (i: { instanceId: string; skillTemplateId: string; skillTemplateItemId: string }) =>
+    withAuth(sdk =>
+      sdk.skillTemplates.items.delete(i.instanceId, i.skillTemplateId, i.skillTemplateItemId)
+    )
+);
+
 export let useSkillTemplateItems = (
   instanceId: string | null | undefined,
   skillTemplateId: string | null | undefined,
@@ -124,6 +204,47 @@ export let useSkillTemplateItems = (
           : null
       ),
     instanceId && skillTemplateId ? `${instanceId}:${skillTemplateId}` : null
+  );
+};
+
+export let allSkillTemplateItemsLoader = createLoader({
+  name: 'allSkillTemplateItems',
+  parents: [skillTemplateLoader, skillTemplateItemsLoader],
+  fetch: (
+    i: {
+      instanceId: string;
+      skillTemplateId: string;
+    } & Omit<DashboardInstanceSkillTemplatesItemsListQuery, 'after' | 'before' | 'cursor'>
+  ) =>
+    withAuth(sdk =>
+      autoPaginate(cursor =>
+        sdk.skillTemplates.items.list(i.instanceId, i.skillTemplateId, {
+          ...i,
+          ...cursor,
+          limit: i.limit ?? 100,
+          order: i.order ?? 'asc'
+        })
+      )
+    ),
+  mutators: {}
+});
+
+export let useAllSkillTemplateItems = (
+  instanceId: string | null | undefined,
+  skillTemplateId: string | null | undefined,
+  query?: Omit<
+    DashboardInstanceSkillTemplatesItemsListQuery,
+    'after' | 'before' | 'cursor'
+  > | null
+) => {
+  return allSkillTemplateItemsLoader.use(
+    instanceId && skillTemplateId && query !== null
+      ? {
+          instanceId,
+          skillTemplateId,
+          ...(query ?? {})
+        }
+      : null
   );
 };
 

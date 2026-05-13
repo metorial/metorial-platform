@@ -1,4 +1,5 @@
 import type {
+  DashboardInstanceFileLinksCreateBody,
   DashboardInstanceFilesGetOutput,
   DashboardInstanceFilesListQuery
 } from '@metorial/dashboard-sdk';
@@ -27,6 +28,11 @@ export let useUploadFile = filesLoader.createExternalMutator(
       path: string;
     };
   }) => withAuth(sdk => sdk.files.upload(i))
+);
+
+export let useCreateFileLink = filesLoader.createExternalMutator(
+  (i: DashboardInstanceFileLinksCreateBody & { instanceId: string }) =>
+    withAuth(sdk => sdk.files.links.create(i.instanceId, i))
 );
 
 export let useFiles = (

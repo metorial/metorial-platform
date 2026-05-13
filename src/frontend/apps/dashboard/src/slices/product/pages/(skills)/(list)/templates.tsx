@@ -4,14 +4,14 @@ import { Spacer } from '@metorial/ui';
 import { useState } from 'react';
 import { useFilterQuery } from '../../../../../components/table/components/query';
 import { TableFilterState } from '../../../../../components/table/filter';
-import { SkillResourceFilters, useSkillFilters } from '../../../scenes/skills/filters';
-import { SkillsGrid } from '../../../scenes/skills/grid';
+import { SkillResourceFilters, useSkillTemplateFilters } from '../../../scenes/skills/filters';
+import { SkillTemplatesGrid } from '../../../scenes/skills/templateGrid';
 
-export let SkillsPage = () => {
+export let SkillTemplatesPage = () => {
   let instance = useCurrentInstance();
   let [search, setSearch] = useState('');
   let [filterState, setFilterState] = useState<TableFilterState[]>([]);
-  let { filters, searchDebounced, skillsFilter } = useSkillFilters({
+  let { filters, searchDebounced, skillTemplatesFilter } = useSkillTemplateFilters({
     search,
     filterState
   });
@@ -29,12 +29,12 @@ export let SkillsPage = () => {
         searchState={[search, setSearch]}
         filterState={[filterState, setFilterState]}
         filters={filters}
-        placeholder="Search skills..."
+        placeholder="Search templates..."
       />
 
       <Spacer size={15} />
 
-      <SkillsGrid instanceId={instance.data.id} {...skillsFilter} />
+      <SkillTemplatesGrid instanceId={instance.data.id} {...skillTemplatesFilter} />
     </>
   ));
 };

@@ -223,12 +223,36 @@ let SkillsListLayout = dynamicPage(() =>
 let SkillsPage = dynamicPage(() =>
   import('./pages/(skills)/(list)/skills').then(c => c.SkillsPage)
 );
+let SkillTemplatesPage = dynamicPage(() =>
+  import('./pages/(skills)/(list)/templates').then(c => c.SkillTemplatesPage)
+);
+let SkillGroupsPage = dynamicPage(() =>
+  import('./pages/(skills)/(list)/groups').then(c => c.SkillGroupsPage)
+);
 let SkillLayout = dynamicPage(() =>
   import('./pages/(skills)/skill/_layout').then(c => c.SkillLayout)
 );
 let SkillPage = dynamicPage(() => import('./pages/(skills)/skill').then(c => c.SkillPage));
 let SkillSettingsPage = dynamicPage(() =>
   import('./pages/(skills)/skill/settings').then(c => c.SkillSettingsPage)
+);
+let SkillTemplateLayout = dynamicPage(() =>
+  import('./pages/(skills)/skill-template/_layout').then(c => c.SkillTemplateLayout)
+);
+let SkillTemplatePage = dynamicPage(() =>
+  import('./pages/(skills)/skill-template').then(c => c.SkillTemplatePage)
+);
+let SkillTemplateSettingsPage = dynamicPage(() =>
+  import('./pages/(skills)/skill-template/settings').then(c => c.SkillTemplateSettingsPage)
+);
+let SkillGroupLayout = dynamicPage(() =>
+  import('./pages/(skills)/skill-group/_layout').then(c => c.SkillGroupLayout)
+);
+let SkillGroupPage = dynamicPage(() =>
+  import('./pages/(skills)/skill-group').then(c => c.SkillGroupPage)
+);
+let SkillGroupSettingsPage = dynamicPage(() =>
+  import('./pages/(skills)/skill-group/settings').then(c => c.SkillGroupSettingsPage)
 );
 let IntegrationLayout = dynamicPage(() =>
   import('./pages/(integrations)/integration/_layout').then(c => c.IntegrationLayout)
@@ -1092,6 +1116,14 @@ export let productHomeSlice = createSlice([
               {
                 path: '',
                 element: <SkillsPage />
+              },
+              {
+                path: 'templates',
+                element: <SkillTemplatesPage />
+              },
+              {
+                path: 'groups',
+                element: <SkillGroupsPage />
               }
             ]
           },
@@ -1125,6 +1157,34 @@ export let productHomeSlice = createSlice([
               {
                 path: 'settings',
                 element: <SkillSettingsPage />
+              }
+            ]
+          },
+          {
+            path: 'skill-template/:skillTemplateId',
+            element: <SkillTemplateLayout />,
+            children: [
+              {
+                path: '',
+                element: <SkillTemplatePage />
+              },
+              {
+                path: 'settings',
+                element: <SkillTemplateSettingsPage />
+              }
+            ]
+          },
+          {
+            path: 'skill-group/:skillGroupId',
+            element: <SkillGroupLayout />,
+            children: [
+              {
+                path: '',
+                element: <SkillGroupPage />
+              },
+              {
+                path: 'settings',
+                element: <SkillGroupSettingsPage />
               }
             ]
           },

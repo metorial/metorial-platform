@@ -5,10 +5,12 @@ import {
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
+  useDuplicateSkill,
   useSkill
 } from '@metorial/state';
-import { LinkTabs } from '@metorial/ui';
-import { Outlet, useLocation, useParams } from 'react-router-dom';
+import { Button, LinkTabs } from '@metorial/ui';
+import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { showSkillCloneFormModal } from '../../../scenes/skills/cloneModal';
 
 export let SkillLayout = () => {
   let instance = useCurrentInstance();
@@ -16,6 +18,8 @@ export let SkillLayout = () => {
   let project = useCurrentProject();
   let { skillId } = useParams();
   let skill = useSkill(instance.data?.id, skillId);
+  let duplicateSkill = useDuplicateSkill();
+  let navigate = useNavigate();
   let pathname = useLocation().pathname;
 
   let skillPathParams = [
@@ -24,6 +28,37 @@ export let SkillLayout = () => {
     instance.data,
     skill.data?.id ?? skillId
   ] as const;
+
+  let duplicate = () => {
+    if (!instance.data || !skill.data) return;
+
+    showSkillCloneFormModal({
+      title: 'Duplicate Skill',
+      description: 'Choose a name and description for the duplicated skill.',
+      submitLabel: 'Duplicate Skill',
+      initialName: `Copy of ${skill.data.name}`,
+      initialDescription: skill.data.description,
+      onSubmit: async values => {
+        let [duplicatedSkill] = await duplicateSkill.mutate({
+          instanceId: instance.data!.id,
+          skillId: skill.data!.id,
+          name: values.name,
+          description: values.description
+        });
+
+        if (!duplicatedSkill) return false;
+
+        navigate(
+          Paths.instance.skill(
+            organization.data,
+            project.data,
+            instance.data,
+            duplicatedSkill.id
+          )
+        );
+      }
+    });
+  };
 
   return (
     <ContentLayout>
@@ -40,6 +75,11 @@ export let SkillLayout = () => {
             href: Paths.instance.skill(...skillPathParams)
           }
         ]}
+        actions={
+          <Button size="2" disabled={!instance.data || !skill.data} onClick={duplicate}>
+            Duplicate Skill
+          </Button>
+        }
       />
 
       {renderWithLoader({ skill })(() => (

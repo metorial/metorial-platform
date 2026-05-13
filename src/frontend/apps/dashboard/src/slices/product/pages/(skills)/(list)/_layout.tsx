@@ -5,15 +5,61 @@ import {
   useCurrentOrganization,
   useCurrentProject
 } from '@metorial/state';
-import { Button } from '@metorial/ui';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Button, LinkTabs } from '@metorial/ui';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { showSkillGroupFormModal } from '../../../scenes/skills/groupModal';
 import { showSkillFormModal } from '../../../scenes/skills/modal';
+import { showSkillTemplateFormModal } from '../../../scenes/skills/templateModal';
 
 export let SkillsListLayout = () => {
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
   let navigate = useNavigate();
+  let pathname = useLocation().pathname;
+
+  let listPathParams = [organization.data, project.data, instance.data] as const;
+  let createAction = () => {
+    if (!instance.data) return null;
+
+    if (pathname.endsWith('/templates')) {
+      return {
+        label: 'Create Template',
+        onClick: () =>
+          showSkillTemplateFormModal({
+            instanceId: instance.data!.id,
+            onCreate: skillTemplate => {
+              navigate(Paths.instance.skillTemplate(...listPathParams, skillTemplate.id));
+            }
+          })
+      };
+    }
+
+    if (pathname.endsWith('/groups')) {
+      return {
+        label: 'Create Group',
+        onClick: () =>
+          showSkillGroupFormModal({
+            instanceId: instance.data!.id,
+            onCreate: skillGroup => {
+              navigate(Paths.instance.skillGroup(...listPathParams, skillGroup.id));
+            }
+          })
+      };
+    }
+
+    return {
+      label: 'Create Skill',
+      onClick: () =>
+        showSkillFormModal({
+          instanceId: instance.data!.id,
+          onCreate: skill => {
+            navigate(Paths.instance.skill(...listPathParams, skill.id));
+          }
+        })
+    };
+  };
+  let action = createAction();
 
   return (
     <ContentLayout>
@@ -21,30 +67,28 @@ export let SkillsListLayout = () => {
         title="Magic Skills"
         description="Create reusable skills that can enable rich workflows across your agents."
         actions={
-          <Button
-            size="2"
-            onClick={() =>
-              instance.data &&
-              showSkillFormModal({
-                instanceId: instance.data.id,
-                onCreate: skill => {
-                  if (!instance.data) return;
-
-                  navigate(
-                    Paths.instance.skill(
-                      organization.data,
-                      project.data,
-                      instance.data,
-                      skill.id
-                    )
-                  );
-                }
-              })
-            }
-          >
-            Create Skill
+          <Button size="2" disabled={!action} onClick={() => action?.onClick()}>
+            {action?.label ?? 'Create'}
           </Button>
         }
+      />
+
+      <LinkTabs
+        current={pathname}
+        links={[
+          {
+            label: 'Skills',
+            to: Paths.instance.skills(...listPathParams)
+          },
+          {
+            label: 'Templates',
+            to: Paths.instance.skillTemplates(...listPathParams)
+          },
+          {
+            label: 'Groups',
+            to: Paths.instance.skillGroups(...listPathParams)
+          }
+        ]}
       />
 
       <Outlet />
