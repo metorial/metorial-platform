@@ -7,6 +7,8 @@ export let storePresenter = (store: Store) => ({
   access: store.access,
   cloneType: store.cloneType ?? undefined,
   itemCount: store.itemCount,
+  isReadOnly: store.isReadOnly,
+  isTemplateBacking: store.isTemplateBacking,
   createdAt: store.createdAt,
   updatedAt: store.updatedAt
 });

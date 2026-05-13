@@ -1,7 +1,8 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import { db } from '../db';
+import { addAfterTransactionHook, db } from '../db';
 import { getId } from '../id';
+import { storeTemplateSyncSingleQueue } from '../queues/storeTemplateSync';
 
 let include = {
   tenant: true
@@ -39,7 +40,7 @@ class EnvironmentServiceImpl {
 
     let { oid, id } = getId('environment');
 
-    return await db.environment.create({
+    let environment = await db.environment.create({
       data: {
         oid,
         id,
@@ -50,6 +51,39 @@ class EnvironmentServiceImpl {
       },
       include
     });
+
+    await addAfterTransactionHook(async () => {
+      let storeTemplates = await db.storeTemplate.findMany({
+        where: {
+          type: 'standalone',
+          environmentOid: null,
+          OR: [
+            {
+              tenantOid: null
+            },
+            {
+              tenantOid: d.tenant.oid
+            }
+          ]
+        },
+        select: {
+          id: true
+        }
+      });
+
+      if (storeTemplates.length === 0) return;
+
+      await storeTemplateSyncSingleQueue.addMany(
+        storeTemplates.map(storeTemplate => ({
+          storeTemplateId: storeTemplate.id,
+          tenantId: environment.tenant.id,
+          environmentId: environment.id,
+          forceFullReconcile: true
+        }))
+      );
+    });
+
+    return environment;
   }
 
   async getEnvironmentById(d: {

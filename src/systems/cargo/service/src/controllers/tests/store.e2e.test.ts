@@ -1,7 +1,12 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { db } from '../../db';
 import { getCargoFilesBucketName, getStorage } from '../../storage';
-import { documentService, storeService } from '../../services';
+import {
+  documentService,
+  storeService,
+  storeTemplateService,
+  storeTemplateSyncService
+} from '../../services';
 import { cargoClient } from '../../test/client';
 import { cleanDatabase } from '../../test/setup';
 
@@ -110,6 +115,50 @@ let syncChildVersions = async (parentDocumentVersionId: string, limit = 100) => 
 
   for (let downstreamVersionId of downstreamVersionIds) {
     await syncChildVersions(downstreamVersionId, limit);
+  }
+};
+
+let syncStandaloneTemplate = async (storeTemplateId: string) => {
+  let template = await db.storeTemplate.findUniqueOrThrow({
+    where: {
+      id: storeTemplateId
+    },
+    include: {
+      items: true
+    }
+  });
+
+  for (let item of template.items) {
+    await storeTemplateSyncService.refreshStoreTemplateItemHash({
+      storeTemplateItemId: item.id
+    });
+  }
+
+  let hashResult = await storeTemplateSyncService.refreshStoreTemplateHash({
+    storeTemplateId,
+    forceFullReconcile: true
+  });
+  expect(hashResult.missingItemIds).toEqual([]);
+
+  let cursorOid: string | undefined;
+  while (true) {
+    let targets = await storeTemplateSyncService.listStoreTemplateSyncTargets({
+      storeTemplateId,
+      cursorOid,
+      limit: 100
+    });
+
+    for (let target of targets.targets) {
+      await storeTemplateSyncService.syncStoreTemplateBackingStore({
+        storeTemplateId,
+        tenantId: target.tenant.id,
+        environmentId: target.environment.id,
+        forceFullReconcile: true
+      });
+    }
+
+    if (!targets.nextCursorOid) break;
+    cursorOid = targets.nextCursorOid;
   }
 };
 
@@ -1920,6 +1969,269 @@ describe('cargo store.e2e', () => {
     expect(createdFileRecord?.createdByTenantActorOid).toBeTruthy();
     expect(storedFile.data.toString('utf-8')).toBe('binary-from-template');
     expect(participant?.permissions).toEqual(['content_read', 'content_write']);
+  });
+
+  it('syncs standalone templates into hidden read-only backing stores', async () => {
+    let { tenant, environment } = await createScope();
+    let staging = await cargoClient.environment.upsert({
+      tenantId: tenant.id,
+      identifier: 'staging',
+      name: 'Staging',
+      type: 'development'
+    });
+    let otherTenant = await cargoClient.tenant.upsert({
+      identifier: 'tenant-stores-template-backing-other',
+      name: 'Tenant Stores Template Backing Other'
+    });
+    await cargoClient.environment.upsert({
+      tenantId: otherTenant.id,
+      identifier: 'prod',
+      name: 'Production',
+      type: 'production'
+    });
+    let initialFileContent = Buffer.from('first shared file', 'utf8').toString('base64');
+    let template = await cargoClient.storeTemplate.create({
+      name: 'Read Only Backing Template',
+      items: [
+        {
+          path: '/docs/readme.md',
+          type: 'document',
+          content: '# Backing Template',
+          encoding: 'utf-8'
+        },
+        {
+          path: '/files/shared.txt',
+          type: 'file',
+          content: initialFileContent,
+          encoding: 'base64'
+        }
+      ]
+    });
+    let environmentRecord = await db.environment.findUniqueOrThrow({
+      where: {
+        id: environment.id
+      }
+    });
+    let stagingRecord = await db.environment.findUniqueOrThrow({
+      where: {
+        id: staging.id
+      }
+    });
+    let otherTenantRecord = await db.tenant.findUniqueOrThrow({
+      where: {
+        id: otherTenant.id
+      }
+    });
+
+    await syncStandaloneTemplate(template.id);
+
+    let backingRows = await db.storeTemplateBacking.findMany({
+      where: {
+        storeTemplate: {
+          id: template.id
+        }
+      },
+      include: {
+        store: true
+      },
+      orderBy: {
+        environmentOid: 'asc'
+      }
+    });
+    let prodBacking = backingRows.find(row => row.environmentOid === environmentRecord.oid)!;
+    let backingStore = await cargoClient.store.get({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: prodBacking.store.id
+    });
+    let listedStores = await cargoClient.store.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      limit: 10
+    });
+    let backingItems = await cargoClient.storeItem.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: prodBacking.store.id,
+      types: ['file', 'document', 'directory'],
+      limit: 20
+    });
+    let documentItem = backingItems.items.find(item => item.path === '/docs/readme.md')!;
+    let fileItem = backingItems.items.find(item => item.path === '/files/shared.txt')!;
+    let backingDocument = await cargoClient.document.get({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: documentItem.documentId!
+    });
+    let backingFile = await cargoClient.file.get({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      fileId: fileItem.fileId!
+    });
+    let listedDocuments = await cargoClient.document.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      limit: 10
+    });
+    let listedFiles = await cargoClient.file.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      limit: 10
+    });
+    let templateFileItem = await db.storeTemplateItem.findFirstOrThrow({
+      where: {
+        storeTemplate: {
+          id: template.id
+        },
+        path: '/files/shared.txt'
+      }
+    });
+    let backingFileRows = await db.file.findMany({
+      where: {
+        isTemplateBacking: true,
+        fileName: 'shared.txt'
+      }
+    });
+
+    expect(backingRows).toHaveLength(3);
+    expect(backingRows.some(row => row.environmentOid === stagingRecord.oid)).toBe(true);
+    expect(backingRows.some(row => row.tenantOid === otherTenantRecord.oid)).toBe(true);
+    expect(backingRows.map(row => row.store.access)).toEqual([
+      'public_read',
+      'public_read',
+      'public_read'
+    ]);
+    expect(backingRows.map(row => row.store.isReadOnly)).toEqual([true, true, true]);
+    expect(backingRows.map(row => row.store.isTemplateBacking)).toEqual([true, true, true]);
+    expect(backingStore).toMatchObject({
+      access: 'public_read',
+      isReadOnly: true,
+      isTemplateBacking: true
+    });
+    expect(listedStores.items).toHaveLength(0);
+    expect(backingItems.items.map(item => item.path).sort()).toEqual([
+      '/',
+      '/docs/',
+      '/docs/readme.md',
+      '/files/',
+      '/files/shared.txt'
+    ]);
+    expect(backingDocument).toMatchObject({
+      content: '# Backing Template',
+      isReadOnly: true,
+      isTemplateBacking: true
+    });
+    expect(backingFile).toMatchObject({
+      isReadOnly: true,
+      isTemplateBacking: true
+    });
+    expect(listedDocuments.items).toHaveLength(0);
+    expect(listedFiles.items).toHaveLength(0);
+    expect(new Set(backingFileRows.map(file => file.storeId))).toEqual(
+      new Set([templateFileItem.fileStoreId])
+    );
+
+    await expect(
+      cargoClient.store.modifyItems({
+        tenantId: tenant.id,
+        environmentId: environment.id,
+        storeId: prodBacking.store.id,
+        operations: [
+          {
+            path: '/blocked/'
+          }
+        ]
+      })
+    ).rejects.toThrow('read-only');
+    await expect(
+      cargoClient.document.update({
+        tenantId: tenant.id,
+        environmentId: environment.id,
+        documentId: backingDocument.id,
+        content: 'blocked'
+      })
+    ).rejects.toThrow('read-only');
+    await expect(
+      cargoClient.file.update({
+        tenantId: tenant.id,
+        environmentId: environment.id,
+        fileId: backingFile.id,
+        title: 'blocked'
+      })
+    ).rejects.toThrow('read-only');
+
+    await storeTemplateService.updateStoreTemplate({
+      skipScopeCheck: true,
+      storeTemplate: await storeTemplateService.getStoreTemplateByIdUnsafe({
+        storeTemplateId: template.id
+      }),
+      input: {
+        name: 'Read Only Backing Template',
+        items: [
+          {
+            path: '/docs/readme.md',
+            type: 'document',
+            content: '# Updated Backing Template',
+            encoding: 'utf-8'
+          },
+          {
+            path: '/files/next.txt',
+            type: 'file',
+            content: Buffer.from('next shared file', 'utf8').toString('base64'),
+            encoding: 'base64'
+          }
+        ]
+      }
+    });
+    await syncStandaloneTemplate(template.id);
+
+    let updatedItems = await cargoClient.storeItem.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: prodBacking.store.id,
+      types: ['file', 'document', 'directory'],
+      limit: 20
+    });
+    let updatedDocumentItem = updatedItems.items.find(item => item.path === '/docs/readme.md')!;
+    let updatedDocument = await cargoClient.document.get({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: updatedDocumentItem.documentId!
+    });
+
+    expect(updatedItems.items.map(item => item.path).sort()).toEqual([
+      '/',
+      '/docs/',
+      '/docs/readme.md',
+      '/files/',
+      '/files/next.txt'
+    ]);
+    expect(updatedDocument.content).toBe('# Updated Backing Template');
+
+    let futureEnvironment = await cargoClient.environment.upsert({
+      tenantId: tenant.id,
+      identifier: 'future',
+      name: 'Future',
+      type: 'development'
+    });
+    await storeTemplateSyncService.syncStoreTemplateBackingStore({
+      storeTemplateId: template.id,
+      tenantId: tenant.id,
+      environmentId: futureEnvironment.id,
+      forceFullReconcile: true
+    });
+    let futureBacking = await db.storeTemplateBacking.findFirst({
+      where: {
+        storeTemplate: {
+          id: template.id
+        },
+        environment: {
+          id: futureEnvironment.id
+        }
+      }
+    });
+
+    expect(futureBacking).toBeTruthy();
   });
 
   it('rejects invalid store-template create targets and template-parent conflicts', async () => {

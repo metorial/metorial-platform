@@ -219,6 +219,16 @@ class DocumentServiceImpl {
     }
   }
 
+  private assertDocumentWritable(document: Pick<DocumentRecord, 'id' | 'isReadOnly'>) {
+    if (document.isReadOnly) {
+      throw new ServiceError(
+        forbiddenError({
+          message: `Document ${document.id} is read-only`
+        })
+      );
+    }
+  }
+
   private async upsertParticipant(
     d: {
       document: { oid: bigint };
@@ -729,10 +739,16 @@ class DocumentServiceImpl {
 
   async createDocument(
     d: CargoTenantEnvironment & {
+      internal?: {
+        isReadOnly?: boolean;
+        isTemplateBacking?: boolean;
+        allowReadOnlyStore?: boolean;
+      };
       input: {
         id?: string;
         title: string;
         content: string;
+        fileStoreId?: string | null;
         actorId?: string;
         store?: {
           id: string;
@@ -762,8 +778,9 @@ class DocumentServiceImpl {
         tenant: d.tenant,
         environment: d.environment,
         purpose: purpose.id,
-        storeId: getDocumentStoreId(documentIds.id),
+        storeId: d.input.fileStoreId ?? getDocumentStoreId(documentIds.id),
         _isDocument: true,
+        internal: d.internal,
         input: {
           name: d.input.title,
           mimeType: documentMimeType,
@@ -788,6 +805,8 @@ class DocumentServiceImpl {
           environmentOid: d.environment.oid,
           fileOid: file.oid,
           title: d.input.title,
+          isReadOnly: d.internal?.isReadOnly ?? false,
+          isTemplateBacking: d.internal?.isTemplateBacking ?? false,
           isContentOwner: true,
           maxVersionNumber: 1,
           contentOid: contentIds.oid,
@@ -858,7 +877,8 @@ class DocumentServiceImpl {
               id: createdDocument.id
             }
           },
-          actor
+          actor,
+          allowReadOnly: d.internal?.allowReadOnlyStore
         });
       }
 
@@ -982,6 +1002,7 @@ class DocumentServiceImpl {
               where: {
                 tenantOid: d.tenant.oid,
                 environmentOid: d.environment.oid,
+                isTemplateBacking: false,
                 file: {
                   status: 'active'
                 }
@@ -1009,6 +1030,7 @@ class DocumentServiceImpl {
             where: {
               tenantOid: d.tenant.oid,
               environmentOid: d.environment.oid,
+              isTemplateBacking: false,
               file: {
                 status: 'active'
               },
@@ -1066,6 +1088,7 @@ class DocumentServiceImpl {
     let actor = access.actor;
 
     this.ensureDocumentActive(d.document);
+    this.assertDocumentWritable(d.document);
 
     let resolved = await documentDraftService.withDocumentLock(d.document.id, async () => {
       let currentDraft = await documentDraftService.getDraftByDocumentId(d.document.id);
@@ -1179,6 +1202,7 @@ class DocumentServiceImpl {
           throw new ServiceError(notFoundError('document', d.documentId));
         }
         this.ensureDocumentActive(currentDocument);
+        this.assertDocumentWritable(currentDocument);
 
         let actors =
           draft.actorIds.length > 0
@@ -1574,6 +1598,7 @@ class DocumentServiceImpl {
     });
 
     this.ensureDocumentActive(d.document);
+    this.assertDocumentWritable(d.document);
 
     let deletedDocument = await withTransaction(async tx => {
       await fileService.deleteFile({

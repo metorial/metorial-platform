@@ -2,9 +2,13 @@ import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type { Prisma } from '../../prisma/generated/client';
-import { db, withTransaction } from '../db';
+import { addAfterTransactionHook, db, withTransaction } from '../db';
 import { getId } from '../id';
 import { normalizeStorePath } from '../lib/storePath';
+import {
+  storeTemplateItemsUpdatedQueue,
+  storeTemplateItemUpdatedQueue
+} from '../queues/storeTemplateSync';
 
 export type StoreTemplateScope = {
   tenant?: { oid: bigint; id: string };
@@ -355,6 +359,29 @@ class StoreTemplateServiceImpl {
     });
   }
 
+  private sameStandaloneItem(
+    left: StoreTemplateRecord['items'][number],
+    right: NormalizedStoreTemplateItem
+  ) {
+    return (
+      left.kind === right.kind &&
+      left.content === (right.content ?? null) &&
+      left.encoding === (right.encoding ?? null) &&
+      left.mimeType === (right.mimeType ?? null) &&
+      left.title === (right.title ?? null)
+    );
+  }
+
+  private async enqueueTemplateItemHashUpdates(itemIds: string[]) {
+    if (itemIds.length === 0) return;
+
+    await storeTemplateItemUpdatedQueue.addMany(
+      itemIds.map(storeTemplateItemId => ({
+        storeTemplateItemId
+      }))
+    );
+  }
+
   async createStoreTemplate(
     d: StoreTemplateScope & {
       input: StoreTemplateCreateInput;
@@ -443,6 +470,19 @@ class StoreTemplateServiceImpl {
         },
         include: storeTemplateInclude
       });
+
+      if (createdTemplate.type === 'standalone') {
+        let itemIds = createdTemplate.items.map(item => item.id);
+        await addAfterTransactionHook(async () => {
+          await this.enqueueTemplateItemHashUpdates(itemIds);
+          if (itemIds.length === 0) {
+            await storeTemplateItemsUpdatedQueue.add({
+              storeTemplateId: createdTemplate.id,
+              forceFullReconcile: true
+            });
+          }
+        });
+      }
 
       return createdTemplate;
     });
@@ -547,31 +587,85 @@ class StoreTemplateServiceImpl {
         }
       });
 
-      if (standaloneItems) {
-        await db.storeTemplateItem.deleteMany({
-          where: {
-            storeTemplateOid: d.storeTemplate.oid
-          }
-        });
+      let updatedItemIds: string[] = [];
+      let forceFullReconcile = d.input.name !== undefined;
 
-        if (standaloneItems.length > 0) {
-          await db.storeTemplateItem.createMany({
-            data: this.buildStandaloneTemplateItemCreateManyData({
-              items: standaloneItems
-            }).map(item => ({
-              ...item,
-              storeTemplateOid: d.storeTemplate.oid
-            }))
+      if (standaloneItems) {
+        let existingByPath = new Map(d.storeTemplate.items.map(item => [item.path, item]));
+        let nextPaths = new Set(standaloneItems.map(item => item.path));
+        let removedItems = d.storeTemplate.items.filter(item => !nextPaths.has(item.path));
+
+        if (removedItems.length > 0) {
+          forceFullReconcile = true;
+          await db.storeTemplateItem.deleteMany({
+            where: {
+              id: {
+                in: removedItems.map(item => item.id)
+              }
+            }
           });
+        }
+
+        for (let item of standaloneItems) {
+          let existing = existingByPath.get(item.path);
+
+          if (!existing) {
+            let [createdItem] = await db.storeTemplateItem.createManyAndReturn({
+              data: this.buildStandaloneTemplateItemCreateManyData({
+                items: [item]
+              }).map(item => ({
+                ...item,
+                storeTemplateOid: d.storeTemplate.oid
+              }))
+            });
+            if (createdItem) updatedItemIds.push(createdItem.id);
+            continue;
+          }
+
+          if (this.sameStandaloneItem(existing, item)) continue;
+
+          let updatedItem = await db.storeTemplateItem.update({
+            where: {
+              id: existing.id
+            },
+            data: {
+              kind: item.kind,
+              path: item.path,
+              content: item.content ?? null,
+              encoding: item.encoding ?? null,
+              mimeType: item.mimeType ?? null,
+              title: item.title ?? null,
+              hash: null,
+              contentHash: null,
+              fileStoreId: null,
+              contentByteSize: null
+            }
+          });
+          updatedItemIds.push(updatedItem.id);
         }
       }
 
-      return await db.storeTemplate.findUniqueOrThrow({
+      let updatedTemplate = await db.storeTemplate.findUniqueOrThrow({
         where: {
           id: d.storeTemplate.id
         },
         include: storeTemplateInclude
       });
+
+      if (updatedTemplate.type === 'standalone') {
+        await addAfterTransactionHook(async () => {
+          await this.enqueueTemplateItemHashUpdates(updatedItemIds);
+          if (forceFullReconcile || (standaloneItems && updatedItemIds.length === 0)) {
+            await storeTemplateItemsUpdatedQueue.add({
+              storeTemplateId: updatedTemplate.id,
+              updatedItemIds: updatedItemIds.length > 0 ? updatedItemIds : undefined,
+              forceFullReconcile
+            });
+          }
+        });
+      }
+
+      return updatedTemplate;
     });
   }
 
@@ -601,10 +695,32 @@ class StoreTemplateServiceImpl {
       });
     }
 
-    await db.storeTemplate.delete({
-      where: {
-        id: d.storeTemplateId
+    await withTransaction(async db => {
+      let backings = await db.storeTemplateBacking.findMany({
+        where: {
+          storeTemplateOid: storeTemplate.oid
+        },
+        select: {
+          storeOid: true
+        }
+      });
+
+      if (backings.length > 0) {
+        await db.store.deleteMany({
+          where: {
+            oid: {
+              in: backings.map(backing => backing.storeOid)
+            },
+            isTemplateBacking: true
+          }
+        });
       }
+
+      await db.storeTemplate.delete({
+        where: {
+          id: d.storeTemplateId
+        }
+      });
     });
 
     return storeTemplate;

@@ -13,6 +13,7 @@ export let ID = createIdGenerator({
 
   storeTemplate: idType.sorted('stt_'),
   storeTemplateItem: idType.sorted('stti_'),
+  storeTemplateBacking: idType.sorted('sttb_'),
 
   store: idType.sorted('str_'),
   storeItem: idType.sorted('sti_'),

@@ -34,11 +34,13 @@ model Store {
   oid BigInt @id
   id  String @unique
 
-  name      String
-  access    StoreAccess     @default(private)
-  cloneType StoreCloneType?
-  itemCount Int             @default(0)
-  dirtyAt   DateTime?
+  name              String
+  access            StoreAccess     @default(private)
+  cloneType         StoreCloneType?
+  itemCount         Int             @default(0)
+  dirtyAt           DateTime?
+  isReadOnly        Boolean         @default(false)
+  isTemplateBacking Boolean         @default(false)
   lastEditedAt DateTime     @default(now())
 
   createdByTenantActorOid BigInt?
@@ -66,8 +68,10 @@ model Store {
   skill             Skill?
   storeDirectories  StoreDirectory[]
   sourceTemplates   StoreTemplate[] @relation("StoreTemplateSource")
+  templateBacking   StoreTemplateBacking?
 
   @@index([tenantOid, environmentOid, dirtyAt])
+  @@index([tenantOid, environmentOid, isTemplateBacking])
 }
 
 model StoreTemplate {
@@ -76,6 +80,7 @@ model StoreTemplate {
 
   name String
   type StoreTemplateType
+  hash String?
 
   tenantOid BigInt?
   tenant    Tenant? @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
@@ -92,9 +97,11 @@ model StoreTemplate {
   items              StoreTemplateItem[]
   instantiatedStores Store[] @relation("StoreTemplateParent")
   skillTemplate      SkillTemplate?
+  backingStores      StoreTemplateBacking[]
 
   @@index([tenantOid, environmentOid])
   @@index([sourceStoreOid])
+  @@index([hash])
 }
 
 model StoreTemplateItem {
@@ -108,6 +115,10 @@ model StoreTemplateItem {
   encoding StoreTemplateItemEncoding?
   mimeType String?
   title    String?
+  hash     String?
+  contentHash     String?
+  fileStoreId     String?
+  contentByteSize Int?
 
   storeTemplateOid BigInt
   storeTemplate    StoreTemplate @relation(fields: [storeTemplateOid], references: [oid], onDelete: Cascade)
@@ -116,6 +127,32 @@ model StoreTemplateItem {
   updatedAt DateTime @default(now()) @updatedAt
 
   @@unique([storeTemplateOid, path])
+  @@index([storeTemplateOid, hash])
+}
+
+model StoreTemplateBacking {
+  oid BigInt @id
+  id  String @unique
+
+  storeTemplateOid BigInt
+  storeTemplate    StoreTemplate @relation(fields: [storeTemplateOid], references: [oid], onDelete: Cascade)
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  storeOid BigInt @unique
+  store    Store  @relation(fields: [storeOid], references: [oid], onDelete: Cascade)
+
+  lastSyncedHash String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([storeTemplateOid, tenantOid, environmentOid])
+  @@index([tenantOid, environmentOid])
 }
 
 model StoreItem {

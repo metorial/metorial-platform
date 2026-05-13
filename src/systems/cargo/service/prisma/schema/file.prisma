@@ -29,11 +29,13 @@ model File {
   id     String     @unique
   status FileStatus @default(active)
 
-  storeId String @unique
+  storeId String
 
   fileName String
   fileSize Int
   fileType String
+  isReadOnly        Boolean @default(false)
+  isTemplateBacking Boolean @default(false)
 
   purposeOid BigInt
   purpose    FilePurpose @relation(fields: [purposeOid], references: [oid], onDelete: Cascade)
@@ -59,6 +61,7 @@ model File {
 
   @@index([tenantOid, environmentOid, status])
   @@index([tenantOid, environmentOid, createdByTenantActorOid, status])
+  @@index([tenantOid, environmentOid, isTemplateBacking])
 }
 
 model FileLink {

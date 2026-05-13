@@ -20,5 +20,6 @@ export * from './storeItem';
 export * from './storeItemMutation';
 export * from './storeParticipant';
 export * from './storeTemplate';
+export * from './storeTemplateSync';
 export * from './storeVersion';
 export * from './tenant';

@@ -14,6 +14,8 @@ model Document {
   title String
 
   isContentOwner   Boolean
+  isReadOnly        Boolean @default(false)
+  isTemplateBacking Boolean @default(false)
   maxVersionNumber Int
 
   tenantOid BigInt
@@ -46,6 +48,7 @@ model Document {
   storeVersionItems    StoreVersionItem[]
 
   @@index([tenantOid, environmentOid])
+  @@index([tenantOid, environmentOid, isTemplateBacking])
   @@index([isContentOwner])
 }
 

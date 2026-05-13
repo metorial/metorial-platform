@@ -76,6 +76,16 @@ let modifyOperationLimit = 500;
 let maxStoreItems = 1000;
 
 class StoreItemMutationServiceImpl {
+  private assertStoreWritable(d: { store: Pick<Store, 'id'> & { isReadOnly?: boolean }; allowReadOnly?: boolean }) {
+    if (!d.allowReadOnly && d.store.isReadOnly) {
+      throw new ServiceError(
+        badRequestError({
+          message: `Store ${d.store.id} is read-only`
+        })
+      );
+    }
+  }
+
   private getContentItemKind(target: ResolvedStoreItemTarget): StoreItemKind {
     return target.document ? 'document' : 'file';
   }
@@ -770,10 +780,9 @@ class StoreItemMutationServiceImpl {
         target: d.target
       });
 
-      return {
-        created: true,
-        item: await client.storeItem.create({
-          data: {
+      let createResult = await client.storeItem.createMany({
+        data: [
+          {
             oid: itemIds.oid,
             id: itemIds.id,
             kind: this.getContentItemKind(d.target),
@@ -789,9 +798,57 @@ class StoreItemMutationServiceImpl {
                   lastModifiedByTenantActorOid: d.actor.oid
                 }
               : {})
-          },
-          include: storeItemInclude
-        })
+          }
+        ],
+        skipDuplicates: true
+      });
+
+      if (createResult.count === 1) {
+        return {
+          created: true,
+          item: (await client.storeItem.findUnique({
+            where: {
+              id: itemIds.id
+            },
+            include: storeItemInclude
+          }))!
+        };
+      }
+
+      await this.cleanupFileReference(reference);
+
+      let conflictingItem = await this.getStoreItemByPath({
+        store: d.store,
+        path: d.path.path
+      });
+
+      if (!conflictingItem) {
+        throw new ServiceError(
+          badRequestError({
+            message: `Store item path already exists: ${d.path.path}`
+          })
+        );
+      }
+
+      if (conflictingItem.kind === 'directory') {
+        throw new ServiceError(
+          badRequestError({
+            message: `Store item path already exists: ${d.path.path}`
+          })
+        );
+      }
+
+      return {
+        item: await this.updateContentStoreItem({
+          tenant: d.tenant,
+          environment: d.environment,
+          store: d.store,
+          item: conflictingItem,
+          path: d.path,
+          target: d.target,
+          actor: d.actor
+        }),
+        created: false
       };
     });
   }
@@ -1031,8 +1088,11 @@ class StoreItemMutationServiceImpl {
       path: string;
       target: ResolvedStoreItemTarget;
       actor?: Pick<TenantActor, 'oid'>;
+      allowReadOnly?: boolean;
     }
   ) {
+    this.assertStoreWritable(d);
+
     return await withTransaction(async client => {
       let currentStore = (await client.store.findUnique({
         where: {
@@ -1130,8 +1190,11 @@ class StoreItemMutationServiceImpl {
       store: Store;
       operations: StoreItemOperationInput[];
       actor?: Pick<TenantActor, 'oid'>;
+      allowReadOnly?: boolean;
     }
   ) {
+    this.assertStoreWritable(d);
+
     if (d.operations.length > modifyOperationLimit) {
       throw new ServiceError(
         badRequestError({

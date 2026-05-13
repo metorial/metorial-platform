@@ -34,6 +34,16 @@ type StoreServiceAccessInput = Omit<StoreAccessInput, 'actorId'> & {
 };
 
 class StoreServiceImpl {
+  private assertStoreWritable(d: { store: Pick<Store, 'id' | 'isReadOnly'> }) {
+    if (d.store.isReadOnly) {
+      throw new ServiceError(
+        badRequestError({
+          message: `Store ${d.store.id} is read-only`
+        })
+      );
+    }
+  }
+
   private async getStoreRecord(d: CargoTenantEnvironment & { storeId: string }) {
     return await withTransaction(
       async db => {
@@ -251,7 +261,11 @@ class StoreServiceImpl {
         });
       }
 
-      return createdStore;
+      return await db.store.findUniqueOrThrow({
+        where: {
+          id: createdStore.id
+        }
+      });
     });
   }
 
@@ -294,7 +308,9 @@ class StoreServiceImpl {
           access: d.input.access,
           cloneType: 'duplicate',
           parentStoreTemplate: storeTemplate
-        }
+        },
+        defaultPermissions: [storeReadPermission],
+        overridePermissions: true
       });
     }
 
@@ -342,6 +358,7 @@ class StoreServiceImpl {
           where: {
             tenantOid: d.tenant.oid,
             environmentOid: d.environment.oid,
+              isTemplateBacking: false,
             oid: accessibleStoreOids
               ? {
                   in: accessibleStoreOids
@@ -399,6 +416,10 @@ class StoreServiceImpl {
         };
       }
   ) {
+    this.assertStoreWritable({
+      store: d.store
+    });
+
     if (d.input.name === undefined && d.input.access === undefined) {
       throw new ServiceError(
         badRequestError({
@@ -505,7 +526,11 @@ class StoreServiceImpl {
         storeOid: clonedStore.oid
       });
 
-      return clonedStore;
+      return await db.store.findUniqueOrThrow({
+        where: {
+          id: clonedStore.id
+        }
+      });
     });
   }
 
@@ -517,6 +542,10 @@ class StoreServiceImpl {
         allowLinkedStoreTemplateDelete?: boolean;
       }
   ) {
+    this.assertStoreWritable({
+      store: d.store
+    });
+
     await storeAccessService.assertStoreAccessForStore({
       tenant: d.tenant,
       environment: d.environment,
@@ -617,6 +646,10 @@ class StoreServiceImpl {
         operations: StoreItemOperationInput[];
       }
   ) {
+    this.assertStoreWritable({
+      store: d.store
+    });
+
     await storeAccessService.assertStoreAccessForStore({
       tenant: d.tenant,
       environment: d.environment,

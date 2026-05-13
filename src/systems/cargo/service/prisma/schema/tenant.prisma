@@ -21,6 +21,7 @@ model Tenant {
   documentVersions DocumentVersion[]
   stores           Store[]
   storeTemplates   StoreTemplate[]
+  storeTemplateBackings StoreTemplateBacking[]
   skills           Skill[]
   skillTemplates   SkillTemplate[]
 }
@@ -46,6 +47,7 @@ model Environment {
   documentVersions DocumentVersion[]
   stores           Store[]
   storeTemplates   StoreTemplate[]
+  storeTemplateBackings StoreTemplateBacking[]
   skills           Skill[]
   skillTemplates   SkillTemplate[]
 
