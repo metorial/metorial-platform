@@ -43,6 +43,7 @@ import {
   MetorialDashboardInstanceIntegrationProvidersEndpoint,
   MetorialDashboardInstanceIntegrationsEndpoint,
   MetorialDashboardInstanceIntegrationSetupSessionsEndpoint,
+  MetorialDashboardInstanceMagicMcpEndpointsEndpoint,
   MetorialDashboardInstanceMagicMcpGroupsEndpoint,
   MetorialDashboardInstanceMagicMcpServersEndpoint,
   MetorialDashboardInstanceMagicMcpServersProvidersEndpoint,
@@ -359,15 +360,29 @@ let createAssistantRequestDeltaConnection = (
 
 export let createMetorialDashboardSDK = sdkBuilder.build(
   (soft: {
-    apiKey?: `${MetorialKeyPrefix}${string}` | string;
     apiVersion?: '2025-01-01-dashboard';
     headers?: Record<string, string>;
     apiHost?: string;
     organizationId?: string;
     instanceId?: string;
     metorialInstance?: string;
+
+    consumer?: {
+      apiKey: `${MetorialKeyPrefix}${string}` | string;
+      consumerToken: string;
+    };
   }) => ({
     ...soft,
+
+    apiKey: soft.consumer?.apiKey,
+    headers: {
+      ...soft.headers,
+      ...(soft.consumer
+        ? {
+            'Metorial-Consumer-Session-Client-Secret': soft.consumer.consumerToken
+          }
+        : {})
+    },
 
     apiVersion: '2025-01-01-dashboard',
     fetch: (a: any, b: any) => {
@@ -375,10 +390,14 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
       if (soft.metorialInstance) {
         url.searchParams.set('_m', soft.metorialInstance);
       }
+      if (soft.consumer) {
+        url.searchParams.set('_c', '1');
+      }
       a = url.toString();
 
       return fetchWithRetryAndLogging(a, b);
     },
+
     enableDebugLogging: true
   })
 )(manager => ({
@@ -469,7 +488,8 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
     }),
     sessions: new MetorialDashboardInstanceMagicMcpSessionsEndpoint(manager),
     tokens: new MetorialDashboardInstanceMagicMcpTokensEndpoint(manager),
-    groups: new MetorialDashboardInstanceMagicMcpGroupsEndpoint(manager)
+    groups: new MetorialDashboardInstanceMagicMcpGroupsEndpoint(manager),
+    endpoints: new MetorialDashboardInstanceMagicMcpEndpointsEndpoint(manager)
   },
 
   portals: Object.assign(new MetorialDashboardInstancePortalsEndpoint(manager), {

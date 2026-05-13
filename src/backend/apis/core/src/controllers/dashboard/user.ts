@@ -3,7 +3,7 @@ import { v } from '@lowerdeck/validation';
 import { userService } from '@metorial/module-user';
 import { Controller, Path } from '@metorial/rest';
 import { checkAccess } from '../../middleware/checkAccess';
-import { userGroup } from '../../middleware/userGroup';
+import { userGroup, userOrConsumerGroup } from '../../middleware/userGroup';
 import { userPresenter } from '../../presenters';
 
 export let dashboardUserController = Controller.create(
@@ -12,14 +12,34 @@ export let dashboardUserController = Controller.create(
     description: 'Read and write user information'
   },
   {
-    get: userGroup
+    get: userOrConsumerGroup
       .get(Path('/user', 'management.user.get'), {
         name: 'Get user',
         description: 'Get the current user information'
       })
-      .use(checkAccess({ possibleScopes: ['user:read'] }))
+      .use(checkAccess({ possibleScopes: ['user:read', 'consumer#instance.profile:read'] }))
       .output(userPresenter)
       .do(async ctx => {
+        if (ctx.consumerProfile) {
+          let [firstName, ...rest] = ctx.consumerProfile.name.split(' ');
+          let lastName = rest.join(' ');
+
+          return userPresenter.present({
+            user: {
+              id: ctx.consumerProfile.id,
+              status: 'active',
+              type: 'consumer',
+              email: ctx.consumerProfile.email,
+              name: ctx.consumerProfile.name,
+              firstName: firstName,
+              lastName: lastName,
+              image: { type: 'default' },
+              createdAt: ctx.consumerProfile.createdAt,
+              updatedAt: ctx.consumerProfile.updatedAt
+            }
+          });
+        }
+
         return userPresenter.present({ user: ctx.user });
       }),
 

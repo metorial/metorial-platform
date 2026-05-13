@@ -36,7 +36,7 @@ export let v1UserPresenter = Presenter.create(userType)
         description: "The user's status"
       }),
 
-      type: v.enumOf(['user'], {
+      type: v.enumOf(['user', 'consumer'], {
         name: 'type',
         description: "The user's type"
       }),

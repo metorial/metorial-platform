@@ -113,6 +113,12 @@ export let instanceScopes = [
 ] satisfies readonly `instance.${string}`[];
 
 export let consumerScopes = [
+  'consumer#organization:read' as const,
+  'consumer#project:read' as const,
+  'consumer#instance:read' as const,
+  'consumer#instance.portal:read' as const,
+  'consumer#instance.profile:read' as const,
+
   'consumer#instance.file:read' as const,
   'consumer#instance.file:write' as const,
   'consumer#instance.file_link:read' as const,
@@ -137,7 +143,12 @@ export let consumerScopes = [
 
   'consumer#instance.oauth_session:read' as const,
   'consumer#instance.oauth_session:write' as const
-] satisfies readonly `consumer#instance.${string}`[];
+] satisfies readonly (
+  | `consumer#organization:${string}`
+  | `consumer#project:${string}`
+  | `consumer#instance:${string}`
+  | `consumer#instance.${string}`
+)[];
 
 let coreScopesRaw = [
   'user:read' as const,
@@ -201,6 +212,9 @@ let scopeRaw = [...coreScopesRaw, ...consumerScopes] as const satisfies readonly
   | `user.${string}`
   | `user:${string}`
   | `instance.${string}`
+  | `consumer#organization:${string}`
+  | `consumer#project:${string}`
+  | `consumer#instance:${string}`
   | `consumer#instance.${string}`
 )[];
 

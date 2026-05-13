@@ -66,7 +66,9 @@ export let projectManagementController = Controller.create(
         name: 'Get organization project',
         description: 'Get the information of a specific organization project'
       })
-      .use(checkAccess({ possibleScopes: ['organization.project:read'] }))
+      .use(
+        checkAccess({ possibleScopes: ['organization.project:read', 'consumer#project:read'] })
+      )
       .output(projectPresenter)
       .do(async ctx => {
         let project = await projectService.getProjectById({

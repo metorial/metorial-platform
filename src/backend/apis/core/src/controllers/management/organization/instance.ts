@@ -56,7 +56,11 @@ export let instanceManagementController = Controller.create(
         name: 'Get organization instance',
         description: 'Get the information of a specific organization instance'
       })
-      .use(checkAccess({ possibleScopes: ['organization.instance:read'] }))
+      .use(
+        checkAccess({
+          possibleScopes: ['organization.instance:read', 'consumer#organization:read']
+        })
+      )
       .output(instancePresenter)
       .do(async ctx => {
         let instance = await instanceService.getInstanceById({

@@ -1,3 +1,4 @@
+import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { portalService } from '@metorial/module-consumer';
@@ -23,6 +24,10 @@ export let portalGroup = instanceGroup
       portalId: ctx.params.portalId,
       instance: ctx.instance
     });
+
+    if (ctx.portal && ctx.portal.id !== portal.id) {
+      throw new ServiceError(notFoundError('portal'));
+    }
 
     return { portal };
   });
@@ -67,7 +72,11 @@ export let portalController = Controller.create(
         name: 'Get portal',
         description: 'Retrieves details for a specific portal.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.portal:read'] }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.portal:read', 'consumer#instance.portal:read']
+        })
+      )
       .use(hasFlags(['paid-portals', 'portals-access']))
       .output(portalPresenter)
       .do(async ctx => {

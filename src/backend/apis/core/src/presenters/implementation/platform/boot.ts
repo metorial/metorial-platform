@@ -15,12 +15,14 @@ export let v1BootPresenter = Presenter.create(bootType)
     organizations: await Promise.all(
       organizations.map(async organization => ({
         ...(await v1OrganizationPresenter.present({ organization }, opts).run()),
-        member: await v1OrganizationMemberPresenter
-          .present(
-            { organizationMember: { ...organization.member, user, organization } },
-            opts
-          )
-          .run()
+        member: organization.member
+          ? await v1OrganizationMemberPresenter
+              .present(
+                { organizationMember: { ...organization.member, user, organization } },
+                opts
+              )
+              .run()
+          : null
       }))
     ),
     projects: await Promise.all(

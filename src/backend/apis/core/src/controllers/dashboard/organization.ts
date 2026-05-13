@@ -63,13 +63,14 @@ export let dashboardOrganizationController = Controller.create(
       }),
 
     get: organizationGroup
-      .use(isDashboardGroup())
       .get(Path('/dashboard/organizations/:organizationId', 'dashboard.organizations.get'), {
         name: 'Get organization',
         description: 'Get the current organization information'
       })
       .output(organizationPresenter)
-      .use(checkAccess({ possibleScopes: ['organization:read'] }))
+      .use(
+        checkAccess({ possibleScopes: ['organization:read', 'consumer#organization:read'] })
+      )
       .do(async ctx => {
         return organizationPresenter.present({ organization: ctx.organization });
       }),

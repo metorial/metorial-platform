@@ -6,7 +6,7 @@ export type DashboardBootOutput = {
     object: 'user';
     id: string;
     status: 'active' | 'deleted';
-    type: 'user';
+    type: 'user' | 'consumer';
     email: string;
     name: string;
     firstName: string;
@@ -329,8 +329,4 @@ export let mapDashboardBootOutput = mtMap.object<DashboardBootOutput>({
     )
   )
 });
-
-export type DashboardBootBody = {};
-
-export let mapDashboardBootBody = mtMap.object<DashboardBootBody>({});
 

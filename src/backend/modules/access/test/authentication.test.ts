@@ -117,6 +117,17 @@ describe('AuthenticationService', () => {
     });
 
     it('adds consumer cargo scopes without the regular file scopes', () => {
+      expect(instancePublishableTokenWithConsumerScopes).toContain(
+        'consumer#organization:read'
+      );
+      expect(instancePublishableTokenWithConsumerScopes).toContain('consumer#project:read');
+      expect(instancePublishableTokenWithConsumerScopes).toContain('consumer#instance:read');
+      expect(instancePublishableTokenWithConsumerScopes).toContain(
+        'consumer#instance.portal:read'
+      );
+      expect(instancePublishableTokenWithConsumerScopes).toContain(
+        'consumer#instance.profile:read'
+      );
       expect(instancePublishableTokenWithConsumerScopes).toContain('consumer#instance.file:read');
       expect(instancePublishableTokenWithConsumerScopes).toContain(
         'consumer#instance.file:write'

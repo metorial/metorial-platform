@@ -53,6 +53,11 @@ describe('definitions', () => {
     });
 
     it('should contain consumer cargo scopes', () => {
+      expect(scopes).toContain('consumer#organization:read');
+      expect(scopes).toContain('consumer#project:read');
+      expect(scopes).toContain('consumer#instance:read');
+      expect(scopes).toContain('consumer#instance.portal:read');
+      expect(scopes).toContain('consumer#instance.profile:read');
       expect(scopes).toContain('consumer#instance.file:read');
       expect(scopes).toContain('consumer#instance.file:write');
       expect(scopes).toContain('consumer#instance.file_link:read');
@@ -246,6 +251,17 @@ describe('definitions', () => {
 
   describe('instancePublishableTokenWithConsumerScopes', () => {
     it('should include consumer-specific cargo scopes', () => {
+      expect(instancePublishableTokenWithConsumerScopes).toContain(
+        'consumer#organization:read'
+      );
+      expect(instancePublishableTokenWithConsumerScopes).toContain('consumer#project:read');
+      expect(instancePublishableTokenWithConsumerScopes).toContain('consumer#instance:read');
+      expect(instancePublishableTokenWithConsumerScopes).toContain(
+        'consumer#instance.portal:read'
+      );
+      expect(instancePublishableTokenWithConsumerScopes).toContain(
+        'consumer#instance.profile:read'
+      );
       expect(instancePublishableTokenWithConsumerScopes).toContain('consumer#instance.file:read');
       expect(instancePublishableTokenWithConsumerScopes).toContain('consumer#instance.file:write');
       expect(instancePublishableTokenWithConsumerScopes).toContain(

@@ -1,3 +1,8 @@
+export let consumerOrganizationReadRoles = ['consumer#organization:read'] as const;
+export let consumerProjectReadRoles = ['consumer#project:read'] as const;
+export let consumerInstanceReadRoles = ['consumer#instance:read'] as const;
+export let consumerPortalReadRoles = ['consumer#instance.portal:read'] as const;
+export let consumerProfileReadRoles = ['consumer#instance.profile:read'] as const;
 export let consumerFileReadRoles = ['consumer#instance.file:read'] as const;
 export let consumerFileWriteRoles = ['consumer#instance.file:write'] as const;
 export let consumerFileLinkReadRoles = ['consumer#instance.file_link:read'] as const;

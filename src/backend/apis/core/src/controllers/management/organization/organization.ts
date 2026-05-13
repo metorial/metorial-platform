@@ -16,7 +16,9 @@ export let organizationManagementController = Controller.create(
         name: 'Get organization',
         description: 'Get the current organization information'
       })
-      .use(checkAccess({ possibleScopes: ['organization:read'] }))
+      .use(
+        checkAccess({ possibleScopes: ['organization:read', 'consumer#organization:read'] })
+      )
       .output(organizationPresenter)
       .do(async ctx => {
         return organizationPresenter.present({ organization: ctx.organization });

@@ -61,7 +61,9 @@ import {
   Team,
   TeamMember,
   TeamProject,
-  User
+  User,
+  UserStatus,
+  UserType
 } from '@metorial/db';
 import type {
   AssistantConversationItemWithMessage,
@@ -160,12 +162,6 @@ import {
   SubspaceScmProviderSetupSession,
   SubspaceScmRepository,
   SubspaceScmRepositoryPreviews,
-  SubspaceSkill,
-  SubspaceSkillGroup,
-  SubspaceSkillGroupItem,
-  SubspaceSkillItem,
-  SubspaceSkillTemplate,
-  SubspaceSkillTemplateItem,
   SubspaceSession,
   SubspaceSessionConnection,
   SubspaceSessionError,
@@ -177,14 +173,33 @@ import {
   SubspaceSessionTemplate,
   SubspaceSessionTemplateProvider,
   SubspaceSessionWarning,
+  SubspaceSkill,
+  SubspaceSkillGroup,
+  SubspaceSkillGroupItem,
+  SubspaceSkillItem,
+  SubspaceSkillTemplate,
+  SubspaceSkillTemplateItem,
   SubspaceToolCall
 } from '@metorial/module-subspace';
 import { PresentableType } from '@metorial/presenter';
 
+type UserPresenterInput = {
+  id: string;
+  status: UserStatus;
+  type: 'consumer' | UserType;
+  email: string;
+  name: string;
+  firstName: string | null;
+  lastName: string | null;
+  image: PrismaJson.EntityImage;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
 export let bootType = PresentableType.create<{
-  user: User;
+  user: UserPresenterInput;
   organizations: (Organization & {
-    member: OrganizationMember & {
+    member?: OrganizationMember & {
       actor: OrganizationActor & {
         teams: (TeamMember & {
           team: Team;
@@ -197,7 +212,7 @@ export let bootType = PresentableType.create<{
 }>()('boot');
 
 export let userType = PresentableType.create<{
-  user: User;
+  user: UserPresenterInput;
 }>()('user');
 
 export let projectType = PresentableType.create<{
@@ -253,7 +268,7 @@ export let organizationMemberType = PresentableType.create<{
     policies?: (AccessPolicyAssignment & {
       accessPolicy: AccessPolicy;
     })[];
-    user: User;
+    user: { id: string; email: string; name: string; image: PrismaJson.EntityImage };
   };
 }>()('organization_member');
 
