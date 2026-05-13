@@ -35,6 +35,8 @@ model Consumer {
   integrationEndpoints ConsumerIntegrationEndpoint[]
   integrationSessions  ConsumerIntegrationSession[]
   invites              ConsumerInvite[]
+  createdSkills        Skill[]
+  consumerSkills       ConsumerSkill[]
 
   @@unique([email, organizationOid])
 }
@@ -124,6 +126,8 @@ model ConsumerProfile {
   integrationSessions          ConsumerIntegrationSession[]
   consumerAuthAttempts         ConsumerAuthAttempt[]
   invite                       ConsumerInvite?
+  createdSkills                Skill[]
+  consumerSkills               ConsumerSkill[]
 
   @@unique([surfaceOid, aresUserId])
   @@unique([email, surfaceOid])

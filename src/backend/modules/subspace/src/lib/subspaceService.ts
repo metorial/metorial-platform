@@ -69,11 +69,17 @@ type SubspaceMethodArgs<
         Parameters<SubspaceController[K]>[0],
         'tenantId' | 'environmentId' | 'actorId'
       > &
-        (Parameters<SubspaceController[K]>[0] extends { actorId: any }
+        (Parameters<SubspaceController[K]>[0] extends { actorId: string }
           ?
               | { organizationActor: OrganizationActor }
               | { consumer: Consumer }
               | { actorId: string }
+          : {}) &
+        (Parameters<SubspaceController[K]>[0] extends { actorId?: string | undefined | never }
+          ?
+              | { organizationActor?: OrganizationActor }
+              | { consumer?: Consumer }
+              | { actorId?: string }
           : {}),
       ...args: Tail<Parameters<SubspaceController[K]>>
     ]
@@ -244,6 +250,7 @@ export let createSubspaceService = <SubspaceController extends {}, Overrides ext
       };
 
       delete (payload as any).organizationActor;
+      delete (payload as any).consumer;
       delete (payload as any).instance;
       delete (payload as any).organization;
 

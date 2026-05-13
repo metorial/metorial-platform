@@ -46,6 +46,10 @@ describe('cargo skill.e2e', () => {
       identifier: 'skill-creator',
       name: 'Skill Creator'
     });
+    let reader = await createActor(tenant.id, {
+      identifier: 'skill-reader',
+      name: 'Skill Reader'
+    });
 
     let created = await cargoClient.skill.create({
       tenantId: tenant.id,
@@ -112,6 +116,34 @@ describe('cargo skill.e2e', () => {
     expect(listed.items).toHaveLength(1);
     expect(fetched.id).toBe(created.id);
     expect(fetched.store.id).toBe(created.storeId);
+
+    let readerAccess = await cargoClient.skill.upsertActor({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillId: created.id,
+      actorId: reader.id,
+      permissions: ['content_read']
+    });
+    let upgradedReaderAccess = await cargoClient.skill.upsertActor({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillId: created.id,
+      actorId: reader.id,
+      permissions: ['content_read', 'content_write']
+    });
+
+    expect(readerAccess).toMatchObject({
+      skillId: created.id,
+      storeId: created.storeId,
+      actorId: reader.id,
+      permissions: ['content_read']
+    });
+    expect(upgradedReaderAccess).toMatchObject({
+      skillId: created.id,
+      storeId: created.storeId,
+      actorId: reader.id,
+      permissions: ['content_read', 'content_write']
+    });
 
     let updated = await cargoClient.skill.update({
       tenantId: tenant.id,

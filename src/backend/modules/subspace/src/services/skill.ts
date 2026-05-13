@@ -3,7 +3,7 @@ import { subspace } from '../subspace';
 
 export let subspaceSkillService = createSubspaceService(
   subspace.skill,
-  ['get', 'list', 'create', 'update', 'delete', 'fork', 'duplicate'],
+  ['get', 'list', 'create', 'update', 'delete', 'fork', 'duplicate', 'getMany', 'upsertActor'],
   inner => ({})
 );
 

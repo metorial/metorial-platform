@@ -76,12 +76,36 @@ export let skillController = app.controller({
     )
     .do(async ctx => skillPresenter(ctx.skill)),
 
+  getMany: tenantApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        environmentId: v.string(),
+        skillIds: v.array(v.string()),
+        allowDeleted: v.optional(v.boolean())
+      })
+    )
+    .do(async ctx => {
+      let skills = await skillService.getManySkills({
+        tenant: ctx.tenant,
+        environment: ctx.environment,
+        solution: ctx.solution,
+        skillIds: ctx.input.skillIds,
+        allowDeleted: ctx.input.allowDeleted
+      });
+
+      return skills.map(skillPresenter);
+    }),
+
   create: tenantApp
     .handler()
     .input(
       v.object({
         tenantId: v.string(),
         environmentId: v.string(),
+        actorId: v.optional(v.string()),
+
         name: v.string(),
         description: v.optional(v.string()),
         clientName: v.optional(v.string()),
@@ -94,6 +118,13 @@ export let skillController = app.controller({
       })
     )
     .do(async ctx => {
+      let actor = ctx.input.actorId
+        ? await actorService.getActorById({
+            tenant: ctx.tenant,
+            id: ctx.input.actorId
+          })
+        : undefined;
+
       let skill = await skillService.createSkill({
         tenant: ctx.tenant,
         environment: ctx.environment,
@@ -108,6 +139,10 @@ export let skillController = app.controller({
           clientMetadata: ctx.input.clientMetadata,
           metadata: ctx.input.metadata,
           privateMetadata: ctx.input.privateMetadata
+        },
+        _operation: {
+          type: 'create',
+          tenantActor: actor
         }
       });
 
@@ -183,9 +218,11 @@ export let skillController = app.controller({
       v.object({
         tenantId: v.string(),
         environmentId: v.string(),
-        skillId: v.string(),
         actorId: v.string(),
+
+        skillId: v.string(),
         allowDeleted: v.optional(v.boolean()),
+
         name: v.string(),
         description: v.optional(v.string()),
         clientName: v.optional(v.string()),
@@ -231,8 +268,11 @@ export let skillController = app.controller({
       v.object({
         tenantId: v.string(),
         environmentId: v.string(),
+        actorId: v.optional(v.string()),
+
         skillId: v.string(),
         allowDeleted: v.optional(v.boolean()),
+
         name: v.string(),
         description: v.optional(v.string()),
         clientName: v.optional(v.string()),
@@ -245,11 +285,19 @@ export let skillController = app.controller({
       })
     )
     .do(async ctx => {
+      let actor = ctx.input.actorId
+        ? await actorService.getActorById({
+            tenant: ctx.tenant,
+            id: ctx.input.actorId
+          })
+        : undefined;
+
       let skill = await skillService.duplicateSkill({
         tenant: ctx.tenant,
         environment: ctx.environment,
         solution: ctx.solution,
         skill: ctx.skill,
+        actor,
         input: {
           name: ctx.input.name,
           description: ctx.input.description,
@@ -264,5 +312,33 @@ export let skillController = app.controller({
       });
 
       return skillPresenter(skill);
+    }),
+
+  upsertActor: skillApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        environmentId: v.string(),
+        actorId: v.string(),
+        skillId: v.string(),
+        allowDeleted: v.optional(v.boolean()),
+        permissions: v.array(v.enumOf(['content_read', 'content_write']))
+      })
+    )
+    .do(async ctx => {
+      let tenantActor = await actorService.getActorById({
+        tenant: ctx.tenant,
+        id: ctx.input.actorId
+      });
+
+      return await skillService.upsertSkillActor({
+        tenant: ctx.tenant,
+        environment: ctx.environment,
+        solution: ctx.solution,
+        skill: ctx.skill,
+        tenantActor,
+        permissions: ctx.input.permissions
+      });
     })
 });

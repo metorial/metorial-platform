@@ -7,7 +7,7 @@ import {
 } from '@metorial/internal-clients';
 import { db, type Instance, type OrganizationActor, type Project } from '@metorial/db';
 
-export let subspace = internalSubspace;
+export let subspace: typeof internalSubspace = internalSubspace;
 export let getSolution = () => getSubspaceSolution();
 
 export let getTenantForSubspace = async (instance: Instance) => {
@@ -57,7 +57,10 @@ export let syncSubspaceTenantForProject = async (
   let nextInternalTenantIdentifier =
     opts?.internalTenantIdentifier ?? opts?.subspaceTenantIdentifier;
 
-  if (nextInternalTenantIdentifier && project.internalTenantIdentifier !== nextInternalTenantIdentifier) {
+  if (
+    nextInternalTenantIdentifier &&
+    project.internalTenantIdentifier !== nextInternalTenantIdentifier
+  ) {
     project = await db.project.update({
       where: {
         id: project.id

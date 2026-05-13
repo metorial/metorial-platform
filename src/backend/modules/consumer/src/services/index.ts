@@ -13,6 +13,7 @@ export * from './consumerProfile';
 export * from './consumerProviderCatalog';
 export * from './consumerProviderDeployment';
 export * from './consumerProviderSetupSession';
+export * from './consumerSkill';
 export * from './consumerSurface';
 export * from './consumerSurfaceProviderGroup';
 export * from './portal';

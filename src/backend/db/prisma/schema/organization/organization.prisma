@@ -37,10 +37,10 @@ model Organization {
 
   internalTenantIdentifier String?
 
-  subspaceTenantIds     String[]
-  cargoTenantId         String?
-  cargoEnvironmentId    String?
-  synthesisTenantId     String?
+  subspaceTenantIds      String[]
+  cargoTenantId          String?
+  cargoEnvironmentId     String?
+  synthesisTenantId      String?
   synthesisEnvironmentId String?
 
   deletedAt DateTime?
@@ -68,6 +68,8 @@ model Organization {
   consumerInvites         ConsumerInvite[]
   portals                 Portal[]
   providerTemplates       ProviderTemplate[]
+  skills                  Skill[]
+  consumerSkills          ConsumerSkill[]
   oauthApplications       OAuthApplication[]
   oauthInstallations      OAuthInstallation[]
   oauthAuthorizations     OAuthAuthorization[]

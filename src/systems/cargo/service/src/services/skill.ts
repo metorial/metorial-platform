@@ -1,13 +1,14 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import type { Prisma } from '../../prisma/generated/client';
+import type { Prisma, StoreParticipantPermissions } from '../../prisma/generated/client';
 import { db, withTransaction } from '../db';
 import { snowflake } from '../id';
 import { actorService } from './actor';
 import type { CargoTenantEnvironment } from './filePurpose';
 import type { SkillTemplateRecord } from './skillTemplate';
 import { storeService } from './store';
+import { storeAccessService } from './storeAccess';
 
 let skillInclude = {
   store: true,
@@ -200,6 +201,36 @@ class SkillServiceImpl {
     });
 
     return d.skill;
+  }
+
+  async upsertSkillActor(
+    d: CargoTenantEnvironment & {
+      skill: SkillRecord;
+      actorId: string;
+      permissions: StoreParticipantPermissions[];
+    }
+  ) {
+    let actor = await actorService.getActorById({
+      tenant: d.tenant,
+      actorId: d.actorId
+    });
+
+    let participant = await storeAccessService.ensureActorStorePermissions({
+      store: d.skill.store,
+      actor,
+      permissions: d.permissions
+    });
+    if (!participant) {
+      throw new ServiceError(notFoundError('store.participant'));
+    }
+
+    return {
+      skillId: d.skill.id,
+      storeId: d.skill.store.id,
+      actorId: actor.id,
+      storeParticipantId: participant.id,
+      permissions: participant.permissions
+    };
   }
 }
 

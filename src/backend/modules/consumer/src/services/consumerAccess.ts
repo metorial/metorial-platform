@@ -12,13 +12,9 @@ import {
   MagicMcpServer,
   Organization,
   ProviderTemplate,
+  Skill,
   withTransaction
 } from '@metorial/db';
-import {
-  searchConsumerGroupIds,
-  searchMagicMcpServerIds,
-  searchProviderTemplateIds
-} from '@metorial/module-search';
 import { isPreconfiguredMagicMcpServer } from '../lib/magicMcpServerSource';
 import { consumerAccessPolicyService } from './accessPolicy';
 
@@ -26,6 +22,7 @@ let include = {
   consumerGroup: true,
   providerTemplate: true,
   magicMcpServer: true,
+  skill: true,
   listing: true
 } as const;
 
@@ -37,12 +34,17 @@ type ConsumerAccessCreateInput =
   | {
       type: 'magic_mcp_server';
       magicMcpServer: MagicMcpServer;
+    }
+  | {
+      type: 'skill';
+      skill: Skill;
     };
 
 type ConsumerAccessWithRelations = ConsumerAccess & {
   consumerGroup: ConsumerGroup;
   providerTemplate: ProviderTemplate | null;
   magicMcpServer: MagicMcpServer | null;
+  skill: Skill | null;
   listing: ConsumerAccessListing | null;
 };
 
@@ -54,6 +56,14 @@ class ConsumerAccessServiceImpl {
       return {
         name: access.providerTemplate!.name,
         description: access.providerTemplate!.description,
+        readme: null
+      };
+    }
+
+    if (access.type == 'skill') {
+      return {
+        name: access.skill!.name,
+        description: null,
         readme: null
       };
     }
@@ -86,12 +96,19 @@ class ConsumerAccessServiceImpl {
                   providerTemplateOid: d.access.providerTemplate!.oid
                 }
               }
-            : {
-                surfaceOid_magicMcpServerOid: {
-                  surfaceOid: d.consumerSurface.oid,
-                  magicMcpServerOid: d.access.magicMcpServer!.oid
+            : d.access.type == 'magic_mcp_server'
+              ? {
+                  surfaceOid_magicMcpServerOid: {
+                    surfaceOid: d.consumerSurface.oid,
+                    magicMcpServerOid: d.access.magicMcpServer!.oid
+                  }
                 }
-              },
+              : {
+                  surfaceOid_skillOid: {
+                    surfaceOid: d.consumerSurface.oid,
+                    skillOid: d.access.skill!.oid
+                  }
+                },
         create: {
           id: await ID.generateId('consumerAccess'),
           surfaceOid: d.consumerSurface.oid,
@@ -99,6 +116,7 @@ class ConsumerAccessServiceImpl {
             d.access.type == 'provider_template' ? d.access.providerTemplate!.oid : undefined,
           magicMcpServerOid:
             d.access.type == 'magic_mcp_server' ? d.access.magicMcpServer!.oid : undefined,
+          skillOid: d.access.type == 'skill' ? d.access.skill!.oid : undefined,
           name: d.input.name ?? defaults.name,
           description: d.input.description ?? defaults.description,
           readme: d.input.readme ?? defaults.readme
@@ -117,10 +135,15 @@ class ConsumerAccessServiceImpl {
                 surfaceOid: d.consumerSurface.oid,
                 providerTemplateOid: d.access.providerTemplate!.oid
               }
-            : {
-                surfaceOid: d.consumerSurface.oid,
-                magicMcpServerOid: d.access.magicMcpServer!.oid
-              },
+            : d.access.type == 'magic_mcp_server'
+              ? {
+                  surfaceOid: d.consumerSurface.oid,
+                  magicMcpServerOid: d.access.magicMcpServer!.oid
+                }
+              : {
+                  surfaceOid: d.consumerSurface.oid,
+                  skillOid: d.access.skill!.oid
+                },
         data: {
           listingOid: listing.oid
         }
@@ -135,77 +158,13 @@ class ConsumerAccessServiceImpl {
     consumerGroupIds?: string[];
     providerTemplateIds?: string[];
     magicMcpServerIds?: string[];
+    skillIds?: string[];
     types?: ConsumerAccessTargetType[];
-    search?: string;
   }) {
-    let search = d.search?.trim();
     let hasConsumerGroupFilter = !!d.consumerGroupIds?.length;
     let hasProviderTemplateFilter = !!d.providerTemplateIds?.length;
     let hasMagicMcpServerFilter = !!d.magicMcpServerIds?.length;
-    let instance = search
-      ? await db.instance.findFirst({
-          where: {
-            oid: d.consumerSurface.instanceOid
-          },
-          select: {
-            id: true
-          }
-        })
-      : null;
-    let [searchedConsumerGroupIds, searchedProviderTemplateIds, searchedMagicMcpServerIds] =
-      search && instance
-        ? await Promise.all([
-            searchConsumerGroupIds({
-              instanceId: instance.id,
-              query: search
-            }),
-            searchProviderTemplateIds({
-              instanceId: instance.id,
-              query: search
-            }),
-            searchMagicMcpServerIds({
-              instanceId: instance.id,
-              query: search
-            })
-          ])
-        : [undefined, undefined, undefined];
-    let [searchedConsumerGroups, searchedProviderTemplates, searchedMagicMcpServers] = search
-      ? await Promise.all([
-          db.consumerGroup.findMany({
-            where: {
-              surfaceOid: d.consumerSurface.oid,
-              id: {
-                in: searchedConsumerGroupIds ?? []
-              }
-            },
-            select: {
-              oid: true
-            }
-          }),
-          db.providerTemplate.findMany({
-            where: {
-              instanceOid: d.consumerSurface.instanceOid,
-              id: {
-                in: searchedProviderTemplateIds ?? []
-              }
-            },
-            select: {
-              oid: true
-            }
-          }),
-          db.magicMcpServer.findMany({
-            where: {
-              instanceOid: d.consumerSurface.instanceOid,
-              id: {
-                in: searchedMagicMcpServerIds ?? []
-              }
-            },
-            select: {
-              oid: true
-            }
-          })
-        ])
-      : [undefined, undefined, undefined];
+    let hasSkillFilter = !!d.skillIds?.length;
 
     let consumerGroups = hasConsumerGroupFilter
       ? await db.consumerGroup.findMany({
@@ -246,6 +205,19 @@ class ConsumerAccessServiceImpl {
           }
         })
       : undefined;
+    let skills = hasSkillFilter
+      ? await db.skill.findMany({
+          where: {
+            instanceOid: d.consumerSurface.instanceOid,
+            id: {
+              in: d.skillIds
+            }
+          },
+          select: {
+            oid: true
+          }
+        })
+      : undefined;
 
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {
@@ -271,6 +243,11 @@ class ConsumerAccessServiceImpl {
                   ? {
                       in: magicMcpServers?.map(magicMcpServer => magicMcpServer.oid) ?? []
                     }
+                  : undefined,
+                skillOid: hasSkillFilter
+                  ? {
+                      in: skills?.map(skill => skill.oid) ?? []
+                    }
                   : undefined
               },
               {
@@ -286,38 +263,15 @@ class ConsumerAccessServiceImpl {
                     magicMcpServer: {
                       status: 'active'
                     }
+                  },
+                  {
+                    type: 'skill',
+                    skill: {
+                      status: 'active'
+                    }
                   }
                 ]
-              },
-              ...(search
-                ? [
-                    {
-                      OR: [
-                        {
-                          consumerGroupOid: {
-                            in: searchedConsumerGroups?.map(group => group.oid) ?? []
-                          }
-                        },
-                        {
-                          providerTemplateOid: {
-                            in:
-                              searchedProviderTemplates?.map(
-                                providerTemplate => providerTemplate.oid
-                              ) ?? []
-                          }
-                        },
-                        {
-                          magicMcpServerOid: {
-                            in:
-                              searchedMagicMcpServers?.map(
-                                magicMcpServer => magicMcpServer.oid
-                              ) ?? []
-                          }
-                        }
-                      ]
-                    }
-                  ]
-                : [])
+              }
             ]
           },
           include
@@ -344,6 +298,12 @@ class ConsumerAccessServiceImpl {
           {
             type: 'magic_mcp_server',
             magicMcpServer: {
+              status: 'active'
+            }
+          },
+          {
+            type: 'skill',
+            skill: {
               status: 'active'
             }
           }
@@ -385,7 +345,8 @@ class ConsumerAccessServiceImpl {
       ('providerTemplate' in d.access &&
         d.access.providerTemplate.instanceOid != d.consumerSurface.instanceOid) ||
       ('magicMcpServer' in d.access &&
-        d.access.magicMcpServer.instanceOid != d.consumerSurface.instanceOid)
+        d.access.magicMcpServer.instanceOid != d.consumerSurface.instanceOid) ||
+      ('skill' in d.access && d.access.skill.instanceOid != d.consumerSurface.instanceOid)
     ) {
       throw new ServiceError(notFoundError('consumer.access.resource'));
     }
@@ -402,6 +363,14 @@ class ConsumerAccessServiceImpl {
       throw new ServiceError(
         preconditionFailedError({
           message: 'Cannot create access for an inactive magic MCP server.'
+        })
+      );
+    }
+
+    if ('skill' in d.access && d.access.skill.status != 'active') {
+      throw new ServiceError(
+        preconditionFailedError({
+          message: 'Cannot create access for an inactive skill.'
         })
       );
     }
@@ -431,12 +400,19 @@ class ConsumerAccessServiceImpl {
                   providerTemplateOid: d.access.providerTemplate.oid
                 }
               }
-            : {
-                consumerGroupOid_magicMcpServerOid: {
-                  consumerGroupOid: d.consumerGroup.oid,
-                  magicMcpServerOid: d.access.magicMcpServer.oid
+            : d.access.type == 'magic_mcp_server'
+              ? {
+                  consumerGroupOid_magicMcpServerOid: {
+                    consumerGroupOid: d.consumerGroup.oid,
+                    magicMcpServerOid: d.access.magicMcpServer.oid
+                  }
                 }
-              },
+              : {
+                  consumerGroupOid_skillOid: {
+                    consumerGroupOid: d.consumerGroup.oid,
+                    skillOid: d.access.skill.oid
+                  }
+                },
         create: {
           id: await ID.generateId('consumerAccess'),
           type: d.access.type,
@@ -445,7 +421,8 @@ class ConsumerAccessServiceImpl {
           providerTemplateOid:
             d.access.type == 'provider_template' ? d.access.providerTemplate.oid : undefined,
           magicMcpServerOid:
-            d.access.type == 'magic_mcp_server' ? d.access.magicMcpServer.oid : undefined
+            d.access.type == 'magic_mcp_server' ? d.access.magicMcpServer.oid : undefined,
+          skillOid: d.access.type == 'skill' ? d.access.skill.oid : undefined
         },
         update: {},
         include
@@ -466,7 +443,7 @@ class ConsumerAccessServiceImpl {
             consumerAccessId: consumerAccess.id
           }
         });
-      } else {
+      } else if (d.access.type == 'magic_mcp_server') {
         for (let permission of ['magic_mcp_read', 'magic_mcp_connect'] as const) {
           await consumerAccessPolicyService.grantAccess({
             organization: d.organization,
@@ -483,6 +460,21 @@ class ConsumerAccessServiceImpl {
             }
           });
         }
+      } else {
+        await consumerAccessPolicyService.grantAccess({
+          organization: d.organization,
+          permission: 'skill_read',
+          subject: {
+            consumerGroup: d.consumerGroup
+          },
+          resource: {
+            skill: d.access.skill
+          },
+          policyScope: {
+            type: 'consumer_access',
+            consumerAccessId: consumerAccess.id
+          }
+        });
       }
 
       await this.upsertSharedListing({

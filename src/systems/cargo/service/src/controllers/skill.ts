@@ -3,6 +3,7 @@ import { v } from '@lowerdeck/validation';
 import { skillPresenter } from '../presenters';
 import { skillService, skillTemplateService } from '../services';
 import { app } from './_app';
+import { storePermissionsSchema } from './document';
 import { tenantApp } from './tenant';
 
 export let skillApp = tenantApp.use(async ctx => {
@@ -141,5 +142,27 @@ export let skillController = app.controller({
       });
 
       return skillPresenter(skill);
-    })
+    }),
+
+  upsertActor: skillApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        environmentId: v.string(),
+        skillId: v.string(),
+        actorId: v.string(),
+        permissions: storePermissionsSchema
+      })
+    )
+    .do(
+      async ctx =>
+        await skillService.upsertSkillActor({
+          tenant: ctx.tenant,
+          environment: ctx.environment,
+          skill: ctx.skill,
+          actorId: ctx.input.actorId,
+          permissions: ctx.input.permissions
+        })
+    )
 });

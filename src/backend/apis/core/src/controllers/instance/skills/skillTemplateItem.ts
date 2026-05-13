@@ -57,25 +57,14 @@ export let skillTemplateItemController = Controller.create(
       .outputList(skillTemplateItemPresenter)
       .query('default', Paginator.validate(v.object({})))
       .do(async ctx => {
-        let list = await subspaceSkillTemplateItemService.list({
+        let paginator = await subspaceSkillTemplateItemService.list({
           instance: ctx.instance,
-          skillTemplateId: ctx.skillTemplate.id,
-          limit: ctx.query.limit,
-          after: ctx.query.after,
-          before: ctx.query.before,
-          cursor: ctx.query.cursor,
-          order: ctx.query.order
+          skillTemplateId: ctx.skillTemplate.id
         });
+        let list = await paginator.run(ctx.query);
 
-        return Paginator.present(
-          {
-            items: list.items,
-            pagination: {
-              hasNextPage: list.pagination.has_more_after,
-              hasPreviousPage: list.pagination.has_more_before
-            }
-          },
-          skillTemplateItem => skillTemplateItemPresenter.present({ skillTemplateItem })
+        return Paginator.present(list, skillTemplateItem =>
+          skillTemplateItemPresenter.present({ skillTemplateItem })
         );
       }),
 

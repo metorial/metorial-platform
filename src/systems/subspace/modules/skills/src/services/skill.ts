@@ -297,6 +297,36 @@ class skillServiceImpl {
     return skill;
   }
 
+  async getManySkills(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    skillIds: string[];
+    allowDeleted?: boolean;
+  }) {
+    if (!d.skillIds.length) {
+      return [];
+    }
+
+    let skills = await db.skill.findMany({
+      where: {
+        id: {
+          in: d.skillIds
+        },
+        tenantOid: d.tenant.oid,
+        solutionOid: d.solution.oid,
+        environmentOid: d.environment.oid,
+        ...normalizeStatusForGet(d).noParent
+      },
+      include: skillInclude
+    });
+    let byId = new Map(skills.map(skill => [skill.id, skill]));
+
+    return d.skillIds
+      .map(skillId => byId.get(skillId))
+      .filter((skill): skill is NonNullable<typeof skill> => !!skill);
+  }
+
   async createSkill(d: {
     tenant: Tenant;
     solution: Solution;
@@ -313,7 +343,7 @@ class skillServiceImpl {
       privateMetadata?: Record<string, any> | null;
       templateId?: string | null;
     };
-    _operation?:
+    _operation:
       | {
           type: 'fork';
           parentSkillId: string;
@@ -321,7 +351,13 @@ class skillServiceImpl {
         }
       | {
           type: 'duplicate';
+          tenantActor?: TenantActor;
           parentSkillId: string;
+        }
+      | {
+          type: 'create';
+          tenantActor?: TenantActor;
+          parentSkillId?: never;
         };
   }) {
     if (d._operation && d.input.templateId) {
@@ -362,7 +398,7 @@ class skillServiceImpl {
       parentSkill:
         parentSkill && d._operation
           ? {
-              type: d._operation.type,
+              type: d._operation.type === 'fork' ? 'fork' : 'duplicate',
               skill: parentSkill
             }
           : null,
@@ -380,10 +416,10 @@ class skillServiceImpl {
     });
 
     let cargoScope = await ensureCargoScope(d);
-    let cargoActor =
-      d._operation?.type === 'fork'
-        ? await ensureCargoActor(cargoScope, d._operation.tenantActor)
-        : undefined;
+    let cargoActor = d._operation.tenantActor
+      ? await ensureCargoActor(cargoScope, d._operation.tenantActor)
+      : undefined;
+
     let cargoSkill = await cargo.skill.create({
       ...cargoScope,
       skillId: skillData.id,
@@ -392,14 +428,14 @@ class skillServiceImpl {
       parentSkill: parentSkill
         ? {
             skillId: parentSkill.id,
-            type: d._operation?.type ?? 'duplicate'
+            type: d._operation?.type === 'fork' ? 'fork' : 'duplicate'
           }
         : undefined,
       parentSkillTemplateId: template?.id
     });
 
     return await withTransaction(async db => {
-      // Forks share the parent skill entity; root skills and duplicates get a new one.
+      // Forks share the parent skill entity. Root skills and duplicates get a new one.
       let skillEntity =
         d._operation?.type === 'fork' && parentSkill?.skillEntity
           ? parentSkill?.skillEntity
@@ -423,6 +459,7 @@ class skillServiceImpl {
       let skill = await db.skill.create({
         data: {
           ...skillData,
+          ownerTenantActorOid: d._operation.tenantActor?.oid,
           storeId: cargoSkill.storeId,
           skillEntityOid: skillEntity.oid
         },
@@ -508,6 +545,7 @@ class skillServiceImpl {
     solution: Solution;
     environment: Environment;
     skill: Skill;
+    actor?: TenantActor;
     input: {
       name: string;
       description?: string | null;
@@ -540,7 +578,8 @@ class skillServiceImpl {
       },
       _operation: {
         type: 'duplicate',
-        parentSkillId: d.skill.id
+        parentSkillId: d.skill.id,
+        tenantActor: d.actor
       }
     });
   }
@@ -633,6 +672,28 @@ class skillServiceImpl {
       await addAfterTransactionHook(async () => skillArchivedQueue.add({ skillId: skill.id }));
 
       return skill;
+    });
+  }
+
+  async upsertSkillActor(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    skill: Skill;
+    tenantActor: TenantActor;
+    permissions: Array<'content_read' | 'content_write'>;
+  }) {
+    checkTenant(d, d.skill);
+    checkDeletedRelation(d.skill);
+
+    let cargoScope = await ensureCargoScope(d);
+    let cargoActor = await ensureCargoActor(cargoScope, d.tenantActor);
+
+    return await cargo.skill.upsertActor({
+      ...cargoScope,
+      skillId: d.skill.id,
+      actorId: cargoActor.id,
+      permissions: d.permissions
     });
   }
 

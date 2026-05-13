@@ -58,6 +58,8 @@ model Instance {
   consumers                            ConsumerProfile[]
   portals                              Portal[]
   providerTemplates                    ProviderTemplate[]
+  skills                               Skill[]
+  consumerSkills                       ConsumerSkill[]
   accessPolicyInstances                AccessPolicyInstance[]
   instanceConsumers                    InstanceConsumer[]
   consumerInvites                      ConsumerInvite[]
