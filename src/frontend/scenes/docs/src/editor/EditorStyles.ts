@@ -386,6 +386,30 @@ export let proseStyles = css`
     padding-left: 1.6em;
   }
 
+  ul {
+    list-style-type: disc;
+  }
+
+  ul ul {
+    list-style-type: circle;
+  }
+
+  ul ul ul {
+    list-style-type: square;
+  }
+
+  ol {
+    list-style-type: decimal;
+  }
+
+  ol ol {
+    list-style-type: lower-alpha;
+  }
+
+  ol ol ol {
+    list-style-type: lower-roman;
+  }
+
   ul li::marker {
     color: ${({ theme }) => theme.color.textSubtle};
   }

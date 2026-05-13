@@ -1,12 +1,14 @@
 import {
   DocumentParticipant,
   DocumentVersion as StateDocumentVersion,
+  updateDocument as updateDocumentRequest,
+  useCreateFileLink,
   useDocument,
   useDocumentParticipants,
   useDocumentPermissions,
   useDocumentVersions,
-  useUser,
-  updateDocument as updateDocumentRequest
+  useUploadFile,
+  useUser
 } from '@metorial/state';
 import type { Editor as TiptapEditor } from '@tiptap/react';
 import type { ChangeEvent } from 'react';
@@ -151,7 +153,7 @@ let PreviewResizeHandle = styled.div<{ $active?: boolean }>`
   cursor: col-resize;
   position: relative;
   z-index: 5;
-  background: ${({ theme }) => theme.color.border};
+  background: #efefef;
 
   &::after {
     content: '';
@@ -623,6 +625,8 @@ let DocumentEditorLoaded = (p: {
   let [lastUpdatedAt, setLastUpdatedAt] = useState(p.document.updatedAt);
   let [saveStatus, setSaveStatus] = useState<SaveStatus>('saved');
   let [allowInitialHashScroll, setAllowInitialHashScroll] = useState(true);
+  let uploadFile = useUploadFile();
+  let createFileLink = useCreateFileLink();
   let navigate = useNavigate();
   let mainRef = useRef<HTMLDivElement | null>(null);
   let toastTimer = useRef<number | null>(null);
@@ -686,6 +690,35 @@ let DocumentEditorLoaded = (p: {
     if (toastTimer.current) window.clearTimeout(toastTimer.current);
     toastTimer.current = window.setTimeout(() => setToast(null), 1800);
   }, []);
+
+  let uploadImage = useCallback(
+    async (file: File) => {
+      let [uploadedFile] = await uploadFile.mutate({
+        instanceId: p.instanceId,
+        file,
+        title: file.name,
+        purpose: 'generic'
+      });
+
+      if (!uploadedFile) {
+        throw new Error('Image upload failed');
+      }
+
+      if (uploadedFile.downloadUrl) return uploadedFile.downloadUrl;
+
+      let [link] = await createFileLink.mutate({
+        instanceId: p.instanceId,
+        fileId: uploadedFile.id
+      });
+
+      if (!link?.url) {
+        throw new Error('Could not create image link');
+      }
+
+      return link.url;
+    },
+    [createFileLink, p.instanceId, uploadFile]
+  );
 
   let handleCopy = useCallback(async () => {
     try {
@@ -1017,7 +1050,7 @@ let DocumentEditorLoaded = (p: {
   return (
     <ThemeProvider theme={theme}>
       <GlobalStyles />
-      <ImageUploadProvider>
+      <ImageUploadProvider upload={uploadImage}>
         <Shell>
           <Header>
             <HeaderLeft>

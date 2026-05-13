@@ -4,6 +4,7 @@ import type { Editor } from '@tiptap/react';
 import styled from 'styled-components';
 
 interface TocItem {
+  key: string;
   id: string;
   text: string;
   level: number;
@@ -29,11 +30,12 @@ interface TableOfContentsProps {
   onInitialHashScrollComplete?: () => void;
 }
 
-let Wrap = styled.aside<{ $expanded: boolean }>`
+let Wrap = styled.aside<{ $expanded: boolean; $visible: boolean }>`
   position: fixed;
   top: 182px;
   right: 30px;
   z-index: 30;
+  display: ${({ $visible }) => ($visible ? 'block' : 'none')};
   width: ${({ $expanded }) => ($expanded ? 320 : 42)}px;
   max-height: calc(100vh - 110px);
   overflow: hidden;
@@ -153,8 +155,9 @@ function getHeadingItems(editor: Editor): TocItem[] {
         id = `${base}-${suffix++}`;
       }
     }
+    let key = `${id}:${pos}`;
     used.add(id);
-    items.push({ id, text, level, pos });
+    items.push({ key, id, text, level, pos });
     return true;
   });
   return items;
@@ -281,19 +284,21 @@ export function TableOfContents({
     [items]
   );
 
-  if (items.length === 0) return null;
+  let hasItems = items.length > 0;
 
   return (
     <Wrap
-      $expanded={expanded}
+      $expanded={expanded && hasItems}
+      $visible={hasItems}
       onMouseEnter={() => setExpanded(true)}
       onMouseLeave={() => setExpanded(false)}
       aria-label="Table of contents"
+      aria-hidden={!hasItems}
     >
       <Rail $expanded={expanded}>
         {items.map(item => (
           <RailLine
-            key={item.id}
+            key={item.key}
             $width={lineWidthForLevel(item.level)}
             $active={item.id === activeId}
           />
@@ -304,7 +309,7 @@ export function TableOfContents({
         <DocTitle title={documentTitle || 'Untitled'}>{documentTitle || 'Untitled'}</DocTitle>
         {items.map(item => (
           <TocBtn
-            key={item.id}
+            key={item.key}
             type="button"
             $active={item.id === activeId}
             $indent={Math.max(0, (item.level - minLevel) * 22)}

@@ -443,22 +443,6 @@ class ConsumerProfileServiceImpl {
               ]
             }
           });
-          console.log({
-            existingProfile,
-            a: d.aresUserId
-              ? {
-                  surfaceOid_aresUserId: {
-                    surfaceOid: d.surface.oid,
-                    aresUserId: d.aresUserId
-                  }
-                }
-              : {
-                  email_surfaceOid: {
-                    email: d.email,
-                    surfaceOid: d.surface.oid
-                  }
-                }
-          });
           if (existingProfile) {
             if (d.rejectIfActiveProfileExists && existingProfile.inviteStatus != 'invited') {
               throw new ServiceError(

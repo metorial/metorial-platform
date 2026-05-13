@@ -413,9 +413,6 @@ export function ImagePlaceholderView({
             <SmallButton type="button" onClick={onPickFile}>
               Upload
             </SmallButton>
-            <SmallButton type="button" onClick={() => setShowUrl(true)}>
-              Embed link
-            </SmallButton>
           </ButtonRow>
         )}
 

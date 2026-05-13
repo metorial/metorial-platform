@@ -6,13 +6,11 @@ import { authenticate } from '@metorial/auth';
 import { generatePlainId } from '@metorial/id';
 import {
   documentService,
-  fileLinkService,
-  getOssFilesBucketName,
-  getStorage,
   purposeSlugs,
   resolveCargoAccess,
   uploadCargoFile
 } from '@metorial/module-file';
+import { getFileDownloadUrl } from '../../../../systems/_clients/cargo/src';
 import { upgradeWebSocket, websocket } from 'hono/bun';
 import { resolveUploadTarget } from './uploadAccess';
 
@@ -128,35 +126,78 @@ let createFileUploadHandler =
       }
     );
 
-let getServedContentType = (contentType?: string | null) => {
-  if (contentType?.startsWith('image/')) return contentType;
+let getCargoHttpBaseUrl = () => {
+  if (!process.env.CARGO_API_URL) {
+    throw new Error('CARGO_API_URL is required');
+  }
 
-  return 'application/octet-stream';
+  let url = new URL(process.env.CARGO_API_URL);
+
+  if (url.pathname.endsWith('/metorial-cargo')) {
+    url.pathname = url.pathname.slice(0, -'/metorial-cargo'.length) || '/';
+  }
+
+  url.search = '';
+
+  return url;
+};
+
+let getCargoContentEndpoint = () => {
+  if (process.env.CARGO_CONTENT_URL) {
+    return process.env.CARGO_CONTENT_URL.replace(/\/$/, '');
+  }
+
+  let url = getCargoHttpBaseUrl();
+
+  if (url.hostname === 'cargo') {
+    url.hostname = 'cargo-content';
+    url.port = '52151';
+  } else if (
+    (url.hostname === 'localhost' || url.hostname === '127.0.0.1') &&
+    url.port === '52150'
+  ) {
+    url.port = '52151';
+  }
+
+  return url.toString().replace(/\/$/, '');
 };
 
 let getFileContentHandler = async (c: Context) => {
   let { fileId, key } = c.req.param();
 
-  let { link, file } = await fileLinkService.getFileLinkByKey({
-    fileId,
-    key
-  });
-
-  if (link.expiresAt && link.expiresAt < new Date()) {
-    throw new ServiceError(badRequestError({ message: 'Link has expired' }));
+  if (!fileId || !key) {
+    throw new ServiceError(
+      badRequestError({
+        message: 'Missing fileId or key'
+      })
+    );
   }
 
-  let res = await getStorage().getObject(getOssFilesBucketName(), file.storeId);
-  let contentType = getServedContentType(res.metadata.content_type ?? file.fileType);
-
-  return new Response(res.data as any, {
-    headers: {
-      'Content-Type': contentType,
-      'Cache-Control': link.expiresAt
-        ? 'private, no-store'
-        : 'public, max-age=31536000, immutable',
-      'X-Content-Type-Options': 'nosniff'
+  let url = new URL(c.req.url);
+  let response = await fetch(
+    getFileDownloadUrl({
+      contentEndpoint: getCargoContentEndpoint(),
+      fileId,
+      key,
+      download: url.searchParams.has('download')
+    }),
+    {
+      headers: {
+        ...(c.req.header('Authorization')
+          ? { Authorization: c.req.header('Authorization')! }
+          : {}),
+        ...(c.req.header('sentry-trace')
+          ? { 'sentry-trace': c.req.header('sentry-trace')! }
+          : {}),
+        ...(c.req.header('baggage') ? { baggage: c.req.header('baggage')! } : {})
+      }
     }
+  );
+
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: response.headers
   });
 };
 
@@ -170,15 +211,7 @@ let getQueryParam = (url: URL, keys: string[]) => {
 };
 
 let getCargoDocumentLiveUrl = (d: { actorId: string; documentId: string }) => {
-  if (!process.env.CARGO_API_URL) {
-    throw new Error('CARGO_API_URL is required');
-  }
-
-  let url = new URL(process.env.CARGO_API_URL);
-
-  if (url.pathname.endsWith('/metorial-cargo')) {
-    url.pathname = url.pathname.slice(0, -'/metorial-cargo'.length) || '/';
-  }
+  let url = getCargoHttpBaseUrl();
 
   url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
   url.pathname = `${url.pathname.replace(/\/$/, '')}/document-live`;

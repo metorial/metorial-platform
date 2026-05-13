@@ -90,6 +90,38 @@ let InstancePaths = Object.assign(
       if (!id) return '#';
       return InstancePaths(organization, project, instance, 'skill', id, ...subPages);
     },
+    skillTemplates: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'skills', 'templates', ...subPages),
+    skillTemplate: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: SubPages
+    ) => {
+      if (!id) return '#';
+      return InstancePaths(organization, project, instance, 'skill-template', id, ...subPages);
+    },
+    skillGroups: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'skills', 'groups', ...subPages),
+    skillGroup: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: SubPages
+    ) => {
+      if (!id) return '#';
+      return InstancePaths(organization, project, instance, 'skill-group', id, ...subPages);
+    },
     integrationInstance: (
       organization: EntityParam,
       project: EntityParam,

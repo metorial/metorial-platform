@@ -2,10 +2,14 @@ import { renderWithLoader, renderWithPagination } from '@metorial/data-hooks';
 import {
   type IntegrationPreview,
   type SkillItem,
+  type SkillTemplateItem,
   useAllProviderListings,
   useAllSkillItems,
+  useAllSkillTemplateItems,
   useCreateSkillItem,
+  useCreateSkillTemplateItem,
   useDeleteSkillItem,
+  useDeleteSkillTemplateItem,
   useIntegrations,
   useProviderListings
 } from '@metorial/state';
@@ -94,9 +98,10 @@ let truncate = (value: string | null | undefined, length = 100) => {
 };
 
 type SkillItemPickerKind = 'provider' | 'integration';
+type LinkedProviderItem = SkillItem | SkillTemplateItem;
 
 let getSkillItemEntity = (
-  item: SkillItem,
+  item: LinkedProviderItem,
   providerListings: Map<string, { name?: string | null; imageUrl?: string | null }>
 ) => {
   if (item.type === 'provider' && item.provider) {
@@ -164,12 +169,11 @@ let IntegrationProviderAvatarStack = (p: {
 
 let SkillItemRow = (p: {
   instanceId: string;
-  skillId: string;
-  item: SkillItem;
+  item: LinkedProviderItem;
   providerListings: Map<string, { name?: string | null; imageUrl?: string | null }>;
   integrationLookup: Map<string, IntegrationPreview>;
   isDeleting: boolean;
-  onDelete: (item: SkillItem) => void;
+  onDelete?: (item: LinkedProviderItem) => void;
 }) => {
   let entity = getSkillItemEntity(p.item, p.providerListings);
   let linkedIntegration =
@@ -214,31 +218,33 @@ let SkillItemRow = (p: {
           }
         />
 
-        <Entity.Field title="Actions" right>
-          <Actions>
-            <Menu
-              items={[{ id: 'remove', label: 'Remove' }]}
-              onItemClick={item => {
-                if (item !== 'remove') return;
+        {p.onDelete && (
+          <Entity.Field title="Actions" right>
+            <Actions>
+              <Menu
+                items={[{ id: 'remove', label: 'Remove' }]}
+                onItemClick={item => {
+                  if (item !== 'remove') return;
 
-                confirm({
-                  title: `Remove ${entity.name}?`,
-                  description: `Remove ${entity.name} from this skill?`,
-                  confirmText: 'Remove',
-                  onConfirm: async () => p.onDelete(p.item)
-                });
-              }}
-            >
-              <Button
-                size="1"
-                variant="outline"
-                iconRight={<RiMore2Line />}
-                loading={p.isDeleting}
-                title="Linked item options"
-              />
-            </Menu>
-          </Actions>
-        </Entity.Field>
+                  confirm({
+                    title: `Remove ${entity.name}?`,
+                    description: `Remove ${entity.name} from this skill?`,
+                    confirmText: 'Remove',
+                    onConfirm: async () => p.onDelete?.(p.item)
+                  });
+                }}
+              >
+                <Button
+                  size="1"
+                  variant="outline"
+                  iconRight={<RiMore2Line />}
+                  loading={p.isDeleting}
+                  title="Linked item options"
+                />
+              </Menu>
+            </Actions>
+          </Entity.Field>
+        )}
       </Entity.Content>
     </Entity.Wrapper>
   );
@@ -532,6 +538,98 @@ let showSkillItemPickerPanel = (p: {
     </Panel.Wrapper>
   ));
 
+let SkillTemplateItemPickerPanel = (p: {
+  kind: SkillItemPickerKind;
+  instanceId: string;
+  skillTemplateId: string;
+  excludeProviderIds: string[];
+  excludeIntegrationIds: string[];
+  close: () => void;
+  onComplete: () => Promise<void> | void;
+}) => {
+  let createSkillTemplateItem = useCreateSkillTemplateItem();
+  let [selectedId, setSelectedId] = useState<string | null>(null);
+  let isProvider = p.kind === 'provider';
+
+  let handleSelect = async (id: string) => {
+    if (selectedId) return;
+    setSelectedId(id);
+
+    let [created] = await createSkillTemplateItem.mutate(
+      isProvider
+        ? {
+            instanceId: p.instanceId,
+            skillTemplateId: p.skillTemplateId,
+            type: 'provider',
+            providerId: id
+          }
+        : {
+            instanceId: p.instanceId,
+            skillTemplateId: p.skillTemplateId,
+            type: 'integration',
+            integrationId: id
+          }
+    );
+
+    if (created) {
+      await p.onComplete();
+      p.close();
+      return;
+    }
+
+    setSelectedId(null);
+  };
+
+  return (
+    <>
+      <Panel.Header>
+        <div>
+          <Panel.Title>{isProvider ? 'Add Provider' : 'Add Integration'}</Panel.Title>
+          <Panel.Description>
+            {isProvider
+              ? 'Choose a provider to include in this skill template.'
+              : 'Choose an integration to include in this skill template.'}
+          </Panel.Description>
+        </div>
+      </Panel.Header>
+
+      <Panel.Content>
+        {isProvider ? (
+          <ProviderPicker
+            instanceId={p.instanceId}
+            excludeProviderIds={p.excludeProviderIds}
+            selectedId={selectedId}
+            onSelect={handleSelect}
+          />
+        ) : (
+          <IntegrationPicker
+            instanceId={p.instanceId}
+            excludeIntegrationIds={p.excludeIntegrationIds}
+            selectedId={selectedId}
+            onSelect={handleSelect}
+          />
+        )}
+
+        <createSkillTemplateItem.RenderError />
+      </Panel.Content>
+    </>
+  );
+};
+
+let showSkillTemplateItemPickerPanel = (p: {
+  kind: SkillItemPickerKind;
+  instanceId: string;
+  skillTemplateId: string;
+  excludeProviderIds: string[];
+  excludeIntegrationIds: string[];
+  onComplete: () => Promise<void> | void;
+}) =>
+  showModal(({ dialogProps, close }) => (
+    <Panel.Wrapper {...dialogProps} width={1050}>
+      <SkillTemplateItemPickerPanel {...p} close={close} />
+    </Panel.Wrapper>
+  ));
+
 let AddSkillItemMenu = (p: {
   disabled?: boolean;
   onSelect: (kind: SkillItemPickerKind) => void;
@@ -683,15 +781,163 @@ export let SkillLinkProvidersScene = (p: {
                 <SkillItemRow
                   key={item.id}
                   instanceId={p.instanceId!}
-                  skillId={p.skillId!}
                   item={item}
                   providerListings={providerListingLookup}
                   integrationLookup={integrationLookup}
                   isDeleting={deleteSkillItem.isLoading}
-                  onDelete={deleteItem}
+                  onDelete={item => deleteItem(item as SkillItem)}
                 />
               ))}
               <deleteSkillItem.RenderError />
+            </Items>
+          )}
+        </Box>
+      );
+    }
+  );
+};
+
+export let SkillTemplateLinkProvidersScene = (p: {
+  instanceId: string | null | undefined;
+  skillTemplateId: string | null | undefined;
+  readOnly?: boolean;
+}) => {
+  let skillTemplateItems = useAllSkillTemplateItems(p.instanceId, p.skillTemplateId, {
+    order: 'asc'
+  });
+  let deleteSkillTemplateItem = useDeleteSkillTemplateItem();
+  let providerIds = useMemo(
+    () =>
+      [
+        ...new Set(
+          (skillTemplateItems.data ?? []).flatMap(item =>
+            item.type === 'provider' && item.provider ? [item.provider.id] : []
+          )
+        )
+      ].sort(),
+    [skillTemplateItems.data]
+  );
+  let linkedProviderIds = useMemo(
+    () =>
+      (skillTemplateItems.data ?? []).flatMap(item =>
+        item.type === 'provider' && item.provider ? [item.provider.id] : []
+      ),
+    [skillTemplateItems.data]
+  );
+  let linkedIntegrationIds = useMemo(
+    () =>
+      (skillTemplateItems.data ?? []).flatMap(item =>
+        item.type === 'integration' && item.integration ? [item.integration.id] : []
+      ),
+    [skillTemplateItems.data]
+  );
+  let linkedIntegrations = useIntegrations(
+    linkedIntegrationIds.length > 0 ? p.instanceId : null,
+    {
+      id: linkedIntegrationIds,
+      limit: Math.max(linkedIntegrationIds.length, 1),
+      status: ['active', 'archived']
+    }
+  );
+  let integrationProviderIds = useMemo(
+    () =>
+      [
+        ...new Set(
+          (linkedIntegrations.data?.items ?? []).flatMap(integration =>
+            (integration.providers ?? []).map(provider => provider.provider.id)
+          )
+        )
+      ].sort(),
+    [linkedIntegrations.data?.items]
+  );
+  let allProviderIds = useMemo(
+    () => [...new Set([...providerIds, ...integrationProviderIds])].sort(),
+    [integrationProviderIds, providerIds]
+  );
+  let providerListings = useAllProviderListings(p.instanceId, allProviderIds);
+
+  let openPicker = (kind: SkillItemPickerKind) => {
+    if (!p.instanceId || !p.skillTemplateId) return;
+
+    showSkillTemplateItemPickerPanel({
+      kind,
+      instanceId: p.instanceId,
+      skillTemplateId: p.skillTemplateId,
+      excludeProviderIds: linkedProviderIds,
+      excludeIntegrationIds: linkedIntegrationIds,
+      onComplete: async () => {
+        await skillTemplateItems.refetch();
+      }
+    });
+  };
+
+  let deleteItem = async (item: LinkedProviderItem) => {
+    if (!p.instanceId || !p.skillTemplateId) return;
+
+    let [deleted] = await deleteSkillTemplateItem.mutate({
+      instanceId: p.instanceId,
+      skillTemplateId: p.skillTemplateId,
+      skillTemplateItemId: item.id
+    });
+    if (deleted) await skillTemplateItems.refetch();
+  };
+
+  return renderWithLoader({ skillTemplateItems, providerListings })(
+    ({ skillTemplateItems, providerListings }) => {
+      let providerListingLookup = new Map<
+        string,
+        { name?: string | null; imageUrl?: string | null }
+      >();
+      let integrationLookup = new Map<string, IntegrationPreview>();
+
+      for (let listing of providerListings.data) {
+        providerListingLookup.set(listing.id, {
+          name: listing.name ?? listing.provider.name,
+          imageUrl: listing.imageUrl
+        });
+        providerListingLookup.set(listing.provider.id, {
+          name: listing.name ?? listing.provider.name,
+          imageUrl: listing.imageUrl
+        });
+      }
+
+      for (let integration of linkedIntegrations.data?.items ?? []) {
+        integrationLookup.set(integration.id, integration);
+      }
+
+      return (
+        <Box
+          title="Template Providers"
+          description="Add providers and integrations that should be included when this template is used."
+          rightActions={
+            p.readOnly ? undefined : (
+              <AddSkillItemMenu
+                disabled={!p.instanceId || !p.skillTemplateId}
+                onSelect={openPicker}
+              />
+            )
+          }
+        >
+          {skillTemplateItems.data.length === 0 ? (
+            <EmptyState>
+              <Text color="gray600" size="2">
+                No providers or integrations are linked to this template yet.
+              </Text>
+            </EmptyState>
+          ) : (
+            <Items>
+              {skillTemplateItems.data.map(item => (
+                <SkillItemRow
+                  key={item.id}
+                  instanceId={p.instanceId!}
+                  item={item}
+                  providerListings={providerListingLookup}
+                  integrationLookup={integrationLookup}
+                  isDeleting={deleteSkillTemplateItem.isLoading}
+                  onDelete={p.readOnly ? undefined : deleteItem}
+                />
+              ))}
+              {!p.readOnly && <deleteSkillTemplateItem.RenderError />}
             </Items>
           )}
         </Box>

@@ -1,5 +1,5 @@
 import { renderWithLoader, useForm } from '@metorial/data-hooks';
-import { useSkill } from '@metorial/state';
+import { useSkill, useSkillGroup, useSkillTemplate } from '@metorial/state';
 import { Button, Input, Spacer, confirm } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
 import styled from 'styled-components';
@@ -174,6 +174,215 @@ export let SkillSettingsScene = (p: {
           type="button"
         >
           Delete Skill
+        </Button>
+
+        <Spacer size={10} />
+        <deleteMutator.RenderError />
+      </Box>
+    </PageStack>
+  ));
+};
+
+export let SkillTemplateSettingsScene = (p: {
+  instanceId: string | null | undefined;
+  skillTemplateId: string | null | undefined;
+  onDeleteSuccess?: () => void;
+}) => {
+  let skillTemplate = useSkillTemplate(p.instanceId, p.skillTemplateId);
+  let updateMutator = skillTemplate.updateMutator();
+  let deleteMutator = skillTemplate.deleteMutator();
+
+  let form = useForm({
+    initialValues: {
+      name: skillTemplate.data?.name ?? '',
+      description: skillTemplate.data?.description ?? ''
+    },
+    updateInitialValues: true,
+    onSubmit: async values => {
+      if (skillTemplate.data?.owner === 'system') return;
+
+      await updateMutator.mutate({
+        name: values.name.trim(),
+        description: values.description.trim() || undefined
+      });
+    },
+    schema: yup =>
+      yup.object({
+        name: yup.string().trim().required('Name is required'),
+        description: yup.string().ensure()
+      })
+  });
+
+  return renderWithLoader({ skillTemplate })(({ skillTemplate }) => {
+    let isSystemTemplate = skillTemplate.data.owner === 'system';
+
+    return (
+      <PageStack>
+        <Box
+          title="General Settings"
+          description="Manage the name and description used to identify this skill template."
+        >
+          <form onSubmit={form.handleSubmit}>
+            <FormStack>
+              <Input
+                label="Name"
+                disabled={isSystemTemplate}
+                {...form.getFieldProps('name')}
+              />
+              <form.RenderError field="name" />
+
+              <Input
+                as="textarea"
+                label="Description"
+                minRows={4}
+                disabled={isSystemTemplate}
+                {...form.getFieldProps('description')}
+              />
+              <form.RenderError field="description" />
+
+              {!isSystemTemplate && (
+                <ActionsRow>
+                  <Button
+                    loading={updateMutator.isLoading}
+                    size="2"
+                    success={updateMutator.isSuccess}
+                    type="submit"
+                  >
+                    Save
+                  </Button>
+                </ActionsRow>
+              )}
+
+              {!isSystemTemplate && <updateMutator.RenderError />}
+            </FormStack>
+          </form>
+        </Box>
+
+        {!isSystemTemplate && (
+          <Box
+            title="Danger Zone"
+            description="Delete this skill template and remove it from this instance."
+          >
+            <Button
+              color="red"
+              loading={deleteMutator.isLoading}
+              onClick={() =>
+                confirm({
+                  title: `Delete ${skillTemplate.data.name}?`,
+                  description: 'Are you sure you want to delete this skill template?',
+                  confirmText: 'Delete',
+                  onConfirm: async () => {
+                    let [result] = await deleteMutator.mutate(undefined as never);
+                    if (result) {
+                      await p.onDeleteSuccess?.();
+                    }
+                  }
+                })
+              }
+              size="2"
+              success={deleteMutator.isSuccess}
+              type="button"
+            >
+              Delete Template
+            </Button>
+
+            <Spacer size={10} />
+            <deleteMutator.RenderError />
+          </Box>
+        )}
+      </PageStack>
+    );
+  });
+};
+
+export let SkillGroupSettingsScene = (p: {
+  instanceId: string | null | undefined;
+  skillGroupId: string | null | undefined;
+  onDeleteSuccess?: () => void;
+}) => {
+  let skillGroup = useSkillGroup(p.instanceId, p.skillGroupId);
+  let updateMutator = skillGroup.updateMutator();
+  let deleteMutator = skillGroup.deleteMutator();
+
+  let form = useForm({
+    initialValues: {
+      name: skillGroup.data?.name ?? '',
+      description: skillGroup.data?.description ?? ''
+    },
+    updateInitialValues: true,
+    onSubmit: async values => {
+      await updateMutator.mutate({
+        name: values.name.trim(),
+        description: values.description.trim() || undefined
+      });
+    },
+    schema: yup =>
+      yup.object({
+        name: yup.string().trim().required('Name is required'),
+        description: yup.string().ensure()
+      })
+  });
+
+  return renderWithLoader({ skillGroup })(({ skillGroup }) => (
+    <PageStack>
+      <Box
+        title="General Settings"
+        description="Manage the name and description for this skill group."
+      >
+        <form onSubmit={form.handleSubmit}>
+          <FormStack>
+            <Input label="Name" {...form.getFieldProps('name')} />
+            <form.RenderError field="name" />
+
+            <Input
+              as="textarea"
+              label="Description"
+              minRows={4}
+              {...form.getFieldProps('description')}
+            />
+            <form.RenderError field="description" />
+
+            <ActionsRow>
+              <Button
+                loading={updateMutator.isLoading}
+                size="2"
+                success={updateMutator.isSuccess}
+                type="submit"
+              >
+                Save
+              </Button>
+            </ActionsRow>
+
+            <updateMutator.RenderError />
+          </FormStack>
+        </form>
+      </Box>
+
+      <Box
+        title="Danger Zone"
+        description="Delete this skill group. The skills themselves will remain available."
+      >
+        <Button
+          color="red"
+          loading={deleteMutator.isLoading}
+          onClick={() =>
+            confirm({
+              title: `Delete ${skillGroup.data.name}?`,
+              description: 'Are you sure you want to delete this skill group?',
+              confirmText: 'Delete',
+              onConfirm: async () => {
+                let [result] = await deleteMutator.mutate(undefined as never);
+                if (result) {
+                  await p.onDeleteSuccess?.();
+                }
+              }
+            })
+          }
+          size="2"
+          success={deleteMutator.isSuccess}
+          type="button"
+        >
+          Delete Group
         </Button>
 
         <Spacer size={10} />

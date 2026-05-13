@@ -774,174 +774,179 @@ let SkillFileTreeRow = (p: {
 
     p.onStartCreate(p.node.path, itemId as SkillFileTreeCreateKind);
   };
+  let directoryContextMenuItems = p.canWrite
+    ? [
+        {
+          id: 'file',
+          label: 'Upload File'
+        },
+        {
+          id: 'document',
+          label: 'Create Document'
+        },
+        {
+          id: 'directory',
+          label: 'Create Directory'
+        }
+      ]
+    : [];
+  let directoryRow = (
+    <TreeRowShell
+      $dropTarget={isDropTarget}
+      onClick={e => {
+        if (isNestedTreeActionClick(e)) return;
+        p.onToggle(p.node.path);
+      }}
+      onDragEnter={e => {
+        if (!p.canWrite) return;
+        if (!dragEventHasFiles(e) && !dragEventHasStoreItem(e)) return;
+        e.preventDefault();
+        if (!isOpen) p.onToggle(p.node.path);
+        p.onDragTargetChange(p.node.path);
+      }}
+      onDragLeave={e => {
+        if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
+        p.onDragTargetChange(null);
+      }}
+      onDragOver={e => {
+        if (!p.canWrite) return;
+        if (!dragEventHasFiles(e) && !dragEventHasStoreItem(e)) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = dragEventHasStoreItem(e) ? 'move' : 'copy';
+        if (!isOpen) p.onToggle(p.node.path);
+        p.onDragTargetChange(p.node.path);
+      }}
+      onDrop={async e => {
+        if (!p.canWrite) return;
+        if (
+          await moveDraggedItem(
+            e,
+            p.node.path,
+            p.node.children.map(child => child.name)
+          )
+        ) {
+          return;
+        }
+
+        if (!dragEventHasFiles(e)) return;
+        e.preventDefault();
+        p.onDragTargetChange(null);
+
+        let files = Array.from(e.dataTransfer.files);
+        if (files.length == 0) return;
+        let existingNames = new Set(
+          p.node.children.map(child => child.name.trim().toLowerCase())
+        );
+        let acceptedFiles: File[] = [];
+        let rejectedCount = 0;
+
+        for (let file of files) {
+          let normalizedName = file.name.trim().toLowerCase();
+          if (existingNames.has(normalizedName)) {
+            rejectedCount++;
+            continue;
+          }
+
+          existingNames.add(normalizedName);
+          acceptedFiles.push(file);
+        }
+
+        if (rejectedCount > 0) {
+          setFileError(
+            rejectedCount == 1
+              ? 'A file with this name already exists.'
+              : `${rejectedCount} files already exist in this directory.`
+          );
+        } else {
+          setFileError(null);
+        }
+
+        if (acceptedFiles.length == 0) return;
+        if (!isOpen) p.onToggle(p.node.path);
+        await p.onFilesDrop(p.node.path, acceptedFiles);
+      }}
+    >
+      <TreeRowButton
+        onClick={() => p.onToggle(p.node.path)}
+        style={{ padding: 0, background: 'transparent' }}
+        type="button"
+      >
+        <TreeIndent $depth={p.depth} />
+        <TreeChevron $open={isOpen} />
+        <TreeLabel>
+          <TreeIconWrap $kind={p.node.kind}>
+            <TreeIcon kind={p.node.kind} open={isOpen} />
+          </TreeIconWrap>
+          <TreeNameWrap>
+            <Text size="2">{getDisplayName(p.node)}</Text>
+          </TreeNameWrap>
+        </TreeLabel>
+      </TreeRowButton>
+
+      {p.canWrite ? (
+        <>
+          <Menu
+            label={`Add item to ${getDisplayName(p.node)}`}
+            items={[
+              {
+                id: 'file',
+                label: 'Upload File'
+              },
+              {
+                id: 'document',
+                label: 'Create Document'
+              },
+              {
+                id: 'directory',
+                label: 'Create Directory'
+              }
+            ]}
+            onItemClick={startDirectoryAction}
+          >
+            <TreeAction data-tree-action type="button">
+              <RiAddLine size={16} strokeWidth={2.4} />
+            </TreeAction>
+          </Menu>
+          <HiddenFileInput
+            ref={fileInputRef}
+            type="file"
+            onChange={async e => {
+              let file = e.currentTarget.files?.[0];
+              e.currentTarget.value = '';
+              if (!file) return;
+
+              let alreadyExists = p.node.children.some(
+                child => child.name.trim().toLowerCase() == file.name.trim().toLowerCase()
+              );
+
+              if (alreadyExists) {
+                setFileError('A file with this name already exists.');
+                return;
+              }
+
+              setFileError(null);
+              await p.onFileSelect(p.node.path, file);
+            }}
+          />
+        </>
+      ) : null}
+    </TreeRowShell>
+  );
 
   return (
     <RadixCollapsible.Root onOpenChange={() => p.onToggle(p.node.path)} open={isOpen}>
       <TreeItemStack>
-        <ContextMenu
-          label={`Add item to ${getDisplayName(p.node)}`}
-          items={
-            p.canWrite
-              ? [
-                  {
-                    id: 'file',
-                    label: 'Upload File'
-                  },
-                  {
-                    id: 'document',
-                    label: 'Create Document'
-                  },
-                  {
-                    id: 'directory',
-                    label: 'Create Directory'
-                  }
-                ]
-              : []
-          }
-          onItemClick={startDirectoryAction}
-        >
-          <TreeRowShell
-            $dropTarget={isDropTarget}
-            onClick={e => {
-              if (isNestedTreeActionClick(e)) return;
-              p.onToggle(p.node.path);
-            }}
-            onDragEnter={e => {
-              if (!p.canWrite) return;
-              if (!dragEventHasFiles(e) && !dragEventHasStoreItem(e)) return;
-              e.preventDefault();
-              if (!isOpen) p.onToggle(p.node.path);
-              p.onDragTargetChange(p.node.path);
-            }}
-            onDragLeave={e => {
-              if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
-              p.onDragTargetChange(null);
-            }}
-            onDragOver={e => {
-              if (!p.canWrite) return;
-              if (!dragEventHasFiles(e) && !dragEventHasStoreItem(e)) return;
-              e.preventDefault();
-              e.dataTransfer.dropEffect = dragEventHasStoreItem(e) ? 'move' : 'copy';
-              if (!isOpen) p.onToggle(p.node.path);
-              p.onDragTargetChange(p.node.path);
-            }}
-            onDrop={async e => {
-              if (!p.canWrite) return;
-              if (
-                await moveDraggedItem(
-                  e,
-                  p.node.path,
-                  p.node.children.map(child => child.name)
-                )
-              ) {
-                return;
-              }
-
-              if (!dragEventHasFiles(e)) return;
-              e.preventDefault();
-              p.onDragTargetChange(null);
-
-              let files = Array.from(e.dataTransfer.files);
-              if (files.length == 0) return;
-              let existingNames = new Set(
-                p.node.children.map(child => child.name.trim().toLowerCase())
-              );
-              let acceptedFiles: File[] = [];
-              let rejectedCount = 0;
-
-              for (let file of files) {
-                let normalizedName = file.name.trim().toLowerCase();
-                if (existingNames.has(normalizedName)) {
-                  rejectedCount++;
-                  continue;
-                }
-
-                existingNames.add(normalizedName);
-                acceptedFiles.push(file);
-              }
-
-              if (rejectedCount > 0) {
-                setFileError(
-                  rejectedCount == 1
-                    ? 'A file with this name already exists.'
-                    : `${rejectedCount} files already exist in this directory.`
-                );
-              } else {
-                setFileError(null);
-              }
-
-              if (acceptedFiles.length == 0) return;
-              if (!isOpen) p.onToggle(p.node.path);
-              await p.onFilesDrop(p.node.path, acceptedFiles);
-            }}
+        {directoryContextMenuItems.length > 0 ? (
+          <ContextMenu
+            label={`Add item to ${getDisplayName(p.node)}`}
+            items={directoryContextMenuItems}
+            onItemClick={startDirectoryAction}
           >
-            <TreeRowButton
-              onClick={() => p.onToggle(p.node.path)}
-              style={{ padding: 0, background: 'transparent' }}
-              type="button"
-            >
-              <TreeIndent $depth={p.depth} />
-              <TreeChevron $open={isOpen} />
-              <TreeLabel>
-                <TreeIconWrap $kind={p.node.kind}>
-                  <TreeIcon kind={p.node.kind} open={isOpen} />
-                </TreeIconWrap>
-                <TreeNameWrap>
-                  <Text size="2">{getDisplayName(p.node)}</Text>
-                </TreeNameWrap>
-              </TreeLabel>
-            </TreeRowButton>
-
-            {p.canWrite ? (
-              <>
-                <Menu
-                  label={`Add item to ${getDisplayName(p.node)}`}
-                  items={[
-                    {
-                      id: 'file',
-                      label: 'Upload File'
-                    },
-                    {
-                      id: 'document',
-                      label: 'Create Document'
-                    },
-                    {
-                      id: 'directory',
-                      label: 'Create Directory'
-                    }
-                  ]}
-                  onItemClick={startDirectoryAction}
-                >
-                  <TreeAction data-tree-action type="button">
-                    <RiAddLine size={16} strokeWidth={2.4} />
-                  </TreeAction>
-                </Menu>
-                <HiddenFileInput
-                  ref={fileInputRef}
-                  type="file"
-                  onChange={async e => {
-                    let file = e.currentTarget.files?.[0];
-                    e.currentTarget.value = '';
-                    if (!file) return;
-
-                    let alreadyExists = p.node.children.some(
-                      child =>
-                        child.name.trim().toLowerCase() == file.name.trim().toLowerCase()
-                    );
-
-                    if (alreadyExists) {
-                      setFileError('A file with this name already exists.');
-                      return;
-                    }
-
-                    setFileError(null);
-                    await p.onFileSelect(p.node.path, file);
-                  }}
-                />
-              </>
-            ) : null}
-          </TreeRowShell>
-        </ContextMenu>
+            {directoryRow}
+          </ContextMenu>
+        ) : (
+          directoryRow
+        )}
 
         <RadixCollapsible.Content>
           <ChildrenWrap>

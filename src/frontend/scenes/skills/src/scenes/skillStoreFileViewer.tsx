@@ -4,7 +4,6 @@ import {
   useAllStoreItems,
   useCreateDocument,
   useModifyStoreItems,
-  useSkill,
   useStorePermissions,
   useUploadFile
 } from '@metorial/state';
@@ -183,17 +182,19 @@ let shouldCreateDocumentForFileName = (name: string) => {
   return extension == 'md' || extension == 'txt';
 };
 
-export let SkillStoreFileViewerScene = (p: {
+export let StoreFileViewerScene = (p: {
   instanceId: string | null | undefined;
-  skillId: string | null | undefined;
+  storeId: string | null | undefined;
   getDocumentPath: (documentId: string) => string;
+  title?: string;
+  description?: string;
+  readOnly?: boolean;
 }) => {
-  let skill = useSkill(p.instanceId, p.skillId);
-  let storeItems = useAllStoreItems(p.instanceId, skill.data?.storeId, {
+  let storeItems = useAllStoreItems(p.instanceId, p.storeId, {
     order: 'asc',
     type: ['directory', 'document', 'file']
   });
-  let storePermissions = useStorePermissions(p.instanceId, skill.data?.storeId);
+  let storePermissions = useStorePermissions(p.instanceId, p.storeId);
   let createDocument = useCreateDocument();
   let uploadFile = useUploadFile();
   let modifyStoreItems = useModifyStoreItems();
@@ -222,7 +223,7 @@ export let SkillStoreFileViewerScene = (p: {
     kind: SkillFileTreeCreateKind,
     name: string
   ) => {
-    if (!p.instanceId || !skill.data?.storeId) return;
+    if (!p.instanceId || !p.storeId) return;
 
     let path = joinStorePath(parentPath, name);
     if (kind == 'directory') {
@@ -231,7 +232,7 @@ export let SkillStoreFileViewerScene = (p: {
       try {
         await modifyStoreItems.mutate({
           instanceId: p.instanceId,
-          storeId: skill.data.storeId,
+          storeId: p.storeId,
           operations: [
             {
               type: 'add',
@@ -266,7 +267,7 @@ export let SkillStoreFileViewerScene = (p: {
 
         await modifyStoreItems.mutate({
           instanceId: p.instanceId,
-          storeId: skill.data.storeId,
+          storeId: p.storeId,
           operations: [
             {
               type: 'add',
@@ -286,7 +287,7 @@ export let SkillStoreFileViewerScene = (p: {
           title: name,
           purpose: 'generic',
           store: {
-            id: skill.data.storeId,
+            id: p.storeId,
             path
           }
         });
@@ -299,7 +300,7 @@ export let SkillStoreFileViewerScene = (p: {
   };
 
   let createStoreFile = async (parentPath: string, file: File) => {
-    if (!p.instanceId || !skill.data?.storeId) return;
+    if (!p.instanceId || !p.storeId) return;
 
     let path = joinStorePath(parentPath, file.name);
     let shouldCreateDocument = shouldCreateDocumentForFileName(file.name);
@@ -320,7 +321,7 @@ export let SkillStoreFileViewerScene = (p: {
 
         await modifyStoreItems.mutate({
           instanceId: p.instanceId,
-          storeId: skill.data.storeId,
+          storeId: p.storeId,
           operations: [
             {
               type: 'add',
@@ -336,7 +337,7 @@ export let SkillStoreFileViewerScene = (p: {
           title: file.name,
           purpose: 'generic',
           store: {
-            id: skill.data.storeId,
+            id: p.storeId,
             path
           }
         });
@@ -355,11 +356,11 @@ export let SkillStoreFileViewerScene = (p: {
   };
 
   let deleteStoreItem = async (itemId: string) => {
-    if (!p.instanceId || !skill.data?.storeId) return;
+    if (!p.instanceId || !p.storeId) return;
 
     await modifyStoreItems.mutate({
       instanceId: p.instanceId,
-      storeId: skill.data.storeId,
+      storeId: p.storeId,
       operations: [
         {
           type: 'remove',
@@ -372,11 +373,11 @@ export let SkillStoreFileViewerScene = (p: {
   };
 
   let renameStoreItem = async (itemId: string, parentPath: string, name: string) => {
-    if (!p.instanceId || !skill.data?.storeId) return;
+    if (!p.instanceId || !p.storeId) return;
 
     await modifyStoreItems.mutate({
       instanceId: p.instanceId,
-      storeId: skill.data.storeId,
+      storeId: p.storeId,
       operations: [
         {
           type: 'modify',
@@ -412,10 +413,13 @@ export let SkillStoreFileViewerScene = (p: {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [optimisticItems.length]);
 
-  return renderWithLoader({ skill, storeItems, storePermissions })(() => (
+  return renderWithLoader({ storeItems, storePermissions })(() => (
     <Box
-      title="Skill Files"
-      description="Manage the documents and files of this skill. Describe workflows, behaviors, and tasks for agentic workflows."
+      title={p.title ?? 'Files'}
+      description={
+        p.description ??
+        'Manage the documents and files in this store. Describe workflows, behaviors, and tasks for agentic workflows.'
+      }
     >
       <FileTreeWrap>
         <SkillFileTree
@@ -424,7 +428,9 @@ export let SkillStoreFileViewerScene = (p: {
           isCreating={isCreating}
           nodes={treeNodes}
           instanceId={p.instanceId}
-          canWrite={!!storePermissions.data?.permissions.includes('content_write')}
+          canWrite={
+            !p.readOnly && !!storePermissions.data?.permissions.includes('content_write')
+          }
           onCreate={createStoreItem}
           onDelete={deleteStoreItem}
           onFileSelect={createStoreFile}
@@ -448,3 +454,5 @@ export let SkillStoreFileViewerScene = (p: {
     </Box>
   ));
 };
+
+export let SkillStoreFileViewerScene = StoreFileViewerScene;
