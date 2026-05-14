@@ -123,7 +123,9 @@ class DocumentServiceImpl {
       return document.draftVersionExpiresAt.getTime() <= now.getTime();
     }
 
-    return now.getTime() - document.currentVersion.createdAt.getTime() >= activeVersionWindowMs;
+    return (
+      now.getTime() - document.currentVersion.createdAt.getTime() >= activeVersionWindowMs
+    );
   }
 
   private async getDocumentRecord(
@@ -166,7 +168,9 @@ class DocumentServiceImpl {
     });
   }
 
-  private async withEffectiveFileStore<T extends DocumentRecord | ResolvedDocumentRecord>(document: T) {
+  private async withEffectiveFileStore<T extends DocumentRecord | ResolvedDocumentRecord>(
+    document: T
+  ) {
     let effectiveStoreSource = await getEffectiveDocumentStoreSource(document);
     if (effectiveStoreSource.file.storeId === document.file.storeId) {
       return document as DocumentWithEffectiveStoreId<T>;
@@ -181,7 +185,9 @@ class DocumentServiceImpl {
     } satisfies DocumentWithEffectiveStoreId<T>;
   }
 
-  private async getParentLiveContent(document: Pick<DocumentRecord, 'isContentOwner' | 'parentDocumentOid'>) {
+  private async getParentLiveContent(
+    document: Pick<DocumentRecord, 'isContentOwner' | 'parentDocumentOid'>
+  ) {
     return await withTransaction(
       async db => {
         if (!document.parentDocumentOid) {
@@ -245,16 +251,14 @@ class DocumentServiceImpl {
     }
   }
 
-  private async upsertParticipant(
-    d: {
-      document: { oid: bigint };
-      actor: { oid: bigint };
-      mode: 'view' | 'edit';
-    }
-  ) {
-    return await withTransaction(async tx => {
+  private async upsertParticipant(d: {
+    document: { oid: bigint };
+    actor: { oid: bigint };
+    mode: 'view' | 'edit';
+  }) {
+    return await withTransaction(async db => {
       let now = new Date();
-      let existing = await tx.documentParticipant.findFirst({
+      let existing = await db.documentParticipant.findFirst({
         where: {
           documentOid: d.document.oid,
           tenantActorOid: d.actor.oid
@@ -265,7 +269,7 @@ class DocumentServiceImpl {
         d.mode === 'edit' || existing?.role === 'editor' ? 'editor' : 'viewer';
 
       if (existing) {
-        return await tx.documentParticipant.update({
+        return await db.documentParticipant.update({
           where: {
             id: existing.id
           },
@@ -281,12 +285,11 @@ class DocumentServiceImpl {
         });
       }
 
-      let generated = getId('documentParticipant');
+      let id = getId('documentParticipant');
 
-      return await tx.documentParticipant.create({
+      return await db.documentParticipant.create({
         data: {
-          oid: generated.oid,
-          id: generated.id,
+          ...id,
           role,
           documentOid: d.document.oid,
           tenantActorOid: d.actor.oid,
@@ -309,9 +312,7 @@ class DocumentServiceImpl {
     return await this.upsertParticipant(d);
   }
 
-  async materializeDocumentParticipantsFromStores(d: {
-    document: Document;
-  }) {
+  async materializeDocumentParticipantsFromStores(d: { document: Document }) {
     return await withTransaction(async client => {
       let storeActors = await storeAccessService.listStoreParticipantActorsForDocument({
         document: d.document
@@ -360,15 +361,13 @@ class DocumentServiceImpl {
     });
   }
 
-  private async ensureVersionEditor(
-    d: {
-      version: { oid: bigint };
-      document: { oid: bigint };
-      actor: { oid: bigint };
-    }
-  ) {
-    return await withTransaction(async tx => {
-      let existing = await tx.documentVersionEditors.findFirst({
+  private async ensureVersionEditor(d: {
+    version: { oid: bigint };
+    document: { oid: bigint };
+    actor: { oid: bigint };
+  }) {
+    return await withTransaction(async db => {
+      let existing = await db.documentVersionEditors.findFirst({
         where: {
           documentVersionOid: d.version.oid,
           tenantActorOid: d.actor.oid
@@ -379,7 +378,7 @@ class DocumentServiceImpl {
 
       let generated = getId('documentVersionEditor');
 
-      await tx.documentParticipant.updateMany({
+      await db.documentParticipant.updateMany({
         where: {
           documentOid: d.document.oid,
           tenantActorOid: d.actor.oid
@@ -391,10 +390,9 @@ class DocumentServiceImpl {
         }
       });
 
-      return await tx.documentVersionEditors.create({
+      return await db.documentVersionEditors.create({
         data: {
-          oid: generated.oid,
-          id: generated.id,
+          ...generated,
           documentVersionOid: d.version.oid,
           tenantActorOid: d.actor.oid
         }
@@ -411,13 +409,12 @@ class DocumentServiceImpl {
       listEditedAt?: Date;
     }
   ) {
-    return await withTransaction(async tx => {
+    return await withTransaction(async db => {
       let generated = getId('documentVersion');
 
-      return await tx.documentVersion.create({
+      return await db.documentVersion.create({
         data: {
-          oid: generated.oid,
-          id: generated.id,
+          ...generated,
           tenantOid: d.tenant.oid,
           environmentOid: d.environment.oid,
           documentOid: d.document.oid,
@@ -440,7 +437,7 @@ class DocumentServiceImpl {
       listEditedAt?: Date;
     }
   ) {
-    return await withTransaction(async tx => {
+    return await withTransaction(async db => {
       let now = new Date();
       let shouldCreateNewVersion = this.shouldCreateNewVersionForWrite(d.document, now);
 
@@ -453,7 +450,7 @@ class DocumentServiceImpl {
         nextContent: d.nextContent
       });
       let hasLinkedChildContentConsumers = d.document.isContentOwner
-        ? (await tx.document.count({
+        ? (await db.document.count({
             where: {
               parentDocumentOid: d.document.oid,
               isContentOwner: false,
@@ -473,14 +470,14 @@ class DocumentServiceImpl {
         if (d.document.currentVersion) {
           let retiredContentIds = getId('documentContent');
 
-          await tx.documentContent.create({
+          await db.documentContent.create({
             data: {
               oid: retiredContentIds.oid,
               content: d.document.content.content
             }
           });
 
-          await tx.documentVersion.update({
+          await db.documentVersion.update({
             where: {
               id: d.document.currentVersion.id
             },
@@ -494,7 +491,7 @@ class DocumentServiceImpl {
           if (shouldDetachOwnedContent) {
             let liveContentIds = getId('documentContent');
 
-            await tx.documentContent.create({
+            await db.documentContent.create({
               data: {
                 oid: liveContentIds.oid,
                 content: d.nextContent
@@ -503,7 +500,7 @@ class DocumentServiceImpl {
 
             liveContentOid = liveContentIds.oid;
           } else {
-            await tx.documentContent.update({
+            await db.documentContent.update({
               where: {
                 oid: d.document.contentOid
               },
@@ -517,7 +514,7 @@ class DocumentServiceImpl {
         } else {
           let liveContentIds = getId('documentContent');
 
-          await tx.documentContent.create({
+          await db.documentContent.create({
             data: {
               oid: liveContentIds.oid,
               content: d.nextContent
@@ -543,7 +540,7 @@ class DocumentServiceImpl {
         if (shouldDetachOwnedContent) {
           let liveContentIds = getId('documentContent');
 
-          await tx.documentContent.create({
+          await db.documentContent.create({
             data: {
               oid: liveContentIds.oid,
               content: d.nextContent
@@ -565,7 +562,7 @@ class DocumentServiceImpl {
             nextVersionNumber += 1;
             didCreateVersion = true;
           } else {
-            activeVersion = await tx.documentVersion.update({
+            activeVersion = await db.documentVersion.update({
               where: {
                 id: d.document.currentVersion.id
               },
@@ -579,7 +576,7 @@ class DocumentServiceImpl {
             });
           }
         } else {
-          await tx.documentContent.update({
+          await db.documentContent.update({
             where: {
               oid: d.document.contentOid
             },
@@ -604,7 +601,7 @@ class DocumentServiceImpl {
           nextVersionNumber += 1;
           didCreateVersion = true;
         } else {
-          activeVersion = await tx.documentVersion.update({
+          activeVersion = await db.documentVersion.update({
             where: {
               id: d.document.currentVersion.id
             },
@@ -620,7 +617,7 @@ class DocumentServiceImpl {
       } else {
         let liveContentIds = getId('documentContent');
 
-        await tx.documentContent.create({
+        await db.documentContent.create({
           data: {
             oid: liveContentIds.oid,
             content: d.nextContent
@@ -642,7 +639,7 @@ class DocumentServiceImpl {
           nextVersionNumber += 1;
           didCreateVersion = true;
         } else {
-          activeVersion = await tx.documentVersion.update({
+          activeVersion = await db.documentVersion.update({
             where: {
               id: d.document.currentVersion.id
             },
@@ -675,7 +672,7 @@ class DocumentServiceImpl {
       actors: TenantActor[];
     }
   ) {
-    return await withTransaction(async tx => {
+    return await withTransaction(async db => {
       let nextTitle = d.draft.title;
       let nextContent = d.draft.content;
       let hasContentChange = nextContent !== d.document.content.content;
@@ -711,11 +708,13 @@ class DocumentServiceImpl {
         liveContentOid = writeResult.liveContentOid;
         maxVersionNumber = writeResult.nextVersionNumber;
         isContentOwner = writeResult.isContentOwner;
-        createdVersionId = writeResult.didCreateVersion ? (writeResult.activeVersion?.id ?? null) : null;
+        createdVersionId = writeResult.didCreateVersion
+          ? (writeResult.activeVersion?.id ?? null)
+          : null;
         draftVersionExpiresAt = writeResult.draftVersionExpiresAt;
       }
 
-      await tx.file.update({
+      await db.file.update({
         where: {
           id: d.document.file.id
         },
@@ -730,7 +729,7 @@ class DocumentServiceImpl {
         }
       });
 
-      let updatedDocument = await tx.document.update({
+      let updatedDocument = await db.document.update({
         where: {
           id: d.document.id
         },
@@ -798,7 +797,7 @@ class DocumentServiceImpl {
         })
       : undefined;
 
-    return await withTransaction(async tx => {
+    return await withTransaction(async db => {
       let documentIds = d.input.id
         ? { oid: getId('document').oid, id: d.input.id }
         : getId('document');
@@ -820,14 +819,14 @@ class DocumentServiceImpl {
         }
       });
 
-      await tx.documentContent.create({
+      await db.documentContent.create({
         data: {
           oid: contentIds.oid,
           content: d.input.content
         }
       });
 
-      let document = await tx.document.create({
+      let document = await db.document.create({
         data: {
           oid: documentIds.oid,
           id: documentIds.id,
@@ -868,7 +867,7 @@ class DocumentServiceImpl {
         });
       }
 
-      let createdDocument = await tx.document.update({
+      let createdDocument = await db.document.update({
         where: {
           id: document.id
         },
@@ -1123,7 +1122,8 @@ class DocumentServiceImpl {
 
     let resolved = await documentDraftService.withDocumentLock(d.document.id, async () => {
       let currentDraft = await documentDraftService.getDraftByDocumentId(d.document.id);
-      let currentContent = currentDraft?.content ?? d.document.resolvedContent ?? d.document.content.content;
+      let currentContent =
+        currentDraft?.content ?? d.document.resolvedContent ?? d.document.content.content;
       let nextDraft: DocumentDraft = {
         documentId: d.document.id,
         title:
@@ -1198,7 +1198,11 @@ class DocumentServiceImpl {
     return await this.withEffectiveFileStore(resolved);
   }
 
-  async flushDocumentDraft(d: { documentId: string; force?: boolean; queuedRevision?: number }) {
+  async flushDocumentDraft(d: {
+    documentId: string;
+    force?: boolean;
+    queuedRevision?: number;
+  }) {
     return await documentDraftService.withDocumentLock(d.documentId, async () => {
       let draft = await documentDraftService.getDraftByDocumentId(d.documentId);
       if (!draft) {
@@ -1218,8 +1222,8 @@ class DocumentServiceImpl {
         return null;
       }
 
-      let result = await withTransaction(async tx => {
-        let currentDocument = await tx.document.findFirst({
+      let result = await withTransaction(async db => {
+        let currentDocument = await db.document.findFirst({
           where: {
             id: d.documentId
           },
@@ -1237,7 +1241,7 @@ class DocumentServiceImpl {
 
         let actors =
           draft.actorIds.length > 0
-            ? await tx.tenantActor.findMany({
+            ? await db.tenantActor.findMany({
                 where: {
                   tenantOid: currentDocument.tenantOid,
                   id: {
@@ -1257,7 +1261,10 @@ class DocumentServiceImpl {
       });
 
       await documentDraftService.deleteDraft(d.documentId);
-      await documentDraftService.clearDocumentMarkersUpToRevision(d.documentId, draft.revision);
+      await documentDraftService.clearDocumentMarkersUpToRevision(
+        d.documentId,
+        draft.revision
+      );
       if (result.didPersistChange) {
         await storeVersionService.touchStoresLastEditedAtForDocument({
           documentOid: result.document.oid
@@ -1315,7 +1322,10 @@ class DocumentServiceImpl {
           documentId: document.id,
           draftVersionExpiresAt: document.draftVersionExpiresAt!
         })),
-      nextCursorOid: documents.length === d.limit ? documents[documents.length - 1]!.oid.toString() : undefined
+      nextCursorOid:
+        documents.length === d.limit
+          ? documents[documents.length - 1]!.oid.toString()
+          : undefined
     };
   }
 
@@ -1327,9 +1337,9 @@ class DocumentServiceImpl {
       let draft = await documentDraftService.getDraftByDocumentId(d.documentId);
       if (draft) return null;
 
-      return await withTransaction(async tx => {
+      return await withTransaction(async db => {
         let now = new Date();
-        let document = await tx.document.findFirst({
+        let document = await db.document.findFirst({
           where: {
             id: d.documentId,
             file: {
@@ -1352,14 +1362,14 @@ class DocumentServiceImpl {
         if (draftVersionExpiresAt.getTime() > now.getTime()) return null;
 
         let retiredContentIds = getId('documentContent');
-        await tx.documentContent.create({
+        await db.documentContent.create({
           data: {
             oid: retiredContentIds.oid,
             content: document.content.content
           }
         });
 
-        await tx.documentVersion.update({
+        await db.documentVersion.update({
           where: {
             id: document.currentVersion.id
           },
@@ -1379,7 +1389,7 @@ class DocumentServiceImpl {
           listEditedAt: now
         });
 
-        let updatedDocument = await tx.document.update({
+        let updatedDocument = await db.document.update({
           where: {
             id: document.id
           },
@@ -1465,7 +1475,9 @@ class DocumentServiceImpl {
     );
 
     return {
-      childDocumentIds: childDrafts.filter(child => child.draft === null).map(child => child.childId),
+      childDocumentIds: childDrafts
+        .filter(child => child.draft === null)
+        .map(child => child.childId),
       nextCursor: children.length === d.limit ? children[children.length - 1]!.id : undefined
     };
   }
@@ -1504,9 +1516,7 @@ class DocumentServiceImpl {
       }))
     );
 
-    return childDrafts
-      .filter(child => child.draft === null)
-      .map(child => child.child);
+    return childDrafts.filter(child => child.draft === null).map(child => child.child);
   }
 
   async syncChildDocumentVersionFromParentVersion(d: {
@@ -1517,8 +1527,8 @@ class DocumentServiceImpl {
       let draft = await documentDraftService.getDraftByDocumentId(d.childDocumentId);
       if (draft) return null;
 
-      return await withTransaction(async tx => {
-        let parentVersion = await tx.documentVersion.findFirst({
+      return await withTransaction(async db => {
+        let parentVersion = await db.documentVersion.findFirst({
           where: {
             id: d.parentDocumentVersionId,
             document: {
@@ -1533,7 +1543,7 @@ class DocumentServiceImpl {
         });
         if (!parentVersion) return null;
 
-        let childDocument = await tx.document.findFirst({
+        let childDocument = await db.document.findFirst({
           where: {
             id: d.childDocumentId,
             tenantOid: parentVersion.tenantOid,
@@ -1577,7 +1587,7 @@ class DocumentServiceImpl {
           listEditedAt: parentVersion.listEditedAt ?? new Date()
         });
 
-        await tx.file.update({
+        await db.file.update({
           where: {
             id: childDocument.file.id
           },
@@ -1586,7 +1596,7 @@ class DocumentServiceImpl {
           }
         });
 
-        let syncedDocument = await tx.document.update({
+        let syncedDocument = await db.document.update({
           where: {
             id: childDocument.id
           },
@@ -1654,7 +1664,7 @@ class DocumentServiceImpl {
     let purpose = await filePurposeService.ensureDocumentFilePurpose();
     let cloneType = d.input.cloneType ?? 'sync_until_change';
 
-    let clonedDocument = await withTransaction(async tx => {
+    let clonedDocument = await withTransaction(async db => {
       let documentIds = d.input.id
         ? { oid: getId('document').oid, id: d.input.id }
         : getId('document');
@@ -1679,7 +1689,7 @@ class DocumentServiceImpl {
       });
 
       if (cloneType === 'duplicate') {
-        await tx.documentContent.create({
+        await db.documentContent.create({
           data: {
             oid: contentIds.oid,
             content: sourceContent
@@ -1687,7 +1697,7 @@ class DocumentServiceImpl {
         });
       }
 
-      let document = await tx.document.create({
+      let document = await db.document.create({
         data: {
           oid: documentIds.oid,
           id: documentIds.id,
@@ -1713,7 +1723,7 @@ class DocumentServiceImpl {
         listEditedAt: new Date()
       });
 
-      let nextDocument = await tx.document.update({
+      let nextDocument = await db.document.update({
         where: {
           id: document.id
         },
@@ -1764,7 +1774,22 @@ class DocumentServiceImpl {
     this.ensureDocumentActive(d.document);
     this.assertDocumentWritable(d.document);
 
-    let deletedDocument = await withTransaction(async tx => {
+    let activeSkillAgentCount = await db.skillAgent.count({
+      where: {
+        documentOid: d.document.oid,
+        status: 'active'
+      }
+    });
+
+    if (activeSkillAgentCount > 0) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Cannot delete document: it is linked to an active skill agent'
+        })
+      );
+    }
+
+    let deletedDocument = await withTransaction(async db => {
       await fileService.deleteFile({
         file: d.document.file
       });

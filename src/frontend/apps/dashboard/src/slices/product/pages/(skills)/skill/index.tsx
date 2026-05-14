@@ -1,5 +1,6 @@
 import { Paths } from '@metorial/frontend-config';
 import {
+  SkillAgentsScene,
   SkillGroupsForSkillScene,
   SkillLinkProvidersScene,
   StoreFileViewerScene
@@ -37,6 +38,7 @@ export let SkillPage = () => {
           Paths.instance(organization.data, project.data, instance.data, 'doc', documentId)
         }
       />
+      <SkillAgentsScene instanceId={instance.data?.id} skillId={skillId} />
       <SkillLinkProvidersScene instanceId={instance.data?.id} skillId={skillId} />
       <SkillGroupsForSkillScene
         instanceId={instance.data?.id}

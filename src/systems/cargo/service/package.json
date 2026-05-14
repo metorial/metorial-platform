@@ -57,6 +57,7 @@
     "@lowerdeck/rpc-server": "^1.0.11",
     "@lowerdeck/sentry": "^1.0.2",
     "@lowerdeck/service": "^1.0.7",
+    "@lowerdeck/slugify": "^1.0.6",
     "@lowerdeck/snowflake": "^1.0.2",
     "@lowerdeck/tokens": "^1.0.5",
     "@lowerdeck/validation": "1.0.10",

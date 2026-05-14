@@ -31,10 +31,7 @@ class DocumentCleanupServiceImpl {
     }
   }
 
-  async listStaleDocumentVersions(d?: {
-    cursor?: string;
-    limit?: number;
-  }) {
+  async listStaleDocumentVersions(d?: { cursor?: string; limit?: number }) {
     return await db.documentVersion.findMany({
       where: {
         id: d?.cursor ? { gt: d.cursor } : undefined,
@@ -55,9 +52,7 @@ class DocumentCleanupServiceImpl {
     });
   }
 
-  async cleanupDocumentVersion(d: {
-    documentVersionId: string;
-  }) {
+  async cleanupDocumentVersion(d: { documentVersionId: string }) {
     let version = await db.documentVersion.findUnique({
       where: {
         id: d.documentVersionId
@@ -74,8 +69,8 @@ class DocumentCleanupServiceImpl {
 
     let contentOid = version.contentOid;
 
-    await withTransaction(async tx => {
-      await tx.documentVersion.updateMany({
+    await withTransaction(async db => {
+      await db.documentVersion.updateMany({
         where: {
           previousVersionOid: version.oid
         },
@@ -84,7 +79,7 @@ class DocumentCleanupServiceImpl {
         }
       });
 
-      await tx.documentVersion.delete({
+      await db.documentVersion.delete({
         where: {
           id: version.id
         }

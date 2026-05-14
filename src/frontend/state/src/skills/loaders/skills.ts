@@ -1,4 +1,8 @@
 import type {
+  DashboardInstanceSkillsAgentsCreateBody,
+  DashboardInstanceSkillsAgentsGetOutput,
+  DashboardInstanceSkillsAgentsListQuery,
+  DashboardInstanceSkillsAgentsUpdateBody,
   DashboardInstanceSkillsCreateBody,
   DashboardInstanceSkillsDuplicateBody,
   DashboardInstanceSkillsForkBody,
@@ -20,6 +24,7 @@ import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
 
 export type Skill = DashboardInstanceSkillsGetOutput;
+export type SkillAgent = DashboardInstanceSkillsAgentsGetOutput;
 export type SkillItem = DashboardInstanceSkillsItemsGetOutput;
 export type SkillParticipant = DashboardInstanceSkillsParticipantsGetOutput;
 export type SkillVersion = DashboardInstanceSkillsVersionsGetOutput;
@@ -102,6 +107,91 @@ export let useSkill = (
   skillId: string | null | undefined
 ) => {
   let data = skillLoader.use(instanceId && skillId ? { instanceId, skillId } : null);
+
+  return {
+    ...data,
+    updateMutator: data.useMutator('update'),
+    deleteMutator: data.useMutator('delete')
+  };
+};
+
+export let skillAgentsLoader = createLoader({
+  name: 'skillAgents',
+  parents: [skillLoader],
+  fetch: (
+    i: { instanceId: string; skillId: string } & DashboardInstanceSkillsAgentsListQuery
+  ) => withAuth(sdk => sdk.skills.agents.list(i.instanceId, i.skillId, i)),
+  mutators: {}
+});
+
+export let useCreateSkillAgent = skillAgentsLoader.createExternalMutator(
+  (i: DashboardInstanceSkillsAgentsCreateBody & { instanceId: string; skillId: string }) =>
+    withAuth(sdk => sdk.skills.agents.create(i.instanceId, i.skillId, i))
+);
+
+export let useUpdateSkillAgent = skillAgentsLoader.createExternalMutator(
+  (
+    i: DashboardInstanceSkillsAgentsUpdateBody & {
+      instanceId: string;
+      skillId: string;
+      skillAgentId: string;
+    }
+  ) => withAuth(sdk => sdk.skills.agents.update(i.instanceId, i.skillId, i.skillAgentId, i))
+);
+
+export let useDeleteSkillAgent = skillAgentsLoader.createExternalMutator(
+  (i: { instanceId: string; skillId: string; skillAgentId: string }) =>
+    withAuth(sdk => sdk.skills.agents.delete(i.instanceId, i.skillId, i.skillAgentId))
+);
+
+export let useSkillAgents = (
+  instanceId: string | null | undefined,
+  skillId: string | null | undefined,
+  query?: DashboardInstanceSkillsAgentsListQuery | null
+) => {
+  return usePaginator(
+    pagination =>
+      skillAgentsLoader.use(
+        instanceId && skillId && query !== null
+          ? { instanceId, skillId, ...pagination, ...(query ?? {}) }
+          : null
+      ),
+    instanceId && skillId
+      ? `${instanceId}:${skillId}:agents:${JSON.stringify(query ?? {})}`
+      : null
+  );
+};
+
+export let skillAgentLoader = createLoader({
+  name: 'skillAgent',
+  parents: [skillAgentsLoader, skillLoader],
+  fetch: (i: { instanceId: string; skillId: string; skillAgentId: string }) =>
+    withAuth(sdk => sdk.skills.agents.get(i.instanceId, i.skillId, i.skillAgentId)),
+  mutators: {
+    update: (
+      i: DashboardInstanceSkillsAgentsUpdateBody,
+      {
+        input: { instanceId, skillId, skillAgentId }
+      }: { input: { instanceId: string; skillId: string; skillAgentId: string } }
+    ) => withAuth(sdk => sdk.skills.agents.update(instanceId, skillId, skillAgentId, i)),
+
+    delete: (
+      _: void,
+      {
+        input: { instanceId, skillId, skillAgentId }
+      }: { input: { instanceId: string; skillId: string; skillAgentId: string } }
+    ) => withAuth(sdk => sdk.skills.agents.delete(instanceId, skillId, skillAgentId))
+  }
+});
+
+export let useSkillAgent = (
+  instanceId: string | null | undefined,
+  skillId: string | null | undefined,
+  skillAgentId: string | null | undefined
+) => {
+  let data = skillAgentLoader.use(
+    instanceId && skillId && skillAgentId ? { instanceId, skillId, skillAgentId } : null
+  );
 
   return {
     ...data,

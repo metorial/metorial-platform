@@ -24,13 +24,7 @@ export type SkillParticipantRecord = Prisma.SkillParticipantGetPayload<{
 
 let explicitRoles: SkillParticipantRole[] = ['creator', 'user', 'forker'];
 let storeBackedRoles: SkillParticipantRole[] = ['editor', 'viewer'];
-let roleOrder: SkillParticipantRole[] = [
-  'creator',
-  'editor',
-  'viewer',
-  'user',
-  'forker'
-];
+let roleOrder: SkillParticipantRole[] = ['creator', 'editor', 'viewer', 'user', 'forker'];
 
 let sortRoles = (roles: SkillParticipantRole[]) =>
   [...new Set(roles)].sort((a, b) => roleOrder.indexOf(a) - roleOrder.indexOf(b));
@@ -62,8 +56,8 @@ class SkillParticipantServiceImpl {
     actor: Pick<TenantActor, 'oid'>;
     roles: SkillParticipantRole[];
   }) {
-    return await withTransaction(async tx => {
-      let existing = await tx.skillParticipant.findUnique({
+    return await withTransaction(async db => {
+      let existing = await db.skillParticipant.findUnique({
         where: {
           skillOid_tenantActorOid: {
             skillOid: d.skill.oid,
@@ -75,7 +69,7 @@ class SkillParticipantServiceImpl {
 
       if (existing) {
         if (sameRoles(existing.roles, nextRoles)) {
-          return (await tx.skillParticipant.findUnique({
+          return (await db.skillParticipant.findUnique({
             where: {
               skillOid_tenantActorOid: {
                 skillOid: d.skill.oid,
@@ -86,7 +80,7 @@ class SkillParticipantServiceImpl {
           }))!;
         }
 
-        return await tx.skillParticipant.update({
+        return await db.skillParticipant.update({
           where: {
             id: existing.id
           },
@@ -99,7 +93,7 @@ class SkillParticipantServiceImpl {
 
       let generated = getId('skillParticipant');
 
-      return await tx.skillParticipant.create({
+      return await db.skillParticipant.create({
         data: {
           oid: generated.oid,
           id: generated.id,
@@ -124,11 +118,9 @@ class SkillParticipantServiceImpl {
     });
   }
 
-  async syncSkillParticipantsFromStore(d: {
-    skill: Pick<Skill, 'oid' | 'storeOid'>;
-  }) {
-    return await withTransaction(async tx => {
-      let storeParticipants = await tx.storeParticipant.findMany({
+  async syncSkillParticipantsFromStore(d: { skill: Pick<Skill, 'oid' | 'storeOid'> }) {
+    return await withTransaction(async db => {
+      let storeParticipants = await db.storeParticipant.findMany({
         where: {
           storeOid: d.skill.storeOid
         },
@@ -136,7 +128,7 @@ class SkillParticipantServiceImpl {
           tenantActor: true
         }
       });
-      let existingParticipants = await tx.skillParticipant.findMany({
+      let existingParticipants = await db.skillParticipant.findMany({
         where: {
           skillOid: d.skill.oid
         },
@@ -158,7 +150,10 @@ class SkillParticipantServiceImpl {
         syncedActorOids.add(storeParticipant.tenantActorOid.toString());
 
         let existing = existingByActorOid.get(storeParticipant.tenantActorOid.toString());
-        let nextRoles = sortRoles([...withoutStoreBackedRoles(existing?.roles ?? []), storeRole]);
+        let nextRoles = sortRoles([
+          ...withoutStoreBackedRoles(existing?.roles ?? []),
+          storeRole
+        ]);
 
         if (existing) {
           if (sameRoles(existing.roles, nextRoles)) {
@@ -167,7 +162,7 @@ class SkillParticipantServiceImpl {
           }
 
           syncedParticipants.push(
-            await tx.skillParticipant.update({
+            await db.skillParticipant.update({
               where: {
                 id: existing.id
               },
@@ -183,7 +178,7 @@ class SkillParticipantServiceImpl {
         let generated = getId('skillParticipant');
 
         syncedParticipants.push(
-          await tx.skillParticipant.create({
+          await db.skillParticipant.create({
             data: {
               oid: generated.oid,
               id: generated.id,
@@ -203,7 +198,7 @@ class SkillParticipantServiceImpl {
         let nextRoles = withoutStoreBackedRoles(participant.roles);
 
         if (nextRoles.length === 0) {
-          await tx.skillParticipant.delete({
+          await db.skillParticipant.delete({
             where: {
               id: participant.id
             }
@@ -214,7 +209,7 @@ class SkillParticipantServiceImpl {
         if (sameRoles(participant.roles, nextRoles)) continue;
 
         syncedParticipants.push(
-          await tx.skillParticipant.update({
+          await db.skillParticipant.update({
             where: {
               id: participant.id
             },
@@ -232,8 +227,8 @@ class SkillParticipantServiceImpl {
 
   async syncAllSkillParticipantsFromStores(d: CargoTenantEnvironment) {
     let skills = await withTransaction(
-      async tx =>
-        await tx.skill.findMany({
+      async db =>
+        await db.skill.findMany({
           where: {
             tenantOid: d.tenant.oid,
             environmentOid: d.environment.oid

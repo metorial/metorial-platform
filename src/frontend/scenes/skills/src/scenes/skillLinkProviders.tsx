@@ -646,8 +646,8 @@ let AddSkillItemMenu = (p: {
       if (item === 'provider' || item === 'integration') p.onSelect(item);
     }}
   >
-    <Button size="2" iconLeft={<RiAddLine />} disabled={p.disabled}>
-      Add
+    <Button size="2" iconLeft={<RiAddLine />} disabled={p.disabled} variant="outline">
+      Add Provider
     </Button>
   </Menu>
 );

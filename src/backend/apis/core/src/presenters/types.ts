@@ -82,6 +82,7 @@ import type {
   CargoFileLink,
   CargoStore,
   CargoStorePermissions,
+  CargoSkillAgent,
   EnrichedCargoDocument,
   EnrichedCargoDocumentParticipant,
   EnrichedCargoDocumentVersion,
@@ -474,6 +475,10 @@ export let storeItemListType = PresentableType.create<{
 export let storeParticipantType = PresentableType.create<{
   storeParticipant: EnrichedCargoStoreParticipant;
 }>()('storeParticipant');
+
+export let skillAgentType = PresentableType.create<{
+  skillAgent: CargoSkillAgent;
+}>()('skillAgent');
 
 export let skillParticipantType = PresentableType.create<{
   skillParticipant: EnrichedCargoSkillParticipant;

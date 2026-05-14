@@ -336,6 +336,23 @@ class FileServiceImpl {
   async deleteFile(d: { file: File }) {
     await this.ensureFileActive(d.file);
     this.assertFileWritable(d.file);
+    let activeSkillAgentCount = await db.skillAgent.count({
+      where: {
+        status: 'active',
+        document: {
+          fileOid: d.file.oid
+        }
+      }
+    });
+
+    if (activeSkillAgentCount > 0) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Cannot delete file: it is linked to an active skill agent'
+        })
+      );
+    }
+
     let hasRefs = await fileReferenceService.hasReferencesForFile({
       file: d.file
     });

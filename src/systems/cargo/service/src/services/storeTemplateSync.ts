@@ -2,7 +2,12 @@ import { canonicalize } from '@lowerdeck/canonicalize';
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Hash } from '@lowerdeck/hash';
 import { Service } from '@lowerdeck/service';
-import type { Prisma, Store, StoreItemKind, StoreTemplateItem } from '../../prisma/generated/client';
+import type {
+  Prisma,
+  Store,
+  StoreItemKind,
+  StoreTemplateItem
+} from '../../prisma/generated/client';
 import { db, withTransaction } from '../db';
 import { getId } from '../id';
 import { getCargoFilesBucketName, getStorage } from '../storage';
@@ -36,7 +41,9 @@ type StoreTemplateSyncRecord = Prisma.StoreTemplateGetPayload<{
 
 type StoreTemplateSyncItem = StoreTemplateSyncRecord['items'][number];
 
-let decodeStoreTemplateItemContent = (item: Pick<StoreTemplateItem, 'id' | 'kind' | 'content' | 'encoding'>) => {
+let decodeStoreTemplateItemContent = (
+  item: Pick<StoreTemplateItem, 'id' | 'kind' | 'content' | 'encoding'>
+) => {
   if (item.kind === 'directory') return null;
 
   if (item.content === null || item.encoding === null) {
@@ -93,7 +100,9 @@ class StoreTemplateSyncServiceImpl {
     return storeTemplate;
   }
 
-  private assertStandaloneTemplate(storeTemplate: Pick<StoreTemplateSyncRecord, 'id' | 'type'>) {
+  private assertStandaloneTemplate(
+    storeTemplate: Pick<StoreTemplateSyncRecord, 'id' | 'type'>
+  ) {
     if (storeTemplate.type !== 'standalone') {
       throw new ServiceError(
         badRequestError({
@@ -107,7 +116,11 @@ class StoreTemplateSyncServiceImpl {
     let content = decodeStoreTemplateItemContent(d.item);
     let contentHash = content ? await Hash.sha256(content.toString('base64')) : null;
     let fileStoreId =
-      content && d.item.kind === 'file' ? `template_${contentHash}` : content ? `template_doc_${contentHash}` : null;
+      content && d.item.kind === 'file'
+        ? `template_${contentHash}`
+        : content
+          ? `template_doc_${contentHash}`
+          : null;
     let contentByteSize = content?.length ?? null;
     let hash = await Hash.sha256(
       canonicalize({
@@ -289,7 +302,9 @@ class StoreTemplateSyncServiceImpl {
         environment
       })),
       nextCursorOid:
-        environments.length === limit ? environments[environments.length - 1]!.oid.toString() : undefined
+        environments.length === limit
+          ? environments[environments.length - 1]!.oid.toString()
+          : undefined
     };
   }
 
@@ -298,8 +313,8 @@ class StoreTemplateSyncServiceImpl {
     tenant: { oid: bigint; id: string };
     environment: { oid: bigint; id: string };
   }) {
-    return await withTransaction(async tx => {
-      let existing = await tx.storeTemplateBacking.findFirst({
+    return await withTransaction(async db => {
+      let existing = await db.storeTemplateBacking.findFirst({
         where: {
           storeTemplateOid: d.storeTemplate.oid,
           tenantOid: d.tenant.oid,
@@ -319,7 +334,7 @@ class StoreTemplateSyncServiceImpl {
           !store.isTemplateBacking ||
           store.parentStoreTemplateOid !== d.storeTemplate.oid
         ) {
-          store = await tx.store.update({
+          store = await db.store.update({
             where: {
               id: store.id
             },
@@ -341,7 +356,7 @@ class StoreTemplateSyncServiceImpl {
 
       let storeIds = getId('store');
       let backingIds = getId('storeTemplateBacking');
-      let store = await tx.store.create({
+      let store = await db.store.create({
         data: {
           oid: storeIds.oid,
           id: storeIds.id,
@@ -356,7 +371,7 @@ class StoreTemplateSyncServiceImpl {
         }
       });
 
-      let backing = await tx.storeTemplateBacking.create({
+      let backing = await db.storeTemplateBacking.create({
         data: {
           oid: backingIds.oid,
           id: backingIds.id,
@@ -487,14 +502,15 @@ class StoreTemplateSyncServiceImpl {
     let title = getDocumentTitle(d.item, content);
 
     if (d.existingItem?.kind === 'document' && d.existingItem.document) {
-      let document = await withTransaction(async tx => {
-        let currentDocument = await tx.document.findFirst({
+      let document = await withTransaction(async db => {
+        let currentDocument = await db.document.findFirst({
           where: {
             id: d.existingItem!.document!.id
           },
           include: documentInclude
         });
-        if (!currentDocument) throw new ServiceError(notFoundError('document', d.existingItem!.document!.id));
+        if (!currentDocument)
+          throw new ServiceError(notFoundError('document', d.existingItem!.document!.id));
 
         let hasContentChange = currentDocument.content.content !== content;
         let hasTitleChange = currentDocument.title !== title;
@@ -503,7 +519,7 @@ class StoreTemplateSyncServiceImpl {
 
         let contentIds = hasContentChange ? getId('documentContent') : null;
         if (contentIds) {
-          await tx.documentContent.create({
+          await db.documentContent.create({
             data: {
               oid: contentIds.oid,
               content
@@ -525,7 +541,7 @@ class StoreTemplateSyncServiceImpl {
             })
           : null;
 
-        await tx.file.update({
+        await db.file.update({
           where: {
             id: currentDocument.file.id
           },
@@ -540,7 +556,7 @@ class StoreTemplateSyncServiceImpl {
           }
         });
 
-        return await tx.document.update({
+        return await db.document.update({
           where: {
             id: currentDocument.id
           },
@@ -666,7 +682,8 @@ class StoreTemplateSyncServiceImpl {
     if (!environment) throw new ServiceError(notFoundError('environment', d.environmentId));
 
     if (storeTemplate.tenantOid && storeTemplate.tenantOid !== tenant.oid) return null;
-    if (storeTemplate.environmentOid && storeTemplate.environmentOid !== environment.oid) return null;
+    if (storeTemplate.environmentOid && storeTemplate.environmentOid !== environment.oid)
+      return null;
 
     let { backing, store } = await this.ensureBackingStore({
       storeTemplate,

@@ -254,6 +254,304 @@ describe('cargo skill.e2e', () => {
     expect(deletedStore).toBeNull();
   });
 
+  it('manages skill agents from markdown documents in skill stores', async () => {
+    let { tenant, environment } = await createScope();
+    let skill = await cargoClient.skill.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillId: 'csk_agents',
+      name: 'Agent Skill'
+    });
+
+    let createdAgent = await cargoClient.skillAgent.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillId: skill.id,
+      name: 'Research Assistant',
+      description: 'Find useful information',
+      content: 'agent instructions'
+    });
+
+    expect(createdAgent).toMatchObject({
+      skillId: skill.id,
+      name: 'Research Assistant',
+      description: 'Find useful information',
+      slug: 'research-assistant',
+      status: 'active',
+      path: '/agents/research-assistant.md',
+      documentId: expect.any(String),
+      storeItemId: expect.any(String)
+    });
+
+    let updatedAgent = await cargoClient.skillAgent.update({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillAgentId: createdAgent.id,
+      name: 'Research Lead',
+      description: null
+    });
+
+    expect(updatedAgent).toMatchObject({
+      id: createdAgent.id,
+      name: 'Research Lead',
+      description: null,
+      slug: 'research-assistant',
+      path: '/agents/research-assistant.md'
+    });
+
+    await expect(
+      cargoClient.document.delete({
+        tenantId: tenant.id,
+        environmentId: environment.id,
+        documentId: createdAgent.documentId
+      })
+    ).rejects.toThrow('Cannot delete document: it is linked to an active skill agent');
+
+    let createdDocument = await cargoClient.document.get({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: createdAgent.documentId
+    });
+
+    await expect(
+      cargoClient.file.delete({
+        tenantId: tenant.id,
+        environmentId: environment.id,
+        fileId: createdDocument.fileId
+      })
+    ).rejects.toThrow('Cannot delete file: it is linked to an active skill agent');
+
+    let manualDocument = await cargoClient.document.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      title: 'Manual Agent',
+      content: 'manual instructions',
+      store: {
+        id: skill.storeId,
+        path: '/agents/manual.md'
+      }
+    });
+
+    let listedAfterManual = await cargoClient.skillAgent.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillId: skill.id,
+      limit: 10
+    });
+    let manualAgent = listedAfterManual.items.find(item => item.documentId === manualDocument.id)!;
+
+    expect(manualAgent).toMatchObject({
+      name: 'Manual Agent',
+      slug: 'manual',
+      path: '/agents/manual.md',
+      status: 'active'
+    });
+
+    await cargoClient.store.modifyItems({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: skill.storeId,
+      operations: [
+        {
+          type: 'modify',
+          itemId: manualAgent.storeItemId,
+          path: '/agents/manual-renamed.md'
+        }
+      ]
+    });
+
+    let renamedAgent = await cargoClient.skillAgent.get({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillAgentId: manualAgent.id
+    });
+
+    expect(renamedAgent).toMatchObject({
+      name: 'manual-renamed',
+      slug: 'manual-renamed',
+      path: '/agents/manual-renamed.md',
+      status: 'active'
+    });
+
+    await cargoClient.store.modifyItems({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: skill.storeId,
+      operations: [
+        {
+          type: 'modify',
+          itemId: renamedAgent.storeItemId,
+          path: '/docs/manual-renamed.md'
+        }
+      ]
+    });
+
+    let archivedAfterMove = await cargoClient.skillAgent.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillId: skill.id,
+      includeArchived: true,
+      limit: 10
+    });
+    let movedAgent = archivedAfterMove.items.find(item => item.id === manualAgent.id)!;
+
+    expect(movedAgent).toMatchObject({
+      status: 'archived',
+      storeItemId: undefined,
+      archivedAt: expect.any(Date)
+    });
+
+    let deletedAgent = await cargoClient.skillAgent.delete({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillAgentId: createdAgent.id
+    });
+    let removedStoreItem = await db.storeItem.findFirst({
+      where: {
+        id: createdAgent.storeItemId
+      }
+    });
+    let deletedDocument = await cargoClient.document.delete({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: createdAgent.documentId
+    });
+
+    expect(deletedAgent.status).toBe('archived');
+    expect(deletedAgent.storeItemId).toBeUndefined();
+    expect(removedStoreItem).toBeNull();
+    expect(deletedDocument.status).toBe('deleted');
+
+    let purpose = await cargoClient.filePurpose.upsert({
+      slug: 'skill_agent_restricted_file',
+      name: 'Skill Agent Restricted File',
+      ownerType: 'organization',
+      canHaveLinks: true
+    });
+
+    await expect(
+      cargoClient.file.create({
+        tenantId: tenant.id,
+        environmentId: environment.id,
+        purpose: purpose.id,
+        storeId: 'skill-agent-restricted-file',
+        name: 'bad.md',
+        mimeType: 'text/markdown',
+        size: 10,
+        store: {
+          id: skill.storeId,
+          path: '/agents/bad.md'
+        }
+      })
+    ).rejects.toThrow('Only markdown documents can be added to the agents directory');
+
+    await expect(
+      cargoClient.document.create({
+        tenantId: tenant.id,
+        environmentId: environment.id,
+        title: 'Bad Agent',
+        content: 'bad',
+        store: {
+          id: skill.storeId,
+          path: '/agents/bad.txt'
+        }
+      })
+    ).rejects.toThrow('Only markdown documents can be added to the agents directory');
+
+    await expect(
+      cargoClient.store.modifyItems({
+        tenantId: tenant.id,
+        environmentId: environment.id,
+        storeId: skill.storeId,
+        operations: [
+          {
+            type: 'add',
+            path: '/agents/folder/'
+          }
+        ]
+      })
+    ).rejects.toThrow('Only markdown documents can be added to the agents directory');
+
+    let skillDocument = await cargoClient.document.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      title: 'Skill Root',
+      content: 'root instructions',
+      store: {
+        id: skill.storeId,
+        path: '/SKILL.md'
+      }
+    });
+    let skillDocumentItem = (
+      await cargoClient.storeItem.list({
+        tenantId: tenant.id,
+        environmentId: environment.id,
+        storeId: skill.storeId,
+        documentId: skillDocument.id,
+        limit: 10
+      })
+    ).items[0]!;
+
+    await expect(
+      cargoClient.store.modifyItems({
+        tenantId: tenant.id,
+        environmentId: environment.id,
+        storeId: skill.storeId,
+        operations: [
+          {
+            type: 'remove',
+            itemId: skillDocumentItem.id
+          }
+        ]
+      })
+    ).rejects.toThrow('SKILL.md cannot be removed from a skill store');
+
+    await expect(
+      cargoClient.store.modifyItems({
+        tenantId: tenant.id,
+        environmentId: environment.id,
+        storeId: skill.storeId,
+        operations: [
+          {
+            type: 'modify',
+            itemId: skillDocumentItem.id,
+            path: '/docs/SKILL.md'
+          }
+        ]
+      })
+    ).rejects.toThrow('SKILL.md cannot be moved in a skill store');
+
+    await expect(
+      cargoClient.file.create({
+        tenantId: tenant.id,
+        environmentId: environment.id,
+        purpose: purpose.id,
+        storeId: 'skill-root-file',
+        name: 'SKILL.md',
+        mimeType: 'text/markdown',
+        size: 10,
+        store: {
+          id: skill.storeId,
+          path: '/SKILL.md'
+        }
+      })
+    ).rejects.toThrow('SKILL.md is reserved for documents in skill stores');
+
+    await expect(
+      cargoClient.store.modifyItems({
+        tenantId: tenant.id,
+        environmentId: environment.id,
+        storeId: skill.storeId,
+        operations: [
+          {
+            type: 'add',
+            path: '/docs/SKILL.md/'
+          }
+        ]
+      })
+    ).rejects.toThrow('SKILL.md is reserved for documents in skill stores');
+  });
+
   it('creates skill versions for store snapshots and resolves document version content', async () => {
     let { tenant, environment } = await createScope();
     let skill = await cargoClient.skill.create({

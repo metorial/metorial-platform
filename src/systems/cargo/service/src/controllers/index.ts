@@ -10,6 +10,7 @@ import { fileLinkController } from './fileLink';
 import { filePurposeController } from './filePurpose';
 import { fileReferenceController } from './fileReference';
 import { reconcileController } from './reconcile';
+import { skillAgentController } from './skillAgent';
 import { skillController } from './skill';
 import { skillParticipantController } from './skillParticipant';
 import { skillTemplateController } from './skillTemplate';
@@ -29,6 +30,7 @@ export let rootController = app.controller({
   fileLink: fileLinkController,
   fileReference: fileReferenceController,
   skill: skillController,
+  skillAgent: skillAgentController,
   skillParticipant: skillParticipantController,
   skillTemplate: skillTemplateController,
   skillVersion: skillVersionController,

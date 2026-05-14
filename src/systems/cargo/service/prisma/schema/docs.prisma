@@ -48,6 +48,7 @@ model Document {
   documentVersions     DocumentVersion[]
   storeItems           StoreItem[]
   storeVersionItems    StoreVersionItem[]
+  skillAgents          SkillAgent[]
 
   @@index([tenantOid, environmentOid])
   @@index([tenantOid, environmentOid, isTemplateBacking])

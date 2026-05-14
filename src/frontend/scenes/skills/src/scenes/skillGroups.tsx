@@ -305,6 +305,7 @@ export let SkillGroupSkillsScene = (p: {
           iconLeft={<RiAddLine />}
           disabled={!p.instanceId || !p.skillGroupId}
           onClick={openPicker}
+          variant="outline"
         >
           Add Skill
         </Button>
@@ -436,6 +437,7 @@ export let SkillGroupsForSkillScene = (p: {
           iconLeft={<RiAddLine />}
           disabled={!p.instanceId || !p.skillId || !allSkillGroups.data}
           onClick={openPicker}
+          variant="outline"
         >
           Add to Group
         </Button>
