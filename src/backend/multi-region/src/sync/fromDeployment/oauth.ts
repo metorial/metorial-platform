@@ -4,6 +4,7 @@ import { Fabric } from '@metorial/fabric';
 import { createQueue } from '@metorial/queue';
 import { cell } from '../../cell';
 import { globalDB } from '../../db';
+import { upsertOrganization } from './organization';
 
 let syncOAuthApp = async (_app: { id: string }) => {
   let app = await db.oAuthApplication.findUnique({
@@ -18,6 +19,8 @@ let syncOAuthApp = async (_app: { id: string }) => {
   // // Only sync apps that can be used in other deployments
   // if (app.type == 'server_side') return;
   // if (app.accessLevel == 'organization') return;
+
+  if (app.organization) await upsertOrganization(app.organization.id);
 
   let inner = {
     id: app.id,

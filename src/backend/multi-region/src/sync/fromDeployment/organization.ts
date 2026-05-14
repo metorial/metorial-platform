@@ -5,6 +5,29 @@ import { createQueue } from '@metorial/queue';
 import { cell } from '../../cell';
 import { globalDB } from '../../db';
 
+export let upsertOrganization = async (organizationId: string) => {
+  let organization = await db.organization.findUnique({
+    where: { id: organizationId }
+  });
+  if (!organization) return;
+
+  let inner = {
+    status: organization.status,
+    type: organization.type,
+    name: organization.name,
+    slug: organization.slug,
+    image: organization.image,
+    createdAt: organization.createdAt,
+    deletedAt: organization.deletedAt
+  };
+
+  await globalDB.organization.upsert({
+    where: { id: organization.id },
+    update: inner,
+    create: { id: organization.id, ...inner, ownerOid: (await cell).oid }
+  });
+};
+
 export let syncOrgsCron = createCron(
   {
     name: 'global/sync/from-deployment/org',
@@ -40,26 +63,7 @@ let syncOrgSingleQueue = createQueue<{ orgId: string }>({
 });
 
 export let syncOrgSingleQueueProcessor = syncOrgSingleQueue.process(async data => {
-  let organization = await db.organization.findUnique({
-    where: { id: data.orgId }
-  });
-  if (!organization) return;
-
-  let inner = {
-    status: organization.status,
-    type: organization.type,
-    name: organization.name,
-    slug: organization.slug,
-    image: organization.image,
-    createdAt: organization.createdAt,
-    deletedAt: organization.deletedAt
-  };
-
-  await globalDB.organization.upsert({
-    where: { id: organization.id },
-    update: inner,
-    create: { id: organization.id, ...inner, ownerOid: (await cell).oid }
-  });
+  await upsertOrganization(data.orgId);
 });
 
 Fabric.listen('organization.updated:after', async event => {

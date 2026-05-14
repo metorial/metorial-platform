@@ -4,6 +4,7 @@ import { Fabric } from '@metorial/fabric';
 import { createQueue } from '@metorial/queue';
 import { cell } from '../../cell';
 import { globalDB } from '../../db';
+import { upsertOrganization } from './organization';
 
 export let syncPortalsCron = createCron(
   {
@@ -56,6 +57,8 @@ export let syncPortalSingleQueueProcessor = syncPortalSingleQueue.process(async 
     }
   });
   if (!portal) return;
+
+  await upsertOrganization(portal.organization.id);
 
   let inner = {
     status: portal.status,
