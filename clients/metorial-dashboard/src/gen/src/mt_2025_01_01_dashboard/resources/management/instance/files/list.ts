@@ -173,11 +173,13 @@ export type ManagementInstanceFilesListQuery = {
     | 'user_image'
     | 'organization_image'
     | 'project_brand_image'
+    | 'skill_image'
     | 'generic'
     | (
         | 'user_image'
         | 'organization_image'
         | 'project_brand_image'
+        | 'skill_image'
         | 'generic'
       )[]
     | undefined;

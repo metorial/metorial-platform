@@ -1,8 +1,9 @@
+import { canonicalize } from '@lowerdeck/canonicalize';
 import {
   Consumer,
   ConsumerGroup,
-  ConsumerSurface,
   ConsumerProfile,
+  ConsumerSurface,
   db,
   Instance,
   InstanceConsumer,
@@ -139,6 +140,7 @@ export let syncSkillFromSubspace = async (d: {
       id: d.skill.id,
       status: statusFromSubspace(d.skill.status),
       name: d.skill.name,
+      image: d.skill.image,
       storeId: d.skill.storeId,
       skillEntityId: skillEntityIdFromSubspace(d.skill),
       ownerType: d.owner?.consumerProfile ? 'consumer' : 'instance',
@@ -151,6 +153,7 @@ export let syncSkillFromSubspace = async (d: {
     update: {
       status: statusFromSubspace(d.skill.status),
       name: d.skill.name,
+      image: d.skill.image,
       storeId: d.skill.storeId,
       skillEntityId: skillEntityIdFromSubspace(d.skill),
       ownerType: d.owner?.consumerProfile ? 'consumer' : undefined,
@@ -175,6 +178,7 @@ let localSkillNeedsSync = (d: {
 
   if (d.localSkill.status !== statusFromSubspace(d.skill.status)) return true;
   if (d.localSkill.name !== d.skill.name) return true;
+  if (canonicalize(d.localSkill.image) !== canonicalize(d.skill.image)) return true;
   if (d.localSkill.storeId !== d.skill.storeId) return true;
   if (d.localSkill.skillEntityId !== skillEntityIdFromSubspace(d.skill)) return true;
   if (d.skill.status === 'archived' && !d.localSkill.archivedAt) return true;

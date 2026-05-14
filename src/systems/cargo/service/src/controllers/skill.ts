@@ -36,7 +36,8 @@ export let skillController = app.controller({
         ),
         parentSkillTemplateId: v.optional(v.string()),
 
-        name: v.string()
+        name: v.string(),
+        imageFileId: v.optional(v.nullable(v.string()))
       })
     )
     .do(async ctx => {
@@ -64,7 +65,8 @@ export let skillController = app.controller({
         input: {
           id: ctx.input.skillId,
           actorId: ctx.input.actorId,
-          name: ctx.input.name
+          name: ctx.input.name,
+          imageFileId: ctx.input.imageFileId
         }
       });
 
@@ -109,7 +111,11 @@ export let skillController = app.controller({
         tenantId: v.string(),
         environmentId: v.string(),
         skillId: v.string(),
-        name: v.optional(v.string())
+        name: v.optional(v.string()),
+        imageFileId: v.optional(v.nullable(v.string())),
+        actorId: v.optional(v.string()),
+        defaultPermissions: v.optional(storePermissionsSchema),
+        overridePermissions: v.optional(v.boolean())
       })
     )
     .do(async ctx => {
@@ -117,8 +123,12 @@ export let skillController = app.controller({
         tenant: ctx.tenant,
         environment: ctx.environment,
         skill: ctx.skill,
+        actorId: ctx.input.actorId,
+        defaultPermissions: ctx.input.defaultPermissions,
+        overridePermissions: ctx.input.overridePermissions,
         input: {
-          name: ctx.input.name
+          name: ctx.input.name,
+          imageFileId: ctx.input.imageFileId
         }
       });
 

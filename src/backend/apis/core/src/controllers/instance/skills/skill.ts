@@ -144,6 +144,7 @@ export let skillController = Controller.create(
           license: v.optional(skillLicenseValidator),
           compatibility: v.optional(skillCompatibilityValidator),
           client_metadata: v.optional(v.record(v.any())),
+          image_file_id: v.optional(v.nullable(v.string())),
           template_id: v.optional(v.string())
         })
       )
@@ -158,6 +159,7 @@ export let skillController = Controller.create(
           compatibility: ctx.body.compatibility,
           clientMetadata: ctx.body.client_metadata,
           metadata: ctx.body.metadata,
+          imageFileId: ctx.body.image_file_id,
           templateId: ctx.body.template_id
         };
         let skill = ctx.consumerProfile
@@ -195,7 +197,8 @@ export let skillController = Controller.create(
           license: v.optional(v.nullable(skillLicenseValidator)),
           compatibility: v.optional(v.nullable(skillCompatibilityValidator)),
           client_metadata: v.optional(v.nullable(v.record(v.any()))),
-          metadata: v.optional(v.nullable(v.record(v.any())))
+          metadata: v.optional(v.nullable(v.record(v.any()))),
+          image_file_id: v.optional(v.nullable(v.string()))
         })
       )
       .output(skillPresenter)
@@ -208,7 +211,8 @@ export let skillController = Controller.create(
           license: ctx.body.license,
           compatibility: ctx.body.compatibility,
           clientMetadata: ctx.body.client_metadata,
-          metadata: ctx.body.metadata
+          metadata: ctx.body.metadata,
+          imageFileId: ctx.body.image_file_id
         };
         let skill = ctx.consumerProfile
           ? await consumerSkillService.updateConsumerSkill({
@@ -272,7 +276,8 @@ export let skillController = Controller.create(
           license: v.optional(skillLicenseValidator),
           compatibility: v.optional(skillCompatibilityValidator),
           client_metadata: v.optional(v.record(v.any())),
-          metadata: v.optional(v.record(v.any()))
+          metadata: v.optional(v.record(v.any())),
+          image_file_id: v.optional(v.nullable(v.string()))
         })
       )
       .output(skillPresenter)
@@ -286,7 +291,8 @@ export let skillController = Controller.create(
           license: ctx.body.license,
           compatibility: ctx.body.compatibility,
           clientMetadata: ctx.body.client_metadata,
-          metadata: ctx.body.metadata
+          metadata: ctx.body.metadata,
+          imageFileId: ctx.body.image_file_id
         };
         let skill = ctx.consumerProfile
           ? await consumerSkillService.forkConsumerSkill({

@@ -7,6 +7,7 @@ export type SkillsCreateOutput = {
   slug: string;
   name: string;
   description: string | null;
+  imageUrl: string;
   clientName: string;
   clientDescription: string | null;
   clientMetadata: Record<string, any> | null;
@@ -172,6 +173,7 @@ export let mapSkillsCreateOutput = mtMap.object<SkillsCreateOutput>({
   slug: mtMap.objectField('slug', mtMap.passthrough()),
   name: mtMap.objectField('name', mtMap.passthrough()),
   description: mtMap.objectField('description', mtMap.passthrough()),
+  imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
   clientName: mtMap.objectField('client_name', mtMap.passthrough()),
   clientDescription: mtMap.objectField(
     'client_description',
@@ -445,6 +447,7 @@ export type SkillsCreateBody = {
   license?: string | undefined;
   compatibility?: string | undefined;
   clientMetadata?: Record<string, any> | undefined;
+  imageFileId?: string | null | undefined;
   templateId?: string | undefined;
 };
 
@@ -460,6 +463,7 @@ export let mapSkillsCreateBody = mtMap.object<SkillsCreateBody>({
   license: mtMap.objectField('license', mtMap.passthrough()),
   compatibility: mtMap.objectField('compatibility', mtMap.passthrough()),
   clientMetadata: mtMap.objectField('client_metadata', mtMap.passthrough()),
+  imageFileId: mtMap.objectField('image_file_id', mtMap.passthrough()),
   templateId: mtMap.objectField('template_id', mtMap.passthrough())
 });
 

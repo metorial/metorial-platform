@@ -39,10 +39,6 @@ export let SkillVersionsScene = (p: {
                   title="Created"
                   value={<RenderDate date={version.createdAt} />}
                 />
-                <Entity.Field
-                  title="Store version"
-                  value={<ID id={version.storeVersionId} />}
-                />
                 <Entity.Field title="ID" value={<ID id={version.id} />} />
               </Entity.Content>
             </Entity.Wrapper>

@@ -1,11 +1,15 @@
-import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
+import { canonicalize } from '@lowerdeck/canonicalize';
+import { badRequestError, forbiddenError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type { Prisma, StoreParticipantPermissions } from '../../prisma/generated/client';
 import { db, withTransaction } from '../db';
+import { env } from '../env';
 import { snowflake } from '../id';
 import { actorService } from './actor';
 import type { CargoTenantEnvironment } from './filePurpose';
+import { fileLinkService } from './fileLink';
+import { fileReferenceService } from './fileReference';
 import { skillParticipantService } from './skillParticipant';
 import type { SkillTemplateRecord } from './skillTemplate';
 import { storeService } from './store';
@@ -25,11 +29,30 @@ let skillInclude = {
   }
 } satisfies Prisma.SkillInclude;
 
+export type EntityImage =
+  | {
+      type: 'file';
+      fileId: string;
+      fileLinkId: string;
+      fileReferenceId: string;
+      fileUrl: string;
+      url?: string;
+    }
+  | { type: 'enterprise_file'; fileId: string }
+  | { type: 'url'; url: string }
+  | { type: 'default' };
+
 export type SkillRecord = Prisma.SkillGetPayload<{
   include: typeof skillInclude;
 }>;
 
 class SkillServiceImpl {
+  private getFileLinkUrl(d: { fileId: string; key: string }) {
+    if (!env.service.DOWNLOAD_PUBLIC_URL) return '';
+
+    return `${env.service.DOWNLOAD_PUBLIC_URL}/files/${d.fileId}/${d.key}`;
+  }
+
   private async getSkillRecord(d: CargoTenantEnvironment & { skillId: string }) {
     return await withTransaction(
       async db => {
@@ -50,6 +73,93 @@ class SkillServiceImpl {
     );
   }
 
+  private async createImageEntityImage(
+    d: CargoTenantEnvironment & {
+      skill: Pick<SkillRecord, 'id'>;
+      fileId: string;
+      actorId?: string;
+      defaultPermissions?: StoreParticipantPermissions[];
+      overridePermissions?: boolean;
+    }
+  ): Promise<EntityImage> {
+    let file = await db.file.findFirst({
+      where: {
+        tenantOid: d.tenant.oid,
+        environmentOid: d.environment.oid,
+        id: d.fileId,
+        status: 'active'
+      },
+      include: {
+        purpose: true
+      }
+    });
+    if (!file) throw new ServiceError(notFoundError('file', d.fileId));
+    if (!file.purpose.canHaveLinks) {
+      throw new ServiceError(
+        forbiddenError({
+          message: 'File purpose does not allow creating links'
+        })
+      );
+    }
+
+    let link = await fileLinkService.createFileLink({
+      tenant: d.tenant,
+      environment: d.environment,
+      file,
+      input: {
+        actorId: d.actorId
+      }
+    });
+    let ref = await fileReferenceService.upsertFileReference({
+      tenant: d.tenant,
+      environment: d.environment,
+      fileLink: link,
+      input: {
+        entityType: 'skill',
+        entityId: d.skill.id
+      }
+    });
+
+    return {
+      type: 'file',
+      fileId: file.id,
+      fileLinkId: link.id,
+      fileReferenceId: ref.id,
+      fileUrl: this.getFileLinkUrl({ fileId: file.id, key: link.key })
+    };
+  }
+
+  private async resolveImageEntityImage<ClearImage extends EntityImage | null>(
+    d: CargoTenantEnvironment & {
+      skill: Pick<SkillRecord, 'id'>;
+      imageFileId: string | null;
+      clearedImage: ClearImage;
+      actorId?: string;
+      defaultPermissions?: StoreParticipantPermissions[];
+      overridePermissions?: boolean;
+    }
+  ): Promise<EntityImage | ClearImage> {
+    if (d.imageFileId === null) return d.clearedImage;
+
+    return await this.createImageEntityImage({
+      tenant: d.tenant,
+      environment: d.environment,
+      skill: d.skill,
+      fileId: d.imageFileId,
+      actorId: d.actorId,
+      defaultPermissions: d.defaultPermissions,
+      overridePermissions: d.overridePermissions
+    });
+  }
+
+  private async cleanupImageEntityImage(d: { image: EntityImage | null | undefined }) {
+    if (d.image?.type !== 'file' || !d.image.fileReferenceId || !d.image.fileLinkId) return;
+
+    await fileReferenceService.deleteFileReferenceByIdAndCleanup({
+      fileReferenceId: d.image.fileReferenceId
+    });
+  }
+
   async createSkill(
     d: CargoTenantEnvironment & {
       parentSkill?: SkillRecord;
@@ -59,6 +169,7 @@ class SkillServiceImpl {
         id: string;
         actorId?: string;
         name: string;
+        imageFileId?: string | null;
       };
     }
   ) {
@@ -127,6 +238,27 @@ class SkillServiceImpl {
         include: skillInclude
       });
 
+      if (d.input.imageFileId !== undefined) {
+        let image = await this.resolveImageEntityImage({
+          tenant: d.tenant,
+          environment: d.environment,
+          skill,
+          imageFileId: d.input.imageFileId,
+          clearedImage: { type: 'default' },
+          actorId: d.input.actorId
+        });
+
+        skill = await db.skill.update({
+          where: {
+            id: skill.id
+          },
+          data: {
+            image
+          },
+          include: skillInclude
+        });
+      }
+
       if (actor) {
         await skillParticipantService.ensureSkillParticipantRoles({
           skill,
@@ -176,12 +308,21 @@ class SkillServiceImpl {
   async updateSkill(
     d: CargoTenantEnvironment & {
       skill: SkillRecord;
+      actorId?: string;
+      defaultPermissions?: StoreParticipantPermissions[];
+      overridePermissions?: boolean;
       input: {
         name?: string;
+        imageFileId?: string | null;
+        image?: EntityImage | null;
       };
     }
   ) {
-    if (d.input.name === undefined) {
+    if (
+      d.input.name === undefined &&
+      d.input.imageFileId === undefined &&
+      d.input.image === undefined
+    ) {
       throw new ServiceError(
         badRequestError({
           message: 'At least one skill field must be updated'
@@ -189,7 +330,7 @@ class SkillServiceImpl {
       );
     }
 
-    if (!d.input.name.trim()) {
+    if (d.input.name !== undefined && !d.input.name.trim()) {
       throw new ServiceError(
         badRequestError({
           message: 'Skill name cannot be empty'
@@ -197,19 +338,54 @@ class SkillServiceImpl {
       );
     }
 
-    let store = await storeService.updateStore({
-      environment: d.environment,
-      tenant: d.tenant,
-      store: d.skill.store,
-      input: {
-        name: d.input.name
-      }
-    });
+    let nextImage = d.input.image;
+    if (d.input.imageFileId !== undefined) {
+      nextImage = await this.resolveImageEntityImage({
+        tenant: d.tenant,
+        environment: d.environment,
+        skill: d.skill,
+        imageFileId: d.input.imageFileId,
+        clearedImage: { type: 'default' },
+        actorId: d.actorId,
+        defaultPermissions: d.defaultPermissions,
+        overridePermissions: d.overridePermissions
+      });
+    }
 
-    return {
-      ...d.skill,
-      store
-    } satisfies SkillRecord;
+    let store = d.input.name
+      ? await storeService.updateStore({
+          environment: d.environment,
+          tenant: d.tenant,
+          store: d.skill.store,
+          input: {
+            name: d.input.name
+          }
+        })
+      : d.skill.store;
+
+    if (d.input.imageFileId !== undefined || d.input.image !== undefined) {
+      await db.skill.update({
+        where: {
+          id: d.skill.id
+        },
+        data: {
+          image: nextImage as any
+        }
+      });
+
+      await this.cleanupImageEntityImage({
+        image:
+          d.skill.image && canonicalize(d.skill.image) !== canonicalize(nextImage)
+            ? (d.skill.image as EntityImage)
+            : undefined
+      });
+    }
+
+    return await this.getSkillRecord({
+      tenant: d.tenant,
+      environment: d.environment,
+      skillId: d.skill.id
+    }).then(skill => ({ ...skill, store }) satisfies SkillRecord);
   }
 
   async deleteSkill(d: CargoTenantEnvironment & { skill: SkillRecord }) {

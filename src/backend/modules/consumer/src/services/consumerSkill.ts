@@ -47,6 +47,7 @@ type ConsumerSkillCreateInput = {
   metadata?: Record<string, unknown>;
   privateMetadata?: Record<string, unknown>;
   templateId?: string;
+  imageFileId?: string | null;
 };
 
 type ConsumerSkillForkInput = ConsumerSkillCreateInput & {
@@ -63,6 +64,7 @@ type ConsumerSkillUpdateInput = {
   clientMetadata?: Record<string, unknown> | null;
   metadata?: Record<string, unknown> | null;
   privateMetadata?: Record<string, unknown> | null;
+  imageFileId?: string | null;
 };
 
 export type SubspaceSkillListInput = Parameters<typeof subspaceSkillService.list>[0];

@@ -33,7 +33,10 @@ export let usePaginator = <
 >(
   useHook: (opts: { before?: string; after?: string }) => T,
   resetKey?: string | null
-) => {
+): T & {
+  next: () => void;
+  previous: () => void;
+} => {
   let [searchParams, setSearchParams] = useSearchParams();
   let paginationSearchParamsEnabled = usePaginationSearchParamsEnabled();
   let [cursor, setCursor] = useState<{ before?: string; after?: string }>(() => {

@@ -1,4 +1,5 @@
 import { v } from '@lowerdeck/validation';
+import { getImageUrl } from '@metorial/db';
 import { SubspaceSkill } from '@metorial/module-subspace';
 import { Presenter } from '@metorial/presenter';
 import { skillType } from '../../types';
@@ -17,6 +18,7 @@ export let v1SkillPreviewPresenter = Object.assign(
       | 'slug'
       | 'name'
       | 'description'
+      | 'image'
       | 'clientName'
       | 'clientDescription'
       | 'clientMetadata'
@@ -33,6 +35,7 @@ export let v1SkillPreviewPresenter = Object.assign(
     slug: skill.slug,
     name: skill.name,
     description: skill.description,
+    image_url: getImageUrl(skill),
     client_name: skill.clientName,
     client_description: skill.clientDescription,
     client_metadata: skill.clientMetadata,
@@ -50,6 +53,7 @@ export let v1SkillPreviewPresenter = Object.assign(
       slug: v.string(),
       name: v.string(),
       description: v.nullable(v.string()),
+      image_url: v.string(),
       client_name: v.string(),
       client_description: v.nullable(v.string()),
       client_metadata: v.nullable(v.record(v.any())),
@@ -70,6 +74,7 @@ export let v1SkillPresenter = Presenter.create(skillType)
     slug: skill.slug,
     name: skill.name,
     description: skill.description,
+    image_url: await getImageUrl(skill.localSkill),
     client_name: skill.clientName,
     client_description: skill.clientDescription,
     client_metadata: skill.clientMetadata,
@@ -124,6 +129,7 @@ export let v1SkillPresenter = Presenter.create(skillType)
       slug: v.string(),
       name: v.string(),
       description: v.nullable(v.string()),
+      image_url: v.string(),
       client_name: v.string(),
       client_description: v.nullable(v.string()),
       client_metadata: v.nullable(v.record(v.any())),

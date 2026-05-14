@@ -36,10 +36,7 @@ export let SkillParticipantsScene = (p: {
   let participants = useSkillParticipants(p.instanceId, p.skillId, { order: 'asc' });
 
   return renderWithPagination(participants)(participants => (
-    <Box
-      title="Participants"
-      description="People and consumers that have contributed to or used this skill."
-    >
+    <Box title="Participants" description="People who have contributed to or used this skill.">
       {participants.data.items.length === 0 ? (
         <EmptyState>
           <Text color="gray600" size="2">

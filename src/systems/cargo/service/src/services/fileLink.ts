@@ -28,7 +28,7 @@ let include = {
   },
   tenant: true,
   environment: true
-};
+} satisfies Prisma.FileLinkInclude;
 
 class FileLinkServiceImpl {
   private getGeneratedKey() {

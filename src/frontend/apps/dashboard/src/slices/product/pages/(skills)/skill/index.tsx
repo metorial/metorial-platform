@@ -38,7 +38,13 @@ export let SkillPage = () => {
           Paths.instance(organization.data, project.data, instance.data, 'doc', documentId)
         }
       />
-      <SkillAgentsScene instanceId={instance.data?.id} skillId={skillId} />
+      <SkillAgentsScene
+        instanceId={instance.data?.id}
+        skillId={skillId}
+        getDocumentPath={documentId =>
+          Paths.instance(organization.data, project.data, instance.data, 'doc', documentId)
+        }
+      />
       <SkillLinkProvidersScene instanceId={instance.data?.id} skillId={skillId} />
       <SkillGroupsForSkillScene
         instanceId={instance.data?.id}

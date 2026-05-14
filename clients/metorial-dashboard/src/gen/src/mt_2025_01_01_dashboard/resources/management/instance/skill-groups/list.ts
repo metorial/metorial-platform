@@ -15,6 +15,7 @@ export type ManagementInstanceSkillGroupsListOutput = {
       slug: string;
       name: string;
       description: string | null;
+      imageUrl: string;
       clientName: string;
       clientDescription: string | null;
       clientMetadata: Record<string, any> | null;
@@ -55,6 +56,7 @@ export let mapManagementInstanceSkillGroupsListOutput =
                   'description',
                   mtMap.passthrough()
                 ),
+                imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
                 clientName: mtMap.objectField(
                   'client_name',
                   mtMap.passthrough()

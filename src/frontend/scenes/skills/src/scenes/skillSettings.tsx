@@ -3,6 +3,7 @@ import { useSkill, useSkillGroup, useSkillTemplate } from '@metorial/state';
 import { Button, Input, Spacer, confirm } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
 import styled from 'styled-components';
+import { SkillImageUploader } from '../components/skillImageUploader';
 
 let PageStack = styled.div`
   display: flex;
@@ -27,6 +28,7 @@ export let SkillSettingsScene = (p: {
   onDeleteSuccess?: () => void;
 }) => {
   let skill = useSkill(p.instanceId, p.skillId);
+  let imageUpdateMutator = skill.updateMutator();
   let generalUpdateMutator = skill.updateMutator();
   let discoveryUpdateMutator = skill.updateMutator();
   let deleteMutator = skill.deleteMutator();
@@ -77,6 +79,22 @@ export let SkillSettingsScene = (p: {
 
   return renderWithLoader({ skill })(({ skill }) => (
     <PageStack>
+      {p.instanceId && (
+        <Box
+          title="Skill Image"
+          description="Upload the image shown for this skill in discovery flows."
+        >
+          <SkillImageUploader
+            instanceId={p.instanceId}
+            skill={skill.data}
+            updateSkill={imageUpdateMutator}
+          />
+
+          <Spacer size={10} />
+          <imageUpdateMutator.RenderError />
+        </Box>
+      )}
+
       <Box
         title="Discovery Settings"
         description="Manage the values exposed to clients and discovery flows for this skill."

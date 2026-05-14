@@ -27,6 +27,7 @@ export let skillPreviewPresenter = (skill: Skill) => {
     slug: skill.slug,
     name: skill.name,
     description: skill.description,
+    image: skill.image,
     metadata: skill.metadata,
     privateMetadata: skill.privateMetadata,
 
@@ -90,6 +91,7 @@ export let skillPresenter = (
       name: skill.skillEntity.name,
       slug: skill.skillEntity.slug,
       description: skill.skillEntity.description,
+      image: skill.skillEntity.image,
       parentSkillId: skill.skillEntity.ownerSkill?.id!,
       createdAt: skill.skillEntity.createdAt,
       updatedAt: skill.skillEntity.updatedAt

@@ -20,6 +20,7 @@ import {
 import { Box, Table } from '@metorial/ui-product';
 import { RiAddLine, RiMore2Line } from '@remixicon/react';
 import styled from 'styled-components';
+import { forceFileTreeRefetch } from './skillStoreFileViewer';
 
 let EmptyState = styled.div`
   line-height: 1.6;
@@ -75,6 +76,7 @@ let showSkillAgentFormModal = (p: {
           });
 
           if (!result) return;
+          forceFileTreeRefetch();
         } else {
           if (!p.agent) return;
 
@@ -156,57 +158,67 @@ let showSkillAgentFormModal = (p: {
 let getSkillAgentTableRow = (p: {
   agent: SkillAgent;
   isDeleting: boolean;
+  getDocumentPath: (documentId: string) => string;
   onEdit: (agent: SkillAgent) => void;
   onDelete: (agent: SkillAgent) => void;
-}) => [
-  <AgentName>
-    <Text size="2" weight="strong">
-      {p.agent.name}
-    </Text>
-    {p.agent.description && (
-      <Text color="gray600" size="1">
-        {p.agent.description}
-      </Text>
-    )}
-  </AgentName>,
-  <Badge color={p.agent.status === 'active' ? 'green' : 'gray'} size="1">
-    {p.agent.status}
-  </Badge>,
-  <Text color={p.agent.path ? 'gray800' : 'gray500'} size="2">
-    {p.agent.path ?? p.agent.documentId}
-  </Text>,
-  <Actions>
-    <Menu
-      items={[
-        { id: 'edit', label: 'Edit' },
-        { id: 'delete', label: 'Delete' }
-      ]}
-      onItemClick={item => {
-        if (item === 'edit') p.onEdit(p.agent);
-        if (item === 'delete') {
-          confirm({
-            title: `Delete ${p.agent.name}?`,
-            description: 'This will archive the skill agent and remove its linked store item.',
-            confirmText: 'Delete',
-            onConfirm: async () => p.onDelete(p.agent)
-          });
-        }
-      }}
-    >
-      <Button
-        size="1"
-        variant="outline"
-        iconRight={<RiMore2Line />}
-        loading={p.isDeleting}
-        title="Skill agent options"
-      />
-    </Menu>
-  </Actions>
-];
+}) => {
+  let documentPath = p.getDocumentPath(p.agent.documentId);
+
+  return {
+    href: documentPath,
+    data: [
+      <AgentName>
+        <Text size="2" weight="strong">
+          {p.agent.name}
+        </Text>
+        {p.agent.description && (
+          <Text color="gray600" size="1">
+            {p.agent.description}
+          </Text>
+        )}
+      </AgentName>,
+      <Badge color={p.agent.status === 'active' ? 'green' : 'gray'} size="1">
+        {p.agent.status}
+      </Badge>,
+      <Text color={p.agent.path ? 'gray800' : 'gray500'} size="2">
+        {p.agent.path ?? p.agent.documentId}
+      </Text>,
+      <Actions>
+        <Menu
+          items={[
+            { id: 'edit', label: 'Edit' },
+            { id: 'delete', label: 'Delete' }
+          ]}
+          onItemClick={item => {
+            if (item === 'edit') p.onEdit(p.agent);
+            if (item === 'delete') {
+              confirm({
+                title: `Delete ${p.agent.name}?`,
+                description:
+                  'This will archive the skill agent and remove its linked store item.',
+                confirmText: 'Delete',
+                onConfirm: async () => p.onDelete(p.agent)
+              });
+            }
+          }}
+        >
+          <Button
+            size="1"
+            variant="outline"
+            iconRight={<RiMore2Line />}
+            loading={p.isDeleting}
+            title="Skill agent options"
+          />
+        </Menu>
+      </Actions>
+    ]
+  };
+};
 
 export let SkillAgentsScene = (p: {
   instanceId: string | null | undefined;
   skillId: string | null | undefined;
+  getDocumentPath: (documentId: string) => string;
 }) => {
   let skillAgents = useSkillAgents(p.instanceId, p.skillId, { order: 'asc' });
   let deleteSkillAgent = useDeleteSkillAgent();
@@ -278,6 +290,7 @@ export let SkillAgentsScene = (p: {
                 getSkillAgentTableRow({
                   agent,
                   isDeleting: deleteSkillAgent.isLoading,
+                  getDocumentPath: p.getDocumentPath,
                   onEdit: openEditModal,
                   onDelete: deleteAgent
                 })

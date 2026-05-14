@@ -14,6 +14,7 @@ export type SkillGroupsUpdateOutput = {
     slug: string;
     name: string;
     description: string | null;
+    imageUrl: string;
     clientName: string;
     clientDescription: string | null;
     clientMetadata: Record<string, any> | null;
@@ -44,6 +45,7 @@ export let mapSkillGroupsUpdateOutput = mtMap.object<SkillGroupsUpdateOutput>({
         slug: mtMap.objectField('slug', mtMap.passthrough()),
         name: mtMap.objectField('name', mtMap.passthrough()),
         description: mtMap.objectField('description', mtMap.passthrough()),
+        imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
         clientName: mtMap.objectField('client_name', mtMap.passthrough()),
         clientDescription: mtMap.objectField(
           'client_description',

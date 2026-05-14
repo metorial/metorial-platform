@@ -50,6 +50,9 @@ model Skill {
 
   name String
 
+  /// [EntityImage]
+  image Json?
+
   storeId       String
   skillEntityId String
 

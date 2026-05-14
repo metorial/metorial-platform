@@ -6,6 +6,9 @@ model SkillEntity {
   name        String
   description String?
 
+  /// [EntityImage]
+  image Json?
+
   ownerSkillOid BigInt? @unique
   ownerSkill    Skill?  @relation("SkillEntityOwner", fields: [ownerSkillOid], references: [oid], onDelete: SetNull)
 
@@ -41,6 +44,9 @@ model Skill {
   description     String?
   metadata        Json?
   privateMetadata Json?
+
+  /// [EntityImage]
+  image Json?
 
   clientName        String
   clientDescription String?

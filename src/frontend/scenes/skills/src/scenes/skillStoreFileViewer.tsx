@@ -1,4 +1,4 @@
-import { renderWithLoader } from '@metorial/data-hooks';
+import { atom, renderWithLoader, useAtom } from '@metorial/data-hooks';
 import {
   StoreItem,
   useAllStoreItems,
@@ -8,7 +8,7 @@ import {
   useUploadFile
 } from '@metorial/state';
 import { Box } from '@metorial/ui-product';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import styled from 'styled-components';
 import {
   SkillFileTree,
@@ -182,6 +182,23 @@ let shouldCreateDocumentForFileName = (name: string) => {
   return extension == 'md' || extension == 'txt';
 };
 
+let refetchAtom = atom(0);
+export let forceFileTreeRefetch = () => refetchAtom.set(value => value + 1);
+let useRefetchOnAtomChange = (cb: () => void) => {
+  let cbRef = useRef(cb);
+  cbRef.current = cb;
+
+  let atomValue = useAtom(refetchAtom);
+  let currentRef = useRef(atomValue);
+
+  useEffect(() => {
+    if (currentRef.current !== atomValue) {
+      currentRef.current = atomValue;
+      cbRef.current();
+    }
+  }, [atomValue]);
+};
+
 export let StoreFileViewerScene = (p: {
   instanceId: string | null | undefined;
   storeId: string | null | undefined;
@@ -194,6 +211,8 @@ export let StoreFileViewerScene = (p: {
     order: 'asc',
     type: ['directory', 'document', 'file']
   });
+  useRefetchOnAtomChange(() => storeItems.refetch());
+
   let storePermissions = useStorePermissions(p.instanceId, p.storeId);
   let createDocument = useCreateDocument();
   let uploadFile = useUploadFile();

@@ -2,6 +2,9 @@ model Skill {
   oid BigInt @id
   id  String @unique
 
+  /// [EntityImage]
+  image Json?
+
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
 

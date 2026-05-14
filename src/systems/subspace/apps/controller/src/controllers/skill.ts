@@ -117,6 +117,7 @@ export let skillController = app.controller({
         clientMetadata: v.optional(v.record(v.any())),
         metadata: v.optional(v.record(v.any())),
         privateMetadata: v.optional(v.record(v.any())),
+        imageFileId: v.optional(v.nullable(v.string())),
         templateId: v.optional(v.string())
       })
     )
@@ -142,6 +143,7 @@ export let skillController = app.controller({
           clientMetadata: ctx.input.clientMetadata,
           metadata: ctx.input.metadata,
           privateMetadata: ctx.input.privateMetadata,
+          imageFileId: ctx.input.imageFileId,
           templateId: ctx.input.templateId
         },
         _operation: {
@@ -170,7 +172,8 @@ export let skillController = app.controller({
         compatibility: v.optional(v.nullable(v.string())),
         clientMetadata: v.optional(v.nullable(v.record(v.any()))),
         metadata: v.optional(v.nullable(v.record(v.any()))),
-        privateMetadata: v.optional(v.nullable(v.record(v.any())))
+        privateMetadata: v.optional(v.nullable(v.record(v.any()))),
+        imageFileId: v.optional(v.nullable(v.string()))
       })
     )
     .do(async ctx => {
@@ -188,7 +191,8 @@ export let skillController = app.controller({
           compatibility: ctx.input.compatibility,
           clientMetadata: ctx.input.clientMetadata,
           metadata: ctx.input.metadata,
-          privateMetadata: ctx.input.privateMetadata
+          privateMetadata: ctx.input.privateMetadata,
+          imageFileId: ctx.input.imageFileId
         }
       });
 
@@ -235,7 +239,8 @@ export let skillController = app.controller({
         compatibility: v.optional(v.string()),
         clientMetadata: v.optional(v.record(v.any())),
         metadata: v.optional(v.record(v.any())),
-        privateMetadata: v.optional(v.record(v.any()))
+        privateMetadata: v.optional(v.record(v.any())),
+        imageFileId: v.optional(v.nullable(v.string()))
       })
     )
     .do(async ctx => {
@@ -259,7 +264,8 @@ export let skillController = app.controller({
           compatibility: ctx.input.compatibility,
           clientMetadata: ctx.input.clientMetadata,
           metadata: ctx.input.metadata,
-          privateMetadata: ctx.input.privateMetadata
+          privateMetadata: ctx.input.privateMetadata,
+          imageFileId: ctx.input.imageFileId
         }
       });
 
@@ -285,7 +291,8 @@ export let skillController = app.controller({
         compatibility: v.optional(v.string()),
         clientMetadata: v.optional(v.record(v.any())),
         metadata: v.optional(v.record(v.any())),
-        privateMetadata: v.optional(v.record(v.any()))
+        privateMetadata: v.optional(v.record(v.any())),
+        imageFileId: v.optional(v.nullable(v.string()))
       })
     )
     .do(async ctx => {
@@ -311,7 +318,8 @@ export let skillController = app.controller({
           compatibility: ctx.input.compatibility,
           clientMetadata: ctx.input.clientMetadata,
           metadata: ctx.input.metadata,
-          privateMetadata: ctx.input.privateMetadata
+          privateMetadata: ctx.input.privateMetadata,
+          imageFileId: ctx.input.imageFileId
         }
       });
 

@@ -22,6 +22,13 @@ export let purposes = {
     canHaveLinks: true
   })),
 
+  skill_image: ensureFilePurpose(() => ({
+    name: 'Skill Image',
+    slug: 'skill_image',
+    ownerType: 'instance',
+    canHaveLinks: true
+  })),
+
   generic: ensureFilePurpose(() => ({
     name: 'Generic',
     slug: 'generic',

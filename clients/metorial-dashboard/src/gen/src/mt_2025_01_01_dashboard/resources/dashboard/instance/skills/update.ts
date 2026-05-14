@@ -7,6 +7,7 @@ export type DashboardInstanceSkillsUpdateOutput = {
   slug: string;
   name: string;
   description: string | null;
+  imageUrl: string;
   clientName: string;
   clientDescription: string | null;
   clientMetadata: Record<string, any> | null;
@@ -173,6 +174,7 @@ export let mapDashboardInstanceSkillsUpdateOutput =
     slug: mtMap.objectField('slug', mtMap.passthrough()),
     name: mtMap.objectField('name', mtMap.passthrough()),
     description: mtMap.objectField('description', mtMap.passthrough()),
+    imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
     clientName: mtMap.objectField('client_name', mtMap.passthrough()),
     clientDescription: mtMap.objectField(
       'client_description',
@@ -467,6 +469,7 @@ export type DashboardInstanceSkillsUpdateBody = {
   compatibility?: string | null | undefined;
   clientMetadata?: Record<string, any> | null | undefined;
   metadata?: Record<string, any> | null | undefined;
+  imageFileId?: string | null | undefined;
 };
 
 export let mapDashboardInstanceSkillsUpdateBody =
@@ -481,6 +484,7 @@ export let mapDashboardInstanceSkillsUpdateBody =
     license: mtMap.objectField('license', mtMap.passthrough()),
     compatibility: mtMap.objectField('compatibility', mtMap.passthrough()),
     clientMetadata: mtMap.objectField('client_metadata', mtMap.passthrough()),
-    metadata: mtMap.objectField('metadata', mtMap.passthrough())
+    metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+    imageFileId: mtMap.objectField('image_file_id', mtMap.passthrough())
   });
 

@@ -254,6 +254,117 @@ describe('cargo skill.e2e', () => {
     expect(deletedStore).toBeNull();
   });
 
+  it('sets, replaces, and clears skill images with file references', async () => {
+    let { tenant, environment } = await createScope();
+    let purpose = await cargoClient.filePurpose.upsert({
+      slug: 'skill_image',
+      name: 'Skill Image',
+      ownerType: 'instance',
+      canHaveLinks: true
+    });
+
+    let skill = await cargoClient.skill.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillId: 'csk_image',
+      name: 'Image Skill'
+    });
+    let firstFile = await cargoClient.file.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      purpose: purpose.id,
+      storeId: 'store-skill-image-1',
+      name: 'skill-one.png',
+      mimeType: 'image/png',
+      size: 128,
+      title: 'Skill image one'
+    });
+    let secondFile = await cargoClient.file.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      purpose: purpose.id,
+      storeId: 'store-skill-image-2',
+      name: 'skill-two.png',
+      mimeType: 'image/png',
+      size: 256,
+      title: 'Skill image two'
+    });
+
+    let withFirstImage = await cargoClient.skill.update({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillId: skill.id,
+      imageFileId: firstFile.id
+    });
+    let firstImage = withFirstImage.image as any;
+    expect(firstImage).toMatchObject({
+      type: 'file',
+      fileId: firstFile.id,
+      fileLinkId: expect.any(String),
+      fileReferenceId: expect.any(String)
+    });
+
+    let withSecondImage = await cargoClient.skill.update({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillId: skill.id,
+      imageFileId: secondFile.id
+    });
+    let secondImage = withSecondImage.image as any;
+    expect(secondImage).toMatchObject({
+      type: 'file',
+      fileId: secondFile.id,
+      fileLinkId: expect.any(String),
+      fileReferenceId: expect.any(String)
+    });
+    expect(secondImage.fileReferenceId).not.toBe(firstImage.fileReferenceId);
+
+    let oldReference = await db.fileReference.findUnique({
+      where: {
+        id: firstImage.fileReferenceId
+      }
+    });
+    let oldLink = await db.fileLink.findUnique({
+      where: {
+        id: firstImage.fileLinkId
+      }
+    });
+    expect(oldReference).toBeNull();
+    expect(oldLink).toBeNull();
+
+    let referencesAfterReplace = await db.fileReference.findMany({
+      where: {
+        entityType: 'skill',
+        entityId: skill.id
+      }
+    });
+    expect(referencesAfterReplace).toHaveLength(1);
+    expect(referencesAfterReplace[0]!.id).toBe(secondImage.fileReferenceId);
+
+    let cleared = await cargoClient.skill.update({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillId: skill.id,
+      imageFileId: null
+    });
+
+    expect(cleared.image).toEqual({ type: 'default' });
+    expect(
+      await db.fileReference.findUnique({
+        where: {
+          id: secondImage.fileReferenceId
+        }
+      })
+    ).toBeNull();
+    expect(
+      await db.fileLink.findUnique({
+        where: {
+          id: secondImage.fileLinkId
+        }
+      })
+    ).toBeNull();
+  });
+
   it('manages skill agents from markdown documents in skill stores', async () => {
     let { tenant, environment } = await createScope();
     let skill = await cargoClient.skill.create({

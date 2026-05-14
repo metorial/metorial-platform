@@ -103,6 +103,7 @@ import {
   MetorialDashboardInstanceSessionTemplatesProvidersEndpoint,
   MetorialDashboardInstanceSkillGroupsEndpoint,
   MetorialDashboardInstanceSkillGroupsItemsEndpoint,
+  MetorialDashboardInstanceSkillsAgentsEndpoint,
   MetorialDashboardInstanceSkillsEndpoint,
   MetorialDashboardInstanceSkillsItemsEndpoint,
   MetorialDashboardInstanceSkillsParticipantsEndpoint,
@@ -473,6 +474,7 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
   }),
 
   skills: Object.assign(new MetorialDashboardInstanceSkillsEndpoint(manager), {
+    agents: new MetorialDashboardInstanceSkillsAgentsEndpoint(manager),
     items: new MetorialDashboardInstanceSkillsItemsEndpoint(manager),
     participants: new MetorialDashboardInstanceSkillsParticipantsEndpoint(manager),
     versions: Object.assign(new MetorialDashboardInstanceSkillsVersionsEndpoint(manager), {

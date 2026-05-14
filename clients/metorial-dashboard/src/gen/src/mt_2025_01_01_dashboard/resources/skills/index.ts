@@ -1,3 +1,4 @@
+export * from './agents';
 export * from './create';
 export * from './delete';
 export * from './duplicate';

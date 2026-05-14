@@ -6,8 +6,10 @@ import { slugify } from '@lowerdeck/slugify';
 import {
   addAfterTransactionHook,
   db,
+  type EntityImage,
   type Environment,
   getId,
+  type Prisma,
   type Skill,
   type SkillStatus,
   type SkillTemplate,
@@ -72,6 +74,8 @@ let getSlug = (input: { name: string }) =>
 type SkillWriteInput = {
   name?: string;
   description?: string | null;
+  image?: EntityImage | null;
+  imageFileId?: string | null;
   clientName?: string;
   clientDescription?: string;
   license?: string | null;
@@ -143,6 +147,7 @@ class skillServiceImpl {
       slug: getSlug({ name: d.input.name }),
       name: d.input.name.trim(),
       description: d.input.description?.trim() || null,
+      image: d.input.image,
       clientName: clientFields.clientName,
       clientDescription: clientFields.clientDescription,
       license: clientFields.license,
@@ -198,6 +203,7 @@ class skillServiceImpl {
         d.input.description === undefined
           ? d.current.description
           : d.input.description?.trim() || null,
+      image: d.input.image === undefined ? d.current.image : d.input.image,
       clientName: clientFields.clientName,
       clientDescription: clientFields.clientDescription,
       license: clientFields.license,
@@ -361,6 +367,8 @@ class skillServiceImpl {
       metadata?: Record<string, any> | null;
       privateMetadata?: Record<string, any> | null;
       templateId?: string | null;
+      image?: EntityImage | null;
+      imageFileId?: string | null;
     };
     _operation:
       | {
@@ -433,7 +441,8 @@ class skillServiceImpl {
         compatibility: d.input.compatibility,
         clientMetadata: d.input.clientMetadata,
         metadata: d.input.metadata,
-        privateMetadata: d.input.privateMetadata
+        privateMetadata: d.input.privateMetadata,
+        image: d.input.image
       }
     });
 
@@ -446,6 +455,7 @@ class skillServiceImpl {
       ...cargoScope,
       skillId: skillData.id,
       name: skillData.name,
+      imageFileId: d.input.imageFileId,
       actorId: cargoActor?.id,
       parentSkill: parentSkill
         ? {
@@ -473,6 +483,7 @@ class skillServiceImpl {
             environmentOid: d.environment.oid,
             name: skillData.name,
             description: skillData.description,
+            image: (d.input.image ?? (cargoSkill.image as EntityImage | null) ?? undefined) as any,
             slug: skillData.slug
           }
         });
@@ -481,6 +492,7 @@ class skillServiceImpl {
       let skill = await db.skill.create({
         data: {
           ...skillData,
+          image: (d.input.image ?? (cargoSkill.image as EntityImage | null) ?? undefined) as any,
           ownerTenantActorOid: d._operation.tenantActor?.oid,
           storeId: cargoSkill.storeId,
           skillEntityOid: skillEntity.oid
@@ -534,6 +546,7 @@ class skillServiceImpl {
       clientMetadata?: Record<string, any> | null;
       metadata?: Record<string, any> | null;
       privateMetadata?: Record<string, any> | null;
+      imageFileId?: string | null;
     };
   }) {
     checkTenant(d, d.skill);
@@ -552,7 +565,8 @@ class skillServiceImpl {
         compatibility: d.input.compatibility,
         clientMetadata: d.input.clientMetadata,
         metadata: d.input.metadata,
-        privateMetadata: d.input.privateMetadata
+        privateMetadata: d.input.privateMetadata,
+        imageFileId: d.input.imageFileId
       },
       _operation: {
         type: 'fork',
@@ -578,6 +592,7 @@ class skillServiceImpl {
       clientMetadata?: Record<string, any> | null;
       metadata?: Record<string, any> | null;
       privateMetadata?: Record<string, any> | null;
+      imageFileId?: string | null;
     };
   }) {
     checkTenant(d, d.skill);
@@ -596,7 +611,8 @@ class skillServiceImpl {
         compatibility: d.input.compatibility,
         clientMetadata: d.input.clientMetadata,
         metadata: d.input.metadata,
-        privateMetadata: d.input.privateMetadata
+        privateMetadata: d.input.privateMetadata,
+        imageFileId: d.input.imageFileId
       },
       _operation: {
         type: 'duplicate',
@@ -619,6 +635,21 @@ class skillServiceImpl {
     let current = await db.skill.findUniqueOrThrow({
       where: { oid: d.skill.oid }
     });
+    let input = d.input;
+
+    if (d.input.imageFileId !== undefined) {
+      let cargoScope = await ensureCargoScope(d);
+      let cargoSkill = await cargo.skill.update({
+        ...cargoScope,
+        skillId: d.skill.id,
+        imageFileId: d.input.imageFileId
+      });
+
+      input = {
+        ...input,
+        image: cargoSkill.image as EntityImage | null
+      };
+    }
 
     return await withTransaction(async db => {
       let skill = await db.skill.update({
@@ -630,8 +661,8 @@ class skillServiceImpl {
         },
         data: this.skillUpdateData({
           current,
-          input: d.input
-        }),
+          input
+        }) as Prisma.SkillUpdateInput,
         include: skillInclude
       });
 
@@ -641,6 +672,7 @@ class skillServiceImpl {
           data: {
             name: skill.name,
             description: skill.description,
+            image: (skill.image ?? undefined) as any,
             slug: skill.slug
           }
         });
