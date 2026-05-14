@@ -1,6 +1,5 @@
 import { createCron } from '@lowerdeck/cron';
 import { Hash } from '@lowerdeck/hash';
-import { createLock } from '@lowerdeck/lock';
 import { createQueue } from '@lowerdeck/queue';
 import { slugify } from '@lowerdeck/slugify';
 import {
@@ -19,11 +18,6 @@ let registryClient = env.service.REGISTRY_URL
     })
   : null;
 
-let lock = createLock({
-  name: 'sub/sht/sync/server/cnhnotif/lock',
-  redisUrl: env.service.REDIS_URL
-});
-
 export let syncServersCron = createCron(
   {
     name: 'sub/sht/sync/server/cron',
@@ -38,7 +32,8 @@ export let syncServersCron = createCron(
 
     await syncServersReg.addMany(
       serverRegistries.map(r => ({
-        registryUrl: r.from.url
+        registryUrl: r.from.url,
+        registryId: r.id
       }))
     );
   }
@@ -46,63 +41,67 @@ export let syncServersCron = createCron(
 
 let syncServersReg = createQueue<{
   registryUrl: string;
+  registryId?: string;
 }>({
   name: 'sub/sht/sync/server/reg',
   redisUrl: env.service.REDIS_URL
 });
 
 export let syncServersRegProcessor = syncServersReg.process(async data => {
-  await syncServersMany.add({
-    registryUrl: data.registryUrl
-  });
+  await syncServersMany.add({ registryUrl: data.registryUrl }, { id: data.registryId });
 });
 
 let syncServersMany = createQueue<{
   registryUrl: string;
 }>({
   name: 'sub/sht/sync/server/many',
-  redisUrl: env.service.REDIS_URL
+  redisUrl: env.service.REDIS_URL,
+  workerOpts: {
+    concurrency: 1,
+    limiter: {
+      max: 1,
+      duration: 5_000
+    }
+  }
 });
 
-export let syncServersManyProcessor = syncServersMany.process(data =>
-  lock.usingLock(data.registryUrl, async () => {
-    let client = createMcpRegistryClient({
-      endpoint: data.registryUrl
-    });
+export let syncServersManyProcessor = syncServersMany.process(async data => {
+  let client = createMcpRegistryClient({
+    endpoint: data.registryUrl
+  });
 
-    let cursor = await db.shuttleSyncMcpServerRegistryCursor.findUnique({
-      where: { registryUrl: data.registryUrl }
-    });
+  let cursor = await db.shuttleSyncMcpServerRegistryCursor.findUnique({
+    where: { registryUrl: data.registryUrl }
+  });
 
-    let servers = await client.server.list({
-      after: cursor?.cursor,
-      limit: 100
-    });
-    if (!servers.items.length) return;
+  let servers = await client.server.list({
+    after: cursor?.cursor,
+    limit: 100
+  });
+  if (!servers.items.length) return;
 
-    await syncServersSingle.addManyWithOps(
-      servers.items.map(s => ({
-        data: { id: s.id, registryUrl: data.registryUrl },
-        opts: { id: s.id }
-      }))
-    );
+  await syncServersSingle.addManyWithOps(
+    servers.items.map(s => ({
+      data: { id: s.id, registryUrl: data.registryUrl },
+      opts: { id: s.id }
+    }))
+  );
 
-    await db.shuttleSyncMcpServerRegistryCursor.upsert({
-      where: { registryUrl: data.registryUrl },
-      create: {
-        registryUrl: data.registryUrl,
-        cursor: servers.items[servers.items.length - 1]!.id as string
-      },
-      update: {
-        cursor: servers.items[servers.items.length - 1]!.id as string
-      }
-    });
+  await db.shuttleSyncMcpServerRegistryCursor.upsert({
+    where: { registryUrl: data.registryUrl },
+    create: {
+      registryUrl: data.registryUrl,
+      cursor: servers.items[servers.items.length - 1]!.id as string
+    },
+    update: {
+      cursor: servers.items[servers.items.length - 1]!.id as string
+    }
+  });
 
-    await syncServersMany.add({
-      registryUrl: data.registryUrl
-    });
-  })
-);
+  await syncServersMany.add({
+    registryUrl: data.registryUrl
+  });
+});
 
 let syncServersSingle = createQueue<{
   registryUrl: string;

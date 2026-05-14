@@ -6,7 +6,14 @@ import { createChangeNotificationQueue } from '../changeNotification/create';
 
 export let serverVersionCreatedQueue = createQueue<{ serverVersionId: string }>({
   name: 'shut/l/serverVersion/created',
-  redisUrl: env.service.REDIS_URL
+  redisUrl: env.service.REDIS_URL,
+  workerOpts: {
+    concurrency: 3,
+    limiter: {
+      max: 30,
+      duration: 1000
+    }
+  }
 });
 
 export let serverVersionCreatedQueueProcessor = serverVersionCreatedQueue.process(

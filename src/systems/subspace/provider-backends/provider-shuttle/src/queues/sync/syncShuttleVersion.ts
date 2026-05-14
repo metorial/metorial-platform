@@ -1,4 +1,3 @@
-import { createLock } from '@lowerdeck/lock';
 import { createQueue } from '@lowerdeck/queue';
 import { db, snowflake } from '@metorial-subspace/db';
 import { syncVersionToCustomProvider } from '@metorial-subspace/module-custom-provider';
@@ -20,11 +19,6 @@ export let syncShuttleVersionQueue = createQueue<{
       duration: 1000
     }
   }
-});
-
-let shuttleServerVersionUpsertLock = createLock({
-  name: 'sub/shut/serverVersion/upsert/lock',
-  redisUrl: env.service.REDIS_URL
 });
 
 export let syncShuttleVersionQueueProcessor = syncShuttleVersionQueue.process(async data => {

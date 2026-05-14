@@ -1,24 +1,22 @@
-import { createLock } from '@lowerdeck/lock';
 import { createQueue } from '@lowerdeck/queue';
 import { db, snowflake } from '@metorial-subspace/db';
 import { env } from '../../env';
 import { origin } from '../../origin';
 import { handlePushQueue } from './handlePush';
 
+let SCM_SYNC_MANY_JOB_ID = 'scm-sync-many';
+
 export let scmSyncManyQueue = createQueue<{}>({
   name: 'sub/cpr/scm/sync/many',
   redisUrl: env.service.REDIS_URL
 });
 
-let lock = createLock({
-  name: 'sub/cpr/scm/sync/many/lock',
-  redisUrl: env.service.REDIS_URL
-});
+export let enqueueScmSyncMany = () => scmSyncManyQueue.add({}, { id: SCM_SYNC_MANY_JOB_ID });
 
 let CURSOR_ID = 1;
 
-export let scmSyncManyQueueProcessor = scmSyncManyQueue.process(async data =>
-  lock.usingLock('1', async () => {
+export let scmSyncManyQueueProcessor = scmSyncManyQueue.process(async () => {
+  for (let i = 0; i < 50; i++) {
     let changeNotification = await db.originSyncChangeNotificationCursor.findFirst({
       where: { id: CURSOR_ID }
     });
@@ -88,7 +86,5 @@ export let scmSyncManyQueueProcessor = scmSyncManyQueue.process(async data =>
       create: { id: CURSOR_ID, cursor: lastItem.id },
       update: { cursor: lastItem.id }
     });
-
-    await scmSyncManyQueue.add({});
-  })
-);
+  }
+});
