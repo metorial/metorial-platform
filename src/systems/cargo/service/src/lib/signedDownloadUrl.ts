@@ -1,5 +1,4 @@
 import { Tokens } from '@lowerdeck/tokens';
-import { addDays } from 'date-fns';
 import type { File } from '../../prisma/generated/client';
 import { env } from '../env';
 
@@ -13,7 +12,11 @@ type SignedDownloadTokenData = {
   storeId: string;
 };
 
-let getExpirationDate = () => addDays(new Date(), 3);
+let getExpirationDate = () => {
+  let date = new Date();
+  date.setDate(date.getDate() + 3);
+  return date;
+};
 
 export let createSignedFileDownloadKey = async (file: Pick<File, 'id' | 'storeId'>) =>
   await signedDownloadTokens.sign({
