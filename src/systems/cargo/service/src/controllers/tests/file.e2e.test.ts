@@ -249,7 +249,7 @@ describe('cargo file.e2e', () => {
     let fileLinks = await cargoClient.fileLink.list({
       tenantId: tenant.id,
       environmentId: environment.id,
-      fileId: [firstFile.id, secondFile.id],
+      fileIds: [firstFile.id, secondFile.id],
       limit: 10
     });
 

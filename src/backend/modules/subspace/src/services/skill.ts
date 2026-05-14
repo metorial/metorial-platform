@@ -1,9 +1,14 @@
 import {
   Consumer,
   ConsumerGroup,
+  ConsumerSurface,
   ConsumerProfile,
   db,
   Instance,
+  InstanceConsumer,
+  Organization,
+  OrganizationActor,
+  OrganizationMember,
   Skill,
   SkillStatus
 } from '@metorial/db';
@@ -11,7 +16,39 @@ import { createSubspaceService } from '../lib/subspaceService';
 import { subspace } from '../subspace';
 
 type SubspaceSkillResult = Awaited<ReturnType<typeof subspace.skill.get>>;
-type SubspaceSkillWithLocal = SubspaceSkillResult & {
+type SubspaceSkillActorResult = NonNullable<SubspaceSkillResult['hierarchy']['creator']>;
+type EnrichedOrganizationActor = OrganizationActor & {
+  organization: Organization;
+};
+type EnrichedConsumer = InstanceConsumer & {
+  consumer: Consumer & {
+    organizationMember: OrganizationMember | null;
+    profiles: (ConsumerProfile & {
+      surface: ConsumerSurface;
+    })[];
+  };
+};
+export type EnrichedSubspaceSkillActor = {
+  name: string;
+  organizationActor: EnrichedOrganizationActor | null;
+  consumer: EnrichedConsumer | null;
+};
+type EnrichedSubspaceSkillFork = Omit<
+  NonNullable<SubspaceSkillResult['hierarchy']['fork']>,
+  'creator' | 'originalCreator'
+> & {
+  creator: EnrichedSubspaceSkillActor | null;
+  originalCreator: EnrichedSubspaceSkillActor | null;
+};
+type EnrichedSubspaceSkillHierarchy = Omit<
+  SubspaceSkillResult['hierarchy'],
+  'creator' | 'fork'
+> & {
+  creator: EnrichedSubspaceSkillActor | null;
+  fork: EnrichedSubspaceSkillFork | null;
+};
+type SubspaceSkillWithLocal = Omit<SubspaceSkillResult, 'hierarchy'> & {
+  hierarchy: EnrichedSubspaceSkillHierarchy;
   localSkill: Skill;
 };
 type ConsumerProfileForSkill = ConsumerProfile & {
@@ -21,9 +58,22 @@ type ConsumerReadContext = {
   consumerProfile?: ConsumerProfile;
   consumerGroups?: Pick<ConsumerGroup, 'oid'>[];
 };
+type SkillWriteActorInput = {
+  consumerProfile?: ConsumerProfileForSkill;
+  organizationActor?: OrganizationActor;
+};
 
 let statusFromSubspace = (status: SubspaceSkillResult['status']): SkillStatus => status;
 let skillEntityIdFromSubspace = (skill: SubspaceSkillResult) => skill.hierarchy.entity.id;
+
+let organizationActorInclude = {
+  organization: true,
+  teams: {
+    include: {
+      team: true
+    }
+  }
+} as const;
 
 export let getVisibleSkillWhere = (d: {
   consumerProfile: ConsumerProfile;
@@ -78,6 +128,7 @@ export let syncSkillFromSubspace = async (d: {
   skill: SubspaceSkillResult;
   owner?: {
     consumerProfile?: ConsumerProfileForSkill;
+    organizationActor?: OrganizationActor;
   };
 }) => {
   return await db.skill.upsert({
@@ -93,6 +144,7 @@ export let syncSkillFromSubspace = async (d: {
       ownerType: d.owner?.consumerProfile ? 'consumer' : 'instance',
       organizationOid: d.instance.organizationOid,
       instanceOid: d.instance.oid,
+      createdByOrganizationActorOid: d.owner?.organizationActor?.oid,
       createdByConsumerOid: d.owner?.consumerProfile?.consumerOid,
       createdByConsumerProfileOid: d.owner?.consumerProfile?.oid
     },
@@ -102,6 +154,7 @@ export let syncSkillFromSubspace = async (d: {
       storeId: d.skill.storeId,
       skillEntityId: skillEntityIdFromSubspace(d.skill),
       ownerType: d.owner?.consumerProfile ? 'consumer' : undefined,
+      createdByOrganizationActorOid: d.owner?.organizationActor?.oid,
       createdByConsumerOid: d.owner?.consumerProfile?.consumerOid,
       createdByConsumerProfileOid: d.owner?.consumerProfile?.oid,
       archivedAt: d.skill.status === 'archived' ? new Date() : undefined,
@@ -115,6 +168,7 @@ let localSkillNeedsSync = (d: {
   localSkill: Skill | undefined;
   owner?: {
     consumerProfile?: ConsumerProfileForSkill;
+    organizationActor?: OrganizationActor;
   };
 }) => {
   if (!d.localSkill) return true;
@@ -134,25 +188,149 @@ let localSkillNeedsSync = (d: {
     }
   }
 
+  if (d.owner?.organizationActor) {
+    if (d.localSkill.createdByOrganizationActorOid !== d.owner.organizationActor.oid) {
+      return true;
+    }
+  }
+
   return false;
 };
+
+let getSkillActors = (skill: SubspaceSkillResult) =>
+  [
+    skill.hierarchy.creator,
+    skill.hierarchy.fork?.creator,
+    skill.hierarchy.fork?.originalCreator
+  ].filter((actor): actor is SubspaceSkillActorResult => !!actor);
+
+let enrichSkillActors = async (d: {
+  instance: Instance;
+  actors: SubspaceSkillActorResult[];
+}) => {
+  if (!d.actors.length) return new Map<string, EnrichedSubspaceSkillActor>();
+
+  let organizationActorIds = [
+    ...new Set(
+      d.actors.flatMap(actor => (actor.organizationActorId ? [actor.organizationActorId] : []))
+    )
+  ];
+  let consumerIds = [
+    ...new Set(
+      d.actors.flatMap(actor =>
+        !actor.organizationActorId && actor.consumerId ? [actor.consumerId] : []
+      )
+    )
+  ];
+
+  let [organizationActors, consumers] = await Promise.all([
+    db.organizationActor.findMany({
+      where: {
+        organizationOid: d.instance.organizationOid,
+        id: {
+          in: organizationActorIds
+        }
+      },
+      include: organizationActorInclude
+    }),
+    db.instanceConsumer.findMany({
+      where: {
+        instanceOid: d.instance.oid,
+        consumer: {
+          id: {
+            in: consumerIds
+          }
+        }
+      },
+      include: {
+        consumer: {
+          include: {
+            organizationMember: true,
+            profiles: {
+              where: {
+                instanceOid: d.instance.oid
+              },
+              include: {
+                surface: true
+              }
+            }
+          }
+        }
+      }
+    })
+  ]);
+
+  let organizationActorById = new Map(
+    organizationActors.map(organizationActor => [organizationActor.id, organizationActor])
+  );
+  let consumerById = new Map(consumers.map(consumer => [consumer.consumer.id, consumer]));
+
+  return new Map(
+    d.actors.map(actor => {
+      let organizationActor = actor.organizationActorId
+        ? (organizationActorById.get(actor.organizationActorId) ?? null)
+        : null;
+      let consumer =
+        !organizationActor && actor.consumerId
+          ? (consumerById.get(actor.consumerId) ?? null)
+          : null;
+
+      return [
+        actor.id,
+        {
+          name: organizationActor?.name ?? consumer?.name ?? actor.name,
+          organizationActor,
+          consumer
+        }
+      ];
+    })
+  );
+};
+
+let enrichSkillHierarchy = (d: {
+  skill: SubspaceSkillResult;
+  actors: Map<string, EnrichedSubspaceSkillActor>;
+}): EnrichedSubspaceSkillHierarchy => ({
+  ...d.skill.hierarchy,
+  creator: d.skill.hierarchy.creator
+    ? (d.actors.get(d.skill.hierarchy.creator.id) ?? null)
+    : null,
+  fork: d.skill.hierarchy.fork
+    ? {
+        ...d.skill.hierarchy.fork,
+        creator: d.skill.hierarchy.fork.creator
+          ? (d.actors.get(d.skill.hierarchy.fork.creator.id) ?? null)
+          : null,
+        originalCreator: d.skill.hierarchy.fork.originalCreator
+          ? (d.actors.get(d.skill.hierarchy.fork.originalCreator.id) ?? null)
+          : null
+      }
+    : null
+});
 
 let enrichSkillsFromList = async (d: {
   instance: Instance;
   skills: SubspaceSkillResult[];
   owner?: {
     consumerProfile?: ConsumerProfileForSkill;
+    organizationActor?: OrganizationActor;
   };
 }) => {
   if (!d.skills.length) return [];
 
-  let existing = await db.skill.findMany({
-    where: {
-      id: {
-        in: d.skills.map(skill => skill.id)
+  let [existing, enrichedActors] = await Promise.all([
+    db.skill.findMany({
+      where: {
+        id: {
+          in: d.skills.map(skill => skill.id)
+        }
       }
-    }
-  });
+    }),
+    enrichSkillActors({
+      instance: d.instance,
+      actors: d.skills.flatMap(getSkillActors)
+    })
+  ]);
   let existingById = new Map(existing.map(skill => [skill.id, skill]));
 
   let synced = await Promise.all(
@@ -180,6 +358,7 @@ let enrichSkillsFromList = async (d: {
 
   return d.skills.map(skill => ({
     ...skill,
+    hierarchy: enrichSkillHierarchy({ skill, actors: enrichedActors }),
     localSkill: localById.get(skill.id)!
   }));
 };
@@ -189,6 +368,7 @@ let enrichSkill = async (d: {
   skill: SubspaceSkillResult;
   owner?: {
     consumerProfile?: ConsumerProfileForSkill;
+    organizationActor?: OrganizationActor;
   };
 }): Promise<SubspaceSkillWithLocal> => {
   let [skill] = await enrichSkillsFromList({
@@ -205,6 +385,7 @@ export let syncSkillsFromSubspace = async (d: {
   skills: SubspaceSkillResult[];
   owner?: {
     consumerProfile?: ConsumerProfileForSkill;
+    organizationActor?: OrganizationActor;
   };
 }) => {
   return (await enrichSkillsFromList(d)).map(skill => skill.localSkill);
@@ -316,18 +497,17 @@ export let subspaceSkillService = createSubspaceService(
         })
       );
     },
-    create: async (
-      arg0: Parameters<typeof inner.create>[0] & {
-        consumerProfile?: ConsumerProfileForSkill;
-      }
-    ) => {
+    create: async (arg0: Parameters<typeof inner.create>[0] & SkillWriteActorInput) => {
       let { consumerProfile, ...input } = arg0;
       let skill = await inner.create(input);
 
       return await enrichSkill({
         instance: arg0.instance,
         skill,
-        owner: consumerProfile ? { consumerProfile } : undefined
+        owner:
+          consumerProfile || arg0.organizationActor
+            ? { consumerProfile, organizationActor: arg0.organizationActor }
+            : undefined
       });
     },
     update: async (...params: Parameters<typeof inner.update>) => {
@@ -345,26 +525,30 @@ export let subspaceSkillService = createSubspaceService(
         skill
       });
     },
-    fork: async (
-      arg0: Parameters<typeof inner.fork>[0] & {
-        consumerProfile?: ConsumerProfileForSkill;
-      }
-    ) => {
+    fork: async (arg0: Parameters<typeof inner.fork>[0] & SkillWriteActorInput) => {
       let { consumerProfile, ...input } = arg0;
       let skill = await inner.fork(input);
 
       return await enrichSkill({
         instance: arg0.instance,
         skill,
-        owner: consumerProfile ? { consumerProfile } : undefined
+        owner:
+          consumerProfile || arg0.organizationActor
+            ? { consumerProfile, organizationActor: arg0.organizationActor }
+            : undefined
       });
     },
-    duplicate: async (...params: Parameters<typeof inner.duplicate>) => {
-      let skill = await inner.duplicate(...params);
+    duplicate: async (arg0: Parameters<typeof inner.duplicate>[0] & SkillWriteActorInput) => {
+      let { consumerProfile, ...input } = arg0;
+      let skill = await inner.duplicate(input);
 
       return await enrichSkill({
-        instance: params[0].instance,
-        skill
+        instance: arg0.instance,
+        skill,
+        owner:
+          consumerProfile || arg0.organizationActor
+            ? { consumerProfile, organizationActor: arg0.organizationActor }
+            : undefined
       });
     }
   })

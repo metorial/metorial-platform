@@ -105,6 +105,9 @@ import {
   MetorialDashboardInstanceSkillGroupsItemsEndpoint,
   MetorialDashboardInstanceSkillsEndpoint,
   MetorialDashboardInstanceSkillsItemsEndpoint,
+  MetorialDashboardInstanceSkillsParticipantsEndpoint,
+  MetorialDashboardInstanceSkillsVersionsEndpoint,
+  MetorialDashboardInstanceSkillsVersionsSnapshotEndpoint,
   MetorialDashboardInstanceSkillTemplatesEndpoint,
   MetorialDashboardInstanceSkillTemplatesItemsEndpoint,
   MetorialDashboardInstanceStoresEndpoint,
@@ -470,7 +473,11 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
   }),
 
   skills: Object.assign(new MetorialDashboardInstanceSkillsEndpoint(manager), {
-    items: new MetorialDashboardInstanceSkillsItemsEndpoint(manager)
+    items: new MetorialDashboardInstanceSkillsItemsEndpoint(manager),
+    participants: new MetorialDashboardInstanceSkillsParticipantsEndpoint(manager),
+    versions: Object.assign(new MetorialDashboardInstanceSkillsVersionsEndpoint(manager), {
+      snapshot: new MetorialDashboardInstanceSkillsVersionsSnapshotEndpoint(manager)
+    })
   }),
 
   skillTemplates: Object.assign(new MetorialDashboardInstanceSkillTemplatesEndpoint(manager), {

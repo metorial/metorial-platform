@@ -1,6 +1,6 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { skillPresenter } from '../presenters';
+import { skillParticipantPresenter, skillPresenter } from '../presenters';
 import { skillService, skillTemplateService } from '../services';
 import { app } from './_app';
 import { storePermissionsSchema } from './document';
@@ -164,5 +164,27 @@ export let skillController = app.controller({
           actorId: ctx.input.actorId,
           permissions: ctx.input.permissions
         })
+    ),
+
+  markSkillUse: skillApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        environmentId: v.string(),
+        skillId: v.string(),
+        actorId: v.string()
+      })
+    )
+    .do(
+      async ctx =>
+        skillParticipantPresenter(
+          await skillService.markSkillUse({
+            tenant: ctx.tenant,
+            environment: ctx.environment,
+            skill: ctx.skill,
+            actorId: ctx.input.actorId
+          })
+        )
     )
 });

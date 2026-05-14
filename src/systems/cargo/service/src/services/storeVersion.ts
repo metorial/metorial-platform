@@ -2,7 +2,7 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type { Prisma } from '../../prisma/generated/client';
-import { db, withTransaction } from '../db';
+import { db, withTransaction, type TransactionDB } from '../db';
 import { getId } from '../id';
 import type { CargoTenantEnvironment } from './filePurpose';
 import { storeAccessService, storeReadPermission, type StoreAccessInput } from './storeAccess';
@@ -146,6 +146,42 @@ let toResolvedStoreVersion = (version: StoreVersionRecord): ResolvedStoreVersion
 });
 
 class StoreVersionServiceImpl {
+  private async ensureSkillVersionForStoreVersion(
+    tx: TransactionDB,
+    d: {
+      storeOid: bigint;
+      storeVersionOid: bigint;
+      versionNumber: number;
+    }
+  ) {
+    let skill = await tx.skill.findUnique({
+      where: {
+        storeOid: d.storeOid
+      },
+      select: {
+        oid: true
+      }
+    });
+
+    if (!skill) return null;
+
+    let ids = getId('skillVersion');
+
+    return await tx.skillVersion.upsert({
+      where: {
+        storeVersionOid: d.storeVersionOid
+      },
+      create: {
+        oid: ids.oid,
+        id: ids.id,
+        skillOid: skill.oid,
+        storeVersionOid: d.storeVersionOid,
+        versionNumber: d.versionNumber
+      },
+      update: {}
+    });
+  }
+
   async touchStoreLastEditedAt(d: { storeOid: bigint; at?: Date }) {
     return await withTransaction(
       async db => {
@@ -339,6 +375,12 @@ class StoreVersionServiceImpl {
       });
 
       if (existingVersion) {
+        await this.ensureSkillVersionForStoreVersion(db, {
+          storeOid: existingVersion.store.oid,
+          storeVersionOid: existingVersion.oid,
+          versionNumber: existingVersion.versionNumber
+        });
+
         return {
           version: toResolvedStoreVersion(existingVersion),
           didClearDirtyAt: false,
@@ -382,6 +424,12 @@ class StoreVersionServiceImpl {
           versionNumber: (latestVersion?.versionNumber ?? 0) + 1,
           sourceDirtyAt: store.dirtyAt
         }
+      });
+
+      await this.ensureSkillVersionForStoreVersion(db, {
+        storeOid: store.oid,
+        storeVersionOid: version.oid,
+        versionNumber: version.versionNumber
       });
 
       if (currentItems.length > 0) {

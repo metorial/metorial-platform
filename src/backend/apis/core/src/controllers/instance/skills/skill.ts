@@ -171,6 +171,7 @@ export let skillController = Controller.create(
             })
           : await subspaceSkillService.create({
               instance: ctx.instance,
+              organizationActor: ctx.actor!,
               ...input
             });
 
@@ -299,6 +300,7 @@ export let skillController = Controller.create(
             })
           : await subspaceSkillService.duplicate({
               instance: ctx.instance,
+              organizationActor: ctx.actor!,
               skillId: ctx.skill.id,
               ...input
             });
@@ -359,6 +361,7 @@ export let skillController = Controller.create(
       .do(async ctx => {
         let skill = await subspaceSkillService.duplicate({
           instance: ctx.instance,
+          organizationActor: ctx.actor!,
           skillId: ctx.skill.id,
           allowDeleted: true,
           name: ctx.body.name,

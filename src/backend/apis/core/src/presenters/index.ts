@@ -158,9 +158,12 @@ import {
   v1SkillGroupItemPresenter,
   v1SkillGroupPresenter,
   v1SkillItemPresenter,
+  v1SkillParticipantPresenter,
   v1SkillPresenter,
   v1SkillTemplateItemPresenter,
   v1SkillTemplatePresenter,
+  v1SkillVersionPresenter,
+  v1SkillVersionSnapshotPresenter,
   v1StoreItemListPresenter,
   v1StoreItemPresenter,
   v1StoreParticipantPresenter,
@@ -318,9 +321,12 @@ import {
   skillGroupItemType,
   skillGroupType,
   skillItemType,
+  skillParticipantType,
   skillTemplateItemType,
   skillTemplateType,
   skillType,
+  skillVersionSnapshotType,
+  skillVersionType,
   storeItemListType,
   storeItemType,
   storeParticipantType,
@@ -542,6 +548,21 @@ export let storeItemListPresenter = declarePresenter(storeItemListType, {
 export let storeParticipantPresenter = declarePresenter(storeParticipantType, {
   mt_2025_01_01_dashboard: v1StoreParticipantPresenter,
   mt_2026_01_01_magnetar: v1StoreParticipantPresenter
+});
+
+export let skillParticipantPresenter = declarePresenter(skillParticipantType, {
+  mt_2025_01_01_dashboard: v1SkillParticipantPresenter,
+  mt_2026_01_01_magnetar: v1SkillParticipantPresenter
+});
+
+export let skillVersionPresenter = declarePresenter(skillVersionType, {
+  mt_2025_01_01_dashboard: v1SkillVersionPresenter,
+  mt_2026_01_01_magnetar: v1SkillVersionPresenter
+});
+
+export let skillVersionSnapshotPresenter = declarePresenter(skillVersionSnapshotType, {
+  mt_2025_01_01_dashboard: v1SkillVersionSnapshotPresenter,
+  mt_2026_01_01_magnetar: v1SkillVersionSnapshotPresenter
 });
 
 export let secretPresenter = declarePresenter(secretType, {

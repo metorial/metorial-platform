@@ -6,9 +6,7 @@ import {
   type InternalScopeOwner
 } from '@metorial/internal-clients';
 import { db, type Instance, type Organization, type User } from '@metorial/db';
-import {
-  uploadFile as uploadCargoHttpFile
-} from '../../../../systems/_clients/cargo/src';
+import { uploadFile as uploadCargoHttpFile } from '../../../../systems/_clients/cargo/src';
 import type { CargoAccessActor, CargoStorePermission } from './services/access';
 import { purposes, purposeSlugs } from './definitions';
 import { env } from './env';
@@ -54,7 +52,9 @@ export type CargoFileReferenceList = Awaited<ReturnType<typeof cargo.fileReferen
 export type CargoActor = Awaited<ReturnType<typeof cargo.actor.upsert>>;
 export type CargoDocument = Awaited<ReturnType<typeof cargo.document.create>>;
 export type CargoDocumentList = Awaited<ReturnType<typeof cargo.document.list>>;
-export type CargoDocumentPermissions = Awaited<ReturnType<typeof cargo.document.getPermissions>>;
+export type CargoDocumentPermissions = Awaited<
+  ReturnType<typeof cargo.document.getPermissions>
+>;
 export type CargoDocumentVersion = Awaited<ReturnType<typeof cargo.documentVersion.get>>;
 export type CargoDocumentVersionList = Awaited<ReturnType<typeof cargo.documentVersion.list>>;
 export type CargoDocumentParticipant = Awaited<
@@ -72,6 +72,15 @@ export type CargoStoreItemList = Awaited<ReturnType<typeof cargo.storeItem.list>
 export type CargoStoreParticipant = Awaited<ReturnType<typeof cargo.storeParticipant.get>>;
 export type CargoStoreParticipantList = Awaited<
   ReturnType<typeof cargo.storeParticipant.list>
+>;
+export type CargoSkillParticipant = Awaited<ReturnType<typeof cargo.skillParticipant.get>>;
+export type CargoSkillParticipantList = Awaited<
+  ReturnType<typeof cargo.skillParticipant.list>
+>;
+export type CargoSkillVersion = Awaited<ReturnType<typeof cargo.skillVersion.get>>;
+export type CargoSkillVersionList = Awaited<ReturnType<typeof cargo.skillVersion.list>>;
+export type CargoSkillVersionSnapshot = Awaited<
+  ReturnType<typeof cargo.skillVersion.getSnapshot>
 >;
 
 let pickPreferredInstance = <

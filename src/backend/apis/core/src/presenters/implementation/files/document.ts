@@ -1,9 +1,10 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
 import { documentType } from '../../types';
+import { documentParticipantActorSchema, presentDocumentParticipantActor } from './documentParticipant';
 
 export let v1DocumentPresenter = Presenter.create(documentType)
-  .presenter(async ({ document }) => ({
+  .presenter(async ({ document }, opts) => ({
     object: 'document',
     id: document.id,
     status: document.status,
@@ -12,6 +13,9 @@ export let v1DocumentPresenter = Presenter.create(documentType)
     file_id: document.fileId,
     parent_document_id: document.parentDocumentId ?? null,
     current_version_id: document.currentVersionId ?? null,
+    created_by: document.createdBy
+      ? await presentDocumentParticipantActor(document.createdBy, opts)
+      : null,
     created_at: document.createdAt,
     updated_at: document.updatedAt
   }))
@@ -27,6 +31,7 @@ export let v1DocumentPresenter = Presenter.create(documentType)
       file_id: v.string(),
       parent_document_id: v.nullable(v.string()),
       current_version_id: v.nullable(v.string()),
+      created_by: v.nullable(documentParticipantActorSchema),
       created_at: v.date(),
       updated_at: v.date()
     })

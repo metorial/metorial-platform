@@ -9,6 +9,7 @@ export type ManagementInstanceStoresParticipantsGetOutput = {
     type: 'organization_actor' | 'consumer' | 'unknown';
     name: string;
     imageUrl: string | null;
+    email: string | null;
     organizationActor: {
       object: 'organization.actor';
       id: string;
@@ -56,6 +57,7 @@ export let mapManagementInstanceStoresParticipantsGetOutput =
         type: mtMap.objectField('type', mtMap.passthrough()),
         name: mtMap.objectField('name', mtMap.passthrough()),
         imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
+        email: mtMap.objectField('email', mtMap.passthrough()),
         organizationActor: mtMap.objectField(
           'organization_actor',
           mtMap.object({

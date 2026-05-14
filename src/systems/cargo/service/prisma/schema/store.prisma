@@ -205,7 +205,8 @@ model StoreVersion {
 
   createdAt DateTime @default(now())
 
-  items StoreVersionItem[]
+  items        StoreVersionItem[]
+  skillVersion SkillVersion?
 
   @@unique([storeOid, versionNumber])
   @@unique([storeOid, sourceDirtyAt])

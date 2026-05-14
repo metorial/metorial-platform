@@ -13,7 +13,6 @@ import {
 import {
   Avatar,
   Button,
-  Entity,
   Input,
   Menu,
   Panel,
@@ -22,10 +21,9 @@ import {
   showModal,
   theme
 } from '@metorial/ui';
-import { Box, ItemGrid } from '@metorial/ui-product';
+import { Box, ItemGrid, Table } from '@metorial/ui-product';
 import { RiAddLine, RiMore2Line } from '@remixicon/react';
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 
 let EmptyState = styled.div`
@@ -33,10 +31,24 @@ let EmptyState = styled.div`
   padding: 8px 0;
 `;
 
-let Items = styled.div`
+let SkillName = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 0;
+`;
+
+let SkillText = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 2px;
+`;
+
+let Actions = styled.div`
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
 `;
 
 let PickerStack = styled.div`
@@ -181,66 +193,62 @@ let showSkillPickerPanel = (p: {
     </Panel.Wrapper>
   ));
 
-let SkillRow = (p: {
+let getSkillTableRow = (p: {
   skill: SkillGroupItem['skill'] | SkillGroup['skills'][number];
   getSkillPath?: (skillId: string) => string;
   isDeleting?: boolean;
   onRemove?: () => void;
 }) => {
-  let content = (
-    <Entity.Wrapper aligned>
-      <Entity.Content>
-        <Entity.Field
-          prefix={
-            <Avatar
-              entity={{
-                name: p.skill.name,
-                imageUrl: `https://avatar-cdn.metorial.com/${p.skill.id}`
-              }}
-              size={32}
-            />
-          }
-          title={p.skill.name}
-          description={p.skill.description ?? undefined}
+  return {
+    href: p.getSkillPath?.(p.skill.id),
+    data: [
+      <SkillName>
+        <Avatar
+          entity={{
+            name: p.skill.name,
+            imageUrl: `https://avatar-cdn.metorial.com/${p.skill.id}`
+          }}
+          size={32}
+          radius={999}
         />
-
-        <Entity.Field title="Slug" value={<Slug>{p.skill.slug}</Slug>} />
-
-        {p.onRemove && (
-          <Entity.Field title="Actions" right>
-            <Menu
-              items={[{ id: 'remove', label: 'Remove' }]}
-              onItemClick={item => {
-                if (item !== 'remove') return;
-                confirm({
-                  title: `Remove ${p.skill.name}?`,
-                  description: 'Remove this skill from the group?',
-                  confirmText: 'Remove',
-                  onConfirm: () => p.onRemove?.()
-                });
-              }}
-            >
-              <Button
-                size="1"
-                variant="outline"
-                iconRight={<RiMore2Line />}
-                loading={p.isDeleting}
-                title="Skill group membership options"
-              />
-            </Menu>
-          </Entity.Field>
-        )}
-      </Entity.Content>
-    </Entity.Wrapper>
-  );
-
-  if (!p.getSkillPath) return content;
-
-  return (
-    <Link to={p.getSkillPath(p.skill.id)} style={{ textDecoration: 'none', color: 'inherit' }}>
-      {content}
-    </Link>
-  );
+        <SkillText>
+          <Text size="2" weight="strong">
+            {p.skill.name}
+          </Text>
+          {p.skill.description && (
+            <Text size="2" color="gray600">
+              <Description>{p.skill.description}</Description>
+            </Text>
+          )}
+        </SkillText>
+      </SkillName>,
+      <Slug>{p.skill.slug}</Slug>,
+      p.onRemove ? (
+        <Actions>
+          <Menu
+            items={[{ id: 'remove', label: 'Remove' }]}
+            onItemClick={item => {
+              if (item !== 'remove') return;
+              confirm({
+                title: `Remove ${p.skill.name}?`,
+                description: 'Remove this skill from the group?',
+                confirmText: 'Remove',
+                onConfirm: () => p.onRemove?.()
+              });
+            }}
+          >
+            <Button
+              size="1"
+              variant="outline"
+              iconRight={<RiMore2Line />}
+              loading={p.isDeleting}
+              title="Skill group membership options"
+            />
+          </Menu>
+        </Actions>
+      ) : null
+    ]
+  };
 };
 
 export let SkillGroupSkillsScene = (p: {
@@ -309,19 +317,21 @@ export let SkillGroupSkillsScene = (p: {
           </Text>
         </EmptyState>
       ) : (
-        <Items>
-          {skillGroupItems.data.map(item => (
-            <SkillRow
-              key={item.id}
-              skill={item.skill}
-              getSkillPath={p.getSkillPath}
-              isDeleting={deleteSkillGroupItem.isLoading}
-              onRemove={() => removeSkill(item)}
-            />
-          ))}
+        <>
+          <Table
+            headers={['Name', 'Identifier', '']}
+            data={skillGroupItems.data.map(item =>
+              getSkillTableRow({
+                skill: item.skill,
+                getSkillPath: p.getSkillPath,
+                isDeleting: deleteSkillGroupItem.isLoading,
+                onRemove: () => removeSkill(item)
+              })
+            )}
+          />
           <createSkillGroupItem.RenderError />
           <deleteSkillGroupItem.RenderError />
-        </Items>
+        </>
       )}
     </Box>
   ));
@@ -438,59 +448,52 @@ export let SkillGroupsForSkillScene = (p: {
           </Text>
         </EmptyState>
       ) : (
-        <Items>
-          {skillGroups.data.items.map(group => {
-            let content = (
-              <Entity.Wrapper key={group.id} aligned>
-                <Entity.Content>
-                  <Entity.Field
-                    title={group.name}
-                    description={group.description ?? undefined}
-                  />
-                  <Entity.Field
-                    title="Skills"
-                    value={`${group.skills.length} skill${group.skills.length === 1 ? '' : 's'}`}
-                  />
-                  <Entity.Field title="Actions" right>
-                    <Menu
-                      items={[{ id: 'remove', label: 'Remove' }]}
-                      onItemClick={item => {
-                        if (item !== 'remove') return;
-                        confirm({
-                          title: `Remove from ${group.name}?`,
-                          description: 'Remove this skill from the group?',
-                          confirmText: 'Remove',
-                          onConfirm: async () => removeFromGroup(group)
-                        });
-                      }}
-                    >
-                      <Button
-                        size="1"
-                        variant="outline"
-                        iconRight={<RiMore2Line />}
-                        loading={updateSkillGroup.isLoading}
-                        title="Group membership options"
-                      />
-                    </Menu>
-                  </Entity.Field>
-                </Entity.Content>
-              </Entity.Wrapper>
-            );
-
-            if (!p.getSkillGroupPath) return content;
-
-            return (
-              <Link
-                key={group.id}
-                to={p.getSkillGroupPath(group.id)}
-                style={{ textDecoration: 'none', color: 'inherit' }}
-              >
-                {content}
-              </Link>
-            );
-          })}
+        <>
+          <Table
+            headers={['Name', 'Skills', '']}
+            data={skillGroups.data.items.map(group => ({
+              href: p.getSkillGroupPath?.(group.id),
+              data: [
+                <SkillText>
+                  <Text size="2" weight="strong">
+                    {group.name}
+                  </Text>
+                  {group.description && (
+                    <Text size="2" color="gray600">
+                      <Description>{group.description}</Description>
+                    </Text>
+                  )}
+                </SkillText>,
+                <Text size="2">
+                  {group.skills.length} skill{group.skills.length === 1 ? '' : 's'}
+                </Text>,
+                <Actions>
+                  <Menu
+                    items={[{ id: 'remove', label: 'Remove' }]}
+                    onItemClick={item => {
+                      if (item !== 'remove') return;
+                      confirm({
+                        title: `Remove from ${group.name}?`,
+                        description: 'Remove this skill from the group?',
+                        confirmText: 'Remove',
+                        onConfirm: async () => removeFromGroup(group)
+                      });
+                    }}
+                  >
+                    <Button
+                      size="1"
+                      variant="outline"
+                      iconRight={<RiMore2Line />}
+                      loading={updateSkillGroup.isLoading}
+                      title="Group membership options"
+                    />
+                  </Menu>
+                </Actions>
+              ]
+            }))}
+          />
           <updateSkillGroup.RenderError />
-        </Items>
+        </>
       )}
     </Box>
   ));

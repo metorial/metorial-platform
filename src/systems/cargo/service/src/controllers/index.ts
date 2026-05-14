@@ -11,7 +11,9 @@ import { filePurposeController } from './filePurpose';
 import { fileReferenceController } from './fileReference';
 import { reconcileController } from './reconcile';
 import { skillController } from './skill';
+import { skillParticipantController } from './skillParticipant';
 import { skillTemplateController } from './skillTemplate';
+import { skillVersionController } from './skillVersion';
 import { storeController } from './store';
 import { storeItemController } from './storeItem';
 import { storeParticipantController } from './storeParticipant';
@@ -27,7 +29,9 @@ export let rootController = app.controller({
   fileLink: fileLinkController,
   fileReference: fileReferenceController,
   skill: skillController,
+  skillParticipant: skillParticipantController,
   skillTemplate: skillTemplateController,
+  skillVersion: skillVersionController,
   store: storeController,
   storeItem: storeItemController,
   storeParticipant: storeParticipantController,

@@ -3,11 +3,13 @@ import type { SkillGroupSkillsScene as _SkillGroupSkillsScene } from './skillGro
 import type { SkillGroupsForSkillScene as _SkillGroupsForSkillScene } from './skillGroups';
 import type { SkillLinkProvidersScene as _SkillLinkProvidersScene } from './skillLinkProviders';
 import type { SkillTemplateLinkProvidersScene as _SkillTemplateLinkProvidersScene } from './skillLinkProviders';
+import type { SkillParticipantsScene as _SkillParticipantsScene } from './skillParticipants';
 import type { SkillGroupSettingsScene as _SkillGroupSettingsScene } from './skillSettings';
 import type { SkillSettingsScene as _SkillSettingsScene } from './skillSettings';
 import type { SkillTemplateSettingsScene as _SkillTemplateSettingsScene } from './skillSettings';
 import type { StoreFileViewerScene as _StoreFileViewerScene } from './skillStoreFileViewer';
 import type { SkillStoreFileViewerScene as _SkillStoreFileViewerScene } from './skillStoreFileViewer';
+import type { SkillVersionsScene as _SkillVersionsScene } from './skillVersions';
 
 export let SkillLinkProvidersScene = dynamicComponent<
   Parameters<typeof _SkillLinkProvidersScene>
@@ -20,6 +22,14 @@ export let SkillGroupSkillsScene = dynamicComponent<Parameters<typeof _SkillGrou
 export let SkillGroupsForSkillScene = dynamicComponent<
   Parameters<typeof _SkillGroupsForSkillScene>
 >(() => import('./skillGroups').then(m => m.SkillGroupsForSkillScene));
+
+export let SkillParticipantsScene = dynamicComponent<
+  Parameters<typeof _SkillParticipantsScene>
+>(() => import('./skillParticipants').then(m => m.SkillParticipantsScene));
+
+export let SkillVersionsScene = dynamicComponent<Parameters<typeof _SkillVersionsScene>>(() =>
+  import('./skillVersions').then(m => m.SkillVersionsScene)
+);
 
 export let SkillTemplateLinkProvidersScene = dynamicComponent<
   Parameters<typeof _SkillTemplateLinkProvidersScene>

@@ -2,13 +2,13 @@ import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { type CargoFile, type CargoFileLink, cargo } from '../cargo';
-import type { FileOwner } from './file';
 import { type CargoAccessActor, resolveCargoAccess } from './access';
+import type { FileOwner } from './file';
 import { fileReferenceService } from './fileReference';
 
 class FileLinkServiceImpl {
   async createFileLink(d: {
-    file: CargoFile;
+    file: Pick<CargoFile, 'id'>;
     owner: FileOwner;
     accessActor?: CargoAccessActor;
     input: {
@@ -82,7 +82,7 @@ class FileLinkServiceImpl {
       let result = await cargo.fileLink.list({
         tenantId: scope.tenantId,
         environmentId: scope.environmentId,
-        fileId: d.fileId,
+        fileIds: d.fileId ? [d.fileId] : undefined,
         actorId,
         ...input
       });

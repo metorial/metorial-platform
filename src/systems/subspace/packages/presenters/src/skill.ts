@@ -10,8 +10,10 @@ import type {
   SkillIntegration,
   SkillItem,
   SkillProvider,
-  SkillProviderLink
+  SkillProviderLink,
+  TenantActor
 } from '@metorial-subspace/db';
+import { actorPresenter } from './actor';
 import { integrationPreviewPresenter } from './integration';
 import { providerPreviewPresenter } from './provider';
 
@@ -44,10 +46,13 @@ export let skillPresenter = (
     skillEntity: SkillEntity & {
       ownerSkill: Skill | null;
     };
+    ownerTenantActor: TenantActor | null;
     duplicatedFromSkill: Skill | null;
     fork:
       | (SkillFork & {
-          parentSkill: Skill;
+          parentSkill: Skill & {
+            ownerTenantActor: TenantActor | null;
+          };
         })
       | null;
     skillIntegrations: (SkillIntegration & {
@@ -65,7 +70,20 @@ export let skillPresenter = (
   hierarchy: {
     type: skill.fork ? 'fork' : skill.duplicatedFromSkill ? 'duplicated' : 'root',
     parentSkillId: skill.fork?.parentSkill.id ?? skill.duplicatedFromSkill?.id ?? null,
-    forkId: skill.fork?.id ?? null,
+
+    fork: skill.fork
+      ? {
+          id: skill.fork.id,
+          parentSkillId: skill.fork.parentSkill.id,
+          creator: skill.ownerTenantActor ? actorPresenter(skill.ownerTenantActor) : null,
+          originalCreator: skill.fork.parentSkill.ownerTenantActor
+            ? actorPresenter(skill.fork.parentSkill.ownerTenantActor)
+            : null,
+          createdAt: skill.fork.createdAt
+        }
+      : null,
+
+    creator: skill.ownerTenantActor ? actorPresenter(skill.ownerTenantActor) : null,
 
     entity: {
       id: skill.skillEntity.id,

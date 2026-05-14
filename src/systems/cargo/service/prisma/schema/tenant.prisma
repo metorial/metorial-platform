@@ -84,6 +84,7 @@ model TenantActor {
   createdFileLinks       FileLink[]               @relation("FileLinkCreator")
   documentVersionEditors DocumentVersionEditors[]
   storeParticipants      StoreParticipant[]
+  skillParticipants      SkillParticipant[]
   storeItems             StoreItem[]
 
   @@unique([tenantOid, identifier])

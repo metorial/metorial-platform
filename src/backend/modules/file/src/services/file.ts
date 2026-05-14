@@ -2,13 +2,17 @@ import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { Instance, Organization, User } from '@metorial/db';
-import { cargo, type CargoFile, reconcileCargoPurposes } from '../cargo';
+import { cargo, reconcileCargoPurposes, type CargoActor, type CargoFile } from '../cargo';
 import { purposes } from '../definitions';
 import {
   resolveCargoAccess,
   type CargoAccessActor,
   type CargoStorePermission
 } from './access';
+import {
+  documentParticipantService,
+  type EnrichedCargoDocumentActor
+} from './documentParticipant';
 import { fileReferenceService } from './fileReference';
 
 export type FileOwner =
@@ -26,6 +30,10 @@ export type FileOwner =
       instance: Instance;
     };
 
+export type EnrichedCargoFile = Omit<CargoFile, 'createdBy'> & {
+  createdBy: EnrichedCargoDocumentActor | null;
+};
+
 class FileServiceImpl {
   private validatePurposeOwner(d: { purpose: { ownerType: string }; owner: FileOwner }) {
     if (d.purpose.ownerType !== d.owner.type) {
@@ -35,6 +43,36 @@ class FileServiceImpl {
         })
       );
     }
+  }
+
+  async enrichFiles(d: { owner: FileOwner; files: CargoFile[] }): Promise<EnrichedCargoFile[]> {
+    let creators = d.files
+      .map(file => file.createdBy)
+      .filter((creator): creator is CargoActor => !!creator);
+
+    let enrichedCreators = await documentParticipantService.enrichActors({
+      owner: d.owner,
+      actors: creators
+    });
+
+    let nextCreatorIndex = 0;
+    return d.files.map(file => {
+      let createdBy = file.createdBy ? (enrichedCreators[nextCreatorIndex++] ?? null) : null;
+
+      return {
+        ...file,
+        createdBy
+      };
+    });
+  }
+
+  async enrichFile(d: { owner: FileOwner; file: CargoFile }): Promise<EnrichedCargoFile> {
+    let [file] = await this.enrichFiles({
+      owner: d.owner,
+      files: [d.file]
+    });
+
+    return file!;
   }
 
   async createFile(d: {
@@ -65,7 +103,8 @@ class FileServiceImpl {
 
     await reconcileCargoPurposes();
 
-    let { scope, actorId, defaultPermissions, overridePermissions } = await resolveCargoAccess(d);
+    let { scope, actorId, defaultPermissions, overridePermissions } =
+      await resolveCargoAccess(d);
 
     let file = await cargo.file.create({
       tenantId: scope.tenantId,
@@ -81,7 +120,7 @@ class FileServiceImpl {
       overridePermissions
     });
 
-    return file;
+    return await this.enrichFile({ owner: d.owner, file });
   }
 
   async getFileById(d: {
@@ -91,7 +130,8 @@ class FileServiceImpl {
     defaultPermissions?: CargoStorePermission[];
     overridePermissions?: boolean;
   }) {
-    let { scope, actorId, defaultPermissions, overridePermissions } = await resolveCargoAccess(d);
+    let { scope, actorId, defaultPermissions, overridePermissions } =
+      await resolveCargoAccess(d);
     let file = await cargo.file.get({
       tenantId: scope.tenantId,
       environmentId: scope.environmentId,
@@ -101,11 +141,11 @@ class FileServiceImpl {
       overridePermissions
     });
 
-    return file;
+    return await this.enrichFile({ owner: d.owner, file });
   }
 
   async updateFile(d: {
-    file: CargoFile;
+    file: Pick<CargoFile, 'id'>;
     owner: FileOwner;
     input: {
       title?: string;
@@ -122,17 +162,18 @@ class FileServiceImpl {
       title: d.input.title
     });
 
-    return file;
+    return await this.enrichFile({ owner: d.owner, file });
   }
 
   async deleteFile(d: {
-    file: CargoFile;
+    file: Pick<CargoFile, 'id'>;
     owner: FileOwner;
     accessActor?: CargoAccessActor;
     defaultPermissions?: CargoStorePermission[];
     overridePermissions?: boolean;
   }) {
-    let { scope, actorId, defaultPermissions, overridePermissions } = await resolveCargoAccess(d);
+    let { scope, actorId, defaultPermissions, overridePermissions } =
+      await resolveCargoAccess(d);
 
     let hasRefs = await fileReferenceService.hasReferencesForFile({
       file: d.file,
@@ -155,22 +196,18 @@ class FileServiceImpl {
       overridePermissions
     });
 
-    return file;
+    return await this.enrichFile({ owner: d.owner, file });
   }
 
   async listFiles(d: {
     owner: FileOwner;
-    purpose?: string;
+    purpose?: string[];
     accessActor?: CargoAccessActor;
     defaultPermissions?: CargoStorePermission[];
     overridePermissions?: boolean;
   }) {
-    let purpose = d.purpose ? await purposes[d.purpose as keyof typeof purposes] : undefined;
-    if (purpose && purpose.ownerType !== d.owner.type) {
-      this.validatePurposeOwner({ purpose, owner: d.owner });
-    }
-
-    let { scope, actorId, defaultPermissions, overridePermissions } = await resolveCargoAccess(d);
+    let { scope, actorId, defaultPermissions, overridePermissions } =
+      await resolveCargoAccess(d);
 
     return Paginator.create(() => async input => {
       let result = await cargo.file.list({
@@ -184,7 +221,10 @@ class FileServiceImpl {
       });
 
       return {
-        items: result.items,
+        items: await this.enrichFiles({
+          owner: d.owner,
+          files: result.items
+        }),
         pagination: {
           hasNextPage: result.pagination.has_more_after,
           hasPreviousPage: result.pagination.has_more_before

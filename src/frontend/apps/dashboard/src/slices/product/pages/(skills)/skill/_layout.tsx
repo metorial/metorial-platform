@@ -92,6 +92,14 @@ export let SkillLayout = () => {
                 to: Paths.instance.skill(...skillPathParams)
               },
               {
+                label: 'Participants',
+                to: `${Paths.instance.skill(...skillPathParams)}/participants`
+              },
+              {
+                label: 'Versions',
+                to: `${Paths.instance.skill(...skillPathParams)}/versions`
+              },
+              {
                 label: 'Settings',
                 to: `${Paths.instance.skill(...skillPathParams)}/settings`
               }

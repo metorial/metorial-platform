@@ -78,15 +78,18 @@ import {
   ConsumerProviderCatalogEntry
 } from '@metorial/module-consumer';
 import type {
-  CargoDocument,
   CargoDocumentPermissions,
-  CargoFile,
   CargoFileLink,
   CargoStore,
-  CargoStoreItem,
   CargoStorePermissions,
+  EnrichedCargoDocument,
   EnrichedCargoDocumentParticipant,
   EnrichedCargoDocumentVersion,
+  EnrichedCargoFile,
+  EnrichedCargoSkillParticipant,
+  CargoSkillVersion,
+  CargoSkillVersionSnapshot,
+  EnrichedCargoStoreItem,
   EnrichedCargoStoreParticipant
 } from '@metorial/module-file';
 import { Flags } from '@metorial/module-flags';
@@ -429,7 +432,7 @@ export let serviceAccountCredentialType = PresentableType.create<{
 }>()('service_account_credential');
 
 export let fileType = PresentableType.create<{
-  file: CargoFile;
+  file: EnrichedCargoFile;
 }>()('file');
 
 export let fileLinkType = PresentableType.create<{
@@ -437,7 +440,7 @@ export let fileLinkType = PresentableType.create<{
 }>()('fileLink');
 
 export let documentType = PresentableType.create<{
-  document: CargoDocument;
+  document: EnrichedCargoDocument;
 }>()('document');
 
 export let documentPermissionsType = PresentableType.create<{
@@ -461,16 +464,28 @@ export let storePermissionsType = PresentableType.create<{
 }>()('storePermissions');
 
 export let storeItemType = PresentableType.create<{
-  storeItem: CargoStoreItem;
+  storeItem: EnrichedCargoStoreItem;
 }>()('storeItem');
 
 export let storeItemListType = PresentableType.create<{
-  storeItems: CargoStoreItem[];
+  storeItems: EnrichedCargoStoreItem[];
 }>()('storeItemList');
 
 export let storeParticipantType = PresentableType.create<{
   storeParticipant: EnrichedCargoStoreParticipant;
 }>()('storeParticipant');
+
+export let skillParticipantType = PresentableType.create<{
+  skillParticipant: EnrichedCargoSkillParticipant;
+}>()('skillParticipant');
+
+export let skillVersionType = PresentableType.create<{
+  skillVersion: CargoSkillVersion;
+}>()('skillVersion');
+
+export let skillVersionSnapshotType = PresentableType.create<{
+  skillVersionSnapshot: CargoSkillVersionSnapshot;
+}>()('skillVersionSnapshot');
 
 export let secretType = PresentableType.create<{
   secret: Secret & { type: SecretType; organization: Organization; instance: Instance };

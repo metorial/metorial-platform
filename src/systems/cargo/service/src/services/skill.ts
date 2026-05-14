@@ -6,6 +6,7 @@ import { db, withTransaction } from '../db';
 import { snowflake } from '../id';
 import { actorService } from './actor';
 import type { CargoTenantEnvironment } from './filePurpose';
+import { skillParticipantService } from './skillParticipant';
 import type { SkillTemplateRecord } from './skillTemplate';
 import { storeService } from './store';
 import { storeAccessService } from './storeAccess';
@@ -112,7 +113,7 @@ class SkillServiceImpl {
             }
           });
 
-      return await db.skill.create({
+      let skill = await db.skill.create({
         data: {
           oid: snowflake.nextId(),
           id: d.input.id,
@@ -125,6 +126,26 @@ class SkillServiceImpl {
         },
         include: skillInclude
       });
+
+      if (actor) {
+        await skillParticipantService.ensureSkillParticipantRoles({
+          skill,
+          actor,
+          roles: ['creator']
+        });
+
+        if (d.parentSkill && d.parentSkillCloneType === 'fork') {
+          await skillParticipantService.ensureSkillParticipantRoles({
+            skill: d.parentSkill,
+            actor,
+            roles: ['forker']
+          });
+        }
+      }
+
+      await skillParticipantService.syncSkillParticipantsFromStore({ skill });
+
+      return skill;
     });
   }
 
@@ -224,6 +245,10 @@ class SkillServiceImpl {
       throw new ServiceError(notFoundError('store.participant'));
     }
 
+    await skillParticipantService.syncSkillParticipantsFromStore({
+      skill: d.skill
+    });
+
     return {
       skillId: d.skill.id,
       storeId: d.skill.store.id,
@@ -231,6 +256,28 @@ class SkillServiceImpl {
       storeParticipantId: participant.id,
       permissions: participant.permissions
     };
+  }
+
+  async markSkillUse(
+    d: CargoTenantEnvironment & {
+      skill: SkillRecord;
+      actorId: string;
+    }
+  ) {
+    let actor = await actorService.getActorById({
+      tenant: d.tenant,
+      actorId: d.actorId
+    });
+
+    await skillParticipantService.syncSkillParticipantsFromStore({
+      skill: d.skill
+    });
+
+    return await skillParticipantService.ensureSkillParticipantRoles({
+      skill: d.skill,
+      actor,
+      roles: ['user']
+    });
   }
 }
 

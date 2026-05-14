@@ -8,6 +8,7 @@ import {
   type CargoStoreAccess,
   type CargoStorePermission
 } from './access';
+import { storeItemService } from './storeItem';
 
 export type CargoStoreItemOperation = {
   type?: 'add' | 'modify' | 'remove';
@@ -165,7 +166,7 @@ class StoreServiceImpl {
   }) {
     let { scope, actorId, defaultPermissions, overridePermissions } = await resolveCargoAccess(d);
 
-    return await cargo.store.modifyItems({
+    let items = await cargo.store.modifyItems({
       tenantId: scope.tenantId,
       environmentId: scope.environmentId,
       storeId: d.store.id,
@@ -174,6 +175,16 @@ class StoreServiceImpl {
       defaultPermissions,
       overridePermissions
     });
+
+    let enrichedItems = await storeItemService.enrichStoreItems({
+      owner: d.owner,
+      storeItems: items.map(item => item.item)
+    });
+
+    return items.map((item, index) => ({
+      ...item,
+      item: enrichedItems[index]!
+    }));
   }
 }
 

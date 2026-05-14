@@ -1,6 +1,7 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
 import { fileType } from '../../types';
+import { documentParticipantActorSchema, presentDocumentParticipantActor } from './documentParticipant';
 
 export let v1FilePresenter = Presenter.create(fileType)
   .presenter(async ({ file }, opts) => ({
@@ -16,6 +17,9 @@ export let v1FilePresenter = Presenter.create(fileType)
     title: file.title,
 
     purpose: file.purpose.slug,
+    created_by: file.createdBy
+      ? await presentDocumentParticipantActor(file.createdBy, opts)
+      : null,
 
     created_at: file.createdAt,
     updated_at: file.updatedAt
@@ -58,6 +62,7 @@ export let v1FilePresenter = Presenter.create(fileType)
         description: `The file's purpose identifier`,
         examples: ['organization_logo']
       }),
+      created_by: v.nullable(documentParticipantActorSchema),
       created_at: v.date({ name: 'created_at', description: `The files's creation date` }),
       updated_at: v.date({
         name: 'updated_at',

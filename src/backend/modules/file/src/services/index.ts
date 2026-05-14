@@ -14,7 +14,10 @@ export type {
   CargoStore,
   CargoStoreItem,
   CargoStorePermissions,
-  CargoStoreParticipant
+  CargoStoreParticipant,
+  CargoSkillParticipant,
+  CargoSkillVersion,
+  CargoSkillVersionSnapshot
 } from '../cargo';
 export type { CargoAccessActor, CargoAccessInput, CargoStorePermission } from './access';
 export { uploadCargoFile } from '../cargo';
@@ -25,6 +28,8 @@ export * from './documentVersion';
 export * from './file';
 export * from './fileLink';
 export * from './fileReference';
+export * from './skillParticipant';
+export * from './skillVersion';
 export * from './store';
 export * from './storeItem';
 export * from './storeParticipant';

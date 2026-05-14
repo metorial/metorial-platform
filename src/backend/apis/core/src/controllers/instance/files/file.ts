@@ -3,6 +3,7 @@ import { v } from '@lowerdeck/validation';
 import { fileService, hasInstanceConsumerAccess, purposeSlugs } from '@metorial/module-file';
 import { Controller } from '@metorial/rest';
 import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
+import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { filePresenter } from '../../../presenters';
@@ -43,9 +44,12 @@ export let fileController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            purpose: v.optional(v.enumOf(purposeSlugs as any), {
-              description: 'Filter by file purpose'
-            })
+            purpose: v.optional(
+              v.union([v.enumOf(purposeSlugs as any), v.array(v.enumOf(purposeSlugs as any))]),
+              {
+                description: 'Filter by file purpose'
+              }
+            )
           })
         )
       )
@@ -56,6 +60,7 @@ export let fileController = Controller.create(
             instance: ctx.instance,
             organization: ctx.organization
           },
+          purpose: normalizeArrayParam(ctx.query.purpose) as any,
           ...(hasInstanceConsumerAccess(ctx) ? getInstanceCargoAccess(ctx) : {})
         });
 

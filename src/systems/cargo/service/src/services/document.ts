@@ -34,6 +34,7 @@ let documentMimeType = 'text/markdown';
 export let documentInclude = {
   parentDocument: true,
   content: true,
+  createdByTenantActor: true,
   currentVersion: {
     include: {
       content: true
@@ -41,7 +42,8 @@ export let documentInclude = {
   },
   file: {
     include: {
-      purpose: true
+      purpose: true,
+      createdByTenantActor: true
     }
   }
 } satisfies Prisma.DocumentInclude;
@@ -108,6 +110,20 @@ class DocumentServiceImpl {
         id: parentDocumentVersionId
       }
     );
+  }
+
+  private getNextDraftVersionExpiresAt(now = new Date()) {
+    return new Date(now.getTime() + activeVersionWindowMs);
+  }
+
+  private shouldCreateNewVersionForWrite(document: DocumentRecord, now = new Date()) {
+    if (!document.currentVersion) return true;
+
+    if (document.draftVersionExpiresAt) {
+      return document.draftVersionExpiresAt.getTime() <= now.getTime();
+    }
+
+    return now.getTime() - document.currentVersion.createdAt.getTime() >= activeVersionWindowMs;
   }
 
   private async getDocumentRecord(
@@ -426,9 +442,7 @@ class DocumentServiceImpl {
   ) {
     return await withTransaction(async tx => {
       let now = new Date();
-      let shouldCreateNewVersion =
-        !d.document.currentVersion ||
-        now.getTime() - d.document.currentVersion.createdAt.getTime() >= activeVersionWindowMs;
+      let shouldCreateNewVersion = this.shouldCreateNewVersionForWrite(d.document, now);
 
       let liveContentOid = d.document.contentOid;
       let activeVersion = d.document.currentVersion;
@@ -438,10 +452,22 @@ class DocumentServiceImpl {
         document: d.document,
         nextContent: d.nextContent
       });
+      let hasLinkedChildContentConsumers = d.document.isContentOwner
+        ? (await tx.document.count({
+            where: {
+              parentDocumentOid: d.document.oid,
+              isContentOwner: false,
+              contentOid: d.document.contentOid,
+              file: {
+                status: 'active'
+              }
+            }
+          })) > 0
+        : false;
       let shouldDetachOwnedContent =
         d.document.isContentOwner &&
-        !!parentLiveContent &&
-        parentLiveContent.contentOid === d.document.contentOid;
+        ((!!parentLiveContent && parentLiveContent.contentOid === d.document.contentOid) ||
+          (shouldCreateNewVersion && hasLinkedChildContentConsumers));
 
       if (shouldCreateNewVersion) {
         if (d.document.currentVersion) {
@@ -636,7 +662,8 @@ class DocumentServiceImpl {
         liveContentOid,
         nextVersionNumber,
         isContentOwner: d.document.isContentOwner || !shouldKeepParentSync,
-        didCreateVersion
+        didCreateVersion,
+        draftVersionExpiresAt: this.getNextDraftVersionExpiresAt(now)
       };
     });
   }
@@ -667,6 +694,7 @@ class DocumentServiceImpl {
       let maxVersionNumber = d.document.maxVersionNumber;
       let isContentOwner = d.document.isContentOwner;
       let createdVersionId: string | null = null;
+      let draftVersionExpiresAt = d.document.draftVersionExpiresAt;
 
       if (hasContentChange) {
         let listEditedAt = new Date();
@@ -684,6 +712,7 @@ class DocumentServiceImpl {
         maxVersionNumber = writeResult.nextVersionNumber;
         isContentOwner = writeResult.isContentOwner;
         createdVersionId = writeResult.didCreateVersion ? (writeResult.activeVersion?.id ?? null) : null;
+        draftVersionExpiresAt = writeResult.draftVersionExpiresAt;
       }
 
       await tx.file.update({
@@ -712,7 +741,8 @@ class DocumentServiceImpl {
                 contentOid: liveContentOid,
                 isContentOwner,
                 maxVersionNumber,
-                currentVersionOid: activeVersion?.oid ?? null
+                currentVersionOid: activeVersion?.oid ?? null,
+                draftVersionExpiresAt
               }
             : {})
         },
@@ -1243,6 +1273,139 @@ class DocumentServiceImpl {
 
       return await this.resolveDocument(result.document);
     });
+  }
+
+  async listDocumentIdsReadyForDraftVersionFlush(d: {
+    cursorOid?: string;
+    limit: number;
+    expiresBefore: Date;
+  }) {
+    let documents = await db.document.findMany({
+      where: {
+        draftVersionExpiresAt: {
+          lte: d.expiresBefore
+        },
+        file: {
+          status: 'active'
+        },
+        ...(d.cursorOid
+          ? {
+              oid: {
+                gt: BigInt(d.cursorOid)
+              }
+            }
+          : {})
+      },
+      orderBy: {
+        oid: 'asc'
+      },
+      take: d.limit,
+      select: {
+        oid: true,
+        id: true,
+        draftVersionExpiresAt: true
+      }
+    });
+
+    return {
+      documents: documents
+        .filter(document => document.draftVersionExpiresAt !== null)
+        .map(document => ({
+          oid: document.oid.toString(),
+          documentId: document.id,
+          draftVersionExpiresAt: document.draftVersionExpiresAt!
+        })),
+      nextCursorOid: documents.length === d.limit ? documents[documents.length - 1]!.oid.toString() : undefined
+    };
+  }
+
+  async flushExpiredDraftVersion(d: {
+    documentId: string;
+    expectedDraftVersionExpiresAt: Date;
+  }) {
+    let result = await documentDraftService.withDocumentLock(d.documentId, async () => {
+      let draft = await documentDraftService.getDraftByDocumentId(d.documentId);
+      if (draft) return null;
+
+      return await withTransaction(async tx => {
+        let now = new Date();
+        let document = await tx.document.findFirst({
+          where: {
+            id: d.documentId,
+            file: {
+              status: 'active'
+            }
+          },
+          include: {
+            ...documentInclude,
+            tenant: true,
+            environment: true
+          }
+        });
+        if (!document || document.isReadOnly || !document.currentVersion) return null;
+
+        let draftVersionExpiresAt = document.draftVersionExpiresAt;
+        if (!draftVersionExpiresAt) return null;
+        if (draftVersionExpiresAt.getTime() !== d.expectedDraftVersionExpiresAt.getTime()) {
+          return null;
+        }
+        if (draftVersionExpiresAt.getTime() > now.getTime()) return null;
+
+        let retiredContentIds = getId('documentContent');
+        await tx.documentContent.create({
+          data: {
+            oid: retiredContentIds.oid,
+            content: document.content.content
+          }
+        });
+
+        await tx.documentVersion.update({
+          where: {
+            id: document.currentVersion.id
+          },
+          data: {
+            contentOid: retiredContentIds.oid
+          }
+        });
+
+        let nextVersionNumber = document.maxVersionNumber + 1;
+        let nextVersion = await this.createVersion({
+          tenant: document.tenant,
+          environment: document.environment,
+          document,
+          versionNumber: nextVersionNumber,
+          contentOid: document.contentOid,
+          previousVersionOid: document.currentVersion.oid,
+          listEditedAt: now
+        });
+
+        let updatedDocument = await tx.document.update({
+          where: {
+            id: document.id
+          },
+          data: {
+            maxVersionNumber: nextVersionNumber,
+            currentVersionOid: nextVersion.oid,
+            draftVersionExpiresAt: null
+          },
+          include: documentInclude
+        });
+
+        return {
+          document: updatedDocument,
+          createdVersionId: nextVersion.id
+        };
+      });
+    });
+
+    if (result?.createdVersionId) {
+      await storeVersionService.markStoresDirtyForDocument({
+        documentOid: result.document.oid
+      });
+      await this.queueDocumentVersionSync(result.createdVersionId);
+    }
+
+    return result;
   }
 
   async listSyncableChildDocumentIdsForVersionSync(d: {

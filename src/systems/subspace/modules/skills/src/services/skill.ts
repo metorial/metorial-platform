@@ -45,7 +45,11 @@ export let skillInclude = {
   duplicatedFromSkill: true,
   fork: {
     include: {
-      parentSkill: true
+      parentSkill: {
+        include: {
+          ownerTenantActor: true
+        }
+      }
     }
   },
   skillIntegrations: {
@@ -58,7 +62,8 @@ export let skillInclude = {
         include: { listing: true }
       }
     }
-  }
+  },
+  ownerTenantActor: true
 };
 
 let getSlug = (input: { name: string }) =>

@@ -10,8 +10,9 @@ export let documentParticipantActorSchema = v.object({
   type: v.enumOf(['organization_actor', 'consumer', 'unknown']),
   name: v.string(),
   image_url: v.nullable(v.string()),
+  email: v.nullable(v.string()),
   organization_actor: v.nullable(v1OrganizationActorPresenter.schema),
-  consumer: v.nullable(v1ConsumerPresenter.schema)
+  consumer: v.nullable(v1ConsumerPresenter.schema),
 });
 
 export let presentDocumentParticipantActor = async (
@@ -36,6 +37,7 @@ export let presentDocumentParticipantActor = async (
 
     name: actor.name,
     image_url: orgActor?.image_url ?? consumer?.image_url ?? null,
+    email: orgActor?.email ?? consumer?.email ?? null,
     organization_actor: orgActor,
     consumer: consumer
   };

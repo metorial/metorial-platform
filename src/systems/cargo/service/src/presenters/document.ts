@@ -3,8 +3,10 @@ import type {
   DocumentContent,
   DocumentVersion,
   File,
-  FilePurpose
+  FilePurpose,
+  TenantActor
 } from '../../prisma/generated/client';
+import { actorPresenter } from './actor';
 import { filePresenter } from './file';
 
 export let documentPresenter = (
@@ -20,7 +22,9 @@ export let documentPresenter = (
     file: File & {
       effectiveStoreId?: string;
       purpose: FilePurpose;
+      createdByTenantActor?: TenantActor | null;
     };
+    createdByTenantActor?: TenantActor | null;
   }
 ) => {
   let updatedAt = document.draftUpdatedAt
@@ -46,6 +50,9 @@ export let documentPresenter = (
     content: document.resolvedContent ?? document.content.content,
     isReadOnly: document.isReadOnly,
     isTemplateBacking: document.isTemplateBacking,
+    createdBy: document.createdByTenantActor
+      ? actorPresenter(document.createdByTenantActor)
+      : null,
     createdAt: document.createdAt,
     updatedAt
   };

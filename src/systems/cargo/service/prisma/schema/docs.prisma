@@ -33,6 +33,8 @@ model Document {
   currentVersionOid BigInt?
   currentVersion    DocumentVersion? @relation(fields: [currentVersionOid], references: [oid], onDelete: Cascade, name: "DocumentToCurrentVersion")
 
+  draftVersionExpiresAt DateTime?
+
   parentDocumentOid BigInt?
   parentDocument    Document?  @relation("DocumentToSubdocument", fields: [parentDocumentOid], references: [oid], onDelete: Cascade)
   subdocuments      Document[] @relation("DocumentToSubdocument")
@@ -50,6 +52,7 @@ model Document {
   @@index([tenantOid, environmentOid])
   @@index([tenantOid, environmentOid, isTemplateBacking])
   @@index([isContentOwner])
+  @@index([draftVersionExpiresAt])
 }
 
 enum DocumentParticipantRole {

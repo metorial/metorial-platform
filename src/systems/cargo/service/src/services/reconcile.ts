@@ -124,6 +124,7 @@ class ReconcileServiceImpl {
                 id: true
               }
             },
+            createdByTenantActor: true,
             purpose: true,
             tenant: true,
             environment: true

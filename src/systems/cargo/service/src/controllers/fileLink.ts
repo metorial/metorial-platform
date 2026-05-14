@@ -1,8 +1,6 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { normalizeArrayParam } from '../../../../../backend/apis/core/src/lib/normalizeArrayParam';
-import { filePresenter } from '../presenters';
-import { fileLinkPresenter } from '../presenters';
+import { fileLinkPresenter, filePresenter } from '../presenters';
 import { fileLinkService } from '../services';
 import { app } from './_app';
 import { fileApp } from './file';
@@ -78,18 +76,16 @@ export let fileLinkController = app.controller({
         v.object({
           tenantId: v.string(),
           environmentId: v.string(),
-          fileId: v.optional(v.union([v.string(), v.array(v.string())])),
+          fileIds: v.optional(v.array(v.string())),
           actorId: v.optional(v.string())
         })
       )
     )
     .do(async ctx => {
-      let fileId = normalizeArrayParam(ctx.input.fileId);
-
       let paginator = await fileLinkService.listFileLinks({
         tenant: ctx.tenant,
         environment: ctx.environment,
-        fileId,
+        fileId: ctx.input.fileIds,
         actorId: ctx.input.actorId
       });
 

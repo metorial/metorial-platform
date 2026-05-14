@@ -39,7 +39,7 @@ class FileReferenceServiceImpl {
     return result.hasReferences;
   }
 
-  async hasReferencesForFile(d: { file: CargoFile; owner: FileOwner }) {
+  async hasReferencesForFile(d: { file: Pick<CargoFile, 'id'>; owner: FileOwner }) {
     let scope = await this.getScopeForOwner(d.owner);
     let result = await cargo.fileReference.hasReferencesForFile({
       tenantId: scope.tenantId,

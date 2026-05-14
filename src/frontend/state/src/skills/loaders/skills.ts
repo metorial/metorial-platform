@@ -7,7 +7,12 @@ import type {
   DashboardInstanceSkillsItemsGetOutput,
   DashboardInstanceSkillsItemsListQuery,
   DashboardInstanceSkillsListQuery,
-  DashboardInstanceSkillsUpdateBody
+  DashboardInstanceSkillsParticipantsGetOutput,
+  DashboardInstanceSkillsParticipantsListQuery,
+  DashboardInstanceSkillsUpdateBody,
+  DashboardInstanceSkillsVersionsGetOutput,
+  DashboardInstanceSkillsVersionsListQuery,
+  DashboardInstanceSkillsVersionsSnapshotGetOutput
 } from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
 import { autoPaginate } from '../../lib/autoPaginate';
@@ -16,6 +21,9 @@ import { withAuth } from '../../user';
 
 export type Skill = DashboardInstanceSkillsGetOutput;
 export type SkillItem = DashboardInstanceSkillsItemsGetOutput;
+export type SkillParticipant = DashboardInstanceSkillsParticipantsGetOutput;
+export type SkillVersion = DashboardInstanceSkillsVersionsGetOutput;
+export type SkillVersionSnapshot = DashboardInstanceSkillsVersionsSnapshotGetOutput;
 
 let toArrayIfString = <T extends string>(value: T | T[] | undefined) =>
   typeof value === 'string' ? [value] : value;
@@ -210,4 +218,120 @@ export let useSkillItem = (
     ...data,
     deleteMutator: data.useMutator('delete')
   };
+};
+
+export let skillParticipantsLoader = createLoader({
+  name: 'skillParticipants',
+  parents: [skillLoader],
+  fetch: (
+    i: {
+      instanceId: string;
+      skillId: string;
+    } & DashboardInstanceSkillsParticipantsListQuery
+  ) => withAuth(sdk => sdk.skills.participants.list(i.instanceId, i.skillId, i)),
+  mutators: {}
+});
+
+export let useSkillParticipants = (
+  instanceId: string | null | undefined,
+  skillId: string | null | undefined,
+  query?: DashboardInstanceSkillsParticipantsListQuery | null
+) => {
+  return usePaginator(
+    pagination =>
+      skillParticipantsLoader.use(
+        instanceId && skillId && query !== null
+          ? { instanceId, skillId, ...pagination, ...(query ?? {}) }
+          : null
+      ),
+    instanceId && skillId ? `${instanceId}:${skillId}:participants` : null
+  );
+};
+
+export let skillParticipantLoader = createLoader({
+  name: 'skillParticipant',
+  parents: [skillParticipantsLoader, skillLoader],
+  fetch: (i: { instanceId: string; skillId: string; skillParticipantId: string }) =>
+    withAuth(sdk =>
+      sdk.skills.participants.get(i.instanceId, i.skillId, i.skillParticipantId)
+    ),
+  mutators: {}
+});
+
+export let useSkillParticipant = (
+  instanceId: string | null | undefined,
+  skillId: string | null | undefined,
+  skillParticipantId: string | null | undefined
+) => {
+  return skillParticipantLoader.use(
+    instanceId && skillId && skillParticipantId
+      ? { instanceId, skillId, skillParticipantId }
+      : null
+  );
+};
+
+export let skillVersionsLoader = createLoader({
+  name: 'skillVersions',
+  parents: [skillLoader],
+  fetch: (
+    i: {
+      instanceId: string;
+      skillId: string;
+    } & DashboardInstanceSkillsVersionsListQuery
+  ) => withAuth(sdk => sdk.skills.versions.list(i.instanceId, i.skillId, i)),
+  mutators: {}
+});
+
+export let useSkillVersions = (
+  instanceId: string | null | undefined,
+  skillId: string | null | undefined,
+  query?: DashboardInstanceSkillsVersionsListQuery | null
+) => {
+  return usePaginator(
+    pagination =>
+      skillVersionsLoader.use(
+        instanceId && skillId && query !== null
+          ? { instanceId, skillId, ...pagination, ...(query ?? {}) }
+          : null
+      ),
+    instanceId && skillId ? `${instanceId}:${skillId}:versions` : null
+  );
+};
+
+export let skillVersionLoader = createLoader({
+  name: 'skillVersion',
+  parents: [skillVersionsLoader, skillLoader],
+  fetch: (i: { instanceId: string; skillId: string; skillVersionId: string }) =>
+    withAuth(sdk => sdk.skills.versions.get(i.instanceId, i.skillId, i.skillVersionId)),
+  mutators: {}
+});
+
+export let useSkillVersion = (
+  instanceId: string | null | undefined,
+  skillId: string | null | undefined,
+  skillVersionId: string | null | undefined
+) => {
+  return skillVersionLoader.use(
+    instanceId && skillId && skillVersionId ? { instanceId, skillId, skillVersionId } : null
+  );
+};
+
+export let skillVersionSnapshotLoader = createLoader({
+  name: 'skillVersionSnapshot',
+  parents: [skillVersionLoader],
+  fetch: (i: { instanceId: string; skillId: string; skillVersionId: string }) =>
+    withAuth(sdk =>
+      sdk.skills.versions.snapshot.get(i.instanceId, i.skillId, i.skillVersionId)
+    ),
+  mutators: {}
+});
+
+export let useSkillVersionSnapshot = (
+  instanceId: string | null | undefined,
+  skillId: string | null | undefined,
+  skillVersionId: string | null | undefined
+) => {
+  return skillVersionSnapshotLoader.use(
+    instanceId && skillId && skillVersionId ? { instanceId, skillId, skillVersionId } : null
+  );
 };

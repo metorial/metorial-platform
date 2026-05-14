@@ -21,6 +21,8 @@ export let ID = createIdGenerator({
   storeVersion: idType.sorted('stv_'),
   storeVersionItem: idType.sorted('stvi_'),
   storeParticipant: idType.sorted('stp_'),
+  skillVersion: idType.sorted('skv_'),
+  skillParticipant: idType.sorted('skp_'),
 
   document: idType.sorted('doc_'),
   documentContent: idType.sorted('docn_'),

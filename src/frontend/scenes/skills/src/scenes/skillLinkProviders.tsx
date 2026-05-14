@@ -17,7 +17,6 @@ import {
   Avatar,
   Badge,
   Button,
-  Entity,
   Input,
   Menu,
   Panel,
@@ -26,7 +25,7 @@ import {
   showModal,
   theme
 } from '@metorial/ui';
-import { Box, ItemGrid } from '@metorial/ui-product';
+import { Box, ItemGrid, Table } from '@metorial/ui-product';
 import { RiAddLine, RiMore2Line } from '@remixicon/react';
 import { useMemo, useState } from 'react';
 import styled from 'styled-components';
@@ -36,15 +35,18 @@ let EmptyState = styled.div`
   padding: 8px 0;
 `;
 
-let Items = styled.div`
+let ItemName = styled.div`
   display: flex;
-  flex-direction: column;
+  align-items: center;
   gap: 10px;
+  padding: 5px 0;
 `;
 
 let Actions = styled.div`
-  display: inline-flex;
+  width: 100%;
+  display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 6px;
 `;
 
@@ -83,11 +85,11 @@ let ProviderAvatarStack = styled.div`
   align-items: center;
 `;
 
-let ProviderAvatarItem = styled.div<{ $index: number }>`
+let ProviderAvatarItem = styled.div<{ $index: number; $radius: number }>`
   position: relative;
   z-index: ${p => 10 - p.$index};
   margin-left: ${p => (p.$index === 0 ? '0' : '-8px')};
-  border-radius: 8px;
+  border-radius: ${p => p.$radius}px;
   box-shadow: 0 0 0 2px ${theme.colors.background};
 `;
 
@@ -135,11 +137,13 @@ let IntegrationProviderAvatarStack = (p: {
   fallbackName: string;
   providerListings: Map<string, { name?: string | null; imageUrl?: string | null }>;
   size?: number;
+  radius?: number;
 }) => {
   let visibleProviders = (p.integration?.providers ?? []).slice(0, 5);
+  let radius = p.radius ?? 8;
 
   if (visibleProviders.length === 0) {
-    return <Avatar entity={{ name: p.fallbackName }} size={p.size ?? 30} radius={8} />;
+    return <Avatar entity={{ name: p.fallbackName }} size={p.size ?? 30} radius={radius} />;
   }
 
   return (
@@ -149,14 +153,18 @@ let IntegrationProviderAvatarStack = (p: {
         let name = listing?.name ?? provider.provider.name ?? provider.provider.slug;
 
         return (
-          <ProviderAvatarItem key={provider.id ?? provider.provider.id} $index={idx}>
+          <ProviderAvatarItem
+            key={provider.id ?? provider.provider.id}
+            $index={idx}
+            $radius={radius}
+          >
             <Avatar
               entity={{
                 name,
                 photoUrl: listing?.imageUrl ?? undefined
               }}
               size={p.size ?? 30}
-              radius={8}
+              radius={radius}
               noTooltip
               imageFit="contain"
             />
@@ -167,8 +175,7 @@ let IntegrationProviderAvatarStack = (p: {
   );
 };
 
-let SkillItemRow = (p: {
-  instanceId: string;
+let getSkillItemTableRow = (p: {
   item: LinkedProviderItem;
   providerListings: Map<string, { name?: string | null; imageUrl?: string | null }>;
   integrationLookup: Map<string, IntegrationPreview>;
@@ -181,73 +188,65 @@ let SkillItemRow = (p: {
       ? p.integrationLookup.get(p.item.integration.id)
       : undefined;
 
-  return (
-    <Entity.Wrapper aligned>
-      <Entity.Content>
-        <Entity.Field
-          prefix={
-            p.item.type === 'integration' ? (
-              <IntegrationProviderAvatarStack
-                integration={linkedIntegration}
-                fallbackName={entity.name}
-                providerListings={p.providerListings}
-                size={32}
-              />
-            ) : (
-              <Avatar
-                entity={{
-                  name: entity.name,
-                  photoUrl: entity.imageUrl ?? undefined
-                }}
-                size={32}
-                radius={8}
-                noTooltip
-                imageFit="contain"
-              />
-            )
-          }
-          title={entity.name}
+  let row = [
+    <ItemName>
+      {p.item.type === 'integration' ? (
+        <IntegrationProviderAvatarStack
+          integration={linkedIntegration}
+          fallbackName={entity.name}
+          providerListings={p.providerListings}
+          size={32}
+          radius={999}
         />
-
-        <Entity.Field
-          title="Type"
-          value={
-            <Badge color="gray" size="1">
-              {entity.kind}
-            </Badge>
-          }
+      ) : (
+        <Avatar
+          entity={{
+            name: entity.name,
+            photoUrl: entity.imageUrl ?? undefined
+          }}
+          size={32}
+          radius={999}
+          noTooltip
+          imageFit="contain"
         />
+      )}
+      <Text size="2" weight="strong">
+        {entity.name}
+      </Text>
+    </ItemName>,
+    <Badge color="gray" size="1">
+      {entity.kind}
+    </Badge>
+  ];
 
-        {p.onDelete && (
-          <Entity.Field title="Actions" right>
-            <Actions>
-              <Menu
-                items={[{ id: 'remove', label: 'Remove' }]}
-                onItemClick={item => {
-                  if (item !== 'remove') return;
+  if (!p.onDelete) return row;
 
-                  confirm({
-                    title: `Remove ${entity.name}?`,
-                    description: `Remove ${entity.name} from this skill?`,
-                    confirmText: 'Remove',
-                    onConfirm: async () => p.onDelete?.(p.item)
-                  });
-                }}
-              >
-                <Button
-                  size="1"
-                  variant="outline"
-                  iconRight={<RiMore2Line />}
-                  loading={p.isDeleting}
-                  title="Linked item options"
-                />
-              </Menu>
-            </Actions>
-          </Entity.Field>
-        )}
-      </Entity.Content>
-    </Entity.Wrapper>
-  );
+  return [
+    ...row,
+    <Actions>
+      <Menu
+        items={[{ id: 'remove', label: 'Remove' }]}
+        onItemClick={item => {
+          if (item !== 'remove') return;
+
+          confirm({
+            title: `Remove ${entity.name}?`,
+            description: `Remove ${entity.name} from this skill?`,
+            confirmText: 'Remove',
+            onConfirm: async () => p.onDelete?.(p.item)
+          });
+        }}
+      >
+        <Button
+          size="1"
+          variant="outline"
+          iconRight={<RiMore2Line />}
+          loading={p.isDeleting}
+          title="Linked item options"
+        />
+      </Menu>
+    </Actions>
+  ];
 };
 
 let ProviderPicker = (p: {
@@ -776,20 +775,21 @@ export let SkillLinkProvidersScene = (p: {
               </Text>
             </EmptyState>
           ) : (
-            <Items>
-              {skillItems.data.map(item => (
-                <SkillItemRow
-                  key={item.id}
-                  instanceId={p.instanceId!}
-                  item={item}
-                  providerListings={providerListingLookup}
-                  integrationLookup={integrationLookup}
-                  isDeleting={deleteSkillItem.isLoading}
-                  onDelete={item => deleteItem(item as SkillItem)}
-                />
-              ))}
+            <>
+              <Table
+                headers={['Name', 'Type', '']}
+                data={skillItems.data.map(item =>
+                  getSkillItemTableRow({
+                    item,
+                    providerListings: providerListingLookup,
+                    integrationLookup,
+                    isDeleting: deleteSkillItem.isLoading,
+                    onDelete: item => deleteItem(item as SkillItem)
+                  })
+                )}
+              />
               <deleteSkillItem.RenderError />
-            </Items>
+            </>
           )}
         </Box>
       );
@@ -925,20 +925,21 @@ export let SkillTemplateLinkProvidersScene = (p: {
               </Text>
             </EmptyState>
           ) : (
-            <Items>
-              {skillTemplateItems.data.map(item => (
-                <SkillItemRow
-                  key={item.id}
-                  instanceId={p.instanceId!}
-                  item={item}
-                  providerListings={providerListingLookup}
-                  integrationLookup={integrationLookup}
-                  isDeleting={deleteSkillTemplateItem.isLoading}
-                  onDelete={p.readOnly ? undefined : deleteItem}
-                />
-              ))}
+            <>
+              <Table
+                headers={p.readOnly ? ['Name', 'Type'] : ['Name', 'Type', '']}
+                data={skillTemplateItems.data.map(item =>
+                  getSkillItemTableRow({
+                    item,
+                    providerListings: providerListingLookup,
+                    integrationLookup,
+                    isDeleting: deleteSkillTemplateItem.isLoading,
+                    onDelete: p.readOnly ? undefined : deleteItem
+                  })
+                )}
+              />
               {!p.readOnly && <deleteSkillTemplateItem.RenderError />}
-            </Items>
+            </>
           )}
         </Box>
       );

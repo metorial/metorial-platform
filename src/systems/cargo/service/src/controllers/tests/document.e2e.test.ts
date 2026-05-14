@@ -46,11 +46,18 @@ let createStore = async (tenantId: string, environmentId: string, name = 'Docs S
     name
   });
 
-let flushDocument = async (documentId: string) =>
-  await documentService.flushDocumentDraft({
+let flushDocument = async (documentId: string) => {
+  let document = await documentService.flushDocumentDraft({
     documentId,
     force: true
   });
+  if (!document) return document;
+
+  return {
+    ...document,
+    content: document.resolvedContent ?? document.content.content
+  };
+};
 
 let syncChildVersions = async (parentDocumentVersionId: string, limit = 100) => {
   let cursor: string | undefined;
@@ -588,6 +595,192 @@ describe('cargo document.e2e', () => {
       id: created.currentVersionId!,
       content: 'first'
     });
+  });
+
+  it('flushes a settled draft version in the background and is idempotent', async () => {
+    let { tenant, environment } = await createScope();
+    let actor = await createActor(tenant.id);
+
+    let created = await cargoClient.document.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      title: 'Background Version',
+      content: 'first',
+      actorId: actor.id
+    });
+
+    await cargoClient.document.update({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: created.id,
+      content: 'second',
+      actorId: actor.id
+    });
+    await flushDocument(created.id);
+
+    let dueAt = subtractHours(new Date(), 1);
+    await db.document.update({
+      where: {
+        id: created.id
+      },
+      data: {
+        draftVersionExpiresAt: dueAt
+      }
+    });
+
+    let ready = await documentService.listDocumentIdsReadyForDraftVersionFlush({
+      limit: 10,
+      expiresBefore: new Date()
+    });
+    expect(ready.documents.map(document => document.documentId)).toContain(created.id);
+
+    let flushed = await documentService.flushExpiredDraftVersion({
+      documentId: created.id,
+      expectedDraftVersionExpiresAt: dueAt
+    });
+    let retried = await documentService.flushExpiredDraftVersion({
+      documentId: created.id,
+      expectedDraftVersionExpiresAt: dueAt
+    });
+
+    let documentRecord = await db.document.findUniqueOrThrow({
+      where: {
+        id: created.id
+      },
+      include: {
+        currentVersion: true
+      }
+    });
+    let versions = await cargoClient.documentVersion.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: created.id,
+      limit: 10
+    });
+
+    expect(flushed?.createdVersionId).toBe(documentRecord.currentVersion?.id);
+    expect(retried).toBeNull();
+    expect(documentRecord.draftVersionExpiresAt).toBeNull();
+    expect(versions.items).toHaveLength(2);
+    expect(versions.items[0]).toMatchObject({
+      id: documentRecord.currentVersion?.id,
+      content: 'second',
+      previousVersionId: created.currentVersionId!
+    });
+    expect(versions.items[1]).toMatchObject({
+      id: created.currentVersionId!,
+      content: 'second'
+    });
+  });
+
+  it('skips stale and actively drafted draft version flush jobs', async () => {
+    let { tenant, environment } = await createScope();
+    let actor = await createActor(tenant.id);
+
+    let staleDocument = await cargoClient.document.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      title: 'Stale Version Job',
+      content: 'first',
+      actorId: actor.id
+    });
+    await cargoClient.document.update({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: staleDocument.id,
+      content: 'second',
+      actorId: actor.id
+    });
+    await flushDocument(staleDocument.id);
+
+    let staleExpectedAt = subtractHours(new Date(), 1);
+    let newerExpiresAt = new Date(Date.now() + 60 * 60 * 1000);
+    await db.document.update({
+      where: {
+        id: staleDocument.id
+      },
+      data: {
+        draftVersionExpiresAt: newerExpiresAt
+      }
+    });
+
+    let staleResult = await documentService.flushExpiredDraftVersion({
+      documentId: staleDocument.id,
+      expectedDraftVersionExpiresAt: staleExpectedAt
+    });
+    let staleRecord = await db.document.findUniqueOrThrow({
+      where: {
+        id: staleDocument.id
+      }
+    });
+    let staleVersions = await cargoClient.documentVersion.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: staleDocument.id,
+      limit: 10
+    });
+
+    expect(staleResult).toBeNull();
+    expect(staleRecord.draftVersionExpiresAt?.getTime()).toBe(newerExpiresAt.getTime());
+    expect(staleVersions.items).toHaveLength(1);
+
+    let draftedDocument = await cargoClient.document.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      title: 'Active Draft Version Job',
+      content: 'first',
+      actorId: actor.id
+    });
+    await cargoClient.document.update({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: draftedDocument.id,
+      content: 'second',
+      actorId: actor.id
+    });
+    await flushDocument(draftedDocument.id);
+
+    let dueAt = subtractHours(new Date(), 1);
+    await db.document.update({
+      where: {
+        id: draftedDocument.id
+      },
+      data: {
+        draftVersionExpiresAt: dueAt
+      }
+    });
+    await cargoClient.document.update({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: draftedDocument.id,
+      content: 'third',
+      actorId: actor.id
+    });
+
+    let draftedResult = await documentService.flushExpiredDraftVersion({
+      documentId: draftedDocument.id,
+      expectedDraftVersionExpiresAt: dueAt
+    });
+    let draftedRecord = await db.document.findUniqueOrThrow({
+      where: {
+        id: draftedDocument.id
+      },
+      include: {
+        currentVersion: true
+      }
+    });
+    let draftedVersions = await cargoClient.documentVersion.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: draftedDocument.id,
+      limit: 10
+    });
+
+    expect(draftedResult).toBeNull();
+    expect(await documentDraftService.getDraftByDocumentId(draftedDocument.id)).not.toBeNull();
+    expect(draftedRecord.currentVersion?.id).toBe(draftedDocument.currentVersionId);
+    expect(draftedRecord.draftVersionExpiresAt?.getTime()).toBe(dueAt.getTime());
+    expect(draftedVersions.items).toHaveLength(1);
   });
 
   it('forks a cloned document on first write and leaves the source untouched', async () => {

@@ -1,6 +1,7 @@
 import { runQueueProcessors } from '@lowerdeck/queue';
 import { createRequire } from 'module';
 import { documentCleanupProcessors } from './queues/documentCleanup';
+import { documentDraftVersionFlushProcessors } from './queues/documentDraftVersionFlush';
 import { documentFlushProcessors } from './queues/documentFlush';
 import { documentVersionSyncProcessors } from './queues/documentVersionSync';
 import { storeCleanupProcessors } from './queues/storeCleanup';
@@ -13,6 +14,7 @@ let require = createRequire(import.meta.url);
 async function main() {
   await runQueueProcessors([
     documentFlushProcessors,
+    documentDraftVersionFlushProcessors,
     documentCleanupProcessors,
     documentVersionSyncProcessors,
     storeCleanupProcessors,

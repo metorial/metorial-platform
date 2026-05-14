@@ -32,6 +32,7 @@ let include = {
       id: true
     }
   },
+  createdByTenantActor: true,
   tenant: true,
   environment: true
 } satisfies Prisma.FileInclude;

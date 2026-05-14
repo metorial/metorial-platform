@@ -22,6 +22,54 @@ model Skill {
   createdByTenantActor    TenantActor? @relation("SkillCreator", fields: [createdByTenantActorOid], references: [oid], onDelete: Cascade)
 
   createdAt DateTime @default(now())
+
+  skillParticipants SkillParticipant[]
+  skillVersions      SkillVersion[]
+}
+
+model SkillVersion {
+  oid BigInt @id
+  id  String @unique
+
+  versionNumber Int
+
+  skillOid BigInt
+  skill    Skill  @relation(fields: [skillOid], references: [oid], onDelete: Cascade)
+
+  storeVersionOid BigInt       @unique
+  storeVersion    StoreVersion @relation(fields: [storeVersionOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([skillOid, versionNumber])
+  @@index([skillOid, createdAt])
+}
+
+enum SkillParticipantRole {
+  creator
+  editor
+  viewer
+  user
+  forker
+}
+
+model SkillParticipant {
+  oid BigInt @id
+  id  String @unique
+
+  roles SkillParticipantRole[]
+
+  skillOid BigInt
+  skill    Skill  @relation(fields: [skillOid], references: [oid], onDelete: Cascade)
+
+  tenantActorOid BigInt
+  tenantActor    TenantActor @relation(fields: [tenantActorOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([skillOid, tenantActorOid])
+  @@index([tenantActorOid])
 }
 
 model SkillTemplate {

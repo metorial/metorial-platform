@@ -1,14 +1,68 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { cargo, type CargoDocument } from '../cargo';
+import { cargo, type CargoActor, type CargoDocument } from '../cargo';
 import {
   resolveCargoAccess,
   type CargoAccessActor,
   type CargoStorePermission
 } from './access';
-import type { FileOwner } from './file';
+import {
+  documentParticipantService,
+  type EnrichedCargoDocumentActor
+} from './documentParticipant';
+import type { EnrichedCargoFile, FileOwner } from './file';
+
+export type EnrichedCargoDocument = Omit<CargoDocument, 'createdBy' | 'file'> & {
+  createdBy: EnrichedCargoDocumentActor | null;
+  file: EnrichedCargoFile;
+};
 
 class DocumentServiceImpl {
+  async enrichDocuments(d: {
+    owner: FileOwner;
+    documents: CargoDocument[];
+  }): Promise<EnrichedCargoDocument[]> {
+    let creators = d.documents
+      .flatMap(document => [document.createdBy, document.file.createdBy])
+      .filter((creator): creator is CargoActor => !!creator);
+
+    let enrichedCreators = await documentParticipantService.enrichActors({
+      owner: d.owner,
+      actors: creators
+    });
+
+    let nextCreatorIndex = 0;
+    return d.documents.map(document => {
+      let createdBy = document.createdBy
+        ? (enrichedCreators[nextCreatorIndex++] ?? null)
+        : null;
+      let fileCreatedBy = document.file.createdBy
+        ? (enrichedCreators[nextCreatorIndex++] ?? null)
+        : null;
+
+      return {
+        ...document,
+        createdBy,
+        file: {
+          ...document.file,
+          createdBy: fileCreatedBy
+        }
+      };
+    });
+  }
+
+  async enrichDocument(d: {
+    owner: FileOwner;
+    document: CargoDocument;
+  }): Promise<EnrichedCargoDocument> {
+    let [document] = await this.enrichDocuments({
+      owner: d.owner,
+      documents: [d.document]
+    });
+
+    return document!;
+  }
+
   async createDocument(d: {
     owner: FileOwner;
     accessActor?: CargoAccessActor;
@@ -23,7 +77,7 @@ class DocumentServiceImpl {
     let { scope, actorId, defaultPermissions, overridePermissions } =
       await resolveCargoAccess(d);
 
-    return await cargo.document.create({
+    let document = await cargo.document.create({
       tenantId: scope.tenantId,
       environmentId: scope.environmentId,
       documentId: d.input.id,
@@ -33,6 +87,8 @@ class DocumentServiceImpl {
       defaultPermissions,
       overridePermissions
     });
+
+    return await this.enrichDocument({ owner: d.owner, document });
   }
 
   async listDocuments(d: {
@@ -55,7 +111,10 @@ class DocumentServiceImpl {
       });
 
       return {
-        items: result.items,
+        items: await this.enrichDocuments({
+          owner: d.owner,
+          documents: result.items
+        }),
         pagination: {
           hasNextPage: result.pagination.has_more_after,
           hasPreviousPage: result.pagination.has_more_before
@@ -74,7 +133,7 @@ class DocumentServiceImpl {
     let { scope, actorId, defaultPermissions, overridePermissions } =
       await resolveCargoAccess(d);
 
-    return await cargo.document.get({
+    let document = await cargo.document.get({
       tenantId: scope.tenantId,
       environmentId: scope.environmentId,
       documentId: d.documentId,
@@ -82,6 +141,8 @@ class DocumentServiceImpl {
       defaultPermissions,
       overridePermissions
     });
+
+    return await this.enrichDocument({ owner: d.owner, document });
   }
 
   async getDocumentPermissions(d: {
@@ -106,7 +167,7 @@ class DocumentServiceImpl {
 
   async updateDocument(d: {
     owner: FileOwner;
-    document: CargoDocument;
+    document: Pick<CargoDocument, 'id'>;
     accessActor?: CargoAccessActor;
     defaultPermissions?: CargoStorePermission[];
     overridePermissions?: boolean;
@@ -118,7 +179,7 @@ class DocumentServiceImpl {
     let { scope, actorId, defaultPermissions, overridePermissions } =
       await resolveCargoAccess(d);
 
-    return await cargo.document.update({
+    let document = await cargo.document.update({
       tenantId: scope.tenantId,
       environmentId: scope.environmentId,
       documentId: d.document.id,
@@ -128,11 +189,13 @@ class DocumentServiceImpl {
       defaultPermissions,
       overridePermissions
     });
+
+    return await this.enrichDocument({ owner: d.owner, document });
   }
 
   async deleteDocument(d: {
     owner: FileOwner;
-    document: CargoDocument;
+    document: Pick<CargoDocument, 'id'>;
     accessActor?: CargoAccessActor;
     defaultPermissions?: CargoStorePermission[];
     overridePermissions?: boolean;
@@ -140,7 +203,7 @@ class DocumentServiceImpl {
     let { scope, actorId, defaultPermissions, overridePermissions } =
       await resolveCargoAccess(d);
 
-    return await cargo.document.delete({
+    let document = await cargo.document.delete({
       tenantId: scope.tenantId,
       environmentId: scope.environmentId,
       documentId: d.document.id,
@@ -148,11 +211,13 @@ class DocumentServiceImpl {
       defaultPermissions,
       overridePermissions
     });
+
+    return await this.enrichDocument({ owner: d.owner, document });
   }
 
   async cloneDocument(d: {
     owner: FileOwner;
-    document: CargoDocument;
+    document: Pick<CargoDocument, 'id'>;
     accessActor?: CargoAccessActor;
     defaultPermissions?: CargoStorePermission[];
     overridePermissions?: boolean;
@@ -164,7 +229,7 @@ class DocumentServiceImpl {
     let { scope, actorId, defaultPermissions, overridePermissions } =
       await resolveCargoAccess(d);
 
-    return await cargo.document.clone({
+    let document = await cargo.document.clone({
       tenantId: scope.tenantId,
       environmentId: scope.environmentId,
       documentId: d.document.id,
@@ -174,6 +239,8 @@ class DocumentServiceImpl {
       defaultPermissions,
       overridePermissions
     });
+
+    return await this.enrichDocument({ owner: d.owner, document });
   }
 }
 

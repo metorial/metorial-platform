@@ -2,6 +2,10 @@ import { v } from '@lowerdeck/validation';
 import { SubspaceSkill } from '@metorial/module-subspace';
 import { Presenter } from '@metorial/presenter';
 import { skillType } from '../../types';
+import {
+  documentParticipantActorSchema,
+  presentDocumentParticipantActor
+} from '../files/documentParticipant';
 import { v1IntegrationPreviewPresenter, v1ProviderPreview } from '../provider';
 
 export let v1SkillPreviewPresenter = Object.assign(
@@ -59,7 +63,7 @@ export let v1SkillPreviewPresenter = Object.assign(
 );
 
 export let v1SkillPresenter = Presenter.create(skillType)
-  .presenter(async ({ skill }) => ({
+  .presenter(async ({ skill }, opts) => ({
     object: 'skill' as const,
     id: skill.id,
     status: skill.status,
@@ -77,7 +81,25 @@ export let v1SkillPresenter = Presenter.create(skillType)
       object: 'skill.hierarchy' as const,
       type: skill.hierarchy.type,
       parent_skill_id: skill.hierarchy.parentSkillId,
-      fork_id: skill.hierarchy.forkId,
+      creator: skill.hierarchy.creator
+        ? await presentDocumentParticipantActor(skill.hierarchy.creator, opts)
+        : null,
+      fork: skill.hierarchy.fork
+        ? {
+            id: skill.hierarchy.fork.id,
+            parent_skill_id: skill.hierarchy.fork.parentSkillId,
+            creator: skill.hierarchy.fork.creator
+              ? await presentDocumentParticipantActor(skill.hierarchy.fork.creator, opts)
+              : null,
+            original_creator: skill.hierarchy.fork.originalCreator
+              ? await presentDocumentParticipantActor(
+                  skill.hierarchy.fork.originalCreator,
+                  opts
+                )
+              : null,
+            created_at: skill.hierarchy.fork.createdAt
+          }
+        : null,
       entity: {
         object: 'skill.entity' as const,
         id: skill.hierarchy.entity.id,
@@ -113,7 +135,16 @@ export let v1SkillPresenter = Presenter.create(skillType)
         object: v.literal('skill.hierarchy'),
         type: v.enumOf(['root', 'fork', 'duplicated']),
         parent_skill_id: v.nullable(v.string()),
-        fork_id: v.nullable(v.string()),
+        creator: v.nullable(documentParticipantActorSchema),
+        fork: v.nullable(
+          v.object({
+            id: v.string(),
+            parent_skill_id: v.string(),
+            creator: v.nullable(documentParticipantActorSchema),
+            original_creator: v.nullable(documentParticipantActorSchema),
+            created_at: v.date()
+          })
+        ),
         entity: v.object({
           object: v.literal('skill.entity'),
           id: v.string(),

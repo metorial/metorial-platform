@@ -233,6 +233,12 @@ let SkillLayout = dynamicPage(() =>
   import('./pages/(skills)/skill/_layout').then(c => c.SkillLayout)
 );
 let SkillPage = dynamicPage(() => import('./pages/(skills)/skill').then(c => c.SkillPage));
+let SkillParticipantsPage = dynamicPage(() =>
+  import('./pages/(skills)/skill/participants').then(c => c.SkillParticipantsPage)
+);
+let SkillVersionsPage = dynamicPage(() =>
+  import('./pages/(skills)/skill/versions').then(c => c.SkillVersionsPage)
+);
 let SkillSettingsPage = dynamicPage(() =>
   import('./pages/(skills)/skill/settings').then(c => c.SkillSettingsPage)
 );
@@ -1153,6 +1159,14 @@ export let productHomeSlice = createSlice([
               {
                 path: '',
                 element: <SkillPage />
+              },
+              {
+                path: 'participants',
+                element: <SkillParticipantsPage />
+              },
+              {
+                path: 'versions',
+                element: <SkillVersionsPage />
               },
               {
                 path: 'settings',

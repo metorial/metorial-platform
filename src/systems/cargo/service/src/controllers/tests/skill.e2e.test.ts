@@ -1,8 +1,11 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { db } from '../../db';
-import { storeTemplateSyncService } from '../../services';
+import { documentService, storeTemplateSyncService, storeVersionService } from '../../services';
 import { cargoClient } from '../../test/client';
 import { cleanDatabase } from '../../test/setup';
+
+let subtractHours = (date: Date, hours: number) =>
+  new Date(date.getTime() - hours * 60 * 60 * 1000);
 
 let createScope = async () => {
   let tenant = await cargoClient.tenant.upsert({
@@ -249,6 +252,274 @@ describe('cargo skill.e2e', () => {
     expect(listedAfterDelete.items).toHaveLength(0);
     expect(deletedSkill).toBeNull();
     expect(deletedStore).toBeNull();
+  });
+
+  it('creates skill versions for store snapshots and resolves document version content', async () => {
+    let { tenant, environment } = await createScope();
+    let skill = await cargoClient.skill.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillId: 'csk_versioned',
+      name: 'Versioned Skill'
+    });
+    let document = await cargoClient.document.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      title: 'Instructions',
+      content: 'first content',
+      store: {
+        id: skill.storeId,
+        path: '/instructions.md'
+      }
+    });
+    let staleDirtyAt = subtractHours(new Date(), 2);
+
+    await db.store.update({
+      where: {
+        id: skill.storeId
+      },
+      data: {
+        dirtyAt: staleDirtyAt
+      }
+    });
+
+    let snapshotResult = await storeVersionService.createStoreVersionSnapshot({
+      storeId: skill.storeId,
+      expectedDirtyAt: staleDirtyAt
+    });
+
+    expect(snapshotResult?.alreadyExisted).toBe(false);
+
+    await db.store.update({
+      where: {
+        id: skill.storeId
+      },
+      data: {
+        dirtyAt: staleDirtyAt
+      }
+    });
+
+    let idempotentResult = await storeVersionService.createStoreVersionSnapshot({
+      storeId: skill.storeId,
+      expectedDirtyAt: staleDirtyAt
+    });
+    let skillVersionsAfterRetry = await db.skillVersion.findMany({
+      where: {
+        skill: {
+          id: skill.id
+        }
+      }
+    });
+
+    expect(idempotentResult?.alreadyExisted).toBe(true);
+    expect(skillVersionsAfterRetry).toHaveLength(1);
+
+    await db.documentVersion.update({
+      where: {
+        id: document.currentVersionId!
+      },
+      data: {
+        createdAt: subtractHours(new Date(), 4)
+      }
+    });
+
+    await cargoClient.document.update({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: document.id,
+      content: 'second content'
+    });
+    await documentService.flushDocumentDraft({
+      documentId: document.id,
+      force: true
+    });
+
+    let currentDocument = await cargoClient.document.get({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: document.id
+    });
+    let listed = await cargoClient.skillVersion.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillId: skill.id,
+      limit: 10
+    });
+    let fetched = await cargoClient.skillVersion.get({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillVersionId: listed.items[0]!.id
+    });
+    let snapshot = await cargoClient.skillVersion.getSnapshot({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillId: skill.id,
+      skillVersionId: listed.items[0]!.id
+    });
+    let documentItem = snapshot.items.find(item => item.documentId === document.id);
+
+    expect(currentDocument.content).toBe('second content');
+    expect(listed.items).toHaveLength(1);
+    expect(listed.items[0]).toMatchObject({
+      skillId: skill.id,
+      storeId: skill.storeId,
+      storeVersionId: snapshotResult?.version.id,
+      versionNumber: 1
+    });
+    expect(fetched.id).toBe(listed.items[0]!.id);
+    expect(snapshot).toMatchObject({
+      id: listed.items[0]!.id,
+      skillId: skill.id,
+      storeId: skill.storeId,
+      storeVersionId: snapshotResult?.version.id,
+      versionNumber: 1
+    });
+    expect(documentItem).toMatchObject({
+      kind: 'document',
+      path: '/instructions.md',
+      documentId: document.id,
+      documentVersionId: document.currentVersionId,
+      content: 'first content'
+    });
+  });
+
+  it('tracks skill participants from creator, store access, use, and forks', async () => {
+    let { tenant, environment } = await createScope();
+    let creator = await createActor(tenant.id, {
+      identifier: 'skill-participant-creator',
+      name: 'Skill Participant Creator'
+    });
+    let viewer = await createActor(tenant.id, {
+      identifier: 'skill-participant-viewer',
+      name: 'Skill Participant Viewer'
+    });
+    let editor = await createActor(tenant.id, {
+      identifier: 'skill-participant-editor',
+      name: 'Skill Participant Editor'
+    });
+    let forker = await createActor(tenant.id, {
+      identifier: 'skill-participant-forker',
+      name: 'Skill Participant Forker'
+    });
+
+    let parent = await cargoClient.skill.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillId: 'csk_participant_parent',
+      actorId: creator.id,
+      name: 'Participant Parent'
+    });
+
+    let afterCreate = await cargoClient.skillParticipant.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillId: parent.id,
+      limit: 10
+    });
+    let creatorParticipant = afterCreate.items.find(item => item.actor.id === creator.id);
+
+    expect(creatorParticipant).toMatchObject({
+      object: 'cargo#skillParticipant',
+      skillId: parent.id,
+      roles: expect.arrayContaining(['creator', 'editor']),
+      actor: {
+        id: creator.id
+      }
+    });
+
+    let used = await cargoClient.skill.markSkillUse({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillId: parent.id,
+      actorId: creator.id
+    });
+
+    expect(used).toMatchObject({
+      skillId: parent.id,
+      roles: expect.arrayContaining(['creator', 'editor', 'user']),
+      actor: {
+        id: creator.id
+      }
+    });
+
+    await cargoClient.store.get({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: parent.storeId,
+      actorId: viewer.id,
+      defaultPermissions: ['content_read']
+    });
+    await cargoClient.skill.upsertActor({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillId: parent.id,
+      actorId: editor.id,
+      permissions: ['content_read', 'content_write']
+    });
+
+    let afterStoreSync = await cargoClient.skillParticipant.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillId: parent.id,
+      limit: 10
+    });
+    let viewerParticipant = afterStoreSync.items.find(item => item.actor.id === viewer.id);
+    let editorParticipant = afterStoreSync.items.find(item => item.actor.id === editor.id);
+
+    expect(viewerParticipant).toMatchObject({
+      skillId: parent.id,
+      roles: ['viewer'],
+      actor: {
+        id: viewer.id
+      }
+    });
+    expect(editorParticipant).toMatchObject({
+      skillId: parent.id,
+      roles: ['editor'],
+      actor: {
+        id: editor.id
+      }
+    });
+
+    let fetchedViewer = await cargoClient.skillParticipant.get({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillParticipantId: viewerParticipant!.id
+    });
+
+    expect(fetchedViewer).toMatchObject({
+      id: viewerParticipant!.id,
+      skillId: parent.id,
+      roles: ['viewer']
+    });
+
+    await cargoClient.skill.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillId: 'csk_participant_child_fork',
+      actorId: forker.id,
+      parentSkill: {
+        skillId: parent.id,
+        type: 'fork'
+      },
+      name: 'Participant Child Fork'
+    });
+
+    let afterFork = await cargoClient.skillParticipant.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillId: parent.id,
+      limit: 10
+    });
+    let forkerParticipant = afterFork.items.find(item => item.actor.id === forker.id);
+
+    expect(forkerParticipant).toMatchObject({
+      skillId: parent.id,
+      roles: ['forker'],
+      actor: {
+        id: forker.id
+      }
+    });
   });
 
   it('creates skills from skill-template parents by cloning the underlying store template', async () => {

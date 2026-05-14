@@ -1,6 +1,5 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { normalizeArrayParam } from '../../../../../backend/apis/core/src/lib/normalizeArrayParam';
 import { getSignedFileDownloadUrl } from '../lib/signedDownloadUrl';
 import { filePresenter } from '../presenters';
 import { fileService } from '../services';
@@ -75,7 +74,7 @@ export let fileController = app.controller({
         v.object({
           tenantId: v.string(),
           environmentId: v.string(),
-          purpose: v.optional(v.union([v.string(), v.array(v.string())])),
+          purpose: v.optional(v.array(v.string())),
           includeDeleted: v.optional(v.boolean()),
           actorId: v.optional(v.string()),
           defaultPermissions: v.optional(storePermissionsSchema),
@@ -84,12 +83,10 @@ export let fileController = app.controller({
       )
     )
     .do(async ctx => {
-      let purpose = normalizeArrayParam(ctx.input.purpose);
-
       let paginator = await fileService.listFiles({
         tenant: ctx.tenant,
         environment: ctx.environment,
-        purpose,
+        purpose: ctx.input.purpose,
         includeDeleted: ctx.input.includeDeleted,
         actorId: ctx.input.actorId,
         defaultPermissions: ctx.input.defaultPermissions,
