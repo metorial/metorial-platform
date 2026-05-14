@@ -83,7 +83,7 @@ let getToolFilters = (values: ToolFilterFormValues) =>
         type: 'tool_keys' as const,
         keys: values.selectedToolKeys
       }
-    : undefined;
+    : null;
 
 let useProviderSetupVisibility = (p: {
   instanceId: string | null | undefined;
@@ -92,6 +92,7 @@ let useProviderSetupVisibility = (p: {
   existingConfigId?: string | null;
   allowAuthConfig?: boolean;
   respectIntegrationCustomConfigPolicy?: boolean;
+  respectIntegrationToolFilterPolicy?: boolean;
   isUpdate?: boolean;
 }) => {
   let provider = useProvider(p.instanceId, p.providerId);
@@ -110,6 +111,7 @@ let useProviderSetupVisibility = (p: {
       ? true
       : (p.integration?.configuration?.canAttachCustomProviderConfig ?? true);
   let allowToolFilters = p.integration?.configuration?.canOverrideToolFilters ?? true;
+  if (p.respectIntegrationToolFilterPolicy === false) allowToolFilters = true;
   let providerSupportsAuth = provider.data?.type.auth.status === 'enabled';
   let hasConfigInputs = configCapabilities.hasSchemaFields;
   // Auto-creating an empty config silently is only desirable on initial
@@ -485,6 +487,7 @@ let IntegrationProviderSetupStep = (p: {
     integration: p.integration ?? null,
     existingConfigId: p.integrationProvider?.config?.id,
     respectIntegrationCustomConfigPolicy: false,
+    respectIntegrationToolFilterPolicy: false,
     isUpdate
   });
   let authMethods = useProviderAuthMethods(
