@@ -159,6 +159,7 @@ import {
   v1SkillGroupPresenter,
   v1SkillItemPresenter,
   v1SkillAgentPresenter,
+  v1SkillConfigurationPresenter,
   v1SkillParticipantPresenter,
   v1SkillPresenter,
   v1SkillTemplateItemPresenter,
@@ -323,6 +324,7 @@ import {
   skillGroupType,
   skillItemType,
   skillAgentType,
+  skillConfigurationType,
   skillParticipantType,
   skillTemplateItemType,
   skillTemplateType,
@@ -555,6 +557,11 @@ export let storeParticipantPresenter = declarePresenter(storeParticipantType, {
 export let skillAgentPresenter = declarePresenter(skillAgentType, {
   mt_2025_01_01_dashboard: v1SkillAgentPresenter,
   mt_2026_01_01_magnetar: v1SkillAgentPresenter
+});
+
+export let skillConfigurationPresenter = declarePresenter(skillConfigurationType, {
+  mt_2025_01_01_dashboard: v1SkillConfigurationPresenter,
+  mt_2026_01_01_magnetar: v1SkillConfigurationPresenter
 });
 
 export let skillParticipantPresenter = declarePresenter(skillParticipantType, {

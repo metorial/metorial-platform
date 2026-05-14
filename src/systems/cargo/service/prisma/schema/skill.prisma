@@ -31,6 +31,32 @@ model Skill {
   skillAgents       SkillAgent[]
 }
 
+model SkillConfiguration {
+  oid BigInt @id
+  id  String @unique
+
+  isDefault  Boolean?
+  isInternal Boolean  @default(false)
+
+  allowScripts                Boolean  @default(true)
+  allowedFileExtensions       String[] @default([])
+  allowNonStandardDirectories Boolean  @default(true)
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+
+  @@unique([environmentOid, isDefault])
+  @@index([tenantOid, environmentOid, deletedAt])
+  @@index([tenantOid, environmentOid, isInternal])
+}
+
 enum SkillAgentStatus {
   active
   archived

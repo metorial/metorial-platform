@@ -79,6 +79,12 @@ export type CargoSkillParticipantList = Awaited<
 >;
 export type CargoSkillAgent = Awaited<ReturnType<typeof cargo.skillAgent.get>>;
 export type CargoSkillAgentList = Awaited<ReturnType<typeof cargo.skillAgent.list>>;
+export type CargoSkillConfiguration = Awaited<
+  ReturnType<typeof cargo.skillConfiguration.get>
+>;
+export type CargoSkillConfigurationList = Awaited<
+  ReturnType<typeof cargo.skillConfiguration.list>
+>;
 export type CargoSkillVersion = Awaited<ReturnType<typeof cargo.skillVersion.get>>;
 export type CargoSkillVersionList = Awaited<ReturnType<typeof cargo.skillVersion.list>>;
 export type CargoSkillVersionSnapshot = Awaited<

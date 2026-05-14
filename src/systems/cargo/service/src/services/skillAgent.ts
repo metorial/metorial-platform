@@ -84,7 +84,7 @@ class SkillAgentServiceImpl {
           include: skillAgentInclude
         });
 
-        if (!skillAgent) throw new ServiceError(notFoundError('skillAgent', d.skillAgentId));
+        if (!skillAgent) throw new ServiceError(notFoundError('skill.agent', d.skillAgentId));
 
         return skillAgent;
       },

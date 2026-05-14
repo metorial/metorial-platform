@@ -22,8 +22,9 @@ model Tenant {
   stores           Store[]
   storeTemplates   StoreTemplate[]
   storeTemplateBackings StoreTemplateBacking[]
-  skills           Skill[]
-  skillTemplates   SkillTemplate[]
+  skills                Skill[]
+  skillConfigurations   SkillConfiguration[]
+  skillTemplates        SkillTemplate[]
 }
 
 model Environment {
@@ -48,8 +49,9 @@ model Environment {
   stores           Store[]
   storeTemplates   StoreTemplate[]
   storeTemplateBackings StoreTemplateBacking[]
-  skills           Skill[]
-  skillTemplates   SkillTemplate[]
+  skills                Skill[]
+  skillConfigurations   SkillConfiguration[]
+  skillTemplates        SkillTemplate[]
 
   @@unique([tenantOid, identifier])
   @@index([tenantOid])

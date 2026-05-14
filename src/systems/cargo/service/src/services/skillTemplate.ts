@@ -198,7 +198,7 @@ class SkillTemplateServiceImpl {
     });
 
     if (!skillTemplate) {
-      throw new ServiceError(notFoundError('skillTemplate', d.skillTemplateId));
+      throw new ServiceError(notFoundError('skill.template', d.skillTemplateId));
     }
 
     return skillTemplate;
@@ -378,19 +378,18 @@ class SkillTemplateServiceImpl {
 
   async listSkillTemplates(d: RequiredStoreTemplateScope) {
     return Paginator.create(({ prisma }) =>
-      prisma(
-        async opts =>
-          (
-            await db.skillTemplate.findMany({
-              ...opts,
-              where: {
-                storeTemplate: {
-                  is: this.getReadableStoreTemplateScopeWhere(d)
-                }
-              },
-              include: skillTemplateSummaryInclude
-            })
-          ).map(skillTemplate => this.withScopedStoreId(skillTemplate, d))
+      prisma(async opts =>
+        (
+          await db.skillTemplate.findMany({
+            ...opts,
+            where: {
+              storeTemplate: {
+                is: this.getReadableStoreTemplateScopeWhere(d)
+              }
+            },
+            include: skillTemplateSummaryInclude
+          })
+        ).map(skillTemplate => this.withScopedStoreId(skillTemplate, d))
       )
     );
   }

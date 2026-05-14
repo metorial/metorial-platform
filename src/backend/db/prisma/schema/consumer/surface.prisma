@@ -28,6 +28,8 @@ model ConsumerSurface {
   allowConsumerSkillAuthoring  Boolean @default(true)
   allowConsumerSkillPublishing Boolean @default(true)
 
+  skillConfigurationId String?
+
   organizationOid BigInt
   organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
 
@@ -59,4 +61,5 @@ model ConsumerSurface {
   consumerSkills                ConsumerSkill[]
 
   @@unique([instanceOid, internalSurfaceUniqueIdentifier])
+  @@index([skillConfigurationId])
 }

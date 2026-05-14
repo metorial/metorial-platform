@@ -469,7 +469,6 @@ export type DashboardInstanceSkillsDuplicateBody = {
   compatibility?: string | undefined;
   clientMetadata?: Record<string, any> | undefined;
   metadata?: Record<string, any> | undefined;
-  imageFileId?: string | null | undefined;
 };
 
 export let mapDashboardInstanceSkillsDuplicateBody =
@@ -484,7 +483,6 @@ export let mapDashboardInstanceSkillsDuplicateBody =
     license: mtMap.objectField('license', mtMap.passthrough()),
     compatibility: mtMap.objectField('compatibility', mtMap.passthrough()),
     clientMetadata: mtMap.objectField('client_metadata', mtMap.passthrough()),
-    metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-    imageFileId: mtMap.objectField('image_file_id', mtMap.passthrough())
+    metadata: mtMap.objectField('metadata', mtMap.passthrough())
   });
 

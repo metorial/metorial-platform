@@ -12,6 +12,10 @@ import {
   withTransaction
 } from '@metorial/db';
 import { createLock } from '@metorial/lock';
+import {
+  skillConfigurationService,
+  type CargoSkillConfiguration
+} from '@metorial/module-file';
 import { apiKeyService } from '@metorial/module-machine-access';
 import { organizationActorService } from '@metorial/module-organization';
 import { normalizeConsumerSurfaceEmailWhitelist } from '../lib/consumerSurfaceEmailWhitelist';
@@ -36,6 +40,16 @@ export type ConsumerSurfaceWithPublishableApiKey = Prisma.ConsumerSurfaceGetPayl
   include: typeof consumerSurfaceInclude;
 }>;
 
+export type ConsumerSurfaceSkillConfigurationInput = {
+  allowScripts?: boolean;
+  allowedFileExtensions?: string[] | null;
+  allowNonStandardDirectories?: boolean;
+};
+
+export type EnrichedConsumerSurface = ConsumerSurfaceWithPublishableApiKey & {
+  skillConfiguration: CargoSkillConfiguration;
+};
+
 export type AresAppConfig = {
   slug: string;
   defaultRedirectUrl: string;
@@ -47,6 +61,129 @@ let internalCreateLock = createLock({
 });
 
 class ConsumerSurfaceServiceImpl {
+  private async getSurfaceCargoOwner(d: {
+    consumerSurface: Pick<ConsumerSurface, 'instanceOid' | 'organizationOid'>;
+  }) {
+    let [instance, organization] = await Promise.all([
+      db.instance.findUniqueOrThrow({
+        where: {
+          oid: d.consumerSurface.instanceOid
+        }
+      }),
+      db.organization.findUniqueOrThrow({
+        where: {
+          oid: d.consumerSurface.organizationOid
+        }
+      })
+    ]);
+
+    return {
+      owner: {
+        type: 'instance' as const,
+        instance,
+        organization
+      }
+    };
+  }
+
+  async enrichConsumerSurfaces<T extends ConsumerSurfaceWithPublishableApiKey>(d: {
+    instance: Instance;
+    consumerSurfaces: T[];
+  }): Promise<(T & { skillConfiguration: CargoSkillConfiguration })[]> {
+    if (!d.consumerSurfaces.length) return [];
+
+    let organization = await db.organization.findUniqueOrThrow({
+      where: {
+        oid: d.instance.organizationOid
+      }
+    });
+    let owner = {
+      type: 'instance' as const,
+      instance: d.instance,
+      organization
+    };
+
+    let skillConfigurationIds = [
+      ...new Set(
+        d.consumerSurfaces.flatMap(consumerSurface =>
+          consumerSurface.skillConfigurationId ? [consumerSurface.skillConfigurationId] : []
+        )
+      )
+    ];
+
+    let [linkedSkillConfigurations, defaultSkillConfiguration] = await Promise.all([
+      skillConfigurationIds.length
+        ? skillConfigurationService.getManySkillConfigurations({
+            owner,
+            skillConfigurationIds
+          })
+        : Promise.resolve([]),
+      skillConfigurationService.getSkillConfigurationById({
+        owner,
+        skillConfigurationId: 'default'
+      })
+    ]);
+
+    let skillConfigurationById = new Map(
+      linkedSkillConfigurations.map(skillConfiguration => [
+        skillConfiguration.id,
+        skillConfiguration
+      ])
+    );
+
+    return d.consumerSurfaces.map(consumerSurface => ({
+      ...consumerSurface,
+      skillConfiguration:
+        (consumerSurface.skillConfigurationId
+          ? skillConfigurationById.get(consumerSurface.skillConfigurationId)
+          : undefined) ?? defaultSkillConfiguration
+    }));
+  }
+
+  async enrichConsumerSurface<T extends ConsumerSurfaceWithPublishableApiKey>(d: {
+    instance: Instance;
+    consumerSurface: T;
+  }): Promise<T & { skillConfiguration: CargoSkillConfiguration }> {
+    let [consumerSurface] = await this.enrichConsumerSurfaces({
+      instance: d.instance,
+      consumerSurfaces: [d.consumerSurface]
+    });
+
+    return consumerSurface!;
+  }
+
+  private async upsertConsumerSurfaceSkillConfiguration(d: {
+    consumerSurface: ConsumerSurfaceWithPublishableApiKey;
+    input: ConsumerSurfaceSkillConfigurationInput;
+  }) {
+    let cargoOwner = await this.getSurfaceCargoOwner({
+      consumerSurface: d.consumerSurface
+    });
+
+    if (d.consumerSurface.skillConfigurationId) {
+      let [existing] = await skillConfigurationService.getManySkillConfigurations({
+        ...cargoOwner,
+        skillConfigurationIds: [d.consumerSurface.skillConfigurationId]
+      });
+
+      if (existing) {
+        return await skillConfigurationService.updateSkillConfigurationById({
+          ...cargoOwner,
+          skillConfigurationId: existing.id,
+          input: d.input
+        });
+      }
+    }
+
+    return await skillConfigurationService.createSkillConfiguration({
+      ...cargoOwner,
+      input: {
+        ...d.input,
+        isInternal: true
+      }
+    });
+  }
+
   async getConsumerSurfaceById(d: { instance: Instance; consumerSurfaceId: string }) {
     let consumerSurface = await db.consumerSurface.findFirst({
       where: {
@@ -59,11 +196,14 @@ class ConsumerSurfaceServiceImpl {
       throw new ServiceError(notFoundError('consumer.surface'));
     }
 
-    return consumerSurface;
+    return await this.enrichConsumerSurface({
+      instance: d.instance,
+      consumerSurface
+    });
   }
 
   async listConsumerSurfaces(d: { instance: Instance }) {
-    return Paginator.create(({ prisma }) =>
+    let paginator = Paginator.create(({ prisma }) =>
       prisma(async opts => {
         return await db.consumerSurface.findMany({
           ...opts,
@@ -74,6 +214,18 @@ class ConsumerSurfaceServiceImpl {
         });
       })
     );
+
+    return Paginator.create(() => async input => {
+      let list = await paginator.run(input);
+
+      return {
+        ...list,
+        items: await this.enrichConsumerSurfaces({
+          instance: d.instance,
+          consumerSurfaces: list.items
+        })
+      };
+    });
   }
 
   private assertConsumerSurfaceIsActive(consumerSurface: ConsumerSurface) {
@@ -337,6 +489,7 @@ class ConsumerSurfaceServiceImpl {
       emailWhitelist?: string[];
       allowConsumerSkillAuthoring?: boolean;
       allowConsumerSkillPublishing?: boolean;
+      skillConfiguration?: ConsumerSurfaceSkillConfigurationInput;
     };
   }) {
     if (d.consumerSurface.status !== 'active') {
@@ -346,6 +499,13 @@ class ConsumerSurfaceServiceImpl {
         })
       );
     }
+
+    let skillConfiguration = d.input.skillConfiguration
+      ? await this.upsertConsumerSurfaceSkillConfiguration({
+          consumerSurface: d.consumerSurface as ConsumerSurfaceWithPublishableApiKey,
+          input: d.input.skillConfiguration
+        })
+      : undefined;
 
     let consumerSurface = await db.consumerSurface.update({
       where: {
@@ -360,14 +520,22 @@ class ConsumerSurfaceServiceImpl {
         emailWhitelist:
           d.input.emailWhitelist === undefined
             ? undefined
-            : normalizeConsumerSurfaceEmailWhitelist(d.input.emailWhitelist)
+            : normalizeConsumerSurfaceEmailWhitelist(d.input.emailWhitelist),
+        skillConfigurationId: skillConfiguration?.id
       },
       include: consumerSurfaceInclude
     });
 
     await consumerSurfaceUpdatedQueue.add({ consumerSurfaceId: consumerSurface.id });
 
-    return consumerSurface;
+    return await this.enrichConsumerSurface({
+      instance: await db.instance.findUniqueOrThrow({
+        where: {
+          oid: consumerSurface.instanceOid
+        }
+      }),
+      consumerSurface
+    });
   }
 
   async archiveConsumerSurface(d: { consumerSurface: ConsumerSurface }) {

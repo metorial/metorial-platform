@@ -263,7 +263,7 @@ class SkillParticipantServiceImpl {
     });
 
     if (!participant) {
-      throw new ServiceError(notFoundError('skillParticipant', d.skillParticipantId));
+      throw new ServiceError(notFoundError('skill.participant', d.skillParticipantId));
     }
 
     await this.syncSkillParticipantsFromStore({
@@ -278,7 +278,7 @@ class SkillParticipantServiceImpl {
     });
 
     if (!syncedParticipant) {
-      throw new ServiceError(notFoundError('skillParticipant', d.skillParticipantId));
+      throw new ServiceError(notFoundError('skill.participant', d.skillParticipantId));
     }
 
     return syncedParticipant;

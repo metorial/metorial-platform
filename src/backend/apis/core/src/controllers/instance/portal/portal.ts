@@ -13,6 +13,12 @@ let portalAllowedRedirectUrlFilterValidator = v.object({
   url: v.string()
 });
 
+let skillConfigurationValidator = v.object({
+  allow_scripts: v.optional(v.boolean()),
+  allowed_file_extensions: v.optional(v.nullable(v.array(v.string()))),
+  allow_non_standard_directories: v.optional(v.boolean())
+});
+
 export let portalGroup = instanceGroup
   .use(requireConsumerTokenForPublishableKey())
   .use(async ctx => {
@@ -153,7 +159,8 @@ export let portalController = Controller.create(
             })
           ),
           allow_consumer_skill_authoring: v.optional(v.boolean()),
-          allow_consumer_skill_publishing: v.optional(v.boolean())
+          allow_consumer_skill_publishing: v.optional(v.boolean()),
+          skill_configuration: v.optional(skillConfigurationValidator)
         })
       )
       .output(portalPresenter)
@@ -166,7 +173,15 @@ export let portalController = Controller.create(
             allowedRedirectUrlFilters: ctx.body.allowed_redirect_url_filters,
             sessionExpiryTimeInSeconds: ctx.body.session_expiry_time_in_seconds,
             allowConsumerSkillAuthoring: ctx.body.allow_consumer_skill_authoring,
-            allowConsumerSkillPublishing: ctx.body.allow_consumer_skill_publishing
+            allowConsumerSkillPublishing: ctx.body.allow_consumer_skill_publishing,
+            skillConfiguration: ctx.body.skill_configuration
+              ? {
+                  allowScripts: ctx.body.skill_configuration.allow_scripts,
+                  allowedFileExtensions: ctx.body.skill_configuration.allowed_file_extensions,
+                  allowNonStandardDirectories:
+                    ctx.body.skill_configuration.allow_non_standard_directories
+                }
+              : undefined
           }
         });
 

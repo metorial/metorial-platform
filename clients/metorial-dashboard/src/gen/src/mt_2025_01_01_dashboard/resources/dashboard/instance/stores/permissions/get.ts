@@ -3,7 +3,6 @@ import { mtMap } from '@metorial/util-resource-mapper';
 export type DashboardInstanceStoresPermissionsGetOutput = {
   object: 'store.permissions';
   storeId: string;
-  actorId: string | null;
   hasFullAccess: boolean;
   permissions: ('content_read' | 'content_write')[];
   relevantStoreIds: string[];
@@ -15,7 +14,6 @@ export let mapDashboardInstanceStoresPermissionsGetOutput =
   mtMap.object<DashboardInstanceStoresPermissionsGetOutput>({
     object: mtMap.objectField('object', mtMap.passthrough()),
     storeId: mtMap.objectField('store_id', mtMap.passthrough()),
-    actorId: mtMap.objectField('actor_id', mtMap.passthrough()),
     hasFullAccess: mtMap.objectField('has_full_access', mtMap.passthrough()),
     permissions: mtMap.objectField(
       'permissions',

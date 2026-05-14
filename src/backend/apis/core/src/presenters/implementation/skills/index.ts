@@ -1,5 +1,6 @@
 export * from './skill';
 export * from './skillAgent';
+export * from './skillConfiguration';
 export * from './skillParticipant';
 export * from './skillGroup';
 export * from './skillGroupItem';

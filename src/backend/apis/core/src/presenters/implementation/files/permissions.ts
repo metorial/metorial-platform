@@ -5,7 +5,6 @@ import { documentPermissionsType, storePermissionsType } from '../../types';
 let cargoPermissionSchema = v.enumOf(['content_read', 'content_write']);
 
 let permissionsBaseSchema = {
-  actor_id: v.nullable(v.string()),
   has_full_access: v.boolean(),
   permissions: v.array(cargoPermissionSchema),
   relevant_store_ids: v.array(v.string()),
@@ -17,7 +16,6 @@ export let v1DocumentPermissionsPresenter = Presenter.create(documentPermissions
   .presenter(async ({ permissions }) => ({
     object: 'document.permissions',
     document_id: permissions.documentId,
-    actor_id: permissions.actorId ?? null,
     is_owner: permissions.isOwner,
     has_full_access: permissions.hasFullAccess,
     permissions: permissions.permissions,
@@ -41,7 +39,6 @@ export let v1StorePermissionsPresenter = Presenter.create(storePermissionsType)
   .presenter(async ({ permissions }) => ({
     object: 'store.permissions',
     store_id: permissions.storeId,
-    actor_id: permissions.actorId ?? null,
     has_full_access: permissions.hasFullAccess,
     permissions: permissions.permissions,
     relevant_store_ids: permissions.relevantStoreIds,

@@ -229,6 +229,9 @@ let SkillTemplatesPage = dynamicPage(() =>
 let SkillGroupsPage = dynamicPage(() =>
   import('./pages/(skills)/(list)/groups').then(c => c.SkillGroupsPage)
 );
+let SkillConfigurationSettingsPage = dynamicPage(() =>
+  import('./pages/(skills)/(list)/settings').then(c => c.SkillConfigurationSettingsPage)
+);
 let SkillLayout = dynamicPage(() =>
   import('./pages/(skills)/skill/_layout').then(c => c.SkillLayout)
 );
@@ -1130,6 +1133,10 @@ export let productHomeSlice = createSlice([
               {
                 path: 'groups',
                 element: <SkillGroupsPage />
+              },
+              {
+                path: 'settings',
+                element: <SkillConfigurationSettingsPage />
               }
             ]
           },

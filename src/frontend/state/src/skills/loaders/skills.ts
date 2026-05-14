@@ -3,6 +3,8 @@ import type {
   DashboardInstanceSkillsAgentsGetOutput,
   DashboardInstanceSkillsAgentsListQuery,
   DashboardInstanceSkillsAgentsUpdateBody,
+  DashboardInstanceSkillsConfigurationsGetOutput,
+  DashboardInstanceSkillsConfigurationsUpdateBody,
   DashboardInstanceSkillsCreateBody,
   DashboardInstanceSkillsDuplicateBody,
   DashboardInstanceSkillsForkBody,
@@ -25,6 +27,7 @@ import { withAuth } from '../../user';
 
 export type Skill = DashboardInstanceSkillsGetOutput;
 export type SkillAgent = DashboardInstanceSkillsAgentsGetOutput;
+export type SkillConfiguration = DashboardInstanceSkillsConfigurationsGetOutput;
 export type SkillItem = DashboardInstanceSkillsItemsGetOutput;
 export type SkillParticipant = DashboardInstanceSkillsParticipantsGetOutput;
 export type SkillVersion = DashboardInstanceSkillsVersionsGetOutput;
@@ -112,6 +115,28 @@ export let useSkill = (
     ...data,
     updateMutator: data.useMutator('update'),
     deleteMutator: data.useMutator('delete')
+  };
+};
+
+export let defaultSkillConfigurationLoader = createLoader({
+  name: 'defaultSkillConfiguration',
+  parents: [],
+  fetch: (i: { instanceId: string }) =>
+    withAuth(sdk => sdk.skills.configurations.get(i.instanceId, 'default')),
+  mutators: {
+    update: (
+      i: DashboardInstanceSkillsConfigurationsUpdateBody,
+      { input: { instanceId } }: { input: { instanceId: string } }
+    ) => withAuth(sdk => sdk.skills.configurations.update(instanceId, 'default', i))
+  }
+});
+
+export let useDefaultSkillConfiguration = (instanceId: string | null | undefined) => {
+  let data = defaultSkillConfigurationLoader.use(instanceId ? { instanceId } : null);
+
+  return {
+    ...data,
+    updateMutator: data.useMutator('update')
   };
 };
 

@@ -48,6 +48,8 @@ export let SkillsListLayout = () => {
       };
     }
 
+    if (pathname.endsWith('/settings')) return null;
+
     return {
       label: 'Create Skill',
       onClick: () =>
@@ -67,9 +69,11 @@ export let SkillsListLayout = () => {
         title="Magic Skills"
         description="Create reusable skills that can enable rich workflows across your agents."
         actions={
-          <Button size="2" disabled={!action} onClick={() => action?.onClick()}>
-            {action?.label ?? 'Create'}
-          </Button>
+          action ? (
+            <Button size="2" onClick={() => action.onClick()}>
+              {action.label}
+            </Button>
+          ) : undefined
         }
       />
 
@@ -87,6 +91,10 @@ export let SkillsListLayout = () => {
           {
             label: 'Groups',
             to: Paths.instance.skillGroups(...listPathParams)
+          },
+          {
+            label: 'Settings',
+            to: Paths.instance.skillSettings(...listPathParams)
           }
         ]}
       />

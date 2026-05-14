@@ -4,7 +4,6 @@ export type ManagementInstanceDocumentsPermissionsGetOutput = {
   object: 'document.permissions';
   documentId: string;
   isOwner: boolean;
-  actorId: string | null;
   hasFullAccess: boolean;
   permissions: ('content_read' | 'content_write')[];
   relevantStoreIds: string[];
@@ -17,7 +16,6 @@ export let mapManagementInstanceDocumentsPermissionsGetOutput =
     object: mtMap.objectField('object', mtMap.passthrough()),
     documentId: mtMap.objectField('document_id', mtMap.passthrough()),
     isOwner: mtMap.objectField('is_owner', mtMap.passthrough()),
-    actorId: mtMap.objectField('actor_id', mtMap.passthrough()),
     hasFullAccess: mtMap.objectField('has_full_access', mtMap.passthrough()),
     permissions: mtMap.objectField(
       'permissions',

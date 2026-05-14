@@ -9,6 +9,13 @@ export type PortalsUpdateOutput = {
   description: string | null;
   allowConsumerSkillAuthoring: boolean;
   allowConsumerSkillPublishing: boolean;
+  skillConfiguration: {
+    id: string;
+    isDefault: boolean;
+    allowScripts: boolean;
+    allowedFileExtensions: string[];
+    allowNonStandardDirectories: boolean;
+  };
   auth: {
     object: 'portal.auth';
     sessionExpiryTimeInSeconds: number;
@@ -33,6 +40,22 @@ export let mapPortalsUpdateOutput = mtMap.object<PortalsUpdateOutput>({
   allowConsumerSkillPublishing: mtMap.objectField(
     'allow_consumer_skill_publishing',
     mtMap.passthrough()
+  ),
+  skillConfiguration: mtMap.objectField(
+    'skill_configuration',
+    mtMap.object({
+      id: mtMap.objectField('id', mtMap.passthrough()),
+      isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
+      allowScripts: mtMap.objectField('allow_scripts', mtMap.passthrough()),
+      allowedFileExtensions: mtMap.objectField(
+        'allowed_file_extensions',
+        mtMap.array(mtMap.passthrough())
+      ),
+      allowNonStandardDirectories: mtMap.objectField(
+        'allow_non_standard_directories',
+        mtMap.passthrough()
+      )
+    })
   ),
   auth: mtMap.objectField(
     'auth',
@@ -70,6 +93,13 @@ export type PortalsUpdateBody = {
   sessionExpiryTimeInSeconds?: number | undefined;
   allowConsumerSkillAuthoring?: boolean | undefined;
   allowConsumerSkillPublishing?: boolean | undefined;
+  skillConfiguration?:
+    | {
+        allowScripts?: boolean | undefined;
+        allowedFileExtensions?: string[] | null | undefined;
+        allowNonStandardDirectories?: boolean | undefined;
+      }
+    | undefined;
 };
 
 export let mapPortalsUpdateBody = mtMap.object<PortalsUpdateBody>({
@@ -92,6 +122,20 @@ export let mapPortalsUpdateBody = mtMap.object<PortalsUpdateBody>({
   allowConsumerSkillPublishing: mtMap.objectField(
     'allow_consumer_skill_publishing',
     mtMap.passthrough()
+  ),
+  skillConfiguration: mtMap.objectField(
+    'skill_configuration',
+    mtMap.object({
+      allowScripts: mtMap.objectField('allow_scripts', mtMap.passthrough()),
+      allowedFileExtensions: mtMap.objectField(
+        'allowed_file_extensions',
+        mtMap.array(mtMap.passthrough())
+      ),
+      allowNonStandardDirectories: mtMap.objectField(
+        'allow_non_standard_directories',
+        mtMap.passthrough()
+      )
+    })
   )
 });
 

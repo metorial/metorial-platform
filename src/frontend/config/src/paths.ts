@@ -80,6 +80,8 @@ let InstancePaths = Object.assign(
       instance: EntityParam,
       ...subPages: SubPages
     ) => InstancePaths(organization, project, instance, 'skills', ...subPages),
+    skillSettings: (organization: EntityParam, project: EntityParam, instance: EntityParam) =>
+      InstancePaths(organization, project, instance, 'skills', 'settings'),
     skill: (
       organization: EntityParam,
       project: EntityParam,

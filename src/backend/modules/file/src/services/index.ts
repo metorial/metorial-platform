@@ -12,6 +12,7 @@ export type {
   CargoFileReference,
   CargoScope,
   CargoSkillAgent,
+  CargoSkillConfiguration,
   CargoSkillParticipant,
   CargoSkillVersion,
   CargoSkillVersionSnapshot,
@@ -32,6 +33,7 @@ export * from './file';
 export * from './fileLink';
 export * from './fileReference';
 export * from './skillAgent';
+export * from './skillConfiguration';
 export * from './skillParticipant';
 export * from './skillVersion';
 export * from './store';

@@ -175,7 +175,7 @@ class SkillVersionServiceImpl {
       include: skillVersionInclude
     });
 
-    if (!version) throw new ServiceError(notFoundError('skillVersion', d.skillVersionId));
+    if (!version) throw new ServiceError(notFoundError('skill.version', d.skillVersionId));
 
     return version;
   }
@@ -198,7 +198,7 @@ class SkillVersionServiceImpl {
       include: skillVersionSnapshotInclude
     });
 
-    if (!version) throw new ServiceError(notFoundError('skillVersion', d.skillVersionId));
+    if (!version) throw new ServiceError(notFoundError('skill.version', d.skillVersionId));
 
     return toSkillVersionSnapshot(version);
   }

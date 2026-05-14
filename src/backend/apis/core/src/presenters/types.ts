@@ -75,7 +75,8 @@ import {
   ConsumerAresSsoConnection,
   ConsumerAresSsoTenant,
   ConsumerAresSsoTenantSetup,
-  ConsumerProviderCatalogEntry
+  ConsumerProviderCatalogEntry,
+  EnrichedConsumerSurface
 } from '@metorial/module-consumer';
 import type {
   CargoDocumentPermissions,
@@ -83,6 +84,7 @@ import type {
   CargoStore,
   CargoStorePermissions,
   CargoSkillAgent,
+  CargoSkillConfiguration,
   EnrichedCargoDocument,
   EnrichedCargoDocumentParticipant,
   EnrichedCargoDocumentVersion,
@@ -480,6 +482,10 @@ export let skillAgentType = PresentableType.create<{
   skillAgent: CargoSkillAgent;
 }>()('skillAgent');
 
+export let skillConfigurationType = PresentableType.create<{
+  skillConfiguration: CargoSkillConfiguration;
+}>()('skillConfiguration');
+
 export let skillParticipantType = PresentableType.create<{
   skillParticipant: EnrichedCargoSkillParticipant;
 }>()('skillParticipant');
@@ -730,7 +736,7 @@ export let consumerAndProfileType = PresentableType.create<{
 }>()('consumer_and_profile');
 
 export let consumerSurfaceType = PresentableType.create<{
-  consumerSurface: ConsumerSurface;
+  consumerSurface: EnrichedConsumerSurface;
 }>()('consumer.surface');
 
 export let consumerSurfaceProviderGroupType = PresentableType.create<{
@@ -807,7 +813,7 @@ export let callbackInstanceType = PresentableType.create<{
 
 export let portalType = PresentableType.create<{
   portal: Portal & {
-    surface: ConsumerSurface;
+    surface: EnrichedConsumerSurface;
     organization: Organization;
   };
   portalUrl: string;
