@@ -1,6 +1,8 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
+import { ConsumerProfile, Skill } from '@metorial/db';
+import { consumerSkillService } from '@metorial/module-consumer';
 import { subspaceSkillItemService } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
@@ -50,6 +52,20 @@ export let skillItemGroup = skillGroup.use(async ctx => {
 
 let skillReadScopes = ['instance.skill:read', 'consumer#instance.skill:read'] as const;
 let skillWriteScopes = ['instance.skill:write', 'consumer#instance.skill:write'] as const;
+
+let assertConsumerCanWriteSkillItems = async (ctx: {
+  consumerProfile?: ConsumerProfile;
+  skill: {
+    localSkill: Skill;
+  };
+}) => {
+  if (!ctx.consumerProfile) return;
+
+  await consumerSkillService.assertConsumerCanWriteSkill({
+    skill: ctx.skill.localSkill,
+    consumerProfile: ctx.consumerProfile
+  });
+};
 
 export let skillItemController = Controller.create(
   {
@@ -126,6 +142,8 @@ export let skillItemController = Controller.create(
       .body('default', createSkillItemValidator)
       .output(skillItemPresenter)
       .do(async ctx => {
+        await assertConsumerCanWriteSkillItems(ctx);
+
         let skillItem =
           ctx.body.type === 'integration'
             ? await subspaceSkillItemService.create({
@@ -157,6 +175,8 @@ export let skillItemController = Controller.create(
       .use(requireConsumerTokenForPublishableKey())
       .output(skillItemPresenter)
       .do(async ctx => {
+        await assertConsumerCanWriteSkillItems(ctx);
+
         let skillItem = await subspaceSkillItemService.delete({
           instance: ctx.instance,
           skillItemId: ctx.skillItem.id,

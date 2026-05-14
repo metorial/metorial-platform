@@ -337,6 +337,9 @@ let RowAction = styled.button<{ $disabled?: boolean }>`
   & > .label > .desc {
     font-size: 11.5px;
     color: ${({ theme }) => theme.color.textSubtle};
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 `;
 

@@ -134,7 +134,35 @@ export let SkillsGrid = (
     });
   };
 
-  return renderWithPagination(skills)(skills =>
+  return renderWithPagination(skills, {
+    emptyState: (
+      <>
+        {query.search && (
+          <Text size="2" color="gray600">
+            No skills found.
+          </Text>
+        )}
+
+        {!hasActiveFilters && (
+          <EmptyState
+            extra="Skills"
+            title="Create your first skill"
+            description="Skills let you extend integrations with documents, custom logic, and resources to create advanced agent workflows."
+            action={{
+              label: 'Create Skill',
+              onClick: showCreateModal
+            }}
+          />
+        )}
+
+        {!query.search && hasActiveFilters && (
+          <Text size="2" color="gray600">
+            No skills match the current filters.
+          </Text>
+        )}
+      </>
+    )
+  })(skills =>
     renderWithLoader({ providerListings })(({ providerListings }) => {
       let listingLookup = new Map<
         string,
@@ -226,30 +254,6 @@ export let SkillsGrid = (
                 );
               })}
             </ItemGrid.Root>
-          )}
-
-          {skills.data.items.length === 0 && query.search && (
-            <Text size="2" color="gray600">
-              No skills found.
-            </Text>
-          )}
-
-          {skills.data.items.length === 0 && !hasActiveFilters && (
-            <EmptyState
-              extra="Skills"
-              title="Create your first skill"
-              description="Skills let you extend integrations with documents, custom logic, and resources to create advanced agent workflows."
-              action={{
-                label: 'Create Skill',
-                onClick: showCreateModal
-              }}
-            />
-          )}
-
-          {skills.data.items.length === 0 && !query.search && hasActiveFilters && (
-            <Text size="2" color="gray600">
-              No skills match the current filters.
-            </Text>
           )}
         </>
       );

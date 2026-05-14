@@ -10,6 +10,7 @@ export let consumerFileLinkWriteRoles = ['consumer#instance.file_link:write'] as
 export let consumerDocumentReadRoles = ['consumer#instance.document:read'] as const;
 export let consumerDocumentWriteRoles = ['consumer#instance.document:write'] as const;
 export let consumerStoreReadRoles = ['consumer#instance.store:read'] as const;
+export let consumerStoreWriteRoles = ['consumer#instance.store:write'] as const;
 export let consumerAssistantReadRoles = ['consumer#instance.assistant:read'] as const;
 export let consumerAssistantWriteRoles = ['consumer#instance.assistant:write'] as const;
 export let consumerAssistantConversationReadRoles = [
@@ -23,9 +24,14 @@ export let consumerSkillWriteRoles = ['consumer#instance.skill:write'] as const;
 export let consumerMagicMcpReadRoles = ['consumer#instance.magic_mcp:read'] as const;
 export let consumerMagicMcpConnectRoles = ['consumer#instance.magic_mcp:connect'] as const;
 export let consumerMagicMcpWriteRoles = ['consumer#instance.magic_mcp:write'] as const;
-export let consumerProviderTemplateReadRoles = ['consumer#instance.provider_template:read'] as const;
+export let consumerProviderTemplateReadRoles = [
+  'consumer#instance.provider_template:read'
+] as const;
 
-export let consumerFileAccessRoles = [...consumerFileReadRoles, ...consumerFileWriteRoles] as const;
+export let consumerFileAccessRoles = [
+  ...consumerFileReadRoles,
+  ...consumerFileWriteRoles
+] as const;
 export let consumerFileLinkAccessRoles = [
   ...consumerFileLinkReadRoles,
   ...consumerFileLinkWriteRoles
@@ -33,6 +39,10 @@ export let consumerFileLinkAccessRoles = [
 export let consumerDocumentAccessRoles = [
   ...consumerDocumentReadRoles,
   ...consumerDocumentWriteRoles
+] as const;
+export let consumerStoreAccessRoles = [
+  ...consumerStoreReadRoles,
+  ...consumerStoreWriteRoles
 ] as const;
 export let consumerAssistantAccessRoles = [
   ...consumerAssistantReadRoles,

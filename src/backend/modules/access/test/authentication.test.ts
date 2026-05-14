@@ -128,7 +128,9 @@ describe('AuthenticationService', () => {
       expect(instancePublishableTokenWithConsumerScopes).toContain(
         'consumer#instance.profile:read'
       );
-      expect(instancePublishableTokenWithConsumerScopes).toContain('consumer#instance.file:read');
+      expect(instancePublishableTokenWithConsumerScopes).toContain(
+        'consumer#instance.file:read'
+      );
       expect(instancePublishableTokenWithConsumerScopes).toContain(
         'consumer#instance.file:write'
       );
@@ -144,10 +146,17 @@ describe('AuthenticationService', () => {
       expect(instancePublishableTokenWithConsumerScopes).toContain(
         'consumer#instance.document:write'
       );
-      expect(instancePublishableTokenWithConsumerScopes).toContain('consumer#instance.store:read');
+      expect(instancePublishableTokenWithConsumerScopes).toContain(
+        'consumer#instance.store:read'
+      );
+      expect(instancePublishableTokenWithConsumerScopes).toContain(
+        'consumer#instance.store:write'
+      );
       expect(instancePublishableTokenWithConsumerScopes).not.toContain('instance.file:read');
       expect(instancePublishableTokenWithConsumerScopes).not.toContain('instance.file:write');
-      expect(instancePublishableTokenWithConsumerScopes).not.toContain('instance.file_link:read');
+      expect(instancePublishableTokenWithConsumerScopes).not.toContain(
+        'instance.file_link:read'
+      );
       expect(instancePublishableTokenWithConsumerScopes).not.toContain(
         'instance.file_link:write'
       );

@@ -75,7 +75,35 @@ export let SkillGroupsGrid = (
     });
   };
 
-  return renderWithPagination(skillGroups)(skillGroups => (
+  return renderWithPagination(skillGroups, {
+    emptyState: (
+      <>
+        {query.search && (
+          <Text size="2" color="gray600">
+            No groups found.
+          </Text>
+        )}
+
+        {!hasActiveFilters && (
+          <EmptyState
+            extra="Skill Groups"
+            title="Create your first group"
+            description="Groups let you organize related skills and manage them as a set."
+            action={{
+              label: 'Create Group',
+              onClick: showCreateModal
+            }}
+          />
+        )}
+
+        {!query.search && hasActiveFilters && (
+          <Text size="2" color="gray600">
+            No groups match the current filters.
+          </Text>
+        )}
+      </>
+    )
+  })(skillGroups => (
     <>
       {skillGroups.data.items.length > 0 && (
         <ItemGrid.Root width="300px">
@@ -120,30 +148,6 @@ export let SkillGroupsGrid = (
             </Link>
           ))}
         </ItemGrid.Root>
-      )}
-
-      {skillGroups.data.items.length === 0 && query.search && (
-        <Text size="2" color="gray600">
-          No groups found.
-        </Text>
-      )}
-
-      {skillGroups.data.items.length === 0 && !hasActiveFilters && (
-        <EmptyState
-          extra="Skill Groups"
-          title="Create your first group"
-          description="Groups let you organize related skills and manage them as a set."
-          action={{
-            label: 'Create Group',
-            onClick: showCreateModal
-          }}
-        />
-      )}
-
-      {skillGroups.data.items.length === 0 && !query.search && hasActiveFilters && (
-        <Text size="2" color="gray600">
-          No groups match the current filters.
-        </Text>
       )}
     </>
   ));

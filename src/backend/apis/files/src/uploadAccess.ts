@@ -7,7 +7,7 @@ import {
 } from '../../../modules/file/src/instanceAccess';
 import type { FileOwner } from '../../../modules/file/src/services/file';
 
-let uploadScopes = ['instance.file:write'] as const;
+let uploadScopes = ['instance.file:write', 'consumer#instance.file:write'] as const;
 
 type ResolvedUploadTarget = {
   owner: FileOwner;

@@ -12,7 +12,7 @@ import { assistants } from '../definitions/assistants';
 import { getId } from '../id';
 import type { Implementation } from '../lib/definitions';
 import { listenToAssistantRunDeltas } from '../lib/run/redisDeltas';
-import type { AgentRunWireMessage } from '../lib/run/state';
+import { createItemId, type AgentRunWireMessage } from '../lib/run/state';
 import { generateAssistantConversationTitleQueue } from '../queues/generateConversationTitle';
 import { processAssistantRequestQueue } from '../queues/processRequest';
 import { type InputMessage, type State } from '../types';
@@ -52,7 +52,7 @@ let inputMessageState = (input: InputMessage) =>
   ({
     items: [
       {
-        id: 'message:0',
+        id: createItemId(),
         type: 'message',
         status: 'completed',
         message: {

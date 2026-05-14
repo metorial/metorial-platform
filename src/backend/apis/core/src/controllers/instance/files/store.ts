@@ -53,7 +53,9 @@ export let storeController = Controller.create(
         name: 'List stores',
         description: 'Returns a paginated list of stores owned by the instance.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.file:read', 'consumer#instance.store:read'] }))
+      .use(
+        checkAccess({ possibleScopes: ['instance.file:read', 'consumer#instance.store:read'] })
+      )
       .outputList(storePresenter)
       .query('default', Paginator.validate(v.object({})))
       .do(async ctx => {
@@ -112,7 +114,9 @@ export let storeController = Controller.create(
         name: 'Get store by ID',
         description: 'Retrieves a store by its ID.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.file:read', 'consumer#instance.store:read'] }))
+      .use(
+        checkAccess({ possibleScopes: ['instance.file:read', 'consumer#instance.store:read'] })
+      )
       .output(storePresenter)
       .do(async ctx => storePresenter.present({ store: ctx.store })),
 
@@ -122,7 +126,9 @@ export let storeController = Controller.create(
         description:
           'Returns the effective Cargo permissions for the current actor on a specific store.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.file:read', 'consumer#instance.store:read'] }))
+      .use(
+        checkAccess({ possibleScopes: ['instance.file:read', 'consumer#instance.store:read'] })
+      )
       .output(storePermissionsPresenter)
       .do(async ctx => {
         let permissions = await storeService.getStorePermissions({
@@ -200,7 +206,11 @@ export let storeController = Controller.create(
         name: 'Modify store items',
         description: 'Applies bulk item operations to a specific store.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.file:write'] }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.file:write', 'consumer#instance.store:write']
+        })
+      )
       .body(
         'default',
         v.object({

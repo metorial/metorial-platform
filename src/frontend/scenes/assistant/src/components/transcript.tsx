@@ -58,6 +58,7 @@ export let AssistantTranscript = (p: {
           item={entry.item}
           message={entry.message}
           messageMeta={entry.message ? p.messageMetaById?.get(entry.message.id) : undefined}
+          isLive={entry.source == 'live'}
           isEditing={entry.message?.id == p.editingMessageId}
           editingValue={p.editingValue}
           isSubmittingEdit={p.isSubmittingEdit}

@@ -159,6 +159,78 @@ let PlainTextWrapper = styled.div`
   overflow-wrap: anywhere;
 `;
 
+let STREAMED_WORD_REVEAL_MS = 28;
+
+let splitIntoWordTokens = (text: string) => {
+  return text.match(/\s+|\S+\s*/g) ?? [];
+};
+
+let useStreamedTextReveal = (text: string, enabled?: boolean) => {
+  let initialVisibleText = enabled ? '' : text;
+  let [visibleText, setVisibleText] = React.useState(initialVisibleText);
+  let visibleTextRef = React.useRef(initialVisibleText);
+  let targetTextRef = React.useRef(text);
+  let timeoutRef = React.useRef<number | null>(null);
+
+  let clearRevealTimeout = React.useCallback(() => {
+    if (timeoutRef.current == null) return;
+    window.clearTimeout(timeoutRef.current);
+    timeoutRef.current = null;
+  }, []);
+
+  let setVisible = React.useCallback((nextText: string) => {
+    visibleTextRef.current = nextText;
+    setVisibleText(nextText);
+  }, []);
+
+  let revealNextToken = React.useCallback(() => {
+    let currentText = visibleTextRef.current;
+    let targetText = targetTextRef.current;
+
+    if (currentText == targetText) {
+      timeoutRef.current = null;
+      return;
+    }
+
+    if (!targetText.startsWith(currentText)) {
+      setVisible(targetText);
+      timeoutRef.current = null;
+      return;
+    }
+
+    let remainingText = targetText.slice(currentText.length);
+    let [nextToken] = splitIntoWordTokens(remainingText);
+
+    setVisible(currentText + (nextToken ?? remainingText));
+    timeoutRef.current = window.setTimeout(revealNextToken, STREAMED_WORD_REVEAL_MS);
+  }, [setVisible]);
+
+  React.useEffect(() => {
+    if (!enabled) {
+      clearRevealTimeout();
+      targetTextRef.current = text;
+      setVisible(text);
+      return;
+    }
+
+    targetTextRef.current = text;
+
+    if (!text.startsWith(visibleTextRef.current)) {
+      clearRevealTimeout();
+      setVisible(text);
+      return;
+    }
+
+    if (visibleTextRef.current != text && timeoutRef.current == null) {
+      timeoutRef.current = window.setTimeout(revealNextToken, STREAMED_WORD_REVEAL_MS);
+    }
+
+    return clearRevealTimeout;
+  }, [clearRevealTimeout, enabled, revealNextToken, setVisible, text]);
+
+  return enabled ? visibleText : text;
+};
+
 let MarkdownTableScroll = styled.div`
   overflow-x: auto;
   margin: 0 0 12px;
@@ -204,6 +276,7 @@ let markdownComponents: Components = {
 
 let MessagePart = (p: {
   renderMarkdown?: boolean;
+  animateText?: boolean;
   part:
     | { type: 'text'; text: string }
     | {
@@ -212,15 +285,20 @@ let MessagePart = (p: {
         mediaType: string;
       };
 }) => {
+  let text = useStreamedTextReveal(
+    p.part.type == 'text' ? p.part.text : '',
+    p.animateText && p.part.type == 'text'
+  );
+
   if (p.part.type == 'text') {
     if (p.renderMarkdown === false) {
-      return <PlainTextWrapper>{p.part.text}</PlainTextWrapper>;
+      return <PlainTextWrapper>{text}</PlainTextWrapper>;
     }
 
     return (
       <MarkdownWrapper>
         <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-          {p.part.text}
+          {text}
         </ReactMarkdown>
       </MarkdownWrapper>
     );
@@ -237,6 +315,7 @@ let MessageCard = (p: {
   item: Extract<AssistantLiveStateItem, { type: 'message' }>;
   message?: AssistantConversationMessage;
   messageMeta?: AssistantTranscriptMessageMeta;
+  isLive?: boolean;
   isEditing?: boolean;
   editingValue?: string;
   isSubmittingEdit?: boolean;
@@ -283,6 +362,7 @@ let MessageCard = (p: {
                   key={`${p.item.id}:${index}`}
                   part={part as any}
                   renderMarkdown={role != 'user'}
+                  animateText={p.isLive && role == 'assistant'}
                 />
               ))}
             </ToolContentStack>
@@ -433,6 +513,7 @@ export let AssistantStateItemCard = (p: {
   item: AssistantLiveStateItem;
   message?: AssistantConversationMessage;
   messageMeta?: AssistantTranscriptMessageMeta;
+  isLive?: boolean;
   isEditing?: boolean;
   editingValue?: string;
   isSubmittingEdit?: boolean;
@@ -448,6 +529,7 @@ export let AssistantStateItemCard = (p: {
         item={p.item}
         message={p.message}
         messageMeta={p.messageMeta}
+        isLive={p.isLive}
         isEditing={p.isEditing}
         editingValue={p.editingValue}
         isSubmittingEdit={p.isSubmittingEdit}

@@ -1,16 +1,7 @@
+import { generatePlainId } from '@lowerdeck/id';
 import type { SessionEvent } from '@openharness/core';
 import type { ModelMessage } from 'ai';
-import { generatePlainId } from '@lowerdeck/id';
-import type {
-  FileWriteChange,
-  ItemStatus,
-  Message,
-  State,
-  StateItem
-} from '../../types';
-import {
-  createServerState
-} from '../delta';
+import type { FileWriteChange, ItemStatus, Message, State, StateItem } from '../../types';
 import type {
   DeltaTransportSink,
   JsonValue,
@@ -18,6 +9,7 @@ import type {
   WireMessage,
   WireSnapshot
 } from '../delta';
+import { createServerState } from '../delta';
 
 export type AgentRunWireMessage = WireMessage;
 
@@ -51,7 +43,7 @@ let emptyUsage = (): AgentRunUsage => ({
   totalTokens: 0
 });
 
-let createItemId = () => generatePlainId(8);
+export let createItemId = () => generatePlainId(8);
 
 let isRecord = (value: unknown): value is Record<string, unknown> =>
   !!value && typeof value == 'object' && !Array.isArray(value);

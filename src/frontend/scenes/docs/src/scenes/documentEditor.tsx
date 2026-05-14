@@ -704,8 +704,6 @@ let DocumentEditorLoaded = (p: {
         throw new Error('Image upload failed');
       }
 
-      if (uploadedFile.downloadUrl) return uploadedFile.downloadUrl;
-
       let [link] = await createFileLink.mutate({
         instanceId: p.instanceId,
         fileId: uploadedFile.id

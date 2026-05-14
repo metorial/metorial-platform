@@ -17,7 +17,6 @@ import {
   Organization,
   Prisma,
   Skill,
-  SkillStatus,
   withTransaction
 } from '@metorial/db';
 import { subspaceSkillService, subspaceSkillTemplateService } from '@metorial/module-subspace';
@@ -140,10 +139,7 @@ class ConsumerSkillServiceImpl {
     }
   }
 
-  private async assertConsumerCanWriteSkill(d: {
-    skill: Skill;
-    consumerProfile: ConsumerProfile;
-  }) {
+  async assertConsumerCanWriteSkill(d: { skill: Skill; consumerProfile: ConsumerProfile }) {
     if (d.skill.createdByConsumerProfileOid === d.consumerProfile.oid) {
       return;
     }

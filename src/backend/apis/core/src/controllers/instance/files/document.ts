@@ -37,7 +37,9 @@ export let documentController = Controller.create(
         description: 'Returns a paginated list of documents owned by the instance.'
       })
       .use(
-        checkAccess({ possibleScopes: ['instance.file:read', 'consumer#instance.document:read'] })
+        checkAccess({
+          possibleScopes: ['instance.file:read', 'consumer#instance.document:read']
+        })
       )
       .outputList(documentPresenter)
       .query('default', Paginator.validate(v.object({})))
@@ -96,7 +98,9 @@ export let documentController = Controller.create(
         description: 'Retrieves a document by its ID.'
       })
       .use(
-        checkAccess({ possibleScopes: ['instance.file:read', 'consumer#instance.document:read'] })
+        checkAccess({
+          possibleScopes: ['instance.file:read', 'consumer#instance.document:read']
+        })
       )
       .output(documentPresenter)
       .do(async ctx => documentPresenter.present({ document: ctx.document })),
@@ -108,7 +112,9 @@ export let documentController = Controller.create(
           'Returns the effective Cargo permissions for the current actor on a specific document.'
       })
       .use(
-        checkAccess({ possibleScopes: ['instance.file:read', 'consumer#instance.document:read'] })
+        checkAccess({
+          possibleScopes: ['instance.file:read', 'consumer#instance.document:read']
+        })
       )
       .output(documentPermissionsPresenter)
       .do(async ctx => {
@@ -191,11 +197,7 @@ export let documentController = Controller.create(
         name: 'Clone document by ID',
         description: 'Clones a specific document.'
       })
-      .use(
-        checkAccess({
-          possibleScopes: ['instance.file:write', 'consumer#instance.document:write']
-        })
-      )
+      .use(checkAccess({ possibleScopes: ['instance.file:write'] }))
       .body(
         'default',
         v.object({

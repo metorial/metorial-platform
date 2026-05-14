@@ -65,6 +65,7 @@ describe('definitions', () => {
       expect(scopes).toContain('consumer#instance.document:read');
       expect(scopes).toContain('consumer#instance.document:write');
       expect(scopes).toContain('consumer#instance.store:read');
+      expect(scopes).toContain('consumer#instance.store:write');
     });
 
     it('should contain instance.secret scopes', () => {
@@ -262,8 +263,12 @@ describe('definitions', () => {
       expect(instancePublishableTokenWithConsumerScopes).toContain(
         'consumer#instance.profile:read'
       );
-      expect(instancePublishableTokenWithConsumerScopes).toContain('consumer#instance.file:read');
-      expect(instancePublishableTokenWithConsumerScopes).toContain('consumer#instance.file:write');
+      expect(instancePublishableTokenWithConsumerScopes).toContain(
+        'consumer#instance.file:read'
+      );
+      expect(instancePublishableTokenWithConsumerScopes).toContain(
+        'consumer#instance.file:write'
+      );
       expect(instancePublishableTokenWithConsumerScopes).toContain(
         'consumer#instance.file_link:read'
       );
@@ -276,13 +281,20 @@ describe('definitions', () => {
       expect(instancePublishableTokenWithConsumerScopes).toContain(
         'consumer#instance.document:write'
       );
-      expect(instancePublishableTokenWithConsumerScopes).toContain('consumer#instance.store:read');
+      expect(instancePublishableTokenWithConsumerScopes).toContain(
+        'consumer#instance.store:read'
+      );
+      expect(instancePublishableTokenWithConsumerScopes).toContain(
+        'consumer#instance.store:write'
+      );
     });
 
     it('should not include regular file scopes for consumers', () => {
       expect(instancePublishableTokenWithConsumerScopes).not.toContain('instance.file:read');
       expect(instancePublishableTokenWithConsumerScopes).not.toContain('instance.file:write');
-      expect(instancePublishableTokenWithConsumerScopes).not.toContain('instance.file_link:read');
+      expect(instancePublishableTokenWithConsumerScopes).not.toContain(
+        'instance.file_link:read'
+      );
       expect(instancePublishableTokenWithConsumerScopes).not.toContain(
         'instance.file_link:write'
       );
@@ -295,8 +307,12 @@ describe('definitions', () => {
     });
 
     it('should include consumer skill scopes', () => {
-      expect(instancePublishableTokenWithConsumerScopes).toContain('consumer#instance.skill:read');
-      expect(instancePublishableTokenWithConsumerScopes).toContain('consumer#instance.skill:write');
+      expect(instancePublishableTokenWithConsumerScopes).toContain(
+        'consumer#instance.skill:read'
+      );
+      expect(instancePublishableTokenWithConsumerScopes).toContain(
+        'consumer#instance.skill:write'
+      );
     });
   });
 

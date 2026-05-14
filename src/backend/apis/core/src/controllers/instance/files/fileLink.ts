@@ -38,11 +38,7 @@ export let fileLinkController = Controller.create(
       })
       .use(
         checkAccess({
-          possibleScopes: [
-            'instance.file:read',
-            'instance.file_link:read',
-            'consumer#instance.file_link:read'
-          ]
+          possibleScopes: ['instance.file:read', 'instance.file_link:read']
         })
       )
       .outputList(fileLinkPresenter)
@@ -79,11 +75,7 @@ export let fileLinkController = Controller.create(
       })
       .use(
         checkAccess({
-          possibleScopes: [
-            'instance.file:read',
-            'instance.file_link:read',
-            'consumer#instance.file_link:read'
-          ]
+          possibleScopes: ['instance.file:read', 'instance.file_link:read']
         })
       )
       .output(fileLinkPresenter)
@@ -147,11 +139,7 @@ export let fileLinkController = Controller.create(
       })
       .use(
         checkAccess({
-          possibleScopes: [
-            'instance.file:write',
-            'instance.file_link:write',
-            'consumer#instance.file_link:write'
-          ]
+          possibleScopes: ['instance.file:write', 'instance.file_link:write']
         })
       )
       .output(fileLinkPresenter)

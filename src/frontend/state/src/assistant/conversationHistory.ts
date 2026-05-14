@@ -321,6 +321,7 @@ export let useConversationHistory = (
   let [streamError, setStreamError] = useState<string | null>(null);
   let lastEventIdRef = useRef<string | undefined>(undefined);
   let previousRequestIdRef = useRef<string | null>(null);
+  let previousStreamScopeRef = useRef<string | null>(null);
 
   useEffect(() => {
     let persistedIds = new Set((allMessages.data ?? []).map(message => message.id));
@@ -435,13 +436,27 @@ export let useConversationHistory = (
   }, [history.flatMessages, localStreamRequestId, unresolvedPendingRequest?.id]);
 
   useEffect(() => {
+    let streamScope =
+      organizationId && instanceId && assistantConversationId
+        ? `${organizationId}:${instanceId}:${assistantConversationId}`
+        : null;
+
+    if (previousStreamScopeRef.current != streamScope) {
+      previousStreamScopeRef.current = streamScope;
+      setLiveState(null);
+      setLiveSnapshotIndex(null);
+    }
+
     if (previousRequestIdRef.current != activeRequestId) {
       lastEventIdRef.current = undefined;
       previousRequestIdRef.current = activeRequestId;
+
+      if (activeRequestId) {
+        setLiveState(null);
+        setLiveSnapshotIndex(null);
+      }
     }
 
-    setLiveState(null);
-    setLiveSnapshotIndex(null);
     setStreamError(null);
 
     if (!organizationId || !instanceId || !assistantConversationId || !activeRequestId) {

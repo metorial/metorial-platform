@@ -35,7 +35,9 @@ export let fileController = Controller.create(
         name: 'List instance files',
         description: 'Returns a paginated list of files owned by the instance.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.file:read', 'consumer#instance.file:read'] }))
+      .use(
+        checkAccess({ possibleScopes: ['instance.file:read', 'consumer#instance.file:read'] })
+      )
       .outputList(filePresenter)
       .query(
         'default',
@@ -67,7 +69,9 @@ export let fileController = Controller.create(
         name: 'Get file by ID',
         description: 'Retrieves details for a specific file by its ID.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.file:read', 'consumer#instance.file:read'] }))
+      .use(
+        checkAccess({ possibleScopes: ['instance.file:read', 'consumer#instance.file:read'] })
+      )
       .output(filePresenter)
       .do(async ctx => filePresenter.present({ file: ctx.file })),
 
@@ -76,9 +80,7 @@ export let fileController = Controller.create(
         name: 'Delete file by ID',
         description: 'Deletes a specific file by its ID.'
       })
-      .use(
-        checkAccess({ possibleScopes: ['instance.file:write', 'consumer#instance.file:write'] })
-      )
+      .use(checkAccess({ possibleScopes: ['instance.file:write'] }))
       .output(filePresenter)
       .do(async ctx => {
         let file = await fileService.deleteFile({

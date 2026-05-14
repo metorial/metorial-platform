@@ -95,7 +95,7 @@ let scopeResourceMetadata: Record<string, { name: string; description: string }>
   },
   'consumer#instance.store': {
     name: 'Consumer Stores',
-    description: 'These endpoints manage consumer read access to instance stores.'
+    description: 'These endpoints manage consumer access to instance stores.'
   },
   'instance.secret': {
     name: 'Instance Secrets',

@@ -131,7 +131,15 @@ export let synthesisServiceEnv: Env = [
     key: 'SYNTHESIS_HEALTH_PORT',
     defaultValue: '12121'
   },
-  { key: 'AI_GATEWAY_API_KEY', isRequired: false }
+  { key: 'AI_GATEWAY_API_KEY', isRequired: false },
+  {
+    key: 'SCOUT_URL',
+    defaultValue: 'https://scout-fra-fly-prod.metorial-enterprise.com/metorial-scout'
+  },
+  {
+    key: 'SCOUT_TOKEN',
+    isRequired: false
+  }
 ];
 
 export let cargoServiceEnv: Env = [

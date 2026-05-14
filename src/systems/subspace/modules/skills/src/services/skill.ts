@@ -374,7 +374,10 @@ class skillServiceImpl {
           parentSkillId?: never;
         };
   }) {
-    if (d._operation && d.input.templateId) {
+    if (
+      d.input.templateId &&
+      (d._operation.type === 'fork' || d._operation.type === 'duplicate')
+    ) {
       throw new ServiceError(
         badRequestError({
           message: 'Cannot specify a template when forking or duplicating a skill.',

@@ -10,8 +10,8 @@ import {
   resolveCargoAccess,
   uploadCargoFile
 } from '@metorial/module-file';
-import { getFileDownloadUrl } from '../../../../systems/_clients/cargo/src';
 import { upgradeWebSocket, websocket } from 'hono/bun';
+import { getFileDownloadUrl } from '../../../../systems/_clients/cargo/src';
 import { resolveUploadTarget } from './uploadAccess';
 
 type FileApiAuthResult = Awaited<ReturnType<typeof authenticate>>;
@@ -365,7 +365,8 @@ export let createFileUploadApi = (d?: FileApiOptions) => {
           'Content-Type',
           'metorial-version',
           'sentry-trace',
-          'baggage'
+          'baggage',
+          'metorial-consumer-session-client-secret'
         ],
         credentials: true
       })

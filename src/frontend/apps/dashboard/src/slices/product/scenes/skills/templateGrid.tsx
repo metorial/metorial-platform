@@ -2,10 +2,10 @@ import type { DashboardInstanceSkillTemplatesListQuery } from '@metorial/dashboa
 import { renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import {
+  useCreateSkillFromTemplate,
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
-  useCreateSkillFromTemplate,
   useSkillTemplates
 } from '@metorial/state';
 import { Avatar, Text, theme } from '@metorial/ui';
@@ -111,7 +111,35 @@ export let SkillTemplatesGrid = (
     });
   };
 
-  return renderWithPagination(skillTemplates)(skillTemplates => (
+  return renderWithPagination(skillTemplates, {
+    emptyState: (
+      <>
+        {query.search && (
+          <Text size="2" color="gray600">
+            No templates found.
+          </Text>
+        )}
+
+        {!hasActiveFilters && (
+          <EmptyState
+            extra="Skill Templates"
+            title="Create your first template"
+            description="Templates let you reuse files, providers, and integrations when creating new skills."
+            action={{
+              label: 'Create Template',
+              onClick: showCreateModal
+            }}
+          />
+        )}
+
+        {!query.search && hasActiveFilters && (
+          <Text size="2" color="gray600">
+            No templates match the current filters.
+          </Text>
+        )}
+      </>
+    )
+  })(skillTemplates => (
     <>
       {skillTemplates.data.items.length > 0 && (
         <ItemGrid.Root width="300px">
@@ -159,30 +187,6 @@ export let SkillTemplatesGrid = (
             />
           ))}
         </ItemGrid.Root>
-      )}
-
-      {skillTemplates.data.items.length === 0 && query.search && (
-        <Text size="2" color="gray600">
-          No templates found.
-        </Text>
-      )}
-
-      {skillTemplates.data.items.length === 0 && !hasActiveFilters && (
-        <EmptyState
-          extra="Skill Templates"
-          title="Create your first template"
-          description="Templates let you reuse files, providers, and integrations when creating new skills."
-          action={{
-            label: 'Create Template',
-            onClick: showCreateModal
-          }}
-        />
-      )}
-
-      {skillTemplates.data.items.length === 0 && !query.search && hasActiveFilters && (
-        <Text size="2" color="gray600">
-          No templates match the current filters.
-        </Text>
       )}
     </>
   ));

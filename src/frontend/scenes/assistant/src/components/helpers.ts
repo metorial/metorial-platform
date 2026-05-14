@@ -5,7 +5,9 @@ import type {
 } from '@metorial/state';
 import type { AssistantTranscriptEntry } from './types';
 
-let getPersistedMessageItems = (message: AssistantConversationMessage): AssistantLiveStateItem[] => {
+let getPersistedMessageItems = (
+  message: AssistantConversationMessage
+): AssistantLiveStateItem[] => {
   return Array.isArray((message as any).items)
     ? ((message as any).items as AssistantLiveStateItem[])
     : [];
@@ -41,11 +43,14 @@ export let getTranscriptEntries = (
   liveState?: AssistantLiveState | null
 ): AssistantTranscriptEntry[] => {
   let entries: AssistantTranscriptEntry[] = [];
+  let persistedItemIds = new Set<string>();
 
   for (let message of messages) {
     for (let item of getPersistedMessageItems(message)) {
+      persistedItemIds.add(item.id);
+
       entries.push({
-        id: `${message.id}:${item.id}`,
+        id: item.id,
         source: 'persisted',
         item: item as any,
         message
@@ -54,8 +59,10 @@ export let getTranscriptEntries = (
   }
 
   for (let item of liveState?.items ?? []) {
+    if (persistedItemIds.has(item.id)) continue;
+
     entries.push({
-      id: `live:${item.id}`,
+      id: item.id,
       source: 'live',
       item
     });
