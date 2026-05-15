@@ -1,7 +1,7 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { slugify } from '@lowerdeck/slugify';
+import { createSlugGenerator } from '@lowerdeck/slugify';
 import type { Prisma, SkillPluginSkillStatus } from '@metorial-cargo/db';
 import { db, getId, withTransaction } from '@metorial-cargo/db';
 import {
@@ -59,20 +59,19 @@ type SkillPluginSkillInput = {
   skillConfigurationId?: string | null;
 };
 
+let getPluginSkillSlug = createSlugGenerator(
+  async (slug, d: { skillPluginId: string }) =>
+    !(await db.skillPluginSkill.findFirst({
+      where: {
+        skillPlugin: {
+          id: d.skillPluginId
+        },
+        pluginSkillSlug: slug
+      }
+    }))
+);
+
 class SkillPluginSkillServiceImpl {
-  private normalizePluginSkillSlug(slug: string) {
-    let normalized = slugify(slug);
-    if (!normalized) {
-      throw new ServiceError(
-        badRequestError({
-          message: 'Plugin skill slug must include at least one slug character'
-        })
-      );
-    }
-
-    return normalized;
-  }
-
   private hasUpdate(input: SkillPluginSkillInput) {
     return (
       input.clientName !== undefined ||
@@ -232,8 +231,21 @@ class SkillPluginSkillServiceImpl {
       environment: d.environment,
       skillId: d.input.skillId
     });
-    let pluginSkillSlug = this.normalizePluginSkillSlug(
-      d.input.pluginSkillSlug ?? skill.clientName ?? skill.name ?? skill.id
+    let existingSkillPluginSkill = await db.skillPluginSkill.findFirst({
+      where: {
+        skillPluginOid: d.skillPlugin.oid,
+        skillOid: skill.oid
+      },
+      select: {
+        pluginSkillSlug: true
+      }
+    });
+    let pluginSkillSlug = await getPluginSkillSlug(
+      {
+        input: d.input.pluginSkillSlug ?? skill.clientName ?? skill.name ?? skill.id,
+        current: existingSkillPluginSkill?.pluginSkillSlug
+      },
+      { skillPluginId: d.skillPlugin.id }
     );
     let skillConfigurationOid = await this.getSkillConfigurationOid({
       tenant: d.tenant,

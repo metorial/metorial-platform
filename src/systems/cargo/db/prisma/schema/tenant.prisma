@@ -9,7 +9,7 @@ model Tenant {
 
   /// [EntityImage]
   image            Json?
-  organizationName String
+  organizationName String?
 
   identifier String @unique
   name       String

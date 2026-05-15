@@ -7,8 +7,14 @@ import { createApplicator } from '../_lib/apply';
 import type { SkillSerializerInput } from '../_lib/types';
 import { getPluginPath } from '../plugin';
 
-export let getSkillPath = (d: SkillSerializerInput) =>
-  `${getPluginPath(d)}/skills/${d.skillPluginSkill.pluginSkillSlug ?? d.skill.clientName}`;
+export let getSkillPath = (d: SkillSerializerInput) => {
+  let inner = `skills/${d.skillPluginSkill.pluginSkillSlug}`;
+
+  let pluginPath = getPluginPath(d);
+  if (pluginPath) return `${pluginPath}/${inner}`;
+
+  return inner;
+};
 
 let storeItemInclude = {
   document: {

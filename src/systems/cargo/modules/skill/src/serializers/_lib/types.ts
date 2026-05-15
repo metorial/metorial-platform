@@ -48,7 +48,7 @@ export interface SerializerContext {
   setFile: (path: string, content: string | Buffer | ArrayBuffer) => Promise<void>;
   hashIsEqual: (hash: string) => boolean;
   setHash?: (hash: string) => void;
-  setBasePath: (path: string) => void;
+  setBasePath: (path: string | undefined) => void;
 }
 
 export type SkillSerializer = {

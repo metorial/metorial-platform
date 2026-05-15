@@ -66,6 +66,10 @@ export let applyMarketplace = createApplicator('marketplace', async (input, cont
     input.skillMarketplace.version = nextVersion;
   }
 
+  let tenant = await db.tenant.findFirstOrThrow({
+    where: { oid: input.skillMarketplace.tenantOid }
+  });
+
   let codexMarketplace = json({
     name: input.skillMarketplace.slug,
     interface: {
@@ -87,9 +91,9 @@ export let applyMarketplace = createApplicator('marketplace', async (input, cont
   await context.setFile('.agents/plugins/marketplace.json', codexMarketplace);
 
   let cursorAndClaudeMarketplace = json({
-    name: 'sentry-plugin-marketplace',
+    name: input.skillMarketplace.slug,
     owner: {
-      name: 'Sentry'
+      name: tenant.organizationName ?? tenant.name
     },
     metadata: {
       description: 'Official WorkOS skills for AI coding agents',

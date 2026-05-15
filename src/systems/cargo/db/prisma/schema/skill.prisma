@@ -8,7 +8,7 @@ model Skill {
   oid BigInt @id
   id  String @unique
 
-  status SkillStatus
+  status SkillStatus @default(active)
 
   /// [EntityImage]
   image Json?

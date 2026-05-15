@@ -1,7 +1,7 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { slugify } from '@lowerdeck/slugify';
+import { createSlugGenerator } from '@lowerdeck/slugify';
 import type { Prisma, SkillMarketplacePluginStatus } from '@metorial-cargo/db';
 import { db, getId, withTransaction } from '@metorial-cargo/db';
 import {
@@ -39,20 +39,19 @@ export type SkillMarketplacePluginRecord = Prisma.SkillMarketplacePluginGetPaylo
 
 export type SkillMarketplacePluginStatusFilter = SkillMarketplacePluginStatus;
 
+let getMarketplacePluginSlug = createSlugGenerator(
+  async (slug, d: { skillMarketplaceId: string }) =>
+    !(await db.skillMarketplacePlugin.findFirst({
+      where: {
+        skillMarketplace: {
+          id: d.skillMarketplaceId
+        },
+        pluginSlug: slug
+      }
+    }))
+);
+
 class SkillMarketplacePluginServiceImpl {
-  private normalizePluginSlug(slug: string) {
-    let normalized = slugify(slug);
-    if (!normalized) {
-      throw new ServiceError(
-        badRequestError({
-          message: 'Marketplace plugin slug must include at least one slug character'
-        })
-      );
-    }
-
-    return normalized;
-  }
-
   private async getSkillConfigurationOid(
     d: CargoTenantEnvironment & {
       skillConfigurationId: string | null | undefined;
@@ -207,7 +206,22 @@ class SkillMarketplacePluginServiceImpl {
     });
     assertPluginIsNotManaged(skillPlugin);
 
-    let pluginSlug = this.normalizePluginSlug(d.input.pluginSlug ?? skillPlugin.name);
+    let existingSkillMarketplacePlugin = await db.skillMarketplacePlugin.findFirst({
+      where: {
+        skillMarketplaceOid: d.skillMarketplace.oid,
+        skillPluginOid: skillPlugin.oid
+      },
+      select: {
+        pluginSlug: true
+      }
+    });
+    let pluginSlug = await getMarketplacePluginSlug(
+      {
+        input: d.input.pluginSlug ?? skillPlugin.name ?? skillPlugin.slug ?? skillPlugin.id,
+        current: existingSkillMarketplacePlugin?.pluginSlug
+      },
+      { skillMarketplaceId: d.skillMarketplace.id }
+    );
     let skillConfigurationOid = await this.getSkillConfigurationOid({
       tenant: d.tenant,
       environment: d.environment,

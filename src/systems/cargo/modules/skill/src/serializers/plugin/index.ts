@@ -1,4 +1,5 @@
 import { Hash } from '@lowerdeck/hash';
+import { slugify } from '@lowerdeck/slugify';
 import { db, env } from '@metorial-cargo/db';
 import semver from 'semver';
 import { internalImageService } from '../../internal/image';
@@ -6,7 +7,7 @@ import { createApplicator } from '../_lib/apply';
 import type { PluginSerializerInput } from '../_lib/types';
 
 export let getPluginPath = (d: PluginSerializerInput) =>
-  `plugins/${d.skillMarketplacePlugin?.pluginSlug ?? d.skillPlugin.slug}`;
+  d.skillMarketplacePlugin ? `plugins/${d.skillMarketplacePlugin.pluginSlug}` : undefined;
 
 let json = (data: any) => JSON.stringify(data, null, 2);
 
@@ -72,10 +73,10 @@ export let applyPlugin = createApplicator('plugin', async (input, context) => {
     }
   }
   if (image?.type !== 'file') {
-    let tenant = await db.tenant.findFirst({
+    let tenant = await db.tenant.findFirstOrThrow({
       where: { oid: input.skillPlugin.tenantOid }
     });
-    if (tenant?.image?.type === 'file') {
+    if (tenant.image?.type === 'file') {
       image = tenant.image;
     }
   }
@@ -88,7 +89,7 @@ export let applyPlugin = createApplicator('plugin', async (input, context) => {
   await context.setFile(logoIcon, await downloadImage.fetch());
 
   let baseInfo = {
-    name: input.skillMarketplacePlugin?.pluginSlug ?? input.skillPlugin.slug,
+    name: slugify(input.skillMarketplacePlugin?.pluginSlug ?? input.skillPlugin.name),
     description: input.skillPlugin.description,
     version: input.skillPlugin.version,
     author: {
