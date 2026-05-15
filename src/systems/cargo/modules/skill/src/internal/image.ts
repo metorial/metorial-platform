@@ -1,0 +1,171 @@
+import { forbiddenError, notFoundError, ServiceError } from '@lowerdeck/error';
+import { Service } from '@lowerdeck/service';
+import type { EntityImage, StoreParticipantPermissions } from '@metorial-cargo/db';
+import { db, env } from '@metorial-cargo/db';
+import type { CargoTenantEnvironment } from '@metorial-cargo/module-file';
+import { fileLinkService, fileReferenceService } from '@metorial-cargo/module-file';
+
+export type GetImageFieldsParams = {
+  id: string;
+  image: EntityImage | null;
+};
+
+let allowedHosts = ['metorial.com', 'metorial.net', 'metorial-cdn.com', 'metorial-files.com'];
+
+let imageMimeTypeToExtensionMap: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/jpg': 'jpg',
+  'image/png': 'png',
+  'image/gif': 'gif',
+  'image/webp': 'webp',
+  'image/svg+xml': 'svg'
+};
+
+let getExtension = (fileName: string) => {
+  let ext = fileName.split('.').pop()?.toLowerCase();
+  if (ext && ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext)) {
+    return ext === 'jpeg' ? 'jpg' : ext;
+  }
+  return null;
+};
+
+class InternalImageServiceImpl {
+  private getFileLinkUrl(d: { fileId: string; key: string }) {
+    if (!env.service.DOWNLOAD_PUBLIC_URL) return '';
+
+    return `${env.service.DOWNLOAD_PUBLIC_URL}/files/${d.fileId}/${d.key}`;
+  }
+
+  private async createImageEntityImage(
+    d: CargoTenantEnvironment & {
+      entity: { id: string; type: string };
+      fileId: string;
+      actorId?: string;
+      defaultPermissions?: StoreParticipantPermissions[];
+      overridePermissions?: boolean;
+    }
+  ): Promise<EntityImage> {
+    let file = await db.file.findFirst({
+      where: {
+        tenantOid: d.tenant.oid,
+        environmentOid: d.environment.oid,
+        id: d.fileId,
+        status: 'active'
+      },
+      include: {
+        purpose: true
+      }
+    });
+    if (!file) throw new ServiceError(notFoundError('file', d.fileId));
+    if (!file.purpose.canHaveLinks) {
+      throw new ServiceError(
+        forbiddenError({
+          message: 'File purpose does not allow creating links'
+        })
+      );
+    }
+
+    let link = await fileLinkService.createFileLink({
+      tenant: d.tenant,
+      environment: d.environment,
+      file,
+      input: {
+        actorId: d.actorId
+      }
+    });
+    let ref = await fileReferenceService.upsertFileReference({
+      tenant: d.tenant,
+      environment: d.environment,
+      fileLink: link,
+      input: {
+        entityId: d.entity.id,
+        entityType: d.entity.type
+      }
+    });
+
+    return {
+      type: 'file',
+      fileId: file.id,
+      fileLinkId: link.id,
+      fileReferenceId: ref.id,
+      fileUrl: this.getFileLinkUrl({ fileId: file.id, key: link.key })
+    };
+  }
+
+  async resolveImageEntityImage<ClearImage extends EntityImage | null>(
+    d: CargoTenantEnvironment & {
+      entity: { id: string; type: string };
+      imageFileId: string | null;
+      clearedImage: ClearImage;
+      actorId?: string;
+      defaultPermissions?: StoreParticipantPermissions[];
+      overridePermissions?: boolean;
+    }
+  ): Promise<EntityImage | ClearImage> {
+    if (d.imageFileId === null) return d.clearedImage;
+
+    return await this.createImageEntityImage({
+      tenant: d.tenant,
+      environment: d.environment,
+      entity: d.entity,
+      fileId: d.imageFileId,
+      actorId: d.actorId,
+      defaultPermissions: d.defaultPermissions,
+      overridePermissions: d.overridePermissions
+    });
+  }
+
+  async cleanupImageEntityImage(d: { image: EntityImage | null | undefined }) {
+    if (d.image?.type !== 'file' || !d.image.fileReferenceId || !d.image.fileLinkId) return;
+
+    await fileReferenceService.deleteFileReferenceByIdAndCleanup({
+      fileReferenceId: d.image.fileReferenceId
+    });
+  }
+
+  async getImageUrl(entity: GetImageFieldsParams) {
+    if (entity.image?.type == 'file') return entity.image.fileUrl ?? entity.image.url ?? '';
+
+    if (entity.image?.type == 'url') return entity.image.url;
+
+    return new URL(
+      `https://avatar-cdn.metorial.com/aimg_${entity.id.split('_').pop()}`
+    ).toString();
+  }
+
+  async downloadImage(entity: GetImageFieldsParams) {
+    let url = await internalImageService.getImageUrl(entity);
+    let extension = 'svg';
+
+    let parsedUrl = new URL(url);
+    if (
+      !allowedHosts.some(h => parsedUrl.hostname === h || parsedUrl.hostname.endsWith(`.${h}`))
+    ) {
+      url = await internalImageService.getImageUrl({
+        ...entity,
+        image: { type: 'default' }
+      });
+    }
+
+    if (entity.image?.type === 'file') {
+      let file = await db.file.findFirst({
+        where: { id: entity.image.fileId }
+      });
+
+      if (file) {
+        extension = imageMimeTypeToExtensionMap[file.fileType] ?? getExtension(url) ?? 'bin';
+      }
+    }
+
+    return {
+      url,
+      fetch: () => fetch(url).then(res => res.arrayBuffer()),
+      extension
+    };
+  }
+}
+
+export let internalImageService = Service.create(
+  'cargoInternalImageService',
+  () => new InternalImageServiceImpl()
+).build();

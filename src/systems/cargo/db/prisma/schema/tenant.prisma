@@ -7,6 +7,10 @@ model Tenant {
   oid BigInt @id
   id  String @unique
 
+  /// [EntityImage]
+  image            Json?
+  organizationName String
+
   identifier String @unique
   name       String
 

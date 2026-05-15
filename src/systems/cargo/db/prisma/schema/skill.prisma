@@ -35,12 +35,14 @@ model Skill {
   createdByTenantActor    TenantActor? @relation("SkillCreator", fields: [createdByTenantActorOid], references: [oid], onDelete: Cascade)
 
   createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 
-  skillParticipants SkillParticipant[]
-  skillVersions     SkillVersion[]
-  skillAgents       SkillAgent[]
-  skillPluginSkills SkillPluginSkill[]
-  skillExports      SkillExport[]
+  skillParticipants     SkillParticipant[]
+  skillVersions         SkillVersion[]
+  skillAgents           SkillAgent[]
+  skillPluginSkills     SkillPluginSkill[]
+  skillExports          SkillExport[]
+  skillDestinationItems SkillDestinationItem[]
 }
 
 model SkillConfiguration {
@@ -60,9 +62,10 @@ model SkillConfiguration {
   environmentOid BigInt
   environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
 
-  deletedAt               DateTime?
-  createdAt               DateTime                 @default(now())
-  updatedAt               DateTime                 @default(now()) @updatedAt
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+
   skillMarketplaces       SkillMarketplace[]
   skillMarketplacePlugins SkillMarketplacePlugin[]
   skillPlugins            SkillPlugin[]

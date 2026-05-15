@@ -85,6 +85,8 @@ services:
       CARGO_API_PORT: ${CARGO_API_PORT:-52150}
       CARGO_CONTENT_PORT: ${CARGO_CONTENT_PORT:-52151}
       CARGO_HEALTH_PORT: ${CARGO_HEALTH_PORT:-12121}
+      ORIGIN_URL: ${ORIGIN_URL:-http://origin:52090/metorial-origin}
+      CODE_BUCKET_SERVICE_URL: ${CODE_BUCKET_SERVICE_URL:-code-bucket:5050}
     volumes:
       - ./src:/app/src/systems/cargo/service/src:ro
       - ./package.json:/app/src/systems/cargo/service/package.json:ro

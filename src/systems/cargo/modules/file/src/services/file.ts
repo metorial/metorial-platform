@@ -29,6 +29,7 @@ import {
   storeReadPermission,
   storeWritePermission
 } from '@metorial-cargo/module-store';
+import { getCargoFilesBucketName, getStorage } from '../storage';
 import { actorService } from './actor';
 import type { CargoTenantEnvironment } from './filePurpose';
 import { documentFilePurposeSlug, filePurposeService } from './filePurpose';
@@ -66,6 +67,18 @@ class FileServiceImpl {
     }
   }
 
+  private async objectDataToBuffer(data: unknown) {
+    if (Buffer.isBuffer(data)) return data;
+    if (data instanceof ArrayBuffer) return Buffer.from(data);
+    if (ArrayBuffer.isView(data)) {
+      return Buffer.from(data.buffer, data.byteOffset, data.byteLength);
+    }
+    if (data instanceof Blob) return Buffer.from(await data.arrayBuffer());
+    if (typeof data === 'string') return Buffer.from(data);
+
+    return Buffer.from(await new Response(data as any).arrayBuffer());
+  }
+
   private async withEffectiveStoreId<T extends FileRecord>(file: T) {
     if (!file.document?.id) {
       return file as T & { effectiveStoreId?: string };
@@ -85,7 +98,7 @@ class FileServiceImpl {
     } satisfies T & { effectiveStoreId?: string };
   }
 
-  private async ensureFileActive(file: File) {
+  private async ensureFileActive(file: Pick<File, 'status'>) {
     if (file.status !== 'active') {
       throw new ServiceError(
         forbiddenError({
@@ -287,6 +300,19 @@ class FileServiceImpl {
     });
 
     return await this.withEffectiveStoreId(file);
+  }
+
+  async downloadFileContent(d: {
+    file: Pick<File, 'status' | 'storeId'> & { effectiveStoreId?: string };
+  }) {
+    await this.ensureFileActive(d.file);
+
+    let object = await getStorage().getObject(
+      getCargoFilesBucketName(),
+      d.file.effectiveStoreId ?? d.file.storeId
+    );
+
+    return await this.objectDataToBuffer(object.data);
   }
 
   async updateFile(d: {

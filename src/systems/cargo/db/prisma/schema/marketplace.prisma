@@ -4,8 +4,7 @@ model Tag {
 
   tag String @unique
 
-  skillMarketplaces SkillMarketplace[]
-  skillPlugins      SkillPlugin[]
+  skillPlugins SkillPlugin[]
 }
 
 model SkillMarketplace {
@@ -18,6 +17,9 @@ model SkillMarketplace {
   /// [SkillMarketplaceClientOverrides]
   providerOverrides Json?
 
+  version     String?
+  versionHash String?
+
   name        String
   description String?
   slug        String  @unique
@@ -25,8 +27,8 @@ model SkillMarketplace {
   skillConfigurationOid BigInt?
   skillConfiguration    SkillConfiguration? @relation(fields: [skillConfigurationOid], references: [oid], onDelete: SetNull)
 
-  tagOid BigInt @unique
-  tag    Tag    @relation(fields: [tagOid], references: [oid], onDelete: Cascade)
+  destinationOid BigInt           @unique
+  destination    SkillDestination @relation(fields: [destinationOid], references: [oid], onDelete: Cascade)
 
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
@@ -37,8 +39,9 @@ model SkillMarketplace {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  skillExports            SkillExport[]
-  skillMarketplacePlugins SkillMarketplacePlugin[]
+  skillExports          SkillExport[]
+  plugins               SkillMarketplacePlugin[]
+  skillDestinationItems SkillDestinationItem[]
 }
 
 model SkillMarketplacePlugin {
@@ -57,8 +60,10 @@ model SkillMarketplacePlugin {
   skillPlugin    SkillPlugin @relation(fields: [skillPluginOid], references: [oid], onDelete: Cascade)
 
   createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 
   @@unique([skillMarketplaceOid, skillPluginOid])
+  @@unique([skillMarketplaceOid, pluginSlug])
 }
 
 model SkillPlugin {
@@ -73,12 +78,20 @@ model SkillPlugin {
   /// [SkillPluginClientOverrides]
   providerOverrides Json?
 
-  name        String
-  description String?
-  slug        String  @unique
+  version     String?
+  versionHash String?
+
+  name            String
+  description     String?
+  longDescription String?
+  category        String?
+  slug            String  @unique
 
   skillConfigurationOid BigInt?
   skillConfiguration    SkillConfiguration? @relation(fields: [skillConfigurationOid], references: [oid], onDelete: SetNull)
+
+  destinationOid BigInt           @unique
+  destination    SkillDestination @relation(fields: [destinationOid], references: [oid], onDelete: Cascade)
 
   tagOid BigInt @unique
   tag    Tag    @relation(fields: [tagOid], references: [oid], onDelete: Cascade)
@@ -89,17 +102,14 @@ model SkillPlugin {
   environmentOid BigInt
   environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
 
-  currentVersionOid BigInt?
-  currentVersion    SkillPluginVersion? @relation(fields: [currentVersionOid], references: [oid], onDelete: Cascade, name: "SkillPluginToCurrentVersion")
-
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
   managed                 ManagedSkillPlugin?
-  skillPluginVersions     SkillPluginVersion[]
   skillPluginSkills       SkillPluginSkill[]
   skillExports            SkillExport[]
   skillMarketplacePlugins SkillMarketplacePlugin[]
+  skillDestinationItems   SkillDestinationItem[]
 }
 
 model SkillPluginSkill {
@@ -125,24 +135,65 @@ model SkillPluginSkill {
   skillPlugin    SkillPlugin @relation(fields: [skillPluginOid], references: [oid], onDelete: Cascade)
 
   createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 
-  @@unique([skillOid, skillPluginOid])
+  @@unique([skillPluginOid, skillOid])
+  @@unique([skillPluginOid, pluginSkillSlug])
 }
 
-model SkillPluginVersion {
+model SkillDestination {
   oid BigInt @id
   id  String @unique
 
-  version String
+  codeBucketId String
 
-  skillPluginOid BigInt
-  skillPlugin    SkillPlugin @relation(fields: [skillPluginOid], references: [oid], onDelete: Cascade)
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
 
-  currentVersionOf SkillPlugin[] @relation("SkillPluginToCurrentVersion")
+  syncs                 SkillDestinationSync[]
+  skillMarketplace      SkillMarketplace?
+  skillPlugin           SkillPlugin?
+  skillDestinationItems SkillDestinationItem[]
+}
 
-  createdAt DateTime @default(now())
+model SkillDestinationItem {
+  oid BigInt @id
 
-  @@unique([skillPluginOid, version])
+  destinationOid BigInt
+  destination    SkillDestination @relation(fields: [destinationOid], references: [oid], onDelete: Cascade)
+
+  skillMarketplaceOid BigInt?
+  skillMarketplace    SkillMarketplace? @relation(fields: [skillMarketplaceOid], references: [oid], onDelete: Cascade)
+
+  skillPluginOid BigInt?
+  skillPlugin    SkillPlugin? @relation(fields: [skillPluginOid], references: [oid], onDelete: Cascade)
+
+  skillOid BigInt?
+  skill    Skill?  @relation(fields: [skillOid], references: [oid], onDelete: Cascade)
+
+  hash String
+}
+
+enum SkillDestinationSyncStatus {
+  pending
+  completed
+  failed
+  processing
+  canceled
+}
+
+model SkillDestinationSync {
+  oid BigInt @id
+  id  String @unique
+
+  destinationOid BigInt
+  destination    SkillDestination @relation(fields: [destinationOid], references: [oid], onDelete: Cascade)
+
+  status SkillDestinationSyncStatus
+
+  createdAt   DateTime  @default(now())
+  startedAt   DateTime?
+  completedAt DateTime?
 }
 
 enum SkillExportTarget {
@@ -189,7 +240,9 @@ model SkillExport {
   environmentOid BigInt
   environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
 
-  createdAt DateTime @default(now())
+  createdAt   DateTime  @default(now())
+  startedAt   DateTime?
+  completedAt DateTime?
 }
 
 model ManagedSkillPlugin {

@@ -1784,6 +1784,7 @@
         "@lowerdeck/redis": "^1.0.6",
         "@lowerdeck/service": "^1.0.7",
         "@metorial-cargo/db": "^1.0.0",
+        "@metorial-cargo/list-utils": "^1.0.0",
         "@metorial-cargo/module-file": "^1.0.0",
         "@metorial-cargo/module-store": "^1.0.0",
         "hono": "^4.11.3",
@@ -1816,6 +1817,7 @@
         "@lowerdeck/tokens": "^1.0.5",
         "@lowerdeck/validation": "1.0.10",
         "@metorial-cargo/db": "^1.0.0",
+        "@metorial-cargo/list-utils": "^1.0.0",
         "object-storage-client": "^0.2.5",
       },
       "devDependencies": {
@@ -1833,9 +1835,12 @@
         "@lowerdeck/pagination": "^1.0.8",
         "@lowerdeck/service": "^1.0.7",
         "@metorial-cargo/db": "^1.0.0",
+        "@metorial-cargo/list-utils": "^1.0.0",
         "@metorial-cargo/module-doc": "^1.0.0",
         "@metorial-cargo/module-file": "^1.0.0",
         "@metorial-cargo/module-store": "^1.0.0",
+        "@metorial-platform-systems/origin-client": "^1.0.0",
+        "@metorial/code-bucket-service-generated": "^1.0.0",
       },
       "devDependencies": {
         "@types/bun": "latest",
@@ -1856,8 +1861,20 @@
         "@lowerdeck/service": "^1.0.7",
         "@lowerdeck/slugify": "^1.0.6",
         "@metorial-cargo/db": "^1.0.0",
-        "@metorial-cargo/module-doc": "^1.0.0",
-        "@metorial-cargo/module-file": "^1.0.0",
+        "@metorial-cargo/list-utils": "^1.0.0",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+      },
+      "peerDependencies": {
+        "typescript": "^5",
+      },
+    },
+    "src/systems/cargo/packages/list-utils": {
+      "name": "@metorial-cargo/list-utils",
+      "version": "1.0.0",
+      "dependencies": {
+        "@metorial-cargo/db": "^1.0.0",
       },
       "devDependencies": {
         "@types/bun": "latest",
@@ -4215,6 +4232,8 @@
     "@mermaid-js/parser": ["@mermaid-js/parser@1.1.1", "", { "dependencies": { "@chevrotain/types": "~11.1.1" } }, "sha512-VuHdsYMK1bT6X2JbcAaWAhugTRvRBRyuZgd+c22swUeI9g/ntaxF7CY7dYarhZovofCbUNO0G7JesfmNtjYOCw=="],
 
     "@metorial-cargo/db": ["@metorial-cargo/db@workspace:src/systems/cargo/db"],
+
+    "@metorial-cargo/list-utils": ["@metorial-cargo/list-utils@workspace:src/systems/cargo/packages/list-utils"],
 
     "@metorial-cargo/module-doc": ["@metorial-cargo/module-doc@workspace:src/systems/cargo/modules/doc"],
 
@@ -8898,6 +8917,8 @@
 
     "@metorial-cargo/db/@types/bun": ["@types/bun@1.3.14", "", { "dependencies": { "bun-types": "1.3.14" } }, "sha512-h1hFqFVcvAvD9j9K7ZW7vd82aSA+rTdznZa+5bwvCwqSB1jmmfLcbIWhOLx1/+boy/xmjgCs/OMUL8hRJSmnPw=="],
 
+    "@metorial-cargo/list-utils/@types/bun": ["@types/bun@1.3.14", "", { "dependencies": { "bun-types": "1.3.14" } }, "sha512-h1hFqFVcvAvD9j9K7ZW7vd82aSA+rTdznZa+5bwvCwqSB1jmmfLcbIWhOLx1/+boy/xmjgCs/OMUL8hRJSmnPw=="],
+
     "@metorial-cargo/module-doc/@types/bun": ["@types/bun@1.3.14", "", { "dependencies": { "bun-types": "1.3.14" } }, "sha512-h1hFqFVcvAvD9j9K7ZW7vd82aSA+rTdznZa+5bwvCwqSB1jmmfLcbIWhOLx1/+boy/xmjgCs/OMUL8hRJSmnPw=="],
 
     "@metorial-cargo/module-file/@types/bun": ["@types/bun@1.3.14", "", { "dependencies": { "bun-types": "1.3.14" } }, "sha512-h1hFqFVcvAvD9j9K7ZW7vd82aSA+rTdznZa+5bwvCwqSB1jmmfLcbIWhOLx1/+boy/xmjgCs/OMUL8hRJSmnPw=="],
@@ -10452,6 +10473,8 @@
 
     "@metorial-cargo/db/@types/bun/bun-types": ["bun-types@1.3.14", "", { "dependencies": { "@types/node": "*" } }, "sha512-4N0ig0fEomHt5R0KCFWjovxow98rIoRwKolrYdCcknNwMekCXRnWEUvgu5soYV8QXtVsrUD8B95MBOZGPvr6KQ=="],
 
+    "@metorial-cargo/list-utils/@types/bun/bun-types": ["bun-types@1.3.14", "", { "dependencies": { "@types/node": "*" } }, "sha512-4N0ig0fEomHt5R0KCFWjovxow98rIoRwKolrYdCcknNwMekCXRnWEUvgu5soYV8QXtVsrUD8B95MBOZGPvr6KQ=="],
+
     "@metorial-cargo/module-doc/@types/bun/bun-types": ["bun-types@1.3.14", "", { "dependencies": { "@types/node": "*" } }, "sha512-4N0ig0fEomHt5R0KCFWjovxow98rIoRwKolrYdCcknNwMekCXRnWEUvgu5soYV8QXtVsrUD8B95MBOZGPvr6KQ=="],
 
     "@metorial-cargo/module-file/@types/bun/bun-types": ["bun-types@1.3.14", "", { "dependencies": { "@types/node": "*" } }, "sha512-4N0ig0fEomHt5R0KCFWjovxow98rIoRwKolrYdCcknNwMekCXRnWEUvgu5soYV8QXtVsrUD8B95MBOZGPvr6KQ=="],
@@ -11572,6 +11595,8 @@
 
     "@metorial-cargo/db/@types/bun/bun-types/@types/node": ["@types/node@25.5.0", "", { "dependencies": { "undici-types": "~7.18.0" } }, "sha512-jp2P3tQMSxWugkCUKLRPVUpGaL5MVFwF8RDuSRztfwgN1wmqJeMSbKlnEtQqU8UrhTmzEmZdu2I6v2dpp7XIxw=="],
 
+    "@metorial-cargo/list-utils/@types/bun/bun-types/@types/node": ["@types/node@25.5.0", "", { "dependencies": { "undici-types": "~7.18.0" } }, "sha512-jp2P3tQMSxWugkCUKLRPVUpGaL5MVFwF8RDuSRztfwgN1wmqJeMSbKlnEtQqU8UrhTmzEmZdu2I6v2dpp7XIxw=="],
+
     "@metorial-cargo/module-doc/@types/bun/bun-types/@types/node": ["@types/node@25.5.0", "", { "dependencies": { "undici-types": "~7.18.0" } }, "sha512-jp2P3tQMSxWugkCUKLRPVUpGaL5MVFwF8RDuSRztfwgN1wmqJeMSbKlnEtQqU8UrhTmzEmZdu2I6v2dpp7XIxw=="],
 
     "@metorial-cargo/module-file/@types/bun/bun-types/@types/node": ["@types/node@25.5.0", "", { "dependencies": { "undici-types": "~7.18.0" } }, "sha512-jp2P3tQMSxWugkCUKLRPVUpGaL5MVFwF8RDuSRztfwgN1wmqJeMSbKlnEtQqU8UrhTmzEmZdu2I6v2dpp7XIxw=="],
@@ -12023,6 +12048,8 @@
     "@lowerdeck/lock/@types/bun/bun-types/@types/node/undici-types": ["undici-types@7.18.2", "", {}, "sha512-AsuCzffGHJybSaRrmr5eHr81mwJU3kjw6M+uprWvCXiNeN9SOGwQ3Jn8jb8m3Z6izVgknn1R0FTCEAP2QrLY/w=="],
 
     "@metorial-cargo/db/@types/bun/bun-types/@types/node/undici-types": ["undici-types@7.18.2", "", {}, "sha512-AsuCzffGHJybSaRrmr5eHr81mwJU3kjw6M+uprWvCXiNeN9SOGwQ3Jn8jb8m3Z6izVgknn1R0FTCEAP2QrLY/w=="],
+
+    "@metorial-cargo/list-utils/@types/bun/bun-types/@types/node/undici-types": ["undici-types@7.18.2", "", {}, "sha512-AsuCzffGHJybSaRrmr5eHr81mwJU3kjw6M+uprWvCXiNeN9SOGwQ3Jn8jb8m3Z6izVgknn1R0FTCEAP2QrLY/w=="],
 
     "@metorial-cargo/module-doc/@types/bun/bun-types/@types/node/undici-types": ["undici-types@7.18.2", "", {}, "sha512-AsuCzffGHJybSaRrmr5eHr81mwJU3kjw6M+uprWvCXiNeN9SOGwQ3Jn8jb8m3Z6izVgknn1R0FTCEAP2QrLY/w=="],
 

@@ -182,6 +182,18 @@ export let cargoServiceEnv: Env = [
   {
     key: 'CARGO_HEALTH_PORT',
     defaultValue: '12121'
+  },
+  {
+    key: 'API_URL',
+    defaultValue: `http://${HOSTNAME}:4310`
+  },
+  {
+    key: 'ORIGIN_URL',
+    defaultValue: `http://${HOSTNAME}:52090/metorial-origin`
+  },
+  {
+    key: 'CODE_BUCKET_SERVICE_URL',
+    defaultValue: `${HOSTNAME}:5050`
   }
 ];
 

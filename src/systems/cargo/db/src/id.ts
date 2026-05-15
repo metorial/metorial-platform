@@ -25,6 +25,7 @@ export let ID = createIdGenerator({
   skillAgent: idType.sorted('ska_'),
   skillVersion: idType.sorted('skv_'),
   skillParticipant: idType.sorted('skp_'),
+  skillDestination: idType.sorted('skd_'),
 
   document: idType.sorted('doc_'),
   documentContent: idType.sorted('docn_'),
