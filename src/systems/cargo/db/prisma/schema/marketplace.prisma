@@ -1,15 +1,14 @@
-model Tag {
-  oid BigInt @id
-  id  String @unique
-
-  tag String @unique
-
-  skillPlugins SkillPlugin[]
+enum SkillMarketplaceStatus {
+  active
+  archived
+  deleted
 }
 
 model SkillMarketplace {
   oid BigInt @id
   id  String @unique
+
+  status SkillMarketplaceStatus
 
   /// [EntityImage]
   image Json?
@@ -44,9 +43,17 @@ model SkillMarketplace {
   skillDestinationItems SkillDestinationItem[]
 }
 
+enum SkillMarketplacePluginStatus {
+  active
+  archived
+  deleted
+}
+
 model SkillMarketplacePlugin {
   oid BigInt @id
   id  String @unique
+
+  status SkillMarketplacePluginStatus
 
   pluginSlug String // -> fixed the first time it's linked to a skill, cannot be changed afterwards
 
@@ -66,9 +73,17 @@ model SkillMarketplacePlugin {
   @@unique([skillMarketplaceOid, pluginSlug])
 }
 
+enum SkillPluginStatus {
+  active
+  archived
+  deleted
+}
+
 model SkillPlugin {
   oid BigInt @id
   id  String @unique
+
+  status SkillPluginStatus
 
   isManaged Boolean
 
@@ -93,9 +108,6 @@ model SkillPlugin {
   destinationOid BigInt           @unique
   destination    SkillDestination @relation(fields: [destinationOid], references: [oid], onDelete: Cascade)
 
-  tagOid BigInt @unique
-  tag    Tag    @relation(fields: [tagOid], references: [oid], onDelete: Cascade)
-
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
 
@@ -112,9 +124,17 @@ model SkillPlugin {
   skillDestinationItems   SkillDestinationItem[]
 }
 
+enum SkillPluginSkillStatus {
+  active
+  archived
+  deleted
+}
+
 model SkillPluginSkill {
   oid BigInt @id
   id  String @unique
+
+  status SkillPluginSkillStatus
 
   pluginSkillSlug String // -> fixed the first time it's linked to a skill, cannot be changed afterwards
 
@@ -250,6 +270,9 @@ model ManagedSkillPlugin {
   id  String @unique
 
   configHash String
+
+  skillOid BigInt
+  skill    Skill  @relation(fields: [skillOid], references: [oid], onDelete: Cascade)
 
   skillPluginOid BigInt      @unique
   skillPlugin    SkillPlugin @relation(fields: [skillPluginOid], references: [oid], onDelete: Cascade)

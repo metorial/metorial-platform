@@ -4,8 +4,7 @@ import type {
   SkillMarketplace,
   SkillMarketplacePlugin,
   SkillPlugin,
-  SkillPluginSkill,
-  Tag
+  SkillPluginSkill
 } from '@metorial-cargo/db';
 
 export type EnrichedSkillPluginSkill = SkillPluginSkill & {
@@ -14,7 +13,6 @@ export type EnrichedSkillPluginSkill = SkillPluginSkill & {
 };
 
 export type EnrichedSkillPlugin = SkillPlugin & {
-  tag: Tag;
   skillConfiguration: SkillConfiguration | null;
   skills: EnrichedSkillPluginSkill[];
 };

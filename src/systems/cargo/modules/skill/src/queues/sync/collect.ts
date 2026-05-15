@@ -35,14 +35,26 @@ export let syncCollectQueueProcessor = syncCollectQueue.process(async data => {
   let taskManager = createTaskManager(currentItems);
 
   if (exp.destination.skillMarketplace) {
-    let marketplace = await db.skillMarketplace.findFirstOrThrow({
-      where: { oid: exp.destination.skillMarketplace.oid },
+    let marketplace = await db.skillMarketplace.findFirst({
+      where: { oid: exp.destination.skillMarketplace.oid, status: 'active' },
       include: {
         plugins: {
+          where: {
+            status: 'active',
+            skillPlugin: {
+              status: 'active'
+            }
+          },
           include: {
             skillPlugin: {
               include: {
                 skillPluginSkills: {
+                  where: {
+                    status: 'active',
+                    skill: {
+                      status: 'active'
+                    }
+                  },
                   include: {
                     skill: true
                   }
@@ -54,23 +66,39 @@ export let syncCollectQueueProcessor = syncCollectQueue.process(async data => {
       }
     });
 
-    taskManager.addOrUpdateItem({ skillMarketplace: marketplace });
+    if (marketplace) {
+      taskManager.addOrUpdateItem({ skillMarketplace: marketplace });
 
-    for (let plugin of marketplace.plugins) {
-      taskManager.addOrUpdateItem({ skillPlugin: plugin.skillPlugin });
+      for (let plugin of marketplace.plugins) {
+        taskManager.addOrUpdateItem({ skillPlugin: plugin.skillPlugin });
 
-      for (let skillPluginSkill of plugin.skillPlugin.skillPluginSkills) {
-        taskManager.addOrUpdateItem({
-          skill: skillPluginSkill.skill,
-          skillPlugin: plugin.skillPlugin
-        });
+        for (let skillPluginSkill of plugin.skillPlugin.skillPluginSkills) {
+          taskManager.addOrUpdateItem({
+            skill: skillPluginSkill.skill,
+            skillPlugin: plugin.skillPlugin
+          });
+        }
+      }
+    } else {
+      let currentMarketplaceItem = currentItems.find(
+        item => item.skillMarketplace?.id === exp.destination.skillMarketplace?.id
+      );
+
+      if (currentMarketplaceItem?.skillMarketplace) {
+        taskManager.deleteItem({ skillMarketplace: currentMarketplaceItem.skillMarketplace });
       }
     }
   } else if (exp.destination.skillPlugin) {
-    let plugin = await db.skillPlugin.findFirstOrThrow({
-      where: { oid: exp.destination.skillPlugin.oid },
+    let plugin = await db.skillPlugin.findFirst({
+      where: { oid: exp.destination.skillPlugin.oid, status: 'active' },
       include: {
         skillPluginSkills: {
+          where: {
+            status: 'active',
+            skill: {
+              status: 'active'
+            }
+          },
           include: {
             skill: true
           }
@@ -78,13 +106,15 @@ export let syncCollectQueueProcessor = syncCollectQueue.process(async data => {
       }
     });
 
-    taskManager.addOrUpdateItem({ skillPlugin: plugin });
+    if (plugin) {
+      taskManager.addOrUpdateItem({ skillPlugin: plugin });
 
-    for (let skillPluginSkill of plugin.skillPluginSkills) {
-      taskManager.addOrUpdateItem({
-        skill: skillPluginSkill.skill,
-        skillPlugin: plugin
-      });
+      for (let skillPluginSkill of plugin.skillPluginSkills) {
+        taskManager.addOrUpdateItem({
+          skill: skillPluginSkill.skill,
+          skillPlugin: plugin
+        });
+      }
     }
   }
 

@@ -7,12 +7,24 @@ let json = (data: any) => JSON.stringify(data, null, 2);
 
 export let applyMarketplace = createApplicator('marketplace', async (input, context) => {
   let plugins = await db.skillMarketplacePlugin.findMany({
-    where: { skillMarketplaceOid: input.skillMarketplace.oid },
+    where: {
+      skillMarketplaceOid: input.skillMarketplace.oid,
+      status: 'active',
+      skillPlugin: {
+        status: 'active'
+      }
+    },
     include: {
       skillPlugin: {
         include: {
           skillPluginSkills: {
-            where: { skill: { description: { not: null } } },
+            where: {
+              status: 'active',
+              skill: {
+                status: 'active',
+                description: { not: null }
+              }
+            },
             include: { skill: true }
           }
         }

@@ -12,7 +12,13 @@ let json = (data: any) => JSON.stringify(data, null, 2);
 
 export let applyPlugin = createApplicator('plugin', async (input, context) => {
   let skills = await db.skillPluginSkill.findMany({
-    where: { skillPluginOid: input.skillPlugin.oid },
+    where: {
+      skillPluginOid: input.skillPlugin.oid,
+      status: 'active',
+      skill: {
+        status: 'active'
+      }
+    },
     include: { skill: { include: { store: true } } }
   });
 
@@ -121,6 +127,7 @@ export let applyPlugin = createApplicator('plugin', async (input, context) => {
     let agents = await db.skillAgent.findMany({
       where: {
         skillOid: { in: skills.map(s => s.skill.oid) },
+        status: 'active',
         id: cursor ? { gt: cursor } : undefined
       },
       include: { document: { include: { content: true } } },

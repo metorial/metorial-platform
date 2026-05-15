@@ -1,6 +1,14 @@
+enum SkillStatus {
+  active
+  archived
+  deleted
+}
+
 model Skill {
   oid BigInt @id
   id  String @unique
+
+  status SkillStatus
 
   /// [EntityImage]
   image Json?
@@ -43,6 +51,7 @@ model Skill {
   skillPluginSkills     SkillPluginSkill[]
   skillExports          SkillExport[]
   skillDestinationItems SkillDestinationItem[]
+  managedSkillPlugins   ManagedSkillPlugin[]
 }
 
 model SkillConfiguration {

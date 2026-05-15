@@ -133,6 +133,7 @@ class SkillServiceImpl {
         data: {
           oid: snowflake.nextId(),
           id: d.input.id,
+          status: 'active',
           name: d.input.name,
           description: d.input.description,
           metadata: d.input.metadata as any,
