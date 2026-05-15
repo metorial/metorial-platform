@@ -188,6 +188,59 @@ func (fsm *FileSystemManager) DeleteBucketFile(ctx context.Context, bucketID, fi
 	return err
 }
 
+func (fsm *FileSystemManager) DeleteBucketPath(ctx context.Context, bucketID, filePath string) error {
+	if !strings.HasPrefix(filePath, "/") {
+		filePath = "/" + filePath
+	}
+
+	filePrefix := filePath
+	if !strings.HasSuffix(filePrefix, "/") {
+		filePrefix += "/"
+	}
+
+	queue := memoryQueue.NewBlockingJobQueue(15)
+
+	pattern := fmt.Sprintf("bucket:%s:file:*", bucketID)
+	iter := fsm.redis.Scan(ctx, 0, pattern, 100).Iterator()
+	for iter.Next(ctx) {
+		key := iter.Val()
+		path := strings.TrimPrefix(key, fmt.Sprintf("bucket:%s:file:", bucketID))
+		if path != filePath && !strings.HasPrefix(path, filePrefix) {
+			continue
+		}
+
+		redisKey := key
+		queue.AddAndBlockIfFull(func() error {
+			fileKey := strings.TrimPrefix(redisKey, "bucket:")
+			flushKey := "flush:" + fileKey
+			return fsm.redis.Del(ctx, redisKey, flushKey).Err()
+		})
+	}
+	if err := iter.Err(); err != nil {
+		return err
+	}
+
+	objectPrefix := fmt.Sprintf("%s/%s", bucketID, filePath)
+	objects, err := fsm.objectStorage.ListObjects(fsm.bucketName, &objectPrefix, nil)
+	if err != nil {
+		return err
+	}
+
+	for _, obj := range objects {
+		objectKey := obj.Key
+		fileObjectPath := strings.TrimPrefix(objectKey, bucketID+"/")
+		if fileObjectPath != filePath && !strings.HasPrefix(fileObjectPath, filePrefix) {
+			continue
+		}
+
+		queue.AddAndBlockIfFull(func() error {
+			return fsm.objectStorage.DeleteObject(fsm.bucketName, objectKey)
+		})
+	}
+
+	return queue.Wait()
+}
+
 func (fsm *FileSystemManager) GetBucketFiles(ctx context.Context, bucketID, prefix string) ([]FileInfo, error) {
 	files := make([]FileInfo, 0)
 

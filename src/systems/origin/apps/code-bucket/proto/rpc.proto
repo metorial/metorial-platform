@@ -20,6 +20,7 @@ service CodeBucket {
   rpc SetBucketFiles(SetBucketFilesRequest) returns (SetBucketFilesResponse);
   rpc SetBucketFile(SetBucketFileRequest) returns (SetBucketFileResponse);
   rpc DeleteBucketFile(DeleteBucketFileRequest) returns (DeleteBucketFileResponse);
+  rpc DeleteBucketPath(DeleteBucketPathRequest) returns (DeleteBucketPathResponse);
 
   rpc ExportBucketToGithub(ExportBucketToGithubRequest) returns (ExportBucketToGithubResponse);
   rpc ExportBucketToGitlab(ExportBucketToGitlabRequest) returns (ExportBucketToGitlabResponse);
@@ -133,6 +134,13 @@ message DeleteBucketFileRequest {
 }
 
 message DeleteBucketFileResponse {}
+
+message DeleteBucketPathRequest {
+  string bucket_id = 1;
+  string path = 2;
+}
+
+message DeleteBucketPathResponse {}
 
 message ExportBucketToGithubRequest {
   string bucket_id = 1;

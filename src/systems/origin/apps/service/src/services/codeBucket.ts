@@ -432,6 +432,23 @@ class codeBucketServiceImpl {
       path: normalizePath(d.path)
     });
   }
+
+  async deletePath(d: { codeBucket: CodeBucket; path: string }) {
+    await this.waitForCodeBucketReady({ codeBucketId: d.codeBucket.id });
+
+    if (d.codeBucket.isReadOnly) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Cannot modify files in a read-only code bucket'
+        })
+      );
+    }
+
+    await codeBucketClient.deleteBucketPath({
+      bucketId: d.codeBucket.id,
+      path: normalizePath(d.path)
+    });
+  }
 }
 
 export let codeBucketService = Service.create(

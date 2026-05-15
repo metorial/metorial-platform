@@ -327,6 +327,32 @@ export let codeBucketController = app.controller({
       return { success: true };
     }),
 
+  deletePath: codeBucketApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        codeBucketId: v.string(),
+        path: v.string()
+      })
+    )
+    .do(async ctx => {
+      if (ctx.codeBucket.isReadOnly) {
+        throw new ServiceError(
+          badRequestError({
+            message: 'Cannot modify files in a read-only code bucket'
+          })
+        );
+      }
+
+      await codeBucketService.deletePath({
+        codeBucket: ctx.codeBucket,
+        path: ctx.input.path
+      });
+
+      return { success: true };
+    }),
+
   getAsZip: codeBucketApp
     .handler()
     .input(

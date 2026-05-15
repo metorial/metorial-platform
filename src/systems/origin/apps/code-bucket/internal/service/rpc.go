@@ -316,3 +316,19 @@ func (rs *RcpService) DeleteBucketFile(ctx context.Context, req *rpc.DeleteBucke
 
 	return &rpc.DeleteBucketFileResponse{}, nil
 }
+
+func (rs *RcpService) DeleteBucketPath(ctx context.Context, req *rpc.DeleteBucketPathRequest) (*rpc.DeleteBucketPathResponse, error) {
+	if req.BucketId == "" {
+		return nil, status.Errorf(codes.InvalidArgument, "bucket_id is required")
+	}
+
+	if req.Path == "" {
+		return nil, status.Errorf(codes.InvalidArgument, "path is required")
+	}
+
+	if err := rs.fsm.DeleteBucketPath(ctx, req.BucketId, req.Path); err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to delete path: %v", err)
+	}
+
+	return &rpc.DeleteBucketPathResponse{}, nil
+}
