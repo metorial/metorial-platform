@@ -325,6 +325,63 @@ class InternalDocumentContentServiceImpl {
       let hasTitleChange = nextTitle !== d.document.title;
 
       if (!hasContentChange && !hasTitleChange) {
+        let { parentLiveContent, shouldKeepParentSync } = await this.getParentSyncState({
+          document: d.document,
+          nextContent
+        });
+
+        if (shouldKeepParentSync && d.document.currentVersion?.previousVersionOid) {
+          let baseVersion = await db.documentVersion.findFirst({
+            where: {
+              documentOid: d.document.oid,
+              previousVersionOid: null
+            },
+            orderBy: {
+              versionNumber: 'asc'
+            }
+          });
+
+          if (baseVersion && baseVersion.oid !== d.document.currentVersion.oid) {
+            await db.documentVersion.update({
+              where: {
+                id: baseVersion.id
+              },
+              data: {
+                contentOid: parentLiveContent!.contentOid,
+                listEditedAt: d.document.currentVersion.listEditedAt
+              }
+            });
+
+            let updatedDocument = await db.document.update({
+              where: {
+                id: d.document.id
+              },
+              data: {
+                contentOid: parentLiveContent!.contentOid,
+                currentVersionOid: baseVersion.oid,
+                maxVersionNumber: baseVersion.versionNumber,
+                isContentOwner: false
+              },
+              include: documentInclude
+            });
+
+            await db.documentVersion.deleteMany({
+              where: {
+                documentOid: d.document.oid,
+                NOT: {
+                  oid: baseVersion.oid
+                }
+              }
+            });
+
+            return {
+              document: updatedDocument,
+              createdVersionId: null,
+              didPersistChange: false
+            };
+          }
+        }
+
         return {
           document: d.document,
           createdVersionId: null,
