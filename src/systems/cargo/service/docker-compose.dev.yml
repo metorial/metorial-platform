@@ -80,6 +80,7 @@ services:
       OBJECT_STORAGE_URL: ${OBJECT_STORAGE_URL:-http://object-storage:52010}
       FILES_BUCKET_NAME: ${FILES_BUCKET_NAME:-mte-files}
       DOWNLOAD_PUBLIC_URL: ${DOWNLOAD_PUBLIC_URL:-http://localhost:52151}
+      API_URL: ${API_URL:-http://localhost:52150}
       SIGNED_DOWNLOAD_URL_TOKEN_SECRET: ${SIGNED_DOWNLOAD_URL_TOKEN_SECRET:-cargo-download-test-secret}
       CARGO_REGION: ${CARGO_REGION:-local}
       CARGO_API_PORT: ${CARGO_API_PORT:-52150}

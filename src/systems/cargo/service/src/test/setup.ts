@@ -5,6 +5,7 @@ process.env.REDIS_URL ??= 'redis://localhost:56379/0';
 process.env.OBJECT_STORAGE_URL ??= 'http://object-storage.test';
 process.env.FILES_BUCKET_NAME ??= 'cargo-files-test';
 process.env.DOWNLOAD_PUBLIC_URL ??= 'http://cargo-content.test';
+process.env.API_URL ??= 'http://cargo-api.test';
 process.env.CARGO_REGION ??= 'tst';
 process.env.SIGNED_DOWNLOAD_URL_TOKEN_SECRET ??= 'cargo-download-test-secret';
 
