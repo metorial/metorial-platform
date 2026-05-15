@@ -4,10 +4,12 @@ import { v } from '@lowerdeck/validation';
 import { documentVersionService } from '@metorial/module-file';
 import { Controller } from '@metorial/rest';
 import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
+import { dateFilterValidator } from '../../../lib/dateFilter';
+import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instancePath } from '../../../middleware/instanceGroup';
 import { documentVersionPresenter } from '../../../presenters';
-import { dateFilterSchema, mapCargoListQuery, stringArrayFilterSchema } from './_listFilters';
+import { stringArrayFilterSchema } from './_listFilters';
 import { documentGroup } from './document';
 
 export let documentVersionGroup = documentGroup.use(async ctx => {
@@ -54,8 +56,8 @@ export let documentVersionController = Controller.create(
         Paginator.validate(
           v.object({
             id: stringArrayFilterSchema('Filter by document version ID'),
-            created_at: dateFilterSchema('Filter by creation time'),
-            last_edited_at: dateFilterSchema('Filter by last edit time')
+            created_at: dateFilterValidator('Filter by creation time'),
+            last_edited_at: dateFilterValidator('Filter by last edit time')
           })
         )
       )
@@ -67,19 +69,12 @@ export let documentVersionController = Controller.create(
             instance: ctx.instance,
             organization: ctx.organization
           },
-          ...getInstanceCargoAccess(ctx)
+          ...getInstanceCargoAccess(ctx),
+          ids: normalizeArrayParam(ctx.query.id),
+          createdAt: ctx.query.created_at,
+          lastEditedAt: ctx.query.last_edited_at
         });
-        let list = await paginator.run(
-          mapCargoListQuery(ctx.query, {
-            arrays: {
-              id: 'documentVersionIds'
-            },
-            dates: {
-              created_at: 'createdAt',
-              last_edited_at: 'listEditedAt'
-            }
-          })
-        );
+        let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, documentVersion =>
           documentVersionPresenter.present({ documentVersion })

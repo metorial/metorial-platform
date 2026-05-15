@@ -136,6 +136,9 @@ class DocumentParticipantServiceImpl {
   async listDocumentParticipants(d: {
     owner: FileOwner;
     documentId: string;
+    ids?: string[];
+    createdAt?: { gt?: Date; lt?: Date };
+    updatedAt?: { gt?: Date; lt?: Date };
     accessActor?: CargoAccessActor;
     defaultPermissions?: CargoStorePermission[];
     overridePermissions?: boolean;
@@ -148,6 +151,9 @@ class DocumentParticipantServiceImpl {
         tenantId: scope.tenantId,
         environmentId: scope.environmentId,
         documentId: d.documentId,
+        documentParticipantIds: d.ids,
+        createdAt: d.createdAt,
+        lastEditedAt: d.updatedAt,
         actorId,
         defaultPermissions,
         overridePermissions,
