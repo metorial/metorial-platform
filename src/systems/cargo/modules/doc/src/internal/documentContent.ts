@@ -95,7 +95,7 @@ class InternalDocumentContentServiceImpl {
       let shouldDetachOwnedContent =
         d.document.isContentOwner &&
         ((!!parentLiveContent && parentLiveContent.contentOid === d.document.contentOid) ||
-          (shouldCreateNewVersion && hasLinkedChildContentConsumers));
+          hasLinkedChildContentConsumers);
 
       if (shouldCreateNewVersion && shouldKeepParentSync && d.document.currentVersion) {
         liveContentOid = parentLiveContent!.contentOid;
