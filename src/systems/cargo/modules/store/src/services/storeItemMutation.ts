@@ -78,17 +78,6 @@ let agentsDirectoryPath = '/agents/';
 
 type SkillStoreRecord = Pick<Skill, 'oid' | 'id'>;
 
-let isStoreDirectoryPathUniqueConstraintError = (error: any) => {
-  if (error?.code !== 'P2002') return false;
-
-  let target = error?.meta?.target;
-  if (Array.isArray(target)) return target.includes('storeOid') && target.includes('path');
-  if (typeof target === 'string') return target.includes('storeOid') && target.includes('path');
-
-  let message = `${error?.message ?? ''}`;
-  return message.includes('storeOid') && message.includes('path');
-};
-
 class StoreItemMutationServiceImpl {
   private assertStoreWritable(d: {
     store: Pick<Store, 'id'> & { isReadOnly?: boolean };
@@ -155,8 +144,7 @@ class StoreItemMutationServiceImpl {
       if (d.kind !== 'document' || !d.path.name?.toLowerCase().endsWith('.md')) {
         throw new ServiceError(
           badRequestError({
-            message:
-              'Only markdown documents can be added to the agents directory of a skill store'
+            message: 'Only markdown documents can be added to the agents directory of a skill'
           })
         );
       }
@@ -616,39 +604,26 @@ class StoreItemMutationServiceImpl {
             });
 
       let directoryIds = getId('storeDirectory');
-      try {
-        return await client.storeDirectory.create({
-          data: {
-            oid: directoryIds.oid,
-            id: directoryIds.id,
+      return await client.storeDirectory.upsert({
+        where: {
+          storeOid_path: {
             storeOid: d.store.oid,
-            path: normalizedPath.path,
-            isAutoCreated: d.isAutoCreated,
-            parentDirectoryOid: parentDirectory?.oid ?? null
+            path: normalizedPath.path
           }
-        });
-      } catch (error) {
-        if (!isStoreDirectoryPathUniqueConstraintError(error)) throw error;
-
-        let directory = await this.getStoreDirectoryByPath({
-          store: d.store,
-          path: normalizedPath.path
-        });
-        if (!directory) throw error;
-
-        if (!d.isAutoCreated && directory.isAutoCreated) {
-          return await client.storeDirectory.update({
-            where: {
-              id: directory.id
-            },
-            data: {
-              isAutoCreated: false
-            }
-          });
+        },
+        create: {
+          oid: directoryIds.oid,
+          id: directoryIds.id,
+          storeOid: d.store.oid,
+          path: normalizedPath.path,
+          isAutoCreated: d.isAutoCreated,
+          parentDirectoryOid: parentDirectory?.oid ?? null
+        },
+        update: {
+          isAutoCreated: d.isAutoCreated ? undefined : false,
+          parentDirectoryOid: parentDirectory?.oid ?? null
         }
-
-        return directory;
-      }
+      });
     });
   }
 

@@ -97,7 +97,21 @@ class InternalDocumentContentServiceImpl {
         ((!!parentLiveContent && parentLiveContent.contentOid === d.document.contentOid) ||
           (shouldCreateNewVersion && hasLinkedChildContentConsumers));
 
-      if (shouldCreateNewVersion) {
+      if (shouldCreateNewVersion && shouldKeepParentSync && d.document.currentVersion) {
+        liveContentOid = parentLiveContent!.contentOid;
+        activeVersion = await db.documentVersion.update({
+          where: {
+            id: d.document.currentVersion.id
+          },
+          data: {
+            contentOid: liveContentOid,
+            listEditedAt: d.listEditedAt
+          },
+          include: {
+            content: true
+          }
+        });
+      } else if (shouldCreateNewVersion) {
         if (d.document.currentVersion) {
           let retiredContentIds = getId('documentContent');
 
