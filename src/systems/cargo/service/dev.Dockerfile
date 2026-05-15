@@ -11,4 +11,4 @@ RUN bun install --linker=hoisted
 WORKDIR /app/src/systems/cargo/service
 
 # Run in dev mode with hot reloading
-CMD ["sh", "-c", "bun --cwd ../db run prisma:generate && bun --cwd ../db run prisma:push && bun --watch src/server.ts"]
+CMD ["sh", "-c", "bun prisma generate --schema ../db/prisma/schema --config ../db/prisma.config.ts && bun prisma db push --accept-data-loss --schema ../db/prisma/schema --config ../db/prisma.config.ts && bun --watch src/server.ts"]

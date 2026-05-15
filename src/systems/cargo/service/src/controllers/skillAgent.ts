@@ -1,7 +1,7 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { skillAgentPresenter } from '../presenters';
 import { skillAgentService } from '@metorial-cargo/module-skill';
+import { skillAgentPresenter } from '../presenters';
 import { app } from './_app';
 import { dateFilterSchema } from './_dateFilter';
 import { storePermissionsSchema } from './document';
@@ -63,8 +63,7 @@ export let skillAgentController = app.controller({
           tenantId: v.string(),
           environmentId: v.string(),
           skillAgentIds: v.optional(v.array(v.string())),
-          skillId: v.optional(v.string()),
-          skillIds: v.optional(v.array(v.string())),
+          skillId: v.string(),
           documentIds: v.optional(v.array(v.string())),
           storeItemIds: v.optional(v.array(v.string())),
           createdAt: dateFilterSchema,
@@ -80,7 +79,6 @@ export let skillAgentController = app.controller({
         environment: ctx.environment,
         ids: ctx.input.skillAgentIds,
         skillId: ctx.input.skillId,
-        skillIds: ctx.input.skillIds,
         documentIds: ctx.input.documentIds,
         storeItemIds: ctx.input.storeItemIds,
         createdAt: ctx.input.createdAt,

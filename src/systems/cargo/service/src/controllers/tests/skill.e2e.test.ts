@@ -602,7 +602,7 @@ describe('cargo skill.e2e', () => {
         tenantId: tenant.id,
         environmentId: environment.id,
         storeId: skill.storeId,
-        documentId: skillDocument.id,
+        documentIds: [skillDocument.id],
         limit: 10
       })
     ).items[0]!;

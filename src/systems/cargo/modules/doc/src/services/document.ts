@@ -821,15 +821,17 @@ class DocumentServiceImpl {
         file: d.document.file
       });
 
+      let docWithTenant = await db.document.findFirstOrThrow({
+        where: { oid: d.document.oid },
+        include: {
+          tenant: true,
+          environment: true
+        }
+      });
+
       return await this.getDocumentRecord({
-        tenant: {
-          oid: d.document.tenantOid,
-          id: d.document.id
-        },
-        environment: {
-          oid: d.document.environmentOid,
-          id: d.document.id
-        },
+        tenant: docWithTenant.tenant,
+        environment: docWithTenant.environment,
         documentId: d.document.id,
         includeDeleted: true
       });

@@ -9,7 +9,6 @@ import {
   normalizeDateFilter,
   resolveDocuments,
   resolveSkillAgents,
-  resolveSkills,
   resolveStoreItems
 } from '@metorial-cargo/list-utils';
 import { documentService } from '@metorial-cargo/module-doc';
@@ -177,8 +176,7 @@ class SkillAgentServiceImpl {
   async listSkillAgents(
     d: CargoTenantEnvironment & {
       ids?: string[];
-      skillId?: string;
-      skillIds?: string[];
+      skillId: string;
       documentIds?: string[];
       storeItemIds?: string[];
       createdAt?: DateFilter;
@@ -188,7 +186,6 @@ class SkillAgentServiceImpl {
     }
   ) {
     let skillAgents = await resolveSkillAgents(d, d.ids);
-    let skills = await resolveSkills(d, d.skillIds ?? (d.skillId ? [d.skillId] : undefined));
     let documents = await resolveDocuments(d, d.documentIds);
     let storeItems = await resolveStoreItems(d, d.storeItemIds);
 
@@ -203,7 +200,7 @@ class SkillAgentServiceImpl {
               skill: {
                 tenantOid: d.tenant.oid,
                 environmentOid: d.environment.oid,
-                oid: skills ? skills.in : undefined
+                id: d.skillId
               },
               documentOid: documents ? documents.in : undefined,
               storeItemOid: storeItems ? storeItems.in : undefined,

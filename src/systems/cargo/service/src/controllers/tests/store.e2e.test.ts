@@ -790,6 +790,7 @@ describe('cargo store.e2e', () => {
     let itemsAfterStoreDelete = await cargoClient.storeItem.list({
       tenantId: tenant.id,
       environmentId: environment.id,
+      storeId: store.id,
       limit: 10
     });
 
@@ -1653,7 +1654,7 @@ describe('cargo store.e2e', () => {
     let listedFiltered = await cargoClient.storeParticipant.list({
       tenantId: tenant.id,
       environmentId: environment.id,
-      storeId: firstStore.id,
+      storeIds: [firstStore.id],
       limit: 10
     });
 

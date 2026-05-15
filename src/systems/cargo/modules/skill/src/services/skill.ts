@@ -181,6 +181,13 @@ class SkillServiceImpl {
         id: string;
         actorId?: string;
         name: string;
+        description?: string | null;
+        metadata?: Prisma.InputJsonValue | null;
+        clientName?: string | null;
+        clientDescription?: string | null;
+        clientMetadata?: Prisma.InputJsonValue | null;
+        license?: string | null;
+        compatibility?: string | null;
         imageFileId?: string | null;
       };
     }
@@ -241,7 +248,15 @@ class SkillServiceImpl {
           oid: snowflake.nextId(),
           id: d.input.id,
           name: d.input.name,
-          clientName: d.input.name,
+          description: d.input.description,
+          metadata: d.input.metadata as any,
+
+          clientName: d.input.clientName ?? d.input.name,
+          clientDescription: d.input.clientDescription,
+          clientMetadata: d.input.clientMetadata as any,
+          license: d.input.license,
+          compatibility: d.input.compatibility,
+
           tenantOid: d.tenant.oid,
           environmentOid: d.environment.oid,
           storeOid: store.oid,
@@ -352,6 +367,13 @@ class SkillServiceImpl {
       overridePermissions?: boolean;
       input: {
         name?: string;
+        description?: string | null;
+        metadata?: Prisma.InputJsonValue | null;
+        clientName?: string | null;
+        clientDescription?: string | null;
+        clientMetadata?: Prisma.InputJsonValue | null;
+        license?: string | null;
+        compatibility?: string | null;
         imageFileId?: string | null;
         image?: EntityImage | null;
       };
@@ -359,6 +381,13 @@ class SkillServiceImpl {
   ) {
     if (
       d.input.name === undefined &&
+      d.input.description === undefined &&
+      d.input.metadata === undefined &&
+      d.input.clientName === undefined &&
+      d.input.clientDescription === undefined &&
+      d.input.clientMetadata === undefined &&
+      d.input.license === undefined &&
+      d.input.compatibility === undefined &&
       d.input.imageFileId === undefined &&
       d.input.image === undefined
     ) {
@@ -402,22 +431,43 @@ class SkillServiceImpl {
         })
       : d.skill.store;
 
-    if (d.input.imageFileId !== undefined || d.input.image !== undefined) {
+    if (
+      d.input.name !== undefined ||
+      d.input.description !== undefined ||
+      d.input.metadata !== undefined ||
+      d.input.clientName !== undefined ||
+      d.input.clientDescription !== undefined ||
+      d.input.clientMetadata !== undefined ||
+      d.input.license !== undefined ||
+      d.input.compatibility !== undefined ||
+      d.input.imageFileId !== undefined ||
+      d.input.image !== undefined
+    ) {
       await db.skill.update({
         where: {
           id: d.skill.id
         },
         data: {
+          name: d.input.name,
+          description: d.input.description,
+          metadata: d.input.metadata as any,
+          clientName: d.input.clientName,
+          clientDescription: d.input.clientDescription,
+          clientMetadata: d.input.clientMetadata as any,
+          license: d.input.license,
+          compatibility: d.input.compatibility,
           image: nextImage as any
         }
       });
 
-      await this.cleanupImageEntityImage({
-        image:
-          d.skill.image && canonicalize(d.skill.image) !== canonicalize(nextImage)
-            ? (d.skill.image as EntityImage)
-            : undefined
-      });
+      if (d.input.imageFileId !== undefined || d.input.image !== undefined) {
+        await this.cleanupImageEntityImage({
+          image:
+            d.skill.image && canonicalize(d.skill.image) !== canonicalize(nextImage)
+              ? (d.skill.image as EntityImage)
+              : undefined
+        });
+      }
     }
 
     return await this.getSkillRecord({

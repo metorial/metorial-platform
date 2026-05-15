@@ -44,14 +44,13 @@ class StoreParticipantServiceImpl {
   async listStoreParticipants(
     d: CargoTenantEnvironment & {
       ids?: string[];
-      storeId?: string;
       storeIds?: string[];
       actorIds?: string[];
       createdAt?: DateFilter;
     }
   ) {
     let participants = await resolveStoreParticipants(d, d.ids);
-    let stores = await resolveStores(d, d.storeIds ?? (d.storeId ? [d.storeId] : undefined));
+    let stores = await resolveStores(d, d.storeIds);
     let actors = await resolveTenantActors(d, d.actorIds);
 
     return Paginator.create(({ prisma }) =>

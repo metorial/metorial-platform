@@ -7,6 +7,7 @@ import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { filePresenter } from '../../../presenters';
+import { dateFilterSchema, mapCargoListQuery, stringArrayFilterSchema } from './_listFilters';
 
 export let fileGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.fileId) throw new Error('fileId is required');
@@ -44,12 +45,18 @@ export let fileController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
+            id: stringArrayFilterSchema('Filter by file ID'),
             purpose: v.optional(
               v.union([v.enumOf(purposeSlugs as any), v.array(v.enumOf(purposeSlugs as any))]),
               {
                 description: 'Filter by file purpose'
               }
-            )
+            ),
+            store_id: stringArrayFilterSchema('Filter by store ID'),
+            document_id: stringArrayFilterSchema('Filter by document ID'),
+            file_link_id: stringArrayFilterSchema('Filter by file link ID'),
+            created_at: dateFilterSchema('Filter by creation time'),
+            update_at: dateFilterSchema('Filter by update time')
           })
         )
       )
@@ -64,7 +71,21 @@ export let fileController = Controller.create(
           ...(hasInstanceConsumerAccess(ctx) ? getInstanceCargoAccess(ctx) : {})
         });
 
-        let list = await paginator.run(ctx.query);
+        let list = await paginator.run(
+          mapCargoListQuery(ctx.query, {
+            arrays: {
+              id: 'fileIds',
+              purpose: 'purpose',
+              store_id: 'storeIds',
+              document_id: 'documentIds',
+              file_link_id: 'fileLinkIds'
+            },
+            dates: {
+              created_at: 'createdAt',
+              update_at: 'updatedAt'
+            }
+          })
+        );
 
         return Paginator.present(list, file => filePresenter.present({ file }));
       }),

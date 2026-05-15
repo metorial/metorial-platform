@@ -103,6 +103,7 @@ export let flushExpiredDraftVersion = async (d: {
 
       let draftVersionExpiresAt = document.draftVersionExpiresAt;
       if (!draftVersionExpiresAt) return null;
+      if (!d.expectedDraftVersionExpiresAt) return null;
       if (draftVersionExpiresAt.getTime() !== d.expectedDraftVersionExpiresAt.getTime()) {
         return null;
       }

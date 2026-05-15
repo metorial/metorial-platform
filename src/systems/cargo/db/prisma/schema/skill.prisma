@@ -5,11 +5,11 @@ model Skill {
   /// [EntityImage]
   image Json?
 
-  name        String
+  name        String?
   description String?
   metadata    Json?
 
-  clientName        String
+  clientName        String?
   clientDescription String?
   clientMetadata    Json?
   license           String?

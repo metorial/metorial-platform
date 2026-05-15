@@ -89,7 +89,7 @@ services:
       - ./src:/app/src/systems/cargo/service/src:ro
       - ./package.json:/app/src/systems/cargo/service/package.json:ro
       - ./tsconfig.json:/app/src/systems/cargo/service/tsconfig.json:ro
-      - ../db:/app/src/systems/cargo/db:ro
+      - ../db:/app/src/systems/cargo/db
       - ../modules:/app/src/systems/cargo/modules:ro
     depends_on:
       postgres:

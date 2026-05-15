@@ -1,7 +1,7 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { storeParticipantPresenter } from '../presenters';
 import { storeParticipantService } from '@metorial-cargo/module-store';
+import { storeParticipantPresenter } from '../presenters';
 import { app } from './_app';
 import { dateFilterSchema } from './_dateFilter';
 import { tenantApp } from './tenant';
@@ -28,7 +28,6 @@ export let storeParticipantController = app.controller({
           tenantId: v.string(),
           environmentId: v.string(),
           storeParticipantIds: v.optional(v.array(v.string())),
-          storeId: v.optional(v.string()),
           storeIds: v.optional(v.array(v.string())),
           actorIds: v.optional(v.array(v.string())),
           createdAt: dateFilterSchema
@@ -40,7 +39,6 @@ export let storeParticipantController = app.controller({
         tenant: ctx.tenant,
         environment: ctx.environment,
         ids: ctx.input.storeParticipantIds,
-        storeId: ctx.input.storeId,
         storeIds: ctx.input.storeIds,
         actorIds: ctx.input.actorIds,
         createdAt: ctx.input.createdAt

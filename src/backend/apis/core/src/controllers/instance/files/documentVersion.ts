@@ -7,6 +7,7 @@ import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instancePath } from '../../../middleware/instanceGroup';
 import { documentVersionPresenter } from '../../../presenters';
+import { dateFilterSchema, mapCargoListQuery, stringArrayFilterSchema } from './_listFilters';
 import { documentGroup } from './document';
 
 export let documentVersionGroup = documentGroup.use(async ctx => {
@@ -48,7 +49,16 @@ export let documentVersionController = Controller.create(
         })
       )
       .outputList(documentVersionPresenter)
-      .query('default', Paginator.validate(v.object({})))
+      .query(
+        'default',
+        Paginator.validate(
+          v.object({
+            id: stringArrayFilterSchema('Filter by document version ID'),
+            created_at: dateFilterSchema('Filter by creation time'),
+            last_edited_at: dateFilterSchema('Filter by last edit time')
+          })
+        )
+      )
       .do(async ctx => {
         let paginator = await documentVersionService.listDocumentVersions({
           documentId: ctx.document.id,
@@ -59,7 +69,17 @@ export let documentVersionController = Controller.create(
           },
           ...getInstanceCargoAccess(ctx)
         });
-        let list = await paginator.run(ctx.query);
+        let list = await paginator.run(
+          mapCargoListQuery(ctx.query, {
+            arrays: {
+              id: 'documentVersionIds'
+            },
+            dates: {
+              created_at: 'createdAt',
+              last_edited_at: 'listEditedAt'
+            }
+          })
+        );
 
         return Paginator.present(list, documentVersion =>
           documentVersionPresenter.present({ documentVersion })

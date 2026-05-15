@@ -1,7 +1,7 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { storeItemPresenter } from '../presenters';
 import { storeItemService } from '@metorial-cargo/module-store';
+import { storeItemPresenter } from '../presenters';
 import { app } from './_app';
 import { dateFilterSchema } from './_dateFilter';
 import { storePermissionsSchema } from './document';
@@ -31,11 +31,8 @@ export let storeItemController = app.controller({
           tenantId: v.string(),
           environmentId: v.string(),
           itemIds: v.optional(v.array(v.string())),
-          storeId: v.optional(v.string()),
-          storeIds: v.optional(v.array(v.string())),
-          fileId: v.optional(v.string()),
+          storeId: v.string(),
           fileIds: v.optional(v.array(v.string())),
-          documentId: v.optional(v.string()),
           documentIds: v.optional(v.array(v.string())),
           referenceIds: v.optional(v.array(v.string())),
           directoryIds: v.optional(v.array(v.string())),
@@ -56,10 +53,7 @@ export let storeItemController = app.controller({
         environment: ctx.environment,
         ids: ctx.input.itemIds,
         storeId: ctx.input.storeId,
-        storeIds: ctx.input.storeIds,
-        fileId: ctx.input.fileId,
         fileIds: ctx.input.fileIds,
-        documentId: ctx.input.documentId,
         documentIds: ctx.input.documentIds,
         referenceIds: ctx.input.referenceIds,
         directoryIds: ctx.input.directoryIds,

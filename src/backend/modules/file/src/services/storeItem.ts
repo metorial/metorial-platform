@@ -77,9 +77,9 @@ class StoreItemServiceImpl {
 
   async listStoreItems(d: {
     owner: FileOwner;
-    storeId?: string;
-    fileId?: string;
-    documentId?: string;
+    storeId: string;
+    fileIds?: string[];
+    documentIds?: string[];
     types?: CargoStoreItemType[];
     accessActor?: CargoAccessActor;
     defaultPermissions?: CargoStorePermission[];
@@ -92,8 +92,8 @@ class StoreItemServiceImpl {
         tenantId: scope.tenantId,
         environmentId: scope.environmentId,
         storeId: d.storeId,
-        fileId: d.fileId,
-        documentId: d.documentId,
+        fileIds: d.fileIds,
+        documentIds: d.documentIds,
         types: d.types,
         actorId,
         defaultPermissions,

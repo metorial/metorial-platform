@@ -13,7 +13,6 @@ import {
   type DateFilter,
   normalizeDateFilter,
   resolveSkillParticipants,
-  resolveSkills,
   resolveTenantActors
 } from '@metorial-cargo/list-utils';
 import type { CargoTenantEnvironment } from '@metorial-cargo/module-file';
@@ -293,8 +292,7 @@ class SkillParticipantServiceImpl {
   async listSkillParticipants(
     d: CargoTenantEnvironment & {
       ids?: string[];
-      skillId?: string;
-      skillIds?: string[];
+      skillId: string;
       actorIds?: string[];
       createdAt?: DateFilter;
       updatedAt?: DateFilter;
@@ -316,7 +314,6 @@ class SkillParticipantServiceImpl {
       await this.syncAllSkillParticipantsFromStores(d);
     }
     let participants = await resolveSkillParticipants(d, d.ids);
-    let skills = await resolveSkills(d, d.skillIds ?? (d.skillId ? [d.skillId] : undefined));
     let actors = await resolveTenantActors(d, d.actorIds);
 
     return Paginator.create(({ prisma }) =>
@@ -329,7 +326,7 @@ class SkillParticipantServiceImpl {
               skill: {
                 tenantOid: d.tenant.oid,
                 environmentOid: d.environment.oid,
-                oid: skills ? skills.in : undefined
+                id: d.skillId
               },
               tenantActorOid: actors ? actors.in : undefined,
               createdAt: d.createdAt ? normalizeDateFilter(d.createdAt) : undefined,

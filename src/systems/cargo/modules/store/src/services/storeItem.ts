@@ -11,7 +11,6 @@ import {
   resolveFiles,
   resolveStoreDirectories,
   resolveStoreItems,
-  resolveStores,
   resolveTenantActors
 } from '@metorial-cargo/list-utils';
 import { internalDocumentContentStoreService } from '@metorial-cargo/module-doc';
@@ -128,11 +127,8 @@ class StoreItemServiceImpl {
   async listStoreItems(
     d: CargoTenantEnvironment & {
       ids?: string[];
-      storeId?: string;
-      storeIds?: string[];
-      fileId?: string;
+      storeId: string;
       fileIds?: string[];
-      documentId?: string;
       documentIds?: string[];
       referenceIds?: string[];
       directoryIds?: string[];
@@ -148,48 +144,33 @@ class StoreItemServiceImpl {
   ) {
     let types = d.types ?? ['file', 'document'];
     let items = await resolveStoreItems(d, d.ids);
-    let stores = await resolveStores(d, d.storeIds);
-    let files = await resolveFiles(d, d.fileIds ?? (d.fileId ? [d.fileId] : undefined));
-    let documents = await resolveDocuments(
-      d,
-      d.documentIds ?? (d.documentId ? [d.documentId] : undefined)
-    );
+    let files = await resolveFiles(d, d.fileIds);
+    let documents = await resolveDocuments(d, d.documentIds);
     let references = await resolveFileReferences(d, d.referenceIds);
     let directories = await resolveStoreDirectories(d, d.directoryIds);
     let parentDirectories = await resolveStoreDirectories(d, d.parentDirectoryIds);
     let lastModifiedByActors = await resolveTenantActors(d, d.lastModifiedByActorIds);
 
     let accessibleStoreOids = d.actorId
-      ? d.storeId
-        ? (
-            await storeAccessService.resolveAccessibleStoreOids({
-              tenant: d.tenant,
-              environment: d.environment,
-              actorId: d.actorId,
-              defaultPermissions: d.defaultPermissions,
-              overridePermissions: d.overridePermissions,
-              requiredPermission: storeReadPermission,
-              storeOids: [
-                (
-                  await storeAccessService.getStoreById({
-                    tenant: d.tenant,
-                    environment: d.environment,
-                    storeId: d.storeId
-                  })
-                ).oid
-              ]
-            })
-          ).accessibleStoreOids
-        : (
-            await storeAccessService.listAccessibleStoreOidsForTenantEnvironment({
-              tenant: d.tenant,
-              environment: d.environment,
-              actorId: d.actorId,
-              defaultPermissions: d.defaultPermissions,
-              overridePermissions: d.overridePermissions,
-              requiredPermission: storeReadPermission
-            })
-          ).accessibleStoreOids
+      ? (
+          await storeAccessService.resolveAccessibleStoreOids({
+            tenant: d.tenant,
+            environment: d.environment,
+            actorId: d.actorId,
+            defaultPermissions: d.defaultPermissions,
+            overridePermissions: d.overridePermissions,
+            requiredPermission: storeReadPermission,
+            storeOids: [
+              (
+                await storeAccessService.getStoreById({
+                  tenant: d.tenant,
+                  environment: d.environment,
+                  storeId: d.storeId
+                })
+              ).oid
+            ]
+          })
+        ).accessibleStoreOids
       : undefined;
 
     return Paginator.create(({ prisma }) =>
@@ -205,15 +186,8 @@ class StoreItemServiceImpl {
                     tenantOid: d.tenant.oid,
                     environmentOid: d.environment.oid,
                     isTemplateBacking: d.storeId ? undefined : false,
-                    oid: accessibleStoreOids
-                      ? {
-                          in: accessibleStoreOids
-                        }
-                      : stores
-                        ? stores.in
-                        : undefined,
-                    id: d.storeId ? d.storeId : undefined,
-                    AND: stores && accessibleStoreOids ? [{ oid: stores.in }] : undefined
+                    oid: accessibleStoreOids ? { in: accessibleStoreOids } : undefined,
+                    id: d.storeId
                   },
                   fileOid: files ? files.in : undefined,
                   documentOid: documents ? documents.in : undefined,
