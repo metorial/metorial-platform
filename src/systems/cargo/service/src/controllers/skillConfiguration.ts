@@ -1,8 +1,9 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { skillConfigurationPresenter } from '../presenters';
-import { skillConfigurationService } from '../services';
+import { skillConfigurationService } from '@metorial-cargo/module-skill';
 import { app } from './_app';
+import { dateFilterSchema } from './_dateFilter';
 import { tenantApp } from './tenant';
 
 let skillConfigurationInput = {
@@ -43,14 +44,20 @@ export let skillConfigurationController = app.controller({
       Paginator.validate(
         v.object({
           tenantId: v.string(),
-          environmentId: v.string()
+          environmentId: v.string(),
+          skillConfigurationIds: v.optional(v.array(v.string())),
+          createdAt: dateFilterSchema,
+          updatedAt: dateFilterSchema
         })
       )
     )
     .do(async ctx => {
       let paginator = await skillConfigurationService.listSkillConfigurations({
         tenant: ctx.tenant,
-        environment: ctx.environment
+        environment: ctx.environment,
+        ids: ctx.input.skillConfigurationIds,
+        createdAt: ctx.input.createdAt,
+        updatedAt: ctx.input.updatedAt
       });
       let list = await paginator.run(ctx.input);
 

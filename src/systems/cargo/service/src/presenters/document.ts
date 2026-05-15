@@ -5,7 +5,7 @@ import type {
   File,
   FilePurpose,
   TenantActor
-} from '../../prisma/generated/client';
+} from '@metorial-cargo/db';
 import { actorPresenter } from './actor';
 import { filePresenter } from './file';
 

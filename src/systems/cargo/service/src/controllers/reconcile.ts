@@ -5,7 +5,7 @@ import {
   filePurposePresenter,
   fileReferencePresenter
 } from '../presenters';
-import { reconcileService } from '../services';
+import { reconcileService } from '@metorial-cargo/module-file';
 import { app } from './_app';
 import { tenantApp } from './tenant';
 

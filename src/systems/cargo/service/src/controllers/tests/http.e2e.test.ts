@@ -1,17 +1,17 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createFetchRouter } from '@lowerdeck/testing-tools';
-import { cargoClient } from '../../test/client';
-import { cleanDatabase } from '../../test/setup';
-import { cargoContentApi, cargoUploadApi } from '../../http';
+import { cargoContentApi, cargoUploadApi } from '@metorial-cargo/module-file/http';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   downloadFile,
   getFileDownloadUrl,
   uploadFile
 } from '../../../../../_clients/cargo/src/index';
+import { cargoClient } from '../../test/client';
+import { cleanDatabase } from '../../test/setup';
 
 let objects = new Map<string, { data: Blob; contentType: string }>();
 
-vi.mock('../../storage', () => ({
+vi.mock('@metorial-cargo/module-file/storage', () => ({
   getCargoFilesBucketName: () => 'cargo-files-test',
   getStorage: () => ({
     putObject: async (_bucket: string, key: string, file: Blob, contentType: string) => {

@@ -1,4 +1,4 @@
-import type { FilePurpose } from '../../prisma/generated/client';
+import type { FilePurpose } from '@metorial-cargo/db';
 
 export let filePurposePresenter = (purpose: FilePurpose) => ({
   object: 'cargo#filePurpose',

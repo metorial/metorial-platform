@@ -1,8 +1,9 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
+import { storeParticipantService } from '@metorial-cargo/module-store';
 import { storeParticipantPresenter } from '../presenters';
-import { storeParticipantService } from '../services';
 import { app } from './_app';
+import { dateFilterSchema } from './_dateFilter';
 import { tenantApp } from './tenant';
 
 export let storeParticipantApp = tenantApp.use(async ctx => {
@@ -26,7 +27,10 @@ export let storeParticipantController = app.controller({
         v.object({
           tenantId: v.string(),
           environmentId: v.string(),
-          storeId: v.optional(v.string())
+          storeParticipantIds: v.optional(v.array(v.string())),
+          storeIds: v.optional(v.array(v.string())),
+          actorIds: v.optional(v.array(v.string())),
+          createdAt: dateFilterSchema
         })
       )
     )
@@ -34,7 +38,10 @@ export let storeParticipantController = app.controller({
       let paginator = await storeParticipantService.listStoreParticipants({
         tenant: ctx.tenant,
         environment: ctx.environment,
-        storeId: ctx.input.storeId
+        ids: ctx.input.storeParticipantIds,
+        storeIds: ctx.input.storeIds,
+        actorIds: ctx.input.actorIds,
+        createdAt: ctx.input.createdAt
       });
       let list = await paginator.run(ctx.input);
 

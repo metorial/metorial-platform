@@ -6,6 +6,7 @@ import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { documentPermissionsPresenter, documentPresenter } from '../../../presenters';
+import { dateFilterSchema, mapCargoListQuery, stringArrayFilterSchema } from './_listFilters';
 
 export let documentGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.documentId) {
@@ -42,7 +43,19 @@ export let documentController = Controller.create(
         })
       )
       .outputList(documentPresenter)
-      .query('default', Paginator.validate(v.object({})))
+      .query(
+        'default',
+        Paginator.validate(
+          v.object({
+            id: stringArrayFilterSchema('Filter by document ID'),
+            file_id: stringArrayFilterSchema('Filter by file ID'),
+            store_id: stringArrayFilterSchema('Filter by store ID'),
+            parent_document_id: stringArrayFilterSchema('Filter by parent document ID'),
+            created_at: dateFilterSchema('Filter by creation time'),
+            update_at: dateFilterSchema('Filter by update time')
+          })
+        )
+      )
       .do(async ctx => {
         let paginator = await documentService.listDocuments({
           owner: {
@@ -52,7 +65,20 @@ export let documentController = Controller.create(
           },
           ...getInstanceCargoAccess(ctx)
         });
-        let list = await paginator.run(ctx.query);
+        let list = await paginator.run(
+          mapCargoListQuery(ctx.query, {
+            arrays: {
+              id: 'documentIds',
+              file_id: 'fileIds',
+              store_id: 'storeIds',
+              parent_document_id: 'parentDocumentIds'
+            },
+            dates: {
+              created_at: 'createdAt',
+              update_at: 'updatedAt'
+            }
+          })
+        );
 
         return Paginator.present(list, document => documentPresenter.present({ document }));
       }),

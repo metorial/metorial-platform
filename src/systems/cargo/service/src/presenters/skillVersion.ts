@@ -1,7 +1,7 @@
 import type {
   SkillVersionRecord,
   SkillVersionSnapshot
-} from '../services/skillVersion';
+} from '@metorial-cargo/module-skill';
 
 export let skillVersionPresenter = (version: SkillVersionRecord) => ({
   object: 'cargo#skillVersion',

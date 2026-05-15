@@ -57,7 +57,7 @@ class StoreParticipantServiceImpl {
       let result = await cargo.storeParticipant.list({
         tenantId: scope.tenantId,
         environmentId: scope.environmentId,
-        storeId: d.storeId,
+        storeIds: d.storeId ? [d.storeId] : undefined,
         ...input
       });
 

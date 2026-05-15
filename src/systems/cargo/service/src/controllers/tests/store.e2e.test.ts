@@ -1,12 +1,10 @@
+import { flushDocumentDraft } from '@metorial-cargo/module-doc';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { db } from '../../db';
+import { internalDocumentSyncService, internalStoreTemplateSyncService } from '../../internal';
+import { fileReferenceService } from '@metorial-cargo/module-file';
+import { storeTemplateService } from '@metorial-cargo/module-store';
 import { getCargoFilesBucketName, getStorage } from '../../storage';
-import {
-  documentService,
-  storeService,
-  storeTemplateService,
-  storeTemplateSyncService
-} from '../../services';
 import { cargoClient } from '../../test/client';
 import { cleanDatabase } from '../../test/setup';
 
@@ -91,17 +89,18 @@ let syncChildVersions = async (parentDocumentVersionId: string, limit = 100) => 
   let downstreamVersionIds: string[] = [];
 
   while (true) {
-    let result = await documentService.listSyncableChildDocumentIdsForVersionSync({
+    let result = await internalDocumentSyncService.listSyncableChildDocumentIdsForVersionSync({
       parentDocumentVersionId,
       cursor,
       limit
     });
 
     for (let childDocumentId of result.childDocumentIds) {
-      let syncResult = await documentService.syncChildDocumentVersionFromParentVersion({
-        parentDocumentVersionId,
-        childDocumentId
-      });
+      let syncResult =
+        await internalDocumentSyncService.syncChildDocumentVersionFromParentVersion({
+          parentDocumentVersionId,
+          childDocumentId
+        });
 
       if (syncResult?.createdVersionId) {
         downstreamVersionIds.push(syncResult.createdVersionId);
@@ -129,27 +128,27 @@ let syncStandaloneTemplate = async (storeTemplateId: string) => {
   });
 
   for (let item of template.items) {
-    await storeTemplateSyncService.refreshStoreTemplateItemHash({
+    await internalStoreTemplateSyncService.refreshStoreTemplateItemHash({
       storeTemplateItemId: item.id
     });
   }
 
-  let hashResult = await storeTemplateSyncService.refreshStoreTemplateHash({
+  let hashResult = await internalStoreTemplateSyncService.refreshStoreTemplateHash({
     storeTemplateId,
     forceFullReconcile: true
   });
   expect(hashResult.missingItemIds).toEqual([]);
 
-  let cursorOid: string | undefined;
+  let cursor: string | undefined;
   while (true) {
-    let targets = await storeTemplateSyncService.listStoreTemplateSyncTargets({
+    let targets = await internalStoreTemplateSyncService.listStoreTemplateSyncTargets({
       storeTemplateId,
-      cursorOid,
+      cursor,
       limit: 100
     });
 
     for (let target of targets.targets) {
-      await storeTemplateSyncService.syncStoreTemplateBackingStore({
+      await internalStoreTemplateSyncService.syncStoreTemplateBackingStore({
         storeTemplateId,
         tenantId: target.tenant.id,
         environmentId: target.environment.id,
@@ -157,8 +156,8 @@ let syncStandaloneTemplate = async (storeTemplateId: string) => {
       });
     }
 
-    if (!targets.nextCursorOid) break;
-    cursorOid = targets.nextCursorOid;
+    if (!targets.nextCursor) break;
+    cursor = targets.nextCursor;
   }
 };
 
@@ -498,7 +497,9 @@ describe('cargo store.e2e', () => {
       storeId: duplicateCloneStore.id,
       limit: 10
     });
-    let syncCloneDocumentId = syncCloneItems.items.find(item => item.path === '/docs/readme.md')!.documentId!;
+    let syncCloneDocumentId = syncCloneItems.items.find(
+      item => item.path === '/docs/readme.md'
+    )!.documentId!;
     let duplicateCloneDocumentId = duplicateCloneItems.items.find(
       item => item.path === '/docs/readme.md'
     )!.documentId!;
@@ -529,7 +530,7 @@ describe('cargo store.e2e', () => {
       documentId: sourceDocument.id,
       content: 'v2'
     });
-    let flushedSource = await documentService.flushDocumentDraft({
+    let flushedSource = await flushDocumentDraft({
       documentId: sourceDocument.id,
       force: true
     });
@@ -789,6 +790,7 @@ describe('cargo store.e2e', () => {
     let itemsAfterStoreDelete = await cargoClient.storeItem.list({
       tenantId: tenant.id,
       environmentId: environment.id,
+      storeId: store.id,
       limit: 10
     });
 
@@ -797,7 +799,7 @@ describe('cargo store.e2e', () => {
 
     await Promise.all(
       referencesAfterDelete.items.map(reference =>
-        storeService.cleanupStoreFileReference({
+        fileReferenceService.deleteFileReferenceByIdAndCleanup({
           fileReferenceId: reference.id
         })
       )
@@ -927,13 +929,19 @@ describe('cargo store.e2e', () => {
         }),
         expect.objectContaining({
           path: '/drafts/tmp/',
-          directoryOid: directoriesAfterAdds.find(directory => directory.path === '/drafts/tmp/')?.oid,
-          parentDirectoryOid: directoriesAfterAdds.find(directory => directory.path === '/drafts/')?.oid
+          directoryOid: directoriesAfterAdds.find(
+            directory => directory.path === '/drafts/tmp/'
+          )?.oid,
+          parentDirectoryOid: directoriesAfterAdds.find(
+            directory => directory.path === '/drafts/'
+          )?.oid
         }),
         expect.objectContaining({
           path: '/dir1/my-dir',
           directoryOid: null,
-          parentDirectoryOid: directoriesAfterAdds.find(directory => directory.path === '/dir1/')?.oid
+          parentDirectoryOid: directoriesAfterAdds.find(
+            directory => directory.path === '/dir1/'
+          )?.oid
         })
       ])
     );
@@ -1646,7 +1654,7 @@ describe('cargo store.e2e', () => {
     let listedFiltered = await cargoClient.storeParticipant.list({
       tenantId: tenant.id,
       environmentId: environment.id,
-      storeId: firstStore.id,
+      storeIds: [firstStore.id],
       limit: 10
     });
 
@@ -1935,7 +1943,9 @@ describe('cargo store.e2e', () => {
       '/assets/logo.png',
       '/docs/readme.md'
     ]);
-    expect(createdItems.items.find(item => item.path === '/assets/logo.png')?.fileId).toBe(file.id);
+    expect(createdItems.items.find(item => item.path === '/assets/logo.png')?.fileId).toBe(
+      file.id
+    );
     expect(createdDocument.content).toBe('template copy');
     expect(createdDocumentRecord?.parentDocumentOid).toBeNull();
     expect(createdDocumentRecord?.isContentOwner).toBe(true);
@@ -2317,7 +2327,9 @@ describe('cargo store.e2e', () => {
       types: ['file', 'document', 'directory'],
       limit: 20
     });
-    let updatedDocumentItem = updatedItems.items.find(item => item.path === '/docs/readme.md')!;
+    let updatedDocumentItem = updatedItems.items.find(
+      item => item.path === '/docs/readme.md'
+    )!;
     let updatedDocument = await cargoClient.document.get({
       tenantId: tenant.id,
       environmentId: environment.id,
@@ -2339,7 +2351,7 @@ describe('cargo store.e2e', () => {
       name: 'Future',
       type: 'development'
     });
-    await storeTemplateSyncService.syncStoreTemplateBackingStore({
+    await internalStoreTemplateSyncService.syncStoreTemplateBackingStore({
       storeTemplateId: template.id,
       tenantId: tenant.id,
       environmentId: futureEnvironment.id,

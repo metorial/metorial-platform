@@ -1,6 +1,6 @@
 import { v } from '@lowerdeck/validation';
 import { actorPresenter } from '../presenters';
-import { actorService } from '../services';
+import { actorService } from '@metorial-cargo/module-file';
 import { app } from './_app';
 import { tenantWithoutEnvironmentApp } from './tenant';
 

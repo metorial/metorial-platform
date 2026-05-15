@@ -1,6 +1,6 @@
 import { v } from '@lowerdeck/validation';
 import { environmentPresenter } from '../presenters';
-import { environmentService } from '../services';
+import { environmentService } from '@metorial-cargo/module-file';
 import { app } from './_app';
 import { tenantApp, tenantWithoutEnvironmentApp } from './tenant';
 

@@ -2,14 +2,13 @@ FROM oven/bun:1
 
 WORKDIR /app
 
-# Copy package files
-COPY package.json bun.lock* ./
-
-# Install dependencies
-RUN bun install
-
-# Copy source code
+# Copy OSS workspace files
 COPY . .
 
+# Install dependencies
+RUN bun install --linker=hoisted
+
+WORKDIR /app/src/systems/cargo/service
+
 # Run in dev mode with hot reloading
-CMD ["sh", "-c", "bun prisma generate && bun prisma db push --accept-data-loss && bun --watch src/server.ts"]
+CMD ["sh", "-c", "bun prisma generate --schema ../db/prisma/schema --config ../db/prisma.config.ts && bun prisma db push --accept-data-loss --schema ../db/prisma/schema --config ../db/prisma.config.ts && bun --watch src/server.ts"]

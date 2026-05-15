@@ -199,6 +199,9 @@ let useRefetchOnAtomChange = (cb: () => void) => {
   }, [atomValue]);
 };
 
+let currentStoreHash = atom<string>('0');
+export let useCurrentStoreHash = () => useAtom(currentStoreHash);
+
 export let StoreFileViewerScene = (p: {
   instanceId: string | null | undefined;
   storeId: string | null | undefined;
@@ -212,6 +215,15 @@ export let StoreFileViewerScene = (p: {
     type: ['directory', 'document', 'file']
   });
   useRefetchOnAtomChange(() => storeItems.refetch());
+
+  useEffect(() => {
+    currentStoreHash.set(
+      `${p.storeId}:${storeItems.data
+        ?.map(i => i.id + i.updatedAt)
+        .sort()
+        .join('|')}`
+    );
+  }, [storeItems.data]);
 
   let storePermissions = useStorePermissions(p.instanceId, p.storeId);
   let createDocument = useCreateDocument();

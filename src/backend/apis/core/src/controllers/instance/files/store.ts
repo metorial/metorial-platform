@@ -11,6 +11,7 @@ import {
   storePermissionsPresenter,
   storePresenter
 } from '../../../presenters';
+import { dateFilterSchema, mapCargoListQuery, stringArrayFilterSchema } from './_listFilters';
 
 let storeAccessSchema = v.enumOf(['private', 'public_read', 'public_write']);
 
@@ -57,7 +58,16 @@ export let storeController = Controller.create(
         checkAccess({ possibleScopes: ['instance.file:read', 'consumer#instance.store:read'] })
       )
       .outputList(storePresenter)
-      .query('default', Paginator.validate(v.object({})))
+      .query(
+        'default',
+        Paginator.validate(
+          v.object({
+            id: stringArrayFilterSchema('Filter by store ID'),
+            created_at: dateFilterSchema('Filter by creation time'),
+            update_at: dateFilterSchema('Filter by update time')
+          })
+        )
+      )
       .do(async ctx => {
         let paginator = await storeService.listStores({
           owner: {
@@ -67,7 +77,17 @@ export let storeController = Controller.create(
           },
           ...getInstanceCargoAccess(ctx)
         });
-        let list = await paginator.run(ctx.query);
+        let list = await paginator.run(
+          mapCargoListQuery(ctx.query, {
+            arrays: {
+              id: 'storeIds'
+            },
+            dates: {
+              created_at: 'createdAt',
+              update_at: 'updatedAt'
+            }
+          })
+        );
 
         return Paginator.present(list, store => storePresenter.present({ store }));
       }),

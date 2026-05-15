@@ -1,6 +1,8 @@
+import { flushDocumentDraft } from '@metorial-cargo/module-doc';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { db } from '../../db';
-import { documentService, storeTemplateSyncService, storeVersionService } from '../../services';
+import { internalStoreTemplateSyncService } from '../../internal';
+import { storeVersionService } from '@metorial-cargo/module-store';
 import { cargoClient } from '../../test/client';
 import { cleanDatabase } from '../../test/setup';
 
@@ -50,27 +52,27 @@ let syncStandaloneTemplate = async (storeTemplateId: string) => {
   });
 
   for (let item of template.items) {
-    await storeTemplateSyncService.refreshStoreTemplateItemHash({
+    await internalStoreTemplateSyncService.refreshStoreTemplateItemHash({
       storeTemplateItemId: item.id
     });
   }
 
-  let hashResult = await storeTemplateSyncService.refreshStoreTemplateHash({
+  let hashResult = await internalStoreTemplateSyncService.refreshStoreTemplateHash({
     storeTemplateId,
     forceFullReconcile: true
   });
   expect(hashResult.missingItemIds).toEqual([]);
 
-  let cursorOid: string | undefined;
+  let cursor: string | undefined;
   while (true) {
-    let targets = await storeTemplateSyncService.listStoreTemplateSyncTargets({
+    let targets = await internalStoreTemplateSyncService.listStoreTemplateSyncTargets({
       storeTemplateId,
-      cursorOid,
+      cursor,
       limit: 100
     });
 
     for (let target of targets.targets) {
-      await storeTemplateSyncService.syncStoreTemplateBackingStore({
+      await internalStoreTemplateSyncService.syncStoreTemplateBackingStore({
         storeTemplateId,
         tenantId: target.tenant.id,
         environmentId: target.environment.id,
@@ -78,8 +80,8 @@ let syncStandaloneTemplate = async (storeTemplateId: string) => {
       });
     }
 
-    if (!targets.nextCursorOid) break;
-    cursorOid = targets.nextCursorOid;
+    if (!targets.nextCursor) break;
+    cursor = targets.nextCursor;
   }
 };
 
@@ -449,7 +451,9 @@ describe('cargo skill.e2e', () => {
       skillId: skill.id,
       limit: 10
     });
-    let manualAgent = listedAfterManual.items.find(item => item.documentId === manualDocument.id)!;
+    let manualAgent = listedAfterManual.items.find(
+      item => item.documentId === manualDocument.id
+    )!;
 
     expect(manualAgent).toMatchObject({
       name: 'Manual Agent',
@@ -598,7 +602,7 @@ describe('cargo skill.e2e', () => {
         tenantId: tenant.id,
         environmentId: environment.id,
         storeId: skill.storeId,
-        documentId: skillDocument.id,
+        documentIds: [skillDocument.id],
         limit: 10
       })
     ).items[0]!;
@@ -738,7 +742,7 @@ describe('cargo skill.e2e', () => {
       documentId: document.id,
       content: 'second content'
     });
-    await documentService.flushDocumentDraft({
+    await flushDocumentDraft({
       documentId: document.id,
       force: true
     });
@@ -1027,7 +1031,9 @@ describe('cargo skill.e2e', () => {
     expect(skill.store.cloneType).toBe('duplicate');
     expect(skillRecord?.parentSkillTemplateOid).toBe(skillTemplateRecord?.oid);
     expect(skillRecord?.createdByTenantActorOid).toBeTruthy();
-    expect(createdStoreRecord?.parentStoreTemplateOid).toBe(skillTemplateRecord?.storeTemplateOid);
+    expect(createdStoreRecord?.parentStoreTemplateOid).toBe(
+      skillTemplateRecord?.storeTemplateOid
+    );
     expect(createdStoreRecord?.createdByTenantActorOid).toBeTruthy();
     expect(createdItems.items.map(item => item.path)).toContain('/docs/readme.md');
     expect(createdDocument.content).toBe('template-backed content');
@@ -1080,7 +1086,8 @@ describe('cargo skill.e2e', () => {
     let templateSourceDocument = await cargoClient.document.get({
       tenantId: tenant.id,
       environmentId: environment.id,
-      documentId: templateSourceItems.items.find(item => item.path === '/docs/readme.md')!.documentId!
+      documentId: templateSourceItems.items.find(item => item.path === '/docs/readme.md')!
+        .documentId!
     });
 
     await cargoClient.document.create({
@@ -1205,7 +1212,9 @@ describe('cargo skill.e2e', () => {
         storeId: skill.storeId,
         name: 'Invalid Template Source'
       })
-    ).rejects.toThrow('Provide exactly one of skillId, storeId, or items when creating a skill template');
+    ).rejects.toThrow(
+      'Provide exactly one of skillId, storeId, or items when creating a skill template'
+    );
   });
 
   it('lists and gets global skill templates but only mutates matching scoped templates', async () => {
@@ -1338,7 +1347,7 @@ describe('cargo skill.e2e', () => {
         skillTemplateId: scopedTemplate.id,
         name: 'Wrong Scope Update'
       })
-    ).rejects.toThrow('skillTemplate');
+    ).rejects.toThrow('skill.template');
 
     let updated = await cargoClient.skillTemplate.update({
       tenantId: tenant.id,

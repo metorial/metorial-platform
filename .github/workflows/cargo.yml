@@ -76,4 +76,4 @@ jobs:
         cargo-object-storage
         cargo-service
       test_container: cargo-service
-      test_command: cd /app && bun run test
+      test_command: cd /app/src/systems/cargo/service && bun run test

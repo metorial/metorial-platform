@@ -48,7 +48,7 @@ class SkillParticipantServiceImpl {
 
   async listSkillParticipants(d: {
     owner: FileOwner;
-    skillId?: string;
+    skillId: string;
     accessActor?: CargoAccessActor;
   }) {
     let { scope } = await resolveCargoAccess(d);

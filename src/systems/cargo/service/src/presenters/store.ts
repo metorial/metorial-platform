@@ -1,4 +1,4 @@
-import type { Store } from '../../prisma/generated/client';
+import type { Store } from '@metorial-cargo/db';
 
 export let storePresenter = (store: Store) => ({
   object: 'cargo#store',

@@ -1,5 +1,5 @@
-import type { File, FileLink } from '../../prisma/generated/client';
-import { env } from '../env';
+import type { File, FileLink } from '@metorial-cargo/db';
+import { env } from '@metorial-cargo/db';
 
 let getDownloadUrl = (file: File, fileLink: FileLink) => {
   if (!env.service.DOWNLOAD_PUBLIC_URL) return undefined!;

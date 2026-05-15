@@ -2,7 +2,7 @@ import type {
   SkillTemplateRecord,
   SkillTemplateSummaryRecord,
   SkillTemplateWithScopedStoreId
-} from '../services/skillTemplate';
+} from '@metorial-cargo/module-skill';
 import { storeTemplateDetailPresenter, storeTemplatePresenter } from './storeTemplate';
 
 export let skillTemplatePresenter = (

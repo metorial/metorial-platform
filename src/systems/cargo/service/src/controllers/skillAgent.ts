@@ -1,8 +1,9 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
+import { skillAgentService } from '@metorial-cargo/module-skill';
 import { skillAgentPresenter } from '../presenters';
-import { skillAgentService } from '../services';
 import { app } from './_app';
+import { dateFilterSchema } from './_dateFilter';
 import { storePermissionsSchema } from './document';
 import { skillApp } from './skill';
 import { tenantApp } from './tenant';
@@ -61,7 +62,13 @@ export let skillAgentController = app.controller({
         v.object({
           tenantId: v.string(),
           environmentId: v.string(),
-          skillId: v.optional(v.string()),
+          skillAgentIds: v.optional(v.array(v.string())),
+          skillId: v.string(),
+          documentIds: v.optional(v.array(v.string())),
+          storeItemIds: v.optional(v.array(v.string())),
+          createdAt: dateFilterSchema,
+          updatedAt: dateFilterSchema,
+          archivedAt: dateFilterSchema,
           includeArchived: v.optional(v.boolean())
         })
       )
@@ -70,7 +77,13 @@ export let skillAgentController = app.controller({
       let paginator = await skillAgentService.listSkillAgents({
         tenant: ctx.tenant,
         environment: ctx.environment,
+        ids: ctx.input.skillAgentIds,
         skillId: ctx.input.skillId,
+        documentIds: ctx.input.documentIds,
+        storeItemIds: ctx.input.storeItemIds,
+        createdAt: ctx.input.createdAt,
+        updatedAt: ctx.input.updatedAt,
+        archivedAt: ctx.input.archivedAt,
         includeArchived: ctx.input.includeArchived
       });
       let list = await paginator.run(ctx.input);

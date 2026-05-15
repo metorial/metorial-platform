@@ -8,6 +8,7 @@ import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instancePath } from '../../../middleware/instanceGroup';
 import { storeItemPresenter } from '../../../presenters';
+import { dateFilterSchema, mapCargoListQuery, stringArrayFilterSchema } from './_listFilters';
 import { storeGroup } from './store';
 
 export let storeItemGroup = storeGroup.use(async ctx => {
@@ -49,6 +50,9 @@ export let storeItemController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
+            id: stringArrayFilterSchema('Filter by store item ID'),
+            file_id: stringArrayFilterSchema('Filter by file ID'),
+            document_id: stringArrayFilterSchema('Filter by document ID'),
             type: v.optional(
               v.union([
                 v.enumOf(['file', 'document', 'directory']),
@@ -58,7 +62,9 @@ export let storeItemController = Controller.create(
                 description:
                   'Filter by store item type. Repeat `type` to include multiple values. Defaults to `file` and `document`.'
               }
-            )
+            ),
+            created_at: dateFilterSchema('Filter by creation time'),
+            update_at: dateFilterSchema('Filter by update time')
           })
         )
       )
@@ -73,7 +79,20 @@ export let storeItemController = Controller.create(
           },
           ...getInstanceCargoAccess(ctx)
         });
-        let list = await paginator.run(ctx.query);
+        let list = await paginator.run(
+          mapCargoListQuery(ctx.query, {
+            arrays: {
+              id: 'itemIds',
+              file_id: 'fileIds',
+              document_id: 'documentIds',
+              type: 'types'
+            },
+            dates: {
+              created_at: 'createdAt',
+              update_at: 'updatedAt'
+            }
+          })
+        );
 
         return Paginator.present(list, storeItem => storeItemPresenter.present({ storeItem }));
       }),

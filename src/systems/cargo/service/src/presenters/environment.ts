@@ -1,4 +1,4 @@
-import type { Environment } from '../../prisma/generated/client';
+import type { Environment } from '@metorial-cargo/db';
 
 export let environmentPresenter = (environment: Environment) => ({
   object: 'cargo#environment',

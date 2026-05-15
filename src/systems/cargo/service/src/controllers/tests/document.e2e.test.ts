@@ -1,11 +1,19 @@
+import {
+  cleanupDocumentVersion,
+  flushDocumentDraft,
+  flushExpiredDraftVersion,
+  listStaleDocumentVersions
+} from '@metorial-cargo/module-doc';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { db } from '../../db';
-import { documentCleanupService, documentDraftService, documentService } from '../../services';
+import { internalDocumentDraftService, internalDocumentSyncService } from '../../internal';
 import { cargoClient } from '../../test/client';
 import { cleanDatabase } from '../../test/setup';
 
-let subtractHours = (date: Date, hours: number) => new Date(date.getTime() - hours * 60 * 60 * 1000);
-let subtractDays = (date: Date, days: number) => new Date(date.getTime() - days * 24 * 60 * 60 * 1000);
+let subtractHours = (date: Date, hours: number) =>
+  new Date(date.getTime() - hours * 60 * 60 * 1000);
+let subtractDays = (date: Date, days: number) =>
+  new Date(date.getTime() - days * 24 * 60 * 60 * 1000);
 
 let createScope = async () => {
   let tenant = await cargoClient.tenant.upsert({
@@ -47,7 +55,7 @@ let createStore = async (tenantId: string, environmentId: string, name = 'Docs S
   });
 
 let flushDocument = async (documentId: string) => {
-  let document = await documentService.flushDocumentDraft({
+  let document = await flushDocumentDraft({
     documentId,
     force: true
   });
@@ -55,7 +63,7 @@ let flushDocument = async (documentId: string) => {
 
   return {
     ...document,
-    content: document.resolvedContent ?? document.content.content
+    content: document.content.content
   };
 };
 
@@ -64,17 +72,18 @@ let syncChildVersions = async (parentDocumentVersionId: string, limit = 100) => 
   let downstreamVersionIds: string[] = [];
 
   while (true) {
-    let result = await documentService.listSyncableChildDocumentIdsForVersionSync({
+    let result = await internalDocumentSyncService.listSyncableChildDocumentIdsForVersionSync({
       parentDocumentVersionId,
       cursor,
       limit
     });
 
     for (let childDocumentId of result.childDocumentIds) {
-      let syncResult = await documentService.syncChildDocumentVersionFromParentVersion({
-        parentDocumentVersionId,
-        childDocumentId
-      });
+      let syncResult =
+        await internalDocumentSyncService.syncChildDocumentVersionFromParentVersion({
+          parentDocumentVersionId,
+          childDocumentId
+        });
 
       if (syncResult?.createdVersionId) {
         downstreamVersionIds.push(syncResult.createdVersionId);
@@ -628,17 +637,27 @@ describe('cargo document.e2e', () => {
       }
     });
 
-    let ready = await documentService.listDocumentIdsReadyForDraftVersionFlush({
-      limit: 10,
-      expiresBefore: new Date()
+    let ready = await db.document.findMany({
+      where: {
+        draftVersionExpiresAt: {
+          lte: new Date()
+        },
+        file: {
+          status: 'active'
+        }
+      },
+      take: 10,
+      select: {
+        id: true
+      }
     });
-    expect(ready.documents.map(document => document.documentId)).toContain(created.id);
+    expect(ready.map(document => document.id)).toContain(created.id);
 
-    let flushed = await documentService.flushExpiredDraftVersion({
+    let flushed = await flushExpiredDraftVersion({
       documentId: created.id,
       expectedDraftVersionExpiresAt: dueAt
     });
-    let retried = await documentService.flushExpiredDraftVersion({
+    let retried = await flushExpiredDraftVersion({
       documentId: created.id,
       expectedDraftVersionExpiresAt: dueAt
     });
@@ -704,7 +723,7 @@ describe('cargo document.e2e', () => {
       }
     });
 
-    let staleResult = await documentService.flushExpiredDraftVersion({
+    let staleResult = await flushExpiredDraftVersion({
       documentId: staleDocument.id,
       expectedDraftVersionExpiresAt: staleExpectedAt
     });
@@ -757,7 +776,7 @@ describe('cargo document.e2e', () => {
       actorId: actor.id
     });
 
-    let draftedResult = await documentService.flushExpiredDraftVersion({
+    let draftedResult = await flushExpiredDraftVersion({
       documentId: draftedDocument.id,
       expectedDraftVersionExpiresAt: dueAt
     });
@@ -777,7 +796,9 @@ describe('cargo document.e2e', () => {
     });
 
     expect(draftedResult).toBeNull();
-    expect(await documentDraftService.getDraftByDocumentId(draftedDocument.id)).not.toBeNull();
+    expect(
+      await internalDocumentDraftService.getDraftByDocumentId(draftedDocument.id)
+    ).not.toBeNull();
     expect(draftedRecord.currentVersion?.id).toBe(draftedDocument.currentVersionId);
     expect(draftedRecord.draftVersionExpiresAt?.getTime()).toBe(dueAt.getTime());
     expect(draftedVersions.items).toHaveLength(1);
@@ -915,15 +936,18 @@ describe('cargo document.e2e', () => {
       }
     });
 
-    await documentDraftService.clearDocumentState(child.id);
+    await internalDocumentDraftService.clearDocumentState(child.id);
 
-    let linkedChildren = await documentService.listLinkedChildDocumentsForLiveSync({
-      parentDocumentId: parent.id
-    });
-    let syncableChildren = await documentService.listSyncableChildDocumentIdsForVersionSync({
-      parentDocumentVersionId: parent.currentVersionId!,
-      limit: 10
-    });
+    let linkedChildren = await internalDocumentSyncService.listLinkedChildDocumentsForLiveSync(
+      {
+        parentDocumentId: parent.id
+      }
+    );
+    let syncableChildren =
+      await internalDocumentSyncService.listSyncableChildDocumentIdsForVersionSync({
+        parentDocumentVersionId: parent.currentVersionId!,
+        limit: 10
+      });
 
     expect(childRecord?.isContentOwner).toBe(true);
     expect(linkedChildren.map(document => document.id)).not.toContain(child.id);
@@ -997,7 +1021,9 @@ describe('cargo document.e2e', () => {
     expect(flushedParent!.content).toBe('second');
     expect(childAfterMatchingWrite.content).toBe('second');
     expect(childRecordAfterMatchingWrite?.isContentOwner).toBe(false);
-    expect(childRecordAfterMatchingWrite?.contentOid).toBe(parentRecordAfterFirstUpdate?.contentOid);
+    expect(childRecordAfterMatchingWrite?.contentOid).toBe(
+      parentRecordAfterFirstUpdate?.contentOid
+    );
     expect(childVersionsAfterMatchingWrite.items).toHaveLength(1);
 
     await db.documentVersion.update({
@@ -1239,14 +1265,16 @@ describe('cargo document.e2e', () => {
     });
     let flushedParent = await flushDocument(parent.id);
 
-    let firstPage = await documentService.listSyncableChildDocumentIdsForVersionSync({
-      parentDocumentVersionId: flushedParent!.currentVersion!.id,
-      limit: 100
-    });
-    let syncResult = await documentService.syncChildDocumentVersionFromParentVersion({
-      parentDocumentVersionId: flushedParent!.currentVersion!.id,
-      childDocumentId: child.id
-    });
+    let firstPage =
+      await internalDocumentSyncService.listSyncableChildDocumentIdsForVersionSync({
+        parentDocumentVersionId: flushedParent!.currentVersion!.id,
+        limit: 100
+      });
+    let syncResult =
+      await internalDocumentSyncService.syncChildDocumentVersionFromParentVersion({
+        parentDocumentVersionId: flushedParent!.currentVersion!.id,
+        childDocumentId: child.id
+      });
     let childAfterAttempt = await cargoClient.document.get({
       tenantId: tenant.id,
       environmentId: environment.id,
@@ -1307,10 +1335,11 @@ describe('cargo document.e2e', () => {
     });
     let flushedParent = await flushDocument(parent.id);
 
-    let firstPage = await documentService.listSyncableChildDocumentIdsForVersionSync({
-      parentDocumentVersionId: flushedParent!.currentVersion!.id,
-      limit: 100
-    });
+    let firstPage =
+      await internalDocumentSyncService.listSyncableChildDocumentIdsForVersionSync({
+        parentDocumentVersionId: flushedParent!.currentVersion!.id,
+        limit: 100
+      });
     let childAfterAttempt = await cargoClient.document.get({
       tenantId: tenant.id,
       environmentId: environment.id,
@@ -1365,15 +1394,17 @@ describe('cargo document.e2e', () => {
     });
     let flushedParent = await flushDocument(parent.id);
 
-    let firstPage = await documentService.listSyncableChildDocumentIdsForVersionSync({
-      parentDocumentVersionId: flushedParent!.currentVersion!.id,
-      limit: 2
-    });
-    let secondPage = await documentService.listSyncableChildDocumentIdsForVersionSync({
-      parentDocumentVersionId: flushedParent!.currentVersion!.id,
-      cursor: firstPage.nextCursor,
-      limit: 2
-    });
+    let firstPage =
+      await internalDocumentSyncService.listSyncableChildDocumentIdsForVersionSync({
+        parentDocumentVersionId: flushedParent!.currentVersion!.id,
+        limit: 2
+      });
+    let secondPage =
+      await internalDocumentSyncService.listSyncableChildDocumentIdsForVersionSync({
+        parentDocumentVersionId: flushedParent!.currentVersion!.id,
+        cursor: firstPage.nextCursor,
+        limit: 2
+      });
 
     expect(firstPage.childDocumentIds).toHaveLength(2);
     expect(secondPage.childDocumentIds).toHaveLength(1);
@@ -1447,12 +1478,12 @@ describe('cargo document.e2e', () => {
       }
     });
 
-    let staleVersions = await documentCleanupService.listStaleDocumentVersions();
+    let staleVersions = await listStaleDocumentVersions({ limit: 100 });
     let contentCountBefore = await db.documentContent.count();
 
     expect(staleVersions.map(version => version.id)).toContain(created.currentVersionId);
 
-    let cleaned = await documentCleanupService.cleanupDocumentVersion({
+    let cleaned = await cleanupDocumentVersion({
       documentVersionId: created.currentVersionId!
     });
 
@@ -1495,9 +1526,11 @@ describe('cargo document.e2e', () => {
       actorId: actor.id
     });
 
-    expect(await documentDraftService.listDirtyDocumentIds()).toContain(created.id);
+    expect(await internalDocumentDraftService.listDirtyDocumentIds()).toContain(created.id);
 
-    let claimedRevision = await documentDraftService.claimDirtyDocumentRevision(created.id);
+    let claimedRevision = await internalDocumentDraftService.claimDirtyDocumentRevision(
+      created.id
+    );
 
     expect(claimedRevision).toBe(1);
 
@@ -1509,7 +1542,7 @@ describe('cargo document.e2e', () => {
       actorId: actor.id
     });
 
-    let flushed = await documentService.flushDocumentDraft({
+    let flushed = await flushDocumentDraft({
       documentId: created.id,
       force: true,
       queuedRevision: claimedRevision!
@@ -1523,8 +1556,12 @@ describe('cargo document.e2e', () => {
 
     expect(flushed?.id).toBe(created.id);
     expect(fetched.content).toBe('third');
-    expect(await documentDraftService.getDraftByDocumentId(created.id)).toBeNull();
-    expect(await documentDraftService.listDirtyDocumentIds()).not.toContain(created.id);
-    expect(await documentDraftService.claimDirtyDocumentRevision(created.id)).toBeNull();
+    expect(await internalDocumentDraftService.getDraftByDocumentId(created.id)).toBeNull();
+    expect(await internalDocumentDraftService.listDirtyDocumentIds()).not.toContain(
+      created.id
+    );
+    expect(
+      await internalDocumentDraftService.claimDirtyDocumentRevision(created.id)
+    ).toBeNull();
   });
 });

@@ -1,4 +1,4 @@
-import type { FileLink, FileReference } from '../../prisma/generated/client';
+import type { FileLink, FileReference } from '@metorial-cargo/db';
 
 export let fileReferencePresenter = (
   fileReference: FileReference & { fileLink: FileLink }

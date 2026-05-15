@@ -1,0 +1,205 @@
+model Tag {
+  oid BigInt @id
+  id  String @unique
+
+  tag String @unique
+
+  skillMarketplaces SkillMarketplace[]
+  skillPlugins      SkillPlugin[]
+}
+
+model SkillMarketplace {
+  oid BigInt @id
+  id  String @unique
+
+  /// [EntityImage]
+  image Json?
+
+  /// [SkillMarketplaceClientOverrides]
+  providerOverrides Json?
+
+  name        String
+  description String?
+  slug        String  @unique
+
+  skillConfigurationOid BigInt?
+  skillConfiguration    SkillConfiguration? @relation(fields: [skillConfigurationOid], references: [oid], onDelete: SetNull)
+
+  tagOid BigInt @unique
+  tag    Tag    @relation(fields: [tagOid], references: [oid], onDelete: Cascade)
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  skillExports            SkillExport[]
+  skillMarketplacePlugins SkillMarketplacePlugin[]
+}
+
+model SkillMarketplacePlugin {
+  oid BigInt @id
+  id  String @unique
+
+  pluginSlug String // -> fixed the first time it's linked to a skill, cannot be changed afterwards
+
+  skillConfigurationOid BigInt?
+  skillConfiguration    SkillConfiguration? @relation(fields: [skillConfigurationOid], references: [oid], onDelete: SetNull)
+
+  skillMarketplaceOid BigInt
+  skillMarketplace    SkillMarketplace @relation(fields: [skillMarketplaceOid], references: [oid], onDelete: Cascade)
+
+  skillPluginOid BigInt
+  skillPlugin    SkillPlugin @relation(fields: [skillPluginOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([skillMarketplaceOid, skillPluginOid])
+}
+
+model SkillPlugin {
+  oid BigInt @id
+  id  String @unique
+
+  isManaged Boolean
+
+  /// [EntityImage]
+  image Json?
+
+  /// [SkillPluginClientOverrides]
+  providerOverrides Json?
+
+  name        String
+  description String?
+  slug        String  @unique
+
+  skillConfigurationOid BigInt?
+  skillConfiguration    SkillConfiguration? @relation(fields: [skillConfigurationOid], references: [oid], onDelete: SetNull)
+
+  tagOid BigInt @unique
+  tag    Tag    @relation(fields: [tagOid], references: [oid], onDelete: Cascade)
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  currentVersionOid BigInt?
+  currentVersion    SkillPluginVersion? @relation(fields: [currentVersionOid], references: [oid], onDelete: Cascade, name: "SkillPluginToCurrentVersion")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  managed                 ManagedSkillPlugin?
+  skillPluginVersions     SkillPluginVersion[]
+  skillPluginSkills       SkillPluginSkill[]
+  skillExports            SkillExport[]
+  skillMarketplacePlugins SkillMarketplacePlugin[]
+}
+
+model SkillPluginSkill {
+  oid BigInt @id
+  id  String @unique
+
+  pluginSkillSlug String // -> fixed the first time it's linked to a skill, cannot be changed afterwards
+
+  // Overrides
+  clientName        String?
+  clientDescription String?
+  clientMetadata    Json?
+  license           String?
+  compatibility     String?
+
+  skillConfigurationOid BigInt?
+  skillConfiguration    SkillConfiguration? @relation(fields: [skillConfigurationOid], references: [oid], onDelete: SetNull)
+
+  skillOid BigInt
+  skill    Skill  @relation(fields: [skillOid], references: [oid], onDelete: Cascade)
+
+  skillPluginOid BigInt
+  skillPlugin    SkillPlugin @relation(fields: [skillPluginOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([skillOid, skillPluginOid])
+}
+
+model SkillPluginVersion {
+  oid BigInt @id
+  id  String @unique
+
+  version String
+
+  skillPluginOid BigInt
+  skillPlugin    SkillPlugin @relation(fields: [skillPluginOid], references: [oid], onDelete: Cascade)
+
+  currentVersionOf SkillPlugin[] @relation("SkillPluginToCurrentVersion")
+
+  createdAt DateTime @default(now())
+
+  @@unique([skillPluginOid, version])
+}
+
+enum SkillExportTarget {
+  skill
+  plugin
+  marketplace
+}
+
+enum SkillExportStatus {
+  pending
+  completed
+  failed
+}
+
+model SkillExport {
+  oid BigInt @id
+  id  String @unique
+
+  target SkillExportTarget
+  status SkillExportStatus
+
+  skillConfigurationOid BigInt?
+  skillConfiguration    SkillConfiguration? @relation(fields: [skillConfigurationOid], references: [oid], onDelete: SetNull)
+
+  // Export destination file
+  fileOid BigInt?
+  file    File?   @relation(fields: [fileOid], references: [oid], onDelete: SetNull)
+
+  fileReferenceOid BigInt?
+  fileReference    FileReference? @relation(fields: [fileReferenceOid], references: [oid], onDelete: SetNull)
+
+  skillOid BigInt?
+  skill    Skill?  @relation(fields: [skillOid], references: [oid], onDelete: Cascade)
+
+  skillPluginOid BigInt?
+  skillPlugin    SkillPlugin? @relation(fields: [skillPluginOid], references: [oid], onDelete: Cascade)
+
+  skillMarketplaceOid BigInt?
+  skillMarketplace    SkillMarketplace? @relation(fields: [skillMarketplaceOid], references: [oid], onDelete: Cascade)
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}
+
+model ManagedSkillPlugin {
+  oid BigInt @id
+  id  String @unique
+
+  configHash String
+
+  skillPluginOid BigInt      @unique
+  skillPlugin    SkillPlugin @relation(fields: [skillPluginOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}

@@ -1,8 +1,9 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { skillParticipantPresenter, skillPresenter } from '../presenters';
-import { skillService, skillTemplateService } from '../services';
+import { skillService, skillTemplateService } from '@metorial-cargo/module-skill';
 import { app } from './_app';
+import { dateFilterSchema } from './_dateFilter';
 import { storePermissionsSchema } from './document';
 import { tenantApp } from './tenant';
 
@@ -18,6 +19,17 @@ export let skillApp = tenantApp.use(async ctx => {
 
   return { skill };
 });
+
+let skillMetadataSchema = v.optional(v.nullable(v.record(v.any())));
+let skillOptionalFieldsSchema = {
+  description: v.optional(v.nullable(v.string())),
+  metadata: skillMetadataSchema,
+  clientName: v.optional(v.nullable(v.string())),
+  clientDescription: v.optional(v.nullable(v.string())),
+  clientMetadata: skillMetadataSchema,
+  license: v.optional(v.nullable(v.string())),
+  compatibility: v.optional(v.nullable(v.string()))
+};
 
 export let skillController = app.controller({
   create: tenantApp
@@ -37,6 +49,7 @@ export let skillController = app.controller({
         parentSkillTemplateId: v.optional(v.string()),
 
         name: v.string(),
+        ...skillOptionalFieldsSchema,
         imageFileId: v.optional(v.nullable(v.string()))
       })
     )
@@ -66,6 +79,13 @@ export let skillController = app.controller({
           id: ctx.input.skillId,
           actorId: ctx.input.actorId,
           name: ctx.input.name,
+          description: ctx.input.description,
+          metadata: ctx.input.metadata,
+          clientName: ctx.input.clientName,
+          clientDescription: ctx.input.clientDescription,
+          clientMetadata: ctx.input.clientMetadata,
+          license: ctx.input.license,
+          compatibility: ctx.input.compatibility,
           imageFileId: ctx.input.imageFileId
         }
       });
@@ -79,14 +99,26 @@ export let skillController = app.controller({
       Paginator.validate(
         v.object({
           tenantId: v.string(),
-          environmentId: v.string()
+          environmentId: v.string(),
+          skillIds: v.optional(v.array(v.string())),
+          storeIds: v.optional(v.array(v.string())),
+          parentSkillIds: v.optional(v.array(v.string())),
+          parentSkillTemplateIds: v.optional(v.array(v.string())),
+          createdByActorIds: v.optional(v.array(v.string())),
+          createdAt: dateFilterSchema
         })
       )
     )
     .do(async ctx => {
       let paginator = await skillService.listSkills({
         tenant: ctx.tenant,
-        environment: ctx.environment
+        environment: ctx.environment,
+        ids: ctx.input.skillIds,
+        storeIds: ctx.input.storeIds,
+        parentSkillIds: ctx.input.parentSkillIds,
+        parentSkillTemplateIds: ctx.input.parentSkillTemplateIds,
+        createdByActorIds: ctx.input.createdByActorIds,
+        createdAt: ctx.input.createdAt
       });
       let list = await paginator.run(ctx.input);
 
@@ -112,6 +144,7 @@ export let skillController = app.controller({
         environmentId: v.string(),
         skillId: v.string(),
         name: v.optional(v.string()),
+        ...skillOptionalFieldsSchema,
         imageFileId: v.optional(v.nullable(v.string())),
         actorId: v.optional(v.string()),
         defaultPermissions: v.optional(storePermissionsSchema),
@@ -128,6 +161,13 @@ export let skillController = app.controller({
         overridePermissions: ctx.input.overridePermissions,
         input: {
           name: ctx.input.name,
+          description: ctx.input.description,
+          metadata: ctx.input.metadata,
+          clientName: ctx.input.clientName,
+          clientDescription: ctx.input.clientDescription,
+          clientMetadata: ctx.input.clientMetadata,
+          license: ctx.input.license,
+          compatibility: ctx.input.compatibility,
           imageFileId: ctx.input.imageFileId
         }
       });
@@ -186,15 +226,14 @@ export let skillController = app.controller({
         actorId: v.string()
       })
     )
-    .do(
-      async ctx =>
-        skillParticipantPresenter(
-          await skillService.markSkillUse({
-            tenant: ctx.tenant,
-            environment: ctx.environment,
-            skill: ctx.skill,
-            actorId: ctx.input.actorId
-          })
-        )
+    .do(async ctx =>
+      skillParticipantPresenter(
+        await skillService.markSkillUse({
+          tenant: ctx.tenant,
+          environment: ctx.environment,
+          skill: ctx.skill,
+          actorId: ctx.input.actorId
+        })
+      )
     )
 });

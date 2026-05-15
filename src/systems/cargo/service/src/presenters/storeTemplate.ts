@@ -2,7 +2,7 @@ import type {
   StoreTemplateRecord,
   StoreTemplateSummaryRecord,
   StoreTemplateWithScopedStoreId
-} from '../services/storeTemplate';
+} from '@metorial-cargo/module-store';
 
 let presentStoreTemplateEncoding = (encoding?: 'utf_8' | 'base64' | null) =>
   encoding === 'utf_8' ? 'utf-8' : (encoding ?? undefined);

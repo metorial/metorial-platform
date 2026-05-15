@@ -1,8 +1,9 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { fileLinkPresenter, filePresenter } from '../presenters';
-import { fileLinkService } from '../services';
+import { fileLinkService } from '@metorial-cargo/module-file';
 import { app } from './_app';
+import { dateFilterSchema } from './_dateFilter';
 import { fileApp } from './file';
 import { tenantApp } from './tenant';
 
@@ -76,8 +77,12 @@ export let fileLinkController = app.controller({
         v.object({
           tenantId: v.string(),
           environmentId: v.string(),
+          fileLinkIds: v.optional(v.array(v.string())),
           fileIds: v.optional(v.array(v.string())),
-          actorId: v.optional(v.string())
+          actorId: v.optional(v.string()),
+          actorIds: v.optional(v.array(v.string())),
+          createdAt: dateFilterSchema,
+          expiresAt: dateFilterSchema
         })
       )
     )
@@ -85,8 +90,12 @@ export let fileLinkController = app.controller({
       let paginator = await fileLinkService.listFileLinks({
         tenant: ctx.tenant,
         environment: ctx.environment,
+        ids: ctx.input.fileLinkIds,
         fileId: ctx.input.fileIds,
-        actorId: ctx.input.actorId
+        actorId: ctx.input.actorId,
+        actorIds: ctx.input.actorIds,
+        createdAt: ctx.input.createdAt,
+        expiresAt: ctx.input.expiresAt
       });
 
       let list = await paginator.run(ctx.input);
