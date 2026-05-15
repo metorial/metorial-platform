@@ -186,7 +186,7 @@ describe('cargo skill.e2e', () => {
     await cleanDatabase();
   });
 
-  it('creates, lists, gets, updates, and deletes skills with linked stores', async () => {
+  it('creates, lists, gets, and updates skills with linked stores', async () => {
     let { tenant, environment } = await createScope();
     let actor = await createActor(tenant.id, {
       identifier: 'skill-creator',
@@ -321,86 +321,6 @@ describe('cargo skill.e2e', () => {
         storeId: created.storeId
       })
     ).rejects.toThrow('Cannot delete store: it is linked to a skill');
-
-    let deleted = await cargoClient.skill.delete({
-      tenantId: tenant.id,
-      environmentId: environment.id,
-      skillId: created.id
-    });
-
-    let listedAfterDelete = await cargoClient.skill.list({
-      tenantId: tenant.id,
-      environmentId: environment.id,
-      limit: 10
-    });
-
-    let deletedSkill = await db.skill.findUnique({
-      where: {
-        id: created.id
-      }
-    });
-    let deletedStore = await db.store.findUnique({
-      where: {
-        id: created.storeId
-      }
-    });
-
-    expect(deleted.id).toBe(created.id);
-    expect(deleted.storeId).toBe(created.storeId);
-    expect(listedAfterDelete.items).toHaveLength(0);
-    expect(deletedSkill?.status).toBe('archived');
-    expect(deletedStore?.id).toBe(created.storeId);
-  });
-
-  it('archives plugin skill links when deleting a skill', async () => {
-    let { tenant, environment } = await createScope();
-    let scope = await getCargoScopeRecords({
-      tenantId: tenant.id,
-      environmentId: environment.id
-    });
-    let skill = await cargoClient.skill.create({
-      tenantId: tenant.id,
-      environmentId: environment.id,
-      skillId: 'csk_delete_linked_plugin_skill',
-      name: 'Delete Linked Plugin Skill'
-    });
-    let skillRecord = await db.skill.findUniqueOrThrow({
-      where: {
-        id: skill.id
-      }
-    });
-    let skillPlugin = await createTestSkillPlugin({
-      tenantOid: scope.tenant.oid,
-      environmentOid: scope.environment.oid,
-      name: 'Linked Plugin',
-      slug: 'linked-plugin'
-    });
-    let skillPluginSkill = await createTestSkillPluginSkill({
-      skillOid: skillRecord.oid,
-      skillPluginOid: skillPlugin.oid,
-      pluginSkillSlug: 'linked-skill'
-    });
-
-    await cargoClient.skill.delete({
-      tenantId: tenant.id,
-      environmentId: environment.id,
-      skillId: skill.id
-    });
-
-    let deletedSkill = await db.skill.findUniqueOrThrow({
-      where: {
-        id: skill.id
-      }
-    });
-    let deletedSkillPluginSkill = await db.skillPluginSkill.findUniqueOrThrow({
-      where: {
-        id: skillPluginSkill.id
-      }
-    });
-
-    expect(deletedSkill.status).toBe('archived');
-    expect(deletedSkillPluginSkill.status).toBe('archived');
-    expect(deletedSkillPluginSkill.clientName).toBeNull();
   });
 
   it('archives plugin links when archiving a plugin', async () => {

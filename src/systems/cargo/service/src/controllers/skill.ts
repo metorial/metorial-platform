@@ -185,7 +185,7 @@ export let skillController = app.controller({
       })
     )
     .do(async ctx => {
-      let skill = await skillService.deleteSkill({
+      let skill = await skillService.archiveSkill({
         tenant: ctx.tenant,
         environment: ctx.environment,
         skill: ctx.skill

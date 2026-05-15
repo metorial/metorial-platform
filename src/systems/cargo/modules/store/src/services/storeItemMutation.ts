@@ -78,6 +78,17 @@ let agentsDirectoryPath = '/agents/';
 
 type SkillStoreRecord = Pick<Skill, 'oid' | 'id'>;
 
+let isStoreDirectoryPathUniqueConstraintError = (error: any) => {
+  if (error?.code !== 'P2002') return false;
+
+  let target = error?.meta?.target;
+  if (Array.isArray(target)) return target.includes('storeOid') && target.includes('path');
+  if (typeof target === 'string') return target.includes('storeOid') && target.includes('path');
+
+  let message = `${error?.message ?? ''}`;
+  return message.includes('storeOid') && message.includes('path');
+};
+
 class StoreItemMutationServiceImpl {
   private assertStoreWritable(d: {
     store: Pick<Store, 'id'> & { isReadOnly?: boolean };
@@ -605,16 +616,39 @@ class StoreItemMutationServiceImpl {
             });
 
       let directoryIds = getId('storeDirectory');
-      return await client.storeDirectory.create({
-        data: {
-          oid: directoryIds.oid,
-          id: directoryIds.id,
-          storeOid: d.store.oid,
-          path: normalizedPath.path,
-          isAutoCreated: d.isAutoCreated,
-          parentDirectoryOid: parentDirectory?.oid ?? null
+      try {
+        return await client.storeDirectory.create({
+          data: {
+            oid: directoryIds.oid,
+            id: directoryIds.id,
+            storeOid: d.store.oid,
+            path: normalizedPath.path,
+            isAutoCreated: d.isAutoCreated,
+            parentDirectoryOid: parentDirectory?.oid ?? null
+          }
+        });
+      } catch (error) {
+        if (!isStoreDirectoryPathUniqueConstraintError(error)) throw error;
+
+        let directory = await this.getStoreDirectoryByPath({
+          store: d.store,
+          path: normalizedPath.path
+        });
+        if (!directory) throw error;
+
+        if (!d.isAutoCreated && directory.isAutoCreated) {
+          return await client.storeDirectory.update({
+            where: {
+              id: directory.id
+            },
+            data: {
+              isAutoCreated: false
+            }
+          });
         }
-      });
+
+        return directory;
+      }
     });
   }
 
