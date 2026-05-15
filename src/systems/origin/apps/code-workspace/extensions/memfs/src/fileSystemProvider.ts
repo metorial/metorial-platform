@@ -65,7 +65,7 @@ export type Entry = File | Directory;
 export class MemFS implements vscode.FileSystemProvider {
   root = new Directory('');
   remoteRoot = this.root;
-  remoteConfig: { id?: string; token?: string; apiUrl: string };
+  remoteConfig: { id?: string; token?: string; apiUrl: string; readonly: boolean };
   pathPrefix = '';
 
   // Operation queue and throttling
@@ -80,14 +80,19 @@ export class MemFS implements vscode.FileSystemProvider {
   private loadingPromise?: Promise<void>;
 
   constructor(apiUrl: string = 'http://localhost:8080') {
-    this.remoteConfig = { apiUrl };
+    this.remoteConfig = { apiUrl, readonly: false };
   }
 
   async stat(uri: vscode.Uri): Promise<vscode.FileStat> {
     await this.ensureLoaded();
 
     const entry = await this._lookup(uri, false);
-    return entry;
+    if (!this.remoteConfig.readonly) return entry;
+
+    return {
+      ...entry,
+      permissions: (vscode as any).FilePermission?.Readonly ?? 1
+    } as unknown as vscode.FileStat;
   }
 
   async readDirectory(uri: vscode.Uri): Promise<[string, vscode.FileType][]> {
@@ -124,6 +129,7 @@ export class MemFS implements vscode.FileSystemProvider {
 
     const basename = path.posix.basename(uri.path);
     const parent = await this._lookupParentDirectory(uri);
+    this.assertWritable(uri);
     let entry = parent.entries.get(basename);
 
     if (entry instanceof Directory) {
@@ -167,6 +173,10 @@ export class MemFS implements vscode.FileSystemProvider {
   ): Promise<void> {
     await this.ensureLoaded();
 
+    if (await this._lookup(oldUri, true)) {
+      this.assertWritable(oldUri);
+    }
+
     if (!options.overwrite && (await this._lookup(newUri, true))) {
       throw vscode.FileSystemError.FileExists(newUri);
     }
@@ -209,6 +219,7 @@ export class MemFS implements vscode.FileSystemProvider {
     const dirname = uri.with({ path: path.posix.dirname(uri.path) });
     const basename = path.posix.basename(uri.path);
     const parent = await this._lookupAsDirectory(dirname, false);
+    this.assertWritable(uri);
 
     if (!parent.entries.has(basename)) {
       throw vscode.FileSystemError.FileNotFound(uri);
@@ -237,6 +248,7 @@ export class MemFS implements vscode.FileSystemProvider {
     const basename = path.posix.basename(uri.path);
     const dirname = uri.with({ path: path.posix.dirname(uri.path) });
     const parent = await this._lookupAsDirectory(dirname, false);
+    this.assertWritable(uri);
 
     const entry = new Directory(basename);
     parent.entries.set(entry.name, entry);
@@ -276,11 +288,17 @@ export class MemFS implements vscode.FileSystemProvider {
 
         this.pathPrefix = `/${tokenId}/${name}`;
 
-        let data = JSON.parse(atob(base64Json)) as { id: string; token: string; url: string };
+        let data = JSON.parse(atob(base64Json)) as {
+          id: string;
+          token: string;
+          url: string;
+          readonly?: boolean;
+        };
 
         this.remoteConfig.id = data.id;
         this.remoteConfig.token = data.token;
         this.remoteConfig.apiUrl = data.url;
+        this.remoteConfig.readonly = data.readonly ?? this.decodeTokenReadonly(data.token);
 
         let dir1 = new Directory(tokenId);
         let dir2 = new Directory(name);
@@ -350,6 +368,26 @@ export class MemFS implements vscode.FileSystemProvider {
   private async _lookupParentDirectory(uri: vscode.Uri): Promise<Directory> {
     const dirname = uri.with({ path: path.posix.dirname(uri.path) });
     return await this._lookupAsDirectory(dirname, false);
+  }
+
+  private assertWritable(uri: vscode.Uri): void {
+    if (this.remoteConfig.readonly) {
+      throw vscode.FileSystemError.NoPermissions(uri);
+    }
+  }
+
+  private decodeTokenReadonly(token: string): boolean {
+    let parts = token.split('.');
+    if (parts.length !== 3) return false;
+
+    let base64Payload = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    while (base64Payload.length % 4) base64Payload += '=';
+
+    try {
+      return JSON.parse(atob(base64Payload)).is_read_only === true;
+    } catch {
+      return false;
+    }
   }
 
   // --- manage file events

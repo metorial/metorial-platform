@@ -9,11 +9,9 @@ ENV SENTRY_AUTH_TOKEN=${SENTRY_AUTH_TOKEN}
 # Copy repository contents from the OSS root context
 COPY . .
 
-# Install CA certificates for Sentry CLI uploads
+# Install CA certificates for Sentry CLI uploads and prepare workspace packages
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/*
-
-# Install dependencies from the OSS workspace
-RUN bun install --linker=hoisted
+RUN sh ./src/systems/cargo/scripts/prepare-docker-build.sh
 
 # Generate Prisma client from the split DB package and build the service app
 WORKDIR /app/src/systems/cargo/db
