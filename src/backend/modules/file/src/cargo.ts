@@ -79,9 +79,7 @@ export type CargoSkillParticipantList = Awaited<
 >;
 export type CargoSkillAgent = Awaited<ReturnType<typeof cargo.skillAgent.get>>;
 export type CargoSkillAgentList = Awaited<ReturnType<typeof cargo.skillAgent.list>>;
-export type CargoSkillConfiguration = Awaited<
-  ReturnType<typeof cargo.skillConfiguration.get>
->;
+export type CargoSkillConfiguration = Awaited<ReturnType<typeof cargo.skillConfiguration.get>>;
 export type CargoSkillConfigurationList = Awaited<
   ReturnType<typeof cargo.skillConfiguration.list>
 >;
@@ -89,6 +87,22 @@ export type CargoSkillVersion = Awaited<ReturnType<typeof cargo.skillVersion.get
 export type CargoSkillVersionList = Awaited<ReturnType<typeof cargo.skillVersion.list>>;
 export type CargoSkillVersionSnapshot = Awaited<
   ReturnType<typeof cargo.skillVersion.getSnapshot>
+>;
+export type CargoSkillMarketplace = Awaited<ReturnType<typeof cargo.skillMarketplace.get>>;
+export type CargoSkillMarketplaceList = Awaited<
+  ReturnType<typeof cargo.skillMarketplace.list>
+>;
+export type CargoSkillMarketplacePlugin = Awaited<
+  ReturnType<typeof cargo.skillMarketplacePlugin.get>
+>;
+export type CargoSkillMarketplacePluginList = Awaited<
+  ReturnType<typeof cargo.skillMarketplacePlugin.list>
+>;
+export type CargoSkillPlugin = Awaited<ReturnType<typeof cargo.skillPlugin.get>>;
+export type CargoSkillPluginList = Awaited<ReturnType<typeof cargo.skillPlugin.list>>;
+export type CargoSkillPluginSkill = Awaited<ReturnType<typeof cargo.skillPluginSkill.get>>;
+export type CargoSkillPluginSkillList = Awaited<
+  ReturnType<typeof cargo.skillPluginSkill.list>
 >;
 
 let pickPreferredInstance = <

@@ -207,7 +207,7 @@ class SkillMarketplacePluginServiceImpl {
     });
     assertPluginIsNotManaged(skillPlugin);
 
-    let pluginSlug = this.normalizePluginSlug(d.input.pluginSlug ?? skillPlugin.slug);
+    let pluginSlug = this.normalizePluginSlug(d.input.pluginSlug ?? skillPlugin.name);
     let skillConfigurationOid = await this.getSkillConfigurationOid({
       tenant: d.tenant,
       environment: d.environment,
@@ -289,7 +289,9 @@ class SkillMarketplacePluginServiceImpl {
       include: skillMarketplacePluginInclude
     });
 
-    await enqueueSkillDestinationSync(d.skillMarketplacePlugin.skillMarketplace.destinationOid);
+    await enqueueSkillDestinationSync(
+      d.skillMarketplacePlugin.skillMarketplace.destinationOid
+    );
 
     return skillMarketplacePlugin;
   }

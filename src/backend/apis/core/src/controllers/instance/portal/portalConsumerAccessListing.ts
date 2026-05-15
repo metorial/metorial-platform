@@ -62,6 +62,7 @@ export let portalConsumerAccessListingController = Controller.create(
             skill_id: v.optional(v.union([v.string(), v.array(v.string())])),
             skill_template_id: v.optional(v.union([v.string(), v.array(v.string())])),
             skill_group_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            skill_marketplace_id: v.optional(v.union([v.string(), v.array(v.string())])),
             type: v.optional(
               v.union([
                 v.enumOf([
@@ -69,7 +70,8 @@ export let portalConsumerAccessListingController = Controller.create(
                   'magic_mcp_server',
                   'skill',
                   'skill_template',
-                  'skill_group'
+                  'skill_group',
+                  'skill_marketplace'
                 ]),
                 v.array(
                   v.enumOf([
@@ -77,7 +79,8 @@ export let portalConsumerAccessListingController = Controller.create(
                     'magic_mcp_server',
                     'skill',
                     'skill_template',
-                    'skill_group'
+                    'skill_group',
+                    'skill_marketplace'
                   ])
                 )
               ])
@@ -96,6 +99,7 @@ export let portalConsumerAccessListingController = Controller.create(
           skillIds: normalizeArrayParam(ctx.query.skill_id),
           skillTemplateIds: normalizeArrayParam(ctx.query.skill_template_id),
           skillGroupIds: normalizeArrayParam(ctx.query.skill_group_id),
+          skillMarketplaceIds: normalizeArrayParam(ctx.query.skill_marketplace_id),
           types: normalizeArrayParam(ctx.query.type),
           search: ctx.query.search
         });
@@ -165,6 +169,10 @@ export let portalConsumerAccessListingController = Controller.create(
             v.object({
               type: v.literal('skill_group'),
               skill_group_id: v.string()
+            }),
+            v.object({
+              type: v.literal('skill_marketplace'),
+              skill_marketplace_id: v.string()
             })
           ])
         })
@@ -199,10 +207,15 @@ export let portalConsumerAccessListingController = Controller.create(
                           type: 'skill_template',
                           skillTemplateId: access.skill_template_id
                         }
-                      : {
-                          type: 'skill_group',
-                          skillGroupId: access.skill_group_id
-                        }
+                      : access.type == 'skill_group'
+                        ? {
+                            type: 'skill_group',
+                            skillGroupId: access.skill_group_id
+                          }
+                        : {
+                            type: 'skill_marketplace',
+                            skillMarketplaceId: access.skill_marketplace_id
+                          }
           }
         });
 

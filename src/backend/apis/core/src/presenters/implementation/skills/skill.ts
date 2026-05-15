@@ -10,7 +10,7 @@ import {
 import { v1IntegrationPreviewPresenter, v1ProviderPreview } from '../provider';
 
 export let v1SkillPreviewPresenter = Object.assign(
-  (
+  async (
     skill: Pick<
       SubspaceSkill,
       | 'id'
@@ -35,7 +35,7 @@ export let v1SkillPreviewPresenter = Object.assign(
     slug: skill.slug,
     name: skill.name,
     description: skill.description,
-    image_url: getImageUrl(skill),
+    image_url: await getImageUrl(skill),
     client_name: skill.clientName,
     client_description: skill.clientDescription,
     client_metadata: skill.clientMetadata,
