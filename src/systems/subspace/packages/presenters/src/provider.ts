@@ -1,7 +1,6 @@
 import type {
   Provider,
   ProviderEntry,
-  ProviderListing,
   ProviderSpecification,
   ProviderType,
   ProviderVariant,
@@ -9,13 +8,13 @@ import type {
   Publisher,
   Tenant
 } from '@metorial-subspace/db';
+import { getImageUrl } from './brand';
 import { providerEntryPresenter } from './providerEntry';
 import { providerTypePresenter } from './providerType';
 import { providerVariantPresenter } from './providerVariant';
 import { providerVersionPresenter } from './providerVersion';
 import { publisherPresenter } from './publisher';
 import { tenantPresenter } from './tenant';
-import { getImageUrl } from './brand';
 
 export let providerPresenter = (
   provider: Provider & {
@@ -99,7 +98,7 @@ export let providerPresenter = (
 };
 
 export let providerPreviewPresenter = (
-  provider: Provider & { listing?: ProviderListing | null }
+  provider: Provider & { listing?: { id: string; image: string } | null }
 ) => ({
   object: 'provider',
 

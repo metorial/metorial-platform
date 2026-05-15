@@ -26,12 +26,17 @@ model Instance {
   organizationOid BigInt
   organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
 
-  subspaceTenantId         String?
-  subspaceTenantIdentifier String?
+  internalTenantIdentifier      String?
+  internalEnvironmentIdentifier String?
 
-  subspaceEnvironmentId         String?
-  subspaceEnvironmentIdentifier String?
-  lastSubspaceSyncAt            DateTime?
+  subspaceTenantId  String?
+  cargoTenantId     String?
+  synthesisTenantId String?
+
+  subspaceEnvironmentId  String?
+  cargoEnvironmentId     String?
+  synthesisEnvironmentId String?
+  lastSubspaceSyncAt     DateTime?
 
   createdAt DateTime  @default(now())
   deletedAt DateTime?
@@ -53,6 +58,10 @@ model Instance {
   consumers                            ConsumerProfile[]
   portals                              Portal[]
   providerTemplates                    ProviderTemplate[]
+  skills                               Skill[]
+  skillTemplates                       SkillTemplate[]
+  skillGroups                          SkillGroup[]
+  consumerSkills                       ConsumerSkill[]
   accessPolicyInstances                AccessPolicyInstance[]
   instanceConsumers                    InstanceConsumer[]
   consumerInvites                      ConsumerInvite[]

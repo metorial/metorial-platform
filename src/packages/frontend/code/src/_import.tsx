@@ -12,11 +12,9 @@ let Wrapper = styled('div')`
   &[data-variant='bordered'] {
     border: 1px solid ${theme.colors.gray300};
     border-radius: 10px;
-    --padding: 15px;
   }
 
   &[data-variant='seamless'] {
-    --padding: 0px;
     width: 100%;
     height: 100%;
   }
@@ -55,12 +53,12 @@ let Pre = styled('pre')`
   font-family: 'JetBrains Mono', monospace;
   font-size: 13px;
   margin: 0;
-  padding: var(--padding) 0px;
+  padding: var(--code-block-padding) 0px;
 `;
 
 let Line = styled('div')`
   line-height: 1.5;
-  padding: 0 var(--padding);
+  padding: 0 var(--code-block-padding);
 `;
 
 let LineNumber = styled('span')`
@@ -118,13 +116,14 @@ export let CodeBlock = ({
   let replacementKeys = Object.keys(replacementsRef.current);
 
   let Highlight = useHighlight();
+  let resolvedPadding = padding ?? (variant == 'bordered' ? '15px' : '0px');
 
   let inner = useMemo(
     () => (
       <Wrapper
         style={
           {
-            '--padding': padding
+            '--code-block-padding': resolvedPadding
           } as any
         }
         data-variant={variant}
@@ -210,7 +209,7 @@ export let CodeBlock = ({
         </Main>
       </Wrapper>
     ),
-    [scrolledLeft, code, language, lineNumbers, variant, Highlight]
+    [scrolledLeft, code, language, lineNumbers, variant, Highlight, resolvedPadding]
   );
 
   return inner;

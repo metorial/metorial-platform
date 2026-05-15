@@ -1,6 +1,7 @@
 import { Service } from '@lowerdeck/service';
-import { type Instance, type OrganizationActor } from '@metorial/db';
+import { Consumer, type Instance, type OrganizationActor } from '@metorial/db';
 import type { ProviderEventBase } from '@metorial/fabric';
+import { ensureSubspaceConsumerActor } from '@metorial/internal-clients';
 import { getActorForSubspace, getTenantForSubspace } from '../subspace';
 
 export type Tail<T extends any[]> = T extends [any, ...infer U] ? U : [];
@@ -68,8 +69,17 @@ type SubspaceMethodArgs<
         Parameters<SubspaceController[K]>[0],
         'tenantId' | 'environmentId' | 'actorId'
       > &
-        (Parameters<SubspaceController[K]>[0] extends { actorId: any }
-          ? { organizationActor: OrganizationActor }
+        (Parameters<SubspaceController[K]>[0] extends { actorId: string }
+          ?
+              | { organizationActor: OrganizationActor }
+              | { consumer: Consumer }
+              | { actorId: string }
+          : {}) &
+        (Parameters<SubspaceController[K]>[0] extends { actorId?: string | undefined | never }
+          ?
+              | { organizationActor?: OrganizationActor }
+              | { consumer?: Consumer }
+              | { actorId?: string }
           : {}),
       ...args: Tail<Parameters<SubspaceController[K]>>
     ]
@@ -217,22 +227,30 @@ export let createSubspaceService = <SubspaceController extends {}, Overrides ext
       let firstArg = args[0] as {
         instance: Instance;
         organizationActor?: OrganizationActor;
+        consumer?: Consumer;
+        actorId?: string;
       };
 
       let { tenant, environmentId } = await getTenantForSubspace(firstArg.instance);
 
-      let actor = await (firstArg.organizationActor
-        ? getActorForSubspace(tenant, firstArg.organizationActor)
-        : undefined);
+      let actorId = firstArg.actorId;
+      if (!actorId && firstArg.organizationActor) {
+        let actor = await getActorForSubspace(tenant, firstArg.organizationActor);
+        actorId = actor?.id;
+      } else if (!actorId && firstArg.consumer) {
+        let actor = await ensureSubspaceConsumerActor(tenant.id, firstArg.consumer);
+        actorId = actor?.id;
+      }
 
       let payload = {
         ...args[0],
-        actorId: actor?.id,
+        actorId,
         tenantId: tenant.id,
         environmentId
       };
 
       delete (payload as any).organizationActor;
+      delete (payload as any).consumer;
       delete (payload as any).instance;
       delete (payload as any).organization;
 

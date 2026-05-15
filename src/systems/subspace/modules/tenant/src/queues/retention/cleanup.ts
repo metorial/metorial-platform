@@ -1,5 +1,6 @@
 import { createCron } from '@lowerdeck/cron';
 import { createQueue } from '@lowerdeck/queue';
+import { sessionMessageBucketRecord, storage } from '@metorial-subspace/connection-utils';
 import { db, withTransaction } from '@metorial-subspace/db';
 import { env } from '../../env';
 import {
@@ -531,8 +532,5 @@ export let tenantLogRetentionStorageCleanupQueue = createQueue<StorageCleanupRec
 
 export let tenantLogRetentionStorageCleanupQueueProcessor =
   tenantLogRetentionStorageCleanupQueue.process(async data => {
-    let { sessionMessageBucketRecord, storage } =
-      await import('@metorial-subspace/connection-utils');
-
     await storage.deleteObject(sessionMessageBucketRecord.bucket, data.key);
   });

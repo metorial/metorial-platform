@@ -1,0 +1,99 @@
+enum EnvironmentType {
+  development
+  production
+}
+
+model Tenant {
+  oid BigInt @id
+  id  String @unique
+
+  identifier String @unique
+  name       String
+
+  createdAt DateTime @default(now())
+
+  environments          Environment[]
+  files                 File[]
+  fileLinks             FileLink[]
+  fileReferences        FileReference[]
+  documents             Document[]
+  tenantActors          TenantActor[]
+  documentVersions      DocumentVersion[]
+  stores                Store[]
+  storeTemplates        StoreTemplate[]
+  storeTemplateBackings StoreTemplateBacking[]
+  skills                Skill[]
+  skillConfigurations   SkillConfiguration[]
+  skillTemplates        SkillTemplate[]
+  skillMarketplaces     SkillMarketplace[]
+  skillPlugins          SkillPlugin[]
+  skillExports          SkillExport[]
+}
+
+model Environment {
+  oid BigInt @id
+  id  String @unique
+
+  type EnvironmentType
+
+  identifier String
+  name       String
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  files                 File[]
+  fileLinks             FileLink[]
+  fileReferences        FileReference[]
+  documents             Document[]
+  documentVersions      DocumentVersion[]
+  stores                Store[]
+  storeTemplates        StoreTemplate[]
+  storeTemplateBackings StoreTemplateBacking[]
+  skills                Skill[]
+  skillConfigurations   SkillConfiguration[]
+  skillTemplates        SkillTemplate[]
+  skillMarketplaces     SkillMarketplace[]
+  skillPlugins          SkillPlugin[]
+  skillExports          SkillExport[]
+
+  @@unique([tenantOid, identifier])
+  @@index([tenantOid])
+}
+
+enum TenantActorType {
+  external
+  system
+}
+
+model TenantActor {
+  oid BigInt @id
+  id  String @unique
+
+  type TenantActorType
+
+  identifier          String
+  name                String
+  organizationActorId String?
+  consumerId          String?
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  documentParticipants   DocumentParticipant[]
+  createdDocuments       Document[]               @relation("DocumentCreator")
+  createdStores          Store[]                  @relation("StoreCreator")
+  createdSkills          Skill[]                  @relation("SkillCreator")
+  createdFiles           File[]                   @relation("FileCreator")
+  createdFileLinks       FileLink[]               @relation("FileLinkCreator")
+  documentVersionEditors DocumentVersionEditors[]
+  storeParticipants      StoreParticipant[]
+  skillParticipants      SkillParticipant[]
+  storeItems             StoreItem[]
+
+  @@unique([tenantOid, identifier])
+}

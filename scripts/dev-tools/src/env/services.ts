@@ -114,6 +114,77 @@ export let signalServiceEnv: Env = [
   }
 ];
 
+export let synthesisServiceEnv: Env = [
+  {
+    key: 'SYNTHESIS_DATABASE_URL',
+    defaultValue: 'postgresql://postgres:postgres@localhost:35432/synthesis'
+  },
+  {
+    key: 'REDIS_URL',
+    defaultValue: 'redis://localhost:36379/0'
+  },
+  {
+    key: 'SYNTHESIS_API_PORT',
+    defaultValue: '52160'
+  },
+  {
+    key: 'SYNTHESIS_HEALTH_PORT',
+    defaultValue: '12121'
+  },
+  { key: 'AI_GATEWAY_API_KEY', isRequired: false },
+  {
+    key: 'SCOUT_URL',
+    defaultValue: 'https://scout-fra-fly-prod.metorial-enterprise.com/metorial-scout'
+  },
+  {
+    key: 'SCOUT_TOKEN',
+    isRequired: false
+  }
+];
+
+export let cargoServiceEnv: Env = [
+  {
+    key: 'DATABASE_URL',
+    defaultValue: 'postgresql://postgres:postgres@localhost:35432/cargo'
+  },
+  {
+    key: 'REDIS_URL',
+    defaultValue: 'redis://localhost:36379/0'
+  },
+  {
+    key: 'OBJECT_STORAGE_URL',
+    defaultValue: 'http://services:52010'
+  },
+  {
+    key: 'FILES_BUCKET_NAME',
+    defaultValue: 'mte-files'
+  },
+  {
+    key: 'DOWNLOAD_PUBLIC_URL',
+    defaultValue: `http://${HOSTNAME}:52151`
+  },
+  {
+    key: 'CARGO_REGION',
+    defaultValue: 'dev'
+  },
+  {
+    key: 'SIGNED_DOWNLOAD_URL_TOKEN_SECRET',
+    defaultValue: 'dev-cargo-download-token-secret'
+  },
+  {
+    key: 'CARGO_API_PORT',
+    defaultValue: '52150'
+  },
+  {
+    key: 'CARGO_CONTENT_PORT',
+    defaultValue: '52151'
+  },
+  {
+    key: 'CARGO_HEALTH_PORT',
+    defaultValue: '12121'
+  }
+];
+
 export let slatesHubEnv: Env = [
   {
     key: 'DATABASE_URL',
@@ -286,6 +357,10 @@ export let subspaceDevEnv: Env = [
   {
     key: 'SCOUT_TOKEN',
     isRequired: false
+  },
+  {
+    key: 'CARGO_API_URL',
+    defaultValue: 'http://localhost:52150/metorial-cargo'
   }
 ];
 

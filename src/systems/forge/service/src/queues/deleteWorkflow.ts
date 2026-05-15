@@ -1,12 +1,14 @@
 import { createCron } from '@lowerdeck/cron';
-import { combineQueueProcessors, createQueue } from '@lowerdeck/queue';
+import { combineQueueProcessors, createQueue, type IQueue, type IQueueProcessor } from '@lowerdeck/queue';
 import { subDays } from 'date-fns';
 import { db } from '../db';
 import { env } from '../env';
 import { deleteWorkflowArtifactsQueue } from './deleteWorkflowArtifact';
 import { deleteWorkflowRunsQueue } from './deleteWorkflowRun';
 
-export let deleteWorkflowQueue = createQueue<{ workflowId: string }>({
+export let deleteWorkflowQueue: IQueue<{ workflowId: string }, any> = createQueue<{
+  workflowId: string;
+}>({
   redisUrl: env.service.REDIS_URL,
   name: 'forge/del-wfl',
   workerOpts: {
@@ -46,7 +48,7 @@ let workflowCleanupCronProcessor = createCron(
   }
 );
 
-export let deleteWorkflowProcessors = combineQueueProcessors([
+export let deleteWorkflowProcessors: IQueueProcessor = combineQueueProcessors([
   deleteWorkflowQueueProcessor,
   workflowCleanupCronProcessor
 ]);

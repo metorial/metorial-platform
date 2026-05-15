@@ -11,6 +11,7 @@ import { createSlugGenerator } from '@lowerdeck/slugify';
 import { Context } from '@metorial/context';
 import {
   addAfterTransactionHook,
+  ConsumerProfile,
   db,
   ID,
   Organization,
@@ -354,6 +355,63 @@ class OrganizationService {
 
     return {
       user: d.user,
+      organizations: orgsWithProjectAndInstances,
+      projects: orgsWithProjectAndInstances.flatMap(org =>
+        org.projects.map(project => ({ ...project, organization: org }))
+      ),
+      instances: orgsWithProjectAndInstances.flatMap(org =>
+        org.instances.map(instance => ({
+          ...instance,
+          organization: org,
+          project: instance.project
+        }))
+      )
+    };
+  }
+
+  async bootConsumer(d: { consumerProfile: ConsumerProfile }) {
+    let instance = await db.instance.findUniqueOrThrow({
+      where: { oid: d.consumerProfile.instanceOid },
+      include: {
+        project: {
+          include: {
+            organization: true
+          }
+        }
+      }
+    });
+
+    let org = instance.project.organization;
+    let orgsWithProjectAndInstances = [
+      {
+        ...org,
+        projects: [
+          {
+            ...instance.project,
+            organization: org,
+            instances: [instance]
+          }
+        ],
+        instances: [instance]
+      }
+    ];
+
+    let [firstName, ...rest] = d.consumerProfile.name.split(' ');
+    let lastName = rest.join(' ');
+
+    return {
+      user: {
+        id: d.consumerProfile.id,
+        status: 'active' as const,
+        type: 'consumer' as const,
+        email: d.consumerProfile.email,
+        name: d.consumerProfile.name,
+        firstName: firstName,
+        lastName: lastName,
+        image: { type: 'default' as const },
+        createdAt: d.consumerProfile.createdAt,
+        updatedAt: d.consumerProfile.updatedAt
+      },
       organizations: orgsWithProjectAndInstances,
       projects: orgsWithProjectAndInstances.flatMap(org =>
         org.projects.map(project => ({ ...project, organization: org }))

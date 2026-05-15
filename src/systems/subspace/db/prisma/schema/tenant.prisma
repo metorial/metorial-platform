@@ -97,6 +97,12 @@ model Tenant {
   integrationInstanceGroups                IntegrationInstanceGroup[]
   integrationInstanceGroupSources          IntegrationInstanceGroupSource[]
   integrationInstanceGroupProviders        IntegrationInstanceGroupProvider[]
+  skills                                   Skill[]
+  skillGroups                              SkillGroup[]
+  skillGroupItems                          SkillGroupItem[]
+  skillEntities                            SkillEntity[]
+  skillForks                               SkillFork[]
+  skillTemplates                           SkillTemplate[]
 }
 
 enum EnvironmentType {
@@ -167,6 +173,12 @@ model Environment {
   integrationInstanceGroups                IntegrationInstanceGroup[]
   integrationInstanceGroupSources          IntegrationInstanceGroupSource[]
   integrationInstanceGroupProviders        IntegrationInstanceGroupProvider[]
+  skills                                   Skill[]
+  skillGroups                              SkillGroup[]
+  skillGroupItems                          SkillGroupItem[]
+  skillEntities                            SkillEntity[]
+  skillForks                               SkillFork[]
+  skillTemplates                           SkillTemplate[]
 }
 
 enum TenantActorType {
@@ -185,6 +197,7 @@ model TenantActor {
   identifier          String
   name                String
   organizationActorId String?
+  consumerId          String?
 
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
@@ -195,6 +208,9 @@ model TenantActor {
   customProviderDeployments CustomProviderDeployment[]
   customProviderCommits     CustomProviderCommit[]
   upcomingCustomProviders   UpcomingCustomProvider[]
+  skills                    Skill[]
+  skillForks                SkillFork[]
+  skillEvents               SkillEvent[]
 
   @@unique([tenantOid, identifier])
   @@map("Actor")

@@ -84,6 +84,12 @@ import { sessionProviderController } from './sessionProvider';
 import { sessionTemplateController } from './sessionTemplate';
 import { sessionTemplateProviderController } from './sessionTemplateProvider';
 import { sessionUsageRecordController } from './sessionUsageRecord';
+import { skillController } from './skill';
+import { skillGroupController } from './skillGroup';
+import { skillGroupItemController } from './skillGroupItem';
+import { skillItemController } from './skillItem';
+import { skillTemplateController } from './skillTemplate';
+import { skillTemplateItemController } from './skillTemplateItem';
 import { solutionController } from './solution';
 import { tenantController } from './tenant';
 import { toolCallController } from './toolCall';
@@ -183,6 +189,15 @@ let sessionControllers = {
   providerRunUsageRecord: providerRunUsageRecordController
 };
 
+let skillControllers = {
+  skill: skillController,
+  skillGroup: skillGroupController,
+  skillGroupItem: skillGroupItemController,
+  skillItem: skillItemController,
+  skillTemplate: skillTemplateController,
+  skillTemplateItem: skillTemplateItemController
+};
+
 let extensionControllers = {
   customProvider: customProviderController,
   customProviderCommit: customProviderCommitController,
@@ -205,6 +220,7 @@ type SystemControllers = typeof systemControllers;
 type CallbackControllers = typeof callbackControllers;
 type ProviderControllers = typeof providerControllers;
 type SessionControllers = typeof sessionControllers;
+type SkillControllers = typeof skillControllers;
 type ExtensionControllers = typeof extensionControllers;
 type AgentControllers = typeof agentControllers;
 type IdentityControllers = typeof identityControllers;
@@ -215,6 +231,7 @@ type RootController = SystemControllers &
   CallbackControllers &
   ProviderControllers &
   SessionControllers &
+  SkillControllers &
   ExtensionControllers &
   AgentControllers &
   IdentityControllers &
@@ -227,6 +244,7 @@ let createRootController = (): RootController =>
     ...callbackControllers,
     ...providerControllers,
     ...sessionControllers,
+    ...skillControllers,
     ...extensionControllers,
     ...agentControllers,
     ...identityControllers,

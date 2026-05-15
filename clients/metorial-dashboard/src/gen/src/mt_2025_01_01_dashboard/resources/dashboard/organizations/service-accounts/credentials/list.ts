@@ -74,7 +74,7 @@ export type DashboardOrganizationsServiceAccountsCredentialsListOutput = {
         object: 'user';
         id: string;
         status: 'active' | 'deleted';
-        type: 'user';
+        type: 'user' | 'consumer';
         email: string;
         name: string;
         firstName: string;

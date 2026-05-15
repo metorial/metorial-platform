@@ -1,6 +1,7 @@
 import { MetorialSDKError } from '@metorial/util-endpoint';
 import { useEffect, useMemo } from 'react';
 import { useLocation, useParams, useSearchParams } from 'react-router-dom';
+import { getConsumerSetupSync } from '../sdk';
 import { useBoot } from './loaders/boot';
 import { useInstance, useInstances } from './loaders/instance';
 import { useOrganization } from './loaders/organization';
@@ -27,12 +28,14 @@ let instanceNotFound = new MetorialSDKError({
 export let useCurrentOrganization = () => {
   let boot = useBoot();
 
+  let consumerSetup = getConsumerSetupSync();
   let params = useParams<{ organizationId: string; projectId: string; instanceId: string }>();
   let [search] = useSearchParams();
 
-  let organizationId = params.organizationId || search.get('organization_id');
-  let projectId = params.projectId || search.get('project_id');
-  let instanceId = params.instanceId || search.get('instance_id');
+  let organizationId =
+    params.organizationId ?? consumerSetup?.organizationId ?? search.get('organization_id');
+  let projectId = params.projectId ?? consumerSetup?.projectId ?? search.get('project_id');
+  let instanceId = params.instanceId ?? consumerSetup?.instanceId ?? search.get('instance_id');
 
   let foundItem = useMemo(() => {
     // return orgs.data?.find(org => org.id == organizationId || org.slug == organizationId);

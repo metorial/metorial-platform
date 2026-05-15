@@ -66,6 +66,14 @@ export let backendEnv: Env = [
     key: 'SUBSPACE_URL',
     defaultValue: 'http://localhost:52070/subspace-controller'
   },
+  {
+    key: 'CARGO_API_URL',
+    defaultValue: 'http://localhost:52150/metorial-cargo'
+  },
+  {
+    key: 'SYNTHESIS_API_URL',
+    defaultValue: 'http://localhost:52160/metorial-synthesis'
+  },
 
   { key: 'PROVIDER_OAUTH_TICKET_SECRET', defaultValue: `provider-oauth-ticket-secret` },
 
@@ -168,5 +176,8 @@ export let backendEnv: Env = [
   {
     key: 'VOYAGER_URL',
     defaultValue: 'http://services:52060/metorial-voyager'
-  }
+  },
+  { key: 'AI_GATEWAY_API_KEY', isRequired: false },
+  { key: 'SCOUT_URL', isRequired: false },
+  { key: 'SCOUT_TOKEN', isRequired: false }
 ];

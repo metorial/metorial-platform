@@ -17,6 +17,14 @@ export let instanceSecretTokenScopes: Scope[] = [
   'instance.secret:read' as const,
   'instance.secret:write' as const,
 
+  'instance.assistant:read' as const,
+  'instance.assistant:write' as const,
+  'instance.assistant.conversation:read' as const,
+  'instance.assistant.conversation:write' as const,
+
+  'instance.skill:read' as const,
+  'instance.skill:write' as const,
+
   'instance.session:read' as const,
   'instance.session:write' as const,
 

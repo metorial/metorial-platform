@@ -24,6 +24,12 @@ model User {
 
   passwordHash String?
 
+  internalTenantIdentifier String?
+  cargoTenantId            String?
+  cargoEnvironmentId       String?
+  synthesisTenantId        String?
+  synthesisEnvironmentId   String?
+
   deletedAt DateTime?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @default(now()) @updatedAt

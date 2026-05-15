@@ -103,6 +103,9 @@ model Provider {
   identityCredentials            IdentityCredential[]
   managedProviderAuthCredentials ManagedProviderAuthCredentials[]
   integrationProviders           IntegrationProvider[]
+  skillProviders                 SkillProvider[]
+  skillProviderLinks             SkillProviderLink[]
+  skillTemplateItems             SkillTemplateItem[]
 
   @@index([status])
   @@index([access])

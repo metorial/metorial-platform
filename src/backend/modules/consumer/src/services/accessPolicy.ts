@@ -11,20 +11,27 @@ import {
   MagicMcpToken,
   Organization,
   ProviderTemplate,
+  Skill,
+  SkillGroup,
+  SkillTemplate,
   withTransaction
 } from '@metorial/db';
 import {
   consumerMagicMcpConnectRoles,
   consumerMagicMcpReadRoles,
   consumerMagicMcpWriteRoles,
-  consumerProviderTemplateReadRoles
+  consumerProviderTemplateReadRoles,
+  consumerSkillReadRoles,
+  consumerSkillWriteRoles
 } from '@metorial/module-access';
 
 type ConsumerAccessPermission =
   | 'magic_mcp_read'
   | 'magic_mcp_connect'
   | 'magic_mcp_write'
-  | 'provider_template_read';
+  | 'provider_template_read'
+  | 'skill_read'
+  | 'skill_write';
 
 type ConsumerAccessPolicyScope =
   | {
@@ -38,7 +45,10 @@ type ConsumerAccessResource =
   | { magicMcpEndpoint: Pick<MagicMcpEndpoint, 'oid'> }
   | { magicMcpToken: Pick<MagicMcpToken, 'oid'> }
   | { magicMcpGroup: Pick<MagicMcpGroup, 'oid'> }
-  | { providerTemplate: Pick<ProviderTemplate, 'oid'> };
+  | { providerTemplate: Pick<ProviderTemplate, 'oid'> }
+  | { skill: Pick<Skill, 'oid'> }
+  | { skillTemplate: Pick<SkillTemplate, 'oid'> }
+  | { skillGroup: Pick<SkillGroup, 'oid'> };
 
 type ConsumerAccessSubject =
   | {
@@ -74,6 +84,16 @@ let consumerAccessPolicies: Record<
     name: 'Metorial Consumer Provider Template Read',
     systemIdentifier: 'consumer_provider_template_read',
     roles: [...consumerProviderTemplateReadRoles]
+  },
+  skill_read: {
+    name: 'Metorial Consumer Skill Read',
+    systemIdentifier: 'consumer_skill_read',
+    roles: [...consumerSkillReadRoles]
+  },
+  skill_write: {
+    name: 'Metorial Consumer Skill Write',
+    systemIdentifier: 'consumer_skill_write',
+    roles: [...consumerSkillWriteRoles]
   }
 };
 
@@ -101,6 +121,10 @@ let isProviderTemplatePermission = (permission: ConsumerAccessPermission) => {
   return permission == 'provider_template_read';
 };
 
+let isSkillPermission = (permission: ConsumerAccessPermission) => {
+  return permission == 'skill_read' || permission == 'skill_write';
+};
+
 let invalidConsumerAccessTargetError = () =>
   new ServiceError(
     preconditionFailedError({
@@ -112,10 +136,19 @@ let getStoredConsumerAccessResource = (
   consumerAccess: Pick<ConsumerAccess, 'type'> & {
     providerTemplate: Pick<ProviderTemplate, 'oid'> | null;
     magicMcpServer: Pick<MagicMcpServer, 'oid'> | null;
+    skill?: Pick<Skill, 'oid'> | null;
+    skillTemplate?: Pick<SkillTemplate, 'oid'> | null;
+    skillGroup?: Pick<SkillGroup, 'oid'> | null;
   }
 ) => {
   if (consumerAccess.type == 'provider_template') {
-    if (!consumerAccess.providerTemplate || consumerAccess.magicMcpServer) {
+    if (
+      !consumerAccess.providerTemplate ||
+      consumerAccess.magicMcpServer ||
+      consumerAccess.skill ||
+      consumerAccess.skillTemplate ||
+      consumerAccess.skillGroup
+    ) {
       throw invalidConsumerAccessTargetError();
     }
 
@@ -125,7 +158,64 @@ let getStoredConsumerAccessResource = (
     };
   }
 
-  if (!consumerAccess.magicMcpServer || consumerAccess.providerTemplate) {
+  if (consumerAccess.type == 'skill') {
+    if (
+      !consumerAccess.skill ||
+      consumerAccess.providerTemplate ||
+      consumerAccess.magicMcpServer ||
+      consumerAccess.skillTemplate ||
+      consumerAccess.skillGroup
+    ) {
+      throw invalidConsumerAccessTargetError();
+    }
+
+    return {
+      type: 'skill' as const,
+      skill: consumerAccess.skill
+    };
+  }
+
+  if (consumerAccess.type == 'skill_template') {
+    if (
+      !consumerAccess.skillTemplate ||
+      consumerAccess.providerTemplate ||
+      consumerAccess.magicMcpServer ||
+      consumerAccess.skill ||
+      consumerAccess.skillGroup
+    ) {
+      throw invalidConsumerAccessTargetError();
+    }
+
+    return {
+      type: 'skill_template' as const,
+      skillTemplate: consumerAccess.skillTemplate
+    };
+  }
+
+  if (consumerAccess.type == 'skill_group') {
+    if (
+      !consumerAccess.skillGroup ||
+      consumerAccess.providerTemplate ||
+      consumerAccess.magicMcpServer ||
+      consumerAccess.skill ||
+      consumerAccess.skillTemplate
+    ) {
+      throw invalidConsumerAccessTargetError();
+    }
+
+    return {
+      type: 'skill_group' as const,
+      skillGroup: consumerAccess.skillGroup
+    };
+  }
+
+  if (
+    !consumerAccess.magicMcpServer ||
+    consumerAccess.providerTemplate ||
+    consumerAccess.skill ||
+    consumerAccess.skillTemplate ||
+    consumerAccess.skillGroup
+  ) {
     throw invalidConsumerAccessTargetError();
   }
 
@@ -243,6 +333,24 @@ class ConsumerAccessPolicyServiceImpl {
       };
     }
 
+    if ('skill' in resource) {
+      return {
+        skillOid: resource.skill.oid
+      };
+    }
+
+    if ('skillTemplate' in resource) {
+      return {
+        skillTemplateOid: resource.skillTemplate.oid
+      };
+    }
+
+    if ('skillGroup' in resource) {
+      return {
+        skillGroupOid: resource.skillGroup.oid
+      };
+    }
+
     return {
       providerTemplateOid: resource.providerTemplate.oid
     };
@@ -258,8 +366,32 @@ class ConsumerAccessPolicyServiceImpl {
       );
     }
 
-    if (!isProviderTemplatePermission(d.permission) && 'providerTemplate' in d.resource) {
+    if (
+      isSkillPermission(d.permission) &&
+      !('skill' in d.resource) &&
+      !('skillTemplate' in d.resource) &&
+      !('skillGroup' in d.resource)
+    ) {
+      throw new Error('Skill permissions can only be attached to skill resources');
+    }
+
+    if (
+      !isProviderTemplatePermission(d.permission) &&
+      !isSkillPermission(d.permission) &&
+      'providerTemplate' in d.resource
+    ) {
       throw new Error('Magic MCP permissions can only be attached to Magic MCP resources');
+    }
+
+    if (
+      !isSkillPermission(d.permission) &&
+      ('skill' in d.resource || 'skillTemplate' in d.resource || 'skillGroup' in d.resource)
+    ) {
+      throw new Error('Non-skill permissions cannot be attached to skill resources');
+    }
+
+    if (d.permission == 'skill_write' && !('skill' in d.resource)) {
+      throw new Error('Skill write permissions can only be attached to skills');
     }
   }
 
@@ -349,6 +481,9 @@ class ConsumerAccessPolicyServiceImpl {
       consumerGroup: Pick<ConsumerGroup, 'accessTagOid'>;
       providerTemplate: Pick<ProviderTemplate, 'oid'> | null;
       magicMcpServer: Pick<MagicMcpServer, 'oid'> | null;
+      skill: Pick<Skill, 'oid'> | null;
+      skillTemplate?: Pick<SkillTemplate, 'oid'> | null;
+      skillGroup?: Pick<SkillGroup, 'oid'> | null;
     };
   }) {
     let resource = getStoredConsumerAccessResource(d.consumerAccess);
@@ -362,6 +497,65 @@ class ConsumerAccessPolicyServiceImpl {
         },
         resource: {
           providerTemplate: resource.providerTemplate
+        },
+        policyScope: {
+          type: 'consumer_access',
+          consumerAccessId: d.consumerAccess.id
+        }
+      });
+
+      return;
+    }
+
+    if (resource.type == 'skill') {
+      for (let permission of ['skill_read', 'skill_write'] as const) {
+        await this.revokeAccess({
+          organization: d.organization,
+          permission,
+          subject: {
+            consumerGroup: d.consumerAccess.consumerGroup
+          },
+          resource: {
+            skill: resource.skill
+          },
+          policyScope: {
+            type: 'consumer_access',
+            consumerAccessId: d.consumerAccess.id
+          }
+        });
+      }
+
+      return;
+    }
+
+    if (resource.type == 'skill_template') {
+      await this.revokeAccess({
+        organization: d.organization,
+        permission: 'skill_read',
+        subject: {
+          consumerGroup: d.consumerAccess.consumerGroup
+        },
+        resource: {
+          skillTemplate: resource.skillTemplate
+        },
+        policyScope: {
+          type: 'consumer_access',
+          consumerAccessId: d.consumerAccess.id
+        }
+      });
+
+      return;
+    }
+
+    if (resource.type == 'skill_group') {
+      await this.revokeAccess({
+        organization: d.organization,
+        permission: 'skill_read',
+        subject: {
+          consumerGroup: d.consumerAccess.consumerGroup
+        },
+        resource: {
+          skillGroup: resource.skillGroup
         },
         policyScope: {
           type: 'consumer_access',

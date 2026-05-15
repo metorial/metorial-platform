@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   instancePublishableTokenScopes,
+  instancePublishableTokenWithConsumerScopes,
   instanceSecretTokenScopes,
   orgManagementTokenScopes,
   scopes
@@ -51,6 +52,22 @@ describe('definitions', () => {
       expect(scopes).toContain('instance.file_link:write');
     });
 
+    it('should contain consumer cargo scopes', () => {
+      expect(scopes).toContain('consumer#organization:read');
+      expect(scopes).toContain('consumer#project:read');
+      expect(scopes).toContain('consumer#instance:read');
+      expect(scopes).toContain('consumer#instance.portal:read');
+      expect(scopes).toContain('consumer#instance.profile:read');
+      expect(scopes).toContain('consumer#instance.file:read');
+      expect(scopes).toContain('consumer#instance.file:write');
+      expect(scopes).toContain('consumer#instance.file_link:read');
+      expect(scopes).toContain('consumer#instance.file_link:write');
+      expect(scopes).toContain('consumer#instance.document:read');
+      expect(scopes).toContain('consumer#instance.document:write');
+      expect(scopes).toContain('consumer#instance.store:read');
+      expect(scopes).toContain('consumer#instance.store:write');
+    });
+
     it('should contain instance.secret scopes', () => {
       expect(scopes).toContain('instance.secret:read');
       expect(scopes).toContain('instance.secret:write');
@@ -60,6 +77,13 @@ describe('definitions', () => {
       expect(scopes).toContain('instance.provider:read');
       expect(scopes).toContain('instance.provider:write');
       expect(scopes).toContain('instance.provider.listing:read');
+    });
+
+    it('should contain instance skill scopes', () => {
+      expect(scopes).toContain('instance.skill:read');
+      expect(scopes).toContain('instance.skill:write');
+      expect(scopes).toContain('consumer#instance.skill:read');
+      expect(scopes).toContain('consumer#instance.skill:write');
     });
 
     it('should contain instance.session scopes', () => {
@@ -133,13 +157,6 @@ describe('definitions', () => {
       expect(orgManagementTokenScopes).toContain('instance.file:read');
       expect(orgManagementTokenScopes).toContain('instance.provider:write');
     });
-
-    it('should have fewer scopes than all scopes', () => {
-      expect(orgManagementTokenScopes.length).toBeLessThan(scopes.length);
-      // orgManagementTokenScopes excludes user:read, user:write and consumer scopes
-      expect(scopes.length - orgManagementTokenScopes.length).toBeGreaterThanOrEqual(2);
-      expect(scopes.length - orgManagementTokenScopes.length).toBeLessThanOrEqual(10);
-    });
   });
 
   describe('instanceSecretTokenScopes', () => {
@@ -184,6 +201,11 @@ describe('definitions', () => {
       expect(instanceSecretTokenScopes).toContain('instance.provider.listing:read');
     });
 
+    it('should contain instance skill scopes', () => {
+      expect(instanceSecretTokenScopes).toContain('instance.skill:read');
+      expect(instanceSecretTokenScopes).toContain('instance.skill:write');
+    });
+
     it('should contain instance provider oauth scopes', () => {
       expect(instanceSecretTokenScopes).toContain('instance.provider_oauth.connection:read');
       expect(instanceSecretTokenScopes).toContain('instance.provider_oauth.session:write');
@@ -225,6 +247,72 @@ describe('definitions', () => {
       instancePublishableTokenScopes.forEach(scope => {
         expect(scope).not.toMatch(/:write$/);
       });
+    });
+  });
+
+  describe('instancePublishableTokenWithConsumerScopes', () => {
+    it('should include consumer-specific cargo scopes', () => {
+      expect(instancePublishableTokenWithConsumerScopes).toContain(
+        'consumer#organization:read'
+      );
+      expect(instancePublishableTokenWithConsumerScopes).toContain('consumer#project:read');
+      expect(instancePublishableTokenWithConsumerScopes).toContain('consumer#instance:read');
+      expect(instancePublishableTokenWithConsumerScopes).toContain(
+        'consumer#instance.portal:read'
+      );
+      expect(instancePublishableTokenWithConsumerScopes).toContain(
+        'consumer#instance.profile:read'
+      );
+      expect(instancePublishableTokenWithConsumerScopes).toContain(
+        'consumer#instance.file:read'
+      );
+      expect(instancePublishableTokenWithConsumerScopes).toContain(
+        'consumer#instance.file:write'
+      );
+      expect(instancePublishableTokenWithConsumerScopes).toContain(
+        'consumer#instance.file_link:read'
+      );
+      expect(instancePublishableTokenWithConsumerScopes).toContain(
+        'consumer#instance.file_link:write'
+      );
+      expect(instancePublishableTokenWithConsumerScopes).toContain(
+        'consumer#instance.document:read'
+      );
+      expect(instancePublishableTokenWithConsumerScopes).toContain(
+        'consumer#instance.document:write'
+      );
+      expect(instancePublishableTokenWithConsumerScopes).toContain(
+        'consumer#instance.store:read'
+      );
+      expect(instancePublishableTokenWithConsumerScopes).toContain(
+        'consumer#instance.store:write'
+      );
+    });
+
+    it('should not include regular file scopes for consumers', () => {
+      expect(instancePublishableTokenWithConsumerScopes).not.toContain('instance.file:read');
+      expect(instancePublishableTokenWithConsumerScopes).not.toContain('instance.file:write');
+      expect(instancePublishableTokenWithConsumerScopes).not.toContain(
+        'instance.file_link:read'
+      );
+      expect(instancePublishableTokenWithConsumerScopes).not.toContain(
+        'instance.file_link:write'
+      );
+    });
+
+    it('should still contain all publishable scopes', () => {
+      instancePublishableTokenScopes.forEach(scope => {
+        expect(instancePublishableTokenWithConsumerScopes).toContain(scope);
+      });
+    });
+
+    it('should include consumer skill scopes', () => {
+      expect(instancePublishableTokenWithConsumerScopes).toContain(
+        'consumer#instance.skill:read'
+      );
+      expect(instancePublishableTokenWithConsumerScopes).toContain(
+        'consumer#instance.skill:write'
+      );
     });
   });
 

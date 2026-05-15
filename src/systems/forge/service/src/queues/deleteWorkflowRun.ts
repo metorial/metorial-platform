@@ -1,9 +1,12 @@
-import { combineQueueProcessors, createQueue } from '@lowerdeck/queue';
+import { combineQueueProcessors, createQueue, type IQueue, type IQueueProcessor } from '@lowerdeck/queue';
 import { db } from '../db';
 import { env } from '../env';
 import { storage } from '../storage';
 
-export let deleteWorkflowRunsQueue = createQueue<{ cursor?: string; workflowId: string }>({
+export let deleteWorkflowRunsQueue: IQueue<{ cursor?: string; workflowId: string }, any> = createQueue<{
+  cursor?: string;
+  workflowId: string;
+}>({
   redisUrl: env.service.REDIS_URL,
   name: 'forge/del-runs',
   workerOpts: {
@@ -38,7 +41,9 @@ let deleteWorkflowRunsQueueProcessor = deleteWorkflowRunsQueue.process(async dat
   }
 });
 
-export let deleteWorkflowRunQueue = createQueue<{ runId: string }>({
+export let deleteWorkflowRunQueue: IQueue<{ runId: string }, any> = createQueue<{
+  runId: string;
+}>({
   redisUrl: env.service.REDIS_URL,
   name: 'forge/del-run',
   workerOpts: {
@@ -63,7 +68,10 @@ let deleteWorkflowRunQueueProcessor = deleteWorkflowRunQueue.process(async data 
   }
 });
 
-export let deleteWorkflowRunStorageQueue = createQueue<{
+export let deleteWorkflowRunStorageQueue: IQueue<{
+  storageKey: string;
+  bucket: string;
+}, any> = createQueue<{
   storageKey: string;
   bucket: string;
 }>({
@@ -80,7 +88,7 @@ let deleteWorkflowRunStorageQueueProcessor = deleteWorkflowRunStorageQueue.proce
   }
 );
 
-export let deleteWorkflowRunProcessors = combineQueueProcessors([
+export let deleteWorkflowRunProcessors: IQueueProcessor = combineQueueProcessors([
   deleteWorkflowRunsQueueProcessor,
   deleteWorkflowRunQueueProcessor,
   deleteWorkflowRunStorageQueueProcessor

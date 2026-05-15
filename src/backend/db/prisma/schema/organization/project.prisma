@@ -18,8 +18,11 @@ model Project {
   organizationOid BigInt
   organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
 
-  subspaceTenantId         String?
-  subspaceTenantIdentifier String?
+  internalTenantIdentifier String?
+
+  subspaceTenantId  String?
+  cargoTenantId     String?
+  synthesisTenantId String?
 
   createdAt DateTime  @default(now())
   deletedAt DateTime?

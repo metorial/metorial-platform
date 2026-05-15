@@ -703,7 +703,6 @@ export type ManagementInstanceIntegrationSetupSessionsCreateBody = {
   name: string;
   description?: string | undefined;
   metadata?: Record<string, any> | undefined;
-  privateMetadata?: Record<string, any> | undefined;
   identityActorId?: string | null | undefined;
   identityId?: string | null | undefined;
   expiresAt?: Date | undefined;
@@ -729,7 +728,6 @@ export let mapManagementInstanceIntegrationSetupSessionsCreateBody =
     name: mtMap.objectField('name', mtMap.passthrough()),
     description: mtMap.objectField('description', mtMap.passthrough()),
     metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-    privateMetadata: mtMap.objectField('private_metadata', mtMap.passthrough()),
     identityActorId: mtMap.objectField(
       'identity_actor_id',
       mtMap.passthrough()

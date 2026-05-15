@@ -1,10 +1,13 @@
 import { createFetchWithRetry } from '@metorial/fetch';
+import { MetorialEndpointManager, MetorialSDKError } from '@metorial/util-endpoint';
 import { MetorialAuthEndpoint } from './auth';
 import { MetorialKeyPrefix, sdkBuilder } from './builder';
 import {
+  mapDashboardInstanceFilesGetOutput,
   MetorialDashboardEndpoint,
   MetorialDashboardInstanceAgentsEndpoint,
   MetorialDashboardInstanceAgentsInstancesEndpoint,
+  MetorialDashboardInstanceAssistantsEndpoint,
   MetorialDashboardInstanceCallbacksDestinationsEndpoint,
   MetorialDashboardInstanceCallbacksEndpoint,
   MetorialDashboardInstanceCallbacksEventsEndpoint,
@@ -13,12 +16,18 @@ import {
   MetorialDashboardInstanceConsumersEndpoint,
   MetorialDashboardInstanceConsumersProfilesEndpoint,
   MetorialDashboardInstanceConsumerSurfacesEndpoint,
+  MetorialDashboardInstanceConversationsEndpoint,
+  MetorialDashboardInstanceConversationsMessagesEndpoint,
   MetorialDashboardInstanceCustomProvidersCodeEndpoint,
   MetorialDashboardInstanceCustomProvidersCommitsEndpoint,
   MetorialDashboardInstanceCustomProvidersDeploymentsEndpoint,
   MetorialDashboardInstanceCustomProvidersEndpoint,
   MetorialDashboardInstanceCustomProvidersEnvironmentsEndpoint,
   MetorialDashboardInstanceCustomProvidersVersionsEndpoint,
+  MetorialDashboardInstanceDocumentsEndpoint,
+  MetorialDashboardInstanceDocumentsParticipantsEndpoint,
+  MetorialDashboardInstanceDocumentsPermissionsEndpoint,
+  MetorialDashboardInstanceDocumentsVersionsEndpoint,
   MetorialDashboardInstanceFileLinksEndpoint,
   MetorialDashboardInstanceFilesEndpoint,
   MetorialDashboardInstanceIdentitiesCredentialsEndpoint,
@@ -34,6 +43,7 @@ import {
   MetorialDashboardInstanceIntegrationProvidersEndpoint,
   MetorialDashboardInstanceIntegrationsEndpoint,
   MetorialDashboardInstanceIntegrationSetupSessionsEndpoint,
+  MetorialDashboardInstanceMagicMcpEndpointsEndpoint,
   MetorialDashboardInstanceMagicMcpGroupsEndpoint,
   MetorialDashboardInstanceMagicMcpServersEndpoint,
   MetorialDashboardInstanceMagicMcpServersProvidersEndpoint,
@@ -91,6 +101,21 @@ import {
   MetorialDashboardInstanceSessionsProvidersEndpoint,
   MetorialDashboardInstanceSessionTemplatesEndpoint,
   MetorialDashboardInstanceSessionTemplatesProvidersEndpoint,
+  MetorialDashboardInstanceSkillGroupsEndpoint,
+  MetorialDashboardInstanceSkillGroupsItemsEndpoint,
+  MetorialDashboardInstanceSkillsAgentsEndpoint,
+  MetorialDashboardInstanceSkillsConfigurationsEndpoint,
+  MetorialDashboardInstanceSkillsEndpoint,
+  MetorialDashboardInstanceSkillsItemsEndpoint,
+  MetorialDashboardInstanceSkillsParticipantsEndpoint,
+  MetorialDashboardInstanceSkillsVersionsEndpoint,
+  MetorialDashboardInstanceSkillsVersionsSnapshotEndpoint,
+  MetorialDashboardInstanceSkillTemplatesEndpoint,
+  MetorialDashboardInstanceSkillTemplatesItemsEndpoint,
+  MetorialDashboardInstanceStoresEndpoint,
+  MetorialDashboardInstanceStoresItemsEndpoint,
+  MetorialDashboardInstanceStoresParticipantsEndpoint,
+  MetorialDashboardInstanceStoresPermissionsEndpoint,
   MetorialDashboardInstanceToolCallsEndpoint,
   MetorialDashboardOauthAuthorizationRequestsEndpoint,
   MetorialDashboardOrganizationsAccessPoliciesEndpoint,
@@ -147,17 +172,222 @@ let fetchWithRetryAndLogging = async (
   }
 };
 
+export type AssistantRequestDeltaEvent = {
+  event: string;
+  data: unknown;
+  rawData: string;
+  id?: string;
+};
+
+export type AssistantRequestDeltaConnectionOptions = {
+  headers?: Record<string, string>;
+  signal?: AbortSignal;
+  lastEventId?: string;
+  onOpen?: (response: Response) => void | Promise<void>;
+  onEvent?: (event: AssistantRequestDeltaEvent) => void | Promise<void>;
+  onSnapshot?: (event: AssistantRequestDeltaEvent) => void | Promise<void>;
+  onDelta?: (event: AssistantRequestDeltaEvent) => void | Promise<void>;
+  onError?: (event: AssistantRequestDeltaEvent) => void | Promise<void>;
+  onClose?: () => void | Promise<void>;
+};
+
+export type AssistantRequestDeltaConnection = {
+  close: () => void;
+  done: Promise<void>;
+};
+
+let parseSseEventData = (rawData: string) => {
+  if (!rawData) return null;
+
+  try {
+    return JSON.parse(rawData);
+  } catch {
+    return rawData;
+  }
+};
+
+let createSseParseStream = async (
+  stream: ReadableStream<Uint8Array>,
+  onEvent: (event: AssistantRequestDeltaEvent) => void | Promise<void>
+) => {
+  let reader = stream.getReader();
+  let decoder = new TextDecoder();
+  let buffer = '';
+
+  let flushBlock = async (block: string) => {
+    let event = 'message';
+    let id: string | undefined;
+    let dataParts: string[] = [];
+
+    for (let rawLine of block.split(/\r?\n/)) {
+      if (!rawLine || rawLine.startsWith(':')) continue;
+
+      let separator = rawLine.indexOf(':');
+      let field = separator == -1 ? rawLine : rawLine.slice(0, separator);
+      let value = separator == -1 ? '' : rawLine.slice(separator + 1).replace(/^ /, '');
+
+      if (field == 'event') event = value;
+      if (field == 'id') id = value;
+      if (field == 'data') dataParts.push(value);
+    }
+
+    if (!dataParts.length) return;
+
+    let rawData = dataParts.join('\n');
+    await onEvent({
+      event,
+      id,
+      rawData,
+      data: parseSseEventData(rawData)
+    });
+  };
+
+  while (true) {
+    let { done, value } = await reader.read();
+    buffer += decoder.decode(value ?? new Uint8Array(), { stream: !done });
+
+    let parts = buffer.split(/\r?\n\r?\n/);
+    buffer = parts.pop() ?? '';
+
+    for (let part of parts) {
+      await flushBlock(part);
+    }
+
+    if (done) {
+      if (buffer.trim()) {
+        await flushBlock(buffer);
+      }
+      break;
+    }
+  }
+};
+
+let createAssistantRequestDeltaConnection = (
+  manager: MetorialEndpointManager<any>,
+  assistantRequestId: string,
+  opts: AssistantRequestDeltaConnectionOptions = {}
+): AssistantRequestDeltaConnection => {
+  let controller = new AbortController();
+  let parentSignal = opts.signal;
+
+  if (parentSignal?.aborted) {
+    controller.abort(parentSignal.reason);
+  } else if (parentSignal) {
+    parentSignal.addEventListener('abort', () => controller.abort(parentSignal.reason), {
+      once: true
+    });
+  }
+
+  let done = (async () => {
+    let headers = new Headers({
+      ...manager.getHeaders(manager.config),
+      Accept: 'text/event-stream',
+      ...(opts.headers ?? {})
+    });
+
+    if (opts.lastEventId) {
+      headers.set('Last-Event-ID', opts.lastEventId);
+    }
+
+    let url = new URL(manager.apiHost);
+    url.pathname =
+      url.pathname.replace(/\/$/, '') +
+      `/assistant-live/requests/${assistantRequestId}/deltas`;
+
+    let response = await manager.fetch(url.toString(), {
+      method: 'GET',
+      headers,
+      credentials: 'include',
+      redirect: 'follow',
+      referrerPolicy: 'no-referrer-when-downgrade',
+      cache: 'no-cache',
+      mode: 'cors',
+      signal: controller.signal
+    });
+
+    await opts.onOpen?.(response);
+
+    if (!response.ok) {
+      let data: any;
+
+      try {
+        data = await response.json();
+      } catch {
+        data = {
+          status: response.status,
+          code: 'sse_connection_failed',
+          message: `Failed to open assistant delta stream (${response.status})`
+        };
+      }
+
+      throw new MetorialSDKError(data);
+    }
+
+    let contentType = response.headers.get('content-type') ?? '';
+    if (!contentType.includes('text/event-stream')) {
+      throw new MetorialSDKError({
+        status: response.status,
+        code: 'invalid_sse_response',
+        message: 'Expected assistant delta stream to return text/event-stream'
+      });
+    }
+
+    if (!response.body) {
+      throw new MetorialSDKError({
+        status: response.status,
+        code: 'empty_sse_response',
+        message: 'Assistant delta stream response body was empty'
+      });
+    }
+
+    try {
+      await createSseParseStream(response.body, async event => {
+        await opts.onEvent?.(event);
+
+        if (event.event == 'snapshot') {
+          await opts.onSnapshot?.(event);
+        } else if (event.event == 'delta') {
+          await opts.onDelta?.(event);
+        } else if (event.event == 'error') {
+          await opts.onError?.(event);
+        }
+      });
+    } finally {
+      await opts.onClose?.();
+    }
+  })();
+
+  return {
+    close: () => controller.abort(),
+    done
+  };
+};
+
 export let createMetorialDashboardSDK = sdkBuilder.build(
   (soft: {
-    apiKey?: `${MetorialKeyPrefix}${string}` | string;
     apiVersion?: '2025-01-01-dashboard';
     headers?: Record<string, string>;
     apiHost?: string;
     organizationId?: string;
     instanceId?: string;
     metorialInstance?: string;
+
+    consumer?: {
+      apiKey: `${MetorialKeyPrefix}${string}` | string;
+      consumerToken: string;
+    };
   }) => ({
     ...soft,
+
+    apiKey: soft.consumer?.apiKey,
+    headers: {
+      ...soft.headers,
+      ...(soft.consumer
+        ? {
+            'Metorial-Consumer-Session-Client-Secret': soft.consumer.consumerToken
+          }
+        : {})
+    },
 
     apiVersion: '2025-01-01-dashboard',
     fetch: (a: any, b: any) => {
@@ -165,10 +395,14 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
       if (soft.metorialInstance) {
         url.searchParams.set('_m', soft.metorialInstance);
       }
+      if (soft.consumer) {
+        url.searchParams.set('_c', '1');
+      }
       a = url.toString();
 
       return fetchWithRetryAndLogging(a, b);
     },
+
     enableDebugLogging: true
   })
 )(manager => ({
@@ -198,7 +432,64 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
   dashboard: new MetorialDashboardEndpoint(manager),
 
   files: Object.assign(new MetorialDashboardInstanceFilesEndpoint(manager), {
-    links: new MetorialDashboardInstanceFileLinksEndpoint(manager)
+    links: new MetorialDashboardInstanceFileLinksEndpoint(manager),
+    upload: async (input: {
+      instanceId: string;
+      file: File | Blob;
+      purpose: string;
+      title?: string;
+      store?: {
+        id: string;
+        path: string;
+      };
+    }) => {
+      let body = new FormData();
+      body.append('file', input.file);
+      body.append('purpose', input.purpose);
+      body.append('instance_id', input.instanceId);
+      if (input.title) body.append('title', input.title);
+      if (input.store) {
+        body.append('store_id', input.store.id);
+        body.append('path', input.store.path);
+      }
+
+      return await manager
+        ._post({
+          path: ['files'],
+          body
+        })
+        .transform(mapDashboardInstanceFilesGetOutput);
+    }
+  }),
+
+  documents: Object.assign(new MetorialDashboardInstanceDocumentsEndpoint(manager), {
+    participants: new MetorialDashboardInstanceDocumentsParticipantsEndpoint(manager),
+    permissions: new MetorialDashboardInstanceDocumentsPermissionsEndpoint(manager),
+    versions: new MetorialDashboardInstanceDocumentsVersionsEndpoint(manager)
+  }),
+
+  stores: Object.assign(new MetorialDashboardInstanceStoresEndpoint(manager), {
+    items: new MetorialDashboardInstanceStoresItemsEndpoint(manager),
+    participants: new MetorialDashboardInstanceStoresParticipantsEndpoint(manager),
+    permissions: new MetorialDashboardInstanceStoresPermissionsEndpoint(manager)
+  }),
+
+  skills: Object.assign(new MetorialDashboardInstanceSkillsEndpoint(manager), {
+    agents: new MetorialDashboardInstanceSkillsAgentsEndpoint(manager),
+    configurations: new MetorialDashboardInstanceSkillsConfigurationsEndpoint(manager),
+    items: new MetorialDashboardInstanceSkillsItemsEndpoint(manager),
+    participants: new MetorialDashboardInstanceSkillsParticipantsEndpoint(manager),
+    versions: Object.assign(new MetorialDashboardInstanceSkillsVersionsEndpoint(manager), {
+      snapshot: new MetorialDashboardInstanceSkillsVersionsSnapshotEndpoint(manager)
+    })
+  }),
+
+  skillTemplates: Object.assign(new MetorialDashboardInstanceSkillTemplatesEndpoint(manager), {
+    items: new MetorialDashboardInstanceSkillTemplatesItemsEndpoint(manager)
+  }),
+
+  skillGroups: Object.assign(new MetorialDashboardInstanceSkillGroupsEndpoint(manager), {
+    items: new MetorialDashboardInstanceSkillGroupsItemsEndpoint(manager)
   }),
 
   magicMcp: {
@@ -208,7 +499,8 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
     }),
     sessions: new MetorialDashboardInstanceMagicMcpSessionsEndpoint(manager),
     tokens: new MetorialDashboardInstanceMagicMcpTokensEndpoint(manager),
-    groups: new MetorialDashboardInstanceMagicMcpGroupsEndpoint(manager)
+    groups: new MetorialDashboardInstanceMagicMcpGroupsEndpoint(manager),
+    endpoints: new MetorialDashboardInstanceMagicMcpEndpointsEndpoint(manager)
   },
 
   portals: Object.assign(new MetorialDashboardInstancePortalsEndpoint(manager), {
@@ -258,6 +550,17 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
     ),
     installations: new MetorialDashboardOrganizationsOauthInstallationsEndpoint(manager),
     authorizations: new MetorialDashboardOrganizationsOauthAuthorizationsEndpoint(manager)
+  },
+
+  assistant: {
+    assistants: new MetorialDashboardInstanceAssistantsEndpoint(manager),
+    conversations: Object.assign(new MetorialDashboardInstanceConversationsEndpoint(manager), {
+      messages: new MetorialDashboardInstanceConversationsMessagesEndpoint(manager)
+    }),
+    connectRequestDeltas: (
+      assistantRequestId: string,
+      opts?: AssistantRequestDeltaConnectionOptions
+    ) => createAssistantRequestDeltaConnection(manager, assistantRequestId, opts)
   },
 
   serviceAccounts: Object.assign(
@@ -413,31 +716,4 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
   })
 }));
 
-export type MetorialDashboardSDK = ReturnType<typeof createMetorialDashboardSDK> & {
-  agents: MetorialDashboardInstanceAgentsEndpoint & {
-    instances: MetorialDashboardInstanceAgentsInstancesEndpoint;
-  };
-  callbacks: MetorialDashboardInstanceCallbacksEndpoint & {
-    destinations: MetorialDashboardInstanceCallbacksDestinationsEndpoint;
-    events: MetorialDashboardInstanceCallbacksEventsEndpoint;
-    notifications: MetorialDashboardInstanceCallbacksNotificationsEndpoint;
-    instances: MetorialDashboardInstanceCallbacksInstancesEndpoint;
-  };
-  sessions: MetorialDashboardInstanceSessionsEndpoint & {
-    events: MetorialDashboardInstanceSessionsEventsEndpoint;
-    messages: MetorialDashboardInstanceSessionsMessagesEndpoint;
-    connections: MetorialDashboardInstanceSessionsConnectionsEndpoint;
-    toolCalls: MetorialDashboardInstanceToolCallsEndpoint;
-    providers: MetorialDashboardInstanceSessionsProvidersEndpoint;
-    participants: MetorialDashboardInstanceSessionsParticipantsEndpoint;
-    errors: MetorialDashboardInstanceSessionsErrorsEndpoint;
-    errorGroups: MetorialDashboardInstanceSessionsErrorGroupsEndpoint;
-  };
-  consumers: MetorialDashboardInstanceConsumersEndpoint & {
-    profiles: MetorialDashboardInstanceConsumersProfilesEndpoint;
-  };
-  consumerSurfaces: MetorialDashboardInstanceConsumerSurfacesEndpoint;
-  providerAuthConfigErrors: MetorialDashboardInstanceProviderAuthConfigErrorsEndpoint & {
-    groups: MetorialDashboardInstanceProviderAuthConfigErrorsGroupsEndpoint;
-  };
-};
+export type MetorialDashboardSDK = ReturnType<typeof createMetorialDashboardSDK>;

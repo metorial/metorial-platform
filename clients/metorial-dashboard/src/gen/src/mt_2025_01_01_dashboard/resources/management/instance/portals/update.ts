@@ -7,6 +7,15 @@ export type ManagementInstancePortalsUpdateOutput = {
   name: string;
   slug: string;
   description: string | null;
+  allowConsumerSkillAuthoring: boolean;
+  allowConsumerSkillPublishing: boolean;
+  skillConfiguration: {
+    id: string;
+    isDefault: boolean;
+    allowScripts: boolean;
+    allowedFileExtensions: string[];
+    allowNonStandardDirectories: boolean;
+  };
   auth: {
     object: 'portal.auth';
     sessionExpiryTimeInSeconds: number;
@@ -25,6 +34,30 @@ export let mapManagementInstancePortalsUpdateOutput =
     name: mtMap.objectField('name', mtMap.passthrough()),
     slug: mtMap.objectField('slug', mtMap.passthrough()),
     description: mtMap.objectField('description', mtMap.passthrough()),
+    allowConsumerSkillAuthoring: mtMap.objectField(
+      'allow_consumer_skill_authoring',
+      mtMap.passthrough()
+    ),
+    allowConsumerSkillPublishing: mtMap.objectField(
+      'allow_consumer_skill_publishing',
+      mtMap.passthrough()
+    ),
+    skillConfiguration: mtMap.objectField(
+      'skill_configuration',
+      mtMap.object({
+        id: mtMap.objectField('id', mtMap.passthrough()),
+        isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
+        allowScripts: mtMap.objectField('allow_scripts', mtMap.passthrough()),
+        allowedFileExtensions: mtMap.objectField(
+          'allowed_file_extensions',
+          mtMap.array(mtMap.passthrough())
+        ),
+        allowNonStandardDirectories: mtMap.objectField(
+          'allow_non_standard_directories',
+          mtMap.passthrough()
+        )
+      })
+    ),
     auth: mtMap.objectField(
       'auth',
       mtMap.object({
@@ -59,6 +92,15 @@ export type ManagementInstancePortalsUpdateBody = {
   description?: string | undefined;
   allowedRedirectUrlFilters?: { url: string }[] | undefined;
   sessionExpiryTimeInSeconds?: number | undefined;
+  allowConsumerSkillAuthoring?: boolean | undefined;
+  allowConsumerSkillPublishing?: boolean | undefined;
+  skillConfiguration?:
+    | {
+        allowScripts?: boolean | undefined;
+        allowedFileExtensions?: string[] | null | undefined;
+        allowNonStandardDirectories?: boolean | undefined;
+      }
+    | undefined;
 };
 
 export let mapManagementInstancePortalsUpdateBody =
@@ -74,6 +116,28 @@ export let mapManagementInstancePortalsUpdateBody =
     sessionExpiryTimeInSeconds: mtMap.objectField(
       'session_expiry_time_in_seconds',
       mtMap.passthrough()
+    ),
+    allowConsumerSkillAuthoring: mtMap.objectField(
+      'allow_consumer_skill_authoring',
+      mtMap.passthrough()
+    ),
+    allowConsumerSkillPublishing: mtMap.objectField(
+      'allow_consumer_skill_publishing',
+      mtMap.passthrough()
+    ),
+    skillConfiguration: mtMap.objectField(
+      'skill_configuration',
+      mtMap.object({
+        allowScripts: mtMap.objectField('allow_scripts', mtMap.passthrough()),
+        allowedFileExtensions: mtMap.objectField(
+          'allowed_file_extensions',
+          mtMap.array(mtMap.passthrough())
+        ),
+        allowNonStandardDirectories: mtMap.objectField(
+          'allow_non_standard_directories',
+          mtMap.passthrough()
+        )
+      })
     )
   });
 

@@ -65,4 +65,10 @@ model Solution {
   integrationInstanceGroups                IntegrationInstanceGroup[]
   integrationInstanceGroupSources          IntegrationInstanceGroupSource[]
   integrationInstanceGroupProviders        IntegrationInstanceGroupProvider[]
+  skills                                   Skill[]
+  skillGroups                              SkillGroup[]
+  skillGroupItems                          SkillGroupItem[]
+  skillEntities                            SkillEntity[]
+  skillForks                               SkillFork[]
+  skillTemplates                           SkillTemplate[]
 }

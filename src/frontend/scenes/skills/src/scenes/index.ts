@@ -1,0 +1,69 @@
+import { dynamicComponent } from '@metorial/dynamic-component';
+import type { SkillAgentsScene as _SkillAgentsScene } from './skillAgents';
+import type {
+  SkillGroupsForSkillScene as _SkillGroupsForSkillScene,
+  SkillGroupSkillsScene as _SkillGroupSkillsScene
+} from './skillGroups';
+import type {
+  SkillLinkProvidersScene as _SkillLinkProvidersScene,
+  SkillTemplateLinkProvidersScene as _SkillTemplateLinkProvidersScene
+} from './skillLinkProviders';
+import type { SkillParticipantsScene as _SkillParticipantsScene } from './skillParticipants';
+import type {
+  SkillGroupSettingsScene as _SkillGroupSettingsScene,
+  SkillSettingsScene as _SkillSettingsScene,
+  SkillTemplateSettingsScene as _SkillTemplateSettingsScene
+} from './skillSettings';
+import type {
+  SkillStoreFileViewerScene as _SkillStoreFileViewerScene,
+  StoreFileViewerScene as _StoreFileViewerScene
+} from './skillStoreFileViewer';
+import type { SkillVersionsScene as _SkillVersionsScene } from './skillVersions';
+
+export let SkillLinkProvidersScene = dynamicComponent<
+  Parameters<typeof _SkillLinkProvidersScene>
+>(() => import('./skillLinkProviders').then(m => m.SkillLinkProvidersScene));
+
+export let SkillAgentsScene = dynamicComponent<Parameters<typeof _SkillAgentsScene>>(() =>
+  import('./skillAgents').then(m => m.SkillAgentsScene)
+);
+
+export let SkillGroupSkillsScene = dynamicComponent<Parameters<typeof _SkillGroupSkillsScene>>(
+  () => import('./skillGroups').then(m => m.SkillGroupSkillsScene)
+);
+
+export let SkillGroupsForSkillScene = dynamicComponent<
+  Parameters<typeof _SkillGroupsForSkillScene>
+>(() => import('./skillGroups').then(m => m.SkillGroupsForSkillScene));
+
+export let SkillParticipantsScene = dynamicComponent<
+  Parameters<typeof _SkillParticipantsScene>
+>(() => import('./skillParticipants').then(m => m.SkillParticipantsScene));
+
+export let SkillVersionsScene = dynamicComponent<Parameters<typeof _SkillVersionsScene>>(() =>
+  import('./skillVersions').then(m => m.SkillVersionsScene)
+);
+
+export let SkillTemplateLinkProvidersScene = dynamicComponent<
+  Parameters<typeof _SkillTemplateLinkProvidersScene>
+>(() => import('./skillLinkProviders').then(m => m.SkillTemplateLinkProvidersScene));
+
+export let SkillSettingsScene = dynamicComponent<Parameters<typeof _SkillSettingsScene>>(() =>
+  import('./skillSettings').then(m => m.SkillSettingsScene)
+);
+
+export let SkillTemplateSettingsScene = dynamicComponent<
+  Parameters<typeof _SkillTemplateSettingsScene>
+>(() => import('./skillSettings').then(m => m.SkillTemplateSettingsScene));
+
+export let SkillGroupSettingsScene = dynamicComponent<
+  Parameters<typeof _SkillGroupSettingsScene>
+>(() => import('./skillSettings').then(m => m.SkillGroupSettingsScene));
+
+export let SkillStoreFileViewerScene = dynamicComponent<
+  Parameters<typeof _SkillStoreFileViewerScene>
+>(() => import('./skillStoreFileViewer').then(m => m.SkillStoreFileViewerScene));
+
+export let StoreFileViewerScene = dynamicComponent<Parameters<typeof _StoreFileViewerScene>>(
+  () => import('./skillStoreFileViewer').then(m => m.StoreFileViewerScene)
+);

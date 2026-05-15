@@ -186,6 +186,10 @@ export let ID = createIdGenerator({
   consumerServerRequest: idType.sorted('csr'),
   consumerSurfaceProviderGroup: idType.sorted('cspg'),
   consumerProviderSetupSessionBinding: idType.sorted('cpsb'),
+  consumerSkill: idType.sorted('cosk'),
+  skillTemplate: idType.sorted('skt'),
+  skillGroup: idType.sorted('skg'),
+  skillGroupItem: idType.sorted('skgi'),
   providerTemplate: idType.sorted('ptm'),
 
   portal: idType.sorted('ptl'),
@@ -194,4 +198,14 @@ export let ID = createIdGenerator({
   consumerAuthClientId: idType.unsorted('coaci'),
   consumerAuthClientSecret: idType.unsorted('coacs', 32),
 
+  assistant: idType.sorted('ast'),
+  assistantImplementation: idType.sorted('aim'),
+  assistantInstance: idType.sorted('asi'),
+  assistantConversation: idType.sorted('asc'),
+  assistantConversationItem: idType.sorted('aci'),
+  assistantMessage: idType.sorted('asm'),
+  assistantModel: idType.sorted('asmd'),
+  assistantModelProvider: idType.sorted('asmp'),
+  assistantRequest: idType.sorted('asq'),
+  assistantRun: idType.sorted('asr')
 });

@@ -5,6 +5,7 @@ import {
   DashboardInstanceMagicMcpServersProvidersUpdateBody,
   DashboardInstanceMagicMcpServersSessionCreateOutput,
   DashboardInstanceMagicMcpServersListQuery,
+  DashboardInstanceMagicMcpServersToolsOutput,
   DashboardInstanceMagicMcpServersUpdateBody
 } from '@metorial/dashboard-sdk';
 import { createLoader, useMutation } from '@metorial/data-hooks';
@@ -99,6 +100,39 @@ export let useMagicMcpServer = (
     useUpdateMutator: data.useMutator('update'),
     useDeleteMutator: data.useMutator('delete')
   };
+};
+
+export let magicMcpServerToolsLoader = createLoader({
+  name: 'magicMcpServerTools',
+  parents: [magicMcpServerLoader],
+  fetch: async (input: { instanceId: string; magicMcpServerIds: string[] }) => {
+    let magicMcpServerIds = Array.from(new Set(input.magicMcpServerIds)).sort();
+
+    return await withAuth(async sdk => {
+      let items = await Promise.all(
+        magicMcpServerIds.map(async magicMcpServerId => {
+          let tools = await sdk.magicMcp.servers.tools(input.instanceId, magicMcpServerId);
+          return [magicMcpServerId, tools.items] as const;
+        })
+      );
+
+      return Object.fromEntries(items) as Record<
+        string,
+        DashboardInstanceMagicMcpServersToolsOutput['items']
+      >;
+    });
+  },
+  mutators: {}
+});
+
+export let useMagicMcpServerTools = (
+  instanceId: string | null | undefined,
+  magicMcpServerIds: string[]
+) => {
+  let ids = Array.from(new Set(magicMcpServerIds)).sort();
+  return magicMcpServerToolsLoader.use(
+    instanceId && ids.length ? { instanceId, magicMcpServerIds: ids } : null
+  );
 };
 
 export let updateMagicMcpServer = (

@@ -21,9 +21,11 @@ export let actorController = tenantWithoutEnvironmentApp.controller({
     .input(
       v.object({
         tenantId: v.string(),
+        actorId: v.optional(v.string()),
         name: v.string(),
         identifier: v.string(),
-        organizationActorId: v.string(),
+        organizationActorId: v.optional(v.string()),
+        consumerId: v.optional(v.string()),
         type: v.enumOf(['external'])
       })
     )
@@ -31,10 +33,12 @@ export let actorController = tenantWithoutEnvironmentApp.controller({
       let actor = await actorService.upsertActor({
         tenant: ctx.tenant,
         input: {
+          id: ctx.input.actorId,
           name: ctx.input.name,
           identifier: ctx.input.identifier,
           type: ctx.input.type,
-          organizationActorId: ctx.input.organizationActorId
+          organizationActorId: ctx.input.organizationActorId,
+          consumerId: ctx.input.consumerId
         }
       });
       return actorPresenter(actor);

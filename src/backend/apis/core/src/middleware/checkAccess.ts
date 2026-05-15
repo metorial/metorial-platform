@@ -48,7 +48,7 @@ export let checkAccess = apiGroup.createMiddleware(
           !scope.startsWith('organization.project:') &&
           !scope.startsWith('organization.instance:') &&
           !scope.startsWith('instance.') &&
-          !scope.startsWith('consumer#instance.')
+          !scope.startsWith('consumer#')
       )
     ) {
       await accessService.checkTargetAccess({

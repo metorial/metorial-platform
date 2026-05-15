@@ -7,6 +7,14 @@ export let instanceScopes = [
   'instance.secret:read' as const,
   'instance.secret:write' as const,
 
+  'instance.assistant:read' as const,
+  'instance.assistant:write' as const,
+  'instance.assistant.conversation:read' as const,
+  'instance.assistant.conversation:write' as const,
+
+  'instance.skill:read' as const,
+  'instance.skill:write' as const,
+
   'instance.session:read' as const,
   'instance.session:write' as const,
 
@@ -105,6 +113,29 @@ export let instanceScopes = [
 ] satisfies readonly `instance.${string}`[];
 
 export let consumerScopes = [
+  'consumer#organization:read' as const,
+  'consumer#project:read' as const,
+  'consumer#instance:read' as const,
+  'consumer#instance.portal:read' as const,
+  'consumer#instance.profile:read' as const,
+
+  'consumer#instance.file:read' as const,
+  'consumer#instance.file:write' as const,
+  'consumer#instance.file_link:read' as const,
+  'consumer#instance.file_link:write' as const,
+  'consumer#instance.document:read' as const,
+  'consumer#instance.document:write' as const,
+  'consumer#instance.store:read' as const,
+  'consumer#instance.store:write' as const,
+
+  'consumer#instance.assistant:read' as const,
+  'consumer#instance.assistant:write' as const,
+  'consumer#instance.assistant.conversation:read' as const,
+  'consumer#instance.assistant.conversation:write' as const,
+
+  'consumer#instance.skill:read' as const,
+  'consumer#instance.skill:write' as const,
+
   'consumer#instance.magic_mcp:read' as const,
   'consumer#instance.magic_mcp:connect' as const,
   'consumer#instance.magic_mcp:write' as const,
@@ -113,7 +144,12 @@ export let consumerScopes = [
 
   'consumer#instance.oauth_session:read' as const,
   'consumer#instance.oauth_session:write' as const
-] satisfies readonly `consumer#instance.${string}`[];
+] satisfies readonly (
+  | `consumer#organization:${string}`
+  | `consumer#project:${string}`
+  | `consumer#instance:${string}`
+  | `consumer#instance.${string}`
+)[];
 
 let coreScopesRaw = [
   'user:read' as const,
@@ -177,6 +213,9 @@ let scopeRaw = [...coreScopesRaw, ...consumerScopes] as const satisfies readonly
   | `user.${string}`
   | `user:${string}`
   | `instance.${string}`
+  | `consumer#organization:${string}`
+  | `consumer#project:${string}`
+  | `consumer#instance:${string}`
   | `consumer#instance.${string}`
 )[];
 

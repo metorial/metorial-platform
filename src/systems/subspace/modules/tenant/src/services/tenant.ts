@@ -2,6 +2,7 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { generatePlainId } from '@lowerdeck/id';
 import { Service } from '@lowerdeck/service';
 import { db, type EnvironmentType, getId } from '@metorial-subspace/db';
+import { reconcileTenantManagedBackingsQueue } from '@metorial-subspace/module-auth/src/queues/reconcile';
 import { tenantLogRetentionSyncQueue } from '../queues/retention/sync';
 
 let include = {};
@@ -72,14 +73,11 @@ class tenantServiceImpl {
       });
 
       if (!existingTenant) {
-        let [{ reconcileTenantManagedBackingsQueue }, solutions] = await Promise.all([
-          import('@metorial-subspace/module-auth'),
-          db.solution.findMany({
-            select: {
-              id: true
-            }
-          })
-        ]);
+        let solutions = await db.solution.findMany({
+          select: {
+            id: true
+          }
+        });
 
         await reconcileTenantManagedBackingsQueue.addManyWithOps(
           solutions.map(solution => ({

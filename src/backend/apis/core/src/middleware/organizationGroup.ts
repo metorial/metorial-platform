@@ -14,13 +14,13 @@ export let organizationGroup = managementGroup.use(async ctx => {
   }
 
   if (ctx.auth.type == 'machine') {
-    if (ctx.auth.restrictions.type == 'instance') {
-      throw new ServiceError(
-        forbiddenError({
-          message: 'Your API key is not authorized to access this endpoint'
-        })
-      );
-    }
+    // if (ctx.auth.restrictions.type == 'instance') {
+    //   throw new ServiceError(
+    //     forbiddenError({
+    //       message: 'Your API key is not authorized to access this endpoint'
+    //     })
+    //   );
+    // }
 
     return {
       type: 'actor' as const,

@@ -61,9 +61,57 @@ let scopeResourceMetadata: Record<string, { name: string; description: string }>
     name: 'Instance File Links',
     description: 'These endpoints manage file link records and access links.'
   },
+  'consumer#organization': {
+    name: 'Consumer Organizations',
+    description: 'These endpoints expose organization information for consumers.'
+  },
+  'consumer#project': {
+    name: 'Consumer Projects',
+    description: 'These endpoints expose project information for consumers.'
+  },
+  'consumer#instance': {
+    name: 'Consumer Instances',
+    description: 'These endpoints expose instance information for consumers.'
+  },
+  'consumer#instance.file': {
+    name: 'Consumer Files',
+    description: 'These endpoints manage consumer access to instance files.'
+  },
+  'consumer#instance.file_link': {
+    name: 'Consumer File Links',
+    description: 'These endpoints manage consumer access to instance file links.'
+  },
+  'consumer#instance.portal': {
+    name: 'Consumer Portals',
+    description: 'These endpoints expose portal information for consumers.'
+  },
+  'consumer#instance.profile': {
+    name: 'Consumer Profiles',
+    description: 'These endpoints expose the authenticated consumer profile.'
+  },
+  'consumer#instance.document': {
+    name: 'Consumer Documents',
+    description: 'These endpoints manage consumer access to instance documents.'
+  },
+  'consumer#instance.store': {
+    name: 'Consumer Stores',
+    description: 'These endpoints manage consumer access to instance stores.'
+  },
   'instance.secret': {
     name: 'Instance Secrets',
     description: 'These endpoints manage instance-level secret values.'
+  },
+  'instance.assistant': {
+    name: 'Assistants',
+    description: 'These endpoints list assistants and read assistant metadata in an instance.'
+  },
+  'instance.assistant.conversation': {
+    name: 'Assistant Conversations',
+    description: 'These endpoints manage assistant conversations and messages in an instance.'
+  },
+  'instance.skill': {
+    name: 'Skills',
+    description: 'These endpoints manage skills, skill items, templates, and template items.'
   },
   'instance.session': {
     name: 'Sessions',
@@ -234,6 +282,18 @@ let scopeResourceMetadata: Record<string, { name: string; description: string }>
   'consumer#instance.magic_mcp': {
     name: 'Consumer Magic MCP',
     description: 'These endpoints manage consumer access to Magic MCP functionality.'
+  },
+  'consumer#instance.assistant': {
+    name: 'Consumer Assistants',
+    description: 'These endpoints list assistants and read assistant metadata for consumers.'
+  },
+  'consumer#instance.assistant.conversation': {
+    name: 'Consumer Assistant Conversations',
+    description: 'These endpoints manage assistant conversations and messages for consumers.'
+  },
+  'consumer#instance.skill': {
+    name: 'Consumer Skills',
+    description: 'These endpoints manage consumer skill access and consumer-owned forks.'
   },
   'consumer#instance.provider_template': {
     name: 'Consumer Provider Templates',

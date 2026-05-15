@@ -1,4 +1,4 @@
-import { combineQueueProcessors, createQueue } from '@lowerdeck/queue';
+import { combineQueueProcessors, type IQueue, type IQueueProcessor } from '@lowerdeck/queue';
 import { BuildContext } from './buildContext';
 
 export type BuildRunStep = Awaited<ReturnType<BuildContext['listSteps']>>[number];
@@ -6,8 +6,8 @@ export type BuildRunStep = Awaited<ReturnType<BuildContext['listSteps']>>[number
 export abstract class ForgeBuildAdapter {
   protected readonly runtime = 'metorial-forge@1.0.0';
 
-  abstract readonly startBuildQueue: ReturnType<typeof createQueue<{ runId: string }>>;
-  abstract readonly buildProviderProcessors: ReturnType<typeof combineQueueProcessors>;
+  abstract readonly startBuildQueue: IQueue<{ runId: string }, any>;
+  abstract readonly buildProviderProcessors: IQueueProcessor;
 
   abstract startBuild(runId: string): Promise<void>;
 

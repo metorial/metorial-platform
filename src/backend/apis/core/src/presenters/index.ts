@@ -1,72 +1,50 @@
 import { declarePresenter } from '@metorial/presenter';
-import { v1AccessPolicyPresenter } from './implementation/accessPolicy';
-import { v1AccessPolicyVersionPresenter } from './implementation/accessPolicyVersion';
-import { v1AccessRolePresenter } from './implementation/accessRole';
-import { v1AccessRoleVersionPresenter } from './implementation/accessRoleVersion';
-import { dashboardApiKeyPresenter, v1ApiKeyPresenter } from './implementation/apiKey';
-import { v1BootPresenter } from './implementation/boot';
-import { v1CliDevicePresenter } from './implementation/cliDevice';
-import { dashboardConsumerPresenter, v1ConsumerPresenter } from './implementation/consumer';
-import { v1ConsumerAccessPresenter } from './implementation/consumerAccess';
-import { v1ConsumerAccessListingPresenter } from './implementation/consumerAccessListing';
-import { v1ConsumerAccessRequestPresenter } from './implementation/consumerAccessRequest';
-import { v1ConsumerAndProfilePresenter } from './implementation/consumerAndProfile';
-import { v1ConsumerGroupPresenter } from './implementation/consumerGroup';
-import { v1ConsumerInvitePresenter } from './implementation/consumerInvite';
 import {
-  dashboardConsumerProfilePresenter,
-  v1ConsumerProfilePresenter
-} from './implementation/consumerProfile';
-import { v1ConsumerProviderPresenter } from './implementation/consumerProvider';
-import { v1ConsumerSessionPresenter } from './implementation/consumerSession';
-import { v1ConsumerSurfacePresenter } from './implementation/consumerSurface';
-import { v1ConsumerSurfaceProviderGroupPresenter } from './implementation/consumerSurfaceProviderGroup';
-import { v1FilePresenter } from './implementation/file';
-import { v1FileLinkPresenter } from './implementation/fileLink';
-import { v1FlagsPresenter } from './implementation/flags';
-import { v1InstanceListPresenter, v1InstancePresenter } from './implementation/instance';
-import { v1MachineAccessPresenter } from './implementation/machineAccess';
-import { v1OAuthApplicationPresenter } from './implementation/oauthApplication';
-import { v1OAuthApplicationClientSecretPresenter } from './implementation/oauthApplicationClientSecret';
-import { v1OAuthAuthorizationPresenter } from './implementation/oauthAuthorization';
-import { v1OAuthAuthorizationLogPresenter } from './implementation/oauthAuthorizationLog';
-import { v1OAuthAuthorizationRequestPresenter } from './implementation/oauthAuthorizationRequest';
-import { v1OAuthInstallationPresenter } from './implementation/oauthInstallation';
-import { v1OAuthScopePermissionsPresenter } from './implementation/oauthScopePermissions';
-import { v1OrganizationPresenter } from './implementation/organization';
-import { v1OrganizationActorPresenter } from './implementation/organizationActor';
-import { v1OrganizationInvitePresenter } from './implementation/organizationInvite';
-import { v1OrganizationMemberPresenter } from './implementation/organizationMember';
-import { v1PortalPresenter } from './implementation/portal';
-import { v1PortalAuthAppPresenter } from './implementation/portalAuthApp';
-import { v1PortalAuthSsoConnectionPresenter } from './implementation/portalAuthSsoConnection';
-import { v1PortalAuthSsoTenantPresenter } from './implementation/portalAuthSsoTenant';
-import { v1PortalAuthSsoTenantSetupPresenter } from './implementation/portalAuthSsoTenantSetup';
-import { v1PortalOAuthAuthorizationPresenter } from './implementation/portalOAuthAuthorization';
-import { v1PortalOAuthClientPresenter } from './implementation/portalOAuthClient';
-import { v1ProfilePresenter } from './implementation/profile';
-import { v1ProjectPresenter } from './implementation/project';
-import { v1ProjectBrandPresenter } from './implementation/projectBrand';
-import {
-  v1AgentInstancePresenter,
-  v1AgentPresenter,
   consumerMagicMcpEndpointPresenter,
   consumerMagicMcpServerPresenter,
   consumerMagicMcpSessionPresenter,
   consumerMagicMcpTokenPresenter,
+  dashboardApiKeyPresenter,
+  dashboardConsumerPresenter,
+  dashboardConsumerProfilePresenter,
   dashboardCustomProviderDeploymentPresenter,
   dashboardCustomProviderPresenter,
   dashboardIdentityActorPresenter,
   dashboardMagicMcpServerPresenter,
+  dashboardMagicMcpServerProviderPresenter,
   dashboardProviderListingPresenter,
   dashboardProviderPresenter,
+  v1AccessPolicyPresenter,
+  v1AccessPolicyVersionPresenter,
+  v1AccessRolePresenter,
+  v1AccessRoleVersionPresenter,
+  v1AgentInstancePresenter,
+  v1AgentPresenter,
+  v1ApiKeyPresenter,
+  v1AssistantConversationPresenter,
+  v1AssistantMessagePresenter,
+  v1AssistantPresenter,
+  v1BootPresenter,
   v1BucketEditorTokenPresenter,
   v1CallbackDestinationPresenter,
   v1CallbackEventPresenter,
   v1CallbackInstancePresenter,
   v1CallbackNotificationPresenter,
   v1CallbackPresenter,
+  v1CliDevicePresenter,
   v1ConfigPresenter,
+  v1ConsumerAccessListingPresenter,
+  v1ConsumerAccessPresenter,
+  v1ConsumerAccessRequestPresenter,
+  v1ConsumerAndProfilePresenter,
+  v1ConsumerGroupPresenter,
+  v1ConsumerInvitePresenter,
+  v1ConsumerPresenter,
+  v1ConsumerProfilePresenter,
+  v1ConsumerProviderPresenter,
+  v1ConsumerSessionPresenter,
+  v1ConsumerSurfacePresenter,
+  v1ConsumerSurfaceProviderGroupPresenter,
   v1CustomProviderCommitPresenter,
   v1CustomProviderDeploymentLogsPresenter,
   v1CustomProviderDeploymentPresenter,
@@ -74,26 +52,57 @@ import {
   // Custom Provider presenters
   v1CustomProviderPresenter,
   v1CustomProviderVersionPresenter,
+  v1DocumentParticipantPresenter,
+  v1DocumentPermissionsPresenter,
+  v1DocumentPresenter,
+  v1DocumentVersionPresenter,
+  dashboardFilePresenter,
+  v1FileLinkPresenter,
+  v1FilePresenter,
+  v1FlagsPresenter,
   v1IdentityActorPresenter,
   v1IdentityCredentialPresenter,
   v1IdentityDelegationConfigPresenter,
   v1IdentityDelegationPresenter,
   v1IdentityDelegationRequestPresenter,
   v1IdentityPresenter,
+  v1InstanceListPresenter,
+  v1InstancePresenter,
   v1IntegrationInstanceGroupPresenter,
   v1IntegrationInstanceGroupProviderPresenter,
   v1IntegrationInstancePresenter,
   v1IntegrationInstanceProviderPresenter,
-  v1IntegrationSetupSessionPresenter,
   v1IntegrationPresenter,
   v1IntegrationProviderPresenter,
+  v1IntegrationSetupSessionPresenter,
+  v1MachineAccessPresenter,
   v1MagicMcpEndpointPresenter,
   v1MagicMcpGroupPresenter,
   v1MagicMcpServerPresenter,
   v1MagicMcpServerProviderPresenter,
-  dashboardMagicMcpServerProviderPresenter,
   v1MagicMcpSessionPresenter,
   v1MagicMcpTokenPresenter,
+  v1OAuthApplicationClientSecretPresenter,
+  v1OAuthApplicationPresenter,
+  v1OAuthAuthorizationLogPresenter,
+  v1OAuthAuthorizationPresenter,
+  v1OAuthAuthorizationRequestPresenter,
+  v1OAuthInstallationPresenter,
+  v1OAuthScopePermissionsPresenter,
+  v1OrganizationActorPresenter,
+  v1OrganizationInvitePresenter,
+  v1OrganizationMemberPresenter,
+  v1OrganizationPresenter,
+  v1PortalAuthAppPresenter,
+  v1PortalAuthSsoConnectionPresenter,
+  v1PortalAuthSsoTenantPresenter,
+  v1PortalAuthSsoTenantSetupPresenter,
+  v1PortalOAuthAuthorizationPresenter,
+  v1PortalOAuthClientPresenter,
+  v1PortalPresenter,
+  v1ProfilePresenter,
+  v1ProjectBrandPresenter,
+  v1ProjectPresenter,
   v1ProviderAuthConfigErrorGroupPresenter,
   v1ProviderAuthConfigErrorPresenter,
   v1ProviderAuthConfigEventPresenter,
@@ -119,6 +128,7 @@ import {
   v1ProviderRunLogsPresenter,
   v1ProviderRunPresenter,
   v1ProviderSpecificationPresenter,
+  v1ProviderTemplatePresenter,
   v1ProviderToolCallPresenter,
   v1ProviderToolPresenter,
   v1ProviderToolsPresenter,
@@ -126,6 +136,16 @@ import {
   v1ProviderTypePresenter,
   v1ProviderVersionPresenter,
   v1PublisherPresenter,
+  v1ScmAccountPreviewPresenter,
+  v1ScmConnectionPresenter,
+  v1ScmConnectionSetupPresenter,
+  v1ScmProviderPresenter,
+  v1ScmProviderSetupPresenter,
+  v1ScmRepoPresenter,
+  v1ScmRepoPreviewPresenter,
+  v1SecretPresenter,
+  v1ServiceAccountCredentialPresenter,
+  v1ServiceAccountPresenter,
   v1SessionConnectionPresenter,
   v1SessionErrorGroupPresenter,
   v1SessionErrorPresenter,
@@ -135,26 +155,29 @@ import {
   v1SessionTemplatePresenter,
   v1SessionTemplateProviderPresenter,
   v1SetupSessionPresenter,
+  v1SkillGroupItemPresenter,
+  v1SkillGroupPresenter,
+  v1SkillItemPresenter,
+  v1SkillAgentPresenter,
+  v1SkillConfigurationPresenter,
+  v1SkillParticipantPresenter,
+  v1SkillPresenter,
+  v1SkillTemplateItemPresenter,
+  v1SkillTemplatePresenter,
+  v1SkillVersionPresenter,
+  v1SkillVersionSnapshotPresenter,
+  v1StoreItemListPresenter,
+  v1StoreItemPresenter,
+  v1StoreParticipantPresenter,
+  v1StorePermissionsPresenter,
+  v1StorePresenter,
   v1SubspaceSessionEventPresenter,
-  v1SubspaceSessionMessagePresenter
-} from './implementation/provider';
-import { v1ProviderTemplatePresenter } from './implementation/providerTemplate';
-import {
-  v1ScmAccountPreviewPresenter,
-  v1ScmConnectionPresenter,
-  v1ScmConnectionSetupPresenter,
-  v1ScmProviderPresenter,
-  v1ScmProviderSetupPresenter,
-  v1ScmRepoPresenter,
-  v1ScmRepoPreviewPresenter
-} from './implementation/scm';
-import { v1SecretPresenter } from './implementation/secret';
-import { v1ServiceAccountPresenter } from './implementation/serviceAccount';
-import { v1ServiceAccountCredentialPresenter } from './implementation/serviceAccountCredential';
-import { v1TeamPresenter } from './implementation/team';
-import { v1TokenPresenter } from './implementation/token';
-import { v1UsagePresenter } from './implementation/usage';
-import { v1UserPresenter } from './implementation/user';
+  v1SubspaceSessionMessagePresenter,
+  v1TeamPresenter,
+  v1TokenPresenter,
+  v1UsagePresenter,
+  v1UserPresenter
+} from './implementation';
 import {
   accessPolicyType,
   accessPolicyVersionType,
@@ -163,6 +186,9 @@ import {
   agentInstanceType,
   agentType,
   apiKeyType,
+  assistantConversationType,
+  assistantMessageType,
+  assistantType,
   authConfigSchemaType,
   authImportSchemaType,
   bootType,
@@ -195,6 +221,10 @@ import {
   customProviderType,
   customProviderVersionType,
   deploymentPreviewType,
+  documentParticipantType,
+  documentPermissionsType,
+  documentType,
+  documentVersionType,
   fileLinkType,
   fileType,
   flagsType,
@@ -209,9 +239,9 @@ import {
   integrationInstanceGroupProviderType,
   integrationInstanceGroupType,
   integrationInstanceProviderType,
-  integrationSetupSessionType,
   integrationInstanceType,
   integrationProviderType,
+  integrationSetupSessionType,
   integrationType,
   machineAccessType,
   magicMcpEndpointType,
@@ -290,6 +320,22 @@ import {
   sessionProviderType,
   sessionTemplateProviderType,
   sessionTemplateType,
+  skillGroupItemType,
+  skillGroupType,
+  skillItemType,
+  skillAgentType,
+  skillConfigurationType,
+  skillParticipantType,
+  skillTemplateItemType,
+  skillTemplateType,
+  skillType,
+  skillVersionSnapshotType,
+  skillVersionType,
+  storeItemListType,
+  storeItemType,
+  storeParticipantType,
+  storePermissionsType,
+  storeType,
   teamType,
   tokenType,
   toolCallType,
@@ -300,6 +346,21 @@ import {
 export let apiKeyPresenter = declarePresenter(apiKeyType, {
   mt_2025_01_01_dashboard: dashboardApiKeyPresenter,
   mt_2026_01_01_magnetar: v1ApiKeyPresenter
+});
+
+export let assistantPresenter = declarePresenter(assistantType, {
+  mt_2025_01_01_dashboard: v1AssistantPresenter,
+  mt_2026_01_01_magnetar: v1AssistantPresenter
+});
+
+export let assistantConversationPresenter = declarePresenter(assistantConversationType, {
+  mt_2025_01_01_dashboard: v1AssistantConversationPresenter,
+  mt_2026_01_01_magnetar: v1AssistantConversationPresenter
+});
+
+export let assistantMessagePresenter = declarePresenter(assistantMessageType, {
+  mt_2025_01_01_dashboard: v1AssistantMessagePresenter,
+  mt_2026_01_01_magnetar: v1AssistantMessagePresenter
 });
 
 export let oauthAuthorizationRequestPresenter = declarePresenter(
@@ -439,13 +500,83 @@ export let bootPresenter = declarePresenter(bootType, {
 });
 
 export let filePresenter = declarePresenter(fileType, {
-  mt_2025_01_01_dashboard: v1FilePresenter,
+  mt_2025_01_01_dashboard: dashboardFilePresenter,
   mt_2026_01_01_magnetar: v1FilePresenter
 });
 
 export let fileLinkPresenter = declarePresenter(fileLinkType, {
   mt_2025_01_01_dashboard: v1FileLinkPresenter,
   mt_2026_01_01_magnetar: v1FileLinkPresenter
+});
+
+export let documentPresenter = declarePresenter(documentType, {
+  mt_2025_01_01_dashboard: v1DocumentPresenter,
+  mt_2026_01_01_magnetar: v1DocumentPresenter
+});
+
+export let documentPermissionsPresenter = declarePresenter(documentPermissionsType, {
+  mt_2025_01_01_dashboard: v1DocumentPermissionsPresenter,
+  mt_2026_01_01_magnetar: v1DocumentPermissionsPresenter
+});
+
+export let documentVersionPresenter = declarePresenter(documentVersionType, {
+  mt_2025_01_01_dashboard: v1DocumentVersionPresenter,
+  mt_2026_01_01_magnetar: v1DocumentVersionPresenter
+});
+
+export let documentParticipantPresenter = declarePresenter(documentParticipantType, {
+  mt_2025_01_01_dashboard: v1DocumentParticipantPresenter,
+  mt_2026_01_01_magnetar: v1DocumentParticipantPresenter
+});
+
+export let storePresenter = declarePresenter(storeType, {
+  mt_2025_01_01_dashboard: v1StorePresenter,
+  mt_2026_01_01_magnetar: v1StorePresenter
+});
+
+export let storePermissionsPresenter = declarePresenter(storePermissionsType, {
+  mt_2025_01_01_dashboard: v1StorePermissionsPresenter,
+  mt_2026_01_01_magnetar: v1StorePermissionsPresenter
+});
+
+export let storeItemPresenter = declarePresenter(storeItemType, {
+  mt_2025_01_01_dashboard: v1StoreItemPresenter,
+  mt_2026_01_01_magnetar: v1StoreItemPresenter
+});
+
+export let storeItemListPresenter = declarePresenter(storeItemListType, {
+  mt_2025_01_01_dashboard: v1StoreItemListPresenter,
+  mt_2026_01_01_magnetar: v1StoreItemListPresenter
+});
+
+export let storeParticipantPresenter = declarePresenter(storeParticipantType, {
+  mt_2025_01_01_dashboard: v1StoreParticipantPresenter,
+  mt_2026_01_01_magnetar: v1StoreParticipantPresenter
+});
+
+export let skillAgentPresenter = declarePresenter(skillAgentType, {
+  mt_2025_01_01_dashboard: v1SkillAgentPresenter,
+  mt_2026_01_01_magnetar: v1SkillAgentPresenter
+});
+
+export let skillConfigurationPresenter = declarePresenter(skillConfigurationType, {
+  mt_2025_01_01_dashboard: v1SkillConfigurationPresenter,
+  mt_2026_01_01_magnetar: v1SkillConfigurationPresenter
+});
+
+export let skillParticipantPresenter = declarePresenter(skillParticipantType, {
+  mt_2025_01_01_dashboard: v1SkillParticipantPresenter,
+  mt_2026_01_01_magnetar: v1SkillParticipantPresenter
+});
+
+export let skillVersionPresenter = declarePresenter(skillVersionType, {
+  mt_2025_01_01_dashboard: v1SkillVersionPresenter,
+  mt_2026_01_01_magnetar: v1SkillVersionPresenter
+});
+
+export let skillVersionSnapshotPresenter = declarePresenter(skillVersionSnapshotType, {
+  mt_2025_01_01_dashboard: v1SkillVersionSnapshotPresenter,
+  mt_2026_01_01_magnetar: v1SkillVersionSnapshotPresenter
 });
 
 export let secretPresenter = declarePresenter(secretType, {
@@ -878,6 +1009,36 @@ export let sessionTemplatePresenter = declarePresenter(sessionTemplateType, {
 export let sessionTemplateProviderPresenter = declarePresenter(sessionTemplateProviderType, {
   mt_2025_01_01_dashboard: v1SessionTemplateProviderPresenter,
   mt_2026_01_01_magnetar: v1SessionTemplateProviderPresenter
+});
+
+export let skillPresenter = declarePresenter(skillType, {
+  mt_2025_01_01_dashboard: v1SkillPresenter,
+  mt_2026_01_01_magnetar: v1SkillPresenter
+});
+
+export let skillGroupPresenter = declarePresenter(skillGroupType, {
+  mt_2025_01_01_dashboard: v1SkillGroupPresenter,
+  mt_2026_01_01_magnetar: v1SkillGroupPresenter
+});
+
+export let skillGroupItemPresenter = declarePresenter(skillGroupItemType, {
+  mt_2025_01_01_dashboard: v1SkillGroupItemPresenter,
+  mt_2026_01_01_magnetar: v1SkillGroupItemPresenter
+});
+
+export let skillItemPresenter = declarePresenter(skillItemType, {
+  mt_2025_01_01_dashboard: v1SkillItemPresenter,
+  mt_2026_01_01_magnetar: v1SkillItemPresenter
+});
+
+export let skillTemplatePresenter = declarePresenter(skillTemplateType, {
+  mt_2025_01_01_dashboard: v1SkillTemplatePresenter,
+  mt_2026_01_01_magnetar: v1SkillTemplatePresenter
+});
+
+export let skillTemplateItemPresenter = declarePresenter(skillTemplateItemType, {
+  mt_2025_01_01_dashboard: v1SkillTemplateItemPresenter,
+  mt_2026_01_01_magnetar: v1SkillTemplateItemPresenter
 });
 
 export let sessionProviderPresenter = declarePresenter(sessionProviderType, {

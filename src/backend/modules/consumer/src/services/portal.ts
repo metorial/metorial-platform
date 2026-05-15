@@ -15,7 +15,9 @@ import {
 import { buildPortalUrlFromTemplate, parsePortalIdFromTemplate } from '../portalUrlTemplate';
 import {
   consumerSurfaceService,
-  type ConsumerSurfaceWithPublishableApiKey
+  type ConsumerSurfaceSkillConfigurationInput,
+  type ConsumerSurfaceWithPublishableApiKey,
+  type EnrichedConsumerSurface
 } from './consumerSurface';
 
 let include = {
@@ -67,6 +69,10 @@ let buildPortalAresAppSlug = (portalId: string) => {
 };
 
 type PortalSurface = ConsumerSurfaceWithPublishableApiKey;
+type EnrichedPortalSurface = EnrichedConsumerSurface;
+type PortalRecord = Prisma.PortalGetPayload<{
+  include: typeof include;
+}>;
 
 let resolvePortalAllowedRedirectUrlFilters = (
   input?: PortalAllowedRedirectUrlFilter[] | null
@@ -92,6 +98,34 @@ let toNullablePortalAllowedRedirectUrlFilters = (
 };
 
 class PortalServiceImpl {
+  private async enrichPortals<T extends PortalRecord>(d: {
+    instance: Instance;
+    portals: T[];
+  }): Promise<(T & { surface: EnrichedPortalSurface })[]> {
+    let surfaces = await consumerSurfaceService.enrichConsumerSurfaces({
+      instance: d.instance,
+      consumerSurfaces: d.portals.map(portal => portal.surface)
+    });
+    let surfaceById = new Map(surfaces.map(surface => [surface.id, surface]));
+
+    return d.portals.map(portal => ({
+      ...portal,
+      surface: surfaceById.get(portal.surface.id)!
+    }));
+  }
+
+  private async enrichPortal<T extends PortalRecord>(d: {
+    instance: Instance;
+    portal: T;
+  }): Promise<T & { surface: EnrichedPortalSurface }> {
+    let [portal] = await this.enrichPortals({
+      instance: d.instance,
+      portals: [d.portal]
+    });
+
+    return portal!;
+  }
+
   private async configurePortalAres(d: {
     portalId: string;
     portalSlug: string;
@@ -126,7 +160,10 @@ class PortalServiceImpl {
       throw new ServiceError(notFoundError('portal'));
     }
 
-    return portal;
+    return await this.enrichPortal({
+      instance: d.instance,
+      portal
+    });
   }
 
   async getPortalPublic(d: { portalId: string }) {
@@ -144,11 +181,14 @@ class PortalServiceImpl {
       throw new ServiceError(notFoundError('portal'));
     }
 
-    return portal;
+    return await this.enrichPortal({
+      instance: portal.instance,
+      portal
+    });
   }
 
   listPortals(d: { instance: Instance }) {
-    return Paginator.create(({ prisma }) =>
+    let paginator = Paginator.create(({ prisma }) =>
       prisma(async opts => {
         return await db.portal.findMany({
           ...opts,
@@ -163,6 +203,18 @@ class PortalServiceImpl {
         });
       })
     );
+
+    return Paginator.create(() => async input => {
+      let list = await paginator.run(input);
+
+      return {
+        ...list,
+        items: await this.enrichPortals({
+          instance: d.instance,
+          portals: list.items
+        })
+      };
+    });
   }
 
   async createPortal(d: {
@@ -174,6 +226,8 @@ class PortalServiceImpl {
       description?: string;
       sessionExpiryTimeInSeconds?: number;
       allowedRedirectUrlFilters?: PortalAllowedRedirectUrlFilter[];
+      allowConsumerSkillAuthoring?: boolean;
+      allowConsumerSkillPublishing?: boolean;
     };
   }) {
     let portalId = await ID.generateId('portal');
@@ -188,7 +242,9 @@ class PortalServiceImpl {
       input: {
         name: d.input.name,
         description: d.input.description,
-        sessionExpiryTimeInSeconds: d.input.sessionExpiryTimeInSeconds ?? 60 * 60 * 24 * 7
+        sessionExpiryTimeInSeconds: d.input.sessionExpiryTimeInSeconds ?? 60 * 60 * 24 * 7,
+        allowConsumerSkillAuthoring: d.input.allowConsumerSkillAuthoring,
+        allowConsumerSkillPublishing: d.input.allowConsumerSkillPublishing
       }
     });
 
@@ -199,7 +255,7 @@ class PortalServiceImpl {
         surface
       });
 
-      return await withTransaction(async db => {
+      let portal = await withTransaction(async db => {
         await Fabric.fire('portal.created:before', d);
 
         let portal = await db.portal.create({
@@ -226,6 +282,11 @@ class PortalServiceImpl {
 
         return portal;
       });
+
+      return await this.enrichPortal({
+        instance: d.instance,
+        portal
+      });
     } catch (error) {
       await Promise.allSettled([
         consumerSurfaceService.deleteConsumerSurface({
@@ -246,6 +307,9 @@ class PortalServiceImpl {
       description?: string;
       sessionExpiryTimeInSeconds?: number;
       allowedRedirectUrlFilters?: PortalAllowedRedirectUrlFilter[];
+      allowConsumerSkillAuthoring?: boolean;
+      allowConsumerSkillPublishing?: boolean;
+      skillConfiguration?: ConsumerSurfaceSkillConfigurationInput;
     };
   }) {
     if (d.portal.status != 'active') {
@@ -261,7 +325,10 @@ class PortalServiceImpl {
       input: {
         name: d.input.name,
         description: d.input.description,
-        sessionExpiryTimeInSeconds: d.input.sessionExpiryTimeInSeconds
+        sessionExpiryTimeInSeconds: d.input.sessionExpiryTimeInSeconds,
+        allowConsumerSkillAuthoring: d.input.allowConsumerSkillAuthoring,
+        allowConsumerSkillPublishing: d.input.allowConsumerSkillPublishing,
+        skillConfiguration: d.input.skillConfiguration
       }
     });
 
@@ -293,16 +360,24 @@ class PortalServiceImpl {
       return portal;
     });
 
-    surface = await this.configurePortalAres({
+    let surfaceRes = await this.configurePortalAres({
       portalId: portal.id,
       portalSlug: portal.slug,
       surface
     });
 
-    return {
-      ...portal,
-      surface
+    surface = {
+      ...surface,
+      ...surfaceRes
     };
+
+    return await this.enrichPortal({
+      instance: portal.instance,
+      portal: {
+        ...portal,
+        surface
+      }
+    });
   }
 
   async archivePortal(d: {
@@ -322,7 +397,7 @@ class PortalServiceImpl {
       consumerSurface: d.portal.surface
     });
 
-    return await withTransaction(async db => {
+    let portal = await withTransaction(async db => {
       await Fabric.fire('portal.archived:before', d);
 
       let portal = await db.portal.update({
@@ -341,6 +416,11 @@ class PortalServiceImpl {
       });
 
       return portal;
+    });
+
+    return await this.enrichPortal({
+      instance: portal.instance,
+      portal
     });
   }
 

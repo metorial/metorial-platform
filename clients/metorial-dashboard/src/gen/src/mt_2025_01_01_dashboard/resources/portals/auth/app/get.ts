@@ -3,10 +3,7 @@ import { mtMap } from '@metorial/util-resource-mapper';
 export type PortalsAuthAppGetOutput = {
   object: 'portal.auth.app';
   id: string;
-  clientId: string;
   slug: string | null;
-  defaultRedirectUrl: string;
-  redirectDomains: string[];
   emailWhitelist: string[];
   createdAt: Date;
   updatedAt: Date;
@@ -15,16 +12,7 @@ export type PortalsAuthAppGetOutput = {
 export let mapPortalsAuthAppGetOutput = mtMap.object<PortalsAuthAppGetOutput>({
   object: mtMap.objectField('object', mtMap.passthrough()),
   id: mtMap.objectField('id', mtMap.passthrough()),
-  clientId: mtMap.objectField('client_id', mtMap.passthrough()),
   slug: mtMap.objectField('slug', mtMap.passthrough()),
-  defaultRedirectUrl: mtMap.objectField(
-    'default_redirect_url',
-    mtMap.passthrough()
-  ),
-  redirectDomains: mtMap.objectField(
-    'redirect_domains',
-    mtMap.array(mtMap.passthrough())
-  ),
   emailWhitelist: mtMap.objectField(
     'email_whitelist',
     mtMap.array(mtMap.passthrough())

@@ -41,6 +41,7 @@ export let indexIntegrationQueueProcessor = indexIntegrationQueue.process(async 
       integrationId: integration.id,
       providerIds: integration.providers.map(provider => provider.provider.id)
     },
+
     body: {
       name: integration.name,
       description: integration.description,

@@ -10,11 +10,11 @@
   },
   "dependencies": {
     "@lowerdeck/cache": "^1.0.2",
-    "@lowerdeck/cron": "^1.1.1",
+    "@lowerdeck/cron": "^1.1.2",
     "@lowerdeck/env": "^1.0.6",
     "@lowerdeck/error": "^1.2.3",
     "@lowerdeck/pagination": "^1.0.8",
-    "@lowerdeck/queue": "^1.0.9",
+    "@lowerdeck/queue": "^1.0.11",
     "@lowerdeck/service": "^1.0.7",
     "@metorial-subspace/db": "^1.0.0",
     "@metorial-subspace/module-provider-internal": "^1.0.0",

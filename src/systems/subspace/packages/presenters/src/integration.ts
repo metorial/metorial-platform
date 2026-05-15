@@ -14,7 +14,6 @@ import type {
   ProviderTemplateBacking
 } from '@metorial-subspace/db';
 import { integrationProviderPresenter } from './integrationProvider';
-import { integrationVersionPresenter } from './integrationVersion';
 
 export let integrationPresenter = (
   integration: Integration & {
@@ -80,6 +79,27 @@ export let integrationPresenter = (
       integration
     })
   ),
+
+  createdAt: integration.createdAt,
+  updatedAt: integration.updatedAt,
+  archivedAt: integration.archivedAt
+});
+
+export let integrationPreviewPresenter = (integration: Integration) => ({
+  object: 'integration',
+
+  id: integration.id,
+  status: integration.status,
+
+  slug: integration.slug,
+  name: integration.name,
+  description: integration.description,
+  metadata: integration.metadata,
+  privateMetadata: integration.privateMetadata,
+
+  canAttachCustomToolFilters: integration.canAttachCustomToolFilters,
+  canAttachCustomProviderConfig: integration.canAttachCustomProviderConfig,
+  canOverrideToolFilters: integration.canOverrideToolFilters,
 
   createdAt: integration.createdAt,
   updatedAt: integration.updatedAt,

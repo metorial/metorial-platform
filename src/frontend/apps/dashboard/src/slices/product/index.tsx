@@ -203,7 +203,7 @@ let SessionTemplateLayout = dynamicPage(() =>
   import('./pages/(session)/session-template/_layout').then(c => c.SessionTemplateLayout)
 );
 let SessionTemplateOverviewPage = dynamicPage(() =>
-  import('./pages/(session)/session-template/index').then(c => c.SessionTemplateOverviewPage)
+  import('./pages/(session)/session-template').then(c => c.SessionTemplateOverviewPage)
 );
 let SessionTemplateSettingsPage = dynamicPage(() =>
   import('./pages/(session)/session-template/settings').then(
@@ -216,6 +216,52 @@ let IntegrationsListLayout = dynamicPage(() =>
 );
 let IntegrationsPage = dynamicPage(() =>
   import('./pages/(integrations)/(list)/integrations').then(c => c.IntegrationsPage)
+);
+let SkillsListLayout = dynamicPage(() =>
+  import('./pages/(skills)/(list)/_layout').then(c => c.SkillsListLayout)
+);
+let SkillsPage = dynamicPage(() =>
+  import('./pages/(skills)/(list)/skills').then(c => c.SkillsPage)
+);
+let SkillTemplatesPage = dynamicPage(() =>
+  import('./pages/(skills)/(list)/templates').then(c => c.SkillTemplatesPage)
+);
+let SkillGroupsPage = dynamicPage(() =>
+  import('./pages/(skills)/(list)/groups').then(c => c.SkillGroupsPage)
+);
+let SkillConfigurationSettingsPage = dynamicPage(() =>
+  import('./pages/(skills)/(list)/settings').then(c => c.SkillConfigurationSettingsPage)
+);
+let SkillLayout = dynamicPage(() =>
+  import('./pages/(skills)/skill/_layout').then(c => c.SkillLayout)
+);
+let SkillPage = dynamicPage(() => import('./pages/(skills)/skill').then(c => c.SkillPage));
+let SkillParticipantsPage = dynamicPage(() =>
+  import('./pages/(skills)/skill/participants').then(c => c.SkillParticipantsPage)
+);
+let SkillVersionsPage = dynamicPage(() =>
+  import('./pages/(skills)/skill/versions').then(c => c.SkillVersionsPage)
+);
+let SkillSettingsPage = dynamicPage(() =>
+  import('./pages/(skills)/skill/settings').then(c => c.SkillSettingsPage)
+);
+let SkillTemplateLayout = dynamicPage(() =>
+  import('./pages/(skills)/skill-template/_layout').then(c => c.SkillTemplateLayout)
+);
+let SkillTemplatePage = dynamicPage(() =>
+  import('./pages/(skills)/skill-template').then(c => c.SkillTemplatePage)
+);
+let SkillTemplateSettingsPage = dynamicPage(() =>
+  import('./pages/(skills)/skill-template/settings').then(c => c.SkillTemplateSettingsPage)
+);
+let SkillGroupLayout = dynamicPage(() =>
+  import('./pages/(skills)/skill-group/_layout').then(c => c.SkillGroupLayout)
+);
+let SkillGroupPage = dynamicPage(() =>
+  import('./pages/(skills)/skill-group').then(c => c.SkillGroupPage)
+);
+let SkillGroupSettingsPage = dynamicPage(() =>
+  import('./pages/(skills)/skill-group/settings').then(c => c.SkillGroupSettingsPage)
 );
 let IntegrationLayout = dynamicPage(() =>
   import('./pages/(integrations)/integration/_layout').then(c => c.IntegrationLayout)
@@ -312,9 +358,7 @@ let IdentityActorConnectionsPage = dynamicPage(() =>
 let IdentityActorDelegationsPage = dynamicPage(() =>
   import('./pages/(identity)/actor/delegations').then(c => c.IdentityActorDelegationsPage)
 );
-let AgentPage = dynamicPage(() =>
-  import('./pages/(identity)/agent').then(c => c.AgentPage)
-);
+let AgentPage = dynamicPage(() => import('./pages/(identity)/agent').then(c => c.AgentPage));
 let AgentOperationsPage = dynamicPage(() =>
   import('./pages/(identity)/agent/operations').then(c => c.AgentOperationsPage)
 );
@@ -562,6 +606,11 @@ let ProjectDeveloperAPIPage = dynamicPage(() =>
   import('./pages/developer/api').then(c => c.ProjectDeveloperAPIPage)
 );
 let ExplorerPage = dynamicPage(() => import('./pages/explorer').then(c => c.ExplorerPage));
+let AssistantPage = dynamicPage(() => import('./pages/assistant').then(c => c.AssistantPage));
+let AssistantConversationPage = dynamicPage(() =>
+  import('./pages/assistant/conversation').then(c => c.AssistantConversationPage)
+);
+let DocumentPage = dynamicPage(() => import('./pages/doc').then(c => c.DocumentPage));
 let FlaggedPage = ({ children, flag }: { children: React.ReactNode; flag: string }) => {
   let flags = useDashboardFlags();
 
@@ -817,6 +866,19 @@ export let productExplorerSlice = createSlice([
   }
 ]);
 
+export let productDocumentSlice = createSlice([
+  {
+    element: <ProductWrapper />,
+
+    children: [
+      {
+        path: 'doc/:id',
+        element: <DocumentPage />
+      }
+    ]
+  }
+]);
+
 export let productIdentitySlice = createSlice([
   {
     element: <ProductWrapper />,
@@ -1056,6 +1118,28 @@ export let productHomeSlice = createSlice([
               }
             ]
           },
+          {
+            path: 'skills',
+            element: <SkillsListLayout />,
+            children: [
+              {
+                path: '',
+                element: <SkillsPage />
+              },
+              {
+                path: 'templates',
+                element: <SkillTemplatesPage />
+              },
+              {
+                path: 'groups',
+                element: <SkillGroupsPage />
+              },
+              {
+                path: 'settings',
+                element: <SkillConfigurationSettingsPage />
+              }
+            ]
+          },
 
           {
             path: 'integration/:integrationId',
@@ -1072,6 +1156,56 @@ export let productHomeSlice = createSlice([
               {
                 path: 'settings',
                 element: <IntegrationSettingsPage />
+              }
+            ]
+          },
+          {
+            path: 'skill/:skillId',
+            element: <SkillLayout />,
+            children: [
+              {
+                path: '',
+                element: <SkillPage />
+              },
+              {
+                path: 'participants',
+                element: <SkillParticipantsPage />
+              },
+              {
+                path: 'versions',
+                element: <SkillVersionsPage />
+              },
+              {
+                path: 'settings',
+                element: <SkillSettingsPage />
+              }
+            ]
+          },
+          {
+            path: 'skill-template/:skillTemplateId',
+            element: <SkillTemplateLayout />,
+            children: [
+              {
+                path: '',
+                element: <SkillTemplatePage />
+              },
+              {
+                path: 'settings',
+                element: <SkillTemplateSettingsPage />
+              }
+            ]
+          },
+          {
+            path: 'skill-group/:skillGroupId',
+            element: <SkillGroupLayout />,
+            children: [
+              {
+                path: '',
+                element: <SkillGroupPage />
+              },
+              {
+                path: 'settings',
+                element: <SkillGroupSettingsPage />
               }
             ]
           },
@@ -1431,6 +1565,19 @@ export let productHomeSlice = createSlice([
                 element: <ProjectDeveloperAPIPage />
               }
             ]
+          },
+          {
+            path: 'assistant',
+            children: [
+              {
+                path: '',
+                element: <AssistantPage />
+              },
+              {
+                path: 'conversation/:assistantConversationId',
+                element: <AssistantConversationPage />
+              }
+            ]
           }
         ]
       },
@@ -1523,6 +1670,7 @@ export let productSlice = createSlice([
       ...productTraceSlice.routes,
       ...productTraceDetailSlice.routes,
       ...productExplorerSlice.routes,
+      ...productDocumentSlice.routes,
       ...productIdentitySlice.routes,
       ...productHomeSlice.routes
     ]

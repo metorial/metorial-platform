@@ -102,7 +102,7 @@ export let showIntegrationFormModal = (
       </Dialog.Title>
       <Dialog.Description>
         {p.type === 'create'
-          ? 'Create a reusable integration contract and attach providers to it.'
+          ? 'Integrations are reusable configurations for providers and tools.'
           : 'Update integration details and setup options.'}
       </Dialog.Description>
       <IntegrationForm {...p} close={close} />

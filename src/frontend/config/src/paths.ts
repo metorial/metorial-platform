@@ -74,6 +74,56 @@ let InstancePaths = Object.assign(
       if (!id) return '#';
       return InstancePaths(organization, project, instance, 'integration', id, ...subPages);
     },
+    skills: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'skills', ...subPages),
+    skillSettings: (organization: EntityParam, project: EntityParam, instance: EntityParam) =>
+      InstancePaths(organization, project, instance, 'skills', 'settings'),
+    skill: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: SubPages
+    ) => {
+      if (!id) return '#';
+      return InstancePaths(organization, project, instance, 'skill', id, ...subPages);
+    },
+    skillTemplates: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'skills', 'templates', ...subPages),
+    skillTemplate: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: SubPages
+    ) => {
+      if (!id) return '#';
+      return InstancePaths(organization, project, instance, 'skill-template', id, ...subPages);
+    },
+    skillGroups: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'skills', 'groups', ...subPages),
+    skillGroup: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: SubPages
+    ) => {
+      if (!id) return '#';
+      return InstancePaths(organization, project, instance, 'skill-group', id, ...subPages);
+    },
     integrationInstance: (
       organization: EntityParam,
       project: EntityParam,
@@ -333,6 +383,31 @@ let InstancePaths = Object.assign(
       instance: EntityParam,
       ...subPages: SubPages
     ) => InstancePaths(organization, project, instance, 'explorer', ...subPages),
+
+    assistant: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'assistant', ...subPages),
+    assistantConversation: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: SubPages
+    ) => {
+      if (!id) return '#';
+      return InstancePaths(
+        organization,
+        project,
+        instance,
+        'assistant',
+        'conversation',
+        id,
+        ...subPages
+      );
+    },
 
     magicMcp: {
       server: (
