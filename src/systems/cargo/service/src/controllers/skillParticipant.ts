@@ -1,8 +1,9 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { skillParticipantPresenter } from '../presenters';
-import { skillParticipantService } from '../services';
+import { skillParticipantService } from '@metorial-cargo/module-skill';
 import { app } from './_app';
+import { dateFilterSchema } from './_dateFilter';
 import { tenantApp } from './tenant';
 
 export let skillParticipantApp = tenantApp.use(async ctx => {
@@ -26,7 +27,12 @@ export let skillParticipantController = app.controller({
         v.object({
           tenantId: v.string(),
           environmentId: v.string(),
-          skillId: v.optional(v.string())
+          skillParticipantIds: v.optional(v.array(v.string())),
+          skillId: v.optional(v.string()),
+          skillIds: v.optional(v.array(v.string())),
+          actorIds: v.optional(v.array(v.string())),
+          createdAt: dateFilterSchema,
+          updatedAt: dateFilterSchema
         })
       )
     )
@@ -34,7 +40,12 @@ export let skillParticipantController = app.controller({
       let paginator = await skillParticipantService.listSkillParticipants({
         tenant: ctx.tenant,
         environment: ctx.environment,
-        skillId: ctx.input.skillId
+        ids: ctx.input.skillParticipantIds,
+        skillId: ctx.input.skillId,
+        skillIds: ctx.input.skillIds,
+        actorIds: ctx.input.actorIds,
+        createdAt: ctx.input.createdAt,
+        updatedAt: ctx.input.updatedAt
       });
       let list = await paginator.run(ctx.input);
 

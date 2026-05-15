@@ -1,8 +1,9 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { documentPermissionsPresenter, documentPresenter } from '../presenters';
-import { documentService } from '../services';
+import { documentService } from '@metorial-cargo/module-doc';
 import { app } from './_app';
+import { dateFilterSchema } from './_dateFilter';
 import { tenantApp } from './tenant';
 
 export let storePermissionsSchema = v.array(v.enumOf(['content_read', 'content_write']));
@@ -65,6 +66,13 @@ export let documentController = app.controller({
         v.object({
           tenantId: v.string(),
           environmentId: v.string(),
+          documentIds: v.optional(v.array(v.string())),
+          fileIds: v.optional(v.array(v.string())),
+          storeIds: v.optional(v.array(v.string())),
+          parentDocumentIds: v.optional(v.array(v.string())),
+          createdByActorIds: v.optional(v.array(v.string())),
+          createdAt: dateFilterSchema,
+          updatedAt: dateFilterSchema,
           actorId: v.optional(v.string()),
           defaultPermissions: v.optional(storePermissionsSchema),
           overridePermissions: v.optional(v.boolean())
@@ -75,6 +83,13 @@ export let documentController = app.controller({
       let paginator = await documentService.listDocuments({
         tenant: ctx.tenant,
         environment: ctx.environment,
+        ids: ctx.input.documentIds,
+        fileIds: ctx.input.fileIds,
+        storeIds: ctx.input.storeIds,
+        parentDocumentIds: ctx.input.parentDocumentIds,
+        createdByActorIds: ctx.input.createdByActorIds,
+        createdAt: ctx.input.createdAt,
+        updatedAt: ctx.input.updatedAt,
         actorId: ctx.input.actorId,
         defaultPermissions: ctx.input.defaultPermissions,
         overridePermissions: ctx.input.overridePermissions

@@ -2,8 +2,10 @@ import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { storeItemPresenter, storePermissionsPresenter, storePresenter } from '../presenters';
-import { actorService, storeService } from '../services';
+import { actorService } from '@metorial-cargo/module-file';
+import { storeService } from '@metorial-cargo/module-store';
 import { app } from './_app';
+import { dateFilterSchema } from './_dateFilter';
 import { storePermissionsSchema } from './document';
 import { tenantApp } from './tenant';
 
@@ -100,16 +102,16 @@ export let storeController = app.controller({
               },
               actor
             })
-        : await storeService.createStore({
-            tenant: ctx.tenant,
-            environment: ctx.environment,
-            input: {
-              id: ctx.input.storeId,
-              name: ctx.input.name,
-              access: ctx.input.access,
-              actor
-            }
-          });
+          : await storeService.createStore({
+              tenant: ctx.tenant,
+              environment: ctx.environment,
+              input: {
+                id: ctx.input.storeId,
+                name: ctx.input.name,
+                access: ctx.input.access,
+                actor
+              }
+            });
 
       return storePresenter(store);
     }),
@@ -121,6 +123,14 @@ export let storeController = app.controller({
         v.object({
           tenantId: v.string(),
           environmentId: v.string(),
+          storeIds: v.optional(v.array(v.string())),
+          parentStoreIds: v.optional(v.array(v.string())),
+          parentStoreTemplateIds: v.optional(v.array(v.string())),
+          createdByActorIds: v.optional(v.array(v.string())),
+          createdAt: dateFilterSchema,
+          updatedAt: dateFilterSchema,
+          dirtyAt: dateFilterSchema,
+          lastEditedAt: dateFilterSchema,
           actorId: v.optional(v.string()),
           defaultPermissions: v.optional(storePermissionsSchema),
           overridePermissions: v.optional(v.boolean())
@@ -137,6 +147,14 @@ export let storeController = app.controller({
         tenant: ctx.tenant,
         environment: ctx.environment,
         actor,
+        ids: ctx.input.storeIds,
+        parentStoreIds: ctx.input.parentStoreIds,
+        parentStoreTemplateIds: ctx.input.parentStoreTemplateIds,
+        createdByActorIds: ctx.input.createdByActorIds,
+        createdAt: ctx.input.createdAt,
+        updatedAt: ctx.input.updatedAt,
+        dirtyAt: ctx.input.dirtyAt,
+        lastEditedAt: ctx.input.lastEditedAt,
         defaultPermissions: ctx.input.defaultPermissions,
         overridePermissions: ctx.input.overridePermissions
       });

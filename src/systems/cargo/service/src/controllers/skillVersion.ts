@@ -1,8 +1,9 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { skillVersionPresenter, skillVersionSnapshotPresenter } from '../presenters';
-import { skillVersionService } from '../services';
+import { skillVersionService } from '@metorial-cargo/module-skill';
 import { app } from './_app';
+import { dateFilterSchema } from './_dateFilter';
 import { skillApp } from './skill';
 import { tenantApp } from './tenant';
 
@@ -27,7 +28,10 @@ export let skillVersionController = app.controller({
         v.object({
           tenantId: v.string(),
           environmentId: v.string(),
-          skillId: v.string()
+          skillId: v.string(),
+          skillVersionIds: v.optional(v.array(v.string())),
+          storeVersionIds: v.optional(v.array(v.string())),
+          createdAt: dateFilterSchema
         })
       )
     )
@@ -35,7 +39,10 @@ export let skillVersionController = app.controller({
       let paginator = await skillVersionService.listSkillVersions({
         tenant: ctx.tenant,
         environment: ctx.environment,
-        skillId: ctx.skill.id
+        skillId: ctx.skill.id,
+        ids: ctx.input.skillVersionIds,
+        storeVersionIds: ctx.input.storeVersionIds,
+        createdAt: ctx.input.createdAt
       });
       let list = await paginator.run(ctx.input);
 

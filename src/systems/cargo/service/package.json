@@ -1,7 +1,7 @@
 {
-  "name": "@metorial/cargo",
-  "module": "index.ts",
-  "type": "commonjs",
+  "name": "@metorial-cargo/service",
+  "module": "src/index.ts",
+  "type": "module",
   "private": true,
   "scripts": {
     "start": "bun run server:start",
@@ -20,9 +20,9 @@
     "infra:logs": "docker compose -p cargo -f ./docker-compose.dev.yml --profile infra logs -f",
     "prisma:generate": "bun run db:generate",
     "prisma:push": "bun run db:push:dev",
-    "db:generate": "bun prisma generate",
-    "db:push:dev": "sh -c 'set -a; . .env; set +a; bun prisma db push --accept-data-loss'",
-    "db:push:test": "sh -c 'set -a; . .env.test; set +a; bun prisma db push --accept-data-loss'",
+    "db:generate": "bun --cwd ../db run prisma:generate",
+    "db:push:dev": "bun --cwd ../db run prisma:push",
+    "db:push:test": "bun --cwd ../db run db:push:test",
     "db:push": "bun run db:push:dev && bun run db:push:test",
     "test": "bunx vitest run --passWithNoTests",
     "test:watch": "bunx vitest watch",
@@ -67,6 +67,16 @@
     "@sentry/bun": "^10.38.0",
     "@sentry/cli": "^3.2.0",
     "object-storage-client": "^0.2.5",
-    "prisma": "^7.2.0"
+    "prisma": "^7.2.0",
+    "@metorial-cargo/db": "^1.0.0",
+    "@metorial-cargo/module-file": "^1.0.0",
+    "@metorial-cargo/module-doc": "^1.0.0",
+    "@metorial-cargo/module-store": "^1.0.0",
+    "@metorial-cargo/module-skill": "^1.0.0"
+  },
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
   }
 }

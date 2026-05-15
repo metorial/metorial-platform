@@ -1,6 +1,6 @@
 import { v } from '@lowerdeck/validation';
 import { environmentPresenter, tenantPresenter } from '../presenters';
-import { environmentService, tenantService } from '../services';
+import { environmentService, tenantService } from '@metorial-cargo/module-file';
 import { app } from './_app';
 
 export let tenantWithoutEnvironmentApp = app.use(async ctx => {

@@ -1,8 +1,9 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { documentParticipantPresenter } from '../presenters';
-import { documentParticipantService } from '../services';
+import { documentParticipantService } from '@metorial-cargo/module-doc';
 import { app } from './_app';
+import { dateFilterSchema } from './_dateFilter';
 import { storePermissionsSchema } from './document';
 import { tenantApp } from './tenant';
 
@@ -28,6 +29,11 @@ export let documentParticipantController = app.controller({
           tenantId: v.string(),
           environmentId: v.string(),
           documentId: v.string(),
+          documentParticipantIds: v.optional(v.array(v.string())),
+          actorIds: v.optional(v.array(v.string())),
+          createdAt: dateFilterSchema,
+          lastEditedAt: dateFilterSchema,
+          lastViewedAt: dateFilterSchema,
           actorId: v.optional(v.string()),
           defaultPermissions: v.optional(storePermissionsSchema),
           overridePermissions: v.optional(v.boolean())
@@ -39,6 +45,11 @@ export let documentParticipantController = app.controller({
         tenant: ctx.tenant,
         environment: ctx.environment,
         documentId: ctx.input.documentId,
+        ids: ctx.input.documentParticipantIds,
+        actorIds: ctx.input.actorIds,
+        createdAt: ctx.input.createdAt,
+        lastEditedAt: ctx.input.lastEditedAt,
+        lastViewedAt: ctx.input.lastViewedAt,
         actorId: ctx.input.actorId,
         defaultPermissions: ctx.input.defaultPermissions,
         overridePermissions: ctx.input.overridePermissions

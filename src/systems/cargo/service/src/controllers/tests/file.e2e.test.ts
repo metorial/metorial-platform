@@ -3,11 +3,7 @@ import { db } from '../../db';
 import { cargoClient } from '../../test/client';
 import { cleanDatabase } from '../../test/setup';
 
-let createActor = async (d: {
-  tenantId: string;
-  identifier: string;
-  name: string;
-}) =>
+let createActor = async (d: { tenantId: string; identifier: string; name: string }) =>
   await cargoClient.actor.upsert({
     tenantId: d.tenantId,
     identifier: d.identifier,
@@ -244,7 +240,9 @@ describe('cargo file.e2e', () => {
       limit: 10
     });
 
-    expect(files.items.map(file => file.id).sort()).toEqual([firstFile.id, secondFile.id].sort());
+    expect(files.items.map(file => file.id).sort()).toEqual(
+      [firstFile.id, secondFile.id].sort()
+    );
 
     let fileLinks = await cargoClient.fileLink.list({
       tenantId: tenant.id,
@@ -253,7 +251,9 @@ describe('cargo file.e2e', () => {
       limit: 10
     });
 
-    expect(fileLinks.items.map(link => link.id).sort()).toEqual([firstLink.id, secondLink.id].sort());
+    expect(fileLinks.items.map(link => link.id).sort()).toEqual(
+      [firstLink.id, secondLink.id].sort()
+    );
   });
 
   it('rejects document-purpose files from the normal file API', async () => {

@@ -1,4 +1,4 @@
-import type { Document, File, FilePurpose, TenantActor } from '../../prisma/generated/client';
+import type { Document, File, FilePurpose, TenantActor } from '@metorial-cargo/db';
 
 import { actorPresenter } from './actor';
 import { filePurposePresenter } from './filePurpose';

@@ -1,9 +1,10 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { getSignedFileDownloadUrl } from '../lib/signedDownloadUrl';
+import { getSignedFileDownloadUrl } from '@metorial-cargo/module-file';
 import { filePresenter } from '../presenters';
-import { fileService } from '../services';
+import { fileService } from '@metorial-cargo/module-file';
 import { app } from './_app';
+import { dateFilterSchema } from './_dateFilter';
 import { storePermissionsSchema, storeShortcutSchema } from './document';
 import { tenantApp } from './tenant';
 
@@ -74,7 +75,16 @@ export let fileController = app.controller({
         v.object({
           tenantId: v.string(),
           environmentId: v.string(),
+          fileIds: v.optional(v.array(v.string())),
           purpose: v.optional(v.array(v.string())),
+          storeIds: v.optional(v.array(v.string())),
+          documentIds: v.optional(v.array(v.string())),
+          fileLinkIds: v.optional(v.array(v.string())),
+          fileReferenceIds: v.optional(v.array(v.string())),
+          createdByActorIds: v.optional(v.array(v.string())),
+          createdAt: dateFilterSchema,
+          updatedAt: dateFilterSchema,
+          expiresAt: dateFilterSchema,
           includeDeleted: v.optional(v.boolean()),
           actorId: v.optional(v.string()),
           defaultPermissions: v.optional(storePermissionsSchema),
@@ -86,7 +96,16 @@ export let fileController = app.controller({
       let paginator = await fileService.listFiles({
         tenant: ctx.tenant,
         environment: ctx.environment,
+        ids: ctx.input.fileIds,
         purpose: ctx.input.purpose,
+        storeIds: ctx.input.storeIds,
+        documentIds: ctx.input.documentIds,
+        fileLinkIds: ctx.input.fileLinkIds,
+        fileReferenceIds: ctx.input.fileReferenceIds,
+        createdByActorIds: ctx.input.createdByActorIds,
+        createdAt: ctx.input.createdAt,
+        updatedAt: ctx.input.updatedAt,
+        expiresAt: ctx.input.expiresAt,
         includeDeleted: ctx.input.includeDeleted,
         actorId: ctx.input.actorId,
         defaultPermissions: ctx.input.defaultPermissions,

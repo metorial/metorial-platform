@@ -9,7 +9,7 @@ process.env.CARGO_REGION ??= 'tst';
 process.env.SIGNED_DOWNLOAD_URL_TOKEN_SECRET ??= 'cargo-download-test-secret';
 
 import { PrismaPg } from '@prisma/adapter-pg';
-import { PrismaClient } from '../../prisma/generated/client';
+import { PrismaClient } from '@metorial-cargo/db';
 import { afterAll } from 'vitest';
 import { setupPrismaTestDb, setupTestGlobals } from '@lowerdeck/testing-tools';
 

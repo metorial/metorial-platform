@@ -1,4 +1,4 @@
-import type { Skill, SkillParticipant, TenantActor } from '../../prisma/generated/client';
+import type { Skill, SkillParticipant, TenantActor } from '@metorial-cargo/db';
 import { actorPresenter } from './actor';
 
 export let skillParticipantPresenter = (

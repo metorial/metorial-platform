@@ -1,8 +1,9 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { fileReferencePresenter } from '../presenters';
-import { fileReferenceService } from '../services';
+import { fileReferenceService } from '@metorial-cargo/module-file';
 import { app } from './_app';
+import { dateFilterSchema } from './_dateFilter';
 import { fileApp } from './file';
 import { fileLinkApp } from './fileLink';
 import { tenantApp } from './tenant';
@@ -100,9 +101,14 @@ export let fileReferenceController = app.controller({
         v.object({
           tenantId: v.string(),
           environmentId: v.string(),
+          fileReferenceIds: v.optional(v.array(v.string())),
           fileLinkId: v.optional(v.string()),
+          fileLinkIds: v.optional(v.array(v.string())),
+          fileIds: v.optional(v.array(v.string())),
           entityType: v.optional(v.string()),
-          entityId: v.optional(v.string())
+          entityId: v.optional(v.string()),
+          entityIds: v.optional(v.array(v.string())),
+          createdAt: dateFilterSchema
         })
       )
     )
@@ -110,9 +116,14 @@ export let fileReferenceController = app.controller({
       let paginator = await fileReferenceService.listFileReferences({
         tenant: ctx.tenant,
         environment: ctx.environment,
+        ids: ctx.input.fileReferenceIds,
         fileLinkId: ctx.input.fileLinkId,
+        fileLinkIds: ctx.input.fileLinkIds,
+        fileIds: ctx.input.fileIds,
         entityType: ctx.input.entityType,
-        entityId: ctx.input.entityId
+        entityId: ctx.input.entityId,
+        entityIds: ctx.input.entityIds,
+        createdAt: ctx.input.createdAt
       });
 
       let list = await paginator.run(ctx.input);

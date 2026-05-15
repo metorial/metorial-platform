@@ -1,4 +1,4 @@
-import type { SkillAgentRecord } from '../services/skillAgent';
+import type { SkillAgentRecord } from '@metorial-cargo/module-skill';
 
 export let skillAgentPresenter = (skillAgent: SkillAgentRecord) => ({
   object: 'cargo#skillAgent',

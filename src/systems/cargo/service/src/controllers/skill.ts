@@ -1,8 +1,9 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { skillParticipantPresenter, skillPresenter } from '../presenters';
-import { skillService, skillTemplateService } from '../services';
+import { skillService, skillTemplateService } from '@metorial-cargo/module-skill';
 import { app } from './_app';
+import { dateFilterSchema } from './_dateFilter';
 import { storePermissionsSchema } from './document';
 import { tenantApp } from './tenant';
 
@@ -79,14 +80,26 @@ export let skillController = app.controller({
       Paginator.validate(
         v.object({
           tenantId: v.string(),
-          environmentId: v.string()
+          environmentId: v.string(),
+          skillIds: v.optional(v.array(v.string())),
+          storeIds: v.optional(v.array(v.string())),
+          parentSkillIds: v.optional(v.array(v.string())),
+          parentSkillTemplateIds: v.optional(v.array(v.string())),
+          createdByActorIds: v.optional(v.array(v.string())),
+          createdAt: dateFilterSchema
         })
       )
     )
     .do(async ctx => {
       let paginator = await skillService.listSkills({
         tenant: ctx.tenant,
-        environment: ctx.environment
+        environment: ctx.environment,
+        ids: ctx.input.skillIds,
+        storeIds: ctx.input.storeIds,
+        parentSkillIds: ctx.input.parentSkillIds,
+        parentSkillTemplateIds: ctx.input.parentSkillTemplateIds,
+        createdByActorIds: ctx.input.createdByActorIds,
+        createdAt: ctx.input.createdAt
       });
       let list = await paginator.run(ctx.input);
 
@@ -186,15 +199,14 @@ export let skillController = app.controller({
         actorId: v.string()
       })
     )
-    .do(
-      async ctx =>
-        skillParticipantPresenter(
-          await skillService.markSkillUse({
-            tenant: ctx.tenant,
-            environment: ctx.environment,
-            skill: ctx.skill,
-            actorId: ctx.input.actorId
-          })
-        )
+    .do(async ctx =>
+      skillParticipantPresenter(
+        await skillService.markSkillUse({
+          tenant: ctx.tenant,
+          environment: ctx.environment,
+          skill: ctx.skill,
+          actorId: ctx.input.actorId
+        })
+      )
     )
 });

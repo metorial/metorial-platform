@@ -2,7 +2,7 @@ import type {
   Document,
   DocumentParticipant,
   TenantActor
-} from '../../prisma/generated/client';
+} from '@metorial-cargo/db';
 import { actorPresenter } from './actor';
 
 export let documentParticipantPresenter = (

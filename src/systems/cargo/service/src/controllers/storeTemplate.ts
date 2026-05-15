@@ -2,8 +2,10 @@ import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { storeTemplateDetailPresenter, storeTemplatePresenter } from '../presenters';
-import { environmentService, storeTemplateService, tenantService } from '../services';
+import { environmentService, tenantService } from '@metorial-cargo/module-file';
+import { storeTemplateService } from '@metorial-cargo/module-store';
 import { app } from './_app';
+import { dateFilterSchema } from './_dateFilter';
 
 let storeTemplateItemSchema = v.object({
   path: v.string(),
@@ -93,7 +95,11 @@ export let storeTemplateController = app.controller({
       Paginator.validate(
         v.object({
           tenantId: v.string(),
-          environmentId: v.string()
+          environmentId: v.string(),
+          storeTemplateIds: v.optional(v.array(v.string())),
+          sourceStoreIds: v.optional(v.array(v.string())),
+          createdAt: dateFilterSchema,
+          updatedAt: dateFilterSchema
         })
       )
     )
@@ -102,7 +108,13 @@ export let storeTemplateController = app.controller({
         tenantId: ctx.input.tenantId,
         environmentId: ctx.input.environmentId
       });
-      let paginator = await storeTemplateService.listStoreTemplates(scope);
+      let paginator = await storeTemplateService.listStoreTemplates({
+        ...scope,
+        ids: ctx.input.storeTemplateIds,
+        sourceStoreIds: ctx.input.sourceStoreIds,
+        createdAt: ctx.input.createdAt,
+        updatedAt: ctx.input.updatedAt
+      });
       let list = await paginator.run(ctx.input);
 
       return Paginator.presentLight(list, storeTemplatePresenter);

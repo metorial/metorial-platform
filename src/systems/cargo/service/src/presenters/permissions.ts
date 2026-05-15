@@ -1,7 +1,7 @@
 import type {
   DocumentPermissionsResult,
   StorePermissionsResult
-} from '../services/storeAccess';
+} from '@metorial-cargo/module-store';
 
 export let documentPermissionsPresenter = (permissions: DocumentPermissionsResult) => ({
   object: 'cargo#document_permissions',

@@ -1,8 +1,9 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { storeItemPresenter } from '../presenters';
-import { storeItemService } from '../services';
+import { storeItemService } from '@metorial-cargo/module-store';
 import { app } from './_app';
+import { dateFilterSchema } from './_dateFilter';
 import { storePermissionsSchema } from './document';
 import { tenantApp } from './tenant';
 
@@ -29,9 +30,19 @@ export let storeItemController = app.controller({
         v.object({
           tenantId: v.string(),
           environmentId: v.string(),
+          itemIds: v.optional(v.array(v.string())),
           storeId: v.optional(v.string()),
+          storeIds: v.optional(v.array(v.string())),
           fileId: v.optional(v.string()),
+          fileIds: v.optional(v.array(v.string())),
           documentId: v.optional(v.string()),
+          documentIds: v.optional(v.array(v.string())),
+          referenceIds: v.optional(v.array(v.string())),
+          directoryIds: v.optional(v.array(v.string())),
+          parentDirectoryIds: v.optional(v.array(v.string())),
+          lastModifiedByActorIds: v.optional(v.array(v.string())),
+          createdAt: dateFilterSchema,
+          updatedAt: dateFilterSchema,
           types: v.optional(v.array(storeItemTypeSchema)),
           actorId: v.optional(v.string()),
           defaultPermissions: v.optional(storePermissionsSchema),
@@ -43,9 +54,19 @@ export let storeItemController = app.controller({
       let paginator = await storeItemService.listStoreItems({
         tenant: ctx.tenant,
         environment: ctx.environment,
+        ids: ctx.input.itemIds,
         storeId: ctx.input.storeId,
+        storeIds: ctx.input.storeIds,
         fileId: ctx.input.fileId,
+        fileIds: ctx.input.fileIds,
         documentId: ctx.input.documentId,
+        documentIds: ctx.input.documentIds,
+        referenceIds: ctx.input.referenceIds,
+        directoryIds: ctx.input.directoryIds,
+        parentDirectoryIds: ctx.input.parentDirectoryIds,
+        lastModifiedByActorIds: ctx.input.lastModifiedByActorIds,
+        createdAt: ctx.input.createdAt,
+        updatedAt: ctx.input.updatedAt,
         types: ctx.input.types,
         actorId: ctx.input.actorId,
         defaultPermissions: ctx.input.defaultPermissions,

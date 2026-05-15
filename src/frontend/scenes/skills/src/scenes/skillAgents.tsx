@@ -19,8 +19,9 @@ import {
 } from '@metorial/ui';
 import { Box, Table } from '@metorial/ui-product';
 import { RiAddLine, RiMore2Line } from '@remixicon/react';
+import { useEffect } from 'react';
 import styled from 'styled-components';
-import { forceFileTreeRefetch } from './skillStoreFileViewer';
+import { forceFileTreeRefetch, useCurrentStoreHash } from './skillStoreFileViewer';
 
 let EmptyState = styled.div`
   line-height: 1.6;
@@ -183,7 +184,7 @@ let getSkillAgentTableRow = (p: {
       <Text color={p.agent.path ? 'gray800' : 'gray500'} size="2">
         {p.agent.path ?? p.agent.documentId}
       </Text>,
-      <Actions>
+      <Actions onClick={e => e.stopPropagation()}>
         <Menu
           items={[
             { id: 'edit', label: 'Edit' },
@@ -222,6 +223,11 @@ export let SkillAgentsScene = (p: {
 }) => {
   let skillAgents = useSkillAgents(p.instanceId, p.skillId, { order: 'asc' });
   let deleteSkillAgent = useDeleteSkillAgent();
+
+  let storeHash = useCurrentStoreHash();
+  useEffect(() => {
+    skillAgents.refetch();
+  }, [storeHash]);
 
   let openCreateModal = () => {
     if (!p.instanceId || !p.skillId) return;

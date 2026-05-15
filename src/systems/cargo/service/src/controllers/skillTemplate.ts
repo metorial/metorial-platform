@@ -2,8 +2,10 @@ import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { skillTemplateDetailPresenter, skillTemplatePresenter } from '../presenters';
-import { environmentService, skillTemplateService, tenantService } from '../services';
+import { environmentService, tenantService } from '@metorial-cargo/module-file';
+import { skillTemplateService } from '@metorial-cargo/module-skill';
 import { app } from './_app';
+import { dateFilterSchema } from './_dateFilter';
 import { tenantApp } from './tenant';
 
 let storeTemplateItemSchema = v.object({
@@ -81,14 +83,22 @@ export let skillTemplateController = app.controller({
       Paginator.validate(
         v.object({
           tenantId: v.string(),
-          environmentId: v.string()
+          environmentId: v.string(),
+          skillTemplateIds: v.optional(v.array(v.string())),
+          storeTemplateIds: v.optional(v.array(v.string())),
+          createdAt: dateFilterSchema,
+          updatedAt: dateFilterSchema
         })
       )
     )
     .do(async ctx => {
       let paginator = await skillTemplateService.listSkillTemplates({
         tenant: ctx.tenant,
-        environment: ctx.environment
+        environment: ctx.environment,
+        ids: ctx.input.skillTemplateIds,
+        storeTemplateIds: ctx.input.storeTemplateIds,
+        createdAt: ctx.input.createdAt,
+        updatedAt: ctx.input.updatedAt
       });
       let list = await paginator.run(ctx.input);
 

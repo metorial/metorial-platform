@@ -1,4 +1,4 @@
-import type { SkillConfigurationRecord } from '../services/skillConfiguration';
+import type { SkillConfigurationRecord } from '@metorial-cargo/module-skill';
 
 export let skillConfigurationPresenter = (skillConfiguration: SkillConfigurationRecord) => ({
   object: 'cargo#skillConfiguration',

@@ -1,4 +1,4 @@
-import type { SkillRecord } from '../services/skill';
+import type { SkillRecord } from '@metorial-cargo/module-skill';
 import { storePresenter } from './store';
 
 export let skillPresenter = (skill: SkillRecord) => ({

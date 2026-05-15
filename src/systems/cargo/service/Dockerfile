@@ -15,9 +15,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
 # Install dependencies from the OSS workspace
 RUN bun install --linker=hoisted
 
-# Generate Prisma client and build the service from the monorepo path
+# Generate Prisma client from the split DB package and build the service app
+WORKDIR /app/src/systems/cargo/db
+RUN bun run prisma:generate
+
 WORKDIR /app/src/systems/cargo/service
-RUN bun prisma generate
 RUN bun run server:build
 
 # Production stage
@@ -30,8 +32,8 @@ RUN apk add --no-cache curl
 
 # Copy built output, Prisma assets, and hoisted dependencies
 COPY --from=builder /app/src/systems/cargo/service/dist /app/dist
-COPY --from=builder /app/src/systems/cargo/service/prisma /app/prisma
-COPY --from=builder /app/src/systems/cargo/service/prisma.config.ts /app/prisma.config.ts
+COPY --from=builder /app/src/systems/cargo/db/prisma /app/prisma
+COPY --from=builder /app/src/systems/cargo/db/prisma.config.ts /app/prisma.config.ts
 COPY --from=builder /app/node_modules /app/node_modules
 
 # Expose primary ports
@@ -43,4 +45,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:52151/ping && curl -f http://localhost:12121/ || exit 1
 
 # Start command: push schema and start service
-CMD ["sh", "-c", "bun prisma db push --accept-data-loss && bun /app/dist/index.js"]
+CMD ["sh", "-c", "bun prisma db push --accept-data-loss --schema prisma/schema --config prisma.config.ts && bun /app/dist/index.js"]

@@ -4,7 +4,7 @@ import type {
   DocumentVersion,
   DocumentVersionEditors,
   TenantActor
-} from '../../prisma/generated/client';
+} from '@metorial-cargo/db';
 import { actorPresenter } from './actor';
 
 export let documentVersionPresenter = (

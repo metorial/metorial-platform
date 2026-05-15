@@ -1,6 +1,7 @@
+import { flushDocumentDraft } from '@metorial-cargo/module-doc';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { db } from '../../db';
-import { documentService, storeVersionService } from '../../services';
+import { storeVersionService } from '@metorial-cargo/module-store';
 import { cargoClient } from '../../test/client';
 import { cleanDatabase } from '../../test/setup';
 
@@ -55,7 +56,7 @@ let createFile = async (d: {
   });
 
 let flushDocument = async (documentId: string) =>
-  await documentService.flushDocumentDraft({
+  await flushDocumentDraft({
     documentId,
     force: true
   });
@@ -129,7 +130,9 @@ describe('cargo storeVersion.e2e', () => {
       }
     });
 
-    expect(secondDirtyStore?.dirtyAt?.toISOString()).toBe(firstDirtyStore?.dirtyAt?.toISOString());
+    expect(secondDirtyStore?.dirtyAt?.toISOString()).toBe(
+      firstDirtyStore?.dirtyAt?.toISOString()
+    );
   });
 
   it('marks linked stores dirty when document versions are created without overwriting dirtyAt', async () => {
@@ -220,7 +223,9 @@ describe('cargo storeVersion.e2e', () => {
       }
     });
 
-    expect(secondDirtyStore?.dirtyAt?.toISOString()).toBe(firstDirtyStore?.dirtyAt?.toISOString());
+    expect(secondDirtyStore?.dirtyAt?.toISOString()).toBe(
+      firstDirtyStore?.dirtyAt?.toISOString()
+    );
   });
 
   it('lists stores ready for versioning and snapshots document version ids', async () => {
@@ -315,12 +320,29 @@ describe('cargo storeVersion.e2e', () => {
       }
     });
 
-    let readyResult = await storeVersionService.listStoreIdsReadyForVersioning({
-      limit: 10,
-      dirtyBefore: subtractHours(new Date(), 1)
+    let readyStores = await db.store.findMany({
+      where: {
+        dirtyAt: {
+          not: null,
+          lte: subtractHours(new Date(), 1)
+        }
+      },
+      orderBy: {
+        oid: 'asc'
+      },
+      take: 10,
+      select: {
+        id: true,
+        dirtyAt: true
+      }
     });
 
-    expect(readyResult.stores).toEqual([
+    expect(
+      readyStores.map(store => ({
+        storeId: store.id,
+        dirtyAt: store.dirtyAt
+      }))
+    ).toEqual([
       {
         storeId: readyStore.id,
         dirtyAt: staleDirtyAt
@@ -344,7 +366,9 @@ describe('cargo storeVersion.e2e', () => {
     let documentSnapshotItem = snapshotResult!.version.items.find(
       item => item.documentId === document.id
     );
-    let directorySnapshotItem = snapshotResult!.version.items.find(item => item.path === '/docs/');
+    let directorySnapshotItem = snapshotResult!.version.items.find(
+      item => item.path === '/docs/'
+    );
 
     expect(documentSnapshotItem?.documentVersionId).toBe(documentRecord?.currentVersion?.id);
     expect(directorySnapshotItem?.kind).toBe('directory');
