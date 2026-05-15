@@ -10,7 +10,13 @@ export type GetImageFieldsParams = {
   image: EntityImage | null;
 };
 
-let allowedHosts = ['metorial.com', 'metorial.net', 'metorial-cdn.com', 'metorial-files.com'];
+let allowedHosts = [
+  'metorial.com',
+  'metorial.net',
+  'metorial-cdn.com',
+  'metorial-files.com',
+  'localhost'
+];
 
 let imageMimeTypeToExtensionMap: Record<string, string> = {
   'image/jpeg': 'jpg',
@@ -153,7 +159,8 @@ class InternalImageServiceImpl {
       });
 
       if (file) {
-        extension = imageMimeTypeToExtensionMap[file.fileType] ?? getExtension(url) ?? 'bin';
+        extension =
+          imageMimeTypeToExtensionMap[file.fileType] ?? getExtension(file.fileName) ?? 'bin';
       }
     }
 

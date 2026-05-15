@@ -88,6 +88,7 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
 
   let basePathRef = { current: '' };
   let hashRef = { current: null as string | null };
+
   let fileProcessor = new BatchProcessor<{
     path: string;
     content: string | Buffer | ArrayBuffer;
@@ -100,14 +101,15 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
       }))
     });
   }, 5);
+
   let context: SerializerContext = {
     async setFile(inPath: string, content: string | Buffer | ArrayBuffer) {
       let resultPath = basePathRef.current ? path.join(basePathRef.current, inPath) : inPath;
       await fileProcessor.put({ path: resultPath, content });
     },
 
-    setBasePath(path: string) {
-      basePathRef.current = path;
+    setBasePath(path: string | undefined) {
+      basePathRef.current = path ?? '';
     },
 
     hashIsEqual(hash: string) {
@@ -179,10 +181,10 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
     };
   };
 
-  let deleteBucketPath = async (prefix: string) => {
+  let deleteBucketPath = async (prefix: string | undefined) => {
     await codeBucketClient.deleteBucketPath({
       bucketId: exp.destination.codeBucketId,
-      path: normalizeBucketPath(prefix)
+      path: normalizeBucketPath(prefix ?? '')
     });
   };
 

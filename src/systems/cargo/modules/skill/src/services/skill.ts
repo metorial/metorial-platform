@@ -16,6 +16,7 @@ import type { CargoTenantEnvironment } from '@metorial-cargo/module-file';
 import { actorService } from '@metorial-cargo/module-file';
 import { storeAccessService, storeService } from '@metorial-cargo/module-store';
 import { internalImageService } from '../internal/image';
+import { enqueueSkillPluginSyncs } from '../internal/skillDestination';
 import { skillParticipantService } from './skillParticipant';
 import type { SkillTemplateRecord } from './skillTemplate';
 
@@ -45,7 +46,8 @@ class SkillServiceImpl {
           where: {
             tenantOid: d.tenant.oid,
             environmentOid: d.environment.oid,
-            id: d.skillId
+            id: d.skillId,
+            status: 'active'
           },
           include: skillInclude
         });
@@ -221,6 +223,7 @@ class SkillServiceImpl {
             where: {
               tenantOid: d.tenant.oid,
               environmentOid: d.environment.oid,
+              status: 'active',
               AND: [
                 skills ? { oid: skills.in } : undefined!,
                 stores ? { storeOid: stores.in } : undefined!,
@@ -364,13 +367,50 @@ class SkillServiceImpl {
     }).then(skill => ({ ...skill, store }) satisfies SkillRecord);
   }
 
-  async deleteSkill(d: CargoTenantEnvironment & { skill: SkillRecord }) {
-    await storeService.deleteStore({
-      tenant: d.tenant,
-      environment: d.environment,
-      store: d.skill.store,
-      allowLinkedSkillDelete: true,
-      allowLinkedStoreTemplateDelete: true
+  async archiveSkill(d: CargoTenantEnvironment & { skill: SkillRecord }) {
+    await withTransaction(async db => {
+      let linkedPluginSkills = await db.skillPluginSkill.findMany({
+        where: {
+          skillOid: d.skill.oid,
+          status: 'active'
+        },
+        select: {
+          skillPlugin: {
+            select: {
+              id: true
+            }
+          }
+        }
+      });
+
+      await db.skillPluginSkill.updateMany({
+        where: {
+          skillOid: d.skill.oid,
+          status: 'active'
+        },
+        data: {
+          status: 'archived',
+          clientName: null,
+          clientDescription: null,
+          clientMetadata: null,
+          license: null,
+          compatibility: null,
+          skillConfigurationOid: null
+        }
+      });
+
+      await db.skill.update({
+        where: {
+          id: d.skill.id
+        },
+        data: {
+          status: 'archived'
+        }
+      });
+
+      for (let skillPluginId of new Set(linkedPluginSkills.map(s => s.skillPlugin.id))) {
+        await enqueueSkillPluginSyncs({ skillPluginId });
+      }
     });
 
     return d.skill;

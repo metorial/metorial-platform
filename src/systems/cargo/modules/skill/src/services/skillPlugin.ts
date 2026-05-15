@@ -407,17 +407,66 @@ class SkillPluginServiceImpl {
   async archiveSkillPlugin(d: CargoTenantEnvironment & { skillPlugin: SkillPluginRecord }) {
     assertPluginIsNotManaged(d.skillPlugin);
 
-    await db.skillPlugin.update({
-      where: {
-        id: d.skillPlugin.id
-      },
-      data: {
-        status: 'archived'
-      }
-    });
+    await withTransaction(async db => {
+      let linkedMarketplacePlugins = await db.skillMarketplacePlugin.findMany({
+        where: {
+          skillPluginOid: d.skillPlugin.oid,
+          status: 'active'
+        },
+        select: {
+          skillMarketplace: {
+            select: {
+              destinationOid: true
+            }
+          }
+        }
+      });
 
-    await enqueueSkillPluginSyncs({
-      skillPluginId: d.skillPlugin.id
+      await db.skillPluginSkill.updateMany({
+        where: {
+          skillPluginOid: d.skillPlugin.oid,
+          status: 'active'
+        },
+        data: {
+          status: 'archived',
+          clientName: null,
+          clientDescription: null,
+          clientMetadata: null,
+          license: null,
+          compatibility: null,
+          skillConfigurationOid: null
+        }
+      });
+
+      await db.skillMarketplacePlugin.updateMany({
+        where: {
+          skillPluginOid: d.skillPlugin.oid,
+          status: 'active'
+        },
+        data: {
+          status: 'archived',
+          skillConfigurationOid: null
+        }
+      });
+
+      await db.skillPlugin.update({
+        where: {
+          id: d.skillPlugin.id
+        },
+        data: {
+          status: 'archived'
+        }
+      });
+
+      await enqueueSkillPluginSyncs({
+        skillPluginId: d.skillPlugin.id
+      });
+
+      for (let destinationOid of new Set(
+        linkedMarketplacePlugins.map(p => p.skillMarketplace.destinationOid)
+      )) {
+        await enqueueSkillDestinationSync(destinationOid);
+      }
     });
 
     return await this.getSkillPluginRecord({

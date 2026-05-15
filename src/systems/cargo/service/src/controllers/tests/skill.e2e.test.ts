@@ -1,6 +1,7 @@
 import { flushDocumentDraft } from '@metorial-cargo/module-doc';
+import { skillMarketplaceService, skillPluginService } from '@metorial-cargo/module-skill';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { db } from '../../db';
+import { db, getId } from '../../db';
 import { internalStoreTemplateSyncService } from '../../internal';
 import { storeVersionService } from '@metorial-cargo/module-store';
 import { cargoClient } from '../../test/client';
@@ -39,6 +40,101 @@ let createActor = async (
     tenantId,
     identifier: d.identifier,
     name: d.name
+  });
+
+let getCargoScopeRecords = async (d: { tenantId: string; environmentId: string }) => ({
+  tenant: await db.tenant.findUniqueOrThrow({
+    where: {
+      id: d.tenantId
+    }
+  }),
+  environment: await db.environment.findUniqueOrThrow({
+    where: {
+      id: d.environmentId
+    }
+  })
+});
+
+let createTestSkillDestination = async (codeBucketId: string) =>
+  await db.skillDestination.create({
+    data: {
+      ...getId('skillDestination'),
+      codeBucketId
+    }
+  });
+
+let createTestSkillPlugin = async (d: {
+  tenantOid: bigint;
+  environmentOid: bigint;
+  name: string;
+  slug: string;
+}) => {
+  let destination = await createTestSkillDestination(`plugin-${d.slug}`);
+
+  return await db.skillPlugin.create({
+    data: {
+      ...getId('skillPlugin'),
+      status: 'active',
+      isManaged: false,
+      name: d.name,
+      slug: d.slug,
+      tenantOid: d.tenantOid,
+      environmentOid: d.environmentOid,
+      destinationOid: destination.oid
+    }
+  });
+};
+
+let createTestSkillMarketplace = async (d: {
+  tenantOid: bigint;
+  environmentOid: bigint;
+  name: string;
+  slug: string;
+}) => {
+  let destination = await createTestSkillDestination(`marketplace-${d.slug}`);
+
+  return await db.skillMarketplace.create({
+    data: {
+      ...getId('skillMarketplace'),
+      status: 'active',
+      name: d.name,
+      slug: d.slug,
+      tenantOid: d.tenantOid,
+      environmentOid: d.environmentOid,
+      destinationOid: destination.oid
+    }
+  });
+};
+
+let createTestSkillPluginSkill = async (d: {
+  skillOid: bigint;
+  skillPluginOid: bigint;
+  pluginSkillSlug: string;
+}) =>
+  await db.skillPluginSkill.create({
+    data: {
+      ...getId('skillPluginSkill'),
+      status: 'active',
+      pluginSkillSlug: d.pluginSkillSlug,
+      clientName: 'Plugin Skill',
+      skillOid: d.skillOid,
+      skillPluginOid: d.skillPluginOid
+    }
+  });
+
+let createTestSkillMarketplacePlugin = async (d: {
+  skillMarketplaceOid: bigint;
+  skillPluginOid: bigint;
+  pluginSlug: string;
+}) =>
+  await db.skillMarketplacePlugin.create({
+    data: {
+      ...getId('skillMarketplacePlugin'),
+      status: 'active',
+      pluginSlug: d.pluginSlug,
+      skillMarketplaceOid: d.skillMarketplaceOid,
+      skillPluginOid: d.skillPluginOid
+    }
   });
 
 let syncStandaloneTemplate = async (storeTemplateId: string) => {
@@ -252,8 +348,181 @@ describe('cargo skill.e2e', () => {
     expect(deleted.id).toBe(created.id);
     expect(deleted.storeId).toBe(created.storeId);
     expect(listedAfterDelete.items).toHaveLength(0);
-    expect(deletedSkill).toBeNull();
-    expect(deletedStore).toBeNull();
+    expect(deletedSkill?.status).toBe('archived');
+    expect(deletedStore?.id).toBe(created.storeId);
+  });
+
+  it('archives plugin skill links when deleting a skill', async () => {
+    let { tenant, environment } = await createScope();
+    let scope = await getCargoScopeRecords({
+      tenantId: tenant.id,
+      environmentId: environment.id
+    });
+    let skill = await cargoClient.skill.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillId: 'csk_delete_linked_plugin_skill',
+      name: 'Delete Linked Plugin Skill'
+    });
+    let skillRecord = await db.skill.findUniqueOrThrow({
+      where: {
+        id: skill.id
+      }
+    });
+    let skillPlugin = await createTestSkillPlugin({
+      tenantOid: scope.tenant.oid,
+      environmentOid: scope.environment.oid,
+      name: 'Linked Plugin',
+      slug: 'linked-plugin'
+    });
+    let skillPluginSkill = await createTestSkillPluginSkill({
+      skillOid: skillRecord.oid,
+      skillPluginOid: skillPlugin.oid,
+      pluginSkillSlug: 'linked-skill'
+    });
+
+    await cargoClient.skill.delete({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillId: skill.id
+    });
+
+    let deletedSkill = await db.skill.findUniqueOrThrow({
+      where: {
+        id: skill.id
+      }
+    });
+    let deletedSkillPluginSkill = await db.skillPluginSkill.findUniqueOrThrow({
+      where: {
+        id: skillPluginSkill.id
+      }
+    });
+
+    expect(deletedSkill.status).toBe('archived');
+    expect(deletedSkillPluginSkill.status).toBe('archived');
+    expect(deletedSkillPluginSkill.clientName).toBeNull();
+  });
+
+  it('archives plugin links when archiving a plugin', async () => {
+    let { tenant, environment } = await createScope();
+    let scope = await getCargoScopeRecords({
+      tenantId: tenant.id,
+      environmentId: environment.id
+    });
+    let skill = await cargoClient.skill.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillId: 'csk_delete_plugin',
+      name: 'Delete Plugin Skill'
+    });
+    let skillRecord = await db.skill.findUniqueOrThrow({
+      where: {
+        id: skill.id
+      }
+    });
+    let skillPlugin = await createTestSkillPlugin({
+      tenantOid: scope.tenant.oid,
+      environmentOid: scope.environment.oid,
+      name: 'Plugin To Delete',
+      slug: 'plugin-to-delete'
+    });
+    let skillMarketplace = await createTestSkillMarketplace({
+      tenantOid: scope.tenant.oid,
+      environmentOid: scope.environment.oid,
+      name: 'Plugin Delete Marketplace',
+      slug: 'plugin-delete-marketplace'
+    });
+    let skillPluginSkill = await createTestSkillPluginSkill({
+      skillOid: skillRecord.oid,
+      skillPluginOid: skillPlugin.oid,
+      pluginSkillSlug: 'plugin-delete-skill'
+    });
+    let skillMarketplacePlugin = await createTestSkillMarketplacePlugin({
+      skillMarketplaceOid: skillMarketplace.oid,
+      skillPluginOid: skillPlugin.oid,
+      pluginSlug: 'plugin-delete'
+    });
+
+    await skillPluginService.archiveSkillPlugin({
+      tenant: scope.tenant,
+      environment: scope.environment,
+      skillPlugin: await skillPluginService.getSkillPluginById({
+        tenant: scope.tenant,
+        environment: scope.environment,
+        skillPluginId: skillPlugin.id
+      })
+    });
+
+    let deletedSkillPlugin = await db.skillPlugin.findUniqueOrThrow({
+      where: {
+        id: skillPlugin.id
+      }
+    });
+    let deletedSkillPluginSkill = await db.skillPluginSkill.findUniqueOrThrow({
+      where: {
+        id: skillPluginSkill.id
+      }
+    });
+    let deletedSkillMarketplacePlugin =
+      await db.skillMarketplacePlugin.findUniqueOrThrow({
+        where: {
+          id: skillMarketplacePlugin.id
+        }
+      });
+
+    expect(deletedSkillPlugin.status).toBe('archived');
+    expect(deletedSkillPluginSkill.status).toBe('archived');
+    expect(deletedSkillMarketplacePlugin.status).toBe('archived');
+  });
+
+  it('archives marketplace plugins when archiving a marketplace', async () => {
+    let { tenant, environment } = await createScope();
+    let scope = await getCargoScopeRecords({
+      tenantId: tenant.id,
+      environmentId: environment.id
+    });
+    let skillPlugin = await createTestSkillPlugin({
+      tenantOid: scope.tenant.oid,
+      environmentOid: scope.environment.oid,
+      name: 'Marketplace Plugin',
+      slug: 'marketplace-plugin'
+    });
+    let skillMarketplace = await createTestSkillMarketplace({
+      tenantOid: scope.tenant.oid,
+      environmentOid: scope.environment.oid,
+      name: 'Marketplace To Delete',
+      slug: 'marketplace-to-delete'
+    });
+    let skillMarketplacePlugin = await createTestSkillMarketplacePlugin({
+      skillMarketplaceOid: skillMarketplace.oid,
+      skillPluginOid: skillPlugin.oid,
+      pluginSlug: 'marketplace-plugin'
+    });
+
+    await skillMarketplaceService.archiveSkillMarketplace({
+      tenant: scope.tenant,
+      environment: scope.environment,
+      skillMarketplace: await skillMarketplaceService.getSkillMarketplaceById({
+        tenant: scope.tenant,
+        environment: scope.environment,
+        skillMarketplaceId: skillMarketplace.id
+      })
+    });
+
+    let deletedSkillMarketplace = await db.skillMarketplace.findUniqueOrThrow({
+      where: {
+        id: skillMarketplace.id
+      }
+    });
+    let deletedSkillMarketplacePlugin =
+      await db.skillMarketplacePlugin.findUniqueOrThrow({
+        where: {
+          id: skillMarketplacePlugin.id
+        }
+      });
+
+    expect(deletedSkillMarketplace.status).toBe('archived');
+    expect(deletedSkillMarketplacePlugin.status).toBe('archived');
   });
 
   it('sets, replaces, and clears skill images with file references', async () => {

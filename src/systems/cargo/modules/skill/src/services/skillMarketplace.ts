@@ -340,16 +340,29 @@ class SkillMarketplaceServiceImpl {
   async archiveSkillMarketplace(
     d: CargoTenantEnvironment & { skillMarketplace: SkillMarketplaceRecord }
   ) {
-    await db.skillMarketplace.update({
-      where: {
-        id: d.skillMarketplace.id
-      },
-      data: {
-        status: 'archived'
-      }
-    });
+    await withTransaction(async db => {
+      await db.skillMarketplacePlugin.updateMany({
+        where: {
+          skillMarketplaceOid: d.skillMarketplace.oid,
+          status: 'active'
+        },
+        data: {
+          status: 'archived',
+          skillConfigurationOid: null
+        }
+      });
 
-    await enqueueSkillDestinationSync(d.skillMarketplace.destinationOid);
+      await db.skillMarketplace.update({
+        where: {
+          id: d.skillMarketplace.id
+        },
+        data: {
+          status: 'archived'
+        }
+      });
+
+      await enqueueSkillDestinationSync(d.skillMarketplace.destinationOid);
+    });
 
     return await this.getSkillMarketplaceRecord({
       tenant: d.tenant,
