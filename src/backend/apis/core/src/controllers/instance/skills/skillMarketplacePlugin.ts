@@ -43,7 +43,7 @@ export let skillMarketplacePluginController = Controller.create(
     list: skillMarketplaceGroup
       .get(
         instancePath(
-          'skills/marketplaces/:skillMarketplaceId/plugins',
+          'skill-marketplaces/:skillMarketplaceId/plugins',
           'skills.marketplaces.plugins.list'
         ),
         {
@@ -93,7 +93,7 @@ export let skillMarketplacePluginController = Controller.create(
     add: skillMarketplaceGroup
       .post(
         instancePath(
-          'skills/marketplaces/:skillMarketplaceId/plugins',
+          'skill-marketplaces/:skillMarketplaceId/plugins',
           'skills.marketplaces.plugins.add'
         ),
         {
@@ -132,7 +132,7 @@ export let skillMarketplacePluginController = Controller.create(
     get: skillMarketplacePluginGroup
       .get(
         instancePath(
-          'skills/marketplaces/:skillMarketplaceId/plugins/:skillMarketplacePluginId',
+          'skill-marketplaces/:skillMarketplaceId/plugins/:skillMarketplacePluginId',
           'skills.marketplaces.plugins.get'
         ),
         {
@@ -152,7 +152,7 @@ export let skillMarketplacePluginController = Controller.create(
     remove: skillMarketplacePluginGroup
       .delete(
         instancePath(
-          'skills/marketplaces/:skillMarketplaceId/plugins/:skillMarketplacePluginId',
+          'skill-marketplaces/:skillMarketplaceId/plugins/:skillMarketplacePluginId',
           'skills.marketplaces.plugins.remove'
         ),
         {

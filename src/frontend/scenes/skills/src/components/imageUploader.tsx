@@ -157,6 +157,21 @@ let RangeInput = styled('input')`
   }
 `;
 
+let getImageExtension = (type: string) => {
+  if (type === 'image/jpeg') return 'jpg';
+  if (type === 'image/png') return 'png';
+  if (type === 'image/webp') return 'webp';
+  return 'webp';
+};
+
+let getFileBasename = (fileName: string | undefined) => {
+  let fallback = 'image';
+  if (!fileName) return fallback;
+
+  let withoutExtension = fileName.replace(/\.[^/.]+$/, '').trim();
+  return withoutExtension || fallback;
+};
+
 export let ImageUploader = ({
   isOpen,
   setIsOpen,
@@ -331,23 +346,35 @@ export let ImageUploader = ({
           fullWidth
           onClick={() => {
             if (stage == 'edit') {
-              if (!editor) return;
+              if (!editor || !file) return;
 
               setLoading(true);
               let isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+              let inputFileName = file.name;
+
+              let outputType = isSafari ? 'image/jpeg' : 'image/webp';
 
               editor.getImage().toBlob(
                 blob => {
                   if (!blob) return;
 
-                  onSave(blob)
+                  let outputFile = new File(
+                    [blob],
+                    `${getFileBasename(inputFileName)}.${getImageExtension(outputType)}`,
+                    {
+                      type: outputType,
+                      lastModified: Date.now()
+                    }
+                  );
+
+                  onSave(outputFile)
                     .catch(() => {})
                     .finally(() => {
                       setIsOpen(false);
                       setLoading(false);
                     });
                 },
-                isSafari ? 'image/jpeg' : 'image/webp',
+                outputType,
                 0.9
               );
             } else {

@@ -62,7 +62,7 @@ export let skillMarketplaceController = Controller.create(
   },
   {
     list: instanceGroup
-      .get(instancePath('skills/marketplaces', 'skills.marketplaces.list'), {
+      .get(instancePath('skill-marketplaces', 'skills.marketplaces.list'), {
         name: 'List skill marketplaces',
         description: 'Returns a paginated list of skill marketplaces.'
       })
@@ -114,13 +114,10 @@ export let skillMarketplaceController = Controller.create(
       }),
 
     get: skillMarketplaceGroup
-      .get(
-        instancePath('skills/marketplaces/:skillMarketplaceId', 'skills.marketplaces.get'),
-        {
-          name: 'Get skill marketplace',
-          description: 'Retrieves a skill marketplace.'
-        }
-      )
+      .get(instancePath('skill-marketplaces/:skillMarketplaceId', 'skills.marketplaces.get'), {
+        name: 'Get skill marketplace',
+        description: 'Retrieves a skill marketplace.'
+      })
       .use(checkAccess({ possibleScopes: [...readScopes] }))
       .use(requireConsumerTokenForPublishableKey())
       .output(skillMarketplacePresenter)
@@ -129,7 +126,7 @@ export let skillMarketplaceController = Controller.create(
       ),
 
     create: instanceGroup
-      .post(instancePath('skills/marketplaces', 'skills.marketplaces.create'), {
+      .post(instancePath('skill-marketplaces', 'skills.marketplaces.create'), {
         name: 'Create skill marketplace',
         description: 'Creates a skill marketplace.'
       })
@@ -158,7 +155,7 @@ export let skillMarketplaceController = Controller.create(
 
     update: skillMarketplaceGroup
       .patch(
-        instancePath('skills/marketplaces/:skillMarketplaceId', 'skills.marketplaces.update'),
+        instancePath('skill-marketplaces/:skillMarketplaceId', 'skills.marketplaces.update'),
         {
           name: 'Update skill marketplace',
           description: 'Updates a skill marketplace.'
@@ -184,7 +181,7 @@ export let skillMarketplaceController = Controller.create(
 
     archive: skillMarketplaceGroup
       .delete(
-        instancePath('skills/marketplaces/:skillMarketplaceId', 'skills.marketplaces.archive'),
+        instancePath('skill-marketplaces/:skillMarketplaceId', 'skills.marketplaces.archive'),
         {
           name: 'Archive skill marketplace',
           description: 'Archives a skill marketplace.'
@@ -204,7 +201,7 @@ export let skillMarketplaceController = Controller.create(
     getEditorUrl: skillMarketplaceGroup
       .post(
         instancePath(
-          'skills/marketplaces/:skillMarketplaceId/editor-url',
+          'skill-marketplaces/:skillMarketplaceId/editor-url',
           'skills.marketplaces.getEditorUrl'
         ),
         {
@@ -215,13 +212,13 @@ export let skillMarketplaceController = Controller.create(
       )
       .use(isDashboardGroup())
       .use(checkAccess({ possibleScopes: [...writeScopes] }))
-      .body('default', v.object({ is_read_only: v.optional(v.boolean()) }))
+      .body('default', v.object({}))
       .output(bucketEditorTokenPresenter)
       .do(async ctx => {
         let token = await skillMarketplaceService.getSkillMarketplaceEditorUrl({
           ...getSkillMarketplaceAccess(ctx),
           skillMarketplace: ctx.skillMarketplace,
-          isReadOnly: ctx.body.is_read_only
+          isReadOnly: true
         });
 
         return bucketEditorTokenPresenter.present({

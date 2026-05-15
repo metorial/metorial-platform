@@ -83,7 +83,7 @@ export let skillPluginController = Controller.create(
   },
   {
     list: instanceGroup
-      .get(instancePath('skills/plugins', 'skills.plugins.list'), {
+      .get(instancePath('skill-plugins', 'skills.plugins.list'), {
         name: 'List skill plugins',
         description: 'Returns a paginated list of skill plugins.'
       })
@@ -139,7 +139,7 @@ export let skillPluginController = Controller.create(
       }),
 
     get: skillPluginGroup
-      .get(instancePath('skills/plugins/:skillPluginId', 'skills.plugins.get'), {
+      .get(instancePath('skill-plugins/:skillPluginId', 'skills.plugins.get'), {
         name: 'Get skill plugin',
         description: 'Retrieves a skill plugin.'
       })
@@ -149,7 +149,7 @@ export let skillPluginController = Controller.create(
       .do(async ctx => skillPluginPresenter.present({ skillPlugin: ctx.skillPlugin })),
 
     create: instanceGroup
-      .post(instancePath('skills/plugins', 'skills.plugins.create'), {
+      .post(instancePath('skill-plugins', 'skills.plugins.create'), {
         name: 'Create skill plugin',
         description: 'Creates a skill plugin.'
       })
@@ -173,7 +173,7 @@ export let skillPluginController = Controller.create(
       }),
 
     update: skillPluginGroup
-      .patch(instancePath('skills/plugins/:skillPluginId', 'skills.plugins.update'), {
+      .patch(instancePath('skill-plugins/:skillPluginId', 'skills.plugins.update'), {
         name: 'Update skill plugin',
         description: 'Updates a skill plugin.'
       })
@@ -198,7 +198,7 @@ export let skillPluginController = Controller.create(
       }),
 
     archive: skillPluginGroup
-      .delete(instancePath('skills/plugins/:skillPluginId', 'skills.plugins.archive'), {
+      .delete(instancePath('skill-plugins/:skillPluginId', 'skills.plugins.archive'), {
         name: 'Archive skill plugin',
         description: 'Archives a skill plugin.'
       })
@@ -215,10 +215,7 @@ export let skillPluginController = Controller.create(
 
     getEditorUrl: skillPluginGroup
       .post(
-        instancePath(
-          'skills/plugins/:skillPluginId/editor-url',
-          'skills.plugins.getEditorUrl'
-        ),
+        instancePath('skill-plugins/:skillPluginId/editor-url', 'skills.plugins.getEditorUrl'),
         {
           name: 'Get skill plugin editor URL',
           description: 'Creates an embeddable editor URL for a skill plugin.',
@@ -227,13 +224,13 @@ export let skillPluginController = Controller.create(
       )
       .use(isDashboardGroup())
       .use(checkAccess({ possibleScopes: [...writeScopes] }))
-      .body('default', v.object({ is_read_only: v.optional(v.boolean()) }))
+      .body('default', v.object({}))
       .output(bucketEditorTokenPresenter)
       .do(async ctx => {
         let token = await skillPluginService.getSkillPluginEditorUrl({
           ...getSkillPluginAccess(ctx),
           skillPlugin: ctx.skillPlugin,
-          isReadOnly: ctx.body.is_read_only
+          isReadOnly: true
         });
 
         return bucketEditorTokenPresenter.present({

@@ -49,13 +49,10 @@ export let skillPluginSkillController = Controller.create(
   },
   {
     list: skillPluginGroup
-      .get(
-        instancePath('skills/plugins/:skillPluginId/skills', 'skills.plugins.skills.list'),
-        {
-          name: 'List skill plugin skills',
-          description: 'Returns skills linked to a skill plugin.'
-        }
-      )
+      .get(instancePath('skill-plugins/:skillPluginId/skills', 'skills.plugins.skills.list'), {
+        name: 'List skill plugin skills',
+        description: 'Returns skills linked to a skill plugin.'
+      })
       .use(checkAccess({ possibleScopes: [...readScopes] }))
       .use(requireConsumerTokenForPublishableKey())
       .outputList(skillPluginSkillPresenter)
@@ -96,13 +93,10 @@ export let skillPluginSkillController = Controller.create(
       }),
 
     add: skillPluginGroup
-      .post(
-        instancePath('skills/plugins/:skillPluginId/skills', 'skills.plugins.skills.add'),
-        {
-          name: 'Add skill plugin skill',
-          description: 'Adds a skill to a skill plugin.'
-        }
-      )
+      .post(instancePath('skill-plugins/:skillPluginId/skills', 'skills.plugins.skills.add'), {
+        name: 'Add skill plugin skill',
+        description: 'Adds a skill to a skill plugin.'
+      })
       .use(checkAccess({ possibleScopes: [...writeScopes] }))
       .body(
         'default',
@@ -135,7 +129,7 @@ export let skillPluginSkillController = Controller.create(
     get: skillPluginSkillGroup
       .get(
         instancePath(
-          'skills/plugins/:skillPluginId/skills/:skillPluginSkillId',
+          'skill-plugins/:skillPluginId/skills/:skillPluginSkillId',
           'skills.plugins.skills.get'
         ),
         {
@@ -153,7 +147,7 @@ export let skillPluginSkillController = Controller.create(
     update: skillPluginSkillGroup
       .patch(
         instancePath(
-          'skills/plugins/:skillPluginId/skills/:skillPluginSkillId',
+          'skill-plugins/:skillPluginId/skills/:skillPluginSkillId',
           'skills.plugins.skills.update'
         ),
         {
@@ -185,7 +179,7 @@ export let skillPluginSkillController = Controller.create(
     remove: skillPluginSkillGroup
       .delete(
         instancePath(
-          'skills/plugins/:skillPluginId/skills/:skillPluginSkillId',
+          'skill-plugins/:skillPluginId/skills/:skillPluginSkillId',
           'skills.plugins.skills.remove'
         ),
         {

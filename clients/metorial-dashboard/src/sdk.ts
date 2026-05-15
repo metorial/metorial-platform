@@ -107,7 +107,11 @@ import {
   MetorialDashboardInstanceSkillsConfigurationsEndpoint,
   MetorialDashboardInstanceSkillsEndpoint,
   MetorialDashboardInstanceSkillsItemsEndpoint,
+  MetorialDashboardInstanceSkillsMarketplacesEndpoint,
+  MetorialDashboardInstanceSkillsMarketplacesPluginsEndpoint,
   MetorialDashboardInstanceSkillsParticipantsEndpoint,
+  MetorialDashboardInstanceSkillsPluginsEndpoint,
+  MetorialDashboardInstanceSkillsPluginsSkillsEndpoint,
   MetorialDashboardInstanceSkillsVersionsEndpoint,
   MetorialDashboardInstanceSkillsVersionsSnapshotEndpoint,
   MetorialDashboardInstanceSkillTemplatesEndpoint,
@@ -490,6 +494,17 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
 
   skillGroups: Object.assign(new MetorialDashboardInstanceSkillGroupsEndpoint(manager), {
     items: new MetorialDashboardInstanceSkillGroupsItemsEndpoint(manager)
+  }),
+
+  skillMarketplaces: Object.assign(
+    new MetorialDashboardInstanceSkillsMarketplacesEndpoint(manager),
+    {
+      plugins: new MetorialDashboardInstanceSkillsMarketplacesPluginsEndpoint(manager)
+    }
+  ),
+
+  skillsPlugins: Object.assign(new MetorialDashboardInstanceSkillsPluginsEndpoint(manager), {
+    skills: new MetorialDashboardInstanceSkillsPluginsSkillsEndpoint(manager)
   }),
 
   magicMcp: {
