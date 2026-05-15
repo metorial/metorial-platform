@@ -13,7 +13,11 @@ import { reconcileController } from './reconcile';
 import { skillController } from './skill';
 import { skillAgentController } from './skillAgent';
 import { skillConfigurationController } from './skillConfiguration';
+import { skillMarketplaceController } from './skillMarketplace';
+import { skillMarketplacePluginController } from './skillMarketplacePlugin';
 import { skillParticipantController } from './skillParticipant';
+import { skillPluginController } from './skillPlugin';
+import { skillPluginSkillController } from './skillPluginSkill';
 import { skillTemplateController } from './skillTemplate';
 import { skillVersionController } from './skillVersion';
 import { storeController } from './store';
@@ -33,7 +37,11 @@ export let rootController = app.controller({
   skill: skillController,
   skillAgent: skillAgentController,
   skillConfiguration: skillConfigurationController,
+  skillMarketplace: skillMarketplaceController,
+  skillMarketplacePlugin: skillMarketplacePluginController,
   skillParticipant: skillParticipantController,
+  skillPlugin: skillPluginController,
+  skillPluginSkill: skillPluginSkillController,
   skillTemplate: skillTemplateController,
   skillVersion: skillVersionController,
   store: storeController,

@@ -8,6 +8,42 @@ export let resolveSkills = createResolver(async ({ scope, ids }) =>
   })
 );
 
+export let resolveSkillMarketplaces = createResolver(async ({ scope, ids }) =>
+  db.skillMarketplace.findMany({
+    where: { ...scope, id: { in: ids } },
+    select: { oid: true }
+  })
+);
+
+export let resolveSkillMarketplacePlugins = createResolver(async ({ scope, ids }) =>
+  db.skillMarketplacePlugin.findMany({
+    where: {
+      id: { in: ids },
+      skillMarketplace: scope,
+      skillPlugin: scope
+    },
+    select: { oid: true }
+  })
+);
+
+export let resolveSkillPlugins = createResolver(async ({ scope, ids }) =>
+  db.skillPlugin.findMany({
+    where: { ...scope, id: { in: ids } },
+    select: { oid: true }
+  })
+);
+
+export let resolveSkillPluginSkills = createResolver(async ({ scope, ids }) =>
+  db.skillPluginSkill.findMany({
+    where: {
+      id: { in: ids },
+      skillPlugin: scope,
+      skill: scope
+    },
+    select: { oid: true }
+  })
+);
+
 export let resolveSkillAgents = createResolver(async ({ scope, ids }) =>
   db.skillAgent.findMany({
     where: {

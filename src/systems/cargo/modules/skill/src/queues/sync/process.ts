@@ -123,7 +123,6 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
     let skillPlugin = await db.skillPlugin.findUnique({
       where: { id: skillPluginId },
       include: {
-        tag: true,
         skillConfiguration: true,
         skillPluginSkills: {
           include: {
