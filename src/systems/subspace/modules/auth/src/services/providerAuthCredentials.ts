@@ -286,14 +286,18 @@ class providerAuthCredentialsServiceImpl {
     providerAuthCredentialsId: string;
     allowDeleted?: boolean;
   }) {
-    let providerAuthCredentials = await db.providerAuthCredentials.findFirst({
-      where: {
-        id: d.providerAuthCredentialsId,
-        ...normalizeStatusForGet(d).noParent,
-        OR: [getTenantOwnedWhere(d), getManagedBackingWhere(d)]
-      },
-      include
-    });
+    let providerAuthCredentials = await withTransaction(
+      async db =>
+        await db.providerAuthCredentials.findFirst({
+          where: {
+            id: d.providerAuthCredentialsId,
+            ...normalizeStatusForGet(d).noParent,
+            OR: [getTenantOwnedWhere(d), getManagedBackingWhere(d)]
+          },
+          include
+        }),
+      { ifExists: true }
+    );
     if (!providerAuthCredentials) {
       throw new ServiceError(
         notFoundError('provider.auth_credentials', d.providerAuthCredentialsId)

@@ -187,17 +187,21 @@ class providerConfigServiceImpl {
     providerConfigId: string;
     allowDeleted?: boolean;
   }) {
-    let providerConfig = await db.providerConfig.findFirst({
-      where: {
-        id: d.providerConfigId,
-        tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
-        environmentOid: d.environment.oid,
-        isForVault: false,
-        ...normalizeStatusForGet(d).noParent
-      },
-      include
-    });
+    let providerConfig = await withTransaction(
+      async db =>
+        await db.providerConfig.findFirst({
+          where: {
+            id: d.providerConfigId,
+            tenantOid: d.tenant.oid,
+            solutionOid: d.solution.oid,
+            environmentOid: d.environment.oid,
+            isForVault: false,
+            ...normalizeStatusForGet(d).noParent
+          },
+          include
+        }),
+      { ifExists: true }
+    );
     if (!providerConfig)
       throw new ServiceError(notFoundError('provider.config', d.providerConfigId));
 

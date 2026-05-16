@@ -3,6 +3,7 @@ import { db } from '@metorial/db';
 import { createQueue } from '@metorial/queue';
 import { cell } from '../../cell';
 import { globalDB } from '../../db';
+import { upsertOrganization } from './organization';
 
 export let syncConsumerSurfacesCron = createCron(
   {
@@ -60,6 +61,8 @@ export let syncConsumerSurfaceSingleQueueProcessor = syncConsumerSurfaceSingleQu
       }
     });
     if (!surface) return;
+
+    await upsertOrganization(surface.organization.id);
 
     let inner = {
       status: surface.status,

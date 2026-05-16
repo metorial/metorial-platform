@@ -149,17 +149,21 @@ class providerDeploymentServiceImpl {
     providerDeploymentId: string;
     allowDeleted?: boolean;
   }) {
-    let providerDeployment = await db.providerDeployment.findFirst({
-      where: {
-        id: d.providerDeploymentId,
-        tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
-        environmentOid: d.environment.oid,
+    let providerDeployment = await withTransaction(
+      async db =>
+        await db.providerDeployment.findFirst({
+          where: {
+            id: d.providerDeploymentId,
+            tenantOid: d.tenant.oid,
+            solutionOid: d.solution.oid,
+            environmentOid: d.environment.oid,
 
-        ...normalizeStatusForGet(d).noParent
-      },
-      include
-    });
+            ...normalizeStatusForGet(d).noParent
+          },
+          include
+        }),
+      { ifExists: true }
+    );
     if (!providerDeployment)
       throw new ServiceError(notFoundError('provider.deployment', d.providerDeploymentId));
 

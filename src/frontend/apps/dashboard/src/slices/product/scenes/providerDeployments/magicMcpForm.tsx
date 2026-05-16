@@ -2,8 +2,8 @@ import { DashboardInstanceMagicMcpServersGetOutput } from '@metorial/dashboard-s
 import { renderWithLoader, useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import {
-  useCreateMagicMcpServerProvider,
   useCreateMagicMcpServer,
+  useCreateMagicMcpServerProvider,
   useCurrentInstance,
   useMagicMcpServer,
   useUpdateMagicMcpServerProvider
@@ -59,7 +59,6 @@ export let MagicMcpServerForm = (
           description: values.description || undefined
         });
         if (res) {
-          toast.success('Magic MCP server updated');
           p.close?.();
         }
         return;

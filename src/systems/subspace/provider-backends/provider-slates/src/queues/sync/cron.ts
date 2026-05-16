@@ -1,6 +1,7 @@
 import { createCron } from '@lowerdeck/cron';
-import { syncAuthConfigEventsQueue } from './authConfigEvents';
+import { backend } from '../../backend';
 import { env } from '../../env';
+import { syncAuthConfigEventsQueue } from './authConfigEvents';
 import { syncChangeNotificationsQueue } from './changeNotifications';
 import { syncOAuthSetupsQueue } from './oauthSetups';
 import { syncSlatesQueue } from './syncSlates';
@@ -12,7 +13,7 @@ export let syncChangeNotificationsCron = createCron(
     cron: '* * * * *'
   },
   async () => {
-    await syncChangeNotificationsQueue.add({});
+    await syncChangeNotificationsQueue.add({}, { id: backend.id });
   }
 );
 

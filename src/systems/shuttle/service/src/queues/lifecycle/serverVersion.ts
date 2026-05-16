@@ -6,7 +6,14 @@ import { createChangeNotificationQueue } from '../changeNotification/create';
 
 export let serverVersionCreatedQueue = createQueue<{ serverVersionId: string }>({
   name: 'shut/l/serverVersion/created',
-  redisUrl: env.service.REDIS_URL
+  redisUrl: env.service.REDIS_URL,
+  workerOpts: {
+    concurrency: 3,
+    limiter: {
+      max: 30,
+      duration: 1000
+    }
+  }
 });
 
 export let serverVersionCreatedQueueProcessor = serverVersionCreatedQueue.process(
@@ -21,6 +28,7 @@ export let serverVersionCreatedQueueProcessor = serverVersionCreatedQueue.proces
       await db.serverVersion.updateMany({
         where: {
           serverOid: serverVersion.serverOid,
+          isCurrent: true,
           oid: { not: serverVersion.oid }
         },
         data: {
@@ -28,7 +36,7 @@ export let serverVersionCreatedQueueProcessor = serverVersionCreatedQueue.proces
         }
       });
 
-      await db.serverVersion.updateMany({
+      await db.serverVersion.update({
         where: { oid: serverVersion.oid },
         data: {
           isCurrent: true,

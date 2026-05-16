@@ -1124,7 +1124,7 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
       <ConfigureSectionCard
         key="tools"
         title="Tool Filters"
-        description="Limit which tools sessions from this template are allowed to use."
+        description="Limit which tools this provider setup is allowed to use."
         requirement="optional"
         completed={isToolsCompleted}
       >

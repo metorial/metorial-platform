@@ -1,6 +1,6 @@
 import { createCron } from '@lowerdeck/cron';
 import { env } from '../../env';
-import { scmSyncManyQueue } from './sync';
+import { enqueueScmSyncMany } from './sync';
 
 export let scmSyncManyCron = createCron(
   {
@@ -9,6 +9,6 @@ export let scmSyncManyCron = createCron(
     cron: '* * * * *'
   },
   async () => {
-    await scmSyncManyQueue.add({});
+    await enqueueScmSyncMany();
   }
 );

@@ -268,6 +268,36 @@ let getErrorMessage = (error: unknown) => {
   return typeof error === 'string' ? error : 'Unknown error';
 };
 
+let readOperationNamePrefixes = [
+  'list',
+  'get',
+  'read',
+  'fetch',
+  'search',
+  'find',
+  'lookup',
+  'retrieve',
+  'query',
+  'describe',
+  'inspect',
+  'view',
+  'show'
+];
+
+let isReadOperationToolName = (name: string) => {
+  let normalizedName = name.trim().toLowerCase();
+  return readOperationNamePrefixes.some(prefix => normalizedName.startsWith(prefix));
+};
+
+let prioritizeReadOperationTools = (tools: Tool[]) =>
+  [...tools].sort((a, b) => {
+    let aIsReadOperation = isReadOperationToolName(a.name);
+    let bIsReadOperation = isReadOperationToolName(b.name);
+
+    if (aIsReadOperation === bIsReadOperation) return 0;
+    return aIsReadOperation ? -1 : 1;
+  });
+
 let ExpandableCard = ({
   title,
   description,
@@ -639,7 +669,12 @@ export let ExplorerApp = () => {
         }
 
         startTransition(() => {
-          setCollections({ tools, resources, resourceTemplates, prompts });
+          setCollections({
+            tools: { ...tools, items: prioritizeReadOperationTools(tools.items) },
+            resources,
+            resourceTemplates,
+            prompts
+          });
           setServerCapabilities(client.getServerCapabilities() ?? null);
           setServerVersion(client.getServerVersion()?.version ?? null);
           setStatus('connected');
