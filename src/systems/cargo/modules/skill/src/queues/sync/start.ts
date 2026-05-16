@@ -32,8 +32,13 @@ export let syncStartQueueProcessor = syncStartQueue.process(async data => {
     data: { status: 'processing', startedAt: new Date() }
   });
 
+  // Cancel other syncs for the same destination
   await db.skillDestinationSync.updateMany({
-    where: { oid: { not: sync.oid }, status: 'processing' },
+    where: {
+      oid: { not: sync.oid },
+      status: { in: ['pending', 'processing'] },
+      destinationOid: sync.destinationOid
+    },
     data: { status: 'canceled', completedAt: new Date() }
   });
 

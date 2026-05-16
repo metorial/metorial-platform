@@ -167,6 +167,13 @@ model SkillDestination {
 
   codeBucketId String
 
+  isDirty               Boolean   @default(false)
+  lastTransientChangeAt DateTime?
+
+  firstTransientChangeAt DateTime?
+  shouldFlushAt          DateTime?
+  mustFlushAt            DateTime?
+
   createdAt  DateTime  @default(now())
   lastUsedAt DateTime?
 
@@ -174,6 +181,10 @@ model SkillDestination {
   skillMarketplace      SkillMarketplace?
   skillPlugin           SkillPlugin?
   skillDestinationItems SkillDestinationItem[]
+
+  @@index([isDirty])
+  @@index([shouldFlushAt])
+  @@index([mustFlushAt])
 }
 
 model SkillDestinationItem {
@@ -263,6 +274,8 @@ model SkillExport {
   createdAt   DateTime  @default(now())
   startedAt   DateTime?
   completedAt DateTime?
+
+  @@index([status])
 }
 
 model ManagedSkillPlugin {
