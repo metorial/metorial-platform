@@ -5,8 +5,8 @@
   "private": true,
   "scripts": {
     "start": "bun run server:start",
-    "server:build": "ncc build ./src/server.ts -o ./dist --source-map --transpile-only && bun run sentry:sourcemaps:if-token",
-    "worker:build": "ncc build ./src/worker.ts -o ./dist-worker --source-map --transpile-only",
+    "server:build": "ncc build ./src/server.ts -o ./dist --source-map --transpile-only --external bun && bun run sentry:sourcemaps:if-token",
+    "worker:build": "ncc build ./src/worker.ts -o ./dist-worker --source-map --transpile-only --external bun",
     "sentry:sourcemaps": "sentry-cli sourcemaps inject --org metorial --project mte-cargo ./dist && sentry-cli sourcemaps upload --org metorial --project mte-cargo ./dist",
     "sentry:sourcemaps:if-token": "sh -c 'if [ -n \"$SENTRY_AUTH_TOKEN\" ]; then bun run sentry:sourcemaps; else echo \"Skipping Sentry sourcemap upload\"; fi'",
     "server:start": "bun ./dist/index.js",
