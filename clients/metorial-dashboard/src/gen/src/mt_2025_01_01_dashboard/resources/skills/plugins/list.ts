@@ -5,6 +5,7 @@ export type SkillsPluginsListOutput = {
     object: 'skill.plugin';
     id: string;
     status: 'active' | 'archived' | 'deleted';
+    syncStatus: 'pending' | 'processing' | 'synced';
     imageUrl: string;
     name: string;
     description: string | null;
@@ -41,6 +42,7 @@ export let mapSkillsPluginsListOutput = mtMap.object<SkillsPluginsListOutput>({
         object: mtMap.objectField('object', mtMap.passthrough()),
         id: mtMap.objectField('id', mtMap.passthrough()),
         status: mtMap.objectField('status', mtMap.passthrough()),
+        syncStatus: mtMap.objectField('sync_status', mtMap.passthrough()),
         imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
         name: mtMap.objectField('name', mtMap.passthrough()),
         description: mtMap.objectField('description', mtMap.passthrough()),

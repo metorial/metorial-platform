@@ -3,5 +3,7 @@ export * from './create';
 export * from './get-editor-url';
 export * from './get';
 export * from './list';
+export * from './repositories';
 export * from './skills';
+export * from './sync';
 export * from './update';

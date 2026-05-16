@@ -12,6 +12,8 @@ import {
   mapDashboardInstanceSkillsPluginsGetOutput,
   mapDashboardInstanceSkillsPluginsListOutput,
   mapDashboardInstanceSkillsPluginsListQuery,
+  mapDashboardInstanceSkillsPluginsSyncBody,
+  mapDashboardInstanceSkillsPluginsSyncOutput,
   mapDashboardInstanceSkillsPluginsUpdateBody,
   mapDashboardInstanceSkillsPluginsUpdateOutput,
   type DashboardInstanceSkillsPluginsArchiveOutput,
@@ -22,6 +24,8 @@ import {
   type DashboardInstanceSkillsPluginsGetOutput,
   type DashboardInstanceSkillsPluginsListOutput,
   type DashboardInstanceSkillsPluginsListQuery,
+  type DashboardInstanceSkillsPluginsSyncBody,
+  type DashboardInstanceSkillsPluginsSyncOutput,
   type DashboardInstanceSkillsPluginsUpdateBody,
   type DashboardInstanceSkillsPluginsUpdateOutput
 } from '../resources';
@@ -192,6 +196,36 @@ export class MetorialSkillsPluginsEndpoint {
 
     return this._delete(request).transform(
       mapDashboardInstanceSkillsPluginsArchiveOutput
+    );
+  }
+
+  /**
+   * @name Sync skill plugin
+   * @description Forces a skill plugin sync.
+   *
+   * @param `skillPluginId` - string
+   * @param `body` - DashboardInstanceSkillsPluginsSyncBody
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardInstanceSkillsPluginsSyncOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  sync(
+    skillPluginId: string,
+    body: DashboardInstanceSkillsPluginsSyncBody,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceSkillsPluginsSyncOutput> {
+    let path = `skill-plugins/${skillPluginId}/sync`;
+
+    let request = {
+      path,
+      body: mapDashboardInstanceSkillsPluginsSyncBody.transformTo(body),
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._post(request).transform(
+      mapDashboardInstanceSkillsPluginsSyncOutput
     );
   }
 

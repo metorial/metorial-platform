@@ -4,4 +4,6 @@ export * from './get-editor-url';
 export * from './get';
 export * from './list';
 export * from './plugins';
+export * from './repositories';
+export * from './sync';
 export * from './update';

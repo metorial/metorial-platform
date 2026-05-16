@@ -12,6 +12,8 @@ import {
   mapDashboardInstanceSkillsMarketplacesGetOutput,
   mapDashboardInstanceSkillsMarketplacesListOutput,
   mapDashboardInstanceSkillsMarketplacesListQuery,
+  mapDashboardInstanceSkillsMarketplacesSyncBody,
+  mapDashboardInstanceSkillsMarketplacesSyncOutput,
   mapDashboardInstanceSkillsMarketplacesUpdateBody,
   mapDashboardInstanceSkillsMarketplacesUpdateOutput,
   type DashboardInstanceSkillsMarketplacesArchiveOutput,
@@ -22,6 +24,8 @@ import {
   type DashboardInstanceSkillsMarketplacesGetOutput,
   type DashboardInstanceSkillsMarketplacesListOutput,
   type DashboardInstanceSkillsMarketplacesListQuery,
+  type DashboardInstanceSkillsMarketplacesSyncBody,
+  type DashboardInstanceSkillsMarketplacesSyncOutput,
   type DashboardInstanceSkillsMarketplacesUpdateBody,
   type DashboardInstanceSkillsMarketplacesUpdateOutput
 } from '../resources';
@@ -192,6 +196,36 @@ export class MetorialSkillsMarketplacesEndpoint {
 
     return this._delete(request).transform(
       mapDashboardInstanceSkillsMarketplacesArchiveOutput
+    );
+  }
+
+  /**
+   * @name Sync skill marketplace
+   * @description Forces a skill marketplace sync.
+   *
+   * @param `skillMarketplaceId` - string
+   * @param `body` - DashboardInstanceSkillsMarketplacesSyncBody
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardInstanceSkillsMarketplacesSyncOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  sync(
+    skillMarketplaceId: string,
+    body: DashboardInstanceSkillsMarketplacesSyncBody,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceSkillsMarketplacesSyncOutput> {
+    let path = `skill-marketplaces/${skillMarketplaceId}/sync`;
+
+    let request = {
+      path,
+      body: mapDashboardInstanceSkillsMarketplacesSyncBody.transformTo(body),
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._post(request).transform(
+      mapDashboardInstanceSkillsMarketplacesSyncOutput
     );
   }
 
