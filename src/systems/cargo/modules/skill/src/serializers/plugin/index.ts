@@ -121,6 +121,56 @@ export let applyPlugin = createApplicator('plugin', async (input, context) => {
   });
   await context.setFile('.codex-plugin/plugin.json', codexPlugin);
 
+  // Standalone plugins are a single-plugin marketplace, so we still need to
+  // create the marketplace files for them.
+  if (!input.skillMarketplace) {
+    let tenant = await db.tenant.findFirstOrThrow({
+      where: { oid: input.skillPlugin.tenantOid }
+    });
+
+    let codexMarketplace = json({
+      name: baseInfo.name,
+      interface: {
+        displayName: input.skillPlugin.name
+      },
+      plugins: [
+        {
+          name: baseInfo.name,
+          category: input.skillPlugin.category ?? 'Productivity',
+          source: {
+            source: 'local',
+            path: `./`
+          },
+          policy: {
+            installation: 'AVAILABLE',
+            authentication: 'ON_INSTALL'
+          }
+        }
+      ]
+    });
+    await context.setFile('.agents/plugins/marketplace.json', codexMarketplace);
+
+    let cursorAndClaudeMarketplace = json({
+      name: baseInfo.name,
+      owner: {
+        name: tenant.organizationName ?? tenant.name
+      },
+      metadata: {
+        description: 'Official WorkOS skills for AI coding agents',
+        version: input.skillPlugin.version
+      },
+      plugins: [
+        {
+          name: baseInfo.name,
+          source: `./`,
+          description: input.skillPlugin.description ?? input.skillPlugin.longDescription ?? ''
+        }
+      ]
+    });
+    await context.setFile('.cursor-plugin/marketplace.json', cursorAndClaudeMarketplace);
+    await context.setFile('.claude-plugin/marketplace.json', cursorAndClaudeMarketplace);
+  }
+
   let cursor: string | null = null;
   let limit = 25;
 

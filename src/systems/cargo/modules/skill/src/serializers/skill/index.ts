@@ -114,6 +114,8 @@ export let applySkill = createApplicator('skill', async (input, context) => {
     });
 
     for (let item of items) {
+      if (item.path.startsWith('/agents/') || item.path.startsWith('/agents/')) continue;
+
       if (item.kind === 'document' && item.document) {
         let content = isRootSkillDocument(item.path)
           ? applySkillDocumentFrontmatter(item.document.content.content, input)
