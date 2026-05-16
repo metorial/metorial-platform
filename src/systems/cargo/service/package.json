@@ -1,7 +1,7 @@
 {
   "name": "@metorial-cargo/service",
   "module": "src/index.ts",
-  "type": "module",
+  "type": "commonjs",
   "private": true,
   "scripts": {
     "start": "bun run server:start",
