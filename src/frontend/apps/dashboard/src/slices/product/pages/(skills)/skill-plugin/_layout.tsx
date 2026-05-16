@@ -7,7 +7,7 @@ import {
   useCurrentProject,
   useSkillPlugin
 } from '@metorial/state';
-import { LinkTabs } from '@metorial/ui';
+import { Button, Callout, LinkTabs, Spacer } from '@metorial/ui';
 import { Outlet, useLocation, useParams } from 'react-router-dom';
 
 export let SkillPluginLayout = () => {
@@ -16,6 +16,7 @@ export let SkillPluginLayout = () => {
   let project = useCurrentProject();
   let { skillPluginId } = useParams();
   let plugin = useSkillPlugin(instance.data?.id, skillPluginId);
+  let syncPlugin = plugin.syncMutator();
   let pathname = useLocation().pathname;
 
   let pluginPathParams = [
@@ -61,6 +62,30 @@ export let SkillPluginLayout = () => {
               }
             ]}
           />
+
+          {plugin.data?.syncStatus !== 'synced' && (
+            <>
+              <Callout color="blue">
+                <span>
+                  <strong>Upcoming changes:</strong> Skills or configurations linked to this
+                  plugin have changed. Metorial is processing these changes and updating the
+                  plugin.
+                </span>
+                {plugin.data?.syncStatus === 'pending' && (
+                  <Button
+                    size="2"
+                    loading={syncPlugin.isLoading}
+                    onClick={() => syncPlugin.mutate({})}
+                    style={{ marginLeft: 16 }}
+                  >
+                    Sync Now
+                  </Button>
+                )}
+              </Callout>
+
+              <Spacer height={20} />
+            </>
+          )}
 
           <Outlet />
         </>

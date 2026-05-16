@@ -7,7 +7,7 @@ import {
   useCurrentProject,
   useSkillMarketplace
 } from '@metorial/state';
-import { LinkTabs } from '@metorial/ui';
+import { Button, Callout, LinkTabs, Spacer } from '@metorial/ui';
 import { Outlet, useLocation, useParams } from 'react-router-dom';
 
 export let SkillMarketplaceLayout = () => {
@@ -16,6 +16,7 @@ export let SkillMarketplaceLayout = () => {
   let project = useCurrentProject();
   let { skillMarketplaceId } = useParams();
   let marketplace = useSkillMarketplace(instance.data?.id, skillMarketplaceId);
+  let syncMarketplace = marketplace.syncMutator();
   let pathname = useLocation().pathname;
 
   let marketplacePathParams = [
@@ -65,6 +66,30 @@ export let SkillMarketplaceLayout = () => {
               }
             ]}
           />
+
+          {marketplace.data?.syncStatus !== 'synced' && (
+            <>
+              <Callout color="blue">
+                <span>
+                  <strong>Upcoming changes:</strong> Plugins or skills linked to this
+                  marketplace have changed. Metorial is processing these changes and updating
+                  the marketplace.
+                </span>
+                {marketplace.data?.syncStatus === 'pending' && (
+                  <Button
+                    size="2"
+                    loading={syncMarketplace.isLoading}
+                    onClick={() => syncMarketplace.mutate({})}
+                    style={{ marginLeft: 16 }}
+                  >
+                    Sync Now
+                  </Button>
+                )}
+              </Callout>
+
+              <Spacer height={20} />
+            </>
+          )}
 
           <Outlet />
         </>

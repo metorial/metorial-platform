@@ -86,7 +86,14 @@ export let skillPluginLoader = createLoader({
       {
         input: { instanceId, skillPluginId }
       }: { input: { instanceId: string; skillPluginId: string } }
-    ) => withAuth(sdk => sdk.skillsPlugins.archive(instanceId, skillPluginId))
+    ) => withAuth(sdk => sdk.skillsPlugins.archive(instanceId, skillPluginId)),
+
+    sync: (
+      _: {},
+      {
+        input: { instanceId, skillPluginId }
+      }: { input: { instanceId: string; skillPluginId: string } }
+    ) => withAuth(sdk => sdk.skillsPlugins.sync(instanceId, skillPluginId, {}))
   }
 });
 
@@ -101,7 +108,8 @@ export let useSkillPlugin = (
   return {
     ...data,
     updateMutator: data.useMutator('update'),
-    deleteMutator: data.useMutator('delete')
+    deleteMutator: data.useMutator('delete'),
+    syncMutator: data.useMutator('sync')
   };
 };
 

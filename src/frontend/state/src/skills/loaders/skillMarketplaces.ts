@@ -86,7 +86,14 @@ export let skillMarketplaceLoader = createLoader({
       {
         input: { instanceId, skillMarketplaceId }
       }: { input: { instanceId: string; skillMarketplaceId: string } }
-    ) => withAuth(sdk => sdk.skillMarketplaces.archive(instanceId, skillMarketplaceId))
+    ) => withAuth(sdk => sdk.skillMarketplaces.archive(instanceId, skillMarketplaceId)),
+
+    sync: (
+      _: {},
+      {
+        input: { instanceId, skillMarketplaceId }
+      }: { input: { instanceId: string; skillMarketplaceId: string } }
+    ) => withAuth(sdk => sdk.skillMarketplaces.sync(instanceId, skillMarketplaceId, {}))
   }
 });
 
@@ -101,7 +108,8 @@ export let useSkillMarketplace = (
   return {
     ...data,
     updateMutator: data.useMutator('update'),
-    deleteMutator: data.useMutator('delete')
+    deleteMutator: data.useMutator('delete'),
+    syncMutator: data.useMutator('sync')
   };
 };
 
