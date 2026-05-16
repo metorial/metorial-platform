@@ -22,9 +22,9 @@ export type EntityImage =
       fileUrl: string;
       url?: string;
     }
-  | { type: 'enterprise_file'; fileId: string }
   | { type: 'url'; url: string }
   | { type: 'default' };
+type EntityImageOuter = EntityImage;
 
 let mainAdapter = new PrismaPg({
   connectionString: process.env.SUBSPACE_DATABASE_URL ?? process.env.DATABASE_URL
@@ -64,6 +64,8 @@ export let db = baseClient.$extends({
 
 declare global {
   namespace PrismaJson {
+    type SubspaceEntityImage = EntityImageOuter;
+
     type PublisherSource = { type: 'github'; url: string; owner: string; repo?: string };
 
     type ProviderSpecificationValue = {

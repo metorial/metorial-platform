@@ -5,7 +5,7 @@ model Brand {
   identifier String @unique
   name       String
 
-  /// [EntityImage]
+  /// [SubspaceEntityImage]
   image Json?
 
   tenantOid BigInt? @unique

@@ -1,7 +1,7 @@
 import { createCron } from '@lowerdeck/cron';
 import { combineQueueProcessors, createQueue } from '@lowerdeck/queue';
 import { db, env } from '@metorial-cargo/db';
-import { getCargoFilesBucketName, getStorage } from '@metorial-cargo/module-file/storage';
+import { getCargoFilesBucketName, getStorage } from '../storage';
 
 let redisUrl = env.service.REDIS_URL;
 let batchSize = 100;

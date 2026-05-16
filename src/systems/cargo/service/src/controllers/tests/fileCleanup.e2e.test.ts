@@ -11,7 +11,7 @@ let storageMocks = vi.hoisted(() => ({
   deleteObject: vi.fn(async (_bucket: string, _key: string) => {})
 }));
 
-vi.mock('@metorial-cargo/module-file/storage', () => ({
+vi.mock('../../../../modules/file/src/storage', () => ({
   getCargoFilesBucketName: () => 'cargo-files-test',
   getStorage: () => ({
     deleteObject: storageMocks.deleteObject

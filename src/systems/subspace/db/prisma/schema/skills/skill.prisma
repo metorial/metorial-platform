@@ -6,7 +6,7 @@ model SkillEntity {
   name        String
   description String?
 
-  /// [EntityImage]
+  /// [SubspaceEntityImage]
   image Json?
 
   ownerSkillOid BigInt? @unique
@@ -45,7 +45,7 @@ model Skill {
   metadata        Json?
   privateMetadata Json?
 
-  /// [EntityImage]
+  /// [SubspaceEntityImage]
   image Json?
 
   clientName        String

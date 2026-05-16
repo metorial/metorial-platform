@@ -11,7 +11,7 @@ import { cleanDatabase } from '../../test/setup';
 
 let objects = new Map<string, { data: Blob; contentType: string }>();
 
-vi.mock('@metorial-cargo/module-file/storage', () => ({
+vi.mock('../../../../modules/file/src/storage', () => ({
   getCargoFilesBucketName: () => 'cargo-files-test',
   getStorage: () => ({
     putObject: async (_bucket: string, key: string, file: Blob, contentType: string) => {

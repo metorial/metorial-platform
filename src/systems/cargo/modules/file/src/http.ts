@@ -5,13 +5,13 @@ import type { Context } from '@lowerdeck/hono';
 import { cors, createHono } from '@lowerdeck/hono';
 import { generatePlainId } from '@lowerdeck/id';
 import { documentService } from '@metorial-cargo/module-doc';
-import { getCargoFilesBucketName, getStorage } from '@metorial-cargo/module-file/storage';
 import {
   environmentService,
   fileDownloadService,
   fileService,
   tenantService
 } from './services';
+import { getCargoFilesBucketName, getStorage } from './storage';
 
 let createFileUploadHandler = async (c: Context) =>
   provideExecutionContext(
