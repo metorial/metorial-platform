@@ -50,17 +50,7 @@ export let setupSessionProviderListingItemPresenter = (provider: {
   name: string;
   description: string | null;
   slug: string;
-  image:
-    | {
-        type: 'file';
-        fileUrl?: string | null;
-        url?: string | null;
-      }
-    | {
-        type: 'url';
-        url: string;
-      }
-    | null;
+  image: PrismaJson.EntityImage | null;
   groups: Array<{
     id: string;
     name: string;
