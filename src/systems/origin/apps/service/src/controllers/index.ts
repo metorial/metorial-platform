@@ -10,6 +10,7 @@ import { scmInstallationController } from './scmInstallation';
 import { scmInstallationSessionController } from './scmInstallationSession';
 import { scmRepoPushController } from './scmRepoPush';
 import { scmRepositoryController } from './scmRepository';
+import { scmRepositorySyncController } from './scmRepositorySync';
 import { tenantController } from './tenant';
 
 export let rootController = app.controller({
@@ -23,6 +24,7 @@ export let rootController = app.controller({
   scmInstallation: scmInstallationController,
   scmInstallationSession: scmInstallationSessionController,
   scmRepository: scmRepositoryController,
+  scmRepositorySync: scmRepositorySyncController,
   scmRepoPush: scmRepoPushController,
 
   changeNotification: changeNotificationController

@@ -44,14 +44,19 @@ type githubContentResponse struct {
 	Content string `json:"content"` // This is the base64-encoded file content
 }
 
-func UploadToRepo(owner, repo, targetPath, token string, files []FileToUpload) error {
+func UploadToRepo(owner, repo, targetPath, branch, commitMessage, token string, files []FileToUpload) error {
 	if token == "" {
 		return fmt.Errorf("GitHub token is required")
 	}
 
 	client := &http.Client{}
 	baseURL := "https://api.github.com"
-	branch := "main" // Default to main branch
+	if branch == "" {
+		branch = "main"
+	}
+	if commitMessage == "" {
+		commitMessage = fmt.Sprintf("Upload %d files", len(files))
+	}
 
 	// Upload each file using the Contents API
 	for _, file := range files {
@@ -71,8 +76,6 @@ func UploadToRepo(owner, repo, targetPath, token string, files []FileToUpload) e
 			return fmt.Errorf("failed to get SHA for %s: %w", fullPath, err)
 		}
 
-		// Create or update the file
-		commitMessage := fmt.Sprintf("Upload %s", fullPath)
 		contentReq := githubContentRequest{
 			Message: commitMessage,
 			Content: encodedContent,

@@ -208,7 +208,7 @@ func (rs *RcpService) ExportBucketToGithub(ctx context.Context, req *rpc.ExportB
 		})
 	}
 
-	if err := github.UploadToRepo(req.Owner, req.Repo, req.Path, req.Token, filesToUpload); err != nil {
+	if err := github.UploadToRepo(req.Owner, req.Repo, req.Path, req.Branch, req.CommitMessage, req.Token, filesToUpload); err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to upload to GitHub: %v", err)
 	}
 
@@ -248,7 +248,7 @@ func (rs *RcpService) ExportBucketToGitlab(ctx context.Context, req *rpc.ExportB
 		})
 	}
 
-	if err := gitlab.UploadToRepo(req.ProjectId, req.Path, req.Token, req.GitlabApiUrl, filesToUpload); err != nil {
+	if err := gitlab.UploadToRepo(req.ProjectId, req.Path, req.Branch, req.CommitMessage, req.Token, req.GitlabApiUrl, filesToUpload); err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to upload to GitLab: %v", err)
 	}
 

@@ -9,6 +9,8 @@ export let exportGithubQueue = createQueue<{
   bucketId: string;
   path: string;
   repoId: string;
+  branchName?: string;
+  commitMessage?: string;
 }>({
   name: 'ori/exp/gh',
   redisUrl: env.service.REDIS_URL
@@ -36,6 +38,8 @@ export let exportGithubQueueProcessor = exportGithubQueue.process(async data => 
     owner: repo.externalOwner,
     repo: repo.externalName,
     path: data.path,
-    token
+    token,
+    branch: data.branchName ?? repo.defaultBranch ?? 'main',
+    commitMessage: data.commitMessage ?? `Export code bucket ${data.bucketId}`
   });
 });

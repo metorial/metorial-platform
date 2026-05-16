@@ -9,6 +9,8 @@ export let exportGitlabQueue = createQueue<{
   bucketId: string;
   path: string;
   repoId: string;
+  branchName?: string;
+  commitMessage?: string;
 }>({
   name: 'ori/exp/gl',
   redisUrl: env.service.REDIS_URL
@@ -35,6 +37,8 @@ export let exportGitlabQueueProcessor = exportGitlabQueue.process(async data => 
     projectId: Long.fromString(repo.externalId),
     path: data.path,
     token,
-    gitlabApiUrl: apiUrl
+    gitlabApiUrl: apiUrl,
+    branch: data.branchName ?? repo.defaultBranch ?? 'main',
+    commitMessage: data.commitMessage ?? `Export code bucket ${data.bucketId}`
   });
 });

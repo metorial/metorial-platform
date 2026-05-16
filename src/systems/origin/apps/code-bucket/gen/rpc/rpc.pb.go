@@ -1296,6 +1296,8 @@ type ExportBucketToGithubRequest struct {
 	Repo          string                 `protobuf:"bytes,3,opt,name=repo,proto3" json:"repo,omitempty"`
 	Path          string                 `protobuf:"bytes,4,opt,name=path,proto3" json:"path,omitempty"`
 	Token         string                 `protobuf:"bytes,5,opt,name=token,proto3" json:"token,omitempty"`
+	Branch        string                 `protobuf:"bytes,6,opt,name=branch,proto3" json:"branch,omitempty"`
+	CommitMessage string                 `protobuf:"bytes,7,opt,name=commit_message,json=commitMessage,proto3" json:"commit_message,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1361,6 +1363,20 @@ func (x *ExportBucketToGithubRequest) GetPath() string {
 func (x *ExportBucketToGithubRequest) GetToken() string {
 	if x != nil {
 		return x.Token
+	}
+	return ""
+}
+
+func (x *ExportBucketToGithubRequest) GetBranch() string {
+	if x != nil {
+		return x.Branch
+	}
+	return ""
+}
+
+func (x *ExportBucketToGithubRequest) GetCommitMessage() string {
+	if x != nil {
+		return x.CommitMessage
 	}
 	return ""
 }
@@ -1492,6 +1508,8 @@ type ExportBucketToGitlabRequest struct {
 	Path          string                 `protobuf:"bytes,3,opt,name=path,proto3" json:"path,omitempty"`
 	Token         string                 `protobuf:"bytes,4,opt,name=token,proto3" json:"token,omitempty"`
 	GitlabApiUrl  string                 `protobuf:"bytes,5,opt,name=gitlab_api_url,json=gitlabApiUrl,proto3" json:"gitlab_api_url,omitempty"`
+	Branch        string                 `protobuf:"bytes,6,opt,name=branch,proto3" json:"branch,omitempty"`
+	CommitMessage string                 `protobuf:"bytes,7,opt,name=commit_message,json=commitMessage,proto3" json:"commit_message,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1557,6 +1575,20 @@ func (x *ExportBucketToGitlabRequest) GetToken() string {
 func (x *ExportBucketToGitlabRequest) GetGitlabApiUrl() string {
 	if x != nil {
 		return x.GitlabApiUrl
+	}
+	return ""
+}
+
+func (x *ExportBucketToGitlabRequest) GetBranch() string {
+	if x != nil {
+		return x.Branch
+	}
+	return ""
+}
+
+func (x *ExportBucketToGitlabRequest) GetCommitMessage() string {
+	if x != nil {
+		return x.CommitMessage
 	}
 	return ""
 }
@@ -1678,13 +1710,15 @@ const file_rpc_proto_rawDesc = "" +
 	"\x17DeleteBucketPathRequest\x12\x1b\n" +
 	"\tbucket_id\x18\x01 \x01(\tR\bbucketId\x12\x12\n" +
 	"\x04path\x18\x02 \x01(\tR\x04path\"\x1a\n" +
-	"\x18DeleteBucketPathResponse\"\x8e\x01\n" +
+	"\x18DeleteBucketPathResponse\"\xcd\x01\n" +
 	"\x1bExportBucketToGithubRequest\x12\x1b\n" +
 	"\tbucket_id\x18\x01 \x01(\tR\bbucketId\x12\x14\n" +
 	"\x05owner\x18\x02 \x01(\tR\x05owner\x12\x12\n" +
 	"\x04repo\x18\x03 \x01(\tR\x04repo\x12\x12\n" +
 	"\x04path\x18\x04 \x01(\tR\x04path\x12\x14\n" +
-	"\x05token\x18\x05 \x01(\tR\x05token\"\x1e\n" +
+	"\x05token\x18\x05 \x01(\tR\x05token\x12\x16\n" +
+	"\x06branch\x18\x06 \x01(\tR\x06branch\x12%\n" +
+	"\x0ecommit_message\x18\a \x01(\tR\rcommitMessage\"\x1e\n" +
 	"\x1cExportBucketToGithubResponse\"\xc4\x01\n" +
 	"\x1dCreateBucketFromGitlabRequest\x12\"\n" +
 	"\rnew_bucket_id\x18\x01 \x01(\tR\vnewBucketId\x12\x1d\n" +
@@ -1693,14 +1727,16 @@ const file_rpc_proto_rawDesc = "" +
 	"\x04path\x18\x03 \x01(\tR\x04path\x12\x10\n" +
 	"\x03ref\x18\x04 \x01(\tR\x03ref\x12\x14\n" +
 	"\x05token\x18\x05 \x01(\tR\x05token\x12$\n" +
-	"\x0egitlab_api_url\x18\x06 \x01(\tR\fgitlabApiUrl\"\xa9\x01\n" +
+	"\x0egitlab_api_url\x18\x06 \x01(\tR\fgitlabApiUrl\"\xe8\x01\n" +
 	"\x1bExportBucketToGitlabRequest\x12\x1b\n" +
 	"\tbucket_id\x18\x01 \x01(\tR\bbucketId\x12\x1d\n" +
 	"\n" +
 	"project_id\x18\x02 \x01(\x03R\tprojectId\x12\x12\n" +
 	"\x04path\x18\x03 \x01(\tR\x04path\x12\x14\n" +
 	"\x05token\x18\x04 \x01(\tR\x05token\x12$\n" +
-	"\x0egitlab_api_url\x18\x05 \x01(\tR\fgitlabApiUrl\"\x1e\n" +
+	"\x0egitlab_api_url\x18\x05 \x01(\tR\fgitlabApiUrl\x12\x16\n" +
+	"\x06branch\x18\x06 \x01(\tR\x06branch\x12%\n" +
+	"\x0ecommit_message\x18\a \x01(\tR\rcommitMessage\"\x1e\n" +
 	"\x1cExportBucketToGitlabResponse2\xb9\v\n" +
 	"\n" +
 	"CodeBucket\x12I\n" +

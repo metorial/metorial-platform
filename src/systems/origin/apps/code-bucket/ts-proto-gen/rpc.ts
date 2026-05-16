@@ -156,6 +156,8 @@ export interface ExportBucketToGithubRequest {
   repo: string;
   path: string;
   token: string;
+  branch: string;
+  commitMessage: string;
 }
 
 export interface ExportBucketToGithubResponse {
@@ -176,6 +178,8 @@ export interface ExportBucketToGitlabRequest {
   path: string;
   token: string;
   gitlabApiUrl: string;
+  branch: string;
+  commitMessage: string;
 }
 
 export interface ExportBucketToGitlabResponse {
@@ -2204,7 +2208,7 @@ export const DeleteBucketPathResponse: MessageFns<DeleteBucketPathResponse> = {
 };
 
 function createBaseExportBucketToGithubRequest(): ExportBucketToGithubRequest {
-  return { bucketId: "", owner: "", repo: "", path: "", token: "" };
+  return { bucketId: "", owner: "", repo: "", path: "", token: "", branch: "", commitMessage: "" };
 }
 
 export const ExportBucketToGithubRequest: MessageFns<ExportBucketToGithubRequest> = {
@@ -2223,6 +2227,12 @@ export const ExportBucketToGithubRequest: MessageFns<ExportBucketToGithubRequest
     }
     if (message.token !== "") {
       writer.uint32(42).string(message.token);
+    }
+    if (message.branch !== "") {
+      writer.uint32(50).string(message.branch);
+    }
+    if (message.commitMessage !== "") {
+      writer.uint32(58).string(message.commitMessage);
     }
     return writer;
   },
@@ -2274,6 +2284,22 @@ export const ExportBucketToGithubRequest: MessageFns<ExportBucketToGithubRequest
           message.token = reader.string();
           continue;
         }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.branch = reader.string();
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.commitMessage = reader.string();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -2294,6 +2320,12 @@ export const ExportBucketToGithubRequest: MessageFns<ExportBucketToGithubRequest
       repo: isSet(object.repo) ? globalThis.String(object.repo) : "",
       path: isSet(object.path) ? globalThis.String(object.path) : "",
       token: isSet(object.token) ? globalThis.String(object.token) : "",
+      branch: isSet(object.branch) ? globalThis.String(object.branch) : "",
+      commitMessage: isSet(object.commitMessage)
+        ? globalThis.String(object.commitMessage)
+        : isSet(object.commit_message)
+        ? globalThis.String(object.commit_message)
+        : "",
     };
   },
 
@@ -2314,6 +2346,12 @@ export const ExportBucketToGithubRequest: MessageFns<ExportBucketToGithubRequest
     if (message.token !== "") {
       obj.token = message.token;
     }
+    if (message.branch !== "") {
+      obj.branch = message.branch;
+    }
+    if (message.commitMessage !== "") {
+      obj.commitMessage = message.commitMessage;
+    }
     return obj;
   },
 
@@ -2327,6 +2365,8 @@ export const ExportBucketToGithubRequest: MessageFns<ExportBucketToGithubRequest
     message.repo = object.repo ?? "";
     message.path = object.path ?? "";
     message.token = object.token ?? "";
+    message.branch = object.branch ?? "";
+    message.commitMessage = object.commitMessage ?? "";
     return message;
   },
 };
@@ -2529,7 +2569,7 @@ export const CreateBucketFromGitlabRequest: MessageFns<CreateBucketFromGitlabReq
 };
 
 function createBaseExportBucketToGitlabRequest(): ExportBucketToGitlabRequest {
-  return { bucketId: "", projectId: Long.ZERO, path: "", token: "", gitlabApiUrl: "" };
+  return { bucketId: "", projectId: Long.ZERO, path: "", token: "", gitlabApiUrl: "", branch: "", commitMessage: "" };
 }
 
 export const ExportBucketToGitlabRequest: MessageFns<ExportBucketToGitlabRequest> = {
@@ -2548,6 +2588,12 @@ export const ExportBucketToGitlabRequest: MessageFns<ExportBucketToGitlabRequest
     }
     if (message.gitlabApiUrl !== "") {
       writer.uint32(42).string(message.gitlabApiUrl);
+    }
+    if (message.branch !== "") {
+      writer.uint32(50).string(message.branch);
+    }
+    if (message.commitMessage !== "") {
+      writer.uint32(58).string(message.commitMessage);
     }
     return writer;
   },
@@ -2599,6 +2645,22 @@ export const ExportBucketToGitlabRequest: MessageFns<ExportBucketToGitlabRequest
           message.gitlabApiUrl = reader.string();
           continue;
         }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.branch = reader.string();
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.commitMessage = reader.string();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -2627,6 +2689,12 @@ export const ExportBucketToGitlabRequest: MessageFns<ExportBucketToGitlabRequest
         : isSet(object.gitlab_api_url)
         ? globalThis.String(object.gitlab_api_url)
         : "",
+      branch: isSet(object.branch) ? globalThis.String(object.branch) : "",
+      commitMessage: isSet(object.commitMessage)
+        ? globalThis.String(object.commitMessage)
+        : isSet(object.commit_message)
+        ? globalThis.String(object.commit_message)
+        : "",
     };
   },
 
@@ -2647,6 +2715,12 @@ export const ExportBucketToGitlabRequest: MessageFns<ExportBucketToGitlabRequest
     if (message.gitlabApiUrl !== "") {
       obj.gitlabApiUrl = message.gitlabApiUrl;
     }
+    if (message.branch !== "") {
+      obj.branch = message.branch;
+    }
+    if (message.commitMessage !== "") {
+      obj.commitMessage = message.commitMessage;
+    }
     return obj;
   },
 
@@ -2662,6 +2736,8 @@ export const ExportBucketToGitlabRequest: MessageFns<ExportBucketToGitlabRequest
     message.path = object.path ?? "";
     message.token = object.token ?? "";
     message.gitlabApiUrl = object.gitlabApiUrl ?? "";
+    message.branch = object.branch ?? "";
+    message.commitMessage = object.commitMessage ?? "";
     return message;
   },
 };

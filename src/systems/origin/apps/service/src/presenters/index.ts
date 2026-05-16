@@ -10,4 +10,5 @@ export * from './scmInstallation';
 export * from './scmInstallationSession';
 export * from './scmRepoPreview';
 export * from './scmRepositoryPush';
+export * from './scmRepositorySync';
 export * from './tenant';

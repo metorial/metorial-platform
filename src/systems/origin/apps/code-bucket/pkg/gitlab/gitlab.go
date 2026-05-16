@@ -45,13 +45,18 @@ type gitlabCommitRequest struct {
 	Actions       []gitlabFileAction `json:"actions"`
 }
 
-func UploadToRepo(projectID int64, targetPath, token, gitlabAPIURL string, files []FileToUpload) error {
+func UploadToRepo(projectID int64, targetPath, branch, commitMessage, token, gitlabAPIURL string, files []FileToUpload) error {
 	if token == "" {
 		return fmt.Errorf("GitLab token is required")
 	}
 
 	client := &http.Client{}
-	branch := "main" // Default to main branch
+	if branch == "" {
+		branch = "main"
+	}
+	if commitMessage == "" {
+		commitMessage = fmt.Sprintf("Upload %d files", len(files))
+	}
 
 	// GitLab supports batch commits, so we can upload all files in a single commit
 	actions := make([]gitlabFileAction, 0, len(files))
@@ -81,7 +86,7 @@ func UploadToRepo(projectID int64, targetPath, token, gitlabAPIURL string, files
 	// Create commit with all file actions
 	commitReq := gitlabCommitRequest{
 		Branch:        branch,
-		CommitMessage: fmt.Sprintf("Upload %d files", len(files)),
+		CommitMessage: commitMessage,
 		Actions:       actions,
 	}
 

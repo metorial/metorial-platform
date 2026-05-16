@@ -148,6 +148,8 @@ message ExportBucketToGithubRequest {
   string repo = 3;
   string path = 4;
   string token = 5;
+  string branch = 6;
+  string commit_message = 7;
 }
 
 message ExportBucketToGithubResponse {}
@@ -167,6 +169,8 @@ message ExportBucketToGitlabRequest {
   string path = 3;
   string token = 4;
   string gitlab_api_url = 5;
+  string branch = 6;
+  string commit_message = 7;
 }
 
 message ExportBucketToGitlabResponse {}
