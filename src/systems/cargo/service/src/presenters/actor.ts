@@ -1,6 +1,14 @@
-import type { TenantActor } from '@metorial-cargo/db';
+type ActorPresenterInput = {
+  id: string;
+  identifier: string;
+  type: string;
+  name: string;
+  organizationActorId: string | null;
+  consumerId: string | null;
+  createdAt: Date;
+};
 
-export let actorPresenter = (actor: TenantActor) => ({
+export let actorPresenter = (actor: ActorPresenterInput) => ({
   object: 'cargo#actor',
   id: actor.id,
   identifier: actor.identifier,
