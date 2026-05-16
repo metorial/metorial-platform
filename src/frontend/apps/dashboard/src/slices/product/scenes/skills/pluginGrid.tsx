@@ -50,7 +50,7 @@ export let SkillPluginsGrid = (
     ...query
   });
   let hasActiveFilters = !!(
-    query.slug ||
+    query.search ||
     query.category ||
     query.skillMarketplaceId ||
     query.createdAt ||
@@ -74,7 +74,7 @@ export let SkillPluginsGrid = (
   return renderWithPagination(plugins, {
     emptyState: (
       <>
-        {query.slug && (
+        {query.search && (
           <Text size="2" color="gray600">
             No plugins found.
           </Text>
@@ -92,7 +92,7 @@ export let SkillPluginsGrid = (
           />
         )}
 
-        {!query.slug && hasActiveFilters && (
+        {!query.search && hasActiveFilters && (
           <Text size="2" color="gray600">
             No plugins match the current filters.
           </Text>

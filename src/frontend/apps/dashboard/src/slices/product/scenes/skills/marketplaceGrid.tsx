@@ -50,7 +50,7 @@ export let SkillMarketplacesGrid = (
     ...query
   });
   let hasActiveFilters = !!(
-    query.slug ||
+    query.search ||
     query.createdAt ||
     query.updatedAt ||
     (Array.isArray(query.status) ? query.status.length > 0 : query.status)
@@ -77,7 +77,7 @@ export let SkillMarketplacesGrid = (
   return renderWithPagination(marketplaces, {
     emptyState: (
       <>
-        {query.slug && (
+        {query.search && (
           <Text size="2" color="gray600">
             No marketplaces found.
           </Text>
@@ -95,7 +95,7 @@ export let SkillMarketplacesGrid = (
           />
         )}
 
-        {!query.slug && hasActiveFilters && (
+        {!query.search && hasActiveFilters && (
           <Text size="2" color="gray600">
             No marketplaces match the current filters.
           </Text>

@@ -5,10 +5,21 @@ import {
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
+  useCreateSkillExport,
   useSkillPlugin
 } from '@metorial/state';
-import { Button, Callout, LinkTabs, Spacer } from '@metorial/ui';
+import { Button, Callout, Flex, LinkTabs, Spacer, toast } from '@metorial/ui';
 import { Outlet, useLocation, useParams } from 'react-router-dom';
+
+let downloadExport = (url: string, fileName: string) => {
+  let link = document.createElement('a');
+  link.href = url;
+  link.download = fileName;
+  link.rel = 'noopener';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+};
 
 export let SkillPluginLayout = () => {
   let instance = useCurrentInstance();
@@ -17,6 +28,7 @@ export let SkillPluginLayout = () => {
   let { skillPluginId } = useParams();
   let plugin = useSkillPlugin(instance.data?.id, skillPluginId);
   let syncPlugin = plugin.syncMutator();
+  let createSkillExport = useCreateSkillExport();
   let pathname = useLocation().pathname;
 
   let pluginPathParams = [
@@ -25,6 +37,31 @@ export let SkillPluginLayout = () => {
     instance.data,
     plugin.data?.id ?? skillPluginId
   ] as const;
+
+  let exportPlugin = () => {
+    if (!instance.data || !plugin.data) return;
+
+    toast.promise(
+      async () => {
+        let [skillExport, error] = await createSkillExport.mutate({
+          instanceId: instance.data!.id,
+          target: 'plugin',
+          skillPluginId: plugin.data!.id
+        });
+
+        if (error) throw error;
+        if (!skillExport?.fileLink)
+          throw new Error('Export completed without a download link');
+
+        downloadExport(skillExport.fileLink!.url, `${plugin.data!.slug}.zip`);
+      },
+      {
+        loading: 'Exporting plugin...',
+        success: 'Plugin export downloaded',
+        error: 'Failed to export plugin'
+      }
+    );
+  };
 
   return (
     <ContentLayout>
@@ -41,6 +78,19 @@ export let SkillPluginLayout = () => {
             href: Paths.instance.skillPlugin(...pluginPathParams)
           }
         ]}
+        actions={
+          <Flex gap="8px">
+            <Button
+              size="2"
+              disabled={!instance.data || !plugin.data}
+              loading={createSkillExport.isLoading}
+              success={createSkillExport.isSuccess}
+              onClick={exportPlugin}
+            >
+              Export Plugin
+            </Button>
+          </Flex>
+        }
       />
 
       {renderWithLoader({ plugin })(() => (

@@ -285,7 +285,7 @@ export let useSkillMarketplaceFilters = (p: {
 
   let skillMarketplacesFilter = useMemo(
     (): DashboardInstanceSkillsMarketplacesListQuery => ({
-      ...(searchDebounced.trim() ? { slug: searchDebounced.trim() } : {}),
+      ...(searchDebounced.trim() ? { search: searchDebounced.trim() } : {}),
       ...(status ? { status } : {}),
       ...(createdAt ? { createdAt } : {}),
       ...(updatedAt ? { updatedAt } : {})
@@ -334,7 +334,7 @@ export let useSkillPluginFilters = (p: {
 
   let skillPluginsFilter = useMemo(
     (): DashboardInstanceSkillsPluginsListQuery => ({
-      ...(searchDebounced.trim() ? { slug: searchDebounced.trim() } : {}),
+      ...(searchDebounced.trim() ? { search: searchDebounced.trim() } : {}),
       ...(status ? { status } : {}),
       ...(category ? { category } : {}),
       ...(skillMarketplaceId ? { skillMarketplaceId } : {}),

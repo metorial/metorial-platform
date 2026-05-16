@@ -32,7 +32,7 @@ export let SkillMarketplacesPage = () => {
         searchState={[search, setSearch]}
         filterState={[filterState, setFilterState]}
         filters={filters}
-        placeholder="Filter marketplaces by slug..."
+        placeholder="Search marketplaces..."
       />
 
       <Spacer size={15} />

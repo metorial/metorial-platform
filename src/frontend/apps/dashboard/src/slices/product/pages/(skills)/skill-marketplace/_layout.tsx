@@ -5,10 +5,21 @@ import {
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
+  useCreateSkillExport,
   useSkillMarketplace
 } from '@metorial/state';
-import { Button, Callout, LinkTabs, Spacer } from '@metorial/ui';
+import { Button, Callout, Flex, LinkTabs, Spacer, toast } from '@metorial/ui';
 import { Outlet, useLocation, useParams } from 'react-router-dom';
+
+let downloadExport = (url: string, fileName: string) => {
+  let link = document.createElement('a');
+  link.href = url;
+  link.download = fileName;
+  link.rel = 'noopener';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+};
 
 export let SkillMarketplaceLayout = () => {
   let instance = useCurrentInstance();
@@ -17,6 +28,7 @@ export let SkillMarketplaceLayout = () => {
   let { skillMarketplaceId } = useParams();
   let marketplace = useSkillMarketplace(instance.data?.id, skillMarketplaceId);
   let syncMarketplace = marketplace.syncMutator();
+  let createSkillExport = useCreateSkillExport();
   let pathname = useLocation().pathname;
 
   let marketplacePathParams = [
@@ -25,6 +37,31 @@ export let SkillMarketplaceLayout = () => {
     instance.data,
     marketplace.data?.id ?? skillMarketplaceId
   ] as const;
+
+  let exportMarketplace = () => {
+    if (!instance.data || !marketplace.data) return;
+
+    toast.promise(
+      async () => {
+        let [skillExport, error] = await createSkillExport.mutate({
+          instanceId: instance.data!.id,
+          target: 'marketplace',
+          skillMarketplaceId: marketplace.data!.id
+        });
+
+        if (error) throw error;
+        if (!skillExport?.fileLink)
+          throw new Error('Export completed without a download link');
+
+        downloadExport(skillExport.fileLink!.url, `${marketplace.data!.slug}.zip`);
+      },
+      {
+        loading: 'Exporting marketplace...',
+        success: 'Marketplace export downloaded',
+        error: 'Failed to export marketplace'
+      }
+    );
+  };
 
   return (
     <ContentLayout>
@@ -45,6 +82,19 @@ export let SkillMarketplaceLayout = () => {
             href: Paths.instance.skillMarketplace(...marketplacePathParams)
           }
         ]}
+        actions={
+          <Flex gap="8px">
+            <Button
+              size="2"
+              disabled={!instance.data || !marketplace.data}
+              loading={createSkillExport.isLoading}
+              success={createSkillExport.isSuccess}
+              onClick={exportMarketplace}
+            >
+              Export Marketplace
+            </Button>
+          </Flex>
+        }
       />
 
       {renderWithLoader({ marketplace })(() => (

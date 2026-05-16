@@ -50,13 +50,13 @@ export let skillPluginsLoader = createLoader({
   name: 'skillPlugins',
   parents: [],
   fetch: (i: { instanceId: string } & DashboardInstanceSkillsPluginsListQuery) =>
-    withAuth(sdk => sdk.skillsPlugins.list(i.instanceId, normalizeSkillPluginsListQuery(i))),
+    withAuth(sdk => sdk.skillPlugins.list(i.instanceId, normalizeSkillPluginsListQuery(i))),
   mutators: {}
 });
 
 export let useCreateSkillPlugin = skillPluginsLoader.createExternalMutator(
   (i: DashboardInstanceSkillsPluginsCreateBody & { instanceId: string }) =>
-    withAuth(sdk => sdk.skillsPlugins.create(i.instanceId, i))
+    withAuth(sdk => sdk.skillPlugins.create(i.instanceId, i))
 );
 
 export let useSkillPlugins = (
@@ -76,28 +76,28 @@ export let skillPluginLoader = createLoader({
   name: 'skillPlugin',
   parents: [skillPluginsLoader],
   fetch: (i: { instanceId: string; skillPluginId: string }) =>
-    withAuth(sdk => sdk.skillsPlugins.get(i.instanceId, i.skillPluginId)),
+    withAuth(sdk => sdk.skillPlugins.get(i.instanceId, i.skillPluginId)),
   mutators: {
     update: (
       i: DashboardInstanceSkillsPluginsUpdateBody,
       {
         input: { instanceId, skillPluginId }
       }: { input: { instanceId: string; skillPluginId: string } }
-    ) => withAuth(sdk => sdk.skillsPlugins.update(instanceId, skillPluginId, i)),
+    ) => withAuth(sdk => sdk.skillPlugins.update(instanceId, skillPluginId, i)),
 
     delete: (
       _: void,
       {
         input: { instanceId, skillPluginId }
       }: { input: { instanceId: string; skillPluginId: string } }
-    ) => withAuth(sdk => sdk.skillsPlugins.archive(instanceId, skillPluginId)),
+    ) => withAuth(sdk => sdk.skillPlugins.archive(instanceId, skillPluginId)),
 
     sync: (
       _: {},
       {
         input: { instanceId, skillPluginId }
       }: { input: { instanceId: string; skillPluginId: string } }
-    ) => withAuth(sdk => sdk.skillsPlugins.sync(instanceId, skillPluginId, {}))
+    ) => withAuth(sdk => sdk.skillPlugins.sync(instanceId, skillPluginId, {}))
   }
 });
 
@@ -127,7 +127,7 @@ export let skillPluginSkillsLoader = createLoader({
     } & DashboardInstanceSkillsPluginsSkillsListQuery
   ) =>
     withAuth(sdk =>
-      sdk.skillsPlugins.skills.list(
+      sdk.skillPlugins.skills.list(
         i.instanceId,
         i.skillPluginId,
         normalizeSkillPluginSkillsListQuery(i)
@@ -142,7 +142,7 @@ export let useCreateSkillPluginSkill = skillPluginSkillsLoader.createExternalMut
       instanceId: string;
       skillPluginId: string;
     }
-  ) => withAuth(sdk => sdk.skillsPlugins.skills.add(i.instanceId, i.skillPluginId, i))
+  ) => withAuth(sdk => sdk.skillPlugins.skills.add(i.instanceId, i.skillPluginId, i))
 );
 
 export let useUpdateSkillPluginSkill = skillPluginSkillsLoader.createExternalMutator(
@@ -154,14 +154,14 @@ export let useUpdateSkillPluginSkill = skillPluginSkillsLoader.createExternalMut
     }
   ) =>
     withAuth(sdk =>
-      sdk.skillsPlugins.skills.update(i.instanceId, i.skillPluginId, i.skillPluginSkillId, i)
+      sdk.skillPlugins.skills.update(i.instanceId, i.skillPluginId, i.skillPluginSkillId, i)
     )
 );
 
 export let useDeleteSkillPluginSkill = skillPluginSkillsLoader.createExternalMutator(
   (i: { instanceId: string; skillPluginId: string; skillPluginSkillId: string }) =>
     withAuth(sdk =>
-      sdk.skillsPlugins.skills.remove(i.instanceId, i.skillPluginId, i.skillPluginSkillId)
+      sdk.skillPlugins.skills.remove(i.instanceId, i.skillPluginId, i.skillPluginSkillId)
     )
 );
 
@@ -191,10 +191,7 @@ export let skillPluginRepositoriesLoader = createLoader({
       instanceId: string;
       skillPluginId: string;
     } & DashboardInstanceSkillsPluginsRepositoriesListQuery
-  ) =>
-    withAuth(sdk =>
-      sdk.skillsPlugins.repositories.list(i.instanceId, i.skillPluginId, i)
-    ),
+  ) => withAuth(sdk => sdk.skillPlugins.repositories.list(i.instanceId, i.skillPluginId, i)),
   mutators: {}
 });
 
@@ -206,20 +203,14 @@ export let useCreateSkillPluginRepository =
         skillPluginId: string;
       }
     ) =>
-      withAuth(sdk =>
-        sdk.skillsPlugins.repositories.create(i.instanceId, i.skillPluginId, i)
-      )
+      withAuth(sdk => sdk.skillPlugins.repositories.create(i.instanceId, i.skillPluginId, i))
   );
 
 export let useDeleteSkillPluginRepository =
   skillPluginRepositoriesLoader.createExternalMutator(
-    (i: {
-      instanceId: string;
-      skillPluginId: string;
-      skillPluginRepositoryId: string;
-    }) =>
+    (i: { instanceId: string; skillPluginId: string; skillPluginRepositoryId: string }) =>
       withAuth(sdk =>
-        sdk.skillsPlugins.repositories.delete(
+        sdk.skillPlugins.repositories.delete(
           i.instanceId,
           i.skillPluginId,
           i.skillPluginRepositoryId
@@ -256,7 +247,7 @@ export let allSkillPluginSkillsLoader = createLoader({
   ) =>
     withAuth(sdk =>
       autoPaginate(cursor =>
-        sdk.skillsPlugins.skills.list(
+        sdk.skillPlugins.skills.list(
           i.instanceId,
           i.skillPluginId,
           normalizeSkillPluginSkillsListQuery({
@@ -294,7 +285,7 @@ export let skillPluginEditorUrlLoader = createLoader({
   name: 'skillPluginEditorUrl',
   parents: [],
   fetch: (i: { instanceId: string; skillPluginId: string }) =>
-    withAuth(sdk => sdk.skillsPlugins.getEditorUrl(i.instanceId, i.skillPluginId, {})),
+    withAuth(sdk => sdk.skillPlugins.getEditorUrl(i.instanceId, i.skillPluginId, {})),
   mutators: {}
 });
 

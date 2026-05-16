@@ -29,7 +29,7 @@ export let SkillPluginsPage = () => {
         searchState={[search, setSearch]}
         filterState={[filterState, setFilterState]}
         filters={filters}
-        placeholder="Filter plugins by slug..."
+        placeholder="Search plugins..."
       />
 
       <Spacer size={15} />
