@@ -15,13 +15,24 @@ import type { CargoTenantEnvironment } from '@metorial-cargo/module-file';
 import { internalImageService } from '../internal/image';
 import {
   createSkillDestination,
+  forceSkillDestinationSync,
   getSkillDestinationEditorUrl
 } from '../internal/skillDestination';
 import { enqueueSkillMarketplaceLifecycle } from '../queues/lifecycle';
 import { skillPluginInclude } from './skillPlugin';
 
 export let skillMarketplaceInclude = {
-  destination: true,
+  destination: {
+    include: {
+      syncs: {
+        where: {
+          status: {
+            in: ['pending', 'processing']
+          }
+        }
+      }
+    }
+  },
   skillConfiguration: {
     select: {
       id: true
@@ -390,6 +401,20 @@ class SkillMarketplaceServiceImpl {
       tenant: d.tenant,
       destination: d.skillMarketplace.destination,
       isReadOnly: d.isReadOnly
+    });
+  }
+
+  async forceSkillMarketplaceSync(
+    d: CargoTenantEnvironment & { skillMarketplace: SkillMarketplaceRecord }
+  ) {
+    await forceSkillDestinationSync({
+      destination: d.skillMarketplace.destination
+    });
+
+    return await this.getSkillMarketplaceRecord({
+      tenant: d.tenant,
+      environment: d.environment,
+      skillMarketplaceId: d.skillMarketplace.id
     });
   }
 }

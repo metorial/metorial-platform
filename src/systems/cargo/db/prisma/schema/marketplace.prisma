@@ -217,10 +217,10 @@ model SkillDestinationSync {
   oid BigInt @id
   id  String @unique
 
+  status SkillDestinationSyncStatus
+
   destinationOid BigInt
   destination    SkillDestination @relation(fields: [destinationOid], references: [oid], onDelete: Cascade)
-
-  status SkillDestinationSyncStatus
 
   createdAt   DateTime  @default(now())
   startedAt   DateTime?

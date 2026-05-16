@@ -13,13 +13,13 @@ export let syncPropagateQueue = createQueue<{
 });
 
 export let syncPropagateQueueProcessor = syncPropagateQueue.process(async data => {
-  let exp = await db.skillDestinationSync.findUnique({
+  let sync = await db.skillDestinationSync.findUnique({
     where: { id: data.skillDestinationSyncId },
     include: {
       destination: true
     }
   });
-  if (!exp || exp.status !== 'processing') return;
+  if (!sync || sync.status !== 'processing') return;
 
   await syncFinishQueue.add({
     skillDestinationSyncId: data.skillDestinationSyncId

@@ -46,7 +46,7 @@ export let syncProcessQueue = createQueue<{
 });
 
 export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
-  let exp = await db.skillDestinationSync.findUnique({
+  let sync = await db.skillDestinationSync.findUnique({
     where: { id: data.skillDestinationSyncId },
     include: {
       destination: {
@@ -57,7 +57,7 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
       }
     }
   });
-  if (!exp || exp.status !== 'processing') return;
+  if (!sync || sync.status !== 'processing') return;
 
   let task = data.tasks[0];
   if (!task) {
@@ -69,7 +69,7 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
 
   let item = await db.skillDestinationItem.findFirst({
     where: {
-      destinationOid: exp.destinationOid,
+      destinationOid: sync.destinationOid,
 
       ...(task?.type === 'marketplace'
         ? { skillMarketplace: { id: task.skillMarketplaceId } }
@@ -94,7 +94,7 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
     content: string | Buffer | ArrayBuffer;
   }>(async files => {
     await codeBucketClient.setBucketFiles({
-      bucketId: exp.destination.codeBucketId,
+      bucketId: sync.destination.codeBucketId,
       files: files.map(file => ({
         path: normalizeBucketPath(file.path),
         content: contentToBytes(file.content)
@@ -154,8 +154,8 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
   };
 
   let getDestinationMarketplace = async () => {
-    if (!exp.destination.skillMarketplace) return undefined;
-    return await loadMarketplace(exp.destination.skillMarketplace.id);
+    if (!sync.destination.skillMarketplace) return undefined;
+    return await loadMarketplace(sync.destination.skillMarketplace.id);
   };
 
   let getMarketplacePlugin = async (d: {
@@ -183,7 +183,7 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
 
   let deleteBucketPath = async (prefix: string | undefined) => {
     await codeBucketClient.deleteBucketPath({
-      bucketId: exp.destination.codeBucketId,
+      bucketId: sync.destination.codeBucketId,
       path: normalizeBucketPath(prefix ?? '')
     });
   };
@@ -205,7 +205,7 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
     await db.skillDestinationItem.create({
       data: {
         oid: snowflake.nextId(),
-        destinationOid: exp.destinationOid,
+        destinationOid: sync.destinationOid,
         skillMarketplaceOid: d.skillMarketplaceOid,
         skillPluginOid: d.skillPluginOid,
         skillOid: d.skillOid,
@@ -239,7 +239,7 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
       );
       await db.skillDestinationItem.deleteMany({
         where: {
-          destinationOid: exp.destinationOid,
+          destinationOid: sync.destinationOid,
           skillOid: skillPluginSkill.skill.oid,
           skillPluginOid: skillPlugin.oid
         }
@@ -284,7 +284,7 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
       );
       await db.skillDestinationItem.deleteMany({
         where: {
-          destinationOid: exp.destinationOid,
+          destinationOid: sync.destinationOid,
           skillPluginOid: skillPlugin.oid
         }
       });

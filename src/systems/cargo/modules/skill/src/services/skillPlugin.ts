@@ -22,6 +22,7 @@ import type { CargoTenantEnvironment } from '@metorial-cargo/module-file';
 import { internalImageService } from '../internal/image';
 import {
   createSkillDestination,
+  forceSkillDestinationSync,
   getSkillDestinationEditorUrl
 } from '../internal/skillDestination';
 import { enqueueSkillPluginLifecycle } from '../queues/lifecycle';
@@ -41,7 +42,17 @@ let skillInclude = {
 } satisfies Prisma.SkillInclude;
 
 export let skillPluginInclude = {
-  destination: true,
+  destination: {
+    include: {
+      syncs: {
+        where: {
+          status: {
+            in: ['pending', 'processing']
+          }
+        }
+      }
+    }
+  },
   skillConfiguration: {
     select: {
       id: true
@@ -467,6 +478,18 @@ class SkillPluginServiceImpl {
       tenant: d.tenant,
       destination: d.skillPlugin.destination,
       isReadOnly: d.isReadOnly
+    });
+  }
+
+  async forceSkillPluginSync(d: CargoTenantEnvironment & { skillPlugin: SkillPluginRecord }) {
+    await forceSkillDestinationSync({
+      destination: d.skillPlugin.destination
+    });
+
+    return await this.getSkillPluginRecord({
+      tenant: d.tenant,
+      environment: d.environment,
+      skillPluginId: d.skillPlugin.id
     });
   }
 }

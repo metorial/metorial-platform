@@ -14,7 +14,7 @@ export let syncCollectQueue = createQueue<{
 });
 
 export let syncCollectQueueProcessor = syncCollectQueue.process(async data => {
-  let exp = await db.skillDestinationSync.findUnique({
+  let sync = await db.skillDestinationSync.findUnique({
     where: { id: data.skillDestinationSyncId },
     include: {
       destination: {
@@ -25,18 +25,18 @@ export let syncCollectQueueProcessor = syncCollectQueue.process(async data => {
       }
     }
   });
-  if (!exp || exp.status !== 'processing') return;
+  if (!sync || sync.status !== 'processing') return;
 
   let currentItems = await db.skillDestinationItem.findMany({
-    where: { destinationOid: exp.destination.oid },
+    where: { destinationOid: sync.destination.oid },
     include: { skill: true, skillPlugin: true, skillMarketplace: true }
   });
 
   let taskManager = createTaskManager(currentItems);
 
-  if (exp.destination.skillMarketplace) {
+  if (sync.destination.skillMarketplace) {
     let marketplace = await db.skillMarketplace.findFirst({
-      where: { oid: exp.destination.skillMarketplace.oid, status: 'active' },
+      where: { oid: sync.destination.skillMarketplace.oid, status: 'active' },
       include: {
         plugins: {
           where: {
@@ -81,16 +81,16 @@ export let syncCollectQueueProcessor = syncCollectQueue.process(async data => {
       }
     } else {
       let currentMarketplaceItem = currentItems.find(
-        item => item.skillMarketplace?.id === exp.destination.skillMarketplace?.id
+        item => item.skillMarketplace?.id === sync.destination.skillMarketplace?.id
       );
 
       if (currentMarketplaceItem?.skillMarketplace) {
         taskManager.deleteItem({ skillMarketplace: currentMarketplaceItem.skillMarketplace });
       }
     }
-  } else if (exp.destination.skillPlugin) {
+  } else if (sync.destination.skillPlugin) {
     let plugin = await db.skillPlugin.findFirst({
-      where: { oid: exp.destination.skillPlugin.oid, status: 'active' },
+      where: { oid: sync.destination.skillPlugin.oid, status: 'active' },
       include: {
         skillPluginSkills: {
           where: {

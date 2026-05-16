@@ -1,4 +1,5 @@
 import type { SkillPluginRecord } from '@metorial-cargo/module-skill';
+import { skillDestinationSyncStatusPresenter } from './skillDestination';
 import { skillPluginSkillPresenter } from './skillPluginSkill';
 
 export let skillPluginPresenter = (skillPlugin: SkillPluginRecord) => ({
@@ -15,6 +16,7 @@ export let skillPluginPresenter = (skillPlugin: SkillPluginRecord) => ({
   category: skillPlugin.category,
   slug: skillPlugin.slug,
   skillConfigurationId: skillPlugin.skillConfiguration?.id,
+  syncStatus: skillDestinationSyncStatusPresenter(skillPlugin.destination),
   skills: skillPlugin.skillPluginSkills.map(skillPluginSkillPresenter),
   createdAt: skillPlugin.createdAt,
   updatedAt: skillPlugin.updatedAt

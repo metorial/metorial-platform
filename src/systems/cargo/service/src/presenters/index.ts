@@ -11,6 +11,7 @@ export * from './permissions';
 export * from './skill';
 export * from './skillAgent';
 export * from './skillConfiguration';
+export * from './skillDestination';
 export * from './skillMarketplace';
 export * from './skillMarketplacePlugin';
 export * from './skillParticipant';

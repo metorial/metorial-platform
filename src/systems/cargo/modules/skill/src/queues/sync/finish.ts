@@ -12,10 +12,10 @@ export let syncFinishQueue = createQueue<{
 });
 
 export let syncFinishQueueProcessor = syncFinishQueue.process(async data => {
-  let exp = await db.skillDestinationSync.findUnique({
+  let sync = await db.skillDestinationSync.findUnique({
     where: { id: data.skillDestinationSyncId }
   });
-  if (!exp || exp.status !== 'processing') return;
+  if (!sync || sync.status !== 'processing') return;
 
   await db.skillDestinationSync.updateMany({
     where: { id: data.skillDestinationSyncId },

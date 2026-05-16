@@ -1,9 +1,9 @@
 import { combineQueueProcessors } from '@lowerdeck/queue';
+import { propagateSkillDirtyQueueProcessor, skillLifecycleQueueProcessor } from './skill';
 import {
   propagateSkillConfigurationDirtyQueueProcessor,
   skillConfigurationLifecycleQueueProcessor
 } from './skillConfiguration';
-import { propagateSkillDirtyQueueProcessor, skillLifecycleQueueProcessor } from './skill';
 import {
   propagateSkillMarketplaceDirtyQueueProcessor,
   skillMarketplaceLifecycleQueueProcessor

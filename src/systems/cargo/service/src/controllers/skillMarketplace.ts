@@ -166,5 +166,24 @@ export let skillMarketplaceController = app.controller({
           skillMarketplace: ctx.skillMarketplace
         })
       )
+    ),
+
+  sync: skillMarketplaceApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        environmentId: v.string(),
+        skillMarketplaceId: v.string()
+      })
+    )
+    .do(async ctx =>
+      skillMarketplacePresenter(
+        await skillMarketplaceService.forceSkillMarketplaceSync({
+          tenant: ctx.tenant,
+          environment: ctx.environment,
+          skillMarketplace: ctx.skillMarketplace
+        })
+      )
     )
 });

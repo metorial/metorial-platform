@@ -178,5 +178,24 @@ export let skillPluginController = app.controller({
           skillPlugin: ctx.skillPlugin
         })
       )
+    ),
+
+  sync: skillPluginApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        environmentId: v.string(),
+        skillPluginId: v.string()
+      })
+    )
+    .do(async ctx =>
+      skillPluginPresenter(
+        await skillPluginService.forceSkillPluginSync({
+          tenant: ctx.tenant,
+          environment: ctx.environment,
+          skillPlugin: ctx.skillPlugin
+        })
+      )
     )
 });

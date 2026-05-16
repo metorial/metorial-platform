@@ -1,4 +1,5 @@
 import type { SkillMarketplaceRecord } from '@metorial-cargo/module-skill';
+import { skillDestinationSyncStatusPresenter } from './skillDestination';
 import { skillMarketplacePluginPresenter } from './skillMarketplacePlugin';
 
 export let skillMarketplacePresenter = (skillMarketplace: SkillMarketplaceRecord) => ({
@@ -12,6 +13,7 @@ export let skillMarketplacePresenter = (skillMarketplace: SkillMarketplaceRecord
   description: skillMarketplace.description,
   slug: skillMarketplace.slug,
   skillConfigurationId: skillMarketplace.skillConfiguration?.id,
+  syncStatus: skillDestinationSyncStatusPresenter(skillMarketplace.destination),
   plugins: skillMarketplace.plugins.map(skillMarketplacePluginPresenter),
   createdAt: skillMarketplace.createdAt,
   updatedAt: skillMarketplace.updatedAt
