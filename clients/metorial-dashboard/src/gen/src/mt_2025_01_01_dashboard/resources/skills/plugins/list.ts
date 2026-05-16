@@ -118,7 +118,7 @@ export type SkillsPluginsListQuery = {
     | ('active' | 'archived' | 'deleted')[]
     | undefined;
   category?: string | undefined;
-  slug?: string | undefined;
+  search?: string | undefined;
   skillConfigurationId?: string | string[] | undefined;
   createdAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
   updatedAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
@@ -158,7 +158,7 @@ export let mapSkillsPluginsListQuery = mtMap.union([
         mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
       ),
       category: mtMap.objectField('category', mtMap.passthrough()),
-      slug: mtMap.objectField('slug', mtMap.passthrough()),
+      search: mtMap.objectField('search', mtMap.passthrough()),
       skillConfigurationId: mtMap.objectField(
         'skill_configuration_id',
         mtMap.union([

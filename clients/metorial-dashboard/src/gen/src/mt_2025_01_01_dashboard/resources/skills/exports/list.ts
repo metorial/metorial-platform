@@ -1,62 +1,83 @@
 import { mtMap } from '@metorial/util-resource-mapper';
 
-export type FilesListOutput = {
-  items: ({
-    object: 'file';
+export type SkillsExportsListOutput = {
+  items: {
+    object: 'skill.export';
     id: string;
-    status: 'active' | 'deleted';
-    fileName: string;
-    fileSize: number;
-    fileType: string;
-    title: string;
-    purpose: string;
-    createdBy: {
-      type: 'organization_actor' | 'consumer' | 'unknown';
-      name: string;
-      imageUrl: string | null;
-      email: string | null;
-      organizationActor: {
-        object: 'organization.actor';
-        id: string;
-        type: 'member' | 'machine_access';
-        organizationId: string;
+    target: 'skill' | 'plugin' | 'marketplace';
+    status: 'pending' | 'completed' | 'failed';
+    file: {
+      object: 'file';
+      id: string;
+      status: 'active' | 'deleted';
+      fileName: string;
+      fileSize: number;
+      fileType: string;
+      title: string;
+      purpose: string;
+      createdBy: {
+        type: 'organization_actor' | 'consumer' | 'unknown';
         name: string;
+        imageUrl: string | null;
         email: string | null;
-        imageUrl: string;
-        teams: {
+        organizationActor: {
+          object: 'organization.actor';
           id: string;
+          type: 'member' | 'machine_access';
+          organizationId: string;
           name: string;
-          slug: string;
-          assignmentId: string;
+          email: string | null;
+          imageUrl: string;
+          teams: {
+            id: string;
+            name: string;
+            slug: string;
+            assignmentId: string;
+            createdAt: Date;
+            updatedAt: Date;
+          }[];
           createdAt: Date;
           updatedAt: Date;
-        }[];
-        createdAt: Date;
-        updatedAt: Date;
+        } | null;
+        consumer: {
+          object: 'consumer';
+          id: string;
+          name: string;
+          email: string;
+          imageUrl: string;
+          createdAt: Date;
+          updatedAt: Date;
+        } | null;
       } | null;
-      consumer: {
-        object: 'consumer';
-        id: string;
-        name: string;
-        email: string;
-        imageUrl: string;
-        createdAt: Date;
-        updatedAt: Date;
-      } | null;
+      createdAt: Date;
+      updatedAt: Date;
+    } | null;
+    fileLink: {
+      object: 'file.file_link';
+      id: string;
+      fileId: string;
+      url: string;
+      createdAt: Date;
+      expiresAt: Date | null;
     } | null;
     createdAt: Date;
-    updatedAt: Date;
-  } & { downloadUrl: string | null })[];
+    startedAt: Date | null;
+    completedAt: Date | null;
+  }[];
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
-export let mapFilesListOutput = mtMap.object<FilesListOutput>({
+export let mapSkillsExportsListOutput = mtMap.object<SkillsExportsListOutput>({
   items: mtMap.objectField(
     'items',
     mtMap.array(
-      mtMap.union([
-        mtMap.unionOption(
-          'object',
+      mtMap.object({
+        object: mtMap.objectField('object', mtMap.passthrough()),
+        id: mtMap.objectField('id', mtMap.passthrough()),
+        target: mtMap.objectField('target', mtMap.passthrough()),
+        status: mtMap.objectField('status', mtMap.passthrough()),
+        file: mtMap.objectField(
+          'file',
           mtMap.object({
             object: mtMap.objectField('object', mtMap.passthrough()),
             id: mtMap.objectField('id', mtMap.passthrough()),
@@ -133,11 +154,24 @@ export let mapFilesListOutput = mtMap.object<FilesListOutput>({
               })
             ),
             createdAt: mtMap.objectField('created_at', mtMap.date()),
-            updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-            downloadUrl: mtMap.objectField('download_url', mtMap.passthrough())
+            updatedAt: mtMap.objectField('updated_at', mtMap.date())
           })
-        )
-      ])
+        ),
+        fileLink: mtMap.objectField(
+          'file_link',
+          mtMap.object({
+            object: mtMap.objectField('object', mtMap.passthrough()),
+            id: mtMap.objectField('id', mtMap.passthrough()),
+            fileId: mtMap.objectField('file_id', mtMap.passthrough()),
+            url: mtMap.objectField('url', mtMap.passthrough()),
+            createdAt: mtMap.objectField('created_at', mtMap.date()),
+            expiresAt: mtMap.objectField('expires_at', mtMap.date())
+          })
+        ),
+        createdAt: mtMap.objectField('created_at', mtMap.date()),
+        startedAt: mtMap.objectField('started_at', mtMap.date()),
+        completedAt: mtMap.objectField('completed_at', mtMap.date())
+      })
     )
   ),
   pagination: mtMap.objectField(
@@ -149,7 +183,7 @@ export let mapFilesListOutput = mtMap.object<FilesListOutput>({
   )
 });
 
-export type FilesListQuery = {
+export type SkillsExportsListQuery = {
   limit?: number | undefined;
   after?: string | undefined;
   before?: string | undefined;
@@ -157,30 +191,21 @@ export type FilesListQuery = {
   order?: 'asc' | 'desc' | undefined;
 } & {
   id?: string | string[] | undefined;
-  purpose?:
-    | 'user_image'
-    | 'organization_image'
-    | 'project_brand_image'
-    | 'skill_image'
-    | 'skill_export'
-    | 'generic'
-    | (
-        | 'user_image'
-        | 'organization_image'
-        | 'project_brand_image'
-        | 'skill_image'
-        | 'skill_export'
-        | 'generic'
-      )[]
+  target?:
+    | 'skill'
+    | 'plugin'
+    | 'marketplace'
+    | ('skill' | 'plugin' | 'marketplace')[]
     | undefined;
-  storeId?: string | string[] | undefined;
-  documentId?: string | string[] | undefined;
-  fileLinkId?: string | string[] | undefined;
-  createdAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
-  updatedAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
+  status?:
+    | 'pending'
+    | 'completed'
+    | 'failed'
+    | ('pending' | 'completed' | 'failed')[]
+    | undefined;
 };
 
-export let mapFilesListQuery = mtMap.union([
+export let mapSkillsExportsListQuery = mtMap.union([
   mtMap.unionOption(
     'object',
     mtMap.object({
@@ -199,53 +224,13 @@ export let mapFilesListQuery = mtMap.union([
           )
         ])
       ),
-      purpose: mtMap.objectField(
-        'purpose',
+      target: mtMap.objectField(
+        'target',
         mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
       ),
-      storeId: mtMap.objectField(
-        'store_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      documentId: mtMap.objectField(
-        'document_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      fileLinkId: mtMap.objectField(
-        'file_link_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      createdAt: mtMap.objectField(
-        'created_at',
-        mtMap.object({
-          gt: mtMap.objectField('gt', mtMap.date()),
-          lt: mtMap.objectField('lt', mtMap.date())
-        })
-      ),
-      updatedAt: mtMap.objectField(
-        'updated_at',
-        mtMap.object({
-          gt: mtMap.objectField('gt', mtMap.date()),
-          lt: mtMap.objectField('lt', mtMap.date())
-        })
+      status: mtMap.objectField(
+        'status',
+        mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
       )
     })
   )

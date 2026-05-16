@@ -228,7 +228,7 @@ export type ManagementInstanceSkillsMarketplacesListQuery = {
     | ('active' | 'archived' | 'deleted')[]
     | undefined;
   skillConfigurationId?: string | string[] | undefined;
-  slug?: string | undefined;
+  search?: string | undefined;
   createdAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
   updatedAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
 };
@@ -266,7 +266,7 @@ export let mapManagementInstanceSkillsMarketplacesListQuery = mtMap.union([
           )
         ])
       ),
-      slug: mtMap.objectField('slug', mtMap.passthrough()),
+      search: mtMap.objectField('search', mtMap.passthrough()),
       createdAt: mtMap.objectField(
         'created_at',
         mtMap.object({

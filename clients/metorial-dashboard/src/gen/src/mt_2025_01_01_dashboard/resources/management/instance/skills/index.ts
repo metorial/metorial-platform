@@ -3,6 +3,7 @@ export * from './configurations';
 export * from './create';
 export * from './delete';
 export * from './duplicate';
+export * from './exports';
 export * from './fork';
 export * from './get';
 export * from './items';

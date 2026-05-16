@@ -175,12 +175,14 @@ export type DashboardInstanceFilesListQuery = {
     | 'organization_image'
     | 'project_brand_image'
     | 'skill_image'
+    | 'skill_export'
     | 'generic'
     | (
         | 'user_image'
         | 'organization_image'
         | 'project_brand_image'
         | 'skill_image'
+        | 'skill_export'
         | 'generic'
       )[]
     | undefined;
