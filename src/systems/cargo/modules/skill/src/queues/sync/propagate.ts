@@ -301,7 +301,11 @@ export let syncPropagateWaitQueueProcessor = syncPropagateWaitQueue.process(asyn
       continue;
     }
 
-    if (originSync.status === 'merged' || originSync.status === 'complete_unmerged') {
+    if (
+      originSync.status === 'merged' ||
+      originSync.status === 'complete_unmerged' ||
+      originSync.status === 'complete_no_changes'
+    ) {
       await db.skillDestinationSyncRepositoryPropagation.update({
         where: { oid: propagation.oid },
         data: {

@@ -4,6 +4,7 @@ export type LifecycleResource =
   | 'skill'
   | 'plugin'
   | 'pluginSkill'
+  | 'managedSkillPlugin'
   | 'marketplace'
   | 'marketplacePlugin'
   | 'configuration'
@@ -16,7 +17,9 @@ export type StoreLifecycleEvent = LifecycleEvent | 'contents-changed';
 export let getLifecycleJobId = (resource: LifecycleResource, id: string) =>
   `${resource}:${id}`;
 
-export let getPropagationJobOpts = (resource: LifecycleResource, id: string) => ({
-  id: getLifecycleJobId(resource, id),
-  delay: propagationDelayMs
-});
+export let getPropagationJobOpts = (resource: LifecycleResource, id: string) => {
+  return {
+    id: getLifecycleJobId(resource, id),
+    delay: propagationDelayMs
+  };
+};

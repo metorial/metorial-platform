@@ -20,7 +20,12 @@ export let applyPlugin = createApplicator('plugin', async (input, context) => {
         status: 'active'
       }
     },
-    include: { skill: { include: { store: true } } }
+    include: {
+      skill: {
+        include: { store: true }
+      }
+    },
+    orderBy: { id: 'asc' }
   });
 
   let skillHashes = skills
@@ -40,14 +45,19 @@ export let applyPlugin = createApplicator('plugin', async (input, context) => {
     [1, input.skillPlugin.oid, input.skillPlugin.updatedAt.getTime(), skillHashes].join(':')
   );
   if (context.hashIsEqual(hash)) return;
-  context.setHash?.(hash);
 
   if (input.skillPlugin.versionHash !== hash) {
     let nextVersion = semver.inc(input.skillPlugin.version ?? '0.0.0', 'patch')!;
 
     await db.skillPlugin.updateMany({
       where: { oid: input.skillPlugin.oid },
-      data: { versionHash: hash, version: nextVersion }
+      data: {
+        versionHash: hash,
+        version: nextVersion,
+
+        // Force updatedAt not to change
+        updatedAt: input.skillPlugin.updatedAt
+      }
     });
 
     input.skillPlugin.version = nextVersion;
@@ -89,7 +99,9 @@ export let applyPlugin = createApplicator('plugin', async (input, context) => {
   await context.setFile(logoIcon, await downloadImage.fetch());
 
   let baseInfo = {
-    name: slugify(input.skillMarketplacePlugin?.pluginSlug ?? input.skillPlugin.name),
+    name: slugify(
+      (input.skillMarketplacePlugin?.pluginSlug ?? input.skillPlugin.name).replaceAll('_', '-')
+    ),
     description: input.skillPlugin.description,
     version: input.skillPlugin.version,
     author: {

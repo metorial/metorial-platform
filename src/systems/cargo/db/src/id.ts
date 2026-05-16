@@ -35,6 +35,7 @@ export let ID = createIdGenerator({
   skillMarketplacePlugin: idType.sorted('skmp_'),
   skillPlugin: idType.sorted('skpl_'),
   skillPluginSkill: idType.sorted('skps_'),
+  managedSkillPlugin: idType.sorted('mskp_'),
 
   document: idType.sorted('doc_'),
   documentContent: idType.sorted('docn_'),

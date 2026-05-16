@@ -10,7 +10,7 @@ let getPropagationJobOpts = (storeId: string) => ({
   delay: propagationDelayMs
 });
 
-export let storeLifecycleQueue = createQueue<{
+let storeLifecycleQueue = createQueue<{
   storeId: string;
   event: StoreLifecycleEvent;
 }>({

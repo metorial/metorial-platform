@@ -10,7 +10,7 @@ let getPropagationJobOpts = (documentId: string) => ({
   delay: propagationDelayMs
 });
 
-export let documentLifecycleQueue = createQueue<{
+let documentLifecycleQueue = createQueue<{
   documentId: string;
   event: DocumentLifecycleEvent;
 }>({

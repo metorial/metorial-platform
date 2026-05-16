@@ -61,7 +61,9 @@ let getSyncPrMetadata = (d: {
   return {
     prName: title,
     prDescription: [
-      `Hello 👋! I'm the **Metorial Assistant** updating the contents for the Metorial ${target}.`,
+      'Hey 👋',
+      '',
+      `I'm the **Metorial Assistant** updating the contents for the ${target}.`,
       '',
       ...taskLines,
       '',

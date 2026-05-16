@@ -3,6 +3,9 @@ import type {
   DashboardInstanceSkillsPluginsGetEditorUrlOutput,
   DashboardInstanceSkillsPluginsGetOutput,
   DashboardInstanceSkillsPluginsListQuery,
+  DashboardInstanceSkillsPluginsRepositoriesCreateBody,
+  DashboardInstanceSkillsPluginsRepositoriesGetOutput,
+  DashboardInstanceSkillsPluginsRepositoriesListQuery,
   DashboardInstanceSkillsPluginsSkillsAddBody,
   DashboardInstanceSkillsPluginsSkillsGetOutput,
   DashboardInstanceSkillsPluginsSkillsListQuery,
@@ -17,6 +20,7 @@ import { withAuth } from '../../user';
 
 export type SkillPlugin = DashboardInstanceSkillsPluginsGetOutput;
 export type SkillPluginSkill = DashboardInstanceSkillsPluginsSkillsGetOutput;
+export type SkillPluginRepository = DashboardInstanceSkillsPluginsRepositoriesGetOutput;
 export type SkillPluginEditorUrl = DashboardInstanceSkillsPluginsGetEditorUrlOutput;
 
 let toArrayIfString = <T extends string>(value: T | T[] | undefined) =>
@@ -175,6 +179,68 @@ export let useSkillPluginSkills = (
       ),
     instanceId && skillPluginId
       ? `${instanceId}:${skillPluginId}:pluginSkills:${JSON.stringify(query ?? {})}`
+      : null
+  );
+};
+
+export let skillPluginRepositoriesLoader = createLoader({
+  name: 'skillPluginRepositories',
+  parents: [skillPluginLoader, skillPluginsLoader],
+  fetch: (
+    i: {
+      instanceId: string;
+      skillPluginId: string;
+    } & DashboardInstanceSkillsPluginsRepositoriesListQuery
+  ) =>
+    withAuth(sdk =>
+      sdk.skillsPlugins.repositories.list(i.instanceId, i.skillPluginId, i)
+    ),
+  mutators: {}
+});
+
+export let useCreateSkillPluginRepository =
+  skillPluginRepositoriesLoader.createExternalMutator(
+    (
+      i: DashboardInstanceSkillsPluginsRepositoriesCreateBody & {
+        instanceId: string;
+        skillPluginId: string;
+      }
+    ) =>
+      withAuth(sdk =>
+        sdk.skillsPlugins.repositories.create(i.instanceId, i.skillPluginId, i)
+      )
+  );
+
+export let useDeleteSkillPluginRepository =
+  skillPluginRepositoriesLoader.createExternalMutator(
+    (i: {
+      instanceId: string;
+      skillPluginId: string;
+      skillPluginRepositoryId: string;
+    }) =>
+      withAuth(sdk =>
+        sdk.skillsPlugins.repositories.delete(
+          i.instanceId,
+          i.skillPluginId,
+          i.skillPluginRepositoryId
+        )
+      )
+  );
+
+export let useSkillPluginRepositories = (
+  instanceId: string | null | undefined,
+  skillPluginId: string | null | undefined,
+  query?: DashboardInstanceSkillsPluginsRepositoriesListQuery | null
+) => {
+  return usePaginator(
+    pagination =>
+      skillPluginRepositoriesLoader.use(
+        instanceId && skillPluginId && query !== null
+          ? { instanceId, skillPluginId, ...pagination, ...(query ?? {}) }
+          : null
+      ),
+    instanceId && skillPluginId
+      ? `${instanceId}:${skillPluginId}:pluginRepositories:${JSON.stringify(query ?? {})}`
       : null
   );
 };

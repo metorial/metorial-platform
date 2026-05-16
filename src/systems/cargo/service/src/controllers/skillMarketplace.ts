@@ -68,6 +68,7 @@ export let skillMarketplaceController = app.controller({
           skillMarketplaceIds: v.optional(v.array(v.string())),
           skillConfigurationIds: v.optional(v.array(v.string())),
           statuses: statusFilterSchema,
+          search: v.optional(v.string()),
           slug: v.optional(v.string()),
           createdAt: dateFilterSchema,
           updatedAt: dateFilterSchema
@@ -81,6 +82,7 @@ export let skillMarketplaceController = app.controller({
         ids: ctx.input.skillMarketplaceIds,
         skillConfigurationIds: ctx.input.skillConfigurationIds,
         statuses: ctx.input.statuses,
+        search: ctx.input.search,
         slug: ctx.input.slug,
         createdAt: ctx.input.createdAt,
         updatedAt: ctx.input.updatedAt

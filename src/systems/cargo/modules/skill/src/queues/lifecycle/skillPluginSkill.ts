@@ -1,8 +1,9 @@
 import { createQueue } from '@lowerdeck/queue';
 import { addAfterTransactionHook, db, env } from '@metorial-cargo/db';
+import { indexSkillPluginQueue } from '../search/skillPlugin';
 import { getLifecycleJobId, getPropagationJobOpts, type LifecycleEvent } from './_ids';
 
-export let skillPluginSkillLifecycleQueue = createQueue<{
+let skillPluginSkillLifecycleQueue = createQueue<{
   skillPluginSkillId: string;
   event: LifecycleEvent;
 }>({
@@ -26,6 +27,21 @@ export let enqueueSkillPluginSkillLifecycle = async (d: {
 
 export let skillPluginSkillLifecycleQueueProcessor = skillPluginSkillLifecycleQueue.process(
   async data => {
+    let skillPluginSkill = await db.skillPluginSkill.findUnique({
+      where: { id: data.skillPluginSkillId },
+      include: {
+        skillPlugin: {
+          select: { id: true }
+        }
+      }
+    });
+
+    if (skillPluginSkill) {
+      await indexSkillPluginQueue.add({
+        skillPluginId: skillPluginSkill.skillPlugin.id
+      });
+    }
+
     await propagateSkillPluginSkillDirtyQueue.add(
       { skillPluginSkillId: data.skillPluginSkillId },
       getPropagationJobOpts('pluginSkill', data.skillPluginSkillId)

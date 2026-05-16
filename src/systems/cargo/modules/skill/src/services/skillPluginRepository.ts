@@ -4,6 +4,7 @@ import { Service } from '@lowerdeck/service';
 import type { Prisma } from '@metorial-cargo/db';
 import { db, getId } from '@metorial-cargo/db';
 import type { CargoTenantEnvironment } from '@metorial-cargo/module-file';
+import { forceSkillDestinationSync } from '../internal/skillDestination';
 import {
   type EnrichedSkillRepositoryRecord,
   skillRepositoryInclude,
@@ -21,7 +22,10 @@ export type SkillPluginRepositoryRecord = Prisma.SkillPluginRepositoryGetPayload
   include: typeof skillPluginRepositoryInclude;
 }>;
 
-export type EnrichedSkillPluginRepositoryRecord = Omit<SkillPluginRepositoryRecord, 'skillRepository'> & {
+export type EnrichedSkillPluginRepositoryRecord = Omit<
+  SkillPluginRepositoryRecord,
+  'skillRepository'
+> & {
   skillRepository: EnrichedSkillRepositoryRecord;
 };
 
@@ -43,7 +47,9 @@ class SkillPluginRepositoryServiceImpl {
 
   private async enrichRepositories<T extends SkillPluginRepositoryRecord>(
     d: CargoTenantEnvironment & { repositories: T[] }
-  ): Promise<(Omit<T, 'skillRepository'> & { skillRepository: EnrichedSkillRepositoryRecord })[]> {
+  ): Promise<
+    (Omit<T, 'skillRepository'> & { skillRepository: EnrichedSkillRepositoryRecord })[]
+  > {
     let enrichedSkillRepositories = await skillRepositoryService.enrichSkillRepositories({
       tenant: d.tenant,
       environment: d.environment,
@@ -69,12 +75,12 @@ class SkillPluginRepositoryServiceImpl {
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {
         let repositories = await db.skillPluginRepository.findMany({
-            ...opts,
-            where: {
-              skillPluginOid: plugin.oid
-            },
-            include: skillPluginRepositoryInclude
-          });
+          ...opts,
+          where: {
+            skillPluginOid: plugin.oid
+          },
+          include: skillPluginRepositoryInclude
+        });
 
         return await this.enrichRepositories({
           tenant: d.tenant,
@@ -101,7 +107,9 @@ class SkillPluginRepositoryServiceImpl {
     });
 
     if (!repository) {
-      throw new ServiceError(notFoundError('skill.plugin.repository', d.skillPluginRepositoryId));
+      throw new ServiceError(
+        notFoundError('skill.plugin.repository', d.skillPluginRepositoryId)
+      );
     }
 
     let [enriched] = await this.enrichRepositories({
@@ -153,6 +161,10 @@ class SkillPluginRepositoryServiceImpl {
         skillRepositoryOid: skillRepository.oid
       },
       include: skillPluginRepositoryInclude
+    });
+
+    await forceSkillDestinationSync({
+      destination: { oid: plugin.destinationOid }
     });
 
     let [enriched] = await this.enrichRepositories({

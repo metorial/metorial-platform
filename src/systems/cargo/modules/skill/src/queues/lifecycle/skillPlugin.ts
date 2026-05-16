@@ -1,8 +1,10 @@
 import { createQueue } from '@lowerdeck/queue';
-import { addAfterTransactionHook, db, env } from '@metorial-cargo/db';
+import { addAfterTransactionHook, db, env, withTransaction } from '@metorial-cargo/db';
+import { indexSkillMarketplaceQueue } from '../search/skillMarketplace';
+import { indexSkillPluginQueue } from '../search/skillPlugin';
 import { getLifecycleJobId, getPropagationJobOpts, type LifecycleEvent } from './_ids';
 
-export let skillPluginLifecycleQueue = createQueue<{
+let skillPluginLifecycleQueue = createQueue<{
   skillPluginId: string;
   event: LifecycleEvent;
 }>({
@@ -17,15 +19,48 @@ export let enqueueSkillPluginLifecycle = async (d: {
   skillPluginId: string;
   event: LifecycleEvent;
 }) => {
-  await addAfterTransactionHook(async () => {
-    await skillPluginLifecycleQueue.add(d, {
-      id: getLifecycleJobId('plugin', d.skillPluginId)
-    });
-  });
+  await withTransaction(
+    async db => {
+      await db.skillDestination.updateMany({
+        where: {
+          skillPlugin: { id: d.skillPluginId }
+        },
+        data: {
+          isDirty: true,
+          lastTransientChangeAt: new Date()
+        }
+      });
+
+      await addAfterTransactionHook(async () => {
+        await skillPluginLifecycleQueue.add(d, {
+          id: getLifecycleJobId('plugin', d.skillPluginId)
+        });
+      });
+    },
+    { ifExists: true }
+  );
 };
 
 export let skillPluginLifecycleQueueProcessor = skillPluginLifecycleQueue.process(
   async data => {
+    await indexSkillPluginQueue.add({ skillPluginId: data.skillPluginId });
+
+    let linkedMarketplaces = await db.skillMarketplacePlugin.findMany({
+      where: {
+        skillPlugin: { id: data.skillPluginId }
+      },
+      select: {
+        skillMarketplace: {
+          select: { id: true }
+        }
+      }
+    });
+    for (let linkedMarketplace of linkedMarketplaces) {
+      await indexSkillMarketplaceQueue.add({
+        skillMarketplaceId: linkedMarketplace.skillMarketplace.id
+      });
+    }
+
     await propagateSkillPluginDirtyQueue.add(
       { skillPluginId: data.skillPluginId },
       getPropagationJobOpts('plugin', data.skillPluginId)

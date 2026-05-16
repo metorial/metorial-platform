@@ -324,15 +324,6 @@ class codeBucketServiceImpl {
     throw new ServiceError(badRequestError({ message: 'Unsupported repository provider' }));
   }
 
-  // Deprecated: Use exportCodeBucketToRepo instead
-  async exportCodeBucketToGithub(d: {
-    codeBucket: CodeBucket;
-    repo: ScmRepository;
-    path: string;
-  }) {
-    return this.exportCodeBucketToRepo(d);
-  }
-
   async getCodeBucketFiles(d: { codeBucket: CodeBucket; prefix?: string }) {
     await this.waitForCodeBucketReady({ codeBucketId: d.codeBucket.id });
 

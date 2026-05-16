@@ -2,7 +2,7 @@ import { createQueue } from '@lowerdeck/queue';
 import { db } from '../../../db';
 import { env } from '../../../env';
 import { getRepositorySyncCiState } from '../../../lib/scmRepositorySyncProvider';
-import { markRepositorySyncFailed } from './_lib';
+import { logRepositorySyncQueueError, logRepositorySyncQueueEvent, markRepositorySyncFailed } from './_lib';
 import { mergeRepositorySyncQueue } from './merge';
 
 export let waitForCiRepositorySyncQueue = createQueue<{ syncId: string }>({
@@ -12,6 +12,11 @@ export let waitForCiRepositorySyncQueue = createQueue<{ syncId: string }>({
 
 export let waitForCiRepositorySyncQueueProcessor = waitForCiRepositorySyncQueue.process(async data => {
   try {
+    logRepositorySyncQueueEvent('waitForCi', 'processing queue item', {
+      syncId: data.syncId,
+      expectedStatus: 'waiting_for_ci'
+    });
+
     let sync = await db.scmRepositorySync.findFirst({
       where: {
         id: data.syncId,
@@ -30,10 +35,29 @@ export let waitForCiRepositorySyncQueueProcessor = waitForCiRepositorySyncQueue.
       }
     });
 
-    if (!sync) return;
+    if (!sync) {
+      logRepositorySyncQueueEvent('waitForCi', 'skipped sync because expected status was not present', {
+        syncId: data.syncId,
+        expectedStatus: 'waiting_for_ci'
+      });
+      return;
+    }
 
+    logRepositorySyncQueueEvent('waitForCi', 'checking provider CI state', {
+      syncId: sync.id,
+      repoId: sync.repo.id,
+      provider: sync.repo.provider,
+      owner: sync.repo.externalOwner,
+      repo: sync.repo.externalName,
+      branchName: sync.branchName,
+      providerPrId: sync.providerPrId
+    });
     let ciState = await getRepositorySyncCiState(sync);
     let now = new Date();
+    logRepositorySyncQueueEvent('waitForCi', 'provider CI state loaded', {
+      syncId: sync.id,
+      ciState
+    });
 
     if (ciState === 'pending') {
       let nextPollAt = new Date(now.getTime() + 60_000);
@@ -48,6 +72,10 @@ export let waitForCiRepositorySyncQueueProcessor = waitForCiRepositorySyncQueue.
       });
 
       await waitForCiRepositorySyncQueue.add({ syncId: data.syncId }, { delay: 60_000 });
+      logRepositorySyncQueueEvent('waitForCi', 'CI still pending; requeued poll', {
+        syncId: sync.id,
+        nextPollAt: nextPollAt.toISOString()
+      });
       return;
     }
 
@@ -62,6 +90,10 @@ export let waitForCiRepositorySyncQueueProcessor = waitForCiRepositorySyncQueue.
           errorMessage: 'Repository checks failed'
         }
       });
+      logRepositorySyncQueueEvent('waitForCi', 'CI failed; marked sync failed', {
+        syncId: sync.id,
+        ciState
+      });
       return;
     }
 
@@ -74,9 +106,19 @@ export let waitForCiRepositorySyncQueueProcessor = waitForCiRepositorySyncQueue.
         nextPollAt: null
       }
     });
+    logRepositorySyncQueueEvent('waitForCi', 'CI succeeded; transitioned sync to merging', {
+      syncId: sync.id,
+      ciState
+    });
 
     await mergeRepositorySyncQueue.add({ syncId: data.syncId });
+    logRepositorySyncQueueEvent('waitForCi', 'enqueued merge stage', {
+      syncId: sync.id
+    });
   } catch (e) {
+    logRepositorySyncQueueError('waitForCi', 'failed while processing queue item', e, {
+      syncId: data.syncId
+    });
     await markRepositorySyncFailed(data.syncId, e);
   }
 });

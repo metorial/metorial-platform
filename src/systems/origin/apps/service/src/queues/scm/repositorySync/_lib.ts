@@ -1,5 +1,18 @@
 import { db } from '../../../db';
 
+export let logRepositorySyncQueueEvent = (
+  stage: string,
+  message: string,
+  d: Record<string, unknown>
+) => {};
+
+export let logRepositorySyncQueueError = (
+  stage: string,
+  message: string,
+  error: unknown,
+  d: Record<string, unknown>
+) => {};
+
 export let markRepositorySyncFailed = async (syncId: string, error: unknown) => {
   let message = error instanceof Error ? error.message : String(error);
 
@@ -7,7 +20,7 @@ export let markRepositorySyncFailed = async (syncId: string, error: unknown) => 
     where: {
       id: syncId,
       status: {
-        notIn: ['merged', 'failed', 'cancelled', 'complete_unmerged']
+        notIn: ['merged', 'failed', 'cancelled', 'complete_unmerged', 'complete_no_changes']
       }
     },
     data: {

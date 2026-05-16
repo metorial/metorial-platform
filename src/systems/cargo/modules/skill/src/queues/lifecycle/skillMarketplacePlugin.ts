@@ -1,8 +1,10 @@
 import { createQueue } from '@lowerdeck/queue';
 import { addAfterTransactionHook, db, env } from '@metorial-cargo/db';
+import { indexSkillMarketplaceQueue } from '../search/skillMarketplace';
+import { indexSkillPluginQueue } from '../search/skillPlugin';
 import { getLifecycleJobId, getPropagationJobOpts, type LifecycleEvent } from './_ids';
 
-export let skillMarketplacePluginLifecycleQueue = createQueue<{
+let skillMarketplacePluginLifecycleQueue = createQueue<{
   skillMarketplacePluginId: string;
   event: LifecycleEvent;
 }>({
@@ -26,6 +28,27 @@ export let enqueueSkillMarketplacePluginLifecycle = async (d: {
 
 export let skillMarketplacePluginLifecycleQueueProcessor =
   skillMarketplacePluginLifecycleQueue.process(async data => {
+    let skillMarketplacePlugin = await db.skillMarketplacePlugin.findUnique({
+      where: { id: data.skillMarketplacePluginId },
+      include: {
+        skillMarketplace: {
+          select: { id: true }
+        },
+        skillPlugin: {
+          select: { id: true }
+        }
+      }
+    });
+
+    if (skillMarketplacePlugin) {
+      await indexSkillMarketplaceQueue.add({
+        skillMarketplaceId: skillMarketplacePlugin.skillMarketplace.id
+      });
+      await indexSkillPluginQueue.add({
+        skillPluginId: skillMarketplacePlugin.skillPlugin.id
+      });
+    }
+
     await propagateSkillMarketplacePluginDirtyQueue.add(
       { skillMarketplacePluginId: data.skillMarketplacePluginId },
       getPropagationJobOpts('marketplacePlugin', data.skillMarketplacePluginId)

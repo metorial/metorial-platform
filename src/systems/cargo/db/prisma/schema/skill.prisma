@@ -49,9 +49,9 @@ model Skill {
   skillVersions         SkillVersion[]
   skillAgents           SkillAgent[]
   skillPluginSkills     SkillPluginSkill[]
-  skillExports          SkillExport[]
   skillDestinationItems SkillDestinationItem[]
   managedSkillPlugins   ManagedSkillPlugin[]
+  skillExportRefs       SkillExportRef[]
 }
 
 model SkillConfiguration {
@@ -79,7 +79,7 @@ model SkillConfiguration {
   skillMarketplacePlugins SkillMarketplacePlugin[]
   skillPlugins            SkillPlugin[]
   skillPluginSkills       SkillPluginSkill[]
-  skillExports            SkillExport[]
+  skillExportRefs         SkillExportRef[]
 
   @@unique([environmentOid, isDefault])
   @@index([tenantOid, environmentOid, deletedAt])

@@ -15,7 +15,7 @@ export let scmController = createHono()
       v.object({
         installation_id: v.string(),
         setup_action: v.string(),
-        state: v.string()
+        state: v.optional(v.string())
       })
     );
 

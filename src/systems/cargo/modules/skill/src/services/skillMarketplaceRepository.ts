@@ -4,6 +4,7 @@ import { Service } from '@lowerdeck/service';
 import type { Prisma } from '@metorial-cargo/db';
 import { db, getId } from '@metorial-cargo/db';
 import type { CargoTenantEnvironment } from '@metorial-cargo/module-file';
+import { forceSkillDestinationSync } from '../internal/skillDestination';
 import {
   type EnrichedSkillRepositoryRecord,
   skillRepositoryInclude,
@@ -39,13 +40,16 @@ class SkillMarketplaceRepositoryServiceImpl {
       }
     });
 
-    if (!marketplace) throw new ServiceError(notFoundError('skill.marketplace', d.skillMarketplaceId));
+    if (!marketplace)
+      throw new ServiceError(notFoundError('skill.marketplace', d.skillMarketplaceId));
     return marketplace;
   }
 
   private async enrichRepositories<T extends SkillMarketplaceRepositoryRecord>(
     d: CargoTenantEnvironment & { repositories: T[] }
-  ): Promise<(Omit<T, 'skillRepository'> & { skillRepository: EnrichedSkillRepositoryRecord })[]> {
+  ): Promise<
+    (Omit<T, 'skillRepository'> & { skillRepository: EnrichedSkillRepositoryRecord })[]
+  > {
     let enrichedSkillRepositories = await skillRepositoryService.enrichSkillRepositories({
       tenant: d.tenant,
       environment: d.environment,
@@ -71,12 +75,12 @@ class SkillMarketplaceRepositoryServiceImpl {
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {
         let repositories = await db.skillMarketplaceRepository.findMany({
-            ...opts,
-            where: {
-              skillMarketplaceOid: marketplace.oid
-            },
-            include: skillMarketplaceRepositoryInclude
-          });
+          ...opts,
+          where: {
+            skillMarketplaceOid: marketplace.oid
+          },
+          include: skillMarketplaceRepositoryInclude
+        });
 
         return await this.enrichRepositories({
           tenant: d.tenant,
@@ -157,6 +161,10 @@ class SkillMarketplaceRepositoryServiceImpl {
         skillRepositoryOid: skillRepository.oid
       },
       include: skillMarketplaceRepositoryInclude
+    });
+
+    await forceSkillDestinationSync({
+      destination: { oid: marketplace.destinationOid }
     });
 
     let [enriched] = await this.enrichRepositories({

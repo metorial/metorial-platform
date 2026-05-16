@@ -1,8 +1,10 @@
 import { createQueue } from '@lowerdeck/queue';
-import { addAfterTransactionHook, db, env } from '@metorial-cargo/db';
+import { addAfterTransactionHook, db, env, withTransaction } from '@metorial-cargo/db';
+import { indexSkillMarketplaceQueue } from '../search/skillMarketplace';
+import { indexSkillPluginQueue } from '../search/skillPlugin';
 import { getLifecycleJobId, getPropagationJobOpts, type LifecycleEvent } from './_ids';
 
-export let skillMarketplaceLifecycleQueue = createQueue<{
+let skillMarketplaceLifecycleQueue = createQueue<{
   skillMarketplaceId: string;
   event: LifecycleEvent;
 }>({
@@ -17,15 +19,50 @@ export let enqueueSkillMarketplaceLifecycle = async (d: {
   skillMarketplaceId: string;
   event: LifecycleEvent;
 }) => {
-  await addAfterTransactionHook(async () => {
-    await skillMarketplaceLifecycleQueue.add(d, {
-      id: getLifecycleJobId('marketplace', d.skillMarketplaceId)
-    });
-  });
+  await withTransaction(
+    async db => {
+      await db.skillDestination.updateMany({
+        where: {
+          skillMarketplace: { id: d.skillMarketplaceId }
+        },
+        data: {
+          isDirty: true,
+          lastTransientChangeAt: new Date()
+        }
+      });
+
+      await addAfterTransactionHook(async () => {
+        await skillMarketplaceLifecycleQueue.add(d, {
+          id: getLifecycleJobId('marketplace', d.skillMarketplaceId)
+        });
+      });
+    },
+    { ifExists: true }
+  );
 };
 
 export let skillMarketplaceLifecycleQueueProcessor = skillMarketplaceLifecycleQueue.process(
   async data => {
+    await indexSkillMarketplaceQueue.add({
+      skillMarketplaceId: data.skillMarketplaceId
+    });
+
+    let linkedPlugins = await db.skillMarketplacePlugin.findMany({
+      where: {
+        skillMarketplace: { id: data.skillMarketplaceId }
+      },
+      select: {
+        skillPlugin: {
+          select: { id: true }
+        }
+      }
+    });
+    for (let linkedPlugin of linkedPlugins) {
+      await indexSkillPluginQueue.add({
+        skillPluginId: linkedPlugin.skillPlugin.id
+      });
+    }
+
     await propagateSkillMarketplaceDirtyQueue.add(
       { skillMarketplaceId: data.skillMarketplaceId },
       getPropagationJobOpts('marketplace', data.skillMarketplaceId)

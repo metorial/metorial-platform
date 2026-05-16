@@ -38,10 +38,10 @@ model SkillMarketplace {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  skillExports          SkillExport[]
   plugins               SkillMarketplacePlugin[]
   skillDestinationItems SkillDestinationItem[]
   repositories          SkillMarketplaceRepository[]
+  skillExportRefs       SkillExportRef[]
 }
 
 enum SkillMarketplacePluginStatus {
@@ -120,10 +120,10 @@ model SkillPlugin {
 
   managed                 ManagedSkillPlugin?
   skillPluginSkills       SkillPluginSkill[]
-  skillExports            SkillExport[]
   skillMarketplacePlugins SkillMarketplacePlugin[]
   skillDestinationItems   SkillDestinationItem[]
   repositories            SkillPluginRepository[]
+  skillExportRefs         SkillExportRef[]
 }
 
 model SkillRepository {
@@ -226,6 +226,8 @@ model SkillDestination {
   id  String @unique
 
   codeBucketId String
+
+  tag Int @default(0)
 
   isDirty               Boolean   @default(false)
   lastTransientChangeAt DateTime?
@@ -344,6 +346,50 @@ enum SkillExportStatus {
   failed
 }
 
+model SkillExportRef {
+  oid BigInt @id
+
+  hash String
+
+  skillConfigurationOid BigInt?
+  skillConfiguration    SkillConfiguration? @relation(fields: [skillConfigurationOid], references: [oid], onDelete: SetNull)
+
+  skillOid BigInt?
+  skill    Skill?  @relation(fields: [skillOid], references: [oid], onDelete: Cascade)
+
+  managedSkillPluginOid BigInt?
+  managedSkillPlugin    ManagedSkillPlugin? @relation(fields: [managedSkillPluginOid], references: [oid], onDelete: Cascade)
+
+  skillPluginOid BigInt?
+  skillPlugin    SkillPlugin? @relation(fields: [skillPluginOid], references: [oid], onDelete: Cascade)
+
+  skillMarketplaceOid BigInt?
+  skillMarketplace    SkillMarketplace? @relation(fields: [skillMarketplaceOid], references: [oid], onDelete: Cascade)
+
+  fileOid BigInt?
+  file    File?   @relation(fields: [fileOid], references: [oid], onDelete: SetNull)
+
+  fileReferenceOid BigInt?
+  fileReference    FileReference? @relation(fields: [fileReferenceOid], references: [oid], onDelete: SetNull)
+
+  fileLinkOid BigInt?
+  fileLink    FileLink? @relation(fields: [fileLinkOid], references: [oid], onDelete: SetNull)
+
+  fileDestinationTag Int?
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  skillExports SkillExport[]
+
+  @@unique([tenantOid, environmentOid, hash])
+}
+
 model SkillExport {
   oid BigInt @id
   id  String @unique
@@ -351,8 +397,8 @@ model SkillExport {
   target SkillExportTarget
   status SkillExportStatus
 
-  skillConfigurationOid BigInt?
-  skillConfiguration    SkillConfiguration? @relation(fields: [skillConfigurationOid], references: [oid], onDelete: SetNull)
+  exportRefOid BigInt
+  exportRef    SkillExportRef @relation(fields: [exportRefOid], references: [oid], onDelete: Cascade)
 
   // Export destination file
   fileOid BigInt?
@@ -361,14 +407,8 @@ model SkillExport {
   fileReferenceOid BigInt?
   fileReference    FileReference? @relation(fields: [fileReferenceOid], references: [oid], onDelete: SetNull)
 
-  skillOid BigInt?
-  skill    Skill?  @relation(fields: [skillOid], references: [oid], onDelete: Cascade)
-
-  skillPluginOid BigInt?
-  skillPlugin    SkillPlugin? @relation(fields: [skillPluginOid], references: [oid], onDelete: Cascade)
-
-  skillMarketplaceOid BigInt?
-  skillMarketplace    SkillMarketplace? @relation(fields: [skillMarketplaceOid], references: [oid], onDelete: Cascade)
+  fileLinkOid BigInt?
+  fileLink    FileLink? @relation(fields: [fileLinkOid], references: [oid], onDelete: SetNull)
 
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
@@ -389,11 +429,12 @@ model ManagedSkillPlugin {
 
   configHash String
 
-  skillOid BigInt
+  skillOid BigInt @unique
   skill    Skill  @relation(fields: [skillOid], references: [oid], onDelete: Cascade)
 
   skillPluginOid BigInt      @unique
   skillPlugin    SkillPlugin @relation(fields: [skillPluginOid], references: [oid], onDelete: Cascade)
 
-  createdAt DateTime @default(now())
+  createdAt       DateTime         @default(now())
+  skillExportRefs SkillExportRef[]
 }

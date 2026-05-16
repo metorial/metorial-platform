@@ -47,7 +47,6 @@ export interface MarketplaceSerializerInput {
 export interface SerializerContext {
   setFile: (path: string, content: string | Buffer | ArrayBuffer) => Promise<void>;
   hashIsEqual: (hash: string) => boolean;
-  setHash?: (hash: string) => void;
   setBasePath: (path: string | undefined) => void;
 }
 

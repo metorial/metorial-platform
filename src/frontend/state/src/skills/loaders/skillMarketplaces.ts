@@ -6,6 +6,9 @@ import type {
   DashboardInstanceSkillsMarketplacesPluginsAddBody,
   DashboardInstanceSkillsMarketplacesPluginsGetOutput,
   DashboardInstanceSkillsMarketplacesPluginsListQuery,
+  DashboardInstanceSkillsMarketplacesRepositoriesCreateBody,
+  DashboardInstanceSkillsMarketplacesRepositoriesGetOutput,
+  DashboardInstanceSkillsMarketplacesRepositoriesListQuery,
   DashboardInstanceSkillsMarketplacesUpdateBody
 } from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
@@ -16,6 +19,8 @@ import { withAuth } from '../../user';
 
 export type SkillMarketplace = DashboardInstanceSkillsMarketplacesGetOutput;
 export type SkillMarketplacePlugin = DashboardInstanceSkillsMarketplacesPluginsGetOutput;
+export type SkillMarketplaceRepository =
+  DashboardInstanceSkillsMarketplacesRepositoriesGetOutput;
 export type SkillMarketplaceEditorUrl = DashboardInstanceSkillsMarketplacesGetEditorUrlOutput;
 
 let toArrayIfString = <T extends string>(value: T | T[] | undefined) =>
@@ -173,6 +178,74 @@ export let useSkillMarketplacePlugins = (
       ),
     instanceId && skillMarketplaceId
       ? `${instanceId}:${skillMarketplaceId}:marketplacePlugins:${JSON.stringify(query ?? {})}`
+      : null
+  );
+};
+
+export let skillMarketplaceRepositoriesLoader = createLoader({
+  name: 'skillMarketplaceRepositories',
+  parents: [skillMarketplaceLoader, skillMarketplacesLoader],
+  fetch: (
+    i: {
+      instanceId: string;
+      skillMarketplaceId: string;
+    } & DashboardInstanceSkillsMarketplacesRepositoriesListQuery
+  ) =>
+    withAuth(sdk =>
+      sdk.skillMarketplaces.repositories.list(i.instanceId, i.skillMarketplaceId, i)
+    ),
+  mutators: {}
+});
+
+export let useCreateSkillMarketplaceRepository =
+  skillMarketplaceRepositoriesLoader.createExternalMutator(
+    (
+      i: DashboardInstanceSkillsMarketplacesRepositoriesCreateBody & {
+        instanceId: string;
+        skillMarketplaceId: string;
+      }
+    ) =>
+      withAuth(sdk =>
+        sdk.skillMarketplaces.repositories.create(
+          i.instanceId,
+          i.skillMarketplaceId,
+          i
+        )
+      )
+  );
+
+export let useDeleteSkillMarketplaceRepository =
+  skillMarketplaceRepositoriesLoader.createExternalMutator(
+    (i: {
+      instanceId: string;
+      skillMarketplaceId: string;
+      skillMarketplaceRepositoryId: string;
+    }) =>
+      withAuth(sdk =>
+        sdk.skillMarketplaces.repositories.delete(
+          i.instanceId,
+          i.skillMarketplaceId,
+          i.skillMarketplaceRepositoryId
+        )
+      )
+  );
+
+export let useSkillMarketplaceRepositories = (
+  instanceId: string | null | undefined,
+  skillMarketplaceId: string | null | undefined,
+  query?: DashboardInstanceSkillsMarketplacesRepositoriesListQuery | null
+) => {
+  return usePaginator(
+    pagination =>
+      skillMarketplaceRepositoriesLoader.use(
+        instanceId && skillMarketplaceId && query !== null
+          ? { instanceId, skillMarketplaceId, ...pagination, ...(query ?? {}) }
+          : null
+      ),
+    instanceId && skillMarketplaceId
+      ? `${instanceId}:${skillMarketplaceId}:marketplaceRepositories:${JSON.stringify(
+          query ?? {}
+        )}`
       : null
   );
 };

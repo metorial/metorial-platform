@@ -58,7 +58,9 @@ let applySkillDocumentFrontmatter = (content: string, input: SkillSerializerInpu
   } = parseSkillDocumentFrontmatter(content);
 
   let nextFrontmatter = Object.assign({}, givenFrontmatter, {
-    name: slugify(input.skill.clientName ?? input.skill.name ?? 'unknown'),
+    name: slugify(
+      (input.skill.clientName ?? input.skill.name ?? 'unknown').replaceAll('_', '-')
+    ),
     description:
       input.skill.clientDescription ||
       givenFrontmatter.description ||
@@ -91,7 +93,6 @@ export let applySkill = createApplicator('skill', async (input, context) => {
     ].join(':')
   );
   if (context.hashIsEqual(hash)) return;
-  context.setHash?.(hash);
 
   context.setBasePath(getSkillPath(input));
 

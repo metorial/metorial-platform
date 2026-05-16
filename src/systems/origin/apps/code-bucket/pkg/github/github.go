@@ -2,7 +2,9 @@ package github
 
 import (
 	"bytes"
+	"crypto/sha1"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -32,16 +34,65 @@ type FileToUpload struct {
 	Content []byte
 }
 
-type githubContentRequest struct {
-	Message string `json:"message"`
-	Content string `json:"content"`
-	Branch  string `json:"branch,omitempty"`
-	SHA     string `json:"sha,omitempty"`
+type githubRefResponse struct {
+	Object struct {
+		SHA string `json:"sha"`
+	} `json:"object"`
 }
 
-type githubContentResponse struct {
-	SHA     string `json:"sha"`
-	Content string `json:"content"` // This is the base64-encoded file content
+type githubCommitResponse struct {
+	SHA  string `json:"sha"`
+	Tree struct {
+		SHA string `json:"sha"`
+	} `json:"tree"`
+}
+
+type githubTreeResponse struct {
+	Tree []struct {
+		Path string `json:"path"`
+		Type string `json:"type"`
+		SHA  string `json:"sha"`
+	} `json:"tree"`
+}
+
+type githubCreateBlobRequest struct {
+	Content  string `json:"content"`
+	Encoding string `json:"encoding"`
+}
+
+type githubCreateBlobResponse struct {
+	SHA string `json:"sha"`
+}
+
+type githubTreeEntry struct {
+	Path string `json:"path"`
+	Mode string `json:"mode"`
+	Type string `json:"type"`
+	SHA  string `json:"sha"`
+}
+
+type githubCreateTreeRequest struct {
+	BaseTree string            `json:"base_tree"`
+	Tree     []githubTreeEntry `json:"tree"`
+}
+
+type githubCreateTreeResponse struct {
+	SHA string `json:"sha"`
+}
+
+type githubCreateCommitRequest struct {
+	Message string   `json:"message"`
+	Tree    string   `json:"tree"`
+	Parents []string `json:"parents"`
+}
+
+type githubCreateCommitResponse struct {
+	SHA string `json:"sha"`
+}
+
+type githubUpdateRefRequest struct {
+	SHA   string `json:"sha"`
+	Force bool   `json:"force"`
 }
 
 func UploadToRepo(owner, repo, targetPath, branch, commitMessage, token string, files []FileToUpload) error {
@@ -58,93 +109,157 @@ func UploadToRepo(owner, repo, targetPath, branch, commitMessage, token string, 
 		commitMessage = fmt.Sprintf("Upload %d files", len(files))
 	}
 
-	// Upload each file using the Contents API
+	ref, err := githubJSON[githubRefResponse](client, "GET", fmt.Sprintf("%s/repos/%s/%s/git/ref/heads/%s", baseURL, owner, repo, branch), token, nil)
+	if err != nil {
+		return fmt.Errorf("failed to get branch ref %s: %w", branch, err)
+	}
+
+	baseCommit, err := githubJSON[githubCommitResponse](client, "GET", fmt.Sprintf("%s/repos/%s/%s/git/commits/%s", baseURL, owner, repo, ref.Object.SHA), token, nil)
+	if err != nil {
+		return fmt.Errorf("failed to get base commit %s: %w", ref.Object.SHA, err)
+	}
+
+	baseTree, err := githubJSON[githubTreeResponse](client, "GET", fmt.Sprintf("%s/repos/%s/%s/git/trees/%s?recursive=1", baseURL, owner, repo, baseCommit.Tree.SHA), token, nil)
+	if err != nil {
+		return fmt.Errorf("failed to get base tree %s: %w", baseCommit.Tree.SHA, err)
+	}
+
+	existingBlobShas := map[string]string{}
+	for _, entry := range baseTree.Tree {
+		if entry.Type == "blob" {
+			existingBlobShas[entry.Path] = entry.SHA
+		}
+	}
+
+	treeEntries := make([]githubTreeEntry, 0, len(files))
 	for _, file := range files {
 		// Normalize the path by joining targetPath with file.Path
 		fullPath := path.Join(targetPath, file.Path)
 		// Clean up any double slashes or leading slashes
 		fullPath = strings.TrimPrefix(fullPath, "/")
 
-		// Encode content to base64
-		encodedContent := base64.StdEncoding.EncodeToString(file.Content)
-
-		fileURL := fmt.Sprintf("%s/repos/%s/%s/contents/%s", baseURL, owner, repo, fullPath)
-
-		// Fetch the latest SHA immediately before upload
-		existingSHA, err := getLatestFileSHA(client, fileURL, branch, token)
-		if err != nil {
-			return fmt.Errorf("failed to get SHA for %s: %w", fullPath, err)
+		if existingBlobShas[fullPath] == gitBlobSHA(file.Content) {
+			continue
 		}
 
-		contentReq := githubContentRequest{
+		blob, err := githubJSON[githubCreateBlobResponse](
+			client,
+			"POST",
+			fmt.Sprintf("%s/repos/%s/%s/git/blobs", baseURL, owner, repo),
+			token,
+			githubCreateBlobRequest{
+				Content:  base64.StdEncoding.EncodeToString(file.Content),
+				Encoding: "base64",
+			},
+		)
+		if err != nil {
+			return fmt.Errorf("failed to create blob for %s: %w", fullPath, err)
+		}
+
+		treeEntries = append(treeEntries, githubTreeEntry{
+			Path: fullPath,
+			Mode: "100644",
+			Type: "blob",
+			SHA:  blob.SHA,
+		})
+	}
+
+	if len(treeEntries) == 0 {
+		return nil
+	}
+
+	newTree, err := githubJSON[githubCreateTreeResponse](
+		client,
+		"POST",
+		fmt.Sprintf("%s/repos/%s/%s/git/trees", baseURL, owner, repo),
+		token,
+		githubCreateTreeRequest{
+			BaseTree: baseCommit.Tree.SHA,
+			Tree:     treeEntries,
+		},
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create tree: %w", err)
+	}
+
+	newCommit, err := githubJSON[githubCreateCommitResponse](
+		client,
+		"POST",
+		fmt.Sprintf("%s/repos/%s/%s/git/commits", baseURL, owner, repo),
+		token,
+		githubCreateCommitRequest{
 			Message: commitMessage,
-			Content: encodedContent,
-			Branch:  branch,
-		}
+			Tree:    newTree.SHA,
+			Parents: []string{baseCommit.SHA},
+		},
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create commit: %w", err)
+	}
 
-		if existingSHA != "" {
-			contentReq.SHA = existingSHA
-		}
-
-		contentJSON, err := json.Marshal(contentReq)
-		if err != nil {
-			return fmt.Errorf("failed to marshal content request for %s: %w", fullPath, err)
-		}
-
-		req, err := http.NewRequest("PUT", fileURL, bytes.NewBuffer(contentJSON))
-		if err != nil {
-			return fmt.Errorf("failed to create put request for %s: %w", fullPath, err)
-		}
-		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
-		req.Header.Set("Accept", "application/vnd.github+json")
-		req.Header.Set("Content-Type", "application/json")
-
-		resp, err := client.Do(req)
-		if err != nil {
-			return fmt.Errorf("failed to upload file %s: %w", fullPath, err)
-		}
-
-		body, _ := io.ReadAll(resp.Body)
-		resp.Body.Close()
-
-		if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
-			return fmt.Errorf("failed to upload file %s (status %d): %s", fullPath, resp.StatusCode, string(body))
-		}
+	_, err = githubJSON[githubRefResponse](
+		client,
+		"PATCH",
+		fmt.Sprintf("%s/repos/%s/%s/git/refs/heads/%s", baseURL, owner, repo, branch),
+		token,
+		githubUpdateRefRequest{
+			SHA:   newCommit.SHA,
+			Force: false,
+		},
+	)
+	if err != nil {
+		return fmt.Errorf("failed to update branch ref %s: %w", branch, err)
 	}
 
 	return nil
 }
 
-// Helper function to get the latest SHA for a file
-func getLatestFileSHA(client *http.Client, fileURL, branch, token string) (string, error) {
-	req, err := http.NewRequest("GET", fileURL, nil)
+func gitBlobSHA(content []byte) string {
+	h := sha1.New()
+	_, _ = h.Write([]byte(fmt.Sprintf("blob %d\x00", len(content))))
+	_, _ = h.Write(content)
+	return hex.EncodeToString(h.Sum(nil))
+}
+
+func githubJSON[T any](client *http.Client, method, url, token string, body any) (*T, error) {
+	var reader io.Reader
+	if body != nil {
+		b, err := json.Marshal(body)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal request: %w", err)
+		}
+		reader = bytes.NewBuffer(b)
+	}
+
+	req, err := http.NewRequest(method, url, reader)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 	req.Header.Set("Accept", "application/vnd.github+json")
-
-	// Add branch parameter
-	q := req.URL.Query()
-	q.Add("ref", branch)
-	req.URL.RawQuery = q.Encode()
+	req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode == http.StatusOK {
-		// File exists, get its SHA
-		var contentResp githubContentResponse
-		body, _ := io.ReadAll(resp.Body)
-		if err := json.Unmarshal(body, &contentResp); err != nil {
-			return "", err
-		}
-		return contentResp.SHA, nil
+	respBody, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, fmt.Errorf("%s %s failed (status %d): %s", method, url, resp.StatusCode, string(respBody))
 	}
 
-	// File doesn't exist (404), return empty SHA
-	return "", nil
+	var out T
+	if len(respBody) == 0 {
+		return &out, nil
+	}
+	if err := json.Unmarshal(respBody, &out); err != nil {
+		return nil, err
+	}
+
+	return &out, nil
 }

@@ -4,6 +4,7 @@ import {
   propagateSkillConfigurationDirtyQueueProcessor,
   skillConfigurationLifecycleQueueProcessor
 } from './skillConfiguration';
+import { managedSkillPluginLifecycleQueueProcessor } from './managedSkillPlugin';
 import {
   propagateSkillMarketplaceDirtyQueueProcessor,
   skillMarketplaceLifecycleQueueProcessor
@@ -23,6 +24,7 @@ import {
 
 export * from './skill';
 export * from './skillConfiguration';
+export * from './managedSkillPlugin';
 export * from './skillMarketplace';
 export * from './skillMarketplacePlugin';
 export * from './skillPlugin';
@@ -30,6 +32,7 @@ export * from './skillPluginSkill';
 
 export let lifecycleQueues = combineQueueProcessors([
   skillLifecycleQueueProcessor,
+  managedSkillPluginLifecycleQueueProcessor,
   skillPluginLifecycleQueueProcessor,
   skillPluginSkillLifecycleQueueProcessor,
   skillMarketplaceLifecycleQueueProcessor,

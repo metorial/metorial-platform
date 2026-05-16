@@ -25,11 +25,13 @@ export let applyMarketplace = createApplicator('marketplace', async (input, cont
                 description: { not: null }
               }
             },
-            include: { skill: true }
+            include: { skill: true },
+            orderBy: { id: 'asc' }
           }
         }
       }
-    }
+    },
+    orderBy: { id: 'asc' }
   });
 
   let pluginHashes = plugins
@@ -53,14 +55,19 @@ export let applyMarketplace = createApplicator('marketplace', async (input, cont
     ].join(':')
   );
   if (context.hashIsEqual(hash)) return;
-  context.setHash?.(hash);
 
   if (input.skillMarketplace.versionHash !== hash) {
     let nextVersion = semver.inc(input.skillMarketplace.version ?? '0.0.0', 'patch')!;
 
     await db.skillMarketplace.updateMany({
       where: { oid: input.skillMarketplace.oid },
-      data: { versionHash: hash, version: nextVersion }
+      data: {
+        versionHash: hash,
+        version: nextVersion,
+
+        // Force updatedAt not to change
+        updatedAt: input.skillMarketplace.updatedAt
+      }
     });
 
     input.skillMarketplace.version = nextVersion;

@@ -45,6 +45,20 @@ export let syncStartQueueProcessor = syncStartQueue.process(async data => {
     data: { status: 'canceled', completedAt: new Date() }
   });
 
+  await db.skillDestination.updateMany({
+    where: {
+      oid: sync.destinationOid
+    },
+    data: {
+      isDirty: false,
+      lastTransientChangeAt: null,
+      firstTransientChangeAt: null,
+      shouldFlushAt: null,
+      mustFlushAt: null,
+      tag: { increment: 1 }
+    }
+  });
+
   await syncCollectQueue.add({
     skillDestinationSyncId: data.skillDestinationSyncId
   });

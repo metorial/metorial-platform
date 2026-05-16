@@ -113,11 +113,8 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
     },
 
     hashIsEqual(hash: string) {
-      return item?.hash === hash;
-    },
-
-    setHash(hash: string) {
       hashRef.current = hash;
+      return item?.hash === hash;
     }
   };
 

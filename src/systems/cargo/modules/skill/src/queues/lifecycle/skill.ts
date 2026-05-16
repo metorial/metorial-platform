@@ -1,8 +1,9 @@
 import { createQueue } from '@lowerdeck/queue';
 import { addAfterTransactionHook, db, env } from '@metorial-cargo/db';
+import { enqueueManagedSkillPluginLifecycle } from './managedSkillPlugin';
 import { getLifecycleJobId, getPropagationJobOpts, type LifecycleEvent } from './_ids';
 
-export let skillLifecycleQueue = createQueue<{
+let skillLifecycleQueue = createQueue<{
   skillId: string;
   event: LifecycleEvent;
 }>({
@@ -22,6 +23,7 @@ export let enqueueSkillLifecycle = async (d: { skillId: string; event: Lifecycle
 };
 
 export let skillLifecycleQueueProcessor = skillLifecycleQueue.process(async data => {
+  await enqueueManagedSkillPluginLifecycle(data);
   await propagateSkillDirtyQueue.add(
     { skillId: data.skillId },
     getPropagationJobOpts('skill', data.skillId)

@@ -12,6 +12,7 @@ import {
   resolveSkillMarketplaces
 } from '@metorial-cargo/list-utils';
 import type { CargoTenantEnvironment } from '@metorial-cargo/module-file';
+import { voyager, voyagerIndex, voyagerSource } from '@metorial-cargo/module-search';
 import { internalImageService } from '../internal/image';
 import {
   createSkillDestination,
@@ -170,6 +171,7 @@ class SkillMarketplaceServiceImpl {
       ids?: string[];
       skillConfigurationIds?: string[];
       statuses?: SkillMarketplaceStatusFilter[];
+      search?: string;
       slug?: string;
       createdAt?: DateFilter;
       updatedAt?: DateFilter;
@@ -178,6 +180,17 @@ class SkillMarketplaceServiceImpl {
     let skillMarketplaces = await resolveSkillMarketplaces(d, d.ids);
     let skillConfigurations = await resolveSkillConfigurations(d, d.skillConfigurationIds);
     let statuses: SkillMarketplaceStatus[] = d.statuses?.length ? d.statuses : ['active'];
+    d.search = d.search?.trim();
+    if (!d.search?.length) d.search = undefined;
+
+    let search = d.search
+      ? await voyager.record.search({
+          tenantId: d.tenant.id,
+          sourceId: (await voyagerSource).id,
+          indexId: voyagerIndex.skillMarketplace.id,
+          query: d.search
+        })
+      : null;
 
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -194,6 +207,7 @@ class SkillMarketplaceServiceImpl {
                   : undefined!,
                 { status: { in: statuses } },
                 d.slug ? { slug: d.slug } : undefined!,
+                search ? { id: { in: search.map(r => r.documentId) } } : undefined!,
                 d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
                 d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
               ].filter(Boolean)

@@ -2,7 +2,7 @@ import { createQueue } from '@lowerdeck/queue';
 import { addAfterTransactionHook, db, env } from '@metorial-cargo/db';
 import { getLifecycleJobId, getPropagationJobOpts, type LifecycleEvent } from './_ids';
 
-export let skillConfigurationLifecycleQueue = createQueue<{
+let skillConfigurationLifecycleQueue = createQueue<{
   skillConfigurationId: string;
   event: LifecycleEvent;
 }>({

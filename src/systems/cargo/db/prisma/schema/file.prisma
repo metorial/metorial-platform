@@ -62,6 +62,7 @@ model File {
   storeItems        StoreItem[]
   storeVersionItems StoreVersionItem[]
   skillExports      SkillExport[]
+  skillExportRefs   SkillExportRef[]
 
   @@index([status, expiresAt, oid])
 }
@@ -87,7 +88,9 @@ model FileLink {
   createdAt DateTime  @default(now())
   expiresAt DateTime?
 
-  references FileReference[]
+  references      FileReference[]
+  skillExportRefs SkillExportRef[]
+  skillExports    SkillExport[]
 }
 
 model FileReference {
@@ -108,6 +111,7 @@ model FileReference {
 
   createdAt DateTime @default(now())
 
-  storeItems   StoreItem[]
-  skillExports SkillExport[]
+  storeItems      StoreItem[]
+  skillExports    SkillExport[]
+  skillExportRefs SkillExportRef[]
 }

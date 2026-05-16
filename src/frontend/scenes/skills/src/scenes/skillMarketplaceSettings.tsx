@@ -4,6 +4,10 @@ import { Button, Input, Spacer, confirm } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
 import styled from 'styled-components';
 import { ResourceImageUploader } from '../components/skillImageUploader';
+import {
+  SkillMarketplaceRepositoriesSettingsBox,
+  SkillPluginRepositoriesSettingsBox
+} from './skillRepositories';
 
 let PageStack = styled.div`
   display: flex;
@@ -102,6 +106,11 @@ export let SkillMarketplaceSettingsScene = (p: {
           </FormStack>
         </form>
       </Box>
+
+      <SkillMarketplaceRepositoriesSettingsBox
+        instanceId={p.instanceId}
+        skillMarketplaceId={p.skillMarketplaceId}
+      />
 
       <Box
         title="Danger Zone"
@@ -234,6 +243,11 @@ export let SkillPluginSettingsScene = (p: {
           </FormStack>
         </form>
       </Box>
+
+      <SkillPluginRepositoriesSettingsBox
+        instanceId={p.instanceId}
+        skillPluginId={p.skillPluginId}
+      />
 
       <Box
         title="Danger Zone"
