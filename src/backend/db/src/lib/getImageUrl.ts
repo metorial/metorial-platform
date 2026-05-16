@@ -10,9 +10,12 @@ export type EntityImage =
   | { type: 'url'; url: string }
   | { type: 'default' };
 
+type EntityImageOuter = EntityImage;
+
 declare global {
   namespace PrismaJson {
-    type EntityImage = import('./getImageUrl').EntityImage;
+    // @ts-ignore
+    type EntityImage = EntityImageOuter;
   }
 }
 

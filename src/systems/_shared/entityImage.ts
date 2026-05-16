@@ -14,6 +14,7 @@ type EntityImageOuter = EntityImage;
 
 declare global {
   namespace PrismaJson {
+    // @ts-ignore
     type EntityImage = EntityImageOuter;
   }
 }
