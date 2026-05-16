@@ -8,6 +8,7 @@ import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
+import { hasFlags } from '../../../middleware/hasFlags';
 import { instancePath } from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
 import { skillItemPresenter } from '../../../presenters';
@@ -78,6 +79,7 @@ export let skillItemController = Controller.create(
         name: 'List skill items',
         description: 'Returns a paginated list of items for a skill.'
       })
+      .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...skillReadScopes] }))
       .use(requireConsumerTokenForPublishableKey())
       .outputList(skillItemPresenter)
@@ -127,6 +129,7 @@ export let skillItemController = Controller.create(
         name: 'Get skill item',
         description: 'Retrieves a specific skill item.'
       })
+      .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...skillReadScopes] }))
       .use(requireConsumerTokenForPublishableKey())
       .output(skillItemPresenter)
@@ -137,6 +140,7 @@ export let skillItemController = Controller.create(
         name: 'Create skill item',
         description: 'Creates a new item on a skill.'
       })
+      .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...skillWriteScopes] }))
       .use(requireConsumerTokenForPublishableKey())
       .body('default', createSkillItemValidator)
@@ -171,6 +175,7 @@ export let skillItemController = Controller.create(
         name: 'Delete skill item',
         description: 'Archives a skill item.'
       })
+      .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...skillWriteScopes] }))
       .use(requireConsumerTokenForPublishableKey())
       .output(skillItemPresenter)

@@ -6,6 +6,7 @@ import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
+import { hasFlags } from '../../../middleware/hasFlags';
 import { instancePath } from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
 import { skillPluginSkillPresenter } from '../../../presenters';
@@ -53,6 +54,7 @@ export let skillPluginSkillController = Controller.create(
         name: 'List skill plugin skills',
         description: 'Returns skills linked to a skill plugin.'
       })
+      .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...readScopes] }))
       .use(requireConsumerTokenForPublishableKey())
       .outputList(skillPluginSkillPresenter)
@@ -97,6 +99,7 @@ export let skillPluginSkillController = Controller.create(
         name: 'Add skill plugin skill',
         description: 'Adds a skill to a skill plugin.'
       })
+      .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...writeScopes] }))
       .body(
         'default',
@@ -137,6 +140,7 @@ export let skillPluginSkillController = Controller.create(
           description: 'Retrieves a skill plugin skill link.'
         }
       )
+      .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...readScopes] }))
       .use(requireConsumerTokenForPublishableKey())
       .output(skillPluginSkillPresenter)
@@ -155,6 +159,7 @@ export let skillPluginSkillController = Controller.create(
           description: 'Updates a skill plugin skill link.'
         }
       )
+      .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...writeScopes] }))
       .body('default', v.object(skillPluginSkillInput))
       .output(skillPluginSkillPresenter)
@@ -187,6 +192,7 @@ export let skillPluginSkillController = Controller.create(
           description: 'Removes a skill from a skill plugin.'
         }
       )
+      .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...writeScopes] }))
       .output(skillPluginSkillPresenter)
       .do(async ctx => {

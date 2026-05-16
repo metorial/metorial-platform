@@ -6,6 +6,7 @@ import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
+import { hasFlags } from '../../../middleware/hasFlags';
 import { instancePath } from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
 import { skillMarketplacePluginPresenter } from '../../../presenters';
@@ -51,6 +52,7 @@ export let skillMarketplacePluginController = Controller.create(
           description: 'Returns plugins linked to a skill marketplace.'
         }
       )
+      .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...readScopes] }))
       .use(requireConsumerTokenForPublishableKey())
       .outputList(skillMarketplacePluginPresenter)
@@ -101,6 +103,7 @@ export let skillMarketplacePluginController = Controller.create(
           description: 'Adds a skill plugin to a skill marketplace.'
         }
       )
+      .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...writeScopes] }))
       .body(
         'default',
@@ -140,6 +143,7 @@ export let skillMarketplacePluginController = Controller.create(
           description: 'Retrieves a skill marketplace plugin link.'
         }
       )
+      .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...readScopes] }))
       .use(requireConsumerTokenForPublishableKey())
       .output(skillMarketplacePluginPresenter)
@@ -160,6 +164,7 @@ export let skillMarketplacePluginController = Controller.create(
           description: 'Removes a skill plugin from a skill marketplace.'
         }
       )
+      .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...writeScopes] }))
       .output(skillMarketplacePluginPresenter)
       .do(async ctx => {

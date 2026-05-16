@@ -1,23 +1,16 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import {
-  skillMarketplaceRepositoryService,
-  skillMarketplaceService
-} from '@metorial/module-file';
+import { skillMarketplaceService } from '@metorial/module-file';
 import { Controller } from '@metorial/rest';
 import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
+import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { isDashboardGroup } from '../../../middleware/isDashboard';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
-import {
-  bucketEditorTokenPresenter,
-  skillMarketplacePresenter,
-  skillMarketplaceRepositoryPresenter
-} from '../../../presenters';
+import { skillMarketplacePresenter } from '../../../presenters';
 import {
   assertConsumerCanAccessSkillMarketplace,
   getReadSkillMarketplaceFilter
@@ -33,7 +26,9 @@ let skillMarketplaceInput = {
   skill_configuration_id: v.optional(v.nullable(v.string()))
 };
 
-let getSkillMarketplaceAccess = (ctx: Parameters<typeof getInstanceCargoAccess>[0] & any) => ({
+export let getSkillMarketplaceAccess = (
+  ctx: Parameters<typeof getInstanceCargoAccess>[0] & any
+) => ({
   owner: {
     type: 'instance' as const,
     instance: ctx.instance,
@@ -42,7 +37,7 @@ let getSkillMarketplaceAccess = (ctx: Parameters<typeof getInstanceCargoAccess>[
   ...getInstanceCargoAccess(ctx)
 });
 
-export let skillMarketplaceGroup = instanceGroup.use(async ctx => {
+export let skillMarketplaceGroup = instanceGroup.use(hasFlags(['skills-enabled'])).use(async ctx => {
   if (!ctx.params.skillMarketplaceId) {
     throw new ServiceError(
       badRequestError({
@@ -73,6 +68,7 @@ export let skillMarketplaceController = Controller.create(
         name: 'List skill marketplaces',
         description: 'Returns a paginated list of skill marketplaces.'
       })
+      .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...readScopes] }))
       .use(requireConsumerTokenForPublishableKey())
       .outputList(skillMarketplacePresenter)
@@ -88,7 +84,7 @@ export let skillMarketplaceController = Controller.create(
               ])
             ),
             skill_configuration_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            slug: v.optional(v.string()),
+            search: v.optional(v.string()),
             created_at: dateFilterValidator('skill marketplace creation time'),
             updated_at: dateFilterValidator('skill marketplace last update time')
           })
@@ -109,7 +105,7 @@ export let skillMarketplaceController = Controller.create(
           ids,
           statuses: normalizeArrayParam(ctx.query.status),
           skillConfigurationIds: normalizeArrayParam(ctx.query.skill_configuration_id),
-          slug: ctx.query.slug,
+          search: ctx.query.search,
           createdAt: ctx.query.created_at,
           updatedAt: ctx.query.updated_at
         });
@@ -125,6 +121,7 @@ export let skillMarketplaceController = Controller.create(
         name: 'Get skill marketplace',
         description: 'Retrieves a skill marketplace.'
       })
+      .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...readScopes] }))
       .use(requireConsumerTokenForPublishableKey())
       .output(skillMarketplacePresenter)
@@ -137,6 +134,7 @@ export let skillMarketplaceController = Controller.create(
         name: 'Create skill marketplace',
         description: 'Creates a skill marketplace.'
       })
+      .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...writeScopes] }))
       .body(
         'default',
@@ -168,6 +166,7 @@ export let skillMarketplaceController = Controller.create(
           description: 'Updates a skill marketplace.'
         }
       )
+      .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...writeScopes] }))
       .body('default', v.object(skillMarketplaceInput))
       .output(skillMarketplacePresenter)
@@ -194,6 +193,7 @@ export let skillMarketplaceController = Controller.create(
           description: 'Archives a skill marketplace.'
         }
       )
+      .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...writeScopes] }))
       .output(skillMarketplacePresenter)
       .do(async ctx => {
@@ -216,6 +216,7 @@ export let skillMarketplaceController = Controller.create(
           description: 'Forces a skill marketplace sync.'
         }
       )
+      .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...writeScopes] }))
       .body('default', v.object({}))
       .output(skillMarketplacePresenter)
@@ -226,145 +227,6 @@ export let skillMarketplaceController = Controller.create(
         });
 
         return skillMarketplacePresenter.present({ skillMarketplace });
-      }),
-
-    listRepositories: skillMarketplaceGroup
-      .get(
-        instancePath(
-          'skill-marketplaces/:skillMarketplaceId/repositories',
-          'skills.marketplaces.repositories.list'
-        ),
-        {
-          name: 'List skill marketplace repositories',
-          description: 'Returns repositories linked to a skill marketplace.'
-        }
-      )
-      .use(checkAccess({ possibleScopes: [...readScopes] }))
-      .use(requireConsumerTokenForPublishableKey())
-      .outputList(skillMarketplaceRepositoryPresenter)
-      .query('default', Paginator.validate(v.object({})))
-      .do(async ctx => {
-        let paginator =
-          await skillMarketplaceRepositoryService.listSkillMarketplaceRepositories({
-            ...getSkillMarketplaceAccess(ctx),
-            skillMarketplace: ctx.skillMarketplace
-          });
-        let list = await paginator.run(ctx.query);
-
-        return Paginator.present(list, skillMarketplaceRepository =>
-          skillMarketplaceRepositoryPresenter.present({ skillMarketplaceRepository })
-        );
-      }),
-
-    getRepository: skillMarketplaceGroup
-      .get(
-        instancePath(
-          'skill-marketplaces/:skillMarketplaceId/repositories/:skillMarketplaceRepositoryId',
-          'skills.marketplaces.repositories.get'
-        ),
-        {
-          name: 'Get skill marketplace repository',
-          description: 'Retrieves a repository linked to a skill marketplace.'
-        }
-      )
-      .use(checkAccess({ possibleScopes: [...readScopes] }))
-      .use(requireConsumerTokenForPublishableKey())
-      .output(skillMarketplaceRepositoryPresenter)
-      .do(async ctx => {
-        let skillMarketplaceRepository =
-          await skillMarketplaceRepositoryService.getSkillMarketplaceRepositoryById({
-            ...getSkillMarketplaceAccess(ctx),
-            skillMarketplace: ctx.skillMarketplace,
-            skillMarketplaceRepositoryId: ctx.params.skillMarketplaceRepositoryId
-          });
-
-        return skillMarketplaceRepositoryPresenter.present({ skillMarketplaceRepository });
-      }),
-
-    createRepository: skillMarketplaceGroup
-      .post(
-        instancePath(
-          'skill-marketplaces/:skillMarketplaceId/repositories',
-          'skills.marketplaces.repositories.create'
-        ),
-        {
-          name: 'Link skill marketplace repository',
-          description: 'Links an SCM repository to a skill marketplace.'
-        }
-      )
-      .use(checkAccess({ possibleScopes: [...writeScopes] }))
-      .body(
-        'default',
-        v.object({
-          repo_id: v.string()
-        })
-      )
-      .output(skillMarketplaceRepositoryPresenter)
-      .do(async ctx => {
-        let skillMarketplaceRepository =
-          await skillMarketplaceRepositoryService.createSkillMarketplaceRepository({
-            ...getSkillMarketplaceAccess(ctx),
-            skillMarketplace: ctx.skillMarketplace,
-            repoId: ctx.body.repo_id
-          });
-
-        return skillMarketplaceRepositoryPresenter.present({ skillMarketplaceRepository });
-      }),
-
-    deleteRepository: skillMarketplaceGroup
-      .delete(
-        instancePath(
-          'skill-marketplaces/:skillMarketplaceId/repositories/:skillMarketplaceRepositoryId',
-          'skills.marketplaces.repositories.delete'
-        ),
-        {
-          name: 'Unlink skill marketplace repository',
-          description: 'Unlinks an SCM repository from a skill marketplace.'
-        }
-      )
-      .use(checkAccess({ possibleScopes: [...writeScopes] }))
-      .output(skillMarketplaceRepositoryPresenter)
-      .do(async ctx => {
-        let skillMarketplaceRepository =
-          await skillMarketplaceRepositoryService.deleteSkillMarketplaceRepository({
-            ...getSkillMarketplaceAccess(ctx),
-            skillMarketplace: ctx.skillMarketplace,
-            skillMarketplaceRepositoryId: ctx.params.skillMarketplaceRepositoryId
-          });
-
-        return skillMarketplaceRepositoryPresenter.present({ skillMarketplaceRepository });
-      }),
-
-    getEditorUrl: skillMarketplaceGroup
-      .post(
-        instancePath(
-          'skill-marketplaces/:skillMarketplaceId/editor-url',
-          'skills.marketplaces.getEditorUrl'
-        ),
-        {
-          name: 'Get skill marketplace editor URL',
-          description: 'Creates an embeddable editor URL for a skill marketplace.',
-          hideInDocs: true
-        }
-      )
-      .use(isDashboardGroup())
-      .use(checkAccess({ possibleScopes: [...writeScopes] }))
-      .body('default', v.object({}))
-      .output(bucketEditorTokenPresenter)
-      .do(async ctx => {
-        let token = await skillMarketplaceService.getSkillMarketplaceEditorUrl({
-          ...getSkillMarketplaceAccess(ctx),
-          skillMarketplace: ctx.skillMarketplace,
-          isReadOnly: true
-        });
-
-        return bucketEditorTokenPresenter.present({
-          token: {
-            id: ctx.skillMarketplace.backing.id,
-            url: token.url,
-            expiresAt: token.expiresAt
-          }
-        });
       })
   }
 );

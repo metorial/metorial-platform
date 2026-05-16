@@ -1,20 +1,16 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { skillPluginRepositoryService, skillPluginService } from '@metorial/module-file';
+import { skillPluginService } from '@metorial/module-file';
 import { Controller } from '@metorial/rest';
 import { getInstanceCargoAccess, hasInstanceConsumerAccess } from '../../../lib/cargoAccess';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
+import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { isDashboardGroup } from '../../../middleware/isDashboard';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
-import {
-  bucketEditorTokenPresenter,
-  skillPluginPresenter,
-  skillPluginRepositoryPresenter
-} from '../../../presenters';
+import { skillPluginPresenter } from '../../../presenters';
 import {
   getConsumerAccessibleSkillMarketplaceIds,
   getReadSkillMarketplaceFilter
@@ -43,7 +39,7 @@ export let getSkillPluginAccess = (
   ...getInstanceCargoAccess(ctx)
 });
 
-export let skillPluginGroup = instanceGroup.use(async ctx => {
+export let skillPluginGroup = instanceGroup.use(hasFlags(['skills-enabled'])).use(async ctx => {
   if (!ctx.params.skillPluginId) {
     throw new ServiceError(
       badRequestError({
@@ -91,6 +87,7 @@ export let skillPluginController = Controller.create(
         name: 'List skill plugins',
         description: 'Returns a paginated list of skill plugins.'
       })
+      .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...readScopes] }))
       .use(requireConsumerTokenForPublishableKey())
       .outputList(skillPluginPresenter)
@@ -107,7 +104,7 @@ export let skillPluginController = Controller.create(
               ])
             ),
             category: v.optional(v.string()),
-            slug: v.optional(v.string()),
+            search: v.optional(v.string()),
             skill_configuration_id: v.optional(v.union([v.string(), v.array(v.string())])),
             created_at: dateFilterValidator('skill plugin creation time'),
             updated_at: dateFilterValidator('skill plugin last update time')
@@ -130,7 +127,7 @@ export let skillPluginController = Controller.create(
           skillMarketplaceIds,
           statuses: normalizeArrayParam(ctx.query.status),
           category: ctx.query.category,
-          slug: ctx.query.slug,
+          search: ctx.query.search,
           skillConfigurationIds: normalizeArrayParam(ctx.query.skill_configuration_id),
           createdAt: ctx.query.created_at,
           updatedAt: ctx.query.updated_at
@@ -147,6 +144,7 @@ export let skillPluginController = Controller.create(
         name: 'Get skill plugin',
         description: 'Retrieves a skill plugin.'
       })
+      .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...readScopes] }))
       .use(requireConsumerTokenForPublishableKey())
       .output(skillPluginPresenter)
@@ -157,6 +155,7 @@ export let skillPluginController = Controller.create(
         name: 'Create skill plugin',
         description: 'Creates a skill plugin.'
       })
+      .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...writeScopes] }))
       .body('default', v.object({ ...skillPluginInput, name: v.string() }))
       .output(skillPluginPresenter)
@@ -181,6 +180,7 @@ export let skillPluginController = Controller.create(
         name: 'Update skill plugin',
         description: 'Updates a skill plugin.'
       })
+      .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...writeScopes] }))
       .body('default', v.object(skillPluginInput))
       .output(skillPluginPresenter)
@@ -206,6 +206,7 @@ export let skillPluginController = Controller.create(
         name: 'Archive skill plugin',
         description: 'Archives a skill plugin.'
       })
+      .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...writeScopes] }))
       .output(skillPluginPresenter)
       .do(async ctx => {
@@ -222,6 +223,7 @@ export let skillPluginController = Controller.create(
         name: 'Sync skill plugin',
         description: 'Forces a skill plugin sync.'
       })
+      .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...writeScopes] }))
       .body('default', v.object({}))
       .output(skillPluginPresenter)
@@ -232,141 +234,6 @@ export let skillPluginController = Controller.create(
         });
 
         return skillPluginPresenter.present({ skillPlugin });
-      }),
-
-    listRepositories: skillPluginGroup
-      .get(
-        instancePath(
-          'skill-plugins/:skillPluginId/repositories',
-          'skills.plugins.repositories.list'
-        ),
-        {
-          name: 'List skill plugin repositories',
-          description: 'Returns repositories linked to a skill plugin.'
-        }
-      )
-      .use(checkAccess({ possibleScopes: [...readScopes] }))
-      .use(requireConsumerTokenForPublishableKey())
-      .outputList(skillPluginRepositoryPresenter)
-      .query('default', Paginator.validate(v.object({})))
-      .do(async ctx => {
-        let paginator = await skillPluginRepositoryService.listSkillPluginRepositories({
-          ...getSkillPluginAccess(ctx),
-          skillPlugin: ctx.skillPlugin
-        });
-        let list = await paginator.run(ctx.query);
-
-        return Paginator.present(list, skillPluginRepository =>
-          skillPluginRepositoryPresenter.present({ skillPluginRepository })
-        );
-      }),
-
-    getRepository: skillPluginGroup
-      .get(
-        instancePath(
-          'skill-plugins/:skillPluginId/repositories/:skillPluginRepositoryId',
-          'skills.plugins.repositories.get'
-        ),
-        {
-          name: 'Get skill plugin repository',
-          description: 'Retrieves a repository linked to a skill plugin.'
-        }
-      )
-      .use(checkAccess({ possibleScopes: [...readScopes] }))
-      .use(requireConsumerTokenForPublishableKey())
-      .output(skillPluginRepositoryPresenter)
-      .do(async ctx => {
-        let skillPluginRepository =
-          await skillPluginRepositoryService.getSkillPluginRepositoryById({
-            ...getSkillPluginAccess(ctx),
-            skillPlugin: ctx.skillPlugin,
-            skillPluginRepositoryId: ctx.params.skillPluginRepositoryId
-          });
-
-        return skillPluginRepositoryPresenter.present({ skillPluginRepository });
-      }),
-
-    createRepository: skillPluginGroup
-      .post(
-        instancePath(
-          'skill-plugins/:skillPluginId/repositories',
-          'skills.plugins.repositories.create'
-        ),
-        {
-          name: 'Link skill plugin repository',
-          description: 'Links an SCM repository to a skill plugin.'
-        }
-      )
-      .use(checkAccess({ possibleScopes: [...writeScopes] }))
-      .body(
-        'default',
-        v.object({
-          repo_id: v.string()
-        })
-      )
-      .output(skillPluginRepositoryPresenter)
-      .do(async ctx => {
-        let skillPluginRepository =
-          await skillPluginRepositoryService.createSkillPluginRepository({
-            ...getSkillPluginAccess(ctx),
-            skillPlugin: ctx.skillPlugin,
-            repoId: ctx.body.repo_id
-          });
-
-        return skillPluginRepositoryPresenter.present({ skillPluginRepository });
-      }),
-
-    deleteRepository: skillPluginGroup
-      .delete(
-        instancePath(
-          'skill-plugins/:skillPluginId/repositories/:skillPluginRepositoryId',
-          'skills.plugins.repositories.delete'
-        ),
-        {
-          name: 'Unlink skill plugin repository',
-          description: 'Unlinks an SCM repository from a skill plugin.'
-        }
-      )
-      .use(checkAccess({ possibleScopes: [...writeScopes] }))
-      .output(skillPluginRepositoryPresenter)
-      .do(async ctx => {
-        let skillPluginRepository =
-          await skillPluginRepositoryService.deleteSkillPluginRepository({
-            ...getSkillPluginAccess(ctx),
-            skillPlugin: ctx.skillPlugin,
-            skillPluginRepositoryId: ctx.params.skillPluginRepositoryId
-          });
-
-        return skillPluginRepositoryPresenter.present({ skillPluginRepository });
-      }),
-
-    getEditorUrl: skillPluginGroup
-      .post(
-        instancePath('skill-plugins/:skillPluginId/editor-url', 'skills.plugins.getEditorUrl'),
-        {
-          name: 'Get skill plugin editor URL',
-          description: 'Creates an embeddable editor URL for a skill plugin.',
-          hideInDocs: true
-        }
-      )
-      .use(isDashboardGroup())
-      .use(checkAccess({ possibleScopes: [...writeScopes] }))
-      .body('default', v.object({}))
-      .output(bucketEditorTokenPresenter)
-      .do(async ctx => {
-        let token = await skillPluginService.getSkillPluginEditorUrl({
-          ...getSkillPluginAccess(ctx),
-          skillPlugin: ctx.skillPlugin,
-          isReadOnly: true
-        });
-
-        return bucketEditorTokenPresenter.present({
-          token: {
-            id: ctx.skillPlugin.backing.id,
-            url: token.url,
-            expiresAt: token.expiresAt
-          }
-        });
       })
   }
 );

@@ -6,11 +6,12 @@ import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
+import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
 import { skillGroupPresenter } from '../../../presenters';
 
-export let skillGroupGroup = instanceGroup.use(async ctx => {
+export let skillGroupGroup = instanceGroup.use(hasFlags(['skills-enabled'])).use(async ctx => {
   if (!ctx.params.skillGroupId) {
     throw new ServiceError(
       badRequestError({
@@ -42,6 +43,7 @@ export let skillGroupController = Controller.create(
         name: 'List skill groups',
         description: 'Returns a paginated list of skill groups.'
       })
+      .use(hasFlags(['skills-enabled']))
       .use(
         checkAccess({
           possibleScopes: ['instance.skill:read', 'consumer#instance.skill:read']
@@ -93,6 +95,7 @@ export let skillGroupController = Controller.create(
         name: 'Get skill group',
         description: 'Retrieves a specific skill group.'
       })
+      .use(hasFlags(['skills-enabled']))
       .use(
         checkAccess({
           possibleScopes: ['instance.skill:read', 'consumer#instance.skill:read']
@@ -109,6 +112,7 @@ export let skillGroupController = Controller.create(
         name: 'Create skill group',
         description: 'Creates a skill group.'
       })
+      .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: ['instance.skill:write'] }))
       .body(
         'default',
@@ -137,6 +141,7 @@ export let skillGroupController = Controller.create(
         name: 'Update skill group',
         description: 'Updates a skill group.'
       })
+      .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: ['instance.skill:write'] }))
       .body(
         'default',
@@ -167,6 +172,7 @@ export let skillGroupController = Controller.create(
         name: 'Delete skill group',
         description: 'Archives a skill group.'
       })
+      .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: ['instance.skill:write'] }))
       .output(skillGroupPresenter)
       .do(async ctx => {

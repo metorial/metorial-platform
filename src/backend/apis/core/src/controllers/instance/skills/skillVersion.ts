@@ -7,6 +7,7 @@ import type { SubspaceSkill } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
 import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
 import { checkAccess } from '../../../middleware/checkAccess';
+import { hasFlags } from '../../../middleware/hasFlags';
 import { instancePath } from '../../../middleware/instanceGroup';
 import { skillVersionPresenter, skillVersionSnapshotPresenter } from '../../../presenters';
 import { skillGroup } from './skill';
@@ -58,6 +59,7 @@ export let skillVersionController = Controller.create(
         name: 'List skill versions',
         description: 'Returns a paginated list of versions for a specific skill.'
       })
+      .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...skillReadScopes] }))
       .outputList(skillVersionPresenter)
       .query('default', Paginator.validate(v.object({})))
@@ -75,6 +77,7 @@ export let skillVersionController = Controller.create(
         name: 'Get skill version by ID',
         description: 'Retrieves a specific skill version by its ID.'
       })
+      .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...skillReadScopes] }))
       .output(skillVersionPresenter)
       .do(async ctx => skillVersionPresenter.present({ skillVersion: ctx.skillVersion })),
@@ -90,6 +93,7 @@ export let skillVersionController = Controller.create(
           description: 'Retrieves the store-backed snapshot for a specific skill version.'
         }
       )
+      .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...skillReadScopes] }))
       .output(skillVersionSnapshotPresenter)
       .do(async ctx => {
