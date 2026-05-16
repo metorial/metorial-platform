@@ -7,6 +7,10 @@ model Tenant {
   oid BigInt @id
   id  String @unique
 
+  /// [EntityImage]
+  image            Json?
+  organizationName String?
+
   identifier String @unique
   name       String
 
@@ -27,7 +31,9 @@ model Tenant {
   skillTemplates        SkillTemplate[]
   skillMarketplaces     SkillMarketplace[]
   skillPlugins          SkillPlugin[]
+  skillRepositories     SkillRepository[]
   skillExports          SkillExport[]
+  skillExportRefs       SkillExportRef[]
 }
 
 model Environment {
@@ -57,7 +63,9 @@ model Environment {
   skillTemplates        SkillTemplate[]
   skillMarketplaces     SkillMarketplace[]
   skillPlugins          SkillPlugin[]
+  skillRepositories     SkillRepository[]
   skillExports          SkillExport[]
+  skillExportRefs       SkillExportRef[]
 
   @@unique([tenantOid, identifier])
   @@index([tenantOid])
@@ -90,6 +98,7 @@ model TenantActor {
   createdSkills          Skill[]                  @relation("SkillCreator")
   createdFiles           File[]                   @relation("FileCreator")
   createdFileLinks       FileLink[]               @relation("FileLinkCreator")
+  createdSkillExports    SkillExport[]            @relation("SkillExportCreator")
   documentVersionEditors DocumentVersionEditors[]
   storeParticipants      StoreParticipant[]
   skillParticipants      SkillParticipant[]

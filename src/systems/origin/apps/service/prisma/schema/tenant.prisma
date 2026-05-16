@@ -15,6 +15,7 @@ model Tenant {
   codeBuckets             CodeBucket[]
   scmRepositories         ScmRepository[]
   scmRepositoryPushes     ScmRepositoryPush[]
+  scmRepositorySyncs      ScmRepositorySync[]
   changeNotifications     ChangeNotification[]
 }
 

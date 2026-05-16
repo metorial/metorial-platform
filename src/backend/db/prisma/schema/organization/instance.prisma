@@ -61,6 +61,8 @@ model Instance {
   skills                               Skill[]
   skillTemplates                       SkillTemplate[]
   skillGroups                          SkillGroup[]
+  skillMarketplaces                    SkillMarketplace[]
+  skillPlugins                         SkillPlugin[]
   consumerSkills                       ConsumerSkill[]
   accessPolicyInstances                AccessPolicyInstance[]
   instanceConsumers                    InstanceConsumer[]

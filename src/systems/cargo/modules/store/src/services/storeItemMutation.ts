@@ -15,6 +15,7 @@ import {
   normalizeStorePath,
   type NormalizedStorePath
 } from '../lib/storePath';
+import { enqueueStoreLifecycle } from '../queues/lifecycle';
 import { storeItemInclude, type StoreItemRecord } from './storeItem';
 import { storeVersionService } from './storeVersion';
 
@@ -144,8 +145,7 @@ class StoreItemMutationServiceImpl {
       if (d.kind !== 'document' || !d.path.name?.toLowerCase().endsWith('.md')) {
         throw new ServiceError(
           badRequestError({
-            message:
-              'Only markdown documents can be added to the agents directory of a skill store'
+            message: 'Only markdown documents can be added to the agents directory of a skill'
           })
         );
       }
@@ -605,13 +605,23 @@ class StoreItemMutationServiceImpl {
             });
 
       let directoryIds = getId('storeDirectory');
-      return await client.storeDirectory.create({
-        data: {
+      return await client.storeDirectory.upsert({
+        where: {
+          storeOid_path: {
+            storeOid: d.store.oid,
+            path: normalizedPath.path
+          }
+        },
+        create: {
           oid: directoryIds.oid,
           id: directoryIds.id,
           storeOid: d.store.oid,
           path: normalizedPath.path,
           isAutoCreated: d.isAutoCreated,
+          parentDirectoryOid: parentDirectory?.oid ?? null
+        },
+        update: {
+          isAutoCreated: d.isAutoCreated ? undefined : false,
           parentDirectoryOid: parentDirectory?.oid ?? null
         }
       });
@@ -1339,6 +1349,8 @@ class StoreItemMutationServiceImpl {
         storeOid: d.store.oid
       });
 
+      await enqueueStoreLifecycle({ storeId: d.store.id, event: 'contents-changed' });
+
       await this.syncSkillAgentForStoreItemTransition({
         skill,
         previousItem: null,
@@ -1698,6 +1710,8 @@ class StoreItemMutationServiceImpl {
         await storeVersionService.markStoreDirtyIfNeeded({
           storeOid: d.store.oid
         });
+
+        await enqueueStoreLifecycle({ storeId: d.store.id, event: 'contents-changed' });
       }
 
       return results;

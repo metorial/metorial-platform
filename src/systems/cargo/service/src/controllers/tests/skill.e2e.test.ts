@@ -1,7 +1,7 @@
 import { flushDocumentDraft } from '@metorial-cargo/module-doc';
+import { skillMarketplaceService, skillPluginService } from '@metorial-cargo/module-skill';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { db } from '../../db';
-import { internalStoreTemplateSyncService } from '../../internal';
+import { db, getId } from '../../db';
 import { storeVersionService } from '@metorial-cargo/module-store';
 import { cargoClient } from '../../test/client';
 import { cleanDatabase } from '../../test/setup';
@@ -41,56 +41,205 @@ let createActor = async (
     name: d.name
   });
 
-let syncStandaloneTemplate = async (storeTemplateId: string) => {
-  let template = await db.storeTemplate.findUniqueOrThrow({
+let getCargoScopeRecords = async (d: { tenantId: string; environmentId: string }) => ({
+  tenant: await db.tenant.findUniqueOrThrow({
     where: {
-      id: storeTemplateId
-    },
-    include: {
-      items: true
+      id: d.tenantId
+    }
+  }),
+  environment: await db.environment.findUniqueOrThrow({
+    where: {
+      id: d.environmentId
+    }
+  })
+});
+
+let createTestSkillDestination = async (codeBucketId: string) =>
+  await db.skillDestination.create({
+    data: {
+      ...getId('skillDestination'),
+      codeBucketId
     }
   });
 
-  for (let item of template.items) {
-    await internalStoreTemplateSyncService.refreshStoreTemplateItemHash({
-      storeTemplateItemId: item.id
-    });
-  }
+let createTestSkillPlugin = async (d: {
+  tenantOid: bigint;
+  environmentOid: bigint;
+  name: string;
+  slug: string;
+}) => {
+  let destination = await createTestSkillDestination(`plugin-${d.slug}`);
 
-  let hashResult = await internalStoreTemplateSyncService.refreshStoreTemplateHash({
-    storeTemplateId,
-    forceFullReconcile: true
-  });
-  expect(hashResult.missingItemIds).toEqual([]);
-
-  let cursor: string | undefined;
-  while (true) {
-    let targets = await internalStoreTemplateSyncService.listStoreTemplateSyncTargets({
-      storeTemplateId,
-      cursor,
-      limit: 100
-    });
-
-    for (let target of targets.targets) {
-      await internalStoreTemplateSyncService.syncStoreTemplateBackingStore({
-        storeTemplateId,
-        tenantId: target.tenant.id,
-        environmentId: target.environment.id,
-        forceFullReconcile: true
-      });
+  return await db.skillPlugin.create({
+    data: {
+      ...getId('skillPlugin'),
+      status: 'active',
+      isManaged: false,
+      name: d.name,
+      slug: d.slug,
+      tenantOid: d.tenantOid,
+      environmentOid: d.environmentOid,
+      destinationOid: destination.oid
     }
-
-    if (!targets.nextCursor) break;
-    cursor = targets.nextCursor;
-  }
+  });
 };
+
+let createTestSkillMarketplace = async (d: {
+  tenantOid: bigint;
+  environmentOid: bigint;
+  name: string;
+  slug: string;
+}) => {
+  let destination = await createTestSkillDestination(`marketplace-${d.slug}`);
+
+  return await db.skillMarketplace.create({
+    data: {
+      ...getId('skillMarketplace'),
+      status: 'active',
+      name: d.name,
+      slug: d.slug,
+      tenantOid: d.tenantOid,
+      environmentOid: d.environmentOid,
+      destinationOid: destination.oid
+    }
+  });
+};
+
+let createTestSkillPluginSkill = async (d: {
+  skillOid: bigint;
+  skillPluginOid: bigint;
+  pluginSkillSlug: string;
+}) =>
+  await db.skillPluginSkill.create({
+    data: {
+      ...getId('skillPluginSkill'),
+      status: 'active',
+      pluginSkillSlug: d.pluginSkillSlug,
+      clientName: 'Plugin Skill',
+      skillOid: d.skillOid,
+      skillPluginOid: d.skillPluginOid
+    }
+  });
+
+let createTestSkillMarketplacePlugin = async (d: {
+  skillMarketplaceOid: bigint;
+  skillPluginOid: bigint;
+  pluginSlug: string;
+}) =>
+  await db.skillMarketplacePlugin.create({
+    data: {
+      ...getId('skillMarketplacePlugin'),
+      status: 'active',
+      pluginSlug: d.pluginSlug,
+      skillMarketplaceOid: d.skillMarketplaceOid,
+      skillPluginOid: d.skillPluginOid
+    }
+  });
 
 describe('cargo skill.e2e', () => {
   beforeEach(async () => {
     await cleanDatabase();
   });
 
-  it('creates, lists, gets, updates, and deletes skills with linked stores', async () => {
+  it('filters skill exports by creator actor', async () => {
+    let { tenant, environment } = await createScope();
+    let firstActor = await createActor(tenant.id, {
+      identifier: 'skill-export-first',
+      name: 'Skill Export First'
+    });
+    let secondActor = await createActor(tenant.id, {
+      identifier: 'skill-export-second',
+      name: 'Skill Export Second'
+    });
+    let { tenant: tenantRecord, environment: environmentRecord } = await getCargoScopeRecords({
+      tenantId: tenant.id,
+      environmentId: environment.id
+    });
+    let firstActorRecord = await db.tenantActor.findUniqueOrThrow({
+      where: {
+        id: firstActor.id
+      }
+    });
+    let secondActorRecord = await db.tenantActor.findUniqueOrThrow({
+      where: {
+        id: secondActor.id
+      }
+    });
+
+    let firstExportRef = await db.skillExportRef.create({
+      data: {
+        oid: getId('skillExport').oid,
+        hash: 'test-export-first',
+        tenantOid: tenantRecord.oid,
+        environmentOid: environmentRecord.oid
+      }
+    });
+    let secondExportRef = await db.skillExportRef.create({
+      data: {
+        oid: getId('skillExport').oid,
+        hash: 'test-export-second',
+        tenantOid: tenantRecord.oid,
+        environmentOid: environmentRecord.oid
+      }
+    });
+    let firstExportIds = getId('skillExport');
+    let secondExportIds = getId('skillExport');
+
+    let firstExport = await db.skillExport.create({
+      data: {
+        ...firstExportIds,
+        target: 'plugin',
+        status: 'completed',
+        exportRefOid: firstExportRef.oid,
+        creatorTenantActorOid: firstActorRecord.oid,
+        tenantOid: tenantRecord.oid,
+        environmentOid: environmentRecord.oid
+      }
+    });
+    let secondExport = await db.skillExport.create({
+      data: {
+        ...secondExportIds,
+        target: 'plugin',
+        status: 'completed',
+        exportRefOid: secondExportRef.oid,
+        creatorTenantActorOid: secondActorRecord.oid,
+        tenantOid: tenantRecord.oid,
+        environmentOid: environmentRecord.oid
+      }
+    });
+
+    let listedForFirstActor = await cargoClient.skillExport.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      actorId: firstActor.id,
+      limit: 10
+    });
+
+    expect(listedForFirstActor.items.map(item => item.id)).toEqual([firstExport.id]);
+    expect(
+      await cargoClient.skillExport.get({
+        tenantId: tenant.id,
+        environmentId: environment.id,
+        actorId: firstActor.id,
+        skillExportId: firstExport.id
+      })
+    ).toMatchObject({
+      id: firstExport.id,
+      createdBy: {
+        id: firstActor.id
+      }
+    });
+    await expect(
+      cargoClient.skillExport.get({
+        tenantId: tenant.id,
+        environmentId: environment.id,
+        actorId: firstActor.id,
+        skillExportId: secondExport.id
+      })
+    ).rejects.toThrow();
+  });
+
+  it('creates, lists, gets, and updates skills with linked stores', async () => {
     let { tenant, environment } = await createScope();
     let actor = await createActor(tenant.id, {
       identifier: 'skill-creator',
@@ -225,35 +374,128 @@ describe('cargo skill.e2e', () => {
         storeId: created.storeId
       })
     ).rejects.toThrow('Cannot delete store: it is linked to a skill');
+  });
 
-    let deleted = await cargoClient.skill.delete({
+  it('archives plugin links when archiving a plugin', async () => {
+    let { tenant, environment } = await createScope();
+    let scope = await getCargoScopeRecords({
+      tenantId: tenant.id,
+      environmentId: environment.id
+    });
+    let skill = await cargoClient.skill.create({
       tenantId: tenant.id,
       environmentId: environment.id,
-      skillId: created.id
+      skillId: 'csk_delete_plugin',
+      name: 'Delete Plugin Skill'
+    });
+    let skillRecord = await db.skill.findUniqueOrThrow({
+      where: {
+        id: skill.id
+      }
+    });
+    let skillPlugin = await createTestSkillPlugin({
+      tenantOid: scope.tenant.oid,
+      environmentOid: scope.environment.oid,
+      name: 'Plugin To Delete',
+      slug: 'plugin-to-delete'
+    });
+    let skillMarketplace = await createTestSkillMarketplace({
+      tenantOid: scope.tenant.oid,
+      environmentOid: scope.environment.oid,
+      name: 'Plugin Delete Marketplace',
+      slug: 'plugin-delete-marketplace'
+    });
+    let skillPluginSkill = await createTestSkillPluginSkill({
+      skillOid: skillRecord.oid,
+      skillPluginOid: skillPlugin.oid,
+      pluginSkillSlug: 'plugin-delete-skill'
+    });
+    let skillMarketplacePlugin = await createTestSkillMarketplacePlugin({
+      skillMarketplaceOid: skillMarketplace.oid,
+      skillPluginOid: skillPlugin.oid,
+      pluginSlug: 'plugin-delete'
     });
 
-    let listedAfterDelete = await cargoClient.skill.list({
+    await skillPluginService.archiveSkillPlugin({
+      tenant: scope.tenant,
+      environment: scope.environment,
+      skillPlugin: await skillPluginService.getSkillPluginById({
+        tenant: scope.tenant,
+        environment: scope.environment,
+        skillPluginId: skillPlugin.id
+      })
+    });
+
+    let deletedSkillPlugin = await db.skillPlugin.findUniqueOrThrow({
+      where: {
+        id: skillPlugin.id
+      }
+    });
+    let deletedSkillPluginSkill = await db.skillPluginSkill.findUniqueOrThrow({
+      where: {
+        id: skillPluginSkill.id
+      }
+    });
+    let deletedSkillMarketplacePlugin =
+      await db.skillMarketplacePlugin.findUniqueOrThrow({
+        where: {
+          id: skillMarketplacePlugin.id
+        }
+      });
+
+    expect(deletedSkillPlugin.status).toBe('archived');
+    expect(deletedSkillPluginSkill.status).toBe('archived');
+    expect(deletedSkillMarketplacePlugin.status).toBe('archived');
+  });
+
+  it('archives marketplace plugins when archiving a marketplace', async () => {
+    let { tenant, environment } = await createScope();
+    let scope = await getCargoScopeRecords({
       tenantId: tenant.id,
-      environmentId: environment.id,
-      limit: 10
+      environmentId: environment.id
+    });
+    let skillPlugin = await createTestSkillPlugin({
+      tenantOid: scope.tenant.oid,
+      environmentOid: scope.environment.oid,
+      name: 'Marketplace Plugin',
+      slug: 'marketplace-plugin'
+    });
+    let skillMarketplace = await createTestSkillMarketplace({
+      tenantOid: scope.tenant.oid,
+      environmentOid: scope.environment.oid,
+      name: 'Marketplace To Delete',
+      slug: 'marketplace-to-delete'
+    });
+    let skillMarketplacePlugin = await createTestSkillMarketplacePlugin({
+      skillMarketplaceOid: skillMarketplace.oid,
+      skillPluginOid: skillPlugin.oid,
+      pluginSlug: 'marketplace-plugin'
     });
 
-    let deletedSkill = await db.skill.findUnique({
-      where: {
-        id: created.id
-      }
-    });
-    let deletedStore = await db.store.findUnique({
-      where: {
-        id: created.storeId
-      }
+    await skillMarketplaceService.archiveSkillMarketplace({
+      tenant: scope.tenant,
+      environment: scope.environment,
+      skillMarketplace: await skillMarketplaceService.getSkillMarketplaceById({
+        tenant: scope.tenant,
+        environment: scope.environment,
+        skillMarketplaceId: skillMarketplace.id
+      })
     });
 
-    expect(deleted.id).toBe(created.id);
-    expect(deleted.storeId).toBe(created.storeId);
-    expect(listedAfterDelete.items).toHaveLength(0);
-    expect(deletedSkill).toBeNull();
-    expect(deletedStore).toBeNull();
+    let deletedSkillMarketplace = await db.skillMarketplace.findUniqueOrThrow({
+      where: {
+        id: skillMarketplace.id
+      }
+    });
+    let deletedSkillMarketplacePlugin =
+      await db.skillMarketplacePlugin.findUniqueOrThrow({
+        where: {
+          id: skillMarketplacePlugin.id
+        }
+      });
+
+    expect(deletedSkillMarketplace.status).toBe('archived');
+    expect(deletedSkillMarketplacePlugin.status).toBe('archived');
   });
 
   it('sets, replaces, and clears skill images with file references', async () => {
@@ -1217,149 +1459,4 @@ describe('cargo skill.e2e', () => {
     );
   });
 
-  it('lists and gets global skill templates but only mutates matching scoped templates', async () => {
-    let { tenant, environment } = await createScope();
-    let otherTenant = await cargoClient.tenant.upsert({
-      identifier: 'tenant-skills-other',
-      name: 'Tenant Skills Other'
-    });
-    let otherEnvironment = await cargoClient.environment.upsert({
-      tenantId: otherTenant.id,
-      identifier: 'prod-other',
-      name: 'Production Other',
-      type: 'production'
-    });
-
-    let globalTemplate = await cargoClient.skillTemplate.create({
-      skillTemplateId: 'cskt_global_skill_template',
-      name: 'Global Skill Template',
-      items: [
-        {
-          path: '/docs/readme.md',
-          type: 'document',
-          content: 'global template',
-          encoding: 'utf-8'
-        }
-      ]
-    });
-    let scopedTemplate = await cargoClient.skillTemplate.create({
-      tenantId: tenant.id,
-      environmentId: environment.id,
-      skillTemplateId: 'cskt_scoped_skill_template',
-      name: 'Scoped Skill Template',
-      items: [
-        {
-          path: '/docs/readme.md',
-          type: 'document',
-          content: 'scoped template',
-          encoding: 'utf-8'
-        }
-      ]
-    });
-    await syncStandaloneTemplate(globalTemplate.storeTemplateId);
-    await syncStandaloneTemplate(scopedTemplate.storeTemplateId);
-
-    let globalBacking = await db.storeTemplateBacking.findFirstOrThrow({
-      where: {
-        storeTemplate: {
-          id: globalTemplate.storeTemplateId
-        },
-        tenant: {
-          id: tenant.id
-        },
-        environment: {
-          id: environment.id
-        }
-      },
-      include: {
-        store: true
-      }
-    });
-    let scopedBacking = await db.storeTemplateBacking.findFirstOrThrow({
-      where: {
-        storeTemplate: {
-          id: scopedTemplate.storeTemplateId
-        },
-        tenant: {
-          id: tenant.id
-        },
-        environment: {
-          id: environment.id
-        }
-      },
-      include: {
-        store: true
-      }
-    });
-
-    let listed = await cargoClient.skillTemplate.list({
-      tenantId: tenant.id,
-      environmentId: environment.id,
-      limit: 10
-    });
-    let fetchedGlobal = await cargoClient.skillTemplate.get({
-      tenantId: tenant.id,
-      environmentId: environment.id,
-      skillTemplateId: globalTemplate.id
-    });
-    let fetchedMany = await cargoClient.skillTemplate.getMany({
-      tenantId: tenant.id,
-      environmentId: environment.id,
-      skillTemplateIds: [globalTemplate.id, scopedTemplate.id, 'cskt_missing_template']
-    });
-
-    expect(listed.items.map(item => item.id).sort()).toEqual(
-      [globalTemplate.id, scopedTemplate.id].sort()
-    );
-    expect(fetchedGlobal.id).toBe(globalTemplate.id);
-    expect(fetchedMany.map(item => item.id).sort()).toEqual(
-      [globalTemplate.id, scopedTemplate.id].sort()
-    );
-    expect(listed.items.find(item => item.id === globalTemplate.id)?.storeId).toBe(
-      globalBacking.store.id
-    );
-    expect(listed.items.find(item => item.id === scopedTemplate.id)?.storeId).toBe(
-      scopedBacking.store.id
-    );
-    expect(fetchedGlobal.storeId).toBe(globalBacking.store.id);
-    expect(fetchedGlobal.storeTemplate.storeId).toBe(globalBacking.store.id);
-    expect(fetchedMany.find(item => item.id === globalTemplate.id)?.storeId).toBe(
-      globalBacking.store.id
-    );
-    expect(fetchedMany.find(item => item.id === scopedTemplate.id)?.storeId).toBe(
-      scopedBacking.store.id
-    );
-
-    await expect(
-      cargoClient.skillTemplate.delete({
-        tenantId: tenant.id,
-        environmentId: environment.id,
-        skillTemplateId: globalTemplate.id
-      })
-    ).rejects.toThrow(
-      'Skill template updates and deletes are only allowed within the matching tenant and environment'
-    );
-
-    await expect(
-      cargoClient.skillTemplate.update({
-        tenantId: otherTenant.id,
-        environmentId: otherEnvironment.id,
-        skillTemplateId: scopedTemplate.id,
-        name: 'Wrong Scope Update'
-      })
-    ).rejects.toThrow('skill.template');
-
-    let updated = await cargoClient.skillTemplate.update({
-      tenantId: tenant.id,
-      environmentId: environment.id,
-      skillTemplateId: scopedTemplate.id,
-      name: 'Scoped Skill Template Updated'
-    });
-
-    expect(updated).toMatchObject({
-      storeTemplate: {
-        name: 'Scoped Skill Template Updated'
-      }
-    });
-  });
 });

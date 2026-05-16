@@ -60,6 +60,14 @@ export type DashboardInstancePortalsConsumerAccessCreateOutput = {
           name: string;
           description: string | null;
         };
+      }
+    | {
+        type: 'skill_marketplace';
+        skillMarketplace: {
+          object: 'skill.marketplace';
+          id: string;
+          status: 'active' | 'archived' | 'deleted';
+        };
       };
   consumerGroup: {
     object: 'consumer.group';
@@ -158,6 +166,14 @@ export let mapDashboardInstancePortalsConsumerAccessCreateOutput =
                   mtMap.passthrough()
                 )
               })
+            ),
+            skillMarketplace: mtMap.objectField(
+              'skill_marketplace',
+              mtMap.object({
+                object: mtMap.objectField('object', mtMap.passthrough()),
+                id: mtMap.objectField('id', mtMap.passthrough()),
+                status: mtMap.objectField('status', mtMap.passthrough())
+              })
             )
           })
         )
@@ -194,7 +210,8 @@ export type DashboardInstancePortalsConsumerAccessCreateBody = {
     | { type: 'magic_mcp_server'; magicMcpServerId: string }
     | { type: 'skill'; skillId: string }
     | { type: 'skill_template'; skillTemplateId: string }
-    | { type: 'skill_group'; skillGroupId: string };
+    | { type: 'skill_group'; skillGroupId: string }
+    | { type: 'skill_marketplace'; skillMarketplaceId: string };
 };
 
 export let mapDashboardInstancePortalsConsumerAccessCreateBody =
@@ -228,6 +245,10 @@ export let mapDashboardInstancePortalsConsumerAccessCreateBody =
             ),
             skillGroupId: mtMap.objectField(
               'skill_group_id',
+              mtMap.passthrough()
+            ),
+            skillMarketplaceId: mtMap.objectField(
+              'skill_marketplace_id',
               mtMap.passthrough()
             )
           })

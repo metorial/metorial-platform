@@ -8,6 +8,19 @@ import { AsyncLocalStorage } from 'async_hooks';
 import PQueue from 'p-queue';
 import { PrismaClient } from '../prisma/generated/client';
 
+export type EntityImage =
+  | {
+      type: 'file';
+      fileId: string;
+      fileLinkId: string;
+      fileReferenceId: string;
+      fileUrl: string;
+      url?: string;
+    }
+  | { type: 'url'; url: string }
+  | { type: 'default' };
+type EntityImageOuter = EntityImage;
+
 let mainAdapter = new PrismaPg({
   connectionString: process.env.CARGO_DATABASE_URL ?? process.env.DATABASE_URL
 });
@@ -98,3 +111,9 @@ export let addAfterTransactionHook = (hook: () => any) =>
       );
     }
   });
+
+declare global {
+  namespace PrismaJson {
+    type EntityImage = EntityImageOuter;
+  }
+}

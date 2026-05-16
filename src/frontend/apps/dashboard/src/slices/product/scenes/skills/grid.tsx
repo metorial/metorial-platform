@@ -216,12 +216,23 @@ export let SkillsGrid = (
                     icon={
                       visibleProviders.length > 0 ? (
                         <ProviderAvatarStack>
+                          <ProviderAvatarItem $index={0}>
+                            <Avatar
+                              entity={{
+                                name: skill.name,
+                                imageUrl: skill.imageUrl
+                              }}
+                              size={30}
+                              noTooltip
+                              imageFit="contain"
+                            />
+                          </ProviderAvatarItem>
                           {visibleProviders.map((provider, idx) => {
                             let listing = listingLookup.get(provider.id);
                             let name = listing?.name ?? provider.name ?? provider.slug;
 
                             return (
-                              <ProviderAvatarItem key={provider.id} $index={idx}>
+                              <ProviderAvatarItem key={provider.id} $index={idx + 1}>
                                 <Avatar
                                   entity={{
                                     name,
@@ -239,9 +250,10 @@ export let SkillsGrid = (
                         <Avatar
                           entity={{
                             name: skill.name,
-                            imageUrl: `https://avatar-cdn.metorial.com/${skill.id}`
+                            imageUrl: skill.imageUrl
                           }}
                           size={30}
+                          imageFit="contain"
                         />
                       )
                     }

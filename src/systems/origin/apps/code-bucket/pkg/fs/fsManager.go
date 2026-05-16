@@ -21,9 +21,10 @@ import (
 )
 
 const (
-	redisFlushDelay   = 5 * time.Minute
-	zipExpiration     = 3 * 24 * time.Hour
-	maxRedisCacheSize = 1 * 1024 * 1024
+	redisFlushDelay    = 5 * time.Minute
+	zipExpiration      = 3 * 24 * time.Hour
+	maxRedisCacheSize  = 1 * 1024 * 1024
+	zipStreamChunkSize = 64 * 1024
 )
 
 type FileInfo struct {
@@ -50,6 +51,43 @@ type FileSystemManager struct {
 type FileContentsBase struct {
 	Path    string `json:"path"`
 	Content []byte `json:"content"`
+}
+
+type ZipChunkSender func([]byte) error
+
+type zipStreamWriter struct {
+	ctx  context.Context
+	send ZipChunkSender
+}
+
+func (w *zipStreamWriter) Write(p []byte) (int, error) {
+	total := len(p)
+	written := 0
+
+	for len(p) > 0 {
+		select {
+		case <-w.ctx.Done():
+			return written, w.ctx.Err()
+		default:
+		}
+
+		chunkSize := zipStreamChunkSize
+		if len(p) < chunkSize {
+			chunkSize = len(p)
+		}
+
+		chunk := make([]byte, chunkSize)
+		copy(chunk, p[:chunkSize])
+
+		if err := w.send(chunk); err != nil {
+			return written, err
+		}
+
+		written += chunkSize
+		p = p[chunkSize:]
+	}
+
+	return total, nil
 }
 
 func NewFileSystemManager(opts ...FileSystemManagerOption) *FileSystemManager {
@@ -186,6 +224,59 @@ func (fsm *FileSystemManager) DeleteBucketFile(ctx context.Context, bucketID, fi
 	err := fsm.objectStorage.DeleteObject(fsm.bucketName, objectKey)
 
 	return err
+}
+
+func (fsm *FileSystemManager) DeleteBucketPath(ctx context.Context, bucketID, filePath string) error {
+	if !strings.HasPrefix(filePath, "/") {
+		filePath = "/" + filePath
+	}
+
+	filePrefix := filePath
+	if !strings.HasSuffix(filePrefix, "/") {
+		filePrefix += "/"
+	}
+
+	queue := memoryQueue.NewBlockingJobQueue(15)
+
+	pattern := fmt.Sprintf("bucket:%s:file:*", bucketID)
+	iter := fsm.redis.Scan(ctx, 0, pattern, 100).Iterator()
+	for iter.Next(ctx) {
+		key := iter.Val()
+		path := strings.TrimPrefix(key, fmt.Sprintf("bucket:%s:file:", bucketID))
+		if path != filePath && !strings.HasPrefix(path, filePrefix) {
+			continue
+		}
+
+		redisKey := key
+		queue.AddAndBlockIfFull(func() error {
+			fileKey := strings.TrimPrefix(redisKey, "bucket:")
+			flushKey := "flush:" + fileKey
+			return fsm.redis.Del(ctx, redisKey, flushKey).Err()
+		})
+	}
+	if err := iter.Err(); err != nil {
+		return err
+	}
+
+	objectPrefix := fmt.Sprintf("%s/%s", bucketID, filePath)
+	objects, err := fsm.objectStorage.ListObjects(fsm.bucketName, &objectPrefix, nil)
+	if err != nil {
+		return err
+	}
+
+	for _, obj := range objects {
+		objectKey := obj.Key
+		fileObjectPath := strings.TrimPrefix(objectKey, bucketID+"/")
+		if fileObjectPath != filePath && !strings.HasPrefix(fileObjectPath, filePrefix) {
+			continue
+		}
+
+		queue.AddAndBlockIfFull(func() error {
+			return fsm.objectStorage.DeleteObject(fsm.bucketName, objectKey)
+		})
+	}
+
+	return queue.Wait()
 }
 
 func (fsm *FileSystemManager) GetBucketFiles(ctx context.Context, bucketID, prefix string) ([]FileInfo, error) {
@@ -331,6 +422,49 @@ func (fsm *FileSystemManager) GetBucketFilesAsZip(ctx context.Context, bucketId,
 	expiresAt := time.Now().Add(zipExpiration)
 
 	return &url, &expiresAt, nil
+}
+
+func (fsm *FileSystemManager) StreamBucketFilesAsZip(ctx context.Context, bucketId, prefix string, send ZipChunkSender) error {
+	files, err := fsm.GetBucketFiles(ctx, bucketId, prefix)
+	if err != nil {
+		return status.Errorf(codes.Internal, "failed to get files: %v", err)
+	}
+
+	zipWriter := zip.NewWriter(&zipStreamWriter{
+		ctx:  ctx,
+		send: send,
+	})
+
+	for _, file := range files {
+		select {
+		case <-ctx.Done():
+			zipWriter.Close()
+			return ctx.Err()
+		default:
+		}
+
+		_, data, err := fsm.GetBucketFile(ctx, bucketId, file.Path)
+		if err != nil {
+			continue
+		}
+
+		f, err := zipWriter.Create(file.Path)
+		if err != nil {
+			zipWriter.Close()
+			return status.Errorf(codes.Internal, "failed to create zip entry: %v", err)
+		}
+
+		if _, err := f.Write(data.Content); err != nil {
+			zipWriter.Close()
+			return status.Errorf(codes.Internal, "failed to write zip entry: %v", err)
+		}
+	}
+
+	if err := zipWriter.Close(); err != nil {
+		return status.Errorf(codes.Internal, "failed to close zip stream: %v", err)
+	}
+
+	return nil
 }
 
 func (fsm *FileSystemManager) Clone(ctx context.Context, sourceBucketId, newBucketId string) error {

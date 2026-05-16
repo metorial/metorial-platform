@@ -33,6 +33,9 @@ class DocumentVersionServiceImpl {
   async listDocumentVersions(d: {
     owner: FileOwner;
     documentId: string;
+    ids?: string[];
+    createdAt?: { gt?: Date; lt?: Date };
+    lastEditedAt?: { gt?: Date; lt?: Date };
     accessActor?: CargoAccessActor;
     defaultPermissions?: CargoStorePermission[];
     overridePermissions?: boolean;
@@ -45,6 +48,9 @@ class DocumentVersionServiceImpl {
         tenantId: scope.tenantId,
         environmentId: scope.environmentId,
         documentId: d.documentId,
+        documentVersionIds: d.ids,
+        createdAt: d.createdAt,
+        listEditedAt: d.lastEditedAt,
         actorId,
         defaultPermissions,
         overridePermissions,

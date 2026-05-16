@@ -57,6 +57,7 @@ import {
   ServiceAccountCredential,
   Skill,
   SkillGroup,
+  SkillMarketplace,
   SkillTemplate,
   Team,
   TeamMember,
@@ -85,11 +86,18 @@ import type {
   CargoStorePermissions,
   CargoSkillAgent,
   CargoSkillConfiguration,
+  EnrichedCargoSkillExport,
+  EnrichedCargoSkillMarketplace,
+  EnrichedCargoSkillMarketplacePlugin,
+  EnrichedCargoSkillMarketplaceRepository,
   EnrichedCargoDocument,
   EnrichedCargoDocumentParticipant,
   EnrichedCargoDocumentVersion,
   EnrichedCargoFile,
   EnrichedCargoSkillParticipant,
+  EnrichedCargoSkillPlugin,
+  EnrichedCargoSkillPluginRepository,
+  EnrichedCargoSkillPluginSkill,
   CargoSkillVersion,
   CargoSkillVersionSnapshot,
   EnrichedCargoStoreItem,
@@ -486,6 +494,34 @@ export let skillConfigurationType = PresentableType.create<{
   skillConfiguration: CargoSkillConfiguration;
 }>()('skillConfiguration');
 
+export let skillExportType = PresentableType.create<{
+  skillExport: EnrichedCargoSkillExport;
+}>()('skillExport');
+
+export let skillMarketplaceType = PresentableType.create<{
+  skillMarketplace: EnrichedCargoSkillMarketplace;
+}>()('skillMarketplace');
+
+export let skillMarketplacePluginType = PresentableType.create<{
+  skillMarketplacePlugin: EnrichedCargoSkillMarketplacePlugin;
+}>()('skillMarketplacePlugin');
+
+export let skillMarketplaceRepositoryType = PresentableType.create<{
+  skillMarketplaceRepository: EnrichedCargoSkillMarketplaceRepository;
+}>()('skillMarketplaceRepository');
+
+export let skillPluginType = PresentableType.create<{
+  skillPlugin: EnrichedCargoSkillPlugin;
+}>()('skillPlugin');
+
+export let skillPluginRepositoryType = PresentableType.create<{
+  skillPluginRepository: EnrichedCargoSkillPluginRepository;
+}>()('skillPluginRepository');
+
+export let skillPluginSkillType = PresentableType.create<{
+  skillPluginSkill: EnrichedCargoSkillPluginSkill;
+}>()('skillPluginSkill');
+
 export let skillParticipantType = PresentableType.create<{
   skillParticipant: EnrichedCargoSkillParticipant;
 }>()('skillParticipant');
@@ -663,6 +699,7 @@ export let consumerAccessType = PresentableType.create<{
     skill: Skill | null;
     skillTemplate: SkillTemplate | null;
     skillGroup: SkillGroup | null;
+    skillMarketplace: SkillMarketplace | null;
     listing: ConsumerAccessListing | null;
   };
 }>()('consumer.access');
@@ -674,6 +711,7 @@ export let consumerAccessListingType = PresentableType.create<{
     skill: Skill | null;
     skillTemplate: SkillTemplate | null;
     skillGroup: SkillGroup | null;
+    skillMarketplace: SkillMarketplace | null;
     consumerSurfaceProviderGroups: {
       consumerSurfaceProviderGroup: ConsumerSurfaceProviderGroup;
     }[];

@@ -3,7 +3,6 @@ import {
   IntegrationInstanceProvider,
   IntegrationPreview,
   IntegrationProvider,
-  useDeleteIntegrationInstanceProvider,
   useDeleteIntegrationProvider,
   useIntegrationInstanceProviders,
   useIntegrationProviders
@@ -297,36 +296,15 @@ let useIntegrationInstanceProvidersTableHookState = (
   _: ReturnType<typeof useIntegrationInstanceProvidersTableState>,
   props: IntegrationInstanceProvidersManagerProps
 ) => {
-  let deleteProvider = useDeleteIntegrationInstanceProvider();
   let [loadingIds, setLoadingIds] = useState<string[]>([]);
 
   return {
-    deleteProvider,
     instanceId: props.instanceId,
     integration: props.integration,
     integrationInstance: props.integrationInstance,
     loadingIds,
     setLoadingIds
   };
-};
-
-let deleteIntegrationInstanceProviderImmediately = async (
-  row: InstanceProviderRow,
-  state: ReturnType<typeof useIntegrationInstanceProvidersTableHookState>
-) => {
-  let provider = row.instanceProvider;
-  if (!provider) return;
-
-  state.setLoadingIds(current => [...new Set([...current, row.id])]);
-
-  try {
-    await state.deleteProvider.mutate({
-      instanceId: state.instanceId,
-      integrationInstanceProviderId: provider.id
-    });
-  } finally {
-    state.setLoadingIds(current => current.filter(id => id !== row.id));
-  }
 };
 
 let integrationInstanceProvidersTable = new DashboardTable<
@@ -408,32 +386,6 @@ let integrationInstanceProvidersTable = new DashboardTable<
       onComplete: () => {}
     });
   }) as any)
-  .actions({
-    delete: async (rows, state) => {
-      let row = rows[0];
-      if (!row?.instanceProvider) return;
-
-      confirm({
-        title: 'Remove instance provider',
-        description: `Remove ${getProviderLabel(
-          row.integrationProvider
-        )} from this integration instance?`,
-        confirmText: 'Remove',
-        onConfirm: async () => {
-          await deleteIntegrationInstanceProviderImmediately(row, state);
-        }
-      });
-    }
-  })
-  .rowActions([
-    {
-      id: 'delete',
-      label: 'Remove',
-      icon: <RiDeleteBinLine />,
-      disabled: row => !row.instanceProvider,
-      action: 'delete'
-    }
-  ])
   .build();
 
 export let IntegrationInstanceProvidersManager = (

@@ -71,6 +71,8 @@ model Organization {
   skills                  Skill[]
   skillTemplates          SkillTemplate[]
   skillGroups             SkillGroup[]
+  skillMarketplaces       SkillMarketplace[]
+  skillPlugins            SkillPlugin[]
   consumerSkills          ConsumerSkill[]
   oauthApplications       OAuthApplication[]
   oauthInstallations      OAuthInstallation[]

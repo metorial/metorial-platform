@@ -14,6 +14,7 @@ import {
   ProviderTemplate,
   Skill,
   SkillGroup,
+  SkillMarketplace,
   SkillTemplate,
   withTransaction
 } from '@metorial/db';
@@ -27,6 +28,7 @@ let include = {
   skill: true,
   skillTemplate: true,
   skillGroup: true,
+  skillMarketplace: true,
   listing: true
 } as const;
 
@@ -50,6 +52,10 @@ type ConsumerAccessCreateInput =
   | {
       type: 'skill_group';
       skillGroup: SkillGroup;
+    }
+  | {
+      type: 'skill_marketplace';
+      skillMarketplace: SkillMarketplace;
     };
 
 type ConsumerAccessWithRelations = ConsumerAccess & {
@@ -59,6 +65,7 @@ type ConsumerAccessWithRelations = ConsumerAccess & {
   skill: Skill | null;
   skillTemplate: SkillTemplate | null;
   skillGroup: SkillGroup | null;
+  skillMarketplace?: SkillMarketplace | null;
   listing: ConsumerAccessListing | null;
 };
 
@@ -94,6 +101,14 @@ class ConsumerAccessServiceImpl {
       return {
         name: access.skillGroup!.name,
         description: access.skillGroup!.description,
+        readme: null
+      };
+    }
+
+    if (access.type == 'skill_marketplace') {
+      return {
+        name: access.skillMarketplace!.id,
+        description: null,
         readme: null
       };
     }
@@ -147,12 +162,19 @@ class ConsumerAccessServiceImpl {
                         skillTemplateOid: d.access.skillTemplate!.oid
                       }
                     }
-                  : {
-                      surfaceOid_skillGroupOid: {
-                        surfaceOid: d.consumerSurface.oid,
-                        skillGroupOid: d.access.skillGroup!.oid
+                  : d.access.type == 'skill_group'
+                    ? {
+                        surfaceOid_skillGroupOid: {
+                          surfaceOid: d.consumerSurface.oid,
+                          skillGroupOid: d.access.skillGroup!.oid
+                        }
                       }
-                    },
+                    : {
+                        surfaceOid_skillMarketplaceOid: {
+                          surfaceOid: d.consumerSurface.oid,
+                          skillMarketplaceOid: d.access.skillMarketplace!.oid
+                        }
+                      },
         create: {
           id: await ID.generateId('consumerAccess'),
           surfaceOid: d.consumerSurface.oid,
@@ -164,6 +186,8 @@ class ConsumerAccessServiceImpl {
           skillTemplateOid:
             d.access.type == 'skill_template' ? d.access.skillTemplate!.oid : undefined,
           skillGroupOid: d.access.type == 'skill_group' ? d.access.skillGroup!.oid : undefined,
+          skillMarketplaceOid:
+            d.access.type == 'skill_marketplace' ? d.access.skillMarketplace!.oid : undefined,
           name: d.input.name ?? defaults.name,
           description: d.input.description ?? defaults.description,
           readme: d.input.readme ?? defaults.readme
@@ -197,10 +221,15 @@ class ConsumerAccessServiceImpl {
                       surfaceOid: d.consumerSurface.oid,
                       skillTemplateOid: d.access.skillTemplate!.oid
                     }
-                  : {
-                      surfaceOid: d.consumerSurface.oid,
-                      skillGroupOid: d.access.skillGroup!.oid
-                    },
+                  : d.access.type == 'skill_group'
+                    ? {
+                        surfaceOid: d.consumerSurface.oid,
+                        skillGroupOid: d.access.skillGroup!.oid
+                      }
+                    : {
+                        surfaceOid: d.consumerSurface.oid,
+                        skillMarketplaceOid: d.access.skillMarketplace!.oid
+                      },
         data: {
           listingOid: listing.oid
         }
@@ -218,6 +247,7 @@ class ConsumerAccessServiceImpl {
     skillIds?: string[];
     skillTemplateIds?: string[];
     skillGroupIds?: string[];
+    skillMarketplaceIds?: string[];
     consumerAccessListingIds?: string[];
     types?: ConsumerAccessTargetType[];
     search?: string;
@@ -229,6 +259,7 @@ class ConsumerAccessServiceImpl {
     let hasSkillFilter = !!d.skillIds?.length;
     let hasSkillTemplateFilter = !!d.skillTemplateIds?.length;
     let hasSkillGroupFilter = !!d.skillGroupIds?.length;
+    let hasSkillMarketplaceFilter = !!d.skillMarketplaceIds?.length;
     let hasConsumerAccessListingFilter = !!d.consumerAccessListingIds?.length;
 
     let consumerGroups = hasConsumerGroupFilter
@@ -309,6 +340,19 @@ class ConsumerAccessServiceImpl {
           }
         })
       : undefined;
+    let skillMarketplaces = hasSkillMarketplaceFilter
+      ? await db.skillMarketplace.findMany({
+          where: {
+            instanceOid: d.consumerSurface.instanceOid,
+            id: {
+              in: d.skillMarketplaceIds
+            }
+          },
+          select: {
+            oid: true
+          }
+        })
+      : undefined;
     let consumerAccessListings = hasConsumerAccessListingFilter
       ? await db.consumerAccessListing.findMany({
           where: {
@@ -361,6 +405,12 @@ class ConsumerAccessServiceImpl {
                 skillGroupOid: hasSkillGroupFilter
                   ? {
                       in: skillGroups?.map(skillGroup => skillGroup.oid) ?? []
+                    }
+                  : undefined,
+                skillMarketplaceOid: hasSkillMarketplaceFilter
+                  ? {
+                      in:
+                        skillMarketplaces?.map(skillMarketplace => skillMarketplace.oid) ?? []
                     }
                   : undefined,
                 listingOid: hasConsumerAccessListingFilter
@@ -422,6 +472,14 @@ class ConsumerAccessServiceImpl {
                             mode: 'insensitive'
                           }
                         }
+                      },
+                      {
+                        skillMarketplace: {
+                          id: {
+                            contains: search,
+                            mode: 'insensitive'
+                          }
+                        }
                       }
                     ]
                   }
@@ -455,6 +513,12 @@ class ConsumerAccessServiceImpl {
                   {
                     type: 'skill_group',
                     skillGroup: {
+                      status: 'active'
+                    }
+                  },
+                  {
+                    type: 'skill_marketplace',
+                    skillMarketplace: {
                       status: 'active'
                     }
                   }
@@ -506,6 +570,12 @@ class ConsumerAccessServiceImpl {
             skillGroup: {
               status: 'active'
             }
+          },
+          {
+            type: 'skill_marketplace',
+            skillMarketplace: {
+              status: 'active'
+            }
           }
         ]
       },
@@ -550,7 +620,9 @@ class ConsumerAccessServiceImpl {
       ('skillTemplate' in d.access &&
         d.access.skillTemplate.instanceOid != d.consumerSurface.instanceOid) ||
       ('skillGroup' in d.access &&
-        d.access.skillGroup.instanceOid != d.consumerSurface.instanceOid)
+        d.access.skillGroup.instanceOid != d.consumerSurface.instanceOid) ||
+      ('skillMarketplace' in d.access &&
+        d.access.skillMarketplace.instanceOid != d.consumerSurface.instanceOid)
     ) {
       throw new ServiceError(notFoundError('consumer.access.resource'));
     }
@@ -591,6 +663,14 @@ class ConsumerAccessServiceImpl {
       throw new ServiceError(
         preconditionFailedError({
           message: 'Cannot create access for an inactive skill group.'
+        })
+      );
+    }
+
+    if ('skillMarketplace' in d.access && d.access.skillMarketplace.status != 'active') {
+      throw new ServiceError(
+        preconditionFailedError({
+          message: 'Cannot create access for an inactive skill marketplace.'
         })
       );
     }
@@ -642,10 +722,19 @@ class ConsumerAccessServiceImpl {
                       }
                     }
                   : {
-                      consumerGroupOid_skillGroupOid: {
-                        consumerGroupOid: d.consumerGroup.oid,
-                        skillGroupOid: d.access.skillGroup.oid
-                      }
+                      ...(d.access.type == 'skill_group'
+                        ? {
+                            consumerGroupOid_skillGroupOid: {
+                              consumerGroupOid: d.consumerGroup.oid,
+                              skillGroupOid: d.access.skillGroup.oid
+                            }
+                          }
+                        : {
+                            consumerGroupOid_skillMarketplaceOid: {
+                              consumerGroupOid: d.consumerGroup.oid,
+                              skillMarketplaceOid: d.access.skillMarketplace.oid
+                            }
+                          })
                     },
         create: {
           id: await ID.generateId('consumerAccess'),
@@ -659,7 +748,9 @@ class ConsumerAccessServiceImpl {
           skillOid: d.access.type == 'skill' ? d.access.skill.oid : undefined,
           skillTemplateOid:
             d.access.type == 'skill_template' ? d.access.skillTemplate.oid : undefined,
-          skillGroupOid: d.access.type == 'skill_group' ? d.access.skillGroup.oid : undefined
+          skillGroupOid: d.access.type == 'skill_group' ? d.access.skillGroup.oid : undefined,
+          skillMarketplaceOid:
+            d.access.type == 'skill_marketplace' ? d.access.skillMarketplace.oid : undefined
         },
         update: {},
         include
@@ -727,7 +818,7 @@ class ConsumerAccessServiceImpl {
             consumerAccessId: consumerAccess.id
           }
         });
-      } else {
+      } else if (d.access.type == 'skill_group') {
         await consumerAccessPolicyService.grantAccess({
           organization: d.organization,
           permission: 'skill_read',
@@ -797,10 +888,12 @@ class ConsumerAccessServiceImpl {
         include
       });
 
-      await consumerAccessPolicyService.revokeAccessForConsumerAccess({
-        organization: d.organization,
-        consumerAccess
-      });
+      if (consumerAccess.type != 'skill_marketplace') {
+        await consumerAccessPolicyService.revokeAccessForConsumerAccess({
+          organization: d.organization,
+          consumerAccess
+        });
+      }
 
       return consumerAccess;
     });

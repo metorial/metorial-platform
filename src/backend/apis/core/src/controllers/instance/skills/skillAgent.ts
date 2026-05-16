@@ -7,6 +7,7 @@ import type { SubspaceSkill } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
 import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
 import { checkAccess } from '../../../middleware/checkAccess';
+import { hasFlags } from '../../../middleware/hasFlags';
 import { instancePath } from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
 import { skillAgentPresenter } from '../../../presenters';
@@ -60,6 +61,7 @@ export let skillAgentController = Controller.create(
         name: 'Create skill agent',
         description: 'Creates a new agent document in the skill agents directory.'
       })
+      .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...skillWriteScopes] }))
       .use(requireConsumerTokenForPublishableKey())
       .body(
@@ -89,6 +91,7 @@ export let skillAgentController = Controller.create(
         name: 'List skill agents',
         description: 'Returns a paginated list of agents for a specific skill.'
       })
+      .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...skillReadScopes] }))
       .use(requireConsumerTokenForPublishableKey())
       .outputList(skillAgentPresenter)
@@ -118,6 +121,7 @@ export let skillAgentController = Controller.create(
         name: 'Get skill agent by ID',
         description: 'Retrieves a specific agent within a skill.'
       })
+      .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...skillReadScopes] }))
       .use(requireConsumerTokenForPublishableKey())
       .output(skillAgentPresenter)
@@ -128,6 +132,7 @@ export let skillAgentController = Controller.create(
         name: 'Update skill agent',
         description: 'Updates the name or description for a specific skill agent.'
       })
+      .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...skillWriteScopes] }))
       .use(requireConsumerTokenForPublishableKey())
       .body(
@@ -156,6 +161,7 @@ export let skillAgentController = Controller.create(
         name: 'Delete skill agent',
         description: 'Archives a specific skill agent and removes its linked store item.'
       })
+      .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...skillWriteScopes] }))
       .use(requireConsumerTokenForPublishableKey())
       .output(skillAgentPresenter)

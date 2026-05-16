@@ -60,6 +60,14 @@ export type DashboardInstancePortalsConsumerAccessGetOutput = {
           name: string;
           description: string | null;
         };
+      }
+    | {
+        type: 'skill_marketplace';
+        skillMarketplace: {
+          object: 'skill.marketplace';
+          id: string;
+          status: 'active' | 'archived' | 'deleted';
+        };
       };
   consumerGroup: {
     object: 'consumer.group';
@@ -157,6 +165,14 @@ export let mapDashboardInstancePortalsConsumerAccessGetOutput =
                   'description',
                   mtMap.passthrough()
                 )
+              })
+            ),
+            skillMarketplace: mtMap.objectField(
+              'skill_marketplace',
+              mtMap.object({
+                object: mtMap.objectField('object', mtMap.passthrough()),
+                id: mtMap.objectField('id', mtMap.passthrough()),
+                status: mtMap.objectField('status', mtMap.passthrough())
               })
             )
           })

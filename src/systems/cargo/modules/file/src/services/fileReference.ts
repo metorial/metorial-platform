@@ -193,7 +193,7 @@ class FileReferenceServiceImpl {
 
   async deleteReferenceAndLinkIfUnused(d: { fileReference: FileReference }) {
     return await withTransaction(async db => {
-      await db.fileReference.delete({
+      await db.fileReference.deleteMany({
         where: {
           id: d.fileReference.id
         }

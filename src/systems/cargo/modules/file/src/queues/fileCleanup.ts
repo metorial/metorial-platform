@@ -51,6 +51,14 @@ export let cleanupDeletedFileStorage = async (d: { fileId: string }) => {
   });
   if (!file || file.status !== 'deleted' || file.storeId === '') return false;
 
+  let activeFileCount = await db.file.count({
+    where: {
+      status: 'active',
+      storeId: file.storeId
+    }
+  });
+  if (activeFileCount > 0) return false;
+
   await getStorage().deleteObject(getCargoFilesBucketName(), file.storeId);
 
   return true;

@@ -72,6 +72,21 @@ let localSkillGroupPreview = Object.assign(
   }
 );
 
+let localSkillMarketplacePreview = Object.assign(
+  (skillMarketplace: { id: string; status: 'active' | 'archived' | 'deleted' }) => ({
+    object: 'skill.marketplace' as const,
+    id: skillMarketplace.id,
+    status: skillMarketplace.status
+  }),
+  {
+    schema: v.object({
+      object: v.literal('skill.marketplace'),
+      id: v.string(),
+      status: v.enumOf(['active', 'archived', 'deleted'])
+    })
+  }
+);
+
 let consumerSurfaceProviderGroupPreviewSchema = v.object({
   id: v.string(),
   name: v.string(),
@@ -107,11 +122,22 @@ export let v1ConsumerAccessListingPresenter = Presenter.create(consumerAccessLis
             : consumerAccessListing.skillTemplate != null
               ? {
                   type: 'skill_template' as const,
-                  skill_template: localSkillTemplatePreview(consumerAccessListing.skillTemplate)
+                  skill_template: localSkillTemplatePreview(
+                    consumerAccessListing.skillTemplate
+                  )
                 }
               : {
-                  type: 'skill_group' as const,
-                  skill_group: localSkillGroupPreview(consumerAccessListing.skillGroup!)
+                  ...(consumerAccessListing.skillGroup != null
+                    ? {
+                        type: 'skill_group' as const,
+                        skill_group: localSkillGroupPreview(consumerAccessListing.skillGroup)
+                      }
+                    : {
+                        type: 'skill_marketplace' as const,
+                        skill_marketplace: localSkillMarketplacePreview(
+                          consumerAccessListing.skillMarketplace!
+                        )
+                      })
                 },
     groups: consumerAccessListing.consumerSurfaceProviderGroups
       .map(membership => membership.consumerSurfaceProviderGroup)
@@ -152,6 +178,10 @@ export let v1ConsumerAccessListingPresenter = Presenter.create(consumerAccessLis
         v.object({
           type: v.literal('skill_group'),
           skill_group: localSkillGroupPreview.schema
+        }),
+        v.object({
+          type: v.literal('skill_marketplace'),
+          skill_marketplace: localSkillMarketplacePreview.schema
         })
       ]),
       groups: v.array(consumerSurfaceProviderGroupPreviewSchema),

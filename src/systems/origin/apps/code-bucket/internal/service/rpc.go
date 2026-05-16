@@ -162,6 +162,19 @@ func (rs *RcpService) GetBucketFilesAsZip(ctx context.Context, req *rpc.GetBucke
 	}, nil
 }
 
+func (rs *RcpService) GetBucketFilesAsZipStream(req *rpc.GetBucketFilesAsZipRequest, stream rpc.CodeBucket_GetBucketFilesAsZipStreamServer) error {
+	err := rs.fsm.StreamBucketFilesAsZip(stream.Context(), req.BucketId, req.Prefix, func(chunk []byte) error {
+		return stream.Send(&rpc.GetBucketFilesAsZipChunk{
+			Content: chunk,
+		})
+	})
+	if err != nil {
+		return status.Errorf(codes.Internal, "failed to stream files as zip: %v", err)
+	}
+
+	return nil
+}
+
 func (rs *RcpService) GetBucketFilesWithContent(ctx context.Context, req *rpc.GetBucketFilesRequest) (*rpc.GetBucketFilesWithContentResponse, error) {
 	files, err := rs.fsm.GetBucketFiles(ctx, req.BucketId, req.Prefix)
 	if err != nil {
@@ -208,7 +221,7 @@ func (rs *RcpService) ExportBucketToGithub(ctx context.Context, req *rpc.ExportB
 		})
 	}
 
-	if err := github.UploadToRepo(req.Owner, req.Repo, req.Path, req.Token, filesToUpload); err != nil {
+	if err := github.UploadToRepo(req.Owner, req.Repo, req.Path, req.Branch, req.CommitMessage, req.Token, filesToUpload); err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to upload to GitHub: %v", err)
 	}
 
@@ -248,7 +261,7 @@ func (rs *RcpService) ExportBucketToGitlab(ctx context.Context, req *rpc.ExportB
 		})
 	}
 
-	if err := gitlab.UploadToRepo(req.ProjectId, req.Path, req.Token, req.GitlabApiUrl, filesToUpload); err != nil {
+	if err := gitlab.UploadToRepo(req.ProjectId, req.Path, req.Branch, req.CommitMessage, req.Token, req.GitlabApiUrl, filesToUpload); err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to upload to GitLab: %v", err)
 	}
 
@@ -315,4 +328,20 @@ func (rs *RcpService) DeleteBucketFile(ctx context.Context, req *rpc.DeleteBucke
 	}
 
 	return &rpc.DeleteBucketFileResponse{}, nil
+}
+
+func (rs *RcpService) DeleteBucketPath(ctx context.Context, req *rpc.DeleteBucketPathRequest) (*rpc.DeleteBucketPathResponse, error) {
+	if req.BucketId == "" {
+		return nil, status.Errorf(codes.InvalidArgument, "bucket_id is required")
+	}
+
+	if req.Path == "" {
+		return nil, status.Errorf(codes.InvalidArgument, "path is required")
+	}
+
+	if err := rs.fsm.DeleteBucketPath(ctx, req.BucketId, req.Path); err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to delete path: %v", err)
+	}
+
+	return &rpc.DeleteBucketPathResponse{}, nil
 }

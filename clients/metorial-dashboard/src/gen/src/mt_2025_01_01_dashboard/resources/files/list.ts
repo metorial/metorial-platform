@@ -156,20 +156,28 @@ export type FilesListQuery = {
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
 } & {
+  id?: string | string[] | undefined;
   purpose?:
     | 'user_image'
     | 'organization_image'
     | 'project_brand_image'
     | 'skill_image'
+    | 'skill_export'
     | 'generic'
     | (
         | 'user_image'
         | 'organization_image'
         | 'project_brand_image'
         | 'skill_image'
+        | 'skill_export'
         | 'generic'
       )[]
     | undefined;
+  storeId?: string | string[] | undefined;
+  documentId?: string | string[] | undefined;
+  fileLinkId?: string | string[] | undefined;
+  createdAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
+  updatedAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
 };
 
 export let mapFilesListQuery = mtMap.union([
@@ -181,9 +189,63 @@ export let mapFilesListQuery = mtMap.union([
       before: mtMap.objectField('before', mtMap.passthrough()),
       cursor: mtMap.objectField('cursor', mtMap.passthrough()),
       order: mtMap.objectField('order', mtMap.passthrough()),
+      id: mtMap.objectField(
+        'id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
       purpose: mtMap.objectField(
         'purpose',
         mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
+      ),
+      storeId: mtMap.objectField(
+        'store_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      documentId: mtMap.objectField(
+        'document_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      fileLinkId: mtMap.objectField(
+        'file_link_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      createdAt: mtMap.objectField(
+        'created_at',
+        mtMap.object({
+          gt: mtMap.objectField('gt', mtMap.date()),
+          lt: mtMap.objectField('lt', mtMap.date())
+        })
+      ),
+      updatedAt: mtMap.objectField(
+        'updated_at',
+        mtMap.object({
+          gt: mtMap.objectField('gt', mtMap.date()),
+          lt: mtMap.objectField('lt', mtMap.date())
+        })
       )
     })
   )

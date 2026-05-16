@@ -5,6 +5,7 @@ import { skillParticipantService } from '@metorial/module-file';
 import { Controller } from '@metorial/rest';
 import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
 import { checkAccess } from '../../../middleware/checkAccess';
+import { hasFlags } from '../../../middleware/hasFlags';
 import { instancePath } from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
 import { skillParticipantPresenter } from '../../../presenters';
@@ -45,6 +46,7 @@ export let skillParticipantController = Controller.create(
         name: 'List skill participants',
         description: 'Returns a paginated list of participants for a specific skill.'
       })
+      .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...skillReadScopes] }))
       .use(requireConsumerTokenForPublishableKey())
       .outputList(skillParticipantPresenter)
@@ -77,6 +79,7 @@ export let skillParticipantController = Controller.create(
           description: 'Retrieves a specific participant within a skill.'
         }
       )
+      .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...skillReadScopes] }))
       .use(requireConsumerTokenForPublishableKey())
       .output(skillParticipantPresenter)

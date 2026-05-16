@@ -53,3 +53,9 @@ export let portalDocsCategory = createCategory({
   name: 'Portals',
   indexHint: 19
 });
+
+export let skillDocsCategory = createCategory({
+  id: 'skill',
+  name: 'Skills',
+  indexHint: 25
+});

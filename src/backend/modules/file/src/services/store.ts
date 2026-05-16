@@ -48,6 +48,9 @@ class StoreServiceImpl {
 
   async listStores(d: {
     owner: FileOwner;
+    ids?: string[];
+    createdAt?: { gt?: Date; lt?: Date };
+    updatedAt?: { gt?: Date; lt?: Date };
     accessActor?: CargoAccessActor;
     defaultPermissions?: CargoStorePermission[];
     overridePermissions?: boolean;
@@ -61,6 +64,9 @@ class StoreServiceImpl {
         actorId,
         defaultPermissions,
         overridePermissions,
+        storeIds: d.ids,
+        createdAt: d.createdAt,
+        updatedAt: d.updatedAt,
         ...input
       });
 

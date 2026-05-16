@@ -14,6 +14,7 @@ import {
   ProviderTemplate,
   Skill,
   SkillGroup,
+  SkillMarketplace,
   SkillTemplate,
   withTransaction
 } from '@metorial/db';
@@ -26,6 +27,7 @@ let include = {
   skill: true,
   skillTemplate: true,
   skillGroup: true,
+  skillMarketplace: true,
   consumerSurfaceProviderGroups: {
     include: {
       consumerSurfaceProviderGroup: true
@@ -39,6 +41,7 @@ export type ConsumerAccessListingWithRelations = ConsumerAccessListing & {
   skill: Skill | null;
   skillTemplate: SkillTemplate | null;
   skillGroup: SkillGroup | null;
+  skillMarketplace: SkillMarketplace | null;
   consumerSurfaceProviderGroups: {
     consumerSurfaceProviderGroup: ConsumerSurfaceProviderGroup;
   }[];
@@ -69,6 +72,10 @@ type ConsumerAccessListingTargetInput =
   | {
       type: 'skill_group';
       skillGroupId: string;
+    }
+  | {
+      type: 'skill_marketplace';
+      skillMarketplaceId: string;
     };
 
 type ConsumerAccessListingTarget =
@@ -91,6 +98,10 @@ type ConsumerAccessListingTarget =
   | {
       type: 'skill_group';
       skillGroup: SkillGroup;
+    }
+  | {
+      type: 'skill_marketplace';
+      skillMarketplace: SkillMarketplace;
     };
 
 class ConsumerAccessListingServiceImpl {
@@ -146,6 +157,18 @@ class ConsumerAccessListingServiceImpl {
       return { type: 'skill_template', skillTemplate };
     }
 
+    if (d.access.type == 'skill_marketplace') {
+      let skillMarketplace = await db.skillMarketplace.findFirst({
+        where: {
+          instanceOid: d.consumerSurface.instanceOid,
+          id: d.access.skillMarketplaceId,
+          status: 'active'
+        }
+      });
+      if (!skillMarketplace) throw new ServiceError(notFoundError('skill.marketplace'));
+      return { type: 'skill_marketplace', skillMarketplace };
+    }
+
     let skillGroup = await db.skillGroup.findFirst({
       where: {
         instanceOid: d.consumerSurface.instanceOid,
@@ -192,6 +215,14 @@ class ConsumerAccessListingServiceImpl {
       };
     }
 
+    if (target.type == 'skill_marketplace') {
+      return {
+        name: target.skillMarketplace.id,
+        description: null,
+        readme: null
+      };
+    }
+
     return {
       name: target.skillGroup.name,
       description: target.skillGroup.description,
@@ -207,6 +238,7 @@ class ConsumerAccessListingServiceImpl {
     skillIds?: string[];
     skillTemplateIds?: string[];
     skillGroupIds?: string[];
+    skillMarketplaceIds?: string[];
     types?: ConsumerAccessTargetType[];
     search?: string;
   }) {
@@ -216,64 +248,81 @@ class ConsumerAccessListingServiceImpl {
     let hasSkillFilter = !!d.skillIds?.length;
     let hasSkillTemplateFilter = !!d.skillTemplateIds?.length;
     let hasSkillGroupFilter = !!d.skillGroupIds?.length;
+    let hasSkillMarketplaceFilter = !!d.skillMarketplaceIds?.length;
 
-    let [groups, providerTemplates, magicMcpServers, skills, skillTemplates, skillGroups] =
-      await Promise.all([
-        hasGroupFilter
-          ? db.consumerSurfaceProviderGroup.findMany({
-              where: {
-                consumerSurfaceOid: d.consumerSurface.oid,
-                id: { in: d.consumerSurfaceProviderGroupIds }
-              },
-              select: { oid: true }
-            })
-          : undefined,
-        hasProviderTemplateFilter
-          ? db.providerTemplate.findMany({
-              where: {
-                instanceOid: d.consumerSurface.instanceOid,
-                id: { in: d.providerTemplateIds }
-              },
-              select: { oid: true }
-            })
-          : undefined,
-        hasMagicMcpServerFilter
-          ? db.magicMcpServer.findMany({
-              where: {
-                instanceOid: d.consumerSurface.instanceOid,
-                id: { in: d.magicMcpServerIds }
-              },
-              select: { oid: true }
-            })
-          : undefined,
-        hasSkillFilter
-          ? db.skill.findMany({
-              where: {
-                instanceOid: d.consumerSurface.instanceOid,
-                id: { in: d.skillIds }
-              },
-              select: { oid: true }
-            })
-          : undefined,
-        hasSkillTemplateFilter
-          ? db.skillTemplate.findMany({
-              where: {
-                instanceOid: d.consumerSurface.instanceOid,
-                id: { in: d.skillTemplateIds }
-              },
-              select: { oid: true }
-            })
-          : undefined,
-        hasSkillGroupFilter
-          ? db.skillGroup.findMany({
-              where: {
-                instanceOid: d.consumerSurface.instanceOid,
-                id: { in: d.skillGroupIds }
-              },
-              select: { oid: true }
-            })
-          : undefined
-      ]);
+    let [
+      groups,
+      providerTemplates,
+      magicMcpServers,
+      skills,
+      skillTemplates,
+      skillGroups,
+      skillMarketplaces
+    ] = await Promise.all([
+      hasGroupFilter
+        ? db.consumerSurfaceProviderGroup.findMany({
+            where: {
+              consumerSurfaceOid: d.consumerSurface.oid,
+              id: { in: d.consumerSurfaceProviderGroupIds }
+            },
+            select: { oid: true }
+          })
+        : undefined,
+      hasProviderTemplateFilter
+        ? db.providerTemplate.findMany({
+            where: {
+              instanceOid: d.consumerSurface.instanceOid,
+              id: { in: d.providerTemplateIds }
+            },
+            select: { oid: true }
+          })
+        : undefined,
+      hasMagicMcpServerFilter
+        ? db.magicMcpServer.findMany({
+            where: {
+              instanceOid: d.consumerSurface.instanceOid,
+              id: { in: d.magicMcpServerIds }
+            },
+            select: { oid: true }
+          })
+        : undefined,
+      hasSkillFilter
+        ? db.skill.findMany({
+            where: {
+              instanceOid: d.consumerSurface.instanceOid,
+              id: { in: d.skillIds }
+            },
+            select: { oid: true }
+          })
+        : undefined,
+      hasSkillTemplateFilter
+        ? db.skillTemplate.findMany({
+            where: {
+              instanceOid: d.consumerSurface.instanceOid,
+              id: { in: d.skillTemplateIds }
+            },
+            select: { oid: true }
+          })
+        : undefined,
+      hasSkillGroupFilter
+        ? db.skillGroup.findMany({
+            where: {
+              instanceOid: d.consumerSurface.instanceOid,
+              id: { in: d.skillGroupIds }
+            },
+            select: { oid: true }
+          })
+        : undefined,
+      hasSkillMarketplaceFilter
+        ? db.skillMarketplace.findMany({
+            where: {
+              instanceOid: d.consumerSurface.instanceOid,
+              id: { in: d.skillMarketplaceIds }
+            },
+            select: { oid: true }
+          })
+        : undefined
+    ]);
 
     let search = d.search?.trim();
     let instance = search
@@ -310,6 +359,9 @@ class ConsumerAccessListingServiceImpl {
           }
           if (d.types.includes('skill_group')) {
             typeFilters.push({ skillGroupOid: { not: null } });
+          }
+          if (d.types.includes('skill_marketplace')) {
+            typeFilters.push({ skillMarketplaceOid: { not: null } });
           }
 
           if (typeFilters.length) {
@@ -369,6 +421,14 @@ class ConsumerAccessListingServiceImpl {
           });
         }
 
+        if (hasSkillMarketplaceFilter) {
+          filters.push({
+            skillMarketplaceOid: {
+              in: skillMarketplaces?.map(skillMarketplace => skillMarketplace.oid) ?? []
+            }
+          });
+        }
+
         if (search) {
           filters.push({
             OR: [
@@ -417,6 +477,11 @@ class ConsumerAccessListingServiceImpl {
                     { description: { contains: search, mode: 'insensitive' } }
                   ]
                 }
+              },
+              {
+                skillMarketplace: {
+                  id: { contains: search, mode: 'insensitive' }
+                }
               }
             ]
           });
@@ -446,6 +511,11 @@ class ConsumerAccessListingServiceImpl {
             },
             {
               skillGroup: {
+                status: 'active'
+              }
+            },
+            {
+              skillMarketplace: {
                 status: 'active'
               }
             }
@@ -492,6 +562,11 @@ class ConsumerAccessListingServiceImpl {
           },
           {
             skillGroup: {
+              status: 'active'
+            }
+          },
+          {
+            skillMarketplace: {
               status: 'active'
             }
           }
@@ -552,12 +627,19 @@ class ConsumerAccessListingServiceImpl {
                       skillTemplateOid: target.skillTemplate.oid
                     }
                   }
-                : {
-                    surfaceOid_skillGroupOid: {
-                      surfaceOid: d.consumerSurface.oid,
-                      skillGroupOid: target.skillGroup.oid
+                : target.type == 'skill_group'
+                  ? {
+                      surfaceOid_skillGroupOid: {
+                        surfaceOid: d.consumerSurface.oid,
+                        skillGroupOid: target.skillGroup.oid
+                      }
                     }
-                  },
+                  : {
+                      surfaceOid_skillMarketplaceOid: {
+                        surfaceOid: d.consumerSurface.oid,
+                        skillMarketplaceOid: target.skillMarketplace.oid
+                      }
+                    },
       create: {
         id: await ID.generateId('consumerAccess'),
         surfaceOid: d.consumerSurface.oid,
@@ -569,6 +651,8 @@ class ConsumerAccessListingServiceImpl {
         skillTemplateOid:
           target.type == 'skill_template' ? target.skillTemplate.oid : undefined,
         skillGroupOid: target.type == 'skill_group' ? target.skillGroup.oid : undefined,
+        skillMarketplaceOid:
+          target.type == 'skill_marketplace' ? target.skillMarketplace.oid : undefined,
         name: d.input.name ?? defaults.name,
         description: d.input.description ?? defaults.description,
         readme: d.input.readme ?? defaults.readme

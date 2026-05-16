@@ -5,6 +5,7 @@ import { skillConfigurationService } from '@metorial/module-file';
 import { Controller } from '@metorial/rest';
 import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
 import { checkAccess } from '../../../middleware/checkAccess';
+import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { skillConfigurationPresenter } from '../../../presenters';
 
@@ -31,18 +32,20 @@ let getSkillConfigurationInput = (ctx: SkillConfigurationContext) => ({
   ...getInstanceCargoAccess(ctx)
 });
 
-export let skillConfigurationGroup = instanceGroup.use(async ctx => {
-  if (!ctx.params.skillConfigurationId) {
-    throw new Error('skillConfigurationId is required');
-  }
+export let skillConfigurationGroup = instanceGroup
+  .use(hasFlags(['skills-enabled']))
+  .use(async ctx => {
+    if (!ctx.params.skillConfigurationId) {
+      throw new Error('skillConfigurationId is required');
+    }
 
-  let skillConfiguration = await skillConfigurationService.getSkillConfigurationById({
-    ...getSkillConfigurationInput(ctx),
-    skillConfigurationId: ctx.params.skillConfigurationId
+    let skillConfiguration = await skillConfigurationService.getSkillConfigurationById({
+      ...getSkillConfigurationInput(ctx),
+      skillConfigurationId: ctx.params.skillConfigurationId
+    });
+
+    return { skillConfiguration };
   });
-
-  return { skillConfiguration };
-});
 
 export let skillConfigurationController = Controller.create(
   {
@@ -55,6 +58,7 @@ export let skillConfigurationController = Controller.create(
         name: 'Create skill configuration',
         description: 'Creates a new non-default skill configuration.'
       })
+      .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...skillWriteScopes] }))
       .body('default', v.object(skillConfigurationInput))
       .output(skillConfigurationPresenter)
@@ -76,6 +80,7 @@ export let skillConfigurationController = Controller.create(
         name: 'List skill configurations',
         description: 'Returns a paginated list of visible skill configurations.'
       })
+      .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...skillReadScopes] }))
       .outputList(skillConfigurationPresenter)
       .query('default', Paginator.validate(v.object({})))
@@ -101,6 +106,7 @@ export let skillConfigurationController = Controller.create(
           description: 'Retrieves a specific skill configuration by ID, or the default.'
         }
       )
+      .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...skillReadScopes] }))
       .output(skillConfigurationPresenter)
       .do(async ctx =>
@@ -119,6 +125,7 @@ export let skillConfigurationController = Controller.create(
             'Updates a specific skill configuration. Updating default creates it first if needed.'
         }
       )
+      .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...skillWriteScopes] }))
       .body('default', v.object(skillConfigurationInput))
       .output(skillConfigurationPresenter)
@@ -147,6 +154,7 @@ export let skillConfigurationController = Controller.create(
           description: 'Soft deletes a specific non-internal skill configuration.'
         }
       )
+      .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...skillWriteScopes] }))
       .output(skillConfigurationPresenter)
       .do(async ctx => {

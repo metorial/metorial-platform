@@ -8,7 +8,8 @@ import {
   integrationDocsCategory,
   portalDocsCategory,
   providerDocsCategory,
-  sessionDocsCategory
+  sessionDocsCategory,
+  skillDocsCategory
 } from './_categories';
 import { consumerProviderController, consumerSessionController } from './consumer';
 import {
@@ -111,13 +112,20 @@ import {
   sessionProviderController,
   sessionTemplateController,
   sessionTemplateProviderController,
+  skillAgentController,
   skillConfigurationController,
   skillController,
-  skillAgentController,
+  skillExportController,
   skillGroupController,
   skillGroupItemController,
   skillItemController,
+  skillMarketplaceController,
+  skillMarketplacePluginController,
+  skillMarketplaceRepositoryController,
   skillParticipantController,
+  skillPluginController,
+  skillPluginRepositoryController,
+  skillPluginSkillController,
   skillTemplateController,
   skillTemplateItemController,
   skillVersionController,
@@ -295,6 +303,30 @@ let setControllerDocsMetadata = <
   })
 );
 
+[
+  skillConfigurationController,
+  skillController,
+  skillAgentController,
+  skillGroupController,
+  skillGroupItemController,
+  skillItemController,
+  skillParticipantController,
+  skillTemplateController,
+  skillTemplateItemController,
+  skillVersionController,
+  skillExportController,
+  skillMarketplaceController,
+  skillMarketplacePluginController,
+  skillMarketplaceRepositoryController,
+  skillPluginController,
+  skillPluginRepositoryController,
+  skillPluginSkillController
+].forEach(controller =>
+  setControllerDocsMetadata(controller, {
+    category: skillDocsCategory
+  })
+);
+
 export let magnetarController = Controller.create<any>(
   {
     name: 'Magnetar API',
@@ -394,6 +426,11 @@ export let magnetarController = Controller.create<any>(
     skillTemplateController,
     skillTemplateItemController,
     skillVersionController,
+    skillExportController,
+    skillMarketplaceController,
+    skillMarketplacePluginController,
+    skillPluginController,
+    skillPluginSkillController,
 
     consumerController,
     consumerSurfaceController,
@@ -503,6 +540,13 @@ export let dashboardController = Controller.create<any>(
     skillTemplateController,
     skillTemplateItemController,
     skillVersionController,
+    skillExportController,
+    skillMarketplaceController,
+    skillMarketplacePluginController,
+    skillMarketplaceRepositoryController,
+    skillPluginController,
+    skillPluginRepositoryController,
+    skillPluginSkillController,
 
     consumerController,
     consumerSurfaceController,

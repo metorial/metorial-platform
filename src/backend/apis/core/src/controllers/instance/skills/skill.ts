@@ -7,6 +7,7 @@ import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
+import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
 import { skillPresenter } from '../../../presenters';
@@ -33,7 +34,7 @@ let skillCompatibilityValidator = v.string({
   modifiers: [v.minLength(1)]
 });
 
-export let skillGroup = instanceGroup.use(async ctx => {
+export let skillGroup = instanceGroup.use(hasFlags(['skills-enabled'])).use(async ctx => {
   if (!ctx.params.skillId) {
     throw new ServiceError(
       badRequestError({
@@ -69,6 +70,7 @@ export let skillController = Controller.create(
         name: 'List skills',
         description: 'Returns a paginated list of skills.'
       })
+      .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...skillReadScopes] }))
       .use(requireConsumerTokenForPublishableKey())
       .outputList(skillPresenter)
@@ -118,6 +120,7 @@ export let skillController = Controller.create(
         name: 'Get skill',
         description: 'Retrieves a specific skill.'
       })
+      .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...skillReadScopes] }))
       .use(requireConsumerTokenForPublishableKey())
       .output(skillPresenter)
@@ -130,6 +133,7 @@ export let skillController = Controller.create(
         name: 'Create skill',
         description: 'Creates a new skill.'
       })
+      .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...skillWriteScopes] }))
       .use(requireConsumerTokenForPublishableKey())
       .body(
@@ -185,6 +189,7 @@ export let skillController = Controller.create(
         name: 'Update skill',
         description: 'Updates a specific skill.'
       })
+      .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...skillWriteScopes] }))
       .use(requireConsumerTokenForPublishableKey())
       .body(
@@ -237,6 +242,7 @@ export let skillController = Controller.create(
         name: 'Delete skill',
         description: 'Archives a specific skill.'
       })
+      .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...skillWriteScopes] }))
       .use(requireConsumerTokenForPublishableKey())
       .output(skillPresenter)
@@ -264,6 +270,7 @@ export let skillController = Controller.create(
           'Forks a skill for the current consumer. Non-consumer callers duplicate the skill instead.',
         hideInDocs: true
       })
+      .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...skillWriteScopes] }))
       .use(requireConsumerTokenForPublishableKey())
       .body(
@@ -320,6 +327,7 @@ export let skillController = Controller.create(
         description: 'Publishes a consumer-owned skill to the consumer groups they belong to.',
         hideInDocs: true
       })
+      .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: ['consumer#instance.skill:write'] }))
       .use(requireConsumerTokenForPublishableKey())
       .output(skillPresenter)
@@ -349,6 +357,7 @@ export let skillController = Controller.create(
         name: 'Duplicate skill',
         description: 'Duplicates a skill.'
       })
+      .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: ['instance.skill:write'] }))
       .body(
         'default',

@@ -52,24 +52,30 @@ let Actions = styled('div')`
   flex-wrap: wrap;
 `;
 
-export let SkillImageUploader = (p: {
+export let ResourceImageUploader = (p: {
   instanceId: string;
-  skill: Skill;
-  updateSkill: {
+  resource: {
+    id: string;
+    name: string;
+    imageUrl: string | null;
+  };
+  updateResource: {
     mutate: (input: { imageFileId: string | null }) => Promise<unknown>;
     isLoading: boolean;
   };
+  description: string;
 }) => {
   let createFile = useUploadFile();
   let [isOpen, setIsOpen] = useState(false);
-  let isCustomImage = !p.skill.imageUrl.includes('avatar-cdn.metorial.com');
+  let imageUrl = p.resource.imageUrl ?? `https://avatar-cdn.metorial.com/${p.resource.id}`;
+  let isCustomImage = !imageUrl.includes('avatar-cdn.metorial.com');
 
   return (
     <Wrapper>
       <Image onClick={() => setIsOpen(true)}>
-        <img src={p.skill.imageUrl} />
+        <img src={imageUrl} />
 
-        {(p.updateSkill.isLoading || createFile.isLoading) && (
+        {(p.updateResource.isLoading || createFile.isLoading) && (
           <div className="loading">
             <CenteredSpinner />
           </div>
@@ -84,7 +90,7 @@ export let SkillImageUploader = (p: {
               type="button"
               variant="outline"
               onClick={() => {
-                p.updateSkill.mutate({
+                p.updateResource.mutate({
                   imageFileId: null
                 });
               }}
@@ -105,11 +111,11 @@ export let SkillImageUploader = (p: {
         <ImageUploader
           isOpen={isOpen}
           setIsOpen={setIsOpen}
-          photoUrl={p.skill.imageUrl}
+          photoUrl={imageUrl}
           label="Upload Image"
-          description="Upload an image to represent this skill in discovery flows."
+          description={p.description}
           onReset={
-            isCustomImage ? () => p.updateSkill.mutate({ imageFileId: null }) : undefined
+            isCustomImage ? () => p.updateResource.mutate({ imageFileId: null }) : undefined
           }
           onSave={async file => {
             let [uploadedFile] = await createFile.mutate({
@@ -119,7 +125,7 @@ export let SkillImageUploader = (p: {
             });
 
             if (uploadedFile) {
-              await p.updateSkill.mutate({
+              await p.updateResource.mutate({
                 imageFileId: uploadedFile.id
               });
             }
@@ -129,3 +135,19 @@ export let SkillImageUploader = (p: {
     </Wrapper>
   );
 };
+
+export let SkillImageUploader = (p: {
+  instanceId: string;
+  skill: Skill;
+  updateSkill: {
+    mutate: (input: { imageFileId: string | null }) => Promise<unknown>;
+    isLoading: boolean;
+  };
+}) => (
+  <ResourceImageUploader
+    instanceId={p.instanceId}
+    resource={p.skill}
+    updateResource={p.updateSkill}
+    description="Upload an image to represent this skill in discovery flows."
+  />
+);

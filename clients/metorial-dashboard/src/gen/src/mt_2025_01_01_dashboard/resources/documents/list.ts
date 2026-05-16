@@ -143,7 +143,14 @@ export type DocumentsListQuery = {
   before?: string | undefined;
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
-} & {};
+} & {
+  id?: string | string[] | undefined;
+  fileId?: string | string[] | undefined;
+  storeId?: string | string[] | undefined;
+  parentDocumentId?: string | string[] | undefined;
+  createdAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
+  updatedAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
+};
 
 export let mapDocumentsListQuery = mtMap.union([
   mtMap.unionOption(
@@ -153,7 +160,61 @@ export let mapDocumentsListQuery = mtMap.union([
       after: mtMap.objectField('after', mtMap.passthrough()),
       before: mtMap.objectField('before', mtMap.passthrough()),
       cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough())
+      order: mtMap.objectField('order', mtMap.passthrough()),
+      id: mtMap.objectField(
+        'id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      fileId: mtMap.objectField(
+        'file_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      storeId: mtMap.objectField(
+        'store_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      parentDocumentId: mtMap.objectField(
+        'parent_document_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      createdAt: mtMap.objectField(
+        'created_at',
+        mtMap.object({
+          gt: mtMap.objectField('gt', mtMap.date()),
+          lt: mtMap.objectField('lt', mtMap.date())
+        })
+      ),
+      updatedAt: mtMap.objectField(
+        'updated_at',
+        mtMap.object({
+          gt: mtMap.objectField('gt', mtMap.date()),
+          lt: mtMap.objectField('lt', mtMap.date())
+        })
+      )
     })
   )
 ]);

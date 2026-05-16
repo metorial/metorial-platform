@@ -4,6 +4,7 @@ enum ConsumerAccessTargetType {
   skill
   skill_template
   skill_group
+  skill_marketplace
 }
 
 model ConsumerAccess {
@@ -33,6 +34,9 @@ model ConsumerAccess {
   skillGroupOid BigInt?
   skillGroup    SkillGroup? @relation("ConsumerAccessSkillGroup", fields: [skillGroupOid], references: [oid], onDelete: Cascade)
 
+  skillMarketplaceOid BigInt?
+  skillMarketplace    SkillMarketplace? @relation("ConsumerAccessSkillMarketplace", fields: [skillMarketplaceOid], references: [oid], onDelete: Cascade)
+
   listingOid BigInt?
   listing    ConsumerAccessListing? @relation(fields: [listingOid], references: [oid], onDelete: Cascade)
 
@@ -44,6 +48,7 @@ model ConsumerAccess {
   @@unique([consumerGroupOid, skillOid])
   @@unique([consumerGroupOid, skillTemplateOid])
   @@unique([consumerGroupOid, skillGroupOid])
+  @@unique([consumerGroupOid, skillMarketplaceOid])
 }
 
 model ConsumerAccessListing {
@@ -72,6 +77,9 @@ model ConsumerAccessListing {
   skillGroupOid BigInt?
   skillGroup    SkillGroup? @relation(fields: [skillGroupOid], references: [oid], onDelete: Cascade)
 
+  skillMarketplaceOid BigInt?
+  skillMarketplace    SkillMarketplace? @relation(fields: [skillMarketplaceOid], references: [oid], onDelete: Cascade)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
@@ -83,4 +91,5 @@ model ConsumerAccessListing {
   @@unique([surfaceOid, skillOid])
   @@unique([surfaceOid, skillTemplateOid])
   @@unique([surfaceOid, skillGroupOid])
+  @@unique([surfaceOid, skillMarketplaceOid])
 }

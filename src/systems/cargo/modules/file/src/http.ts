@@ -156,10 +156,10 @@ let getDocumentContentType = (contentType?: string | null) =>
     ? contentType
     : 'text/plain; charset=utf-8';
 
-let getContentDispositionHeader = (fileName: string) => {
+let getContentDispositionHeader = (fileName: string, disposition: 'inline' | 'attachment') => {
   let fallbackName = fileName.replace(/["\\\r\n]/g, '_').replace(/[^\x20-\x7e]/g, '_');
 
-  return `attachment; filename="${fallbackName}"; filename*=UTF-8''${encodeURIComponent(fileName)}`;
+  return `${disposition}; filename="${fallbackName}"; filename*=UTF-8''${encodeURIComponent(fileName)}`;
 };
 
 let getFileContentHandler = async (c: Context) => {
@@ -185,8 +185,9 @@ let getFileContentHandler = async (c: Context) => {
     );
   }
   let shouldDownload = new URL(c.req.url).searchParams.has('download');
-  let contentDisposition = shouldDownload
-    ? getContentDispositionHeader(file.fileName)
+  let fileName = file.fileName?.trim();
+  let contentDisposition = fileName
+    ? getContentDispositionHeader(fileName, shouldDownload ? 'attachment' : 'inline')
     : undefined;
 
   let document = await documentService.getDocumentByFileId({

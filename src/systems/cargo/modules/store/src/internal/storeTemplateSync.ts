@@ -366,16 +366,37 @@ class InternalStoreTemplateSyncServiceImpl {
         }
       });
 
-      let backing = await db.storeTemplateBacking.create({
-        data: {
+      let backing = await db.storeTemplateBacking.upsert({
+        where: {
+          storeTemplateOid_tenantOid_environmentOid: {
+            storeTemplateOid: d.storeTemplate.oid,
+            tenantOid: d.tenant.oid,
+            environmentOid: d.environment.oid
+          }
+        },
+        create: {
           oid: backingIds.oid,
           id: backingIds.id,
           storeTemplateOid: d.storeTemplate.oid,
           tenantOid: d.tenant.oid,
           environmentOid: d.environment.oid,
           storeOid: store.oid
+        },
+        update: {},
+        include: {
+          store: true
         }
       });
+
+      if (backing.storeOid !== store.oid) {
+        await db.store.delete({
+          where: {
+            id: store.id
+          }
+        });
+
+        store = backing.store;
+      }
 
       return {
         backing,

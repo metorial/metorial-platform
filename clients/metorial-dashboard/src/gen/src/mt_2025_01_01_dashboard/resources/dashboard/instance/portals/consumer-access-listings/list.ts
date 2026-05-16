@@ -61,6 +61,14 @@ export type DashboardInstancePortalsConsumerAccessListingsListOutput = {
             name: string;
             description: string | null;
           };
+        }
+      | {
+          type: 'skill_marketplace';
+          skillMarketplace: {
+            object: 'skill.marketplace';
+            id: string;
+            status: 'active' | 'archived' | 'deleted';
+          };
         };
     groups: {
       id: string;
@@ -163,6 +171,14 @@ export let mapDashboardInstancePortalsConsumerAccessListingsListOutput =
                         mtMap.passthrough()
                       )
                     })
+                  ),
+                  skillMarketplace: mtMap.objectField(
+                    'skill_marketplace',
+                    mtMap.object({
+                      object: mtMap.objectField('object', mtMap.passthrough()),
+                      id: mtMap.objectField('id', mtMap.passthrough()),
+                      status: mtMap.objectField('status', mtMap.passthrough())
+                    })
                   )
                 })
               )
@@ -213,18 +229,21 @@ export type DashboardInstancePortalsConsumerAccessListingsListQuery = {
   skillId?: string | string[] | undefined;
   skillTemplateId?: string | string[] | undefined;
   skillGroupId?: string | string[] | undefined;
+  skillMarketplaceId?: string | string[] | undefined;
   type?:
     | 'provider_template'
     | 'magic_mcp_server'
     | 'skill'
     | 'skill_template'
     | 'skill_group'
+    | 'skill_marketplace'
     | (
         | 'provider_template'
         | 'magic_mcp_server'
         | 'skill'
         | 'skill_template'
         | 'skill_group'
+        | 'skill_marketplace'
       )[]
     | undefined;
 };
@@ -292,6 +311,16 @@ export let mapDashboardInstancePortalsConsumerAccessListingsListQuery =
         ),
         skillGroupId: mtMap.objectField(
           'skill_group_id',
+          mtMap.union([
+            mtMap.unionOption('string', mtMap.passthrough()),
+            mtMap.unionOption(
+              'array',
+              mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+            )
+          ])
+        ),
+        skillMarketplaceId: mtMap.objectField(
+          'skill_marketplace_id',
           mtMap.union([
             mtMap.unionOption('string', mtMap.passthrough()),
             mtMap.unionOption(

@@ -27,7 +27,7 @@ export let fixtures = (db: PrismaClient) => {
           createdAt: overrides.createdAt ?? new Date()
         } as Tenant,
         {
-          persist: value => db.tenant.create({ data: value })
+          persist: value => db.tenant.create({ data: value as any })
         }
       );
 

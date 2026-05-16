@@ -5,12 +5,23 @@ import {
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
+  useCreateSkillExport,
   useDuplicateSkill,
   useSkill
 } from '@metorial/state';
-import { Button, LinkTabs } from '@metorial/ui';
+import { Button, Flex, LinkTabs, toast } from '@metorial/ui';
 import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { showSkillCloneFormModal } from '../../../scenes/skills/cloneModal';
+
+let downloadExport = (url: string, fileName: string) => {
+  let link = document.createElement('a');
+  link.href = url;
+  link.download = fileName;
+  link.rel = 'noopener';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+};
 
 export let SkillLayout = () => {
   let instance = useCurrentInstance();
@@ -19,6 +30,7 @@ export let SkillLayout = () => {
   let { skillId } = useParams();
   let skill = useSkill(instance.data?.id, skillId);
   let duplicateSkill = useDuplicateSkill();
+  let createSkillExport = useCreateSkillExport();
   let navigate = useNavigate();
   let pathname = useLocation().pathname;
 
@@ -60,6 +72,31 @@ export let SkillLayout = () => {
     });
   };
 
+  let exportSkill = () => {
+    if (!instance.data || !skill.data) return;
+
+    toast.promise(
+      async () => {
+        let [skillExport, error] = await createSkillExport.mutate({
+          instanceId: instance.data!.id,
+          target: 'skill',
+          skillId: skill.data!.id
+        });
+
+        if (error) throw error;
+        if (!skillExport?.fileLink)
+          throw new Error('Export completed without a download link');
+
+        downloadExport(skillExport.fileLink!.url, `${skill.data!.slug}.zip`);
+      },
+      {
+        loading: 'Exporting skill...',
+        success: 'Skill export downloaded',
+        error: 'Failed to export skill'
+      }
+    );
+  };
+
   return (
     <ContentLayout>
       <PageHeader
@@ -76,9 +113,21 @@ export let SkillLayout = () => {
           }
         ]}
         actions={
-          <Button size="2" disabled={!instance.data || !skill.data} onClick={duplicate}>
-            Duplicate Skill
-          </Button>
+          <Flex gap="8px">
+            <Button size="2" disabled={!instance.data || !skill.data} onClick={duplicate}>
+              Duplicate Skill
+            </Button>
+
+            <Button
+              size="2"
+              disabled={!instance.data || !skill.data}
+              loading={createSkillExport.isLoading}
+              success={createSkillExport.isSuccess}
+              onClick={exportSkill}
+            >
+              Export Skill
+            </Button>
+          </Flex>
         }
       />
 

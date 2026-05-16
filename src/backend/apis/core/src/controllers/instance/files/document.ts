@@ -3,10 +3,12 @@ import { v } from '@lowerdeck/validation';
 import { documentService } from '@metorial/module-file';
 import { Controller } from '@metorial/rest';
 import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
+import { dateFilterValidator } from '../../../lib/dateFilter';
+import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { documentPermissionsPresenter, documentPresenter } from '../../../presenters';
-import { dateFilterSchema, mapCargoListQuery, stringArrayFilterSchema } from './_listFilters';
+import { stringArrayFilterSchema } from './_listFilters';
 
 export let documentGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.documentId) {
@@ -51,8 +53,8 @@ export let documentController = Controller.create(
             file_id: stringArrayFilterSchema('Filter by file ID'),
             store_id: stringArrayFilterSchema('Filter by store ID'),
             parent_document_id: stringArrayFilterSchema('Filter by parent document ID'),
-            created_at: dateFilterSchema('Filter by creation time'),
-            update_at: dateFilterSchema('Filter by update time')
+            created_at: dateFilterValidator('Filter by creation time'),
+            updated_at: dateFilterValidator('Filter by update time')
           })
         )
       )
@@ -63,22 +65,15 @@ export let documentController = Controller.create(
             instance: ctx.instance,
             organization: ctx.organization
           },
-          ...getInstanceCargoAccess(ctx)
+          ...getInstanceCargoAccess(ctx),
+          ids: normalizeArrayParam(ctx.query.id),
+          fileIds: normalizeArrayParam(ctx.query.file_id),
+          storeIds: normalizeArrayParam(ctx.query.store_id),
+          parentDocumentIds: normalizeArrayParam(ctx.query.parent_document_id),
+          createdAt: ctx.query.created_at,
+          updatedAt: ctx.query.updated_at
         });
-        let list = await paginator.run(
-          mapCargoListQuery(ctx.query, {
-            arrays: {
-              id: 'documentIds',
-              file_id: 'fileIds',
-              store_id: 'storeIds',
-              parent_document_id: 'parentDocumentIds'
-            },
-            dates: {
-              created_at: 'createdAt',
-              update_at: 'updatedAt'
-            }
-          })
-        );
+        let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, document => documentPresenter.present({ document }));
       }),

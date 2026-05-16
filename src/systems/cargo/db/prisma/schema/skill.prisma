@@ -1,6 +1,14 @@
+enum SkillStatus {
+  active
+  archived
+  deleted
+}
+
 model Skill {
   oid BigInt @id
   id  String @unique
+
+  status SkillStatus @default(active)
 
   /// [EntityImage]
   image Json?
@@ -35,12 +43,15 @@ model Skill {
   createdByTenantActor    TenantActor? @relation("SkillCreator", fields: [createdByTenantActorOid], references: [oid], onDelete: Cascade)
 
   createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 
-  skillParticipants SkillParticipant[]
-  skillVersions     SkillVersion[]
-  skillAgents       SkillAgent[]
-  skillPluginSkills SkillPluginSkill[]
-  skillExports      SkillExport[]
+  skillParticipants     SkillParticipant[]
+  skillVersions         SkillVersion[]
+  skillAgents           SkillAgent[]
+  skillPluginSkills     SkillPluginSkill[]
+  skillDestinationItems SkillDestinationItem[]
+  managedSkillPlugins   ManagedSkillPlugin[]
+  skillExportRefs       SkillExportRef[]
 }
 
 model SkillConfiguration {
@@ -60,14 +71,15 @@ model SkillConfiguration {
   environmentOid BigInt
   environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
 
-  deletedAt               DateTime?
-  createdAt               DateTime                 @default(now())
-  updatedAt               DateTime                 @default(now()) @updatedAt
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+
   skillMarketplaces       SkillMarketplace[]
   skillMarketplacePlugins SkillMarketplacePlugin[]
   skillPlugins            SkillPlugin[]
   skillPluginSkills       SkillPluginSkill[]
-  skillExports            SkillExport[]
+  skillExportRefs         SkillExportRef[]
 
   @@unique([environmentOid, isDefault])
   @@index([tenantOid, environmentOid, deletedAt])
