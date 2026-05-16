@@ -1,6 +1,8 @@
 import type {
   DashboardInstanceSkillGroupsListQuery,
   DashboardInstanceSkillTemplatesListQuery,
+  DashboardInstanceSkillsMarketplacesListQuery,
+  DashboardInstanceSkillsPluginsListQuery,
   DashboardInstanceSkillsListQuery
 } from '@metorial/dashboard-sdk';
 import { useCurrentInstance, useProviderListings } from '@metorial/state';
@@ -266,6 +268,86 @@ export let useSkillGroupFilters = (p: { search: string; filterState: TableFilter
     filters,
     searchDebounced,
     skillGroupsFilter
+  };
+};
+
+export let useSkillMarketplaceFilters = (p: {
+  search: string;
+  filterState: TableFilterState[];
+}) => {
+  let { searchDebounced, filterPayload, status, createdAt, updatedAt } =
+    useBaseSkillFilterPayload(p);
+
+  let filters: TableFilter<any>[] = useMemo(
+    () => [statusFilter, createdAtFilter, updatedAtFilter],
+    []
+  );
+
+  let skillMarketplacesFilter = useMemo(
+    (): DashboardInstanceSkillsMarketplacesListQuery => ({
+      ...(searchDebounced.trim() ? { search: searchDebounced.trim() } : {}),
+      ...(status ? { status } : {}),
+      ...(createdAt ? { createdAt } : {}),
+      ...(updatedAt ? { updatedAt } : {})
+    }),
+    [createdAt, searchDebounced, status, updatedAt]
+  );
+
+  return {
+    filters,
+    searchDebounced,
+    skillMarketplacesFilter
+  };
+};
+
+export let useSkillPluginFilters = (p: {
+  search: string;
+  filterState: TableFilterState[];
+}) => {
+  let { searchDebounced, filterPayload, status, createdAt, updatedAt } =
+    useBaseSkillFilterPayload(p);
+  let category = getStringFilterValue(filterPayload.category);
+  let skillMarketplaceId = getStringFilterValue(filterPayload.skillMarketplaceId);
+
+  let filters: TableFilter<any>[] = useMemo(
+    () => [
+      statusFilter,
+      {
+        id: 'category',
+        fields: ['category'],
+        label: 'Category',
+        description: 'Filter by category',
+        type: 'string'
+      },
+      {
+        id: 'skillMarketplaceId',
+        fields: ['skillMarketplaceId'],
+        label: 'Marketplace ID',
+        description: 'Filter by marketplace ID',
+        type: 'string'
+      },
+      createdAtFilter,
+      updatedAtFilter
+    ],
+    []
+  );
+
+  let skillPluginsFilter = useMemo(
+    (): DashboardInstanceSkillsPluginsListQuery => ({
+      ...(searchDebounced.trim() ? { search: searchDebounced.trim() } : {}),
+      ...(status ? { status } : {}),
+      ...(category ? { category } : {}),
+      ...(skillMarketplaceId ? { skillMarketplaceId } : {}),
+      ...(createdAt ? { createdAt } : {}),
+      ...(updatedAt ? { updatedAt } : {})
+    }),
+    [category, createdAt, searchDebounced, skillMarketplaceId, status, updatedAt]
+  );
+
+  return {
+    filters,
+    searchDebounced,
+    skillPluginsFilter
   };
 };
 

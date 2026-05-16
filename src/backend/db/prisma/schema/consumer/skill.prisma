@@ -27,6 +27,18 @@ enum SkillGroupItemStatus {
   deleted
 }
 
+enum SkillMarketplaceStatus {
+  active
+  archived
+  deleted
+}
+
+enum SkillPluginStatus {
+  active
+  archived
+  deleted
+}
+
 enum SkillOwnerType {
   instance
   consumer
@@ -164,6 +176,45 @@ model SkillGroupItem {
 
   @@unique([skillGroupOid, skillOid])
   @@index([skillOid, status])
+}
+
+model SkillMarketplace {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status SkillMarketplaceStatus @default(active)
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  consumerAccesses       ConsumerAccess[]        @relation("ConsumerAccessSkillMarketplace")
+  consumerAccessListings ConsumerAccessListing[]
+
+  @@index([instanceOid, status])
+}
+
+model SkillPlugin {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status SkillPluginStatus @default(active)
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([instanceOid, status])
 }
 
 model ConsumerSkill {

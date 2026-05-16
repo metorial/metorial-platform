@@ -9,7 +9,7 @@ export let v1SkillGroupItemPresenter = Presenter.create(skillGroupItemType)
     id: skillGroupItem.id,
     status: skillGroupItem.status,
     skill_group_id: skillGroupItem.skillGroupId,
-    skill: v1SkillPreviewPresenter(skillGroupItem.skill),
+    skill: await v1SkillPreviewPresenter(skillGroupItem.skill),
     created_at: skillGroupItem.createdAt
   }))
   .schema(

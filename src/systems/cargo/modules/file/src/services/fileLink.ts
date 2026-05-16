@@ -219,6 +219,18 @@ class FileLinkServiceImpl {
     return fileLink;
   }
 
+  async updateFileLinkExpiry(d: { fileLink: Pick<FileLink, 'id'>; expiresAt: Date }) {
+    return await db.fileLink.update({
+      where: {
+        id: d.fileLink.id
+      },
+      data: {
+        expiresAt: d.expiresAt
+      },
+      include
+    });
+  }
+
   async getFileLinkByKey(d: { fileId: string; key: string }) {
     let fileLink = await db.fileLink.findFirst({
       where: {

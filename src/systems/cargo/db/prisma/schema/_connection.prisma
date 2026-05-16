@@ -6,3 +6,7 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+generator json {
+  provider = "prisma-json-types-generator"
+}

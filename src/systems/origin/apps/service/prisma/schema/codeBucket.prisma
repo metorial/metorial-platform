@@ -44,7 +44,8 @@ model CodeBucket {
 
   createdAt DateTime @default(now())
 
-  providerFor CodeBucketTemplate[] @relation("ProviderBucket")
+  providerFor        CodeBucketTemplate[] @relation("ProviderBucket")
+  scmRepositorySyncs ScmRepositorySync[]
 }
 
 model CodeBucketTemplate {

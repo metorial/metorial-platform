@@ -3,11 +3,12 @@ import { v } from '@lowerdeck/validation';
 import { fileService, hasInstanceConsumerAccess, purposeSlugs } from '@metorial/module-file';
 import { Controller } from '@metorial/rest';
 import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
+import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { filePresenter } from '../../../presenters';
-import { dateFilterSchema, mapCargoListQuery, stringArrayFilterSchema } from './_listFilters';
+import { stringArrayFilterSchema } from './_listFilters';
 
 export let fileGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.fileId) throw new Error('fileId is required');
@@ -55,8 +56,8 @@ export let fileController = Controller.create(
             store_id: stringArrayFilterSchema('Filter by store ID'),
             document_id: stringArrayFilterSchema('Filter by document ID'),
             file_link_id: stringArrayFilterSchema('Filter by file link ID'),
-            created_at: dateFilterSchema('Filter by creation time'),
-            update_at: dateFilterSchema('Filter by update time')
+            created_at: dateFilterValidator('Filter by creation time'),
+            updated_at: dateFilterValidator('Filter by update time')
           })
         )
       )
@@ -68,24 +69,16 @@ export let fileController = Controller.create(
             organization: ctx.organization
           },
           purpose: normalizeArrayParam(ctx.query.purpose) as any,
-          ...(hasInstanceConsumerAccess(ctx) ? getInstanceCargoAccess(ctx) : {})
+          ...(hasInstanceConsumerAccess(ctx) ? getInstanceCargoAccess(ctx) : {}),
+          ids: normalizeArrayParam(ctx.query.id),
+          storeIds: normalizeArrayParam(ctx.query.store_id),
+          documentIds: normalizeArrayParam(ctx.query.document_id),
+          fileLinkIds: normalizeArrayParam(ctx.query.file_link_id),
+          createdAt: ctx.query.created_at,
+          updatedAt: ctx.query.updated_at
         });
 
-        let list = await paginator.run(
-          mapCargoListQuery(ctx.query, {
-            arrays: {
-              id: 'fileIds',
-              purpose: 'purpose',
-              store_id: 'storeIds',
-              document_id: 'documentIds',
-              file_link_id: 'fileLinkIds'
-            },
-            dates: {
-              created_at: 'createdAt',
-              update_at: 'updatedAt'
-            }
-          })
-        );
+        let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, file => filePresenter.present({ file }));
       }),

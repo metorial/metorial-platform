@@ -1,7 +1,7 @@
 import { createCron } from '@lowerdeck/cron';
 import { combineQueueProcessors, createQueue } from '@lowerdeck/queue';
 import { db, env } from '@metorial-cargo/db';
-import { getCargoFilesBucketName, getStorage } from '@metorial-cargo/module-file/storage';
+import { getCargoFilesBucketName, getStorage } from '../storage';
 
 let redisUrl = env.service.REDIS_URL;
 let batchSize = 100;
@@ -50,6 +50,14 @@ export let cleanupDeletedFileStorage = async (d: { fileId: string }) => {
     }
   });
   if (!file || file.status !== 'deleted' || file.storeId === '') return false;
+
+  let activeFileCount = await db.file.count({
+    where: {
+      status: 'active',
+      storeId: file.storeId
+    }
+  });
+  if (activeFileCount > 0) return false;
 
   await getStorage().deleteObject(getCargoFilesBucketName(), file.storeId);
 

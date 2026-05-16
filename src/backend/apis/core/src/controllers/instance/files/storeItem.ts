@@ -4,11 +4,12 @@ import { v } from '@lowerdeck/validation';
 import { storeItemService } from '@metorial/module-file';
 import { Controller } from '@metorial/rest';
 import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
+import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instancePath } from '../../../middleware/instanceGroup';
 import { storeItemPresenter } from '../../../presenters';
-import { dateFilterSchema, mapCargoListQuery, stringArrayFilterSchema } from './_listFilters';
+import { stringArrayFilterSchema } from './_listFilters';
 import { storeGroup } from './store';
 
 export let storeItemGroup = storeGroup.use(async ctx => {
@@ -63,8 +64,8 @@ export let storeItemController = Controller.create(
                   'Filter by store item type. Repeat `type` to include multiple values. Defaults to `file` and `document`.'
               }
             ),
-            created_at: dateFilterSchema('Filter by creation time'),
-            update_at: dateFilterSchema('Filter by update time')
+            created_at: dateFilterValidator('Filter by creation time'),
+            updated_at: dateFilterValidator('Filter by update time')
           })
         )
       )
@@ -77,22 +78,14 @@ export let storeItemController = Controller.create(
             instance: ctx.instance,
             organization: ctx.organization
           },
-          ...getInstanceCargoAccess(ctx)
+          ...getInstanceCargoAccess(ctx),
+          ids: normalizeArrayParam(ctx.query.id),
+          fileIds: normalizeArrayParam(ctx.query.file_id),
+          documentIds: normalizeArrayParam(ctx.query.document_id),
+          createdAt: ctx.query.created_at,
+          updatedAt: ctx.query.updated_at
         });
-        let list = await paginator.run(
-          mapCargoListQuery(ctx.query, {
-            arrays: {
-              id: 'itemIds',
-              file_id: 'fileIds',
-              document_id: 'documentIds',
-              type: 'types'
-            },
-            dates: {
-              created_at: 'createdAt',
-              update_at: 'updatedAt'
-            }
-          })
-        );
+        let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, storeItem => storeItemPresenter.present({ storeItem }));
       }),

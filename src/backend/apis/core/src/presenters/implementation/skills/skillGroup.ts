@@ -11,7 +11,7 @@ export let v1SkillGroupPresenter = Presenter.create(skillGroupType)
     name: skillGroup.name,
     description: skillGroup.description,
     metadata: skillGroup.metadata,
-    skills: skillGroup.skills.map(skill => v1SkillPreviewPresenter(skill)),
+    skills: await Promise.all(skillGroup.skills.map(skill => v1SkillPreviewPresenter(skill))),
     created_at: skillGroup.createdAt,
     updated_at: skillGroup.updatedAt
   }))

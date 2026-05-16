@@ -9,6 +9,7 @@ import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
+import { hasFlags } from '../../../middleware/hasFlags';
 import { instancePath } from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
 import { skillGroupItemPresenter } from '../../../presenters';
@@ -51,6 +52,7 @@ export let skillGroupItemController = Controller.create(
         name: 'List skill group items',
         description: 'Returns a paginated list of items for a skill group.'
       })
+      .use(hasFlags(['skills-enabled']))
       .use(
         checkAccess({
           possibleScopes: ['instance.skill:read', 'consumer#instance.skill:read']
@@ -121,6 +123,7 @@ export let skillGroupItemController = Controller.create(
           description: 'Retrieves a specific skill group item.'
         }
       )
+      .use(hasFlags(['skills-enabled']))
       .use(
         checkAccess({
           possibleScopes: ['instance.skill:read', 'consumer#instance.skill:read']
@@ -154,6 +157,7 @@ export let skillGroupItemController = Controller.create(
         name: 'Create skill group item',
         description: 'Adds a skill to a skill group.'
       })
+      .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: ['instance.skill:write'] }))
       .body(
         'default',
@@ -183,6 +187,7 @@ export let skillGroupItemController = Controller.create(
           description: 'Archives a skill group item.'
         }
       )
+      .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: ['instance.skill:write'] }))
       .output(skillGroupItemPresenter)
       .do(async ctx => {

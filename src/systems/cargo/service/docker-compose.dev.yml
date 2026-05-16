@@ -64,6 +64,30 @@ services:
     networks:
       - cargo-network
 
+  voyager:
+    profiles: ['infra']
+    image: ghcr.io/metorial/voyager:latest
+    container_name: cargo-voyager
+    restart: unless-stopped
+    ports:
+      - '52060:52060'
+    environment:
+      DATABASE_URL: postgresql://cargo:cargo@postgres:5432/voyager
+      SEARCH_DATABASE_URL: postgresql://cargo:cargo@postgres:5432/voyager-search
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -s http://localhost:52060/ > /dev/null || exit 1']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - cargo-network
+
   cargo:
     profiles: ['service']
     build:
@@ -77,14 +101,18 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgresql://cargo:cargo@postgres:5432/cargo}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      VOYAGER_URL: ${VOYAGER_URL:-http://voyager:52060/metorial-voyager}
       OBJECT_STORAGE_URL: ${OBJECT_STORAGE_URL:-http://object-storage:52010}
       FILES_BUCKET_NAME: ${FILES_BUCKET_NAME:-mte-files}
       DOWNLOAD_PUBLIC_URL: ${DOWNLOAD_PUBLIC_URL:-http://localhost:52151}
+      API_URL: ${API_URL:-http://localhost:52150}
       SIGNED_DOWNLOAD_URL_TOKEN_SECRET: ${SIGNED_DOWNLOAD_URL_TOKEN_SECRET:-cargo-download-test-secret}
       CARGO_REGION: ${CARGO_REGION:-local}
       CARGO_API_PORT: ${CARGO_API_PORT:-52150}
       CARGO_CONTENT_PORT: ${CARGO_CONTENT_PORT:-52151}
       CARGO_HEALTH_PORT: ${CARGO_HEALTH_PORT:-12121}
+      ORIGIN_URL: ${ORIGIN_URL:-http://origin:52090/metorial-origin}
+      CODE_BUCKET_SERVICE_URL: ${CODE_BUCKET_SERVICE_URL:-code-bucket:5050}
     volumes:
       - ./src:/app/src/systems/cargo/service/src:ro
       - ./package.json:/app/src/systems/cargo/service/package.json:ro
@@ -97,6 +125,8 @@ services:
       redis:
         condition: service_healthy
       object-storage:
+        condition: service_healthy
+      voyager:
         condition: service_healthy
     healthcheck:
       test:

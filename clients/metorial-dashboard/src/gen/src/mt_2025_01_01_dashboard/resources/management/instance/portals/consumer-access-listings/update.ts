@@ -60,6 +60,14 @@ export type ManagementInstancePortalsConsumerAccessListingsUpdateOutput = {
           name: string;
           description: string | null;
         };
+      }
+    | {
+        type: 'skill_marketplace';
+        skillMarketplace: {
+          object: 'skill.marketplace';
+          id: string;
+          status: 'active' | 'archived' | 'deleted';
+        };
       };
   groups: {
     id: string;
@@ -152,6 +160,14 @@ export let mapManagementInstancePortalsConsumerAccessListingsUpdateOutput =
                   'description',
                   mtMap.passthrough()
                 )
+              })
+            ),
+            skillMarketplace: mtMap.objectField(
+              'skill_marketplace',
+              mtMap.object({
+                object: mtMap.objectField('object', mtMap.passthrough()),
+                id: mtMap.objectField('id', mtMap.passthrough()),
+                status: mtMap.objectField('status', mtMap.passthrough())
               })
             )
           })

@@ -12,19 +12,7 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { readReplicas } from '@prisma/extension-read-replicas';
 import { PrismaClient } from '../prisma/generated/client';
 import type { CustomProviderConfig, CustomProviderFrom } from './types';
-
-export type EntityImage =
-  | {
-      type: 'file';
-      fileId: string;
-      fileLinkId: string;
-      fileReferenceId: string;
-      fileUrl: string;
-      url?: string;
-    }
-  | { type: 'enterprise_file'; fileId: string }
-  | { type: 'url'; url: string }
-  | { type: 'default' };
+export type { EntityImage } from '../../../_shared/entityImage';
 
 let mainAdapter = new PrismaPg({
   connectionString: process.env.SUBSPACE_DATABASE_URL ?? process.env.DATABASE_URL

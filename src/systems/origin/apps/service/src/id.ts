@@ -19,7 +19,8 @@ export let ID = createIdGenerator({
   scmBackendSetupSession: idType.sorted('obss_'),
   scmRepositoryWebhook: idType.sorted('osw_'),
   scmRepositoryReceivedEvent: idType.sorted('ose_'),
-  scmRepositoryPush: idType.sorted('osp_')
+  scmRepositoryPush: idType.sorted('osp_'),
+  scmRepositorySync: idType.sorted('ors_')
 });
 
 let workerIdBits = 12;

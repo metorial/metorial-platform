@@ -13,7 +13,12 @@ export type {
   CargoScope,
   CargoSkillAgent,
   CargoSkillConfiguration,
+  CargoSkillExport,
+  CargoSkillMarketplace,
+  CargoSkillMarketplacePlugin,
   CargoSkillParticipant,
+  CargoSkillPlugin,
+  CargoSkillPluginSkill,
   CargoSkillVersion,
   CargoSkillVersionSnapshot,
   CargoStore,
@@ -34,7 +39,12 @@ export * from './fileLink';
 export * from './fileReference';
 export * from './skillAgent';
 export * from './skillConfiguration';
+export * from './skillExport';
+export * from './skillMarketplace';
+export * from './skillMarketplaceRepository';
 export * from './skillParticipant';
+export * from './skillPlugin';
+export * from './skillPluginRepository';
 export * from './skillVersion';
 export * from './store';
 export * from './storeItem';

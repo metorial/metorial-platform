@@ -201,7 +201,13 @@ class FileServiceImpl {
 
   async listFiles(d: {
     owner: FileOwner;
+    ids?: string[];
     purpose?: string[];
+    storeIds?: string[];
+    documentIds?: string[];
+    fileLinkIds?: string[];
+    createdAt?: { gt?: Date; lt?: Date };
+    updatedAt?: { gt?: Date; lt?: Date };
     accessActor?: CargoAccessActor;
     defaultPermissions?: CargoStorePermission[];
     overridePermissions?: boolean;
@@ -213,7 +219,13 @@ class FileServiceImpl {
       let result = await cargo.file.list({
         tenantId: scope.tenantId,
         environmentId: scope.environmentId,
+        fileIds: d.ids,
         purpose: d.purpose,
+        storeIds: d.storeIds,
+        documentIds: d.documentIds,
+        fileLinkIds: d.fileLinkIds,
+        createdAt: d.createdAt,
+        updatedAt: d.updatedAt,
         actorId,
         defaultPermissions,
         overridePermissions,

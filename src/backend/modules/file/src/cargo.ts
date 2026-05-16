@@ -79,16 +79,44 @@ export type CargoSkillParticipantList = Awaited<
 >;
 export type CargoSkillAgent = Awaited<ReturnType<typeof cargo.skillAgent.get>>;
 export type CargoSkillAgentList = Awaited<ReturnType<typeof cargo.skillAgent.list>>;
-export type CargoSkillConfiguration = Awaited<
-  ReturnType<typeof cargo.skillConfiguration.get>
->;
+export type CargoSkillConfiguration = Awaited<ReturnType<typeof cargo.skillConfiguration.get>>;
 export type CargoSkillConfigurationList = Awaited<
   ReturnType<typeof cargo.skillConfiguration.list>
 >;
+export type CargoSkillExport = Awaited<ReturnType<typeof cargo.skillExport.get>>;
+export type CargoSkillExportList = Awaited<ReturnType<typeof cargo.skillExport.list>>;
 export type CargoSkillVersion = Awaited<ReturnType<typeof cargo.skillVersion.get>>;
 export type CargoSkillVersionList = Awaited<ReturnType<typeof cargo.skillVersion.list>>;
 export type CargoSkillVersionSnapshot = Awaited<
   ReturnType<typeof cargo.skillVersion.getSnapshot>
+>;
+export type CargoSkillMarketplace = Awaited<ReturnType<typeof cargo.skillMarketplace.get>>;
+export type CargoSkillMarketplaceList = Awaited<
+  ReturnType<typeof cargo.skillMarketplace.list>
+>;
+export type CargoSkillMarketplacePlugin = Awaited<
+  ReturnType<typeof cargo.skillMarketplacePlugin.get>
+>;
+export type CargoSkillMarketplacePluginList = Awaited<
+  ReturnType<typeof cargo.skillMarketplacePlugin.list>
+>;
+export type CargoSkillMarketplaceRepository = Awaited<
+  ReturnType<typeof cargo.skillMarketplaceRepository.get>
+>;
+export type CargoSkillMarketplaceRepositoryList = Awaited<
+  ReturnType<typeof cargo.skillMarketplaceRepository.list>
+>;
+export type CargoSkillPlugin = Awaited<ReturnType<typeof cargo.skillPlugin.get>>;
+export type CargoSkillPluginList = Awaited<ReturnType<typeof cargo.skillPlugin.list>>;
+export type CargoSkillPluginRepository = Awaited<
+  ReturnType<typeof cargo.skillPluginRepository.get>
+>;
+export type CargoSkillPluginRepositoryList = Awaited<
+  ReturnType<typeof cargo.skillPluginRepository.list>
+>;
+export type CargoSkillPluginSkill = Awaited<ReturnType<typeof cargo.skillPluginSkill.get>>;
+export type CargoSkillPluginSkillList = Awaited<
+  ReturnType<typeof cargo.skillPluginSkill.list>
 >;
 
 let pickPreferredInstance = <

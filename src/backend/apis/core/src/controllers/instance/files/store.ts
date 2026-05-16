@@ -4,6 +4,8 @@ import { v } from '@lowerdeck/validation';
 import { storeService } from '@metorial/module-file';
 import { Controller } from '@metorial/rest';
 import { getInstanceCargoAccess, hasInstanceConsumerAccess } from '../../../lib/cargoAccess';
+import { dateFilterValidator } from '../../../lib/dateFilter';
+import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import {
@@ -11,7 +13,7 @@ import {
   storePermissionsPresenter,
   storePresenter
 } from '../../../presenters';
-import { dateFilterSchema, mapCargoListQuery, stringArrayFilterSchema } from './_listFilters';
+import { stringArrayFilterSchema } from './_listFilters';
 
 let storeAccessSchema = v.enumOf(['private', 'public_read', 'public_write']);
 
@@ -63,8 +65,8 @@ export let storeController = Controller.create(
         Paginator.validate(
           v.object({
             id: stringArrayFilterSchema('Filter by store ID'),
-            created_at: dateFilterSchema('Filter by creation time'),
-            update_at: dateFilterSchema('Filter by update time')
+            created_at: dateFilterValidator('Filter by creation time'),
+            updated_at: dateFilterValidator('Filter by update time')
           })
         )
       )
@@ -75,19 +77,12 @@ export let storeController = Controller.create(
             instance: ctx.instance,
             organization: ctx.organization
           },
-          ...getInstanceCargoAccess(ctx)
+          ...getInstanceCargoAccess(ctx),
+          ids: normalizeArrayParam(ctx.query.id),
+          createdAt: ctx.query.created_at,
+          updatedAt: ctx.query.updated_at
         });
-        let list = await paginator.run(
-          mapCargoListQuery(ctx.query, {
-            arrays: {
-              id: 'storeIds'
-            },
-            dates: {
-              created_at: 'createdAt',
-              update_at: 'updatedAt'
-            }
-          })
-        );
+        let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, store => storePresenter.present({ store }));
       }),

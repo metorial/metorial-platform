@@ -1,11 +1,17 @@
 import { v } from '@lowerdeck/validation';
-import { scmRepositoryPushPresenter } from '../presenters';
+import { scmRepositoryPushPresenter, scmRepositorySyncPresenter } from '../presenters';
 import { repositoryPresenter } from '../presenters/repository';
 import {
   scmAccountPreviewPresenter,
   scmRepoPreviewPresenter
 } from '../presenters/scmRepoPreview';
-import { actorService, scmInstallationService, scmRepoService } from '../services';
+import {
+  actorService,
+  codeBucketService,
+  scmInstallationService,
+  scmRepoService,
+  scmRepositorySyncService
+} from '../services';
 import { app } from './_app';
 import { tenantApp } from './tenant';
 
@@ -150,6 +156,57 @@ export let scmRepositoryController = app.controller({
       })
     )
     .do(async ctx => repositoryPresenter(ctx.scmRepository)),
+
+  getMany: tenantApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        scmRepositoryIds: v.array(v.string())
+      })
+    )
+    .do(async ctx => {
+      let repos = await scmRepoService.getManyScmReposByIds({
+        tenant: ctx.tenant,
+        scmRepoIds: ctx.input.scmRepositoryIds
+      });
+
+      return {
+        repositories: repos.map(repositoryPresenter)
+      };
+    }),
+
+  syncCodeBucketToBranch: scmRepositoryApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        scmRepositoryId: v.string(),
+        codeBucketId: v.string(),
+        branchName: v.string(),
+        prName: v.string(),
+        prDescription: v.optional(v.string()),
+        enableAutoMerge: v.optional(v.boolean())
+      })
+    )
+    .do(async ctx => {
+      let codeBucket = await codeBucketService.getCodeBucketById({
+        tenant: ctx.tenant,
+        id: ctx.input.codeBucketId
+      });
+
+      let sync = await scmRepositorySyncService.createScmRepositorySync({
+        tenant: ctx.tenant,
+        repo: ctx.scmRepository,
+        codeBucket,
+        branchName: ctx.input.branchName,
+        prName: ctx.input.prName,
+        prDescription: ctx.input.prDescription,
+        enableAutoMerge: ctx.input.enableAutoMerge
+      });
+
+      return scmRepositorySyncPresenter(sync);
+    }),
 
   triggerPush: scmRepositoryApp
     .handler()

@@ -1,8 +1,8 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
 import { customProviderType } from '../../../types';
+import { v1ScmRepoPresenter } from '../../scm';
 import { v1ProviderPresenter } from '../provider';
-import { v1ScmRepoPresenter } from '../scm/repos';
 import { v1BucketPresenter } from './bucket';
 
 export let v1CustomProviderPresenter = Presenter.create(customProviderType)

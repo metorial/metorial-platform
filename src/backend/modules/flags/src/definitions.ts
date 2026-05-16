@@ -9,6 +9,7 @@ export type Flags = {
   'callbacks-enabled': boolean;
   'identity-management': boolean;
   'portals-access': boolean;
+  'skills-enabled': boolean;
 
   'paid-oauth-import': boolean;
   'paid-oauth-export': boolean;
@@ -33,6 +34,7 @@ export let defaultFlags: Flags = {
   'callbacks-enabled': false,
   'portals-access': false,
   'identity-management': false,
+  'skills-enabled': false,
 
   'paid-oauth-import': true,
   'paid-oauth-export': true,

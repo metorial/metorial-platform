@@ -6,11 +6,12 @@ import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
+import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
 import { skillTemplatePresenter } from '../../../presenters';
 
-export let skillTemplateGroup = instanceGroup.use(async ctx => {
+export let skillTemplateGroup = instanceGroup.use(hasFlags(['skills-enabled'])).use(async ctx => {
   if (!ctx.params.skillTemplateId) {
     throw new ServiceError(
       badRequestError({
@@ -42,6 +43,7 @@ export let skillTemplateController = Controller.create(
         name: 'List skill templates',
         description: 'Returns a paginated list of skill templates.'
       })
+      .use(hasFlags(['skills-enabled']))
       .use(
         checkAccess({
           possibleScopes: ['instance.skill:read', 'consumer#instance.skill:read']
@@ -102,6 +104,7 @@ export let skillTemplateController = Controller.create(
         name: 'Get skill template',
         description: 'Retrieves a specific skill template.'
       })
+      .use(hasFlags(['skills-enabled']))
       .use(
         checkAccess({
           possibleScopes: ['instance.skill:read', 'consumer#instance.skill:read']
@@ -118,6 +121,7 @@ export let skillTemplateController = Controller.create(
         name: 'Create skill template',
         description: 'Creates a skill template.'
       })
+      .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: ['instance.skill:write'] }))
       .body(
         'default',
@@ -146,6 +150,7 @@ export let skillTemplateController = Controller.create(
         name: 'Update skill template',
         description: 'Updates a skill template.'
       })
+      .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: ['instance.skill:write'] }))
       .body(
         'default',
@@ -174,6 +179,7 @@ export let skillTemplateController = Controller.create(
         name: 'Delete skill template',
         description: 'Archives a skill template.'
       })
+      .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: ['instance.skill:write'] }))
       .output(skillTemplatePresenter)
       .do(async ctx => {

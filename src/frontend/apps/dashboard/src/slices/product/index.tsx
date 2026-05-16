@@ -229,6 +229,12 @@ let SkillTemplatesPage = dynamicPage(() =>
 let SkillGroupsPage = dynamicPage(() =>
   import('./pages/(skills)/(list)/groups').then(c => c.SkillGroupsPage)
 );
+let SkillMarketplacesPage = dynamicPage(() =>
+  import('./pages/(skills)/(list)/marketplaces').then(c => c.SkillMarketplacesPage)
+);
+let SkillPluginsPage = dynamicPage(() =>
+  import('./pages/(skills)/(list)/plugins').then(c => c.SkillPluginsPage)
+);
 let SkillConfigurationSettingsPage = dynamicPage(() =>
   import('./pages/(skills)/(list)/settings').then(c => c.SkillConfigurationSettingsPage)
 );
@@ -262,6 +268,32 @@ let SkillGroupPage = dynamicPage(() =>
 );
 let SkillGroupSettingsPage = dynamicPage(() =>
   import('./pages/(skills)/skill-group/settings').then(c => c.SkillGroupSettingsPage)
+);
+let SkillMarketplaceLayout = dynamicPage(() =>
+  import('./pages/(skills)/skill-marketplace/_layout').then(c => c.SkillMarketplaceLayout)
+);
+let SkillMarketplacePage = dynamicPage(() =>
+  import('./pages/(skills)/skill-marketplace').then(c => c.SkillMarketplacePage)
+);
+let SkillMarketplaceEditorPage = dynamicPage(() =>
+  import('./pages/(skills)/skill-marketplace/editor').then(c => c.SkillMarketplaceEditorPage)
+);
+let SkillMarketplaceSettingsPage = dynamicPage(() =>
+  import('./pages/(skills)/skill-marketplace/settings').then(
+    c => c.SkillMarketplaceSettingsPage
+  )
+);
+let SkillPluginLayout = dynamicPage(() =>
+  import('./pages/(skills)/skill-plugin/_layout').then(c => c.SkillPluginLayout)
+);
+let SkillPluginPage = dynamicPage(() =>
+  import('./pages/(skills)/skill-plugin').then(c => c.SkillPluginPage)
+);
+let SkillPluginEditorPage = dynamicPage(() =>
+  import('./pages/(skills)/skill-plugin/editor').then(c => c.SkillPluginEditorPage)
+);
+let SkillPluginSettingsPage = dynamicPage(() =>
+  import('./pages/(skills)/skill-plugin/settings').then(c => c.SkillPluginSettingsPage)
 );
 let IntegrationLayout = dynamicPage(() =>
   import('./pages/(integrations)/integration/_layout').then(c => c.IntegrationLayout)
@@ -1135,6 +1167,14 @@ export let productHomeSlice = createSlice([
                 element: <SkillGroupsPage />
               },
               {
+                path: 'marketplaces',
+                element: <SkillMarketplacesPage />
+              },
+              {
+                path: 'plugins',
+                element: <SkillPluginsPage />
+              },
+              {
                 path: 'settings',
                 element: <SkillConfigurationSettingsPage />
               }
@@ -1206,6 +1246,42 @@ export let productHomeSlice = createSlice([
               {
                 path: 'settings',
                 element: <SkillGroupSettingsPage />
+              }
+            ]
+          },
+          {
+            path: 'skill-marketplace/:skillMarketplaceId',
+            element: <SkillMarketplaceLayout />,
+            children: [
+              {
+                path: '',
+                element: <SkillMarketplacePage />
+              },
+              {
+                path: 'editor',
+                element: <SkillMarketplaceEditorPage />
+              },
+              {
+                path: 'settings',
+                element: <SkillMarketplaceSettingsPage />
+              }
+            ]
+          },
+          {
+            path: 'skill-plugin/:skillPluginId',
+            element: <SkillPluginLayout />,
+            children: [
+              {
+                path: '',
+                element: <SkillPluginPage />
+              },
+              {
+                path: 'editor',
+                element: <SkillPluginEditorPage />
+              },
+              {
+                path: 'settings',
+                element: <SkillPluginSettingsPage />
               }
             ]
           },

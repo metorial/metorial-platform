@@ -54,6 +54,11 @@ export type SkillTemplateWithEnrichedStoreId<
   storeId: string | null;
 };
 
+type CargoSkillTemplateSummary = {
+  id: string;
+  storeId?: string | null;
+};
+
 type SkillTemplateWriteInput = {
   name?: string;
   description?: string | null;
@@ -140,10 +145,10 @@ class skillTemplateServiceImpl {
     if (d.skillTemplates.length === 0) return [];
 
     let cargoScope = await ensureCargoScope(d);
-    let cargoTemplates = await cargo.skillTemplate.getMany({
+    let cargoTemplates = (await cargo.skillTemplate.getMany({
       ...cargoScope,
       skillTemplateIds: d.skillTemplates.map(template => template.id)
-    });
+    })) as CargoSkillTemplateSummary[];
     let cargoTemplateById = new Map(cargoTemplates.map(template => [template.id, template]));
 
     return d.skillTemplates.map(template => ({

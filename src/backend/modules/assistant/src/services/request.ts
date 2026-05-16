@@ -218,32 +218,36 @@ class AssistantRequestServiceImpl {
 
     d.signal?.addEventListener('abort', onAbort, { once: true });
 
-    connection.addEventListener('snapshot', (event: MessageEvent<string>) => {
+    connection.addEventListener('snapshot', (event: Event) => {
       void (async () => {
         try {
-          await d.onMessage(JSON.parse((event as MessageEvent).data) as AgentRunWireMessage);
+          await d.onMessage(
+            JSON.parse((event as MessageEvent<string>).data) as AgentRunWireMessage
+          );
         } catch (error) {
           await emitError(error);
         }
       })();
     });
 
-    connection.addEventListener('delta', (event: MessageEvent<string>) => {
+    connection.addEventListener('delta', (event: Event) => {
       void (async () => {
         try {
-          await d.onMessage(JSON.parse((event as MessageEvent).data) as AgentRunWireMessage);
+          await d.onMessage(
+            JSON.parse((event as MessageEvent<string>).data) as AgentRunWireMessage
+          );
         } catch (error) {
           await emitError(error);
         }
       })();
     });
 
-    connection.addEventListener('done', (event: MessageEvent<string>) => {
+    connection.addEventListener('done', (event: Event) => {
       void (async () => {
         try {
           if (d.onDone) {
             await d.onDone(
-              JSON.parse((event as MessageEvent).data) as {
+              JSON.parse((event as MessageEvent<string>).data) as {
                 status: 'completed' | 'cancelled' | 'failed';
               }
             );
@@ -254,9 +258,9 @@ class AssistantRequestServiceImpl {
       })();
     });
 
-    connection.addEventListener('error', (event: MessageEvent<string>) => {
+    connection.addEventListener('error', (event: Event) => {
       void (async () => {
-        let payload = (event as MessageEvent).data;
+        let payload = (event as MessageEvent<string>).data;
         if (typeof payload == 'string' && payload) {
           try {
             let parsed = JSON.parse(payload) as { message?: string };

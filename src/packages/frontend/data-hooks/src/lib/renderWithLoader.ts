@@ -17,7 +17,7 @@ export let renderWithLoader =
             mutators?: {
               [key: string]: (...args: any[]) => Promise<any>;
             };
-            refetch: () => void;
+            refetch?: () => void;
           }
         | boolean;
     }

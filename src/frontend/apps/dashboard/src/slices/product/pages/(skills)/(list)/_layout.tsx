@@ -8,7 +8,9 @@ import {
 import { Button, LinkTabs } from '@metorial/ui';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { showSkillGroupFormModal } from '../../../scenes/skills/groupModal';
+import { showSkillMarketplaceFormModal } from '../../../scenes/skills/marketplaceModal';
 import { showSkillFormModal } from '../../../scenes/skills/modal';
+import { showSkillPluginFormModal } from '../../../scenes/skills/pluginModal';
 import { showSkillTemplateFormModal } from '../../../scenes/skills/templateModal';
 
 export let SkillsListLayout = () => {
@@ -43,6 +45,32 @@ export let SkillsListLayout = () => {
             instanceId: instance.data!.id,
             onCreate: skillGroup => {
               navigate(Paths.instance.skillGroup(...listPathParams, skillGroup.id));
+            }
+          })
+      };
+    }
+
+    if (pathname.endsWith('/marketplaces')) {
+      return {
+        label: 'Create Marketplace',
+        onClick: () =>
+          showSkillMarketplaceFormModal({
+            instanceId: instance.data!.id,
+            onCreate: marketplace => {
+              navigate(Paths.instance.skillMarketplace(...listPathParams, marketplace.id));
+            }
+          })
+      };
+    }
+
+    if (pathname.endsWith('/plugins')) {
+      return {
+        label: 'Create Plugin',
+        onClick: () =>
+          showSkillPluginFormModal({
+            instanceId: instance.data!.id,
+            onCreate: plugin => {
+              navigate(Paths.instance.skillPlugin(...listPathParams, plugin.id));
             }
           })
       };
@@ -85,12 +113,20 @@ export let SkillsListLayout = () => {
             to: Paths.instance.skills(...listPathParams)
           },
           {
+            label: 'Marketplaces',
+            to: Paths.instance.skillMarketplaces(...listPathParams)
+          },
+          {
             label: 'Templates',
             to: Paths.instance.skillTemplates(...listPathParams)
           },
           {
             label: 'Groups',
             to: Paths.instance.skillGroups(...listPathParams)
+          },
+          {
+            label: 'Plugins',
+            to: Paths.instance.skillPlugins(...listPathParams)
           },
           {
             label: 'Settings',

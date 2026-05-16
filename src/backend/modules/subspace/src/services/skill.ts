@@ -10,6 +10,7 @@ import {
   Organization,
   OrganizationActor,
   OrganizationMember,
+  Prisma,
   Skill,
   SkillStatus
 } from '@metorial/db';
@@ -132,6 +133,8 @@ export let syncSkillFromSubspace = async (d: {
     organizationActor?: OrganizationActor;
   };
 }) => {
+  let image = d.skill.image ?? Prisma.DbNull;
+
   return await db.skill.upsert({
     where: {
       id: d.skill.id
@@ -140,7 +143,7 @@ export let syncSkillFromSubspace = async (d: {
       id: d.skill.id,
       status: statusFromSubspace(d.skill.status),
       name: d.skill.name,
-      image: d.skill.image,
+      image,
       storeId: d.skill.storeId,
       skillEntityId: skillEntityIdFromSubspace(d.skill),
       ownerType: d.owner?.consumerProfile ? 'consumer' : 'instance',
@@ -153,7 +156,7 @@ export let syncSkillFromSubspace = async (d: {
     update: {
       status: statusFromSubspace(d.skill.status),
       name: d.skill.name,
-      image: d.skill.image,
+      image,
       storeId: d.skill.storeId,
       skillEntityId: skillEntityIdFromSubspace(d.skill),
       ownerType: d.owner?.consumerProfile ? 'consumer' : undefined,

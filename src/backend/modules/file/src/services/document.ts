@@ -96,6 +96,13 @@ class DocumentServiceImpl {
     accessActor?: CargoAccessActor;
     defaultPermissions?: CargoStorePermission[];
     overridePermissions?: boolean;
+
+    ids?: string[];
+    fileIds?: string[];
+    storeIds?: string[];
+    parentDocumentIds?: string[];
+    createdAt?: { gt?: Date; lt?: Date };
+    updatedAt?: { gt?: Date; lt?: Date };
   }) {
     let { scope, actorId, defaultPermissions, overridePermissions } =
       await resolveCargoAccess(d);
@@ -107,6 +114,14 @@ class DocumentServiceImpl {
         actorId,
         defaultPermissions,
         overridePermissions,
+
+        documentIds: d.ids,
+        fileIds: d.fileIds,
+        storeIds: d.storeIds,
+        parentDocumentIds: d.parentDocumentIds,
+        createdAt: d.createdAt,
+        updatedAt: d.updatedAt,
+
         ...input
       });
 

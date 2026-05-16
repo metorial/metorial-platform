@@ -5,8 +5,8 @@ WORKDIR /app
 # Copy OSS workspace files
 COPY . .
 
-# Install dependencies
-RUN bun install --linker=hoisted
+# Install dependencies and build workspace clients used at runtime
+RUN sh ./src/systems/cargo/scripts/prepare-docker-build.sh
 
 WORKDIR /app/src/systems/cargo/service
 

@@ -11,7 +11,7 @@ let storageMocks = vi.hoisted(() => ({
   deleteObject: vi.fn(async (_bucket: string, _key: string) => {})
 }));
 
-vi.mock('@metorial-cargo/module-file/storage', () => ({
+vi.mock('../../../../modules/file/src/storage', () => ({
   getCargoFilesBucketName: () => 'cargo-files-test',
   getStorage: () => ({
     deleteObject: storageMocks.deleteObject
@@ -133,7 +133,43 @@ describe('cargo file cleanup.e2e', () => {
     expect(cleanedFile?.storeId).toBe('cleanup-single');
   });
 
-  it('skips active files and deleted files without storage keys', async () => {
+  it('keeps object storage when an active file shares the deleted file store id', async () => {
+    let { tenant, environment, purpose } = await createEnvironment();
+
+    let deletedFile = await cargoClient.file.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      purpose: purpose.id,
+      storeId: 'cleanup-shared',
+      name: 'shared-deleted.png',
+      mimeType: 'image/png',
+      size: 128
+    });
+    await cargoClient.file.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      purpose: purpose.id,
+      storeId: 'cleanup-shared',
+      name: 'shared-active.png',
+      mimeType: 'image/png',
+      size: 128
+    });
+    await cargoClient.file.delete({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      fileId: deletedFile.id
+    });
+
+    await expect(
+      cleanupDeletedFileStorage({
+        fileId: deletedFile.id
+      })
+    ).resolves.toBe(false);
+
+    expect(storageMocks.deleteObject).not.toHaveBeenCalled();
+  });
+
+  it('skips missing files, active files, and deleted files without storage keys', async () => {
     let { tenant, environment, purpose } = await createEnvironment();
 
     let activeFile = await cargoClient.file.create({
@@ -169,6 +205,11 @@ describe('cargo file cleanup.e2e', () => {
     await expect(
       cleanupDeletedFileStorage({
         fileId: deletedWithoutStorage.id
+      })
+    ).resolves.toBe(false);
+    await expect(
+      cleanupDeletedFileStorage({
+        fileId: 'missing-file'
       })
     ).resolves.toBe(false);
 

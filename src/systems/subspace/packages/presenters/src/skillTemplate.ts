@@ -1,6 +1,7 @@
 import type {
   Integration,
   Provider,
+  ProviderListing,
   SkillTemplate,
   SkillTemplateItem
 } from '@metorial-subspace/db';
@@ -10,7 +11,7 @@ import { providerPreviewPresenter } from './provider';
 export let skillTemplateItemPresenter = (
   item: SkillTemplateItem & {
     integration: Integration | null;
-    provider: (Provider & { listing?: { id: string; image: string } | null }) | null;
+    provider: (Provider & { listing?: Pick<ProviderListing, 'id' | 'image'> | null }) | null;
   }
 ) => ({
   object: 'skill.template.item',
@@ -26,7 +27,7 @@ export let skillTemplatePresenter = (
   skillTemplate: SkillTemplate & {
     skillTemplateItems: (SkillTemplateItem & {
       integration: Integration | null;
-      provider: (Provider & { listing?: { id: string; image: string } | null }) | null;
+      provider: (Provider & { listing?: Pick<ProviderListing, 'id' | 'image'> | null }) | null;
     })[];
   }
 ) => ({

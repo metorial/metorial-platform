@@ -1,14 +1,9 @@
 import { canonicalize } from '@lowerdeck/canonicalize';
-import {
-  badRequestError,
-  forbiddenError,
-  notFoundError,
-  ServiceError
-} from '@lowerdeck/error';
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import type { Prisma, StoreParticipantPermissions } from '@metorial-cargo/db';
-import { db, env, snowflake, withTransaction } from '@metorial-cargo/db';
+import type { EntityImage, Prisma, StoreParticipantPermissions } from '@metorial-cargo/db';
+import { db, snowflake, withTransaction } from '@metorial-cargo/db';
 import {
   type DateFilter,
   normalizeDateFilter,
@@ -18,12 +13,10 @@ import {
   resolveTenantActors
 } from '@metorial-cargo/list-utils';
 import type { CargoTenantEnvironment } from '@metorial-cargo/module-file';
-import {
-  actorService,
-  fileLinkService,
-  fileReferenceService
-} from '@metorial-cargo/module-file';
+import { actorService } from '@metorial-cargo/module-file';
 import { storeAccessService, storeService } from '@metorial-cargo/module-store';
+import { internalImageService } from '../internal/image';
+import { enqueueSkillLifecycle } from '../queues/lifecycle';
 import { skillParticipantService } from './skillParticipant';
 import type { SkillTemplateRecord } from './skillTemplate';
 
@@ -41,30 +34,11 @@ let skillInclude = {
   }
 } satisfies Prisma.SkillInclude;
 
-export type EntityImage =
-  | {
-      type: 'file';
-      fileId: string;
-      fileLinkId: string;
-      fileReferenceId: string;
-      fileUrl: string;
-      url?: string;
-    }
-  | { type: 'enterprise_file'; fileId: string }
-  | { type: 'url'; url: string }
-  | { type: 'default' };
-
 export type SkillRecord = Prisma.SkillGetPayload<{
   include: typeof skillInclude;
 }>;
 
 class SkillServiceImpl {
-  private getFileLinkUrl(d: { fileId: string; key: string }) {
-    if (!env.service.DOWNLOAD_PUBLIC_URL) return '';
-
-    return `${env.service.DOWNLOAD_PUBLIC_URL}/files/${d.fileId}/${d.key}`;
-  }
-
   private async getSkillRecord(d: CargoTenantEnvironment & { skillId: string }) {
     return await withTransaction(
       async db => {
@@ -72,7 +46,8 @@ class SkillServiceImpl {
           where: {
             tenantOid: d.tenant.oid,
             environmentOid: d.environment.oid,
-            id: d.skillId
+            id: d.skillId,
+            status: 'active'
           },
           include: skillInclude
         });
@@ -83,93 +58,6 @@ class SkillServiceImpl {
       },
       { ifExists: true }
     );
-  }
-
-  private async createImageEntityImage(
-    d: CargoTenantEnvironment & {
-      skill: Pick<SkillRecord, 'id'>;
-      fileId: string;
-      actorId?: string;
-      defaultPermissions?: StoreParticipantPermissions[];
-      overridePermissions?: boolean;
-    }
-  ): Promise<EntityImage> {
-    let file = await db.file.findFirst({
-      where: {
-        tenantOid: d.tenant.oid,
-        environmentOid: d.environment.oid,
-        id: d.fileId,
-        status: 'active'
-      },
-      include: {
-        purpose: true
-      }
-    });
-    if (!file) throw new ServiceError(notFoundError('file', d.fileId));
-    if (!file.purpose.canHaveLinks) {
-      throw new ServiceError(
-        forbiddenError({
-          message: 'File purpose does not allow creating links'
-        })
-      );
-    }
-
-    let link = await fileLinkService.createFileLink({
-      tenant: d.tenant,
-      environment: d.environment,
-      file,
-      input: {
-        actorId: d.actorId
-      }
-    });
-    let ref = await fileReferenceService.upsertFileReference({
-      tenant: d.tenant,
-      environment: d.environment,
-      fileLink: link,
-      input: {
-        entityType: 'skill',
-        entityId: d.skill.id
-      }
-    });
-
-    return {
-      type: 'file',
-      fileId: file.id,
-      fileLinkId: link.id,
-      fileReferenceId: ref.id,
-      fileUrl: this.getFileLinkUrl({ fileId: file.id, key: link.key })
-    };
-  }
-
-  private async resolveImageEntityImage<ClearImage extends EntityImage | null>(
-    d: CargoTenantEnvironment & {
-      skill: Pick<SkillRecord, 'id'>;
-      imageFileId: string | null;
-      clearedImage: ClearImage;
-      actorId?: string;
-      defaultPermissions?: StoreParticipantPermissions[];
-      overridePermissions?: boolean;
-    }
-  ): Promise<EntityImage | ClearImage> {
-    if (d.imageFileId === null) return d.clearedImage;
-
-    return await this.createImageEntityImage({
-      tenant: d.tenant,
-      environment: d.environment,
-      skill: d.skill,
-      fileId: d.imageFileId,
-      actorId: d.actorId,
-      defaultPermissions: d.defaultPermissions,
-      overridePermissions: d.overridePermissions
-    });
-  }
-
-  private async cleanupImageEntityImage(d: { image: EntityImage | null | undefined }) {
-    if (d.image?.type !== 'file' || !d.image.fileReferenceId || !d.image.fileLinkId) return;
-
-    await fileReferenceService.deleteFileReferenceByIdAndCleanup({
-      fileReferenceId: d.image.fileReferenceId
-    });
   }
 
   async createSkill(
@@ -247,6 +135,7 @@ class SkillServiceImpl {
         data: {
           oid: snowflake.nextId(),
           id: d.input.id,
+          status: 'active',
           name: d.input.name,
           description: d.input.description,
           metadata: d.input.metadata as any,
@@ -268,10 +157,10 @@ class SkillServiceImpl {
       });
 
       if (d.input.imageFileId !== undefined) {
-        let image = await this.resolveImageEntityImage({
+        let image = await internalImageService.resolveImageEntityImage({
           tenant: d.tenant,
           environment: d.environment,
-          skill,
+          entity: { id: skill.id, type: 'skill' },
           imageFileId: d.input.imageFileId,
           clearedImage: { type: 'default' },
           actorId: d.input.actorId
@@ -306,6 +195,8 @@ class SkillServiceImpl {
 
       await skillParticipantService.syncSkillParticipantsFromStore({ skill });
 
+      await enqueueSkillLifecycle({ skillId: skill.id, event: 'created' });
+
       return skill;
     });
   }
@@ -334,6 +225,7 @@ class SkillServiceImpl {
             where: {
               tenantOid: d.tenant.oid,
               environmentOid: d.environment.oid,
+              status: 'active',
               AND: [
                 skills ? { oid: skills.in } : undefined!,
                 stores ? { storeOid: stores.in } : undefined!,
@@ -408,10 +300,10 @@ class SkillServiceImpl {
 
     let nextImage = d.input.image;
     if (d.input.imageFileId !== undefined) {
-      nextImage = await this.resolveImageEntityImage({
+      nextImage = await internalImageService.resolveImageEntityImage({
         tenant: d.tenant,
         environment: d.environment,
-        skill: d.skill,
+        entity: { id: d.skill.id, type: 'skill' },
         imageFileId: d.input.imageFileId,
         clearedImage: { type: 'default' },
         actorId: d.actorId,
@@ -461,7 +353,7 @@ class SkillServiceImpl {
       });
 
       if (d.input.imageFileId !== undefined || d.input.image !== undefined) {
-        await this.cleanupImageEntityImage({
+        await internalImageService.cleanupImageEntityImage({
           image:
             d.skill.image && canonicalize(d.skill.image) !== canonicalize(nextImage)
               ? (d.skill.image as EntityImage)
@@ -470,6 +362,8 @@ class SkillServiceImpl {
       }
     }
 
+    await enqueueSkillLifecycle({ skillId: d.skill.id, event: 'updated' });
+
     return await this.getSkillRecord({
       tenant: d.tenant,
       environment: d.environment,
@@ -477,13 +371,34 @@ class SkillServiceImpl {
     }).then(skill => ({ ...skill, store }) satisfies SkillRecord);
   }
 
-  async deleteSkill(d: CargoTenantEnvironment & { skill: SkillRecord }) {
-    await storeService.deleteStore({
-      tenant: d.tenant,
-      environment: d.environment,
-      store: d.skill.store,
-      allowLinkedSkillDelete: true,
-      allowLinkedStoreTemplateDelete: true
+  async archiveSkill(d: CargoTenantEnvironment & { skill: SkillRecord }) {
+    await withTransaction(async db => {
+      await db.skillPluginSkill.updateMany({
+        where: {
+          skillOid: d.skill.oid,
+          status: 'active'
+        },
+        data: {
+          status: 'archived',
+          clientName: null,
+          clientDescription: null,
+          clientMetadata: null,
+          license: null,
+          compatibility: null,
+          skillConfigurationOid: null
+        }
+      });
+
+      await db.skill.update({
+        where: {
+          id: d.skill.id
+        },
+        data: {
+          status: 'archived'
+        }
+      });
+
+      await enqueueSkillLifecycle({ skillId: d.skill.id, event: 'archived' });
     });
 
     return d.skill;

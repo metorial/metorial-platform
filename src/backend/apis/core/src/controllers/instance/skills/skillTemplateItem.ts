@@ -7,6 +7,7 @@ import {
 } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../../middleware/checkAccess';
+import { hasFlags } from '../../../middleware/hasFlags';
 import { instancePath } from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
 import { skillTemplateItemPresenter } from '../../../presenters';
@@ -57,6 +58,7 @@ export let skillTemplateItemController = Controller.create(
           description: 'Returns a paginated list of items for a skill template.'
         }
       )
+      .use(hasFlags(['skills-enabled']))
       .use(
         checkAccess({
           possibleScopes: ['instance.skill:read', 'consumer#instance.skill:read']
@@ -98,6 +100,7 @@ export let skillTemplateItemController = Controller.create(
           description: 'Retrieves a specific skill template item.'
         }
       )
+      .use(hasFlags(['skills-enabled']))
       .use(
         checkAccess({
           possibleScopes: ['instance.skill:read', 'consumer#instance.skill:read']
@@ -129,6 +132,7 @@ export let skillTemplateItemController = Controller.create(
           description: 'Adds a provider or integration item to a skill template.'
         }
       )
+      .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: ['instance.skill:write'] }))
       .body('default', createSkillTemplateItemValidator)
       .output(skillTemplateItemPresenter)
@@ -166,6 +170,7 @@ export let skillTemplateItemController = Controller.create(
           description: 'Deletes a skill template item.'
         }
       )
+      .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: ['instance.skill:write'] }))
       .output(skillTemplateItemPresenter)
       .do(async ctx => {

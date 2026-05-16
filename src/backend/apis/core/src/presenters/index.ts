@@ -160,8 +160,15 @@ import {
   v1SkillItemPresenter,
   v1SkillAgentPresenter,
   v1SkillConfigurationPresenter,
+  v1SkillExportPresenter,
+  v1SkillMarketplacePresenter,
+  v1SkillMarketplacePluginPresenter,
+  v1SkillMarketplaceRepositoryPresenter,
   v1SkillParticipantPresenter,
   v1SkillPresenter,
+  v1SkillPluginPresenter,
+  v1SkillPluginRepositoryPresenter,
+  v1SkillPluginSkillPresenter,
   v1SkillTemplateItemPresenter,
   v1SkillTemplatePresenter,
   v1SkillVersionPresenter,
@@ -325,7 +332,14 @@ import {
   skillItemType,
   skillAgentType,
   skillConfigurationType,
+  skillExportType,
+  skillMarketplaceType,
+  skillMarketplacePluginType,
+  skillMarketplaceRepositoryType,
   skillParticipantType,
+  skillPluginType,
+  skillPluginRepositoryType,
+  skillPluginSkillType,
   skillTemplateItemType,
   skillTemplateType,
   skillType,
@@ -562,6 +576,44 @@ export let skillAgentPresenter = declarePresenter(skillAgentType, {
 export let skillConfigurationPresenter = declarePresenter(skillConfigurationType, {
   mt_2025_01_01_dashboard: v1SkillConfigurationPresenter,
   mt_2026_01_01_magnetar: v1SkillConfigurationPresenter
+});
+
+export let skillExportPresenter = declarePresenter(skillExportType, {
+  mt_2025_01_01_dashboard: v1SkillExportPresenter,
+  mt_2026_01_01_magnetar: v1SkillExportPresenter
+});
+
+export let skillMarketplacePresenter = declarePresenter(skillMarketplaceType, {
+  mt_2025_01_01_dashboard: v1SkillMarketplacePresenter,
+  mt_2026_01_01_magnetar: v1SkillMarketplacePresenter
+});
+
+export let skillMarketplacePluginPresenter = declarePresenter(skillMarketplacePluginType, {
+  mt_2025_01_01_dashboard: v1SkillMarketplacePluginPresenter,
+  mt_2026_01_01_magnetar: v1SkillMarketplacePluginPresenter
+});
+
+export let skillMarketplaceRepositoryPresenter = declarePresenter(
+  skillMarketplaceRepositoryType,
+  {
+    mt_2025_01_01_dashboard: v1SkillMarketplaceRepositoryPresenter,
+    mt_2026_01_01_magnetar: v1SkillMarketplaceRepositoryPresenter
+  }
+);
+
+export let skillPluginPresenter = declarePresenter(skillPluginType, {
+  mt_2025_01_01_dashboard: v1SkillPluginPresenter,
+  mt_2026_01_01_magnetar: v1SkillPluginPresenter
+});
+
+export let skillPluginRepositoryPresenter = declarePresenter(skillPluginRepositoryType, {
+  mt_2025_01_01_dashboard: v1SkillPluginRepositoryPresenter,
+  mt_2026_01_01_magnetar: v1SkillPluginRepositoryPresenter
+});
+
+export let skillPluginSkillPresenter = declarePresenter(skillPluginSkillType, {
+  mt_2025_01_01_dashboard: v1SkillPluginSkillPresenter,
+  mt_2026_01_01_magnetar: v1SkillPluginSkillPresenter
 });
 
 export let skillParticipantPresenter = declarePresenter(skillParticipantType, {

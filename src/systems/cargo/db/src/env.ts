@@ -10,7 +10,13 @@ export let env = createValidatedEnv({
     REDIS_URL: v.string(),
     CARGO_REGION: v.optional(v.string()),
     DOWNLOAD_PUBLIC_URL: v.optional(v.string()),
-    SIGNED_DOWNLOAD_URL_TOKEN_SECRET: v.string()
+    SIGNED_DOWNLOAD_URL_TOKEN_SECRET: v.string(),
+    API_URL: v.string()
+  },
+
+  origin: {
+    ORIGIN_URL: v.string(),
+    CODE_BUCKET_SERVICE_URL: v.string()
   },
 
   storage: {
