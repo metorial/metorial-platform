@@ -2,6 +2,7 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import { db, withTransaction } from '@metorial-cargo/db';
 import { storeVersionService } from '@metorial-cargo/module-store';
+import { enqueueDocumentLifecycle } from '../queues/lifecycle';
 import { documentInclude } from '../services/document';
 import { internalDocumentDraftService } from './documentDraft';
 import { internalDocumentVersioningService } from './documentVersioning';
@@ -215,6 +216,13 @@ class InternalDocumentSyncServiceImpl {
 
       await storeVersionService.markStoresDirtyForDocument({
         documentOid: result.document.oid
+      });
+    }
+
+    if (result) {
+      await enqueueDocumentLifecycle({
+        documentId: result.document.id,
+        event: 'contents-changed'
       });
     }
 

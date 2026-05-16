@@ -5,6 +5,7 @@ import { storeVersionService } from '@metorial-cargo/module-store';
 import { internalDocumentDraftService, internalDocumentVersioningService } from '../internal';
 import { documentInclude } from '../services/document';
 import { documentVersionSyncManyQueue } from './documentVersionSync';
+import { enqueueDocumentLifecycle } from './lifecycle';
 
 let redisUrl = env.service.REDIS_URL;
 let batchSize = 100;
@@ -164,6 +165,13 @@ export let flushExpiredDraftVersion = async (d: {
       { parentDocumentVersionId: result.createdVersionId },
       { id: result.createdVersionId }
     );
+  }
+
+  if (result) {
+    await enqueueDocumentLifecycle({
+      documentId: result.document.id,
+      event: 'contents-changed'
+    });
   }
 
   return result;

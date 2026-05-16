@@ -1,8 +1,6 @@
 import type { SkillDestination, Tenant } from '@metorial-cargo/db';
-import { addAfterTransactionHook, db, env, getId } from '@metorial-cargo/db';
+import { db, env, getId } from '@metorial-cargo/db';
 import { createOriginClient } from '@metorial-platform-systems/origin-client';
-import { skillPluginSyncManyQueue } from '../queues/sync/skillPluginSyncMany';
-import { syncStartQueue } from '../queues/sync/start';
 
 export let origin = createOriginClient({
   endpoint: env.origin.ORIGIN_URL
@@ -65,28 +63,3 @@ export let getSkillDestinationEditorUrl = async (d: {
   };
 };
 
-export let enqueueSkillDestinationSync = async (destinationOid: bigint | null | undefined) => {
-  if (!destinationOid) return;
-
-  await addAfterTransactionHook(async () => {
-    let sync = await db.skillDestinationSync.create({
-      data: {
-        ...getId('skillDestinationSync'),
-        destinationOid,
-        status: 'pending'
-      }
-    });
-
-    await syncStartQueue.add({
-      skillDestinationSyncId: sync.id
-    });
-  });
-};
-
-export let enqueueSkillPluginSyncs = async (d: { skillPluginId: string }) => {
-  await addAfterTransactionHook(async () => {
-    await skillPluginSyncManyQueue.add({
-      skillPluginId: d.skillPluginId
-    });
-  });
-};

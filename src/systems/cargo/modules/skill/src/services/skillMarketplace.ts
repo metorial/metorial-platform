@@ -15,9 +15,9 @@ import type { CargoTenantEnvironment } from '@metorial-cargo/module-file';
 import { internalImageService } from '../internal/image';
 import {
   createSkillDestination,
-  enqueueSkillDestinationSync,
   getSkillDestinationEditorUrl
 } from '../internal/skillDestination';
+import { enqueueSkillMarketplaceLifecycle } from '../queues/lifecycle';
 import { skillPluginInclude } from './skillPlugin';
 
 export let skillMarketplaceInclude = {
@@ -260,7 +260,10 @@ class SkillMarketplaceServiceImpl {
         });
       }
 
-      await enqueueSkillDestinationSync(skillMarketplace.destinationOid);
+      await enqueueSkillMarketplaceLifecycle({
+        skillMarketplaceId: skillMarketplace.id,
+        event: 'created'
+      });
 
       return skillMarketplace;
     });
@@ -328,7 +331,10 @@ class SkillMarketplaceServiceImpl {
       });
     }
 
-    await enqueueSkillDestinationSync(d.skillMarketplace.destinationOid);
+    await enqueueSkillMarketplaceLifecycle({
+      skillMarketplaceId: d.skillMarketplace.id,
+      event: 'updated'
+    });
 
     return await this.getSkillMarketplaceRecord({
       tenant: d.tenant,
@@ -361,7 +367,10 @@ class SkillMarketplaceServiceImpl {
         }
       });
 
-      await enqueueSkillDestinationSync(d.skillMarketplace.destinationOid);
+      await enqueueSkillMarketplaceLifecycle({
+        skillMarketplaceId: d.skillMarketplace.id,
+        event: 'archived'
+      });
     });
 
     return await this.getSkillMarketplaceRecord({

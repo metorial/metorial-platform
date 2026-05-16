@@ -1,5 +1,5 @@
 import { Service } from '@lowerdeck/service';
-import type { Document, DocumentParticipantRole, TenantActor } from '@metorial-cargo/db';
+import type { Document, TenantActor } from '@metorial-cargo/db';
 import { getId, withTransaction } from '@metorial-cargo/db';
 import { storeAccessService } from '@metorial-cargo/module-store';
 
@@ -11,37 +11,26 @@ class InternalDocumentParticipantServiceImpl {
   }) {
     return await withTransaction(async db => {
       let now = new Date();
-      let existing = await db.documentParticipant.findFirst({
-        where: {
-          documentOid: d.document.oid,
-          tenantActorOid: d.actor.oid
-        }
-      });
-
-      let role: DocumentParticipantRole =
-        d.mode === 'edit' || existing?.role === 'editor' ? 'editor' : 'viewer';
-
-      if (existing) {
-        return await db.documentParticipant.update({
-          where: {
-            id: existing.id
-          },
-          data: {
-            role,
-            lastViewedAt: now,
-            lastEditedAt: d.mode === 'edit' ? now : undefined
-          }
-        });
-      }
 
       let id = getId('documentParticipant');
 
-      return await db.documentParticipant.create({
-        data: {
+      return await db.documentParticipant.upsert({
+        where: {
+          documentOid_tenantActorOid: {
+            documentOid: d.document.oid,
+            tenantActorOid: d.actor.oid
+          }
+        },
+        create: {
           ...id,
-          role,
+          role: d.mode === 'edit' ? 'editor' : 'viewer',
           documentOid: d.document.oid,
           tenantActorOid: d.actor.oid,
+          lastViewedAt: now,
+          lastEditedAt: d.mode === 'edit' ? now : undefined
+        },
+        update: {
+          role: d.mode === 'edit' ? 'editor' : undefined,
           lastViewedAt: now,
           lastEditedAt: d.mode === 'edit' ? now : undefined
         }

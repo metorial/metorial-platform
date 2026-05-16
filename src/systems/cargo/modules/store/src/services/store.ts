@@ -21,6 +21,7 @@ import {
 } from '@metorial-cargo/module-file';
 import { posix as pathPosix } from 'node:path';
 import { normalizeStorePath } from '../lib/storePath';
+import { enqueueStoreLifecycle } from '../queues/lifecycle';
 import { storeCleanupManyQueue } from '../queues/storeCleanup';
 import {
   storeAccessService,
@@ -290,6 +291,8 @@ class StoreServiceImpl {
         });
       }
 
+      await enqueueStoreLifecycle({ storeId: createdStore.id, event: 'created' });
+
       return await db.store.findUniqueOrThrow({
         where: {
           id: createdStore.id
@@ -519,6 +522,8 @@ class StoreServiceImpl {
         at: lastEditedAt
       });
 
+      await enqueueStoreLifecycle({ storeId: d.store.id, event: 'updated' });
+
       return updatedStore;
     });
   }
@@ -692,6 +697,8 @@ class StoreServiceImpl {
         fileReferenceIds
       });
     }
+
+    await enqueueStoreLifecycle({ storeId: deletedStore.id, event: 'archived' });
 
     return deletedStore;
   }

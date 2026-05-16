@@ -15,6 +15,7 @@ import {
   normalizeStorePath,
   type NormalizedStorePath
 } from '../lib/storePath';
+import { enqueueStoreLifecycle } from '../queues/lifecycle';
 import { storeItemInclude, type StoreItemRecord } from './storeItem';
 import { storeVersionService } from './storeVersion';
 
@@ -1348,6 +1349,8 @@ class StoreItemMutationServiceImpl {
         storeOid: d.store.oid
       });
 
+      await enqueueStoreLifecycle({ storeId: d.store.id, event: 'contents-changed' });
+
       await this.syncSkillAgentForStoreItemTransition({
         skill,
         previousItem: null,
@@ -1707,6 +1710,8 @@ class StoreItemMutationServiceImpl {
         await storeVersionService.markStoreDirtyIfNeeded({
           storeOid: d.store.oid
         });
+
+        await enqueueStoreLifecycle({ storeId: d.store.id, event: 'contents-changed' });
       }
 
       return results;

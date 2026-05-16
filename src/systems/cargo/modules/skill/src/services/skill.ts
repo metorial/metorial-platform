@@ -16,7 +16,7 @@ import type { CargoTenantEnvironment } from '@metorial-cargo/module-file';
 import { actorService } from '@metorial-cargo/module-file';
 import { storeAccessService, storeService } from '@metorial-cargo/module-store';
 import { internalImageService } from '../internal/image';
-import { enqueueSkillPluginSyncs } from '../internal/skillDestination';
+import { enqueueSkillLifecycle } from '../queues/lifecycle';
 import { skillParticipantService } from './skillParticipant';
 import type { SkillTemplateRecord } from './skillTemplate';
 
@@ -195,6 +195,8 @@ class SkillServiceImpl {
 
       await skillParticipantService.syncSkillParticipantsFromStore({ skill });
 
+      await enqueueSkillLifecycle({ skillId: skill.id, event: 'created' });
+
       return skill;
     });
   }
@@ -360,6 +362,8 @@ class SkillServiceImpl {
       }
     }
 
+    await enqueueSkillLifecycle({ skillId: d.skill.id, event: 'updated' });
+
     return await this.getSkillRecord({
       tenant: d.tenant,
       environment: d.environment,
@@ -369,20 +373,6 @@ class SkillServiceImpl {
 
   async archiveSkill(d: CargoTenantEnvironment & { skill: SkillRecord }) {
     await withTransaction(async db => {
-      let linkedPluginSkills = await db.skillPluginSkill.findMany({
-        where: {
-          skillOid: d.skill.oid,
-          status: 'active'
-        },
-        select: {
-          skillPlugin: {
-            select: {
-              id: true
-            }
-          }
-        }
-      });
-
       await db.skillPluginSkill.updateMany({
         where: {
           skillOid: d.skill.oid,
@@ -408,9 +398,7 @@ class SkillServiceImpl {
         }
       });
 
-      for (let skillPluginId of new Set(linkedPluginSkills.map(s => s.skillPlugin.id))) {
-        await enqueueSkillPluginSyncs({ skillPluginId });
-      }
+      await enqueueSkillLifecycle({ skillId: d.skill.id, event: 'archived' });
     });
 
     return d.skill;

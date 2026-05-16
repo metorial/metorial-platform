@@ -22,10 +22,9 @@ import type { CargoTenantEnvironment } from '@metorial-cargo/module-file';
 import { internalImageService } from '../internal/image';
 import {
   createSkillDestination,
-  enqueueSkillDestinationSync,
-  enqueueSkillPluginSyncs,
   getSkillDestinationEditorUrl
 } from '../internal/skillDestination';
+import { enqueueSkillPluginLifecycle } from '../queues/lifecycle';
 
 let skillInclude = {
   store: true,
@@ -321,7 +320,7 @@ class SkillPluginServiceImpl {
         });
       }
 
-      await enqueueSkillDestinationSync(skillPlugin.destinationOid);
+      await enqueueSkillPluginLifecycle({ skillPluginId: skillPlugin.id, event: 'created' });
 
       return skillPlugin;
     });
@@ -393,8 +392,9 @@ class SkillPluginServiceImpl {
       });
     }
 
-    await enqueueSkillPluginSyncs({
-      skillPluginId: d.skillPlugin.id
+    await enqueueSkillPluginLifecycle({
+      skillPluginId: d.skillPlugin.id,
+      event: 'updated'
     });
 
     return await this.getSkillPluginRecord({
@@ -408,20 +408,6 @@ class SkillPluginServiceImpl {
     assertPluginIsNotManaged(d.skillPlugin);
 
     await withTransaction(async db => {
-      let linkedMarketplacePlugins = await db.skillMarketplacePlugin.findMany({
-        where: {
-          skillPluginOid: d.skillPlugin.oid,
-          status: 'active'
-        },
-        select: {
-          skillMarketplace: {
-            select: {
-              destinationOid: true
-            }
-          }
-        }
-      });
-
       await db.skillPluginSkill.updateMany({
         where: {
           skillPluginOid: d.skillPlugin.oid,
@@ -458,15 +444,10 @@ class SkillPluginServiceImpl {
         }
       });
 
-      await enqueueSkillPluginSyncs({
-        skillPluginId: d.skillPlugin.id
+      await enqueueSkillPluginLifecycle({
+        skillPluginId: d.skillPlugin.id,
+        event: 'archived'
       });
-
-      for (let destinationOid of new Set(
-        linkedMarketplacePlugins.map(p => p.skillMarketplace.destinationOid)
-      )) {
-        await enqueueSkillDestinationSync(destinationOid);
-      }
     });
 
     return await this.getSkillPluginRecord({

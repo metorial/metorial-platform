@@ -14,6 +14,7 @@ import {
   resolveSkillConfigurations
 } from '@metorial-cargo/list-utils';
 import type { CargoTenantEnvironment } from '@metorial-cargo/module-file';
+import { enqueueSkillConfigurationLifecycle } from '../queues/lifecycle';
 
 let skillConfigurationInclude = {} satisfies Prisma.SkillConfigurationInclude;
 
@@ -234,13 +235,20 @@ class SkillConfigurationServiceImpl {
         ? await this.upsertDefaultSkillConfiguration(d)
         : await this.getSkillConfigurationRecord(d);
 
-    return await db.skillConfiguration.update({
+    let updatedConfiguration = await db.skillConfiguration.update({
       where: {
         id: skillConfiguration.id
       },
       data: this.getUpdateData(d.input),
       include: skillConfigurationInclude
     });
+
+    await enqueueSkillConfigurationLifecycle({
+      skillConfigurationId: updatedConfiguration.id,
+      event: 'updated'
+    });
+
+    return updatedConfiguration;
   }
 
   async deleteSkillConfiguration(
@@ -266,7 +274,7 @@ class SkillConfigurationServiceImpl {
       );
     }
 
-    return await db.skillConfiguration.update({
+    let deletedConfiguration = await db.skillConfiguration.update({
       where: {
         id: skillConfiguration.id
       },
@@ -275,6 +283,13 @@ class SkillConfigurationServiceImpl {
       },
       include: skillConfigurationInclude
     });
+
+    await enqueueSkillConfigurationLifecycle({
+      skillConfigurationId: deletedConfiguration.id,
+      event: 'archived'
+    });
+
+    return deletedConfiguration;
   }
 }
 

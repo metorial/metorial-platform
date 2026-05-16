@@ -12,7 +12,7 @@ import {
   resolveSkills
 } from '@metorial-cargo/list-utils';
 import type { CargoTenantEnvironment } from '@metorial-cargo/module-file';
-import { enqueueSkillPluginSyncs } from '../internal/skillDestination';
+import { enqueueSkillPluginSkillLifecycle } from '../queues/lifecycle';
 import type { SkillPluginRecord } from './skillPlugin';
 import { assertPluginIsNotManaged, skillPluginInclude } from './skillPlugin';
 
@@ -270,6 +270,7 @@ class SkillPluginSkillServiceImpl {
       }
 
       let skillPluginSkill = matches[0];
+      let lifecycleEvent: 'created' | 'updated' = 'updated';
       if (skillPluginSkill) {
         if (skillPluginSkill.pluginSkillSlug !== pluginSkillSlug) {
           throw new ServiceError(
@@ -296,6 +297,7 @@ class SkillPluginSkillServiceImpl {
           include: skillPluginSkillInclude
         });
       } else {
+        lifecycleEvent = 'created';
         skillPluginSkill = await db.skillPluginSkill.create({
           data: {
             ...getId('skillPluginSkill'),
@@ -314,8 +316,9 @@ class SkillPluginSkillServiceImpl {
         });
       }
 
-      await enqueueSkillPluginSyncs({
-        skillPluginId: d.skillPlugin.id
+      await enqueueSkillPluginSkillLifecycle({
+        skillPluginSkillId: skillPluginSkill.id,
+        event: lifecycleEvent
       });
 
       return skillPluginSkill;
@@ -359,8 +362,9 @@ class SkillPluginSkillServiceImpl {
       include: skillPluginSkillInclude
     });
 
-    await enqueueSkillPluginSyncs({
-      skillPluginId: d.skillPluginSkill.skillPlugin.id
+    await enqueueSkillPluginSkillLifecycle({
+      skillPluginSkillId: d.skillPluginSkill.id,
+      event: 'updated'
     });
 
     return skillPluginSkill;
@@ -389,8 +393,9 @@ class SkillPluginSkillServiceImpl {
       include: skillPluginSkillInclude
     });
 
-    await enqueueSkillPluginSyncs({
-      skillPluginId: d.skillPluginSkill.skillPlugin.id
+    await enqueueSkillPluginSkillLifecycle({
+      skillPluginSkillId: d.skillPluginSkill.id,
+      event: 'archived'
     });
 
     return skillPluginSkill;

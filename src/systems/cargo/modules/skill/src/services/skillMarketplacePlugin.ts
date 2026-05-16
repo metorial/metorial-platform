@@ -12,7 +12,7 @@ import {
   resolveSkillPlugins
 } from '@metorial-cargo/list-utils';
 import type { CargoTenantEnvironment } from '@metorial-cargo/module-file';
-import { enqueueSkillDestinationSync } from '../internal/skillDestination';
+import { enqueueSkillMarketplacePluginLifecycle } from '../queues/lifecycle';
 import type { SkillMarketplaceRecord } from './skillMarketplace';
 import { assertPluginIsNotManaged, skillPluginInclude } from './skillPlugin';
 
@@ -245,6 +245,7 @@ class SkillMarketplacePluginServiceImpl {
       }
 
       let skillMarketplacePlugin = matches[0];
+      let lifecycleEvent: 'created' | 'updated' = 'updated';
       if (skillMarketplacePlugin) {
         if (skillMarketplacePlugin.pluginSlug !== pluginSlug) {
           throw new ServiceError(
@@ -266,6 +267,7 @@ class SkillMarketplacePluginServiceImpl {
           include: skillMarketplacePluginInclude
         });
       } else {
+        lifecycleEvent = 'created';
         skillMarketplacePlugin = await db.skillMarketplacePlugin.create({
           data: {
             ...getId('skillMarketplacePlugin'),
@@ -279,7 +281,10 @@ class SkillMarketplacePluginServiceImpl {
         });
       }
 
-      await enqueueSkillDestinationSync(d.skillMarketplace.destinationOid);
+      await enqueueSkillMarketplacePluginLifecycle({
+        skillMarketplacePluginId: skillMarketplacePlugin.id,
+        event: lifecycleEvent
+      });
 
       return skillMarketplacePlugin;
     });
@@ -303,9 +308,10 @@ class SkillMarketplacePluginServiceImpl {
       include: skillMarketplacePluginInclude
     });
 
-    await enqueueSkillDestinationSync(
-      d.skillMarketplacePlugin.skillMarketplace.destinationOid
-    );
+    await enqueueSkillMarketplacePluginLifecycle({
+      skillMarketplacePluginId: skillMarketplacePlugin.id,
+      event: 'archived'
+    });
 
     return skillMarketplacePlugin;
   }
