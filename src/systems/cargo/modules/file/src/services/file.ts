@@ -6,6 +6,7 @@ import {
 } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
+import { generatePlainId } from '@lowerdeck/id';
 import type { File, Prisma, StoreParticipantPermissions } from '@metorial-cargo/db';
 import { db, getId, withTransaction } from '@metorial-cargo/db';
 import {
@@ -124,6 +125,7 @@ class FileServiceImpl {
         mimeType: string;
         size: number;
         title?: string;
+        expiresAt?: Date;
         actorId?: string;
         store?: {
           id: string;
@@ -174,6 +176,7 @@ class FileServiceImpl {
             fileSize: d.input.size,
             fileType: d.input.mimeType,
             title: d.input.title,
+            expiresAt: d.input.expiresAt,
             status: 'active',
             purposeOid: purpose.oid,
             isReadOnly: d.internal?.isReadOnly ?? existing.isReadOnly,
@@ -231,6 +234,7 @@ class FileServiceImpl {
           fileSize: d.input.size,
           fileType: d.input.mimeType,
           title: d.input.title,
+          expiresAt: d.input.expiresAt,
           isReadOnly: d.internal?.isReadOnly ?? false,
           isTemplateBacking: d.internal?.isTemplateBacking ?? false,
           createdByTenantActorOid: actor?.oid
@@ -313,6 +317,108 @@ class FileServiceImpl {
     );
 
     return await this.objectDataToBuffer(object.data);
+  }
+
+  async createUploadedFile(
+    d: CargoTenantEnvironment & {
+      purpose: string;
+      file: Blob;
+      input: {
+        id?: string;
+        name: string;
+        mimeType?: string;
+        title?: string;
+        expiresAt?: Date;
+        actorId?: string;
+      };
+    }
+  ) {
+    let mimeType = d.input.mimeType ?? d.file.type ?? 'application/octet-stream';
+    let storeId = generatePlainId(20);
+
+    await getStorage().putObject(getCargoFilesBucketName(), storeId, d.file, mimeType);
+
+    return await this.createFile({
+      tenant: d.tenant,
+      environment: d.environment,
+      purpose: d.purpose,
+      storeId,
+      internal: {
+        isReadOnly: true
+      },
+      input: {
+        id: d.input.id,
+        name: d.input.name,
+        mimeType,
+        size: d.file.size,
+        title: d.input.title,
+        expiresAt: d.input.expiresAt,
+        actorId: d.input.actorId
+      }
+    });
+  }
+
+  async createUploadedFileFromByteStream(
+    d: CargoTenantEnvironment & {
+      purpose: string;
+      content: AsyncIterable<Uint8Array>;
+      input: {
+        id?: string;
+        name: string;
+        mimeType?: string;
+        title?: string;
+        expiresAt?: Date;
+        actorId?: string;
+      };
+    }
+  ) {
+    let mimeType = d.input.mimeType ?? 'application/octet-stream';
+    let storeId = generatePlainId(20);
+    let chunks: Uint8Array[] = [];
+    let size = 0;
+
+    for await (let chunk of d.content) {
+      chunks.push(chunk);
+      size += chunk.byteLength;
+    }
+
+    await getStorage().putObject(
+      getCargoFilesBucketName(),
+      storeId,
+      new Blob(chunks as any[]),
+      mimeType
+    );
+
+    return await this.createFile({
+      tenant: d.tenant,
+      environment: d.environment,
+      purpose: d.purpose,
+      storeId,
+      internal: {
+        isReadOnly: true
+      },
+      input: {
+        id: d.input.id,
+        name: d.input.name,
+        mimeType,
+        size,
+        title: d.input.title,
+        expiresAt: d.input.expiresAt,
+        actorId: d.input.actorId
+      }
+    });
+  }
+
+  async updateFileExpiry(d: { file: Pick<File, 'id'>; expiresAt: Date }) {
+    return await db.file.update({
+      where: {
+        id: d.file.id
+      },
+      data: {
+        expiresAt: d.expiresAt
+      },
+      include
+    });
   }
 
   async updateFile(d: {

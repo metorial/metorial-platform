@@ -194,6 +194,10 @@ export let cargoServiceEnv: Env = [
   {
     key: 'CODE_BUCKET_SERVICE_URL',
     defaultValue: `${HOSTNAME}:5050`
+  },
+  {
+    key: 'VOYAGER_URL',
+    defaultValue: 'http://services:52060/metorial-voyager'
   }
 ];
 

@@ -216,7 +216,7 @@ class SkillPluginServiceImpl {
       skillConfigurationIds?: string[];
       statuses?: Array<'active' | 'archived' | 'deleted'>;
       category?: string;
-      slug?: string;
+      search?: string;
       createdAt?: any;
       updatedAt?: any;
     }
@@ -237,7 +237,7 @@ class SkillPluginServiceImpl {
         skillConfigurationIds: d.skillConfigurationIds,
         statuses: d.statuses,
         category: d.category,
-        slug: d.slug,
+        search: d.search,
         createdAt: d.createdAt,
         updatedAt: d.updatedAt,
         ...input

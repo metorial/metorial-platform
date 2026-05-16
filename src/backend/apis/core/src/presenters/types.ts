@@ -86,6 +86,7 @@ import type {
   CargoStorePermissions,
   CargoSkillAgent,
   CargoSkillConfiguration,
+  EnrichedCargoSkillExport,
   EnrichedCargoSkillMarketplace,
   EnrichedCargoSkillMarketplacePlugin,
   EnrichedCargoSkillMarketplaceRepository,
@@ -492,6 +493,10 @@ export let skillAgentType = PresentableType.create<{
 export let skillConfigurationType = PresentableType.create<{
   skillConfiguration: CargoSkillConfiguration;
 }>()('skillConfiguration');
+
+export let skillExportType = PresentableType.create<{
+  skillExport: EnrichedCargoSkillExport;
+}>()('skillExport');
 
 export let skillMarketplaceType = PresentableType.create<{
   skillMarketplace: EnrichedCargoSkillMarketplace;

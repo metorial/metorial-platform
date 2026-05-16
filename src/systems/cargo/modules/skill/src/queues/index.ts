@@ -9,6 +9,7 @@ import {
   flushDirtySkillDestinationsManyQueueProcessor,
   flushDirtySkillDestinationsSingleQueueProcessor
 } from './dirty/flush';
+import { skillExportQueueProcessor } from './export';
 import { lifecycleQueues } from './lifecycle';
 import { searchQueues } from './search';
 import { syncCollectQueueProcessor } from './sync/collect';
@@ -36,8 +37,10 @@ export let skillQueueProcessor = combineQueueProcessors([
   syncPropagateStartQueueProcessor,
   syncPropagatePerformQueueProcessor,
   syncPropagateWaitQueueProcessor,
-  syncFinishQueueProcessor
+  syncFinishQueueProcessor,
+  skillExportQueueProcessor
 ]);
 
 export * from './lifecycle';
 export * from './search';
+export * from './export';

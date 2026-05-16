@@ -11,7 +11,9 @@ import {
   type ChannelCredentials,
   Client,
   type ClientOptions,
+  type ClientReadableStream,
   type ClientUnaryCall,
+  type handleServerStreamingCall,
   type handleUnaryCall,
   makeGenericClientConstructor,
   type Metadata,
@@ -115,6 +117,10 @@ export interface GetBucketFilesAsZipRequest {
 export interface GetBucketFilesAsZipResponse {
   downloadUrl: string;
   expiresAt: Long;
+}
+
+export interface GetBucketFilesAsZipChunk {
+  content: Uint8Array;
 }
 
 export interface SetBucketFilesRequest {
@@ -1699,6 +1705,64 @@ export const GetBucketFilesAsZipResponse: MessageFns<GetBucketFilesAsZipResponse
   },
 };
 
+function createBaseGetBucketFilesAsZipChunk(): GetBucketFilesAsZipChunk {
+  return { content: new Uint8Array(0) };
+}
+
+export const GetBucketFilesAsZipChunk: MessageFns<GetBucketFilesAsZipChunk> = {
+  encode(message: GetBucketFilesAsZipChunk, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.content.length !== 0) {
+      writer.uint32(10).bytes(message.content);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetBucketFilesAsZipChunk {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetBucketFilesAsZipChunk();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.content = reader.bytes();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetBucketFilesAsZipChunk {
+    return { content: isSet(object.content) ? bytesFromBase64(object.content) : new Uint8Array(0) };
+  },
+
+  toJSON(message: GetBucketFilesAsZipChunk): unknown {
+    const obj: any = {};
+    if (message.content.length !== 0) {
+      obj.content = base64FromBytes(message.content);
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<GetBucketFilesAsZipChunk>): GetBucketFilesAsZipChunk {
+    return GetBucketFilesAsZipChunk.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<GetBucketFilesAsZipChunk>): GetBucketFilesAsZipChunk {
+    const message = createBaseGetBucketFilesAsZipChunk();
+    message.content = object.content ?? new Uint8Array(0);
+    return message;
+  },
+};
+
 function createBaseSetBucketFilesRequest(): SetBucketFilesRequest {
   return { bucketId: "", files: [] };
 }
@@ -2897,6 +2961,17 @@ export const CodeBucketService = {
       Buffer.from(GetBucketFilesAsZipResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): GetBucketFilesAsZipResponse => GetBucketFilesAsZipResponse.decode(value),
   },
+  getBucketFilesAsZipStream: {
+    path: "/rpc.rpc.CodeBucket/GetBucketFilesAsZipStream" as const,
+    requestStream: false as const,
+    responseStream: true as const,
+    requestSerialize: (value: GetBucketFilesAsZipRequest): Buffer =>
+      Buffer.from(GetBucketFilesAsZipRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetBucketFilesAsZipRequest => GetBucketFilesAsZipRequest.decode(value),
+    responseSerialize: (value: GetBucketFilesAsZipChunk): Buffer =>
+      Buffer.from(GetBucketFilesAsZipChunk.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetBucketFilesAsZipChunk => GetBucketFilesAsZipChunk.decode(value),
+  },
   setBucketFiles: {
     path: "/rpc.rpc.CodeBucket/SetBucketFiles" as const,
     requestStream: false as const,
@@ -2975,6 +3050,7 @@ export interface CodeBucketServer extends UntypedServiceImplementation {
   getBucketFiles: handleUnaryCall<GetBucketFilesRequest, GetBucketFilesResponse>;
   getBucketFilesWithContent: handleUnaryCall<GetBucketFilesRequest, GetBucketFilesWithContentResponse>;
   getBucketFilesAsZip: handleUnaryCall<GetBucketFilesAsZipRequest, GetBucketFilesAsZipResponse>;
+  getBucketFilesAsZipStream: handleServerStreamingCall<GetBucketFilesAsZipRequest, GetBucketFilesAsZipChunk>;
   setBucketFiles: handleUnaryCall<SetBucketFilesRequest, SetBucketFilesResponse>;
   setBucketFile: handleUnaryCall<SetBucketFileRequest, SetBucketFileResponse>;
   deleteBucketFile: handleUnaryCall<DeleteBucketFileRequest, DeleteBucketFileResponse>;
@@ -3134,6 +3210,15 @@ export interface CodeBucketClient extends Client {
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: GetBucketFilesAsZipResponse) => void,
   ): ClientUnaryCall;
+  getBucketFilesAsZipStream(
+    request: GetBucketFilesAsZipRequest,
+    options?: Partial<CallOptions>,
+  ): ClientReadableStream<GetBucketFilesAsZipChunk>;
+  getBucketFilesAsZipStream(
+    request: GetBucketFilesAsZipRequest,
+    metadata?: Metadata,
+    options?: Partial<CallOptions>,
+  ): ClientReadableStream<GetBucketFilesAsZipChunk>;
   setBucketFiles(
     request: SetBucketFilesRequest,
     callback: (error: ServiceError | null, response: SetBucketFilesResponse) => void,

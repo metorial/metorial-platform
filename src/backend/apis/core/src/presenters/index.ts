@@ -160,6 +160,7 @@ import {
   v1SkillItemPresenter,
   v1SkillAgentPresenter,
   v1SkillConfigurationPresenter,
+  v1SkillExportPresenter,
   v1SkillMarketplacePresenter,
   v1SkillMarketplacePluginPresenter,
   v1SkillMarketplaceRepositoryPresenter,
@@ -331,6 +332,7 @@ import {
   skillItemType,
   skillAgentType,
   skillConfigurationType,
+  skillExportType,
   skillMarketplaceType,
   skillMarketplacePluginType,
   skillMarketplaceRepositoryType,
@@ -574,6 +576,11 @@ export let skillAgentPresenter = declarePresenter(skillAgentType, {
 export let skillConfigurationPresenter = declarePresenter(skillConfigurationType, {
   mt_2025_01_01_dashboard: v1SkillConfigurationPresenter,
   mt_2026_01_01_magnetar: v1SkillConfigurationPresenter
+});
+
+export let skillExportPresenter = declarePresenter(skillExportType, {
+  mt_2025_01_01_dashboard: v1SkillExportPresenter,
+  mt_2026_01_01_magnetar: v1SkillExportPresenter
 });
 
 export let skillMarketplacePresenter = declarePresenter(skillMarketplaceType, {

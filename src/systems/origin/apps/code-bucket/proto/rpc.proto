@@ -16,6 +16,7 @@ service CodeBucket {
   rpc GetBucketFiles(GetBucketFilesRequest) returns (GetBucketFilesResponse);
   rpc GetBucketFilesWithContent(GetBucketFilesRequest) returns (GetBucketFilesWithContentResponse);
   rpc GetBucketFilesAsZip(GetBucketFilesAsZipRequest) returns (GetBucketFilesAsZipResponse);
+  rpc GetBucketFilesAsZipStream(GetBucketFilesAsZipRequest) returns (stream GetBucketFilesAsZipChunk);
 
   rpc SetBucketFiles(SetBucketFilesRequest) returns (SetBucketFilesResponse);
   rpc SetBucketFile(SetBucketFileRequest) returns (SetBucketFileResponse);
@@ -111,6 +112,10 @@ message GetBucketFilesAsZipRequest {
 message GetBucketFilesAsZipResponse {
   string download_url = 1;
   int64 expires_at = 2;
+}
+
+message GetBucketFilesAsZipChunk {
+  bytes content = 1;
 }
 
 message SetBucketFilesRequest {

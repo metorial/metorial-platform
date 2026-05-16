@@ -162,6 +162,19 @@ func (rs *RcpService) GetBucketFilesAsZip(ctx context.Context, req *rpc.GetBucke
 	}, nil
 }
 
+func (rs *RcpService) GetBucketFilesAsZipStream(req *rpc.GetBucketFilesAsZipRequest, stream rpc.CodeBucket_GetBucketFilesAsZipStreamServer) error {
+	err := rs.fsm.StreamBucketFilesAsZip(stream.Context(), req.BucketId, req.Prefix, func(chunk []byte) error {
+		return stream.Send(&rpc.GetBucketFilesAsZipChunk{
+			Content: chunk,
+		})
+	})
+	if err != nil {
+		return status.Errorf(codes.Internal, "failed to stream files as zip: %v", err)
+	}
+
+	return nil
+}
+
 func (rs *RcpService) GetBucketFilesWithContent(ctx context.Context, req *rpc.GetBucketFilesRequest) (*rpc.GetBucketFilesWithContentResponse, error) {
 	files, err := rs.fsm.GetBucketFiles(ctx, req.BucketId, req.Prefix)
 	if err != nil {

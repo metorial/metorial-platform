@@ -10,73 +10,67 @@ export let indexSkillMarketplaceQueue = createQueue<{ skillMarketplaceId: string
   }
 });
 
-export let indexSkillMarketplaceRecord = async (d: { skillMarketplaceId: string }) => {
-  let skillMarketplace = await db.skillMarketplace.findUnique({
-    where: { id: d.skillMarketplaceId },
-    include: {
-      tenant: true,
-      plugins: {
-        where: {
-          status: 'active',
-          skillPlugin: {
+export let indexSkillMarketplaceQueueProcessor = indexSkillMarketplaceQueue.process(
+  async data => {
+    let skillMarketplace = await db.skillMarketplace.findUnique({
+      where: { id: data.skillMarketplaceId },
+      include: {
+        tenant: true,
+        plugins: {
+          where: {
             status: 'active',
-            isManaged: false
-          }
-        },
-        include: {
-          skillPlugin: {
-            select: {
-              id: true,
-              name: true,
-              slug: true,
-              description: true,
-              longDescription: true,
-              category: true
+            skillPlugin: {
+              status: 'active',
+              isManaged: false
+            }
+          },
+          include: {
+            skillPlugin: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                description: true,
+                longDescription: true,
+                category: true
+              }
             }
           }
         }
       }
-    }
-  });
-  if (!skillMarketplace) throw new QueueRetryError();
+    });
+    if (!skillMarketplace) throw new QueueRetryError();
 
-  if (skillMarketplace.status !== 'active') {
-    await voyager.record.delete({
+    if (skillMarketplace.status !== 'active') {
+      await voyager.record.delete({
+        sourceId: (await voyagerSource).id,
+        indexId: voyagerIndex.skillMarketplace.id,
+        documentIds: [skillMarketplace.id]
+      });
+      return;
+    }
+
+    await voyager.record.index({
       sourceId: (await voyagerSource).id,
       indexId: voyagerIndex.skillMarketplace.id,
-      documentIds: [skillMarketplace.id]
+      documentId: skillMarketplace.id,
+      tenantIds: [skillMarketplace.tenant.id],
+      fields: {
+        skillMarketplaceId: skillMarketplace.id,
+        skillPluginIds: skillMarketplace.plugins.map(item => item.skillPlugin.id)
+      },
+      body: {
+        name: skillMarketplace.name,
+        slug: skillMarketplace.slug,
+        description: skillMarketplace.description,
+        pluginNames: skillMarketplace.plugins.map(item => item.skillPlugin.name),
+        pluginSlugs: skillMarketplace.plugins.map(item => item.skillPlugin.slug),
+        pluginDescriptions: skillMarketplace.plugins.map(item => item.skillPlugin.description),
+        pluginLongDescriptions: skillMarketplace.plugins.map(
+          item => item.skillPlugin.longDescription
+        ),
+        pluginCategories: skillMarketplace.plugins.map(item => item.skillPlugin.category)
+      }
     });
-    return;
-  }
-
-  await voyager.record.index({
-    sourceId: (await voyagerSource).id,
-    indexId: voyagerIndex.skillMarketplace.id,
-    documentId: skillMarketplace.id,
-    tenantIds: [skillMarketplace.tenant.id],
-    fields: {
-      skillMarketplaceId: skillMarketplace.id,
-      skillPluginIds: skillMarketplace.plugins.map(item => item.skillPlugin.id)
-    },
-    body: {
-      name: skillMarketplace.name,
-      slug: skillMarketplace.slug,
-      description: skillMarketplace.description,
-      pluginNames: skillMarketplace.plugins.map(item => item.skillPlugin.name),
-      pluginSlugs: skillMarketplace.plugins.map(item => item.skillPlugin.slug),
-      pluginDescriptions: skillMarketplace.plugins.map(
-        item => item.skillPlugin.description
-      ),
-      pluginLongDescriptions: skillMarketplace.plugins.map(
-        item => item.skillPlugin.longDescription
-      ),
-      pluginCategories: skillMarketplace.plugins.map(item => item.skillPlugin.category)
-    }
-  });
-};
-
-export let indexSkillMarketplaceQueueProcessor = indexSkillMarketplaceQueue.process(
-  async data => {
-    await indexSkillMarketplaceRecord(data);
   }
 );

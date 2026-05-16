@@ -29,6 +29,7 @@ const (
 	CodeBucket_GetBucketFiles_FullMethodName            = "/rpc.rpc.CodeBucket/GetBucketFiles"
 	CodeBucket_GetBucketFilesWithContent_FullMethodName = "/rpc.rpc.CodeBucket/GetBucketFilesWithContent"
 	CodeBucket_GetBucketFilesAsZip_FullMethodName       = "/rpc.rpc.CodeBucket/GetBucketFilesAsZip"
+	CodeBucket_GetBucketFilesAsZipStream_FullMethodName = "/rpc.rpc.CodeBucket/GetBucketFilesAsZipStream"
 	CodeBucket_SetBucketFiles_FullMethodName            = "/rpc.rpc.CodeBucket/SetBucketFiles"
 	CodeBucket_SetBucketFile_FullMethodName             = "/rpc.rpc.CodeBucket/SetBucketFile"
 	CodeBucket_DeleteBucketFile_FullMethodName          = "/rpc.rpc.CodeBucket/DeleteBucketFile"
@@ -51,6 +52,7 @@ type CodeBucketClient interface {
 	GetBucketFiles(ctx context.Context, in *GetBucketFilesRequest, opts ...grpc.CallOption) (*GetBucketFilesResponse, error)
 	GetBucketFilesWithContent(ctx context.Context, in *GetBucketFilesRequest, opts ...grpc.CallOption) (*GetBucketFilesWithContentResponse, error)
 	GetBucketFilesAsZip(ctx context.Context, in *GetBucketFilesAsZipRequest, opts ...grpc.CallOption) (*GetBucketFilesAsZipResponse, error)
+	GetBucketFilesAsZipStream(ctx context.Context, in *GetBucketFilesAsZipRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[GetBucketFilesAsZipChunk], error)
 	SetBucketFiles(ctx context.Context, in *SetBucketFilesRequest, opts ...grpc.CallOption) (*SetBucketFilesResponse, error)
 	SetBucketFile(ctx context.Context, in *SetBucketFileRequest, opts ...grpc.CallOption) (*SetBucketFileResponse, error)
 	DeleteBucketFile(ctx context.Context, in *DeleteBucketFileRequest, opts ...grpc.CallOption) (*DeleteBucketFileResponse, error)
@@ -167,6 +169,25 @@ func (c *codeBucketClient) GetBucketFilesAsZip(ctx context.Context, in *GetBucke
 	return out, nil
 }
 
+func (c *codeBucketClient) GetBucketFilesAsZipStream(ctx context.Context, in *GetBucketFilesAsZipRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[GetBucketFilesAsZipChunk], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &CodeBucket_ServiceDesc.Streams[0], CodeBucket_GetBucketFilesAsZipStream_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[GetBucketFilesAsZipRequest, GetBucketFilesAsZipChunk]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type CodeBucket_GetBucketFilesAsZipStreamClient = grpc.ServerStreamingClient[GetBucketFilesAsZipChunk]
+
 func (c *codeBucketClient) SetBucketFiles(ctx context.Context, in *SetBucketFilesRequest, opts ...grpc.CallOption) (*SetBucketFilesResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(SetBucketFilesResponse)
@@ -241,6 +262,7 @@ type CodeBucketServer interface {
 	GetBucketFiles(context.Context, *GetBucketFilesRequest) (*GetBucketFilesResponse, error)
 	GetBucketFilesWithContent(context.Context, *GetBucketFilesRequest) (*GetBucketFilesWithContentResponse, error)
 	GetBucketFilesAsZip(context.Context, *GetBucketFilesAsZipRequest) (*GetBucketFilesAsZipResponse, error)
+	GetBucketFilesAsZipStream(*GetBucketFilesAsZipRequest, grpc.ServerStreamingServer[GetBucketFilesAsZipChunk]) error
 	SetBucketFiles(context.Context, *SetBucketFilesRequest) (*SetBucketFilesResponse, error)
 	SetBucketFile(context.Context, *SetBucketFileRequest) (*SetBucketFileResponse, error)
 	DeleteBucketFile(context.Context, *DeleteBucketFileRequest) (*DeleteBucketFileResponse, error)
@@ -286,6 +308,9 @@ func (UnimplementedCodeBucketServer) GetBucketFilesWithContent(context.Context, 
 }
 func (UnimplementedCodeBucketServer) GetBucketFilesAsZip(context.Context, *GetBucketFilesAsZipRequest) (*GetBucketFilesAsZipResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetBucketFilesAsZip not implemented")
+}
+func (UnimplementedCodeBucketServer) GetBucketFilesAsZipStream(*GetBucketFilesAsZipRequest, grpc.ServerStreamingServer[GetBucketFilesAsZipChunk]) error {
+	return status.Errorf(codes.Unimplemented, "method GetBucketFilesAsZipStream not implemented")
 }
 func (UnimplementedCodeBucketServer) SetBucketFiles(context.Context, *SetBucketFilesRequest) (*SetBucketFilesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetBucketFiles not implemented")
@@ -506,6 +531,17 @@ func _CodeBucket_GetBucketFilesAsZip_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CodeBucket_GetBucketFilesAsZipStream_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(GetBucketFilesAsZipRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(CodeBucketServer).GetBucketFilesAsZipStream(m, &grpc.GenericServerStream[GetBucketFilesAsZipRequest, GetBucketFilesAsZipChunk]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type CodeBucket_GetBucketFilesAsZipStreamServer = grpc.ServerStreamingServer[GetBucketFilesAsZipChunk]
+
 func _CodeBucket_SetBucketFiles_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SetBucketFilesRequest)
 	if err := dec(in); err != nil {
@@ -686,6 +722,12 @@ var CodeBucket_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _CodeBucket_ExportBucketToGitlab_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "GetBucketFilesAsZipStream",
+			Handler:       _CodeBucket_GetBucketFilesAsZipStream_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "rpc.proto",
 }

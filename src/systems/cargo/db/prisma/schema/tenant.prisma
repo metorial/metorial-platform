@@ -98,6 +98,7 @@ model TenantActor {
   createdSkills          Skill[]                  @relation("SkillCreator")
   createdFiles           File[]                   @relation("FileCreator")
   createdFileLinks       FileLink[]               @relation("FileLinkCreator")
+  createdSkillExports    SkillExport[]            @relation("SkillExportCreator")
   documentVersionEditors DocumentVersionEditors[]
   storeParticipants      StoreParticipant[]
   skillParticipants      SkillParticipant[]

@@ -410,6 +410,9 @@ model SkillExport {
   fileLinkOid BigInt?
   fileLink    FileLink? @relation(fields: [fileLinkOid], references: [oid], onDelete: SetNull)
 
+  creatorTenantActorOid BigInt?
+  creatorTenantActor    TenantActor? @relation("SkillExportCreator", fields: [creatorTenantActorOid], references: [oid], onDelete: SetNull)
+
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
 
@@ -421,6 +424,7 @@ model SkillExport {
   completedAt DateTime?
 
   @@index([status])
+  @@index([creatorTenantActorOid])
 }
 
 model ManagedSkillPlugin {

@@ -41,7 +41,7 @@ type ListSkillMarketplacesInput = SkillMarketplaceAccessInput & {
   ids?: string[];
   statuses?: Array<'active' | 'archived' | 'deleted'>;
   skillConfigurationIds?: string[];
-  slug?: string;
+  search?: string;
   createdAt?: any;
   updatedAt?: any;
 };
@@ -273,7 +273,7 @@ class SkillMarketplaceServiceImpl {
         skillMarketplaceIds: d.ids,
         statuses: d.statuses,
         skillConfigurationIds: d.skillConfigurationIds,
-        slug: d.slug,
+        search: d.search,
         createdAt: d.createdAt,
         updatedAt: d.updatedAt,
         ...input

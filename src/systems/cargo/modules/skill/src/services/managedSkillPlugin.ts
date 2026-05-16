@@ -6,11 +6,9 @@ import type { Prisma, SkillPluginSkillStatus, SkillPluginStatus } from '@metoria
 import { db, getId, withTransaction } from '@metorial-cargo/db';
 import type { CargoTenantEnvironment } from '@metorial-cargo/module-file';
 import { createSkillDestination } from '../internal/skillDestination';
-import {
-  enqueueSkillPluginSkillLifecycle
-} from '../queues/lifecycle/skillPluginSkill';
-import { enqueueSkillPluginLifecycle } from '../queues/lifecycle/skillPlugin';
 import type { LifecycleEvent } from '../queues/lifecycle/_ids';
+import { enqueueSkillPluginLifecycle } from '../queues/lifecycle/skillPlugin';
+import { enqueueSkillPluginSkillLifecycle } from '../queues/lifecycle/skillPluginSkill';
 import { skillPluginInclude } from './skillPlugin';
 
 let managedSkillPluginInclude = {
@@ -23,8 +21,6 @@ let managedSkillPluginInclude = {
 export type ManagedSkillPluginRecord = Prisma.ManagedSkillPluginGetPayload<{
   include: typeof managedSkillPluginInclude;
 }>;
-
-let managedPluginSkillSlug = 'skill';
 
 type SkillForManagedPlugin = Prisma.SkillGetPayload<{
   include: {
@@ -41,17 +37,21 @@ type ManagedSkillPluginValues = {
 };
 
 class ManagedSkillPluginServiceImpl {
-  private async getManagedValues(skill: Pick<SkillForManagedPlugin, 'id' | 'name' | 'description'>) {
+  private async getManagedValues(
+    skill: Pick<SkillForManagedPlugin, 'id' | 'name' | 'description' | 'clientName'>
+  ) {
     let name = skill.name?.trim() ? skill.name : skill.id;
     let description = skill.description ?? null;
 
     return {
       name,
       description,
-      slug: slugify(`managed-${skill.id}`),
+      slug: slugify(
+        `managed-${(skill.clientName ?? skill.name ?? skill.id).replaceAll('_', '-')}`
+      ),
       configHash: await Hash.sha256(
         JSON.stringify({
-          version: 1,
+          version: 3,
           name,
           description
         })
@@ -141,7 +141,9 @@ class ManagedSkillPluginServiceImpl {
         data: {
           ...getId('skillPluginSkill'),
           status: 'active' as SkillPluginSkillStatus,
-          pluginSkillSlug: managedPluginSkillSlug,
+          pluginSkillSlug: slugify(
+            (skill.clientName ?? skill.name ?? skill.id).replaceAll('_', '-')
+          ),
           skillOid: skill.oid,
           skillPluginOid: skillPlugin.oid
         }
@@ -246,7 +248,6 @@ class ManagedSkillPluginServiceImpl {
             },
             data: {
               status: 'active',
-              pluginSkillSlug: managedPluginSkillSlug,
               clientName: null,
               clientDescription: null,
               clientMetadata: null,
@@ -265,7 +266,13 @@ class ManagedSkillPluginServiceImpl {
             data: {
               ...getId('skillPluginSkill'),
               status: 'active',
-              pluginSkillSlug: managedPluginSkillSlug,
+              pluginSkillSlug: slugify(
+                (
+                  managedSkillPlugin.skill.clientName ??
+                  managedSkillPlugin.skill.name ??
+                  managedSkillPlugin.skill.id
+                ).replaceAll('_', '-')
+              ),
               skillOid: managedSkillPlugin.skillOid,
               skillPluginOid: managedSkillPlugin.skillPluginOid
             },

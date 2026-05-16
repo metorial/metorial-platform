@@ -64,6 +64,7 @@ model File {
   skillExports      SkillExport[]
   skillExportRefs   SkillExportRef[]
 
+  @@index([storeId, status])
   @@index([status, expiresAt, oid])
 }
 

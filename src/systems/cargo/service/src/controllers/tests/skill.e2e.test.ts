@@ -186,6 +186,104 @@ describe('cargo skill.e2e', () => {
     await cleanDatabase();
   });
 
+  it('filters skill exports by creator actor', async () => {
+    let { tenant, environment } = await createScope();
+    let firstActor = await createActor(tenant.id, {
+      identifier: 'skill-export-first',
+      name: 'Skill Export First'
+    });
+    let secondActor = await createActor(tenant.id, {
+      identifier: 'skill-export-second',
+      name: 'Skill Export Second'
+    });
+    let { tenant: tenantRecord, environment: environmentRecord } = await getCargoScopeRecords({
+      tenantId: tenant.id,
+      environmentId: environment.id
+    });
+    let firstActorRecord = await db.tenantActor.findUniqueOrThrow({
+      where: {
+        id: firstActor.id
+      }
+    });
+    let secondActorRecord = await db.tenantActor.findUniqueOrThrow({
+      where: {
+        id: secondActor.id
+      }
+    });
+
+    let firstExportRef = await db.skillExportRef.create({
+      data: {
+        oid: getId('skillExport').oid,
+        hash: 'test-export-first',
+        tenantOid: tenantRecord.oid,
+        environmentOid: environmentRecord.oid
+      }
+    });
+    let secondExportRef = await db.skillExportRef.create({
+      data: {
+        oid: getId('skillExport').oid,
+        hash: 'test-export-second',
+        tenantOid: tenantRecord.oid,
+        environmentOid: environmentRecord.oid
+      }
+    });
+    let firstExportIds = getId('skillExport');
+    let secondExportIds = getId('skillExport');
+
+    let firstExport = await db.skillExport.create({
+      data: {
+        ...firstExportIds,
+        target: 'plugin',
+        status: 'completed',
+        exportRefOid: firstExportRef.oid,
+        creatorTenantActorOid: firstActorRecord.oid,
+        tenantOid: tenantRecord.oid,
+        environmentOid: environmentRecord.oid
+      }
+    });
+    let secondExport = await db.skillExport.create({
+      data: {
+        ...secondExportIds,
+        target: 'plugin',
+        status: 'completed',
+        exportRefOid: secondExportRef.oid,
+        creatorTenantActorOid: secondActorRecord.oid,
+        tenantOid: tenantRecord.oid,
+        environmentOid: environmentRecord.oid
+      }
+    });
+
+    let listedForFirstActor = await cargoClient.skillExport.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      actorId: firstActor.id,
+      limit: 10
+    });
+
+    expect(listedForFirstActor.items.map(item => item.id)).toEqual([firstExport.id]);
+    expect(
+      await cargoClient.skillExport.get({
+        tenantId: tenant.id,
+        environmentId: environment.id,
+        actorId: firstActor.id,
+        skillExportId: firstExport.id
+      })
+    ).toMatchObject({
+      id: firstExport.id,
+      createdBy: {
+        id: firstActor.id
+      }
+    });
+    await expect(
+      cargoClient.skillExport.get({
+        tenantId: tenant.id,
+        environmentId: environment.id,
+        actorId: firstActor.id,
+        skillExportId: secondExport.id
+      })
+    ).rejects.toThrow();
+  });
+
   it('creates, lists, gets, and updates skills with linked stores', async () => {
     let { tenant, environment } = await createScope();
     let actor = await createActor(tenant.id, {

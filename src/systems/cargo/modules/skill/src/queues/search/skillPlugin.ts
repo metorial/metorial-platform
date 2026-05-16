@@ -10,9 +10,9 @@ export let indexSkillPluginQueue = createQueue<{ skillPluginId: string }>({
   }
 });
 
-export let indexSkillPluginRecord = async (d: { skillPluginId: string }) => {
+export let indexSkillPluginQueueProcessor = indexSkillPluginQueue.process(async data => {
   let skillPlugin = await db.skillPlugin.findUnique({
-    where: { id: d.skillPluginId },
+    where: { id: data.skillPluginId },
     include: {
       tenant: true,
       skillPluginSkills: {
@@ -90,8 +90,4 @@ export let indexSkillPluginRecord = async (d: { skillPluginId: string }) => {
       )
     }
   });
-};
-
-export let indexSkillPluginQueueProcessor = indexSkillPluginQueue.process(async data => {
-  await indexSkillPluginRecord(data);
 });

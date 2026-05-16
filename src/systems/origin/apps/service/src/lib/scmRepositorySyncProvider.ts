@@ -87,9 +87,9 @@ let initializeEmptyGitHubRepository = async (d: {
     init = await d.octokit.request('PUT /repos/{owner}/{repo}/contents/{path}', {
       owner: d.repo.externalOwner,
       repo: d.repo.externalName,
-      path: '.metorial-init',
+      path: '.gitignore',
       message: 'Initialize repository',
-      content: Buffer.from('Initialized by Metorial Origin.\n', 'utf-8').toString('base64'),
+      content: Buffer.from('\n', 'utf-8').toString('base64'),
       branch: d.branchName
     });
   } catch (e: any) {
@@ -103,9 +103,9 @@ let initializeEmptyGitHubRepository = async (d: {
     init = await d.octokit.request('PUT /repos/{owner}/{repo}/contents/{path}', {
       owner: d.repo.externalOwner,
       repo: d.repo.externalName,
-      path: '.metorial-init',
+      path: '.gitignore',
       message: 'Initialize repository',
-      content: Buffer.from('Initialized by Metorial Origin.\n', 'utf-8').toString('base64')
+      content: Buffer.from('\n', 'utf-8').toString('base64')
     });
   }
 
@@ -451,14 +451,17 @@ export let cleanupRepositorySyncBranchIfNoChanges = async (
         branchName: sync.branchName
       });
     } else if (!hasChanges) {
-      logGitHubSyncDebug('skipped deleting unchanged sync branch because it matches base branch', {
-        syncId: sync.id,
-        repoId: sync.repo.id,
-        owner: sync.repo.externalOwner,
-        repo: sync.repo.externalName,
-        baseBranch: sync.baseBranch,
-        branchName: sync.branchName
-      });
+      logGitHubSyncDebug(
+        'skipped deleting unchanged sync branch because it matches base branch',
+        {
+          syncId: sync.id,
+          repoId: sync.repo.id,
+          owner: sync.repo.externalOwner,
+          repo: sync.repo.externalName,
+          baseBranch: sync.baseBranch,
+          branchName: sync.branchName
+        }
+      );
     }
 
     return { hasChanges, baseSha, branchSha };
@@ -505,13 +508,16 @@ export let cleanupRepositorySyncBranchIfNoChanges = async (
         branchName: sync.branchName
       });
     } else if (!hasChanges) {
-      logGitLabSyncDebug('skipped deleting unchanged sync branch because it matches base branch', {
-        syncId: sync.id,
-        repoId: sync.repo.id,
-        projectId: sync.repo.externalId,
-        baseBranch: sync.baseBranch,
-        branchName: sync.branchName
-      });
+      logGitLabSyncDebug(
+        'skipped deleting unchanged sync branch because it matches base branch',
+        {
+          syncId: sync.id,
+          repoId: sync.repo.id,
+          projectId: sync.repo.externalId,
+          baseBranch: sync.baseBranch,
+          branchName: sync.branchName
+        }
+      );
     }
 
     return { hasChanges, baseSha, branchSha };
@@ -910,14 +916,17 @@ export let mergeRepositorySyncPullRequest = async (
         });
       }
     } else {
-      logGitHubSyncDebug('skipped deleting merged sync branch because it matches base branch', {
-        syncId: sync.id,
-        repoId: sync.repo.id,
-        owner: sync.repo.externalOwner,
-        repo: sync.repo.externalName,
-        baseBranch: sync.baseBranch,
-        branchName: sync.branchName
-      });
+      logGitHubSyncDebug(
+        'skipped deleting merged sync branch because it matches base branch',
+        {
+          syncId: sync.id,
+          repoId: sync.repo.id,
+          owner: sync.repo.externalOwner,
+          repo: sync.repo.externalName,
+          baseBranch: sync.baseBranch,
+          branchName: sync.branchName
+        }
+      );
     }
 
     return { mergeSha: merge.data.sha };
@@ -986,13 +995,16 @@ export let mergeRepositorySyncPullRequest = async (
         });
       }
     } else {
-      logGitLabSyncDebug('skipped deleting merged sync branch because it matches base branch', {
-        syncId: sync.id,
-        repoId: sync.repo.id,
-        projectId: sync.repo.externalId,
-        baseBranch: sync.baseBranch,
-        branchName: sync.branchName
-      });
+      logGitLabSyncDebug(
+        'skipped deleting merged sync branch because it matches base branch',
+        {
+          syncId: sync.id,
+          repoId: sync.repo.id,
+          projectId: sync.repo.externalId,
+          baseBranch: sync.baseBranch,
+          branchName: sync.branchName
+        }
+      );
     }
 
     return { mergeSha: merge.merge_commit_sha ?? merge.sha };
