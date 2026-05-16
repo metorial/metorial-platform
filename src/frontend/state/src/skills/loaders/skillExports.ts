@@ -1,3 +1,4 @@
+import { delay } from '@lowerdeck/delay';
 import type {
   DashboardInstanceSkillsExportsCreateBody,
   DashboardInstanceSkillsExportsGetOutput
@@ -16,15 +17,13 @@ export let skillExportsLoader = createLoader({
   mutators: {}
 });
 
-let wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
 let pollSkillExport = async (d: {
   get: (skillExportId: string) => Promise<DashboardInstanceSkillsExportsGetOutput>;
   skillExportId: string;
 }) => {
   let startedAt = Date.now();
   let timeoutMs = 10 * 60 * 1000;
-  let intervalMs = 1500;
+  let intervalMs = 5000;
 
   while (Date.now() - startedAt < timeoutMs) {
     let skillExport = await d.get(d.skillExportId);
@@ -36,7 +35,7 @@ let pollSkillExport = async (d: {
 
     if (skillExport.status === 'failed') throw new Error('Export failed');
 
-    await wait(intervalMs);
+    await delay(intervalMs);
   }
 
   throw new Error('Export timed out');

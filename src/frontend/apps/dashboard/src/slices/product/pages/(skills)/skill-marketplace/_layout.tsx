@@ -2,14 +2,15 @@ import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
 import {
+  useCreateSkillExport,
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
-  useCreateSkillExport,
   useSkillMarketplace
 } from '@metorial/state';
 import { Button, Callout, Flex, LinkTabs, Spacer, toast } from '@metorial/ui';
 import { Outlet, useLocation, useParams } from 'react-router-dom';
+import { useInterval } from 'react-use';
 
 let downloadExport = (url: string, fileName: string) => {
   let link = document.createElement('a');
@@ -62,6 +63,15 @@ export let SkillMarketplaceLayout = () => {
       }
     );
   };
+
+  useInterval(
+    () => {
+      if (marketplace.data?.syncStatus !== 'synced' && !syncMarketplace.isLoading) {
+        syncMarketplace.mutate({});
+      }
+    },
+    marketplace.data?.syncStatus === 'pending' ? 10_000 : 60_000
+  );
 
   return (
     <ContentLayout>

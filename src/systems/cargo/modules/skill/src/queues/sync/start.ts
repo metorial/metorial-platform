@@ -55,7 +55,7 @@ export let syncStartQueueProcessor = syncStartQueue.process(async data => {
       firstTransientChangeAt: null,
       shouldFlushAt: null,
       mustFlushAt: null,
-      tag: { increment: 1 }
+      tag: sync.destination.tag > 10_000_000 ? 0 : { increment: 1 }
     }
   });
 
