@@ -37,7 +37,10 @@ export let syncStartQueueProcessor = syncStartQueue.process(async data => {
     where: {
       oid: { not: sync.oid },
       status: { in: ['pending', 'processing'] },
-      destinationOid: sync.destinationOid
+      destinationOid: sync.destinationOid,
+
+      // Repo syncs cannot be canceled
+      isAtRepoSyncStage: false
     },
     data: { status: 'canceled', completedAt: new Date() }
   });

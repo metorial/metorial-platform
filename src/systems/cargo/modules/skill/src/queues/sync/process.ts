@@ -8,7 +8,7 @@ import { applyMarketplace } from '../../serializers/marketplace';
 import { applyPlugin, getPluginPath } from '../../serializers/plugin';
 import { applySkill, getSkillPath } from '../../serializers/skill';
 import { type SyncTask } from './_lib/task';
-import { syncPropagateQueue } from './propagate';
+import { syncPropagateStartQueue } from './propagate';
 
 let codeBucketClient = createCodeBucketClient({
   address: env.origin.CODE_BUCKET_SERVICE_URL
@@ -61,7 +61,7 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
 
   let task = data.tasks[0];
   if (!task) {
-    await syncPropagateQueue.add({
+    await syncPropagateStartQueue.add({
       skillDestinationSyncId: data.skillDestinationSyncId
     });
     return;
@@ -328,7 +328,7 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
       tasks
     });
   } else {
-    await syncPropagateQueue.add({
+    await syncPropagateStartQueue.add({
       skillDestinationSyncId: data.skillDestinationSyncId
     });
   }

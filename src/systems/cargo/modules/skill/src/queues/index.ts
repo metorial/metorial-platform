@@ -13,7 +13,11 @@ import { lifecycleQueues } from './lifecycle';
 import { syncCollectQueueProcessor } from './sync/collect';
 import { syncFinishQueueProcessor } from './sync/finish';
 import { syncProcessQueueProcessor } from './sync/process';
-import { syncPropagateQueueProcessor } from './sync/propagate';
+import {
+  syncPropagatePerformQueueProcessor,
+  syncPropagateStartQueueProcessor,
+  syncPropagateWaitQueueProcessor
+} from './sync/propagate';
 import { syncStartQueueProcessor } from './sync/start';
 
 export let skillQueueProcessor = combineQueueProcessors([
@@ -27,7 +31,9 @@ export let skillQueueProcessor = combineQueueProcessors([
   syncStartQueueProcessor,
   syncCollectQueueProcessor,
   syncProcessQueueProcessor,
-  syncPropagateQueueProcessor,
+  syncPropagateStartQueueProcessor,
+  syncPropagatePerformQueueProcessor,
+  syncPropagateWaitQueueProcessor,
   syncFinishQueueProcessor
 ]);
 

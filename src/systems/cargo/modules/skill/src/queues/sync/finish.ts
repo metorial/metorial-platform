@@ -19,6 +19,6 @@ export let syncFinishQueueProcessor = syncFinishQueue.process(async data => {
 
   await db.skillDestinationSync.updateMany({
     where: { id: data.skillDestinationSyncId },
-    data: { status: 'completed' }
+    data: { status: 'completed', completedAt: new Date() }
   });
 });

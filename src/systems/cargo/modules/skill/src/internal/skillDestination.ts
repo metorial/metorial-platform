@@ -7,7 +7,7 @@ export let origin = createOriginClient({
   endpoint: env.origin.ORIGIN_URL
 });
 
-let getOriginTenant = async (
+export let getOriginTenant = async (
   tenantInput: Pick<Tenant, 'oid' | 'id'> & Partial<Pick<Tenant, 'identifier' | 'name'>>
 ) => {
   let tenant =

@@ -41,6 +41,7 @@ model SkillMarketplace {
   skillExports          SkillExport[]
   plugins               SkillMarketplacePlugin[]
   skillDestinationItems SkillDestinationItem[]
+  repositories          SkillMarketplaceRepository[]
 }
 
 enum SkillMarketplacePluginStatus {
@@ -122,6 +123,65 @@ model SkillPlugin {
   skillExports            SkillExport[]
   skillMarketplacePlugins SkillMarketplacePlugin[]
   skillDestinationItems   SkillDestinationItem[]
+  repositories            SkillPluginRepository[]
+}
+
+model SkillRepository {
+  oid BigInt @id
+  id  String @unique
+
+  repoId      String @unique
+  syncCounter Int    @default(0)
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  marketplaceRepository SkillMarketplaceRepository?
+  pluginRepository      SkillPluginRepository?
+  propagations          SkillDestinationSyncRepositoryPropagation[]
+
+  @@index([tenantOid])
+  @@index([environmentOid])
+}
+
+model SkillMarketplaceRepository {
+  oid BigInt @id
+  id  String @unique
+
+  skillMarketplaceOid BigInt
+  skillMarketplace    SkillMarketplace @relation(fields: [skillMarketplaceOid], references: [oid], onDelete: Cascade)
+
+  skillRepositoryOid BigInt          @unique
+  skillRepository    SkillRepository @relation(fields: [skillRepositoryOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([skillMarketplaceOid, skillRepositoryOid])
+  @@index([skillMarketplaceOid])
+}
+
+model SkillPluginRepository {
+  oid BigInt @id
+  id  String @unique
+
+  skillPluginOid BigInt
+  skillPlugin    SkillPlugin @relation(fields: [skillPluginOid], references: [oid], onDelete: Cascade)
+
+  skillRepositoryOid BigInt          @unique
+  skillRepository    SkillRepository @relation(fields: [skillRepositoryOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([skillPluginOid, skillRepositoryOid])
+  @@index([skillPluginOid])
 }
 
 enum SkillPluginSkillStatus {
@@ -213,11 +273,20 @@ enum SkillDestinationSyncStatus {
   canceled
 }
 
+enum SkillDestinationSyncRepositoryPropagationStatus {
+  pending
+  processing
+  completed
+  failed
+  canceled
+}
+
 model SkillDestinationSync {
   oid BigInt @id
   id  String @unique
 
-  status SkillDestinationSyncStatus
+  status            SkillDestinationSyncStatus
+  isAtRepoSyncStage Boolean                    @default(false)
 
   destinationOid BigInt
   destination    SkillDestination @relation(fields: [destinationOid], references: [oid], onDelete: Cascade)
@@ -225,6 +294,42 @@ model SkillDestinationSync {
   createdAt   DateTime  @default(now())
   startedAt   DateTime?
   completedAt DateTime?
+
+  prName        String?
+  prDescription String?
+  commitMessage String?
+
+  repositoryPropagations SkillDestinationSyncRepositoryPropagation[]
+}
+
+model SkillDestinationSyncRepositoryPropagation {
+  oid BigInt @id
+  id  String @unique
+
+  status SkillDestinationSyncRepositoryPropagationStatus
+
+  originSyncId String?
+
+  branchName    String
+  prName        String
+  prDescription String?
+  commitMessage String?
+  errorMessage  String?
+
+  skillDestinationSyncOid BigInt
+  skillDestinationSync    SkillDestinationSync @relation(fields: [skillDestinationSyncOid], references: [oid], onDelete: Cascade)
+
+  skillRepositoryOid BigInt
+  skillRepository    SkillRepository @relation(fields: [skillRepositoryOid], references: [oid], onDelete: Cascade)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now()) @updatedAt
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  @@unique([skillDestinationSyncOid, skillRepositoryOid])
+  @@index([status])
+  @@index([originSyncId])
 }
 
 enum SkillExportTarget {

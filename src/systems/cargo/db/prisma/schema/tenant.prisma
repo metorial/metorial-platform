@@ -31,6 +31,7 @@ model Tenant {
   skillTemplates        SkillTemplate[]
   skillMarketplaces     SkillMarketplace[]
   skillPlugins          SkillPlugin[]
+  skillRepositories     SkillRepository[]
   skillExports          SkillExport[]
 }
 
@@ -61,6 +62,7 @@ model Environment {
   skillTemplates        SkillTemplate[]
   skillMarketplaces     SkillMarketplace[]
   skillPlugins          SkillPlugin[]
+  skillRepositories     SkillRepository[]
   skillExports          SkillExport[]
 
   @@unique([tenantOid, identifier])

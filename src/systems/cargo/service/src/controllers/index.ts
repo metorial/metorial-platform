@@ -15,8 +15,10 @@ import { skillAgentController } from './skillAgent';
 import { skillConfigurationController } from './skillConfiguration';
 import { skillMarketplaceController } from './skillMarketplace';
 import { skillMarketplacePluginController } from './skillMarketplacePlugin';
+import { skillMarketplaceRepositoryController } from './skillMarketplaceRepository';
 import { skillParticipantController } from './skillParticipant';
 import { skillPluginController } from './skillPlugin';
+import { skillPluginRepositoryController } from './skillPluginRepository';
 import { skillPluginSkillController } from './skillPluginSkill';
 import { skillTemplateController } from './skillTemplate';
 import { skillVersionController } from './skillVersion';
@@ -39,8 +41,10 @@ export let rootController = app.controller({
   skillConfiguration: skillConfigurationController,
   skillMarketplace: skillMarketplaceController,
   skillMarketplacePlugin: skillMarketplacePluginController,
+  skillMarketplaceRepository: skillMarketplaceRepositoryController,
   skillParticipant: skillParticipantController,
   skillPlugin: skillPluginController,
+  skillPluginRepository: skillPluginRepositoryController,
   skillPluginSkill: skillPluginSkillController,
   skillTemplate: skillTemplateController,
   skillVersion: skillVersionController,
