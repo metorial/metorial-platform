@@ -1,5 +1,6 @@
 import { canonicalize } from '@lowerdeck/canonicalize';
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
+import { generatePlainId } from '@lowerdeck/id';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { slugify } from '@lowerdeck/slugify';
@@ -108,19 +109,6 @@ type SkillPluginInput = {
 };
 
 class SkillPluginServiceImpl {
-  private normalizeSlug(d: { slug?: string; name: string }) {
-    let normalized = slugify(d.slug ?? d.name);
-    if (!normalized) {
-      throw new ServiceError(
-        badRequestError({
-          message: 'Skill plugin slug must include at least one slug character'
-        })
-      );
-    }
-
-    return normalized;
-  }
-
   private assertName(name: string) {
     if (name.trim()) return;
 
@@ -302,7 +290,6 @@ class SkillPluginServiceImpl {
       environment: d.environment,
       skillConfigurationId: d.input.skillConfigurationId
     });
-    let slug = this.normalizeSlug({ slug: d.input.slug, name: d.input.name });
 
     return await withTransaction(async db => {
       let destination = await createSkillDestination({ tenant: d.tenant });
@@ -316,7 +303,7 @@ class SkillPluginServiceImpl {
           description: d.input.description,
           longDescription: d.input.longDescription,
           category: d.input.category,
-          slug,
+          slug: `${slugify((d.input.slug ?? d.input.name).replaceAll('_', '-'))}-${generatePlainId(6)}`,
           tenantOid: d.tenant.oid,
           environmentOid: d.environment.oid,
           skillConfigurationOid,
@@ -396,13 +383,6 @@ class SkillPluginServiceImpl {
         description: d.input.description,
         longDescription: d.input.longDescription,
         category: d.input.category,
-        slug:
-          d.input.slug !== undefined
-            ? this.normalizeSlug({
-                slug: d.input.slug,
-                name: d.input.name ?? d.skillPlugin.name
-              })
-            : undefined,
         skillConfigurationOid
       }
     });
