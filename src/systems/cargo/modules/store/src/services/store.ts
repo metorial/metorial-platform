@@ -684,6 +684,8 @@ class StoreServiceImpl {
         }
       });
 
+      await enqueueStoreLifecycle({ storeId: deletedStore.id, event: 'archived' });
+
       return {
         deletedStore,
         fileReferenceIds: items
@@ -697,8 +699,6 @@ class StoreServiceImpl {
         fileReferenceIds
       });
     }
-
-    await enqueueStoreLifecycle({ storeId: deletedStore.id, event: 'archived' });
 
     return deletedStore;
   }

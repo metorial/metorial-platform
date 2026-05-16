@@ -1,6 +1,7 @@
 import type {
   Provider,
   ProviderEntry,
+  ProviderListing,
   ProviderSpecification,
   ProviderType,
   ProviderVariant,
@@ -98,7 +99,7 @@ export let providerPresenter = (
 };
 
 export let providerPreviewPresenter = (
-  provider: Provider & { listing?: { id: string; image: string } | null }
+  provider: Provider & { listing?: Pick<ProviderListing, 'id' | 'image'> | null }
 ) => ({
   object: 'provider',
 

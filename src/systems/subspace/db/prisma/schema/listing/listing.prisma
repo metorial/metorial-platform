@@ -23,7 +23,7 @@ model ProviderListing {
   prettySlug String?  @unique
   aliases    String[]
 
-  /// [SubspaceEntityImage]
+  /// [EntityImage]
   image Json?
 
   description String?
