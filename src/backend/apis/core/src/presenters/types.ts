@@ -761,7 +761,7 @@ export let consumerAndProfileType = PresentableType.create<{
   };
   consumerProfile: ConsumerProfile & {
     consumer: Consumer;
-    surface: ConsumerSurface;
+    surface: EnrichedConsumerSurface;
     groups: (ConsumerProfileGroup & {
       group: ConsumerGroup;
     })[];
@@ -784,7 +784,7 @@ export let consumerSurfaceProviderGroupType = PresentableType.create<{
 export let consumerProfileType = PresentableType.create<{
   consumerProfile: ConsumerProfile & {
     consumer: Consumer;
-    surface: ConsumerSurface;
+    surface: EnrichedConsumerSurface;
     groups: (ConsumerProfileGroup & {
       group: ConsumerGroup;
     })[];

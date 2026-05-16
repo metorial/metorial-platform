@@ -5,6 +5,7 @@ import {
   synthesis as internalSynthesis,
   type InternalScope
 } from '@metorial/internal-clients';
+import type { AssistantMessageSerializedContent } from '@metorial-platform-systems/synthesis-client';
 import {
   db,
   type Consumer,
@@ -242,4 +243,4 @@ type SynthesisMessageGetOutput = Awaited<ReturnType<typeof synthesis.message.get
 
 export type AssistantInputMessage = SynthesisRequestCreateInput['message'];
 export type AssistantState = SynthesisMessageGetOutput['state'];
-export type AssistantSerializedMessage = SynthesisMessageGetOutput['serialized'];
+export type AssistantSerializedMessage = AssistantMessageSerializedContent;

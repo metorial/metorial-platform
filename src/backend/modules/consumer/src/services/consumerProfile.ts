@@ -21,6 +21,11 @@ import {
 } from '@metorial/db';
 import { createLock } from '@metorial/lock';
 import { searchConsumerIds } from '@metorial/module-search';
+import type { EnrichedConsumerSurface } from './consumerSurface';
+import {
+  consumerSurfaceInclude,
+  consumerSurfaceService
+} from './consumerSurface';
 import { consumerInviteUpdatedQueue } from '../queues/lifecycle/consumerInvite';
 import {
   consumerProfileCreatedQueue,
@@ -32,6 +37,7 @@ let include = {
   consumer: true,
   surface: {
     include: {
+      ...consumerSurfaceInclude,
       portal: true
     }
   },
@@ -49,6 +55,7 @@ type ConsumerProfileWithRelations = Prisma.ConsumerProfileGetPayload<{
 
 type EnrichedConsumerProfile<T extends ConsumerProfileWithRelations> = T & {
   instanceConsumer: InstanceConsumer | null;
+  surface: T['surface'] & Pick<EnrichedConsumerSurface, 'skillConfiguration'>;
 };
 
 let getInstanceConsumerKey = (d: { instanceOid: bigint; consumerOid: bigint }) =>
@@ -140,8 +147,37 @@ class ConsumerProfileServiceImpl {
       }
     }
 
+    let instanceOids = Array.from(
+      new Set(d.consumerProfiles.map(consumerProfile => consumerProfile.instanceOid))
+    );
+    let instances = await db.instance.findMany({
+      where: {
+        oid: { in: instanceOids }
+      }
+    });
+    let enrichedSurfaceByOid = new Map<
+      bigint,
+      T['surface'] & Pick<EnrichedConsumerSurface, 'skillConfiguration'>
+    >();
+
+    for (let instance of instances) {
+      let surfaces = d.consumerProfiles
+        .filter(consumerProfile => consumerProfile.instanceOid === instance.oid)
+        .map(consumerProfile => consumerProfile.surface);
+
+      let enrichedSurfaces = await consumerSurfaceService.enrichConsumerSurfaces({
+        instance,
+        consumerSurfaces: surfaces
+      });
+
+      for (let surface of enrichedSurfaces) {
+        enrichedSurfaceByOid.set(surface.oid, surface);
+      }
+    }
+
     return d.consumerProfiles.map(consumerProfile => ({
       ...consumerProfile,
+      surface: enrichedSurfaceByOid.get(consumerProfile.surface.oid)!,
       instanceConsumer:
         instanceConsumerMap.get(getInstanceConsumerKey(consumerProfile)) ?? null
     })) as EnrichedConsumerProfile<T>[];
