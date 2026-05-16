@@ -1,6 +1,6 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
-import { scmPushType } from '../../../types';
+import { scmPushType } from '../../types';
 import { v1ScmRepoPresenter } from './repos';
 
 export let v1ScmPushPresenter = Presenter.create(scmPushType)

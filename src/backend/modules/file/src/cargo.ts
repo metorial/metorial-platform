@@ -98,8 +98,20 @@ export type CargoSkillMarketplacePlugin = Awaited<
 export type CargoSkillMarketplacePluginList = Awaited<
   ReturnType<typeof cargo.skillMarketplacePlugin.list>
 >;
+export type CargoSkillMarketplaceRepository = Awaited<
+  ReturnType<typeof cargo.skillMarketplaceRepository.get>
+>;
+export type CargoSkillMarketplaceRepositoryList = Awaited<
+  ReturnType<typeof cargo.skillMarketplaceRepository.list>
+>;
 export type CargoSkillPlugin = Awaited<ReturnType<typeof cargo.skillPlugin.get>>;
 export type CargoSkillPluginList = Awaited<ReturnType<typeof cargo.skillPlugin.list>>;
+export type CargoSkillPluginRepository = Awaited<
+  ReturnType<typeof cargo.skillPluginRepository.get>
+>;
+export type CargoSkillPluginRepositoryList = Awaited<
+  ReturnType<typeof cargo.skillPluginRepository.list>
+>;
 export type CargoSkillPluginSkill = Awaited<ReturnType<typeof cargo.skillPluginSkill.get>>;
 export type CargoSkillPluginSkillList = Awaited<
   ReturnType<typeof cargo.skillPluginSkill.list>

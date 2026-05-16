@@ -1,7 +1,10 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { skillMarketplaceService } from '@metorial/module-file';
+import {
+  skillMarketplaceRepositoryService,
+  skillMarketplaceService
+} from '@metorial/module-file';
 import { Controller } from '@metorial/rest';
 import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
 import { dateFilterValidator } from '../../../lib/dateFilter';
@@ -10,7 +13,11 @@ import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { isDashboardGroup } from '../../../middleware/isDashboard';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
-import { bucketEditorTokenPresenter, skillMarketplacePresenter } from '../../../presenters';
+import {
+  bucketEditorTokenPresenter,
+  skillMarketplacePresenter,
+  skillMarketplaceRepositoryPresenter
+} from '../../../presenters';
 import {
   assertConsumerCanAccessSkillMarketplace,
   getReadSkillMarketplaceFilter
@@ -196,6 +203,136 @@ export let skillMarketplaceController = Controller.create(
         });
 
         return skillMarketplacePresenter.present({ skillMarketplace });
+      }),
+
+    sync: skillMarketplaceGroup
+      .post(
+        instancePath(
+          'skill-marketplaces/:skillMarketplaceId/sync',
+          'skills.marketplaces.sync'
+        ),
+        {
+          name: 'Sync skill marketplace',
+          description: 'Forces a skill marketplace sync.'
+        }
+      )
+      .use(checkAccess({ possibleScopes: [...writeScopes] }))
+      .body('default', v.object({}))
+      .output(skillMarketplacePresenter)
+      .do(async ctx => {
+        let skillMarketplace = await skillMarketplaceService.forceSkillMarketplaceSync({
+          ...getSkillMarketplaceAccess(ctx),
+          skillMarketplace: ctx.skillMarketplace
+        });
+
+        return skillMarketplacePresenter.present({ skillMarketplace });
+      }),
+
+    listRepositories: skillMarketplaceGroup
+      .get(
+        instancePath(
+          'skill-marketplaces/:skillMarketplaceId/repositories',
+          'skills.marketplaces.repositories.list'
+        ),
+        {
+          name: 'List skill marketplace repositories',
+          description: 'Returns repositories linked to a skill marketplace.'
+        }
+      )
+      .use(checkAccess({ possibleScopes: [...readScopes] }))
+      .use(requireConsumerTokenForPublishableKey())
+      .outputList(skillMarketplaceRepositoryPresenter)
+      .query('default', Paginator.validate(v.object({})))
+      .do(async ctx => {
+        let paginator =
+          await skillMarketplaceRepositoryService.listSkillMarketplaceRepositories({
+            ...getSkillMarketplaceAccess(ctx),
+            skillMarketplace: ctx.skillMarketplace
+          });
+        let list = await paginator.run(ctx.query);
+
+        return Paginator.present(list, skillMarketplaceRepository =>
+          skillMarketplaceRepositoryPresenter.present({ skillMarketplaceRepository })
+        );
+      }),
+
+    getRepository: skillMarketplaceGroup
+      .get(
+        instancePath(
+          'skill-marketplaces/:skillMarketplaceId/repositories/:skillMarketplaceRepositoryId',
+          'skills.marketplaces.repositories.get'
+        ),
+        {
+          name: 'Get skill marketplace repository',
+          description: 'Retrieves a repository linked to a skill marketplace.'
+        }
+      )
+      .use(checkAccess({ possibleScopes: [...readScopes] }))
+      .use(requireConsumerTokenForPublishableKey())
+      .output(skillMarketplaceRepositoryPresenter)
+      .do(async ctx => {
+        let skillMarketplaceRepository =
+          await skillMarketplaceRepositoryService.getSkillMarketplaceRepositoryById({
+            ...getSkillMarketplaceAccess(ctx),
+            skillMarketplace: ctx.skillMarketplace,
+            skillMarketplaceRepositoryId: ctx.params.skillMarketplaceRepositoryId
+          });
+
+        return skillMarketplaceRepositoryPresenter.present({ skillMarketplaceRepository });
+      }),
+
+    createRepository: skillMarketplaceGroup
+      .post(
+        instancePath(
+          'skill-marketplaces/:skillMarketplaceId/repositories',
+          'skills.marketplaces.repositories.create'
+        ),
+        {
+          name: 'Link skill marketplace repository',
+          description: 'Links an SCM repository to a skill marketplace.'
+        }
+      )
+      .use(checkAccess({ possibleScopes: [...writeScopes] }))
+      .body(
+        'default',
+        v.object({
+          repo_id: v.string()
+        })
+      )
+      .output(skillMarketplaceRepositoryPresenter)
+      .do(async ctx => {
+        let skillMarketplaceRepository =
+          await skillMarketplaceRepositoryService.createSkillMarketplaceRepository({
+            ...getSkillMarketplaceAccess(ctx),
+            skillMarketplace: ctx.skillMarketplace,
+            repoId: ctx.body.repo_id
+          });
+
+        return skillMarketplaceRepositoryPresenter.present({ skillMarketplaceRepository });
+      }),
+
+    deleteRepository: skillMarketplaceGroup
+      .delete(
+        instancePath(
+          'skill-marketplaces/:skillMarketplaceId/repositories/:skillMarketplaceRepositoryId',
+          'skills.marketplaces.repositories.delete'
+        ),
+        {
+          name: 'Unlink skill marketplace repository',
+          description: 'Unlinks an SCM repository from a skill marketplace.'
+        }
+      )
+      .use(checkAccess({ possibleScopes: [...writeScopes] }))
+      .output(skillMarketplaceRepositoryPresenter)
+      .do(async ctx => {
+        let skillMarketplaceRepository =
+          await skillMarketplaceRepositoryService.deleteSkillMarketplaceRepository({
+            ...getSkillMarketplaceAccess(ctx),
+            skillMarketplace: ctx.skillMarketplace,
+            skillMarketplaceRepositoryId: ctx.params.skillMarketplaceRepositoryId
+          });
+
+        return skillMarketplaceRepositoryPresenter.present({ skillMarketplaceRepository });
       }),
 
     getEditorUrl: skillMarketplaceGroup

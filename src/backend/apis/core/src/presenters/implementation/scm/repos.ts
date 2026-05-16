@@ -1,6 +1,6 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
-import { scmRepoPreviewType, scmRepoType } from '../../../types';
+import { scmRepoPreviewType, scmRepoType } from '../../types';
 
 export let v1ScmRepoPreviewPresenter = Presenter.create(scmRepoPreviewType)
   .presenter(async ({ repoPreviews }) => ({

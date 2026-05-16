@@ -1,9 +1,12 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
-import { customProviderDeploymentLogsType, customProviderDeploymentType } from '../../../types';
+import {
+  customProviderDeploymentLogsType,
+  customProviderDeploymentType
+} from '../../../types';
+import { v1ScmPushPresenter } from '../../scm';
 import { v1ActorPreviewPresenter } from './actorPreview';
 import { v1BucketPresenter } from './bucket';
-import { v1ScmPushPresenter } from '../scm/scmPush';
 
 let commitSchema = v.object({
   object: v.literal('custom_provider.deployment.commit'),

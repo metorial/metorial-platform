@@ -1,6 +1,6 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
-import { scmConnectionSetupType, scmConnectionType } from '../../../types';
+import { scmConnectionSetupType, scmConnectionType } from '../../types';
 
 export let v1ScmConnectionPresenter = Presenter.create(scmConnectionType)
   .presenter(async ({ scmConnection }) => ({

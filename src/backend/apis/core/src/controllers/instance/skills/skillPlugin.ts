@@ -1,7 +1,7 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { skillPluginService } from '@metorial/module-file';
+import { skillPluginRepositoryService, skillPluginService } from '@metorial/module-file';
 import { Controller } from '@metorial/rest';
 import { getInstanceCargoAccess, hasInstanceConsumerAccess } from '../../../lib/cargoAccess';
 import { dateFilterValidator } from '../../../lib/dateFilter';
@@ -10,7 +10,11 @@ import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { isDashboardGroup } from '../../../middleware/isDashboard';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
-import { bucketEditorTokenPresenter, skillPluginPresenter } from '../../../presenters';
+import {
+  bucketEditorTokenPresenter,
+  skillPluginPresenter,
+  skillPluginRepositoryPresenter
+} from '../../../presenters';
 import {
   getConsumerAccessibleSkillMarketplaceIds,
   getReadSkillMarketplaceFilter
@@ -211,6 +215,129 @@ export let skillPluginController = Controller.create(
         });
 
         return skillPluginPresenter.present({ skillPlugin });
+      }),
+
+    sync: skillPluginGroup
+      .post(instancePath('skill-plugins/:skillPluginId/sync', 'skills.plugins.sync'), {
+        name: 'Sync skill plugin',
+        description: 'Forces a skill plugin sync.'
+      })
+      .use(checkAccess({ possibleScopes: [...writeScopes] }))
+      .body('default', v.object({}))
+      .output(skillPluginPresenter)
+      .do(async ctx => {
+        let skillPlugin = await skillPluginService.forceSkillPluginSync({
+          ...getSkillPluginAccess(ctx),
+          skillPlugin: ctx.skillPlugin
+        });
+
+        return skillPluginPresenter.present({ skillPlugin });
+      }),
+
+    listRepositories: skillPluginGroup
+      .get(
+        instancePath(
+          'skill-plugins/:skillPluginId/repositories',
+          'skills.plugins.repositories.list'
+        ),
+        {
+          name: 'List skill plugin repositories',
+          description: 'Returns repositories linked to a skill plugin.'
+        }
+      )
+      .use(checkAccess({ possibleScopes: [...readScopes] }))
+      .use(requireConsumerTokenForPublishableKey())
+      .outputList(skillPluginRepositoryPresenter)
+      .query('default', Paginator.validate(v.object({})))
+      .do(async ctx => {
+        let paginator = await skillPluginRepositoryService.listSkillPluginRepositories({
+          ...getSkillPluginAccess(ctx),
+          skillPlugin: ctx.skillPlugin
+        });
+        let list = await paginator.run(ctx.query);
+
+        return Paginator.present(list, skillPluginRepository =>
+          skillPluginRepositoryPresenter.present({ skillPluginRepository })
+        );
+      }),
+
+    getRepository: skillPluginGroup
+      .get(
+        instancePath(
+          'skill-plugins/:skillPluginId/repositories/:skillPluginRepositoryId',
+          'skills.plugins.repositories.get'
+        ),
+        {
+          name: 'Get skill plugin repository',
+          description: 'Retrieves a repository linked to a skill plugin.'
+        }
+      )
+      .use(checkAccess({ possibleScopes: [...readScopes] }))
+      .use(requireConsumerTokenForPublishableKey())
+      .output(skillPluginRepositoryPresenter)
+      .do(async ctx => {
+        let skillPluginRepository =
+          await skillPluginRepositoryService.getSkillPluginRepositoryById({
+            ...getSkillPluginAccess(ctx),
+            skillPlugin: ctx.skillPlugin,
+            skillPluginRepositoryId: ctx.params.skillPluginRepositoryId
+          });
+
+        return skillPluginRepositoryPresenter.present({ skillPluginRepository });
+      }),
+
+    createRepository: skillPluginGroup
+      .post(
+        instancePath(
+          'skill-plugins/:skillPluginId/repositories',
+          'skills.plugins.repositories.create'
+        ),
+        {
+          name: 'Link skill plugin repository',
+          description: 'Links an SCM repository to a skill plugin.'
+        }
+      )
+      .use(checkAccess({ possibleScopes: [...writeScopes] }))
+      .body(
+        'default',
+        v.object({
+          repo_id: v.string()
+        })
+      )
+      .output(skillPluginRepositoryPresenter)
+      .do(async ctx => {
+        let skillPluginRepository =
+          await skillPluginRepositoryService.createSkillPluginRepository({
+            ...getSkillPluginAccess(ctx),
+            skillPlugin: ctx.skillPlugin,
+            repoId: ctx.body.repo_id
+          });
+
+        return skillPluginRepositoryPresenter.present({ skillPluginRepository });
+      }),
+
+    deleteRepository: skillPluginGroup
+      .delete(
+        instancePath(
+          'skill-plugins/:skillPluginId/repositories/:skillPluginRepositoryId',
+          'skills.plugins.repositories.delete'
+        ),
+        {
+          name: 'Unlink skill plugin repository',
+          description: 'Unlinks an SCM repository from a skill plugin.'
+        }
+      )
+      .use(checkAccess({ possibleScopes: [...writeScopes] }))
+      .output(skillPluginRepositoryPresenter)
+      .do(async ctx => {
+        let skillPluginRepository =
+          await skillPluginRepositoryService.deleteSkillPluginRepository({
+            ...getSkillPluginAccess(ctx),
+            skillPlugin: ctx.skillPlugin,
+            skillPluginRepositoryId: ctx.params.skillPluginRepositoryId
+          });
+
+        return skillPluginRepositoryPresenter.present({ skillPluginRepository });
       }),
 
     getEditorUrl: skillPluginGroup

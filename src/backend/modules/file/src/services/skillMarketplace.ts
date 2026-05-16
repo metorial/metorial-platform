@@ -378,6 +378,21 @@ class SkillMarketplaceServiceImpl {
     return await this.enrichSkillMarketplace({ owner: d.owner, skillMarketplace });
   }
 
+  async forceSkillMarketplaceSync(
+    d: SkillMarketplaceAccessInput & {
+      skillMarketplace: EnrichedCargoSkillMarketplace;
+    }
+  ) {
+    let { scope } = await resolveCargoAccess(d);
+    let skillMarketplace = await cargo.skillMarketplace.sync({
+      tenantId: scope.tenantId,
+      environmentId: scope.environmentId,
+      skillMarketplaceId: d.skillMarketplace.backing.id
+    });
+
+    return await this.enrichSkillMarketplace({ owner: d.owner, skillMarketplace });
+  }
+
   async getSkillMarketplaceEditorUrl(
     d: SkillMarketplaceAccessInput & {
       skillMarketplace: EnrichedCargoSkillMarketplace;

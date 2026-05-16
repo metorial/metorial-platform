@@ -1,7 +1,7 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
 import { bucketType } from '../../../types';
-import { v1ScmRepoPresenter } from '../scm/repos';
+import { v1ScmRepoPresenter } from '../../scm';
 
 export let v1BucketPresenter = Presenter.create(bucketType)
   .presenter(async ({ bucket }, opts) => ({

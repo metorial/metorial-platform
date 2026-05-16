@@ -1,6 +1,6 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
-import { scmAccountPreviewType } from '../../../types';
+import { scmAccountPreviewType } from '../../types';
 
 export let v1ScmAccountPreviewPresenter = Presenter.create(scmAccountPreviewType)
   .presenter(async ({ accountPreviews }) => ({

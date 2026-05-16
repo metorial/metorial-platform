@@ -88,12 +88,14 @@ import type {
   CargoSkillConfiguration,
   EnrichedCargoSkillMarketplace,
   EnrichedCargoSkillMarketplacePlugin,
+  EnrichedCargoSkillMarketplaceRepository,
   EnrichedCargoDocument,
   EnrichedCargoDocumentParticipant,
   EnrichedCargoDocumentVersion,
   EnrichedCargoFile,
   EnrichedCargoSkillParticipant,
   EnrichedCargoSkillPlugin,
+  EnrichedCargoSkillPluginRepository,
   EnrichedCargoSkillPluginSkill,
   CargoSkillVersion,
   CargoSkillVersionSnapshot,
@@ -499,9 +501,17 @@ export let skillMarketplacePluginType = PresentableType.create<{
   skillMarketplacePlugin: EnrichedCargoSkillMarketplacePlugin;
 }>()('skillMarketplacePlugin');
 
+export let skillMarketplaceRepositoryType = PresentableType.create<{
+  skillMarketplaceRepository: EnrichedCargoSkillMarketplaceRepository;
+}>()('skillMarketplaceRepository');
+
 export let skillPluginType = PresentableType.create<{
   skillPlugin: EnrichedCargoSkillPlugin;
 }>()('skillPlugin');
+
+export let skillPluginRepositoryType = PresentableType.create<{
+  skillPluginRepository: EnrichedCargoSkillPluginRepository;
+}>()('skillPluginRepository');
 
 export let skillPluginSkillType = PresentableType.create<{
   skillPluginSkill: EnrichedCargoSkillPluginSkill;

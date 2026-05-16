@@ -1,6 +1,6 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
-import { scmProviderSetupType } from '../../../types';
+import { scmProviderSetupType } from '../../types';
 import { v1ScmProviderPresenter } from './scmProvider';
 
 export let v1ScmProviderSetupPresenter = Presenter.create(scmProviderSetupType)

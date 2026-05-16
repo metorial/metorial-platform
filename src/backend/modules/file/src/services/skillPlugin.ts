@@ -345,6 +345,21 @@ class SkillPluginServiceImpl {
     return await this.enrichSkillPlugin({ owner: d.owner, skillPlugin });
   }
 
+  async forceSkillPluginSync(
+    d: SkillPluginAccessInput & {
+      skillPlugin: EnrichedCargoSkillPlugin;
+    }
+  ) {
+    let { scope } = await resolveCargoAccess(d);
+    let skillPlugin = await cargo.skillPlugin.sync({
+      tenantId: scope.tenantId,
+      environmentId: scope.environmentId,
+      skillPluginId: d.skillPlugin.backing.id
+    });
+
+    return await this.enrichSkillPlugin({ owner: d.owner, skillPlugin });
+  }
+
   async getSkillPluginEditorUrl(
     d: SkillPluginAccessInput & {
       skillPlugin: EnrichedCargoSkillPlugin;
