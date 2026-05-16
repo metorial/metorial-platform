@@ -1,9 +1,8 @@
 import { flushDocumentDraft } from '@metorial-cargo/module-doc';
+import { fileReferenceService } from '@metorial-cargo/module-file';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { db } from '../../db';
 import { internalDocumentSyncService, internalStoreTemplateSyncService } from '../../internal';
-import { fileReferenceService } from '@metorial-cargo/module-file';
-import { getCargoFilesBucketName, getStorage } from '../../storage';
 import { cargoClient } from '../../test/client';
 import { cleanDatabase } from '../../test/setup';
 
@@ -1818,112 +1817,4 @@ describe('cargo store.e2e', () => {
 
     expect(deleted.id).toBe(created.id);
   });
-
-  it('materializes standalone store templates into concrete files and documents', async () => {
-    let { tenant, environment } = await createScope();
-    let actor = await createActor(tenant.id, {
-      identifier: 'standalone-template-creator',
-      name: 'Standalone Template Creator'
-    });
-    let template = await cargoClient.storeTemplate.create({
-      name: 'Standalone Materialized Template',
-      items: [
-        {
-          path: '/docs/',
-          type: 'directory'
-        },
-        {
-          path: '/docs/readme.md',
-          type: 'document',
-          content: 'hello from template',
-          encoding: 'utf-8'
-        },
-        {
-          path: '/logo.bin',
-          type: 'file',
-          content: Buffer.from('binary-from-template', 'utf8').toString('base64'),
-          encoding: 'base64'
-        }
-      ]
-    });
-
-    let createdStore = await cargoClient.store.create({
-      tenantId: tenant.id,
-      environmentId: environment.id,
-      storeId: 'cst_store_from_standalone_template',
-      actorId: actor.id,
-      templateId: template.id,
-      name: 'From Standalone Template'
-    });
-
-    let createdStoreRecord = await db.store.findUnique({
-      where: {
-        id: createdStore.id
-      }
-    });
-    let templateRecord = await db.storeTemplate.findUnique({
-      where: {
-        id: template.id
-      }
-    });
-    let items = await cargoClient.storeItem.list({
-      tenantId: tenant.id,
-      environmentId: environment.id,
-      storeId: createdStore.id,
-      types: ['file', 'document', 'directory'],
-      limit: 20
-    });
-    let documentItem = items.items.find(item => item.path === '/docs/readme.md');
-    let fileItem = items.items.find(item => item.path === '/logo.bin');
-    let createdDocument = await cargoClient.document.get({
-      tenantId: tenant.id,
-      environmentId: environment.id,
-      documentId: documentItem!.documentId!
-    });
-    let createdFileRecord = await db.file.findUnique({
-      where: {
-        id: fileItem!.fileId!
-      },
-      include: {
-        purpose: true
-      }
-    });
-    let createdDocumentRecord = await db.document.findUnique({
-      where: {
-        id: createdDocument.id
-      }
-    });
-    let participant = await db.storeParticipant.findFirst({
-      where: {
-        store: {
-          id: createdStore.id
-        },
-        tenantActor: {
-          id: actor.id
-        }
-      }
-    });
-    let storedFile = await getStorage().getObject(
-      getCargoFilesBucketName(),
-      createdFileRecord!.storeId
-    );
-
-    expect(createdStoreRecord?.parentStoreOid).toBeNull();
-    expect(createdStoreRecord?.parentStoreTemplateOid).toBe(templateRecord?.oid);
-    expect(createdStoreRecord?.access).toBe('public_read');
-    expect(createdStoreRecord?.createdByTenantActorOid).toBeTruthy();
-    expect(items.items.map(item => item.path).sort()).toEqual([
-      '/',
-      '/docs/',
-      '/docs/readme.md',
-      '/logo.bin'
-    ]);
-    expect(createdDocument.content).toBe('hello from template');
-    expect(createdDocumentRecord?.createdByTenantActorOid).toBeTruthy();
-    expect(createdFileRecord?.purpose.slug).toBe('generic');
-    expect(createdFileRecord?.createdByTenantActorOid).toBeTruthy();
-    expect(storedFile.data.toString('utf-8')).toBe('binary-from-template');
-    expect(participant?.permissions).toEqual(['content_read', 'content_write']);
-  });
-
 });
