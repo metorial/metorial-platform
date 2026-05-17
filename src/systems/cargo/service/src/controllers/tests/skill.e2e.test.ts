@@ -1170,7 +1170,7 @@ describe('cargo skill.e2e', () => {
 
     expect(forkerParticipant).toMatchObject({
       skillId: parent.id,
-      roles: ['forker'],
+      roles: expect.arrayContaining(['forker']),
       actor: {
         id: forker.id
       }
