@@ -45,6 +45,29 @@ type SkillConfigurationPolicy = {
 
 let normalizeSkillPath = (path: string) => path.replace(/^\/+/, '');
 
+let sanitizeSkillDocumentFileNamePart = (part: string) =>
+  part
+    .trim()
+    .replace(/[^A-Za-z0-9._-]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^[-.]+|[-.]+$/g, '');
+
+let normalizeSkillDocumentPath = (path: string) => {
+  let normalizedPath = normalizeSkillPath(path);
+  let pathParts = normalizedPath.split('/');
+  let fileName = pathParts.pop() ?? '';
+  let dotIndex = fileName.lastIndexOf('.');
+  let hasExtension = dotIndex > 0 && dotIndex < fileName.length - 1;
+  let baseName = hasExtension ? fileName.slice(0, dotIndex) : fileName;
+  let extension = hasExtension ? fileName.slice(dotIndex) : '.md';
+
+  let sanitizedBaseName = sanitizeSkillDocumentFileNamePart(baseName) || 'document';
+  let sanitizedExtension = sanitizeSkillDocumentFileNamePart(extension) || '.md';
+  if (!sanitizedExtension.startsWith('.')) sanitizedExtension = `.${sanitizedExtension}`;
+
+  return [...pathParts, `${sanitizedBaseName}${sanitizedExtension}`].join('/');
+};
+
 let normalizeFileExtension = (extension: string) => {
   let normalized = extension.trim().toLowerCase();
   if (!normalized) return null;
@@ -178,7 +201,7 @@ export let applySkill = createApplicator('skill', async (input, context) => {
   let effectiveAllowedFileExtensions = getEffectiveAllowedFileExtensions(config);
   let hash = await Hash.sha256(
     [
-      2,
+      3,
       input.skill.oid,
       input.skillPlugin.oid,
       input.skill.updatedAt.getTime(),
@@ -217,15 +240,19 @@ export let applySkill = createApplicator('skill', async (input, context) => {
 
     for (let item of items) {
       if (item.path.startsWith('/agents/') || item.path.startsWith('agents/')) continue;
-      if (!isAllowedBySkillConfig(item.path, config)) continue;
 
       if (item.kind === 'document' && item.document) {
-        let content = isRootSkillDocument(item.path)
+        let documentPath = normalizeSkillDocumentPath(item.path);
+        if (!isAllowedBySkillConfig(documentPath, config)) continue;
+
+        let content = isRootSkillDocument(documentPath)
           ? applySkillDocumentFrontmatter(item.document.content.content, input)
           : item.document.content.content;
 
-        await context.setFile(item.path, content);
+        await context.setFile(documentPath, content);
       } else if (item.kind === 'file' && item.file) {
+        if (!isAllowedBySkillConfig(item.path, config)) continue;
+
         q.add(async () => {
           let content = await fileService.downloadFileContent({
             file: item.file!
