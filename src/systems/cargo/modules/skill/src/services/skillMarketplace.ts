@@ -76,7 +76,6 @@ type SkillMarketplaceInput = {
   providerOverrides?: Prisma.InputJsonValue | null;
   name?: string;
   description?: string | null;
-  slug?: string;
   skillConfigurationId?: string | null;
 };
 
@@ -98,7 +97,6 @@ class SkillMarketplaceServiceImpl {
       input.providerOverrides !== undefined ||
       input.name !== undefined ||
       input.description !== undefined ||
-      input.slug !== undefined ||
       input.skillConfigurationId !== undefined
     );
   }
@@ -241,7 +239,7 @@ class SkillMarketplaceServiceImpl {
           providerOverrides: d.input.providerOverrides as any,
           name: d.input.name,
           description: d.input.description,
-          slug: `${slugify((d.input.slug ?? d.input.name).replaceAll('_', '-'))}-${generatePlainId(6)}`,
+          slug: `${slugify((d.input.slug ?? d.input.name).replaceAll('_', '-'))}-${generatePlainId(6)}`.toLowerCase(),
           tenantOid: d.tenant.oid,
           environmentOid: d.environment.oid,
           skillConfigurationOid,

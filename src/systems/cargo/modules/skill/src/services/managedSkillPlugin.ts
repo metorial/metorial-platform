@@ -196,8 +196,7 @@ class ManagedSkillPluginServiceImpl {
     let skillPluginChanged =
       managedSkillPlugin.skillPlugin.status !== 'active' ||
       managedSkillPlugin.skillPlugin.name !== values.name ||
-      managedSkillPlugin.skillPlugin.description !== values.description ||
-      managedSkillPlugin.skillPlugin.slug !== values.slug;
+      managedSkillPlugin.skillPlugin.description !== values.description;
 
     let managedConfigChanged = managedSkillPlugin.configHash !== values.configHash;
 
@@ -210,8 +209,7 @@ class ManagedSkillPluginServiceImpl {
           data: {
             status: 'active',
             name: values.name,
-            description: values.description,
-            slug: values.slug
+            description: values.description
           },
           include: skillPluginInclude
         });

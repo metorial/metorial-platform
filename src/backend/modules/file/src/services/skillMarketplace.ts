@@ -31,7 +31,6 @@ type SkillMarketplaceAccessInput = {
 type SkillMarketplaceInput = {
   name?: string;
   description?: string | null;
-  slug?: string;
   providerOverrides?: Record<string, any> | null;
   imageFileId?: string | null;
   skillConfigurationId?: string | null;
@@ -332,7 +331,6 @@ class SkillMarketplaceServiceImpl {
       environmentId: scope.environmentId,
       name: d.input.name,
       description: d.input.description,
-      slug: d.input.slug,
       providerOverrides: d.input.providerOverrides,
       imageFileId: d.input.imageFileId,
       skillConfigurationId: d.input.skillConfigurationId
@@ -354,7 +352,6 @@ class SkillMarketplaceServiceImpl {
       skillMarketplaceId: d.skillMarketplace.backing.id,
       name: d.input.name,
       description: d.input.description,
-      slug: d.input.slug,
       providerOverrides: d.input.providerOverrides,
       imageFileId: d.input.imageFileId,
       skillConfigurationId: d.input.skillConfigurationId

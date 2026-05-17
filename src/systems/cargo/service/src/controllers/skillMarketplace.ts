@@ -24,7 +24,6 @@ let statusFilterSchema = v.optional(v.array(v.enumOf(['active', 'archived', 'del
 let skillMarketplaceInput = {
   name: v.optional(v.string()),
   description: v.optional(v.nullable(v.string())),
-  slug: v.optional(v.string()),
   providerOverrides: metadataSchema,
   imageFileId: v.optional(v.nullable(v.string())),
   skillConfigurationId: v.optional(v.nullable(v.string()))
@@ -49,7 +48,6 @@ export let skillMarketplaceController = app.controller({
           input: {
             name: ctx.input.name,
             description: ctx.input.description,
-            slug: ctx.input.slug,
             providerOverrides: ctx.input.providerOverrides,
             imageFileId: ctx.input.imageFileId,
             skillConfigurationId: ctx.input.skillConfigurationId
@@ -69,7 +67,6 @@ export let skillMarketplaceController = app.controller({
           skillConfigurationIds: v.optional(v.array(v.string())),
           statuses: statusFilterSchema,
           search: v.optional(v.string()),
-          slug: v.optional(v.string()),
           createdAt: dateFilterSchema,
           updatedAt: dateFilterSchema
         })
@@ -83,7 +80,6 @@ export let skillMarketplaceController = app.controller({
         skillConfigurationIds: ctx.input.skillConfigurationIds,
         statuses: ctx.input.statuses,
         search: ctx.input.search,
-        slug: ctx.input.slug,
         createdAt: ctx.input.createdAt,
         updatedAt: ctx.input.updatedAt
       });
@@ -142,7 +138,6 @@ export let skillMarketplaceController = app.controller({
           input: {
             name: ctx.input.name,
             description: ctx.input.description,
-            slug: ctx.input.slug,
             providerOverrides: ctx.input.providerOverrides,
             imageFileId: ctx.input.imageFileId,
             skillConfigurationId: ctx.input.skillConfigurationId
