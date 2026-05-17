@@ -21,6 +21,7 @@ import { skillParticipantController } from './skillParticipant';
 import { skillPluginController } from './skillPlugin';
 import { skillPluginRepositoryController } from './skillPluginRepository';
 import { skillPluginSkillController } from './skillPluginSkill';
+import { skillSyncController } from './skillSync';
 import { skillTemplateController } from './skillTemplate';
 import { skillVersionController } from './skillVersion';
 import { storeController } from './store';
@@ -48,6 +49,7 @@ export let rootController = app.controller({
   skillPlugin: skillPluginController,
   skillPluginRepository: skillPluginRepositoryController,
   skillPluginSkill: skillPluginSkillController,
+  skillSync: skillSyncController,
   skillTemplate: skillTemplateController,
   skillVersion: skillVersionController,
   store: storeController,

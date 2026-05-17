@@ -136,9 +136,126 @@ let createTestSkillMarketplacePlugin = async (d: {
     }
   });
 
+let createTestSkillSync = async (d: {
+  destinationOid: bigint;
+  status: 'pending' | 'completed' | 'failed' | 'processing' | 'canceled';
+  logMessage: string;
+}) =>
+  await db.skillDestinationSync.create({
+    data: {
+      ...getId('skillDestinationSync'),
+      status: d.status,
+      destinationOid: d.destinationOid,
+      logs: [[Date.now(), d.logMessage]]
+    }
+  });
+
 describe('cargo skill.e2e', () => {
   beforeEach(async () => {
     await cleanDatabase();
+  });
+
+  it('lists and gets skill syncs by plugin and marketplace', async () => {
+    let { tenant, environment } = await createScope();
+    let scope = await getCargoScopeRecords({
+      tenantId: tenant.id,
+      environmentId: environment.id
+    });
+    let otherEnvironment = await cargoClient.environment.upsert({
+      tenantId: tenant.id,
+      identifier: 'staging',
+      name: 'Staging',
+      type: 'development'
+    });
+    let otherScope = await getCargoScopeRecords({
+      tenantId: tenant.id,
+      environmentId: otherEnvironment.id
+    });
+    let skillPlugin = await createTestSkillPlugin({
+      tenantOid: scope.tenant.oid,
+      environmentOid: scope.environment.oid,
+      name: 'Sync Plugin',
+      slug: 'sync-plugin'
+    });
+    let skillMarketplace = await createTestSkillMarketplace({
+      tenantOid: scope.tenant.oid,
+      environmentOid: scope.environment.oid,
+      name: 'Sync Marketplace',
+      slug: 'sync-marketplace'
+    });
+    let otherSkillPlugin = await createTestSkillPlugin({
+      tenantOid: otherScope.tenant.oid,
+      environmentOid: otherScope.environment.oid,
+      name: 'Other Sync Plugin',
+      slug: 'other-sync-plugin'
+    });
+    let pluginSync = await createTestSkillSync({
+      destinationOid: skillPlugin.destinationOid,
+      status: 'processing',
+      logMessage: 'Plugin sync started'
+    });
+    let marketplaceSync = await createTestSkillSync({
+      destinationOid: skillMarketplace.destinationOid,
+      status: 'completed',
+      logMessage: 'Marketplace sync completed'
+    });
+    let otherSync = await createTestSkillSync({
+      destinationOid: otherSkillPlugin.destinationOid,
+      status: 'processing',
+      logMessage: 'Other sync started'
+    });
+
+    let listedForPlugin = await cargoClient.skillSync.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillPluginIds: [skillPlugin.id],
+      limit: 10
+    });
+    let listedForMarketplace = await cargoClient.skillSync.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillMarketplaceIds: [skillMarketplace.id],
+      limit: 10
+    });
+    let listedForEnvironment = await cargoClient.skillSync.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      limit: 10
+    });
+    let fetched = await cargoClient.skillSync.get({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillSyncId: pluginSync.id
+    });
+
+    expect(listedForPlugin.items.map(item => item.id)).toEqual([pluginSync.id]);
+    expect(listedForPlugin.items[0]).toMatchObject({
+      object: 'cargo#skillSync',
+      id: pluginSync.id,
+      status: 'processing',
+      skillPluginId: skillPlugin.id
+    });
+    expect(listedForMarketplace.items.map(item => item.id)).toEqual([
+      marketplaceSync.id
+    ]);
+    expect(listedForMarketplace.items[0]).toMatchObject({
+      object: 'cargo#skillSync',
+      id: marketplaceSync.id,
+      status: 'completed',
+      skillMarketplaceId: skillMarketplace.id
+    });
+    expect(listedForEnvironment.items.map(item => item.id)).not.toContain(otherSync.id);
+    expect(fetched).toMatchObject({
+      id: pluginSync.id,
+      logs: [[expect.any(Number), 'Plugin sync started']]
+    });
+    await expect(
+      cargoClient.skillSync.get({
+        tenantId: tenant.id,
+        environmentId: environment.id,
+        skillSyncId: otherSync.id
+      })
+    ).rejects.toThrow();
   });
 
   it('filters skill exports by creator actor', async () => {

@@ -11,5 +11,6 @@ export * from './skillPlugin';
 export * from './skillPluginRepository';
 export * from './skillPluginSkill';
 export * from './skillRepository';
+export * from './skillSync';
 export * from './skillTemplate';
 export * from './skillVersion';
