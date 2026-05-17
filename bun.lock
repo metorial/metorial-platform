@@ -623,6 +623,7 @@
         "@metorial/db": "^1.0.0",
         "@metorial/fabric": "^1.0.0",
         "@metorial/id": "^1.0.0",
+        "@metorial/internal-clients": "^1.0.0",
         "@metorial/module-email": "^1.0.0",
         "@metorial/module-file": "^1.0.0",
         "@metorial/queue": "^1.0.0",

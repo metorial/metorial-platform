@@ -104,7 +104,6 @@ type SkillPluginInput = {
   description?: string | null;
   longDescription?: string | null;
   category?: string | null;
-  slug?: string;
   skillConfigurationId?: string | null;
 };
 
@@ -128,7 +127,6 @@ class SkillPluginServiceImpl {
       input.description !== undefined ||
       input.longDescription !== undefined ||
       input.category !== undefined ||
-      input.slug !== undefined ||
       input.skillConfigurationId !== undefined
     );
   }
@@ -192,7 +190,6 @@ class SkillPluginServiceImpl {
       statuses?: SkillPluginStatusFilter[];
       search?: string;
       category?: string;
-      slug?: string;
       createdAt?: DateFilter;
       updatedAt?: DateFilter;
     }
@@ -249,7 +246,6 @@ class SkillPluginServiceImpl {
                   : undefined!,
                 { status: { in: statuses } },
                 d.category ? { category: d.category } : undefined!,
-                d.slug ? { slug: d.slug } : undefined!,
                 search ? { id: { in: search.map(r => r.documentId) } } : undefined!,
                 d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
                 d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
@@ -303,7 +299,7 @@ class SkillPluginServiceImpl {
           description: d.input.description,
           longDescription: d.input.longDescription,
           category: d.input.category,
-          slug: `${slugify((d.input.slug ?? d.input.name).replaceAll('_', '-'))}-${generatePlainId(6)}`,
+          slug: `${slugify((d.input.slug ?? d.input.name).replaceAll('_', '-'))}-${generatePlainId(6)}`.toLowerCase(),
           tenantOid: d.tenant.oid,
           environmentOid: d.environment.oid,
           skillConfigurationOid,

@@ -1,8 +1,12 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { cargo, type CargoStoreItem } from '../cargo';
 import type { CargoStoreItemType } from '../cargo';
-import { resolveCargoAccess, type CargoAccessActor, type CargoStorePermission } from './access';
+import { cargo, type CargoStoreItem } from '../cargo';
+import {
+  resolveCargoAccess,
+  type CargoAccessActor,
+  type CargoStorePermission
+} from './access';
 import { documentService, type EnrichedCargoDocument } from './document';
 import { fileService, type EnrichedCargoFile, type FileOwner } from './file';
 
@@ -36,9 +40,7 @@ class StoreItemServiceImpl {
     return d.storeItems.map(storeItem => ({
       ...storeItem,
       file: storeItem.file ? (enrichedFiles[nextFileIndex++] ?? null) : null,
-      document: storeItem.document
-        ? (enrichedDocuments[nextDocumentIndex++] ?? null)
-        : null
+      document: storeItem.document ? (enrichedDocuments[nextDocumentIndex++] ?? null) : null
     }));
   }
 
@@ -61,7 +63,8 @@ class StoreItemServiceImpl {
     defaultPermissions?: CargoStorePermission[];
     overridePermissions?: boolean;
   }) {
-    let { scope, actorId, defaultPermissions, overridePermissions } = await resolveCargoAccess(d);
+    let { scope, actorId, defaultPermissions, overridePermissions } =
+      await resolveCargoAccess(d);
 
     let storeItem = await cargo.storeItem.get({
       tenantId: scope.tenantId,
@@ -88,7 +91,8 @@ class StoreItemServiceImpl {
     defaultPermissions?: CargoStorePermission[];
     overridePermissions?: boolean;
   }) {
-    let { scope, actorId, defaultPermissions, overridePermissions } = await resolveCargoAccess(d);
+    let { scope, actorId, defaultPermissions, overridePermissions } =
+      await resolveCargoAccess(d);
 
     return Paginator.create(() => async input => {
       let result = await cargo.storeItem.list({

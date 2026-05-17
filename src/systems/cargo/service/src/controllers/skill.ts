@@ -1,7 +1,7 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { skillParticipantPresenter, skillPresenter } from '../presenters';
 import { skillService, skillTemplateService } from '@metorial-cargo/module-skill';
+import { skillParticipantPresenter, skillPresenter } from '../presenters';
 import { app } from './_app';
 import { dateFilterSchema } from './_dateFilter';
 import { storePermissionsSchema } from './document';
@@ -39,6 +39,7 @@ export let skillController = app.controller({
         tenantId: v.string(),
         environmentId: v.string(),
         skillId: v.string(),
+        slug: v.string(),
         actorId: v.optional(v.string()),
         parentSkill: v.optional(
           v.object({
@@ -79,6 +80,7 @@ export let skillController = app.controller({
           id: ctx.input.skillId,
           actorId: ctx.input.actorId,
           name: ctx.input.name,
+          slug: ctx.input.slug,
           description: ctx.input.description,
           metadata: ctx.input.metadata,
           clientName: ctx.input.clientName,

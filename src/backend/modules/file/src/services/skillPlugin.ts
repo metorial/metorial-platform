@@ -28,7 +28,6 @@ type SkillPluginInput = {
   description?: string | null;
   longDescription?: string | null;
   category?: string | null;
-  slug?: string;
   providerOverrides?: Record<string, any> | null;
   imageFileId?: string | null;
   skillConfigurationId?: string | null;
@@ -297,7 +296,6 @@ class SkillPluginServiceImpl {
       description: d.input.description,
       longDescription: d.input.longDescription,
       category: d.input.category,
-      slug: d.input.slug,
       providerOverrides: d.input.providerOverrides,
       imageFileId: d.input.imageFileId,
       skillConfigurationId: d.input.skillConfigurationId
@@ -321,7 +319,6 @@ class SkillPluginServiceImpl {
       description: d.input.description,
       longDescription: d.input.longDescription,
       category: d.input.category,
-      slug: d.input.slug,
       providerOverrides: d.input.providerOverrides,
       imageFileId: d.input.imageFileId,
       skillConfigurationId: d.input.skillConfigurationId

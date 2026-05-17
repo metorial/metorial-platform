@@ -1,13 +1,13 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { cargo, type CargoStore } from '../cargo';
-import type { FileOwner } from './file';
 import {
   resolveCargoAccess,
   type CargoAccessActor,
   type CargoStoreAccess,
   type CargoStorePermission
 } from './access';
+import type { FileOwner } from './file';
 import { storeItemService } from './storeItem';
 
 export type CargoStoreItemOperation = {
@@ -55,7 +55,8 @@ class StoreServiceImpl {
     defaultPermissions?: CargoStorePermission[];
     overridePermissions?: boolean;
   }) {
-    let { scope, actorId, defaultPermissions, overridePermissions } = await resolveCargoAccess(d);
+    let { scope, actorId, defaultPermissions, overridePermissions } =
+      await resolveCargoAccess(d);
 
     return Paginator.create(() => async input => {
       let result = await cargo.store.list({
@@ -87,7 +88,8 @@ class StoreServiceImpl {
     defaultPermissions?: CargoStorePermission[];
     overridePermissions?: boolean;
   }) {
-    let { scope, actorId, defaultPermissions, overridePermissions } = await resolveCargoAccess(d);
+    let { scope, actorId, defaultPermissions, overridePermissions } =
+      await resolveCargoAccess(d);
 
     return await cargo.store.get({
       tenantId: scope.tenantId,
@@ -106,7 +108,8 @@ class StoreServiceImpl {
     defaultPermissions?: CargoStorePermission[];
     overridePermissions?: boolean;
   }) {
-    let { scope, actorId, defaultPermissions, overridePermissions } = await resolveCargoAccess(d);
+    let { scope, actorId, defaultPermissions, overridePermissions } =
+      await resolveCargoAccess(d);
 
     return await cargo.store.getPermissions({
       tenantId: scope.tenantId,
@@ -129,7 +132,8 @@ class StoreServiceImpl {
       access?: CargoStoreAccess;
     };
   }) {
-    let { scope, actorId, defaultPermissions, overridePermissions } = await resolveCargoAccess(d);
+    let { scope, actorId, defaultPermissions, overridePermissions } =
+      await resolveCargoAccess(d);
 
     return await cargo.store.update({
       tenantId: scope.tenantId,
@@ -150,7 +154,8 @@ class StoreServiceImpl {
     defaultPermissions?: CargoStorePermission[];
     overridePermissions?: boolean;
   }) {
-    let { scope, actorId, defaultPermissions, overridePermissions } = await resolveCargoAccess(d);
+    let { scope, actorId, defaultPermissions, overridePermissions } =
+      await resolveCargoAccess(d);
 
     return await cargo.store.delete({
       tenantId: scope.tenantId,
@@ -170,7 +175,8 @@ class StoreServiceImpl {
     overridePermissions?: boolean;
     operations: CargoStoreItemOperation[];
   }) {
-    let { scope, actorId, defaultPermissions, overridePermissions } = await resolveCargoAccess(d);
+    let { scope, actorId, defaultPermissions, overridePermissions } =
+      await resolveCargoAccess(d);
 
     let items = await cargo.store.modifyItems({
       tenantId: scope.tenantId,

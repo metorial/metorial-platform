@@ -14,7 +14,11 @@ import {
 } from '@metorial-cargo/list-utils';
 import type { CargoTenantEnvironment } from '@metorial-cargo/module-file';
 import { actorService } from '@metorial-cargo/module-file';
-import { storeAccessService, storeService } from '@metorial-cargo/module-store';
+import {
+  storeAccessService,
+  storeReadPermission,
+  storeService
+} from '@metorial-cargo/module-store';
 import { internalImageService } from '../internal/image';
 import { enqueueSkillLifecycle } from '../queues/lifecycle';
 import { skillParticipantService } from './skillParticipant';
@@ -67,6 +71,7 @@ class SkillServiceImpl {
       parentSkillCloneType?: 'fork' | 'duplicate';
       input: {
         id: string;
+        slug: string;
         actorId?: string;
         name: string;
         description?: string | null;
@@ -112,24 +117,32 @@ class SkillServiceImpl {
               templateId: d.parentSkillTemplate.storeTemplate.id,
               name: d.input.name,
               actor,
-              access: 'public_read'
+              access: 'private'
             }
           })
-        : await storeService.createStore({
-            tenant: d.tenant,
-            environment: d.environment,
-            input: {
-              name: d.input.name,
+        : d.parentSkill
+          ? await storeService.cloneStore({
+              tenant: d.tenant,
+              environment: d.environment,
+              store: d.parentSkill.store,
               actor,
-              access: 'public_read',
-              parentStore: d.parentSkill?.store,
-              cloneType: !d.parentSkill
-                ? undefined
-                : d.parentSkillCloneType === 'duplicate'
-                  ? 'duplicate'
-                  : 'sync_until_change'
-            }
-          });
+              defaultPermissions: [storeReadPermission],
+              input: {
+                name: d.input.name,
+                access: 'private',
+                cloneType:
+                  d.parentSkillCloneType === 'duplicate' ? 'duplicate' : 'sync_until_change'
+              }
+            })
+          : await storeService.createStore({
+              tenant: d.tenant,
+              environment: d.environment,
+              input: {
+                name: d.input.name,
+                actor,
+                access: 'private'
+              }
+            });
 
       let skill = await db.skill.create({
         data: {
@@ -137,6 +150,7 @@ class SkillServiceImpl {
           id: d.input.id,
           status: 'active',
           name: d.input.name,
+          slug: d.input.slug,
           description: d.input.description,
           metadata: d.input.metadata as any,
 

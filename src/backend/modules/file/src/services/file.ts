@@ -45,7 +45,10 @@ class FileServiceImpl {
     }
   }
 
-  async enrichFiles(d: { owner: FileOwner; files: CargoFile[] }): Promise<EnrichedCargoFile[]> {
+  async enrichFiles(d: {
+    owner: FileOwner;
+    files: CargoFile[];
+  }): Promise<EnrichedCargoFile[]> {
     let creators = d.files
       .map(file => file.createdBy)
       .filter((creator): creator is CargoActor => !!creator);

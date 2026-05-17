@@ -15,6 +15,7 @@
     "@lowerdeck/error": "^1.2.3",
     "@metorial/fabric": "^1.0.0",
     "@metorial/id": "^1.0.0",
+    "@metorial/internal-clients": "^1.0.0",
     "@metorial/module-file": "^1.0.0",
     "@metorial/module-email": "^1.0.0",
     "@lowerdeck/pagination": "^1.0.8",

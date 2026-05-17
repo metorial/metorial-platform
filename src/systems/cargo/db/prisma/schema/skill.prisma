@@ -14,6 +14,7 @@ model Skill {
   image Json?
 
   name        String?
+  slug        String? @unique
   description String?
   metadata    Json?
 

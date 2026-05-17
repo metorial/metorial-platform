@@ -455,6 +455,7 @@ class skillServiceImpl {
       ...cargoScope,
       skillId: skillData.id,
       name: skillData.name,
+      slug: skillData.slug,
       imageFileId: d.input.imageFileId,
       actorId: cargoActor?.id,
       parentSkill: parentSkill
@@ -483,7 +484,9 @@ class skillServiceImpl {
             environmentOid: d.environment.oid,
             name: skillData.name,
             description: skillData.description,
-            image: (d.input.image ?? (cargoSkill.image as EntityImage | null) ?? undefined) as any,
+            image: (d.input.image ??
+              (cargoSkill.image as EntityImage | null) ??
+              undefined) as any,
             slug: skillData.slug
           }
         });
@@ -492,7 +495,9 @@ class skillServiceImpl {
       let skill = await db.skill.create({
         data: {
           ...skillData,
-          image: (d.input.image ?? (cargoSkill.image as EntityImage | null) ?? undefined) as any,
+          image: (d.input.image ??
+            (cargoSkill.image as EntityImage | null) ??
+            undefined) as any,
           ownerTenantActorOid: d._operation.tenantActor?.oid,
           storeId: cargoSkill.storeId,
           skillEntityOid: skillEntity.oid
