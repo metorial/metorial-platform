@@ -128,12 +128,28 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
 
     setBasePath(path: string | undefined) {
       basePathRef.current = path ?? '';
-    },
-
-    hashIsEqual(hash: string) {
-      hashRef.current = hash;
-      return item?.hash === hash;
     }
+  };
+
+  let applySerializer = async <Input, InitResult>(
+    serializer: {
+      init: (input: Input) => Promise<InitResult>;
+      getHash: (input: Input, initResult: InitResult) => Promise<string>;
+      apply: (
+        input: Input,
+        context: SerializerContext,
+        initResult: InitResult
+      ) => Promise<void>;
+    },
+    input: Input
+  ) => {
+    let initResult = await serializer.init(input);
+    let hash = await serializer.getHash(input, initResult);
+    hashRef.current = hash;
+
+    if (item?.hash === hash) return;
+
+    await serializer.apply(input, context, initResult);
   };
 
   let loadSkillPlugin = async (skillPluginId: string) => {
@@ -261,16 +277,13 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
         data.skillDestinationSyncId,
         `Updating skill ${skillPluginSkill.skill.name ?? 'Untitled skill'}.`
       );
-      await applySkill.apply(
-        {
-          skill: skillPluginSkill.skill,
-          skillPlugin,
-          skillPluginSkill,
-          skillMarketplace,
-          skillMarketplacePlugin
-        },
-        context
-      );
+      await applySerializer(applySkill, {
+        skill: skillPluginSkill.skill,
+        skillPlugin,
+        skillPluginSkill,
+        skillMarketplace,
+        skillMarketplacePlugin
+      });
       await fileProcessor.flush();
 
       if (hashRef.current) {
@@ -313,14 +326,11 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
         data.skillDestinationSyncId,
         `Updating plugin ${skillPlugin.name}.`
       );
-      await applyPlugin.apply(
-        {
-          skillPlugin,
-          skillMarketplace,
-          skillMarketplacePlugin
-        },
-        context
-      );
+      await applySerializer(applyPlugin, {
+        skillPlugin,
+        skillMarketplace,
+        skillMarketplacePlugin
+      });
       await fileProcessor.flush();
 
       if (hashRef.current) {
@@ -337,7 +347,7 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
       data.skillDestinationSyncId,
       `Updating marketplace ${skillMarketplace.name}.`
     );
-    await applyMarketplace.apply({ skillMarketplace }, context);
+    await applySerializer(applyMarketplace, { skillMarketplace });
     await fileProcessor.flush();
 
     if (hashRef.current) {

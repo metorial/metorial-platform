@@ -1,17 +1,20 @@
-import type { Serializer } from './types';
+import type {
+  GetApplicatorByType,
+  GetHashFunctionByType,
+  Initializer,
+  Serializer
+} from './types';
 
 export let createApplicator = <Type extends Serializer['type'], InitResult>(
   type: Type,
-  init: (
-    ...d: Parameters<Extract<Serializer, { type: Type }>['getHash']>
-  ) => Promise<InitResult>,
+  init: Initializer<Type, InitResult>,
   d: {
-    apply: Extract<Serializer, { type: Type }>['apply'];
-    getHash: Extract<Serializer, { type: Type }>['getHash'];
+    apply: GetApplicatorByType<Type, InitResult>;
+    getHash: GetHashFunctionByType<Type, InitResult>;
   }
-): Extract<Serializer, { type: Type }> =>
-  ({
-    type,
-    apply: d.apply,
-    getHash: d.getHash
-  }) as any;
+) => ({
+  type,
+  init,
+  apply: d.apply,
+  getHash: d.getHash
+});

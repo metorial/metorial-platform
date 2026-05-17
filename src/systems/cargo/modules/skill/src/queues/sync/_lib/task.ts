@@ -95,9 +95,13 @@ export let createTaskManager = (
   let initialItemsMap = new Map(initialItems.map(i => [getItemId(i), i]));
   let itemsToDelete = new Set(initialItemsMap.keys());
 
-  let addOrUpdateItem = (item: SkillItemInput) => {
+  let keepItem = (item: SkillItemInput) => {
     let id = getItemId(item);
     itemsToDelete.delete(id);
+  };
+
+  let addOrUpdateItem = (item: SkillItemInput) => {
+    keepItem(item);
     tasks.push(getTask(item, 'set'));
   };
 
@@ -120,6 +124,7 @@ export let createTaskManager = (
   return {
     addOrUpdateItem,
     deleteItem,
+    keepItem,
     getTasks
   };
 };

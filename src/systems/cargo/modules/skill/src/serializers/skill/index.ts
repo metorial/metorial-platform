@@ -175,10 +175,9 @@ let applySkillDocumentFrontmatter = (content: string, input: SkillSerializerInpu
   return `---\n${stringify(stripUndefined(nextFrontmatter)).trimEnd()}\n---${separator}${body}`;
 };
 
-export let applySkill = createApplicator('skill', {
-  getHash: async input => {},
-
-  apply: async (input, context) => {
+export let applySkill = createApplicator(
+  'skill',
+  async input => {
     let skillStore = await db.store.findFirstOrThrow({
       where: { oid: input.skill.storeOid }
     });
@@ -202,74 +201,85 @@ export let applySkill = createApplicator('skill', {
     );
 
     let effectiveAllowedFileExtensions = getEffectiveAllowedFileExtensions(config);
-    let hash = await Hash.sha256(
-      [
-        3,
-        input.skill.oid,
-        input.skillPlugin.oid,
-        input.skill.updatedAt.getTime(),
-        skillStore.lastEditedAt.getTime(),
-        config.allowScripts,
-        config.allowNonStandardDirectories,
-        effectiveAllowedFileExtensions.shouldFilter,
-        [...effectiveAllowedFileExtensions.extensions].sort().join(',')
-      ].join(':')
-    );
-    if (context.hashIsEqual(hash)) return;
 
-    context.setBasePath(getSkillPath(input));
+    return {
+      skillStore,
+      config,
+      effectiveAllowedFileExtensions
+    };
+  },
+  {
+    getHash: async (input, { skillStore, config, effectiveAllowedFileExtensions }) => {
+      return await Hash.sha256(
+        [
+          3,
+          input.skill.oid,
+          input.skillPlugin.oid,
+          input.skill.updatedAt.getTime(),
+          skillStore.lastEditedAt.getTime(),
+          config.allowScripts,
+          config.allowNonStandardDirectories,
+          effectiveAllowedFileExtensions.shouldFilter,
+          [...effectiveAllowedFileExtensions.extensions].sort().join(',')
+        ].join(':')
+      );
+    },
 
-    if (!config.allowScripts) {
-      await context.deletePath(scriptsFolder);
-    }
+    apply: async (input, context, { skillStore, config }) => {
+      context.setBasePath(getSkillPath(input));
 
-    let q = new PQueue({ concurrency: 10 });
-    let cursor: string | null = null;
-    let limit = 25;
-
-    while (true) {
-      let items = await db.storeItem.findMany({
-        where: {
-          storeOid: skillStore.oid,
-          kind: { in: ['document', 'file'] },
-          id: cursor ? { gt: cursor } : undefined
-        },
-        include: storeItemInclude,
-        orderBy: {
-          id: 'asc'
-        },
-        take: limit
-      });
-
-      for (let item of items) {
-        if (item.path.startsWith('/agents/') || item.path.startsWith('agents/')) continue;
-
-        if (item.kind === 'document' && item.document) {
-          let documentPath = normalizeSkillDocumentPath(item.path);
-          if (!isAllowedBySkillConfig(documentPath, config)) continue;
-
-          let content = isRootSkillDocument(documentPath)
-            ? applySkillDocumentFrontmatter(item.document.content.content, input)
-            : item.document.content.content;
-
-          await context.setFile(documentPath, content);
-        } else if (item.kind === 'file' && item.file) {
-          if (!isAllowedBySkillConfig(item.path, config)) continue;
-
-          q.add(async () => {
-            let content = await fileService.downloadFileContent({
-              file: item.file!
-            });
-
-            await context.setFile(item.path, content);
-          });
-        }
+      if (!config.allowScripts) {
+        await context.deletePath(scriptsFolder);
       }
 
-      if (items.length < limit) break;
-      cursor = items[items.length - 1]!.id as string;
-    }
+      let q = new PQueue({ concurrency: 10 });
+      let cursor: string | null = null;
+      let limit = 25;
 
-    await q.onIdle();
+      while (true) {
+        let items = await db.storeItem.findMany({
+          where: {
+            storeOid: skillStore.oid,
+            kind: { in: ['document', 'file'] },
+            id: cursor ? { gt: cursor } : undefined
+          },
+          include: storeItemInclude,
+          orderBy: {
+            id: 'asc'
+          },
+          take: limit
+        });
+
+        for (let item of items) {
+          if (item.path.startsWith('/agents/') || item.path.startsWith('agents/')) continue;
+
+          if (item.kind === 'document' && item.document) {
+            let documentPath = normalizeSkillDocumentPath(item.path);
+            if (!isAllowedBySkillConfig(documentPath, config)) continue;
+
+            let content = isRootSkillDocument(documentPath)
+              ? applySkillDocumentFrontmatter(item.document.content.content, input)
+              : item.document.content.content;
+
+            await context.setFile(documentPath, content);
+          } else if (item.kind === 'file' && item.file) {
+            if (!isAllowedBySkillConfig(item.path, config)) continue;
+
+            q.add(async () => {
+              let content = await fileService.downloadFileContent({
+                file: item.file!
+              });
+
+              await context.setFile(item.path, content);
+            });
+          }
+        }
+
+        if (items.length < limit) break;
+        cursor = items[items.length - 1]!.id as string;
+      }
+
+      await q.onIdle();
+    }
   }
-});
+);
