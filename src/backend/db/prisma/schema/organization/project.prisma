@@ -18,7 +18,7 @@ model Project {
   organizationOid BigInt
   organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
 
-  internalTenantIdentifier String?
+  internalTenantIdentifier String? @map("subspaceTenantIdentifier")
 
   subspaceTenantId  String?
   cargoTenantId     String?

@@ -26,8 +26,8 @@ model Instance {
   organizationOid BigInt
   organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
 
-  internalTenantIdentifier      String?
-  internalEnvironmentIdentifier String?
+  internalTenantIdentifier      String? @map("subspaceTenantIdentifier")
+  internalEnvironmentIdentifier String? @map("subspaceEnvironmentIdentifier")
 
   subspaceTenantId  String?
   cargoTenantId     String?

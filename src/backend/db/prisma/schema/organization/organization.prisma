@@ -37,11 +37,9 @@ model Organization {
 
   internalTenantIdentifier String?
 
-  subspaceTenantIds      String[]
-  cargoTenantId          String?
-  cargoEnvironmentId     String?
-  synthesisTenantId      String?
-  synthesisEnvironmentId String?
+  subspaceTenantIds  String[]
+  cargoTenantId      String?
+  cargoEnvironmentId String?
 
   deletedAt DateTime?
   createdAt DateTime  @default(now())
