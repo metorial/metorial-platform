@@ -7,6 +7,7 @@ import type { SerializerContext } from '../../serializers/_lib/types';
 import { applyMarketplace } from '../../serializers/marketplace';
 import { applyPlugin, getPluginPath } from '../../serializers/plugin';
 import { applySkill, getSkillPath } from '../../serializers/skill';
+import { appendSkillDestinationSyncLog } from './_lib/logs';
 import { type SyncTask } from './_lib/task';
 import { syncPropagateStartQueue } from './propagate';
 
@@ -61,6 +62,10 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
 
   let task = data.tasks[0];
   if (!task) {
+    await appendSkillDestinationSyncLog(
+      data.skillDestinationSyncId,
+      'Content updates are ready.'
+    );
     await syncPropagateStartQueue.add({
       skillDestinationSyncId: data.skillDestinationSyncId
     });
@@ -88,6 +93,13 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
 
   let basePathRef = { current: '' };
   let hashRef = { current: null as string | null };
+
+  let deleteBucketPath = async (prefix: string | undefined) => {
+    await codeBucketClient.deleteBucketPath({
+      bucketId: sync.destination.codeBucketId,
+      path: normalizeBucketPath(prefix ?? '')
+    });
+  };
 
   let fileProcessor = new BatchProcessor<{
     path: string;
@@ -178,13 +190,6 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
     };
   };
 
-  let deleteBucketPath = async (prefix: string | undefined) => {
-    await codeBucketClient.deleteBucketPath({
-      bucketId: sync.destination.codeBucketId,
-      path: normalizeBucketPath(prefix ?? '')
-    });
-  };
-
   let setDestinationItemHash = async (d: {
     hash: string;
     skillMarketplaceOid?: bigint;
@@ -225,6 +230,10 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
     });
 
     if (task.action === 'delete') {
+      await appendSkillDestinationSyncLog(
+        data.skillDestinationSyncId,
+        `Removing skill ${skillPluginSkill.skill.name ?? 'Untitled skill'}.`
+      );
       await deleteBucketPath(
         getSkillPath({
           skill: skillPluginSkill.skill,
@@ -242,6 +251,10 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
         }
       });
     } else {
+      await appendSkillDestinationSyncLog(
+        data.skillDestinationSyncId,
+        `Updating skill ${skillPluginSkill.skill.name ?? 'Untitled skill'}.`
+      );
       await applySkill.apply(
         {
           skill: skillPluginSkill.skill,
@@ -272,6 +285,10 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
     });
 
     if (task.action === 'delete') {
+      await appendSkillDestinationSyncLog(
+        data.skillDestinationSyncId,
+        `Removing plugin ${skillPlugin.name}.`
+      );
       await deleteBucketPath(
         getPluginPath({
           skillPlugin,
@@ -286,6 +303,10 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
         }
       });
     } else {
+      await appendSkillDestinationSyncLog(
+        data.skillDestinationSyncId,
+        `Updating plugin ${skillPlugin.name}.`
+      );
       await applyPlugin.apply(
         {
           skillPlugin,
@@ -306,6 +327,10 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
     }
   } else if (task?.type === 'marketplace') {
     let skillMarketplace = await loadMarketplace(task.skillMarketplaceId);
+    await appendSkillDestinationSyncLog(
+      data.skillDestinationSyncId,
+      `Updating marketplace ${skillMarketplace.name}.`
+    );
     await applyMarketplace.apply({ skillMarketplace }, context);
     await fileProcessor.flush();
 
@@ -325,6 +350,10 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
       tasks
     });
   } else {
+    await appendSkillDestinationSyncLog(
+      data.skillDestinationSyncId,
+      'Content updates are ready.'
+    );
     await syncPropagateStartQueue.add({
       skillDestinationSyncId: data.skillDestinationSyncId
     });

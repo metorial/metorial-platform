@@ -1,5 +1,6 @@
 import { createQueue, QueueRetryError } from '@lowerdeck/queue';
 import { db, env } from '@metorial-cargo/db';
+import { appendSkillDestinationSyncLog } from './_lib/logs';
 import { syncCollectQueue } from './collect';
 
 export let syncStartQueue = createQueue<{
@@ -31,6 +32,7 @@ export let syncStartQueueProcessor = syncStartQueue.process(async data => {
     where: { oid: sync.oid, status: 'pending' },
     data: { status: 'processing', startedAt: new Date() }
   });
+  await appendSkillDestinationSyncLog(data.skillDestinationSyncId, 'Starting sync.');
 
   // Cancel other syncs for the same destination
   await db.skillDestinationSync.updateMany({

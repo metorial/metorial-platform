@@ -1,5 +1,6 @@
 import { createQueue } from '@lowerdeck/queue';
 import { db, env } from '@metorial-cargo/db';
+import { appendSkillDestinationSyncLog } from './_lib/logs';
 import { createTaskManager, type SyncTask } from './_lib/task';
 import { syncFinishQueue } from './finish';
 import { syncProcessQueue } from './process';
@@ -124,6 +125,11 @@ export let syncCollectQueueProcessor = syncCollectQueue.process(async data => {
   });
   if (!sync || sync.status !== 'processing') return;
 
+  await appendSkillDestinationSyncLog(
+    data.skillDestinationSyncId,
+    'Preparing content updates.'
+  );
+
   let currentItems = await db.skillDestinationItem.findMany({
     where: { destinationOid: sync.destination.oid },
     include: { skill: true, skillPlugin: true, skillMarketplace: true }
@@ -229,11 +235,20 @@ export let syncCollectQueueProcessor = syncCollectQueue.process(async data => {
   });
 
   if (tasks.length === 0) {
+    await appendSkillDestinationSyncLog(
+      data.skillDestinationSyncId,
+      'No content updates were needed.'
+    );
     await syncFinishQueue.add({
       skillDestinationSyncId: data.skillDestinationSyncId
     });
     return;
   }
+
+  await appendSkillDestinationSyncLog(
+    data.skillDestinationSyncId,
+    `Prepared ${tasks.length} content ${tasks.length === 1 ? 'update' : 'updates'}.`
+  );
 
   await syncProcessQueue.add({
     skillDestinationSyncId: data.skillDestinationSyncId,
