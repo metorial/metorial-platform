@@ -108,6 +108,12 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
       await fileProcessor.put({ path: resultPath, content });
     },
 
+    async deletePath(inPath: string) {
+      await fileProcessor.flush();
+      let resultPath = basePathRef.current ? path.join(basePathRef.current, inPath) : inPath;
+      await deleteBucketPath(resultPath);
+    },
+
     setBasePath(path: string | undefined) {
       basePathRef.current = path ?? '';
     },
