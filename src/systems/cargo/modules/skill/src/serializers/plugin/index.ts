@@ -65,12 +65,13 @@ export let applyPlugin = createApplicator('plugin', async (input, context) => {
 
   context.setBasePath(getPluginPath(input));
 
-  let mcpJson = json({
+  let mcpServers = {
     metorial: {
       type: 'http',
       url: `${env.service.API_URL}/connect/plugin/${input.skillPlugin.slug}`
     }
-  });
+  };
+  let mcpJson = json(mcpServers);
   await context.setFile('mcp.json', mcpJson);
   await context.setFile('.mcp.json', mcpJson);
 
@@ -105,9 +106,9 @@ export let applyPlugin = createApplicator('plugin', async (input, context) => {
     description: input.skillPlugin.description,
     version: input.skillPlugin.version,
     author: {
-      name: 'Metorial',
-      email: 'hey@metorial.com'
-    }
+      name: 'Metorial'
+    },
+    mcpServers: mcpServers
   };
 
   let claudePlugin = json(baseInfo);
@@ -115,6 +116,14 @@ export let applyPlugin = createApplicator('plugin', async (input, context) => {
 
   let cursorPlugin = json(baseInfo);
   await context.setFile('.cursor-plugin/plugin.json', cursorPlugin);
+
+  let copilotPlugin = json({
+    ...baseInfo,
+    skills: 'skills/',
+    agents: 'agents/',
+    mcpServers: '.mcp.json'
+  });
+  await context.setFile('plugin.json', copilotPlugin);
 
   let codexPlugin = json({
     ...baseInfo,
@@ -181,6 +190,7 @@ export let applyPlugin = createApplicator('plugin', async (input, context) => {
     });
     await context.setFile('.cursor-plugin/marketplace.json', cursorAndClaudeMarketplace);
     await context.setFile('.claude-plugin/marketplace.json', cursorAndClaudeMarketplace);
+    await context.setFile('.github/plugin/marketplace.json', cursorAndClaudeMarketplace);
   }
 
   let cursor: string | null = null;
