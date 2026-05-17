@@ -12,6 +12,7 @@ import {
 import { skillExportQueueProcessor } from './export';
 import { lifecycleQueues } from './lifecycle';
 import { searchQueues } from './search';
+import { skillDestinationSyncCleanupCron } from './sync/cleanup';
 import { syncCollectQueueProcessor } from './sync/collect';
 import { syncFinishQueueProcessor } from './sync/finish';
 import { syncProcessQueueProcessor } from './sync/process';
@@ -38,6 +39,7 @@ export let skillQueueProcessor = combineQueueProcessors([
   syncPropagatePerformQueueProcessor,
   syncPropagateWaitQueueProcessor,
   syncFinishQueueProcessor,
+  skillDestinationSyncCleanupCron,
   skillExportQueueProcessor
 ]);
 
