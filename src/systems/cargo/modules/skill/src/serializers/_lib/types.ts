@@ -47,23 +47,61 @@ export interface MarketplaceSerializerInput {
 export interface SerializerContext {
   setFile: (path: string, content: string | Buffer | ArrayBuffer) => Promise<void>;
   deletePath: (path: string) => Promise<void>;
-  hashIsEqual: (hash: string) => boolean;
   setBasePath: (path: string | undefined) => void;
 }
 
-export type SkillSerializer = {
+export type Applicator<Input, InitResult> = (
+  input: Input,
+  context: SerializerContext,
+  initResult: InitResult
+) => Promise<void>;
+export type HashFunction<Input, InitResult> = (
+  input: Input,
+  initResult: InitResult
+) => Promise<string>;
+
+export type SerializerInputByTypeRaw = {
+  skill: SkillSerializerInput;
+  plugin: PluginSerializerInput;
+  marketplace: MarketplaceSerializerInput;
+};
+
+export type SerializerInputByType<Type extends Serializer['type']> =
+  SerializerInputByTypeRaw[Type];
+
+export type GetApplicatorByType<Type extends Serializer['type'], InitResult> = Applicator<
+  SerializerInputByType<Type>,
+  InitResult
+>;
+
+export type GetHashFunctionByType<Type extends Serializer['type'], InitResult> = HashFunction<
+  SerializerInputByType<Type>,
+  InitResult
+>;
+
+export type Initializer<Type extends Serializer['type'], InitResult> = (
+  input: SerializerInputByType<Type>
+) => Promise<InitResult>;
+
+export type SkillSerializer<InitResult = any> = {
   type: 'skill';
-  apply: (input: SkillSerializerInput, context: SerializerContext) => Promise<void>;
+  init: Initializer<'skill', InitResult>;
+  apply: GetApplicatorByType<'skill', InitResult>;
+  getHash: GetHashFunctionByType<'skill', InitResult>;
 };
 
-export type PluginSerializer = {
+export type PluginSerializer<InitResult = any> = {
   type: 'plugin';
-  apply: (input: PluginSerializerInput, context: SerializerContext) => Promise<void>;
+  init: Initializer<'plugin', InitResult>;
+  apply: GetApplicatorByType<'plugin', InitResult>;
+  getHash: GetHashFunctionByType<'plugin', InitResult>;
 };
 
-export type MarketplaceSerializer = {
+export type MarketplaceSerializer<InitResult = any> = {
   type: 'marketplace';
-  apply: (input: MarketplaceSerializerInput, context: SerializerContext) => Promise<void>;
+  init: Initializer<'marketplace', InitResult>;
+  apply: GetApplicatorByType<'marketplace', InitResult>;
+  getHash: GetHashFunctionByType<'marketplace', InitResult>;
 };
 
 export type Serializer = SkillSerializer | PluginSerializer | MarketplaceSerializer;
