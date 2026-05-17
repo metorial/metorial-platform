@@ -12,5 +12,6 @@ export * from './marketplaces';
 export * from './participants';
 export * from './plugins';
 export * from './publish-consumer-skill';
+export * from './syncs';
 export * from './update';
 export * from './versions';

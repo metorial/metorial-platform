@@ -19,6 +19,7 @@ export type {
   CargoSkillParticipant,
   CargoSkillPlugin,
   CargoSkillPluginSkill,
+  CargoSkillSync,
   CargoSkillVersion,
   CargoSkillVersionSnapshot,
   CargoStore,
@@ -45,6 +46,7 @@ export * from './skillMarketplaceRepository';
 export * from './skillParticipant';
 export * from './skillPlugin';
 export * from './skillPluginRepository';
+export * from './skillSync';
 export * from './skillVersion';
 export * from './store';
 export * from './storeItem';

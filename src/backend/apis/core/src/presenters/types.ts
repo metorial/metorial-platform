@@ -98,6 +98,7 @@ import type {
   EnrichedCargoSkillPlugin,
   EnrichedCargoSkillPluginRepository,
   EnrichedCargoSkillPluginSkill,
+  EnrichedCargoSkillSync,
   CargoSkillVersion,
   CargoSkillVersionSnapshot,
   EnrichedCargoStoreItem,
@@ -521,6 +522,10 @@ export let skillPluginRepositoryType = PresentableType.create<{
 export let skillPluginSkillType = PresentableType.create<{
   skillPluginSkill: EnrichedCargoSkillPluginSkill;
 }>()('skillPluginSkill');
+
+export let skillSyncType = PresentableType.create<{
+  skillSync: EnrichedCargoSkillSync;
+}>()('skillSync');
 
 export let skillParticipantType = PresentableType.create<{
   skillParticipant: EnrichedCargoSkillParticipant;

@@ -19,8 +19,8 @@ import {
 } from '../resources';
 
 /**
- * @name Skill Plugins controller
- * @description Manage skill plugins for an instance.
+ * @name Skill Plugin Repositories controller
+ * @description Manage repositories linked to skill plugins for an instance.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs

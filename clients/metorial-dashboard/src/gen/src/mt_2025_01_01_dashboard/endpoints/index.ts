@@ -130,6 +130,7 @@ export * from './dashboard_instance_skills_participants';
 export * from './dashboard_instance_skills_plugins';
 export * from './dashboard_instance_skills_plugins_repositories';
 export * from './dashboard_instance_skills_plugins_skills';
+export * from './dashboard_instance_skills_syncs';
 export * from './dashboard_instance_skills_versions';
 export * from './dashboard_instance_skills_versions_snapshot';
 export * from './dashboard_instance_stores';

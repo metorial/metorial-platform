@@ -126,6 +126,7 @@ import {
   skillPluginController,
   skillPluginRepositoryController,
   skillPluginSkillController,
+  skillSyncController,
   skillTemplateController,
   skillTemplateItemController,
   skillVersionController,
@@ -547,6 +548,7 @@ export let dashboardController = Controller.create<any>(
     skillPluginController,
     skillPluginRepositoryController,
     skillPluginSkillController,
+    skillSyncController,
 
     consumerController,
     consumerSurfaceController,

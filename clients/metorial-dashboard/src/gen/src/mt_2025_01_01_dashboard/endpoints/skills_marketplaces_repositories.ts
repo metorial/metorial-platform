@@ -19,8 +19,8 @@ import {
 } from '../resources';
 
 /**
- * @name Skill Marketplaces controller
- * @description Manage skill marketplaces for an instance.
+ * @name Skill Marketplace Repositories controller
+ * @description Manage repositories linked to skill marketplaces for an instance.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
