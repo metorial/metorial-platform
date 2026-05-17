@@ -279,9 +279,7 @@ let SkillMarketplaceEditorPage = dynamicPage(() =>
   import('./pages/(skills)/skill-marketplace/editor').then(c => c.SkillMarketplaceEditorPage)
 );
 let SkillMarketplaceSyncsPage = dynamicPage(() =>
-  import('./pages/(skills)/skill-marketplace/syncs').then(
-    c => c.SkillMarketplaceSyncsPage
-  )
+  import('./pages/(skills)/skill-marketplace/syncs').then(c => c.SkillMarketplaceSyncsPage)
 );
 let SkillMarketplaceSettingsPage = dynamicPage(() =>
   import('./pages/(skills)/skill-marketplace/settings').then(

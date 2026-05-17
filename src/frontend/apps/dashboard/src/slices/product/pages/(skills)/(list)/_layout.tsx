@@ -125,10 +125,6 @@ export let SkillsListLayout = () => {
             to: Paths.instance.skillGroups(...listPathParams)
           },
           {
-            label: 'Plugins',
-            to: Paths.instance.skillPlugins(...listPathParams)
-          },
-          {
             label: 'Settings',
             to: Paths.instance.skillSettings(...listPathParams)
           }

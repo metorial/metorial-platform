@@ -1,7 +1,6 @@
 import { Paths } from '@metorial/frontend-config';
 import {
   SkillAgentsScene,
-  SkillGroupsForSkillScene,
   SkillLinkProvidersScene,
   StoreFileViewerScene
 } from '@metorial/scene-skills';
@@ -46,7 +45,7 @@ export let SkillPage = () => {
         }
       />
       <SkillLinkProvidersScene instanceId={instance.data?.id} skillId={skillId} />
-      <SkillGroupsForSkillScene
+      {/* <SkillGroupsForSkillScene
         instanceId={instance.data?.id}
         skillId={skillId}
         getSkillGroupPath={skillGroupId =>
@@ -57,7 +56,7 @@ export let SkillPage = () => {
             skillGroupId
           )
         }
-      />
+      /> */}
     </PageStack>
   );
 };

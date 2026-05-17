@@ -125,26 +125,29 @@ let SkillSyncDetails = ({ syncId }: { syncId: string }) => {
           ]}
         />
 
-        <Spacer height={20} />
-        <Text size="3" weight="strong">
-          Repository Propagations
-        </Text>
-        <Spacer height={10} />
-        <Table
-          headers={['Status', 'Branch', 'PR', 'Completed']}
-          data={sync.data.repositoryPropagations.map(propagation => ({
-            data: [
-              <SkillSyncStatusBadge status={propagation.status} />,
-              propagation.branchName,
-              propagation.prName,
-              propagation.completedAt ? <RenderDate date={propagation.completedAt} /> : 'N/A'
-            ]
-          }))}
-        />
-        {sync.data.repositoryPropagations.length == 0 && (
-          <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-            No repository propagations for this sync.
-          </Text>
+        {sync.data.repositoryPropagations.length > 0 && (
+          <>
+            <Spacer height={20} />
+            <Text size="3" weight="strong">
+              Repositories
+            </Text>
+            <Spacer height={10} />
+            <Table
+              headers={['Status', 'Branch', 'PR', 'Completed']}
+              data={sync.data.repositoryPropagations.map(propagation => ({
+                data: [
+                  <SkillSyncStatusBadge status={propagation.status} />,
+                  propagation.branchName,
+                  propagation.prName,
+                  propagation.completedAt ? (
+                    <RenderDate date={propagation.completedAt} />
+                  ) : (
+                    'N/A'
+                  )
+                ]
+              }))}
+            />
+          </>
         )}
 
         <Spacer height={20} />
