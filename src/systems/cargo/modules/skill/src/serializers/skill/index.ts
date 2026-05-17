@@ -5,6 +5,12 @@ import { db } from '@metorial-cargo/db';
 import { fileService } from '@metorial-cargo/module-file';
 import PQueue from 'p-queue';
 import { parse, stringify } from 'yaml';
+import { combineConfigs } from '../../lib/combineConfigs';
+import {
+  isAllowedSkillPath,
+  safeNonScriptFileExtensions,
+  scriptsFolder
+} from '../../lib/files';
 import { createApplicator } from '../_lib/apply';
 import type { SkillSerializerInput } from '../_lib/types';
 import { getPluginPath } from '../plugin';
@@ -30,6 +36,74 @@ let storeItemInclude = {
 let frontmatterRegex = /^---[ \t]*\r?\n([\s\S]*?)^---[ \t]*(?:\r?\n|$)/m;
 
 let isRootSkillDocument = (path: string) => path.replace(/^\/+/, '') === 'SKILL.md';
+
+type SkillConfigurationPolicy = {
+  allowScripts: boolean;
+  allowedFileExtensions?: string[] | null;
+  allowNonStandardDirectories: boolean;
+};
+
+let normalizeSkillPath = (path: string) => path.replace(/^\/+/, '');
+
+let normalizeFileExtension = (extension: string) => {
+  let normalized = extension.trim().toLowerCase();
+  if (!normalized) return null;
+  return normalized.startsWith('.') ? normalized : `.${normalized}`;
+};
+
+let getFileExtension = (path: string) => {
+  let fileName = normalizeSkillPath(path).split('/').at(-1) ?? '';
+  let dotIndex = fileName.lastIndexOf('.');
+  if (dotIndex <= 0 || dotIndex === fileName.length - 1) return null;
+  return normalizeFileExtension(fileName.slice(dotIndex));
+};
+
+let isScriptsPath = (path: string) => {
+  let normalizedPath = normalizeSkillPath(path);
+  return normalizedPath === scriptsFolder || normalizedPath.startsWith(`${scriptsFolder}/`);
+};
+
+let getEffectiveAllowedFileExtensions = (config: SkillConfigurationPolicy) => {
+  let allowedExtensions = (config.allowedFileExtensions ?? [])
+    .map(normalizeFileExtension)
+    .filter((extension): extension is string => !!extension);
+
+  if (config.allowScripts) {
+    return {
+      shouldFilter: allowedExtensions.length > 0,
+      extensions: allowedExtensions
+    };
+  }
+
+  let safeExtensions = new Set(
+    safeNonScriptFileExtensions
+      .map(normalizeFileExtension)
+      .filter((extension): extension is string => !!extension)
+  );
+
+  return {
+    shouldFilter: true,
+    extensions: allowedExtensions.length
+      ? allowedExtensions.filter(extension => safeExtensions.has(extension))
+      : [...safeExtensions]
+  };
+};
+
+let isAllowedBySkillConfig = (path: string, config: SkillConfigurationPolicy) => {
+  let normalizedPath = normalizeSkillPath(path);
+
+  if (!config.allowNonStandardDirectories && !isAllowedSkillPath(normalizedPath)) {
+    return false;
+  }
+
+  if (!config.allowScripts && isScriptsPath(normalizedPath)) return false;
+
+  let allowedExtensions = getEffectiveAllowedFileExtensions(config);
+  if (!allowedExtensions.shouldFilter) return true;
+
+  let extension = getFileExtension(normalizedPath);
+  return !!extension && allowedExtensions.extensions.includes(extension);
+};
 
 let isRecord = (value: unknown): value is Record<string, unknown> =>
   !!value && typeof value === 'object' && !Array.isArray(value);
@@ -83,18 +157,45 @@ export let applySkill = createApplicator('skill', async (input, context) => {
     where: { oid: input.skill.storeOid }
   });
 
+  let defaultConfig = await db.skillConfiguration.findFirst({
+    where: {
+      tenantOid: input.skill.tenantOid,
+      environmentOid: input.skill.environmentOid,
+      isDefault: true
+    }
+  });
+
+  let config = combineConfigs(
+    [
+      input.skillPlugin.skillConfiguration,
+      input.skillPluginSkill.skillConfiguration,
+      input.skillMarketplacePlugin?.skillConfiguration,
+      input.skillMarketplace?.skillConfiguration
+    ],
+    defaultConfig
+  );
+
+  let effectiveAllowedFileExtensions = getEffectiveAllowedFileExtensions(config);
   let hash = await Hash.sha256(
     [
-      1,
+      2,
       input.skill.oid,
       input.skillPlugin.oid,
       input.skill.updatedAt.getTime(),
-      skillStore.lastEditedAt.getTime()
+      skillStore.lastEditedAt.getTime(),
+      config.allowScripts,
+      config.allowNonStandardDirectories,
+      effectiveAllowedFileExtensions.shouldFilter,
+      [...effectiveAllowedFileExtensions.extensions].sort().join(',')
     ].join(':')
   );
   if (context.hashIsEqual(hash)) return;
 
   context.setBasePath(getSkillPath(input));
+
+  if (!config.allowScripts) {
+    await context.deletePath(scriptsFolder);
+  }
 
   let q = new PQueue({ concurrency: 10 });
   let cursor: string | null = null;
@@ -116,6 +217,7 @@ export let applySkill = createApplicator('skill', async (input, context) => {
 
     for (let item of items) {
       if (item.path.startsWith('/agents/') || item.path.startsWith('/agents/')) continue;
+      if (!isAllowedBySkillConfig(item.path, config)) continue;
 
       if (item.kind === 'document' && item.document) {
         let content = isRootSkillDocument(item.path)
