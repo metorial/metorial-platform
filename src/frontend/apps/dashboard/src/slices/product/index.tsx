@@ -278,6 +278,11 @@ let SkillMarketplacePage = dynamicPage(() =>
 let SkillMarketplaceEditorPage = dynamicPage(() =>
   import('./pages/(skills)/skill-marketplace/editor').then(c => c.SkillMarketplaceEditorPage)
 );
+let SkillMarketplaceSyncsPage = dynamicPage(() =>
+  import('./pages/(skills)/skill-marketplace/syncs').then(
+    c => c.SkillMarketplaceSyncsPage
+  )
+);
 let SkillMarketplaceSettingsPage = dynamicPage(() =>
   import('./pages/(skills)/skill-marketplace/settings').then(
     c => c.SkillMarketplaceSettingsPage
@@ -291,6 +296,9 @@ let SkillPluginPage = dynamicPage(() =>
 );
 let SkillPluginEditorPage = dynamicPage(() =>
   import('./pages/(skills)/skill-plugin/editor').then(c => c.SkillPluginEditorPage)
+);
+let SkillPluginSyncsPage = dynamicPage(() =>
+  import('./pages/(skills)/skill-plugin/syncs').then(c => c.SkillPluginSyncsPage)
 );
 let SkillPluginSettingsPage = dynamicPage(() =>
   import('./pages/(skills)/skill-plugin/settings').then(c => c.SkillPluginSettingsPage)
@@ -1262,6 +1270,10 @@ export let productHomeSlice = createSlice([
                 element: <SkillMarketplaceEditorPage />
               },
               {
+                path: 'syncs',
+                element: <SkillMarketplaceSyncsPage />
+              },
+              {
                 path: 'settings',
                 element: <SkillMarketplaceSettingsPage />
               }
@@ -1278,6 +1290,10 @@ export let productHomeSlice = createSlice([
               {
                 path: 'editor',
                 element: <SkillPluginEditorPage />
+              },
+              {
+                path: 'syncs',
+                element: <SkillPluginSyncsPage />
               },
               {
                 path: 'settings',

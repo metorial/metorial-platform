@@ -117,6 +117,10 @@ export let SkillPluginLayout = () => {
                 to: Paths.instance.skillPlugin(...pluginPathParams, 'editor')
               },
               {
+                label: 'Syncs',
+                to: Paths.instance.skillPlugin(...pluginPathParams, 'syncs')
+              },
+              {
                 label: 'Settings',
                 to: Paths.instance.skillPlugin(...pluginPathParams, 'settings')
               }

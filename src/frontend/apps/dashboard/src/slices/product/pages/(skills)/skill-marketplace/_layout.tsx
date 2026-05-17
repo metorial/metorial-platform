@@ -121,6 +121,10 @@ export let SkillMarketplaceLayout = () => {
                 to: Paths.instance.skillMarketplace(...marketplacePathParams, 'editor')
               },
               {
+                label: 'Syncs',
+                to: Paths.instance.skillMarketplace(...marketplacePathParams, 'syncs')
+              },
+              {
                 label: 'Settings',
                 to: Paths.instance.skillMarketplace(...marketplacePathParams, 'settings')
               }
