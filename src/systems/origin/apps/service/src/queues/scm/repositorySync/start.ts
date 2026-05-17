@@ -1,8 +1,13 @@
 import { createQueue } from '@lowerdeck/queue';
 import { db } from '../../../db';
 import { env } from '../../../env';
+import {
+  appendRepositorySyncLog,
+  logRepositorySyncQueueError,
+  logRepositorySyncQueueEvent,
+  markRepositorySyncFailed
+} from './_lib';
 import { createBranchRepositorySyncQueue } from './createBranch';
-import { logRepositorySyncQueueError, logRepositorySyncQueueEvent, markRepositorySyncFailed } from './_lib';
 
 export let startRepositorySyncQueue = createQueue<{ syncId: string }>({
   name: 'ori/rep-sync/start',
@@ -27,12 +32,18 @@ export let startRepositorySyncQueueProcessor = startRepositorySyncQueue.process(
     });
 
     if (updated.count === 0) {
-      logRepositorySyncQueueEvent('start', 'skipped sync because expected status was not present', {
-        syncId: data.syncId,
-        expectedStatus: 'pending'
-      });
+      logRepositorySyncQueueEvent(
+        'start',
+        'skipped sync because expected status was not present',
+        {
+          syncId: data.syncId,
+          expectedStatus: 'pending'
+        }
+      );
       return;
     }
+
+    await appendRepositorySyncLog(data.syncId, 'Starting repository update.');
 
     logRepositorySyncQueueEvent('start', 'transitioned sync to creating_branch', {
       syncId: data.syncId

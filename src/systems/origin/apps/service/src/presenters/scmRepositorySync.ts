@@ -20,6 +20,7 @@ export let scmRepositorySyncPresenter = (sync: ScmRepositorySync) => ({
   errorMessage: sync.errorMessage,
   ciState: sync.ciState,
   attemptCount: sync.attemptCount,
+  logs: sync.logs,
 
   lastPolledAt: sync.lastPolledAt,
   nextPollAt: sync.nextPollAt,

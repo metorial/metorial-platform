@@ -13,5 +13,6 @@ declare global {
       path: string;
       content: string;
     }[];
+    type SyncLogEntry = [number, string];
   }
 }

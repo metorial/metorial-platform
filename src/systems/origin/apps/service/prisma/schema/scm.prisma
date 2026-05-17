@@ -111,6 +111,9 @@ model ScmRepositorySync {
   ciState      String?
   attemptCount Int     @default(0)
 
+  /// [SyncLogEntry]
+  logs Json[] @default([])
+
   lastPolledAt DateTime?
   nextPollAt   DateTime?
   completedAt  DateTime?
