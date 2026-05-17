@@ -71,7 +71,7 @@ class SkillServiceImpl {
       parentSkillCloneType?: 'fork' | 'duplicate';
       input: {
         id: string;
-        slug: string;
+        slug?: string | null;
         actorId?: string;
         name: string;
         description?: string | null;
@@ -150,7 +150,7 @@ class SkillServiceImpl {
           id: d.input.id,
           status: 'active',
           name: d.input.name,
-          slug: d.input.slug,
+          slug: d.input.slug ?? null,
           description: d.input.description,
           metadata: d.input.metadata as any,
 
