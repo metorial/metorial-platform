@@ -5,6 +5,7 @@ import {
   useAllSkillPluginSkills,
   useCreateSkillPluginSkill,
   useDeleteSkillPluginSkill,
+  useSkillPlugin,
   useSkills,
   useUpdateSkillPluginSkill
 } from '@metorial/state';
@@ -370,6 +371,7 @@ export let SkillPluginSkillsScene = (p: {
   skillPluginId: string | null | undefined;
   getSkillPath?: (skillId: string) => string;
 }) => {
+  let plugin = useSkillPlugin(p.instanceId, p.skillPluginId);
   let pluginSkills = useAllSkillPluginSkills(p.instanceId, p.skillPluginId, {
     order: 'asc',
     status: ['active']
@@ -408,7 +410,10 @@ export let SkillPluginSkillsScene = (p: {
           license: skill.license ?? undefined,
           compatibility: skill.compatibility ?? undefined
         });
-        if (created) await pluginSkills.refetch();
+        if (created) {
+          await pluginSkills.refetch();
+          await plugin.refetch();
+        }
       }
     });
   };
@@ -421,7 +426,10 @@ export let SkillPluginSkillsScene = (p: {
       skillPluginId: p.skillPluginId,
       skillPluginSkillId: pluginSkill.id
     });
-    if (deleted) await pluginSkills.refetch();
+    if (deleted) {
+      await pluginSkills.refetch();
+      await plugin.refetch();
+    }
   };
 
   let openEdit = (pluginSkill: SkillPluginSkill) => {
