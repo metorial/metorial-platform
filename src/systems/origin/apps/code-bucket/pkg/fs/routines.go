@@ -23,22 +23,13 @@ func (fsm *FileSystemManager) flushPendingFiles() {
 	ctx := context.Background()
 	pattern := "flush:*"
 
-	// Use SCAN instead of KEYS to avoid blocking Redis
-	var keys []string
-	iter := fsm.redis.Scan(ctx, 0, pattern, 100).Iterator()
-	for iter.Next(ctx) {
-		keys = append(keys, iter.Val())
-	}
-	if err := iter.Err(); err != nil {
-		log.Printf("Error scanning flush keys: %v", err)
-		return
-	}
-
-	// Limit concurrent flushes to prevent goroutine explosion
+	// Limit concurrent flushes to prevent goroutine explosion.
 	semaphore := make(chan struct{}, 10)
 	var wg sync.WaitGroup
 
-	for _, key := range keys {
+	iter := fsm.redis.Scan(ctx, 0, pattern, 100).Iterator()
+	for iter.Next(ctx) {
+		key := iter.Val()
 		parts := strings.Split(key, ":")
 		if len(parts) < 3 {
 			continue
@@ -83,6 +74,9 @@ func (fsm *FileSystemManager) flushPendingFiles() {
 			}
 		}(bucketID, filePath, key, lockKey)
 	}
+	if err := iter.Err(); err != nil {
+		log.Printf("Error scanning flush keys: %v", err)
+	}
 
 	wg.Wait()
 }
@@ -123,17 +117,9 @@ func (fsm *FileSystemManager) cleanupZipFiles() {
 		ctx := context.Background()
 		pattern := "zip:*"
 
-		// Use SCAN instead of KEYS to avoid blocking Redis
-		var keys []string
 		iter := fsm.redis.Scan(ctx, 0, pattern, 100).Iterator()
 		for iter.Next(ctx) {
-			keys = append(keys, iter.Val())
-		}
-		if iter.Err() != nil {
-			continue
-		}
-
-		for _, key := range keys {
+			key := iter.Val()
 			timestampStr, err := fsm.redis.Get(ctx, key).Result()
 			if err != nil {
 				continue
@@ -151,6 +137,9 @@ func (fsm *FileSystemManager) cleanupZipFiles() {
 
 				fsm.redis.Del(ctx, key)
 			}
+		}
+		if iter.Err() != nil {
+			continue
 		}
 	}
 }

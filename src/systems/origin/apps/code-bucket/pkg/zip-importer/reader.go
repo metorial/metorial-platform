@@ -43,25 +43,7 @@ func DownloadZip(url, path string, headers map[string]string) (*ZipFileIterator,
 	repoRoot := filepath.Join(extractDir, topDirs[0].Name())
 
 	targetPath := filepath.Join(repoRoot, path)
-	var filePaths []string
-	err = filepath.Walk(targetPath, func(p string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if !info.IsDir() {
-			filePaths = append(filePaths, p)
-		}
-		return nil
-	})
-	if err != nil {
-		return nil, fmt.Errorf("error walking subdirectory: %w", err)
-	}
-
-	return &ZipFileIterator{
-		filePaths: filePaths,
-		current:   0,
-		tempDir:   targetPath,
-	}, nil
+	return NewZipFileIterator(targetPath), nil
 }
 
 func downloadFile(url, dest string, headers map[string]string) error {
@@ -126,17 +108,24 @@ func unzip(src, dest string) error {
 		if err != nil {
 			return err
 		}
-		defer inFile.Close()
 
 		outFile, err := os.OpenFile(fpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
 		if err != nil {
+			inFile.Close()
 			return err
 		}
-		defer outFile.Close()
 
 		_, err = io.Copy(outFile, inFile)
+		closeErr := outFile.Close()
+		inCloseErr := inFile.Close()
 		if err != nil {
 			return err
+		}
+		if closeErr != nil {
+			return closeErr
+		}
+		if inCloseErr != nil {
+			return inCloseErr
 		}
 	}
 	return nil

@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -24,6 +25,7 @@ const (
 	redisFlushDelay    = 5 * time.Minute
 	zipExpiration      = 3 * 24 * time.Hour
 	maxRedisCacheSize  = 1 * 1024 * 1024
+	maxFileBatchSize   = 8 * 1024 * 1024
 	zipStreamChunkSize = 64 * 1024
 )
 
@@ -41,16 +43,30 @@ type FileData struct {
 }
 
 type FileSystemManager struct {
-	redis           *redis.Client
-	objectStorage   *objectstorage.Client
-	bucketName      string
-	flushTicker     *time.Ticker
-	importSemaphore chan struct{}
+	redis            *redis.Client
+	objectStorage    *objectstorage.Client
+	objectStorageURL string
+	httpClient       *http.Client
+	bucketName       string
+	flushTicker      *time.Ticker
+	importSemaphore  chan struct{}
 }
 
 type FileContentsBase struct {
 	Path    string `json:"path"`
 	Content []byte `json:"content"`
+}
+
+type FileContentItem struct {
+	Info    FileInfo
+	Content []byte
+}
+
+type contentBatchAccumulator struct {
+	maxBytes   int64
+	batch      []FileContentItem
+	batchBytes int64
+	flush      func([]FileContentItem) error
 }
 
 type ZipChunkSender func([]byte) error
@@ -103,17 +119,213 @@ func NewFileSystemManager(opts ...FileSystemManagerOption) *FileSystemManager {
 	objectStorageClient := objectstorage.NewClient(options.ObjectStorageEndpoint)
 
 	fsm := &FileSystemManager{
-		redis:           rdb,
-		objectStorage:   objectStorageClient,
-		bucketName:      options.ObjectStorageBucket,
-		flushTicker:     time.NewTicker(60 * time.Second),
-		importSemaphore: make(chan struct{}, 15),
+		redis:            rdb,
+		objectStorage:    objectStorageClient,
+		objectStorageURL: options.ObjectStorageEndpoint,
+		httpClient:       &http.Client{Timeout: 30 * time.Minute},
+		bucketName:       options.ObjectStorageBucket,
+		flushTicker:      time.NewTicker(60 * time.Second),
+		importSemaphore:  make(chan struct{}, 15),
 	}
 
 	go fsm.backgroundFlush()
 	go fsm.cleanupZipFiles()
 
 	return fsm
+}
+
+func normalizeSeenPath(filePath string) string {
+	return strings.TrimPrefix(filePath, "/")
+}
+
+func pathMatchesPrefix(filePath, prefix string) bool {
+	if prefix == "" {
+		return true
+	}
+
+	normalizedPath := normalizeSeenPath(filePath)
+	normalizedPrefix := normalizeSeenPath(prefix)
+	return strings.HasPrefix(normalizedPath, normalizedPrefix)
+}
+
+func (a *contentBatchAccumulator) Add(item FileContentItem) error {
+	if a.maxBytes <= 0 {
+		a.maxBytes = maxFileBatchSize
+	}
+
+	fileBytes := int64(len(item.Content))
+	if len(a.batch) > 0 && a.batchBytes+fileBytes > a.maxBytes {
+		if err := a.Flush(); err != nil {
+			return err
+		}
+	}
+
+	a.batch = append(a.batch, item)
+	a.batchBytes += fileBytes
+
+	if a.batchBytes >= a.maxBytes {
+		return a.Flush()
+	}
+
+	return nil
+}
+
+func (a *contentBatchAccumulator) Flush() error {
+	if len(a.batch) == 0 {
+		return nil
+	}
+
+	if err := a.flush(a.batch); err != nil {
+		return err
+	}
+
+	a.batch = nil
+	a.batchBytes = 0
+	return nil
+}
+
+func (fsm *FileSystemManager) WalkBucketFiles(ctx context.Context, bucketID, prefix string, fn func(FileInfo) error) error {
+	seen := map[string]struct{}{}
+	redisPrefix := fmt.Sprintf("bucket:%s:file:", bucketID)
+
+	pattern := redisPrefix + "*"
+	iter := fsm.redis.Scan(ctx, 0, pattern, 100).Iterator()
+	for iter.Next(ctx) {
+		key := iter.Val()
+		filePath := strings.TrimPrefix(key, redisPrefix)
+		if !pathMatchesPrefix(filePath, prefix) {
+			continue
+		}
+
+		result, err := fsm.redis.Get(ctx, key).Result()
+		if err != nil {
+			continue
+		}
+
+		var fileData FileData
+		if err := json.Unmarshal([]byte(result), &fileData); err != nil {
+			continue
+		}
+
+		seen[normalizeSeenPath(filePath)] = struct{}{}
+		if err := fn(FileInfo{
+			Path:        filePath,
+			Size:        int64(len(fileData.Content)),
+			ContentType: fileData.ContentType,
+			ModifiedAt:  fileData.ModifiedAt,
+		}); err != nil {
+			return err
+		}
+	}
+	if err := iter.Err(); err != nil {
+		return err
+	}
+
+	objectPrefix := bucketID + "/"
+	if prefix != "" {
+		objectPrefix += normalizeSeenPath(prefix)
+	}
+
+	objects, err := fsm.objectStorage.ListObjects(fsm.bucketName, &objectPrefix, nil)
+	if err != nil {
+		return nil
+	}
+
+	for _, obj := range objects {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+
+		filePath := strings.TrimPrefix(obj.Key, bucketID+"/")
+		if !pathMatchesPrefix(filePath, prefix) {
+			continue
+		}
+		if _, ok := seen[normalizeSeenPath(filePath)]; ok {
+			continue
+		}
+
+		contentType := "application/octet-stream"
+		if obj.ContentType != nil {
+			contentType = *obj.ContentType
+		}
+
+		modifiedAt := time.Now()
+		if obj.LastModified != "" {
+			parsedTime, err := time.Parse(time.RFC3339, obj.LastModified)
+			if err == nil {
+				modifiedAt = parsedTime
+			}
+		}
+
+		if err := fn(FileInfo{
+			Path:        filePath,
+			Size:        int64(obj.Size),
+			ContentType: contentType,
+			ModifiedAt:  modifiedAt,
+		}); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (fsm *FileSystemManager) putObjectFromReader(bucket, key string, reader io.Reader, contentType *string, metadata map[string]string) error {
+	urlPath := fmt.Sprintf("%s/buckets/%s/objects/%s", fsm.objectStorageURL, bucket, key)
+	req, err := http.NewRequest("PUT", urlPath, reader)
+	if err != nil {
+		return err
+	}
+
+	if contentType != nil {
+		req.Header.Set("Content-Type", *contentType)
+	}
+	for k, v := range metadata {
+		req.Header.Set("x-object-meta-"+k, v)
+	}
+
+	resp, err := fsm.httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+		return fmt.Errorf("object storage upload failed (status %d): %s", resp.StatusCode, string(body))
+	}
+
+	return nil
+}
+
+func (fsm *FileSystemManager) WalkBucketFileContentBatches(ctx context.Context, bucketID, prefix string, maxBytes int64, fn func([]FileContentItem) error) error {
+	if maxBytes <= 0 {
+		maxBytes = maxFileBatchSize
+	}
+
+	accumulator := &contentBatchAccumulator{
+		maxBytes: maxBytes,
+		flush:    fn,
+	}
+
+	err := fsm.WalkBucketFiles(ctx, bucketID, prefix, func(file FileInfo) error {
+		_, data, err := fsm.GetBucketFile(ctx, bucketID, file.Path)
+		if err != nil {
+			return nil
+		}
+
+		return accumulator.Add(FileContentItem{
+			Info:    file,
+			Content: data.Content,
+		})
+	})
+	if err != nil {
+		return err
+	}
+
+	return accumulator.Flush()
 }
 
 func (fsm *FileSystemManager) GetBucketFile(ctx context.Context, bucketID, filePath string) (*FileInfo, *FileData, error) {
@@ -281,96 +493,15 @@ func (fsm *FileSystemManager) DeleteBucketPath(ctx context.Context, bucketID, fi
 
 func (fsm *FileSystemManager) GetBucketFiles(ctx context.Context, bucketID, prefix string) ([]FileInfo, error) {
 	files := make([]FileInfo, 0)
+	err := fsm.WalkBucketFiles(ctx, bucketID, prefix, func(file FileInfo) error {
+		files = append(files, file)
+		return nil
+	})
 
-	pattern := fmt.Sprintf("bucket:%s:file:*", bucketID)
-	var keys []string
-	iter := fsm.redis.Scan(ctx, 0, pattern, 100).Iterator()
-	for iter.Next(ctx) {
-		keys = append(keys, iter.Val())
-	}
-	if iter.Err() == nil {
-		for _, key := range keys {
-			filePath := strings.TrimPrefix(key, fmt.Sprintf("bucket:%s:file:", bucketID))
-			if prefix != "" && !strings.HasPrefix(filePath, prefix) {
-				continue
-			}
-
-			result, err := fsm.redis.Get(ctx, key).Result()
-			if err != nil {
-				continue
-			}
-
-			var fileData FileData
-			if err := json.Unmarshal([]byte(result), &fileData); err != nil {
-				continue
-			}
-
-			files = append(files, FileInfo{
-				Path:        filePath,
-				Size:        int64(len(fileData.Content)),
-				ContentType: fileData.ContentType,
-				ModifiedAt:  fileData.ModifiedAt,
-			})
-		}
-	}
-
-	objectPrefix := bucketID + "/"
-	if prefix != "" {
-		objectPrefix += prefix
-	}
-
-	var prefixPtr *string
-	if objectPrefix != "" {
-		prefixPtr = &objectPrefix
-	}
-
-	objects, err := fsm.objectStorage.ListObjects(fsm.bucketName, prefixPtr, nil)
-	if err == nil {
-		for _, obj := range objects {
-			filePath := strings.TrimPrefix(obj.Key, bucketID+"/")
-
-			found := false
-			for _, f := range files {
-				if f.Path == filePath {
-					found = true
-					break
-				}
-			}
-			if found {
-				continue
-			}
-
-			contentType := "application/octet-stream"
-			if obj.ContentType != nil {
-				contentType = *obj.ContentType
-			}
-
-			modifiedAt := time.Now()
-			if obj.LastModified != "" {
-				parsedTime, err := time.Parse(time.RFC3339, obj.LastModified)
-				if err == nil {
-					modifiedAt = parsedTime
-				}
-			}
-
-			files = append(files, FileInfo{
-				Path:        filePath,
-				Size:        int64(obj.Size),
-				ContentType: contentType,
-				ModifiedAt:  modifiedAt,
-			})
-		}
-	}
-
-	return files, nil
+	return files, err
 }
 
 func (fsm *FileSystemManager) GetBucketFilesAsZip(ctx context.Context, bucketId, prefix string) (*string, *time.Time, error) {
-	files, err := fsm.GetBucketFiles(ctx, bucketId, prefix)
-	if err != nil {
-		return nil, nil, status.Errorf(codes.Internal, "failed to get files: %v", err)
-	}
-
 	tmpFile, err := os.CreateTemp("", "bucket-zip-*.zip")
 	if err != nil {
 		return nil, nil, status.Errorf(codes.Internal, "failed to create temp file: %v", err)
@@ -383,33 +514,35 @@ func (fsm *FileSystemManager) GetBucketFilesAsZip(ctx context.Context, bucketId,
 
 	zipWriter := zip.NewWriter(multiWriter)
 
-	for _, file := range files {
+	err = fsm.WalkBucketFiles(ctx, bucketId, prefix, func(file FileInfo) error {
 		_, data, err := fsm.GetBucketFile(ctx, bucketId, file.Path)
 		if err != nil {
-			continue
+			return nil
 		}
 
 		f, err := zipWriter.Create(file.Path)
 		if err != nil {
-			continue
+			return nil
 		}
 
-		f.Write(data.Content)
+		_, err = f.Write(data.Content)
+		return err
+	})
+	if err != nil {
+		zipWriter.Close()
+		return nil, nil, status.Errorf(codes.Internal, "failed to get files: %v", err)
 	}
 
-	zipWriter.Close()
+	if err := zipWriter.Close(); err != nil {
+		return nil, nil, status.Errorf(codes.Internal, "failed to close zip file: %v", err)
+	}
 
 	zipKey := fmt.Sprintf("zips/%x.zip", hash.Sum(nil))
 
 	tmpFile.Seek(0, 0)
 
-	zipContent, err := io.ReadAll(tmpFile)
-	if err != nil {
-		return nil, nil, status.Errorf(codes.Internal, "failed to read zip file: %v", err)
-	}
-
 	contentType := "application/zip"
-	_, err = fsm.objectStorage.PutObject(fsm.bucketName, zipKey, zipContent, &contentType, nil)
+	err = fsm.putObjectFromReader(fsm.bucketName, zipKey, tmpFile, &contentType, nil)
 	if err != nil {
 		return nil, nil, status.Errorf(codes.Internal, "failed to upload zip: %v", err)
 	}
@@ -425,17 +558,12 @@ func (fsm *FileSystemManager) GetBucketFilesAsZip(ctx context.Context, bucketId,
 }
 
 func (fsm *FileSystemManager) StreamBucketFilesAsZip(ctx context.Context, bucketId, prefix string, send ZipChunkSender) error {
-	files, err := fsm.GetBucketFiles(ctx, bucketId, prefix)
-	if err != nil {
-		return status.Errorf(codes.Internal, "failed to get files: %v", err)
-	}
-
 	zipWriter := zip.NewWriter(&zipStreamWriter{
 		ctx:  ctx,
 		send: send,
 	})
 
-	for _, file := range files {
+	err := fsm.WalkBucketFiles(ctx, bucketId, prefix, func(file FileInfo) error {
 		select {
 		case <-ctx.Done():
 			zipWriter.Close()
@@ -445,7 +573,7 @@ func (fsm *FileSystemManager) StreamBucketFilesAsZip(ctx context.Context, bucket
 
 		_, data, err := fsm.GetBucketFile(ctx, bucketId, file.Path)
 		if err != nil {
-			continue
+			return nil
 		}
 
 		f, err := zipWriter.Create(file.Path)
@@ -458,6 +586,10 @@ func (fsm *FileSystemManager) StreamBucketFilesAsZip(ctx context.Context, bucket
 			zipWriter.Close()
 			return status.Errorf(codes.Internal, "failed to write zip entry: %v", err)
 		}
+		return nil
+	})
+	if err != nil {
+		return status.Errorf(codes.Internal, "failed to stream files as zip: %v", err)
 	}
 
 	if err := zipWriter.Close(); err != nil {
@@ -475,24 +607,26 @@ func (fsm *FileSystemManager) Clone(ctx context.Context, sourceBucketId, newBuck
 		return ctx.Err()
 	}
 
-	files, err := fsm.GetBucketFiles(ctx, sourceBucketId, "")
-	if err != nil {
-		return status.Errorf(codes.NotFound, "source bucket not found: %v", err)
-	}
-
 	queue := memoryQueue.NewBlockingJobQueue(15)
 
-	for _, file := range files {
+	err := fsm.WalkBucketFiles(ctx, sourceBucketId, "", func(file FileInfo) error {
+		f := file
 		queue.AddAndBlockIfFull(func() error {
-			info, content, err := fsm.GetBucketFile(ctx, sourceBucketId, file.Path)
+			info, content, err := fsm.GetBucketFile(ctx, sourceBucketId, f.Path)
 			if err != nil && !strings.Contains(err.Error(), "not found") {
 				return err
 			}
+			if err != nil {
+				return nil
+			}
 
-			fsm.PutBucketFile(ctx, newBucketId, file.Path, content.Content, info.ContentType)
+			return fsm.PutBucketFile(ctx, newBucketId, f.Path, content.Content, info.ContentType)
 
-			return nil
 		})
+		return nil
+	})
+	if err != nil {
+		return status.Errorf(codes.NotFound, "source bucket not found: %v", err)
 	}
 
 	return queue.Wait()
@@ -519,6 +653,9 @@ func (fsm *FileSystemManager) ImportZip(ctx context.Context, newBucketId string,
 
 			return nil
 		})
+	}
+	if err := iterator.Err(); err != nil {
+		return err
 	}
 
 	return queue.Wait()
