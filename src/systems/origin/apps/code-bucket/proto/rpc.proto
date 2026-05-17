@@ -15,6 +15,7 @@ service CodeBucket {
   rpc GetBucketFile(GetBucketFileRequest) returns (GetBucketFileResponse);
   rpc GetBucketFiles(GetBucketFilesRequest) returns (GetBucketFilesResponse);
   rpc GetBucketFilesWithContent(GetBucketFilesRequest) returns (GetBucketFilesWithContentResponse);
+  rpc GetBucketFilesWithContentStream(GetBucketFilesRequest) returns (stream GetBucketFilesWithContentChunk);
   rpc GetBucketFilesAsZip(GetBucketFilesAsZipRequest) returns (GetBucketFilesAsZipResponse);
   rpc GetBucketFilesAsZipStream(GetBucketFilesAsZipRequest) returns (stream GetBucketFilesAsZipChunk);
 
@@ -101,6 +102,10 @@ message GetBucketFilesResponse {
 }
 
 message GetBucketFilesWithContentResponse {
+  repeated FileContent files = 1;
+}
+
+message GetBucketFilesWithContentChunk {
   repeated FileContent files = 1;
 }
 
