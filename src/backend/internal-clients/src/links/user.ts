@@ -7,13 +7,13 @@ import {
   persistUserScope,
   toScope
 } from './shared';
+import type { InternalScope } from './types';
 import {
   upsertCargoEnvironment,
   upsertCargoTenant,
   upsertSynthesisEnvironment,
   upsertSynthesisTenant
 } from './upsert';
-import type { InternalScope } from './types';
 
 export let ensureCargoUserScope = async (user: User): Promise<InternalScope> => {
   let tenantId = getUserServiceTenantId('cargo', user);

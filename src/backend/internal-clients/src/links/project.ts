@@ -5,8 +5,8 @@ import {
   loadProjectWithInstances,
   persistProjectTenantLink
 } from './shared';
-import { upsertCargoTenant, upsertSubspaceTenant, upsertSynthesisTenant } from './upsert';
 import type { InternalProject, InternalService } from './types';
+import { upsertCargoTenant, upsertSubspaceTenant, upsertSynthesisTenant } from './upsert';
 
 let ensureProjectTenant = async (d: {
   service: InternalService;
