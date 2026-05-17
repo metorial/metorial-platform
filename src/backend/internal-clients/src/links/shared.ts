@@ -75,16 +75,13 @@ export let getInstanceServiceEnvironmentId = (
   }
 };
 
-export let getOrganizationServiceTenantId = (
-  service: 'cargo' | 'synthesis',
-  organization: Organization
-) => (service == 'cargo' ? organization.cargoTenantId : organization.synthesisTenantId);
+export let getOrganizationServiceTenantId = (service: 'cargo', organization: Organization) =>
+  organization.cargoTenantId;
 
 export let getOrganizationServiceEnvironmentId = (
-  service: 'cargo' | 'synthesis',
+  service: 'cargo',
   organization: Organization
-) =>
-  service == 'cargo' ? organization.cargoEnvironmentId : organization.synthesisEnvironmentId;
+) => organization.cargoEnvironmentId;
 
 export let getUserServiceTenantId = (service: 'cargo' | 'synthesis', user: User) =>
   service == 'cargo' ? user.cargoTenantId : user.synthesisTenantId;
@@ -252,7 +249,7 @@ export let persistProjectTenantLink = async (d: {
 };
 
 export let persistOrganizationScope = async (d: {
-  service: 'cargo' | 'synthesis';
+  service: 'cargo';
   organization: Organization;
   tenantId: string;
   tenantIdentifier: string;
@@ -267,12 +264,6 @@ export let persistOrganizationScope = async (d: {
       : {}),
     ...(d.service == 'cargo' && !d.organization.cargoEnvironmentId
       ? { cargoEnvironmentId: d.environmentId }
-      : {}),
-    ...(d.service == 'synthesis' && !d.organization.synthesisTenantId
-      ? { synthesisTenantId: d.tenantId }
-      : {}),
-    ...(d.service == 'synthesis' && !d.organization.synthesisEnvironmentId
-      ? { synthesisEnvironmentId: d.environmentId }
       : {})
   };
 
