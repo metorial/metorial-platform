@@ -45,6 +45,29 @@ type SkillConfigurationPolicy = {
 
 let normalizeSkillPath = (path: string) => path.replace(/^\/+/, '');
 
+let sanitizeSkillDocumentFileNamePart = (part: string) =>
+  part
+    .trim()
+    .replace(/[^A-Za-z0-9._-]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^[-.]+|[-.]+$/g, '');
+
+let normalizeSkillDocumentPath = (path: string) => {
+  let normalizedPath = normalizeSkillPath(path);
+  let pathParts = normalizedPath.split('/');
+  let fileName = pathParts.pop() ?? '';
+  let dotIndex = fileName.lastIndexOf('.');
+  let hasExtension = dotIndex > 0 && dotIndex < fileName.length - 1;
+  let baseName = hasExtension ? fileName.slice(0, dotIndex) : fileName;
+  let extension = hasExtension ? fileName.slice(dotIndex) : '.md';
+
+  let sanitizedBaseName = sanitizeSkillDocumentFileNamePart(baseName) || 'document';
+  let sanitizedExtension = sanitizeSkillDocumentFileNamePart(extension) || '.md';
+  if (!sanitizedExtension.startsWith('.')) sanitizedExtension = `.${sanitizedExtension}`;
+
+  return [...pathParts, `${sanitizedBaseName}${sanitizedExtension}`].join('/');
+};
+
 let normalizeFileExtension = (extension: string) => {
   let normalized = extension.trim().toLowerCase();
   if (!normalized) return null;
@@ -152,93 +175,101 @@ let applySkillDocumentFrontmatter = (content: string, input: SkillSerializerInpu
   return `---\n${stringify(stripUndefined(nextFrontmatter)).trimEnd()}\n---${separator}${body}`;
 };
 
-export let applySkill = createApplicator('skill', async (input, context) => {
-  let skillStore = await db.store.findFirstOrThrow({
-    where: { oid: input.skill.storeOid }
-  });
+export let applySkill = createApplicator('skill', {
+  getHash: async input => {},
 
-  let defaultConfig = await db.skillConfiguration.findFirst({
-    where: {
-      tenantOid: input.skill.tenantOid,
-      environmentOid: input.skill.environmentOid,
-      isDefault: true
-    }
-  });
-
-  let config = combineConfigs(
-    [
-      input.skillPlugin.skillConfiguration,
-      input.skillPluginSkill.skillConfiguration,
-      input.skillMarketplacePlugin?.skillConfiguration,
-      input.skillMarketplace?.skillConfiguration
-    ],
-    defaultConfig
-  );
-
-  let effectiveAllowedFileExtensions = getEffectiveAllowedFileExtensions(config);
-  let hash = await Hash.sha256(
-    [
-      2,
-      input.skill.oid,
-      input.skillPlugin.oid,
-      input.skill.updatedAt.getTime(),
-      skillStore.lastEditedAt.getTime(),
-      config.allowScripts,
-      config.allowNonStandardDirectories,
-      effectiveAllowedFileExtensions.shouldFilter,
-      [...effectiveAllowedFileExtensions.extensions].sort().join(',')
-    ].join(':')
-  );
-  if (context.hashIsEqual(hash)) return;
-
-  context.setBasePath(getSkillPath(input));
-
-  if (!config.allowScripts) {
-    await context.deletePath(scriptsFolder);
-  }
-
-  let q = new PQueue({ concurrency: 10 });
-  let cursor: string | null = null;
-  let limit = 25;
-
-  while (true) {
-    let items = await db.storeItem.findMany({
-      where: {
-        storeOid: skillStore.oid,
-        kind: { in: ['document', 'file'] },
-        id: cursor ? { gt: cursor } : undefined
-      },
-      include: storeItemInclude,
-      orderBy: {
-        id: 'asc'
-      },
-      take: limit
+  apply: async (input, context) => {
+    let skillStore = await db.store.findFirstOrThrow({
+      where: { oid: input.skill.storeOid }
     });
 
-    for (let item of items) {
-      if (item.path.startsWith('/agents/') || item.path.startsWith('agents/')) continue;
-      if (!isAllowedBySkillConfig(item.path, config)) continue;
-
-      if (item.kind === 'document' && item.document) {
-        let content = isRootSkillDocument(item.path)
-          ? applySkillDocumentFrontmatter(item.document.content.content, input)
-          : item.document.content.content;
-
-        await context.setFile(item.path, content);
-      } else if (item.kind === 'file' && item.file) {
-        q.add(async () => {
-          let content = await fileService.downloadFileContent({
-            file: item.file!
-          });
-
-          await context.setFile(item.path, content);
-        });
+    let defaultConfig = await db.skillConfiguration.findFirst({
+      where: {
+        tenantOid: input.skill.tenantOid,
+        environmentOid: input.skill.environmentOid,
+        isDefault: true
       }
+    });
+
+    let config = combineConfigs(
+      [
+        input.skillPlugin.skillConfiguration,
+        input.skillPluginSkill.skillConfiguration,
+        input.skillMarketplacePlugin?.skillConfiguration,
+        input.skillMarketplace?.skillConfiguration
+      ],
+      defaultConfig
+    );
+
+    let effectiveAllowedFileExtensions = getEffectiveAllowedFileExtensions(config);
+    let hash = await Hash.sha256(
+      [
+        3,
+        input.skill.oid,
+        input.skillPlugin.oid,
+        input.skill.updatedAt.getTime(),
+        skillStore.lastEditedAt.getTime(),
+        config.allowScripts,
+        config.allowNonStandardDirectories,
+        effectiveAllowedFileExtensions.shouldFilter,
+        [...effectiveAllowedFileExtensions.extensions].sort().join(',')
+      ].join(':')
+    );
+    if (context.hashIsEqual(hash)) return;
+
+    context.setBasePath(getSkillPath(input));
+
+    if (!config.allowScripts) {
+      await context.deletePath(scriptsFolder);
     }
 
-    if (items.length < limit) break;
-    cursor = items[items.length - 1]!.id as string;
-  }
+    let q = new PQueue({ concurrency: 10 });
+    let cursor: string | null = null;
+    let limit = 25;
 
-  await q.onIdle();
+    while (true) {
+      let items = await db.storeItem.findMany({
+        where: {
+          storeOid: skillStore.oid,
+          kind: { in: ['document', 'file'] },
+          id: cursor ? { gt: cursor } : undefined
+        },
+        include: storeItemInclude,
+        orderBy: {
+          id: 'asc'
+        },
+        take: limit
+      });
+
+      for (let item of items) {
+        if (item.path.startsWith('/agents/') || item.path.startsWith('agents/')) continue;
+
+        if (item.kind === 'document' && item.document) {
+          let documentPath = normalizeSkillDocumentPath(item.path);
+          if (!isAllowedBySkillConfig(documentPath, config)) continue;
+
+          let content = isRootSkillDocument(documentPath)
+            ? applySkillDocumentFrontmatter(item.document.content.content, input)
+            : item.document.content.content;
+
+          await context.setFile(documentPath, content);
+        } else if (item.kind === 'file' && item.file) {
+          if (!isAllowedBySkillConfig(item.path, config)) continue;
+
+          q.add(async () => {
+            let content = await fileService.downloadFileContent({
+              file: item.file!
+            });
+
+            await context.setFile(item.path, content);
+          });
+        }
+      }
+
+      if (items.length < limit) break;
+      cursor = items[items.length - 1]!.id as string;
+    }
+
+    await q.onIdle();
+  }
 });

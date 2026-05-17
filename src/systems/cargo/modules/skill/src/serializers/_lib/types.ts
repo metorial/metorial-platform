@@ -47,23 +47,25 @@ export interface MarketplaceSerializerInput {
 export interface SerializerContext {
   setFile: (path: string, content: string | Buffer | ArrayBuffer) => Promise<void>;
   deletePath: (path: string) => Promise<void>;
-  hashIsEqual: (hash: string) => boolean;
   setBasePath: (path: string | undefined) => void;
 }
 
 export type SkillSerializer = {
   type: 'skill';
   apply: (input: SkillSerializerInput, context: SerializerContext) => Promise<void>;
+  getHash: (input: SkillSerializerInput) => Promise<string>;
 };
 
 export type PluginSerializer = {
   type: 'plugin';
   apply: (input: PluginSerializerInput, context: SerializerContext) => Promise<void>;
+  getHash: (input: PluginSerializerInput) => Promise<string>;
 };
 
 export type MarketplaceSerializer = {
   type: 'marketplace';
   apply: (input: MarketplaceSerializerInput, context: SerializerContext) => Promise<void>;
+  getHash: (input: MarketplaceSerializerInput) => Promise<string>;
 };
 
 export type Serializer = SkillSerializer | PluginSerializer | MarketplaceSerializer;
