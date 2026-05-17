@@ -3,7 +3,12 @@ import { db } from '../../../db';
 import { env } from '../../../env';
 import { cleanupRepositorySyncBranchIfNoChanges } from '../../../lib/scmRepositorySyncProvider';
 import { codeBucketService } from '../../../services';
-import { logRepositorySyncQueueError, logRepositorySyncQueueEvent, markRepositorySyncFailed } from './_lib';
+import {
+  appendRepositorySyncLog,
+  logRepositorySyncQueueError,
+  logRepositorySyncQueueEvent,
+  markRepositorySyncFailed
+} from './_lib';
 import { createPrRepositorySyncQueue } from './createPr';
 
 export let syncContentsRepositorySyncQueue = createQueue<{ syncId: string }>({
@@ -62,6 +67,7 @@ export let syncContentsRepositorySyncQueueProcessor = syncContentsRepositorySync
         branchName: sync.branchName
       });
 
+      await appendRepositorySyncLog(sync.id, 'Writing the latest files.');
       await codeBucketService.exportCodeBucketToRepoNow({
         codeBucket: sync.codeBucket,
         repo: sync.repo,
@@ -69,6 +75,7 @@ export let syncContentsRepositorySyncQueueProcessor = syncContentsRepositorySync
         branchName: sync.branchName,
         commitMessage: sync.title
       });
+      await appendRepositorySyncLog(sync.id, 'Finished writing files.');
       logRepositorySyncQueueEvent('syncContents', 'exported code bucket to repo', {
         syncId: sync.id,
         repoId: sync.repo.id,
@@ -87,6 +94,7 @@ export let syncContentsRepositorySyncQueueProcessor = syncContentsRepositorySync
           }
         });
 
+        await appendRepositorySyncLog(sync.id, 'No file changes were needed.');
         logRepositorySyncQueueEvent('syncContents', 'completed sync with no changes', {
           syncId: sync.id,
           repoId: sync.repo.id,
@@ -107,6 +115,7 @@ export let syncContentsRepositorySyncQueueProcessor = syncContentsRepositorySync
         branchSha: branchChanges.branchSha
       });
 
+      await appendRepositorySyncLog(sync.id, 'File changes are ready for review.');
       await db.scmRepositorySync.update({
         where: { oid: sync.oid },
         data: {

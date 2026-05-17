@@ -301,6 +301,9 @@ model SkillDestinationSync {
   prDescription String?
   commitMessage String?
 
+  /// [SyncLogEntry]
+  logs Json[] @default([])
+
   repositoryPropagations SkillDestinationSyncRepositoryPropagation[]
 }
 

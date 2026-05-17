@@ -1,6 +1,11 @@
 import { createQueue, QueueRetryError } from '@lowerdeck/queue';
 import { db, env, getId, withTransaction } from '@metorial-cargo/db';
 import { getOriginTenant, origin } from '../../internal/skillDestination';
+import {
+  appendSkillDestinationSyncLog,
+  appendSkillDestinationSyncLogs,
+  type SkillDestinationSyncLogEntry
+} from './_lib/logs';
 import { syncFinishQueue } from './finish';
 
 let failSync = async (d: { skillDestinationSyncId: string; error: unknown }) => {
@@ -16,8 +21,30 @@ let failSync = async (d: { skillDestinationSyncId: string; error: unknown }) => 
       completedAt: new Date()
     }
   });
+  await appendSkillDestinationSyncLog(d.skillDestinationSyncId, 'Sync failed.');
 
   return errorMessage;
+};
+
+let formatRepositoryName = (
+  repository?: { externalOwner: string; externalName: string } | null
+) => (repository ? `${repository.externalOwner}/${repository.externalName}` : 'repository');
+
+let normalizeOriginLogs = (logs: unknown, prefix: string): SkillDestinationSyncLogEntry[] => {
+  if (!Array.isArray(logs)) return [];
+
+  return logs.flatMap(log => {
+    if (
+      Array.isArray(log) &&
+      typeof log[0] === 'number' &&
+      Number.isFinite(log[0]) &&
+      typeof log[1] === 'string'
+    ) {
+      return [[log[0], `${prefix}: ${log[1]}`] satisfies SkillDestinationSyncLogEntry];
+    }
+
+    return [];
+  });
 };
 
 export let syncPropagateStartQueue = createQueue<{
@@ -69,8 +96,16 @@ export let syncPropagateStartQueueProcessor = syncPropagateStartQueue.process(as
     where: { oid: sync.oid },
     data: { isAtRepoSyncStage: true }
   });
+  await appendSkillDestinationSyncLog(
+    data.skillDestinationSyncId,
+    'Preparing repository updates.'
+  );
 
   if (repositoryLinks.length === 0) {
+    await appendSkillDestinationSyncLog(
+      data.skillDestinationSyncId,
+      'No repository updates are configured.'
+    );
     await syncFinishQueue.add({
       skillDestinationSyncId: data.skillDestinationSyncId
     });
@@ -169,6 +204,16 @@ export let syncPropagatePerformQueueProcessor = syncPropagatePerformQueue.proces
           oid: propagation.skillRepository.tenantOid,
           id: sync.destination.id
         });
+        let originRepositories = await origin.scmRepository.getMany({
+          tenantId: originTenant.id,
+          scmRepositoryIds: [propagation.skillRepository.repoId]
+        });
+        let repositoryName = formatRepositoryName(originRepositories.repositories[0]);
+
+        await appendSkillDestinationSyncLog(
+          data.skillDestinationSyncId,
+          `Starting update for ${repositoryName}.`
+        );
 
         let originSync = await origin.scmRepository.syncCodeBucketToBranch({
           tenantId: originTenant.id,
@@ -285,8 +330,16 @@ export let syncPropagateWaitQueueProcessor = syncPropagateWaitQueue.process(asyn
   let originSyncById = new Map(
     originSyncs.syncs.map(originSync => [originSync.id, originSync])
   );
+  let originRepositories = await origin.scmRepository.getMany({
+    tenantId: originTenant.id,
+    scmRepositoryIds: propagations.map(propagation => propagation.skillRepository.repoId)
+  });
+  let originRepositoryById = new Map(
+    originRepositories.repositories.map(repository => [repository.id, repository])
+  );
 
   let pendingPropagationIds: string[] = [];
+  let copiedLogs: SkillDestinationSyncLogEntry[] = [];
   let failed = false;
 
   for (let propagation of propagations) {
@@ -301,6 +354,11 @@ export let syncPropagateWaitQueueProcessor = syncPropagateWaitQueue.process(asyn
       continue;
     }
 
+    let repositoryName = formatRepositoryName(
+      originRepositoryById.get(propagation.skillRepository.repoId)
+    );
+    copiedLogs.push(...normalizeOriginLogs(originSync.logs, repositoryName));
+
     if (
       originSync.status === 'merged' ||
       originSync.status === 'complete_unmerged' ||
@@ -313,6 +371,10 @@ export let syncPropagateWaitQueueProcessor = syncPropagateWaitQueue.process(asyn
           completedAt: new Date()
         }
       });
+      await appendSkillDestinationSyncLog(
+        data.skillDestinationSyncId,
+        `Repository update completed for ${repositoryName}.`
+      );
       continue;
     }
 
@@ -326,11 +388,20 @@ export let syncPropagateWaitQueueProcessor = syncPropagateWaitQueue.process(asyn
           completedAt: new Date()
         }
       });
+      await appendSkillDestinationSyncLog(
+        data.skillDestinationSyncId,
+        `Repository update failed for ${repositoryName}.`
+      );
       continue;
     }
 
     pendingPropagationIds.push(propagation.id);
   }
+
+  await appendSkillDestinationSyncLogs({
+    skillDestinationSyncId: data.skillDestinationSyncId,
+    logs: copiedLogs
+  });
 
   if (failed) {
     await db.skillDestinationSync.updateMany({
