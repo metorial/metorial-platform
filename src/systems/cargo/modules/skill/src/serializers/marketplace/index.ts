@@ -117,4 +117,5 @@ export let applyMarketplace = createApplicator('marketplace', async (input, cont
   });
   await context.setFile('.cursor-plugin/marketplace.json', cursorAndClaudeMarketplace);
   await context.setFile('.claude-plugin/marketplace.json', cursorAndClaudeMarketplace);
+  await context.setFile('.github/plugin/marketplace.json', cursorAndClaudeMarketplace);
 });
