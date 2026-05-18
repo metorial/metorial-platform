@@ -1,5 +1,5 @@
 import { createCron } from '@metorial/cron';
-import { db } from '@metorial/db';
+import { db, ID } from '@metorial/db';
 import { combineQueueProcessors, createQueue } from '@metorial/queue';
 import { consumerOAuthService } from '../services/consumerOAuth';
 
@@ -25,7 +25,7 @@ export let reconcileConsumerClientManyQueueProcessor =
   reconcileConsumerClientManyQueue.process(async data => {
     let items = await db.consumerAuthClient.findMany({
       where: {
-        consumerClientOid: null,
+        consumerAuthClientConsumerSurfaces: { none: {} },
         id: data.cursor ? { gt: data.cursor } : undefined
       },
       select: {
@@ -67,19 +67,105 @@ export let reconcileConsumerClientSingleQueueProcessor =
       where: {
         id: data.consumerAuthClientId
       },
-      select: {
-        oid: true,
-        name: true,
-        redirectUris: true,
-        consumerSurfaceOid: true
+      include: {
+        legacyDoNotUseConsumerSurface: {
+          include: {
+            portal: true,
+            organization: true,
+            instance: {
+              include: {
+                project: true,
+                organization: true
+              }
+            }
+          }
+        },
+        consumerAuthClientConsumerSurfaces: {
+          include: {
+            consumerClient: true,
+            consumerSurface: {
+              include: {
+                portal: true,
+                organization: true,
+                instance: {
+                  include: {
+                    project: true,
+                    organization: true
+                  }
+                }
+              }
+            }
+          }
+        },
+        legacyDoNotUseConsumerClient: true,
+        skillPlugin: true,
+        magicMcpServer: true,
+        magicMcpEndpoint: true
       }
     });
     if (!consumerAuthClient) {
       return;
     }
 
+    if (
+      consumerAuthClient.legacyDoNotUseConsumerSurface &&
+      consumerAuthClient.consumerAuthClientConsumerSurfaces.length == 0
+    ) {
+      let consumerClient =
+        consumerAuthClient.legacyDoNotUseConsumerClient ??
+        (await consumerOAuthService.upsertConsumerClient({
+          consumerSurface: consumerAuthClient.legacyDoNotUseConsumerSurface,
+          name: consumerAuthClient.name,
+          redirectUris: consumerAuthClient.redirectUris
+        }));
+
+      await db.consumerAuthClientConsumerSurface.upsert({
+        where: {
+          consumerSurfaceOid_consumerAuthClientOid: {
+            consumerSurfaceOid: consumerAuthClient.legacyDoNotUseConsumerSurface.oid,
+            consumerAuthClientOid: consumerAuthClient.oid
+          }
+        },
+        create: {
+          id: await ID.generateId('consumerAuthClient'),
+          consumerSurfaceOid: consumerAuthClient.legacyDoNotUseConsumerSurface.oid,
+          consumerAuthClientOid: consumerAuthClient.oid,
+          consumerClientOid: consumerClient.oid
+        },
+        update: {
+          consumerClientOid: consumerClient.oid
+        }
+      });
+    }
+
     await consumerOAuthService.linkConsumerAuthClientToConsumerClient({
-      consumerAuthClient
+      consumerAuthClient: await db.consumerAuthClient.findUniqueOrThrow({
+        where: {
+          oid: consumerAuthClient.oid
+        },
+        include: {
+          consumerAuthClientConsumerSurfaces: {
+            include: {
+              consumerClient: true,
+              consumerSurface: {
+                include: {
+                  portal: true,
+                  organization: true,
+                  instance: {
+                    include: {
+                      project: true,
+                      organization: true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          skillPlugin: true,
+          magicMcpServer: true,
+          magicMcpEndpoint: true
+        }
+      })
     });
   });
 
