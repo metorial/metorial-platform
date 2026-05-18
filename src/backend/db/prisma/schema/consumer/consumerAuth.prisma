@@ -29,6 +29,12 @@ model ConsumerClient {
   consumerSurfaceOid BigInt
   consumerSurface    ConsumerSurface @relation(fields: [consumerSurfaceOid], references: [oid], onDelete: Cascade)
 
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid], onDelete: SetNull)
+
+  organizationOid BigInt?
+  organization    Organization? @relation(fields: [organizationOid], references: [oid], onDelete: SetNull)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
@@ -52,8 +58,8 @@ model ConsumerAuthClient {
 
   redirectUris String[]
 
-  consumerSurfaceOid BigInt
-  consumerSurface    ConsumerSurface @relation(fields: [consumerSurfaceOid], references: [oid], onDelete: Cascade)
+  consumerSurfaceOid BigInt?
+  consumerSurface    ConsumerSurface? @relation(fields: [consumerSurfaceOid], references: [oid], onDelete: Cascade)
 
   magicMcpServerOid BigInt?
   magicMcpServer    MagicMcpServer? @relation(fields: [magicMcpServerOid], references: [oid], onDelete: Cascade)
@@ -64,13 +70,36 @@ model ConsumerAuthClient {
   consumerClientOid BigInt?
   consumerClient    ConsumerClient? @relation(fields: [consumerClientOid], references: [oid], onDelete: SetNull)
 
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid], onDelete: SetNull)
+
+  organizationOid BigInt?
+  organization    Organization? @relation(fields: [organizationOid], references: [oid], onDelete: SetNull)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
   expiresAt DateTime
 
-  consumerAuthAttempts ConsumerAuthAttempt[]
+  consumerAuthAttempts               ConsumerAuthAttempt[]
+  consumerAuthClientConsumerSurfaces ConsumerAuthClientConsumerSurface[]
 
   @@index([registrationIp, createdAt])
+}
+
+model ConsumerAuthClientConsumerSurface {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  consumerSurfaceOid BigInt
+  consumerSurface    ConsumerSurface @relation(fields: [consumerSurfaceOid], references: [oid], onDelete: Cascade)
+
+  consumerAuthClientOid BigInt
+  consumerAuthClient    ConsumerAuthClient @relation(fields: [consumerAuthClientOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([consumerSurfaceOid, consumerAuthClientOid])
 }
 
 model ConsumerAuthAttempt {

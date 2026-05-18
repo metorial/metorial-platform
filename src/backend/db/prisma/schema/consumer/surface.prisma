@@ -47,18 +47,19 @@ model ConsumerSurface {
   archivedAt DateTime?
   deletedAt  DateTime?
 
-  consumerProfiles              ConsumerProfile[]
-  consumerInvites               ConsumerInvite[]
-  consumerGroups                ConsumerGroup[]
-  consumerAccesses              ConsumerAccess[]
-  accessRequests                ConsumerAccessRequest[]
-  authExchanges                 ConsumerAuthExchange[]
-  portal                        Portal?                        @relation("PortalSurface")
-  consumerAccessListings        ConsumerAccessListing[]
-  consumerSurfaceProviderGroups ConsumerSurfaceProviderGroup[]
-  consumerClients               ConsumerClient[]
-  consumerAuthClients           ConsumerAuthClient[]
-  consumerSkills                ConsumerSkill[]
+  consumerProfiles                   ConsumerProfile[]
+  consumerInvites                    ConsumerInvite[]
+  consumerGroups                     ConsumerGroup[]
+  consumerAccesses                   ConsumerAccess[]
+  accessRequests                     ConsumerAccessRequest[]
+  authExchanges                      ConsumerAuthExchange[]
+  portal                             Portal?                             @relation("PortalSurface")
+  consumerAccessListings             ConsumerAccessListing[]
+  consumerSurfaceProviderGroups      ConsumerSurfaceProviderGroup[]
+  consumerClients                    ConsumerClient[]
+  consumerAuthClients                ConsumerAuthClient[]
+  consumerSkills                     ConsumerSkill[]
+  consumerAuthClientConsumerSurfaces ConsumerAuthClientConsumerSurface[]
 
   @@unique([instanceOid, internalSurfaceUniqueIdentifier])
   @@index([skillConfigurationId])
