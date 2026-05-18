@@ -6,15 +6,17 @@ import { fileService } from '@metorial-cargo/module-file';
 import PQueue from 'p-queue';
 import { parse, stringify } from 'yaml';
 import { combineConfigs } from '../../lib/combineConfigs';
-import {
-  isAllowedSkillPath,
-  safeNonScriptFileExtensions,
-  scriptsFolder
-} from '../../lib/files';
+import { scriptsFolder } from '../../lib/files';
 import { assertSkillStoreFileLimit } from '../../lib/limits';
 import { createApplicator } from '../_lib/apply';
 import type { SkillSerializerInput } from '../_lib/types';
 import { getPluginPath } from '../plugin';
+import {
+  getEffectiveAllowedFileExtensions,
+  isAllowedBySkillConfig,
+  isRootSkillDocument,
+  normalizeSkillPath
+} from './config';
 
 export let getSkillPath = (d: SkillSerializerInput) => {
   let inner = `skills/${d.skillPluginSkill.pluginSkillSlug}`;
@@ -35,16 +37,6 @@ let storeItemInclude = {
 } satisfies Prisma.StoreItemInclude;
 
 let frontmatterRegex = /^---[ \t]*\r?\n([\s\S]*?)^---[ \t]*(?:\r?\n|$)/m;
-
-let isRootSkillDocument = (path: string) => path.replace(/^\/+/, '') === 'SKILL.md';
-
-type SkillConfigurationPolicy = {
-  allowScripts: boolean;
-  allowedFileExtensions?: string[] | null;
-  allowNonStandardDirectories: boolean;
-};
-
-let normalizeSkillPath = (path: string) => path.replace(/^\/+/, '');
 
 let sanitizeSkillDocumentFileNamePart = (part: string) =>
   part
@@ -67,66 +59,6 @@ let normalizeSkillDocumentPath = (path: string) => {
   if (!sanitizedExtension.startsWith('.')) sanitizedExtension = `.${sanitizedExtension}`;
 
   return [...pathParts, `${sanitizedBaseName}${sanitizedExtension}`].join('/');
-};
-
-let normalizeFileExtension = (extension: string) => {
-  let normalized = extension.trim().toLowerCase();
-  if (!normalized) return null;
-  return normalized.startsWith('.') ? normalized : `.${normalized}`;
-};
-
-let getFileExtension = (path: string) => {
-  let fileName = normalizeSkillPath(path).split('/').at(-1) ?? '';
-  let dotIndex = fileName.lastIndexOf('.');
-  if (dotIndex <= 0 || dotIndex === fileName.length - 1) return null;
-  return normalizeFileExtension(fileName.slice(dotIndex));
-};
-
-let isScriptsPath = (path: string) => {
-  let normalizedPath = normalizeSkillPath(path);
-  return normalizedPath === scriptsFolder || normalizedPath.startsWith(`${scriptsFolder}/`);
-};
-
-let getEffectiveAllowedFileExtensions = (config: SkillConfigurationPolicy) => {
-  let allowedExtensions = (config.allowedFileExtensions ?? [])
-    .map(normalizeFileExtension)
-    .filter((extension): extension is string => !!extension);
-
-  if (config.allowScripts) {
-    return {
-      shouldFilter: allowedExtensions.length > 0,
-      extensions: allowedExtensions
-    };
-  }
-
-  let safeExtensions = new Set(
-    safeNonScriptFileExtensions
-      .map(normalizeFileExtension)
-      .filter((extension): extension is string => !!extension)
-  );
-
-  return {
-    shouldFilter: true,
-    extensions: allowedExtensions.length
-      ? allowedExtensions.filter(extension => safeExtensions.has(extension))
-      : [...safeExtensions]
-  };
-};
-
-let isAllowedBySkillConfig = (path: string, config: SkillConfigurationPolicy) => {
-  let normalizedPath = normalizeSkillPath(path);
-
-  if (!config.allowNonStandardDirectories && !isAllowedSkillPath(normalizedPath)) {
-    return false;
-  }
-
-  if (!config.allowScripts && isScriptsPath(normalizedPath)) return false;
-
-  let allowedExtensions = getEffectiveAllowedFileExtensions(config);
-  if (!allowedExtensions.shouldFilter) return true;
-
-  let extension = getFileExtension(normalizedPath);
-  return !!extension && allowedExtensions.extensions.includes(extension);
 };
 
 let isRecord = (value: unknown): value is Record<string, unknown> =>
