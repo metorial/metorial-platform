@@ -3,12 +3,12 @@ import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { subspaceToolCallService } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
-import { resolveActorIdsForLogFilters } from './_logFilterActors';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { toolCallPresenter } from '../../../presenters';
+import { resolveActorIdsForLogFilters } from './_logFilterActors';
 
 let toolCallGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.toolCallId) {
@@ -91,6 +91,12 @@ export let toolCallController = Controller.create(
         let actorIds = await resolveActorIdsForLogFilters({
           instance: ctx.instance,
           actorIds: normalizeArrayParam(ctx.query.actor_id),
+          consumerIds: normalizeArrayParam(ctx.query.consumer_id),
+          identityIds: normalizeArrayParam(ctx.query.identity_id)
+        });
+
+        console.log('Resolved actor IDs for tool call list filters:', {
+          actorIds,
           consumerIds: normalizeArrayParam(ctx.query.consumer_id),
           identityIds: normalizeArrayParam(ctx.query.identity_id)
         });
