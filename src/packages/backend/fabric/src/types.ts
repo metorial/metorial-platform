@@ -19,6 +19,7 @@ import {
   Project,
   ServiceAccount,
   ServiceAccountCredential,
+  SkillPlugin,
   Team,
   TeamMember,
   TeamProject,
@@ -271,6 +272,11 @@ export interface FabricEvents {
   'portal.updated:after': { portal: Portal; input: { name?: string; description?: string; sessionExpiryTimeInSeconds?: number; } };
   'portal.archived:before': { portal: Portal };
   'portal.archived:after': { portal: Portal };
+
+  'skill.plugin.created:after': { organization: Organization; instance: Instance; skillPlugin: SkillPlugin };
+  'skill.plugin.updated:after': { organization: Organization; instance: Instance; skillPlugin: SkillPlugin };
+  'skill.plugin.archived:after': { organization: Organization; instance: Instance; skillPlugin: SkillPlugin };
+  'skill.plugin.deleted:after': { organization: Organization; instance: Instance; skillPlugin: SkillPlugin };
 
   'provider.deployment.created:before': ProviderEventBase;
   'provider.deployment.created:after': ProviderEventBase & { deployment: SubspaceProviderDeployment };

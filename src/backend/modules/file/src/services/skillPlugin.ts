@@ -2,6 +2,7 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { db, type Instance, type Organization, type SkillPlugin } from '@metorial/db';
+import { Fabric } from '@metorial/fabric';
 import { subspaceSkillService } from '@metorial/module-subspace';
 import {
   cargo,
@@ -108,15 +109,26 @@ class SkillPluginServiceImpl {
     let missing = skillPlugins.filter(skillPlugin => !existingByCargoId.has(skillPlugin.id));
 
     if (missing.length) {
-      await db.skillPlugin.createMany({
-        data: missing.map(skillPlugin => ({
-          id: skillPlugin.id,
-          status: statusFromCargo(skillPlugin.status),
-          organizationOid: d.owner.organization.oid,
-          instanceOid: d.owner.instance.oid
-        })),
-        skipDuplicates: true
-      });
+      for (let skillPlugin of missing) {
+        let backing = await db.skillPlugin.upsert({
+          where: { id: skillPlugin.id },
+          create: {
+            id: skillPlugin.id,
+            status: statusFromCargo(skillPlugin.status),
+            name: skillPlugin.name,
+            slug: skillPlugin.slug,
+            organizationOid: d.owner.organization.oid,
+            instanceOid: d.owner.instance.oid
+          },
+          update: {}
+        });
+
+        await Fabric.fire('skill.plugin.created:after', {
+          skillPlugin: backing,
+          organization: d.owner.organization,
+          instance: d.owner.instance
+        });
+      }
     }
 
     for (let status of ['active', 'archived', 'deleted'] as const) {
@@ -125,7 +137,7 @@ class SkillPluginServiceImpl {
         .map(skillPlugin => skillPlugin.id);
       if (!ids.length) continue;
 
-      await db.skillPlugin.updateMany({
+      let result = await db.skillPlugin.updateMany({
         where: {
           instanceOid: d.owner.instance.oid,
           id: {
@@ -139,6 +151,30 @@ class SkillPluginServiceImpl {
           status
         }
       });
+
+      if (result.count > 0) {
+        let updated = await db.skillPlugin.findMany({
+          where: {
+            instanceOid: d.owner.instance.oid,
+            id: { in: ids }
+          }
+        });
+
+        for (let backing of updated) {
+          await Fabric.fire(
+            status == 'deleted'
+              ? 'skill.plugin.deleted:after'
+              : status == 'archived'
+                ? 'skill.plugin.archived:after'
+                : 'skill.plugin.updated:after',
+            {
+              skillPlugin: backing,
+              organization: d.owner.organization,
+              instance: d.owner.instance
+            }
+          );
+        }
+      }
     }
 
     let backings = await db.skillPlugin.findMany({

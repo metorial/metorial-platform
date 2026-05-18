@@ -110,7 +110,8 @@ export let magicMcpEndpointInclude = {
       }
     }
   },
-  subspaceSession: true
+  subspaceSession: true,
+  skillPlugin: true
 } satisfies Prisma.MagicMcpEndpointInclude;
 
 export type MagicMcpEndpointWithRelations = Prisma.MagicMcpEndpointGetPayload<{
@@ -235,6 +236,7 @@ class MagicMcpEndpointImpl {
       description?: string;
       metadata?: Record<string, unknown>;
       consumerProfile?: Pick<ConsumerProfile, 'oid'>;
+      skillPlugin?: { oid: bigint } | null;
       servers?: MagicMcpEndpointServerInput[];
     };
   }) {
@@ -271,6 +273,7 @@ class MagicMcpEndpointImpl {
             isConsumerReconciled: true,
             instanceOid: d.instance.oid,
             consumerProfileOid: d.input.consumerProfile?.oid,
+            skillPluginOid: d.input.skillPlugin?.oid,
             name: d.input.name,
             description: d.input.description,
             slug: buildSlug(d.input.name),

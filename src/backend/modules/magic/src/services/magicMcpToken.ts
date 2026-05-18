@@ -51,6 +51,7 @@ let include = {
       servers: true
     }
   },
+  skillPlugin: true,
   groups: {
     include: {
       magicMcpGroup: true
@@ -132,6 +133,7 @@ class MagicMcpTokenImpl {
       expiresAt?: Date | null;
       magicMcpServer?: MagicMcpServer;
       magicMcpEndpoint?: MagicMcpEndpoint;
+      skillPlugin?: { oid: bigint } | null;
     };
   }) {
     if (d.input.magicMcpServer && d.input.magicMcpEndpoint) {
@@ -158,6 +160,7 @@ class MagicMcpTokenImpl {
         instanceOid: d.instance.oid,
         magicMcpServerOid: d.input.magicMcpServer?.oid,
         magicMcpEndpointOid: d.input.magicMcpEndpoint?.oid,
+        skillPluginOid: d.input.skillPlugin?.oid,
         name: d.input.name,
         description: d.input.description,
         metadata: d.input.metadata ?? {},
