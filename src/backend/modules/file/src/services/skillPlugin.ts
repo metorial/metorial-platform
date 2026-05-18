@@ -2,6 +2,7 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { db, type Instance, type Organization, type SkillPlugin } from '@metorial/db';
+import { subspaceSkillService } from '@metorial/module-subspace';
 import {
   cargo,
   type CargoSkillMarketplacePlugin,
@@ -265,7 +266,7 @@ class SkillPluginServiceImpl {
     let backing = await db.skillPlugin.findFirst({
       where: {
         instanceOid: owner.instance.oid,
-        id: d.skillPluginId,
+        OR: [{ slug: d.skillPluginId }, { id: d.skillPluginId }],
         status: { not: 'deleted' }
       }
     });
@@ -281,6 +282,30 @@ class SkillPluginServiceImpl {
       ...skillPlugin,
       backing
     };
+  }
+
+  async getSkillPluginProviders(
+    d: SkillPluginAccessInput & { skillPlugin: EnrichedCargoSkillPlugin }
+  ) {
+    let owner = this.getBackingOwner(d.owner);
+
+    let plugin = await this.getSkillPluginById({
+      ...d,
+      skillPluginId: d.skillPlugin.backing.id
+    });
+
+    let skillIds = await plugin.skills.filter(s => s.status === 'active').map(s => s.skillId);
+
+    let skills = await subspaceSkillService.getMany({
+      instance: owner.instance,
+      skillIds
+    });
+
+    let providers = skills
+      .flatMap(s => s.providers.map(p => p))
+      .filter(p => p.status === 'active');
+
+    return providers;
   }
 
   async createSkillPlugin(

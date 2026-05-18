@@ -257,6 +257,23 @@ class SkillPluginServiceImpl {
     );
   }
 
+  async reconcileSkillPlugins(d: {}) {
+    return Paginator.create(({ prisma }) =>
+      prisma(
+        async opts =>
+          await db.skillPlugin.findMany({
+            ...opts,
+            where: {},
+            include: {
+              ...skillPluginInclude,
+              tenant: true,
+              environment: true
+            }
+          })
+      )
+    );
+  }
+
   async getSkillPluginById(
     d: CargoTenantEnvironment & {
       skillPluginId: string;

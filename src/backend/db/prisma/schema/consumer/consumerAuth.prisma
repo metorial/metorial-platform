@@ -106,6 +106,9 @@ model ConsumerAuthAttempt {
   magicMcpTokenOid BigInt?
   magicMcpToken    MagicMcpToken? @relation(fields: [magicMcpTokenOid], references: [oid], onDelete: SetNull)
 
+  skillPluginOid BigInt?
+  skillPlugin    SkillPlugin? @relation(fields: [skillPluginOid], references: [oid], onDelete: SetNull)
+
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @default(now()) @updatedAt
   authorizedAt DateTime?

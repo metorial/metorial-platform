@@ -1,0 +1,40 @@
+enum SkillPluginStatus {
+  active
+  archived
+  deleted
+}
+
+model SkillPlugin {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  isManaged Boolean @default(false)
+  name      String?
+  slug      String?
+
+  status SkillPluginStatus @default(active)
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  consumerAuthAttempts ConsumerAuthAttempt[]
+  magicMcpTokens       MagicMcpToken[]
+  magicMcpEndpoints    MagicMcpEndpoint[]
+
+  @@index([instanceOid, status])
+}
+
+model SkillPluginSync {
+  oid Int @id @default(0)
+
+  cursor String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
