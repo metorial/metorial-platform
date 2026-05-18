@@ -1,6 +1,7 @@
 import { Hash } from '@lowerdeck/hash';
 import { db } from '@metorial-cargo/db';
 import semver from 'semver';
+import { assertSkillMarketplaceLimits } from '../../lib/limits';
 import { createApplicator } from '../_lib/apply';
 
 let json = (data: any) => JSON.stringify(data, null, 2);
@@ -34,6 +35,9 @@ export let applyMarketplace = createApplicator(
         }
       },
       orderBy: { id: 'asc' }
+    });
+    await assertSkillMarketplaceLimits({
+      skillMarketplaceOid: input.skillMarketplace.oid
     });
 
     let pluginHashes = plugins

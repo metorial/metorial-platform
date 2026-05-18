@@ -3,6 +3,7 @@ import { slugify } from '@lowerdeck/slugify';
 import { db, env } from '@metorial-cargo/db';
 import semver from 'semver';
 import { internalImageService } from '../../internal/image';
+import { assertSkillPluginSkillLimit } from '../../lib/limits';
 import { createApplicator } from '../_lib/apply';
 import type { PluginSerializerInput } from '../_lib/types';
 
@@ -28,6 +29,9 @@ export let applyPlugin = createApplicator(
         }
       },
       orderBy: { id: 'asc' }
+    });
+    await assertSkillPluginSkillLimit({
+      skillPluginOid: input.skillPlugin.oid
     });
 
     let skillHashes = skills

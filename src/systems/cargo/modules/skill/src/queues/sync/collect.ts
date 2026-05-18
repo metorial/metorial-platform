@@ -1,5 +1,6 @@
 import { createQueue } from '@lowerdeck/queue';
 import { db, env } from '@metorial-cargo/db';
+import { CargoSkillLimitError } from '../../lib/limits';
 import { applyMarketplace } from '../../serializers/marketplace';
 import { applyPlugin } from '../../serializers/plugin';
 import { applySkill } from '../../serializers/skill';
@@ -141,6 +142,23 @@ let getSyncTaskNames = async (tasks: SyncTask[]) => {
   };
 };
 
+let failSyncForLimitError = async (d: { skillDestinationSyncId: string; error: unknown }) => {
+  if (!(d.error instanceof CargoSkillLimitError)) return false;
+
+  await db.skillDestinationSync.updateMany({
+    where: {
+      id: d.skillDestinationSyncId,
+      status: 'processing'
+    },
+    data: {
+      status: 'failed',
+      completedAt: new Date()
+    }
+  });
+  await appendSkillDestinationSyncLog(d.skillDestinationSyncId, d.error.message);
+  return true;
+};
+
 export let syncCollectQueueProcessor = syncCollectQueue.process(async data => {
   let sync = await db.skillDestinationSync.findUnique({
     where: { id: data.skillDestinationSyncId },
@@ -175,8 +193,16 @@ export let syncCollectQueueProcessor = syncCollectQueue.process(async data => {
     },
     input: Input
   ) => {
-    let initResult = await serializer.init(input);
-    return await serializer.getHash(input, initResult);
+    try {
+      let initResult = await serializer.init(input);
+      return await serializer.getHash(input, initResult);
+    } catch (error) {
+      if (await failSyncForLimitError({ skillDestinationSyncId: data.skillDestinationSyncId, error })) {
+        return null;
+      }
+
+      throw error;
+    }
   };
 
   let getCurrentMarketplaceItem = (marketplaceId: string) =>
@@ -230,6 +256,7 @@ export let syncCollectQueueProcessor = syncCollectQueue.process(async data => {
       let marketplaceHash = await getSerializerHash(applyMarketplace, {
         skillMarketplace: marketplace
       });
+      if (!marketplaceHash) return;
       let currentMarketplaceItem = getCurrentMarketplaceItem(marketplace.id);
 
       if (currentMarketplaceItem?.hash === marketplaceHash) {
@@ -253,6 +280,7 @@ export let syncCollectQueueProcessor = syncCollectQueue.process(async data => {
           skillMarketplace: marketplace,
           skillMarketplacePlugin
         });
+        if (!pluginHash) return;
         let currentPluginItem = getCurrentPluginItem(skillPlugin.id);
 
         if (currentPluginItem?.hash === pluginHash) {
@@ -269,6 +297,7 @@ export let syncCollectQueueProcessor = syncCollectQueue.process(async data => {
             skillMarketplace: marketplace,
             skillMarketplacePlugin
           });
+          if (!skillHash) return;
           let currentSkillItem = getCurrentSkillItem({
             skillId: skillPluginSkill.skill.id,
             skillPluginId: skillPlugin.id
@@ -323,6 +352,7 @@ export let syncCollectQueueProcessor = syncCollectQueue.process(async data => {
       };
 
       let pluginHash = await getSerializerHash(applyPlugin, { skillPlugin });
+      if (!pluginHash) return;
       let currentPluginItem = getCurrentPluginItem(skillPlugin.id);
 
       if (currentPluginItem?.hash === pluginHash) {
@@ -337,6 +367,7 @@ export let syncCollectQueueProcessor = syncCollectQueue.process(async data => {
           skillPlugin,
           skillPluginSkill
         });
+        if (!skillHash) return;
         let currentSkillItem = getCurrentSkillItem({
           skillId: skillPluginSkill.skill.id,
           skillPluginId: skillPlugin.id

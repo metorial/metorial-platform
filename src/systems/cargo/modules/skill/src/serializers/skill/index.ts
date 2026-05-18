@@ -11,6 +11,7 @@ import {
   safeNonScriptFileExtensions,
   scriptsFolder
 } from '../../lib/files';
+import { assertSkillStoreFileLimit } from '../../lib/limits';
 import { createApplicator } from '../_lib/apply';
 import type { SkillSerializerInput } from '../_lib/types';
 import { getPluginPath } from '../plugin';
@@ -180,6 +181,9 @@ export let applySkill = createApplicator(
   async input => {
     let skillStore = await db.store.findFirstOrThrow({
       where: { oid: input.skill.storeOid }
+    });
+    await assertSkillStoreFileLimit({
+      storeOid: skillStore.oid
     });
 
     let defaultConfig = await db.skillConfiguration.findFirst({

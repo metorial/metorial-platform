@@ -74,6 +74,7 @@ type NormalizedStoreItemOperation =
 
 let modifyOperationLimit = 500;
 let maxStoreItems = 1000;
+let maxSkillStoreFiles = 1000;
 let reservedSkillDocumentName = 'SKILL.md';
 let agentsDirectoryPath = '/agents/';
 
@@ -110,6 +111,23 @@ class StoreItemMutationServiceImpl {
           }
         }),
       { ifExists: true }
+    );
+  }
+
+  private async assertSkillStoreFileLimit(store: Pick<Store, 'oid'>, client: any = db) {
+    let fileCount = await client.storeItem.count({
+      where: {
+        storeOid: store.oid,
+        kind: { in: ['document', 'file'] }
+      }
+    });
+
+    if (fileCount <= maxSkillStoreFiles) return;
+
+    throw new ServiceError(
+      badRequestError({
+        message: `Skill store files cannot exceed ${maxSkillStoreFiles}; this change would result in ${fileCount}.`
+      })
     );
   }
 
@@ -1322,6 +1340,10 @@ class StoreItemMutationServiceImpl {
         itemCountDelta += 1;
       }
 
+      if (skill && result.created) {
+        await this.assertSkillStoreFileLimit(d.store, client);
+      }
+
       if (currentStore.itemCount + itemCountDelta > maxStoreItems) {
         throw new ServiceError(
           badRequestError({
@@ -1494,6 +1516,10 @@ class StoreItemMutationServiceImpl {
           });
           if (result.created) {
             itemCount += 1;
+          }
+
+          if (skill && result.created) {
+            await this.assertSkillStoreFileLimit(d.store, client);
           }
 
           if (itemCount > maxStoreItems) {

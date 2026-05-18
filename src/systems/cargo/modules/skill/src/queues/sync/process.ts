@@ -3,6 +3,7 @@ import { db, env, snowflake } from '@metorial-cargo/db';
 import { createCodeBucketClient } from '@metorial/code-bucket-service-generated';
 import path from 'path';
 import { BatchProcessor } from '../../lib/batchProcessor';
+import { CargoSkillLimitError } from '../../lib/limits';
 import type { SerializerContext } from '../../serializers/_lib/types';
 import { applyMarketplace } from '../../serializers/marketplace';
 import { applyPlugin, getPluginPath } from '../../serializers/plugin';
@@ -33,6 +34,23 @@ let contentToBytes = (content: string | Buffer | ArrayBuffer) => {
   if (typeof content === 'string') return Buffer.from(content, 'utf-8');
   if (content instanceof Buffer) return content;
   return Buffer.from(new Uint8Array(content));
+};
+
+let failSyncForLimitError = async (d: { skillDestinationSyncId: string; error: unknown }) => {
+  if (!(d.error instanceof CargoSkillLimitError)) return false;
+
+  await db.skillDestinationSync.updateMany({
+    where: {
+      id: d.skillDestinationSyncId,
+      status: 'processing'
+    },
+    data: {
+      status: 'failed',
+      completedAt: new Date()
+    }
+  });
+  await appendSkillDestinationSyncLog(d.skillDestinationSyncId, d.error.message);
+  return true;
 };
 
 export let syncProcessQueue = createQueue<{
@@ -143,13 +161,33 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
     },
     input: Input
   ) => {
-    let initResult = await serializer.init(input);
-    let hash = await serializer.getHash(input, initResult);
-    hashRef.current = hash;
+    let initResult: InitResult;
+    let hash: string;
 
-    if (item?.hash === hash) return;
+    try {
+      initResult = await serializer.init(input);
+      hash = await serializer.getHash(input, initResult);
+      hashRef.current = hash;
+    } catch (error) {
+      if (await failSyncForLimitError({ skillDestinationSyncId: data.skillDestinationSyncId, error })) {
+        return false;
+      }
 
-    await serializer.apply(input, context, initResult);
+      throw error;
+    }
+
+    if (item?.hash === hash) return true;
+
+    try {
+      await serializer.apply(input, context, initResult);
+      return true;
+    } catch (error) {
+      if (await failSyncForLimitError({ skillDestinationSyncId: data.skillDestinationSyncId, error })) {
+        return false;
+      }
+
+      throw error;
+    }
   };
 
   let loadSkillPlugin = async (skillPluginId: string) => {
@@ -277,13 +315,14 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
         data.skillDestinationSyncId,
         `Updating skill ${skillPluginSkill.skill.name ?? 'Untitled skill'}.`
       );
-      await applySerializer(applySkill, {
+      let applied = await applySerializer(applySkill, {
         skill: skillPluginSkill.skill,
         skillPlugin,
         skillPluginSkill,
         skillMarketplace,
         skillMarketplacePlugin
       });
+      if (!applied) return;
       await fileProcessor.flush();
 
       if (hashRef.current) {
@@ -326,11 +365,12 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
         data.skillDestinationSyncId,
         `Updating plugin ${skillPlugin.name}.`
       );
-      await applySerializer(applyPlugin, {
+      let applied = await applySerializer(applyPlugin, {
         skillPlugin,
         skillMarketplace,
         skillMarketplacePlugin
       });
+      if (!applied) return;
       await fileProcessor.flush();
 
       if (hashRef.current) {
@@ -347,7 +387,8 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
       data.skillDestinationSyncId,
       `Updating marketplace ${skillMarketplace.name}.`
     );
-    await applySerializer(applyMarketplace, { skillMarketplace });
+    let applied = await applySerializer(applyMarketplace, { skillMarketplace });
+    if (!applied) return;
     await fileProcessor.flush();
 
     if (hashRef.current) {
