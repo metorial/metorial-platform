@@ -10,6 +10,7 @@ model Cell {
 
   organizations                     Organization[]
   portals                           Portal[]
+  skillPlugins                      SkillPlugin[]
   consumerSurfaces                  ConsumerSurface[]
   users                             User[]
   oauthApplications                 OAuthApplication[]

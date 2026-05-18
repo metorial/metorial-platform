@@ -1,8 +1,8 @@
 import { combineQueueProcessors } from '@lowerdeck/queue';
 import {
   syncConsumerSurfacesCron,
-  syncConsumerSurfacesManyQueueProcessor,
-  syncConsumerSurfaceSingleQueueProcessor
+  syncConsumerSurfaceSingleQueueProcessor,
+  syncConsumerSurfacesManyQueueProcessor
 } from './consumerSurface';
 import {
   syncAppsCron,
@@ -19,6 +19,11 @@ import {
   syncPortalSingleQueueProcessor,
   syncPortalsManyQueueProcessor
 } from './portal';
+import {
+  syncSkillPluginsCron,
+  syncSkillPluginSingleQueueProcessor,
+  syncSkillPluginsManyQueueProcessor
+} from './skillPlugin';
 import {
   syncUsersCron,
   syncUserSingleQueueProcessor,
@@ -37,6 +42,10 @@ export let fromDeploymentSyncProcessors = combineQueueProcessors([
   syncPortalsCron,
   syncPortalsManyQueueProcessor,
   syncPortalSingleQueueProcessor,
+
+  syncSkillPluginsCron,
+  syncSkillPluginsManyQueueProcessor,
+  syncSkillPluginSingleQueueProcessor,
 
   syncConsumerSurfacesCron,
   syncConsumerSurfacesManyQueueProcessor,

@@ -6,6 +6,7 @@ import { syncConsumerSurfaceToDeploymentQueue } from './consumerSurface';
 import { syncOAuthAppToDeploymentQueue } from './oauth';
 import { syncOrganizationToDeploymentQueue } from './organization';
 import { syncPortalToDeploymentQueue } from './portal';
+import { syncSkillPluginToDeploymentQueue } from './skillPlugin';
 import { syncUserToDeploymentQueue } from './user';
 
 let syncToDeploymentQueue = createQueue({
@@ -93,6 +94,25 @@ export let syncToDeploymentQueueProcessor = syncToDeploymentQueue.process(async 
     );
 
     consumerSurfaceCursor = consumerSurfaces[consumerSurfaces.length - 1].id as string;
+  }
+
+  let skillPluginCursor: string | undefined = undefined;
+  while (true) {
+    let skillPlugins = await globalDB.skillPlugin.findMany({
+      where: {
+        id: { gt: skillPluginCursor },
+        updatedAt: timeRange
+      },
+      orderBy: { id: 'asc' },
+      take: 100
+    });
+    if (skillPlugins.length === 0) break;
+
+    await syncSkillPluginToDeploymentQueue.addMany(
+      skillPlugins.map(skillPlugin => ({ skillPlugin }))
+    );
+
+    skillPluginCursor = skillPlugins[skillPlugins.length - 1].id as string;
   }
 
   let oAuthAppCursor: string | undefined = undefined;
