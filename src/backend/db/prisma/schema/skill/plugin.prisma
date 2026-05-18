@@ -23,11 +23,13 @@ model SkillPlugin {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
+  consumerAuthClients  ConsumerAuthClient[]
   consumerAuthAttempts ConsumerAuthAttempt[]
   magicMcpTokens       MagicMcpToken[]
   magicMcpEndpoints    MagicMcpEndpoint[]
 
   @@index([instanceOid, status])
+  @@index([slug])
 }
 
 model SkillPluginSync {

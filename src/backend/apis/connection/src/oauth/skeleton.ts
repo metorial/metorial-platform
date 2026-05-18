@@ -7,6 +7,10 @@ export type PortalOAuthRouteInput = {
   magicMcpTargetId?: string;
 };
 
+export type PluginOAuthRouteInput = {
+  skillPluginId: string;
+};
+
 export type PortalOAuthResolvedRoute = {
   base: string;
 };
@@ -31,35 +35,8 @@ export let buildOAuthClientConfig = (base: string) => ({
   token_endpoint_auth_methods_supported: ['client_secret_basic', 'client_secret_post', 'none']
 });
 
-let metadataPaths = [
-  ':portalId/:magicMcpTargetId',
-  ':portalId',
-  'connect/portal/:portalId/:magicMcpTargetId',
-  'connect/portal/:portalId'
-];
-
-let connectPortalPaths = [':portalId/:magicMcpTargetId', ':portalId'];
-let protectedResourcePaths = [
-  ':portalId/:magicMcpTargetId/.well-known/oauth-protected-resource',
-  ':portalId/.well-known/oauth-protected-resource'
-];
-let openIdConfigurationPaths = [
-  ':portalId/:magicMcpTargetId/.well-known/openid-configuration',
-  ':portalId/.well-known/openid-configuration'
-];
-let registerPaths = [':portalId/:magicMcpTargetId/oauth/register', ':portalId/oauth/register'];
-let authorizePaths = [
-  ':portalId/:magicMcpTargetId/oauth/authorize',
-  ':portalId/oauth/authorize'
-];
-let tokenPaths = [':portalId/:magicMcpTargetId/oauth/token', ':portalId/oauth/token'];
-let registrationPaths = [
-  ':portalId/:magicMcpTargetId/oauth/register/:registrationId',
-  ':portalId/oauth/register/:registrationId'
-];
-
-export let createPortalOAuthServers = <TRoute>(d: {
-  resolveRoute: (route: PortalOAuthRouteInput) => Promise<TRoute>;
+type OAuthRouteHandlers<TInput, TRoute> = {
+  resolveRoute: (route: TInput) => Promise<TRoute>;
   metadata: (d: { route: TRoute }, c: Context) => Promise<Response>;
   portal: (d: { route: TRoute }, c: Context) => Promise<Response>;
   protectedResource: (d: { route: TRoute }, c: Context) => Promise<Response>;
@@ -71,107 +48,100 @@ export let createPortalOAuthServers = <TRoute>(d: {
     d: { route: TRoute; registrationId: string },
     c: Context
   ) => Promise<Response>;
-}) => {
-  let resolveRoute = async (c: Context) => {
-    let portalId = c.req.param('portalId');
-    let rawMagicMcpTargetId = c.req.param('magicMcpTargetId');
+};
 
-    return await d.resolveRoute({
-      portalId,
-      magicMcpTargetId:
-        typeof rawMagicMcpTargetId == 'string' && rawMagicMcpTargetId.length > 0
-          ? rawMagicMcpTargetId
-          : undefined
-    });
-  };
+type OAuthRoutePathConfig = {
+  metadata: string[];
+  connect: string[];
+  protectedResource: string[];
+  openIdConfiguration: string[];
+  register: string[];
+  authorize: string[];
+  token: string[];
+  registration: string[];
+};
+
+let portalOAuthPaths: OAuthRoutePathConfig = {
+  metadata: [
+    ':portalId/:magicMcpTargetId',
+    ':portalId',
+    'connect/portal/:portalId/:magicMcpTargetId',
+    'connect/portal/:portalId'
+  ],
+  connect: [':portalId/:magicMcpTargetId', ':portalId'],
+  protectedResource: [
+    ':portalId/:magicMcpTargetId/.well-known/oauth-protected-resource',
+    ':portalId/.well-known/oauth-protected-resource'
+  ],
+  openIdConfiguration: [
+    ':portalId/:magicMcpTargetId/.well-known/openid-configuration',
+    ':portalId/.well-known/openid-configuration'
+  ],
+  register: [':portalId/:magicMcpTargetId/oauth/register', ':portalId/oauth/register'],
+  authorize: [':portalId/:magicMcpTargetId/oauth/authorize', ':portalId/oauth/authorize'],
+  token: [':portalId/:magicMcpTargetId/oauth/token', ':portalId/oauth/token'],
+  registration: [
+    ':portalId/:magicMcpTargetId/oauth/register/:registrationId',
+    ':portalId/oauth/register/:registrationId'
+  ]
+};
+
+let pluginOAuthPaths: OAuthRoutePathConfig = {
+  metadata: ['connect/plugin/:skillPluginId', ':skillPluginId'],
+  connect: [':skillPluginId'],
+  protectedResource: [':skillPluginId/.well-known/oauth-protected-resource'],
+  openIdConfiguration: [':skillPluginId/.well-known/openid-configuration'],
+  register: [':skillPluginId/oauth/register'],
+  authorize: [':skillPluginId/oauth/authorize'],
+  token: [':skillPluginId/oauth/token'],
+  registration: [':skillPluginId/oauth/register/:registrationId']
+};
+
+let createOAuthRouteServers = <TInput, TRoute>(d: {
+  paths: OAuthRoutePathConfig;
+  parseRouteInput: (c: Context) => TInput;
+  handlers: OAuthRouteHandlers<TInput, TRoute>;
+}) => {
+  let resolveRoute = async (c: Context) => await d.handlers.resolveRoute(d.parseRouteInput(c));
+
+  let withResolvedRoute =
+    (handler: (d: { route: TRoute }, c: Context) => Promise<Response>) => async (c: Context) =>
+      await handler({ route: await resolveRoute(c) }, c);
 
   let metadataServer = createOAuthHono();
-  for (let path of metadataPaths) {
-    metadataServer = metadataServer.get(path, async c => {
-      return await d.metadata(
-        {
-          route: await resolveRoute(c)
-        },
-        c
-      );
-    });
+  for (let path of d.paths.metadata) {
+    metadataServer = metadataServer.get(path, withResolvedRoute(d.handlers.metadata));
   }
 
-  let connectPortalServer = createOAuthHono();
-
-  for (let path of connectPortalPaths) {
-    connectPortalServer = connectPortalServer.all(path, async c => {
-      return await d.portal(
-        {
-          route: await resolveRoute(c)
-        },
-        c
-      );
-    });
+  let connectServer = createOAuthHono();
+  for (let path of d.paths.connect) {
+    connectServer = connectServer.all(path, withResolvedRoute(d.handlers.portal));
   }
 
-  for (let path of protectedResourcePaths) {
-    connectPortalServer = connectPortalServer.get(path, async c => {
-      return await d.protectedResource(
-        {
-          route: await resolveRoute(c)
-        },
-        c
-      );
-    });
+  for (let path of d.paths.protectedResource) {
+    connectServer = connectServer.get(path, withResolvedRoute(d.handlers.protectedResource));
   }
 
-  for (let path of openIdConfigurationPaths) {
-    connectPortalServer = connectPortalServer.get(path, async c => {
-      return await d.openIdConfiguration(
-        {
-          route: await resolveRoute(c)
-        },
-        c
-      );
-    });
+  for (let path of d.paths.openIdConfiguration) {
+    connectServer = connectServer.get(path, withResolvedRoute(d.handlers.openIdConfiguration));
   }
 
-  for (let path of registerPaths) {
-    connectPortalServer = connectPortalServer.post(path, async c => {
-      return await d.register(
-        {
-          route: await resolveRoute(c)
-        },
-        c
-      );
-    });
+  for (let path of d.paths.register) {
+    connectServer = connectServer.post(path, withResolvedRoute(d.handlers.register));
   }
 
-  for (let path of authorizePaths) {
-    connectPortalServer = connectPortalServer.get(path, async c => {
-      return await d.authorize(
-        {
-          route: await resolveRoute(c)
-        },
-        c
-      );
-    });
+  for (let path of d.paths.authorize) {
+    connectServer = connectServer.get(path, withResolvedRoute(d.handlers.authorize));
   }
 
-  for (let path of tokenPaths) {
-    connectPortalServer = connectPortalServer.post(path, async c => {
-      return await d.token(
-        {
-          route: await resolveRoute(c)
-        },
-        c
-      );
-    });
+  for (let path of d.paths.token) {
+    connectServer = connectServer.post(path, withResolvedRoute(d.handlers.token));
   }
 
-  for (let path of registrationPaths) {
-    connectPortalServer = connectPortalServer.get(path, async c => {
-      return await d.registration(
-        {
-          route: await resolveRoute(c),
-          registrationId: c.req.param('registrationId')!
-        },
+  for (let path of d.paths.registration) {
+    connectServer = connectServer.get(path, async c => {
+      return await d.handlers.registration(
+        { route: await resolveRoute(c), registrationId: c.req.param('registrationId')! },
         c
       );
     });
@@ -179,6 +149,47 @@ export let createPortalOAuthServers = <TRoute>(d: {
 
   return {
     metadataServer,
-    connectPortalServer
+    connectServer
+  };
+};
+
+export let createPortalOAuthServers = <TRoute>(
+  handlers: OAuthRouteHandlers<PortalOAuthRouteInput, TRoute>
+) => {
+  let servers = createOAuthRouteServers({
+    paths: portalOAuthPaths,
+    parseRouteInput: c => {
+      let portalId = c.req.param('portalId');
+      let rawMagicMcpTargetId = c.req.param('magicMcpTargetId');
+
+      return {
+        portalId,
+        magicMcpTargetId:
+          typeof rawMagicMcpTargetId == 'string' && rawMagicMcpTargetId.length > 0
+            ? rawMagicMcpTargetId
+            : undefined
+      };
+    },
+    handlers
+  });
+
+  return {
+    metadataServer: servers.metadataServer,
+    connectPortalServer: servers.connectServer
+  };
+};
+
+export let createPluginOAuthServers = <TRoute>(
+  handlers: OAuthRouteHandlers<PluginOAuthRouteInput, TRoute>
+) => {
+  let servers = createOAuthRouteServers({
+    paths: pluginOAuthPaths,
+    parseRouteInput: c => ({ skillPluginId: c.req.param('skillPluginId') }),
+    handlers
+  });
+
+  return {
+    metadataServer: servers.metadataServer,
+    connectPluginServer: servers.connectServer
   };
 };

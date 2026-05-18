@@ -6,8 +6,10 @@ import {
   consumerProfileService,
   grantConsumerOwnedMagicMcpEndpointAccess
 } from '@metorial/module-consumer';
+import { skillPluginService } from '@metorial/module-file';
 import {
   magicMcpEndpointService,
+  magicMcpServerService,
   type MagicMcpEndpointToolFilters
 } from '@metorial/module-magic';
 import { Controller } from '@metorial/rest';
@@ -18,6 +20,7 @@ import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
 import { magicMcpEndpointPresenter } from '../../../presenters';
 import { toolFiltersValidator } from '../sessions/_shared';
+import { getSkillPluginAccess } from '../skills';
 
 export let magicMcpEndpointGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.magicMcpEndpointId) {
@@ -170,6 +173,7 @@ export let magicMcpEndpointController = Controller.create(
           description: v.optional(v.string()),
           metadata: v.optional(v.record(v.any())),
           consumer_profile_id: v.optional(v.string()),
+          skill_plugin_id: v.optional(v.string()),
           magic_mcp_servers: v.optional(v.array(magicMcpEndpointServerValidator))
         })
       )
@@ -199,6 +203,30 @@ export let magicMcpEndpointController = Controller.create(
                 consumerProfileId: ctx.body.consumer_profile_id
               })
             : undefined);
+        let skillPlugin = ctx.body.skill_plugin_id
+          ? (
+              await skillPluginService.getSkillPluginById({
+                ...getSkillPluginAccess(ctx),
+                skillPluginId: ctx.body.skill_plugin_id
+              })
+            ).backing
+          : undefined;
+        let servers = resolveMagicMcpEndpointServers({
+          magicMcpServer: ctx.body.magic_mcp_servers
+        });
+
+        if (skillPlugin && servers?.length) {
+          await Promise.all(
+            servers.map(server =>
+              magicMcpServerService.getMagicMcpServerById({
+                instance: ctx.instance,
+                magicMcpServerId: server.magicMcpServerId,
+                accessTags: ctx.accessTags,
+                consumerSurface: ctx.consumerSurface
+              })
+            )
+          );
+        }
 
         let magicMcpEndpoint = await magicMcpEndpointService.createMagicMcpEndpoint({
           instance: ctx.instance,
@@ -207,9 +235,8 @@ export let magicMcpEndpointController = Controller.create(
             description: ctx.body.description,
             metadata: ctx.body.metadata,
             consumerProfile,
-            servers: resolveMagicMcpEndpointServers({
-              magicMcpServer: ctx.body.magic_mcp_servers
-            })
+            skillPlugin,
+            servers
           }
         });
 

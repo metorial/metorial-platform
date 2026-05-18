@@ -26,9 +26,6 @@ model ConsumerClient {
 
   redirectUris String[]
 
-  consumerSurfaceOid BigInt
-  consumerSurface    ConsumerSurface @relation(fields: [consumerSurfaceOid], references: [oid], onDelete: Cascade)
-
   instanceOid BigInt?
   instance    Instance? @relation(fields: [instanceOid], references: [oid], onDelete: SetNull)
 
@@ -40,7 +37,12 @@ model ConsumerClient {
 
   consumerAuthClients ConsumerAuthClient[]
 
-  @@unique([consumerSurfaceOid, hash])
+  legacyDoNotUseConsumerSurfaceOid BigInt?          @map("consumerSurfaceOid")
+  legacyDoNotUseConsumerSurface    ConsumerSurface? @relation(fields: [legacyDoNotUseConsumerSurfaceOid], references: [oid], onDelete: Cascade)
+
+  consumerAuthClientConsumerSurfaces ConsumerAuthClientConsumerSurface[]
+
+  // @@unique([consumerSurfaceOid, hash])
   @@index([hash])
 }
 
@@ -58,17 +60,14 @@ model ConsumerAuthClient {
 
   redirectUris String[]
 
-  consumerSurfaceOid BigInt?
-  consumerSurface    ConsumerSurface? @relation(fields: [consumerSurfaceOid], references: [oid], onDelete: Cascade)
-
   magicMcpServerOid BigInt?
   magicMcpServer    MagicMcpServer? @relation(fields: [magicMcpServerOid], references: [oid], onDelete: Cascade)
 
   magicMcpEndpointOid BigInt?
   magicMcpEndpoint    MagicMcpEndpoint? @relation(fields: [magicMcpEndpointOid], references: [oid], onDelete: Cascade)
 
-  consumerClientOid BigInt?
-  consumerClient    ConsumerClient? @relation(fields: [consumerClientOid], references: [oid], onDelete: SetNull)
+  skillPluginOid BigInt?
+  skillPlugin    SkillPlugin? @relation(fields: [skillPluginOid], references: [oid], onDelete: SetNull)
 
   instanceOid BigInt?
   instance    Instance? @relation(fields: [instanceOid], references: [oid], onDelete: SetNull)
@@ -83,7 +82,16 @@ model ConsumerAuthClient {
   consumerAuthAttempts               ConsumerAuthAttempt[]
   consumerAuthClientConsumerSurfaces ConsumerAuthClientConsumerSurface[]
 
+  legacyDoNotUseConsumerSurfaceOid BigInt?          @map("consumerSurfaceOid")
+  legacyDoNotUseConsumerSurface    ConsumerSurface? @relation(fields: [legacyDoNotUseConsumerSurfaceOid], references: [oid], onDelete: Cascade)
+
+  legacyDoNotUseConsumerClientOid BigInt?         @map("consumerClientOid")
+  legacyDoNotUseConsumerClient    ConsumerClient? @relation(fields: [legacyDoNotUseConsumerClientOid], references: [oid], onDelete: SetNull)
+
   @@index([registrationIp, createdAt])
+  @@index([instanceOid])
+  @@index([organizationOid])
+  @@index([skillPluginOid])
 }
 
 model ConsumerAuthClientConsumerSurface {
@@ -96,10 +104,16 @@ model ConsumerAuthClientConsumerSurface {
   consumerAuthClientOid BigInt
   consumerAuthClient    ConsumerAuthClient @relation(fields: [consumerAuthClientOid], references: [oid], onDelete: Cascade)
 
+  consumerClientOid BigInt
+  consumerClient    ConsumerClient @relation(fields: [consumerClientOid], references: [oid], onDelete: Cascade)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
   @@unique([consumerSurfaceOid, consumerAuthClientOid])
+  @@unique([consumerClientOid, consumerSurfaceOid])
+  @@unique([consumerAuthClientOid, consumerClientOid])
+  @@index([consumerAuthClientOid])
 }
 
 model ConsumerAuthAttempt {
@@ -146,4 +160,5 @@ model ConsumerAuthAttempt {
   expiresAt    DateTime
 
   @@index([consumerIntegrationEndpointOid])
+  @@index([skillPluginOid])
 }

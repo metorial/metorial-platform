@@ -17,6 +17,7 @@ import {
   ConsumerAccessRequest,
   ConsumerAuthAttempt,
   ConsumerAuthClient,
+  ConsumerAuthClientConsumerSurface,
   ConsumerGroup,
   ConsumerIntegration,
   ConsumerIntegrationEndpoint,
@@ -58,6 +59,7 @@ import {
   Skill,
   SkillGroup,
   SkillMarketplace,
+  SkillPlugin,
   SkillTemplate,
   Team,
   TeamMember,
@@ -812,9 +814,12 @@ export let consumerProviderType = PresentableType.create<{
 
 export let portalOAuthClientType = PresentableType.create<{
   portalAuthClient: ConsumerAuthClient & {
-    consumerSurface: ConsumerSurface & {
-      portal: Portal | null;
-    };
+    consumerAuthClientConsumerSurfaces: (ConsumerAuthClientConsumerSurface & {
+      consumerSurface: ConsumerSurface & {
+        portal: Portal | null;
+      };
+    })[];
+    skillPlugin: SkillPlugin | null;
     magicMcpServer: MagicMcpServer | null;
     magicMcpEndpoint: MagicMcpEndpoint | null;
   };
@@ -823,14 +828,27 @@ export let portalOAuthClientType = PresentableType.create<{
 export let portalOAuthAuthorizationType = PresentableType.create<{
   portalOAuthAuthorization: ConsumerAuthAttempt & {
     consumerAuthClient: ConsumerAuthClient & {
-      consumerSurface: ConsumerSurface & {
-        portal: Portal | null;
-      };
+      consumerAuthClientConsumerSurfaces: (ConsumerAuthClientConsumerSurface & {
+        consumerSurface: ConsumerSurface & {
+          portal: Portal | null;
+        };
+      })[];
+      skillPlugin: SkillPlugin | null;
       magicMcpServer: MagicMcpServer | null;
       magicMcpEndpoint: MagicMcpEndpoint | null;
     };
     consumerProfile: ConsumerProfile | null;
     magicMcpEndpoint: MagicMcpEndpoint | null;
+    skillPlugin:
+      | (SkillPlugin & {
+          organization: Organization;
+          instance: Instance & {
+            project: Project;
+            organization: Organization;
+          };
+        })
+      | null;
+    skillPluginSupportedProviderIds?: string[];
   };
 }>()('portal.oauth_authorization');
 
