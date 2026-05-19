@@ -419,20 +419,56 @@ describe('consumer OAuth integration endpoint linking', () => {
     );
   });
 
-  it('requires plugin_id for plugin OAuth test authorization URLs', async () => {
-    await expect(
-      consumerOAuthTestAuthorizationService.createTestAuthorization({
-        instance: {
-          oid: 1n,
-          organizationOid: 2n
-        } as any,
-        input: {
-          url: 'https://api.test/connect/plugin/plugin-1/oauth/authorize?response_type=code&client_id=coaci_test&redirect_uri=http%3A%2F%2F127.0.0.1%2Fcallback',
-          consumerProfileId: 'consumer-profile-1',
-          magicMcpEndpointId: 'endpoint-1'
+  it('adds portal_id for plugin OAuth test authorization URLs when missing', async () => {
+    vi.mocked(db.consumerProfile.findFirst).mockResolvedValue({
+      oid: 30n,
+      id: 'consumer-profile-1',
+      surfaceOid: 50n,
+      surface: {
+        oid: 50n,
+        id: 'test-7',
+        instanceOid: 1n,
+        organizationOid: 2n,
+        portal: {
+          id: 'test-7',
+          slug: 'test-7'
         }
-      })
-    ).rejects.toThrow('plugin_id is required');
+      }
+    } as any);
+    vi.mocked(db.magicMcpEndpoint.findFirst).mockResolvedValue({
+      oid: 60n,
+      id: 'endpoint-1',
+      consumerProfileOid: 30n,
+      skillPluginOid: null,
+      servers: [{ magicMcpServerOid: 70n }]
+    } as any);
+    vi.mocked(db.consumerAuthClient.findFirst).mockResolvedValue({
+      oid: 10n,
+      clientId: 'coaci_test',
+      expiresAt: new Date(Date.now() + 60_000),
+      skillPluginOid: null,
+      consumerAuthClientSurfaces: []
+    } as any);
+    vi.mocked(db.consumerAuthTestAuthorization.create).mockResolvedValue({
+      id: 'coata_test',
+      expiresAt: new Date(Date.now() + 60_000),
+      createdAt: new Date()
+    } as any);
+
+    let result = await consumerOAuthTestAuthorizationService.createTestAuthorization({
+      instance: {
+        oid: 1n,
+        organizationOid: 2n
+      } as any,
+      input: {
+        url: 'https://api.test/connect/plugin/plugin-1/oauth/authorize?response_type=code&client_id=coaci_test&redirect_uri=http%3A%2F%2F127.0.0.1%2Fcallback',
+        consumerProfileId: 'consumer-profile-1',
+        magicMcpEndpointId: 'endpoint-1'
+      }
+    });
+
+    expect(result.url).toContain('portal_id=test-7');
+    expect(result.url).toContain('test_auth_id=coata_test');
   });
 
   it('rejects an already consumed test authorization', async () => {
