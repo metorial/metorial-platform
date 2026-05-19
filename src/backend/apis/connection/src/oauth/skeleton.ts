@@ -43,6 +43,7 @@ type OAuthRouteHandlers<TInput, TRoute> = {
   openIdConfiguration: (d: { route: TRoute }, c: Context) => Promise<Response>;
   register: (d: { route: TRoute }, c: Context) => Promise<Response>;
   authorize: (d: { route: TRoute }, c: Context) => Promise<Response>;
+  portalSelected?: (d: { route: TRoute }, c: Context) => Promise<Response>;
   token: (d: { route: TRoute }, c: Context) => Promise<Response>;
   registration: (
     d: { route: TRoute; registrationId: string },
@@ -57,6 +58,7 @@ type OAuthRoutePathConfig = {
   openIdConfiguration: string[];
   register: string[];
   authorize: string[];
+  portalSelected?: string[];
   token: string[];
   registration: string[];
 };
@@ -65,6 +67,8 @@ let portalOAuthPaths: OAuthRoutePathConfig = {
   metadata: [
     ':portalId/:magicMcpTargetId',
     ':portalId',
+    ':portalId/:magicMcpTargetId/.well-known/oauth-authorization-server',
+    ':portalId/.well-known/oauth-authorization-server',
     'connect/portal/:portalId/:magicMcpTargetId',
     'connect/portal/:portalId'
   ],
@@ -87,12 +91,17 @@ let portalOAuthPaths: OAuthRoutePathConfig = {
 };
 
 let pluginOAuthPaths: OAuthRoutePathConfig = {
-  metadata: ['connect/plugin/:skillPluginId', ':skillPluginId'],
+  metadata: [
+    'connect/plugin/:skillPluginId',
+    ':skillPluginId',
+    ':skillPluginId/.well-known/oauth-authorization-server'
+  ],
   connect: [':skillPluginId'],
   protectedResource: [':skillPluginId/.well-known/oauth-protected-resource'],
   openIdConfiguration: [':skillPluginId/.well-known/openid-configuration'],
   register: [':skillPluginId/oauth/register'],
   authorize: [':skillPluginId/oauth/authorize'],
+  portalSelected: [':skillPluginId/oauth/portal-selected'],
   token: [':skillPluginId/oauth/token'],
   registration: [':skillPluginId/oauth/register/:registrationId']
 };
@@ -118,6 +127,10 @@ let createOAuthRouteServers = <TInput, TRoute>(d: {
     connectServer = connectServer.all(path, withResolvedRoute(d.handlers.portal));
   }
 
+  for (let path of d.paths.metadata) {
+    connectServer = connectServer.get(path, withResolvedRoute(d.handlers.metadata));
+  }
+
   for (let path of d.paths.protectedResource) {
     connectServer = connectServer.get(path, withResolvedRoute(d.handlers.protectedResource));
   }
@@ -132,6 +145,12 @@ let createOAuthRouteServers = <TInput, TRoute>(d: {
 
   for (let path of d.paths.authorize) {
     connectServer = connectServer.get(path, withResolvedRoute(d.handlers.authorize));
+  }
+
+  if (d.handlers.portalSelected) {
+    for (let path of d.paths.portalSelected ?? []) {
+      connectServer = connectServer.get(path, withResolvedRoute(d.handlers.portalSelected));
+    }
   }
 
   for (let path of d.paths.token) {

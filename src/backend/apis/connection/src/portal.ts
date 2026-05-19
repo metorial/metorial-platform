@@ -1,5 +1,6 @@
 import { useRequestContext, useValidatedBody } from '@lowerdeck/hono';
 import { v } from '@lowerdeck/validation';
+import { getConfig } from '@metorial/config';
 import { AuthInfo } from '@metorial/module-access';
 import {
   consumerAuthAccessTokenTtlSeconds,
@@ -10,6 +11,7 @@ import {
   consumerOAuthTokenService
 } from '@metorial/module-consumer';
 import { Authenticator } from '@metorial/rest';
+import { Context } from 'hono';
 import { getMagicMcpTokenSecretFromRequest, handleMagicMcpRequest } from './magic';
 import {
   buildOAuthClientConfig,
@@ -53,84 +55,39 @@ let buildOAuthClientRegistration = (d: {
       : Math.floor(d.registration.createdAt.getTime() / 1000)
 });
 
-let escapeHtml = (value: string) =>
-  value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
+let getPluginOAuthInput = (c: Context) => ({
+  responseType: getString(c.req.query('response_type')),
+  clientId: getString(c.req.query('client_id')),
+  redirectUri: getString(c.req.query('redirect_uri')),
+  codeChallenge: getString(c.req.query('code_challenge')),
+  codeChallengeMethod: getString(c.req.query('code_challenge_method')),
+  state: getString(c.req.query('state'))
+});
 
-let renderSkillPluginPortalMessage = (d: { title: string; body: string }) => `<!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <title>${escapeHtml(d.title)}</title>
-    <style>
-      body { font-family: ui-sans-serif, system-ui, sans-serif; margin: 0; background: #fafafa; color: #111827; }
-      main { max-width: 560px; margin: 80px auto; background: white; border: 1px solid #e5e7eb; border-radius: 14px; padding: 28px; }
-      h1 { font-size: 24px; margin: 0 0 12px; }
-      p { line-height: 1.5; margin: 0; color: #4b5563; }
-    </style>
-  </head>
-  <body><main><h1>${escapeHtml(d.title)}</h1><p>${escapeHtml(d.body)}</p></main></body>
-</html>`;
+let appendPluginOAuthParams = (url: URL, input: ReturnType<typeof getPluginOAuthInput>) => {
+  if (input.responseType) url.searchParams.set('response_type', input.responseType);
+  if (input.clientId) url.searchParams.set('client_id', input.clientId);
+  if (input.redirectUri) url.searchParams.set('redirect_uri', input.redirectUri);
+  if (input.codeChallenge) url.searchParams.set('code_challenge', input.codeChallenge);
+  if (input.codeChallengeMethod) {
+    url.searchParams.set('code_challenge_method', input.codeChallengeMethod);
+  }
+  if (input.state) url.searchParams.set('state', input.state);
+};
 
-let renderSkillPluginPortalChooser = (d: {
-  base: string;
-  skillPlugin: { id: string; name: string | null };
-  portals: { id: string; name: string }[];
-  input: {
-    responseType?: string;
-    clientId?: string;
-    redirectUri?: string;
-    codeChallenge?: string;
-    codeChallengeMethod?: string;
-    state?: string;
-  };
+let buildPluginPortalSelectorUrl = (d: {
+  pluginId: string;
+  input: ReturnType<typeof getPluginOAuthInput>;
 }) => {
-  let current = new URL(`${d.base}/oauth/authorize`);
-  let title = 'Choose a Workforce portal';
-  let items = d.portals
-    .map(portal => {
-      let href = new URL(current.toString());
-      if (d.input.responseType) href.searchParams.set('response_type', d.input.responseType);
-      if (d.input.clientId) href.searchParams.set('client_id', d.input.clientId);
-      if (d.input.redirectUri) href.searchParams.set('redirect_uri', d.input.redirectUri);
-      if (d.input.codeChallenge)
-        href.searchParams.set('code_challenge', d.input.codeChallenge);
-      if (d.input.codeChallengeMethod) {
-        href.searchParams.set('code_challenge_method', d.input.codeChallengeMethod);
-      }
-      if (d.input.state) href.searchParams.set('state', d.input.state);
-      href.searchParams.set('portal_id', portal.id);
+  let url = new URL(getConfig().urls.portalsUrl);
+  let basePath = url.pathname.replace(/\/+$/, '');
+  url.pathname = `${basePath}/select-portal`.replace(/\/{2,}/g, '/');
+  url.search = '';
+  url.hash = '';
+  url.searchParams.set('plugin_id', d.pluginId);
+  appendPluginOAuthParams(url, d.input);
 
-      return `<li><a href="${href.toString()}">${escapeHtml(portal.name)}</a></li>`;
-    })
-    .join('');
-
-  return `<!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <title>${title}</title>
-    <style>
-      body { font-family: ui-sans-serif, system-ui, sans-serif; margin: 0; background: #fafafa; color: #111827; }
-      main { max-width: 560px; margin: 80px auto; background: white; border: 1px solid #e5e7eb; border-radius: 14px; padding: 28px; }
-      h1 { font-size: 24px; margin: 0 0 12px; }
-      p { line-height: 1.5; color: #4b5563; }
-      ul { padding: 0; margin: 20px 0 0; list-style: none; display: grid; gap: 10px; }
-      a { display: block; padding: 12px 14px; border: 1px solid #d1d5db; border-radius: 10px; text-decoration: none; color: #111827; }
-    </style>
-  </head>
-  <body>
-    <main>
-      <h1>${title}</h1>
-      <p>Select which Metorial Workforce portal you want to use for ${escapeHtml(d.skillPlugin.name ?? 'this Metorial Skill')}.</p>
-      <ul>${items}</ul>
-    </main>
-  </body>
-</html>`;
+  return url.toString();
 };
 
 export let createPortalHandler = (d: {
@@ -395,44 +352,44 @@ export let createPluginHandler = (d: {
     authorize: async ({ route }, c) => {
       let { skillPlugin } = route;
       let portalId = getString(c.req.query('portal_id'));
+      let input = getPluginOAuthInput(c);
       let authorization =
         await consumerOAuthAuthorizationService.createSkillPluginConsumerAuthAuthorization({
           skillPlugin,
           portalId,
-          input: {
-            responseType: getString(c.req.query('response_type')),
-            clientId: getString(c.req.query('client_id')),
-            redirectUri: getString(c.req.query('redirect_uri')),
-            codeChallenge: getString(c.req.query('code_challenge')),
-            codeChallengeMethod: getString(c.req.query('code_challenge_method')),
-            state: getString(c.req.query('state'))
-          }
+          input
         });
 
-      if (authorization.type == 'workforce_required') {
-        return c.html(
-          renderSkillPluginPortalMessage({
-            title: 'Metorial Workforce is required',
-            body: 'Metorial Skills can only be used with Metorial Workforce. Create a Workforce portal for this instance, then try connecting this skill again.'
-          })
+      if (authorization.type != 'redirect') {
+        return c.redirect(
+          buildPluginPortalSelectorUrl({
+            pluginId: skillPlugin.id,
+            input
+          }),
+          302
         );
       }
 
-      if (authorization.type == 'portal_selection') {
-        return c.html(
-          renderSkillPluginPortalChooser({
-            base: route.base,
-            skillPlugin: authorization.skillPlugin,
-            portals: authorization.portals,
-            input: {
-              responseType: getString(c.req.query('response_type')),
-              clientId: getString(c.req.query('client_id')),
-              redirectUri: getString(c.req.query('redirect_uri')),
-              codeChallenge: getString(c.req.query('code_challenge')),
-              codeChallengeMethod: getString(c.req.query('code_challenge_method')),
-              state: getString(c.req.query('state'))
-            }
-          })
+      return c.redirect(authorization.redirectUrl, 302);
+    },
+
+    portalSelected: async ({ route }, c) => {
+      let { skillPlugin } = route;
+      let portalId = getString(c.req.query('portal_id'));
+      let authorization =
+        await consumerOAuthAuthorizationService.createSkillPluginConsumerAuthAuthorization({
+          skillPlugin,
+          portalId,
+          input: getPluginOAuthInput(c)
+        });
+
+      if (authorization.type != 'redirect') {
+        return c.redirect(
+          buildPluginPortalSelectorUrl({
+            pluginId: skillPlugin.id,
+            input: getPluginOAuthInput(c)
+          }),
+          302
         );
       }
 

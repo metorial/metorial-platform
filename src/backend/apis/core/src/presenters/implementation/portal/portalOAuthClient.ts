@@ -5,8 +5,8 @@ import { portalOAuthClientType } from '../../types';
 export let v1PortalOAuthClientPresenter = Presenter.create(portalOAuthClientType)
   .presenter(async ({ portalAuthClient }) => {
     let consumerSurface:
-      | (typeof portalAuthClient.consumerAuthClientConsumerSurfaces)[number]['consumerSurface']
-      | null = portalAuthClient.consumerAuthClientConsumerSurfaces[0]?.consumerSurface ?? null;
+      | (typeof portalAuthClient.consumerAuthClientSurfaces)[number]['consumerSurface']
+      | null = portalAuthClient.consumerAuthClientSurfaces[0]?.consumerSurface ?? null;
     let portalId: string | null = consumerSurface?.portal?.id ?? null;
     let consumerSurfaceId: string | null = consumerSurface?.id ?? null;
 

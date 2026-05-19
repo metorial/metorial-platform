@@ -95,17 +95,11 @@ export let toolCallController = Controller.create(
           identityIds: normalizeArrayParam(ctx.query.identity_id)
         });
 
-        console.log('Resolved actor IDs for tool call list filters:', {
-          actorIds,
-          consumerIds: normalizeArrayParam(ctx.query.consumer_id),
-          identityIds: normalizeArrayParam(ctx.query.identity_id)
-        });
-
         let paginator = await subspaceToolCallService.list({
           instance: ctx.instance,
           allowDeleted: false,
-          agentIds: normalizeArrayParam(ctx.query.agent_id),
           actorIds,
+          agentIds: normalizeArrayParam(ctx.query.agent_id),
           agentInstanceIds: normalizeArrayParam(ctx.query.agent_instance_id),
           sessionTemplateIds: normalizeArrayParam(ctx.query.session_template_id),
           sessionProviderIds: normalizeArrayParam(ctx.query.session_provider_id),

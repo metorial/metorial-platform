@@ -17,7 +17,7 @@ import {
   ConsumerAccessRequest,
   ConsumerAuthAttempt,
   ConsumerAuthClient,
-  ConsumerAuthClientConsumerSurface,
+  ConsumerAuthClientSurface,
   ConsumerGroup,
   ConsumerIntegration,
   ConsumerIntegrationEndpoint,
@@ -814,7 +814,7 @@ export let consumerProviderType = PresentableType.create<{
 
 export let portalOAuthClientType = PresentableType.create<{
   portalAuthClient: ConsumerAuthClient & {
-    consumerAuthClientConsumerSurfaces: (ConsumerAuthClientConsumerSurface & {
+    consumerAuthClientSurfaces: (ConsumerAuthClientSurface & {
       consumerSurface: ConsumerSurface & {
         portal: Portal | null;
       };
@@ -828,7 +828,7 @@ export let portalOAuthClientType = PresentableType.create<{
 export let portalOAuthAuthorizationType = PresentableType.create<{
   portalOAuthAuthorization: ConsumerAuthAttempt & {
     consumerAuthClient: ConsumerAuthClient & {
-      consumerAuthClientConsumerSurfaces: (ConsumerAuthClientConsumerSurface & {
+      consumerAuthClientSurfaces: (ConsumerAuthClientSurface & {
         consumerSurface: ConsumerSurface & {
           portal: Portal | null;
         };

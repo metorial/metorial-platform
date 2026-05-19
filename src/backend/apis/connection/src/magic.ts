@@ -160,11 +160,13 @@ let resolveAgentClientForConsumerToken = (d: {
   let consumerAuthClient =
     d.consumerToken?.magicMcpToken.consumerAuthAttempts[0]?.consumerAuthClient;
   if (!consumerAuthClient) return null;
+  let consumerClient =
+    consumerAuthClient.consumerAuthClientSurfaces[0]?.consumerClient ?? null;
 
   return {
-    name: consumerAuthClient.consumerClient?.name ?? consumerAuthClient.name,
+    name: consumerClient?.name ?? consumerAuthClient.name,
     type: 'mcp_client_oauth',
-    foreignId: consumerAuthClient.consumerClient?.id ?? consumerAuthClient.id,
+    foreignId: consumerClient?.id ?? consumerAuthClient.id,
     oauthRegistrationId: consumerAuthClient.id
   };
 };

@@ -11,6 +11,8 @@
   "dependencies": {
     "@lowerdeck/error": "^1.2.3",
     "@lowerdeck/validation": "^1.0.10",
+    "@metorial/config": "1.0.0",
+    "@metorial/db": "1.0.0",
     "@metorial/module-consumer": "1.0.0",
     "@metorial/rpc": "1.0.0"
   },
