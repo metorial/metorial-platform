@@ -3,6 +3,7 @@ import { accessService } from '@metorial/module-access';
 import { consumerOAuthTestAuthorizationService } from '@metorial/module-consumer';
 import { Controller, Path } from '@metorial/rest';
 import { apiGroup } from '../../middleware/apiGroup';
+import { consumerOAuthTestAuthorizationPresenter } from '../../presenters';
 
 export let testHelperConsumerOAuthController = Controller.create(
   {
@@ -27,13 +28,14 @@ export let testHelperConsumerOAuthController = Controller.create(
       .body(
         'default',
         v.object({
-          url: v.string({ modifiers: [v.url()] }),
           instance_id: v.string(),
+          url: v.string({ modifiers: [v.url()] }),
           consumer_profile_id: v.string(),
           magic_mcp_endpoint_id: v.string(),
           plugin_id: v.optional(v.string())
         })
       )
+      .output(consumerOAuthTestAuthorizationPresenter)
       .do(async ctx => {
         let { instance } = await accessService.accessInstance({
           authInfo: ctx.auth,
@@ -51,13 +53,10 @@ export let testHelperConsumerOAuthController = Controller.create(
             }
           });
 
-        return {
-          object: 'test_helper.consumer_oauth_authorization',
-          id: authorization.testAuthorization.id,
-          url: authorization.url,
-          expires_at: authorization.testAuthorization.expiresAt,
-          created_at: authorization.testAuthorization.createdAt
-        };
+        return consumerOAuthTestAuthorizationPresenter.present({
+          testAuthorization: authorization.testAuthorization,
+          url: authorization.url
+        });
       })
   }
 );

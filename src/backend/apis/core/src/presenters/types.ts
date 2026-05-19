@@ -18,6 +18,7 @@ import {
   ConsumerAuthAttempt,
   ConsumerAuthClient,
   ConsumerAuthClientSurface,
+  ConsumerAuthTestAuthorization,
   ConsumerGroup,
   ConsumerIntegration,
   ConsumerIntegrationEndpoint,
@@ -252,6 +253,11 @@ export let tokenType = PresentableType.create<{
     user?: User;
   };
 }>()('token');
+
+export let consumerOAuthTestAuthorizationType = PresentableType.create<{
+  testAuthorization: ConsumerAuthTestAuthorization;
+  url: string;
+}>()('consumer_oauth_test_authorization');
 
 export let projectBrandType = PresentableType.create<{
   projectBrand: ProjectBrandOverride;
