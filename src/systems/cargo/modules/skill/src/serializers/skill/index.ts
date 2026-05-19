@@ -95,7 +95,8 @@ let applySkillDocumentFrontmatter = (content: string, input: SkillSerializerInpu
       input.skill.clientDescription ||
       givenFrontmatter.description ||
       input.skill.description ||
-      undefined,
+      input.skill.name ||
+      'Unknown Skill',
     license: input.skill.license || givenFrontmatter.license || undefined,
     compatibility: input.skill.compatibility || givenFrontmatter.compatibility || undefined,
     metadata: {

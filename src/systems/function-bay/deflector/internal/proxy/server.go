@@ -3,7 +3,6 @@ package proxy
 import (
 	"bufio"
 	"context"
-	"encoding/base64"
 	"errors"
 	"io"
 	"log/slog"
@@ -12,14 +11,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/metorial/function-bay-deflector/internal/auth"
 	"github.com/metorial/function-bay-deflector/internal/policy"
 )
 
 type Server struct {
-	Verifier *auth.Verifier
-	Logger   *slog.Logger
-	Dialer   *net.Dialer
+	Logger *slog.Logger
+	Dialer *net.Dialer
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -44,35 +41,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) policyFromRequest(r *http.Request) (*policy.Compiled, error) {
-	token := bearerToken(r.Header.Get("Proxy-Authorization"))
-	if token == "" {
-		return nil, errors.New("missing proxy token")
-	}
-
-	claims, err := s.Verifier.Verify(r.Context(), token)
-	if err != nil {
-		return nil, err
-	}
-
-	return policy.Compile(claims)
-}
-
-func bearerToken(header string) string {
-	if strings.HasPrefix(header, "Bearer ") {
-		return strings.TrimSpace(strings.TrimPrefix(header, "Bearer "))
-	}
-	if strings.HasPrefix(header, "Basic ") {
-		raw, err := base64.StdEncoding.DecodeString(strings.TrimSpace(strings.TrimPrefix(header, "Basic ")))
-		if err != nil {
-			return ""
-		}
-		user, _, ok := strings.Cut(string(raw), ":")
-		if !ok {
-			return ""
-		}
-		return user
-	}
-	return ""
+	return policy.Compile(policy.Claims{})
 }
 
 func (s *Server) handleConnect(w http.ResponseWriter, r *http.Request, compiled *policy.Compiled) {

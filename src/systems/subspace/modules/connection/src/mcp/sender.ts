@@ -411,8 +411,9 @@ export class McpSender {
               inputSchema: isMetorialExplorer
                 ? presented.inputJsonSchema
                 : (injectToolCallOperationIntoInputSchema(presented.inputJsonSchema) as any),
-              outputSchema:
-                presented.outputJsonSchema?.type === 'object'
+              outputSchema: isMetorialExplorer
+                ? undefined
+                : presented.outputJsonSchema?.type === 'object'
                   ? (mcpOutputSchemaNormalizer(presented.outputJsonSchema, {
                       isRoot: true
                     }) as any)
@@ -814,10 +815,18 @@ export class McpSender {
 
     if (!opts.waitForResponse) return { message: result.message };
 
+    let isMetorialExplorer = this.connection?.participant?.name === 'Metorial Explorer';
+    let res = await conduitResultToMcpMessage(result);
+
+    if (isMetorialExplorer) {
+      // @ts-ignore
+      delete res?.result?.structuredContent;
+    }
+
     return {
       store: true,
       message: result.message,
-      mcp: await conduitResultToMcpMessage(result)
+      mcp: res
     };
   }
 

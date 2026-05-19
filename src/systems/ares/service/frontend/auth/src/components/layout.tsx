@@ -305,7 +305,7 @@ export let AuthLayout = ({
           <IntroSide>
             <IntroBlock>
               <Eyebrow>Connect to 1000+ verified integrations</Eyebrow>
-              <IntroTitle>The infra layer for AI integrations.</IntroTitle>
+              <IntroTitle>Agentic infrastructure to power AI-native companies.</IntroTitle>
               <IntroText>
                 Deploy MCP servers with build-in observability and enterprise-grade isolation
                 from day one.
