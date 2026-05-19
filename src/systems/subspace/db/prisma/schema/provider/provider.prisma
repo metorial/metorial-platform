@@ -106,6 +106,7 @@ model Provider {
   skillProviders                 SkillProvider[]
   skillProviderLinks             SkillProviderLink[]
   skillTemplateItems             SkillTemplateItem[]
+  tenantOAuthCallbackUrls        TenantOAuthCallbackUrl[]
 
   @@index([status])
   @@index([access])

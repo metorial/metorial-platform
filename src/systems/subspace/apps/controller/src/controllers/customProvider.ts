@@ -139,7 +139,7 @@ export let customProviderController = app.controller({
         allowDeleted: v.optional(v.boolean())
       })
     )
-    .do(async ctx => customProviderPresenter(ctx.customProvider, ctx)),
+    .do(async ctx => await customProviderPresenter(ctx.customProvider, ctx)),
 
   create: tenantApp
     .handler()
@@ -179,7 +179,7 @@ export let customProviderController = app.controller({
         }
       });
 
-      return customProviderPresenter(customProvider, ctx);
+      return await customProviderPresenter(customProvider, ctx);
     }),
 
   update: customProviderApp
@@ -223,6 +223,6 @@ export let customProviderController = app.controller({
         }
       });
 
-      return customProviderPresenter(customProvider, ctx);
+      return await customProviderPresenter(customProvider, ctx);
     })
 });

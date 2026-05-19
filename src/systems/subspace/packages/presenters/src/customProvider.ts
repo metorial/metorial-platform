@@ -20,7 +20,7 @@ import { bucketPresenter } from './bucket';
 import { providerPresenter } from './provider';
 import { scmRepositoryPresenter } from './scmRepository';
 
-export let customProviderPresenter = (
+export let customProviderPresenter = async (
   customProvider: CustomProvider & {
     provider:
       | (Provider & {
@@ -70,7 +70,9 @@ export let customProviderPresenter = (
     ? bucketPresenter(customProvider.draftCodeBucket)
     : null,
 
-  provider: customProvider.provider ? providerPresenter(customProvider.provider, d) : null,
+  provider: customProvider.provider
+    ? await providerPresenter(customProvider.provider, d)
+    : null,
 
   draft: {
     containerRegistry: customProvider.containerRegistry,

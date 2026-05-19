@@ -135,5 +135,5 @@ export let providerListingController = app.controller({
         providerListingId: v.string()
       })
     )
-    .do(async ctx => providerListingPresenter(ctx.providerListing, ctx))
+    .do(async ctx => await providerListingPresenter(ctx.providerListing, ctx))
 });

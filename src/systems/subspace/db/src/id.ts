@@ -8,6 +8,7 @@ export let ID = createIdGenerator({
   backend: idType.sorted('kbe'),
   brand: idType.sorted('kbr'),
   tenantActor: idType.sorted('pact'),
+  tenantOAuthCallbackUrl: idType.sorted('cbu'),
 
   publisher: idType.sorted('pub'),
 

@@ -70,7 +70,7 @@ export let providerController = app.controller({
         providerId: v.string()
       })
     )
-    .do(async ctx => providerPresenter(ctx.provider, ctx)),
+    .do(async ctx => await providerPresenter(ctx.provider, ctx)),
 
   update: providerApp
     .handler()
@@ -99,6 +99,6 @@ export let providerController = app.controller({
         }
       });
 
-      return providerPresenter(provider, ctx);
+      return await providerPresenter(provider, ctx);
     })
 });

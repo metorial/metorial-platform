@@ -204,7 +204,7 @@ class providerOAuthSetupServiceImpl {
 
       let callbackUrlOverride = isManagedCredentials
         ? null
-        : getOAuthCallbackUrl(d.provider.type, d.provider, d.tenant);
+        : await getOAuthCallbackUrl(d.provider.type, d.provider, d.tenant);
 
       let backendProviderOAuthSetup = await backend.auth.createProviderOAuthSetup({
         tenant: d.tenant,

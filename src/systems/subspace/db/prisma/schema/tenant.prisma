@@ -103,6 +103,7 @@ model Tenant {
   skillEntities                            SkillEntity[]
   skillForks                               SkillFork[]
   skillTemplates                           SkillTemplate[]
+  tenantOAuthCallbackUrls                  TenantOAuthCallbackUrl[]
 }
 
 enum EnvironmentType {
