@@ -410,4 +410,5 @@ export * from './stores';
 export * from './stores_items';
 export * from './stores_participants';
 export * from './stores_permissions';
+export * from './test-helpers_consumer-oauth_authorizations';
 export * from './tool-calls';

@@ -45,4 +45,5 @@ export * from './skill-groups';
 export * from './skill-templates';
 export * from './skills';
 export * from './stores';
+export * from './test-helpers';
 export * from './tool-calls';
