@@ -31,8 +31,7 @@ export let testHelperConsumerOAuthController = Controller.create(
           instance_id: v.string(),
           url: v.string({ modifiers: [v.url()] }),
           consumer_profile_id: v.string(),
-          magic_mcp_endpoint_id: v.string(),
-          plugin_id: v.optional(v.string())
+          magic_mcp_endpoint_id: v.string()
         })
       )
       .output(consumerOAuthTestAuthorizationPresenter)
@@ -48,8 +47,7 @@ export let testHelperConsumerOAuthController = Controller.create(
             input: {
               url: ctx.body.url,
               consumerProfileId: ctx.body.consumer_profile_id,
-              magicMcpEndpointId: ctx.body.magic_mcp_endpoint_id,
-              pluginId: ctx.body.plugin_id
+              magicMcpEndpointId: ctx.body.magic_mcp_endpoint_id
             }
           });
 

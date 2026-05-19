@@ -92,7 +92,6 @@ class ConsumerOAuthTestAuthorizationService {
       url: string;
       consumerProfileId: string;
       magicMcpEndpointId: string;
-      pluginId?: string;
     };
   }) {
     let url = new URL(d.input.url);
@@ -104,22 +103,6 @@ class ConsumerOAuthTestAuthorizationService {
     let codeChallengeMethod = normalizeCodeChallengeMethod(
       url.searchParams.get('code_challenge_method')
     );
-
-    if (route.type == 'plugin' && !d.input.pluginId) {
-      throw new ServiceError(
-        badRequestError({
-          message: 'plugin_id is required when creating a test authorization for a plugin URL.'
-        })
-      );
-    }
-
-    if (route.type == 'plugin' && d.input.pluginId != route.pluginId) {
-      throw new ServiceError(
-        badRequestError({
-          message: 'plugin_id must match the plugin in the authorization URL.'
-        })
-      );
-    }
 
     let consumerProfile = await db.consumerProfile.findFirst({
       where: {
@@ -182,9 +165,7 @@ class ConsumerOAuthTestAuthorizationService {
         instanceOid: d.instance.oid,
         skillPlugin:
           route.type == 'plugin'
-            ? {
-                OR: [{ id: d.input.pluginId }, { slug: d.input.pluginId }]
-              }
+            ? { OR: [{ id: route.pluginId }, { slug: route.pluginId }] }
             : undefined
       },
       include: consumerAuthClientInclude
