@@ -15,11 +15,11 @@ import {
 } from '@metorial/db';
 import { addSeconds } from 'date-fns';
 import {
+  consumerAuthAccessTokenTtlSeconds,
+  consumerAuthRefreshTokenTtlSeconds,
   ConsumerOAuthAuthorization,
   ConsumerOAuthClient,
-  DashboardConsumerSurface,
-  consumerAuthAccessTokenTtlSeconds,
-  consumerAuthRefreshTokenTtlSeconds
+  DashboardConsumerSurface
 } from './_types';
 
 export let getConsumerAuthRefreshTokenExpiry = () =>

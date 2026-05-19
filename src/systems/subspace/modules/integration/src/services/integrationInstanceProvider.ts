@@ -14,7 +14,6 @@ import {
   type ProviderConfig,
   type Solution,
   type Tenant,
-  type TransactionDB,
   withTransaction
 } from '@metorial-subspace/db';
 import {
@@ -50,34 +49,37 @@ import {
 import { integrationProviderService, MAX_INTEGRATION_PROVIDERS } from './integrationProvider';
 
 let requireCurrentIntegrationProviderVersion = async (d: {
-  db?: TransactionDB;
   integrationProviderOid: bigint;
 }) => {
-  let tx = d.db ?? db;
-  let integrationProvider = await tx.integrationProvider.findUniqueOrThrow({
-    where: { oid: d.integrationProviderOid },
-    include: {
-      integration: { include: { currentVersion: true } },
-      provider: { include: { type: true } },
-      currentVersion: {
-        include: {
-          deployment: true,
-          config: true
+  return withTransaction(async db => {
+    let integrationProvider = await db.integrationProvider.findUniqueOrThrow({
+      where: { oid: d.integrationProviderOid },
+      include: {
+        integration: { include: { currentVersion: true } },
+        provider: { include: { type: true } },
+        currentVersion: {
+          include: {
+            deployment: true,
+            config: true
+          }
         }
       }
+    });
+
+    if (
+      !integrationProvider.currentVersion ||
+      !integrationProvider.integration.currentVersion
+    ) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Integration provider has no active version.',
+          code: 'integration_provider_version_required'
+        })
+      );
     }
+
+    return integrationProvider;
   });
-
-  if (!integrationProvider.currentVersion || !integrationProvider.integration.currentVersion) {
-    throw new ServiceError(
-      badRequestError({
-        message: 'Integration provider has no active version.',
-        code: 'integration_provider_version_required'
-      })
-    );
-  }
-
-  return integrationProvider;
 };
 
 let isAllowAllToolFilter = (toolFilter: PrismaJson.ToolFilter | null | undefined) =>
@@ -422,7 +424,6 @@ class integrationInstanceProviderServiceImpl {
       let materialProviders = await Promise.all(
         integrationProviders.map(integrationProvider =>
           requireCurrentIntegrationProviderVersion({
-            db,
             integrationProviderOid: integrationProvider.oid
           })
         )

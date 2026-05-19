@@ -12,8 +12,13 @@ import {
 import { type MagicMcpResolvedTarget } from '@metorial/module-magic';
 import { addDays, addMinutes } from 'date-fns';
 import {
+  getPortalAllowedRedirectUrlFilters,
+  validatePortalRedirectUrisAgainstAllowedFilters,
+  validateUrlString
+} from '../../lib/oauth';
+import { portalService } from '../portal';
+import {
   consumerAuthClientRegistrationRateLimitError,
-  getConsumerClientHash,
   normalizeConsumerClientRedirectUris,
   resolveConsumerSurface
 } from './_helpers';
@@ -22,12 +27,6 @@ import {
   consumerAuthClientRegistrationsPerHourLimit,
   consumerAuthClientRegistrationsPerMinuteLimit
 } from './_types';
-import {
-  getPortalAllowedRedirectUrlFilters,
-  validatePortalRedirectUrisAgainstAllowedFilters,
-  validateUrlString
-} from '../../lib/oauth';
-import { portalService } from '../portal';
 import { consumerOAuthClientService } from './client';
 
 class ConsumerOAuthRegistrationService {
@@ -92,8 +91,7 @@ class ConsumerOAuthRegistrationService {
           clientSecret,
           tokenEndpointAuthMethod,
           expiresAt: addDays(new Date(), 30)
-        },
-        include: consumerAuthClientInclude
+        }
       });
 
       await consumerOAuthClientService.ensureConsumerAuthClientSurfaceRef({
@@ -103,7 +101,12 @@ class ConsumerOAuthRegistrationService {
         db
       });
 
-      return registration;
+      return await db.consumerAuthClient.findFirstOrThrow({
+        where: {
+          id: registration.id
+        },
+        include: consumerAuthClientInclude
+      });
     });
   }
 

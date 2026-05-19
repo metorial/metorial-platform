@@ -3,8 +3,8 @@ import { Service } from '@lowerdeck/service';
 import { getConfig } from '@metorial/config';
 import { db, Organization, Portal } from '@metorial/db';
 import { resolveMagicMcpTargetByIdOrAlias } from '@metorial/module-magic';
-import { DashboardConsumerSurface } from './_types';
 import { portalService } from '../portal';
+import { DashboardConsumerSurface } from './_types';
 
 class ConsumerOAuthRoutingService {
   async resolvePortalRoute(d: { portalId: string; magicMcpTargetId?: string }) {

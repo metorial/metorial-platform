@@ -1,6 +1,6 @@
 import { preconditionFailedError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import { db, ID, type ConsumerSurface, type TransactionDB } from '@metorial/db';
+import { ID, withTransaction, type ConsumerSurface } from '@metorial/db';
 import { getConsumerClientHash, normalizeConsumerClientRedirectUris } from './_helpers';
 import { ConsumerOAuthClient } from './_types';
 
@@ -9,47 +9,47 @@ class ConsumerOAuthClientService {
     consumerSurface: Pick<ConsumerSurface, 'oid' | 'instanceOid' | 'organizationOid'>;
     name: string;
     redirectUris: string[];
-    db?: TransactionDB;
   }) {
-    let tx = d.db ?? db;
-    let redirectUris = normalizeConsumerClientRedirectUris(d.redirectUris);
-    let hash = await getConsumerClientHash({
-      name: d.name,
-      redirectUris
-    });
+    return await withTransaction(async db => {
+      let redirectUris = normalizeConsumerClientRedirectUris(d.redirectUris);
+      let hash = await getConsumerClientHash({
+        name: d.name,
+        redirectUris
+      });
 
-    let consumerClient = await tx.consumerClient.findFirst({
-      where: {
-        hash,
-        consumerSurfaceOid: d.consumerSurface.oid
-      }
-    });
-
-    if (!consumerClient) {
-      return await tx.consumerClient.create({
-        data: {
-          id: await ID.generateId('consumerClient'),
-          instanceOid: d.consumerSurface.instanceOid,
-          organizationOid: d.consumerSurface.organizationOid,
-          consumerSurfaceOid: d.consumerSurface.oid,
+      let consumerClient = await db.consumerClient.findFirst({
+        where: {
           hash,
-          name: d.name,
-          redirectUris
+          consumerSurfaceOid: d.consumerSurface.oid
         }
       });
-    }
 
-    return await tx.consumerClient.update({
-      where: {
-        oid: consumerClient.oid
-      },
-      data: {
-        name: d.name,
-        redirectUris,
-        instanceOid: d.consumerSurface.instanceOid,
-        organizationOid: d.consumerSurface.organizationOid,
-        consumerSurfaceOid: d.consumerSurface.oid
+      if (!consumerClient) {
+        return await db.consumerClient.create({
+          data: {
+            id: await ID.generateId('consumerClient'),
+            instanceOid: d.consumerSurface.instanceOid,
+            organizationOid: d.consumerSurface.organizationOid,
+            consumerSurfaceOid: d.consumerSurface.oid,
+            hash,
+            name: d.name,
+            redirectUris
+          }
+        });
       }
+
+      return await db.consumerClient.update({
+        where: {
+          oid: consumerClient.oid
+        },
+        data: {
+          name: d.name,
+          redirectUris,
+          instanceOid: d.consumerSurface.instanceOid,
+          organizationOid: d.consumerSurface.organizationOid,
+          consumerSurfaceOid: d.consumerSurface.oid
+        }
+      });
     });
   }
 
@@ -57,27 +57,29 @@ class ConsumerOAuthClientService {
     consumerAuthClient: Pick<ConsumerOAuthClient, 'oid'>;
     consumerSurface: Pick<ConsumerSurface, 'oid'>;
     consumerClient: { oid: bigint };
-    db?: TransactionDB;
   }) {
-    let tx = d.db ?? db;
-
-    return await tx.consumerAuthClientSurface.upsert({
-      where: {
-        consumerSurfaceOid_consumerAuthClientOid: {
-          consumerSurfaceOid: d.consumerSurface.oid,
-          consumerAuthClientOid: d.consumerAuthClient.oid
-        }
+    return withTransaction(
+      async db => {
+        return await db.consumerAuthClientSurface.upsert({
+          where: {
+            consumerSurfaceOid_consumerAuthClientOid: {
+              consumerSurfaceOid: d.consumerSurface.oid,
+              consumerAuthClientOid: d.consumerAuthClient.oid
+            }
+          },
+          create: {
+            id: await ID.generateId('consumerAuthClientSurface'),
+            consumerSurfaceOid: d.consumerSurface.oid,
+            consumerAuthClientOid: d.consumerAuthClient.oid,
+            consumerClientOid: d.consumerClient.oid
+          },
+          update: {
+            consumerClientOid: d.consumerClient.oid
+          }
+        });
       },
-      create: {
-        id: await ID.generateId('consumerAuthClientSurface'),
-        consumerSurfaceOid: d.consumerSurface.oid,
-        consumerAuthClientOid: d.consumerAuthClient.oid,
-        consumerClientOid: d.consumerClient.oid
-      },
-      update: {
-        consumerClientOid: d.consumerClient.oid
-      }
-    });
+      { ifExists: true }
+    );
   }
 
   async linkConsumerAuthClientToConsumerClient(d: {
@@ -123,7 +125,6 @@ class ConsumerOAuthClientService {
       'oid' | 'instanceOid' | 'organizationOid' | 'name' | 'redirectUris'
     >;
     consumerSurface: Pick<ConsumerSurface, 'oid' | 'instanceOid' | 'organizationOid'>;
-    db?: TransactionDB;
   }) {
     if (
       d.consumerAuthClient.instanceOid &&
@@ -147,31 +148,29 @@ class ConsumerOAuthClientService {
       );
     }
 
-    let consumerClient = await this.upsertConsumerClient({
-      consumerSurface: d.consumerSurface,
-      name: d.consumerAuthClient.name,
-      redirectUris: d.consumerAuthClient.redirectUris,
-      db: d.db
-    });
+    return withTransaction(async db => {
+      let consumerClient = await this.upsertConsumerClient({
+        consumerSurface: d.consumerSurface,
+        name: d.consumerAuthClient.name,
+        redirectUris: d.consumerAuthClient.redirectUris
+      });
 
-    await this.ensureConsumerAuthClientSurfaceRef({
-      consumerAuthClient: d.consumerAuthClient,
-      consumerSurface: d.consumerSurface,
-      consumerClient,
-      db: d.db
-    });
+      await this.ensureConsumerAuthClientSurfaceRef({
+        consumerAuthClient: d.consumerAuthClient,
+        consumerSurface: d.consumerSurface,
+        consumerClient
+      });
 
-    let tx = d.db ?? db;
-
-    await tx.consumerAuthClient.updateMany({
-      where: {
-        oid: d.consumerAuthClient.oid,
-        OR: [{ instanceOid: null }, { organizationOid: null }]
-      },
-      data: {
-        instanceOid: d.consumerSurface.instanceOid,
-        organizationOid: d.consumerSurface.organizationOid
-      }
+      await db.consumerAuthClient.updateMany({
+        where: {
+          oid: d.consumerAuthClient.oid,
+          OR: [{ instanceOid: null }, { organizationOid: null }]
+        },
+        data: {
+          instanceOid: d.consumerSurface.instanceOid,
+          organizationOid: d.consumerSurface.organizationOid
+        }
+      });
     });
   }
 }
