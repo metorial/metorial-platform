@@ -27,8 +27,8 @@ import {
 import {
   isConsumerSurfaceEmailWhitelisted,
   normalizeConsumerSurfaceEmail
-} from '../lib/consumerSurfaceEmailWhitelist';
-import { consumerAresService } from './ares';
+} from '../../lib/consumerSurfaceEmailWhitelist';
+import { consumerAresService } from '../consumerAccess/ares';
 import { consumerProfileService } from './consumerProfile';
 
 class ConsumerAuthServiceImpl {

@@ -21,17 +21,14 @@ import {
 } from '@metorial/db';
 import { createLock } from '@metorial/lock';
 import { searchConsumerIds } from '@metorial/module-search';
-import type { EnrichedConsumerSurface } from './consumerSurface';
-import {
-  consumerSurfaceInclude,
-  consumerSurfaceService
-} from './consumerSurface';
-import { consumerInviteUpdatedQueue } from '../queues/lifecycle/consumerInvite';
+import { consumerInviteUpdatedQueue } from '../../queues/lifecycle/consumerInvite';
 import {
   consumerProfileCreatedQueue,
   consumerProfileUpdatedQueue
-} from '../queues/lifecycle/consumerProfile';
+} from '../../queues/lifecycle/consumerProfile';
 import { consumerService } from './consumer';
+import type { EnrichedConsumerSurface } from './consumerSurface';
+import { consumerSurfaceInclude, consumerSurfaceService } from './consumerSurface';
 
 let include = {
   consumer: true,

@@ -3,7 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import {
   consumerAccessRequestService,
-  consumerOAuthService,
+  consumerOAuthDashboardService,
   consumerProfileService,
   ConsumerProviderCatalogEntry,
   ConsumerProviderCatalogItem,
@@ -95,11 +95,13 @@ let portalOAuthClientGroup = consumerGroup.use(async ctx => {
     );
   }
 
-  let portalOAuthClient = await consumerOAuthService.getConsumerAuthClientForConsumer({
-    instance: ctx.instance,
-    consumerSurface: ctx.consumerSurface,
-    portalAuthClientId: ctx.params.portalAuthClientId
-  });
+  let portalOAuthClient = await consumerOAuthDashboardService.getConsumerAuthClientForConsumer(
+    {
+      instance: ctx.instance,
+      consumerSurface: ctx.consumerSurface,
+      portalAuthClientId: ctx.params.portalAuthClientId
+    }
+  );
 
   return { portalOAuthClient };
 });
@@ -115,7 +117,7 @@ let portalOAuthAuthorizationGroup = consumerGroup.use(async ctx => {
   }
 
   let portalOAuthAuthorization =
-    await consumerOAuthService.getConsumerAuthAuthorizationForConsumer({
+    await consumerOAuthDashboardService.getConsumerAuthAuthorizationForConsumer({
       instance: ctx.instance,
       consumerSurface: ctx.consumerSurface,
       consumerProfile: ctx.consumerProfile,
@@ -207,7 +209,7 @@ export let consumerProviderController = Controller.create(
       .output(portalOAuthAuthorizationPresenter)
       .do(async ctx => {
         let portalOAuthAuthorization =
-          await consumerOAuthService.acceptConsumerAuthAuthorization({
+          await consumerOAuthDashboardService.acceptConsumerAuthAuthorization({
             portalOAuthAuthorization: ctx.portalOAuthAuthorization,
             consumerProfile: ctx.consumerProfile
           });
@@ -239,13 +241,15 @@ export let consumerProviderController = Controller.create(
       .output(portalOAuthAuthorizationPresenter)
       .do(async ctx => {
         let portalOAuthAuthorization =
-          await consumerOAuthService.connectConsumerAuthAuthorizationToMagicMcpEndpoint({
-            portalOAuthAuthorization: ctx.portalOAuthAuthorization,
-            instance: ctx.instance,
-            accessTags: ctx.accessTags,
-            consumerProfile: ctx.consumerProfile,
-            magicMcpEndpointId: ctx.body.magic_mcp_endpoint_id
-          });
+          await consumerOAuthDashboardService.connectConsumerAuthAuthorizationToMagicMcpEndpoint(
+            {
+              portalOAuthAuthorization: ctx.portalOAuthAuthorization,
+              instance: ctx.instance,
+              accessTags: ctx.accessTags,
+              consumerProfile: ctx.consumerProfile,
+              magicMcpEndpointId: ctx.body.magic_mcp_endpoint_id
+            }
+          );
 
         return portalOAuthAuthorizationPresenter.present({
           portalOAuthAuthorization
@@ -268,7 +272,7 @@ export let consumerProviderController = Controller.create(
       .output(portalOAuthAuthorizationPresenter)
       .do(async ctx => {
         let portalOAuthAuthorization =
-          await consumerOAuthService.rejectConsumerAuthAuthorization({
+          await consumerOAuthDashboardService.rejectConsumerAuthAuthorization({
             portalOAuthAuthorization: ctx.portalOAuthAuthorization,
             consumerProfile: ctx.consumerProfile
           });

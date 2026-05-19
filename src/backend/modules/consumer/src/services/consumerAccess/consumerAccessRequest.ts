@@ -21,11 +21,11 @@ import {
   withTransaction
 } from '@metorial/db';
 import { searchConsumerAccessRequestIds, searchConsumerIds } from '@metorial/module-search';
-import { isPreconfiguredMagicMcpServer } from '../lib/magicMcpServerSource';
+import { isPreconfiguredMagicMcpServer } from '../../lib/magicMcpServerSource';
 import {
   consumerAccessRequestCreatedQueue,
   consumerAccessRequestUpdatedQueue
-} from '../queues/lifecycle/consumerAccessRequest';
+} from '../../queues/lifecycle/consumerAccessRequest';
 
 let include = {
   surface: true,

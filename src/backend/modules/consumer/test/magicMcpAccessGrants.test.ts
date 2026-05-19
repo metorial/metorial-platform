@@ -20,12 +20,12 @@ vi.mock('../src/services/consumerIntegration', () => ({
   }
 }));
 
-import { consumerAccessPolicyService } from '../src/services/accessPolicy';
-import { consumerAccessService } from '../src/services/consumerAccess';
-import { consumerIntegrationService } from '../src/services/consumerIntegration';
 import { grantConsumerOwnedMagicMcpEndpointAccess } from '../src/lib/magicMcpEndpointAccess';
 import { grantConsumerOwnedMagicMcpServerAccess } from '../src/lib/magicMcpServerAccess';
 import { grantConsumerOwnedMagicMcpTokenAccess } from '../src/lib/magicMcpTokenAccess';
+import { consumerAccessPolicyService } from '../src/services/consumerAccess/accessPolicy';
+import { consumerAccessService } from '../src/services/consumerAccess/consumerAccess';
+import { consumerIntegrationService } from '../src/services/consumerEntities/consumerIntegration';
 
 describe('magic MCP consumer-owned grants', () => {
   beforeEach(() => {
@@ -73,9 +73,7 @@ describe('magic MCP consumer-owned grants', () => {
       }
     });
 
-    expect(
-      consumerIntegrationService.upsertConsumerIntegrationEndpoint
-    ).toHaveBeenCalledWith({
+    expect(consumerIntegrationService.upsertConsumerIntegrationEndpoint).toHaveBeenCalledWith({
       consumerProfile: expect.objectContaining({
         oid: 31n
       }),

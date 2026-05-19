@@ -13,8 +13,8 @@ import { magicMcpServerService } from '@metorial/module-magic';
 import {
   loadTemplateContextForDeployment,
   type ConsumerProviderTemplateContext
-} from '../lib/consumerProviderContext';
-import { consumerAccessPolicyService } from './accessPolicy';
+} from '../../lib/consumerProviderContext';
+import { consumerAccessPolicyService } from '../consumerAccess/accessPolicy';
 import { consumerProviderSetupSessionService } from './consumerProviderSetupSession';
 
 type ConsumerProviderDeployRollbackState = {

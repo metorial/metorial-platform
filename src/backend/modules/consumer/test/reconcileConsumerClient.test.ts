@@ -23,13 +23,14 @@ vi.mock('@metorial/db', () => ({
   db: {
     consumerAuthClient: {
       findMany: vi.fn(),
-      findUnique: vi.fn()
+      findUnique: vi.fn(),
+      findUniqueOrThrow: vi.fn()
     }
   }
 }));
 
 vi.mock('../src/services/consumerOAuth', () => ({
-  consumerOAuthService: {
+  consumerOAuthClientService: {
     linkConsumerAuthClientToConsumerClient: vi.fn()
   }
 }));
@@ -40,7 +41,7 @@ import {
   reconcileConsumerClientManyQueueProcessor,
   reconcileConsumerClientSingleQueueProcessor
 } from '../src/queues/reconcileConsumerClient';
-import { consumerOAuthService } from '../src/services/consumerOAuth';
+import { consumerOAuthClientService } from '../src/services/consumerOAuth';
 
 describe('reconcileConsumerClient', () => {
   beforeEach(() => {
@@ -71,15 +72,23 @@ describe('reconcileConsumerClient', () => {
       name: 'CLI',
       redirectUris: ['https://example.com/callback']
     } as any);
+    vi.mocked(db.consumerAuthClient.findUniqueOrThrow).mockResolvedValue({
+      oid: 10n,
+      consumerAuthClientConsumerSurfaces: [],
+      name: 'CLI',
+      redirectUris: ['https://example.com/callback']
+    } as any);
 
     await (reconcileConsumerClientSingleQueueProcessor as any).handler({
       consumerAuthClientId: 'client-1'
     });
 
-    expect(consumerOAuthService.linkConsumerAuthClientToConsumerClient).toHaveBeenCalledWith({
+    expect(
+      consumerOAuthClientService.linkConsumerAuthClientToConsumerClient
+    ).toHaveBeenCalledWith({
       consumerAuthClient: {
         oid: 10n,
-        consumerSurfaceOid: 11n,
+        consumerAuthClientConsumerSurfaces: [],
         name: 'CLI',
         redirectUris: ['https://example.com/callback']
       }

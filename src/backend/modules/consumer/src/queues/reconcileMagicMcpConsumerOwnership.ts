@@ -1,7 +1,7 @@
 import { createCron } from '@metorial/cron';
 import { MagicMcpEndpoint, MagicMcpSession, db } from '@metorial/db';
 import { combineQueueProcessors, createQueue } from '@metorial/queue';
-import { consumerIntegrationService } from '../services/consumerIntegration';
+import { consumerIntegrationService } from '../services/consumerEntities/consumerIntegration';
 
 let BATCH_SIZE = 100;
 let magicMcpConsumerOwnershipResourceTypes = [

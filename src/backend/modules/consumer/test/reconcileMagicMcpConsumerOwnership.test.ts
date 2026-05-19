@@ -66,7 +66,7 @@ vi.mock('../src/services/consumerIntegration', () => ({
 
 import { db } from '@metorial/db';
 import { reconcileMagicMcpConsumerOwnershipSingleQueueProcessor } from '../src/queues/reconcileMagicMcpConsumerOwnership';
-import { consumerIntegrationService } from '../src/services/consumerIntegration';
+import { consumerIntegrationService } from '../src/services/consumerEntities/consumerIntegration';
 
 describe('reconcileMagicMcpConsumerOwnership', () => {
   beforeEach(() => {

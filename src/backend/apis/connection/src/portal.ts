@@ -4,7 +4,10 @@ import { AuthInfo } from '@metorial/module-access';
 import {
   consumerAuthAccessTokenTtlSeconds,
   consumerAuthRefreshTokenTtlSeconds,
-  consumerOAuthService
+  consumerOAuthAuthorizationService,
+  consumerOAuthRegistrationService,
+  consumerOAuthRoutingService,
+  consumerOAuthTokenService
 } from '@metorial/module-consumer';
 import { Authenticator } from '@metorial/rest';
 import { getMagicMcpTokenSecretFromRequest, handleMagicMcpRequest } from './magic';
@@ -138,7 +141,7 @@ export let createPortalHandler = (d: {
 } => {
   return createPortalOAuthServers({
     resolveRoute: async ({ portalId, magicMcpTargetId }) => {
-      return await consumerOAuthService.resolvePortalRoute({
+      return await consumerOAuthRoutingService.resolvePortalRoute({
         portalId,
         magicMcpTargetId
       });
@@ -211,7 +214,7 @@ export let createPortalHandler = (d: {
         })
       );
 
-      let registration = await consumerOAuthService.registerConsumerAuthClient({
+      let registration = await consumerOAuthRegistrationService.registerConsumerAuthClient({
         portal: portal ?? undefined,
         consumerSurface: consumerSurface ?? undefined,
         magicMcpTarget,
@@ -228,19 +231,20 @@ export let createPortalHandler = (d: {
 
     authorize: async ({ route }, c) => {
       let { portal, consumerSurface, magicMcpTarget } = route;
-      let authorization = await consumerOAuthService.createConsumerAuthAuthorization({
-        portal: portal ?? undefined,
-        consumerSurface: consumerSurface ?? undefined,
-        magicMcpTarget,
-        input: {
-          responseType: getString(c.req.query('response_type')),
-          clientId: getString(c.req.query('client_id')),
-          redirectUri: getString(c.req.query('redirect_uri')),
-          codeChallenge: getString(c.req.query('code_challenge')),
-          codeChallengeMethod: getString(c.req.query('code_challenge_method')),
-          state: getString(c.req.query('state'))
-        }
-      });
+      let authorization =
+        await consumerOAuthAuthorizationService.createConsumerAuthAuthorization({
+          portal: portal ?? undefined,
+          consumerSurface: consumerSurface ?? undefined,
+          magicMcpTarget,
+          input: {
+            responseType: getString(c.req.query('response_type')),
+            clientId: getString(c.req.query('client_id')),
+            redirectUri: getString(c.req.query('redirect_uri')),
+            codeChallenge: getString(c.req.query('code_challenge')),
+            codeChallengeMethod: getString(c.req.query('code_challenge_method')),
+            state: getString(c.req.query('state'))
+          }
+        });
 
       return c.redirect(authorization.redirectUrl, 302);
     },
@@ -250,7 +254,7 @@ export let createPortalHandler = (d: {
 
       let body = await parseOAuthBody(c);
       let credentials = getClientCredentials(c, body);
-      let tokens = await consumerOAuthService.exchangeConsumerAuthToken({
+      let tokens = await consumerOAuthTokenService.exchangeConsumerAuthToken({
         portal: portal ?? undefined,
         consumerSurface: consumerSurface ?? undefined,
         magicMcpTarget,
@@ -276,7 +280,7 @@ export let createPortalHandler = (d: {
 
     registration: async ({ route, registrationId }, c) => {
       let { portal, consumerSurface, magicMcpTarget, base } = route;
-      let registration = await consumerOAuthService.getConsumerAuthRegistration({
+      let registration = await consumerOAuthRegistrationService.getConsumerAuthRegistration({
         portal: portal ?? undefined,
         consumerSurface: consumerSurface ?? undefined,
         magicMcpTarget,
@@ -306,7 +310,7 @@ export let createPluginHandler = (d: {
 } => {
   return createPluginOAuthServers({
     resolveRoute: async ({ skillPluginId }) => {
-      return await consumerOAuthService.resolveSkillPluginRoute({ skillPluginId });
+      return await consumerOAuthRoutingService.resolveSkillPluginRoute({ skillPluginId });
     },
 
     metadata: async ({ route }, c) => {
@@ -374,15 +378,16 @@ export let createPluginHandler = (d: {
         })
       );
 
-      let registration = await consumerOAuthService.registerSkillPluginConsumerAuthClient({
-        skillPlugin,
-        input: {
-          clientName: input.client_name,
-          redirectUris: input.redirect_uris,
-          registrationIp: ip,
-          tokenEndpointAuthMethod: input.token_endpoint_auth_method
-        }
-      });
+      let registration =
+        await consumerOAuthRegistrationService.registerSkillPluginConsumerAuthClient({
+          skillPlugin,
+          input: {
+            clientName: input.client_name,
+            redirectUris: input.redirect_uris,
+            registrationIp: ip,
+            tokenEndpointAuthMethod: input.token_endpoint_auth_method
+          }
+        });
 
       return c.json(buildOAuthClientRegistration({ registration, base }));
     },
@@ -391,7 +396,7 @@ export let createPluginHandler = (d: {
       let { skillPlugin } = route;
       let portalId = getString(c.req.query('portal_id'));
       let authorization =
-        await consumerOAuthService.createSkillPluginConsumerAuthAuthorization({
+        await consumerOAuthAuthorizationService.createSkillPluginConsumerAuthAuthorization({
           skillPlugin,
           portalId,
           input: {
@@ -439,7 +444,7 @@ export let createPluginHandler = (d: {
 
       let body = await parseOAuthBody(c);
       let credentials = getClientCredentials(c, body);
-      let tokens = await consumerOAuthService.exchangeSkillPluginConsumerAuthToken({
+      let tokens = await consumerOAuthTokenService.exchangeSkillPluginConsumerAuthToken({
         skillPlugin,
         input: {
           clientId: credentials.clientId,
@@ -463,10 +468,11 @@ export let createPluginHandler = (d: {
 
     registration: async ({ route, registrationId }, c) => {
       let { skillPlugin, base } = route;
-      let registration = await consumerOAuthService.getSkillPluginConsumerAuthRegistration({
-        skillPlugin,
-        registrationId
-      });
+      let registration =
+        await consumerOAuthRegistrationService.getSkillPluginConsumerAuthRegistration({
+          skillPlugin,
+          registrationId
+        });
 
       if (!registration) {
         return c.json(

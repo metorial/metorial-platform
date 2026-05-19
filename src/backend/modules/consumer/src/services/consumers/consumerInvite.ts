@@ -6,7 +6,7 @@ import { searchConsumerIds } from '@metorial/module-search';
 import {
   consumerInviteCreatedQueue,
   consumerInviteUpdatedQueue
-} from '../queues/lifecycle/consumerInvite';
+} from '../../queues/lifecycle/consumerInvite';
 import { consumerProfileService } from './consumerProfile';
 
 let include = {

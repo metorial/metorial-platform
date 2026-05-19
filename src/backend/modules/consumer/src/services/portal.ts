@@ -18,7 +18,7 @@ import {
   type ConsumerSurfaceSkillConfigurationInput,
   type ConsumerSurfaceWithPublishableApiKey,
   type EnrichedConsumerSurface
-} from './consumerSurface';
+} from './consumers/consumerSurface';
 
 let include = {
   surface: {

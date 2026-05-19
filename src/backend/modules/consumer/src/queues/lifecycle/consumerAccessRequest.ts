@@ -1,6 +1,6 @@
 import { db } from '@metorial/db';
 import { createQueue } from '@metorial/queue';
-import { consumerAccessService } from '../../services/consumerAccess';
+import { consumerAccessService } from '../../services/consumerAccess/consumerAccess';
 import { sendApprovedConsumerAccessRequestEmailQueue } from '../accessRequest/sendApprovedConsumerAccessRequestEmail';
 import { sendRejectedConsumerAccessRequestEmailQueue } from '../accessRequest/sendRejectedConsumerAccessRequestEmail';
 import { indexConsumerAccessRequestSearchQueue } from '../search/consumerAccessRequest';

@@ -18,7 +18,7 @@ import {
   SkillTemplate,
   withTransaction
 } from '@metorial/db';
-import { isPreconfiguredMagicMcpServer } from '../lib/magicMcpServerSource';
+import { isPreconfiguredMagicMcpServer } from '../../lib/magicMcpServerSource';
 import { consumerAccessPolicyService } from './accessPolicy';
 
 let include = {

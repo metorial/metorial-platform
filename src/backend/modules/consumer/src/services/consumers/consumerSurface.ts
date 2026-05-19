@@ -18,14 +18,14 @@ import {
 } from '@metorial/module-file';
 import { apiKeyService } from '@metorial/module-machine-access';
 import { organizationActorService } from '@metorial/module-organization';
-import { normalizeConsumerSurfaceEmailWhitelist } from '../lib/consumerSurfaceEmailWhitelist';
+import { normalizeConsumerSurfaceEmailWhitelist } from '../../lib/consumerSurfaceEmailWhitelist';
 import {
   consumerSurfaceArchivedQueue,
   consumerSurfaceCreatedQueue,
   consumerSurfaceDeletedQueue,
   consumerSurfaceUpdatedQueue
-} from '../queues/lifecycle/consumerSurface';
-import { consumerAresService } from './ares';
+} from '../../queues/lifecycle/consumerSurface';
+import { consumerAresService } from '../consumerAccess/ares';
 
 export let consumerSurfaceInclude = {
   consumerAuthTenant: true,

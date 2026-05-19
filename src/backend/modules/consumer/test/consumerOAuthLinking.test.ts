@@ -26,6 +26,11 @@ vi.mock('@metorial/config', () => ({
 vi.mock('@metorial/db', () => {
   let db = {
     consumerClient: {
+      findFirst: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn()
+    },
+    consumerAuthClientConsumerSurface: {
       upsert: vi.fn()
     },
     consumerAuthClient: {
@@ -47,13 +52,13 @@ vi.mock('@metorial/db', () => {
   };
 });
 
-vi.mock('../src/services/consumerIntegration', () => ({
+vi.mock('../src/services/consumerEntities/consumerIntegration', () => ({
   consumerIntegrationService: {
     linkConsumerAuthAttemptToConsumerIntegrationEndpoint: vi.fn()
   }
 }));
 
-vi.mock('../src/services/consumerProfile', () => ({
+vi.mock('../src/services/consumers/consumerProfile', () => ({
   consumerProfileService: {
     getGroupsForProfile: vi.fn()
   }
@@ -72,6 +77,13 @@ vi.mock('@metorial/module-magic', () => ({
     rotateMagicMcpTokenSecret: vi.fn()
   },
   resolveMagicMcpTargetByIdOrAlias: vi.fn()
+}));
+
+vi.mock('@metorial/module-file', () => ({
+  skillPluginService: {
+    getSkillPluginById: vi.fn(),
+    getSkillPluginProviders: vi.fn()
+  }
 }));
 
 vi.mock('../src/lib/oauth', () => ({
@@ -95,14 +107,19 @@ vi.mock('../src/services/portal', () => ({
 import { Hash } from '@lowerdeck/hash';
 import { db } from '@metorial/db';
 import { magicMcpEndpointService } from '@metorial/module-magic';
-import { consumerIntegrationService } from '../src/services/consumerIntegration';
-import { consumerOAuthService } from '../src/services/consumerOAuth';
+import { consumerIntegrationService } from '../src/services/consumerEntities/consumerIntegration';
+import {
+  consumerOAuthClientService,
+  consumerOAuthDashboardService,
+  consumerOAuthRegistrationService
+} from '../src/services/consumerOAuth';
 
-describe('consumerOAuthService integration endpoint linking', () => {
+describe('consumer OAuth integration endpoint linking', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(db.consumerAuthClient.count).mockResolvedValue(0 as any);
-    vi.mocked(db.consumerClient.upsert).mockResolvedValue({
+    vi.mocked(db.consumerClient.findFirst).mockResolvedValue(null as any);
+    vi.mocked(db.consumerClient.create).mockResolvedValue({
       oid: 99n
     } as any);
   });
@@ -112,9 +129,11 @@ describe('consumerOAuthService integration endpoint linking', () => {
       oid: 10n
     } as any);
 
-    await consumerOAuthService.registerConsumerAuthClient({
+    await consumerOAuthRegistrationService.registerConsumerAuthClient({
       consumerSurface: {
-        oid: 50n
+        oid: 50n,
+        instanceOid: 1n,
+        organizationOid: 2n
       } as any,
       magicMcpTarget: {
         type: 'endpoint',
@@ -132,21 +151,12 @@ describe('consumerOAuthService integration endpoint linking', () => {
     expect(Hash.sha256).toHaveBeenCalledWith(
       JSON.stringify(['CLI', ['https://example.com/callback']])
     );
-    expect(db.consumerClient.upsert).toHaveBeenCalledWith({
-      where: {
-        consumerSurfaceOid_hash: {
-          consumerSurfaceOid: 50n,
-          hash: `hash:${JSON.stringify(['CLI', ['https://example.com/callback']])}`
-        }
-      },
-      create: {
+    expect(db.consumerClient.create).toHaveBeenCalledWith({
+      data: {
         id: 'consumerClient-id',
-        consumerSurfaceOid: 50n,
+        instanceOid: 1n,
+        organizationOid: 2n,
         hash: `hash:${JSON.stringify(['CLI', ['https://example.com/callback']])}`,
-        name: 'CLI',
-        redirectUris: ['https://example.com/callback']
-      },
-      update: {
         name: 'CLI',
         redirectUris: ['https://example.com/callback']
       }
@@ -154,34 +164,49 @@ describe('consumerOAuthService integration endpoint linking', () => {
     expect(db.consumerAuthClient.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
-          consumerClientOid: 99n,
           redirectUris: ['https://example.com/callback']
+        })
+      })
+    );
+    expect(db.consumerAuthClientConsumerSurface.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({
+          consumerSurfaceOid: 50n,
+          consumerClientOid: 99n
         })
       })
     );
   });
 
   it('links an existing auth client to its consumer client', async () => {
-    await consumerOAuthService.linkConsumerAuthClientToConsumerClient({
+    await consumerOAuthClientService.linkConsumerAuthClientToConsumerClient({
       consumerAuthClient: {
         oid: 10n,
-        consumerSurfaceOid: 50n,
         name: 'CLI',
-        redirectUris: ['https://z.example/callback', 'https://a.example/callback']
+        redirectUris: ['https://z.example/callback', 'https://a.example/callback'],
+        consumerAuthClientConsumerSurfaces: [
+          {
+            consumerSurface: {
+              oid: 50n,
+              instanceOid: 1n,
+              organizationOid: 2n
+            }
+          }
+        ]
       } as any
     });
 
     expect(Hash.sha256).toHaveBeenCalledWith(
       JSON.stringify(['CLI', ['https://a.example/callback', 'https://z.example/callback']])
     );
-    expect(db.consumerAuthClient.updateMany).toHaveBeenCalledWith({
-      where: {
-        oid: 10n
-      },
-      data: {
-        consumerClientOid: 99n
-      }
-    });
+    expect(db.consumerAuthClientConsumerSurface.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({
+          consumerSurfaceOid: 50n,
+          consumerClientOid: 99n
+        })
+      })
+    );
   });
 
   it('links a pending authorization when connecting to an owned endpoint', async () => {
@@ -198,10 +223,13 @@ describe('consumerOAuthService integration endpoint linking', () => {
       }
     } as any);
 
-    await consumerOAuthService.connectConsumerAuthAuthorizationToMagicMcpEndpoint({
+    await consumerOAuthDashboardService.connectConsumerAuthAuthorizationToMagicMcpEndpoint({
       portalOAuthAuthorization: {
         id: 'attempt-1',
-        status: 'pending'
+        status: 'pending',
+        consumerAuthClient: {
+          skillPlugin: null
+        }
       } as any,
       instance: {
         oid: 1n
@@ -252,7 +280,7 @@ describe('consumerOAuthService integration endpoint linking', () => {
       magicMcpEndpoint: null
     } as any);
 
-    await consumerOAuthService.acceptConsumerAuthAuthorization({
+    await consumerOAuthDashboardService.acceptConsumerAuthAuthorization({
       portalOAuthAuthorization: {
         id: 'attempt-2',
         status: 'pending',

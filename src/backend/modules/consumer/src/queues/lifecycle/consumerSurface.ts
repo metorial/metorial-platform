@@ -1,6 +1,6 @@
 import { db, withTransaction } from '@metorial/db';
 import { createQueue } from '@metorial/queue';
-import { consumerAresService } from '../../services/ares';
+import { consumerAresService } from '../../services/consumerAccess/ares';
 
 let disconnectConsumerSurfaceAres = async (d: {
   consumerSurface: {

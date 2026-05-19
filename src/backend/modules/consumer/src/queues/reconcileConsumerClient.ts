@@ -1,7 +1,7 @@
 import { createCron } from '@metorial/cron';
 import { db, ID } from '@metorial/db';
 import { combineQueueProcessors, createQueue } from '@metorial/queue';
-import { consumerOAuthService } from '../services/consumerOAuth';
+import { consumerOAuthClientService } from '../services/consumerOAuth';
 
 let BATCH_SIZE = 100;
 
@@ -113,7 +113,7 @@ export let reconcileConsumerClientSingleQueueProcessor =
     ) {
       let consumerClient =
         consumerAuthClient.legacyDoNotUseConsumerClient ??
-        (await consumerOAuthService.upsertConsumerClient({
+        (await consumerOAuthClientService.upsertConsumerClient({
           consumerSurface: consumerAuthClient.legacyDoNotUseConsumerSurface,
           name: consumerAuthClient.name,
           redirectUris: consumerAuthClient.redirectUris
@@ -138,7 +138,7 @@ export let reconcileConsumerClientSingleQueueProcessor =
       });
     }
 
-    await consumerOAuthService.linkConsumerAuthClientToConsumerClient({
+    await consumerOAuthClientService.linkConsumerAuthClientToConsumerClient({
       consumerAuthClient: await db.consumerAuthClient.findUniqueOrThrow({
         where: {
           oid: consumerAuthClient.oid

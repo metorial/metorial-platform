@@ -7,7 +7,7 @@ import {
   consumerGroupArchivedQueue,
   consumerGroupCreatedQueue,
   consumerGroupUpdatedQueue
-} from '../queues/lifecycle/consumerGroup';
+} from '../../queues/lifecycle/consumerGroup';
 
 class ConsumerGroupServiceImpl {
   async createConsumerGroup(d: {

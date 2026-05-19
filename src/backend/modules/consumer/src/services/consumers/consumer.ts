@@ -16,7 +16,7 @@ import {
 } from '@metorial/db';
 import { createLock } from '@metorial/lock';
 import { searchConsumerIds } from '@metorial/module-search';
-import { consumerCreatedQueue, consumerUpdatedQueue } from '../queues/lifecycle/consumer';
+import { consumerCreatedQueue, consumerUpdatedQueue } from '../../queues/lifecycle/consumer';
 
 type ConsumerWithRelations = Consumer & {
   organizationMember: OrganizationMember | null;

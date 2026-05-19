@@ -20,8 +20,8 @@ import {
   withTransaction
 } from '@metorial/db';
 import { subspaceSkillService, subspaceSkillTemplateService } from '@metorial/module-subspace';
-import { consumerAccessPolicyService } from './accessPolicy';
-import { consumerAccessService } from './consumerAccess';
+import { consumerAccessPolicyService } from '../consumerAccess/accessPolicy';
+import { consumerAccessService } from '../consumerAccess/consumerAccess';
 
 let consumerSkillInclude = {
   skill: true

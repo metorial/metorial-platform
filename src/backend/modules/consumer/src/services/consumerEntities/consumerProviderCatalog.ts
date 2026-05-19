@@ -31,7 +31,7 @@ import {
   type ConsumerProviderAuthMethodList,
   type ConsumerProviderConfigSchema,
   type ConsumerProviderDeployment
-} from '../lib/consumerProviderContext';
+} from '../../lib/consumerProviderContext';
 
 export type ConsumerProviderAvailability = 'available_now' | 'request_access';
 
@@ -689,13 +689,13 @@ class ConsumerProviderCatalogServiceImpl {
 
     let backings = await subspaceMagicMcpBackingService.getManyProviderTemplates({
       instance: d.instance,
-      providerTemplateBackingIds: providerTemplates.map(providerTemplate => providerTemplate.id)
+      providerTemplateBackingIds: providerTemplates.map(
+        providerTemplate => providerTemplate.id
+      )
     });
     let backingMap = new Map(backings.map(backing => [backing.id, backing]));
-    let primaryProviderEntries: [
-      string,
-      (typeof backings)[number]['providers'][number]
-    ][] = [];
+    let primaryProviderEntries: [string, (typeof backings)[number]['providers'][number]][] =
+      [];
     for (let backing of backings) {
       let provider = backing.providers[0];
       if (provider) {

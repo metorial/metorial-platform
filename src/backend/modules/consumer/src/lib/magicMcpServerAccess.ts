@@ -5,8 +5,8 @@ import {
   MagicMcpServer,
   Organization
 } from '@metorial/db';
-import { consumerAccessService } from '../services/consumerAccess';
-import { consumerIntegrationService } from '../services/consumerIntegration';
+import { consumerAccessService } from '../services/consumerAccess/consumerAccess';
+import { consumerIntegrationService } from '../services/consumerEntities/consumerIntegration';
 
 export let grantConsumerOwnedMagicMcpServerAccess = async (d: {
   organization: Organization;
