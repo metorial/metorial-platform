@@ -107,33 +107,31 @@ export let dashboardIntegrationSetupSessionPresenter = Presenter.create(
     };
   })
   .schema(
-    v.intersection([
-      v1IntegrationSetupSessionPresenter.schema,
-      v.object({
-        integration_instance_id: v.string(),
-        steps: v.array(
-          v.object({
-            object: v.literal('integration.setup_session.step'),
-            id: v.string(),
-            status: v.enumOf([
-              'configured',
-              'pending',
-              'failed',
-              'completed',
-              'expired',
-              'archived',
-              'deleted'
-            ]),
-            url: v.string(),
-            integration_provider_id: v.string(),
-            provider: v1ProviderPreview.schema,
-            provider_setup_session_id: v.nullable(v.string()),
-            integration_instance_provider_id: v.nullable(v.string()),
-            created_at: v.date(),
-            updated_at: v.date()
-          })
-        )
-      })
-    ])
+    v.object({
+      ...v1IntegrationSetupSessionPresenter.schema.properties,
+      integration_instance_id: v.string(),
+      steps: v.array(
+        v.object({
+          object: v.literal('integration.setup_session.step'),
+          id: v.string(),
+          status: v.enumOf([
+            'configured',
+            'pending',
+            'failed',
+            'completed',
+            'expired',
+            'archived',
+            'deleted'
+          ]),
+          url: v.string(),
+          integration_provider_id: v.string(),
+          provider: v1ProviderPreview.schema,
+          provider_setup_session_id: v.nullable(v.string()),
+          integration_instance_provider_id: v.nullable(v.string()),
+          created_at: v.date(),
+          updated_at: v.date()
+        })
+      )
+    }) as any
   )
   .build();

@@ -129,11 +129,9 @@ export let dashboardIntegrationPresenter = Presenter.create(integrationType)
     };
   })
   .schema(
-    v.intersection([
-      v1IntegrationPresenter.schema,
-      v.object({
-        providers: v.array(dashboardIntegrationProviderPresenter.schema)
-      })
-    ])
+    v.object({
+      ...v1IntegrationPresenter.schema.properties,
+      providers: v.array(dashboardIntegrationProviderPresenter.schema)
+    }) as any
   )
   .build();

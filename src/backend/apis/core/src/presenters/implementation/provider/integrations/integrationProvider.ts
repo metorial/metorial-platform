@@ -94,15 +94,13 @@ export let dashboardIntegrationProviderSnapshot = Object.assign(
     };
   },
   {
-    schema: v.intersection([
-      v1IntegrationProviderSnapshot.schema,
-      v.object({
-        provider: v1ProviderPreview.schema,
-        deployment: v1ProviderDeploymentPreviewPresenter.schema,
-        auth_method: v.nullable(v1ProviderAuthMethodPresenter.schema),
-        auth_credentials: v.nullable(v1ProviderAuthCredentialsPresenter.schema)
-      })
-    ])
+    schema: v.object({
+      ...v1IntegrationProviderSnapshot.schema.properties,
+      provider: v1ProviderPreview.schema,
+      deployment: v1ProviderDeploymentPreviewPresenter.schema,
+      auth_method: v.nullable(v1ProviderAuthMethodPresenter.schema),
+      auth_credentials: v.nullable(v1ProviderAuthCredentialsPresenter.schema)
+    }) as any
   }
 );
 
@@ -176,22 +174,20 @@ export let dashboardIntegrationProviderPresenter = Presenter.create(integrationP
     };
   })
   .schema(
-    v.intersection([
-      v1IntegrationProviderPresenter.schema,
-      v.object({
-        object: v.literal('integration.provider'),
-        id: v.string(),
-        status: v.enumOf(['active', 'archived', 'deleted']),
-        integration_id: v.string(),
-        name: v.string(),
-        description: v.nullable(v.string()),
-        metadata: v.nullable(v.record(v.any())),
-        tool_filter: v.nullable(toolFilterPresenter.schema),
-        provider: v1ProviderPreview.schema,
-        deployment: v1ProviderDeploymentPreviewPresenter.schema,
-        auth_method: v.nullable(v1ProviderAuthMethodPresenter.schema),
-        auth_credentials: v.nullable(v1ProviderAuthCredentialsPresenter.schema)
-      })
-    ])
+    v.object({
+      ...v1IntegrationProviderPresenter.schema.properties,
+      object: v.literal('integration.provider'),
+      id: v.string(),
+      status: v.enumOf(['active', 'archived', 'deleted']),
+      integration_id: v.string(),
+      name: v.string(),
+      description: v.nullable(v.string()),
+      metadata: v.nullable(v.record(v.any())),
+      tool_filter: v.nullable(toolFilterPresenter.schema),
+      provider: v1ProviderPreview.schema,
+      deployment: v1ProviderDeploymentPreviewPresenter.schema,
+      auth_method: v.nullable(v1ProviderAuthMethodPresenter.schema),
+      auth_credentials: v.nullable(v1ProviderAuthCredentialsPresenter.schema)
+    }) as any
   )
   .build();

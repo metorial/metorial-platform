@@ -70,11 +70,9 @@ export let dashboardIntegrationInstanceGroupPresenter = Presenter.create(
     };
   })
   .schema(
-    v.intersection([
-      v1IntegrationInstanceGroupPresenter.schema,
-      v.object({
-        providers: v.array(v1IntegrationInstanceGroupProviderPresenter.schema)
-      })
-    ])
+    v.object({
+      ...v1IntegrationInstanceGroupPresenter.schema.properties,
+      providers: v.array(v1IntegrationInstanceGroupProviderPresenter.schema)
+    }) as any
   )
   .build();

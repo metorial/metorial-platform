@@ -92,13 +92,11 @@ export let dashboardIntegrationInstanceGroupProviderPresenter = Presenter.create
     };
   })
   .schema(
-    v.intersection([
-      v1IntegrationInstanceGroupProviderPresenter.schema,
-      v.object({
-        provider: v1ProviderPreview.schema,
-        integration_provider: v.nullable(v1IntegrationProviderSnapshot.schema),
-        integration_instance_provider: v1IntegrationInstanceProviderPresenter.schema
-      })
-    ])
+    v.object({
+      ...v1IntegrationInstanceGroupProviderPresenter.schema.properties,
+      provider: v1ProviderPreview.schema,
+      integration_provider: v.nullable(v1IntegrationProviderSnapshot.schema),
+      integration_instance_provider: v1IntegrationInstanceProviderPresenter.schema
+    }) as any
   )
   .build();

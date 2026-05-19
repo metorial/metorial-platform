@@ -77,11 +77,9 @@ export let dashboardIntegrationInstancePresenter = Presenter.create(integrationI
     };
   })
   .schema(
-    v.intersection([
-      v1IntegrationInstancePresenter.schema,
-      v.object({
-        providers: v.array(dashboardIntegrationInstanceProviderPresenter.schema)
-      })
-    ])
+    v.object({
+      ...v1IntegrationInstancePresenter.schema.properties,
+      providers: v.array(dashboardIntegrationInstanceProviderPresenter.schema)
+    }) as any
   )
   .build();
