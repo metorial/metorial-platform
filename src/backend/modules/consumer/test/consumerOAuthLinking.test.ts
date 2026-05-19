@@ -30,7 +30,7 @@ vi.mock('@metorial/db', () => {
       create: vi.fn(),
       update: vi.fn()
     },
-    consumerAuthClientConsumerSurface: {
+    consumerAuthClientSurface: {
       upsert: vi.fn()
     },
     consumerAuthClient: {
@@ -156,6 +156,7 @@ describe('consumer OAuth integration endpoint linking', () => {
         id: 'consumerClient-id',
         instanceOid: 1n,
         organizationOid: 2n,
+        consumerSurfaceOid: 50n,
         hash: `hash:${JSON.stringify(['CLI', ['https://example.com/callback']])}`,
         name: 'CLI',
         redirectUris: ['https://example.com/callback']
@@ -168,7 +169,7 @@ describe('consumer OAuth integration endpoint linking', () => {
         })
       })
     );
-    expect(db.consumerAuthClientConsumerSurface.upsert).toHaveBeenCalledWith(
+    expect(db.consumerAuthClientSurface.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
         create: expect.objectContaining({
           consumerSurfaceOid: 50n,
@@ -184,7 +185,7 @@ describe('consumer OAuth integration endpoint linking', () => {
         oid: 10n,
         name: 'CLI',
         redirectUris: ['https://z.example/callback', 'https://a.example/callback'],
-        consumerAuthClientConsumerSurfaces: [
+        consumerAuthClientSurfaces: [
           {
             consumerSurface: {
               oid: 50n,
@@ -199,7 +200,7 @@ describe('consumer OAuth integration endpoint linking', () => {
     expect(Hash.sha256).toHaveBeenCalledWith(
       JSON.stringify(['CLI', ['https://a.example/callback', 'https://z.example/callback']])
     );
-    expect(db.consumerAuthClientConsumerSurface.upsert).toHaveBeenCalledWith(
+    expect(db.consumerAuthClientSurface.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
         create: expect.objectContaining({
           consumerSurfaceOid: 50n,

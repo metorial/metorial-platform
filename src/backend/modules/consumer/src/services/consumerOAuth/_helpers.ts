@@ -90,9 +90,9 @@ export let getAttemptMagicMcpEndpoint = (
 };
 
 export let getConsumerAuthClientSurface = (
-  client: Pick<ConsumerOAuthClient, 'consumerAuthClientConsumerSurfaces'>
+  client: Pick<ConsumerOAuthClient, 'consumerAuthClientSurfaces'>
 ) => {
-  return client.consumerAuthClientConsumerSurfaces[0]?.consumerSurface ?? null;
+  return client.consumerAuthClientSurfaces[0]?.consumerSurface ?? null;
 };
 
 export let getConsumerAuthClientPlugin = (

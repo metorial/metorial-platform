@@ -8,7 +8,7 @@ import {
 } from '@metorial/db';
 
 export let consumerAuthClientInclude = {
-  consumerAuthClientConsumerSurfaces: {
+  consumerAuthClientSurfaces: {
     include: {
       consumerClient: true,
       consumerSurface: {

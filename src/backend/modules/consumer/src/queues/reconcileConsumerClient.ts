@@ -25,7 +25,7 @@ export let reconcileConsumerClientManyQueueProcessor =
   reconcileConsumerClientManyQueue.process(async data => {
     let items = await db.consumerAuthClient.findMany({
       where: {
-        consumerAuthClientConsumerSurfaces: { none: {} },
+        consumerAuthClientSurfaces: { none: {} },
         id: data.cursor ? { gt: data.cursor } : undefined
       },
       select: {
@@ -80,7 +80,7 @@ export let reconcileConsumerClientSingleQueueProcessor =
             }
           }
         },
-        consumerAuthClientConsumerSurfaces: {
+        consumerAuthClientSurfaces: {
           include: {
             consumerClient: true,
             consumerSurface: {
@@ -109,7 +109,7 @@ export let reconcileConsumerClientSingleQueueProcessor =
 
     if (
       consumerAuthClient.legacyDoNotUseConsumerSurface &&
-      consumerAuthClient.consumerAuthClientConsumerSurfaces.length == 0
+      consumerAuthClient.consumerAuthClientSurfaces.length == 0
     ) {
       let consumerClient =
         consumerAuthClient.legacyDoNotUseConsumerClient ??
@@ -119,7 +119,7 @@ export let reconcileConsumerClientSingleQueueProcessor =
           redirectUris: consumerAuthClient.redirectUris
         }));
 
-      await db.consumerAuthClientConsumerSurface.upsert({
+      await db.consumerAuthClientSurface.upsert({
         where: {
           consumerSurfaceOid_consumerAuthClientOid: {
             consumerSurfaceOid: consumerAuthClient.legacyDoNotUseConsumerSurface.oid,
@@ -127,7 +127,7 @@ export let reconcileConsumerClientSingleQueueProcessor =
           }
         },
         create: {
-          id: await ID.generateId('consumerAuthClient'),
+          id: await ID.generateId('consumerAuthClientSurface'),
           consumerSurfaceOid: consumerAuthClient.legacyDoNotUseConsumerSurface.oid,
           consumerAuthClientOid: consumerAuthClient.oid,
           consumerClientOid: consumerClient.oid
@@ -144,7 +144,7 @@ export let reconcileConsumerClientSingleQueueProcessor =
           oid: consumerAuthClient.oid
         },
         include: {
-          consumerAuthClientConsumerSurfaces: {
+          consumerAuthClientSurfaces: {
             include: {
               consumerClient: true,
               consumerSurface: {

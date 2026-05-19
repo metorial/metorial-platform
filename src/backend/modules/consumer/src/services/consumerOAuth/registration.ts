@@ -72,7 +72,8 @@ class ConsumerOAuthRegistrationService {
       let consumerClient = await consumerOAuthClientService.upsertConsumerClient({
         consumerSurface,
         name: d.input.clientName,
-        redirectUris
+        redirectUris,
+        db
       });
 
       let registration = await db.consumerAuthClient.create({
@@ -95,10 +96,11 @@ class ConsumerOAuthRegistrationService {
         include: consumerAuthClientInclude
       });
 
-      await consumerOAuthClientService.ensureConsumerAuthClientConsumerSurface({
+      await consumerOAuthClientService.ensureConsumerAuthClientSurfaceRef({
         consumerAuthClient: registration,
         consumerSurface,
-        consumerClient
+        consumerClient,
+        db
       });
 
       return registration;
@@ -161,7 +163,7 @@ class ConsumerOAuthRegistrationService {
     return await db.consumerAuthClient.findFirst({
       where: {
         id: d.registrationId,
-        consumerAuthClientConsumerSurfaces: {
+        consumerAuthClientSurfaces: {
           some: {
             consumerSurfaceOid: consumerSurface.oid
           }

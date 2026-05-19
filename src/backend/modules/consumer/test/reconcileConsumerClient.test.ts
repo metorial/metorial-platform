@@ -74,7 +74,7 @@ describe('reconcileConsumerClient', () => {
     } as any);
     vi.mocked(db.consumerAuthClient.findUniqueOrThrow).mockResolvedValue({
       oid: 10n,
-      consumerAuthClientConsumerSurfaces: [],
+      consumerAuthClientSurfaces: [],
       name: 'CLI',
       redirectUris: ['https://example.com/callback']
     } as any);
@@ -88,7 +88,7 @@ describe('reconcileConsumerClient', () => {
     ).toHaveBeenCalledWith({
       consumerAuthClient: {
         oid: 10n,
-        consumerAuthClientConsumerSurfaces: [],
+        consumerAuthClientSurfaces: [],
         name: 'CLI',
         redirectUris: ['https://example.com/callback']
       }

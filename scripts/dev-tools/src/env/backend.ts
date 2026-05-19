@@ -106,7 +106,7 @@ export let backendEnv: Env = [
 
   {
     key: 'PORTALS_URL',
-    defaultValue: `http://${HOSTNAME}:4315`
+    defaultValue: `http://${HOSTNAME}:4304`
   },
   {
     key: 'PORTAL_API_PORT',

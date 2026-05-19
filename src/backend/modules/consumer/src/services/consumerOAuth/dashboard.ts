@@ -29,7 +29,7 @@ class ConsumerOAuthDashboardService {
       where: {
         id: d.portalAuthClientId,
         instanceOid: d.instance.oid,
-        consumerAuthClientConsumerSurfaces: {
+        consumerAuthClientSurfaces: {
           some: {
             consumerSurfaceOid: d.consumerSurface.oid
           }
@@ -56,7 +56,7 @@ class ConsumerOAuthDashboardService {
         id: d.portalAuthAttemptId,
         consumerAuthClient: {
           instanceOid: d.instance.oid,
-          consumerAuthClientConsumerSurfaces: {
+          consumerAuthClientSurfaces: {
             some: {
               consumerSurfaceOid: d.consumerSurface.oid
             }

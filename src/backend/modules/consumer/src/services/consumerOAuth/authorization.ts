@@ -125,17 +125,7 @@ class ConsumerOAuthAuthorizationService {
         portals: { id: string; slug: string; name: string }[];
       }
   > {
-    if (!d.input.clientId) {
-      throw new ServiceError(
-        badRequestError({
-          message: 'client_id is required',
-          oauth: {
-            error: 'invalid_request',
-            errorMessage: 'client_id is required'
-          }
-        })
-      );
-    }
+    this.validateAuthorizationRequest(d.input);
 
     let registration = await db.consumerAuthClient.findFirst({
       where: {
@@ -342,7 +332,7 @@ class ConsumerOAuthAuthorizationService {
     let client = await db.consumerAuthClient.findFirst({
       where: {
         clientId: d.clientId,
-        consumerAuthClientConsumerSurfaces: {
+        consumerAuthClientSurfaces: {
           some: {
             consumerSurfaceOid: d.consumerSurfaceOid
           }

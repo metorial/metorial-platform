@@ -59,7 +59,7 @@ model ConsumerSurface {
   consumerClients                    ConsumerClient[]
   consumerAuthClients                ConsumerAuthClient[]
   consumerSkills                     ConsumerSkill[]
-  consumerAuthClientConsumerSurfaces ConsumerAuthClientConsumerSurface[]
+  consumerAuthClientSurfaces         ConsumerAuthClientSurface[]
 
   @@unique([instanceOid, internalSurfaceUniqueIdentifier])
   @@index([skillConfigurationId])

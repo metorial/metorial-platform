@@ -249,7 +249,7 @@ class ConsumerOAuthTokenService {
     let client = await db.consumerAuthClient.findFirst({
       where: {
         clientId: d.clientId,
-        consumerAuthClientConsumerSurfaces: {
+        consumerAuthClientSurfaces: {
           some: {
             consumerSurfaceOid: d.consumerSurfaceOid
           }

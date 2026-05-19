@@ -58,7 +58,7 @@ export let reconcileConsumerAuthClientOwnershipSingleQueueProcessor =
       },
       include: {
         legacyDoNotUseConsumerSurface: true,
-        consumerAuthClientConsumerSurfaces: {
+        consumerAuthClientSurfaces: {
           include: {
             consumerClient: true,
             consumerSurface: true
@@ -69,7 +69,7 @@ export let reconcileConsumerAuthClientOwnershipSingleQueueProcessor =
         skillPlugin: true,
         legacyDoNotUseConsumerClient: {
           include: {
-            legacyDoNotUseConsumerSurface: true
+            consumerSurface: true
           }
         }
       }
@@ -85,7 +85,7 @@ export let reconcileConsumerAuthClientOwnershipSingleQueueProcessor =
           redirectUris: consumerAuthClient.redirectUris
         }));
 
-      await db.consumerAuthClientConsumerSurface.upsert({
+      await db.consumerAuthClientSurface.upsert({
         where: {
           consumerSurfaceOid_consumerAuthClientOid: {
             consumerSurfaceOid: consumerAuthClient.legacyDoNotUseConsumerSurface.oid,
@@ -93,7 +93,7 @@ export let reconcileConsumerAuthClientOwnershipSingleQueueProcessor =
           }
         },
         create: {
-          id: await ID.generateId('consumerAuthClient'),
+          id: await ID.generateId('consumerAuthClientSurface'),
           consumerSurfaceOid: consumerAuthClient.legacyDoNotUseConsumerSurface.oid,
           consumerAuthClientOid: consumerAuthClient.oid,
           consumerClientOid: consumerClient.oid
@@ -106,7 +106,7 @@ export let reconcileConsumerAuthClientOwnershipSingleQueueProcessor =
 
     let surfaces = [
       consumerAuthClient.legacyDoNotUseConsumerSurface,
-      ...consumerAuthClient.consumerAuthClientConsumerSurfaces.map(ref => ref.consumerSurface)
+      ...consumerAuthClient.consumerAuthClientSurfaces.map(ref => ref.consumerSurface)
     ].filter((surface): surface is NonNullable<typeof surface> => !!surface);
     let instanceOids = uniqueBigints([
       consumerAuthClient.instanceOid,
@@ -139,7 +139,7 @@ export let reconcileConsumerAuthClientOwnershipSingleQueueProcessor =
       });
     }
 
-    for (let ref of consumerAuthClient.consumerAuthClientConsumerSurfaces) {
+    for (let ref of consumerAuthClient.consumerAuthClientSurfaces) {
       await db.consumerClient.updateMany({
         where: {
           oid: ref.consumerClient.oid,
@@ -152,19 +152,16 @@ export let reconcileConsumerAuthClientOwnershipSingleQueueProcessor =
       });
     }
 
-    if (consumerAuthClient.legacyDoNotUseConsumerClient?.legacyDoNotUseConsumerSurface) {
+    if (consumerAuthClient.legacyDoNotUseConsumerClient?.consumerSurface) {
       await db.consumerClient.updateMany({
         where: {
           oid: consumerAuthClient.legacyDoNotUseConsumerClient.oid,
           OR: [{ instanceOid: null }, { organizationOid: null }]
         },
         data: {
-          instanceOid:
-            consumerAuthClient.legacyDoNotUseConsumerClient.legacyDoNotUseConsumerSurface
-              .instanceOid,
+          instanceOid: consumerAuthClient.legacyDoNotUseConsumerClient.consumerSurface.instanceOid,
           organizationOid:
-            consumerAuthClient.legacyDoNotUseConsumerClient.legacyDoNotUseConsumerSurface
-              .organizationOid
+            consumerAuthClient.legacyDoNotUseConsumerClient.consumerSurface.organizationOid
         }
       });
     }

@@ -49,7 +49,7 @@ let consumerTokenForMagicMcpInclude = {
             select: {
               id: true,
               name: true,
-              consumerAuthClientConsumerSurfaces: {
+              consumerAuthClientSurfaces: {
                 take: 1,
                 select: {
                   consumerClient: {

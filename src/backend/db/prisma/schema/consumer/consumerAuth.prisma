@@ -37,10 +37,10 @@ model ConsumerClient {
 
   consumerAuthClients ConsumerAuthClient[]
 
-  legacyDoNotUseConsumerSurfaceOid BigInt?          @map("consumerSurfaceOid")
-  legacyDoNotUseConsumerSurface    ConsumerSurface? @relation(fields: [legacyDoNotUseConsumerSurfaceOid], references: [oid], onDelete: Cascade)
+  consumerSurfaceOid BigInt
+  consumerSurface    ConsumerSurface @relation(fields: [consumerSurfaceOid], references: [oid], onDelete: Cascade)
 
-  consumerAuthClientConsumerSurfaces ConsumerAuthClientConsumerSurface[]
+  consumerAuthClientSurfaces ConsumerAuthClientSurface[]
 
   // @@unique([consumerSurfaceOid, hash])
   @@index([hash])
@@ -79,8 +79,8 @@ model ConsumerAuthClient {
   updatedAt DateTime @default(now()) @updatedAt
   expiresAt DateTime
 
-  consumerAuthAttempts               ConsumerAuthAttempt[]
-  consumerAuthClientConsumerSurfaces ConsumerAuthClientConsumerSurface[]
+  consumerAuthAttempts       ConsumerAuthAttempt[]
+  consumerAuthClientSurfaces ConsumerAuthClientSurface[]
 
   legacyDoNotUseConsumerSurfaceOid BigInt?          @map("consumerSurfaceOid")
   legacyDoNotUseConsumerSurface    ConsumerSurface? @relation(fields: [legacyDoNotUseConsumerSurfaceOid], references: [oid], onDelete: Cascade)
@@ -94,7 +94,7 @@ model ConsumerAuthClient {
   @@index([skillPluginOid])
 }
 
-model ConsumerAuthClientConsumerSurface {
+model ConsumerAuthClientSurface {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
@@ -111,7 +111,6 @@ model ConsumerAuthClientConsumerSurface {
   updatedAt DateTime @default(now()) @updatedAt
 
   @@unique([consumerSurfaceOid, consumerAuthClientOid])
-  @@unique([consumerClientOid, consumerSurfaceOid])
   @@unique([consumerAuthClientOid, consumerClientOid])
   @@index([consumerAuthClientOid])
 }

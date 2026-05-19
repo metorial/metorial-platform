@@ -1,6 +1,6 @@
 import { preconditionFailedError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import { db, ID, type ConsumerSurface } from '@metorial/db';
+import { db, ID, type ConsumerSurface, type TransactionDB } from '@metorial/db';
 import { getConsumerClientHash, normalizeConsumerClientRedirectUris } from './_helpers';
 import { ConsumerOAuthClient } from './_types';
 
@@ -9,30 +9,29 @@ class ConsumerOAuthClientService {
     consumerSurface: Pick<ConsumerSurface, 'oid' | 'instanceOid' | 'organizationOid'>;
     name: string;
     redirectUris: string[];
+    db?: TransactionDB;
   }) {
+    let tx = d.db ?? db;
     let redirectUris = normalizeConsumerClientRedirectUris(d.redirectUris);
     let hash = await getConsumerClientHash({
       name: d.name,
       redirectUris
     });
 
-    let consumerClient = await db.consumerClient.findFirst({
+    let consumerClient = await tx.consumerClient.findFirst({
       where: {
         hash,
-        consumerAuthClientConsumerSurfaces: {
-          some: {
-            consumerSurfaceOid: d.consumerSurface.oid
-          }
-        }
+        consumerSurfaceOid: d.consumerSurface.oid
       }
     });
 
     if (!consumerClient) {
-      return await db.consumerClient.create({
+      return await tx.consumerClient.create({
         data: {
           id: await ID.generateId('consumerClient'),
           instanceOid: d.consumerSurface.instanceOid,
           organizationOid: d.consumerSurface.organizationOid,
+          consumerSurfaceOid: d.consumerSurface.oid,
           hash,
           name: d.name,
           redirectUris
@@ -40,7 +39,7 @@ class ConsumerOAuthClientService {
       });
     }
 
-    return await db.consumerClient.update({
+    return await tx.consumerClient.update({
       where: {
         oid: consumerClient.oid
       },
@@ -48,17 +47,21 @@ class ConsumerOAuthClientService {
         name: d.name,
         redirectUris,
         instanceOid: d.consumerSurface.instanceOid,
-        organizationOid: d.consumerSurface.organizationOid
+        organizationOid: d.consumerSurface.organizationOid,
+        consumerSurfaceOid: d.consumerSurface.oid
       }
     });
   }
 
-  async ensureConsumerAuthClientConsumerSurface(d: {
+  async ensureConsumerAuthClientSurfaceRef(d: {
     consumerAuthClient: Pick<ConsumerOAuthClient, 'oid'>;
     consumerSurface: Pick<ConsumerSurface, 'oid'>;
     consumerClient: { oid: bigint };
+    db?: TransactionDB;
   }) {
-    return await db.consumerAuthClientConsumerSurface.upsert({
+    let tx = d.db ?? db;
+
+    return await tx.consumerAuthClientSurface.upsert({
       where: {
         consumerSurfaceOid_consumerAuthClientOid: {
           consumerSurfaceOid: d.consumerSurface.oid,
@@ -66,7 +69,7 @@ class ConsumerOAuthClientService {
         }
       },
       create: {
-        id: await ID.generateId('consumerAuthClient'),
+        id: await ID.generateId('consumerAuthClientSurface'),
         consumerSurfaceOid: d.consumerSurface.oid,
         consumerAuthClientOid: d.consumerAuthClient.oid,
         consumerClientOid: d.consumerClient.oid
@@ -80,11 +83,11 @@ class ConsumerOAuthClientService {
   async linkConsumerAuthClientToConsumerClient(d: {
     consumerAuthClient: Pick<
       ConsumerOAuthClient,
-      'oid' | 'name' | 'redirectUris' | 'consumerAuthClientConsumerSurfaces'
+      'oid' | 'name' | 'redirectUris' | 'consumerAuthClientSurfaces'
     >;
   }) {
     let surfacesByOid = new Map(
-      d.consumerAuthClient.consumerAuthClientConsumerSurfaces.map(ref => [
+      d.consumerAuthClient.consumerAuthClientSurfaces.map(ref => [
         ref.consumerSurface.oid,
         ref.consumerSurface
       ])
@@ -101,7 +104,7 @@ class ConsumerOAuthClientService {
           redirectUris: d.consumerAuthClient.redirectUris
         });
 
-        await this.ensureConsumerAuthClientConsumerSurface({
+        await this.ensureConsumerAuthClientSurfaceRef({
           consumerAuthClient: d.consumerAuthClient,
           consumerSurface: surface,
           consumerClient
@@ -120,6 +123,7 @@ class ConsumerOAuthClientService {
       'oid' | 'instanceOid' | 'organizationOid' | 'name' | 'redirectUris'
     >;
     consumerSurface: Pick<ConsumerSurface, 'oid' | 'instanceOid' | 'organizationOid'>;
+    db?: TransactionDB;
   }) {
     if (
       d.consumerAuthClient.instanceOid &&
@@ -146,16 +150,20 @@ class ConsumerOAuthClientService {
     let consumerClient = await this.upsertConsumerClient({
       consumerSurface: d.consumerSurface,
       name: d.consumerAuthClient.name,
-      redirectUris: d.consumerAuthClient.redirectUris
+      redirectUris: d.consumerAuthClient.redirectUris,
+      db: d.db
     });
 
-    await this.ensureConsumerAuthClientConsumerSurface({
+    await this.ensureConsumerAuthClientSurfaceRef({
       consumerAuthClient: d.consumerAuthClient,
       consumerSurface: d.consumerSurface,
-      consumerClient
+      consumerClient,
+      db: d.db
     });
 
-    await db.consumerAuthClient.updateMany({
+    let tx = d.db ?? db;
+
+    await tx.consumerAuthClient.updateMany({
       where: {
         oid: d.consumerAuthClient.oid,
         OR: [{ instanceOid: null }, { organizationOid: null }]
