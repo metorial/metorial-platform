@@ -112,7 +112,7 @@ export let applyMarketplace = createApplicator(
       });
       await context.setFile('.agents/plugins/marketplace.json', codexMarketplace);
 
-      let cursorAndClaudeMarketplace = json({
+      let claudeMarketplace = json({
         name: input.skillMarketplace.slug,
         owner: {
           name: tenant.organizationName ?? tenant.name
@@ -130,9 +130,28 @@ export let applyMarketplace = createApplicator(
             ''
         }))
       });
-      await context.setFile('.cursor-plugin/marketplace.json', cursorAndClaudeMarketplace);
-      await context.setFile('.claude-plugin/marketplace.json', cursorAndClaudeMarketplace);
-      await context.setFile('.github/plugin/marketplace.json', cursorAndClaudeMarketplace);
+      await context.setFile('.claude-plugin/marketplace.json', claudeMarketplace);
+      await context.setFile('.github/plugin/marketplace.json', claudeMarketplace);
+
+      let cursorMarketplace = json({
+        name: input.skillMarketplace.slug,
+        owner: {
+          name: tenant.organizationName ?? tenant.name
+        },
+        metadata: {
+          description: 'Official WorkOS skills for AI coding agents',
+          version: input.skillMarketplace.version
+        },
+        plugins: plugins.map(p => ({
+          name: p.pluginSlug,
+          source: p.pluginSlug,
+          description:
+            p.skillPlugin.description ??
+            p.skillPlugin.skillPluginSkills[0]?.skill.description ??
+            ''
+        }))
+      });
+      await context.setFile('.cursor-plugin/marketplace.json', cursorMarketplace);
     }
   }
 );
