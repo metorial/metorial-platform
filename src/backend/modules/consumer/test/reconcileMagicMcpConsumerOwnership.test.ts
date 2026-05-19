@@ -52,7 +52,7 @@ vi.mock('@metorial/db', () => {
   return { db };
 });
 
-vi.mock('../src/services/consumerIntegration', () => ({
+vi.mock('../src/services/consumerEntities/consumerIntegration', () => ({
   consumerIntegrationService: {
     upsertConsumerToken: vi.fn(),
     upsertConsumerIntegration: vi.fn(),

@@ -15,10 +15,15 @@ import {
   validateRedirectUri
 } from '../../lib/oauth';
 import { portalService } from '../portal';
-import { buildDashboardConsumerAuthUrl, resolveConsumerSurface } from './_helpers';
+import {
+  buildDashboardConsumerAuthUrl,
+  getConsumerAuthClient,
+  resolveConsumerSurface
+} from './_helpers';
 import {
   consumerAuthAttemptInclude,
   consumerAuthClientInclude,
+  ConsumerOAuthAuthorization,
   DashboardConsumerSurface,
   SkillPluginPortalAuthorizationInput
 } from './_types';
@@ -45,7 +50,7 @@ class ConsumerOAuthAuthorizationService {
       throw new ServiceError(notFoundError('consumer.surface'));
     }
 
-    let client = await this.getConsumerAuthClient({
+    let client = await getConsumerAuthClient({
       clientId: d.input.clientId!,
       consumerSurfaceOid: consumerSurface.oid,
       skillPluginOid: undefined,
@@ -109,7 +114,11 @@ class ConsumerOAuthAuthorizationService {
     portalId?: string;
     input: SkillPluginPortalAuthorizationInput;
   }): Promise<
-    | { type: 'redirect'; redirectUrl: string }
+    | {
+        type: 'redirect';
+        redirectUrl: string;
+        authorization: { attempt: ConsumerOAuthAuthorization; redirectUrl: string };
+      }
     | { type: 'workforce_required' }
     | {
         type: 'portal_selection';
@@ -214,7 +223,8 @@ class ConsumerOAuthAuthorizationService {
 
     return {
       type: 'redirect',
-      redirectUrl: authorization.redirectUrl
+      redirectUrl: authorization.redirectUrl,
+      authorization
     };
   }
 
@@ -312,43 +322,6 @@ class ConsumerOAuthAuthorizationService {
       : input.codeChallenge
         ? ('s256' as const)
         : ('none' as const);
-  }
-
-  private async getConsumerAuthClient(d: {
-    clientId: string;
-    consumerSurfaceOid: bigint;
-    skillPluginOid?: bigint;
-    magicMcpServerOid?: bigint;
-    magicMcpEndpointOid?: bigint;
-  }) {
-    let client = await db.consumerAuthClient.findFirst({
-      where: {
-        clientId: d.clientId,
-        consumerAuthClientSurfaces: {
-          some: {
-            consumerSurfaceOid: d.consumerSurfaceOid
-          }
-        },
-        skillPluginOid: d.skillPluginOid,
-        magicMcpServerOid: d.magicMcpServerOid ?? null,
-        magicMcpEndpointOid: d.magicMcpEndpointOid ?? null
-      },
-      include: consumerAuthClientInclude
-    });
-
-    if (!client || client.expiresAt < new Date()) {
-      throw new ServiceError(
-        unauthorizedError({
-          message: 'Invalid oauth client',
-          oauth: {
-            error: 'invalid_client',
-            errorMessage: 'Invalid oauth client'
-          }
-        })
-      );
-    }
-
-    return client;
   }
 }
 

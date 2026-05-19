@@ -34,14 +34,15 @@ model MagicMcpEndpoint {
   updatedAt DateTime  @default(now()) @updatedAt
   deletedAt DateTime?
 
-  servers                      MagicMcpEndpointServer[]
-  subspaceSession              MagicMcpSession[]
-  tokens                       MagicMcpToken[]
-  uses                         MagicMcpTokenUse[]
-  accessTagEntities            AccessTagEntity[]
-  consumerAuthClients          ConsumerAuthClient[]
-  consumerAuthAttempts         ConsumerAuthAttempt[]
-  consumerIntegrationEndpoints ConsumerIntegrationEndpoint[]
+  servers                        MagicMcpEndpointServer[]
+  subspaceSession                MagicMcpSession[]
+  tokens                         MagicMcpToken[]
+  uses                           MagicMcpTokenUse[]
+  accessTagEntities              AccessTagEntity[]
+  consumerAuthClients            ConsumerAuthClient[]
+  consumerAuthAttempts           ConsumerAuthAttempt[]
+  consumerAuthTestAuthorizations ConsumerAuthTestAuthorization[]
+  consumerIntegrationEndpoints   ConsumerIntegrationEndpoint[]
 }
 
 model MagicMcpEndpointServer {

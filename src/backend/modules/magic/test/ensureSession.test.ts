@@ -1,5 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('@metorial/db', () => ({
+  ID: {
+    generateId: vi.fn().mockResolvedValue('generated-id')
+  },
+  withTransaction: vi.fn(async callback => await callback({}))
+}));
+
 vi.mock('../src/lib/backing', () => ({
   ensureMagicMcpServerBacking: vi.fn(),
   ensureMagicMcpEndpointBacking: vi.fn()

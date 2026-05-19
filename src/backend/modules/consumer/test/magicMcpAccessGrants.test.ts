@@ -1,18 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../src/services/accessPolicy', () => ({
+vi.mock('../src/services/consumerAccess/accessPolicy', () => ({
   consumerAccessPolicyService: {
     grantAccess: vi.fn()
   }
 }));
 
-vi.mock('../src/services/consumerAccess', () => ({
+vi.mock('../src/services/consumerAccess/consumerAccess', () => ({
   consumerAccessService: {
     createConsumerAccess: vi.fn()
   }
 }));
 
-vi.mock('../src/services/consumerIntegration', () => ({
+vi.mock('../src/services/consumerEntities/consumerIntegration', () => ({
   consumerIntegrationService: {
     upsertConsumerToken: vi.fn(),
     upsertConsumerIntegrationEndpoint: vi.fn(),

@@ -23,6 +23,7 @@ import {
   ensureAttemptNotExpired,
   ensureSkillPluginMatchesEndpoint,
   getConsumerAuthAccessTokenExpiry,
+  getConsumerAuthClient,
   getConsumerAuthClientPlugin,
   getConsumerAuthClientSurface,
   getConsumerAuthRefreshTokenExpiry,
@@ -58,7 +59,7 @@ class ConsumerOAuthTokenService {
       throw new ServiceError(notFoundError('consumer.surface'));
     }
 
-    let client = await this.getConsumerAuthClient({
+    let client = await getConsumerAuthClient({
       clientId: d.input.clientId!,
       consumerSurfaceOid: consumerSurface.oid,
       skillPluginOid: undefined,
@@ -237,43 +238,6 @@ class ConsumerOAuthTokenService {
         })
       );
     }
-  }
-
-  private async getConsumerAuthClient(d: {
-    clientId: string;
-    consumerSurfaceOid: bigint;
-    skillPluginOid?: bigint;
-    magicMcpServerOid?: bigint;
-    magicMcpEndpointOid?: bigint;
-  }) {
-    let client = await db.consumerAuthClient.findFirst({
-      where: {
-        clientId: d.clientId,
-        consumerAuthClientSurfaces: {
-          some: {
-            consumerSurfaceOid: d.consumerSurfaceOid
-          }
-        },
-        skillPluginOid: d.skillPluginOid,
-        magicMcpServerOid: d.magicMcpServerOid ?? null,
-        magicMcpEndpointOid: d.magicMcpEndpointOid ?? null
-      },
-      include: consumerAuthClientInclude
-    });
-
-    if (!client || client.expiresAt < new Date()) {
-      throw new ServiceError(
-        unauthorizedError({
-          message: 'Invalid oauth client',
-          oauth: {
-            error: 'invalid_client',
-            errorMessage: 'Invalid oauth client'
-          }
-        })
-      );
-    }
-
-    return client;
   }
 
   private async getSkillPluginConsumerAuthClient(d: {

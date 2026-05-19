@@ -2,11 +2,13 @@ import {
   badRequestError,
   createError,
   preconditionFailedError,
-  ServiceError
+  ServiceError,
+  unauthorizedError
 } from '@lowerdeck/error';
 import { Hash } from '@lowerdeck/hash';
 import { getConfig } from '@metorial/config';
 import {
+  db,
   Organization,
   SkillPlugin,
   type ConsumerAuthAttempt,
@@ -16,6 +18,7 @@ import {
 import { addSeconds } from 'date-fns';
 import {
   consumerAuthAccessTokenTtlSeconds,
+  consumerAuthClientInclude,
   consumerAuthRefreshTokenTtlSeconds,
   ConsumerOAuthAuthorization,
   ConsumerOAuthClient,
@@ -89,6 +92,43 @@ export let getAttemptMagicMcpEndpoint = (
   return attempt.magicMcpEndpoint ?? attempt.consumerAuthClient.magicMcpEndpoint ?? null;
 };
 
+export let getConsumerAuthClient = async (d: {
+  clientId: string;
+  consumerSurfaceOid: bigint;
+  skillPluginOid?: bigint;
+  magicMcpServerOid?: bigint;
+  magicMcpEndpointOid?: bigint;
+}) => {
+  let client = await db.consumerAuthClient.findFirst({
+    where: {
+      clientId: d.clientId,
+      consumerAuthClientSurfaces: {
+        some: {
+          consumerSurfaceOid: d.consumerSurfaceOid
+        }
+      },
+      skillPluginOid: d.skillPluginOid ?? null,
+      magicMcpServerOid: d.magicMcpServerOid ?? null,
+      magicMcpEndpointOid: d.magicMcpEndpointOid ?? null
+    },
+    include: consumerAuthClientInclude
+  });
+
+  if (!client || client.expiresAt < new Date()) {
+    throw new ServiceError(
+      unauthorizedError({
+        message: 'Invalid oauth client',
+        oauth: {
+          error: 'invalid_client',
+          errorMessage: 'Invalid oauth client'
+        }
+      })
+    );
+  }
+
+  return client;
+};
+
 export let getConsumerAuthClientSurface = (
   client: Pick<ConsumerOAuthClient, 'consumerAuthClientSurfaces'>
 ) => {
@@ -138,6 +178,32 @@ export let buildDashboardConsumerAuthUrl = (d: {
     );
   url.search = '';
   url.hash = '';
+
+  return url.toString();
+};
+
+export let buildConsumerOAuthCallbackRedirectUrl = (d: {
+  redirectUri: string;
+  state?: string | null;
+  status: 'pending' | 'authorized' | 'active' | 'denied' | 'revoked';
+  authorizationCode?: string | null;
+}) => {
+  if (d.status != 'authorized' && d.status != 'denied') {
+    return null;
+  }
+
+  let url = new URL(d.redirectUri);
+
+  if (d.status == 'authorized' && d.authorizationCode) {
+    url.searchParams.set('code', d.authorizationCode);
+  } else if (d.status == 'denied') {
+    url.searchParams.set('error', 'access_denied');
+    url.searchParams.set('error_description', 'The portal authorization request was denied.');
+  }
+
+  if (d.state) {
+    url.searchParams.set('state', d.state);
+  }
 
   return url.toString();
 };

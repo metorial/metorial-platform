@@ -35,10 +35,23 @@ vi.mock('@metorial/db', () => {
     },
     consumerAuthClient: {
       count: vi.fn(),
+      findFirst: vi.fn(),
+      findFirstOrThrow: vi.fn(),
       create: vi.fn(),
       updateMany: vi.fn()
     },
     consumerAuthAttempt: {
+      update: vi.fn()
+    },
+    consumerProfile: {
+      findFirst: vi.fn()
+    },
+    magicMcpEndpoint: {
+      findFirst: vi.fn()
+    },
+    consumerAuthTestAuthorization: {
+      create: vi.fn(),
+      findFirst: vi.fn(),
       update: vi.fn()
     }
   };
@@ -111,7 +124,8 @@ import { consumerIntegrationService } from '../src/services/consumerEntities/con
 import {
   consumerOAuthClientService,
   consumerOAuthDashboardService,
-  consumerOAuthRegistrationService
+  consumerOAuthRegistrationService,
+  consumerOAuthTestAuthorizationService
 } from '../src/services/consumerOAuth';
 
 describe('consumer OAuth integration endpoint linking', () => {
@@ -126,7 +140,12 @@ describe('consumer OAuth integration endpoint linking', () => {
 
   it('upserts a consumer client during auth client self-registration', async () => {
     vi.mocked(db.consumerAuthClient.create).mockResolvedValue({
-      oid: 10n
+      oid: 10n,
+      id: 'client-1'
+    } as any);
+    vi.mocked(db.consumerAuthClient.findFirstOrThrow).mockResolvedValue({
+      oid: 10n,
+      id: 'client-1'
     } as any);
 
     await consumerOAuthRegistrationService.registerConsumerAuthClient({
@@ -321,6 +340,237 @@ describe('consumer OAuth integration endpoint linking', () => {
         consumerProfileOid: 30n
       },
       isManaged: false
+    });
+  });
+
+  it('creates a single-use test authorization URL for a portal OAuth URL', async () => {
+    vi.mocked(db.consumerProfile.findFirst).mockResolvedValue({
+      oid: 30n,
+      id: 'consumer-profile-1',
+      surfaceOid: 50n,
+      surface: {
+        oid: 50n,
+        id: 'test-7',
+        instanceOid: 1n,
+        organizationOid: 2n,
+        portal: {
+          id: 'test-7',
+          slug: 'test-7'
+        }
+      }
+    } as any);
+    vi.mocked(db.magicMcpEndpoint.findFirst).mockResolvedValue({
+      oid: 60n,
+      id: 'endpoint-1',
+      consumerProfileOid: 30n,
+      skillPluginOid: null,
+      servers: [{ magicMcpServerOid: 70n }]
+    } as any);
+    vi.mocked(db.consumerAuthClient.findFirst).mockResolvedValue({
+      oid: 10n,
+      clientId: 'coaci_test',
+      expiresAt: new Date(Date.now() + 60_000),
+      skillPluginOid: null,
+      consumerAuthClientSurfaces: [
+        {
+          consumerSurface: {
+            oid: 50n,
+            id: 'test-7',
+            portal: {
+              id: 'test-7',
+              slug: 'test-7'
+            }
+          }
+        }
+      ]
+    } as any);
+    vi.mocked(db.consumerAuthTestAuthorization.create).mockResolvedValue({
+      id: 'coata_test',
+      expiresAt: new Date(Date.now() + 60_000),
+      createdAt: new Date()
+    } as any);
+
+    let result = await consumerOAuthTestAuthorizationService.createTestAuthorization({
+      instance: {
+        oid: 1n,
+        organizationOid: 2n
+      } as any,
+      input: {
+        url: 'https://api.test/connect/portal/test-7/oauth/authorize?response_type=code&client_id=coaci_test&state=state-1&code_challenge=challenge-1&code_challenge_method=S256&redirect_uri=http%3A%2F%2F127.0.0.1%3A59843%2Fcallback',
+        consumerProfileId: 'consumer-profile-1',
+        magicMcpEndpointId: 'endpoint-1'
+      }
+    });
+
+    expect(result.url).toContain('test_auth_id=coata_test');
+    expect(db.consumerAuthTestAuthorization.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          clientId: 'coaci_test',
+          consumerAuthClientOid: 10n,
+          consumerSurfaceOid: 50n,
+          consumerProfileOid: 30n,
+          magicMcpEndpointOid: 60n,
+          state: 'state-1',
+          codeChallengeMethod: 's256',
+          codeChallenge: 'challenge-1'
+        })
+      })
+    );
+  });
+
+  it('requires plugin_id for plugin OAuth test authorization URLs', async () => {
+    await expect(
+      consumerOAuthTestAuthorizationService.createTestAuthorization({
+        instance: {
+          oid: 1n,
+          organizationOid: 2n
+        } as any,
+        input: {
+          url: 'https://api.test/connect/plugin/plugin-1/oauth/authorize?response_type=code&client_id=coaci_test&redirect_uri=http%3A%2F%2F127.0.0.1%2Fcallback',
+          consumerProfileId: 'consumer-profile-1',
+          magicMcpEndpointId: 'endpoint-1'
+        }
+      })
+    ).rejects.toThrow('plugin_id is required');
+  });
+
+  it('rejects an already consumed test authorization', async () => {
+    vi.mocked(db.consumerAuthTestAuthorization.findFirst).mockResolvedValue({
+      id: 'coata_test',
+      instanceOid: 1n,
+      consumedAt: new Date(),
+      expiresAt: new Date(Date.now() + 60_000),
+      clientId: 'coaci_test',
+      consumerAuthClientOid: 10n,
+      redirectUri: 'http://127.0.0.1/callback',
+      state: null,
+      codeChallenge: null,
+      codeChallengeMethod: 'none',
+      consumerProfile: {
+        oid: 30n
+      },
+      magicMcpEndpoint: {
+        id: 'endpoint-1'
+      },
+      consumerAuthClient: {
+        oid: 10n
+      }
+    } as any);
+
+    await expect(
+      consumerOAuthTestAuthorizationService.consumeTestAuthorization({
+        testAuthorizationId: 'coata_test',
+        instance: {
+          oid: 1n
+        } as any,
+        portalOAuthAuthorization: {
+          consumerAuthClientOid: 10n
+        } as any,
+        input: {
+          clientId: 'coaci_test',
+          redirectUri: 'http://127.0.0.1/callback'
+        }
+      })
+    ).rejects.toThrow('already been used');
+  });
+
+  it('consumes a test authorization and returns the OAuth callback redirect', async () => {
+    vi.mocked(db.consumerAuthTestAuthorization.findFirst).mockResolvedValue({
+      id: 'coata_test',
+      instanceOid: 1n,
+      consumedAt: null,
+      expiresAt: new Date(Date.now() + 60_000),
+      clientId: 'coaci_test',
+      consumerAuthClientOid: 10n,
+      redirectUri: 'http://127.0.0.1/callback',
+      state: 'state-1',
+      codeChallenge: null,
+      codeChallengeMethod: 'none',
+      consumerProfile: {
+        oid: 30n
+      },
+      magicMcpEndpoint: {
+        id: 'endpoint-1'
+      },
+      consumerAuthClient: {
+        oid: 10n
+      }
+    } as any);
+    vi.mocked(magicMcpEndpointService.getMagicMcpEndpointById).mockResolvedValue({
+      oid: 60n,
+      id: 'endpoint-1',
+      consumerProfileOid: 30n,
+      servers: [{ magicMcpServerOid: 70n }]
+    } as any);
+    vi.mocked(db.consumerAuthAttempt.update)
+      .mockResolvedValueOnce({
+        id: 'attempt-1',
+        oid: 80n,
+        status: 'pending',
+        magicMcpEndpointOid: 60n,
+        consumerAuthClient: {
+          oid: 10n,
+          magicMcpServerOid: null,
+          magicMcpEndpointOid: null,
+          skillPlugin: null
+        },
+        magicMcpEndpoint: {
+          oid: 60n,
+          consumerProfileOid: 30n
+        }
+      } as any)
+      .mockResolvedValueOnce({
+        id: 'attempt-1',
+        oid: 80n,
+        status: 'authorized',
+        redirectUri: 'http://127.0.0.1/callback',
+        state: 'state-1',
+        authorizationCode: 'code-1',
+        consumerAuthClient: {
+          oid: 10n,
+          magicMcpServerOid: null,
+          magicMcpEndpointOid: 60n,
+          magicMcpEndpoint: {
+            oid: 60n,
+            consumerProfileOid: 30n
+          }
+        },
+        magicMcpEndpoint: {
+          oid: 60n,
+          consumerProfileOid: 30n
+        }
+      } as any);
+
+    let result = await consumerOAuthTestAuthorizationService.consumeTestAuthorization({
+      testAuthorizationId: 'coata_test',
+      instance: {
+        oid: 1n
+      } as any,
+      portalOAuthAuthorization: {
+        id: 'attempt-1',
+        status: 'pending',
+        consumerAuthClientOid: 10n,
+        consumerAuthClient: {
+          skillPlugin: null
+        }
+      } as any,
+      input: {
+        clientId: 'coaci_test',
+        redirectUri: 'http://127.0.0.1/callback',
+        state: 'state-1'
+      }
+    });
+
+    expect(result.redirectUrl).toBe('http://127.0.0.1/callback?code=code-1&state=state-1');
+    expect(db.consumerAuthTestAuthorization.update).toHaveBeenCalledWith({
+      where: {
+        id: 'coata_test'
+      },
+      data: {
+        consumedAt: expect.any(Date),
+        consumerAuthAttemptOid: 80n
+      }
     });
   });
 });

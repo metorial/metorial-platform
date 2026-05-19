@@ -154,6 +154,7 @@ import {
   serviceAccountManagementController,
   teamManagementController
 } from './management';
+import { testHelperConsumerOAuthController } from './test-helpers';
 
 let setControllerDocsMetadata = <
   T extends { descriptor: Record<string, any>; handlers: Record<string, any> }
@@ -339,6 +340,8 @@ export let magnetarController = Controller.create<any>(
 
     tokenController,
 
+    testHelperConsumerOAuthController,
+
     publisherController,
     providerController,
     providerCategoryController,
@@ -492,6 +495,7 @@ export let dashboardController = Controller.create<any>(
     dashboardOrganizationInviteController,
     dashboardOAuthAuthorizationRequestController,
     dashboardBootController,
+    testHelperConsumerOAuthController,
     dashboardUsageController,
     dashboardAssistantController,
     flagsController,
@@ -661,5 +665,6 @@ export let fullDashboardController = Controller.create<any>(dashboardController.
   dashboardOrganizationInviteController,
   dashboardOAuthAuthorizationRequestController,
   dashboardBootController,
+  testHelperConsumerOAuthController,
   dashboardUserController
 });

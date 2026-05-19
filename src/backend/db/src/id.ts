@@ -196,6 +196,7 @@ export let ID = createIdGenerator({
   consumerAuthClient: idType.sorted('coac'),
   consumerAuthClientSurface: idType.sorted('coacf'),
   consumerAuthAttempt: idType.sorted('coaa'),
+  consumerAuthTestAuthorization: idType.sorted('coata'),
   consumerAuthClientId: idType.unsorted('coaci'),
   consumerAuthClientSecret: idType.unsorted('coacs', 32),
 

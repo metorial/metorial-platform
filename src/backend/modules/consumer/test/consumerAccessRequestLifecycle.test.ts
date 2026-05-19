@@ -11,7 +11,7 @@ vi.mock('@metorial/db', () => ({
   }
 }));
 
-vi.mock('../src/services/consumerAccess', () => ({
+vi.mock('../src/services/consumerAccess/consumerAccess', () => ({
   consumerAccessService: {
     createConsumerAccess: vi.fn()
   }

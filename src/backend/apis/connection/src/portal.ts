@@ -8,6 +8,7 @@ import {
   consumerOAuthAuthorizationService,
   consumerOAuthRegistrationService,
   consumerOAuthRoutingService,
+  consumerOAuthTestAuthorizationService,
   consumerOAuthTokenService
 } from '@metorial/module-consumer';
 import { Authenticator } from '@metorial/rest';
@@ -203,6 +204,24 @@ export let createPortalHandler = (d: {
           }
         });
 
+      let testAuthId = getString(c.req.query('test_auth_id'));
+      if (testAuthId) {
+        let consumed = await consumerOAuthTestAuthorizationService.consumeTestAuthorization({
+          testAuthorizationId: testAuthId,
+          instance: route.instance,
+          portalOAuthAuthorization: authorization.attempt,
+          input: {
+            clientId: getString(c.req.query('client_id')),
+            redirectUri: getString(c.req.query('redirect_uri')),
+            codeChallenge: getString(c.req.query('code_challenge')),
+            codeChallengeMethod: getString(c.req.query('code_challenge_method')),
+            state: getString(c.req.query('state'))
+          }
+        });
+
+        return c.redirect(consumed.redirectUrl, 302);
+      }
+
       return c.redirect(authorization.redirectUrl, 302);
     },
 
@@ -368,6 +387,18 @@ export let createPluginHandler = (d: {
           }),
           302
         );
+      }
+
+      let testAuthId = getString(c.req.query('test_auth_id'));
+      if (testAuthId) {
+        let consumed = await consumerOAuthTestAuthorizationService.consumeTestAuthorization({
+          testAuthorizationId: testAuthId,
+          instance: route.instance,
+          portalOAuthAuthorization: authorization.authorization.attempt,
+          input: getPluginOAuthInput(c)
+        });
+
+        return c.redirect(consumed.redirectUrl, 302);
       }
 
       return c.redirect(authorization.redirectUrl, 302);

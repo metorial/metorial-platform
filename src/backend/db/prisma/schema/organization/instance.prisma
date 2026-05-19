@@ -75,4 +75,5 @@ model Instance {
   magicMcpSessions                     MagicMcpSession[]
   consumerClients                      ConsumerClient[]
   consumerAuthClients                  ConsumerAuthClient[]
+  consumerAuthTestAuthorizations       ConsumerAuthTestAuthorization[]
 }
