@@ -7,9 +7,13 @@ export let resolveActorIdsForLogFilters = async (d: {
   consumerIds?: string[];
   identityIds?: string[];
 }) => {
+  let hasActorFilter = !!d.actorIds?.length;
+
   let actorIds = new Set(d.actorIds ?? []);
 
   if (d.consumerIds?.length) {
+    hasActorFilter = true;
+
     let consumerActors = await db.consumerActor.findMany({
       where: {
         instanceOid: d.instance.oid,
@@ -30,6 +34,8 @@ export let resolveActorIdsForLogFilters = async (d: {
   }
 
   if (d.identityIds?.length) {
+    hasActorFilter = true;
+
     let paginator = await subspaceIdentityService.list({
       instance: d.instance,
       allowDeleted: true,
@@ -45,5 +51,5 @@ export let resolveActorIdsForLogFilters = async (d: {
     }
   }
 
-  return actorIds.size ? [...actorIds] : undefined;
+  return hasActorFilter ? [...actorIds] : undefined;
 };
