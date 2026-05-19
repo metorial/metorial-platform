@@ -6,6 +6,7 @@ import {
   fileCollectionDocsCategory,
   identityDocsCategory,
   integrationDocsCategory,
+  magicMcpDocsCategory,
   portalDocsCategory,
   providerDocsCategory,
   sessionDocsCategory,
@@ -285,6 +286,18 @@ let setControllerDocsMetadata = <
 ].forEach(controller =>
   setControllerDocsMetadata(controller, {
     category: fileCollectionDocsCategory
+  })
+);
+
+[
+  magicMcpEndpointController,
+  magicMcpServerController,
+  magicMcpSessionController,
+  magicMcpTokenController,
+  magicMcpGroupController
+].forEach(controller =>
+  setControllerDocsMetadata(controller, {
+    category: magicMcpDocsCategory
   })
 );
 

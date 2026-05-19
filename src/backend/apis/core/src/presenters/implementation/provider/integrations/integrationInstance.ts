@@ -1,7 +1,10 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
 import { integrationInstanceType } from '../../../types';
-import { v1IntegrationInstanceProviderPresenter } from './integrationInstanceProvider';
+import {
+  dashboardIntegrationInstanceProviderPresenter,
+  v1IntegrationInstanceProviderPresenter
+} from './integrationInstanceProvider';
 
 export let v1IntegrationInstancePresenter = Presenter.create(integrationInstanceType)
   .presenter(async ({ integrationInstance }, opts) => ({
@@ -53,5 +56,32 @@ export let v1IntegrationInstancePresenter = Presenter.create(integrationInstance
       updated_at: v.date(),
       archived_at: v.nullable(v.date())
     })
+  )
+  .build();
+
+export let dashboardIntegrationInstancePresenter = Presenter.create(integrationInstanceType)
+  .presenter(async ({ integrationInstance }, opts) => {
+    let inner = await v1IntegrationInstancePresenter
+      .present({ integrationInstance }, opts)
+      .run();
+
+    return {
+      ...inner,
+      providers: await Promise.all(
+        integrationInstance.providers.map(integrationInstanceProvider =>
+          dashboardIntegrationInstanceProviderPresenter
+            .present({ integrationInstanceProvider }, opts)
+            .run()
+        )
+      )
+    };
+  })
+  .schema(
+    v.intersection([
+      v1IntegrationInstancePresenter.schema,
+      v.object({
+        providers: v.array(dashboardIntegrationInstanceProviderPresenter.schema)
+      })
+    ])
   )
   .build();

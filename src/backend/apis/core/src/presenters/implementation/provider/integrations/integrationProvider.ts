@@ -30,20 +30,10 @@ export let v1IntegrationProviderSnapshot = Object.assign(
       description: integrationProvider.description,
       metadata: integrationProvider.metadata,
       tool_filter: presentToolFilter(integrationProvider.toolFilter),
-      provider: v1ProviderPreview(integrationProvider.provider),
-      deployment: await v1ProviderDeploymentPreviewPresenter
-        .present({ deployment: integrationProvider.deployment }, opts)
-        .run(),
-      auth_method: integrationProvider.authMethod
-        ? await v1ProviderAuthMethodPresenter
-            .present({ authMethod: integrationProvider.authMethod }, opts)
-            .run()
-        : null,
-      auth_credentials: integrationProvider.authCredentials
-        ? await v1ProviderAuthCredentialsPresenter
-            .present({ authCredentials: integrationProvider.authCredentials }, opts)
-            .run()
-        : null,
+      provider_id: integrationProvider.provider.id,
+      deployment_id: integrationProvider.deployment.id,
+      auth_method_id: integrationProvider.authMethod?.id ?? null,
+      auth_credentials_id: integrationProvider.authCredentials?.id ?? null,
       config: integrationProvider.config
         ? await v1ProviderConfigPreviewPresenter
             .present({ config: integrationProvider.config }, opts)
@@ -68,15 +58,51 @@ export let v1IntegrationProviderSnapshot = Object.assign(
       description: v.nullable(v.string()),
       metadata: v.nullable(v.record(v.any())),
       tool_filter: v.nullable(toolFilterPresenter.schema),
-      provider: v1ProviderPreview.schema,
-      deployment: v1ProviderDeploymentPreviewPresenter.schema,
-      auth_method: v.nullable(v1ProviderAuthMethodPresenter.schema),
-      auth_credentials: v.nullable(v1ProviderAuthCredentialsPresenter.schema),
+      provider_id: v.string(),
+      deployment_id: v.string(),
+      auth_method_id: v.nullable(v.string()),
+      auth_credentials_id: v.nullable(v.string()),
       config: v.nullable(v1ProviderConfigPreviewPresenter.schema),
       created_at: v.date(),
       updated_at: v.date(),
       archived_at: v.nullable(v.date())
     })
+  }
+);
+
+export let dashboardIntegrationProviderSnapshot = Object.assign(
+  async (integrationProvider: SubspaceIntegrationInstanceProviderSnapshot, opts?: any) => {
+    let inner = v1IntegrationProviderSnapshot(integrationProvider, opts);
+
+    return {
+      ...inner,
+
+      provider: v1ProviderPreview(integrationProvider.provider),
+      deployment: await v1ProviderDeploymentPreviewPresenter
+        .present({ deployment: integrationProvider.deployment }, opts)
+        .run(),
+      auth_method: integrationProvider.authMethod
+        ? await v1ProviderAuthMethodPresenter
+            .present({ authMethod: integrationProvider.authMethod }, opts)
+            .run()
+        : null,
+      auth_credentials: integrationProvider.authCredentials
+        ? await v1ProviderAuthCredentialsPresenter
+            .present({ authCredentials: integrationProvider.authCredentials }, opts)
+            .run()
+        : null
+    };
+  },
+  {
+    schema: v.intersection([
+      v1IntegrationProviderSnapshot.schema,
+      v.object({
+        provider: v1ProviderPreview.schema,
+        deployment: v1ProviderDeploymentPreviewPresenter.schema,
+        auth_method: v.nullable(v1ProviderAuthMethodPresenter.schema),
+        auth_credentials: v.nullable(v1ProviderAuthCredentialsPresenter.schema)
+      })
+    ])
   }
 );
 
@@ -90,20 +116,10 @@ export let v1IntegrationProviderPresenter = Presenter.create(integrationProvider
     description: integrationProvider.description,
     metadata: integrationProvider.metadata,
     tool_filter: presentToolFilter(integrationProvider.toolFilter),
-    provider: v1ProviderPreview(integrationProvider.provider),
-    deployment: await v1ProviderDeploymentPreviewPresenter
-      .present({ deployment: integrationProvider.deployment }, opts)
-      .run(),
-    auth_method: integrationProvider.authMethod
-      ? await v1ProviderAuthMethodPresenter
-          .present({ authMethod: integrationProvider.authMethod }, opts)
-          .run()
-      : null,
-    auth_credentials: integrationProvider.authCredentials
-      ? await v1ProviderAuthCredentialsPresenter
-          .present({ authCredentials: integrationProvider.authCredentials }, opts)
-          .run()
-      : null,
+    provider_id: integrationProvider.provider.id,
+    deployment_id: integrationProvider.deployment.id,
+    auth_method_id: integrationProvider.authMethod?.id ?? null,
+    auth_credentials_id: integrationProvider.authCredentials?.id ?? null,
     config: integrationProvider.config
       ? await v1ProviderConfigPreviewPresenter
           .present({ config: integrationProvider.config }, opts)
@@ -123,14 +139,59 @@ export let v1IntegrationProviderPresenter = Presenter.create(integrationProvider
       description: v.nullable(v.string()),
       metadata: v.nullable(v.record(v.any())),
       tool_filter: v.nullable(toolFilterPresenter.schema),
-      provider: v1ProviderPreview.schema,
-      deployment: v1ProviderDeploymentPreviewPresenter.schema,
-      auth_method: v.nullable(v1ProviderAuthMethodPresenter.schema),
-      auth_credentials: v.nullable(v1ProviderAuthCredentialsPresenter.schema),
+      provider_id: v.string(),
+      deployment_id: v.string(),
+      auth_method_id: v.nullable(v.string()),
+      auth_credentials_id: v.nullable(v.string()),
       config: v.nullable(v1ProviderConfigPreviewPresenter.schema),
       created_at: v.date(),
       updated_at: v.date(),
       archived_at: v.nullable(v.date())
     })
+  )
+  .build();
+
+export let dashboardIntegrationProviderPresenter = Presenter.create(integrationProviderType)
+  .presenter(async ({ integrationProvider }, opts) => {
+    let inner = await v1IntegrationProviderPresenter
+      .present({ integrationProvider }, opts)
+      .run();
+
+    return {
+      ...inner,
+      provider: v1ProviderPreview(integrationProvider.provider),
+      deployment: await v1ProviderDeploymentPreviewPresenter
+        .present({ deployment: integrationProvider.deployment }, opts)
+        .run(),
+      auth_method: integrationProvider.authMethod
+        ? await v1ProviderAuthMethodPresenter
+            .present({ authMethod: integrationProvider.authMethod }, opts)
+            .run()
+        : null,
+      auth_credentials: integrationProvider.authCredentials
+        ? await v1ProviderAuthCredentialsPresenter
+            .present({ authCredentials: integrationProvider.authCredentials }, opts)
+            .run()
+        : null
+    };
+  })
+  .schema(
+    v.intersection([
+      v1IntegrationProviderPresenter.schema,
+      v.object({
+        object: v.literal('integration.provider'),
+        id: v.string(),
+        status: v.enumOf(['active', 'archived', 'deleted']),
+        integration_id: v.string(),
+        name: v.string(),
+        description: v.nullable(v.string()),
+        metadata: v.nullable(v.record(v.any())),
+        tool_filter: v.nullable(toolFilterPresenter.schema),
+        provider: v1ProviderPreview.schema,
+        deployment: v1ProviderDeploymentPreviewPresenter.schema,
+        auth_method: v.nullable(v1ProviderAuthMethodPresenter.schema),
+        auth_credentials: v.nullable(v1ProviderAuthCredentialsPresenter.schema)
+      })
+    ])
   )
   .build();

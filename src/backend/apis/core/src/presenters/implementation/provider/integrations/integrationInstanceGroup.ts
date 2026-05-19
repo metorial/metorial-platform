@@ -49,3 +49,32 @@ export let v1IntegrationInstanceGroupPresenter = Presenter.create(integrationIns
     })
   )
   .build();
+
+export let dashboardIntegrationInstanceGroupPresenter = Presenter.create(
+  integrationInstanceGroupType
+)
+  .presenter(async ({ integrationInstanceGroup }, opts) => {
+    let inner = await v1IntegrationInstanceGroupPresenter
+      .present({ integrationInstanceGroup }, opts)
+      .run();
+
+    return {
+      ...inner,
+      providers: await Promise.all(
+        integrationInstanceGroup.providers.map(integrationInstanceGroupProvider =>
+          v1IntegrationInstanceGroupProviderPresenter
+            .present({ integrationInstanceGroupProvider }, opts)
+            .run()
+        )
+      )
+    };
+  })
+  .schema(
+    v.intersection([
+      v1IntegrationInstanceGroupPresenter.schema,
+      v.object({
+        providers: v.array(v1IntegrationInstanceGroupProviderPresenter.schema)
+      })
+    ])
+  )
+  .build();

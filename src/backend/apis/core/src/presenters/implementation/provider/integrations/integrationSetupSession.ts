@@ -60,14 +60,14 @@ export let v1IntegrationSetupSessionPresenter = Presenter.create(integrationSetu
     name: integrationSetupSession.name,
     description: integrationSetupSession.description,
     metadata: integrationSetupSession.metadata,
-    configuration: setupSessionConfigurationPresenter(integrationSetupSession.configuration),
+    configuration: setupSessionConfigurationPresenter(
+      integrationSetupSession.configuration
+    ) as any,
     redirect_url: integrationSetupSession.redirectUrl,
     integration_id: integrationSetupSession.integrationId,
-    integration_instance_id: integrationSetupSession.integrationInstanceId,
     integration_instance: await v1IntegrationInstancePresenter
       .present({ integrationInstance: integrationSetupSession.integrationInstance }, opts)
       .run(),
-    steps: integrationSetupSession.steps.map(setupSessionStepPresenter),
     created_at: integrationSetupSession.createdAt,
     updated_at: integrationSetupSession.updatedAt,
     expires_at: integrationSetupSession.expiresAt
@@ -84,33 +84,56 @@ export let v1IntegrationSetupSessionPresenter = Presenter.create(integrationSetu
       configuration: v.nullable(v.record(v.any())),
       redirect_url: v.nullable(v.string()),
       integration_id: v.string(),
-      integration_instance_id: v.string(),
       integration_instance: v1IntegrationInstancePresenter.schema,
-      steps: v.array(
-        v.object({
-          object: v.literal('integration.setup_session.step'),
-          id: v.string(),
-          status: v.enumOf([
-            'configured',
-            'pending',
-            'failed',
-            'completed',
-            'expired',
-            'archived',
-            'deleted'
-          ]),
-          url: v.string(),
-          integration_provider_id: v.string(),
-          provider: v1ProviderPreview.schema,
-          provider_setup_session_id: v.nullable(v.string()),
-          integration_instance_provider_id: v.nullable(v.string()),
-          created_at: v.date(),
-          updated_at: v.date()
-        })
-      ),
       created_at: v.date(),
       updated_at: v.date(),
       expires_at: v.date()
-    }) as any
+    })
+  )
+  .build();
+
+export let dashboardIntegrationSetupSessionPresenter = Presenter.create(
+  integrationSetupSessionType
+)
+  .presenter(async ({ integrationSetupSession }, opts) => {
+    let inner = await v1IntegrationSetupSessionPresenter
+      .present({ integrationSetupSession }, opts)
+      .run();
+
+    return {
+      ...inner,
+      integration_instance_id: integrationSetupSession.integrationInstanceId,
+      steps: integrationSetupSession.steps.map(setupSessionStepPresenter)
+    };
+  })
+  .schema(
+    v.intersection([
+      v1IntegrationSetupSessionPresenter.schema,
+      v.object({
+        integration_instance_id: v.string(),
+        steps: v.array(
+          v.object({
+            object: v.literal('integration.setup_session.step'),
+            id: v.string(),
+            status: v.enumOf([
+              'configured',
+              'pending',
+              'failed',
+              'completed',
+              'expired',
+              'archived',
+              'deleted'
+            ]),
+            url: v.string(),
+            integration_provider_id: v.string(),
+            provider: v1ProviderPreview.schema,
+            provider_setup_session_id: v.nullable(v.string()),
+            integration_instance_provider_id: v.nullable(v.string()),
+            created_at: v.date(),
+            updated_at: v.date()
+          })
+        )
+      })
+    ])
   )
   .build();

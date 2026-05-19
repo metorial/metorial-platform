@@ -11,7 +11,7 @@ import {
   v1ProviderConfigPreviewPresenter,
   v1ProviderDeploymentPreviewPresenter
 } from '../config';
-import { v1IntegrationProviderSnapshot } from '../integrations';
+import { dashboardIntegrationProviderSnapshot } from '../integrations';
 import { v1ProviderPreview } from '../provider';
 
 let presentToolFilter = (toolFilter: PrismaJson.ToolFilter | null | undefined) =>
@@ -19,7 +19,7 @@ let presentToolFilter = (toolFilter: PrismaJson.ToolFilter | null | undefined) =
 
 export let v1MagicMcpServerProviderPresenter = Presenter.create(magicMcpServerProviderType)
   .presenter(async ({ magicMcpServer, magicMcpServerProvider }, opts) => {
-    let integrationProvider = await v1IntegrationProviderSnapshot(
+    let integrationProvider: any = await dashboardIntegrationProviderSnapshot(
       magicMcpServerProvider.integrationProvider,
       opts
     );

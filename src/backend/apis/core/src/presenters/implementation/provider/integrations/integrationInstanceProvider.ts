@@ -5,7 +5,10 @@ import { toolFilterPresenter } from '../../_shared/toolFilter';
 import { v1ProviderAuthConfigPreviewPresenter } from '../auth/authConfigPreview';
 import { v1ProviderConfigPreviewPresenter } from '../config/configPreview';
 import { v1ProviderPreview } from '../provider';
-import { v1IntegrationProviderSnapshot } from './integrationProvider';
+import {
+  dashboardIntegrationProviderSnapshot,
+  v1IntegrationProviderSnapshot
+} from './integrationProvider';
 
 let presentToolFilter = (toolFilter: PrismaJson.ToolFilter | null | undefined) =>
   toolFilter ? toolFilterPresenter(toolFilter as any) : null;
@@ -63,5 +66,31 @@ export let v1IntegrationInstanceProviderPresenter = Presenter.create(
       updated_at: v.date(),
       archived_at: v.nullable(v.date())
     })
+  )
+  .build();
+
+export let dashboardIntegrationInstanceProviderPresenter = Presenter.create(
+  integrationInstanceProviderType
+)
+  .presenter(async ({ integrationInstanceProvider }, opts) => {
+    let inner = await v1IntegrationInstanceProviderPresenter
+      .present({ integrationInstanceProvider }, opts)
+      .run();
+
+    return {
+      ...inner,
+      integration_provider: await dashboardIntegrationProviderSnapshot(
+        integrationInstanceProvider.integrationProvider,
+        opts
+      )
+    };
+  })
+  .schema(
+    v.intersection([
+      v1IntegrationInstanceProviderPresenter.schema,
+      v.object({
+        integration_provider: v1IntegrationProviderSnapshot.schema
+      })
+    ])
   )
   .build();

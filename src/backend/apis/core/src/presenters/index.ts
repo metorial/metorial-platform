@@ -11,6 +11,13 @@ import {
   dashboardCustomProviderPresenter,
   dashboardFilePresenter,
   dashboardIdentityActorPresenter,
+  dashboardIntegrationInstanceGroupPresenter,
+  dashboardIntegrationInstanceGroupProviderPresenter,
+  dashboardIntegrationInstancePresenter,
+  dashboardIntegrationInstanceProviderPresenter,
+  dashboardIntegrationPresenter,
+  dashboardIntegrationProviderPresenter,
+  dashboardIntegrationSetupSessionPresenter,
   dashboardMagicMcpServerPresenter,
   dashboardMagicMcpServerProviderPresenter,
   dashboardProviderListingPresenter,
@@ -1013,43 +1020,42 @@ export let providerAuthCredentialsPresenter = declarePresenter(providerAuthCrede
 });
 
 export let integrationPresenter = declarePresenter(integrationType, {
-  mt_2025_01_01_dashboard: v1IntegrationPresenter,
+  mt_2025_01_01_dashboard: dashboardIntegrationPresenter,
   mt_2026_01_01_magnetar: v1IntegrationPresenter
 });
 
 export let integrationProviderPresenter = declarePresenter(integrationProviderType, {
-  mt_2025_01_01_dashboard: v1IntegrationProviderPresenter,
+  mt_2025_01_01_dashboard: dashboardIntegrationProviderPresenter,
   mt_2026_01_01_magnetar: v1IntegrationProviderPresenter
 });
 
 export let integrationInstancePresenter = declarePresenter(integrationInstanceType, {
-  mt_2025_01_01_dashboard: v1IntegrationInstancePresenter,
+  mt_2025_01_01_dashboard: dashboardIntegrationInstancePresenter,
   mt_2026_01_01_magnetar: v1IntegrationInstancePresenter
 });
 
 export let integrationSetupSessionPresenter = declarePresenter(integrationSetupSessionType, {
-  mt_2025_01_01_dashboard: v1IntegrationSetupSessionPresenter,
-  mt_2026_01_01_magnetar: v1IntegrationSetupSessionPresenter,
-  mt_2026_04_01_consumer: v1IntegrationSetupSessionPresenter
+  mt_2025_01_01_dashboard: dashboardIntegrationSetupSessionPresenter,
+  mt_2026_01_01_magnetar: v1IntegrationSetupSessionPresenter
 });
 
 export let integrationInstanceProviderPresenter = declarePresenter(
   integrationInstanceProviderType,
   {
-    mt_2025_01_01_dashboard: v1IntegrationInstanceProviderPresenter,
+    mt_2025_01_01_dashboard: dashboardIntegrationInstanceProviderPresenter,
     mt_2026_01_01_magnetar: v1IntegrationInstanceProviderPresenter
   }
 );
 
 export let integrationInstanceGroupPresenter = declarePresenter(integrationInstanceGroupType, {
-  mt_2025_01_01_dashboard: v1IntegrationInstanceGroupPresenter,
+  mt_2025_01_01_dashboard: dashboardIntegrationInstanceGroupPresenter,
   mt_2026_01_01_magnetar: v1IntegrationInstanceGroupPresenter
 });
 
 export let integrationInstanceGroupProviderPresenter = declarePresenter(
   integrationInstanceGroupProviderType,
   {
-    mt_2025_01_01_dashboard: v1IntegrationInstanceGroupProviderPresenter,
+    mt_2025_01_01_dashboard: dashboardIntegrationInstanceGroupProviderPresenter,
     mt_2026_01_01_magnetar: v1IntegrationInstanceGroupProviderPresenter
   }
 );
