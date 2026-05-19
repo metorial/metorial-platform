@@ -310,7 +310,6 @@ let setControllerDocsMetadata = <
   portalConsumerGroupController,
   portalConsumerProfileController,
   portalConsumerInviteController,
-  portalConsumerSurfaceProviderGroupController,
   providerTemplateController
 ].forEach(controller =>
   setControllerDocsMetadata(controller, {
@@ -449,23 +448,24 @@ export let magnetarController = Controller.create<any>(
     skillPluginController,
     skillPluginSkillController,
 
-    consumerController,
-    consumerSurfaceController,
-    portalController,
-    providerTemplateController,
-
     consumerSessionController,
     consumerProviderController,
 
     managementApiKeyController,
-    dashboardAssistantController
+    dashboardAssistantController,
 
-    // teamManagementController,
-    // portalConsumerGroupController,
-    // portalConsumerAccessController,
-    // portalConsumerProfileController,
-    // portalConsumerAuthFactorController,
-    // consumerSessionController,
+    consumerController,
+    consumerSurfaceController,
+
+    portalController,
+    portalAuthDashboardController,
+    portalConsumerAccessController,
+    portalConsumerAccessListingController,
+    portalConsumerAccessRequestController,
+    portalConsumerGroupController,
+    portalConsumerProfileController,
+    portalConsumerInviteController,
+    providerTemplateController
 
     // ssoTenantController,
     // ssoUserController,
