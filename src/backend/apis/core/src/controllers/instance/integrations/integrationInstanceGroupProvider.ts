@@ -63,7 +63,7 @@ export let integrationInstanceGroupProviderController = Controller.create(
       .get(
         instancePath(
           'integration-instance-group-providers',
-          'integrationInstanceGroupProviders.list'
+          'integrations.instanceGroups.providers.list'
         ),
         {
           name: 'List integration instance group providers',
@@ -143,7 +143,7 @@ export let integrationInstanceGroupProviderController = Controller.create(
       .get(
         instancePath(
           'integration-instance-group-providers/:integrationInstanceGroupProviderId',
-          'integrationInstanceGroupProviders.get'
+          'integrations.instanceGroups.providers.get'
         ),
         {
           name: 'Get integration instance group provider',
@@ -162,7 +162,7 @@ export let integrationInstanceGroupProviderController = Controller.create(
       .put(
         instancePath(
           'integration-instance-groups/:integrationInstanceGroupId/providers/:integrationInstanceProviderId',
-          'integrationInstanceGroupProviders.set'
+          'integrations.instanceGroups.providers.set'
         ),
         {
           name: 'Set integration instance group provider',
@@ -205,7 +205,7 @@ export let integrationInstanceGroupProviderController = Controller.create(
       .delete(
         instancePath(
           'integration-instance-group-providers/:integrationInstanceGroupProviderId',
-          'integrationInstanceGroupProviders.delete'
+          'integrations.instanceGroups.providers.delete'
         ),
         {
           name: 'Delete integration instance group provider',

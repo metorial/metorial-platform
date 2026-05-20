@@ -49,7 +49,7 @@ export let integrationInstanceGroupController = Controller.create(
   },
   {
     list: instanceGroup
-      .get(instancePath('integration-instance-groups', 'integrationInstanceGroups.list'), {
+      .get(instancePath('integration-instance-groups', 'integrations.instanceGroups.list'), {
         name: 'List integration instance groups',
         description: 'Returns a paginated list of integration instance groups.'
       })
@@ -114,7 +114,7 @@ export let integrationInstanceGroupController = Controller.create(
       .get(
         instancePath(
           'integration-instance-groups/:integrationInstanceGroupId',
-          'integrationInstanceGroups.get'
+          'integrations.instanceGroups.get'
         ),
         {
           name: 'Get integration instance group',
@@ -133,7 +133,7 @@ export let integrationInstanceGroupController = Controller.create(
       .post(
         instancePath(
           'integration-instance-groups/:integrationInstanceGroupId/session-template',
-          'integrationInstanceGroups.createSessionTemplate'
+          'integrations.instanceGroups.createSessionTemplate'
         ),
         {
           name: 'Create integration instance group session template',
@@ -168,7 +168,7 @@ export let integrationInstanceGroupController = Controller.create(
       .post(
         instancePath(
           'integration-instance-groups/:integrationInstanceGroupId/session',
-          'integrationInstanceGroups.createSession'
+          'integrations.instanceGroups.createSession'
         ),
         {
           name: 'Create integration instance group session',
@@ -213,10 +213,13 @@ export let integrationInstanceGroupController = Controller.create(
       }),
 
     create: instanceGroup
-      .post(instancePath('integration-instance-groups', 'integrationInstanceGroups.create'), {
-        name: 'Create integration instance group',
-        description: 'Creates a new integration instance group.'
-      })
+      .post(
+        instancePath('integration-instance-groups', 'integrations.instanceGroups.create'),
+        {
+          name: 'Create integration instance group',
+          description: 'Creates a new integration instance group.'
+        }
+      )
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
       .body(
         'default',
@@ -247,7 +250,7 @@ export let integrationInstanceGroupController = Controller.create(
       .patch(
         instancePath(
           'integration-instance-groups/:integrationInstanceGroupId',
-          'integrationInstanceGroups.update'
+          'integrations.instanceGroups.update'
         ),
         {
           name: 'Update integration instance group',
@@ -286,7 +289,7 @@ export let integrationInstanceGroupController = Controller.create(
       .delete(
         instancePath(
           'integration-instance-groups/:integrationInstanceGroupId',
-          'integrationInstanceGroups.delete'
+          'integrations.instanceGroups.delete'
         ),
         {
           name: 'Delete integration instance group',

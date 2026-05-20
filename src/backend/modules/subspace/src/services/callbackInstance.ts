@@ -3,10 +3,10 @@ import { subspace } from '../subspace';
 
 export let subspaceCallbackInstanceService = createSubspaceService(
   subspace.callbackInstance,
-  ['list', 'attach', 'detach'],
+  ['get', 'list', 'attach', 'detach'],
   inner => ({})
 );
 
 export type SubspaceCallbackInstance = Awaited<
-  ReturnType<typeof subspace.callbackInstance.attach>
+  ReturnType<typeof subspace.callbackInstance.get>
 >;

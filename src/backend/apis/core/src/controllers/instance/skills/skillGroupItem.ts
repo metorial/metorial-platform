@@ -48,7 +48,7 @@ export let skillGroupItemController = Controller.create(
   },
   {
     list: skillGroupGroup
-      .get(instancePath('skill-groups/:skillGroupId/items', 'skillGroups.items.list'), {
+      .get(instancePath('skill-groups/:skillGroupId/items', 'skills.groups.items.list'), {
         name: 'List skill group items',
         description: 'Returns a paginated list of items for a skill group.'
       })
@@ -116,7 +116,7 @@ export let skillGroupItemController = Controller.create(
       .get(
         instancePath(
           'skill-groups/:skillGroupId/items/:skillGroupItemId',
-          'skillGroups.items.get'
+          'skills.groups.items.get'
         ),
         {
           name: 'Get skill group item',
@@ -153,7 +153,7 @@ export let skillGroupItemController = Controller.create(
       }),
 
     create: skillGroupGroup
-      .post(instancePath('skill-groups/:skillGroupId/items', 'skillGroups.items.create'), {
+      .post(instancePath('skill-groups/:skillGroupId/items', 'skills.groups.items.create'), {
         name: 'Create skill group item',
         description: 'Adds a skill to a skill group.'
       })
@@ -180,7 +180,7 @@ export let skillGroupItemController = Controller.create(
       .delete(
         instancePath(
           'skill-groups/:skillGroupId/items/:skillGroupItemId',
-          'skillGroups.items.delete'
+          'skills.groups.items.delete'
         ),
         {
           name: 'Delete skill group item',

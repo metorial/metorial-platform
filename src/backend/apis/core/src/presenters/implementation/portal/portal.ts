@@ -1,5 +1,4 @@
 import { v } from '@lowerdeck/validation';
-import { getPortalAllowedRedirectUrlFilters } from '@metorial/module-consumer';
 import { Presenter } from '@metorial/presenter';
 import { portalType } from '../../types';
 
@@ -14,6 +13,7 @@ export let v1PortalPresenter = Presenter.create(portalType)
     allow_consumer_skill_authoring: portal.surface.allowConsumerSkillAuthoring,
     allow_consumer_skill_publishing: portal.surface.allowConsumerSkillPublishing,
     skill_configuration: {
+      object: 'portal.skill_configuration' as const,
       id: portal.surface.skillConfiguration.id,
       is_default: portal.surface.skillConfiguration.isDefault,
       allow_scripts: portal.surface.skillConfiguration.allowScripts,
@@ -23,10 +23,7 @@ export let v1PortalPresenter = Presenter.create(portalType)
     },
     auth: {
       object: 'portal.auth' as const,
-      session_expiry_time_in_seconds: portal.surface.sessionExpiryTimeInSeconds,
-      allowed_redirect_url_filters: getPortalAllowedRedirectUrlFilters(
-        portal.allowedRedirectUrlFilters
-      )
+      session_expiry_time_in_seconds: portal.surface.sessionExpiryTimeInSeconds
     },
     urls: [
       {
@@ -48,6 +45,7 @@ export let v1PortalPresenter = Presenter.create(portalType)
       allow_consumer_skill_authoring: v.boolean(),
       allow_consumer_skill_publishing: v.boolean(),
       skill_configuration: v.object({
+        object: v.literal('portal.skill_configuration'),
         id: v.string(),
         is_default: v.boolean(),
         allow_scripts: v.boolean(),
@@ -56,12 +54,7 @@ export let v1PortalPresenter = Presenter.create(portalType)
       }),
       auth: v.object({
         object: v.literal('portal.auth'),
-        session_expiry_time_in_seconds: v.number(),
-        allowed_redirect_url_filters: v.array(
-          v.object({
-            url: v.string()
-          })
-        )
+        session_expiry_time_in_seconds: v.number()
       }),
       urls: v.array(
         v.object({

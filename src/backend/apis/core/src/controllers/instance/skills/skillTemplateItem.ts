@@ -52,7 +52,7 @@ export let skillTemplateItemController = Controller.create(
   {
     list: skillTemplateGroup
       .get(
-        instancePath('skill-template/:skillTemplateId/items', 'skillTemplates.items.list'),
+        instancePath('skill-template/:skillTemplateId/items', 'skills.templates.items.list'),
         {
           name: 'List skill template items',
           description: 'Returns a paginated list of items for a skill template.'
@@ -93,7 +93,7 @@ export let skillTemplateItemController = Controller.create(
       .get(
         instancePath(
           'skill-template/:skillTemplateId/items/:skillTemplateItemId',
-          'skillTemplates.items.get'
+          'skills.templates.items.get'
         ),
         {
           name: 'Get skill template item',
@@ -126,7 +126,7 @@ export let skillTemplateItemController = Controller.create(
 
     create: skillTemplateGroup
       .post(
-        instancePath('skill-template/:skillTemplateId/items', 'skillTemplates.items.create'),
+        instancePath('skill-template/:skillTemplateId/items', 'skills.templates.items.create'),
         {
           name: 'Create skill template item',
           description: 'Adds a provider or integration item to a skill template.'
@@ -163,7 +163,7 @@ export let skillTemplateItemController = Controller.create(
       .delete(
         instancePath(
           'skill-template/:skillTemplateId/items/:skillTemplateItemId',
-          'skillTemplates.items.delete'
+          'skills.templates.items.delete'
         ),
         {
           name: 'Delete skill template item',
