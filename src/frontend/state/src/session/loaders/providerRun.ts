@@ -1,5 +1,10 @@
-import { DashboardInstanceProviderRunsListQuery } from '@metorial/dashboard-sdk';
+import {
+  DashboardInstanceProviderRunsListOutput,
+  DashboardInstanceProviderRunsListQuery
+} from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
+import { useMemo } from 'react';
+import { useAccumulatedPaginatedLoader } from '../../lib/useAccumulatedPaginatedLoader';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
 
@@ -54,6 +59,44 @@ export let useProviderRuns = (
   );
 
   return data;
+};
+
+type ProviderRunsItem = DashboardInstanceProviderRunsListOutput['items'][number];
+
+export let useAccumulatedProviderRuns = (
+  instanceId: string | null | undefined,
+  sessionId: string | null | undefined,
+  query?: DashboardInstanceProviderRunsListQuery,
+  options?: { pollIntervalMs?: number; pausePolling?: boolean }
+) => {
+  let queryKey = useMemo(
+    () =>
+      JSON.stringify({
+        instanceId: instanceId ?? null,
+        sessionId: sessionId ?? null,
+        query: query ?? null
+      }),
+    [instanceId, query, sessionId]
+  );
+
+  let enabledParams =
+    instanceId && sessionId
+      ? ({ instanceId, sessionId, ...query } as {
+          instanceId: string;
+          sessionId: string;
+        } & DashboardInstanceProviderRunsListQuery)
+      : null;
+
+  return useAccumulatedPaginatedLoader<
+    ProviderRunsItem,
+    { instanceId: string; sessionId: string } & DashboardInstanceProviderRunsListQuery
+  >({
+    enabledParams,
+    queryKey,
+    useLoader: params => providerRunsLoader.use(params),
+    pollIntervalMs: options?.pollIntervalMs,
+    pausePolling: options?.pausePolling
+  });
 };
 
 export let providerRunLoader = createLoader({

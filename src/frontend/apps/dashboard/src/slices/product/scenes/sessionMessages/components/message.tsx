@@ -1,3 +1,5 @@
+import { useInView } from 'framer-motion';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { Entry } from '../../session/components/entry';
 import type { AggregatedMessages } from '../../session/hooks/useAggregatedMessages';
 import { getMessagePresentation } from '../presentations/getMessagePresentation';
@@ -11,9 +13,9 @@ import {
 } from '../utils';
 import { MessageCard } from './messageCard';
 
-export let Message = ({
-  message,
-  aggregatedMessages
+export let useMessagePresentation = ({
+  aggregatedMessages,
+  message
 }: {
   message: DashboardInstanceSessionsMessagesGetOutput;
   aggregatedMessages: Map<string, AggregatedMessages>;
@@ -51,6 +53,94 @@ export let Message = ({
   let messageError = outputMessage?.error ?? message.error ?? undefined;
   let hasError = !!messageError || isToolError;
 
+  return {
+    agg,
+    date,
+    hasError,
+    input,
+    isToolError,
+    messageError,
+    output,
+    position,
+    presentation
+  };
+};
+
+let MessageBody = ({
+  date,
+  defaultViewMode,
+  error,
+  id,
+  input,
+  isToolError,
+  label,
+  output,
+  overviewSections,
+  position
+}: {
+  date: Date;
+  defaultViewMode?: 'overview' | 'properties' | 'raw';
+  error?: DashboardInstanceSessionsMessagesGetOutput['error'];
+  id?: string;
+  input?: Record<string, any> | null;
+  isToolError?: boolean;
+  label: React.ReactNode;
+  output?: Record<string, any> | null;
+  overviewSections?: ReturnType<
+    typeof getMessagePresentation
+  >['overviewSections'];
+  position: string;
+}) => {
+  let ref = useRef<HTMLDivElement>(null);
+  let inView = useInView(ref, { margin: '200px 0px' });
+  let [canRender, setCanRender] = useState(false);
+
+  useEffect(() => {
+    if (inView) setCanRender(true);
+  }, [inView]);
+
+  return (
+    <div ref={ref}>
+      {canRender ? (
+        <MessageCard
+          id={id}
+          label={label}
+          input={input}
+          output={output}
+          date={date}
+          position={position}
+          overviewSections={overviewSections}
+          defaultViewMode={defaultViewMode}
+          error={error}
+          isToolError={isToolError}
+        />
+      ) : null}
+    </div>
+  );
+};
+
+export let Message = ({
+  aggregatedMessages,
+  message
+}: {
+  message: DashboardInstanceSessionsMessagesGetOutput;
+  aggregatedMessages: Map<string, AggregatedMessages>;
+}) => {
+  let presentationData = useMessagePresentation({ aggregatedMessages, message });
+  if (!presentationData) return null;
+
+  let {
+    agg,
+    date,
+    hasError,
+    input,
+    isToolError,
+    messageError,
+    output,
+    position,
+    presentation
+  } = presentationData;
+
   return (
     <MessageStack>
       <Entry
@@ -61,7 +151,7 @@ export let Message = ({
       />
 
       {!presentation.hideCard && (
-        <MessageCard
+        <MessageBody
           id={agg?.originalId}
           label={presentation.label}
           input={input}
