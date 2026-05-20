@@ -72,7 +72,7 @@ export let v1IntegrationProviderSnapshot = Object.assign(
 
 export let dashboardIntegrationProviderSnapshot = Object.assign(
   async (integrationProvider: SubspaceIntegrationInstanceProviderSnapshot, opts?: any) => {
-    let inner = v1IntegrationProviderSnapshot(integrationProvider, opts);
+    let inner = await v1IntegrationProviderSnapshot(integrationProvider, opts);
 
     return {
       ...inner,

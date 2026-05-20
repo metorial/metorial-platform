@@ -215,6 +215,10 @@ export let IntegrationInstanceOverviewPage = () => {
                             <Badge size="2" color="green">
                               Configured
                             </Badge>
+                          ) : integrationInstanceData.status === 'draft' ? (
+                            <Badge size="2" color="orange">
+                              Pending
+                            </Badge>
                           ) : (
                             <Badge size="2" color="gray">
                               Inherited
