@@ -8,6 +8,19 @@ import { syncIntegrationInstanceSessionTemplatesQueue } from '@metorial-subspace
 import { env } from '../../env';
 import { indexIntegrationInstanceQueue } from '../search/integrationInstance';
 
+let isOwnedByIntegrationInstanceProvider = (
+  resource: {
+    owningIntegrationInstanceOid: bigint | null;
+    owningIntegrationInstanceProviderOid: bigint | null;
+  },
+  owner: {
+    integrationInstanceOid: bigint;
+    integrationInstanceProviderOid: bigint;
+  }
+) =>
+  resource.owningIntegrationInstanceOid === owner.integrationInstanceOid &&
+  resource.owningIntegrationInstanceProviderOid === owner.integrationInstanceProviderOid;
+
 export let integrationInstanceProviderSetQueue = createQueue<{
   integrationInstanceId: string;
   integrationInstanceProviderId: string;
@@ -45,9 +58,16 @@ export let integrationInstanceProviderSetQueueProcessor =
       });
 
       let seen = new Set<string>();
+      let owner = {
+        integrationInstanceOid: integrationInstanceProvider.integrationInstanceOid,
+        integrationInstanceProviderOid: integrationInstanceProvider.oid
+      };
 
       for (let current of versions) {
-        if (current.config?.status === 'active') {
+        if (
+          current.config?.status === 'active' &&
+          isOwnedByIntegrationInstanceProvider(current.config, owner)
+        ) {
           if (seen.has(current.config.oid.toString())) continue;
           seen.add(current.config.oid.toString());
 
@@ -60,7 +80,10 @@ export let integrationInstanceProviderSetQueueProcessor =
           });
         }
 
-        if (current.authConfig?.status === 'active') {
+        if (
+          current.authConfig?.status === 'active' &&
+          isOwnedByIntegrationInstanceProvider(current.authConfig, owner)
+        ) {
           if (seen.has(current.authConfig.oid.toString())) continue;
           seen.add(current.authConfig.oid.toString());
 
