@@ -11,12 +11,13 @@ let wrapperDependencies = {
   '@lowerdeck/serialize': 'latest'
 };
 let entrypointExtensions = ['.ts', '.js', '.cjs', '.mjs'];
+let prebuiltEntrypoints = ['dist/index.js', 'dist/index.cjs', 'dist/index.mjs'];
 let fallbackEntrypoints = [
+  ...prebuiltEntrypoints,
   'src/index.ts',
   'src/index.js',
   'index.ts',
-  'index.js',
-  'dist/index.js'
+  'index.js'
 ];
 
 let getArchiveFile = (files: DeploymentArchiveFile[], path: string) =>
@@ -47,7 +48,15 @@ let getSlateEntrypoint = (
 ): string => {
   if (packageJson?.main) {
     for (let candidate of getEntrypointCandidates(packageJson.main)) {
-      if (getArchiveFile(files, candidate)) return candidate;
+      if (getArchiveFile(files, candidate)) {
+        if (candidate.startsWith('src/') || candidate.endsWith('.ts')) {
+          for (let prebuiltEntrypoint of prebuiltEntrypoints) {
+            if (getArchiveFile(files, prebuiltEntrypoint)) return prebuiltEntrypoint;
+          }
+        }
+
+        return candidate;
+      }
     }
   }
 

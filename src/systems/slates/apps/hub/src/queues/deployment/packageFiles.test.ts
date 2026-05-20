@@ -106,4 +106,43 @@ describe('buildSlateDeploymentFiles', () => {
       '"file":"index.js"'
     );
   });
+
+  it('uses packed dist output instead of rebuilding a source main', () => {
+    let result = buildSlateDeploymentFiles([
+      {
+        path: 'package.json',
+        buffer: Buffer.from(
+          JSON.stringify({
+            name: '@scope/prebuilt-slate-with-source-main',
+            version: '3.0.0',
+            main: 'src/index.ts',
+            scripts: {
+              build: 'bunx @vercel/ncc build src/index.ts -o dist -m -s'
+            }
+          })
+        )
+      },
+      {
+        path: 'src/index.ts',
+        buffer: Buffer.from('export let provider = "source";')
+      },
+      {
+        path: 'dist/index.js',
+        buffer: Buffer.from('export let provider = "dist";')
+      }
+    ]);
+
+    expect(result.slateEntrypoint).toBe('dist/index.js');
+    expect(getFile(result.files, 'slates_entry_point.js').content).toContain(
+      "import { provider } from './dist/index.js';"
+    );
+
+    let functionBayJson = JSON.parse(getFile(result.files, 'function-bay.json').content);
+    expect(functionBayJson).toMatchObject({
+      entrypoint: 'slates_entry_point.js',
+      scripts: {
+        build: expect.stringContaining('Skipping slate build')
+      }
+    });
+  });
 });
