@@ -231,7 +231,8 @@ class toolCallServiceImpl {
         solutionOid: d.solution.oid,
         environmentOid: d.environment.oid,
 
-        message: normalizeStatusForGet(d).onlyParent
+        message: normalizeStatusForGet(d).onlyParent,
+        ...mergeRetentionWithDateFilter(d.tenant)
       },
       include
     });

@@ -114,7 +114,8 @@ class sessionConnectionServiceImpl {
         tenantOid: d.tenant.oid,
         solutionOid: d.solution.oid,
         environmentOid: d.environment.oid,
-        ...normalizeStatusForGet(d).hasParent
+        ...normalizeStatusForGet(d).hasParent,
+        ...getConnectionRetentionFilter(d.tenant)
       },
       include
     });

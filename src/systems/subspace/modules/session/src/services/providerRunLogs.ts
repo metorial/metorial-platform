@@ -1,3 +1,4 @@
+import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import {
   db,
@@ -6,6 +7,7 @@ import {
   type Solution,
   type Tenant
 } from '@metorial-subspace/db';
+import { mergeRetentionWithDateFilter } from '@metorial-subspace/list-utils';
 import { getBackend } from '@metorial-subspace/provider';
 
 export type ProviderRunLog = {
@@ -25,10 +27,19 @@ class providerRunLogsServiceImpl {
       sessionMessageIds?: string[];
     };
   }) {
-    let fullProviderRun = await db.providerRun.findFirstOrThrow({
-      where: { oid: d.providerRun.oid },
+    let fullProviderRun = await db.providerRun.findFirst({
+      where: {
+        oid: d.providerRun.oid,
+        tenantOid: d.tenant.oid,
+        solutionOid: d.solution.oid,
+        environmentOid: d.environment.oid,
+        ...mergeRetentionWithDateFilter(d.tenant)
+      },
       include: { providerVersion: true }
     });
+    if (!fullProviderRun) {
+      throw new ServiceError(notFoundError('provider_run', d.providerRun.id));
+    }
 
     let backend = await getBackend({ entity: fullProviderRun.providerVersion });
 

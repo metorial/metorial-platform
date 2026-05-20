@@ -3,8 +3,8 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
   db,
-  type SessionEvent,
   type Environment,
+  type SessionEvent,
   type SessionEventType,
   type Solution,
   type Tenant
@@ -161,7 +161,8 @@ class sessionEventServiceImpl {
         tenantOid: d.tenant.oid,
         solutionOid: d.solution.oid,
         environmentOid: d.environment.oid,
-        ...normalizeStatusForGet(d).onlyParent
+        ...normalizeStatusForGet(d).onlyParent,
+        ...mergeRetentionWithDateFilter(d.tenant)
       },
       include
     });

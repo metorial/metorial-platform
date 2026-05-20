@@ -75,7 +75,8 @@ class sessionErrorGroupServiceImpl {
       where: {
         id: d.sessionErrorGroupId,
         tenantOid: d.tenant.oid,
-        environmentOid: d.environment.oid
+        environmentOid: d.environment.oid,
+        ...mergeRetentionWithDateFilter(d.tenant)
       },
       include
     });

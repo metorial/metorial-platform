@@ -3,8 +3,8 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
   db,
-  type SessionMessage,
   type Environment,
+  type SessionMessage,
   type SessionMessageSource,
   type SessionMessageType,
   type Solution,
@@ -214,7 +214,11 @@ class sessionMessageServiceImpl {
         solutionOid: d.solution.oid,
         environmentOid: d.environment.oid,
 
-        AND: [normalizeStatusForGet(d).onlyParent, { status: { not: 'waiting_for_response' } }]
+        AND: [
+          normalizeStatusForGet(d).onlyParent,
+          { status: { not: 'waiting_for_response' } },
+          mergeRetentionWithDateFilter(d.tenant)
+        ]
       },
       include: include
     });

@@ -99,7 +99,8 @@ class providerRunServiceImpl {
         tenantOid: d.tenant.oid,
         solutionOid: d.solution.oid,
         environmentOid: d.environment.oid,
-        ...normalizeStatusForGet(d).onlyParent
+        ...normalizeStatusForGet(d).onlyParent,
+        ...mergeRetentionWithDateFilter(d.tenant)
       },
       include
     });
