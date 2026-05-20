@@ -11,6 +11,7 @@ import {
   type Integration,
   type IntegrationInstance,
   type IntegrationInstanceStatus,
+  type SessionTemplate,
   type Solution,
   type Tenant,
   type TransactionDB,
@@ -253,6 +254,25 @@ class integrationInstanceServiceImpl {
     }
 
     return integrationInstance;
+  }
+
+  private async ensureDefaultSessionTemplateForIntegrationInstance(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    integrationInstance: IntegrationInstance & {
+      defaultSessionTemplate?: SessionTemplate | null;
+    };
+  }) {
+    return await sessionTemplateService.upsertInternalLinkedSessionTemplate({
+      tenant: d.tenant,
+      solution: d.solution,
+      environment: d.environment,
+      sessionTemplate: d.integrationInstance.defaultSessionTemplate,
+      input: {
+        integrationInstance: d.integrationInstance
+      }
+    });
   }
 
   private async getAutomaticProviderInputs(d: {
@@ -594,6 +614,18 @@ class integrationInstanceServiceImpl {
           ...d.input,
           providers: [...(d.input.providers ?? []), ...automaticProviders]
         }
+      });
+
+      await this.ensureDefaultSessionTemplateForIntegrationInstance({
+        tenant: d.tenant,
+        solution: d.solution,
+        environment: d.environment,
+        integrationInstance
+      });
+
+      integrationInstance = await db.integrationInstance.findUniqueOrThrow({
+        where: { oid: integrationInstance.oid },
+        include: integrationInstanceInclude
       });
 
       await addAfterTransactionHook(async () =>
