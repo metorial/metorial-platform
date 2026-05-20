@@ -1,3 +1,5 @@
+export * from './assistants';
+export * from './conversations';
 export * from './magic-mcp-endpoints';
 export * from './magic-mcp-groups';
 export * from './magic-mcp-servers';

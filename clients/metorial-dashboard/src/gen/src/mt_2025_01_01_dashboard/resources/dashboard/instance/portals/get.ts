@@ -10,17 +10,14 @@ export type DashboardInstancePortalsGetOutput = {
   allowConsumerSkillAuthoring: boolean;
   allowConsumerSkillPublishing: boolean;
   skillConfiguration: {
+    object: 'portal.skill_configuration';
     id: string;
     isDefault: boolean;
     allowScripts: boolean;
     allowedFileExtensions: string[];
     allowNonStandardDirectories: boolean;
   };
-  auth: {
-    object: 'portal.auth';
-    sessionExpiryTimeInSeconds: number;
-    allowedRedirectUrlFilters: { url: string }[];
-  };
+  auth: { object: 'portal.auth'; sessionExpiryTimeInSeconds: number };
   urls: { type: 'default'; url: string }[];
   createdAt: Date;
   updatedAt: Date;
@@ -45,6 +42,7 @@ export let mapDashboardInstancePortalsGetOutput =
     skillConfiguration: mtMap.objectField(
       'skill_configuration',
       mtMap.object({
+        object: mtMap.objectField('object', mtMap.passthrough()),
         id: mtMap.objectField('id', mtMap.passthrough()),
         isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
         allowScripts: mtMap.objectField('allow_scripts', mtMap.passthrough()),
@@ -65,12 +63,6 @@ export let mapDashboardInstancePortalsGetOutput =
         sessionExpiryTimeInSeconds: mtMap.objectField(
           'session_expiry_time_in_seconds',
           mtMap.passthrough()
-        ),
-        allowedRedirectUrlFilters: mtMap.objectField(
-          'allowed_redirect_url_filters',
-          mtMap.array(
-            mtMap.object({ url: mtMap.objectField('url', mtMap.passthrough()) })
-          )
         )
       })
     ),

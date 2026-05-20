@@ -7,11 +7,13 @@ import {
   mapDashboardInstanceCallbacksInstancesCreateBody,
   mapDashboardInstanceCallbacksInstancesCreateOutput,
   mapDashboardInstanceCallbacksInstancesDeleteOutput,
+  mapDashboardInstanceCallbacksInstancesGetOutput,
   mapDashboardInstanceCallbacksInstancesListOutput,
   mapDashboardInstanceCallbacksInstancesListQuery,
   type DashboardInstanceCallbacksInstancesCreateBody,
   type DashboardInstanceCallbacksInstancesCreateOutput,
   type DashboardInstanceCallbacksInstancesDeleteOutput,
+  type DashboardInstanceCallbacksInstancesGetOutput,
   type DashboardInstanceCallbacksInstancesListOutput,
   type DashboardInstanceCallbacksInstancesListQuery
 } from '../resources';
@@ -74,6 +76,37 @@ export class MetorialManagementInstanceCallbacksInstancesEndpoint {
 
     return this._get(request).transform(
       mapDashboardInstanceCallbacksInstancesListOutput
+    );
+  }
+
+  /**
+   * @name Get callback instance
+   * @description Retrieves a specific callback instance by ID.
+   *
+   * @param `instanceId` - string
+   * @param `callbackId` - string
+   * @param `callbackInstanceId` - string
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardInstanceCallbacksInstancesGetOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  get(
+    instanceId: string,
+    callbackId: string,
+    callbackInstanceId: string,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceCallbacksInstancesGetOutput> {
+    let path = `instances/${instanceId}/callbacks/${callbackId}/instances/${callbackInstanceId}`;
+
+    let request = {
+      path,
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._get(request).transform(
+      mapDashboardInstanceCallbacksInstancesGetOutput
     );
   }
 
