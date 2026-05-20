@@ -6,8 +6,8 @@ import { consumerAccessService, consumerGroupService } from '@metorial/module-co
 import { magicMcpServerService, providerTemplateService } from '@metorial/module-magic';
 import {
   subspaceSkillGroupService,
-  subspaceSkillTemplateService,
-  subspaceSkillService
+  subspaceSkillService,
+  subspaceSkillTemplateService
 } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
@@ -18,18 +18,18 @@ import { consumerAccessPresenter } from '../../../presenters';
 import { portalGroup } from './portal';
 
 export let consumerAccessGroup = portalGroup.use(async ctx => {
-  if (!ctx.params.consumerAccessId) {
+  if (!ctx.params.accessId) {
     throw new ServiceError(
       badRequestError({
-        message: 'consumerAccessId is required',
-        description: 'The consumerAccessId path parameter is required.'
+        message: 'accessId is required',
+        description: 'The accessId path parameter is required.'
       })
     );
   }
 
   let consumerAccess = await consumerAccessService.getConsumerAccessById({
     consumerSurface: ctx.portal.surface,
-    consumerAccessId: ctx.params.consumerAccessId
+    consumerAccessId: ctx.params.accessId
   });
 
   return { consumerAccess };
@@ -37,14 +37,14 @@ export let consumerAccessGroup = portalGroup.use(async ctx => {
 
 export let portalConsumerAccessController = Controller.create(
   {
-    name: 'Portal Consumer Access',
+    name: 'Portal Access',
     description:
       'Manage which consumer groups can access portal provider templates and MCP servers.'
   },
   {
     list: portalGroup
-      .get(instancePath('portals/:portalId/consumer-access', 'portals.consumerAccess.list'), {
-        name: 'List portal consumer access',
+      .get(instancePath('portals/:portalId/access', 'portals.access.list'), {
+        name: 'List portal access',
         description: 'Returns a paginated list of consumer access rules for a portal.'
       })
       .use(checkAccess({ possibleScopes: ['instance.portal.access:read'] }))
@@ -110,16 +110,10 @@ export let portalConsumerAccessController = Controller.create(
       }),
 
     get: consumerAccessGroup
-      .get(
-        instancePath(
-          'portals/:portalId/consumer-access/:consumerAccessId',
-          'portals.consumerAccess.get'
-        ),
-        {
-          name: 'Get portal consumer access',
-          description: 'Retrieves a portal consumer access rule by ID.'
-        }
-      )
+      .get(instancePath('portals/:portalId/access/:accessId', 'portals.access.get'), {
+        name: 'Get portal access',
+        description: 'Retrieves a portal access rule by ID.'
+      })
       .use(checkAccess({ possibleScopes: ['instance.portal.access:read'] }))
       .use(hasFlags(['paid-portals', 'portals-access']))
       .output(consumerAccessPresenter)
@@ -130,13 +124,10 @@ export let portalConsumerAccessController = Controller.create(
       }),
 
     create: portalGroup
-      .post(
-        instancePath('portals/:portalId/consumer-access', 'portals.consumerAccess.create'),
-        {
-          name: 'Create portal consumer access',
-          description: 'Creates a new consumer access rule for the portal.'
-        }
-      )
+      .post(instancePath('portals/:portalId/access', 'portals.access.create'), {
+        name: 'Create portal access',
+        description: 'Creates a new consumer access rule for the portal.'
+      })
       .use(checkAccess({ possibleScopes: ['instance.portal.access:write'] }))
       .use(hasFlags(['paid-portals', 'portals-access']))
       .body(
@@ -308,16 +299,10 @@ export let portalConsumerAccessController = Controller.create(
       }),
 
     update: consumerAccessGroup
-      .patch(
-        instancePath(
-          'portals/:portalId/consumer-access/:consumerAccessId',
-          'portals.consumerAccess.update'
-        ),
-        {
-          name: 'Update portal consumer access',
-          description: 'Updates the shared listing fields for a portal consumer access rule.'
-        }
-      )
+      .patch(instancePath('portals/:portalId/access/:accessId', 'portals.access.update'), {
+        name: 'Update portal access',
+        description: 'Updates the shared listing fields for a portal access rule.'
+      })
       .use(checkAccess({ possibleScopes: ['instance.portal.access:write'] }))
       .use(hasFlags(['paid-portals', 'portals-access']))
       .body(
@@ -343,16 +328,10 @@ export let portalConsumerAccessController = Controller.create(
       }),
 
     delete: consumerAccessGroup
-      .delete(
-        instancePath(
-          'portals/:portalId/consumer-access/:consumerAccessId',
-          'portals.consumerAccess.delete'
-        ),
-        {
-          name: 'Delete portal consumer access',
-          description: 'Deletes a consumer access rule from the portal.'
-        }
-      )
+      .delete(instancePath('portals/:portalId/access/:accessId', 'portals.access.delete'), {
+        name: 'Delete portal access',
+        description: 'Deletes a consumer access rule from the portal.'
+      })
       .use(checkAccess({ possibleScopes: ['instance.portal.access:write'] }))
       .use(hasFlags(['paid-portals', 'portals-access']))
       .output(consumerAccessPresenter)

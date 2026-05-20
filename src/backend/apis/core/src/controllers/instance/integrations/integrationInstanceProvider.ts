@@ -60,7 +60,10 @@ export let integrationInstanceProviderController = Controller.create(
   {
     list: instanceGroup
       .get(
-        instancePath('integration-instance-providers', 'integrationInstanceProviders.list'),
+        instancePath(
+          'integration-instance-providers',
+          'integrations.instances.providers.list'
+        ),
         {
           name: 'List integration instance providers',
           description: 'Returns a paginated list of integration instance providers.'
@@ -123,7 +126,7 @@ export let integrationInstanceProviderController = Controller.create(
       .get(
         instancePath(
           'integration-instance-providers/:integrationInstanceProviderId',
-          'integrationInstanceProviders.get'
+          'integrations.instances.providers.get'
         ),
         {
           name: 'Get integration instance provider',
@@ -142,7 +145,7 @@ export let integrationInstanceProviderController = Controller.create(
       .put(
         instancePath(
           'integration-instances/:integrationInstanceId/providers/:providerId',
-          'integrationInstanceProviders.set'
+          'integrations.instances.providers.set'
         ),
         {
           name: 'Set integration instance provider',

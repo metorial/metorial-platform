@@ -11,18 +11,18 @@ import { consumerAccessRequestPresenter } from '../../../presenters';
 import { portalGroup } from './portal';
 
 let portalConsumerAccessRequestGroup = portalGroup.use(async ctx => {
-  if (!ctx.params.consumerAccessRequestId) {
+  if (!ctx.params.accessRequestId) {
     throw new ServiceError(
       badRequestError({
-        message: 'consumerAccessRequestId is required',
-        description: 'The consumerAccessRequestId path parameter is required.'
+        message: 'accessRequestId is required',
+        description: 'The accessRequestId path parameter is required.'
       })
     );
   }
 
   let consumerAccessRequest = await consumerAccessRequestService.getConsumerAccessRequestById({
     consumerSurface: ctx.portal.surface,
-    consumerAccessRequestId: ctx.params.consumerAccessRequestId
+    consumerAccessRequestId: ctx.params.accessRequestId
   });
 
   return { consumerAccessRequest };
@@ -30,14 +30,14 @@ let portalConsumerAccessRequestGroup = portalGroup.use(async ctx => {
 
 export let portalConsumerAccessRequestController = Controller.create(
   {
-    name: 'Portal Consumer Access Requests',
-    description: 'Review and resolve consumer access requests for a portal.'
+    name: 'Portal Access Requests',
+    description: 'Review and resolve access requests for a portal.'
   },
   {
     list: portalGroup
       .get(instancePath('portals/:portalId/access-requests', 'portals.accessRequests.list'), {
-        name: 'List portal consumer access requests',
-        description: 'Returns a paginated list of consumer access requests for a portal.'
+        name: 'List portal access requests',
+        description: 'Returns a paginated list of access requests for a portal.'
       })
       .use(checkAccess({ possibleScopes: ['instance.portal.access:read'] }))
       .use(hasFlags(['paid-portals', 'portals-access']))
@@ -74,12 +74,12 @@ export let portalConsumerAccessRequestController = Controller.create(
     get: portalConsumerAccessRequestGroup
       .get(
         instancePath(
-          'portals/:portalId/access-requests/:consumerAccessRequestId',
+          'portals/:portalId/access-requests/:accessRequestId',
           'portals.accessRequests.get'
         ),
         {
-          name: 'Get portal consumer access request',
-          description: 'Retrieves a consumer access request by ID.'
+          name: 'Get portal access request',
+          description: 'Retrieves a access request by ID.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.portal.access:read'] }))
@@ -94,12 +94,12 @@ export let portalConsumerAccessRequestController = Controller.create(
     review: portalConsumerAccessRequestGroup
       .patch(
         instancePath(
-          'portals/:portalId/access-requests/:consumerAccessRequestId',
+          'portals/:portalId/access-requests/:accessRequestId',
           'portals.accessRequests.update'
         ),
         {
-          name: 'Review portal consumer access request',
-          description: 'Approves or rejects a consumer access request.'
+          name: 'Review portal access request',
+          description: 'Approves or rejects a access request.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.portal.access:write'] }))

@@ -52,7 +52,7 @@ export let integrationInstanceController = Controller.create(
   },
   {
     list: instanceGroup
-      .get(instancePath('integration-instances', 'integrationInstances.list'), {
+      .get(instancePath('integration-instances', 'integrations.instances.list'), {
         name: 'List integration instances',
         description: 'Returns a paginated list of integration instances.'
       })
@@ -117,7 +117,7 @@ export let integrationInstanceController = Controller.create(
       .get(
         instancePath(
           'integration-instances/:integrationInstanceId',
-          'integrationInstances.get'
+          'integrations.instances.get'
         ),
         {
           name: 'Get integration instance',
@@ -134,7 +134,7 @@ export let integrationInstanceController = Controller.create(
       .post(
         instancePath(
           'integration-instances/:integrationInstanceId/session-template',
-          'integrationInstances.createSessionTemplate'
+          'integrations.instances.createSessionTemplate'
         ),
         {
           name: 'Create integration instance session template',
@@ -168,7 +168,7 @@ export let integrationInstanceController = Controller.create(
       .post(
         instancePath(
           'integration-instances/:integrationInstanceId/session',
-          'integrationInstances.createSession'
+          'integrations.instances.createSession'
         ),
         {
           name: 'Create integration instance session',
@@ -213,7 +213,7 @@ export let integrationInstanceController = Controller.create(
       }),
 
     create: instanceGroup
-      .post(instancePath('integration-instances', 'integrationInstances.create'), {
+      .post(instancePath('integration-instances', 'integrations.instances.create'), {
         name: 'Create integration instance',
         description: 'Creates a new integration instance.'
       })
@@ -256,7 +256,7 @@ export let integrationInstanceController = Controller.create(
       .patch(
         instancePath(
           'integration-instances/:integrationInstanceId',
-          'integrationInstances.update'
+          'integrations.instances.update'
         ),
         {
           name: 'Update integration instance',
@@ -302,7 +302,7 @@ export let integrationInstanceController = Controller.create(
       .delete(
         instancePath(
           'integration-instances/:integrationInstanceId',
-          'integrationInstances.delete'
+          'integrations.instances.delete'
         ),
         {
           name: 'Delete integration instance',

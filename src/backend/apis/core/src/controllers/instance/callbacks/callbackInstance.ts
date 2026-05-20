@@ -71,6 +71,29 @@ export let callbackInstanceController = Controller.create(
         );
       }),
 
+    get: callbackGroup
+      .get(
+        instancePath(
+          'callbacks/:callbackId/instances/:callbackInstanceId',
+          'callbacks.instances.get'
+        ),
+        {
+          name: 'Get callback instance',
+          description: 'Retrieves a specific callback instance by ID.'
+        }
+      )
+      .use(checkAccess({ possibleScopes: ['instance.callback:read'] }))
+      .output(callbackInstancePresenter)
+      .do(async ctx => {
+        let callbackInstance = await subspaceCallbackInstanceService.get({
+          instance: ctx.instance,
+          callbackId: ctx.callback.id,
+          callbackInstanceId: ctx.params.callbackInstanceId
+        });
+
+        return callbackInstancePresenter.present({ callbackInstance });
+      }),
+
     create: callbackGroup
       .post(instancePath('callbacks/:callbackId/instances', 'callbacks.instances.create'), {
         name: 'Create callback instance',

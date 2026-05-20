@@ -37,7 +37,7 @@ export let integrationProviderController = Controller.create(
   },
   {
     list: instanceGroup
-      .get(instancePath('integration-providers', 'integrationProviders.list'), {
+      .get(instancePath('integration-providers', 'integrations.providers.list'), {
         name: 'List integration providers',
         description: 'Returns a paginated list of integration providers.'
       })
@@ -98,7 +98,7 @@ export let integrationProviderController = Controller.create(
       .get(
         instancePath(
           'integration-providers/:integrationProviderId',
-          'integrationProviders.get'
+          'integrations.providers.get'
         ),
         {
           name: 'Get integration provider',
@@ -112,7 +112,7 @@ export let integrationProviderController = Controller.create(
       ),
 
     create: instanceGroup
-      .post(instancePath('integration-providers', 'integrationProviders.create'), {
+      .post(instancePath('integration-providers', 'integrations.providers.create'), {
         name: 'Create integration provider',
         description: 'Creates a new integration provider.'
       })
@@ -155,7 +155,7 @@ export let integrationProviderController = Controller.create(
       .patch(
         instancePath(
           'integration-providers/:integrationProviderId',
-          'integrationProviders.update'
+          'integrations.providers.update'
         ),
         {
           name: 'Update integration provider',
@@ -199,7 +199,7 @@ export let integrationProviderController = Controller.create(
       .delete(
         instancePath(
           'integration-providers/:integrationProviderId',
-          'integrationProviders.delete'
+          'integrations.providers.delete'
         ),
         {
           name: 'Delete integration provider',

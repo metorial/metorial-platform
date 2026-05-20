@@ -16,8 +16,11 @@ export let callbackInstanceApp = callbackApp.use(async ctx => {
   let callbackInstanceId = ctx.body.callbackInstanceId;
   if (!callbackInstanceId) throw new Error('CallbackInstance ID is required');
 
-  let callbackInstance = await callbackInstanceService.getById({
-    callback: ctx.callback,
+  let callbackInstance = await callbackInstanceService.get({
+    tenant: ctx.tenant,
+    solution: ctx.solution,
+    environment: ctx.environment,
+    callbackId: ctx.callback.id,
     callbackInstanceId
   });
 
@@ -68,6 +71,26 @@ export let callbackInstanceController = app.controller({
       return Paginator.presentLight(list, instance =>
         callbackInstancePresenter(instance, triggersMap.get(instance.id))
       );
+    }),
+
+  get: callbackInstanceApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        environmentId: v.string(),
+        callbackId: v.string(),
+        callbackInstanceId: v.string()
+      })
+    )
+    .do(async ctx => {
+      let triggers = await enrichSingleCallbackInstanceTriggers(
+        ctx.tenant,
+        ctx.callback,
+        ctx.callbackInstance
+      );
+
+      return callbackInstancePresenter(ctx.callbackInstance, triggers);
     }),
 
   attach: callbackApp

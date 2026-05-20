@@ -35,10 +35,13 @@ export let portalConsumerInviteController = Controller.create(
   },
   {
     list: portalGroup
-      .get(instancePath('portals/:portalId/invites', 'portals.consumerInvites.list'), {
-        name: 'List portal consumer invites',
-        description: 'Returns a paginated list of invites for a portal.'
-      })
+      .get(
+        instancePath('portals/:portalId/consumer-invites', 'portals.consumerInvites.list'),
+        {
+          name: 'List portal consumer invites',
+          description: 'Returns a paginated list of invites for a portal.'
+        }
+      )
       .use(checkAccess({ possibleScopes: ['instance.portal.consumers:read'] }))
       .use(hasFlags(['paid-portals', 'portals-access']))
       .outputList(consumerInvitePresenter)
@@ -70,10 +73,13 @@ export let portalConsumerInviteController = Controller.create(
       }),
 
     create: portalGroup
-      .post(instancePath('portals/:portalId/invites', 'portals.consumerInvites.create'), {
-        name: 'Create portal consumer invite',
-        description: 'Invites a consumer to a portal.'
-      })
+      .post(
+        instancePath('portals/:portalId/consumer-invites', 'portals.consumerInvites.create'),
+        {
+          name: 'Create portal consumer invite',
+          description: 'Invites a consumer to a portal.'
+        }
+      )
       .use(checkAccess({ possibleScopes: ['instance.portal.consumers:write'] }))
       .use(hasFlags(['paid-portals', 'portals-access']))
       .body(
@@ -104,7 +110,7 @@ export let portalConsumerInviteController = Controller.create(
     get: consumerInviteGroup
       .get(
         instancePath(
-          'portals/:portalId/invites/:consumerInviteId',
+          'portals/:portalId/consumer-invites/:consumerInviteId',
           'portals.consumerInvites.get'
         ),
         {
