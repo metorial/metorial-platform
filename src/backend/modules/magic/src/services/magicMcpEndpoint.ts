@@ -397,9 +397,18 @@ class MagicMcpEndpointImpl {
       },
       select: {
         id: true,
-        oid: true
+        oid: true,
+        status: true
       }
     });
+
+    if (servers.some(server => server.status !== 'active')) {
+      throw new ServiceError(
+        preconditionFailedError({
+          message: 'Magic MCP endpoints can only be linked to active magic MCP servers'
+        })
+      );
+    }
 
     let magicMcpEndpoint = await withTransaction(async db => {
       if (servers.length) {

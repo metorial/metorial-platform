@@ -20,6 +20,7 @@ import {
   resolveMagicMcpTargetByIdOrAliasSafe,
   syncMagicMcpSubspaceSession
 } from '@metorial/module-magic';
+import { assertMagicMcpTargetLinkedResourcesActive } from '@metorial/module-magic';
 import {
   proxyMcpRequestToSubspace,
   type SubspaceProxyAgentClient
@@ -253,6 +254,8 @@ export let resolveMagicMcpSubspaceSession = async (d: {
       magicMcpTarget
     });
   }
+
+  await assertMagicMcpTargetLinkedResourcesActive(magicMcpTarget);
 
   let subspaceSessionId = await ensureMagicMcpSubspaceSession(magicMcpTarget);
   let consumerToken = magicMcpToken

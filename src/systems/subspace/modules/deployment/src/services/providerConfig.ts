@@ -25,6 +25,8 @@ import {
   withTransaction
 } from '@metorial-subspace/db';
 import {
+  assertNoActiveIdentityCredentialConfigLink,
+  assertNoActiveIntegrationInstanceProviderConfigLink,
   checkDeletedEdit,
   checkDeletedRelation,
   type DateFilter,
@@ -634,6 +636,20 @@ class providerConfigServiceImpl {
     checkDeletedEdit(d.providerConfig, 'archive');
     await this.assertNoActiveIntegrationProviderLink(d);
     this.assertCanArchiveOwned(d);
+    await assertNoActiveIntegrationInstanceProviderConfigLink({
+      tenant: d.tenant,
+      solution: d.solution,
+      environment: d.environment,
+      configOid: d.providerConfig.oid,
+      resourceId: d.providerConfig.id
+    });
+    await assertNoActiveIdentityCredentialConfigLink({
+      tenant: d.tenant,
+      solution: d.solution,
+      environment: d.environment,
+      configOid: d.providerConfig.oid,
+      resourceId: d.providerConfig.id
+    });
 
     return withTransaction(async db => {
       let archivedAt = new Date();

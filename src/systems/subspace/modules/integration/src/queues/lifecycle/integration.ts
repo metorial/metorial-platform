@@ -1,6 +1,7 @@
 import { createQueue } from '@lowerdeck/queue';
 import { db } from '@metorial-subspace/db';
 import { identityInternalService } from '@metorial-subspace/module-identity';
+import { reconcileSkillProviderLinksQueue } from '@metorial-subspace/module-skills/src/queues/reconciler/reconcileSkillProviderLink';
 import { env } from '../../env';
 import {
   createIntegrationProviderVersion,
@@ -39,6 +40,35 @@ export let integrationArchivedQueueProcessor = integrationArchivedQueue.process(
     where: { id: data.integrationId }
   });
   if (!integration || integration.status !== 'archived') return;
+
+  await db.integrationSetupSession.updateMany({
+    where: {
+      integrationOid: integration.oid,
+      status: { in: ['pending', 'successful'] }
+    },
+    data: {
+      status: 'archived'
+    }
+  });
+
+  let skillIntegrations = await db.skillIntegration.findMany({
+    where: {
+      integrationOid: integration.oid,
+      status: 'active'
+    },
+    select: {
+      skill: {
+        select: {
+          id: true
+        }
+      }
+    }
+  });
+  if (skillIntegrations.length) {
+    await reconcileSkillProviderLinksQueue.addMany(
+      skillIntegrations.map(skillIntegration => ({ skillId: skillIntegration.skill.id }))
+    );
+  }
 
   await indexIntegrationQueue.add({ integrationId: data.integrationId });
   await integrationArchiveInstancesManyQueue.add({ integrationId: data.integrationId });

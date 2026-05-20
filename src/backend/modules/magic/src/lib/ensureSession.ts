@@ -1,22 +1,20 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { ID, Instance, withTransaction } from '@metorial/db';
 import { ensureMagicMcpEndpointBacking, ensureMagicMcpServerBacking } from './backing';
+import { assertMagicMcpTargetReadyForConnect } from './magicMcpConnectHealth';
 import { MagicMcpResolvedTarget } from './magicMcpTarget';
 
 let ensureServerBackingSession = async (
   target: MagicMcpResolvedTarget & { type: 'server' }
 ) => {
-  let server = target.target;
-  if (!server.hasSubspaceBacking || !server.subspaceEphemeralManagedSessionId) {
-    server = {
-      ...server,
-      ...(await ensureMagicMcpServerBacking({
-        instance: server.instance as Instance,
-        server,
-        isReconciliation: true
-      }))
-    };
-  }
+  let server = {
+    ...target.target,
+    ...(await ensureMagicMcpServerBacking({
+      instance: target.target.instance as Instance,
+      server: target.target,
+      isReconciliation: true
+    }))
+  };
 
   if (!server.subspaceEphemeralManagedSessionId) {
     throw new ServiceError(
@@ -27,25 +25,25 @@ let ensureServerBackingSession = async (
     );
   }
 
+  await assertMagicMcpTargetReadyForConnect({
+    type: 'server',
+    target: {
+      ...target.target,
+      ...server
+    }
+  });
+
   return server.subspaceEphemeralManagedSessionId;
 };
 
 let ensureEndpointBackingSession = async (
   target: MagicMcpResolvedTarget & { type: 'endpoint' }
 ) => {
-  let endpoint = target.target;
-  if (!endpoint.hasSubspaceBacking || !endpoint.subspaceEphemeralManagedSessionId) {
-    let backingEndpoint = await ensureMagicMcpEndpointBacking({
-      instance: endpoint.instance as Instance,
-      endpoint,
-      isReconciliation: true
-    });
-    endpoint = {
-      ...endpoint,
-      subspaceEphemeralManagedSessionId: backingEndpoint.subspaceEphemeralManagedSessionId,
-      hasSubspaceBacking: backingEndpoint.hasSubspaceBacking
-    };
-  }
+  let endpoint = await ensureMagicMcpEndpointBacking({
+    instance: target.target.instance as Instance,
+    endpoint: target.target,
+    isReconciliation: true
+  });
 
   if (!endpoint.subspaceEphemeralManagedSessionId) {
     throw new ServiceError(
@@ -55,6 +53,14 @@ let ensureEndpointBackingSession = async (
       })
     );
   }
+
+  await assertMagicMcpTargetReadyForConnect({
+    type: 'endpoint',
+    target: {
+      ...target.target,
+      ...endpoint
+    }
+  });
 
   return endpoint.subspaceEphemeralManagedSessionId;
 };

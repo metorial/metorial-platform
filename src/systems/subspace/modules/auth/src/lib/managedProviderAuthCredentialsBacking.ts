@@ -4,7 +4,6 @@ import {
   addAfterTransactionHook,
   db,
   getId,
-  type Prisma,
   snowflake,
   type Solution,
   type Tenant,
@@ -12,46 +11,18 @@ import {
 } from '@metorial-subspace/db';
 import { getBackend } from '@metorial-subspace/provider';
 import { normalizeManagedOAuthScopeIds } from './managedOAuthScopes';
+import {
+  type ManagedProviderAuthCredentialsBackingSource,
+  managedProviderAuthCredentialsBackingSourceInclude
+} from './managedProviderAuthCredentialsBackingInclude';
 import { env } from '../env';
 import {
   providerAuthCredentialsCreatedQueue,
   providerAuthCredentialsUpdatedQueue
 } from '../queues/lifecycle/providerAuthCredentials';
 
-export let managedProviderAuthCredentialsBackingSourceInclude = {
-  provider: {
-    include: {
-      defaultVariant: true
-    }
-  },
-  initialProviderAuthMethod: {
-    include: {
-      provider: {
-        include: {
-          defaultVariant: true
-        }
-      }
-    }
-  },
-  backings: {
-    include: {
-      providerAuthCredentials: {
-        select: {
-          oid: true,
-          id: true,
-          status: true,
-          scopes: true,
-          updatedAt: true
-        }
-      }
-    }
-  }
-};
-
-export type ManagedProviderAuthCredentialsBackingSource =
-  Prisma.ManagedProviderAuthCredentialsGetPayload<{
-    include: typeof managedProviderAuthCredentialsBackingSourceInclude;
-  }>;
+export type { ManagedProviderAuthCredentialsBackingSource } from './managedProviderAuthCredentialsBackingInclude';
+export { managedProviderAuthCredentialsBackingSourceInclude } from './managedProviderAuthCredentialsBackingInclude';
 
 let createManagedBackingLock = createLock({
   name: 'sub/auth/acred/mng/backing/lock',
