@@ -9,7 +9,7 @@ let include = {
 };
 
 class providerRunUsageRecordServiceImpl {
-  async listProviderRunUsageRecords(d: { tenant: Tenant; solution: Solution }) {
+  async listProviderRunUsageRecords(d: { tenant?: Tenant; solution: Solution }) {
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
@@ -17,7 +17,7 @@ class providerRunUsageRecordServiceImpl {
             ...opts,
             where: {
               solutionOid: d.solution.oid,
-              ...mergeRetentionWithDateFilter(d.tenant)
+              ...(d.tenant ? mergeRetentionWithDateFilter(d.tenant) : {})
             },
             include
           })

@@ -12,6 +12,15 @@ export let tenantWithoutEnvironmentApp = app.use(async ctx => {
   return { tenant };
 });
 
+export let tenantOptionalWithoutEnvironmentApp = app.use(async ctx => {
+  let tenantId = ctx.body.tenantId;
+  if (!tenantId) return { tenant: undefined };
+
+  let tenant = await tenantService.getTenantById({ id: tenantId });
+
+  return { tenant };
+});
+
 export let tenantApp = tenantWithoutEnvironmentApp.use(async ctx => {
   let tenantId = ctx.body.tenantId;
   let environmentId = ctx.body.environmentId;

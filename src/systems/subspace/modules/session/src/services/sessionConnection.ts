@@ -12,7 +12,6 @@ import {
 import {
   type DateFilter,
   getConnectionRetentionFilter,
-  mergeRetentionWithDateFilter,
   normalizeDateFilter,
   normalizeStatusForGet,
   normalizeStatusForList,
@@ -91,7 +90,7 @@ class sessionConnectionServiceImpl {
                 participants ? { participantOid: participants.in } : undefined!,
 
                 getConnectionRetentionFilter(d.tenant),
-                mergeRetentionWithDateFilter(d.tenant, d.createdAt),
+                d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
                 d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
               ].filter(Boolean)
             },
