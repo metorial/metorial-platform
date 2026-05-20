@@ -47,8 +47,7 @@ export let integrationArchivedQueueProcessor = integrationArchivedQueue.process(
       status: { in: ['pending', 'successful'] }
     },
     data: {
-      status: 'archived',
-      archivedAt: integration.archivedAt ?? new Date()
+      status: 'archived'
     }
   });
 
@@ -58,12 +57,16 @@ export let integrationArchivedQueueProcessor = integrationArchivedQueue.process(
       status: 'active'
     },
     select: {
-      skillId: true
+      skill: {
+        select: {
+          id: true
+        }
+      }
     }
   });
   if (skillIntegrations.length) {
     await reconcileSkillProviderLinksQueue.addMany(
-      skillIntegrations.map(skillIntegration => ({ skillId: skillIntegration.skillId }))
+      skillIntegrations.map(skillIntegration => ({ skillId: skillIntegration.skill.id }))
     );
   }
 

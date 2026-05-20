@@ -460,10 +460,12 @@ export let assertNoActiveIntegrationActorLink = async (
 
   let magicMcpServerBacking = await db.magicMcpServerBacking.findFirst({
     where: {
-      tenantOid: d.tenant.oid,
-      solutionOid: d.solution.oid,
-      environmentOid: d.environment.oid,
-      actorOid: d.identityActorOid
+      actorOid: d.identityActorOid,
+      integrationInstance: {
+        tenantOid: d.tenant.oid,
+        solutionOid: d.solution.oid,
+        environmentOid: d.environment.oid
+      }
     },
     select: {
       id: true
@@ -485,10 +487,12 @@ export let assertNoActiveIntegrationActorLink = async (
 
   let magicMcpEndpointBacking = await db.magicMcpEndpointBacking.findFirst({
     where: {
-      tenantOid: d.tenant.oid,
-      solutionOid: d.solution.oid,
-      environmentOid: d.environment.oid,
-      actorOid: d.identityActorOid
+      actorOid: d.identityActorOid,
+      integrationGroup: {
+        tenantOid: d.tenant.oid,
+        solutionOid: d.solution.oid,
+        environmentOid: d.environment.oid
+      }
     },
     select: {
       id: true
