@@ -394,8 +394,7 @@ export let adminProviderTelemetryController = app.controller({
                 providerIds: ctx.input.providerIds,
                 includeDeprecated: ctx.input.includeDeprecated
               }),
-              include: providerListingInclude,
-              orderBy: [{ rank: 'desc' }, ...opts.orderBy]
+              include: providerListingInclude
             })
         )
       );
@@ -623,8 +622,7 @@ export let adminProviderTelemetryController = app.controller({
                   where: { startsAt: { lte: to }, endsAt: { gte: from } },
                   orderBy: { startsAt: 'asc' }
                 }
-              },
-              orderBy: [{ occurrenceCount: 'desc' }, ...opts.orderBy]
+              }
             })
         )
       );
@@ -791,8 +789,7 @@ export let adminProviderTelemetryController = app.controller({
                 environment: true,
                 session: true,
                 sessionErrors: { take: 5, orderBy: { createdAt: 'desc' } }
-              },
-              orderBy: [{ createdAt: 'desc' }, ...opts.orderBy]
+              }
             })
         )
       );
@@ -895,8 +892,7 @@ export let adminProviderTelemetryController = app.controller({
                     environment: true
                   }
                 }
-              },
-              orderBy: [{ createdAt: 'desc' }, ...opts.orderBy]
+              }
             })
         )
       );
@@ -1019,8 +1015,7 @@ export let adminProviderTelemetryController = app.controller({
                 environment: true,
                 session: true,
                 sessionErrors: { take: 5, orderBy: { createdAt: 'desc' } }
-              },
-              orderBy: [{ createdAt: 'asc' }, ...opts.orderBy]
+              }
             })
         )
       );
