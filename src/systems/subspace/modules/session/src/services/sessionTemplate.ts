@@ -309,6 +309,7 @@ class sessionTemplateServiceImpl {
     solution: Solution;
     environment: Environment;
     sessionTemplate?: SessionTemplate | null;
+    linkAsDefault?: boolean;
     input: {
       name?: string | null;
       description?: string | null;
@@ -337,7 +338,7 @@ class sessionTemplateServiceImpl {
           d.input.integrationInstanceGroup?.identityOid ??
           null,
         defaultSessionTemplateForIntegrationInstanceOid:
-          d.input.integrationInstance?.oid ?? null,
+          d.linkAsDefault === false ? null : (d.input.integrationInstance?.oid ?? null),
         defaultSessionTemplateForIntegrationInstanceGroupOid:
           d.input.integrationInstanceGroup?.oid ?? null
       };

@@ -6,6 +6,7 @@ vi.mock('../src/lib/backing', () => ({
 }));
 
 vi.mock('../src/lib/magicMcpConnectHealth', () => ({
+  assertMagicMcpTargetLinkedResourcesActive: vi.fn(),
   assertMagicMcpTargetReadyForConnect: vi.fn()
 }));
 
@@ -21,7 +22,10 @@ import {
   ensureMagicMcpEndpointBacking,
   ensureMagicMcpServerBacking
 } from '../src/lib/backing';
-import { assertMagicMcpTargetReadyForConnect } from '../src/lib/magicMcpConnectHealth';
+import {
+  assertMagicMcpTargetLinkedResourcesActive,
+  assertMagicMcpTargetReadyForConnect
+} from '../src/lib/magicMcpConnectHealth';
 import { ensureMagicMcpSubspaceSession } from '../src/lib/ensureSession';
 
 describe('ensureMagicMcpSubspaceSession', () => {
@@ -37,8 +41,8 @@ describe('ensureMagicMcpSubspaceSession', () => {
 
     let target = {
       id: 'server-1',
-      hasSubspaceBacking: true,
-      subspaceEphemeralManagedSessionId: 'ems_1',
+      hasSubspaceBacking: false,
+      subspaceEphemeralManagedSessionId: null,
       instance: { id: 'ins_1' }
     } as any;
     let result = await ensureMagicMcpSubspaceSession({ type: 'server', target });
@@ -50,6 +54,22 @@ describe('ensureMagicMcpSubspaceSession', () => {
     });
     expect(assertMagicMcpTargetReadyForConnect).toHaveBeenCalled();
     expect(result).toBe('ems_1');
+  });
+
+  it('uses an existing server backing session without reconciling', async () => {
+    let target = {
+      id: 'server-1',
+      hasSubspaceBacking: true,
+      subspaceEphemeralManagedSessionId: 'ems_existing',
+      instance: { id: 'ins_1' }
+    } as any;
+
+    let result = await ensureMagicMcpSubspaceSession({ type: 'server', target });
+
+    expect(ensureMagicMcpServerBacking).not.toHaveBeenCalled();
+    expect(assertMagicMcpTargetLinkedResourcesActive).toHaveBeenCalled();
+    expect(assertMagicMcpTargetReadyForConnect).not.toHaveBeenCalled();
+    expect(result).toBe('ems_existing');
   });
 
   it('reconciles an endpoint before returning its backing session id', async () => {

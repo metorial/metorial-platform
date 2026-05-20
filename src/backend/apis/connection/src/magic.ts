@@ -314,7 +314,8 @@ export let handleMagicMcpRequest = async (d: {
           onSubspaceSessionResolved: async ({ subspaceSessionId }) => {
             let magicMcpSession = await syncMagicMcpSubspaceSession(
               sessionInfo.magicMcpTarget,
-              subspaceSessionId
+              subspaceSessionId,
+              sessionInfo.subspaceSessionId
             );
             if (!sessionInfo.consumerProfileForOwnership) return;
 

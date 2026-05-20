@@ -244,6 +244,7 @@ class magicMcpServerBackingServiceImpl {
               solution: d.solution,
               environment: d.environment,
               sessionTemplate: existing?.sessionTemplate,
+              linkAsDefault: false,
               input: {
                 name: d.input.name?.trim() || d.input.id,
                 description: d.input.description,

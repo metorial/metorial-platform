@@ -1,12 +1,20 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { ID, Instance, withTransaction } from '@metorial/db';
 import { ensureMagicMcpEndpointBacking, ensureMagicMcpServerBacking } from './backing';
-import { assertMagicMcpTargetReadyForConnect } from './magicMcpConnectHealth';
+import {
+  assertMagicMcpTargetLinkedResourcesActive,
+  assertMagicMcpTargetReadyForConnect
+} from './magicMcpConnectHealth';
 import { MagicMcpResolvedTarget } from './magicMcpTarget';
 
 let ensureServerBackingSession = async (
   target: MagicMcpResolvedTarget & { type: 'server' }
 ) => {
+  if (target.target.hasSubspaceBacking && target.target.subspaceEphemeralManagedSessionId) {
+    await assertMagicMcpTargetLinkedResourcesActive(target);
+    return target.target.subspaceEphemeralManagedSessionId;
+  }
+
   let server = {
     ...target.target,
     ...(await ensureMagicMcpServerBacking({
@@ -33,6 +41,11 @@ let ensureServerBackingSession = async (
 let ensureEndpointBackingSession = async (
   target: MagicMcpResolvedTarget & { type: 'endpoint' }
 ) => {
+  if (target.target.hasSubspaceBacking && target.target.subspaceEphemeralManagedSessionId) {
+    await assertMagicMcpTargetLinkedResourcesActive(target);
+    return target.target.subspaceEphemeralManagedSessionId;
+  }
+
   let endpoint = await ensureMagicMcpEndpointBacking({
     instance: target.target.instance as Instance,
     endpoint: target.target,
@@ -63,9 +76,9 @@ export let ensureMagicMcpSubspaceSession = async (target: MagicMcpResolvedTarget
 
 export let syncMagicMcpSubspaceSession = async (
   target: MagicMcpResolvedTarget,
-  subspaceSessionId: string
+  subspaceSessionId: string,
+  backingSessionId: string
 ) => {
-  let backingSessionId = await ensureMagicMcpSubspaceSession(target);
   let baseData = {
     instanceOid: target.target.instance.oid,
     subspaceSessionId,
