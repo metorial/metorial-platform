@@ -1,7 +1,8 @@
 import type { DashboardInstanceProviderInvocationsListOutput } from '@metorial/dashboard-sdk';
 import { Badge, Button, RenderDate, theme } from '@metorial/ui';
 import { RiKey2Line, RiPulseLine, RiShieldKeyholeLine, RiToolsLine } from '@remixicon/react';
-import type { ReactNode } from 'react';
+import { useInView } from 'framer-motion';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { RunLogs } from '../../components/runLogs';
 import { formatTitleCase } from './helpers';
@@ -79,7 +80,42 @@ let getInvocationTitle = (invocation: InvocationItem): string => {
   return formatTitleCase(invocation.type);
 };
 
-export let ProviderInvocationEntry = ({ invocation }: { invocation: InvocationItem }) => {
+let InvocationLogs = ({
+  deferBody,
+  invocation
+}: {
+  deferBody?: boolean;
+  invocation: InvocationItem;
+}) => {
+  let ref = useRef<HTMLDivElement>(null);
+  let inView = useInView(ref, { margin: '200px 0px' });
+  let [canRender, setCanRender] = useState(!deferBody);
+
+  useEffect(() => {
+    if (inView) setCanRender(true);
+  }, [inView]);
+
+  return (
+    <div ref={ref}>
+      {canRender ? (
+        <RunLogs
+          logs={invocation.logs}
+          hideWhenEmpty={false}
+          title="Output"
+          emptyText="No output logs captured."
+        />
+      ) : null}
+    </div>
+  );
+};
+
+export let ProviderInvocationEntry = ({
+  deferBody = false,
+  invocation
+}: {
+  deferBody?: boolean;
+  invocation: InvocationItem;
+}) => {
   let variant: 'error' | 'default' = invocation.status === 'error' ? 'error' : 'default';
 
   return (
@@ -110,12 +146,7 @@ export let ProviderInvocationEntry = ({ invocation }: { invocation: InvocationIt
         </time>
       </Header>
 
-      <RunLogs
-        logs={invocation.logs}
-        hideWhenEmpty={false}
-        title="Output"
-        emptyText="No output logs captured."
-      />
+      <InvocationLogs deferBody={deferBody} invocation={invocation} />
     </Wrapper>
   );
 };

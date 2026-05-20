@@ -306,6 +306,7 @@ export let ProviderErrorTracingScene = ({ errorGroupId }: { errorGroupId: string
 
   let listBodyRef = useRef<HTMLDivElement>(null);
   let listHeaderRef = useRef<HTMLDivElement>(null);
+  let rightPaneBodyRef = useRef<HTMLDivElement>(null);
 
   let isLoadingConnections = errors.isLoading || connections.isLoading;
   let connectionCount = connectionItems.length;
@@ -348,8 +349,12 @@ export let ProviderErrorTracingScene = ({ errorGroupId }: { errorGroupId: string
                   <CenteredSpinner size={16} />
                 </LoadingWrap>
               ) : (
-                <RightPaneBody>
-                  <ConnectionLogs connection={activeConnection} session={activeSession.data} />
+                <RightPaneBody ref={rightPaneBodyRef}>
+                  <ConnectionLogs
+                    connection={activeConnection}
+                    scrollRef={rightPaneBodyRef}
+                    session={activeSession.data}
+                  />
                 </RightPaneBody>
               )
             ) : isLoadingConnections ? (
