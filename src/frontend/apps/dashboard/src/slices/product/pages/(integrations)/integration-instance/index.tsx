@@ -232,6 +232,13 @@ export let IntegrationInstanceOverviewPage = () => {
                           <Button
                             size="1"
                             variant="outline"
+                            disabled={
+                              integrationInstanceData.status === 'archived' ||
+                              integrationInstanceData.status === 'deleted' ||
+                              (integrationInstanceData.status === 'active' &&
+                                !instanceProvider?.config &&
+                                !instanceProvider?.authConfig)
+                            }
                             onClick={() =>
                               showIntegrationInstanceProviderPanelFlow({
                                 integration: integrationData,

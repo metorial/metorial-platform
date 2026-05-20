@@ -4,14 +4,22 @@ let {
   addAfterTransactionHookMock,
   withTransactionMock,
   db,
+  getIdMock,
+  ensureIntegrationIdentityMock,
   upsertInternalLinkedSessionTemplateMock,
+  integrationInstanceCreatedQueueAddMock,
   syncIntegrationInstanceSessionTemplateQueueAddMock,
   syncIntegrationInstanceGroupSessionTemplateQueueAddMock
 } = vi.hoisted(() => ({
   ...(() => {
     let db = {
       integrationInstance: {
+        create: vi.fn(),
+        update: vi.fn(),
         findUniqueOrThrow: vi.fn()
+      },
+      integrationProvider: {
+        findMany: vi.fn()
       },
       integrationInstanceGroup: {
         findUniqueOrThrow: vi.fn()
@@ -28,7 +36,12 @@ let {
       db
     };
   })(),
+  getIdMock: vi.fn((prefix: string) => ({
+    id: `${prefix}_generated`
+  })),
+  ensureIntegrationIdentityMock: vi.fn(),
   upsertInternalLinkedSessionTemplateMock: vi.fn(),
+  integrationInstanceCreatedQueueAddMock: vi.fn(),
   syncIntegrationInstanceSessionTemplateQueueAddMock: vi.fn(),
   syncIntegrationInstanceGroupSessionTemplateQueueAddMock: vi.fn()
 }));
@@ -36,7 +49,7 @@ let {
 vi.mock('@metorial-subspace/db', () => ({
   addAfterTransactionHook: addAfterTransactionHookMock,
   db,
-  getId: vi.fn(),
+  getId: getIdMock,
   withTransaction: withTransactionMock
 }));
 
@@ -86,7 +99,7 @@ vi.mock('@metorial-subspace/module-identity', () => ({
     getIdentityActorById: vi.fn()
   },
   identityInternalService: {
-    ensureIntegrationIdentity: vi.fn()
+    ensureIntegrationIdentity: ensureIntegrationIdentityMock
   }
 }));
 
@@ -134,7 +147,7 @@ vi.mock('@metorial-subspace/module-tenant', () => ({
 
 vi.mock('../src/queues/lifecycle/integrationInstance', () => ({
   integrationInstanceArchivedQueue: { add: vi.fn() },
-  integrationInstanceCreatedQueue: { add: vi.fn() },
+  integrationInstanceCreatedQueue: { add: integrationInstanceCreatedQueueAddMock },
   integrationInstanceUpdatedQueue: { add: vi.fn() }
 }));
 
@@ -172,6 +185,70 @@ describe('shared integration session templates', () => {
     addAfterTransactionHookMock.mockImplementation(async (callback: () => Promise<void>) => {
       await callback();
     });
+    getIdMock.mockImplementation((prefix: string) => ({
+      id: `${prefix}_generated`
+    }));
+    ensureIntegrationIdentityMock.mockResolvedValue({
+      actor: null,
+      identity: null
+    });
+  });
+
+  it('creates the default shared template when creating an integration instance', async () => {
+    let createdIntegrationInstance = {
+      oid: 11n,
+      id: 'int_instance_1',
+      identityActorOid: null,
+      identityOid: null,
+      defaultSessionTemplate: null
+    };
+    let integrationInstanceWithIdentity = {
+      ...createdIntegrationInstance,
+      name: 'GitHub'
+    };
+    let refreshedIntegrationInstance = {
+      ...integrationInstanceWithIdentity,
+      defaultSessionTemplate: { oid: 101n, id: 'stm_default' }
+    };
+    let createdTemplate = { id: 'stm_default' };
+
+    vi.mocked(db.integrationProvider.findMany).mockResolvedValue([]);
+    vi.mocked(db.integrationInstance.create).mockResolvedValue(createdIntegrationInstance as any);
+    vi.mocked(db.integrationInstance.update).mockResolvedValue(
+      integrationInstanceWithIdentity as any
+    );
+    vi.mocked(db.integrationInstance.findUniqueOrThrow).mockResolvedValue(
+      refreshedIntegrationInstance as any
+    );
+    upsertInternalLinkedSessionTemplateMock.mockResolvedValue(createdTemplate);
+
+    let result = await integrationInstanceService.createIntegrationInstance({
+      tenant: { oid: 1n } as any,
+      solution: { oid: 2n } as any,
+      environment: { oid: 3n } as any,
+      integration: { oid: 4n } as any,
+      input: {
+        name: 'GitHub'
+      }
+    });
+
+    expect(upsertInternalLinkedSessionTemplateMock).toHaveBeenCalledWith({
+      tenant: expect.anything(),
+      solution: expect.anything(),
+      environment: expect.anything(),
+      sessionTemplate: null,
+      input: {
+        integrationInstance: integrationInstanceWithIdentity
+      }
+    });
+    expect(db.integrationInstance.findUniqueOrThrow).toHaveBeenCalledWith({
+      where: { oid: integrationInstanceWithIdentity.oid },
+      include: expect.anything()
+    });
+    expect(integrationInstanceCreatedQueueAddMock).toHaveBeenCalledWith({
+      integrationInstanceId: 'int_instance_1'
+    });
+    expect(result).toBe(refreshedIntegrationInstance);
   });
 
   it('upserts the default shared template for an integration instance', async () => {
