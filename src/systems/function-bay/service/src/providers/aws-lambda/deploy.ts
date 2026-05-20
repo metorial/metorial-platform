@@ -166,6 +166,7 @@ async function loadOriginalModule() {
     const candidates = [
       modulePath,
       /\\.[cm]?js$/.test(modulePath) ? undefined : modulePath + '.js',
+      /\\.[cm]?js$/.test(modulePath) ? undefined : modulePath + '.cjs',
       /\\.[cm]?js$/.test(modulePath) ? undefined : modulePath + '.mjs'
     ].filter(Boolean);
 
