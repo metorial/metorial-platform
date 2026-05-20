@@ -36,7 +36,8 @@ export let sessionErrorGroupController = app.controller({
               v.enumOf([
                 'message_processing_timeout',
                 'message_processing_provider_error',
-                'message_processing_system_error'
+                'message_processing_system_error',
+                'provider_discovery_failed'
               ])
             )
           ),

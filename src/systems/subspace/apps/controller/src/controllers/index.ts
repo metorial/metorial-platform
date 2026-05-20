@@ -5,6 +5,7 @@ import { actorController } from './actor';
 import { agentController } from './agent';
 import { agentClientController } from './agentClient';
 import { agentInstanceController } from './agentInstance';
+import { adminProviderTelemetryController } from './adminProviderTelemetry';
 import { authConfigErrorController } from './authConfigError';
 import { authConfigErrorGlobalController } from './authConfigErrorGlobal';
 import { authConfigEventController } from './authConfigEvent';
@@ -148,6 +149,7 @@ let callbackControllers = {
 };
 
 let providerControllers = {
+  adminProviderTelemetry: adminProviderTelemetryController,
   provider: providerController,
   providerInvocation: providerInvocationController,
   managedProviderAuthCredentials: managedProviderAuthCredentialsController,

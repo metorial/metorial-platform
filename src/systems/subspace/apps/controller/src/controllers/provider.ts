@@ -82,9 +82,19 @@ export let providerController = app.controller({
 
         name: v.optional(v.string()),
         description: v.optional(v.string()),
+        readme: v.optional(v.string()),
         slug: v.optional(v.string()),
+        aliases: v.optional(v.array(v.string())),
         image: v.optional(v.any()),
-        skills: v.optional(v.array(v.string()))
+        skills: v.optional(v.array(v.string())),
+        access: v.optional(v.enumOf(['public', 'tenant'])),
+        status: v.optional(v.enumOf(['active', 'archived', 'deleted'])),
+        isDeprecated: v.optional(v.boolean()),
+        isPublic: v.optional(v.boolean()),
+        isMetorial: v.optional(v.boolean()),
+        isVerified: v.optional(v.boolean()),
+        isOfficial: v.optional(v.boolean()),
+        rank: v.optional(v.number())
       })
     )
     .do(async ctx => {
@@ -93,9 +103,19 @@ export let providerController = app.controller({
         input: {
           name: ctx.input.name,
           description: ctx.input.description,
+          readme: ctx.input.readme,
           slug: ctx.input.slug,
+          aliases: ctx.input.aliases,
           image: ctx.input.image,
-          skills: ctx.input.skills
+          skills: ctx.input.skills,
+          access: ctx.input.access,
+          status: ctx.input.status,
+          isDeprecated: ctx.input.isDeprecated,
+          isPublic: ctx.input.isPublic,
+          isMetorial: ctx.input.isMetorial,
+          isVerified: ctx.input.isVerified,
+          isOfficial: ctx.input.isOfficial,
+          rank: ctx.input.rank
         }
       });
 
