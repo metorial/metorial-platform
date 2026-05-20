@@ -25,13 +25,7 @@ let ensureServerBackingSession = async (
     );
   }
 
-  await assertMagicMcpTargetReadyForConnect({
-    type: 'server',
-    target: {
-      ...target.target,
-      ...server
-    }
-  });
+  await assertMagicMcpTargetReadyForConnect(target);
 
   return server.subspaceEphemeralManagedSessionId;
 };
@@ -54,13 +48,7 @@ let ensureEndpointBackingSession = async (
     );
   }
 
-  await assertMagicMcpTargetReadyForConnect({
-    type: 'endpoint',
-    target: {
-      ...target.target,
-      ...endpoint
-    }
-  });
+  await assertMagicMcpTargetReadyForConnect(target);
 
   return endpoint.subspaceEphemeralManagedSessionId;
 };
