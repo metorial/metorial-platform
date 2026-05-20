@@ -15,6 +15,9 @@ model Project {
   onlyAllowTrustedProviders      Boolean @default(false)
   magicMcpSessionDurationMinutes Int     @default(1440)
 
+  logRetentionInDays     Int     @default(30)
+  enforceSessionExpiry Boolean @default(false)
+
   organizationOid BigInt
   organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
 

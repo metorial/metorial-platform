@@ -3,8 +3,8 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
   db,
-  type SessionMessage,
   type Environment,
+  type SessionMessage,
   type SessionMessageSource,
   type SessionMessageType,
   type Solution,
@@ -12,6 +12,7 @@ import {
 } from '@metorial-subspace/db';
 import {
   type DateFilter,
+  mergeRetentionWithDateFilter,
   normalizeDateFilter,
   normalizeStatusForGet,
   normalizeStatusForList,
@@ -187,7 +188,7 @@ class sessionMessageServiceImpl {
                   }
                 : undefined!,
 
-              d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
+              mergeRetentionWithDateFilter(d.tenant, d.createdAt),
               d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
             ].filter(Boolean)
           },
@@ -213,7 +214,11 @@ class sessionMessageServiceImpl {
         solutionOid: d.solution.oid,
         environmentOid: d.environment.oid,
 
-        AND: [normalizeStatusForGet(d).onlyParent, { status: { not: 'waiting_for_response' } }]
+        AND: [
+          normalizeStatusForGet(d).onlyParent,
+          { status: { not: 'waiting_for_response' } },
+          mergeRetentionWithDateFilter(d.tenant)
+        ]
       },
       include: include
     });

@@ -29,37 +29,44 @@ export let resolveSessionProviders = createResolver(async ({ ts, ids }) =>
   })
 );
 
-export let resolveSessionEvents = createResolver(async ({ ts, ids, onlyLogsAfter }) =>
+export let resolveSessionEvents = createResolver(async ({ ts, ids, retentionCutoff }) =>
   db.sessionEvent.findMany({
-    where: { ...ts, id: { in: ids }, createdAt: { gt: onlyLogsAfter } },
+    where: { ...ts, id: { in: ids }, createdAt: { gte: retentionCutoff } },
     select: { oid: true }
   })
 );
 
-export let resolveSessionMessages = createResolver(async ({ ts, ids, onlyLogsAfter }) =>
+export let resolveSessionMessages = createResolver(async ({ ts, ids, retentionCutoff }) =>
   db.sessionMessage.findMany({
-    where: { ...ts, id: { in: ids }, createdAt: { gt: onlyLogsAfter } },
+    where: { ...ts, id: { in: ids }, createdAt: { gte: retentionCutoff } },
     select: { oid: true }
   })
 );
 
-export let resolveSessionConnections = createResolver(async ({ ts, ids, onlyLogsAfter }) =>
+export let resolveSessionConnections = createResolver(async ({ ts, ids, retentionCutoff }) =>
   db.sessionConnection.findMany({
-    where: { ...ts, id: { in: ids }, createdAt: { gt: onlyLogsAfter } },
+    where: {
+      ...ts,
+      id: { in: ids },
+      OR: [
+        { lastActiveAt: { gte: retentionCutoff } },
+        { lastActiveAt: null, createdAt: { gte: retentionCutoff } }
+      ]
+    },
     select: { oid: true }
   })
 );
 
-export let resolveSessionErrors = createResolver(async ({ ts, ids, onlyLogsAfter }) =>
+export let resolveSessionErrors = createResolver(async ({ ts, ids, retentionCutoff }) =>
   db.sessionError.findMany({
-    where: { ...ts, id: { in: ids }, createdAt: { gt: onlyLogsAfter } },
+    where: { ...ts, id: { in: ids }, createdAt: { gte: retentionCutoff } },
     select: { oid: true }
   })
 );
 
-export let resolveSessionErrorGroups = createResolver(async ({ ts, ids }) =>
+export let resolveSessionErrorGroups = createResolver(async ({ ts, ids, retentionCutoff }) =>
   db.sessionErrorGroup.findMany({
-    where: { tenantOid: ts.tenantOid, id: { in: ids } },
+    where: { tenantOid: ts.tenantOid, id: { in: ids }, createdAt: { gte: retentionCutoff } },
     select: { oid: true }
   })
 );
@@ -71,9 +78,9 @@ export let resolveSessionParticipants = createResolver(async ({ ts, ids }) =>
   })
 );
 
-export let resolveProviderRuns = createResolver(async ({ ts, ids, onlyLogsAfter }) =>
+export let resolveProviderRuns = createResolver(async ({ ts, ids, retentionCutoff }) =>
   db.providerRun.findMany({
-    where: { ...ts, id: { in: ids }, createdAt: { gt: onlyLogsAfter } },
+    where: { ...ts, id: { in: ids }, createdAt: { gte: retentionCutoff } },
     select: { oid: true }
   })
 );

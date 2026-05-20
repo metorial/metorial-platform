@@ -15,6 +15,7 @@ import {
 import {
   checkDeletedRelation,
   type DateFilter,
+  mergeRetentionWithDateFilter,
   normalizeDateFilter,
   normalizeStatusForGet,
   normalizeStatusForList,
@@ -204,7 +205,7 @@ class toolCallServiceImpl {
                 ? { session: { providers: { some: { authConfigOid: authConfigs.in } } } }
                 : undefined!,
 
-              d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
+              mergeRetentionWithDateFilter(d.tenant, d.createdAt),
               d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
             ].filter(Boolean)
           },
@@ -230,7 +231,8 @@ class toolCallServiceImpl {
         solutionOid: d.solution.oid,
         environmentOid: d.environment.oid,
 
-        message: normalizeStatusForGet(d).onlyParent
+        message: normalizeStatusForGet(d).onlyParent,
+        ...mergeRetentionWithDateFilter(d.tenant)
       },
       include
     });

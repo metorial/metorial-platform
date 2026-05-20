@@ -15,6 +15,7 @@ class tenantServiceImpl {
       onlyAllowTrustedProviders?: boolean;
       isWhitelabel?: boolean;
       logRetentionInDays?: number;
+      enforceSessionExpiry?: boolean;
       environments: {
         name: string;
         identifier: string;
@@ -37,7 +38,8 @@ class tenantServiceImpl {
           name: d.input.name,
           onlyAllowTrustedProviders: d.input.onlyAllowTrustedProviders,
           isWhitelabel: d.input.isWhitelabel,
-          logRetentionInDays: d.input.logRetentionInDays
+          logRetentionInDays: d.input.logRetentionInDays,
+          enforceSessionExpiry: d.input.enforceSessionExpiry
         },
         create: {
           ...getId('tenant'),
@@ -46,6 +48,7 @@ class tenantServiceImpl {
           onlyAllowTrustedProviders: d.input.onlyAllowTrustedProviders,
           isWhitelabel: d.input.isWhitelabel,
           logRetentionInDays: d.input.logRetentionInDays ?? 30,
+          enforceSessionExpiry: d.input.enforceSessionExpiry ?? false,
 
           urlKey: generatePlainId(10).toLowerCase()
         }

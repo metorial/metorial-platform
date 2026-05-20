@@ -18,8 +18,6 @@ model Instance {
   slug String @unique
   name String
 
-  defaultCallbackPollingIntervalSeconds Int @default(1800)
-
   projectOid BigInt
   project    Project @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
 

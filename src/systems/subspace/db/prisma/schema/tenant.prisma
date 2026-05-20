@@ -21,7 +21,8 @@ model Tenant {
 
   createdAt DateTime @default(now())
 
-  logRetentionInDays Int @default(30)
+  logRetentionInDays     Int     @default(30)
+  enforceSessionExpiry Boolean @default(false)
 
   providers                                Provider[]
   providerListingGroups                    ProviderListingGroup[]

@@ -12,4 +12,5 @@ export * from './organizationInviteJoin';
 export * from './organizationMember';
 export * from './project';
 export * from './projectBrand';
+export * from './projectRetention';
 export * from './team';

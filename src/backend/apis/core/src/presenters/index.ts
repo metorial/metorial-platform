@@ -111,6 +111,7 @@ import {
   v1ProfilePresenter,
   v1ProjectBrandPresenter,
   v1ProjectPresenter,
+  v1ProjectRetentionPresenter,
   v1ProviderAuthConfigErrorGroupPresenter,
   v1ProviderAuthConfigErrorPresenter,
   v1ProviderAuthConfigEventPresenter,
@@ -287,6 +288,7 @@ import {
   portalType,
   profileType,
   projectBrandType,
+  projectRetentionType,
   projectType,
   providerAuthConfigErrorGroupType,
   providerAuthConfigErrorType,
@@ -512,6 +514,11 @@ export let projectPresenter = declarePresenter(projectType, {
 export let projectBrandPresenter = declarePresenter(projectBrandType, {
   mt_2025_01_01_dashboard: v1ProjectBrandPresenter,
   mt_2026_01_01_magnetar: v1ProjectBrandPresenter
+});
+
+export let projectRetentionPresenter = declarePresenter(projectRetentionType, {
+  mt_2025_01_01_dashboard: v1ProjectRetentionPresenter,
+  mt_2026_01_01_magnetar: v1ProjectRetentionPresenter
 });
 
 export let userPresenter = declarePresenter(userType, {

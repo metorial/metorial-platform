@@ -4,6 +4,7 @@ export * from './flags';
 export * from './oauthAuthorizationRequest';
 export * from './organization';
 export * from './organizationInvite';
+export * from './projectConfiguration';
 export * from './profile';
 export * from './usage';
 export * from './user';
