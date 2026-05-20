@@ -10,8 +10,8 @@ import {
   getFilterPayload
 } from '../../../../components/table/filter';
 import {
-  getConstrainedEnumListFilterValue,
   getDateRangeFilterValue,
+  getEnumListFilterValue,
   getStringFilterValue
 } from '../../../../lib/dataTableUtils';
 import { useDebounced } from '../../../../hooks/useDebounced';
@@ -96,11 +96,9 @@ export let useIntegrationFilters = (p: {
   );
 
   let filterPayload = useMemo(() => getFilterPayload(p.filterState), [p.filterState]);
-  let status = getConstrainedEnumListFilterValue(
-    filterPayload.status,
-    integrationStatusValues,
-    ['active']
-  );
+  let hasStatusFilter = p.filterState.some(filter => filter.id === 'status');
+  let selectedStatus = getEnumListFilterValue(filterPayload.status, integrationStatusValues);
+  let status = hasStatusFilter ? selectedStatus : (selectedStatus ?? ['active']);
   let providerId = getStringFilterValue(filterPayload.providerId);
   let createdAt = getDateRangeFilterValue(filterPayload.createdAt);
   let updatedAt = getDateRangeFilterValue(filterPayload.updatedAt);

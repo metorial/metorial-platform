@@ -55,7 +55,6 @@ export let IntegrationsGrid = (
   let navigate = useNavigate();
   let integrations = useIntegrations(instanceId, {
     order: 'desc',
-    status: ['active'],
     ...query
   });
   let providerIds = useMemo(
