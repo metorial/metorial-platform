@@ -1,8 +1,6 @@
 import { createCron } from '@lowerdeck/cron';
 import { createQueue } from '@lowerdeck/queue';
 import { db } from '@metorial-subspace/db';
-import { shuttleClient } from '@metorial-subspace/provider-shuttle';
-import { slatesClient } from '@metorial-subspace/provider-slates';
 import { env } from '../../env';
 import { RETENTION_BATCH_SIZE, retentionSyncWorkerOpts } from './_config';
 
@@ -60,6 +58,7 @@ export let tenantLogRetentionSyncQueueProcessor = tenantLogRetentionSyncQueue.pr
     if (!tenant) return;
 
     if (tenant.slateTenantId && env.service.SLATES_HUB_URL) {
+      let { slatesClient } = await import('@metorial-subspace/provider-slates');
       await slatesClient.tenant.upsert({
         identifier: tenant.slateTenantIdentifier ?? tenant.identifier,
         name: tenant.name,
@@ -68,6 +67,7 @@ export let tenantLogRetentionSyncQueueProcessor = tenantLogRetentionSyncQueue.pr
     }
 
     if (tenant.shuttleTenantId && env.service.SHUTTLE_URL) {
+      let { shuttleClient } = await import('@metorial-subspace/provider-shuttle');
       await shuttleClient.tenant.upsert({
         identifier: tenant.shuttleTenantIdentifier ?? tenant.identifier,
         name: tenant.name,

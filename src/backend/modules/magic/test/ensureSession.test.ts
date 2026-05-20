@@ -1,21 +1,27 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@metorial/db', () => ({
-  ID: {
-    generateId: vi.fn().mockResolvedValue('generated-id')
-  },
-  withTransaction: vi.fn(async callback => await callback({}))
-}));
-
 vi.mock('../src/lib/backing', () => ({
   ensureMagicMcpServerBacking: vi.fn(),
   ensureMagicMcpEndpointBacking: vi.fn()
+}));
+
+vi.mock('../src/lib/magicMcpConnectHealth', () => ({
+  assertMagicMcpTargetReadyForConnect: vi.fn()
+}));
+
+vi.mock('@metorial/db', () => ({
+  db: {},
+  ID: {
+    generateId: vi.fn()
+  },
+  withTransaction: vi.fn()
 }));
 
 import {
   ensureMagicMcpEndpointBacking,
   ensureMagicMcpServerBacking
 } from '../src/lib/backing';
+import { assertMagicMcpTargetReadyForConnect } from '../src/lib/magicMcpConnectHealth';
 import { ensureMagicMcpSubspaceSession } from '../src/lib/ensureSession';
 
 describe('ensureMagicMcpSubspaceSession', () => {
@@ -23,31 +29,16 @@ describe('ensureMagicMcpSubspaceSession', () => {
     vi.clearAllMocks();
   });
 
-  it('uses an existing server backing ephemeral managed session id', async () => {
-    let result = await ensureMagicMcpSubspaceSession({
-      type: 'server',
-      target: {
-        id: 'server-1',
-        hasSubspaceBacking: true,
-        subspaceEphemeralManagedSessionId: 'ems_1',
-        instance: { id: 'ins_1' }
-      } as any
-    });
-
-    expect(result).toBe('ems_1');
-    expect(ensureMagicMcpServerBacking).not.toHaveBeenCalled();
-  });
-
   it('reconciles a server before returning its backing session id', async () => {
     vi.mocked(ensureMagicMcpServerBacking).mockResolvedValue({
       hasSubspaceBacking: true,
-      subspaceEphemeralManagedSessionId: 'ems_2'
+      subspaceEphemeralManagedSessionId: 'ems_1'
     } as any);
 
     let target = {
-      id: 'server-2',
-      hasSubspaceBacking: false,
-      subspaceEphemeralManagedSessionId: null,
+      id: 'server-1',
+      hasSubspaceBacking: true,
+      subspaceEphemeralManagedSessionId: 'ems_1',
       instance: { id: 'ins_1' }
     } as any;
     let result = await ensureMagicMcpSubspaceSession({ type: 'server', target });
@@ -57,7 +48,8 @@ describe('ensureMagicMcpSubspaceSession', () => {
       server: target,
       isReconciliation: true
     });
-    expect(result).toBe('ems_2');
+    expect(assertMagicMcpTargetReadyForConnect).toHaveBeenCalled();
+    expect(result).toBe('ems_1');
   });
 
   it('reconciles an endpoint before returning its backing session id', async () => {
@@ -79,6 +71,7 @@ describe('ensureMagicMcpSubspaceSession', () => {
       endpoint: target,
       isReconciliation: true
     });
+    expect(assertMagicMcpTargetReadyForConnect).toHaveBeenCalled();
     expect(result).toBe('ems_endpoint');
   });
 });

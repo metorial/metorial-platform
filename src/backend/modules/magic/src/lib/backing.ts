@@ -166,19 +166,6 @@ export let ensureMagicMcpServerBacking = async (d: {
   isReconciliation?: boolean;
 }) =>
   withLocalBackingLock(`server:${d.server.id}`, async () => {
-    if (d.isReconciliation && !d.providers?.length) {
-      let existing = await db.magicMcpServer.findFirst({
-        where: {
-          instanceOid: d.instance.oid,
-          id: d.server.id
-        }
-      });
-
-      if (existing?.hasSubspaceBacking && existing.subspaceEphemeralManagedSessionId) {
-        return existing;
-      }
-    }
-
     let owner =
       d.owner ??
       (await getConsumerOwnerForServer({
@@ -253,20 +240,6 @@ export let ensureMagicMcpEndpointBacking = async (d: {
   isReconciliation?: boolean;
 }) =>
   withLocalBackingLock(`endpoint:${d.endpoint.id}`, async () => {
-    if (d.isReconciliation) {
-      let existing = await db.magicMcpEndpoint.findFirst({
-        where: {
-          instanceOid: d.instance.oid,
-          id: d.endpoint.id
-        },
-        include: magicMcpEndpointBackingInclude
-      });
-
-      if (existing?.hasSubspaceBacking && existing.subspaceEphemeralManagedSessionId) {
-        return existing;
-      }
-    }
-
     await ensureEndpointServerIds(d.endpoint);
 
     let endpoint = await db.magicMcpEndpoint.findUniqueOrThrow({

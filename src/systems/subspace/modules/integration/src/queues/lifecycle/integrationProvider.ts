@@ -7,6 +7,7 @@ import { reconcileSkillProviderLinksForIntegrationProviderQueue } from '@metoria
 import { env } from '../../env';
 import { indexIntegrationQueue } from '../search/integration';
 import { indexIntegrationInstanceQueue } from '../search/integrationInstance';
+import { integrationInstanceProviderSetQueue } from './integrationInstanceProvider';
 
 let indexParentIntegration = async (integrationProviderId: string) => {
   let integrationProvider = await db.integrationProvider.findUnique({
@@ -120,16 +121,30 @@ export let integrationProviderArchiveInstanceProvidersManyQueueProcessor =
     });
     if (integrationInstanceProviders.length === 0) return;
 
+    let archivedAt = integrationProvider.archivedAt ?? new Date();
+
     await db.integrationInstanceProvider.updateMany({
       where: {
         oid: {
           in: integrationInstanceProviders.map(
             integrationInstanceProvider => integrationInstanceProvider.oid
           )
-        }
+        },
+        status: 'active'
       },
-      data: { isParentDeleted: true }
+      data: {
+        status: 'archived',
+        archivedAt,
+        isParentDeleted: true
+      }
     });
+
+    await integrationInstanceProviderSetQueue.addMany(
+      integrationInstanceProviders.map(provider => ({
+        integrationInstanceId: provider.integrationInstance.id,
+        integrationInstanceProviderId: provider.id
+      }))
+    );
 
     await indexIntegrationInstanceQueue.addMany(
       integrationInstanceProviders.map(provider => ({

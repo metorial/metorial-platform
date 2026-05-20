@@ -18,6 +18,7 @@ import {
   withTransaction
 } from '@metorial-subspace/db';
 import {
+  assertNoActiveIntegrationInstanceProviderAuthCredentialsLink,
   checkDeletedEdit,
   type DateFilter,
   normalizeDateFilter,
@@ -33,9 +34,9 @@ import { env } from '../env';
 import { normalizeManagedOAuthScopeIds } from '../lib/managedOAuthScopes';
 import {
   ensureManagedProviderAuthCredentialsBacking,
-  type ManagedProviderAuthCredentialsBackingSource,
-  managedProviderAuthCredentialsBackingSourceInclude
+  type ManagedProviderAuthCredentialsBackingSource
 } from '../lib/managedProviderAuthCredentialsBacking';
+import { managedProviderAuthCredentialsBackingSourceInclude } from '../lib/managedProviderAuthCredentialsBackingInclude';
 import {
   providerAuthCredentialsArchivedQueue,
   providerAuthCredentialsCreatedQueue,
@@ -471,6 +472,13 @@ class providerAuthCredentialsServiceImpl {
     }
 
     await this.assertNoActiveIntegrationProviderLink(d);
+    await assertNoActiveIntegrationInstanceProviderAuthCredentialsLink({
+      tenant: d.tenant,
+      solution: d.solution,
+      environment: d.environment,
+      authCredentialsOid: d.providerAuthCredentials.oid,
+      resourceId: d.providerAuthCredentials.id
+    });
 
     return withTransaction(async db => {
       let creds = await db.providerAuthCredentials.update({

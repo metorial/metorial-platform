@@ -17,6 +17,7 @@ import {
   withTransaction
 } from '@metorial-subspace/db';
 import {
+  assertNoActiveIntegrationActorLink,
   checkDeletedEdit,
   type DateFilter,
   normalizeDateFilter,
@@ -301,6 +302,14 @@ class identityActorServiceImpl {
         })
       );
     }
+
+    await assertNoActiveIntegrationActorLink({
+      tenant: d.tenant,
+      solution: d.solution,
+      environment: d.environment,
+      identityActorOid: existingIdentityActor.oid,
+      identityActorId: existingIdentityActor.id
+    });
 
     return withTransaction(async db => {
       let identityActor = await db.identityActor.update({

@@ -113,6 +113,11 @@ export let providerAuthConfigDeleteQueueProcessor = providerAuthConfigDeleteQueu
       data: { status: 'deleted' }
     });
 
+    await db.identityCredential.updateMany({
+      where: { authConfigOid: authConfig.oid },
+      data: { status: 'archived', archivedAt: new Date() }
+    });
+
     await db.providerDeployment.updateMany({
       where: { defaultAuthConfigOid: authConfig.oid },
       data: { defaultAuthConfigOid: null }

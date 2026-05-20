@@ -1,5 +1,6 @@
 import { createQueue } from '@lowerdeck/queue';
 import { db, getId } from '@metorial-subspace/db';
+import { integrationInstanceProviderCredentialSyncQueue } from '@metorial-subspace/module-identity/src/queues/lifecycle/integrationInstanceProviderCredential';
 import { env } from '../../env';
 import { indexProviderAuthConfigQueue } from '../search/providerAuthConfig';
 
@@ -100,6 +101,36 @@ export let providerAuthConfigArchivedQueueProcessor = providerAuthConfigArchived
         },
         data: { defaultAuthConfigOid: null }
       });
+    }
+
+    let archivedAtForCredentials = providerAuthConfig.archivedAt ?? new Date();
+
+    await db.identityCredential.updateMany({
+      where: {
+        authConfigOid: providerAuthConfig.oid,
+        status: 'active'
+      },
+      data: {
+        status: 'archived',
+        archivedAt: archivedAtForCredentials
+      }
+    });
+
+    let integrationInstanceProviders = await db.integrationInstanceProvider.findMany({
+      where: {
+        status: { not: 'deleted' },
+        currentVersion: {
+          authConfigOid: providerAuthConfig.oid
+        }
+      },
+      select: { id: true }
+    });
+    if (integrationInstanceProviders.length) {
+      await integrationInstanceProviderCredentialSyncQueue.addMany(
+        integrationInstanceProviders.map(integrationInstanceProvider => ({
+          integrationInstanceProviderId: integrationInstanceProvider.id
+        }))
+      );
     }
   }
 );

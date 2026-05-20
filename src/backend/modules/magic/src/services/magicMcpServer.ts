@@ -286,6 +286,12 @@ class MagicMcpServerImpl {
     }
 
     let magicMcpServer = await withTransaction(async db => {
+      await db.magicMcpEndpointServer.deleteMany({
+        where: {
+          magicMcpServerOid: d.server.oid
+        }
+      });
+
       return await db.magicMcpServer.update({
         where: { id: d.server.id },
         data: { status: 'archived', deletedAt: new Date() },
