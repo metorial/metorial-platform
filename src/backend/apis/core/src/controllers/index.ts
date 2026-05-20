@@ -19,6 +19,7 @@ import {
   dashboardOAuthAuthorizationRequestController,
   dashboardOrganizationController,
   dashboardOrganizationInviteController,
+  dashboardProjectConfigurationController,
   dashboardUsageController,
   dashboardUserController,
   flagsController,
@@ -506,6 +507,7 @@ export let dashboardController = Controller.create<any>(
   {
     dashboardOrganizationController,
     dashboardOrganizationInviteController,
+    dashboardProjectConfigurationController,
     dashboardOAuthAuthorizationRequestController,
     dashboardBootController,
     testHelperConsumerOAuthController,
@@ -676,6 +678,7 @@ export let fullDashboardController = Controller.create<any>(dashboardController.
 
   dashboardOrganizationController,
   dashboardOrganizationInviteController,
+  dashboardProjectConfigurationController,
   dashboardOAuthAuthorizationRequestController,
   dashboardBootController,
   testHelperConsumerOAuthController,

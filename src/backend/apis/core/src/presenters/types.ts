@@ -237,6 +237,10 @@ export let projectType = PresentableType.create<{
   project: Project & { organization: Organization };
 }>()('project');
 
+export let projectRetentionType = PresentableType.create<{
+  project: Project;
+}>()('project_retention');
+
 export let tokenType = PresentableType.create<{
   token: {
     type:

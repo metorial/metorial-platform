@@ -6,5 +6,6 @@ export * from './organizationMember';
 export * from './profile';
 export * from './project';
 export * from './projectBrand';
+export * from './projectRetention';
 export * from './team';
 export * from './user';
