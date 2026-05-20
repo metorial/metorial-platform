@@ -1,4 +1,4 @@
-import type { DashboardInstanceSkillTemplatesListQuery } from '@metorial/dashboard-sdk';
+import type { DashboardInstanceSkillsTemplatesListQuery } from '@metorial/dashboard-sdk';
 import { renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import {
@@ -38,7 +38,7 @@ let Description = styled.span`
 
 export let SkillTemplatesGrid = (
   p: { instanceId: string } & Omit<
-    DashboardInstanceSkillTemplatesListQuery,
+    DashboardInstanceSkillsTemplatesListQuery,
     'after' | 'before' | 'cursor' | 'limit'
   >
 ) => {

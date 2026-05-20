@@ -1,4 +1,4 @@
-import type { DashboardInstanceSkillGroupsListQuery } from '@metorial/dashboard-sdk';
+import type { DashboardInstanceSkillsGroupsListQuery } from '@metorial/dashboard-sdk';
 import { renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import {
@@ -35,7 +35,7 @@ let Description = styled.span`
 
 export let SkillGroupsGrid = (
   p: { instanceId: string } & Omit<
-    DashboardInstanceSkillGroupsListQuery,
+    DashboardInstanceSkillsGroupsListQuery,
     'after' | 'before' | 'cursor' | 'limit'
   >
 ) => {

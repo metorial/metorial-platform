@@ -1,26 +1,26 @@
 import type {
-  DashboardInstanceSkillGroupsCreateBody,
-  DashboardInstanceSkillGroupsGetOutput,
-  DashboardInstanceSkillGroupsItemsCreateBody,
-  DashboardInstanceSkillGroupsItemsGetOutput,
-  DashboardInstanceSkillGroupsItemsListQuery,
-  DashboardInstanceSkillGroupsListQuery,
-  DashboardInstanceSkillGroupsUpdateBody
+  DashboardInstanceSkillsGroupsCreateBody,
+  DashboardInstanceSkillsGroupsGetOutput,
+  DashboardInstanceSkillsGroupsItemsCreateBody,
+  DashboardInstanceSkillsGroupsItemsGetOutput,
+  DashboardInstanceSkillsGroupsItemsListQuery,
+  DashboardInstanceSkillsGroupsListQuery,
+  DashboardInstanceSkillsGroupsUpdateBody
 } from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
 import { autoPaginate } from '../../lib/autoPaginate';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
 
-export type SkillGroup = DashboardInstanceSkillGroupsGetOutput;
-export type SkillGroupItem = DashboardInstanceSkillGroupsItemsGetOutput;
+export type SkillGroup = DashboardInstanceSkillsGroupsGetOutput;
+export type SkillGroupItem = DashboardInstanceSkillsGroupsItemsGetOutput;
 
 let toArrayIfString = <T extends string>(value: T | T[] | undefined) =>
   typeof value === 'string' ? [value] : value;
 
 let normalizeSkillGroupsListQuery = (
-  query: DashboardInstanceSkillGroupsListQuery
-): DashboardInstanceSkillGroupsListQuery => ({
+  query: DashboardInstanceSkillsGroupsListQuery
+): DashboardInstanceSkillsGroupsListQuery => ({
   ...query,
   status: toArrayIfString(query.status),
   id: toArrayIfString(query.id),
@@ -28,8 +28,8 @@ let normalizeSkillGroupsListQuery = (
 });
 
 let normalizeSkillGroupItemsListQuery = (
-  query: DashboardInstanceSkillGroupsItemsListQuery
-): DashboardInstanceSkillGroupsItemsListQuery => ({
+  query: DashboardInstanceSkillsGroupsItemsListQuery
+): DashboardInstanceSkillsGroupsItemsListQuery => ({
   ...query,
   status: toArrayIfString(query.status),
   id: toArrayIfString(query.id),
@@ -39,19 +39,19 @@ let normalizeSkillGroupItemsListQuery = (
 export let skillGroupsLoader = createLoader({
   name: 'skillGroups',
   parents: [],
-  fetch: (i: { instanceId: string } & DashboardInstanceSkillGroupsListQuery) =>
+  fetch: (i: { instanceId: string } & DashboardInstanceSkillsGroupsListQuery) =>
     withAuth(sdk => sdk.skillGroups.list(i.instanceId, normalizeSkillGroupsListQuery(i))),
   mutators: {}
 });
 
 export let useCreateSkillGroup = skillGroupsLoader.createExternalMutator(
-  (i: DashboardInstanceSkillGroupsCreateBody & { instanceId: string }) =>
+  (i: DashboardInstanceSkillsGroupsCreateBody & { instanceId: string }) =>
     withAuth(sdk => sdk.skillGroups.create(i.instanceId, i))
 );
 
 export let useUpdateSkillGroup = skillGroupsLoader.createExternalMutator(
   (
-    i: DashboardInstanceSkillGroupsUpdateBody & {
+    i: DashboardInstanceSkillsGroupsUpdateBody & {
       instanceId: string;
       skillGroupId: string;
     }
@@ -60,7 +60,7 @@ export let useUpdateSkillGroup = skillGroupsLoader.createExternalMutator(
 
 export let useSkillGroups = (
   instanceId: string | null | undefined,
-  query?: DashboardInstanceSkillGroupsListQuery | null
+  query?: DashboardInstanceSkillsGroupsListQuery | null
 ) => {
   return usePaginator(
     pagination =>
@@ -78,7 +78,7 @@ export let skillGroupLoader = createLoader({
     withAuth(sdk => sdk.skillGroups.get(i.instanceId, i.skillGroupId)),
   mutators: {
     update: (
-      i: DashboardInstanceSkillGroupsUpdateBody,
+      i: DashboardInstanceSkillsGroupsUpdateBody,
       {
         input: { instanceId, skillGroupId }
       }: { input: { instanceId: string; skillGroupId: string } }
@@ -115,7 +115,7 @@ export let skillGroupItemsLoader = createLoader({
     i: {
       instanceId: string;
       skillGroupId: string;
-    } & DashboardInstanceSkillGroupsItemsListQuery
+    } & DashboardInstanceSkillsGroupsItemsListQuery
   ) =>
     withAuth(sdk =>
       sdk.skillGroups.items.list(
@@ -129,7 +129,7 @@ export let skillGroupItemsLoader = createLoader({
 
 export let useCreateSkillGroupItem = skillGroupItemsLoader.createExternalMutator(
   (
-    i: DashboardInstanceSkillGroupsItemsCreateBody & {
+    i: DashboardInstanceSkillsGroupsItemsCreateBody & {
       instanceId: string;
       skillGroupId: string;
     }
@@ -146,7 +146,7 @@ export let useDeleteSkillGroupItem = skillGroupItemsLoader.createExternalMutator
 export let useSkillGroupItems = (
   instanceId: string | null | undefined,
   skillGroupId: string | null | undefined,
-  query?: DashboardInstanceSkillGroupsItemsListQuery | null
+  query?: DashboardInstanceSkillsGroupsItemsListQuery | null
 ) => {
   return usePaginator(
     pagination =>
@@ -166,7 +166,7 @@ export let allSkillGroupItemsLoader = createLoader({
     i: {
       instanceId: string;
       skillGroupId: string;
-    } & Omit<DashboardInstanceSkillGroupsItemsListQuery, 'after' | 'before' | 'cursor'>
+    } & Omit<DashboardInstanceSkillsGroupsItemsListQuery, 'after' | 'before' | 'cursor'>
   ) =>
     withAuth(sdk =>
       autoPaginate(cursor =>
@@ -189,7 +189,7 @@ export let useAllSkillGroupItems = (
   instanceId: string | null | undefined,
   skillGroupId: string | null | undefined,
   query?: Omit<
-    DashboardInstanceSkillGroupsItemsListQuery,
+    DashboardInstanceSkillsGroupsItemsListQuery,
     'after' | 'before' | 'cursor'
   > | null
 ) => {

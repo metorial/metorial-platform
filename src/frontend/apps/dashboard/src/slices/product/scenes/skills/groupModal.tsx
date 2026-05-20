@@ -1,10 +1,10 @@
-import { DashboardInstanceSkillGroupsCreateOutput } from '@metorial/dashboard-sdk';
+import { DashboardInstanceSkillsGroupsCreateOutput } from '@metorial/dashboard-sdk';
 import { Dialog, showModal } from '@metorial/ui';
 import { SkillGroupForm } from './groupForm';
 
 export let showSkillGroupFormModal = (p: {
   instanceId: string;
-  onCreate?: (skillGroup: DashboardInstanceSkillGroupsCreateOutput) => void;
+  onCreate?: (skillGroup: DashboardInstanceSkillsGroupsCreateOutput) => void;
 }) =>
   showModal(({ dialogProps, close }) => (
     <Dialog.Wrapper {...dialogProps} width={550}>

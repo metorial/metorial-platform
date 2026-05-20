@@ -1,4 +1,4 @@
-import { DashboardInstanceSkillTemplatesCreateOutput } from '@metorial/dashboard-sdk';
+import { DashboardInstanceSkillsTemplatesCreateOutput } from '@metorial/dashboard-sdk';
 import { useForm } from '@metorial/data-hooks';
 import { useCreateSkillTemplate } from '@metorial/state';
 import { Button, Dialog, Input, Spacer } from '@metorial/ui';
@@ -10,7 +10,7 @@ export let SkillTemplateForm = ({
 }: {
   instanceId: string;
   close?: () => void;
-  onCreate?: (skillTemplate: DashboardInstanceSkillTemplatesCreateOutput) => void;
+  onCreate?: (skillTemplate: DashboardInstanceSkillsTemplatesCreateOutput) => void;
 }) => {
   let createMutation = useCreateSkillTemplate();
   let form = useForm({

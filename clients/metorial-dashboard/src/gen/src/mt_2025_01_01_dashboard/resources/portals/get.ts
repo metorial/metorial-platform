@@ -17,7 +17,11 @@ export type PortalsGetOutput = {
     allowedFileExtensions: string[];
     allowNonStandardDirectories: boolean;
   };
-  auth: { object: 'portal.auth'; sessionExpiryTimeInSeconds: number };
+  auth: {
+    object: 'portal.auth';
+    sessionExpiryTimeInSeconds: number;
+    allowedRedirectUrlFilters: { url: string }[];
+  };
   urls: { type: 'default'; url: string }[];
   createdAt: Date;
   updatedAt: Date;
@@ -62,6 +66,12 @@ export let mapPortalsGetOutput = mtMap.object<PortalsGetOutput>({
       sessionExpiryTimeInSeconds: mtMap.objectField(
         'session_expiry_time_in_seconds',
         mtMap.passthrough()
+      ),
+      allowedRedirectUrlFilters: mtMap.objectField(
+        'allowed_redirect_url_filters',
+        mtMap.array(
+          mtMap.object({ url: mtMap.objectField('url', mtMap.passthrough()) })
+        )
       )
     })
   ),

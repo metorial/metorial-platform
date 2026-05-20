@@ -1,6 +1,6 @@
 import type {
-  DashboardInstanceSkillGroupsListQuery,
-  DashboardInstanceSkillTemplatesListQuery,
+  DashboardInstanceSkillsGroupsListQuery,
+  DashboardInstanceSkillsTemplatesListQuery,
   DashboardInstanceSkillsMarketplacesListQuery,
   DashboardInstanceSkillsPluginsListQuery,
   DashboardInstanceSkillsListQuery
@@ -213,7 +213,7 @@ export let useSkillTemplateFilters = (p: {
   );
 
   let skillTemplatesFilter = useMemo(
-    (): DashboardInstanceSkillTemplatesListQuery => ({
+    (): DashboardInstanceSkillsTemplatesListQuery => ({
       ...(searchDebounced.trim() ? { search: searchDebounced.trim() } : {}),
       ...(status ? { status } : {}),
       ...(owner ? { owner } : {}),
@@ -254,7 +254,7 @@ export let useSkillGroupFilters = (p: { search: string; filterState: TableFilter
   );
 
   let skillGroupsFilter = useMemo(
-    (): DashboardInstanceSkillGroupsListQuery => ({
+    (): DashboardInstanceSkillsGroupsListQuery => ({
       ...(searchDebounced.trim() ? { search: searchDebounced.trim() } : {}),
       ...(status ? { status } : {}),
       ...(skillId ? { skillId } : {}),

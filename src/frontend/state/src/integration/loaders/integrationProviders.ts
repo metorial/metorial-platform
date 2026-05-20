@@ -1,8 +1,8 @@
 import type {
-  DashboardInstanceIntegrationProvidersCreateBody,
-  DashboardInstanceIntegrationProvidersListOutput,
-  DashboardInstanceIntegrationProvidersListQuery,
-  DashboardInstanceIntegrationProvidersUpdateBody
+  DashboardInstanceIntegrationsProvidersCreateBody,
+  DashboardInstanceIntegrationsProvidersListOutput,
+  DashboardInstanceIntegrationsProvidersListQuery,
+  DashboardInstanceIntegrationsProvidersUpdateBody
 } from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
 import { autoPaginate } from '../../lib/autoPaginate';
@@ -11,12 +11,12 @@ import { withAuth } from '../../user';
 import { integrationLoader, integrationsLoader } from './integrations';
 
 export type IntegrationProvider =
-  DashboardInstanceIntegrationProvidersListOutput['items'][number];
+  DashboardInstanceIntegrationsProvidersListOutput['items'][number];
 
 export let integrationProvidersLoader = createLoader({
   name: 'integrationProviders',
   parents: [integrationsLoader, integrationLoader],
-  fetch: (i: { instanceId: string } & DashboardInstanceIntegrationProvidersListQuery) =>
+  fetch: (i: { instanceId: string } & DashboardInstanceIntegrationsProvidersListQuery) =>
     withAuth(sdk => {
       let { instanceId, ...query } = i;
       return sdk.integration.providers.list(instanceId, query);
@@ -26,7 +26,7 @@ export let integrationProvidersLoader = createLoader({
 
 export let useIntegrationProviders = (
   instanceId: string | null | undefined,
-  query?: DashboardInstanceIntegrationProvidersListQuery
+  query?: DashboardInstanceIntegrationsProvidersListQuery
 ) => {
   let data = usePaginator(pagination =>
     integrationProvidersLoader.use(instanceId ? { instanceId, ...pagination, ...query } : null)
@@ -60,7 +60,7 @@ export let useAllIntegrationProviders = (
 };
 
 export let useCreateIntegrationProvider = integrationProvidersLoader.createExternalMutator(
-  (i: { instanceId: string } & DashboardInstanceIntegrationProvidersCreateBody) =>
+  (i: { instanceId: string } & DashboardInstanceIntegrationsProvidersCreateBody) =>
     withAuth(sdk => sdk.integration.providers.create(i.instanceId, i)),
   { disableToast: true }
 );
@@ -70,7 +70,7 @@ export let useUpdateIntegrationProvider = integrationProvidersLoader.createExter
     i: {
       instanceId: string;
       integrationProviderId: string;
-    } & DashboardInstanceIntegrationProvidersUpdateBody
+    } & DashboardInstanceIntegrationsProvidersUpdateBody
   ) =>
     withAuth(sdk =>
       sdk.integration.providers.update(i.instanceId, i.integrationProviderId, i)
