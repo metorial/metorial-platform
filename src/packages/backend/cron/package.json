@@ -9,7 +9,7 @@
     "lint": "prettier src/**/*.ts --check"
   },
   "dependencies": {
-    "@lowerdeck/cron": "^1.1.2",
+    "@lowerdeck/cron": "^1.1.3",
     "@metorial/queue": "^1.0.0"
   },
   "devDependencies": {

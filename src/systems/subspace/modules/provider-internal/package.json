@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@lowerdeck/canonicalize": "^1.0.4",
-    "@lowerdeck/cron": "^1.1.2",
+    "@lowerdeck/cron": "^1.1.3",
     "@lowerdeck/delay": "^1.0.4",
     "@lowerdeck/env": "^1.0.6",
     "@lowerdeck/error": "^1.2.3",
