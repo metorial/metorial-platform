@@ -10,6 +10,7 @@ import {
 } from '@metorial-subspace/db';
 import {
   type DateFilter,
+  mergeRetentionWithDateFilter,
   normalizeDateFilter,
   resolveProviders,
   resolveSessions
@@ -53,7 +54,7 @@ class sessionErrorGroupServiceImpl {
                 sessions ? { instances: { some: { sessionOid: sessions.in } } } : undefined!,
                 providers ? { providerOid: providers.in } : undefined!,
 
-                d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
+                mergeRetentionWithDateFilter(d.tenant, d.createdAt),
                 d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
               ].filter(Boolean)
             },

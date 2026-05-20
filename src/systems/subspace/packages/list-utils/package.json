@@ -5,9 +5,12 @@
   "type": "module",
   "private": true,
   "version": "1.0.0",
-  "scripts": {},
+  "scripts": {
+    "test": "vitest run"
+  },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "vitest": "^3.1.2"
   },
   "peerDependencies": {
     "typescript": "^5"

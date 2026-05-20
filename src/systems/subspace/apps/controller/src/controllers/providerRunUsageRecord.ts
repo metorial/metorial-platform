@@ -11,6 +11,7 @@ export let providerRunUsageRecordController = app.controller({
     .do(async ctx => {
       let paginator = await providerRunUsageRecordService.listProviderRunUsageRecords({
         ...ctx.input,
+        tenant: ctx.tenant,
         solution: ctx.solution
       });
 

@@ -19,9 +19,3 @@ export let sessionRetentionStorageCleanupWorkerOpts = {
     duration: 1000
   }
 };
-
-export let getRetentionCutoffDate = (logRetentionInDays: number) => {
-  let cutoffDate = new Date();
-  cutoffDate.setDate(cutoffDate.getDate() - Math.max(logRetentionInDays, 0));
-  return cutoffDate;
-};

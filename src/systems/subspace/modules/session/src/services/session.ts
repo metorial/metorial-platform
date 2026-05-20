@@ -14,6 +14,7 @@ import {
 import {
   checkDeletedEdit,
   type DateFilter,
+  getSessionRetentionFilter,
   normalizeDateFilter,
   normalizeStatusForGet,
   normalizeStatusForList,
@@ -137,7 +138,10 @@ class sessionServiceImpl {
                   ? { providers: { some: { authConfigOid: authConfigs.in } } }
                   : undefined!,
 
-                d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
+                getSessionRetentionFilter(d.tenant, d.createdAt),
+                !d.tenant.enforceSessionExpiry && d.createdAt
+                  ? { createdAt: normalizeDateFilter(d.createdAt) }
+                  : undefined!,
                 d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
               ].filter(Boolean)
             },

@@ -3,6 +3,7 @@ import { createQueue } from '@lowerdeck/queue';
 import { sessionMessageBucketRecord, storage } from '@metorial-subspace/connection-utils';
 import { db, withTransaction } from '@metorial-subspace/db';
 import { env } from '../../env';
+import { getConnectionRetentionWhere } from '@metorial-subspace/list-utils';
 import {
   getRetentionCutoffDate,
   RETENTION_BATCH_SIZE,
@@ -278,9 +279,11 @@ let cleanupSessionConnections = async (d: { tenantOid: bigint; cutoffDate: Date 
       db.sessionConnection.findMany({
         where: {
           tenantOid: d.tenantOid,
-          lastActiveAt: { lt: d.cutoffDate },
-          state: 'disconnected',
-          providerRuns: { none: {} }
+          providerRuns: { none: {} },
+          ...getConnectionRetentionWhere({
+            cutoff: d.cutoffDate,
+            beforeCutoff: true
+          })
         },
         orderBy: { createdAt: 'asc' },
         take: RETENTION_BATCH_SIZE,

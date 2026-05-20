@@ -51,6 +51,7 @@ export let tenantController = app.controller({
         onlyAllowTrustedProviders: v.optional(v.boolean()),
         isWhitelabel: v.optional(v.boolean()),
         logRetentionInDays: v.optional(v.number()),
+        enforceSessionExpiry: v.optional(v.boolean()),
         environments: v.array(
           v.object({
             name: v.string(),
@@ -68,7 +69,8 @@ export let tenantController = app.controller({
           environments: ctx.input.environments as any,
           onlyAllowTrustedProviders: ctx.input.onlyAllowTrustedProviders,
           isWhitelabel: ctx.input.isWhitelabel,
-          logRetentionInDays: ctx.input.logRetentionInDays
+          logRetentionInDays: ctx.input.logRetentionInDays,
+          enforceSessionExpiry: ctx.input.enforceSessionExpiry
         }
       });
       return tenantPresenter(tenant);

@@ -11,6 +11,7 @@ export let sessionUsageRecordController = app.controller({
     .do(async ctx => {
       let paginator = await sessionUsageRecordService.listSessionUsageRecords({
         ...ctx.input,
+        tenant: ctx.tenant,
         solution: ctx.solution
       });
 

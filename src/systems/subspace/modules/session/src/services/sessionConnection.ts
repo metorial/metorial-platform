@@ -11,6 +11,8 @@ import {
 } from '@metorial-subspace/db';
 import {
   type DateFilter,
+  getConnectionRetentionFilter,
+  mergeRetentionWithDateFilter,
   normalizeDateFilter,
   normalizeStatusForGet,
   normalizeStatusForList,
@@ -88,7 +90,8 @@ class sessionConnectionServiceImpl {
                   : undefined!,
                 participants ? { participantOid: participants.in } : undefined!,
 
-                d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
+                getConnectionRetentionFilter(d.tenant),
+                mergeRetentionWithDateFilter(d.tenant, d.createdAt),
                 d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
               ].filter(Boolean)
             },

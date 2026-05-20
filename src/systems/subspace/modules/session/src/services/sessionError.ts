@@ -10,6 +10,7 @@ import {
 } from '@metorial-subspace/db';
 import {
   type DateFilter,
+  mergeRetentionWithDateFilter,
   normalizeDateFilter,
   normalizeStatusForGet,
   normalizeStatusForList,
@@ -84,7 +85,7 @@ class sessionErrorServiceImpl {
                 messages ? { sessionMessages: { some: { oid: messages.in } } } : undefined!,
                 providers ? { providerRun: { providerOid: providers.in } } : undefined!,
 
-                d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
+                mergeRetentionWithDateFilter(d.tenant, d.createdAt),
                 d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
               ].filter(Boolean)
             },

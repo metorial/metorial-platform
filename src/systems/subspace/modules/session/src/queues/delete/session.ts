@@ -1,9 +1,10 @@
 import { createCron } from '@lowerdeck/cron';
 import { createQueue } from '@lowerdeck/queue';
 import { db } from '@metorial-subspace/db';
+import { getRetentionCutoffDate } from '@metorial-subspace/list-utils';
 import { env } from '../../env';
 import { sessionDeletedQueue } from '../lifecycle/session';
-import { getRetentionCutoffDate, RETENTION_BATCH_SIZE } from './_config';
+import { getCutoffDate, RETENTION_BATCH_SIZE } from './_config';
 
 export let sessionRetentionCleanupCron = createCron(
   {
@@ -59,14 +60,16 @@ export let sessionRetentionTenantQueueProcessor = sessionRetentionTenantQueue.pr
       where: { id: data.tenantId },
       select: {
         oid: true,
-        logRetentionInDays: true
+        logRetentionInDays: true,
+        enforceSessionExpiry: true
       }
     });
     if (!tenant) return;
 
     await sessionDeleteManyQueue.add({
       tenantOid: tenant.oid,
-      logRetentionInDays: tenant.logRetentionInDays
+      logRetentionInDays: tenant.logRetentionInDays,
+      enforceSessionExpiry: tenant.enforceSessionExpiry
     });
   }
 );
@@ -74,6 +77,7 @@ export let sessionRetentionTenantQueueProcessor = sessionRetentionTenantQueue.pr
 export let sessionDeleteManyQueue = createQueue<{
   tenantOid: bigint;
   logRetentionInDays: number;
+  enforceSessionExpiry: boolean;
   cursor?: string;
 }>({
   name: 'sub/ses/delete/session/many',
@@ -83,13 +87,18 @@ export let sessionDeleteManyQueue = createQueue<{
 export let enqueueArchivedSessionDeletes = async (d: {
   tenantOid: bigint;
   logRetentionInDays: number;
+  enforceSessionExpiry: boolean;
   cursor?: string;
 }) => {
+  let archivedBefore = d.enforceSessionExpiry
+    ? getRetentionCutoffDate(d.logRetentionInDays)
+    : getCutoffDate();
+
   let sessions = await db.session.findMany({
     where: {
       tenantOid: d.tenantOid,
       status: 'archived',
-      archivedAt: { lt: getRetentionCutoffDate(d.logRetentionInDays) },
+      archivedAt: { lt: archivedBefore },
       id: d.cursor ? { gt: d.cursor } : undefined
     },
     orderBy: { id: 'asc' },
@@ -106,6 +115,7 @@ export let enqueueArchivedSessionDeletes = async (d: {
   await sessionDeleteManyQueue.add({
     tenantOid: d.tenantOid,
     logRetentionInDays: d.logRetentionInDays,
+    enforceSessionExpiry: d.enforceSessionExpiry,
     cursor: lastSession.id
   });
 };
