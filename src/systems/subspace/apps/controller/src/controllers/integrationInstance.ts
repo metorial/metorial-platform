@@ -6,6 +6,7 @@ import {
 } from '@metorial-subspace/module-integration';
 import {
   integrationInstancePresenter,
+  sessionPresenter,
   sessionTemplatePresenter
 } from '@metorial-subspace/presenters';
 import { app } from './_app';
@@ -241,6 +242,37 @@ export let integrationInstanceController = app.controller({
         });
 
       return sessionTemplatePresenter(sessionTemplate);
+    }),
+
+  createSession: integrationInstanceApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        environmentId: v.string(),
+        integrationInstanceId: v.string(),
+
+        name: v.optional(v.string()),
+        description: v.optional(v.string()),
+        metadata: v.optional(v.record(v.any())),
+        privateMetadata: v.optional(v.record(v.any()))
+      })
+    )
+    .do(async ctx => {
+      let session = await integrationInstanceService.createSessionForIntegrationInstance({
+        tenant: ctx.tenant,
+        environment: ctx.environment,
+        solution: ctx.solution,
+        integrationInstance: ctx.integrationInstance,
+        input: {
+          name: ctx.input.name,
+          description: ctx.input.description,
+          metadata: ctx.input.metadata,
+          privateMetadata: ctx.input.privateMetadata
+        }
+      });
+
+      return sessionPresenter(session);
     }),
 
   delete: integrationInstanceApp

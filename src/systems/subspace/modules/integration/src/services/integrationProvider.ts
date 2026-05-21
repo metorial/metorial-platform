@@ -54,7 +54,7 @@ import {
   integrationProviderCreatedQueue,
   integrationProviderUpdatedQueue
 } from '../queues/lifecycle/integrationProvider';
-import { integrationProviderVersionInclude } from './integration';
+import { integrationProviderVersionInclude } from '../lib/integrationIncludes';
 
 export let integrationProviderInclude = {
   integration: true,

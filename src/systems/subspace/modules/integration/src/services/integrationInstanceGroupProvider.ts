@@ -33,7 +33,10 @@ import {
 } from '@metorial-subspace/list-utils';
 import { normalizeToolFilters } from '@metorial-subspace/module-provider-internal';
 import { checkTenant } from '@metorial-subspace/module-tenant';
-import { integrationInstanceGroupProviderSetQueue } from '../queues/lifecycle/integrationInstanceGroupProvider';
+import {
+  enqueueIntegrationInstanceGroupProviderSet,
+  enqueueIntegrationInstanceGroupProvidersSet
+} from '../queues/lifecycle/integrationInstanceGroupProvider';
 import { integrationInstanceGroupProviderInclude } from './integrationInstanceGroup';
 
 export type SetIntegrationInstanceGroupProviderInput = {
@@ -203,6 +206,7 @@ class integrationInstanceGroupProviderServiceImpl {
     integrationInstanceGroup: IntegrationInstanceGroup;
     input: SetIntegrationInstanceGroupProviderInput[];
     _allowMagicMcpBacking?: boolean;
+    _skipLifecycleSync?: boolean;
   }) {
     checkTenant(d, d.integrationInstanceGroup);
     checkDeletedRelation(d.integrationInstanceGroup);
@@ -425,14 +429,16 @@ class integrationInstanceGroupProviderServiceImpl {
       let providersByOid = new Map(providers.map(provider => [provider.oid, provider]));
       let orderedProviders = providerOids.map(oid => providersByOid.get(oid)!);
 
-      await addAfterTransactionHook(async () =>
-        integrationInstanceGroupProviderSetQueue.addMany(
-          orderedProviders.map(provider => ({
-            integrationInstanceGroupId: d.integrationInstanceGroup.id,
-            integrationInstanceGroupProviderId: provider.id
-          }))
-        )
-      );
+      if (!d._skipLifecycleSync) {
+        await addAfterTransactionHook(async () =>
+          enqueueIntegrationInstanceGroupProvidersSet(
+            orderedProviders.map(provider => ({
+              integrationInstanceGroupId: d.integrationInstanceGroup.id,
+              integrationInstanceGroupProviderId: provider.id
+            }))
+          )
+        );
+      }
 
       return orderedProviders;
     });
@@ -472,7 +478,8 @@ class integrationInstanceGroupProviderServiceImpl {
   }) {
     let providers = await this.setIntegrationInstanceGroupProviders({
       ...d,
-      _allowMagicMcpBacking: true
+      _allowMagicMcpBacking: true,
+      _skipLifecycleSync: true
     });
 
     await withTransaction(async db => {
@@ -537,7 +544,7 @@ class integrationInstanceGroupProviderServiceImpl {
       });
 
       await addAfterTransactionHook(async () =>
-        integrationInstanceGroupProviderSetQueue.add({
+        enqueueIntegrationInstanceGroupProviderSet({
           integrationInstanceGroupId: provider.integrationInstanceGroup.id,
           integrationInstanceGroupProviderId: provider.id
         })

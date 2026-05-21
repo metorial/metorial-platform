@@ -86,6 +86,108 @@ let enrichSessionEnsuringClientSecret = async (d: {
   };
 };
 
+export let finalizeSubspaceSessionCreate = async (d: {
+  instance: Instance;
+  session: RawSubspaceSession;
+}) => {
+  let eventBase = toEventBase({ instance: d.instance });
+  await Fabric.fire('provider.session.created:before', eventBase);
+
+  await sessionClientSecretReferenceService.createForSession({
+    instance: d.instance,
+    sessionId: d.session.id
+  });
+
+  await Fabric.fire('provider.session.created:after', { ...eventBase, session: d.session });
+
+  for (let provider of d.session.providers) {
+    if (provider.fromTemplateId) {
+      usageService
+        .ingestUsageRecord({
+          owner: {
+            id: eventBase.instance.id,
+            type: 'instance'
+          },
+          entity: {
+            id: provider.fromTemplateId,
+            type: 'provider_template'
+          },
+          type: 'provider_template.used'
+        })
+        .catch(e => Sentry.captureException(e));
+    }
+
+    if (provider.authConfig) {
+      usageService
+        .ingestUsageRecord({
+          owner: {
+            id: eventBase.instance.id,
+            type: 'instance'
+          },
+          entity: {
+            id: provider.authConfig.id,
+            type: 'provider_auth_config'
+          },
+          type: 'provider_auth_config.used'
+        })
+        .catch(e => Sentry.captureException(e));
+    }
+
+    if (provider.config) {
+      usageService
+        .ingestUsageRecord({
+          owner: {
+            id: eventBase.instance.id,
+            type: 'instance'
+          },
+          entity: {
+            id: provider.config.id,
+            type: 'provider_config'
+          },
+          type: 'provider_config.used'
+        })
+        .catch(e => Sentry.captureException(e));
+    }
+
+    if (provider.deployment) {
+      usageService
+        .ingestUsageRecord({
+          owner: {
+            id: eventBase.instance.id,
+            type: 'instance'
+          },
+          entity: {
+            id: provider.deployment.id,
+            type: 'provider_deployment'
+          },
+          type: 'provider_deployment.used'
+        })
+        .catch(e => Sentry.captureException(e));
+    }
+
+    if (provider.providerId) {
+      usageService
+        .ingestUsageRecord({
+          owner: {
+            id: eventBase.instance.id,
+            type: 'instance'
+          },
+          entity: {
+            id: provider.providerId,
+            type: 'provider'
+          },
+          type: 'provider.used'
+        })
+        .catch(e => Sentry.captureException(e));
+    }
+  }
+
+  return await enrichSession({
+    instance: d.instance,
+    session: d.session
+  });
+};
+
 export let subspaceSessionService = createSubspaceService(
   subspace.session,
   ['get', 'getMany', 'list', 'create', 'update', 'delete'],
@@ -127,100 +229,9 @@ export let subspaceSessionService = createSubspaceService(
       );
     },
     create: async (...params: Parameters<typeof inner.create>) => {
-      let eventBase = toEventBase(params[0]);
-      await Fabric.fire('provider.session.created:before', eventBase);
-
       let session = await inner.create(...params);
-      await sessionClientSecretReferenceService.createForSession({
-        instance: params[0].instance,
-        sessionId: session.id
-      });
 
-      await Fabric.fire('provider.session.created:after', { ...eventBase, session });
-
-      for (let provider of session.providers) {
-        if (provider.fromTemplateId) {
-          usageService
-            .ingestUsageRecord({
-              owner: {
-                id: eventBase.instance.id,
-                type: 'instance'
-              },
-              entity: {
-                id: provider.fromTemplateId,
-                type: 'provider_template'
-              },
-              type: 'provider_template.used'
-            })
-            .catch(e => Sentry.captureException(e));
-        }
-
-        if (provider.authConfig) {
-          usageService
-            .ingestUsageRecord({
-              owner: {
-                id: eventBase.instance.id,
-                type: 'instance'
-              },
-              entity: {
-                id: provider.authConfig.id,
-                type: 'provider_auth_config'
-              },
-              type: 'provider_auth_config.used'
-            })
-            .catch(e => Sentry.captureException(e));
-        }
-
-        if (provider.config) {
-          usageService
-            .ingestUsageRecord({
-              owner: {
-                id: eventBase.instance.id,
-                type: 'instance'
-              },
-              entity: {
-                id: provider.config.id,
-                type: 'provider_config'
-              },
-              type: 'provider_config.used'
-            })
-            .catch(e => Sentry.captureException(e));
-        }
-
-        if (provider.deployment) {
-          usageService
-            .ingestUsageRecord({
-              owner: {
-                id: eventBase.instance.id,
-                type: 'instance'
-              },
-              entity: {
-                id: provider.deployment.id,
-                type: 'provider_deployment'
-              },
-              type: 'provider_deployment.used'
-            })
-            .catch(e => Sentry.captureException(e));
-        }
-
-        if (provider.providerId) {
-          usageService
-            .ingestUsageRecord({
-              owner: {
-                id: eventBase.instance.id,
-                type: 'instance'
-              },
-              entity: {
-                id: provider.providerId,
-                type: 'provider'
-              },
-              type: 'provider.used'
-            })
-            .catch(e => Sentry.captureException(e));
-        }
-      }
-
-      return await enrichSession({
+      return await finalizeSubspaceSessionCreate({
         instance: params[0].instance,
         session
       });

@@ -8,8 +8,8 @@ let {
   providerAuthConfigArchiveMock,
   identityCredentialSyncMock,
   indexIntegrationInstanceQueueAddMock,
-  syncIntegrationInstanceSessionTemplatesQueueAddMock,
-  syncIntegrationInstanceGroupSessionTemplatesQueueAddMock
+  enqueueSyncIntegrationInstanceSessionTemplatesMock,
+  enqueueSyncIntegrationInstanceGroupSessionTemplatesMock
 } = vi.hoisted(() => {
   let processors = new Map<string, (data: any) => Promise<void>>();
   let db = {
@@ -40,8 +40,8 @@ let {
     providerAuthConfigArchiveMock: vi.fn(),
     identityCredentialSyncMock: vi.fn(),
     indexIntegrationInstanceQueueAddMock: vi.fn(),
-    syncIntegrationInstanceSessionTemplatesQueueAddMock: vi.fn(),
-    syncIntegrationInstanceGroupSessionTemplatesQueueAddMock: vi.fn()
+    enqueueSyncIntegrationInstanceSessionTemplatesMock: vi.fn(),
+    enqueueSyncIntegrationInstanceGroupSessionTemplatesMock: vi.fn()
   };
 });
 
@@ -74,20 +74,22 @@ vi.mock('@metorial-subspace/module-identity', () => ({
 vi.mock(
   '@metorial-subspace/module-session/src/queues/lifecycle/linkedSessionTemplate',
   () => ({
-    syncIntegrationInstanceSessionTemplatesQueue: {
-      add: syncIntegrationInstanceSessionTemplatesQueueAddMock
-    }
+    enqueueSyncIntegrationInstanceSessionTemplates:
+      enqueueSyncIntegrationInstanceSessionTemplatesMock
   })
 );
 
 vi.mock(
   '@metorial-subspace/module-session/src/queues/lifecycle/linkedIntegrationInstanceGroupTemplate',
   () => ({
-    syncIntegrationInstanceGroupSessionTemplatesQueue: {
-      addMany: syncIntegrationInstanceGroupSessionTemplatesQueueAddMock
-    }
+    enqueueSyncIntegrationInstanceGroupSessionTemplates:
+      enqueueSyncIntegrationInstanceGroupSessionTemplatesMock
   })
 );
+
+vi.mock('@metorial-subspace/module-session/src/lib/sessionTemplateSync', () => ({
+  queueJobId: (...parts: string[]) => parts.filter(Boolean).join('-')
+}));
 
 vi.mock('../src/env', () => ({
   env: {

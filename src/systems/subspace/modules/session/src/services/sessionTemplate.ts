@@ -37,6 +37,7 @@ import { providerToolService } from '@metorial-subspace/module-catalog';
 import { checkToolAccess } from '@metorial-subspace/module-provider-internal';
 import { checkTenant } from '@metorial-subspace/module-tenant';
 import { sessionTemplateArchivedQueue } from '../queues/lifecycle/sessionTemplate';
+import { queueJobId, withSessionTemplateSyncLock } from '../lib/sessionTemplateSync';
 import {
   type SessionProviderInput,
   sessionProviderInputService
@@ -417,37 +418,42 @@ class sessionTemplateServiceImpl {
     checkDeletedEdit(d.sessionTemplate, 'archive');
     if (!d._allowLinked) await assertCanWriteSessionTemplate(d.sessionTemplate, 'archive');
 
-    return withTransaction(async db => {
-      let archivedAt = new Date();
+    return withSessionTemplateSyncLock(d.sessionTemplate.id, async () =>
+      withTransaction(async db => {
+        let archivedAt = new Date();
 
-      await db.sessionTemplateProvider.updateMany({
-        where: {
-          sessionTemplateOid: d.sessionTemplate.oid
-        },
-        data: {
-          status: 'archived' as const
-        }
-      });
+        await db.sessionTemplateProvider.updateMany({
+          where: {
+            sessionTemplateOid: d.sessionTemplate.oid
+          },
+          data: {
+            status: 'archived' as const
+          }
+        });
 
-      let sessionTemplate = await db.sessionTemplate.update({
-        where: {
-          oid: d.sessionTemplate.oid
-        },
-        data: {
-          status: 'archived' as const,
-          archivedAt
-        },
-        include
-      });
+        let sessionTemplate = await db.sessionTemplate.update({
+          where: {
+            oid: d.sessionTemplate.oid
+          },
+          data: {
+            status: 'archived' as const,
+            archivedAt
+          },
+          include
+        });
 
-      await addAfterTransactionHook(async () =>
-        sessionTemplateArchivedQueue.add({
-          sessionTemplateId: sessionTemplate.id
-        })
-      );
+        await addAfterTransactionHook(async () =>
+          sessionTemplateArchivedQueue.add(
+            {
+              sessionTemplateId: sessionTemplate.id
+            },
+            { id: queueJobId('sta', sessionTemplate.id) }
+          )
+        );
 
-      return sessionTemplate;
-    });
+        return sessionTemplate;
+      })
+    );
   }
 
   async deleteSessionTemplate(d: {

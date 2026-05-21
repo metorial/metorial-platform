@@ -3,6 +3,7 @@ import { v } from '@lowerdeck/validation';
 import { integrationInstanceGroupService } from '@metorial-subspace/module-integration';
 import {
   integrationInstanceGroupPresenter,
+  sessionPresenter,
   sessionTemplatePresenter
 } from '@metorial-subspace/presenters';
 import { app } from './_app';
@@ -214,6 +215,38 @@ export let integrationInstanceGroupController = app.controller({
         );
 
       return sessionTemplatePresenter(sessionTemplate);
+    }),
+
+  createSession: integrationInstanceGroupApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        environmentId: v.string(),
+        integrationInstanceGroupId: v.string(),
+
+        name: v.optional(v.string()),
+        description: v.optional(v.string()),
+        metadata: v.optional(v.record(v.any())),
+        privateMetadata: v.optional(v.record(v.any()))
+      })
+    )
+    .do(async ctx => {
+      let session =
+        await integrationInstanceGroupService.createSessionForIntegrationInstanceGroup({
+          tenant: ctx.tenant,
+          environment: ctx.environment,
+          solution: ctx.solution,
+          integrationInstanceGroup: ctx.integrationInstanceGroup,
+          input: {
+            name: ctx.input.name,
+            description: ctx.input.description,
+            metadata: ctx.input.metadata,
+            privateMetadata: ctx.input.privateMetadata
+          }
+        });
+
+      return sessionPresenter(session);
     }),
 
   delete: integrationInstanceGroupApp

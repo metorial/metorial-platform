@@ -13,7 +13,7 @@ import {
   sessionTemplateProviderService,
   sessionTemplateService
 } from '@metorial-subspace/module-session';
-import { sessionTemplateSyncHashQueue } from '@metorial-subspace/module-session/src/queues/lifecycle/sessionTemplateProvider';
+import { enqueueSessionTemplateSyncHash } from '@metorial-subspace/module-session/src/queues/lifecycle/sessionTemplateProvider';
 import { checkTenant } from '@metorial-subspace/module-tenant';
 import { integrationService } from '../integration';
 import { integrationInstanceService } from '../integrationInstance';
@@ -313,9 +313,7 @@ class magicMcpServerBackingServiceImpl {
       sessionTemplate: syncTarget.sessionTemplate,
       integrationInstance: syncTarget.integrationInstance
     });
-    await sessionTemplateSyncHashQueue.add({
-      sessionTemplateId: syncTarget.sessionTemplate.id
-    });
+    await enqueueSessionTemplateSyncHash(syncTarget.sessionTemplate.id);
 
     await reconcileMagicMcpServerProvidersForBackingWithoutLock({
       tenant: d.tenant,

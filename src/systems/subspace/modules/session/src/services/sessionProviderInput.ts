@@ -15,8 +15,8 @@ import {
 import { providerCombinationService } from '@metorial-subspace/module-provider-internal';
 import { sessionProviderCreatedQueue } from '../queues/lifecycle/sessionProvider';
 import {
-  sessionTemplateProviderCreatedQueue,
-  sessionTemplateSyncHashQueue
+  enqueueSessionTemplateProviderCreated,
+  enqueueSessionTemplateSyncHash
 } from '../queues/lifecycle/sessionTemplateProvider';
 import { sessionProviderInclude } from './sessionProvider';
 import { sessionTemplateProviderInclude } from './sessionTemplateProvider';
@@ -280,15 +280,11 @@ class sessionProviderInputServiceImpl {
 
       for (let stp of sessionTemplateProviders) {
         await addAfterTransactionHook(async () =>
-          sessionTemplateProviderCreatedQueue.add({ sessionTemplateProviderId: stp.id })
+          enqueueSessionTemplateProviderCreated(stp.id)
         );
       }
 
-      await addAfterTransactionHook(async () =>
-        sessionTemplateSyncHashQueue.add({
-          sessionTemplateId: d.template.id
-        })
-      );
+      await addAfterTransactionHook(async () => enqueueSessionTemplateSyncHash(d.template.id));
 
       return sessionTemplateProviders;
     });

@@ -7,21 +7,24 @@ let {
   getIdMock,
   ensureIntegrationIdentityMock,
   upsertInternalLinkedSessionTemplateMock,
+  createSessionMock,
   integrationInstanceCreatedQueueAddMock,
-  syncIntegrationInstanceSessionTemplateQueueAddMock,
-  syncIntegrationInstanceGroupSessionTemplateQueueAddMock
+  enqueueSyncIntegrationInstanceSessionTemplateMock,
+  enqueueSyncIntegrationInstanceGroupSessionTemplateMock
 } = vi.hoisted(() => ({
   ...(() => {
     let db = {
       integrationInstance: {
         create: vi.fn(),
         update: vi.fn(),
+        findFirst: vi.fn(),
         findUniqueOrThrow: vi.fn()
       },
       integrationProvider: {
         findMany: vi.fn()
       },
       integrationInstanceGroup: {
+        findFirst: vi.fn(),
         findUniqueOrThrow: vi.fn()
       }
     };
@@ -41,9 +44,10 @@ let {
   })),
   ensureIntegrationIdentityMock: vi.fn(),
   upsertInternalLinkedSessionTemplateMock: vi.fn(),
+  createSessionMock: vi.fn(),
   integrationInstanceCreatedQueueAddMock: vi.fn(),
-  syncIntegrationInstanceSessionTemplateQueueAddMock: vi.fn(),
-  syncIntegrationInstanceGroupSessionTemplateQueueAddMock: vi.fn()
+  enqueueSyncIntegrationInstanceSessionTemplateMock: vi.fn(),
+  enqueueSyncIntegrationInstanceGroupSessionTemplateMock: vi.fn()
 }));
 
 vi.mock('@metorial-subspace/db', () => ({
@@ -104,6 +108,9 @@ vi.mock('@metorial-subspace/module-identity', () => ({
 }));
 
 vi.mock('@metorial-subspace/module-session', () => ({
+  sessionService: {
+    createSession: createSessionMock
+  },
   sessionTemplateService: {
     upsertInternalLinkedSessionTemplate: upsertInternalLinkedSessionTemplateMock
   }
@@ -126,18 +133,16 @@ vi.mock('@metorial-subspace/module-search', () => ({
 vi.mock(
   '@metorial-subspace/module-session/src/queues/lifecycle/linkedSessionTemplate',
   () => ({
-    syncIntegrationInstanceSessionTemplateQueue: {
-      add: syncIntegrationInstanceSessionTemplateQueueAddMock
-    }
+    enqueueSyncIntegrationInstanceSessionTemplate:
+      enqueueSyncIntegrationInstanceSessionTemplateMock
   })
 );
 
 vi.mock(
   '@metorial-subspace/module-session/src/queues/lifecycle/linkedIntegrationInstanceGroupTemplate',
   () => ({
-    syncIntegrationInstanceGroupSessionTemplateQueue: {
-      add: syncIntegrationInstanceGroupSessionTemplateQueueAddMock
-    }
+    enqueueSyncIntegrationInstanceGroupSessionTemplate:
+      enqueueSyncIntegrationInstanceGroupSessionTemplateMock
   })
 );
 
@@ -178,6 +183,7 @@ import { integrationInstanceService } from '../src/services/integrationInstance'
 
 describe('shared integration session templates', () => {
   beforeEach(() => {
+    vi.useRealTimers();
     vi.clearAllMocks();
     withTransactionMock.mockImplementation(async (callback: (db: any) => Promise<any>) =>
       callback(db)
@@ -194,7 +200,7 @@ describe('shared integration session templates', () => {
     });
   });
 
-  it('creates the default shared template when creating an integration instance', async () => {
+  it('defers default shared template creation when creating an integration instance', async () => {
     let createdIntegrationInstance = {
       oid: 11n,
       id: 'int_instance_1',
@@ -210,17 +216,17 @@ describe('shared integration session templates', () => {
       ...integrationInstanceWithIdentity,
       defaultSessionTemplate: { oid: 101n, id: 'stm_default' }
     };
-    let createdTemplate = { id: 'stm_default' };
 
     vi.mocked(db.integrationProvider.findMany).mockResolvedValue([]);
-    vi.mocked(db.integrationInstance.create).mockResolvedValue(createdIntegrationInstance as any);
+    vi.mocked(db.integrationInstance.create).mockResolvedValue(
+      createdIntegrationInstance as any
+    );
     vi.mocked(db.integrationInstance.update).mockResolvedValue(
       integrationInstanceWithIdentity as any
     );
     vi.mocked(db.integrationInstance.findUniqueOrThrow).mockResolvedValue(
       refreshedIntegrationInstance as any
     );
-    upsertInternalLinkedSessionTemplateMock.mockResolvedValue(createdTemplate);
 
     let result = await integrationInstanceService.createIntegrationInstance({
       tenant: { oid: 1n } as any,
@@ -232,15 +238,7 @@ describe('shared integration session templates', () => {
       }
     });
 
-    expect(upsertInternalLinkedSessionTemplateMock).toHaveBeenCalledWith({
-      tenant: expect.anything(),
-      solution: expect.anything(),
-      environment: expect.anything(),
-      sessionTemplate: null,
-      input: {
-        integrationInstance: integrationInstanceWithIdentity
-      }
-    });
+    expect(upsertInternalLinkedSessionTemplateMock).not.toHaveBeenCalled();
     expect(db.integrationInstance.findUniqueOrThrow).toHaveBeenCalledWith({
       where: { oid: integrationInstanceWithIdentity.oid },
       include: expect.anything()
@@ -249,6 +247,77 @@ describe('shared integration session templates', () => {
       integrationInstanceId: 'int_instance_1'
     });
     expect(result).toBe(refreshedIntegrationInstance);
+  });
+
+  it('creates a session for an integration instance after the default template is ready', async () => {
+    let template = {
+      id: 'stm_default',
+      providers: [
+        {
+          id: 'stp_1',
+          deployment: { id: 'dep_1' },
+          config: { id: 'cfg_1' },
+          authConfig: null
+        }
+      ]
+    };
+    let integrationInstance = {
+      oid: 11n,
+      id: 'int_instance_1'
+    } as any;
+    let createdSession = { id: 'ses_1' };
+
+    vi.mocked(db.integrationInstance.findFirst).mockResolvedValue({
+      defaultSessionTemplate: template,
+      integrationInstanceProviders: [{ oid: 101n }]
+    } as any);
+    createSessionMock.mockResolvedValue(createdSession);
+
+    let result = await integrationInstanceService.createSessionForIntegrationInstance({
+      tenant: { oid: 1n } as any,
+      solution: { oid: 2 } as any,
+      environment: { oid: 3n } as any,
+      integrationInstance,
+      input: { name: 'Session' }
+    });
+
+    expect(createSessionMock).toHaveBeenCalledWith({
+      tenant: expect.anything(),
+      solution: expect.anything(),
+      environment: expect.anything(),
+      input: {
+        name: 'Session',
+        providers: [
+          {
+            sessionTemplateId: 'stm_default',
+            __sessionTemplate: template
+          }
+        ]
+      }
+    });
+    expect(result).toBe(createdSession);
+  });
+
+  it('times out when an integration instance default template is not ready', async () => {
+    vi.useFakeTimers();
+    vi.mocked(db.integrationInstance.findFirst).mockResolvedValue({
+      defaultSessionTemplate: null,
+      integrationInstanceProviders: []
+    } as any);
+
+    let promise = integrationInstanceService.createSessionForIntegrationInstance({
+      tenant: { oid: 1n } as any,
+      solution: { oid: 2 } as any,
+      environment: { oid: 3n } as any,
+      integrationInstance: { oid: 11n, id: 'int_instance_1' } as any,
+      input: {}
+    });
+    let rejection = expect(promise).rejects.toThrow();
+
+    await vi.advanceTimersByTimeAsync(250 * 20);
+    await rejection;
+    expect(createSessionMock).not.toHaveBeenCalled();
+    vi.useRealTimers();
   });
 
   it('upserts the default shared template for an integration instance', async () => {
@@ -292,9 +361,9 @@ describe('shared integration session templates', () => {
         integrationInstance
       }
     });
-    expect(syncIntegrationInstanceSessionTemplateQueueAddMock).toHaveBeenCalledWith({
-      sessionTemplateId: 'stm_default'
-    });
+    expect(enqueueSyncIntegrationInstanceSessionTemplateMock).toHaveBeenCalledWith(
+      'stm_default'
+    );
     expect(result).toBe(createdTemplate);
   });
 
@@ -340,9 +409,81 @@ describe('shared integration session templates', () => {
         integrationInstanceGroup: currentIntegrationInstanceGroup
       }
     });
-    expect(syncIntegrationInstanceGroupSessionTemplateQueueAddMock).toHaveBeenCalledWith({
-      sessionTemplateId: 'stm_group_default'
-    });
+    expect(enqueueSyncIntegrationInstanceGroupSessionTemplateMock).toHaveBeenCalledWith(
+      'stm_group_default'
+    );
     expect(result).toBe(createdTemplate);
+  });
+
+  it('creates a session for an integration instance group after the default template is ready', async () => {
+    let template = {
+      id: 'stm_group_default',
+      providers: [
+        {
+          id: 'stp_group_1',
+          deployment: { id: 'dep_1' },
+          config: { id: 'cfg_1' },
+          authConfig: null
+        }
+      ]
+    };
+    let integrationInstanceGroup = {
+      oid: 22n,
+      id: 'int_group_1'
+    } as any;
+    let createdSession = { id: 'ses_group_1' };
+
+    vi.mocked(db.integrationInstanceGroup.findFirst).mockResolvedValue({
+      defaultSessionTemplate: template,
+      providers: [{ oid: 101n }]
+    } as any);
+    createSessionMock.mockResolvedValue(createdSession);
+
+    let result =
+      await integrationInstanceGroupService.createSessionForIntegrationInstanceGroup({
+        tenant: { oid: 1n } as any,
+        solution: { oid: 2 } as any,
+        environment: { oid: 3n } as any,
+        integrationInstanceGroup,
+        input: { name: 'Grouped session' }
+      });
+
+    expect(createSessionMock).toHaveBeenCalledWith({
+      tenant: expect.anything(),
+      solution: expect.anything(),
+      environment: expect.anything(),
+      input: {
+        name: 'Grouped session',
+        providers: [
+          {
+            sessionTemplateId: 'stm_group_default',
+            __sessionTemplate: template
+          }
+        ]
+      }
+    });
+    expect(result).toBe(createdSession);
+  });
+
+  it('times out when an integration instance group default template is not ready', async () => {
+    vi.useFakeTimers();
+    vi.mocked(db.integrationInstanceGroup.findFirst).mockResolvedValue({
+      defaultSessionTemplate: null,
+      providers: []
+    } as any);
+
+    let promise = integrationInstanceGroupService.createSessionForIntegrationInstanceGroup({
+      tenant: { oid: 1n } as any,
+      solution: { oid: 2 } as any,
+      environment: { oid: 3n } as any,
+      integrationInstanceGroup: { oid: 22n, id: 'int_group_1' } as any,
+      input: {}
+    });
+    let rejection = expect(promise).rejects.toThrow();
+
+    await vi.advanceTimersByTimeAsync(250 * 20);
+    await rejection;
+    expect(createSessionMock).not.toHaveBeenCalled();
+    vi.useRealTimers();
   });
 });
