@@ -2,7 +2,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../src/lib/backing', () => ({
   ensureMagicMcpServerBacking: vi.fn(),
-  ensureMagicMcpEndpointBacking: vi.fn()
+  ensureMagicMcpEndpointBacking: vi.fn(),
+  waitForMagicMcpServerBackingReady: vi.fn().mockResolvedValue(null),
+  waitForMagicMcpEndpointBackingReady: vi.fn().mockResolvedValue(null)
 }));
 
 vi.mock('../src/lib/magicMcpConnectHealth', () => ({
@@ -50,7 +52,8 @@ describe('ensureMagicMcpSubspaceSession', () => {
     expect(ensureMagicMcpServerBacking).toHaveBeenCalledWith({
       instance: target.instance,
       server: target,
-      isReconciliation: true
+      isReconciliation: true,
+      deferReconcile: false
     });
     expect(assertMagicMcpTargetReadyForConnect).toHaveBeenCalled();
     expect(result).toBe('ems_1');
@@ -89,7 +92,8 @@ describe('ensureMagicMcpSubspaceSession', () => {
     expect(ensureMagicMcpEndpointBacking).toHaveBeenCalledWith({
       instance: target.instance,
       endpoint: target,
-      isReconciliation: true
+      isReconciliation: true,
+      deferReconcile: false
     });
     expect(assertMagicMcpTargetReadyForConnect).toHaveBeenCalled();
     expect(result).toBe('ems_endpoint');
