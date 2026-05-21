@@ -32,7 +32,7 @@ import {
 } from '@metorial-subspace/list-utils';
 import { identityActorService, identityService } from '@metorial-subspace/module-identity';
 import { sessionTemplateService } from '@metorial-subspace/module-session';
-import { syncIntegrationInstanceGroupSessionTemplateQueue } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedIntegrationInstanceGroupTemplate';
+import { enqueueSyncIntegrationInstanceGroupSessionTemplate } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedIntegrationInstanceGroupTemplate';
 import { checkTenant } from '@metorial-subspace/module-tenant';
 import {
   integrationInstanceGroupArchivedQueue,
@@ -665,9 +665,7 @@ class integrationInstanceGroupServiceImpl {
       });
 
       await addAfterTransactionHook(async () =>
-        syncIntegrationInstanceGroupSessionTemplateQueue.add({
-          sessionTemplateId: sessionTemplate.id
-        })
+        enqueueSyncIntegrationInstanceGroupSessionTemplate(sessionTemplate.id)
       );
 
       return sessionTemplate;

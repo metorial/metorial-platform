@@ -40,7 +40,10 @@ import {
   normalizeIntegrationProviderToolFilter,
   refreshIntegrationInstanceStatus
 } from '../lib/versions';
-import { integrationInstanceProviderSetQueue } from '../queues/lifecycle/integrationInstanceProvider';
+import {
+  enqueueIntegrationInstanceProviderSet,
+  enqueueIntegrationInstanceProvidersSet
+} from '../queues/lifecycle/integrationInstanceProvider';
 import { getIntegrationToolFilterCapabilities } from './integration';
 import {
   integrationInstanceProviderInclude,
@@ -756,7 +759,7 @@ class integrationInstanceProviderServiceImpl {
       let orderedRes = integrationInstanceProviderOids.map(oid => resByOid.get(oid)!);
 
       await addAfterTransactionHook(async () =>
-        integrationInstanceProviderSetQueue.addMany(
+        enqueueIntegrationInstanceProvidersSet(
           orderedRes.map(integrationInstanceProvider => ({
             integrationInstanceId: d.integrationInstance.id,
             integrationInstanceProviderId: integrationInstanceProvider.id
@@ -899,7 +902,7 @@ class integrationInstanceProviderServiceImpl {
       });
 
       await addAfterTransactionHook(async () =>
-        integrationInstanceProviderSetQueue.add({
+        enqueueIntegrationInstanceProviderSet({
           integrationInstanceId: res.integrationInstance.id,
           integrationInstanceProviderId: res.id
         })

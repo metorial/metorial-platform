@@ -13,7 +13,7 @@ import {
   sessionTemplateProviderService,
   sessionTemplateService
 } from '@metorial-subspace/module-session';
-import { sessionTemplateSyncHashQueue } from '@metorial-subspace/module-session/src/queues/lifecycle/sessionTemplateProvider';
+import { enqueueSessionTemplateSyncHash } from '@metorial-subspace/module-session/src/queues/lifecycle/sessionTemplateProvider';
 import { checkTenant } from '@metorial-subspace/module-tenant';
 import { integrationInstanceGroupService } from '../integrationInstanceGroup';
 import { integrationInstanceGroupProviderService } from '../integrationInstanceGroupProvider';
@@ -209,9 +209,7 @@ class magicMcpEndpointBackingServiceImpl {
       sessionTemplate: syncTarget.sessionTemplate,
       integrationInstanceGroup: syncTarget.group
     });
-    await sessionTemplateSyncHashQueue.add({
-      sessionTemplateId: syncTarget.sessionTemplate.id
-    });
+    await enqueueSessionTemplateSyncHash(syncTarget.sessionTemplate.id);
 
     return await db.magicMcpEndpointBacking.findUniqueOrThrow({
       where: { id: d.input.id },

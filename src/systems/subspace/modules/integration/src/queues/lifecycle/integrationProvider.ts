@@ -1,13 +1,13 @@
 import { createQueue, QueueRetryError } from '@lowerdeck/queue';
 import { db } from '@metorial-subspace/db';
 import { identityInternalService } from '@metorial-subspace/module-identity';
-import { syncIntegrationInstanceGroupSessionTemplatesQueue } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedIntegrationInstanceGroupTemplate';
-import { syncIntegrationInstanceSessionTemplatesQueue } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedSessionTemplate';
+import { enqueueSyncIntegrationInstanceGroupSessionTemplatesMany } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedIntegrationInstanceGroupTemplate';
+import { enqueueSyncIntegrationInstanceSessionTemplatesMany } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedSessionTemplate';
 import { reconcileSkillProviderLinksForIntegrationProviderQueue } from '@metorial-subspace/module-skills/src/queues/reconciler/reconcileSkillProviderLink';
 import { env } from '../../env';
 import { indexIntegrationQueue } from '../search/integration';
 import { indexIntegrationInstanceQueue } from '../search/integrationInstance';
-import { integrationInstanceProviderSetQueue } from './integrationInstanceProvider';
+import { enqueueIntegrationInstanceProvidersSet } from './integrationInstanceProvider';
 
 let indexParentIntegration = async (integrationProviderId: string) => {
   let integrationProvider = await db.integrationProvider.findUnique({
@@ -22,7 +22,7 @@ let indexParentIntegration = async (integrationProviderId: string) => {
 let syncIntegrationInstanceSessionTemplates = async (integrationInstanceIds: string[]) => {
   if (integrationInstanceIds.length === 0) return;
 
-  await syncIntegrationInstanceSessionTemplatesQueue.addMany(
+  await enqueueSyncIntegrationInstanceSessionTemplatesMany(
     integrationInstanceIds.map(integrationInstanceId => ({ integrationInstanceId }))
   );
 };
@@ -139,7 +139,7 @@ export let integrationProviderArchiveInstanceProvidersManyQueueProcessor =
       }
     });
 
-    await integrationInstanceProviderSetQueue.addMany(
+    await enqueueIntegrationInstanceProvidersSet(
       integrationInstanceProviders.map(provider => ({
         integrationInstanceId: provider.integrationInstance.id,
         integrationInstanceProviderId: provider.id
@@ -200,7 +200,7 @@ export let integrationProviderArchiveGroupProvidersManyQueueProcessor =
       data: { isParentDeleted: true }
     });
 
-    await syncIntegrationInstanceGroupSessionTemplatesQueue.addMany(
+    await enqueueSyncIntegrationInstanceGroupSessionTemplatesMany(
       Array.from(
         new Set(groupProviders.map(provider => provider.integrationInstanceGroup.id))
       ).map(integrationInstanceGroupId => ({ integrationInstanceGroupId }))

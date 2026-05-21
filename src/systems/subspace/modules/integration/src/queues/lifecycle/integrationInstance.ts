@@ -2,14 +2,14 @@ import { createQueue } from '@lowerdeck/queue';
 import { db } from '@metorial-subspace/db';
 import { identityInternalService } from '@metorial-subspace/module-identity';
 import { identityDeletedQueue } from '@metorial-subspace/module-identity/src/queues/lifecycle/identity';
-import { syncIntegrationInstanceGroupSessionTemplatesQueue } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedIntegrationInstanceGroupTemplate';
+import { enqueueSyncIntegrationInstanceGroupSessionTemplatesMany } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedIntegrationInstanceGroupTemplate';
 import {
-  archiveIntegrationInstanceSessionTemplatesQueue,
-  syncIntegrationInstanceSessionTemplatesQueue
+  enqueueArchiveIntegrationInstanceSessionTemplates,
+  enqueueSyncIntegrationInstanceSessionTemplates
 } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedSessionTemplate';
 import { env } from '../../env';
 import { indexIntegrationInstanceQueue } from '../search/integrationInstance';
-import { integrationInstanceProviderSetQueue } from './integrationInstanceProvider';
+import { enqueueIntegrationInstanceProvidersSet } from './integrationInstanceProvider';
 
 let syncIntegrationInstanceProviderCredentials = async (integrationInstanceId: string) => {
   let integrationInstanceProviders = await db.integrationInstanceProvider.findMany({
@@ -86,11 +86,11 @@ export let runIntegrationInstanceArchivedEffects = async (d: {
   await indexIntegrationInstanceQueue.add({
     integrationInstanceId: d.integrationInstanceId
   });
-  await archiveIntegrationInstanceSessionTemplatesQueue.add({
+  await enqueueArchiveIntegrationInstanceSessionTemplates({
     integrationInstanceId: d.integrationInstanceId
   });
   if (archivedIntegrationInstanceProviders.length) {
-    await integrationInstanceProviderSetQueue.addMany(
+    await enqueueIntegrationInstanceProvidersSet(
       archivedIntegrationInstanceProviders.map(integrationInstanceProvider => ({
         integrationInstanceId: d.integrationInstanceId,
         integrationInstanceProviderId: integrationInstanceProvider.id
@@ -152,10 +152,10 @@ export let integrationInstanceArchiveGroupSourcesManyQueueProcessor =
       }
     });
 
-    await syncIntegrationInstanceGroupSessionTemplatesQueue.addMany(
-      Array.from(
-        new Set(groupSources.map(source => source.integrationInstanceGroup.id))
-      ).map(integrationInstanceGroupId => ({ integrationInstanceGroupId }))
+    await enqueueSyncIntegrationInstanceGroupSessionTemplatesMany(
+      Array.from(new Set(groupSources.map(source => source.integrationInstanceGroup.id))).map(
+        integrationInstanceGroupId => ({ integrationInstanceGroupId })
+      )
     );
 
     let lastSource = groupSources[groupSources.length - 1];
@@ -177,7 +177,7 @@ export let integrationInstanceCreatedQueueProcessor = integrationInstanceCreated
     await indexIntegrationInstanceQueue.add({
       integrationInstanceId: data.integrationInstanceId
     });
-    await syncIntegrationInstanceSessionTemplatesQueue.add({
+    await enqueueSyncIntegrationInstanceSessionTemplates({
       integrationInstanceId: data.integrationInstanceId
     });
     await syncIntegrationInstanceProviderCredentials(data.integrationInstanceId);
@@ -194,7 +194,7 @@ export let integrationInstanceUpdatedQueueProcessor = integrationInstanceUpdated
     await indexIntegrationInstanceQueue.add({
       integrationInstanceId: data.integrationInstanceId
     });
-    await syncIntegrationInstanceSessionTemplatesQueue.add({
+    await enqueueSyncIntegrationInstanceSessionTemplates({
       integrationInstanceId: data.integrationInstanceId
     });
     await syncIntegrationInstanceProviderCredentials(data.integrationInstanceId);

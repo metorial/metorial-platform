@@ -1,6 +1,7 @@
 import { createQueue } from '@lowerdeck/queue';
 import { db } from '@metorial-subspace/db';
-import { syncIntegrationInstanceGroupSessionTemplatesQueue } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedIntegrationInstanceGroupTemplate';
+import { queueJobId } from '@metorial-subspace/module-session/src/lib/sessionTemplateSync';
+import { enqueueSyncIntegrationInstanceGroupSessionTemplates } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedIntegrationInstanceGroupTemplate';
 import { env } from '../../env';
 
 export let integrationInstanceGroupProviderSetQueue = createQueue<{
@@ -11,6 +12,31 @@ export let integrationInstanceGroupProviderSetQueue = createQueue<{
   redisUrl: env.service.REDIS_URL
 });
 
+export let enqueueIntegrationInstanceGroupProviderSet = async (d: {
+  integrationInstanceGroupId: string;
+  integrationInstanceGroupProviderId: string;
+}) => {
+  await integrationInstanceGroupProviderSetQueue.add(d, {
+    id: queueJobId('iigp', d.integrationInstanceGroupProviderId)
+  });
+};
+
+export let enqueueIntegrationInstanceGroupProvidersSet = async (
+  items: {
+    integrationInstanceGroupId: string;
+    integrationInstanceGroupProviderId: string;
+  }[]
+) => {
+  if (!items.length) return;
+
+  await integrationInstanceGroupProviderSetQueue.addManyWithOps(
+    items.map(item => ({
+      data: item,
+      opts: { id: queueJobId('iigp', item.integrationInstanceGroupProviderId) }
+    }))
+  );
+};
+
 export let integrationInstanceGroupProviderSetQueueProcessor =
   integrationInstanceGroupProviderSetQueue.process(async data => {
     let provider = await db.integrationInstanceGroupProvider.findUnique({
@@ -19,7 +45,7 @@ export let integrationInstanceGroupProviderSetQueueProcessor =
     });
     if (!provider) return;
 
-    await syncIntegrationInstanceGroupSessionTemplatesQueue.add({
+    await enqueueSyncIntegrationInstanceGroupSessionTemplates({
       integrationInstanceGroupId: data.integrationInstanceGroupId
     });
   });

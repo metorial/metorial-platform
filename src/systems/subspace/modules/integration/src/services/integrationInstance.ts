@@ -42,7 +42,7 @@ import {
 } from '@metorial-subspace/module-identity';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
 import { sessionTemplateService } from '@metorial-subspace/module-session';
-import { syncIntegrationInstanceSessionTemplateQueue } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedSessionTemplate';
+import { enqueueSyncIntegrationInstanceSessionTemplate } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedSessionTemplate';
 import { checkTenant } from '@metorial-subspace/module-tenant';
 import {
   integrationInstanceArchivedQueue,
@@ -845,9 +845,7 @@ class integrationInstanceServiceImpl {
       });
 
       await addAfterTransactionHook(async () =>
-        syncIntegrationInstanceSessionTemplateQueue.add({
-          sessionTemplateId: sessionTemplate.id
-        })
+        enqueueSyncIntegrationInstanceSessionTemplate(sessionTemplate.id)
       );
 
       return sessionTemplate;

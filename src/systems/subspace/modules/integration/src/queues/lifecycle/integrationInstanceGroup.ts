@@ -1,11 +1,11 @@
 import { createQueue } from '@lowerdeck/queue';
 import { db } from '@metorial-subspace/db';
 import {
-  archiveIntegrationInstanceGroupSessionTemplatesQueue,
-  syncIntegrationInstanceGroupSessionTemplatesQueue
+  enqueueArchiveIntegrationInstanceGroupSessionTemplates,
+  enqueueSyncIntegrationInstanceGroupSessionTemplates
 } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedIntegrationInstanceGroupTemplate';
 import { env } from '../../env';
-import { integrationInstanceGroupProviderSetQueue } from './integrationInstanceGroupProvider';
+import { enqueueIntegrationInstanceGroupProvidersSet } from './integrationInstanceGroupProvider';
 
 export let runIntegrationInstanceGroupArchivedEffects = async (d: {
   integrationInstanceGroupId: string;
@@ -23,7 +23,7 @@ export let runIntegrationInstanceGroupArchivedEffects = async (d: {
     }
   });
 
-  await archiveIntegrationInstanceGroupSessionTemplatesQueue.add({
+  await enqueueArchiveIntegrationInstanceGroupSessionTemplates({
     integrationInstanceGroupId: d.integrationInstanceGroupId
   });
 
@@ -71,7 +71,7 @@ export let integrationInstanceGroupArchiveProvidersManyQueueProcessor =
       }
     });
 
-    await integrationInstanceGroupProviderSetQueue.addMany(
+    await enqueueIntegrationInstanceGroupProvidersSet(
       providers.map(provider => ({
         integrationInstanceGroupId: data.integrationInstanceGroupId,
         integrationInstanceGroupProviderId: provider.id
@@ -96,7 +96,7 @@ export let integrationInstanceGroupCreatedQueue = createQueue<{
 
 export let integrationInstanceGroupCreatedQueueProcessor =
   integrationInstanceGroupCreatedQueue.process(async data => {
-    await syncIntegrationInstanceGroupSessionTemplatesQueue.add({
+    await enqueueSyncIntegrationInstanceGroupSessionTemplates({
       integrationInstanceGroupId: data.integrationInstanceGroupId
     });
   });
@@ -110,7 +110,7 @@ export let integrationInstanceGroupUpdatedQueue = createQueue<{
 
 export let integrationInstanceGroupUpdatedQueueProcessor =
   integrationInstanceGroupUpdatedQueue.process(async data => {
-    await syncIntegrationInstanceGroupSessionTemplatesQueue.add({
+    await enqueueSyncIntegrationInstanceGroupSessionTemplates({
       integrationInstanceGroupId: data.integrationInstanceGroupId
     });
   });

@@ -8,8 +8,8 @@ let {
   ensureIntegrationIdentityMock,
   upsertInternalLinkedSessionTemplateMock,
   integrationInstanceCreatedQueueAddMock,
-  syncIntegrationInstanceSessionTemplateQueueAddMock,
-  syncIntegrationInstanceGroupSessionTemplateQueueAddMock
+  enqueueSyncIntegrationInstanceSessionTemplateMock,
+  enqueueSyncIntegrationInstanceGroupSessionTemplateMock
 } = vi.hoisted(() => ({
   ...(() => {
     let db = {
@@ -42,8 +42,8 @@ let {
   ensureIntegrationIdentityMock: vi.fn(),
   upsertInternalLinkedSessionTemplateMock: vi.fn(),
   integrationInstanceCreatedQueueAddMock: vi.fn(),
-  syncIntegrationInstanceSessionTemplateQueueAddMock: vi.fn(),
-  syncIntegrationInstanceGroupSessionTemplateQueueAddMock: vi.fn()
+  enqueueSyncIntegrationInstanceSessionTemplateMock: vi.fn(),
+  enqueueSyncIntegrationInstanceGroupSessionTemplateMock: vi.fn()
 }));
 
 vi.mock('@metorial-subspace/db', () => ({
@@ -126,18 +126,16 @@ vi.mock('@metorial-subspace/module-search', () => ({
 vi.mock(
   '@metorial-subspace/module-session/src/queues/lifecycle/linkedSessionTemplate',
   () => ({
-    syncIntegrationInstanceSessionTemplateQueue: {
-      add: syncIntegrationInstanceSessionTemplateQueueAddMock
-    }
+    enqueueSyncIntegrationInstanceSessionTemplate:
+      enqueueSyncIntegrationInstanceSessionTemplateMock
   })
 );
 
 vi.mock(
   '@metorial-subspace/module-session/src/queues/lifecycle/linkedIntegrationInstanceGroupTemplate',
   () => ({
-    syncIntegrationInstanceGroupSessionTemplateQueue: {
-      add: syncIntegrationInstanceGroupSessionTemplateQueueAddMock
-    }
+    enqueueSyncIntegrationInstanceGroupSessionTemplate:
+      enqueueSyncIntegrationInstanceGroupSessionTemplateMock
   })
 );
 
@@ -213,7 +211,9 @@ describe('shared integration session templates', () => {
     let createdTemplate = { id: 'stm_default' };
 
     vi.mocked(db.integrationProvider.findMany).mockResolvedValue([]);
-    vi.mocked(db.integrationInstance.create).mockResolvedValue(createdIntegrationInstance as any);
+    vi.mocked(db.integrationInstance.create).mockResolvedValue(
+      createdIntegrationInstance as any
+    );
     vi.mocked(db.integrationInstance.update).mockResolvedValue(
       integrationInstanceWithIdentity as any
     );
@@ -292,9 +292,9 @@ describe('shared integration session templates', () => {
         integrationInstance
       }
     });
-    expect(syncIntegrationInstanceSessionTemplateQueueAddMock).toHaveBeenCalledWith({
-      sessionTemplateId: 'stm_default'
-    });
+    expect(enqueueSyncIntegrationInstanceSessionTemplateMock).toHaveBeenCalledWith(
+      'stm_default'
+    );
     expect(result).toBe(createdTemplate);
   });
 
@@ -340,9 +340,9 @@ describe('shared integration session templates', () => {
         integrationInstanceGroup: currentIntegrationInstanceGroup
       }
     });
-    expect(syncIntegrationInstanceGroupSessionTemplateQueueAddMock).toHaveBeenCalledWith({
-      sessionTemplateId: 'stm_group_default'
-    });
+    expect(enqueueSyncIntegrationInstanceGroupSessionTemplateMock).toHaveBeenCalledWith(
+      'stm_group_default'
+    );
     expect(result).toBe(createdTemplate);
   });
 });
