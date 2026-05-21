@@ -100,6 +100,8 @@ model MagicMcpEndpointServerBacking {
   magicMcpServerBackingOid BigInt
   magicMcpServerBacking    MagicMcpServerBacking @relation(fields: [magicMcpServerBackingOid], references: [oid], onDelete: Cascade)
 
+  toolFilters Json?
+
   createdAt DateTime @default(now())
 }
 

@@ -92,6 +92,12 @@ export let integrationInstanceInclude = {
   magicMcpServerBacking: true
 } as const;
 
+export let magicMcpBackingIntegrationInstanceInclude = {
+  integration: true,
+  identityActor: true,
+  identity: true
+} as const;
+
 type IntegrationIdentityInput = {
   identityActorId?: string | null;
   identityId?: string | null;
@@ -224,6 +230,7 @@ class integrationInstanceServiceImpl {
     integrationInstance: IntegrationInstance;
     input: IntegrationInstanceWriteInput;
     current?: Parameters<typeof mergeIntegrationIdentityInput>[0]['current'];
+    isMagicMcpBacking?: boolean;
   }) {
     let mergedIdentityInput = mergeIntegrationIdentityInput({
       current: d.current,
@@ -657,7 +664,7 @@ class integrationInstanceServiceImpl {
               input: d.input,
               isMagicMcpBacking: true
             }),
-            include: integrationInstanceInclude
+            include: magicMcpBackingIntegrationInstanceInclude
           })
         : await db.integrationInstance.create({
             data: this.integrationInstanceCreateData({
@@ -669,7 +676,7 @@ class integrationInstanceServiceImpl {
               input: d.input,
               isMagicMcpBacking: true
             }),
-            include: integrationInstanceInclude
+            include: magicMcpBackingIntegrationInstanceInclude
           });
       let isNew = integrationInstance.id === newId.id;
 

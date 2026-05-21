@@ -33,6 +33,7 @@ import {
   integrationProviderCreatedQueueProcessor,
   integrationProviderUpdatedQueueProcessor
 } from './integrationProvider';
+import { magicMcpBackingReconcileQueueProcessor } from './magicMcpBackingReconcile';
 
 export let lifecycleQueues = combineQueueProcessors([
   archiveIntegrationInstanceQueueProcessor,
@@ -58,5 +59,6 @@ export let lifecycleQueues = combineQueueProcessors([
   integrationProviderUpdatedQueueProcessor,
   integrationProviderArchivedQueueProcessor,
   integrationProviderArchiveInstanceProvidersManyQueueProcessor,
-  integrationProviderArchiveGroupProvidersManyQueueProcessor
+  integrationProviderArchiveGroupProvidersManyQueueProcessor,
+  magicMcpBackingReconcileQueueProcessor
 ]);

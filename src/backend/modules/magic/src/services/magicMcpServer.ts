@@ -152,7 +152,8 @@ class MagicMcpServerImpl {
         : await ensureMagicMcpServerBacking({
             instance: d.instance,
             server: d.server,
-            isReconciliation: true
+            isReconciliation: true,
+            deferReconcile: false
           });
       let backing = await subspaceMagicMcpBackingService.getServer({
         instance: d.instance,
@@ -198,6 +199,7 @@ class MagicMcpServerImpl {
           status: 'active',
           source: d.input.source ?? 'manual',
           isConsumerReconciled: true,
+          isSubspaceBackingReconciling: true,
           providerTemplateId: d.input.providerTemplateId,
           subspaceIntegrationInstanceId: d.input.subspaceIntegrationInstanceId,
           name: d.input.name,
@@ -216,11 +218,8 @@ class MagicMcpServerImpl {
       });
     });
 
-    await magicMcpServerCreatedQueue.add({ magicMcpServerId: magicMcpServer.id });
-
-    await ensureMagicMcpServerBacking({
-      instance: d.instance,
-      server: magicMcpServer,
+    await magicMcpServerCreatedQueue.add({
+      magicMcpServerId: magicMcpServer.id,
       providers: d.input.providers,
       isReconciliation: false
     });
@@ -365,6 +364,7 @@ class MagicMcpServerImpl {
             description:
               d.input.description === undefined ? d.server.description : d.input.description,
             metadata: d.input.metadata === undefined ? d.server.metadata : d.input.metadata,
+            isSubspaceBackingReconciling: true,
             aliases: {
               create: nextAliases.map(slug => ({ slug }))
             }
@@ -383,14 +383,10 @@ class MagicMcpServerImpl {
       throw error;
     }
 
-    await magicMcpServerUpdatedQueue.add({ magicMcpServerId: server.id });
-    if (d.instance) {
-      await ensureMagicMcpServerBacking({
-        instance: d.instance,
-        server,
-        isReconciliation: false
-      });
-    }
+    await magicMcpServerUpdatedQueue.add({
+      magicMcpServerId: server.id,
+      isReconciliation: false
+    });
 
     return server;
   }
@@ -422,7 +418,8 @@ class MagicMcpServerImpl {
       : await ensureMagicMcpServerBacking({
           instance: d.instance,
           server: d.server,
-          isReconciliation: true
+          isReconciliation: true,
+          deferReconcile: false
         });
 
     return {
@@ -478,7 +475,8 @@ class MagicMcpServerImpl {
       : await ensureMagicMcpServerBacking({
           instance: d.instance,
           server: d.server,
-          isReconciliation: true
+          isReconciliation: true,
+          deferReconcile: false
         });
     let provider = await subspaceMagicMcpBackingService.getServerProvider({
       instance: d.instance,
@@ -510,10 +508,16 @@ class MagicMcpServerImpl {
       accessTags: d.accessTags
     });
 
+    await db.magicMcpServer.update({
+      where: { oid: d.server.oid },
+      data: { isSubspaceBackingReconciling: true }
+    });
+
     let server = await ensureMagicMcpServerBacking({
       instance: d.instance,
       server: d.server,
-      isReconciliation: false
+      isReconciliation: false,
+      deferReconcile: false
     });
 
     return await subspaceMagicMcpBackingService.createServerProvider({

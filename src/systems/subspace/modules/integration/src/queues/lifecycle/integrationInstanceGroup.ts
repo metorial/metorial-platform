@@ -114,6 +114,10 @@ export let integrationInstanceGroupCreatedQueueProcessor =
       return;
     }
 
+    if (integrationInstanceGroup.isMagicMcpBacking) {
+      return;
+    }
+
     await integrationInstanceGroupService.createSessionTemplateForIntegrationInstanceGroup({
       tenant: integrationInstanceGroup.tenant,
       solution: integrationInstanceGroup.solution,
@@ -136,6 +140,11 @@ export let integrationInstanceGroupUpdatedQueue = createQueue<{
 
 export let integrationInstanceGroupUpdatedQueueProcessor =
   integrationInstanceGroupUpdatedQueue.process(async data => {
+    let integrationInstanceGroup = await db.integrationInstanceGroup.findUnique({
+      where: { id: data.integrationInstanceGroupId }
+    });
+    if (!integrationInstanceGroup || integrationInstanceGroup.isMagicMcpBacking) return;
+
     await enqueueSyncIntegrationInstanceGroupSessionTemplates({
       integrationInstanceGroupId: data.integrationInstanceGroupId
     });

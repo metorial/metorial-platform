@@ -192,6 +192,13 @@ export let integrationInstanceCreatedQueueProcessor = integrationInstanceCreated
       return;
     }
 
+    if (integrationInstance.isMagicMcpBacking) {
+      await indexIntegrationInstanceQueue.add({
+        integrationInstanceId: data.integrationInstanceId
+      });
+      return;
+    }
+
     await integrationInstanceService.createSessionTemplateForIntegrationInstance({
       tenant: integrationInstance.tenant,
       solution: integrationInstance.solution,
@@ -217,6 +224,18 @@ export let integrationInstanceUpdatedQueue = createQueue<{ integrationInstanceId
 
 export let integrationInstanceUpdatedQueueProcessor = integrationInstanceUpdatedQueue.process(
   async data => {
+    let integrationInstance = await db.integrationInstance.findUnique({
+      where: { id: data.integrationInstanceId }
+    });
+    if (!integrationInstance || integrationInstance.isMagicMcpBacking) {
+      if (integrationInstance?.isMagicMcpBacking) {
+        await indexIntegrationInstanceQueue.add({
+          integrationInstanceId: data.integrationInstanceId
+        });
+      }
+      return;
+    }
+
     await indexIntegrationInstanceQueue.add({
       integrationInstanceId: data.integrationInstanceId
     });

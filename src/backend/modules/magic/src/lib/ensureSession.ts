@@ -1,6 +1,11 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { ID, Instance, withTransaction } from '@metorial/db';
-import { ensureMagicMcpEndpointBacking, ensureMagicMcpServerBacking } from './backing';
+import {
+  ensureMagicMcpEndpointBacking,
+  ensureMagicMcpServerBacking,
+  waitForMagicMcpEndpointBackingReady,
+  waitForMagicMcpServerBackingReady
+} from './backing';
 import {
   assertMagicMcpTargetLinkedResourcesActive,
   assertMagicMcpTargetReadyForConnect
@@ -10,17 +15,35 @@ import { MagicMcpResolvedTarget } from './magicMcpTarget';
 let ensureServerBackingSession = async (
   target: MagicMcpResolvedTarget & { type: 'server' }
 ) => {
-  if (target.target.hasSubspaceBacking && target.target.subspaceEphemeralManagedSessionId) {
+  let targetServer = target.target;
+  if (
+    !targetServer.hasSubspaceBacking ||
+    !targetServer.subspaceEphemeralManagedSessionId ||
+    targetServer.isSubspaceBackingReconciling
+  ) {
+    let latest = await waitForMagicMcpServerBackingReady({
+      instance: target.target.instance as Instance,
+      server: target.target
+    });
+    if (latest) targetServer = { ...targetServer, ...latest };
+  }
+
+  if (
+    targetServer.hasSubspaceBacking &&
+    targetServer.subspaceEphemeralManagedSessionId &&
+    !targetServer.isSubspaceBackingReconciling
+  ) {
     await assertMagicMcpTargetLinkedResourcesActive(target);
-    return target.target.subspaceEphemeralManagedSessionId;
+    return targetServer.subspaceEphemeralManagedSessionId;
   }
 
   let server = {
-    ...target.target,
+    ...targetServer,
     ...(await ensureMagicMcpServerBacking({
       instance: target.target.instance as Instance,
-      server: target.target,
-      isReconciliation: true
+      server: targetServer,
+      isReconciliation: true,
+      deferReconcile: false
     }))
   };
 
@@ -41,15 +64,40 @@ let ensureServerBackingSession = async (
 let ensureEndpointBackingSession = async (
   target: MagicMcpResolvedTarget & { type: 'endpoint' }
 ) => {
-  if (target.target.hasSubspaceBacking && target.target.subspaceEphemeralManagedSessionId) {
+  let targetEndpoint = target.target;
+  if (
+    !targetEndpoint.hasSubspaceBacking ||
+    !targetEndpoint.subspaceEphemeralManagedSessionId ||
+    targetEndpoint.isSubspaceBackingReconciling
+  ) {
+    let latest = await waitForMagicMcpEndpointBackingReady({
+      instance: target.target.instance as Instance,
+      endpoint: target.target
+    });
+    if (latest) {
+      targetEndpoint = {
+        ...targetEndpoint,
+        hasSubspaceBacking: latest.hasSubspaceBacking,
+        subspaceEphemeralManagedSessionId: latest.subspaceEphemeralManagedSessionId,
+        isSubspaceBackingReconciling: latest.isSubspaceBackingReconciling
+      };
+    }
+  }
+
+  if (
+    targetEndpoint.hasSubspaceBacking &&
+    targetEndpoint.subspaceEphemeralManagedSessionId &&
+    !targetEndpoint.isSubspaceBackingReconciling
+  ) {
     await assertMagicMcpTargetLinkedResourcesActive(target);
-    return target.target.subspaceEphemeralManagedSessionId;
+    return targetEndpoint.subspaceEphemeralManagedSessionId;
   }
 
   let endpoint = await ensureMagicMcpEndpointBacking({
     instance: target.target.instance as Instance,
-    endpoint: target.target,
-    isReconciliation: true
+    endpoint: targetEndpoint,
+    isReconciliation: true,
+    deferReconcile: false
   });
 
   if (!endpoint.subspaceEphemeralManagedSessionId) {
