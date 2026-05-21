@@ -1,10 +1,11 @@
 import type {
   DashboardInstanceIntegrationsInstancesCreateBody,
+  DashboardInstanceIntegrationsInstancesCreateSessionOutput,
   DashboardInstanceIntegrationsInstancesListOutput,
   DashboardInstanceIntegrationsInstancesListQuery,
   DashboardInstanceIntegrationsInstancesUpdateBody
 } from '@metorial/dashboard-sdk';
-import { createLoader } from '@metorial/data-hooks';
+import { createLoader, useMutation } from '@metorial/data-hooks';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
 import { integrationLoader, integrationsLoader } from './integrations';
@@ -77,3 +78,15 @@ export let useIntegrationInstance = (
     useDeleteMutator: data.useMutator('delete')
   };
 };
+
+export let useCreateIntegrationInstanceSession = () =>
+  useMutation(
+    (i: {
+      instanceId: string;
+      integrationInstanceId: string;
+    }): Promise<DashboardInstanceIntegrationsInstancesCreateSessionOutput> =>
+      withAuth(sdk =>
+        sdk.integration.instances.createSession(i.instanceId, i.integrationInstanceId, {})
+      ),
+    { disableToast: true }
+  );
