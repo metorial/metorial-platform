@@ -169,6 +169,7 @@ export let magicMcpBackingController = app.controller({
         privateMetadata: v.optional(v.nullable(v.record(v.any()))),
         maxSessionDurationInMinutes: v.number({ modifiers: [v.integer(), v.positive()] }),
         isReconciliation: v.optional(v.boolean()),
+        deferReconcile: v.optional(v.boolean()),
         providers: v.optional(v.array(backingProviderValidator))
       })
     )
@@ -191,6 +192,7 @@ export let magicMcpBackingController = app.controller({
           privateMetadata: ctx.input.privateMetadata,
           maxSessionDurationInMinutes: ctx.input.maxSessionDurationInMinutes,
           isReconciliation: ctx.input.isReconciliation,
+          deferReconcile: ctx.input.deferReconcile,
           providers: ctx.input.providers?.map(provider => ({
             providerDeploymentId: provider.providerDeploymentId,
             providerConfigId: provider.providerConfigId,
@@ -221,6 +223,7 @@ export let magicMcpBackingController = app.controller({
         privateMetadata: v.optional(v.nullable(v.record(v.any()))),
         maxSessionDurationInMinutes: v.number({ modifiers: [v.integer(), v.positive()] }),
         isReconciliation: v.optional(v.boolean()),
+        deferReconcile: v.optional(v.boolean()),
         servers: v.array(endpointServerValidator)
       })
     )
@@ -239,6 +242,7 @@ export let magicMcpBackingController = app.controller({
           privateMetadata: ctx.input.privateMetadata,
           maxSessionDurationInMinutes: ctx.input.maxSessionDurationInMinutes,
           isReconciliation: ctx.input.isReconciliation,
+          deferReconcile: ctx.input.deferReconcile,
           servers: ctx.input.servers.map(server => ({
             id: server.id,
             magicMcpServerBackingId: server.magicMcpServerBackingId,
@@ -516,7 +520,8 @@ export let magicMcpBackingController = app.controller({
 
       return {
         object: 'magic_mcp.server_backing.session',
-        sessionId: session.id
+        sessionId: session.id,
+        isReconciling: false
       };
     }),
 

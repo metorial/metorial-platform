@@ -10,15 +10,16 @@ import {
 } from '@metorial-subspace/db';
 import {
   ephemeralManagedSessionService,
-  sessionTemplateProviderService,
   sessionTemplateService
 } from '@metorial-subspace/module-session';
-import { enqueueSessionTemplateSyncHash } from '@metorial-subspace/module-session/src/queues/lifecycle/sessionTemplateProvider';
 import { checkTenant } from '@metorial-subspace/module-tenant';
 import { integrationService } from '../integration';
 import { integrationInstanceService } from '../integrationInstance';
 import { integrationInstanceProviderService } from '../integrationInstanceProvider';
-import { reconcileMagicMcpServerProvidersForBackingWithoutLock } from './serverProvider';
+import {
+  enqueueMagicMcpServerBackingReconcile,
+  reconcileMagicMcpServerBacking
+} from '../../queues/lifecycle/magicMcpBackingReconcile';
 import {
   type BackingProviderInput,
   getMagicMcpOwnerType,
@@ -40,6 +41,7 @@ type UpsertMagicMcpServerBackingInput = {
     providers?: BackingProviderInput[];
     legacySessionTemplateId?: string | null;
     isReconciliation?: boolean;
+    deferReconcile?: boolean;
   };
 };
 
@@ -184,13 +186,22 @@ class magicMcpServerBackingServiceImpl {
           })
         : []);
 
+    let shouldRunReconcile =
+      providers.length > 0 || ownerType !== 'server_owned' || d.input.deferReconcile === false;
+    let shouldDeferReconcile = d.input.deferReconcile !== false && shouldRunReconcile;
+
     let syncTarget = await withMagicMcpBackingLock(
       `server:${d.input.id}`,
       async () =>
         await withTransaction(async db => {
           let existing = await db.magicMcpServerBacking.findUnique({
             where: { id: d.input.id },
-            include: magicMcpServerBackingInclude
+            include: {
+              integration: true,
+              integrationInstance: true,
+              sessionTemplate: true,
+              ephemeralManagedSession: true
+            }
           });
 
           let integration =
@@ -263,11 +274,12 @@ class magicMcpServerBackingServiceImpl {
               sessionTemplate,
               input: {
                 maxSessionDurationInMinutes: d.input.maxSessionDurationInMinutes,
-                actorOid
+                actorOid,
+                isReconciling: shouldDeferReconcile
               }
             });
 
-          await db.magicMcpServerBacking.upsert({
+          let backing = await db.magicMcpServerBacking.upsert({
             where: { id: d.input.id },
             create: {
               oid: snowflake.nextId(),
@@ -293,7 +305,13 @@ class magicMcpServerBackingServiceImpl {
             }
           });
 
-          return { integration, integrationInstance, sessionTemplate };
+          return {
+            backing,
+            integration,
+            integrationInstance,
+            sessionTemplate,
+            ephemeralManagedSession
+          };
         })
     );
 
@@ -309,23 +327,32 @@ class magicMcpServerBackingServiceImpl {
       });
     }
 
-    await sessionTemplateProviderService.syncForIntegrationInstance({
+    if (shouldDeferReconcile) {
+      await enqueueMagicMcpServerBackingReconcile({
+        tenant: d.tenant,
+        solution: d.solution,
+        environment: d.environment,
+        magicMcpServerBackingId: d.input.id
+      });
+    } else if (shouldRunReconcile) {
+      await reconcileMagicMcpServerBacking({
+        tenant: d.tenant,
+        solution: d.solution,
+        environment: d.environment,
+        magicMcpServerBackingId: d.input.id
+      });
+    }
+
+    return {
+      ...syncTarget.backing,
+      providerTemplateBacking,
+      ownerIntegration: ownerType === 'integration' ? syncTarget.integration : null,
+      integration: ownerType === 'server_owned' ? syncTarget.integration : null,
+      integrationInstance: syncTarget.integrationInstance,
       sessionTemplate: syncTarget.sessionTemplate,
-      integrationInstance: syncTarget.integrationInstance
-    });
-    await enqueueSessionTemplateSyncHash(syncTarget.sessionTemplate.id);
-
-    await reconcileMagicMcpServerProvidersForBackingWithoutLock({
-      tenant: d.tenant,
-      solution: d.solution,
-      environment: d.environment,
-      magicMcpServerBackingId: d.input.id
-    });
-
-    return await db.magicMcpServerBacking.findUniqueOrThrow({
-      where: { id: d.input.id },
-      include: magicMcpServerBackingInclude
-    });
+      ephemeralManagedSession: syncTarget.ephemeralManagedSession,
+      actor: null
+    };
   }
 
   async getMagicMcpServerBackingById(d: {

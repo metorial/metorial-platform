@@ -54,6 +54,12 @@ export let integrationInclude = {
   magicMcpServerBacking: true
 };
 
+export let magicMcpBackingIntegrationInclude = {
+  currentVersion: {
+    include: integrationVersionInclude
+  }
+};
+
 let getSlug = (input: { name: string }) =>
   `${slugify(input.name)}-${generatePlainId(7).toLowerCase()}`.toLowerCase();
 
@@ -284,7 +290,7 @@ class integrationServiceImpl {
             environmentOid: d.environment.oid
           },
           data: this.integrationUpdateData({ ...d.input, isMagicMcpBacking: true }),
-          include: integrationInclude
+          include: magicMcpBackingIntegrationInclude
         });
 
         await addAfterTransactionHook(async () =>
@@ -307,7 +313,7 @@ class integrationServiceImpl {
           isMagicMcpBacking: true
         }),
         update: this.integrationUpdateData({ ...d.input, isMagicMcpBacking: true }),
-        include: integrationInclude
+        include: magicMcpBackingIntegrationInclude
       });
       let isNew = integration.id === newId.id;
 
@@ -315,7 +321,7 @@ class integrationServiceImpl {
         await createIntegrationVersion({ integrationOid: integration.oid });
         integration = await db.integration.findUniqueOrThrow({
           where: { oid: integration.oid },
-          include: integrationInclude
+          include: magicMcpBackingIntegrationInclude
         });
       }
 

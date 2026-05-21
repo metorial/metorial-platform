@@ -24,6 +24,11 @@ let ephemeralManagedSessionResolveLock = createLock({
   redisUrl: env.service.REDIS_URL
 });
 
+let EPHEMERAL_MANAGED_SESSION_RECONCILE_POLL_INTERVAL_MS = 100;
+let EPHEMERAL_MANAGED_SESSION_RECONCILE_POLL_ATTEMPTS = 20;
+
+let wait = async (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 type ResolvedBackingSession = Session & {
   tenant: Tenant;
   solution: Solution;
@@ -94,6 +99,27 @@ let shouldRotateBackingSession = (ephemeralManagedSession: EphemeralManagedSessi
   if (maxDurationInMinutes <= 0) return false;
 
   return Date.now() - currentSession.createdAt.getTime() >= maxDurationInMinutes * 60 * 1000;
+};
+
+let waitForEphemeralManagedSessionReconcile = async (d: {
+  sessionId: string;
+  tenantId: string;
+  solutionId: string;
+}) => {
+  let latest: EphemeralManagedSessionRecord | null = null;
+
+  for (
+    let attempt = 0;
+    attempt < EPHEMERAL_MANAGED_SESSION_RECONCILE_POLL_ATTEMPTS;
+    attempt++
+  ) {
+    latest = await getEphemeralManagedSessionById(d);
+    if (!latest || !latest.isReconciling) return latest;
+
+    await wait(EPHEMERAL_MANAGED_SESSION_RECONCILE_POLL_INTERVAL_MS);
+  }
+
+  return latest;
 };
 
 let getWillRotateAt = (d: { session: Session; maxSessionDurationInMinutes: number }) => {
@@ -201,6 +227,7 @@ class ephemeralManagedSessionServiceImpl {
     input: {
       maxSessionDurationInMinutes: number;
       actorOid?: bigint | null;
+      isReconciling?: boolean;
     };
   }) {
     return withTransaction(async db => {
@@ -210,7 +237,8 @@ class ephemeralManagedSessionServiceImpl {
         maxSessionDurationInMinutes: d.input.maxSessionDurationInMinutes,
         sessionTemplateOid: d.sessionTemplate.oid,
         actorOid: d.input.actorOid ?? d.sessionTemplate.identityActorOid ?? null,
-        identityOid: d.sessionTemplate.identityOid ?? null
+        identityOid: d.sessionTemplate.identityOid ?? null,
+        isReconciling: d.input.isReconciling ?? false
       };
 
       if (d.ephemeralManagedSession) {
@@ -325,6 +353,15 @@ class ephemeralManagedSessionServiceImpl {
     let existing = await getEphemeralManagedSessionById(d);
     if (!existing) return null;
 
+    if (existing.isReconciling) {
+      let resolved = await waitForEphemeralManagedSessionReconcile(d);
+      if (!resolved) return null;
+      if (resolved.isReconciling && resolved.currentSession?.status === 'active') {
+        return resolved.currentSession;
+      }
+      existing = resolved;
+    }
+
     if (!shouldRotateBackingSession(existing)) {
       return existing.currentSession!;
     }
@@ -332,6 +369,15 @@ class ephemeralManagedSessionServiceImpl {
     return await ephemeralManagedSessionResolveLock.usingLock(existing.id, async () => {
       let ephemeralManagedSession = await getEphemeralManagedSessionById(d);
       if (!ephemeralManagedSession) return null;
+
+      if (ephemeralManagedSession.isReconciling) {
+        let resolved = await waitForEphemeralManagedSessionReconcile(d);
+        if (!resolved) return null;
+        if (resolved.isReconciling && resolved.currentSession?.status === 'active') {
+          return resolved.currentSession;
+        }
+        ephemeralManagedSession = resolved;
+      }
 
       if (!shouldRotateBackingSession(ephemeralManagedSession)) {
         return ephemeralManagedSession.currentSession!;
