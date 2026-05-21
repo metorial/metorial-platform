@@ -41,9 +41,10 @@ let reconcileProviderTemplatesManyQueueProcessor = reconcileProviderTemplatesMan
 
     if (providerTemplates.length === 0) return;
 
-    await reconcileProviderTemplatesSingleQueue.addMany(
+    await reconcileProviderTemplatesSingleQueue.addManyWithOps(
       providerTemplates.map(providerTemplate => ({
-        providerTemplateId: providerTemplate.id
+        data: { providerTemplateId: providerTemplate.id },
+        opts: { id: providerTemplate.id }
       }))
     );
 
