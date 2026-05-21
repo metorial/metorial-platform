@@ -28,6 +28,8 @@ export let v1SessionPresenter = Presenter.create(providerSessionType)
     from_templates_ids: session.fromTemplatesIds,
     has_errors: session.hasErrors,
     has_warnings: session.hasWarnings,
+    identity_actor_id: session.identityActorId ?? null,
+    identity_id: session.identityId ?? null,
     created_at: session.createdAt,
     updated_at: session.updatedAt
   }))
@@ -106,6 +108,8 @@ export let v1SessionPresenter = Presenter.create(providerSessionType)
         name: 'has_warnings',
         description: 'Whether the session has any warnings'
       }),
+      identity_actor_id: v.nullable(v.string()),
+      identity_id: v.nullable(v.string()),
       created_at: v.date({
         name: 'created_at',
         description: 'Timestamp when created',

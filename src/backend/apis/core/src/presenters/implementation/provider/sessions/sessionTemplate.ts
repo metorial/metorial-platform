@@ -16,6 +16,8 @@ export let v1SessionTemplatePresenter = Presenter.create(sessionTemplateType)
 
     integration_instance_id: sessionTemplate.integrationInstanceId,
     integration_instance_group_id: sessionTemplate.integrationInstanceGroupId,
+    identity_actor_id: sessionTemplate.identityActorId ?? null,
+    identity_id: sessionTemplate.identityId ?? null,
 
     providers: await Promise.all(
       sessionTemplate.providers
@@ -65,6 +67,8 @@ export let v1SessionTemplatePresenter = Presenter.create(sessionTemplateType)
       ),
       integration_instance_id: v.nullable(v.string()),
       integration_instance_group_id: v.nullable(v.string()),
+      identity_actor_id: v.nullable(v.string()),
+      identity_id: v.nullable(v.string()),
       providers: v.array(v1SessionTemplateProviderPresenter.schema, {
         name: 'providers',
         description: 'Template providers'

@@ -89,7 +89,11 @@ export let upsertParticipant = async (d: {
       environmentOid: d.session.environmentOid,
       providerOid: d.from.type === 'provider' ? d.from.provider.oid : undefined,
       agentInstanceOid:
-        d.from.type === 'connection_client' ? d.from.agentInstance?.oid : undefined
+        d.from.type === 'connection_client' ? d.from.agentInstance?.oid : undefined,
+      identityActorOid:
+        d.from.type === 'connection_client' ? (d.session.identityActorOid ?? null) : undefined,
+      identityOid:
+        d.from.type === 'connection_client' ? (d.session.identityOid ?? null) : undefined
     },
     update:
       d.from.type === 'connection_client'
@@ -98,7 +102,9 @@ export let upsertParticipant = async (d: {
             name: participantData.name,
             payload: participantData,
             connectionType,
-            agentInstanceOid: d.from.agentInstance?.oid
+            agentInstanceOid: d.from.agentInstance?.oid,
+            identityActorOid: d.session.identityActorOid ?? null,
+            identityOid: d.session.identityOid ?? null
           }
         : {}
   });

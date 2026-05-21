@@ -20,6 +20,7 @@ import {
   normalizeStatusForGet,
   normalizeStatusForList,
   resolveAgents,
+  resolveIdentities,
   resolveIdentityActors,
   resolveProviderAuthConfigs,
   resolveProviderConfigs,
@@ -78,6 +79,7 @@ class toolCallServiceImpl {
     ids?: string[];
     agentIds?: string[];
     actorIds?: string[];
+    identityIds?: string[];
     agentInstanceIds?: string[];
     sessionTemplateIds?: string[];
     sessionProviderIds?: string[];
@@ -91,6 +93,7 @@ class toolCallServiceImpl {
   }) {
     let agents = await resolveAgents(d, d.agentIds);
     let actors = await resolveIdentityActors(d, d.actorIds);
+    let identities = await resolveIdentities(d, d.identityIds);
     let sessionTemplates = await resolveSessionTemplates(d, d.sessionTemplateIds);
     let sessionProviders = await resolveProviders(d, d.sessionProviderIds);
     let providers = await resolveProviders(d, d.providerIds);
@@ -154,16 +157,30 @@ class toolCallServiceImpl {
                       OR: [
                         {
                           senderParticipant: {
-                            agentInstance: {
-                              agent: { actorOid: actors.in }
-                            }
+                            identityActorOid: actors.in
                           }
                         },
                         {
                           responderParticipant: {
-                            agentInstance: {
-                              agent: { actorOid: actors.in }
-                            }
+                            identityActorOid: actors.in
+                          }
+                        }
+                      ]
+                    }
+                  }
+                : undefined!,
+              identities
+                ? {
+                    message: {
+                      OR: [
+                        {
+                          senderParticipant: {
+                            identityOid: identities.in
+                          }
+                        },
+                        {
+                          responderParticipant: {
+                            identityOid: identities.in
                           }
                         }
                       ]

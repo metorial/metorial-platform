@@ -10,6 +10,8 @@ export type DashboardInstanceSessionTemplatesListOutput = {
     metadata: Record<string, any> | null;
     integrationInstanceId: string | null;
     integrationInstanceGroupId: string | null;
+    identityActorId: string | null;
+    identityId: string | null;
     providers: {
       object: 'session.template.provider';
       id: string;

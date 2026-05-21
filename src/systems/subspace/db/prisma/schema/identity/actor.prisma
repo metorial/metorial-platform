@@ -49,6 +49,7 @@ model IdentityActor {
   magicMcpEndpointBackings   MagicMcpEndpointBacking[]
   magicMcpServerBackings     MagicMcpServerBacking[]
   ephemeralManagedSessions   EphemeralManagedSession[]
+  sessionParticipants        SessionParticipant[]
 
   @@index([createdAt])
   @@index([updatedAt])

@@ -125,8 +125,7 @@ export let sessionParticipantController = Controller.create(
         let actorIds = await resolveActorIdsForLogFilters({
           instance: ctx.instance,
           actorIds: normalizeArrayParam(ctx.query.actor_id),
-          consumerIds: normalizeArrayParam(ctx.query.consumer_id),
-          identityIds: normalizeArrayParam(ctx.query.identity_id)
+          consumerIds: normalizeArrayParam(ctx.query.consumer_id)
         });
 
         let paginator = await subspaceSessionParticipantService.list({
@@ -136,6 +135,7 @@ export let sessionParticipantController = Controller.create(
           ids: normalizeArrayParam(ctx.query.id),
           agentIds: normalizeArrayParam(ctx.query.agent_id),
           actorIds,
+          identityIds: normalizeArrayParam(ctx.query.identity_id),
           agentInstanceIds: normalizeArrayParam(ctx.query.agent_instance_id),
           sessionIds: normalizeArrayParam(ctx.query.session_id),
           sessionConnectionIds: normalizeArrayParam(ctx.query.session_connection_id),

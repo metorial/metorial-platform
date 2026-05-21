@@ -58,6 +58,8 @@ export type ManagementInstanceSessionsMessagesListOutput = {
         agentId: string | null;
         agentInstanceId: string | null;
         identityActorId: string | null;
+    identityId: string | null;
+    agentActorId: string | null;
         agentClientId: string | null;
         consumerId: string | null;
         createdAt: Date;
@@ -74,6 +76,8 @@ export type ManagementInstanceSessionsMessagesListOutput = {
         agentId: string | null;
         agentInstanceId: string | null;
         identityActorId: string | null;
+    identityId: string | null;
+    agentActorId: string | null;
         agentClientId: string | null;
         consumerId: string | null;
         createdAt: Date;
@@ -131,6 +135,8 @@ export type ManagementInstanceSessionsMessagesListOutput = {
       agentId: string | null;
       agentInstanceId: string | null;
       identityActorId: string | null;
+    identityId: string | null;
+    agentActorId: string | null;
       agentClientId: string | null;
       consumerId: string | null;
       createdAt: Date;
@@ -147,6 +153,8 @@ export type ManagementInstanceSessionsMessagesListOutput = {
       agentId: string | null;
       agentInstanceId: string | null;
       identityActorId: string | null;
+    identityId: string | null;
+    agentActorId: string | null;
       agentClientId: string | null;
       consumerId: string | null;
       createdAt: Date;
