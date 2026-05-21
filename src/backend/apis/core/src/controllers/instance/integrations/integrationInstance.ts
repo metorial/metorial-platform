@@ -1,10 +1,7 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import {
-  subspaceIntegrationInstanceService,
-  subspaceSessionService
-} from '@metorial/module-subspace';
+import { subspaceIntegrationInstanceService } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
@@ -187,26 +184,12 @@ export let integrationInstanceController = Controller.create(
       )
       .output(providerSessionPresenter)
       .do(async ctx => {
-        if (!ctx.integrationInstance.defaultSessionTemplateId) {
-          throw new ServiceError(
-            badRequestError({
-              message:
-                'This integration instance does not have a shared session template yet.',
-              code: 'integration_instance_shared_session_template_missing'
-            })
-          );
-        }
-
-        let session = await subspaceSessionService.create({
+        let session = await subspaceIntegrationInstanceService.createSession({
           instance: ctx.instance,
+          integrationInstanceId: ctx.integrationInstance.id,
           name: ctx.body.name ?? `Session ${new Date().toISOString()}`,
           description: ctx.body.description,
-          metadata: ctx.body.metadata,
-          providers: [
-            {
-              sessionTemplateId: ctx.integrationInstance.defaultSessionTemplateId
-            }
-          ]
+          metadata: ctx.body.metadata
         });
 
         return providerSessionPresenter.present({ session });
