@@ -10,6 +10,7 @@ import {
 import { env } from '../../env';
 import { indexIntegrationInstanceQueue } from '../search/integrationInstance';
 import { enqueueIntegrationInstanceProvidersSet } from './integrationInstanceProvider';
+import { integrationInstanceService } from '../../services/integrationInstance';
 
 let syncIntegrationInstanceProviderCredentials = async (integrationInstanceId: string) => {
   let integrationInstanceProviders = await db.integrationInstanceProvider.findMany({
@@ -174,6 +175,31 @@ export let integrationInstanceCreatedQueue = createQueue<{ integrationInstanceId
 
 export let integrationInstanceCreatedQueueProcessor = integrationInstanceCreatedQueue.process(
   async data => {
+    let integrationInstance = await db.integrationInstance.findUnique({
+      where: { id: data.integrationInstanceId },
+      include: {
+        tenant: true,
+        solution: true,
+        environment: true,
+        defaultSessionTemplate: true
+      }
+    });
+    if (
+      !integrationInstance ||
+      integrationInstance.status === 'archived' ||
+      integrationInstance.status === 'deleted'
+    ) {
+      return;
+    }
+
+    await integrationInstanceService.createSessionTemplateForIntegrationInstance({
+      tenant: integrationInstance.tenant,
+      solution: integrationInstance.solution,
+      environment: integrationInstance.environment,
+      integrationInstance,
+      input: {}
+    });
+
     await indexIntegrationInstanceQueue.add({
       integrationInstanceId: data.integrationInstanceId
     });

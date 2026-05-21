@@ -5,6 +5,7 @@ import {
   enqueueSyncIntegrationInstanceGroupSessionTemplates
 } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedIntegrationInstanceGroupTemplate';
 import { env } from '../../env';
+import { integrationInstanceGroupService } from '../../services/integrationInstanceGroup';
 import { enqueueIntegrationInstanceGroupProvidersSet } from './integrationInstanceGroupProvider';
 
 export let runIntegrationInstanceGroupArchivedEffects = async (d: {
@@ -96,6 +97,31 @@ export let integrationInstanceGroupCreatedQueue = createQueue<{
 
 export let integrationInstanceGroupCreatedQueueProcessor =
   integrationInstanceGroupCreatedQueue.process(async data => {
+    let integrationInstanceGroup = await db.integrationInstanceGroup.findUnique({
+      where: { id: data.integrationInstanceGroupId },
+      include: {
+        tenant: true,
+        solution: true,
+        environment: true,
+        defaultSessionTemplate: true
+      }
+    });
+    if (
+      !integrationInstanceGroup ||
+      integrationInstanceGroup.status === 'archived' ||
+      integrationInstanceGroup.status === 'deleted'
+    ) {
+      return;
+    }
+
+    await integrationInstanceGroupService.createSessionTemplateForIntegrationInstanceGroup({
+      tenant: integrationInstanceGroup.tenant,
+      solution: integrationInstanceGroup.solution,
+      environment: integrationInstanceGroup.environment,
+      integrationInstanceGroup,
+      input: {}
+    });
+
     await enqueueSyncIntegrationInstanceGroupSessionTemplates({
       integrationInstanceGroupId: data.integrationInstanceGroupId
     });

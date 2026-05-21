@@ -25,6 +25,7 @@ import {
 } from '@metorial-subspace/list-utils';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
 import { checkTenant } from '@metorial-subspace/module-tenant';
+import { integrationProviderVersionInclude } from '../lib/integrationIncludes';
 import { createIntegrationVersion } from '../lib/versions';
 import {
   integrationArchivedQueue,
@@ -34,12 +35,7 @@ import {
 
 import { integrationVersionInclude } from './integrationVersion';
 
-export let integrationProviderVersionInclude = {
-  deployment: true,
-  authMethod: { include: { specification: { omit: { value: true } } } },
-  authCredentials: true,
-  config: true
-};
+export { integrationProviderVersionInclude };
 
 export let integrationInclude = {
   currentVersion: {
