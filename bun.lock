@@ -2027,7 +2027,7 @@
     },
     "src/systems/function-bay/packages/nodejs": {
       "name": "@function-bay/nodejs",
-      "version": "1.0.13",
+      "version": "1.0.14",
       "dependencies": {
         "@function-bay/build": "^1.0.0",
         "@function-bay/types": "^1.0.0",

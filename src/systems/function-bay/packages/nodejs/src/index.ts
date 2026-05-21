@@ -4,6 +4,7 @@ import { v, ValidationTypeValue } from '@lowerdeck/validation';
 import { $ as _$ } from 'bun';
 import fs from 'fs/promises';
 import path from 'path';
+import { getBuildPlan } from './buildPlan';
 import { getMetorialLauncher } from './launcher';
 import { cleanup } from './lib/cleanup';
 import { fileExistsSync, readJsonFileOptional } from './lib/fs';
@@ -29,6 +30,7 @@ let $ = (...args: Parameters<typeof _$>) => {
 };
 
 let spec = v.object({
+  build: v.optional(v.boolean()),
   entrypoint: v.optional(v.string()),
   scripts: v.optional(
     v.object({
@@ -102,14 +104,16 @@ export let build = async (): Promise<void> => {
     console.log('No package.json found, skipping dependency installation.');
   }
 
-  if (functionBayFile?.scripts?.build) {
-    let buildScript = functionBayFile.scripts.build;
-    console.log(`Detected build script: "${buildScript}"`);
-    await $`bash -c ${buildScript}`.env(env);
-  } else if (packageJson?.scripts?.build) {
-    console.log(`Detected build script in package.json: "${packageJson.scripts.build}"`);
+  let buildPlan = getBuildPlan(functionBayFile, packageJson);
+  if (buildPlan.type === 'skip') {
+    console.log('Build step disabled by function-bay.json.');
+  } else if (buildPlan.type === 'script') {
+    console.log(`Detected build script: "${buildPlan.command}"`);
+    await $`bash -c ${buildPlan.command}`.env(env);
+  } else if (buildPlan.type === 'package-script') {
+    console.log(`Detected build script in package.json: "${packageJson?.scripts?.build}"`);
     await $`bash -c "npm run build"`.env(env);
-  } else {
+  } else if (buildPlan.type === 'none') {
     console.log('No build script detected, skipping build step.');
   }
 

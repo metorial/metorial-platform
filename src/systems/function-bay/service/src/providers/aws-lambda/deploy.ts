@@ -155,6 +155,7 @@ let nodeProxyWrapper = (originalHandler: string, bootstrapCode: string) => `
 ${bootstrapCode}
 const originalHandler = ${JSON.stringify(originalHandler)};
 const [modulePath, exportName = 'handler'] = originalHandler.split(/\\.([^.]*)$/).filter(Boolean);
+const fs = require('fs');
 const path = require('path');
 const { pathToFileURL } = require('url');
 let loaded;
@@ -170,15 +171,16 @@ async function loadOriginalModule() {
       /\\.[cm]?js$/.test(modulePath) ? undefined : modulePath + '.mjs'
     ].filter(Boolean);
 
-    let lastError = err;
     for (const candidate of candidates) {
-      try {
-        return await import(pathToFileURL(path.resolve(__dirname, candidate)).href);
-      } catch (importErr) {
-        lastError = importErr;
-      }
+      const candidatePath = path.resolve(__dirname, candidate);
+      if (!fs.existsSync(candidatePath)) continue;
+      return await import(pathToFileURL(candidatePath).href);
     }
-    throw lastError;
+
+    const availableFiles = fs.readdirSync(__dirname).slice(0, 100).join(', ');
+    err.message += '\\nAvailable function files: ' + availableFiles;
+    err.message += '\\nTried handler module candidates: ' + candidates.join(', ');
+    throw err;
   }
 }
 
@@ -187,7 +189,11 @@ exports.handler = async (event, context) => {
   if (!loaded) {
     loaded = await loadOriginalModule();
   }
-  const handler = loaded[exportName];
+  const handler =
+    loaded?.[exportName] ??
+    loaded?.default?.[exportName] ??
+    (exportName === 'handler' && typeof loaded?.default === 'function' ? loaded.default : null) ??
+    (exportName === 'handler' && typeof loaded === 'function' ? loaded : null);
   if (typeof handler !== 'function') throw new Error('Original handler export not found');
   return await handler(event, context);
 };

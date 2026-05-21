@@ -10,15 +10,7 @@ let wrapperDependencies = {
   slates: 'latest',
   '@lowerdeck/serialize': 'latest'
 };
-let entrypointExtensions = ['.ts', '.js', '.cjs', '.mjs'];
-let prebuiltEntrypoints = ['dist/index.js', 'dist/index.cjs', 'dist/index.mjs'];
-let fallbackEntrypoints = [
-  ...prebuiltEntrypoints,
-  'src/index.ts',
-  'src/index.js',
-  'index.ts',
-  'index.js'
-];
+let entrypointExtensions = ['.js', '.cjs', '.mjs'];
 
 let getArchiveFile = (files: DeploymentArchiveFile[], path: string) =>
   files.find(file => file.path === path);
@@ -42,30 +34,48 @@ let getEntrypointCandidates = (value: string) => {
   return [...new Set(candidates)];
 };
 
-let getSlateEntrypoint = (
-  files: DeploymentArchiveFile[],
-  packageJson: { main?: string } | null
-): string => {
-  if (packageJson?.main) {
-    for (let candidate of getEntrypointCandidates(packageJson.main)) {
-      if (getArchiveFile(files, candidate)) {
-        if (candidate.startsWith('src/') || candidate.endsWith('.ts')) {
-          for (let prebuiltEntrypoint of prebuiltEntrypoints) {
-            if (getArchiveFile(files, prebuiltEntrypoint)) return prebuiltEntrypoint;
-          }
-        }
+let getPackageJsonEntrypoint = (packageJson: Record<string, any> | null) => {
+  let dotExport = packageJson?.exports?.['.'];
 
-        return candidate;
-      }
+  if (typeof dotExport == 'string') return dotExport;
+
+  if (dotExport && typeof dotExport == 'object' && !Array.isArray(dotExport)) {
+    for (let key of ['import', 'default', 'require']) {
+      if (typeof dotExport[key] == 'string') return dotExport[key];
     }
   }
 
-  for (let candidate of fallbackEntrypoints) {
+  return packageJson?.main;
+};
+
+let getSlateEntrypoint = (
+  files: DeploymentArchiveFile[],
+  packageJson: Record<string, any> | null
+): string => {
+  let declaredEntrypoint = getPackageJsonEntrypoint(packageJson);
+
+  if (typeof declaredEntrypoint != 'string') {
+    throw new Error('Slate package.json must declare a runtime entrypoint in exports["."] or main');
+  }
+
+  let normalizedDeclaredEntrypoint = normalizeArchivePath(declaredEntrypoint);
+  if (
+    normalizedDeclaredEntrypoint.endsWith('.ts') ||
+    normalizedDeclaredEntrypoint.startsWith('src/') ||
+    normalizedDeclaredEntrypoint.includes('/src/')
+  ) {
+    throw new Error(
+      `Slate runtime entrypoint must be a built JavaScript artifact, got ${declaredEntrypoint}`
+    );
+  }
+
+  for (let candidate of getEntrypointCandidates(declaredEntrypoint)) {
+    if (!entrypointExtensions.some(ext => candidate.endsWith(ext))) continue;
     if (getArchiveFile(files, candidate)) return candidate;
   }
 
   throw new Error(
-    'Could not determine slate entrypoint - no main field in package.json and no common entry files found'
+    `Slate runtime entrypoint ${declaredEntrypoint} was declared in package.json but was not found in the archive`
   );
 };
 
@@ -80,15 +90,9 @@ let getMergedPackageJson = (packageJson: Record<string, any> | null) => ({
   }
 });
 
-let getFunctionBayConfig = (slateEntrypoint: string) => ({
-  entrypoint: 'slates_entry_point.js',
-  ...(slateEntrypoint.startsWith('dist/')
-    ? {
-        scripts: {
-          build: 'echo "Skipping slate build in favor of hub wrapper entrypoint"'
-        }
-      }
-    : {})
+let getFunctionBayConfig = () => ({
+  entrypoint: 'slates_entry_point.mjs',
+  build: false
 });
 
 export let buildSlateDeploymentFiles = (files: DeploymentArchiveFile[]) => {
@@ -114,10 +118,10 @@ export let buildSlateDeploymentFiles = (files: DeploymentArchiveFile[]) => {
     },
     {
       filename: 'function-bay.json',
-      content: JSON.stringify(getFunctionBayConfig(slateEntrypoint), null, 2)
+      content: JSON.stringify(getFunctionBayConfig(), null, 2)
     },
     {
-      filename: 'slates_entry_point.js',
+      filename: 'slates_entry_point.mjs',
       content: `
           import { createRequire } from 'node:module';
           import { provider } from './${slateEntrypoint}';

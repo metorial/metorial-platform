@@ -11,26 +11,28 @@ let getFile = (
 };
 
 describe('buildSlateDeploymentFiles', () => {
-  it('builds an unbuilt slate around the source entrypoint and merged dependencies', () => {
+  it('uses the declared runtime entrypoint and disables Function Bay source builds', () => {
     let result = buildSlateDeploymentFiles([
       {
         path: 'package.json',
         buffer: Buffer.from(
           JSON.stringify({
-            name: '@scope/unbuilt-slate',
+            name: '@scope/prebuilt-slate',
             version: '1.0.0',
+            main: 'dist/index.js',
             dependencies: {
               lodash: '^4.17.21'
-            },
-            scripts: {
-              build: 'tsc -p tsconfig.json'
             }
           })
         )
       },
       {
         path: 'src/index.ts',
-        buffer: Buffer.from('export let provider = {};')
+        buffer: Buffer.from('export let provider = "source";')
+      },
+      {
+        path: 'dist/index.js',
+        buffer: Buffer.from('export let provider = "dist";')
       },
       {
         path: 'logo.png',
@@ -38,7 +40,7 @@ describe('buildSlateDeploymentFiles', () => {
       }
     ]);
 
-    expect(result.slateEntrypoint).toBe('src/index.ts');
+    expect(result.slateEntrypoint).toBe('dist/index.js');
 
     let packageJson = JSON.parse(getFile(result.files, 'package.json').content);
     expect(packageJson.dependencies).toMatchObject({
@@ -51,25 +53,29 @@ describe('buildSlateDeploymentFiles', () => {
 
     let functionBayJson = JSON.parse(getFile(result.files, 'function-bay.json').content);
     expect(functionBayJson).toMatchObject({
-      entrypoint: 'slates_entry_point.js'
+      entrypoint: 'slates_entry_point.mjs',
+      build: false
     });
     expect(functionBayJson.scripts).toBeUndefined();
 
-    expect(getFile(result.files, 'slates_entry_point.js').content).toContain(
-      "import { provider } from './src/index.ts';"
+    expect(getFile(result.files, 'slates_entry_point.mjs').content).toContain(
+      "import { provider } from './dist/index.js';"
     );
     expect(result.files.some(file => file.filename === 'logo.png')).toBe(false);
   });
 
-  it('prefers the prebuilt dist entrypoint and keeps sourcemap files', () => {
+  it('uses exports dot as the runtime entrypoint when present', () => {
     let result = buildSlateDeploymentFiles([
       {
         path: 'package.json',
         buffer: Buffer.from(
           JSON.stringify({
-            name: '@scope/prebuilt-slate',
+            name: '@scope/exported-slate',
             version: '2.0.0',
-            main: 'dist/index.js'
+            main: 'src/index.ts',
+            exports: {
+              '.': './dist/index.js'
+            }
           })
         )
       },
@@ -88,17 +94,16 @@ describe('buildSlateDeploymentFiles', () => {
     ]);
 
     expect(result.slateEntrypoint).toBe('dist/index.js');
-    expect(getFile(result.files, 'slates_entry_point.js').content).toContain(
+    expect(getFile(result.files, 'slates_entry_point.mjs').content).toContain(
       "import { provider } from './dist/index.js';"
     );
 
     let functionBayJson = JSON.parse(getFile(result.files, 'function-bay.json').content);
     expect(functionBayJson).toMatchObject({
-      entrypoint: 'slates_entry_point.js',
-      scripts: {
-        build: expect.stringContaining('Skipping slate build')
-      }
+      entrypoint: 'slates_entry_point.mjs',
+      build: false
     });
+    expect(functionBayJson.scripts).toBeUndefined();
 
     let mapFile = getFile(result.files, 'dist/index.js.map');
     expect(mapFile.encoding).toBe('base64');
@@ -107,18 +112,40 @@ describe('buildSlateDeploymentFiles', () => {
     );
   });
 
-  it('uses packed dist output instead of rebuilding a source main', () => {
+  it('rejects packages that declare a source entrypoint', () => {
+    expect(() =>
+      buildSlateDeploymentFiles([
+        {
+          path: 'package.json',
+          buffer: Buffer.from(
+            JSON.stringify({
+              name: '@scope/source-slate',
+              version: '3.0.0',
+              main: 'src/index.ts'
+            })
+          )
+        },
+        {
+          path: 'src/index.ts',
+          buffer: Buffer.from('export let provider = "source";')
+        },
+        {
+          path: 'dist/index.js',
+          buffer: Buffer.from('export let provider = "dist";')
+        }
+      ])
+    ).toThrow('runtime entrypoint must be a built JavaScript artifact');
+  });
+
+  it('does not generate synthetic dist entrypoints', () => {
     let result = buildSlateDeploymentFiles([
       {
         path: 'package.json',
         buffer: Buffer.from(
           JSON.stringify({
-            name: '@scope/prebuilt-slate-with-source-main',
-            version: '3.0.0',
-            main: 'src/index.ts',
-            scripts: {
-              build: 'bunx @vercel/ncc build src/index.ts -o dist -m -s'
-            }
+            name: '@scope/prebuilt-slate-with-sourcemap-register',
+            version: '4.0.0',
+            main: 'dist/index.js'
           })
         )
       },
@@ -128,21 +155,20 @@ describe('buildSlateDeploymentFiles', () => {
       },
       {
         path: 'dist/index.js',
-        buffer: Buffer.from('export let provider = "dist";')
+        buffer: Buffer.from(
+          "import './sourcemap-register.cjs';\nexport let provider = 'dist';"
+        )
+      },
+      {
+        path: 'dist/sourcemap-register.cjs',
+        buffer: Buffer.from('module.exports = {};')
       }
     ]);
 
     expect(result.slateEntrypoint).toBe('dist/index.js');
-    expect(getFile(result.files, 'slates_entry_point.js').content).toContain(
+    expect(getFile(result.files, 'slates_entry_point.mjs').content).toContain(
       "import { provider } from './dist/index.js';"
     );
-
-    let functionBayJson = JSON.parse(getFile(result.files, 'function-bay.json').content);
-    expect(functionBayJson).toMatchObject({
-      entrypoint: 'slates_entry_point.js',
-      scripts: {
-        build: expect.stringContaining('Skipping slate build')
-      }
-    });
+    expect(result.files.some(file => file.filename === 'dist/metorial-index.js')).toBe(false);
   });
 });
