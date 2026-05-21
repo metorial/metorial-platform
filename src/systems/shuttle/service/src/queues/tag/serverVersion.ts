@@ -25,6 +25,7 @@ export let propagateRepoVersionToServersQueueProcessor =
         draftRepositoryTag: {
           id: data.repositoryTagId
         },
+        ...(data.serverDeploymentId ? {} : { tenantOid: { not: null } }),
         id: data.cursor ? { gt: data.cursor } : undefined,
         serverDeployments: data.serverDeploymentId
           ? {
@@ -77,6 +78,10 @@ export let propagateRepoVersionToServerQueueProcessor =
 
     if (!server.draftRepositoryTag || server.draftRepositoryTag.id != data.repositoryTagId) {
       // Tag changed, skip
+      return;
+    }
+
+    if (!data.serverDeploymentId && !server.tenantOid) {
       return;
     }
 
