@@ -11,6 +11,7 @@ model MagicMcpEndpoint {
   status               MagicMcpEndpointStatus
   isConsumerReconciled Boolean                @default(false)
   hasSubspaceBacking   Boolean                @default(false)
+  isSubspaceBackingReconciling Boolean        @default(false)
 
   instanceOid BigInt
   instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)

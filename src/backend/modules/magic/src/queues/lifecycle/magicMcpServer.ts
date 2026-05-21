@@ -1,28 +1,75 @@
 import { db } from '@metorial/db';
 import { subspaceMagicMcpBackingService } from '@metorial/module-subspace';
 import { createQueue } from '@metorial/queue';
+import {
+  ensureMagicMcpServerBacking,
+  MAGIC_MCP_BACKING_READY_WORKER_ATTEMPTS,
+  waitForMagicMcpServerBackingReady
+} from '../../lib/backing';
 import { indexMagicMcpServerSearchQueue } from '../search/magicMcpServer';
 
 let queueMagicMcpServerIndex = async (magicMcpServerId: string) => {
   await indexMagicMcpServerSearchQueue.add({ magicMcpServerId });
 };
 
-export let magicMcpServerCreatedQueue = createQueue<{ magicMcpServerId: string }>({
+type MagicMcpServerLifecycleQueueInput = {
+  magicMcpServerId: string;
+  providers?: {
+    providerDeploymentId: string;
+    providerConfigId?: string | null;
+    providerAuthConfigId?: string | null;
+    toolFilters?: any;
+  }[];
+  isReconciliation?: boolean;
+};
+
+let ensureQueuedMagicMcpServerBacking = async (data: MagicMcpServerLifecycleQueueInput) => {
+  let magicMcpServer = await db.magicMcpServer.findUnique({
+    where: { id: data.magicMcpServerId },
+    include: { instance: true }
+  });
+  if (!magicMcpServer || magicMcpServer.status !== 'active') return;
+
+  await ensureMagicMcpServerBacking({
+    instance: magicMcpServer.instance,
+    server: magicMcpServer,
+    providers: data.providers,
+    isReconciliation: data.isReconciliation,
+    deferReconcile: true
+  });
+
+  let latest = await waitForMagicMcpServerBackingReady({
+    instance: magicMcpServer.instance,
+    server: magicMcpServer,
+    attempts: MAGIC_MCP_BACKING_READY_WORKER_ATTEMPTS
+  });
+
+  if (latest?.isSubspaceBackingReconciling) {
+    await db.magicMcpServer.update({
+      where: { oid: latest.oid },
+      data: { isSubspaceBackingReconciling: false }
+    });
+  }
+};
+
+export let magicMcpServerCreatedQueue = createQueue<MagicMcpServerLifecycleQueueInput>({
   name: 'mgc/lc/server/created'
 });
 
 export let magicMcpServerCreatedQueueProcessor = magicMcpServerCreatedQueue.process(
   async data => {
+    await ensureQueuedMagicMcpServerBacking(data);
     await queueMagicMcpServerIndex(data.magicMcpServerId);
   }
 );
 
-export let magicMcpServerUpdatedQueue = createQueue<{ magicMcpServerId: string }>({
+export let magicMcpServerUpdatedQueue = createQueue<MagicMcpServerLifecycleQueueInput>({
   name: 'mgc/lc/server/updated'
 });
 
 export let magicMcpServerUpdatedQueueProcessor = magicMcpServerUpdatedQueue.process(
   async data => {
+    await ensureQueuedMagicMcpServerBacking(data);
     await queueMagicMcpServerIndex(data.magicMcpServerId);
   }
 );
