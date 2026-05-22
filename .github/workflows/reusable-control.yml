@@ -66,7 +66,15 @@ jobs:
         run: bunx turbo run --ui=stream --concurrency=1 prisma:generate
 
       - name: Build platform system clients
-        run: sh oss/src/systems/scripts/build-workspace-clients.sh
+        run: |
+          if [ -f src/systems/scripts/build-workspace-clients.sh ]; then
+            sh src/systems/scripts/build-workspace-clients.sh
+          elif [ -f oss/src/systems/scripts/build-workspace-clients.sh ]; then
+            sh oss/src/systems/scripts/build-workspace-clients.sh
+          else
+            echo "build-workspace-clients.sh not found" >&2
+            exit 1
+          fi
 
       - name: Run control
         env:
