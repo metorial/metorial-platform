@@ -1,11 +1,11 @@
 import { join, resolve } from 'path';
-import { resolveOssRoot } from '../entrypoint';
+import { resolveOssRoot, resolveControlCwd, resolveEntrypoint } from '../entrypoint';
+import { resolveStagedEntrypoint } from '../staging/session';
 import { NoTestError } from '../errors';
 import { createLogger } from '../log';
 import { formatBatchSummary, formatRunPlan, formatServiceHeader } from '../log/formatRunPlan';
 import { getRegistry } from '../registry';
 import { planExecutionOrder } from '../graph/planner';
-import { resolveControlCwd, resolveEntrypoint } from '../entrypoint';
 import type { BatchResult, BatchServiceResult, ControlService, RunOptions } from '../types';
 
 type UnitContext = {
@@ -53,7 +53,9 @@ let runUnitForService = async (
   if (!unit) throw new NoTestError({ name: opts.service.name, mode: 'unit' });
 
   let cwd = resolveControlCwd();
-  let entrypoint = resolveEntrypoint({ cwd, entrypoint: opts.entrypoint });
+  let entrypoint = opts.session
+    ? resolveStagedEntrypoint(opts.session, opts.entrypoint)
+    : resolveEntrypoint({ cwd, entrypoint: opts.entrypoint });
   let hostCwd = resolveHostTestCwd({ service: opts.service, cwd: unit.cwd, entrypoint });
 
   if (opts.context) {
@@ -84,7 +86,11 @@ export let runUnitBatch = async (
   opts: RunOptions & { services: ControlService[] }
 ): Promise<BatchResult> => {
   let logger = createLogger(opts);
-  let registry = getRegistry({ cwd: resolveControlCwd(), entrypoint: opts.entrypoint });
+  let registry = getRegistry({
+    cwd: resolveControlCwd(),
+    entrypoint: opts.entrypoint,
+    session: opts.session ?? null
+  });
   let ordered = planExecutionOrder(opts.services, registry);
   let passed: string[] = [];
   let failed: { name: string; error: Error; phase?: string }[] = [];
@@ -150,7 +156,11 @@ export let runUnitBatch = async (
 
 export let runUnitTargets = async (opts: RunOptions & { services: ControlService[] }) => {
   let logger = createLogger(opts);
-  let registry = getRegistry({ cwd: resolveControlCwd(), entrypoint: opts.entrypoint });
+  let registry = getRegistry({
+    cwd: resolveControlCwd(),
+    entrypoint: opts.entrypoint,
+    session: opts.session ?? null
+  });
   let ordered = planExecutionOrder(opts.services, registry);
 
   logger.section(

@@ -157,6 +157,9 @@ export type BuildOptions = {
   verbose?: boolean;
   tagPrefix?: string;
   services?: ControlService[];
+  session?: WorkspaceSession | null;
+  keep?: boolean;
+  noStage?: boolean;
 };
 
 export type RunOptions = {
@@ -168,6 +171,16 @@ export type RunOptions = {
   verbose?: boolean;
   ci?: boolean;
   services?: ControlService[];
+  session?: WorkspaceSession | null;
+  noStage?: boolean;
+};
+
+export type WorkspaceSession = {
+  id: string;
+  repoRoot: string;
+  realEntrypoint: string;
+  stagedEntrypoint: string;
+  stagedOssRoot: string;
 };
 
 export type MockDefinition = {

@@ -17,6 +17,15 @@ import { formatControlError, InvalidFlagsError } from './errors';
 import { createLogger, isVerbose } from './log';
 import { formatRunPlan } from './log/formatRunPlan';
 import { resolveControlCwd } from './entrypoint';
+import { withWorkspaceSession } from './staging/session';
+import type { WorkspaceSession } from './types';
+
+type StagedCliOpts = {
+  entrypoint?: string;
+  verbose?: boolean;
+  keep?: boolean;
+  'no-stage'?: boolean;
+};
 
 let collectFilters = (argv: string[]): string[] => {
   let filters: string[] = [];
@@ -166,39 +175,54 @@ let addRunCommand = (mode: 'e2e' | 'unit', name: string) => {
     .option('--project-prefix, -p', 'Docker compose project prefix')
     .option('--all', 'Run all services with this test mode')
     .option('--filter, -f', 'Run tests for named services')
-    .option('--keep', 'Keep containers running after test')
+    .option('--keep', 'Keep containers and staged workspace after test')
+    .option('--no-stage', 'Run against the live checkout instead of a staged copy')
     .option('--verbose, -v', 'Verbose output')
-    .action(async (target: string | undefined, opts: {
-      entrypoint?: string;
+    .action(async (target: string | undefined, opts: StagedCliOpts & {
       'project-prefix'?: string;
       all?: boolean;
-      keep?: boolean;
-      verbose?: boolean;
       filter?: string;
     }) => {
       await runCommand(async () => {
-        let registry = getRegistry({ cwd: resolveControlCwd(), entrypoint: opts.entrypoint });
-        let filters = collectFilters(process.argv);
+        await withWorkspaceSession(
+          {
+            entrypoint: opts.entrypoint,
+            verbose: opts.verbose,
+            keep: opts.keep,
+            noStage: opts['no-stage']
+          },
+          async (session: WorkspaceSession | null) => {
+            let registry = getRegistry({
+              cwd: resolveControlCwd(),
+              entrypoint: opts.entrypoint,
+              session
+            });
+            let filters = collectFilters(process.argv);
 
-        let services = resolveTargets({
-          registry,
-          cwd: resolveControlCwd(),
-          target,
-          all: opts.all,
-          filters: filters.length ? filters : undefined,
-          mode
-        });
+            let services = resolveTargets({
+              registry,
+              cwd: resolveControlCwd(),
+              target,
+              all: opts.all,
+              filters: filters.length ? filters : undefined,
+              mode,
+              session
+            });
 
-        let ordered = planExecutionOrder(services, registry);
+            let ordered = planExecutionOrder(services, registry);
 
-        await runControlTargets({
-          mode,
-          entrypoint: opts.entrypoint,
-          projectPrefix: opts['project-prefix'],
-          keep: opts.keep,
-          verbose: opts.verbose,
-          services: ordered
-        });
+            await runControlTargets({
+              mode,
+              entrypoint: opts.entrypoint,
+              projectPrefix: opts['project-prefix'],
+              keep: opts.keep,
+              verbose: opts.verbose,
+              noStage: opts['no-stage'],
+              session,
+              services: ordered
+            });
+          }
+        );
       }, { verbose: opts.verbose });
     });
 };
@@ -212,35 +236,53 @@ prog
   .option('--entrypoint, -e', 'Workspace entrypoint')
   .option('--all', 'Build all services with [service] config')
   .option('--filter, -f', 'Build named services')
+  .option('--keep', 'Keep staged workspace after build')
+  .option('--no-stage', 'Build against the live checkout instead of a staged copy')
   .option('--verbose, -v', 'Verbose output')
   .option('--tag-prefix', 'Image tag prefix', 'control')
-  .action(async (target: string | undefined, opts: {
-    entrypoint?: string;
+  .action(async (target: string | undefined, opts: StagedCliOpts & {
     all?: boolean;
-    verbose?: boolean;
     'tag-prefix'?: string;
     filter?: string;
   }) => {
     await runCommand(async () => {
-      let registry = getRegistry({ cwd: resolveControlCwd(), entrypoint: opts.entrypoint });
-      let filters = collectFilters(process.argv);
+      await withWorkspaceSession(
+        {
+          entrypoint: opts.entrypoint,
+          verbose: opts.verbose,
+          keep: opts.keep,
+          noStage: opts['no-stage']
+        },
+        async (session: WorkspaceSession | null) => {
+          let registry = getRegistry({
+            cwd: resolveControlCwd(),
+            entrypoint: opts.entrypoint,
+            session
+          });
+          let filters = collectFilters(process.argv);
 
-      let services = resolveBuildTargets({
-        registry,
-        cwd: resolveControlCwd(),
-        target,
-        all: opts.all,
-        filters: filters.length ? filters : undefined
-      });
+          let services = resolveBuildTargets({
+            registry,
+            cwd: resolveControlCwd(),
+            target,
+            all: opts.all,
+            filters: filters.length ? filters : undefined,
+            session
+          });
 
-      let ordered = planExecutionOrder(services, registry);
+          let ordered = planExecutionOrder(services, registry);
 
-      await runBuildTargets({
-        entrypoint: opts.entrypoint,
-        verbose: opts.verbose,
-        tagPrefix: opts['tag-prefix'],
-        services: ordered
-      });
+          await runBuildTargets({
+            entrypoint: opts.entrypoint,
+            verbose: opts.verbose,
+            tagPrefix: opts['tag-prefix'],
+            keep: opts.keep,
+            noStage: opts['no-stage'],
+            session,
+            services: ordered
+          });
+        }
+      );
     }, { verbose: opts.verbose });
   });
 
@@ -251,8 +293,9 @@ prog
   .option('--project-prefix, -p', 'Docker compose project prefix')
   .option('--all', 'Run all services with this test mode')
   .option('--filter, -f', 'Run tests for named services')
-  .action(async (mode: string, target: string | undefined, opts: {
-    entrypoint?: string;
+  .option('--keep', 'Keep containers and staged workspace after test')
+  .option('--no-stage', 'Run against the live checkout instead of a staged copy')
+  .action(async (mode: string, target: string | undefined, opts: StagedCliOpts & {
     'project-prefix'?: string;
     all?: boolean;
     filter?: string;
@@ -263,28 +306,46 @@ prog
         throw new InvalidFlagsError('Mode must be e2e or unit');
       }
 
-      let registry = getRegistry({ cwd: resolveControlCwd(), entrypoint: opts.entrypoint });
-      let filters = collectFilters(process.argv);
+      await withWorkspaceSession(
+        {
+          entrypoint: opts.entrypoint,
+          verbose,
+          keep: opts.keep,
+          noStage: opts['no-stage']
+        },
+        async (session: WorkspaceSession | null) => {
+          let registry = getRegistry({
+            cwd: resolveControlCwd(),
+            entrypoint: opts.entrypoint,
+            session
+          });
+          let filters = collectFilters(process.argv);
 
-      let services = resolveTargets({
-        registry,
-        cwd: resolveControlCwd(),
-        target,
-        all: opts.all,
-        filters: filters.length ? filters : undefined,
-        mode: mode as 'e2e' | 'unit'
-      });
+          let services = resolveTargets({
+            registry,
+            cwd: resolveControlCwd(),
+            target,
+            all: opts.all,
+            filters: filters.length ? filters : undefined,
+            mode: mode as 'e2e' | 'unit',
+            session
+          });
 
-      let ordered = planExecutionOrder(services, registry);
+          let ordered = planExecutionOrder(services, registry);
 
-      await runControlTargets({
-        mode: mode as 'e2e' | 'unit',
-        entrypoint: opts.entrypoint,
-        projectPrefix: opts['project-prefix'],
-        ci: true,
-        verbose,
-        services: ordered
-      });
+          await runControlTargets({
+            mode: mode as 'e2e' | 'unit',
+            entrypoint: opts.entrypoint,
+            projectPrefix: opts['project-prefix'],
+            ci: true,
+            verbose,
+            keep: opts.keep,
+            noStage: opts['no-stage'],
+            session,
+            services: ordered
+          });
+        }
+      );
     }, { verbose });
   });
 

@@ -1,8 +1,8 @@
-import { createHono } from '@lowerdeck/hono';
 import path from 'path';
 import { integrationSetupSessionApp } from './integrationSetupSession';
 import { oauthCallbackApp } from './oauthCallback';
 import { oauthSetupApp } from './oauthSetup';
+import { pingApp } from './pingApp';
 import { setupSessionApp } from './setupSession';
 import { toolCallArtifactApp } from './toolCallArtifact';
 
@@ -26,9 +26,7 @@ let serveAsset = async (key: string) => {
   });
 };
 
-export let app = createHono()
-  .options('*', c => c.text(''))
-  .get('/ping', c => c.text('OK'))
+export let app = pingApp
   .route('/tool-call-attachments', toolCallArtifactApp)
   .route('/tool-call-artifacts', toolCallArtifactApp)
   .get('/subspace-public/assets/:key*', async c => {

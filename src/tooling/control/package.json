@@ -8,7 +8,8 @@
   },
   "scripts": {
     "start": "bun ./src/cli.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "bun test src/staging"
   },
   "dependencies": {
     "sade": "^1.8.1",

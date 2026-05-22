@@ -59,7 +59,7 @@ type RemoteMcpProviderOptions = {
 };
 
 const DISCOVERY_TIMEOUT_MS = 30000;
-const DISCOVERY_CALL_TIMEOUT_MS = 10000;
+const DISCOVERY_CALL_TIMEOUT_MS = 45000;
 const REMOTE_SERVER_NAME_EXACT = process.env.TEST_MCP_REMOTE_SERVER_NAME;
 const REMOTE_SERVER_NAME_PREFIX =
   process.env.TEST_MCP_REMOTE_SERVER_NAME_PREFIX ?? 'Subspace Test Remote MCP';
@@ -419,7 +419,7 @@ const discoverSpecification = async (d: {
         DISCOVERY_CALL_TIMEOUT_MS,
         d.label
       );
-      if (!capabilities) return null;
+      if (!capabilities || capabilities.status !== 'success') return null;
       return providerSpecificationInternalService.ensureProviderSpecification({
         provider: d.provider,
         providerVersion: d.providerVersion,

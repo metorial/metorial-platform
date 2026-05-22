@@ -11,7 +11,9 @@ import {
   suggestServiceName,
   UnknownServiceError
 } from './errors';
-import type { ControlService, ServiceRegistry } from './types';
+import type { ControlService, ServiceRegistry, WorkspaceSession } from './types';
+import { mapPathToStaged } from './staging/copyTree';
+import { resolveStagedEntrypoint } from './staging/session';
 
 let normalizeDir = (dir: string): string => resolve(dir);
 
@@ -91,8 +93,20 @@ export let resolveService = (registry: ServiceRegistry, input: string): ControlS
   });
 };
 
-export let findServiceForCwd = (registry: ServiceRegistry, cwd: string): ControlService | null => {
+export let findServiceForCwd = (
+  registry: ServiceRegistry,
+  cwd: string,
+  session?: WorkspaceSession | null
+): ControlService | null => {
   let dir = resolve(cwd);
+  if (session) {
+    dir = mapPathToStaged({
+      repoRoot: session.repoRoot,
+      stagedRoot: session.stagedEntrypoint,
+      sourcePath: dir
+    });
+  }
+
   let controlRoot = resolve(registry.controlRoot);
 
   while (dir.startsWith(controlRoot) || dir === controlRoot) {
@@ -136,6 +150,7 @@ export let resolveSelectionTargets = (opts: {
   target?: string;
   all?: boolean;
   filters?: string[];
+  session?: WorkspaceSession | null;
   allServices: () => ControlService[];
   validate: (service: ControlService) => void;
 }): ControlService[] => {
@@ -172,7 +187,7 @@ export let resolveSelectionTargets = (opts: {
     return [service];
   }
 
-  let service = findServiceForCwd(opts.registry, opts.cwd);
+  let service = findServiceForCwd(opts.registry, opts.cwd, opts.session);
   if (!service) {
     throw new NotInServiceDirError({
       cwd: opts.cwd,
@@ -190,6 +205,7 @@ export let resolveBuildTargets = (opts: {
   target?: string;
   all?: boolean;
   filters?: string[];
+  session?: WorkspaceSession | null;
 }): ControlService[] =>
   resolveSelectionTargets({
     ...opts,
@@ -206,6 +222,7 @@ export let resolveTargets = (opts: {
   all?: boolean;
   filters?: string[];
   mode?: 'e2e' | 'unit';
+  session?: WorkspaceSession | null;
 }): ControlService[] => {
   if ((opts.all || opts.filters?.length) && !opts.mode) {
     throw new InvalidFlagsError('Mode is required when using --all or --filter');
@@ -217,6 +234,7 @@ export let resolveTargets = (opts: {
     target: opts.target,
     all: opts.all,
     filters: opts.filters,
+    session: opts.session,
     allServices: () => {
       if (!opts.mode) throw new InvalidFlagsError('Mode is required when using --all');
       return opts.registry.services.filter(s => hasTest(s, opts.mode!));
@@ -229,7 +247,14 @@ export let resolveTargets = (opts: {
   });
 };
 
-export let getRegistry = (opts: { cwd: string; entrypoint?: string }): ServiceRegistry => {
-  let controlRoot = resolveEntrypoint(opts);
+export let getRegistry = (opts: {
+  cwd: string;
+  entrypoint?: string;
+  session?: WorkspaceSession | null;
+}): ServiceRegistry => {
+  let controlRoot =
+    opts.session != null
+      ? resolveStagedEntrypoint(opts.session, opts.entrypoint)
+      : resolveEntrypoint({ cwd: opts.cwd, entrypoint: opts.entrypoint });
   return buildRegistry(controlRoot);
 };

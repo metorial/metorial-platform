@@ -99,6 +99,9 @@ name = "shuttle"
 control = "../../../shuttle/service"
 scope = "service"
 
+[deps.env]
+SHUTTLE_UNSAFE_SSRF_BYPASS = "true"
+
 [[deps]]
 name = "cargo"
 control = "../../../cargo/service"
@@ -118,6 +121,29 @@ scope = "service"
 name = "origin"
 control = "../../../origin/apps/service"
 scope = "service"
+
+[[deps]]
+name = "subspace-worker"
+control = "../worker"
+scope = "service"
+
+[deps.env]
+DATABASE_URL = "$db.subspace-test.url"
+PUBLIC_SERVICE_URL = "http://subspace-public:52071"
+REDIS_URL = "redis://$deps.redis.6379/0"
+NATS_URL = "nats://$deps.nats.4222"
+SLATES_HUB_URL = "http://$deps.slates-hub.52046/slates-hub"
+SLATES_HUB_PUBLIC_URL = "http://$deps.slates-hub.52045"
+SHUTTLE_URL = "http://$deps.shuttle.52080/metorial-shuttle"
+SHUTTLE_LIVE_URL = "http://$deps.shuttle.52080"
+SHUTTLE_PUBLIC_URL = "http://$deps.shuttle.52081"
+VOYAGER_URL = "http://$deps.voyager.52060/metorial-voyager"
+ORIGIN_URL = "http://origin:52090/metorial-origin"
+OBJECT_STORAGE_URL = "http://$deps.object-store.52010"
+MESSAGE_BUCKET_NAME = "subspace-messages-test"
+METORIAL_ENV = "development"
+WORKER_HEALTH_PORT = "12121"
+CARGO_API_URL = "http://$deps.cargo.52150/metorial-cargo"
 
 [[deps]]
 name = "mcp-test-server"

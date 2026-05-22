@@ -4,7 +4,8 @@ import { generateCompose, collectContainerNames } from '../compose/generator';
 import { generatePostgresInitScript } from '../compose/databaseInit';
 import { postgresDatabasesForDep } from '../graph/databases';
 import { resolveGraph } from '../graph/resolver';
-import { resolveControlDir, resolveEntrypoint, resolveControlCwd } from '../entrypoint';
+import { resolveControlDir, resolveEntrypoint, resolveControlCwd, findControlRoot } from '../entrypoint';
+import { resolveStagedEntrypoint } from '../staging/session';
 import { getRegistry } from '../registry';
 import { planExecutionOrder } from '../graph/planner';
 import { createLogger } from '../log';
@@ -84,8 +85,10 @@ export let runControl = async (
 ) => {
   let logger = createLogger(opts);
   let cwd = resolveControlCwd();
-  let entrypoint = resolveEntrypoint({ cwd, entrypoint: opts.entrypoint });
-  let registry = getRegistry({ cwd, entrypoint: opts.entrypoint });
+  let entrypoint = opts.session
+    ? resolveStagedEntrypoint(opts.session, opts.entrypoint)
+    : resolveEntrypoint({ cwd, entrypoint: opts.entrypoint });
+  let registry = getRegistry({ cwd, entrypoint: opts.entrypoint, session: opts.session ?? null });
   let targetDir = resolveControlDir(entrypoint, opts.target);
   let graph = resolveGraph({ entrypoint, targetDir, registry });
   let runId = `${Date.now()}`;
@@ -105,7 +108,8 @@ export let runControl = async (
     logger.blank();
   }
 
-  let runDir = join(entrypoint, '.control', 'runs', runId);
+  let repoRoot = opts.session?.repoRoot ?? findControlRoot(cwd);
+  let runDir = join(repoRoot, '.control', 'runs', runId);
   mkdirSync(runDir, { recursive: true });
 
   let postgresInitScripts: Record<string, string> = {};
@@ -230,7 +234,11 @@ export let runControlBatch = async (
   opts: RunOptions & { services: ControlService[] }
 ): Promise<BatchResult> => {
   let logger = createLogger(opts);
-  let registry = getRegistry({ cwd: resolveControlCwd(), entrypoint: opts.entrypoint });
+  let registry = getRegistry({
+    cwd: resolveControlCwd(),
+    entrypoint: opts.entrypoint,
+    session: opts.session ?? null
+  });
   let ordered = planExecutionOrder(opts.services, registry);
   let passed: string[] = [];
   let failed: { name: string; error: Error; phase?: string }[] = [];
@@ -301,7 +309,11 @@ export let runControlTargets = async (opts: RunOptions & { services: ControlServ
   }
 
   let logger = createLogger(opts);
-  let registry = getRegistry({ cwd: resolveControlCwd(), entrypoint: opts.entrypoint });
+  let registry = getRegistry({
+    cwd: resolveControlCwd(),
+    entrypoint: opts.entrypoint,
+    session: opts.session ?? null
+  });
   let ordered = planExecutionOrder(opts.services, registry);
 
   logger.section(
