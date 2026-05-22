@@ -61,6 +61,37 @@ describe('buildSlateDeploymentFiles', () => {
     expect(result.files.some(file => file.filename === 'logo.png')).toBe(false);
   });
 
+  it('runs ncc slate build scripts without type checking', () => {
+    let result = buildSlateDeploymentFiles([
+      {
+        path: 'package.json',
+        buffer: Buffer.from(
+          JSON.stringify({
+            name: '@scope/unbuilt-slate',
+            version: '1.0.0',
+            scripts: {
+              build: 'bunx @vercel/ncc build src/index.ts -o dist -m -s'
+            }
+          })
+        )
+      },
+      {
+        path: 'src/index.ts',
+        buffer: Buffer.from('export let provider = {};')
+      }
+    ]);
+
+    expect(result.slateEntrypoint).toBe('src/index.ts');
+
+    let packageJson = JSON.parse(getFile(result.files, 'package.json').content);
+    expect(packageJson.scripts.build).toBe(
+      'bunx @vercel/ncc build src/index.ts -o dist -m -s --transpile-only'
+    );
+
+    let functionBayJson = JSON.parse(getFile(result.files, 'function-bay.json').content);
+    expect(functionBayJson.scripts).toBeUndefined();
+  });
+
   it('prefers the prebuilt dist entrypoint and keeps sourcemap files', () => {
     let result = buildSlateDeploymentFiles([
       {
@@ -105,44 +136,5 @@ describe('buildSlateDeploymentFiles', () => {
     expect(Buffer.from(mapFile.content, 'base64').toString('utf-8')).toContain(
       '"file":"index.js"'
     );
-  });
-
-  it('uses packed dist output instead of rebuilding a source main', () => {
-    let result = buildSlateDeploymentFiles([
-      {
-        path: 'package.json',
-        buffer: Buffer.from(
-          JSON.stringify({
-            name: '@scope/prebuilt-slate-with-source-main',
-            version: '3.0.0',
-            main: 'src/index.ts',
-            scripts: {
-              build: 'bunx @vercel/ncc build src/index.ts -o dist -m -s'
-            }
-          })
-        )
-      },
-      {
-        path: 'src/index.ts',
-        buffer: Buffer.from('export let provider = "source";')
-      },
-      {
-        path: 'dist/index.js',
-        buffer: Buffer.from('export let provider = "dist";')
-      }
-    ]);
-
-    expect(result.slateEntrypoint).toBe('dist/index.js');
-    expect(getFile(result.files, 'slates_entry_point.js').content).toContain(
-      "import { provider } from './dist/index.js';"
-    );
-
-    let functionBayJson = JSON.parse(getFile(result.files, 'function-bay.json').content);
-    expect(functionBayJson).toMatchObject({
-      entrypoint: 'slates_entry_point.js',
-      scripts: {
-        build: expect.stringContaining('Skipping slate build')
-      }
-    });
   });
 });
