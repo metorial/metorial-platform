@@ -155,64 +155,30 @@ let nodeProxyWrapper = (originalHandler: string, bootstrapCode: string) => `
 ${bootstrapCode}
 const originalHandler = ${JSON.stringify(originalHandler)};
 const [modulePath, exportName = 'handler'] = originalHandler.split(/\\.([^.]*)$/).filter(Boolean);
-const fs = require('fs');
 const path = require('path');
 const { pathToFileURL } = require('url');
 let loaded;
 
-function getModuleCandidates() {
-  if (/\\.[cm]?js$/.test(modulePath)) return [modulePath];
-  return [modulePath, modulePath + '.js', modulePath + '.cjs', modulePath + '.mjs'];
-}
-
-function resolveOriginalModulePath() {
-  const candidates = getModuleCandidates();
-  for (const candidate of candidates) {
-    const resolved = path.resolve(__dirname, candidate);
-    if (fs.existsSync(resolved)) return resolved;
-  }
-
-  let availableFiles = [];
-  try {
-    availableFiles = fs.readdirSync(__dirname).sort();
-  } catch {}
-
-  throw new Error(
-    'Original handler module not found. Handler=' +
-      originalHandler +
-      '; tried=' +
-      candidates.join(', ') +
-      '; available=' +
-      availableFiles.join(', ')
-  );
-}
-
 async function loadOriginalModule() {
-  const resolvedModulePath = resolveOriginalModulePath();
-
   try {
-    return await import(pathToFileURL(resolvedModulePath).href);
+    return require('./' + modulePath);
   } catch (err) {
-    if (err && err.code === 'ERR_UNKNOWN_FILE_EXTENSION') {
-      return require(resolvedModulePath);
+    const candidates = [
+      modulePath,
+      /\\.[cm]?js$/.test(modulePath) ? undefined : modulePath + '.js',
+      /\\.[cm]?js$/.test(modulePath) ? undefined : modulePath + '.mjs'
+    ].filter(Boolean);
+
+    let lastError = err;
+    for (const candidate of candidates) {
+      try {
+        return await import(pathToFileURL(path.resolve(__dirname, candidate)).href);
+      } catch (importErr) {
+        lastError = importErr;
+      }
     }
-
-    throw err;
+    throw lastError;
   }
-}
-
-function getHandler(moduleExports) {
-  if (typeof moduleExports[exportName] === 'function') return moduleExports[exportName];
-
-  if (moduleExports.default && typeof moduleExports.default[exportName] === 'function') {
-    return moduleExports.default[exportName];
-  }
-
-  if (exportName === 'default' && typeof moduleExports.default === 'function') {
-    return moduleExports.default;
-  }
-
-  return undefined;
 }
 
 exports.handler = async (event, context) => {
@@ -220,7 +186,7 @@ exports.handler = async (event, context) => {
   if (!loaded) {
     loaded = await loadOriginalModule();
   }
-  const handler = getHandler(loaded);
+  const handler = loaded[exportName];
   if (typeof handler !== 'function') throw new Error('Original handler export not found');
   return await handler(event, context);
 };
@@ -306,10 +272,7 @@ let prepareZip = async (d: {
   }
 
   let zip = await JSZip.loadAsync(zipBytes);
-  zip.file(
-    'metorial_deflector_wrapper.cjs',
-    await buildNodeProxyWrapper(d.runtimeConfig.handler)
-  );
+  zip.file('metorial_deflector_wrapper.cjs', await buildNodeProxyWrapper(d.runtimeConfig.handler));
 
   return {
     zipBytes: Buffer.from(await zip.generateAsync({ type: 'uint8array' })),

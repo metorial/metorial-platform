@@ -3,6 +3,13 @@ type DeploymentArchiveFile = {
   buffer: Buffer;
 };
 
+type SlatePackageJson = {
+  [key: string]: any;
+  main?: string;
+  dependencies?: Record<string, any>;
+  scripts?: Record<string, string | undefined>;
+};
+
 let logoFiles = ['png', 'jpg', 'jpeg', 'svg'].map(ext => `logo.${ext}`);
 let wrapperDependencies = {
   '@slates/provider-handler': 'latest',
@@ -11,19 +18,29 @@ let wrapperDependencies = {
   '@lowerdeck/serialize': 'latest'
 };
 let entrypointExtensions = ['.ts', '.js', '.cjs', '.mjs'];
-let prebuiltEntrypoints = ['dist/index.js', 'dist/index.cjs', 'dist/index.mjs'];
 let fallbackEntrypoints = [
-  ...prebuiltEntrypoints,
   'src/index.ts',
   'src/index.js',
   'index.ts',
-  'index.js'
+  'index.js',
+  'dist/index.js'
 ];
 
 let getArchiveFile = (files: DeploymentArchiveFile[], path: string) =>
   files.find(file => file.path === path);
 
 let normalizeArchivePath = (value: string) => value.replace(/^\.\/+/, '').replace(/^\/+/, '');
+
+let nccBuildPattern = /(^|\s)(?:@vercel\/)?ncc\s+build(\s|$)/;
+let nccTranspileOnlyPattern = /(^|\s)--transpile-only(\s|$)/;
+
+let ensureNccTranspileOnly = (buildScript: string | undefined) => {
+  if (!buildScript) return buildScript;
+  if (!nccBuildPattern.test(buildScript)) return buildScript;
+  if (nccTranspileOnlyPattern.test(buildScript)) return buildScript;
+
+  return `${buildScript} --transpile-only`;
+};
 
 let getEntrypointCandidates = (value: string) => {
   let normalized = normalizeArchivePath(value);
@@ -44,19 +61,11 @@ let getEntrypointCandidates = (value: string) => {
 
 let getSlateEntrypoint = (
   files: DeploymentArchiveFile[],
-  packageJson: { main?: string } | null
+  packageJson: Pick<SlatePackageJson, 'main'> | null
 ): string => {
   if (packageJson?.main) {
     for (let candidate of getEntrypointCandidates(packageJson.main)) {
-      if (getArchiveFile(files, candidate)) {
-        if (candidate.startsWith('src/') || candidate.endsWith('.ts')) {
-          for (let prebuiltEntrypoint of prebuiltEntrypoints) {
-            if (getArchiveFile(files, prebuiltEntrypoint)) return prebuiltEntrypoint;
-          }
-        }
-
-        return candidate;
-      }
+      if (getArchiveFile(files, candidate)) return candidate;
     }
   }
 
@@ -69,16 +78,29 @@ let getSlateEntrypoint = (
   );
 };
 
-let getMergedPackageJson = (packageJson: Record<string, any> | null) => ({
-  ...(packageJson ?? {
-    name: 'slate-version-function',
-    version: '1.0.0'
-  }),
-  dependencies: {
-    ...(packageJson?.dependencies ?? {}),
-    ...wrapperDependencies
-  }
-});
+let getMergedPackageJson = (packageJson: SlatePackageJson | null) => {
+  let mergedPackageJson: SlatePackageJson = {
+    ...(packageJson ?? {
+      name: 'slate-version-function',
+      version: '1.0.0'
+    }),
+    dependencies: {
+      ...(packageJson?.dependencies ?? {}),
+      ...wrapperDependencies
+    }
+  };
+
+  let buildScript = ensureNccTranspileOnly(mergedPackageJson.scripts?.build);
+  if (!buildScript) return mergedPackageJson;
+
+  return {
+    ...mergedPackageJson,
+    scripts: {
+      ...mergedPackageJson.scripts,
+      build: buildScript
+    }
+  };
+};
 
 let getFunctionBayConfig = (slateEntrypoint: string) => ({
   entrypoint: 'slates_entry_point.js',
@@ -93,7 +115,7 @@ let getFunctionBayConfig = (slateEntrypoint: string) => ({
 
 export let buildSlateDeploymentFiles = (files: DeploymentArchiveFile[]) => {
   let packageJsonFile = getArchiveFile(files, 'package.json');
-  let packageJson: Record<string, any> | null = null;
+  let packageJson: SlatePackageJson | null = null;
 
   if (packageJsonFile) {
     try {

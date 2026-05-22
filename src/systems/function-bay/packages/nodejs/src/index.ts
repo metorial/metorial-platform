@@ -147,7 +147,7 @@ export let build = async (): Promise<void> => {
   }
 
   let outputTempDir = await tempDir();
-  await $`ncc build ${launcher.entrypoint} -o ${outputTempDir} --minify --source-map --debug --target es2020`.env(
+  await $`ncc build ${launcher.entrypoint} -o ${outputTempDir} --minify --source-map --debug --target es2020 --transpile-only`.env(
     env
   );
 
