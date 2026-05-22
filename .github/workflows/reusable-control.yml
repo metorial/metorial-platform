@@ -65,8 +65,8 @@ jobs:
       - name: Generate Prisma Clients
         run: bunx turbo run --ui=stream --concurrency=1 prisma:generate
 
-      - name: Build workspace clients
-        run: bunx turbo run --ui=stream build --filter=./src/systems/_clients/**
+      - name: Build object storage client
+        run: bunx turbo run --ui=stream build --filter=@metorial-platform-systems/object-storage-client
 
       - name: Run control
         env:

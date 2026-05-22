@@ -1,6 +1,6 @@
 #!/bin/sh
 set -eu
 
-# Build generated workspace clients so services can resolve package exports
-# without depending on prebuilt artifacts from CI or the host.
-bunx turbo run --ui=stream build --filter=./src/systems/_clients/**
+# Build the object storage client used across platform services. This package has
+# no generated-service dependencies and is safe to build in any CI/Docker step.
+bunx turbo run --ui=stream build --filter=@metorial-platform-systems/object-storage-client

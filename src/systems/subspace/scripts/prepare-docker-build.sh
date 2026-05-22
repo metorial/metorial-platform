@@ -16,5 +16,15 @@ bun run --cwd ./src/systems/cargo/service db:generate
 
 sh ./src/systems/scripts/build-workspace-clients.sh
 
+bunx turbo run --ui=stream build --filter=@metorial-platform-systems/origin-client
+bunx turbo run --ui=stream build --filter=@metorial-platform-systems/forge-client
+bunx turbo run --ui=stream build --filter=@metorial-platform-systems/function-bay-client
+bunx turbo run --ui=stream build --filter=@metorial-platform-systems/signal-client
+bunx turbo run --ui=stream build --filter=@metorial-platform-systems/synthesis-client
+bunx turbo run --ui=stream build --filter=@metorial-platform-systems/cargo-client
+
 # bunx turbo run --ui=stream build --filter=./src/systems/slates/packages/**
 bunx turbo run --ui=stream build --filter=./src/systems/shuttle/sdk/packages/**
+
+bunx turbo run --ui=stream build --filter=@metorial-platform-systems/slates-client
+bunx turbo run --ui=stream build --filter=@metorial-platform-systems/shuttle-client

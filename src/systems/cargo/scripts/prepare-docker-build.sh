@@ -8,3 +8,5 @@ cd /app
 bun install --linker=hoisted
 
 sh ./src/systems/scripts/build-workspace-clients.sh
+
+bunx turbo run --ui=stream build --filter=@metorial-platform-systems/origin-client
