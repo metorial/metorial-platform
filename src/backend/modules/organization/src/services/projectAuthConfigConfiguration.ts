@@ -80,13 +80,14 @@ class ProjectAuthConfigConfigurationService {
         d.input.allowAuthConfigImport ?? tenant.allowAuthConfigImport
     });
 
-    await db.project.update({
+    let project = await db.project.update({
       where: { oid: d.project.oid },
       data: { updatedAt: new Date() }
     });
 
     await Fabric.fire('organization.project.auth_config_configuration.updated:after', {
       ...d,
+      project,
       configuration: {
         allowAuthConfigExport: updatedTenant.allowAuthConfigExport,
         allowAuthConfigImport: updatedTenant.allowAuthConfigImport
