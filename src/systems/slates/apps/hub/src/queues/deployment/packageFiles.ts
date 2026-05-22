@@ -3,6 +3,13 @@ type DeploymentArchiveFile = {
   buffer: Buffer;
 };
 
+type SlatePackageJson = {
+  [key: string]: any;
+  main?: string;
+  dependencies?: Record<string, any>;
+  scripts?: Record<string, string | undefined>;
+};
+
 let logoFiles = ['png', 'jpg', 'jpeg', 'svg'].map(ext => `logo.${ext}`);
 let wrapperDependencies = {
   '@slates/provider-handler': 'latest',
@@ -54,7 +61,7 @@ let getEntrypointCandidates = (value: string) => {
 
 let getSlateEntrypoint = (
   files: DeploymentArchiveFile[],
-  packageJson: { main?: string } | null
+  packageJson: Pick<SlatePackageJson, 'main'> | null
 ): string => {
   if (packageJson?.main) {
     for (let candidate of getEntrypointCandidates(packageJson.main)) {
@@ -71,8 +78,8 @@ let getSlateEntrypoint = (
   );
 };
 
-let getMergedPackageJson = (packageJson: Record<string, any> | null) => {
-  let mergedPackageJson = {
+let getMergedPackageJson = (packageJson: SlatePackageJson | null) => {
+  let mergedPackageJson: SlatePackageJson = {
     ...(packageJson ?? {
       name: 'slate-version-function',
       version: '1.0.0'
@@ -108,7 +115,7 @@ let getFunctionBayConfig = (slateEntrypoint: string) => ({
 
 export let buildSlateDeploymentFiles = (files: DeploymentArchiveFile[]) => {
   let packageJsonFile = getArchiveFile(files, 'package.json');
-  let packageJson: Record<string, any> | null = null;
+  let packageJson: SlatePackageJson | null = null;
 
   if (packageJsonFile) {
     try {
