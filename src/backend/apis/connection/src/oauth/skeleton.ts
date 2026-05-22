@@ -1,6 +1,6 @@
 import { getConfig } from '@metorial/config';
 import { Context } from 'hono';
-import { createOAuthHono } from './hono';
+import { createConnectionHono } from '../hono';
 
 export type PortalOAuthRouteInput = {
   portalId: string;
@@ -117,12 +117,12 @@ let createOAuthRouteServers = <TInput, TRoute>(d: {
     (handler: (d: { route: TRoute }, c: Context) => Promise<Response>) => async (c: Context) =>
       await handler({ route: await resolveRoute(c) }, c);
 
-  let metadataServer = createOAuthHono();
+  let metadataServer = createConnectionHono();
   for (let path of d.paths.metadata) {
     metadataServer = metadataServer.get(path, withResolvedRoute(d.handlers.metadata));
   }
 
-  let connectServer = createOAuthHono();
+  let connectServer = createConnectionHono();
   for (let path of d.paths.connect) {
     connectServer = connectServer.all(path, withResolvedRoute(d.handlers.portal));
   }

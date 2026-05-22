@@ -116,6 +116,7 @@
         "@lowerdeck/error": "^1.2.3",
         "@lowerdeck/execution-context": "^1.1.1",
         "@lowerdeck/hono": "^1.0.10",
+        "@lowerdeck/sentry": "^1.0.2",
         "@metorial/bearer": "^1.0.0",
         "@metorial/config": "^1.0.0",
         "@metorial/context": "^1.0.0",
@@ -166,6 +167,8 @@
       "dependencies": {
         "@lowerdeck/error": "^1.2.3",
         "@lowerdeck/validation": "^1.0.10",
+        "@metorial/config": "1.0.0",
+        "@metorial/db": "1.0.0",
         "@metorial/module-consumer": "1.0.0",
         "@metorial/rpc": "1.0.0",
       },
@@ -620,6 +623,7 @@
         "@lowerdeck/slugify": "^1.0.6",
         "@metorial/config": "^1.0.0",
         "@metorial/context": "^1.0.0",
+        "@metorial/cron": "^1.0.0",
         "@metorial/db": "^1.0.0",
         "@metorial/fabric": "^1.0.0",
         "@metorial/id": "^1.0.0",
@@ -801,6 +805,7 @@
         "@radix-ui/react-popover": "^1.1.15",
         "@remixicon/react": "^4.2.0",
         "@sentry/react": "^8.54.0",
+        "@tanstack/react-virtual": "^3.13.12",
         "@tiptap/extension-color": "^3.6.1",
         "@tiptap/extension-highlight": "^3.6.1",
         "@tiptap/extension-horizontal-rule": "^3.6.1",
@@ -1098,7 +1103,7 @@
       "name": "@metorial/cron",
       "version": "1.0.0",
       "dependencies": {
-        "@lowerdeck/cron": "^1.1.2",
+        "@lowerdeck/cron": "^1.1.3",
         "@metorial/queue": "^1.0.0",
       },
       "devDependencies": {
@@ -1538,7 +1543,7 @@
       "name": "@metorial-platform-systems/ares-client",
       "version": "1.0.0",
       "dependencies": {
-        "@lowerdeck/rpc-client": "^1.1.3",
+        "@lowerdeck/rpc-client": "^1.1.4",
       },
       "devDependencies": {
         "tsup": "^8.5.1",
@@ -1550,7 +1555,7 @@
       "name": "@metorial-platform-systems/cargo-client",
       "version": "1.0.0",
       "dependencies": {
-        "@lowerdeck/rpc-client": "^1.1.3",
+        "@lowerdeck/rpc-client": "^1.1.4",
         "@types/bun": "^1.3.7",
       },
       "devDependencies": {
@@ -1564,7 +1569,7 @@
       "name": "@metorial-platform-systems/forge-client",
       "version": "1.0.4",
       "dependencies": {
-        "@lowerdeck/rpc-client": "^1.1.3",
+        "@lowerdeck/rpc-client": "^1.1.4",
         "@lowerdeck/validation": "^1.0.10",
         "@metorial/util-websocket": "^1.0.0",
         "@types/bun": "^1.3.7",
@@ -1580,7 +1585,7 @@
       "name": "@metorial-platform-systems/function-bay-client",
       "version": "1.0.0",
       "dependencies": {
-        "@lowerdeck/rpc-client": "^1.1.3",
+        "@lowerdeck/rpc-client": "^1.1.4",
       },
       "devDependencies": {
         "@types/minimatch": "^5",
@@ -1593,7 +1598,7 @@
       "name": "@metorial-platform-systems/origin-client",
       "version": "1.0.0",
       "dependencies": {
-        "@lowerdeck/rpc-client": "^1.1.3",
+        "@lowerdeck/rpc-client": "^1.1.4",
       },
       "devDependencies": {
         "@types/node": "^25.0.3",
@@ -1607,7 +1612,7 @@
       "name": "@metorial-platform-systems/shuttle-client",
       "version": "1.0.0",
       "dependencies": {
-        "@lowerdeck/rpc-client": "^1.1.3",
+        "@lowerdeck/rpc-client": "^1.1.4",
         "@lowerdeck/validation": "^1.0.10",
         "@metorial/util-websocket": "^1.0.0",
         "@types/bun": "^1.3.7",
@@ -1623,7 +1628,7 @@
       "name": "@metorial-platform-systems/signal-client",
       "version": "1.0.0",
       "dependencies": {
-        "@lowerdeck/rpc-client": "^1.1.3",
+        "@lowerdeck/rpc-client": "^1.1.4",
         "@lowerdeck/validation": "^1.0.10",
       },
       "devDependencies": {
@@ -1637,7 +1642,7 @@
       "name": "@metorial-platform-systems/slates-client",
       "version": "1.0.0",
       "dependencies": {
-        "@lowerdeck/rpc-client": "^1.1.3",
+        "@lowerdeck/rpc-client": "^1.1.4",
         "@lowerdeck/validation": "^1.0.10",
         "@metorial-platform-systems/function-bay-client": "workspace:*",
       },
@@ -1652,7 +1657,7 @@
       "name": "@metorial-platform-systems/subspace-client",
       "version": "1.0.0",
       "dependencies": {
-        "@lowerdeck/rpc-client": "^1.1.3",
+        "@lowerdeck/rpc-client": "^1.1.4",
         "@lowerdeck/validation": "^1.0.10",
       },
       "devDependencies": {
@@ -1666,7 +1671,7 @@
       "name": "@metorial-platform-systems/synthesis-client",
       "version": "1.0.0",
       "dependencies": {
-        "@lowerdeck/rpc-client": "^1.1.3",
+        "@lowerdeck/rpc-client": "^1.1.4",
       },
       "devDependencies": {
         "@types/minimatch": "^5",
@@ -1686,7 +1691,7 @@
         "@lowerdeck/api-mux": "^1.0.4",
         "@lowerdeck/cache": "^1.0.2",
         "@lowerdeck/canonicalize": "^1.0.4",
-        "@lowerdeck/cron": "^1.1.2",
+        "@lowerdeck/cron": "^1.1.3",
         "@lowerdeck/encryption": "^1.0.8",
         "@lowerdeck/env": "^1.0.6",
         "@lowerdeck/error": "^1.2.3",
@@ -1700,7 +1705,7 @@
         "@lowerdeck/pagination": "^1.0.8",
         "@lowerdeck/programmable-promise": "^1.0.6",
         "@lowerdeck/queue": "^1.0.11",
-        "@lowerdeck/rpc-client": "^1.1.3",
+        "@lowerdeck/rpc-client": "^1.1.4",
         "@lowerdeck/rpc-server": "^1.0.11",
         "@lowerdeck/sentry": "^1.0.2",
         "@lowerdeck/service": "^1.0.7",
@@ -1776,7 +1781,7 @@
       "name": "@metorial-cargo/module-doc",
       "version": "1.0.0",
       "dependencies": {
-        "@lowerdeck/cron": "^1.1.2",
+        "@lowerdeck/cron": "^1.1.3",
         "@lowerdeck/error": "^1.2.3",
         "@lowerdeck/hono": "^1.0.10",
         "@lowerdeck/id": "^1.0.8",
@@ -1803,7 +1808,7 @@
       "dependencies": {
         "@lowerdeck/api-mux": "^1.0.4",
         "@lowerdeck/canonicalize": "^1.0.4",
-        "@lowerdeck/cron": "^1.1.2",
+        "@lowerdeck/cron": "^1.1.3",
         "@lowerdeck/delay": "^1.0.4",
         "@lowerdeck/error": "^1.2.3",
         "@lowerdeck/execution-context": "^1.1.1",
@@ -1874,7 +1879,7 @@
       "name": "@metorial-cargo/module-store",
       "version": "1.0.0",
       "dependencies": {
-        "@lowerdeck/cron": "^1.1.2",
+        "@lowerdeck/cron": "^1.1.3",
         "@lowerdeck/error": "^1.2.3",
         "@lowerdeck/hash": "^1.0.4",
         "@lowerdeck/pagination": "^1.0.8",
@@ -1909,7 +1914,7 @@
       "dependencies": {
         "@lowerdeck/api-mux": "^1.0.4",
         "@lowerdeck/canonicalize": "^1.0.4",
-        "@lowerdeck/cron": "^1.1.2",
+        "@lowerdeck/cron": "^1.1.3",
         "@lowerdeck/delay": "^1.0.4",
         "@lowerdeck/env": "^1.0.6",
         "@lowerdeck/error": "^1.2.3",
@@ -1921,7 +1926,7 @@
         "@lowerdeck/pagination": "^1.0.8",
         "@lowerdeck/queue": "^1.0.11",
         "@lowerdeck/redis": "^1.0.6",
-        "@lowerdeck/rpc-client": "^1.1.3",
+        "@lowerdeck/rpc-client": "^1.1.4",
         "@lowerdeck/rpc-server": "^1.0.11",
         "@lowerdeck/sentry": "^1.0.2",
         "@lowerdeck/serialize": "^1.0.4",
@@ -1961,7 +1966,7 @@
         "@aws-sdk/client-codebuild": "^3.957.0",
         "@aws-sdk/client-iam": "^3.957.0",
         "@lowerdeck/api-mux": "^1.0.4",
-        "@lowerdeck/cron": "^1.1.2",
+        "@lowerdeck/cron": "^1.1.3",
         "@lowerdeck/delay": "^1.0.4",
         "@lowerdeck/encryption": "^1.0.8",
         "@lowerdeck/env": "^1.0.6",
@@ -1972,7 +1977,7 @@
         "@lowerdeck/once": "^1.0.4",
         "@lowerdeck/pagination": "^1.0.8",
         "@lowerdeck/queue": "^1.0.11",
-        "@lowerdeck/rpc-client": "^1.1.3",
+        "@lowerdeck/rpc-client": "^1.1.4",
         "@lowerdeck/rpc-server": "^1.0.11",
         "@lowerdeck/sentry": "^1.0.2",
         "@lowerdeck/service": "^1.0.7",
@@ -2090,7 +2095,7 @@
         "@lowerdeck/api-mux": "^1.0.4",
         "@lowerdeck/cache": "^1.0.2",
         "@lowerdeck/canonicalize": "^1.0.4",
-        "@lowerdeck/cron": "^1.1.2",
+        "@lowerdeck/cron": "^1.1.3",
         "@lowerdeck/encryption": "^1.0.8",
         "@lowerdeck/env": "^1.0.6",
         "@lowerdeck/error": "^1.2.3",
@@ -2099,7 +2104,7 @@
         "@lowerdeck/once": "^1.0.4",
         "@lowerdeck/pagination": "^1.0.8",
         "@lowerdeck/queue": "^1.0.11",
-        "@lowerdeck/rpc-client": "^1.1.3",
+        "@lowerdeck/rpc-client": "^1.1.4",
         "@lowerdeck/rpc-server": "^1.0.11",
         "@lowerdeck/sentry": "^1.0.2",
         "@lowerdeck/service": "^1.0.7",
@@ -2207,7 +2212,7 @@
         "@lowerdeck/api-mux": "^1.0.4",
         "@lowerdeck/cache": "^1.0.2",
         "@lowerdeck/canonicalize": "^1.0.4",
-        "@lowerdeck/cron": "^1.1.2",
+        "@lowerdeck/cron": "^1.1.3",
         "@lowerdeck/delay": "^1.0.4",
         "@lowerdeck/encryption": "^1.0.8",
         "@lowerdeck/env": "^1.0.6",
@@ -2218,7 +2223,7 @@
         "@lowerdeck/once": "^1.0.4",
         "@lowerdeck/pagination": "^1.0.8",
         "@lowerdeck/queue": "^1.0.11",
-        "@lowerdeck/rpc-client": "^1.1.3",
+        "@lowerdeck/rpc-client": "^1.1.4",
         "@lowerdeck/rpc-server": "^1.0.11",
         "@lowerdeck/sentry": "^1.0.2",
         "@lowerdeck/service": "^1.0.7",
@@ -2321,7 +2326,7 @@
         "@lowerdeck/api-mux": "^1.0.4",
         "@lowerdeck/cache": "^1.0.2",
         "@lowerdeck/canonicalize": "^1.0.4",
-        "@lowerdeck/cron": "^1.1.2",
+        "@lowerdeck/cron": "^1.1.3",
         "@lowerdeck/delay": "^1.0.4",
         "@lowerdeck/encryption": "^1.0.8",
         "@lowerdeck/env": "^1.0.6",
@@ -2335,7 +2340,7 @@
         "@lowerdeck/pagination": "^1.0.8",
         "@lowerdeck/programmable-promise": "^1.0.6",
         "@lowerdeck/queue": "^1.0.11",
-        "@lowerdeck/rpc-client": "^1.1.3",
+        "@lowerdeck/rpc-client": "^1.1.4",
         "@lowerdeck/rpc-server": "^1.0.11",
         "@lowerdeck/sentry": "^1.0.2",
         "@lowerdeck/service": "^1.0.7",
@@ -2390,7 +2395,7 @@
         "@lowerdeck/api-mux": "^1.0.4",
         "@lowerdeck/cache": "^1.0.2",
         "@lowerdeck/canonicalize": "^1.0.4",
-        "@lowerdeck/cron": "^1.1.2",
+        "@lowerdeck/cron": "^1.1.3",
         "@lowerdeck/encryption": "^1.0.8",
         "@lowerdeck/env": "^1.0.6",
         "@lowerdeck/error": "^1.2.3",
@@ -2399,7 +2404,7 @@
         "@lowerdeck/once": "^1.0.4",
         "@lowerdeck/pagination": "^1.0.8",
         "@lowerdeck/queue": "^1.0.11",
-        "@lowerdeck/rpc-client": "^1.1.3",
+        "@lowerdeck/rpc-client": "^1.1.4",
         "@lowerdeck/rpc-server": "^1.0.11",
         "@lowerdeck/sentry": "^1.0.2",
         "@lowerdeck/service": "^1.0.7",
@@ -2443,7 +2448,7 @@
         "@lowerdeck/api-mux": "^1.0.4",
         "@lowerdeck/cache": "^1.0.2",
         "@lowerdeck/canonicalize": "^1.0.4",
-        "@lowerdeck/cron": "^1.1.2",
+        "@lowerdeck/cron": "^1.1.3",
         "@lowerdeck/delay": "^1.0.4",
         "@lowerdeck/encryption": "^1.0.8",
         "@lowerdeck/env": "^1.0.6",
@@ -2456,7 +2461,7 @@
         "@lowerdeck/pagination": "^1.0.8",
         "@lowerdeck/programmable-promise": "^1.0.6",
         "@lowerdeck/queue": "^1.0.11",
-        "@lowerdeck/rpc-client": "^1.1.3",
+        "@lowerdeck/rpc-client": "^1.1.4",
         "@lowerdeck/rpc-server": "^1.0.11",
         "@lowerdeck/sentry": "^1.0.2",
         "@lowerdeck/serialize": "^1.0.4",
@@ -2529,7 +2534,7 @@
         "@lowerdeck/api-mux": "^1.0.4",
         "@lowerdeck/cache": "^1.0.2",
         "@lowerdeck/canonicalize": "^1.0.4",
-        "@lowerdeck/cron": "^1.1.2",
+        "@lowerdeck/cron": "^1.1.3",
         "@lowerdeck/encryption": "^1.0.8",
         "@lowerdeck/env": "^1.0.6",
         "@lowerdeck/error": "^1.2.3",
@@ -2540,7 +2545,7 @@
         "@lowerdeck/once": "^1.0.4",
         "@lowerdeck/pagination": "^1.0.8",
         "@lowerdeck/queue": "^1.0.11",
-        "@lowerdeck/rpc-client": "^1.1.3",
+        "@lowerdeck/rpc-client": "^1.1.4",
         "@lowerdeck/rpc-server": "^1.0.11",
         "@lowerdeck/sentry": "^1.0.2",
         "@lowerdeck/service": "^1.0.7",
@@ -2596,7 +2601,7 @@
       "name": "@metorial-services/slates-registry-client",
       "version": "1.0.1",
       "dependencies": {
-        "@lowerdeck/rpc-client": "^1.1.3",
+        "@lowerdeck/rpc-client": "^1.1.4",
       },
       "devDependencies": {
         "dts-bundle-generator": "^9.5.1",
@@ -2609,7 +2614,7 @@
       "name": "@metorial-services/slates-registry-internal-client",
       "version": "1.0.0",
       "dependencies": {
-        "@lowerdeck/rpc-client": "^1.1.3",
+        "@lowerdeck/rpc-client": "^1.1.4",
       },
       "devDependencies": {
         "dts-bundle-generator": "^9.5.1",
@@ -2629,7 +2634,7 @@
         "@lowerdeck/hono": "^1.0.10",
         "@lowerdeck/id": "^1.0.8",
         "@lowerdeck/pagination": "^1.0.8",
-        "@lowerdeck/rpc-client": "^1.1.3",
+        "@lowerdeck/rpc-client": "^1.1.4",
         "@lowerdeck/rpc-server": "^1.0.11",
         "@lowerdeck/sentry": "^1.0.2",
         "@lowerdeck/serialize": "^1.0.4",
@@ -2688,7 +2693,7 @@
         "@lowerdeck/hono": "^1.0.10",
         "@lowerdeck/id": "^1.0.8",
         "@lowerdeck/pagination": "^1.0.8",
-        "@lowerdeck/rpc-client": "^1.1.3",
+        "@lowerdeck/rpc-client": "^1.1.4",
         "@lowerdeck/rpc-server": "^1.0.11",
         "@lowerdeck/sentry": "^1.0.2",
         "@lowerdeck/serialize": "^1.0.4",
@@ -2862,7 +2867,7 @@
       "name": "@metorial-subspace/module-auth",
       "version": "1.0.0",
       "dependencies": {
-        "@lowerdeck/cron": "^1.1.2",
+        "@lowerdeck/cron": "^1.1.3",
         "@lowerdeck/env": "^1.0.6",
         "@lowerdeck/error": "^1.2.3",
         "@lowerdeck/lock": "^1.0.6",
@@ -2891,7 +2896,7 @@
       "version": "1.0.0",
       "dependencies": {
         "@lowerdeck/cache": "^1.0.2",
-        "@lowerdeck/cron": "^1.1.2",
+        "@lowerdeck/cron": "^1.1.3",
         "@lowerdeck/env": "^1.0.6",
         "@lowerdeck/error": "^1.2.3",
         "@lowerdeck/pagination": "^1.0.8",
@@ -2912,7 +2917,7 @@
       "name": "@metorial-subspace/module-catalog",
       "version": "1.0.0",
       "dependencies": {
-        "@lowerdeck/cron": "^1.1.2",
+        "@lowerdeck/cron": "^1.1.3",
         "@lowerdeck/env": "^1.0.6",
         "@lowerdeck/error": "^1.2.3",
         "@lowerdeck/id": "^1.0.8",
@@ -2940,7 +2945,7 @@
       "dependencies": {
         "@lowerdeck/canonicalize": "^1.0.4",
         "@lowerdeck/case": "^1.0.9",
-        "@lowerdeck/cron": "^1.1.2",
+        "@lowerdeck/cron": "^1.1.3",
         "@lowerdeck/env": "^1.0.6",
         "@lowerdeck/error": "^1.2.3",
         "@lowerdeck/hash": "^1.0.4",
@@ -2978,7 +2983,7 @@
       "name": "@metorial-subspace/module-custom-provider",
       "version": "1.0.0",
       "dependencies": {
-        "@lowerdeck/cron": "^1.1.2",
+        "@lowerdeck/cron": "^1.1.3",
         "@lowerdeck/env": "^1.0.6",
         "@lowerdeck/error": "^1.2.3",
         "@lowerdeck/lock": "^1.0.6",
@@ -3029,7 +3034,7 @@
       "name": "@metorial-subspace/module-identity",
       "version": "1.0.0",
       "dependencies": {
-        "@lowerdeck/cron": "^1.1.2",
+        "@lowerdeck/cron": "^1.1.3",
         "@lowerdeck/delay": "^1.0.4",
         "@lowerdeck/env": "^1.0.6",
         "@lowerdeck/error": "^1.2.3",
@@ -3060,7 +3065,7 @@
       "version": "1.0.0",
       "dependencies": {
         "@lowerdeck/canonicalize": "^1.0.4",
-        "@lowerdeck/cron": "^1.1.2",
+        "@lowerdeck/cron": "^1.1.3",
         "@lowerdeck/env": "^1.0.6",
         "@lowerdeck/error": "^1.2.3",
         "@lowerdeck/id": "^1.0.8",
@@ -3092,7 +3097,7 @@
       "version": "1.0.0",
       "dependencies": {
         "@lowerdeck/canonicalize": "^1.0.4",
-        "@lowerdeck/cron": "^1.1.2",
+        "@lowerdeck/cron": "^1.1.3",
         "@lowerdeck/delay": "^1.0.4",
         "@lowerdeck/env": "^1.0.6",
         "@lowerdeck/error": "^1.2.3",
@@ -3189,7 +3194,7 @@
       "version": "1.0.0",
       "dependencies": {
         "@lowerdeck/cache": "^1.0.2",
-        "@lowerdeck/cron": "^1.1.2",
+        "@lowerdeck/cron": "^1.1.3",
         "@lowerdeck/env": "^1.0.6",
         "@lowerdeck/error": "^1.2.3",
         "@lowerdeck/id": "^1.0.8",
@@ -3198,6 +3203,7 @@
         "@lowerdeck/validation": "^1.0.10",
         "@metorial-subspace/connection-utils": "^1.0.0",
         "@metorial-subspace/db": "^1.0.0",
+        "@metorial-subspace/list-utils": "^1.0.0",
       },
       "devDependencies": {
         "@metorial-subspace/tsconfig": "^1.0.0",
@@ -3262,6 +3268,7 @@
       },
       "devDependencies": {
         "@types/bun": "latest",
+        "vitest": "^3.1.2",
       },
       "peerDependencies": {
         "typescript": "^5",
@@ -3370,7 +3377,7 @@
       "version": "1.0.0",
       "dependencies": {
         "@lowerdeck/cache": "^1.0.2",
-        "@lowerdeck/cron": "^1.1.2",
+        "@lowerdeck/cron": "^1.1.3",
         "@lowerdeck/delay": "^1.0.4",
         "@lowerdeck/env": "^1.0.6",
         "@lowerdeck/error": "^1.2.3",
@@ -3406,7 +3413,7 @@
       "version": "1.0.0",
       "dependencies": {
         "@lowerdeck/cache": "^1.0.2",
-        "@lowerdeck/cron": "^1.1.2",
+        "@lowerdeck/cron": "^1.1.3",
         "@lowerdeck/delay": "^1.0.4",
         "@lowerdeck/env": "^1.0.6",
         "@lowerdeck/error": "^1.2.3",
@@ -4182,7 +4189,7 @@
 
     "@lowerdeck/case": ["@lowerdeck/case@1.0.9", "", {}, "sha512-nyKaHgj6UDRtzfRWeGA01H1S/tGpaFc28U8aeWaDTLnEcuXbZfspv78kfo+S7ZEeIkth+klz1pUEhhIUUOiEkA=="],
 
-    "@lowerdeck/cron": ["@lowerdeck/cron@1.1.2", "", { "dependencies": { "@lowerdeck/execution-context": "^1.1.1", "@lowerdeck/id": "^1.0.8", "@lowerdeck/queue": "^1.0.11", "@lowerdeck/redis": "^1.0.6", "@lowerdeck/sentry": "^1.0.2", "bullmq": "^5.34.3" } }, "sha512-GSbsjoFwF4tzmwpGIQkfXZuZhUF1/GVRFmInKC5CMa5ObIztZENioOZRLAF83lKaNFs8Atgx1eJMQkWZQ98u4Q=="],
+    "@lowerdeck/cron": ["@lowerdeck/cron@1.1.3", "", { "dependencies": { "@lowerdeck/execution-context": "^1.1.1", "@lowerdeck/id": "^1.0.8", "@lowerdeck/queue": "^1.0.11", "@lowerdeck/redis": "^1.0.6", "@lowerdeck/sentry": "^1.0.2", "bullmq": "^5.34.3" } }, "sha512-fiYQ6xkwG43M2rnqJM/KdUhp1IVk+6HMKwpYi49gJ6AX7MUVx66V2+tr0RX/vsqLyHjIPk7pydjUV7dFu0pbMQ=="],
 
     "@lowerdeck/delay": ["@lowerdeck/delay@1.0.4", "", {}, "sha512-rdXFPnNVnOfO5ZXc6RqcOV8C1gYcGdc0ri0rrYX27NuBqLj5xt7LgFA1h47no5j35pJwLBBdmVmaNMRV/pCAlg=="],
 
@@ -4228,7 +4235,7 @@
 
     "@lowerdeck/redis": ["@lowerdeck/redis@1.0.6", "", { "dependencies": { "@lowerdeck/id": "^1.0.8", "@lowerdeck/memo": "^1.0.4", "@lowerdeck/random-number": "^1.0.4", "@lowerdeck/serialize": "^1.0.4", "ioredis": "^5.8.2", "p-queue": "^9.0.1", "redis": "^5.10.0" } }, "sha512-o6pD9ynMoFUyVa846Dhnp46Cb9L/Ktv+o2O2q43XYRh+7boQc/01hV9zHv/HG/7Tk5ZqDk2uBDdCpQ4/xMMDVg=="],
 
-    "@lowerdeck/rpc-client": ["@lowerdeck/rpc-client@1.1.3", "", { "dependencies": { "@lowerdeck/canonicalize": "^1.0.4", "@lowerdeck/error": "^1.2.2", "@lowerdeck/id": "^1.0.8", "@lowerdeck/memo": "^1.0.4", "@lowerdeck/proxy": "^1.0.4", "@lowerdeck/serialize": "^1.0.4", "@opentelemetry/api": "^1.9.0" } }, "sha512-ux7CnuAqOEBKnaOkWWdDIPMcd4bOgjVFUjZ3TGHI0Ztgmk6P8gnCDsYDKzWnTlLLc3E7n7zHDwx3G6nUFSHDqA=="],
+    "@lowerdeck/rpc-client": ["@lowerdeck/rpc-client@1.1.4", "", { "dependencies": { "@lowerdeck/canonicalize": "^1.0.4", "@lowerdeck/error": "^1.2.3", "@lowerdeck/id": "^1.0.8", "@lowerdeck/memo": "^1.0.4", "@lowerdeck/proxy": "^1.0.4", "@lowerdeck/serialize": "^1.0.4", "@opentelemetry/api": "^1.9.0" } }, "sha512-d4tZsXDp7hxNLVU191Qkhry+dZUveUh7aejDBevAPB05fT+O5IyDgpo5E0TOpSh2/7zq1Ww6wMdIJXUchptYkA=="],
 
     "@lowerdeck/rpc-server": ["@lowerdeck/rpc-server@1.0.11", "", { "dependencies": { "@lowerdeck/error": "^1.2.3", "@lowerdeck/execution-context": "^1.1.1", "@lowerdeck/id": "^1.0.8", "@lowerdeck/memo": "^1.0.4", "@lowerdeck/sentry": "^1.0.2", "@lowerdeck/serialize": "^1.0.4", "@lowerdeck/telemetry": "^1.1.1", "@lowerdeck/validation": "^1.0.10", "cookie": "^1.1.1" } }, "sha512-huTBKKqXyEaaHuVnI4KDyZuMmCefeTDMhAiEkOsiQnpZ0taRbcdU7ogybu8Et1g87xtIcBVsMepxFho8xsYDxw=="],
 
@@ -5203,6 +5210,10 @@
     "@svgdotjs/svg.resize.js": ["@svgdotjs/svg.resize.js@2.0.5", "", { "peerDependencies": { "@svgdotjs/svg.js": "^3.2.4", "@svgdotjs/svg.select.js": "^4.0.1" } }, "sha512-4heRW4B1QrJeENfi7326lUPYBCevj78FJs8kfeDxn5st0IYPIRXoTtOSYvTzFWgaWWXd3YCDE6ao4fmv91RthA=="],
 
     "@svgdotjs/svg.select.js": ["@svgdotjs/svg.select.js@4.0.3", "", { "peerDependencies": { "@svgdotjs/svg.js": "^3.2.4" } }, "sha512-qkMgso1sd2hXKd1FZ1weO7ANq12sNmQJeGDjs46QwDVsxSRcHmvWKL2NDF7Yimpwf3sl5esOLkPqtV2bQ3v/Jg=="],
+
+    "@tanstack/react-virtual": ["@tanstack/react-virtual@3.13.25", "", { "dependencies": { "@tanstack/virtual-core": "3.15.0" }, "peerDependencies": { "react": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0", "react-dom": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0" } }, "sha512-bmNoqMu6gcAW9JGrKVB0Q1tN1i5RONZF8r1fW0bbE4Oyf3DwEGnzzQJ2OW+Ozg1P4s8PyugkHg2ULZoFQN+cqw=="],
+
+    "@tanstack/virtual-core": ["@tanstack/virtual-core@3.15.0", "", {}, "sha512-0AwPGx0I8QxPYjAxShT/+z+ZOe9u8mW5rsXvivCTjRfRmz9a43+3mRyi4wwlyoUqOC56q/jatKa0Bh9M99BEHQ=="],
 
     "@tediousjs/connection-string": ["@tediousjs/connection-string@0.5.0", "", {}, "sha512-7qSgZbincDDDFyRweCIEvZULFAw5iz/DeunhvuxpL31nfntX3P4Yd4HkHBRg9H8CdqY1e5WFN1PZIz/REL9MVQ=="],
 
@@ -8702,8 +8713,6 @@
 
     "@lowerdeck/lock/@types/bun": ["@types/bun@1.3.12", "", { "dependencies": { "bun-types": "1.3.12" } }, "sha512-DBv81elK+/VSwXHDlnH3Qduw+KxkTIWi7TXkAeh24zpi5l0B2kUg9Ga3tb4nJaPcOFswflgi/yAvMVBPrxMB+A=="],
 
-    "@lowerdeck/rpc-client/@lowerdeck/error": ["@lowerdeck/error@1.2.2", "", { "dependencies": { "@lowerdeck/case": "^1.0.9", "@lowerdeck/validation": "^1.0.8" } }, "sha512-elbVMzRrKlN+/hk4s9sh0Sysc7Sxtmt7qj+qOWSH0U7h9gwfkFDCPSkJkhuNtHYUvDwe5LyoXPXO+o0LpBaRqw=="],
-
     "@lowerdeck/sentry/@sentry/core": ["@sentry/core@10.42.0", "", {}, "sha512-L4rMrXMqUKBanpjpMT+TuAVk6xAijz6AWM6RiEYpohAr7SGcCEc1/T0+Ep1eLV8+pwWacfU27OvELIyNeOnGzA=="],
 
     "@lowerdeck/telemetry/@lowerdeck/execution-context": ["@lowerdeck/execution-context@1.1.0", "", { "dependencies": { "@lowerdeck/id": "^1.0.6", "@lowerdeck/sentry": "^1.0.2", "@opentelemetry/api": "^1.9.0" } }, "sha512-3aAgx6fiUF7Tduq1WR+GqGXZYaHhoM502/uwqQKtTOXsB6nyOp1NhOLHoU+ZZvZZflQ9ddpMwTCicjvQnmhXeA=="],
@@ -8748,13 +8757,21 @@
 
     "@metorial-platform-systems/synthesis-client/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
+    "@metorial-services/registry-client/@lowerdeck/rpc-client": ["@lowerdeck/rpc-client@1.1.3", "", { "dependencies": { "@lowerdeck/canonicalize": "^1.0.4", "@lowerdeck/error": "^1.2.2", "@lowerdeck/id": "^1.0.8", "@lowerdeck/memo": "^1.0.4", "@lowerdeck/proxy": "^1.0.4", "@lowerdeck/serialize": "^1.0.4", "@opentelemetry/api": "^1.9.0" } }, "sha512-ux7CnuAqOEBKnaOkWWdDIPMcd4bOgjVFUjZ3TGHI0Ztgmk6P8gnCDsYDKzWnTlLLc3E7n7zHDwx3G6nUFSHDqA=="],
+
     "@metorial-services/registry-client/@lowerdeck/rpc-server": ["@lowerdeck/rpc-server@1.0.10", "", { "dependencies": { "@lowerdeck/error": "^1.2.2", "@lowerdeck/execution-context": "^1.0.4", "@lowerdeck/id": "^1.0.8", "@lowerdeck/memo": "^1.0.4", "@lowerdeck/sentry": "^1.0.2", "@lowerdeck/serialize": "^1.0.4", "@lowerdeck/telemetry": "^1.0.1", "@lowerdeck/validation": "^1.0.8", "cookie": "^1.1.1" } }, "sha512-nitrDjYoYOal/W1djpaQ7EiDsvFokyUGPBXPyHzLqSrKDAqi22Tpb/nPAgGnEokxMbu6Fl9KhLlhIXABkYYvUg=="],
 
     "@metorial-services/registry-client/@lowerdeck/validation": ["@lowerdeck/validation@1.0.8", "", {}, "sha512-7sW91bml0iY+JipHOndla2uAEwTbFQwINAUrb0oGEVMQQ522MAa4PgwTKjJAG9DZ12LGhOgYEJoo7CyJo8aJNQ=="],
 
+    "@metorial-services/relay-client/@lowerdeck/rpc-client": ["@lowerdeck/rpc-client@1.1.3", "", { "dependencies": { "@lowerdeck/canonicalize": "^1.0.4", "@lowerdeck/error": "^1.2.2", "@lowerdeck/id": "^1.0.8", "@lowerdeck/memo": "^1.0.4", "@lowerdeck/proxy": "^1.0.4", "@lowerdeck/serialize": "^1.0.4", "@opentelemetry/api": "^1.9.0" } }, "sha512-ux7CnuAqOEBKnaOkWWdDIPMcd4bOgjVFUjZ3TGHI0Ztgmk6P8gnCDsYDKzWnTlLLc3E7n7zHDwx3G6nUFSHDqA=="],
+
+    "@metorial-services/scout-client/@lowerdeck/rpc-client": ["@lowerdeck/rpc-client@1.1.3", "", { "dependencies": { "@lowerdeck/canonicalize": "^1.0.4", "@lowerdeck/error": "^1.2.2", "@lowerdeck/id": "^1.0.8", "@lowerdeck/memo": "^1.0.4", "@lowerdeck/proxy": "^1.0.4", "@lowerdeck/serialize": "^1.0.4", "@opentelemetry/api": "^1.9.0" } }, "sha512-ux7CnuAqOEBKnaOkWWdDIPMcd4bOgjVFUjZ3TGHI0Ztgmk6P8gnCDsYDKzWnTlLLc3E7n7zHDwx3G6nUFSHDqA=="],
+
     "@metorial-services/slates-registry-client/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
     "@metorial-services/slates-registry-internal-client/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
+
+    "@metorial-services/voyager-client/@lowerdeck/rpc-client": ["@lowerdeck/rpc-client@1.1.3", "", { "dependencies": { "@lowerdeck/canonicalize": "^1.0.4", "@lowerdeck/error": "^1.2.2", "@lowerdeck/id": "^1.0.8", "@lowerdeck/memo": "^1.0.4", "@lowerdeck/proxy": "^1.0.4", "@lowerdeck/serialize": "^1.0.4", "@opentelemetry/api": "^1.9.0" } }, "sha512-ux7CnuAqOEBKnaOkWWdDIPMcd4bOgjVFUjZ3TGHI0Ztgmk6P8gnCDsYDKzWnTlLLc3E7n7zHDwx3G6nUFSHDqA=="],
 
     "@metorial-subspace/app-controller/@types/minimatch": ["@types/minimatch@6.0.0", "", { "dependencies": { "minimatch": "*" } }, "sha512-zmPitbQ8+6zNutpwgcQuLcsEpn/Cj54Kbn7L5pX0Os5kdWplB7xPgEh/g+SWOB/qmows2gpuCaPyduq8ZZRnxA=="],
 
@@ -8900,7 +8917,7 @@
 
     "@metorial/slates-registry/@types/minimatch": ["@types/minimatch@6.0.0", "", { "dependencies": { "minimatch": "*" } }, "sha512-zmPitbQ8+6zNutpwgcQuLcsEpn/Cj54Kbn7L5pX0Os5kdWplB7xPgEh/g+SWOB/qmows2gpuCaPyduq8ZZRnxA=="],
 
-    "@metorial/state/@metorial/generated": ["@metorial/generated@2.1.0", "", { "dependencies": { "@metorial/util-endpoint": "^2.1.0", "@metorial/util-resource-mapper": "^2.1.0", "jose": "^5.9.6" } }, "sha512-6ihKyZsSdq0WDFzNMf263GzkfOy2Vf+SbmrtEBL6bf88b5KEuiEvmVzGAdqvY0Z+jlyUF54NTOvwuYeJ4XfU1g=="],
+    "@metorial/state/@metorial/generated": ["@metorial/generated@3.0.0", "", { "dependencies": { "@metorial/util-endpoint": "^3.0.0", "@metorial/util-resource-mapper": "^3.0.0", "jose": "^5.9.6" } }, "sha512-1vJpqLgB8SLw6/Pr+xgnq9mGI4Xpays6JNzJGjB1hK7ZBuTGl5ebgI/Th67TCohdAg347FTv/tj3lK2kPHS3bw=="],
 
     "@metorial/subspace-dev/vitest": ["vitest@4.0.17", "", { "dependencies": { "@vitest/expect": "4.0.17", "@vitest/mocker": "4.0.17", "@vitest/pretty-format": "4.0.17", "@vitest/runner": "4.0.17", "@vitest/snapshot": "4.0.17", "@vitest/spy": "4.0.17", "@vitest/utils": "4.0.17", "es-module-lexer": "^1.7.0", "expect-type": "^1.2.2", "magic-string": "^0.30.21", "obug": "^2.1.1", "pathe": "^2.0.3", "picomatch": "^4.0.3", "std-env": "^3.10.0", "tinybench": "^2.9.0", "tinyexec": "^1.0.2", "tinyglobby": "^0.2.15", "tinyrainbow": "^3.0.3", "vite": "^6.0.0 || ^7.0.0", "why-is-node-running": "^2.3.0" }, "peerDependencies": { "@edge-runtime/vm": "*", "@opentelemetry/api": "^1.9.0", "@types/node": "^20.0.0 || ^22.0.0 || >=24.0.0", "@vitest/browser-playwright": "4.0.17", "@vitest/browser-preview": "4.0.17", "@vitest/browser-webdriverio": "4.0.17", "@vitest/ui": "4.0.17", "happy-dom": "*", "jsdom": "*" }, "optionalPeers": ["@edge-runtime/vm", "@opentelemetry/api", "@types/node", "@vitest/browser-playwright", "@vitest/browser-preview", "@vitest/browser-webdriverio", "@vitest/ui", "happy-dom", "jsdom"], "bin": { "vitest": "vitest.mjs" } }, "sha512-FQMeF0DJdWY0iOnbv466n/0BudNdKj1l5jYgl5JVTwjSsZSlqyXFt/9+1sEyhR6CLowbZpV7O1sCHrzBhucKKg=="],
 
@@ -10000,8 +10017,6 @@
 
     "@lowerdeck/lock/@types/bun/bun-types": ["bun-types@1.3.12", "", { "dependencies": { "@types/node": "*" } }, "sha512-HqOLj5PoFajAQciOMRiIZGNoKxDJSr6qigAttOX40vJuSp6DN/CxWp9s3C1Xwm4oH7ybueITwiaOcWXoYVoRkA=="],
 
-    "@lowerdeck/rpc-client/@lowerdeck/error/@lowerdeck/validation": ["@lowerdeck/validation@1.0.8", "", {}, "sha512-7sW91bml0iY+JipHOndla2uAEwTbFQwINAUrb0oGEVMQQ522MAa4PgwTKjJAG9DZ12LGhOgYEJoo7CyJo8aJNQ=="],
-
     "@mapbox/node-pre-gyp/https-proxy-agent/agent-base": ["agent-base@7.1.4", "", {}, "sha512-MnA+YT8fwfJPgBx3m60MNqakm30XOkyIoH1y6huTQvC0PwZG7ki8NacLBcrPbNoo8vEZy7Jpuk7+jMO+CUovTQ=="],
 
     "@mapbox/node-pre-gyp/tar/chownr": ["chownr@3.0.0", "", {}, "sha512-+IxzY9BZOQd/XuYPRmrvEVjF/nqj5kgT4kEq7VofrDoM1MxoRjEWkrCC3EtLi59TVawxTAn+orJwFQcrqEN1+g=="],
@@ -10038,9 +10053,17 @@
 
     "@metorial-platform-systems/origin-client/@types/node/undici-types": ["undici-types@7.18.2", "", {}, "sha512-AsuCzffGHJybSaRrmr5eHr81mwJU3kjw6M+uprWvCXiNeN9SOGwQ3Jn8jb8m3Z6izVgknn1R0FTCEAP2QrLY/w=="],
 
+    "@metorial-services/registry-client/@lowerdeck/rpc-client/@lowerdeck/error": ["@lowerdeck/error@1.2.2", "", { "dependencies": { "@lowerdeck/case": "^1.0.9", "@lowerdeck/validation": "^1.0.8" } }, "sha512-elbVMzRrKlN+/hk4s9sh0Sysc7Sxtmt7qj+qOWSH0U7h9gwfkFDCPSkJkhuNtHYUvDwe5LyoXPXO+o0LpBaRqw=="],
+
     "@metorial-services/registry-client/@lowerdeck/rpc-server/@lowerdeck/error": ["@lowerdeck/error@1.2.2", "", { "dependencies": { "@lowerdeck/case": "^1.0.9", "@lowerdeck/validation": "^1.0.8" } }, "sha512-elbVMzRrKlN+/hk4s9sh0Sysc7Sxtmt7qj+qOWSH0U7h9gwfkFDCPSkJkhuNtHYUvDwe5LyoXPXO+o0LpBaRqw=="],
 
     "@metorial-services/registry-client/@lowerdeck/rpc-server/@lowerdeck/execution-context": ["@lowerdeck/execution-context@1.1.0", "", { "dependencies": { "@lowerdeck/id": "^1.0.6", "@lowerdeck/sentry": "^1.0.2", "@opentelemetry/api": "^1.9.0" } }, "sha512-3aAgx6fiUF7Tduq1WR+GqGXZYaHhoM502/uwqQKtTOXsB6nyOp1NhOLHoU+ZZvZZflQ9ddpMwTCicjvQnmhXeA=="],
+
+    "@metorial-services/relay-client/@lowerdeck/rpc-client/@lowerdeck/error": ["@lowerdeck/error@1.2.2", "", { "dependencies": { "@lowerdeck/case": "^1.0.9", "@lowerdeck/validation": "^1.0.8" } }, "sha512-elbVMzRrKlN+/hk4s9sh0Sysc7Sxtmt7qj+qOWSH0U7h9gwfkFDCPSkJkhuNtHYUvDwe5LyoXPXO+o0LpBaRqw=="],
+
+    "@metorial-services/scout-client/@lowerdeck/rpc-client/@lowerdeck/error": ["@lowerdeck/error@1.2.2", "", { "dependencies": { "@lowerdeck/case": "^1.0.9", "@lowerdeck/validation": "^1.0.8" } }, "sha512-elbVMzRrKlN+/hk4s9sh0Sysc7Sxtmt7qj+qOWSH0U7h9gwfkFDCPSkJkhuNtHYUvDwe5LyoXPXO+o0LpBaRqw=="],
+
+    "@metorial-services/voyager-client/@lowerdeck/rpc-client/@lowerdeck/error": ["@lowerdeck/error@1.2.2", "", { "dependencies": { "@lowerdeck/case": "^1.0.9", "@lowerdeck/validation": "^1.0.8" } }, "sha512-elbVMzRrKlN+/hk4s9sh0Sysc7Sxtmt7qj+qOWSH0U7h9gwfkFDCPSkJkhuNtHYUvDwe5LyoXPXO+o0LpBaRqw=="],
 
     "@metorial-subspace/app-controller/vitest/@vitest/expect": ["@vitest/expect@4.0.17", "", { "dependencies": { "@standard-schema/spec": "^1.0.0", "@types/chai": "^5.2.2", "@vitest/spy": "4.0.17", "@vitest/utils": "4.0.17", "chai": "^6.2.1", "tinyrainbow": "^3.0.3" } }, "sha512-mEoqP3RqhKlbmUmntNDDCJeTDavDR+fVYkSOw8qRwJFaW/0/5zA9zFeTrHqNtcmwh6j26yMmwx2PqUDPzt5ZAQ=="],
 
@@ -10354,6 +10377,8 @@
 
     "@metorial/signal/vitest/vite": ["vite@7.3.1", "", { "dependencies": { "esbuild": "^0.27.0", "fdir": "^6.5.0", "picomatch": "^4.0.3", "postcss": "^8.5.6", "rollup": "^4.43.0", "tinyglobby": "^0.2.15" }, "optionalDependencies": { "fsevents": "~2.3.3" }, "peerDependencies": { "@types/node": "^20.19.0 || >=22.12.0", "jiti": ">=1.21.0", "less": "^4.0.0", "lightningcss": "^1.21.0", "sass": "^1.70.0", "sass-embedded": "^1.70.0", "stylus": ">=0.54.8", "sugarss": "^5.0.0", "terser": "^5.16.0", "tsx": "^4.8.1", "yaml": "^2.4.2" }, "optionalPeers": ["@types/node", "jiti", "less", "lightningcss", "sass", "sass-embedded", "stylus", "sugarss", "terser", "tsx", "yaml"], "bin": { "vite": "bin/vite.js" } }, "sha512-w+N7Hifpc3gRjZ63vYBXA56dvvRlNWRczTdmCBBa+CotUzAPf5b7YMdMR/8CQoeYE5LX3W4wj6RYTgonm1b9DA=="],
 
+    "@metorial/slates/@metorial-services/slates-registry-client/@lowerdeck/rpc-client": ["@lowerdeck/rpc-client@1.1.3", "", { "dependencies": { "@lowerdeck/canonicalize": "^1.0.4", "@lowerdeck/error": "^1.2.2", "@lowerdeck/id": "^1.0.8", "@lowerdeck/memo": "^1.0.4", "@lowerdeck/proxy": "^1.0.4", "@lowerdeck/serialize": "^1.0.4", "@opentelemetry/api": "^1.9.0" } }, "sha512-ux7CnuAqOEBKnaOkWWdDIPMcd4bOgjVFUjZ3TGHI0Ztgmk6P8gnCDsYDKzWnTlLLc3E7n7zHDwx3G6nUFSHDqA=="],
+
     "@metorial/slates/vitest/@vitest/expect": ["@vitest/expect@4.0.17", "", { "dependencies": { "@standard-schema/spec": "^1.0.0", "@types/chai": "^5.2.2", "@vitest/spy": "4.0.17", "@vitest/utils": "4.0.17", "chai": "^6.2.1", "tinyrainbow": "^3.0.3" } }, "sha512-mEoqP3RqhKlbmUmntNDDCJeTDavDR+fVYkSOw8qRwJFaW/0/5zA9zFeTrHqNtcmwh6j26yMmwx2PqUDPzt5ZAQ=="],
 
     "@metorial/slates/vitest/@vitest/mocker": ["@vitest/mocker@4.0.17", "", { "dependencies": { "@vitest/spy": "4.0.17", "estree-walker": "^3.0.3", "magic-string": "^0.30.21" }, "peerDependencies": { "msw": "^2.4.9", "vite": "^6.0.0 || ^7.0.0-0" }, "optionalPeers": ["msw", "vite"] }, "sha512-+ZtQhLA3lDh1tI2wxe3yMsGzbp7uuJSWBM1iTIKCbppWTSBN09PUC+L+fyNlQApQoR+Ps8twt2pbSSXg2fQVEQ=="],
@@ -10374,9 +10399,9 @@
 
     "@metorial/slates/vitest/vite": ["vite@7.3.1", "", { "dependencies": { "esbuild": "^0.27.0", "fdir": "^6.5.0", "picomatch": "^4.0.3", "postcss": "^8.5.6", "rollup": "^4.43.0", "tinyglobby": "^0.2.15" }, "optionalDependencies": { "fsevents": "~2.3.3" }, "peerDependencies": { "@types/node": "^20.19.0 || >=22.12.0", "jiti": ">=1.21.0", "less": "^4.0.0", "lightningcss": "^1.21.0", "sass": "^1.70.0", "sass-embedded": "^1.70.0", "stylus": ">=0.54.8", "sugarss": "^5.0.0", "terser": "^5.16.0", "tsx": "^4.8.1", "yaml": "^2.4.2" }, "optionalPeers": ["@types/node", "jiti", "less", "lightningcss", "sass", "sass-embedded", "stylus", "sugarss", "terser", "tsx", "yaml"], "bin": { "vite": "bin/vite.js" } }, "sha512-w+N7Hifpc3gRjZ63vYBXA56dvvRlNWRczTdmCBBa+CotUzAPf5b7YMdMR/8CQoeYE5LX3W4wj6RYTgonm1b9DA=="],
 
-    "@metorial/state/@metorial/generated/@metorial/util-endpoint": ["@metorial/util-endpoint@2.1.0", "", { "dependencies": { "@metorial/util-async-iterator": "^2.1.0", "@types/qs": "^6.14.0", "cross-fetch": "^4.1.0", "qs": "^6.13.1" } }, "sha512-Y4/i9G6h32Yday9ngMUZiDoh+8Usr01rzIZCM9BhkrRAWxiFZRztIyN6zMVOho4+vAlIRNked98Um7En4cXUcQ=="],
+    "@metorial/state/@metorial/generated/@metorial/util-endpoint": ["@metorial/util-endpoint@3.0.0", "", { "dependencies": { "@metorial/util-async-iterator": "^3.0.0", "@types/qs": "^6.14.0", "cross-fetch": "^4.1.0", "qs": "^6.13.1" } }, "sha512-uw+yw1xwa56jzG0H6iERK/FcuHhhz4n3sEWqyCG9bXhCGeMZSygls39mZB4qU+/Kb69N8deYnP0wSqoqvsO98Q=="],
 
-    "@metorial/state/@metorial/generated/@metorial/util-resource-mapper": ["@metorial/util-resource-mapper@2.1.0", "", {}, "sha512-D1Dkgc5B0/QcIZUwhDsemV4rn87qVehM2JM3gopqXgzHokgMdIe/aR//1ot4OEN4+6G0e5/EJBHs/YI2JDyUsA=="],
+    "@metorial/state/@metorial/generated/@metorial/util-resource-mapper": ["@metorial/util-resource-mapper@3.0.0", "", {}, "sha512-CiEVSUL9ncLQuIrZniE0lMkDdAJ9XUzd/rqwpxf0OV3yDZtdbTDP1Wo36b8tRndC1J5hyd1LVayxULQOXBCs4g=="],
 
     "@metorial/state/@metorial/generated/jose": ["jose@5.10.0", "", {}, "sha512-s+3Al/p9g32Iq+oqXxkW//7jk2Vig6FF1CFqzVXoTUXt2qz89YWbL+OwS17NFYEvxC35n0FKeGO2LGYSxeM2Gg=="],
 
@@ -10982,6 +11007,12 @@
 
     "@metorial-cargo/service/vitest/vite/esbuild": ["esbuild@0.27.3", "", { "optionalDependencies": { "@esbuild/aix-ppc64": "0.27.3", "@esbuild/android-arm": "0.27.3", "@esbuild/android-arm64": "0.27.3", "@esbuild/android-x64": "0.27.3", "@esbuild/darwin-arm64": "0.27.3", "@esbuild/darwin-x64": "0.27.3", "@esbuild/freebsd-arm64": "0.27.3", "@esbuild/freebsd-x64": "0.27.3", "@esbuild/linux-arm": "0.27.3", "@esbuild/linux-arm64": "0.27.3", "@esbuild/linux-ia32": "0.27.3", "@esbuild/linux-loong64": "0.27.3", "@esbuild/linux-mips64el": "0.27.3", "@esbuild/linux-ppc64": "0.27.3", "@esbuild/linux-riscv64": "0.27.3", "@esbuild/linux-s390x": "0.27.3", "@esbuild/linux-x64": "0.27.3", "@esbuild/netbsd-arm64": "0.27.3", "@esbuild/netbsd-x64": "0.27.3", "@esbuild/openbsd-arm64": "0.27.3", "@esbuild/openbsd-x64": "0.27.3", "@esbuild/openharmony-arm64": "0.27.3", "@esbuild/sunos-x64": "0.27.3", "@esbuild/win32-arm64": "0.27.3", "@esbuild/win32-ia32": "0.27.3", "@esbuild/win32-x64": "0.27.3" }, "bin": { "esbuild": "bin/esbuild" } }, "sha512-8VwMnyGCONIs6cWue2IdpHxHnAjzxnw2Zr7MkVxB2vjmQ2ivqGFb4LEG3SMnv0Gb2F/G/2yA8zUaiL1gywDCCg=="],
 
+    "@metorial-services/relay-client/@lowerdeck/rpc-client/@lowerdeck/error/@lowerdeck/validation": ["@lowerdeck/validation@1.0.8", "", {}, "sha512-7sW91bml0iY+JipHOndla2uAEwTbFQwINAUrb0oGEVMQQ522MAa4PgwTKjJAG9DZ12LGhOgYEJoo7CyJo8aJNQ=="],
+
+    "@metorial-services/scout-client/@lowerdeck/rpc-client/@lowerdeck/error/@lowerdeck/validation": ["@lowerdeck/validation@1.0.8", "", {}, "sha512-7sW91bml0iY+JipHOndla2uAEwTbFQwINAUrb0oGEVMQQ522MAa4PgwTKjJAG9DZ12LGhOgYEJoo7CyJo8aJNQ=="],
+
+    "@metorial-services/voyager-client/@lowerdeck/rpc-client/@lowerdeck/error/@lowerdeck/validation": ["@lowerdeck/validation@1.0.8", "", {}, "sha512-7sW91bml0iY+JipHOndla2uAEwTbFQwINAUrb0oGEVMQQ522MAa4PgwTKjJAG9DZ12LGhOgYEJoo7CyJo8aJNQ=="],
+
     "@metorial-subspace/app-controller/vitest/@vitest/expect/chai": ["chai@6.2.2", "", {}, "sha512-NUPRluOfOiTKBKvWPtSD4PhFvWCqOi0BGStNWs57X9js7XGTprSmFoz5F0tWhR4WPjNeR9jXqdC7/UpSJTnlRg=="],
 
     "@metorial-subspace/app-controller/vitest/@vitest/mocker/estree-walker": ["estree-walker@3.0.3", "", { "dependencies": { "@types/estree": "^1.0.0" } }, "sha512-7RUKfXgSMMkzt6ZuXmqapOurLGPPfgj6l9uRZ7lRGolvk0y2yocc35LdcxKC5PQZdn2DMqioAQ2NoWcrTKmm6g=="],
@@ -11230,13 +11261,15 @@
 
     "@metorial/signal/vitest/vite/esbuild": ["esbuild@0.27.3", "", { "optionalDependencies": { "@esbuild/aix-ppc64": "0.27.3", "@esbuild/android-arm": "0.27.3", "@esbuild/android-arm64": "0.27.3", "@esbuild/android-x64": "0.27.3", "@esbuild/darwin-arm64": "0.27.3", "@esbuild/darwin-x64": "0.27.3", "@esbuild/freebsd-arm64": "0.27.3", "@esbuild/freebsd-x64": "0.27.3", "@esbuild/linux-arm": "0.27.3", "@esbuild/linux-arm64": "0.27.3", "@esbuild/linux-ia32": "0.27.3", "@esbuild/linux-loong64": "0.27.3", "@esbuild/linux-mips64el": "0.27.3", "@esbuild/linux-ppc64": "0.27.3", "@esbuild/linux-riscv64": "0.27.3", "@esbuild/linux-s390x": "0.27.3", "@esbuild/linux-x64": "0.27.3", "@esbuild/netbsd-arm64": "0.27.3", "@esbuild/netbsd-x64": "0.27.3", "@esbuild/openbsd-arm64": "0.27.3", "@esbuild/openbsd-x64": "0.27.3", "@esbuild/openharmony-arm64": "0.27.3", "@esbuild/sunos-x64": "0.27.3", "@esbuild/win32-arm64": "0.27.3", "@esbuild/win32-ia32": "0.27.3", "@esbuild/win32-x64": "0.27.3" }, "bin": { "esbuild": "bin/esbuild" } }, "sha512-8VwMnyGCONIs6cWue2IdpHxHnAjzxnw2Zr7MkVxB2vjmQ2ivqGFb4LEG3SMnv0Gb2F/G/2yA8zUaiL1gywDCCg=="],
 
+    "@metorial/slates/@metorial-services/slates-registry-client/@lowerdeck/rpc-client/@lowerdeck/error": ["@lowerdeck/error@1.2.2", "", { "dependencies": { "@lowerdeck/case": "^1.0.9", "@lowerdeck/validation": "^1.0.8" } }, "sha512-elbVMzRrKlN+/hk4s9sh0Sysc7Sxtmt7qj+qOWSH0U7h9gwfkFDCPSkJkhuNtHYUvDwe5LyoXPXO+o0LpBaRqw=="],
+
     "@metorial/slates/vitest/@vitest/expect/chai": ["chai@6.2.2", "", {}, "sha512-NUPRluOfOiTKBKvWPtSD4PhFvWCqOi0BGStNWs57X9js7XGTprSmFoz5F0tWhR4WPjNeR9jXqdC7/UpSJTnlRg=="],
 
     "@metorial/slates/vitest/@vitest/mocker/estree-walker": ["estree-walker@3.0.3", "", { "dependencies": { "@types/estree": "^1.0.0" } }, "sha512-7RUKfXgSMMkzt6ZuXmqapOurLGPPfgj6l9uRZ7lRGolvk0y2yocc35LdcxKC5PQZdn2DMqioAQ2NoWcrTKmm6g=="],
 
     "@metorial/slates/vitest/vite/esbuild": ["esbuild@0.27.3", "", { "optionalDependencies": { "@esbuild/aix-ppc64": "0.27.3", "@esbuild/android-arm": "0.27.3", "@esbuild/android-arm64": "0.27.3", "@esbuild/android-x64": "0.27.3", "@esbuild/darwin-arm64": "0.27.3", "@esbuild/darwin-x64": "0.27.3", "@esbuild/freebsd-arm64": "0.27.3", "@esbuild/freebsd-x64": "0.27.3", "@esbuild/linux-arm": "0.27.3", "@esbuild/linux-arm64": "0.27.3", "@esbuild/linux-ia32": "0.27.3", "@esbuild/linux-loong64": "0.27.3", "@esbuild/linux-mips64el": "0.27.3", "@esbuild/linux-ppc64": "0.27.3", "@esbuild/linux-riscv64": "0.27.3", "@esbuild/linux-s390x": "0.27.3", "@esbuild/linux-x64": "0.27.3", "@esbuild/netbsd-arm64": "0.27.3", "@esbuild/netbsd-x64": "0.27.3", "@esbuild/openbsd-arm64": "0.27.3", "@esbuild/openbsd-x64": "0.27.3", "@esbuild/openharmony-arm64": "0.27.3", "@esbuild/sunos-x64": "0.27.3", "@esbuild/win32-arm64": "0.27.3", "@esbuild/win32-ia32": "0.27.3", "@esbuild/win32-x64": "0.27.3" }, "bin": { "esbuild": "bin/esbuild" } }, "sha512-8VwMnyGCONIs6cWue2IdpHxHnAjzxnw2Zr7MkVxB2vjmQ2ivqGFb4LEG3SMnv0Gb2F/G/2yA8zUaiL1gywDCCg=="],
 
-    "@metorial/state/@metorial/generated/@metorial/util-endpoint/@metorial/util-async-iterator": ["@metorial/util-async-iterator@2.1.0", "", {}, "sha512-aD2QcSrG2kophZVWY49qh6avuQ8pL6ocOoRVVQi2UwMVnKjqPeHmK3ip8AQc3P+qQ++g9+GRivnkDYCyA0Er/Q=="],
+    "@metorial/state/@metorial/generated/@metorial/util-endpoint/@metorial/util-async-iterator": ["@metorial/util-async-iterator@3.0.0", "", {}, "sha512-XaPNjifR7u0TAboXy0Axw8nrCNV5gU7i+TVFRXiBqR5zzz8+mu0FWqaTB9yw2VrjP4FKkHC+2GI8Vxg/CgH5Og=="],
 
     "@metorial/subspace-dev/vitest/@vitest/expect/chai": ["chai@6.2.2", "", {}, "sha512-NUPRluOfOiTKBKvWPtSD4PhFvWCqOi0BGStNWs57X9js7XGTprSmFoz5F0tWhR4WPjNeR9jXqdC7/UpSJTnlRg=="],
 
@@ -11771,6 +11804,8 @@
     "@metorial/signal/vitest/vite/esbuild/@esbuild/win32-ia32": ["@esbuild/win32-ia32@0.27.3", "", { "os": "win32", "cpu": "ia32" }, "sha512-QLKSFeXNS8+tHW7tZpMtjlNb7HKau0QDpwm49u0vUp9y1WOF+PEzkU84y9GqYaAVW8aH8f3GcBck26jh54cX4Q=="],
 
     "@metorial/signal/vitest/vite/esbuild/@esbuild/win32-x64": ["@esbuild/win32-x64@0.27.3", "", { "os": "win32", "cpu": "x64" }, "sha512-4uJGhsxuptu3OcpVAzli+/gWusVGwZZHTlS63hh++ehExkVT8SgiEf7/uC/PclrPPkLhZqGgCTjd0VWLo6xMqA=="],
+
+    "@metorial/slates/@metorial-services/slates-registry-client/@lowerdeck/rpc-client/@lowerdeck/error/@lowerdeck/validation": ["@lowerdeck/validation@1.0.8", "", {}, "sha512-7sW91bml0iY+JipHOndla2uAEwTbFQwINAUrb0oGEVMQQ522MAa4PgwTKjJAG9DZ12LGhOgYEJoo7CyJo8aJNQ=="],
 
     "@metorial/slates/vitest/vite/esbuild/@esbuild/aix-ppc64": ["@esbuild/aix-ppc64@0.27.3", "", { "os": "aix", "cpu": "ppc64" }, "sha512-9fJMTNFTWZMh5qwrBItuziu834eOCUcEqymSH7pY+zoMVEZg3gcPuBNxH1EvfVYe9h0x/Ptw8KBzv7qxb7l8dg=="],
 

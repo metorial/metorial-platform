@@ -1,14 +1,15 @@
 import { createExecutionContext, provideExecutionContext } from '@lowerdeck/execution-context';
-import { createHono, useRequestContext } from '@lowerdeck/hono';
+import { useRequestContext } from '@lowerdeck/hono';
 import { generateSnowflakeId } from '@metorial/id';
 import { AuthInfo } from '@metorial/module-access';
 import { proxyMcpRequestToSubspace } from '@metorial/module-subspace';
 import { Authenticator } from '@metorial/rest';
 import { authenticateAndResolveInstance } from './getSession';
+import { createConnectionHono } from './hono';
 import { handleMagicMcpRequest } from './magic';
 
 export let startMcpServer = (d: { port: number; authenticate: Authenticator<AuthInfo> }) => {
-  let hono = createHono()
+  let hono = createConnectionHono()
     .use(async (c, next) => {
       await next();
 
