@@ -10,6 +10,6 @@ bun install --linker=hoisted
 bun run --cwd ./src/systems/forge/service db:generate
 bun run --cwd ./src/systems/function-bay/service db:generate
 
-bunx turbo run --ui=stream build --filter=@metorial-platform-systems/forge-client
-bunx turbo run --ui=stream build --filter=@metorial-platform-systems/function-bay-client
+sh ./src/systems/scripts/build-workspace-clients.sh
+
 bunx turbo run --ui=stream build --filter=@metorial/mcp-server

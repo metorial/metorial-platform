@@ -65,6 +65,9 @@ jobs:
       - name: Generate Prisma Clients
         run: bunx turbo run --ui=stream --concurrency=1 prisma:generate
 
+      - name: Build workspace clients
+        run: bunx turbo run --ui=stream build --filter=./src/systems/_clients/**
+
       - name: Run control
         env:
           CONTROL_VERBOSE: '1'
