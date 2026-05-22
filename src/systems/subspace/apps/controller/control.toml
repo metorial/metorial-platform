@@ -121,4 +121,4 @@ scope = "service"
 
 [[deps]]
 name = "mcp-test-server"
-inline = { build = { context = "oss", dockerfile = "src/systems/subspace/apps/controller/Dockerfile", target = "workspace" }, command = ["sh", "-c", "PORT=52198 bun ./src/systems/subspace/test-servers/index.ts"], port = 52198, health = { cmd = "bun -e \"fetch('http://localhost:52198/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\"" } }
+inline = { build = { context = "oss", dockerfile = "src/systems/subspace/apps/controller/Dockerfile", target = "workspace" }, command = ["sh", "-c", "PORT=52198 bun /app/src/systems/subspace/test-servers/index.ts"], port = 52198, health = { cmd = "bun -e \"fetch('http://localhost:52198/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\"" } }
