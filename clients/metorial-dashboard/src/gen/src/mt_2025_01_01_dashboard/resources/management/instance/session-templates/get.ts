@@ -77,7 +77,10 @@ export let mapManagementInstanceSessionTemplatesGetOutput =
       'integration_instance_group_id',
       mtMap.passthrough()
     ),
-    identityActorId: mtMap.objectField('identity_actor_id', mtMap.passthrough()),
+    identityActorId: mtMap.objectField(
+      'identity_actor_id',
+      mtMap.passthrough()
+    ),
     identityId: mtMap.objectField('identity_id', mtMap.passthrough()),
     providers: mtMap.objectField(
       'providers',

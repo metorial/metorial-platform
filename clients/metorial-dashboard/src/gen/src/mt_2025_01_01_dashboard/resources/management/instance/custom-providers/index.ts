@@ -3,6 +3,7 @@ export * from './commits';
 export * from './create';
 export * from './deployments';
 export * from './environments';
+export * from './get-env';
 export * from './get';
 export * from './list';
 export * from './update';

@@ -22,6 +22,33 @@ export let customProviderApp = tenantApp.use(async ctx => {
   return { customProvider };
 });
 
+let functionRuntimeValidator = v.union([
+  v.object({
+    identifier: v.literal('nodejs'),
+    version: v.enumOf(['24.x', '22.x'])
+  }),
+  v.object({
+    identifier: v.literal('python'),
+    version: v.enumOf(['3.14', '3.13', '3.12'])
+  })
+]);
+
+let functionRepositoryValidator = v.optional(
+  v.union([
+    v.object({
+      repositoryId: v.string(),
+      branch: v.string(),
+      path: v.optional(v.string())
+    }),
+    v.object({
+      type: v.literal('git'),
+      repositoryUrl: v.string(),
+      branch: v.string(),
+      path: v.optional(v.string())
+    })
+  ])
+);
+
 export let customProviderFromValidator = v.union([
   v.object({
     type: v.literal('container'),
@@ -47,31 +74,42 @@ export let customProviderFromValidator = v.union([
       })
     ),
     env: v.record(v.string()),
-    runtime: v.union([
-      v.object({
-        identifier: v.literal('nodejs'),
-        version: v.enumOf(['24.x', '22.x'])
-      }),
-      v.object({
-        identifier: v.literal('python'),
-        version: v.enumOf(['3.14', '3.13', '3.12'])
-      })
-    ]),
+    runtime: functionRuntimeValidator,
+    repository: functionRepositoryValidator
+  })
+]);
+
+export let customProviderFromUpdateValidator = v.union([
+  v.object({
+    type: v.literal('container'),
     repository: v.optional(
-      v.union([
-        v.object({
-          repositoryId: v.string(),
-          branch: v.string(),
-          path: v.optional(v.string())
-        }),
-        v.object({
-          type: v.literal('git'),
-          repositoryUrl: v.string(),
-          branch: v.string(),
-          path: v.optional(v.string())
-        })
-      ])
+      v.object({
+        imageRef: v.optional(v.string()),
+        username: v.optional(v.string()),
+        password: v.optional(v.string())
+      })
     )
+  }),
+  v.object({
+    type: v.literal('remote'),
+    remoteUrl: v.optional(v.string()),
+    oauthConfig: v.optional(v.record(v.any())),
+    protocol: v.optional(v.enumOf(['sse', 'streamable_http']))
+  }),
+  v.object({
+    type: v.literal('function'),
+    files: v.optional(
+      v.array(
+        v.object({
+          filename: v.string(),
+          content: v.string(),
+          encoding: v.optional(v.enumOf(['utf-8', 'base64']))
+        })
+      )
+    ),
+    env: v.optional(v.record(v.string())),
+    runtime: v.optional(functionRuntimeValidator),
+    repository: functionRepositoryValidator
   })
 ]);
 
@@ -101,7 +139,9 @@ export let customProviderController = app.controller({
           providerIds: v.optional(v.array(v.string())),
 
           createdAt: createdAtValidator,
-          updatedAt: updatedAtValidator
+          updatedAt: updatedAtValidator,
+
+          includeEnv: v.optional(v.boolean())
         })
       )
     )
@@ -126,7 +166,12 @@ export let customProviderController = app.controller({
 
       let list = await paginator.run(ctx.input);
 
-      return Paginator.presentLight(list, v => customProviderPresenter(v, ctx));
+      return Paginator.presentLight(list, v =>
+        customProviderPresenter(v, {
+          tenant: ctx.tenant,
+          includeEnv: ctx.input.includeEnv
+        })
+      );
     }),
 
   get: customProviderApp
@@ -136,10 +181,17 @@ export let customProviderController = app.controller({
         tenantId: v.string(),
         environmentId: v.string(),
         customProviderId: v.string(),
-        allowDeleted: v.optional(v.boolean())
+        allowDeleted: v.optional(v.boolean()),
+
+        includeEnv: v.optional(v.boolean())
       })
     )
-    .do(async ctx => await customProviderPresenter(ctx.customProvider, ctx)),
+    .do(async ctx =>
+      customProviderPresenter(ctx.customProvider, {
+        tenant: ctx.tenant,
+        includeEnv: ctx.input.includeEnv
+      })
+    ),
 
   create: tenantApp
     .handler()
@@ -179,7 +231,7 @@ export let customProviderController = app.controller({
         }
       });
 
-      return await customProviderPresenter(customProvider, ctx);
+      return await customProviderPresenter(customProvider, { tenant: ctx.tenant });
     }),
 
   update: customProviderApp
@@ -223,6 +275,6 @@ export let customProviderController = app.controller({
         }
       });
 
-      return await customProviderPresenter(customProvider, ctx);
+      return await customProviderPresenter(customProvider, { tenant: ctx.tenant });
     })
 });

@@ -60,7 +60,7 @@ export let proxyMcpRequestToSubspace = async (
   headers.set(
     'Metorial-Proxy-URL',
     process.env.NODE_ENV == 'production'
-      ? `https://${inputUrl.hostname}${inputUrl.pathname}${inputUrl.search}`
+      ? `https://${finalHostName}${inputUrl.pathname}${inputUrl.search}`
       : `http://${inputUrl.host}${inputUrl.pathname}${inputUrl.search}`
   );
 

@@ -38,7 +38,22 @@ describe('tenant.e2e', () => {
       identifier: 'test-tenant',
       name: 'Test Tenant',
       logRetentionInDays: 14,
+      allowAuthConfigExport: false,
+      allowAuthConfigImport: false,
       createdAt: expect.any(Date)
+    });
+
+    let updated = await client.tenant.upsert({
+      name: 'Test Tenant',
+      identifier: 'test-tenant',
+      allowAuthConfigExport: true,
+      allowAuthConfigImport: true,
+      environments: []
+    });
+
+    expect(updated).toMatchObject({
+      allowAuthConfigExport: true,
+      allowAuthConfigImport: true
     });
 
     let fetched = await client.tenant.get({
@@ -50,7 +65,9 @@ describe('tenant.e2e', () => {
       id: tenant.id,
       identifier: tenant.identifier,
       name: tenant.name,
-      logRetentionInDays: 14
+      logRetentionInDays: 14,
+      allowAuthConfigExport: true,
+      allowAuthConfigImport: true
     });
   });
 });

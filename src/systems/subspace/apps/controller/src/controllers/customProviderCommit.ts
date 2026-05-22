@@ -41,7 +41,9 @@ export let customProviderCommitController = app.controller({
           customProviderEnvironmentIds: v.optional(v.array(v.string())),
 
           createdAt: createdAtValidator,
-          updatedAt: updatedAtValidator
+          updatedAt: updatedAtValidator,
+
+          includeEnv: v.optional(v.boolean())
         })
       )
     )
@@ -63,7 +65,9 @@ export let customProviderCommitController = app.controller({
 
       let list = await paginator.run(ctx.input);
 
-      return Paginator.presentLight(list, customProviderCommitPresenter);
+      return Paginator.presentLight(list, v =>
+        customProviderCommitPresenter(v, { includeEnv: ctx.input.includeEnv })
+      );
     }),
 
   get: customProviderCommitApp
@@ -72,10 +76,16 @@ export let customProviderCommitController = app.controller({
       v.object({
         tenantId: v.string(),
         environmentId: v.string(),
-        customProviderCommitId: v.string()
+        customProviderCommitId: v.string(),
+
+        includeEnv: v.optional(v.boolean())
       })
     )
-    .do(async ctx => customProviderCommitPresenter(ctx.customProviderCommit)),
+    .do(async ctx =>
+      customProviderCommitPresenter(ctx.customProviderCommit, {
+        includeEnv: ctx.input.includeEnv
+      })
+    ),
 
   create: tenantApp
     .handler()

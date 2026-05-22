@@ -1,4 +1,4 @@
-import { notFoundError, ServiceError, badRequestError } from '@lowerdeck/error';
+import { notFoundError, ServiceError, badRequestError, forbiddenError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
@@ -134,6 +134,14 @@ class providerAuthImportServiceImpl {
       input: { authMethodId?: string };
     }
   ) {
+    if (!d.tenant.allowAuthConfigImport) {
+      throw new ServiceError(
+        forbiddenError({
+          message: 'Auth config import is not enabled for this project'
+        })
+      );
+    }
+
     checkTenant(d, d.providerAuthConfig);
     checkTenant(d, d.providerDeployment);
 
@@ -180,6 +188,14 @@ class providerAuthImportServiceImpl {
       };
     }
   ) {
+    if (!d.tenant.allowAuthConfigImport) {
+      throw new ServiceError(
+        forbiddenError({
+          message: 'Auth config import is not enabled for this project'
+        })
+      );
+    }
+
     let checkRes = await this.check(d);
 
     checkProviderMatch(checkRes.provider, checkRes.providerAuthConfig);

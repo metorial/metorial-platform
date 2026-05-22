@@ -9,7 +9,10 @@ import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { subspaceCustomProviderPresenter } from '../../../presenters';
+import {
+  subspaceCustomProviderEnvPresenter,
+  subspaceCustomProviderPresenter
+} from '../../../presenters';
 
 export let customProviderGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.customProviderId) {
@@ -23,7 +26,8 @@ export let customProviderGroup = instanceGroup.use(async ctx => {
 
   let customProvider = await subspaceCustomProviderService.get({
     instance: ctx.instance,
-    customProviderId: ctx.params.customProviderId
+    customProviderId: ctx.params.customProviderId,
+    includeEnv: false
   });
 
   return { customProvider };
@@ -259,6 +263,27 @@ export let customProviderController = Controller.create(
       .do(async ctx => {
         return subspaceCustomProviderPresenter.present({
           customProvider: ctx.customProvider
+        });
+      }),
+
+    getEnv: customProviderGroup
+      .get(instancePath('custom-providers/:customProviderId/env', 'customProviders.getEnv'), {
+        name: 'Get custom provider environment',
+        description:
+          'Retrieves the environment variables for a specific custom provider by ID.'
+      })
+      .use(checkAccess({ possibleScopes: ['instance.provider.custom:read'] }))
+      .use(hasFlags(['custom-providers-enabled', 'paid-custom-providers']))
+      .output(subspaceCustomProviderEnvPresenter)
+      .do(async ctx => {
+        let customProvider = await subspaceCustomProviderService.get({
+          instance: ctx.instance,
+          customProviderId: ctx.params.customProviderId,
+          includeEnv: true
+        });
+
+        return subspaceCustomProviderEnvPresenter.present({
+          customProviderFrom: customProvider.draft.from
         });
       }),
 

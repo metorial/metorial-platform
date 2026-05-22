@@ -163,7 +163,11 @@ class customProviderServiceImpl {
   }) {
     let customProvider = await db.customProvider.findFirst({
       where: {
-        id: d.customProviderId,
+        OR: [
+          { id: d.customProviderId },
+          { provider: { id: d.customProviderId } },
+          { provider: { slug: d.customProviderId } }
+        ],
         tenantOid: d.tenant.oid,
         solutionOid: d.solution.oid,
         ...normalizeStatusForGet(d).noParent

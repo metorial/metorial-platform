@@ -57,6 +57,7 @@ import {
   v1CustomProviderCommitPresenter,
   v1CustomProviderDeploymentLogsPresenter,
   v1CustomProviderDeploymentPresenter,
+  v1CustomProviderEnvPresenter,
   v1CustomProviderEnvironmentPresenter,
   // Custom Provider presenters
   v1CustomProviderPresenter,
@@ -112,6 +113,7 @@ import {
   v1ProjectBrandPresenter,
   v1ProjectPresenter,
   v1ProjectRetentionPresenter,
+  v1ProjectAuthConfigConfigurationPresenter,
   v1ProviderAuthConfigErrorGroupPresenter,
   v1ProviderAuthConfigErrorPresenter,
   v1ProviderAuthConfigEventPresenter,
@@ -234,6 +236,7 @@ import {
   customProviderCommitType,
   customProviderDeploymentLogsType,
   customProviderDeploymentType,
+  customProviderEnvType,
   customProviderEnvironmentType,
   // Custom Provider types
   customProviderType,
@@ -289,6 +292,7 @@ import {
   profileType,
   projectBrandType,
   projectRetentionType,
+  projectAuthConfigConfigurationType,
   projectType,
   providerAuthConfigErrorGroupType,
   providerAuthConfigErrorType,
@@ -520,6 +524,13 @@ export let projectRetentionPresenter = declarePresenter(projectRetentionType, {
   mt_2025_01_01_dashboard: v1ProjectRetentionPresenter,
   mt_2026_01_01_magnetar: v1ProjectRetentionPresenter
 });
+
+export let projectAuthConfigConfigurationPresenter = declarePresenter(
+  projectAuthConfigConfigurationType,
+  {
+    mt_2025_01_01_dashboard: v1ProjectAuthConfigConfigurationPresenter
+  }
+);
 
 export let userPresenter = declarePresenter(userType, {
   mt_2025_01_01_dashboard: v1UserPresenter,
@@ -1207,6 +1218,11 @@ export let bucketEditorTokenPresenter = declarePresenter(bucketEditorTokenType, 
 export let subspaceCustomProviderPresenter = declarePresenter(customProviderType, {
   mt_2025_01_01_dashboard: dashboardCustomProviderPresenter,
   mt_2026_01_01_magnetar: v1CustomProviderPresenter
+});
+
+export let subspaceCustomProviderEnvPresenter = declarePresenter(customProviderEnvType, {
+  mt_2025_01_01_dashboard: v1CustomProviderEnvPresenter,
+  mt_2026_01_01_magnetar: v1CustomProviderEnvPresenter
 });
 
 export let subspaceCustomProviderVersionPresenter = declarePresenter(

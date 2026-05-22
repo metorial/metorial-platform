@@ -12,6 +12,7 @@ import {
 } from '@metorial-subspace/db';
 import { getTenantForOrigin, origin } from '../origin';
 import { linkRepo } from './linkRepo';
+import { synthesizeRepositoryFromScmRepo } from './resolveFrom';
 
 let getImmutableBucketForRepoVersion = async (d: {
   provider: CustomProvider;
@@ -182,9 +183,11 @@ let getImmutableBucketForFiles = async (d: {
     where: { oid: d.version.customProviderOid },
     include: { draftCodeBucket: true }
   });
-  if (d.from.type !== 'function' || !d.from.files) {
+  if (d.from.type !== 'function') {
     throw new Error('Can only get files for function providers');
   }
+
+  let files = d.from.files ?? [];
 
   let originTenant = await getTenantForOrigin(d.tenant);
 
@@ -221,11 +224,11 @@ let getImmutableBucketForFiles = async (d: {
     });
   }
 
-  if (d.from.files.length) {
+  if (files.length) {
     await origin.codeBucket.setFiles({
       tenantId: originTenant.id,
       codeBucketId: provider.draftCodeBucket!.id,
-      files: d.from.files.map(f => ({
+      files: files.map(f => ({
         path: f.filename,
         data: f.content,
         encoding: f.encoding ?? 'utf-8'
@@ -233,12 +236,12 @@ let getImmutableBucketForFiles = async (d: {
     });
   }
 
-  let immutableBucketOrigin = d.from.files.length
+  let immutableBucketOrigin = files.length
     ? await origin.codeBucket.create({
         tenantId: originTenant.id,
         purpose: 'subspace.custom_provider_files',
         isReadOnly: true,
-        files: d.from.files.map(f => ({
+        files: files.map(f => ({
           path: f.filename,
           data: f.content,
           encoding: f.encoding ?? 'utf-8'
@@ -302,8 +305,34 @@ export let getImmutableBucketForCustomProviderVersion = async (d: {
       return await getImmutableBucketForRepoVersion(d);
     }
 
-    if (d.from.files) {
+    if (d.from.files !== undefined) {
       return await getImmutableBucketForFiles(d);
+    }
+
+    if (d.provider.scmRepoOid) {
+      let provider = await db.customProvider.findUniqueOrThrow({
+        where: { oid: d.provider.oid },
+        include: { scmRepo: true }
+      });
+      if (provider.scmRepo) {
+        return await getImmutableBucketForRepoVersion({
+          ...d,
+          from: {
+            ...d.from,
+            repository: synthesizeRepositoryFromScmRepo(provider.scmRepo)
+          }
+        });
+      }
+    }
+
+    if (d.provider.draftCodeBucketOid) {
+      return await getImmutableBucketForFiles({
+        ...d,
+        from: {
+          ...d.from,
+          files: []
+        }
+      });
     }
   }
 

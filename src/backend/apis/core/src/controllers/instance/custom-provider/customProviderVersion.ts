@@ -9,7 +9,10 @@ import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { subspaceCustomProviderVersionPresenter } from '../../../presenters';
+import {
+  subspaceCustomProviderEnvPresenter,
+  subspaceCustomProviderVersionPresenter
+} from '../../../presenters';
 import {
   customProviderConfigValidator,
   customProviderFromValidator,
@@ -28,7 +31,8 @@ let customProviderVersionGroup = instanceGroup.use(async ctx => {
 
   let customProviderVersion = await subspaceCustomProviderVersionService.get({
     instance: ctx.instance,
-    customProviderVersionId: ctx.params.customProviderVersionId
+    customProviderVersionId: ctx.params.customProviderVersionId,
+    includeEnv: false
   });
 
   return { customProviderVersion };
@@ -144,6 +148,33 @@ export let customProviderVersionController = Controller.create(
       .do(async ctx => {
         return subspaceCustomProviderVersionPresenter.present({
           customProviderVersion: ctx.customProviderVersion
+        });
+      }),
+
+    getEnv: customProviderVersionGroup
+      .get(
+        instancePath(
+          'custom-provider-versions/:customProviderVersionId/env',
+          'customProviders.versions.getEnv'
+        ),
+        {
+          name: 'Get custom provider version environment',
+          description:
+            'Retrieves the environment variables for a specific version of a custom provider.'
+        }
+      )
+      .use(checkAccess({ possibleScopes: ['instance.provider.custom.version:read'] }))
+      .use(hasFlags(['custom-providers-enabled', 'paid-custom-providers']))
+      .output(subspaceCustomProviderEnvPresenter)
+      .do(async ctx => {
+        let customProviderVersion = await subspaceCustomProviderVersionService.get({
+          instance: ctx.instance,
+          customProviderVersionId: ctx.params.customProviderVersionId,
+          includeEnv: true
+        });
+
+        return subspaceCustomProviderEnvPresenter.present({
+          customProviderFrom: customProviderVersion.from
         });
       }),
 

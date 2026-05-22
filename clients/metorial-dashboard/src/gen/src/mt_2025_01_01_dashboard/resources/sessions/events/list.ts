@@ -45,8 +45,8 @@ export type SessionsEventsListOutput = {
         agentId: string | null;
         agentInstanceId: string | null;
         identityActorId: string | null;
-    identityId: string | null;
-    agentActorId: string | null;
+        identityId: string | null;
+        agentActorId: string | null;
         agentClientId: string | null;
         consumerId: string | null;
         createdAt: Date;
@@ -126,8 +126,8 @@ export type SessionsEventsListOutput = {
           agentId: string | null;
           agentInstanceId: string | null;
           identityActorId: string | null;
-    identityId: string | null;
-    agentActorId: string | null;
+          identityId: string | null;
+          agentActorId: string | null;
           agentClientId: string | null;
           consumerId: string | null;
           createdAt: Date;
@@ -144,8 +144,8 @@ export type SessionsEventsListOutput = {
           agentId: string | null;
           agentInstanceId: string | null;
           identityActorId: string | null;
-    identityId: string | null;
-    agentActorId: string | null;
+          identityId: string | null;
+          agentActorId: string | null;
           agentClientId: string | null;
           consumerId: string | null;
           createdAt: Date;
@@ -206,8 +206,8 @@ export type SessionsEventsListOutput = {
         agentId: string | null;
         agentInstanceId: string | null;
         identityActorId: string | null;
-    identityId: string | null;
-    agentActorId: string | null;
+        identityId: string | null;
+        agentActorId: string | null;
         agentClientId: string | null;
         consumerId: string | null;
         createdAt: Date;
@@ -224,8 +224,8 @@ export type SessionsEventsListOutput = {
         agentId: string | null;
         agentInstanceId: string | null;
         identityActorId: string | null;
-    identityId: string | null;
-    agentActorId: string | null;
+        identityId: string | null;
+        agentActorId: string | null;
         agentClientId: string | null;
         consumerId: string | null;
         createdAt: Date;
@@ -359,6 +359,14 @@ export let mapSessionsEventsListOutput = mtMap.object<SessionsEventsListOutput>(
                   ),
                   identityActorId: mtMap.objectField(
                     'identity_actor_id',
+                    mtMap.passthrough()
+                  ),
+                  identityId: mtMap.objectField(
+                    'identity_id',
+                    mtMap.passthrough()
+                  ),
+                  agentActorId: mtMap.objectField(
+                    'agent_actor_id',
                     mtMap.passthrough()
                   ),
                   agentClientId: mtMap.objectField(
@@ -550,6 +558,14 @@ export let mapSessionsEventsListOutput = mtMap.object<SessionsEventsListOutput>(
                         'identity_actor_id',
                         mtMap.passthrough()
                       ),
+                      identityId: mtMap.objectField(
+                        'identity_id',
+                        mtMap.passthrough()
+                      ),
+                      agentActorId: mtMap.objectField(
+                        'agent_actor_id',
+                        mtMap.passthrough()
+                      ),
                       agentClientId: mtMap.objectField(
                         'agent_client_id',
                         mtMap.passthrough()
@@ -600,6 +616,14 @@ export let mapSessionsEventsListOutput = mtMap.object<SessionsEventsListOutput>(
                       ),
                       identityActorId: mtMap.objectField(
                         'identity_actor_id',
+                        mtMap.passthrough()
+                      ),
+                      identityId: mtMap.objectField(
+                        'identity_id',
+                        mtMap.passthrough()
+                      ),
+                      agentActorId: mtMap.objectField(
+                        'agent_actor_id',
                         mtMap.passthrough()
                       ),
                       agentClientId: mtMap.objectField(
@@ -759,6 +783,14 @@ export let mapSessionsEventsListOutput = mtMap.object<SessionsEventsListOutput>(
                     'identity_actor_id',
                     mtMap.passthrough()
                   ),
+                  identityId: mtMap.objectField(
+                    'identity_id',
+                    mtMap.passthrough()
+                  ),
+                  agentActorId: mtMap.objectField(
+                    'agent_actor_id',
+                    mtMap.passthrough()
+                  ),
                   agentClientId: mtMap.objectField(
                     'agent_client_id',
                     mtMap.passthrough()
@@ -806,6 +838,14 @@ export let mapSessionsEventsListOutput = mtMap.object<SessionsEventsListOutput>(
                   ),
                   identityActorId: mtMap.objectField(
                     'identity_actor_id',
+                    mtMap.passthrough()
+                  ),
+                  identityId: mtMap.objectField(
+                    'identity_id',
+                    mtMap.passthrough()
+                  ),
+                  agentActorId: mtMap.objectField(
+                    'agent_actor_id',
                     mtMap.passthrough()
                   ),
                   agentClientId: mtMap.objectField(

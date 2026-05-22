@@ -12,5 +12,8 @@ export let tenantPresenter = (tenant: Tenant) => ({
   onlyAllowTrustedProviders: tenant.onlyAllowTrustedProviders,
   isWhitelabel: tenant.isWhitelabel,
 
+  allowAuthConfigExport: tenant.allowAuthConfigExport,
+  allowAuthConfigImport: tenant.allowAuthConfigImport,
+
   createdAt: tenant.createdAt
 });

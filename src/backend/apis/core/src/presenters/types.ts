@@ -85,25 +85,25 @@ import {
 import type {
   CargoDocumentPermissions,
   CargoFileLink,
-  CargoStore,
-  CargoStorePermissions,
   CargoSkillAgent,
   CargoSkillConfiguration,
-  EnrichedCargoSkillExport,
-  EnrichedCargoSkillMarketplace,
-  EnrichedCargoSkillMarketplacePlugin,
-  EnrichedCargoSkillMarketplaceRepository,
+  CargoSkillVersion,
+  CargoSkillVersionSnapshot,
+  CargoStore,
+  CargoStorePermissions,
   EnrichedCargoDocument,
   EnrichedCargoDocumentParticipant,
   EnrichedCargoDocumentVersion,
   EnrichedCargoFile,
+  EnrichedCargoSkillExport,
+  EnrichedCargoSkillMarketplace,
+  EnrichedCargoSkillMarketplacePlugin,
+  EnrichedCargoSkillMarketplaceRepository,
   EnrichedCargoSkillParticipant,
   EnrichedCargoSkillPlugin,
   EnrichedCargoSkillPluginRepository,
   EnrichedCargoSkillPluginSkill,
   EnrichedCargoSkillSync,
-  CargoSkillVersion,
-  CargoSkillVersionSnapshot,
   EnrichedCargoStoreItem,
   EnrichedCargoStoreParticipant
 } from '@metorial/module-file';
@@ -240,6 +240,12 @@ export let projectType = PresentableType.create<{
 export let projectRetentionType = PresentableType.create<{
   project: Project;
 }>()('project_retention');
+
+export let projectAuthConfigConfigurationType = PresentableType.create<{
+  project: Project;
+  allowAuthConfigExport: boolean;
+  allowAuthConfigImport: boolean;
+}>()('project_auth_config_configuration');
 
 export let tokenType = PresentableType.create<{
   token: {
@@ -1283,6 +1289,12 @@ export let customProviderType = PresentableType.create<{
 export let customProviderVersionType = PresentableType.create<{
   customProviderVersion: SubspaceCustomProviderVersion;
 }>()('customProviderVersion');
+
+export let customProviderEnvType = PresentableType.create<{
+  customProviderFrom:
+    | SubspaceCustomProviderVersion['from']
+    | SubspaceCustomProvider['draft']['from'];
+}>()('customProviderEnv');
 
 export let customProviderDeploymentType = PresentableType.create<{
   customProviderDeployment: SubspaceCustomProviderDeployment;

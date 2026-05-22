@@ -127,6 +127,8 @@ export let mapToolCallsCreateOutput = mtMap.object<ToolCallsCreateOutput>({
         'identity_actor_id',
         mtMap.passthrough()
       ),
+      identityId: mtMap.objectField('identity_id', mtMap.passthrough()),
+      agentActorId: mtMap.objectField('agent_actor_id', mtMap.passthrough()),
       agentClientId: mtMap.objectField('agent_client_id', mtMap.passthrough()),
       consumerId: mtMap.objectField('consumer_id', mtMap.passthrough()),
       createdAt: mtMap.objectField('created_at', mtMap.date())
@@ -158,6 +160,8 @@ export let mapToolCallsCreateOutput = mtMap.object<ToolCallsCreateOutput>({
         'identity_actor_id',
         mtMap.passthrough()
       ),
+      identityId: mtMap.objectField('identity_id', mtMap.passthrough()),
+      agentActorId: mtMap.objectField('agent_actor_id', mtMap.passthrough()),
       agentClientId: mtMap.objectField('agent_client_id', mtMap.passthrough()),
       consumerId: mtMap.objectField('consumer_id', mtMap.passthrough()),
       createdAt: mtMap.objectField('created_at', mtMap.date())
