@@ -528,7 +528,8 @@ export let projectRetentionPresenter = declarePresenter(projectRetentionType, {
 export let projectAuthConfigConfigurationPresenter = declarePresenter(
   projectAuthConfigConfigurationType,
   {
-    mt_2025_01_01_dashboard: v1ProjectAuthConfigConfigurationPresenter
+    mt_2025_01_01_dashboard: v1ProjectAuthConfigConfigurationPresenter,
+    mt_2026_01_01_magnetar: v1ProjectAuthConfigConfigurationPresenter
   }
 );
 
