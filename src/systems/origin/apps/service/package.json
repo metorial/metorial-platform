@@ -12,9 +12,13 @@
     "sentry:sourcemaps:if-token": "sh -c 'if [ -n \"$SENTRY_AUTH_TOKEN\" ]; then bun run sentry:sourcemaps; else echo \"Skipping Sentry sourcemap upload\"; fi'",
     "server:start": "bun ./dist/index.js",
     "prisma:push": "bun prisma db push --accept-data-loss",
-    "prisma:generate": "bun prisma generate"
+    "prisma:generate": "bun prisma generate",
+    "test": "bun run test:unit && bun run test:e2e",
+    "test:unit": "bunx vitest run --config vitest.unit.config.ts",
+    "test:e2e": "bunx vitest run --config vitest.e2e.config.ts"
   },
   "devDependencies": {
+    "@lowerdeck/testing-tools": "^1.0.1",
     "@types/bun": "latest",
     "@types/node": "^25.0.3",
     "@vercel/ncc": "^0.38.1",

@@ -6,3 +6,37 @@ port = 52071
 dockerfile = "src/systems/subspace/apps/public/Dockerfile"
 build_context = "oss"
 health = { path = "/ping" }
+
+[test.unit]
+command = "bun run test:unit"
+
+[test.e2e]
+command = "bun run test:e2e"
+setup = [
+  "bunx prisma db push --schema ../../db/prisma/schema --config ../../db/prisma.config.ts",
+  "bunx prisma generate --schema ../../db/prisma/schema --config ../../db/prisma.config.ts"
+]
+cwd = "/app/src/systems/subspace/apps/public"
+runner = "service"
+
+[[databases]]
+adapter = "postgres"
+name = "subspace-test"
+
+[env]
+DATABASE_URL = "$db.subspace-test.url"
+PUBLIC_SERVICE_URL = "http://subspace-public:52071"
+REDIS_URL = "redis://$deps.redis.6379/0"
+
+[[deps]]
+name = "postgres"
+preset = "postgres"
+
+[deps.env]
+POSTGRES_USER = "postgres"
+POSTGRES_PASSWORD = "postgres"
+POSTGRES_DB = "postgres"
+
+[[deps]]
+name = "redis"
+preset = "redis"

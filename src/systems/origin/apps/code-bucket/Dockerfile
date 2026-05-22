@@ -30,21 +30,27 @@ RUN cd extensions/memfs && \
 
 RUN bun x tsc && bun x vite build
 
-# Stage 2: Build Go service
+# Stage 2: Build Go service (monorepo paths for control test cwd)
 FROM golang:1.24-alpine AS go-builder
 
 WORKDIR /app
 
 RUN apk add --no-cache git ca-certificates
 
-COPY src/systems/origin/apps/code-bucket/go.mod src/systems/origin/apps/code-bucket/go.sum ./
-RUN go mod download
+COPY src/systems/origin/apps/code-bucket/go.mod src/systems/origin/apps/code-bucket/go.sum ./src/systems/origin/apps/code-bucket/
+RUN cd src/systems/origin/apps/code-bucket && go mod download
 
-COPY src/systems/origin/apps/code-bucket/ ./
+COPY src/systems/origin/apps/code-bucket/ ./src/systems/origin/apps/code-bucket/
 
-COPY --from=workspace-builder /workspace/dist ./pkg/workspace/dist
+COPY --from=workspace-builder /workspace/dist ./src/systems/origin/apps/code-bucket/pkg/workspace/dist
 
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o code-bucket ./cmd/server
+RUN cd src/systems/origin/apps/code-bucket && \
+    CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o /out/code-bucket ./cmd/server
+
+FROM go-builder AS workspace
+
+WORKDIR /app/src/systems/origin/apps/code-bucket
+CMD ["sleep", "infinity"]
 
 # Stage 3: Final minimal image
 FROM alpine:latest AS runner
@@ -53,7 +59,7 @@ RUN apk --no-cache add ca-certificates tzdata netcat-openbsd
 
 WORKDIR /root/
 
-COPY --from=go-builder /app/code-bucket .
+COPY --from=go-builder /out/code-bucket .
 
 EXPOSE 52091
 EXPOSE 52092

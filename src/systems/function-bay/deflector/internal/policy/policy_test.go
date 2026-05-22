@@ -18,6 +18,12 @@ func TestHostRules(t *testing.T) {
 	if !compiled.AllowsHost("a.b.allowed.test") {
 		t.Fatal("expected wildcard subdomain to be allowed")
 	}
+	if !compiled.AllowsHost("api.allowed.test") {
+		t.Fatal("expected single-level wildcard subdomain to be allowed")
+	}
+	if compiled.AllowsHost("evil-example.com") {
+		t.Fatal("wildcard must not allow unrelated domains")
+	}
 	if compiled.AllowsHost("allowed.test") {
 		t.Fatal("wildcard must not allow the root domain")
 	}

@@ -178,6 +178,7 @@ class AdminServiceImpl {
     return await this.updateApp({
       app: existingApp,
       input: {
+        defaultRedirectUrl: d.defaultRedirectUrl,
         redirectDomains: d.redirectDomains,
         slug: d.slug,
         isSessionless: d.isSessionless,
@@ -189,6 +190,7 @@ class AdminServiceImpl {
   async updateApp(d: {
     app: App;
     input: {
+      defaultRedirectUrl?: string;
       slug?: string;
       redirectDomains?: string[];
       isSessionless?: boolean;
@@ -203,6 +205,7 @@ class AdminServiceImpl {
     return await db.app.update({
       where: { oid: d.app.oid },
       data: {
+        defaultRedirectUrl: d.input.defaultRedirectUrl,
         slug: d.input.slug !== undefined ? d.input.slug || null : undefined,
         isSessionless:
           d.input.isSessionless !== undefined ? d.input.isSessionless : undefined,

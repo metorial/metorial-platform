@@ -27,14 +27,21 @@ jobs:
       fail-fast: false
       matrix:
         service:
+          - ares
           - cargo
+          - code-bucket
+          - deflector
           - forge
           - function-bay
+          - origin
           - shuttle
           - signal
           - slates-hub
           - slates-registry
           - subspace-controller
+          - subspace-public
+          - subspace-worker
+          - synthesis
     with:
       command: ci
       mode: unit
@@ -49,13 +56,21 @@ jobs:
       fail-fast: false
       matrix:
         service:
+          - ares
           - cargo
+          - code-bucket
+          - deflector
           - forge
           - function-bay
+          - origin
           - shuttle
           - signal
           - slates-hub
+          - slates-registry
           - subspace-controller
+          - subspace-public
+          - subspace-worker
+          - synthesis
     with:
       command: ci
       mode: e2e

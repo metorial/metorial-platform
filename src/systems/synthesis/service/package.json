@@ -18,11 +18,14 @@
     "prisma:push": "bun run db:push:dev",
     "db:generate": "bun prisma generate --config ./prisma.config.ts",
     "db:push:dev": "sh -c 'set -a; [ -f .env ] && . .env; set +a; bun prisma db push --config ./prisma.config.ts --accept-data-loss'",
-    "test": "bunx vitest run --passWithNoTests",
+    "test": "bun run test:unit && bun run test:e2e",
+    "test:unit": "bunx vitest run --config vitest.unit.config.ts",
+    "test:e2e": "bunx vitest run --config vitest.e2e.config.ts",
     "test:watch": "bunx vitest watch",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
+    "@lowerdeck/testing-tools": "^1.0.1",
     "@types/bun": "latest",
     "@types/node": "^25.0.3",
     "@vercel/ncc": "^0.38.1",

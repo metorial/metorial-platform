@@ -7,9 +7,25 @@ import { AsyncLocalStorage } from 'async_hooks';
 import PQueue from 'p-queue';
 import { PrismaClient } from '../prisma/generated/client';
 
-let adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+declare global {
+  // eslint-disable-next-line no-var
+  var __ARES_TEST_DB__: PrismaClient | undefined;
+}
 
-export let db = new PrismaClient({ adapter });
+let createPrismaClient = () =>
+  new PrismaClient({
+    adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL })
+  });
+
+let resolveDb = () => globalThis.__ARES_TEST_DB__ ?? createPrismaClient();
+
+export let db = new Proxy({} as PrismaClient, {
+  get(_target, prop) {
+    let client = resolveDb();
+    let value = Reflect.get(client, prop, client);
+    return typeof value === 'function' ? value.bind(client) : value;
+  }
+});
 
 declare global {
   namespace PrismaJson {

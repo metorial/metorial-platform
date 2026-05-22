@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'bun:test';
+import { describe, expect, it } from 'vitest';
 import JSZip from 'jszip';
 import tar from 'tar-stream';
 import { gzipSync } from 'zlib';

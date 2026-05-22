@@ -1,25 +1,8 @@
-import { withTracingSuppressed } from '@lowerdeck/telemetry';
-import { db } from '@metorial-subspace/db';
-import { RedisClient } from 'bun';
+import { workerHealthFetch } from './health';
 
-let redis = new RedisClient(process.env.REDIS_URL?.replace('rediss://', 'redis://'), {
-  tls: process.env.REDIS_URL?.startsWith('rediss://')
-});
-
-if (process.env.NODE_ENV === 'production') {
+if (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'test') {
   Bun.serve({
-    fetch: async _ =>
-      await withTracingSuppressed(async () => {
-        try {
-          await db.backend.count();
-
-          await redis.ping();
-
-          return new Response('OK');
-        } catch (e) {
-          return new Response('Service Unavailable', { status: 503 });
-        }
-      }),
-    port: 12121
+    fetch: workerHealthFetch,
+    port: Number(process.env.WORKER_HEALTH_PORT ?? 12121)
   });
 }

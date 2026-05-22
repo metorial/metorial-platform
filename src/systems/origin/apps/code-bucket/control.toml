@@ -7,6 +7,15 @@ dockerfile = "src/systems/origin/apps/code-bucket/Dockerfile"
 build_context = "oss"
 health = { cmd = "nc -z localhost 52091" }
 
+[test.unit]
+command = "go test ./..."
+cwd = "/app/src/systems/origin/apps/code-bucket"
+
+[test.e2e]
+command = "go test ./pkg/util -run TestNormalizePath"
+cwd = "/app/src/systems/origin/apps/code-bucket"
+runner = "service"
+
 [env]
 CODE_BUCKET_JWT_SECRET = "dev-secret-change-in-production"
 CODE_BUCKET_OBJECT_STORAGE_BUCKET = "code-bucket"

@@ -5,3 +5,37 @@ name = "subspace-worker"
 dockerfile = "src/systems/subspace/apps/worker/Dockerfile"
 build_context = "oss"
 health = { cmd = "curl -f http://localhost:12121/ || exit 1" }
+
+[test.unit]
+command = "bun run test:unit"
+
+[test.e2e]
+command = "bun run test:e2e"
+setup = [
+  "bunx prisma db push --schema ../../db/prisma/schema --config ../../db/prisma.config.ts",
+  "bunx prisma generate --schema ../../db/prisma/schema --config ../../db/prisma.config.ts"
+]
+cwd = "/app/src/systems/subspace/apps/worker"
+runner = "service"
+
+[[databases]]
+adapter = "postgres"
+name = "subspace-test"
+
+[env]
+DATABASE_URL = "$db.subspace-test.url"
+REDIS_URL = "redis://$deps.redis.6379/0"
+WORKER_HEALTH_PORT = "12121"
+
+[[deps]]
+name = "postgres"
+preset = "postgres"
+
+[deps.env]
+POSTGRES_USER = "postgres"
+POSTGRES_PASSWORD = "postgres"
+POSTGRES_DB = "postgres"
+
+[[deps]]
+name = "redis"
+preset = "redis"

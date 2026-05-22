@@ -11,7 +11,7 @@
     "sentry:sourcemaps:if-token": "sh -c 'if [ -n \"$SENTRY_AUTH_TOKEN\" ]; then bun run sentry:sourcemaps; else echo \"Skipping Sentry sourcemap upload\"; fi'",
     "db:push:test": "sh -c 'set -a; . .env.test; set +a; bunx prisma db push --schema ../../db/prisma/schema --config ../../db/prisma.config.ts'",
     "test": "bun run test:unit && bun run test:ci",
-    "test:unit": "vitest run --config vitest.unit.config.ts --passWithNoTests",
+    "test:unit": "vitest run --config vitest.unit.config.ts",
     "test:ci": "vitest run --mode ci --reporter verbose --configLoader native",
     "test:watch": "bunx vitest watch"
   },

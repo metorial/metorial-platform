@@ -1,0 +1,41 @@
+[control]
+name = "synthesis"
+
+[service]
+port = 52160
+dockerfile = "src/systems/synthesis/service/Dockerfile"
+build_context = "oss"
+health = { path = "/ping" }
+
+[test.unit]
+command = "bun run test:unit"
+
+[test.e2e]
+command = "bun run test:e2e"
+setup = ["bun run db:generate", "bun prisma db push --config ./prisma.config.ts --accept-data-loss"]
+cwd = "/app/src/systems/synthesis/service"
+runner = "service"
+
+[[databases]]
+adapter = "postgres"
+name = "synthesis-test"
+
+[env]
+SYNTHESIS_DATABASE_URL = "$db.synthesis-test.url"
+DATABASE_URL = "$db.synthesis-test.url"
+REDIS_URL = "redis://$deps.redis.6379/0"
+SYNTHESIS_API_PORT = "52160"
+SYNTHESIS_HEALTH_PORT = "12121"
+
+[[deps]]
+name = "postgres"
+preset = "postgres"
+
+[deps.env]
+POSTGRES_USER = "synthesis"
+POSTGRES_PASSWORD = "synthesis"
+POSTGRES_DB = "synthesis"
+
+[[deps]]
+name = "redis"
+preset = "redis"

@@ -21,7 +21,9 @@
     "db:push:dev": "sh -c 'set -a; . .env; set +a; bun prisma db push --accept-data-loss'",
     "db:push:test": "sh -c 'set -a; . .env.test; set +a; bun prisma db push --accept-data-loss'",
     "db:push": "bun run db:push:dev && bun run db:push:test",
-    "test": "bunx vitest run --passWithNoTests",
+    "test": "bun run test:unit && bun run test:e2e",
+    "test:unit": "bunx vitest run --config vitest.unit.config.ts",
+    "test:e2e": "bunx vitest run --config vitest.e2e.config.ts",
     "test:watch": "bunx vitest watch",
     "typecheck": "tsc --noEmit"
   },

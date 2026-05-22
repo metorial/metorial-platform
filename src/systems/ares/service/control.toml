@@ -1,0 +1,55 @@
+[control]
+name = "ares"
+
+[service]
+port = 52120
+dockerfile = "src/systems/ares/service/Dockerfile"
+build_context = "oss"
+health = { cmd = "bun -e \"fetch('http://localhost:12121/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\"" }
+
+[test.unit]
+command = "bun run test:unit"
+
+[test.e2e]
+command = "bun run test:e2e"
+setup = ["bun prisma generate", "bun prisma db push --accept-data-loss"]
+cwd = "/app/src/systems/ares/service"
+runner = "service"
+
+[[databases]]
+adapter = "postgres"
+name = "ares-test"
+
+[env]
+DATABASE_URL = "$db.ares-test.url"
+REDIS_URL = "redis://$deps.redis.6379/0"
+ARES_AUTH_URL = "http://ares:52120"
+ARES_ADMIN_URL = "http://ares:52121"
+ARES_INTERNAL_URL = "http://ares:52123"
+ARES_SSO_URL = "http://ares:52122"
+SSO_DATABASE_URL = "$db.ares-test.url"
+RELAY_URL = "http://$deps.relay.52110"
+COOKIE_DOMAIN = "metorial.test"
+SAML_AUDIENCE = "https://saml.test.metorial.com"
+AUTH_TICKET_SECRET = "ares-test-secret"
+EMAIL_NAME = "Ares Test"
+EMAIL_ADDRESS = "test@metorial.test"
+TURNSTILE_SITE_KEY = "1x00000000000000000000AA"
+TURNSTILE_SECRET_KEY = "1x0000000000000000000000000000000AA"
+
+[[deps]]
+name = "postgres"
+preset = "postgres"
+
+[deps.env]
+POSTGRES_USER = "ares"
+POSTGRES_PASSWORD = "ares"
+POSTGRES_DB = "ares"
+
+[[deps]]
+name = "redis"
+preset = "redis"
+
+[[deps]]
+name = "relay"
+mock = "relay"

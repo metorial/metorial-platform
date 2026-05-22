@@ -1,0 +1,20 @@
+[control]
+name = "deflector"
+
+[service]
+port = 8080
+dockerfile = "src/systems/function-bay/deflector/Dockerfile"
+build_context = "oss"
+health = { path = "/healthz" }
+
+[test.unit]
+command = "go test ./..."
+cwd = "/app/src/systems/function-bay/deflector"
+
+[test.e2e]
+command = "go test ./internal/proxy -run TestHealthz"
+cwd = "/app/src/systems/function-bay/deflector"
+runner = "service"
+
+[env]
+DEFLECTOR_ADDR = ":8080"

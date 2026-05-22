@@ -21,8 +21,8 @@
     "db:push:test": "cd ../db && bun run db:push:test",
     "db:push": "bun run db:push:dev && bun run db:push:test",
     "test": "bun run test:unit && bun run test:e2e",
-    "test:unit": "bunx vitest run --config vitest.unit.config.ts --passWithNoTests",
-    "test:e2e": "bunx vitest run --config vitest.e2e.config.ts --passWithNoTests",
+    "test:unit": "bunx vitest run --config vitest.unit.config.ts",
+    "test:e2e": "bunx vitest run --config vitest.e2e.config.ts",
     "test:watch": "bunx vitest watch",
     "typecheck": "tsc --noEmit"
   },

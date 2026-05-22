@@ -7,12 +7,25 @@ dockerfile = "src/systems/origin/apps/service/Dockerfile"
 build_context = "oss"
 health = { path = "/ping" }
 
+[test.unit]
+command = "bun run test:unit"
+
+[test.e2e]
+command = "bun run test:e2e"
+setup = ["bun prisma generate", "bun prisma db push --accept-data-loss"]
+cwd = "/app/src/systems/origin/apps/service"
+runner = "service"
+
+[[databases]]
+adapter = "postgres"
+name = "origin-test"
+
 [[databases]]
 adapter = "postgres"
 name = "origin"
 
 [env]
-DATABASE_URL = "$db.origin.url"
+DATABASE_URL = "$db.origin-test.url"
 REDIS_URL = "redis://$deps.redis.6379/0"
 ORIGIN_SERVICE_PUBLIC_URL = "http://origin:52093"
 OBJECT_STORAGE_URL = "http://$deps.object-store.52010"
