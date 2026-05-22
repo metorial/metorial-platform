@@ -1,0 +1,110 @@
+services:
+  postgres:
+    profiles: ['infra']
+    image: postgres:16-alpine
+    container_name: relay-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: relay
+      POSTGRES_PASSWORD: relay
+      POSTGRES_DB: relay
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-test-db.sh:/docker-entrypoint-initdb.d/init-test-db.sh
+    ports:
+      - '25432:5432'
+    networks:
+      - relay-network
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U relay']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    profiles: ['infra']
+    image: redis:7-alpine
+    container_name: relay-redis
+    restart: unless-stopped
+    ports:
+      - '26379:6379'
+    networks:
+      - relay-network
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  object-storage:
+    profiles: ['infra']
+    image: ghcr.io/metorial/object-storage:latest
+    container_name: relay-object-storage
+    restart: unless-stopped
+    volumes:
+      - object-store-data:/app/data
+    environment:
+      RUST_LOG: info
+      OBJECT_STORE__SERVER__HOST: 0.0.0.0
+      OBJECT_STORE__SERVER__PORT: 52010
+      OBJECT_STORE__BACKEND__TYPE: ${OBJECT_STORAGE_BACKEND_TYPE:-local}
+      OBJECT_STORE__BACKEND__ROOT_PATH: ${OBJECT_STORAGE_BACKEND_ROOT_PATH:-/app/data}
+      OBJECT_STORE__BACKEND__REGION: ${OBJECT_STORAGE_AWS_REGION:-us-east-1}
+      OBJECT_STORE__BACKEND__PHYSICAL_BUCKET: ${OBJECT_STORAGE_AWS_S3_BUCKET:-relay-local}
+      AWS_ACCESS_KEY_ID: ${OBJECT_STORAGE_AWS_ACCESS_KEY_ID:-test}
+      AWS_SECRET_ACCESS_KEY: ${OBJECT_STORAGE_AWS_SECRET_ACCESS_KEY:-test}
+      AWS_REGION: ${OBJECT_STORAGE_AWS_REGION:-us-east-1}
+    ports:
+      - '25010:52010'
+    networks:
+      - relay-network
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -f http://localhost:52010/health || exit 1']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  relay:
+    profiles: ['service']
+    build:
+      context: .
+      dockerfile: dev.Dockerfile
+    container_name: relay-service
+    restart: unless-stopped
+    ports:
+      - '52110:52110'
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+    volumes:
+      - ./src:/app/service/src:ro
+      - ./package.json:/app/service/package.json:ro
+      - ./tsconfig.json:/app/service/tsconfig.json:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      object-storage:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'bun -e "fetch(''http://localhost:52110/'').then(()=>process.exit(0)).catch(()=>process.exit(1))"'
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - relay-network
+
+volumes:
+  postgres_data:
+    driver: local
+  object-store-data:
+    driver: local
+
+networks:
+  relay-network:
+    driver: bridge

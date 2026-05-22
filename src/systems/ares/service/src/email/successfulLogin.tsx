@@ -5,7 +5,7 @@ import {
   DataList,
   Layout,
   Text
-} from '@metorial-services/relay-client';
+} from '@metorial-platform-systems/relay-client';
 import type { User } from '@sentry/bun';
 import { UAParser } from 'ua-parser-js';
 import type { AuthIntent } from '../../prisma/generated/client';

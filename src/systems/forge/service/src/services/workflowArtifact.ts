@@ -2,7 +2,7 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { generatePlainId } from '@lowerdeck/id';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { PublicUrlPurpose } from 'object-storage-client';
+import { PublicUrlPurpose } from '@metorial-platform-systems/object-storage-client';
 import type {
   Workflow,
   WorkflowArtifactType,

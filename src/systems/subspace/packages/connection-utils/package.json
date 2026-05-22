@@ -20,7 +20,7 @@
     "@metorial-subspace/db": "^1.0.0",
     "@metorial-subspace/module-provider-internal": "^1.0.0",
     "@modelcontextprotocol/sdk": "^1.25.2",
-    "object-storage-client": "^0.2.5",
+    "@metorial-platform-systems/object-storage-client": "workspace:*",
     "zod": "^4.3.5"
   }
 }

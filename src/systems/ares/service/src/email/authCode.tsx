@@ -4,7 +4,7 @@ import {
   createTemplate,
   Layout,
   Text
-} from '@metorial-services/relay-client';
+} from '@metorial-platform-systems/relay-client';
 import { createTemplateSender, emailIdentity, sender } from './client';
 
 export let sendAuthCodeEmail = createTemplateSender(

@@ -1,0 +1,38 @@
+[control]
+name = "relay"
+
+[service]
+port = 52110
+dockerfile = "src/systems/relay/service/Dockerfile"
+build_context = "oss"
+health = { cmd = "bun -e \"fetch('http://localhost:12121/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\"" }
+
+[test.unit]
+command = "bun run test:unit"
+
+[test.e2e]
+command = "bun run test:e2e"
+setup = ["bun prisma generate", "bun prisma db push --accept-data-loss"]
+cwd = "/app/src/systems/relay/service"
+runner = "service"
+
+[[databases]]
+adapter = "postgres"
+name = "relay-test"
+
+[env]
+DATABASE_URL = "$db.relay-test.url"
+REDIS_URL = "redis://$deps.redis.6379/0"
+
+[[deps]]
+name = "postgres"
+preset = "postgres"
+
+[deps.env]
+POSTGRES_USER = "relay"
+POSTGRES_PASSWORD = "relay"
+POSTGRES_DB = "relay"
+
+[[deps]]
+name = "redis"
+preset = "redis"

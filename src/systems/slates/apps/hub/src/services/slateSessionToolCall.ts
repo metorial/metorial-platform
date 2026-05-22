@@ -3,7 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type { SlatesParticipant } from '@slates/proto';
 import { addDays, differenceInMinutes } from 'date-fns';
-import { PublicUrlPurpose } from 'object-storage-client';
+import { PublicUrlPurpose } from '@metorial-platform-systems/object-storage-client';
 import type { SlateInvocation, Tenant } from '../../prisma/generated/client';
 import { db } from '../db';
 import { getId } from '../id';

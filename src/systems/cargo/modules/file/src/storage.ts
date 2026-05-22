@@ -1,6 +1,6 @@
 import { delay } from '@lowerdeck/delay';
 import { env } from '@metorial-cargo/db';
-import { ObjectStorageClient } from 'object-storage-client';
+import { ObjectStorageClient } from '@metorial-platform-systems/object-storage-client';
 
 export let storage = new ObjectStorageClient(env.storage.OBJECT_STORAGE_URL);
 

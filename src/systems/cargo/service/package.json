@@ -65,7 +65,7 @@
     "@prisma/extension-read-replicas": "^0.5.0",
     "@sentry/bun": "^10.38.0",
     "@sentry/cli": "^3.2.0",
-    "object-storage-client": "^0.2.5",
+    "@metorial-platform-systems/object-storage-client": "workspace:*",
     "prisma": "^7.2.0",
     "@metorial-cargo/db": "^1.0.0",
     "@metorial-cargo/module-file": "^1.0.0",

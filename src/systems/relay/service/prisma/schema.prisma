@@ -1,0 +1,121 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "./generated"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+generator json {
+  provider = "prisma-json-types-generator"
+}
+
+model Sender {
+  oid Int    @id
+  id  String @unique
+
+  identifier String @unique
+  name       String
+
+  createdAt DateTime @default(now())
+
+  emailIdentities EmailIdentity[]
+}
+
+enum EmailIdentityType {
+  email
+}
+
+model EmailIdentity {
+  oid Int    @id
+  id  String @unique
+
+  type EmailIdentityType
+
+  slug          String
+  fromName      String
+  fromEmail     String
+  subjectMarker String?
+
+  senderOid Int
+  sender    Sender @relation(fields: [senderOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  OutgoingEmail OutgoingEmail[]
+
+  @@unique([senderOid, slug])
+}
+
+model OutgoingEmail {
+  oid BigInt @id
+  id  String
+
+  numberOfDestinations          Int
+  numberOfDestinationsCompleted Int
+
+  identityId Int
+  identity   EmailIdentity @relation(fields: [identityId], references: [oid], onDelete: Cascade)
+
+  values Json
+
+  subject String
+
+  createdAt DateTime @default(now())
+
+  content      OutgoingEmailContent?
+  destinations OutgoingEmailDestination[]
+}
+
+enum OutgoingEmailDestinationStatus {
+  pending
+  sent
+  retry
+  failed
+}
+
+model OutgoingEmailDestination {
+  id     BigInt                         @id
+  status OutgoingEmailDestinationStatus
+
+  emailId BigInt
+  email   OutgoingEmail @relation(fields: [emailId], references: [oid], onDelete: Cascade)
+
+  destination String
+
+  OutgoingEmailSend OutgoingEmailSend[]
+}
+
+model OutgoingEmailContent {
+  emailId BigInt        @id
+  email   OutgoingEmail @relation(fields: [emailId], references: [oid], onDelete: Cascade)
+
+  html    String
+  text    String
+  subject String
+}
+
+enum OutgoingEmailSendStatus {
+  success
+  failed
+}
+
+model OutgoingEmailSend {
+  id     BigInt                  @id
+  status OutgoingEmailSendStatus
+
+  destinationId BigInt
+  destination   OutgoingEmailDestination @relation(fields: [destinationId], references: [id], onDelete: Cascade)
+
+  result Json
+
+  createdAt DateTime @default(now())
+}

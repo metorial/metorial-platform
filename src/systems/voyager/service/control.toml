@@ -1,0 +1,43 @@
+[control]
+name = "voyager"
+
+[service]
+port = 52060
+dockerfile = "src/systems/voyager/service/Dockerfile"
+build_context = "oss"
+health = { cmd = "bun -e \"fetch('http://localhost:12121/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\"" }
+
+[test.unit]
+command = "bun run test:unit"
+
+[test.e2e]
+command = "bun run test:e2e"
+setup = ["bun prisma generate", "bun prisma db push --accept-data-loss"]
+cwd = "/app/src/systems/voyager/service"
+runner = "service"
+
+[[databases]]
+adapter = "postgres"
+name = "voyager-test"
+
+[[databases]]
+adapter = "postgres"
+name = "voyager-search"
+
+[env]
+DATABASE_URL = "$db.voyager-test.url"
+SEARCH_DATABASE_URL = "$db.voyager-search.url"
+REDIS_URL = "redis://$deps.redis.6379/0"
+
+[[deps]]
+name = "postgres"
+preset = "postgres"
+
+[deps.env]
+POSTGRES_USER = "voyager"
+POSTGRES_PASSWORD = "voyager"
+POSTGRES_DB = "voyager"
+
+[[deps]]
+name = "redis"
+preset = "redis"

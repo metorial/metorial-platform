@@ -1,0 +1,22 @@
+[control]
+name = "object-storage"
+
+[service]
+port = 52010
+dockerfile = "src/systems/object-storage/service/Dockerfile"
+build_context = "oss"
+health = { path = "/health" }
+
+[test.unit]
+command = "cargo test -p object-store --test integration_test -- --test-threads=1"
+cwd = "/app/src/systems/object-storage/service"
+
+[test.e2e]
+command = "cargo test -p object-store --test integration_test -- --test-threads=1"
+cwd = "/app/src/systems/object-storage/service"
+runner = "service"
+
+[env]
+RUST_LOG = "info"
+OBJECT_STORE_BACKEND_TYPE = "local"
+OBJECT_STORE_BACKEND_ROOT_PATH = "/app/data"

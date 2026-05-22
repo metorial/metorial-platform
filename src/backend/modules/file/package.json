@@ -22,7 +22,7 @@
     "@metorial/queue": "^1.0.0",
     "@lowerdeck/service": "^1.0.7",
     "@lowerdeck/validation": "^1.0.10",
-    "object-storage-client": "^0.2.5"
+    "@metorial-platform-systems/object-storage-client": "workspace:*"
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",

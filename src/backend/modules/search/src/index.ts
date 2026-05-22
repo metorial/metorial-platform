@@ -1,4 +1,4 @@
-import { createVoyagerClient } from '@metorial-services/voyager-client';
+import { createVoyagerClient } from '@metorial-platform-systems/voyager-client';
 import { env } from './env';
 
 type VoyagerIndex =

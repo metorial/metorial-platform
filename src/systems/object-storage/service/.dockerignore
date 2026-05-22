@@ -1,0 +1,43 @@
+# Rust build artifacts
+target/
+**/*.rs.bk
+*.pdb
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Git
+.git/
+.gitignore
+
+# CI/CD
+.github/
+
+# Documentation
+*.md
+docs/
+
+# Test files
+tests/
+
+# Client directories (not needed in the service image)
+clients/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env
+.env.local
+
+# Config files (should be provided at runtime)
+config.toml
+config.*.toml
+
+# Logs
+*.log

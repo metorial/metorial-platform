@@ -1,0 +1,43 @@
+# Rust
+rust/target/
+rust/Cargo.lock
+rust/**/*.rs.bk
+
+# Go
+go/go.sum
+
+# Python
+python/venv/
+python/.venv/
+python/__pycache__/
+python/**/__pycache__/
+python/*.pyc
+python/**/*.pyc
+python/*.pyo
+python/**/*.pyo
+python/*.egg-info/
+python/dist/
+python/build/
+python/.pytest_cache/
+python/.coverage
+python/htmlcov/
+python/*.egg
+
+# TypeScript/JavaScript
+typescript/node_modules/
+typescript/dist/
+typescript/coverage/
+typescript/.nyc_output/
+typescript/*.log
+typescript/.DS_Store
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db

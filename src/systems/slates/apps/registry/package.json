@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "start": "bun run server:start",
-    "check-types": "tsc --noEmit -p tsconfig.json",
+    "check-types": "tsc --noEmit -p tsconfig.server.json",
     "server:build": "bun run check-types && ncc build ./src/server.ts -o ./dist --source-map --transpile-only && bun run sentry:sourcemaps:if-token",
     "sentry:sourcemaps": "sentry-cli sourcemaps inject --org metorial --project mte-slates-registry ./dist && sentry-cli sourcemaps upload --org metorial --project mte-slates-registry ./dist",
     "sentry:sourcemaps:if-token": "sh -c 'if [ -n \"$SENTRY_AUTH_TOKEN\" ]; then bun run sentry:sourcemaps; else echo \"Skipping Sentry sourcemap upload\"; fi'",
@@ -21,7 +21,7 @@
     "test": "bun run test:unit && bun run test:e2e",
     "test:unit": "bunx vitest run --config vitest.unit.config.ts",
     "test:e2e": "bunx vitest run --config vitest.e2e.config.ts",
-    "typecheck": "tsc --noEmit && bun run admin:typecheck",
+    "typecheck": "bun run check-types && bun run admin:typecheck",
     "admin:typecheck": "tsc --noEmit --project admin/tsconfig.json"
   },
   "devDependencies": {
@@ -85,7 +85,7 @@
     "hono": "^4.11.3",
     "jszip": "^3.10.1",
     "lodash-es": "^4.17.22",
-    "object-storage-client": "^0.2.5",
+    "@metorial-platform-systems/object-storage-client": "workspace:*",
     "prisma": "^7.2.0",
     "prisma-json-types-generator": "^4.0.1",
     "react": "^19.2.3",

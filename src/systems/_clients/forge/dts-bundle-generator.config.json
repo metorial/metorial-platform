@@ -9,7 +9,7 @@
           "@lowerdeck/rpc-client",
           "@lowerdeck/rpc-server",
           "@lowerdeck/validation",
-          "object-storage-client"
+          "@metorial-platform-systems/object-storage-client"
         ]
       }
     }

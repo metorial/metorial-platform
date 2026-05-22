@@ -42,6 +42,9 @@ jobs:
           - subspace-public
           - subspace-worker
           - synthesis
+          - voyager
+          - relay
+          - object-storage
     with:
       command: ci
       mode: unit
@@ -71,6 +74,9 @@ jobs:
           - subspace-public
           - subspace-worker
           - synthesis
+          - voyager
+          - relay
+          - object-storage
     with:
       command: ci
       mode: e2e

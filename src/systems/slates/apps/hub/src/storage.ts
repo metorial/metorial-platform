@@ -1,5 +1,5 @@
 import { delay } from '@lowerdeck/delay';
-import { ObjectStorageClient } from 'object-storage-client';
+import { ObjectStorageClient } from '@metorial-platform-systems/object-storage-client';
 import { db } from './db';
 import { env } from './env';
 

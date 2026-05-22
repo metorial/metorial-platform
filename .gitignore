@@ -178,4 +178,7 @@ venv/
 bin
 .DS_Store
 
+# Rust build output (object-storage)
+src/systems/object-storage/service/target/
+
 env.json

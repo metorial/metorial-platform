@@ -70,7 +70,7 @@
     "jszip": "^3.10.1",
     "long": "^5.3.2",
     "nice-grpc": "^2.1.12",
-    "object-storage-client": "^0.2.5",
+    "@metorial-platform-systems/object-storage-client": "workspace:*",
     "pg": "^8.18.0",
     "prisma": "^7.4.1",
     "prisma-json-types-generator": "^4.0.1",

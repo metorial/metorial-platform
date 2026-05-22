@@ -96,7 +96,7 @@
     "hono": "^4.11.3",
     "jszip": "^3.10.1",
     "lodash": "4.17.21",
-    "object-storage-client": "^0.2.5",
+    "@metorial-platform-systems/object-storage-client": "workspace:*",
     "p-queue": "^9.0.1",
     "prisma": "^7.2.0",
     "prisma-json-types-generator": "^4.0.1",
