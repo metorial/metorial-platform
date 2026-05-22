@@ -1,0 +1,101 @@
+name: Reusable Control
+
+on:
+  workflow_call:
+    inputs:
+      command:
+        description: 'Control command: build or ci'
+        required: true
+        type: string
+      mode:
+        description: 'Test mode (e2e or unit) when command is ci'
+        required: false
+        type: string
+      filter:
+        description: 'Service name to pass to --filter'
+        required: false
+        type: string
+      all:
+        description: 'Pass --all to control'
+        required: false
+        default: false
+        type: boolean
+      project_prefix:
+        description: 'Optional docker compose project prefix for ci'
+        required: false
+        type: string
+      runs-on:
+        description: 'Runner label'
+        required: false
+        default: depot-ubuntu-24.04-4
+        type: string
+      checkout_submodules:
+        description: 'Whether to checkout submodules recursively'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  control:
+    name: Control ${{ inputs.command }} ${{ inputs.filter }}
+    runs-on: ${{ inputs.runs-on }}
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: ${{ inputs.checkout_submodules && 'recursive' || 'false' }}
+          token: ${{ secrets.GH_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.2.20'
+
+      - name: Install packages
+        run: bun i --linker=hoisted
+
+      - name: Generate Prisma Clients
+        run: bunx turbo run --ui=stream --concurrency=1 prisma:generate
+
+      - name: Run control
+        env:
+          CONTROL_VERBOSE: '1'
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          if [ "${{ inputs.command }}" = "build" ]; then
+            ARGS=(build)
+            if [ "${{ inputs.all }}" = "true" ]; then
+              ARGS+=(--all)
+            elif [ -n "${{ inputs.filter }}" ]; then
+              ARGS+=(--filter "${{ inputs.filter }}")
+            fi
+          elif [ "${{ inputs.command }}" = "ci" ]; then
+            if [ -z "${{ inputs.mode }}" ]; then
+              echo "mode is required when command is ci" >&2
+              exit 1
+            fi
+            ARGS=(ci "${{ inputs.mode }}")
+            if [ "${{ inputs.all }}" = "true" ]; then
+              ARGS+=(--all)
+            elif [ -n "${{ inputs.filter }}" ]; then
+              ARGS+=(--filter "${{ inputs.filter }}")
+            fi
+            if [ -n "${{ inputs.project_prefix }}" ]; then
+              ARGS+=(--project-prefix "${{ inputs.project_prefix }}")
+            fi
+          else
+            echo "Unsupported command: ${{ inputs.command }}" >&2
+            exit 1
+          fi
+
+          bun run control "${ARGS[@]}"

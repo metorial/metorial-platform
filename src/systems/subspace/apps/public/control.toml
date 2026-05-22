@@ -1,0 +1,8 @@
+[control]
+name = "subspace-public"
+
+[service]
+port = 52071
+dockerfile = "src/systems/subspace/apps/public/Dockerfile"
+build_context = "oss"
+health = { path = "/ping" }

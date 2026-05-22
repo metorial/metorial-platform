@@ -1,0 +1,7 @@
+[control]
+name = "subspace-worker"
+
+[service]
+dockerfile = "src/systems/subspace/apps/worker/Dockerfile"
+build_context = "oss"
+health = { cmd = "curl -f http://localhost:12121/ || exit 1" }

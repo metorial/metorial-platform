@@ -1,0 +1,54 @@
+name: Control
+
+on:
+  workflow_dispatch:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  build:
+    name: Build all services
+    uses: ./.github/workflows/reusable-control.yml
+    secrets: inherit
+    with:
+      command: build
+      all: true
+      runs-on: depot-ubuntu-24.04-4
+
+  e2e:
+    name: E2E (${{ matrix.service }})
+    uses: ./.github/workflows/reusable-control.yml
+    secrets: inherit
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - cargo
+          - forge
+          - function-bay
+          - shuttle
+          - signal
+          - slates-hub
+          - slates-registry
+          - subspace-controller
+    with:
+      command: ci
+      mode: e2e
+      filter: ${{ matrix.service }}
+      project_prefix: ${{ matrix.service }}-ci
+      runs-on: depot-ubuntu-24.04-4
+      checkout_submodules: ${{ matrix.service == 'subspace-controller' }}
+
+  unit:
+    name: Unit tests
+    uses: ./.github/workflows/reusable-control.yml
+    secrets: inherit
+    with:
+      command: ci
+      mode: unit
+      all: true
+      runs-on: depot-ubuntu-24.04-4
