@@ -7,8 +7,11 @@ dockerfile = "src/systems/cargo/service/Dockerfile"
 build_context = "oss"
 health = { path = "/ping", cmd = "bun -e \"fetch('http://localhost:52151/ping').then(()=>process.exit(0)).catch(()=>process.exit(1))\"" }
 
+[test.unit]
+command = "bun run test:unit"
+
 [test.e2e]
-command = "bun run test"
+command = "bun run test:e2e"
 setup = ["bun prisma generate --schema ../db/prisma/schema --config ../db/prisma.config.ts", "bun prisma db push --accept-data-loss --schema ../db/prisma/schema --config ../db/prisma.config.ts"]
 cwd = "/app/src/systems/cargo/service"
 runner = "service"
@@ -38,6 +41,9 @@ DOWNLOAD_PUBLIC_URL = "http://cargo-content.test"
 CARGO_REGION = "tst"
 SIGNED_DOWNLOAD_URL_TOKEN_SECRET = "cargo-download-test-secret"
 METORIAL_ENV = "development"
+API_URL = "http://cargo-api.test"
+ORIGIN_URL = "http://origin.test/metorial-origin"
+CODE_BUCKET_SERVICE_URL = "code-bucket.test:5050"
 
 [[deps]]
 name = "postgres"

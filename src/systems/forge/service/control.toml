@@ -6,15 +6,14 @@ port = 52020
 dockerfile = "src/systems/forge/service/Dockerfile"
 build_context = "oss"
 
+[test.unit]
+command = "bun run test:unit"
+
 [test.e2e]
-command = "bun run test"
+command = "bun run test:e2e"
 setup = ["bun prisma generate", "bun prisma db push --accept-data-loss"]
 cwd = "/app/src/systems/forge/service"
 runner = "service"
-
-[test.unit]
-command = "bun run test"
-cwd = "/app/src/systems/forge/service"
 
 [[databases]]
 adapter = "postgres"

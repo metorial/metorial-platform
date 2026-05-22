@@ -6,8 +6,11 @@ port = 52045
 dockerfile = "src/systems/slates/apps/hub/Dockerfile"
 build_context = "oss"
 
+[test.unit]
+command = "bun run test:unit"
+
 [test.e2e]
-command = "bun run test"
+command = "bun run test:e2e"
 setup = ["bun prisma generate --schema prisma/schema", "bun prisma db push --accept-data-loss --schema prisma/schema"]
 cwd = "/app/src/systems/slates/apps/hub"
 runner = "service"

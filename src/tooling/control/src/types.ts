@@ -59,6 +59,7 @@ export type ControlConfig = {
     };
     unit?: {
       command: string;
+      setup?: string[];
       cwd?: string;
     };
   };

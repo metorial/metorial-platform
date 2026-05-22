@@ -7,11 +7,8 @@ dockerfile = "src/systems/slates/apps/registry/Dockerfile"
 build_context = "oss"
 health = { path = "/ping" }
 
-[test.e2e]
+[test.unit]
 command = "bun run test"
-setup = ["bun prisma generate", "bun prisma db push --accept-data-loss"]
-cwd = "/app/src/systems/slates/apps/registry"
-runner = "service"
 
 [[databases]]
 adapter = "postgres"

@@ -6,15 +6,14 @@ port = 52080
 dockerfile = "src/systems/shuttle/service/Dockerfile"
 build_context = "oss"
 
+[test.unit]
+command = "bun run test:unit"
+
 [test.e2e]
 command = "bun run test:e2e"
 setup = ["bun prisma generate", "bun prisma db push --accept-data-loss"]
 cwd = "/app/src/systems/shuttle/service"
 runner = "service"
-
-[test.unit]
-command = "bun run test:unit"
-cwd = "/app/src/systems/shuttle/service"
 
 [[databases]]
 adapter = "postgres"

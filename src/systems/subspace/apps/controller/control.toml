@@ -6,6 +6,9 @@ port = 52070
 dockerfile = "src/systems/subspace/apps/controller/Dockerfile"
 build_context = "oss"
 
+[test.unit]
+command = "bun run test:unit"
+
 [test.e2e]
 command = "set -a && . ./.env.ci && set +a && bun run test:ci"
 setup = [
@@ -100,6 +103,11 @@ scope = "service"
 name = "cargo"
 control = "../../../cargo/service"
 scope = "service"
+
+[deps.env]
+API_URL = "http://$deps.cargo.52150/metorial-cargo"
+ORIGIN_URL = "http://$deps.origin.52090/metorial-origin"
+CODE_BUCKET_SERVICE_URL = "code-bucket:5050"
 
 [[deps]]
 name = "code-bucket"

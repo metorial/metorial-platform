@@ -6,8 +6,11 @@ port = 52050
 dockerfile = "src/systems/signal/service/Dockerfile"
 build_context = "oss"
 
+[test.unit]
+command = "bun run test:unit"
+
 [test.e2e]
-command = "bun run test"
+command = "bun run test:e2e"
 setup = ["bun prisma generate", "bun prisma db push --accept-data-loss"]
 cwd = "/app/src/systems/signal/service"
 runner = "service"

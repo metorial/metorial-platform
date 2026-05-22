@@ -18,6 +18,7 @@ import type {
   RunPhase
 } from '../types';
 import { runShell } from './shell';
+import { runUnitTargets } from './unit';
 
 type RunControlContext = {
   index: number;
@@ -151,24 +152,6 @@ export let runControl = async (
     failedPhase = 'health';
     let waitServices = collectContainerNames(graph, projectName);
     await waitForServices({ services: waitServices, verbose: opts.verbose, logger });
-
-    if (opts.mode === 'unit') {
-      let unit = graph.config.test?.unit;
-      if (!unit) throw new NoTestError({ name: graph.name, mode: 'unit' });
-
-      failedPhase = 'test';
-      logger.info('Running unit tests...');
-      let unitCmd = unit.cwd ? `cd ${unit.cwd} && ${unit.command}` : unit.command;
-      logger.debug(`Command: docker exec ${runnerContainer} sh -c ${JSON.stringify(unitCmd)}`);
-      await runShell(['docker', 'exec', runnerContainer, 'sh', '-c', unitCmd], {
-        phase: 'test',
-        service: serviceName,
-        composeFile,
-        keep: opts.keep,
-        verbose: opts.verbose
-      });
-      return;
-    }
 
     let e2e = graph.config.test?.e2e;
     if (!e2e) throw new NoTestError({ name: graph.name, mode: 'e2e' });
@@ -313,6 +296,10 @@ export let runControlBatch = async (
 };
 
 export let runControlTargets = async (opts: RunOptions & { services: ControlService[] }) => {
+  if (opts.mode === 'unit') {
+    return runUnitTargets(opts);
+  }
+
   let logger = createLogger(opts);
   let registry = getRegistry({ cwd: resolveControlCwd(), entrypoint: opts.entrypoint });
   let ordered = planExecutionOrder(opts.services, registry);
