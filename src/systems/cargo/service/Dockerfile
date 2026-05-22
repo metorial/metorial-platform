@@ -20,6 +20,10 @@ RUN bun run prisma:generate
 WORKDIR /app/src/systems/cargo/service
 RUN bun run server:build
 
+FROM builder AS workspace
+WORKDIR /app/src/systems/cargo/service
+CMD ["sleep", "infinity"]
+
 # Production stage
 FROM oven/bun:1-alpine AS runner
 

@@ -3,7 +3,7 @@ name = "shuttle"
 
 [service]
 port = 52080
-dockerfile = "src/systems/shuttle/service/dev.Dockerfile"
+dockerfile = "src/systems/shuttle/service/Dockerfile"
 build_context = "oss"
 
 [test.e2e]
@@ -16,8 +16,12 @@ runner = "service"
 command = "bun run test:unit"
 cwd = "/app/src/systems/shuttle/service"
 
+[[databases]]
+adapter = "postgres"
+name = "shuttle-test"
+
 [env]
-DATABASE_URL = "postgresql://postgres:postgres@$deps.postgres.5432/shuttle-test"
+DATABASE_URL = "$db.shuttle-test.url"
 REDIS_URL = "redis://$deps.redis.6379/0"
 PROVIDER_OAUTH_URL = "http://shuttle:52081"
 ENCRYPTION_KEY = "ci-encryption-key-32-bytes!!!!"
@@ -37,7 +41,6 @@ OBJECT_STORAGE_BACKEND_ROOT_PATH = "/app/data"
 [[deps]]
 name = "postgres"
 preset = "postgres"
-init = "init-test-db.sh"
 
 [deps.env]
 POSTGRES_USER = "postgres"
@@ -57,26 +60,7 @@ name = "forge"
 control = "../../forge/service"
 scope = "service"
 
-[deps.env]
-DATABASE_URL = "postgresql://postgres:postgres@$deps.postgres.5432/forge"
-REDIS_URL = "redis://$deps.redis.6379/0"
-OBJECT_STORAGE_URL = "http://$deps.object-store.52010"
-ENCRYPTION_KEY = "ci-encryption-key-32-bytes!!!!"
-DEFAULT_PROVIDER = "aws.code-build"
-ARTIFACT_BUCKET_NAME = "artifacts"
-LOG_BUCKET_NAME = "logs"
-
 [[deps]]
 name = "function-bay"
 control = "../../function-bay/service"
 scope = "service"
-
-[deps.env]
-DATABASE_URL = "postgresql://postgres:postgres@$deps.postgres.5432/function-bay"
-REDIS_URL = "redis://$deps.redis.6379/0"
-OBJECT_STORAGE_URL = "http://$deps.object-store.52010"
-BUNDLE_BUCKET_NAME = "bundles"
-ENCRYPTION_KEY = "ci-encryption-key-32-bytes!!!!"
-FORGE_API_URL = "http://$deps.forge.52020/metorial-forge"
-DEFAULT_PROVIDER = "aws.lambda"
-LAMBDA_AWS_REGION = "us-east-1"

@@ -3,7 +3,7 @@ name = "slates-hub"
 
 [service]
 port = 52045
-dockerfile = "src/systems/slates/apps/hub/dev.Dockerfile"
+dockerfile = "src/systems/slates/apps/hub/Dockerfile"
 build_context = "oss"
 
 [test.e2e]
@@ -12,8 +12,12 @@ setup = ["bun prisma generate --schema prisma/schema", "bun prisma db push --acc
 cwd = "/app/src/systems/slates/apps/hub"
 runner = "service"
 
+[[databases]]
+adapter = "postgres"
+name = "slates-hub-test"
+
 [env]
-DATABASE_URL = "postgresql://slates-hub:slates-hub@$deps.postgres.5432/slates-hub-test"
+DATABASE_URL = "$db.slates-hub-test.url"
 REDIS_URL = "redis://$deps.redis.6379/0"
 METORIAL_ENV = "development"
 ENCRYPTION_KEY = "sTrG+z8ewVo7JJsgmv39UL/YDdgxlHSVhVPJOV7Omdg"
@@ -32,7 +36,6 @@ SERVICE_PUBLIC_URL = "http://slates-hub:52045"
 [[deps]]
 name = "postgres"
 preset = "postgres"
-init = "init-test-db.sh"
 
 [deps.env]
 POSTGRES_USER = "slates-hub"
@@ -52,50 +55,17 @@ name = "forge"
 control = "../../../forge/service"
 scope = "service"
 
-[deps.env]
-DATABASE_URL = "postgresql://slates-hub:slates-hub@$deps.postgres.5432/forge"
-REDIS_URL = "redis://$deps.redis.6379/0"
-OBJECT_STORAGE_URL = "http://$deps.object-store.52010"
-ENCRYPTION_KEY = "sTrG+z8ewVo7JJsgmv39UL/YDdgxlHSVhVPJOV7Omdg"
-DEFAULT_PROVIDER = "aws.code-build"
-ARTIFACT_BUCKET_NAME = "artifacts"
-LOG_BUCKET_NAME = "logs"
-
 [[deps]]
 name = "function-bay"
 control = "../../../function-bay/service"
 scope = "service"
-
-[deps.env]
-DATABASE_URL = "postgresql://slates-hub:slates-hub@$deps.postgres.5432/function-bay"
-REDIS_URL = "redis://$deps.redis.6379/0"
-OBJECT_STORAGE_URL = "http://$deps.object-store.52010"
-BUNDLE_BUCKET_NAME = "bundles"
-ENCRYPTION_KEY = "sTrG+z8ewVo7JJsgmv39UL/YDdgxlHSVhVPJOV7Omdg"
-FORGE_API_URL = "http://$deps.forge.52020/metorial-forge"
-DEFAULT_PROVIDER = "aws.lambda"
-LAMBDA_AWS_REGION = "us-east-1"
 
 [[deps]]
 name = "signal"
 control = "../../../signal/service"
 scope = "service"
 
-[deps.env]
-DATABASE_URL = "postgresql://slates-hub:slates-hub@$deps.postgres.5432/signal"
-REDIS_URL = "redis://$deps.redis.6379/0"
-OBJECT_STORAGE_URL = "http://$deps.object-store.52010"
-LOGS_BUCKET_NAME = "bundles"
-
 [[deps]]
 name = "slates-registry"
 control = "../registry"
 scope = "service"
-
-[deps.env]
-DATABASE_URL = "postgresql://slates-hub:slates-hub@$deps.postgres.5432/slates-registry"
-REDIS_URL = "redis://$deps.redis.6379/0"
-OBJECT_STORAGE_URL = "http://$deps.object-store.52010"
-PACKAGE_BUCKET_NAME = "slates-hub-packages"
-SERVICE_PUBLIC_URL = "http://slates-registry:52040"
-PUBLIC_ACCESS_PERMITTED = "true"

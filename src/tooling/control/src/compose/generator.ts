@@ -4,27 +4,17 @@ import type { ResolvedDep, ResolvedGraph } from '../types';
 import { MOCK_DEFINITIONS } from '../types';
 import { controlToolingDir } from '../entrypoint';
 import { interpolateEnv, mergeEnv } from '../graph/env';
+import { resolveBuild } from './builds';
+
+export type ComposeOptions = {
+  postgresInitScripts?: Record<string, string>;
+};
 
 let networkConfig = (alias: string) => ({
   'control-network': {
     aliases: [alias]
   }
 });
-
-let resolveBuild = (graph: ResolvedGraph) => {
-  let svc = graph.config.service!;
-  let dockerfile = svc.dockerfile ?? 'dev.Dockerfile';
-
-  if (svc.build_context === 'oss') {
-    return {
-      context: graph.ossRoot,
-      dockerfile: dockerfile.startsWith('./') ? dockerfile : `./${dockerfile.replace(/^\.\//, '')}`
-    };
-  }
-
-  let context = resolve(graph.dir, svc.build_context ?? '.');
-  return { context, dockerfile: svc.dockerfile ?? 'dev.Dockerfile' };
-};
 
 let defaultServiceHealth = (port: number, path = '/') => ({
   test: [
@@ -45,11 +35,17 @@ let resolveServiceHealth = (graph: ResolvedGraph) => {
   return defaultServiceHealth(svc.port, svc.health?.path ?? '/');
 };
 
+let envContext = (graph: ResolvedGraph) => ({
+  depHosts: graph.depHosts,
+  databases: graph.databases
+});
+
 let resolveControlServiceEnv = (dep: ResolvedDep, graph: ResolvedGraph): Record<string, string> => {
   if (!dep.children) return {};
 
-  let childEnv = interpolateEnv(dep.children.config.env ?? {}, graph.depHosts);
-  let depEnv = dep.config.env ? interpolateEnv(dep.config.env, graph.depHosts) : {};
+  let ctx = envContext(graph);
+  let childEnv = interpolateEnv(dep.children.config.env ?? {}, ctx);
+  let depEnv = dep.config.env ? interpolateEnv(dep.config.env, ctx) : {};
   return mergeEnv(childEnv, depEnv);
 };
 
@@ -87,7 +83,7 @@ let buildControlService = (dep: ResolvedDep, graph: ResolvedGraph, containerName
   if (!dep.children) throw new Error(`Control dependency "${dep.name}" is missing resolved child graph`);
 
   let child = dep.children;
-  let build = resolveBuild(child);
+  let build = resolveBuild(child, { role: 'service' });
   let health = resolveServiceHealth(child);
   let dependsOn = resolveControlDependsOn(dep, graph);
 
@@ -102,7 +98,11 @@ let buildControlService = (dep: ResolvedDep, graph: ResolvedGraph, containerName
   };
 };
 
-let presetPostgres = (dep: ResolvedDep, containerName: string) => {
+let presetPostgres = (
+  dep: ResolvedDep,
+  containerName: string,
+  initScriptPath?: string
+) => {
   let env = dep.config.env ?? {
     POSTGRES_USER: 'postgres',
     POSTGRES_PASSWORD: 'postgres',
@@ -115,10 +115,8 @@ let presetPostgres = (dep: ResolvedDep, containerName: string) => {
   };
 
   let serviceVolumes = [`${dep.composeName}-data:/var/lib/postgresql/data`];
-  if (dep.config.init) {
-    serviceVolumes.push(
-      `${resolve(dep.sourceDir, dep.config.init)}:/docker-entrypoint-initdb.d/init-test-db.sh:ro`
-    );
+  if (initScriptPath) {
+    serviceVolumes.push(`${initScriptPath}:/docker-entrypoint-initdb.d/init-databases.sh:ro`);
   }
 
   return {
@@ -203,8 +201,12 @@ let inlineService = (dep: ResolvedDep, graph: ResolvedGraph, containerName: stri
 
   let build = inline.build
     ? {
-        context: inline.build.context === 'oss' ? graph.ossRoot : resolve(dep.sourceDir, inline.build.context),
-        dockerfile: inline.build.dockerfile
+        context:
+          inline.build.context === 'oss' ? graph.ossRoot : resolve(dep.sourceDir, inline.build.context),
+        dockerfile: inline.build.dockerfile.startsWith('./')
+          ? inline.build.dockerfile
+          : `./${inline.build.dockerfile.replace(/^\.\//, '')}`,
+        target: inline.build.target ?? 'workspace'
       }
     : undefined;
 
@@ -222,7 +224,7 @@ let inlineService = (dep: ResolvedDep, graph: ResolvedGraph, containerName: stri
       container_name: containerName,
       restart: 'unless-stopped',
       ...(dep.config.env
-        ? { environment: interpolateEnv(dep.config.env, graph.depHosts) }
+        ? { environment: interpolateEnv(dep.config.env, envContext(graph)) }
         : {}),
       command: inline.command,
       healthcheck: health,
@@ -232,9 +234,20 @@ let inlineService = (dep: ResolvedDep, graph: ResolvedGraph, containerName: stri
   };
 };
 
-let buildLeafDep = (dep: ResolvedDep, graph: ResolvedGraph, containerName: string) => {
+let buildLeafDep = (
+  dep: ResolvedDep,
+  graph: ResolvedGraph,
+  containerName: string,
+  composeOptions?: ComposeOptions
+) => {
   if (dep.kind === 'preset') {
-    if (dep.config.preset === 'postgres') return presetPostgres(dep, containerName);
+    if (dep.config.preset === 'postgres') {
+      return presetPostgres(
+        dep,
+        containerName,
+        composeOptions?.postgresInitScripts?.[dep.name]
+      );
+    }
     if (dep.config.preset === 'redis') return presetRedis(dep, containerName);
     if (dep.config.preset === 'nats') return presetNats(dep, containerName);
   }
@@ -256,7 +269,11 @@ export let collectContainerNames = (graph: ResolvedGraph, projectName: string): 
   return names;
 };
 
-export let generateComposeServices = (graph: ResolvedGraph, projectName: string) => {
+export let generateComposeServices = (
+  graph: ResolvedGraph,
+  projectName: string,
+  composeOptions?: ComposeOptions
+) => {
   let services: Record<string, any> = {};
   let volumes: Record<string, any> = {};
   let dependsOn: Record<string, { condition: string }> = {};
@@ -311,7 +328,8 @@ export let generateComposeServices = (graph: ResolvedGraph, projectName: string)
             sourceDir: dep.children!.dir
           },
           dep.children!,
-          childContainerName
+          childContainerName,
+          composeOptions
         );
         services[childComposeName] = leaf.service;
         Object.assign(volumes, leaf.volumes);
@@ -326,13 +344,13 @@ export let generateComposeServices = (graph: ResolvedGraph, projectName: string)
     }
 
     seen.add(dep.name);
-    let built = buildLeafDep(dep, graph, containerName);
+    let built = buildLeafDep(dep, graph, containerName, composeOptions);
     services[dep.composeName] = built.service;
     Object.assign(volumes, built.volumes);
     dependsOn[dep.composeName] = depWaitCondition(dep, built.hasHealth ?? true);
   }
 
-  let build = resolveBuild(graph);
+  let build = resolveBuild(graph, { role: 'test-runner' });
   let isSidecar = graph.config.test?.e2e?.runner === 'sidecar';
   let runnerKey = graph.testRunnerComposeName;
   let runnerContainer = isSidecar
@@ -361,8 +379,12 @@ export let generateComposeServices = (graph: ResolvedGraph, projectName: string)
   return { services, volumes };
 };
 
-export let generateCompose = (graph: ResolvedGraph, projectName: string) => {
-  let { services, volumes } = generateComposeServices(graph, projectName);
+export let generateCompose = (
+  graph: ResolvedGraph,
+  projectName: string,
+  composeOptions?: ComposeOptions
+) => {
+  let { services, volumes } = generateComposeServices(graph, projectName, composeOptions);
   return stringify({
     name: projectName,
     services,

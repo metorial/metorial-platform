@@ -12,13 +12,16 @@ COPY . .
 # Install CA certificates for Sentry CLI uploads
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/*
 
-# Install dependencies from the OSS workspace
-RUN bun install --linker=hoisted
+RUN sh ./src/systems/forge/scripts/prepare-docker-build.sh
 
 # Generate Prisma client and build the service from the monorepo path
 WORKDIR /app/src/systems/forge/service
 RUN bun prisma generate
 RUN bun run server:build
+
+FROM builder AS workspace
+WORKDIR /app/src/systems/forge/service
+CMD ["sleep", "infinity"]
 
 # Production stage
 FROM oven/bun:1-alpine AS runner

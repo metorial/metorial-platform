@@ -20,6 +20,10 @@ RUN mkdir -p ./node_modules/@metorial/code-bucket-service-generated && \
 RUN bunx prisma generate
 RUN bun run server:build
 
+FROM builder AS workspace
+WORKDIR /app/src/systems/origin/apps/service
+CMD ["sleep", "infinity"]
+
 # Production stage
 FROM oven/bun:1-alpine AS runner
 

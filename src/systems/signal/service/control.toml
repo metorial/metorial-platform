@@ -3,17 +3,21 @@ name = "signal"
 
 [service]
 port = 52050
-dockerfile = "dev.Dockerfile"
-build_context = "."
+dockerfile = "src/systems/signal/service/Dockerfile"
+build_context = "oss"
 
 [test.e2e]
 command = "bun run test"
 setup = ["bun prisma generate", "bun prisma db push --accept-data-loss"]
-cwd = "/app/service"
+cwd = "/app/src/systems/signal/service"
 runner = "service"
 
+[[databases]]
+adapter = "postgres"
+name = "signal-test"
+
 [env]
-DATABASE_URL = "postgresql://signal:signal@$deps.postgres.5432/signal-test"
+DATABASE_URL = "$db.signal-test.url"
 REDIS_URL = "redis://$deps.redis.6379/0"
 OBJECT_STORAGE_URL = "http://$deps.object-store.52010"
 LOGS_BUCKET_NAME = "bundles-test"
@@ -21,7 +25,6 @@ LOGS_BUCKET_NAME = "bundles-test"
 [[deps]]
 name = "postgres"
 preset = "postgres"
-init = "init-test-db.sh"
 
 [deps.env]
 POSTGRES_USER = "signal"

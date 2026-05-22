@@ -3,7 +3,7 @@ name = "cargo"
 
 [service]
 port = 52150
-dockerfile = "src/systems/cargo/service/dev.Dockerfile"
+dockerfile = "src/systems/cargo/service/Dockerfile"
 build_context = "oss"
 health = { path = "/ping", cmd = "bun -e \"fetch('http://localhost:52151/ping').then(()=>process.exit(0)).catch(()=>process.exit(1))\"" }
 
@@ -13,8 +13,20 @@ setup = ["bun prisma generate --schema ../db/prisma/schema --config ../db/prisma
 cwd = "/app/src/systems/cargo/service"
 runner = "service"
 
+[[databases]]
+adapter = "postgres"
+name = "cargo-test"
+
+[[databases]]
+adapter = "postgres"
+name = "voyager"
+
+[[databases]]
+adapter = "postgres"
+name = "voyager-search"
+
 [env]
-DATABASE_URL = "postgresql://cargo:cargo@$deps.postgres.5432/cargo-test"
+DATABASE_URL = "$db.cargo-test.url"
 REDIS_URL = "redis://$deps.redis.6379/0"
 OBJECT_STORAGE_URL = "http://$deps.object-store.52010"
 VOYAGER_URL = "http://$deps.voyager.52060/metorial-voyager"
@@ -30,7 +42,6 @@ METORIAL_ENV = "development"
 [[deps]]
 name = "postgres"
 preset = "postgres"
-init = "init-test-db.sh"
 
 [deps.env]
 POSTGRES_USER = "cargo"

@@ -19,6 +19,10 @@ RUN bun prisma generate
 RUN bun run admin:build
 RUN bun run server:build
 
+FROM builder AS workspace
+WORKDIR /app/src/systems/slates/apps/hub
+CMD ["sleep", "infinity"]
+
 # Production stage
 FROM oven/bun:1-alpine AS runner
 

@@ -1,6 +1,8 @@
-import { mkdirSync, writeFileSync } from 'fs';
+import { mkdirSync, writeFileSync, chmodSync } from 'fs';
 import { join } from 'path';
 import { generateCompose, collectContainerNames } from '../compose/generator';
+import { generatePostgresInitScript } from '../compose/databaseInit';
+import { postgresDatabasesForDep } from '../graph/databases';
 import { resolveGraph } from '../graph/resolver';
 import { resolveControlDir, resolveEntrypoint, resolveControlCwd } from '../entrypoint';
 import { getRegistry } from '../registry';
@@ -15,41 +17,12 @@ import type {
   RunOptions,
   RunPhase
 } from '../types';
+import { runShell } from './shell';
 
 type RunControlContext = {
   index: number;
   total: number;
   service: ControlService;
-};
-
-type ShellOpts = {
-  cwd?: string;
-  env?: Record<string, string>;
-  phase: RunPhase;
-  service?: string;
-  composeFile?: string;
-  keep?: boolean;
-  verbose?: boolean;
-};
-
-let runShell = async (cmd: string[], opts: ShellOpts) => {
-  let proc = Bun.spawn(cmd, {
-    cwd: opts.cwd,
-    env: { ...process.env, ...opts.env },
-    stdout: 'inherit',
-    stderr: 'inherit'
-  });
-  let code = await proc.exited;
-  if (code !== 0) {
-    throw new DockerError({
-      phase: opts.phase,
-      command: cmd.join(' '),
-      exitCode: code,
-      service: opts.service,
-      composeFile: opts.composeFile,
-      keep: opts.keep
-    });
-  }
 };
 
 let waitForServices = async (opts: {
@@ -134,9 +107,22 @@ export let runControl = async (
   let runDir = join(entrypoint, '.control', 'runs', runId);
   mkdirSync(runDir, { recursive: true });
 
+  let postgresInitScripts: Record<string, string> = {};
+  for (let dep of graph.deps) {
+    if (dep.kind !== 'preset' || dep.config.preset !== 'postgres') continue;
+
+    let databases = postgresDatabasesForDep(graph, dep.name);
+    if (databases.length === 0) continue;
+
+    let initPath = join(runDir, `postgres-init-${dep.name}.sh`);
+    writeFileSync(initPath, generatePostgresInitScript(databases), { mode: 0o755 });
+    chmodSync(initPath, 0o755);
+    postgresInitScripts[dep.name] = initPath;
+  }
+
   let composeFile = join(runDir, 'compose.yml');
   let envFile = join(runDir, '.env.control');
-  writeFileSync(composeFile, generateCompose(graph, projectName));
+  writeFileSync(composeFile, generateCompose(graph, projectName, { postgresInitScripts }));
 
   let envLines = Object.entries(graph.env).map(([k, v]) => `${k}=${JSON.stringify(v).slice(1, -1)}`);
   writeFileSync(envFile, envLines.join('\n') + '\n');

@@ -9,9 +9,10 @@ import {
 } from './graph/format';
 import { resolveGraph } from './graph/resolver';
 import { generateCompose } from './compose/generator';
-import { getRegistry, resolveService, resolveTargets } from './registry';
+import { getRegistry, resolveService, resolveTargets, resolveBuildTargets } from './registry';
 import { planExecutionOrder } from './graph/planner';
 import { runControlTargets } from './run/runner';
+import { runBuildTargets } from './run/build';
 import { formatControlError, InvalidFlagsError } from './errors';
 import { createLogger, isVerbose } from './log';
 import { formatRunPlan } from './log/formatRunPlan';
@@ -100,25 +101,37 @@ prog
   .describe('Show test execution order for selected services')
   .option('--entrypoint, -e', 'Workspace entrypoint')
   .option('--all', 'Plan all services with tests for the given mode')
-  .option('--mode, -m', 'Test mode: e2e or unit', 'e2e')
+  .option('--mode, -m', 'Plan mode: e2e, unit, or build', 'e2e')
   .option('--filter, -f', 'Filter by service name')
   .action(async (target: string | undefined, opts: { entrypoint?: string; all?: boolean; mode?: string; filter?: string }) => {
     await runCommand(async () => {
-      if (opts.mode && opts.mode !== 'e2e' && opts.mode !== 'unit') {
-        throw new InvalidFlagsError('Mode must be e2e or unit');
+      if (opts.mode && opts.mode !== 'e2e' && opts.mode !== 'unit' && opts.mode !== 'build') {
+        throw new InvalidFlagsError('Mode must be e2e, unit, or build');
       }
-      let mode = (opts.mode === 'unit' ? 'unit' : 'e2e') as 'e2e' | 'unit';
+      let mode = (opts.mode === 'unit' ? 'unit' : opts.mode === 'build' ? 'build' : 'e2e') as
+        | 'e2e'
+        | 'unit'
+        | 'build';
       let registry = getRegistry({ cwd: resolveControlCwd(), entrypoint: opts.entrypoint });
       let filters = collectFilters(process.argv);
 
-      let services = resolveTargets({
-        registry,
-        cwd: resolveControlCwd(),
-        target,
-        all: opts.all,
-        filters: filters.length ? filters : undefined,
-        mode
-      });
+      let services =
+        mode === 'build'
+          ? resolveBuildTargets({
+              registry,
+              cwd: resolveControlCwd(),
+              target,
+              all: opts.all,
+              filters: filters.length ? filters : undefined
+            })
+          : resolveTargets({
+              registry,
+              cwd: resolveControlCwd(),
+              target,
+              all: opts.all,
+              filters: filters.length ? filters : undefined,
+              mode
+            });
 
       let ordered = planExecutionOrder(services, registry);
       console.log(
@@ -126,7 +139,7 @@ prog
           mode,
           controlRoot: registry.controlRoot,
           services: ordered,
-          title: 'Control test plan'
+          title: mode === 'build' ? 'Control build plan' : 'Control test plan'
         })
       );
     });
@@ -192,6 +205,44 @@ let addRunCommand = (mode: 'e2e' | 'unit', name: string) => {
 
 addRunCommand('e2e', 'e2e');
 addRunCommand('unit', 'unit');
+
+prog
+  .command('build [target]')
+  .describe('Build prod runner Docker images for selected services')
+  .option('--entrypoint, -e', 'Workspace entrypoint')
+  .option('--all', 'Build all services with [service] config')
+  .option('--filter, -f', 'Build named services')
+  .option('--verbose, -v', 'Verbose output')
+  .option('--tag-prefix', 'Image tag prefix', 'control')
+  .action(async (target: string | undefined, opts: {
+    entrypoint?: string;
+    all?: boolean;
+    verbose?: boolean;
+    'tag-prefix'?: string;
+    filter?: string;
+  }) => {
+    await runCommand(async () => {
+      let registry = getRegistry({ cwd: resolveControlCwd(), entrypoint: opts.entrypoint });
+      let filters = collectFilters(process.argv);
+
+      let services = resolveBuildTargets({
+        registry,
+        cwd: resolveControlCwd(),
+        target,
+        all: opts.all,
+        filters: filters.length ? filters : undefined
+      });
+
+      let ordered = planExecutionOrder(services, registry);
+
+      await runBuildTargets({
+        entrypoint: opts.entrypoint,
+        verbose: opts.verbose,
+        tagPrefix: opts['tag-prefix'],
+        services: ordered
+      });
+    }, { verbose: opts.verbose });
+  });
 
 prog
   .command('ci <mode> [target]')

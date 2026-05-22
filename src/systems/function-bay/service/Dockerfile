@@ -18,6 +18,10 @@ WORKDIR /app/src/systems/function-bay/service
 RUN bun prisma generate
 RUN bun run server:build
 
+FROM builder AS workspace
+WORKDIR /app/src/systems/function-bay/service
+CMD ["sleep", "infinity"]
+
 # Production stage
 FROM oven/bun:1-alpine AS runner
 

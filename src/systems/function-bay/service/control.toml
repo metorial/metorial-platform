@@ -3,7 +3,7 @@ name = "function-bay"
 
 [service]
 port = 52030
-dockerfile = "src/systems/function-bay/service/dev.Dockerfile"
+dockerfile = "src/systems/function-bay/service/Dockerfile"
 build_context = "oss"
 
 [test.e2e]
@@ -12,8 +12,12 @@ setup = ["bun prisma generate", "bun prisma db push --accept-data-loss"]
 cwd = "/app/src/systems/function-bay/service"
 runner = "service"
 
+[[databases]]
+adapter = "postgres"
+name = "function-bay-test"
+
 [env]
-DATABASE_URL = "postgresql://postgres:postgres@$deps.postgres.5432/function-bay-test"
+DATABASE_URL = "$db.function-bay-test.url"
 REDIS_URL = "redis://$deps.redis.6379/0"
 OBJECT_STORAGE_URL = "http://$deps.object-store.52010"
 BUNDLE_BUCKET_NAME = "bundles"
@@ -25,7 +29,6 @@ LAMBDA_AWS_REGION = "us-east-1"
 [[deps]]
 name = "postgres"
 preset = "postgres"
-init = "init-test-db.sh"
 
 [deps.env]
 POSTGRES_USER = "postgres"
@@ -44,13 +47,3 @@ mock = "object-store"
 name = "forge"
 control = "../../forge/service"
 scope = "service"
-
-[deps.env]
-DATABASE_URL = "postgresql://postgres:postgres@$deps.postgres.5432/forge"
-REDIS_URL = "redis://$deps.redis.6379/0"
-OBJECT_STORAGE_URL = "http://$deps.object-store.52010"
-ARTIFACT_BUCKET_NAME = "artifacts-test"
-LOG_BUCKET_NAME = "logs-test"
-ENCRYPTION_KEY = "test-encryption-key-32-bytes!!"
-DEFAULT_PROVIDER = "aws.code-build"
-CODE_BUILD_AWS_REGION = "us-east-1"

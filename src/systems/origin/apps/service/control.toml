@@ -3,12 +3,16 @@ name = "origin"
 
 [service]
 port = 52090
-dockerfile = "src/systems/origin/apps/service/dev.Dockerfile"
+dockerfile = "src/systems/origin/apps/service/Dockerfile"
 build_context = "oss"
 health = { path = "/ping" }
 
+[[databases]]
+adapter = "postgres"
+name = "origin"
+
 [env]
-DATABASE_URL = "postgresql://postgres:postgres@$deps.postgres.5432/origin"
+DATABASE_URL = "$db.origin.url"
 REDIS_URL = "redis://$deps.redis.6379/0"
 ORIGIN_SERVICE_PUBLIC_URL = "http://origin:52093"
 OBJECT_STORAGE_URL = "http://$deps.object-store.52010"
@@ -43,12 +47,3 @@ mock = "object-store"
 name = "code-bucket"
 control = "../code-bucket"
 scope = "service"
-
-[deps.env]
-CODE_BUCKET_JWT_SECRET = "dev-secret-change-in-production"
-CODE_BUCKET_OBJECT_STORAGE_BUCKET = "code-bucket"
-CODE_BUCKET_OBJECT_STORAGE_ENDPOINT = "http://$deps.object-store.52010"
-CODE_BUCKET_REDIS_URL = "redis://$deps.redis.6379"
-CODE_BUCKET_HTTP_ADDRESS = ":52091"
-CODE_BUCKET_WORKSPACE_ADDRESS = ":52092"
-CODE_BUCKET_RPC_ADDRESS = ":5050"

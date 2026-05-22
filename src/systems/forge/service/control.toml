@@ -3,21 +3,25 @@ name = "forge"
 
 [service]
 port = 52020
-dockerfile = "dev.Dockerfile"
-build_context = "."
+dockerfile = "src/systems/forge/service/Dockerfile"
+build_context = "oss"
 
 [test.e2e]
 command = "bun run test"
 setup = ["bun prisma generate", "bun prisma db push --accept-data-loss"]
-cwd = "/app"
+cwd = "/app/src/systems/forge/service"
 runner = "service"
 
 [test.unit]
 command = "bun run test"
-cwd = "/app"
+cwd = "/app/src/systems/forge/service"
+
+[[databases]]
+adapter = "postgres"
+name = "forge-test"
 
 [env]
-DATABASE_URL = "postgresql://forge:forge@$deps.postgres.5432/forge-test"
+DATABASE_URL = "$db.forge-test.url"
 REDIS_URL = "redis://$deps.redis.6379/0"
 OBJECT_STORAGE_URL = "http://$deps.object-store.52010"
 ARTIFACT_BUCKET_NAME = "artifacts-test"
@@ -29,7 +33,6 @@ CODE_BUILD_AWS_REGION = "us-east-1"
 [[deps]]
 name = "postgres"
 preset = "postgres"
-init = "init-test-db.sh"
 
 [deps.env]
 POSTGRES_USER = "forge"

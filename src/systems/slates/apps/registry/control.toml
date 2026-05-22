@@ -3,7 +3,7 @@ name = "slates-registry"
 
 [service]
 port = 52040
-dockerfile = "src/systems/slates/apps/registry/dev.Dockerfile"
+dockerfile = "src/systems/slates/apps/registry/Dockerfile"
 build_context = "oss"
 health = { path = "/ping" }
 
@@ -13,8 +13,12 @@ setup = ["bun prisma generate", "bun prisma db push --accept-data-loss"]
 cwd = "/app/src/systems/slates/apps/registry"
 runner = "service"
 
+[[databases]]
+adapter = "postgres"
+name = "slates-registry"
+
 [env]
-DATABASE_URL = "postgresql://slates-registry:slates-registry@$deps.postgres.5432/slates-registry"
+DATABASE_URL = "$db.slates-registry.url"
 REDIS_URL = "redis://$deps.redis.6379/0"
 OBJECT_STORAGE_URL = "http://$deps.object-store.52010"
 PACKAGE_BUCKET_NAME = "slates-registry-packages-test"

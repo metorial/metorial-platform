@@ -5,6 +5,7 @@ import {
   DuplicateServiceError,
   InvalidFlagsError,
   listServiceNames,
+  NoBuildError,
   NoTestError,
   NotInServiceDirError,
   suggestServiceName,
@@ -127,13 +128,16 @@ export let resolveControlDepTarget = (
   }
 };
 
-export let resolveTargets = (opts: {
+export let hasBuild = (service: ControlService): boolean => !!service.config.service;
+
+export let resolveSelectionTargets = (opts: {
   registry: ServiceRegistry;
   cwd: string;
   target?: string;
   all?: boolean;
   filters?: string[];
-  mode?: 'e2e' | 'unit';
+  allServices: () => ControlService[];
+  validate: (service: ControlService) => void;
 }): ControlService[] => {
   if (opts.all && opts.filters?.length) {
     throw new InvalidFlagsError(
@@ -143,12 +147,10 @@ export let resolveTargets = (opts: {
   }
 
   if (opts.all) {
-    if (!opts.mode) throw new InvalidFlagsError('Mode is required when using --all');
-    return opts.registry.services.filter(s => hasTest(s, opts.mode!));
+    return opts.allServices();
   }
 
   if (opts.filters?.length) {
-    if (!opts.mode) throw new InvalidFlagsError('Mode is required when using --filter');
     return opts.filters.map(name => {
       let service = opts.registry.byName.get(name);
       if (!service) {
@@ -159,15 +161,15 @@ export let resolveTargets = (opts: {
           suggestion: suggestServiceName(name, known)
         });
       }
-      if (!hasTest(service, opts.mode!)) {
-        throw new NoTestError({ name, mode: opts.mode! });
-      }
+      opts.validate(service);
       return service;
     });
   }
 
   if (opts.target) {
-    return [resolveService(opts.registry, opts.target)];
+    let service = resolveService(opts.registry, opts.target);
+    opts.validate(service);
+    return [service];
   }
 
   let service = findServiceForCwd(opts.registry, opts.cwd);
@@ -178,11 +180,53 @@ export let resolveTargets = (opts: {
     });
   }
 
-  if (opts.mode && !hasTest(service, opts.mode)) {
-    throw new NoTestError({ name: service.name, mode: opts.mode });
+  opts.validate(service);
+  return [service];
+};
+
+export let resolveBuildTargets = (opts: {
+  registry: ServiceRegistry;
+  cwd: string;
+  target?: string;
+  all?: boolean;
+  filters?: string[];
+}): ControlService[] =>
+  resolveSelectionTargets({
+    ...opts,
+    allServices: () => opts.registry.services.filter(hasBuild),
+    validate: service => {
+      if (!hasBuild(service)) throw new NoBuildError({ name: service.name });
+    }
+  });
+
+export let resolveTargets = (opts: {
+  registry: ServiceRegistry;
+  cwd: string;
+  target?: string;
+  all?: boolean;
+  filters?: string[];
+  mode?: 'e2e' | 'unit';
+}): ControlService[] => {
+  if ((opts.all || opts.filters?.length) && !opts.mode) {
+    throw new InvalidFlagsError('Mode is required when using --all or --filter');
   }
 
-  return [service];
+  return resolveSelectionTargets({
+    registry: opts.registry,
+    cwd: opts.cwd,
+    target: opts.target,
+    all: opts.all,
+    filters: opts.filters,
+    allServices: () => {
+      if (!opts.mode) throw new InvalidFlagsError('Mode is required when using --all');
+      return opts.registry.services.filter(s => hasTest(s, opts.mode!));
+    },
+    validate: service => {
+      if (opts.mode && !hasTest(service, opts.mode)) {
+        throw new NoTestError({ name: service.name, mode: opts.mode });
+      }
+    }
+  });
 };
 
 export let getRegistry = (opts: { cwd: string; entrypoint?: string }): ServiceRegistry => {

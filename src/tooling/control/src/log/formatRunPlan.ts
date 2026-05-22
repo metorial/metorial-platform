@@ -1,7 +1,7 @@
 import type { ControlService } from '../types';
 
 export let formatRunPlan = (opts: {
-  mode: 'e2e' | 'unit';
+  mode: 'e2e' | 'unit' | 'build';
   controlRoot: string;
   services: ControlService[];
   title?: string;
@@ -25,7 +25,7 @@ export let formatServiceHeader = (opts: {
   index: number;
   total: number;
   service: ControlService;
-  mode: 'e2e' | 'unit';
+  mode: 'e2e' | 'unit' | 'build';
   projectName?: string;
 }): string => {
   let lines: string[] = [];
@@ -45,7 +45,7 @@ export let formatBatchSummary = (opts: {
     errorMessage?: string;
   }[];
   totalDurationMs: number;
-  mode: 'e2e' | 'unit';
+  mode: 'e2e' | 'unit' | 'build';
 }): string => {
   let passed = opts.results.filter(r => r.status === 'passed');
   let failed = opts.results.filter(r => r.status === 'failed');

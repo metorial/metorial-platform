@@ -1,3 +1,23 @@
+export type ControlDatabase = {
+  adapter: 'postgres';
+  name: string;
+  dep?: string;
+  owner?: string;
+  encoding?: string;
+};
+
+export type ResolvedDatabase = {
+  name: string;
+  adapter: 'postgres';
+  dep: string;
+  owner: string;
+  user: string;
+  password: string;
+  host: string;
+  port: number;
+  encoding?: string;
+};
+
 export type ControlDep = {
   name: string;
   preset?: string;
@@ -6,10 +26,9 @@ export type ControlDep = {
   scope?: 'full' | 'service';
   image?: string;
   env?: Record<string, string>;
-  init?: string;
   port?: number;
   inline?: {
-    build?: { context: string; dockerfile: string };
+    build?: { context: string; dockerfile: string; target?: string };
     image?: string;
     command?: string[];
     port?: number;
@@ -25,6 +44,7 @@ export type ControlConfig = {
   service?: {
     port?: number;
     dockerfile?: string;
+    docker_target?: string;
     build_context?: string;
     health?: { path?: string; cmd?: string };
     command?: string[];
@@ -43,6 +63,7 @@ export type ControlConfig = {
     };
   };
   env?: Record<string, string>;
+  databases?: ControlDatabase[];
   deps?: ControlDep[];
 };
 
@@ -67,6 +88,7 @@ export type ResolvedGraph = {
   rootPrefix: string;
   deps: ResolvedDep[];
   depHosts: Record<string, { host: string; port?: number }>;
+  databases: Record<string, ResolvedDatabase>;
   env: Record<string, string>;
   serviceComposeName: string;
   testRunnerComposeName: string;
@@ -127,6 +149,13 @@ export type GlobalGraphEdge = {
 export type GlobalGraph = {
   nodes: GlobalGraphNode[];
   edges: GlobalGraphEdge[];
+};
+
+export type BuildOptions = {
+  entrypoint?: string;
+  verbose?: boolean;
+  tagPrefix?: string;
+  services?: ControlService[];
 };
 
 export type RunOptions = {

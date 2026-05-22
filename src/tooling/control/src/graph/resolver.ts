@@ -3,6 +3,7 @@ import { join, resolve } from 'path';
 import { parse } from 'smol-toml';
 import type { ControlConfig, ControlDep, ResolvedDep, ResolvedGraph } from '../types';
 import { MOCK_DEFINITIONS, PRESET_PORTS } from '../types';
+import { resolveDatabases } from './databases';
 import { interpolateEnv } from './env';
 import { resolveControlDir, resolveOssRoot } from '../entrypoint';
 import type { ServiceRegistry } from '../types';
@@ -139,7 +140,22 @@ export let resolveGraph = (opts: {
     resolvedDeps.push(resolved);
   }
 
-  let env = interpolateEnv(config.env ?? {}, depHosts);
+  let databases = resolveDatabases({
+    name,
+    dir: opts.targetDir,
+    config,
+    entrypoint,
+    ossRoot,
+    rootPrefix,
+    deps: resolvedDeps,
+    depHosts,
+    databases: {},
+    env: {},
+    serviceComposeName,
+    testRunnerComposeName
+  });
+
+  let env = interpolateEnv(config.env ?? {}, { depHosts, databases });
 
   return {
     name,
@@ -150,6 +166,7 @@ export let resolveGraph = (opts: {
     rootPrefix,
     deps: resolvedDeps,
     depHosts,
+    databases,
     env,
     serviceComposeName,
     testRunnerComposeName

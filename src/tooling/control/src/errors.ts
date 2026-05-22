@@ -37,6 +37,16 @@ export class UnknownServiceError extends ControlError {
   }
 }
 
+export class NoBuildError extends ControlError {
+  constructor(opts: { name: string }) {
+    super({
+      code: 'no_build',
+      message: `Service "${opts.name}" has no [service] build config`,
+      hint: 'Run `control ls` to see services with Docker build configuration'
+    });
+  }
+}
+
 export class NoTestError extends ControlError {
   constructor(opts: { name: string; mode: 'e2e' | 'unit' }) {
     super({

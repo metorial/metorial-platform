@@ -1,0 +1,185 @@
+import { resolve } from 'path';
+import { collectRunnerBuilds } from '../compose/builds';
+import { resolveGraph } from '../graph/resolver';
+import { resolveControlDir, resolveEntrypoint, resolveControlCwd } from '../entrypoint';
+import { getRegistry } from '../registry';
+import { planExecutionOrder } from '../graph/planner';
+import { createLogger } from '../log';
+import { formatBatchSummary, formatRunPlan, formatServiceHeader } from '../log/formatRunPlan';
+import { DockerError } from '../errors';
+import type { BatchResult, BatchServiceResult, BuildOptions, ControlService } from '../types';
+import { runShell } from './shell';
+
+type BuildContext = {
+  index: number;
+  total: number;
+  service: ControlService;
+};
+
+let imageTag = (opts: { tagPrefix: string; rootName: string; specName: string }) =>
+  `${opts.tagPrefix}/${opts.rootName}-${opts.specName}:local`;
+
+let runBuildForService = async (
+  opts: BuildOptions & { service: ControlService; context?: BuildContext }
+) => {
+  let logger = createLogger(opts);
+  let cwd = resolveControlCwd();
+  let entrypoint = resolveEntrypoint({ cwd, entrypoint: opts.entrypoint });
+  let registry = getRegistry({ cwd, entrypoint: opts.entrypoint });
+  let targetDir = resolveControlDir(entrypoint, opts.service.relPath);
+  let graph = resolveGraph({ entrypoint, targetDir, registry });
+  let tagPrefix = opts.tagPrefix ?? 'control';
+
+  if (opts.context) {
+    logger.section(
+      formatServiceHeader({
+        index: opts.context.index,
+        total: opts.context.total,
+        service: opts.context.service,
+        mode: 'build'
+      })
+    );
+  }
+
+  let specs = collectRunnerBuilds(graph);
+  logger.info(`Building ${specs.length} runner image(s) for ${graph.name}...`);
+
+  for (let spec of specs) {
+    let dockerfilePath = resolve(spec.context, spec.dockerfile);
+    let tag = imageTag({ tagPrefix, rootName: graph.name, specName: spec.name });
+
+    logger.info(`Building ${spec.name} (${spec.target}) ...`);
+
+    let cmd = [
+      'docker',
+      'build',
+      '-f',
+      dockerfilePath,
+      '--target',
+      spec.target,
+      '-t',
+      tag
+    ];
+
+    if (process.env.SENTRY_AUTH_TOKEN) {
+      cmd.push('--build-arg', `SENTRY_AUTH_TOKEN=${process.env.SENTRY_AUTH_TOKEN}`);
+    }
+
+    cmd.push(spec.context);
+
+    await runShell(cmd, {
+      phase: 'build',
+      service: graph.name,
+      verbose: opts.verbose
+    });
+
+    logger.success(`✓ ${tag}`);
+  }
+};
+
+let getFailedPhase = (err: Error): string | undefined => {
+  if ('failedPhase' in err && typeof (err as { failedPhase?: string }).failedPhase === 'string') {
+    return (err as { failedPhase?: string }).failedPhase;
+  }
+  if (err instanceof DockerError) return err.phase;
+  return undefined;
+};
+
+export let runBuildBatch = async (
+  opts: BuildOptions & { services: ControlService[] }
+): Promise<BatchResult> => {
+  let logger = createLogger(opts);
+  let registry = getRegistry({ cwd: resolveControlCwd(), entrypoint: opts.entrypoint });
+  let ordered = planExecutionOrder(opts.services, registry);
+  let passed: string[] = [];
+  let failed: { name: string; error: Error; phase?: string }[] = [];
+  let results: BatchServiceResult[] = [];
+  let batchStarted = Date.now();
+
+  for (let i = 0; i < ordered.length; i++) {
+    let service = ordered[i]!;
+    let started = Date.now();
+
+    try {
+      await runBuildForService({
+        ...opts,
+        service,
+        context: { index: i + 1, total: ordered.length, service }
+      });
+      let durationMs = Date.now() - started;
+      passed.push(service.name);
+      results.push({
+        name: service.name,
+        relPath: service.relPath,
+        status: 'passed',
+        durationMs
+      });
+      logger.success(`✓ ${service.name} built (${Math.round(durationMs / 1000)}s)`);
+      logger.blank();
+    } catch (err) {
+      let error = err instanceof Error ? err : new Error(String(err));
+      let phase = getFailedPhase(error);
+      let durationMs = Date.now() - started;
+      failed.push({ name: service.name, error, phase });
+      results.push({
+        name: service.name,
+        relPath: service.relPath,
+        status: 'failed',
+        durationMs,
+        error,
+        phase
+      });
+      logger.error(`✗ ${service.name} failed${phase ? ` during ${phase}` : ''}: ${error.message}`);
+      logger.blank();
+    }
+  }
+
+  let totalDurationMs = Date.now() - batchStarted;
+
+  logger.section(
+    formatBatchSummary({
+      mode: 'build',
+      totalDurationMs,
+      results: results.map(r => ({
+        name: r.name,
+        relPath: r.relPath,
+        status: r.status,
+        durationMs: r.durationMs,
+        phase: r.phase,
+        errorMessage: r.error?.message
+      }))
+    })
+  );
+
+  return { passed, failed, results, totalDurationMs };
+};
+
+export let runBuildTargets = async (opts: BuildOptions & { services: ControlService[] }) => {
+  let logger = createLogger(opts);
+  let registry = getRegistry({ cwd: resolveControlCwd(), entrypoint: opts.entrypoint });
+  let ordered = planExecutionOrder(opts.services, registry);
+
+  logger.section(
+    formatRunPlan({
+      mode: 'build',
+      controlRoot: registry.controlRoot,
+      services: ordered,
+      title: 'Control build'
+    })
+  );
+  logger.blank();
+
+  if (ordered.length === 1) {
+    await runBuildForService({
+      ...opts,
+      service: ordered[0]!,
+      context: { index: 1, total: 1, service: ordered[0]! }
+    });
+    return;
+  }
+
+  let result = await runBuildBatch(opts);
+  if (result.failed.length > 0) {
+    process.exit(1);
+  }
+};

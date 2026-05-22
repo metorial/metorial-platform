@@ -33,8 +33,12 @@ RUN mv tsconfig.json tsconfig.json.bak && \
   mv tsconfig.json.bak tsconfig.json; \
   exit $BUILD_EXIT_CODE
 
+FROM builder AS workspace
+WORKDIR /app/src/systems/subspace/apps/public
+CMD ["sleep", "infinity"]
+
 # Production stage
-FROM oven/bun:1-alpine AS production
+FROM oven/bun:1-alpine AS runner
 
 WORKDIR /app
 
