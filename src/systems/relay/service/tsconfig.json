@@ -28,6 +28,8 @@
   "exclude": [
     "node_modules",
     "tests/e2e",
-    "tests/helpers"
+    "tests/helpers",
+    "vitest.config.ts",
+    "vitest.*.config.ts"
   ]
 }

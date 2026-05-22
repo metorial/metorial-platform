@@ -9,6 +9,7 @@ health = { cmd = "nc -z localhost 52091" }
 
 [test.unit]
 command = "go test ./..."
+setup = ["sh ../../scripts/build-code-workspace.sh"]
 cwd = "/app/src/systems/origin/apps/code-bucket"
 
 [test.e2e]

@@ -1,6 +1,8 @@
 import { resolve } from 'path';
 import { defineConfig } from 'vitest/config';
 
+let clientsRoot = resolve(__dirname, '../../_clients');
+
 export default defineConfig({
   test: {
     include: ['src/**/*.test.ts'],
@@ -9,7 +11,10 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@function-bay/types': resolve(__dirname, '../packages/types/src/index.ts')
+      '@metorial-platform-systems/object-storage-client': resolve(
+        clientsRoot,
+        'object-storage/src/index.ts'
+      )
     }
   }
 });

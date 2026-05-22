@@ -13,5 +13,11 @@
     "strict": false,
     "esModuleInterop": true,
     "resolveJsonModule": true
-  }
+  },
+  "exclude": [
+    "vitest.config.ts",
+    "vitest.*.config.ts",
+    "**/*.test.ts",
+    "**/*.e2e.test.ts"
+  ]
 }

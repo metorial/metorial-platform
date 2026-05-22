@@ -18,6 +18,10 @@ export default defineConfig(({ mode }) => {
   });
 
   return withAliases(config, {
-    '@function-bay/types': resolve(__dirname, '../packages/types/src/index.ts')
+    '@function-bay/types': resolve(__dirname, '../packages/types/src/index.ts'),
+    '@metorial-platform-systems/object-storage-client': resolve(
+      __dirname,
+      '../../_clients/object-storage/src/index.ts'
+    )
   });
 });
