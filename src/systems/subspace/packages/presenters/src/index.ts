@@ -16,6 +16,7 @@ export * from './callbackDestination';
 export * from './callbackEvent';
 export * from './callbackInstance';
 export * from './customProvider';
+export * from './presentCustomProviderFrom';
 export * from './customProviderCommit';
 export * from './customProviderDeployment';
 export * from './customProviderEnvironment';

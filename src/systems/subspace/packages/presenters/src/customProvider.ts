@@ -17,6 +17,7 @@ import type {
   ShuttleContainerTag
 } from '@metorial-subspace/provider-shuttle';
 import { bucketPresenter } from './bucket';
+import { presentCustomProviderFrom } from './presentCustomProviderFrom';
 import { providerPresenter } from './provider';
 import { scmRepositoryPresenter } from './scmRepository';
 
@@ -53,7 +54,7 @@ export let customProviderPresenter = async (
     remoteUrl?: string;
     remoteProtocol?: 'sse' | 'streamable_http';
   },
-  d: { tenant: Tenant }
+  d: { tenant: Tenant; includeEnv?: boolean }
 ) => ({
   object: 'custom_provider',
 
@@ -91,11 +92,9 @@ export let customProviderPresenter = async (
       : null,
 
     from: customProvider.payload?.from
-      ? {
-          object: 'custom_provider.from',
-          ...customProvider.payload.from,
-          env: {}
-        }
+      ? presentCustomProviderFrom(customProvider.payload.from, {
+          includeEnv: d.includeEnv
+        })
       : null
   },
 

@@ -10,6 +10,7 @@ export * from './loaders/organizationMember';
 export * from './loaders/project';
 export * from './loaders/projectBrand';
 export * from './loaders/projectRetention';
+export * from './loaders/projectAuthConfigConfiguration';
 export * from './loaders/team';
 
 export * from './current';

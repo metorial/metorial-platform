@@ -24,6 +24,9 @@ model Tenant {
   logRetentionInDays     Int     @default(30)
   enforceSessionExpiry Boolean @default(false)
 
+  allowAuthConfigExport Boolean @default(false)
+  allowAuthConfigImport Boolean @default(false)
+
   providers                                Provider[]
   providerListingGroups                    ProviderListingGroup[]
   providerListings                         ProviderListing[]

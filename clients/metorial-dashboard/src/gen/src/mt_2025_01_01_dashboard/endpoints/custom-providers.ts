@@ -6,6 +6,7 @@ import {
 import {
   mapDashboardInstanceCustomProvidersCreateBody,
   mapDashboardInstanceCustomProvidersCreateOutput,
+  mapDashboardInstanceCustomProvidersGetEnvOutput,
   mapDashboardInstanceCustomProvidersGetOutput,
   mapDashboardInstanceCustomProvidersListOutput,
   mapDashboardInstanceCustomProvidersListQuery,
@@ -13,6 +14,7 @@ import {
   mapDashboardInstanceCustomProvidersUpdateOutput,
   type DashboardInstanceCustomProvidersCreateBody,
   type DashboardInstanceCustomProvidersCreateOutput,
+  type DashboardInstanceCustomProvidersGetEnvOutput,
   type DashboardInstanceCustomProvidersGetOutput,
   type DashboardInstanceCustomProvidersListOutput,
   type DashboardInstanceCustomProvidersListQuery,
@@ -101,6 +103,33 @@ export class MetorialCustomProvidersEndpoint {
 
     return this._get(request).transform(
       mapDashboardInstanceCustomProvidersGetOutput
+    );
+  }
+
+  /**
+   * @name Get custom provider environment
+   * @description Retrieves the environment variables for a specific custom provider by ID.
+   *
+   * @param `customProviderId` - string
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardInstanceCustomProvidersGetEnvOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  getEnv(
+    customProviderId: string,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceCustomProvidersGetEnvOutput> {
+    let path = `custom-providers/${customProviderId}/env`;
+
+    let request = {
+      path,
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._get(request).transform(
+      mapDashboardInstanceCustomProvidersGetEnvOutput
     );
   }
 

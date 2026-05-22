@@ -80,3 +80,4 @@ export * from './skillItem';
 export * from './skillTemplate';
 export * from './skillTemplateItem';
 export * from './toolCall';
+export * from './tenant';

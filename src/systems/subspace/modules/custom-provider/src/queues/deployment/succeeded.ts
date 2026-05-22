@@ -35,14 +35,35 @@ export let customDeploymentSucceededQueueProcessor = customDeploymentSucceededQu
     let commit = deployment?.commit;
 
     if (!deployment) throw new QueueRetryError();
+
     if (
       !customProviderVersion ||
       !shuttleServerRecord ||
       !shuttleServerVersionRecord ||
       !sourceEnvironment ||
       !commit
-    )
+    ) {
+      throw new QueueRetryError();
+    }
+
+    if (customProviderVersion.providerVersionOid) {
+      if (deployment.status !== 'succeeded') {
+        await db.customProviderDeployment.updateMany({
+          where: { id: deployment.id },
+          data: {
+            status: 'succeeded',
+            startedAt: deployment.startedAt ?? new Date(),
+            endedAt: deployment.endedAt ?? new Date()
+          }
+        });
+      }
+
+      if (commit.status !== 'applied') {
+        await commitApplyQueue.add({ customProviderCommitId: commit.id });
+      }
+
       return;
+    }
 
     let tenant = await getTenantForShuttle(deployment.tenant);
 
@@ -56,61 +77,61 @@ export let customDeploymentSucceededQueueProcessor = customDeploymentSucceededQu
     });
 
     await withTransaction(async db => {
-      let versionRes = await upsertShuttleServerVersion({
-        shuttleServer,
-        shuttleServerVersion,
+        let versionRes = await upsertShuttleServerVersion({
+          shuttleServer,
+          shuttleServerVersion,
 
-        shuttleServerRecord,
-        shuttleServerVersionRecord
-      });
+          shuttleServerRecord,
+          shuttleServerVersionRecord
+        });
 
-      await linkNewShuttleVersionToCustomProvider({
-        ...versionRes,
-        customProviderVersion
-      });
+        await linkNewShuttleVersionToCustomProvider({
+          ...versionRes,
+          customProviderVersion
+        });
 
-      await ensureEnvironments(customProviderVersion);
+        await ensureEnvironments(customProviderVersion);
 
-      let sourceEnvFull = await db.customProviderEnvironment.findUniqueOrThrow({
-        where: { oid: sourceEnvironment.oid },
-        include: {
-          providerEnvironment: {
-            include: {
-              currentVersion: {
-                include: { customProviderVersion: true }
+        let sourceEnvFull = await db.customProviderEnvironment.findUniqueOrThrow({
+          where: { oid: sourceEnvironment.oid },
+          include: {
+            providerEnvironment: {
+              include: {
+                currentVersion: {
+                  include: { customProviderVersion: true }
+                }
               }
             }
           }
-        }
+        });
+
+        await db.customProviderCommit.updateMany({
+          where: { oid: commit.oid },
+          data: {
+            toEnvironmentOid: sourceEnvFull.oid,
+            toEnvironmentVersionBeforeOid:
+              sourceEnvFull.providerEnvironment?.currentVersion?.customProviderVersion?.oid
+          }
+        });
+
+        await addAfterTransactionHook(() =>
+          commitApplyQueue.add({ customProviderCommitId: commit.id })
+        );
+
+        await addAfterTransactionHook(() =>
+          customDeploymentPropagateToOtherEnvironmentsQueue.add({
+            customProviderDeploymentId: deployment.id
+          })
+        );
+
+        await db.customProviderDeployment.updateMany({
+          where: { id: deployment.id },
+          data: {
+            status: 'succeeded',
+            startedAt: deployment.startedAt ?? new Date(),
+            endedAt: deployment.endedAt ?? new Date()
+          }
+        });
       });
-
-      await db.customProviderCommit.updateMany({
-        where: { oid: commit.oid },
-        data: {
-          toEnvironmentOid: sourceEnvFull.oid,
-          toEnvironmentVersionBeforeOid:
-            sourceEnvFull.providerEnvironment?.currentVersion?.customProviderVersion?.oid
-        }
-      });
-
-      await addAfterTransactionHook(() =>
-        commitApplyQueue.add({ customProviderCommitId: commit.id })
-      );
-
-      await addAfterTransactionHook(() =>
-        customDeploymentPropagateToOtherEnvironmentsQueue.add({
-          customProviderDeploymentId: deployment.id
-        })
-      );
-
-      await db.customProviderDeployment.updateMany({
-        where: { id: deployment.id },
-        data: {
-          status: 'succeeded',
-          startedAt: deployment.startedAt ?? new Date(),
-          endedAt: deployment.endedAt ?? new Date()
-        }
-      });
-    });
   }
 );

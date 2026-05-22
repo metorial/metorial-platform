@@ -131,6 +131,8 @@ export let mapDashboardInstanceToolCallsGetOutput =
           'identity_actor_id',
           mtMap.passthrough()
         ),
+        identityId: mtMap.objectField('identity_id', mtMap.passthrough()),
+        agentActorId: mtMap.objectField('agent_actor_id', mtMap.passthrough()),
         agentClientId: mtMap.objectField(
           'agent_client_id',
           mtMap.passthrough()
@@ -168,6 +170,8 @@ export let mapDashboardInstanceToolCallsGetOutput =
           'identity_actor_id',
           mtMap.passthrough()
         ),
+        identityId: mtMap.objectField('identity_id', mtMap.passthrough()),
+        agentActorId: mtMap.objectField('agent_actor_id', mtMap.passthrough()),
         agentClientId: mtMap.objectField(
           'agent_client_id',
           mtMap.passthrough()

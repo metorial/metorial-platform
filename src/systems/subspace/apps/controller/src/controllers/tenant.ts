@@ -61,6 +61,8 @@ export let tenantController = app.controller({
         isWhitelabel: v.optional(v.boolean()),
         logRetentionInDays: v.optional(v.number()),
         enforceSessionExpiry: v.optional(v.boolean()),
+        allowAuthConfigExport: v.optional(v.boolean()),
+        allowAuthConfigImport: v.optional(v.boolean()),
         environments: v.array(
           v.object({
             name: v.string(),
@@ -79,7 +81,9 @@ export let tenantController = app.controller({
           onlyAllowTrustedProviders: ctx.input.onlyAllowTrustedProviders,
           isWhitelabel: ctx.input.isWhitelabel,
           logRetentionInDays: ctx.input.logRetentionInDays,
-          enforceSessionExpiry: ctx.input.enforceSessionExpiry
+          enforceSessionExpiry: ctx.input.enforceSessionExpiry,
+          allowAuthConfigExport: ctx.input.allowAuthConfigExport,
+          allowAuthConfigImport: ctx.input.allowAuthConfigImport
         }
       });
       return tenantPresenter(tenant);

@@ -11,7 +11,11 @@ import type { InitializeRequest, JSONRPCMessage } from '@modelcontextprotocol/sd
 import { PrismaPg } from '@prisma/adapter-pg';
 import { readReplicas } from '@prisma/extension-read-replicas';
 import { PrismaClient } from '../prisma/generated/client';
-import type { CustomProviderConfig, CustomProviderFrom } from './types';
+import type {
+  CustomProviderConfig,
+  CustomProviderFrom,
+  CustomProviderFromUpdate
+} from './types';
 export type { EntityImage } from '../../../_shared/entityImage';
 
 let mainAdapter = new PrismaPg({
@@ -161,6 +165,11 @@ declare global {
     type CustomProviderPayload = {
       from: CustomProviderFrom;
       config: CustomProviderConfig | undefined;
+    };
+
+    type UpcomingCustomProviderPayload = {
+      from?: CustomProviderFromUpdate;
+      config?: CustomProviderConfig;
     };
 
     type ProviderTypeAttributes = {

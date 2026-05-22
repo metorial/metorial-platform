@@ -8,7 +8,10 @@ import { actorService } from '@metorial-subspace/module-tenant';
 import { customProviderVersionPresenter } from '@metorial-subspace/presenters';
 import { app } from './_app';
 import { createdAtValidator, updatedAtValidator } from './_dateFilter';
-import { customProviderConfigValidator, customProviderFromValidator } from './customProvider';
+import {
+  customProviderConfigValidator,
+  customProviderFromUpdateValidator
+} from './customProvider';
 import { tenantApp } from './tenant';
 
 export let customProviderVersionApp = tenantApp.use(async ctx => {
@@ -48,7 +51,9 @@ export let customProviderVersionController = app.controller({
           customProviderEnvironmentIds: v.optional(v.array(v.string())),
 
           createdAt: createdAtValidator,
-          updatedAt: updatedAtValidator
+          updatedAt: updatedAtValidator,
+
+          includeEnv: v.optional(v.boolean())
         })
       )
     )
@@ -73,7 +78,9 @@ export let customProviderVersionController = app.controller({
 
       let list = await paginator.run(ctx.input);
 
-      return Paginator.presentLight(list, customProviderVersionPresenter);
+      return Paginator.presentLight(list, v =>
+        customProviderVersionPresenter(v, { includeEnv: ctx.input.includeEnv })
+      );
     }),
 
   get: customProviderVersionApp
@@ -82,10 +89,16 @@ export let customProviderVersionController = app.controller({
       v.object({
         tenantId: v.string(),
         environmentId: v.string(),
-        customProviderVersionId: v.string()
+        customProviderVersionId: v.string(),
+
+        includeEnv: v.optional(v.boolean())
       })
     )
-    .do(async ctx => customProviderVersionPresenter(ctx.customProviderVersion)),
+    .do(async ctx =>
+      customProviderVersionPresenter(ctx.customProviderVersion, {
+        includeEnv: ctx.input.includeEnv
+      })
+    ),
 
   create: tenantApp
     .handler()
@@ -99,8 +112,10 @@ export let customProviderVersionController = app.controller({
 
         message: v.optional(v.string()),
 
-        from: customProviderFromValidator,
-        config: customProviderConfigValidator
+        from: v.optional(customProviderFromUpdateValidator),
+        config: customProviderConfigValidator,
+
+        includeEnv: v.optional(v.boolean())
       })
     )
     .do(async ctx => {
@@ -132,6 +147,8 @@ export let customProviderVersionController = app.controller({
           }
         });
 
-      return customProviderVersionPresenter(customProviderVersion);
+      return customProviderVersionPresenter(customProviderVersion, {
+        includeEnv: ctx.input.includeEnv
+      });
     })
 });

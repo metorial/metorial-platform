@@ -164,6 +164,7 @@ export * from './dashboard_organizations_service-accounts_policies';
 export * from './dashboard_organizations_teams';
 export * from './dashboard_organizations_teams_members';
 export * from './dashboard_organizations_teams_policies';
+export * from './dashboard_projects_configure_auth-config';
 export * from './dashboard_projects_configure_retention';
 export * from './dashboard_usage';
 export * from './documents';

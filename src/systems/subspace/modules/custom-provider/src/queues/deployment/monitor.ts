@@ -30,7 +30,9 @@ export let customDeploymentMonitorQueueProcessor = customDeploymentMonitorQueue.
     let shuttleDeploymentRecord = deployment.shuttleCustomServerDeployment;
     let shuttleCustomServerRecord = deployment.shuttleCustomServer;
     let shuttleServerRecord = shuttleCustomServerRecord?.server;
-    if (!shuttleDeploymentRecord || !shuttleCustomServerRecord || !shuttleServerRecord) return;
+    if (!shuttleDeploymentRecord || !shuttleCustomServerRecord || !shuttleServerRecord) {
+      throw new QueueRetryError();
+    }
 
     let shuttleTenant = await getTenantForShuttle(deployment.tenant);
     let shuttleDeployment = await shuttle.serverDeployment.get({
@@ -98,7 +100,7 @@ export let customDeploymentMonitorQueueProcessor = customDeploymentMonitorQueue.
             customProviderDeploymentId: deployment.id
           });
           return;
-        } catch (err) {
+        } catch {
           throw new QueueRetryError();
         }
       }

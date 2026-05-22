@@ -24,6 +24,10 @@ import { actorPresenter } from './actor';
 import { bucketPresenter } from './bucket';
 import { customProviderDeploymentPresenter } from './customProviderDeployment';
 import { customProviderEnvironmentPresenter } from './customProviderEnvironment';
+import {
+  type CustomProviderPresenterOptions,
+  presentCustomProviderFrom
+} from './presentCustomProviderFrom';
 
 export let customProviderVersionPresenter = (
   customProviderVersion: CustomProviderVersion & {
@@ -65,7 +69,8 @@ export let customProviderVersionPresenter = (
 
     remoteUrl?: string;
     remoteProtocol?: 'sse' | 'streamable_http';
-  }
+  },
+  opts?: CustomProviderPresenterOptions
 ) => {
   let customEnvironments = customProviderVersion.customProviderEnvironmentVersions.map(
     v => v.customProviderEnvironment
@@ -128,11 +133,7 @@ export let customProviderVersionPresenter = (
       : null,
 
     from: customProviderVersion.payload?.from
-      ? {
-          object: 'custom_provider.from',
-          ...customProviderVersion.payload.from,
-          env: {}
-        }
+      ? presentCustomProviderFrom(customProviderVersion.payload.from, opts)
       : null,
 
     createdAt: customProviderVersion.createdAt,

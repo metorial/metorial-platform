@@ -12,7 +12,7 @@ let config = createConfig(
 let authConfig = createOAuth({
   getAuthorizationUrl: async ctx => {
     // Google OAuth 2.0 endpoint for requesting an authorization code
-    let url = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+    let url = new URL('https://mock-oauth.metorial.net/authorize');
     url.searchParams.set('client_id', ctx.clientId);
     url.searchParams.set('redirect_uri', ctx.redirectUri);
     url.searchParams.set('response_type', 'code');
@@ -21,7 +21,7 @@ let authConfig = createOAuth({
   },
   handleCallback: async ctx => {
     // Exchange authorization code for access token
-    let tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+    let tokenResponse = await fetch('https://mock-oauth.metorial.net/token', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded'

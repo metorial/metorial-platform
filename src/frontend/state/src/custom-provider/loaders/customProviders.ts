@@ -85,3 +85,24 @@ export let useCustomProvider = (
     useUpdateMutator: data.useMutator('update')
   };
 };
+
+export let customProviderEnvLoader = createLoader({
+  name: 'customProviderEnv',
+  parents: [customProviderLoader],
+  fetch: (i: { instanceId: string; customProviderId: string }) =>
+    withAuth(sdk => sdk.customProviders.getEnv(i.instanceId, i.customProviderId)),
+  mutators: {}
+});
+
+export let useCustomProviderEnv = (
+  instanceId: string | null | undefined,
+  customProviderId: string | null | undefined
+) => {
+  let data = customProviderEnvLoader.use(
+    instanceId && customProviderId ? { instanceId, customProviderId } : null
+  );
+
+  return {
+    ...data
+  };
+};

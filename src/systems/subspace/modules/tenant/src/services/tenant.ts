@@ -16,6 +16,8 @@ class tenantServiceImpl {
       isWhitelabel?: boolean;
       logRetentionInDays?: number;
       enforceSessionExpiry?: boolean;
+      allowAuthConfigExport?: boolean;
+      allowAuthConfigImport?: boolean;
       environments: {
         name: string;
         identifier: string;
@@ -39,7 +41,9 @@ class tenantServiceImpl {
           onlyAllowTrustedProviders: d.input.onlyAllowTrustedProviders,
           isWhitelabel: d.input.isWhitelabel,
           logRetentionInDays: d.input.logRetentionInDays,
-          enforceSessionExpiry: d.input.enforceSessionExpiry
+          enforceSessionExpiry: d.input.enforceSessionExpiry,
+          allowAuthConfigExport: d.input.allowAuthConfigExport,
+          allowAuthConfigImport: d.input.allowAuthConfigImport
         },
         create: {
           ...getId('tenant'),
@@ -49,6 +53,8 @@ class tenantServiceImpl {
           isWhitelabel: d.input.isWhitelabel,
           logRetentionInDays: d.input.logRetentionInDays ?? 30,
           enforceSessionExpiry: d.input.enforceSessionExpiry ?? false,
+          allowAuthConfigExport: d.input.allowAuthConfigExport ?? false,
+          allowAuthConfigImport: d.input.allowAuthConfigImport ?? false,
 
           urlKey: generatePlainId(10).toLowerCase()
         }
