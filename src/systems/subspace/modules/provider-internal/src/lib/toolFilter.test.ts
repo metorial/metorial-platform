@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { buildIntegrationProviderToolFilterChain, checkToolAccess } from './toolFilter';
+import {
+  buildIntegrationProviderToolFilterChain,
+  checkToolAccess,
+  resolveSessionProviderToolFilterChain
+} from './toolFilter';
 
 let createTool = (key: string) =>
   ({
@@ -199,5 +203,93 @@ describe('buildIntegrationProviderToolFilterChain', () => {
     expect(checkToolAccess(divideTool, sessionProviderWithChain, 'list')).toEqual({
       allowed: false
     });
+  });
+});
+
+let createMcpTool = (d: { key: string; mcpToolType: Record<string, unknown> }) =>
+  ({
+    id: `ptl_${d.key}`,
+    key: `${d.key}_67228`,
+    callableId: d.key,
+    value: {
+      key: d.key,
+      mcpToolType: d.mcpToolType
+    }
+  }) as any;
+
+describe('resolveSessionProviderToolFilterChain', () => {
+  it('lets session filters with ignoreParentFilters replace deployment filters', () => {
+    let echoTool = createTool('echo');
+    let addTool = createTool('add');
+    let provider = {
+      config: { toolFilter: { type: 'v1.allow_all' } },
+      authConfig: null,
+      deployment: {
+        toolFilter: {
+          type: 'v1.filter',
+          filters: [{ type: 'tool_keys', keys: ['add'] }]
+        }
+      },
+      toolFilter: {
+        type: 'v1.filter',
+        ignoreParentFilters: true,
+        filters: [{ type: 'tool_keys', keys: ['echo'] }]
+      }
+    } as any;
+
+    expect(checkToolAccess(echoTool, provider, 'list')).toEqual({ allowed: true });
+    expect(checkToolAccess(addTool, provider, 'list')).toEqual({ allowed: false });
+  });
+
+  it('matches resource_regex filters against resource template uri templates', () => {
+    let userTemplate = createMcpTool({
+      key: 'user_template',
+      mcpToolType: {
+        type: 'mcp.resource_template',
+        uriTemplate: 'test://user/{id}'
+      }
+    });
+    let logTemplate = createMcpTool({
+      key: 'log_template',
+      mcpToolType: {
+        type: 'mcp.resource_template',
+        uriTemplate: 'test://log/{date}'
+      }
+    });
+    let provider = {
+      config: { toolFilter: { type: 'v1.allow_all' } },
+      authConfig: null,
+      deployment: { toolFilter: { type: 'v1.allow_all' } },
+      toolFilter: {
+        type: 'v1.filter',
+        filters: [{ type: 'resource_regex', pattern: '^test://user/[^/]+$' }]
+      }
+    } as any;
+
+    expect(checkToolAccess(userTemplate, provider, 'list')).toEqual({ allowed: true });
+    expect(checkToolAccess(logTemplate, provider, 'list')).toEqual({ allowed: false });
+  });
+
+  it('matches prompt_keys filters against prompt tools', () => {
+    let summarizePrompt = createMcpTool({
+      key: 'summarize',
+      mcpToolType: { type: 'mcp.prompt', key: 'summarize' }
+    });
+    let codeReviewPrompt = createMcpTool({
+      key: 'code_review',
+      mcpToolType: { type: 'mcp.prompt', key: 'code_review' }
+    });
+    let chain = resolveSessionProviderToolFilterChain({
+      config: { toolFilter: { type: 'v1.allow_all' } },
+      authConfig: null,
+      deployment: { toolFilter: { type: 'v1.allow_all' } },
+      toolFilter: {
+        type: 'v1.filter',
+        filters: [{ type: 'prompt_keys', keys: ['summarize'] }]
+      }
+    });
+
+    expect(checkToolAccess(summarizePrompt, chain, 'list')).toEqual({ allowed: true });
+    expect(checkToolAccess(codeReviewPrompt, chain, 'list')).toEqual({ allowed: false });
   });
 });

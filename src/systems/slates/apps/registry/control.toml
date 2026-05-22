@@ -1,0 +1,39 @@
+[control]
+name = "slates-registry"
+
+[service]
+port = 52040
+dockerfile = "src/systems/slates/apps/registry/dev.Dockerfile"
+build_context = "oss"
+health = { path = "/ping" }
+
+[test.e2e]
+command = "bun run test"
+setup = ["bun prisma generate", "bun prisma db push --accept-data-loss"]
+cwd = "/app/src/systems/slates/apps/registry"
+runner = "service"
+
+[env]
+DATABASE_URL = "postgresql://slates-registry:slates-registry@$deps.postgres.5432/slates-registry"
+REDIS_URL = "redis://$deps.redis.6379/0"
+OBJECT_STORAGE_URL = "http://$deps.object-store.52010"
+PACKAGE_BUCKET_NAME = "slates-registry-packages-test"
+SERVICE_PUBLIC_URL = "http://slates-registry:52040"
+PUBLIC_ACCESS_PERMITTED = "true"
+
+[[deps]]
+name = "postgres"
+preset = "postgres"
+
+[deps.env]
+POSTGRES_USER = "slates-registry"
+POSTGRES_PASSWORD = "slates-registry"
+POSTGRES_DB = "slates-registry"
+
+[[deps]]
+name = "redis"
+preset = "redis"
+
+[[deps]]
+name = "object-store"
+mock = "object-store"

@@ -97,3 +97,11 @@ export let plainTemplate = template({
   description: 'A plain skill template with no items.',
   items: plainSkillTemplateItems
 });
+
+export let ensurePlainTemplate = () =>
+  template({
+    identifier: 'plain',
+    name: 'Plain',
+    description: 'A plain skill template with no items.',
+    items: plainSkillTemplateItems
+  });

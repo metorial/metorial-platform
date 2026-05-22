@@ -1,14 +1,4 @@
-process.env.CARGO_API_PORT ??= '52150';
-process.env.CARGO_CONTENT_PORT ??= '52151';
-process.env.CARGO_HEALTH_PORT ??= '12121';
-process.env.REDIS_URL ??= 'redis://localhost:56379/0';
-process.env.VOYAGER_URL ??= 'http://voyager.test/metorial-voyager';
-process.env.OBJECT_STORAGE_URL ??= 'http://object-storage.test';
-process.env.FILES_BUCKET_NAME ??= 'cargo-files-test';
-process.env.DOWNLOAD_PUBLIC_URL ??= 'http://cargo-content.test';
-process.env.API_URL ??= 'http://cargo-api.test';
-process.env.CARGO_REGION ??= 'tst';
-process.env.SIGNED_DOWNLOAD_URL_TOKEN_SECRET ??= 'cargo-download-test-secret';
+import './preload-env';
 
 import { PrismaPg } from '@prisma/adapter-pg';
 import { flushAfterTransactionHooks, PrismaClient } from '@metorial-cargo/db';

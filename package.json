@@ -4,6 +4,7 @@
   "scripts": {
     "build": "turbo run --ui=stream build",
     "generate:client": "turbo run generate:client && turbo run build",
+    "control": "bun run --cwd ./src/tooling/control ./src/cli.ts",
     "client:generate": "bun run generate:client",
     "client:generate:dashboard": "turbo run generate:client:dashboard",
     "client:generate:consumer": "turbo run generate:client:consumer",
@@ -42,6 +43,8 @@
     "src/systems/*/*/*",
     "src/systems/*/*/*/*",
     "src/systems/*/*/*/*/*"
+    ,
+    "src/tooling/*"
   ],
   "dependencies": {
     "sade": "^1.8.1",

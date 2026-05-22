@@ -1,5 +1,6 @@
 import { createHono } from '@lowerdeck/hono';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+import { applySessionProviderNameTemplate } from '@metorial-subspace/module-session/src/lib/sessionProviderNameTemplate';
 import { describe, expect, it } from 'vitest';
 import { createMcpE2eContext } from '../../test/fixtures';
 import { createHonoFetchAdapter } from '../../test/helpers/honoFetchAdapter';
@@ -24,6 +25,18 @@ let transportCases = [
 ] as const;
 
 let defaultTransportCase = transportCases[0];
+
+let getSessionProviderNameTemplate = async (sessionOid: bigint) => {
+  let sessionProvider = await testDb.sessionProvider.findFirstOrThrow({
+    where: { sessionOid, status: 'active' }
+  });
+
+  expect(sessionProvider.nameTemplate).toBeTruthy();
+  return sessionProvider.nameTemplate!;
+};
+
+let withNameTemplate = (template: string, original: string) =>
+  applySessionProviderNameTemplate(template, original);
 
 describe('mcp.e2e', () => {
   let lifecycle = setupMcpE2ELifecycle();
@@ -149,6 +162,7 @@ describe('mcp.e2e', () => {
 
       try {
         await mcp.connect();
+        let nameTemplate = await getSessionProviderNameTemplate(ctx.session.oid);
 
         let tools = await mcp.client.listTools();
         let toolNames = tools.tools.map(t => t.name);
@@ -162,15 +176,29 @@ describe('mcp.e2e', () => {
 
         let resourceTemplates = await mcp.client.listResourceTemplates();
         let templateUris = resourceTemplates.resourceTemplates.map(t => t.uriTemplate);
-        expect(templateUris.some(uri => uri.startsWith('test://user/{id}'))).toBe(true);
-        expect(templateUris.some(uri => uri.startsWith('test://log/{date}'))).toBe(false);
+        expect(
+          templateUris.some(uri => uri.startsWith(withNameTemplate(nameTemplate, 'test://user/{id}')))
+        ).toBe(true);
+        expect(
+          templateUris.some(uri => uri.startsWith(withNameTemplate(nameTemplate, 'test://log/{date}')))
+        ).toBe(false);
 
         let resources = await mcp.client.listResources();
         let resourceUris = resources.resources.map(r => r.uri);
-        expect(resourceUris.some(uri => uri.startsWith('test://data/config_'))).toBe(true);
-        expect(resourceUris.some(uri => uri.startsWith('test://data/users_'))).toBe(false);
+        expect(
+          resourceUris.some(uri =>
+            uri.startsWith(withNameTemplate(nameTemplate, 'test://data/config'))
+          )
+        ).toBe(true);
+        expect(
+          resourceUris.some(uri =>
+            uri.startsWith(withNameTemplate(nameTemplate, 'test://data/users'))
+          )
+        ).toBe(false);
 
-        let configResource = resourceUris.find(uri => uri.startsWith('test://data/config_'));
+        let configResource = resourceUris.find(uri =>
+          uri.startsWith(withNameTemplate(nameTemplate, 'test://data/config'))
+        );
         expect(configResource).toBeTruthy();
 
         let configContents = await mcp.client.readResource({ uri: configResource! });
@@ -215,6 +243,7 @@ describe('mcp.e2e', () => {
 
       try {
         await mcp.connect();
+        let nameTemplate = await getSessionProviderNameTemplate(ctx.session.oid);
 
         let tools = await mcp.client.listTools();
         let toolNames = tools.tools.map(t => t.name);
@@ -228,15 +257,25 @@ describe('mcp.e2e', () => {
 
         let resources = await mcp.client.listResources();
         let resourceUris = resources.resources.map(r => r.uri);
-        expect(resourceUris.some(uri => uri.startsWith('test://data/config_'))).toBe(true);
-        expect(resourceUris.some(uri => uri.startsWith('test://data/users_'))).toBe(false);
+        expect(
+          resourceUris.some(uri =>
+            uri.startsWith(withNameTemplate(nameTemplate, 'test://data/config'))
+          )
+        ).toBe(true);
+        expect(
+          resourceUris.some(uri =>
+            uri.startsWith(withNameTemplate(nameTemplate, 'test://data/users'))
+          )
+        ).toBe(false);
 
-        let configResource = resourceUris.find(uri => uri.startsWith('test://data/config_'));
+        let configResource = resourceUris.find(uri =>
+          uri.startsWith(withNameTemplate(nameTemplate, 'test://data/config'))
+        );
         expect(configResource).toBeTruthy();
 
         let blockedUsersResource = configResource!.replace(
-          'test://data/config_',
-          'test://data/users_'
+          withNameTemplate(nameTemplate, 'test://data/config'),
+          withNameTemplate(nameTemplate, 'test://data/users')
         );
 
         await expect(mcp.client.readResource({ uri: blockedUsersResource })).rejects.toThrow(

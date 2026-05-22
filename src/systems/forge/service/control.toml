@@ -1,0 +1,45 @@
+[control]
+name = "forge"
+
+[service]
+port = 52020
+dockerfile = "dev.Dockerfile"
+build_context = "."
+
+[test.e2e]
+command = "bun run test"
+setup = ["bun prisma generate", "bun prisma db push --accept-data-loss"]
+cwd = "/app"
+runner = "service"
+
+[test.unit]
+command = "bun run test"
+cwd = "/app"
+
+[env]
+DATABASE_URL = "postgresql://forge:forge@$deps.postgres.5432/forge-test"
+REDIS_URL = "redis://$deps.redis.6379/0"
+OBJECT_STORAGE_URL = "http://$deps.object-store.52010"
+ARTIFACT_BUCKET_NAME = "artifacts-test"
+LOG_BUCKET_NAME = "logs-test"
+ENCRYPTION_KEY = "test-encryption-key-32-bytes!!"
+DEFAULT_PROVIDER = "aws.code-build"
+CODE_BUILD_AWS_REGION = "us-east-1"
+
+[[deps]]
+name = "postgres"
+preset = "postgres"
+init = "init-test-db.sh"
+
+[deps.env]
+POSTGRES_USER = "forge"
+POSTGRES_PASSWORD = "forge"
+POSTGRES_DB = "forge"
+
+[[deps]]
+name = "redis"
+preset = "redis"
+
+[[deps]]
+name = "object-store"
+mock = "object-store"

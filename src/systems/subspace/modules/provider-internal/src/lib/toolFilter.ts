@@ -183,40 +183,13 @@ export let resolveToolFilterChain = (d: {
   providerAuthConfigToolFilter?: ToolFilter | null;
   providerDeploymentToolFilter?: ToolFilter | null;
   sessionProviderToolFilter?: ToolFilterChain | null;
-}) => {
-  let providerConfigToolFilter = normalizeToolFilters(d.providerConfigToolFilter);
-  let providerAuthConfigToolFilter = normalizeToolFilters(d.providerAuthConfigToolFilter);
-  let providerDeploymentToolFilter = normalizeToolFilters(d.providerDeploymentToolFilter);
-  let sessionProviderToolFilterChain = normalizeToolFilterChain(d.sessionProviderToolFilter);
-
-  if (providerDeploymentToolFilter.ignoreParentFilters) {
-    return [providerDeploymentToolFilter, ...sessionProviderToolFilterChain];
-  }
-
-  if (providerAuthConfigToolFilter.ignoreParentFilters) {
-    return [
-      providerAuthConfigToolFilter,
-      providerDeploymentToolFilter,
-      ...sessionProviderToolFilterChain
-    ];
-  }
-
-  if (providerConfigToolFilter.ignoreParentFilters) {
-    return [
-      providerConfigToolFilter,
-      providerAuthConfigToolFilter,
-      providerDeploymentToolFilter,
-      ...sessionProviderToolFilterChain
-    ];
-  }
-
-  return [
-    providerConfigToolFilter,
-    providerAuthConfigToolFilter,
-    providerDeploymentToolFilter,
-    ...sessionProviderToolFilterChain
-  ];
-};
+}) =>
+  resolveStackedToolFilterChain([
+    d.providerConfigToolFilter,
+    d.providerAuthConfigToolFilter,
+    d.providerDeploymentToolFilter,
+    d.sessionProviderToolFilter
+  ]);
 
 export let resolveSessionProviderToolFilterChain = (provider: ToolFilterCarrier) =>
   resolveToolFilterChain({

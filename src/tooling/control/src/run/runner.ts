@@ -1,0 +1,356 @@
+import { mkdirSync, writeFileSync } from 'fs';
+import { join } from 'path';
+import { generateCompose, collectContainerNames } from '../compose/generator';
+import { resolveGraph } from '../graph/resolver';
+import { resolveControlDir, resolveEntrypoint, resolveControlCwd } from '../entrypoint';
+import { getRegistry } from '../registry';
+import { planExecutionOrder } from '../graph/planner';
+import { createLogger } from '../log';
+import { formatBatchSummary, formatRunPlan, formatServiceHeader } from '../log/formatRunPlan';
+import { DockerError, HealthTimeoutError, NoTestError } from '../errors';
+import type {
+  BatchResult,
+  BatchServiceResult,
+  ControlService,
+  RunOptions,
+  RunPhase
+} from '../types';
+
+type RunControlContext = {
+  index: number;
+  total: number;
+  service: ControlService;
+};
+
+type ShellOpts = {
+  cwd?: string;
+  env?: Record<string, string>;
+  phase: RunPhase;
+  service?: string;
+  composeFile?: string;
+  keep?: boolean;
+  verbose?: boolean;
+};
+
+let runShell = async (cmd: string[], opts: ShellOpts) => {
+  let proc = Bun.spawn(cmd, {
+    cwd: opts.cwd,
+    env: { ...process.env, ...opts.env },
+    stdout: 'inherit',
+    stderr: 'inherit'
+  });
+  let code = await proc.exited;
+  if (code !== 0) {
+    throw new DockerError({
+      phase: opts.phase,
+      command: cmd.join(' '),
+      exitCode: code,
+      service: opts.service,
+      composeFile: opts.composeFile,
+      keep: opts.keep
+    });
+  }
+};
+
+let waitForServices = async (opts: {
+  services: string[];
+  verbose?: boolean;
+  logger: ReturnType<typeof createLogger>;
+}): Promise<void> => {
+  let attempts = 60;
+  let interval = 5000;
+
+  let inspect = async (service: string) => {
+    let proc = Bun.spawn(['docker', 'inspect', '-f', '{{.State.Health.Status}}', service], {
+      stdout: 'pipe',
+      stderr: 'pipe'
+    });
+    let out = (await new Response(proc.stdout).text()).trim();
+    await proc.exited;
+
+    if (out && out !== '{{.State.Health.Status}}' && out !== 'none' && out !== 'None') {
+      return out;
+    }
+
+    let proc2 = Bun.spawn(['docker', 'inspect', '-f', '{{.State.Status}}', service], {
+      stdout: 'pipe',
+      stderr: 'pipe'
+    });
+    let out2 = (await new Response(proc2.stdout).text()).trim();
+    await proc2.exited;
+    return out2 || 'missing';
+  };
+
+  opts.logger.info(`Waiting for ${opts.services.length} container(s)...`);
+
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    let pending: { name: string; status: string }[] = [];
+
+    for (let service of opts.services) {
+      let status = await inspect(service);
+      let ready = status === 'healthy' || status === 'running';
+      if (!ready) pending.push({ name: service, status });
+      if (opts.verbose) opts.logger.debug(`  ${service}: ${status}`);
+    }
+
+    if (pending.length === 0) return;
+    await Bun.sleep(interval);
+  }
+
+  let finalStatuses: { name: string; status: string }[] = [];
+  for (let service of opts.services) {
+    finalStatuses.push({ name: service, status: await inspect(service) });
+  }
+
+  throw new HealthTimeoutError({ containers: finalStatuses });
+};
+
+export let runControl = async (
+  opts: RunOptions & { target: string; context?: RunControlContext }
+) => {
+  let logger = createLogger(opts);
+  let cwd = resolveControlCwd();
+  let entrypoint = resolveEntrypoint({ cwd, entrypoint: opts.entrypoint });
+  let registry = getRegistry({ cwd, entrypoint: opts.entrypoint });
+  let targetDir = resolveControlDir(entrypoint, opts.target);
+  let graph = resolveGraph({ entrypoint, targetDir, registry });
+  let runId = `${Date.now()}`;
+  let projectName = opts.projectPrefix ?? `control-${graph.name}-${runId}`;
+  let serviceName = graph.name;
+
+  if (opts.context) {
+    logger.section(
+      formatServiceHeader({
+        index: opts.context.index,
+        total: opts.context.total,
+        service: opts.context.service,
+        mode: opts.mode,
+        projectName
+      })
+    );
+    logger.blank();
+  }
+
+  let runDir = join(entrypoint, '.control', 'runs', runId);
+  mkdirSync(runDir, { recursive: true });
+
+  let composeFile = join(runDir, 'compose.yml');
+  let envFile = join(runDir, '.env.control');
+  writeFileSync(composeFile, generateCompose(graph, projectName));
+
+  let envLines = Object.entries(graph.env).map(([k, v]) => `${k}=${JSON.stringify(v).slice(1, -1)}`);
+  writeFileSync(envFile, envLines.join('\n') + '\n');
+
+  logger.debug(`Compose file: ${composeFile}`);
+  logger.debug(`Env file: ${envFile}`);
+  logger.debug(`Dependencies: ${graph.deps.length}`);
+
+  if (opts.verbose) {
+    logger.debug(await Bun.file(composeFile).text());
+  }
+
+  let isSidecar = graph.config.test?.e2e?.runner === 'sidecar';
+  let runnerContainer = isSidecar ? `${projectName}-test` : `${projectName}-service`;
+  let failedPhase: RunPhase = 'build';
+
+  try {
+    failedPhase = 'build';
+    logger.info('Building containers...');
+    logger.debug(`Command: docker compose -p ${projectName} up -d --build`);
+    await runShell(
+      ['docker', 'compose', '-p', projectName, '-f', composeFile, '--env-file', envFile, 'up', '-d', '--build'],
+      { cwd: runDir, phase: 'build', service: serviceName, composeFile, keep: opts.keep, verbose: opts.verbose }
+    );
+
+    failedPhase = 'health';
+    let waitServices = collectContainerNames(graph, projectName);
+    await waitForServices({ services: waitServices, verbose: opts.verbose, logger });
+
+    if (opts.mode === 'unit') {
+      let unit = graph.config.test?.unit;
+      if (!unit) throw new NoTestError({ name: graph.name, mode: 'unit' });
+
+      failedPhase = 'test';
+      logger.info('Running unit tests...');
+      let unitCmd = unit.cwd ? `cd ${unit.cwd} && ${unit.command}` : unit.command;
+      logger.debug(`Command: docker exec ${runnerContainer} sh -c ${JSON.stringify(unitCmd)}`);
+      await runShell(['docker', 'exec', runnerContainer, 'sh', '-c', unitCmd], {
+        phase: 'test',
+        service: serviceName,
+        composeFile,
+        keep: opts.keep,
+        verbose: opts.verbose
+      });
+      return;
+    }
+
+    let e2e = graph.config.test?.e2e;
+    if (!e2e) throw new NoTestError({ name: graph.name, mode: 'e2e' });
+
+    let cwdInContainer = e2e.cwd ?? '.';
+    let setupSteps = e2e.setup ?? [];
+    if (setupSteps.length > 0) {
+      failedPhase = 'test-setup';
+      logger.info(`Running setup (${setupSteps.length} step${setupSteps.length === 1 ? '' : 's'})...`);
+      for (let step of setupSteps) logger.debug(`  setup: ${step}`);
+    }
+
+    failedPhase = 'test';
+    logger.info(`Running ${opts.mode} tests...`);
+
+    let setup = setupSteps.join(' && ');
+    let fullCmd = setup ? `${setup} && ${e2e.command}` : e2e.command;
+    if (cwdInContainer !== '.') fullCmd = `cd ${cwdInContainer} && ${fullCmd}`;
+    logger.debug(`Command: docker exec ${runnerContainer} sh -c ${JSON.stringify(fullCmd)}`);
+
+    await runShell(['docker', 'exec', runnerContainer, 'sh', '-c', fullCmd], {
+      phase: 'test',
+      service: serviceName,
+      composeFile,
+      keep: opts.keep,
+      verbose: opts.verbose
+    });
+  } catch (err) {
+    let phase = failedPhase;
+    if (err instanceof DockerError) err.phase = phase;
+    if (err instanceof HealthTimeoutError) (err as HealthTimeoutError & { failedPhase?: RunPhase }).failedPhase = phase;
+
+    logger.warn('Fetching container logs...');
+    await runShell(['docker', 'compose', '-p', projectName, '-f', composeFile, 'logs', '--tail=100'], {
+      cwd: runDir,
+      phase: failedPhase,
+      service: serviceName,
+      composeFile,
+      keep: opts.keep,
+      verbose: opts.verbose
+    }).catch(() => {});
+
+    logger.detail('Compose file', composeFile);
+    if (!opts.keep) {
+      logger.detail('Hint', 'Re-run with --keep to inspect containers after failure');
+    }
+
+    if (err instanceof Error) {
+      (err as Error & { failedPhase?: RunPhase }).failedPhase = phase;
+    }
+    throw err;
+  } finally {
+    if (!opts.keep) {
+      logger.debug('Tearing down stack...');
+      await runShell(['docker', 'compose', '-p', projectName, '-f', composeFile, 'down', '-v'], {
+        cwd: runDir,
+        phase: 'teardown',
+        service: serviceName,
+        composeFile,
+        keep: opts.keep,
+        verbose: opts.verbose
+      }).catch(() => {});
+    }
+  }
+};
+
+let getFailedPhase = (err: Error): string | undefined => {
+  if ('failedPhase' in err && typeof (err as { failedPhase?: string }).failedPhase === 'string') {
+    return (err as { failedPhase?: string }).failedPhase;
+  }
+  if (err instanceof DockerError) return err.phase;
+  return undefined;
+};
+
+export let runControlBatch = async (
+  opts: RunOptions & { services: ControlService[] }
+): Promise<BatchResult> => {
+  let logger = createLogger(opts);
+  let registry = getRegistry({ cwd: resolveControlCwd(), entrypoint: opts.entrypoint });
+  let ordered = planExecutionOrder(opts.services, registry);
+  let passed: string[] = [];
+  let failed: { name: string; error: Error; phase?: string }[] = [];
+  let results: BatchServiceResult[] = [];
+  let batchStarted = Date.now();
+
+  for (let i = 0; i < ordered.length; i++) {
+    let service = ordered[i]!;
+    let started = Date.now();
+
+    try {
+      await runControl({
+        ...opts,
+        target: service.relPath,
+        context: { index: i + 1, total: ordered.length, service }
+      });
+      let durationMs = Date.now() - started;
+      passed.push(service.name);
+      results.push({
+        name: service.name,
+        relPath: service.relPath,
+        status: 'passed',
+        durationMs
+      });
+      logger.success(`✓ ${service.name} passed (${Math.round(durationMs / 1000)}s)`);
+      logger.blank();
+    } catch (err) {
+      let error = err instanceof Error ? err : new Error(String(err));
+      let phase = getFailedPhase(error);
+      let durationMs = Date.now() - started;
+      failed.push({ name: service.name, error, phase });
+      results.push({
+        name: service.name,
+        relPath: service.relPath,
+        status: 'failed',
+        durationMs,
+        error,
+        phase
+      });
+      logger.error(`✗ ${service.name} failed${phase ? ` during ${phase}` : ''}: ${error.message}`);
+      logger.blank();
+    }
+  }
+
+  let totalDurationMs = Date.now() - batchStarted;
+
+  logger.section(
+    formatBatchSummary({
+      mode: opts.mode,
+      totalDurationMs,
+      results: results.map(r => ({
+        name: r.name,
+        relPath: r.relPath,
+        status: r.status,
+        durationMs: r.durationMs,
+        phase: r.phase,
+        errorMessage: r.error?.message
+      }))
+    })
+  );
+
+  return { passed, failed, results, totalDurationMs };
+};
+
+export let runControlTargets = async (opts: RunOptions & { services: ControlService[] }) => {
+  let logger = createLogger(opts);
+  let registry = getRegistry({ cwd: resolveControlCwd(), entrypoint: opts.entrypoint });
+  let ordered = planExecutionOrder(opts.services, registry);
+
+  logger.section(
+    formatRunPlan({
+      mode: opts.mode,
+      controlRoot: registry.controlRoot,
+      services: ordered
+    })
+  );
+  logger.blank();
+
+  if (ordered.length === 1) {
+    await runControl({
+      ...opts,
+      target: ordered[0]!.relPath,
+      context: { index: 1, total: 1, service: ordered[0]! }
+    });
+    return;
+  }
+
+  let result = await runControlBatch(opts);
+  if (result.failed.length > 0) {
+    process.exit(1);
+  }
+};

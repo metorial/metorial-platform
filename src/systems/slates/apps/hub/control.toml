@@ -1,0 +1,101 @@
+[control]
+name = "slates-hub"
+
+[service]
+port = 52045
+dockerfile = "src/systems/slates/apps/hub/dev.Dockerfile"
+build_context = "oss"
+
+[test.e2e]
+command = "bun run test"
+setup = ["bun prisma generate --schema prisma/schema", "bun prisma db push --accept-data-loss --schema prisma/schema"]
+cwd = "/app/src/systems/slates/apps/hub"
+runner = "service"
+
+[env]
+DATABASE_URL = "postgresql://slates-hub:slates-hub@$deps.postgres.5432/slates-hub-test"
+REDIS_URL = "redis://$deps.redis.6379/0"
+METORIAL_ENV = "development"
+ENCRYPTION_KEY = "sTrG+z8ewVo7JJsgmv39UL/YDdgxlHSVhVPJOV7Omdg"
+FUNCTION_BAY_API_URL = "http://$deps.function-bay.52030/metorial-function-bay"
+FUNCTION_BAY_TENANT_IDENTIFIER = "test-tenant"
+FUNCTION_BAY_DEFAULT_MEMORY_MB = "512"
+FUNCTION_BAY_DEFAULT_TIMEOUT_SECONDS = "15"
+SIGNAL_API_URL = "http://$deps.signal.52050/metorial-signal"
+SIGNAL_SENDER_IDENTIFIER = "test-slates-hub"
+OBJECT_STORAGE_URL = "http://$deps.object-store.52010"
+INVOCATIONS_BUCKET_NAME = "test-invocations"
+INITIAL_REGISTRIES = "http://$deps.slates-registry.52040"
+SLATES_HUB_INSTANCE_IDENTIFIER = "test-slates-hub"
+SERVICE_PUBLIC_URL = "http://slates-hub:52045"
+
+[[deps]]
+name = "postgres"
+preset = "postgres"
+init = "init-test-db.sh"
+
+[deps.env]
+POSTGRES_USER = "slates-hub"
+POSTGRES_PASSWORD = "slates-hub"
+POSTGRES_DB = "slates-hub"
+
+[[deps]]
+name = "redis"
+preset = "redis"
+
+[[deps]]
+name = "object-store"
+mock = "object-store"
+
+[[deps]]
+name = "forge"
+control = "../../../forge/service"
+scope = "service"
+
+[deps.env]
+DATABASE_URL = "postgresql://slates-hub:slates-hub@$deps.postgres.5432/forge"
+REDIS_URL = "redis://$deps.redis.6379/0"
+OBJECT_STORAGE_URL = "http://$deps.object-store.52010"
+ENCRYPTION_KEY = "sTrG+z8ewVo7JJsgmv39UL/YDdgxlHSVhVPJOV7Omdg"
+DEFAULT_PROVIDER = "aws.code-build"
+ARTIFACT_BUCKET_NAME = "artifacts"
+LOG_BUCKET_NAME = "logs"
+
+[[deps]]
+name = "function-bay"
+control = "../../../function-bay/service"
+scope = "service"
+
+[deps.env]
+DATABASE_URL = "postgresql://slates-hub:slates-hub@$deps.postgres.5432/function-bay"
+REDIS_URL = "redis://$deps.redis.6379/0"
+OBJECT_STORAGE_URL = "http://$deps.object-store.52010"
+BUNDLE_BUCKET_NAME = "bundles"
+ENCRYPTION_KEY = "sTrG+z8ewVo7JJsgmv39UL/YDdgxlHSVhVPJOV7Omdg"
+FORGE_API_URL = "http://$deps.forge.52020/metorial-forge"
+DEFAULT_PROVIDER = "aws.lambda"
+LAMBDA_AWS_REGION = "us-east-1"
+
+[[deps]]
+name = "signal"
+control = "../../../signal/service"
+scope = "service"
+
+[deps.env]
+DATABASE_URL = "postgresql://slates-hub:slates-hub@$deps.postgres.5432/signal"
+REDIS_URL = "redis://$deps.redis.6379/0"
+OBJECT_STORAGE_URL = "http://$deps.object-store.52010"
+LOGS_BUCKET_NAME = "bundles"
+
+[[deps]]
+name = "slates-registry"
+control = "../registry"
+scope = "service"
+
+[deps.env]
+DATABASE_URL = "postgresql://slates-hub:slates-hub@$deps.postgres.5432/slates-registry"
+REDIS_URL = "redis://$deps.redis.6379/0"
+OBJECT_STORAGE_URL = "http://$deps.object-store.52010"
+PACKAGE_BUCKET_NAME = "slates-hub-packages"
+SERVICE_PUBLIC_URL = "http://slates-registry:52040"
+PUBLIC_ACCESS_PERMITTED = "true"

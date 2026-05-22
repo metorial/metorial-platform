@@ -1,0 +1,216 @@
+[control]
+name = "subspace-controller"
+
+[service]
+port = 52070
+dockerfile = "src/systems/subspace/apps/controller/dev.Dockerfile"
+build_context = "oss"
+
+[test.e2e]
+command = "set -a && . ./.env.ci && set +a && bun run test:ci"
+setup = [
+  "bunx prisma db push --schema ../../db/prisma/schema --config ../../db/prisma.config.ts",
+  "bunx prisma generate --schema ../../db/prisma/schema --config ../../db/prisma.config.ts"
+]
+cwd = "/app/src/systems/subspace/apps/controller"
+runner = "sidecar"
+
+[env]
+DATABASE_URL = "postgresql://postgres:postgres@$deps.postgres.5432/subspace-test"
+PUBLIC_SERVICE_URL = "http://subspace-public:52071"
+REDIS_URL = "redis://$deps.redis.6379/0"
+NATS_URL = "nats://$deps.nats.4222"
+SLATES_HUB_URL = "http://$deps.slates-hub.52046/slates-hub"
+SLATES_HUB_PUBLIC_URL = "http://$deps.slates-hub.52045"
+SHUTTLE_URL = "http://$deps.shuttle.52080/metorial-shuttle"
+SHUTTLE_LIVE_URL = "http://$deps.shuttle.52080"
+SHUTTLE_PUBLIC_URL = "http://$deps.shuttle.52081"
+TEST_MCP_SERVER_BASE_URL = "http://$deps.mcp-test-server.52198"
+VOYAGER_URL = "http://$deps.voyager.52060/metorial-voyager"
+ORIGIN_URL = "http://origin:52090/metorial-origin"
+OBJECT_STORAGE_URL = "http://$deps.object-store.52010"
+MESSAGE_BUCKET_NAME = "subspace-messages-test"
+METORIAL_ENV = "development"
+CARGO_API_URL = "http://$deps.cargo.52150/metorial-cargo"
+
+[[deps]]
+name = "postgres"
+preset = "postgres"
+init = "../../init-test-db.sh"
+
+[deps.env]
+POSTGRES_USER = "postgres"
+POSTGRES_PASSWORD = "postgres"
+POSTGRES_DB = "postgres"
+
+[[deps]]
+name = "redis"
+preset = "redis"
+
+[[deps]]
+name = "nats"
+preset = "nats"
+
+[[deps]]
+name = "object-store"
+mock = "object-store"
+
+[[deps]]
+name = "voyager"
+mock = "voyager"
+
+[[deps]]
+name = "forge"
+control = "../../../forge/service"
+scope = "service"
+
+[deps.env]
+DATABASE_URL = "postgresql://postgres:postgres@$deps.postgres.5432/forge"
+REDIS_URL = "redis://$deps.redis.6379/0"
+OBJECT_STORAGE_URL = "http://$deps.object-store.52010"
+ENCRYPTION_KEY = "test-encryption-key-32-bytes!!"
+DEFAULT_PROVIDER = "aws.code-build"
+ARTIFACT_BUCKET_NAME = "artifacts"
+LOG_BUCKET_NAME = "logs"
+CODE_BUILD_AWS_REGION = "us-east-1"
+
+[[deps]]
+name = "function-bay"
+control = "../../../function-bay/service"
+scope = "service"
+
+[deps.env]
+DATABASE_URL = "postgresql://postgres:postgres@$deps.postgres.5432/function-bay"
+REDIS_URL = "redis://$deps.redis.6379/0"
+OBJECT_STORAGE_URL = "http://$deps.object-store.52010"
+BUNDLE_BUCKET_NAME = "bundles"
+ENCRYPTION_KEY = "ci-encryption-key-32-bytes!!!!"
+FORGE_API_URL = "http://$deps.forge.52020/metorial-forge"
+DEFAULT_PROVIDER = "aws.lambda"
+LAMBDA_AWS_REGION = "us-east-1"
+
+[[deps]]
+name = "signal"
+control = "../../../signal/service"
+scope = "service"
+
+[deps.env]
+DATABASE_URL = "postgresql://postgres:postgres@$deps.postgres.5432/signal"
+REDIS_URL = "redis://$deps.redis.6379/0"
+OBJECT_STORAGE_URL = "http://$deps.object-store.52010"
+LOGS_BUCKET_NAME = "bundles"
+
+[[deps]]
+name = "slates-registry"
+control = "../../../slates/apps/registry"
+scope = "service"
+
+[deps.env]
+DATABASE_URL = "postgresql://postgres:postgres@$deps.postgres.5432/slates-registry"
+REDIS_URL = "redis://$deps.redis.6379/0"
+OBJECT_STORAGE_URL = "http://$deps.object-store.52010"
+PACKAGE_BUCKET_NAME = "subspace-packages"
+SERVICE_PUBLIC_URL = "http://slates-registry:52040"
+PUBLIC_ACCESS_PERMITTED = "true"
+
+[[deps]]
+name = "slates-hub"
+control = "../../../slates/apps/hub"
+scope = "service"
+
+[deps.env]
+DATABASE_URL = "postgresql://postgres:postgres@$deps.postgres.5432/slates-hub"
+REDIS_URL = "redis://$deps.redis.6379/0"
+METORIAL_ENV = "development"
+ENCRYPTION_KEY = "sTrG+z8ewVo7JJsgmv39UL/YDdgxlHSVhVPJOV7Omdg"
+FUNCTION_BAY_API_URL = "http://$deps.function-bay.52030/metorial-function-bay"
+FUNCTION_BAY_TENANT_IDENTIFIER = "dev-tenant"
+FUNCTION_BAY_DEFAULT_MEMORY_MB = "512"
+FUNCTION_BAY_DEFAULT_TIMEOUT_SECONDS = "15"
+SIGNAL_API_URL = "http://$deps.signal.52050/metorial-signal"
+SIGNAL_SENDER_IDENTIFIER = "dev-subspace"
+OBJECT_STORAGE_URL = "http://$deps.object-store.52010"
+INVOCATIONS_BUCKET_NAME = "subspace-invocations"
+INITIAL_REGISTRIES = "http://$deps.slates-registry.52040"
+SLATES_HUB_INSTANCE_IDENTIFIER = "dev-subspace"
+SERVICE_PUBLIC_URL = "http://slates-hub:52045"
+
+[[deps]]
+name = "shuttle"
+control = "../../../shuttle/service"
+scope = "service"
+
+[deps.env]
+DATABASE_URL = "postgresql://postgres:postgres@$deps.postgres.5432/shuttle"
+REDIS_URL = "redis://$deps.redis.6379/0"
+ENCRYPTION_KEY = "ci-encryption-key-32-bytes!!!!"
+PROVIDER_OAUTH_URL = "http://shuttle:52081"
+HOLOPOD_HTTP_ENDPOINT = "test.local:50051"
+OBJECT_STORAGE_URL = "http://$deps.object-store.52010"
+LOGS_BUCKET_NAME = "shuttle-logs"
+FUNCTION_BAY_API_URL = "http://$deps.function-bay.52030/metorial-function-bay"
+FUNCTION_BAY_TENANT_IDENTIFIER = "dev-tenant"
+FUNCTION_BAY_DEFAULT_MEMORY_MB = "512"
+FUNCTION_BAY_DEFAULT_TIMEOUT_SECONDS = "15"
+SHUTTLE_ALLOW_PRIVATE_URLS = "true"
+SHUTTLE_UNSAFE_SSRF_BYPASS = "true"
+
+[[deps]]
+name = "cargo"
+control = "../../../cargo/service"
+scope = "service"
+
+[deps.env]
+DATABASE_URL = "postgresql://postgres:postgres@$deps.postgres.5432/cargo-test"
+REDIS_URL = "redis://$deps.redis.6379/0"
+OBJECT_STORAGE_URL = "http://$deps.object-store.52010"
+VOYAGER_URL = "http://$deps.voyager.52060/metorial-voyager"
+FILES_BUCKET_NAME = "cargo-files-test"
+CARGO_API_PORT = "52150"
+CARGO_CONTENT_PORT = "52151"
+CARGO_HEALTH_PORT = "12121"
+DOWNLOAD_PUBLIC_URL = "http://cargo:52151"
+CARGO_REGION = "tst"
+SIGNED_DOWNLOAD_URL_TOKEN_SECRET = "cargo-download-test-secret"
+METORIAL_ENV = "development"
+ORIGIN_URL = "http://origin:52090/metorial-origin"
+CODE_BUCKET_SERVICE_URL = "code-bucket:5050"
+API_URL = "http://cargo:52150"
+
+[[deps]]
+name = "code-bucket"
+control = "../../../origin/apps/code-bucket"
+scope = "service"
+
+[deps.env]
+CODE_BUCKET_JWT_SECRET = "dev-secret-change-in-production"
+CODE_BUCKET_OBJECT_STORAGE_BUCKET = "code-bucket"
+CODE_BUCKET_OBJECT_STORAGE_ENDPOINT = "http://$deps.object-store.52010"
+CODE_BUCKET_REDIS_URL = "redis://$deps.redis.6379"
+CODE_BUCKET_HTTP_ADDRESS = ":52091"
+CODE_BUCKET_WORKSPACE_ADDRESS = ":52092"
+CODE_BUCKET_RPC_ADDRESS = ":5050"
+
+[[deps]]
+name = "origin"
+control = "../../../origin/apps/service"
+scope = "service"
+
+[deps.env]
+DATABASE_URL = "postgresql://postgres:postgres@$deps.postgres.5432/origin"
+REDIS_URL = "redis://$deps.redis.6379/0"
+ORIGIN_SERVICE_PUBLIC_URL = "http://origin:52093"
+OBJECT_STORAGE_URL = "http://$deps.object-store.52010"
+CODE_BUCKET_OBJECT_STORAGE_BUCKET = "code-bucket"
+CODE_BUCKET_SERVICE_URL = "code-bucket:5050"
+CODE_BUCKET_EDITOR_URL = "http://code-bucket:52092"
+CODE_BUCKET_EDITOR_API_URL = "http://code-bucket:52091"
+SCM_GITHUB_APP_ID = "test-github-app-id"
+SCM_GITHUB_APP_SLUG = "test-github-app"
+SCM_GITHUB_APP_CLIENT_ID = "test-github-client-id"
+SCM_GITHUB_APP_CLIENT_SECRET = "test-github-client-secret"
+SCM_GITHUB_APP_PRIVATE_KEY_BASE_64 = "dGVzdC1wcml2YXRlLWtleQ=="
+
+[[deps]]
+name = "mcp-test-server"
+inline = { build = { context = "oss", dockerfile = "src/systems/subspace/apps/controller/dev.Dockerfile" }, command = ["sh", "-c", "PORT=52198 bun ./src/systems/subspace/test-servers/index.ts"], port = 52198, health = { cmd = "bun -e \"fetch('http://localhost:52198/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\"" } }

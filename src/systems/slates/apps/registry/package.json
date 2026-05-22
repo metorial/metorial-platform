@@ -20,6 +20,7 @@
     "infra:up": "docker compose -p slates-registry -f ./docker-compose.dev.yml up --pull always --build slates-registry object-storage",
     "admin:build": "vite build --config admin/vite.config.ts",
     "admin:dev": "vite --config admin/vite.config.ts",
+    "test": "bun test",
     "typecheck": "tsc --noEmit && bun run admin:typecheck",
     "admin:typecheck": "tsc --noEmit --project admin/tsconfig.json"
   },

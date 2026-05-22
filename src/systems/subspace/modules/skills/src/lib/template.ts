@@ -22,7 +22,7 @@ export let template = async (d: {
       }
   )[];
 }) => {
-  let newId = getId('skillTemplate');
+  let createIds = getId('skillTemplate');
   let existing = await db.skillTemplate.findUnique({
     where: { systemIdentifier: d.identifier },
     select: { id: true }
@@ -30,7 +30,7 @@ export let template = async (d: {
 
   let cargoTemplate = await cargo.skillTemplate.upsert({
     systemIdentifier: d.identifier,
-    skillTemplateId: newId.id,
+    skillTemplateId: existing?.id ?? createIds.id,
     name: d.name,
     items: d.items
   });
@@ -48,7 +48,8 @@ export let template = async (d: {
   let skillTemplate = await db.skillTemplate.upsert({
     where: { systemIdentifier: d.identifier },
     create: {
-      ...newId,
+      ...createIds,
+      id: cargoTemplate.id,
       ...inner
     },
     update: inner

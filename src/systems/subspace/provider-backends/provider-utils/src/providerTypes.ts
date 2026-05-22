@@ -5,6 +5,10 @@ import { db, get4ByteIntId, ID, type ProviderType } from '@metorial-subspace/db'
 
 let cachedProviderTypes: Record<string, ProviderType> = {};
 
+export let resetProviderTypeCache = () => {
+  cachedProviderTypes = {};
+};
+
 export let ensureProviderType = async (
   name: string,
   attributes: PrismaJson.ProviderTypeAttributes

@@ -7,6 +7,7 @@ export default defineConfig(({ mode }: any): any => {
   return createVitestConfig({
     test: {
       pool: 'forks',
+      ...(mode === 'ci' ? { fileParallelism: false } : {}),
       setupFiles: ['./src/test/setup.ts'],
       env: {
         ...env,

@@ -29,7 +29,7 @@ import {
 import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
 import { checkTenant } from '@metorial-subspace/module-tenant';
 import { cargo, ensureCargoActor, ensureCargoScope } from '../cargo';
-import { plainTemplate } from '../definitions';
+import { ensurePlainTemplate } from '../definitions';
 import { inferClientName, normalizeSkillClientFields } from '../lib/clientMetadata';
 import {
   skillArchivedQueue,
@@ -418,7 +418,7 @@ class skillServiceImpl {
         })
       : parentSkill
         ? null
-        : await plainTemplate;
+        : await ensurePlainTemplate();
 
     let skillData = this.skillCreateData({
       tenant: d.tenant,

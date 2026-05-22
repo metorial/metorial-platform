@@ -1,0 +1,25 @@
+[control]
+name = "code-bucket"
+
+[service]
+port = 52091
+dockerfile = "src/systems/origin/apps/code-bucket/Dockerfile"
+build_context = "oss"
+health = { cmd = "nc -z localhost 52091" }
+
+[env]
+CODE_BUCKET_JWT_SECRET = "dev-secret-change-in-production"
+CODE_BUCKET_OBJECT_STORAGE_BUCKET = "code-bucket"
+CODE_BUCKET_OBJECT_STORAGE_ENDPOINT = "http://$deps.object-store.52010"
+CODE_BUCKET_REDIS_URL = "redis://$deps.redis.6379"
+CODE_BUCKET_HTTP_ADDRESS = ":52091"
+CODE_BUCKET_WORKSPACE_ADDRESS = ":52092"
+CODE_BUCKET_RPC_ADDRESS = ":5050"
+
+[[deps]]
+name = "redis"
+preset = "redis"
+
+[[deps]]
+name = "object-store"
+mock = "object-store"

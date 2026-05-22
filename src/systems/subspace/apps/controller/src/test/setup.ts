@@ -2,6 +2,8 @@ import { setupPrismaTestDb, setupTestGlobals } from '@lowerdeck/testing-tools';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@metorial-subspace/db';
 import { sessionMessageBucketRecord } from '@metorial-subspace/connection-utils';
+import { resetProviderTypeCache } from '@metorial-subspace/provider-utils';
+import { ensurePlainTemplate } from '@metorial-subspace/module-skills/src/definitions/plain';
 import { afterAll } from 'vitest';
 import { setupVoyagerStub, resetVoyagerStub } from './helpers/voyagerStub';
 
@@ -33,6 +35,8 @@ await ensureSessionMessageBucket();
 export let testDb = db.client;
 export let cleanDatabase = async () => {
   await db.clean();
+  resetProviderTypeCache();
   resetVoyagerStub();
   await ensureSessionMessageBucket();
+  await ensurePlainTemplate();
 };
