@@ -20,7 +20,7 @@
     "db:push": "bun run db:push:dev && bun run db:push:test",
     "test": "bun run test:unit && bun run test:e2e",
     "test:unit": "bunx vitest run --config vitest.unit.config.ts --passWithNoTests",
-    "test:e2e": "bunx vitest run --config vitest.config.ts --passWithNoTests --include '**/*.e2e.test.ts'",
+    "test:e2e": "bunx vitest run --config vitest.e2e.config.ts --passWithNoTests",
     "test:watch": "bunx vitest watch",
     "typecheck": "bun run check-types && bun run admin:typecheck",
     "admin:typecheck": "tsc --noEmit --project admin/tsconfig.json",
