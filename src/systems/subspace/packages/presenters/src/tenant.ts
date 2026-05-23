@@ -15,5 +15,7 @@ export let tenantPresenter = (tenant: Tenant) => ({
   allowAuthConfigExport: tenant.allowAuthConfigExport,
   allowAuthConfigImport: tenant.allowAuthConfigImport,
 
+  collectOperationDescriptionForToolCalls: tenant.collectOperationDescriptionForToolCalls,
+
   createdAt: tenant.createdAt
 });

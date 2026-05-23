@@ -18,6 +18,7 @@ class tenantServiceImpl {
       enforceSessionExpiry?: boolean;
       allowAuthConfigExport?: boolean;
       allowAuthConfigImport?: boolean;
+      collectOperationDescriptionForToolCalls?: boolean;
       environments: {
         name: string;
         identifier: string;
@@ -43,7 +44,9 @@ class tenantServiceImpl {
           logRetentionInDays: d.input.logRetentionInDays,
           enforceSessionExpiry: d.input.enforceSessionExpiry,
           allowAuthConfigExport: d.input.allowAuthConfigExport,
-          allowAuthConfigImport: d.input.allowAuthConfigImport
+          allowAuthConfigImport: d.input.allowAuthConfigImport,
+          collectOperationDescriptionForToolCalls:
+            d.input.collectOperationDescriptionForToolCalls
         },
         create: {
           ...getId('tenant'),
@@ -55,6 +58,8 @@ class tenantServiceImpl {
           enforceSessionExpiry: d.input.enforceSessionExpiry ?? false,
           allowAuthConfigExport: d.input.allowAuthConfigExport ?? false,
           allowAuthConfigImport: d.input.allowAuthConfigImport ?? false,
+          collectOperationDescriptionForToolCalls:
+            d.input.collectOperationDescriptionForToolCalls ?? true,
 
           urlKey: generatePlainId(10).toLowerCase()
         }

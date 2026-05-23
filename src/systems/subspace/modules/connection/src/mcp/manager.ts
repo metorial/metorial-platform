@@ -23,6 +23,10 @@ export class McpManager {
     return this._connection.connection;
   }
 
+  get tenant() {
+    return this._connection.tenant;
+  }
+
   senderListener(d: { selectedChannels: 'all' | 'broadcast'; replayFromMessageId?: string }) {
     let listener = this._connection.listener(d);
 

@@ -40,6 +40,9 @@ vi.mock('@metorial/db', () => {
       create: vi.fn(),
       updateMany: vi.fn()
     },
+    project: {
+      findFirstOrThrow: vi.fn()
+    },
     consumerAuthAttempt: {
       update: vi.fn()
     },
@@ -132,6 +135,10 @@ describe('consumer OAuth integration endpoint linking', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(db.consumerAuthClient.count).mockResolvedValue(0 as any);
+    vi.mocked(db.project.findFirstOrThrow).mockResolvedValue({
+      consumerAuthClientRegistrationsPerMinuteLimit: 25,
+      consumerAuthClientRegistrationsPerHourLimit: 500
+    } as any);
     vi.mocked(db.consumerClient.findFirst).mockResolvedValue(null as any);
     vi.mocked(db.consumerClient.create).mockResolvedValue({
       oid: 99n

@@ -63,6 +63,7 @@ export let tenantController = app.controller({
         enforceSessionExpiry: v.optional(v.boolean()),
         allowAuthConfigExport: v.optional(v.boolean()),
         allowAuthConfigImport: v.optional(v.boolean()),
+        collectOperationDescriptionForToolCalls: v.optional(v.boolean()),
         environments: v.array(
           v.object({
             name: v.string(),
@@ -83,7 +84,9 @@ export let tenantController = app.controller({
           logRetentionInDays: ctx.input.logRetentionInDays,
           enforceSessionExpiry: ctx.input.enforceSessionExpiry,
           allowAuthConfigExport: ctx.input.allowAuthConfigExport,
-          allowAuthConfigImport: ctx.input.allowAuthConfigImport
+          allowAuthConfigImport: ctx.input.allowAuthConfigImport,
+          collectOperationDescriptionForToolCalls:
+            ctx.input.collectOperationDescriptionForToolCalls
         }
       });
       return tenantPresenter(tenant);

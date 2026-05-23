@@ -79,6 +79,10 @@ export class McpSender {
     return this.manager.connection;
   }
 
+  get tenant() {
+    return this.manager.tenant;
+  }
+
   private encodeResourceCursor(d: { providerId: string; cursor?: string }) {
     return Buffer.from(JSON.stringify(d)).toString('base64url');
   }
@@ -393,6 +397,8 @@ export class McpSender {
     );
 
     let isMetorialExplorer = this.connection?.participant?.name === 'Metorial Explorer';
+    let collectOperationDescriptionForToolCalls =
+      this.tenant.collectOperationDescriptionForToolCalls && !isMetorialExplorer;
 
     return {
       store: true,
@@ -408,9 +414,10 @@ export class McpSender {
               name: presented.key,
               title: presented.title ?? presented.name,
 
-              inputSchema: isMetorialExplorer
-                ? presented.inputJsonSchema
-                : (injectToolCallOperationIntoInputSchema(presented.inputJsonSchema) as any),
+              inputSchema: collectOperationDescriptionForToolCalls
+                ? (injectToolCallOperationIntoInputSchema(presented.inputJsonSchema) as any)
+                : presented.inputJsonSchema,
+
               outputSchema: isMetorialExplorer
                 ? undefined
                 : presented.outputJsonSchema?.type === 'object'

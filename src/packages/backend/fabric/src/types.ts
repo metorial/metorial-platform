@@ -156,6 +156,8 @@ export interface FabricEvents {
   'organization.project.retention.updated:after': { organization: Organization, project: Project, performedBy: OrganizationActor; context?: Context; input: { logRetentionInDays?: number; enforceSessionExpiry?: boolean } };
   'organization.project.auth_config_configuration.updated:before': { organization: Organization, project: Project, performedBy: OrganizationActor; context?: Context; input: { allowAuthConfigExport?: boolean; allowAuthConfigImport?: boolean } };
   'organization.project.auth_config_configuration.updated:after': { organization: Organization, project: Project, performedBy: OrganizationActor; context?: Context; input: { allowAuthConfigExport?: boolean; allowAuthConfigImport?: boolean }; configuration: { allowAuthConfigExport: boolean; allowAuthConfigImport: boolean } };
+  'organization.project.tool_calling_configuration.updated:before': { organization: Organization, project: Project, performedBy: OrganizationActor; context?: Context; input: { collectOperationDescriptionForToolCalls?: boolean } };
+  'organization.project.tool_calling_configuration.updated:after': { organization: Organization, project: Project, performedBy: OrganizationActor; context?: Context; input: { collectOperationDescriptionForToolCalls?: boolean }; configuration: { collectOperationDescriptionForToolCalls: boolean } };
   'organization.project.deleted:before': { organization: Organization, project: Project, performedBy: OrganizationActor; context?: Context };
   'organization.project.deleted:after': { organization: Organization, project: Project, performedBy: OrganizationActor; context?: Context };
 

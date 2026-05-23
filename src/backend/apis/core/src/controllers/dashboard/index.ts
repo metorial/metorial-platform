@@ -1,4 +1,5 @@
 export * from './assistant';
+export * from './authConfigConfiguration';
 export * from './boot';
 export * from './flags';
 export * from './oauthAuthorizationRequest';
@@ -6,5 +7,6 @@ export * from './organization';
 export * from './organizationInvite';
 export * from './projectConfiguration';
 export * from './profile';
+export * from './toolCallingConfiguration';
 export * from './usage';
 export * from './user';
