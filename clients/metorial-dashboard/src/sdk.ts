@@ -153,6 +153,7 @@ import {
   MetorialDashboardOrganizationsTeamsPoliciesEndpoint,
   MetorialDashboardProjectsConfigureAuthConfigEndpoint,
   MetorialDashboardProjectsConfigureRetentionEndpoint,
+  MetorialDashboardProjectsConfigureToolCallingEndpoint,
   MetorialDashboardUsageEndpoint,
   MetorialManagementUserEndpoint,
   MetorialOrganizationsFlagsEndpoint,
@@ -433,7 +434,8 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
   projects: Object.assign(new MetorialDashboardOrganizationsProjectsEndpoint(manager), {
     branding: new MetorialDashboardOrganizationsProjectsBrandingEndpoint(manager),
     configureAuthConfig: new MetorialDashboardProjectsConfigureAuthConfigEndpoint(manager),
-    configureRetention: new MetorialDashboardProjectsConfigureRetentionEndpoint(manager)
+    configureRetention: new MetorialDashboardProjectsConfigureRetentionEndpoint(manager),
+    configureToolCalling: new MetorialDashboardProjectsConfigureToolCallingEndpoint(manager)
   }),
   user: new MetorialManagementUserEndpoint(manager),
 

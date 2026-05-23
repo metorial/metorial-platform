@@ -4,22 +4,22 @@ import {
 } from '@metorial/util-endpoint';
 
 import {
-  mapDashboardProjectsConfigureAuthConfigGetOutput,
-  mapDashboardProjectsConfigureAuthConfigUpdateBody,
-  mapDashboardProjectsConfigureAuthConfigUpdateOutput,
-  type DashboardProjectsConfigureAuthConfigGetOutput,
-  type DashboardProjectsConfigureAuthConfigUpdateBody,
-  type DashboardProjectsConfigureAuthConfigUpdateOutput
+  mapDashboardProjectsConfigureToolCallingGetOutput,
+  mapDashboardProjectsConfigureToolCallingUpdateBody,
+  mapDashboardProjectsConfigureToolCallingUpdateOutput,
+  type DashboardProjectsConfigureToolCallingGetOutput,
+  type DashboardProjectsConfigureToolCallingUpdateBody,
+  type DashboardProjectsConfigureToolCallingUpdateOutput
 } from '../resources';
 
 /**
- * @name Auth config configuration controller
- * @description Configure project-level auth config settings
+ * @name Tool calling configuration controller
+ * @description Configure project-level tool calling settings
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
  */
-export class MetorialDashboardProjectsConfigureAuthConfigEndpoint {
+export class MetorialDashboardProjectsConfigureToolCallingEndpoint {
   constructor(private readonly _manager: MetorialEndpointManager<any>) {}
 
   // thin proxies so method bodies stay unchanged
@@ -40,13 +40,13 @@ export class MetorialDashboardProjectsConfigureAuthConfigEndpoint {
   }
 
   /**
-   * @name Get project auth config configuration
-   * @description Get auth config export/import settings for a project
+   * @name Get project tool calling configuration
+   * @description Get tool calling settings for a project
    *
    * @param `organizationId` - string
    * @param `projectId` - string
    * @param `opts` - { headers?: Record<string, string> }
-   * @returns DashboardProjectsConfigureAuthConfigGetOutput
+   * @returns DashboardProjectsConfigureToolCallingGetOutput
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
@@ -54,8 +54,8 @@ export class MetorialDashboardProjectsConfigureAuthConfigEndpoint {
     organizationId: string,
     projectId: string,
     opts?: { headers?: Record<string, string> }
-  ): Promise<DashboardProjectsConfigureAuthConfigGetOutput> {
-    let path = `dashboard/organizations/${organizationId}/projects/${projectId}/configure/auth-config`;
+  ): Promise<DashboardProjectsConfigureToolCallingGetOutput> {
+    let path = `dashboard/organizations/${organizationId}/projects/${projectId}/configure/tool-calling`;
 
     let request = {
       path,
@@ -64,39 +64,41 @@ export class MetorialDashboardProjectsConfigureAuthConfigEndpoint {
     } as any;
 
     return this._get(request).transform(
-      mapDashboardProjectsConfigureAuthConfigGetOutput
+      mapDashboardProjectsConfigureToolCallingGetOutput
     );
   }
 
   /**
-   * @name Update project auth config configuration
-   * @description Update auth config export/import settings for a project
+   * @name Update project tool calling configuration
+   * @description Update tool calling settings for a project
    *
    * @param `organizationId` - string
    * @param `projectId` - string
-   * @param `body` - DashboardProjectsConfigureAuthConfigUpdateBody
+   * @param `body` - DashboardProjectsConfigureToolCallingUpdateBody
    * @param `opts` - { headers?: Record<string, string> }
-   * @returns DashboardProjectsConfigureAuthConfigUpdateOutput
+   * @returns DashboardProjectsConfigureToolCallingUpdateOutput
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
   update(
     organizationId: string,
     projectId: string,
-    body: DashboardProjectsConfigureAuthConfigUpdateBody,
+    body: DashboardProjectsConfigureToolCallingUpdateBody,
     opts?: { headers?: Record<string, string> }
-  ): Promise<DashboardProjectsConfigureAuthConfigUpdateOutput> {
-    let path = `dashboard/organizations/${organizationId}/projects/${projectId}/configure/auth-config`;
+  ): Promise<DashboardProjectsConfigureToolCallingUpdateOutput> {
+    let path = `dashboard/organizations/${organizationId}/projects/${projectId}/configure/tool-calling`;
 
     let request = {
       path,
-      body: mapDashboardProjectsConfigureAuthConfigUpdateBody.transformTo(body),
+      body: mapDashboardProjectsConfigureToolCallingUpdateBody.transformTo(
+        body
+      ),
 
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
     return this._patch(request).transform(
-      mapDashboardProjectsConfigureAuthConfigUpdateOutput
+      mapDashboardProjectsConfigureToolCallingUpdateOutput
     );
   }
 }
