@@ -15,7 +15,7 @@ model Project {
   onlyAllowTrustedProviders      Boolean @default(false)
   magicMcpSessionDurationMinutes Int     @default(1440)
 
-  logRetentionInDays     Int     @default(30)
+  logRetentionInDays   Int     @default(30)
   enforceSessionExpiry Boolean @default(false)
 
   organizationOid BigInt
@@ -26,6 +26,9 @@ model Project {
   subspaceTenantId  String?
   cargoTenantId     String?
   synthesisTenantId String?
+
+  consumerAuthClientRegistrationsPerMinuteLimit Int @default(10)
+  consumerAuthClientRegistrationsPerHourLimit   Int @default(25)
 
   createdAt DateTime  @default(now())
   deletedAt DateTime?

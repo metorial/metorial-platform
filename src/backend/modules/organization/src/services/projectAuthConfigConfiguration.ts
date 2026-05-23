@@ -50,7 +50,12 @@ class ProjectAuthConfigConfigurationService {
 
     return {
       allowAuthConfigExport: tenant.allowAuthConfigExport,
-      allowAuthConfigImport: tenant.allowAuthConfigImport
+      allowAuthConfigImport: tenant.allowAuthConfigImport,
+
+      consumerAuthClientRegistrationsPerHourLimit:
+        d.project.consumerAuthClientRegistrationsPerHourLimit,
+      consumerAuthClientRegistrationsPerMinuteLimit:
+        d.project.consumerAuthClientRegistrationsPerMinuteLimit
     };
   }
 
@@ -62,6 +67,9 @@ class ProjectAuthConfigConfigurationService {
     input: {
       allowAuthConfigExport?: boolean;
       allowAuthConfigImport?: boolean;
+
+      consumerAuthClientRegistrationsPerHourLimit?: number;
+      consumerAuthClientRegistrationsPerMinuteLimit?: number;
     };
   }) {
     await this.ensureProjectActive(d.project);
@@ -74,15 +82,18 @@ class ProjectAuthConfigConfigurationService {
       name: tenant.name,
       identifier: tenant.identifier,
       environments: [],
-      allowAuthConfigExport:
-        d.input.allowAuthConfigExport ?? tenant.allowAuthConfigExport,
-      allowAuthConfigImport:
-        d.input.allowAuthConfigImport ?? tenant.allowAuthConfigImport
+      allowAuthConfigExport: d.input.allowAuthConfigExport ?? tenant.allowAuthConfigExport,
+      allowAuthConfigImport: d.input.allowAuthConfigImport ?? tenant.allowAuthConfigImport
     });
 
     let project = await db.project.update({
       where: { oid: d.project.oid },
-      data: { updatedAt: new Date() }
+      data: {
+        consumerAuthClientRegistrationsPerHourLimit:
+          d.input.consumerAuthClientRegistrationsPerHourLimit,
+        consumerAuthClientRegistrationsPerMinuteLimit:
+          d.input.consumerAuthClientRegistrationsPerMinuteLimit
+      }
     });
 
     await Fabric.fire('organization.project.auth_config_configuration.updated:after', {
@@ -96,7 +107,12 @@ class ProjectAuthConfigConfigurationService {
 
     return {
       allowAuthConfigExport: updatedTenant.allowAuthConfigExport,
-      allowAuthConfigImport: updatedTenant.allowAuthConfigImport
+      allowAuthConfigImport: updatedTenant.allowAuthConfigImport,
+
+      consumerAuthClientRegistrationsPerHourLimit:
+        project.consumerAuthClientRegistrationsPerHourLimit,
+      consumerAuthClientRegistrationsPerMinuteLimit:
+        project.consumerAuthClientRegistrationsPerMinuteLimit
     };
   }
 }

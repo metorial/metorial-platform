@@ -1,6 +1,6 @@
 import { mtMap } from '@metorial/util-resource-mapper';
 
-export type DashboardProjectsConfigureAuthConfigGetOutput = {
+export type ManagementOrganizationProjectsConfigureAuthConfigGetOutput = {
   object: 'organization.project.auth_config_configuration';
   projectId: string;
   allowAuthConfigExport: boolean;
@@ -10,8 +10,8 @@ export type DashboardProjectsConfigureAuthConfigGetOutput = {
   updatedAt: Date;
 };
 
-export let mapDashboardProjectsConfigureAuthConfigGetOutput =
-  mtMap.object<DashboardProjectsConfigureAuthConfigGetOutput>({
+export let mapManagementOrganizationProjectsConfigureAuthConfigGetOutput =
+  mtMap.object<ManagementOrganizationProjectsConfigureAuthConfigGetOutput>({
     object: mtMap.objectField('object', mtMap.passthrough()),
     projectId: mtMap.objectField('project_id', mtMap.passthrough()),
     allowAuthConfigExport: mtMap.objectField(

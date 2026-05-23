@@ -34,8 +34,7 @@ export let getConsumerAuthAccessTokenExpiry = () =>
 export let consumerAuthClientRegistrationRateLimitError = createError({
   status: 429,
   code: 'rate_limit_exceeded',
-  message: 'Too many OAuth client registrations from this IP address',
-  hint: 'OAuth client registrations are limited to 10 per minute and 20 per hour.'
+  message: 'Too many OAuth client registrations from this IP address'
 });
 
 export let ensurePendingConsumerAuthAuthorization = (

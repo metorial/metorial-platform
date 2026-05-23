@@ -10,10 +10,17 @@ import { Controller, Path } from '@metorial/rest';
 import { checkAccess } from '../../middleware/checkAccess';
 import { isDashboardGroup } from '../../middleware/isDashboard';
 import { organizationGroup } from '../../middleware/organizationGroup';
-import { projectAuthConfigConfigurationPresenter, projectRetentionPresenter } from '../../presenters';
+import {
+  projectAuthConfigConfigurationPresenter,
+  projectRetentionPresenter
+} from '../../presenters';
 
 let logRetentionInDaysValidator = v.optional(
   v.number({ modifiers: [v.positive(), v.integer(), v.minValue(1), v.maxValue(365)] })
+);
+
+let consumerAuthClientRegistrationLimitValidator = v.optional(
+  v.number({ modifiers: [v.positive(), v.integer(), v.minValue(1)] })
 );
 
 export let dashboardProjectConfigurationController = Controller.create(
@@ -177,14 +184,20 @@ export let dashboardProjectConfigurationController = Controller.create(
         'default',
         v.object({
           allow_auth_config_export: v.optional(v.boolean()),
-          allow_auth_config_import: v.optional(v.boolean())
+          allow_auth_config_import: v.optional(v.boolean()),
+          consumer_auth_client_registrations_per_hour_limit:
+            consumerAuthClientRegistrationLimitValidator,
+          consumer_auth_client_registrations_per_minute_limit:
+            consumerAuthClientRegistrationLimitValidator
         })
       )
       .output(projectAuthConfigConfigurationPresenter)
       .do(async ctx => {
         if (
           ctx.body.allow_auth_config_export === undefined &&
-          ctx.body.allow_auth_config_import === undefined
+          ctx.body.allow_auth_config_import === undefined &&
+          ctx.body.consumer_auth_client_registrations_per_hour_limit === undefined &&
+          ctx.body.consumer_auth_client_registrations_per_minute_limit === undefined
         ) {
           throw new ServiceError(
             badRequestError({
@@ -216,7 +229,11 @@ export let dashboardProjectConfigurationController = Controller.create(
             context: ctx.context,
             input: {
               allowAuthConfigExport: ctx.body.allow_auth_config_export,
-              allowAuthConfigImport: ctx.body.allow_auth_config_import
+              allowAuthConfigImport: ctx.body.allow_auth_config_import,
+              consumerAuthClientRegistrationsPerHourLimit:
+                ctx.body.consumer_auth_client_registrations_per_hour_limit,
+              consumerAuthClientRegistrationsPerMinuteLimit:
+                ctx.body.consumer_auth_client_registrations_per_minute_limit
             }
           });
 

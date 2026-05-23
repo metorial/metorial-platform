@@ -329,6 +329,7 @@ export * from './management_organization_oauth_installations';
 export * from './management_organization_oauth_scopes';
 export * from './management_organization_projects';
 export * from './management_organization_projects_branding';
+export * from './management_organization_projects_configure_auth-config';
 export * from './management_organization_service-accounts';
 export * from './management_organization_service-accounts_client-secrets';
 export * from './management_organization_service-accounts_credentials';

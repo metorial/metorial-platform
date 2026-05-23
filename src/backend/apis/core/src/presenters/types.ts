@@ -245,6 +245,8 @@ export let projectAuthConfigConfigurationType = PresentableType.create<{
   project: Project;
   allowAuthConfigExport: boolean;
   allowAuthConfigImport: boolean;
+  consumerAuthClientRegistrationsPerHourLimit: number;
+  consumerAuthClientRegistrationsPerMinuteLimit: number;
 }>()('project_auth_config_configuration');
 
 export let tokenType = PresentableType.create<{

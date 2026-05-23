@@ -1,6 +1,6 @@
 import { mtMap } from '@metorial/util-resource-mapper';
 
-export type DashboardProjectsConfigureAuthConfigUpdateOutput = {
+export type ManagementOrganizationProjectsConfigureAuthConfigUpdateOutput = {
   object: 'organization.project.auth_config_configuration';
   projectId: string;
   allowAuthConfigExport: boolean;
@@ -10,8 +10,8 @@ export type DashboardProjectsConfigureAuthConfigUpdateOutput = {
   updatedAt: Date;
 };
 
-export let mapDashboardProjectsConfigureAuthConfigUpdateOutput =
-  mtMap.object<DashboardProjectsConfigureAuthConfigUpdateOutput>({
+export let mapManagementOrganizationProjectsConfigureAuthConfigUpdateOutput =
+  mtMap.object<ManagementOrganizationProjectsConfigureAuthConfigUpdateOutput>({
     object: mtMap.objectField('object', mtMap.passthrough()),
     projectId: mtMap.objectField('project_id', mtMap.passthrough()),
     allowAuthConfigExport: mtMap.objectField(
@@ -33,15 +33,15 @@ export let mapDashboardProjectsConfigureAuthConfigUpdateOutput =
     updatedAt: mtMap.objectField('updated_at', mtMap.date())
   });
 
-export type DashboardProjectsConfigureAuthConfigUpdateBody = {
+export type ManagementOrganizationProjectsConfigureAuthConfigUpdateBody = {
   allowAuthConfigExport?: boolean | undefined;
   allowAuthConfigImport?: boolean | undefined;
   consumerAuthClientRegistrationsPerHourLimit?: number | undefined;
   consumerAuthClientRegistrationsPerMinuteLimit?: number | undefined;
 };
 
-export let mapDashboardProjectsConfigureAuthConfigUpdateBody =
-  mtMap.object<DashboardProjectsConfigureAuthConfigUpdateBody>({
+export let mapManagementOrganizationProjectsConfigureAuthConfigUpdateBody =
+  mtMap.object<ManagementOrganizationProjectsConfigureAuthConfigUpdateBody>({
     allowAuthConfigExport: mtMap.objectField(
       'allow_auth_config_export',
       mtMap.passthrough()

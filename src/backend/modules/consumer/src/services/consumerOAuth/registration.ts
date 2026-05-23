@@ -29,9 +29,11 @@ import {
 } from './_types';
 import { consumerOAuthClientService } from './client';
 
+type FullPortal = Awaited<ReturnType<typeof portalService.getPortalPublic>>;
+
 class ConsumerOAuthRegistrationService {
   async registerConsumerAuthClient(d: {
-    portal?: Awaited<ReturnType<typeof portalService.getPortalPublic>>;
+    portal?: FullPortal;
     consumerSurface?: ConsumerSurface;
     magicMcpTarget: MagicMcpResolvedTarget | null;
     input: {
@@ -66,7 +68,10 @@ class ConsumerOAuthRegistrationService {
     let redirectUris = normalizeConsumerClientRedirectUris(d.input.redirectUris);
 
     return await withTransaction(async db => {
-      await this.ensureRegistrationRateLimit({ registrationIp: d.input.registrationIp });
+      await this.ensureRegistrationRateLimit({
+        registrationIp: d.input.registrationIp,
+        instanceOid: consumerSurface.instanceOid
+      });
 
       let consumerClient = await consumerOAuthClientService.upsertConsumerClient({
         consumerSurface,
@@ -129,7 +134,10 @@ class ConsumerOAuthRegistrationService {
     let redirectUris = normalizeConsumerClientRedirectUris(d.input.redirectUris);
 
     return await withTransaction(async db => {
-      await this.ensureRegistrationRateLimit({ registrationIp: d.input.registrationIp });
+      await this.ensureRegistrationRateLimit({
+        registrationIp: d.input.registrationIp,
+        instanceOid: d.skillPlugin.instanceOid
+      });
 
       return await db.consumerAuthClient.create({
         data: {
@@ -151,7 +159,7 @@ class ConsumerOAuthRegistrationService {
   }
 
   async getConsumerAuthRegistration(d: {
-    portal?: Awaited<ReturnType<typeof portalService.getPortalPublic>>;
+    portal?: FullPortal;
     consumerSurface?: ConsumerSurface;
     magicMcpTarget: MagicMcpResolvedTarget | null;
     registrationId: string;
@@ -195,7 +203,20 @@ class ConsumerOAuthRegistrationService {
     });
   }
 
-  private async ensureRegistrationRateLimit(d: { registrationIp: string }) {
+  private async ensureRegistrationRateLimit(d: {
+    registrationIp: string;
+    instanceOid: bigint;
+  }) {
+    let project = await db.project.findFirstOrThrow({
+      where: {
+        instances: {
+          some: {
+            oid: d.instanceOid
+          }
+        }
+      }
+    });
+
     let now = new Date();
     let registrationsPerMinute = await db.consumerAuthClient.count({
       where: {
@@ -205,7 +226,10 @@ class ConsumerOAuthRegistrationService {
         }
       }
     });
-    if (registrationsPerMinute >= consumerAuthClientRegistrationsPerMinuteLimit) {
+    if (
+      registrationsPerMinute >= consumerAuthClientRegistrationsPerMinuteLimit ||
+      registrationsPerMinute >= project.consumerAuthClientRegistrationsPerMinuteLimit
+    ) {
       throw new ServiceError(consumerAuthClientRegistrationRateLimitError);
     }
 
@@ -217,7 +241,10 @@ class ConsumerOAuthRegistrationService {
         }
       }
     });
-    if (registrationsPerHour >= consumerAuthClientRegistrationsPerHourLimit) {
+    if (
+      registrationsPerHour >= consumerAuthClientRegistrationsPerHourLimit ||
+      registrationsPerHour >= project.consumerAuthClientRegistrationsPerHourLimit
+    ) {
       throw new ServiceError(consumerAuthClientRegistrationRateLimitError);
     }
   }
