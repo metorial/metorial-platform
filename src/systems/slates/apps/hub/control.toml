@@ -11,7 +11,7 @@ command = "bun run test:unit"
 
 [test.e2e]
 command = "bun run test:e2e"
-setup = ["bun prisma generate --schema prisma/schema", "bun prisma db push --accept-data-loss --schema prisma/schema"]
+setup = ["bun prisma generate", "bun prisma db push --accept-data-loss --schema prisma/schema"]
 cwd = "/app/src/systems/slates/apps/hub"
 runner = "service"
 
