@@ -6,6 +6,8 @@ import {
 import {
   mapDashboardInstancePortalsConsumerProfilesAssignGroupsBody,
   mapDashboardInstancePortalsConsumerProfilesAssignGroupsOutput,
+  mapDashboardInstancePortalsConsumerProfilesCreateBody,
+  mapDashboardInstancePortalsConsumerProfilesCreateOutput,
   mapDashboardInstancePortalsConsumerProfilesGetOutput,
   mapDashboardInstancePortalsConsumerProfilesListOutput,
   mapDashboardInstancePortalsConsumerProfilesListQuery,
@@ -13,6 +15,8 @@ import {
   mapDashboardInstancePortalsConsumerProfilesUnassignGroupsOutput,
   type DashboardInstancePortalsConsumerProfilesAssignGroupsBody,
   type DashboardInstancePortalsConsumerProfilesAssignGroupsOutput,
+  type DashboardInstancePortalsConsumerProfilesCreateBody,
+  type DashboardInstancePortalsConsumerProfilesCreateOutput,
   type DashboardInstancePortalsConsumerProfilesGetOutput,
   type DashboardInstancePortalsConsumerProfilesListOutput,
   type DashboardInstancePortalsConsumerProfilesListQuery,
@@ -107,6 +111,38 @@ export class MetorialPortalsConsumerProfilesEndpoint {
 
     return this._get(request).transform(
       mapDashboardInstancePortalsConsumerProfilesGetOutput
+    );
+  }
+
+  /**
+   * @name Create portal consumer profile
+   * @description Creates a new portal consumer profile.
+   *
+   * @param `portalId` - string
+   * @param `body` - DashboardInstancePortalsConsumerProfilesCreateBody
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardInstancePortalsConsumerProfilesCreateOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  create(
+    portalId: string,
+    body: DashboardInstancePortalsConsumerProfilesCreateBody,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstancePortalsConsumerProfilesCreateOutput> {
+    let path = `portals/${portalId}/consumer-profile`;
+
+    let request = {
+      path,
+      body: mapDashboardInstancePortalsConsumerProfilesCreateBody.transformTo(
+        body
+      ),
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._post(request).transform(
+      mapDashboardInstancePortalsConsumerProfilesCreateOutput
     );
   }
 

@@ -109,6 +109,38 @@ export let portalConsumerProfileController = Controller.create(
         });
       }),
 
+    create: portalGroup
+      .post(
+        instancePath('portals/:portalId/consumer-profile', 'portals.consumerProfiles.create'),
+        {
+          name: 'Create portal consumer profile',
+          description: 'Creates a new portal consumer profile.'
+        }
+      )
+      .use(checkAccess({ possibleScopes: ['instance.portal.consumers:write'] }))
+      .use(hasFlags(['paid-portals', 'portals-access']))
+      .body(
+        'default',
+        v.object({
+          email: v.string({ modifiers: [v.email()] }),
+          name: v.string()
+        })
+      )
+      .output(consumerProfilePresenter)
+      .do(async ctx => {
+        let consumerProfile = await consumerProfileService.createConsumerProfile({
+          surface: ctx.portal.surface,
+          email: ctx.body.email,
+          name: ctx.body.name
+        });
+
+        return consumerProfilePresenter.present({
+          consumerProfile,
+          instanceConsumer: consumerProfile.instanceConsumer,
+          assignedConsumerGroups: []
+        });
+      }),
+
     assignGroups: consumerProfileGroup
       .post(
         instancePath(
