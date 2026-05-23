@@ -1,4 +1,4 @@
-import { v } from '@lowerdeck/validation';
+import { v } from '@mtsrc/validation';
 import { adminAuthService } from '../../../services';
 import { app, authedApp } from './_app';
 

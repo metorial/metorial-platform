@@ -1,7 +1,7 @@
 import {
   createCachedFunction as innerCreateCachedFunction,
   createLocallyCachedFunction as innerCreateLocallyCachedFunction
-} from '@lowerdeck/cache';
+} from '@mtsrc/cache';
 import { getConfig } from '@metorial/config';
 
 export let createCachedFunction = <I, O>(opts: {

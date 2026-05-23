@@ -1,4 +1,4 @@
-import { combineQueueProcessors } from '@lowerdeck/queue';
+import { combineQueueProcessors } from '@mtsrc/queue';
 import { indexProviderListingQueueProcessor } from './providerListing';
 import { indexPublisherQueueProcessor } from './publisher';
 

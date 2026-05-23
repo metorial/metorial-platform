@@ -1,6 +1,6 @@
-import { createLock } from '@lowerdeck/lock';
-import { createQueue, QueueRetryError } from '@lowerdeck/queue';
-import { getSentry } from '@lowerdeck/sentry';
+import { createLock } from '@mtsrc/lock';
+import { createQueue, QueueRetryError } from '@mtsrc/queue';
+import { getSentry } from '@mtsrc/sentry';
 import { db } from '../../db';
 import { env } from '../../env';
 import {

@@ -1,4 +1,4 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { notFoundError, ServiceError } from '@mtsrc/error';
 import { ensureCargoScope, resolveCargoScopeDescriptorForOwner } from '../cargo';
 import type { FileOwner } from './file';
 

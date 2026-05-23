@@ -1,4 +1,4 @@
-import { memo } from '@lowerdeck/memo';
+import { memo } from '@mtsrc/memo';
 import { generatePlainId } from '@metorial/id';
 
 let index = 0;

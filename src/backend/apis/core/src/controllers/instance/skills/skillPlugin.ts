@@ -1,6 +1,6 @@
-import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
-import { Paginator } from '@lowerdeck/pagination';
-import { v } from '@lowerdeck/validation';
+import { badRequestError, notFoundError, ServiceError } from '@mtsrc/error';
+import { Paginator } from '@mtsrc/pagination';
+import { v } from '@mtsrc/validation';
 import { skillPluginService } from '@metorial/module-file';
 import { Controller } from '@metorial/rest';
 import { getInstanceCargoAccess, hasInstanceConsumerAccess } from '../../../lib/cargoAccess';

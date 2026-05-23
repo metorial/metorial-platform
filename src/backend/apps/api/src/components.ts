@@ -1,6 +1,6 @@
 process.env.TZ = 'UTC';
 
-import { apiMux } from '@lowerdeck/api-mux';
+import { apiMux } from '@mtsrc/api-mux';
 import { authApi } from '@metorial/api-auth';
 import { startMcpServer } from '@metorial/api-connection';
 import { apiServer } from '@metorial/api-core';

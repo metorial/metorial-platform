@@ -1,5 +1,5 @@
-import { isServiceError } from '@lowerdeck/error';
-import { createClient } from '@lowerdeck/rpc-client';
+import { isServiceError } from '@mtsrc/error';
+import { createClient } from '@mtsrc/rpc-client';
 import type { SlatesRegistryAdminClient } from '../../../src/apis/admin/controllers';
 
 let endpoint = `${window.location.origin}/slates-registry-admin`;

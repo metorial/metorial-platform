@@ -1,5 +1,5 @@
-import { createLock } from '@lowerdeck/lock';
-import { Service } from '@lowerdeck/service';
+import { createLock } from '@mtsrc/lock';
+import { Service } from '@mtsrc/service';
 import {
   addAfterTransactionHook,
   type Backend,

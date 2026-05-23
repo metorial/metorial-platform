@@ -1,4 +1,4 @@
-import { createServer, type InferClient } from '@lowerdeck/rpc-server';
+import { createServer, type InferClient } from '@mtsrc/rpc-server';
 import { app } from './_app';
 import { integrationSetupSessionController } from './integrationSetupSession';
 import { setupSessionController } from './setupSession';

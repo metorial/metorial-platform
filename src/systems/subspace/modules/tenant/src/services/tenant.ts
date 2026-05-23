@@ -1,6 +1,6 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
-import { generatePlainId } from '@lowerdeck/id';
-import { Service } from '@lowerdeck/service';
+import { notFoundError, ServiceError } from '@mtsrc/error';
+import { generatePlainId } from '@mtsrc/id';
+import { Service } from '@mtsrc/service';
 import { db, type EnvironmentType, getId } from '@metorial-subspace/db';
 import { reconcileTenantManagedBackingsQueue } from '@metorial-subspace/module-auth/src/queues/reconcile';
 import { tenantLogRetentionSyncQueue } from '../queues/retention/sync';

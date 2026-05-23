@@ -1,4 +1,4 @@
-import { createHono } from '@lowerdeck/hono';
+import { createHono } from '@mtsrc/hono';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { applySessionProviderNameTemplate } from '@metorial-subspace/module-session/src/lib/sessionProviderNameTemplate';
 import { describe, expect, it } from 'vitest';

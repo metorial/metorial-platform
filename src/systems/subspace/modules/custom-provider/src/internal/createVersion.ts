@@ -1,5 +1,5 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
-import { generatePlainId } from '@lowerdeck/id';
+import { badRequestError, ServiceError } from '@mtsrc/error';
+import { generatePlainId } from '@mtsrc/id';
 import {
   addAfterTransactionHook,
   type CustomProvider,

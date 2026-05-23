@@ -1,5 +1,5 @@
-import { getSentry } from '@lowerdeck/sentry';
-import { internalServerError, isServiceError, notFoundError } from '@lowerdeck/error';
+import { getSentry } from '@mtsrc/sentry';
+import { internalServerError, isServiceError, notFoundError } from '@mtsrc/error';
 import { Controller, Handler, ServiceRequest } from './controller';
 
 let Sentry = getSentry();

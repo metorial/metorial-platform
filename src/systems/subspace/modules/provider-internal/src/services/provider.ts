@@ -1,5 +1,5 @@
-import { generateCode } from '@lowerdeck/id';
-import { Service } from '@lowerdeck/service';
+import { generateCode } from '@mtsrc/id';
+import { Service } from '@mtsrc/service';
 import {
   addAfterTransactionHook,
   type Backend,

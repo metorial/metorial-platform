@@ -1,5 +1,5 @@
-import { createCron } from '@lowerdeck/cron';
-import { createQueue } from '@lowerdeck/queue';
+import { createCron } from '@mtsrc/cron';
+import { createQueue } from '@mtsrc/queue';
 import { db, env } from '@metorial-cargo/db';
 import { addMinutes } from 'date-fns';
 

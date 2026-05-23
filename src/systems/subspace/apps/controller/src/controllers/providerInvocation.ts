@@ -1,4 +1,4 @@
-import { v } from '@lowerdeck/validation';
+import { v } from '@mtsrc/validation';
 import { providerInvocationService } from '@metorial-subspace/module-session';
 import { providerInvocationPresenter } from '@metorial-subspace/presenters';
 import { app } from './_app';

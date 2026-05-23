@@ -1,4 +1,4 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { notFoundError, ServiceError } from '@mtsrc/error';
 import type { WorkflowVersionStep } from '../../../prisma/generated/browser';
 import type { Workflow, WorkflowRun, WorkflowRunStep } from '../../../prisma/generated/client';
 import { db } from '../../db';

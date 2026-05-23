@@ -7,7 +7,7 @@ import type {
   PrismaClient,
   Tenant
 } from '@metorial-cargo/db';
-import { defineFactory } from '@lowerdeck/testing-tools';
+import { defineFactory } from '@mtsrc/testing-tools';
 import { getId } from '@metorial-cargo/db';
 
 let randomSuffix = () => randomBytes(4).toString('hex');

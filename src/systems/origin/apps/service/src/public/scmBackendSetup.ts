@@ -1,5 +1,5 @@
-import { createHono, useValidatedBody } from '@lowerdeck/hono';
-import { v } from '@lowerdeck/validation';
+import { createHono, useValidatedBody } from '@mtsrc/hono';
+import { v } from '@mtsrc/validation';
 import { db } from '../db';
 import { backendSetupHtml } from '../lib/templates/backendSetup';
 import { completeDashboardHtml } from '../lib/templates/completeDashboard';

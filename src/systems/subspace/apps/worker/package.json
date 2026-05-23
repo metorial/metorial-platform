@@ -14,15 +14,14 @@
     "test:e2e": "bunx vitest run --config vitest.e2e.config.ts"
   },
   "devDependencies": {
-    "@lowerdeck/testing-tools": "^1.0.1",
     "@types/bun": "latest",
-    "vitest": "^4.0.17"
+    "vitest": "^4.0.17",
+    "@mtsrc/testing-tools": "1.0.0"
   },
   "peerDependencies": {
     "typescript": "^5"
   },
   "dependencies": {
-    "@lowerdeck/queue": "^1.0.11",
     "@metorial-subspace/app-controller": "workspace:*",
     "@metorial-subspace/module-auth": "^1.0.0",
     "@metorial-subspace/module-catalog": "^1.0.0",
@@ -31,13 +30,14 @@
     "@metorial-subspace/module-integration": "^1.0.0",
     "@metorial-subspace/module-provider-internal": "^1.0.0",
     "@metorial-subspace/module-skills": "^1.0.0",
-    "@lowerdeck/telemetry": "^1.1.1",
     "@metorial-subspace/module-tenant": "^1.0.0",
     "@metorial-subspace/provider-native": "^1.0.0",
     "@metorial-subspace/provider-slates": "^1.0.0",
     "@sentry/bun": "^10.34.0",
     "@vercel/ncc": "^0.38.3",
     "@sentry/cli": "^3.2.0",
-    "@metorial-subspace/module-callback": "^1.0.0"
+    "@metorial-subspace/module-callback": "^1.0.0",
+    "@mtsrc/queue": "1.0.0",
+    "@mtsrc/telemetry": "1.0.0"
   }
 }

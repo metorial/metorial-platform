@@ -1,5 +1,5 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
-import { Service } from '@lowerdeck/service';
+import { badRequestError, ServiceError } from '@mtsrc/error';
+import { Service } from '@mtsrc/service';
 import {
   addAfterTransactionHook,
   type Backend,

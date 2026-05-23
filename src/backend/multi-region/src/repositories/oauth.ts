@@ -1,4 +1,4 @@
-import { Service } from '@lowerdeck/service';
+import { Service } from '@mtsrc/service';
 import { User } from '@metorial/db';
 import { cell } from '../cell';
 import { globalDB, Prisma } from '../db';

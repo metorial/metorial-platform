@@ -1,5 +1,5 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
-import { serialize } from '@lowerdeck/serialize';
+import { badRequestError, ServiceError } from '@mtsrc/error';
+import { serialize } from '@mtsrc/serialize';
 import type { BroadcastMessage, ConduitResult } from '@metorial-subspace/connection-utils';
 import { db, type SessionMessage } from '@metorial-subspace/db';
 import { broadcastNats } from '../lib/nats';

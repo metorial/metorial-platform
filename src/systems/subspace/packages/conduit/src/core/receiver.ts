@@ -1,5 +1,5 @@
-import { getSentry } from '@lowerdeck/sentry';
-import { serialize } from '@lowerdeck/serialize';
+import { getSentry } from '@mtsrc/sentry';
+import { serialize } from '@mtsrc/serialize';
 import type { ICoordinationAdapter } from '../adapters/coordination/coordinationAdapter';
 import type { MemoryTransport } from '../adapters/transport/memoryTransport';
 import type { ITransportAdapter } from '../adapters/transport/transportAdapter';

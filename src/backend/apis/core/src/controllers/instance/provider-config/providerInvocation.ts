@@ -1,4 +1,4 @@
-import { v } from '@lowerdeck/validation';
+import { v } from '@mtsrc/validation';
 import { subspaceProviderInvocationService } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';

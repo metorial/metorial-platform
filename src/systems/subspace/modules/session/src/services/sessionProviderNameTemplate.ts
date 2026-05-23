@@ -1,5 +1,5 @@
-import { generatePlainId } from '@lowerdeck/id';
-import { Service } from '@lowerdeck/service';
+import { generatePlainId } from '@mtsrc/id';
+import { Service } from '@mtsrc/service';
 import { db, type Provider, type SessionProvider } from '@metorial-subspace/db';
 import {
   buildBaseSessionProviderNameTemplate,

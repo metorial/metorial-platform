@@ -1,5 +1,5 @@
-import { ServiceError, unauthorizedError } from '@lowerdeck/error';
-import { v } from '@lowerdeck/validation';
+import { ServiceError, unauthorizedError } from '@mtsrc/error';
+import { v } from '@mtsrc/validation';
 import { db } from '../../../db';
 import { getId } from '../../../id';
 import { ADMIN_APP_SLUG } from '../../../lib/adminApp';

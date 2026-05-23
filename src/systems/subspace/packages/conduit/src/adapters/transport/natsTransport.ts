@@ -1,4 +1,4 @@
-import { getSentry } from '@lowerdeck/sentry';
+import { getSentry } from '@mtsrc/sentry';
 import { connect, type NatsConnection, type Subscription } from 'nats';
 import type { NatsConfig } from '../../types/config';
 import type { ITransportAdapter, MessageHandler } from './transportAdapter';

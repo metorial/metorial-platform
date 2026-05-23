@@ -1,4 +1,4 @@
-import { getSentry } from '@lowerdeck/sentry';
+import { getSentry } from '@mtsrc/sentry';
 import axios from 'axios';
 import { getAxiosSsrfFilter } from '../http/axiosSsrf';
 import { fetchBearerToken, parseBearerChallenge } from './connection';

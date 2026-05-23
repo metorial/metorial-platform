@@ -1,4 +1,4 @@
-import { ServiceError, badRequestError } from '@lowerdeck/error';
+import { ServiceError, badRequestError } from '@mtsrc/error';
 import { db, snowflake, withTransaction } from '@metorial-subspace/db';
 import {
   IProviderDeployment,

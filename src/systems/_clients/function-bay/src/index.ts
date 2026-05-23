@@ -1,4 +1,4 @@
-import { createClient } from '@lowerdeck/rpc-client';
+import { createClient } from '@mtsrc/rpc-client';
 import type { FunctionBayClient } from '../../../function-bay/service/src/controllers';
 
 type ClientOpts = Parameters<typeof createClient>[0];

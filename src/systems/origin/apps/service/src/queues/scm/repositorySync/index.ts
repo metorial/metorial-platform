@@ -1,4 +1,4 @@
-import { combineQueueProcessors } from '@lowerdeck/queue';
+import { combineQueueProcessors } from '@mtsrc/queue';
 import { createBranchRepositorySyncQueueProcessor } from './createBranch';
 import { createPrRepositorySyncQueueProcessor } from './createPr';
 import { mergeRepositorySyncQueueProcessor } from './merge';

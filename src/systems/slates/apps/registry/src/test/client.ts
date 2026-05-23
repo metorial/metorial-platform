@@ -1,5 +1,5 @@
-import { createClient } from '@lowerdeck/rpc-client';
-import { createFetchRouter } from '@lowerdeck/testing-tools';
+import { createClient } from '@mtsrc/rpc-client';
+import { createFetchRouter } from '@mtsrc/testing-tools';
 import { slatesRegistryApi, type SlatesRegistryClient } from '../apis/internal';
 
 type ClientOptsLike = Parameters<typeof createClient>[0];

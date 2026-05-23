@@ -1,6 +1,6 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
-import { Paginator } from '@lowerdeck/pagination';
-import { Service } from '@lowerdeck/service';
+import { notFoundError, ServiceError } from '@mtsrc/error';
+import { Paginator } from '@mtsrc/pagination';
+import { Service } from '@mtsrc/service';
 import { db, type Tenant } from '@metorial-subspace/db';
 import { type DateFilter, normalizeDateFilter } from '@metorial-subspace/list-utils';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';

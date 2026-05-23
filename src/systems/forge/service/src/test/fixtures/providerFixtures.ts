@@ -1,6 +1,6 @@
 import type { PrismaClient, Provider } from '../../../prisma/generated/client';
 import { ID, snowflake } from '../../id';
-import { defineFactory } from '@lowerdeck/testing-tools';
+import { defineFactory } from '@mtsrc/testing-tools';
 import { defaultProvider as cachedProvider } from '../../services/provider';
 
 export const ProviderFixtures = (db: PrismaClient) => {

@@ -1,4 +1,4 @@
-import { createCron as innerCreateCron } from '@lowerdeck/cron';
+import { createCron as innerCreateCron } from '@mtsrc/cron';
 import { getConfig } from '@metorial/config';
 import { IQueueProcessor } from '@metorial/queue';
 

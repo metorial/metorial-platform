@@ -1,4 +1,4 @@
-import { ProgrammablePromise } from '@lowerdeck/programmable-promise';
+import { ProgrammablePromise } from '@mtsrc/programmable-promise';
 import {
   db,
   messageTranslator,

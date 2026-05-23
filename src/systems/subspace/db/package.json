@@ -17,13 +17,6 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "@lowerdeck/env": "^1.0.6",
-    "@lowerdeck/error": "^1.2.3",
-    "@lowerdeck/execution-context": "^1.1.1",
-    "@lowerdeck/id": "^1.0.8",
-    "@lowerdeck/snowflake": "^1.0.2",
-    "@lowerdeck/telemetry": "^1.1.1",
-    "@lowerdeck/validation": "^1.0.10",
     "@metorial-subspace/tsconfig": "^1.0.0",
     "@modelcontextprotocol/sdk": "^1.25.2",
     "@prisma/adapter-pg": "^7.2.0",
@@ -32,6 +25,13 @@
     "dotenv": "^17.2.3",
     "p-queue": "^9.1.0",
     "prisma": "^7.2.0",
-    "prisma-json-types-generator": "^4.0.1"
+    "prisma-json-types-generator": "^4.0.1",
+    "@mtsrc/env": "1.0.0",
+    "@mtsrc/error": "1.0.0",
+    "@mtsrc/execution-context": "1.0.0",
+    "@mtsrc/id": "1.0.0",
+    "@mtsrc/snowflake": "1.0.0",
+    "@mtsrc/telemetry": "1.0.0",
+    "@mtsrc/validation": "1.0.0"
   }
 }

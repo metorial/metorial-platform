@@ -1,4 +1,4 @@
-import { introspectType, ValidationType } from '@lowerdeck/validation';
+import { introspectType, ValidationType } from '@mtsrc/validation';
 
 export interface PresenterContext {
   // instance: Instance;

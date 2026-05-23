@@ -1,4 +1,4 @@
-import { forbiddenError, ServiceError } from '@lowerdeck/error';
+import { forbiddenError, ServiceError } from '@mtsrc/error';
 import { AuthInfo, Scope } from '@metorial/module-access';
 import { apiGroup } from './apiGroup';
 

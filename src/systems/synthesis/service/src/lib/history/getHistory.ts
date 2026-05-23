@@ -1,4 +1,4 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { notFoundError, ServiceError } from '@mtsrc/error';
 import type {
   AssistantConversation,
   AssistantMessage,

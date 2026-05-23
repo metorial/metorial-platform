@@ -1,6 +1,6 @@
-import { delay } from '@lowerdeck/delay';
-import { badRequestError, ServiceError } from '@lowerdeck/error';
-import { Service } from '@lowerdeck/service';
+import { delay } from '@mtsrc/delay';
+import { badRequestError, ServiceError } from '@mtsrc/error';
+import { Service } from '@mtsrc/service';
 import {
   withTransaction,
   type Environment,

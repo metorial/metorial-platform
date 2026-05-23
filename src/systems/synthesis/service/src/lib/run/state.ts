@@ -1,4 +1,4 @@
-import { generatePlainId } from '@lowerdeck/id';
+import { generatePlainId } from '@mtsrc/id';
 import type { SessionEvent } from '@openharness/core';
 import type { ModelMessage } from 'ai';
 import type { FileWriteChange, ItemStatus, Message, State, StateItem } from '../../types';

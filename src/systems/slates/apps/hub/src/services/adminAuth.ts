@@ -1,5 +1,5 @@
-import { ServiceError, unauthorizedError } from '@lowerdeck/error';
-import { Service } from '@lowerdeck/service';
+import { ServiceError, unauthorizedError } from '@mtsrc/error';
+import { Service } from '@mtsrc/service';
 import { addHours } from 'date-fns';
 import { aresAdminApp, aresClient } from '../aresClient';
 import { db } from '../db';

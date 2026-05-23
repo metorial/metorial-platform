@@ -1,4 +1,4 @@
-import { createQueue, QueueRetryError } from '@lowerdeck/queue';
+import { createQueue, QueueRetryError } from '@mtsrc/queue';
 import { db, getId, withTransaction } from '@metorial-subspace/db';
 import { env } from '../../env';
 import { indexSkillQueue } from '../search/skill';

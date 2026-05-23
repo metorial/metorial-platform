@@ -1,4 +1,4 @@
-import { ServiceError, unauthorizedError } from '@lowerdeck/error';
+import { ServiceError, unauthorizedError } from '@mtsrc/error';
 import { instanceGroup } from './instanceGroup';
 
 export let requireConsumerTokenForPublishableKey = instanceGroup.createMiddleware(async ctx => {

@@ -20,8 +20,8 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "@lowerdeck/serialize": "^1.0.4",
     "ioredis": "^5.4.2",
-    "nats": "^2.28.2"
+    "nats": "^2.28.2",
+    "@mtsrc/serialize": "1.0.0"
   }
 }

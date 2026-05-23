@@ -1,5 +1,5 @@
 import { randomBytes } from 'crypto';
-import { generateCustomId } from '@lowerdeck/id';
+import { generateCustomId } from '@mtsrc/id';
 import type {
   EventDestination,
   EventDestinationInstance,

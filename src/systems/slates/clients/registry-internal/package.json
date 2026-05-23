@@ -27,12 +27,12 @@
   "scripts": {
     "test": "vitest run --passWithNoTests",
     "lint": "prettier src/**/*.ts --check",
-    "build:client": "rm -rf ./dist && microbundle && dts-bundle-generator --config dts-bundle-generator.config.json",
+    "build:client": "rm -rf ./dist && microbundle && dts-bundle-generator --config dts-bundle-generator.config.json --external-imports @mtsrc/rpc-client @mtsrc/rpc-server @mtsrc/validation",
     "prepublish": "bun run build:client",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@lowerdeck/rpc-client": "^1.1.4"
+    "@mtsrc/rpc-client": "1.0.0"
   },
   "devDependencies": {
     "dts-bundle-generator": "^9.5.1",

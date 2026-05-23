@@ -1,4 +1,4 @@
-import { memo } from '@lowerdeck/memo';
+import { memo } from '@mtsrc/memo';
 import { theme } from '../theme';
 import { ColorType, getColorKey, getForegroundColor } from '../theme/colors';
 import { linearGradient } from '../theme/gradient';

@@ -1,4 +1,4 @@
-import { createQueue } from '@lowerdeck/queue';
+import { createQueue } from '@mtsrc/queue';
 import { createMcpRegistryClient } from '@metorial-services/registry-client';
 import { db } from '@metorial-subspace/db';
 import { env } from '../../env';

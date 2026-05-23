@@ -1,5 +1,5 @@
-import { notFoundError, preconditionFailedError, ServiceError } from '@lowerdeck/error';
-import { Service } from '@lowerdeck/service';
+import { notFoundError, preconditionFailedError, ServiceError } from '@mtsrc/error';
+import { Service } from '@mtsrc/service';
 import { db, type ConsumerProfile, type ConsumerSurface, type Instance } from '@metorial/db';
 import { type AnyAccessTagSelector } from '@metorial/module-access';
 import { skillPluginService } from '@metorial/module-file';

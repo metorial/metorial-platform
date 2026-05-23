@@ -1,4 +1,4 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, ServiceError } from '@mtsrc/error';
 import { db } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { createSubspaceService, toEventBase } from '../lib/subspaceService';

@@ -1,4 +1,4 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, ServiceError } from '@mtsrc/error';
 import { db, snowflake } from '@metorial-subspace/db';
 import type {
   GetDecryptedAuthConfigParam,

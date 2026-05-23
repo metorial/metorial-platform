@@ -5,7 +5,20 @@
     "skipLibCheck": true,
     "noEmit": true,
     "skipDefaultLibCheck": true,
-    "types": []
+    "types": [],
+    "moduleResolution": "bundler",
+    "baseUrl": ".",
+    "paths": {
+      "@mtsrc/validation": ["../../../../_shared/util/validation/src/index.ts"],
+      "@mtsrc/rpc-client": ["../../../../_shared/rpc/rpc-client/src/index.ts"],
+      "@mtsrc/rpc-server": ["../../../../_shared/rpc/rpc-server/src/index.ts"]
+    }
   },
+  "include": [
+    "src/**/*",
+    "../../../../_shared/util/validation/src/**/*",
+    "../../../../_shared/rpc/rpc-client/src/**/*",
+    "../../../../_shared/rpc/rpc-server/src/**/*"
+  ],
   "exclude": ["dist", "node_modules", "../../node_modules/bun-types"]
 }

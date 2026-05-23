@@ -1,6 +1,6 @@
 import { resolve } from 'path';
 import { defineConfig } from 'vitest/config';
-import { createVitestConfig, loadTestEnv } from '@lowerdeck/testing-tools';
+import { createVitestConfig, loadTestEnv } from '@mtsrc/testing-tools';
 
 let clientsRoot = resolve(__dirname, '../../_clients');
 

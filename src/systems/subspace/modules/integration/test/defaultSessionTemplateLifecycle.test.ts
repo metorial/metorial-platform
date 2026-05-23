@@ -45,7 +45,7 @@ let {
   };
 });
 
-vi.mock('@lowerdeck/queue', () => ({
+vi.mock('@mtsrc/queue', () => ({
   createQueue: createQueueMock
 }));
 

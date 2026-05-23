@@ -38,7 +38,7 @@ vi.mock('@metorial/fabric', () => ({
   }
 }));
 
-vi.mock('@lowerdeck/error', () => ({
+vi.mock('@mtsrc/error', () => ({
   conflictError: vi.fn(opts => ({ type: 'conflict', ...opts })),
   forbiddenError: vi.fn(opts => ({ type: 'forbidden', ...opts })),
   notFoundError: vi.fn(id => ({ type: 'not_found', id })),

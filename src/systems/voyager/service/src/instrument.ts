@@ -1,4 +1,4 @@
-import { setSentry } from '@lowerdeck/sentry';
+import { setSentry } from '@mtsrc/sentry';
 import * as Sentry from '@sentry/bun';
 
 declare global {

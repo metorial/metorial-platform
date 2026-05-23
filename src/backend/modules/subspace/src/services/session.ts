@@ -1,5 +1,5 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
-import { getSentry } from '@lowerdeck/sentry';
+import { badRequestError, ServiceError } from '@mtsrc/error';
+import { getSentry } from '@mtsrc/sentry';
 import { db, Instance, MagicMcpServer, Prisma } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { sessionClientSecretReferenceService } from '@metorial/module-access';

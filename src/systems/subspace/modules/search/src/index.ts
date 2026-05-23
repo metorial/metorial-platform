@@ -1,5 +1,5 @@
-import { delay } from '@lowerdeck/delay';
-import { ProgrammablePromise } from '@lowerdeck/programmable-promise';
+import { delay } from '@mtsrc/delay';
+import { ProgrammablePromise } from '@mtsrc/programmable-promise';
 import { createVoyagerClient } from '@metorial-platform-systems/voyager-client';
 import { env } from './env';
 

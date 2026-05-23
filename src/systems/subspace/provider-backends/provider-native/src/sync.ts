@@ -1,6 +1,6 @@
-import { delay } from '@lowerdeck/delay';
-import { getSentry } from '@lowerdeck/sentry';
-import { slugify } from '@lowerdeck/slugify';
+import { delay } from '@mtsrc/delay';
+import { getSentry } from '@mtsrc/sentry';
+import { slugify } from '@mtsrc/slugify';
 import {
   providerInternalService,
   providerVersionInternalService,

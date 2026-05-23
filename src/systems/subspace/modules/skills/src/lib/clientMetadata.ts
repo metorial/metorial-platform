@@ -1,4 +1,4 @@
-import { slugify } from '@lowerdeck/slugify';
+import { slugify } from '@mtsrc/slugify';
 import type { Skill } from '@metorial-subspace/db';
 
 export type SkillClientMetadataInput = {

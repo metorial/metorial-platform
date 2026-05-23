@@ -1,4 +1,4 @@
-import { Tokens } from '@lowerdeck/tokens';
+import { Tokens } from '@mtsrc/tokens';
 import type { File } from '@metorial-cargo/db';
 import { env } from '@metorial-cargo/db';
 

@@ -1,4 +1,4 @@
-import { generatePlainId } from '@lowerdeck/id';
+import { generatePlainId } from '@mtsrc/id';
 
 export let deletedEmail = {
   delete: (email: string) => {

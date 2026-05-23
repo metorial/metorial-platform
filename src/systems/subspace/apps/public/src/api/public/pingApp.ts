@@ -1,4 +1,4 @@
-import { createHono } from '@lowerdeck/hono';
+import { createHono } from '@mtsrc/hono';
 
 export let pingApp = createHono()
   .options('*', c => c.text(''))

@@ -6,7 +6,7 @@ import type {
 } from '../../../prisma/generated/client';
 import { ChangeNotificationType, SlateStatus } from '../../../prisma/generated/client';
 import { getId } from '../../id';
-import { defineFactory } from '@lowerdeck/testing-tools';
+import { defineFactory } from '@mtsrc/testing-tools';
 import { SlateFixtures } from './slateFixtures';
 
 export const ChangeNotificationFixtures = (db: PrismaClient) => {

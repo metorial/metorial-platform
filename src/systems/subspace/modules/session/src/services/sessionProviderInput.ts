@@ -1,6 +1,6 @@
-import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
-import { generatePlainId } from '@lowerdeck/id';
-import { Service } from '@lowerdeck/service';
+import { badRequestError, notFoundError, ServiceError } from '@mtsrc/error';
+import { generatePlainId } from '@mtsrc/id';
+import { Service } from '@mtsrc/service';
 import {
   addAfterTransactionHook,
   type Environment,

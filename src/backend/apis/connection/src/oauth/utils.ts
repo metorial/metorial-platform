@@ -1,4 +1,4 @@
-import { ServiceError, badRequestError, unauthorizedError } from '@lowerdeck/error';
+import { ServiceError, badRequestError, unauthorizedError } from '@mtsrc/error';
 import { Context } from 'hono';
 
 export let getString = (value: unknown) => {

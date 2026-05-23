@@ -1,4 +1,4 @@
-import { v } from '@lowerdeck/validation';
+import { v } from '@mtsrc/validation';
 import { profileService } from '@metorial/module-community';
 import { Controller, Path } from '@metorial/rest';
 import { checkAccess } from '../../middleware/checkAccess';

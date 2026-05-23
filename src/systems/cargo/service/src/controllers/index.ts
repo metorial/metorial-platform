@@ -1,4 +1,4 @@
-import { createServer, type InferClient } from '@lowerdeck/rpc-server';
+import { createServer, type InferClient } from '@mtsrc/rpc-server';
 import { app } from './_app';
 import { actorController } from './actor';
 import { documentController } from './document';

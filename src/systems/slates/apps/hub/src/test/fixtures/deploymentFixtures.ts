@@ -6,7 +6,7 @@ import type {
 } from '../../../prisma/generated/client';
 import { SlateDeploymentStatus } from '../../../prisma/generated/client';
 import { getId } from '../../id';
-import { defineFactory } from '@lowerdeck/testing-tools';
+import { defineFactory } from '@mtsrc/testing-tools';
 
 export const DeploymentProviderFixtures = (db: PrismaClient) => {
   const defaultProvider = async (

@@ -1,7 +1,7 @@
 import { spawn } from 'child_process';
 import { promises as fs } from 'fs';
 import JSZip from 'jszip';
-import { createQueue, type IQueue, type IQueueProcessor } from '@lowerdeck/queue';
+import { createQueue, type IQueue, type IQueueProcessor } from '@mtsrc/queue';
 import { tmpdir } from 'os';
 import { dirname, join, posix, resolve, sep } from 'path';
 import { env } from '../../env';

@@ -1,4 +1,4 @@
-import { createQueue } from '@lowerdeck/queue';
+import { createQueue } from '@mtsrc/queue';
 import { env } from '../../env';
 
 export let callbackReconcileInstanceQueue = createQueue<{

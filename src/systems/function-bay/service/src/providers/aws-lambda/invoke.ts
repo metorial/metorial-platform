@@ -1,5 +1,5 @@
 import { InvokeCommand, type InvokeCommandOutput } from '@aws-sdk/client-lambda';
-import { getSentry } from '@lowerdeck/sentry';
+import { getSentry } from '@mtsrc/sentry';
 import type { Function, FunctionVersion } from '../../../prisma/generated/client';
 import { parseInvocationPayload } from '../_lib';
 import { createDeflectorToken, getDeflectorProxyUrl } from './deflector';

@@ -1,4 +1,4 @@
-import { delay } from '@lowerdeck/delay';
+import { delay } from '@mtsrc/delay';
 import { clientAdapter } from '@metorial/mcp-server';
 import type { FunctionServer } from '../../../prisma/generated/client';
 import { functionBay } from '../../functionBay';

@@ -13,7 +13,7 @@ import type {
 } from '../../../prisma/generated/client';
 import { SlateTriggerInvocationType } from '../../../prisma/generated/client';
 import { getId } from '../../id';
-import { defineFactory } from '@lowerdeck/testing-tools';
+import { defineFactory } from '@mtsrc/testing-tools';
 import { SlateTriggerReceiverFixtures } from './slateTriggerReceiverFixtures';
 import { SlateInvocationFixtures } from './invocationFixtures';
 import { DeploymentProviderFixtures, SlateDeploymentFixtures } from './deploymentFixtures';

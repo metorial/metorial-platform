@@ -1,6 +1,6 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
-import { Paginator } from '@lowerdeck/pagination';
-import { Service } from '@lowerdeck/service';
+import { badRequestError, ServiceError } from '@mtsrc/error';
+import { Paginator } from '@mtsrc/pagination';
+import { Service } from '@mtsrc/service';
 import { Instance, Organization, User } from '@metorial/db';
 import { cargo, reconcileCargoPurposes, type CargoActor, type CargoFile } from '../cargo';
 import { purposes } from '../definitions';

@@ -7,7 +7,7 @@ import type {
 } from '../../../prisma/generated/client';
 import { SlateVersionDiscoveryStatus, SlateStatus } from '../../../prisma/generated/client';
 import { getId } from '../../id';
-import { defineFactory } from '@lowerdeck/testing-tools';
+import { defineFactory } from '@mtsrc/testing-tools';
 import { SlateFixtures } from './slateFixtures';
 
 export const SlateVersionDiscoveryFixtures = (db: PrismaClient) => {

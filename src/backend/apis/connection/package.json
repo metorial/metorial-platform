@@ -7,10 +7,6 @@
     "@metorial/config": "^1.0.0",
     "@metorial/context": "^1.0.0",
     "@metorial/db": "^1.0.0",
-    "@lowerdeck/delay": "^1.0.4",
-    "@lowerdeck/error": "^1.2.3",
-    "@lowerdeck/execution-context": "^1.1.1",
-    "@lowerdeck/hono": "^1.0.10",
     "@metorial/id": "^1.0.0",
     "@metorial/mcp-utils": "^1.0.0",
     "@metorial/module-access": "^1.0.0",
@@ -18,6 +14,10 @@
     "@metorial/module-protect": "^1.0.0",
     "@metorial/module-subspace": "1.0.0",
     "@metorial/rest": "^1.0.0",
-    "hono": "^4.0.0"
+    "hono": "^4.0.0",
+    "@mtsrc/delay": "1.0.0",
+    "@mtsrc/error": "1.0.0",
+    "@mtsrc/execution-context": "1.0.0",
+    "@mtsrc/hono": "1.0.0"
   }
 }

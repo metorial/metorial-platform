@@ -1,4 +1,4 @@
-import { createQueue, QueueRetryError } from '@lowerdeck/queue';
+import { createQueue, QueueRetryError } from '@mtsrc/queue';
 import { startOfWeek, subDays } from 'date-fns';
 import { db } from '../../db';
 import { env } from '../../env';

@@ -1,6 +1,6 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
-import { Paginator } from '@lowerdeck/pagination';
-import { Service } from '@lowerdeck/service';
+import { badRequestError, ServiceError } from '@mtsrc/error';
+import { Paginator } from '@mtsrc/pagination';
+import { Service } from '@mtsrc/service';
 import { type CargoFile, type CargoFileLink, cargo } from '../cargo';
 import { type CargoAccessActor, resolveCargoAccess } from './access';
 import type { FileOwner } from './file';

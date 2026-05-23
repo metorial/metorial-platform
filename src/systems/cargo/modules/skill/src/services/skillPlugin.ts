@@ -1,9 +1,9 @@
-import { canonicalize } from '@lowerdeck/canonicalize';
-import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
-import { generatePlainId } from '@lowerdeck/id';
-import { Paginator } from '@lowerdeck/pagination';
-import { Service } from '@lowerdeck/service';
-import { slugify } from '@lowerdeck/slugify';
+import { canonicalize } from '@mtsrc/canonicalize';
+import { badRequestError, notFoundError, ServiceError } from '@mtsrc/error';
+import { generatePlainId } from '@mtsrc/id';
+import { Paginator } from '@mtsrc/pagination';
+import { Service } from '@mtsrc/service';
+import { slugify } from '@mtsrc/slugify';
 import type {
   EntityImage,
   Prisma,

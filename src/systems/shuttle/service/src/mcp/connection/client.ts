@@ -1,5 +1,5 @@
-import { generatePlainId } from '@lowerdeck/id';
-import { ProgrammablePromise } from '@lowerdeck/programmable-promise';
+import { generatePlainId } from '@mtsrc/id';
+import { ProgrammablePromise } from '@mtsrc/programmable-promise';
 import {
   InitializeResultSchema,
   type InitializeRequestParams,

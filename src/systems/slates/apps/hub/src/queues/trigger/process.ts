@@ -1,5 +1,5 @@
-import { QueueRetryError } from '@lowerdeck/queue';
-import { getSentry } from '@lowerdeck/sentry';
+import { QueueRetryError } from '@mtsrc/queue';
+import { getSentry } from '@mtsrc/sentry';
 import { db } from '../../db';
 import { slateTriggerReceiverService } from '../../services/slateTriggerReceiver';
 import { slateTriggerEventProcessQueue } from './eventQueues';

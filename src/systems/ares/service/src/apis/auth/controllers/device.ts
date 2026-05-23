@@ -1,4 +1,4 @@
-import { v } from '@lowerdeck/validation';
+import { v } from '@mtsrc/validation';
 import { deviceService } from '../../../services/device';
 import { publicApp } from '../_app';
 import { resolveApp } from '../lib/resolveApp';

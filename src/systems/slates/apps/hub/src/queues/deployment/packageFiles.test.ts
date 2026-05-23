@@ -46,7 +46,7 @@ describe('buildSlateDeploymentFiles', () => {
       '@slates/provider-handler': 'latest',
       '@slates/proto': 'latest',
       slates: 'latest',
-      '@lowerdeck/serialize': 'latest'
+      '@mtsrc/serialize': 'latest'
     });
 
     let functionBayJson = JSON.parse(getFile(result.files, 'function-bay.json').content);

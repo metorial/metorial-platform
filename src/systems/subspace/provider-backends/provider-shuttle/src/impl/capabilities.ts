@@ -1,5 +1,5 @@
-import { delay } from '@lowerdeck/delay';
-import { slugify } from '@lowerdeck/slugify';
+import { delay } from '@mtsrc/delay';
+import { slugify } from '@mtsrc/slugify';
 import { db } from '@metorial-subspace/db';
 import {
   IProviderCapabilities,

@@ -1,4 +1,4 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, ServiceError } from '@mtsrc/error';
 
 export type StorePathKind = 'file' | 'directory';
 

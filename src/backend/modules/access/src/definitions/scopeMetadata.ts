@@ -1,4 +1,4 @@
-import { Cases } from '@lowerdeck/case';
+import { Cases } from '@mtsrc/case';
 import { Scope } from './scopeValues';
 
 export type ScopeDefinition = {

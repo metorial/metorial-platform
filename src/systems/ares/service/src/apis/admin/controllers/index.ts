@@ -1,4 +1,4 @@
-import { createServer, type InferClient } from '@lowerdeck/rpc-server';
+import { createServer, type InferClient } from '@mtsrc/rpc-server';
 import { publicApp } from '../middleware/admin';
 import { accessGroupController } from './accessGroup';
 import { adminController } from './admin';

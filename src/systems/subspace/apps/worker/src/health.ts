@@ -1,4 +1,4 @@
-import { withTracingSuppressed } from '@lowerdeck/telemetry';
+import { withTracingSuppressed } from '@mtsrc/telemetry';
 import { db } from '@metorial-subspace/db';
 import { RedisClient } from 'bun';
 

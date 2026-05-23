@@ -1,5 +1,5 @@
-import { Paginator } from '@lowerdeck/pagination';
-import { v } from '@lowerdeck/validation';
+import { Paginator } from '@mtsrc/pagination';
+import { v } from '@mtsrc/validation';
 import { identityDelegationConfigService } from '@metorial-subspace/module-identity';
 import { identityDelegationConfigPresenter } from '@metorial-subspace/presenters';
 import { app } from './_app';

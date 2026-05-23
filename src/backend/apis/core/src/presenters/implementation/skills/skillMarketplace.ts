@@ -1,4 +1,4 @@
-import { v } from '@lowerdeck/validation';
+import { v } from '@mtsrc/validation';
 import { getImageUrl } from '@metorial/db';
 import { Presenter } from '@metorial/presenter';
 import { skillMarketplaceType } from '../../types';

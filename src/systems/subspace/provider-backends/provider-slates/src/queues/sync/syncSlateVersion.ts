@@ -1,9 +1,9 @@
-import { createLocallyCachedFunction } from '@lowerdeck/cache';
-import { Cases } from '@lowerdeck/case';
-import { Hash } from '@lowerdeck/hash';
-import { generateCode } from '@lowerdeck/id';
-import { createQueue } from '@lowerdeck/queue';
-import { slugify } from '@lowerdeck/slugify';
+import { createLocallyCachedFunction } from '@mtsrc/cache';
+import { Cases } from '@mtsrc/case';
+import { Hash } from '@mtsrc/hash';
+import { generateCode } from '@mtsrc/id';
+import { createQueue } from '@mtsrc/queue';
+import { slugify } from '@mtsrc/slugify';
 import { db, snowflake } from '@metorial-subspace/db';
 import {
   providerInternalService,

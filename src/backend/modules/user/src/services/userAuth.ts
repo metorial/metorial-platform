@@ -1,5 +1,5 @@
-import { badRequestError, ServiceError, unauthorizedError } from '@lowerdeck/error';
-import { Service } from '@lowerdeck/service';
+import { badRequestError, ServiceError, unauthorizedError } from '@mtsrc/error';
+import { Service } from '@mtsrc/service';
 import { Context } from '@metorial/context';
 import { User, UserSession, withTransaction } from '@metorial/db';
 import { userService } from './user';

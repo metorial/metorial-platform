@@ -3,9 +3,9 @@ import {
   notFoundError,
   ServiceError,
   unauthorizedError
-} from '@lowerdeck/error';
-import { generateCustomId } from '@lowerdeck/id';
-import { Service } from '@lowerdeck/service';
+} from '@mtsrc/error';
+import { generateCustomId } from '@mtsrc/id';
+import { Service } from '@mtsrc/service';
 import { db, ID, Organization, Project, SkillPlugin, type Instance } from '@metorial/db';
 import { type MagicMcpResolvedTarget } from '@metorial/module-magic';
 import { addDays } from 'date-fns';

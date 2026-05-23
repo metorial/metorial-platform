@@ -30,8 +30,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@lowerdeck/rpc-client": "^1.1.4",
-    "@lowerdeck/validation": "^1.0.10"
+    "@mtsrc/rpc-client": "1.0.0",
+    "@mtsrc/validation": "1.0.0"
   },
   "devDependencies": {
     "tsup": "^8.5.1",

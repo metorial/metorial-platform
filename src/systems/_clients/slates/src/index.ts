@@ -1,4 +1,4 @@
-import { createClient } from '@lowerdeck/rpc-client';
+import { createClient } from '@mtsrc/rpc-client';
 import type { SlatesHubClient } from '../../../slates/apps/hub/src/apis/internal';
 
 type ClientOpts = Parameters<typeof createClient>[0];

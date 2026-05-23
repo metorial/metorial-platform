@@ -1,5 +1,5 @@
-import { Encryption } from '@lowerdeck/encryption';
-import { defineFactory } from '@lowerdeck/testing-tools';
+import { Encryption } from '@mtsrc/encryption';
+import { defineFactory } from '@mtsrc/testing-tools';
 import { randomBytes } from 'crypto';
 import type {
   FunctionBundle,

@@ -1,4 +1,4 @@
-import { Service } from '@lowerdeck/service';
+import { Service } from '@mtsrc/service';
 import { FlagProviderParams, getFlags } from '../definitions';
 
 class FlagServiceImpl {

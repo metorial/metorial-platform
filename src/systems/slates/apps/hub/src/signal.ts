@@ -1,5 +1,5 @@
-import { delay } from '@lowerdeck/delay';
-import { ProgrammablePromise } from '@lowerdeck/programmable-promise';
+import { delay } from '@mtsrc/delay';
+import { ProgrammablePromise } from '@mtsrc/programmable-promise';
 import { createSignalClient } from '@metorial-platform-systems/signal-client';
 import type { Tenant } from '../prisma/generated/client';
 import { db } from './db';

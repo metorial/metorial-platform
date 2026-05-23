@@ -1,4 +1,4 @@
-import { combineQueueProcessors } from '@lowerdeck/queue';
+import { combineQueueProcessors } from '@mtsrc/queue';
 import { customDeploymentFailedQueueProcessor } from './failed';
 import { customDeploymentMonitorQueueProcessor } from './monitor';
 import { customDeploymentPropagateToOtherEnvironmentsQueueProcessor } from './propagateToOtherEnvironments';

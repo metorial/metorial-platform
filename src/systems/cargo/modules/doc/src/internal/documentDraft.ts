@@ -1,7 +1,7 @@
-import { delay } from '@lowerdeck/delay';
-import { generatePlainId } from '@lowerdeck/id';
-import { createRedisClient } from '@lowerdeck/redis';
-import { Service } from '@lowerdeck/service';
+import { delay } from '@mtsrc/delay';
+import { generatePlainId } from '@mtsrc/id';
+import { createRedisClient } from '@mtsrc/redis';
+import { Service } from '@mtsrc/service';
 import { env } from '@metorial-cargo/db';
 
 export type DocumentDraft = {

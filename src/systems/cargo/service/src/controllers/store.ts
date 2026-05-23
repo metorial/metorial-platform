@@ -1,6 +1,6 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
-import { Paginator } from '@lowerdeck/pagination';
-import { v } from '@lowerdeck/validation';
+import { badRequestError, ServiceError } from '@mtsrc/error';
+import { Paginator } from '@mtsrc/pagination';
+import { v } from '@mtsrc/validation';
 import { storeItemPresenter, storePermissionsPresenter, storePresenter } from '../presenters';
 import { actorService } from '@metorial-cargo/module-file';
 import { storeService } from '@metorial-cargo/module-store';

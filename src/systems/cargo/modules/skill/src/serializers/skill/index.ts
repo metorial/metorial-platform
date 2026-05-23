@@ -1,5 +1,5 @@
-import { Hash } from '@lowerdeck/hash';
-import { slugify } from '@lowerdeck/slugify';
+import { Hash } from '@mtsrc/hash';
+import { slugify } from '@mtsrc/slugify';
 import type { Prisma } from '@metorial-cargo/db';
 import { db } from '@metorial-cargo/db';
 import { fileService } from '@metorial-cargo/module-file';

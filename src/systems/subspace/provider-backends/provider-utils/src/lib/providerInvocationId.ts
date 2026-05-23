@@ -1,4 +1,4 @@
-import { base62 } from '@lowerdeck/base62';
+import { base62 } from '@mtsrc/base62';
 
 export let PROVIDER_INVOCATION_ID_PREFIX = 'piv_';
 

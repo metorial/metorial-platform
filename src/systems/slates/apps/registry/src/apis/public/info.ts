@@ -1,4 +1,4 @@
-import { createHono } from '@lowerdeck/hono';
+import { createHono } from '@mtsrc/hono';
 import { paginatorSchema } from '../../lib/paginatorSchema';
 import { useValidation } from '../../lib/validator';
 import { subRegistryPresenter, tenantPresenter } from '../../presenters';

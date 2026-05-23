@@ -1,5 +1,5 @@
-import { createLocallyCachedFunction } from '@lowerdeck/cache';
-import { Service } from '@lowerdeck/service';
+import { createLocallyCachedFunction } from '@mtsrc/cache';
+import { Service } from '@mtsrc/service';
 import { db } from '../db';
 import { getId } from '../id';
 

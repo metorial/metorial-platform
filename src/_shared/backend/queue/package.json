@@ -1,0 +1,26 @@
+{
+  "name": "@mtsrc/queue",
+  "version": "1.0.0",
+  "private": true,
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "vitest run --passWithNoTests",
+    "lint": "prettier src/**/*.ts --check"
+  },
+  "dependencies": {
+    "@mtsrc/delay": "1.0.0",
+    "@mtsrc/execution-context": "1.0.0",
+    "@mtsrc/id": "1.0.0",
+    "@mtsrc/memo": "1.0.0",
+    "@mtsrc/redis": "1.0.0",
+    "@mtsrc/sentry": "1.0.0",
+    "@mtsrc/telemetry": "1.0.0",
+    "bullmq": "^5.66.0",
+    "superjson": "^2.2.6"
+  },
+  "devDependencies": {
+    "@metorial/tsconfig": "1.0.0",
+    "typescript": "5.8.2",
+    "vitest": "^3.1.2"
+  }
+}

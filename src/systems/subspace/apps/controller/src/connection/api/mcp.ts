@@ -1,5 +1,5 @@
-import { delay } from '@lowerdeck/delay';
-import { createHono } from '@lowerdeck/hono';
+import { delay } from '@mtsrc/delay';
+import { createHono } from '@mtsrc/hono';
 import { McpConnection } from '@metorial-subspace/module-connection';
 import { streamSSE } from 'hono/streaming';
 import z from 'zod';

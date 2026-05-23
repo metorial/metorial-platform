@@ -1,6 +1,6 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
-import { getSentry } from '@lowerdeck/sentry';
-import { Service } from '@lowerdeck/service';
+import { badRequestError, ServiceError } from '@mtsrc/error';
+import { getSentry } from '@mtsrc/sentry';
+import { Service } from '@mtsrc/service';
 import { addMinutes, differenceInDays, differenceInMinutes } from 'date-fns';
 import type {
   RemoteOAuthConfig,

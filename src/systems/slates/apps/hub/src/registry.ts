@@ -1,6 +1,6 @@
-import { ServiceError, validationError } from '@lowerdeck/error';
-import { Hash } from '@lowerdeck/hash';
-import { v } from '@lowerdeck/validation';
+import { ServiceError, validationError } from '@mtsrc/error';
+import { Hash } from '@mtsrc/hash';
+import { v } from '@mtsrc/validation';
 import { addMinutes } from 'date-fns';
 import { hc } from 'hono/client';
 import type { Registry } from '../prisma/generated/client';

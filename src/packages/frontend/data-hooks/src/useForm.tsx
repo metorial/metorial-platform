@@ -1,4 +1,4 @@
-import type { ValidationType } from '@lowerdeck/validation';
+import type { ValidationType } from '@mtsrc/validation';
 import { Error } from '@metorial/ui';
 import equal from 'fast-deep-equal';
 import type { FormikConfig } from 'formik';

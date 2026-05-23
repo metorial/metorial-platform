@@ -1,7 +1,7 @@
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../../prisma/generated/client';
 import { afterAll, vi } from 'vitest';
-import { setupPrismaTestDb, setupTestGlobals } from '@lowerdeck/testing-tools';
+import { setupPrismaTestDb, setupTestGlobals } from '@mtsrc/testing-tools';
 import { getId } from '../id';
 
 // Mock `hono/bun` for compatibility with Vitest's Node runner (`Bun` is undefined error)

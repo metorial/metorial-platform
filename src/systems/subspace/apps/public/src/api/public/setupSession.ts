@@ -1,5 +1,5 @@
-import { badRequestError, internalServerError, isServiceError } from '@lowerdeck/error';
-import { createHono } from '@lowerdeck/hono';
+import { badRequestError, internalServerError, isServiceError } from '@mtsrc/error';
+import { createHono } from '@mtsrc/hono';
 import { join } from 'path';
 import { htmlEncode } from '../../lib/htmlEncode';
 import { getFullSession } from '../internal/setupSession';

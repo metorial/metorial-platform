@@ -1,6 +1,6 @@
-import { createClient } from '@lowerdeck/rpc-client';
-import { createServer, rpcMux, type InferClient } from '@lowerdeck/rpc-server';
-import { createFetchRouter } from '@lowerdeck/testing-tools';
+import { createClient } from '@mtsrc/rpc-client';
+import { createServer, rpcMux, type InferClient } from '@mtsrc/rpc-server';
+import { createFetchRouter } from '@mtsrc/testing-tools';
 import { app } from '../controllers/_app';
 import { tenantController } from '../controllers/tenant';
 

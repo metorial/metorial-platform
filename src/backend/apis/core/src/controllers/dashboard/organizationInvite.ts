@@ -1,4 +1,4 @@
-import { v } from '@lowerdeck/validation';
+import { v } from '@mtsrc/validation';
 import { organizationInviteJoinService } from '@metorial/module-organization';
 import { Controller, Path } from '@metorial/rest';
 import { isDashboardGroup } from '../../middleware/isDashboard';

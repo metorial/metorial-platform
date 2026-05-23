@@ -1,4 +1,4 @@
-import { v } from '@lowerdeck/validation';
+import { v } from '@mtsrc/validation';
 import { slateInvocationPresenter } from '../../presenters';
 import { slateInvocationService } from '../../services';
 import { app } from './_app';

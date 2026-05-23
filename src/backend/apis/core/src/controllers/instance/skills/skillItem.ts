@@ -1,6 +1,6 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
-import { Paginator } from '@lowerdeck/pagination';
-import { v } from '@lowerdeck/validation';
+import { badRequestError, ServiceError } from '@mtsrc/error';
+import { Paginator } from '@mtsrc/pagination';
+import { v } from '@mtsrc/validation';
 import { ConsumerProfile, Skill } from '@metorial/db';
 import { consumerSkillService } from '@metorial/module-consumer';
 import { subspaceSkillItemService } from '@metorial/module-subspace';

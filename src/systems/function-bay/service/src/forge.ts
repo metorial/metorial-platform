@@ -1,6 +1,6 @@
-import { canonicalize } from '@lowerdeck/canonicalize';
-import { delay } from '@lowerdeck/delay';
-import { Hash } from '@lowerdeck/hash';
+import { canonicalize } from '@mtsrc/canonicalize';
+import { delay } from '@mtsrc/delay';
+import { Hash } from '@mtsrc/hash';
 import { createForgeClient } from '@metorial-platform-systems/forge-client';
 import type { Runtime, Tenant } from '../prisma/generated/client';
 import { db } from './db';

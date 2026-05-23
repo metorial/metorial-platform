@@ -1,4 +1,4 @@
-import { Service } from '@lowerdeck/service';
+import { Service } from '@mtsrc/service';
 import type { Prisma } from '@metorial-cargo/db';
 import { getId, withTransaction } from '@metorial-cargo/db';
 import type { documentInclude } from '../services/document';

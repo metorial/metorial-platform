@@ -1,5 +1,5 @@
-import { Paginator } from '@lowerdeck/pagination';
-import { v } from '@lowerdeck/validation';
+import { Paginator } from '@mtsrc/pagination';
+import { v } from '@mtsrc/validation';
 import { slateOAuthSetupEventPresenter } from '../../presenters/slateOAuthSetupEvent';
 import { slateOAuthSetupEventService } from '../../services/slateOAuthSetupEvent';
 import { app } from './_app';

@@ -1,4 +1,4 @@
-import { createHono } from '@lowerdeck/hono';
+import { createHono } from '@mtsrc/hono';
 import { ssoAuthApp } from './auth';
 import { jxnApp } from './jxn';
 import { setupApp } from './setup';

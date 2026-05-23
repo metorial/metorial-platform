@@ -1,4 +1,4 @@
-import { v } from '@lowerdeck/validation';
+import { v } from '@mtsrc/validation';
 import { MagicMcpEndpoint } from '@metorial/db';
 
 export let v1MagicMcpEndpointPreview = Object.assign(

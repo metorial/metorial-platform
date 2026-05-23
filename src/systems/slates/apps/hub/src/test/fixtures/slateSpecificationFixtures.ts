@@ -6,7 +6,7 @@ import type {
   SlateSpecificationAction
 } from '../../../prisma/generated/client';
 import { getId, snowflake } from '../../id';
-import { defineFactory } from '@lowerdeck/testing-tools';
+import { defineFactory } from '@mtsrc/testing-tools';
 
 export const SlateSpecificationFixtures = (db: PrismaClient) => {
   const defaultSpecification = async (data: {

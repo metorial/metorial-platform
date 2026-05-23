@@ -1,4 +1,4 @@
-import { setupPrismaTestDb, setupTestGlobals } from '@lowerdeck/testing-tools';
+import { setupPrismaTestDb, setupTestGlobals } from '@mtsrc/testing-tools';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { afterAll } from 'vitest';
 import { PrismaClient } from '../../prisma/generated/client';

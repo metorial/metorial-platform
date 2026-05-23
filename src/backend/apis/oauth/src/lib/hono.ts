@@ -1,4 +1,4 @@
-import { internalServerError, isServiceError, notFoundError } from '@lowerdeck/error';
+import { internalServerError, isServiceError, notFoundError } from '@mtsrc/error';
 import { Env, Hono } from 'hono';
 import { OAuthError } from './errors';
 

@@ -1,4 +1,4 @@
-import { ServiceError, notFoundError } from '@lowerdeck/error';
+import { ServiceError, notFoundError } from '@mtsrc/error';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { accessService } from '../src/services/access';
 import { AuthInfo } from '../src/services/authentication';

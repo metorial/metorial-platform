@@ -5,7 +5,7 @@ import { getId } from '../../id';
 import { deployContainerServerStartQueue } from '../container/startDeployment';
 import { serverVersionCreatedQueue } from '../lifecycle/serverVersion';
 
-vi.mock('@lowerdeck/queue', () => ({
+vi.mock('@mtsrc/queue', () => ({
   createQueue: vi.fn(() => ({
     add: vi.fn(),
     addManyWithOps: vi.fn(),

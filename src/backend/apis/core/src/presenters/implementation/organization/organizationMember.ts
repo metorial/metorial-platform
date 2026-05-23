@@ -1,4 +1,4 @@
-import { v } from '@lowerdeck/validation';
+import { v } from '@mtsrc/validation';
 import { Presenter } from '@metorial/presenter';
 import { organizationMemberType } from '../../types';
 import { v1AccessPolicyPreviewPresenter } from '../accessControl/accessPolicyPreview';

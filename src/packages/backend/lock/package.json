@@ -9,10 +9,10 @@
     "lint": "prettier src/**/*.ts --check"
   },
   "dependencies": {
-    "@lowerdeck/lock": "^1.0.6",
     "@metorial/redis": "^1.0.0",
     "@types/bun": "^1.2.11",
-    "superjson": "^2.2.5"
+    "superjson": "^2.2.5",
+    "@mtsrc/lock": "1.0.0"
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",

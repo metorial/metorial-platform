@@ -1,4 +1,4 @@
-import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, notFoundError, ServiceError } from '@mtsrc/error';
 import {
   SlateTriggerDestinationStatus,
   SlateTriggerEventDeliveryStatus,

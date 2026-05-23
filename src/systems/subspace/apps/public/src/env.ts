@@ -1,5 +1,5 @@
-import { createValidatedEnv } from '@lowerdeck/env';
-import { v } from '@lowerdeck/validation';
+import { createValidatedEnv } from '@mtsrc/env';
+import { v } from '@mtsrc/validation';
 
 export let env = createValidatedEnv({
   files: {

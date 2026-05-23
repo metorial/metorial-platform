@@ -12,7 +12,7 @@ import type {
 } from '../../../prisma/generated/client';
 import { SlateSessionToolCallStatus, type SlateStatus } from '../../../prisma/generated/client';
 import { getId } from '../../id';
-import { defineFactory } from '@lowerdeck/testing-tools';
+import { defineFactory } from '@mtsrc/testing-tools';
 import { SlateSessionFixtures } from './slateSessionFixtures';
 import { SlateSpecificationFixtures } from './slateSpecificationFixtures';
 import { SlateInvocationFixtures, SlateInvocationStorageBucketFixtures } from './invocationFixtures';

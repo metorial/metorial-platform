@@ -1,5 +1,5 @@
-import { Paginator } from '@lowerdeck/pagination';
-import { v } from '@lowerdeck/validation';
+import { Paginator } from '@mtsrc/pagination';
+import { v } from '@mtsrc/validation';
 import { callbackDestinationService } from '@metorial-subspace/module-callback';
 import { callbackDestinationPresenter } from '@metorial-subspace/presenters';
 import { app } from './_app';

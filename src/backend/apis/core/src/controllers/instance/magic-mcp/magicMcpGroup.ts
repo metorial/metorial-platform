@@ -1,6 +1,6 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
-import { Paginator } from '@lowerdeck/pagination';
-import { v } from '@lowerdeck/validation';
+import { badRequestError, ServiceError } from '@mtsrc/error';
+import { Paginator } from '@mtsrc/pagination';
+import { v } from '@mtsrc/validation';
 import { MagicMcpGroupStatus } from '@metorial/db';
 import { magicMcpGroupService } from '@metorial/module-magic';
 import { Controller } from '@metorial/rest';

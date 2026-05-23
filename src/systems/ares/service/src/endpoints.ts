@@ -1,4 +1,4 @@
-import { getSentry } from '@lowerdeck/sentry';
+import { getSentry } from '@mtsrc/sentry';
 import { RedisClient } from 'bun';
 import { adminApi } from './apis/admin';
 import { authApi } from './apis/auth';

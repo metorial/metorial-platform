@@ -11,7 +11,7 @@ import type {
 } from '../../../prisma/generated/client';
 import { WorkflowRunStatus } from '../../../prisma/generated/client';
 import { ID, snowflake } from '../../id';
-import { defineFactory } from '@lowerdeck/testing-tools';
+import { defineFactory } from '@mtsrc/testing-tools';
 import { WorkflowVersionFixtures } from './workflowVersionFixtures';
 import { WorkflowRunStepFixtures } from './workflowRunStepFixtures';
 import { encryption } from '../../encryption';

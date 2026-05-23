@@ -1,5 +1,5 @@
-import { Paginator } from '@lowerdeck/pagination';
-import { v } from '@lowerdeck/validation';
+import { Paginator } from '@mtsrc/pagination';
+import { v } from '@mtsrc/validation';
 import { accessService } from '@metorial/module-access';
 import { instanceService, projectService } from '@metorial/module-organization';
 import { Controller } from '@metorial/rest';

@@ -1,6 +1,6 @@
-import { generatePlainId } from '@lowerdeck/id';
-import { ProgrammablePromise } from '@lowerdeck/programmable-promise';
-import { getSentry } from '@lowerdeck/sentry';
+import { generatePlainId } from '@mtsrc/id';
+import { ProgrammablePromise } from '@mtsrc/programmable-promise';
+import { getSentry } from '@mtsrc/sentry';
 import type { JSONRPCMessage } from '@modelcontextprotocol/sdk/types.js';
 import PQueue from 'p-queue';
 import type { Tenant } from '../../../prisma/generated/browser';

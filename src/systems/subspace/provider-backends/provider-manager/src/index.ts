@@ -1,4 +1,4 @@
-import { createLocallyCachedFunction } from '@lowerdeck/cache';
+import { createLocallyCachedFunction } from '@mtsrc/cache';
 import { db } from '@metorial-subspace/db';
 import { nativeProvider } from '@metorial-subspace/provider-native/src/impl';
 import { shuttleProvider } from '@metorial-subspace/provider-shuttle/src/impl';

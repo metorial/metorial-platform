@@ -1,7 +1,7 @@
-import { canonicalize } from '@lowerdeck/canonicalize';
-import { createLock } from '@lowerdeck/lock';
-import { Hash } from '@lowerdeck/hash';
-import { createQueue, QueueRetryError } from '@lowerdeck/queue';
+import { canonicalize } from '@mtsrc/canonicalize';
+import { createLock } from '@mtsrc/lock';
+import { Hash } from '@mtsrc/hash';
+import { createQueue, QueueRetryError } from '@mtsrc/queue';
 import { db, getId } from '@metorial-subspace/db';
 import { createProviderInvocationId } from '@metorial-subspace/provider-utils';
 import { backend as slatesBackend } from '../../backend';

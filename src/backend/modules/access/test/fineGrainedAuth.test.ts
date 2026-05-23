@@ -1,6 +1,6 @@
 import { Context } from '@metorial/context';
 import { db } from '@metorial/db';
-import { ServiceError } from '@lowerdeck/error';
+import { ServiceError } from '@mtsrc/error';
 import { UnifiedApiKey } from '@metorial/api-keys';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fineGrainedAuthService } from '../src/services/fineGrainedAuth';

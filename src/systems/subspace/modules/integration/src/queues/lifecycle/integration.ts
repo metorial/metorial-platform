@@ -1,4 +1,4 @@
-import { createQueue } from '@lowerdeck/queue';
+import { createQueue } from '@mtsrc/queue';
 import { db } from '@metorial-subspace/db';
 import { identityInternalService } from '@metorial-subspace/module-identity';
 import { reconcileSkillProviderLinksQueue } from '@metorial-subspace/module-skills/src/queues/reconciler/reconcileSkillProviderLink';

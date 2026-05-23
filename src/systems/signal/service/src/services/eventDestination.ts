@@ -3,10 +3,10 @@ import {
   notFoundError,
   preconditionFailedError,
   ServiceError
-} from '@lowerdeck/error';
-import { generateCustomId } from '@lowerdeck/id';
-import { Paginator } from '@lowerdeck/pagination';
-import { Service } from '@lowerdeck/service';
+} from '@mtsrc/error';
+import { generateCustomId } from '@mtsrc/id';
+import { Paginator } from '@mtsrc/pagination';
+import { Service } from '@mtsrc/service';
 import type {
   EventDestination,
   EventDestinationInstance,

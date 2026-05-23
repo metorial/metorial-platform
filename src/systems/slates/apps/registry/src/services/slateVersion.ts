@@ -4,10 +4,10 @@ import {
   preconditionFailedError,
   ServiceError,
   unauthorizedError
-} from '@lowerdeck/error';
-import { createLock } from '@lowerdeck/lock';
-import { Paginator } from '@lowerdeck/pagination';
-import { Service } from '@lowerdeck/service';
+} from '@mtsrc/error';
+import { createLock } from '@mtsrc/lock';
+import { Paginator } from '@mtsrc/pagination';
+import { Service } from '@mtsrc/service';
 import type {
   Slate,
   SlateAccess,

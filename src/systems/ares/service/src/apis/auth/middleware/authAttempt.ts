@@ -1,4 +1,4 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, ServiceError } from '@mtsrc/error';
 import { authService } from '../../../services/auth';
 import { publicApp } from '../_app';
 

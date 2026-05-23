@@ -1,5 +1,5 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
-import { v, type ValidationTypeValue } from '@lowerdeck/validation';
+import { badRequestError, ServiceError } from '@mtsrc/error';
+import { v, type ValidationTypeValue } from '@mtsrc/validation';
 import type { TenantSelector } from '@metorial-subspace/list-utils';
 import { providerService } from '@metorial-subspace/module-catalog';
 import {

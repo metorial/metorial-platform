@@ -1,7 +1,7 @@
-import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
-import { Hash } from '@lowerdeck/hash';
-import { Paginator } from '@lowerdeck/pagination';
-import { Service } from '@lowerdeck/service';
+import { badRequestError, notFoundError, ServiceError } from '@mtsrc/error';
+import { Hash } from '@mtsrc/hash';
+import { Paginator } from '@mtsrc/pagination';
+import { Service } from '@mtsrc/service';
 import {
   type Agent,
   type AgentClient,

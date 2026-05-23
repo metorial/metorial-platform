@@ -1,4 +1,4 @@
-import { Service } from '@lowerdeck/service';
+import { Service } from '@mtsrc/service';
 import { createAssistantRequestDeltasConnection } from '@metorial-platform-systems/synthesis-client';
 import { type Instance, type Organization } from '@metorial/db';
 import {

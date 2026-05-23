@@ -30,9 +30,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@lowerdeck/rpc-client": "^1.1.4",
-    "@lowerdeck/validation": "^1.0.10",
-    "@metorial-platform-systems/function-bay-client": "workspace:*"
+    "@metorial-platform-systems/function-bay-client": "workspace:*",
+    "@mtsrc/rpc-client": "1.0.0",
+    "@mtsrc/validation": "1.0.0"
   },
   "devDependencies": {
     "tsup": "^8.5.1",

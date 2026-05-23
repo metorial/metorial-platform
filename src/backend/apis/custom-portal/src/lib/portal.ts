@@ -4,7 +4,7 @@ import {
   preconditionFailedError,
   ServiceError,
   unauthorizedError
-} from '@lowerdeck/error';
+} from '@mtsrc/error';
 import {
   consumerAuthService,
   isPathBasedPortalRoutingTemplate,

@@ -1,5 +1,5 @@
-import { generateCode } from '@lowerdeck/id';
-import { slugify } from '@lowerdeck/slugify';
+import { generateCode } from '@mtsrc/id';
+import { slugify } from '@mtsrc/slugify';
 import { createShuttleClient } from '@metorial-platform-systems/shuttle-client';
 import { withTimeout } from '@metorial-subspace/connection-utils/src/withTimeout';
 import {

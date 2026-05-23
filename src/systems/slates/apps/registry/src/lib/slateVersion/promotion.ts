@@ -1,4 +1,4 @@
-import { preconditionFailedError, ServiceError } from '@lowerdeck/error';
+import { preconditionFailedError, ServiceError } from '@mtsrc/error';
 import semver from 'semver';
 import type { SlateVersionBackend } from '../../../prisma/generated/client';
 

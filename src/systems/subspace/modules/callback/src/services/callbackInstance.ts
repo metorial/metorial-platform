@@ -1,6 +1,6 @@
-import { internalServerError, notFoundError, ServiceError } from '@lowerdeck/error';
-import { Paginator } from '@lowerdeck/pagination';
-import { Service } from '@lowerdeck/service';
+import { internalServerError, notFoundError, ServiceError } from '@mtsrc/error';
+import { Paginator } from '@mtsrc/pagination';
+import { Service } from '@mtsrc/service';
 import {
   CallbackReceiverRegistrationStatus,
   db,

@@ -1,5 +1,5 @@
-import { apiMux } from '@lowerdeck/api-mux';
-import { createServer, type InferClient, rpcMux } from '@lowerdeck/rpc-server';
+import { apiMux } from '@mtsrc/api-mux';
+import { createServer, type InferClient, rpcMux } from '@mtsrc/rpc-server';
 import { app } from './_app';
 import { changeNotificationController } from './changeNotification';
 import { registryController } from './registry';

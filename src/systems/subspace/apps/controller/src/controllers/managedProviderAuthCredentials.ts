@@ -1,5 +1,5 @@
-import { Paginator } from '@lowerdeck/pagination';
-import { v } from '@lowerdeck/validation';
+import { Paginator } from '@mtsrc/pagination';
+import { v } from '@mtsrc/validation';
 import { managedProviderAuthCredentialsService } from '@metorial-subspace/module-auth';
 import { managedProviderAuthCredentialsPresenter } from '@metorial-subspace/presenters';
 import { app } from './_app';

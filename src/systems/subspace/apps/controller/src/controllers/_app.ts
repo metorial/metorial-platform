@@ -1,5 +1,5 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
-import { Group } from '@lowerdeck/rpc-server';
+import { badRequestError, ServiceError } from '@mtsrc/error';
+import { Group } from '@mtsrc/rpc-server';
 import { solutionService } from '@metorial-subspace/module-tenant';
 
 export let appWithoutSolution = new Group();

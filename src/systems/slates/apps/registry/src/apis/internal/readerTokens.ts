@@ -1,4 +1,4 @@
-import { v } from '@lowerdeck/validation';
+import { v } from '@mtsrc/validation';
 import { readerTokenPresenter } from '../../presenters';
 import { readerTokenService, tenantService } from '../../services';
 import { app } from './_app';

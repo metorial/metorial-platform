@@ -1,4 +1,4 @@
-import { createIdGenerator, idType } from '@lowerdeck/id';
+import { createIdGenerator, idType } from '@mtsrc/id';
 import { Worker as SnowflakeId } from 'snowflake-uuid';
 
 export let ID = createIdGenerator({

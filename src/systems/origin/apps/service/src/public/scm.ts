@@ -1,5 +1,5 @@
-import { createHono, useValidatedQuery } from '@lowerdeck/hono';
-import { v } from '@lowerdeck/validation';
+import { createHono, useValidatedQuery } from '@mtsrc/hono';
+import { v } from '@mtsrc/validation';
 import { completeDashboardHtml } from '../lib/templates/completeDashboard';
 import { scmAuthService, scmRepoService } from '../services';
 import { scmBackendSetupPublicController } from './scmBackendSetup';

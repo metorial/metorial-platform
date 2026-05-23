@@ -13,13 +13,13 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "@lowerdeck/delay": "^1.0.4",
-    "@lowerdeck/env": "^1.0.6",
-    "@lowerdeck/shadow-id": "^1.0.7",
-    "@lowerdeck/validation": "^1.0.10",
     "@metorial-subspace/connection-utils": "^1.0.0",
     "@metorial-platform-systems/slates-client": "^1.0.0",
     "@metorial-subspace/db": "^1.0.0",
-    "@metorial-subspace/provider-shuttle": "^1.0.0"
+    "@metorial-subspace/provider-shuttle": "^1.0.0",
+    "@mtsrc/delay": "1.0.0",
+    "@mtsrc/env": "1.0.0",
+    "@mtsrc/shadow-id": "1.0.0",
+    "@mtsrc/validation": "1.0.0"
   }
 }

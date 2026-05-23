@@ -1,4 +1,4 @@
-import { runQueueProcessors } from '@lowerdeck/queue';
+import { runQueueProcessors } from '@mtsrc/queue';
 import { agentQueueProcessor } from '@metorial-subspace/module-agent/src/queues';
 import {
   authQueueProcessor,

@@ -1,7 +1,7 @@
-import { canonicalize } from '@lowerdeck/canonicalize';
-import { Hash } from '@lowerdeck/hash';
-import { createLock } from '@lowerdeck/lock';
-import { Service } from '@lowerdeck/service';
+import { canonicalize } from '@mtsrc/canonicalize';
+import { Hash } from '@mtsrc/hash';
+import { createLock } from '@mtsrc/lock';
+import { Service } from '@mtsrc/service';
 import {
   db,
   getId,

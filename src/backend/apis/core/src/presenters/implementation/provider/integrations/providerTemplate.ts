@@ -1,4 +1,4 @@
-import { v } from '@lowerdeck/validation';
+import { v } from '@mtsrc/validation';
 import { ProviderTemplate } from '@metorial/db';
 import { Presenter } from '@metorial/presenter';
 import { providerTemplateType } from '../../../types';

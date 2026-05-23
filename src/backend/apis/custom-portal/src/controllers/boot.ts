@@ -1,4 +1,4 @@
-import { v } from '@lowerdeck/validation';
+import { v } from '@mtsrc/validation';
 import { getConfig } from '@metorial/config';
 import { consumerAuthService } from '@metorial/module-consumer';
 import { projectBrandService } from '@metorial/module-organization';

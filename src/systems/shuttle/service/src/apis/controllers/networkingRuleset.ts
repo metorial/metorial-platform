@@ -1,5 +1,5 @@
-import { Paginator } from '@lowerdeck/pagination';
-import { v } from '@lowerdeck/validation';
+import { Paginator } from '@mtsrc/pagination';
+import { v } from '@mtsrc/validation';
 import { networkingRulesetPresenter } from '../../presenters';
 import { networkingRulesetService } from '../../services';
 import { app } from './_app';

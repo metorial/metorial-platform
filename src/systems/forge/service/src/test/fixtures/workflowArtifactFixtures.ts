@@ -7,7 +7,7 @@ import type {
 } from '../../../prisma/generated/client';
 import { WorkflowArtifactType } from '../../../prisma/generated/client';
 import { ID, snowflake } from '../../id';
-import { defineFactory } from '@lowerdeck/testing-tools';
+import { defineFactory } from '@mtsrc/testing-tools';
 
 export const WorkflowArtifactFixtures = (db: PrismaClient) => {
   const defaultArtifact = async (data: {

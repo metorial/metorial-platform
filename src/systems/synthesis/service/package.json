@@ -25,31 +25,16 @@
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "@lowerdeck/testing-tools": "^1.0.1",
     "@types/bun": "latest",
     "@types/node": "^25.0.3",
     "@vercel/ncc": "^0.38.1",
-    "vitest": "^4.0.17"
+    "vitest": "^4.0.17",
+    "@mtsrc/testing-tools": "1.0.0"
   },
   "peerDependencies": {
     "typescript": "^5"
   },
   "dependencies": {
-    "@lowerdeck/error": "^1.2.3",
-    "@lowerdeck/execution-context": "^1.1.1",
-    "@lowerdeck/api-mux": "^1.0.4",
-    "@lowerdeck/env": "^1.0.6",
-    "@lowerdeck/hono": "^1.0.10",
-    "@lowerdeck/pagination": "^1.0.8",
-    "@lowerdeck/queue": "^1.0.11",
-    "@lowerdeck/redis": "^1.0.6",
-    "@lowerdeck/rpc-server": "^1.0.11",
-    "@lowerdeck/sentry": "^1.0.2",
-    "@lowerdeck/service": "^1.0.7",
-    "@lowerdeck/snowflake": "^1.0.2",
-    "@lowerdeck/telemetry": "^1.1.1",
-    "@lowerdeck/validation": "1.0.10",
-    "@lowerdeck/id": "^1.0.8",
     "@metorial-services/scout-client": "^1.0.0",
     "@openharness/core": "^0.6.2",
     "@prisma/adapter-pg": "^7.2.0",
@@ -62,6 +47,21 @@
     "just-bash": "^2.14.4",
     "prisma": "^7.2.0",
     "prisma-json-types-generator": "^4.0.1",
-    "zod": "^4.4.3"
+    "zod": "^4.4.3",
+    "@mtsrc/error": "1.0.0",
+    "@mtsrc/execution-context": "1.0.0",
+    "@mtsrc/api-mux": "1.0.0",
+    "@mtsrc/env": "1.0.0",
+    "@mtsrc/hono": "1.0.0",
+    "@mtsrc/pagination": "1.0.0",
+    "@mtsrc/queue": "1.0.0",
+    "@mtsrc/redis": "1.0.0",
+    "@mtsrc/rpc-server": "1.0.0",
+    "@mtsrc/sentry": "1.0.0",
+    "@mtsrc/service": "1.0.0",
+    "@mtsrc/snowflake": "1.0.0",
+    "@mtsrc/telemetry": "1.0.0",
+    "@mtsrc/validation": "1.0.0",
+    "@mtsrc/id": "1.0.0"
   }
 }

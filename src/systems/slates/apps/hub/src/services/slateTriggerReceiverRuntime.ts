@@ -1,5 +1,5 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
-import { getSentry } from '@lowerdeck/sentry';
+import { notFoundError, ServiceError } from '@mtsrc/error';
+import { getSentry } from '@mtsrc/sentry';
 import {
   SlateTriggerEventDeliveryStatus,
   SlateTriggerEventInputStatus,

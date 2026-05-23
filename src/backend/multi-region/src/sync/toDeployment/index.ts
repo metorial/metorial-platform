@@ -1,4 +1,4 @@
-import { combineQueueProcessors } from '@lowerdeck/queue';
+import { combineQueueProcessors } from '@mtsrc/queue';
 import { syncConsumerSurfaceToDeploymentQueueProcessor } from './consumerSurface';
 import { syncOAuthAppToDeploymentQueueProcessor } from './oauth';
 import { syncOrganizationToDeploymentQueueProcessor } from './organization';

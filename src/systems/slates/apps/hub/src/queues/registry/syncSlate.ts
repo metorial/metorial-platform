@@ -1,6 +1,6 @@
-import { generateCode } from '@lowerdeck/id';
-import { createLock } from '@lowerdeck/lock';
-import { createQueue } from '@lowerdeck/queue';
+import { generateCode } from '@mtsrc/id';
+import { createLock } from '@mtsrc/lock';
+import { createQueue } from '@mtsrc/queue';
 import { db } from '../../db';
 import { env } from '../../env';
 import { getId, ID, snowflake } from '../../id';

@@ -1,5 +1,5 @@
 # Build stage
-FROM oven/bun:1 AS builder
+FROM oven/bun:1.2 AS builder
 
 WORKDIR /app
 
@@ -26,7 +26,7 @@ WORKDIR /app/src/systems/synthesis/service
 CMD ["sleep", "infinity"]
 
 # Production stage
-FROM oven/bun:1-alpine AS runner
+FROM oven/bun:1.2-alpine AS runner
 
 WORKDIR /app
 

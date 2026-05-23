@@ -1,4 +1,4 @@
-import { getSentry } from '@lowerdeck/sentry';
+import { getSentry } from '@mtsrc/sentry';
 import { usageService } from '@metorial/module-usage';
 import { createSubspaceService, toEventBase } from '../lib/subspaceService';
 import { subspace } from '../subspace';

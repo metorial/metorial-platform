@@ -1,4 +1,4 @@
-import { memo } from '@lowerdeck/memo';
+import { memo } from '@mtsrc/memo';
 import { ThemeTokenFactory, createThemeToken } from './tokens';
 
 export let colors = {

@@ -1,4 +1,4 @@
-import { createHono } from '@lowerdeck/hono';
+import { createHono } from '@mtsrc/hono';
 import { parseTenantOAuthCallbackSlug } from '@metorial-subspace/db';
 
 export let oauthCallbackApp = createHono()

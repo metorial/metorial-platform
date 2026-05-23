@@ -1,5 +1,5 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
-import { v } from '@lowerdeck/validation';
+import { badRequestError, ServiceError } from '@mtsrc/error';
+import { v } from '@mtsrc/validation';
 import { env } from '../../../env';
 import { tickets } from '../../../lib/tickets';
 import { validateRedirectUrl } from '../../../lib/validateRedirectUrl';

@@ -9,11 +9,11 @@
     "lint": "prettier src/**/*.ts --check"
   },
   "dependencies": {
-    "@lowerdeck/snowflake": "^1.0.2",
-    "@lowerdeck/base62": "^1.0.4",
-    "@lowerdeck/hash": "^1.0.4",
     "nanoid": "^5.0.7",
-    "short-uuid": "^5.2.0"
+    "short-uuid": "^5.2.0",
+    "@mtsrc/snowflake": "1.0.0",
+    "@mtsrc/base62": "1.0.0",
+    "@mtsrc/hash": "1.0.0"
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",

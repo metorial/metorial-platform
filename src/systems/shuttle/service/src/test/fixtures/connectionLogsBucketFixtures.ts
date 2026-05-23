@@ -3,7 +3,7 @@ import type {
   ConnectionLogsStorageBucket
 } from '../../../prisma/generated/client';
 import { snowflake } from '../../id';
-import { defineFactory } from '@lowerdeck/testing-tools';
+import { defineFactory } from '@mtsrc/testing-tools';
 
 export const ConnectionLogsBucketFixtures = (db: PrismaClient) => {
   const defaultBucket = async (

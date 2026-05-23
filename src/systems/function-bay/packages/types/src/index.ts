@@ -1,4 +1,4 @@
-import { v, ValidationTypeValue } from '@lowerdeck/validation';
+import { v, ValidationTypeValue } from '@mtsrc/validation';
 
 export let functionBayLayer = v.object({
   provider: v.enumOf(['aws.lambda', 'gcp.cloud-functions', 'azure.functions']),

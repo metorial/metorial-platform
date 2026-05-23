@@ -1,6 +1,6 @@
-import { createCron } from '@lowerdeck/cron';
-import { forbiddenError, notFoundError, ServiceError } from '@lowerdeck/error';
-import { combineQueueProcessors, createQueue } from '@lowerdeck/queue';
+import { createCron } from '@mtsrc/cron';
+import { forbiddenError, notFoundError, ServiceError } from '@mtsrc/error';
+import { combineQueueProcessors, createQueue } from '@mtsrc/queue';
 import { env, withTransaction } from '@metorial-cargo/db';
 import { storeVersionService } from '@metorial-cargo/module-store';
 import { internalDocumentContentService, internalDocumentDraftService } from '../internal';

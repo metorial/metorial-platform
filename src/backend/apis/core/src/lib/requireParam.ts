@@ -1,4 +1,4 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, ServiceError } from '@mtsrc/error';
 
 export let requireParam = (params: Record<string, string | undefined>, key: string) => {
   let value = params[key];

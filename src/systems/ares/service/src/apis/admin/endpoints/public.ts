@@ -1,4 +1,4 @@
-import { createHono } from '@lowerdeck/hono';
+import { createHono } from '@mtsrc/hono';
 import path, { join } from 'path';
 import { env } from '../../../env';
 import { adminAppClientId } from '../../../lib/adminApp';

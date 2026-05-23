@@ -4,7 +4,7 @@ import type {
 } from '../../../prisma/generated/client';
 import { WorkflowRunStepType, WorkflowRunStepStatus } from '../../../prisma/generated/client';
 import { ID, snowflake } from '../../id';
-import { defineFactory } from '@lowerdeck/testing-tools';
+import { defineFactory } from '@mtsrc/testing-tools';
 
 export const WorkflowRunStepFixtures = (db: PrismaClient) => {
   const defaultStep = async (data: {

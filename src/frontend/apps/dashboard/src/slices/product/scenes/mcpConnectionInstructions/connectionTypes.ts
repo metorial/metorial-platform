@@ -1,4 +1,4 @@
-import { slugify } from '@lowerdeck/slugify';
+import { slugify } from '@mtsrc/slugify';
 
 type ConnectionTarget = {
   name?: string | null;

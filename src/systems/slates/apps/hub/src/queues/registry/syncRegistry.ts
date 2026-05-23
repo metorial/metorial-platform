@@ -1,5 +1,5 @@
-import { createLock } from '@lowerdeck/lock';
-import { createQueue } from '@lowerdeck/queue';
+import { createLock } from '@mtsrc/lock';
+import { createQueue } from '@mtsrc/queue';
 import { db } from '../../db';
 import { env } from '../../env';
 import { getId } from '../../id';

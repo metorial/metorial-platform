@@ -1,8 +1,8 @@
-import { delay } from '@lowerdeck/delay';
-import { badRequestError, ServiceError } from '@lowerdeck/error';
-import { generatePlainId } from '@lowerdeck/id';
-import { getSentry } from '@lowerdeck/sentry';
-import { serialize } from '@lowerdeck/serialize';
+import { delay } from '@mtsrc/delay';
+import { badRequestError, ServiceError } from '@mtsrc/error';
+import { generatePlainId } from '@mtsrc/id';
+import { getSentry } from '@mtsrc/sentry';
+import { serialize } from '@mtsrc/serialize';
 import type {
   SlatesParticipant,
   slatesRequestsByMethod,

@@ -1,5 +1,5 @@
 import { zValidator } from '@hono/zod-validator';
-import { validationError } from '@lowerdeck/error';
+import { validationError } from '@mtsrc/error';
 
 export let useValidation = ((target: any, schema: any) =>
   zValidator(target, schema, (data, c) => {

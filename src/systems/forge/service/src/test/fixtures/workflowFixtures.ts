@@ -7,7 +7,7 @@ import type {
 } from '../../../prisma/generated/client';
 import { WorkflowStatus } from '../../../prisma/generated/client';
 import { ID, snowflake } from '../../id';
-import { defineFactory } from '@lowerdeck/testing-tools';
+import { defineFactory } from '@mtsrc/testing-tools';
 import { TenantFixtures } from './tenantFixtures';
 import { ProviderFixtures } from './providerFixtures';
 

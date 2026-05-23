@@ -3,7 +3,7 @@ import {
   DeleteFunctionCommand,
   GetAccountSettingsCommand
 } from '@aws-sdk/client-lambda';
-import { delay } from '@lowerdeck/delay';
+import { delay } from '@mtsrc/delay';
 import JSZip from 'jszip';
 import { env, lambdaNetworkConfig } from '../../env';
 import { lambdaClient } from './lambda';

@@ -1,5 +1,5 @@
-import type { ErrorData } from '@lowerdeck/error';
-import { withExecutionContextTraceFallback } from '@lowerdeck/telemetry';
+import type { ErrorData } from '@mtsrc/error';
+import { withExecutionContextTraceFallback } from '@mtsrc/telemetry';
 import type {
   Specification,
   SpecificationAuthMethod,

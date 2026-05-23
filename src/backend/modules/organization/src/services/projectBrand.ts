@@ -1,5 +1,5 @@
-import { canonicalize } from '@lowerdeck/canonicalize';
-import { Service } from '@lowerdeck/service';
+import { canonicalize } from '@mtsrc/canonicalize';
+import { Service } from '@mtsrc/service';
 import {
   addAfterTransactionHook,
   db,

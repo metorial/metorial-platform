@@ -1,4 +1,4 @@
-import { Paginator } from '@lowerdeck/pagination';
+import { Paginator } from '@mtsrc/pagination';
 import type { App } from '../../prisma/generated/client';
 import { db } from '../db';
 import { getId } from '../id';

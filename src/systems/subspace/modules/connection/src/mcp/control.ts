@@ -1,4 +1,4 @@
-import { serialize } from '@lowerdeck/serialize';
+import { serialize } from '@mtsrc/serialize';
 import type { ConduitResult } from '@metorial-subspace/connection-utils';
 import { conduitResultToMcpMessage } from '@metorial-subspace/connection-utils';
 import { broadcastNats } from '../lib/nats';

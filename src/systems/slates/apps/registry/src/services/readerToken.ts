@@ -1,5 +1,5 @@
-import { unauthorizedError } from '@lowerdeck/error';
-import { Service } from '@lowerdeck/service';
+import { unauthorizedError } from '@mtsrc/error';
+import { Service } from '@mtsrc/service';
 import type { Tenant } from '../../prisma/generated/client';
 import { db } from '../db';
 import { env } from '../env';

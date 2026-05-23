@@ -1,4 +1,4 @@
-import { v } from '@lowerdeck/validation';
+import { v } from '@mtsrc/validation';
 
 export interface OAuthConfiguration {
   issuer?: string;

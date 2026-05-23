@@ -1,4 +1,4 @@
-import { getSentry } from '@lowerdeck/sentry';
+import { getSentry } from '@mtsrc/sentry';
 import Redis from 'ioredis';
 import type { RedisConfig } from '../../types/config';
 import type { ICoordinationAdapter } from './coordinationAdapter';

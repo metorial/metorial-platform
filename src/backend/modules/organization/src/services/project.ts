@@ -3,10 +3,10 @@ import {
   notFoundError,
   notImplementedError,
   ServiceError
-} from '@lowerdeck/error';
-import { Paginator } from '@lowerdeck/pagination';
-import { Service } from '@lowerdeck/service';
-import { createSlugGenerator } from '@lowerdeck/slugify';
+} from '@mtsrc/error';
+import { Paginator } from '@mtsrc/pagination';
+import { Service } from '@mtsrc/service';
+import { createSlugGenerator } from '@mtsrc/slugify';
 import { Context } from '@metorial/context';
 import {
   addAfterTransactionHook,

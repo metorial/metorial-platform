@@ -1,5 +1,5 @@
-import { Hash } from '@lowerdeck/hash';
-import { Service } from '@lowerdeck/service';
+import { Hash } from '@mtsrc/hash';
+import { Service } from '@mtsrc/service';
 import { db } from '../db';
 import { env } from '../env';
 import { ID, snowflake } from '../id';

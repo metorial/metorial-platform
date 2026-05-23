@@ -1,6 +1,6 @@
-import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
-import { generatePlainId } from '@lowerdeck/id';
-import { Paginator } from '@lowerdeck/pagination';
+import { badRequestError, notFoundError, ServiceError } from '@mtsrc/error';
+import { generatePlainId } from '@mtsrc/id';
+import { Paginator } from '@mtsrc/pagination';
 import type { App, SsoConnection, SsoTenant, SsoUser } from '../../prisma/generated/client';
 import { db } from '../db';
 import { getId, ID } from '../id';

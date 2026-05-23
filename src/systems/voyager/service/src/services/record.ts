@@ -1,8 +1,8 @@
-import { canonicalize } from '@lowerdeck/canonicalize';
-import { notFoundError, ServiceError } from '@lowerdeck/error';
-import { Hash } from '@lowerdeck/hash';
-import { Paginator } from '@lowerdeck/pagination';
-import { Service } from '@lowerdeck/service';
+import { canonicalize } from '@mtsrc/canonicalize';
+import { notFoundError, ServiceError } from '@mtsrc/error';
+import { Hash } from '@mtsrc/hash';
+import { Paginator } from '@mtsrc/pagination';
+import { Service } from '@mtsrc/service';
 import type { Index, Tenant } from '../../prisma/generated/client';
 import { defaultBackend } from '../backends';
 import { db } from '../db';

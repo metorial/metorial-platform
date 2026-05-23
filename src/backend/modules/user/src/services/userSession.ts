@@ -1,4 +1,4 @@
-import { Service } from '@lowerdeck/service';
+import { Service } from '@mtsrc/service';
 import { Context } from '@metorial/context';
 import { db, ID, User, UserSession, withTransaction } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';

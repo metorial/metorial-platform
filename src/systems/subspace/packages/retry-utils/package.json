@@ -13,6 +13,6 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "@lowerdeck/delay": "^1.0.4"
+    "@mtsrc/delay": "1.0.0"
   }
 }

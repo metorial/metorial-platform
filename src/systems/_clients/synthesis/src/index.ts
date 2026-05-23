@@ -1,4 +1,4 @@
-import { createClient } from '@lowerdeck/rpc-client';
+import { createClient } from '@mtsrc/rpc-client';
 import type { SynthesisClient } from '../../../synthesis/service/src/controllers';
 export * from '../../../synthesis/service/src/lib/delta/client';
 export * from '../../../synthesis/service/src/lib/delta/types';

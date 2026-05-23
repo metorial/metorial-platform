@@ -1,6 +1,6 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
-import { Paginator } from '@lowerdeck/pagination';
-import { v, type ValidationTypeValue } from '@lowerdeck/validation';
+import { notFoundError, ServiceError } from '@mtsrc/error';
+import { Paginator } from '@mtsrc/pagination';
+import { v, type ValidationTypeValue } from '@mtsrc/validation';
 import {
   magicMcpEndpointBackingService,
   magicMcpServerBackingService,

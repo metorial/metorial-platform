@@ -1,4 +1,4 @@
-import { createQueue } from '@lowerdeck/queue';
+import { createQueue } from '@mtsrc/queue';
 import { db } from '../../../db';
 import { env } from '../../../env';
 import { mergeRepositorySyncPullRequest } from '../../../lib/scmRepositorySyncProvider';

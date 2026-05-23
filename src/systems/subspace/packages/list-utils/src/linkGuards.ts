@@ -1,4 +1,4 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, ServiceError } from '@mtsrc/error';
 import { db, type Environment, type Solution, type Tenant } from '@metorial-subspace/db';
 
 type TenantScope = {

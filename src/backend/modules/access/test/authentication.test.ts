@@ -1,4 +1,4 @@
-import { ServiceError, unauthorizedError } from '@lowerdeck/error';
+import { ServiceError, unauthorizedError } from '@mtsrc/error';
 import { Context } from '@metorial/context';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -59,7 +59,7 @@ vi.mock('@metorial/config', () => ({
   })
 }));
 
-vi.mock('@lowerdeck/tokens', () => ({
+vi.mock('@mtsrc/tokens', () => ({
   Tokens: vi.fn(() => mocks.consumerTokens)
 }));
 

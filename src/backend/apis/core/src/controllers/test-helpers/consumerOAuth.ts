@@ -1,4 +1,4 @@
-import { v } from '@lowerdeck/validation';
+import { v } from '@mtsrc/validation';
 import { accessService } from '@metorial/module-access';
 import { consumerOAuthTestAuthorizationService } from '@metorial/module-consumer';
 import { Controller, Path } from '@metorial/rest';

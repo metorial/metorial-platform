@@ -7,11 +7,8 @@
   "scripts": {},
   "dependencies": {
     "@metorial/db": "^1.0.0",
-    "@lowerdeck/env": "^1.0.6",
-    "@lowerdeck/error": "^1.2.3",
     "@metorial/auth": "^1.0.0",
     "@metorial/config": "^1.0.0",
-    "@lowerdeck/shadow-id": "^1.0.7",
     "@metorial/rest": "^1.0.0",
     "@metorial/presenter": "^1.0.0",
     "@metorial/module-access": "^1.0.0",
@@ -23,8 +20,11 @@
     "@metorial/module-organization": "^1.0.0",
     "@metorial/module-usage": "^1.0.0",
     "@metorial/module-user": "^1.0.0",
-    "@lowerdeck/validation": "^1.0.10",
-    "@lowerdeck/pagination": "^1.0.8"
+    "@mtsrc/env": "1.0.0",
+    "@mtsrc/error": "1.0.0",
+    "@mtsrc/shadow-id": "1.0.0",
+    "@mtsrc/validation": "1.0.0",
+    "@mtsrc/pagination": "1.0.0"
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",

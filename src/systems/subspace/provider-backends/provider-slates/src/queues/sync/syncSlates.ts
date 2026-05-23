@@ -1,5 +1,5 @@
-import { createLock } from '@lowerdeck/lock';
-import { createQueue } from '@lowerdeck/queue';
+import { createLock } from '@mtsrc/lock';
+import { createQueue } from '@mtsrc/queue';
 import { backend as slatesBackend } from '../../backend';
 import { slates } from '../../client';
 import { env } from '../../env';

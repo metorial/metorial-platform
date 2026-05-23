@@ -1,4 +1,4 @@
-import { runQueueProcessors } from '@lowerdeck/queue';
+import { runQueueProcessors } from '@mtsrc/queue';
 import { cleanupQueues } from './queues/cleanup';
 import { sendQueues } from './queues/send';
 

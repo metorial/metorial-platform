@@ -3,7 +3,7 @@ import {
   preconditionFailedError,
   ServiceError,
   unauthorizedError
-} from '@lowerdeck/error';
+} from '@mtsrc/error';
 import { db, type Instance } from '@metorial/db';
 import { subspaceMagicMcpBackingService } from '@metorial/module-subspace';
 import { MagicMcpResolvedTarget } from './magicMcpTarget';

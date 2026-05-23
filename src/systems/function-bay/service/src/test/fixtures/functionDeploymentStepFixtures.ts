@@ -7,7 +7,7 @@ import {
   FunctionDeploymentStepType
 } from '../../../prisma/generated/client';
 import { getId } from '../../id';
-import { defineFactory } from '@lowerdeck/testing-tools';
+import { defineFactory } from '@mtsrc/testing-tools';
 
 export const FunctionDeploymentStepFixtures = (db: PrismaClient) => {
   const defaultStep = async (data: {

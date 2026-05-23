@@ -1,0 +1,23 @@
+{
+  "name": "@mtsrc/lock",
+  "version": "1.0.0",
+  "private": true,
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "vitest run --passWithNoTests",
+    "lint": "prettier src/**/*.ts --check"
+  },
+  "dependencies": {
+    "@mtsrc/redis": "1.0.0",
+    "@mtsrc/delay": "1.0.0",
+    "@types/bun": "^1.2.11",
+    "ioredis": "^5.4.1",
+    "redlock": "^5.0.0-beta.2",
+    "superjson": "^2.2.5"
+  },
+  "devDependencies": {
+    "@metorial/tsconfig": "1.0.0",
+    "typescript": "5.8.2",
+    "vitest": "^3.1.2"
+  }
+}

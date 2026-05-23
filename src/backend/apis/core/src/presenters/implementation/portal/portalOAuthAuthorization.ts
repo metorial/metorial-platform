@@ -1,4 +1,4 @@
-import { v } from '@lowerdeck/validation';
+import { v } from '@mtsrc/validation';
 import { Presenter } from '@metorial/presenter';
 import { portalOAuthAuthorizationType } from '../../types';
 import { v1PortalOAuthClientPresenter } from './portalOAuthClient';

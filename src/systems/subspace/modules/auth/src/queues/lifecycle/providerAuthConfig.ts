@@ -1,4 +1,4 @@
-import { createQueue } from '@lowerdeck/queue';
+import { createQueue } from '@mtsrc/queue';
 import { db, getId } from '@metorial-subspace/db';
 import { integrationInstanceProviderCredentialSyncQueue } from '@metorial-subspace/module-identity/src/queues/lifecycle/integrationInstanceProviderCredential';
 import { env } from '../../env';

@@ -1,6 +1,6 @@
-import { internalServerError, isServiceError } from '@lowerdeck/error';
-import { getSentry } from '@lowerdeck/sentry';
-import { serialize } from '@lowerdeck/serialize';
+import { internalServerError, isServiceError } from '@mtsrc/error';
+import { getSentry } from '@mtsrc/sentry';
+import { serialize } from '@mtsrc/serialize';
 import type {
   BroadcastMessage,
   ConduitInput,

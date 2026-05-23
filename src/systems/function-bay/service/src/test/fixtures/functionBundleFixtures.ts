@@ -2,7 +2,7 @@ import { randomBytes } from 'crypto';
 import type { PrismaClient, FunctionBundle } from '../../../prisma/generated/client';
 import { FunctionBundleStatus } from '../../../prisma/generated/client';
 import { getId } from '../../id';
-import { defineFactory } from '@lowerdeck/testing-tools';
+import { defineFactory } from '@mtsrc/testing-tools';
 
 export const FunctionBundleFixtures = (db: PrismaClient) => {
   const defaultBundle = async (data: {

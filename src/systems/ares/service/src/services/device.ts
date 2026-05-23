@@ -1,5 +1,5 @@
-import { ServiceError, unauthorizedError } from '@lowerdeck/error';
-import { generatePlainId } from '@lowerdeck/id';
+import { ServiceError, unauthorizedError } from '@mtsrc/error';
+import { generatePlainId } from '@mtsrc/id';
 import { addMinutes, addWeeks } from 'date-fns';
 import type {
   App,

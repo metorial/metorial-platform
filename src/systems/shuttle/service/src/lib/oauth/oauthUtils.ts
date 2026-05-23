@@ -1,7 +1,7 @@
-import { canonicalize } from '@lowerdeck/canonicalize';
-import { badRequestError, ServiceError } from '@lowerdeck/error';
-import { Hash } from '@lowerdeck/hash';
-import { getSentry } from '@lowerdeck/sentry';
+import { canonicalize } from '@mtsrc/canonicalize';
+import { badRequestError, ServiceError } from '@mtsrc/error';
+import { Hash } from '@mtsrc/hash';
+import { getSentry } from '@mtsrc/sentry';
 import axios from 'axios';
 import { customAlphabet } from 'nanoid';
 import type {

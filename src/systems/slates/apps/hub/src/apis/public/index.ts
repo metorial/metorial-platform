@@ -1,5 +1,5 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
-import { createHono } from '@lowerdeck/hono';
+import { badRequestError, ServiceError } from '@mtsrc/error';
+import { createHono } from '@mtsrc/hono';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import { env } from '../../env';
 import { slateOAuthHandlerService } from '../../services/slateOAuthHandler';

@@ -1,5 +1,5 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
-import { v } from '@lowerdeck/validation';
+import { notFoundError, ServiceError } from '@mtsrc/error';
+import { v } from '@mtsrc/validation';
 import { deviceService } from '../../../services/device';
 import { sessionService } from '../../../services/session';
 import { internalApp } from '../_app';

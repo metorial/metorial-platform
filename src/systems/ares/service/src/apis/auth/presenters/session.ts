@@ -1,5 +1,5 @@
-import { base62 } from '@lowerdeck/base62';
-import type { IPInfo } from '@lowerdeck/ip-info';
+import { base62 } from '@mtsrc/base62';
+import type { IPInfo } from '@mtsrc/ip-info';
 import { UAParser } from 'ua-parser-js';
 import type { AuthDevice, AuthDeviceUserSession } from '../../../../prisma/generated/client';
 

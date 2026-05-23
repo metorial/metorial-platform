@@ -1,4 +1,4 @@
-import { createCron } from '@lowerdeck/cron';
+import { createCron } from '@mtsrc/cron';
 import { createRootRegistryClient } from '@metorial-services/registry-client';
 import { slates } from '../../client';
 import { env } from '../../env';

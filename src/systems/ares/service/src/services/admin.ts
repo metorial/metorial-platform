@@ -2,10 +2,10 @@ import {
   notFoundError,
   ServiceError,
   unauthorizedError
-} from '@lowerdeck/error';
-import { generatePlainId } from '@lowerdeck/id';
-import { Paginator } from '@lowerdeck/pagination';
-import { Service } from '@lowerdeck/service';
+} from '@mtsrc/error';
+import { generatePlainId } from '@mtsrc/id';
+import { Paginator } from '@mtsrc/pagination';
+import { Service } from '@mtsrc/service';
 import { addHours } from 'date-fns';
 import type { Admin, App } from '../../prisma/generated/client';
 import { db, withTransaction } from '../db';

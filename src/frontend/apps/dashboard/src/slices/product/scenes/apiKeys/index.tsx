@@ -1,4 +1,4 @@
-import { capitalize } from '@lowerdeck/case';
+import { capitalize } from '@mtsrc/case';
 import {
   ApiKeysCreateBody,
   ApiKeysGetOutput,

@@ -10,8 +10,8 @@
   },
   "dependencies": {
     "@metorial-platform-systems/voyager-client": "workspace:*",
-    "@lowerdeck/env": "^1.0.6",
-    "@lowerdeck/validation": "^1.0.10"
+    "@mtsrc/env": "1.0.0",
+    "@mtsrc/validation": "1.0.0"
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",

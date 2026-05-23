@@ -1,5 +1,5 @@
-import { Paginator } from '@lowerdeck/pagination';
-import { Service } from '@lowerdeck/service';
+import { Paginator } from '@mtsrc/pagination';
+import { Service } from '@mtsrc/service';
 import type { CargoStoreItemType } from '../cargo';
 import { cargo, type CargoStoreItem } from '../cargo';
 import {

@@ -1,5 +1,5 @@
-import { delay } from '@lowerdeck/delay';
-import { ProgrammablePromise } from '@lowerdeck/programmable-promise';
+import { delay } from '@mtsrc/delay';
+import { ProgrammablePromise } from '@mtsrc/programmable-promise';
 import { createCargoClient } from '@metorial-platform-systems/cargo-client';
 import { createSubspaceControllerClient } from '@metorial-platform-systems/subspace-client';
 import { createSynthesisClient } from '@metorial-platform-systems/synthesis-client';

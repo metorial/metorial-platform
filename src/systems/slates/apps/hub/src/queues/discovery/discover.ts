@@ -1,6 +1,6 @@
-import { createLock } from '@lowerdeck/lock';
-import { createQueue, QueueRetryError } from '@lowerdeck/queue';
-import { getSentry } from '@lowerdeck/sentry';
+import { createLock } from '@mtsrc/lock';
+import { createQueue, QueueRetryError } from '@mtsrc/queue';
+import { getSentry } from '@mtsrc/sentry';
 import type { SlateAuthenticationMethod, SlatesAction } from '@slates/proto';
 import { differenceInMinutes } from 'date-fns';
 import semver from 'semver';

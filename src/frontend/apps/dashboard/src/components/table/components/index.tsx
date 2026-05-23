@@ -1,5 +1,5 @@
 import { usePaginationSearchParamsEnabled } from '@metorial/data-hooks';
-import { memo } from '@lowerdeck/memo';
+import { memo } from '@mtsrc/memo';
 import {
   Button,
   CenteredSpinner,

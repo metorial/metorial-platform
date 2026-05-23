@@ -1,5 +1,5 @@
-import { Paginator } from '@lowerdeck/pagination';
-import { v } from '@lowerdeck/validation';
+import { Paginator } from '@mtsrc/pagination';
+import { v } from '@mtsrc/validation';
 import { fileLinkPresenter, filePresenter } from '../presenters';
 import { fileLinkService } from '@metorial-cargo/module-file';
 import { app } from './_app';

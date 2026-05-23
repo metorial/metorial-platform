@@ -1,4 +1,4 @@
-import { Snowflake } from '@lowerdeck/snowflake';
+import { Snowflake } from '@mtsrc/snowflake';
 import type {
   ClientCapabilities,
   JSONRPCMessage,

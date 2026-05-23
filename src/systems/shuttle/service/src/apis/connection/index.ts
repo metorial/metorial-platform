@@ -1,4 +1,4 @@
-import { createHono } from '@lowerdeck/hono';
+import { createHono } from '@mtsrc/hono';
 import { upgradeWebSocket, websocket } from 'hono/bun';
 import type { WSContext } from 'hono/ws';
 import { AsyncConnection } from '../../mcp/connection/async';

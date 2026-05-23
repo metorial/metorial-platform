@@ -1,4 +1,4 @@
-import { v, ValidationTypeValue } from '@lowerdeck/validation';
+import { v, ValidationTypeValue } from '@mtsrc/validation';
 import { SubspaceProviderAuthConfig } from '@metorial/module-subspace';
 
 let schema = v.union(

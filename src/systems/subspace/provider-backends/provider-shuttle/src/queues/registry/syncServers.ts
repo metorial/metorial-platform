@@ -1,7 +1,7 @@
-import { createCron } from '@lowerdeck/cron';
-import { Hash } from '@lowerdeck/hash';
-import { createQueue } from '@lowerdeck/queue';
-import { slugify } from '@lowerdeck/slugify';
+import { createCron } from '@mtsrc/cron';
+import { Hash } from '@mtsrc/hash';
+import { createQueue } from '@mtsrc/queue';
+import { slugify } from '@mtsrc/slugify';
 import {
   createMcpRegistryClient,
   createRootRegistryClient

@@ -8,7 +8,7 @@ let wrapperDependencies = {
   '@slates/provider-handler': 'latest',
   '@slates/proto': 'latest',
   slates: 'latest',
-  '@lowerdeck/serialize': 'latest'
+  '@mtsrc/serialize': 'latest'
 };
 let entrypointExtensions = ['.ts', '.js', '.cjs', '.mjs'];
 let prebuiltEntrypoints = ['dist/index.js', 'dist/index.cjs', 'dist/index.mjs'];
@@ -123,7 +123,7 @@ export let buildSlateDeploymentFiles = (files: DeploymentArchiveFile[]) => {
           import { provider } from './${slateEntrypoint}';
           import { createProviderHandler } from '@slates/provider-handler';
           import { SlatesProviderProtoHandlerManager } from '@slates/proto';
-          import { serialize } from '@lowerdeck/serialize';
+          import { serialize } from '@mtsrc/serialize';
 
           let handler = createProviderHandler(provider, [
             e => e.forEach(e => console.log(e.type.toUpperCase(), e.message))

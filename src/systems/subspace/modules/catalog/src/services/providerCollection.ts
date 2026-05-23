@@ -1,7 +1,7 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
-import { Paginator } from '@lowerdeck/pagination';
-import { Service } from '@lowerdeck/service';
-import { slugify } from '@lowerdeck/slugify';
+import { notFoundError, ServiceError } from '@mtsrc/error';
+import { Paginator } from '@mtsrc/pagination';
+import { Service } from '@mtsrc/service';
+import { slugify } from '@mtsrc/slugify';
 import {
   db,
   type Environment,

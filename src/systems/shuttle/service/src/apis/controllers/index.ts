@@ -1,4 +1,4 @@
-import { createServer, type InferClient } from '@lowerdeck/rpc-server';
+import { createServer, type InferClient } from '@mtsrc/rpc-server';
 import { app } from './_app';
 import { changeNotificationController } from './changeNotification';
 import { containerRegistryController } from './containerRegistry';

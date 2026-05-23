@@ -1,4 +1,4 @@
-import { createClient } from '@lowerdeck/rpc-client';
+import { createClient } from '@mtsrc/rpc-client';
 import type { RelayClient } from '../../../relay/service/src/controllers';
 
 export * from './templates';

@@ -1,4 +1,4 @@
-import { createQueue } from '@lowerdeck/queue';
+import { createQueue } from '@mtsrc/queue';
 import { db } from '@metorial-subspace/db';
 import { v7 } from 'uuid';
 import { env } from '../../env';

@@ -1,4 +1,4 @@
-import { v } from '@lowerdeck/validation';
+import { v } from '@mtsrc/validation';
 import type { ProviderSetupSession } from '@metorial-subspace/db';
 import { providerSetupSessionUiService } from '@metorial-subspace/module-auth';
 import { integrationSetupSessionService } from '@metorial-subspace/module-integration';

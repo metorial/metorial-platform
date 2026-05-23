@@ -1,4 +1,4 @@
-import { ServiceError } from '@lowerdeck/error';
+import { ServiceError } from '@mtsrc/error';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let {
@@ -165,7 +165,7 @@ vi.mock('@metorial/module-organization/src/services/organizationActor', () => ({
   }
 }));
 
-vi.mock('@lowerdeck/service', () => ({
+vi.mock('@mtsrc/service', () => ({
   Service: {
     create: (_: string, factory: any) => ({
       build: () => factory()

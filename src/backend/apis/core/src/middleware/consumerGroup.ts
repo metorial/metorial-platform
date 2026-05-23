@@ -1,4 +1,4 @@
-import { ServiceError, unauthorizedError } from '@lowerdeck/error';
+import { ServiceError, unauthorizedError } from '@mtsrc/error';
 import { Path } from '@metorial/rest';
 import { instanceGroup } from './instanceGroup';
 

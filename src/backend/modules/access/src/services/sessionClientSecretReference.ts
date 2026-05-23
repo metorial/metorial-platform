@@ -1,4 +1,4 @@
-import { Service } from '@lowerdeck/service';
+import { Service } from '@mtsrc/service';
 import { db, ID, Instance, withTransaction } from '@metorial/db';
 import { accessTagService } from './accessTag';
 import { fineGrainedKeyService } from './fineGrainedKey';

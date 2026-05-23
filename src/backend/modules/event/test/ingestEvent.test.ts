@@ -3,7 +3,7 @@ import type { EventTypes } from '../src/definitions';
 import { ingestEventService } from '../src/services/ingestEvent';
 
 // Mock the Service module
-vi.mock('@lowerdeck/service', () => ({
+vi.mock('@mtsrc/service', () => ({
   Service: {
     create: vi.fn((name: string, factory: () => any) => ({
       build: vi.fn(() => factory())

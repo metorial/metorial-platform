@@ -1,4 +1,4 @@
-import { badRequestError, goneError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, goneError, ServiceError } from '@mtsrc/error';
 
 let actionNameMap = {
   update: 'updated',

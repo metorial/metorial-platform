@@ -1,4 +1,4 @@
-import { preconditionFailedError, ServiceError } from '@lowerdeck/error';
+import { preconditionFailedError, ServiceError } from '@mtsrc/error';
 import { type Instance, type ProviderTemplate } from '@metorial/db';
 import { type AnyAccessTagSelector } from '@metorial/module-access';
 import { providerTemplateService } from '@metorial/module-magic';

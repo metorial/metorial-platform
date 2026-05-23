@@ -1,4 +1,4 @@
-import { delay } from '@lowerdeck/delay';
+import { delay } from '@mtsrc/delay';
 import {
   badRequestError,
   goneError,
@@ -6,9 +6,9 @@ import {
   notFoundError,
   preconditionFailedError,
   ServiceError
-} from '@lowerdeck/error';
-import { createLock } from '@lowerdeck/lock';
-import { getSentry } from '@lowerdeck/sentry';
+} from '@mtsrc/error';
+import { createLock } from '@mtsrc/lock';
+import { getSentry } from '@mtsrc/sentry';
 import type { ConduitInput, ConduitResult } from '@metorial-subspace/connection-utils';
 import {
   type AgentInstance,

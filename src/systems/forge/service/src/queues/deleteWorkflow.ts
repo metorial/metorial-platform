@@ -1,5 +1,5 @@
-import { createCron } from '@lowerdeck/cron';
-import { combineQueueProcessors, createQueue, type IQueue, type IQueueProcessor } from '@lowerdeck/queue';
+import { createCron } from '@mtsrc/cron';
+import { combineQueueProcessors, createQueue, type IQueue, type IQueueProcessor } from '@mtsrc/queue';
 import { subDays } from 'date-fns';
 import { db } from '../db';
 import { env } from '../env';

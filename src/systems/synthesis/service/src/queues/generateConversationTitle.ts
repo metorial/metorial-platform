@@ -1,4 +1,4 @@
-import { createQueue, QueueRetryError, type IQueue } from '@lowerdeck/queue';
+import { createQueue, QueueRetryError, type IQueue } from '@mtsrc/queue';
 import { generateText } from 'ai';
 import { titleModel } from '../definitions/models/_util';
 import { db } from '../db';

@@ -1,4 +1,4 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, ServiceError } from '@mtsrc/error';
 import { accessService, type AuthInfo } from '@metorial/module-access';
 import { organizationService } from '@metorial/module-organization';
 import {

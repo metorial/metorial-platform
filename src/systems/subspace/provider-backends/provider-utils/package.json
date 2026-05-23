@@ -13,8 +13,8 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "@lowerdeck/base62": "^1.0.4",
     "@metorial-subspace/db": "^1.0.0",
-    "@modelcontextprotocol/sdk": "^1.25.3"
+    "@modelcontextprotocol/sdk": "^1.25.3",
+    "@mtsrc/base62": "1.0.0"
   }
 }

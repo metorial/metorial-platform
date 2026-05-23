@@ -1,6 +1,6 @@
-import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
-import { createLock } from '@lowerdeck/lock';
-import { Service } from '@lowerdeck/service';
+import { badRequestError, notFoundError, ServiceError } from '@mtsrc/error';
+import { createLock } from '@mtsrc/lock';
+import { Service } from '@mtsrc/service';
 import {
   addAfterTransactionHook,
   db,

@@ -1,4 +1,4 @@
-import { createQueue } from '@lowerdeck/queue';
+import { createQueue } from '@mtsrc/queue';
 import { db, snowflake } from '@metorial-subspace/db';
 import { syncVersionToCustomProvider } from '@metorial-subspace/module-custom-provider';
 import { shuttle, shuttleDefaultReaderTenant } from '../../client';

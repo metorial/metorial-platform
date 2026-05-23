@@ -1,5 +1,5 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
-import { Service } from '@lowerdeck/service';
+import { notFoundError, ServiceError } from '@mtsrc/error';
+import { Service } from '@mtsrc/service';
 import { db, getId } from '@metorial-cargo/db';
 
 class TenantServiceImpl {

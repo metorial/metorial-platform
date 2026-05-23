@@ -1,4 +1,4 @@
-import { Service } from '@lowerdeck/service';
+import { Service } from '@mtsrc/service';
 import { Instance, Organization, OrganizationActor } from '@metorial/db';
 import { EventTypes } from '../definitions';
 

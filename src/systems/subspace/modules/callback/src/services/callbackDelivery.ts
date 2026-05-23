@@ -1,5 +1,5 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
-import { Service } from '@lowerdeck/service';
+import { notFoundError, ServiceError } from '@mtsrc/error';
+import { Service } from '@mtsrc/service';
 import { db, type Environment, type Solution, type Tenant } from '@metorial-subspace/db';
 import { getTenantForSlates, slates } from '@metorial-subspace/provider-slates/src/client';
 

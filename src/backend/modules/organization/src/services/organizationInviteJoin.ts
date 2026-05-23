@@ -1,5 +1,5 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
-import { Service } from '@lowerdeck/service';
+import { badRequestError, ServiceError } from '@mtsrc/error';
+import { Service } from '@mtsrc/service';
 import { Context } from '@metorial/context';
 import { ID, User, withTransaction } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';

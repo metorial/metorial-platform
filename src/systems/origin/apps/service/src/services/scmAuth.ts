@@ -1,5 +1,5 @@
-import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
-import { Service } from '@lowerdeck/service';
+import { badRequestError, notFoundError, ServiceError } from '@mtsrc/error';
+import { Service } from '@mtsrc/service';
 import type { Actor, ScmProvider, Tenant } from '../../prisma/generated/client';
 import { db } from '../db';
 import { env } from '../env';

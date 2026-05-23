@@ -1,5 +1,5 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
-import { Paginator } from '@lowerdeck/pagination';
+import { notFoundError, ServiceError } from '@mtsrc/error';
+import { Paginator } from '@mtsrc/pagination';
 import type { App, AppOAuthProvider, OAuthProviderType } from '../../prisma/generated/client';
 import { db } from '../db';
 import { getId } from '../id';

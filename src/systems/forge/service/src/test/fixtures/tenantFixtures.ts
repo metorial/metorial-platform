@@ -1,7 +1,7 @@
 import { randomBytes } from 'crypto';
 import type { PrismaClient, Tenant } from '../../../prisma/generated/client';
 import { ID, snowflake } from '../../id';
-import { defineFactory } from '@lowerdeck/testing-tools';
+import { defineFactory } from '@mtsrc/testing-tools';
 
 export const TenantFixtures = (db: PrismaClient) => {
   const defaultTenant = async (overrides: Partial<Tenant> = {}): Promise<Tenant> => {

@@ -1,4 +1,4 @@
-import { ValidationType } from '@lowerdeck/validation';
+import { ValidationType } from '@mtsrc/validation';
 import { useForm } from '@metorial/data-hooks';
 import { FormikConfig } from 'formik';
 import React from 'react';

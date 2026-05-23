@@ -1,6 +1,6 @@
-import { internalServerError, isServiceError } from '@lowerdeck/error';
-import { createHono } from '@lowerdeck/hono';
-import { generatePlainId } from '@lowerdeck/id';
+import { internalServerError, isServiceError } from '@mtsrc/error';
+import { createHono } from '@mtsrc/hono';
+import { generatePlainId } from '@mtsrc/id';
 import { db } from '@metorial-cargo/db';
 import { upgradeWebSocket, websocket } from 'hono/bun';
 import type { WSContext } from 'hono/ws';

@@ -1,4 +1,4 @@
-import { combineQueueProcessors } from '@lowerdeck/queue';
+import { combineQueueProcessors } from '@mtsrc/queue';
 import { archiveQueues } from './queues/archive';
 import { deleteQueues } from './queues/delete';
 import { expireQueues } from './queues/expire';

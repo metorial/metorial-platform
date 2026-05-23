@@ -8,10 +8,10 @@ import type {
   WorkflowArtifact
 } from '../../../prisma/generated/client';
 import { ID, snowflake } from '../../id';
-import { defineFactory } from '@lowerdeck/testing-tools';
+import { defineFactory } from '@mtsrc/testing-tools';
 import { WorkflowFixtures } from './workflowFixtures';
 import { WorkflowVersionStepFixtures } from './workflowVersionStepFixtures';
-import { generatePlainId } from '@lowerdeck/id';
+import { generatePlainId } from '@mtsrc/id';
 
 export const WorkflowVersionFixtures = (db: PrismaClient) => {
   const workflowFixtures = WorkflowFixtures(db);

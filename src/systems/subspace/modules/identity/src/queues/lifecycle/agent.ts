@@ -1,4 +1,4 @@
-import { createQueue } from '@lowerdeck/queue';
+import { createQueue } from '@mtsrc/queue';
 import { env } from '../../../../agent/src/env';
 import { indexAgentQueue } from '../search/agent';
 import { lcOpts } from './_opts';

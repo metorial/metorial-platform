@@ -1,4 +1,4 @@
-import { createQueue } from '@lowerdeck/queue';
+import { createQueue } from '@mtsrc/queue';
 import { db, getId } from '@metorial-subspace/db';
 import { providerAuthConfigArchivedQueue } from '../../../../auth/src/queues/lifecycle/providerAuthConfig';
 import { env } from '../../env';

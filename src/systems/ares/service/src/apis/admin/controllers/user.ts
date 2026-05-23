@@ -1,5 +1,5 @@
-import { Paginator } from '@lowerdeck/pagination';
-import { v } from '@lowerdeck/validation';
+import { Paginator } from '@mtsrc/pagination';
+import { v } from '@mtsrc/validation';
 import { adminService } from '../../../services/admin';
 import { userPresenter } from '../../auth/presenters';
 import { adminApp } from '../middleware/admin';

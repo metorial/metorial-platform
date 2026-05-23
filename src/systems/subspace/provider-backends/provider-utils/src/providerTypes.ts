@@ -1,6 +1,6 @@
-import { canonicalize } from '@lowerdeck/canonicalize';
-import { Hash } from '@lowerdeck/hash';
-import { generatePlainId } from '@lowerdeck/id';
+import { canonicalize } from '@mtsrc/canonicalize';
+import { Hash } from '@mtsrc/hash';
+import { generatePlainId } from '@mtsrc/id';
 import { db, get4ByteIntId, ID, type ProviderType } from '@metorial-subspace/db';
 
 let cachedProviderTypes: Record<string, ProviderType> = {};

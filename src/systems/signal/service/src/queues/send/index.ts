@@ -1,4 +1,4 @@
-import { combineQueueProcessors } from '@lowerdeck/queue';
+import { combineQueueProcessors } from '@mtsrc/queue';
 import { eventCleanupQueueProcessor } from './cleanup';
 import { attemptDeliveryQueueProcessor, createDeliveryQueueProcessor } from './delivery';
 import { newEventQueueProcessor } from './init';

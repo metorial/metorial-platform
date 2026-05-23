@@ -1,4 +1,4 @@
-import { combineQueueProcessors } from '@lowerdeck/queue';
+import { combineQueueProcessors } from '@mtsrc/queue';
 import { indexIdentityActorQueueProcessor } from './actor';
 import { indexAgentQueueProcessor } from './agent';
 import { indexIdentityQueueProcessor } from './identity';

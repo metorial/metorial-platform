@@ -1,5 +1,5 @@
-import { badRequestError, ServiceError, validationError } from '@lowerdeck/error';
-import { type ValidationTypeValue, v } from '@lowerdeck/validation';
+import { badRequestError, ServiceError, validationError } from '@mtsrc/error';
+import { type ValidationTypeValue, v } from '@mtsrc/validation';
 import semver from 'semver';
 import type { SlatePackageEntry } from './archive';
 

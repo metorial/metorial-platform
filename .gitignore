@@ -162,6 +162,9 @@ wheels/
 
 # Cache
 cache/
+!src/_shared/backend/cache/
+!src/_shared/backend/cache/**
+src/_shared/backend/cache/node_modules/
 generated/
 
 # Virtual Environment

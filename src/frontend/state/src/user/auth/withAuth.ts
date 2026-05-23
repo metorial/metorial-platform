@@ -1,7 +1,7 @@
-import { delay } from '@lowerdeck/delay';
-import { isServiceError } from '@lowerdeck/error';
-import { ProgrammablePromise } from '@lowerdeck/programmable-promise';
-import { getSentry } from '@lowerdeck/sentry';
+import { delay } from '@mtsrc/delay';
+import { isServiceError } from '@mtsrc/error';
+import { ProgrammablePromise } from '@mtsrc/programmable-promise';
+import { getSentry } from '@mtsrc/sentry';
 import { MetorialDashboardSDK, MetorialUser } from '@metorial/dashboard-sdk';
 import { isMetorialSDKError } from '@metorial/util-endpoint';
 import { withDashboardSDK } from '../../sdk';

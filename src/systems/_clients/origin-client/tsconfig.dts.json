@@ -6,11 +6,23 @@
     "noEmit": true,
     "skipDefaultLibCheck": true,
     "types": [],
+    "moduleResolution": "bundler",
     "baseUrl": ".",
     "paths": {
-      "@metorial/code-bucket-service-generated": ["./stubs/code-bucket-service-generated.ts"]
+      "@metorial/code-bucket-service-generated": ["./stubs/code-bucket-service-generated.ts"],
+      "@mtsrc/validation": ["../../../_shared/util/validation/src/index.ts"],
+      "@mtsrc/rpc-client": ["../../../_shared/rpc/rpc-client/src/index.ts"],
+      "@mtsrc/rpc-server": ["../../../_shared/rpc/rpc-server/src/index.ts"],
+      "@mtsrc/error": ["../../../_shared/backend/error/src/index.ts"]
     }
   },
+  "include": [
+    "src/**/*",
+    "../../../_shared/util/validation/src/**/*",
+    "../../../_shared/rpc/rpc-client/src/**/*",
+    "../../../_shared/rpc/rpc-server/src/**/*",
+    "../../../_shared/backend/error/src/**/*"
+  ],
   "exclude": [
     "dist",
     "node_modules"

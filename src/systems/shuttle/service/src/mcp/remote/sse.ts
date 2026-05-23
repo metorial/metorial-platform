@@ -1,5 +1,5 @@
-import { ProgrammablePromise } from '@lowerdeck/programmable-promise';
-import { getSentry } from '@lowerdeck/sentry';
+import { ProgrammablePromise } from '@mtsrc/programmable-promise';
+import { getSentry } from '@mtsrc/sentry';
 import type { JSONRPCMessage } from '@modelcontextprotocol/sdk/types.js';
 import type { ServerVersion, Tenant } from '../../../prisma/generated/browser';
 import type {

@@ -1,5 +1,5 @@
-import { Paginator } from '@lowerdeck/pagination';
-import { v } from '@lowerdeck/validation';
+import { Paginator } from '@mtsrc/pagination';
+import { v } from '@mtsrc/validation';
 import { serverOAuthCredentialsPresenter } from '../../presenters';
 import { serverOAuthCredentialsService, serverService } from '../../services';
 import { app } from './_app';

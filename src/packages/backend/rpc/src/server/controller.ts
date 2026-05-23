@@ -1,5 +1,5 @@
-import { ValidationType } from '@lowerdeck/validation';
-import { ServiceError, validationError } from '@lowerdeck/error';
+import { ValidationType } from '@mtsrc/validation';
+import { ServiceError, validationError } from '@mtsrc/error';
 import * as Cookie from 'cookie';
 
 export type Method = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';

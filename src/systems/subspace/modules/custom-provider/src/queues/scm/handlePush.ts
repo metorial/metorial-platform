@@ -1,4 +1,4 @@
-import { createQueue, QueueRetryError } from '@lowerdeck/queue';
+import { createQueue, QueueRetryError } from '@mtsrc/queue';
 import { addAfterTransactionHook, db, getId, withTransaction } from '@metorial-subspace/db';
 import { actorService } from '@metorial-subspace/module-tenant';
 import { env } from '../../env';

@@ -1,4 +1,4 @@
-import { createLock } from '@lowerdeck/lock';
+import { createLock } from '@mtsrc/lock';
 import { type Environment, type Solution, type Tenant } from '@metorial-subspace/db';
 import { identityActorService, identityService } from '@metorial-subspace/module-identity';
 import { env } from '../../env';

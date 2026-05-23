@@ -30,9 +30,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@lowerdeck/rpc-client": "^1.1.4",
     "@react-email/components": "^1.0.7",
-    "react": "^19.2.4"
+    "react": "^19.2.4",
+    "@mtsrc/rpc-client": "1.0.0"
   },
   "devDependencies": {
     "@types/react": "^19.0.0",

@@ -1,5 +1,5 @@
-import { createHono } from '@lowerdeck/hono';
-import { Paginator } from '@lowerdeck/pagination';
+import { createHono } from '@mtsrc/hono';
+import { Paginator } from '@mtsrc/pagination';
 import { z } from 'zod';
 import { paginatorSchema } from '../../lib/paginatorSchema';
 import { useValidation } from '../../lib/validator';

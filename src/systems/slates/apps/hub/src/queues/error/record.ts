@@ -1,4 +1,4 @@
-import { createQueue } from '@lowerdeck/queue';
+import { createQueue } from '@mtsrc/queue';
 import type { SlateErrorType } from '../../../prisma/generated/client';
 import { env } from '../../env';
 import { slateErrorService } from '../../services/slateError';

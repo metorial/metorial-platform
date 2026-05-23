@@ -37,7 +37,7 @@ vi.mock('@metorial/fabric', () => ({
   }
 }));
 
-vi.mock('@lowerdeck/error', () => ({
+vi.mock('@mtsrc/error', () => ({
   conflictError: vi.fn(),
   forbiddenError: vi.fn(),
   notFoundError: vi.fn(),
@@ -47,7 +47,7 @@ vi.mock('@lowerdeck/error', () => ({
   ServiceError: class ServiceError extends Error {}
 }));
 
-vi.mock('@lowerdeck/service', () => ({
+vi.mock('@mtsrc/service', () => ({
   Service: {
     create: vi.fn(() => ({
       build: vi.fn(() => ({}))

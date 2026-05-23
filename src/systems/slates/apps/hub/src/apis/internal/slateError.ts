@@ -1,5 +1,5 @@
-import { Paginator } from '@lowerdeck/pagination';
-import { v } from '@lowerdeck/validation';
+import { Paginator } from '@mtsrc/pagination';
+import { v } from '@mtsrc/validation';
 import { slateErrorFullPresenter, slateErrorLitePresenter } from '../../presenters/slateError';
 import { slateErrorService } from '../../services/slateError';
 import { tenantService } from '../../services/tenant';

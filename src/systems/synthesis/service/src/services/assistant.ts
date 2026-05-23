@@ -1,6 +1,6 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
-import { Paginator } from '@lowerdeck/pagination';
-import { Service } from '@lowerdeck/service';
+import { notFoundError, ServiceError } from '@mtsrc/error';
+import { Paginator } from '@mtsrc/pagination';
+import { Service } from '@mtsrc/service';
 import { Prisma, db } from '../db';
 import type { Assistant, Tenant } from '../db';
 import { assistants } from '../definitions/assistants';

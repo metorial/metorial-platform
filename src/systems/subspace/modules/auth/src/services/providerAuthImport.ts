@@ -1,6 +1,6 @@
-import { notFoundError, ServiceError, badRequestError } from '@lowerdeck/error';
-import { Paginator } from '@lowerdeck/pagination';
-import { Service } from '@lowerdeck/service';
+import { notFoundError, ServiceError, badRequestError } from '@mtsrc/error';
+import { Paginator } from '@mtsrc/pagination';
+import { Service } from '@mtsrc/service';
 import {
   db,
   type Environment,

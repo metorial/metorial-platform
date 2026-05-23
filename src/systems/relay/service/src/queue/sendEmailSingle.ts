@@ -1,5 +1,5 @@
-import { createQueue, QueueRetryError } from '@lowerdeck/queue';
-import { getSentry } from '@lowerdeck/sentry';
+import { createQueue, QueueRetryError } from '@mtsrc/queue';
+import { getSentry } from '@mtsrc/sentry';
 import type {
   OutgoingEmailDestination,
   OutgoingEmailSendStatus

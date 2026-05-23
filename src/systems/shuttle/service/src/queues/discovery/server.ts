@@ -1,8 +1,8 @@
-import { canonicalize } from '@lowerdeck/canonicalize';
-import { delay } from '@lowerdeck/delay';
-import { Hash } from '@lowerdeck/hash';
-import { createQueue, QueueRetryError } from '@lowerdeck/queue';
-import { getSentry } from '@lowerdeck/sentry';
+import { canonicalize } from '@mtsrc/canonicalize';
+import { delay } from '@mtsrc/delay';
+import { Hash } from '@mtsrc/hash';
+import { createQueue, QueueRetryError } from '@mtsrc/queue';
+import { getSentry } from '@mtsrc/sentry';
 import { McpError } from '@modelcontextprotocol/sdk/types.js';
 import { db } from '../../db';
 import { env } from '../../env';

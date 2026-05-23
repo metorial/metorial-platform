@@ -1,5 +1,5 @@
 import type { EventDeliveryIntent, PrismaClient } from '../../../prisma/generated/client';
-import { defineFactory } from '@lowerdeck/testing-tools';
+import { defineFactory } from '@mtsrc/testing-tools';
 import { getId } from '../../id';
 
 export const EventDeliveryIntentFixtures = (db: PrismaClient) => {

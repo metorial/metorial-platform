@@ -47,7 +47,7 @@ vi.mock('@metorial/db', () => {
   };
 });
 
-vi.mock('@lowerdeck/service', () => ({
+vi.mock('@mtsrc/service', () => ({
   Service: {
     create: vi.fn((_: string, factory: () => unknown) => ({
       build: () => factory()
@@ -55,7 +55,7 @@ vi.mock('@lowerdeck/service', () => ({
   }
 }));
 
-vi.mock('@lowerdeck/pagination', () => ({
+vi.mock('@mtsrc/pagination', () => ({
   Paginator: {
     create: vi.fn(fn => fn)
   }
@@ -95,7 +95,7 @@ vi.mock('@metorial/id', () => ({
   generatePlainId: vi.fn(() => 'plainid')
 }));
 
-vi.mock('@lowerdeck/slugify', () => ({
+vi.mock('@mtsrc/slugify', () => ({
   slugify: vi.fn((value?: string | null) =>
     (value ?? 'group').toLowerCase().trim().replace(/\s+/g, '-')
   )

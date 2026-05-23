@@ -1,5 +1,5 @@
-import { Paginator } from '@lowerdeck/pagination';
-import { v } from '@lowerdeck/validation';
+import { Paginator } from '@mtsrc/pagination';
+import { v } from '@mtsrc/validation';
 import { scmInstallationPresenter } from '../presenters/scmInstallation';
 import { actorService, scmInstallationService } from '../services';
 import { app } from './_app';

@@ -5,7 +5,7 @@ import {
   UpdateProjectCommand,
   type CreateProjectCommandInput
 } from '@aws-sdk/client-codebuild';
-import { once } from '@lowerdeck/once';
+import { once } from '@mtsrc/once';
 import { env } from '../../env';
 import { codebuild, logsClient } from './codeBuild';
 import { ensureCodeBuildRole } from './role';

@@ -1,5 +1,5 @@
-import { QueueRetryError } from '@lowerdeck/queue';
-import { getSentry } from '@lowerdeck/sentry';
+import { QueueRetryError } from '@mtsrc/queue';
+import { getSentry } from '@mtsrc/sentry';
 import { SlateTriggerEventInputStatus } from '../../../prisma/generated/client';
 import { db } from '../../db';
 import {

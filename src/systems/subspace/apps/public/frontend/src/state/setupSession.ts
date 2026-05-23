@@ -1,4 +1,4 @@
-import { type ErrorData, ServiceError } from '@lowerdeck/error';
+import { type ErrorData, ServiceError } from '@mtsrc/error';
 import { createLoader } from '@metorial/data-hooks';
 import { useEffect, useRef, useState } from 'react';
 import { htmlDecode } from '../../../src/lib/htmlEncode';

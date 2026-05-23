@@ -3,10 +3,10 @@ import {
   forbiddenError,
   notFoundError,
   ServiceError
-} from '@lowerdeck/error';
-import { Paginator } from '@lowerdeck/pagination';
-import { Service } from '@lowerdeck/service';
-import { generatePlainId } from '@lowerdeck/id';
+} from '@mtsrc/error';
+import { Paginator } from '@mtsrc/pagination';
+import { Service } from '@mtsrc/service';
+import { generatePlainId } from '@mtsrc/id';
 import type { File, Prisma, StoreParticipantPermissions } from '@metorial-cargo/db';
 import { db, getId, withTransaction } from '@metorial-cargo/db';
 import {

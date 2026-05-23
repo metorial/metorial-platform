@@ -1,5 +1,5 @@
-import { Paginator } from '@lowerdeck/pagination';
-import { v, type ValidationTypeValue } from '@lowerdeck/validation';
+import { Paginator } from '@mtsrc/pagination';
+import { v, type ValidationTypeValue } from '@mtsrc/validation';
 import { normalizeToolFilters as normalizeProviderToolFilters } from '@metorial-subspace/module-provider-internal';
 import {
   sessionProviderNameTemplateService,

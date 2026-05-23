@@ -1,5 +1,5 @@
 // import { searchService } from '@metorial-subspace/module-search';
-import { createQueue, QueueRetryError } from '@lowerdeck/queue';
+import { createQueue, QueueRetryError } from '@mtsrc/queue';
 import { db } from '@metorial-subspace/db';
 import { env } from '../../env';
 

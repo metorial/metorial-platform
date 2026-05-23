@@ -1,4 +1,4 @@
-import { isServiceError } from '@lowerdeck/error';
+import { isServiceError } from '@mtsrc/error';
 import { Context } from 'hono';
 import { OAuthError } from './errors';
 

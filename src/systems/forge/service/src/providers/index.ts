@@ -1,4 +1,4 @@
-import type { IQueue, IQueueProcessor } from '@lowerdeck/queue';
+import type { IQueue, IQueueProcessor } from '@mtsrc/queue';
 import { env } from '../env';
 import { AwsCodeBuildAdapter } from './aws-codebuild';
 import { LocalBuildAdapter } from './local';

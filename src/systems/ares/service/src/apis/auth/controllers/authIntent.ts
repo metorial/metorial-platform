@@ -1,5 +1,5 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
-import { v } from '@lowerdeck/validation';
+import { notFoundError, ServiceError } from '@mtsrc/error';
+import { v } from '@mtsrc/validation';
 import { authService } from '../../../services/auth';
 import { publicApp } from '../_app';
 import { authIntentApp } from '../middleware/authIntent';

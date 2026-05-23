@@ -1,4 +1,4 @@
-import { badRequestError, isServiceError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, isServiceError, ServiceError } from '@mtsrc/error';
 
 export let urlsMatch = (url1: string, url2: string) => {
   try {

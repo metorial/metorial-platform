@@ -13,14 +13,14 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "@lowerdeck/delay": "^1.0.4",
-    "@lowerdeck/env": "^1.0.6",
-    "@lowerdeck/error": "^1.2.3",
-    "@lowerdeck/validation": "^1.0.10",
     "@metorial-subspace/db": "^1.0.0",
     "@metorial-subspace/module-provider-internal": "^1.0.0",
     "@modelcontextprotocol/sdk": "^1.25.2",
     "@metorial-platform-systems/object-storage-client": "workspace:*",
-    "zod": "^4.3.5"
+    "zod": "^4.3.5",
+    "@mtsrc/delay": "1.0.0",
+    "@mtsrc/env": "1.0.0",
+    "@mtsrc/error": "1.0.0",
+    "@mtsrc/validation": "1.0.0"
   }
 }

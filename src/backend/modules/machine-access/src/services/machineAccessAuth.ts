@@ -1,5 +1,5 @@
-import { ServiceError, unauthorizedError } from '@lowerdeck/error';
-import { Service } from '@lowerdeck/service';
+import { ServiceError, unauthorizedError } from '@mtsrc/error';
+import { Service } from '@mtsrc/service';
 import { UnifiedApiKey } from '@metorial/api-keys';
 import { Context } from '@metorial/context';
 import { db, Prisma } from '@metorial/db';

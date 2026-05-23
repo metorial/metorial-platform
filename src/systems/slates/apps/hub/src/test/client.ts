@@ -1,5 +1,5 @@
-import { createClient } from '@lowerdeck/rpc-client';
-import { createFetchRouter } from '@lowerdeck/testing-tools';
+import { createClient } from '@mtsrc/rpc-client';
+import { createFetchRouter } from '@mtsrc/testing-tools';
 import type { SlatesHubClient } from '../apis/internal';
 import { slatesHubApi } from '../apis/internal';
 

@@ -1,4 +1,4 @@
-import { combineQueueProcessors, createQueue } from '@lowerdeck/queue';
+import { combineQueueProcessors, createQueue } from '@mtsrc/queue';
 import { addAfterTransactionHook, db, env } from '@metorial-cargo/db';
 
 type StoreLifecycleEvent = 'created' | 'updated' | 'archived' | 'contents-changed';

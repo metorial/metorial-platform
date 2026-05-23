@@ -1,7 +1,7 @@
-import { forbiddenError, notFoundError, ServiceError } from '@lowerdeck/error';
-import { Hash } from '@lowerdeck/hash';
-import { Paginator } from '@lowerdeck/pagination';
-import { Service } from '@lowerdeck/service';
+import { forbiddenError, notFoundError, ServiceError } from '@mtsrc/error';
+import { Hash } from '@mtsrc/hash';
+import { Paginator } from '@mtsrc/pagination';
+import { Service } from '@mtsrc/service';
 import { UnifiedApiKey } from '@metorial/api-keys';
 import { getConfig } from '@metorial/config';
 import { Context } from '@metorial/context';

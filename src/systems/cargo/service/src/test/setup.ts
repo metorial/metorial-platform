@@ -3,7 +3,7 @@ import './preload-env';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { flushAfterTransactionHooks, PrismaClient } from '@metorial-cargo/db';
 import { afterAll } from 'vitest';
-import { setupPrismaTestDb, setupTestGlobals } from '@lowerdeck/testing-tools';
+import { setupPrismaTestDb, setupTestGlobals } from '@mtsrc/testing-tools';
 import { resetVoyagerStub, setupVoyagerStub } from './helpers/voyagerStub';
 
 setupTestGlobals({ nodeEnv: 'test' });

@@ -1,4 +1,4 @@
-import { createQueue, QueueRetryError } from '@lowerdeck/queue';
+import { createQueue, QueueRetryError } from '@mtsrc/queue';
 import axios from 'axios';
 import type { EventDeliveryAttemptStatus } from '../../../prisma/generated/enums';
 import { db } from '../../db';

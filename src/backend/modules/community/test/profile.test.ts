@@ -23,13 +23,13 @@ vi.mock('@metorial/db', () => ({
   }
 }));
 
-vi.mock('@lowerdeck/slugify', () => ({
+vi.mock('@mtsrc/slugify', () => ({
   createSlugGenerator: vi.fn(() =>
     vi.fn(async ({ input }: { input: string }) => `${input}-slug`)
   )
 }));
 
-vi.mock('@lowerdeck/service', () => ({
+vi.mock('@mtsrc/service', () => ({
   Service: {
     create: vi.fn((name: string, factory: () => any) => ({
       build: vi.fn(() => factory())

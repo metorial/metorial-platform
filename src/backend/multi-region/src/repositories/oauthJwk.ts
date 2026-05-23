@@ -1,4 +1,4 @@
-import { Service } from '@lowerdeck/service';
+import { Service } from '@mtsrc/service';
 import { generateCustomId } from '@metorial/id';
 import { cell } from '../cell';
 import { globalDB, OAuthJwkStatus, Prisma } from '../db';

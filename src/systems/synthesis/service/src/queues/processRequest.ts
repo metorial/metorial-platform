@@ -1,5 +1,5 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
-import { createQueue, QueueRetryError, type IQueue } from '@lowerdeck/queue';
+import { notFoundError, ServiceError } from '@mtsrc/error';
+import { createQueue, QueueRetryError, type IQueue } from '@mtsrc/queue';
 import { Prisma, db, withTransaction } from '../db';
 import { assistants } from '../definitions/assistants';
 import { env } from '../env';

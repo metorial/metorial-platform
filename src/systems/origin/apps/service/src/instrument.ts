@@ -1,5 +1,5 @@
-import { setSentry } from '@lowerdeck/sentry';
-import { initTelemetry } from '@lowerdeck/telemetry';
+import { setSentry } from '@mtsrc/sentry';
+import { initTelemetry } from '@mtsrc/telemetry';
 import * as Sentry from '@sentry/bun';
 
 declare global {

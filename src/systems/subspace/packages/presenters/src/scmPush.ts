@@ -1,4 +1,4 @@
-import { shadowId } from '@lowerdeck/shadow-id';
+import { shadowId } from '@mtsrc/shadow-id';
 import type { ScmRepo, ScmRepoPush } from '@metorial-subspace/db';
 import { scmRepositoryPresenter } from './scmRepository';
 

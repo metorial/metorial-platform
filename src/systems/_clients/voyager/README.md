@@ -5,7 +5,7 @@ A client library for interacting with the Metorial Voyager platform using TypeSc
 ## Usage 
 
 ```ts
-import { createVoyagerClient } from '@lowerdeck/voyager-client';
+import { createVoyagerClient } from '@mtsrc/voyager-client';
 
 let voyager = createVoyagerClient({
   endpoint: '...'

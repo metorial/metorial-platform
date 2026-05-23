@@ -1,4 +1,4 @@
-import { canonicalize } from '@lowerdeck/canonicalize';
+import { canonicalize } from '@mtsrc/canonicalize';
 
 let sameObject = (a: unknown, b: unknown) =>
   canonicalize(a ?? null) === canonicalize(b ?? null);

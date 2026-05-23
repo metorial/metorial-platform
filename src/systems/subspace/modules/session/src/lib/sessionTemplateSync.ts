@@ -1,4 +1,4 @@
-import { createLock } from '@lowerdeck/lock';
+import { createLock } from '@mtsrc/lock';
 import { env } from '../env';
 
 let sessionTemplateSyncLock = createLock({

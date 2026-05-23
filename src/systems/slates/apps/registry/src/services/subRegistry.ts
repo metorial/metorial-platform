@@ -1,6 +1,6 @@
-import { badRequestError, conflictError, notFoundError, ServiceError } from '@lowerdeck/error';
-import { Paginator } from '@lowerdeck/pagination';
-import { Service } from '@lowerdeck/service';
+import { badRequestError, conflictError, notFoundError, ServiceError } from '@mtsrc/error';
+import { Paginator } from '@mtsrc/pagination';
+import { Service } from '@mtsrc/service';
 import type {
   SubRegistry,
   SubRegistryFilterType,

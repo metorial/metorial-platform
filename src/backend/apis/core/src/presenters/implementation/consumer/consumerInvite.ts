@@ -1,4 +1,4 @@
-import { v } from '@lowerdeck/validation';
+import { v } from '@mtsrc/validation';
 import { portalService } from '@metorial/module-consumer';
 import { Presenter } from '@metorial/presenter';
 import { consumerInviteType } from '../../types';

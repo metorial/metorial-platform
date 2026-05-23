@@ -3,8 +3,8 @@ import {
   preconditionFailedError,
   ServiceError,
   unauthorizedError
-} from '@lowerdeck/error';
-import { Service } from '@lowerdeck/service';
+} from '@mtsrc/error';
+import { Service } from '@mtsrc/service';
 import { Context } from '@metorial/context';
 import {
   ConsumerProfile,

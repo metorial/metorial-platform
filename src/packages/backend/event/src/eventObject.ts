@@ -1,5 +1,5 @@
-import { memo } from '@lowerdeck/memo';
-import { getSentry } from '@lowerdeck/sentry';
+import { memo } from '@mtsrc/memo';
+import { getSentry } from '@mtsrc/sentry';
 import { getConfig } from '@metorial/config';
 import { RedisStreams } from '@metorial/redis';
 import PQueue from 'p-queue';

@@ -1,4 +1,4 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { notFoundError, ServiceError } from '@mtsrc/error';
 import { env } from '../env';
 import { awsLambda } from './aws-lambda';
 import { localProvider } from './local';

@@ -1,4 +1,4 @@
-import { createRedisClient } from '@lowerdeck/redis';
+import { createRedisClient } from '@mtsrc/redis';
 import { db } from '../../db';
 import { env } from '../../env';
 import type { JsonValue, WireMessage, WireSnapshot } from '../delta';

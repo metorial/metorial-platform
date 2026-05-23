@@ -1,4 +1,4 @@
-import { createQueue, QueueRetryError } from '@lowerdeck/queue';
+import { createQueue, QueueRetryError } from '@mtsrc/queue';
 import { db, env, getId, withTransaction } from '@metorial-cargo/db';
 import { getOriginTenant, origin } from '../../internal/skillDestination';
 import {

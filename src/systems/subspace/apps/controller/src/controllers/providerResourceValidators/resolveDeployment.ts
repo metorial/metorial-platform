@@ -1,4 +1,4 @@
-import { v, type ValidationTypeValue } from '@lowerdeck/validation';
+import { v, type ValidationTypeValue } from '@mtsrc/validation';
 import type { TenantSelector } from '@metorial-subspace/list-utils';
 import { providerService, providerVersionService } from '@metorial-subspace/module-catalog';
 import { providerDeploymentService } from '@metorial-subspace/module-deployment';

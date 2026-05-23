@@ -18,7 +18,7 @@ vi.mock('@metorial/db', () => ({
   )
 }));
 
-vi.mock('@lowerdeck/service', () => ({
+vi.mock('@mtsrc/service', () => ({
   Service: {
     create: vi.fn((name, factory) => ({
       build: () => factory()

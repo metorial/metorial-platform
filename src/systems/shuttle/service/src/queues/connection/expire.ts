@@ -1,4 +1,4 @@
-import { createCron } from '@lowerdeck/cron';
+import { createCron } from '@mtsrc/cron';
 import { subHours, subMinutes } from 'date-fns';
 import { db } from '../../db';
 import { env } from '../../env';

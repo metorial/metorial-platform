@@ -1,5 +1,5 @@
-import { canonicalize } from '@lowerdeck/canonicalize';
-import { Hash } from '@lowerdeck/hash';
+import { canonicalize } from '@mtsrc/canonicalize';
+import { Hash } from '@mtsrc/hash';
 import type { SlateAuthenticationMethod, SlatesAction } from '@slates/proto';
 
 export let dedupeDiscoveredItems = <T extends { id: string }>(

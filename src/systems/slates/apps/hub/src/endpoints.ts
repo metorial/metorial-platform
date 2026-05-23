@@ -1,4 +1,4 @@
-import { withTracingSuppressed } from '@lowerdeck/telemetry';
+import { withTracingSuppressed } from '@mtsrc/telemetry';
 import { RedisClient } from 'bun';
 import { adminApi } from './apis/admin';
 import { slatesHubApi } from './apis/internal';

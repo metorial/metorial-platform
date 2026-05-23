@@ -42,14 +42,14 @@ vi.mock('./../src/services/machineAccess', () => ({
     updateMachineAccess: (...args: any[]) => machineAccessUpdateMock(...args)
   }
 }));
-vi.mock('@lowerdeck/service', () => ({
+vi.mock('@mtsrc/service', () => ({
   Service: {
     create: (_: string, factory: any) => ({
       build: () => factory()
     })
   }
 }));
-vi.mock('@lowerdeck/pagination', () => ({
+vi.mock('@mtsrc/pagination', () => ({
   Paginator: {
     create: (factory: any) => factory({ prisma: (cb: any) => cb({}) })
   }

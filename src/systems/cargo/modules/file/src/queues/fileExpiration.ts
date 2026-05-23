@@ -1,5 +1,5 @@
-import { createCron } from '@lowerdeck/cron';
-import { combineQueueProcessors, createQueue } from '@lowerdeck/queue';
+import { createCron } from '@mtsrc/cron';
+import { combineQueueProcessors, createQueue } from '@mtsrc/queue';
 import { db, env, withTransaction } from '@metorial-cargo/db';
 import { internalDocumentDraftService } from '@metorial-cargo/module-doc';
 

@@ -1,4 +1,4 @@
-import { shadowId } from '@lowerdeck/shadow-id';
+import { shadowId } from '@mtsrc/shadow-id';
 import type { Slate, SlateSpecification, SlateVersion } from '../../prisma/generated/client';
 
 export let slateVersionPresenter = (

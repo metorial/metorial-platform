@@ -1,4 +1,4 @@
-import { Service } from '@lowerdeck/service';
+import { Service } from '@mtsrc/service';
 import type { Document, TenantActor } from '@metorial-cargo/db';
 import { getId, withTransaction } from '@metorial-cargo/db';
 import { storeAccessService } from '@metorial-cargo/module-store';

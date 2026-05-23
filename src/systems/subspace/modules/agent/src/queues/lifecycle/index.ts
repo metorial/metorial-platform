@@ -1,3 +1,3 @@
-import { combineQueueProcessors } from '@lowerdeck/queue';
+import { combineQueueProcessors } from '@mtsrc/queue';
 
 export let lifecycleQueues = combineQueueProcessors([]);

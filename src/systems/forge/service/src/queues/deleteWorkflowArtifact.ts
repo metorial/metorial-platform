@@ -1,4 +1,4 @@
-import { combineQueueProcessors, createQueue, type IQueue, type IQueueProcessor } from '@lowerdeck/queue';
+import { combineQueueProcessors, createQueue, type IQueue, type IQueueProcessor } from '@mtsrc/queue';
 import { db } from '../db';
 import { env } from '../env';
 import { storage } from '../storage';

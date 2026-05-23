@@ -1,6 +1,6 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
-import { Paginator } from '@lowerdeck/pagination';
-import { v } from '@lowerdeck/validation';
+import { notFoundError, ServiceError } from '@mtsrc/error';
+import { Paginator } from '@mtsrc/pagination';
+import { v } from '@mtsrc/validation';
 import type { Instance, Organization } from '@metorial/db';
 import { skillVersionService } from '@metorial/module-file';
 import type { SubspaceSkill } from '@metorial/module-subspace';

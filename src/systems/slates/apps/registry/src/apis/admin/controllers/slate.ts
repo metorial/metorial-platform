@@ -1,5 +1,5 @@
-import { Paginator } from '@lowerdeck/pagination';
-import { v } from '@lowerdeck/validation';
+import { Paginator } from '@mtsrc/pagination';
+import { v } from '@mtsrc/validation';
 import { getPreferredCurrentSlateVersion } from '../../../lib/slateVersion/current';
 import { slatePresenter, slateVersionPresenter } from '../../../presenters';
 import { slateService, slateVersionService, userService } from '../../../services';

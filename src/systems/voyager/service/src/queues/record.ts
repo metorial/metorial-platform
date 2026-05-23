@@ -1,4 +1,4 @@
-import { createQueue, QueueRetryError } from '@lowerdeck/queue';
+import { createQueue, QueueRetryError } from '@mtsrc/queue';
 import { defaultBackend } from '../backends';
 import { db } from '../db';
 import { env } from '../env';

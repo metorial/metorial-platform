@@ -3,7 +3,7 @@ import {
   forbiddenError,
   ServiceError,
   unauthorizedError
-} from '@lowerdeck/error';
+} from '@mtsrc/error';
 import {
   MachineAccess,
   OAuthApplication,

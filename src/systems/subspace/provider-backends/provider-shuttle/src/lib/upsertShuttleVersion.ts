@@ -1,5 +1,5 @@
-import { generateCode, generatePlainId } from '@lowerdeck/id';
-import { slugify } from '@lowerdeck/slugify';
+import { generateCode, generatePlainId } from '@mtsrc/id';
+import { slugify } from '@mtsrc/slugify';
 import {
   withTransaction,
   type Publisher,

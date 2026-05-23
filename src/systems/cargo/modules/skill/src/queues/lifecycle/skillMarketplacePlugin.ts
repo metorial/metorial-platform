@@ -1,4 +1,4 @@
-import { createQueue } from '@lowerdeck/queue';
+import { createQueue } from '@mtsrc/queue';
 import { addAfterTransactionHook, db, env } from '@metorial-cargo/db';
 import { indexSkillMarketplaceQueue } from '../search/skillMarketplace';
 import { indexSkillPluginQueue } from '../search/skillPlugin';

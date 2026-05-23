@@ -1,4 +1,4 @@
-import { createQueue } from '@lowerdeck/queue';
+import { createQueue } from '@mtsrc/queue';
 import { env } from '@metorial-cargo/db';
 import { managedSkillPluginService } from '../../services/managedSkillPlugin';
 import { getLifecycleJobId, type LifecycleEvent } from './_ids';

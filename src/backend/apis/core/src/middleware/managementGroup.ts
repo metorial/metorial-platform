@@ -1,4 +1,4 @@
-import { forbiddenError, ServiceError } from '@lowerdeck/error';
+import { forbiddenError, ServiceError } from '@mtsrc/error';
 import { apiGroup } from './apiGroup';
 
 export let managementGroup = apiGroup.use(async ctx => {

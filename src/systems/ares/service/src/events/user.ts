@@ -1,4 +1,4 @@
-import { EventObject, eventObjectAction } from '@lowerdeck/event';
+import { EventObject, eventObjectAction } from '@mtsrc/event';
 import type { User } from '../../prisma/generated/client';
 import { env } from '../env';
 

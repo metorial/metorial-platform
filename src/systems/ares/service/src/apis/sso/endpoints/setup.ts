@@ -1,5 +1,5 @@
-import { createHono, useValidatedBody, useValidatedQuery } from '@lowerdeck/hono';
-import { v } from '@lowerdeck/validation';
+import { createHono, useValidatedBody, useValidatedQuery } from '@mtsrc/hono';
+import { v } from '@mtsrc/validation';
 import { env } from '../../../env';
 import { ssoService } from '../../../services/sso';
 import { errorHtml } from '../pages/error';

@@ -1,4 +1,4 @@
-import { createQueue } from '@lowerdeck/queue';
+import { createQueue } from '@mtsrc/queue';
 import { db } from '@metorial-subspace/db';
 import { queueJobId } from '@metorial-subspace/module-session/src/lib/sessionTemplateSync';
 import { enqueueSyncIntegrationInstanceGroupSessionTemplates } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedIntegrationInstanceGroupTemplate';

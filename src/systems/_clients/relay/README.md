@@ -5,7 +5,7 @@ A client library for interacting with the Metorial Relay platform using TypeScri
 ## Usage 
 
 ```ts
-import { createRelayClient } from '@lowerdeck/forge-client';
+import { createRelayClient } from '@mtsrc/forge-client';
 
 let forge = createRelayClient({
   endpoint: '...'

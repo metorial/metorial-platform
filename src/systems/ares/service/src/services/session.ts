@@ -1,6 +1,6 @@
-import { createCachedFunction } from '@lowerdeck/cache';
-import { notFoundError, ServiceError } from '@lowerdeck/error';
-import { Service } from '@lowerdeck/service';
+import { createCachedFunction } from '@mtsrc/cache';
+import { notFoundError, ServiceError } from '@mtsrc/error';
+import { Service } from '@mtsrc/service';
 import type { AuthDevice, AuthDeviceUserSession, User } from '../../prisma/generated/client';
 import { db } from '../db';
 import { env } from '../env';

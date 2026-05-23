@@ -1,0 +1,21 @@
+{
+  "name": "@mtsrc/cache",
+  "version": "1.0.0",
+  "private": true,
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "vitest run --passWithNoTests",
+    "lint": "prettier src/**/*.ts --check"
+  },
+  "dependencies": {
+    "@mtsrc/redis": "1.0.0",
+    "@mtsrc/sentry": "1.0.0",
+    "lru-cache": "^11.2.4",
+    "superjson": "^2.2.6"
+  },
+  "devDependencies": {
+    "@metorial/tsconfig": "1.0.0",
+    "typescript": "5.8.2",
+    "vitest": "^3.1.2"
+  }
+}

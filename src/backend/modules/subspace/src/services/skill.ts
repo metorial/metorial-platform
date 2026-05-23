@@ -1,4 +1,4 @@
-import { canonicalize } from '@lowerdeck/canonicalize';
+import { canonicalize } from '@mtsrc/canonicalize';
 import {
   Consumer,
   ConsumerGroup,

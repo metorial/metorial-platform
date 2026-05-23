@@ -3,9 +3,9 @@ import {
   forbiddenError,
   notFoundError,
   ServiceError
-} from '@lowerdeck/error';
-import { Paginator } from '@lowerdeck/pagination';
-import { Service } from '@lowerdeck/service';
+} from '@mtsrc/error';
+import { Paginator } from '@mtsrc/pagination';
+import { Service } from '@mtsrc/service';
 import z from 'zod';
 import type { Server, ServerRemoteProtocol, Tenant } from '../../prisma/generated/client';
 import { db } from '../db';

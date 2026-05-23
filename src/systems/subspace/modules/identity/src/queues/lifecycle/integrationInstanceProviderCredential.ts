@@ -1,5 +1,5 @@
-import { createLock } from '@lowerdeck/lock';
-import { createQueue } from '@lowerdeck/queue';
+import { createLock } from '@mtsrc/lock';
+import { createQueue } from '@mtsrc/queue';
 import { addAfterTransactionHook, db, getId, withTransaction } from '@metorial-subspace/db';
 import { env } from '../../env';
 import { reconcileQueue } from '../reconciler/reconcile';

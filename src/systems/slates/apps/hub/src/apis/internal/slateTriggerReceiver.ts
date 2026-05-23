@@ -1,5 +1,5 @@
-import { Paginator } from '@lowerdeck/pagination';
-import { v } from '@lowerdeck/validation';
+import { Paginator } from '@mtsrc/pagination';
+import { v } from '@mtsrc/validation';
 import type { Tenant } from '../../../prisma/generated/client';
 import { slateTriggerReceiverPresenter } from '../../presenters';
 import {

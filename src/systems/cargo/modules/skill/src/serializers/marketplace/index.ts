@@ -1,4 +1,4 @@
-import { Hash } from '@lowerdeck/hash';
+import { Hash } from '@mtsrc/hash';
 import { db } from '@metorial-cargo/db';
 import semver from 'semver';
 import { assertSkillMarketplaceLimits } from '../../lib/limits';

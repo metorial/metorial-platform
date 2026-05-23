@@ -1,4 +1,4 @@
-import { Service } from '@lowerdeck/service';
+import { Service } from '@mtsrc/service';
 import { createCachedFunction } from '@metorial/cache';
 import { Markdown, MarkdownOptions } from '../lib/markdown';
 

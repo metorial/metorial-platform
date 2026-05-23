@@ -1,6 +1,6 @@
-import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
-import { Paginator } from '@lowerdeck/pagination';
-import { Service } from '@lowerdeck/service';
+import { badRequestError, notFoundError, ServiceError } from '@mtsrc/error';
+import { Paginator } from '@mtsrc/pagination';
+import { Service } from '@mtsrc/service';
 import type { SlatesParticipant } from '@slates/proto';
 import { addDays, differenceInMinutes } from 'date-fns';
 import { PublicUrlPurpose } from '@metorial-platform-systems/object-storage-client';

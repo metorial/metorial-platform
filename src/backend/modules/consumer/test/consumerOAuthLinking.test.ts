@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@lowerdeck/hash', () => ({
+vi.mock('@mtsrc/hash', () => ({
   Hash: {
     sha256: vi.fn(async value => `hash:${value}`)
   }
 }));
 
-vi.mock('@lowerdeck/service', () => ({
+vi.mock('@mtsrc/service', () => ({
   Service: {
     create: vi.fn((_: string, factory: () => unknown) => ({
       build: () => factory()
@@ -117,7 +117,7 @@ vi.mock('../src/services/portal', () => ({
   }
 }));
 
-import { Hash } from '@lowerdeck/hash';
+import { Hash } from '@mtsrc/hash';
 import { db } from '@metorial/db';
 import { magicMcpEndpointService } from '@metorial/module-magic';
 import { consumerIntegrationService } from '../src/services/consumerEntities/consumerIntegration';

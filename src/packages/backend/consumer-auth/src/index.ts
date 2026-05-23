@@ -1,5 +1,5 @@
-import { preconditionFailedError, ServiceError, unauthorizedError } from '@lowerdeck/error';
-import { Tokens } from '@lowerdeck/tokens';
+import { preconditionFailedError, ServiceError, unauthorizedError } from '@mtsrc/error';
+import { Tokens } from '@mtsrc/tokens';
 import { createAresInternalClient } from '@metorial-platform-systems/ares-client';
 import { getConfig } from '@metorial/config';
 import {

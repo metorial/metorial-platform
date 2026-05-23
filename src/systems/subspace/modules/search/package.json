@@ -13,10 +13,10 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "@lowerdeck/delay": "^1.0.4",
-    "@lowerdeck/env": "^1.0.6",
-    "@lowerdeck/programmable-promise": "^1.0.6",
-    "@lowerdeck/validation": "^1.0.10",
-    "@metorial-platform-systems/voyager-client": "workspace:*"
+    "@metorial-platform-systems/voyager-client": "workspace:*",
+    "@mtsrc/delay": "1.0.0",
+    "@mtsrc/env": "1.0.0",
+    "@mtsrc/programmable-promise": "1.0.0",
+    "@mtsrc/validation": "1.0.0"
   }
 }

@@ -1,4 +1,4 @@
-import { defineFactory } from '@lowerdeck/testing-tools';
+import { defineFactory } from '@mtsrc/testing-tools';
 import { randomBytes } from 'crypto';
 import type {
   Function as FunctionModel,

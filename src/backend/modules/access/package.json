@@ -12,15 +12,15 @@
     "@metorial/api-keys": "1.0.0",
     "@metorial/consumer-auth": "1.0.0",
     "@metorial/config": "1.0.0",
-    "@lowerdeck/hash": "1.0.4",
     "@metorial/queue": "1.0.0",
-    "@lowerdeck/error": "^1.2.3",
     "@metorial/module-organization": "1.0.0",
-    "@lowerdeck/service": "^1.0.7",
     "@metorial/context": "1.0.0",
     "@metorial/db": "1.0.0",
     "@metorial/module-machine-access": "1.0.0",
-    "@metorial/module-user": "1.0.0"
+    "@metorial/module-user": "1.0.0",
+    "@mtsrc/hash": "1.0.0",
+    "@mtsrc/error": "1.0.0",
+    "@mtsrc/service": "1.0.0"
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",

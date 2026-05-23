@@ -1,4 +1,4 @@
-import { createClient } from '@lowerdeck/rpc-client';
+import { createClient } from '@mtsrc/rpc-client';
 import type { SubspaceControllerClient } from '../../../subspace/apps/controller/src/controllers';
 
 export let createSubspaceControllerClient = (

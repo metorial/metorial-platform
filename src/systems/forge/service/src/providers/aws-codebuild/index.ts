@@ -1,6 +1,6 @@
 import { GetLogEventsCommand } from '@aws-sdk/client-cloudwatch-logs';
 import { BatchGetBuildsCommand, StartBuildCommand } from '@aws-sdk/client-codebuild';
-import { createQueue, type IQueue, type IQueueProcessor } from '@lowerdeck/queue';
+import { createQueue, type IQueue, type IQueueProcessor } from '@mtsrc/queue';
 import { stringify } from 'yaml';
 import { env } from '../../env';
 import { storage } from '../../storage';

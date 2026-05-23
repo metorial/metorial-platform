@@ -1,4 +1,4 @@
-import { delay } from '@lowerdeck/delay';
+import { delay } from '@mtsrc/delay';
 import { createOriginClient } from '@metorial-platform-systems/origin-client';
 import { db, type Tenant } from '@metorial-subspace/db';
 import { env } from './env';

@@ -1,4 +1,4 @@
-import { Service } from '@lowerdeck/service';
+import { Service } from '@mtsrc/service';
 import { db } from '@metorial-cargo/db';
 import { fileService } from './file';
 import { fileLinkService } from './fileLink';

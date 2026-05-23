@@ -1,5 +1,5 @@
-import { Paginator } from '@lowerdeck/pagination';
-import { v } from '@lowerdeck/validation';
+import { Paginator } from '@mtsrc/pagination';
+import { v } from '@mtsrc/validation';
 import { eventDestinationPresenter } from '../presenters';
 import { eventDestinationService, senderService } from '../services';
 import { app } from './_app';

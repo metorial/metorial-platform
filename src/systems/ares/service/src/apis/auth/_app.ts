@@ -1,4 +1,4 @@
-import { Group } from '@lowerdeck/rpc-server';
+import { Group } from '@mtsrc/rpc-server';
 
 export let publicApp = new Group().use(async ctx => {
   return {

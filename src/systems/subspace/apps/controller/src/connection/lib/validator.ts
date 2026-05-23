@@ -1,5 +1,5 @@
 import { zValidator } from '@hono/zod-validator';
-import { validationError } from '@lowerdeck/error';
+import { validationError } from '@mtsrc/error';
 import type { ValidationTargets } from 'hono';
 import type z from 'zod';
 

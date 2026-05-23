@@ -1,5 +1,5 @@
-import { ServiceError, unauthorizedError } from '@lowerdeck/error';
-import { Group } from '@lowerdeck/rpc-server';
+import { ServiceError, unauthorizedError } from '@mtsrc/error';
+import { Group } from '@mtsrc/rpc-server';
 import { adminService } from '../../../services/admin';
 
 export const ADMIN_SESSION_COOKIE_NAME = 'metorial_admin_session';

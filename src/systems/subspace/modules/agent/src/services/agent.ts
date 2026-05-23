@@ -1,9 +1,9 @@
-import { Hash } from '@lowerdeck/hash';
-import { generatePlainId } from '@lowerdeck/id';
-import { notFoundError, ServiceError } from '@lowerdeck/error';
-import { Paginator } from '@lowerdeck/pagination';
-import { Service } from '@lowerdeck/service';
-import { slugify } from '@lowerdeck/slugify';
+import { Hash } from '@mtsrc/hash';
+import { generatePlainId } from '@mtsrc/id';
+import { notFoundError, ServiceError } from '@mtsrc/error';
+import { Paginator } from '@mtsrc/pagination';
+import { Service } from '@mtsrc/service';
+import { slugify } from '@mtsrc/slugify';
 import {
   type Agent,
   AgentStatus,

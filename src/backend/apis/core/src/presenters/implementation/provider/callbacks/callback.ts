@@ -1,4 +1,4 @@
-import { v } from '@lowerdeck/validation';
+import { v } from '@mtsrc/validation';
 import type { SubspaceCallbackDestination } from '@metorial/module-subspace';
 import { Presenter } from '@metorial/presenter';
 import { callbackType } from '../../../types';

@@ -9,7 +9,7 @@ import { storage } from '../../storage';
 import { env } from '../../env';
 import { getStoredInvocationStorageKey } from '../../lib/invocation/store';
 import type { StoredSlateInvocation } from '../../lib/invocation/types';
-import { defineFactory } from '@lowerdeck/testing-tools';
+import { defineFactory } from '@mtsrc/testing-tools';
 
 export const SlateInvocationStorageBucketFixtures = (db: PrismaClient) => {
   const defaultBucket = async (bucket?: string): Promise<SlateInvocationStorageBucket> => {

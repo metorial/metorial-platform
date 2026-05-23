@@ -1,4 +1,4 @@
-import { createQueue, QueueRetryError } from '@lowerdeck/queue';
+import { createQueue, QueueRetryError } from '@mtsrc/queue';
 import { db, snowflake } from '@metorial-subspace/db';
 import { getTenantForShuttle, shuttle } from '@metorial-subspace/provider-shuttle/src/client';
 import { env } from '../../env';

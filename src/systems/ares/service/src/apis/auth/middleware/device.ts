@@ -1,4 +1,4 @@
-import type { ServiceRequest } from '@lowerdeck/rpc-server';
+import type { ServiceRequest } from '@mtsrc/rpc-server';
 import type Cookie from 'cookie';
 import { env } from '../../../env';
 import { deviceService } from '../../../services/device';

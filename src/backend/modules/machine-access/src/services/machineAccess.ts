@@ -1,5 +1,5 @@
-import { forbiddenError, ServiceError } from '@lowerdeck/error';
-import { Service } from '@lowerdeck/service';
+import { forbiddenError, ServiceError } from '@mtsrc/error';
+import { Service } from '@mtsrc/service';
 import { Context } from '@metorial/context';
 import {
   db,

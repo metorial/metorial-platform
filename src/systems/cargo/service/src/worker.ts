@@ -1,4 +1,4 @@
-import { runQueueProcessors } from '@lowerdeck/queue';
+import { runQueueProcessors } from '@mtsrc/queue';
 import { documentQueueProcessor } from '@metorial-cargo/module-doc';
 import { fileQueueProcessor } from '@metorial-cargo/module-file';
 import { skillQueueProcessor } from '@metorial-cargo/module-skill';

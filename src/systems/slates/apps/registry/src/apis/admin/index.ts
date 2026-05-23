@@ -1,4 +1,4 @@
-import { apiMux } from '@lowerdeck/api-mux';
+import { apiMux } from '@mtsrc/api-mux';
 import { slatesRegistryAdminApi } from './controllers';
 
 let adminDir = './dist/admin';

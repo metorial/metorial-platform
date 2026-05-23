@@ -28,11 +28,11 @@
     "test": "vitest run --passWithNoTests",
     "lint": "prettier src/**/*.ts --check",
     "prebuild": "cd ../../origin/apps/service && bunx prisma generate",
-    "build": "rm -rf ./dist && microbundle && dts-bundle-generator --config dts-bundle-generator.config.json",
+    "build": "rm -rf ./dist && microbundle && dts-bundle-generator --config dts-bundle-generator.config.json --external-imports @mtsrc/rpc-client @mtsrc/rpc-server @mtsrc/validation",
     "prepublish": "bun run build"
   },
   "dependencies": {
-    "@lowerdeck/rpc-client": "^1.1.4"
+    "@mtsrc/rpc-client": "1.0.0"
   },
   "devDependencies": {
     "@types/node": "^25.0.3",

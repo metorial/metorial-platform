@@ -1,4 +1,4 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, ServiceError } from '@mtsrc/error';
 import { checkImageAccess } from './access';
 import type { ParsedImageRef } from './parseImageRef';
 

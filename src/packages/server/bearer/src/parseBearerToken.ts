@@ -1,4 +1,4 @@
-import { ServiceError, unauthorizedError } from '@lowerdeck/error';
+import { ServiceError, unauthorizedError } from '@mtsrc/error';
 
 export let parseBearerToken = (request: Request) => {
   let authorization = request.headers.get('Authorization');

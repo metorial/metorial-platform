@@ -1,4 +1,4 @@
-import { createHono } from '@lowerdeck/hono';
+import { createHono } from '@mtsrc/hono';
 import { db } from '../db';
 import { installationSessionHtml } from '../lib/templates/installationSession';
 import { scmAuthService, scmBackendService, scmInstallationSessionService } from '../services';

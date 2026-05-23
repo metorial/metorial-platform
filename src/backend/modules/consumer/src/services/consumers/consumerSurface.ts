@@ -1,6 +1,6 @@
-import { notFoundError, preconditionFailedError, ServiceError } from '@lowerdeck/error';
-import { Paginator } from '@lowerdeck/pagination';
-import { Service } from '@lowerdeck/service';
+import { notFoundError, preconditionFailedError, ServiceError } from '@mtsrc/error';
+import { Paginator } from '@mtsrc/pagination';
+import { Service } from '@mtsrc/service';
 import { Context } from '@metorial/context';
 import {
   ConsumerSurface,

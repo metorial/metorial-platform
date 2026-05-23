@@ -1,6 +1,6 @@
-import { conflictError, notFoundError, ServiceError } from '@lowerdeck/error';
-import { Paginator } from '@lowerdeck/pagination';
-import { Service } from '@lowerdeck/service';
+import { conflictError, notFoundError, ServiceError } from '@mtsrc/error';
+import { Paginator } from '@mtsrc/pagination';
+import { Service } from '@mtsrc/service';
 import type { Tenant, User } from '../../prisma/generated/client';
 import { db } from '../db';
 import { getId } from '../id';

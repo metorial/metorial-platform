@@ -1,5 +1,5 @@
-import { Paginator } from '@lowerdeck/pagination';
-import { v } from '@lowerdeck/validation';
+import { Paginator } from '@mtsrc/pagination';
+import { v } from '@mtsrc/validation';
 import { SlateVersionDiscoveryStatus } from '../../../../prisma/generated/client';
 import { slateVersionDiscoveryPresenter } from '../../../presenters/slateDiscovery';
 import { slateDiscoveryBuildOutputPresenter } from '../../../presenters/slateDiscoveryBuildOutput';

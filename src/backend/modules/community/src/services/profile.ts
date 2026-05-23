@@ -1,5 +1,5 @@
-import { Service } from '@lowerdeck/service';
-import { createSlugGenerator } from '@lowerdeck/slugify';
+import { Service } from '@mtsrc/service';
+import { createSlugGenerator } from '@mtsrc/slugify';
 import { db, ID, Organization, OrganizationActor, Profile, User } from '@metorial/db';
 
 let ensureProfileSlug = createSlugGenerator(

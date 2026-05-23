@@ -10,10 +10,10 @@ import type {
 } from '../../../prisma/generated/client';
 import { FunctionDeploymentStatus } from '../../../prisma/generated/client';
 import { getId } from '../../id';
-import { defineFactory } from '@lowerdeck/testing-tools';
+import { defineFactory } from '@mtsrc/testing-tools';
 import { FunctionFixtures } from './functionFixtures';
 import { FunctionBundleFixtures } from './functionBundleFixtures';
-import { Encryption } from '@lowerdeck/encryption';
+import { Encryption } from '@mtsrc/encryption';
 import {
   resolveEncryptedEnvironmentVariables,
   withoutEncryptedEnvOverrides

@@ -1,6 +1,6 @@
 import { resolve } from 'path';
 import { defineConfig } from 'vitest/config';
-import { createVitestConfig, loadTestEnv, withAliases } from '@lowerdeck/testing-tools';
+import { createVitestConfig, loadTestEnv, withAliases } from '@mtsrc/testing-tools';
 
 export default defineConfig(({ mode }) => {
   let env = loadTestEnv(mode || 'test', process.cwd(), '');

@@ -1,4 +1,4 @@
-import { createLocallyCachedFunction } from '@lowerdeck/cache';
+import { createLocallyCachedFunction } from '@mtsrc/cache';
 import { db } from '@metorial-subspace/db';
 import { getTenantForSlates } from '@metorial-subspace/provider-slates/src/client';
 

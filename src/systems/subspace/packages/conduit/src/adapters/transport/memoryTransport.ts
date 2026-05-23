@@ -1,4 +1,4 @@
-import { getSentry } from '@lowerdeck/sentry';
+import { getSentry } from '@mtsrc/sentry';
 import type { ITransportAdapter, MessageHandler } from './transportAdapter';
 
 let Sentry = getSentry();

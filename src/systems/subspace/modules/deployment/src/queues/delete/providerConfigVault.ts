@@ -1,5 +1,5 @@
-import { createCron } from '@lowerdeck/cron';
-import { createQueue } from '@lowerdeck/queue';
+import { createCron } from '@mtsrc/cron';
+import { createQueue } from '@mtsrc/queue';
 import { db } from '@metorial-subspace/db';
 import { env } from '../../env';
 import { providerConfigVaultDeletedQueue } from '../lifecycle/providerConfigVault';

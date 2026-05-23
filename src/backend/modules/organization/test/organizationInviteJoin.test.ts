@@ -1,4 +1,4 @@
-import { ServiceError, notFoundError } from '@lowerdeck/error';
+import { ServiceError, notFoundError } from '@mtsrc/error';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock external dependencies
@@ -40,7 +40,7 @@ vi.mock('@metorial/fabric', () => ({
   }
 }));
 
-vi.mock('@lowerdeck/service', () => ({
+vi.mock('@mtsrc/service', () => ({
   Service: {
     create: vi.fn((name, factory) => ({
       build: () => factory()

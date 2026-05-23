@@ -1,4 +1,4 @@
-import { createShortIdGenerator } from '@lowerdeck/slugify';
+import { createShortIdGenerator } from '@mtsrc/slugify';
 import { db, getId, withTransaction } from '@metorial-subspace/db';
 
 let gen = createShortIdGenerator(

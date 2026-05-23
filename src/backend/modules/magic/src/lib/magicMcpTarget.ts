@@ -1,4 +1,4 @@
-import { conflictError, notFoundError, ServiceError } from '@lowerdeck/error';
+import { conflictError, notFoundError, ServiceError } from '@mtsrc/error';
 import { db } from '@metorial/db';
 import { magicMcpEndpointInclude } from '../services/magicMcpEndpoint';
 

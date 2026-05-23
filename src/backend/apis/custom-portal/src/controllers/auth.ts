@@ -1,5 +1,5 @@
-import { preconditionFailedError, ServiceError, unauthorizedError } from '@lowerdeck/error';
-import { v } from '@lowerdeck/validation';
+import { preconditionFailedError, ServiceError, unauthorizedError } from '@mtsrc/error';
+import { v } from '@mtsrc/validation';
 import { consumerAuthService } from '@metorial/module-consumer';
 import { portalFromIdApp } from '../group';
 import {

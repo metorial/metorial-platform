@@ -2,7 +2,7 @@ import { randomBytes } from 'crypto';
 import type { PrismaClient, Registry } from '../../../prisma/generated/client';
 import { RegistryStatus } from '../../../prisma/generated/client';
 import { getId } from '../../id';
-import { defineFactory } from '@lowerdeck/testing-tools';
+import { defineFactory } from '@mtsrc/testing-tools';
 
 export const RegistryFixtures = (db: PrismaClient) => {
   const defaultRegistry = async (

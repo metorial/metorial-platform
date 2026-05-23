@@ -1,4 +1,4 @@
-import { createQueue, QueueRetryError } from '@lowerdeck/queue';
+import { createQueue, QueueRetryError } from '@mtsrc/queue';
 import { db } from '@metorial-subspace/db';
 import { backend as shuttleBackend } from '../../backend';
 import { shuttle } from '../../client';

@@ -1,4 +1,4 @@
-import { createClient } from '@lowerdeck/rpc-client';
+import { createClient } from '@mtsrc/rpc-client';
 import type { VoyagerClient } from '../../../voyager/service/src/controllers';
 
 type ClientOpts = Parameters<typeof createClient>[0];

@@ -38,6 +38,7 @@
     "src/backend/*/*",
     "src/packages/*",
     "src/packages/*/*",
+    "src/_shared/*/*",
     "src/systems/*/*",
     "src/systems/_clients/*",
     "src/systems/*/*/*",

@@ -1,7 +1,7 @@
-import { notFoundError, preconditionFailedError, ServiceError } from '@lowerdeck/error';
-import { Paginator } from '@lowerdeck/pagination';
-import { Service } from '@lowerdeck/service';
-import { createSlugGenerator } from '@lowerdeck/slugify';
+import { notFoundError, preconditionFailedError, ServiceError } from '@mtsrc/error';
+import { Paginator } from '@mtsrc/pagination';
+import { Service } from '@mtsrc/service';
+import { createSlugGenerator } from '@mtsrc/slugify';
 import { Context } from '@metorial/context';
 import { db, ID, Instance, Organization, Portal, Prisma, withTransaction } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';

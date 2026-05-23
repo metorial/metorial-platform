@@ -1,7 +1,7 @@
 import { functionBayRuntimeConfig, type FunctionBayRuntimeConfig } from '@function-bay/types';
-import { generatePlainId } from '@lowerdeck/id';
-import { combineQueueProcessors, createQueue, QueueRetryError } from '@lowerdeck/queue';
-import { v } from '@lowerdeck/validation';
+import { generatePlainId } from '@mtsrc/id';
+import { combineQueueProcessors, createQueue, QueueRetryError } from '@mtsrc/queue';
+import { v } from '@mtsrc/validation';
 import { Readable } from 'stream';
 import { db } from '../db';
 import { encryption } from '../encryption';

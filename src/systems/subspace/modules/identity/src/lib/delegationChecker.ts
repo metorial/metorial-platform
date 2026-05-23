@@ -1,5 +1,5 @@
-import { delay } from '@lowerdeck/delay';
-import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { delay } from '@mtsrc/delay';
+import { badRequestError, ServiceError } from '@mtsrc/error';
 import {
   db,
   type DelegatedIdentity,

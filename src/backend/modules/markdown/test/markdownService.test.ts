@@ -26,7 +26,7 @@ vi.mock('@metorial/cache', () => ({
   })
 }));
 
-vi.mock('@lowerdeck/service', () => ({
+vi.mock('@mtsrc/service', () => ({
   Service: {
     create: vi.fn((name: string, factory: () => any) => ({
       build: () => factory()

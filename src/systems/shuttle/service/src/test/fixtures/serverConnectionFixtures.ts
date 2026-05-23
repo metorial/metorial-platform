@@ -6,7 +6,7 @@ import type {
 } from '../../../prisma/generated/client';
 import { ServerConnectionStatus } from '../../../prisma/generated/client';
 import { getId } from '../../id';
-import { defineFactory } from '@lowerdeck/testing-tools';
+import { defineFactory } from '@mtsrc/testing-tools';
 import { ConnectionLogsBucketFixtures } from './connectionLogsBucketFixtures';
 import { ServerConfigFixtures } from './serverConfigFixtures';
 import { ServerVersionFixtures } from './serverVersionFixtures';

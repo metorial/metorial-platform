@@ -1,4 +1,4 @@
-import { createCron } from '@lowerdeck/cron';
+import { createCron } from '@mtsrc/cron';
 import { backend as shuttleBackend } from '../../backend';
 import { env } from '../../env';
 import { syncAuthConfigEventsQueue } from './authConfigEvents';

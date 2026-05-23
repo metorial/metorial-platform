@@ -1,5 +1,5 @@
-import { generatePlainId } from '@lowerdeck/id';
-import { createQueue, QueueRetryError } from '@lowerdeck/queue';
+import { generatePlainId } from '@mtsrc/id';
+import { createQueue, QueueRetryError } from '@mtsrc/queue';
 import { db } from '../../db';
 import { env } from '../../env';
 import { ID } from '../../id';

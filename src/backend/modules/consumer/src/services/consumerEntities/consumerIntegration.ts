@@ -1,5 +1,5 @@
-import { ServiceError, preconditionFailedError } from '@lowerdeck/error';
-import { Service } from '@lowerdeck/service';
+import { ServiceError, preconditionFailedError } from '@mtsrc/error';
+import { Service } from '@mtsrc/service';
 import {
   ConsumerAuthAttempt,
   ConsumerIntegration,

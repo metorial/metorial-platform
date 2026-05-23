@@ -1,4 +1,4 @@
-import { createQueue } from '@lowerdeck/queue';
+import { createQueue } from '@mtsrc/queue';
 import { db, env } from '@metorial-cargo/db';
 import { CargoSkillLimitError } from '../../lib/limits';
 import { applyMarketplace } from '../../serializers/marketplace';

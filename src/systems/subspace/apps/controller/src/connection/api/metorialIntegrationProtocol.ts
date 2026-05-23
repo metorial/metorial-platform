@@ -1,5 +1,5 @@
-import { preconditionFailedError, ServiceError } from '@lowerdeck/error';
-import { createHono } from '@lowerdeck/hono';
+import { preconditionFailedError, ServiceError } from '@mtsrc/error';
+import { createHono } from '@mtsrc/hono';
 import { messageOutputToToolCall } from '@metorial-subspace/db';
 import {
   connectionPresenter,

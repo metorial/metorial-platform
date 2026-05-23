@@ -1,5 +1,5 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
-import { getSentry } from '@lowerdeck/sentry';
+import { badRequestError, ServiceError } from '@mtsrc/error';
+import { getSentry } from '@mtsrc/sentry';
 import { db } from '@metorial/db';
 import { usageService } from '@metorial/module-usage';
 import { createSubspaceService, toEventBase } from '../lib/subspaceService';

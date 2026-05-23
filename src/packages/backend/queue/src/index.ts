@@ -1,4 +1,4 @@
-import { createQueue as innerCreateQueue } from '@lowerdeck/queue';
+import { createQueue as innerCreateQueue } from '@mtsrc/queue';
 import { getConfig } from '@metorial/config';
 import type { JobsOptions, QueueOptions, WorkerOptions } from 'bullmq';
 
@@ -24,4 +24,4 @@ export {
   runQueueProcessors,
   type IQueue,
   type IQueueProcessor
-} from '@lowerdeck/queue';
+} from '@mtsrc/queue';

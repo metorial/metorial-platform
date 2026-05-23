@@ -1,8 +1,8 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
-import { Hash } from '@lowerdeck/hash';
-import { generatePlainId } from '@lowerdeck/id';
-import { Service } from '@lowerdeck/service';
-import { slugify } from '@lowerdeck/slugify';
+import { notFoundError, ServiceError } from '@mtsrc/error';
+import { Hash } from '@mtsrc/hash';
+import { generatePlainId } from '@mtsrc/id';
+import { Service } from '@mtsrc/service';
+import { slugify } from '@mtsrc/slugify';
 import type { Prisma, SkillPluginSkillStatus, SkillPluginStatus } from '@metorial-cargo/db';
 import { db, getId, withTransaction } from '@metorial-cargo/db';
 import type { CargoTenantEnvironment } from '@metorial-cargo/module-file';

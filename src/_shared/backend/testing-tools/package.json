@@ -1,0 +1,22 @@
+{
+  "name": "@mtsrc/testing-tools",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "vitest run --passWithNoTests",
+    "lint": "prettier src/**/*.ts --check"
+  },
+  "dependencies": {
+    "vite": "^5.4.1"
+  },
+  "devDependencies": {
+    "@metorial/tsconfig": "1.0.0",
+    "typescript": "5.8.2",
+    "vitest": "^3.1.2"
+  },
+  "peerDependencies": {
+    "vitest": ">=3.0.0"
+  }
+}

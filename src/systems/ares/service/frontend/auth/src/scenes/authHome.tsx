@@ -1,5 +1,5 @@
 import { useInterval } from '@looped/hooks';
-import { delay } from '@lowerdeck/delay';
+import { delay } from '@mtsrc/delay';
 import { Turnstile } from '@marsidev/react-turnstile';
 import { useForm, useMutation } from '@metorial-io/data-hooks';
 import {

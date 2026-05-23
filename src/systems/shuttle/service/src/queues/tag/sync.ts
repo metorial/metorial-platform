@@ -1,5 +1,5 @@
-import { createCron } from '@lowerdeck/cron';
-import { createQueue, QueueRetryError } from '@lowerdeck/queue';
+import { createCron } from '@mtsrc/cron';
+import { createQueue, QueueRetryError } from '@mtsrc/queue';
 import { db } from '../../db';
 import { env } from '../../env';
 import { getId, snowflake } from '../../id';

@@ -4,8 +4,8 @@ import {
   notFoundError,
   preconditionFailedError,
   ServiceError
-} from '@lowerdeck/error';
-import { Service } from '@lowerdeck/service';
+} from '@mtsrc/error';
+import { Service } from '@mtsrc/service';
 import type { App, User, UserEmail, UserTermsType } from '../../prisma/generated/client';
 import { addAfterTransactionHook, db, withTransaction } from '../db';
 import { terms } from '../definitions';

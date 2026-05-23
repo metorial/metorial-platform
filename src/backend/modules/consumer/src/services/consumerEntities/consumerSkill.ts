@@ -3,8 +3,8 @@ import {
   notFoundError,
   preconditionFailedError,
   ServiceError
-} from '@lowerdeck/error';
-import { Service } from '@lowerdeck/service';
+} from '@mtsrc/error';
+import { Service } from '@mtsrc/service';
 import {
   Consumer,
   ConsumerGroup,

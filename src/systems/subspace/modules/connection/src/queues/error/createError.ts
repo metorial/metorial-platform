@@ -1,6 +1,6 @@
-import { canonicalize } from '@lowerdeck/canonicalize';
-import { Hash } from '@lowerdeck/hash';
-import { createQueue, QueueRetryError } from '@lowerdeck/queue';
+import { canonicalize } from '@mtsrc/canonicalize';
+import { Hash } from '@mtsrc/hash';
+import { createQueue, QueueRetryError } from '@mtsrc/queue';
 import { db, getId, snowflake } from '@metorial-subspace/db';
 import { endOfDay, startOfDay } from 'date-fns';
 import { env } from '../../env';

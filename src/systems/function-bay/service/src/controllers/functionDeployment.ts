@@ -1,6 +1,6 @@
 import { functionBayRuntimeSpec } from '@function-bay/types';
-import { Paginator } from '@lowerdeck/pagination';
-import { createValidator, v, type ValidatorOptions } from '@lowerdeck/validation';
+import { Paginator } from '@mtsrc/pagination';
+import { createValidator, v, type ValidatorOptions } from '@mtsrc/validation';
 import { functionDeploymentPresenter, functionDeploymentStepPresenter } from '../presenters';
 import { functionDeploymentService } from '../services';
 import { app } from './_app';

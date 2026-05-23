@@ -1,4 +1,4 @@
-import { getSentry } from '@lowerdeck/sentry';
+import { getSentry } from '@mtsrc/sentry';
 import type { ICoordinationAdapter } from '../adapters/coordination/coordinationAdapter';
 
 let Sentry = getSentry();

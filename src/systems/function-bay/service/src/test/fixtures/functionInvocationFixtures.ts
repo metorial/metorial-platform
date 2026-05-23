@@ -9,7 +9,7 @@ import type {
 } from '../../../prisma/generated/client';
 import { FunctionInvocationStatus } from '../../../prisma/generated/client';
 import { getId } from '../../id';
-import { defineFactory } from '@lowerdeck/testing-tools';
+import { defineFactory } from '@mtsrc/testing-tools';
 import { FunctionVersionFixtures } from './functionVersionFixtures';
 
 export const FunctionInvocationFixtures = (db: PrismaClient) => {

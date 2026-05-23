@@ -9,9 +9,6 @@
       "noCheck": true,
       "libraries": {
         "inlinedLibraries": [
-          "@lowerdeck/rpc-client",
-          "@lowerdeck/rpc-server",
-          "@lowerdeck/validation",
           "@metorial-platform-systems/object-storage-client"
         ]
       }

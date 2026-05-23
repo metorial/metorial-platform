@@ -1,5 +1,5 @@
-import { Paginator } from '@lowerdeck/pagination';
-import { v } from '@lowerdeck/validation';
+import { Paginator } from '@mtsrc/pagination';
+import { v } from '@mtsrc/validation';
 import { skillConfigurationPresenter } from '../presenters';
 import { skillConfigurationService } from '@metorial-cargo/module-skill';
 import { app } from './_app';

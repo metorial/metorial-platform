@@ -1,7 +1,7 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
-import { Paginator } from '@lowerdeck/pagination';
-import { Service } from '@lowerdeck/service';
-import { shadowId } from '@lowerdeck/shadow-id';
+import { notFoundError, ServiceError } from '@mtsrc/error';
+import { Paginator } from '@mtsrc/pagination';
+import { Service } from '@mtsrc/service';
+import { shadowId } from '@mtsrc/shadow-id';
 import {
   type CustomProviderDeployment,
   type CustomProviderDeploymentStatus,

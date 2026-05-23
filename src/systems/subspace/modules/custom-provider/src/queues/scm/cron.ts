@@ -1,4 +1,4 @@
-import { createCron } from '@lowerdeck/cron';
+import { createCron } from '@mtsrc/cron';
 import { env } from '../../env';
 import { enqueueScmSyncMany } from './sync';
 

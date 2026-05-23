@@ -1,7 +1,7 @@
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../../prisma/generated/client';
 import { afterAll } from 'vitest';
-import { setupPrismaTestDb, setupTestGlobals } from '@lowerdeck/testing-tools';
+import { setupPrismaTestDb, setupTestGlobals } from '@mtsrc/testing-tools';
 import { defaultProvider } from '../services/provider';
 
 setupTestGlobals({ nodeEnv: 'test' });

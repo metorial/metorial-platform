@@ -1,5 +1,5 @@
-import { Paginator } from '@lowerdeck/pagination';
-import { v } from '@lowerdeck/validation';
+import { Paginator } from '@mtsrc/pagination';
+import { v } from '@mtsrc/validation';
 import { sessionService, toolCallService } from '@metorial-subspace/module-session';
 import { toolCallPresenter } from '@metorial-subspace/presenters';
 import { app } from './_app';

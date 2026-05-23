@@ -1,5 +1,5 @@
-import { Hash } from '@lowerdeck/hash';
-import { slugify } from '@lowerdeck/slugify';
+import { Hash } from '@mtsrc/hash';
+import { slugify } from '@mtsrc/slugify';
 import { db, env } from '@metorial-cargo/db';
 import semver from 'semver';
 import { internalImageService } from '../../internal/image';

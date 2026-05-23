@@ -1,4 +1,4 @@
-import { combineQueueProcessors } from '@lowerdeck/queue';
+import { combineQueueProcessors } from '@mtsrc/queue';
 import { expireSessionConnectionsQueues } from './connectionCleanup/expireSessionConnections';
 import { expireSessionsCron } from './connectionCleanup/expireSessions';
 import { createErrorQueueProcessor } from './error/createError';

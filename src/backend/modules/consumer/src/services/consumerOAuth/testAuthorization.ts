@@ -3,8 +3,8 @@ import {
   notFoundError,
   preconditionFailedError,
   ServiceError
-} from '@lowerdeck/error';
-import { Service } from '@lowerdeck/service';
+} from '@mtsrc/error';
+import { Service } from '@mtsrc/service';
 import { ConsumerAuthAttemptCodeChallengeMethod, db, ID, Instance } from '@metorial/db';
 import { addMinutes } from 'date-fns';
 import {

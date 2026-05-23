@@ -1,4 +1,4 @@
-import { createQueue } from '@lowerdeck/queue';
+import { createQueue } from '@mtsrc/queue';
 import { db } from '@metorial-subspace/db';
 import { providerAuthConfigService } from '@metorial-subspace/module-auth';
 import { providerConfigService } from '@metorial-subspace/module-deployment';

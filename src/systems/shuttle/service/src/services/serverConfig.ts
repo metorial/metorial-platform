@@ -1,7 +1,7 @@
-import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
-import { Paginator } from '@lowerdeck/pagination';
-import { Service } from '@lowerdeck/service';
-import { v } from '@lowerdeck/validation';
+import { badRequestError, notFoundError, ServiceError } from '@mtsrc/error';
+import { Paginator } from '@mtsrc/pagination';
+import { Service } from '@mtsrc/service';
+import { v } from '@mtsrc/validation';
 import type { Server, ServerVersion, Tenant } from '../../prisma/generated/client';
 import { db } from '../db';
 import { getId } from '../id';

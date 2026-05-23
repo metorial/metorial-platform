@@ -1,6 +1,6 @@
-import { canonicalize } from '@lowerdeck/canonicalize';
-import { Hash } from '@lowerdeck/hash';
-import { createQueue } from '@lowerdeck/queue';
+import { canonicalize } from '@mtsrc/canonicalize';
+import { Hash } from '@mtsrc/hash';
+import { createQueue } from '@mtsrc/queue';
 import { db, getId } from '@metorial-subspace/db';
 import { env } from '../../env';
 import { queueJobId, withSessionTemplateSyncLock } from '../../lib/sessionTemplateSync';

@@ -1,4 +1,4 @@
-import { ServiceError, unauthorizedError } from '@lowerdeck/error';
+import { ServiceError, unauthorizedError } from '@mtsrc/error';
 import { instanceGroup } from './instanceGroup';
 
 export let requireNonPublishableMachineAccess = instanceGroup.createMiddleware(async ctx => {

@@ -1,5 +1,5 @@
 import { Gitlab } from '@gitbeaker/rest';
-import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, ServiceError } from '@mtsrc/error';
 import type { ScmBackend, ScmInstallation } from '../../prisma/generated/client';
 import { db } from '../db';
 

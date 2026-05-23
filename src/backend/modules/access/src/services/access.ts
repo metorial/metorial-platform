@@ -1,5 +1,5 @@
-import { forbiddenError, notFoundError, ServiceError } from '@lowerdeck/error';
-import { Service } from '@lowerdeck/service';
+import { forbiddenError, notFoundError, ServiceError } from '@mtsrc/error';
+import { Service } from '@mtsrc/service';
 import { db, Organization, OrganizationMember, Project } from '@metorial/db';
 import {
   effectiveAccessService,

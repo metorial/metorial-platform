@@ -1,4 +1,4 @@
-import { combineQueueProcessors } from '@lowerdeck/queue';
+import { combineQueueProcessors } from '@mtsrc/queue';
 import { lifecycleQueues } from './queues/lifecycle';
 import { searchQueues } from './queues/search';
 

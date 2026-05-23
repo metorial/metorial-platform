@@ -1,4 +1,4 @@
-import { shadowId } from '@lowerdeck/shadow-id';
+import { shadowId } from '@mtsrc/shadow-id';
 import type { Scope, Tenant } from '../../prisma/generated/client';
 
 export let scopePresenter = (scope: Scope & { tenant: Tenant }) => ({

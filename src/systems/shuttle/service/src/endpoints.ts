@@ -1,6 +1,6 @@
-import { apiMux } from '@lowerdeck/api-mux';
-import { rpcMux } from '@lowerdeck/rpc-server';
-import { withTracingSuppressed } from '@lowerdeck/telemetry';
+import { apiMux } from '@mtsrc/api-mux';
+import { rpcMux } from '@mtsrc/rpc-server';
+import { withTracingSuppressed } from '@mtsrc/telemetry';
 import { RedisClient } from 'bun';
 import { connectionApp, websocket } from './apis/connection';
 import { ShuttleRPC } from './apis/controllers';

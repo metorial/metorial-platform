@@ -1,4 +1,4 @@
-import { v } from '@lowerdeck/validation';
+import { v } from '@mtsrc/validation';
 import { EnrichedCargoSkillMarketplaceRepository } from '@metorial/module-file';
 
 export let skillRepositorySchema = v.object({

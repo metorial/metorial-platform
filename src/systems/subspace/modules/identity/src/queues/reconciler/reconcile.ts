@@ -1,5 +1,5 @@
-import { createLock } from '@lowerdeck/lock';
-import { createQueue, QueueRetryError } from '@lowerdeck/queue';
+import { createLock } from '@mtsrc/lock';
+import { createQueue, QueueRetryError } from '@mtsrc/queue';
 import {
   db,
   type DelegatedIdentity,

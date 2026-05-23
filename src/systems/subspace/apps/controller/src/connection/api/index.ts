@@ -1,4 +1,4 @@
-import { createHono } from '@lowerdeck/hono';
+import { createHono } from '@mtsrc/hono';
 import { mcpRouter } from './mcp';
 import { metorialIntegrationProtocolRouter } from './metorialIntegrationProtocol';
 

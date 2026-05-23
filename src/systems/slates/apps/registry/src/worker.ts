@@ -1,4 +1,4 @@
-import { runQueueProcessors } from '@lowerdeck/queue';
+import { runQueueProcessors } from '@mtsrc/queue';
 import { cleanupProcessor } from './queues/cleanup';
 import { expireTokensProcessor } from './queues/expiresTokens';
 import {

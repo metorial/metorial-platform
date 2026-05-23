@@ -5,7 +5,7 @@ import {
   PutRolePolicyCommand,
   UpdateAssumeRolePolicyCommand
 } from '@aws-sdk/client-iam';
-import { once } from '@lowerdeck/once';
+import { once } from '@mtsrc/once';
 import { env } from '../../env';
 
 let iam =

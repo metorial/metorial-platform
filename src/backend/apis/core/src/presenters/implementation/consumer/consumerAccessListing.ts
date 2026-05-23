@@ -1,4 +1,4 @@
-import { v } from '@lowerdeck/validation';
+import { v } from '@mtsrc/validation';
 import { Presenter } from '@metorial/presenter';
 import { consumerAccessListingType } from '../../types';
 import { v1MagicMcpServerPreview } from '../provider/magicMcp/magicMcpServerPreview';

@@ -14,12 +14,12 @@ import {
   notFoundError,
   preconditionFailedError,
   ServiceError
-} from '@lowerdeck/error';
+} from '@mtsrc/error';
 import { generatePlainId } from '@metorial/id';
 import { searchMagicMcpGroupIds } from '@metorial/module-search';
-import { Paginator } from '@lowerdeck/pagination';
-import { Service } from '@lowerdeck/service';
-import { slugify } from '@lowerdeck/slugify';
+import { Paginator } from '@mtsrc/pagination';
+import { Service } from '@mtsrc/service';
+import { slugify } from '@mtsrc/slugify';
 import {
   magicMcpGroupCreatedQueue,
   magicMcpGroupDeletedQueue,

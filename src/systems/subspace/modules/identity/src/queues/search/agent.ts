@@ -1,4 +1,4 @@
-import { createQueue, QueueRetryError } from '@lowerdeck/queue';
+import { createQueue, QueueRetryError } from '@mtsrc/queue';
 import { db } from '@metorial-subspace/db';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
 import { env } from '../../../../agent/src/env';

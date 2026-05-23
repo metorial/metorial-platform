@@ -5,11 +5,11 @@ vi.mock('@metorial/queue', () => ({
   combineQueueProcessors: vi.fn(processors => processors)
 }));
 
-vi.mock('@lowerdeck/delay', () => ({
+vi.mock('@mtsrc/delay', () => ({
   delay: vi.fn().mockResolvedValue(undefined)
 }));
 
-vi.mock('@lowerdeck/sentry', () => ({
+vi.mock('@mtsrc/sentry', () => ({
   getSentry: vi.fn(() => ({
     captureException: vi.fn()
   }))

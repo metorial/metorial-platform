@@ -1,12 +1,12 @@
-import { Cases } from '@lowerdeck/case';
+import { Cases } from '@mtsrc/case';
 import {
   badRequestError,
   internalServerError,
   isServiceError,
   ServiceError
-} from '@lowerdeck/error';
-import { generatePlainId } from '@lowerdeck/id';
-import { getSentry } from '@lowerdeck/sentry';
+} from '@mtsrc/error';
+import { generatePlainId } from '@mtsrc/id';
+import { getSentry } from '@mtsrc/sentry';
 import {
   checkResourceAccessManager,
   conduitResultToMcpMessage,

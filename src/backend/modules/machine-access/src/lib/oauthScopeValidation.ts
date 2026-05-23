@@ -1,4 +1,4 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, ServiceError } from '@mtsrc/error';
 import { coreScopes } from '../../../access/src/definitions';
 import { normalizeScopes } from './oauthAuthorizationScopes';
 

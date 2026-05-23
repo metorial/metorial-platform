@@ -1,5 +1,5 @@
-import { isServiceError } from '@lowerdeck/error';
-import { createQueue } from '@lowerdeck/queue';
+import { isServiceError } from '@mtsrc/error';
+import { createQueue } from '@mtsrc/queue';
 import type { ContainerRepositoryTag } from '../../../prisma/generated/client';
 import { db } from '../../db';
 import { env } from '../../env';

@@ -1,5 +1,5 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
-import { Service } from '@lowerdeck/service';
+import { badRequestError, ServiceError } from '@mtsrc/error';
+import { Service } from '@mtsrc/service';
 import type { Server, ServerRemoteProtocol, Tenant } from '../../prisma/generated/client';
 import { getId } from '../id';
 import { oauthConfigValidator, type OAuthConfiguration } from '../lib/oauth/types';

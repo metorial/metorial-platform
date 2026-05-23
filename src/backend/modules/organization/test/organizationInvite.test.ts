@@ -1,4 +1,4 @@
-import { ServiceError } from '@lowerdeck/error';
+import { ServiceError } from '@mtsrc/error';
 import { addDays } from 'date-fns';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -39,13 +39,13 @@ vi.mock('@metorial/fabric', () => ({
   }
 }));
 
-vi.mock('@lowerdeck/pagination', () => ({
+vi.mock('@mtsrc/pagination', () => ({
   Paginator: {
     create: vi.fn(fn => fn)
   }
 }));
 
-vi.mock('@lowerdeck/service', () => ({
+vi.mock('@mtsrc/service', () => ({
   Service: {
     create: vi.fn((name, factory) => ({
       build: () => factory()

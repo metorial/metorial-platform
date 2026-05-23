@@ -1,4 +1,4 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, ServiceError } from '@mtsrc/error';
 import type { ServerConnection } from '../../../prisma/generated/client';
 import { db } from '../../db';
 

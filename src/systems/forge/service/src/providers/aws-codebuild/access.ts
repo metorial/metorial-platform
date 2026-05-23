@@ -3,7 +3,7 @@ import {
   BatchGetProjectsCommand,
   ListBuildsForProjectCommand
 } from '@aws-sdk/client-codebuild';
-import { delay } from '@lowerdeck/delay';
+import { delay } from '@mtsrc/delay';
 import { env } from '../../env';
 import { codebuild, logsClient } from './codeBuild';
 import { ensureProject } from './project';

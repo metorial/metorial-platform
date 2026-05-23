@@ -1,5 +1,5 @@
-import { Paginator } from '@lowerdeck/pagination';
-import { v } from '@lowerdeck/validation';
+import { Paginator } from '@mtsrc/pagination';
+import { v } from '@mtsrc/validation';
 import { sessionUsageRecordService } from '@metorial-subspace/module-session';
 import { sessionUsageRecordPresenter } from '@metorial-subspace/presenters';
 import { app } from './_app';

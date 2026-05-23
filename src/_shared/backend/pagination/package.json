@@ -1,0 +1,21 @@
+{
+  "name": "@mtsrc/pagination",
+  "version": "1.0.0",
+  "private": true,
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "vitest run --passWithNoTests",
+    "lint": "prettier src/**/*.ts --check"
+  },
+  "dependencies": {
+    "@mtsrc/base62": "1.0.0",
+    "@mtsrc/error": "1.0.0",
+    "@mtsrc/validation": "1.0.0"
+  },
+  "devDependencies": {
+    "@metorial/tsconfig": "1.0.0",
+    "mongoose": "^9.0.2",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  }
+}

@@ -1,5 +1,5 @@
-import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
-import { Service } from '@lowerdeck/service';
+import { badRequestError, notFoundError, ServiceError } from '@mtsrc/error';
+import { Service } from '@mtsrc/service';
 import type { Prisma, SkillRepository } from '@metorial-cargo/db';
 import { db, getId } from '@metorial-cargo/db';
 import type { CargoTenantEnvironment } from '@metorial-cargo/module-file';

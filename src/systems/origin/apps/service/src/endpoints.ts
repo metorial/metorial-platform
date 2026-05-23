@@ -1,4 +1,4 @@
-import { withTracingSuppressed } from '@lowerdeck/telemetry';
+import { withTracingSuppressed } from '@mtsrc/telemetry';
 import { RedisClient } from 'bun';
 import { originApi } from './controllers';
 import { db } from './db';

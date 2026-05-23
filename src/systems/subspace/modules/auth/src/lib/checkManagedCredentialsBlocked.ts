@@ -1,4 +1,4 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, ServiceError } from '@mtsrc/error';
 import { db, type ProviderAuthConfig } from '@metorial-subspace/db';
 
 export let checkManagedCredentialsBlocked = async (authConfig: ProviderAuthConfig) => {

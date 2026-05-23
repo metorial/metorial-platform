@@ -1,4 +1,4 @@
-import { createServer, rpcMux, type InferClient } from '@lowerdeck/rpc-server';
+import { createServer, rpcMux, type InferClient } from '@mtsrc/rpc-server';
 import { app } from './_app';
 import { authController } from './auth';
 import { slateController } from './slate';

@@ -1,4 +1,4 @@
-import { getSentry } from '@lowerdeck/sentry';
+import { getSentry } from '@mtsrc/sentry';
 import { Fabric } from '@metorial/fabric';
 import { usageService } from '@metorial/module-usage';
 import { resolveConsumerActorIds } from '../lib/resolveConsumerActors';

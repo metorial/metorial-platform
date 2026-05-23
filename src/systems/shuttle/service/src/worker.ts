@@ -1,4 +1,4 @@
-import { runQueueProcessors } from '@lowerdeck/queue';
+import { runQueueProcessors } from '@mtsrc/queue';
 import { createChangeNotificationQueueProcessor } from './queues/changeNotification/create';
 import { expiresConnectionsCron } from './queues/connection/expire';
 import {

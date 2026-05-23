@@ -1,5 +1,5 @@
-import type { PaginatorInput } from '@lowerdeck/pagination';
-import { Service } from '@lowerdeck/service';
+import type { PaginatorInput } from '@mtsrc/pagination';
+import { Service } from '@mtsrc/service';
 import type { Tenant } from '@metorial-subspace/db';
 import { getTenantForOrigin, origin } from '../origin';
 

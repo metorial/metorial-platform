@@ -1,4 +1,4 @@
-import { createClient } from '@lowerdeck/rpc-client';
+import { createClient } from '@mtsrc/rpc-client';
 import type { CargoClient } from '../../../cargo/service/src/controllers';
 
 type RpcClientOpts = Parameters<typeof createClient>[0];

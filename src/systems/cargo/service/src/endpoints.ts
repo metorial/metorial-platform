@@ -1,5 +1,5 @@
-import { apiMux } from '@lowerdeck/api-mux';
-import { rpcMux } from '@lowerdeck/rpc-server';
+import { apiMux } from '@mtsrc/api-mux';
+import { rpcMux } from '@mtsrc/rpc-server';
 import { env } from '@metorial-cargo/db';
 import { documentLiveApi, websocket } from '@metorial-cargo/module-doc/live';
 import { cargoContentApi, cargoUploadApi } from '@metorial-cargo/module-file/http';

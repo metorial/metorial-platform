@@ -1,5 +1,5 @@
-import { forbiddenError, notFoundError, ServiceError } from '@lowerdeck/error';
-import { Service } from '@lowerdeck/service';
+import { forbiddenError, notFoundError, ServiceError } from '@mtsrc/error';
+import { Service } from '@mtsrc/service';
 import type { EntityImage, StoreParticipantPermissions } from '@metorial-cargo/db';
 import { db, env } from '@metorial-cargo/db';
 import type { CargoTenantEnvironment } from '@metorial-cargo/module-file';

@@ -1,4 +1,4 @@
-import { combineQueueProcessors } from '@lowerdeck/queue';
+import { combineQueueProcessors } from '@mtsrc/queue';
 import { propagateSkillDirtyQueueProcessor, skillLifecycleQueueProcessor } from './skill';
 import {
   propagateSkillConfigurationDirtyQueueProcessor,

@@ -1,4 +1,4 @@
-import { v } from '@lowerdeck/validation';
+import { v } from '@mtsrc/validation';
 import type { EntityImage } from '@metorial-subspace/db';
 import { brandService, tenantService } from '@metorial-subspace/module-tenant';
 import { brandPresenter } from '@metorial-subspace/presenters';

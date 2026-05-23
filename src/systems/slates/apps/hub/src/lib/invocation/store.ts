@@ -1,5 +1,5 @@
-import { delay } from '@lowerdeck/delay';
-import { getSentry } from '@lowerdeck/sentry';
+import { delay } from '@mtsrc/delay';
+import { getSentry } from '@mtsrc/sentry';
 import PQueue from 'p-queue';
 import type { SlateInvocation } from '../../../prisma/generated/client';
 import { db } from '../../db';

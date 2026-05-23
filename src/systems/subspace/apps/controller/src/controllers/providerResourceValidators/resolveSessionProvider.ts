@@ -1,4 +1,4 @@
-import type { ValidationTypeValue } from '@lowerdeck/validation';
+import type { ValidationTypeValue } from '@mtsrc/validation';
 import type { TenantSelector } from '@metorial-subspace/list-utils';
 import { resolveAuthConfig, type authConfigValidator } from './resolveAuthConfig';
 import { resolveConfig, type configValidator } from './resolveConfig';

@@ -1,5 +1,5 @@
-import { shadowId } from '@lowerdeck/shadow-id';
-import { v } from '@lowerdeck/validation';
+import { shadowId } from '@mtsrc/shadow-id';
+import { v } from '@mtsrc/validation';
 import { getConfig } from '@metorial/config';
 import { Presenter } from '@metorial/presenter';
 import { magicMcpServerType } from '../../../types';

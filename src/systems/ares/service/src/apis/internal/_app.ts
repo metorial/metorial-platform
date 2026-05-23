@@ -1,3 +1,3 @@
-import { Group } from '@lowerdeck/rpc-server';
+import { Group } from '@mtsrc/rpc-server';
 
 export let internalApp = new Group();

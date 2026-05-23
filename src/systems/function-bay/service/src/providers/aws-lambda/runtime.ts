@@ -3,8 +3,8 @@ import type {
   FunctionBayRuntimeConfig,
   FunctionBayRuntimeSpec
 } from '@function-bay/types';
-import { canonicalize } from '@lowerdeck/canonicalize';
-import { Hash } from '@lowerdeck/hash';
+import { canonicalize } from '@mtsrc/canonicalize';
+import { Hash } from '@mtsrc/hash';
 import type { Runtime } from '../../../prisma/generated/client';
 import { db } from '../../db';
 import type { ForgeWorkflowStep } from '../../forge';

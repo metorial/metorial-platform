@@ -1,4 +1,4 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { notFoundError, ServiceError } from '@mtsrc/error';
 import { db } from '@metorial/db';
 import type { ConsumerGroup, Instance } from '@metorial/db';
 import { hasInstanceConsumerAccess } from '../../../lib/cargoAccess';

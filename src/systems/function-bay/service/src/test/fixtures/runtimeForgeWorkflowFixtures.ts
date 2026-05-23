@@ -7,7 +7,7 @@ import type {
   Provider
 } from '../../../prisma/generated/client';
 import { snowflake } from '../../id';
-import { defineFactory } from '@lowerdeck/testing-tools';
+import { defineFactory } from '@mtsrc/testing-tools';
 import { RuntimeFixtures } from './runtimeFixtures';
 import { TenantFixtures } from './tenantFixtures';
 

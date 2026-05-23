@@ -1,4 +1,4 @@
-import { Service } from '@lowerdeck/service';
+import { Service } from '@mtsrc/service';
 import type { Instance } from '@metorial/db';
 import { getTenantForSubspace, subspace } from '../subspace';
 

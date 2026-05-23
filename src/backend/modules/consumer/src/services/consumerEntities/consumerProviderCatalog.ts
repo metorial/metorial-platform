@@ -1,6 +1,6 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
-import { Paginator, type PaginatorInput } from '@lowerdeck/pagination';
-import { Service } from '@lowerdeck/service';
+import { notFoundError, ServiceError } from '@mtsrc/error';
+import { Paginator, type PaginatorInput } from '@mtsrc/pagination';
+import { Service } from '@mtsrc/service';
 import {
   ConsumerAccessListing,
   ConsumerGroup,

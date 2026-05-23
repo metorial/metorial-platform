@@ -1,5 +1,5 @@
-import { createCron } from '@lowerdeck/cron';
-import { combineQueueProcessors, createQueue } from '@lowerdeck/queue';
+import { createCron } from '@mtsrc/cron';
+import { combineQueueProcessors, createQueue } from '@mtsrc/queue';
 import { offload } from '@metorial-subspace/connection-utils';
 import { db } from '@metorial-subspace/db';
 import { subDays } from 'date-fns';

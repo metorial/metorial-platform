@@ -1,4 +1,4 @@
-import { ProgrammablePromise } from '@lowerdeck/programmable-promise';
+import { ProgrammablePromise } from '@mtsrc/programmable-promise';
 import { type JSONRPCMessage } from '@modelcontextprotocol/sdk/types.js';
 import type { ConnectionMessage } from '../utils/messenger';
 import type { McpConnectionAdapter } from './adapter';

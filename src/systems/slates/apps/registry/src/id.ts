@@ -1,5 +1,5 @@
-import { createIdGenerator, idType } from '@lowerdeck/id';
-import { Snowflake } from '@lowerdeck/snowflake';
+import { createIdGenerator, idType } from '@mtsrc/id';
+import { Snowflake } from '@mtsrc/snowflake';
 
 export let ID = createIdGenerator({
   tenant: idType.sorted('srtn'),

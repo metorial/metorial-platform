@@ -1,4 +1,4 @@
-import { Service } from '@lowerdeck/service';
+import { Service } from '@mtsrc/service';
 import { getConfig } from '@metorial/config';
 import { oauthJwkGlobalRepository } from '@metorial/multi-region';
 import type { JsonWebKeyInput } from 'node:crypto';

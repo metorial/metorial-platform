@@ -1,4 +1,4 @@
-import { runQueueProcessors } from '@lowerdeck/queue';
+import { runQueueProcessors } from '@mtsrc/queue';
 import { generateAssistantConversationTitleQueueProcessor } from './queues/generateConversationTitle';
 import { processAssistantRequestQueueProcessor } from './queues/processRequest';
 

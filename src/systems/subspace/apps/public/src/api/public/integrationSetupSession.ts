@@ -1,5 +1,5 @@
-import { badRequestError, internalServerError, isServiceError } from '@lowerdeck/error';
-import { createHono, useRequestContext } from '@lowerdeck/hono';
+import { badRequestError, internalServerError, isServiceError } from '@mtsrc/error';
+import { createHono, useRequestContext } from '@mtsrc/hono';
 import { integrationSetupSessionService } from '@metorial-subspace/module-integration';
 import { providerSetupSessionPresenter } from '@metorial-subspace/presenters';
 import { getFullIntegrationSetupSession } from '../internal/integrationSetupSession';

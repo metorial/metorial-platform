@@ -1,5 +1,5 @@
 import { Presenter } from '@metorial/presenter';
-import { v } from '@lowerdeck/validation';
+import { v } from '@mtsrc/validation';
 import { consumerSessionType } from '../../types';
 
 export let v1ConsumerSessionPresenter = Presenter.create(consumerSessionType)

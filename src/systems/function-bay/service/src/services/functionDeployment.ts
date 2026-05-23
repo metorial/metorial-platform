@@ -1,8 +1,8 @@
 import type { FunctionBayRuntimeSpec } from '@function-bay/types';
-import { notFoundError, ServiceError } from '@lowerdeck/error';
-import { generatePlainId } from '@lowerdeck/id';
-import { Paginator } from '@lowerdeck/pagination';
-import { Service } from '@lowerdeck/service';
+import { notFoundError, ServiceError } from '@mtsrc/error';
+import { generatePlainId } from '@mtsrc/id';
+import { Paginator } from '@mtsrc/pagination';
+import { Service } from '@mtsrc/service';
 import type { Function, FunctionDeployment, Tenant } from '../../prisma/generated/client';
 import { db } from '../db';
 import { encryption } from '../encryption';

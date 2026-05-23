@@ -1,5 +1,5 @@
-import { Paginator } from '@lowerdeck/pagination';
-import { v } from '@lowerdeck/validation';
+import { Paginator } from '@mtsrc/pagination';
+import { v } from '@mtsrc/validation';
 import { identityActorService, identityService } from '@metorial-subspace/module-identity';
 import { identityPresenter } from '@metorial-subspace/presenters';
 import { app } from './_app';

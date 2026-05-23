@@ -1,4 +1,4 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, ServiceError } from '@mtsrc/error';
 import { getConsumerAccessContextForConsumerProfile } from '@metorial/consumer-auth';
 import { accessService } from '@metorial/module-access';
 import { consumerProfileService } from '@metorial/module-consumer';

@@ -1,5 +1,5 @@
-import { internalServerError, isServiceError } from '@lowerdeck/error';
-import { createHono } from '@lowerdeck/hono';
+import { internalServerError, isServiceError } from '@mtsrc/error';
+import { createHono } from '@mtsrc/hono';
 import { streamSSE } from 'hono/streaming';
 import { assistantRequestService } from './services';
 

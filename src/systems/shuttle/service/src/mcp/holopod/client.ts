@@ -1,4 +1,4 @@
-import { delay } from '@lowerdeck/delay';
+import { delay } from '@mtsrc/delay';
 import axios from 'axios';
 import { EventEmitter } from 'events';
 import * as https from 'https';

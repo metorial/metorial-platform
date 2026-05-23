@@ -15,6 +15,7 @@
     "resolveJsonModule": true
   },
   "exclude": [
+    "src/test/**/*",
     "vitest.config.ts",
     "vitest.*.config.ts",
     "**/*.test.ts",

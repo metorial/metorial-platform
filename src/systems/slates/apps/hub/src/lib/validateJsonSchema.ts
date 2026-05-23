@@ -1,5 +1,5 @@
-import { ServiceError, validationError } from '@lowerdeck/error';
-import { getSentry } from '@lowerdeck/sentry';
+import { ServiceError, validationError } from '@mtsrc/error';
+import { getSentry } from '@mtsrc/sentry';
 import z from 'zod';
 
 let Sentry = getSentry();

@@ -1,5 +1,5 @@
-import { createCron } from '@lowerdeck/cron';
-import { combineQueueProcessors, createQueue } from '@lowerdeck/queue';
+import { createCron } from '@mtsrc/cron';
+import { combineQueueProcessors, createQueue } from '@mtsrc/queue';
 import { db, getId } from '@metorial-subspace/db';
 import { subMinutes } from 'date-fns';
 import { env } from '../../env';

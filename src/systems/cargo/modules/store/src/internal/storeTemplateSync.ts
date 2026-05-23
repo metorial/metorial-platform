@@ -1,7 +1,7 @@
-import { canonicalize } from '@lowerdeck/canonicalize';
-import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
-import { Hash } from '@lowerdeck/hash';
-import { Service } from '@lowerdeck/service';
+import { canonicalize } from '@mtsrc/canonicalize';
+import { badRequestError, notFoundError, ServiceError } from '@mtsrc/error';
+import { Hash } from '@mtsrc/hash';
+import { Service } from '@mtsrc/service';
 import type { Prisma, Store, StoreItemKind, StoreTemplateItem } from '@metorial-cargo/db';
 import { db, getId, withTransaction } from '@metorial-cargo/db';
 import { documentInclude, documentService } from '@metorial-cargo/module-doc';

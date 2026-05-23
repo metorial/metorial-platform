@@ -1,4 +1,4 @@
-import { createQueue } from '@lowerdeck/queue';
+import { createQueue } from '@mtsrc/queue';
 import { db, getId, withTransaction } from '@metorial-subspace/db';
 import { buildIntegrationProviderToolFilterChain } from '@metorial-subspace/module-provider-internal';
 import { env } from '../../env';

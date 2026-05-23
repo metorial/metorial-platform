@@ -1,4 +1,4 @@
-import { v } from '@lowerdeck/validation';
+import { v } from '@mtsrc/validation';
 import { integrationSetupSessionService } from '@metorial-subspace/module-integration';
 import { brandService } from '@metorial-subspace/module-tenant';
 import { integrationSetupSessionPresenter } from '@metorial-subspace/presenters';

@@ -1,4 +1,4 @@
-import { createClient } from '@lowerdeck/rpc-client';
+import { createClient } from '@mtsrc/rpc-client';
 import type { AuthClient } from '../../../../src/apis/auth/controllers';
 
 export let authClient = createClient<AuthClient>({

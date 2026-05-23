@@ -1,6 +1,6 @@
-import { Hash } from '@lowerdeck/hash';
-import { Snowflake } from '@lowerdeck/snowflake';
-import { ServiceError, badRequestError } from '@lowerdeck/error';
+import { Hash } from '@mtsrc/hash';
+import { Snowflake } from '@mtsrc/snowflake';
+import { ServiceError, badRequestError } from '@mtsrc/error';
 import { customAlphabet } from 'nanoid';
 import short from 'short-uuid';
 

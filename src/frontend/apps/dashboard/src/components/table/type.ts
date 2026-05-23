@@ -1,4 +1,4 @@
-import { ServiceError } from '@lowerdeck/error';
+import { ServiceError } from '@mtsrc/error';
 import { FilterPayload } from './filter';
 
 export type TableColumn<Item extends { id: string }, Input extends {}> = {

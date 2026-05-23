@@ -1,0 +1,24 @@
+{
+  "name": "@mtsrc/rpc-client",
+  "version": "1.0.0",
+  "private": true,
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "vitest run --passWithNoTests",
+    "lint": "prettier src/**/*.ts --check"
+  },
+  "dependencies": {
+    "@opentelemetry/api": "^1.9.0",
+    "@mtsrc/canonicalize": "1.0.0",
+    "@mtsrc/error": "1.0.0",
+    "@mtsrc/id": "1.0.0",
+    "@mtsrc/memo": "1.0.0",
+    "@mtsrc/proxy": "1.0.0",
+    "@mtsrc/serialize": "1.0.0"
+  },
+  "devDependencies": {
+    "@metorial/tsconfig": "1.0.0",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  }
+}

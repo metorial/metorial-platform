@@ -1,5 +1,5 @@
-import { createCron } from '@lowerdeck/cron';
-import { createQueue } from '@lowerdeck/queue';
+import { createCron } from '@mtsrc/cron';
+import { createQueue } from '@mtsrc/queue';
 import { sessionMessageBucketRecord, storage } from '@metorial-subspace/connection-utils';
 import { db, withTransaction } from '@metorial-subspace/db';
 import { env } from '../../env';

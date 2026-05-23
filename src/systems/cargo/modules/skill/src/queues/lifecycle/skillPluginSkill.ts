@@ -1,4 +1,4 @@
-import { createQueue } from '@lowerdeck/queue';
+import { createQueue } from '@mtsrc/queue';
 import { addAfterTransactionHook, db, env } from '@metorial-cargo/db';
 import { indexSkillPluginQueue } from '../search/skillPlugin';
 import { getLifecycleJobId, getPropagationJobOpts, type LifecycleEvent } from './_ids';

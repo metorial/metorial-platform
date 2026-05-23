@@ -1,4 +1,4 @@
-import { createQueue, QueueRetryError } from '@lowerdeck/queue';
+import { createQueue, QueueRetryError } from '@mtsrc/queue';
 import { db } from '@metorial-subspace/db';
 import { identityInternalService } from '@metorial-subspace/module-identity';
 import { enqueueSyncIntegrationInstanceGroupSessionTemplatesMany } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedIntegrationInstanceGroupTemplate';

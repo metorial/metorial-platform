@@ -1,5 +1,5 @@
-import { delay } from '@lowerdeck/delay';
-import { Service } from '@lowerdeck/service';
+import { delay } from '@mtsrc/delay';
+import { Service } from '@mtsrc/service';
 import { generateCustomId } from '@metorial/id';
 import { oauthJwkGlobalRepository } from '@metorial/multi-region';
 import { addDays } from 'date-fns';

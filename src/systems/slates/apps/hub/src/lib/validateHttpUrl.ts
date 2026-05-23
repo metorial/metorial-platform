@@ -1,4 +1,4 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, ServiceError } from '@mtsrc/error';
 
 export const assertPublicHttpUrl = async (rawUrl: string) => {
   let parsed: URL;

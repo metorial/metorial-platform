@@ -1,4 +1,4 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { notFoundError, ServiceError } from '@mtsrc/error';
 import { instanceService } from '@metorial/module-organization';
 import { Controller, Path } from '@metorial/rest';
 import { apiGroup } from '../../middleware/apiGroup';

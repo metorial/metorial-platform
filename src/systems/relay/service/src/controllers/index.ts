@@ -1,5 +1,5 @@
-import { apiMux } from '@lowerdeck/api-mux';
-import { createServer, rpcMux, type InferClient } from '@lowerdeck/rpc-server';
+import { apiMux } from '@mtsrc/api-mux';
+import { createServer, rpcMux, type InferClient } from '@mtsrc/rpc-server';
 import { app } from './_app';
 import { emailController } from './email';
 import { emailIdentityController } from './emailIdentity';

@@ -1,4 +1,4 @@
-import { combineQueueProcessors } from '@lowerdeck/queue';
+import { combineQueueProcessors } from '@mtsrc/queue';
 import { slates } from './client';
 import { registryQueues } from './queues/registry';
 import { syncQueues } from './queues/sync';

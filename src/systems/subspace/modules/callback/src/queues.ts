@@ -1,4 +1,4 @@
-import { combineQueueProcessors } from '@lowerdeck/queue';
+import { combineQueueProcessors } from '@mtsrc/queue';
 import { deleteQueues } from './queues/delete';
 import { reconcilerQueueProcessor } from './reconciler';
 

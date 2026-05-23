@@ -1,5 +1,5 @@
-import { Paginator } from '@lowerdeck/pagination';
-import { Service } from '@lowerdeck/service';
+import { Paginator } from '@mtsrc/pagination';
+import { Service } from '@mtsrc/service';
 import { db, type Solution, type Tenant } from '@metorial-subspace/db';
 import { mergeRetentionWithDateFilter } from '@metorial-subspace/list-utils';
 

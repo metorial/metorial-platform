@@ -1,4 +1,4 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, ServiceError } from '@mtsrc/error';
 
 let domainLabelPattern = '[a-z0-9](?:[a-z0-9-]*[a-z0-9])?';
 let domainPattern = new RegExp(`^${domainLabelPattern}(?:\\.${domainLabelPattern})*$`);

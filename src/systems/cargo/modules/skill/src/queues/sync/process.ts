@@ -1,4 +1,4 @@
-import { createQueue } from '@lowerdeck/queue';
+import { createQueue } from '@mtsrc/queue';
 import { db, env, snowflake } from '@metorial-cargo/db';
 import { createCodeBucketClient } from '@metorial/code-bucket-service-generated';
 import path from 'path';

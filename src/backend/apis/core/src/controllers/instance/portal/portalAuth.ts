@@ -1,6 +1,6 @@
-import { badRequestError, preconditionFailedError, ServiceError } from '@lowerdeck/error';
-import { Paginator } from '@lowerdeck/pagination';
-import { v } from '@lowerdeck/validation';
+import { badRequestError, preconditionFailedError, ServiceError } from '@mtsrc/error';
+import { Paginator } from '@mtsrc/pagination';
+import { v } from '@mtsrc/validation';
 import { getConfig } from '@metorial/config';
 import { consumerAresService, consumerSurfaceService } from '@metorial/module-consumer';
 import { Controller } from '@metorial/rest';

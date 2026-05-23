@@ -1,4 +1,4 @@
-import { delay } from '@lowerdeck/delay';
+import { delay } from '@mtsrc/delay';
 import {
   DashboardInstanceProviderDeploymentsSetupSessionsCreateBody,
   DashboardInstanceProviderDeploymentsSetupSessionsGetOutput

@@ -1,5 +1,5 @@
-import { generatePlainId } from '@lowerdeck/id';
-import { slugify } from '@lowerdeck/slugify';
+import { generatePlainId } from '@mtsrc/id';
+import { slugify } from '@mtsrc/slugify';
 import { db } from './db';
 import { env } from './env';
 import { getId } from './id';

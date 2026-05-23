@@ -1,4 +1,4 @@
-import { ServiceError } from '@lowerdeck/error';
+import { ServiceError } from '@mtsrc/error';
 
 export let useStack = (
   ..._loaders: (

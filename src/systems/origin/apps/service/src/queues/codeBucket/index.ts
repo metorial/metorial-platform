@@ -1,4 +1,4 @@
-import { combineQueueProcessors } from '@lowerdeck/queue';
+import { combineQueueProcessors } from '@mtsrc/queue';
 import { cloneBucketQueueProcessor } from './cloneBucket';
 import { copyFromToBucketQueueProcessor } from './copyFromToBucket';
 import { exportGithubQueueProcessor } from './exportGithub';

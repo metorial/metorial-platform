@@ -1,4 +1,4 @@
-import { combineQueueProcessors } from '@lowerdeck/queue';
+import { combineQueueProcessors } from '@mtsrc/queue';
 import { cleanupCron } from './cron/cleanup';
 import { deploymentConfigPairQueues } from './queues/deploymentConfigPair';
 import { lifecycleQueues } from './queues/lifecycle';

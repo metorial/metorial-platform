@@ -1,7 +1,7 @@
-import { delay } from '@lowerdeck/delay';
-import { badRequestError, ServiceError } from '@lowerdeck/error';
-import { generatePlainId } from '@lowerdeck/id';
-import { Service } from '@lowerdeck/service';
+import { delay } from '@mtsrc/delay';
+import { badRequestError, ServiceError } from '@mtsrc/error';
+import { generatePlainId } from '@mtsrc/id';
+import { Service } from '@mtsrc/service';
 import { subMinutes } from 'date-fns';
 import type {
   RemoteOAuthConfig,

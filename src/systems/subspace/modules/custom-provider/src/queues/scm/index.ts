@@ -1,4 +1,4 @@
-import { combineQueueProcessors } from '@lowerdeck/queue';
+import { combineQueueProcessors } from '@mtsrc/queue';
 import { scmSyncManyCron } from './cron';
 import { handlePushQueueProcessor, processProviderPushQueueProcessor } from './handlePush';
 import { scmSyncManyQueueProcessor } from './sync';

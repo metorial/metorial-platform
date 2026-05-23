@@ -1,5 +1,5 @@
-import { generatePlainId } from '@lowerdeck/id';
-import { getSentry } from '@lowerdeck/sentry';
+import { generatePlainId } from '@mtsrc/id';
+import { getSentry } from '@mtsrc/sentry';
 import type { SessionConnectionMcpConnectionTransport } from '@metorial-subspace/db';
 import { interleave } from '@metorial-subspace/generator';
 import type { JSONRPCMessage } from '@modelcontextprotocol/sdk/types.js';

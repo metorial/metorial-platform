@@ -4,11 +4,11 @@ import type { UsageRecord } from '../src/db';
 // Mock dependencies
 import { vi } from 'vitest';
 
-vi.mock('@lowerdeck/delay', () => ({
+vi.mock('@mtsrc/delay', () => ({
   delay: vi.fn().mockResolvedValue(undefined)
 }));
 
-vi.mock('@lowerdeck/sentry', () => ({
+vi.mock('@mtsrc/sentry', () => ({
   getSentry: vi.fn(() => ({
     captureException: vi.fn()
   }))

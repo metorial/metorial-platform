@@ -1,6 +1,6 @@
-import { createClient } from '@lowerdeck/rpc-client';
-import { createServer, type InferClient, rpcMux } from '@lowerdeck/rpc-server';
-import { createFetchRouter } from '@lowerdeck/testing-tools';
+import { createClient } from '@mtsrc/rpc-client';
+import { createServer, type InferClient, rpcMux } from '@mtsrc/rpc-server';
+import { createFetchRouter } from '@mtsrc/testing-tools';
 import { appWithoutSolution } from '../controllers/_app';
 import { type SubspaceControllerRoot, subspaceControllerRPC } from '../controllers';
 import { solutionController } from '../controllers/solution';

@@ -1,5 +1,5 @@
 import { randomBytes } from 'crypto';
-import { defineFactory } from '@lowerdeck/testing-tools';
+import { defineFactory } from '@mtsrc/testing-tools';
 import { get4ByteIntId, getId, type PrismaClient, type Solution } from '@metorial-subspace/db';
 
 export const SolutionFixtures = (db: PrismaClient) => {

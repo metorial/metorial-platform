@@ -1,0 +1,24 @@
+{
+  "name": "@mtsrc/redis",
+  "version": "1.0.0",
+  "private": true,
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "vitest run --passWithNoTests",
+    "lint": "prettier src/**/*.ts --check"
+  },
+  "dependencies": {
+    "@mtsrc/memo": "1.0.0",
+    "@mtsrc/id": "1.0.0",
+    "@mtsrc/serialize": "1.0.0",
+    "@mtsrc/random-number": "1.0.0",
+    "ioredis": "^5.8.2",
+    "p-queue": "^9.0.1",
+    "redis": "^5.10.0"
+  },
+  "devDependencies": {
+    "@metorial/tsconfig": "1.0.0",
+    "typescript": "5.8.2",
+    "vitest": "^3.1.2"
+  }
+}

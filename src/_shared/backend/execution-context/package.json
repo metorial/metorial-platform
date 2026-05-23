@@ -1,0 +1,20 @@
+{
+  "name": "@mtsrc/execution-context",
+  "version": "1.0.0",
+  "private": true,
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "vitest run --passWithNoTests",
+    "lint": "prettier src/**/*.ts --check"
+  },
+  "dependencies": {
+    "@opentelemetry/api": "^1.9.0",
+    "@mtsrc/id": "1.0.0",
+    "@mtsrc/sentry": "1.0.0"
+  },
+  "devDependencies": {
+    "@metorial/tsconfig": "1.0.0",
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.2"
+  }
+}

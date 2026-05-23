@@ -1,4 +1,4 @@
-import { runQueueProcessors } from '@lowerdeck/queue';
+import { runQueueProcessors } from '@mtsrc/queue';
 import { buildProviderProcessors } from './providers';
 import { buildQueueProcessors } from './providers/_lib/queues';
 import { deleteWorkflowProcessors } from './queues/deleteWorkflow';

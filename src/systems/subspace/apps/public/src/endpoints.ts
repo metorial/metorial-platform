@@ -1,7 +1,7 @@
-import { apiMux } from '@lowerdeck/api-mux';
-import { rpcMux } from '@lowerdeck/rpc-server';
-import { getSentry } from '@lowerdeck/sentry';
-import { withTracingSuppressed } from '@lowerdeck/telemetry';
+import { apiMux } from '@mtsrc/api-mux';
+import { rpcMux } from '@mtsrc/rpc-server';
+import { getSentry } from '@mtsrc/sentry';
+import { withTracingSuppressed } from '@mtsrc/telemetry';
 import { db } from '@metorial-subspace/db';
 import { RedisClient } from 'bun';
 import { subspaceFrontendRPC } from './api/internal';

@@ -1,4 +1,4 @@
-import { isServiceError } from '@lowerdeck/error';
+import { isServiceError } from '@mtsrc/error';
 import { createLoader } from '@metorial-io/data-hooks';
 import { adminClient } from './client';
 

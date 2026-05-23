@@ -1,6 +1,6 @@
-import { createClient } from '@lowerdeck/rpc-client';
-import { rpcMux } from '@lowerdeck/rpc-server';
-import { createFetchRouter } from '@lowerdeck/testing-tools';
+import { createClient } from '@mtsrc/rpc-client';
+import { rpcMux } from '@mtsrc/rpc-server';
+import { createFetchRouter } from '@mtsrc/testing-tools';
 import { OriginRPC, type OriginClient } from '../controllers';
 
 type ClientOptsLike = Parameters<typeof createClient>[0];

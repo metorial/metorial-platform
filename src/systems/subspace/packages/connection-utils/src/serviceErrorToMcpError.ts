@@ -1,4 +1,4 @@
-import type { ServiceError } from '@lowerdeck/error';
+import type { ServiceError } from '@mtsrc/error';
 import type { JSONRPCErrorResponse } from '@modelcontextprotocol/sdk/types.js';
 
 export let serviceErrorToMcpError = ({ data: error }: ServiceError<any>) => {

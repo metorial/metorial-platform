@@ -1,4 +1,4 @@
-import { v } from '@lowerdeck/validation';
+import { v } from '@mtsrc/validation';
 import { getPortalAllowedRedirectUrlFilters } from '@metorial/module-consumer';
 import { Presenter } from '@metorial/presenter';
 import { portalType } from '../../types';

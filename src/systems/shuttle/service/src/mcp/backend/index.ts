@@ -1,4 +1,4 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, ServiceError } from '@mtsrc/error';
 import type { JSONRPCMessage } from '@modelcontextprotocol/sdk/types.js';
 import type { ServerConnection } from '../../../prisma/generated/browser';
 import { db } from '../../db';

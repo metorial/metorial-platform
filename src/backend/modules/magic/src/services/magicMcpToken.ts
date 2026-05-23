@@ -3,9 +3,9 @@ import {
   preconditionFailedError,
   ServiceError,
   unauthorizedError
-} from '@lowerdeck/error';
-import { Paginator } from '@lowerdeck/pagination';
-import { Service } from '@lowerdeck/service';
+} from '@mtsrc/error';
+import { Paginator } from '@mtsrc/pagination';
+import { Service } from '@mtsrc/service';
 import { UnifiedApiKey } from '@metorial/api-keys';
 import { getConfig } from '@metorial/config';
 import {

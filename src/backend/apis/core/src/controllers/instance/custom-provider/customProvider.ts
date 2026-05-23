@@ -1,6 +1,6 @@
-import { badRequestError, paymentRequiredError, ServiceError } from '@lowerdeck/error';
-import { Paginator } from '@lowerdeck/pagination';
-import { v, ValidationTypeValue } from '@lowerdeck/validation';
+import { badRequestError, paymentRequiredError, ServiceError } from '@mtsrc/error';
+import { Paginator } from '@mtsrc/pagination';
+import { v, ValidationTypeValue } from '@mtsrc/validation';
 import { flagService } from '@metorial/module-flags';
 import { subspaceCustomProviderService } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';

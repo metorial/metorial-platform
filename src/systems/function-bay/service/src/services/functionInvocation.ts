@@ -1,8 +1,8 @@
-import { createLocallyCachedFunction } from '@lowerdeck/cache';
-import { notFoundError, preconditionFailedError, ServiceError } from '@lowerdeck/error';
-import { Paginator } from '@lowerdeck/pagination';
-import { getSentry } from '@lowerdeck/sentry';
-import { Service } from '@lowerdeck/service';
+import { createLocallyCachedFunction } from '@mtsrc/cache';
+import { notFoundError, preconditionFailedError, ServiceError } from '@mtsrc/error';
+import { Paginator } from '@mtsrc/pagination';
+import { getSentry } from '@mtsrc/sentry';
+import { Service } from '@mtsrc/service';
 import type { Function } from '../../prisma/generated/client';
 import { db } from '../db';
 import { ID, snowflake } from '../id';

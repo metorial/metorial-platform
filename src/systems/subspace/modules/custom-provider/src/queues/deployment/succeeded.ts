@@ -1,4 +1,4 @@
-import { createQueue, QueueRetryError } from '@lowerdeck/queue';
+import { createQueue, QueueRetryError } from '@mtsrc/queue';
 import { addAfterTransactionHook, db, withTransaction } from '@metorial-subspace/db';
 import { getTenantForShuttle, shuttle } from '@metorial-subspace/provider-shuttle/src/client';
 import { upsertShuttleServerVersion } from '@metorial-subspace/provider-shuttle/src/lib/upsertShuttleVersion';

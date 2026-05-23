@@ -1,6 +1,6 @@
 import { randomBytes } from 'crypto';
 import type { PrismaClient, Sender } from '../../../prisma/generated/client';
-import { defineFactory } from '@lowerdeck/testing-tools';
+import { defineFactory } from '@mtsrc/testing-tools';
 import { getId } from '../../id';
 
 export const SenderFixtures = (db: PrismaClient) => {

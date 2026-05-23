@@ -1,4 +1,4 @@
-import { createError, ServiceError } from '@lowerdeck/error';
+import { createError, ServiceError } from '@mtsrc/error';
 import { describe, expect, it, vi } from 'vitest';
 import { withShuttleRetry } from './shuttleRetry';
 

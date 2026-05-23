@@ -3,9 +3,9 @@ import {
   notFoundError,
   ServiceError,
   unauthorizedError
-} from '@lowerdeck/error';
-import { Paginator } from '@lowerdeck/pagination';
-import { Service } from '@lowerdeck/service';
+} from '@mtsrc/error';
+import { Paginator } from '@mtsrc/pagination';
+import { Service } from '@mtsrc/service';
 import type { User, UserToken } from '../../prisma/generated/client';
 import { db } from '../db';
 import { env } from '../env';

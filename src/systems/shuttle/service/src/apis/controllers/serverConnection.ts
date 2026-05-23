@@ -1,6 +1,6 @@
-import { ServiceError, validationError } from '@lowerdeck/error';
-import { Paginator } from '@lowerdeck/pagination';
-import { v } from '@lowerdeck/validation';
+import { ServiceError, validationError } from '@mtsrc/error';
+import { Paginator } from '@mtsrc/pagination';
+import { v } from '@mtsrc/validation';
 import { InitializeRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { serverConnectionPresenter } from '../../presenters';
 import {

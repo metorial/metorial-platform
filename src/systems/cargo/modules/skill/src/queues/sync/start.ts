@@ -1,4 +1,4 @@
-import { createQueue, QueueRetryError } from '@lowerdeck/queue';
+import { createQueue, QueueRetryError } from '@mtsrc/queue';
 import { db, env } from '@metorial-cargo/db';
 import { appendSkillDestinationSyncLog } from './_lib/logs';
 import { syncCollectQueue } from './collect';

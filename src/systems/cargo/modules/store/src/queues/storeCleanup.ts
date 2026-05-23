@@ -1,4 +1,4 @@
-import { combineQueueProcessors, createQueue } from '@lowerdeck/queue';
+import { combineQueueProcessors, createQueue } from '@mtsrc/queue';
 import { env } from '@metorial-cargo/db';
 import { fileReferenceService } from '@metorial-cargo/module-file';
 

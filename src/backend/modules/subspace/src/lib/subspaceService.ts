@@ -1,4 +1,4 @@
-import { Service } from '@lowerdeck/service';
+import { Service } from '@mtsrc/service';
 import { Consumer, type Instance, type OrganizationActor } from '@metorial/db';
 import type { ProviderEventBase } from '@metorial/fabric';
 import { ensureSubspaceConsumerActor } from '@metorial/internal-clients';

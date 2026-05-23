@@ -1,7 +1,7 @@
-import { canonicalize } from '@lowerdeck/canonicalize';
-import { Hash } from '@lowerdeck/hash';
-import { createLock } from '@lowerdeck/lock';
-import { createQueue, QueueRetryError } from '@lowerdeck/queue';
+import { canonicalize } from '@mtsrc/canonicalize';
+import { Hash } from '@mtsrc/hash';
+import { createLock } from '@mtsrc/lock';
+import { createQueue, QueueRetryError } from '@mtsrc/queue';
 import { db, getId } from '@metorial-subspace/db';
 import { createProviderInvocationId } from '@metorial-subspace/provider-utils';
 import { backend as shuttleBackend } from '../../backend';

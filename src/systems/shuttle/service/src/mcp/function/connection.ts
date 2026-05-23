@@ -1,5 +1,5 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
-import { ProgrammablePromise } from '@lowerdeck/programmable-promise';
+import { badRequestError, ServiceError } from '@mtsrc/error';
+import { ProgrammablePromise } from '@mtsrc/programmable-promise';
 import type { JSONRPCMessage } from '@modelcontextprotocol/sdk/types.js';
 import PQueue from 'p-queue';
 import type { ServerVersion, Tenant } from '../../../prisma/generated/browser';

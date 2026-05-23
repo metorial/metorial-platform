@@ -1,4 +1,4 @@
-import { combineQueueProcessors } from '@lowerdeck/queue';
+import { combineQueueProcessors } from '@mtsrc/queue';
 import { documentCleanupProcessors } from './documentCleanup';
 import { documentDraftVersionFlushProcessors } from './documentDraftVersionFlush';
 import { documentFlushProcessors } from './documentFlush';

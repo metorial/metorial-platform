@@ -1,4 +1,4 @@
-import { ServiceError, unauthorizedError } from '@lowerdeck/error';
+import { ServiceError, unauthorizedError } from '@mtsrc/error';
 import type { Context } from 'hono';
 import { env } from '../../env';
 import { readerTokenService, subRegistryService, userTokenService } from '../../services';

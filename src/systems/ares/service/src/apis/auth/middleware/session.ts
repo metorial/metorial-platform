@@ -1,4 +1,4 @@
-import { ServiceError, unauthorizedError } from '@lowerdeck/error';
+import { ServiceError, unauthorizedError } from '@mtsrc/error';
 import { sessionService } from '../../../services/session';
 import { publicApp } from '../_app';
 import { extractDeviceInfo, SESSION_ID_COOKIE_NAME, setSessionCookie } from './device';

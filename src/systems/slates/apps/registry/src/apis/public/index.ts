@@ -1,4 +1,4 @@
-import { createHono } from '@lowerdeck/hono';
+import { createHono } from '@mtsrc/hono';
 import { changeNotificationsController } from './changeNotification';
 import { infoController } from './info';
 import { scopesController } from './scope';

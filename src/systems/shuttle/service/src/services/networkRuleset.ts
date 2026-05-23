@@ -1,7 +1,7 @@
-import { createLocallyCachedFunction } from '@lowerdeck/cache';
-import { badRequestError, goneError, notFoundError, ServiceError } from '@lowerdeck/error';
-import { Paginator } from '@lowerdeck/pagination';
-import { Service } from '@lowerdeck/service';
+import { createLocallyCachedFunction } from '@mtsrc/cache';
+import { badRequestError, goneError, notFoundError, ServiceError } from '@mtsrc/error';
+import { Paginator } from '@mtsrc/pagination';
+import { Service } from '@mtsrc/service';
 import { isValidCIDR } from 'ipaddr.js';
 import type {
   NetworkingRuleset,

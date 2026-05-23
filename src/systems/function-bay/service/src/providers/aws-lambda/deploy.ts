@@ -4,7 +4,7 @@ import {
   GetFunctionCommand
 } from '@aws-sdk/client-lambda';
 import type { FunctionBayRuntimeConfig } from '@function-bay/types';
-import { delay } from '@lowerdeck/delay';
+import { delay } from '@mtsrc/delay';
 import { mkdir, readFile, rm, stat, writeFile } from 'fs/promises';
 import JSZip from 'jszip';
 import { tmpdir } from 'os';

@@ -1,4 +1,4 @@
-import { proxy } from '@lowerdeck/proxy';
+import { proxy } from '@mtsrc/proxy';
 import { Requester } from './requester';
 
 export interface ClientOpts {

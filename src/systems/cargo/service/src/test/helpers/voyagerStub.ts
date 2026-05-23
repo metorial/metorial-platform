@@ -1,5 +1,5 @@
-import { createFetchRouter } from '@lowerdeck/testing-tools';
-import { serialize } from '@lowerdeck/serialize';
+import { createFetchRouter } from '@mtsrc/testing-tools';
+import { serialize } from '@mtsrc/serialize';
 
 type StubState = { counter: number };
 type RpcCall = { id: string; name: string; payload: any };

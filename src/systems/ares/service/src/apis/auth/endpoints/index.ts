@@ -1,4 +1,4 @@
-import { createHono } from '@lowerdeck/hono';
+import { createHono } from '@mtsrc/hono';
 import { authHooksApp } from './hooks';
 import { publicApp } from './public';
 

@@ -1,4 +1,4 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, ServiceError } from '@mtsrc/error';
 import { isRedirectDomainMatch } from './redirectDomains';
 
 export let validateRedirectUrl = (redirectUrl: string, redirectDomains: string[]) => {

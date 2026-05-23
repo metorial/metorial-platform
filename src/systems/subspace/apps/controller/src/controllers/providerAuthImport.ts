@@ -1,5 +1,5 @@
-import { Paginator } from '@lowerdeck/pagination';
-import { v } from '@lowerdeck/validation';
+import { Paginator } from '@mtsrc/pagination';
+import { v } from '@mtsrc/validation';
 import type { Environment, Solution, Tenant } from '@metorial-subspace/db';
 import {
   providerAuthConfigService,

@@ -1,7 +1,7 @@
-import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
-import { Paginator } from '@lowerdeck/pagination';
-import { getSentry } from '@lowerdeck/sentry';
-import { Service } from '@lowerdeck/service';
+import { badRequestError, notFoundError, ServiceError } from '@mtsrc/error';
+import { Paginator } from '@mtsrc/pagination';
+import { getSentry } from '@mtsrc/sentry';
+import { Service } from '@mtsrc/service';
 import {
   SlateTriggerDestinationStatus,
   SlateTriggerReceiverTriggerSource,

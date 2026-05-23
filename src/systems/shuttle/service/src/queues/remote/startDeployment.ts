@@ -1,6 +1,6 @@
-import { delay } from '@lowerdeck/delay';
-import { isServiceError } from '@lowerdeck/error';
-import { createQueue, QueueRetryError } from '@lowerdeck/queue';
+import { delay } from '@mtsrc/delay';
+import { isServiceError } from '@mtsrc/error';
+import { createQueue, QueueRetryError } from '@mtsrc/queue';
 import type {
   RemoteOAuthConfig,
   RemoteOAuthDiscoveryDocument,

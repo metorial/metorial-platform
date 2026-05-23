@@ -57,7 +57,7 @@ vi.mock('@metorial-subspace/db', () => ({
   withTransaction: withTransactionMock
 }));
 
-vi.mock('@lowerdeck/service', () => ({
+vi.mock('@mtsrc/service', () => ({
   Service: {
     create: vi.fn((_: string, factory: () => unknown) => ({
       build: () => factory()
@@ -65,7 +65,7 @@ vi.mock('@lowerdeck/service', () => ({
   }
 }));
 
-vi.mock('@lowerdeck/pagination', () => ({
+vi.mock('@mtsrc/pagination', () => ({
   Paginator: {
     create: vi.fn()
   }

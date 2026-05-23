@@ -2,7 +2,7 @@ import { randomBytes } from 'crypto';
 import type { PrismaClient, Secret, Tenant } from '../../../prisma/generated/client';
 import { SecretStatus, SecretType } from '../../../prisma/generated/client';
 import { getId } from '../../id';
-import { defineFactory } from '@lowerdeck/testing-tools';
+import { defineFactory } from '@mtsrc/testing-tools';
 import { TenantFixtures } from './tenantFixtures';
 
 export const SecretFixtures = (db: PrismaClient) => {

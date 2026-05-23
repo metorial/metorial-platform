@@ -1,5 +1,5 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
-import { Service } from '@lowerdeck/service';
+import { notFoundError, ServiceError } from '@mtsrc/error';
+import { Service } from '@mtsrc/service';
 import { db } from '../db';
 import { getId } from '../id';
 import type { TriggerWebhookRequestPayload } from '../lib/triggerWebhook';

@@ -1,5 +1,5 @@
-import { apiMux } from '@lowerdeck/api-mux';
-import { rpcMux } from '@lowerdeck/rpc-server';
+import { apiMux } from '@mtsrc/api-mux';
+import { rpcMux } from '@mtsrc/rpc-server';
 import { authRPC } from './controllers';
 import { endpointApp } from './endpoints';
 
