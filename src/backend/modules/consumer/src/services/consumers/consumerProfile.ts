@@ -408,6 +408,15 @@ class ConsumerProfileServiceImpl {
     });
   }
 
+  async createConsumerProfile(d: { surface: ConsumerSurface; email: string; name: string }) {
+    return await this.ensureConsumerProfile({
+      surface: d.surface,
+      email: d.email,
+      name: d.name,
+      rejectIfActiveProfileExists: true
+    });
+  }
+
   async ensureConsumerProfile(d: {
     surface: ConsumerSurface;
     email: string;
