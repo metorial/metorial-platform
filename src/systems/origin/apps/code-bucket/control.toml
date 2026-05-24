@@ -7,6 +7,63 @@ dockerfile = "src/systems/origin/apps/code-bucket/Dockerfile"
 build_context = "oss"
 health = { cmd = "nc -z localhost 52091" }
 
+[build]
+builder = "go"
+mode = "generated"
+context = "repo"
+dockerfile = "Dockerfile.generated"
+
+[build.builder_image]
+image = "oven/bun:1.2-alpine"
+
+[build.install]
+system_packages = ["go", "git", "ca-certificates"]
+
+[build.manifests]
+files = [
+  "go.mod",
+  "go.sum",
+  "package.json",
+  "../code-workspace/package.json",
+  "../code-workspace/extensions/memfs/package.json"
+]
+
+[build.inputs]
+paths = [
+  "cmd/**",
+  "gen/**",
+  "internal/**",
+  "pkg/**",
+  "proto/**",
+  "index.ts",
+  "scripts/**",
+  "ts-proto-gen/**",
+  "../code-workspace/**",
+  "../../scripts/build-code-workspace.sh"
+]
+
+[build.prebuild]
+steps = [
+  { run = "sh ../../scripts/build-code-workspace.sh" }
+]
+
+[build.main]
+steps = [
+  { run = "CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o /tmp/code-bucket ./cmd/server" }
+]
+
+[build.artifacts]
+copy = [
+  { from = "/tmp/code-bucket", to = "/app/code-bucket" }
+]
+
+[build.runtime]
+base_image = "alpine:latest"
+packages = ["ca-certificates", "tzdata", "netcat-openbsd"]
+expose = [52091, 52092, 5050]
+command = "/app/code-bucket"
+healthcheck = "nc -z localhost 52091 || exit 1"
+
 [test.unit]
 command = "go test ./..."
 setup = ["sh ../../scripts/build-code-workspace.sh"]

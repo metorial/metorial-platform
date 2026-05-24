@@ -7,6 +7,41 @@ dockerfile = "src/systems/function-bay/deflector/Dockerfile"
 build_context = "oss"
 health = { path = "/healthz" }
 
+[build]
+builder = "go"
+mode = "generated"
+context = "oss"
+dockerfile = "Dockerfile.generated"
+
+[build.manifests]
+files = [
+  "go.mod",
+  "go.sum"
+]
+
+[build.inputs]
+paths = [
+  "cmd/**",
+  "internal/**"
+]
+
+[build.main]
+steps = [
+  { run = "CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags=\"-s -w\" -o /tmp/deflector ./cmd/deflector" }
+]
+
+[build.artifacts]
+copy = [
+  { from = "/tmp/deflector", to = "/usr/local/bin/deflector" }
+]
+
+[build.runtime]
+base_image = "alpine:3.22"
+packages = ["ca-certificates", "wget"]
+expose = [8080]
+command = "/usr/local/bin/deflector"
+healthcheck = "wget -qO- http://localhost:8080/healthz >/dev/null || exit 1"
+
 [test.unit]
 command = "go test ./..."
 cwd = "/app/src/systems/function-bay/deflector"

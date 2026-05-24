@@ -1,4 +1,6 @@
 import { resolve } from 'path';
+import { createBuildPlan, renderDockerfileForPlan } from '../builders';
+import { materializeBuildContext } from '../builders/context';
 import { collectRunnerBuilds } from '../compose/builds';
 import { resolveGraph } from '../graph/resolver';
 import { resolveControlDir, resolveEntrypoint, resolveControlCwd } from '../entrypoint';
@@ -49,9 +51,32 @@ let runBuildForService = async (
 
   for (let spec of specs) {
     let dockerfilePath = resolve(spec.context, spec.dockerfile);
+    let dockerContext = spec.context;
     let tag = imageTag({ tagPrefix, rootName: graph.name, specName: spec.name });
+    let targetService = registry.byName.get(spec.name);
 
     logger.info(`Building ${spec.name} (${spec.target}) ...`);
+
+    if (targetService?.config.build?.mode && targetService.config.build.mode !== 'custom') {
+      let plan = createBuildPlan(targetService, registry);
+      if (!plan) {
+        throw new DockerError({
+          service: graph.name,
+          phase: 'build',
+          message: `Unable to create build plan for ${targetService.name}`
+        });
+      }
+
+      let renderedDockerfile = renderDockerfileForPlan(plan);
+      let materialized = await materializeBuildContext({
+        plan,
+        registry,
+        session: opts.session ?? null,
+        renderedDockerfile
+      });
+      dockerContext = materialized.root;
+      dockerfilePath = materialized.dockerfilePath;
+    }
 
     let cmd = [
       'docker',
@@ -68,7 +93,7 @@ let runBuildForService = async (
       cmd.push('--build-arg', `SENTRY_AUTH_TOKEN=${process.env.SENTRY_AUTH_TOKEN}`);
     }
 
-    cmd.push(spec.context);
+    cmd.push(dockerContext);
 
     await runShell(cmd, {
       phase: 'build',

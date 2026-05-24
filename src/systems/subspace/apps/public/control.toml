@@ -3,9 +3,47 @@ name = "subspace-public"
 
 [service]
 port = 52071
-dockerfile = "src/systems/subspace/apps/public/Dockerfile"
+dockerfile = "src/systems/subspace/apps/public/Dockerfile.generated"
 build_context = "oss"
 health = { path = "/ping" }
+
+[build]
+builder = "node"
+mode = "generated"
+context = "oss"
+project = "@metorial-subspace/app-public"
+target = "server:build"
+dockerfile = "Dockerfile.generated"
+extra_paths = ["//oss/src/packages/frontend/ui"]
+
+[[build.automations]]
+name = "subspace-public-prisma"
+kind = "run-targets"
+target = "prisma:generate"
+projects = ["@metorial-subspace/db", "@metorial/slates", "@metorial/forge", "@metorial/function-bay", "@metorial/signal", "@metorial/synthesis", "@metorial-cargo/service"]
+
+[[build.automations]]
+name = "subspace-public-frontend"
+kind = "run-targets"
+target = "frontend:build"
+projects = ["@metorial-subspace/app-public"]
+
+[build.artifacts]
+copy = [
+  { from = "dist", to = "/app/dist" },
+  { from = "frontend/dist", to = "/app/frontend/dist" },
+  { from = "../../db", to = "/app/db" },
+  { from = "../../../../packages/frontend/ui", to = "/app/src/packages/frontend/ui" },
+  { from = "/app/node_modules", to = "/app/node_modules" }
+]
+
+[build.runtime]
+base_image = "oven/bun:1.2-alpine"
+packages = ["curl"]
+env = { NODE_ENV = "production" }
+expose = [52071]
+command = "cd db && bun prisma db push --accept-data-loss && cd /app && bun dist/index.js"
+healthcheck = "curl -f http://localhost:52071/ping && curl -f http://localhost:12121/ || exit 1"
 
 [test.unit]
 command = "bun run test:unit"

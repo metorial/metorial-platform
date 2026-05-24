@@ -19,6 +19,7 @@ import { formatRunPlan } from './log/formatRunPlan';
 import { resolveControlCwd } from './entrypoint';
 import { withWorkspaceSession } from './staging/session';
 import type { WorkspaceSession } from './types';
+import { runBootstrap } from './bootstrap';
 
 type StagedCliOpts = {
   entrypoint?: string;
@@ -51,7 +52,25 @@ let runCommand = async (fn: () => Promise<void | never>, opts?: { verbose?: bool
   }
 };
 
+let readNoStageOption = (opts: StagedCliOpts): boolean =>
+  opts['no-stage'] === true ||
+  (opts as StagedCliOpts & { noStage?: boolean; stage?: boolean }).noStage === true ||
+  (opts as StagedCliOpts & { noStage?: boolean; stage?: boolean }).stage === false;
+
 let prog = sade('control');
+
+prog
+  .command('bootstrap')
+  .describe('Generate Nx config and Dockerfiles from control build configs')
+  .option('--entrypoint, -e', 'Workspace entrypoint')
+  .option('--check', 'Fail if generated files are out of date')
+  .option('--print', 'Print generated files instead of writing them')
+  .option('--service, -s', 'Only generate for one service')
+  .action(async (opts: { entrypoint?: string; check?: boolean; print?: boolean; service?: string }) => {
+    await runCommand(async () => {
+      await runBootstrap(opts);
+    });
+  });
 
 prog
   .command('ls')
@@ -251,7 +270,7 @@ prog
           entrypoint: opts.entrypoint,
           verbose: opts.verbose,
           keep: opts.keep,
-          noStage: opts['no-stage']
+          noStage: readNoStageOption(opts)
         },
         async (session: WorkspaceSession | null) => {
           let registry = getRegistry({
@@ -277,7 +296,7 @@ prog
             verbose: opts.verbose,
             tagPrefix: opts['tag-prefix'],
             keep: opts.keep,
-            noStage: opts['no-stage'],
+            noStage: readNoStageOption(opts),
             session,
             services: ordered
           });
@@ -311,7 +330,7 @@ prog
           entrypoint: opts.entrypoint,
           verbose,
           keep: opts.keep,
-          noStage: opts['no-stage']
+          noStage: readNoStageOption(opts)
         },
         async (session: WorkspaceSession | null) => {
           let registry = getRegistry({
@@ -340,7 +359,7 @@ prog
             ci: true,
             verbose,
             keep: opts.keep,
-            noStage: opts['no-stage'],
+            noStage: readNoStageOption(opts),
             session,
             services: ordered
           });

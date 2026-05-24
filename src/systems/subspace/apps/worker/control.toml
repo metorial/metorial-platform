@@ -2,9 +2,37 @@
 name = "subspace-worker"
 
 [service]
-dockerfile = "src/systems/subspace/apps/worker/Dockerfile"
+dockerfile = "src/systems/subspace/apps/worker/Dockerfile.generated"
 build_context = "oss"
 health = { cmd = "curl -f http://localhost:12121/ || exit 1" }
+
+[build]
+builder = "node"
+mode = "generated"
+context = "oss"
+project = "@metorial-subspace/app-worker"
+target = "server:build"
+dockerfile = "Dockerfile.generated"
+
+[[build.automations]]
+name = "subspace-worker-prisma"
+kind = "run-targets"
+target = "prisma:generate"
+projects = ["@metorial-subspace/db", "@metorial/slates", "@metorial/forge", "@metorial/function-bay", "@metorial/signal", "@metorial/synthesis", "@metorial-cargo/service"]
+
+[build.artifacts]
+copy = [
+  { from = "dist", to = "/app/dist" },
+  { from = "../../db", to = "/app/db" },
+  { from = "/app/node_modules", to = "/app/node_modules" }
+]
+
+[build.runtime]
+base_image = "oven/bun:1.2-alpine"
+packages = ["curl"]
+env = { NODE_ENV = "production" }
+command = "cd db && bun prisma db push --accept-data-loss && cd /app && bun dist/index.js"
+healthcheck = "curl -f http://localhost:12121/ || exit 1"
 
 [test.unit]
 command = "bun run test:unit"

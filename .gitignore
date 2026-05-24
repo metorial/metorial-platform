@@ -135,7 +135,7 @@ dist
 .yarn/install-state.gz
 .pnp.*
 
-.turbo
+.nx
 
 generated
 out

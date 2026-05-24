@@ -1,4 +1,4 @@
-import { resolve } from 'path';
+import { relative, resolve } from 'path';
 import type { ResolvedDep, ResolvedGraph } from '../types';
 
 export type DockerBuildConfig = {
@@ -16,13 +16,34 @@ export let resolveBuild = (
   opts?: { role: 'test-runner' | 'service' }
 ): DockerBuildConfig => {
   let svc = graph.config.service!;
-  let dockerfile = svc.dockerfile ?? 'Dockerfile';
+  let usesGeneratedDockerfile = !!(graph.config.build?.mode && graph.config.build.mode !== 'custom');
+  let generatedDockerfile = usesGeneratedDockerfile
+    ? graph.config.build?.dockerfile ?? 'Dockerfile.generated'
+    : undefined;
+  let dockerfile = generatedDockerfile ?? svc.dockerfile ?? 'Dockerfile';
   let target = svc.docker_target ?? (opts?.role === 'test-runner' ? 'workspace' : 'runner');
+  let normalizeDockerfile = (context: string): string => {
+    if (!usesGeneratedDockerfile) {
+      return dockerfile.startsWith('./') ? dockerfile : `./${dockerfile.replace(/^\.\//, '')}`;
+    }
+
+    let absoluteDockerfile = resolve(graph.dir, dockerfile);
+    let relativeDockerfile = relative(context, absoluteDockerfile).replace(/\\/g, '/');
+    return relativeDockerfile.startsWith('.') ? relativeDockerfile : `./${relativeDockerfile}`;
+  };
+
+  if (graph.config.build?.context === 'repo') {
+    return {
+      context: graph.entrypoint,
+      dockerfile: normalizeDockerfile(graph.entrypoint),
+      target
+    };
+  }
 
   if (svc.build_context === 'oss') {
     return {
       context: graph.ossRoot,
-      dockerfile: dockerfile.startsWith('./') ? dockerfile : `./${dockerfile.replace(/^\.\//, '')}`,
+      dockerfile: normalizeDockerfile(graph.ossRoot),
       target
     };
   }

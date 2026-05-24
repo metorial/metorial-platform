@@ -10,7 +10,7 @@ echo "Cleaning up the repo..."
 # - dist
 # - .next
 # - .cache
-# - .turbo
+# - .nx
 # - generated
 # - out
 
@@ -20,6 +20,6 @@ find . -name "node_modules" -type d -prune -exec rm -rf '{}' + || true
 find . -name "dist" -type d -prune -exec rm -rf '{}' + || true
 find . -name ".next" -type d -prune -exec rm -rf '{}' + || true
 find . -name ".cache" -type d -prune -exec rm -rf '{}' + || true
-find . -name ".turbo" -type d -prune -exec rm -rf '{}' + || true
+find . -name ".nx" -type d -prune -exec rm -rf '{}' + || true
 find . -name "generated" -type d -prune -exec rm -rf '{}' + || true
 find . -name "out" -type d -prune -exec rm -rf '{}' + || true

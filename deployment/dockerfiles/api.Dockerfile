@@ -22,7 +22,7 @@ COPY /src/backend ./src/backend
 COPY /src/packages ./src/packages
 
 COPY /package.json ./package.json
-COPY /turbo.json ./turbo.json
+COPY /nx.json ./nx.json
 COPY /bun.lock ./bun.lock
 
 ENV NODE_OPTIONS=--max_old_space_size=6144
@@ -31,9 +31,8 @@ RUN bun install
 
 RUN apt-get update && apt-get install -y ca-certificates
 
-# RUN bun turbo run build --filter=./oss/src/packages/** --concurrency=1 --ui=stream
-RUN bun turbo run prisma:generate --concurrency=1 --log-prefix=task
-RUN bun turbo run oss:server:build --filter=${PACKAGE_NAME} --concurrency=1 --log-prefix=task
+RUN bun x nx run-many --target=prisma:generate --all
+RUN bun x nx run ${PACKAGE_NAME}:server:build
 
 # ------------------------
 # Installer

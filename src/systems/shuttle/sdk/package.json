@@ -2,12 +2,12 @@
   "name": "@metorial/root",
   "private": true,
   "scripts": {
-    "_test": "turbo run --concurrency=1 --ui=stream test",
-    "_build": "turbo run --concurrency=1 --ui=stream build"
+    "_test": "bun x nx run-many --target=test --all --parallel=1",
+    "_build": "bun x nx run-many --target=build --all"
   },
   "devDependencies": {
+    "nx": "^22.7.3",
     "prettier": "^3.5.3",
-    "turbo": "^2.5.5",
     "typescript": "5.8.2"
   },
   "engines": {

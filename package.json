@@ -2,23 +2,23 @@
   "name": "@metorial/oss",
   "private": true,
   "scripts": {
-    "build": "turbo run --ui=stream build",
-    "generate:client": "turbo run generate:client && turbo run build",
+    "build": "bun x nx run-many --target=build --all",
+    "generate:client": "bun x nx run-many --target=generate:client --all --parallel=1 && bun x nx run-many --target=build --all",
     "control": "bun run --cwd ./src/tooling/control ./src/cli.ts",
     "client:generate": "bun run generate:client",
-    "client:generate:dashboard": "turbo run generate:client:dashboard",
-    "client:generate:consumer": "turbo run generate:client:consumer",
-    "dev": "turbo run --concurrency 99 dev",
-    "test": "turbo run --concurrency=1 --ui=stream test",
-    "prisma:generate": "turbo run --ui=stream prisma:generate",
-    "prisma:push": "turbo run --ui=stream --concurrency=1 prisma:push --",
+    "client:generate:dashboard": "bun x nx run-many --target=generate:client:dashboard --all --parallel=1",
+    "client:generate:consumer": "bun x nx run-many --target=generate:client:consumer --all --parallel=1",
+    "dev": "bun x nx run-many --target=dev --all --parallel=99",
+    "test": "bun x nx run-many --target=test --all --parallel=1",
+    "prisma:generate": "bun x nx run-many --target=prisma:generate --all --parallel=1",
+    "prisma:push": "bun x nx run-many --target=prisma:push --all --parallel=1",
     "prepare": "echo prepare",
     "postinstall": "echo postinstall && [ -f \"./vendor/mcp-inspector\" ] && { cd ./vendor/mcp-inspector && npm install; } || { echo \"No vendor dependencies to install.\"; }",
     "preinstall": "[ -f \"../metorial_enterprise_install.sh\" ] && { ../metorial_enterprise_install.sh; } || { [ ! -f \"../metorial_enterprise_install.sh\" ] && echo \"Ignoring enterprise dependencies.\"; }"
   },
   "devDependencies": {
+    "nx": "^22.7.3",
     "prettier": "^3.5.3",
-    "turbo": "^2.5.4",
     "typescript": "5.8.2"
   },
   "engines": {

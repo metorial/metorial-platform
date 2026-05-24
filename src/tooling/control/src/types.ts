@@ -36,6 +36,80 @@ export type ControlDep = {
   } | boolean;
 };
 
+export type ControlBuildStep = {
+  run: string;
+  cwd?: string;
+  mode?: 'default' | 'cache-warm';
+};
+
+export type ControlBuildCopy = {
+  from: string;
+  to: string;
+};
+
+export type ControlBuildAutomation = {
+  name: string;
+  kind: 'run-targets' | 'run-dependents';
+  target: string;
+  projects: string[];
+  project_filter?: string;
+};
+
+export type ControlBuildRuntime = {
+  base_image?: string;
+  packages?: string[];
+  env?: Record<string, string>;
+  expose?: number[];
+  command?: string;
+  healthcheck?: string;
+  user?: string;
+  workdir?: string;
+};
+
+export type ControlBuildConfig = {
+  builder: 'node' | 'rust' | 'go';
+  mode?: 'generated' | 'custom' | 'generated-with-overlay';
+  context?: string;
+  project?: string;
+  target?: string;
+  automations?: ControlBuildAutomation[];
+  extra_paths?: string[];
+  dockerfile?: string;
+  runner_stage?: 'generated' | 'custom';
+  workspace_root?: string;
+  builder_image?: {
+    image?: string;
+  };
+  install?: {
+    strategy?: string;
+    linker?: string;
+    lockfile?: string;
+    system_packages?: string[];
+  };
+  manifests?: {
+    files?: string[];
+  };
+  inputs?: {
+    paths?: string[];
+    packages?: string[];
+    include_paths?: string[];
+    generated_paths?: string[];
+  };
+  codegen?: {
+    steps?: ControlBuildStep[];
+  };
+  prebuild?: {
+    steps?: ControlBuildStep[];
+  };
+  main?: {
+    steps?: ControlBuildStep[];
+  };
+  artifacts?: {
+    copy?: ControlBuildCopy[];
+  };
+  runtime?: ControlBuildRuntime;
+};
+
 export type ControlConfig = {
   control: {
     name: string;
@@ -66,6 +140,7 @@ export type ControlConfig = {
   env?: Record<string, string>;
   databases?: ControlDatabase[];
   deps?: ControlDep[];
+  build?: ControlBuildConfig;
 };
 
 export type ResolvedDep = {
@@ -160,6 +235,58 @@ export type BuildOptions = {
   session?: WorkspaceSession | null;
   keep?: boolean;
   noStage?: boolean;
+};
+
+export type GeneratedBuildPath = {
+  pattern: string;
+  absolutePath: string;
+  relativeToService: string;
+  relativeToContext: string;
+  exists: boolean;
+};
+
+export type GeneratedBuildStep = {
+  run: string;
+  cwd?: string;
+  cwdAbsolute?: string;
+  cwdRelativeToContext?: string;
+  mode: 'default' | 'cache-warm';
+};
+
+export type GeneratedBuildAutomation = {
+  name: string;
+  kind: 'run-targets' | 'run-dependents';
+  target: string;
+  projects: string[];
+  command: string;
+};
+
+export type GeneratedBuildArtifact = {
+  from: string;
+  to: string;
+  fromAbsolute: string;
+  fromRelativeToContext: string;
+};
+
+export type GeneratedBuildPlan = {
+  builder: 'node' | 'rust' | 'go';
+  service: ControlService;
+  mode: 'generated' | 'custom' | 'generated-with-overlay';
+  contextKind: 'oss' | 'repo' | 'relative';
+  contextRoot: string;
+  dockerfilePath: string;
+  workspaceRoot: string;
+  manifestFiles: GeneratedBuildPath[];
+  inputPaths: GeneratedBuildPath[];
+  automations: GeneratedBuildAutomation[];
+  codegenSteps: GeneratedBuildStep[];
+  prebuildSteps: GeneratedBuildStep[];
+  mainSteps: GeneratedBuildStep[];
+  artifacts: GeneratedBuildArtifact[];
+  runtime: Required<ControlBuildRuntime>;
+  project?: string;
+  target?: string;
+  serviceDockerfile?: string;
 };
 
 export type RunOptions = {

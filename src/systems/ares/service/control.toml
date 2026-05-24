@@ -3,9 +3,47 @@ name = "ares"
 
 [service]
 port = 52120
-dockerfile = "src/systems/ares/service/Dockerfile"
+dockerfile = "src/systems/ares/service/Dockerfile.generated"
 build_context = "oss"
 health = { cmd = "bun -e \"fetch('http://localhost:12121/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\"" }
+
+[build]
+builder = "node"
+mode = "generated"
+context = "oss"
+project = "@metorial/ares"
+target = "server:build"
+dockerfile = "Dockerfile.generated"
+
+[[build.automations]]
+name = "ares-prisma"
+kind = "run-targets"
+target = "prisma:generate"
+projects = ["@metorial/ares"]
+
+[[build.automations]]
+name = "ares-frontend"
+kind = "run-targets"
+target = "frontend:build"
+projects = ["@metorial/ares"]
+
+[build.artifacts]
+copy = [
+  { from = "dist", to = "/app/dist" },
+  { from = "prisma", to = "/app/prisma" },
+  { from = "prisma.config.ts", to = "/app/prisma.config.ts" },
+  { from = "frontend/auth/dist", to = "/app/frontend/auth/dist" },
+  { from = "frontend/admin/dist", to = "/app/frontend/admin/dist" },
+  { from = "/app/node_modules", to = "/app/node_modules" }
+]
+
+[build.runtime]
+base_image = "oven/bun:1.2-alpine"
+packages = ["curl"]
+env = { NODE_ENV = "production" }
+expose = [52120, 52121, 52122, 52123, 12121]
+command = "bun prisma db push --accept-data-loss && bun /app/dist/index.js"
+healthcheck = "curl -f http://localhost:52120/ping && curl -f http://localhost:12121/ || exit 1"
 
 [test.unit]
 command = "bun run test:unit"

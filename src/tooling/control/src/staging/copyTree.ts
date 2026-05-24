@@ -88,15 +88,23 @@ let copyFilesFromGitRoot = async (opts: {
   destRoot: string;
   pathPrefix?: string;
   skipPaths?: Set<string>;
+  includePaths?: Set<string>;
 }): Promise<number> => {
   let files = await listGitFiles(opts.sourceRoot);
   let count = 0;
   let prefix = opts.pathPrefix ?? '';
   let skipPaths = opts.skipPaths ?? new Set<string>();
+  let includePaths = opts.includePaths;
 
   for (let rel of files) {
     if (shouldSkipRelativePath(rel)) continue;
     if ([...skipPaths].some(skip => rel === skip || rel.startsWith(`${skip}/`))) continue;
+    if (
+      includePaths &&
+      ![...includePaths].some(include => rel === include || rel.startsWith(`${include}/`))
+    ) {
+      continue;
+    }
 
     let src = join(opts.sourceRoot, rel);
     if (!existsSync(src)) continue;
@@ -175,6 +183,70 @@ export let copyGitAwareTree = async (opts: {
   if (opts.verbose) {
     console.error(
       `[control:stage] Copied ${fileCount} files from ${sourceRoot} to ${destRoot} (${Date.now() - started}ms)`
+    );
+  }
+
+  return { fileCount, durationMs: Date.now() - started };
+};
+
+export let copyGitAwareSelection = async (opts: {
+  sourceRoot: string;
+  destRoot: string;
+  includePaths: string[];
+  verbose?: boolean;
+}): Promise<CopyTreeResult> => {
+  let sourceRoot = resolve(opts.sourceRoot);
+  let destRoot = resolve(opts.destRoot);
+  let started = Date.now();
+
+  if (!(await isGitRepo(sourceRoot))) {
+    throw new Error(`Cannot stage workspace selection: ${sourceRoot} is not a git repository`);
+  }
+
+  mkdirSync(destRoot, { recursive: true });
+
+  let normalizedIncludes = new Set(
+    opts.includePaths
+      .map(path => path.replace(/\\/g, '/').replace(/^\.\/+/, '').replace(/\/+$/, ''))
+      .filter(Boolean)
+  );
+
+  let submodulePaths = await listSubmodulePaths(sourceRoot);
+  let skipPaths = new Set(submodulePaths);
+
+  let fileCount = await copyFilesFromGitRoot({
+    sourceRoot,
+    destRoot,
+    skipPaths,
+    includePaths: normalizedIncludes
+  });
+
+  for (let subPath of submodulePaths) {
+    let selectedInSubmodule = [...normalizedIncludes]
+      .filter(include => include === subPath || include.startsWith(`${subPath}/`))
+      .map(include => include === subPath ? '' : include.slice(subPath.length + 1))
+      .filter(include => include !== '');
+
+    if (selectedInSubmodule.length === 0) continue;
+
+    let subSource = join(sourceRoot, subPath);
+    if (!existsSync(subSource)) {
+      throw new Error(
+        `Submodule "${subPath}" is not initialized. Run: git submodule update --init --recursive`
+      );
+    }
+
+    fileCount += await copyFilesFromGitRoot({
+      sourceRoot: subSource,
+      destRoot,
+      pathPrefix: subPath,
+      includePaths: new Set(selectedInSubmodule)
+    });
+  }
+
+  if (opts.verbose) {
+    console.error(
+      `[control:stage] Copied ${fileCount} selected files from ${sourceRoot} to ${destRoot} (${Date.now() - started}ms)`
     );
   }
 

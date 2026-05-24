@@ -1,0 +1,115 @@
+{
+  "$schema": "./node_modules/nx/schemas/nx-schema.json",
+  "namedInputs": {
+    "default": [
+      "{projectRoot}/**/*",
+      "sharedGlobals"
+    ],
+    "production": [
+      "default",
+      "!{projectRoot}/dist/**",
+      "!{projectRoot}/coverage/**",
+      "!{projectRoot}/.control/**"
+    ],
+    "sharedGlobals": [
+      "{workspaceRoot}/package.json",
+      "{workspaceRoot}/bun.lock"
+    ]
+  },
+  "targetDefaults": {
+    "build": {
+      "cache": true,
+      "dependsOn": [
+        "^build"
+      ],
+      "inputs": [
+        "production",
+        "^production"
+      ],
+      "outputs": [
+        "{projectRoot}/dist/**"
+      ]
+    },
+    "server:build": {
+      "cache": true,
+      "dependsOn": [
+        "prisma:generate",
+        "^build",
+        "^server:build"
+      ],
+      "inputs": [
+        "production",
+        "^production"
+      ],
+      "outputs": [
+        "{projectRoot}/dist/**"
+      ]
+    },
+    "frontend:build": {
+      "cache": true,
+      "dependsOn": [
+        "^build",
+        "^frontend:build"
+      ],
+      "inputs": [
+        "production",
+        "^production"
+      ],
+      "outputs": [
+        "{projectRoot}/dist/**",
+        "{projectRoot}/frontend/dist/**"
+      ]
+    },
+    "worker:build": {
+      "cache": true,
+      "dependsOn": [
+        "prisma:generate",
+        "^build",
+        "^worker:build"
+      ],
+      "inputs": [
+        "production",
+        "^production"
+      ],
+      "outputs": [
+        "{projectRoot}/dist-worker/**"
+      ]
+    },
+    "test": {
+      "cache": false,
+      "inputs": [
+        "default",
+        "^production"
+      ]
+    },
+    "check-types": {
+      "cache": true,
+      "dependsOn": [
+        "^check-types"
+      ],
+      "inputs": [
+        "production",
+        "^production"
+      ]
+    },
+    "prisma:generate": {
+      "cache": true,
+      "dependsOn": [
+        "^prisma:generate"
+      ],
+      "inputs": [
+        "production",
+        "^production"
+      ]
+    },
+    "prisma:push": {
+      "cache": false
+    },
+    "dev": {
+      "cache": false
+    },
+    "deploy": {
+      "cache": false
+    }
+  }
+}

@@ -9,7 +9,7 @@
   "scripts": {
     "start": "bun ./src/cli.ts",
     "typecheck": "tsc --noEmit",
-    "test": "bun test src/staging"
+    "test": "bun test src"
   },
   "dependencies": {
     "sade": "^1.8.1",

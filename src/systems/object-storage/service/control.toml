@@ -7,6 +7,52 @@ dockerfile = "src/systems/object-storage/service/Dockerfile"
 build_context = "oss"
 health = { path = "/health" }
 
+[build]
+builder = "rust"
+mode = "generated"
+context = "oss"
+dockerfile = "Dockerfile.generated"
+
+[build.install]
+system_packages = ["pkg-config", "libssl-dev"]
+
+[build.manifests]
+files = [
+  "Cargo.toml",
+  "Cargo.lock",
+  "object-store/Cargo.toml",
+  "object-store-backends/Cargo.toml"
+]
+
+[build.inputs]
+paths = [
+  "object-store/**",
+  "object-store-backends/**"
+]
+
+[build.prebuild]
+steps = [
+  { run = "mkdir -p object-store/src object-store-backends/src && echo \"fn main() {}\" > object-store/src/main.rs && echo \"pub fn dummy() {}\" > object-store/src/lib.rs && echo \"pub fn dummy() {}\" > object-store-backends/src/lib.rs && cargo build --release && rm -rf object-store/src object-store-backends/src", mode = "cache-warm" }
+]
+
+[build.main]
+steps = [
+  { run = "cargo build --release --bin object-store-service" }
+]
+
+[build.artifacts]
+copy = [
+  { from = "target/release/object-store-service", to = "/app/object-store-service" }
+]
+
+[build.runtime]
+base_image = "debian:trixie-slim"
+packages = ["ca-certificates", "libssl3", "curl"]
+env = { RUST_LOG = "info", OBJECT_STORE_BACKEND_TYPE = "local", OBJECT_STORE_BACKEND_ROOT_PATH = "/app/data" }
+expose = [52010]
+command = "/app/object-store-service"
+healthcheck = "curl -f http://localhost:52010/health || exit 1"
+
 [test.unit]
 command = "cargo test -p object-store --test integration_test -- --test-threads=1"
 cwd = "/app/src/systems/object-storage/service"

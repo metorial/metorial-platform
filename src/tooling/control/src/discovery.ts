@@ -7,7 +7,7 @@ export let SKIP_DIRS = new Set([
   'node_modules',
   '.git',
   'dist',
-  '.turbo',
+  '.nx',
   '.control',
   'out',
   'generated',

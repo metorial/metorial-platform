@@ -34,6 +34,7 @@
     "@aws-sdk/client-iam": "^3.957.0",
     "@aws-sdk/client-lambda": "^3.958.0",
     "@bufbuild/protobuf": "^2.11.0",
+    "@metorial/code-bucket-service-generated": "workspace:*",
     "@gitbeaker/rest": "^43.8.0",
     "@grpc/grpc-js": "^1.13.4",
     "@octokit/auth-app": "^8.1.2",

@@ -3,9 +3,39 @@ name = "relay"
 
 [service]
 port = 52110
-dockerfile = "src/systems/relay/service/Dockerfile"
+dockerfile = "src/systems/relay/service/Dockerfile.generated"
 build_context = "oss"
 health = { cmd = "bun -e \"fetch('http://localhost:12121/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\"" }
+
+[build]
+builder = "node"
+mode = "generated"
+context = "oss"
+project = "@metorial/relay"
+target = "server:build"
+dockerfile = "Dockerfile.generated"
+
+[[build.automations]]
+name = "relay-prisma"
+kind = "run-targets"
+target = "prisma:generate"
+projects = ["@metorial/relay"]
+
+[build.artifacts]
+copy = [
+  { from = "dist", to = "/app/dist" },
+  { from = "prisma", to = "/app/prisma" },
+  { from = "prisma.config.ts", to = "/app/prisma.config.ts" },
+  { from = "/app/node_modules", to = "/app/node_modules" }
+]
+
+[build.runtime]
+base_image = "oven/bun:1.2-alpine"
+packages = ["curl"]
+env = { NODE_ENV = "production" }
+expose = [52110]
+command = "bun prisma db push --accept-data-loss && bun /app/dist/index.js"
+healthcheck = "curl -f http://localhost:52110/metorial-relay && curl -f http://localhost:12121/ || exit 1"
 
 [test.unit]
 command = "bun run test:unit"

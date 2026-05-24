@@ -3,9 +3,39 @@ name = "cargo"
 
 [service]
 port = 52150
-dockerfile = "src/systems/cargo/service/Dockerfile"
+dockerfile = "src/systems/cargo/service/Dockerfile.generated"
 build_context = "oss"
 health = { path = "/ping", cmd = "bun -e \"fetch('http://localhost:52151/ping').then(()=>process.exit(0)).catch(()=>process.exit(1))\"" }
+
+[build]
+builder = "node"
+mode = "generated"
+context = "oss"
+project = "@metorial-cargo/service"
+target = "server:build"
+dockerfile = "Dockerfile.generated"
+
+[[build.automations]]
+name = "cargo-db-prisma"
+kind = "run-targets"
+target = "prisma:generate"
+projects = ["@metorial-cargo/db"]
+
+[build.artifacts]
+copy = [
+  { from = "dist", to = "/app/dist" },
+  { from = "../db/prisma", to = "/app/prisma" },
+  { from = "../db/prisma.config.ts", to = "/app/prisma.config.ts" },
+  { from = "/app/node_modules", to = "/app/node_modules" }
+]
+
+[build.runtime]
+base_image = "oven/bun:1.2-alpine"
+packages = ["curl"]
+env = { NODE_ENV = "production" }
+expose = [52150, 52151]
+command = "bun prisma db push --accept-data-loss --schema prisma/schema --config prisma.config.ts && bun /app/dist/index.js"
+healthcheck = "curl -f http://localhost:52151/ping && curl -f http://localhost:12121/ || exit 1"
 
 [test.unit]
 command = "bun run test:unit"

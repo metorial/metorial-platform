@@ -3,9 +3,45 @@ name = "slates-registry"
 
 [service]
 port = 52040
-dockerfile = "src/systems/slates/apps/registry/Dockerfile"
+dockerfile = "src/systems/slates/apps/registry/Dockerfile.generated"
 build_context = "oss"
 health = { path = "/ping" }
+
+[build]
+builder = "node"
+mode = "generated"
+context = "oss"
+project = "@metorial/slates-registry"
+target = "server:build"
+dockerfile = "Dockerfile.generated"
+
+[[build.automations]]
+name = "slates-registry-prisma"
+kind = "run-targets"
+target = "prisma:generate"
+projects = ["@metorial/slates-registry"]
+
+[[build.automations]]
+name = "slates-registry-admin"
+kind = "run-targets"
+target = "admin:build"
+projects = ["@metorial/slates-registry"]
+
+[build.artifacts]
+copy = [
+  { from = "dist", to = "/app/dist" },
+  { from = "admin/dist", to = "/app/admin/dist" },
+  { from = "prisma", to = "/app/prisma" },
+  { from = "/app/node_modules", to = "/app/node_modules" }
+]
+
+[build.runtime]
+base_image = "oven/bun:1.2-alpine"
+packages = ["curl"]
+env = { NODE_ENV = "production" }
+expose = [52040, 52041, 52042]
+command = "bun prisma db push --schema prisma/schema.prisma --accept-data-loss && bun /app/dist/index.js"
+healthcheck = "curl -f http://localhost:52040/ping && curl -f http://localhost:52041/ping && curl -f http://localhost:12121/ || exit 1"
 
 [test.unit]
 command = "bun run test:unit"

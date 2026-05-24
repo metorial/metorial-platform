@@ -3,8 +3,38 @@ name = "forge"
 
 [service]
 port = 52020
-dockerfile = "src/systems/forge/service/Dockerfile"
+dockerfile = "src/systems/forge/service/Dockerfile.generated"
 build_context = "oss"
+
+[build]
+builder = "node"
+mode = "generated"
+context = "oss"
+project = "@metorial/forge"
+target = "server:build"
+dockerfile = "Dockerfile.generated"
+
+[[build.automations]]
+name = "forge-prisma"
+kind = "run-targets"
+target = "prisma:generate"
+projects = ["@metorial/forge"]
+
+[build.artifacts]
+copy = [
+  { from = "dist", to = "/app/dist" },
+  { from = "prisma", to = "/app/prisma" },
+  { from = "prisma.config.ts", to = "/app/prisma.config.ts" },
+  { from = "/app/node_modules", to = "/app/node_modules" }
+]
+
+[build.runtime]
+base_image = "oven/bun:1.2-alpine"
+packages = ["curl"]
+env = { NODE_ENV = "production" }
+expose = [52020]
+command = "bun prisma db push --accept-data-loss && bun /app/dist/index.js"
+healthcheck = "curl -f http://localhost:52020/ping && curl -f http://localhost:12121/ || exit 1"
 
 [test.unit]
 command = "bun run test:unit"

@@ -72,6 +72,13 @@ export class ObjectStorageClient {
     throw error;
   }
 
+  private readHeaderValue(headers: Record<string, unknown>, name: string): string | undefined {
+    let value = headers[name];
+    if (value == null) return undefined;
+    if (Array.isArray(value)) return value[0] != null ? String(value[0]) : undefined;
+    return String(value);
+  }
+
   async ping(): Promise<void> {
     try {
       await this.client.get('/ping');
@@ -166,10 +173,10 @@ export class ObjectStorageClient {
         { responseType: 'arraybuffer' }
       );
 
-      const size = parseInt(response.headers['content-length'] || '0', 10);
-      const contentType = response.headers['content-type'];
-      const etag = response.headers['etag'] || '';
-      const lastModified = response.headers['last-modified'] || '';
+      const size = parseInt(this.readHeaderValue(response.headers, 'content-length') ?? '0', 10);
+      const contentType = this.readHeaderValue(response.headers, 'content-type');
+      const etag = this.readHeaderValue(response.headers, 'etag') ?? '';
+      const lastModified = this.readHeaderValue(response.headers, 'last-modified') ?? '';
 
       // Extract custom metadata from x-object-meta-* headers
       const metadata: Record<string, string> = {};
@@ -200,10 +207,10 @@ export class ObjectStorageClient {
     try {
       const response = await this.client.head(`/buckets/${bucket}/objects/${key}`);
 
-      const size = parseInt(response.headers['content-length'] || '0', 10);
-      const contentType = response.headers['content-type'];
-      const etag = response.headers['etag'] || '';
-      const lastModified = response.headers['last-modified'] || '';
+      const size = parseInt(this.readHeaderValue(response.headers, 'content-length') ?? '0', 10);
+      const contentType = this.readHeaderValue(response.headers, 'content-type');
+      const etag = this.readHeaderValue(response.headers, 'etag') ?? '';
+      const lastModified = this.readHeaderValue(response.headers, 'last-modified') ?? '';
 
       // Extract custom metadata from x-object-meta-* headers
       const metadata: Record<string, string> = {};
