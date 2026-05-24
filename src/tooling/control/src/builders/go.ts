@@ -25,8 +25,16 @@ let defaultGoRuntime = defaultRuntime(undefined, {
   workdir: '/app'
 });
 
+let pinBuilderImage = (image: string): string => {
+  if (image === 'oven/bun:1.2') return 'oven/bun:1.2.22';
+  if (image === 'oven/bun:1.2-alpine') return 'oven/bun:1.2.22-alpine';
+  return image;
+};
+
 let renderGoDockerfile = (plan: GeneratedBuildPlan): string => {
-  let builderImage = plan.service.config.build?.builder_image?.image ?? 'golang:1.24-alpine';
+  let builderImage = pinBuilderImage(
+    plan.service.config.build?.builder_image?.image ?? 'golang:1.24-alpine'
+  );
   let systemPackages = plan.service.config.build?.install?.system_packages ?? ['git', 'ca-certificates'];
   let manifestLines = renderCopyLines(plan.manifestFiles);
   let inputLines = renderCopyLines(plan.inputPaths);

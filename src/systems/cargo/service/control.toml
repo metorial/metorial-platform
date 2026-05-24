@@ -34,7 +34,7 @@ copy = [
 ]
 
 [build.runtime]
-base_image = "oven/bun:1.2-alpine"
+base_image = "oven/bun:1.2.22-alpine"
 packages = ["curl"]
 env = { NODE_ENV = "production" }
 expose = [52150, 52151]

@@ -1,4 +1,4 @@
-FROM oven/bun:1.2-alpine
+FROM oven/bun:1.2.22-alpine
 WORKDIR /mock
 ARG MOCK_SERVER=object-store/server.ts
 COPY ${MOCK_SERVER} ./server.ts

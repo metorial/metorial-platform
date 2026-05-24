@@ -29,7 +29,7 @@ copy = [
 ]
 
 [build.runtime]
-base_image = "oven/bun:1.2-alpine"
+base_image = "oven/bun:1.2.22-alpine"
 packages = ["curl"]
 env = { NODE_ENV = "production" }
 command = "cd db && bun prisma db push --accept-data-loss && cd /app && bun dist/index.js"

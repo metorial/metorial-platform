@@ -59,13 +59,20 @@ jobs:
         with:
           bun-version: '1.2.20'
 
+      - name: Install control packages
+        if: ${{ inputs.command == 'build' || (inputs.command == 'ci' && inputs.mode == 'e2e') }}
+        run: bun i --linker=hoisted --filter @metorial/oss --filter @metorial/control
+
       - name: Install packages
+        if: ${{ inputs.command == 'ci' && inputs.mode == 'unit' }}
         run: bun i --linker=hoisted
 
       - name: Generate Prisma Clients
+        if: ${{ inputs.command == 'ci' && inputs.mode == 'unit' }}
         run: bun x nx run-many --target=prisma:generate --all --parallel=1
 
       - name: Build platform system clients
+        if: ${{ inputs.command == 'ci' && inputs.mode == 'unit' }}
         run: bun x nx run-many --target=build --projects=@metorial-platform-systems/origin-client,@metorial-platform-systems/forge-client,@metorial-platform-systems/function-bay-client,@metorial-platform-systems/signal-client,@metorial-platform-systems/synthesis-client,@metorial-platform-systems/cargo-client,@metorial-platform-systems/ares-client,@metorial/mcp,@metorial/mcp-server,@metorial/mcp-transport-memory,@metorial-platform-systems/shuttle-client,@metorial-platform-systems/slates-client,@metorial-platform-systems/subspace-client
 
       - name: Run control

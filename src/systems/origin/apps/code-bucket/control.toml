@@ -14,7 +14,7 @@ context = "repo"
 dockerfile = "Dockerfile"
 
 [build.builder_image]
-image = "oven/bun:1.2-alpine"
+image = "oven/bun:1.2.22-alpine"
 
 [build.install]
 system_packages = ["go", "git", "ca-certificates", "nodejs"]
@@ -82,7 +82,7 @@ cwd = "/app/src/systems/origin/apps/code-bucket"
 
 [test.e2e]
 command = "go test ./pkg/util -run TestNormalizePath"
-cwd = "/app/oss/src/systems/origin/apps/code-bucket"
+cwd = "."
 runner = "service"
 
 [env]

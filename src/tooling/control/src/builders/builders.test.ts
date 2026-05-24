@@ -78,18 +78,29 @@ describe('build path resolution', () => {
     write(join(service.dir, 'src/index.ts'), 'export {};');
     write(join(root, 'oss/src/systems/scripts/setup.sh'), 'echo setup');
     write(join(root, 'shared/generated.txt'), 'generated');
+    write(join(root, 'oss/src/systems/_shared/entityImage.ts'), 'export {};');
 
     let paths = resolveBuildPaths({
       service,
       registry,
       contextRoot: root,
-      patterns: ['package.json', '../db/package.json', 'src/**', '../../scripts/*.sh', '//shared/generated.txt'],
+      patterns: [
+        'package.json',
+        '../db/package.json',
+        'src/**',
+        '../../scripts/*.sh',
+        '//shared/generated.txt',
+        '//oss/src/systems/_shared/entityImage.ts'
+      ],
       label: 'input'
     });
 
     expect(paths.some(path => path.relativeToService === 'package.json')).toBe(true);
     expect(paths.some(path => path.relativeToService === '../db/package.json')).toBe(true);
     expect(paths.some(path => path.relativeToContext === 'shared/generated.txt')).toBe(true);
+    expect(paths.some(path => path.relativeToContext === 'oss/src/systems/_shared/entityImage.ts')).toBe(
+      true
+    );
     expect(paths.some(path => path.relativeToContext.endsWith('setup.sh'))).toBe(true);
   });
 });

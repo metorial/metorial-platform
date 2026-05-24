@@ -54,6 +54,13 @@ let resolvePatternBase = (
   registry: ServiceRegistry,
   rawPattern: string
 ): { cwd: string; pattern: string } => {
+  if (rawPattern.startsWith('//oss/')) {
+    return {
+      cwd: registry.ossRoot,
+      pattern: rawPattern.slice('//oss/'.length)
+    };
+  }
+
   if (rawPattern.startsWith('//')) {
     return {
       cwd: registry.controlRoot,
