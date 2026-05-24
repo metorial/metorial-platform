@@ -17,18 +17,17 @@
   "exports": {
     "types": "./dist/index.d.ts",
     "require": "./dist/index.cjs",
-    "import": "./dist/index.module.js",
-    "default": "./dist/index.module.js"
+    "import": "./dist/index.js",
+    "default": "./dist/index.js"
   },
   "main": "./dist/index.cjs",
-  "module": "./dist/index.module.js",
+  "module": "./dist/index.js",
   "types": "dist/index.d.ts",
-  "unpkg": "./dist/index.umd.js",
   "scripts": {
     "test": "vitest run --passWithNoTests",
     "lint": "prettier src/**/*.ts --check",
     "prebuild": "cd ../../origin/apps/service && bunx prisma generate",
-    "build": "rm -rf ./dist && microbundle && dts-bundle-generator --config dts-bundle-generator.config.json --external-imports @mtsrc/rpc-client @mtsrc/rpc-server @mtsrc/validation",
+    "build": "tsup",
     "prepublish": "bun run build"
   },
   "nx": {
@@ -51,8 +50,7 @@
   "devDependencies": {
     "@metorial/origin": "workspace:*",
     "@types/node": "^25.0.3",
-    "dts-bundle-generator": "^9.5.1",
-    "microbundle": "^0.15.1",
+    "tsup": "^8.5.1",
     "typescript": "^5.8.3",
     "vitest": "^3.1.2"
   }

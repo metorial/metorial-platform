@@ -68,33 +68,35 @@ class serverDeploymentServiceImpl {
     return steps
       .map(step => {
         if (step.type == 'deploying' && functionBayOutput) {
-          return (functionBayOutput as ServerDeploymentOutputStep[]).map(output => ({
-            ...output,
-            object: 'server_deployment.step'
-          }));
+          return (functionBayOutput as ServerDeploymentOutputStep[]).map(
+            (output): ServerDeploymentOutputStep => ({
+              ...output,
+              object: 'server_deployment.step' as const
+            })
+          );
         }
 
-        return [
-          {
-            object: 'server_deployment.step',
-            id: step.id,
-            status: step.status,
-            name: {
-              publishing: 'Publishing Server',
-              deploying: 'Deploying Server',
-              discovering: 'Discovering Server Capabilities',
-              started: 'Deployment Started'
-            }[step.type],
-            logs: step.logs.flat().map(([timestamp, message]) => ({
-              timestamp,
-              message
-            })) as { timestamp: number; message: string }[],
-            type: step.type,
-            createdAt: step.createdAt,
-            startedAt: step.startedAt,
-            endedAt: step.endedAt
-          }
-        ];
+        let output: ServerDeploymentOutputStep = {
+          object: 'server_deployment.step' as const,
+          id: step.id,
+          status: step.status,
+          name: {
+            publishing: 'Publishing Server',
+            deploying: 'Deploying Server',
+            discovering: 'Discovering Server Capabilities',
+            started: 'Deployment Started'
+          }[step.type],
+          logs: step.logs.flat().map(([timestamp, message]) => ({
+            timestamp,
+            message
+          })) as { timestamp: number; message: string }[],
+          type: step.type,
+          createdAt: step.createdAt,
+          startedAt: step.startedAt,
+          endedAt: step.endedAt
+        };
+
+        return [output];
       })
       .flat();
   }
