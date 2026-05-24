@@ -34,6 +34,16 @@ on:
         required: false
         default: false
         type: boolean
+      enable_cache:
+        description: 'Restore and save Nx/BuildKit caches'
+        required: false
+        default: true
+        type: boolean
+      cache_prefix:
+        description: 'Optional cache scope override'
+        required: false
+        default: ''
+        type: string
 
 jobs:
   control:
@@ -59,25 +69,93 @@ jobs:
         with:
           bun-version: '1.2.20'
 
+      - name: Set up Docker Buildx
+        id: buildx
+        if: ${{ inputs.enable_cache && (inputs.command == 'build' || (inputs.command == 'ci' && inputs.mode == 'e2e')) }}
+        uses: docker/setup-buildx-action@v3
+        with:
+          install: true
+
+      - name: Compute cache scope
+        id: cache-scope
+        if: ${{ inputs.enable_cache }}
+        env:
+          CACHE_PREFIX: ${{ inputs.cache_prefix }}
+          COMMAND: ${{ inputs.command }}
+          MODE: ${{ inputs.mode }}
+          FILTER: ${{ inputs.filter }}
+          ALL: ${{ inputs.all }}
+        run: |
+          set -euo pipefail
+
+          if [ -n "${CACHE_PREFIX}" ]; then
+            SCOPE="${CACHE_PREFIX}"
+          elif [ "${ALL}" = "true" ]; then
+            SCOPE="${COMMAND}-${MODE:-none}-all"
+          elif [ -n "${FILTER}" ]; then
+            SCOPE="${COMMAND}-${MODE:-none}-${FILTER}"
+          else
+            SCOPE="${COMMAND}-${MODE:-none}-none"
+          fi
+
+          SCOPE="$(printf '%s' "${SCOPE}" | tr -c 'A-Za-z0-9_.-' '-')"
+          echo "scope=${SCOPE}" >> "${GITHUB_OUTPUT}"
+
+      - name: Prepare cache directories
+        if: ${{ inputs.enable_cache }}
+        run: mkdir -p .nx/cache .control/cache/buildkit
+
+      - name: Restore Nx cache
+        if: ${{ inputs.enable_cache }}
+        uses: actions/cache@v4
+        with:
+          path: .nx/cache
+          key: control-nx-${{ runner.os }}-${{ github.ref_name }}-${{ hashFiles('bun.lock', 'package.json', 'nx.json', 'src/tooling/control/package.json', 'src/tooling/control/src/**/*.ts') }}
+          restore-keys: |
+            control-nx-${{ runner.os }}-${{ github.ref_name }}-
+            control-nx-${{ runner.os }}-
+
+      - name: Restore BuildKit cache
+        if: ${{ inputs.enable_cache && (inputs.command == 'build' || (inputs.command == 'ci' && inputs.mode == 'e2e')) }}
+        uses: actions/cache@v4
+        with:
+          path: .control/cache/buildkit
+          key: control-buildkit-${{ runner.os }}-${{ github.ref_name }}-${{ steps.cache-scope.outputs.scope }}-${{ hashFiles('bun.lock', 'nx.json', 'src/tooling/control/src/**/*.ts', 'src/systems/**/control.toml', 'src/systems/**/Dockerfile') }}
+          restore-keys: |
+            control-buildkit-${{ runner.os }}-${{ github.ref_name }}-${{ steps.cache-scope.outputs.scope }}-
+            control-buildkit-${{ runner.os }}-${{ github.ref_name }}-
+            control-buildkit-${{ runner.os }}-
+
       - name: Install control packages
         if: ${{ inputs.command == 'build' || (inputs.command == 'ci' && inputs.mode == 'e2e') }}
+        env:
+          NX_CACHE_DIRECTORY: ${{ github.workspace }}/.nx/cache
         run: bun i --linker=hoisted --filter @metorial/oss --filter @metorial/control
 
       - name: Install packages
         if: ${{ inputs.command == 'ci' && inputs.mode == 'unit' }}
+        env:
+          NX_CACHE_DIRECTORY: ${{ github.workspace }}/.nx/cache
         run: bun i --linker=hoisted
 
       - name: Generate Prisma Clients
         if: ${{ inputs.command == 'ci' && inputs.mode == 'unit' }}
+        env:
+          NX_CACHE_DIRECTORY: ${{ github.workspace }}/.nx/cache
         run: bun x nx run-many --target=prisma:generate --all --parallel=1
 
       - name: Build platform system clients
         if: ${{ inputs.command == 'ci' && inputs.mode == 'unit' }}
+        env:
+          NX_CACHE_DIRECTORY: ${{ github.workspace }}/.nx/cache
         run: bun x nx run-many --target=build --projects=@metorial-platform-systems/origin-client,@metorial-platform-systems/forge-client,@metorial-platform-systems/function-bay-client,@metorial-platform-systems/signal-client,@metorial-platform-systems/synthesis-client,@metorial-platform-systems/cargo-client,@metorial-platform-systems/ares-client,@metorial/mcp,@metorial/mcp-server,@metorial/mcp-transport-memory,@metorial-platform-systems/shuttle-client,@metorial-platform-systems/slates-client,@metorial-platform-systems/subspace-client
 
       - name: Run control
         env:
+          BUILDX_BUILDER: ${{ steps.buildx.outputs.name }}
+          CONTROL_BUILDKIT_CACHE: ${{ inputs.enable_cache && (inputs.command == 'build' || (inputs.command == 'ci' && inputs.mode == 'e2e')) && '1' || '0' }}
           CONTROL_VERBOSE: '1'
+          NX_CACHE_DIRECTORY: ${{ github.workspace }}/.nx/cache
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: |
           set -euo pipefail

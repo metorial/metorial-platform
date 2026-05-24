@@ -186,6 +186,7 @@ export let runControl = async (
   let cacheRoot = process.env.CONTROL_BUILDKIT_CACHE === '1'
     ? resolve(opts.session?.repoRoot ?? registry.controlRoot, '.control', 'cache', 'buildkit')
     : undefined;
+  if (cacheRoot) mkdirSync(cacheRoot, { recursive: true });
 
   writeFileSync(
     composeFile,

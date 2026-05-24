@@ -1,3 +1,4 @@
+import { existsSync } from 'fs';
 import { join, resolve } from 'path';
 import { stringify } from 'yaml';
 import type { ResolvedDep, ResolvedGraph } from '../types';
@@ -105,7 +106,7 @@ let composeBuild = (
     ...build,
     ...(cacheDir
       ? {
-          cache_from: [`type=local,src=${cacheDir}`],
+          ...(existsSync(cacheDir) ? { cache_from: [`type=local,src=${cacheDir}`] } : {}),
           cache_to: [`type=local,dest=${cacheDir},mode=max`]
         }
       : {})
