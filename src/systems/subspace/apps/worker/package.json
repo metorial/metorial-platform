@@ -6,7 +6,7 @@
   "scripts": {
     "start:dev": "bun --watch ./src/server.ts",
     "start": "bun ./src/server.ts",
-    "server:build": "ncc build ./src/server.ts -o ./dist --source-map --external bun:sqlite --external bun && bun run sentry:sourcemaps:if-token",
+    "server:build": "sh -c 'mv tsconfig.json tsconfig.json.bak && mv tsconfig.build.json tsconfig.json && ncc build ./src/server.ts -o ./dist --source-map --transpile-only --external bun:sqlite --external bun && bun run sentry:sourcemaps:if-token; BUILD_EXIT_CODE=$?; mv tsconfig.json tsconfig.build.json && mv tsconfig.json.bak tsconfig.json; exit $BUILD_EXIT_CODE'",
     "sentry:sourcemaps": "sentry-cli sourcemaps inject --org metorial --project mte-subspace-worker ./dist && sentry-cli sourcemaps upload --org metorial --project mte-subspace-worker ./dist",
     "sentry:sourcemaps:if-token": "sh -c 'if [ -n \"$SENTRY_AUTH_TOKEN\" ]; then bun run sentry:sourcemaps; else echo \"Skipping Sentry sourcemap upload\"; fi'",
     "test": "bun run test:unit && bun run test:e2e",

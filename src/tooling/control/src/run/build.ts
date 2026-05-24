@@ -1,4 +1,5 @@
-import { resolve } from 'path';
+import { existsSync, mkdirSync } from 'fs';
+import { dirname, resolve } from 'path';
 import { createBuildPlan, renderDockerfileForPlan } from '../builders';
 import { materializeBuildContext } from '../builders/context';
 import { collectServiceRunnerBuilds } from '../compose/builds';
@@ -9,7 +10,7 @@ import { getRegistry } from '../registry';
 import { planExecutionOrder } from '../graph/planner';
 import { createLogger } from '../log';
 import { formatBatchSummary, formatRunPlan, formatServiceHeader } from '../log/formatRunPlan';
-import { DockerError } from '../errors';
+import { ControlError, DockerError } from '../errors';
 import type { BatchResult, BatchServiceResult, BuildOptions, ControlService } from '../types';
 import { runShell } from './shell';
 
@@ -21,6 +22,11 @@ type BuildContext = {
 
 let imageTag = (opts: { tagPrefix: string; rootName: string; specName: string }) =>
   `${opts.tagPrefix}/${opts.rootName}-${opts.specName}:local`;
+
+let buildCacheDir = (opts: { controlRoot: string; rootName: string; specName: string }) =>
+  resolve(opts.controlRoot, '.control', 'cache', 'buildkit', `${opts.rootName}-${opts.specName}`);
+
+let shouldUseBuildCacheExport = () => process.env.CONTROL_BUILDKIT_CACHE === '1';
 
 let runBuildForService = async (
   opts: BuildOptions & { service: ControlService; context?: BuildContext }
@@ -60,9 +66,8 @@ let runBuildForService = async (
     if (targetService?.config.build?.mode && targetService.config.build.mode !== 'custom') {
       let plan = createBuildPlan(targetService, registry);
       if (!plan) {
-        throw new DockerError({
-          service: graph.name,
-          phase: 'build',
+        throw new ControlError({
+          code: 'build_plan_unavailable',
           message: `Unable to create build plan for ${targetService.name}`
         });
       }
@@ -88,6 +93,18 @@ let runBuildForService = async (
       '-t',
       tag
     ];
+    if (shouldUseBuildCacheExport()) {
+      let cacheDir = buildCacheDir({
+        controlRoot: registry.controlRoot,
+        rootName: graph.name,
+        specName: spec.name
+      });
+      mkdirSync(dirname(cacheDir), { recursive: true });
+      if (existsSync(cacheDir)) {
+        cmd.push('--cache-from', `type=local,src=${cacheDir}`);
+      }
+      cmd.push('--cache-to', `type=local,dest=${cacheDir},mode=max`);
+    }
 
     if (process.env.SENTRY_AUTH_TOKEN) {
       cmd.push('--build-arg', `SENTRY_AUTH_TOKEN=${process.env.SENTRY_AUTH_TOKEN}`);

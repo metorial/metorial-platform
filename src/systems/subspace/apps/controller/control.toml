@@ -13,7 +13,10 @@ context = "oss"
 project = "@metorial-subspace/app-controller"
 target = "server:build"
 dockerfile = "Dockerfile"
-extra_paths = ["//oss/src/systems/_shared/entityImage.ts"]
+extra_paths = [
+  "//oss/src/systems/_shared/entityImage.ts",
+  "//oss/src/systems/subspace/test-servers"
+]
 
 [[build.automations]]
 name = "subspace-controller-prisma"

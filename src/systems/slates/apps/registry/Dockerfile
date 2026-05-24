@@ -13,10 +13,13 @@ COPY _manifests/service/ ./
 RUN --mount=type=cache,id=control-bun-install,target=/root/.bun/install/cache,sharing=locked bun install --linker=hoisted
 FROM deps AS build
 WORKDIR /app
-COPY _inputs/ ./
-RUN --mount=type=cache,target=/app/.nx/cache cd /app && bun x nx run-many --target=prisma:generate --projects=@metorial/slates-registry
-RUN --mount=type=cache,target=/app/.nx/cache cd /app && bun x nx run-many --target=admin:build --projects=@metorial/slates-registry
-RUN --mount=type=cache,target=/app/.nx/cache cd /app && bun x nx run @metorial/slates-registry:server:build
+COPY _inputs/shared/ ./
+COPY _inputs/clients/ ./
+COPY _inputs/dependencies/ ./
+COPY _inputs/service/ ./
+RUN --mount=type=cache,id=control-nx-cache,target=/app/.nx/cache,sharing=locked cd /app && bun x nx run-many --target=prisma:generate --projects=@metorial/slates-registry
+RUN --mount=type=cache,id=control-nx-cache,target=/app/.nx/cache,sharing=locked cd /app && bun x nx run-many --target=admin:build --projects=@metorial/slates-registry
+RUN --mount=type=cache,id=control-nx-cache,target=/app/.nx/cache,sharing=locked cd /app && bun x nx run @metorial/slates-registry:server:build
 FROM build AS workspace
 WORKDIR /app/src/systems/slates/apps/registry
 CMD ["sleep", "infinity"]

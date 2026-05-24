@@ -104,6 +104,7 @@ export let createBasePlan = (opts: {
     ),
     inputPaths: inputs,
     installLayers,
+    sourceLayers: [],
     automations: [],
     codegenSteps: resolveBuildSteps({
       service: opts.service,

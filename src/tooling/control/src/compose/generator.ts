@@ -10,6 +10,7 @@ import type { DockerBuildConfig } from './builds';
 export type ComposeOptions = {
   postgresInitScripts?: Record<string, string>;
   buildContexts?: Record<string, Pick<DockerBuildConfig, 'context' | 'dockerfile'>>;
+  cacheRoot?: string;
 };
 
 let networkConfig = (alias: string) => ({
@@ -45,9 +46,8 @@ let envContext = (graph: ResolvedGraph) => ({
 let resolveControlServiceEnv = (dep: ResolvedDep, graph: ResolvedGraph): Record<string, string> => {
   if (!dep.children) return {};
 
-  let ctx = envContext(graph);
-  let childEnv = interpolateEnv(dep.children.config.env ?? {}, ctx);
-  let depEnv = dep.config.env ? interpolateEnv(dep.config.env, ctx) : {};
+  let childEnv = interpolateEnv(dep.children.config.env ?? {}, envContext(dep.children));
+  let depEnv = dep.config.env ? interpolateEnv(dep.config.env, envContext(graph)) : {};
   return mergeEnv(childEnv, depEnv);
 };
 
@@ -91,6 +91,28 @@ let applyBuildContext = (
   return { ...build, ...override };
 };
 
+let buildCacheDir = (opts: { cacheRoot?: string; name: string }) =>
+  opts.cacheRoot ? resolve(opts.cacheRoot, `${opts.name}`) : undefined;
+
+let composeBuild = (
+  name: string,
+  build: DockerBuildConfig,
+  composeOptions?: ComposeOptions
+) => {
+  let cacheDir = buildCacheDir({ cacheRoot: composeOptions?.cacheRoot, name });
+  return {
+    ...build,
+    ...(cacheDir
+      ? {
+          cache_from: [`type=local,src=${cacheDir}`],
+          cache_to: [`type=local,dest=${cacheDir},mode=max`]
+        }
+      : {})
+  };
+};
+
+let composeImage = (name: string) => `control/${name}:local`;
+
 let buildControlService = (
   dep: ResolvedDep,
   graph: ResolvedGraph,
@@ -105,7 +127,8 @@ let buildControlService = (
   let dependsOn = resolveControlDependsOn(dep, graph);
 
   return {
-    build,
+    image: composeImage(child.name),
+    build: composeBuild(child.name, build, composeOptions),
     container_name: containerName,
     restart: 'unless-stopped',
     environment: resolveControlServiceEnv(dep, graph),
@@ -212,19 +235,28 @@ let mockService = (dep: ResolvedDep, containerName: string) => {
   };
 };
 
-let inlineService = (dep: ResolvedDep, graph: ResolvedGraph, containerName: string) => {
+let inlineService = (
+  dep: ResolvedDep,
+  graph: ResolvedGraph,
+  containerName: string,
+  composeOptions?: ComposeOptions
+) => {
   let inline = typeof dep.config.inline === 'object' ? dep.config.inline : undefined;
   if (!inline) throw new Error(`Inline dependency ${dep.name} is missing [deps.inline] config`);
 
   let build = inline.build
-    ? {
+    ? applyBuildContext(
+        graph.name,
+        {
         context:
           inline.build.context === 'oss' ? graph.ossRoot : resolve(dep.sourceDir, inline.build.context),
         dockerfile: inline.build.dockerfile.startsWith('./')
           ? inline.build.dockerfile
           : `./${inline.build.dockerfile.replace(/^\.\//, '')}`,
         target: inline.build.target ?? 'workspace'
-      }
+        },
+        composeOptions
+      )
     : undefined;
 
   let health = inline.health?.cmd
@@ -237,7 +269,7 @@ let inlineService = (dep: ResolvedDep, graph: ResolvedGraph, containerName: stri
     volumes: {},
     service: {
       ...(inline.image ? { image: inline.image } : {}),
-      ...(build ? { build } : {}),
+      ...(build ? { build: composeBuild(`${graph.name}-${dep.name}`, build, composeOptions) } : {}),
       container_name: containerName,
       restart: 'unless-stopped',
       ...(dep.config.env
@@ -269,7 +301,7 @@ let buildLeafDep = (
     if (dep.config.preset === 'nats') return presetNats(dep, containerName);
   }
   if (dep.kind === 'mock') return mockService(dep, containerName);
-  if (dep.kind === 'inline') return inlineService(dep, graph, containerName);
+  if (dep.kind === 'inline') return inlineService(dep, graph, containerName, composeOptions);
   throw new Error(`Unhandled dependency ${dep.name}`);
 };
 
@@ -376,7 +408,8 @@ export let generateComposeServices = (
     : containerNameFor(projectName, 'service');
 
   services[runnerKey] = {
-    build,
+    image: composeImage(graph.name),
+    build: composeBuild(graph.name, build, composeOptions),
     container_name: runnerContainer,
     restart: 'unless-stopped',
     command: ['sh', '-c', 'sleep infinity'],

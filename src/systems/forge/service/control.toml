@@ -31,7 +31,7 @@ copy = [
 [build.runtime]
 base_image = "oven/bun:1.2-alpine"
 packages = ["curl"]
-env = { NODE_ENV = "production" }
+env = { NODE_ENV = "development" }
 expose = [52020]
 command = "bun prisma db push --accept-data-loss && bun /app/dist/index.js"
 healthcheck = "curl -f http://localhost:52020/ping && curl -f http://localhost:12121/ || exit 1"
@@ -56,8 +56,9 @@ OBJECT_STORAGE_URL = "http://$deps.object-store.52010"
 ARTIFACT_BUCKET_NAME = "artifacts-test"
 LOG_BUCKET_NAME = "logs-test"
 ENCRYPTION_KEY = "test-encryption-key-32-bytes!!"
-DEFAULT_PROVIDER = "aws.code-build"
+DEFAULT_PROVIDER = "local"
 CODE_BUILD_AWS_REGION = "us-east-1"
+NODE_ENV = "development"
 
 [[deps]]
 name = "postgres"

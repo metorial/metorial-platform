@@ -14,6 +14,7 @@ import {
   collectNxDependents,
   collectNxProjectClosure,
   getNxProjectRoot,
+  nxProjectHasTarget,
   readNxProjectGraph,
   renderNxRunManyCommand
 } from './nx';
@@ -25,6 +26,7 @@ import type {
   GeneratedBuildInstallLayer,
   GeneratedBuildPath,
   GeneratedBuildPlan,
+  GeneratedBuildSourceLayer,
   ServiceRegistry
 } from '../types';
 
@@ -76,6 +78,23 @@ let projectRootPath = (plan: GeneratedBuildPlan, projectRoot: string): Generated
   exists: true
 });
 
+let isClientProject = (
+  graph: ReturnType<typeof readNxProjectGraph>,
+  project: string
+): boolean => getNxProjectRoot(graph, project).startsWith('src/systems/_clients/');
+
+let collectServiceBuildProjects = (registry: ServiceRegistry): Set<string> => {
+  let projects = new Set<string>();
+
+  for (let service of registry.services) {
+    let build = service.config.build;
+    if (build?.builder !== 'node') continue;
+    if (build.project) projects.add(build.project);
+  }
+
+  return projects;
+};
+
 let resolveAutomationProjects = (opts: {
   plan: GeneratedBuildPlan;
   automation: ControlBuildAutomation;
@@ -95,7 +114,7 @@ let resolveAutomationProjects = (opts: {
 let renderAutomationCommand = (automation: GeneratedBuildAutomation): string => automation.command;
 
 let renderNxRun = (command: string): string =>
-  `RUN --mount=type=cache,target=/app/.nx/cache cd /app && ${command}`;
+  `RUN --mount=type=cache,id=control-nx-cache,target=/app/.nx/cache,sharing=locked cd /app && ${command}`;
 
 let collectNodeProjectUseCounts = (opts: {
   registry: ServiceRegistry;
@@ -210,58 +229,190 @@ let createNodeInstallLayers = (opts: {
     graph: opts.graph,
     contextRoot: opts.plan.contextRoot
   });
+  let serviceBuildProjects = collectServiceBuildProjects(opts.registry);
   let baseProjects = new Set<string>();
+  let clientProjects = new Set<string>();
   let dependencyProjects = new Set<string>();
   let serviceProjects = new Set<string>();
 
+  for (let [project, count] of useCounts) {
+    if (count <= 1) continue;
+    if (serviceBuildProjects.has(project)) continue;
+    baseProjects.add(project);
+  }
+
+  for (let project of [...baseProjects]) {
+    for (let dep of collectNxProjectClosure(opts.graph, [project])) {
+      baseProjects.add(dep);
+    }
+  }
+
   for (let project of opts.includedProjects) {
+    if (baseProjects.has(project)) continue;
     if (opts.serviceProjects.has(project)) {
       serviceProjects.add(project);
       continue;
     }
-    if ((useCounts.get(project) ?? 0) > 1) {
-      baseProjects.add(project);
+    if (isClientProject(opts.graph, project)) {
+      clientProjects.add(project);
       continue;
     }
     dependencyProjects.add(project);
+  }
+
+  for (let project of [...clientProjects]) {
+    for (let dep of collectNxProjectClosure(opts.graph, [project])) {
+      if (baseProjects.has(dep)) continue;
+      clientProjects.add(dep);
+    }
   }
 
   closeInstallLayerOrder({
     graph: opts.graph,
     includedProjects: opts.includedProjects,
     baseProjects,
+    dependencyProjects: clientProjects,
+    serviceProjects: dependencyProjects
+  });
+  closeInstallLayerOrder({
+    graph: opts.graph,
+    includedProjects: opts.includedProjects,
+    baseProjects: new Set([...baseProjects, ...clientProjects]),
     dependencyProjects,
     serviceProjects
   });
 
   let command = `bun install --linker=${opts.installLinker}`;
 
-  return [
+  return ([
     {
       name: 'base',
+      tier: 'shared',
       tool: 'bun',
       command,
       manifestFiles: projectManifestFiles(opts.plan, opts.graph, baseProjects)
     },
     {
+      name: 'clients',
+      tier: 'clients',
+      tool: 'bun',
+      command,
+      manifestFiles: projectManifestFiles(opts.plan, opts.graph, clientProjects)
+    },
+    {
       name: 'dependencies',
+      tier: 'dependencies',
       tool: 'bun',
       command,
       manifestFiles: projectManifestFiles(opts.plan, opts.graph, dependencyProjects)
     },
     {
       name: 'service',
+      tier: 'service',
       tool: 'bun',
       command,
       manifestFiles: projectManifestFiles(opts.plan, opts.graph, serviceProjects)
     }
-  ].filter(layer => layer.manifestFiles.length > 0);
+  ] satisfies GeneratedBuildInstallLayer[]).filter(layer => layer.manifestFiles.length > 0);
+};
+
+let createSourceLayers = (opts: {
+  plan: GeneratedBuildPlan;
+  graph: ReturnType<typeof readNxProjectGraph>;
+  projectsByTier: {
+    shared: Set<string>;
+    clients: Set<string>;
+    dependencies: Set<string>;
+    service: Set<string>;
+  };
+  extraPaths: GeneratedBuildPath[];
+}): GeneratedBuildSourceLayer[] => {
+  let projectPaths = (projects: Set<string>) =>
+    [...projects]
+      .sort((a, b) => a.localeCompare(b))
+      .map(project => projectRootPath(opts.plan, getNxProjectRoot(opts.graph, project)));
+
+  let layers: GeneratedBuildSourceLayer[] = [
+    {
+      name: 'shared',
+      tier: 'shared',
+      projects: [...opts.projectsByTier.shared].sort((a, b) => a.localeCompare(b)),
+      inputPaths: projectPaths(opts.projectsByTier.shared),
+      commands: []
+    },
+    {
+      name: 'clients',
+      tier: 'clients',
+      projects: [...opts.projectsByTier.clients].sort((a, b) => a.localeCompare(b)),
+      inputPaths: projectPaths(opts.projectsByTier.clients),
+      commands: []
+    },
+    {
+      name: 'dependencies',
+      tier: 'dependencies',
+      projects: [...opts.projectsByTier.dependencies].sort((a, b) => a.localeCompare(b)),
+      inputPaths: projectPaths(opts.projectsByTier.dependencies),
+      commands: []
+    },
+    {
+      name: 'service',
+      tier: 'service',
+      projects: [...opts.projectsByTier.service].sort((a, b) => a.localeCompare(b)),
+      inputPaths: [...projectPaths(opts.projectsByTier.service), ...opts.extraPaths],
+      commands: []
+    }
+  ];
+
+  return layers
+    .map(layer => ({ ...layer, commands: sourceLayerWarmCommands(opts.graph, layer) }))
+    .filter(layer => layer.inputPaths.length > 0);
+};
+
+let sourceLayerWarmCommands = (
+  graph: ReturnType<typeof readNxProjectGraph>,
+  layer: GeneratedBuildSourceLayer
+): string[] => {
+  if (layer.tier === 'clients' || layer.tier === 'service') return [];
+
+  let buildableProjects = layer.projects.filter(project =>
+    nxProjectHasTarget(graph, project, 'build')
+  );
+  if (buildableProjects.length === 0) return [];
+
+  return [
+    renderNxRunManyCommand({
+      target: 'build',
+      projects: buildableProjects.sort((a, b) => a.localeCompare(b))
+    })
+  ];
+};
+
+let projectsForManifestLayer = (
+  graph: ReturnType<typeof readNxProjectGraph>,
+  projects: Iterable<string>,
+  layer: GeneratedBuildInstallLayer | undefined
+): Set<string> => {
+  let manifestPaths = new Set(
+    (layer?.manifestFiles ?? []).map(file => file.relativeToContext)
+  );
+  let matched = new Set<string>();
+
+  for (let project of projects) {
+    let manifestPath = `${getNxProjectRoot(graph, project)}/package.json`;
+    if (manifestPaths.has(manifestPath)) matched.add(project);
+  }
+
+  return matched;
 };
 
 export let renderNodePrunedDockerfile = (plan: GeneratedBuildPlan): string => {
   let installLinker = plan.service.config.build?.install?.linker ?? 'hoisted';
   let systemPackages = plan.service.config.build?.install?.system_packages ?? ['ca-certificates'];
   let automationLines = plan.automations.map(automation => renderAutomationCommand(automation));
+  let sourceLayerLines = plan.sourceLayers.flatMap(layer => [
+    `COPY _inputs/${layer.name}/ ./`,
+    ...layer.commands.map(renderNxRun)
+  ]);
   let artifactLines = renderArtifactLines(plan);
   let exposeLines = plan.runtime.expose.map(port => `EXPOSE ${port}`);
 
@@ -279,7 +430,7 @@ export let renderNodePrunedDockerfile = (plan: GeneratedBuildPlan): string => {
     '',
     'FROM deps AS build',
     'WORKDIR /app',
-    'COPY _inputs/ ./',
+    ...sourceLayerLines,
     ...automationLines.map(renderNxRun),
     renderNxRun(`bun x nx run ${plan.project}:${plan.target}`),
     '',
@@ -361,10 +512,6 @@ export let nodeBuildBuilder: BuildBuilder = {
       });
     }
 
-    let inputPaths = [...includedProjects]
-      .sort((a, b) => a.localeCompare(b))
-      .map(project => projectRootPath(plan, getNxProjectRoot(graph, project)));
-
     let extraPaths = resolveBuildPaths({
       service,
       registry,
@@ -372,10 +519,6 @@ export let nodeBuildBuilder: BuildBuilder = {
       patterns: build.extra_paths,
       label: 'extra path'
     });
-
-    for (let extraPath of extraPaths) {
-      inputPaths.push(extraPath);
-    }
 
     plan.project = build.project;
     plan.target = build.target;
@@ -387,10 +530,61 @@ export let nodeBuildBuilder: BuildBuilder = {
       serviceProjects,
       installLinker: build.install?.linker ?? 'hoisted'
     });
+    let serviceBuildProjects = collectServiceBuildProjects(registry);
+    let installLayerByName = new Map(plan.installLayers.map(layer => [layer.name, layer]));
+    let projectsByTier = {
+      shared: projectsForManifestLayer(graph, includedProjects, installLayerByName.get('base')),
+      clients: projectsForManifestLayer(graph, includedProjects, installLayerByName.get('clients')),
+      dependencies: projectsForManifestLayer(
+        graph,
+        includedProjects,
+        installLayerByName.get('dependencies')
+      ),
+      service: projectsForManifestLayer(graph, includedProjects, installLayerByName.get('service'))
+    };
+    for (let project of [...projectsByTier.shared]) {
+      if (!serviceBuildProjects.has(project) && !isClientProject(graph, project)) continue;
+      projectsByTier.shared.delete(project);
+      if (isClientProject(graph, project)) {
+        projectsByTier.clients.add(project);
+      } else if (serviceProjects.has(project)) {
+        projectsByTier.service.add(project);
+      } else {
+        projectsByTier.dependencies.add(project);
+      }
+    }
+    for (let project of [...projectsByTier.clients]) {
+      if (isClientProject(graph, project)) continue;
+      projectsByTier.clients.delete(project);
+      if (serviceProjects.has(project)) {
+        projectsByTier.service.add(project);
+      } else {
+        projectsByTier.dependencies.add(project);
+      }
+    }
+    for (let project of includedProjects) {
+      if (
+        projectsByTier.shared.has(project) ||
+        projectsByTier.clients.has(project) ||
+        projectsByTier.dependencies.has(project) ||
+        projectsByTier.service.has(project)
+      ) {
+        continue;
+      }
+      projectsByTier.service.add(project);
+    }
+    plan.sourceLayers = createSourceLayers({
+      plan,
+      graph,
+      projectsByTier,
+      extraPaths
+    });
     plan.manifestFiles = plan.installLayers
       .flatMap(layer => layer.manifestFiles)
       .sort((a, b) => a.relativeToContext.localeCompare(b.relativeToContext));
-    plan.inputPaths = inputPaths.sort((a, b) => a.relativeToContext.localeCompare(b.relativeToContext));
+    plan.inputPaths = plan.sourceLayers
+      .flatMap(layer => layer.inputPaths)
+      .sort((a, b) => a.relativeToContext.localeCompare(b.relativeToContext));
     plan.automations = resolvedAutomations;
     plan.codegenSteps = [];
     plan.prebuildSteps = [];

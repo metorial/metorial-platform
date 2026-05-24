@@ -10,7 +10,7 @@ COPY oss/src/systems/origin/apps/code-bucket/package.json ./oss/src/systems/orig
 COPY oss/src/systems/origin/apps/code-workspace/extensions/memfs/package.json ./oss/src/systems/origin/apps/code-workspace/extensions/memfs/
 COPY oss/src/systems/origin/apps/code-workspace/package.json ./oss/src/systems/origin/apps/code-workspace/
 RUN --mount=type=cache,id=control-bun-install,target=/root/.bun/install/cache,sharing=locked cd /app/oss/src/systems/origin/apps/code-workspace && bun install --linker=hoisted
-RUN --mount=type=cache,target=/go/pkg/mod cd /app/oss/src/systems/origin/apps/code-bucket && go mod download
+RUN --mount=type=cache,id=control-go-mod,target=/go/pkg/mod,sharing=locked cd /app/oss/src/systems/origin/apps/code-bucket && go mod download
 FROM deps AS build
 WORKDIR /app
 COPY oss/src/systems/origin/apps/code-bucket/cmd ./oss/src/systems/origin/apps/code-bucket/cmd/
@@ -24,7 +24,7 @@ COPY oss/src/systems/origin/apps/code-bucket/ts-proto-gen ./oss/src/systems/orig
 COPY oss/src/systems/origin/apps/code-workspace ./oss/src/systems/origin/apps/code-workspace/
 RUN cd /app/oss/src/systems/origin/apps/code-workspace && bunx tsc && bunx vite build
 RUN cd /app/oss/src/systems/origin/apps/code-bucket && rm -rf pkg/workspace/dist && mkdir -p pkg/workspace && cp -R ../code-workspace/dist pkg/workspace/dist
-RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build cd /app/oss/src/systems/origin/apps/code-bucket && CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o /tmp/code-bucket ./cmd/server
+RUN --mount=type=cache,id=control-go-mod,target=/go/pkg/mod,sharing=locked --mount=type=cache,id=control-go-build,target=/root/.cache/go-build,sharing=locked cd /app/oss/src/systems/origin/apps/code-bucket && CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o /tmp/code-bucket ./cmd/server
 FROM build AS workspace
 WORKDIR /app/oss/src/systems/origin/apps/code-bucket
 CMD ["sleep", "infinity"]

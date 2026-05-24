@@ -13,12 +13,12 @@ COPY src/systems/object-storage/service/Cargo.lock ./src/systems/object-storage/
 COPY src/systems/object-storage/service/Cargo.toml ./src/systems/object-storage/service/
 COPY src/systems/object-storage/service/object-store-backends/Cargo.toml ./src/systems/object-storage/service/object-store-backends/
 COPY src/systems/object-storage/service/object-store/Cargo.toml ./src/systems/object-storage/service/object-store/
-RUN --mount=type=cache,target=/usr/local/cargo/registry --mount=type=cache,target=/usr/local/cargo/git cd /app/src/systems/object-storage/service && mkdir -p object-store/src object-store-backends/src && echo "fn main() {}" > object-store/src/main.rs && echo "pub fn dummy() {}" > object-store/src/lib.rs && echo "pub fn dummy() {}" > object-store-backends/src/lib.rs && cargo build --release && rm -rf object-store/src object-store-backends/src
+RUN --mount=type=cache,id=control-cargo-registry,target=/usr/local/cargo/registry,sharing=locked --mount=type=cache,id=control-cargo-git,target=/usr/local/cargo/git,sharing=locked --mount=type=cache,id=control-cargo-target,target=/app/target,sharing=locked cd /app/src/systems/object-storage/service && mkdir -p object-store/src object-store-backends/src && echo "fn main() {}" > object-store/src/main.rs && echo "pub fn dummy() {}" > object-store/src/lib.rs && echo "pub fn dummy() {}" > object-store-backends/src/lib.rs && cargo build --release && rm -rf object-store/src object-store-backends/src
 FROM deps AS build
 WORKDIR /app
 COPY src/systems/object-storage/service/object-store ./src/systems/object-storage/service/object-store/
 COPY src/systems/object-storage/service/object-store-backends ./src/systems/object-storage/service/object-store-backends/
-RUN --mount=type=cache,target=/usr/local/cargo/registry --mount=type=cache,target=/usr/local/cargo/git cd /app/src/systems/object-storage/service && cargo build --release --bin object-store-service
+RUN --mount=type=cache,id=control-cargo-registry,target=/usr/local/cargo/registry,sharing=locked --mount=type=cache,id=control-cargo-git,target=/usr/local/cargo/git,sharing=locked --mount=type=cache,id=control-cargo-target,target=/app/target,sharing=locked cd /app/src/systems/object-storage/service && cargo build --release --bin object-store-service
 FROM build AS workspace
 WORKDIR /app/src/systems/object-storage/service
 CMD ["sleep", "infinity"]

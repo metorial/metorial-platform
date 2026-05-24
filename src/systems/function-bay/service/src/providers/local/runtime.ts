@@ -42,6 +42,10 @@ export let getRuntime = async (
   )}`;
 
   let runtime = persistedRuntimes.get(identifier);
+  if (runtime && !(await db.runtime.findUnique({ where: { oid: runtime.oid } }))) {
+    persistedRuntimes.delete(identifier);
+    runtime = undefined;
+  }
 
   if (!runtime) {
     let name = getRuntimeName(spec);

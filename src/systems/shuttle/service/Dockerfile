@@ -9,13 +9,14 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
   ca-certificates && rm -rf /var/lib/apt/lists/*
 COPY _manifests/base/ ./
 RUN --mount=type=cache,id=control-bun-install,target=/root/.bun/install/cache,sharing=locked bun install --linker=hoisted
-COPY _manifests/service/ ./
-RUN --mount=type=cache,id=control-bun-install,target=/root/.bun/install/cache,sharing=locked bun install --linker=hoisted
 FROM deps AS build
 WORKDIR /app
-COPY _inputs/ ./
-RUN --mount=type=cache,target=/app/.nx/cache cd /app && bun x nx run-many --target=prisma:generate --projects=@metorial/forge,@metorial/function-bay,@metorial/shuttle
-RUN --mount=type=cache,target=/app/.nx/cache cd /app && bun x nx run @metorial/shuttle:server:build
+COPY _inputs/shared/ ./
+RUN --mount=type=cache,id=control-nx-cache,target=/app/.nx/cache,sharing=locked cd /app && bun x nx run-many --target=build --projects=@function-bay/types,@metorial/mcp,@metorial/mcp-server,@metorial/mcp-transport-memory
+COPY _inputs/clients/ ./
+COPY _inputs/service/ ./
+RUN --mount=type=cache,id=control-nx-cache,target=/app/.nx/cache,sharing=locked cd /app && bun x nx run-many --target=prisma:generate --projects=@metorial/forge,@metorial/function-bay,@metorial/shuttle
+RUN --mount=type=cache,id=control-nx-cache,target=/app/.nx/cache,sharing=locked cd /app && bun x nx run @metorial/shuttle:server:build
 FROM build AS workspace
 WORKDIR /app/src/systems/shuttle/service
 CMD ["sleep", "infinity"]

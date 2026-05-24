@@ -272,12 +272,21 @@ export type GeneratedBuildAutomation = {
 
 export type GeneratedBuildInstallLayer = {
   name: string;
+  tier?: 'shared' | 'clients' | 'dependencies' | 'service';
   tool: 'bun' | 'go' | 'cargo' | 'custom';
   command: string;
   cwd?: string;
   cwdAbsolute?: string;
   cwdRelativeToContext?: string;
   manifestFiles: GeneratedBuildPath[];
+};
+
+export type GeneratedBuildSourceLayer = {
+  name: string;
+  tier: 'shared' | 'clients' | 'dependencies' | 'service';
+  inputPaths: GeneratedBuildPath[];
+  projects: string[];
+  commands: string[];
 };
 
 export type GeneratedBuildArtifact = {
@@ -298,6 +307,7 @@ export type GeneratedBuildPlan = {
   manifestFiles: GeneratedBuildPath[];
   inputPaths: GeneratedBuildPath[];
   installLayers: GeneratedBuildInstallLayer[];
+  sourceLayers: GeneratedBuildSourceLayer[];
   automations: GeneratedBuildAutomation[];
   codegenSteps: GeneratedBuildStep[];
   prebuildSteps: GeneratedBuildStep[];

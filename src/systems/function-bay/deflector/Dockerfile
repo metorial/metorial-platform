@@ -6,12 +6,12 @@ ENV GOTOOLCHAIN=auto
 RUN --mount=type=cache,target=/var/cache/apk apk add --cache-dir /var/cache/apk git ca-certificates
 COPY src/systems/function-bay/deflector/go.mod ./src/systems/function-bay/deflector/
 COPY src/systems/function-bay/deflector/go.sum ./src/systems/function-bay/deflector/
-RUN --mount=type=cache,target=/go/pkg/mod cd /app/src/systems/function-bay/deflector && go mod download
+RUN --mount=type=cache,id=control-go-mod,target=/go/pkg/mod,sharing=locked cd /app/src/systems/function-bay/deflector && go mod download
 FROM deps AS build
 WORKDIR /app
 COPY src/systems/function-bay/deflector/cmd ./src/systems/function-bay/deflector/cmd/
 COPY src/systems/function-bay/deflector/internal ./src/systems/function-bay/deflector/internal/
-RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build cd /app/src/systems/function-bay/deflector && CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /tmp/deflector ./cmd/deflector
+RUN --mount=type=cache,id=control-go-mod,target=/go/pkg/mod,sharing=locked --mount=type=cache,id=control-go-build,target=/root/.cache/go-build,sharing=locked cd /app/src/systems/function-bay/deflector && CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /tmp/deflector ./cmd/deflector
 FROM build AS workspace
 WORKDIR /app/src/systems/function-bay/deflector
 CMD ["sleep", "infinity"]

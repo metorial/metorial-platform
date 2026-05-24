@@ -1,5 +1,5 @@
 import { mkdirSync, writeFileSync, chmodSync } from 'fs';
-import { join, relative } from 'path';
+import { join, relative, resolve } from 'path';
 import { generateCompose, collectContainerNames } from '../compose/generator';
 import { createBuildPlan, renderDockerfileForPlan } from '../builders';
 import { materializeBuildContext } from '../builders/context';
@@ -182,7 +182,18 @@ export let runControl = async (
 
   let composeFile = join(runDir, 'compose.yml');
   let envFile = join(runDir, '.env.control');
-  writeFileSync(composeFile, generateCompose(graph, projectName, { postgresInitScripts, buildContexts }));
+  let cacheRoot = process.env.CONTROL_BUILDKIT_CACHE === '1'
+    ? resolve(opts.session?.repoRoot ?? registry.controlRoot, '.control', 'cache', 'buildkit')
+    : undefined;
+
+  writeFileSync(
+    composeFile,
+    generateCompose(graph, projectName, {
+      postgresInitScripts,
+      buildContexts,
+      cacheRoot
+    })
+  );
 
   let envLines = Object.entries(graph.env).map(([k, v]) => `${k}=${JSON.stringify(v).slice(1, -1)}`);
   writeFileSync(envFile, envLines.join('\n') + '\n');

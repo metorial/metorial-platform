@@ -42,19 +42,19 @@ let createNxConfig = (scope: 'repo' | 'oss' = 'repo') => ({
     },
     'server:build': {
       cache: true,
-      dependsOn: ['prisma:generate', '^build', '^server:build'],
+      dependsOn: ['prisma:generate', '^build'],
       inputs: ['production', '^production'],
       outputs: ['{projectRoot}/dist/**']
     },
     'frontend:build': {
       cache: true,
-      dependsOn: ['^build', '^frontend:build'],
+      dependsOn: ['^build'],
       inputs: ['production', '^production'],
       outputs: ['{projectRoot}/dist/**', '{projectRoot}/frontend/dist/**']
     },
     'worker:build': {
       cache: true,
-      dependsOn: ['prisma:generate', '^build', '^worker:build'],
+      dependsOn: ['prisma:generate', '^build'],
       inputs: ['production', '^production'],
       outputs: ['{projectRoot}/dist-worker/**']
     },

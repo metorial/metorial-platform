@@ -15,6 +15,7 @@ type NxGraphProjectNode = {
     root: string;
     name?: string;
     metadata?: Record<string, unknown>;
+    targets?: Record<string, unknown>;
   };
 };
 
@@ -74,6 +75,12 @@ export let getNxProjectRoot = (graph: NxProjectGraph, project: string): string =
 
   return normalize(node.data.root);
 };
+
+export let nxProjectHasTarget = (
+  graph: NxProjectGraph,
+  project: string,
+  target: string
+): boolean => !!graph.nodes[project]?.data.targets?.[target];
 
 let internalDependenciesOf = (graph: NxProjectGraph, project: string): string[] =>
   (graph.dependencies[project] ?? [])

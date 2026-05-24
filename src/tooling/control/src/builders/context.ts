@@ -100,11 +100,6 @@ let materializeNodeContext = async (opts: {
   contextRoot: string;
   sourceRoot: string;
 }): Promise<string> => {
-  let inputPaths = new Set<string>(opts.plan.inputPaths.map(path => path.relativeToContext));
-  for (let file of rootInputFilesForPlan(opts.sourceRoot)) {
-    inputPaths.add(resolveRelativeToRoot(opts.sourceRoot, file));
-  }
-
   for (let i = 0; i < opts.plan.installLayers.length; i++) {
     let layer = opts.plan.installLayers[i]!;
     let manifestPaths = new Set<string>();
@@ -133,11 +128,19 @@ let materializeNodeContext = async (opts: {
     );
   }
 
-  await copyGitAwareSelection({
-    sourceRoot: opts.sourceRoot,
-    destRoot: join(opts.contextRoot, '_inputs'),
-    includePaths: [...inputPaths].sort((a, b) => a.localeCompare(b))
-  });
+  for (let layer of opts.plan.sourceLayers) {
+    let inputPaths = new Set<string>(layer.inputPaths.map(path => path.relativeToContext));
+
+    for (let file of rootInputFilesForPlan(opts.sourceRoot)) {
+      inputPaths.add(resolveRelativeToRoot(opts.sourceRoot, file));
+    }
+
+    await copyGitAwareSelection({
+      sourceRoot: opts.sourceRoot,
+      destRoot: join(opts.contextRoot, '_inputs', layer.name),
+      includePaths: [...inputPaths].sort((a, b) => a.localeCompare(b))
+    });
+  }
 
   return renderNodePrunedDockerfile(opts.plan);
 };

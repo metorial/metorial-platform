@@ -34,8 +34,7 @@
       "cache": true,
       "dependsOn": [
         "prisma:generate",
-        "^build",
-        "^server:build"
+        "^build"
       ],
       "inputs": [
         "production",
@@ -48,8 +47,7 @@
     "frontend:build": {
       "cache": true,
       "dependsOn": [
-        "^build",
-        "^frontend:build"
+        "^build"
       ],
       "inputs": [
         "production",
@@ -64,8 +62,7 @@
       "cache": true,
       "dependsOn": [
         "prisma:generate",
-        "^build",
-        "^worker:build"
+        "^build"
       ],
       "inputs": [
         "production",

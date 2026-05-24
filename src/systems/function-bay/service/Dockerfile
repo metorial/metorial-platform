@@ -9,13 +9,14 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
   ca-certificates && rm -rf /var/lib/apt/lists/*
 COPY _manifests/base/ ./
 RUN --mount=type=cache,id=control-bun-install,target=/root/.bun/install/cache,sharing=locked bun install --linker=hoisted
-COPY _manifests/service/ ./
-RUN --mount=type=cache,id=control-bun-install,target=/root/.bun/install/cache,sharing=locked bun install --linker=hoisted
 FROM deps AS build
 WORKDIR /app
-COPY _inputs/ ./
-RUN --mount=type=cache,target=/app/.nx/cache cd /app && bun x nx run-many --target=prisma:generate --projects=@metorial/forge,@metorial/function-bay
-RUN --mount=type=cache,target=/app/.nx/cache cd /app && bun x nx run @metorial/function-bay:server:build
+COPY _inputs/shared/ ./
+RUN --mount=type=cache,id=control-nx-cache,target=/app/.nx/cache,sharing=locked cd /app && bun x nx run-many --target=build --projects=@function-bay/types
+COPY _inputs/clients/ ./
+COPY _inputs/service/ ./
+RUN --mount=type=cache,id=control-nx-cache,target=/app/.nx/cache,sharing=locked cd /app && bun x nx run-many --target=prisma:generate --projects=@metorial/forge,@metorial/function-bay
+RUN --mount=type=cache,id=control-nx-cache,target=/app/.nx/cache,sharing=locked cd /app && bun x nx run @metorial/function-bay:server:build
 FROM build AS workspace
 WORKDIR /app/src/systems/function-bay/service
 CMD ["sleep", "infinity"]
@@ -26,7 +27,7 @@ COPY --from=build /app/src/systems/function-bay/service/dist /app/dist
 COPY --from=build /app/src/systems/function-bay/service/prisma /app/prisma
 COPY --from=build /app/src/systems/function-bay/service/prisma.config.ts /app/prisma.config.ts
 COPY --from=build /app/node_modules /app/node_modules
-ENV NODE_ENV="production"
+ENV NODE_ENV="development"
 EXPOSE 52030
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD curl -f http://localhost:52030/ping && curl -f http://localhost:12121/ || exit 1

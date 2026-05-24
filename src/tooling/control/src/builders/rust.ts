@@ -26,7 +26,7 @@ let defaultRustRuntime = defaultRuntime(undefined, {
 });
 
 let renderCargoCacheMounts = () =>
-  '--mount=type=cache,target=/usr/local/cargo/registry --mount=type=cache,target=/usr/local/cargo/git';
+  '--mount=type=cache,id=control-cargo-registry,target=/usr/local/cargo/registry,sharing=locked --mount=type=cache,id=control-cargo-git,target=/usr/local/cargo/git,sharing=locked --mount=type=cache,id=control-cargo-target,target=/app/target,sharing=locked';
 
 let renderRustDockerfile = (plan: GeneratedBuildPlan): string => {
   let builderImage = plan.service.config.build?.builder_image?.image ?? 'rust:1.91-slim';

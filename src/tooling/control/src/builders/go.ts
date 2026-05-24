@@ -36,7 +36,7 @@ let renderGoDockerfile = (plan: GeneratedBuildPlan): string => {
       layer.tool === 'bun'
         ? '--mount=type=cache,id=control-bun-install,target=/root/.bun/install/cache,sharing=locked '
         : layer.tool === 'go'
-          ? '--mount=type=cache,target=/go/pkg/mod '
+          ? '--mount=type=cache,id=control-go-mod,target=/go/pkg/mod,sharing=locked '
           : '';
     return `RUN ${cacheMount}cd ${cwd} && ${formatRunStep(layer.command)}`;
   });
@@ -64,13 +64,13 @@ let renderGoDockerfile = (plan: GeneratedBuildPlan): string => {
     ...renderApkInstall(systemPackages),
     ...manifestLines,
     ...installLayerLines,
-    `RUN --mount=type=cache,target=/go/pkg/mod cd ${plan.workspaceRoot} && go mod download`,
+    `RUN --mount=type=cache,id=control-go-mod,target=/go/pkg/mod,sharing=locked cd ${plan.workspaceRoot} && go mod download`,
     '',
     'FROM deps AS build',
     'WORKDIR /app',
     ...inputLines,
     ...prebuildLines,
-    `RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build cd ${plan.workspaceRoot} && ${buildCommandForPlan(plan)}`,
+    `RUN --mount=type=cache,id=control-go-mod,target=/go/pkg/mod,sharing=locked --mount=type=cache,id=control-go-build,target=/root/.cache/go-build,sharing=locked cd ${plan.workspaceRoot} && ${buildCommandForPlan(plan)}`,
     '',
     'FROM build AS workspace',
     `WORKDIR ${plan.workspaceRoot}`,

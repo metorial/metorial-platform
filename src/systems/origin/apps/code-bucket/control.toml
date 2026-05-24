@@ -82,7 +82,7 @@ cwd = "/app/src/systems/origin/apps/code-bucket"
 
 [test.e2e]
 command = "go test ./pkg/util -run TestNormalizePath"
-cwd = "/app/src/systems/origin/apps/code-bucket"
+cwd = "/app/oss/src/systems/origin/apps/code-bucket"
 runner = "service"
 
 [env]

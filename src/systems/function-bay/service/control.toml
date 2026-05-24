@@ -31,7 +31,7 @@ copy = [
 [build.runtime]
 base_image = "oven/bun:1.2-alpine"
 packages = ["curl"]
-env = { NODE_ENV = "production" }
+env = { NODE_ENV = "development" }
 expose = [52030]
 command = "bun prisma db push --accept-data-loss && bun /app/dist/index.js"
 healthcheck = "curl -f http://localhost:52030/ping && curl -f http://localhost:12121/ || exit 1"
@@ -56,8 +56,9 @@ OBJECT_STORAGE_URL = "http://$deps.object-store.52010"
 BUNDLE_BUCKET_NAME = "bundles"
 ENCRYPTION_KEY = "ci-encryption-key-32-bytes!!!!"
 FORGE_API_URL = "http://$deps.forge.52020/metorial-forge"
-DEFAULT_PROVIDER = "aws.lambda"
+DEFAULT_PROVIDER = "local"
 LAMBDA_AWS_REGION = "us-east-1"
+NODE_ENV = "development"
 
 [[deps]]
 name = "postgres"

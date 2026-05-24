@@ -14,7 +14,10 @@ context = "oss"
 project = "@metorial-cargo/service"
 target = "server:build"
 dockerfile = "Dockerfile"
-extra_paths = ["//oss/src/systems/_shared/entityImage.ts"]
+extra_paths = [
+  "//oss/src/systems/_clients/cargo/src/index.ts",
+  "//oss/src/systems/_shared/entityImage.ts"
+]
 
 [[build.automations]]
 name = "cargo-db-prisma"
