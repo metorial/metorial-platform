@@ -2,7 +2,7 @@
 name = "subspace-worker"
 
 [service]
-dockerfile = "src/systems/subspace/apps/worker/Dockerfile.generated"
+dockerfile = "src/systems/subspace/apps/worker/Dockerfile"
 build_context = "oss"
 health = { cmd = "curl -f http://localhost:12121/ || exit 1" }
 
@@ -12,7 +12,8 @@ mode = "generated"
 context = "oss"
 project = "@metorial-subspace/app-worker"
 target = "server:build"
-dockerfile = "Dockerfile.generated"
+dockerfile = "Dockerfile"
+extra_paths = ["//oss/src/systems/_shared/entityImage.ts"]
 
 [[build.automations]]
 name = "subspace-worker-prisma"

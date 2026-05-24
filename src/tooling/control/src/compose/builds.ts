@@ -18,7 +18,7 @@ export let resolveBuild = (
   let svc = graph.config.service!;
   let usesGeneratedDockerfile = !!(graph.config.build?.mode && graph.config.build.mode !== 'custom');
   let generatedDockerfile = usesGeneratedDockerfile
-    ? graph.config.build?.dockerfile ?? 'Dockerfile.generated'
+    ? graph.config.build?.dockerfile ?? 'Dockerfile'
     : undefined;
   let dockerfile = generatedDockerfile ?? svc.dockerfile ?? 'Dockerfile';
   let target = svc.docker_target ?? (opts?.role === 'test-runner' ? 'workspace' : 'runner');
@@ -100,4 +100,10 @@ export let collectRunnerBuilds = (graph: ResolvedGraph): DockerBuildSpec[] => {
   }
 
   return [...specs.values()].sort((a, b) => a.name.localeCompare(b.name));
+};
+
+export let collectServiceRunnerBuilds = (graph: ResolvedGraph): DockerBuildSpec[] => {
+  let specs = new Map<string, DockerBuildSpec>();
+  addRunnerBuild(specs, graph.name, graph);
+  return [...specs.values()];
 };

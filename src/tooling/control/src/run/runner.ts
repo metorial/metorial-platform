@@ -1,6 +1,8 @@
 import { mkdirSync, writeFileSync, chmodSync } from 'fs';
-import { join } from 'path';
+import { join, relative } from 'path';
 import { generateCompose, collectContainerNames } from '../compose/generator';
+import { createBuildPlan, renderDockerfileForPlan } from '../builders';
+import { materializeBuildContext } from '../builders/context';
 import { generatePostgresInitScript } from '../compose/databaseInit';
 import { postgresDatabasesForDep } from '../graph/databases';
 import { resolveGraph } from '../graph/resolver';
@@ -16,10 +18,14 @@ import type {
   BatchServiceResult,
   ControlService,
   RunOptions,
-  RunPhase
+  RunPhase,
+  ResolvedGraph,
+  ServiceRegistry,
+  WorkspaceSession
 } from '../types';
 import { runShell } from './shell';
 import { runUnitTargets } from './unit';
+import type { DockerBuildConfig } from '../compose/builds';
 
 type RunControlContext = {
   index: number;
@@ -80,6 +86,49 @@ let waitForServices = async (opts: {
   throw new HealthTimeoutError({ containers: finalStatuses });
 };
 
+let collectMaterializedBuildContexts = async (opts: {
+  graph: ResolvedGraph;
+  registry: ServiceRegistry;
+  session?: WorkspaceSession | null;
+}): Promise<Record<string, Pick<DockerBuildConfig, 'context' | 'dockerfile'>>> => {
+  let contexts: Record<string, Pick<DockerBuildConfig, 'context' | 'dockerfile'>> = {};
+  let seen = new Set<string>();
+
+  let visit = async (graph: ResolvedGraph) => {
+    if (!seen.has(graph.name)) {
+      seen.add(graph.name);
+      let service = opts.registry.byName.get(graph.name);
+
+      if (service?.config.build?.mode && service.config.build.mode !== 'custom') {
+        let plan = createBuildPlan(service, opts.registry);
+        if (plan) {
+          let renderedDockerfile = renderDockerfileForPlan(plan);
+          let materialized = await materializeBuildContext({
+            plan,
+            registry: opts.registry,
+            session: opts.session ?? null,
+            renderedDockerfile
+          });
+
+          contexts[graph.name] = {
+            context: materialized.root,
+            dockerfile: `./${relative(materialized.root, materialized.dockerfilePath).replace(/\\/g, '/')}`
+          };
+        }
+      }
+    }
+
+    for (let dep of graph.deps) {
+      if (dep.kind === 'control' && dep.children) {
+        await visit(dep.children);
+      }
+    }
+  };
+
+  await visit(opts.graph);
+  return contexts;
+};
+
 export let runControl = async (
   opts: RunOptions & { target: string; context?: RunControlContext }
 ) => {
@@ -112,6 +161,12 @@ export let runControl = async (
   let runDir = join(repoRoot, '.control', 'runs', runId);
   mkdirSync(runDir, { recursive: true });
 
+  let buildContexts = await collectMaterializedBuildContexts({
+    graph,
+    registry,
+    session: opts.session ?? null
+  });
+
   let postgresInitScripts: Record<string, string> = {};
   for (let dep of graph.deps) {
     if (dep.kind !== 'preset' || dep.config.preset !== 'postgres') continue;
@@ -127,7 +182,7 @@ export let runControl = async (
 
   let composeFile = join(runDir, 'compose.yml');
   let envFile = join(runDir, '.env.control');
-  writeFileSync(composeFile, generateCompose(graph, projectName, { postgresInitScripts }));
+  writeFileSync(composeFile, generateCompose(graph, projectName, { postgresInitScripts, buildContexts }));
 
   let envLines = Object.entries(graph.env).map(([k, v]) => `${k}=${JSON.stringify(v).slice(1, -1)}`);
   writeFileSync(envFile, envLines.join('\n') + '\n');

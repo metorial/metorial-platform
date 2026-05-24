@@ -1,7 +1,7 @@
 import { resolve } from 'path';
 import { createBuildPlan, renderDockerfileForPlan } from '../builders';
 import { materializeBuildContext } from '../builders/context';
-import { collectRunnerBuilds } from '../compose/builds';
+import { collectServiceRunnerBuilds } from '../compose/builds';
 import { resolveGraph } from '../graph/resolver';
 import { resolveControlDir, resolveEntrypoint, resolveControlCwd } from '../entrypoint';
 import { resolveStagedEntrypoint } from '../staging/session';
@@ -46,7 +46,7 @@ let runBuildForService = async (
     );
   }
 
-  let specs = collectRunnerBuilds(graph);
+  let specs = collectServiceRunnerBuilds(graph);
   logger.info(`Building ${specs.length} runner image(s) for ${graph.name}...`);
 
   for (let spec of specs) {

@@ -2,7 +2,13 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'fs';
 import { dirname, join, relative, resolve } from 'path';
 import { ControlError } from '../errors';
 import { copyGitAwareSelection } from '../staging/copyTree';
-import type { GeneratedBuildPlan, ServiceRegistry, WorkspaceSession } from '../types';
+import type {
+  GeneratedBuildInstallLayer,
+  GeneratedBuildPath,
+  GeneratedBuildPlan,
+  ServiceRegistry,
+  WorkspaceSession
+} from '../types';
 import { renderNodePrunedDockerfile } from './node';
 
 export type MaterializedBuildContext = {
@@ -51,7 +57,7 @@ let resolveSourceRoot = (opts: {
 };
 
 let renderSyntheticWorkspacePackageJson = (opts: {
-  plan: GeneratedBuildPlan;
+  manifestFiles: GeneratedBuildPath[];
   sourceRoot: string;
 }): string => {
   let packageJsonPath = resolve(opts.sourceRoot, 'package.json');
@@ -65,7 +71,7 @@ let renderSyntheticWorkspacePackageJson = (opts: {
   let base = JSON.parse(readFileSync(packageJsonPath, 'utf8')) as Record<string, unknown>;
   let workspaces = new Set<string>();
 
-  for (let manifest of opts.plan.manifestFiles) {
+  for (let manifest of opts.manifestFiles) {
     let dir = dirname(manifest.relativeToContext).replace(/\\/g, '/');
     if (!dir || dir === '.') continue;
     workspaces.add(dir);
@@ -76,36 +82,56 @@ let renderSyntheticWorkspacePackageJson = (opts: {
   return `${JSON.stringify(base, null, 2)}\n`;
 };
 
+let cumulativeManifestFiles = (
+  layers: GeneratedBuildInstallLayer[],
+  index: number
+): GeneratedBuildPath[] => {
+  let files = new Map<string, GeneratedBuildPath>();
+  for (let i = 0; i <= index; i++) {
+    for (let file of layers[i]?.manifestFiles ?? []) {
+      files.set(file.relativeToContext, file);
+    }
+  }
+  return [...files.values()].sort((a, b) => a.relativeToContext.localeCompare(b.relativeToContext));
+};
+
 let materializeNodeContext = async (opts: {
   plan: GeneratedBuildPlan;
   contextRoot: string;
   sourceRoot: string;
 }): Promise<string> => {
-  let manifestPaths = new Set<string>();
-
-  for (let file of rootFilesForPlan(opts.sourceRoot)) {
-    manifestPaths.add(resolveRelativeToRoot(opts.sourceRoot, file));
-  }
-
-  for (let file of opts.plan.manifestFiles) {
-    manifestPaths.add(file.relativeToContext);
-  }
-
   let inputPaths = new Set<string>(opts.plan.inputPaths.map(path => path.relativeToContext));
   for (let file of rootInputFilesForPlan(opts.sourceRoot)) {
     inputPaths.add(resolveRelativeToRoot(opts.sourceRoot, file));
   }
 
-  await copyGitAwareSelection({
-    sourceRoot: opts.sourceRoot,
-    destRoot: join(opts.contextRoot, '_manifests'),
-    includePaths: [...manifestPaths].sort((a, b) => a.localeCompare(b))
-  });
+  for (let i = 0; i < opts.plan.installLayers.length; i++) {
+    let layer = opts.plan.installLayers[i]!;
+    let manifestPaths = new Set<string>();
 
-  writeFileSync(
-    join(opts.contextRoot, '_manifests', 'package.json'),
-    renderSyntheticWorkspacePackageJson(opts)
-  );
+    for (let file of rootFilesForPlan(opts.sourceRoot)) {
+      manifestPaths.add(resolveRelativeToRoot(opts.sourceRoot, file));
+    }
+
+    for (let file of layer.manifestFiles) {
+      manifestPaths.add(file.relativeToContext);
+    }
+
+    let layerRoot = join(opts.contextRoot, '_manifests', layer.name);
+    await copyGitAwareSelection({
+      sourceRoot: opts.sourceRoot,
+      destRoot: layerRoot,
+      includePaths: [...manifestPaths].sort((a, b) => a.localeCompare(b))
+    });
+
+    writeFileSync(
+      join(layerRoot, 'package.json'),
+      renderSyntheticWorkspacePackageJson({
+        sourceRoot: opts.sourceRoot,
+        manifestFiles: cumulativeManifestFiles(opts.plan.installLayers, i)
+      })
+    );
+  }
 
   await copyGitAwareSelection({
     sourceRoot: opts.sourceRoot,
@@ -177,7 +203,7 @@ export let materializeBuildContext = async (opts: {
           renderedDockerfile
         });
 
-  let dockerfileName = opts.plan.dockerfilePath.split('/').pop() ?? 'Dockerfile.generated';
+  let dockerfileName = opts.plan.dockerfilePath.split('/').pop() ?? 'Dockerfile';
   let dockerfilePath = join(contextRoot, dockerfileName);
   writeFileSync(dockerfilePath, dockerfileContent);
 

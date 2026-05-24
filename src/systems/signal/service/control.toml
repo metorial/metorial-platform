@@ -3,7 +3,7 @@ name = "signal"
 
 [service]
 port = 52050
-dockerfile = "src/systems/signal/service/Dockerfile.generated"
+dockerfile = "src/systems/signal/service/Dockerfile"
 build_context = "oss"
 
 [build]
@@ -12,7 +12,7 @@ mode = "generated"
 context = "oss"
 project = "@metorial/signal"
 target = "server:build"
-dockerfile = "Dockerfile.generated"
+dockerfile = "Dockerfile"
 
 [[build.automations]]
 name = "signal-prisma"

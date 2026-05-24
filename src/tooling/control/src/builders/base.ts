@@ -11,6 +11,7 @@ import {
   resolveBuildArtifacts,
   resolveBuildContextRoot,
   resolveBuildPaths,
+  resolveBuildInstallLayers,
   resolveBuildSteps
 } from './pathing';
 
@@ -37,7 +38,7 @@ export let defaultRuntime = (
 });
 
 export let defaultDockerfilePath = (service: ControlService, configured?: string): string =>
-  resolve(service.dir, configured ?? 'Dockerfile.generated');
+  resolve(service.dir, configured ?? 'Dockerfile');
 
 export let defaultWorkspaceRoot = (
   service: ControlService,
@@ -65,6 +66,19 @@ export let createBasePlan = (opts: {
     patterns: build.manifests?.files,
     label: 'manifest'
   });
+  let installLayers = resolveBuildInstallLayers({
+    service: opts.service,
+    registry: opts.registry,
+    contextRoot: context.root,
+    install: build.install
+  });
+  let manifestByPath = new Map<string, (typeof manifests)[number]>();
+  for (let manifest of manifests) manifestByPath.set(manifest.relativeToContext, manifest);
+  for (let layer of installLayers) {
+    for (let manifest of layer.manifestFiles) {
+      manifestByPath.set(manifest.relativeToContext, manifest);
+    }
+  }
   let inputs = resolveBuildPaths({
     service: opts.service,
     registry: opts.registry,
@@ -85,8 +99,11 @@ export let createBasePlan = (opts: {
     contextRoot: context.root,
     dockerfilePath,
     workspaceRoot,
-    manifestFiles: manifests,
+    manifestFiles: [...manifestByPath.values()].sort((a, b) =>
+      a.relativeToContext.localeCompare(b.relativeToContext)
+    ),
     inputPaths: inputs,
+    installLayers,
     automations: [],
     codegenSteps: resolveBuildSteps({
       service: opts.service,
@@ -130,12 +147,35 @@ export let formatContainerWorkdir = (relPath: string): string => formatContainer
 
 export let formatRunStep = (run: string): string => run.replace(/\n+/g, ' ').trim();
 
+export let renderAptInstall = (packages: string[]): string[] => {
+  if (packages.length === 0) return [];
+  return [
+    'RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \\',
+    '  --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \\',
+    '  apt-get update && apt-get install -y --no-install-recommends \\',
+    ...packages.map((pkg, index) =>
+      index === packages.length - 1 ? `  ${pkg} && rm -rf /var/lib/apt/lists/*` : `  ${pkg} \\`
+    )
+  ];
+};
+
+export let renderApkInstall = (packages: string[]): string[] => {
+  if (packages.length === 0) return [];
+  return [
+    `RUN --mount=type=cache,target=/var/cache/apk apk add --cache-dir /var/cache/apk ${packages.join(' ')}`
+  ];
+};
+
 export let renderCopyLines = (paths: { relativeToContext: string; absolutePath: string }[]): string[] => {
   let lines: string[] = [];
 
   for (let path of paths) {
     let from = path.relativeToContext.replace(/^\.\//, '');
     if (!from || from === '.') continue;
+    if (isDirectoryPath(path.absolutePath)) {
+      lines.push(`COPY ${from} ./${from}/`);
+      continue;
+    }
     let to = dirname(from).replace(/\\/g, '/');
     let target = to === '.' ? './' : `./${to}/`;
     lines.push(`COPY ${from} ${target}`);

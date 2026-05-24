@@ -5,9 +5,11 @@ import { MOCK_DEFINITIONS } from '../types';
 import { controlToolingDir } from '../entrypoint';
 import { interpolateEnv, mergeEnv } from '../graph/env';
 import { resolveBuild } from './builds';
+import type { DockerBuildConfig } from './builds';
 
 export type ComposeOptions = {
   postgresInitScripts?: Record<string, string>;
+  buildContexts?: Record<string, Pick<DockerBuildConfig, 'context' | 'dockerfile'>>;
 };
 
 let networkConfig = (alias: string) => ({
@@ -79,11 +81,26 @@ let resolveControlDependsOn = (
   return dependsOn;
 };
 
-let buildControlService = (dep: ResolvedDep, graph: ResolvedGraph, containerName: string) => {
+let applyBuildContext = (
+  name: string,
+  build: DockerBuildConfig,
+  composeOptions?: ComposeOptions
+): DockerBuildConfig => {
+  let override = composeOptions?.buildContexts?.[name];
+  if (!override) return build;
+  return { ...build, ...override };
+};
+
+let buildControlService = (
+  dep: ResolvedDep,
+  graph: ResolvedGraph,
+  containerName: string,
+  composeOptions?: ComposeOptions
+) => {
   if (!dep.children) throw new Error(`Control dependency "${dep.name}" is missing resolved child graph`);
 
   let child = dep.children;
-  let build = resolveBuild(child, { role: 'service' });
+  let build = applyBuildContext(child.name, resolveBuild(child, { role: 'service' }), composeOptions);
   let health = resolveServiceHealth(child);
   let dependsOn = resolveControlDependsOn(dep, graph);
 
@@ -289,7 +306,7 @@ export let generateComposeServices = (
 
       if (scope === 'service') {
         seen.add(dep.name);
-        let built = buildControlService(dep, graph, containerName);
+        let built = buildControlService(dep, graph, containerName, composeOptions);
         services[dep.composeName] = built;
         dependsOn[dep.composeName] = depWaitCondition(dep, !!built.healthcheck);
         continue;
@@ -313,7 +330,8 @@ export let generateComposeServices = (
               sourceDir: dep.children!.dir
             },
             dep.children!,
-            childContainerName
+            childContainerName,
+            composeOptions
           );
           services[childComposeName] = built;
           dependsOn[childComposeName] = depWaitCondition(childDep, !!built.healthcheck);
@@ -336,7 +354,7 @@ export let generateComposeServices = (
         dependsOn[childComposeName] = depWaitCondition(childDep, leaf.hasHealth ?? true);
       }
 
-      let childService = buildControlService(dep, graph, containerName);
+      let childService = buildControlService(dep, graph, containerName, composeOptions);
       services[dep.composeName] = childService;
       dependsOn[dep.composeName] = depWaitCondition(dep, !!childService.healthcheck);
       seen.add(dep.name);
@@ -350,7 +368,7 @@ export let generateComposeServices = (
     dependsOn[dep.composeName] = depWaitCondition(dep, built.hasHealth ?? true);
   }
 
-  let build = resolveBuild(graph, { role: 'test-runner' });
+  let build = applyBuildContext(graph.name, resolveBuild(graph, { role: 'test-runner' }), composeOptions);
   let isSidecar = graph.config.test?.e2e?.runner === 'sidecar';
   let runnerKey = graph.testRunnerComposeName;
   let runnerContainer = isSidecar

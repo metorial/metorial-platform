@@ -11,7 +11,7 @@ health = { path = "/health" }
 builder = "rust"
 mode = "generated"
 context = "oss"
-dockerfile = "Dockerfile.generated"
+dockerfile = "Dockerfile"
 
 [build.install]
 system_packages = ["pkg-config", "libssl-dev"]

@@ -11,7 +11,7 @@ health = { path = "/healthz" }
 builder = "go"
 mode = "generated"
 context = "oss"
-dockerfile = "Dockerfile.generated"
+dockerfile = "Dockerfile"
 
 [build.manifests]
 files = [

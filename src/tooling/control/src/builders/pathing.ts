@@ -4,9 +4,11 @@ import { ControlError } from '../errors';
 import type {
   ControlBuildCopy,
   ControlBuildConfig,
+  ControlBuildInstallLayer,
   ControlBuildStep,
   ControlService,
   GeneratedBuildArtifact,
+  GeneratedBuildInstallLayer,
   GeneratedBuildPath,
   GeneratedBuildStep,
   ServiceRegistry
@@ -164,6 +166,50 @@ export let resolveBuildSteps = (opts: {
       cwdAbsolute,
       cwdRelativeToContext: normalizeSlashes(relative(opts.contextRoot, cwdAbsolute) || '.'),
       mode: step.mode ?? 'default'
+    };
+  });
+};
+
+let defaultInstallCommand = (layer: ControlBuildInstallLayer, linker?: string): string => {
+  if (layer.command) return layer.command;
+  if (layer.tool === 'bun') return `bun install --linker=${linker ?? 'hoisted'}`;
+  if (layer.tool === 'go') return 'go mod download';
+  if (layer.tool === 'cargo') return 'cargo fetch';
+  throw new ControlError({
+    code: 'build_install_layer_missing_command',
+    message: `Install layer "${layer.name ?? 'unnamed'}" must declare a command`,
+    hint: 'Set command or use a supported tool: bun, go, cargo'
+  });
+};
+
+export let resolveBuildInstallLayers = (opts: {
+  service: ControlService;
+  registry: ServiceRegistry;
+  contextRoot: string;
+  install?: ControlBuildConfig['install'];
+}): GeneratedBuildInstallLayer[] => {
+  let layers = opts.install?.layers ?? [];
+
+  return layers.map((layer, index) => {
+    let name = (layer.name ?? `${layer.tool ?? 'custom'}-${index + 1}`).replace(/[^a-zA-Z0-9._-]+/g, '-');
+    let cwdBase = layer.cwd ? resolvePatternBase(opts.service, opts.registry, layer.cwd) : null;
+    let cwdAbsolute = cwdBase ? resolve(cwdBase.cwd, cwdBase.pattern) : opts.service.dir;
+    assertInsideRoot(cwdAbsolute, opts.registry.controlRoot, 'install layer cwd');
+
+    return {
+      name,
+      tool: layer.tool ?? 'custom',
+      command: defaultInstallCommand(layer, opts.install?.linker),
+      cwd: layer.cwd,
+      cwdAbsolute,
+      cwdRelativeToContext: normalizeSlashes(relative(opts.contextRoot, cwdAbsolute) || '.'),
+      manifestFiles: resolveBuildPaths({
+        service: opts.service,
+        registry: opts.registry,
+        contextRoot: opts.contextRoot,
+        patterns: layer.manifests,
+        label: `install layer "${name}" manifest`
+      })
     };
   });
 };

@@ -3,7 +3,7 @@ name = "shuttle"
 
 [service]
 port = 52080
-dockerfile = "src/systems/shuttle/service/Dockerfile.generated"
+dockerfile = "src/systems/shuttle/service/Dockerfile"
 build_context = "oss"
 
 [build]
@@ -12,7 +12,7 @@ mode = "generated"
 context = "oss"
 project = "@metorial/shuttle"
 target = "server:build"
-dockerfile = "Dockerfile.generated"
+dockerfile = "Dockerfile"
 
 [[build.automations]]
 name = "shuttle-prisma"

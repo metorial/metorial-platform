@@ -3,7 +3,7 @@ name = "ares"
 
 [service]
 port = 52120
-dockerfile = "src/systems/ares/service/Dockerfile.generated"
+dockerfile = "src/systems/ares/service/Dockerfile"
 build_context = "oss"
 health = { cmd = "bun -e \"fetch('http://localhost:12121/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\"" }
 
@@ -13,7 +13,7 @@ mode = "generated"
 context = "oss"
 project = "@metorial/ares"
 target = "server:build"
-dockerfile = "Dockerfile.generated"
+dockerfile = "Dockerfile"
 
 [[build.automations]]
 name = "ares-prisma"

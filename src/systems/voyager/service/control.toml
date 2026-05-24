@@ -3,7 +3,7 @@ name = "voyager"
 
 [service]
 port = 52060
-dockerfile = "src/systems/voyager/service/Dockerfile.generated"
+dockerfile = "src/systems/voyager/service/Dockerfile"
 build_context = "oss"
 health = { cmd = "bun -e \"fetch('http://localhost:12121/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\"" }
 
@@ -13,7 +13,7 @@ mode = "generated"
 context = "oss"
 project = "@metorial/voyager"
 target = "server:build"
-dockerfile = "Dockerfile.generated"
+dockerfile = "Dockerfile"
 
 [[build.automations]]
 name = "voyager-prisma"

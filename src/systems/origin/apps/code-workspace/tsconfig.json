@@ -21,7 +21,8 @@
     "noFallthroughCasesInSwitch": false,
     "noUncheckedSideEffectImports": true,
 
-    "types": ["node"]
+    "types": ["node"],
+    "typeRoots": ["./node_modules/@types"]
   },
   "include": ["src", "extensions"],
 }

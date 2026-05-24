@@ -138,7 +138,7 @@ describe('builder plans', () => {
     let plan = createBuildPlan(service, registry);
     expect(plan?.builder).toBe('node');
     expect(plan?.project).toBe('@demo/node-svc');
-    expect(plan?.dockerfilePath.endsWith('Dockerfile.generated')).toBe(true);
+    expect(plan?.dockerfilePath.endsWith('Dockerfile')).toBe(true);
     expect(plan?.automations[0]?.command).toContain('prisma:generate');
     expect(plan?.inputPaths.some(path => path.relativeToContext === 'src/systems/demo/service')).toBe(true);
   });

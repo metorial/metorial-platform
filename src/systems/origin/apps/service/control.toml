@@ -3,7 +3,7 @@ name = "origin"
 
 [service]
 port = 52090
-dockerfile = "src/systems/origin/apps/service/Dockerfile.generated"
+dockerfile = "src/systems/origin/apps/service/Dockerfile"
 build_context = "oss"
 health = { path = "/ping" }
 
@@ -13,7 +13,7 @@ mode = "generated"
 context = "oss"
 project = "@metorial/origin"
 target = "server:build"
-dockerfile = "Dockerfile.generated"
+dockerfile = "Dockerfile"
 
 [[build.automations]]
 name = "origin-prisma"

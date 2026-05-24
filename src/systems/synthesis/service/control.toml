@@ -3,7 +3,7 @@ name = "synthesis"
 
 [service]
 port = 52160
-dockerfile = "src/systems/synthesis/service/Dockerfile.generated"
+dockerfile = "src/systems/synthesis/service/Dockerfile"
 build_context = "oss"
 health = { path = "/ping" }
 
@@ -13,7 +13,7 @@ mode = "generated"
 context = "oss"
 project = "@metorial/synthesis"
 target = "server:build"
-dockerfile = "Dockerfile.generated"
+dockerfile = "Dockerfile"
 
 [[build.automations]]
 name = "synthesis-prisma"

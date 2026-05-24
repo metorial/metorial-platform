@@ -3,7 +3,7 @@ name = "subspace-controller"
 
 [service]
 port = 52070
-dockerfile = "src/systems/subspace/apps/controller/Dockerfile.generated"
+dockerfile = "src/systems/subspace/apps/controller/Dockerfile"
 build_context = "oss"
 
 [build]
@@ -12,7 +12,8 @@ mode = "generated"
 context = "oss"
 project = "@metorial-subspace/app-controller"
 target = "server:build"
-dockerfile = "Dockerfile.generated"
+dockerfile = "Dockerfile"
+extra_paths = ["//oss/src/systems/_shared/entityImage.ts"]
 
 [[build.automations]]
 name = "subspace-controller-prisma"

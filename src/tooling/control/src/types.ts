@@ -66,6 +66,14 @@ export type ControlBuildRuntime = {
   workdir?: string;
 };
 
+export type ControlBuildInstallLayer = {
+  name?: string;
+  tool?: 'bun' | 'go' | 'cargo' | 'custom';
+  cwd?: string;
+  manifests?: string[];
+  command?: string;
+};
+
 export type ControlBuildConfig = {
   builder: 'node' | 'rust' | 'go';
   mode?: 'generated' | 'custom' | 'generated-with-overlay';
@@ -85,6 +93,7 @@ export type ControlBuildConfig = {
     linker?: string;
     lockfile?: string;
     system_packages?: string[];
+    layers?: ControlBuildInstallLayer[];
   };
   manifests?: {
     files?: string[];
@@ -261,6 +270,16 @@ export type GeneratedBuildAutomation = {
   command: string;
 };
 
+export type GeneratedBuildInstallLayer = {
+  name: string;
+  tool: 'bun' | 'go' | 'cargo' | 'custom';
+  command: string;
+  cwd?: string;
+  cwdAbsolute?: string;
+  cwdRelativeToContext?: string;
+  manifestFiles: GeneratedBuildPath[];
+};
+
 export type GeneratedBuildArtifact = {
   from: string;
   to: string;
@@ -278,6 +297,7 @@ export type GeneratedBuildPlan = {
   workspaceRoot: string;
   manifestFiles: GeneratedBuildPath[];
   inputPaths: GeneratedBuildPath[];
+  installLayers: GeneratedBuildInstallLayer[];
   automations: GeneratedBuildAutomation[];
   codegenSteps: GeneratedBuildStep[];
   prebuildSteps: GeneratedBuildStep[];

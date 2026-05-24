@@ -3,7 +3,7 @@ name = "subspace-public"
 
 [service]
 port = 52071
-dockerfile = "src/systems/subspace/apps/public/Dockerfile.generated"
+dockerfile = "src/systems/subspace/apps/public/Dockerfile"
 build_context = "oss"
 health = { path = "/ping" }
 
@@ -13,8 +13,8 @@ mode = "generated"
 context = "oss"
 project = "@metorial-subspace/app-public"
 target = "server:build"
-dockerfile = "Dockerfile.generated"
-extra_paths = ["//oss/src/packages/frontend/ui"]
+dockerfile = "Dockerfile"
+extra_paths = ["//oss/src/packages/frontend/ui", "//oss/src/systems/_shared/entityImage.ts"]
 
 [[build.automations]]
 name = "subspace-public-prisma"

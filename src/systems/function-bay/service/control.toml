@@ -3,7 +3,7 @@ name = "function-bay"
 
 [service]
 port = 52030
-dockerfile = "src/systems/function-bay/service/Dockerfile.generated"
+dockerfile = "src/systems/function-bay/service/Dockerfile"
 build_context = "oss"
 
 [build]
@@ -12,7 +12,7 @@ mode = "generated"
 context = "oss"
 project = "@metorial/function-bay"
 target = "server:build"
-dockerfile = "Dockerfile.generated"
+dockerfile = "Dockerfile"
 
 [[build.automations]]
 name = "function-bay-prisma"

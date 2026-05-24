@@ -20,6 +20,8 @@ export async function axiosWithoutSse<T = any>(
   let response = await axios.request<Readable>(requestConfig);
 
   let contentType = response.headers['content-type'] ?? '';
+  if (typeof contentType !== 'string') contentType = '';
+
   if (contentType.includes('text/event-stream')) {
     source.cancel(`Aborted: SSE stream detected from ${url}`);
     response.data.destroy();

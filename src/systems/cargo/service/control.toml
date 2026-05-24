@@ -3,7 +3,7 @@ name = "cargo"
 
 [service]
 port = 52150
-dockerfile = "src/systems/cargo/service/Dockerfile.generated"
+dockerfile = "src/systems/cargo/service/Dockerfile"
 build_context = "oss"
 health = { path = "/ping", cmd = "bun -e \"fetch('http://localhost:52151/ping').then(()=>process.exit(0)).catch(()=>process.exit(1))\"" }
 
@@ -13,7 +13,8 @@ mode = "generated"
 context = "oss"
 project = "@metorial-cargo/service"
 target = "server:build"
-dockerfile = "Dockerfile.generated"
+dockerfile = "Dockerfile"
+extra_paths = ["//oss/src/systems/_shared/entityImage.ts"]
 
 [[build.automations]]
 name = "cargo-db-prisma"

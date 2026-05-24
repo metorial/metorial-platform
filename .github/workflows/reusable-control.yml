@@ -63,18 +63,10 @@ jobs:
         run: bun i --linker=hoisted
 
       - name: Generate Prisma Clients
-        run: bunx turbo run --ui=stream --concurrency=1 prisma:generate
+        run: bun x nx run-many --target=prisma:generate --all --parallel=1
 
       - name: Build platform system clients
-        run: |
-          if [ -f src/systems/scripts/build-workspace-clients.sh ]; then
-            sh src/systems/scripts/build-workspace-clients.sh
-          elif [ -f oss/src/systems/scripts/build-workspace-clients.sh ]; then
-            sh oss/src/systems/scripts/build-workspace-clients.sh
-          else
-            echo "build-workspace-clients.sh not found" >&2
-            exit 1
-          fi
+        run: bun x nx run-many --target=build --projects=@metorial-platform-systems/origin-client,@metorial-platform-systems/forge-client,@metorial-platform-systems/function-bay-client,@metorial-platform-systems/signal-client,@metorial-platform-systems/synthesis-client,@metorial-platform-systems/cargo-client,@metorial-platform-systems/ares-client,@metorial/mcp,@metorial/mcp-server,@metorial/mcp-transport-memory,@metorial-platform-systems/shuttle-client,@metorial-platform-systems/slates-client,@metorial-platform-systems/subspace-client
 
       - name: Run control
         env:

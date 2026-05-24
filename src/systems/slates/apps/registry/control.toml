@@ -3,7 +3,7 @@ name = "slates-registry"
 
 [service]
 port = 52040
-dockerfile = "src/systems/slates/apps/registry/Dockerfile.generated"
+dockerfile = "src/systems/slates/apps/registry/Dockerfile"
 build_context = "oss"
 health = { path = "/ping" }
 
@@ -13,7 +13,7 @@ mode = "generated"
 context = "oss"
 project = "@metorial/slates-registry"
 target = "server:build"
-dockerfile = "Dockerfile.generated"
+dockerfile = "Dockerfile"
 
 [[build.automations]]
 name = "slates-registry-prisma"
@@ -30,7 +30,7 @@ projects = ["@metorial/slates-registry"]
 [build.artifacts]
 copy = [
   { from = "dist", to = "/app/dist" },
-  { from = "admin/dist", to = "/app/admin/dist" },
+  { from = "dist/admin", to = "/app/dist/admin" },
   { from = "prisma", to = "/app/prisma" },
   { from = "/app/node_modules", to = "/app/node_modules" }
 ]

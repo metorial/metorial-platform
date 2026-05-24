@@ -11,21 +11,29 @@ health = { cmd = "nc -z localhost 52091" }
 builder = "go"
 mode = "generated"
 context = "repo"
-dockerfile = "Dockerfile.generated"
+dockerfile = "Dockerfile"
 
 [build.builder_image]
 image = "oven/bun:1.2-alpine"
 
 [build.install]
-system_packages = ["go", "git", "ca-certificates"]
+system_packages = ["go", "git", "ca-certificates", "nodejs"]
+
+[[build.install.layers]]
+name = "code-workspace"
+tool = "bun"
+cwd = "../code-workspace"
+manifests = [
+  "../code-workspace/package.json",
+  "../code-workspace/extensions/memfs/package.json"
+]
+command = "bun install --linker=hoisted"
 
 [build.manifests]
 files = [
   "go.mod",
   "go.sum",
-  "package.json",
-  "../code-workspace/package.json",
-  "../code-workspace/extensions/memfs/package.json"
+  "package.json"
 ]
 
 [build.inputs]
@@ -38,13 +46,13 @@ paths = [
   "index.ts",
   "scripts/**",
   "ts-proto-gen/**",
-  "../code-workspace/**",
-  "../../scripts/build-code-workspace.sh"
+  "../code-workspace/**"
 ]
 
 [build.prebuild]
 steps = [
-  { run = "sh ../../scripts/build-code-workspace.sh" }
+  { cwd = "../code-workspace", run = "bunx tsc && bunx vite build" },
+  { run = "rm -rf pkg/workspace/dist && mkdir -p pkg/workspace && cp -R ../code-workspace/dist pkg/workspace/dist" }
 ]
 
 [build.main]
@@ -66,7 +74,10 @@ healthcheck = "nc -z localhost 52091 || exit 1"
 
 [test.unit]
 command = "go test ./..."
-setup = ["sh ../../scripts/build-code-workspace.sh"]
+setup = [
+  "cd ../code-workspace && bun install --linker=hoisted && bunx tsc && bunx vite build",
+  "rm -rf pkg/workspace/dist && mkdir -p pkg/workspace && cp -R ../code-workspace/dist pkg/workspace/dist"
+]
 cwd = "/app/src/systems/origin/apps/code-bucket"
 
 [test.e2e]

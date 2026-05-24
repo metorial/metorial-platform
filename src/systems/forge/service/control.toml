@@ -3,7 +3,7 @@ name = "forge"
 
 [service]
 port = 52020
-dockerfile = "src/systems/forge/service/Dockerfile.generated"
+dockerfile = "src/systems/forge/service/Dockerfile"
 build_context = "oss"
 
 [build]
@@ -12,7 +12,7 @@ mode = "generated"
 context = "oss"
 project = "@metorial/forge"
 target = "server:build"
-dockerfile = "Dockerfile.generated"
+dockerfile = "Dockerfile"
 
 [[build.automations]]
 name = "forge-prisma"
