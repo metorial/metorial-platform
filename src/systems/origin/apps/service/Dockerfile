@@ -13,6 +13,7 @@ FROM deps AS build
 WORKDIR /app
 COPY _inputs/shared/ ./
 COPY _inputs/clients/ ./
+RUN --mount=type=cache,id=control-nx-cache,target=/app/.nx/cache,sharing=locked cd /app && bun x nx run-many --target=build --projects=@metorial-platform-systems/object-storage-client
 COPY _inputs/service/ ./
 RUN --mount=type=cache,id=control-nx-cache,target=/app/.nx/cache,sharing=locked cd /app && bun x nx run-many --target=prisma:generate --projects=@metorial/origin
 RUN --mount=type=cache,id=control-nx-cache,target=/app/.nx/cache,sharing=locked cd /app && bun x nx run @metorial/origin:server:build

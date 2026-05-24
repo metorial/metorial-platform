@@ -29,6 +29,20 @@
     "prepublish": "bun run build",
     "typecheck": "tsc --noEmit"
   },
+  "nx": {
+    "targets": {
+      "build": {
+        "inputs": [
+          "clientProduction",
+          "{workspaceRoot}/src/systems/synthesis/service/src/apis/**",
+          "{workspaceRoot}/src/systems/synthesis/service/src/controllers/**",
+          "{workspaceRoot}/src/systems/synthesis/service/src/presenters/**",
+          "{workspaceRoot}/src/systems/synthesis/service/prisma/**",
+          "{workspaceRoot}/src/systems/synthesis/service/prisma.config.ts"
+        ]
+      }
+    }
+  },
   "dependencies": {
     "@mtsrc/rpc-client": "1.0.0"
   },

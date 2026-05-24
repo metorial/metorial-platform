@@ -29,6 +29,20 @@
     "prepublish": "bun run build",
     "typecheck": "tsc --noEmit"
   },
+  "nx": {
+    "targets": {
+      "build": {
+        "inputs": [
+          "clientProduction",
+          "{workspaceRoot}/src/systems/relay/service/src/apis/**",
+          "{workspaceRoot}/src/systems/relay/service/src/controllers/**",
+          "{workspaceRoot}/src/systems/relay/service/src/presenters/**",
+          "{workspaceRoot}/src/systems/relay/service/prisma/**",
+          "{workspaceRoot}/src/systems/relay/service/prisma.config.ts"
+        ]
+      }
+    }
+  },
   "dependencies": {
     "@react-email/components": "^1.0.7",
     "react": "^19.2.4",

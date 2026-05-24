@@ -11,6 +11,13 @@
       "!{projectRoot}/coverage/**",
       "!{projectRoot}/.control/**"
     ],
+    "clientProduction": [
+      "{projectRoot}/**/*",
+      "!{projectRoot}/dist/**",
+      "!{projectRoot}/coverage/**",
+      "!{projectRoot}/.control/**",
+      "{workspaceRoot}/bun.lock"
+    ],
     "sharedGlobals": [
       "{workspaceRoot}/package.json",
       "{workspaceRoot}/bun.lock"

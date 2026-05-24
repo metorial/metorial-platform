@@ -29,6 +29,21 @@
     "prepublish": "bun run build",
     "typecheck": "tsc --noEmit"
   },
+  "nx": {
+    "targets": {
+      "build": {
+        "inputs": [
+          "clientProduction",
+          "{workspaceRoot}/src/systems/slates/apps/hub/src/apis/**",
+          "{workspaceRoot}/src/systems/slates/apps/hub/src/controllers/**",
+          "{workspaceRoot}/src/systems/slates/apps/hub/src/presenters/**",
+          "{workspaceRoot}/src/systems/slates/apps/hub/prisma/**",
+          "{workspaceRoot}/src/systems/slates/apps/hub/prisma.config.ts",
+          "{workspaceRoot}/src/systems/slates/packages/presenters/**"
+        ]
+      }
+    }
+  },
   "dependencies": {
     "@metorial-platform-systems/function-bay-client": "workspace:*",
     "@mtsrc/rpc-client": "1.0.0",

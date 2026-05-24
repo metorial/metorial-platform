@@ -78,6 +78,23 @@ let projectRootPath = (plan: GeneratedBuildPlan, projectRoot: string): Generated
   exists: true
 });
 
+let existingContextPath = (
+  plan: GeneratedBuildPlan,
+  relativePath: string
+): GeneratedBuildPath | null => {
+  let normalized = relativePath.replace(/\\/g, '/');
+  let absolutePath = resolve(plan.contextRoot, normalized);
+  if (!existsSync(absolutePath)) return null;
+
+  return {
+    pattern: normalized,
+    absolutePath,
+    relativeToService: normalized,
+    relativeToContext: normalized,
+    exists: true
+  };
+};
+
 let isClientProject = (
   graph: ReturnType<typeof readNxProjectGraph>,
   project: string
@@ -319,6 +336,7 @@ let createNodeInstallLayers = (opts: {
 let createSourceLayers = (opts: {
   plan: GeneratedBuildPlan;
   graph: ReturnType<typeof readNxProjectGraph>;
+  serviceBuildProjects: Set<string>;
   projectsByTier: {
     shared: Set<string>;
     clients: Set<string>;
@@ -332,6 +350,38 @@ let createSourceLayers = (opts: {
       .sort((a, b) => a.localeCompare(b))
       .map(project => projectRootPath(opts.plan, getNxProjectRoot(opts.graph, project)));
 
+  let clientInterfacePaths = () => {
+    let paths = new Map<string, GeneratedBuildPath>();
+    let addPath = (path: GeneratedBuildPath | null) => {
+      if (path) paths.set(path.relativeToContext, path);
+    };
+
+    for (let clientProject of opts.projectsByTier.clients) {
+      for (let dependency of collectNxProjectClosure(opts.graph, [clientProject])) {
+        if (!opts.serviceBuildProjects.has(dependency)) continue;
+
+        let root = getNxProjectRoot(opts.graph, dependency);
+        for (let relativePath of [
+          `${root}/src/apis`,
+          `${root}/src/controllers`,
+          `${root}/src/presenters`,
+          `${root}/src/db`,
+          `${root}/db`,
+          `${root}/prisma`,
+          `${root}/prisma.config.ts`
+        ]) {
+          addPath(existingContextPath(opts.plan, relativePath));
+        }
+
+        if (root.endsWith('/service')) {
+          addPath(existingContextPath(opts.plan, `${root.slice(0, -'/service'.length)}/db`));
+        }
+      }
+    }
+
+    return [...paths.values()].sort((a, b) => a.relativeToContext.localeCompare(b.relativeToContext));
+  };
+
   let layers: GeneratedBuildSourceLayer[] = [
     {
       name: 'shared',
@@ -344,7 +394,7 @@ let createSourceLayers = (opts: {
       name: 'clients',
       tier: 'clients',
       projects: [...opts.projectsByTier.clients].sort((a, b) => a.localeCompare(b)),
-      inputPaths: projectPaths(opts.projectsByTier.clients),
+      inputPaths: [...projectPaths(opts.projectsByTier.clients), ...clientInterfacePaths()],
       commands: []
     },
     {
@@ -363,9 +413,30 @@ let createSourceLayers = (opts: {
     }
   ];
 
-  return layers
-    .map(layer => ({ ...layer, commands: sourceLayerWarmCommands(opts.graph, layer) }))
-    .filter(layer => layer.inputPaths.length > 0);
+  let emittedLayers = layers.filter(layer => layer.inputPaths.length > 0);
+  let clientWarmLayer =
+    emittedLayers.find(layer => layer.tier === 'dependencies') ??
+    emittedLayers.find(layer => layer.tier === 'clients');
+  let projectsAvailableForClientWarm = new Set([
+    ...opts.projectsByTier.shared,
+    ...opts.projectsByTier.clients,
+    ...(clientWarmLayer?.tier === 'dependencies' ? opts.projectsByTier.dependencies : [])
+  ]);
+  let clientPrismaWarmCommands = clientWarmLayer
+    ? clientPrismaWarmCommandsForProjects(opts.graph, opts.projectsByTier.clients, projectsAvailableForClientWarm)
+    : [];
+  let clientWarmCommands = clientWarmLayer
+    ? clientBuildWarmCommands(opts.graph, opts.projectsByTier.clients)
+    : [];
+
+  return emittedLayers.map(layer => ({
+    ...layer,
+    commands: [
+      ...sourceLayerWarmCommands(opts.graph, layer),
+      ...(layer === clientWarmLayer ? clientPrismaWarmCommands : []),
+      ...(layer === clientWarmLayer ? clientWarmCommands : [])
+    ]
+  }));
 };
 
 let sourceLayerWarmCommands = (
@@ -383,6 +454,49 @@ let sourceLayerWarmCommands = (
     renderNxRunManyCommand({
       target: 'build',
       projects: buildableProjects.sort((a, b) => a.localeCompare(b))
+    })
+  ];
+};
+
+let clientBuildWarmCommands = (
+  graph: ReturnType<typeof readNxProjectGraph>,
+  projects: Set<string>
+): string[] => {
+  let buildableProjects = [...projects]
+    .filter(project => nxProjectHasTarget(graph, project, 'build'))
+    .sort((a, b) => a.localeCompare(b));
+  if (buildableProjects.length === 0) return [];
+
+  return [
+    renderNxRunManyCommand({
+      target: 'build',
+      projects: buildableProjects
+    })
+  ];
+};
+
+let clientPrismaWarmCommandsForProjects = (
+  graph: ReturnType<typeof readNxProjectGraph>,
+  clientProjects: Set<string>,
+  availableProjects: Set<string>
+): string[] => {
+  let prismaProjects = new Set<string>();
+
+  for (let clientProject of clientProjects) {
+    for (let project of collectNxProjectClosure(graph, [clientProject])) {
+      if (!availableProjects.has(project)) continue;
+      if (!nxProjectHasTarget(graph, project, 'prisma:generate')) continue;
+      prismaProjects.add(project);
+    }
+  }
+
+  let projects = [...prismaProjects].sort((a, b) => a.localeCompare(b));
+  if (projects.length === 0) return [];
+
+  return [
+    renderNxRunManyCommand({
+      target: 'prisma:generate',
+      projects
     })
   ];
 };
@@ -576,6 +690,7 @@ export let nodeBuildBuilder: BuildBuilder = {
     plan.sourceLayers = createSourceLayers({
       plan,
       graph,
+      serviceBuildProjects,
       projectsByTier,
       extraPaths
     });

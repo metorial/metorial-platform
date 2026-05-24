@@ -29,6 +29,20 @@
     "prepublish": "bun run build",
     "typecheck": "tsc --noEmit"
   },
+  "nx": {
+    "targets": {
+      "build": {
+        "inputs": [
+          "clientProduction",
+          "{workspaceRoot}/src/systems/shuttle/service/src/apis/**",
+          "{workspaceRoot}/src/systems/shuttle/service/src/controllers/**",
+          "{workspaceRoot}/src/systems/shuttle/service/src/presenters/**",
+          "{workspaceRoot}/src/systems/shuttle/service/prisma/**",
+          "{workspaceRoot}/src/systems/shuttle/service/prisma.config.ts"
+        ]
+      }
+    }
+  },
   "dependencies": {
     "@metorial/util-websocket": "^1.0.0",
     "@types/bun": "^1.3.7",

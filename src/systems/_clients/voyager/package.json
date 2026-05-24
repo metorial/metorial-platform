@@ -29,6 +29,20 @@
     "prepublish": "bun run build",
     "typecheck": "tsc --noEmit"
   },
+  "nx": {
+    "targets": {
+      "build": {
+        "inputs": [
+          "clientProduction",
+          "{workspaceRoot}/src/systems/voyager/service/src/apis/**",
+          "{workspaceRoot}/src/systems/voyager/service/src/controllers/**",
+          "{workspaceRoot}/src/systems/voyager/service/src/presenters/**",
+          "{workspaceRoot}/src/systems/voyager/service/prisma/**",
+          "{workspaceRoot}/src/systems/voyager/service/prisma.config.ts"
+        ]
+      }
+    }
+  },
   "dependencies": {
     "@mtsrc/rpc-client": "1.0.0"
   },

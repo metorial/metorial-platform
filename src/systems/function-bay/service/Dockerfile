@@ -14,6 +14,7 @@ WORKDIR /app
 COPY _inputs/shared/ ./
 RUN --mount=type=cache,id=control-nx-cache,target=/app/.nx/cache,sharing=locked cd /app && bun x nx run-many --target=build --projects=@function-bay/types
 COPY _inputs/clients/ ./
+RUN --mount=type=cache,id=control-nx-cache,target=/app/.nx/cache,sharing=locked cd /app && bun x nx run-many --target=build --projects=@metorial-platform-systems/forge-client,@metorial-platform-systems/function-bay-client,@metorial-platform-systems/object-storage-client
 COPY _inputs/service/ ./
 RUN --mount=type=cache,id=control-nx-cache,target=/app/.nx/cache,sharing=locked cd /app && bun x nx run-many --target=prisma:generate --projects=@metorial/forge,@metorial/function-bay
 RUN --mount=type=cache,id=control-nx-cache,target=/app/.nx/cache,sharing=locked cd /app && bun x nx run @metorial/function-bay:server:build

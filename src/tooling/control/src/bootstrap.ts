@@ -23,6 +23,15 @@ let createNxConfig = (scope: 'repo' | 'oss' = 'repo') => ({
       '!{projectRoot}/coverage/**',
       '!{projectRoot}/.control/**'
     ],
+    clientProduction: [
+      '{projectRoot}/**/*',
+      '!{projectRoot}/dist/**',
+      '!{projectRoot}/coverage/**',
+      '!{projectRoot}/.control/**',
+      ...(scope === 'repo'
+        ? ['{workspaceRoot}/bun.lock', '{workspaceRoot}/oss/bun.lock']
+        : ['{workspaceRoot}/bun.lock'])
+    ],
     sharedGlobals:
       scope === 'repo'
         ? [

@@ -3,6 +3,11 @@ import { clientAdapter } from '@metorial/mcp-server';
 import type { FunctionServer } from '../../../prisma/generated/client';
 import { functionBay } from '../../functionBay';
 
+export type FunctionCallLog = {
+  timestamp: number;
+  message: string;
+};
+
 export let callFunction = async <T>(
   server: FunctionServer,
   handler: (tools: ReturnType<typeof clientAdapter>) => Promise<T>
@@ -71,7 +76,7 @@ export let getFunctionCallLogs = async (d: {
   waitForLogs?: boolean;
   attempts?: number;
   delayMs?: number;
-}) => {
+}): Promise<FunctionCallLog[]> => {
   let attempts = d.waitForLogs ? (d.attempts ?? 10) : 1;
 
   for (let i = 0; i < attempts; i++) {

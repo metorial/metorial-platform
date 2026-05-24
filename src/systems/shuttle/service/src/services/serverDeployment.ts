@@ -1,9 +1,27 @@
 import { notFoundError, ServiceError } from '@mtsrc/error';
 import { Paginator } from '@mtsrc/pagination';
 import { Service } from '@mtsrc/service';
-import type { ServerDeployment, Tenant } from '../../prisma/generated/client';
+import type {
+  ServerDeployment,
+  ServerDeploymentStepStatus,
+  ServerDeploymentStepType,
+  Tenant
+} from '../../prisma/generated/client';
 import { db } from '../db';
 import { functionBay } from '../functionBay';
+
+type ServerDeploymentOutputStep = {
+  object: 'server_deployment.step';
+  id: string;
+  status: ServerDeploymentStepStatus;
+  name: string;
+  logs: { timestamp: number; message: string }[];
+  type: ServerDeploymentStepType;
+  createdAt: Date;
+  startedAt: Date | null;
+  endedAt: Date | null;
+  [key: string]: unknown;
+};
 
 let include = {
   server: true,
@@ -26,7 +44,9 @@ class serverDeploymentServiceImpl {
     return serverDeployment;
   }
 
-  async getServerDeploymentLogs(d: { serverDeployment: ServerDeployment }) {
+  async getServerDeploymentLogs(d: {
+    serverDeployment: ServerDeployment;
+  }): Promise<ServerDeploymentOutputStep[]> {
     let functionServer = d.serverDeployment.functionServerOid
       ? await db.functionServer.findUnique({
           where: { oid: d.serverDeployment.functionServerOid }
@@ -48,7 +68,7 @@ class serverDeploymentServiceImpl {
     return steps
       .map(step => {
         if (step.type == 'deploying' && functionBayOutput) {
-          return (functionBayOutput ?? []).map(output => ({
+          return (functionBayOutput as ServerDeploymentOutputStep[]).map(output => ({
             ...output,
             object: 'server_deployment.step'
           }));
