@@ -17,7 +17,7 @@ COPY _inputs/clients/ ./
 COPY _inputs/dependencies/ ./
 RUN --mount=type=cache,id=control-nx-cache,target=/app/.nx/cache,sharing=locked cd /app && bun x nx run-many --target=build --projects=@metorial-platform-systems/ares-client,@metorial-platform-systems/forge-client,@metorial-platform-systems/function-bay-client,@metorial-platform-systems/object-storage-client,@metorial-platform-systems/relay-client,@metorial-platform-systems/signal-client
 COPY _inputs/service/ ./
-RUN --mount=type=cache,id=control-nx-cache,target=/app/.nx/cache,sharing=locked cd /app && attempt=1; until bun x nx run-many --target=prisma:generate --projects=@metorial/ares,@metorial/forge,@metorial/function-bay,@metorial/signal,@metorial/slates; do code=$?; if [ "$attempt" -ge 3 ]; then exit "$code"; fi; sleep $((attempt * 2)); attempt=$((attempt + 1)); done
+RUN --mount=type=cache,id=control-nx-cache,target=/app/.nx/cache,sharing=locked cd /app && { attempt=1; until bun x nx run-many --target=prisma:generate --projects=@metorial/ares,@metorial/forge,@metorial/function-bay,@metorial/signal,@metorial/slates; do code=$?; if [ "$attempt" -ge 3 ]; then exit "$code"; fi; sleep $((attempt * 2)); attempt=$((attempt + 1)); done; }
 RUN --mount=type=cache,id=control-nx-cache,target=/app/.nx/cache,sharing=locked cd /app && bun x nx run-many --target=admin:build --projects=@metorial/slates
 RUN --mount=type=cache,id=control-nx-cache,target=/app/.nx/cache,sharing=locked cd /app && bun x nx run @metorial/slates:server:build
 FROM build AS workspace

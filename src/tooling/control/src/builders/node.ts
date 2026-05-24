@@ -142,7 +142,7 @@ let shouldRetryNxRun = (command: string): boolean =>
   command.includes('--target=prisma:generate') || /:prisma:generate(\s|$)/.test(command);
 
 let renderRetriableCommand = (command: string): string =>
-  `attempt=1; until ${command}; do code=$?; if [ "$attempt" -ge 3 ]; then exit "$code"; fi; sleep $((attempt * 2)); attempt=$((attempt + 1)); done`;
+  `{ attempt=1; until ${command}; do code=$?; if [ "$attempt" -ge 3 ]; then exit "$code"; fi; sleep $((attempt * 2)); attempt=$((attempt + 1)); done; }`;
 
 let renderNxRun = (command: string): string =>
   `RUN --mount=type=cache,id=control-nx-cache,target=/app/.nx/cache,sharing=locked cd /app && ${shouldRetryNxRun(command) ? renderRetriableCommand(command) : command}`;

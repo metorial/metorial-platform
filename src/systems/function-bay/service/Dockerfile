@@ -16,7 +16,7 @@ RUN --mount=type=cache,id=control-nx-cache,target=/app/.nx/cache,sharing=locked 
 COPY _inputs/clients/ ./
 RUN --mount=type=cache,id=control-nx-cache,target=/app/.nx/cache,sharing=locked cd /app && bun x nx run-many --target=build --projects=@metorial-platform-systems/forge-client,@metorial-platform-systems/function-bay-client,@metorial-platform-systems/object-storage-client
 COPY _inputs/service/ ./
-RUN --mount=type=cache,id=control-nx-cache,target=/app/.nx/cache,sharing=locked cd /app && attempt=1; until bun x nx run-many --target=prisma:generate --projects=@metorial/forge,@metorial/function-bay; do code=$?; if [ "$attempt" -ge 3 ]; then exit "$code"; fi; sleep $((attempt * 2)); attempt=$((attempt + 1)); done
+RUN --mount=type=cache,id=control-nx-cache,target=/app/.nx/cache,sharing=locked cd /app && { attempt=1; until bun x nx run-many --target=prisma:generate --projects=@metorial/forge,@metorial/function-bay; do code=$?; if [ "$attempt" -ge 3 ]; then exit "$code"; fi; sleep $((attempt * 2)); attempt=$((attempt + 1)); done; }
 RUN --mount=type=cache,id=control-nx-cache,target=/app/.nx/cache,sharing=locked cd /app && bun x nx run @metorial/function-bay:server:build
 FROM build AS workspace
 WORKDIR /app/src/systems/function-bay/service
