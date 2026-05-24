@@ -110,8 +110,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .nx/cache
-          key: control-nx-${{ runner.os }}-${{ github.ref_name }}-${{ hashFiles('bun.lock', 'package.json', 'nx.json', 'src/tooling/control/package.json', 'src/tooling/control/src/**/*.ts') }}
+          key: control-nx-${{ runner.os }}-${{ github.ref_name }}-${{ steps.cache-scope.outputs.scope }}-${{ hashFiles('bun.lock', 'package.json', 'nx.json', 'src/tooling/control/package.json', 'src/tooling/control/src/**/*.ts') }}
           restore-keys: |
+            control-nx-${{ runner.os }}-${{ github.ref_name }}-${{ steps.cache-scope.outputs.scope }}-
             control-nx-${{ runner.os }}-${{ github.ref_name }}-
             control-nx-${{ runner.os }}-
 

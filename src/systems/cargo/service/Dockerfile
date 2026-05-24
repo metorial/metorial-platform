@@ -14,10 +14,10 @@ WORKDIR /app
 COPY _inputs/shared/ ./
 COPY _inputs/clients/ ./
 COPY _inputs/dependencies/ ./
-RUN --mount=type=cache,id=control-nx-cache,target=/app/.nx/cache,sharing=locked cd /app && bun x nx run-many --target=prisma:generate --projects=@metorial/origin,@metorial/voyager
+RUN --mount=type=cache,id=control-nx-cache,target=/app/.nx/cache,sharing=locked cd /app && attempt=1; until bun x nx run-many --target=prisma:generate --projects=@metorial/origin,@metorial/voyager; do code=$?; if [ "$attempt" -ge 3 ]; then exit "$code"; fi; sleep $((attempt * 2)); attempt=$((attempt + 1)); done
 RUN --mount=type=cache,id=control-nx-cache,target=/app/.nx/cache,sharing=locked cd /app && bun x nx run-many --target=build --projects=@metorial-platform-systems/object-storage-client,@metorial-platform-systems/origin-client,@metorial-platform-systems/voyager-client
 COPY _inputs/service/ ./
-RUN --mount=type=cache,id=control-nx-cache,target=/app/.nx/cache,sharing=locked cd /app && bun x nx run-many --target=prisma:generate --projects=@metorial-cargo/db
+RUN --mount=type=cache,id=control-nx-cache,target=/app/.nx/cache,sharing=locked cd /app && attempt=1; until bun x nx run-many --target=prisma:generate --projects=@metorial-cargo/db; do code=$?; if [ "$attempt" -ge 3 ]; then exit "$code"; fi; sleep $((attempt * 2)); attempt=$((attempt + 1)); done
 RUN --mount=type=cache,id=control-nx-cache,target=/app/.nx/cache,sharing=locked cd /app && bun x nx run @metorial-cargo/service:server:build
 FROM build AS workspace
 WORKDIR /app/src/systems/cargo/service

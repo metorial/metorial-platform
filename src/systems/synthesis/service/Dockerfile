@@ -15,7 +15,7 @@ FROM deps AS build
 WORKDIR /app
 COPY _inputs/shared/ ./
 COPY _inputs/service/ ./
-RUN --mount=type=cache,id=control-nx-cache,target=/app/.nx/cache,sharing=locked cd /app && bun x nx run-many --target=prisma:generate --projects=@metorial/synthesis
+RUN --mount=type=cache,id=control-nx-cache,target=/app/.nx/cache,sharing=locked cd /app && attempt=1; until bun x nx run-many --target=prisma:generate --projects=@metorial/synthesis; do code=$?; if [ "$attempt" -ge 3 ]; then exit "$code"; fi; sleep $((attempt * 2)); attempt=$((attempt + 1)); done
 RUN --mount=type=cache,id=control-nx-cache,target=/app/.nx/cache,sharing=locked cd /app && bun x nx run @metorial/synthesis:server:build
 FROM build AS workspace
 WORKDIR /app/src/systems/synthesis/service
