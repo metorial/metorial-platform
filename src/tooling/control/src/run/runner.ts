@@ -13,6 +13,7 @@ import { planExecutionOrder } from '../graph/planner';
 import { createLogger } from '../log';
 import { formatBatchSummary, formatRunPlan, formatServiceHeader } from '../log/formatRunPlan';
 import { DockerError, HealthTimeoutError, NoTestError } from '../errors';
+import { cleanupComposeStack, registerComposeStack, unregisterComposeStack } from './lifecycle';
 import type {
   BatchResult,
   BatchServiceResult,
@@ -209,6 +210,8 @@ export let runControl = async (
   let isSidecar = graph.config.test?.e2e?.runner === 'sidecar';
   let runnerContainer = isSidecar ? `${projectName}-test` : `${projectName}-service`;
   let failedPhase: RunPhase = 'build';
+  let composeStack = { projectName, composeFile, cwd: runDir };
+  if (!opts.keep) registerComposeStack(composeStack);
 
   try {
     failedPhase = 'build';
@@ -216,7 +219,15 @@ export let runControl = async (
     logger.debug(`Command: docker compose -p ${projectName} up -d --build`);
     await runShell(
       ['docker', 'compose', '-p', projectName, '-f', composeFile, '--env-file', envFile, 'up', '-d', '--build'],
-      { cwd: runDir, phase: 'build', service: serviceName, composeFile, keep: opts.keep, verbose: opts.verbose }
+      {
+        cwd: runDir,
+        env: { COMPOSE_PARALLEL_LIMIT: process.env.COMPOSE_PARALLEL_LIMIT ?? '1' },
+        phase: 'build',
+        service: serviceName,
+        composeFile,
+        keep: opts.keep,
+        verbose: opts.verbose
+      }
     );
 
     failedPhase = 'health';
@@ -276,14 +287,8 @@ export let runControl = async (
   } finally {
     if (!opts.keep) {
       logger.debug('Tearing down stack...');
-      await runShell(['docker', 'compose', '-p', projectName, '-f', composeFile, 'down', '-v'], {
-        cwd: runDir,
-        phase: 'teardown',
-        service: serviceName,
-        composeFile,
-        keep: opts.keep,
-        verbose: opts.verbose
-      }).catch(() => {});
+      await cleanupComposeStack(composeStack).catch(() => {});
+      unregisterComposeStack(composeStack);
     }
   }
 };

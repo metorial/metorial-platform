@@ -20,6 +20,9 @@ import { resolveControlCwd } from './entrypoint';
 import { withWorkspaceSession } from './staging/session';
 import type { WorkspaceSession } from './types';
 import { runBootstrap } from './bootstrap';
+import { installShutdownHandlers } from './run/lifecycle';
+
+installShutdownHandlers();
 
 type StagedCliOpts = {
   entrypoint?: string;

@@ -28,6 +28,7 @@ RUN --mount=type=cache,target=/var/cache/apk apk add --cache-dir /var/cache/apk 
 COPY --from=build /app/src/systems/slates/apps/hub/dist /app/dist
 COPY --from=build /app/src/systems/slates/apps/hub/dist/admin /app/dist/admin
 COPY --from=build /app/src/systems/slates/apps/hub/prisma /app/prisma
+COPY --from=build /app/src/systems/slates/apps/hub/prisma.config.ts /app/prisma.config.ts
 COPY --from=build /app/node_modules /app/node_modules
 ENV NODE_ENV="production"
 EXPOSE 52045

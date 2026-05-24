@@ -11,7 +11,7 @@ let collectFromGraph = (graph: ResolvedGraph): ControlDatabase[] => {
 
   for (let dep of graph.deps) {
     if (dep.kind === 'control' && dep.children && (dep.config.scope ?? 'service') === 'service') {
-      databases.push(...(dep.children.config.databases ?? []));
+      databases.push(...collectFromGraph(dep.children));
     }
   }
 

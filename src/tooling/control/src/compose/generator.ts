@@ -46,8 +46,9 @@ let envContext = (graph: ResolvedGraph) => ({
 let resolveControlServiceEnv = (dep: ResolvedDep, graph: ResolvedGraph): Record<string, string> => {
   if (!dep.children) return {};
 
-  let childEnv = interpolateEnv(dep.children.config.env ?? {}, envContext(dep.children));
-  let depEnv = dep.config.env ? interpolateEnv(dep.config.env, envContext(graph)) : {};
+  let ctx = envContext(graph);
+  let childEnv = interpolateEnv(dep.children.config.env ?? {}, ctx);
+  let depEnv = dep.config.env ? interpolateEnv(dep.config.env, ctx) : {};
   return mergeEnv(childEnv, depEnv);
 };
 

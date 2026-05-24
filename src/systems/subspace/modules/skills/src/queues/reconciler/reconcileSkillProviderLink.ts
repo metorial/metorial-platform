@@ -59,13 +59,14 @@ export let reconcileSkillProviderLinks = async (d: { skillId: string }) => {
       });
     }
 
-    for (let providerOid of skill.status === 'active' ? providerOidsToCreate : []) {
-      await db.skillProviderLink.create({
-        data: {
+    if (skill.status === 'active' && providerOidsToCreate.length) {
+      await db.skillProviderLink.createMany({
+        data: providerOidsToCreate.map(providerOid => ({
           ...getId('skillProviderLink'),
           skillOid: skill.oid,
           providerOid
-        }
+        })),
+        skipDuplicates: true
       });
     }
   });

@@ -31,6 +31,7 @@ copy = [
   { from = "dist", to = "/app/dist" },
   { from = "dist/admin", to = "/app/dist/admin" },
   { from = "prisma", to = "/app/prisma" },
+  { from = "prisma.config.ts", to = "/app/prisma.config.ts" },
   { from = "/app/node_modules", to = "/app/node_modules" }
 ]
 
