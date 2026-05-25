@@ -82,7 +82,7 @@ export let RootRedirect = () => {
 
         navigate(path, { replace: true });
       });
-  }, [boot.data, path, intent]);
+  }, [boot.data, path, intent, organizationId]);
 
   return null;
 };

@@ -903,6 +903,49 @@ let OrganizationPaths = Object.assign(
   }
 );
 
+export let PLACEHOLDER_INSTANCE_ENTITY = { id: 'a', slug: 'a' };
+
+export let PLACEHOLDER_INSTANCE_PARAMS = [
+  PLACEHOLDER_INSTANCE_ENTITY,
+  PLACEHOLDER_INSTANCE_ENTITY,
+  PLACEHOLDER_INSTANCE_ENTITY
+] as const;
+
+let dashboardInstanceRedirect = (
+  dashboardUrl: string,
+  fullInstancePath: string,
+  opts?: { organizationId?: string }
+) => {
+  if (!fullInstancePath || fullInstancePath === '#' || !fullInstancePath.startsWith('/i/')) {
+    return fullInstancePath;
+  }
+
+  let queryIndex = fullInstancePath.indexOf('?');
+  let pathname = queryIndex >= 0 ? fullInstancePath.slice(0, queryIndex) : fullInstancePath;
+  let query = queryIndex >= 0 ? fullInstancePath.slice(queryIndex + 1) : '';
+
+  let segments = pathname.split('/').filter(Boolean);
+  if (segments[0] !== 'i' || segments.length < 4) return fullInstancePath;
+
+  let prefix = InstancePaths.home(
+    { slug: segments[1] },
+    { slug: segments[2] },
+    { slug: segments[3] }
+  );
+
+  let resPath = pathname.slice(prefix.length);
+
+  if (query) {
+    resPath = resPath ? `${resPath}?${query}` : `?${query}`;
+  }
+
+  let dashUrl = new URL(dashboardUrl);
+  if (resPath.length > 0) dashUrl.searchParams.set('path', resPath);
+  if (opts?.organizationId) dashUrl.searchParams.set('organization_id', opts.organizationId);
+
+  return dashUrl.toString();
+};
+
 export let WelcomePaths = Object.assign(
   (...subPages: SubPages) => joinPaths('welcome', ...subPages),
   {
@@ -939,5 +982,6 @@ export let Paths = {
   project: ProjectPaths,
   account: AccountPaths,
   organization: OrganizationPaths,
-  welcome: WelcomePaths
+  welcome: WelcomePaths,
+  dashboardInstanceRedirect
 };
