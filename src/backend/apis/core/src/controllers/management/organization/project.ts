@@ -3,7 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { accessService } from '@metorial/module-access';
 import { projectBrandService, projectService } from '@metorial/module-organization';
-import { Controller, Path } from '@metorial/rest';
+import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import {
@@ -224,7 +224,8 @@ export let projectManagementController = Controller.create(
         organizationManagementPath('projects/:projectId/branding', 'projects.branding.update'),
         {
           name: 'Update project branding',
-          description: 'Update branding information for a specific project'
+          description: 'Update branding information for a specific project',
+          hideInDocs: true
         }
       )
       .use(checkAccess({ possibleScopes: ['organization.project:write'] }))
