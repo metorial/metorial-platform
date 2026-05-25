@@ -8,6 +8,7 @@ export default defineConfig(({ mode }) => {
   let config = createVitestConfig({
     test: {
       pool: 'forks',
+      fileParallelism: false,
       include: ['src/**/*.e2e.test.ts'],
       setupFiles: ['./src/test/setup.ts'],
       env: {

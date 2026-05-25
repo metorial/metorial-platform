@@ -41,8 +41,8 @@ command = "bun run test:unit"
 [test.e2e]
 command = "bun run test:e2e"
 setup = [
-  "bunx prisma db push --schema ../../db/prisma/schema --config ../../db/prisma.config.ts",
-  "bunx prisma generate --schema ../../db/prisma/schema --config ../../db/prisma.config.ts"
+  "bun prisma db push --schema ../../db/prisma/schema --config ../../db/prisma.config.ts",
+  "bun prisma generate --schema ../../db/prisma/schema --config ../../db/prisma.config.ts"
 ]
 cwd = "/app/src/systems/subspace/apps/worker"
 runner = "service"

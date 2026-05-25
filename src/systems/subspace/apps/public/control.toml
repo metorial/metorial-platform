@@ -14,13 +14,24 @@ context = "oss"
 project = "@metorial-subspace/app-public"
 target = "server:build"
 dockerfile = "Dockerfile"
-extra_paths = ["//oss/src/packages/frontend/ui", "//oss/src/systems/_shared/entityImage.ts"]
+extra_paths = [
+  "//oss/src/packages/frontend/ui",
+  "//oss/src/systems/_shared/entityImage.ts",
+]
 
 [[build.automations]]
 name = "subspace-public-prisma"
 kind = "run-targets"
 target = "prisma:generate"
-projects = ["@metorial-subspace/db", "@metorial/slates", "@metorial/forge", "@metorial/function-bay", "@metorial/signal", "@metorial/synthesis", "@metorial-cargo/service"]
+projects = [
+  "@metorial-subspace/db",
+  "@metorial/slates",
+  "@metorial/forge",
+  "@metorial/function-bay",
+  "@metorial/signal",
+  "@metorial/synthesis",
+  "@metorial-cargo/service",
+]
 
 [[build.automations]]
 name = "subspace-public-frontend"
@@ -34,7 +45,7 @@ copy = [
   { from = "frontend/dist", to = "/app/frontend/dist" },
   { from = "../../db", to = "/app/db" },
   { from = "../../../../packages/frontend/ui", to = "/app/src/packages/frontend/ui" },
-  { from = "/app/node_modules", to = "/app/node_modules" }
+  { from = "/app/node_modules", to = "/app/node_modules" },
 ]
 
 [build.runtime]
@@ -51,8 +62,8 @@ command = "bun run test:unit"
 [test.e2e]
 command = "bun run test:e2e"
 setup = [
-  "bunx prisma db push --schema ../../db/prisma/schema --config ../../db/prisma.config.ts",
-  "bunx prisma generate --schema ../../db/prisma/schema --config ../../db/prisma.config.ts"
+  "bun prisma db push --schema ../../db/prisma/schema --config ../../db/prisma.config.ts",
+  "bun prisma generate --schema ../../db/prisma/schema --config ../../db/prisma.config.ts",
 ]
 cwd = "/app/src/systems/subspace/apps/public"
 runner = "service"
