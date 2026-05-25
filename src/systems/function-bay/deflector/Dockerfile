@@ -3,7 +3,7 @@
 FROM golang:1.24-alpine AS deps
 WORKDIR /app
 ENV GOTOOLCHAIN=auto
-RUN --mount=type=cache,target=/var/cache/apk apk add --cache-dir /var/cache/apk git ca-certificates
+RUN --mount=type=cache,target=/var/cache/apk,sharing=locked sh -c 'attempt=1; until apk add --cache-dir /var/cache/apk git ca-certificates; do code=$?; if [ "$attempt" -ge 3 ]; then exit "$code"; fi; sleep $((attempt * 2)); attempt=$((attempt + 1)); done'
 COPY src/systems/function-bay/deflector/go.mod ./src/systems/function-bay/deflector/
 COPY src/systems/function-bay/deflector/go.sum ./src/systems/function-bay/deflector/
 RUN --mount=type=cache,id=control-go-mod,target=/go/pkg/mod,sharing=locked cd /app/src/systems/function-bay/deflector && go mod download
@@ -17,7 +17,7 @@ WORKDIR /app/src/systems/function-bay/deflector
 CMD ["sleep", "infinity"]
 FROM alpine:3.22 AS runner
 WORKDIR /app
-RUN --mount=type=cache,target=/var/cache/apk apk add --cache-dir /var/cache/apk ca-certificates wget
+RUN --mount=type=cache,target=/var/cache/apk,sharing=locked sh -c 'attempt=1; until apk add --cache-dir /var/cache/apk ca-certificates wget; do code=$?; if [ "$attempt" -ge 3 ]; then exit "$code"; fi; sleep $((attempt * 2)); attempt=$((attempt + 1)); done'
 COPY --from=build /tmp/deflector /usr/local/bin/deflector
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \

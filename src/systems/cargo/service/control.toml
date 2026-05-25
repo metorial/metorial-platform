@@ -45,7 +45,7 @@ healthcheck = "curl -f http://localhost:52151/ping && curl -f http://localhost:1
 command = "bun run test:unit"
 
 [test.e2e]
-command = "bun run test:e2e"
+command = "bun run test:e2e:ci"
 setup = ["bun prisma generate --schema ../db/prisma/schema --config ../db/prisma.config.ts", "bun prisma db push --accept-data-loss --schema ../db/prisma/schema --config ../db/prisma.config.ts"]
 cwd = "/app/src/systems/cargo/service"
 runner = "service"

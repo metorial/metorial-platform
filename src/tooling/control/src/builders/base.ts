@@ -163,7 +163,7 @@ export let renderAptInstall = (packages: string[]): string[] => {
 export let renderApkInstall = (packages: string[]): string[] => {
   if (packages.length === 0) return [];
   return [
-    `RUN --mount=type=cache,target=/var/cache/apk apk add --cache-dir /var/cache/apk ${packages.join(' ')}`
+    `RUN --mount=type=cache,target=/var/cache/apk,sharing=locked sh -c 'attempt=1; until apk add --cache-dir /var/cache/apk ${packages.join(' ')}; do code=$?; if [ "$attempt" -ge 3 ]; then exit "$code"; fi; sleep $((attempt * 2)); attempt=$((attempt + 1)); done'`
   ];
 };
 

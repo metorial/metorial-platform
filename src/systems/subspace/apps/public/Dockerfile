@@ -31,7 +31,7 @@ WORKDIR /app/src/systems/subspace/apps/public
 CMD ["sleep", "infinity"]
 FROM oven/bun:1.2.22-alpine AS runner
 WORKDIR /app
-RUN --mount=type=cache,target=/var/cache/apk apk add --cache-dir /var/cache/apk curl
+RUN --mount=type=cache,target=/var/cache/apk,sharing=locked sh -c 'attempt=1; until apk add --cache-dir /var/cache/apk curl; do code=$?; if [ "$attempt" -ge 3 ]; then exit "$code"; fi; sleep $((attempt * 2)); attempt=$((attempt + 1)); done'
 COPY --from=build /app/src/systems/subspace/apps/public/dist /app/dist
 COPY --from=build /app/src/systems/subspace/apps/public/frontend/dist /app/frontend/dist
 COPY --from=build /app/src/systems/subspace/db /app/db

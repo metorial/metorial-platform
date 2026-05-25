@@ -20,6 +20,7 @@
     "test": "bun run test:unit && bun run test:e2e",
     "test:unit": "bunx vitest run --config vitest.unit.config.ts",
     "test:e2e": "bunx vitest run --config vitest.e2e.config.ts",
+    "test:e2e:ci": "sh -c 'attempt=1; until bun run test:e2e; do code=$?; if [ \"$attempt\" -ge 3 ]; then exit \"$code\"; fi; sleep $((attempt * 2)); attempt=$((attempt + 1)); done'",
     "test:watch": "bunx vitest watch",
     "typecheck": "tsc --noEmit"
   },

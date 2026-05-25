@@ -3,7 +3,7 @@
 FROM oven/bun:1.2.22-alpine AS deps
 WORKDIR /app
 ENV GOTOOLCHAIN=auto
-RUN --mount=type=cache,target=/var/cache/apk apk add --cache-dir /var/cache/apk go git ca-certificates nodejs
+RUN --mount=type=cache,target=/var/cache/apk,sharing=locked sh -c 'attempt=1; until apk add --cache-dir /var/cache/apk go git ca-certificates nodejs; do code=$?; if [ "$attempt" -ge 3 ]; then exit "$code"; fi; sleep $((attempt * 2)); attempt=$((attempt + 1)); done'
 COPY oss/src/systems/origin/apps/code-bucket/go.mod ./oss/src/systems/origin/apps/code-bucket/
 COPY oss/src/systems/origin/apps/code-bucket/go.sum ./oss/src/systems/origin/apps/code-bucket/
 COPY oss/src/systems/origin/apps/code-bucket/package.json ./oss/src/systems/origin/apps/code-bucket/
@@ -30,7 +30,7 @@ WORKDIR /app/oss/src/systems/origin/apps/code-bucket
 CMD ["sleep", "infinity"]
 FROM alpine:latest AS runner
 WORKDIR /app
-RUN --mount=type=cache,target=/var/cache/apk apk add --cache-dir /var/cache/apk ca-certificates tzdata netcat-openbsd
+RUN --mount=type=cache,target=/var/cache/apk,sharing=locked sh -c 'attempt=1; until apk add --cache-dir /var/cache/apk ca-certificates tzdata netcat-openbsd; do code=$?; if [ "$attempt" -ge 3 ]; then exit "$code"; fi; sleep $((attempt * 2)); attempt=$((attempt + 1)); done'
 COPY --from=build /tmp/code-bucket /app/code-bucket
 EXPOSE 52091
 EXPOSE 52092
