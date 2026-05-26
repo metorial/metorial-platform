@@ -91,7 +91,12 @@ class providerAuthConfigInternalServiceImpl {
           specificationOid,
           authMethodId: d.authMethodId
         });
-        if (!requestedAuthMethod || requestedAuthMethod.oid !== authMethod.oid) {
+        if (
+          !requestedAuthMethod ||
+          (requestedAuthMethod.oid !== authMethod.oid &&
+            requestedAuthMethod.globalOid !== authMethod.globalOid &&
+            requestedAuthMethod.callableId !== authMethod.callableId)
+        ) {
           throw new ServiceError(
             badRequestError({
               message:
@@ -100,6 +105,8 @@ class providerAuthConfigInternalServiceImpl {
             })
           );
         }
+
+        authMethod = requestedAuthMethod;
       }
 
       return {
@@ -152,7 +159,7 @@ class providerAuthConfigInternalServiceImpl {
     specificationOid: bigint;
     authMethodId: string;
   }) {
-    return await db.providerAuthMethod.findFirst({
+    let authMethodForSpec = await db.providerAuthMethod.findFirst({
       where: {
         providerOid: d.provider.oid,
         specificationOid: d.specificationOid,
@@ -172,6 +179,56 @@ class providerAuthConfigInternalServiceImpl {
       },
       orderBy: [{ isDefault: 'desc' }, { createdAt: 'asc' }]
     });
+    if (authMethodForSpec) return authMethodForSpec;
+
+    // This is likely because a version mismatch - an integration or other resource is
+    // locked to a specific auth method id, but the spec has changed and that auth method
+    // is not part of the new spec. We now need to find a fallback that matches the locked
+    // auth method id, but is part of the new spec.
+    let oldAuthMethod = await db.providerAuthMethod.findFirst({
+      where: {
+        providerOid: d.provider.oid,
+        id: d.authMethodId
+      }
+    });
+
+    // There is no such auth method in the old spec,
+    // nothing we can do to resolve this
+    if (!oldAuthMethod) return null;
+
+    // Now we need to find an auth method in the new spec that matches the old auth method
+    let fallbackAuthMethod = await db.providerAuthMethod.findFirst({
+      where: {
+        providerOid: d.provider.oid,
+        specificationOid: d.specificationOid,
+        OR: [
+          { specId: oldAuthMethod.specId },
+          { specUniqueIdentifier: oldAuthMethod.specUniqueIdentifier },
+          { key: oldAuthMethod.key },
+          { callableId: oldAuthMethod.callableId }
+        ]
+      },
+      include: {
+        specification: true
+      },
+      orderBy: [{ isDefault: 'desc' }, { createdAt: 'asc' }]
+    });
+    if (fallbackAuthMethod) return fallbackAuthMethod;
+
+    fallbackAuthMethod = await db.providerAuthMethod.findFirst({
+      where: {
+        providerOid: d.provider.oid,
+        specificationOid: d.specificationOid,
+        type: oldAuthMethod.type
+      },
+      include: {
+        specification: true
+      },
+      orderBy: [{ isDefault: 'desc' }, { createdAt: 'asc' }]
+    });
+    if (fallbackAuthMethod) return fallbackAuthMethod;
+
+    return null;
   }
 
   private async findPreferredAuthMethodForVersion(d: {
@@ -231,9 +288,7 @@ class providerAuthConfigInternalServiceImpl {
       authMethod = result as ProviderAuthMethodWithSpecification | null;
     }
 
-    if (authMethod) {
-      return authMethod;
-    }
+    if (authMethod) return authMethod;
 
     throw new ServiceError(
       badRequestError({
