@@ -40,7 +40,7 @@ services:
     profiles: ['service']
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: dev.Dockerfile
     container_name: nebula-service
     restart: unless-stopped
     ports:

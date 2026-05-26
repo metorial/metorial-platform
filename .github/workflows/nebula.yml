@@ -21,6 +21,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -68,6 +70,7 @@ jobs:
     secrets: inherit
     with:
       service_directory: src/systems/nebula/service
+      checkout_submodules: true
       compose_project_prefix: nebula-ci
       compose_profiles: 'infra service'
       wait_services: |
