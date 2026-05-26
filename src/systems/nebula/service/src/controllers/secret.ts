@@ -1,0 +1,146 @@
+import { Paginator } from '@lowerdeck/pagination';
+import { v } from '@lowerdeck/validation';
+import { secretPresenter, secretUsePresenter, secretVersionPresenter } from '../presenters';
+import { consumerService, secretService } from '../services';
+import { app } from './_app';
+import { consumerApp } from './consumer';
+import { tenantApp } from './tenant';
+
+export let secretApp = tenantApp.use(async ctx => {
+  let secretId = ctx.body.secretId;
+  if (!secretId) throw new Error('Secret ID is required');
+
+  let secret = await secretService.getSecretById({
+    tenant: ctx.tenant,
+    id: secretId
+  });
+
+  return { secret };
+});
+
+export let secretController = app.controller({
+  create: consumerApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        consumerId: v.string(),
+        purpose: v.string(),
+        secret: v.string(),
+        proof: v.any(),
+        encryptionContext: v.optional(v.any()),
+        keyProviderId: v.optional(v.string())
+      })
+    )
+    .do(async ctx => {
+      let secret = await secretService.createSecret({
+        tenant: ctx.tenant,
+        consumer: ctx.consumer,
+        input: {
+          purpose: ctx.input.purpose,
+          secret: ctx.input.secret,
+          proof: ctx.input.proof,
+          encryptionContext: ctx.input.encryptionContext,
+          keyProviderId: ctx.input.keyProviderId
+        }
+      });
+      return secretPresenter(secret);
+    }),
+
+  update: secretApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        secretId: v.string(),
+        consumerId: v.string(),
+        secret: v.string(),
+        proof: v.any(),
+        encryptionContext: v.optional(v.any()),
+        keyProviderId: v.optional(v.string())
+      })
+    )
+    .do(async ctx => {
+      let consumer = await consumerService.getConsumerById({
+        tenant: ctx.tenant,
+        id: ctx.input.consumerId
+      });
+
+      let secret = await secretService.updateSecret({
+        tenant: ctx.tenant,
+        consumer,
+        secret: ctx.secret,
+        input: {
+          secret: ctx.input.secret,
+          proof: ctx.input.proof,
+          encryptionContext: ctx.input.encryptionContext,
+          keyProviderId: ctx.input.keyProviderId
+        }
+      });
+      return secretPresenter(secret);
+    }),
+
+  list: tenantApp
+    .handler()
+    .input(Paginator.validate(v.object({ tenantId: v.string() })))
+    .do(async ctx => {
+      let paginator = await secretService.listSecrets({ tenant: ctx.tenant });
+      let list = await paginator.run(ctx.input);
+      return Paginator.presentLight(list, secretPresenter);
+    }),
+
+  get: secretApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        secretId: v.string()
+      })
+    )
+    .do(async ctx => secretPresenter(ctx.secret)),
+
+  use: consumerApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        consumerId: v.string(),
+        secretId: v.string(),
+        proof: v.any(),
+        note: v.string()
+      })
+    )
+    .do(async ctx => {
+      let secret = await secretService.getSecretById({
+        tenant: ctx.tenant,
+        id: ctx.input.secretId
+      });
+      let used = await secretService.useSecret({
+        tenant: ctx.tenant,
+        consumer: ctx.consumer,
+        secret,
+        proof: ctx.input.proof,
+        note: ctx.input.note
+      });
+      return secretUsePresenter(used);
+    }),
+
+  listVersions: secretApp
+    .handler()
+    .input(
+      Paginator.validate(
+        v.object({
+          tenantId: v.string(),
+          secretId: v.string()
+        })
+      )
+    )
+    .do(async ctx => {
+      let paginator = await secretService.listSecretVersions({
+        tenant: ctx.tenant,
+        secret: ctx.secret
+      });
+      let list = await paginator.run(ctx.input);
+      return Paginator.presentLight(list, secretVersionPresenter);
+    })
+});
