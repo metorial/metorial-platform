@@ -24,6 +24,11 @@ on:
         description: 'Optional docker compose project prefix for ci'
         required: false
         type: string
+      modules:
+        description: 'Optional module selector(s) to pass to control e2e'
+        required: false
+        default: ''
+        type: string
       runs-on:
         description: 'Runner label'
         required: false
@@ -85,6 +90,7 @@ jobs:
           MODE: ${{ inputs.mode }}
           FILTER: ${{ inputs.filter }}
           ALL: ${{ inputs.all }}
+          MODULES: ${{ inputs.modules }}
         run: |
           set -euo pipefail
 
@@ -96,6 +102,9 @@ jobs:
             SCOPE="${COMMAND}-${MODE:-none}-${FILTER}"
           else
             SCOPE="${COMMAND}-${MODE:-none}-none"
+          fi
+          if [ -n "${MODULES}" ]; then
+            SCOPE="${SCOPE}-modules-${MODULES}"
           fi
 
           SCOPE="$(printf '%s' "${SCOPE}" | tr -c 'A-Za-z0-9_.-' '-')"
@@ -121,7 +130,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .control/cache/buildkit
-          key: control-buildkit-${{ runner.os }}-${{ github.ref_name }}-${{ steps.cache-scope.outputs.scope }}-${{ hashFiles('bun.lock', 'nx.json', 'src/tooling/control/src/**/*.ts', 'src/systems/**/control.toml', 'src/systems/**/Dockerfile') }}
+          key: control-buildkit-${{ runner.os }}-${{ github.ref_name }}-${{ steps.cache-scope.outputs.scope }}-${{ hashFiles('bun.lock', 'nx.json', 'src/tooling/control/src/**/*.ts', 'src/systems/**/control.toml', 'src/systems/**/Dockerfile', 'src/backend/apps/**/control.toml', 'src/backend/apps/**/Dockerfile') }}
           restore-keys: |
             control-buildkit-${{ runner.os }}-${{ github.ref_name }}-${{ steps.cache-scope.outputs.scope }}-
             control-buildkit-${{ runner.os }}-${{ github.ref_name }}-
@@ -181,6 +190,9 @@ jobs:
             fi
             if [ -n "${{ inputs.project_prefix }}" ]; then
               ARGS+=(--project-prefix "${{ inputs.project_prefix }}")
+            fi
+            if [ "${{ inputs.mode }}" = "e2e" ] && [ -n "${{ inputs.modules }}" ]; then
+              ARGS+=(--module "${{ inputs.modules }}")
             fi
           else
             echo "Unsupported command: ${{ inputs.command }}" >&2

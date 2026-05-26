@@ -84,3 +84,15 @@ jobs:
       project_prefix: ${{ matrix.service }}-ci
       runs-on: depot-ubuntu-24.04-4
       checkout_submodules: ${{ matrix.service == 'subspace-controller' }}
+
+  core-api-e2e:
+    name: E2E (app-api)
+    uses: ./.github/workflows/reusable-control.yml
+    secrets: inherit
+    with:
+      command: ci
+      mode: e2e
+      filter: app-api
+      modules: all
+      project_prefix: app-api-ci
+      runs-on: depot-ubuntu-24.04-4
