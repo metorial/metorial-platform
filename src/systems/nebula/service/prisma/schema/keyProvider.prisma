@@ -25,11 +25,13 @@ model KeyProvider {
   oid BigInt @id
   id  String @unique
 
-  systemIdentifier String @unique
-  name       String
-  type       KeyProviderType
-  owner      KeyProviderOwner
-  status     KeyProviderStatus
+  systemIdentifier String            @unique
+  name             String
+  type             KeyProviderType
+  owner            KeyProviderOwner
+  status           KeyProviderStatus
+
+  isMetorialManaged Boolean @default(false)
 
   keyInfo Json
 

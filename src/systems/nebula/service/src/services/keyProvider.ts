@@ -63,6 +63,7 @@ class KeyProviderServiceImpl {
             type,
             owner: 'system',
             status: 'active',
+            isMetorialManaged: false,
             keyInfo: provider.keyInfo
           }
         });
@@ -94,6 +95,7 @@ class KeyProviderServiceImpl {
           type,
           owner: 'tenant',
           status: 'active',
+          isMetorialManaged: false,
           keyInfo: validated.keyInfo
         }
       });
@@ -145,6 +147,7 @@ class KeyProviderServiceImpl {
           type,
           owner: 'system',
           status: 'active',
+          isMetorialManaged: true,
           keyInfo: provider.keyInfo
         }
       });
@@ -166,7 +169,7 @@ class KeyProviderServiceImpl {
     return await this.createManagedKeyProvider(d);
   }
 
-  async getKeyProviderById(d: { tenant?: Tenant | null; id: string }) {
+  async getKeyProviderById(d: { tenant: Tenant; id: string }) {
     let keyProvider = await db.keyProvider.findFirst({
       where: {
         OR: [{ id: d.id }, { systemIdentifier: d.id }],
@@ -223,7 +226,6 @@ class KeyProviderServiceImpl {
       tenant: d.tenant,
       id: d.keyProviderId
     });
-    this.guardTenantOwnedKeyProvider(keyProvider);
 
     return await db.tenant.update({
       where: { oid: d.tenant.oid },
@@ -271,7 +273,7 @@ class KeyProviderServiceImpl {
     });
   }
 
-  guardKeyProviderForTenant(d: { tenant: Tenant | null; keyProvider: KeyProvider }) {
+  guardKeyProviderForTenant(d: { tenant: Tenant ; keyProvider: KeyProvider }) {
     if (d.keyProvider.owner === 'system' && d.keyProvider.tenantOid === null) return;
 
     if (!d.tenant || d.keyProvider.tenantOid !== d.tenant.oid) {
@@ -280,11 +282,17 @@ class KeyProviderServiceImpl {
   }
 
   guardTenantOwnedKeyProvider(keyProvider: KeyProvider) {
-    if (keyProvider.owner !== 'tenant') {
+    if (keyProvider.owner !== 'tenant' || this.isMetorialManaged(keyProvider)) {
       throw new ServiceError(
         badRequestError({ message: 'Key provider is managed by Metorial' })
       );
     }
+  }
+
+  isMetorialManaged(keyProvider: KeyProvider) {
+    return (
+      keyProvider.isMetorialManaged || (keyProvider.keyInfo as any)?.managedByNebula === true
+    );
   }
 
   private async setAsDefaultIfUsingGlobalDefault(d: {

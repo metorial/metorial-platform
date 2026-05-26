@@ -8,17 +8,18 @@ let safeKeyInfo = (keyProvider: KeyProvider) => {
       region: info.region,
       keyId: info.keyId,
       keyArn: info.keyArn,
-      accountId: info.accountId,
-      isCustomerManaged: !info.managedByNebula
+      accountId: info.accountId
     };
   }
 
   return {
     variant: info.variant,
-    version: info.version,
-    isCustomerManaged: !info.managedByNebula
+    version: info.version
   };
 };
+
+let isMetorialManaged = (keyProvider: KeyProvider) =>
+  keyProvider.isMetorialManaged || (keyProvider.keyInfo as any)?.managedByNebula === true;
 
 export let keyProviderPresenter = (keyProvider: KeyProvider) => ({
   object: 'nebula#key_provider',
@@ -27,6 +28,7 @@ export let keyProviderPresenter = (keyProvider: KeyProvider) => ({
   type: keyProvider.type,
   owner: keyProvider.owner,
   status: keyProvider.status,
+  isMetorialManaged: isMetorialManaged(keyProvider),
   keyReuseTimeSeconds: keyProvider.keyReuseTimeSeconds,
   keyInfo: safeKeyInfo(keyProvider),
   createdAt: keyProvider.createdAt,

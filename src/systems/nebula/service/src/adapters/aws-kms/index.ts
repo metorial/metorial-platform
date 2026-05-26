@@ -45,7 +45,8 @@ export class AwsKmsKeyProviderAdapter extends KeyProviderAdapter {
 
   async createSystemKeyProvider() {
     let region = env.kms.KMS_AWS_REGION;
-    if (!region) throw new KeyProviderAdapterError('kms_region_missing', 'KMS region is missing');
+    if (!region)
+      throw new KeyProviderAdapterError('kms_region_missing', 'KMS region is missing');
 
     let keyId = env.kms.KMS_DEFAULT_KEY_ID;
 
@@ -63,7 +64,10 @@ export class AwsKmsKeyProviderAdapter extends KeyProviderAdapter {
       }
 
       if (!keyId) {
-        throw new KeyProviderAdapterError('kms_default_key_missing', 'Default KMS key is missing');
+        throw new KeyProviderAdapterError(
+          'kms_default_key_missing',
+          'Default KMS key is missing'
+        );
       }
 
       return {
@@ -82,8 +86,10 @@ export class AwsKmsKeyProviderAdapter extends KeyProviderAdapter {
 
     let input = parsed.value;
     let region = input.region ?? env.kms.KMS_AWS_REGION;
-    if (!input.keyId) throw new KeyProviderAdapterError('kms_key_missing', 'KMS key is missing');
-    if (!region) throw new KeyProviderAdapterError('kms_region_missing', 'KMS region is missing');
+    if (!input.keyId)
+      throw new KeyProviderAdapterError('kms_key_missing', 'KMS key is missing');
+    if (!region)
+      throw new KeyProviderAdapterError('kms_region_missing', 'KMS region is missing');
 
     try {
       return {
@@ -187,7 +193,8 @@ export class AwsKmsKeyProviderAdapter extends KeyProviderAdapter {
     systemIdentifier: string;
   }) {
     let region = env.kms.KMS_AWS_REGION;
-    if (!region) throw new KeyProviderAdapterError('kms_region_missing', 'KMS region is missing');
+    if (!region)
+      throw new KeyProviderAdapterError('kms_region_missing', 'KMS region is missing');
 
     try {
       let created = await getKmsClient(region).send(
@@ -211,7 +218,6 @@ export class AwsKmsKeyProviderAdapter extends KeyProviderAdapter {
         name: input.name,
         keyInfo: {
           ...(await this.describeKeyId({ keyId, region })),
-          managedByNebula: true,
           tenantId: input.tenantId
         }
       };
@@ -236,7 +242,10 @@ export class AwsKmsKeyProviderAdapter extends KeyProviderAdapter {
       );
 
       if (!result.Plaintext || !result.CiphertextBlob) {
-        throw new KeyProviderAdapterError('kms_data_key_missing', 'KMS did not return a data key');
+        throw new KeyProviderAdapterError(
+          'kms_data_key_missing',
+          'KMS did not return a data key'
+        );
       }
 
       return {
@@ -274,7 +283,10 @@ export class AwsKmsKeyProviderAdapter extends KeyProviderAdapter {
       );
 
       if (!result.Plaintext) {
-        throw new KeyProviderAdapterError('kms_plaintext_missing', 'KMS did not return plaintext');
+        throw new KeyProviderAdapterError(
+          'kms_plaintext_missing',
+          'KMS did not return plaintext'
+        );
       }
 
       return result.Plaintext;

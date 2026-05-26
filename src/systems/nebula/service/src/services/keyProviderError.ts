@@ -15,6 +15,9 @@ let startOfUtcDay = (date = new Date()) =>
 
 let safeSample = (message: string) => message.slice(0, 500);
 
+let isMetorialManaged = (keyProvider: KeyProvider) =>
+  keyProvider.isMetorialManaged || (keyProvider.keyInfo as any)?.managedByNebula === true;
+
 class KeyProviderErrorServiceImpl {
   async recordKeyProviderError(d: {
     keyProvider: KeyProvider;
@@ -56,7 +59,7 @@ class KeyProviderErrorServiceImpl {
   }
 
   async listKeyProviderErrors(d: { keyProvider: KeyProvider; tenant?: Tenant | null }) {
-    if (d.keyProvider.owner !== 'tenant') {
+    if (d.keyProvider.owner !== 'tenant' || isMetorialManaged(d.keyProvider)) {
       throw new ServiceError(
         badRequestError({ message: 'Key provider errors are unavailable' })
       );

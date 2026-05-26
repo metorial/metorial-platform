@@ -5,17 +5,27 @@ import type { Organization, Project } from '@metorial/db';
 import { nebula } from '../nebula';
 import { getNebulaTenantForProject } from '../tenant';
 
-export type NebulaKeyProvider = Awaited<
-  ReturnType<typeof nebula.keyProvider.get>
-> & {
+export type NebulaKeyProvider = Awaited<ReturnType<typeof nebula.keyProvider.get>> & {
+  isMetorialManaged: boolean;
   isDefault?: boolean;
 };
 
+let withIsMetorialManaged = (
+  keyProvider: Awaited<ReturnType<typeof nebula.keyProvider.get>> & {
+    isMetorialManaged?: boolean;
+  }
+) => ({
+  ...keyProvider,
+  isMetorialManaged: keyProvider.isMetorialManaged ?? false
+});
+
 let withIsDefault = (
-  keyProvider: Awaited<ReturnType<typeof nebula.keyProvider.get>>,
+  keyProvider: Awaited<ReturnType<typeof nebula.keyProvider.get>> & {
+    isMetorialManaged?: boolean;
+  },
   defaultKeyProviderId: string | null
 ): NebulaKeyProvider => ({
-  ...keyProvider,
+  ...withIsMetorialManaged(keyProvider),
   isDefault: !!defaultKeyProviderId && keyProvider.id === defaultKeyProviderId
 });
 
@@ -26,6 +36,7 @@ let toFabricKeyProvider = (keyProvider: NebulaKeyProvider): KeyProviderEventKeyP
   type: keyProvider.type,
   owner: keyProvider.owner,
   status: keyProvider.status,
+  isMetorialManaged: keyProvider.isMetorialManaged,
   keyReuseTimeSeconds: keyProvider.keyReuseTimeSeconds,
   keyInfo: keyProvider.keyInfo,
   createdAt: keyProvider.createdAt,
@@ -44,9 +55,7 @@ export type NebulaKeyProviderValidation = Awaited<
   ReturnType<typeof nebula.keyProvider.validate>
 >;
 
-let isManagedKeyProvider = (keyProvider: NebulaKeyProvider) =>
-  keyProvider.owner === 'system' &&
-  (keyProvider.keyInfo as any)?.isCustomerManaged === false;
+let isManagedKeyProvider = (keyProvider: NebulaKeyProvider) => keyProvider.isMetorialManaged;
 
 let listAllKeyProviders = async (tenantId: string) => {
   let items: NebulaKeyProvider[] = [];
@@ -59,7 +68,7 @@ let listAllKeyProviders = async (tenantId: string) => {
       ...(after ? { after } : {})
     });
 
-    items.push(...page.items);
+    items.push(...page.items.map(withIsMetorialManaged));
 
     if (!page.pagination.has_more_after || page.items.length === 0) break;
 

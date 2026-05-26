@@ -7,6 +7,7 @@ export type DashboardProjectsKeyProvidersCreateManagedOutput = {
   type: 'aws_kms' | 'local';
   owner: 'tenant' | 'system';
   status: 'active' | 'inactive' | 'degraded';
+  isMetorialManaged: boolean;
   keyReuseTimeSeconds: number | null;
   keyInfo: Record<string, any>;
   isDefault: boolean;
@@ -22,6 +23,10 @@ export let mapDashboardProjectsKeyProvidersCreateManagedOutput =
     type: mtMap.objectField('type', mtMap.passthrough()),
     owner: mtMap.objectField('owner', mtMap.passthrough()),
     status: mtMap.objectField('status', mtMap.passthrough()),
+    isMetorialManaged: mtMap.objectField(
+      'is_metorial_managed',
+      mtMap.passthrough()
+    ),
     keyReuseTimeSeconds: mtMap.objectField(
       'key_reuse_time_seconds',
       mtMap.passthrough()

@@ -107,6 +107,7 @@ export type KeyProviderEventKeyProvider = {
   type: 'aws_kms' | 'local';
   owner: 'tenant' | 'system';
   status: 'active' | 'inactive' | 'degraded';
+  isMetorialManaged: boolean;
   keyReuseTimeSeconds: number | null;
   keyInfo: Record<string, unknown>;
   createdAt: Date;

@@ -23,7 +23,9 @@ describe('key provider defaults', () => {
     expect(
       keyProviders.items.some(
         keyProvider =>
-          keyProvider.id === tenant.defaultKeyProviderId && keyProvider.owner === 'system'
+          keyProvider.id === tenant.defaultKeyProviderId &&
+          keyProvider.owner === 'system' &&
+          !keyProvider.isMetorialManaged
       )
     ).toBe(true);
 
@@ -42,10 +44,32 @@ describe('key provider defaults', () => {
       tenantId: tenant.id,
       keyInput: {}
     });
+    expect(provider.isMetorialManaged).toBe(false);
 
     let updatedTenant = await nebulaClient.tenant.get({ tenantId: tenant.id });
     expect(updatedTenant.defaultKeyProviderId).toBe(provider.id);
     expect(updatedTenant.defaultKeyProviderId).not.toBe(globalDefaultId);
+  });
+
+  it('allows the global default provider to be set explicitly', async () => {
+    let tenant = await nebulaClient.tenant.upsert({
+      identifier: 'tenant-global-explicit-default',
+      name: 'Tenant Global Explicit Default'
+    });
+    let globalDefaultId = tenant.defaultKeyProviderId!;
+
+    await nebulaClient.keyProvider.import({
+      tenantId: tenant.id,
+      keyInput: {}
+    });
+
+    await nebulaClient.keyProvider.setDefault({
+      tenantId: tenant.id,
+      keyProviderId: globalDefaultId
+    });
+
+    let updatedTenant = await nebulaClient.tenant.get({ tenantId: tenant.id });
+    expect(updatedTenant.defaultKeyProviderId).toBe(globalDefaultId);
   });
 
   it('sets the first managed provider as the explicit default', async () => {
@@ -58,6 +82,7 @@ describe('key provider defaults', () => {
       tenantId: tenant.id,
       name: 'Managed default'
     });
+    expect(provider.isMetorialManaged).toBe(true);
 
     let updatedTenant = await nebulaClient.tenant.get({ tenantId: tenant.id });
     expect(updatedTenant.defaultKeyProviderId).toBe(provider.id);

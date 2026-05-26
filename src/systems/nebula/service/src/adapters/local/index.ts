@@ -71,7 +71,6 @@ export class LocalKeyProviderAdapter extends KeyProviderAdapter {
       keyInfo: {
         variant: 'local',
         version: 1,
-        managedByNebula: true,
         secret: Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString('base64url')
       }
     };
@@ -169,7 +168,7 @@ ${JSON.stringify(importKeyProviderPayload, null, 2)}
         variant: 'local',
         version: 1,
         providerId: keyProvider.id,
-        managedByNebula: (keyProvider.keyInfo as any)?.managedByNebula === true
+        isMetorialManaged: keyProvider.isMetorialManaged
       }
     };
   }
