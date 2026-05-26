@@ -69,6 +69,10 @@ import {
   v1FileLinkPresenter,
   v1FilePresenter,
   v1FlagsPresenter,
+  v1KeyProviderErrorPresenter,
+  v1KeyProviderPresenter,
+  v1KeyProviderSetupInfoPresenter,
+  v1KeyProviderValidationPresenter,
   v1IdentityActorPresenter,
   v1IdentityCredentialPresenter,
   v1IdentityDelegationConfigPresenter,
@@ -265,6 +269,10 @@ import {
   integrationProviderType,
   integrationSetupSessionType,
   integrationType,
+  keyProviderErrorType,
+  keyProviderSetupInfoType,
+  keyProviderType,
+  keyProviderValidationType,
   machineAccessType,
   magicMcpEndpointType,
   magicMcpGroupType,
@@ -687,6 +695,26 @@ export let skillVersionSnapshotPresenter = declarePresenter(skillVersionSnapshot
 export let secretPresenter = declarePresenter(secretType, {
   mt_2025_01_01_dashboard: v1SecretPresenter,
   mt_2026_01_01_magnetar: v1SecretPresenter
+});
+
+export let keyProviderPresenter = declarePresenter(keyProviderType, {
+  mt_2025_01_01_dashboard: v1KeyProviderPresenter,
+  mt_2026_01_01_magnetar: v1KeyProviderPresenter
+});
+
+export let keyProviderErrorPresenter = declarePresenter(keyProviderErrorType, {
+  mt_2025_01_01_dashboard: v1KeyProviderErrorPresenter,
+  mt_2026_01_01_magnetar: v1KeyProviderErrorPresenter
+});
+
+export let keyProviderSetupInfoPresenter = declarePresenter(keyProviderSetupInfoType, {
+  mt_2025_01_01_dashboard: v1KeyProviderSetupInfoPresenter,
+  mt_2026_01_01_magnetar: v1KeyProviderSetupInfoPresenter
+});
+
+export let keyProviderValidationPresenter = declarePresenter(keyProviderValidationType, {
+  mt_2025_01_01_dashboard: v1KeyProviderValidationPresenter,
+  mt_2026_01_01_magnetar: v1KeyProviderValidationPresenter
 });
 
 export let usagePresenter = declarePresenter(usageType, {

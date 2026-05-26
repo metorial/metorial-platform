@@ -568,6 +568,22 @@ export let secretType = PresentableType.create<{
   secret: Secret & { type: SecretType; organization: Organization; instance: Instance };
 }>()('secret');
 
+export let keyProviderType = PresentableType.create<{
+  keyProvider: import('@metorial/module-nebula').NebulaKeyProvider;
+}>()('key_provider');
+
+export let keyProviderErrorType = PresentableType.create<{
+  keyProviderError: import('@metorial/module-nebula').NebulaKeyProviderError;
+}>()('key_provider_error');
+
+export let keyProviderSetupInfoType = PresentableType.create<{
+  setupInfo: import('@metorial/module-nebula').NebulaKeyProviderSetupInfo;
+}>()('key_provider_setup_info');
+
+export let keyProviderValidationType = PresentableType.create<{
+  validation: import('@metorial/module-nebula').NebulaKeyProviderValidation;
+}>()('key_provider_validation');
+
 export let usageType = PresentableType.create<{
   timeline: {
     entityId: string;

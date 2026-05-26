@@ -100,6 +100,24 @@ export type ProviderEventBase = {
   input?: Record<string, any>;
 };
 
+export type KeyProviderEventKeyProvider = {
+  object: 'nebula#key_provider';
+  id: string;
+  name: string;
+  type: 'aws_kms' | 'local';
+  owner: 'tenant' | 'system';
+  status: 'active' | 'inactive' | 'degraded';
+  keyReuseTimeSeconds: number | null;
+  keyInfo: Record<string, unknown>;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export type KeyProviderEventBase = {
+  organization: Organization;
+  project: Project;
+};
+
 // prettier-ignore
 export interface FabricEvents {
   'user.created:before': { context?: Context };
@@ -167,6 +185,11 @@ export interface FabricEvents {
   'organization.project.instance.updated:after': { organization: Organization, project: Project; instance: Instance, performedBy: OrganizationActor; context?: Context };
   'organization.project.instance.deleted:before': { organization: Organization, project: Project; instance: Instance, performedBy: OrganizationActor; context?: Context };
   'organization.project.instance.deleted:after': { organization: Organization, project: Project; instance: Instance, performedBy: OrganizationActor; context?: Context };
+
+  'key_provider.imported:before': KeyProviderEventBase & { currentCount: number };
+  'key_provider.imported:after': KeyProviderEventBase & { keyProvider: KeyProviderEventKeyProvider };
+  'key_provider.managed.created:before': KeyProviderEventBase & { currentCount: number };
+  'key_provider.managed.created:after': KeyProviderEventBase & { keyProvider: KeyProviderEventKeyProvider };
 
   'organization.team.created:before': { organization: Organization, performedBy: OrganizationActor; context?: Context };
   'organization.team.created:after': { organization: Organization, team: Team, performedBy: OrganizationActor; context?: Context };
