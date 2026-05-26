@@ -8,11 +8,11 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
   apt-get update && apt-get install -y --no-install-recommends \
   ca-certificates && rm -rf /var/lib/apt/lists/*
 COPY _manifests/base/ ./
-RUN --mount=type=cache,id=control-bun-install,target=/root/.bun/install/cache,sharing=locked bun install --linker=hoisted
+RUN --mount=type=cache,id=control-bun-install,target=/root/.bun/install/cache,sharing=locked bun install
 COPY _manifests/dependencies/ ./
-RUN --mount=type=cache,id=control-bun-install,target=/root/.bun/install/cache,sharing=locked bun install --linker=hoisted
+RUN --mount=type=cache,id=control-bun-install,target=/root/.bun/install/cache,sharing=locked bun install
 COPY _manifests/service/ ./
-RUN --mount=type=cache,id=control-bun-install,target=/root/.bun/install/cache,sharing=locked bun install --linker=hoisted
+RUN --mount=type=cache,id=control-bun-install,target=/root/.bun/install/cache,sharing=locked bun install
 FROM deps AS build
 WORKDIR /app
 COPY _inputs/shared/ ./

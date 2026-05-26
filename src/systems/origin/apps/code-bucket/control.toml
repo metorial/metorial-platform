@@ -27,7 +27,7 @@ manifests = [
   "../code-workspace/package.json",
   "../code-workspace/extensions/memfs/package.json"
 ]
-command = "bun install --linker=hoisted"
+command = "bun install"
 
 [build.manifests]
 files = [
@@ -75,7 +75,7 @@ healthcheck = "nc -z localhost 52091 || exit 1"
 [test.unit]
 command = "go test ./..."
 setup = [
-  "cd ../code-workspace && bun install --linker=hoisted && bunx tsc && bunx vite build",
+  "cd ../code-workspace && bun install && bunx tsc && bunx vite build",
   "rm -rf pkg/workspace/dist && mkdir -p pkg/workspace && cp -R ../code-workspace/dist pkg/workspace/dist"
 ]
 cwd = "/app/src/systems/origin/apps/code-bucket"

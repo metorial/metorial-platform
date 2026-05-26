@@ -16,6 +16,18 @@ export type MaterializedBuildContext = {
   dockerfilePath: string;
 };
 
+// #region agent log
+let debugLog = (d: {
+  runId: string;
+  hypothesisId: string;
+  location: string;
+  message: string;
+  data: Record<string, unknown>;
+}) => {
+  console.log(JSON.stringify({ source: 'control-debug', sessionId: '0825fe', ...d, timestamp: Date.now() }));
+};
+// #endregion
+
 let sanitizeName = (input: string) => input.replace(/[^a-zA-Z0-9._-]+/g, '-');
 
 let resolveRelativeToRoot = (root: string, absolutePath: string): string => {
@@ -39,6 +51,50 @@ let rootInputFilesForPlan = (sourceRoot: string): string[] => {
   return patterns
     .map(relativePath => resolve(sourceRoot, relativePath))
     .filter(path => existsSync(path));
+};
+
+let prismaVersionSummary = (content: string) => {
+  let packageNames = [
+    '@prisma/client',
+    '@prisma/adapter-pg',
+    '@prisma/driver-adapter-utils',
+    '@prisma/client-runtime-utils',
+    'prisma',
+    '@prisma/config',
+    '@prisma/engines'
+  ];
+
+  return Object.fromEntries(
+    packageNames.map(name => [
+      name,
+      [
+        ...new Set(
+          [...content.matchAll(new RegExp(`${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}@([0-9]+\\.[0-9]+\\.[0-9]+)`, 'g'))].map(
+            match => match[1]
+          )
+        )
+      ].sort()
+    ])
+  );
+};
+
+let directPrismaDependencySummary = (manifestFiles: GeneratedBuildPath[]) => {
+  let summary: Record<string, Record<string, string>> = {};
+
+  for (let file of manifestFiles) {
+    let json = JSON.parse(readFileSync(file.absolutePath, 'utf8')) as {
+      dependencies?: Record<string, string>;
+      devDependencies?: Record<string, string>;
+      peerDependencies?: Record<string, string>;
+    };
+    let deps = { ...json.dependencies, ...json.devDependencies, ...json.peerDependencies };
+    let prismaDeps = Object.fromEntries(
+      Object.entries(deps).filter(([name]) => name === 'prisma' || name.startsWith('@prisma/'))
+    );
+    if (Object.keys(prismaDeps).length > 0) summary[file.relativeToContext] = prismaDeps;
+  }
+
+  return summary;
 };
 
 let resolveSourceRoot = (opts: {
@@ -126,6 +182,31 @@ let materializeNodeContext = async (opts: {
         manifestFiles: cumulativeManifestFiles(opts.plan.installLayers, i)
       })
     );
+
+    // #region agent log
+    let layerLockPath = join(layerRoot, 'bun.lock');
+    let layerPackageJson = JSON.parse(readFileSync(join(layerRoot, 'package.json'), 'utf8')) as {
+      workspaces?: string[];
+    };
+    debugLog({
+      runId: 'pre-fix',
+      hypothesisId: 'H2,H3,H4,H5',
+      location: 'oss/src/tooling/control/src/builders/context.ts:132',
+      message: 'control node manifest layer materialized',
+      data: {
+        service: opts.plan.service.name,
+        layer: layer.name,
+        command: layer.command,
+        manifestCount: layer.manifestFiles.length,
+        workspaces: layerPackageJson.workspaces ?? [],
+        directPrismaDependencies: directPrismaDependencySummary(layer.manifestFiles),
+        copiedLockExists: existsSync(layerLockPath),
+        copiedLockPrismaVersions: existsSync(layerLockPath)
+          ? prismaVersionSummary(readFileSync(layerLockPath, 'utf8'))
+          : {}
+      }
+    });
+    // #endregion
   }
 
   for (let layer of opts.plan.sourceLayers) {
@@ -195,6 +276,36 @@ export let materializeBuildContext = async (opts: {
   rmSync(contextRoot, { recursive: true, force: true });
   mkdirSync(contextRoot, { recursive: true });
   let sourceRoot = resolveSourceRoot(opts);
+  let sourceLockPath = resolve(sourceRoot, 'bun.lock');
+
+  // #region agent log
+  debugLog({
+    runId: 'pre-fix',
+    hypothesisId: 'H1,H2,H3,H4,H5',
+    location: 'oss/src/tooling/control/src/builders/context.ts:286',
+    message: 'control build context source resolved',
+    data: {
+      service: opts.plan.service.name,
+      builder: opts.plan.builder,
+      contextRoot,
+      planContextRoot: opts.plan.contextRoot,
+      registryControlRoot: opts.registry.controlRoot,
+      sourceRoot,
+      hasSession: !!opts.session,
+      stagedEntrypoint: opts.session?.stagedEntrypoint,
+      repoRoot: opts.session?.repoRoot,
+      sourceLockExists: existsSync(sourceLockPath),
+      sourceLockPrismaVersions: existsSync(sourceLockPath)
+        ? prismaVersionSummary(readFileSync(sourceLockPath, 'utf8'))
+        : {},
+      installLayers: opts.plan.installLayers.map(layer => ({
+        name: layer.name,
+        command: layer.command,
+        manifestCount: layer.manifestFiles.length
+      }))
+    }
+  });
+  // #endregion
 
   let dockerfileContent =
     opts.plan.builder === 'node'

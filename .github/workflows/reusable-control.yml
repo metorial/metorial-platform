@@ -131,13 +131,13 @@ jobs:
         if: ${{ inputs.command == 'build' || (inputs.command == 'ci' && inputs.mode == 'e2e') }}
         env:
           NX_CACHE_DIRECTORY: ${{ github.workspace }}/.nx/cache
-        run: bun i --linker=hoisted --filter @metorial/oss --filter @metorial/control
+        run: bun i --filter @metorial/oss --filter @metorial/control
 
       - name: Install packages
         if: ${{ inputs.command == 'ci' && inputs.mode == 'unit' }}
         env:
           NX_CACHE_DIRECTORY: ${{ github.workspace }}/.nx/cache
-        run: bun i --linker=hoisted
+        run: bun i
 
       - name: Generate Prisma Clients
         if: ${{ inputs.command == 'ci' && inputs.mode == 'unit' }}

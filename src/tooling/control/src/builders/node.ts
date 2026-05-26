@@ -253,7 +253,7 @@ let createNodeInstallLayers = (opts: {
   registry: ServiceRegistry;
   includedProjects: Set<string>;
   serviceProjects: Set<string>;
-  installLinker: string;
+  installLinker?: string;
 }): GeneratedBuildInstallLayer[] => {
   let useCounts = collectNodeProjectUseCounts({
     registry: opts.registry,
@@ -313,7 +313,7 @@ let createNodeInstallLayers = (opts: {
     serviceProjects
   });
 
-  let command = `bun install --linker=${opts.installLinker}`;
+  let command = opts.installLinker ? `bun install --linker=${opts.installLinker}` : 'bun install';
 
   return ([
     {
@@ -534,7 +534,6 @@ let projectsForManifestLayer = (
 };
 
 export let renderNodePrunedDockerfile = (plan: GeneratedBuildPlan): string => {
-  let installLinker = plan.service.config.build?.install?.linker ?? 'hoisted';
   let systemPackages = plan.service.config.build?.install?.system_packages ?? ['ca-certificates'];
   let automationLines = plan.automations.map(automation => renderAutomationCommand(automation));
   let sourceLayerLines = plan.sourceLayers.flatMap(layer => [
@@ -656,7 +655,7 @@ export let nodeBuildBuilder: BuildBuilder = {
       registry,
       includedProjects,
       serviceProjects,
-      installLinker: build.install?.linker ?? 'hoisted'
+      installLinker: build.install?.linker
     });
     let serviceBuildProjects = collectServiceBuildProjects(registry);
     let installLayerByName = new Map(plan.installLayers.map(layer => [layer.name, layer]));

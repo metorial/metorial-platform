@@ -9,8 +9,8 @@
     "start": "bun run server:start"
   },
   "dependencies": {
-    "@prisma/client": "^7.4.1",
-    "prisma": "^7.4.1",
+    "@prisma/client": "7.4.2",
+    "prisma": "7.4.2",
     "prisma-json-types-generator": "^4.1.1",
     "typescript": "^5.1.6"
   },

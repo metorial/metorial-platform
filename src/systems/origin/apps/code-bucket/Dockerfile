@@ -9,7 +9,7 @@ COPY oss/src/systems/origin/apps/code-bucket/go.sum ./oss/src/systems/origin/app
 COPY oss/src/systems/origin/apps/code-bucket/package.json ./oss/src/systems/origin/apps/code-bucket/
 COPY oss/src/systems/origin/apps/code-workspace/extensions/memfs/package.json ./oss/src/systems/origin/apps/code-workspace/extensions/memfs/
 COPY oss/src/systems/origin/apps/code-workspace/package.json ./oss/src/systems/origin/apps/code-workspace/
-RUN --mount=type=cache,id=control-bun-install,target=/root/.bun/install/cache,sharing=locked cd /app/oss/src/systems/origin/apps/code-workspace && bun install --linker=hoisted
+RUN --mount=type=cache,id=control-bun-install,target=/root/.bun/install/cache,sharing=locked cd /app/oss/src/systems/origin/apps/code-workspace && bun install
 RUN --mount=type=cache,id=control-go-mod,target=/go/pkg/mod,sharing=locked cd /app/oss/src/systems/origin/apps/code-bucket && go mod download
 FROM deps AS build
 WORKDIR /app

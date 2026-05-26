@@ -179,7 +179,7 @@ export let resolveBuildSteps = (opts: {
 
 let defaultInstallCommand = (layer: ControlBuildInstallLayer, linker?: string): string => {
   if (layer.command) return layer.command;
-  if (layer.tool === 'bun') return `bun install --linker=${linker ?? 'hoisted'}`;
+  if (layer.tool === 'bun') return linker ? `bun install --linker=${linker}` : 'bun install';
   if (layer.tool === 'go') return 'go mod download';
   if (layer.tool === 'cargo') return 'cargo fetch';
   throw new ControlError({
