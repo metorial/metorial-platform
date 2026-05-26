@@ -7,7 +7,7 @@
     "start": "bun run server:start",
     "check-types": "tsc --noEmit -p tsconfig.server.json",
     "server:build": "bun run check-types && ncc build ./src/server.ts -o ./dist --source-map --transpile-only && bun run sentry:sourcemaps:if-token",
-    "sentry:sourcemaps": "sentry-cli sourcemaps inject --org metorial --project mte-slates-hub ./dist && sentry-cli sourcemaps upload --org metorial --project mte-slates-hub ./dist",
+    "sentry:sourcemaps": "(sentry-cli sourcemaps inject --org metorial --project mte-slates-hub ./dist && sentry-cli sourcemaps upload --org metorial --project mte-slates-hub ./dist) || true",
     "sentry:sourcemaps:if-token": "sh -c 'if [ -n \"$SENTRY_AUTH_TOKEN\" ]; then bun run sentry:sourcemaps; else echo \"Skipping Sentry sourcemap upload\"; fi'",
     "server:start": "bun ./dist/index.js",
     "dev": "bun --watch ./src/server.ts",

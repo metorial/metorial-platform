@@ -13,7 +13,7 @@
     "build": "vite build ./frontend",
     "frontend:build": "vite build ./frontend",
     "server:build": "ncc build ./src/server.ts -o ./dist --source-map --external bun:sqlite --external bun && bun run sentry:sourcemaps:if-token",
-    "sentry:sourcemaps": "sentry-cli sourcemaps inject --org metorial --project mte-subspace-frontend ./dist && sentry-cli sourcemaps upload --org metorial --project mte-subspace-frontend ./dist",
+    "sentry:sourcemaps": "(sentry-cli sourcemaps inject --org metorial --project mte-subspace-frontend ./dist && sentry-cli sourcemaps upload --org metorial --project mte-subspace-frontend ./dist) || true",
     "sentry:sourcemaps:if-token": "sh -c 'if [ -n \"$SENTRY_AUTH_TOKEN\" ]; then bun run sentry:sourcemaps; else echo \"Skipping Sentry sourcemap upload\"; fi'"
   },
   "devDependencies": {
