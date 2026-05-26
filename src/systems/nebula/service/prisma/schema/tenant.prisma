@@ -18,6 +18,5 @@ model Tenant {
   keyErrors      KeyError[]
   secrets        Secret[]
   secretVersions SecretVersion[]
-  consumers      Consumer[]
   secretUses     SecretUse[]
 }

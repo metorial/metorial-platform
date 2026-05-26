@@ -1,3 +1,4 @@
+import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { consumerPresenter } from '../presenters';
@@ -5,55 +6,68 @@ import { consumerService } from '../services';
 import { app } from './_app';
 import { tenantApp } from './tenant';
 
-export let consumerApp = tenantApp.use(async ctx => {
-  let consumerId = ctx.body.consumerId;
-  if (!consumerId) throw new Error('Consumer ID is required');
+export let consumerInstanceApp = tenantApp.use(async ctx => {
+  let token = ctx.body.consumerToken ?? ctx.body.token;
+  try {
+    let { consumer, consumerInstance } = await consumerService.authenticateConsumerInstanceToken({
+      token: typeof token === 'string' ? token : ''
+    });
 
-  let consumer = await consumerService.getConsumerById({
-    tenant: ctx.tenant,
-    id: consumerId
-  });
-
-  return { consumer };
+    return { consumer, consumerInstance };
+  } catch {
+    throw new ServiceError(badRequestError({ message: 'Unable to use secret' }));
+  }
 });
 
 export let consumerController = app.controller({
-  upsert: tenantApp
+  register: app
     .handler()
     .input(
       v.object({
-        tenantId: v.string(),
-        name: v.string(),
+        secret: v.string(),
         identifier: v.string()
       })
     )
     .do(async ctx => {
-      let consumer = await consumerService.upsertConsumer({
-        tenant: ctx.tenant,
-        input: {
-          name: ctx.input.name,
-          identifier: ctx.input.identifier
-        }
+      return await consumerService.registerConsumerInstance({
+        secret: ctx.input.secret,
+        identifier: ctx.input.identifier
       });
-      return consumerPresenter(consumer);
     }),
 
-  list: tenantApp
+  refresh: app
     .handler()
-    .input(Paginator.validate(v.object({ tenantId: v.string() })))
+    .input(
+      v.object({
+        secret: v.string(),
+        token: v.string()
+      })
+    )
     .do(async ctx => {
-      let paginator = await consumerService.listConsumers({ tenant: ctx.tenant });
+      return await consumerService.refreshConsumerInstance({
+        secret: ctx.input.secret,
+        token: ctx.input.token
+      });
+    }),
+
+  list: app
+    .handler()
+    .input(Paginator.validate(v.object({})))
+    .do(async ctx => {
+      let paginator = await consumerService.listConsumers();
       let list = await paginator.run(ctx.input);
       return Paginator.presentLight(list, consumerPresenter);
     }),
 
-  get: consumerApp
+  get: app
     .handler()
     .input(
       v.object({
-        tenantId: v.string(),
         consumerId: v.string()
       })
     )
-    .do(async ctx => consumerPresenter(ctx.consumer))
+    .do(async ctx => {
+      let consumer = await consumerService.getConsumerById({ id: ctx.input.consumerId });
+      return consumerPresenter(consumer);
+    })
 });

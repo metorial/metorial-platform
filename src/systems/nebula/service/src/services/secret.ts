@@ -1,7 +1,8 @@
-import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
+import { getSentry } from '@lowerdeck/sentry';
+import { badRequestError, isServiceError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import type { Consumer, Secret, Tenant } from '../../prisma/generated/client';
+import type { Consumer, ConsumerInstance, Secret, Tenant } from '../../prisma/generated/client';
 import { db } from '../db';
 import { ID, snowflake } from '../id';
 import {
@@ -15,8 +16,65 @@ import { keyProviderService } from './keyProvider';
 import { keyService } from './key';
 import { secretUseService } from './secretUse';
 
+let Sentry = getSentry();
+
 let genericUseError = () =>
   new ServiceError(badRequestError({ message: 'Unable to use secret' }));
+
+type SecretUseFailureStage =
+  | 'validate'
+  | 'load_secret'
+  | 'proof'
+  | 'get_data_key'
+  | 'decrypt_secret'
+  | 'record_secret_use';
+
+let shouldReportSecretUseFailure = (stage: SecretUseFailureStage, error: unknown) => {
+  if (stage === 'get_data_key' || stage === 'decrypt_secret' || stage === 'record_secret_use') {
+    return true;
+  }
+
+  return !isServiceError(error);
+};
+
+let reportSecretUseFailure = (
+  error: unknown,
+  d: {
+    tenant: Tenant;
+    secret: Secret;
+    consumer: Consumer;
+    consumerInstance: ConsumerInstance;
+  },
+  context: {
+    stage: SecretUseFailureStage;
+    secretVersionId: string | null;
+    keyId: string | null;
+    keyProviderId: string | null;
+  }
+) => {
+  if (!shouldReportSecretUseFailure(context.stage, error)) return;
+
+  let extra = {
+    stage: context.stage,
+    tenantId: d.tenant.id,
+    secretId: d.secret.id,
+    consumerId: d.consumer.id,
+    consumerInstanceId: d.consumerInstance.id,
+    secretVersionId: context.secretVersionId,
+    keyId: context.keyId,
+    keyProviderId: context.keyProviderId
+  };
+
+  console.error('[nebula] Secret use failed internally', extra, error);
+  Sentry.captureException(error, {
+    tags: {
+      system: 'nebula',
+      operation: 'secret.use',
+      stage: context.stage
+    },
+    extra
+  });
+};
 
 let assertBoundedJson = (name: string, value: any) => {
   let json = canonicalJson(value);
@@ -238,12 +296,19 @@ class SecretServiceImpl {
     tenant: Tenant;
     secret: Secret;
     consumer: Consumer;
+    consumerInstance: ConsumerInstance;
     proof: any;
     note: string;
   }) {
+    let stage: SecretUseFailureStage = 'validate';
+    let secretVersionId: string | null = null;
+    let keyId: string | null = null;
+    let keyProviderId: string | null = null;
+
     try {
       let note = validateSecretUseNote(d.note);
 
+      stage = 'load_secret';
       let secret = await db.secret.findFirst({
         where: {
           oid: d.secret.oid,
@@ -255,12 +320,17 @@ class SecretServiceImpl {
       });
 
       if (!secret?.currentVersion) throw genericUseError();
+      secretVersionId = secret.currentVersion.id;
+      keyId = secret.currentVersion.key.id;
+      keyProviderId = secret.currentVersion.keyProvider.id;
 
+      stage = 'proof';
       let proofHash = getProofHash(d.tenant, d.proof);
       if (!constantTimeEqual(proofHash, secret.currentVersion.proofHash)) {
         throw genericUseError();
       }
 
+      stage = 'get_data_key';
       let dataKey = await keyService.getPlaintextDataKey({
         tenant: d.tenant,
         key: secret.currentVersion.key
@@ -277,6 +347,7 @@ class SecretServiceImpl {
         encryptionContext: secret.currentVersion.encryptionContext
       });
 
+      stage = 'decrypt_secret';
       let plaintext = decryptAes256Gcm({
         key: dataKey,
         iv: secret.currentVersion.iv,
@@ -285,10 +356,12 @@ class SecretServiceImpl {
         aad
       }).toString('utf8');
 
+      stage = 'record_secret_use';
       await secretUseService.recordSecretUse({
         tenant: d.tenant,
         secret,
         consumer: d.consumer,
+        consumerInstance: d.consumerInstance,
         note
       });
 
@@ -296,7 +369,13 @@ class SecretServiceImpl {
         secret,
         plaintext
       };
-    } catch {
+    } catch (error) {
+      reportSecretUseFailure(error, d, {
+        stage,
+        secretVersionId,
+        keyId,
+        keyProviderId
+      });
       throw genericUseError();
     }
   }

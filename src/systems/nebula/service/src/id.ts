@@ -9,7 +9,8 @@ export let ID = createIdGenerator({
   secret: idType.sorted('nsec_'),
   secretVersion: idType.sorted('nsv_'),
   secretUse: idType.sorted('nsu_'),
-  consumer: idType.sorted('ncon_')
+  consumer: idType.sorted('ncon_'),
+  consumerInstance: idType.sorted('nci_')
 });
 
 let workerIdBits = 12;

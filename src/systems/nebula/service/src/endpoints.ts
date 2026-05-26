@@ -1,8 +1,9 @@
 import { RedisClient } from 'bun';
 import { nebulaApi } from './controllers';
 import { db } from './db';
-import { keyProviderService } from './services';
+import { consumerService, keyProviderService } from './services';
 
+await consumerService.ensureEnvConsumers();
 await keyProviderService.ensureSystemDefaultProvider();
 
 let server = Bun.serve({

@@ -21,8 +21,38 @@ export let env = createValidatedEnv({
     KMS_AWS_SECRET_ACCESS_KEY: v.optional(v.string()),
     KMS_DEFAULT_KEY_ID: v.optional(v.string()),
     KMS_CREATE_DEFAULT_KEY: v.optional(v.string())
+  },
+
+  consumerAuth: {
+    CONSUMER_INSTANCE_TOKEN_SECRET: v.string(),
+    CONSUMER_INSTANCE_TOKEN_TTL_SECONDS: v.optional(v.string())
   }
 });
+
+export let consumerRegistrationSecrets = Object.entries(process.env).flatMap(([key, secret]) => {
+  if (!key.startsWith('CONSUMER_REGISTRATION_') || !secret) return [];
+
+  let identifier = key.slice('CONSUMER_REGISTRATION_'.length).toLowerCase();
+  if (!identifier) return [];
+
+  return [{ identifier, secret }];
+});
+
+export let consumerInstanceTokenTtlSeconds = (() => {
+  let value = env.consumerAuth.CONSUMER_INSTANCE_TOKEN_TTL_SECONDS;
+  if (!value) return 60 * 60;
+
+  let parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    throw new Error('CONSUMER_INSTANCE_TOKEN_TTL_SECONDS must be a positive number');
+  }
+
+  return Math.floor(parsed);
+})();
+
+if (env.consumerAuth.CONSUMER_INSTANCE_TOKEN_SECRET.length < 32) {
+  throw new Error('CONSUMER_INSTANCE_TOKEN_SECRET must be at least 32 characters');
+}
 
 if (
   env.provider.DEFAULT_PROVIDER === 'local' &&

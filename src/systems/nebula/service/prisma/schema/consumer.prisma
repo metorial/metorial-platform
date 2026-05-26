@@ -3,23 +3,50 @@ enum ConsumerStatus {
   inactive
 }
 
+enum ConsumerInstanceStatus {
+  active
+  revoked
+  expired
+}
+
 model Consumer {
   oid BigInt @id
   id  String @unique
 
-  tenantOid BigInt
-  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
-
-  identifier String
+  identifier String @unique
   name       String
   status     ConsumerStatus
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
+  instances  ConsumerInstance[]
   secrets    Secret[]
   secretUses SecretUse[]
 
-  @@unique([tenantOid, identifier])
-  @@index([tenantOid, status])
+  @@index([status])
+}
+
+model ConsumerInstance {
+  oid BigInt @id
+  id  String @unique
+
+  consumerOid BigInt
+  consumer    Consumer @relation(fields: [consumerOid], references: [oid])
+
+  identifier String
+  tokenNonce String
+  status     ConsumerInstanceStatus
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
+  expiresAt  DateTime
+  lastUsedAt DateTime?
+  revokedAt  DateTime?
+
+  secretUses SecretUse[]
+
+  @@index([consumerOid, status])
+  @@index([expiresAt])
+  @@index([identifier])
 }

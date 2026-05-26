@@ -1,11 +1,17 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import type { Consumer, Secret, Tenant } from '../../prisma/generated/client';
+import type { Consumer, ConsumerInstance, Secret, Tenant } from '../../prisma/generated/client';
 import { db } from '../db';
 import { ID, snowflake } from '../id';
 
 class SecretUseServiceImpl {
-  async recordSecretUse(d: { tenant: Tenant; secret: Secret; consumer: Consumer; note: string }) {
+  async recordSecretUse(d: {
+    tenant: Tenant;
+    secret: Secret;
+    consumer: Consumer;
+    consumerInstance: ConsumerInstance;
+    note: string;
+  }) {
     return await db.secretUse.create({
       data: {
         oid: snowflake.nextId(),
@@ -13,6 +19,7 @@ class SecretUseServiceImpl {
         tenantOid: d.tenant.oid,
         secretOid: d.secret.oid,
         consumerOid: d.consumer.oid,
+        consumerInstanceOid: d.consumerInstance.oid,
         note: d.note
       }
     });

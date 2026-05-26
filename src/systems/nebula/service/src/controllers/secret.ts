@@ -1,9 +1,9 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { secretPresenter, secretUsePresenter, secretVersionPresenter } from '../presenters';
-import { consumerService, secretService } from '../services';
+import { secretService } from '../services';
 import { app } from './_app';
-import { consumerApp } from './consumer';
+import { consumerInstanceApp } from './consumer';
 import { tenantApp } from './tenant';
 
 export let secretApp = tenantApp.use(async ctx => {
@@ -19,12 +19,12 @@ export let secretApp = tenantApp.use(async ctx => {
 });
 
 export let secretController = app.controller({
-  create: consumerApp
+  create: consumerInstanceApp
     .handler()
     .input(
       v.object({
         tenantId: v.string(),
-        consumerId: v.string(),
+        consumerToken: v.string(),
         purpose: v.string(),
         secret: v.string(),
         proof: v.any(),
@@ -47,13 +47,13 @@ export let secretController = app.controller({
       return secretPresenter(secret);
     }),
 
-  update: secretApp
+  update: consumerInstanceApp
     .handler()
     .input(
       v.object({
         tenantId: v.string(),
         secretId: v.string(),
-        consumerId: v.string(),
+        consumerToken: v.string(),
         secret: v.string(),
         proof: v.any(),
         encryptionContext: v.optional(v.any()),
@@ -61,15 +61,15 @@ export let secretController = app.controller({
       })
     )
     .do(async ctx => {
-      let consumer = await consumerService.getConsumerById({
+      let currentSecret = await secretService.getSecretById({
         tenant: ctx.tenant,
-        id: ctx.input.consumerId
+        id: ctx.input.secretId
       });
 
       let secret = await secretService.updateSecret({
         tenant: ctx.tenant,
-        consumer,
-        secret: ctx.secret,
+        consumer: ctx.consumer,
+        secret: currentSecret,
         input: {
           secret: ctx.input.secret,
           proof: ctx.input.proof,
@@ -99,12 +99,12 @@ export let secretController = app.controller({
     )
     .do(async ctx => secretPresenter(ctx.secret)),
 
-  use: consumerApp
+  use: consumerInstanceApp
     .handler()
     .input(
       v.object({
         tenantId: v.string(),
-        consumerId: v.string(),
+        consumerToken: v.string(),
         secretId: v.string(),
         proof: v.any(),
         note: v.string()
@@ -118,6 +118,7 @@ export let secretController = app.controller({
       let used = await secretService.useSecret({
         tenant: ctx.tenant,
         consumer: ctx.consumer,
+        consumerInstance: ctx.consumerInstance,
         secret,
         proof: ctx.input.proof,
         note: ctx.input.note

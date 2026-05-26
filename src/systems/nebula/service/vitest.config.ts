@@ -16,7 +16,15 @@ export default defineConfig(({ mode }) => {
         REDIS_URL: env.REDIS_URL ?? 'redis://localhost:6379/0',
         DEFAULT_PROVIDER: env.DEFAULT_PROVIDER ?? 'local',
         LOCAL_MASTER_SECRET:
-          env.LOCAL_MASTER_SECRET ?? 'nebula-test-local-master-secret-with-enough-entropy'
+          env.LOCAL_MASTER_SECRET ?? 'nebula-test-local-master-secret-with-enough-entropy',
+        CONSUMER_INSTANCE_TOKEN_SECRET:
+          env.CONSUMER_INSTANCE_TOKEN_SECRET ??
+          'nebula-test-consumer-instance-token-secret-with-enough-entropy',
+        CONSUMER_INSTANCE_TOKEN_TTL_SECONDS:
+          env.CONSUMER_INSTANCE_TOKEN_TTL_SECONDS ?? '3600',
+        CONSUMER_REGISTRATION_worker: env.CONSUMER_REGISTRATION_worker ?? 'worker-secret',
+        CONSUMER_REGISTRATION_owner: env.CONSUMER_REGISTRATION_owner ?? 'owner-secret',
+        CONSUMER_REGISTRATION_other: env.CONSUMER_REGISTRATION_other ?? 'other-secret'
       }
     }
   });
