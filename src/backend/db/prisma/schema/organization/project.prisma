@@ -26,6 +26,7 @@ model Project {
   subspaceTenantId  String?
   cargoTenantId     String?
   synthesisTenantId String?
+  nebulaTenantId    String?
 
   consumerAuthClientRegistrationsPerMinuteLimit Int @default(10)
   consumerAuthClientRegistrationsPerHourLimit   Int @default(25)
