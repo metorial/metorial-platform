@@ -1,0 +1,94 @@
+[control]
+name = "app-api"
+
+[service]
+dockerfile = "Dockerfile"
+build_context = "repo"
+
+[build]
+builder = "node"
+mode = "generated"
+context = "repo"
+project = "@metorial/app-api"
+target = "server:build"
+dockerfile = "Dockerfile"
+
+[build.install]
+linker = "hoisted"
+
+[[build.automations]]
+name = "app-api-prisma"
+kind = "run-targets"
+target = "prisma:generate"
+projects = ["@metorial/db"]
+
+[build.artifacts]
+copy = [
+  { from = "dist", to = "/app/dist" },
+  { from = "/app/node_modules", to = "/app/node_modules" }
+]
+
+[build.runtime]
+base_image = "oven/bun:1.2.22-alpine"
+packages = ["curl"]
+env = { NODE_ENV = "production" }
+command = "bun /app/dist/index.js"
+
+[test.e2e]
+command = "bun run --cwd oss/src/backend/apps/api test:e2e:control"
+setup = [
+  "bun run --cwd oss/src/backend/db prisma:generate",
+  "bun run --cwd oss/src/backend/db prisma:push"
+]
+cwd = "/app"
+runner = "service"
+
+[[databases]]
+adapter = "postgres"
+name = "app-api-core"
+
+[env]
+API_URL = "http://app-api:4310"
+APP_URL = "http://app-api:3000"
+ADMIN_API_URL = "http://app-api:4322"
+ARES_AUTH_URL = "http://app-api:5100"
+ARES_INTERNAL_URL = "http://app-api:5100"
+AUTH_TICKET_SECRET = "control-auth-ticket-secret"
+BILLING_API_URL = "http://app-api:4324"
+CARGO_API_URL = "http://app-api:52040"
+COOKIE_DOMAIN = "localhost"
+DASHBOARD_FRONTEND_HOST = "localhost:3000"
+DATABASE_URL = "$db.app-api-core.url"
+EMAIL_ADDRESS = "test@metorial.com"
+EMAIL_FROM = "test@metorial.com"
+EMAIL_FROM_NAME = "Metorial Test"
+EMAIL_NAME = "Metorial Test"
+ENCRYPTION_SECRET = "control-test-encryption-secret"
+FEDERATION_API_HOST = "localhost:4320"
+FILES_URL = "http://app-api:4318"
+FILES_BUCKET_NAME = "files"
+METORIAL_ENV = "development"
+NODE_ENV = "development"
+OBJECT_STORAGE_URL = "http://app-api:52010"
+PORTAL_HOST_TEMPLATE = "http://{slug}.localhost:4315"
+PORTAL_REDIRECT_DOMAINS = "localhost"
+PORTALS_URL = "http://app-api:4315"
+RELAY_URL = "http://app-api:52110"
+REDIS_URL = "redis://$deps.redis.6379/0"
+SUBSPACE_CONNECTION_URL = "http://app-api:52050"
+SUBSPACE_SOLUTION = "local"
+SUBSPACE_URL = "http://app-api:52050"
+SYNTHESIS_API_URL = "http://app-api:52070"
+
+[[deps]]
+name = "postgres"
+preset = "postgres"
+
+[deps.env]
+POSTGRES_USER = "postgres"
+POSTGRES_PASSWORD = "postgres"
+POSTGRES_DB = "postgres"
+
+[[deps]]
+name = "redis"
+preset = "redis"

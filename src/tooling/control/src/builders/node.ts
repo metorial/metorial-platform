@@ -1,4 +1,4 @@
-import { existsSync } from 'fs';
+import { existsSync, readFileSync } from 'fs';
 import { resolve } from 'path';
 import type { BuildBuilder } from './base';
 import {
@@ -86,6 +86,63 @@ let projectRootPath = (plan: GeneratedBuildPlan, projectRoot: string): Generated
   exists: true
 });
 
+let readProjectPackageJson = (
+  plan: GeneratedBuildPlan,
+  graph: ReturnType<typeof readNxProjectGraph>,
+  project: string
+): Record<string, any> | null => {
+  let packagePath = projectPackageJsonPath(plan, getNxProjectRoot(graph, project));
+  if (!packagePath) return null;
+  return JSON.parse(readFileSync(packagePath.absolutePath, 'utf8')) as Record<string, any>;
+};
+
+let workspacePackageProjects = (
+  plan: GeneratedBuildPlan,
+  graph: ReturnType<typeof readNxProjectGraph>
+): Map<string, string> => {
+  let packages = new Map<string, string>();
+
+  for (let project of Object.keys(graph.nodes)) {
+    let packageJson = readProjectPackageJson(plan, graph, project);
+    if (typeof packageJson?.name === 'string') packages.set(packageJson.name, project);
+  }
+
+  return packages;
+};
+
+let dependencyNames = (packageJson: Record<string, any>): string[] => {
+  let deps = {
+    ...(packageJson.dependencies ?? {}),
+    ...(packageJson.devDependencies ?? {}),
+    ...(packageJson.peerDependencies ?? {}),
+    ...(packageJson.optionalDependencies ?? {})
+  } as Record<string, unknown>;
+
+  return Object.keys(deps);
+};
+
+let closeWorkspaceManifestDependencies = (opts: {
+  plan: GeneratedBuildPlan;
+  graph: ReturnType<typeof readNxProjectGraph>;
+  projects: Set<string>;
+}) => {
+  let packages = workspacePackageProjects(opts.plan, opts.graph);
+  let queue = [...opts.projects];
+
+  while (queue.length > 0) {
+    let project = queue.shift()!;
+    let packageJson = readProjectPackageJson(opts.plan, opts.graph, project);
+    if (!packageJson) continue;
+
+    for (let dependencyName of dependencyNames(packageJson)) {
+      let dependencyProject = packages.get(dependencyName);
+      if (!dependencyProject || opts.projects.has(dependencyProject)) continue;
+      opts.projects.add(dependencyProject);
+      queue.push(dependencyProject);
+    }
+  }
+};
+
 let existingContextPath = (
   plan: GeneratedBuildPlan,
   relativePath: string
@@ -106,7 +163,14 @@ let existingContextPath = (
 let isClientProject = (
   graph: ReturnType<typeof readNxProjectGraph>,
   project: string
-): boolean => getNxProjectRoot(graph, project).startsWith('src/systems/_clients/');
+): boolean => {
+  let root = getNxProjectRoot(graph, project);
+  return (
+    root.startsWith('src/systems/_clients/') ||
+    root.startsWith('oss/src/systems/_clients/') ||
+    root.includes('/clients/')
+  );
+};
 
 let collectServiceBuildProjects = (registry: ServiceRegistry): Set<string> => {
   let projects = new Set<string>();
@@ -145,7 +209,7 @@ let renderRetriableCommand = (command: string): string =>
   `{ attempt=1; until ${command}; do code=$?; if [ "$attempt" -ge 3 ]; then exit "$code"; fi; sleep $((attempt * 2)); attempt=$((attempt + 1)); done; }`;
 
 let renderNxRun = (command: string): string =>
-  `RUN --mount=type=cache,id=control-nx-cache,target=/app/.nx/cache,sharing=locked cd /app && ${shouldRetryNxRun(command) ? renderRetriableCommand(command) : command}`;
+  `RUN --mount=type=cache,id=control-nx-cache,target=/app/.nx/cache cd /app && ${shouldRetryNxRun(command) ? renderRetriableCommand(command) : command}`;
 
 let collectNodeProjectUseCounts = (opts: {
   registry: ServiceRegistry;
@@ -277,6 +341,11 @@ let createNodeInstallLayers = (opts: {
       baseProjects.add(dep);
     }
   }
+  closeWorkspaceManifestDependencies({
+    plan: opts.plan,
+    graph: opts.graph,
+    projects: baseProjects
+  });
 
   for (let project of opts.includedProjects) {
     if (baseProjects.has(project)) continue;
@@ -297,6 +366,21 @@ let createNodeInstallLayers = (opts: {
       clientProjects.add(dep);
     }
   }
+  closeWorkspaceManifestDependencies({
+    plan: opts.plan,
+    graph: opts.graph,
+    projects: clientProjects
+  });
+  closeWorkspaceManifestDependencies({
+    plan: opts.plan,
+    graph: opts.graph,
+    projects: dependencyProjects
+  });
+  closeWorkspaceManifestDependencies({
+    plan: opts.plan,
+    graph: opts.graph,
+    projects: serviceProjects
+  });
 
   closeInstallLayerOrder({
     graph: opts.graph,
@@ -460,7 +544,7 @@ let sourceLayerWarmCommands = (
   if (layer.tier === 'clients' || layer.tier === 'service') return [];
 
   let buildableProjects = layer.projects.filter(project =>
-    nxProjectHasTarget(graph, project, 'build')
+    nxProjectHasTarget(graph, project, 'build') && !isClientProject(graph, project)
   );
   if (buildableProjects.length === 0) return [];
 
@@ -476,17 +560,7 @@ let clientBuildWarmCommands = (
   graph: ReturnType<typeof readNxProjectGraph>,
   projects: Set<string>
 ): string[] => {
-  let buildableProjects = [...projects]
-    .filter(project => nxProjectHasTarget(graph, project, 'build'))
-    .sort((a, b) => a.localeCompare(b));
-  if (buildableProjects.length === 0) return [];
-
-  return [
-    renderNxRunManyCommand({
-      target: 'build',
-      projects: buildableProjects
-    })
-  ];
+  return [];
 };
 
 let clientPrismaWarmCommandsForProjects = (
@@ -552,7 +626,7 @@ export let renderNodePrunedDockerfile = (plan: GeneratedBuildPlan): string => {
     ...renderAptInstall(systemPackages),
     ...plan.installLayers.flatMap(layer => [
       `COPY _manifests/${layer.name}/ ./`,
-      `RUN --mount=type=cache,id=control-bun-install,target=/root/.bun/install/cache,sharing=locked ${layer.command}`
+      `RUN --mount=type=cache,id=control-bun-install-${plan.service.name}-${layer.name},target=/root/.bun/install/cache ${layer.command}`
     ]),
     '',
     'FROM deps AS build',

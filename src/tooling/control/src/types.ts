@@ -330,6 +330,7 @@ export type RunOptions = {
   services?: ControlService[];
   session?: WorkspaceSession | null;
   noStage?: boolean;
+  e2eModules?: string[];
 };
 
 export type WorkspaceSession = {

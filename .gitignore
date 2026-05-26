@@ -165,6 +165,9 @@ cache/
 !src/_shared/backend/cache/
 !src/_shared/backend/cache/**
 src/_shared/backend/cache/node_modules/
+!src/packages/backend/cache/
+!src/packages/backend/cache/**
+src/packages/backend/cache/node_modules/
 generated/
 
 # Virtual Environment

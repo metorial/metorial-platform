@@ -5,8 +5,10 @@
   "license": "FSL-1.1",
   "main": "src/index.ts",
   "scripts": {
-    "oss:server:build": "ncc build ./src/server.ts -o ./dist --source-map --external bun:sqlite",
+    "oss:server:build": "ncc build ./src/server.ts -o ./dist --source-map --transpile-only --external bun:sqlite",
+    "server:build": "bun run oss:server:build",
     "oss:server:start": "bun ./dist/index.js",
+    "test:e2e:control": "bun run --cwd ../../apis/core test:e2e:control",
     "dev": "bun --watch ./src/server.ts"
   },
   "dependencies": {

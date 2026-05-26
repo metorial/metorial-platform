@@ -4,7 +4,9 @@
   "author": "Tobias Herber",
   "license": "FSL-1.1",
   "main": "src/index.ts",
-  "scripts": {},
+  "scripts": {
+    "test:e2e:control": "NODE_ENV=development vitest run --config vitest.e2e.config.ts"
+  },
   "dependencies": {
     "@metorial/db": "^1.0.0",
     "@metorial/auth": "^1.0.0",
@@ -13,6 +15,7 @@
     "@metorial/presenter": "^1.0.0",
     "@metorial/module-access": "^1.0.0",
     "@metorial/module-assistant": "^1.0.0",
+    "@metorial/module-community": "^1.0.0",
     "@metorial/module-consumer": "^1.0.0",
     "@metorial/module-machine-access": "^1.0.0",
     "@metorial/module-magic": "^1.0.0",

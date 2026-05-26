@@ -254,7 +254,12 @@ export let runControl = async (
     if (cwdInContainer !== '.') fullCmd = `cd ${cwdInContainer} && ${fullCmd}`;
     logger.debug(`Command: docker exec ${runnerContainer} sh -c ${JSON.stringify(fullCmd)}`);
 
-    await runShell(['docker', 'exec', runnerContainer, 'sh', '-c', fullCmd], {
+    let execEnv =
+      opts.e2eModules && opts.e2eModules.length
+        ? ['-e', `CONTROL_E2E_MODULES=${opts.e2eModules.join(',')}`]
+        : [];
+
+    await runShell(['docker', 'exec', ...execEnv, runnerContainer, 'sh', '-c', fullCmd], {
       phase: 'test',
       service: serviceName,
       composeFile,

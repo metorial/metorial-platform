@@ -31,19 +31,35 @@ type StagedCliOpts = {
   'no-stage'?: boolean;
 };
 
-let collectFilters = (argv: string[]): string[] => {
-  let filters: string[] = [];
+let collectRepeatedOption = (argv: string[], names: string[]): string[] => {
+  let values: string[] = [];
   for (let i = 0; i < argv.length; i++) {
-    if (argv[i] === '--filter' || argv[i] === '-f') {
+    let arg = argv[i]!;
+    let match = names.find(name => arg === name || arg.startsWith(`${name}=`));
+    if (match) {
+      if (arg.startsWith(`${match}=`)) {
+        let inlineValue = arg.slice(match.length + 1);
+        if (inlineValue) values.push(inlineValue);
+        continue;
+      }
+
       let val = argv[i + 1];
       if (val && !val.startsWith('-')) {
-        filters.push(val);
+        values.push(val);
         i++;
       }
     }
   }
-  return filters;
+  return values;
 };
+
+let collectFilters = (argv: string[]): string[] => collectRepeatedOption(argv, ['--filter', '-f']);
+
+let collectModules = (argv: string[]): string[] =>
+  collectRepeatedOption(argv, ['--module'])
+    .flatMap(value => value.split(','))
+    .map(value => value.trim())
+    .filter(Boolean);
 
 let runCommand = async (fn: () => Promise<void | never>, opts?: { verbose?: boolean }) => {
   try {
@@ -197,6 +213,7 @@ let addRunCommand = (mode: 'e2e' | 'unit', name: string) => {
     .option('--project-prefix, -p', 'Docker compose project prefix')
     .option('--all', 'Run all services with this test mode')
     .option('--filter, -f', 'Run tests for named services')
+    .option('--module', 'Run e2e tests for named module(s); repeat or comma-separate')
     .option('--keep', 'Keep containers and staged workspace after test')
     .option('--no-stage', 'Run against the live checkout instead of a staged copy')
     .option('--verbose, -v', 'Verbose output')
@@ -220,6 +237,7 @@ let addRunCommand = (mode: 'e2e' | 'unit', name: string) => {
               session
             });
             let filters = collectFilters(process.argv);
+            let modules = collectModules(process.argv);
 
             let services = resolveTargets({
               registry,
@@ -240,6 +258,7 @@ let addRunCommand = (mode: 'e2e' | 'unit', name: string) => {
               keep: opts.keep,
               verbose: opts.verbose,
               noStage: opts['no-stage'],
+              e2eModules: mode === 'e2e' && modules.length ? modules : undefined,
               session,
               services: ordered
             });
@@ -315,6 +334,7 @@ prog
   .option('--project-prefix, -p', 'Docker compose project prefix')
   .option('--all', 'Run all services with this test mode')
   .option('--filter, -f', 'Run tests for named services')
+  .option('--module', 'Run e2e tests for named module(s); repeat or comma-separate')
   .option('--keep', 'Keep containers and staged workspace after test')
   .option('--no-stage', 'Run against the live checkout instead of a staged copy')
   .action(async (mode: string, target: string | undefined, opts: StagedCliOpts & {
@@ -342,6 +362,7 @@ prog
             session
           });
           let filters = collectFilters(process.argv);
+          let modules = collectModules(process.argv);
 
           let services = resolveTargets({
             registry,
@@ -363,6 +384,7 @@ prog
             verbose,
             keep: opts.keep,
             noStage: readNoStageOption(opts),
+            e2eModules: mode === 'e2e' && modules.length ? modules : undefined,
             session,
             services: ordered
           });
