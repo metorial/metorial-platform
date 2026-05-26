@@ -44,7 +44,7 @@ services:
     container_name: nebula-service
     restart: unless-stopped
     ports:
-      - '55060:52060'
+      - '55170:52170'
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgresql://nebula:nebula@postgres:5432/nebula}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
@@ -52,6 +52,10 @@ services:
       LOCAL_MASTER_SECRET: ${LOCAL_MASTER_SECRET:-please-change-this-local-development-secret-with-32-bytes}
       KMS_AWS_REGION: ${KMS_AWS_REGION:-us-east-1}
       KMS_DEFAULT_KEY_ID: ${KMS_DEFAULT_KEY_ID:-}
+      CONSUMER_INSTANCE_TOKEN_SECRET: ${CONSUMER_INSTANCE_TOKEN_SECRET:-please-change-this-consumer-token-signing-secret}
+      CONSUMER_INSTANCE_TOKEN_TTL_SECONDS: ${CONSUMER_INSTANCE_TOKEN_TTL_SECONDS:-3600}
+      CONSUMER_REGISTRATION_SLATES: ${CONSUMER_REGISTRATION_SLATES:-slates-registration-secret}
+      CONSUMER_REGISTRATION_SHUTTLE: ${CONSUMER_REGISTRATION_SHUTTLE:-shuttle-registration-secret}
     depends_on:
       postgres:
         condition: service_healthy

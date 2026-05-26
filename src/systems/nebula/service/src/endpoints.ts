@@ -8,7 +8,7 @@ await keyProviderService.ensureSystemDefaultProvider();
 
 let server = Bun.serve({
   fetch: nebulaApi,
-  port: 52060
+  port: 52170
 });
 
 console.log(`Service running on http://localhost:${server.port}`);
