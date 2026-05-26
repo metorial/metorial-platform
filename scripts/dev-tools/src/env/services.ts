@@ -265,6 +265,22 @@ export let slatesHubEnv: Env = [
   {
     key: 'SUPPORTS_PREBUILT_SLATES',
     defaultValue: 'true'
+  },
+  {
+    key: 'NEBULA_API_URL',
+    defaultValue: 'http://localhost:55170/metorial-nebula'
+  },
+  {
+    key: 'NEBULA_CONSUMER_IDENTIFIER',
+    defaultValue: 'dev-slates-hub'
+  },
+  {
+    key: 'NEBULA_CONSUMER_TOKEN',
+    defaultValue: 'local-dev-nebula-slates-registration-secret'
+  },
+  {
+    key: 'SLATES_DELEGATE_SECRETS_TO_NEBULA',
+    defaultValue: 'true'
   }
 ];
 

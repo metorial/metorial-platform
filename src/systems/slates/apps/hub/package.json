@@ -82,6 +82,7 @@
     "@metorial-io/ui-product": "^1.0.0",
     "@metorial-platform-systems/ares-client": "^1.0.0",
     "@metorial-platform-systems/function-bay-client": "workspace:*",
+    "@metorial-platform-systems/nebula-client": "workspace:*",
     "@metorial-platform-systems/signal-client": "workspace:*",
     "@metorial-services/slates-registry-client": "latest",
     "@metorial-services/slates-registry-internal-client": "^1.0.0",
