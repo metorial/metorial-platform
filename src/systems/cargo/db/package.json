@@ -18,11 +18,11 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "@prisma/adapter-pg": "7.8.0",
-    "@prisma/client": "7.8.0",
+    "@prisma/adapter-pg": "^7.2.0",
+    "@prisma/client": "^7.2.0",
     "@prisma/extension-read-replicas": "^0.5.0",
     "p-queue": "^9.1.0",
-    "prisma": "7.8.0",
+    "prisma": "^7.2.0",
     "@mtsrc/env": "1.0.0",
     "@mtsrc/error": "1.0.0",
     "@mtsrc/execution-context": "1.0.0",

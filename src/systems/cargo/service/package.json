@@ -38,13 +38,13 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "@prisma/adapter-pg": "7.8.0",
-    "@prisma/client": "7.8.0",
+    "@prisma/adapter-pg": "^7.2.0",
+    "@prisma/client": "^7.2.0",
     "@prisma/extension-read-replicas": "^0.5.0",
     "@sentry/bun": "^10.38.0",
     "@sentry/cli": "^3.2.0",
     "@metorial-platform-systems/object-storage-client": "workspace:*",
-    "prisma": "7.8.0",
+    "prisma": "^7.2.0",
     "@metorial-cargo/db": "^1.0.0",
     "@metorial-cargo/module-file": "^1.0.0",
     "@metorial-cargo/module-doc": "^1.0.0",

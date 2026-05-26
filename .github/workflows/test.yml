@@ -30,36 +30,13 @@ jobs:
       - name: Install Packages
         run: bun i --linker=hoisted
 
-      - name: Resolve non-system Nx projects
-        id: nx-projects
-        run: |
-          bun x nx graph --file=stdout | bun -e '
-            let input = await Bun.stdin.text();
-            let nodes = JSON.parse(input).graph.nodes;
-            let targets = {
-              "prisma:generate": "prisma_generate",
-              build: "build",
-              test: "test"
-            };
-
-            for (let [target, output] of Object.entries(targets)) {
-              let projects = Object.values(nodes)
-                .filter(node => !node.data.root.startsWith("src/systems/"))
-                .filter(node => node.data.targets?.[target])
-                .map(node => node.name)
-                .join(",");
-
-              console.log(`${output}=${projects}`);
-            }
-          ' >> "$GITHUB_OUTPUT"
-
       - name: Generate Prisma Clients
         run: |
-          bun x nx run-many --target=prisma:generate --projects='${{ steps.nx-projects.outputs.prisma_generate }}' --parallel=1
+          bunx turbo run --ui=stream prisma:generate --filter=!./src/systems/**
           bun run --cwd ./src/systems/cargo/db prisma:generate
 
       - name: Build Packages
-        run: bun x nx run-many --target=build --projects='${{ steps.nx-projects.outputs.build }}'
+        run: bunx turbo run --ui=stream build --filter=!./src/systems/**
 
       - name: Test
-        run: bun x nx run-many --target=test --projects='${{ steps.nx-projects.outputs.test }}' --parallel=1
+        run: bunx turbo run --concurrency=1 --ui=stream test --filter=!./src/systems/**
