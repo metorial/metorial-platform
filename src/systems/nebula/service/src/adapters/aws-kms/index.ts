@@ -13,8 +13,7 @@ import type {
   DataKeyResult,
   KeyProviderSetupInfoInput
 } from '../_lib/adapter';
-import { detag } from '../_lib/adapter';
-import { NebulaKeyProviderAdapter } from '../_lib/adapter';
+import { detag, NebulaKeyProviderAdapter } from '../_lib/adapter';
 import { NebulaAdapterError, normalizeAdapterError } from '../_lib/errors';
 
 let importKeyInputSchema = v.object({
@@ -78,7 +77,8 @@ export class AwsKmsKeyProviderAdapter extends NebulaKeyProviderAdapter {
 
   async validateKeyProvider(rawInput: Record<string, any>) {
     let parsed = importKeyInputSchema.validate(rawInput);
-    if (!parsed.success) throw new NebulaAdapterError('invalid_key_input', 'Invalid AWS KMS key input');
+    if (!parsed.success)
+      throw new NebulaAdapterError('invalid_key_input', 'Invalid AWS KMS key input');
 
     let input = parsed.value;
     let region = input.region ?? env.kms.KMS_AWS_REGION;
@@ -87,7 +87,7 @@ export class AwsKmsKeyProviderAdapter extends NebulaKeyProviderAdapter {
 
     try {
       return {
-        name: 'AWS KMS KeyProvider',
+        name: `AWS KMS KeyProvider (${input.keyId})`,
         keyInfo: await this.describeKeyId({ keyId: input.keyId, region })
       };
     } catch (err) {
@@ -139,7 +139,8 @@ export class AwsKmsKeyProviderAdapter extends NebulaKeyProviderAdapter {
       },
       {
         title: 'Create the Nebula KeyProvider',
-        description: 'Create the KeyProvider after the key policy is updated. Nebula validates KMS access before storing it.',
+        description:
+          'Create the KeyProvider after the key policy is updated. Nebula validates KMS access before storing it.',
         markdown: detag`
           Call \`keyProvider.import\` with this payload:
 
@@ -164,7 +165,8 @@ export class AwsKmsKeyProviderAdapter extends NebulaKeyProviderAdapter {
       },
       {
         title: 'Optional: tag the customer key',
-        description: 'Tags are optional for customer-managed keys, but they help with inventory. Nebula-managed keys always use metorial-system=nebula.',
+        description:
+          'Tags are optional for customer-managed keys, but they help with inventory. Nebula-managed keys always use metorial-system=nebula.',
         markdown: detag`
           Suggested optional tags:
 
@@ -227,7 +229,10 @@ export class AwsKmsKeyProviderAdapter extends NebulaKeyProviderAdapter {
     }
   }
 
-  async generateDataKey(keyProvider: KeyProvider, context: DataKeyContext): Promise<DataKeyResult> {
+  async generateDataKey(
+    keyProvider: KeyProvider,
+    context: DataKeyContext
+  ): Promise<DataKeyResult> {
     let keyInfo = keyProvider.keyInfo as any;
 
     try {

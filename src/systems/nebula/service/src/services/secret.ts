@@ -1,5 +1,5 @@
 import { getSentry } from '@lowerdeck/sentry';
-import { badRequestError, isServiceError, notFoundError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, forbiddenError, isServiceError, notFoundError, preconditionFailedError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type { Consumer, ConsumerInstance, Secret, Tenant } from '../../prisma/generated/client';
@@ -20,6 +20,9 @@ let Sentry = getSentry();
 
 let genericUseError = () =>
   new ServiceError(badRequestError({ message: 'Unable to use secret' }));
+
+let genericSecretMutationError = () =>
+  new ServiceError(badRequestError({ message: 'Unable to modify secret' }));
 
 type SecretUseFailureStage =
   | 'validate'
@@ -225,6 +228,7 @@ class SecretServiceImpl {
     };
   }) {
     if (d.secret.consumerOid !== d.consumer.oid) throw genericUseError();
+    if (d.secret.status !== 'active') throw genericSecretMutationError();
 
     this.validateSecretInput({
       purpose: d.secret.purpose,
@@ -378,6 +382,48 @@ class SecretServiceImpl {
       });
       throw genericUseError();
     }
+  }
+
+  async disableSecret(d: { tenant: Tenant; consumer: Consumer; secret: Secret }) {
+    if (d.secret.consumerOid !== d.consumer.oid) {
+      throw new ServiceError(
+        forbiddenError({
+          message: 'Only the creating consumer can disable this secret'
+        })
+      );
+    }
+
+    if (d.secret.status === 'disabled') {
+      return await db.secret.findUniqueOrThrow({
+        where: { oid: d.secret.oid },
+        include
+      });
+    }
+
+    if (d.secret.status === 'deleted') {
+      throw new ServiceError(
+        preconditionFailedError({
+          message: 'Secret has already been deleted'
+        })
+      );
+    }
+
+    if (d.secret.status !== 'active') {
+      throw new ServiceError(
+        preconditionFailedError({
+          message: 'Secret is not active and cannot be disabled'
+        })
+      );
+    }
+
+    return await db.secret.update({
+      where: { oid: d.secret.oid },
+      data: {
+        status: 'disabled',
+        disabledAt: new Date()
+      },
+      include
+    });
   }
 
   async getSecretById(d: { tenant: Tenant; id: string }) {

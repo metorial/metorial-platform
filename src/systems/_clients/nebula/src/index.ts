@@ -7,11 +7,12 @@ type SecretClient = NebulaClient['secret'];
 type SecretCreateInput = Parameters<SecretClient['create']>[0];
 type SecretUpdateInput = Parameters<SecretClient['update']>[0];
 type SecretUseInput = Parameters<SecretClient['use']>[0];
+type SecretDisableInput = Parameters<SecretClient['disable']>[0];
 
 type WithInjectedConsumerToken<T> = Omit<T, 'consumerToken'>;
 
 export type AuthenticatedNebulaClient = Omit<NebulaClient, 'secret'> & {
-  secret: Omit<SecretClient, 'create' | 'update' | 'use'> & {
+  secret: Omit<SecretClient, 'create' | 'update' | 'use' | 'disable'> & {
     create: (
       input: WithInjectedConsumerToken<SecretCreateInput>
     ) => ReturnType<SecretClient['create']>;
@@ -19,6 +20,9 @@ export type AuthenticatedNebulaClient = Omit<NebulaClient, 'secret'> & {
       input: WithInjectedConsumerToken<SecretUpdateInput>
     ) => ReturnType<SecretClient['update']>;
     use: (input: WithInjectedConsumerToken<SecretUseInput>) => ReturnType<SecretClient['use']>;
+    disable: (
+      input: WithInjectedConsumerToken<SecretDisableInput>
+    ) => ReturnType<SecretClient['disable']>;
   };
 };
 
@@ -104,6 +108,11 @@ export let createNebulaClient = (o: NebulaClientOpts): AuthenticatedNebulaClient
         }),
       use: async input =>
         await client.secret.use({
+          ...input,
+          consumerToken: await getToken()
+        }),
+      disable: async input =>
+        await client.secret.disable({
           ...input,
           consumerToken: await getToken()
         })

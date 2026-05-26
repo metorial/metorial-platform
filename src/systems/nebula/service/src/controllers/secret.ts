@@ -80,6 +80,29 @@ export let secretController = app.controller({
       return secretPresenter(secret);
     }),
 
+  disable: consumerInstanceApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        secretId: v.string(),
+        consumerToken: v.string()
+      })
+    )
+    .do(async ctx => {
+      let currentSecret = await secretService.getSecretById({
+        tenant: ctx.tenant,
+        id: ctx.input.secretId
+      });
+
+      let secret = await secretService.disableSecret({
+        tenant: ctx.tenant,
+        consumer: ctx.consumer,
+        secret: currentSecret
+      });
+      return secretPresenter(secret);
+    }),
+
   list: tenantApp
     .handler()
     .input(Paginator.validate(v.object({ tenantId: v.string() })))

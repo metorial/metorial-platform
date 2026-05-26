@@ -232,4 +232,128 @@ describe('secret E2E', () => {
       })
     ).rejects.toThrow('Consumer instance is not active');
   });
+
+  it('disables an active secret and blocks use and update', async () => {
+    let tenant = await createTenant('tenant-disable');
+    let registration = await registerWorker();
+
+    let secret = await nebulaClient.secret.create({
+      tenantId: tenant.id,
+      consumerToken: registration.token,
+      purpose: 'disable_me',
+      secret: 'high-entropy-secret-value-disable',
+      proof: { binding: 'disable' }
+    });
+
+    let disabled = await nebulaClient.secret.disable({
+      tenantId: tenant.id,
+      consumerToken: registration.token,
+      secretId: secret.id
+    });
+
+    expect(disabled).toMatchObject({
+      id: secret.id,
+      status: 'disabled',
+      disabledAt: expect.any(Date)
+    });
+
+    await expect(
+      nebulaClient.secret.use({
+        tenantId: tenant.id,
+        consumerToken: registration.token,
+        secretId: secret.id,
+        proof: { binding: 'disable' },
+        note: 'Attempt use after disable'
+      })
+    ).rejects.toThrow('Unable to use secret');
+
+    await expect(
+      nebulaClient.secret.update({
+        tenantId: tenant.id,
+        consumerToken: registration.token,
+        secretId: secret.id,
+        secret: 'new-value',
+        proof: { binding: 'disable' }
+      })
+    ).rejects.toThrow('Unable to modify secret');
+  });
+
+  it('only allows the creating consumer to disable a secret', async () => {
+    let tenant = await createTenant('tenant-disable-lock');
+    let ownerRegistration = await registerWorker('owner-secret', 'OWNER-DISABLE');
+    let otherRegistration = await registerWorker('other-secret', 'OTHER-DISABLE');
+
+    let secret = await nebulaClient.secret.create({
+      tenantId: tenant.id,
+      consumerToken: ownerRegistration.token,
+      purpose: 'disable_lock',
+      secret: 'high-entropy-secret-value-disable-lock',
+      proof: { binding: 'owner' }
+    });
+
+    await expect(
+      nebulaClient.secret.disable({
+        tenantId: tenant.id,
+        consumerToken: otherRegistration.token,
+        secretId: secret.id
+      })
+    ).rejects.toThrow('Only the creating consumer can disable this secret');
+  });
+
+  it('rejects disabling an already deleted secret', async () => {
+    let tenant = await createTenant('tenant-disable-deleted');
+    let registration = await registerWorker();
+
+    let secret = await nebulaClient.secret.create({
+      tenantId: tenant.id,
+      consumerToken: registration.token,
+      purpose: 'disable_deleted',
+      secret: 'high-entropy-secret-value-disable-deleted',
+      proof: { binding: 'deleted' }
+    });
+
+    await testDb.secret.update({
+      where: { id: secret.id },
+      data: { status: 'deleted', deletedAt: new Date() }
+    });
+
+    await expect(
+      nebulaClient.secret.disable({
+        tenantId: tenant.id,
+        consumerToken: registration.token,
+        secretId: secret.id
+      })
+    ).rejects.toThrow('Secret has already been deleted');
+  });
+
+  it('is idempotent when disabling an already disabled secret', async () => {
+    let tenant = await createTenant('tenant-disable-idempotent');
+    let registration = await registerWorker();
+
+    let secret = await nebulaClient.secret.create({
+      tenantId: tenant.id,
+      consumerToken: registration.token,
+      purpose: 'disable_idempotent',
+      secret: 'high-entropy-secret-value-disable-idempotent',
+      proof: { binding: 'idempotent' }
+    });
+
+    let first = await nebulaClient.secret.disable({
+      tenantId: tenant.id,
+      consumerToken: registration.token,
+      secretId: secret.id
+    });
+
+    let second = await nebulaClient.secret.disable({
+      tenantId: tenant.id,
+      consumerToken: registration.token,
+      secretId: secret.id
+    });
+
+    expect(second).toMatchObject({
+      id: secret.id,
+      status: 'disabled',
+      disabledAt: first.disabledAt
+    });
+  });
 });

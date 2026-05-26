@@ -14,7 +14,9 @@ export let secretPresenter = (secret: SecretWithVersion) => ({
   currentVersionId: secret.currentVersion?.id ?? null,
   keyProviderId: secret.currentVersion?.keyProvider?.id ?? null,
   createdAt: secret.createdAt,
-  updatedAt: secret.updatedAt
+  updatedAt: secret.updatedAt,
+  disabledAt: secret.disabledAt,
+  deletedAt: secret.deletedAt
 });
 
 export let secretVersionPresenter = (version: SecretVersion & { keyProvider?: KeyProvider }) => ({
