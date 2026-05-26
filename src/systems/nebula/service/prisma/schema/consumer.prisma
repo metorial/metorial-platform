@@ -1,0 +1,25 @@
+enum ConsumerStatus {
+  active
+  inactive
+}
+
+model Consumer {
+  oid BigInt @id
+  id  String @unique
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  identifier String
+  name       String
+  status     ConsumerStatus
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  secrets    Secret[]
+  secretUses SecretUse[]
+
+  @@unique([tenantOid, identifier])
+  @@index([tenantOid, status])
+}

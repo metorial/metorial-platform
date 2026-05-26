@@ -1,0 +1,21 @@
+model Key {
+  oid BigInt @id
+  id  String @unique
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  keyProviderOid BigInt
+  keyProvider    KeyProvider @relation(fields: [keyProviderOid], references: [oid])
+
+  encryptedDataKey Bytes
+  keyInfo          Json
+
+  currentUntil DateTime
+  createdAt    DateTime  @default(now())
+  retiredAt    DateTime?
+
+  secretVersions SecretVersion[]
+
+  @@index([tenantOid, keyProviderOid, currentUntil])
+}
