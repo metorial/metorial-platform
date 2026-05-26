@@ -428,7 +428,7 @@ export let deploySlateVersionCompletedQueueProcessor =
 
         await discoverSlateQueue.add(
           { versionId: deployment.slateVersion.id },
-          { delay: 10_000 }
+          { delay: 10_000, id: deployment.slateVersion.id }
         );
       });
     })
