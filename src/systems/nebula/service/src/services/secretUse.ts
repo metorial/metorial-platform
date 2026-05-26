@@ -1,6 +1,11 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import type { Consumer, ConsumerInstance, Secret, Tenant } from '../../prisma/generated/client';
+import type {
+  Consumer,
+  ConsumerInstance,
+  Secret,
+  Tenant
+} from '../../prisma/generated/client';
 import { db } from '../db';
 import { ID, snowflake } from '../id';
 

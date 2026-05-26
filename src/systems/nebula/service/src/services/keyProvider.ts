@@ -28,7 +28,8 @@ let getSystemIdentifier = (d: {
   tenant?: Tenant | null;
 }) => {
   if (d.owner === 'system' && !d.tenant) return `system:global:${d.keyProviderId}`;
-  if (d.owner === 'system' && d.tenant) return `system:tenant:${d.tenant.id}:${d.keyProviderId}`;
+  if (d.owner === 'system' && d.tenant)
+    return `system:tenant:${d.tenant.id}:${d.keyProviderId}`;
   if (d.owner === 'tenant' && d.tenant) return `tenant:${d.tenant.id}:${d.keyProviderId}`;
   throw new Error('Tenant is required for tenant-scoped key provider');
 };
@@ -71,10 +72,7 @@ class KeyProviderServiceImpl {
     });
   }
 
-  async importKeyProvider(d: {
-    tenant: Tenant;
-    keyInput: Record<string, any>;
-  }) {
+  async importKeyProvider(d: { tenant: Tenant; keyInput: Record<string, any> }) {
     let type = getConfiguredProviderType();
     let adapter = getKeyProviderAdapter(type);
 
@@ -163,10 +161,7 @@ class KeyProviderServiceImpl {
   async getKeyProviderById(d: { tenant?: Tenant | null; id: string }) {
     let keyProvider = await db.keyProvider.findFirst({
       where: {
-        OR: [
-          { id: d.id },
-          { systemIdentifier: d.id }
-        ],
+        OR: [{ id: d.id }, { systemIdentifier: d.id }],
         deletedAt: null
       }
     });

@@ -1,16 +1,19 @@
-import { JWT } from '@lowerdeck/jwt';
-import { getSentry } from '@lowerdeck/sentry';
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
+import { JWT } from '@lowerdeck/jwt';
 import { Paginator } from '@lowerdeck/pagination';
+import { getSentry } from '@lowerdeck/sentry';
 import { Service } from '@lowerdeck/service';
 import type { Consumer, ConsumerInstance } from '../../prisma/generated/client';
 import { db } from '../db';
-import {
-  consumerInstanceTokenTtlSeconds,
-  consumerRegistrationSecrets,
-  env
-} from '../env';
+import { consumerInstanceTokenTtlSeconds, consumerRegistrationSecrets, env } from '../env';
 import { ID, snowflake } from '../id';
+import {
+  clearConsumerCache,
+  clearConsumerInstanceAuthCache,
+  loadConsumerById,
+  loadConsumerByIdentifier,
+  loadConsumerInstanceForAuth
+} from '../lib/consumerCache';
 import { constantTimeEqual } from '../lib/crypto';
 
 let tokenType = 'nebula_consumer_instance';
@@ -66,11 +69,12 @@ let randomTokenNonce = () => {
   return Buffer.from(buffer).toString('hex');
 };
 
-let getTokenExpiresAt = () =>
-  new Date(Date.now() + consumerInstanceTokenTtlSeconds * 1000);
+let getTokenExpiresAt = () => new Date(Date.now() + consumerInstanceTokenTtlSeconds * 1000);
 
 let getConsumerRegistrationSecret = (consumer: Consumer) =>
-  consumerRegistrationSecrets.find(registration => registration.identifier === consumer.identifier)?.secret;
+  consumerRegistrationSecrets.find(
+    registration => registration.identifier === consumer.identifier
+  )?.secret;
 
 let findConsumerRegistrationBySecret = (secret: string) => {
   let matches = consumerRegistrationSecrets.filter(registration =>
@@ -80,7 +84,10 @@ let findConsumerRegistrationBySecret = (secret: string) => {
   if (matches.length !== 1) {
     throw consumerAuthError('Registration secret must match exactly one configured consumer', {
       operation: 'register',
-      reason: matches.length === 0 ? 'registration_secret_not_found' : 'registration_secret_ambiguous'
+      reason:
+        matches.length === 0
+          ? 'registration_secret_not_found'
+          : 'registration_secret_ambiguous'
     });
   }
 
@@ -165,7 +172,7 @@ let verifyConsumerInstanceToken = async (token: string) => {
 class ConsumerServiceImpl {
   async ensureEnvConsumers() {
     for (let registration of consumerRegistrationSecrets) {
-      await db.consumer.upsert({
+      let consumer = await db.consumer.upsert({
         where: { identifier: registration.identifier },
         update: { status: 'active' },
         create: {
@@ -176,14 +183,17 @@ class ConsumerServiceImpl {
           status: 'active'
         }
       });
+
+      await clearConsumerCache({
+        identifier: consumer.identifier,
+        id: consumer.id
+      });
     }
   }
 
   async registerConsumerInstance(d: { secret: string; identifier: string }) {
     let registration = findConsumerRegistrationBySecret(d.secret);
-    let consumer = await db.consumer.findUnique({
-      where: { identifier: registration.identifier }
-    });
+    let consumer = await loadConsumerByIdentifier(registration.identifier);
     if (!consumer) {
       throw consumerAuthError('Configured consumer has not been seeded yet', {
         operation: 'register',
@@ -260,6 +270,8 @@ class ConsumerServiceImpl {
         }
       });
 
+      await clearConsumerInstanceAuthCache(updated.id);
+
       return {
         token: await signConsumerInstanceToken({ consumer, consumerInstance: updated }),
         consumerInstanceId: updated.id,
@@ -282,10 +294,7 @@ class ConsumerServiceImpl {
 
   async authenticateConsumerInstanceToken(d: { token: string }) {
     let payload = await verifyConsumerInstanceToken(d.token);
-    let consumerInstance = await db.consumerInstance.findUnique({
-      where: { id: payload.consumerInstanceId },
-      include: { consumer: true }
-    });
+    let consumerInstance = await loadConsumerInstanceForAuth(payload.consumerInstanceId);
 
     if (!consumerInstance) {
       throw consumerAuthError('Consumer instance was not found', {
@@ -298,7 +307,9 @@ class ConsumerServiceImpl {
     if (consumerInstance.status !== 'active' || consumerInstance.revokedAt) {
       throw consumerAuthError('Consumer instance is not active', {
         operation: 'authenticate',
-        reason: consumerInstance.revokedAt ? 'consumer_instance_revoked' : 'consumer_instance_inactive',
+        reason: consumerInstance.revokedAt
+          ? 'consumer_instance_revoked'
+          : 'consumer_instance_inactive',
         consumerId: payload.consumerId,
         consumerIdentifier: consumerInstance.consumer.identifier,
         consumerInstanceId: consumerInstance.id
@@ -367,10 +378,7 @@ class ConsumerServiceImpl {
   }
 
   async getConsumerById(d: { id: string }) {
-    let identifier = normalizeIdentifier(d.id);
-    let consumer = await db.consumer.findFirst({
-      where: { OR: [{ id: d.id }, { identifier }] }
-    });
+    let consumer = await loadConsumerById({ id: d.id });
     if (!consumer) throw new ServiceError(notFoundError('consumer'));
     return consumer;
   }

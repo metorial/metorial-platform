@@ -1,8 +1,20 @@
-import { getSentry } from '@lowerdeck/sentry';
-import { badRequestError, forbiddenError, isServiceError, notFoundError, preconditionFailedError, ServiceError } from '@lowerdeck/error';
+import {
+  badRequestError,
+  forbiddenError,
+  isServiceError,
+  notFoundError,
+  preconditionFailedError,
+  ServiceError
+} from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
+import { getSentry } from '@lowerdeck/sentry';
 import { Service } from '@lowerdeck/service';
-import type { Consumer, ConsumerInstance, Secret, Tenant } from '../../prisma/generated/client';
+import type {
+  Consumer,
+  ConsumerInstance,
+  Secret,
+  Tenant
+} from '../../prisma/generated/client';
 import { db } from '../db';
 import { ID, snowflake } from '../id';
 import {
@@ -12,8 +24,8 @@ import {
   encryptAes256Gcm,
   sha512Hex
 } from '../lib/crypto';
-import { keyProviderService } from './keyProvider';
 import { keyService } from './key';
+import { keyProviderService } from './keyProvider';
 import { secretUseService } from './secretUse';
 
 let Sentry = getSentry();
@@ -33,7 +45,11 @@ type SecretUseFailureStage =
   | 'record_secret_use';
 
 let shouldReportSecretUseFailure = (stage: SecretUseFailureStage, error: unknown) => {
-  if (stage === 'get_data_key' || stage === 'decrypt_secret' || stage === 'record_secret_use') {
+  if (
+    stage === 'get_data_key' ||
+    stage === 'decrypt_secret' ||
+    stage === 'record_secret_use'
+  ) {
     return true;
   }
 
@@ -486,4 +502,7 @@ class SecretServiceImpl {
   }
 }
 
-export let secretService = Service.create('secretService', () => new SecretServiceImpl()).build();
+export let secretService = Service.create(
+  'secretService',
+  () => new SecretServiceImpl()
+).build();
