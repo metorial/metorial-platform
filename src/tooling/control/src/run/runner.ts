@@ -34,6 +34,15 @@ type RunControlContext = {
   service: ControlService;
 };
 
+let shouldRetrySetupStep = (command: string) =>
+  command.includes('prisma generate') || command.includes('prisma:generate');
+
+let renderSetupStep = (command: string) => {
+  if (!shouldRetrySetupStep(command)) return command;
+
+  return `{ attempt=1; until ${command}; do code=$?; if [ "$attempt" -ge 3 ]; then exit "$code"; fi; sleep $((attempt * 2)); attempt=$((attempt + 1)); done; }`;
+};
+
 let waitForServices = async (opts: {
   services: string[];
   verbose?: boolean;
@@ -249,7 +258,7 @@ export let runControl = async (
     failedPhase = 'test';
     logger.info(`Running ${opts.mode} tests...`);
 
-    let setup = setupSteps.join(' && ');
+    let setup = setupSteps.map(renderSetupStep).join(' && ');
     let fullCmd = setup ? `${setup} && ${e2e.command}` : e2e.command;
     if (cwdInContainer !== '.') fullCmd = `cd ${cwdInContainer} && ${fullCmd}`;
     logger.debug(`Command: docker exec ${runnerContainer} sh -c ${JSON.stringify(fullCmd)}`);
