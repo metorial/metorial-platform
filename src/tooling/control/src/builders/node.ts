@@ -208,8 +208,8 @@ let shouldRetryNxRun = (command: string): boolean =>
 let renderRetriableCommand = (command: string): string =>
   `{ attempt=1; until ${command}; do code=$?; if [ "$attempt" -ge 3 ]; then exit "$code"; fi; sleep $((attempt * 2)); attempt=$((attempt + 1)); done; }`;
 
-let renderNxRun = (command: string): string =>
-  `RUN --mount=type=cache,id=control-nx-cache,target=/app/.nx/cache cd /app && ${shouldRetryNxRun(command) ? renderRetriableCommand(command) : command}`;
+let renderNxRun = (cacheId: string) => (command: string): string =>
+  `RUN --mount=type=cache,id=${cacheId},target=/app/.nx/cache cd /app && ${shouldRetryNxRun(command) ? renderRetriableCommand(command) : command}`;
 
 let collectNodeProjectUseCounts = (opts: {
   registry: ServiceRegistry;
@@ -609,10 +609,12 @@ let projectsForManifestLayer = (
 
 export let renderNodePrunedDockerfile = (plan: GeneratedBuildPlan): string => {
   let systemPackages = plan.service.config.build?.install?.system_packages ?? ['ca-certificates'];
+  let nxCacheId = `control-nx-cache-${plan.service.name}`;
+  let renderPlanNxRun = renderNxRun(nxCacheId);
   let automationLines = plan.automations.map(automation => renderAutomationCommand(automation));
   let sourceLayerLines = plan.sourceLayers.flatMap(layer => [
     `COPY _inputs/${layer.name}/ ./`,
-    ...layer.commands.map(renderNxRun)
+    ...layer.commands.map(renderPlanNxRun)
   ]);
   let artifactLines = renderArtifactLines(plan);
   let exposeLines = plan.runtime.expose.map(port => `EXPOSE ${port}`);
@@ -632,8 +634,8 @@ export let renderNodePrunedDockerfile = (plan: GeneratedBuildPlan): string => {
     'FROM deps AS build',
     'WORKDIR /app',
     ...sourceLayerLines,
-    ...automationLines.map(renderNxRun),
-    renderNxRun(`bun x nx run ${plan.project}:${plan.target}`),
+    ...automationLines.map(renderPlanNxRun),
+    renderPlanNxRun(`bun x nx run ${plan.project}:${plan.target}`),
     '',
     'FROM build AS workspace',
     `WORKDIR ${plan.workspaceRoot}`,

@@ -35,10 +35,10 @@ env = { NODE_ENV = "production" }
 command = "bun /app/dist/index.js"
 
 [test.e2e]
-command = "bun run --cwd oss/src/backend/apps/api test:e2e:control"
+command = "ROOT=src; [ -d oss/src ] && ROOT=oss/src; bun run --cwd $ROOT/backend/apps/api test:e2e:control"
 setup = [
-  "bun run --cwd oss/src/backend/db prisma:generate",
-  "bun run --cwd oss/src/backend/db prisma:push"
+  "ROOT=src; [ -d oss/src ] && ROOT=oss/src; bun run --cwd $ROOT/backend/db prisma:generate",
+  "ROOT=src; [ -d oss/src ] && ROOT=oss/src; bun run --cwd $ROOT/backend/db prisma:push"
 ]
 cwd = "/app"
 runner = "service"

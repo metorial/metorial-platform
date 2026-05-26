@@ -16,14 +16,14 @@ RUN --mount=type=cache,id=control-bun-install-app-api-service,target=/root/.bun/
 FROM deps AS build
 WORKDIR /app
 COPY _inputs/shared/ ./
-RUN --mount=type=cache,id=control-nx-cache,target=/app/.nx/cache cd /app && bun x nx run-many --target=build --projects=@function-bay/types
+RUN --mount=type=cache,id=control-nx-cache-app-api,target=/app/.nx/cache cd /app && bun x nx run-many --target=build --projects=@function-bay/types
 COPY _inputs/clients/ ./
 COPY _inputs/dependencies/ ./
-RUN --mount=type=cache,id=control-nx-cache,target=/app/.nx/cache cd /app && bun x nx run-many --target=build --projects=@function-bay/types
-RUN --mount=type=cache,id=control-nx-cache,target=/app/.nx/cache cd /app && { attempt=1; until bun x nx run-many --target=prisma:generate --projects=@metorial-cargo/db,@metorial-cargo/service,@metorial-subspace/db,@metorial/ares,@metorial/forge,@metorial/function-bay,@metorial/origin,@metorial/shuttle,@metorial/signal,@metorial/slates,@metorial/synthesis,@metorial/voyager; do code=$?; if [ "$attempt" -ge 3 ]; then exit "$code"; fi; sleep $((attempt * 2)); attempt=$((attempt + 1)); done; }
+RUN --mount=type=cache,id=control-nx-cache-app-api,target=/app/.nx/cache cd /app && bun x nx run-many --target=build --projects=@function-bay/types
+RUN --mount=type=cache,id=control-nx-cache-app-api,target=/app/.nx/cache cd /app && { attempt=1; until bun x nx run-many --target=prisma:generate --projects=@metorial-cargo/db,@metorial-cargo/service,@metorial-subspace/db,@metorial/ares,@metorial/forge,@metorial/function-bay,@metorial/origin,@metorial/shuttle,@metorial/signal,@metorial/slates,@metorial/synthesis,@metorial/voyager; do code=$?; if [ "$attempt" -ge 3 ]; then exit "$code"; fi; sleep $((attempt * 2)); attempt=$((attempt + 1)); done; }
 COPY _inputs/service/ ./
-RUN --mount=type=cache,id=control-nx-cache,target=/app/.nx/cache cd /app && { attempt=1; until bun x nx run-many --target=prisma:generate --projects=@metorial/db; do code=$?; if [ "$attempt" -ge 3 ]; then exit "$code"; fi; sleep $((attempt * 2)); attempt=$((attempt + 1)); done; }
-RUN --mount=type=cache,id=control-nx-cache,target=/app/.nx/cache cd /app && bun x nx run @metorial/app-api:server:build
+RUN --mount=type=cache,id=control-nx-cache-app-api,target=/app/.nx/cache cd /app && { attempt=1; until bun x nx run-many --target=prisma:generate --projects=@metorial/db; do code=$?; if [ "$attempt" -ge 3 ]; then exit "$code"; fi; sleep $((attempt * 2)); attempt=$((attempt + 1)); done; }
+RUN --mount=type=cache,id=control-nx-cache-app-api,target=/app/.nx/cache cd /app && bun x nx run @metorial/app-api:server:build
 FROM build AS workspace
 WORKDIR /app/oss/src/backend/apps/api
 CMD ["sleep", "infinity"]

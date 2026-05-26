@@ -16,7 +16,7 @@ type ServerDeploymentOutputStep = {
   status: ServerDeploymentStepStatus;
   name: string;
   logs: { timestamp: number; message: string }[];
-  type: ServerDeploymentStepType;
+  type: ServerDeploymentStepType | 'build' | 'deploy';
   createdAt: Date;
   startedAt: Date | null;
   endedAt: Date | null;

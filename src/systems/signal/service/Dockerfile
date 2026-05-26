@@ -8,15 +8,14 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
   apt-get update && apt-get install -y --no-install-recommends \
   ca-certificates && rm -rf /var/lib/apt/lists/*
 COPY _manifests/base/ ./
-RUN --mount=type=cache,id=control-bun-install,target=/root/.bun/install/cache,sharing=locked bun install
+RUN --mount=type=cache,id=control-bun-install-signal-base,target=/root/.bun/install/cache bun install
 FROM deps AS build
 WORKDIR /app
 COPY _inputs/shared/ ./
 COPY _inputs/clients/ ./
-RUN --mount=type=cache,id=control-nx-cache,target=/app/.nx/cache,sharing=locked cd /app && bun x nx run-many --target=build --projects=@metorial-platform-systems/object-storage-client
 COPY _inputs/service/ ./
-RUN --mount=type=cache,id=control-nx-cache,target=/app/.nx/cache,sharing=locked cd /app && { attempt=1; until bun x nx run-many --target=prisma:generate --projects=@metorial/signal; do code=$?; if [ "$attempt" -ge 3 ]; then exit "$code"; fi; sleep $((attempt * 2)); attempt=$((attempt + 1)); done; }
-RUN --mount=type=cache,id=control-nx-cache,target=/app/.nx/cache,sharing=locked cd /app && bun x nx run @metorial/signal:server:build
+RUN --mount=type=cache,id=control-nx-cache-signal,target=/app/.nx/cache cd /app && { attempt=1; until bun x nx run-many --target=prisma:generate --projects=@metorial/signal; do code=$?; if [ "$attempt" -ge 3 ]; then exit "$code"; fi; sleep $((attempt * 2)); attempt=$((attempt + 1)); done; }
+RUN --mount=type=cache,id=control-nx-cache-signal,target=/app/.nx/cache cd /app && bun x nx run @metorial/signal:server:build
 FROM build AS workspace
 WORKDIR /app/src/systems/signal/service
 CMD ["sleep", "infinity"]
