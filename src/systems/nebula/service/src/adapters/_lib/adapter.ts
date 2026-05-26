@@ -44,7 +44,6 @@ export type KeyProviderSetupInfo = {
       description: string;
     }[];
   }[];
-  markdown: string;
 };
 
 export let detag = (strings: TemplateStringsArray, ...values: any[]) => {
@@ -58,7 +57,7 @@ export let detag = (strings: TemplateStringsArray, ...values: any[]) => {
   return lines.map(line => line.slice(indent)).join('\n');
 };
 
-export abstract class NebulaKeyProviderAdapter {
+export abstract class KeyProviderAdapter {
   abstract readonly type: KeyProvider['type'];
 
   abstract createSystemKeyProvider(): Promise<{

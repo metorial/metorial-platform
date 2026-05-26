@@ -13,8 +13,8 @@ import type {
   DataKeyResult,
   KeyProviderSetupInfoInput
 } from '../_lib/adapter';
-import { detag, NebulaKeyProviderAdapter } from '../_lib/adapter';
-import { NebulaAdapterError, normalizeAdapterError } from '../_lib/errors';
+import { detag, KeyProviderAdapter } from '../_lib/adapter';
+import { KeyProviderAdapterError, normalizeAdapterError } from '../_lib/errors';
 
 let importKeyInputSchema = v.object({
   keyId: v.string(),
@@ -40,12 +40,12 @@ let getEncryptionContext = (context: DataKeyContext) => ({
   keyProviderOid: String(context.keyProviderOid)
 });
 
-export class AwsKmsKeyProviderAdapter extends NebulaKeyProviderAdapter {
+export class AwsKmsKeyProviderAdapter extends KeyProviderAdapter {
   readonly type = 'aws_kms' as const;
 
   async createSystemKeyProvider() {
     let region = env.kms.KMS_AWS_REGION;
-    if (!region) throw new NebulaAdapterError('kms_region_missing', 'KMS region is missing');
+    if (!region) throw new KeyProviderAdapterError('kms_region_missing', 'KMS region is missing');
 
     let keyId = env.kms.KMS_DEFAULT_KEY_ID;
 
@@ -53,7 +53,7 @@ export class AwsKmsKeyProviderAdapter extends NebulaKeyProviderAdapter {
       if (!keyId && env.kms.KMS_CREATE_DEFAULT_KEY === 'true') {
         let created = await getKmsClient(region).send(
           new CreateKeyCommand({
-            Description: 'Nebula default data-key KMS key',
+            Description: 'Metorial default data-key KMS key',
             KeyUsage: 'ENCRYPT_DECRYPT',
             KeySpec: 'SYMMETRIC_DEFAULT',
             Tags: [{ TagKey: 'metorial-system', TagValue: 'nebula' }]
@@ -63,11 +63,11 @@ export class AwsKmsKeyProviderAdapter extends NebulaKeyProviderAdapter {
       }
 
       if (!keyId) {
-        throw new NebulaAdapterError('kms_default_key_missing', 'Default KMS key is missing');
+        throw new KeyProviderAdapterError('kms_default_key_missing', 'Default KMS key is missing');
       }
 
       return {
-        name: 'Nebula AWS KMS Default',
+        name: 'Metorial AWS KMS Default',
         keyInfo: await this.describeKeyId({ keyId, region })
       };
     } catch (err) {
@@ -78,12 +78,12 @@ export class AwsKmsKeyProviderAdapter extends NebulaKeyProviderAdapter {
   async validateKeyProvider(rawInput: Record<string, any>) {
     let parsed = importKeyInputSchema.validate(rawInput);
     if (!parsed.success)
-      throw new NebulaAdapterError('invalid_key_input', 'Invalid AWS KMS key input');
+      throw new KeyProviderAdapterError('invalid_key_input', 'Invalid AWS KMS key input');
 
     let input = parsed.value;
     let region = input.region ?? env.kms.KMS_AWS_REGION;
-    if (!input.keyId) throw new NebulaAdapterError('kms_key_missing', 'KMS key is missing');
-    if (!region) throw new NebulaAdapterError('kms_region_missing', 'KMS region is missing');
+    if (!input.keyId) throw new KeyProviderAdapterError('kms_key_missing', 'KMS key is missing');
+    if (!region) throw new KeyProviderAdapterError('kms_region_missing', 'KMS region is missing');
 
     try {
       return {
@@ -98,9 +98,9 @@ export class AwsKmsKeyProviderAdapter extends NebulaKeyProviderAdapter {
   async getSetupInfo(input: KeyProviderSetupInfoInput) {
     let region = input.region ?? env.kms.KMS_AWS_REGION ?? '<aws-region>';
     let keyId = input.keyId ?? '<kms-key-arn-or-alias>';
-    let roleArn = input.roleArn ?? env.kms.KMS_EXTERNAL_KEY_ROLE_ARN ?? '<nebula-role-arn>';
+    let roleArn = input.roleArn ?? env.kms.KMS_EXTERNAL_KEY_ROLE_ARN ?? '<metorial-role-arn>';
     let policyStatement = {
-      Sid: 'AllowNebulaUseOfConsumerKey',
+      Sid: 'AllowMetorialUseOfConsumerKey',
       Effect: 'Allow',
       Principal: {
         AWS: roleArn
@@ -117,18 +117,18 @@ export class AwsKmsKeyProviderAdapter extends NebulaKeyProviderAdapter {
       }
     };
     let optionalTags = {
-      'metorial-system': 'nebula',
-      'nebula-tenant-id': input.tenantId
+      'metorial-system': 'metorial',
+      'metorial-tenant-id': input.tenantId
     };
 
     let steps = [
       {
         title: 'Create or choose a symmetric KMS key',
-        description: `Choose a symmetric ENCRYPT_DECRYPT KMS key in ${region}. It can be in your AWS account or any account that can grant Nebula access.`
+        description: `Choose a symmetric ENCRYPT_DECRYPT KMS key in ${region}. It can be in your AWS account or any account that can grant Metorial access.`
       },
       {
-        title: 'Grant the Nebula role access to the key',
-        description: `Allow Nebula's AWS role to describe the key, generate data keys, and decrypt wrapped data keys.`,
+        title: 'Grant the Metorial role access to the key',
+        description: `Allow Metorial's AWS role to describe the key, generate data keys, and decrypt wrapped data keys.`,
         markdown: detag`
           Add this statement to the KMS key policy, or create an equivalent KMS grant:
 
@@ -138,9 +138,9 @@ export class AwsKmsKeyProviderAdapter extends NebulaKeyProviderAdapter {
         `
       },
       {
-        title: 'Create the Nebula KeyProvider',
+        title: 'Create the key provider',
         description:
-          'Create the KeyProvider after the key policy is updated. Nebula validates KMS access before storing it.',
+          'Create the key provider after the key policy is updated. Metorial validates KMS access before storing it.',
         markdown: detag`
           Call \`keyProvider.import\` with this payload:
 
@@ -153,7 +153,7 @@ export class AwsKmsKeyProviderAdapter extends NebulaKeyProviderAdapter {
             type: 'text' as const,
             key: 'keyId',
             label: 'KMS key ARN, key ID, or alias',
-            description: 'The customer-managed KMS key identifier that Nebula should use.'
+            description: 'The customer-managed KMS key identifier that Metorial should use.'
           },
           {
             type: 'text' as const,
@@ -166,7 +166,7 @@ export class AwsKmsKeyProviderAdapter extends NebulaKeyProviderAdapter {
       {
         title: 'Optional: tag the customer key',
         description:
-          'Tags are optional for customer-managed keys, but they help with inventory. Nebula-managed keys always use metorial-system=nebula.',
+          'Tags are optional for customer-managed keys, but they help with inventory and cost allocation.',
         markdown: detag`
           Suggested optional tags:
 
@@ -177,16 +177,7 @@ export class AwsKmsKeyProviderAdapter extends NebulaKeyProviderAdapter {
       }
     ];
 
-    let markdown = detag`
-      Tenant: \`${input.tenantIdentifier}\`
-      Region: \`${region}\`
-      Key ID or ARN: \`${keyId}\`
-      Nebula role ARN: \`${roleArn}\`
-
-      ${steps.flatMap(step => step.markdown ?? []).join('\n\n')}
-    `;
-
-    return { steps, markdown };
+    return { steps };
   }
 
   async createTenantManagedKeyProvider(input: {
@@ -196,12 +187,12 @@ export class AwsKmsKeyProviderAdapter extends NebulaKeyProviderAdapter {
     systemIdentifier: string;
   }) {
     let region = env.kms.KMS_AWS_REGION;
-    if (!region) throw new NebulaAdapterError('kms_region_missing', 'KMS region is missing');
+    if (!region) throw new KeyProviderAdapterError('kms_region_missing', 'KMS region is missing');
 
     try {
       let created = await getKmsClient(region).send(
         new CreateKeyCommand({
-          Description: `Nebula tenant data-key KMS key for ${input.tenantIdentifier}`,
+          Description: `Metorial tenant data-key KMS key for ${input.tenantIdentifier}`,
           KeyUsage: 'ENCRYPT_DECRYPT',
           KeySpec: 'SYMMETRIC_DEFAULT',
           Tags: [
@@ -214,7 +205,7 @@ export class AwsKmsKeyProviderAdapter extends NebulaKeyProviderAdapter {
       );
 
       let keyId = created.KeyMetadata?.Arn ?? created.KeyMetadata?.KeyId;
-      if (!keyId) throw new NebulaAdapterError('kms_key_missing', 'KMS key is missing');
+      if (!keyId) throw new KeyProviderAdapterError('kms_key_missing', 'KMS key is missing');
 
       return {
         name: input.name,
@@ -245,7 +236,7 @@ export class AwsKmsKeyProviderAdapter extends NebulaKeyProviderAdapter {
       );
 
       if (!result.Plaintext || !result.CiphertextBlob) {
-        throw new NebulaAdapterError('kms_data_key_missing', 'KMS did not return a data key');
+        throw new KeyProviderAdapterError('kms_data_key_missing', 'KMS did not return a data key');
       }
 
       return {
@@ -270,7 +261,7 @@ export class AwsKmsKeyProviderAdapter extends NebulaKeyProviderAdapter {
     context: DataKeyContext
   ) {
     if (keyInfo?.variant !== 'aws_kms') {
-      throw new NebulaAdapterError('invalid_key_info', 'Invalid AWS KMS key info');
+      throw new KeyProviderAdapterError('invalid_key_info', 'Invalid AWS KMS key info');
     }
 
     try {
@@ -283,7 +274,7 @@ export class AwsKmsKeyProviderAdapter extends NebulaKeyProviderAdapter {
       );
 
       if (!result.Plaintext) {
-        throw new NebulaAdapterError('kms_plaintext_missing', 'KMS did not return plaintext');
+        throw new KeyProviderAdapterError('kms_plaintext_missing', 'KMS did not return plaintext');
       }
 
       return result.Plaintext;

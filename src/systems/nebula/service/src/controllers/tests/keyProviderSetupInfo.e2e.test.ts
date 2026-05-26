@@ -48,10 +48,12 @@ describe('key provider setup info', () => {
     expect(
       setupInfo.steps.some(step => step.inputs?.some(input => input.key === 'region'))
     ).toBe(true);
-    expect(setupInfo.markdown).toContain(roleArn);
-    expect(setupInfo.markdown).toContain('kms:DescribeKey');
-    expect(setupInfo.markdown).toContain('kms:GenerateDataKey');
-    expect(setupInfo.markdown).toContain('kms:Decrypt');
-    expect(setupInfo.markdown).toContain('"metorial-system": "nebula"');
+    expect(setupInfo.steps.some(step => step.markdown?.includes(roleArn))).toBe(true);
+    expect(setupInfo.steps.some(step => step.markdown?.includes('kms:DescribeKey'))).toBe(true);
+    expect(setupInfo.steps.some(step => step.markdown?.includes('kms:GenerateDataKey'))).toBe(true);
+    expect(setupInfo.steps.some(step => step.markdown?.includes('kms:Decrypt'))).toBe(true);
+    expect(
+      setupInfo.steps.some(step => step.markdown?.includes('"metorial-system": "metorial"'))
+    ).toBe(true);
   });
 });

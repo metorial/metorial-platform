@@ -91,8 +91,7 @@ export let keyProviderController = app.controller({
 
       return {
         object: 'nebula#key_provider_setup_info',
-        steps: setupInfo.steps,
-        markdown: setupInfo.markdown
+        steps: setupInfo.steps
       };
     }),
 

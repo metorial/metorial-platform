@@ -80,7 +80,7 @@ class KeyProviderServiceImpl {
       let validated = await adapter.validateKeyProvider(d.keyInput);
       let id = await ID.generateId('keyProvider');
 
-      return await db.keyProvider.create({
+      let keyProvider = await db.keyProvider.create({
         data: {
           oid: snowflake.nextId(),
           id,
@@ -97,6 +97,10 @@ class KeyProviderServiceImpl {
           keyInfo: validated.keyInfo
         }
       });
+
+      await this.setAsDefaultIfUsingGlobalDefault({ tenant: d.tenant, keyProvider });
+
+      return keyProvider;
     } catch (err) {
       let normalized = normalizeAdapterError(err);
       throw new ServiceError(
@@ -131,7 +135,7 @@ class KeyProviderServiceImpl {
         systemIdentifier
       });
 
-      return await db.keyProvider.create({
+      let keyProvider = await db.keyProvider.create({
         data: {
           oid: snowflake.nextId(),
           id,
@@ -144,6 +148,10 @@ class KeyProviderServiceImpl {
           keyInfo: provider.keyInfo
         }
       });
+
+      await this.setAsDefaultIfUsingGlobalDefault({ tenant: d.tenant, keyProvider });
+
+      return keyProvider;
     } catch (err) {
       let normalized = normalizeAdapterError(err);
       throw new ServiceError(
@@ -215,6 +223,7 @@ class KeyProviderServiceImpl {
       tenant: d.tenant,
       id: d.keyProviderId
     });
+    this.guardTenantOwnedKeyProvider(keyProvider);
 
     return await db.tenant.update({
       where: { oid: d.tenant.oid },
@@ -225,6 +234,7 @@ class KeyProviderServiceImpl {
 
   async validateKeyProvider(d: { tenant: Tenant; keyProviderId: string }) {
     let keyProvider = await this.getKeyProviderById({ tenant: d.tenant, id: d.keyProviderId });
+    this.guardTenantOwnedKeyProvider(keyProvider);
     let adapter = getKeyProviderAdapter(keyProvider.type);
 
     try {
@@ -267,6 +277,29 @@ class KeyProviderServiceImpl {
     if (!d.tenant || d.keyProvider.tenantOid !== d.tenant.oid) {
       throw new ServiceError(notFoundError('key.provider'));
     }
+  }
+
+  guardTenantOwnedKeyProvider(keyProvider: KeyProvider) {
+    if (keyProvider.owner !== 'tenant') {
+      throw new ServiceError(
+        badRequestError({ message: 'Key provider is managed by Metorial' })
+      );
+    }
+  }
+
+  private async setAsDefaultIfUsingGlobalDefault(d: {
+    tenant: Tenant;
+    keyProvider: KeyProvider;
+  }) {
+    await db.tenant.updateMany({
+      where: {
+        oid: d.tenant.oid,
+        defaultKeyProviderOid: null
+      },
+      data: {
+        defaultKeyProviderOid: d.keyProvider.oid
+      }
+    });
   }
 }
 

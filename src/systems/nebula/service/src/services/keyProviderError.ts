@@ -1,3 +1,4 @@
+import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Hash } from '@lowerdeck/hash';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
@@ -55,6 +56,12 @@ class KeyProviderErrorServiceImpl {
   }
 
   async listKeyProviderErrors(d: { keyProvider: KeyProvider; tenant?: Tenant | null }) {
+    if (d.keyProvider.owner !== 'tenant') {
+      throw new ServiceError(
+        badRequestError({ message: 'Key provider errors are unavailable' })
+      );
+    }
+
     return Paginator.create(({ prisma }) =>
       prisma(async opts =>
         db.keyError.findMany({

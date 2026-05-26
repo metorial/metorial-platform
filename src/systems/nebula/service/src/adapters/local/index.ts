@@ -6,13 +6,15 @@ import type {
   DataKeyResult,
   KeyProviderSetupInfoInput
 } from '../_lib/adapter';
-import { detag } from '../_lib/adapter';
-import { NebulaKeyProviderAdapter } from '../_lib/adapter';
-import { NebulaAdapterError } from '../_lib/errors';
+import { KeyProviderAdapter } from '../_lib/adapter';
+import { KeyProviderAdapterError } from '../_lib/errors';
 
 let assertLocalAllowed = () => {
   if (process.env.NODE_ENV === 'production') {
-    throw new NebulaAdapterError('local_provider_in_production', 'Local provider cannot be used in production');
+    throw new KeyProviderAdapterError(
+      'local_provider_in_production',
+      'Local provider cannot be used in production'
+    );
   }
 };
 
@@ -20,11 +22,15 @@ let getMasterKey = (keyProvider?: KeyProvider) => {
   assertLocalAllowed();
 
   let secret = (keyProvider?.keyInfo as any)?.secret ?? env.local.LOCAL_MASTER_SECRET;
-  if (!secret) throw new NebulaAdapterError('local_secret_missing', 'Local master secret is missing');
+  if (!secret)
+    throw new KeyProviderAdapterError(
+      'local_secret_missing',
+      'Local master secret is missing'
+    );
   return deriveSha256Key(secret);
 };
 
-export class LocalKeyProviderAdapter extends NebulaKeyProviderAdapter {
+export class LocalKeyProviderAdapter extends KeyProviderAdapter {
   readonly type = 'local' as const;
 
   async createSystemKeyProvider() {
@@ -32,7 +38,7 @@ export class LocalKeyProviderAdapter extends NebulaKeyProviderAdapter {
     getMasterKey();
 
     return {
-      name: 'Nebula Local Default',
+      name: 'Local Default',
       keyInfo: {
         variant: 'local',
         version: 1
@@ -46,7 +52,7 @@ export class LocalKeyProviderAdapter extends NebulaKeyProviderAdapter {
     getMasterKey();
 
     return {
-      name: 'Nebula Local KeyProvider',
+      name: 'Local KeyProvider',
       keyInfo: {
         variant: 'local',
         version: 1
@@ -54,9 +60,7 @@ export class LocalKeyProviderAdapter extends NebulaKeyProviderAdapter {
     };
   }
 
-  async createTenantManagedKeyProvider(input: {
-    name: string;
-  }): Promise<{
+  async createTenantManagedKeyProvider(input: { name: string }): Promise<{
     name: string;
     keyInfo: any;
   }> {
@@ -82,24 +86,25 @@ export class LocalKeyProviderAdapter extends NebulaKeyProviderAdapter {
         owner: input.tenantIdentifier
       }
     };
-    let createProviderMarkdown = detag`
-      Example \`keyProvider.import\` payload:
+    let createProviderMarkdown = `
+Example \`keyProvider.import\` payload:
 
-      \`\`\`json
-      ${JSON.stringify(importKeyProviderPayload, null, 2)}
-      \`\`\`
+\`\`\`json
+${JSON.stringify(importKeyProviderPayload, null, 2)}
+\`\`\`
     `;
     let steps = [
       {
         title: 'Choose a local test key identifier',
         description:
-          'Pick a stable identifier for this local test key. Nebula accepts these values for a realistic setup flow, but the local adapter does not use them for encryption.',
+          'Pick a stable identifier for this local test key. Metorial accepts these values for a realistic setup flow, but the local adapter does not use them for encryption.',
         inputs: [
           {
             type: 'text' as const,
             key: 'testKeyId',
             label: 'Test key ID',
-            description: 'A local-only key identifier to help you recognize this test KeyProvider.'
+            description:
+              'A local-only key identifier to help you recognize this test KeyProvider.'
           },
           {
             type: 'text' as const,
@@ -112,13 +117,14 @@ export class LocalKeyProviderAdapter extends NebulaKeyProviderAdapter {
       {
         title: 'Configure the local master secret',
         description:
-          'Set LOCAL_MASTER_SECRET to a high-entropy value with at least 32 characters before starting Nebula locally. Local mode is blocked in production.',
+          'Set LOCAL_MASTER_SECRET to a high-entropy value with at least 32 characters before starting the encryption service locally. Local mode is blocked in production.',
         inputs: [
           {
             type: 'text' as const,
             key: 'localMasterSecretRef',
             label: 'Local master secret reference',
-            description: 'A note or reference for where your local LOCAL_MASTER_SECRET is configured. Do not send the actual secret value.'
+            description:
+              'A note or reference for where your local LOCAL_MASTER_SECRET is configured. Do not send the actual secret value.'
           }
         ]
       },
@@ -131,23 +137,20 @@ export class LocalKeyProviderAdapter extends NebulaKeyProviderAdapter {
             type: 'json' as const,
             key: 'keyInput',
             label: 'Local test key input',
-            description: 'Testing metadata to send as keyInput. The local adapter accepts it but ignores it for cryptographic operations.'
+            description:
+              'Testing metadata to send as keyInput. The local adapter accepts it but ignores it for cryptographic operations.'
           }
         ]
       }
     ];
 
-    return {
-      steps,
-      markdown: detag`
-        Tenant: \`${input.tenantIdentifier}\`
-
-        ${steps.flatMap(step => step.markdown ?? []).join('\n\n')}
-      `
-    };
+    return { steps };
   }
 
-  async generateDataKey(keyProvider: KeyProvider, context: DataKeyContext): Promise<DataKeyResult> {
+  async generateDataKey(
+    keyProvider: KeyProvider,
+    context: DataKeyContext
+  ): Promise<DataKeyResult> {
     let plaintextDataKey = crypto.getRandomValues(new Uint8Array(32));
     let wrapped = encryptAes256Gcm({
       key: getMasterKey(keyProvider),
@@ -178,12 +181,15 @@ export class LocalKeyProviderAdapter extends NebulaKeyProviderAdapter {
     context: DataKeyContext
   ) {
     if (keyInfo?.variant !== 'local') {
-      throw new NebulaAdapterError('invalid_key_info', 'Invalid local key info');
+      throw new KeyProviderAdapterError('invalid_key_info', 'Invalid local key info');
     }
 
     let buffer = Buffer.from(encryptedDataKey);
     if (buffer.length < 29) {
-      throw new NebulaAdapterError('invalid_encrypted_data_key', 'Invalid encrypted data key');
+      throw new KeyProviderAdapterError(
+        'invalid_encrypted_data_key',
+        'Invalid encrypted data key'
+      );
     }
 
     return decryptAes256Gcm({

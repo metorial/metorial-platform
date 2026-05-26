@@ -15,7 +15,8 @@ let safeKeyInfo = (keyProvider: KeyProvider) => {
 
   return {
     variant: info.variant,
-    version: info.version
+    version: info.version,
+    isCustomerManaged: !info.managedByNebula
   };
 };
 
