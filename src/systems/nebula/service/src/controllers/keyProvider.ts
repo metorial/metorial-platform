@@ -18,47 +18,35 @@ export let keyProviderApp = tenantApp.use(async ctx => {
 });
 
 export let keyProviderController = app.controller({
-  create: tenantApp
+  import: tenantApp
     .handler()
     .input(
       v.object({
         tenantId: v.string(),
-        name: v.string(),
-        keyId: v.optional(v.string()),
-        region: v.optional(v.string()),
-        keyReuseTimeSeconds: v.optional(v.number())
+        keyInput: v.record(v.any())
       })
     )
     .do(async ctx => {
-      let keyProvider = await keyProviderService.createKeyProvider({
+      let keyProvider = await keyProviderService.importKeyProvider({
         tenant: ctx.tenant,
-        input: {
-          name: ctx.input.name,
-          keyId: ctx.input.keyId,
-          region: ctx.input.region,
-          keyReuseTimeSeconds: ctx.input.keyReuseTimeSeconds
-        } as any
+        keyInput: ctx.input.keyInput
       });
       return keyProviderPresenter(keyProvider);
     }),
 
-  createManagedKms: tenantApp
+  createManaged: tenantApp
     .handler()
     .input(
       v.object({
         tenantId: v.string(),
-        name: v.string(),
-        region: v.optional(v.string()),
-        keyReuseTimeSeconds: v.optional(v.number())
+        name: v.string()
       })
     )
     .do(async ctx => {
-      let keyProvider = await keyProviderService.createManagedKmsKeyProvider({
+      let keyProvider = await keyProviderService.createManaged({
         tenant: ctx.tenant,
         input: {
-          name: ctx.input.name,
-          region: ctx.input.region,
-          keyReuseTimeSeconds: ctx.input.keyReuseTimeSeconds
+          name: ctx.input.name
         }
       });
       return keyProviderPresenter(keyProvider);
@@ -82,6 +70,31 @@ export let keyProviderController = app.controller({
       })
     )
     .do(async ctx => keyProviderPresenter(ctx.keyProvider)),
+
+  getSetupInfo: tenantApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        region: v.optional(v.string()),
+        keyId: v.optional(v.string())
+      })
+    )
+    .do(async ctx => {
+      let setupInfo = await keyProviderService.getSetupInfo({
+        tenant: ctx.tenant,
+        input: {
+          region: ctx.input.region,
+          keyId: ctx.input.keyId
+        }
+      });
+
+      return {
+        object: 'nebula#key_provider_setup_info',
+        steps: setupInfo.steps,
+        markdown: setupInfo.markdown
+      };
+    }),
 
   setDefault: keyProviderApp
     .handler()

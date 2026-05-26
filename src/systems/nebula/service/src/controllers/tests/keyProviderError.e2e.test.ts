@@ -13,9 +13,9 @@ describe('key provider errors', () => {
       identifier: 'tenant-errors',
       name: 'Tenant Errors'
     });
-    let provider = await nebulaClient.keyProvider.create({
+    let provider = await nebulaClient.keyProvider.import({
       tenantId: tenant.id,
-      name: 'Local Errors'
+      keyInput: {}
     });
 
     let dbTenant = await testDb.tenant.findUniqueOrThrow({ where: { id: tenant.id } });

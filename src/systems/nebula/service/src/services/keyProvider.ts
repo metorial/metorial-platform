@@ -4,7 +4,6 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type { KeyProvider, Tenant } from '../../prisma/generated/client';
 import { getKeyProviderAdapter } from '../adapters';
-import type { AdapterKeyProviderInput, KeyProviderCreateInput } from '../adapters/_lib/adapter';
 import { normalizeAdapterError } from '../adapters/_lib/errors';
 import { db } from '../db';
 import { env } from '../env';
@@ -18,27 +17,10 @@ let defaultProviderLock = createLock({
   redisUrl: env.service.REDIS_URL
 });
 
-let toProviderType = (type: AdapterKeyProviderInput['type'] | 'aws.kms') =>
+let toProviderType = (type: KeyProvider['type'] | 'aws.kms') =>
   type === 'aws.kms' ? 'aws_kms' : type;
 
 let getConfiguredProviderType = () => toProviderType(env.provider.DEFAULT_PROVIDER);
-
-let createConfiguredAdapterInput = (input: KeyProviderCreateInput): AdapterKeyProviderInput => {
-  let type = getConfiguredProviderType();
-  if (type === 'aws_kms') {
-    return {
-      type,
-      name: input.name,
-      keyId: input.keyId,
-      region: input.region
-    };
-  }
-
-  return {
-    type,
-    name: input.name
-  };
-};
 
 let getSystemIdentifier = (d: {
   owner: KeyProvider['owner'];
@@ -89,17 +71,15 @@ class KeyProviderServiceImpl {
     });
   }
 
-  async createKeyProvider(d: {
+  async importKeyProvider(d: {
     tenant: Tenant;
-    input: KeyProviderCreateInput & {
-      keyReuseTimeSeconds?: number | null;
-    };
+    keyInput: Record<string, any>;
   }) {
     let type = getConfiguredProviderType();
     let adapter = getKeyProviderAdapter(type);
 
     try {
-      let validated = await adapter.validateKeyProvider(createConfiguredAdapterInput(d.input));
+      let validated = await adapter.validateKeyProvider(d.keyInput);
       let id = await ID.generateId('keyProvider');
 
       return await db.keyProvider.create({
@@ -112,12 +92,11 @@ class KeyProviderServiceImpl {
             tenant: d.tenant,
             keyProviderId: id
           }),
-          name: d.input.name,
+          name: validated.name,
           type,
           owner: 'tenant',
           status: 'active',
-          keyInfo: validated.keyInfo,
-          keyReuseTimeSeconds: d.input.keyReuseTimeSeconds ?? undefined
+          keyInfo: validated.keyInfo
         }
       });
     } catch (err) {
@@ -134,8 +113,6 @@ class KeyProviderServiceImpl {
     tenant: Tenant;
     input: {
       name: string;
-      region?: string | null;
-      keyReuseTimeSeconds?: number | null;
     };
   }) {
     let type = getConfiguredProviderType();
@@ -153,8 +130,7 @@ class KeyProviderServiceImpl {
         tenantId: d.tenant.id,
         tenantIdentifier: d.tenant.identifier,
         name: d.input.name,
-        systemIdentifier,
-        region: d.input.region ?? undefined
+        systemIdentifier
       });
 
       return await db.keyProvider.create({
@@ -167,8 +143,7 @@ class KeyProviderServiceImpl {
           type,
           owner: 'system',
           status: 'active',
-          keyInfo: provider.keyInfo,
-          keyReuseTimeSeconds: d.input.keyReuseTimeSeconds ?? undefined
+          keyInfo: provider.keyInfo
         }
       });
     } catch (err) {
@@ -181,7 +156,7 @@ class KeyProviderServiceImpl {
     }
   }
 
-  async createManagedKmsKeyProvider(d: Parameters<KeyProviderServiceImpl['createManagedKeyProvider']>[0]) {
+  async createManaged(d: Parameters<KeyProviderServiceImpl['createManagedKeyProvider']>[0]) {
     return await this.createManagedKeyProvider(d);
   }
 
@@ -270,6 +245,25 @@ class KeyProviderServiceImpl {
       });
       throw new ServiceError(badRequestError({ message: 'Key provider is unavailable' }));
     }
+  }
+
+  async getSetupInfo(d: {
+    tenant: Tenant;
+    input: {
+      region?: string | null;
+      keyId?: string | null;
+    };
+  }) {
+    let type = getConfiguredProviderType();
+    let adapter = getKeyProviderAdapter(type);
+
+    return await adapter.getSetupInfo({
+      tenantId: d.tenant.id,
+      tenantIdentifier: d.tenant.identifier,
+      region: d.input.region ?? undefined,
+      keyId: d.input.keyId ?? undefined,
+      roleArn: env.kms.KMS_EXTERNAL_KEY_ROLE_ARN
+    });
   }
 
   guardKeyProviderForTenant(d: { tenant: Tenant | null; keyProvider: KeyProvider }) {

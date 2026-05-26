@@ -121,9 +121,9 @@ describe('secret E2E', () => {
     let tenantB = await createTenant('tenant-provider-b');
     let registration = await registerWorker();
 
-    let provider = await nebulaClient.keyProvider.create({
+    let provider = await nebulaClient.keyProvider.import({
       tenantId: tenantA.id,
-      name: 'Local BYOK'
+      keyInput: {}
     });
 
     await expect(

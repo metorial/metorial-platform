@@ -22,6 +22,9 @@ export default defineConfig(({ mode }) => {
           'nebula-test-consumer-instance-token-secret-with-enough-entropy',
         CONSUMER_INSTANCE_TOKEN_TTL_SECONDS:
           env.CONSUMER_INSTANCE_TOKEN_TTL_SECONDS ?? '3600',
+        KMS_EXTERNAL_KEY_ROLE_ARN:
+          env.KMS_EXTERNAL_KEY_ROLE_ARN ??
+          'arn:aws:iam::123456789012:role/metorial-test-nebula-task-role',
         CONSUMER_REGISTRATION_worker: env.CONSUMER_REGISTRATION_worker ?? 'worker-secret',
         CONSUMER_REGISTRATION_owner: env.CONSUMER_REGISTRATION_owner ?? 'owner-secret',
         CONSUMER_REGISTRATION_other: env.CONSUMER_REGISTRATION_other ?? 'other-secret'

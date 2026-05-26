@@ -3,20 +3,12 @@ import type { KeyProvider } from '../../../prisma/generated/client';
 export type AdapterKeyProviderInput =
   | {
       type: 'aws_kms';
-      name: string;
       keyId?: string;
       region?: string;
     }
   | {
       type: 'local';
-      name: string;
     };
-
-export type KeyProviderCreateInput = {
-  name: string;
-  keyId?: string;
-  region?: string;
-};
 
 export type DataKeyContext = {
   tenantId: string;
@@ -32,6 +24,40 @@ export type DataKeyResult = {
   keyInfo: any;
 };
 
+export type KeyProviderSetupInfoInput = {
+  tenantId: string;
+  tenantIdentifier: string;
+  region?: string;
+  keyId?: string;
+  roleArn?: string;
+};
+
+export type KeyProviderSetupInfo = {
+  steps: {
+    title: string;
+    description: string;
+    markdown?: string;
+    inputs?: {
+      type: 'text' | 'json';
+      key: string;
+      label: string;
+      description: string;
+    }[];
+  }[];
+  markdown: string;
+};
+
+export let detag = (strings: TemplateStringsArray, ...values: any[]) => {
+  let raw = strings.reduce((out, str, idx) => `${out}${str}${values[idx] ?? ''}`, '');
+  let lines = raw.replace(/^\n/, '').replace(/\n\s*$/, '').split('\n');
+  let indents = lines
+    .filter(line => line.trim().length > 0)
+    .map(line => line.match(/^\s*/)?.[0].length ?? 0);
+  let indent = indents.length ? Math.min(...indents) : 0;
+
+  return lines.map(line => line.slice(indent)).join('\n');
+};
+
 export abstract class NebulaKeyProviderAdapter {
   abstract readonly type: KeyProvider['type'];
 
@@ -45,15 +71,17 @@ export abstract class NebulaKeyProviderAdapter {
     tenantIdentifier: string;
     name: string;
     systemIdentifier: string;
-    region?: string;
   }): Promise<{
     name: string;
     keyInfo: any;
   }>;
 
-  abstract validateKeyProvider(input: AdapterKeyProviderInput): Promise<{
+  abstract validateKeyProvider(input: Record<string, any>): Promise<{
+    name: string;
     keyInfo: any;
   }>;
+
+  abstract getSetupInfo(input: KeyProviderSetupInfoInput): Promise<KeyProviderSetupInfo>;
 
   abstract generateDataKey(keyProvider: KeyProvider, context: DataKeyContext): Promise<DataKeyResult>;
 

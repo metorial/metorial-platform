@@ -20,7 +20,8 @@ export let env = createValidatedEnv({
     KMS_AWS_ACCESS_KEY_ID: v.optional(v.string()),
     KMS_AWS_SECRET_ACCESS_KEY: v.optional(v.string()),
     KMS_DEFAULT_KEY_ID: v.optional(v.string()),
-    KMS_CREATE_DEFAULT_KEY: v.optional(v.string())
+    KMS_CREATE_DEFAULT_KEY: v.optional(v.string()),
+    KMS_EXTERNAL_KEY_ROLE_ARN: v.optional(v.string())
   },
 
   consumerAuth: {
