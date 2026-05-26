@@ -497,6 +497,49 @@ export let forgeServiceEnv: Env = [
   // }
 ];
 
+export let nebulaServiceEnv: Env = [
+  {
+    key: 'DATABASE_URL',
+    defaultValue: 'postgresql://postgres:postgres@localhost:35432/nebula'
+  },
+  {
+    key: 'REDIS_URL',
+    defaultValue: 'redis://localhost:36379/0'
+  },
+  {
+    key: 'DEFAULT_PROVIDER',
+    defaultValue: 'local'
+  },
+  {
+    key: 'LOCAL_MASTER_SECRET',
+    defaultValue: 'local-dev-nebula-master-secret-with-enough-entropy'
+  },
+  {
+    key: 'KMS_AWS_REGION',
+    defaultValue: 'us-east-1'
+  },
+  {
+    key: 'KMS_CREATE_DEFAULT_KEY',
+    defaultValue: 'false'
+  },
+  {
+    key: 'CONSUMER_INSTANCE_TOKEN_SECRET',
+    defaultValue: 'local-dev-nebula-consumer-token-secret-with-enough-entropy'
+  },
+  {
+    key: 'CONSUMER_INSTANCE_TOKEN_TTL_SECONDS',
+    defaultValue: '3600'
+  },
+  {
+    key: 'CONSUMER_REGISTRATION_SLATES',
+    defaultValue: 'local-dev-nebula-slates-registration-secret'
+  },
+  {
+    key: 'CONSUMER_REGISTRATION_SHUTTLE',
+    defaultValue: 'local-dev-nebula-shuttle-registration-secret'
+  }
+];
+
 export let functionBayServiceEnv: Env = [
   {
     key: 'DATABASE_URL',
