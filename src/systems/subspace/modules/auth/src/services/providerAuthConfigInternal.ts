@@ -201,6 +201,20 @@ class providerAuthConfigInternalServiceImpl {
       where: {
         providerOid: d.provider.oid,
         specificationOid: d.specificationOid,
+        globalOid: oldAuthMethod.globalOid
+      },
+      include: {
+        specification: true
+      },
+      orderBy: [{ isDefault: 'desc' }, { createdAt: 'asc' }]
+    });
+    if (fallbackAuthMethod) return fallbackAuthMethod;
+
+    // Now we need to find an auth method in the new spec that matches the old auth method
+    fallbackAuthMethod = await db.providerAuthMethod.findFirst({
+      where: {
+        providerOid: d.provider.oid,
+        specificationOid: d.specificationOid,
         OR: [
           { specId: oldAuthMethod.specId },
           { specUniqueIdentifier: oldAuthMethod.specUniqueIdentifier },
