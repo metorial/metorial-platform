@@ -1,0 +1,69 @@
+services:
+  postgres:
+    profiles: ['infra']
+    image: postgres:16-alpine
+    container_name: nebula-postgres
+    restart: unless-stopped
+    ports:
+      - '56432:5432'
+    environment:
+      POSTGRES_USER: nebula
+      POSTGRES_PASSWORD: nebula
+      POSTGRES_DB: nebula
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-test-db.sh:/docker-entrypoint-initdb.d/init-test-db.sh
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U nebula']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - nebula-network
+
+  redis:
+    profiles: ['infra']
+    image: redis:7-alpine
+    container_name: nebula-redis
+    restart: unless-stopped
+    ports:
+      - '57379:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - nebula-network
+
+  nebula:
+    profiles: ['service']
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nebula-service
+    restart: unless-stopped
+    ports:
+      - '55060:52060'
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql://nebula:nebula@postgres:5432/nebula}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      DEFAULT_PROVIDER: ${DEFAULT_PROVIDER:-local}
+      LOCAL_MASTER_SECRET: ${LOCAL_MASTER_SECRET:-please-change-this-local-development-secret-with-32-bytes}
+      KMS_AWS_REGION: ${KMS_AWS_REGION:-us-east-1}
+      KMS_DEFAULT_KEY_ID: ${KMS_DEFAULT_KEY_ID:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - nebula-network
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  nebula-network:
+    driver: bridge
