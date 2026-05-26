@@ -23,9 +23,12 @@ describe('key provider setup info', () => {
     });
     expect(setupInfo.steps.length).toBeGreaterThan(0);
     expect(setupInfo.steps.some(step => step.markdown?.includes('keyProvider.import'))).toBe(true);
-    expect(setupInfo.steps.every(step => !step.inputs || step.inputs.length === 0)).toBe(true);
-    expect(setupInfo.markdown).toContain('LOCAL_MASTER_SECRET');
-    expect(setupInfo.markdown).toContain('development only');
+    expect(setupInfo.steps.some(step => step.inputs?.some(input => input.key === 'testKeyId'))).toBe(true);
+    expect(
+      setupInfo.steps.some(step => step.inputs?.some(input => input.key === 'localMasterSecretRef'))
+    ).toBe(true);
+    expect(setupInfo.steps.some(step => step.description.includes('LOCAL_MASTER_SECRET'))).toBe(true);
+    expect(setupInfo.steps.some(step => step.description.includes('production'))).toBe(true);
   });
 
   it('generates AWS KMS setup info with role ARN and required actions', async () => {
@@ -49,6 +52,6 @@ describe('key provider setup info', () => {
     expect(setupInfo.markdown).toContain('kms:DescribeKey');
     expect(setupInfo.markdown).toContain('kms:GenerateDataKey');
     expect(setupInfo.markdown).toContain('kms:Decrypt');
-    expect(setupInfo.markdown).toContain('metorial-system=nebula');
+    expect(setupInfo.markdown).toContain('"metorial-system": "nebula"');
   });
 });

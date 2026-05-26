@@ -61,6 +61,15 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          "bun -e \"fetch('http://localhost:52170/').then(()=>process.exit(0)).catch(()=>process.exit(1))\""
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     networks:
       - nebula-network
 
