@@ -228,7 +228,8 @@ class remoteOAuthConnectionServiceImpl {
       let secret = await secretService.DANGEROUSLY_decryptSecret({
         secretOid: d.connection.secretOid,
         purpose: 'oauth_connection_credentials',
-        tenant: d.tenant
+        tenant: d.tenant,
+        note: `rocn.cred:${d.connection.id}`
       });
 
       return {

@@ -81,7 +81,8 @@ export class FunctionConnection implements McpConnectionBackendAdapter {
     let { transformed: config } = await secretService.DANGEROUSLY_decryptSecret({
       secretOid: connection.serverConfig.secretOid,
       purpose: 'server_config_value',
-      tenant
+      tenant,
+      note: `fmcp.cfg:${connection.id}:${connection.serverConfig.id}`
     });
 
     return new FunctionConnection(tenant, version, connection, functionServer, config);

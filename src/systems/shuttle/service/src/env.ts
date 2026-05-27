@@ -30,5 +30,15 @@ export let env = createValidatedEnv({
 
     FUNCTION_BAY_DEFAULT_MEMORY_MB: v.number(),
     FUNCTION_BAY_DEFAULT_TIMEOUT_SECONDS: v.number()
+  },
+
+  nebula: {
+    NEBULA_API_URL: v.string(),
+    NEBULA_CONSUMER_IDENTIFIER: v.string(),
+    NEBULA_CONSUMER_TOKEN: v.string()
+  },
+
+  secrets: {
+    SHUTTLE_DELEGATE_SECRETS_TO_NEBULA: v.boolean()
   }
 });

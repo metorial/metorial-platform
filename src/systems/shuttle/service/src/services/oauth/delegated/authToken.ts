@@ -191,7 +191,8 @@ class delegatedAuthTokenServiceImpl {
     let DANGEROUS_secretData = await secretService.DANGEROUSLY_decryptSecret({
       secretOid: token.secretOid!,
       purpose: 'oauth_token',
-      tenant: d.tenant
+      tenant: d.tenant,
+      note: `doat.use:${token.id}`
     });
 
     let didRefresh = false;

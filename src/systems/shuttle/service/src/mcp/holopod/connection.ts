@@ -148,13 +148,15 @@ export class HolopodConnection implements McpConnectionBackendAdapter {
       ? await secretService.DANGEROUSLY_decryptSecret({
           secretOid: registry.secretOid,
           purpose: 'registry_credentials',
-          tenant: this.tenant
+          tenant: this.tenant,
+          note: `hmcp.reg:${this.connection.id}:${registry.id}`
         })
       : undefined;
     let { transformed: config } = await secretService.DANGEROUSLY_decryptSecret({
       secretOid: this.serverConfig.secretOid,
       purpose: 'server_config_value',
-      tenant: this.tenant
+      tenant: this.tenant,
+      note: `hmcp.cfg:${this.connection.id}:${this.serverConfig.id}`
     });
 
     let rules = await networkingRulesetService.getRulesetForConnection({
