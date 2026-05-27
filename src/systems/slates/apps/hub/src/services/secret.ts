@@ -197,6 +197,7 @@ class secretServiceImpl {
     d: ({ secret: Secret } | { secretOid: bigint }) & {
       purpose: Type;
       tenant: Tenant;
+      note: string;
       db?: SecretDbClient;
     }
   ) {
@@ -220,7 +221,7 @@ class secretServiceImpl {
       let used = await useNebulaSecret({
         tenant: d.tenant,
         secret,
-        note: `Slates hub secret read: ${secret.id}`
+        note: d.note
       });
 
       return JSON.parse(used.plaintext) as SecretTypes[Type];

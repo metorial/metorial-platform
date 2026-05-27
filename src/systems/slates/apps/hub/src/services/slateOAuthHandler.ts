@@ -44,12 +44,14 @@ class slateOAuthHandlerServiceImpl {
     let oauthSecret = await secretService.DANGEROUSLY_decryptSecret({
       secretOid: setup.secretOid,
       purpose: 'slate_oauth_setup',
-      tenant: setup.tenant
+      tenant: setup.tenant,
+      note: `oauth-url setup:${setup.id}`
     });
     let credentialsSecrets = await secretService.DANGEROUSLY_decryptSecret({
       secretOid: setup.oauthCredentials.secretOid,
       purpose: 'slate_oauth_credentials',
-      tenant: setup.tenant
+      tenant: setup.tenant,
+      note: `oauth-url creds:${setup.oauthCredentials.id} setup:${setup.id}`
     });
 
     let urlRes = await slateInvocationService.getOAuthUrl({
@@ -200,12 +202,14 @@ class slateOAuthHandlerServiceImpl {
     let oauthSecret = await secretService.DANGEROUSLY_decryptSecret({
       secretOid: setup.secretOid,
       purpose: 'slate_oauth_setup',
-      tenant: setup.tenant
+      tenant: setup.tenant,
+      note: `oauth-cb setup:${setup.id}`
     });
     let credentialsSecrets = await secretService.DANGEROUSLY_decryptSecret({
       secretOid: setup.oauthCredentials.secretOid,
       purpose: 'slate_oauth_credentials',
-      tenant: setup.tenant
+      tenant: setup.tenant,
+      note: `oauth-cb creds:${setup.oauthCredentials.id} setup:${setup.id}`
     });
 
     let authRes = await slateInvocationService.getOAuthCallback({

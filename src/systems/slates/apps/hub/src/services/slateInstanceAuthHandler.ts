@@ -80,7 +80,8 @@ class slateAuthHandlerServiceImpl {
     let decrypted = await secretService.DANGEROUSLY_decryptSecret({
       secret: authConfig.secret,
       purpose: 'slate_authentication_configuration',
-      tenant: d.tenant
+      tenant: d.tenant,
+      note: `auth-get cfg:${authConfig.id} inst:${d.slateInstance?.id ?? 'none'}`
     });
 
     if (authConfig.tokenExpiresAt) {
@@ -108,7 +109,8 @@ class slateAuthHandlerServiceImpl {
         let oauthDecrypted = await secretService.DANGEROUSLY_decryptSecret({
           secret: oauthCredentials.secret,
           purpose: 'slate_oauth_credentials',
-          tenant: d.tenant
+          tenant: d.tenant,
+          note: `oauth-rfr creds:${oauthCredentials.id} cfg:${authConfig.id}`
         });
 
         let authMethod = await db.slateAuthMethod.findFirstOrThrow({
