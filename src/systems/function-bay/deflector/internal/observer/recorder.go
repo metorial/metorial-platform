@@ -16,9 +16,7 @@ type Observation struct {
 	TenantID            string    `json:"tenantId"`
 	FunctionID          string    `json:"functionId"`
 	EffectiveFunctionID string    `json:"effectiveFunctionId,omitempty"`
-	FunctionVersionID   string    `json:"functionVersionId"`
 	EnclaveID           string    `json:"enclaveId,omitempty"`
-	EnclaveIdentifier   string    `json:"enclaveIdentifier,omitempty"`
 	Hostname            string    `json:"hostname"`
 	IP                  string    `json:"ip"`
 	Port                int       `json:"port"`
@@ -52,9 +50,7 @@ type observationKey struct {
 	tenantID            string
 	functionID          string
 	effectiveFunctionID string
-	functionVersionID   string
 	enclaveID           string
-	enclaveIdentifier   string
 	hostname            string
 	ip                  string
 	port                int
@@ -85,9 +81,7 @@ func (r *Recorder) Record(claims policy.Claims, hostname string, ip string, port
 		TenantID:            claims.TenantID,
 		FunctionID:          claims.FunctionID,
 		EffectiveFunctionID: claims.EffectiveFunctionID,
-		FunctionVersionID:   claims.FunctionVersionID,
 		EnclaveID:           claims.EnclaveID,
-		EnclaveIdentifier:   claims.EnclaveIdentifier,
 		Hostname:            hostname,
 		IP:                  ip,
 		Port:                parsedPort,
@@ -101,9 +95,7 @@ func (r *Recorder) Record(claims policy.Claims, hostname string, ip string, port
 		tenantID:            record.TenantID,
 		functionID:          record.FunctionID,
 		effectiveFunctionID: record.EffectiveFunctionID,
-		functionVersionID:   record.FunctionVersionID,
 		enclaveID:           record.EnclaveID,
-		enclaveIdentifier:   record.EnclaveIdentifier,
 		hostname:            record.Hostname,
 		ip:                  record.IP,
 		port:                record.Port,

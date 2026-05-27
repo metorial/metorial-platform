@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/metorial/function-bay-deflector/internal/auth"
 	"github.com/metorial/function-bay-deflector/internal/observer"
 	"github.com/metorial/function-bay-deflector/internal/proxy"
@@ -34,25 +35,51 @@ func main() {
 
 	var recorder *observer.Recorder
 	observerIngestURL := os.Getenv("OBSERVER_INGEST_URL")
-	if observerIngestURL != "" {
+	observerDiscoveryNamespace := os.Getenv("OBSERVER_DISCOVERY_NAMESPACE")
+	observerDiscoveryService := os.Getenv("OBSERVER_DISCOVERY_SERVICE")
+	if observerIngestURL != "" || (observerDiscoveryNamespace != "" && observerDiscoveryService != "") {
 		flushInterval := envDurationSeconds("OBSERVER_FLUSH_INTERVAL_SECONDS", 60*time.Second)
 		maxBufferAge := envDurationSeconds("OBSERVER_MAX_BUFFER_AGE_SECONDS", 15*time.Minute)
 		recorder = observer.NewRecorder(newInstanceID(), maxBufferAge)
-		observerClient := observer.NewClient(observerIngestURL)
+		var observerSender observer.Sender
+		if observerIngestURL != "" {
+			observerSender = observer.NewClient(observerIngestURL)
+		} else {
+			cfg, err := config.LoadDefaultConfig(context.Background())
+			if err != nil {
+				logger.Error("failed to load aws config for observer discovery", "error", err)
+				os.Exit(1)
+			}
+			observerSender = observer.NewDiscoveringClient(
+				cfg,
+				observerDiscoveryNamespace,
+				observerDiscoveryService,
+			)
+		}
 
 		go func() {
 			ticker := time.NewTicker(flushInterval)
 			defer ticker.Stop()
 			for range ticker.C {
 				ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
-				err := recorder.Flush(ctx, observerClient)
+				err := recorder.Flush(ctx, observerSender)
 				cancel()
 				if err != nil {
 					logger.Warn("observer flush failed", "error", err)
 				}
 			}
 		}()
-		logger.Info("observer reporting enabled", "url", observerIngestURL, "interval", flushInterval.String())
+		logger.Info(
+			"observer reporting enabled",
+			"url",
+			observerIngestURL,
+			"discoveryNamespace",
+			observerDiscoveryNamespace,
+			"discoveryService",
+			observerDiscoveryService,
+			"interval",
+			flushInterval.String(),
+		)
 	}
 
 	srv := &http.Server{
