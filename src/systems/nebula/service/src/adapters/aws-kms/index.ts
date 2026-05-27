@@ -13,7 +13,7 @@ import type {
   DataKeyResult,
   KeyProviderSetupInfoInput
 } from '../_lib/adapter';
-import { detag, KeyProviderAdapter } from '../_lib/adapter';
+import { KeyProviderAdapter } from '../_lib/adapter';
 import { KeyProviderAdapterError, normalizeAdapterError } from '../_lib/errors';
 
 let importKeyInputSchema = v.object({
@@ -115,17 +115,6 @@ export class AwsKmsKeyProviderAdapter extends KeyProviderAdapter {
       Resource: '*'
     };
     let policyJson = JSON.stringify(policyStatement, null, 2);
-    let importKeyProviderPayload = {
-      tenantId: input.tenantId,
-      keyInput: {
-        keyId,
-        region
-      }
-    };
-    let optionalTags = {
-      'metorial-system': 'metorial',
-      'metorial-tenant-id': input.tenantId
-    };
 
     let steps = [
       {
@@ -134,26 +123,19 @@ export class AwsKmsKeyProviderAdapter extends KeyProviderAdapter {
       },
       {
         title: 'Grant the Metorial role access to the key',
-        description: `Allow Metorial's AWS role to describe the key, generate data keys, and decrypt wrapped data keys.`,
-        markdown: detag`
-          Add this statement to the KMS key policy, or create an equivalent KMS grant:
+        description: `Grant Metorial access to the key by adding the following statement to the key policy.`,
+        markdown: `
+Add this statement to the KMS key policy, or create an equivalent KMS grant:
 
-          \`\`\`json
-          ${policyJson}
-          \`\`\`
+\`\`\`json
+${policyJson}
+\`\`\`
         `
       },
       {
         title: 'Create the key provider',
         description:
           'Create the key provider after the key policy is updated. Metorial validates KMS access before storing it.',
-        markdown: detag`
-          Call \`keyProvider.import\` with this payload:
-
-          \`\`\`json
-          ${JSON.stringify(importKeyProviderPayload, null, 2)}
-          \`\`\`
-        `,
         inputs: [
           {
             type: 'text' as const,
@@ -168,18 +150,6 @@ export class AwsKmsKeyProviderAdapter extends KeyProviderAdapter {
             description: 'The AWS region where the KMS key exists.'
           }
         ]
-      },
-      {
-        title: 'Optional: tag the customer key',
-        description:
-          'Tags are optional for customer-managed keys, but they help with inventory and cost allocation.',
-        markdown: detag`
-          Suggested optional tags:
-
-          \`\`\`json
-          ${JSON.stringify(optionalTags, null, 2)}
-          \`\`\`
-        `
       }
     ];
 

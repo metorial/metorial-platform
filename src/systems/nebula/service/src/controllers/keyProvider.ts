@@ -31,7 +31,7 @@ export let keyProviderController = app.controller({
         tenant: ctx.tenant,
         keyInput: ctx.input.keyInput
       });
-      return keyProviderPresenter(keyProvider);
+      return await keyProviderPresenter(keyProvider);
     }),
 
   createManaged: tenantApp
@@ -49,7 +49,7 @@ export let keyProviderController = app.controller({
           name: ctx.input.name
         }
       });
-      return keyProviderPresenter(keyProvider);
+      return await keyProviderPresenter(keyProvider);
     }),
 
   list: tenantApp
@@ -58,7 +58,10 @@ export let keyProviderController = app.controller({
     .do(async ctx => {
       let paginator = await keyProviderService.listKeyProviders({ tenant: ctx.tenant });
       let list = await paginator.run(ctx.input);
-      return Paginator.presentLight(list, keyProviderPresenter);
+      return {
+        ...list,
+        items: await Promise.all(list.items.map(keyProviderPresenter))
+      };
     }),
 
   get: keyProviderApp
@@ -69,7 +72,7 @@ export let keyProviderController = app.controller({
         keyProviderId: v.string()
       })
     )
-    .do(async ctx => keyProviderPresenter(ctx.keyProvider)),
+    .do(async ctx => await keyProviderPresenter(ctx.keyProvider)),
 
   getSetupInfo: tenantApp
     .handler()
