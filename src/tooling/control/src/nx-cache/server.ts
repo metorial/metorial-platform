@@ -411,6 +411,7 @@ export let runCacheServer = async (opts: ServerOptions) => {
   let server = Bun.serve({
     hostname: opts.host,
     port: opts.port,
+    idleTimeout: 255,
     async fetch(req) {
       let url = new URL(req.url);
       let match = url.pathname.match(/^\/v1\/cache\/([^/]+)$/);

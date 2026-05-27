@@ -204,7 +204,7 @@ jobs:
           }
 
           warm_target server:build
-          warm_target frontend:build
+          bun x nx run-many --target=frontend:build --projects=@metorial-subspace/app-public,@metorial/ares --parallel=2
           warm_target worker:build
 
       - name: Run control
@@ -286,6 +286,8 @@ jobs:
           fi
 
           if [ "${FINALIZE_STATUS}" -ne 0 ]; then
-            exit "${FINALIZE_STATUS}"
+            echo "::warning::Nx cache bridge finalize failed with status ${FINALIZE_STATUS}; continuing because cache upload is best-effort"
           fi
-          exit "${SUMMARY_STATUS}"
+          if [ "${SUMMARY_STATUS}" -ne 0 ]; then
+            echo "::warning::Nx cache bridge summary failed with status ${SUMMARY_STATUS}; continuing because cache reporting is best-effort"
+          fi
