@@ -1,8 +1,9 @@
-import { Panel, showModal } from '@metorial/ui';
-import { type ReactNode, useState } from 'react';
+import { Input, Panel, showModal } from '@metorial/ui';
+import { type ReactNode, useMemo, useState } from 'react';
 import type { DashboardInstanceProviderListingsListQuery } from '@metorial/dashboard-sdk';
 import { ProvidersWithDeploymentsSearch } from '../providers/search';
 import { PillStepper } from '../../../../components/stepper';
+import { useSearchFilter } from '../../../../hooks/useSearchFilter';
 
 type ProviderCreationPanelStep = {
   title: string;
@@ -57,25 +58,50 @@ export let ProviderSelectionStep = (p: {
   providerListingsFilter?: DashboardInstanceProviderListingsListQuery;
   excludeProviderIds?: string[];
 }) => {
+  let { search, setSearch, searchQuery } = useSearchFilter(500, {
+    updateSearchParams: false
+  });
+  let providerListingsFilter = useMemo(
+    (): DashboardInstanceProviderListingsListQuery => ({
+      ...p.providerListingsFilter,
+      ...(searchQuery ? { search: searchQuery } : {})
+    }),
+    [p.providerListingsFilter, searchQuery]
+  );
+
   return (
-    <ProvidersWithDeploymentsSearch
-      instanceId={p.instanceId}
-      columns={3}
-      limit={p.limit ?? 30}
-      variant="providerCard"
-      cardSize="compact"
-      includeAllProviders
-      prioritizeProvidersWithDeployments
-      internalScroll
-      internalScrollHeight={p.internalScrollHeight ?? 'calc(100vh - 260px)'}
-      selectionMode={p.selectionMode}
-      providerListingsFilter={p.providerListingsFilter}
-      excludeProviderIds={p.excludeProviderIds}
-      emptyText={p.emptyText ?? 'No providers found.'}
-      onSelect={provider => {
-        p.onSelect(provider.id);
-      }}
-    />
+    <>
+      <div style={{ marginBottom: 12 }}>
+        <Input
+          label="Search"
+          hideLabel
+          size="2"
+          placeholder="Search providers..."
+          value={search}
+          onInput={setSearch}
+        />
+      </div>
+
+      <ProvidersWithDeploymentsSearch
+        instanceId={p.instanceId}
+        columns={3}
+        limit={p.limit ?? 30}
+        variant="providerCard"
+        cardSize="compact"
+        includeAllProviders
+        prioritizeProvidersWithDeployments
+        internalScroll
+        internalScrollHeight={p.internalScrollHeight ?? 'calc(100vh - 260px)'}
+        selectionMode={p.selectionMode}
+        providerListingsFilter={providerListingsFilter}
+        excludeProviderIds={p.excludeProviderIds}
+        hideSearch
+        emptyText={p.emptyText ?? 'No providers found.'}
+        onSelect={provider => {
+          p.onSelect(provider.id);
+        }}
+      />
+    </>
   );
 };
 
