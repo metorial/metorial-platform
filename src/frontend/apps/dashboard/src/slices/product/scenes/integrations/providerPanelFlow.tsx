@@ -502,8 +502,7 @@ let IntegrationProviderSetupStep = (p: {
   // empty-state copy still renders for transparency.
   let effectiveShowAuth =
     visibility.showAuth &&
-    (!isUpdate ||
-      (!authMethods.isLoading && (authMethods.data?.items.length ?? 0) > 0));
+    (!isUpdate || (!authMethods.isLoading && (authMethods.data?.items.length ?? 0) > 0));
 
   let submitProviderSetup = async (values: IntegrationProviderFormValues) => {
     if (!instance.data) return false;
@@ -928,7 +927,7 @@ let AddIntegrationProviderPanel = (p: {
         p.description ??
         (p.integrationProvider
           ? 'Update optional provider settings for this integration.'
-          : 'Select a provider. Deployment and empty configuration setup are handled automatically.')
+          : 'Choose a provider to add to this integration.')
       }
       steps={p.integrationProvider ? [steps[1]!] : steps}
       currentStep={p.integrationProvider ? 0 : step}
