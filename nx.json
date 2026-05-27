@@ -97,7 +97,7 @@
       ]
     },
     "prisma:generate": {
-      "cache": true,
+      "cache": false,
       "dependsOn": [
         "^prisma:generate"
       ],

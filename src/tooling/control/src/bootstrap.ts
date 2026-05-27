@@ -77,7 +77,7 @@ let createNxConfig = (scope: 'repo' | 'oss' = 'repo') => ({
       inputs: ['production', '^production']
     },
     'prisma:generate': {
-      cache: true,
+      cache: false,
       dependsOn: ['^prisma:generate'],
       inputs: ['production', '^production']
     },
