@@ -10,8 +10,14 @@ import (
 )
 
 type Claims struct {
-	AllowedIPs   *[]string `json:"allowedIps,omitempty"`
-	AllowedHosts *[]string `json:"allowedHosts,omitempty"`
+	TenantID            string    `json:"tenantId"`
+	FunctionID          string    `json:"functionId"`
+	EffectiveFunctionID string    `json:"effectiveFunctionId,omitempty"`
+	FunctionVersionID   string    `json:"functionVersionId"`
+	EnclaveID           string    `json:"enclaveId,omitempty"`
+	EnclaveIdentifier   string    `json:"enclaveIdentifier,omitempty"`
+	AllowedIPs          *[]string `json:"allowedIps,omitempty"`
+	AllowedHosts        *[]string `json:"allowedHosts,omitempty"`
 	jwt.RegisteredClaims
 }
 
@@ -26,7 +32,7 @@ func Compile(claims Claims) (*Compiled, error) {
 	if claims.AllowedIPs != nil {
 		prefixes := make([]netip.Prefix, 0, len(*claims.AllowedIPs))
 		for _, raw := range *claims.AllowedIPs {
-			prefix, err := netip.ParsePrefix(strings.TrimSpace(raw))
+			prefix, err := parseIPRule(raw)
 			if err != nil {
 				return nil, err
 			}
@@ -48,6 +54,23 @@ func Compile(claims Claims) (*Compiled, error) {
 	}
 
 	return c, nil
+}
+
+func parseIPRule(raw string) (netip.Prefix, error) {
+	rule := strings.TrimSpace(raw)
+	if strings.Contains(rule, "/") {
+		return netip.ParsePrefix(rule)
+	}
+
+	addr, err := netip.ParseAddr(rule)
+	if err != nil {
+		return netip.Prefix{}, err
+	}
+	addr = addr.Unmap()
+	if addr.Is4() {
+		return netip.PrefixFrom(addr, 32), nil
+	}
+	return netip.PrefixFrom(addr, 128), nil
 }
 
 func (c *Compiled) AllowsHost(host string) bool {

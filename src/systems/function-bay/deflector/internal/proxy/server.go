@@ -3,6 +3,7 @@ package proxy
 import (
 	"bufio"
 	"context"
+	"encoding/base64"
 	"errors"
 	"io"
 	"log/slog"
@@ -11,12 +12,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/metorial/function-bay-deflector/internal/auth"
 	"github.com/metorial/function-bay-deflector/internal/policy"
 )
 
 type Server struct {
-	Logger *slog.Logger
-	Dialer *net.Dialer
+	Logger   *slog.Logger
+	Dialer   *net.Dialer
+	Verifier *auth.Verifier
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -41,7 +44,48 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) policyFromRequest(r *http.Request) (*policy.Compiled, error) {
-	return policy.Compile(policy.Claims{})
+	if s.Verifier == nil {
+		return nil, errors.New("jwt verifier is required")
+	}
+
+	token, err := tokenFromProxyAuthorization(r.Header.Get("Proxy-Authorization"))
+	if err != nil {
+		return nil, err
+	}
+
+	claims, err := s.Verifier.Verify(r.Context(), token)
+	if err != nil {
+		return nil, err
+	}
+	return policy.Compile(claims)
+}
+
+func tokenFromProxyAuthorization(header string) (string, error) {
+	if header == "" {
+		return "", errors.New("missing proxy authorization")
+	}
+
+	scheme, value, ok := strings.Cut(header, " ")
+	if !ok || value == "" {
+		return "", errors.New("invalid proxy authorization")
+	}
+
+	if strings.EqualFold(scheme, "Bearer") {
+		return value, nil
+	}
+	if !strings.EqualFold(scheme, "Basic") {
+		return "", errors.New("unsupported proxy authorization scheme")
+	}
+
+	decoded, err := base64.StdEncoding.DecodeString(value)
+	if err != nil {
+		return "", err
+	}
+	username, _, ok := strings.Cut(string(decoded), ":")
+	if !ok || username == "" {
+		return "", errors.New("invalid proxy authorization credentials")
+	}
+	return username, nil
 }
 
 func (s *Server) handleConnect(w http.ResponseWriter, r *http.Request, compiled *policy.Compiled) {
