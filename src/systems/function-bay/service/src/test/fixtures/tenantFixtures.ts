@@ -15,7 +15,8 @@ export const TenantFixtures = (db: PrismaClient) => {
         id,
         identifier,
         name: overrides.name ?? `Test Tenant ${identifier}`,
-        isServiceDefault: overrides.isServiceDefault ?? false
+        isServiceDefault: overrides.isServiceDefault ?? false,
+        hasAutomaticEnclaveOverride: overrides.hasAutomaticEnclaveOverride ?? false
       } as Tenant,
       {
         persist: value => db.tenant.create({ data: value })

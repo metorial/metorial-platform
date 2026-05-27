@@ -103,6 +103,13 @@ export let functionController = app.controller({
             allowedIps: v.optional(v.array(v.string())),
             allowedHosts: v.optional(v.array(v.string()))
           })
+        ),
+
+        enclave: v.optional(
+          v.object({
+            tenantId: v.string(),
+            identifier: v.string()
+          })
         )
       })
     )
@@ -112,7 +119,8 @@ export let functionController = app.controller({
           functionId: ctx.input.functionId,
           tenantId: ctx.input.tenantId,
           payload: ctx.input.payload,
-          egressPolicy: ctx.input.egressPolicy
+          egressPolicy: ctx.input.egressPolicy,
+          enclave: ctx.input.enclave
         })
     )
 });

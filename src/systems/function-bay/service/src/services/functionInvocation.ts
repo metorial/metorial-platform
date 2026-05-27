@@ -7,13 +7,14 @@ import {
   presentInvokeResponse,
   type FunctionInvokeResponse
 } from '../lib/presentInvokeResponse';
+import { getProvider } from '../providers';
+import { enclaveService } from './enclave';
 
 export type { FunctionInvokeResponse };
-import { getProvider } from '../providers';
 
 let getFunctionData = createLocallyCachedFunction({
   getHash: (i: { tenantId: string; functionId: string; versionId?: string }) =>
-    `${i.tenantId}:${i.functionId}`,
+    `${i.tenantId}:${i.functionId}:${i.versionId ?? 'current'}`,
   provider: async i =>
     await db.function.findFirst({
       where: {
@@ -45,10 +46,15 @@ class functionInvocationServiceImpl {
       allowedIps?: string[];
       allowedHosts?: string[];
     };
+    enclave?: {
+      tenantId: string;
+      identifier: string;
+    };
   }): Promise<FunctionInvokeResponse> {
     let func = await getFunctionData({
       tenantId: d.tenantId,
-      functionId: d.functionId
+      functionId: d.functionId,
+      versionId: d.versionId
     });
     if (!func) throw new ServiceError(notFoundError('function'));
 
@@ -67,21 +73,31 @@ class functionInvocationServiceImpl {
       );
     }
 
-    let provider = getProvider((version as any).runtime.providerOid);
+    let invocationTarget = d.enclave
+      ? await enclaveService.resolveInvocationOverride({
+          enclave: d.enclave,
+          function: func,
+          sourceVersion: version
+        })
+      : {
+          function: func,
+          version
+        };
 
+    let provider = getProvider((invocationTarget.version as any).runtime.providerOid);
     let id = await ID.generateId('functionInvocation');
 
     let res = await provider.invokeFunction({
-      function: func,
-      functionVersion: version,
-      providerData: version.providerData,
+      function: invocationTarget.function,
+      functionVersion: invocationTarget.version as any,
+      providerData: (invocationTarget.version as any).providerData,
       payload: d.payload,
       egressPolicy: d.egressPolicy
     });
 
     return presentInvokeResponse({
       id,
-      functionVersionId: version.id,
+      functionVersionId: invocationTarget.version.id,
       res
     });
   }

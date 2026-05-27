@@ -19,7 +19,8 @@ export let tenantController = app.controller({
       v.object({
         name: v.string(),
         identifier: v.string(),
-        isServiceDefault: v.optional(v.boolean())
+        isServiceDefault: v.optional(v.boolean()),
+        hasAutomaticEnclaveOverride: v.optional(v.boolean())
       })
     )
     .do(async ctx => {
@@ -27,7 +28,8 @@ export let tenantController = app.controller({
         input: {
           name: ctx.input.name,
           identifier: ctx.input.identifier,
-          isServiceDefault: ctx.input.isServiceDefault
+          isServiceDefault: ctx.input.isServiceDefault,
+          hasAutomaticEnclaveOverride: ctx.input.hasAutomaticEnclaveOverride
         }
       });
       return tenantPresenter(tenant);

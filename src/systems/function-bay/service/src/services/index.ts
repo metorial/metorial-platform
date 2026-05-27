@@ -1,3 +1,4 @@
+export * from './enclave';
 export * from './function';
 export * from './functionDeployment';
 export * from './functionInvocation';

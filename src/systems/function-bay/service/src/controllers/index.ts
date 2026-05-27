@@ -1,6 +1,7 @@
 import { apiMux } from '@lowerdeck/api-mux';
 import { createServer, rpcMux, type InferClient } from '@lowerdeck/rpc-server';
 import { app } from './_app';
+import { enclaveController } from './enclave';
 import { functionController } from './function';
 import { functionDeploymentController } from './functionDeployment';
 import { functionVersionController } from './functionVersion';
@@ -12,6 +13,7 @@ export let rootController = app.controller({
   runtime: runtimeController,
   tenant: tenantController,
   provider: providerController,
+  enclave: enclaveController,
   function: functionController,
   functionVersion: functionVersionController,
   functionDeployment: functionDeploymentController

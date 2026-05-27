@@ -42,22 +42,23 @@ class tenantServiceImpl {
       name: string;
       identifier: string;
       isServiceDefault?: boolean;
+      hasAutomaticEnclaveOverride?: boolean;
     };
   }) {
-    let isServiceDefault = d.input.isServiceDefault ?? false;
-
     let tenant = await db.tenant.upsert({
       where: { identifier: d.input.identifier },
       update: {
         name: d.input.name,
-        isServiceDefault
+        isServiceDefault: d.input.isServiceDefault,
+        hasAutomaticEnclaveOverride: d.input.hasAutomaticEnclaveOverride
       },
       create: {
         oid: snowflake.nextId(),
         id: await ID.generateId('tenant'),
         name: d.input.name,
         identifier: d.input.identifier,
-        isServiceDefault
+        isServiceDefault: d.input.isServiceDefault,
+        hasAutomaticEnclaveOverride: d.input.hasAutomaticEnclaveOverride
       },
       include
     });

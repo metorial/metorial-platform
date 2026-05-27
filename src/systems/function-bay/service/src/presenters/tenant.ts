@@ -7,6 +7,7 @@ export let tenantPresenter = (tenant: Tenant) => ({
   identifier: tenant.identifier,
   name: tenant.name,
   isServiceDefault: tenant.isServiceDefault,
+  hasAutomaticEnclaveOverride: tenant.hasAutomaticEnclaveOverride,
 
   createdAt: tenant.createdAt
 });

@@ -51,6 +51,19 @@ describe('tenant:upsert E2E', () => {
       isServiceDefault: true
     });
   });
+
+  it('enables automatic enclave overrides', async () => {
+    const result = await functionBayClient.tenant.upsert({
+      identifier: 'auto-enclave-tenant',
+      name: 'Auto Enclave Tenant',
+      hasAutomaticEnclaveOverride: true
+    });
+
+    expect(result).toMatchObject({
+      identifier: 'auto-enclave-tenant',
+      hasAutomaticEnclaveOverride: true
+    });
+  });
 });
 
 describe('tenant:get E2E', () => {
