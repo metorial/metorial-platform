@@ -21,6 +21,39 @@ let importKeyInputSchema = v.object({
   region: v.optional(v.string())
 });
 
+let kmsKeyArnRegex = /^arn:([^:]+):kms:([^:]+):(\d{12}):key\/(.+)$/;
+let iamArnRegex = /^arn:([^:]+):iam::(\d{12}):.+$/;
+
+let parseKmsKeyArn = (keyArn: string) => {
+  let match = keyArn.match(kmsKeyArnRegex);
+  if (!match) {
+    throw new KeyProviderAdapterError(
+      'kms_key_arn_required',
+      'KMS key must be provided as a full key ARN'
+    );
+  }
+
+  return {
+    partition: match[1]!,
+    region: match[2]!,
+    accountId: match[3]!,
+    keyId: match[4]!
+  };
+};
+
+let getServiceAccountId = () => {
+  let roleArn = env.kms.KMS_EXTERNAL_KEY_ROLE_ARN;
+  let accountId = roleArn?.match(iamArnRegex)?.[2];
+  if (!accountId) {
+    throw new KeyProviderAdapterError(
+      'kms_service_account_missing',
+      'Metorial KMS role ARN is missing'
+    );
+  }
+
+  return accountId;
+};
+
 let getKmsClient = (region?: string) =>
   new KMSClient({
     region: region ?? env.kms.KMS_AWS_REGION,
@@ -85,11 +118,18 @@ export class AwsKmsKeyProviderAdapter extends KeyProviderAdapter {
       throw new KeyProviderAdapterError('invalid_key_input', 'Invalid AWS KMS key input');
 
     let input = parsed.value;
-    let region = input.region ?? env.kms.KMS_AWS_REGION;
+    let keyArn = parseKmsKeyArn(input.keyId);
+    let serviceAccountId = getServiceAccountId();
+    let region = keyArn.region;
+
     if (!input.keyId)
       throw new KeyProviderAdapterError('kms_key_missing', 'KMS key is missing');
-    if (!region)
-      throw new KeyProviderAdapterError('kms_region_missing', 'KMS region is missing');
+    if (keyArn.accountId === serviceAccountId) {
+      throw new KeyProviderAdapterError(
+        'kms_key_account_invalid',
+        'KMS key must be owned by a customer AWS account'
+      );
+    }
 
     try {
       return {
@@ -102,8 +142,6 @@ export class AwsKmsKeyProviderAdapter extends KeyProviderAdapter {
   }
 
   async getSetupInfo(input: KeyProviderSetupInfoInput) {
-    let region = input.region ?? env.kms.KMS_AWS_REGION ?? '<aws-region>';
-    let keyId = input.keyId ?? '<kms-key-arn-or-alias>';
     let roleArn = input.roleArn ?? env.kms.KMS_EXTERNAL_KEY_ROLE_ARN ?? '<metorial-role-arn>';
     let policyStatement = {
       Sid: 'AllowMetorialUseOfConsumerKey',
@@ -119,7 +157,7 @@ export class AwsKmsKeyProviderAdapter extends KeyProviderAdapter {
     let steps = [
       {
         title: 'Create or choose a symmetric KMS key',
-        description: `Choose a symmetric ENCRYPT_DECRYPT KMS key in ${region}. It can be in your AWS account or any account that can grant Metorial access.`
+        description: `Choose a symmetric ENCRYPT_DECRYPT KMS key.`
       },
       {
         title: 'Grant the Metorial role access to the key',
@@ -140,14 +178,9 @@ ${policyJson}
           {
             type: 'text' as const,
             key: 'keyId',
-            label: 'KMS key ARN, key ID, or alias',
-            description: 'The customer-managed KMS key identifier that Metorial should use.'
-          },
-          {
-            type: 'text' as const,
-            key: 'region',
-            label: 'AWS region',
-            description: 'The AWS region where the KMS key exists.'
+            label: 'KMS Key ARN',
+            description:
+              'The full ARN of the customer-managed KMS key that Metorial should use.'
           }
         ]
       }
