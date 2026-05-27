@@ -100,6 +100,8 @@ declare global {
 
     type ServerDeploymentStepLogs = [number, string][];
 
+    type FunctionServerInvocationLogs = { timestamp: number; message: string }[];
+
     type ServerConfigSchema = Record<string, any> | null;
 
     type FunctionServerConfigSchema = Record<string, any> | null;

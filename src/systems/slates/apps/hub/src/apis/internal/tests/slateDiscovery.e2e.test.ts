@@ -164,27 +164,26 @@ describe('slateDiscovery:getToolCallStats E2E', () => {
   });
 
   it('returns aggregated tool call stats', async () => {
-    const slate = await f.slate.complete();
-    const action = await f.slateAction.default({ slateOid: slate.oid });
-    const discovery = await f.slateVersionDiscovery.default({
-      slateVersionOid: slate.currentVersion.oid,
-      specificationOid: slate.currentVersion.specification.oid
+    let setup = await f.slateSessionToolCall.complete({
+      status: SlateSessionToolCallStatus.succeeded
+    });
+
+    let discovery = await f.slateVersionDiscovery.default({
+      slateVersionOid: setup.version.oid,
+      specificationOid: setup.version.specification.oid
     });
 
     await f.slateSessionToolCall.default({
-      slateVersionOid: slate.currentVersion.oid,
-      actionOid: action.oid,
-      status: SlateSessionToolCallStatus.succeeded
-    });
-    await f.slateSessionToolCall.default({
-      slateVersionOid: slate.currentVersion.oid,
-      actionOid: action.oid,
+      sessionOid: setup.session.oid,
+      actionOid: setup.action.oid,
+      invocationOid: setup.invocation.oid,
+      versionOid: setup.version.oid,
       status: SlateSessionToolCallStatus.failed
     });
 
-    const result = await slatesHubClient.slateDiscovery.getToolCallStats({
-      slateId: slate.id,
-      slateVersionId: slate.currentVersion.id,
+    let result = await slatesHubClient.slateDiscovery.getToolCallStats({
+      slateId: setup.slate.id,
+      slateVersionId: setup.version.id,
       slateDiscoveryId: discovery.id
     });
 
@@ -193,7 +192,7 @@ describe('slateDiscovery:getToolCallStats E2E', () => {
       succeeded: 1,
       failed: 1,
       byTool: {
-        [action.key]: { total: 2, succeeded: 1, failed: 1 }
+        [setup.action.key]: { total: 2, succeeded: 1, failed: 1 }
       }
     });
   });

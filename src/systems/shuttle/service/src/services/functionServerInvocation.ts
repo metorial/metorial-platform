@@ -8,12 +8,39 @@ import type {
 } from '../../prisma/generated/client';
 import { db } from '../db';
 import { snowflake } from '../id';
+import type { FunctionCallLog } from '../lib/function/call';
 import { serverConnectionService } from './serverConnection';
 
 let include = {
   connection: true,
   functionServer: true
 };
+
+let parseStoredLogs = (logs: unknown): FunctionCallLog[] => {
+  if (!Array.isArray(logs)) return [];
+
+  return logs.flatMap(entry => {
+    if (!entry || typeof entry !== 'object') return [];
+    if (!('timestamp' in entry) || !('message' in entry)) return [];
+
+    let timestamp = (entry as { timestamp: unknown }).timestamp;
+    let message = (entry as { message: unknown }).message;
+    if (typeof timestamp !== 'number' || typeof message !== 'string') return [];
+
+    return [{ timestamp, message }];
+  });
+};
+
+let presentInvocationLogs = (logs: FunctionCallLog[], functionInvocationId: string) => ({
+  object: 'shuttle#function_server.invocation.logs' as const,
+  functionInvocationId,
+  logs: logs.map(log => ({
+    object: 'shuttle#function_server.invocation.log' as const,
+    outputType: 'stdout' as const,
+    timestamp: log.timestamp,
+    message: log.message
+  }))
+});
 
 class functionServerInvocationServiceImpl {
   async ensureFunctionServerInvocation(d: {
@@ -22,6 +49,7 @@ class functionServerInvocationServiceImpl {
     functionInvocationId: string | null | undefined;
     isError: boolean;
     connection?: ServerConnection | null;
+    logs?: FunctionCallLog[];
   }) {
     if (!d.functionInvocationId) return null;
 
@@ -40,7 +68,8 @@ class functionServerInvocationServiceImpl {
         functionBayInvocationId: d.functionInvocationId,
         connectionOid: d.connection?.oid ?? null,
         functionServerOid: d.functionServer.oid,
-        tenantOid: d.tenant.oid
+        tenantOid: d.tenant.oid,
+        logs: d.logs?.length ? d.logs : undefined
       },
       include
     });
@@ -81,38 +110,50 @@ class functionServerInvocationServiceImpl {
       connection: ServerConnection | null;
     };
   }) {
-    if (!d.functionServerInvocation.connection) {
-      return {
-        object: 'shuttle#function_server.invocation.logs' as const,
-        functionInvocationId: d.functionServerInvocation.functionBayInvocationId,
-        logs: []
-      };
+    let storedLogs = parseStoredLogs(d.functionServerInvocation.logs);
+    if (storedLogs.length > 0) {
+      return presentInvocationLogs(
+        storedLogs,
+        d.functionServerInvocation.functionBayInvocationId
+      );
     }
+
+    if (!d.functionServerInvocation.connection) {
+      return presentInvocationLogs([], d.functionServerInvocation.functionBayInvocationId);
+    }
+
+    let nextInvocation = d.functionServerInvocation.connectionOid
+      ? await db.functionServerInvocation.findFirst({
+          where: {
+            connectionOid: d.functionServerInvocation.connectionOid,
+            createdAt: { gt: d.functionServerInvocation.createdAt }
+          },
+          orderBy: { createdAt: 'asc' }
+        })
+      : null;
+
+    let invocationCreatedAt = d.functionServerInvocation.createdAt.getTime();
+    let upperBoundMs = nextInvocation?.createdAt.getTime() ?? Number.POSITIVE_INFINITY;
 
     let connectionLogs = await serverConnectionService.getLogs({
       serverConnection: d.functionServerInvocation.connection
     });
 
-    let invocationCreatedAt = d.functionServerInvocation.createdAt.getTime();
-
     let logs = connectionLogs
-      .filter(
-        log =>
+      .filter(log => {
+        let ts = log.timestamp.getTime();
+        return (
           log.outputType === 'stdout' &&
-          log.timestamp.getTime() >= invocationCreatedAt - 1000
-      )
+          ts >= invocationCreatedAt - 1000 &&
+          ts < upperBoundMs
+        );
+      })
       .map(log => ({
-        object: 'shuttle#function_server.invocation.log' as const,
-        outputType: 'stdout' as const,
         timestamp: log.timestamp.getTime(),
         message: log.message
       }));
 
-    return {
-      object: 'shuttle#function_server.invocation.logs' as const,
-      functionInvocationId: d.functionServerInvocation.functionBayInvocationId,
-      logs
-    };
+    return presentInvocationLogs(logs, d.functionServerInvocation.functionBayInvocationId);
   }
 }
 

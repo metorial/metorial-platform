@@ -144,7 +144,8 @@ export class FunctionConnection implements McpConnectionBackendAdapter {
               functionBayInvocationId: res.functionCallId,
               connectionOid: this.connection.oid,
               functionServerOid: this.functionServer.oid,
-              tenantOid: this.tenant.oid
+              tenantOid: this.tenant.oid,
+              logs: res.logs.length > 0 ? res.logs : undefined
             }
           });
 

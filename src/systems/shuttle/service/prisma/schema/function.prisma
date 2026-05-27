@@ -90,7 +90,11 @@ model FunctionServerInvocation {
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
 
+  /// [FunctionServerInvocationLogs]
+  logs Json?
+
   createdAt DateTime @default(now())
 
   @@index([tenantOid, createdAt])
+  @@index([connectionOid, createdAt])
 }
