@@ -47,8 +47,14 @@ export interface ProviderCloneFunctionVersionParams {
 }
 
 export interface FunctionInvocationParams {
+  tenantId: string;
   functionVersion: FunctionVersion;
   function: Function;
+  sourceFunction: Function;
+  enclave?: {
+    id: string;
+    identifier: string;
+  };
   payload: Record<string, any>;
   providerData: any;
   functionBundle?: FunctionBundle | null;

@@ -81,15 +81,24 @@ class functionInvocationServiceImpl {
         })
       : {
           function: func,
-          version
+          version,
+          enclave: undefined
         };
 
     let provider = getProvider((invocationTarget.version as any).runtime.providerOid);
     let id = await ID.generateId('functionInvocation');
 
     let res = await provider.invokeFunction({
+      tenantId: d.tenantId,
       function: invocationTarget.function,
-      functionVersion: invocationTarget.version as any,
+      sourceFunction: func,
+      functionVersion: invocationTarget.version,
+      enclave: invocationTarget.enclave
+        ? {
+            id: invocationTarget.enclave.id,
+            identifier: invocationTarget.enclave.identifier
+          }
+        : undefined,
       providerData: (invocationTarget.version as any).providerData,
       payload: d.payload,
       egressPolicy: d.egressPolicy

@@ -38,8 +38,14 @@ let parseReport = (report: string) => {
 };
 
 export let invokeFunction = async (d: {
+  tenantId: string;
   functionVersion: FunctionVersion;
   function: Function;
+  sourceFunction: Function;
+  enclave?: {
+    id: string;
+    identifier: string;
+  };
   payload: Record<string, any>;
   egressPolicy?: {
     allowedIps?: string[];
@@ -64,8 +70,11 @@ export let invokeFunction = async (d: {
 
   try {
     let deflectorToken = await createDeflectorToken({
-      functionId: d.function.id,
+      tenantId: d.tenantId,
+      functionId: d.sourceFunction.id,
+      effectiveFunctionId: d.function.id !== d.sourceFunction.id ? d.function.id : undefined,
       functionVersionId: d.functionVersion.id,
+      enclave: d.enclave,
       egressPolicy: d.egressPolicy
     });
 

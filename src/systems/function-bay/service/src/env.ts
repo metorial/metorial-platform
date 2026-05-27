@@ -26,7 +26,7 @@ export let env = createValidatedEnv({
 
   deflector: {
     DEFLECTOR_PROXY_URL: v.optional(v.string()),
-    DEFLECTOR_JWT_KMS_KEY_ID: v.optional(v.string()),
+    DEFLECTOR_JWT_SECRET: v.optional(v.string()),
     DEFLECTOR_JWT_AUDIENCE: v.optional(v.string())
   },
 

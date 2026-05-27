@@ -59,8 +59,10 @@ exports.handler = async event => {
     mocks.encryption.decrypt.mockResolvedValue(JSON.stringify({ TEST_FLAG: 'enabled' }));
 
     let result = await invokeFunction({
+      tenantId: 'tenant_123',
       functionVersion: { id: 'functionVersion_123' } as any,
       function: { id: 'function_123' } as any,
+      sourceFunction: { id: 'function_123' } as any,
       payload: { value: 'hello' },
       providerData: {
         bucket: 'bundles',
@@ -80,7 +82,9 @@ exports.handler = async event => {
       billedTimeMs: expect.any(Number)
     });
     expect(result.logs).toEqual(
-      expect.arrayContaining([[expect.any(Number), expect.stringContaining('local invocation start')]])
+      expect.arrayContaining([
+        [expect.any(Number), expect.stringContaining('local invocation start')]
+      ])
     );
   });
 });

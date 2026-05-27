@@ -1,6 +1,6 @@
-import { Service } from '@lowerdeck/service';
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
+import { Service } from '@lowerdeck/service';
 import type { Function, FunctionVersion } from '../../prisma/generated/client';
 import { db } from '../db';
 import { ID, snowflake } from '../id';
@@ -126,6 +126,7 @@ class enclaveServiceImpl {
 
     if (override) {
       return {
+        enclave,
         function: override.overrideFunction,
         version: override.overrideFunctionVersion
       };
@@ -140,6 +141,7 @@ class enclaveServiceImpl {
     }
 
     return {
+      enclave,
       function: d.function,
       version: d.sourceVersion
     };
