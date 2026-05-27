@@ -25,7 +25,7 @@ describe('key provider defaults', () => {
         keyProvider =>
           keyProvider.id === tenant.defaultKeyProviderId &&
           keyProvider.owner === 'system' &&
-          !keyProvider.isMetorialManaged
+          keyProvider.isMetorialManaged
       )
     ).toBe(true);
 
