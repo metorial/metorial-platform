@@ -175,10 +175,11 @@ prog
   .option('--verbose, -v', 'Verbose output')
   .action(async (opts: Record<string, unknown>) => {
     await runCommand(async () => {
+      let filters = collectFilters(process.argv);
       await runWarmCacheTargets({
         entrypoint: typeof opts.entrypoint === 'string' ? opts.entrypoint : undefined,
-        all: opts.all !== false,
-        filters: collectFilters(process.argv),
+        all: filters.length === 0 ? opts.all !== false : false,
+        filters,
         includeUnit: readBooleanOption(opts, ['include-unit', 'includeUnit']),
         parallel: Number(opts.parallel ?? 3),
         verbose: !!opts.verbose

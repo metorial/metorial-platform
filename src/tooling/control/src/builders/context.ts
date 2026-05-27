@@ -126,12 +126,37 @@ let materializePrebuiltArtifacts = (opts: {
 }) => {
   let prebuiltRoot = join(opts.contextRoot, '_prebuilt');
   mkdirSync(prebuiltRoot, { recursive: true });
+  let copied = new Set<string>();
+  let copyRelativePath = (relativePath: string) => {
+    if (copied.has(relativePath)) return;
+    let source = resolve(opts.sourceRoot, relativePath);
+    if (!existsSync(source)) return;
+    copyPath(source, join(prebuiltRoot, relativePath));
+    copied.add(relativePath);
+  };
+
+  for (let layer of opts.plan.sourceLayers) {
+    for (let inputPath of layer.inputPaths) {
+      if (!existsSync(inputPath.absolutePath)) continue;
+      if (!statSync(inputPath.absolutePath).isDirectory()) continue;
+
+      for (let output of [
+        'dist',
+        'dist-worker',
+        'frontend/dist',
+        'generated',
+        'prisma/generated',
+        'src/generated'
+      ]) {
+        copyRelativePath(join(inputPath.relativeToContext, output).replace(/\\/g, '/'));
+      }
+    }
+  }
 
   for (let artifact of opts.plan.artifacts) {
     if (artifact.from.startsWith('/') && !artifact.from.startsWith('//')) continue;
 
-    let source = resolve(opts.sourceRoot, artifact.fromRelativeToContext);
-    if (!existsSync(source)) {
+    if (!existsSync(resolve(opts.sourceRoot, artifact.fromRelativeToContext))) {
       throw new ControlError({
         code: 'prebuilt_artifact_missing',
         message: `Missing prebuilt artifact for ${opts.plan.service.name}: ${artifact.fromRelativeToContext}`,
@@ -139,7 +164,7 @@ let materializePrebuiltArtifacts = (opts: {
       });
     }
 
-    copyPath(source, join(prebuiltRoot, artifact.fromRelativeToContext));
+    copyRelativePath(artifact.fromRelativeToContext);
   }
 };
 

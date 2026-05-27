@@ -173,6 +173,16 @@ let preparePrebuiltBuildArtifacts = async (opts: {
     let plan = createBuildPlan(service, opts.registry);
     if (!plan?.project || !plan.target) continue;
 
+    for (let layer of plan.sourceLayers) {
+      for (let command of layer.commands) {
+        commands.set(`${plan.contextRoot}:${command}`, {
+          cwd: plan.contextRoot,
+          command,
+          service: service.name
+        });
+      }
+    }
+
     for (let automation of plan.automations) {
       commands.set(`${plan.contextRoot}:${automation.command}`, {
         cwd: plan.contextRoot,

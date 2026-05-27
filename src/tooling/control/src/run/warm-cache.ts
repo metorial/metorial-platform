@@ -40,11 +40,12 @@ let addProject = (
 export let runWarmCacheTargets = async (opts: WarmCacheOptions) => {
   let cwd = resolveControlCwd();
   let registry = getRegistry({ cwd, entrypoint: opts.entrypoint });
+  let filters = opts.filters?.length ? opts.filters : undefined;
   let services = opts.services ?? resolveBuildTargets({
     registry,
     cwd,
-    all: opts.all ?? true,
-    filters: opts.filters
+    all: filters ? false : (opts.all ?? true),
+    filters
   });
   let logger = createLogger(opts);
   let groups = new Map<string, TargetGroup>();
