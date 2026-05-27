@@ -58,10 +58,7 @@ export let keyProviderController = app.controller({
     .do(async ctx => {
       let paginator = await keyProviderService.listKeyProviders({ tenant: ctx.tenant });
       let list = await paginator.run(ctx.input);
-      return {
-        ...list,
-        items: await Promise.all(list.items.map(keyProviderPresenter))
-      };
+      return Paginator.presentLight(list, keyProviderPresenter);
     }),
 
   get: keyProviderApp
