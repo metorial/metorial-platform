@@ -12,6 +12,7 @@ import type {
   Runtime
 } from '../../prisma/generated/client';
 import type { ForgeWorkflowStep } from '../forge';
+import type { FunctionInvocationResult } from '../lib/presentInvokeResponse';
 
 export interface ProviderRuntimeResult {
   runtime: Runtime;
@@ -56,25 +57,6 @@ export interface FunctionInvocationParams {
     allowedHosts?: string[];
   };
 }
-
-export type FunctionInvocationResult = (
-  | {
-      type: 'success';
-      result: any;
-    }
-  | {
-      type: 'error';
-      error: {
-        code: any;
-        message: any;
-      };
-      internalError?: string;
-    }
-) & {
-  logs: [number, string][];
-  computeTimeMs: number;
-  billedTimeMs: number;
-};
 
 export abstract class ProviderAdapter {
   abstract readonly provider: Provider;

@@ -1,4 +1,21 @@
-import type { FunctionInvocationResult } from '../providers/_lib';
+export type FunctionInvocationResult = (
+  | {
+      type: 'success';
+      result: any;
+    }
+  | {
+      type: 'error';
+      error: {
+        code: any;
+        message: any;
+      };
+      internalError?: string;
+    }
+) & {
+  logs: [number, string][];
+  computeTimeMs: number;
+  billedTimeMs: number;
+};
 
 export let formatInvocationLogs = (logs: [number, string][]) =>
   logs.map(([timestamp, message]) => ({ timestamp, message }));

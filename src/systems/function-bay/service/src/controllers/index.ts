@@ -25,4 +25,4 @@ export let functionBayApi = apiMux([
 ]);
 
 export type FunctionBayClient = InferClient<typeof rootController>;
-export type { FunctionInvokeResponse } from '../services/functionInvocation';
+export type { FunctionInvokeResponse } from '../lib/presentInvokeResponse';

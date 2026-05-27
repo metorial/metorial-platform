@@ -133,7 +133,7 @@ export class AwsKmsKeyProviderAdapter extends KeyProviderAdapter {
 
     try {
       return {
-        name: `AWS KMS KeyProvider (${input.keyId})`,
+        name: `AWS KMS KeyProvider (${keyArn.keyId})`,
         keyInfo: await this.describeKeyId({ keyId: input.keyId, region })
       };
     } catch (err) {

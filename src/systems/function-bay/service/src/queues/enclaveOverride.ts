@@ -26,8 +26,11 @@ export let enqueueEnclaveOverrideClone = async (data: {
   });
 };
 
-export let enclaveOverrideCloneQueueProcessor = enclaveOverrideCloneQueue.process(
-  async (data: { enclaveId: string; functionId: string; sourceFunctionVersionId: string }) => {
+export let processEnclaveOverrideClone = async (data: {
+  enclaveId: string;
+  functionId: string;
+  sourceFunctionVersionId: string;
+}) => {
     let existingOverride = await db.enclaveFunctionOverride.findFirst({
       where: {
         enclave: { id: data.enclaveId },
@@ -164,14 +167,6 @@ export let enclaveOverrideCloneQueueProcessor = enclaveOverrideCloneQueue.proces
       data: { currentVersionOid: cloneVersion.oid }
     });
 
-    await db.enclaveFunction.create({
-      data: {
-        oid: snowflake.nextId(),
-        enclaveOid: enclave.oid,
-        functionOid: cloneFunction.oid
-      }
-    });
-
     await db.enclaveFunctionOverride.upsert({
       where: {
         enclaveOid_sourceFunctionOid_sourceFunctionVersionOid: {
@@ -190,5 +185,8 @@ export let enclaveOverrideCloneQueueProcessor = enclaveOverrideCloneQueue.proces
         overrideFunctionVersionOid: cloneVersion.oid
       }
     });
-  }
+  };
+
+export let enclaveOverrideCloneQueueProcessor = enclaveOverrideCloneQueue.process(
+  processEnclaveOverrideClone
 );
