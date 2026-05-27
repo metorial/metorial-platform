@@ -259,10 +259,10 @@ let buildNodeProxyWrapper = async (originalHandler: string) =>
   nodeProxyWrapper(originalHandler, await getNodeProxyWrapperBootstrap());
 
 let prepareZip = async (d: {
-  zipFileUrl: string;
+  zipFile: Buffer;
   runtimeConfig: FunctionBayRuntimeConfig;
 }) => {
-  let zipBytes = Buffer.from(await (await fetch(d.zipFileUrl)).arrayBuffer());
+  let zipBytes = d.zipFile;
 
   if (d.runtimeConfig.runtime.identifier !== 'nodejs' || !getDeflectorProxyUrl()) {
     return {
@@ -280,20 +280,20 @@ let prepareZip = async (d: {
   };
 };
 
-export let deployFunction = async (d: {
+let deployFunctionZip = async (d: {
   functionVersion: { id: string };
   function: Function;
-  functionDeployment: FunctionDeployment;
   runtimeConfig: FunctionBayRuntimeConfig;
   runtime: Runtime;
   env: Record<string, string>;
-  zipFileUrl: string;
+  zipFile: Buffer;
+  config: PrismaJson.FunctionConfiguration;
 }) => {
   if (!lambdaClient) throw new Error('Lambda client not initialized');
 
   let role = await ensureLambdaExecutionRole();
   let zip = await prepareZip({
-    zipFileUrl: d.zipFileUrl,
+    zipFile: d.zipFile,
     runtimeConfig: d.runtimeConfig
   });
 
@@ -307,8 +307,8 @@ export let deployFunction = async (d: {
       Code: {
         ZipFile: zip.zipBytes
       },
-      Timeout: d.functionDeployment.configuration.timeoutSeconds,
-      MemorySize: d.functionDeployment.configuration.memorySizeMb,
+      Timeout: d.config.timeoutSeconds,
+      MemorySize: d.config.memorySizeMb,
       VpcConfig: lambdaNetworkConfig
         ? {
             SubnetIds: lambdaNetworkConfig.subnetIds,
@@ -361,3 +361,41 @@ export let deployFunction = async (d: {
     }
   };
 };
+
+export let deployFunction = async (d: {
+  functionVersion: { id: string };
+  function: Function;
+  functionDeployment: FunctionDeployment;
+  runtimeConfig: FunctionBayRuntimeConfig;
+  runtime: Runtime;
+  env: Record<string, string>;
+  zipFileUrl: string;
+}) =>
+  await deployFunctionZip({
+    functionVersion: d.functionVersion,
+    function: d.function,
+    runtimeConfig: d.runtimeConfig,
+    runtime: d.runtime,
+    env: d.env,
+    zipFile: Buffer.from(await (await fetch(d.zipFileUrl)).arrayBuffer()),
+    config: d.functionDeployment.configuration
+  });
+
+export let cloneFunctionVersion = async (d: {
+  functionVersion: { id: string };
+  sourceFunctionVersion: { configuration: PrismaJson.FunctionConfiguration };
+  function: Function;
+  runtimeConfig: FunctionBayRuntimeConfig;
+  runtime: Runtime;
+  env: Record<string, string>;
+  zipFile: Buffer;
+}) =>
+  await deployFunctionZip({
+    functionVersion: d.functionVersion,
+    function: d.function,
+    runtimeConfig: d.runtimeConfig,
+    runtime: d.runtime,
+    env: d.env,
+    zipFile: d.zipFile,
+    config: d.sourceFunctionVersion.configuration
+  });

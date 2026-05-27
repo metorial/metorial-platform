@@ -35,6 +35,16 @@ export interface ProviderDeployFunctionResult {
   providerData: Record<string, any>;
 }
 
+export interface ProviderCloneFunctionVersionParams {
+  functionVersion: { id: string };
+  sourceFunctionVersion: FunctionVersion;
+  function: Function;
+  runtimeConfig: FunctionBayRuntimeConfig;
+  runtime: Runtime;
+  env: Record<string, string>;
+  zipFile: Buffer;
+}
+
 export interface FunctionInvocationParams {
   functionVersion: FunctionVersion;
   function: Function;
@@ -74,6 +84,9 @@ export abstract class ProviderAdapter {
   abstract deployFunction(
     params: ProviderDeployFunctionParams
   ): Promise<ProviderDeployFunctionResult>;
+  abstract cloneFunctionVersion(
+    params: ProviderCloneFunctionVersionParams
+  ): Promise<ProviderDeployFunctionResult>;
   abstract invokeFunction(d: FunctionInvocationParams): Promise<FunctionInvocationResult>;
 
   get identifier() {
@@ -89,6 +102,9 @@ export class ProviderImpl extends ProviderAdapter {
   #deployFunction: (
     params: ProviderDeployFunctionParams
   ) => Promise<ProviderDeployFunctionResult>;
+  #cloneFunctionVersion: (
+    params: ProviderCloneFunctionVersionParams
+  ) => Promise<ProviderDeployFunctionResult>;
   #invokeFunction: (d: FunctionInvocationParams) => Promise<FunctionInvocationResult>;
 
   constructor(d: {
@@ -98,6 +114,9 @@ export class ProviderImpl extends ProviderAdapter {
     deployFunction: (
       params: ProviderDeployFunctionParams
     ) => Promise<ProviderDeployFunctionResult>;
+    cloneFunctionVersion: (
+      params: ProviderCloneFunctionVersionParams
+    ) => Promise<ProviderDeployFunctionResult>;
     invokeFunction: (d: FunctionInvocationParams) => Promise<FunctionInvocationResult>;
   }) {
     super();
@@ -105,6 +124,7 @@ export class ProviderImpl extends ProviderAdapter {
     this.workflow = d.workflow;
     this.#getRuntime = d.getRuntime;
     this.#deployFunction = d.deployFunction;
+    this.#cloneFunctionVersion = d.cloneFunctionVersion;
     this.#invokeFunction = d.invokeFunction;
   }
 
@@ -114,6 +134,10 @@ export class ProviderImpl extends ProviderAdapter {
 
   async deployFunction(params: ProviderDeployFunctionParams) {
     return await this.#deployFunction(params);
+  }
+
+  async cloneFunctionVersion(params: ProviderCloneFunctionVersionParams) {
+    return await this.#cloneFunctionVersion(params);
   }
 
   async invokeFunction(d: FunctionInvocationParams) {
