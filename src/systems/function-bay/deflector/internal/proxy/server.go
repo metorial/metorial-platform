@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/metorial/function-bay-deflector/internal/auth"
+	"github.com/metorial/function-bay-deflector/internal/observer"
 	"github.com/metorial/function-bay-deflector/internal/policy"
 )
 
@@ -20,6 +21,12 @@ type Server struct {
 	Logger   *slog.Logger
 	Dialer   *net.Dialer
 	Verifier *auth.Verifier
+	Recorder *observer.Recorder
+}
+
+type requestPolicy struct {
+	Claims   policy.Claims
+	Compiled *policy.Compiled
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -29,21 +36,21 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	compiled, err := s.policyFromRequest(r)
+	requestPolicy, err := s.policyFromRequest(r)
 	if err != nil {
 		http.Error(w, "proxy authentication failed", http.StatusProxyAuthRequired)
 		return
 	}
 
 	if r.Method == http.MethodConnect {
-		s.handleConnect(w, r, compiled)
+		s.handleConnect(w, r, requestPolicy)
 		return
 	}
 
-	s.handleHTTP(w, r, compiled)
+	s.handleHTTP(w, r, requestPolicy)
 }
 
-func (s *Server) policyFromRequest(r *http.Request) (*policy.Compiled, error) {
+func (s *Server) policyFromRequest(r *http.Request) (*requestPolicy, error) {
 	if s.Verifier == nil {
 		return nil, errors.New("jwt verifier is required")
 	}
@@ -57,7 +64,11 @@ func (s *Server) policyFromRequest(r *http.Request) (*policy.Compiled, error) {
 	if err != nil {
 		return nil, err
 	}
-	return policy.Compile(claims)
+	compiled, err := policy.Compile(claims)
+	if err != nil {
+		return nil, err
+	}
+	return &requestPolicy{Claims: claims, Compiled: compiled}, nil
 }
 
 func tokenFromProxyAuthorization(header string) (string, error) {
@@ -88,14 +99,14 @@ func tokenFromProxyAuthorization(header string) (string, error) {
 	return username, nil
 }
 
-func (s *Server) handleConnect(w http.ResponseWriter, r *http.Request, compiled *policy.Compiled) {
+func (s *Server) handleConnect(w http.ResponseWriter, r *http.Request, requestPolicy *requestPolicy) {
 	host, port, err := net.SplitHostPort(r.Host)
 	if err != nil {
 		http.Error(w, "invalid CONNECT target", http.StatusBadRequest)
 		return
 	}
 
-	upstream, err := s.dialAllowed(r.Context(), host, port, compiled)
+	upstream, err := s.dialAllowed(r.Context(), host, port, requestPolicy)
 	if err != nil {
 		s.Logger.Warn("proxy denied connect", "host", host, "error", err)
 		http.Error(w, "destination not allowed", http.StatusForbidden)
@@ -118,7 +129,7 @@ func (s *Server) handleConnect(w http.ResponseWriter, r *http.Request, compiled 
 	pipe(client, upstream)
 }
 
-func (s *Server) handleHTTP(w http.ResponseWriter, r *http.Request, compiled *policy.Compiled) {
+func (s *Server) handleHTTP(w http.ResponseWriter, r *http.Request, requestPolicy *requestPolicy) {
 	host := r.URL.Hostname()
 	port := r.URL.Port()
 	if port == "" {
@@ -129,7 +140,7 @@ func (s *Server) handleHTTP(w http.ResponseWriter, r *http.Request, compiled *po
 		}
 	}
 
-	upstream, err := s.dialAllowed(r.Context(), host, port, compiled)
+	upstream, err := s.dialAllowed(r.Context(), host, port, requestPolicy)
 	if err != nil {
 		s.Logger.Warn("proxy denied http request", "host", host, "error", err)
 		http.Error(w, "destination not allowed", http.StatusForbidden)
@@ -231,8 +242,8 @@ func copyStreaming(w http.ResponseWriter, r io.Reader) {
 	}
 }
 
-func (s *Server) dialAllowed(ctx context.Context, host string, port string, compiled *policy.Compiled) (net.Conn, error) {
-	if !compiled.AllowsHost(host) {
+func (s *Server) dialAllowed(ctx context.Context, host string, port string, requestPolicy *requestPolicy) (net.Conn, error) {
+	if !requestPolicy.Compiled.AllowsHost(host) {
 		return nil, errors.New("host denied")
 	}
 
@@ -243,7 +254,7 @@ func (s *Server) dialAllowed(ctx context.Context, host string, port string, comp
 	}
 
 	for _, ip := range ips {
-		if !compiled.AllowsIP(ip) {
+		if !requestPolicy.Compiled.AllowsIP(ip) {
 			continue
 		}
 		dialer := s.Dialer
@@ -252,6 +263,9 @@ func (s *Server) dialAllowed(ctx context.Context, host string, port string, comp
 		}
 		conn, err := dialer.DialContext(ctx, "tcp", net.JoinHostPort(ip.String(), port))
 		if err == nil {
+			if s.Recorder != nil {
+				s.Recorder.Record(requestPolicy.Claims, host, ip.String(), port)
+			}
 			return conn, nil
 		}
 	}

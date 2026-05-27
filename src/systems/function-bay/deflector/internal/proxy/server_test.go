@@ -59,14 +59,17 @@ func TestPolicyFromRequestRequiresValidToken(t *testing.T) {
 		"Basic "+base64.StdEncoding.EncodeToString([]byte(token+":x")),
 	)
 
-	compiled, err := server.policyFromRequest(request)
+	requestPolicy, err := server.policyFromRequest(request)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !compiled.AllowsHost("example.com") {
+	if requestPolicy.Claims.TenantID != "tenant_123" {
+		t.Fatalf("unexpected tenant id %q", requestPolicy.Claims.TenantID)
+	}
+	if !requestPolicy.Compiled.AllowsHost("example.com") {
 		t.Fatal("expected verified claims to allow configured host")
 	}
-	if compiled.AllowsHost("other.example") {
+	if requestPolicy.Compiled.AllowsHost("other.example") {
 		t.Fatal("expected verified claims to deny unconfigured host")
 	}
 }
