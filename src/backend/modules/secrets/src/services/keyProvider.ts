@@ -57,7 +57,7 @@ let toFabricKeyProvider = (keyProvider: NebulaKeyProvider): KeyProviderEventKeyP
 });
 
 export type NebulaKeyProviderError = Awaited<
-  ReturnType<typeof secretsKeyProviderError.list>
+  ReturnType<typeof nebula.keyProviderError.list>
 >['items'][number];
 
 export type NebulaKeyProviderSetupInfo = Awaited<
