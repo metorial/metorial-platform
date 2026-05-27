@@ -32,7 +32,7 @@ on:
       runs-on:
         description: 'Runner label'
         required: false
-        default: depot-ubuntu-24.04-4
+        default: ubuntu-latest
         type: string
       checkout_submodules:
         description: 'Whether to checkout submodules recursively'

@@ -17,7 +17,7 @@ jobs:
     with:
       command: build
       all: true
-      runs-on: depot-ubuntu-24.04-4
+      runs-on: ubuntu-latest
 
   unit:
     name: Unit (${{ matrix.service }})
@@ -49,7 +49,7 @@ jobs:
       command: ci
       mode: unit
       filter: ${{ matrix.service }}
-      runs-on: depot-ubuntu-24.04-4
+      runs-on: ubuntu-latest
 
   e2e:
     name: E2E (${{ matrix.service }})
@@ -82,7 +82,7 @@ jobs:
       mode: e2e
       filter: ${{ matrix.service }}
       project_prefix: ${{ matrix.service }}-ci
-      runs-on: depot-ubuntu-24.04-4
+      runs-on: ubuntu-latest
       checkout_submodules: ${{ matrix.service == 'subspace-controller' }}
 
   core-api-e2e:
@@ -95,4 +95,4 @@ jobs:
       filter: app-api
       modules: all
       project_prefix: app-api-ci
-      runs-on: depot-ubuntu-24.04-4
+      runs-on: ubuntu-latest
