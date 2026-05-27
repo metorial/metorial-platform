@@ -1,0 +1,49 @@
+model Provider {
+  oid BigInt @id
+  id  String @unique
+
+  identifier String @unique
+  name       String
+
+  createdAt DateTime @default(now())
+
+  runtimes Runtime[]
+}
+
+model Runtime {
+  oid BigInt @id
+  id  String @unique
+
+  identifier String @unique
+  name       String
+
+  providerOid BigInt
+  provider    Provider @relation(fields: [providerOid], references: [oid])
+
+  /// [RuntimeConfiguration]
+  configuration Json
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  functions             Function[]
+  runtimeForgeWorkflows RuntimeForgeWorkflow[]
+  functionDeployments   FunctionDeployment[]
+  functionVersions      FunctionVersion[]
+}
+
+model RuntimeForgeWorkflow {
+  oid BigInt @id
+
+  runtimeOid BigInt
+  runtime    Runtime @relation(fields: [runtimeOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  forgeWorkflowId        String
+  forgeTenantId          String
+  forgeWorkflowVersionId String
+
+  @@unique([runtimeOid, tenantOid])
+}
