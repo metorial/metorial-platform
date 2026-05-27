@@ -6,6 +6,7 @@ model Tenant {
   name       String
 
   functionBayTenantId String?
+  nebulaTenantId      String?
 
   logRetentionInDays Int @default(30)
 
