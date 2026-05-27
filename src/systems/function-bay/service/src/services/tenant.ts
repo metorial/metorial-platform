@@ -1,37 +1,77 @@
+import { createLocallyCachedFunction } from '@lowerdeck/cache';
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
+import type { Tenant } from '../../prisma/generated/client';
 import { db } from '../db';
 import { ID, snowflake } from '../id';
 
 let include = {};
+
+let defaultTenantById = new Map<string, Tenant>();
+let defaultTenantByIdentifier = new Map<string, Tenant>();
+
+let cacheDefaultTenant = (tenant: Tenant) => {
+  if (!tenant.isServiceDefault) return;
+
+  defaultTenantById.set(tenant.id, tenant);
+  defaultTenantByIdentifier.set(tenant.identifier, tenant);
+};
+
+let getCachedDefaultTenant = (idOrIdentifier: string) =>
+  defaultTenantById.get(idOrIdentifier) ?? defaultTenantByIdentifier.get(idOrIdentifier);
+
+let getTenantFromDb = createLocallyCachedFunction({
+  getHash: (id: string) => id,
+  provider: async (id: string) => {
+    let tenant = await db.tenant.findFirst({
+      where: { OR: [{ id }, { identifier: id }] },
+      include
+    });
+    if (!tenant) throw new ServiceError(notFoundError('tenant'));
+
+    if (tenant.isServiceDefault) cacheDefaultTenant(tenant);
+
+    return tenant;
+  },
+  ttlSeconds: 60
+});
 
 class tenantServiceImpl {
   async upsertTenant(d: {
     input: {
       name: string;
       identifier: string;
+      isServiceDefault?: boolean;
     };
   }) {
-    return await db.tenant.upsert({
+    let isServiceDefault = d.input.isServiceDefault ?? false;
+
+    let tenant = await db.tenant.upsert({
       where: { identifier: d.input.identifier },
-      update: { name: d.input.name },
+      update: {
+        name: d.input.name,
+        isServiceDefault
+      },
       create: {
         oid: snowflake.nextId(),
         id: await ID.generateId('tenant'),
         name: d.input.name,
-        identifier: d.input.identifier
+        identifier: d.input.identifier,
+        isServiceDefault
       },
       include
     });
+
+    cacheDefaultTenant(tenant);
+
+    return tenant;
   }
 
   async getTenantById(d: { id: string }) {
-    let tenant = await db.tenant.findFirst({
-      where: { OR: [{ id: d.id }, { identifier: d.id }] },
-      include
-    });
-    if (!tenant) throw new ServiceError(notFoundError('tenant'));
-    return tenant;
+    let cachedDefault = getCachedDefaultTenant(d.id);
+    if (cachedDefault) return cachedDefault;
+
+    return await getTenantFromDb(d.id);
   }
 }
 

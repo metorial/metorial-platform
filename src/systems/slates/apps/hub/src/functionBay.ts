@@ -32,7 +32,8 @@ export let functionBayProvider = await db.deploymentProvider.upsert({
       let tenant = await Promise.race([
         functionBay.tenant.upsert({
           name: 'Slates Hub Tenant',
-          identifier: env.functionBay.FUNCTION_BAY_TENANT_IDENTIFIER
+          identifier: env.functionBay.FUNCTION_BAY_TENANT_IDENTIFIER,
+          isServiceDefault: true
         }),
         delay(10000).then(() => {
           throw new Error('Function Bay tenant initialization timed out');
