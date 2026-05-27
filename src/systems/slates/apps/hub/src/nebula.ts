@@ -1,4 +1,5 @@
 import { createNebulaClient } from '@metorial-platform-systems/nebula-client';
+import os from 'os';
 import type { Tenant } from '../prisma/generated/client';
 import { db } from './db';
 import { env } from './env';
@@ -6,7 +7,7 @@ import { env } from './env';
 export let nebula = createNebulaClient({
   endpoint: env.nebula.NEBULA_API_URL,
   consumerToken: env.nebula.NEBULA_CONSUMER_TOKEN,
-  identifier: env.nebula.NEBULA_CONSUMER_IDENTIFIER
+  identifier: os.hostname()
 });
 
 export let getNebulaTenantForSlatesTenant = async (tenant: Tenant) => {

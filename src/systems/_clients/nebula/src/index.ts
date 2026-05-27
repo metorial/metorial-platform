@@ -40,7 +40,8 @@ type ConsumerInstanceToken = {
 
 let toDate = (value: Date | string) => (value instanceof Date ? value : new Date(value));
 
-export let createRawNebulaClient = (o: ClientOpts): NebulaClient => createClient<NebulaClient>(o);
+export let createRawNebulaClient = (o: ClientOpts): NebulaClient =>
+  createClient<NebulaClient>(o);
 
 export let createNebulaClient = (o: NebulaClientOpts): AuthenticatedNebulaClient => {
   let { consumerToken, identifier, refreshSkewMs = 60_000, ...clientOpts } = o;
@@ -48,17 +49,17 @@ export let createNebulaClient = (o: NebulaClientOpts): AuthenticatedNebulaClient
   let current: ConsumerInstanceToken | null = null;
   let inFlight: Promise<ConsumerInstanceToken> | null = null;
 
-  let register = async () => {
+  let registration = (async () => {
     let next = await client.consumer.register({
       secret: consumerToken,
       identifier
     });
     current = next;
     return next;
-  };
+  })();
 
   let refresh = async () => {
-    if (!current) return await register();
+    if (!current) return await registration;
 
     try {
       let next = await client.consumer.refresh({
@@ -68,15 +69,12 @@ export let createNebulaClient = (o: NebulaClientOpts): AuthenticatedNebulaClient
       current = next;
       return next;
     } catch {
-      return await register();
+      return await registration;
     }
   };
 
   let getToken = async () => {
-    if (
-      current &&
-      toDate(current.expiresAt).getTime() - refreshSkewMs > Date.now()
-    ) {
+    if (current && toDate(current.expiresAt).getTime() - refreshSkewMs > Date.now()) {
       return current.token;
     }
 
