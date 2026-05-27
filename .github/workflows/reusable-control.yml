@@ -201,6 +201,7 @@ jobs:
         env:
           CONTROL_BUILDKIT_CACHE: '0'
           CONTROL_DOCKER_CACHE_MOUNTS: '0'
+          CONTROL_NO_STAGE: '1'
           CONTROL_PREBUILT_BUILD_ARTIFACTS: '1'
           CONTROL_NX_REMOTE_CACHE_DOCKER_URL: ${{ inputs.enable_cache && 'http://host.docker.internal:43191' || '' }}
           CONTROL_VERBOSE: '1'

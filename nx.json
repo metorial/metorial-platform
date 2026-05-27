@@ -62,7 +62,8 @@
       ],
       "outputs": [
         "{projectRoot}/dist/**",
-        "{projectRoot}/frontend/dist/**"
+        "{projectRoot}/frontend/dist/**",
+        "{projectRoot}/frontend/**/dist/**"
       ]
     },
     "worker:build": {

@@ -59,7 +59,7 @@ let createNxConfig = (scope: 'repo' | 'oss' = 'repo') => ({
       cache: true,
       dependsOn: ['^build'],
       inputs: ['production', '^production'],
-      outputs: ['{projectRoot}/dist/**', '{projectRoot}/frontend/dist/**']
+      outputs: ['{projectRoot}/dist/**', '{projectRoot}/frontend/dist/**', '{projectRoot}/frontend/**/dist/**']
     },
     'worker:build': {
       cache: true,
