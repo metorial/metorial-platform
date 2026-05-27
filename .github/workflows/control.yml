@@ -10,15 +10,6 @@ permissions:
   packages: read
 
 jobs:
-  build:
-    name: Build all services
-    uses: ./.github/workflows/reusable-control.yml
-    secrets: inherit
-    with:
-      command: build
-      all: true
-      runs-on: ubuntu-latest
-
   unit:
     name: Unit (${{ matrix.service }})
     uses: ./.github/workflows/reusable-control.yml
