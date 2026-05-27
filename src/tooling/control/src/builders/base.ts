@@ -148,8 +148,19 @@ export let formatContainerWorkdir = (relPath: string): string => formatContainer
 
 export let formatRunStep = (run: string): string => run.replace(/\n+/g, ' ').trim();
 
+export let shouldUseDockerCacheMounts = () => process.env.CONTROL_DOCKER_CACHE_MOUNTS !== '0';
+
 export let renderAptInstall = (packages: string[]): string[] => {
   if (packages.length === 0) return [];
+  if (!shouldUseDockerCacheMounts()) {
+    return [
+      'RUN apt-get update && apt-get install -y --no-install-recommends \\',
+      ...packages.map((pkg, index) =>
+        index === packages.length - 1 ? `  ${pkg} && rm -rf /var/lib/apt/lists/*` : `  ${pkg} \\`
+      )
+    ];
+  }
+
   return [
     'RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \\',
     '  --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \\',
@@ -162,6 +173,12 @@ export let renderAptInstall = (packages: string[]): string[] => {
 
 export let renderApkInstall = (packages: string[]): string[] => {
   if (packages.length === 0) return [];
+  if (!shouldUseDockerCacheMounts()) {
+    return [
+      `RUN sh -c 'attempt=1; until apk add --no-cache ${packages.join(' ')}; do code=$?; if [ "$attempt" -ge 3 ]; then exit "$code"; fi; sleep $((attempt * 2)); attempt=$((attempt + 1)); done'`
+    ];
+  }
+
   return [
     `RUN --mount=type=cache,target=/var/cache/apk,sharing=locked sh -c 'attempt=1; until apk add --cache-dir /var/cache/apk ${packages.join(' ')}; do code=$?; if [ "$attempt" -ge 3 ]; then exit "$code"; fi; sleep $((attempt * 2)); attempt=$((attempt + 1)); done'`
   ];

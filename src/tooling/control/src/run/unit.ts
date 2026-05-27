@@ -2,6 +2,7 @@ import { join, resolve } from 'path';
 import { resolveOssRoot, resolveControlCwd, resolveEntrypoint } from '../entrypoint';
 import { resolveStagedEntrypoint } from '../staging/session';
 import { NoTestError } from '../errors';
+import { nxProjectHasTarget, readNxProjectGraph } from '../builders/nx';
 import { createLogger } from '../log';
 import { formatBatchSummary, formatRunPlan, formatServiceHeader } from '../log/formatRunPlan';
 import { getRegistry } from '../registry';
@@ -45,6 +46,26 @@ let runHostShell = async (cmd: string[], opts: { cwd: string; verbose?: boolean 
   }
 };
 
+let resolveNxUnitCommand = (opts: {
+  command: string;
+  entrypoint: string;
+  project?: string;
+  setup?: string[];
+}): { cwd: string; command: string } | null => {
+  if (opts.command.trim() !== 'bun run test:unit') return null;
+  if (opts.setup?.length) return null;
+  if (!opts.project) return null;
+
+  let ossRoot = resolveOssRoot(opts.entrypoint);
+  let graph = readNxProjectGraph(ossRoot);
+  if (!nxProjectHasTarget(graph, opts.project, 'test:unit')) return null;
+
+  return {
+    cwd: ossRoot,
+    command: `bun x nx run ${opts.project}:test:unit`
+  };
+};
+
 let runUnitForService = async (
   opts: RunOptions & { service: ControlService; context?: UnitContext }
 ) => {
@@ -56,7 +77,14 @@ let runUnitForService = async (
   let entrypoint = opts.session
     ? resolveStagedEntrypoint(opts.session, opts.entrypoint)
     : resolveEntrypoint({ cwd, entrypoint: opts.entrypoint });
-  let hostCwd = resolveHostTestCwd({ service: opts.service, cwd: unit.cwd, entrypoint });
+  let nxUnit = resolveNxUnitCommand({
+    command: unit.command,
+    setup: unit.setup,
+    project: opts.service.config.build?.project,
+    entrypoint
+  });
+  let hostCwd = nxUnit?.cwd ?? resolveHostTestCwd({ service: opts.service, cwd: unit.cwd, entrypoint });
+  let testCommand = nxUnit?.command ?? unit.command;
 
   if (opts.context) {
     logger.section(
@@ -78,8 +106,8 @@ let runUnitForService = async (
   }
 
   logger.info('Running unit tests...');
-  logger.debug(`Command: ${unit.command}`);
-  await runHostShell(['sh', '-c', unit.command], { cwd: hostCwd, verbose: opts.verbose });
+  logger.debug(`Command: ${testCommand}`);
+  await runHostShell(['sh', '-c', testCommand], { cwd: hostCwd, verbose: opts.verbose });
 };
 
 export let runUnitBatch = async (

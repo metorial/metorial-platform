@@ -71,15 +71,28 @@ let createNxConfig = (scope: 'repo' | 'oss' = 'repo') => ({
       cache: false,
       inputs: ['default', '^production']
     },
+    'test:unit': {
+      cache: true,
+      inputs: ['default', '^production'],
+      outputs: ['{projectRoot}/coverage/**']
+    },
     'check-types': {
       cache: true,
       dependsOn: ['^check-types'],
       inputs: ['production', '^production']
     },
     'prisma:generate': {
-      cache: false,
+      cache: true,
       dependsOn: ['^prisma:generate'],
-      inputs: ['production', '^production']
+      inputs: ['production', '^production'],
+      outputs: [
+        '{projectRoot}/node_modules/.prisma/**',
+        '{projectRoot}/node_modules/@prisma/**',
+        '{projectRoot}/generated/**',
+        '{projectRoot}/src/generated/**',
+        '{workspaceRoot}/node_modules/.prisma/**',
+        '{workspaceRoot}/node_modules/@prisma/**'
+      ]
     },
     'prisma:push': {
       cache: false

@@ -10,7 +10,8 @@ import {
   formatRunStep,
   renderAptInstall,
   renderArtifactLines,
-  renderCopyLines
+  renderCopyLines,
+  shouldUseDockerCacheMounts
 } from './base';
 import type { GeneratedBuildPlan } from '../types';
 
@@ -26,7 +27,9 @@ let defaultRustRuntime = defaultRuntime(undefined, {
 });
 
 let renderCargoCacheMounts = () =>
-  '--mount=type=cache,id=control-cargo-registry,target=/usr/local/cargo/registry,sharing=locked --mount=type=cache,id=control-cargo-git,target=/usr/local/cargo/git,sharing=locked --mount=type=cache,id=control-cargo-target,target=/app/target,sharing=locked';
+  shouldUseDockerCacheMounts()
+    ? '--mount=type=cache,id=control-cargo-registry,target=/usr/local/cargo/registry,sharing=locked --mount=type=cache,id=control-cargo-git,target=/usr/local/cargo/git,sharing=locked --mount=type=cache,id=control-cargo-target,target=/app/target,sharing=locked '
+    : '';
 
 let renderRustDockerfile = (plan: GeneratedBuildPlan): string => {
   let builderImage = plan.service.config.build?.builder_image?.image ?? 'rust:1.91-slim';
@@ -35,7 +38,7 @@ let renderRustDockerfile = (plan: GeneratedBuildPlan): string => {
   let inputLines = renderCopyLines(plan.inputPaths);
   let prebuildLines = plan.prebuildSteps.map(step => {
     let cwd = formatContainerWorkdir(step.cwdRelativeToContext ?? '.');
-    return `RUN ${renderCargoCacheMounts()} cd ${cwd} && ${formatRunStep(step.run)}`;
+    return `RUN ${renderCargoCacheMounts()}cd ${cwd} && ${formatRunStep(step.run)}`;
   });
   let artifactLines = renderArtifactLines(plan);
   let exposeLines = plan.runtime.expose.map(port => `EXPOSE ${port}`);
@@ -62,7 +65,7 @@ let renderRustDockerfile = (plan: GeneratedBuildPlan): string => {
     'FROM deps AS build',
     'WORKDIR /app',
     ...inputLines,
-    `RUN ${renderCargoCacheMounts()} cd ${plan.workspaceRoot} && ${buildCommandForPlan(plan)}`,
+    `RUN ${renderCargoCacheMounts()}cd ${plan.workspaceRoot} && ${buildCommandForPlan(plan)}`,
     '',
     'FROM build AS workspace',
     `WORKDIR ${plan.workspaceRoot}`,

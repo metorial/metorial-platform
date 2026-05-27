@@ -10,7 +10,8 @@ import {
   formatRunStep,
   renderApkInstall,
   renderArtifactLines,
-  renderCopyLines
+  renderCopyLines,
+  shouldUseDockerCacheMounts
 } from './base';
 import type { GeneratedBuildPlan } from '../types';
 
@@ -40,12 +41,13 @@ let renderGoDockerfile = (plan: GeneratedBuildPlan): string => {
   let inputLines = renderCopyLines(plan.inputPaths);
   let installLayerLines = plan.installLayers.map(layer => {
     let cwd = formatContainerWorkdir(layer.cwdRelativeToContext ?? '.');
-    let cacheMount =
-      layer.tool === 'bun'
+    let cacheMount = shouldUseDockerCacheMounts()
+      ? layer.tool === 'bun'
         ? '--mount=type=cache,id=control-bun-install,target=/root/.bun/install/cache,sharing=locked '
         : layer.tool === 'go'
           ? '--mount=type=cache,id=control-go-mod,target=/go/pkg/mod,sharing=locked '
-          : '';
+          : ''
+      : '';
     return `RUN ${cacheMount}cd ${cwd} && ${formatRunStep(layer.command)}`;
   });
   let prebuildLines = plan.prebuildSteps.map(step => {
@@ -72,13 +74,17 @@ let renderGoDockerfile = (plan: GeneratedBuildPlan): string => {
     ...renderApkInstall(systemPackages),
     ...manifestLines,
     ...installLayerLines,
-    `RUN --mount=type=cache,id=control-go-mod,target=/go/pkg/mod,sharing=locked cd ${plan.workspaceRoot} && go mod download`,
+    shouldUseDockerCacheMounts()
+      ? `RUN --mount=type=cache,id=control-go-mod,target=/go/pkg/mod,sharing=locked cd ${plan.workspaceRoot} && go mod download`
+      : `RUN cd ${plan.workspaceRoot} && go mod download`,
     '',
     'FROM deps AS build',
     'WORKDIR /app',
     ...inputLines,
     ...prebuildLines,
-    `RUN --mount=type=cache,id=control-go-mod,target=/go/pkg/mod,sharing=locked --mount=type=cache,id=control-go-build,target=/root/.cache/go-build,sharing=locked cd ${plan.workspaceRoot} && ${buildCommandForPlan(plan)}`,
+    shouldUseDockerCacheMounts()
+      ? `RUN --mount=type=cache,id=control-go-mod,target=/go/pkg/mod,sharing=locked --mount=type=cache,id=control-go-build,target=/root/.cache/go-build,sharing=locked cd ${plan.workspaceRoot} && ${buildCommandForPlan(plan)}`
+      : `RUN cd ${plan.workspaceRoot} && ${buildCommandForPlan(plan)}`,
     '',
     'FROM build AS workspace',
     `WORKDIR ${plan.workspaceRoot}`,

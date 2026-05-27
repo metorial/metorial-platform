@@ -10,8 +10,18 @@ permissions:
   packages: read
 
 jobs:
+  warm-cache:
+    name: Warm Nx Cache
+    uses: ./.github/workflows/reusable-control.yml
+    secrets: inherit
+    with:
+      command: warm-cache
+      cache_prefix: control-ci
+      runs-on: ubuntu-latest
+
   unit:
     name: Unit (${{ matrix.service }})
+    needs: warm-cache
     uses: ./.github/workflows/reusable-control.yml
     secrets: inherit
     strategy:
@@ -40,10 +50,12 @@ jobs:
       command: ci
       mode: unit
       filter: ${{ matrix.service }}
+      cache_prefix: control-ci
       runs-on: ubuntu-latest
 
   e2e:
     name: E2E (${{ matrix.service }})
+    needs: warm-cache
     uses: ./.github/workflows/reusable-control.yml
     secrets: inherit
     strategy:
@@ -72,12 +84,14 @@ jobs:
       command: ci
       mode: e2e
       filter: ${{ matrix.service }}
+      cache_prefix: control-ci
       project_prefix: ${{ matrix.service }}-ci
       runs-on: ubuntu-latest
       checkout_submodules: ${{ matrix.service == 'subspace-controller' }}
 
   core-api-e2e:
     name: E2E (app-api)
+    needs: warm-cache
     uses: ./.github/workflows/reusable-control.yml
     secrets: inherit
     with:
@@ -85,5 +99,6 @@ jobs:
       mode: e2e
       filter: app-api
       modules: all
+      cache_prefix: control-ci
       project_prefix: app-api-ci
       runs-on: ubuntu-latest

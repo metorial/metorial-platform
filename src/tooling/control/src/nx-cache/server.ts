@@ -469,6 +469,19 @@ export let runCacheServer = async (opts: ServerOptions) => {
 
       if (req.method === 'PUT') {
         stats.requests.put++;
+        if (localExists(hash)) {
+          remoteArtifacts.add(hash);
+          stats.duplicateUploads++;
+          recordOp({
+            type: 'put',
+            hash,
+            durationMs: 0,
+            status: 'duplicate',
+            message: 'cache artifact already exists'
+          });
+          return new Response('cache artifact already exists', { status: 409 });
+        }
+
         ensureDir(artifactDir(opts.root, hash));
         writeFileSync(artifactPath(opts.root, hash), Buffer.from(await req.arrayBuffer()));
         queueUpload(hash);

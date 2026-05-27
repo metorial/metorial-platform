@@ -4,7 +4,7 @@ on:
   workflow_call:
     inputs:
       command:
-        description: 'Control command: build or ci'
+        description: 'Control command: build, ci, or warm-cache'
         required: true
         type: string
       mode:
@@ -114,7 +114,7 @@ jobs:
         run: bun i --filter @metorial/oss --filter @metorial/control
 
       - name: Install packages
-        if: ${{ inputs.command == 'ci' && inputs.mode == 'unit' }}
+        if: ${{ inputs.command == 'warm-cache' || (inputs.command == 'ci' && inputs.mode == 'unit') }}
         env:
           NX_CACHE_DIRECTORY: ${{ github.workspace }}/.nx/cache
         run: bun i
@@ -149,7 +149,7 @@ jobs:
             --manifest-save-key "${MANIFEST_SAVE_KEY}" \
             --manifest-primary-key "${MANIFEST_SAVE_KEY}" \
             --manifest-restore-key "${MANIFEST_PREFIX}-" \
-            --manifest-restore-key "control-nx-used-digests-${CACHE_NAMESPACE}-${CACHE_REF}-" \
+            --manifest-restore-key "control-nx-used-digests-${CACHE_NAMESPACE}-${CACHE_REF_SAFE}-" \
             --manifest-restore-key "control-nx-used-digests-${CACHE_NAMESPACE}-" \
             > .control/cache/nx-server.log 2>&1 &
 
@@ -169,22 +169,49 @@ jobs:
           exit 1
 
       - name: Generate Prisma Clients
-        if: ${{ inputs.command == 'ci' && inputs.mode == 'unit' }}
+        if: ${{ inputs.command == 'warm-cache' || (inputs.command == 'ci' && inputs.mode == 'unit') }}
         env:
           NX_CACHE_DIRECTORY: ${{ github.workspace }}/.nx/cache
           NX_SELF_HOSTED_REMOTE_CACHE_SERVER: ${{ inputs.enable_cache && 'http://127.0.0.1:43191' || '' }}
         run: bun x nx run-many --target=prisma:generate --all --parallel=1
 
       - name: Build platform system clients
-        if: ${{ inputs.command == 'ci' && inputs.mode == 'unit' }}
+        if: ${{ inputs.command == 'warm-cache' || (inputs.command == 'ci' && inputs.mode == 'unit') }}
         env:
           NX_CACHE_DIRECTORY: ${{ github.workspace }}/.nx/cache
           NX_SELF_HOSTED_REMOTE_CACHE_SERVER: ${{ inputs.enable_cache && 'http://127.0.0.1:43191' || '' }}
         run: bun x nx run-many --target=build --projects=@metorial-platform-systems/origin-client,@metorial-platform-systems/forge-client,@metorial-platform-systems/function-bay-client,@metorial-platform-systems/signal-client,@metorial-platform-systems/synthesis-client,@metorial-platform-systems/cargo-client,@metorial-platform-systems/ares-client,@metorial/mcp,@metorial/mcp-server,@metorial/mcp-transport-memory,@metorial-platform-systems/shuttle-client,@metorial-platform-systems/slates-client,@metorial-platform-systems/subspace-client
 
+      - name: Warm shared build cache
+        if: ${{ inputs.command == 'warm-cache' }}
+        env:
+          NX_CACHE_DIRECTORY: ${{ github.workspace }}/.nx/cache
+          NX_SELF_HOSTED_REMOTE_CACHE_SERVER: ${{ inputs.enable_cache && 'http://127.0.0.1:43191' || '' }}
+        run: |
+          set -euo pipefail
+
+          warm_target() {
+            local target="$1"
+            mapfile -t projects < <(bun x nx show projects --with-target="${target}")
+            if [ "${#projects[@]}" -eq 0 ]; then
+              echo "No projects for ${target}"
+              return
+            fi
+
+            local joined
+            joined="$(IFS=,; echo "${projects[*]}")"
+            bun x nx run-many --target="${target}" --projects="${joined}" --parallel=3
+          }
+
+          warm_target server:build
+          warm_target frontend:build
+          warm_target worker:build
+
       - name: Run control
+        if: ${{ inputs.command != 'warm-cache' }}
         env:
           CONTROL_BUILDKIT_CACHE: '0'
+          CONTROL_DOCKER_CACHE_MOUNTS: '0'
           CONTROL_NX_REMOTE_CACHE_DOCKER_URL: ${{ inputs.enable_cache && 'http://host.docker.internal:43191' || '' }}
           CONTROL_VERBOSE: '1'
           NX_CACHE_DIRECTORY: ${{ github.workspace }}/.nx/cache
@@ -217,6 +244,8 @@ jobs:
             if [ "${{ inputs.mode }}" = "e2e" ] && [ -n "${{ inputs.modules }}" ]; then
               ARGS+=(--module "${{ inputs.modules }}")
             fi
+          elif [ "${{ inputs.command }}" = "warm-cache" ]; then
+            exit 0
           else
             echo "Unsupported command: ${{ inputs.command }}" >&2
             exit 1

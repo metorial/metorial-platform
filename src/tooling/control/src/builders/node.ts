@@ -8,7 +8,8 @@ import {
   defaultRuntime,
   renderApkInstall,
   renderAptInstall,
-  renderArtifactLines
+  renderArtifactLines,
+  shouldUseDockerCacheMounts
 } from './base';
 import {
   collectNxDependents,
@@ -208,8 +209,16 @@ let shouldRetryNxRun = (command: string): boolean =>
 let renderRetriableCommand = (command: string): string =>
   `{ attempt=1; until ${command}; do code=$?; if [ "$attempt" -ge 3 ]; then exit "$code"; fi; sleep $((attempt * 2)); attempt=$((attempt + 1)); done; }`;
 
-let renderNxRun = (cacheId: string) => (command: string): string =>
-  `RUN --mount=type=cache,id=${cacheId},target=/app/.nx/cache cd /app && ${shouldRetryNxRun(command) ? renderRetriableCommand(command) : command}`;
+let renderNxRun = (cacheId: string) => (command: string): string => {
+  let runCommand = `cd /app && ${shouldRetryNxRun(command) ? renderRetriableCommand(command) : command}`;
+  if (!shouldUseDockerCacheMounts()) return `RUN ${runCommand}`;
+  return `RUN --mount=type=cache,id=${cacheId},target=/app/.nx/cache ${runCommand}`;
+};
+
+let renderBunInstallRun = (plan: GeneratedBuildPlan, layer: GeneratedBuildInstallLayer): string => {
+  if (!shouldUseDockerCacheMounts()) return `RUN ${layer.command}`;
+  return `RUN --mount=type=cache,id=control-bun-install-${plan.service.name}-${layer.name},target=/root/.bun/install/cache ${layer.command}`;
+};
 
 let collectNodeProjectUseCounts = (opts: {
   registry: ServiceRegistry;
@@ -630,7 +639,7 @@ export let renderNodePrunedDockerfile = (plan: GeneratedBuildPlan): string => {
     ...renderAptInstall(systemPackages),
     ...plan.installLayers.flatMap(layer => [
       `COPY _manifests/${layer.name}/ ./`,
-      `RUN --mount=type=cache,id=control-bun-install-${plan.service.name}-${layer.name},target=/root/.bun/install/cache ${layer.command}`
+      renderBunInstallRun(plan, layer)
     ]),
     '',
     'FROM deps AS build',
