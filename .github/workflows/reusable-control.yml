@@ -136,6 +136,7 @@ jobs:
 
           bun run control cache-server \
             --port "${PORT}" \
+            --host "0.0.0.0" \
             --namespace "${CACHE_NAMESPACE}" \
             --root ".control/cache/nx-artifacts" \
             --manifest-dir ".control/cache/nx-manifest" \
