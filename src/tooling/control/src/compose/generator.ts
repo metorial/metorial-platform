@@ -96,6 +96,20 @@ let applyBuildContext = (
 let buildCacheDir = (opts: { cacheRoot?: string; name: string }) =>
   opts.cacheRoot ? resolve(opts.cacheRoot, `${opts.name}`) : undefined;
 
+let withRemoteNxCache = (build: DockerBuildConfig): DockerBuildConfig => {
+  let url = process.env.CONTROL_NX_REMOTE_CACHE_DOCKER_URL;
+  if (!url) return build;
+
+  return {
+    ...build,
+    args: {
+      ...build.args,
+      NX_SELF_HOSTED_REMOTE_CACHE_SERVER: url
+    },
+    extra_hosts: [...(build.extra_hosts ?? []), 'host.docker.internal:host-gateway']
+  };
+};
+
 let composeBuild = (
   name: string,
   build: DockerBuildConfig,
@@ -103,7 +117,7 @@ let composeBuild = (
 ) => {
   let cacheDir = buildCacheDir({ cacheRoot: composeOptions?.cacheRoot, name });
   return {
-    ...build,
+    ...withRemoteNxCache(build),
     ...(cacheDir
       ? {
           ...(existsSync(cacheDir) ? { cache_from: [`type=local,src=${cacheDir}`] } : {}),

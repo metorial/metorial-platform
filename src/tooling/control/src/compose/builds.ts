@@ -5,6 +5,8 @@ export type DockerBuildConfig = {
   context: string;
   dockerfile: string;
   target: string;
+  args?: Record<string, string>;
+  extra_hosts?: string[];
 };
 
 export type DockerBuildSpec = DockerBuildConfig & {

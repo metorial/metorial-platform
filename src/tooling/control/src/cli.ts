@@ -21,6 +21,7 @@ import { withWorkspaceSession } from './staging/session';
 import type { WorkspaceSession } from './types';
 import { runBootstrap } from './bootstrap';
 import { installShutdownHandlers } from './run/lifecycle';
+import { printCacheSummary, runCacheServer } from './nx-cache/server';
 
 installShutdownHandlers();
 
@@ -61,6 +62,12 @@ let collectModules = (argv: string[]): string[] =>
     .map(value => value.trim())
     .filter(Boolean);
 
+let collectManifestRestoreKeys = (argv: string[]): string[] =>
+  collectRepeatedOption(argv, ['--manifest-restore-key'])
+    .flatMap(value => value.split('\n'))
+    .map(value => value.trim())
+    .filter(Boolean);
+
 let runCommand = async (fn: () => Promise<void | never>, opts?: { verbose?: boolean }) => {
   try {
     await fn();
@@ -88,6 +95,76 @@ prog
   .action(async (opts: { entrypoint?: string; check?: boolean; print?: boolean; service?: string }) => {
     await runCommand(async () => {
       await runBootstrap(opts);
+    });
+  });
+
+prog
+  .command('cache-server')
+  .describe('Run the local Nx remote cache bridge')
+  .option('--port', 'Port to listen on', '43191')
+  .option('--host', 'Host to listen on', '127.0.0.1')
+  .option('--root', 'Local artifact root', '.control/cache/nx-artifacts')
+  .option('--manifest-dir', 'Digest manifest directory', '.control/cache/nx-manifest')
+  .option('--stats', 'Stats output path', '.control/cache/nx-stats.json')
+  .option('--ready-file', 'File written when the server is listening')
+  .option('--namespace', 'GitHub cache namespace', 'v1')
+  .option('--manifest-save-key', 'GitHub cache key for the updated digest manifest')
+  .option('--manifest-primary-key', 'Primary GitHub cache key for digest manifest restore')
+  .option('--manifest-restore-key', 'GitHub cache key or prefix for manifest restore')
+  .option('--max-manifest-entries', 'Maximum digest manifest entries', '500')
+  .action(async (opts: {
+    port?: string;
+    host?: string;
+    root?: string;
+    'manifest-dir'?: string;
+    stats?: string;
+    'ready-file'?: string;
+    namespace?: string;
+    'manifest-save-key'?: string;
+    'manifest-primary-key'?: string;
+    'manifest-restore-key'?: string;
+    'max-manifest-entries'?: string;
+  }) => {
+    await runCommand(async () => {
+      await runCacheServer({
+        port: Number(opts.port ?? '43191'),
+        host: opts.host ?? '127.0.0.1',
+        root: opts.root ?? '.control/cache/nx-artifacts',
+        manifestDir: opts['manifest-dir'] ?? '.control/cache/nx-manifest',
+        statsPath: opts.stats ?? '.control/cache/nx-stats.json',
+        readyFile: opts['ready-file'],
+        namespace: opts.namespace ?? 'v1',
+        manifestSaveKey: opts['manifest-save-key'],
+        manifestRestoreKey: opts['manifest-primary-key'] ?? opts['manifest-restore-key'],
+        manifestRestoreKeys: collectManifestRestoreKeys(process.argv),
+        maxManifestEntries: Number(opts['max-manifest-entries'] ?? '500')
+      });
+    });
+  });
+
+prog
+  .command('cache-finalize')
+  .describe('Flush the local Nx cache bridge')
+  .option('--server', 'Cache server URL', 'http://127.0.0.1:43191')
+  .action(async (opts: { server?: string }) => {
+    await runCommand(async () => {
+      let res = await fetch(`${opts.server ?? 'http://127.0.0.1:43191'}/control/finalize`, {
+        method: 'POST'
+      });
+      if (!res.ok) throw new Error(`Cache finalize failed with ${res.status}`);
+      await res.text();
+      console.log('Nx cache bridge finalized');
+    });
+  });
+
+prog
+  .command('cache-summary')
+  .describe('Print local Nx cache bridge stats')
+  .option('--stats', 'Stats output path', '.control/cache/nx-stats.json')
+  .option('--root', 'Local artifact root', '.control/cache/nx-artifacts')
+  .action(async (opts: { stats?: string; root?: string }) => {
+    await runCommand(async () => {
+      printCacheSummary(opts.stats ?? '.control/cache/nx-stats.json', opts.root ?? '.control/cache/nx-artifacts');
     });
   });
 

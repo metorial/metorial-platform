@@ -28,6 +28,18 @@ let buildCacheDir = (opts: { controlRoot: string; rootName: string; specName: st
 
 let shouldUseBuildCacheExport = () => process.env.CONTROL_BUILDKIT_CACHE === '1';
 
+let appendRemoteNxCacheArgs = (cmd: string[]) => {
+  let url = process.env.CONTROL_NX_REMOTE_CACHE_DOCKER_URL;
+  if (!url) return;
+
+  cmd.push(
+    '--add-host',
+    'host.docker.internal:host-gateway',
+    '--build-arg',
+    `NX_SELF_HOSTED_REMOTE_CACHE_SERVER=${url}`
+  );
+};
+
 let runBuildForService = async (
   opts: BuildOptions & { service: ControlService; context?: BuildContext }
 ) => {
@@ -105,6 +117,8 @@ let runBuildForService = async (
       }
       cmd.push('--cache-to', `type=local,dest=${cacheDir},mode=max`);
     }
+
+    appendRemoteNxCacheArgs(cmd);
 
     if (process.env.SENTRY_AUTH_TOKEN) {
       cmd.push('--build-arg', `SENTRY_AUTH_TOKEN=${process.env.SENTRY_AUTH_TOKEN}`);

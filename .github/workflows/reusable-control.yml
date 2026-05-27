@@ -40,7 +40,7 @@ on:
         default: false
         type: boolean
       enable_cache:
-        description: 'Restore and save Nx/BuildKit caches'
+        description: 'Enable the Nx GitHub Actions cache bridge'
         required: false
         default: true
         type: boolean
@@ -74,13 +74,6 @@ jobs:
         with:
           bun-version: '1.2.20'
 
-      - name: Set up Docker Buildx
-        id: buildx
-        if: ${{ inputs.enable_cache && (inputs.command == 'build' || (inputs.command == 'ci' && inputs.mode == 'e2e')) }}
-        uses: docker/setup-buildx-action@v3
-        with:
-          install: true
-
       - name: Compute cache scope
         id: cache-scope
         if: ${{ inputs.enable_cache }}
@@ -112,29 +105,7 @@ jobs:
 
       - name: Prepare cache directories
         if: ${{ inputs.enable_cache }}
-        run: mkdir -p .nx/cache .control/cache/buildkit
-
-      - name: Restore Nx cache
-        if: ${{ inputs.enable_cache }}
-        uses: actions/cache@v4
-        with:
-          path: .nx/cache
-          key: control-nx-${{ runner.os }}-${{ github.ref_name }}-${{ steps.cache-scope.outputs.scope }}-${{ hashFiles('bun.lock', 'package.json', 'nx.json', 'src/tooling/control/package.json', 'src/tooling/control/src/**/*.ts') }}
-          restore-keys: |
-            control-nx-${{ runner.os }}-${{ github.ref_name }}-${{ steps.cache-scope.outputs.scope }}-
-            control-nx-${{ runner.os }}-${{ github.ref_name }}-
-            control-nx-${{ runner.os }}-
-
-      - name: Restore BuildKit cache
-        if: ${{ inputs.enable_cache && (inputs.command == 'build' || (inputs.command == 'ci' && inputs.mode == 'e2e')) }}
-        uses: actions/cache@v4
-        with:
-          path: .control/cache/buildkit
-          key: control-buildkit-${{ runner.os }}-${{ github.ref_name }}-${{ steps.cache-scope.outputs.scope }}-${{ hashFiles('bun.lock', 'nx.json', 'src/tooling/control/src/**/*.ts', 'src/systems/**/control.toml', 'src/systems/**/Dockerfile', 'src/backend/apps/**/control.toml', 'src/backend/apps/**/Dockerfile') }}
-          restore-keys: |
-            control-buildkit-${{ runner.os }}-${{ github.ref_name }}-${{ steps.cache-scope.outputs.scope }}-
-            control-buildkit-${{ runner.os }}-${{ github.ref_name }}-
-            control-buildkit-${{ runner.os }}-
+        run: mkdir -p .nx/cache .control/cache/nx-artifacts .control/cache/nx-manifest
 
       - name: Install control packages
         if: ${{ inputs.command == 'build' || (inputs.command == 'ci' && inputs.mode == 'e2e') }}
@@ -148,24 +119,70 @@ jobs:
           NX_CACHE_DIRECTORY: ${{ github.workspace }}/.nx/cache
         run: bun i
 
+      - name: Start Nx cache bridge
+        if: ${{ inputs.enable_cache }}
+        env:
+          CACHE_NAMESPACE: control-v1-${{ runner.os }}-${{ hashFiles('bun.lock', 'package.json', 'nx.json') }}
+          CACHE_SCOPE: ${{ steps.cache-scope.outputs.scope }}
+          CACHE_REF: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          PORT=43191
+          SERVER_URL="http://127.0.0.1:${PORT}"
+          MANIFEST_PREFIX="control-nx-used-digests-${CACHE_NAMESPACE}-${CACHE_REF}-${CACHE_SCOPE}"
+          MANIFEST_SAVE_KEY="${MANIFEST_PREFIX}-${{ github.run_id }}-${{ github.run_attempt }}"
+
+          bun run control cache-server \
+            --port "${PORT}" \
+            --namespace "${CACHE_NAMESPACE}" \
+            --root ".control/cache/nx-artifacts" \
+            --manifest-dir ".control/cache/nx-manifest" \
+            --stats ".control/cache/nx-stats.json" \
+            --ready-file ".control/cache/nx-server.ready" \
+            --manifest-save-key "${MANIFEST_SAVE_KEY}" \
+            --manifest-primary-key "${MANIFEST_SAVE_KEY}" \
+            --manifest-restore-key "${MANIFEST_PREFIX}-" \
+            --manifest-restore-key "control-nx-used-digests-${CACHE_NAMESPACE}-${CACHE_REF}-" \
+            --manifest-restore-key "control-nx-used-digests-${CACHE_NAMESPACE}-" \
+            > .control/cache/nx-server.log 2>&1 &
+
+          echo "$!" > .control/cache/nx-server.pid
+          for attempt in $(seq 1 30); do
+            if [ -f .control/cache/nx-server.ready ]; then
+              echo "server=${SERVER_URL}" >> "${GITHUB_OUTPUT}"
+              exit 0
+            fi
+            sleep 1
+          done
+
+          echo "Nx cache bridge did not become ready" >&2
+          if [ -f .control/cache/nx-server.log ]; then
+            cat .control/cache/nx-server.log >&2
+          fi
+          exit 1
+
       - name: Generate Prisma Clients
         if: ${{ inputs.command == 'ci' && inputs.mode == 'unit' }}
         env:
           NX_CACHE_DIRECTORY: ${{ github.workspace }}/.nx/cache
+          NX_SELF_HOSTED_REMOTE_CACHE_SERVER: ${{ inputs.enable_cache && 'http://127.0.0.1:43191' || '' }}
         run: bun x nx run-many --target=prisma:generate --all --parallel=1
 
       - name: Build platform system clients
         if: ${{ inputs.command == 'ci' && inputs.mode == 'unit' }}
         env:
           NX_CACHE_DIRECTORY: ${{ github.workspace }}/.nx/cache
+          NX_SELF_HOSTED_REMOTE_CACHE_SERVER: ${{ inputs.enable_cache && 'http://127.0.0.1:43191' || '' }}
         run: bun x nx run-many --target=build --projects=@metorial-platform-systems/origin-client,@metorial-platform-systems/forge-client,@metorial-platform-systems/function-bay-client,@metorial-platform-systems/signal-client,@metorial-platform-systems/synthesis-client,@metorial-platform-systems/cargo-client,@metorial-platform-systems/ares-client,@metorial/mcp,@metorial/mcp-server,@metorial/mcp-transport-memory,@metorial-platform-systems/shuttle-client,@metorial-platform-systems/slates-client,@metorial-platform-systems/subspace-client
 
       - name: Run control
         env:
-          BUILDX_BUILDER: ${{ steps.buildx.outputs.name }}
-          CONTROL_BUILDKIT_CACHE: ${{ inputs.enable_cache && (inputs.command == 'build' || (inputs.command == 'ci' && inputs.mode == 'e2e')) && '1' || '0' }}
+          CONTROL_BUILDKIT_CACHE: '0'
+          CONTROL_NX_REMOTE_CACHE_DOCKER_URL: ${{ inputs.enable_cache && 'http://host.docker.internal:43191' || '' }}
           CONTROL_VERBOSE: '1'
           NX_CACHE_DIRECTORY: ${{ github.workspace }}/.nx/cache
+          NX_SELF_HOSTED_REMOTE_CACHE_SERVER: ${{ inputs.enable_cache && 'http://127.0.0.1:43191' || '' }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: |
           set -euo pipefail
@@ -200,3 +217,26 @@ jobs:
           fi
 
           bun run control "${ARGS[@]}"
+
+      - name: Finalize Nx cache bridge
+        if: ${{ always() && inputs.enable_cache }}
+        run: |
+          set +e
+
+          if [ -f .control/cache/nx-server.pid ]; then
+            bun run control cache-finalize --server "http://127.0.0.1:43191"
+          fi
+
+          bun run control cache-summary \
+            --stats ".control/cache/nx-stats.json" \
+            --root ".control/cache/nx-artifacts"
+
+          if [ -f .control/cache/nx-server.log ]; then
+            echo ""
+            echo "Nx cache bridge log"
+            cat .control/cache/nx-server.log
+          fi
+
+          if [ -f .control/cache/nx-server.pid ]; then
+            kill "$(cat .control/cache/nx-server.pid)" 2>/dev/null || true
+          fi
