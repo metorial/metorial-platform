@@ -89,6 +89,7 @@ let createNxConfig = (scope: 'repo' | 'oss' = 'repo') => ({
         '{projectRoot}/node_modules/.prisma/**',
         '{projectRoot}/node_modules/@prisma/**',
         '{projectRoot}/generated/**',
+        '{projectRoot}/prisma/generated/**',
         '{projectRoot}/src/generated/**',
         '{workspaceRoot}/node_modules/.prisma/**',
         '{workspaceRoot}/node_modules/@prisma/**'
