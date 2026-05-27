@@ -229,20 +229,34 @@ jobs:
         run: |
           set +e
 
+          FINALIZE_STATUS=0
+          SUMMARY_STATUS=0
+
           if [ -f .control/cache/nx-server.pid ]; then
             bun run control cache-finalize --server "http://127.0.0.1:43191"
+            FINALIZE_STATUS=$?
           fi
 
           bun run control cache-summary \
             --stats ".control/cache/nx-stats.json" \
             --root ".control/cache/nx-artifacts"
+          SUMMARY_STATUS=$?
 
-          if [ -f .control/cache/nx-server.log ]; then
+          if [ "${FINALIZE_STATUS}" -ne 0 ] || [ "${SUMMARY_STATUS}" -ne 0 ]; then
             echo ""
             echo "Nx cache bridge log"
-            cat .control/cache/nx-server.log
+            if [ -f .control/cache/nx-server.log ]; then
+              cat .control/cache/nx-server.log
+            else
+              echo "No Nx cache bridge log found"
+            fi
           fi
 
           if [ -f .control/cache/nx-server.pid ]; then
             kill "$(cat .control/cache/nx-server.pid)" 2>/dev/null || true
           fi
+
+          if [ "${FINALIZE_STATUS}" -ne 0 ]; then
+            exit "${FINALIZE_STATUS}"
+          fi
+          exit "${SUMMARY_STATUS}"

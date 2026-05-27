@@ -94,6 +94,10 @@ let artifactDir = (root: string, hash: string) => resolve(root, hash);
 let artifactPath = (root: string, hash: string) => join(artifactDir(root, hash), 'artifact.tar');
 let manifestPath = (manifestDir: string) => join(manifestDir, 'manifest.json');
 let artifactKey = (namespace: string, hash: string) => `control-nx-task-${namespace}-${hash}`;
+let isBenignSaveError = (message: string) =>
+  /already exists|reserve|409|Unable to reserve|HTTP headers specified in the request is not supported/i.test(
+    message
+  );
 
 let readManifest = (path: string): Manifest => {
   if (!existsSync(path)) return { version: 1, updatedAt: new Date().toISOString(), digests: [] };
@@ -197,6 +201,8 @@ export let runCacheServer = async (opts: ServerOptions) => {
   let stats = createStats(opts);
   let used = new Map<string, { hash: string; lastUsedAt: string; useCount: number }>();
   let downloads = new Map<string, Promise<boolean>>();
+  let remoteArtifacts = new Set<string>();
+  let queuedUploads = new Set<string>();
   let uploadQueue = Promise.resolve();
   let uploadTasks: Promise<void>[] = [];
 
@@ -245,6 +251,7 @@ export let runCacheServer = async (opts: ServerOptions) => {
         let actionsCache = await loadActionsCache();
         let matched = await actionsCache.restoreCache([dir], artifactKey(opts.namespace, hash), []);
         let hit = !!matched && localExists(hash);
+        if (hit) remoteArtifacts.add(hash);
         recordOp({ type: 'restore', hash, durationMs: Date.now() - started, status: hit ? 'hit' : 'miss', message: matched });
         return hit;
       } catch (err) {
@@ -266,30 +273,47 @@ export let runCacheServer = async (opts: ServerOptions) => {
   };
 
   let queueUpload = (hash: string) => {
+    if (remoteArtifacts.has(hash) || queuedUploads.has(hash)) {
+      stats.duplicateUploads++;
+      recordOp({
+        type: 'upload',
+        hash,
+        durationMs: 0,
+        status: 'skipped',
+        message: remoteArtifacts.has(hash) ? 'already restored from GitHub cache' : 'already queued'
+      });
+      return;
+    }
+
+    queuedUploads.add(hash);
     let task = uploadQueue.then(async () => {
       let started = Date.now();
       let dir = artifactDir(opts.root, hash);
-      if (!localExists(hash)) return;
-
-      if (!isActionsCacheAvailable()) {
-        recordOp({ type: 'upload', hash, durationMs: Date.now() - started, status: 'skipped', message: 'GitHub Actions cache env missing' });
-        return;
-      }
-
       try {
+        if (!localExists(hash)) return;
+
+        if (!isActionsCacheAvailable()) {
+          recordOp({ type: 'upload', hash, durationMs: Date.now() - started, status: 'skipped', message: 'GitHub Actions cache env missing' });
+          return;
+        }
+
         let actionsCache = await loadActionsCache();
         await actionsCache.saveCache([dir], artifactKey(opts.namespace, hash));
+        remoteArtifacts.add(hash);
         stats.uploads++;
         recordOp({ type: 'upload', hash, durationMs: Date.now() - started, status: 'saved' });
       } catch (err) {
         let message = err instanceof Error ? err.message : String(err);
-        if (/already exists|reserve|409|Unable to reserve/i.test(message)) {
+        if (isBenignSaveError(message)) {
+          remoteArtifacts.add(hash);
           stats.duplicateUploads++;
           recordOp({ type: 'upload', hash, durationMs: Date.now() - started, status: 'duplicate', message });
           return;
         }
         stats.uploadFailures++;
         recordOp({ type: 'upload', hash, durationMs: Date.now() - started, status: 'failed', message });
+      } finally {
+        queuedUploads.delete(hash);
       }
     });
 
@@ -359,7 +383,7 @@ export let runCacheServer = async (opts: ServerOptions) => {
       recordOp({ type: 'manifest-save', durationMs: Date.now() - started, status: 'saved', message: opts.manifestSaveKey });
     } catch (err) {
       let message = err instanceof Error ? err.message : String(err);
-      if (/already exists|reserve|409|Unable to reserve/i.test(message)) {
+      if (isBenignSaveError(message)) {
         stats.manifestSaved = true;
         recordOp({ type: 'manifest-save', durationMs: Date.now() - started, status: 'duplicate', message });
         return;
