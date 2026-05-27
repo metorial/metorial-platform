@@ -15,7 +15,10 @@ import {
   keyProviderValidationPresenter
 } from '../../presenters';
 
-let keyProviderFlags = hasFlags(['paid-key-providers', 'advanced-security-management-enabled']);
+let keyProviderFlags = hasFlags([
+  'paid-key-providers',
+  'advanced-security-management-enabled'
+]);
 
 let resolveProject = async (ctx: any) => {
   let project = await projectService.getProjectById({
@@ -107,7 +110,9 @@ export let dashboardKeyProviderController = Controller.create(
         let keyProvider = await keyProviderService.createManagedKeyProvider({
           organization: ctx.organization,
           project,
-          name: ctx.body.name
+          name: ctx.body.name,
+          performedBy: ctx.actor,
+          context: ctx.context
         });
 
         return keyProviderPresenter.present({ keyProvider });
@@ -148,7 +153,9 @@ export let dashboardKeyProviderController = Controller.create(
         let keyProvider = await keyProviderService.importKeyProvider({
           organization: ctx.organization,
           project,
-          keyInput: ctx.body.key_input
+          keyInput: ctx.body.key_input,
+          performedBy: ctx.actor,
+          context: ctx.context
         });
 
         return keyProviderPresenter.present({ keyProvider });
@@ -263,7 +270,9 @@ export let dashboardKeyProviderController = Controller.create(
         let validation = await keyProviderService.validateKeyProvider({
           organization: ctx.organization,
           project,
-          keyProviderId: ctx.params.keyProviderId
+          keyProviderId: ctx.params.keyProviderId,
+          performedBy: ctx.actor,
+          context: ctx.context
         });
 
         return keyProviderValidationPresenter.present({ validation });
@@ -298,7 +307,9 @@ export let dashboardKeyProviderController = Controller.create(
         let keyProvider = await keyProviderService.setDefaultKeyProvider({
           organization: ctx.organization,
           project,
-          keyProviderId: ctx.params.keyProviderId
+          keyProviderId: ctx.params.keyProviderId,
+          performedBy: ctx.actor,
+          context: ctx.context
         });
 
         return keyProviderPresenter.present({ keyProvider });

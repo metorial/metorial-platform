@@ -273,7 +273,7 @@ class KeyProviderServiceImpl {
     });
   }
 
-  guardKeyProviderForTenant(d: { tenant: Tenant ; keyProvider: KeyProvider }) {
+  guardKeyProviderForTenant(d: { tenant: Tenant; keyProvider: KeyProvider }) {
     if (d.keyProvider.owner === 'system' && d.keyProvider.tenantOid === null) return;
 
     if (!d.tenant || d.keyProvider.tenantOid !== d.tenant.oid) {
@@ -291,7 +291,9 @@ class KeyProviderServiceImpl {
 
   isMetorialManaged(keyProvider: KeyProvider) {
     return (
-      keyProvider.isMetorialManaged || (keyProvider.keyInfo as any)?.managedByNebula === true
+      keyProvider.owner === 'system' ||
+      keyProvider.isMetorialManaged ||
+      (keyProvider.keyInfo as any)?.managedByNebula === true
     );
   }
 

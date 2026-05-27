@@ -2,7 +2,9 @@ import { Hash } from '@lowerdeck/hash';
 import type { KeyProvider } from '../../prisma/generated/client';
 
 let isMetorialManaged = (keyProvider: KeyProvider) =>
-  keyProvider.isMetorialManaged || (keyProvider.keyInfo as any)?.managedByNebula === true;
+  keyProvider.owner === 'system' ||
+  keyProvider.isMetorialManaged ||
+  (keyProvider.keyInfo as any)?.managedByNebula === true;
 
 let metorialManagedKeyId = async (keyProvider: KeyProvider, info: any) => {
   let hash = (await Hash.sha256(info.keyId ?? keyProvider.id)).slice(0, 20);

@@ -1,7 +1,12 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { Fabric, type KeyProviderEventKeyProvider } from '@metorial/fabric';
-import type { Organization, Project } from '@metorial/db';
+import type { Context } from '@metorial/context';
+import type { Organization, OrganizationActor, Project } from '@metorial/db';
+import {
+  Fabric,
+  type KeyProviderEventKeyProvider,
+  type KeyProviderEventValidation
+} from '@metorial/fabric';
 import { nebula } from '../nebula';
 import { getNebulaTenantForProject } from '../tenant';
 
@@ -142,19 +147,39 @@ class KeyProviderServiceImpl {
     organization: Organization;
     project: Project;
     keyProviderId: string;
+    performedBy: OrganizationActor;
+    context?: Context;
   }) {
     let tenant = await getNebulaTenantForProject(d);
 
-    return await nebula.keyProvider.validate({
+    let description = await nebula.keyProvider.validate({
       tenantId: tenant.id,
       keyProviderId: d.keyProviderId
     });
+    let keyProvider = await this.getKeyProvider(d);
+    let validation: KeyProviderEventValidation = {
+      keyProviderId: d.keyProviderId,
+      description
+    };
+
+    await Fabric.fire('key_provider.validated:after', {
+      organization: d.organization,
+      project: d.project,
+      performedBy: d.performedBy,
+      context: d.context,
+      keyProvider: toFabricKeyProvider(keyProvider),
+      validation
+    });
+
+    return description;
   }
 
   async setDefaultKeyProvider(d: {
     organization: Organization;
     project: Project;
     keyProviderId: string;
+    performedBy: OrganizationActor;
+    context?: Context;
   }) {
     let tenant = await getNebulaTenantForProject(d);
 
@@ -163,13 +188,25 @@ class KeyProviderServiceImpl {
       keyProviderId: d.keyProviderId
     });
 
-    return await this.getKeyProvider(d);
+    let keyProvider = await this.getKeyProvider(d);
+
+    await Fabric.fire('key_provider.default.set:after', {
+      organization: d.organization,
+      project: d.project,
+      performedBy: d.performedBy,
+      context: d.context,
+      keyProvider: toFabricKeyProvider(keyProvider)
+    });
+
+    return keyProvider;
   }
 
   async importKeyProvider(d: {
     organization: Organization;
     project: Project;
     keyInput: Record<string, unknown>;
+    performedBy: OrganizationActor;
+    context?: Context;
   }) {
     let tenant = await getNebulaTenantForProject(d);
     let keyProviders = await listAllKeyProviders(tenant.id);
@@ -178,6 +215,8 @@ class KeyProviderServiceImpl {
     await Fabric.fire('key_provider.imported:before', {
       organization: d.organization,
       project: d.project,
+      performedBy: d.performedBy,
+      context: d.context,
       currentCount
     });
 
@@ -190,6 +229,8 @@ class KeyProviderServiceImpl {
     await Fabric.fire('key_provider.imported:after', {
       organization: d.organization,
       project: d.project,
+      performedBy: d.performedBy,
+      context: d.context,
       keyProvider: toFabricKeyProvider(
         withIsDefault(keyProvider, updatedTenant.defaultKeyProviderId)
       )
@@ -202,6 +243,8 @@ class KeyProviderServiceImpl {
     organization: Organization;
     project: Project;
     name: string;
+    performedBy: OrganizationActor;
+    context?: Context;
   }) {
     let tenant = await getNebulaTenantForProject(d);
     let keyProviders = await listAllKeyProviders(tenant.id);
@@ -210,6 +253,8 @@ class KeyProviderServiceImpl {
     await Fabric.fire('key_provider.managed.created:before', {
       organization: d.organization,
       project: d.project,
+      performedBy: d.performedBy,
+      context: d.context,
       currentCount
     });
 
@@ -222,6 +267,8 @@ class KeyProviderServiceImpl {
     await Fabric.fire('key_provider.managed.created:after', {
       organization: d.organization,
       project: d.project,
+      performedBy: d.performedBy,
+      context: d.context,
       keyProvider: toFabricKeyProvider(
         withIsDefault(keyProvider, updatedTenant.defaultKeyProviderId)
       )
