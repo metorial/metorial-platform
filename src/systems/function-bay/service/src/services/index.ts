@@ -3,6 +3,7 @@ export * from './function';
 export * from './functionDeployment';
 export * from './functionInvocation';
 export * from './functionVersion';
+export * from './networkLog';
 export * from './provider';
 export * from './runtime';
 export * from './tenant';

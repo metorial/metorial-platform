@@ -19,13 +19,14 @@ type Store struct {
 }
 
 type Query struct {
-	TenantID   string
-	EnclaveIDs []string
-	FunctionID string
-	Hostnames  []string
-	IPs        []string
-	From       time.Time
-	To         time.Time
+	TenantID        string
+	EnclaveIDs      []string
+	FunctionIDs     []string
+	Hostnames       []string
+	IPs             []string
+	From            time.Time
+	To              time.Time
+	IntervalMinutes int
 }
 
 func Open(path string) (*Store, error) {
@@ -194,6 +195,13 @@ func upsertObservation(ctx context.Context, tx *sql.Tx, record api.Observation) 
 func (s *Store) Query(ctx context.Context, query Query) ([]api.Observation, error) {
 	clauses := []string{"1 = 1"}
 	args := []any{}
+	intervalSeconds := query.IntervalMinutes * 60
+	if intervalSeconds <= 0 {
+		intervalSeconds = 30 * 60
+	}
+	if intervalSeconds < 30*60 || intervalSeconds%(30*60) != 0 {
+		return nil, errors.New("interval must be a multiple of 30 minutes")
+	}
 
 	if !query.From.IsZero() {
 		clauses = append(clauses, "bucket_start >= ?")
@@ -211,7 +219,6 @@ func (s *Store) Query(ctx context.Context, query Query) ([]api.Observation, erro
 		args = append(args, value)
 	}
 	addTextFilter("tenant_id", query.TenantID)
-	addTextFilter("function_id", query.FunctionID)
 	addListFilter := func(column string, values []string) {
 		if len(values) == 0 {
 			return
@@ -230,13 +237,14 @@ func (s *Store) Query(ctx context.Context, query Query) ([]api.Observation, erro
 		clauses = append(clauses, fmt.Sprintf("%s IN (%s)", column, strings.Join(placeholders, ",")))
 	}
 	addListFilter("enclave_id", query.EnclaveIDs)
+	addListFilter("function_id", query.FunctionIDs)
 	addListFilter("hostname", query.Hostnames)
 	addListFilter("ip", query.IPs)
 
 	rows, err := s.db.QueryContext(
 		ctx,
 		`SELECT
-			bucket_start,
+			CAST(bucket_start / ? AS INTEGER) * ? AS interval_start,
 			tenant_id,
 			enclave_id,
 			function_id,
@@ -244,14 +252,23 @@ func (s *Store) Query(ctx context.Context, query Query) ([]api.Observation, erro
 			hostname,
 			ip,
 			port,
-			count,
-			first_seen_at,
-			last_seen_at
+			SUM(count) AS count,
+			MIN(first_seen_at) AS first_seen_at,
+			MAX(last_seen_at) AS last_seen_at
 		FROM network_observations
 		WHERE `+strings.Join(clauses, " AND ")+`
-		ORDER BY bucket_start DESC, last_seen_at DESC
+		GROUP BY
+			interval_start,
+			tenant_id,
+			enclave_id,
+			function_id,
+			effective_function_id,
+			hostname,
+			ip,
+			port
+		ORDER BY interval_start DESC, last_seen_at DESC
 		LIMIT 1000`,
-		args...,
+		append([]any{intervalSeconds, intervalSeconds}, args...)...,
 	)
 	if err != nil {
 		return nil, err

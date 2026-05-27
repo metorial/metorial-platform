@@ -116,11 +116,12 @@ func queryHandler(logger *slog.Logger, db *store.Store) http.Handler {
 func parseQuery(r *http.Request) (store.Query, error) {
 	values := r.URL.Query()
 	query := store.Query{
-		TenantID:   values.Get("tenantId"),
-		EnclaveIDs: queryList(values, "enclaveId"),
-		FunctionID: values.Get("functionId"),
-		Hostnames:  queryList(values, "hostname"),
-		IPs:        queryList(values, "ip"),
+		TenantID:        values.Get("tenantId"),
+		EnclaveIDs:      queryList(values, "enclaveId"),
+		FunctionIDs:     queryList(values, "functionId"),
+		Hostnames:       queryList(values, "hostname"),
+		IPs:             queryList(values, "ip"),
+		IntervalMinutes: 30,
 	}
 
 	var err error
@@ -134,6 +135,15 @@ func parseQuery(r *http.Request) (store.Query, error) {
 		query.To, err = time.Parse(time.RFC3339, raw)
 		if err != nil {
 			return store.Query{}, errors.New("to must be RFC3339")
+		}
+	}
+	if raw := values.Get("intervalMinutes"); raw != "" {
+		query.IntervalMinutes, err = strconv.Atoi(raw)
+		if err != nil {
+			return store.Query{}, errors.New("intervalMinutes must be a number")
+		}
+		if query.IntervalMinutes < 30 || query.IntervalMinutes%30 != 0 {
+			return store.Query{}, errors.New("intervalMinutes must be a multiple of 30")
 		}
 	}
 	return query, nil

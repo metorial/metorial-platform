@@ -20,6 +20,10 @@ export let env = createValidatedEnv({
     FORGE_API_URL: v.string()
   },
 
+  observer: {
+    OBSERVER_QUERY_URL: v.optional(v.string())
+  },
+
   provider: {
     DEFAULT_PROVIDER: v.enumOf(['aws.lambda', 'local'])
   },

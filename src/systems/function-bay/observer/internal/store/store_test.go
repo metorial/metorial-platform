@@ -104,10 +104,11 @@ func TestIngestUpsertsMatchingObservationKeys(t *testing.T) {
 	}
 
 	records, err := store.Query(context.Background(), Query{
-		TenantID:   "tenant_123",
-		EnclaveIDs: []string{"enclave_123"},
-		Hostnames:  []string{"api.example.com"},
-		IPs:        []string{"203.0.113.10"},
+		TenantID:    "tenant_123",
+		EnclaveIDs:  []string{"enclave_123"},
+		FunctionIDs: []string{"function_123"},
+		Hostnames:   []string{"api.example.com"},
+		IPs:         []string{"203.0.113.10"},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -117,6 +118,58 @@ func TestIngestUpsertsMatchingObservationKeys(t *testing.T) {
 	}
 	if records[0].Count != 5 {
 		t.Fatalf("expected upserted count to be 5, got %d", records[0].Count)
+	}
+}
+
+func TestQueryAggregatesIntoRequestedInterval(t *testing.T) {
+	store, err := Open(filepath.Join(t.TempDir(), "observer.sqlite"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer store.Close()
+
+	makeRecord := func(bucketStart time.Time, count int64) api.Observation {
+		return api.Observation{
+			BucketStart: bucketStart,
+			TenantID:    "tenant_123",
+			FunctionID:  "function_123",
+			EnclaveID:   "enclave_123",
+			Hostname:    "api.example.com",
+			IP:          "203.0.113.10",
+			Port:        443,
+			Count:       count,
+			FirstSeenAt: bucketStart,
+			LastSeenAt:  bucketStart.Add(time.Minute),
+		}
+	}
+	bucketStart := time.Date(2026, 5, 27, 12, 0, 0, 0, time.UTC)
+	_, err = store.Ingest(context.Background(), api.IngestBatch{
+		ID:                  "deflector-1:interval",
+		DeflectorInstanceID: "deflector-1",
+		Records: []api.Observation{
+			makeRecord(bucketStart, 2),
+			makeRecord(bucketStart.Add(30*time.Minute), 3),
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	records, err := store.Query(context.Background(), Query{
+		TenantID:        "tenant_123",
+		IntervalMinutes: 60,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(records) != 1 {
+		t.Fatalf("expected one rolled up record, got %d", len(records))
+	}
+	if records[0].BucketStart != bucketStart {
+		t.Fatalf("unexpected bucket start %s", records[0].BucketStart)
+	}
+	if records[0].Count != 5 {
+		t.Fatalf("expected count 5, got %d", records[0].Count)
 	}
 }
 

@@ -5,6 +5,7 @@ import { enclaveController } from './enclave';
 import { functionController } from './function';
 import { functionDeploymentController } from './functionDeployment';
 import { functionVersionController } from './functionVersion';
+import { networkLogController } from './networkLog';
 import { providerController } from './provider';
 import { runtimeController } from './runtime';
 import { tenantController } from './tenant';
@@ -16,7 +17,8 @@ export let rootController = app.controller({
   enclave: enclaveController,
   function: functionController,
   functionVersion: functionVersionController,
-  functionDeployment: functionDeploymentController
+  functionDeployment: functionDeploymentController,
+  networkLog: networkLogController
 });
 
 export let functionBayRPC = createServer({})(rootController);
