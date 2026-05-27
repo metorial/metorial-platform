@@ -19,13 +19,13 @@ type Store struct {
 }
 
 type Query struct {
-	TenantID          string
-	EnclaveID         string
-	EnclaveIdentifier string
-	FunctionID        string
-	Hostname          string
-	From              time.Time
-	To                time.Time
+	TenantID   string
+	EnclaveIDs []string
+	FunctionID string
+	Hostnames  []string
+	IPs        []string
+	From       time.Time
+	To         time.Time
 }
 
 func Open(path string) (*Store, error) {
@@ -67,10 +67,8 @@ func (s *Store) init(ctx context.Context) error {
 			bucket_start INTEGER NOT NULL,
 			tenant_id TEXT NOT NULL,
 			enclave_id TEXT NOT NULL,
-			enclave_identifier TEXT NOT NULL,
 			function_id TEXT NOT NULL,
 			effective_function_id TEXT NOT NULL,
-			function_version_id TEXT NOT NULL,
 			hostname TEXT NOT NULL,
 			ip TEXT NOT NULL,
 			port INTEGER NOT NULL,
@@ -81,10 +79,8 @@ func (s *Store) init(ctx context.Context) error {
 				bucket_start,
 				tenant_id,
 				enclave_id,
-				enclave_identifier,
 				function_id,
 				effective_function_id,
-				function_version_id,
 				hostname,
 				ip,
 				port
@@ -142,7 +138,7 @@ func (s *Store) Ingest(ctx context.Context, batch api.IngestBatch) (bool, error)
 }
 
 func upsertObservation(ctx context.Context, tx *sql.Tx, record api.Observation) error {
-	if record.TenantID == "" || record.FunctionID == "" || record.FunctionVersionID == "" {
+	if record.TenantID == "" || record.FunctionID == "" {
 		return errors.New("observation is missing required identity fields")
 	}
 	if record.Hostname == "" || record.IP == "" || record.Port <= 0 {
@@ -158,25 +154,21 @@ func upsertObservation(ctx context.Context, tx *sql.Tx, record api.Observation) 
 			bucket_start,
 			tenant_id,
 			enclave_id,
-			enclave_identifier,
 			function_id,
 			effective_function_id,
-			function_version_id,
 			hostname,
 			ip,
 			port,
 			count,
 			first_seen_at,
 			last_seen_at
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT (
 			bucket_start,
 			tenant_id,
 			enclave_id,
-			enclave_identifier,
 			function_id,
 			effective_function_id,
-			function_version_id,
 			hostname,
 			ip,
 			port
@@ -187,10 +179,8 @@ func upsertObservation(ctx context.Context, tx *sql.Tx, record api.Observation) 
 		record.BucketStart.UTC().Unix(),
 		record.TenantID,
 		record.EnclaveID,
-		record.EnclaveIdentifier,
 		record.FunctionID,
 		record.EffectiveFunctionID,
-		record.FunctionVersionID,
 		record.Hostname,
 		record.IP,
 		record.Port,
@@ -221,10 +211,27 @@ func (s *Store) Query(ctx context.Context, query Query) ([]api.Observation, erro
 		args = append(args, value)
 	}
 	addTextFilter("tenant_id", query.TenantID)
-	addTextFilter("enclave_id", query.EnclaveID)
-	addTextFilter("enclave_identifier", query.EnclaveIdentifier)
 	addTextFilter("function_id", query.FunctionID)
-	addTextFilter("hostname", query.Hostname)
+	addListFilter := func(column string, values []string) {
+		if len(values) == 0 {
+			return
+		}
+		placeholders := make([]string, 0, len(values))
+		for _, value := range values {
+			if value == "" {
+				continue
+			}
+			placeholders = append(placeholders, "?")
+			args = append(args, value)
+		}
+		if len(placeholders) == 0 {
+			return
+		}
+		clauses = append(clauses, fmt.Sprintf("%s IN (%s)", column, strings.Join(placeholders, ",")))
+	}
+	addListFilter("enclave_id", query.EnclaveIDs)
+	addListFilter("hostname", query.Hostnames)
+	addListFilter("ip", query.IPs)
 
 	rows, err := s.db.QueryContext(
 		ctx,
@@ -232,10 +239,8 @@ func (s *Store) Query(ctx context.Context, query Query) ([]api.Observation, erro
 			bucket_start,
 			tenant_id,
 			enclave_id,
-			enclave_identifier,
 			function_id,
 			effective_function_id,
-			function_version_id,
 			hostname,
 			ip,
 			port,
@@ -263,10 +268,8 @@ func (s *Store) Query(ctx context.Context, query Query) ([]api.Observation, erro
 			&bucketStart,
 			&record.TenantID,
 			&record.EnclaveID,
-			&record.EnclaveIdentifier,
 			&record.FunctionID,
 			&record.EffectiveFunctionID,
-			&record.FunctionVersionID,
 			&record.Hostname,
 			&record.IP,
 			&record.Port,

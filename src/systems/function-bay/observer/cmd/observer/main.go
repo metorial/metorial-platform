@@ -116,11 +116,11 @@ func queryHandler(logger *slog.Logger, db *store.Store) http.Handler {
 func parseQuery(r *http.Request) (store.Query, error) {
 	values := r.URL.Query()
 	query := store.Query{
-		TenantID:          values.Get("tenantId"),
-		EnclaveID:         values.Get("enclaveId"),
-		EnclaveIdentifier: values.Get("enclaveIdentifier"),
-		FunctionID:        values.Get("functionId"),
-		Hostname:          values.Get("hostname"),
+		TenantID:   values.Get("tenantId"),
+		EnclaveIDs: queryList(values, "enclaveId"),
+		FunctionID: values.Get("functionId"),
+		Hostnames:  queryList(values, "hostname"),
+		IPs:        queryList(values, "ip"),
 	}
 
 	var err error
@@ -137,6 +137,18 @@ func parseQuery(r *http.Request) (store.Query, error) {
 		}
 	}
 	return query, nil
+}
+
+func queryList(values map[string][]string, key string) []string {
+	out := []string{}
+	for _, candidate := range []string{key, key + "[]"} {
+		for _, value := range values[candidate] {
+			if value != "" {
+				out = append(out, value)
+			}
+		}
+	}
+	return out
 }
 
 func health(w http.ResponseWriter, r *http.Request) {

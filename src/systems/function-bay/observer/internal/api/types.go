@@ -7,9 +7,7 @@ type Observation struct {
 	TenantID            string    `json:"tenantId"`
 	FunctionID          string    `json:"functionId"`
 	EffectiveFunctionID string    `json:"effectiveFunctionId,omitempty"`
-	FunctionVersionID   string    `json:"functionVersionId"`
 	EnclaveID           string    `json:"enclaveId,omitempty"`
-	EnclaveIdentifier   string    `json:"enclaveIdentifier,omitempty"`
 	Hostname            string    `json:"hostname"`
 	IP                  string    `json:"ip"`
 	Port                int       `json:"port"`

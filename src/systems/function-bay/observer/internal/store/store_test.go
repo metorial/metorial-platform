@@ -28,9 +28,7 @@ func TestIngestAggregatesAndDeduplicatesBatches(t *testing.T) {
 				TenantID:            "tenant_123",
 				FunctionID:          "function_123",
 				EffectiveFunctionID: "function_override_123",
-				FunctionVersionID:   "functionVersion_123",
 				EnclaveID:           "enclave_123",
-				EnclaveIdentifier:   "preview",
 				Hostname:            "api.example.com",
 				IP:                  "203.0.113.10",
 				Port:                443,
@@ -83,17 +81,16 @@ func TestIngestUpsertsMatchingObservationKeys(t *testing.T) {
 			DeflectorInstanceID: "deflector-1",
 			Records: []api.Observation{
 				{
-					BucketStart:       bucketStart,
-					TenantID:          "tenant_123",
-					FunctionID:        "function_123",
-					FunctionVersionID: "functionVersion_123",
-					EnclaveID:         "enclave_123",
-					Hostname:          "api.example.com",
-					IP:                "203.0.113.10",
-					Port:              443,
-					Count:             count,
-					FirstSeenAt:       bucketStart.Add(time.Minute),
-					LastSeenAt:        bucketStart.Add(2 * time.Minute),
+					BucketStart: bucketStart,
+					TenantID:    "tenant_123",
+					FunctionID:  "function_123",
+					EnclaveID:   "enclave_123",
+					Hostname:    "api.example.com",
+					IP:          "203.0.113.10",
+					Port:        443,
+					Count:       count,
+					FirstSeenAt: bucketStart.Add(time.Minute),
+					LastSeenAt:  bucketStart.Add(2 * time.Minute),
 				},
 			},
 		}
@@ -107,9 +104,10 @@ func TestIngestUpsertsMatchingObservationKeys(t *testing.T) {
 	}
 
 	records, err := store.Query(context.Background(), Query{
-		TenantID:  "tenant_123",
-		EnclaveID: "enclave_123",
-		Hostname:  "api.example.com",
+		TenantID:   "tenant_123",
+		EnclaveIDs: []string{"enclave_123"},
+		Hostnames:  []string{"api.example.com"},
+		IPs:        []string{"203.0.113.10"},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -132,16 +130,15 @@ func TestCleanupBeforeDeletesLogsOlderThanCutoff(t *testing.T) {
 	now := time.Date(2026, 5, 27, 12, 0, 0, 0, time.UTC)
 	makeRecord := func(bucketStart time.Time, hostname string) api.Observation {
 		return api.Observation{
-			BucketStart:       bucketStart,
-			TenantID:          "tenant_123",
-			FunctionID:        "function_123",
-			FunctionVersionID: "functionVersion_123",
-			Hostname:          hostname,
-			IP:                "203.0.113.10",
-			Port:              443,
-			Count:             1,
-			FirstSeenAt:       bucketStart,
-			LastSeenAt:        bucketStart.Add(time.Minute),
+			BucketStart: bucketStart,
+			TenantID:    "tenant_123",
+			FunctionID:  "function_123",
+			Hostname:    hostname,
+			IP:          "203.0.113.10",
+			Port:        443,
+			Count:       1,
+			FirstSeenAt: bucketStart,
+			LastSeenAt:  bucketStart.Add(time.Minute),
 		}
 	}
 
