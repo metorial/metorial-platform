@@ -110,14 +110,12 @@ export const SlateInvocationFixtures = (db: PrismaClient) => {
       responses: [],
       logs: [[Date.now(), 'Test invocation completed']],
       provider: {
-        object: 'function.invocation',
         id: invocation.providerInvocationId,
-        status: 'succeeded',
+        status: 'succeeded' as const,
         functionVersionId: 'test-function-version',
         billedTimeMs: 100,
         computeTimeMs: 50,
-        error: null,
-        createdAt: new Date()
+        error: null
       }
     };
 

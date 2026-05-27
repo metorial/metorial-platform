@@ -8,7 +8,7 @@ import type {
 } from '../../prisma/generated/client';
 import { db } from '../db';
 import { snowflake } from '../id';
-import { getFunctionCallLogs } from '../lib/function/call';
+import { serverConnectionService } from './serverConnection';
 
 let include = {
   connection: true,
@@ -78,22 +78,40 @@ class functionServerInvocationServiceImpl {
   async getFunctionServerInvocationLogs(d: {
     functionServerInvocation: FunctionServerInvocation & {
       functionServer: FunctionServer;
+      connection: ServerConnection | null;
     };
   }) {
-    let logs = await getFunctionCallLogs({
-      server: d.functionServerInvocation.functionServer,
-      functionCallId: d.functionServerInvocation.functionBayInvocationId
+    if (!d.functionServerInvocation.connection) {
+      return {
+        object: 'shuttle#function_server.invocation.logs' as const,
+        functionInvocationId: d.functionServerInvocation.functionBayInvocationId,
+        logs: []
+      };
+    }
+
+    let connectionLogs = await serverConnectionService.getLogs({
+      serverConnection: d.functionServerInvocation.connection
     });
 
-    return {
-      object: 'shuttle#function_server.invocation.logs',
-      functionInvocationId: d.functionServerInvocation.functionBayInvocationId,
-      logs: logs.map(log => ({
-        object: 'shuttle#function_server.invocation.log',
+    let invocationCreatedAt = d.functionServerInvocation.createdAt.getTime();
+
+    let logs = connectionLogs
+      .filter(
+        log =>
+          log.outputType === 'stdout' &&
+          log.timestamp.getTime() >= invocationCreatedAt - 1000
+      )
+      .map(log => ({
+        object: 'shuttle#function_server.invocation.log' as const,
         outputType: 'stdout' as const,
-        timestamp: log.timestamp,
+        timestamp: log.timestamp.getTime(),
         message: log.message
-      }))
+      }));
+
+    return {
+      object: 'shuttle#function_server.invocation.logs' as const,
+      functionInvocationId: d.functionServerInvocation.functionBayInvocationId,
+      logs
     };
   }
 }

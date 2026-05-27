@@ -8,4 +8,5 @@ model Tenant {
   createdAt             DateTime               @default(now())
   runtimeForgeWorkflows RuntimeForgeWorkflow[]
   functions             Function[]
+  enclaves              Enclave[]
 }

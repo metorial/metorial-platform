@@ -1,9 +1,8 @@
-import { delay } from '@lowerdeck/delay';
 import { getSentry } from '@lowerdeck/sentry';
 import PQueue from 'p-queue';
 import type { SlateInvocation } from '../../../prisma/generated/client';
 import { db } from '../../db';
-import { functionBay, functionBayTenant } from '../../functionBay';
+import type { FunctionInvokeResponse } from '@metorial-platform-systems/function-bay-client';
 import { invocationsBucketRecord, storage } from '../../storage';
 import type {
   SlateInvocationBaseParams,
@@ -25,46 +24,30 @@ let authFieldsToRedact = [
   'state'
 ];
 
-let getFunctionBayInvocationResultWithRetry = async (
-  d: SlateInvocationBaseParams & { invocationId: string }
-) => {
-  if (!d.invocationId) {
-    throw new Error('invocationId is required for getFunctionBayInvocationResultWithRetry');
-  }
-
-  let attempt = 0;
-  while (true) {
-    attempt++;
-    try {
-      return await functionBay.functionInvocation.get({
-        tenantId: (await functionBayTenant).id,
-        functionId: d.slateVersion.providerDeploymentInfo?.functionId!,
-        functionInvocationId: d.invocationId
-      });
-    } catch (err) {
-      if (attempt === 5) throw err;
-
-      await delay(200 * attempt);
-    }
-  }
+export type SlateInvocationProviderMetadata = {
+  id: string;
+  status: 'succeeded' | 'failed';
+  functionVersionId: string;
+  billedTimeMs: number;
+  computeTimeMs: number;
+  error: unknown;
 };
 
-export type SlateInvocationResult = Awaited<
-  ReturnType<typeof getFunctionBayInvocationResultWithRetry>
->;
+export type SlateInvocationResult = SlateInvocationProviderMetadata & {
+  logs: { timestamp: number; message: string }[];
+  createdAt: Date;
+};
 
 export let storeSlateInvocation = (
   d: SlateInvocationBaseParams & {
     record: SlateInvocation;
     requestMessages: SlatesRequest[];
     responseMessages?: SlatesResponse[];
-    invocationResult: Awaited<ReturnType<typeof functionBay.function.invoke>>;
+    invocationResult: FunctionInvokeResponse;
   }
 ) => {
   storeQueue
     .add(async () => {
-      await delay(1000); // Wait for function bay invocation logs to be available
-
       let idToMethodMap = new Map<string, SlatesRequest['method']>();
 
       let sanitizedRequests = d.requestMessages.map(m => {
@@ -122,7 +105,6 @@ export let storeSlateInvocation = (
         return [...extractRequestTraces(result), ...extractRequestTraces(error)];
       });
 
-      // Handle error case where invocationResult.id may be undefined
       if (!d.invocationResult.id) {
         let storageKey = getStoredInvocationStorageKey(d.record);
         await storage.putObject(
@@ -151,11 +133,14 @@ export let storeSlateInvocation = (
         return;
       }
 
-      let invocationResult = await getFunctionBayInvocationResultWithRetry({
-        slateVersion: d.slateVersion,
-        participants: d.participants,
-        invocationId: d.invocationResult.id
-      });
+      let provider: SlateInvocationProviderMetadata = {
+        id: d.invocationResult.id,
+        status: d.invocationResult.status,
+        functionVersionId: d.invocationResult.functionVersionId,
+        billedTimeMs: d.invocationResult.billedTimeMs,
+        computeTimeMs: d.invocationResult.computeTimeMs,
+        error: d.invocationResult.type === 'error' ? d.invocationResult.error : null
+      };
 
       let storageKey = getStoredInvocationStorageKey(d.record);
       await storage.putObject(
@@ -165,9 +150,10 @@ export let storeSlateInvocation = (
           id: d.record.id,
           requests: sanitizedRequests as any,
           responses: (sanitizedResponses ?? []) as any,
-          provider: { ...invocationResult, logs: undefined } as any,
-          // @ts-ignore
-          logs: invocationResult.logs.map(log => [log.timestamp, log.message] as const),
+          provider,
+          logs: d.invocationResult.logs.map(
+            log => [log.timestamp, log.message] as const
+          ),
           requestTraces
         } satisfies StoredSlateInvocation)
       );
@@ -177,8 +163,7 @@ export let storeSlateInvocation = (
         data: {
           isPending: false,
           hasResponseError: hasResponseError,
-          hasInvocationError: invocationResult.status === 'failed',
-
+          hasInvocationError: d.invocationResult.status === 'failed',
           providerInvocationId: d.invocationResult.id,
           bucketOid: invocationsBucketRecord.oid
         }

@@ -167,7 +167,7 @@ describe('function:invoke E2E', () => {
     providerMocks.invokeFunction.mockResolvedValue({
       type: 'success',
       result: { ok: true },
-      logs: [],
+      logs: [[1_700_000_000_000, 'hello']],
       computeTimeMs: 10,
       billedTimeMs: 10
     });
@@ -180,8 +180,14 @@ describe('function:invoke E2E', () => {
 
     expect(result).toMatchObject({
       type: 'success',
+      status: 'succeeded',
       result: { ok: true },
-      id: expect.any(String)
+      error: null,
+      id: expect.any(String),
+      functionVersionId: version.id,
+      computeTimeMs: 10,
+      billedTimeMs: 10,
+      logs: [{ timestamp: 1_700_000_000_000, message: 'hello' }]
     });
     expect(providerMocks.invokeFunction).toHaveBeenCalledOnce();
   });

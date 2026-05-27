@@ -8,7 +8,7 @@ import type {
 } from '@slates/proto';
 import type z from 'zod';
 import type { SlateInvocation, SlateVersion } from '../../../prisma/generated/client';
-import type { SlateInvocationResult } from './store';
+import type { SlateInvocationProviderMetadata } from './store';
 
 export interface SlateInvocationBaseParams {
   slateVersion: SlateVersion;
@@ -42,6 +42,6 @@ export interface StoredSlateInvocation {
   requests: SlatesRequest[];
   responses: SlatesResponse[];
   logs: [number, string][];
-  provider?: Omit<SlateInvocationResult, 'logs'>;
+  provider?: SlateInvocationProviderMetadata;
   requestTraces?: SlatesRequestTrace[];
 }

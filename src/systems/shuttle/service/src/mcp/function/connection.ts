@@ -11,7 +11,7 @@ import type {
 } from '../../../prisma/generated/client';
 import { db } from '../../db';
 import { snowflake } from '../../id';
-import { callFunction, getFunctionCallLogs } from '../../lib/function/call';
+import { callFunction } from '../../lib/function/call';
 import { secretService } from '../../services';
 import type { McpConnectionBackendAdapter } from '../connection/adapter';
 import { ConnectionManager } from '../utils/connection';
@@ -148,12 +148,7 @@ export class FunctionConnection implements McpConnectionBackendAdapter {
             }
           });
 
-          let logs = await getFunctionCallLogs({
-            server: this.functionServer,
-            functionCallId: res.functionCallId
-          });
-
-          for (let logEntry of logs) {
+          for (let logEntry of res.logs) {
             this.logger.log('stdout', logEntry.message, logEntry.timestamp);
           }
         }

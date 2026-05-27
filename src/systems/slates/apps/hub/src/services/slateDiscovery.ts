@@ -1,4 +1,4 @@
-import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
+import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type {
@@ -7,7 +7,8 @@ import type {
   SlateVersionDiscovery
 } from '../../prisma/generated/client';
 import { db } from '../db';
-import { functionBay, functionBayTenant } from '../functionBay';
+import { loadStoredSlateInvocation } from '../lib/invocation/loadStored';
+import type { SlateInvocationResult } from '../lib/invocation/store';
 
 let include = {
   specification: {
@@ -44,31 +45,29 @@ class slateVersionDiscoveryServiceImpl {
     return slateVersionDiscovery;
   }
 
-  async getBuildOutput(d: { slateVersionDiscovery: SlateVersionDiscovery }) {
+  async getBuildOutput(d: {
+    slateVersionDiscovery: SlateVersionDiscovery;
+  }): Promise<SlateInvocationResult | null> {
     if (!d.slateVersionDiscovery.invocationOid) return null;
 
-    let invocation = await db.slateInvocation.findFirstOrThrow({
+    let invocation = await db.slateInvocation.findFirst({
       where: {
         oid: d.slateVersionDiscovery.invocationOid
       }
     });
+    if (!invocation || invocation.isPending) return null;
 
-    if (!invocation.providerInvocationId) return null;
+    let stored = await loadStoredSlateInvocation(invocation);
+    if (!stored?.provider) return null;
 
-    let version = await db.slateVersion.findFirstOrThrow({
-      where: {
-        oid: d.slateVersionDiscovery.slateVersionOid
-      }
-    });
-    if (!version.providerDeploymentInfo) {
-      throw new ServiceError(badRequestError({ message: 'Version not deployed' }));
-    }
-
-    return await functionBay.functionInvocation.get({
-      tenantId: (await functionBayTenant).id,
-      functionId: version.providerDeploymentInfo.functionId,
-      functionInvocationId: invocation.providerInvocationId
-    });
+    return {
+      ...stored.provider,
+      logs: (stored.logs ?? []).map(([timestamp, message]) => ({
+        timestamp,
+        message
+      })),
+      createdAt: invocation.createdAt
+    };
   }
 
   async listSlateVersionDiscoveries(d: {

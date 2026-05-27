@@ -21,11 +21,13 @@ model Function {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  functionVersions    FunctionVersion[]
-  functionDeployments FunctionDeployment[]
-  runtime             Runtime?             @relation(fields: [runtimeOid], references: [oid])
-  runtimeOid          BigInt?
-  functionBundles     FunctionBundle[]
+  functionVersions         FunctionVersion[]
+  functionDeployments      FunctionDeployment[]
+  runtime                  Runtime?                  @relation(fields: [runtimeOid], references: [oid])
+  runtimeOid               BigInt?
+  functionBundles          FunctionBundle[]
+  enclaveFunctions         EnclaveFunction[]
+  enclaveFunctionOverrides EnclaveFunctionOverride[]
 
   @@unique([identifier, tenantOid])
 }
@@ -142,34 +144,11 @@ model FunctionVersion {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  functions           Function[]           @relation(name: "CurrentVersion")
-  functionDeployments FunctionDeployment[]
-  functionInvocations FunctionInvocation[]
+  functions                Function[]                @relation(name: "CurrentVersion")
+  functionDeployments      FunctionDeployment[]
+  enclaveFunctionOverrides EnclaveFunctionOverride[]
 
   @@unique([identifier, functionOid])
-}
-
-enum FunctionInvocationStatus {
-  succeeded
-  failed
-}
-
-model FunctionInvocation {
-  oid BigInt @id
-  id  String @unique
-
-  status FunctionInvocationStatus
-
-  functionVersionOid BigInt
-  functionVersion    FunctionVersion @relation(fields: [functionVersionOid], references: [oid])
-
-  error Json
-  logs  String
-
-  computeTimeMs Int
-  billedTimeMs  Int
-
-  createdAt DateTime @default(now())
 }
 
 enum FunctionBundleStatus {

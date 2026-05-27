@@ -1,0 +1,43 @@
+model Enclave {
+  oid BigInt @id
+  id  String @unique
+
+  name       String
+  identifier String
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  enclaveFunctions         EnclaveFunction[]
+  enclaveFunctionOverrides EnclaveFunctionOverride[]
+}
+
+model EnclaveFunction {
+  oid BigInt @id
+
+  enclaveOid BigInt
+  enclave    Enclave @relation(fields: [enclaveOid], references: [oid])
+
+  functionOid BigInt
+  function    Function @relation(fields: [functionOid], references: [oid])
+
+  @@unique([enclaveOid, functionOid])
+}
+
+model EnclaveFunctionOverride {
+  oid BigInt @id
+
+  enclaveOid BigInt
+  enclave    Enclave @relation(fields: [enclaveOid], references: [oid])
+
+  functionOid BigInt
+  function    Function @relation(fields: [functionOid], references: [oid])
+
+  overridesFunctionVersionOid BigInt
+  overridesFunctionVersion    FunctionVersion @relation(fields: [overridesFunctionVersionOid], references: [oid])
+
+  @@unique([enclaveOid, functionOid])
+}

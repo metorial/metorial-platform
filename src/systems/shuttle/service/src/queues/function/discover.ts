@@ -2,7 +2,7 @@ import { createQueue } from '@lowerdeck/queue';
 import { db } from '../../db';
 import { env } from '../../env';
 import { DeploymentManager } from '../../lib/deployment';
-import { callFunction, getFunctionCallLogs } from '../../lib/function/call';
+import { callFunction } from '../../lib/function/call';
 import { normalizeJsonSchema } from '../../lib/jsonSchema/normalizeJsonSchema';
 import { deployServerFailedQueue } from '../deployment/failed';
 import { deployFunctionServerPublishQueue } from './publish';
@@ -28,13 +28,7 @@ export let deployFunctionServerDiscoverQueueProcessor =
     try {
       let discoveryRes = await callFunction(functionServer, client => client.discover());
 
-      let logs = discoveryRes.functionCallId
-        ? await getFunctionCallLogs({
-            server: functionServer,
-            functionCallId: discoveryRes.functionCallId
-          })
-        : [];
-      step.log(logs.map(l => l.message));
+      step.log(discoveryRes.logs.map(l => l.message));
 
       if (discoveryRes.status == 'error') {
         await db.functionServer.update({
