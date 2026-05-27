@@ -119,6 +119,10 @@ jobs:
           NX_CACHE_DIRECTORY: ${{ github.workspace }}/.nx/cache
         run: bun i
 
+      - name: Expose GitHub Actions cache runtime
+        if: ${{ inputs.enable_cache }}
+        uses: crazy-max/ghaction-github-runtime@v3
+
       - name: Start Nx cache bridge
         if: ${{ inputs.enable_cache }}
         env:
