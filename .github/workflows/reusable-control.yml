@@ -57,6 +57,7 @@ jobs:
     permissions:
       contents: read
       packages: read
+      actions: write
 
     steps:
       - name: Checkout repository
@@ -87,34 +88,30 @@ jobs:
         run: |
           set -euo pipefail
 
-          if [ -n "${CACHE_PREFIX}" ]; then
-            SCOPE="${CACHE_PREFIX}"
+          PREFIX="${CACHE_PREFIX:-control}"
+          if [ "${COMMAND}" = "warm-cache" ]; then
+            SCOPE="${PREFIX}-warm-cache"
           elif [ "${ALL}" = "true" ]; then
-            SCOPE="${COMMAND}-${MODE:-none}-all"
+            SCOPE="${PREFIX}-${COMMAND}-${MODE:-none}-all"
           elif [ -n "${FILTER}" ]; then
-            SCOPE="${COMMAND}-${MODE:-none}-${FILTER}"
+            SCOPE="${PREFIX}-${COMMAND}-${MODE:-none}-${FILTER}"
           else
-            SCOPE="${COMMAND}-${MODE:-none}-none"
+            SCOPE="${PREFIX}-${COMMAND}-${MODE:-none}-none"
           fi
           if [ -n "${MODULES}" ]; then
             SCOPE="${SCOPE}-modules-${MODULES}"
           fi
 
           SCOPE="$(printf '%s' "${SCOPE}" | tr -c 'A-Za-z0-9_.-' '-')"
+          WARM_SCOPE="$(printf '%s' "${PREFIX}-warm-cache" | tr -c 'A-Za-z0-9_.-' '-')"
           echo "scope=${SCOPE}" >> "${GITHUB_OUTPUT}"
+          echo "warm_scope=${WARM_SCOPE}" >> "${GITHUB_OUTPUT}"
 
       - name: Prepare cache directories
         if: ${{ inputs.enable_cache }}
         run: mkdir -p .nx/cache .control/cache/nx-artifacts .control/cache/nx-manifest
 
-      - name: Install control packages
-        if: ${{ inputs.command == 'build' || (inputs.command == 'ci' && inputs.mode == 'e2e') }}
-        env:
-          NX_CACHE_DIRECTORY: ${{ github.workspace }}/.nx/cache
-        run: bun i --filter @metorial/oss --filter @metorial/control
-
       - name: Install packages
-        if: ${{ inputs.command == 'warm-cache' || (inputs.command == 'ci' && inputs.mode == 'unit') }}
         env:
           NX_CACHE_DIRECTORY: ${{ github.workspace }}/.nx/cache
         run: bun i
@@ -128,6 +125,7 @@ jobs:
         env:
           CACHE_NAMESPACE: control-v1-${{ runner.os }}-${{ hashFiles('bun.lock', 'package.json', 'nx.json') }}
           CACHE_SCOPE: ${{ steps.cache-scope.outputs.scope }}
+          CACHE_WARM_SCOPE: ${{ steps.cache-scope.outputs.warm_scope }}
           CACHE_REF: ${{ github.ref_name }}
         run: |
           set -euo pipefail
@@ -137,6 +135,7 @@ jobs:
           CACHE_REF_SAFE="$(printf '%s' "${CACHE_REF}" | tr -c 'A-Za-z0-9_.-' '-')"
           MANIFEST_PREFIX="control-nx-used-digests-${CACHE_NAMESPACE}-${CACHE_REF_SAFE}-${CACHE_SCOPE}"
           MANIFEST_SAVE_KEY="${MANIFEST_PREFIX}-${{ github.run_id }}-${{ github.run_attempt }}"
+          WARM_MANIFEST_PREFIX="control-nx-used-digests-${CACHE_NAMESPACE}-${CACHE_REF_SAFE}-${CACHE_WARM_SCOPE}"
 
           bun run control cache-server \
             --port "${PORT}" \
@@ -149,6 +148,7 @@ jobs:
             --manifest-save-key "${MANIFEST_SAVE_KEY}" \
             --manifest-primary-key "${MANIFEST_SAVE_KEY}" \
             --manifest-restore-key "${MANIFEST_PREFIX}-" \
+            --manifest-restore-key "${WARM_MANIFEST_PREFIX}-" \
             --manifest-restore-key "control-nx-used-digests-${CACHE_NAMESPACE}-${CACHE_REF_SAFE}-" \
             --manifest-restore-key "control-nx-used-digests-${CACHE_NAMESPACE}-" \
             > .control/cache/nx-server.log 2>&1 &
@@ -169,14 +169,14 @@ jobs:
           exit 1
 
       - name: Generate Prisma Clients
-        if: ${{ inputs.command == 'warm-cache' || (inputs.command == 'ci' && inputs.mode == 'unit') }}
+        if: ${{ inputs.command == 'warm-cache' }}
         env:
           NX_CACHE_DIRECTORY: ${{ github.workspace }}/.nx/cache
           NX_SELF_HOSTED_REMOTE_CACHE_SERVER: ${{ inputs.enable_cache && 'http://127.0.0.1:43191' || '' }}
         run: bun x nx run-many --target=prisma:generate --all --parallel=1
 
       - name: Build platform system clients
-        if: ${{ inputs.command == 'warm-cache' || (inputs.command == 'ci' && inputs.mode == 'unit') }}
+        if: ${{ inputs.command == 'warm-cache' }}
         env:
           NX_CACHE_DIRECTORY: ${{ github.workspace }}/.nx/cache
           NX_SELF_HOSTED_REMOTE_CACHE_SERVER: ${{ inputs.enable_cache && 'http://127.0.0.1:43191' || '' }}
@@ -187,31 +187,21 @@ jobs:
         env:
           NX_CACHE_DIRECTORY: ${{ github.workspace }}/.nx/cache
           NX_SELF_HOSTED_REMOTE_CACHE_SERVER: ${{ inputs.enable_cache && 'http://127.0.0.1:43191' || '' }}
-        run: |
-          set -euo pipefail
+        run: bun run control warm-cache --all --include-unit
 
-          warm_target() {
-            local target="$1"
-            mapfile -t projects < <(bun x nx show projects --with-target="${target}")
-            if [ "${#projects[@]}" -eq 0 ]; then
-              echo "No projects for ${target}"
-              return
-            fi
-
-            local joined
-            joined="$(IFS=,; echo "${projects[*]}")"
-            bun x nx run-many --target="${target}" --projects="${joined}" --parallel=3
-          }
-
-          warm_target server:build
-          bun x nx run-many --target=frontend:build --projects=@metorial-subspace/app-public,@metorial/ares --parallel=2
-          warm_target worker:build
+      - name: Prepare unit cache closure
+        if: ${{ inputs.command == 'ci' && inputs.mode == 'unit' }}
+        env:
+          NX_CACHE_DIRECTORY: ${{ github.workspace }}/.nx/cache
+          NX_SELF_HOSTED_REMOTE_CACHE_SERVER: ${{ inputs.enable_cache && 'http://127.0.0.1:43191' || '' }}
+        run: bun run control warm-cache --filter "${{ inputs.filter }}" --include-unit
 
       - name: Run control
         if: ${{ inputs.command != 'warm-cache' }}
         env:
           CONTROL_BUILDKIT_CACHE: '0'
           CONTROL_DOCKER_CACHE_MOUNTS: '0'
+          CONTROL_PREBUILT_BUILD_ARTIFACTS: '1'
           CONTROL_NX_REMOTE_CACHE_DOCKER_URL: ${{ inputs.enable_cache && 'http://host.docker.internal:43191' || '' }}
           CONTROL_VERBOSE: '1'
           NX_CACHE_DIRECTORY: ${{ github.workspace }}/.nx/cache
@@ -266,10 +256,21 @@ jobs:
             FINALIZE_STATUS=$?
           fi
 
-          bun run control cache-summary \
+          SUMMARY_OUTPUT="$(bun run control cache-summary \
             --stats ".control/cache/nx-stats.json" \
-            --root ".control/cache/nx-artifacts"
+            --root ".control/cache/nx-artifacts")"
           SUMMARY_STATUS=$?
+          echo "${SUMMARY_OUTPUT}"
+
+          if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+            {
+              echo "## Nx cache summary"
+              echo ""
+              echo '```'
+              echo "${SUMMARY_OUTPUT}"
+              echo '```'
+            } >> "${GITHUB_STEP_SUMMARY}"
+          fi
 
           if [ "${FINALIZE_STATUS}" -ne 0 ] || [ "${SUMMARY_STATUS}" -ne 0 ]; then
             echo ""

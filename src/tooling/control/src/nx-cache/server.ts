@@ -177,6 +177,21 @@ export let printCacheSummary = (statsPath: string, root?: string) => {
   console.log(`  Used digests:       ${stats.usedDigests.length}`);
   if (root) console.log(`  Local artifact dir: ${formatBytes(size)}`);
 
+  let lookups = stats.localHits + stats.githubHits + stats.misses;
+  if (lookups > 0) {
+    let missRate = stats.misses / lookups;
+    console.log(`  Miss rate:          ${(missRate * 100).toFixed(1)}%`);
+
+    if (process.env.GITHUB_ACTIONS === 'true' && missRate > 0.5 && stats.manifestMatchedKey) {
+      console.log(
+        `::warning::Nx cache miss rate is ${(missRate * 100).toFixed(1)}% despite restoring ${stats.manifestMatchedKey}`
+      );
+    }
+  }
+  if (process.env.GITHUB_ACTIONS === 'true' && stats.uploadFailures > 0) {
+    console.log(`::warning::Nx cache bridge had ${stats.uploadFailures} upload failure(s)`);
+  }
+
   if (slowest.length > 0) {
     console.log('');
     console.log('Slowest cache operations');
@@ -359,11 +374,6 @@ export let runCacheServer = async (opts: ServerOptions) => {
   };
 
   let writeManifest = async () => {
-    let previous = readManifest(manifestPath(opts.manifestDir));
-    for (let entry of previous.digests) {
-      if (!used.has(entry.hash)) used.set(entry.hash, entry);
-    }
-
     let digests = [...used.values()]
       .sort((a, b) => b.lastUsedAt.localeCompare(a.lastUsedAt))
       .slice(0, opts.maxManifestEntries);

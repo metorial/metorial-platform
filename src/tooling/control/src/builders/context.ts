@@ -1,7 +1,17 @@
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'fs';
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync
+} from 'fs';
 import { dirname, join, relative, resolve } from 'path';
 import { ControlError } from '../errors';
 import { copyGitAwareSelection } from '../staging/copyTree';
+import { shouldUsePrebuiltBuildArtifacts } from './base';
 import type {
   GeneratedBuildInstallLayer,
   GeneratedBuildPath,
@@ -95,6 +105,64 @@ let cumulativeManifestFiles = (
   return [...files.values()].sort((a, b) => a.relativeToContext.localeCompare(b.relativeToContext));
 };
 
+let copyPath = (source: string, dest: string) => {
+  let stat = statSync(source);
+  if (stat.isDirectory()) {
+    mkdirSync(dest, { recursive: true });
+    for (let entry of readdirSync(source)) {
+      copyPath(join(source, entry), join(dest, entry));
+    }
+    return;
+  }
+
+  mkdirSync(dirname(dest), { recursive: true });
+  copyFileSync(source, dest);
+};
+
+let materializePrebuiltArtifacts = (opts: {
+  plan: GeneratedBuildPlan;
+  contextRoot: string;
+  sourceRoot: string;
+}) => {
+  let prebuiltRoot = join(opts.contextRoot, '_prebuilt');
+  mkdirSync(prebuiltRoot, { recursive: true });
+
+  for (let artifact of opts.plan.artifacts) {
+    if (artifact.from.startsWith('/') && !artifact.from.startsWith('//')) continue;
+
+    let source = resolve(opts.sourceRoot, artifact.fromRelativeToContext);
+    if (!existsSync(source)) {
+      throw new ControlError({
+        code: 'prebuilt_artifact_missing',
+        message: `Missing prebuilt artifact for ${opts.plan.service.name}: ${artifact.fromRelativeToContext}`,
+        hint: 'Run the host build preparation before materializing a prebuilt Docker context'
+      });
+    }
+
+    copyPath(source, join(prebuiltRoot, artifact.fromRelativeToContext));
+  }
+};
+
+let materializeSourceInputs = async (opts: {
+  plan: GeneratedBuildPlan;
+  contextRoot: string;
+  sourceRoot: string;
+}) => {
+  for (let layer of opts.plan.sourceLayers) {
+    let inputPaths = new Set<string>(layer.inputPaths.map(path => path.relativeToContext));
+
+    for (let file of rootInputFilesForPlan(opts.sourceRoot)) {
+      inputPaths.add(resolveRelativeToRoot(opts.sourceRoot, file));
+    }
+
+    await copyGitAwareSelection({
+      sourceRoot: opts.sourceRoot,
+      destRoot: join(opts.contextRoot, '_inputs', layer.name),
+      includePaths: [...inputPaths].sort((a, b) => a.localeCompare(b))
+    });
+  }
+};
+
 let materializeNodeContext = async (opts: {
   plan: GeneratedBuildPlan;
   contextRoot: string;
@@ -129,19 +197,13 @@ let materializeNodeContext = async (opts: {
 
   }
 
-  for (let layer of opts.plan.sourceLayers) {
-    let inputPaths = new Set<string>(layer.inputPaths.map(path => path.relativeToContext));
-
-    for (let file of rootInputFilesForPlan(opts.sourceRoot)) {
-      inputPaths.add(resolveRelativeToRoot(opts.sourceRoot, file));
-    }
-
-    await copyGitAwareSelection({
-      sourceRoot: opts.sourceRoot,
-      destRoot: join(opts.contextRoot, '_inputs', layer.name),
-      includePaths: [...inputPaths].sort((a, b) => a.localeCompare(b))
-    });
+  if (shouldUsePrebuiltBuildArtifacts()) {
+    await materializeSourceInputs(opts);
+    materializePrebuiltArtifacts(opts);
+    return renderNodePrunedDockerfile(opts.plan);
   }
+
+  await materializeSourceInputs(opts);
 
   return renderNodePrunedDockerfile(opts.plan);
 };
@@ -195,7 +257,7 @@ export let materializeBuildContext = async (opts: {
 
   rmSync(contextRoot, { recursive: true, force: true });
   mkdirSync(contextRoot, { recursive: true });
-  let sourceRoot = resolveSourceRoot(opts);
+  let sourceRoot = shouldUsePrebuiltBuildArtifacts() ? opts.plan.contextRoot : resolveSourceRoot(opts);
 
   let dockerfileContent =
     opts.plan.builder === 'node'

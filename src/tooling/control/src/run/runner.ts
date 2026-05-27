@@ -2,6 +2,7 @@ import { mkdirSync, writeFileSync, chmodSync } from 'fs';
 import { join, relative, resolve } from 'path';
 import { generateCompose, collectContainerNames } from '../compose/generator';
 import { createBuildPlan, renderDockerfileForPlan } from '../builders';
+import { shouldUsePrebuiltBuildArtifacts } from '../builders/base';
 import { materializeBuildContext } from '../builders/context';
 import { generatePostgresInitScript } from '../compose/databaseInit';
 import { postgresDatabasesForDep } from '../graph/databases';
@@ -139,6 +140,69 @@ let collectMaterializedBuildContexts = async (opts: {
   return contexts;
 };
 
+let collectBuildGraphs = (graph: ResolvedGraph): ResolvedGraph[] => {
+  let graphs: ResolvedGraph[] = [];
+  let seen = new Set<string>();
+
+  let visit = (graph: ResolvedGraph) => {
+    if (seen.has(graph.name)) return;
+    seen.add(graph.name);
+    graphs.push(graph);
+
+    for (let dep of graph.deps) {
+      if (dep.kind === 'control' && dep.children) visit(dep.children);
+    }
+  };
+
+  visit(graph);
+  return graphs;
+};
+
+let preparePrebuiltBuildArtifacts = async (opts: {
+  graph: ResolvedGraph;
+  registry: ServiceRegistry;
+  verbose?: boolean;
+}) => {
+  let logger = createLogger({ verbose: opts.verbose });
+  let commands = new Map<string, { cwd: string; command: string; service: string }>();
+
+  for (let graph of collectBuildGraphs(opts.graph)) {
+    let service = opts.registry.byName.get(graph.name);
+    if (!service?.config.build || service.config.build.mode === 'custom') continue;
+
+    let plan = createBuildPlan(service, opts.registry);
+    if (!plan?.project || !plan.target) continue;
+
+    for (let automation of plan.automations) {
+      commands.set(`${plan.contextRoot}:${automation.command}`, {
+        cwd: plan.contextRoot,
+        command: automation.command,
+        service: service.name
+      });
+    }
+
+    let mainCommand = `bun x nx run ${plan.project}:${plan.target}`;
+    commands.set(`${plan.contextRoot}:${mainCommand}`, {
+      cwd: plan.contextRoot,
+      command: mainCommand,
+      service: service.name
+    });
+  }
+
+  if (commands.size === 0) return;
+
+  logger.info(`Preparing ${commands.size} host build artifact task(s)...`);
+  for (let { cwd, command, service } of commands.values()) {
+    logger.debug(`Host build prep (${service}): ${command}`);
+    await runShell(['sh', '-c', command], {
+      cwd,
+      phase: 'build',
+      service,
+      verbose: opts.verbose
+    });
+  }
+};
+
 export let runControl = async (
   opts: RunOptions & { target: string; context?: RunControlContext }
 ) => {
@@ -170,6 +234,14 @@ export let runControl = async (
   let repoRoot = opts.session?.repoRoot ?? findControlRoot(cwd);
   let runDir = join(repoRoot, '.control', 'runs', runId);
   mkdirSync(runDir, { recursive: true });
+
+  if (shouldUsePrebuiltBuildArtifacts()) {
+    await preparePrebuiltBuildArtifacts({
+      graph,
+      registry,
+      verbose: opts.verbose
+    });
+  }
 
   let buildContexts = await collectMaterializedBuildContexts({
     graph,

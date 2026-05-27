@@ -150,6 +150,9 @@ export let formatRunStep = (run: string): string => run.replace(/\n+/g, ' ').tri
 
 export let shouldUseDockerCacheMounts = () => process.env.CONTROL_DOCKER_CACHE_MOUNTS !== '0';
 
+export let shouldUsePrebuiltBuildArtifacts = () =>
+  process.env.CONTROL_PREBUILT_BUILD_ARTIFACTS === '1';
+
 export let renderAptInstall = (packages: string[]): string[] => {
   if (packages.length === 0) return [];
   if (!shouldUseDockerCacheMounts()) {

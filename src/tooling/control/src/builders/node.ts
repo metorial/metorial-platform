@@ -9,7 +9,8 @@ import {
   renderApkInstall,
   renderAptInstall,
   renderArtifactLines,
-  shouldUseDockerCacheMounts
+  shouldUseDockerCacheMounts,
+  shouldUsePrebuiltBuildArtifacts
 } from './base';
 import {
   collectNxDependents,
@@ -621,12 +622,20 @@ export let renderNodePrunedDockerfile = (plan: GeneratedBuildPlan): string => {
   let nxCacheId = `control-nx-cache-${plan.service.name}`;
   let renderPlanNxRun = renderNxRun(nxCacheId);
   let automationLines = plan.automations.map(automation => renderAutomationCommand(automation));
+  let usePrebuiltArtifacts = shouldUsePrebuiltBuildArtifacts();
   let sourceLayerLines = plan.sourceLayers.flatMap(layer => [
     `COPY _inputs/${layer.name}/ ./`,
-    ...layer.commands.map(renderPlanNxRun)
+    ...(usePrebuiltArtifacts ? [] : layer.commands.map(renderPlanNxRun))
   ]);
   let artifactLines = renderArtifactLines(plan);
   let exposeLines = plan.runtime.expose.map(port => `EXPOSE ${port}`);
+  let buildLines = usePrebuiltArtifacts
+    ? [...sourceLayerLines, 'COPY _prebuilt/ ./']
+    : [
+        ...sourceLayerLines,
+        ...automationLines.map(renderPlanNxRun),
+        renderPlanNxRun(`bun x nx run ${plan.project}:${plan.target}`)
+      ];
 
   let lines = [
     '# syntax=docker/dockerfile:1.7',
@@ -644,9 +653,7 @@ export let renderNodePrunedDockerfile = (plan: GeneratedBuildPlan): string => {
     '',
     'FROM deps AS build',
     'WORKDIR /app',
-    ...sourceLayerLines,
-    ...automationLines.map(renderPlanNxRun),
-    renderPlanNxRun(`bun x nx run ${plan.project}:${plan.target}`),
+    ...buildLines,
     '',
     'FROM build AS workspace',
     `WORKDIR ${plan.workspaceRoot}`,

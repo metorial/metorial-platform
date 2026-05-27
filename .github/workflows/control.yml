@@ -8,6 +8,7 @@ on:
 permissions:
   contents: read
   packages: read
+  actions: write
 
 jobs:
   warm-cache:

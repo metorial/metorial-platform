@@ -21,6 +21,7 @@ import { withWorkspaceSession } from './staging/session';
 import type { WorkspaceSession } from './types';
 import { runBootstrap } from './bootstrap';
 import { installShutdownHandlers } from './run/lifecycle';
+import { runWarmCacheTargets } from './run/warm-cache';
 import { printCacheSummary, runCacheServer } from './nx-cache/server';
 
 installShutdownHandlers();
@@ -61,6 +62,9 @@ let collectModules = (argv: string[]): string[] =>
     .flatMap(value => value.split(','))
     .map(value => value.trim())
     .filter(Boolean);
+
+let readBooleanOption = (opts: Record<string, unknown>, names: string[]): boolean =>
+  names.some(name => opts[name] === true);
 
 let collectManifestRestoreKeys = (argv: string[]): string[] =>
   collectRepeatedOption(argv, ['--manifest-restore-key'])
@@ -158,6 +162,28 @@ prog
     await runCommand(async () => {
       printCacheSummary(opts.stats ?? '.control/cache/nx-stats.json', opts.root ?? '.control/cache/nx-artifacts');
     });
+  });
+
+prog
+  .command('warm-cache')
+  .describe('Warm Nx cache for control build and unit test targets')
+  .option('--entrypoint, -e', 'Workspace entrypoint')
+  .option('--all', 'Warm all services with build configs')
+  .option('--filter, -f', 'Warm named services')
+  .option('--include-unit', 'Warm cacheable unit test targets')
+  .option('--parallel', 'Nx parallelism', '3')
+  .option('--verbose, -v', 'Verbose output')
+  .action(async (opts: Record<string, unknown>) => {
+    await runCommand(async () => {
+      await runWarmCacheTargets({
+        entrypoint: typeof opts.entrypoint === 'string' ? opts.entrypoint : undefined,
+        all: opts.all !== false,
+        filters: collectFilters(process.argv),
+        includeUnit: readBooleanOption(opts, ['include-unit', 'includeUnit']),
+        parallel: Number(opts.parallel ?? 3),
+        verbose: !!opts.verbose
+      });
+    }, { verbose: !!opts.verbose });
   });
 
 prog
