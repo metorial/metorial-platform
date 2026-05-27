@@ -4,13 +4,25 @@ import type { Tenant } from '../prisma/generated/client';
 import { db } from './db';
 import { env } from './env';
 
-export let nebula = createNebulaClient({
-  endpoint: env.nebula.NEBULA_API_URL,
-  consumerToken: env.nebula.NEBULA_CONSUMER_TOKEN,
-  identifier: os.hostname()
-});
+let nebulaClient: ReturnType<typeof createNebulaClient> | null = null;
+
+export let getNebulaClient = () => {
+  if (!env.secrets.SLATES_DELEGATE_SECRETS_TO_NEBULA) {
+    throw new Error('Nebula secret delegation is disabled');
+  }
+
+  nebulaClient ??= createNebulaClient({
+    endpoint: env.nebula.NEBULA_API_URL,
+    consumerToken: env.nebula.NEBULA_CONSUMER_TOKEN,
+    identifier: os.hostname()
+  });
+
+  return nebulaClient;
+};
 
 export let getNebulaTenantForSlatesTenant = async (tenant: Tenant) => {
+  let nebula = getNebulaClient();
+
   if (!tenant.nebulaTenantId) {
     let newTenant = await nebula.tenant.upsert({
       name: tenant.name,

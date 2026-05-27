@@ -6,7 +6,7 @@ import { db } from '../db';
 import { encryption } from '../encryption';
 import { env } from '../env';
 import { getId } from '../id';
-import { getNebulaTenantForSlatesTenant, nebula } from '../nebula';
+import { getNebulaClient, getNebulaTenantForSlatesTenant } from '../nebula';
 
 let buildSecretProof = (secret: Secret, tenant: Tenant) => ({
   slatesSecretId: secret.id,
@@ -23,7 +23,7 @@ let createNebulaSecret = async (d: {
   let nebulaTenant = await getNebulaTenantForSlatesTenant(d.tenant);
   let proof = buildSecretProof(d.secret, d.tenant);
 
-  return await nebula.secret.create({
+  return await getNebulaClient().secret.create({
     tenantId: nebulaTenant.id,
     purpose: d.purpose,
     secret: JSON.stringify(d.secretData),
@@ -42,7 +42,7 @@ let useNebulaSecret = async (d: { tenant: Tenant; secret: Secret; note: string }
 
   let nebulaTenant = await getNebulaTenantForSlatesTenant(d.tenant);
 
-  return await nebula.secret.use({
+  return await getNebulaClient().secret.use({
     tenantId: nebulaTenant.id,
     secretId: d.secret.nebulaSecretId,
     proof: buildSecretProof(d.secret, d.tenant),
@@ -61,7 +61,7 @@ let updateNebulaSecret = async (d: {
 
   let nebulaTenant = await getNebulaTenantForSlatesTenant(d.tenant);
 
-  return await nebula.secret.update({
+  return await getNebulaClient().secret.update({
     tenantId: nebulaTenant.id,
     secretId: d.secret.nebulaSecretId,
     secret: JSON.stringify(d.secretData),
@@ -80,7 +80,7 @@ let disableNebulaSecret = async (d: { tenant: Tenant; secret: Secret }) => {
 
   let nebulaTenant = await getNebulaTenantForSlatesTenant(d.tenant);
 
-  return await nebula.secret.disable({
+  return await getNebulaClient().secret.disable({
     tenantId: nebulaTenant.id,
     secretId: d.secret.nebulaSecretId
   });
