@@ -130,7 +130,8 @@ jobs:
 
           PORT=43191
           SERVER_URL="http://127.0.0.1:${PORT}"
-          MANIFEST_PREFIX="control-nx-used-digests-${CACHE_NAMESPACE}-${CACHE_REF}-${CACHE_SCOPE}"
+          CACHE_REF_SAFE="$(printf '%s' "${CACHE_REF}" | tr -c 'A-Za-z0-9_.-' '-')"
+          MANIFEST_PREFIX="control-nx-used-digests-${CACHE_NAMESPACE}-${CACHE_REF_SAFE}-${CACHE_SCOPE}"
           MANIFEST_SAVE_KEY="${MANIFEST_PREFIX}-${{ github.run_id }}-${{ github.run_attempt }}"
 
           bun run control cache-server \

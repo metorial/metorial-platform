@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'fs';
-import { dirname, join, resolve } from 'path';
+import { dirname, isAbsolute, join, resolve } from 'path';
 
 type CacheStats = {
   startedAt: string;
@@ -61,6 +61,30 @@ let isActionsCacheAvailable = () =>
 
 let ensureDir = (path: string) => mkdirSync(path, { recursive: true });
 
+let findRuntimeRoot = () => {
+  if (process.env.GITHUB_WORKSPACE) return process.env.GITHUB_WORKSPACE;
+
+  let current = process.cwd();
+  for (let i = 0; i < 8; i++) {
+    let manifestPath = join(current, 'package.json');
+    if (existsSync(manifestPath)) {
+      try {
+        let manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as { name?: string };
+        if (manifest.name === '@metorial/oss') return current;
+      } catch {}
+    }
+
+    let parent = dirname(current);
+    if (parent === current) break;
+    current = parent;
+  }
+
+  return process.env.INIT_CWD ?? process.cwd();
+};
+
+let resolveRuntimePath = (path: string): string =>
+  isAbsolute(path) ? path : resolve(findRuntimeRoot(), path);
+
 let safeWriteJson = (path: string, value: unknown) => {
   ensureDir(dirname(path));
   writeFileSync(path, JSON.stringify(value, null, 2) + '\n');
@@ -120,6 +144,9 @@ let createStats = (opts: ServerOptions): CacheStats => ({
 });
 
 export let printCacheSummary = (statsPath: string, root?: string) => {
+  statsPath = resolveRuntimePath(statsPath);
+  root = root ? resolveRuntimePath(root) : undefined;
+
   if (!existsSync(statsPath)) {
     console.log(`No Nx cache stats found at ${statsPath}`);
     return;
@@ -156,6 +183,14 @@ export let printCacheSummary = (statsPath: string, root?: string) => {
 };
 
 export let runCacheServer = async (opts: ServerOptions) => {
+  opts = {
+    ...opts,
+    root: resolveRuntimePath(opts.root),
+    manifestDir: resolveRuntimePath(opts.manifestDir),
+    statsPath: resolveRuntimePath(opts.statsPath),
+    readyFile: opts.readyFile ? resolveRuntimePath(opts.readyFile) : undefined
+  };
+
   ensureDir(opts.root);
   ensureDir(opts.manifestDir);
 
@@ -426,6 +461,7 @@ export let runCacheServer = async (opts: ServerOptions) => {
     writeFileSync(opts.readyFile, `${server.url}\n`);
   }
 
+  console.log(`Nx cache ready file: ${opts.readyFile ?? 'none'}`);
   console.log(`Nx cache server listening at ${server.url}`);
   await prefetchTask;
   await new Promise(() => {});

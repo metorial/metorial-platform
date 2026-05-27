@@ -68,6 +68,9 @@ let collectManifestRestoreKeys = (argv: string[]): string[] =>
     .map(value => value.trim())
     .filter(Boolean);
 
+let readCliOption = (argv: string[], name: string, fallback?: string): string | undefined =>
+  collectRepeatedOption(argv, [name]).at(-1) ?? fallback;
+
 let runCommand = async (fn: () => Promise<void | never>, opts?: { verbose?: boolean }) => {
   try {
     await fn();
@@ -112,32 +115,21 @@ prog
   .option('--manifest-primary-key', 'Primary GitHub cache key for digest manifest restore')
   .option('--manifest-restore-key', 'GitHub cache key or prefix for manifest restore')
   .option('--max-manifest-entries', 'Maximum digest manifest entries', '500')
-  .action(async (opts: {
-    port?: string;
-    host?: string;
-    root?: string;
-    'manifest-dir'?: string;
-    stats?: string;
-    'ready-file'?: string;
-    namespace?: string;
-    'manifest-save-key'?: string;
-    'manifest-primary-key'?: string;
-    'manifest-restore-key'?: string;
-    'max-manifest-entries'?: string;
-  }) => {
+  .action(async (opts: Record<string, unknown>) => {
     await runCommand(async () => {
+      let argv = process.argv;
       await runCacheServer({
-        port: Number(opts.port ?? '43191'),
-        host: opts.host ?? '127.0.0.1',
-        root: opts.root ?? '.control/cache/nx-artifacts',
-        manifestDir: opts['manifest-dir'] ?? '.control/cache/nx-manifest',
-        statsPath: opts.stats ?? '.control/cache/nx-stats.json',
-        readyFile: opts['ready-file'],
-        namespace: opts.namespace ?? 'v1',
-        manifestSaveKey: opts['manifest-save-key'],
-        manifestRestoreKey: opts['manifest-primary-key'] ?? opts['manifest-restore-key'],
-        manifestRestoreKeys: collectManifestRestoreKeys(process.argv),
-        maxManifestEntries: Number(opts['max-manifest-entries'] ?? '500')
+        port: Number(readCliOption(argv, '--port', '43191')),
+        host: readCliOption(argv, '--host', '127.0.0.1')!,
+        root: readCliOption(argv, '--root', '.control/cache/nx-artifacts')!,
+        manifestDir: readCliOption(argv, '--manifest-dir', '.control/cache/nx-manifest')!,
+        statsPath: readCliOption(argv, '--stats', '.control/cache/nx-stats.json')!,
+        readyFile: readCliOption(argv, '--ready-file'),
+        namespace: readCliOption(argv, '--namespace', 'v1')!,
+        manifestSaveKey: readCliOption(argv, '--manifest-save-key'),
+        manifestRestoreKey: readCliOption(argv, '--manifest-primary-key') ?? readCliOption(argv, '--manifest-restore-key'),
+        manifestRestoreKeys: collectManifestRestoreKeys(argv),
+        maxManifestEntries: Number(readCliOption(argv, '--max-manifest-entries', '500'))
       });
     });
   });
