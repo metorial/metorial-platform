@@ -3,7 +3,7 @@ model Enclave {
   id  String @unique
 
   name       String
-  identifier String
+  identifier String 
 
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
@@ -13,6 +13,8 @@ model Enclave {
 
   enclaveFunctions         EnclaveFunction[]
   enclaveFunctionOverrides EnclaveFunctionOverride[]
+
+  @@unique([identifier, tenantOid])
 }
 
 model EnclaveFunction {
@@ -33,11 +35,20 @@ model EnclaveFunctionOverride {
   enclaveOid BigInt
   enclave    Enclave @relation(fields: [enclaveOid], references: [oid])
 
-  functionOid BigInt
-  function    Function @relation(fields: [functionOid], references: [oid])
+  sourceFunctionOid BigInt
+  sourceFunction    Function @relation(fields: [sourceFunctionOid], references: [oid])
 
-  overridesFunctionVersionOid BigInt
-  overridesFunctionVersion    FunctionVersion @relation(fields: [overridesFunctionVersionOid], references: [oid])
+  sourceFunctionVersionOid BigInt
+  sourceFunctionVersion    FunctionVersion @relation("EnclaveFunctionOverrideSourceVersion", fields: [sourceFunctionVersionOid], references: [oid])
 
-  @@unique([enclaveOid, functionOid])
+  overrideFunctionOid BigInt
+  overrideFunction    Function @relation("EnclaveFunctionOverrideFunction", fields: [overrideFunctionOid], references: [oid])
+
+  overrideFunctionVersionOid BigInt
+  overrideFunctionVersion    FunctionVersion @relation("EnclaveFunctionOverrideVersion", fields: [overrideFunctionVersionOid], references: [oid])
+
+  @@unique([enclaveOid, sourceFunctionOid, sourceFunctionVersionOid])
+  @@index([enclaveOid, sourceFunctionOid])
+  @@index([overrideFunctionOid])
+  @@index([overrideFunctionVersionOid])
 }

@@ -15,19 +15,24 @@ model Function {
   currentVersionOid BigInt?
   currentVersion    FunctionVersion? @relation(fields: [currentVersionOid], references: [oid], name: "CurrentVersion")
 
+  cloneOfFunctionOid BigInt?
+  cloneOfFunction    Function? @relation("FunctionClones", fields: [cloneOfFunctionOid], references: [oid])
+  clones              Function[] @relation("FunctionClones")
+
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  functionVersions         FunctionVersion[]
-  functionDeployments      FunctionDeployment[]
-  runtime                  Runtime?                  @relation(fields: [runtimeOid], references: [oid])
-  runtimeOid               BigInt?
-  functionBundles          FunctionBundle[]
-  enclaveFunctions         EnclaveFunction[]
-  enclaveFunctionOverrides EnclaveFunctionOverride[]
+  functionVersions                 FunctionVersion[]
+  functionDeployments              FunctionDeployment[]
+  runtime                          Runtime?                  @relation(fields: [runtimeOid], references: [oid])
+  runtimeOid                       BigInt?
+  functionBundles                  FunctionBundle[]
+  enclaveFunctions                 EnclaveFunction[]
+  enclaveFunctionOverrides         EnclaveFunctionOverride[]
+  enclaveFunctionOverrideBackings  EnclaveFunctionOverride[] @relation("EnclaveFunctionOverrideFunction")
 
   @@unique([identifier, tenantOid])
 }
@@ -132,6 +137,10 @@ model FunctionVersion {
   functionBundleOid BigInt
   functionBundle    FunctionBundle @relation(fields: [functionBundleOid], references: [oid])
 
+  cloneOfFunctionVersionOid BigInt?
+  cloneOfFunctionVersion    FunctionVersion? @relation("FunctionVersionClones", fields: [cloneOfFunctionVersionOid], references: [oid])
+  clones                    FunctionVersion[] @relation("FunctionVersionClones")
+
   /// [FunctionConfiguration]
   configuration Json
 
@@ -144,9 +153,10 @@ model FunctionVersion {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  functions                Function[]                @relation(name: "CurrentVersion")
-  functionDeployments      FunctionDeployment[]
-  enclaveFunctionOverrides EnclaveFunctionOverride[]
+  functions                              Function[]                @relation(name: "CurrentVersion")
+  functionDeployments                    FunctionDeployment[]
+  enclaveFunctionOverrideSourceVersions  EnclaveFunctionOverride[] @relation("EnclaveFunctionOverrideSourceVersion")
+  enclaveFunctionOverrideVersionBackings EnclaveFunctionOverride[] @relation("EnclaveFunctionOverrideVersion")
 
   @@unique([identifier, functionOid])
 }

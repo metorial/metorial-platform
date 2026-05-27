@@ -6,6 +6,7 @@ model Tenant {
   name       String
 
   isServiceDefault Boolean @default(false)
+  hasAutomaticEnclaveOverride Boolean @default(false)
 
   createdAt             DateTime               @default(now())
   runtimeForgeWorkflows RuntimeForgeWorkflow[]
