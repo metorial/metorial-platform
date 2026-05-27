@@ -1,6 +1,12 @@
 import { FabricEvents } from './types';
 
-export type { FabricEvents, KeyProviderEventBase, KeyProviderEventKeyProvider, ProviderEventBase } from './types';
+export type {
+  FabricEvents,
+  KeyProviderEventBase,
+  KeyProviderEventKeyProvider,
+  KeyProviderEventValidation,
+  ProviderEventBase
+} from './types';
 
 let listeners = new Map<string, Set<(data: any) => void | Promise<void>>>();
 

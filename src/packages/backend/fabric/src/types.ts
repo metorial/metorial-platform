@@ -114,9 +114,17 @@ export type KeyProviderEventKeyProvider = {
   updatedAt: Date;
 };
 
+export type KeyProviderEventValidation = {
+  object: 'key_provider_validation';
+  keyProviderId: string;
+  description: Record<string, unknown>;
+};
+
 export type KeyProviderEventBase = {
   organization: Organization;
   project: Project;
+  performedBy: OrganizationActor;
+  context?: Context;
 };
 
 // prettier-ignore
@@ -191,6 +199,8 @@ export interface FabricEvents {
   'key_provider.imported:after': KeyProviderEventBase & { keyProvider: KeyProviderEventKeyProvider };
   'key_provider.managed.created:before': KeyProviderEventBase & { currentCount: number };
   'key_provider.managed.created:after': KeyProviderEventBase & { keyProvider: KeyProviderEventKeyProvider };
+  'key_provider.default.set:after': KeyProviderEventBase & { keyProvider: KeyProviderEventKeyProvider };
+  'key_provider.validated:after': KeyProviderEventBase & { keyProvider: KeyProviderEventKeyProvider; validation: KeyProviderEventValidation };
 
   'organization.team.created:before': { organization: Organization, performedBy: OrganizationActor; context?: Context };
   'organization.team.created:after': { organization: Organization, team: Team, performedBy: OrganizationActor; context?: Context };

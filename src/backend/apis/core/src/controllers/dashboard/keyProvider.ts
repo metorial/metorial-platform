@@ -15,7 +15,10 @@ import {
   keyProviderValidationPresenter
 } from '../../presenters';
 
-let keyProviderFlags = hasFlags(['paid-key-providers', 'advanced-security-management-enabled']);
+let keyProviderFlags = hasFlags([
+  'paid-key-providers',
+  'advanced-security-management-enabled'
+]);
 
 let resolveProject = async (ctx: any) => {
   let project = await projectService.getProjectById({
@@ -107,6 +110,8 @@ export let dashboardKeyProviderController = Controller.create(
         let keyProvider = await keyProviderService.createManagedKeyProvider({
           organization: ctx.organization,
           project,
+          performedBy: ctx.actor,
+          context: ctx.context,
           name: ctx.body.name
         });
 
@@ -148,6 +153,8 @@ export let dashboardKeyProviderController = Controller.create(
         let keyProvider = await keyProviderService.importKeyProvider({
           organization: ctx.organization,
           project,
+          performedBy: ctx.actor,
+          context: ctx.context,
           keyInput: ctx.body.key_input
         });
 
@@ -263,6 +270,8 @@ export let dashboardKeyProviderController = Controller.create(
         let validation = await keyProviderService.validateKeyProvider({
           organization: ctx.organization,
           project,
+          performedBy: ctx.actor,
+          context: ctx.context,
           keyProviderId: ctx.params.keyProviderId
         });
 
@@ -298,6 +307,8 @@ export let dashboardKeyProviderController = Controller.create(
         let keyProvider = await keyProviderService.setDefaultKeyProvider({
           organization: ctx.organization,
           project,
+          performedBy: ctx.actor,
+          context: ctx.context,
           keyProviderId: ctx.params.keyProviderId
         });
 

@@ -1,7 +1,8 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { Fabric, type KeyProviderEventKeyProvider } from '@metorial/fabric';
-import type { Organization, Project } from '@metorial/db';
+import type { Context } from '@metorial/context';
+import type { Organization, OrganizationActor, Project } from '@metorial/db';
 import { nebula } from '../nebula';
 import { getNebulaTenantForProject } from '../tenant';
 
@@ -141,19 +142,39 @@ class KeyProviderServiceImpl {
   async validateKeyProvider(d: {
     organization: Organization;
     project: Project;
+    performedBy: OrganizationActor;
+    context?: Context;
     keyProviderId: string;
   }) {
     let tenant = await getNebulaTenantForProject(d);
 
-    return await nebula.keyProvider.validate({
+    let validation = await nebula.keyProvider.validate({
       tenantId: tenant.id,
       keyProviderId: d.keyProviderId
     });
+    let keyProvider = await this.getKeyProvider(d);
+
+    await Fabric.fire('key_provider.validated:after', {
+      organization: d.organization,
+      project: d.project,
+      performedBy: d.performedBy,
+      context: d.context,
+      keyProvider: toFabricKeyProvider(keyProvider),
+      validation: {
+        object: 'key_provider_validation',
+        keyProviderId: validation.keyProviderId,
+        description: validation.description
+      }
+    });
+
+    return validation;
   }
 
   async setDefaultKeyProvider(d: {
     organization: Organization;
     project: Project;
+    performedBy: OrganizationActor;
+    context?: Context;
     keyProviderId: string;
   }) {
     let tenant = await getNebulaTenantForProject(d);
@@ -163,12 +184,24 @@ class KeyProviderServiceImpl {
       keyProviderId: d.keyProviderId
     });
 
-    return await this.getKeyProvider(d);
+    let keyProvider = await this.getKeyProvider(d);
+
+    await Fabric.fire('key_provider.default.set:after', {
+      organization: d.organization,
+      project: d.project,
+      performedBy: d.performedBy,
+      context: d.context,
+      keyProvider: toFabricKeyProvider(keyProvider)
+    });
+
+    return keyProvider;
   }
 
   async importKeyProvider(d: {
     organization: Organization;
     project: Project;
+    performedBy: OrganizationActor;
+    context?: Context;
     keyInput: Record<string, unknown>;
   }) {
     let tenant = await getNebulaTenantForProject(d);
@@ -178,6 +211,8 @@ class KeyProviderServiceImpl {
     await Fabric.fire('key_provider.imported:before', {
       organization: d.organization,
       project: d.project,
+      performedBy: d.performedBy,
+      context: d.context,
       currentCount
     });
 
@@ -190,6 +225,8 @@ class KeyProviderServiceImpl {
     await Fabric.fire('key_provider.imported:after', {
       organization: d.organization,
       project: d.project,
+      performedBy: d.performedBy,
+      context: d.context,
       keyProvider: toFabricKeyProvider(
         withIsDefault(keyProvider, updatedTenant.defaultKeyProviderId)
       )
@@ -201,6 +238,8 @@ class KeyProviderServiceImpl {
   async createManagedKeyProvider(d: {
     organization: Organization;
     project: Project;
+    performedBy: OrganizationActor;
+    context?: Context;
     name: string;
   }) {
     let tenant = await getNebulaTenantForProject(d);
@@ -210,6 +249,8 @@ class KeyProviderServiceImpl {
     await Fabric.fire('key_provider.managed.created:before', {
       organization: d.organization,
       project: d.project,
+      performedBy: d.performedBy,
+      context: d.context,
       currentCount
     });
 
@@ -222,6 +263,8 @@ class KeyProviderServiceImpl {
     await Fabric.fire('key_provider.managed.created:after', {
       organization: d.organization,
       project: d.project,
+      performedBy: d.performedBy,
+      context: d.context,
       keyProvider: toFabricKeyProvider(
         withIsDefault(keyProvider, updatedTenant.defaultKeyProviderId)
       )
