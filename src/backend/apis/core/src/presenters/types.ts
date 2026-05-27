@@ -569,19 +569,19 @@ export let secretType = PresentableType.create<{
 }>()('secret');
 
 export let keyProviderType = PresentableType.create<{
-  keyProvider: import('@metorial/module-nebula').NebulaKeyProvider;
+  keyProvider: import('@metorial/module-secrets').NebulaKeyProvider;
 }>()('key_provider');
 
 export let keyProviderErrorType = PresentableType.create<{
-  keyProviderError: import('@metorial/module-nebula').NebulaKeyProviderError;
+  keyProviderError: import('@metorial/module-secrets').NebulaKeyProviderError;
 }>()('key_provider_error');
 
 export let keyProviderSetupInfoType = PresentableType.create<{
-  setupInfo: import('@metorial/module-nebula').NebulaKeyProviderSetupInfo;
+  setupInfo: import('@metorial/module-secrets').NebulaKeyProviderSetupInfo;
 }>()('key_provider_setup_info');
 
 export let keyProviderValidationType = PresentableType.create<{
-  validation: import('@metorial/module-nebula').NebulaKeyProviderValidation;
+  validation: import('@metorial/module-secrets').NebulaKeyProviderValidation;
 }>()('key_provider_validation');
 
 export let usageType = PresentableType.create<{

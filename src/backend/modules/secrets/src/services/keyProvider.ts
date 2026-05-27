@@ -3,16 +3,28 @@ import { Service } from '@lowerdeck/service';
 import { Fabric, type KeyProviderEventKeyProvider } from '@metorial/fabric';
 import type { Context } from '@metorial/context';
 import type { Organization, OrganizationActor, Project } from '@metorial/db';
-import { nebula } from '../nebula';
-import { getNebulaTenantForProject } from '../tenant';
+import { createSecretsService } from '../lib/secretsService';
+import { getTenantForNebula, nebula } from '../nebula';
 
-export type NebulaKeyProvider = Awaited<ReturnType<typeof nebula.keyProvider.get>> & {
+let secretsKeyProvider = createSecretsService(
+  nebula.keyProvider,
+  ['get', 'list', 'getSetupInfo', 'validate', 'setDefault', 'import', 'createManaged'],
+  () => ({})
+);
+
+let secretsKeyProviderError = createSecretsService(
+  nebula.keyProviderError,
+  ['list'],
+  () => ({})
+);
+
+export type NebulaKeyProvider = Awaited<ReturnType<typeof secretsKeyProvider.get>> & {
   isMetorialManaged: boolean;
   isDefault?: boolean;
 };
 
 let withIsMetorialManaged = (
-  keyProvider: Awaited<ReturnType<typeof nebula.keyProvider.get>> & {
+  keyProvider: Awaited<ReturnType<typeof secretsKeyProvider.get>> & {
     isMetorialManaged?: boolean;
   }
 ) => ({
@@ -21,7 +33,7 @@ let withIsMetorialManaged = (
 });
 
 let withIsDefault = (
-  keyProvider: Awaited<ReturnType<typeof nebula.keyProvider.get>> & {
+  keyProvider: Awaited<ReturnType<typeof secretsKeyProvider.get>> & {
     isMetorialManaged?: boolean;
   },
   defaultKeyProviderId: string | null
@@ -45,35 +57,38 @@ let toFabricKeyProvider = (keyProvider: NebulaKeyProvider): KeyProviderEventKeyP
 });
 
 export type NebulaKeyProviderError = Awaited<
-  ReturnType<typeof nebula.keyProviderError.list>
+  ReturnType<typeof secretsKeyProviderError.list>
 >['items'][number];
 
 export type NebulaKeyProviderSetupInfo = Awaited<
-  ReturnType<typeof nebula.keyProvider.getSetupInfo>
+  ReturnType<typeof secretsKeyProvider.getSetupInfo>
 >;
 
 export type NebulaKeyProviderValidation = Awaited<
-  ReturnType<typeof nebula.keyProvider.validate>
+  ReturnType<typeof secretsKeyProvider.validate>
 >;
 
 let isManagedKeyProvider = (keyProvider: NebulaKeyProvider) => keyProvider.isMetorialManaged;
 
-let listAllKeyProviders = async (tenantId: string) => {
+let listAllKeyProviders = async (d: { organization: Organization; project: Project }) => {
   let items: NebulaKeyProvider[] = [];
   let after: string | undefined;
 
   while (true) {
-    let page = await nebula.keyProvider.list({
-      tenantId,
+    let paginator = await secretsKeyProvider.list({
+      organization: d.organization,
+      project: d.project
+    });
+
+    let result = await paginator.run({
       limit: 100,
       ...(after ? { after } : {})
     });
+    items.push(...result.items.map(withIsMetorialManaged));
 
-    items.push(...page.items.map(withIsMetorialManaged));
+    if (!result.pagination.hasNextPage || result.items.length === 0) break;
 
-    if (!page.pagination.has_more_after || page.items.length === 0) break;
-
-    after = page.items[page.items.length - 1]!.id;
+    after = result.items[result.items.length - 1]!.id;
   }
 
   return items;
@@ -87,22 +102,20 @@ let countManagedKeyProviders = (keyProviders: NebulaKeyProvider[]) =>
 
 class KeyProviderServiceImpl {
   async listKeyProviders(d: { organization: Organization; project: Project }) {
-    let tenant = await getNebulaTenantForProject(d);
+    let tenant = await getTenantForNebula(d.project);
 
     return Paginator.create(() => async input => {
-      let result = await nebula.keyProvider.list({
-        tenantId: tenant.id,
-        ...input
+      let paginator = await secretsKeyProvider.list({
+        organization: d.organization,
+        project: d.project
       });
+      let result = await paginator.run(input);
 
       return {
         items: result.items.map(keyProvider =>
           withIsDefault(keyProvider, tenant.defaultKeyProviderId)
         ),
-        pagination: {
-          hasNextPage: result.pagination.has_more_after,
-          hasPreviousPage: result.pagination.has_more_before
-        }
+        pagination: result.pagination
       };
     });
   }
@@ -112,10 +125,11 @@ class KeyProviderServiceImpl {
     project: Project;
     keyProviderId: string;
   }) {
-    let tenant = await getNebulaTenantForProject(d);
+    let tenant = await getTenantForNebula(d.project);
 
-    let keyProvider = await nebula.keyProvider.get({
-      tenantId: tenant.id,
+    let keyProvider = await secretsKeyProvider.get({
+      organization: d.organization,
+      project: d.project,
       keyProviderId: d.keyProviderId
     });
 
@@ -130,10 +144,9 @@ class KeyProviderServiceImpl {
       keyId?: string;
     };
   }) {
-    let tenant = await getNebulaTenantForProject(d);
-
-    return await nebula.keyProvider.getSetupInfo({
-      tenantId: tenant.id,
+    return await secretsKeyProvider.getSetupInfo({
+      organization: d.organization,
+      project: d.project,
       region: d.input.region,
       keyId: d.input.keyId
     });
@@ -146,10 +159,9 @@ class KeyProviderServiceImpl {
     context?: Context;
     keyProviderId: string;
   }) {
-    let tenant = await getNebulaTenantForProject(d);
-
-    let validation = await nebula.keyProvider.validate({
-      tenantId: tenant.id,
+    let validation = await secretsKeyProvider.validate({
+      organization: d.organization,
+      project: d.project,
       keyProviderId: d.keyProviderId
     });
     let keyProvider = await this.getKeyProvider(d);
@@ -177,10 +189,9 @@ class KeyProviderServiceImpl {
     context?: Context;
     keyProviderId: string;
   }) {
-    let tenant = await getNebulaTenantForProject(d);
-
-    await nebula.keyProvider.setDefault({
-      tenantId: tenant.id,
+    await secretsKeyProvider.setDefault({
+      organization: d.organization,
+      project: d.project,
       keyProviderId: d.keyProviderId
     });
 
@@ -204,8 +215,7 @@ class KeyProviderServiceImpl {
     context?: Context;
     keyInput: Record<string, unknown>;
   }) {
-    let tenant = await getNebulaTenantForProject(d);
-    let keyProviders = await listAllKeyProviders(tenant.id);
+    let keyProviders = await listAllKeyProviders(d);
     let currentCount = countImportedKeyProviders(keyProviders);
 
     await Fabric.fire('key_provider.imported:before', {
@@ -216,11 +226,12 @@ class KeyProviderServiceImpl {
       currentCount
     });
 
-    let keyProvider = await nebula.keyProvider.import({
-      tenantId: tenant.id,
+    let keyProvider = await secretsKeyProvider.import({
+      organization: d.organization,
+      project: d.project,
       keyInput: d.keyInput
     });
-    let updatedTenant = await getNebulaTenantForProject(d);
+    let updatedTenant = await getTenantForNebula(d.project);
 
     await Fabric.fire('key_provider.imported:after', {
       organization: d.organization,
@@ -242,8 +253,7 @@ class KeyProviderServiceImpl {
     context?: Context;
     name: string;
   }) {
-    let tenant = await getNebulaTenantForProject(d);
-    let keyProviders = await listAllKeyProviders(tenant.id);
+    let keyProviders = await listAllKeyProviders(d);
     let currentCount = countManagedKeyProviders(keyProviders);
 
     await Fabric.fire('key_provider.managed.created:before', {
@@ -254,11 +264,12 @@ class KeyProviderServiceImpl {
       currentCount
     });
 
-    let keyProvider = await nebula.keyProvider.createManaged({
-      tenantId: tenant.id,
+    let keyProvider = await secretsKeyProvider.createManaged({
+      organization: d.organization,
+      project: d.project,
       name: d.name
     });
-    let updatedTenant = await getNebulaTenantForProject(d);
+    let updatedTenant = await getTenantForNebula(d.project);
 
     await Fabric.fire('key_provider.managed.created:after', {
       organization: d.organization,
@@ -278,21 +289,17 @@ class KeyProviderServiceImpl {
     project: Project;
     keyProviderId: string;
   }) {
-    let tenant = await getNebulaTenantForProject(d);
-
     return Paginator.create(() => async input => {
-      let result = await nebula.keyProviderError.list({
-        tenantId: tenant.id,
-        keyProviderId: d.keyProviderId,
-        ...input
+      let paginator = await secretsKeyProviderError.list({
+        organization: d.organization,
+        project: d.project,
+        keyProviderId: d.keyProviderId
       });
+      let result = await paginator.run(input);
 
       return {
         items: result.items,
-        pagination: {
-          hasNextPage: result.pagination.has_more_after,
-          hasPreviousPage: result.pagination.has_more_before
-        }
+        pagination: result.pagination
       };
     });
   }

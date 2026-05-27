@@ -1,4 +1,4 @@
-import { cargo, subspace, synthesis } from '../clients';
+import { cargo, nebula, subspace, synthesis } from '../clients';
 import type { InternalActorLink } from './types';
 
 export let upsertCargoTenant = async (d: { identifier: string; name: string }) =>
@@ -9,6 +9,12 @@ export let upsertCargoTenant = async (d: { identifier: string; name: string }) =
 
 export let upsertSynthesisTenant = async (d: { identifier: string; name: string }) =>
   await synthesis.tenant.upsert({
+    identifier: d.identifier,
+    name: d.name
+  });
+
+export let upsertNebulaTenant = async (d: { identifier: string; name: string }) =>
+  await nebula.tenant.upsert({
     identifier: d.identifier,
     name: d.name
   });

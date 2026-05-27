@@ -4,7 +4,7 @@ import type {
   NebulaKeyProviderError,
   NebulaKeyProviderSetupInfo,
   NebulaKeyProviderValidation
-} from '@metorial/module-nebula';
+} from '@metorial/module-secrets';
 import { Presenter } from '@metorial/presenter';
 import {
   keyProviderErrorType,

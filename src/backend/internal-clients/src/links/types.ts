@@ -7,7 +7,7 @@ import type {
   User
 } from '@metorial/db';
 
-export type InternalService = 'cargo' | 'subspace' | 'synthesis';
+export type InternalService = 'cargo' | 'nebula' | 'subspace' | 'synthesis';
 
 export type InternalScope = {
   tenantId: string;

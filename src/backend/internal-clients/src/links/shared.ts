@@ -44,6 +44,8 @@ export let getProjectServiceTenantId = (
       return project.synthesisTenantId;
     case 'subspace':
       return project.subspaceTenantId;
+    case 'nebula':
+      return project.nebulaTenantId;
   }
 };
 
@@ -235,6 +237,9 @@ export let persistProjectTenantLink = async (d: {
       : {}),
     ...(d.service == 'subspace' && !d.project.subspaceTenantId
       ? { subspaceTenantId: d.tenantId }
+      : {}),
+    ...(d.service == 'nebula' && !d.project.nebulaTenantId
+      ? { nebulaTenantId: d.tenantId }
       : {})
   };
 
