@@ -1,0 +1,20 @@
+model Enclave {
+  oid BigInt @id
+  id  String @unique
+
+  identifier String @unique
+
+  providerDeploymentOid BigInt             @unique
+  providerDeployment    ProviderDeployment @relation(fields: [providerDeploymentOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  solutionOid Int
+  solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}

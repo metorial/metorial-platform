@@ -48,6 +48,8 @@ model ProviderDeployment {
   currentVersionOid BigInt?
   currentVersion    ProviderDeploymentVersion? @relation(fields: [currentVersionOid], references: [oid], name: "currentVersion")
 
+  enclave Enclave?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 

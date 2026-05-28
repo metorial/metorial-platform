@@ -1,7 +1,7 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import type { Function, FunctionVersion } from '../../prisma/generated/client';
+import type { Function, FunctionVersion, Tenant } from '../../prisma/generated/client';
 import { db } from '../db';
 import { ID, snowflake } from '../id';
 import { enqueueEnclaveOverrideClone } from '../queues/enclaveOverride';
@@ -54,6 +54,31 @@ class enclaveServiceImpl {
         oid: snowflake.nextId(),
         enclaveOid: d.enclaveOid,
         functionOid: d.functionOid
+      }
+    });
+  }
+
+  async upsertEnclave(d: {
+    tenant: Tenant;
+    input: {
+      name: string;
+      identifier: string;
+    };
+  }) {
+    return await db.enclave.upsert({
+      where: {
+        identifier_tenantOid: {
+          identifier: d.input.identifier,
+          tenantOid: d.tenant.oid
+        }
+      },
+      update: { name: d.input.name },
+      create: {
+        oid: snowflake.nextId(),
+        id: await ID.generateId('enclave'),
+        name: d.input.name,
+        identifier: d.input.identifier,
+        tenantOid: d.tenant.oid
       }
     });
   }

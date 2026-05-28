@@ -6,6 +6,26 @@ import { app } from './_app';
 import { tenantApp } from './tenant';
 
 export let enclaveController = app.controller({
+  upsert: tenantApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        name: v.string(),
+        identifier: v.string()
+      })
+    )
+    .do(async ctx => {
+      let enclave = await enclaveService.upsertEnclave({
+        tenant: ctx.tenant,
+        input: {
+          name: ctx.input.name,
+          identifier: ctx.input.identifier
+        }
+      });
+      return enclavePresenter(enclave);
+    }),
+
   list: tenantApp
     .handler()
     .input(
