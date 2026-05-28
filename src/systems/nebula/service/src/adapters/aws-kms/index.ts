@@ -85,7 +85,7 @@ let getKmsClient = (region?: string, opts?: { assumeExternalRole?: boolean }) =>
         ? fromTemporaryCredentials({
             params: {
               RoleArn: env.kms.KMS_EXTERNAL_KEY_ROLE_ARN,
-              RoleSessionName: 'nebula-kms'
+              RoleSessionName: 'metorial-secret-store-kms'
             }
           })
         : env.kms.KMS_AWS_ACCESS_KEY_ID && env.kms.KMS_AWS_SECRET_ACCESS_KEY
