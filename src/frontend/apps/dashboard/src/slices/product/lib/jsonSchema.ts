@@ -53,3 +53,17 @@ export let hasJsonSchemaProperties = (
 
   return Boolean(properties && Object.keys(properties).length > 0);
 };
+
+export let hasRequiredJsonSchemaFields = (
+  value: JsonSchemaEnvelope | Record<string, unknown> | null | undefined
+) => {
+  let schema = getJsonSchema(value);
+  if (!schema || typeof schema !== 'object') return false;
+
+  if (schema.type === 'object' && schema.properties) {
+    let required = schema.required ?? [];
+    return required.length > 0;
+  }
+
+  return true;
+};
