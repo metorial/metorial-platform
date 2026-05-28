@@ -62,6 +62,8 @@ describe('createNebulaClient', () => {
       refreshSkewMs: 60_000
     });
 
+    await vi.waitFor(() => expect(mockRegister).toHaveBeenCalledTimes(1));
+
     await client.secret.use({
       tenantId: 'tenant-1',
       secretId: 'secret-1',
@@ -116,6 +118,8 @@ describe('createNebulaClient', () => {
       refreshSkewMs: 60_000
     });
 
+    await vi.waitFor(() => expect(mockRegister).toHaveBeenCalledTimes(1));
+
     await client.secret.use({
       tenantId: 'tenant-1',
       secretId: 'secret-1',
@@ -141,6 +145,26 @@ describe('createNebulaClient', () => {
       secretId: 'secret-1',
       proof: {},
       consumerToken: 'refreshed-token'
+    });
+  });
+
+  it('registers immediately when the client is created', async () => {
+    mockRegister.mockResolvedValueOnce({
+      token: 'active-token',
+      consumerInstanceId: 'consumer-instance-1',
+      expiresAt: new Date(Date.now() + 3_600_000)
+    });
+
+    createNebulaClient({
+      endpoint: 'http://nebula:52170/metorial-nebula',
+      consumerToken: 'consumer-secret',
+      identifier: 'worker-a'
+    });
+
+    await vi.waitFor(() => expect(mockRegister).toHaveBeenCalledTimes(1));
+    expect(mockRegister).toHaveBeenCalledWith({
+      secret: 'consumer-secret',
+      identifier: 'worker-a'
     });
   });
 });

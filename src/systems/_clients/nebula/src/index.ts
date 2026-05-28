@@ -44,19 +44,30 @@ export let createRawNebulaClient = (o: ClientOpts): NebulaClient =>
   createClient<NebulaClient>(o);
 
 export let createNebulaClient = (o: NebulaClientOpts): AuthenticatedNebulaClient => {
-  let { consumerToken, identifier, refreshSkewMs = 60_000, ...clientOpts } = o;
+  let { consumerToken, identifier, refreshSkewMs = 120_000, ...clientOpts } = o;
   let client = createRawNebulaClient(clientOpts);
   let current: ConsumerInstanceToken | null = null;
+  let registerInFlight: Promise<ConsumerInstanceToken> | null = null;
   let inFlight: Promise<ConsumerInstanceToken> | null = null;
 
-  let register = async () => {
-    let next = await client.consumer.register({
-      secret: consumerToken,
-      identifier
-    });
-    current = next;
-    return next;
+  let register = () => {
+    registerInFlight ??= (async () => {
+      try {
+        let next = await client.consumer.register({
+          secret: consumerToken,
+          identifier
+        });
+        current = next;
+        return next;
+      } finally {
+        registerInFlight = null;
+      }
+    })();
+
+    return registerInFlight;
   };
+
+  void register();
 
   let refresh = async () => {
     if (!current) return await register();
