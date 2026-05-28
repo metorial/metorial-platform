@@ -32,6 +32,9 @@ export let ID = createIdGenerator({
   providerDeployment: idType.sorted('pde'),
   providerDeploymentVersion: idType.sorted('pdv'),
 
+  enclave: idType.sorted('enc'),
+  enclaveEnvironment: idType.sorted('een'),
+
   providerConfig: idType.sorted('pcf'),
   providerConfigVersion: idType.sorted('pcv'),
   providerConfigUpdate: idType.sorted('pcu'),

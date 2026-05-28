@@ -110,6 +110,7 @@ model Tenant {
   skillForks                               SkillFork[]
   skillTemplates                           SkillTemplate[]
   tenantOAuthCallbackUrls                  TenantOAuthCallbackUrl[]
+  enclaveEnvironments                      EnclaveEnvironment[]
   enclaves                                 Enclave[]
 }
 

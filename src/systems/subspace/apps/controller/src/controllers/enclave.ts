@@ -1,0 +1,86 @@
+import { Paginator } from '@lowerdeck/pagination';
+import { v } from '@lowerdeck/validation';
+import { enclaveService } from '@metorial-subspace/module-enclave';
+import { enclavePresenter } from '@metorial-subspace/presenters';
+import { app } from './_app';
+import { tenantApp } from './tenant';
+
+export let enclaveApp = tenantApp.use(async ctx => {
+  let enclaveId = ctx.body.enclaveId;
+  if (!enclaveId) throw new Error('Enclave ID is required');
+
+  let enclave = await enclaveService.getEnclaveById({
+    enclaveId,
+    tenant: ctx.tenant,
+    environment: ctx.environment,
+    solution: ctx.solution
+  });
+
+  return { enclave };
+});
+
+export let enclaveController = app.controller({
+  list: tenantApp
+    .handler()
+    .input(
+      Paginator.validate(
+        v.object({
+          tenantId: v.string(),
+          environmentId: v.string(),
+          ids: v.optional(v.array(v.string())),
+          providerDeploymentIds: v.optional(v.array(v.string()))
+        })
+      )
+    )
+    .do(async ctx => {
+      let paginator = await enclaveService.listEnclaves({
+        tenant: ctx.tenant,
+        environment: ctx.environment,
+        solution: ctx.solution,
+        ids: ctx.input.ids,
+        providerDeploymentIds: ctx.input.providerDeploymentIds
+      });
+
+      let list = await paginator.run(ctx.input);
+
+      return Paginator.presentLight(list, enclavePresenter);
+    }),
+
+  get: enclaveApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        environmentId: v.string(),
+        enclaveId: v.string()
+      })
+    )
+    .do(async ctx => enclavePresenter(ctx.enclave)),
+
+  update: enclaveApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        environmentId: v.string(),
+        enclaveId: v.string(),
+
+        name: v.optional(v.string()),
+        description: v.optional(v.string())
+      })
+    )
+    .do(async ctx => {
+      let enclave = await enclaveService.updateEnclave({
+        enclave: ctx.enclave,
+        tenant: ctx.tenant,
+        environment: ctx.environment,
+        solution: ctx.solution,
+        input: {
+          name: ctx.input.name,
+          description: ctx.input.description
+        }
+      });
+
+      return enclavePresenter(enclave);
+    })
+});

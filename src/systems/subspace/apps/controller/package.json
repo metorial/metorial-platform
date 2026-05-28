@@ -56,6 +56,7 @@
     "@metorial-subspace/module-connection": "^1.0.0",
     "@metorial-subspace/module-custom-provider": "^1.0.0",
     "@metorial-subspace/module-deployment": "^1.0.0",
+    "@metorial-subspace/module-enclave": "^1.0.0",
     "@metorial-subspace/module-identity": "^1.0.0",
     "@metorial-subspace/module-integration": "^1.0.0",
     "@metorial-subspace/module-skills": "^1.0.0",

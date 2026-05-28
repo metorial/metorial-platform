@@ -9,7 +9,10 @@ model EnclaveEnvironment {
 
   type EnclaveEnvironmentType
 
-  systemIdentifier String @unique
+  systemIdentifier String? @unique
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
 
   createdAt DateTime @default(now())
 

@@ -42,6 +42,7 @@ import {
   normalizeToolFilters,
   providerDeploymentInternalService
 } from '@metorial-subspace/module-provider-internal';
+import { enclaveInternalService } from '@metorial-subspace/module-enclave';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
 import { checkTenant } from '@metorial-subspace/module-tenant';
 import { getBackend } from '@metorial-subspace/provider';
@@ -391,6 +392,14 @@ class providerDeploymentServiceImpl {
           data: { isDefault: false }
         });
       }
+
+      await enclaveInternalService.ensureEnclaveForProviderDeployment({
+        tenant: d.tenant,
+        solution: d.solution,
+        environment: d.environment,
+        provider: d.provider,
+        providerDeployment
+      });
 
       await addAfterTransactionHook(async () =>
         providerDeploymentCreatedQueue.add({ providerDeploymentId: providerDeployment.id })

@@ -22,6 +22,7 @@ export * from './customProviderDeployment';
 export * from './customProviderEnvironment';
 export * from './customProviderVersion';
 export * from './deployment';
+export * from './enclave';
 export * from './ephemeralManagedSession';
 export * from './integrationInstanceGroup';
 export * from './integrationInstanceGroupProvider';
