@@ -45,6 +45,7 @@ type ServerOptions = {
   manifestRestoreKey?: string;
   manifestRestoreKeys: string[];
   maxManifestEntries: number;
+  githubUploads: boolean;
 };
 
 type Manifest = {
@@ -384,7 +385,7 @@ export let runCacheServer = async (opts: ServerOptions) => {
       digests
     } satisfies Manifest);
 
-    if (!opts.manifestSaveKey || !isActionsCacheAvailable()) return;
+    if (!opts.githubUploads || !opts.manifestSaveKey || !isActionsCacheAvailable()) return;
     let started = Date.now();
     try {
       let actionsCache = await loadActionsCache();
@@ -405,6 +406,7 @@ export let runCacheServer = async (opts: ServerOptions) => {
   let finalize = async () => {
     await Promise.allSettled(uploadTasks);
     await writeManifest();
+    process.exitCode = 0;
     persistStats();
   };
 
@@ -495,7 +497,7 @@ export let runCacheServer = async (opts: ServerOptions) => {
 
         ensureDir(artifactDir(opts.root, hash));
         writeFileSync(artifactPath(opts.root, hash), Buffer.from(await req.arrayBuffer()));
-        queueUpload(hash);
+        if (opts.githubUploads) queueUpload(hash);
         persistStats();
         return new Response('ok');
       }

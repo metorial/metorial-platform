@@ -119,6 +119,7 @@ prog
   .option('--manifest-primary-key', 'Primary GitHub cache key for digest manifest restore')
   .option('--manifest-restore-key', 'GitHub cache key or prefix for manifest restore')
   .option('--max-manifest-entries', 'Maximum digest manifest entries', '500')
+  .option('--disable-github-uploads', 'Disable GitHub cache uploads from the bridge')
   .action(async (opts: Record<string, unknown>) => {
     await runCommand(async () => {
       let argv = process.argv;
@@ -133,7 +134,8 @@ prog
         manifestSaveKey: readCliOption(argv, '--manifest-save-key'),
         manifestRestoreKey: readCliOption(argv, '--manifest-primary-key') ?? readCliOption(argv, '--manifest-restore-key'),
         manifestRestoreKeys: collectManifestRestoreKeys(argv),
-        maxManifestEntries: Number(readCliOption(argv, '--max-manifest-entries', '500'))
+        maxManifestEntries: Number(readCliOption(argv, '--max-manifest-entries', '500')),
+        githubUploads: !readBooleanOption(opts, ['disable-github-uploads'])
       });
     });
   });

@@ -80,6 +80,8 @@ jobs:
         if: ${{ inputs.enable_cache }}
         env:
           CACHE_PREFIX: ${{ inputs.cache_prefix }}
+          CACHE_NAMESPACE: control-v1-${{ runner.os }}-${{ hashFiles('bun.lock', 'package.json', 'nx.json') }}
+          CACHE_REF: ${{ github.ref_name }}
           COMMAND: ${{ inputs.command }}
           MODE: ${{ inputs.mode }}
           FILTER: ${{ inputs.filter }}
@@ -103,13 +105,36 @@ jobs:
           fi
 
           SCOPE="$(printf '%s' "${SCOPE}" | tr -c 'A-Za-z0-9_.-' '-')"
+          CACHE_REF_SAFE="$(printf '%s' "${CACHE_REF}" | tr -c 'A-Za-z0-9_.-' '-')"
           WARM_SCOPE="$(printf '%s' "${PREFIX}-warm-cache" | tr -c 'A-Za-z0-9_.-' '-')"
+          ARTIFACT_PREFIX="control-nx-artifacts-${CACHE_NAMESPACE}-${CACHE_REF_SAFE}-${SCOPE}"
+          WARM_ARTIFACT_PREFIX="control-nx-artifacts-${CACHE_NAMESPACE}-${CACHE_REF_SAFE}-${WARM_SCOPE}"
+
           echo "scope=${SCOPE}" >> "${GITHUB_OUTPUT}"
           echo "warm_scope=${WARM_SCOPE}" >> "${GITHUB_OUTPUT}"
+          echo "namespace=${CACHE_NAMESPACE}" >> "${GITHUB_OUTPUT}"
+          echo "ref_safe=${CACHE_REF_SAFE}" >> "${GITHUB_OUTPUT}"
+          echo "artifact_save_key=${ARTIFACT_PREFIX}-${{ github.run_id }}-${{ github.run_attempt }}" >> "${GITHUB_OUTPUT}"
+          {
+            echo "artifact_restore_keys<<EOF"
+            echo "${ARTIFACT_PREFIX}-"
+            echo "${WARM_ARTIFACT_PREFIX}-"
+            echo "control-nx-artifacts-${CACHE_NAMESPACE}-${CACHE_REF_SAFE}-"
+            echo "control-nx-artifacts-${CACHE_NAMESPACE}-"
+            echo "EOF"
+          } >> "${GITHUB_OUTPUT}"
 
       - name: Prepare cache directories
         if: ${{ inputs.enable_cache }}
         run: mkdir -p .nx/cache .control/cache/nx-artifacts .control/cache/nx-manifest
+
+      - name: Restore Nx artifact directory
+        if: ${{ inputs.enable_cache }}
+        uses: actions/cache/restore@v4
+        with:
+          path: .control/cache/nx-artifacts
+          key: ${{ steps.cache-scope.outputs.artifact_save_key }}
+          restore-keys: ${{ steps.cache-scope.outputs.artifact_restore_keys }}
 
       - name: Install packages
         env:
@@ -123,16 +148,15 @@ jobs:
       - name: Start Nx cache bridge
         if: ${{ inputs.enable_cache }}
         env:
-          CACHE_NAMESPACE: control-v1-${{ runner.os }}-${{ hashFiles('bun.lock', 'package.json', 'nx.json') }}
+          CACHE_NAMESPACE: ${{ steps.cache-scope.outputs.namespace }}
           CACHE_SCOPE: ${{ steps.cache-scope.outputs.scope }}
           CACHE_WARM_SCOPE: ${{ steps.cache-scope.outputs.warm_scope }}
-          CACHE_REF: ${{ github.ref_name }}
+          CACHE_REF_SAFE: ${{ steps.cache-scope.outputs.ref_safe }}
         run: |
           set -euo pipefail
 
           PORT=43191
           SERVER_URL="http://127.0.0.1:${PORT}"
-          CACHE_REF_SAFE="$(printf '%s' "${CACHE_REF}" | tr -c 'A-Za-z0-9_.-' '-')"
           MANIFEST_PREFIX="control-nx-used-digests-${CACHE_NAMESPACE}-${CACHE_REF_SAFE}-${CACHE_SCOPE}"
           MANIFEST_SAVE_KEY="${MANIFEST_PREFIX}-${{ github.run_id }}-${{ github.run_attempt }}"
           WARM_MANIFEST_PREFIX="control-nx-used-digests-${CACHE_NAMESPACE}-${CACHE_REF_SAFE}-${CACHE_WARM_SCOPE}"
@@ -151,6 +175,7 @@ jobs:
             --manifest-restore-key "${WARM_MANIFEST_PREFIX}-" \
             --manifest-restore-key "control-nx-used-digests-${CACHE_NAMESPACE}-${CACHE_REF_SAFE}-" \
             --manifest-restore-key "control-nx-used-digests-${CACHE_NAMESPACE}-" \
+            --disable-github-uploads \
             > .control/cache/nx-server.log 2>&1 &
 
           echo "$!" > .control/cache/nx-server.pid
@@ -278,3 +303,10 @@ jobs:
           if [ "${SUMMARY_STATUS}" -ne 0 ]; then
             echo "::warning::Nx cache bridge summary failed with status ${SUMMARY_STATUS}; continuing because cache reporting is best-effort"
           fi
+
+      - name: Save warmed Nx artifact directory
+        if: ${{ always() && inputs.enable_cache && inputs.command == 'warm-cache' }}
+        uses: actions/cache/save@v4
+        with:
+          path: .control/cache/nx-artifacts
+          key: ${{ steps.cache-scope.outputs.artifact_save_key }}
