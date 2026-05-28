@@ -1,6 +1,6 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { networkPolicyService } from '@metorial-subspace/module-enclave';
+import { networkPolicyService, type NetworkPolicyRuleInput } from '@metorial-subspace/module-enclave';
 import {
   networkPolicyPresenter,
   networkPolicyRulePresenter,
@@ -105,7 +105,7 @@ export let networkPolicyController = app.controller({
         input: {
           name: ctx.input.name,
           description: ctx.input.description,
-          rules: ctx.input.rules
+          rules: ctx.input.rules as NetworkPolicyRuleInput[] | undefined
         }
       });
 
@@ -133,7 +133,7 @@ export let networkPolicyController = app.controller({
         input: {
           name: ctx.input.name,
           description: ctx.input.description,
-          rules: ctx.input.rules
+          rules: ctx.input.rules as NetworkPolicyRuleInput[] | undefined
         }
       });
 
@@ -177,7 +177,7 @@ export let networkPolicyController = app.controller({
             description: ctx.input.description,
             enabled: ctx.input.enabled,
             priority: ctx.input.priority,
-            ports: ctx.input.ports
+            ports: ctx.input.ports as NetworkPolicyRuleInput['ports']
           }
         }
       });

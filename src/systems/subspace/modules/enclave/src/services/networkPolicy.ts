@@ -352,19 +352,19 @@ class networkPolicyServiceImpl {
   }) {
     checkTenant(d, d.networkPolicy);
 
-    let linkCount = await db.firewallNetworkPolicy.count({
-      where: { networkPolicyOid: d.networkPolicy.oid }
-    });
-    if (linkCount > 0) {
-      throw new ServiceError(
-        badRequestError({
-          code: 'network_policy_in_use',
-          message: 'Network policy is linked to one or more firewalls and cannot be deleted.'
-        })
-      );
-    }
-
     return withTransaction(async db => {
+      let linkCount = await db.firewallNetworkPolicy.count({
+        where: { networkPolicyOid: d.networkPolicy.oid }
+      });
+      if (linkCount > 0) {
+        throw new ServiceError(
+          badRequestError({
+            code: 'network_policy_in_use',
+            message: 'Network policy is linked to one or more firewalls and cannot be deleted.'
+          })
+        );
+      }
+
       await db.networkPolicyVersion.deleteMany({
         where: { networkPolicyOid: d.networkPolicy.oid }
       });

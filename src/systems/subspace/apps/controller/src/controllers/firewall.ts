@@ -1,6 +1,6 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { firewallService } from '@metorial-subspace/module-enclave';
+import { firewallService, type FirewallBindingInput } from '@metorial-subspace/module-enclave';
 import { firewallPresenter } from '@metorial-subspace/presenters';
 import { app } from './_app';
 import { createdAtValidator, updatedAtValidator } from './_dateFilter';
@@ -102,7 +102,7 @@ export let firewallController = app.controller({
           description: ctx.input.description,
           slug: ctx.input.slug,
           networkId: ctx.input.networkId,
-          bindings: ctx.input.bindings,
+          bindings: ctx.input.bindings as FirewallBindingInput[] | undefined,
           networkPolicyIds: ctx.input.networkPolicyIds
         }
       });

@@ -47,7 +47,6 @@ let subtractBoxes = (base: AllowBox[], remove: AllowBox[]) => {
       let cidrOnly = cidrSetSubtract(box.cidrs, removeBox.cidrs);
       let cidrOverlap = cidrSetIntersect(box.cidrs, removeBox.cidrs);
       let portOnly = portRangeSetSubtract(box.portRanges, removeBox.portRanges);
-      let portOverlap = portRangeSetIntersect(box.portRanges, removeBox.portRanges);
 
       if (cidrOnly.length) {
         next.push({ cidrs: cidrOnly, portRanges: box.portRanges });
@@ -250,6 +249,11 @@ let compileRules = (d: {
   return boxesToEntries(allowed, d.direction);
 };
 
+let emptyFallbackEntries = (): CompiledNetworkAllowEntry[] => [
+  { cidr: emptyCidr('ipv4') },
+  { cidr: emptyCidr('ipv6') }
+];
+
 export let compileNetworkAllowList = (d: {
   direction: 'ingress' | 'egress';
   rules: NetworkPolicyRules;
@@ -259,10 +263,7 @@ export let compileNetworkAllowList = (d: {
   if (compiled.length === 0) {
     return {
       direction: d.direction,
-      entries:
-        d.direction === 'ingress'
-          ? [{ cidr: emptyCidr('ipv4') }, { cidr: emptyCidr('ipv6') }]
-          : [{ cidr: emptyCidr('ipv4') }]
+      entries: emptyFallbackEntries()
     };
   }
 
@@ -274,10 +275,7 @@ export let compileNetworkAllowList = (d: {
   if (entries.length === 0) {
     return {
       direction: d.direction,
-      entries:
-        d.direction === 'ingress'
-          ? [{ cidr: emptyCidr('ipv4') }, { cidr: emptyCidr('ipv6') }]
-          : [{ cidr: emptyCidr('ipv4') }]
+      entries: emptyFallbackEntries()
     };
   }
 

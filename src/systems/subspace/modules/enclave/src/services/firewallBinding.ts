@@ -27,6 +27,8 @@ import {
   validateFirewallBindingInputs
 } from '../lib/firewallBindingValidation';
 
+export type { FirewallBindingInput };
+
 export let bindingInclude = {
   firewall: {
     select: {

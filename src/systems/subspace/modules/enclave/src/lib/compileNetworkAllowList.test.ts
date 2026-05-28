@@ -54,6 +54,15 @@ describe('compileNetworkAllowList', () => {
     expect(result.entries).toEqual([{ cidr: '0.0.0.0/32' }, { cidr: '::/128' }]);
   });
 
+  it('returns empty sentinels for both address families on egress when no rules match', () => {
+    let result = compileNetworkAllowList({
+      direction: 'egress',
+      rules: [rule({ effect: 'allow', priority: 10, direction: 'ingress' })]
+    });
+
+    expect(result.entries).toEqual([{ cidr: '0.0.0.0/32' }, { cidr: '::/128' }]);
+  });
+
   it('filters by direction and skips disabled rules', () => {
     let result = compileNetworkAllowList({
       direction: 'egress',
