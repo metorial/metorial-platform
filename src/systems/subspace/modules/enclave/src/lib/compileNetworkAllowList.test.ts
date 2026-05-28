@@ -110,4 +110,33 @@ describe('compileNetworkAllowList', () => {
 
     expect(result.entries).toEqual([{ cidr: '0.0.0.0/0' }]);
   });
+
+  it('does not collapse partial egress product coverage to the universe sentinel', () => {
+    let result = compileNetworkAllowList({
+      direction: 'egress',
+      rules: [
+        rule({
+          id: 'npr_allow_https_everywhere',
+          effect: 'allow',
+          direction: 'egress',
+          priority: 20,
+          cidrs: ['0.0.0.0/0'],
+          ports: [{ from: 443, to: 443 }]
+        }),
+        rule({
+          id: 'npr_allow_private_all_ports',
+          effect: 'allow',
+          direction: 'egress',
+          priority: 10,
+          cidrs: ['10.0.0.0/8']
+        })
+      ]
+    });
+
+    expect(result.entries).toEqual([
+      { cidr: '0.0.0.0/0', portRange: { from: 443, to: 443 } },
+      { cidr: '10.0.0.0/8', portRange: { from: 1, to: 442 } },
+      { cidr: '10.0.0.0/8', portRange: { from: 444, to: 65535 } }
+    ]);
+  });
 });

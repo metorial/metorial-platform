@@ -154,6 +154,17 @@ let mergeEntries = (entries: CompiledNetworkAllowEntry[], direction: 'ingress' |
   );
 };
 
+let boxesCoverUniverse = (boxes: AllowBox[], family: AddressFamily) =>
+  subtractBoxes(
+    [
+      {
+        cidrs: [universeCidr(family)],
+        portRanges: [fullPortRange()]
+      }
+    ],
+    boxes
+  ).length === 0;
+
 let normalizeFamilyEntries = (
   entries: CompiledNetworkAllowEntry[],
   family: AddressFamily,
@@ -185,7 +196,7 @@ let normalizeFamilyEntries = (
     return [{ cidr: emptyCidr(family) }];
   }
 
-  if (cidrSetEqualsUniverse(cidrs, family) && portRangeSetEqualsUniverse(ports)) {
+  if (boxesCoverUniverse(boxes, family)) {
     return [{ cidr: universeCidr(family) }];
   }
 
