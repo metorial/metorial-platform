@@ -136,10 +136,7 @@ let boxesToEntries = (
   return mergeEntries(entries, direction);
 };
 
-let mergeEntries = (
-  entries: CompiledNetworkAllowEntry[],
-  direction: 'ingress' | 'egress'
-) => {
+let mergeEntries = (entries: CompiledNetworkAllowEntry[], direction: 'ingress' | 'egress') => {
   if (direction === 'ingress') {
     return cidrSetUnion(entries.map(entry => entry.cidr)).map(cidr => ({ cidr }));
   }
@@ -217,14 +214,11 @@ let ruleToBoxes = (rule: NetworkPolicyRule, direction: 'ingress' | 'egress'): Al
 let initialRemaining = (direction: 'ingress' | 'egress'): AllowBox[] => [
   {
     cidrs: [universeCidr('ipv4'), universeCidr('ipv6')],
-    portRanges: direction === 'egress' ? [fullPortRange()] : [fullPortRange()]
+    portRanges: [fullPortRange()]
   }
 ];
 
-let compileRules = (d: {
-  direction: 'ingress' | 'egress';
-  rules: NetworkPolicyRules;
-}) => {
+let compileRules = (d: { direction: 'ingress' | 'egress'; rules: NetworkPolicyRules }) => {
   let sortedRules = d.rules
     .map((rule, index) => ({ rule, index }))
     .filter(({ rule }) => rule.enabled && rule.direction === d.direction)
