@@ -18,13 +18,20 @@ let commonEntrypoints = commonDirs.flatMap(dir =>
 export let getFunctionFs = (d: { payload: PrismaJson.UpcomingFunctionServerPayload }) => {
   let files = d.payload.files;
   let functionEntrypoint: string | undefined;
-  let packageJson = files.find(f => f.filename === 'package.json');
+  let packageJson = files.find(
+    f => f.filename === 'package.json' || f.filename === './package.json'
+  );
 
   let logs: string[] = [];
 
   if (packageJson?.content) {
+    let stringContents =
+      packageJson.encoding === 'base64'
+        ? Buffer.from(packageJson.content, 'base64').toString('utf-8')
+        : packageJson.content;
+
     try {
-      let pkg = JSON.parse(packageJson.content);
+      let pkg = JSON.parse(stringContents);
       if (pkg.main) {
         functionEntrypoint = './' + pkg.main;
       }

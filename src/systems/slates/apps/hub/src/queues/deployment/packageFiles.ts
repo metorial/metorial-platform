@@ -23,7 +23,8 @@ let fallbackEntrypoints = [
   'src/index.js',
   'index.ts',
   'index.js',
-  'dist/index.js'
+  'dist/index.js',
+  'dist/index.cjs'
 ];
 
 let getArchiveFile = (files: DeploymentArchiveFile[], path: string) =>

@@ -206,6 +206,16 @@ export let deploySlateAfterSyncQueue = createQueue<{
 
 export let deploySlateAfterSyncQueueProcessor = deploySlateAfterSyncQueue.process(
   async data => {
+    let version = await db.slateVersion.findUnique({
+      where: { id: data.versionId }
+    });
+    if (version?.status !== 'pending') {
+      console.warn(
+        `Not deploying slate version ${data.versionId} after sync because its status is not pending`
+      );
+      return;
+    }
+
     await deploySlateVersionQueue.add({ versionId: data.versionId }, { id: data.versionId });
   }
 );

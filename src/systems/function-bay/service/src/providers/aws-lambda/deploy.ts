@@ -154,39 +154,85 @@ exports.applyDeflector = function applyDeflector(event) {
 let nodeProxyWrapper = (originalHandler: string, bootstrapCode: string) => `
 ${bootstrapCode}
 const originalHandler = ${JSON.stringify(originalHandler)};
-const [modulePath, exportName = 'handler'] = originalHandler.split(/\\.([^.]*)$/).filter(Boolean);
 const path = require('path');
+const fs = require('fs');
 const { pathToFileURL } = require('url');
 let loaded;
 
-async function loadOriginalModule() {
-  try {
-    return require('./' + modulePath);
-  } catch (err) {
-    const candidates = [
-      modulePath,
-      /\\.[cm]?js$/.test(modulePath) ? undefined : modulePath + '.js',
-      /\\.[cm]?js$/.test(modulePath) ? undefined : modulePath + '.mjs'
-    ].filter(Boolean);
-
-    let lastError = err;
-    for (const candidate of candidates) {
-      try {
-        return await import(pathToFileURL(path.resolve(__dirname, candidate)).href);
-      } catch (importErr) {
-        lastError = importErr;
-      }
-    }
-    throw lastError;
+function resolveHandlerParts(handler) {
+  const lastSeparator = handler.lastIndexOf('.');
+  if (lastSeparator === -1) {
+    return { modulePath: handler, exportName: 'handler' };
   }
+
+  return {
+    modulePath: handler.slice(0, lastSeparator),
+    exportName: handler.slice(lastSeparator + 1) || 'handler'
+  };
+}
+
+function getModuleCandidates(modulePath) {
+  if (/\\.[cm]?js$/.test(modulePath)) return [modulePath];
+  return [modulePath, modulePath + '.js', modulePath + '.cjs', modulePath + '.mjs'];
+}
+
+function resolveOriginalModulePath(modulePath) {
+  const candidates = getModuleCandidates(modulePath);
+  for (const candidate of candidates) {
+    const resolved = path.resolve(__dirname, candidate);
+    if (fs.existsSync(resolved)) return resolved;
+  }
+
+  let availableFiles = [];
+  try {
+    availableFiles = fs.readdirSync(__dirname).sort();
+  } catch {}
+
+  throw new Error(
+    'Original handler module not found. Handler=' +
+      originalHandler +
+      '; tried=' +
+      candidates.join(', ') +
+      '; available=' +
+      availableFiles.join(', ')
+  );
+}
+
+async function loadOriginalModule(modulePath) {
+  const resolvedModulePath = resolveOriginalModulePath(modulePath);
+
+  try {
+    return require(resolvedModulePath);
+  } catch (err) {
+    if (err && err.code === 'ERR_REQUIRE_ESM') {
+      return await import(pathToFileURL(resolvedModulePath).href);
+    }
+
+    throw err;
+  }
+}
+
+function getHandler(moduleExports, exportName) {
+  if (typeof moduleExports[exportName] === 'function') return moduleExports[exportName];
+
+  if (moduleExports.default && typeof moduleExports.default[exportName] === 'function') {
+    return moduleExports.default[exportName];
+  }
+
+  if (exportName === 'handler' && typeof moduleExports.default === 'function') {
+    return moduleExports.default;
+  }
+
+  return undefined;
 }
 
 exports.handler = async (event, context) => {
   exports.applyDeflector(event);
+  const { modulePath, exportName } = resolveHandlerParts(originalHandler);
   if (!loaded) {
-    loaded = await loadOriginalModule();
+    loaded = await loadOriginalModule(modulePath);
   }
-  const handler = loaded[exportName];
+  const handler = getHandler(loaded, exportName);
   if (typeof handler !== 'function') throw new Error('Original handler export not found');
   return await handler(event, context);
 };
@@ -257,6 +303,9 @@ let getNodeProxyWrapperBootstrap = async () => {
 
 let buildNodeProxyWrapper = async (originalHandler: string) =>
   nodeProxyWrapper(originalHandler, await getNodeProxyWrapperBootstrap());
+
+export let buildNodeProxyWrapperScript = (originalHandler: string) =>
+  nodeProxyWrapper(originalHandler, 'exports.applyDeflector = function applyDeflector() {};');
 
 let prepareZip = async (d: {
   zipFileUrl: string;
