@@ -19,6 +19,13 @@ import {
   resolveProviders
 } from '@metorial-subspace/list-utils';
 import { checkTenant } from '@metorial-subspace/module-tenant';
+import {
+  compileNetworkAllowList,
+  type CompiledNetworkAllowList
+} from '../lib/compileNetworkAllowList';
+import { compileNetworkRulesForEnclave } from '../lib/compileNetworkRules';
+
+export type { CompiledNetworkAllowEntry, CompiledNetworkAllowList } from '../lib/compileNetworkAllowList';
 
 let include = {
   enclaveEnvironment: true,
@@ -124,6 +131,80 @@ class enclaveServiceImpl {
     }
 
     return enclave;
+  }
+
+  async compileNetworkRules(d: {
+    tenant: Tenant;
+    environment: Environment;
+    enclave: Enclave;
+    direction: 'ingress' | 'egress';
+  }): Promise<{
+    rules: PrismaJson.NetworkPolicyRules;
+    allowList: CompiledNetworkAllowList;
+  }> {
+    checkTenant(d, d.enclave);
+
+    let enclave = await db.enclave.findFirst({
+      where: {
+        oid: d.enclave.oid,
+        tenantOid: d.tenant.oid,
+        environmentOid: d.environment.oid
+      },
+      select: {
+        oid: true,
+        networkOid: true,
+        providerDeployment: {
+          select: {
+            providerOid: true
+          }
+        }
+      }
+    });
+    if (!enclave) {
+      throw new ServiceError(notFoundError('enclave', d.enclave.id));
+    }
+
+    let bindings = await db.firewallBinding.findMany({
+      where: {
+        tenantOid: d.tenant.oid,
+        environmentOid: d.environment.oid,
+        OR: [
+          { enclaveOid: enclave.oid },
+          { providerOid: enclave.providerDeployment.providerOid },
+          { networkOid: enclave.networkOid }
+        ]
+      },
+      include: {
+        firewall: {
+          include: {
+            networkPolicyLinks: {
+              orderBy: { position: 'asc' as const },
+              include: {
+                networkPolicy: {
+                  include: {
+                    currentVersion: true
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      orderBy: { createdAt: 'asc' }
+    });
+
+    let rules = compileNetworkRulesForEnclave({
+      enclaveNetworkOid: enclave.networkOid,
+      firewalls: bindings.map(binding => binding.firewall)
+    });
+
+    return {
+      rules,
+      allowList: compileNetworkAllowList({
+        direction: d.direction,
+        rules
+      })
+    };
   }
 
   async updateEnclave(d: {
