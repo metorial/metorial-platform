@@ -4,7 +4,6 @@ import { db } from '../../db';
 import { env } from '../../env';
 import { getId } from '../../id';
 import { getRegistryClient, getRegistryQuery } from '../../registry';
-import { syncRegistrySlatesFromCatalog } from './syncRegistryCatalog';
 import { syncSlateQueue } from './syncSlate';
 
 export let syncRegistryQueue = createQueue<{
@@ -82,7 +81,7 @@ export let syncRegistryQueueProcessor = syncRegistryQueue.process(data =>
       await syncRegistryQueue.add({ registryId: reg.id }, { id: reg.id });
     }
 
-    await syncRegistrySlatesFromCatalog({ reg, client });
+    // await syncRegistrySlatesFromCatalog({ reg, client });
 
     if (items.length === 0) {
       await db.registry.update({
