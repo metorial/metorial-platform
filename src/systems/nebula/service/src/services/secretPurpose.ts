@@ -17,9 +17,7 @@ export let knownSecretPurposeIdentifiers = [
 
 class SecretPurposeServiceImpl {
   async ensurePurpose(identifier: string): Promise<SecretPurpose> {
-    await secretPurposeCache.loadAll();
-
-    let cached = secretPurposeCache.getByIdentifier(identifier);
+    let cached = await secretPurposeCache.getByIdentifierOrLoad(identifier);
     if (cached) return cached;
 
     let purpose = await db.secretPurpose.upsert({
@@ -39,11 +37,9 @@ class SecretPurposeServiceImpl {
     purposeOid: number | null;
     purposeLegacy: string | null;
   }) {
-    await secretPurposeCache.loadAll();
-
     if (secret.purposeOid != null) {
-      let identifier = secretPurposeCache.getByOid(secret.purposeOid)?.identifier;
-      if (identifier) return identifier;
+      let purpose = await secretPurposeCache.getByOidOrLoad(secret.purposeOid);
+      if (purpose) return purpose.identifier;
     }
 
     if (secret.purposeLegacy) return secret.purposeLegacy;

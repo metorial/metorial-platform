@@ -5,30 +5,53 @@ let byIdentifier = new Map<string, SecretPurpose>();
 let byOid = new Map<number, SecretPurpose>();
 let loaded = false;
 
+let setPurpose = (purpose: SecretPurpose) => {
+  byIdentifier.set(purpose.identifier, purpose);
+  byOid.set(purpose.oid, purpose);
+};
+
 export let secretPurposeCache = {
   async loadAll() {
     if (loaded) return;
 
     let purposes = await db.secretPurpose.findMany();
     for (let purpose of purposes) {
-      byIdentifier.set(purpose.identifier, purpose);
-      byOid.set(purpose.oid, purpose);
+      setPurpose(purpose);
     }
 
     loaded = true;
   },
 
   set(purpose: SecretPurpose) {
-    byIdentifier.set(purpose.identifier, purpose);
-    byOid.set(purpose.oid, purpose);
+    setPurpose(purpose);
   },
 
-  getByIdentifier(identifier: string) {
-    return byIdentifier.get(identifier);
+  async getByIdentifierOrLoad(identifier: string) {
+    await this.loadAll();
+
+    let cached = byIdentifier.get(identifier);
+    if (cached) return cached;
+
+    let purpose = await db.secretPurpose.findUnique({
+      where: { identifier }
+    });
+    if (purpose) this.set(purpose);
+
+    return purpose ?? null;
   },
 
-  getByOid(oid: number) {
-    return byOid.get(oid);
+  async getByOidOrLoad(oid: number) {
+    await this.loadAll();
+
+    let cached = byOid.get(oid);
+    if (cached) return cached;
+
+    let purpose = await db.secretPurpose.findUnique({
+      where: { oid }
+    });
+    if (purpose) this.set(purpose);
+
+    return purpose ?? null;
   },
 
   clear() {

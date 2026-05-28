@@ -17,8 +17,12 @@ describe('secretPurposeCache', () => {
 
     await secretPurposeCache.loadAll();
 
-    expect(secretPurposeCache.getByIdentifier('registry_credentials')?.oid).toBe(101);
-    expect(secretPurposeCache.getByOid(102)?.identifier).toBe('oauth_token');
+    await expect(secretPurposeCache.getByIdentifierOrLoad('registry_credentials')).resolves.toMatchObject({
+      oid: 101
+    });
+    await expect(secretPurposeCache.getByOidOrLoad(102)).resolves.toMatchObject({
+      identifier: 'oauth_token'
+    });
   });
 
   it('set populates both maps without requiring loadAll', async () => {
@@ -31,11 +35,13 @@ describe('secretPurposeCache', () => {
 
     secretPurposeCache.set(purpose);
 
-    expect(secretPurposeCache.getByIdentifier('server_config_value')).toEqual(purpose);
-    expect(secretPurposeCache.getByOid(201)).toEqual(purpose);
+    await expect(secretPurposeCache.getByIdentifierOrLoad('server_config_value')).resolves.toEqual(
+      purpose
+    );
+    await expect(secretPurposeCache.getByOidOrLoad(201)).resolves.toEqual(purpose);
   });
 
-  it('clear resets the cache', async () => {
+  it('clear allows loadAll to run again on the next lookup', async () => {
     await testDb.secretPurpose.create({
       data: {
         oid: 301,
@@ -46,7 +52,43 @@ describe('secretPurposeCache', () => {
     await secretPurposeCache.loadAll();
     secretPurposeCache.clear();
 
-    expect(secretPurposeCache.getByIdentifier('oauth_connection_credentials')).toBeUndefined();
-    expect(secretPurposeCache.getByOid(301)).toBeUndefined();
+    await expect(
+      secretPurposeCache.getByIdentifierOrLoad('oauth_connection_credentials')
+    ).resolves.toMatchObject({
+      oid: 301,
+      identifier: 'oauth_connection_credentials'
+    });
+  });
+
+  it('getByIdentifierOrLoad fetches purposes added after loadAll', async () => {
+    await secretPurposeCache.loadAll();
+
+    let purpose = await testDb.secretPurpose.create({
+      data: {
+        oid: 401,
+        identifier: 'slate_oauth_setup'
+      }
+    });
+
+    await expect(secretPurposeCache.getByIdentifierOrLoad('slate_oauth_setup')).resolves.toEqual(
+      purpose
+    );
+    await expect(secretPurposeCache.getByOidOrLoad(401)).resolves.toEqual(purpose);
+  });
+
+  it('getByOidOrLoad fetches purposes added after loadAll', async () => {
+    await secretPurposeCache.loadAll();
+
+    let purpose = await testDb.secretPurpose.create({
+      data: {
+        oid: 402,
+        identifier: 'slate_oauth_credentials'
+      }
+    });
+
+    await expect(secretPurposeCache.getByOidOrLoad(402)).resolves.toEqual(purpose);
+    await expect(secretPurposeCache.getByIdentifierOrLoad('slate_oauth_credentials')).resolves.toEqual(
+      purpose
+    );
   });
 });
