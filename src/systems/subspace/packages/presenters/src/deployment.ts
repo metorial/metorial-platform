@@ -15,6 +15,7 @@ export let providerDeploymentPresenter = (
     provider: Provider;
     providerVariant: ProviderVariant;
     defaultConfig: ProviderConfig | null;
+    enclave?: { id: string } | null;
     currentVersion:
       | (ProviderDeploymentVersion & {
           lockedVersion:
@@ -40,6 +41,7 @@ export let providerDeploymentPresenter = (
   toolFilter: providerDeployment.toolFilter,
 
   providerId: providerDeployment.provider.id,
+  enclaveId: providerDeployment.enclave?.id ?? null,
 
   lockedVersion: providerDeployment.currentVersion?.lockedVersion
     ? providerVersionPresenter({
@@ -62,6 +64,7 @@ export let providerDeploymentPresenter = (
 export let providerDeploymentPreviewPresenter = (
   providerDeployment: ProviderDeployment & {
     provider: Provider;
+    enclave?: { id: string } | null;
   }
 ) => ({
   object: 'provider.deployment#preview',
@@ -78,6 +81,7 @@ export let providerDeploymentPreviewPresenter = (
   toolFilter: (providerDeployment as any).toolFilter,
 
   providerId: providerDeployment.provider.id,
+  enclaveId: providerDeployment.enclave?.id ?? null,
 
   createdAt: providerDeployment.createdAt,
   updatedAt: providerDeployment.updatedAt

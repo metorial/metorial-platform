@@ -65,7 +65,6 @@ model ProviderDeployment {
   callbacks                   Callback[]
   identityCredentials         IdentityCredential[]
   integrationProviderVersions IntegrationProviderVersion[]
-  enclave                     Enclave?
 
   @@index([createdAt])
   @@index([updatedAt])

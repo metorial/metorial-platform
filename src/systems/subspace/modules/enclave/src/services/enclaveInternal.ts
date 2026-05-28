@@ -11,9 +11,13 @@ import {
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
+import { networkInternalService } from './networkInternal';
 
 class enclaveInternalServiceImpl {
-  private async upsertSystemEnclaveEnvironment(d: { tenant: Tenant; db: Parameters<Parameters<typeof withTransaction>[0]>[0] }) {
+  private async upsertSystemEnclaveEnvironment(d: {
+    tenant: Tenant;
+    db: Parameters<Parameters<typeof withTransaction>[0]>[0];
+  }) {
     let systemIdentifier = `system:${d.tenant.id}`;
 
     let existing = await d.db.enclaveEnvironment.findFirst({
@@ -21,10 +25,15 @@ class enclaveInternalServiceImpl {
     });
     if (existing) return existing;
 
-    return d.db.enclaveEnvironment.create({
-      data: {
+    return d.db.enclaveEnvironment.upsert({
+      where: { systemIdentifier },
+      update: {
+        name: `Metorial Platform`,
+        type: 'metorial'
+      },
+      create: {
         ...getId('enclaveEnvironment'),
-        name: `System (${d.tenant.id})`,
+        name: `Metorial Platform`,
         type: 'metorial',
         systemIdentifier,
         tenantOid: d.tenant.oid
@@ -48,6 +57,12 @@ class enclaveInternalServiceImpl {
         });
         if (existing) return existing;
 
+        let network = await networkInternalService.ensureNetworkForEnvironment({
+          tenant: d.tenant,
+          environment: d.environment,
+          db
+        });
+
         let enclaveEnvironment = await this.upsertSystemEnclaveEnvironment({
           tenant: d.tenant,
           db
@@ -56,14 +71,14 @@ class enclaveInternalServiceImpl {
         return db.enclave.create({
           data: {
             ...getId('enclave'),
-            identifier: `${slugify(d.provider.name)}-${generatePlainId(10).toLowerCase()}`,
+            slug: `${slugify(d.provider.name)}-${generatePlainId(10).toLowerCase()}`,
             name: d.provider.name,
             description: '',
             enclaveEnvironmentOid: enclaveEnvironment.oid,
             providerDeploymentOid: d.providerDeployment.oid,
+            networkOid: network.oid,
             tenantOid: d.tenant.oid,
-            environmentOid: d.environment.oid,
-            solutionOid: d.solution.oid
+            environmentOid: d.environment.oid
           }
         });
       },

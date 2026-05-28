@@ -9,14 +9,46 @@ import {
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
-import { resolveProviderDeployments } from '@metorial-subspace/list-utils';
+import {
+  type DateFilter,
+  normalizeDateFilter,
+  resolveEnclaveEnvironments,
+  resolveFirewalls,
+  resolveNetworks,
+  resolveProviderDeployments,
+  resolveProviders
+} from '@metorial-subspace/list-utils';
 import { checkTenant } from '@metorial-subspace/module-tenant';
 
 let include = {
   enclaveEnvironment: true,
+  network: {
+    select: {
+      id: true,
+      name: true
+    }
+  },
   providerDeployment: {
     select: {
-      id: true
+      id: true,
+      provider: {
+        select: {
+          id: true,
+          slug: true,
+          name: true
+        }
+      }
+    }
+  },
+  firewallBindings: {
+    include: {
+      firewall: {
+        select: {
+          id: true,
+          slug: true,
+          name: true
+        }
+      }
     }
   }
 };
@@ -27,9 +59,19 @@ class enclaveServiceImpl {
     solution: Solution;
     environment: Environment;
     ids?: string[];
+    slugs?: string[];
+    networkIds?: string[];
+    enclaveEnvironmentIds?: string[];
     providerDeploymentIds?: string[];
+    providerIds?: string[];
+    firewallIds?: string[];
+    createdAt?: DateFilter;
   }) {
+    let networks = await resolveNetworks(d, d.networkIds);
+    let enclaveEnvironments = await resolveEnclaveEnvironments(d, d.enclaveEnvironmentIds);
     let providerDeployments = await resolveProviderDeployments(d, d.providerDeploymentIds);
+    let providers = await resolveProviders(d, d.providerIds);
+    let firewalls = await resolveFirewalls(d, d.firewallIds);
 
     return Paginator.create(({ prisma }) =>
       prisma(async opts =>
@@ -37,11 +79,24 @@ class enclaveServiceImpl {
           ...opts,
           where: {
             tenantOid: d.tenant.oid,
-            solutionOid: d.solution.oid,
             environmentOid: d.environment.oid,
             AND: [
               d.ids ? { id: { in: d.ids } } : undefined!,
-              providerDeployments ? { providerDeploymentOid: providerDeployments.in } : undefined!
+              d.slugs ? { slug: { in: d.slugs } } : undefined!,
+              networks ? { networkOid: networks.in } : undefined!,
+              enclaveEnvironments
+                ? { enclaveEnvironmentOid: enclaveEnvironments.in }
+                : undefined!,
+              providerDeployments
+                ? { providerDeploymentOid: providerDeployments.in }
+                : undefined!,
+              providers
+                ? { providerDeployment: { providerOid: providers.in } }
+                : undefined!,
+              firewalls
+                ? { firewallBindings: { some: { firewallOid: firewalls.in } } }
+                : undefined!,
+              d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!
             ].filter(Boolean)
           },
           include
@@ -60,7 +115,6 @@ class enclaveServiceImpl {
       where: {
         id: d.enclaveId,
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
         environmentOid: d.environment.oid
       },
       include
@@ -89,7 +143,6 @@ class enclaveServiceImpl {
         where: {
           oid: d.enclave.oid,
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
           environmentOid: d.environment.oid
         },
         data: {
@@ -102,4 +155,7 @@ class enclaveServiceImpl {
   }
 }
 
-export let enclaveService = Service.create('enclaveService', () => new enclaveServiceImpl()).build();
+export let enclaveService = Service.create(
+  'enclaveService',
+  () => new enclaveServiceImpl()
+).build();

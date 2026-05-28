@@ -24,6 +24,9 @@ import { customProviderCommitController } from './customProviderCommit';
 import { customProviderDeploymentController } from './customProviderDeployment';
 import { customProviderEnvironmentController } from './customProviderEnvironment';
 import { enclaveController } from './enclave';
+import { firewallController } from './firewall';
+import { networkController } from './network';
+import { networkPolicyController } from './networkPolicy';
 import { customProviderVersionController } from './customProviderVersion';
 import { environmentController } from './environment';
 import { ephemeralManagedSessionController } from './ephemeralManagedSession';
@@ -167,6 +170,9 @@ let providerControllers = {
   providerConfigVault: providerConfigVaultController,
   providerDeployment: providerDeploymentController,
   enclave: enclaveController,
+  network: networkController,
+  firewall: firewallController,
+  networkPolicy: networkPolicyController,
   providerListing: providerListingController,
   providerOAuthSetup: providerOAuthSetupController,
   providerSpecification: providerSpecificationController,

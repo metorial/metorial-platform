@@ -86,6 +86,15 @@ class tenantServiceImpl {
         }))
       });
 
+      let environments = await db.environment.findMany({
+        where: { tenantOid: tenant.oid }
+      });
+
+      let { networkInternalService } = await import('@metorial-subspace/module-enclave');
+      for (let environment of environments) {
+        await networkInternalService.ensureNetworkForEnvironment({ tenant, environment });
+      }
+
       if (!existingTenant) {
         let solutions = await db.solution.findMany({
           select: {

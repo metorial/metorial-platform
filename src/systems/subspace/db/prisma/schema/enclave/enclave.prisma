@@ -4,8 +4,10 @@ enum EnclaveEnvironmentType {
 }
 
 model EnclaveEnvironment {
-  oid  BigInt @id
-  name String @unique
+  oid BigInt @id
+  id  String @unique
+
+  name String
 
   type EnclaveEnvironmentType
 
@@ -23,7 +25,7 @@ model Enclave {
   oid BigInt @id
   id  String @unique
 
-  identifier  String  @unique
+  slug        String
   name        String
   description String?
 
@@ -33,14 +35,18 @@ model Enclave {
   providerDeploymentOid BigInt             @unique
   providerDeployment    ProviderDeployment @relation(fields: [providerDeploymentOid], references: [oid])
 
+  networkOid BigInt
+  network    Network @relation(fields: [networkOid], references: [oid], onDelete: Cascade)
+
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
 
   environmentOid BigInt
   environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
 
-  solutionOid Int
-  solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
-
   createdAt DateTime @default(now())
+
+  firewallBindings FirewallBinding[]
+
+  @@unique([environmentOid, slug])
 }

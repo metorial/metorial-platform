@@ -34,6 +34,12 @@ export let ID = createIdGenerator({
 
   enclave: idType.sorted('enc'),
   enclaveEnvironment: idType.sorted('een'),
+  network: idType.sorted('net'),
+  firewall: idType.sorted('fwl'),
+  firewallBinding: idType.sorted('fwb'),
+  networkPolicy: idType.sorted('npo'),
+  networkPolicyVersion: idType.sorted('npv'),
+  firewallNetworkPolicy: idType.sorted('fwn'),
 
   providerConfig: idType.sorted('pcf'),
   providerConfigVersion: idType.sorted('pcv'),

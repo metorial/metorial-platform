@@ -59,6 +59,11 @@ let include = {
   provider: true,
   defaultConfig: true,
   providerVariant: true,
+  enclave: {
+    select: {
+      id: true
+    }
+  },
   currentVersion: { include: { lockedVersion: { include: { specification: true } } } }
 };
 

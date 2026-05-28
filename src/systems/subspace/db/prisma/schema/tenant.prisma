@@ -112,6 +112,10 @@ model Tenant {
   tenantOAuthCallbackUrls                  TenantOAuthCallbackUrl[]
   enclaveEnvironments                      EnclaveEnvironment[]
   enclaves                                 Enclave[]
+  networks                                 Network[]
+  firewalls                                Firewall[]
+  networkPolicies                          NetworkPolicy[]
+  firewallBindings                         FirewallBinding[]
 }
 
 enum EnvironmentType {
@@ -189,6 +193,10 @@ model Environment {
   skillForks                               SkillFork[]
   skillTemplates                           SkillTemplate[]
   enclaves                                 Enclave[]
+  networks                                 Network[]
+  firewalls                                Firewall[]
+  networkPolicies                          NetworkPolicy[]
+  firewallBindings                         FirewallBinding[]
 }
 
 enum TenantActorType {

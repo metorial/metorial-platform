@@ -235,5 +235,23 @@ declare global {
       message: string;
       data?: any;
     };
+
+    type NetworkPolicyPortRange = {
+      from: number;
+      to: number;
+    };
+
+    type NetworkPolicyRule = {
+      id: string;
+      effect: 'allow' | 'deny';
+      direction: 'ingress' | 'egress';
+      cidrs: string[];
+      description?: string;
+      enabled: boolean;
+      priority: number;
+      ports?: NetworkPolicyPortRange[];
+    };
+
+    type NetworkPolicyRules = NetworkPolicyRule[];
   }
 }

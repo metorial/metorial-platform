@@ -1,32 +1,51 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-let mockDb = {
-  enclave: {
-    findFirst: vi.fn(),
-    create: vi.fn()
-  },
-  enclaveEnvironment: {
-    findFirst: vi.fn(),
-    create: vi.fn()
-  }
-};
-
-vi.mock('@metorial-subspace/db', async importOriginal => {
-  let original = await importOriginal<typeof import('@metorial-subspace/db')>();
-
-  return {
-    ...original,
-    db: mockDb,
-    withTransaction: async (cb: (db: typeof mockDb) => Promise<unknown>, opts?: { ifExists?: boolean }) => {
-      void opts;
-      return cb(mockDb);
+let { mockDb } = vi.hoisted(() => ({
+  mockDb: {
+    enclave: {
+      findFirst: vi.fn(),
+      create: vi.fn()
     },
-    getId: (model: string) => ({
-      oid: BigInt(1),
-      id: `${model}_test_id`
+    enclaveEnvironment: {
+      findFirst: vi.fn(),
+      create: vi.fn()
+    },
+    network: {
+      findFirst: vi.fn(),
+      create: vi.fn()
+    }
+  }
+}));
+
+vi.mock('@metorial-subspace/db', () => ({
+  withTransaction: async (cb: (db: typeof mockDb) => Promise<unknown>, opts?: { ifExists?: boolean }) => {
+    void opts;
+    return cb(mockDb);
+  },
+  getId: (model: string) => ({
+    oid: BigInt(1),
+    id: `${model}_test_id`
+  })
+}));
+
+vi.mock('./networkInternal', () => ({
+  networkInternalService: {
+    ensureNetworkForEnvironment: vi.fn(async ({ db }: { db: typeof mockDb }) => {
+      let existing = await db.network.findFirst({
+        where: {}
+      });
+      if (existing) return existing;
+
+      return db.network.create({
+        data: {
+          oid: BigInt(55),
+          id: 'net_test_id',
+          name: 'Metorial Magic Network'
+        }
+      });
     })
-  };
-});
+  }
+}));
 
 vi.mock('@lowerdeck/id', () => ({
   generatePlainId: () => 'ABCDEFGHIJ'
@@ -98,10 +117,13 @@ describe('enclaveInternalService.ensureEnclaveForProviderDeployment', () => {
   });
 
   it('creates system enclave environment and enclave for a new deployment', async () => {
-    mockDb.enclave.findFirst
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce(null);
+    mockDb.enclave.findFirst.mockResolvedValueOnce(null);
     mockDb.enclaveEnvironment.findFirst.mockResolvedValueOnce(null);
+    mockDb.network.findFirst.mockResolvedValueOnce(null);
+    mockDb.network.create.mockResolvedValueOnce({
+      oid: BigInt(55),
+      id: 'net_test_id'
+    });
     mockDb.enclaveEnvironment.create.mockResolvedValueOnce({
       oid: BigInt(50),
       id: 'een_test_id',
@@ -110,7 +132,7 @@ describe('enclaveInternalService.ensureEnclaveForProviderDeployment', () => {
     mockDb.enclave.create.mockResolvedValueOnce({
       oid: BigInt(60),
       id: 'enc_test_id',
-      identifier: 'my-provider-abcdefghij',
+      slug: 'my-provider-abcdefghij',
       name: 'My Provider',
       description: ''
     });
@@ -125,7 +147,7 @@ describe('enclaveInternalService.ensureEnclaveForProviderDeployment', () => {
 
     expect(mockDb.enclaveEnvironment.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
-        name: `System (${tenant.id})`,
+        name: `Metorial Platform`,
         type: 'metorial',
         systemIdentifier: `system:${tenant.id}`,
         tenantOid: tenant.oid
@@ -134,32 +156,34 @@ describe('enclaveInternalService.ensureEnclaveForProviderDeployment', () => {
 
     expect(mockDb.enclave.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
-        identifier: 'my-provider-abcdefghij',
+        slug: 'my-provider-abcdefghij',
         name: 'My Provider',
         description: '',
         providerDeploymentOid: providerDeployment.oid,
         tenantOid: tenant.oid,
         environmentOid: environment.oid,
-        solutionOid: solution.oid,
+        networkOid: BigInt(55),
         enclaveEnvironmentOid: BigInt(50)
       })
     });
 
     expect(result).toMatchObject({
-      identifier: 'my-provider-abcdefghij',
+      slug: 'my-provider-abcdefghij',
       name: 'My Provider',
       description: ''
     });
   });
 
   it('reuses an existing system enclave environment for the tenant', async () => {
-    mockDb.enclave.findFirst
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce(null);
+    mockDb.enclave.findFirst.mockResolvedValueOnce(null);
     mockDb.enclaveEnvironment.findFirst.mockResolvedValueOnce({
       oid: BigInt(70),
       id: 'een_existing',
       systemIdentifier: `system:${tenant.id}`
+    });
+    mockDb.network.findFirst.mockResolvedValueOnce({
+      oid: BigInt(55),
+      id: 'net_existing'
     });
     mockDb.enclave.create.mockResolvedValueOnce({
       oid: BigInt(80),
@@ -177,7 +201,8 @@ describe('enclaveInternalService.ensureEnclaveForProviderDeployment', () => {
     expect(mockDb.enclaveEnvironment.create).not.toHaveBeenCalled();
     expect(mockDb.enclave.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
-        enclaveEnvironmentOid: BigInt(70)
+        enclaveEnvironmentOid: BigInt(70),
+        networkOid: BigInt(55)
       })
     });
   });

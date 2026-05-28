@@ -3,6 +3,7 @@ import { v } from '@lowerdeck/validation';
 import { enclaveService } from '@metorial-subspace/module-enclave';
 import { enclavePresenter } from '@metorial-subspace/presenters';
 import { app } from './_app';
+import { createdAtValidator } from './_dateFilter';
 import { tenantApp } from './tenant';
 
 export let enclaveApp = tenantApp.use(async ctx => {
@@ -27,8 +28,16 @@ export let enclaveController = app.controller({
         v.object({
           tenantId: v.string(),
           environmentId: v.string(),
+
           ids: v.optional(v.array(v.string())),
-          providerDeploymentIds: v.optional(v.array(v.string()))
+          slugs: v.optional(v.array(v.string())),
+          networkIds: v.optional(v.array(v.string())),
+          enclaveEnvironmentIds: v.optional(v.array(v.string())),
+          providerDeploymentIds: v.optional(v.array(v.string())),
+          providerIds: v.optional(v.array(v.string())),
+          firewallIds: v.optional(v.array(v.string())),
+
+          createdAt: createdAtValidator
         })
       )
     )
@@ -38,7 +47,13 @@ export let enclaveController = app.controller({
         environment: ctx.environment,
         solution: ctx.solution,
         ids: ctx.input.ids,
-        providerDeploymentIds: ctx.input.providerDeploymentIds
+        slugs: ctx.input.slugs,
+        networkIds: ctx.input.networkIds,
+        enclaveEnvironmentIds: ctx.input.enclaveEnvironmentIds,
+        providerDeploymentIds: ctx.input.providerDeploymentIds,
+        providerIds: ctx.input.providerIds,
+        firewallIds: ctx.input.firewallIds,
+        createdAt: ctx.input.createdAt
       });
 
       let list = await paginator.run(ctx.input);
