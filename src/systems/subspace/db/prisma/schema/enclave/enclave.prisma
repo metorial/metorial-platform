@@ -1,8 +1,31 @@
+enum EnclaveEnvironmentType {
+  metorial
+  outpost
+}
+
+model EnclaveEnvironment {
+  oid  BigInt @id
+  name String @unique
+
+  type EnclaveEnvironmentType
+
+  systemIdentifier String @unique
+
+  createdAt DateTime @default(now())
+
+  enclaves Enclave[]
+}
+
 model Enclave {
   oid BigInt @id
   id  String @unique
 
-  identifier String @unique
+  identifier  String  @unique
+  name        String
+  description String?
+
+  enclaveEnvironmentOid BigInt
+  enclaveEnvironment    EnclaveEnvironment @relation(fields: [enclaveEnvironmentOid], references: [oid], onDelete: Cascade)
 
   providerDeploymentOid BigInt             @unique
   providerDeployment    ProviderDeployment @relation(fields: [providerDeploymentOid], references: [oid])

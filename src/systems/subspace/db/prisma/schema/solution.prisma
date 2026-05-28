@@ -71,4 +71,5 @@ model Solution {
   skillEntities                            SkillEntity[]
   skillForks                               SkillFork[]
   skillTemplates                           SkillTemplate[]
+  enclaves                                 Enclave[]
 }

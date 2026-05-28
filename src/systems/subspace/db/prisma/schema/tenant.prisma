@@ -110,6 +110,7 @@ model Tenant {
   skillForks                               SkillFork[]
   skillTemplates                           SkillTemplate[]
   tenantOAuthCallbackUrls                  TenantOAuthCallbackUrl[]
+  enclaves                                 Enclave[]
 }
 
 enum EnvironmentType {
@@ -186,6 +187,7 @@ model Environment {
   skillEntities                            SkillEntity[]
   skillForks                               SkillFork[]
   skillTemplates                           SkillTemplate[]
+  enclaves                                 Enclave[]
 }
 
 enum TenantActorType {
