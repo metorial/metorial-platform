@@ -49,17 +49,17 @@ export let createNebulaClient = (o: NebulaClientOpts): AuthenticatedNebulaClient
   let current: ConsumerInstanceToken | null = null;
   let inFlight: Promise<ConsumerInstanceToken> | null = null;
 
-  let registration = (async () => {
+  let register = async () => {
     let next = await client.consumer.register({
       secret: consumerToken,
       identifier
     });
     current = next;
     return next;
-  })();
+  };
 
   let refresh = async () => {
-    if (!current) return await registration;
+    if (!current) return await register();
 
     try {
       let next = await client.consumer.refresh({
@@ -69,7 +69,7 @@ export let createNebulaClient = (o: NebulaClientOpts): AuthenticatedNebulaClient
       current = next;
       return next;
     } catch {
-      return await registration;
+      return await register();
     }
   };
 
