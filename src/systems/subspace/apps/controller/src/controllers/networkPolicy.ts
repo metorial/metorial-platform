@@ -3,14 +3,14 @@ import { v } from '@lowerdeck/validation';
 import { networkPolicyService } from '@metorial-subspace/module-enclave';
 import {
   networkPolicyPresenter,
+  networkPolicyRulePresenter,
   networkPolicyVersionPresenter
 } from '@metorial-subspace/presenters';
 import { app } from './_app';
 import { createdAtValidator, updatedAtValidator } from './_dateFilter';
 import { tenantApp } from './tenant';
 
-let networkPolicyRuleValidator = v.object({
-  id: v.string(),
+let networkPolicyRuleInputValidator = v.object({
   effect: v.enumOf(['allow', 'deny']),
   direction: v.enumOf(['ingress', 'egress']),
   cidrs: v.array(v.string()),
@@ -95,7 +95,7 @@ export let networkPolicyController = app.controller({
 
         name: v.string(),
         description: v.optional(v.string()),
-        rules: v.array(networkPolicyRuleValidator)
+        rules: v.optional(v.array(networkPolicyRuleInputValidator))
       })
     )
     .do(async ctx => {
@@ -122,7 +122,7 @@ export let networkPolicyController = app.controller({
 
         name: v.optional(v.string()),
         description: v.optional(v.string()),
-        rules: v.optional(v.array(networkPolicyRuleValidator))
+        rules: v.optional(v.array(networkPolicyRuleInputValidator))
       })
     )
     .do(async ctx => {
@@ -135,6 +135,75 @@ export let networkPolicyController = app.controller({
           description: ctx.input.description,
           rules: ctx.input.rules
         }
+      });
+
+      return networkPolicyPresenter(networkPolicy);
+    }),
+
+  addRule: networkPolicyApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        environmentId: v.string(),
+        networkPolicyId: v.string(),
+
+        effect: v.enumOf(['allow', 'deny']),
+        direction: v.enumOf(['ingress', 'egress']),
+        cidrs: v.array(v.string()),
+        description: v.optional(v.string()),
+        enabled: v.boolean(),
+        priority: v.number(),
+        ports: v.optional(
+          v.array(
+            v.object({
+              from: v.number(),
+              to: v.number()
+            })
+          )
+        )
+      })
+    )
+    .do(async ctx => {
+      let { networkPolicy, rule } = await networkPolicyService.addNetworkPolicyRule({
+        networkPolicy: ctx.networkPolicy,
+        tenant: ctx.tenant,
+        environment: ctx.environment,
+        input: {
+          rule: {
+            effect: ctx.input.effect,
+            direction: ctx.input.direction,
+            cidrs: ctx.input.cidrs,
+            description: ctx.input.description,
+            enabled: ctx.input.enabled,
+            priority: ctx.input.priority,
+            ports: ctx.input.ports
+          }
+        }
+      });
+
+      return {
+        networkPolicy: networkPolicyPresenter(networkPolicy),
+        rule: networkPolicyRulePresenter(rule)
+      };
+    }),
+
+  removeRule: networkPolicyApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        environmentId: v.string(),
+        networkPolicyId: v.string(),
+        ruleId: v.string()
+      })
+    )
+    .do(async ctx => {
+      let networkPolicy = await networkPolicyService.removeNetworkPolicyRule({
+        networkPolicy: ctx.networkPolicy,
+        tenant: ctx.tenant,
+        environment: ctx.environment,
+        ruleId: ctx.input.ruleId
       });
 
       return networkPolicyPresenter(networkPolicy);

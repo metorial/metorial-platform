@@ -25,6 +25,7 @@ import { customProviderDeploymentController } from './customProviderDeployment';
 import { customProviderEnvironmentController } from './customProviderEnvironment';
 import { enclaveController } from './enclave';
 import { firewallController } from './firewall';
+import { firewallBindingController } from './firewallBinding';
 import { networkController } from './network';
 import { networkPolicyController } from './networkPolicy';
 import { customProviderVersionController } from './customProviderVersion';
@@ -172,6 +173,7 @@ let providerControllers = {
   enclave: enclaveController,
   network: networkController,
   firewall: firewallController,
+  firewallBinding: firewallBindingController,
   networkPolicy: networkPolicyController,
   providerListing: providerListingController,
   providerOAuthSetup: providerOAuthSetupController,

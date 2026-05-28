@@ -38,6 +38,7 @@ export let ID = createIdGenerator({
   firewall: idType.sorted('fwl'),
   firewallBinding: idType.sorted('fwb'),
   networkPolicy: idType.sorted('npo'),
+  networkPolicyRule: idType.sorted('npr'),
   networkPolicyVersion: idType.sorted('npv'),
   firewallNetworkPolicy: idType.sorted('fwn'),
 

@@ -8,6 +8,7 @@ let { mockDb } = vi.hoisted(() => ({
     },
     firewall: {
       create: vi.fn(),
+      update: vi.fn(),
       findFirstOrThrow: vi.fn(),
       delete: vi.fn()
     },
@@ -18,7 +19,9 @@ let { mockDb } = vi.hoisted(() => ({
     },
     firewallNetworkPolicy: {
       deleteMany: vi.fn(),
-      create: vi.fn()
+      create: vi.fn(),
+      findFirst: vi.fn(),
+      delete: vi.fn()
     },
     enclave: {
       findFirst: vi.fn()
@@ -27,7 +30,8 @@ let { mockDb } = vi.hoisted(() => ({
       findFirst: vi.fn()
     },
     networkPolicy: {
-      findMany: vi.fn()
+      findMany: vi.fn(),
+      findFirst: vi.fn()
     }
   }
 }));
@@ -88,7 +92,6 @@ describe('firewallService', () => {
     mockDb.firewall.findFirstOrThrow.mockResolvedValueOnce({
       oid: BigInt(200),
       id: 'fwl_test',
-      bindings: [],
       networkPolicyLinks: [],
       network: { id: 'net_test' }
     });
@@ -109,41 +112,97 @@ describe('firewallService', () => {
     expect(mockDb.firewallBinding.create).toHaveBeenCalledTimes(2);
   });
 
-  it('replaces bindings when setFirewallBindings is called', async () => {
-    mockDb.firewallBinding.deleteMany.mockResolvedValueOnce({ count: 2 });
-    mockDb.network.findFirstOrThrow.mockResolvedValueOnce({
-      oid: BigInt(100),
-      id: 'net_test'
-    });
-    mockDb.enclave.findFirst.mockResolvedValueOnce({
-      oid: BigInt(300),
-      networkOid: BigInt(100)
-    });
-    mockDb.firewallBinding.findFirst.mockResolvedValue(null);
-    mockDb.firewall.findFirstOrThrow.mockResolvedValueOnce({
+  it('replaces network policy links when update includes networkPolicyIds', async () => {
+    mockDb.firewallNetworkPolicy.deleteMany.mockResolvedValueOnce({ count: 1 });
+    mockDb.networkPolicy.findMany.mockResolvedValueOnce([
+      { oid: BigInt(500), id: 'npo_a' },
+      { oid: BigInt(501), id: 'npo_b' }
+    ]);
+    mockDb.firewall.update.mockResolvedValueOnce({
       oid: BigInt(200),
       id: 'fwl_test',
-      bindings: [],
       networkPolicyLinks: [],
       network: { id: 'net_test' }
     });
 
-    await firewallService.setFirewallBindings({
+    await firewallService.updateFirewall({
       tenant,
       environment,
       firewall: {
         oid: BigInt(200),
-        networkOid: BigInt(100),
         tenantOid: tenant.oid,
-        environmentOid: environment.oid,
-        network: { id: 'net_test' }
+        environmentOid: environment.oid
       } as any,
-      bindings: [{ targetType: 'enclave', enclaveId: 'enc_test' }]
+      input: {
+        networkPolicyIds: ['npo_a', 'npo_b']
+      }
     });
 
-    expect(mockDb.firewallBinding.deleteMany).toHaveBeenCalledWith({
+    expect(mockDb.firewallNetworkPolicy.deleteMany).toHaveBeenCalledWith({
       where: { firewallOid: BigInt(200) }
     });
-    expect(mockDb.firewallBinding.create).toHaveBeenCalledTimes(1);
+    expect(mockDb.firewallNetworkPolicy.create).toHaveBeenCalledTimes(2);
+  });
+
+  it('adds a network policy link', async () => {
+    mockDb.firewallNetworkPolicy.findFirst
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null);
+    mockDb.networkPolicy.findFirst.mockResolvedValueOnce({
+      oid: BigInt(500),
+      id: 'npo_test'
+    });
+    mockDb.firewall.findFirstOrThrow.mockResolvedValueOnce({
+      oid: BigInt(200),
+      id: 'fwl_test',
+      networkPolicyLinks: [],
+      network: { id: 'net_test' }
+    });
+
+    await firewallService.addFirewallNetworkPolicy({
+      tenant,
+      environment,
+      firewall: {
+        oid: BigInt(200),
+        tenantOid: tenant.oid,
+        environmentOid: environment.oid
+      } as any,
+      networkPolicyId: 'npo_test'
+    });
+
+    expect(mockDb.firewallNetworkPolicy.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        firewallOid: BigInt(200),
+        networkPolicyOid: BigInt(500),
+        position: 0
+      })
+    });
+  });
+
+  it('removes a network policy link', async () => {
+    mockDb.firewallNetworkPolicy.findFirst.mockResolvedValueOnce({
+      oid: BigInt(600)
+    });
+    mockDb.firewall.findFirstOrThrow.mockResolvedValueOnce({
+      oid: BigInt(200),
+      id: 'fwl_test',
+      networkPolicyLinks: [],
+      network: { id: 'net_test' }
+    });
+
+    await firewallService.removeFirewallNetworkPolicy({
+      tenant,
+      environment,
+      firewall: {
+        oid: BigInt(200),
+        tenantOid: tenant.oid,
+        environmentOid: environment.oid
+      } as any,
+      networkPolicyId: 'npo_test'
+    });
+
+    expect(mockDb.firewallNetworkPolicy.delete).toHaveBeenCalledWith({
+      where: { oid: BigInt(600) }
+    });
   });
 });

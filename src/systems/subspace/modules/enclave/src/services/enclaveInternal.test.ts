@@ -8,11 +8,11 @@ let { mockDb } = vi.hoisted(() => ({
     },
     enclaveEnvironment: {
       findFirst: vi.fn(),
-      create: vi.fn()
+      upsert: vi.fn()
     },
     network: {
       findFirst: vi.fn(),
-      create: vi.fn()
+      upsert: vi.fn()
     }
   }
 }));
@@ -36,8 +36,10 @@ vi.mock('./networkInternal', () => ({
       });
       if (existing) return existing;
 
-      return db.network.create({
-        data: {
+      return db.network.upsert({
+        where: {},
+        update: {},
+        create: {
           oid: BigInt(55),
           id: 'net_test_id',
           name: 'Metorial Magic Network'
@@ -97,7 +99,7 @@ describe('enclaveInternalService.ensureEnclaveForProviderDeployment', () => {
 
     expect(result).toBeNull();
     expect(mockDb.enclave.create).not.toHaveBeenCalled();
-    expect(mockDb.enclaveEnvironment.create).not.toHaveBeenCalled();
+    expect(mockDb.enclaveEnvironment.upsert).not.toHaveBeenCalled();
   });
 
   it('returns an existing enclave without creating a new one', async () => {
@@ -120,11 +122,11 @@ describe('enclaveInternalService.ensureEnclaveForProviderDeployment', () => {
     mockDb.enclave.findFirst.mockResolvedValueOnce(null);
     mockDb.enclaveEnvironment.findFirst.mockResolvedValueOnce(null);
     mockDb.network.findFirst.mockResolvedValueOnce(null);
-    mockDb.network.create.mockResolvedValueOnce({
+    mockDb.network.upsert.mockResolvedValueOnce({
       oid: BigInt(55),
       id: 'net_test_id'
     });
-    mockDb.enclaveEnvironment.create.mockResolvedValueOnce({
+    mockDb.enclaveEnvironment.upsert.mockResolvedValueOnce({
       oid: BigInt(50),
       id: 'een_test_id',
       systemIdentifier: `system:${tenant.id}`
@@ -145,8 +147,13 @@ describe('enclaveInternalService.ensureEnclaveForProviderDeployment', () => {
       providerDeployment
     });
 
-    expect(mockDb.enclaveEnvironment.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
+    expect(mockDb.enclaveEnvironment.upsert).toHaveBeenCalledWith({
+      where: { systemIdentifier: `system:${tenant.id}` },
+      update: {
+        name: `Metorial Platform`,
+        type: 'metorial'
+      },
+      create: expect.objectContaining({
         name: `Metorial Platform`,
         type: 'metorial',
         systemIdentifier: `system:${tenant.id}`,
@@ -198,7 +205,7 @@ describe('enclaveInternalService.ensureEnclaveForProviderDeployment', () => {
       providerDeployment
     });
 
-    expect(mockDb.enclaveEnvironment.create).not.toHaveBeenCalled();
+    expect(mockDb.enclaveEnvironment.upsert).not.toHaveBeenCalled();
     expect(mockDb.enclave.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         enclaveEnvironmentOid: BigInt(70),

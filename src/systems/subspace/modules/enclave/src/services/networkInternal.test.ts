@@ -4,7 +4,7 @@ let { mockDb } = vi.hoisted(() => ({
   mockDb: {
     network: {
       findFirst: vi.fn(),
-      create: vi.fn()
+      upsert: vi.fn()
     }
   }
 }));
@@ -51,12 +51,12 @@ describe('networkInternalService.ensureNetworkForEnvironment', () => {
     });
 
     expect(result).toBe(existing);
-    expect(mockDb.network.create).not.toHaveBeenCalled();
+    expect(mockDb.network.upsert).not.toHaveBeenCalled();
   });
 
   it('creates the default network when missing', async () => {
     mockDb.network.findFirst.mockResolvedValueOnce(null);
-    mockDb.network.create.mockResolvedValueOnce({
+    mockDb.network.upsert.mockResolvedValueOnce({
       oid: BigInt(40),
       id: 'net_new',
       name: 'Metorial Magic Network'
@@ -67,8 +67,17 @@ describe('networkInternalService.ensureNetworkForEnvironment', () => {
       environment
     });
 
-    expect(mockDb.network.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
+    expect(mockDb.network.upsert).toHaveBeenCalledWith({
+      where: {
+        tenantOid_environmentOid: {
+          tenantOid: tenant.oid,
+          environmentOid: environment.oid
+        }
+      },
+      update: {
+        name: 'Metorial Magic Network'
+      },
+      create: expect.objectContaining({
         name: 'Metorial Magic Network',
         tenantOid: tenant.oid,
         environmentOid: environment.oid

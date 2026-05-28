@@ -120,7 +120,8 @@ export let firewallController = app.controller({
 
         name: v.optional(v.string()),
         description: v.optional(v.string()),
-        slug: v.optional(v.string())
+        slug: v.optional(v.string()),
+        networkPolicyIds: v.optional(v.array(v.string()))
       })
     )
     .do(async ctx => {
@@ -131,7 +132,8 @@ export let firewallController = app.controller({
         input: {
           name: ctx.input.name,
           description: ctx.input.description,
-          slug: ctx.input.slug
+          slug: ctx.input.slug,
+          networkPolicyIds: ctx.input.networkPolicyIds
         }
       });
 
@@ -157,7 +159,7 @@ export let firewallController = app.controller({
       return { deleted: true };
     }),
 
-  setBindings: firewallApp
+  addNetworkPolicy: firewallApp
     .handler()
     .input(
       v.object({
@@ -165,21 +167,23 @@ export let firewallController = app.controller({
         environmentId: v.string(),
         firewallId: v.string(),
 
-        bindings: v.array(firewallBindingValidator)
+        networkPolicyId: v.string(),
+        position: v.optional(v.number())
       })
     )
     .do(async ctx => {
-      let firewall = await firewallService.setFirewallBindings({
+      let firewall = await firewallService.addFirewallNetworkPolicy({
         firewall: ctx.firewall,
         tenant: ctx.tenant,
         environment: ctx.environment,
-        bindings: ctx.input.bindings
+        networkPolicyId: ctx.input.networkPolicyId,
+        position: ctx.input.position
       });
 
       return firewallPresenter(firewall);
     }),
 
-  setNetworkPolicies: firewallApp
+  removeNetworkPolicy: firewallApp
     .handler()
     .input(
       v.object({
@@ -187,15 +191,15 @@ export let firewallController = app.controller({
         environmentId: v.string(),
         firewallId: v.string(),
 
-        networkPolicyIds: v.array(v.string())
+        networkPolicyId: v.string()
       })
     )
     .do(async ctx => {
-      let firewall = await firewallService.setFirewallNetworkPolicies({
+      let firewall = await firewallService.removeFirewallNetworkPolicy({
         firewall: ctx.firewall,
         tenant: ctx.tenant,
         environment: ctx.environment,
-        networkPolicyIds: ctx.input.networkPolicyIds
+        networkPolicyId: ctx.input.networkPolicyId
       });
 
       return firewallPresenter(firewall);

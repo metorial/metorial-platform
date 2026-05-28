@@ -1,4 +1,5 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
+import { createLock } from '@lowerdeck/lock';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
@@ -16,6 +17,14 @@ import {
   resolveFirewalls
 } from '@metorial-subspace/list-utils';
 import { checkTenant } from '@metorial-subspace/module-tenant';
+import { env } from '../env';
+import {
+  assignNetworkPolicyRuleIds,
+  createNetworkPolicyRule,
+  getCurrentNetworkPolicyRules,
+  networkPolicyRulesEqual,
+  type NetworkPolicyRuleInput
+} from '../lib/networkPolicyRules';
 import { validateNetworkPolicyRules } from '../lib/networkPolicyValidation';
 
 type NetworkPolicyRules = PrismaJson.NetworkPolicyRules;
@@ -41,6 +50,11 @@ let include = {
     }
   }
 };
+
+let ruleChangeLock = createLock({
+  redisUrl: env.service.REDIS_URL,
+  name: 'sub/enc/networkPolicy/rules'
+});
 
 class networkPolicyServiceImpl {
   async listNetworkPolicies(d: {
@@ -116,10 +130,10 @@ class networkPolicyServiceImpl {
     input: {
       name: string;
       description?: string;
-      rules: NetworkPolicyRules;
+      rules?: NetworkPolicyRuleInput[];
     };
   }) {
-    let rules = validateNetworkPolicyRules(d.input.rules);
+    let rules = assignNetworkPolicyRuleIds(d.input.rules ?? []);
 
     return withTransaction(async dbTx => {
       let networkPolicy = await dbTx.networkPolicy.create({
@@ -132,22 +146,13 @@ class networkPolicyServiceImpl {
         }
       });
 
-      let version = await dbTx.networkPolicyVersion.create({
-        data: {
-          ...getId('networkPolicyVersion'),
-          version: 1,
-          rules,
-          networkPolicyOid: networkPolicy.oid
-        }
-      });
-
-      return dbTx.networkPolicy.update({
-        where: { oid: networkPolicy.oid },
-        data: {
-          currentVersionOid: version.oid,
-          currentVersionNumber: 1
-        },
-        include
+      return this.publishRulesVersion({
+        db: dbTx,
+        tenant: d.tenant,
+        environment: d.environment,
+        networkPolicy,
+        rules,
+        currentVersionNumber: 0
       });
     });
   }
@@ -155,54 +160,150 @@ class networkPolicyServiceImpl {
   async updateNetworkPolicy(d: {
     tenant: Tenant;
     environment: Environment;
-    networkPolicy: NetworkPolicy & { currentVersion: { version: number } | null };
+    networkPolicy: NetworkPolicy;
     input: {
       name?: string;
       description?: string;
-      rules?: NetworkPolicyRules;
+      rules?: NetworkPolicyRuleInput[];
     };
   }) {
     checkTenant(d, d.networkPolicy);
 
-    if (d.input.rules) {
-      validateNetworkPolicyRules(d.input.rules);
+    if (d.input.rules === undefined) {
+      return withTransaction(async dbTx =>
+        dbTx.networkPolicy.update({
+          where: {
+            oid: d.networkPolicy.oid,
+            tenantOid: d.tenant.oid,
+            environmentOid: d.environment.oid
+          },
+          data: {
+            name: d.input.name?.trim() ?? d.networkPolicy.name,
+            description:
+              d.input.description !== undefined
+                ? d.input.description.trim() || null
+                : d.networkPolicy.description
+          },
+          include
+        })
+      );
     }
 
-    return withTransaction(async dbTx => {
-      let nextVersionNumber = d.networkPolicy.currentVersionNumber;
-      let currentVersionOid = d.networkPolicy.currentVersionOid;
+    return ruleChangeLock.usingLock([d.networkPolicy.id], async () => {
+      let networkPolicy = await this.getNetworkPolicyForRuleMutation(d);
+      let currentRules = getCurrentNetworkPolicyRules(networkPolicy.currentVersion);
+      let rules = assignNetworkPolicyRuleIds(d.input.rules!, currentRules);
+      let name = d.input.name?.trim() ?? networkPolicy.name;
+      let description =
+        d.input.description !== undefined
+          ? d.input.description.trim() || null
+          : networkPolicy.description;
 
-      if (d.input.rules) {
-        nextVersionNumber = d.networkPolicy.currentVersionNumber + 1;
+      return withTransaction(async dbTx => {
+        let rulesChanged = !networkPolicyRulesEqual(rules, currentRules);
+        let metadataChanged =
+          name !== networkPolicy.name || description !== networkPolicy.description;
 
-        let version = await dbTx.networkPolicyVersion.create({
+        if (!rulesChanged && !metadataChanged) {
+          return dbTx.networkPolicy.findFirstOrThrow({
+            where: { oid: networkPolicy.oid },
+            include
+          });
+        }
+
+        if (rulesChanged) {
+          return this.publishRulesVersion({
+            db: dbTx,
+            tenant: d.tenant,
+            environment: d.environment,
+            networkPolicy,
+            rules,
+            currentVersionNumber: networkPolicy.currentVersionNumber,
+            name,
+            description
+          });
+        }
+
+        return dbTx.networkPolicy.update({
+          where: {
+            oid: networkPolicy.oid,
+            tenantOid: d.tenant.oid,
+            environmentOid: d.environment.oid
+          },
           data: {
-            ...getId('networkPolicyVersion'),
-            version: nextVersionNumber,
-            rules: d.input.rules,
-            networkPolicyOid: d.networkPolicy.oid
-          }
+            name,
+            description
+          },
+          include
+        });
+      });
+    });
+  }
+
+  async addNetworkPolicyRule(d: {
+    tenant: Tenant;
+    environment: Environment;
+    networkPolicy: NetworkPolicy;
+    input: {
+      rule: NetworkPolicyRuleInput;
+    };
+  }) {
+    checkTenant(d, d.networkPolicy);
+
+    return ruleChangeLock.usingLock([d.networkPolicy.id], async () => {
+      let networkPolicy = await this.getNetworkPolicyForRuleMutation(d);
+
+      return withTransaction(async dbTx => {
+        let currentRules = getCurrentNetworkPolicyRules(networkPolicy.currentVersion);
+        let newRule = createNetworkPolicyRule(d.input.rule);
+        let rules = [...currentRules, newRule];
+
+        let updatedNetworkPolicy = await this.publishRulesVersion({
+          db: dbTx,
+          tenant: d.tenant,
+          environment: d.environment,
+          networkPolicy,
+          rules,
+          currentVersionNumber: networkPolicy.currentVersionNumber
         });
 
-        currentVersionOid = version.oid;
-      }
+        return {
+          networkPolicy: updatedNetworkPolicy,
+          rule: newRule
+        };
+      });
+    });
+  }
 
-      return dbTx.networkPolicy.update({
-        where: {
-          oid: d.networkPolicy.oid,
-          tenantOid: d.tenant.oid,
-          environmentOid: d.environment.oid
-        },
-        data: {
-          name: d.input.name?.trim() ?? d.networkPolicy.name,
-          description:
-            d.input.description !== undefined
-              ? d.input.description.trim() || null
-              : d.networkPolicy.description,
-          currentVersionOid,
-          currentVersionNumber: nextVersionNumber
-        },
-        include
+  async removeNetworkPolicyRule(d: {
+    tenant: Tenant;
+    environment: Environment;
+    networkPolicy: NetworkPolicy;
+    ruleId: string;
+  }) {
+    checkTenant(d, d.networkPolicy);
+
+    return ruleChangeLock.usingLock([d.networkPolicy.id], async () => {
+      let networkPolicy = await this.getNetworkPolicyForRuleMutation(d);
+
+      return withTransaction(async dbTx => {
+        let currentRules = getCurrentNetworkPolicyRules(networkPolicy.currentVersion);
+        if (!currentRules.some(rule => rule.id === d.ruleId)) {
+          throw new ServiceError(
+            notFoundError('network.policy.rule', d.ruleId)
+          );
+        }
+
+        let rules = currentRules.filter(rule => rule.id !== d.ruleId);
+
+        return this.publishRulesVersion({
+          db: dbTx,
+          tenant: d.tenant,
+          environment: d.environment,
+          networkPolicy,
+          rules,
+          currentVersionNumber: networkPolicy.currentVersionNumber
+        });
       });
     });
   }
@@ -277,9 +378,73 @@ class networkPolicyServiceImpl {
       });
     });
   }
+
+  private async getNetworkPolicyForRuleMutation(d: {
+    tenant: Tenant;
+    environment: Environment;
+    networkPolicy: NetworkPolicy;
+  }) {
+    let networkPolicy = await db.networkPolicy.findFirst({
+      where: {
+        oid: d.networkPolicy.oid,
+        tenantOid: d.tenant.oid,
+        environmentOid: d.environment.oid
+      },
+      include: {
+        currentVersion: true
+      }
+    });
+    if (!networkPolicy) {
+      throw new ServiceError(notFoundError('network.policy', d.networkPolicy.id));
+    }
+
+    return networkPolicy;
+  }
+
+  private async publishRulesVersion(d: {
+    db: Parameters<Parameters<typeof withTransaction>[0]>[0];
+    tenant: Tenant;
+    environment: Environment;
+    networkPolicy: NetworkPolicy;
+    rules: NetworkPolicyRules;
+    currentVersionNumber: number;
+    name?: string;
+    description?: string | null;
+  }) {
+    validateNetworkPolicyRules(d.rules);
+
+    let nextVersionNumber = Math.max(d.currentVersionNumber, 0) + 1;
+
+    let version = await d.db.networkPolicyVersion.create({
+      data: {
+        ...getId('networkPolicyVersion'),
+        version: nextVersionNumber,
+        rules: d.rules,
+        networkPolicyOid: d.networkPolicy.oid
+      }
+    });
+
+    return d.db.networkPolicy.update({
+      where: {
+        oid: d.networkPolicy.oid,
+        tenantOid: d.tenant.oid,
+        environmentOid: d.environment.oid
+      },
+      data: {
+        name: d.name ?? d.networkPolicy.name,
+        description:
+          d.description !== undefined ? d.description : d.networkPolicy.description,
+        currentVersionOid: version.oid,
+        currentVersionNumber: nextVersionNumber
+      },
+      include
+    });
+  }
 }
 
 export let networkPolicyService = Service.create(
   'networkPolicyService',
   () => new networkPolicyServiceImpl()
 ).build();
+
+export type { NetworkPolicyRuleInput };

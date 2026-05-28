@@ -3110,8 +3110,10 @@
       "name": "@metorial-subspace/module-enclave",
       "version": "1.0.0",
       "dependencies": {
+        "@lowerdeck/env": "^1.0.6",
         "@lowerdeck/error": "^1.2.3",
         "@lowerdeck/id": "^1.0.8",
+        "@lowerdeck/lock": "^1.0.6",
         "@lowerdeck/pagination": "^1.0.8",
         "@lowerdeck/service": "^1.0.7",
         "@lowerdeck/slugify": "^1.0.6",
