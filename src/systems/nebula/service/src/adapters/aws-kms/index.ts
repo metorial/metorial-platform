@@ -5,6 +5,7 @@ import {
   GenerateDataKeyCommand,
   KMSClient
 } from '@aws-sdk/client-kms';
+import { fromTemporaryCredentials } from '@aws-sdk/credential-providers';
 import { v } from '@lowerdeck/validation';
 import type { KeyProvider } from '../../../prisma/generated/client';
 import { env } from '../../env';
@@ -23,6 +24,8 @@ let importKeyInputSchema = v.object({
 
 let kmsKeyArnRegex = /^arn:([^:]+):kms:([^:]+):(\d{12}):key\/(.+)$/;
 let iamArnRegex = /^arn:([^:]+):iam::(\d{12}):.+$/;
+
+let kmsClientCache = new Map<string, KMSClient>();
 
 let parseKmsKeyArn = (keyArn: string) => {
   let match = keyArn.match(kmsKeyArnRegex);
@@ -54,17 +57,48 @@ let getServiceAccountId = () => {
   return accountId;
 };
 
-let getKmsClient = (region?: string) =>
-  new KMSClient({
-    region: region ?? env.kms.KMS_AWS_REGION,
+let shouldUseExternalRole = (d: {
+  keyProvider?: KeyProvider;
+  keyInfo?: { accountId?: string };
+}) => {
+  if (!env.kms.KMS_EXTERNAL_KEY_ROLE_ARN) return false;
+  if (d.keyProvider?.isMetorialManaged) return false;
+  if (d.keyProvider?.owner === 'system') return false;
+
+  let serviceAccountId = getServiceAccountId();
+  let accountId = d.keyInfo?.accountId ?? (d.keyProvider?.keyInfo as any)?.accountId;
+  return !!accountId && accountId !== serviceAccountId;
+};
+
+let getKmsClient = (region?: string, opts?: { assumeExternalRole?: boolean }) => {
+  let resolvedRegion = region ?? env.kms.KMS_AWS_REGION;
+  let assumeExternalRole = opts?.assumeExternalRole ?? false;
+  let cacheKey = `${resolvedRegion}:${assumeExternalRole ? 'external' : 'task'}`;
+
+  let cached = kmsClientCache.get(cacheKey);
+  if (cached) return cached;
+
+  let client = new KMSClient({
+    region: resolvedRegion,
     credentials:
-      env.kms.KMS_AWS_ACCESS_KEY_ID && env.kms.KMS_AWS_SECRET_ACCESS_KEY
-        ? {
-            accessKeyId: env.kms.KMS_AWS_ACCESS_KEY_ID,
-            secretAccessKey: env.kms.KMS_AWS_SECRET_ACCESS_KEY
-          }
-        : undefined
+      assumeExternalRole && env.kms.KMS_EXTERNAL_KEY_ROLE_ARN
+        ? fromTemporaryCredentials({
+            params: {
+              RoleArn: env.kms.KMS_EXTERNAL_KEY_ROLE_ARN,
+              RoleSessionName: 'metorial-secret-store-kms'
+            }
+          })
+        : env.kms.KMS_AWS_ACCESS_KEY_ID && env.kms.KMS_AWS_SECRET_ACCESS_KEY
+          ? {
+              accessKeyId: env.kms.KMS_AWS_ACCESS_KEY_ID,
+              secretAccessKey: env.kms.KMS_AWS_SECRET_ACCESS_KEY
+            }
+          : undefined
   });
+  kmsClientCache.set(cacheKey, client);
+
+  return client;
+};
 
 let getEncryptionContext = (context: DataKeyContext) => ({
   tenantId: context.tenantId,
@@ -133,9 +167,13 @@ export class AwsKmsKeyProviderAdapter extends KeyProviderAdapter {
 
     try {
       return {
-        name: `AWS KMS KeyProvider (${keyArn.keyId})`,
+        name: `AWS KMS Key (${keyArn.keyId})`,
         keyInfo: {
-          ...(await this.describeKeyId({ keyId: input.keyId, region })),
+          ...(await this.describeKeyId({
+            keyId: input.keyId,
+            region,
+            assumeExternalRole: true
+          })),
           ts: Date.now()
         }
       };
@@ -237,9 +275,10 @@ ${policyJson}
     context: DataKeyContext
   ): Promise<DataKeyResult> {
     let keyInfo = keyProvider.keyInfo as any;
+    let assumeExternalRole = shouldUseExternalRole({ keyProvider, keyInfo });
 
     try {
-      let result = await getKmsClient(keyInfo.region).send(
+      let result = await getKmsClient(keyInfo.region, { assumeExternalRole }).send(
         new GenerateDataKeyCommand({
           KeyId: keyInfo.keyArn ?? keyInfo.keyId,
           KeySpec: 'AES_256',
@@ -279,8 +318,10 @@ ${policyJson}
       throw new KeyProviderAdapterError('invalid_key_info', 'Invalid AWS KMS key info');
     }
 
+    let assumeExternalRole = shouldUseExternalRole({ keyProvider, keyInfo });
+
     try {
-      let result = await getKmsClient(keyInfo.region).send(
+      let result = await getKmsClient(keyInfo.region, { assumeExternalRole }).send(
         new DecryptCommand({
           KeyId: keyInfo.keyArn ?? keyInfo.keyId ?? (keyProvider.keyInfo as any).keyArn,
           CiphertextBlob: encryptedDataKey,
@@ -311,8 +352,14 @@ ${policyJson}
     };
   }
 
-  private async describeKeyId(d: { keyId: string; region: string }) {
-    let described = await getKmsClient(d.region).send(
+  private async describeKeyId(d: {
+    keyId: string;
+    region: string;
+    assumeExternalRole?: boolean;
+  }) {
+    let described = await getKmsClient(d.region, {
+      assumeExternalRole: d.assumeExternalRole
+    }).send(
       new DescribeKeyCommand({
         KeyId: d.keyId
       })

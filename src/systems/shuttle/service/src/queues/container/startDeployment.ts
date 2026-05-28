@@ -74,7 +74,8 @@ export let deployContainerServerStartQueueProcessor = deployContainerServerStart
             ? await secretService.DANGEROUSLY_decryptSecret({
                 secret,
                 tenant,
-                purpose: 'registry_credentials'
+                purpose: 'registry_credentials',
+                note: `dep.reg:${dep.serverDeployment.id}:${secret.id}`
               })
             : null;
 

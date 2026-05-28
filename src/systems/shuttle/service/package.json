@@ -71,6 +71,7 @@
     "@lowerdeck/tokens": "^1.0.5",
     "@lowerdeck/validation": "^1.0.10",
     "@metorial-platform-systems/function-bay-client": "workspace:*",
+    "@metorial-platform-systems/nebula-client": "workspace:*",
     "@metorial/mcp-server": "^1.0.0-rc.11",
     "@modelcontextprotocol/sdk": "^1.25.3",
     "@prisma/adapter-pg": "^7.2.0",

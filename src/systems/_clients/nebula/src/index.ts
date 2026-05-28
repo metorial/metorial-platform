@@ -44,22 +44,47 @@ export let createRawNebulaClient = (o: ClientOpts): NebulaClient =>
   createClient<NebulaClient>(o);
 
 export let createNebulaClient = (o: NebulaClientOpts): AuthenticatedNebulaClient => {
-  let { consumerToken, identifier, refreshSkewMs = 60_000, ...clientOpts } = o;
+  let { consumerToken, identifier, refreshSkewMs = 120_000, ...clientOpts } = o;
   let client = createRawNebulaClient(clientOpts);
   let current: ConsumerInstanceToken | null = null;
+  let registerInFlight: Promise<ConsumerInstanceToken> | null = null;
   let inFlight: Promise<ConsumerInstanceToken> | null = null;
+  let refreshTimer: ReturnType<typeof setTimeout> | null = null;
 
-  let registration = (async () => {
-    let next = await client.consumer.register({
-      secret: consumerToken,
-      identifier
-    });
-    current = next;
-    return next;
-  })();
+  let scheduleProactiveRefresh = (token: ConsumerInstanceToken) => {
+    if (refreshTimer) clearTimeout(refreshTimer);
+
+    let refreshAt = toDate(token.expiresAt).getTime() - refreshSkewMs;
+    let delay = Math.max(0, refreshAt - Date.now());
+
+    refreshTimer = setTimeout(() => {
+      refreshTimer = null;
+      void ensureFreshToken();
+    }, delay);
+  };
+
+  let register = () => {
+    registerInFlight ??= (async () => {
+      try {
+        let next = await client.consumer.register({
+          secret: consumerToken,
+          identifier
+        });
+        current = next;
+        scheduleProactiveRefresh(next);
+        return next;
+      } finally {
+        registerInFlight = null;
+      }
+    })();
+
+    return registerInFlight;
+  };
+
+  void register();
 
   let refresh = async () => {
-    if (!current) return await registration;
+    if (!current) return await register();
 
     try {
       let next = await client.consumer.refresh({
@@ -67,23 +92,26 @@ export let createNebulaClient = (o: NebulaClientOpts): AuthenticatedNebulaClient
         token: current.token
       });
       current = next;
+      scheduleProactiveRefresh(next);
       return next;
     } catch {
-      return await registration;
+      return await register();
     }
   };
 
-  let getToken = async () => {
+  let ensureFreshToken = () => {
     if (current && toDate(current.expiresAt).getTime() - refreshSkewMs > Date.now()) {
-      return current.token;
+      return Promise.resolve(current);
     }
 
     inFlight ??= refresh().finally(() => {
       inFlight = null;
     });
 
-    return (await inFlight).token;
+    return inFlight;
   };
+
+  let getToken = async () => (await ensureFreshToken()).token;
 
   return {
     tenant: client.tenant,

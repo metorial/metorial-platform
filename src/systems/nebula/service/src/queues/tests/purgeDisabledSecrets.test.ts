@@ -32,7 +32,7 @@ describe('purgeDisabledSecret', () => {
         id: 'secret-1',
         tenantOid: tenant.oid,
         consumerOid: consumer.oid,
-        purpose: 'test',
+        purposeLegacy: 'test',
         status: 'disabled',
         disabledAt: subDays(new Date(), 15)
       }
@@ -69,7 +69,7 @@ describe('purgeDisabledSecret', () => {
         id: 'secret-2',
         tenantOid: tenant.oid,
         consumerOid: consumer.oid,
-        purpose: 'test',
+        purposeLegacy: 'test',
         status: 'active'
       }
     });

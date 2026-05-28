@@ -33,6 +33,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-kms": "^3.957.0",
+    "@aws-sdk/credential-providers": "^3.957.0",
     "@lowerdeck/api-mux": "^1.0.4",
     "@lowerdeck/cache": "^1.0.2",
     "@lowerdeck/canonicalize": "^1.0.4",

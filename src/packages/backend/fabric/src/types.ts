@@ -115,8 +115,9 @@ export type KeyProviderEventKeyProvider = {
 };
 
 export type KeyProviderEventValidation = {
+  object: 'key_provider_validation';
   keyProviderId: string;
-  description: string;
+  description: Record<string, unknown>;
 };
 
 export type KeyProviderEventBase = {

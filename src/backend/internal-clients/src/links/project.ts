@@ -6,7 +6,12 @@ import {
   persistProjectTenantLink
 } from './shared';
 import type { InternalProject, InternalService } from './types';
-import { upsertCargoTenant, upsertSubspaceTenant, upsertSynthesisTenant } from './upsert';
+import {
+  upsertCargoTenant,
+  upsertNebulaTenant,
+  upsertSubspaceTenant,
+  upsertSynthesisTenant
+} from './upsert';
 
 let ensureProjectTenant = async (d: {
   service: InternalService;
@@ -62,6 +67,24 @@ let ensureProjectTenant = async (d: {
     };
   }
 
+  if (d.service == 'nebula') {
+    let tenant = await upsertNebulaTenant({
+      identifier: tenantIdentifier,
+      name: project.name
+    });
+
+    return {
+      project: await persistProjectTenantLink({
+        service: d.service,
+        project,
+        tenantId: tenant.id,
+        tenantIdentifier
+      }),
+      tenantId: tenant.id,
+      tenantIdentifier
+    };
+  }
+
   let tenant = await upsertSubspaceTenant({
     identifier: tenantIdentifier,
     name: project.name,
@@ -93,6 +116,9 @@ export let ensureSynthesisProjectTenant = async (project: InternalProject) =>
 
 export let ensureSubspaceProjectTenant = async (project: InternalProject) =>
   await ensureProjectTenant({ service: 'subspace', project });
+
+export let ensureNebulaProjectTenant = async (project: InternalProject) =>
+  await ensureProjectTenant({ service: 'nebula', project });
 
 export let ensureInternalProjectTenant = async (d: {
   service: InternalService;

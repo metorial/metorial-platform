@@ -1,8 +1,8 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { accessService } from '@metorial/module-access';
-import { keyProviderService } from '@metorial/module-nebula';
 import { projectService } from '@metorial/module-organization';
+import { keyProviderService } from '@metorial/module-secrets';
 import { Controller, Path } from '@metorial/rest';
 import { checkAccess } from '../../middleware/checkAccess';
 import { hasFlags } from '../../middleware/hasFlags';

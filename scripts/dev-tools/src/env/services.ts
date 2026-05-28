@@ -459,6 +459,22 @@ export let shuttleServiceEnv: Env = [
   {
     key: 'FUNCTION_BAY_DEFAULT_TIMEOUT_SECONDS',
     defaultValue: '15'
+  },
+  {
+    key: 'NEBULA_API_URL',
+    defaultValue: 'http://localhost:52170/metorial-nebula'
+  },
+  {
+    key: 'NEBULA_CONSUMER_IDENTIFIER',
+    defaultValue: 'dev-shuttle'
+  },
+  {
+    key: 'NEBULA_CONSUMER_TOKEN',
+    defaultValue: 'local-dev-nebula-shuttle-registration-secret'
+  },
+  {
+    key: 'SHUTTLE_DELEGATE_SECRETS_TO_NEBULA',
+    defaultValue: 'true'
   }
 ];
 

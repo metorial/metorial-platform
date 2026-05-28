@@ -524,8 +524,15 @@ class integrationInstanceProviderServiceImpl {
         if (inheritSharedConfigs[idx] && sharedConfigId) return sharedConfigId;
 
         if (input.providerConfigId === undefined) {
-          return existingByIntegrationProviderOid.get(integrationProviders[idx]!.oid)
-            ?.currentVersion?.config?.id;
+          let existingConfigId = existingByIntegrationProviderOid.get(
+            integrationProviders[idx]!.oid
+          )?.currentVersion?.config?.id;
+          if (existingConfigId) return existingConfigId;
+
+          // On create, inherit the integration provider's shared config by default.
+          if (sharedConfigId) return sharedConfigId;
+
+          return undefined;
         }
 
         if (input.providerConfigId === null) return undefined;
@@ -592,7 +599,6 @@ class integrationInstanceProviderServiceImpl {
         let existing = existingByIntegrationProviderOid.get(integrationProvider.oid);
         let deploymentOid = materialProvider.currentVersion!.deploymentOid;
         let isInheritedSharedConfig =
-          inheritSharedConfigs[idx] &&
           materialProvider.currentVersion!.config?.oid === combination.config.oid;
 
         if (!isInheritedSharedConfig) {
