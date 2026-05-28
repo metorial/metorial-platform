@@ -3,6 +3,7 @@ import { setupPrismaTestDb, setupTestGlobals } from '@lowerdeck/testing-tools';
 import { afterAll, vi } from 'vitest';
 import { PrismaClient } from '../../prisma/generated/client';
 import { dataKeyCache } from '../lib/dataKeyCache';
+import { secretPurposeCache } from '../lib/secretPurposeCache';
 
 setupTestGlobals({ nodeEnv: 'test' });
 
@@ -25,5 +26,6 @@ export let testDb: PrismaClient = db.client;
 
 export let cleanDatabase = async () => {
   dataKeyCache.clear();
+  secretPurposeCache.clear();
   await db.clean();
 };

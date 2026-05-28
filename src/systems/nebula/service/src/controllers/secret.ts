@@ -44,7 +44,7 @@ export let secretController = app.controller({
           keyProviderId: ctx.input.keyProviderId
         }
       });
-      return secretPresenter(secret);
+      return await secretPresenter(secret);
     }),
 
   update: consumerInstanceApp
@@ -77,7 +77,7 @@ export let secretController = app.controller({
           keyProviderId: ctx.input.keyProviderId
         }
       });
-      return secretPresenter(secret);
+      return await secretPresenter(secret);
     }),
 
   disable: consumerInstanceApp
@@ -100,7 +100,7 @@ export let secretController = app.controller({
         consumer: ctx.consumer,
         secret: currentSecret
       });
-      return secretPresenter(secret);
+      return await secretPresenter(secret);
     }),
 
   list: tenantApp
@@ -109,7 +109,7 @@ export let secretController = app.controller({
     .do(async ctx => {
       let paginator = await secretService.listSecrets({ tenant: ctx.tenant });
       let list = await paginator.run(ctx.input);
-      return Paginator.presentLight(list, secretPresenter);
+      return await Paginator.presentLight(list, secret => secretPresenter(secret));
     }),
 
   get: secretApp
@@ -120,7 +120,7 @@ export let secretController = app.controller({
         secretId: v.string()
       })
     )
-    .do(async ctx => secretPresenter(ctx.secret)),
+    .do(async ctx => await secretPresenter(ctx.secret)),
 
   use: consumerInstanceApp
     .handler()
@@ -146,7 +146,7 @@ export let secretController = app.controller({
         proof: ctx.input.proof,
         note: ctx.input.note
       });
-      return secretUsePresenter(used);
+      return await secretUsePresenter(used);
     }),
 
   listVersions: secretApp

@@ -30,3 +30,9 @@ export let snowflake = new Snowflake({
   sequenceBits: 9,
   epoch: new Date('2025-06-01T00:00:00Z')
 });
+
+export let get4ByteIntId = (): number => {
+  let buffer = new Int32Array(1);
+  crypto.getRandomValues(buffer);
+  return buffer[0]!;
+};

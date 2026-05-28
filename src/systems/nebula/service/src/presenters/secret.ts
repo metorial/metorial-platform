@@ -1,14 +1,15 @@
 import type { Consumer, KeyProvider, Secret, SecretVersion } from '../../prisma/generated/client';
+import { secretPurposeService } from '../services/secretPurpose';
 
 type SecretWithVersion = Secret & {
   consumer?: Consumer | null;
   currentVersion?: (SecretVersion & { keyProvider?: KeyProvider }) | null;
 };
 
-export let secretPresenter = (secret: SecretWithVersion) => ({
+export let secretPresenter = async (secret: SecretWithVersion) => ({
   object: 'nebula#secret',
   id: secret.id,
-  purpose: secret.purpose,
+  purpose: await secretPurposeService.getPurposeIdentifier(secret),
   status: secret.status,
   consumerId: secret.consumer?.id ?? null,
   currentVersionId: secret.currentVersion?.id ?? null,
@@ -27,7 +28,7 @@ export let secretVersionPresenter = (version: SecretVersion & { keyProvider?: Ke
   createdAt: version.createdAt
 });
 
-export let secretUsePresenter = (d: { secret: SecretWithVersion; plaintext: string }) => ({
+export let secretUsePresenter = async (d: { secret: SecretWithVersion; plaintext: string }) => ({
   object: 'nebula#secret_use',
   secretId: d.secret.id,
   plaintext: d.plaintext

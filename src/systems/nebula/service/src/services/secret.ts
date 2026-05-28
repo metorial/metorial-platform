@@ -26,6 +26,7 @@ import {
 } from '../lib/crypto';
 import { keyService } from './key';
 import { keyProviderService } from './keyProvider';
+import { secretPurposeService } from './secretPurpose';
 import { secretUseService } from './secretUse';
 
 let Sentry = getSentry();
@@ -162,6 +163,7 @@ class SecretServiceImpl {
   }) {
     this.validateSecretInput(d.input);
 
+    let purpose = await secretPurposeService.ensurePurpose(d.input.purpose);
     let keyProvider = await keyProviderService.resolveForTenant({
       tenant: d.tenant,
       keyProviderId: d.input.keyProviderId
@@ -182,7 +184,7 @@ class SecretServiceImpl {
       consumerId: d.consumer.id,
       secretId,
       versionId,
-      purpose: d.input.purpose,
+      purpose: purpose.identifier,
       keyId: key.id,
       keyProviderId: keyProvider.id,
       encryptionContext
@@ -201,7 +203,8 @@ class SecretServiceImpl {
           id: secretId,
           tenantOid: d.tenant.oid,
           consumerOid: d.consumer.oid,
-          purpose: d.input.purpose,
+          purposeLegacy: purpose.identifier,
+          purposeOid: purpose.oid,
           status: 'active'
         }
       });
@@ -246,8 +249,10 @@ class SecretServiceImpl {
     if (d.secret.consumerOid !== d.consumer.oid) throw genericUseError();
     if (d.secret.status !== 'active') throw genericSecretMutationError();
 
+    let purposeIdentifier = await secretPurposeService.getPurposeIdentifier(d.secret);
+
     this.validateSecretInput({
-      purpose: d.secret.purpose,
+      purpose: purposeIdentifier,
       secret: d.input.secret,
       proof: d.input.proof,
       encryptionContext: d.input.encryptionContext
@@ -270,7 +275,7 @@ class SecretServiceImpl {
       consumerId: d.consumer.id,
       secretId: d.secret.id,
       versionId,
-      purpose: d.secret.purpose,
+      purpose: purposeIdentifier,
       keyId: key.id,
       keyProviderId: keyProvider.id,
       encryptionContext
@@ -344,6 +349,8 @@ class SecretServiceImpl {
       keyId = secret.currentVersion.key.id;
       keyProviderId = secret.currentVersion.keyProvider.id;
 
+      let purposeIdentifier = await secretPurposeService.getPurposeIdentifier(secret);
+
       stage = 'proof';
       let proofHash = getProofHash(d.tenant, d.proof);
       if (!constantTimeEqual(proofHash, secret.currentVersion.proofHash)) {
@@ -361,7 +368,7 @@ class SecretServiceImpl {
         consumerId: d.consumer.id,
         secretId: secret.id,
         versionId: secret.currentVersion.id,
-        purpose: secret.purpose,
+        purpose: purposeIdentifier,
         keyId: secret.currentVersion.key.id,
         keyProviderId: secret.currentVersion.keyProvider.id,
         encryptionContext: secret.currentVersion.encryptionContext

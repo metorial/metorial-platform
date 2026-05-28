@@ -1,10 +1,11 @@
 import { RedisClient } from 'bun';
 import { nebulaApi } from './controllers';
 import { db } from './db';
-import { consumerService, keyProviderService } from './services';
+import { consumerService, keyProviderService, secretPurposeService } from './services';
 
 await consumerService.ensureEnvConsumers();
 await keyProviderService.ensureSystemDefaultProvider();
+await secretPurposeService.warmKnownPurposes();
 
 let server = Bun.serve({
   fetch: nebulaApi,
