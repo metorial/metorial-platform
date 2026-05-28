@@ -1,6 +1,6 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { firewallBindingService } from '@metorial-subspace/module-enclave';
+import { firewallBindingService, type FirewallBindingInput } from '@metorial-subspace/module-enclave';
 import { firewallBindingPresenter } from '@metorial-subspace/presenters';
 import { app } from './_app';
 import { createdAtValidator } from './_dateFilter';
@@ -79,16 +79,14 @@ export let firewallBindingController = app.controller({
   create: tenantApp
     .handler()
     .input(
-      v.object({
-        tenantId: v.string(),
-        environmentId: v.string(),
-
-        firewallId: v.string(),
-        targetType: v.enumOf(['enclave', 'provider', 'network']),
-        enclaveId: v.optional(v.string()),
-        providerId: v.optional(v.string()),
-        networkId: v.optional(v.string())
-      })
+      v.intersection([
+        v.object({
+          tenantId: v.string(),
+          environmentId: v.string(),
+          firewallId: v.string()
+        }),
+        firewallBindingInputValidator
+      ])
     )
     .do(async ctx => {
       let firewallBinding = await firewallBindingService.createFirewallBinding({
@@ -100,7 +98,7 @@ export let firewallBindingController = app.controller({
           enclaveId: ctx.input.enclaveId,
           providerId: ctx.input.providerId,
           networkId: ctx.input.networkId
-        }
+        } as FirewallBindingInput
       });
 
       return firewallBindingPresenter(firewallBinding);
