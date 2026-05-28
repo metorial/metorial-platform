@@ -9,7 +9,12 @@
       "default",
       "!{projectRoot}/dist/**",
       "!{projectRoot}/coverage/**",
-      "!{projectRoot}/.control/**"
+      "!{projectRoot}/.control/**",
+      "!{projectRoot}/generated/**",
+      "!{projectRoot}/prisma/generated/**",
+      "!{projectRoot}/src/generated/**",
+      "!{projectRoot}/node_modules/.prisma/**",
+      "!{projectRoot}/node_modules/@prisma/**"
     ],
     "clientProduction": [
       "{projectRoot}/**/*",
@@ -90,7 +95,7 @@
     "test:unit": {
       "cache": true,
       "inputs": [
-        "default",
+        "production",
         "^production"
       ],
       "outputs": [

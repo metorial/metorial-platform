@@ -21,7 +21,12 @@ let createNxConfig = (scope: 'repo' | 'oss' = 'repo') => ({
       'default',
       '!{projectRoot}/dist/**',
       '!{projectRoot}/coverage/**',
-      '!{projectRoot}/.control/**'
+      '!{projectRoot}/.control/**',
+      '!{projectRoot}/generated/**',
+      '!{projectRoot}/prisma/generated/**',
+      '!{projectRoot}/src/generated/**',
+      '!{projectRoot}/node_modules/.prisma/**',
+      '!{projectRoot}/node_modules/@prisma/**'
     ],
     clientProduction: [
       '{projectRoot}/**/*',
@@ -73,7 +78,7 @@ let createNxConfig = (scope: 'repo' | 'oss' = 'repo') => ({
     },
     'test:unit': {
       cache: true,
-      inputs: ['default', '^production'],
+      inputs: ['production', '^production'],
       outputs: ['{projectRoot}/coverage/**']
     },
     'check-types': {

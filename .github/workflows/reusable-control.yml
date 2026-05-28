@@ -168,20 +168,6 @@ jobs:
           fi
           exit 1
 
-      - name: Generate Prisma Clients
-        if: ${{ inputs.command == 'warm-cache' }}
-        env:
-          NX_CACHE_DIRECTORY: ${{ github.workspace }}/.nx/cache
-          NX_SELF_HOSTED_REMOTE_CACHE_SERVER: ${{ inputs.enable_cache && 'http://127.0.0.1:43191' || '' }}
-        run: bun x nx run-many --target=prisma:generate --all --parallel=1
-
-      - name: Build platform system clients
-        if: ${{ inputs.command == 'warm-cache' }}
-        env:
-          NX_CACHE_DIRECTORY: ${{ github.workspace }}/.nx/cache
-          NX_SELF_HOSTED_REMOTE_CACHE_SERVER: ${{ inputs.enable_cache && 'http://127.0.0.1:43191' || '' }}
-        run: bun x nx run-many --target=build --projects=@metorial-platform-systems/origin-client,@metorial-platform-systems/forge-client,@metorial-platform-systems/function-bay-client,@metorial-platform-systems/signal-client,@metorial-platform-systems/synthesis-client,@metorial-platform-systems/cargo-client,@metorial-platform-systems/ares-client,@metorial/mcp,@metorial/mcp-server,@metorial/mcp-transport-memory,@metorial-platform-systems/shuttle-client,@metorial-platform-systems/slates-client,@metorial-platform-systems/subspace-client
-
       - name: Warm shared build cache
         if: ${{ inputs.command == 'warm-cache' }}
         env:
@@ -207,7 +193,6 @@ jobs:
           CONTROL_VERBOSE: '1'
           NX_CACHE_DIRECTORY: ${{ github.workspace }}/.nx/cache
           NX_SELF_HOSTED_REMOTE_CACHE_SERVER: ${{ inputs.enable_cache && 'http://127.0.0.1:43191' || '' }}
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: |
           set -euo pipefail
 
