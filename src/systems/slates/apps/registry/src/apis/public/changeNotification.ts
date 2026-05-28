@@ -23,7 +23,7 @@ export let changeNotificationsController = createHono()
     let paginator = await changeNotificationService.listChangeNotifications({
       tenant: auth.tenant,
       subRegistry: auth.subRegistry,
-      supportsPrebuilt: query.supports_prebuilt === true
+      supportsPrebuilt: query.supports_prebuilt
     });
     let list = await paginator.run(query);
 
@@ -46,7 +46,7 @@ export let changeNotificationsController = createHono()
       id: c.req.param('changeNotificationId'),
       tenant: auth.tenant,
       subRegistry: auth.subRegistry,
-      supportsPrebuilt: query.supports_prebuilt === true
+      supportsPrebuilt: query.supports_prebuilt
     });
 
     return c.json(await changeNotificationPresenter(slate));

@@ -129,6 +129,7 @@ export let buildSlateDeploymentFiles = (files: DeploymentArchiveFile[]) => {
   }
 
   let slateEntrypoint = getSlateEntrypoint(files, packageJson);
+  console.log(`[Deployment]: Using slate entrypoint: ${slateEntrypoint}`);
   let generatedFiles = [
     {
       filename: 'package.json',

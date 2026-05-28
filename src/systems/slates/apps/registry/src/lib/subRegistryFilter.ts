@@ -52,8 +52,11 @@ export let buildChangeNotificationFilterClause = (
   subRegistry: SubRegistryWithFilters | null | undefined,
   tenantOid?: bigint
 ): Prisma.ChangeNotificationWhereInput => {
-  let baseClause = { tenantOid };
-  if (!subRegistry || subRegistry.filters.length === 0) return baseClause;
+  let baseAccessClause: Prisma.ChangeNotificationWhereInput = tenantOid
+    ? { OR: [{ tenantOid }, { slate: { access: 'public' } }] }
+    : { slate: { access: 'public' } };
+
+  if (!subRegistry || subRegistry.filters.length === 0) return baseAccessClause;
 
   let filterConditions: Prisma.ChangeNotificationWhereInput[] = [];
 
@@ -79,5 +82,7 @@ export let buildChangeNotificationFilterClause = (
     }
   }
 
-  return { OR: filterConditions };
+  return {
+    AND: [baseAccessClause, { OR: filterConditions }]
+  };
 };

@@ -4,7 +4,7 @@ import { createQueue } from '@lowerdeck/queue';
 import { db } from '../../db';
 import { env } from '../../env';
 import { getId, ID, snowflake } from '../../id';
-import { getRegistryClient, getRegistryQuery } from '../../registry';
+import { getRegistryClient, getRegistryQuery, supportsPrebuiltSlates } from '../../registry';
 import { deploySlateVersionQueue } from '../deployment/deploy';
 
 export let syncSlateQueue = createQueue<{
@@ -33,18 +33,34 @@ export let syncSlateQueueProcessor = syncSlateQueue.process(data =>
 
     let client = await getRegistryClient(reg);
 
-    let [scopeId, slateId] = data.id.split('/');
+    let normalizedFullIdentifier = data.id.startsWith('@') ? data.id.slice(1) : data.id;
+    let [scopeId, slateId] = normalizedFullIdentifier.split('/');
+    if (!scopeId || !slateId) {
+      console.warn(`Skipping slate sync for invalid identifier ${data.id}`);
+      return;
+    }
+
+    let slateQuery = getRegistryQuery();
+
     let slateRes = await client.slates[':scopeId'][':slateId'].$get({
       param: {
-        scopeId: scopeId!,
-        slateId: slateId!
+        scopeId,
+        slateId
       },
-      query: getRegistryQuery()
+      query: slateQuery
     });
-    if (slateRes.status !== 200)
-      throw new Error(
-        `Failed to fetch slate - status ${slateRes.status} - ${await slateRes.text()} - ${scopeId} - ${slateId}`
+    if (slateRes.status === 404) {
+      console.warn(
+        `Skipping slate sync - slate not found or not accessible: ${scopeId}/${slateId}`
       );
+      return;
+    }
+    if (slateRes.status !== 200) {
+      let body = await slateRes.text();
+      throw new Error(
+        `Failed to fetch slate - status ${slateRes.status} - ${body} - ${scopeId} - ${slateId}`
+      );
+    }
 
     let slateData = await slateRes.json();
 
@@ -88,21 +104,31 @@ export let syncSlateQueueProcessor = syncSlateQueue.process(data =>
           slateId: slateId!,
           versionId: data.version
         },
-        query: getRegistryQuery()
+        query: slateQuery
       });
-      if (slateVersionRes.status !== 200)
-        throw new Error(
-          `Failed to fetch slate version - status ${slateVersionRes.status} - ${await slateVersionRes.text()} - ${scopeId} - ${slateId} - ${data.version}`
+      if (slateVersionRes.status === 404) {
+        console.warn(
+          `Skipping slate version sync - version not found or not accessible: ${scopeId}/${slateId}/${data.version}`
         );
+        return;
+      }
+      if (slateVersionRes.status !== 200) {
+        let body = await slateVersionRes.text();
+        throw new Error(
+          `Failed to fetch slate version - status ${slateVersionRes.status} - ${body} - ${scopeId} - ${slateId} - ${data.version}`
+        );
+      }
 
       let slateVersionData = await slateVersionRes.json();
 
-      if (
-        slateVersionData.build === 'prebuilt' &&
-        env.registry.SUPPORTS_PREBUILT_SLATES !== true
-      ) {
+      if (slateVersionData.build === 'prebuilt' && !supportsPrebuiltSlates()) {
         return;
       }
+
+      let isCurrentVersion =
+        slateVersionData.isCurrent ||
+        slateData.currentVersion?.version === slateVersionData.version ||
+        slateData.currentVersion?.id === slateVersionData.id;
 
       let slateVersionUpsertData = {
         version: slateVersionData.version,
@@ -127,17 +153,23 @@ export let syncSlateQueueProcessor = syncSlateQueue.process(data =>
 
           providerDeploymentInfo: null,
 
-          status: slateVersionData.isCurrent ? 'pending' : 'unavailable',
+          status: isCurrentVersion ? 'pending' : 'unavailable',
           isCurrent: false,
-          willBeCurrent: slateVersionData.isCurrent,
+          willBeCurrent: isCurrentVersion,
 
           ...slateVersionUpsertData
         },
         update: {
           ...slateVersionUpsertData,
-          ...(slateVersionData.isCurrent ? { willBeCurrent: true } : {})
+          ...(isCurrentVersion ? { willBeCurrent: true } : {})
         }
       });
+
+      let shouldDeploy =
+        isCurrentVersion &&
+        ['unavailable', 'pending', 'deployment_failed', 'discovery_failed'].includes(
+          version.status
+        );
 
       if (newVersionId === version.id) {
         await db.slateEvent.create({
@@ -149,11 +181,10 @@ export let syncSlateQueueProcessor = syncSlateQueue.process(data =>
             slateVersionOid: version.oid
           }
         });
+      }
 
-        // Only deploy current versions
-        if (slateVersionData.isCurrent) {
-          await deploySlateAfterSyncQueue.add({ versionId: version.id }, { id: version.id });
-        }
+      if (shouldDeploy) {
+        await deploySlateAfterSyncQueue.add({ versionId: version.id }, { id: version.id });
       }
     }
   })

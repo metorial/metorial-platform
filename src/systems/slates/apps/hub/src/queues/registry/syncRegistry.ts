@@ -4,6 +4,7 @@ import { db } from '../../db';
 import { env } from '../../env';
 import { getId } from '../../id';
 import { getRegistryClient, getRegistryQuery } from '../../registry';
+import { syncRegistrySlatesFromCatalog } from './syncRegistryCatalog';
 import { syncSlateQueue } from './syncSlate';
 
 export let syncRegistryQueue = createQueue<{
@@ -44,40 +45,50 @@ export let syncRegistryQueueProcessor = syncRegistryQueue.process(data =>
         slateVersion?: { identifier?: string | null; id?: string | null };
       }>;
     };
-    console.log(`Syncing ${items.length} items for registry ${reg.id}`);
-    if (items.length === 0) return;
+    console.log(`Syncing ${items.length} change notifications for registry ${reg.id}`);
 
-    await syncSlateQueue.addManyWithOps(
-      items.map(s => ({
+    if (items.length > 0) {
+      await syncSlateQueue.addManyWithOps(
+        items.map(s => ({
+          data: {
+            id: s.slate.fullIdentifier,
+            version: s.slateVersion?.id ?? s.slateVersion?.identifier ?? undefined,
+            registryId: reg.id
+          },
+          opts: {
+            id: s.id
+          }
+        }))
+      );
+
+      await db.registrySync.create({
         data: {
-          id: s.slate.fullIdentifier,
-          version: s.slateVersion?.identifier ?? undefined,
-          registryId: reg.id
-        },
-        opts: {
-          id: s.id
+          ...getId('registrySync'),
+          registryOid: reg.oid,
+
+          slatesSyncedIds: items.map(i => i.slate.fullIdentifier),
+          slateVersionsSyncedIds: items.map(i => i.slateVersion?.id!).filter(Boolean)
         }
-      }))
-    );
+      });
 
-    await db.registrySync.create({
-      data: {
-        ...getId('registrySync'),
-        registryOid: reg.oid,
+      await db.registry.update({
+        where: { id: reg.id },
+        data: {
+          changeNotificationCursor: items[items.length - 1]?.id,
+          lastSyncedAt: new Date()
+        }
+      });
 
-        slatesSyncedIds: items.map(i => i.slate.fullIdentifier),
-        slateVersionsSyncedIds: items.map(i => i.slateVersion?.id!).filter(Boolean)
-      }
-    });
+      await syncRegistryQueue.add({ registryId: reg.id }, { id: reg.id });
+    }
 
-    await db.registry.update({
-      where: { id: reg.id },
-      data: {
-        changeNotificationCursor: items[items.length - 1]?.id,
-        lastSyncedAt: new Date()
-      }
-    });
+    await syncRegistrySlatesFromCatalog({ reg, client });
 
-    await syncRegistryQueue.add({ registryId: reg.id }, { id: reg.id });
+    if (items.length === 0) {
+      await db.registry.update({
+        where: { id: reg.id },
+        data: { lastSyncedAt: new Date() }
+      });
+    }
   })
 );
