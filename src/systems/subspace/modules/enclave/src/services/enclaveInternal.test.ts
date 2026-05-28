@@ -30,13 +30,13 @@ vi.mock('@metorial-subspace/db', () => ({
 
 vi.mock('./networkInternal', () => ({
   networkInternalService: {
-    ensureNetworkForEnvironment: vi.fn(async ({ db }: { db: typeof mockDb }) => {
-      let existing = await db.network.findFirst({
+    ensureNetworkForEnvironment: vi.fn(async () => {
+      let existing = await mockDb.network.findFirst({
         where: {}
       });
       if (existing) return existing;
 
-      return db.network.upsert({
+      return mockDb.network.upsert({
         where: {},
         update: {},
         create: {

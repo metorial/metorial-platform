@@ -133,8 +133,8 @@ class firewallServiceImpl {
   }) {
     validateFirewallBindingInputs(d.input.bindings ?? []);
 
-    return withTransaction(async dbTx => {
-      let network = await dbTx.network.findFirst({
+    return withTransaction(async db => {
+      let network = await db.network.findFirst({
         where: {
           id: d.input.networkId,
           tenantOid: d.tenant.oid,
@@ -149,7 +149,7 @@ class firewallServiceImpl {
         d.input.slug?.trim() ||
         `${slugify(d.input.name)}-${generatePlainId(10).toLowerCase()}`;
 
-      let firewall = await dbTx.firewall.create({
+      let firewall = await db.firewall.create({
         data: {
           ...getId('firewall'),
           name: d.input.name.trim(),
@@ -163,7 +163,6 @@ class firewallServiceImpl {
 
       if (d.input.bindings?.length) {
         await firewallBindingService.createFirewallBindings({
-          db: dbTx,
           tenant: d.tenant,
           environment: d.environment,
           firewall,
@@ -174,7 +173,6 @@ class firewallServiceImpl {
 
       if (d.input.networkPolicyIds?.length) {
         await this.replaceNetworkPolicyLinks({
-          db: dbTx,
           tenant: d.tenant,
           environment: d.environment,
           firewall,
@@ -182,7 +180,7 @@ class firewallServiceImpl {
         });
       }
 
-      return dbTx.firewall.findFirstOrThrow({
+      return db.firewall.findFirstOrThrow({
         where: { oid: firewall.oid },
         include
       });
@@ -202,10 +200,9 @@ class firewallServiceImpl {
   }) {
     checkTenant(d, d.firewall);
 
-    return withTransaction(async dbTx => {
+    return withTransaction(async db => {
       if (d.input.networkPolicyIds !== undefined) {
         await this.replaceNetworkPolicyLinks({
-          db: dbTx,
           tenant: d.tenant,
           environment: d.environment,
           firewall: d.firewall,
@@ -213,7 +210,7 @@ class firewallServiceImpl {
         });
       }
 
-      return dbTx.firewall.update({
+      return db.firewall.update({
         where: {
           oid: d.firewall.oid,
           tenantOid: d.tenant.oid,
@@ -241,8 +238,8 @@ class firewallServiceImpl {
   }) {
     checkTenant(d, d.firewall);
 
-    return withTransaction(async dbTx => {
-      let existing = await dbTx.firewallNetworkPolicy.findFirst({
+    return withTransaction(async db => {
+      let existing = await db.firewallNetworkPolicy.findFirst({
         where: {
           firewallOid: d.firewall.oid,
           networkPolicy: {
@@ -253,13 +250,13 @@ class firewallServiceImpl {
         }
       });
       if (existing) {
-        return dbTx.firewall.findFirstOrThrow({
+        return db.firewall.findFirstOrThrow({
           where: { oid: d.firewall.oid },
           include
         });
       }
 
-      let networkPolicy = await dbTx.networkPolicy.findFirst({
+      let networkPolicy = await db.networkPolicy.findFirst({
         where: {
           id: d.networkPolicyId,
           tenantOid: d.tenant.oid,
@@ -272,14 +269,14 @@ class firewallServiceImpl {
 
       let position = d.position;
       if (position === undefined) {
-        let lastLink = await dbTx.firewallNetworkPolicy.findFirst({
+        let lastLink = await db.firewallNetworkPolicy.findFirst({
           where: { firewallOid: d.firewall.oid },
           orderBy: { position: 'desc' }
         });
         position = (lastLink?.position ?? -1) + 1;
       }
 
-      await dbTx.firewallNetworkPolicy.create({
+      await db.firewallNetworkPolicy.create({
         data: {
           ...getId('firewallNetworkPolicy'),
           firewallOid: d.firewall.oid,
@@ -288,7 +285,7 @@ class firewallServiceImpl {
         }
       });
 
-      return dbTx.firewall.findFirstOrThrow({
+      return db.firewall.findFirstOrThrow({
         where: { oid: d.firewall.oid },
         include
       });
@@ -303,8 +300,8 @@ class firewallServiceImpl {
   }) {
     checkTenant(d, d.firewall);
 
-    return withTransaction(async dbTx => {
-      let link = await dbTx.firewallNetworkPolicy.findFirst({
+    return withTransaction(async db => {
+      let link = await db.firewallNetworkPolicy.findFirst({
         where: {
           firewallOid: d.firewall.oid,
           networkPolicy: {
@@ -318,11 +315,11 @@ class firewallServiceImpl {
         throw new ServiceError(notFoundError('network.policy', d.networkPolicyId));
       }
 
-      await dbTx.firewallNetworkPolicy.delete({
+      await db.firewallNetworkPolicy.delete({
         where: { oid: link.oid }
       });
 
-      return dbTx.firewall.findFirstOrThrow({
+      return db.firewall.findFirstOrThrow({
         where: { oid: d.firewall.oid },
         include
       });
@@ -336,65 +333,66 @@ class firewallServiceImpl {
   }) {
     checkTenant(d, d.firewall);
 
-    return withTransaction(async dbTx => {
-      await dbTx.firewallBinding.deleteMany({
+    return withTransaction(async db => {
+      await db.firewallBinding.deleteMany({
         where: { firewallOid: d.firewall.oid }
       });
-      await dbTx.firewallNetworkPolicy.deleteMany({
+      await db.firewallNetworkPolicy.deleteMany({
         where: { firewallOid: d.firewall.oid }
       });
 
-      return dbTx.firewall.delete({
+      return db.firewall.delete({
         where: { oid: d.firewall.oid }
       });
     });
   }
 
   private async replaceNetworkPolicyLinks(d: {
-    db: Parameters<Parameters<typeof withTransaction>[0]>[0];
     tenant: Tenant;
     environment: Environment;
     firewall: Firewall;
     networkPolicyIds: string[];
     positions?: Record<string, number>;
   }) {
-    await d.db.firewallNetworkPolicy.deleteMany({
-      where: { firewallOid: d.firewall.oid }
-    });
+    return withTransaction(async db => {
+      await db.firewallNetworkPolicy.deleteMany({
+        where: { firewallOid: d.firewall.oid }
+      });
 
-    if (!d.networkPolicyIds.length) return;
+      if (!d.networkPolicyIds.length) return;
 
-    let policies = await d.db.networkPolicy.findMany({
-      where: {
-        id: { in: d.networkPolicyIds },
-        tenantOid: d.tenant.oid,
-        environmentOid: d.environment.oid
-      }
-    });
-
-    if (policies.length !== d.networkPolicyIds.length) {
-      throw new ServiceError(
-        badRequestError({
-          code: 'invalid_firewall_network_policies',
-          message: 'One or more network policies were not found in this environment.'
-        })
-      );
-    }
-
-    let positionByPolicyId = new Map(
-      d.networkPolicyIds.map((id, index) => [id, d.positions?.[id] ?? index])
-    );
-
-    for (let policy of policies) {
-      await d.db.firewallNetworkPolicy.create({
-        data: {
-          ...getId('firewallNetworkPolicy'),
-          firewallOid: d.firewall.oid,
-          networkPolicyOid: policy.oid,
-          position: positionByPolicyId.get(policy.id) ?? 0
+      let policies = await db.networkPolicy.findMany({
+        where: {
+          id: { in: d.networkPolicyIds },
+          tenantOid: d.tenant.oid,
+          environmentOid: d.environment.oid
         }
       });
-    }
+
+      if (policies.length !== d.networkPolicyIds.length) {
+        throw new ServiceError(
+          badRequestError({
+            code: 'invalid_firewall_network_policies',
+            message: 'One or more network policies were not found in this environment.'
+          })
+        );
+      }
+
+      let positionByPolicyId = new Map(
+        d.networkPolicyIds.map((id, index) => [id, d.positions?.[id] ?? index])
+      );
+
+      for (let policy of policies) {
+        await db.firewallNetworkPolicy.create({
+          data: {
+            ...getId('firewallNetworkPolicy'),
+            firewallOid: d.firewall.oid,
+            networkPolicyOid: policy.oid,
+            position: positionByPolicyId.get(policy.id) ?? 0
+          }
+        });
+      }
+    }, { ifExists: true });
   }
 }
 

@@ -13,9 +13,8 @@ class networkInternalServiceImpl {
   async ensureNetworkForEnvironment(d: {
     tenant: Tenant;
     environment: Environment;
-    db?: Parameters<Parameters<typeof withTransaction>[0]>[0];
   }): Promise<Network> {
-    let run = async (db: Parameters<Parameters<typeof withTransaction>[0]>[0]) => {
+    return withTransaction(async db => {
       let existing = await db.network.findFirst({
         where: {
           tenantOid: d.tenant.oid,
@@ -41,11 +40,7 @@ class networkInternalServiceImpl {
           environmentOid: d.environment.oid
         }
       });
-    };
-
-    if (d.db) return run(d.db);
-
-    return withTransaction(run, { ifExists: true });
+    }, { ifExists: true });
   }
 }
 

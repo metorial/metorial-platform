@@ -135,8 +135,8 @@ class firewallBindingServiceImpl {
   }) {
     validateFirewallBindingInput(d.input);
 
-    return withTransaction(async dbTx => {
-      let firewall = await dbTx.firewall.findFirst({
+    return withTransaction(async db => {
+      let firewall = await db.firewall.findFirst({
         where: {
           id: d.firewallId,
           tenantOid: d.tenant.oid,
@@ -151,7 +151,6 @@ class firewallBindingServiceImpl {
       }
 
       return this.createBinding({
-        db: dbTx,
         tenant: d.tenant,
         environment: d.environment,
         firewall,
@@ -162,7 +161,6 @@ class firewallBindingServiceImpl {
   }
 
   async createFirewallBindings(d: {
-    db?: Parameters<Parameters<typeof withTransaction>[0]>[0];
     tenant: Tenant;
     environment: Environment;
     firewall: Firewall;
@@ -171,12 +169,9 @@ class firewallBindingServiceImpl {
   }) {
     validateFirewallBindingInputs(d.bindings);
 
-    let run = async (
-      dbTx: Parameters<Parameters<typeof withTransaction>[0]>[0]
-    ) => {
+    return withTransaction(async () => {
       for (let binding of d.bindings) {
         await this.createBinding({
-          db: dbTx,
           tenant: d.tenant,
           environment: d.environment,
           firewall: d.firewall,
@@ -184,10 +179,7 @@ class firewallBindingServiceImpl {
           binding
         });
       }
-    };
-
-    if (d.db) return run(d.db);
-    return withTransaction(run);
+    }, { ifExists: true });
   }
 
   async deleteFirewallBinding(d: {
@@ -203,111 +195,112 @@ class firewallBindingServiceImpl {
   }
 
   private async createBinding(d: {
-    db: Parameters<Parameters<typeof withTransaction>[0]>[0];
     tenant: Tenant;
     environment: Environment;
     firewall: Firewall;
     network: Network;
     binding: FirewallBindingInput;
   }) {
-    let data = await this.resolveBindingTarget({
-      db: d.db,
-      tenant: d.tenant,
-      environment: d.environment,
-      network: d.network,
-      binding: d.binding
-    });
+    return withTransaction(async db => {
+      let data = await this.resolveBindingTarget({
+        tenant: d.tenant,
+        environment: d.environment,
+        network: d.network,
+        binding: d.binding
+      });
 
-    let existing = await d.db.firewallBinding.findFirst({
-      where: {
-        firewallOid: d.firewall.oid,
-        ...(d.binding.targetType === 'enclave'
-          ? { enclaveOid: data.enclaveOid }
-          : d.binding.targetType === 'provider'
-            ? { providerOid: data.providerOid }
-            : { networkOid: data.networkOid })
-      },
-      include: bindingInclude
-    });
-    if (existing) return existing;
+      let existing = await db.firewallBinding.findFirst({
+        where: {
+          firewallOid: d.firewall.oid,
+          ...(d.binding.targetType === 'enclave'
+            ? { enclaveOid: data.enclaveOid }
+            : d.binding.targetType === 'provider'
+              ? { providerOid: data.providerOid }
+              : { networkOid: data.networkOid })
+        },
+        include: bindingInclude
+      });
+      if (existing) return existing;
 
-    return d.db.firewallBinding.create({
-      data: {
-        ...getId('firewallBinding'),
-        firewallOid: d.firewall.oid,
-        targetType: d.binding.targetType,
-        enclaveOid: data.enclaveOid,
-        providerOid: data.providerOid,
-        networkOid: data.networkOid,
-        tenantOid: d.tenant.oid,
-        environmentOid: d.environment.oid
-      },
-      include: bindingInclude
-    });
+      return db.firewallBinding.create({
+        data: {
+          ...getId('firewallBinding'),
+          firewallOid: d.firewall.oid,
+          targetType: d.binding.targetType,
+          enclaveOid: data.enclaveOid,
+          providerOid: data.providerOid,
+          networkOid: data.networkOid,
+          tenantOid: d.tenant.oid,
+          environmentOid: d.environment.oid
+        },
+        include: bindingInclude
+      });
+    }, { ifExists: true });
   }
 
   private async resolveBindingTarget(d: {
-    db: Parameters<Parameters<typeof withTransaction>[0]>[0];
     tenant: Tenant;
     environment: Environment;
     network: Network;
     binding: FirewallBindingInput;
   }) {
-    if (d.binding.targetType === 'enclave') {
-      let enclave = await d.db.enclave.findFirst({
-        where: {
-          id: d.binding.enclaveId,
-          tenantOid: d.tenant.oid,
-          environmentOid: d.environment.oid
+    return withTransaction(async db => {
+      if (d.binding.targetType === 'enclave') {
+        let enclave = await db.enclave.findFirst({
+          where: {
+            id: d.binding.enclaveId,
+            tenantOid: d.tenant.oid,
+            environmentOid: d.environment.oid
+          }
+        });
+        if (!enclave) {
+          throw new ServiceError(notFoundError('enclave', d.binding.enclaveId));
         }
-      });
-      if (!enclave) {
-        throw new ServiceError(notFoundError('enclave', d.binding.enclaveId));
+        if (enclave.networkOid !== d.network.oid) {
+          throw new ServiceError(
+            badRequestError({
+              code: 'invalid_firewall_binding',
+              message: `Enclave "${d.binding.enclaveId}" does not belong to the firewall network.`
+            })
+          );
+        }
+
+        return { enclaveOid: enclave.oid, providerOid: null, networkOid: null };
       }
-      if (enclave.networkOid !== d.network.oid) {
+
+      if (d.binding.targetType === 'provider') {
+        let providerUse = await db.providerUse.findFirst({
+          where: {
+            provider: { id: d.binding.providerId },
+            tenantOid: d.tenant.oid,
+            environmentOid: d.environment.oid
+          },
+          include: {
+            provider: true
+          }
+        });
+        if (!providerUse) {
+          throw new ServiceError(notFoundError('provider', d.binding.providerId));
+        }
+
+        return {
+          enclaveOid: null,
+          providerOid: providerUse.providerOid,
+          networkOid: null
+        };
+      }
+
+      if (d.binding.networkId !== d.network.id) {
         throw new ServiceError(
           badRequestError({
             code: 'invalid_firewall_binding',
-            message: `Enclave "${d.binding.enclaveId}" does not belong to the firewall network.`
+            message: 'Network bindings must reference the firewall network.'
           })
         );
       }
 
-      return { enclaveOid: enclave.oid, providerOid: null, networkOid: null };
-    }
-
-    if (d.binding.targetType === 'provider') {
-      let providerUse = await d.db.providerUse.findFirst({
-        where: {
-          provider: { id: d.binding.providerId },
-          tenantOid: d.tenant.oid,
-          environmentOid: d.environment.oid
-        },
-        include: {
-          provider: true
-        }
-      });
-      if (!providerUse) {
-        throw new ServiceError(notFoundError('provider', d.binding.providerId));
-      }
-
-      return {
-        enclaveOid: null,
-        providerOid: providerUse.providerOid,
-        networkOid: null
-      };
-    }
-
-    if (d.binding.networkId !== d.network.id) {
-      throw new ServiceError(
-        badRequestError({
-          code: 'invalid_firewall_binding',
-          message: 'Network bindings must reference the firewall network.'
-        })
-      );
-    }
-
-    return { enclaveOid: null, providerOid: null, networkOid: d.network.oid };
+      return { enclaveOid: null, providerOid: null, networkOid: d.network.oid };
+    }, { ifExists: true });
   }
 }
 

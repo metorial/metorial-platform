@@ -14,31 +14,30 @@ import {
 import { networkInternalService } from './networkInternal';
 
 class enclaveInternalServiceImpl {
-  private async upsertSystemEnclaveEnvironment(d: {
-    tenant: Tenant;
-    db: Parameters<Parameters<typeof withTransaction>[0]>[0];
-  }) {
-    let systemIdentifier = `system:${d.tenant.id}`;
+  private async upsertSystemEnclaveEnvironment(d: { tenant: Tenant }) {
+    return withTransaction(async db => {
+      let systemIdentifier = `system:${d.tenant.id}`;
 
-    let existing = await d.db.enclaveEnvironment.findFirst({
-      where: { systemIdentifier }
-    });
-    if (existing) return existing;
+      let existing = await db.enclaveEnvironment.findFirst({
+        where: { systemIdentifier }
+      });
+      if (existing) return existing;
 
-    return d.db.enclaveEnvironment.upsert({
-      where: { systemIdentifier },
-      update: {
-        name: `Metorial Platform`,
-        type: 'metorial'
-      },
-      create: {
-        ...getId('enclaveEnvironment'),
-        name: `Metorial Platform`,
-        type: 'metorial',
-        systemIdentifier,
-        tenantOid: d.tenant.oid
-      }
-    });
+      return db.enclaveEnvironment.upsert({
+        where: { systemIdentifier },
+        update: {
+          name: `Metorial Platform`,
+          type: 'metorial'
+        },
+        create: {
+          ...getId('enclaveEnvironment'),
+          name: `Metorial Platform`,
+          type: 'metorial',
+          systemIdentifier,
+          tenantOid: d.tenant.oid
+        }
+      });
+    }, { ifExists: true });
   }
 
   async ensureEnclaveForProviderDeployment(d: {
@@ -59,13 +58,11 @@ class enclaveInternalServiceImpl {
 
         let network = await networkInternalService.ensureNetworkForEnvironment({
           tenant: d.tenant,
-          environment: d.environment,
-          db
+          environment: d.environment
         });
 
         let enclaveEnvironment = await this.upsertSystemEnclaveEnvironment({
-          tenant: d.tenant,
-          db
+          tenant: d.tenant
         });
 
         return db.enclave.create({

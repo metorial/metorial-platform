@@ -135,8 +135,8 @@ class networkPolicyServiceImpl {
   }) {
     let rules = assignNetworkPolicyRuleIds(d.input.rules ?? []);
 
-    return withTransaction(async dbTx => {
-      let networkPolicy = await dbTx.networkPolicy.create({
+    return withTransaction(async db => {
+      let networkPolicy = await db.networkPolicy.create({
         data: {
           ...getId('networkPolicy'),
           name: d.input.name.trim(),
@@ -147,7 +147,6 @@ class networkPolicyServiceImpl {
       });
 
       return this.publishRulesVersion({
-        db: dbTx,
         tenant: d.tenant,
         environment: d.environment,
         networkPolicy,
@@ -170,8 +169,8 @@ class networkPolicyServiceImpl {
     checkTenant(d, d.networkPolicy);
 
     if (d.input.rules === undefined) {
-      return withTransaction(async dbTx =>
-        dbTx.networkPolicy.update({
+      return withTransaction(async db =>
+        db.networkPolicy.update({
           where: {
             oid: d.networkPolicy.oid,
             tenantOid: d.tenant.oid,
@@ -199,13 +198,13 @@ class networkPolicyServiceImpl {
           ? d.input.description.trim() || null
           : networkPolicy.description;
 
-      return withTransaction(async dbTx => {
+      return withTransaction(async db => {
         let rulesChanged = !networkPolicyRulesEqual(rules, currentRules);
         let metadataChanged =
           name !== networkPolicy.name || description !== networkPolicy.description;
 
         if (!rulesChanged && !metadataChanged) {
-          return dbTx.networkPolicy.findFirstOrThrow({
+          return db.networkPolicy.findFirstOrThrow({
             where: { oid: networkPolicy.oid },
             include
           });
@@ -213,7 +212,6 @@ class networkPolicyServiceImpl {
 
         if (rulesChanged) {
           return this.publishRulesVersion({
-            db: dbTx,
             tenant: d.tenant,
             environment: d.environment,
             networkPolicy,
@@ -224,7 +222,7 @@ class networkPolicyServiceImpl {
           });
         }
 
-        return dbTx.networkPolicy.update({
+        return db.networkPolicy.update({
           where: {
             oid: networkPolicy.oid,
             tenantOid: d.tenant.oid,
@@ -253,13 +251,12 @@ class networkPolicyServiceImpl {
     return ruleChangeLock.usingLock([d.networkPolicy.id], async () => {
       let networkPolicy = await this.getNetworkPolicyForRuleMutation(d);
 
-      return withTransaction(async dbTx => {
+      return withTransaction(async db => {
         let currentRules = getCurrentNetworkPolicyRules(networkPolicy.currentVersion);
         let newRule = createNetworkPolicyRule(d.input.rule);
         let rules = [...currentRules, newRule];
 
         let updatedNetworkPolicy = await this.publishRulesVersion({
-          db: dbTx,
           tenant: d.tenant,
           environment: d.environment,
           networkPolicy,
@@ -286,7 +283,7 @@ class networkPolicyServiceImpl {
     return ruleChangeLock.usingLock([d.networkPolicy.id], async () => {
       let networkPolicy = await this.getNetworkPolicyForRuleMutation(d);
 
-      return withTransaction(async dbTx => {
+      return withTransaction(async db => {
         let currentRules = getCurrentNetworkPolicyRules(networkPolicy.currentVersion);
         if (!currentRules.some(rule => rule.id === d.ruleId)) {
           throw new ServiceError(
@@ -297,7 +294,6 @@ class networkPolicyServiceImpl {
         let rules = currentRules.filter(rule => rule.id !== d.ruleId);
 
         return this.publishRulesVersion({
-          db: dbTx,
           tenant: d.tenant,
           environment: d.environment,
           networkPolicy,
@@ -368,12 +364,12 @@ class networkPolicyServiceImpl {
       );
     }
 
-    return withTransaction(async dbTx => {
-      await dbTx.networkPolicyVersion.deleteMany({
+    return withTransaction(async db => {
+      await db.networkPolicyVersion.deleteMany({
         where: { networkPolicyOid: d.networkPolicy.oid }
       });
 
-      return dbTx.networkPolicy.delete({
+      return db.networkPolicy.delete({
         where: { oid: d.networkPolicy.oid }
       });
     });
@@ -402,7 +398,6 @@ class networkPolicyServiceImpl {
   }
 
   private async publishRulesVersion(d: {
-    db: Parameters<Parameters<typeof withTransaction>[0]>[0];
     tenant: Tenant;
     environment: Environment;
     networkPolicy: NetworkPolicy;
@@ -411,34 +406,36 @@ class networkPolicyServiceImpl {
     name?: string;
     description?: string | null;
   }) {
-    validateNetworkPolicyRules(d.rules);
+    return withTransaction(async db => {
+      validateNetworkPolicyRules(d.rules);
 
-    let nextVersionNumber = Math.max(d.currentVersionNumber, 0) + 1;
+      let nextVersionNumber = Math.max(d.currentVersionNumber, 0) + 1;
 
-    let version = await d.db.networkPolicyVersion.create({
-      data: {
-        ...getId('networkPolicyVersion'),
-        version: nextVersionNumber,
-        rules: d.rules,
-        networkPolicyOid: d.networkPolicy.oid
-      }
-    });
+      let version = await db.networkPolicyVersion.create({
+        data: {
+          ...getId('networkPolicyVersion'),
+          version: nextVersionNumber,
+          rules: d.rules,
+          networkPolicyOid: d.networkPolicy.oid
+        }
+      });
 
-    return d.db.networkPolicy.update({
-      where: {
-        oid: d.networkPolicy.oid,
-        tenantOid: d.tenant.oid,
-        environmentOid: d.environment.oid
-      },
-      data: {
-        name: d.name ?? d.networkPolicy.name,
-        description:
-          d.description !== undefined ? d.description : d.networkPolicy.description,
-        currentVersionOid: version.oid,
-        currentVersionNumber: nextVersionNumber
-      },
-      include
-    });
+      return db.networkPolicy.update({
+        where: {
+          oid: d.networkPolicy.oid,
+          tenantOid: d.tenant.oid,
+          environmentOid: d.environment.oid
+        },
+        data: {
+          name: d.name ?? d.networkPolicy.name,
+          description:
+            d.description !== undefined ? d.description : d.networkPolicy.description,
+          currentVersionOid: version.oid,
+          currentVersionNumber: nextVersionNumber
+        },
+        include
+      });
+    }, { ifExists: true });
   }
 }
 

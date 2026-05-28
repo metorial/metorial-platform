@@ -3,6 +3,7 @@ import { generatePlainId } from '@lowerdeck/id';
 import { Service } from '@lowerdeck/service';
 import { db, type EnvironmentType, getId } from '@metorial-subspace/db';
 import { reconcileTenantManagedBackingsQueue } from '@metorial-subspace/module-auth/src/queues/reconcile';
+import { networkInternalService } from '@metorial-subspace/module-enclave';
 import { tenantLogRetentionSyncQueue } from '../queues/retention/sync';
 
 let include = {};
@@ -90,7 +91,6 @@ class tenantServiceImpl {
         where: { tenantOid: tenant.oid }
       });
 
-      let { networkInternalService } = await import('@metorial-subspace/module-enclave');
       for (let environment of environments) {
         await networkInternalService.ensureNetworkForEnvironment({ tenant, environment });
       }
