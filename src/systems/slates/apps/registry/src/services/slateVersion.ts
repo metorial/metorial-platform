@@ -1,4 +1,5 @@
 import {
+  badRequestError,
   forbiddenError,
   notFoundError,
   preconditionFailedError,
@@ -39,8 +40,8 @@ let include = {
   slateDocuments: true
 };
 
-let getSlateVersionVisibilityWhere = (supportsPrebuilt = true) =>
-  supportsPrebuilt ? {} : { backend: 'local_unbuilt' as const };
+let getSlateVersionVisibilityWhere = (supportsPrebuilt?: boolean) =>
+  supportsPrebuilt === true ? {} : { backend: 'local_unbuilt' as const };
 
 let packageLock = createLock({
   name: 'sreg/slate/pub',
@@ -68,11 +69,22 @@ class slateVersionServiceImpl {
       versionOverride: d.input.versionOverride
     });
 
+    if (
+      slatePackage.isPrebuilt &&
+      !entries.some(entry => entry.path.toLowerCase().startsWith('dist/'))
+    ) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Prebuilt slate packages must include a dist/ directory.'
+        })
+      );
+    }
+
     return this.publishNormalizedSlateVersion({
       user: d.user,
       input: {
         access: d.input.access,
-        backend: 'local_unbuilt',
+        backend: slatePackage.isPrebuilt ? 'local_built' : 'local_unbuilt',
         bundleBuffer: buffer,
         slatePackage
       }
@@ -262,7 +274,11 @@ class slateVersionServiceImpl {
           }
         });
 
-        if (promotion.shouldSetUnbuiltCurrentVersion) {
+        let shouldMarkCurrent =
+          promotion.shouldSetUnbuiltCurrentVersion ||
+          promotion.shouldSetBuiltOrUnbuiltCurrentVersion;
+
+        if (shouldMarkCurrent) {
           await db.slateVersion.updateMany({
             where: { slateOid: slate.oid, isCurrent: true },
             data: { isCurrent: false }
@@ -276,7 +292,7 @@ class slateVersionServiceImpl {
             slateOid: slate.oid,
             bundleArtifactOid: artifact.oid,
             createdByUserOid: d.user.oid,
-            isCurrent: promotion.shouldSetUnbuiltCurrentVersion,
+            isCurrent: shouldMarkCurrent,
             backend: d.input.backend,
             npmPackageName: d.input.npmPackageName,
             slateJson

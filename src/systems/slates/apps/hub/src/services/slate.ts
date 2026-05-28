@@ -3,6 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type { Registry, Slate } from '../../prisma/generated/client';
 import { db } from '../db';
+import { getRegistrySlatePathParams } from '../lib/registrySlatePath';
 import { getRegistryClient, getRegistryQuery } from '../registry';
 
 let include = {
@@ -29,20 +30,30 @@ class slateServiceImpl {
 
   async getSlateRegistryRecord(d: { slate: Slate & { registry: Registry } }) {
     let reg = await getRegistryClient(d.slate.registry);
+    let { scopeId, slateId } = getRegistrySlatePathParams(d.slate);
 
     let res = await reg.slates[':scopeId'][':slateId'].$get({
       param: {
-        scopeId: d.slate.slateScopeIdentifierOnRegistry,
-        slateId: d.slate.slateIdentifierOnRegistry
+        scopeId,
+        slateId
       },
       query: getRegistryQuery()
     });
-    if (res.status !== 200)
+    if (res.status !== 200) {
+      if (res.status === 404) {
+        throw new ServiceError(
+          notFoundError({
+            message: `Slate not found on registry (${scopeId}/${slateId}). It may have been removed from the registry while still present in the hub.`,
+            entity: 'slate'
+          })
+        );
+      }
       throw new ServiceError(
         badRequestError({
-          message: `Failed to fetch slate record from registry: ${res.statusText}`
+          message: `Failed to fetch slate record from registry: ${res.statusText} (${scopeId}/${slateId})`
         })
       );
+    }
 
     return await res.json();
   }

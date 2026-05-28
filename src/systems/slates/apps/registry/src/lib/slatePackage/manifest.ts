@@ -13,6 +13,7 @@ export type NormalizedSlatePackage = {
   scopeIdentifier: string;
   slateIdentifier: string;
   manifest: ValidationTypeValue<typeof slateJsonValidation>;
+  isPrebuilt?: boolean;
 };
 
 let rawSlateJsonValidation = v.object({
@@ -117,9 +118,12 @@ export let normalizeSlatePackage = (d: {
   }[] = [];
   let rawSlateJson: ValidationTypeValue<typeof rawSlateJsonValidation> | null = null;
   let packageJson: ValidationTypeValue<typeof packageJsonValidation> | null = null;
+  let isPrebuilt = false;
 
   for (let entry of d.entries) {
     let lowerPath = entry.path.toLowerCase();
+
+    if (lowerPath.startsWith('dist/')) isPrebuilt = true;
 
     if (lowerPath === 'slate.json') {
       rawSlateJson = parseJsonFile({
@@ -226,6 +230,7 @@ export let normalizeSlatePackage = (d: {
   }
 
   return {
+    isPrebuilt,
     docsFiles,
     npmPackageName: packageJson.name,
     fullIdentifier,

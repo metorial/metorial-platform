@@ -9,6 +9,7 @@ import { db } from '../../db';
 import { env } from '../../env';
 import { functionBay, functionBayProvider, functionBayTenant } from '../../functionBay';
 import { getId } from '../../id';
+import { getRegistrySlatePathParams } from '../../lib/registrySlatePath';
 import { getRegistryClient, getRegistryQuery } from '../../registry';
 import { discoverSlateQueue } from '../discovery/discover';
 import { buildSlateDeploymentFiles } from './packageFiles';
@@ -121,20 +122,23 @@ export let deploySlateVersionStartQueueProcessor = deploySlateVersionStartQueue.
       await log(deployment, `Starting deployment for slate version ${version.version}`);
 
       let reg = await getRegistryClient(slate.registry);
+      let { scopeId, slateId } = getRegistrySlatePathParams(slate);
       let zipRes = await reg.slates[':scopeId'][':slateId'].versions[
         ':versionId'
       ].download.$get({
         param: {
-          scopeId: slate.slateScopeIdentifierOnRegistry,
-          slateId: slate.slateIdentifierOnRegistry,
+          scopeId,
+          slateId,
           versionId: version.version
         },
         query: getRegistryQuery()
       });
-      if ((zipRes.status as any) !== 200)
+      if ((zipRes.status as any) !== 200) {
+        let body = await zipRes.text();
         throw new Error(
-          `Failed to download slate version zip - status ${zipRes.status} - ${await zipRes.text()} - ${slate.slateScopeIdentifierOnRegistry} - ${slate.slateIdentifierOnRegistry} - ${version.version}`
+          `Failed to download slate version zip - status ${zipRes.status} - ${body} - ${scopeId} - ${slateId} - ${version.version}`
         );
+      }
       let zipBuffer = await zipRes.arrayBuffer();
 
       let directory = await unzipper.Open.buffer(Buffer.from(zipBuffer));

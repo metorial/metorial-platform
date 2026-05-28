@@ -234,6 +234,7 @@ enum SlateAccess {
 
 enum SlateVersionBackend {
   local_unbuilt
+  local_built
   npm
 }
 

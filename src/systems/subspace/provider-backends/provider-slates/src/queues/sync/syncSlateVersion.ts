@@ -76,13 +76,26 @@ export let syncSlateVersionQueueProcessor = syncSlateVersionQueue.process(async 
   let parsedUrl = new URL(registry.url);
   let isMetorialRegistry = metorialDomains.some(domain => parsedUrl.hostname.endsWith(domain));
 
-  let registryRecord = await slates.slate.getRegistryRecord({
-    slateId: slate.id
-  });
-  let registryVersionRecord = await slates.slateVersion.getRegistryRecord({
-    slateId: slate.id,
-    slateVersionId: version.id
-  });
+  let registryRecord: Awaited<ReturnType<typeof slates.slate.getRegistryRecord>>;
+  let registryVersionRecord: Awaited<
+    ReturnType<typeof slates.slateVersion.getRegistryRecord>
+  >;
+
+  try {
+    registryRecord = await slates.slate.getRegistryRecord({
+      slateId: slate.id
+    });
+    registryVersionRecord = await slates.slateVersion.getRegistryRecord({
+      slateId: slate.id,
+      slateVersionId: version.id
+    });
+  } catch (error) {
+    console.warn(
+      `Skipping subspace sync for ${slate.id} (${version.id}): registry record unavailable`,
+      error
+    );
+    return;
+  }
 
   let slateRecord = await db.slate.upsert({
     where: { id: slate.id },

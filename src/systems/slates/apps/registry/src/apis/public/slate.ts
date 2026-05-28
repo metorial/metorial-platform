@@ -54,7 +54,8 @@ export let slatesController = createHono()
     let slate = await slateService.getSlateById({
       tenant: auth.tenant,
       subRegistry: auth.subRegistry,
-      id: `${c.req.param('scopeId')}/${c.req.param('slateId')}`
+      id: `${c.req.param('scopeId')}/${c.req.param('slateId')}`,
+      supportsPrebuilt: query.supports_prebuilt
     });
 
     return c.json(
@@ -110,12 +111,13 @@ export let slatesController = createHono()
       let slate = await slateService.getSlateById({
         tenant: auth.tenant,
         subRegistry: auth.subRegistry,
-        id: `${c.req.param('scopeId')}/${c.req.param('slateId')}`
+        id: `${c.req.param('scopeId')}/${c.req.param('slateId')}`,
+        supportsPrebuilt: query.supports_prebuilt
       });
 
       let paginator = await slateVersionService.listSlateVersions({
         slate,
-        supportsPrebuilt: query.supports_prebuilt === true
+        supportsPrebuilt: query.supports_prebuilt
       });
       let list = await paginator.run(query);
       let currentVersionId =
@@ -144,13 +146,14 @@ export let slatesController = createHono()
       let slate = await slateService.getSlateById({
         tenant: auth.tenant,
         subRegistry: auth.subRegistry,
-        id: `${c.req.param('scopeId')}/${c.req.param('slateId')}`
+        id: `${c.req.param('scopeId')}/${c.req.param('slateId')}`,
+        supportsPrebuilt: query.supports_prebuilt
       });
 
       let slateVersion = await slateVersionService.getSlateVersionById({
         slate,
         id: c.req.param('versionId'),
-        supportsPrebuilt: query.supports_prebuilt === true
+        supportsPrebuilt: query.supports_prebuilt
       });
 
       return c.json(
@@ -175,13 +178,14 @@ export let slatesController = createHono()
     let slate = await slateService.getSlateById({
       tenant: auth.tenant,
       subRegistry: auth.subRegistry,
-      id: `${c.req.param('scopeId')}/${c.req.param('slateId')}`
+      id: `${c.req.param('scopeId')}/${c.req.param('slateId')}`,
+      supportsPrebuilt: query.supports_prebuilt
     });
 
     let slateVersion = await slateVersionService.getSlateVersionById({
       slate,
       id: c.req.param('versionId'),
-      supportsPrebuilt: query.supports_prebuilt === true
+      supportsPrebuilt: query.supports_prebuilt
     });
 
     let { url } = await storage.getPublicURL(
