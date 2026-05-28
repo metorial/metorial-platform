@@ -365,10 +365,6 @@ class networkPolicyServiceImpl {
         );
       }
 
-      await db.networkPolicyVersion.deleteMany({
-        where: { networkPolicyOid: d.networkPolicy.oid }
-      });
-
       return db.networkPolicy.delete({
         where: { oid: d.networkPolicy.oid }
       });
