@@ -196,11 +196,11 @@ export let deploySlateAfterSyncQueue = createQueue<{
   name: 'shub/slate/sydp',
   redisUrl: env.service.REDIS_URL,
   workerOpts: {
-    concurrency: 2
-    // limiter: {
-    //   max: 5,
-    //   duration: 60 * 1000
-    // }
+    concurrency: 2,
+    limiter: {
+      max: 5,
+      duration: 60 * 1000
+    }
   }
 });
 
