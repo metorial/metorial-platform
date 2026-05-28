@@ -21,6 +21,7 @@ import {
   Avatar,
   Badge,
   Button,
+  Callout,
   CenteredSpinner,
   Combobox,
   Dialog,
@@ -85,11 +86,16 @@ let getToolFilters = (values: ToolFilterFormValues) =>
       }
     : null;
 
+let isConfigSelectionComplete = (selection: ConfigurationSelection) =>
+  selection.kind !== 'none';
+
 let useProviderSetupVisibility = (p: {
   instanceId: string | null | undefined;
   providerId: string | null | undefined;
   integration: IntegrationPreview | null | undefined;
   existingConfigId?: string | null;
+  inheritedConfigId?: string | null;
+  instanceConfigId?: string | null;
   allowAuthConfig?: boolean;
   respectIntegrationCustomConfigPolicy?: boolean;
   respectIntegrationToolFilterPolicy?: boolean;
@@ -113,15 +119,24 @@ let useProviderSetupVisibility = (p: {
   let allowToolFilters = p.integration?.configuration?.canOverrideToolFilters ?? true;
   if (p.respectIntegrationToolFilterPolicy === false) allowToolFilters = true;
   let providerSupportsAuth = provider.data?.type.auth.status === 'enabled';
-  let hasConfigInputs = configCapabilities.hasSchemaFields;
+  let requiresProviderConfig =
+    providerSupportsConfig && configCapabilities.hasRequiredFields;
+  let isInstanceProviderPanel =
+    p.inheritedConfigId !== undefined || p.instanceConfigId !== undefined;
+  let satisfiedConfigId = isInstanceProviderPanel
+    ? p.instanceConfigId ?? p.inheritedConfigId ?? null
+    : p.existingConfigId ?? null;
+  let mustRequestInstanceConfig =
+    isInstanceProviderPanel && requiresProviderConfig && !satisfiedConfigId;
   // Auto-creating an empty config silently is only desirable on initial
-  // creation. In update flows, the user opened the panel deliberately and
-  // should be given a chance to set/clear a config explicitly.
+  // creation when the schema has no required fields. In update flows, the user
+  // opened the panel deliberately and should be given a chance to set/clear a
+  // config explicitly.
   let shouldAutoCreateEmptyConfig =
     !p.isUpdate &&
     allowCustomConfigs &&
-    !p.existingConfigId &&
-    !hasConfigInputs &&
+    !satisfiedConfigId &&
+    configCapabilities.canAutoCreateEmptyConfig &&
     !configCapabilities.isLoading;
   // In update mode the user explicitly opened the panel to make changes -- we
   // surface the config picker even for providers whose config support isn't
@@ -129,7 +144,15 @@ let useProviderSetupVisibility = (p: {
   // because the API still accepts a configId for them.
   let showConfig = p.isUpdate
     ? allowCustomConfigs
-    : allowCustomConfigs && providerSupportsConfig && !shouldAutoCreateEmptyConfig;
+    : mustRequestInstanceConfig ||
+      (allowCustomConfigs && providerSupportsConfig && !shouldAutoCreateEmptyConfig);
+  let configRequirement: 'required' | 'optional' = isInstanceProviderPanel
+    ? mustRequestInstanceConfig
+      ? 'required'
+      : 'optional'
+    : requiresProviderConfig
+      ? 'required'
+      : 'optional';
 
   return {
     provider,
@@ -138,6 +161,8 @@ let useProviderSetupVisibility = (p: {
     showAuth: (p.allowAuthConfig ?? true) && providerSupportsAuth,
     showToolFilters: allowToolFilters,
     shouldAutoCreateEmptyConfig,
+    configRequirement,
+    mustRequestInstanceConfig,
     providerName: getProviderName(provider.data, p.providerId ?? undefined)
   };
 };
@@ -622,6 +647,16 @@ let IntegrationProviderSetupStep = (p: {
           return;
         }
       }
+
+      if (
+        visibility.configRequirement === 'required' &&
+        !isConfigSelectionComplete(values.selectedConfiguration)
+      ) {
+        form.setFieldTouched('selectedConfiguration', true, false);
+        form.setFieldError('selectedConfiguration', 'Select a config or config vault');
+        return;
+      }
+
       await submitProviderSetup(values);
     },
     schema: yup =>
@@ -701,6 +736,12 @@ let IntegrationProviderSetupStep = (p: {
 
   let hasVisibleInputs =
     visibility.showConfig || effectiveShowAuth || visibility.showToolFilters;
+  let canSubmit =
+    (visibility.configRequirement !== 'required' ||
+      isConfigSelectionComplete(form.values.selectedConfiguration)) &&
+    (!effectiveShowAuth ||
+      (Boolean(form.values.selectedAuthMethodId) &&
+        (selectedAuthMethod?.type !== 'oauth' || Boolean(form.values.selectedAuthCredentialsId))));
   let isSaving =
     createDeployment.isPending ||
     createConfig.isLoading ||
@@ -714,6 +755,11 @@ let IntegrationProviderSetupStep = (p: {
     // never silently submit on their behalf.
     if (isUpdate) return;
     if (isLoadingInitialData || hasVisibleInputs || isSaving) return;
+    if (
+      visibility.configRequirement === 'required' &&
+      !isConfigSelectionComplete(form.values.selectedConfiguration)
+    )
+      return;
     if (autoSubmitAttemptedRef.current) return;
     autoSubmitAttemptedRef.current = true;
     void submitProviderSetup(form.values);
@@ -795,9 +841,11 @@ let IntegrationProviderSetupStep = (p: {
           providerName={visibility.providerName}
           showProviderSummary={false}
           selectedConfiguration={form.values.selectedConfiguration}
-          onSelectedConfigurationChange={value =>
-            form.setFieldValue('selectedConfiguration', value)
-          }
+          onSelectedConfigurationChange={value => {
+            form.setFieldValue('selectedConfiguration', value);
+            form.setFieldTouched('selectedConfiguration', false, false);
+            form.setFieldError('selectedConfiguration', undefined);
+          }}
           selectedAuthConfigId=""
           onSelectedAuthConfigIdChange={() => {}}
           toolFilterMode={form.values.toolFilterMode}
@@ -808,8 +856,9 @@ let IntegrationProviderSetupStep = (p: {
           forceConfigSectionVisible={isUpdate}
           showAuthSection={false}
           showToolFilters={visibility.showToolFilters}
-          configRequirement="optional"
+          configRequirement={visibility.configRequirement}
           authRequirement="optional"
+          configError={<form.RenderError field="selectedConfiguration" />}
           emptyState={null}
           supplementaryContent={
             <>
@@ -832,6 +881,7 @@ let IntegrationProviderSetupStep = (p: {
               )}
               <Button
                 type="button"
+                disabled={!canSubmit}
                 loading={isSaving}
                 onClick={() => {
                   void form.submitForm();
@@ -997,11 +1047,15 @@ let IntegrationInstanceProviderPanel = (p: {
   let createConfig = useCreateProviderConfig();
   let autoSubmitAttemptedRef = useRef(false);
   let isUpdate = !!p.instanceProvider;
+  let inheritedConfigId = p.integrationProvider.config?.id ?? null;
+  let instanceConfigId = p.instanceProvider?.config?.id ?? null;
   let visibility = useProviderSetupVisibility({
     instanceId: instance.data?.id,
     providerId,
     integration: p.integration,
-    existingConfigId: p.instanceProvider?.config?.id ?? p.integrationProvider.config?.id,
+    existingConfigId: instanceConfigId ?? inheritedConfigId,
+    inheritedConfigId,
+    instanceConfigId,
     isUpdate
   });
 
@@ -1039,14 +1093,16 @@ let IntegrationInstanceProviderPanel = (p: {
     return true;
   };
 
+  let initialConfigId = instanceConfigId ?? inheritedConfigId;
+
   let form = useForm<
     IntegrationInstanceProviderFormValues,
     IntegrationInstanceProviderFormValues
   >({
     initialValues: {
       selectedProviderId: providerId ?? '',
-      selectedConfiguration: p.instanceProvider?.config?.id
-        ? { kind: 'config', id: p.instanceProvider.config.id }
+      selectedConfiguration: initialConfigId
+        ? { kind: 'config', id: initialConfigId }
         : emptyConfigurationSelection(),
       selectedAuthConfigId: p.instanceProvider?.authConfig?.id ?? '',
       toolFilterMode: p.instanceProvider?.toolFilter?.type === 'filter' ? 'select' : 'all',
@@ -1057,7 +1113,24 @@ let IntegrationInstanceProviderPanel = (p: {
             )
           : []
     },
-    onSubmit: submitProviderSetup,
+    onSubmit: async values => {
+      if (
+        visibility.configRequirement === 'required' &&
+        !isConfigSelectionComplete(values.selectedConfiguration)
+      ) {
+        form.setFieldTouched('selectedConfiguration', true, false);
+        form.setFieldError('selectedConfiguration', 'Select a config or config vault');
+        return;
+      }
+
+      if (visibility.showAuth && !values.selectedAuthConfigId) {
+        form.setFieldTouched('selectedAuthConfigId', true, false);
+        form.setFieldError('selectedAuthConfigId', 'Select an auth config');
+        return;
+      }
+
+      await submitProviderSetup(values);
+    },
     schema: yup =>
       yup.object({
         selectedProviderId: yup.string().required(),
@@ -1073,6 +1146,10 @@ let IntegrationInstanceProviderPanel = (p: {
   let hasVisibleInputs = shouldAutoCreateWithoutPanel
     ? false
     : visibility.showConfig || visibility.showAuth || visibility.showToolFilters;
+  let canSubmit =
+    (visibility.configRequirement !== 'required' ||
+      isConfigSelectionComplete(form.values.selectedConfiguration)) &&
+    (!visibility.showAuth || Boolean(form.values.selectedAuthConfigId));
   let isSaving = setProvider.isPending || createConfig.isLoading;
 
   useEffect(() => {
@@ -1080,6 +1157,11 @@ let IntegrationInstanceProviderPanel = (p: {
     // never silently submit on their behalf.
     if (isUpdate) return;
     if (visibility.isLoading || hasVisibleInputs || isSaving) return;
+    if (
+      visibility.configRequirement === 'required' &&
+      !isConfigSelectionComplete(form.values.selectedConfiguration)
+    )
+      return;
     if (autoSubmitAttemptedRef.current) return;
 
     autoSubmitAttemptedRef.current = true;
@@ -1129,13 +1211,17 @@ let IntegrationInstanceProviderPanel = (p: {
                   fixedAuthCredentialsId={p.integrationProvider.authCredentials?.id}
                   providerName={visibility.providerName}
                   selectedConfiguration={form.values.selectedConfiguration}
-                  onSelectedConfigurationChange={value =>
-                    form.setFieldValue('selectedConfiguration', value)
-                  }
+                  onSelectedConfigurationChange={value => {
+                    form.setFieldValue('selectedConfiguration', value);
+                    form.setFieldTouched('selectedConfiguration', false, false);
+                    form.setFieldError('selectedConfiguration', undefined);
+                  }}
                   selectedAuthConfigId={form.values.selectedAuthConfigId}
-                  onSelectedAuthConfigIdChange={value =>
-                    form.setFieldValue('selectedAuthConfigId', value)
-                  }
+                  onSelectedAuthConfigIdChange={value => {
+                    form.setFieldValue('selectedAuthConfigId', value);
+                    form.setFieldTouched('selectedAuthConfigId', false, false);
+                    form.setFieldError('selectedAuthConfigId', undefined);
+                  }}
                   toolFilterMode={form.values.toolFilterMode}
                   onToolFilterModeChange={value => form.setFieldValue('toolFilterMode', value)}
                   selectedToolKeys={form.values.selectedToolKeys}
@@ -1146,10 +1232,18 @@ let IntegrationInstanceProviderPanel = (p: {
                   forceConfigSectionVisible={isUpdate}
                   showAuthSection={visibility.showAuth}
                   showToolFilters={visibility.showToolFilters}
-                  configRequirement="optional"
+                  configRequirement={visibility.configRequirement}
                   authRequirement={visibility.showAuth ? 'required' : 'optional'}
+                  configError={<form.RenderError field="selectedConfiguration" />}
+                  authError={<form.RenderError field="selectedAuthConfigId" />}
                   supplementaryContent={
                     <>
+                      {visibility.mustRequestInstanceConfig ? (
+                        <Callout color="gray">
+                          This integration provider has no config attached. Select or create a
+                          config for this instance.
+                        </Callout>
+                      ) : null}
                       <setProvider.RenderError />
                       <createConfig.RenderError />
                     </>
@@ -1161,6 +1255,7 @@ let IntegrationInstanceProviderPanel = (p: {
                       </Button>
                       <Button
                         type="button"
+                        disabled={!canSubmit}
                         loading={isSaving}
                         onClick={() => {
                           void form.submitForm();
