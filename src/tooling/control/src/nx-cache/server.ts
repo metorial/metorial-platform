@@ -5,6 +5,7 @@ type CacheStats = {
   startedAt: string;
   updatedAt: string;
   namespace: string;
+  githubUploads: boolean;
   artifactKeyPrefix: string;
   manifestRestoreKey?: string;
   manifestMatchedKey?: string;
@@ -131,6 +132,7 @@ let createStats = (opts: ServerOptions): CacheStats => ({
   startedAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
   namespace: opts.namespace,
+  githubUploads: opts.githubUploads,
   artifactKeyPrefix: `control-nx-task-${opts.namespace}-`,
   manifestRestoreKey: opts.manifestRestoreKey,
   manifestSaveKey: opts.manifestSaveKey,
@@ -165,6 +167,7 @@ export let printCacheSummary = (statsPath: string, root?: string) => {
 
   console.log('Nx cache summary');
   console.log(`  Namespace:          ${stats.namespace}`);
+  console.log(`  GitHub uploads:     ${stats.githubUploads ? 'enabled' : 'disabled'}`);
   console.log(`  Manifest restored:  ${stats.manifestMatchedKey ?? 'none'}`);
   console.log(`  Manifest saved:     ${stats.manifestSaved ? (stats.manifestSaveKey ?? 'yes') : 'no'}`);
   console.log(`  Requests:           HEAD ${stats.requests.head}, GET ${stats.requests.get}, PUT ${stats.requests.put}`);
@@ -191,6 +194,15 @@ export let printCacheSummary = (statsPath: string, root?: string) => {
   }
   if (process.env.GITHUB_ACTIONS === 'true' && stats.uploadFailures > 0) {
     console.log(`::warning::Nx cache bridge had ${stats.uploadFailures} upload failure(s)`);
+  }
+  if (
+    process.env.GITHUB_ACTIONS === 'true' &&
+    !stats.githubUploads &&
+    stats.requests.put > 0
+  ) {
+    console.log(
+      `::warning::Nx cache bridge is read-only; ${stats.requests.put} new PUT request(s) will not be uploaded to GitHub Actions cache`
+    );
   }
 
   if (slowest.length > 0) {

@@ -49,6 +49,11 @@ on:
         required: false
         default: ''
         type: string
+      cache_write_mode:
+        description: 'Nx cache write policy: auto, warm-cache, trusted, always, or never'
+        required: false
+        default: auto
+        type: string
 
 jobs:
   control:
@@ -87,6 +92,10 @@ jobs:
           FILTER: ${{ inputs.filter }}
           ALL: ${{ inputs.all }}
           MODULES: ${{ inputs.modules }}
+          CACHE_WRITE_MODE: ${{ inputs.cache_write_mode }}
+          EVENT_NAME: ${{ github.event_name }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          IS_FORK_PR: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
         run: |
           set -euo pipefail
 
@@ -109,11 +118,43 @@ jobs:
           WARM_SCOPE="$(printf '%s' "${PREFIX}-warm-cache" | tr -c 'A-Za-z0-9_.-' '-')"
           ARTIFACT_PREFIX="control-nx-artifacts-${CACHE_NAMESPACE}-${CACHE_REF_SAFE}-${SCOPE}"
           WARM_ARTIFACT_PREFIX="control-nx-artifacts-${CACHE_NAMESPACE}-${CACHE_REF_SAFE}-${WARM_SCOPE}"
+          CACHE_UPLOADS="false"
+
+          case "${CACHE_WRITE_MODE}" in
+            auto)
+              if [ "${COMMAND}" = "warm-cache" ]; then
+                CACHE_UPLOADS="true"
+              elif [ "${EVENT_NAME}" != "pull_request" ] && [ "${CACHE_REF}" = "${DEFAULT_BRANCH}" ]; then
+                CACHE_UPLOADS="true"
+              fi
+              ;;
+            warm-cache)
+              if [ "${COMMAND}" = "warm-cache" ]; then
+                CACHE_UPLOADS="true"
+              fi
+              ;;
+            trusted)
+              if [ "${IS_FORK_PR}" != "true" ]; then
+                CACHE_UPLOADS="true"
+              fi
+              ;;
+            always)
+              CACHE_UPLOADS="true"
+              ;;
+            never)
+              CACHE_UPLOADS="false"
+              ;;
+            *)
+              echo "Unsupported cache_write_mode: ${CACHE_WRITE_MODE}" >&2
+              exit 1
+              ;;
+          esac
 
           echo "scope=${SCOPE}" >> "${GITHUB_OUTPUT}"
           echo "warm_scope=${WARM_SCOPE}" >> "${GITHUB_OUTPUT}"
           echo "namespace=${CACHE_NAMESPACE}" >> "${GITHUB_OUTPUT}"
           echo "ref_safe=${CACHE_REF_SAFE}" >> "${GITHUB_OUTPUT}"
+          echo "cache_uploads=${CACHE_UPLOADS}" >> "${GITHUB_OUTPUT}"
           echo "artifact_save_key=${ARTIFACT_PREFIX}-${{ github.run_id }}-${{ github.run_attempt }}" >> "${GITHUB_OUTPUT}"
           {
             echo "artifact_restore_keys<<EOF"
@@ -152,6 +193,7 @@ jobs:
           CACHE_SCOPE: ${{ steps.cache-scope.outputs.scope }}
           CACHE_WARM_SCOPE: ${{ steps.cache-scope.outputs.warm_scope }}
           CACHE_REF_SAFE: ${{ steps.cache-scope.outputs.ref_safe }}
+          CACHE_UPLOADS: ${{ steps.cache-scope.outputs.cache_uploads }}
         run: |
           set -euo pipefail
 
@@ -160,6 +202,12 @@ jobs:
           MANIFEST_PREFIX="control-nx-used-digests-${CACHE_NAMESPACE}-${CACHE_REF_SAFE}-${CACHE_SCOPE}"
           MANIFEST_SAVE_KEY="${MANIFEST_PREFIX}-${{ github.run_id }}-${{ github.run_attempt }}"
           WARM_MANIFEST_PREFIX="control-nx-used-digests-${CACHE_NAMESPACE}-${CACHE_REF_SAFE}-${CACHE_WARM_SCOPE}"
+          UPLOAD_ARGS=()
+          if [ "${CACHE_UPLOADS}" != "true" ]; then
+            UPLOAD_ARGS+=(--disable-github-uploads)
+          fi
+
+          echo "Nx cache uploads enabled: ${CACHE_UPLOADS}"
 
           bun run control cache-server \
             --port "${PORT}" \
@@ -175,7 +223,7 @@ jobs:
             --manifest-restore-key "${WARM_MANIFEST_PREFIX}-" \
             --manifest-restore-key "control-nx-used-digests-${CACHE_NAMESPACE}-${CACHE_REF_SAFE}-" \
             --manifest-restore-key "control-nx-used-digests-${CACHE_NAMESPACE}-" \
-            --disable-github-uploads \
+            "${UPLOAD_ARGS[@]}" \
             > .control/cache/nx-server.log 2>&1 &
 
           echo "$!" > .control/cache/nx-server.pid
