@@ -28,6 +28,8 @@ import type {
   GeneratedBuildInstallLayer,
   GeneratedBuildPath,
   GeneratedBuildPlan,
+  GeneratedBuildRuntimePrismaSchema,
+  GeneratedBuildRuntimeSkeleton,
   GeneratedBuildSourceLayer,
   ServiceRegistry
 } from '../types';
@@ -207,6 +209,95 @@ let renderAutomationCommand = (automation: GeneratedBuildAutomation): string => 
 let shouldRetryNxRun = (command: string): boolean =>
   command.includes('--target=prisma:generate') || /:prisma:generate(\s|$)/.test(command);
 
+let serviceIsInOss = (plan: GeneratedBuildPlan, registry: ServiceRegistry): boolean => {
+  let serviceDir = resolve(plan.service.dir);
+  let ossRoot = resolve(registry.ossRoot);
+  return serviceDir === ossRoot || serviceDir.startsWith(`${ossRoot}/`);
+};
+
+let defaultRuntimeSkeletonSource = (
+  plan: GeneratedBuildPlan,
+  registry: ServiceRegistry
+): string => (serviceIsInOss(plan, registry) ? '//oss/deployment/skeleton' : '//deployment/skeleton');
+
+let commandNeedsPrisma = (command: string): boolean =>
+  /\bprisma\b/.test(command) || /\bmigrate\b/.test(command);
+
+let resolveSingleRuntimePath = (opts: {
+  plan: GeneratedBuildPlan;
+  registry: ServiceRegistry;
+  pattern: string;
+  label: string;
+  allowMissing?: boolean;
+}): GeneratedBuildPath | undefined => {
+  let paths = resolveBuildPaths({
+    service: opts.plan.service,
+    registry: opts.registry,
+    contextRoot: opts.plan.contextRoot,
+    patterns: [opts.pattern],
+    label: opts.label,
+    allowMissing: opts.allowMissing
+  });
+
+  if (paths.length > 1) {
+    throw new ControlError({
+      code: 'node_build_runtime_path_not_unique',
+      message: `Node service "${opts.plan.service.name}" resolved multiple paths for ${opts.label}`,
+      details: paths.map(path => path.relativeToContext)
+    });
+  }
+
+  return paths[0];
+};
+
+let resolveRuntimeSkeleton = (
+  plan: GeneratedBuildPlan,
+  registry: ServiceRegistry
+): GeneratedBuildRuntimeSkeleton | undefined => {
+  let config = plan.service.config.build?.runtime_skeleton;
+  if (config?.enabled === false) return undefined;
+
+  let prismaSchemas: GeneratedBuildRuntimePrismaSchema[] = [];
+  for (let schema of config?.prisma_schemas ?? []) {
+    let path = resolveSingleRuntimePath({
+      plan,
+      registry,
+      pattern: schema.path,
+      label: `runtime Prisma schema "${schema.name}"`
+    });
+    if (!path) continue;
+    prismaSchemas.push({ name: schema.name, path });
+  }
+
+  let migrate = config?.migrate ?? /\bmigrate\b/.test(plan.runtime.command);
+  let needsPrisma =
+    migrate || prismaSchemas.length > 0 || commandNeedsPrisma(plan.runtime.command);
+  let sourcePattern = config?.source ?? defaultRuntimeSkeletonSource(plan, registry);
+  let source = resolveSingleRuntimePath({
+    plan,
+    registry,
+    pattern: sourcePattern,
+    label: 'runtime skeleton source',
+    allowMissing: !config?.source
+  });
+
+  if ((migrate || needsPrisma) && !source?.exists) {
+    throw new ControlError({
+      code: 'node_build_runtime_skeleton_missing',
+      message: `Node service "${plan.service.name}" needs a runtime skeleton, but "${sourcePattern}" does not exist`
+    });
+  }
+
+  return {
+    enabled: true,
+    source: source?.exists ? source : undefined,
+    installCommand: config?.install_command ?? 'bun install --production --no-frozen-lockfile',
+    migrate,
+    needsPrisma,
+    prismaSchemas
+  };
+};
+
 let renderRetriableCommand = (command: string): string =>
   `{ attempt=1; until ${command}; do code=$?; if [ "$attempt" -ge 3 ]; then exit "$code"; fi; sleep $((attempt * 2)); attempt=$((attempt + 1)); done; }`;
 
@@ -219,6 +310,12 @@ let renderNxRun = (cacheId: string) => (command: string): string => {
 let renderBunInstallRun = (plan: GeneratedBuildPlan, layer: GeneratedBuildInstallLayer): string => {
   if (!shouldUseDockerCacheMounts()) return `RUN ${layer.command}`;
   return `RUN --mount=type=cache,id=control-bun-install-${plan.service.name}-${layer.name},target=/root/.bun/install/cache ${layer.command}`;
+};
+
+let renderRuntimeSkeletonInstallRun = (plan: GeneratedBuildPlan): string => {
+  let command = plan.runtimeSkeleton?.installCommand ?? 'bun install --production --no-frozen-lockfile';
+  if (!shouldUseDockerCacheMounts()) return `RUN ${command}`;
+  return `RUN --mount=type=cache,id=control-bun-runtime-${plan.service.name},target=/root/.bun/install/cache ${command}`;
 };
 
 let collectNodeProjectUseCounts = (opts: {
@@ -636,6 +733,18 @@ export let renderNodePrunedDockerfile = (plan: GeneratedBuildPlan): string => {
         ...automationLines.map(renderPlanNxRun),
         renderPlanNxRun(`bun x nx run ${plan.project}:${plan.target}`)
       ];
+  let runtimeSkeletonLines = plan.runtimeSkeleton?.enabled
+    ? [
+        '',
+        `FROM ${pinBunImage(plan.runtime.base_image)} AS skeleton`,
+        `WORKDIR ${plan.runtime.workdir}`,
+        'COPY _runtime_skeleton/ ./',
+        renderRuntimeSkeletonInstallRun(plan)
+      ]
+    : [];
+  let runtimeSkeletonCopyLines = plan.runtimeSkeleton?.enabled
+    ? ['COPY --from=skeleton /app ./']
+    : [];
 
   let lines = [
     '# syntax=docker/dockerfile:1.7',
@@ -658,10 +767,12 @@ export let renderNodePrunedDockerfile = (plan: GeneratedBuildPlan): string => {
     'FROM build AS workspace',
     `WORKDIR ${plan.workspaceRoot}`,
     'CMD ["sleep", "infinity"]',
+    ...runtimeSkeletonLines,
     '',
     `FROM ${pinBunImage(plan.runtime.base_image)} AS runner`,
     `WORKDIR ${plan.runtime.workdir}`,
     ...renderRuntimePackages(plan),
+    ...runtimeSkeletonCopyLines,
     ...artifactLines,
     ...renderEnvLines(plan),
     ...exposeLines,
@@ -811,6 +922,7 @@ export let nodeBuildBuilder: BuildBuilder = {
     plan.codegenSteps = [];
     plan.prebuildSteps = [];
     plan.mainSteps = [];
+    plan.runtimeSkeleton = resolveRuntimeSkeleton(plan, registry);
 
     return plan;
   },

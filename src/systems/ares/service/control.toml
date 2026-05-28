@@ -33,8 +33,7 @@ copy = [
   { from = "prisma", to = "/app/prisma" },
   { from = "prisma.config.ts", to = "/app/prisma.config.ts" },
   { from = "frontend/auth/dist", to = "/app/frontend/auth/dist" },
-  { from = "frontend/admin/dist", to = "/app/frontend/admin/dist" },
-  { from = "/app/node_modules", to = "/app/node_modules" }
+  { from = "frontend/admin/dist", to = "/app/frontend/admin/dist" }
 ]
 
 [build.runtime]

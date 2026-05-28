@@ -24,15 +24,21 @@ projects = ["@metorial/db"]
 
 [build.artifacts]
 copy = [
-  { from = "dist", to = "/app/dist" },
-  { from = "/app/node_modules", to = "/app/node_modules" }
+  { from = "dist", to = "/app/dist" }
+]
+
+[build.runtime_skeleton]
+migrate = true
+source = "//oss/deployment/skeleton"
+prisma_schemas = [
+  { name = "oss", path = "//oss/src/backend/db/prisma" }
 ]
 
 [build.runtime]
 base_image = "oven/bun:1.2.22-alpine"
 packages = ["curl"]
 env = { NODE_ENV = "production" }
-command = "bun /app/dist/index.js"
+command = "bun run migrate && bun run start"
 
 [test.e2e]
 command = "ROOT=src; [ -d oss/src ] && ROOT=oss/src; bun run --cwd $ROOT/backend/apps/api test:e2e:control"

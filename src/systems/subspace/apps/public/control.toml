@@ -45,7 +45,6 @@ copy = [
   { from = "frontend/dist", to = "/app/frontend/dist" },
   { from = "../../db", to = "/app/db" },
   { from = "../../../../packages/frontend/ui", to = "/app/src/packages/frontend/ui" },
-  { from = "/app/node_modules", to = "/app/node_modules" },
 ]
 
 [build.runtime]

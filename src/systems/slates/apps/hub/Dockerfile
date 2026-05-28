@@ -24,14 +24,18 @@ RUN --mount=type=cache,id=control-nx-cache-slates-hub,target=/app/.nx/cache cd /
 FROM build AS workspace
 WORKDIR /app/src/systems/slates/apps/hub
 CMD ["sleep", "infinity"]
+FROM oven/bun:1.2.22-alpine AS skeleton
+WORKDIR /app
+COPY _runtime_skeleton/ ./
+RUN --mount=type=cache,id=control-bun-runtime-slates-hub,target=/root/.bun/install/cache bun install --production --no-frozen-lockfile
 FROM oven/bun:1.2.22-alpine AS runner
 WORKDIR /app
 RUN --mount=type=cache,target=/var/cache/apk,sharing=locked sh -c 'attempt=1; until apk add --cache-dir /var/cache/apk curl; do code=$?; if [ "$attempt" -ge 3 ]; then exit "$code"; fi; sleep $((attempt * 2)); attempt=$((attempt + 1)); done'
+COPY --from=skeleton /app ./
 COPY --from=build /app/src/systems/slates/apps/hub/dist /app/dist
 COPY --from=build /app/src/systems/slates/apps/hub/dist/admin /app/dist/admin
 COPY --from=build /app/src/systems/slates/apps/hub/prisma /app/prisma
 COPY --from=build /app/src/systems/slates/apps/hub/prisma.config.ts /app/prisma.config.ts
-COPY --from=build /app/node_modules /app/node_modules
 ENV NODE_ENV="production"
 EXPOSE 52045
 EXPOSE 52046

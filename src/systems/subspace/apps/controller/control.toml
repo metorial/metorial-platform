@@ -36,7 +36,6 @@ projects = [
 copy = [
   { from = "dist", to = "/app/dist" },
   { from = "../../db", to = "/app/db" },
-  { from = "/app/node_modules", to = "/app/node_modules" },
 ]
 
 [build.runtime]

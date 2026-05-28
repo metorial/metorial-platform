@@ -16,6 +16,7 @@ import type {
   GeneratedBuildInstallLayer,
   GeneratedBuildPath,
   GeneratedBuildPlan,
+  GeneratedBuildRuntimeSkeleton,
   ServiceRegistry,
   WorkspaceSession
 } from '../types';
@@ -188,6 +189,125 @@ let materializeSourceInputs = async (opts: {
   }
 };
 
+let readJsonFile = (path: string): Record<string, any> | null => {
+  if (!existsSync(path)) return null;
+  return JSON.parse(readFileSync(path, 'utf8')) as Record<string, any>;
+};
+
+let runtimeSkeletonSourcePath = (
+  skeleton: GeneratedBuildRuntimeSkeleton,
+  sourceRoot: string,
+  relativePath: string
+): string | null => {
+  if (!skeleton.source) return null;
+  return join(sourceRoot, skeleton.source.relativeToContext, relativePath);
+};
+
+let pickRuntimeDependencies = (opts: {
+  skeleton: GeneratedBuildRuntimeSkeleton;
+  sourceRoot: string;
+}): Record<string, string> => {
+  if (!opts.skeleton.needsPrisma) return {};
+
+  let packagePath = runtimeSkeletonSourcePath(opts.skeleton, opts.sourceRoot, 'package.json');
+  let packageJson = packagePath ? readJsonFile(packagePath) : null;
+  let dependencies = (packageJson?.dependencies ?? {}) as Record<string, string>;
+  let runtimeDependencyNames = [
+    '@aws-sdk/rds-signer',
+    '@prisma/client',
+    'jose',
+    'prisma',
+    'prisma-json-types-generator',
+    'typescript'
+  ];
+  let picked: Record<string, string> = {};
+
+  for (let name of runtimeDependencyNames) {
+    if (dependencies[name]) picked[name] = dependencies[name];
+  }
+
+  if (!picked.prisma || !picked['@prisma/client']) {
+    throw new ControlError({
+      code: 'runtime_skeleton_missing_prisma_dependencies',
+      message: 'Runtime skeleton source must declare prisma and @prisma/client dependencies'
+    });
+  }
+
+  return picked;
+};
+
+let renderRuntimeSkeletonPackageJson = (opts: {
+  plan: GeneratedBuildPlan;
+  skeleton: GeneratedBuildRuntimeSkeleton;
+  sourceRoot: string;
+}): string => {
+  let packagePath = runtimeSkeletonSourcePath(opts.skeleton, opts.sourceRoot, 'package.json');
+  let templatePackageJson = packagePath ? readJsonFile(packagePath) : null;
+  let packageJson = opts.skeleton.needsPrisma && templatePackageJson
+    ? { ...templatePackageJson }
+    : {
+        name: `${opts.plan.service.name}-runtime`,
+        version: '1.0.0',
+        private: true,
+        scripts: {
+          ...(opts.skeleton.migrate ? { migrate: 'bun ./migrate.ts' } : {}),
+          'server:start': 'bun ./dist/index.js',
+          start: 'bun run server:start'
+        },
+        dependencies: {},
+        devDependencies: {}
+      };
+
+  packageJson.dependencies = pickRuntimeDependencies({
+    skeleton: opts.skeleton,
+    sourceRoot: opts.sourceRoot
+  });
+  packageJson.devDependencies = {};
+
+  return `${JSON.stringify(packageJson, null, 2)}\n`;
+};
+
+let materializeRuntimeSkeleton = (opts: {
+  plan: GeneratedBuildPlan;
+  contextRoot: string;
+  sourceRoot: string;
+}) => {
+  let skeleton = opts.plan.runtimeSkeleton;
+  if (!skeleton?.enabled) return;
+
+  let skeletonRoot = join(opts.contextRoot, '_runtime_skeleton');
+  mkdirSync(skeletonRoot, { recursive: true });
+  writeFileSync(
+    join(skeletonRoot, 'package.json'),
+    renderRuntimeSkeletonPackageJson({
+      plan: opts.plan,
+      skeleton,
+      sourceRoot: opts.sourceRoot
+    })
+  );
+
+  if (skeleton.migrate) {
+    let migratePath = runtimeSkeletonSourcePath(skeleton, opts.sourceRoot, 'migrate.ts');
+    if (!migratePath || !existsSync(migratePath)) {
+      throw new ControlError({
+        code: 'runtime_skeleton_missing_migrate',
+        message: `Runtime skeleton for "${opts.plan.service.name}" must include migrate.ts`
+      });
+    }
+
+    copyPath(migratePath, join(skeletonRoot, 'migrate.ts'));
+  }
+
+  if (skeleton.migrate || skeleton.prismaSchemas.length > 0) {
+    mkdirSync(join(skeletonRoot, 'prisma'), { recursive: true });
+  }
+
+  for (let schema of skeleton.prismaSchemas) {
+    let source = join(opts.sourceRoot, schema.path.relativeToContext);
+    copyPath(source, join(skeletonRoot, 'prisma', schema.name));
+  }
+};
+
 let materializeNodeContext = async (opts: {
   plan: GeneratedBuildPlan;
   contextRoot: string;
@@ -223,11 +343,13 @@ let materializeNodeContext = async (opts: {
   }
 
   if (shouldUsePrebuiltBuildArtifacts()) {
+    materializeRuntimeSkeleton(opts);
     await materializeSourceInputs(opts);
     materializePrebuiltArtifacts(opts);
     return renderNodePrunedDockerfile(opts.plan);
   }
 
+  materializeRuntimeSkeleton(opts);
   await materializeSourceInputs(opts);
 
   return renderNodePrunedDockerfile(opts.plan);

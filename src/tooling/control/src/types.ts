@@ -66,6 +66,19 @@ export type ControlBuildRuntime = {
   workdir?: string;
 };
 
+export type ControlBuildRuntimePrismaSchema = {
+  name: string;
+  path: string;
+};
+
+export type ControlBuildRuntimeSkeleton = {
+  enabled?: boolean;
+  source?: string;
+  install_command?: string;
+  migrate?: boolean;
+  prisma_schemas?: ControlBuildRuntimePrismaSchema[];
+};
+
 export type ControlBuildInstallLayer = {
   name?: string;
   tool?: 'bun' | 'go' | 'cargo' | 'custom';
@@ -117,6 +130,7 @@ export type ControlBuildConfig = {
     copy?: ControlBuildCopy[];
   };
   runtime?: ControlBuildRuntime;
+  runtime_skeleton?: ControlBuildRuntimeSkeleton;
 };
 
 export type ControlConfig = {
@@ -296,6 +310,20 @@ export type GeneratedBuildArtifact = {
   fromRelativeToContext: string;
 };
 
+export type GeneratedBuildRuntimePrismaSchema = {
+  name: string;
+  path: GeneratedBuildPath;
+};
+
+export type GeneratedBuildRuntimeSkeleton = {
+  enabled: boolean;
+  source?: GeneratedBuildPath;
+  installCommand: string;
+  migrate: boolean;
+  needsPrisma: boolean;
+  prismaSchemas: GeneratedBuildRuntimePrismaSchema[];
+};
+
 export type GeneratedBuildPlan = {
   builder: 'node' | 'rust' | 'go';
   service: ControlService;
@@ -314,6 +342,7 @@ export type GeneratedBuildPlan = {
   mainSteps: GeneratedBuildStep[];
   artifacts: GeneratedBuildArtifact[];
   runtime: Required<ControlBuildRuntime>;
+  runtimeSkeleton?: GeneratedBuildRuntimeSkeleton;
   project?: string;
   target?: string;
   serviceDockerfile?: string;

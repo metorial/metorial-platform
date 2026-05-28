@@ -29,8 +29,7 @@ projects = ["@metorial-cargo/db"]
 copy = [
   { from = "dist", to = "/app/dist" },
   { from = "../db/prisma", to = "/app/prisma" },
-  { from = "../db/prisma.config.ts", to = "/app/prisma.config.ts" },
-  { from = "/app/node_modules", to = "/app/node_modules" }
+  { from = "../db/prisma.config.ts", to = "/app/prisma.config.ts" }
 ]
 
 [build.runtime]

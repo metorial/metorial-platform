@@ -26,12 +26,16 @@ RUN --mount=type=cache,id=control-nx-cache-subspace-controller,target=/app/.nx/c
 FROM build AS workspace
 WORKDIR /app/src/systems/subspace/apps/controller
 CMD ["sleep", "infinity"]
+FROM oven/bun:1.2.22-alpine AS skeleton
+WORKDIR /app
+COPY _runtime_skeleton/ ./
+RUN --mount=type=cache,id=control-bun-runtime-subspace-controller,target=/root/.bun/install/cache bun install --production --no-frozen-lockfile
 FROM oven/bun:1.2.22-alpine AS runner
 WORKDIR /app
 RUN --mount=type=cache,target=/var/cache/apk,sharing=locked sh -c 'attempt=1; until apk add --cache-dir /var/cache/apk curl; do code=$?; if [ "$attempt" -ge 3 ]; then exit "$code"; fi; sleep $((attempt * 2)); attempt=$((attempt + 1)); done'
+COPY --from=skeleton /app ./
 COPY --from=build /app/src/systems/subspace/apps/controller/dist /app/dist
 COPY --from=build /app/src/systems/subspace/db /app/db
-COPY --from=build /app/node_modules /app/node_modules
 ENV NODE_ENV="production"
 EXPOSE 52070
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \

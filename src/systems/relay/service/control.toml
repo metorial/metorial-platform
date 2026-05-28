@@ -25,8 +25,7 @@ projects = ["@metorial/relay"]
 copy = [
   { from = "dist", to = "/app/dist" },
   { from = "prisma", to = "/app/prisma" },
-  { from = "prisma.config.ts", to = "/app/prisma.config.ts" },
-  { from = "/app/node_modules", to = "/app/node_modules" }
+  { from = "prisma.config.ts", to = "/app/prisma.config.ts" }
 ]
 
 [build.runtime]
