@@ -148,6 +148,52 @@ describe('createNebulaClient', () => {
     });
   });
 
+  it('refreshes in the background before a secret operation needs a new token', async () => {
+    vi.useFakeTimers();
+    let now = new Date('2025-01-01T00:00:00.000Z');
+    vi.setSystemTime(now);
+
+    let activeToken = {
+      token: 'active-token',
+      consumerInstanceId: 'consumer-instance-1',
+      expiresAt: new Date(now.getTime() + 3_600_000)
+    };
+    let refreshedToken = {
+      token: 'refreshed-token',
+      consumerInstanceId: 'consumer-instance-1',
+      expiresAt: new Date(now.getTime() + 7_200_000)
+    };
+
+    mockRegister.mockResolvedValueOnce(activeToken);
+    mockRefresh.mockResolvedValueOnce(refreshedToken);
+
+    let client = createNebulaClient({
+      endpoint: 'http://nebula:52170/metorial-nebula',
+      consumerToken: 'consumer-secret',
+      identifier: 'worker-a',
+      refreshSkewMs: 60_000
+    });
+
+    await vi.waitFor(() => expect(mockRegister).toHaveBeenCalledTimes(1));
+    await vi.advanceTimersByTimeAsync(3_540_000);
+    await vi.waitFor(() => expect(mockRefresh).toHaveBeenCalledTimes(1));
+
+    await client.secret.use({
+      tenantId: 'tenant-1',
+      secretId: 'secret-1',
+      proof: {}
+    });
+
+    expect(mockRegister).toHaveBeenCalledTimes(1);
+    expect(mockRefresh).toHaveBeenCalledTimes(1);
+    expect(mockSecretUse).toHaveBeenLastCalledWith({
+      tenantId: 'tenant-1',
+      secretId: 'secret-1',
+      proof: {},
+      consumerToken: 'refreshed-token'
+    });
+  });
+
   it('registers immediately when the client is created', async () => {
     mockRegister.mockResolvedValueOnce({
       token: 'active-token',
