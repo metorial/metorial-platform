@@ -2,19 +2,63 @@ package store
 
 import (
 	"context"
-	"path/filepath"
+	"net/url"
+	"os"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/metorial/function-bay-observer/internal/api"
 )
 
-func TestIngestAggregatesAndDeduplicatesBatches(t *testing.T) {
-	store, err := Open(filepath.Join(t.TempDir(), "observer.sqlite"))
+func openTestStore(t *testing.T) *Store {
+	t.Helper()
+
+	raw := os.Getenv("OBSERVER_TEST_DATABASE_URL")
+	if raw == "" {
+		t.Skip("OBSERVER_TEST_DATABASE_URL is not set")
+	}
+
+	parsed, err := url.Parse(raw)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer store.Close()
+	password, _ := parsed.User.Password()
+	config := Config{
+		Host:     parsed.Hostname(),
+		Port:     parsed.Port(),
+		Name:     strings.TrimPrefix(parsed.Path, "/"),
+		Username: parsed.User.Username(),
+		Password: password,
+		SSLMode:  parsed.Query().Get("sslmode"),
+	}
+	if config.Port == "" {
+		config.Port = "5432"
+	}
+	if config.SSLMode == "" {
+		config.SSLMode = "disable"
+	}
+
+	store, err := Open(config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := store.db.Exec("DELETE FROM network_observations").Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := store.db.Exec("DELETE FROM ingest_batches").Error; err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		_ = store.db.Exec("DELETE FROM network_observations").Error
+		_ = store.db.Exec("DELETE FROM ingest_batches").Error
+		_ = store.Close()
+	})
+	return store
+}
+
+func TestIngestAggregatesAndDeduplicatesBatches(t *testing.T) {
+	store := openTestStore(t)
 
 	bucketStart := time.Date(2026, 5, 27, 12, 0, 0, 0, time.UTC)
 	firstSeen := bucketStart.Add(5 * time.Minute)
@@ -68,11 +112,7 @@ func TestIngestAggregatesAndDeduplicatesBatches(t *testing.T) {
 }
 
 func TestIngestUpsertsMatchingObservationKeys(t *testing.T) {
-	store, err := Open(filepath.Join(t.TempDir(), "observer.sqlite"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer store.Close()
+	store := openTestStore(t)
 
 	bucketStart := time.Date(2026, 5, 27, 12, 0, 0, 0, time.UTC)
 	makeBatch := func(id string, count int64) api.IngestBatch {
@@ -122,11 +162,7 @@ func TestIngestUpsertsMatchingObservationKeys(t *testing.T) {
 }
 
 func TestQueryAggregatesIntoRequestedInterval(t *testing.T) {
-	store, err := Open(filepath.Join(t.TempDir(), "observer.sqlite"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer store.Close()
+	store := openTestStore(t)
 
 	makeRecord := func(bucketStart time.Time, count int64) api.Observation {
 		return api.Observation{
@@ -143,7 +179,7 @@ func TestQueryAggregatesIntoRequestedInterval(t *testing.T) {
 		}
 	}
 	bucketStart := time.Date(2026, 5, 27, 12, 0, 0, 0, time.UTC)
-	_, err = store.Ingest(context.Background(), api.IngestBatch{
+	_, err := store.Ingest(context.Background(), api.IngestBatch{
 		ID:                  "deflector-1:interval",
 		DeflectorInstanceID: "deflector-1",
 		Records: []api.Observation{
@@ -174,11 +210,7 @@ func TestQueryAggregatesIntoRequestedInterval(t *testing.T) {
 }
 
 func TestCleanupBeforeDeletesLogsOlderThanCutoff(t *testing.T) {
-	store, err := Open(filepath.Join(t.TempDir(), "observer.sqlite"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer store.Close()
+	store := openTestStore(t)
 
 	now := time.Date(2026, 5, 27, 12, 0, 0, 0, time.UTC)
 	makeRecord := func(bucketStart time.Time, hostname string) api.Observation {
@@ -195,7 +227,7 @@ func TestCleanupBeforeDeletesLogsOlderThanCutoff(t *testing.T) {
 		}
 	}
 
-	_, err = store.Ingest(context.Background(), api.IngestBatch{
+	_, err := store.Ingest(context.Background(), api.IngestBatch{
 		ID:                  "deflector-1:old",
 		DeflectorInstanceID: "deflector-1",
 		Records: []api.Observation{

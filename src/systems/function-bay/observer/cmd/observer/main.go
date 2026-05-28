@@ -17,13 +17,19 @@ import (
 func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
-	sqlitePath := envOrDefault("OBSERVER_SQLITE_PATH", "/data/observer.sqlite")
 	ingestAddr := envOrDefault("OBSERVER_INGEST_ADDR", ":52210")
 	queryAddr := envOrDefault("OBSERVER_QUERY_ADDR", ":52211")
 
-	db, err := store.Open(sqlitePath)
+	db, err := store.Open(store.Config{
+		Host:     mustGetEnv("DATABASE_HOST"),
+		Port:     mustGetEnv("DATABASE_PORT"),
+		Name:     mustGetEnv("DATABASE_NAME"),
+		Username: mustGetEnv("DATABASE_USERNAME"),
+		Password: mustGetEnv("DATABASE_PASSWORD"),
+		SSLMode:  envOrDefault("DATABASE_SSLMODE", "require"),
+	})
 	if err != nil {
-		logger.Error("failed to open observer sqlite database", "error", err)
+		logger.Error("failed to open observer database", "error", err)
 		os.Exit(1)
 	}
 	defer db.Close()
@@ -177,6 +183,14 @@ func envOrDefault(name string, fallback string) string {
 	value := os.Getenv(name)
 	if value == "" {
 		return fallback
+	}
+	return value
+}
+
+func mustGetEnv(name string) string {
+	value := os.Getenv(name)
+	if value == "" {
+		panic(name + " is required")
 	}
 	return value
 }

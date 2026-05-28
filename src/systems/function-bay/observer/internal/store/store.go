@@ -5,17 +5,29 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"os"
-	"path/filepath"
+	"net"
+	"net/url"
 	"strings"
 	"time"
 
 	"github.com/metorial/function-bay-observer/internal/api"
-	_ "modernc.org/sqlite"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
+type Config struct {
+	Host     string
+	Port     string
+	Name     string
+	Username string
+	Password string
+	SSLMode  string
+}
+
 type Store struct {
-	db *sql.DB
+	db    *gorm.DB
+	sqlDB *sql.DB
 }
 
 type Query struct {
@@ -29,72 +41,122 @@ type Query struct {
 	IntervalMinutes int
 }
 
-func Open(path string) (*Store, error) {
-	if path == "" {
-		return nil, errors.New("sqlite path is required")
+type IngestBatch struct {
+	ID                  string `gorm:"primaryKey;column:id"`
+	DeflectorInstanceID string `gorm:"column:deflector_instance_id;not null"`
+	ReceivedAt          int64  `gorm:"column:received_at;not null"`
+}
+
+func (IngestBatch) TableName() string {
+	return "ingest_batches"
+}
+
+type NetworkObservation struct {
+	BucketStart         int64  `gorm:"primaryKey;column:bucket_start"`
+	TenantID            string `gorm:"primaryKey;column:tenant_id"`
+	EnclaveID           string `gorm:"primaryKey;column:enclave_id"`
+	FunctionID          string `gorm:"primaryKey;column:function_id"`
+	EffectiveFunctionID string `gorm:"primaryKey;column:effective_function_id"`
+	Hostname            string `gorm:"primaryKey;column:hostname"`
+	IP                  string `gorm:"primaryKey;column:ip"`
+	Port                int    `gorm:"primaryKey;column:port"`
+	Count               int64  `gorm:"column:count;not null"`
+	FirstSeenAt         int64  `gorm:"column:first_seen_at;not null"`
+	LastSeenAt          int64  `gorm:"column:last_seen_at;not null"`
+}
+
+func (NetworkObservation) TableName() string {
+	return "network_observations"
+}
+
+func Open(config Config) (*Store, error) {
+	if err := config.validate(); err != nil {
+		return nil, err
 	}
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+	if err := ensureDatabase(config); err != nil {
 		return nil, err
 	}
 
-	db, err := sql.Open("sqlite", path)
+	db, err := gorm.Open(postgres.Open(config.DSN(config.Name)), &gorm.Config{})
 	if err != nil {
 		return nil, err
 	}
-	db.SetMaxOpenConns(1)
+	sqlDB, err := db.DB()
+	if err != nil {
+		return nil, err
+	}
+	sqlDB.SetMaxOpenConns(10)
+	sqlDB.SetMaxIdleConns(2)
+	sqlDB.SetConnMaxLifetime(30 * time.Minute)
 
-	store := &Store{db: db}
-	if err := store.init(context.Background()); err != nil {
-		_ = db.Close()
+	store := &Store{db: db, sqlDB: sqlDB}
+	if err := store.migrate(); err != nil {
+		_ = store.Close()
 		return nil, err
 	}
 	return store, nil
 }
 
-func (s *Store) Close() error {
-	return s.db.Close()
-}
-
-func (s *Store) init(ctx context.Context) error {
-	statements := []string{
-		`PRAGMA journal_mode = WAL`,
-		`PRAGMA busy_timeout = 5000`,
-		`CREATE TABLE IF NOT EXISTS ingest_batches (
-			id TEXT PRIMARY KEY,
-			deflector_instance_id TEXT NOT NULL,
-			received_at INTEGER NOT NULL
-		)`,
-		`CREATE TABLE IF NOT EXISTS network_observations (
-			bucket_start INTEGER NOT NULL,
-			tenant_id TEXT NOT NULL,
-			enclave_id TEXT NOT NULL,
-			function_id TEXT NOT NULL,
-			effective_function_id TEXT NOT NULL,
-			hostname TEXT NOT NULL,
-			ip TEXT NOT NULL,
-			port INTEGER NOT NULL,
-			count INTEGER NOT NULL,
-			first_seen_at INTEGER NOT NULL,
-			last_seen_at INTEGER NOT NULL,
-			PRIMARY KEY (
-				bucket_start,
-				tenant_id,
-				enclave_id,
-				function_id,
-				effective_function_id,
-				hostname,
-				ip,
-				port
-			)
-		)`,
-	}
-
-	for _, statement := range statements {
-		if _, err := s.db.ExecContext(ctx, statement); err != nil {
-			return err
-		}
+func (c Config) validate() error {
+	if c.Host == "" || c.Port == "" || c.Name == "" || c.Username == "" {
+		return errors.New("database host, port, name, and username are required")
 	}
 	return nil
+}
+
+func (c Config) DSN(databaseName string) string {
+	values := url.Values{}
+	values.Set("sslmode", c.sslMode())
+	return (&url.URL{
+		Scheme:   "postgres",
+		User:     url.UserPassword(c.Username, c.Password),
+		Host:     net.JoinHostPort(c.Host, c.Port),
+		Path:     databaseName,
+		RawQuery: values.Encode(),
+	}).String()
+}
+
+func (c Config) sslMode() string {
+	if c.SSLMode == "" {
+		return "require"
+	}
+	return c.SSLMode
+}
+
+func ensureDatabase(config Config) error {
+	db, err := gorm.Open(postgres.Open(config.DSN("postgres")), &gorm.Config{})
+	if err != nil {
+		return err
+	}
+	sqlDB, err := db.DB()
+	if err != nil {
+		return err
+	}
+	defer sqlDB.Close()
+
+	var exists bool
+	if err := db.Raw(
+		`SELECT EXISTS(SELECT 1 FROM pg_database WHERE datname = ?)`,
+		config.Name,
+	).Scan(&exists).Error; err != nil {
+		return err
+	}
+	if exists {
+		return nil
+	}
+	return db.Exec(`CREATE DATABASE ` + quoteIdentifier(config.Name)).Error
+}
+
+func quoteIdentifier(identifier string) string {
+	return `"` + strings.ReplaceAll(identifier, `"`, `""`) + `"`
+}
+
+func (s *Store) Close() error {
+	return s.sqlDB.Close()
+}
+
+func (s *Store) migrate() error {
+	return s.db.AutoMigrate(&IngestBatch{}, &NetworkObservation{})
 }
 
 func (s *Store) Ingest(ctx context.Context, batch api.IngestBatch) (bool, error) {
@@ -102,43 +164,32 @@ func (s *Store) Ingest(ctx context.Context, batch api.IngestBatch) (bool, error)
 		return false, errors.New("batch id is required")
 	}
 
-	tx, err := s.db.BeginTx(ctx, nil)
-	if err != nil {
-		return false, err
-	}
-	defer tx.Rollback()
-
-	res, err := tx.ExecContext(
-		ctx,
-		`INSERT OR IGNORE INTO ingest_batches (id, deflector_instance_id, received_at) VALUES (?, ?, ?)`,
-		batch.ID,
-		batch.DeflectorInstanceID,
-		time.Now().UTC().Unix(),
-	)
-	if err != nil {
-		return false, err
-	}
-	inserted, err := res.RowsAffected()
-	if err != nil {
-		return false, err
-	}
-	if inserted == 0 {
-		return false, tx.Commit()
-	}
-
-	for _, record := range batch.Records {
-		if err := upsertObservation(ctx, tx, record); err != nil {
-			return false, err
+	inserted := false
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		res := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&IngestBatch{
+			ID:                  batch.ID,
+			DeflectorInstanceID: batch.DeflectorInstanceID,
+			ReceivedAt:          time.Now().UTC().Unix(),
+		})
+		if res.Error != nil {
+			return res.Error
 		}
-	}
+		if res.RowsAffected == 0 {
+			return nil
+		}
+		inserted = true
 
-	if err := tx.Commit(); err != nil {
-		return false, err
-	}
-	return true, nil
+		for _, record := range batch.Records {
+			if err := upsertObservation(tx, record); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	return inserted, err
 }
 
-func upsertObservation(ctx context.Context, tx *sql.Tx, record api.Observation) error {
+func upsertObservation(tx *gorm.DB, record api.Observation) error {
 	if record.TenantID == "" || record.FunctionID == "" {
 		return errors.New("observation is missing required identity fields")
 	}
@@ -149,47 +200,37 @@ func upsertObservation(ctx context.Context, tx *sql.Tx, record api.Observation) 
 		record.Count = 1
 	}
 
-	_, err := tx.ExecContext(
-		ctx,
-		`INSERT INTO network_observations (
-			bucket_start,
-			tenant_id,
-			enclave_id,
-			function_id,
-			effective_function_id,
-			hostname,
-			ip,
-			port,
-			count,
-			first_seen_at,
-			last_seen_at
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-		ON CONFLICT (
-			bucket_start,
-			tenant_id,
-			enclave_id,
-			function_id,
-			effective_function_id,
-			hostname,
-			ip,
-			port
-		) DO UPDATE SET
-			count = network_observations.count + excluded.count,
-			first_seen_at = min(network_observations.first_seen_at, excluded.first_seen_at),
-			last_seen_at = max(network_observations.last_seen_at, excluded.last_seen_at)`,
-		record.BucketStart.UTC().Unix(),
-		record.TenantID,
-		record.EnclaveID,
-		record.FunctionID,
-		record.EffectiveFunctionID,
-		record.Hostname,
-		record.IP,
-		record.Port,
-		record.Count,
-		record.FirstSeenAt.UTC().Unix(),
-		record.LastSeenAt.UTC().Unix(),
-	)
-	return err
+	observation := NetworkObservation{
+		BucketStart:         record.BucketStart.UTC().Unix(),
+		TenantID:            record.TenantID,
+		EnclaveID:           record.EnclaveID,
+		FunctionID:          record.FunctionID,
+		EffectiveFunctionID: record.EffectiveFunctionID,
+		Hostname:            record.Hostname,
+		IP:                  record.IP,
+		Port:                record.Port,
+		Count:               record.Count,
+		FirstSeenAt:         record.FirstSeenAt.UTC().Unix(),
+		LastSeenAt:          record.LastSeenAt.UTC().Unix(),
+	}
+
+	return tx.Clauses(clause.OnConflict{
+		Columns: []clause.Column{
+			{Name: "bucket_start"},
+			{Name: "tenant_id"},
+			{Name: "enclave_id"},
+			{Name: "function_id"},
+			{Name: "effective_function_id"},
+			{Name: "hostname"},
+			{Name: "ip"},
+			{Name: "port"},
+		},
+		DoUpdates: clause.Assignments(map[string]any{
+			"count":         gorm.Expr("network_observations.count + EXCLUDED.count"),
+			"first_seen_at": gorm.Expr("LEAST(network_observations.first_seen_at, EXCLUDED.first_seen_at)"),
+			"last_seen_at":  gorm.Expr("GREATEST(network_observations.last_seen_at, EXCLUDED.last_seen_at)"),
+		}),
+	}).Create(&observation).Error
 }
 
 func (s *Store) Query(ctx context.Context, query Query) ([]api.Observation, error) {
@@ -241,10 +282,23 @@ func (s *Store) Query(ctx context.Context, query Query) ([]api.Observation, erro
 	addListFilter("hostname", query.Hostnames)
 	addListFilter("ip", query.IPs)
 
-	rows, err := s.db.QueryContext(
-		ctx,
+	type row struct {
+		IntervalStart       int64
+		TenantID            string
+		EnclaveID           string
+		FunctionID          string
+		EffectiveFunctionID string
+		Hostname            string
+		IP                  string
+		Port                int
+		Count               int64
+		FirstSeenAt         int64
+		LastSeenAt          int64
+	}
+	rows := []row{}
+	err := s.db.WithContext(ctx).Raw(
 		`SELECT
-			CAST(bucket_start / ? AS INTEGER) * ? AS interval_start,
+			CAST(bucket_start / ? AS BIGINT) * ? AS interval_start,
 			tenant_id,
 			enclave_id,
 			function_id,
@@ -269,72 +323,41 @@ func (s *Store) Query(ctx context.Context, query Query) ([]api.Observation, erro
 		ORDER BY interval_start DESC, last_seen_at DESC
 		LIMIT 1000`,
 		append([]any{intervalSeconds, intervalSeconds}, args...)...,
-	)
+	).Scan(&rows).Error
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 
-	records := []api.Observation{}
-	for rows.Next() {
-		var record api.Observation
-		var bucketStart int64
-		var firstSeenAt int64
-		var lastSeenAt int64
-		if err := rows.Scan(
-			&bucketStart,
-			&record.TenantID,
-			&record.EnclaveID,
-			&record.FunctionID,
-			&record.EffectiveFunctionID,
-			&record.Hostname,
-			&record.IP,
-			&record.Port,
-			&record.Count,
-			&firstSeenAt,
-			&lastSeenAt,
-		); err != nil {
-			return nil, err
-		}
-		record.BucketStart = time.Unix(bucketStart, 0).UTC()
-		record.FirstSeenAt = time.Unix(firstSeenAt, 0).UTC()
-		record.LastSeenAt = time.Unix(lastSeenAt, 0).UTC()
-		records = append(records, record)
+	records := make([]api.Observation, 0, len(rows))
+	for _, row := range rows {
+		records = append(records, api.Observation{
+			BucketStart:         time.Unix(row.IntervalStart, 0).UTC(),
+			TenantID:            row.TenantID,
+			EnclaveID:           row.EnclaveID,
+			FunctionID:          row.FunctionID,
+			EffectiveFunctionID: row.EffectiveFunctionID,
+			Hostname:            row.Hostname,
+			IP:                  row.IP,
+			Port:                row.Port,
+			Count:               row.Count,
+			FirstSeenAt:         time.Unix(row.FirstSeenAt, 0).UTC(),
+			LastSeenAt:          time.Unix(row.LastSeenAt, 0).UTC(),
+		})
 	}
-	return records, rows.Err()
+	return records, nil
 }
 
 func (s *Store) CleanupBefore(ctx context.Context, cutoff time.Time) (int64, error) {
-	tx, err := s.db.BeginTx(ctx, nil)
-	if err != nil {
-		return 0, err
-	}
-	defer tx.Rollback()
+	var deleted int64
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		res := tx.Where("bucket_start < ?", cutoff.UTC().Unix()).Delete(&NetworkObservation{})
+		if res.Error != nil {
+			return res.Error
+		}
+		deleted = res.RowsAffected
 
-	res, err := tx.ExecContext(
-		ctx,
-		`DELETE FROM network_observations WHERE bucket_start < ?`,
-		cutoff.UTC().Unix(),
-	)
-	if err != nil {
-		return 0, err
-	}
-	deleted, err := res.RowsAffected()
-	if err != nil {
-		return 0, err
-	}
-
-	_, err = tx.ExecContext(
-		ctx,
-		`DELETE FROM ingest_batches WHERE received_at < ?`,
-		cutoff.UTC().Unix(),
-	)
-	if err != nil {
-		return 0, err
-	}
-
-	if err := tx.Commit(); err != nil {
-		return 0, err
-	}
-	return deleted, nil
+		res = tx.Where("received_at < ?", cutoff.UTC().Unix()).Delete(&IngestBatch{})
+		return res.Error
+	})
+	return deleted, err
 }
