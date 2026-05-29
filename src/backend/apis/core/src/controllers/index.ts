@@ -7,6 +7,7 @@ import {
   identityDocsCategory,
   integrationDocsCategory,
   magicMcpDocsCategory,
+  networkDocsCategory,
   portalDocsCategory,
   providerDocsCategory,
   sessionDocsCategory,
@@ -46,8 +47,11 @@ import {
   documentController,
   documentParticipantController,
   documentVersionController,
+  enclaveController,
   fileController,
   fileLinkController,
+  firewallBindingController,
+  firewallController,
   identityActorController,
   identityController,
   identityCredentialController,
@@ -69,6 +73,8 @@ import {
   magicMcpServerControllerDashboard,
   magicMcpSessionController,
   magicMcpTokenController,
+  networkController,
+  networkPolicyController,
   portalAuthDashboardController,
   portalConsumerAccessController,
   portalConsumerAccessListingController,
@@ -265,6 +271,18 @@ let setControllerDocsMetadata = <
 );
 
 [
+  networkController,
+  enclaveController,
+  firewallController,
+  firewallBindingController,
+  networkPolicyController
+].forEach(controller =>
+  setControllerDocsMetadata(controller, {
+    category: networkDocsCategory
+  })
+);
+
+[
   integrationController,
   integrationProviderController,
   integrationSetupSessionController,
@@ -400,6 +418,12 @@ export let magnetarController = Controller.create<any>(
     callbackEventController,
     callbackInstanceController,
     callbackNotificationController,
+
+    networkController,
+    enclaveController,
+    firewallController,
+    firewallBindingController,
+    networkPolicyController,
 
     sessionController,
     sessionTemplateController,
@@ -622,6 +646,12 @@ export let dashboardController = Controller.create<any>(
     callbackEventController,
     callbackInstanceController,
     callbackNotificationController,
+
+    networkController,
+    enclaveController,
+    firewallController,
+    firewallBindingController,
+    networkPolicyController,
 
     sessionTemplateController,
     sessionTemplateProviderController,

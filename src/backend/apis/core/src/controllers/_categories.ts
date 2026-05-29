@@ -48,6 +48,12 @@ export let callbackDocsCategory = createCategory({
   indexHint: getIndexHint()
 });
 
+export let networkDocsCategory = createCategory({
+  id: 'network',
+  name: 'Network Access',
+  indexHint: getIndexHint()
+});
+
 export let portalDocsCategory = createCategory({
   id: 'portal',
   name: 'Portals',

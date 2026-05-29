@@ -95,6 +95,12 @@ import {
   v1MagicMcpServerProviderPresenter,
   v1MagicMcpSessionPresenter,
   v1MagicMcpTokenPresenter,
+  v1EnclavePresenter,
+  v1FirewallBindingPresenter,
+  v1FirewallPresenter,
+  v1NetworkPolicyPresenter,
+  v1NetworkPolicyRulePresenter,
+  v1NetworkPresenter,
   v1OAuthApplicationClientSecretPresenter,
   v1OAuthApplicationPresenter,
   v1OAuthAuthorizationLogPresenter,
@@ -280,6 +286,12 @@ import {
   magicMcpServerType,
   magicMcpSessionType,
   magicMcpTokenType,
+  enclaveType,
+  firewallBindingType,
+  firewallType,
+  networkPolicyRuleType,
+  networkPolicyType,
+  networkType,
   oauthApplicationClientSecretType,
   oauthApplicationType,
   oauthAuthorizationLogType,
@@ -1146,6 +1158,36 @@ export let sessionTemplateProviderPresenter = declarePresenter(sessionTemplatePr
 export let skillPresenter = declarePresenter(skillType, {
   mt_2025_01_01_dashboard: v1SkillPresenter,
   mt_2026_01_01_magnetar: v1SkillPresenter
+});
+
+export let networkPresenter = declarePresenter(networkType, {
+  mt_2025_01_01_dashboard: v1NetworkPresenter,
+  mt_2026_01_01_magnetar: v1NetworkPresenter
+});
+
+export let enclavePresenter = declarePresenter(enclaveType, {
+  mt_2025_01_01_dashboard: v1EnclavePresenter,
+  mt_2026_01_01_magnetar: v1EnclavePresenter
+});
+
+export let firewallPresenter = declarePresenter(firewallType, {
+  mt_2025_01_01_dashboard: v1FirewallPresenter,
+  mt_2026_01_01_magnetar: v1FirewallPresenter
+});
+
+export let firewallBindingPresenter = declarePresenter(firewallBindingType, {
+  mt_2025_01_01_dashboard: v1FirewallBindingPresenter,
+  mt_2026_01_01_magnetar: v1FirewallBindingPresenter
+});
+
+export let networkPolicyPresenter = declarePresenter(networkPolicyType, {
+  mt_2025_01_01_dashboard: v1NetworkPolicyPresenter,
+  mt_2026_01_01_magnetar: v1NetworkPolicyPresenter
+});
+
+export let networkPolicyRulePresenter = declarePresenter(networkPolicyRuleType, {
+  mt_2025_01_01_dashboard: v1NetworkPolicyRulePresenter,
+  mt_2026_01_01_magnetar: v1NetworkPolicyRulePresenter
 });
 
 export let skillGroupPresenter = declarePresenter(skillGroupType, {

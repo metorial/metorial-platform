@@ -145,7 +145,13 @@ import {
   SubspaceIntegrationInstanceProvider,
   SubspaceIntegrationProvider,
   SubspaceIntegrationSetupSession,
+  SubspaceEnclave,
+  SubspaceFirewall,
+  SubspaceFirewallBinding,
   SubspaceMagicMcpServerProvider,
+  SubspaceNetwork,
+  SubspaceNetworkPolicy,
+  SubspaceNetworkPolicyRule,
   SubspaceProvider,
   SubspaceProviderAuthConfig,
   SubspaceProviderAuthConfigSchema,
@@ -1212,6 +1218,30 @@ export let skillTemplateType = PresentableType.create<{
 export let skillTemplateItemType = PresentableType.create<{
   skillTemplateItem: SubspaceSkillTemplateItem;
 }>()('skill.template.item');
+
+export let networkType = PresentableType.create<{
+  network: SubspaceNetwork;
+}>()('network');
+
+export let enclaveType = PresentableType.create<{
+  enclave: SubspaceEnclave;
+}>()('enclave');
+
+export let firewallType = PresentableType.create<{
+  firewall: SubspaceFirewall;
+}>()('firewall');
+
+export let firewallBindingType = PresentableType.create<{
+  firewallBinding: SubspaceFirewallBinding;
+}>()('firewall.binding');
+
+export let networkPolicyType = PresentableType.create<{
+  networkPolicy: SubspaceNetworkPolicy;
+}>()('network.policy');
+
+export let networkPolicyRuleType = PresentableType.create<{
+  rule: SubspaceNetworkPolicyRule;
+}>()('network.policy.rule');
 
 export let integrationType = PresentableType.create<{
   integration: SubspaceIntegration;

@@ -153,6 +153,11 @@ let scopeResourceMetadata: Record<string, { name: string; description: string }>
     name: 'Callbacks',
     description: 'These endpoints manage callback registrations and callback processing.'
   },
+  'instance.network': {
+    name: 'Network Access',
+    description:
+      'These endpoints manage networks, enclaves, firewalls, firewall bindings, and network policies.'
+  },
   'instance.server.config_vault': {
     name: 'Server Config Vaults',
     description: 'These endpoints manage secure server configuration vault values.'
