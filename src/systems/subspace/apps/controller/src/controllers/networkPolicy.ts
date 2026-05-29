@@ -1,6 +1,9 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { networkPolicyService, type NetworkPolicyRuleInput } from '@metorial-subspace/module-enclave';
+import {
+  networkPolicyService,
+  type NetworkPolicyRuleInput
+} from '@metorial-subspace/module-enclave';
 import {
   networkPolicyPresenter,
   networkPolicyRulePresenter,
@@ -34,7 +37,8 @@ export let networkPolicyApp = tenantApp.use(async ctx => {
   let networkPolicy = await networkPolicyService.getNetworkPolicyById({
     networkPolicyId,
     tenant: ctx.tenant,
-    environment: ctx.environment
+    environment: ctx.environment,
+    allowDeleted: ctx.body.allowDeleted
   });
 
   return { networkPolicy };
@@ -48,6 +52,9 @@ export let networkPolicyController = app.controller({
         v.object({
           tenantId: v.string(),
           environmentId: v.string(),
+
+          status: v.optional(v.array(v.enumOf(['active', 'archived', 'deleted']))),
+          allowDeleted: v.optional(v.boolean()),
 
           ids: v.optional(v.array(v.string())),
           firewallIds: v.optional(v.array(v.string())),
@@ -63,6 +70,8 @@ export let networkPolicyController = app.controller({
         tenant: ctx.tenant,
         environment: ctx.environment,
         solution: ctx.solution,
+        status: ctx.input.status,
+        allowDeleted: ctx.input.allowDeleted,
         ids: ctx.input.ids,
         firewallIds: ctx.input.firewallIds,
         search: ctx.input.search,
@@ -81,7 +90,8 @@ export let networkPolicyController = app.controller({
       v.object({
         tenantId: v.string(),
         environmentId: v.string(),
-        networkPolicyId: v.string()
+        networkPolicyId: v.string(),
+        allowDeleted: v.optional(v.boolean())
       })
     )
     .do(async ctx => networkPolicyPresenter(ctx.networkPolicy)),
@@ -219,7 +229,7 @@ export let networkPolicyController = app.controller({
       })
     )
     .do(async ctx => {
-      await networkPolicyService.deleteNetworkPolicy({
+      await networkPolicyService.archiveNetworkPolicy({
         networkPolicy: ctx.networkPolicy,
         tenant: ctx.tenant,
         environment: ctx.environment

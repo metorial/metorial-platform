@@ -84,20 +84,11 @@ export let firewallUpdatedQueueProcessor = firewallUpdatedQueue.process(async da
   await resetCompiledNetworkRulesForFirewallId(data.firewallId);
 });
 
-export let firewallDeletedQueue = createQueue<{ networkId: string }>({
+export let firewallDeletedQueue = createQueue<{ firewallId: string }>({
   name: 'sub/enc/lc/firewall/deleted',
   redisUrl: env.service.REDIS_URL
 });
 
 export let firewallDeletedQueueProcessor = firewallDeletedQueue.process(async data => {
-  let network = await db.network.findFirst({
-    where: { id: data.networkId },
-    select: { oid: true }
-  });
-  if (!network) return;
-
-  await db.enclave.updateMany({
-    where: { networkOid: network.oid },
-    data: { compiledNetworkRules: null }
-  });
+  await resetCompiledNetworkRulesForFirewallId(data.firewallId);
 });

@@ -6,6 +6,7 @@ import {
   type Environment,
   type Firewall,
   type FirewallBinding,
+  type FirewallStatus,
   getId,
   type Network,
   type Solution,
@@ -13,8 +14,10 @@ import {
   withTransaction
 } from '@metorial-subspace/db';
 import {
+  checkDeletedRelation,
   type DateFilter,
   normalizeDateFilter,
+  normalizeStatusForList,
   resolveEnclaves,
   resolveFirewalls,
   resolveNetworks,
@@ -65,6 +68,8 @@ class firewallBindingServiceImpl {
     tenant: Tenant;
     solution: Solution;
     environment: Environment;
+    status?: FirewallStatus[];
+    allowDeleted?: boolean;
     ids?: string[];
     firewallIds?: string[];
     enclaveIds?: string[];
@@ -85,6 +90,7 @@ class firewallBindingServiceImpl {
           where: {
             tenantOid: d.tenant.oid,
             environmentOid: d.environment.oid,
+            firewall: normalizeStatusForList<FirewallStatus>(d).noParent,
             AND: [
               d.ids ? { id: { in: d.ids } } : undefined!,
               firewalls ? { firewallOid: firewalls.in } : undefined!,
@@ -151,6 +157,7 @@ class firewallBindingServiceImpl {
       if (!firewall) {
         throw new ServiceError(notFoundError('firewall', d.firewallId));
       }
+      checkDeletedRelation(firewall);
 
       return this.createBinding({
         tenant: d.tenant,
@@ -170,6 +177,7 @@ class firewallBindingServiceImpl {
     bindings: FirewallBindingInput[];
   }) {
     validateFirewallBindingInputs(d.bindings);
+    checkDeletedRelation(d.firewall);
 
     return withTransaction(
       async () => {
@@ -208,6 +216,8 @@ class firewallBindingServiceImpl {
   }) {
     return withTransaction(
       async db => {
+        checkDeletedRelation(d.firewall);
+
         let data = await this.resolveBindingTarget({
           tenant: d.tenant,
           environment: d.environment,

@@ -8,14 +8,19 @@ import {
   db,
   type Environment,
   type Firewall,
+  type FirewallStatus,
   getId,
   type Solution,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
 import {
+  checkDeletedEdit,
+  checkDeletedRelation,
   type DateFilter,
   normalizeDateFilter,
+  normalizeStatusForGet,
+  normalizeStatusForList,
   resolveEnclaves,
   resolveNetworkPolicies,
   resolveNetworks,
@@ -57,6 +62,8 @@ class firewallServiceImpl {
     tenant: Tenant;
     solution: Solution;
     environment: Environment;
+    status?: FirewallStatus[];
+    allowDeleted?: boolean;
     ids?: string[];
     slugs?: string[];
     networkIds?: string[];
@@ -78,6 +85,7 @@ class firewallServiceImpl {
           where: {
             tenantOid: d.tenant.oid,
             environmentOid: d.environment.oid,
+            ...normalizeStatusForList(d).noParent,
             AND: [
               d.ids ? { id: { in: d.ids } } : undefined!,
               d.slugs ? { slug: { in: d.slugs } } : undefined!,
@@ -101,12 +109,18 @@ class firewallServiceImpl {
     );
   }
 
-  async getFirewallById(d: { tenant: Tenant; environment: Environment; firewallId: string }) {
+  async getFirewallById(d: {
+    tenant: Tenant;
+    environment: Environment;
+    firewallId: string;
+    allowDeleted?: boolean;
+  }) {
     let firewall = await db.firewall.findFirst({
       where: {
         id: d.firewallId,
         tenantOid: d.tenant.oid,
-        environmentOid: d.environment.oid
+        environmentOid: d.environment.oid,
+        ...normalizeStatusForGet(d).hasParent
       },
       include
     });
@@ -150,6 +164,7 @@ class firewallServiceImpl {
       let firewall = await db.firewall.create({
         data: {
           ...getId('firewall'),
+          status: 'active',
           name: d.input.name.trim(),
           description: d.input.description?.trim() || undefined,
           slug,
@@ -203,6 +218,7 @@ class firewallServiceImpl {
     };
   }) {
     checkTenant(d, d.firewall);
+    checkDeletedEdit(d.firewall, 'update');
 
     return withTransaction(async db => {
       if (d.input.networkPolicyIds !== undefined) {
@@ -247,6 +263,7 @@ class firewallServiceImpl {
     position?: number;
   }) {
     checkTenant(d, d.firewall);
+    checkDeletedEdit(d.firewall, 'update');
 
     return withTransaction(async db => {
       let existing = await db.firewallNetworkPolicy.findFirst({
@@ -276,6 +293,7 @@ class firewallServiceImpl {
       if (!networkPolicy) {
         throw new ServiceError(notFoundError('network.policy', d.networkPolicyId));
       }
+      checkDeletedRelation(networkPolicy);
 
       let position = d.position;
       if (position === undefined) {
@@ -315,6 +333,7 @@ class firewallServiceImpl {
     networkPolicyId: string;
   }) {
     checkTenant(d, d.firewall);
+    checkDeletedEdit(d.firewall, 'update');
 
     return withTransaction(async db => {
       let link = await db.firewallNetworkPolicy.findFirst({
@@ -348,31 +367,29 @@ class firewallServiceImpl {
     });
   }
 
-  async deleteFirewall(d: { tenant: Tenant; environment: Environment; firewall: Firewall }) {
+  async archiveFirewall(d: { tenant: Tenant; environment: Environment; firewall: Firewall }) {
     checkTenant(d, d.firewall);
+    checkDeletedEdit(d.firewall, 'archive');
 
     return withTransaction(async db => {
-      let network = await db.network.findFirst({
-        where: { oid: d.firewall.networkOid },
-        select: { id: true }
-      });
-
-      await db.firewallBinding.deleteMany({
-        where: { firewallOid: d.firewall.oid }
-      });
-      await db.firewallNetworkPolicy.deleteMany({
-        where: { firewallOid: d.firewall.oid }
-      });
-
-      let deletedFirewall = await db.firewall.delete({
-        where: { oid: d.firewall.oid }
+      let archivedFirewall = await db.firewall.update({
+        where: {
+          oid: d.firewall.oid,
+          tenantOid: d.tenant.oid,
+          environmentOid: d.environment.oid
+        },
+        data: {
+          status: 'archived',
+          archivedAt: new Date()
+        },
+        include
       });
 
       await addAfterTransactionHook(async () =>
-        firewallDeletedQueue.add({ networkId: network!.id })
+        firewallDeletedQueue.add({ firewallId: archivedFirewall.id })
       );
 
-      return deletedFirewall;
+      return archivedFirewall;
     });
   }
 
@@ -406,6 +423,10 @@ class firewallServiceImpl {
               message: 'One or more network policies were not found in this environment.'
             })
           );
+        }
+
+        for (let policy of policies) {
+          checkDeletedRelation(policy);
         }
 
         let positionByPolicyId = new Map(

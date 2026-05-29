@@ -171,6 +171,7 @@ class enclaveServiceImpl {
       where: {
         tenantOid: d.tenant.oid,
         environmentOid: d.environment.oid,
+        firewall: { status: 'active' },
         OR: [
           { enclaveOid: enclave.oid },
           { providerOid: enclave.providerDeployment.providerOid },
@@ -182,6 +183,9 @@ class enclaveServiceImpl {
           include: {
             networkPolicyLinks: {
               orderBy: { position: 'asc' as const },
+              where: {
+                networkPolicy: { status: 'active' }
+              },
               include: {
                 networkPolicy: {
                   include: {

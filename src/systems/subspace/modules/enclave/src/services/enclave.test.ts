@@ -108,6 +108,7 @@ describe('enclaveService.compileNetworkRules', () => {
     expect(mockDb.firewallBinding.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
+          firewall: { status: 'active' },
           OR: [
             { enclaveOid: BigInt(300) },
             { providerOid: BigInt(400) },

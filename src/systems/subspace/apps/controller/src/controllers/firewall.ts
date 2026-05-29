@@ -20,7 +20,8 @@ export let firewallApp = tenantApp.use(async ctx => {
   let firewall = await firewallService.getFirewallById({
     firewallId,
     tenant: ctx.tenant,
-    environment: ctx.environment
+    environment: ctx.environment,
+    allowDeleted: ctx.body.allowDeleted
   });
 
   return { firewall };
@@ -34,6 +35,9 @@ export let firewallController = app.controller({
         v.object({
           tenantId: v.string(),
           environmentId: v.string(),
+
+          status: v.optional(v.array(v.enumOf(['active', 'archived', 'deleted']))),
+          allowDeleted: v.optional(v.boolean()),
 
           ids: v.optional(v.array(v.string())),
           slugs: v.optional(v.array(v.string())),
@@ -52,6 +56,8 @@ export let firewallController = app.controller({
         tenant: ctx.tenant,
         environment: ctx.environment,
         solution: ctx.solution,
+        status: ctx.input.status,
+        allowDeleted: ctx.input.allowDeleted,
         ids: ctx.input.ids,
         slugs: ctx.input.slugs,
         networkIds: ctx.input.networkIds,
@@ -73,7 +79,8 @@ export let firewallController = app.controller({
       v.object({
         tenantId: v.string(),
         environmentId: v.string(),
-        firewallId: v.string()
+        firewallId: v.string(),
+        allowDeleted: v.optional(v.boolean())
       })
     )
     .do(async ctx => firewallPresenter(ctx.firewall)),
@@ -150,7 +157,7 @@ export let firewallController = app.controller({
       })
     )
     .do(async ctx => {
-      await firewallService.deleteFirewall({
+      await firewallService.archiveFirewall({
         firewall: ctx.firewall,
         tenant: ctx.tenant,
         environment: ctx.environment

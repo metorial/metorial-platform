@@ -1,4 +1,4 @@
-import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
+import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { createLock } from '@lowerdeck/lock';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
@@ -8,13 +8,17 @@ import {
   type Environment,
   getId,
   type NetworkPolicy,
+  type NetworkPolicyStatus,
   type Solution,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
 import {
+  checkDeletedEdit,
   type DateFilter,
   normalizeDateFilter,
+  normalizeStatusForGet,
+  normalizeStatusForList,
   resolveFirewalls
 } from '@metorial-subspace/list-utils';
 import { checkTenant } from '@metorial-subspace/module-tenant';
@@ -67,6 +71,8 @@ class networkPolicyServiceImpl {
     tenant: Tenant;
     solution: Solution;
     environment: Environment;
+    status?: NetworkPolicyStatus[];
+    allowDeleted?: boolean;
     ids?: string[];
     firewallIds?: string[];
     search?: string;
@@ -83,6 +89,7 @@ class networkPolicyServiceImpl {
           where: {
             tenantOid: d.tenant.oid,
             environmentOid: d.environment.oid,
+            ...normalizeStatusForList(d).noParent,
             AND: [
               d.ids ? { id: { in: d.ids } } : undefined!,
               firewalls
@@ -114,12 +121,14 @@ class networkPolicyServiceImpl {
     tenant: Tenant;
     environment: Environment;
     networkPolicyId: string;
+    allowDeleted?: boolean;
   }) {
     let networkPolicy = await db.networkPolicy.findFirst({
       where: {
         id: d.networkPolicyId,
         tenantOid: d.tenant.oid,
-        environmentOid: d.environment.oid
+        environmentOid: d.environment.oid,
+        ...normalizeStatusForGet(d).hasParent
       },
       include
     });
@@ -145,6 +154,7 @@ class networkPolicyServiceImpl {
       let networkPolicy = await db.networkPolicy.create({
         data: {
           ...getId('networkPolicy'),
+          status: 'active',
           name: d.input.name.trim(),
           description: d.input.description?.trim() || undefined,
           tenantOid: d.tenant.oid,
@@ -179,6 +189,7 @@ class networkPolicyServiceImpl {
     };
   }) {
     checkTenant(d, d.networkPolicy);
+    checkDeletedEdit(d.networkPolicy, 'update');
 
     if (d.input.rules === undefined) {
       return withTransaction(async db => {
@@ -269,6 +280,7 @@ class networkPolicyServiceImpl {
     };
   }) {
     checkTenant(d, d.networkPolicy);
+    checkDeletedEdit(d.networkPolicy, 'update');
 
     return ruleChangeLock.usingLock([d.networkPolicy.id], async () => {
       let networkPolicy = await this.getNetworkPolicyForRuleMutation(d);
@@ -305,6 +317,7 @@ class networkPolicyServiceImpl {
     ruleId: string;
   }) {
     checkTenant(d, d.networkPolicy);
+    checkDeletedEdit(d.networkPolicy, 'update');
 
     return ruleChangeLock.usingLock([d.networkPolicy.id], async () => {
       let networkPolicy = await this.getNetworkPolicyForRuleMutation(d);
@@ -375,37 +388,33 @@ class networkPolicyServiceImpl {
     return networkPolicyVersion;
   }
 
-  async deleteNetworkPolicy(d: {
+  async archiveNetworkPolicy(d: {
     tenant: Tenant;
     environment: Environment;
     networkPolicy: NetworkPolicy;
   }) {
     checkTenant(d, d.networkPolicy);
+    checkDeletedEdit(d.networkPolicy, 'archive');
 
     return withTransaction(async db => {
-      let linkCount = await db.firewallNetworkPolicy.count({
-        where: { networkPolicyOid: d.networkPolicy.oid }
-      });
-      if (linkCount > 0) {
-        throw new ServiceError(
-          badRequestError({
-            code: 'network_policy_in_use',
-            message: 'Network policy is linked to one or more firewalls and cannot be deleted.'
-          })
-        );
-      }
-
-      let networkPolicyId = d.networkPolicy.id;
-
-      let deletedNetworkPolicy = await db.networkPolicy.delete({
-        where: { oid: d.networkPolicy.oid }
+      let archivedNetworkPolicy = await db.networkPolicy.update({
+        where: {
+          oid: d.networkPolicy.oid,
+          tenantOid: d.tenant.oid,
+          environmentOid: d.environment.oid
+        },
+        data: {
+          status: 'archived',
+          archivedAt: new Date()
+        },
+        include
       });
 
       await addAfterTransactionHook(async () =>
-        networkPolicyDeletedQueue.add({ networkPolicyId })
+        networkPolicyDeletedQueue.add({ networkPolicyId: archivedNetworkPolicy.id })
       );
 
-      return deletedNetworkPolicy;
+      return archivedNetworkPolicy;
     });
   }
 

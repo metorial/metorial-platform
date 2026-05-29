@@ -45,6 +45,7 @@ export let firewallPresenter = (
   slug: firewall.slug,
   name: firewall.name,
   description: firewall.description,
+  status: firewall.status,
   networkId: firewall.network.id,
 
   networkPolicies: firewall.networkPolicyLinks.map(link =>
@@ -52,5 +53,6 @@ export let firewallPresenter = (
   ),
 
   createdAt: firewall.createdAt,
-  updatedAt: firewall.updatedAt
+  updatedAt: firewall.updatedAt,
+  archivedAt: firewall.archivedAt
 });

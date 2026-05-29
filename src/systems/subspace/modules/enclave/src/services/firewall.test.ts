@@ -122,8 +122,8 @@ describe('firewallService', () => {
   it('replaces network policy links when update includes networkPolicyIds', async () => {
     mockDb.firewallNetworkPolicy.deleteMany.mockResolvedValueOnce({ count: 1 });
     mockDb.networkPolicy.findMany.mockResolvedValueOnce([
-      { oid: BigInt(500), id: 'npo_a' },
-      { oid: BigInt(501), id: 'npo_b' }
+      { oid: BigInt(500), id: 'npo_a', status: 'active' },
+      { oid: BigInt(501), id: 'npo_b', status: 'active' }
     ]);
     mockDb.firewall.update.mockResolvedValueOnce({
       oid: BigInt(200),
@@ -137,6 +137,8 @@ describe('firewallService', () => {
       environment,
       firewall: {
         oid: BigInt(200),
+        id: 'fwl_test',
+        status: 'active',
         tenantOid: tenant.oid,
         environmentOid: environment.oid
       } as any,
@@ -157,7 +159,8 @@ describe('firewallService', () => {
       .mockResolvedValueOnce(null);
     mockDb.networkPolicy.findFirst.mockResolvedValueOnce({
       oid: BigInt(500),
-      id: 'npo_test'
+      id: 'npo_test',
+      status: 'active'
     });
     mockDb.firewall.findFirstOrThrow.mockResolvedValueOnce({
       oid: BigInt(200),
@@ -171,6 +174,8 @@ describe('firewallService', () => {
       environment,
       firewall: {
         oid: BigInt(200),
+        id: 'fwl_test',
+        status: 'active',
         tenantOid: tenant.oid,
         environmentOid: environment.oid
       } as any,
@@ -202,6 +207,8 @@ describe('firewallService', () => {
       environment,
       firewall: {
         oid: BigInt(200),
+        id: 'fwl_test',
+        status: 'active',
         tenantOid: tenant.oid,
         environmentOid: environment.oid
       } as any,
@@ -211,5 +218,46 @@ describe('firewallService', () => {
     expect(mockDb.firewallNetworkPolicy.delete).toHaveBeenCalledWith({
       where: { oid: BigInt(600) }
     });
+  });
+
+  it('archives a firewall without deleting bindings or policy links', async () => {
+    mockDb.firewall.update.mockResolvedValueOnce({
+      oid: BigInt(200),
+      id: 'fwl_test',
+      status: 'archived',
+      networkPolicyLinks: [],
+      network: { id: 'net_test' }
+    });
+
+    await firewallService.archiveFirewall({
+      tenant,
+      environment,
+      firewall: {
+        oid: BigInt(200),
+        id: 'fwl_test',
+        status: 'active',
+        tenantOid: tenant.oid,
+        environmentOid: environment.oid
+      } as any
+    });
+
+    expect(mockDb.firewallBinding.deleteMany).not.toHaveBeenCalled();
+    expect(mockDb.firewallNetworkPolicy.deleteMany).not.toHaveBeenCalled();
+    expect(mockDb.firewall.delete).not.toHaveBeenCalled();
+    expect(mockDb.firewall.update).toHaveBeenCalledWith({
+      where: {
+        oid: BigInt(200),
+        tenantOid: tenant.oid,
+        environmentOid: environment.oid
+      },
+      data: {
+        status: 'archived',
+        archivedAt: expect.any(Date)
+      },
+      include: expect.any(Object)
+    });
+
+    let { firewallDeletedQueue } = await import('../queues/lifecycle/firewall');
+    expect(firewallDeletedQueue.add).toHaveBeenCalledWith({ firewallId: 'fwl_test' });
   });
 });

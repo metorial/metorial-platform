@@ -14,22 +14,24 @@ model Network {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  enclaves           Enclave[]
-  firewalls          Firewall[]
-  firewallBindings   FirewallBinding[]
+  enclaves         Enclave[]
+  firewalls        Firewall[]
+  firewallBindings FirewallBinding[]
 
   @@unique([tenantOid, environmentOid])
 }
 
-enum FirewallBindingTargetType {
-  enclave
-  provider
-  network
+enum FirewallStatus {
+  active
+  archived
+  deleted
 }
 
 model Firewall {
   oid BigInt @id
   id  String @unique
+
+  status FirewallStatus @default(active)
 
   name        String
   description String?
@@ -44,13 +46,21 @@ model Firewall {
   environmentOid BigInt
   environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
+  archivedAt DateTime?
 
   bindings           FirewallBinding[]
   networkPolicyLinks FirewallNetworkPolicy[]
 
   @@unique([tenantOid, environmentOid, slug])
+  @@index([status])
+}
+
+enum FirewallBindingTargetType {
+  enclave
+  provider
+  network
 }
 
 model FirewallBinding {
@@ -84,9 +94,17 @@ model FirewallBinding {
   @@unique([firewallOid, networkOid])
 }
 
+enum NetworkPolicyStatus {
+  active
+  archived
+  deleted
+}
+
 model NetworkPolicy {
   oid BigInt @id
   id  String @unique
+
+  status NetworkPolicyStatus @default(active)
 
   name        String
   description String?
@@ -102,11 +120,14 @@ model NetworkPolicy {
   environmentOid BigInt
   environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
+  archivedAt DateTime?
 
   versions      NetworkPolicyVersion[]
   firewallLinks FirewallNetworkPolicy[]
+
+  @@index([status])
 }
 
 model NetworkPolicyVersion {

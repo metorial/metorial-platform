@@ -52,6 +52,7 @@ vi.mock('@lowerdeck/lock', () => ({
   })
 }));
 
+import { networkPolicyDeletedQueue } from '../queues/lifecycle/networkPolicy';
 import { networkPolicyService } from './networkPolicy';
 
 let tenant = { oid: BigInt(10), id: 'ktn_test' } as any;
@@ -144,6 +145,7 @@ describe('networkPolicyService', () => {
       networkPolicy: {
         oid: BigInt(1),
         id: 'npo_test',
+        status: 'active',
         tenantOid: tenant.oid,
         environmentOid: environment.oid
       } as any,
@@ -197,6 +199,7 @@ describe('networkPolicyService', () => {
       networkPolicy: {
         oid: BigInt(1),
         id: 'npo_test',
+        status: 'active',
         tenantOid: tenant.oid,
         environmentOid: environment.oid
       } as any,
@@ -260,6 +263,7 @@ describe('networkPolicyService', () => {
         id: 'npo_test',
         name: 'Ingress policy',
         description: null,
+        status: 'active',
         tenantOid: tenant.oid,
         environmentOid: environment.oid
       } as any,
@@ -285,6 +289,44 @@ describe('networkPolicyService', () => {
       })
     });
     expect(result.currentVersionNumber).toBe(2);
+  });
+
+  it('archives a network policy even when linked to firewalls', async () => {
+    mockDb.networkPolicy.update.mockResolvedValueOnce({
+      oid: BigInt(1),
+      id: 'npo_test',
+      status: 'archived',
+      firewallLinks: []
+    });
+
+    await networkPolicyService.archiveNetworkPolicy({
+      tenant,
+      environment,
+      networkPolicy: {
+        oid: BigInt(1),
+        id: 'npo_test',
+        status: 'active',
+        tenantOid: tenant.oid,
+        environmentOid: environment.oid
+      } as any
+    });
+
+    expect(mockDb.firewallNetworkPolicy.count).not.toHaveBeenCalled();
+    expect(mockDb.networkPolicy.update).toHaveBeenCalledWith({
+      where: {
+        oid: BigInt(1),
+        tenantOid: tenant.oid,
+        environmentOid: environment.oid
+      },
+      data: {
+        status: 'archived',
+        archivedAt: expect.any(Date)
+      },
+      include: expect.any(Object)
+    });
+    expect(networkPolicyDeletedQueue.add).toHaveBeenCalledWith({
+      networkPolicyId: 'npo_test'
+    });
   });
 });
 

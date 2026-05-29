@@ -108,5 +108,7 @@ export let networkPolicyDeletedQueue = createQueue<{ networkPolicyId: string }>(
 });
 
 export let networkPolicyDeletedQueueProcessor = networkPolicyDeletedQueue.process(
-  async () => {}
+  async data => {
+    await resetCompiledNetworkRulesForNetworkPolicyId(data.networkPolicyId);
+  }
 );

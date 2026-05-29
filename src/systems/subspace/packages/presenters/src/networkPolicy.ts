@@ -28,6 +28,7 @@ export let networkPolicyPresenter = (
   id: networkPolicy.id,
   name: networkPolicy.name,
   description: networkPolicy.description,
+  status: networkPolicy.status,
   version: networkPolicy.currentVersionNumber,
   rules: networkPolicyRulesPresenter(
     (networkPolicy.currentVersion?.rules ?? []) as PrismaJson.NetworkPolicyRules
@@ -35,5 +36,6 @@ export let networkPolicyPresenter = (
   firewallIds: networkPolicy.firewallLinks?.map(link => link.firewall.id),
 
   createdAt: networkPolicy.createdAt,
-  updatedAt: networkPolicy.updatedAt
+  updatedAt: networkPolicy.updatedAt,
+  archivedAt: networkPolicy.archivedAt
 });
