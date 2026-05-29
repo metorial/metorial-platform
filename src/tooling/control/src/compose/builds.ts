@@ -104,8 +104,15 @@ export let collectRunnerBuilds = (graph: ResolvedGraph): DockerBuildSpec[] => {
   return [...specs.values()].sort((a, b) => a.name.localeCompare(b.name));
 };
 
-export let collectServiceRunnerBuilds = (graph: ResolvedGraph): DockerBuildSpec[] => {
+export let collectServiceRunnerBuilds = (
+  graph: ResolvedGraph,
+  opts?: { role?: 'test-runner' | 'service'; imageName?: string }
+): DockerBuildSpec[] => {
   let specs = new Map<string, DockerBuildSpec>();
-  addRunnerBuild(specs, graph.name, graph);
+  if (!graph.config.service) return [];
+
+  let build = resolveBuild(graph, { role: opts?.role ?? 'service' });
+  let key = buildKey(build);
+  specs.set(key, { name: opts?.imageName ?? graph.name, ...build });
   return [...specs.values()];
 };

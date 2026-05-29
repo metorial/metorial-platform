@@ -12,6 +12,10 @@ export type ComposeOptions = {
   postgresInitScripts?: Record<string, string>;
   buildContexts?: Record<string, Pick<DockerBuildConfig, 'context' | 'dockerfile'>>;
   cacheRoot?: string;
+  prebuiltImages?: {
+    prefix: string;
+    tag: string;
+  };
 };
 
 let networkConfig = (alias: string) => ({
@@ -127,7 +131,19 @@ let composeBuild = (
   };
 };
 
-let composeImage = (name: string) => `control/${name}:local`;
+let composeImage = (name: string, composeOptions?: ComposeOptions) => {
+  if (composeOptions?.prebuiltImages) {
+    return `${composeOptions.prebuiltImages.prefix}/${name}:${composeOptions.prebuiltImages.tag}`;
+  }
+  return `control/${name}:local`;
+};
+
+let testRunnerImage = (name: string, composeOptions?: ComposeOptions) => {
+  if (composeOptions?.prebuiltImages) {
+    return `${composeOptions.prebuiltImages.prefix}/${name}-test:${composeOptions.prebuiltImages.tag}`;
+  }
+  return composeImage(name, composeOptions);
+};
 
 let buildControlService = (
   dep: ResolvedDep,
@@ -143,8 +159,8 @@ let buildControlService = (
   let dependsOn = resolveControlDependsOn(dep, graph);
 
   return {
-    image: composeImage(child.name),
-    build: composeBuild(child.name, build, composeOptions),
+    image: composeImage(child.name, composeOptions),
+    ...(composeOptions?.prebuiltImages ? {} : { build: composeBuild(child.name, build, composeOptions) }),
     container_name: containerName,
     restart: 'unless-stopped',
     environment: resolveControlServiceEnv(dep, graph),
@@ -418,14 +434,34 @@ export let generateComposeServices = (
 
   let build = applyBuildContext(graph.name, resolveBuild(graph, { role: 'test-runner' }), composeOptions);
   let isSidecar = graph.config.test?.e2e?.runner === 'sidecar';
-  let runnerKey = graph.testRunnerComposeName;
-  let runnerContainer = isSidecar
+  let isPrebuilt = !!composeOptions?.prebuiltImages;
+  let runnerKey = isPrebuilt ? `${graph.rootPrefix}-test` : graph.testRunnerComposeName;
+  let runnerContainer = isSidecar || isPrebuilt
     ? containerNameFor(projectName, 'test')
     : containerNameFor(projectName, 'service');
 
+  if (isPrebuilt) {
+    let serviceHealth = resolveServiceHealth(graph);
+    services[graph.serviceComposeName] = {
+      image: composeImage(graph.name, composeOptions),
+      container_name: containerNameFor(projectName, 'service'),
+      restart: 'unless-stopped',
+      environment: graph.env,
+      depends_on: dependsOn,
+      healthcheck: serviceHealth,
+      networks: networkConfig(graph.name)
+    };
+    dependsOn = {
+      ...dependsOn,
+      [graph.serviceComposeName]: {
+        condition: serviceHealth ? 'service_healthy' : 'service_started'
+      }
+    };
+  }
+
   services[runnerKey] = {
-    image: composeImage(graph.name),
-    build: composeBuild(graph.name, build, composeOptions),
+    image: testRunnerImage(graph.name, composeOptions),
+    ...(isPrebuilt ? {} : { build: composeBuild(graph.name, build, composeOptions) }),
     container_name: runnerContainer,
     restart: 'unless-stopped',
     command: ['sh', '-c', 'sleep infinity'],

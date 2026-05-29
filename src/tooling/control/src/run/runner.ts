@@ -213,6 +213,15 @@ let preparePrebuiltBuildArtifacts = async (opts: {
   }
 };
 
+let resolvePrebuiltImages = () => {
+  if (process.env.CONTROL_PREBUILT_IMAGES !== '1') return undefined;
+
+  return {
+    prefix: process.env.CONTROL_PREBUILT_IMAGE_PREFIX ?? 'control',
+    tag: process.env.CONTROL_PREBUILT_IMAGE_TAG ?? 'local'
+  };
+};
+
 export let runControl = async (
   opts: RunOptions & { target: string; context?: RunControlContext }
 ) => {
@@ -245,7 +254,9 @@ export let runControl = async (
   let runDir = join(repoRoot, '.control', 'runs', runId);
   mkdirSync(runDir, { recursive: true });
 
-  if (shouldUsePrebuiltBuildArtifacts()) {
+  let prebuiltImages = resolvePrebuiltImages();
+
+  if (!prebuiltImages && shouldUsePrebuiltBuildArtifacts()) {
     await preparePrebuiltBuildArtifacts({
       graph,
       registry,
@@ -253,11 +264,13 @@ export let runControl = async (
     });
   }
 
-  let buildContexts = await collectMaterializedBuildContexts({
-    graph,
-    registry,
-    session: opts.session ?? null
-  });
+  let buildContexts = prebuiltImages
+    ? {}
+    : await collectMaterializedBuildContexts({
+        graph,
+        registry,
+        session: opts.session ?? null
+      });
 
   let postgresInitScripts: Record<string, string> = {};
   for (let dep of graph.deps) {
@@ -284,7 +297,8 @@ export let runControl = async (
     generateCompose(graph, projectName, {
       postgresInitScripts,
       buildContexts,
-      cacheRoot
+      cacheRoot,
+      prebuiltImages
     })
   );
 
@@ -300,7 +314,7 @@ export let runControl = async (
   }
 
   let isSidecar = graph.config.test?.e2e?.runner === 'sidecar';
-  let runnerContainer = isSidecar ? `${projectName}-test` : `${projectName}-service`;
+  let runnerContainer = isSidecar || prebuiltImages ? `${projectName}-test` : `${projectName}-service`;
   let failedPhase: RunPhase = 'build';
   let composeStack = { projectName, composeFile, cwd: runDir };
   if (!opts.keep) registerComposeStack(composeStack);
@@ -324,6 +338,11 @@ export let runControl = async (
 
     failedPhase = 'health';
     let waitServices = collectContainerNames(graph, projectName);
+    if (prebuiltImages) {
+      for (let container of [`${projectName}-service`, `${projectName}-test`]) {
+        if (!waitServices.includes(container)) waitServices.push(container);
+      }
+    }
     await waitForServices({ services: waitServices, verbose: opts.verbose, logger });
 
     let e2e = graph.config.test?.e2e;

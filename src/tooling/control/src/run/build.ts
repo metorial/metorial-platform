@@ -20,8 +20,20 @@ type BuildContext = {
   service: ControlService;
 };
 
-let imageTag = (opts: { tagPrefix: string; rootName: string; specName: string }) =>
-  `${opts.tagPrefix}/${opts.rootName}-${opts.specName}:local`;
+let legacyImageName = (opts: { tagPrefix: string; rootName: string; specName: string }) =>
+  `${opts.tagPrefix}/${opts.rootName}-${opts.specName}`;
+
+let imageTags = (opts: {
+  tagPrefix: string;
+  rootName: string;
+  specName: string;
+  image?: string;
+  tags?: string[];
+}) => {
+  let repo = opts.image ?? legacyImageName(opts);
+  let tags = opts.tags?.length ? opts.tags : ['local'];
+  return tags.map(tag => `${repo}:${tag}`);
+};
 
 let buildCacheDir = (opts: { controlRoot: string; rootName: string; specName: string }) =>
   resolve(opts.controlRoot, '.control', 'cache', 'buildkit', `${opts.rootName}-${opts.specName}`);
@@ -64,13 +76,23 @@ let runBuildForService = async (
     );
   }
 
-  let specs = collectServiceRunnerBuilds(graph);
+  let targetRole = opts.targetRole ?? 'service';
+  let specs = collectServiceRunnerBuilds(graph, {
+    role: targetRole,
+    imageName: targetRole === 'test-runner' ? `${graph.name}-test` : graph.name
+  });
   logger.info(`Building ${specs.length} runner image(s) for ${graph.name}...`);
 
   for (let spec of specs) {
     let dockerfilePath = resolve(spec.context, spec.dockerfile);
     let dockerContext = spec.context;
-    let tag = imageTag({ tagPrefix, rootName: graph.name, specName: spec.name });
+    let tags = imageTags({
+      tagPrefix,
+      rootName: graph.name,
+      specName: spec.name,
+      image: opts.image,
+      tags: opts.tags
+    });
     let targetService = registry.byName.get(spec.name);
 
     logger.info(`Building ${spec.name} (${spec.target}) ...`);
@@ -103,8 +125,11 @@ let runBuildForService = async (
       '--target',
       spec.target,
       '-t',
-      tag
+      tags[0]!
     ];
+    for (let tag of tags.slice(1)) {
+      cmd.push('-t', tag);
+    }
     if (shouldUseBuildCacheExport()) {
       let cacheDir = buildCacheDir({
         controlRoot: registry.controlRoot,
@@ -132,7 +157,18 @@ let runBuildForService = async (
       verbose: opts.verbose
     });
 
-    logger.success(`✓ ${tag}`);
+    if (opts.push) {
+      for (let tag of tags) {
+        logger.info(`Pushing ${tag} ...`);
+        await runShell(['docker', 'push', tag], {
+          phase: 'build',
+          service: graph.name,
+          verbose: opts.verbose
+        });
+      }
+    }
+
+    logger.success(`✓ ${tags.join(', ')}`);
   }
 };
 

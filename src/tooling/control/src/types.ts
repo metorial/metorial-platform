@@ -254,6 +254,10 @@ export type BuildOptions = {
   entrypoint?: string;
   verbose?: boolean;
   tagPrefix?: string;
+  image?: string;
+  tags?: string[];
+  push?: boolean;
+  targetRole?: 'service' | 'test-runner';
   services?: ControlService[];
   session?: WorkspaceSession | null;
   keep?: boolean;

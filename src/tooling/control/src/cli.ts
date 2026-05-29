@@ -63,6 +63,12 @@ let collectModules = (argv: string[]): string[] =>
     .map(value => value.trim())
     .filter(Boolean);
 
+let collectTags = (argv: string[]): string[] =>
+  collectRepeatedOption(argv, ['--tag'])
+    .flatMap(value => value.split(','))
+    .map(value => value.trim())
+    .filter(Boolean);
+
 let readBooleanOption = (opts: Record<string, unknown>, names: string[]): boolean =>
   names.some(name => opts[name] === true);
 
@@ -371,7 +377,7 @@ addRunCommand('unit', 'unit');
 
 prog
   .command('build [target]')
-  .describe('Build prod runner Docker images for selected services')
+  .describe('Build runner Docker images for selected services')
   .option('--entrypoint, -e', 'Workspace entrypoint')
   .option('--all', 'Build all services with [service] config')
   .option('--filter, -f', 'Build named services')
@@ -379,9 +385,16 @@ prog
   .option('--no-stage', 'Build against the live checkout instead of a staged copy')
   .option('--verbose, -v', 'Verbose output')
   .option('--tag-prefix', 'Image tag prefix', 'control')
+  .option('--image', 'Override image repository for the built runner image')
+  .option('--tag', 'Image tag to apply; repeat or comma-separate for multiple tags')
+  .option('--push', 'Push built image tags after a successful build')
+  .option('--target-role', 'Dockerfile target role to build: service or test-runner', 'service')
   .action(async (target: string | undefined, opts: StagedCliOpts & {
     all?: boolean;
     'tag-prefix'?: string;
+    image?: string;
+    push?: boolean;
+    'target-role'?: string;
     filter?: string;
   }) => {
     await runCommand(async () => {
@@ -399,6 +412,14 @@ prog
             session
           });
           let filters = collectFilters(process.argv);
+          let tags = collectTags(process.argv);
+          if (
+            opts['target-role'] &&
+            opts['target-role'] !== 'service' &&
+            opts['target-role'] !== 'test-runner'
+          ) {
+            throw new InvalidFlagsError('target-role must be service or test-runner');
+          }
 
           let services = resolveBuildTargets({
             registry,
@@ -415,6 +436,10 @@ prog
             entrypoint: opts.entrypoint,
             verbose: opts.verbose,
             tagPrefix: opts['tag-prefix'],
+            image: opts.image,
+            tags,
+            push: !!opts.push,
+            targetRole: opts['target-role'] === 'test-runner' ? 'test-runner' : 'service',
             keep: opts.keep,
             noStage: readNoStageOption(opts),
             session,

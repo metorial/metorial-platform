@@ -54,6 +54,61 @@ on:
         required: false
         default: auto
         type: string
+      image:
+        description: 'Image repository for control build'
+        required: false
+        default: ''
+        type: string
+      image_tag:
+        description: 'Image tag for control build; defaults to sanitized branch name plus commit SHA'
+        required: false
+        default: ''
+        type: string
+      push_image:
+        description: 'Push built images'
+        required: false
+        default: false
+        type: boolean
+      target_role:
+        description: 'Control build target role: service or test-runner'
+        required: false
+        default: service
+        type: string
+      build_test_runner:
+        description: 'Also build a test-runner image for e2e artifact reuse'
+        required: false
+        default: false
+        type: boolean
+      save_image_artifact:
+        description: 'Save built images as a Docker archive artifact'
+        required: false
+        default: false
+        type: boolean
+      image_artifact_name:
+        description: 'Artifact name for saved Docker image archive'
+        required: false
+        default: ''
+        type: string
+      download_image_artifacts:
+        description: 'Download Docker image archive artifacts before running control'
+        required: false
+        default: false
+        type: boolean
+      image_artifact_pattern:
+        description: 'Artifact name pattern for Docker image archives'
+        required: false
+        default: ''
+        type: string
+      prebuilt_images:
+        description: 'Run e2e compose with prebuilt control images'
+        required: false
+        default: false
+        type: boolean
+      prebuilt_image_prefix:
+        description: 'Image prefix used by prebuilt e2e compose'
+        required: false
+        default: control
+        type: string
 
 jobs:
   control:
@@ -61,7 +116,7 @@ jobs:
     runs-on: ${{ inputs.runs-on }}
     permissions:
       contents: read
-      packages: read
+      packages: write
       actions: write
 
     steps:
@@ -182,6 +237,53 @@ jobs:
           NX_CACHE_DIRECTORY: ${{ github.workspace }}/.nx/cache
         run: bun i
 
+      - name: Compute image tag
+        id: image-tag
+        env:
+          INPUT_IMAGE_TAG: ${{ inputs.image_tag }}
+          RAW_REF: ${{ github.head_ref || github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          if [ -n "${INPUT_IMAGE_TAG}" ]; then
+            TAG="${INPUT_IMAGE_TAG}"
+          else
+            SAFE_REF="$(printf '%s' "${RAW_REF}" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9_.-' '-' | sed -E 's/^-+//; s/-+$//; s/-+/-/g' | cut -c1-80)"
+            TAG="${SAFE_REF}-${{ github.sha }}"
+          fi
+
+          echo "tag=${TAG}" >> "${GITHUB_OUTPUT}"
+
+      - name: Download prebuilt image artifacts
+        if: ${{ inputs.download_image_artifacts }}
+        uses: actions/download-artifact@v4
+        with:
+          pattern: ${{ inputs.image_artifact_pattern }}
+          path: .control/prebuilt-images
+          merge-multiple: true
+
+      - name: Load prebuilt images
+        if: ${{ inputs.download_image_artifacts }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          archives=(.control/prebuilt-images/*.tar)
+          if [ "${#archives[@]}" -eq 0 ]; then
+            echo "No prebuilt image archives found" >&2
+            exit 1
+          fi
+          for archive in "${archives[@]}"; do
+            docker load -i "${archive}"
+          done
+
+      - name: Log in to GitHub Container Registry
+        if: ${{ inputs.command == 'build' && inputs.push_image }}
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Expose GitHub Actions cache runtime
         if: ${{ inputs.enable_cache }}
         uses: crazy-max/ghaction-github-runtime@v3
@@ -261,20 +363,58 @@ jobs:
           CONTROL_BUILDKIT_CACHE: '0'
           CONTROL_DOCKER_CACHE_MOUNTS: '0'
           CONTROL_NO_STAGE: '1'
-          CONTROL_PREBUILT_BUILD_ARTIFACTS: '1'
+          CONTROL_PREBUILT_BUILD_ARTIFACTS: ${{ inputs.prebuilt_images && '0' || '1' }}
+          CONTROL_PREBUILT_IMAGES: ${{ inputs.prebuilt_images && '1' || '0' }}
+          CONTROL_PREBUILT_IMAGE_PREFIX: ${{ inputs.prebuilt_image_prefix }}
+          CONTROL_PREBUILT_IMAGE_TAG: ${{ steps.image-tag.outputs.tag }}
           CONTROL_NX_REMOTE_CACHE_DOCKER_URL: ${{ inputs.enable_cache && 'http://host.docker.internal:43191' || '' }}
           CONTROL_VERBOSE: '1'
           NX_CACHE_DIRECTORY: ${{ github.workspace }}/.nx/cache
           NX_SELF_HOSTED_REMOTE_CACHE_SERVER: ${{ inputs.enable_cache && 'http://127.0.0.1:43191' || '' }}
+          CONTROL_IMAGE: ${{ inputs.image }}
+          CONTROL_IMAGE_TAG: ${{ steps.image-tag.outputs.tag }}
+          CONTROL_PUSH_IMAGE: ${{ inputs.push_image && '1' || '0' }}
+          CONTROL_TARGET_ROLE: ${{ inputs.target_role }}
+          CONTROL_BUILD_TEST_RUNNER: ${{ inputs.build_test_runner && '1' || '0' }}
         run: |
           set -euo pipefail
 
-          if [ "${{ inputs.command }}" = "build" ]; then
-            ARGS=(build)
+          add_selection_args() {
             if [ "${{ inputs.all }}" = "true" ]; then
               ARGS+=(--all)
             elif [ -n "${{ inputs.filter }}" ]; then
               ARGS+=(--filter "${{ inputs.filter }}")
+            fi
+          }
+
+          add_build_image_args() {
+            if [ -n "${CONTROL_IMAGE}" ]; then
+              ARGS+=(--image "${CONTROL_IMAGE}")
+            fi
+            if [ -n "${CONTROL_IMAGE_TAG}" ]; then
+              ARGS+=(--tag "${CONTROL_IMAGE_TAG}")
+            fi
+            if [ "${CONTROL_PUSH_IMAGE}" = "1" ]; then
+              ARGS+=(--push)
+            fi
+          }
+
+          if [ "${{ inputs.command }}" = "build" ]; then
+            ARGS=(build --target-role "${CONTROL_TARGET_ROLE}")
+            add_selection_args
+            add_build_image_args
+            bun run control "${ARGS[@]}"
+
+            if [ "${CONTROL_BUILD_TEST_RUNNER}" = "1" ]; then
+              if [ -z "${CONTROL_IMAGE}" ]; then
+                echo "image is required when build_test_runner is true" >&2
+                exit 1
+              fi
+              ARGS=(build --target-role test-runner)
+              add_selection_args
+              CONTROL_IMAGE="${{ inputs.image }}-test"
+              add_build_image_args
+              bun run control "${ARGS[@]}"
             fi
           elif [ "${{ inputs.command }}" = "ci" ]; then
             if [ -z "${{ inputs.mode }}" ]; then
@@ -282,11 +422,7 @@ jobs:
               exit 1
             fi
             ARGS=(ci "${{ inputs.mode }}")
-            if [ "${{ inputs.all }}" = "true" ]; then
-              ARGS+=(--all)
-            elif [ -n "${{ inputs.filter }}" ]; then
-              ARGS+=(--filter "${{ inputs.filter }}")
-            fi
+            add_selection_args
             if [ -n "${{ inputs.project_prefix }}" ]; then
               ARGS+=(--project-prefix "${{ inputs.project_prefix }}")
             fi
@@ -300,7 +436,39 @@ jobs:
             exit 1
           fi
 
-          bun run control "${ARGS[@]}"
+          if [ "${{ inputs.command }}" != "build" ]; then
+            bun run control "${ARGS[@]}"
+          fi
+
+      - name: Save image archive
+        if: ${{ inputs.save_image_artifact }}
+        env:
+          SERVICE: ${{ inputs.filter }}
+          IMAGE: ${{ inputs.image }}
+          IMAGE_TAG: ${{ steps.image-tag.outputs.tag }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${SERVICE}" ] || [ -z "${IMAGE}" ] || [ -z "${IMAGE_TAG}" ]; then
+            echo "filter, image, and image tag are required to save image artifacts" >&2
+            exit 1
+          fi
+
+          mkdir -p .control/image-artifacts
+          docker tag "${IMAGE}:${IMAGE_TAG}" "control/${SERVICE}:${IMAGE_TAG}"
+          docker tag "${IMAGE}-test:${IMAGE_TAG}" "control/${SERVICE}-test:${IMAGE_TAG}"
+          docker save \
+            -o ".control/image-artifacts/${SERVICE}.tar" \
+            "control/${SERVICE}:${IMAGE_TAG}" \
+            "control/${SERVICE}-test:${IMAGE_TAG}"
+
+      - name: Upload image archive
+        if: ${{ inputs.save_image_artifact }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.image_artifact_name || format('control-image-{0}', inputs.filter) }}
+          path: .control/image-artifacts/*.tar
+          retention-days: 1
 
       - name: Finalize Nx cache bridge
         if: ${{ always() && inputs.enable_cache }}

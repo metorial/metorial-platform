@@ -7,7 +7,7 @@ on:
 
 permissions:
   contents: read
-  packages: read
+  packages: write
   actions: write
 
 jobs:
@@ -56,7 +56,7 @@ jobs:
 
   e2e:
     name: E2E (${{ matrix.service }})
-    needs: warm-cache
+    needs: build-images
     uses: ./.github/workflows/reusable-control.yml
     secrets: inherit
     strategy:
@@ -88,11 +88,15 @@ jobs:
       cache_prefix: control-ci
       project_prefix: ${{ matrix.service }}-ci
       runs-on: ubuntu-latest
+      download_image_artifacts: true
+      image_artifact_pattern: control-image-*
+      prebuilt_images: true
+      prebuilt_image_prefix: control
       checkout_submodules: ${{ matrix.service == 'subspace-controller' }}
 
   core-api-e2e:
     name: E2E (app-api)
-    needs: warm-cache
+    needs: build-images
     uses: ./.github/workflows/reusable-control.yml
     secrets: inherit
     with:
@@ -103,3 +107,66 @@ jobs:
       cache_prefix: control-ci
       project_prefix: app-api-ci
       runs-on: ubuntu-latest
+      download_image_artifacts: true
+      image_artifact_pattern: control-image-*
+      prebuilt_images: true
+      prebuilt_image_prefix: control
+
+  build-images:
+    name: Build Image (${{ matrix.service }})
+    needs: unit
+    uses: ./.github/workflows/reusable-control.yml
+    secrets: inherit
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: ares
+            image: ghcr.io/metorial/mte-ares
+          - service: cargo
+            image: ghcr.io/metorial/mte-cargo
+          - service: code-bucket
+            image: ghcr.io/metorial/mte-code-bucket
+          - service: deflector
+            image: ghcr.io/metorial/mte-deflector
+          - service: forge
+            image: ghcr.io/metorial/mte-forge
+          - service: function-bay
+            image: ghcr.io/metorial/mte-function-bay
+          - service: origin
+            image: ghcr.io/metorial/mte-origin
+          - service: shuttle
+            image: ghcr.io/metorial/mte-shuttle
+          - service: signal
+            image: ghcr.io/metorial/mte-signal
+          - service: slates-hub
+            image: ghcr.io/metorial/mte-slates-hub
+          - service: slates-registry
+            image: ghcr.io/metorial/mte-slates-registry
+          - service: subspace-controller
+            image: ghcr.io/metorial/mte-subspace-controller
+          - service: subspace-public
+            image: ghcr.io/metorial/mte-subspace-public
+          - service: subspace-worker
+            image: ghcr.io/metorial/mte-subspace-worker
+          - service: synthesis
+            image: ghcr.io/metorial/mte-synthesis
+          - service: voyager
+            image: ghcr.io/metorial/mte-voyager
+          - service: relay
+            image: ghcr.io/metorial/mte-relay
+          - service: object-storage
+            image: ghcr.io/metorial/mte-object-storage
+          - service: app-api
+            image: ghcr.io/metorial/metorial-api
+    with:
+      command: build
+      filter: ${{ matrix.service }}
+      cache_prefix: control-ci
+      runs-on: ubuntu-latest
+      image: ${{ matrix.image }}
+      push_image: ${{ github.event_name != 'pull_request' }}
+      build_test_runner: true
+      save_image_artifact: true
+      image_artifact_name: control-image-${{ matrix.service }}
+      checkout_submodules: ${{ matrix.service == 'subspace-controller' }}
