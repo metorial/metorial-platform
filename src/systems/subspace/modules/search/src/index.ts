@@ -30,7 +30,7 @@ export let voyagerSource = voyagerSourceProm.promise;
       console.error('Failed to create source in Voyager, retrying in 5 seconds...', error);
     }
 
-    delay(5000);
+    await delay(5000);
   }
 })();
 

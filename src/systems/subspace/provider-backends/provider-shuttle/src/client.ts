@@ -29,7 +29,7 @@ export let shuttleLiveClient = await createLiveConnectionClient({
       console.error('Failed to connect to Shuttle, retrying in 5 seconds...', error);
     }
 
-    delay(5000);
+    await delay(5000);
   }
 })();
 

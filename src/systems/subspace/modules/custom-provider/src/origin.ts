@@ -21,7 +21,7 @@ export let origin: ReturnType<typeof createOriginClient> = createOriginClient({
       console.error('Failed to connect to Origin, retrying in 5 seconds...', error);
     }
 
-    delay(5000);
+    await delay(5000);
   }
 })();
 

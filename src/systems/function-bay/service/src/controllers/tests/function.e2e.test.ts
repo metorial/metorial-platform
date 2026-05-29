@@ -215,7 +215,8 @@ describe('function:invoke E2E', () => {
     });
 
     const result = await functionBayClient.function.invoke({
-      tenantId: sourceVersion.function.tenant.id,
+      tenantId: enclaveTenant.id,
+      functionTenantId: sourceVersion.function.tenant.id,
       functionId: sourceVersion.function.id,
       payload: { input: 'test' },
       enclave: {
@@ -260,7 +261,8 @@ describe('function:invoke E2E', () => {
     });
 
     const result = await functionBayClient.function.invoke({
-      tenantId: sourceVersion.function.tenant.id,
+      tenantId: enclaveTenant.id,
+      functionTenantId: sourceVersion.function.tenant.id,
       functionId: sourceVersion.function.id,
       payload: { input: 'test' },
       enclave: {
@@ -340,7 +342,8 @@ describe('function:invoke E2E', () => {
     });
 
     const result = await functionBayClient.function.invoke({
-      tenantId: sourceVersion.function.tenant.id,
+      tenantId: enclaveTenant.id,
+      functionTenantId: sourceVersion.function.tenant.id,
       functionId: sourceVersion.function.id,
       payload: { input: 'test' },
       enclave: {

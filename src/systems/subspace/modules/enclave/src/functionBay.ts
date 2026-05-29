@@ -21,7 +21,7 @@ export let functionBay: ReturnType<typeof createFunctionBayClient> = createFunct
       console.error('Failed to connect to FunctionBay, retrying in 5 seconds...', error);
     }
 
-    delay(5000);
+    await delay(5000);
   }
 })();
 

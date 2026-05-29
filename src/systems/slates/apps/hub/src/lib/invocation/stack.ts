@@ -297,8 +297,11 @@ export class SlateInvocationStack {
       );
 
       return new SlateInvocationStack({
+        tenant: this.#tenant,
         slateVersion: this.#slateVersion,
         participants: this.#participants,
+        enclaveId: this.#enclaveId,
+        egressPolicy: this.#egressPolicy,
         initialMessages: this.#initialMessages
       }).invoke(method, params);
     }
