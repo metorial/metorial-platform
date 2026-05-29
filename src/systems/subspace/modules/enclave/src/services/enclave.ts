@@ -26,6 +26,7 @@ import {
 } from '../lib/compileNetworkAllowList';
 import { compileNetworkRulesForEnclave } from '../lib/compileNetworkRules';
 import { enclaveUpdatedQueue } from '../queues/lifecycle/enclave';
+import { differenceInMinutes } from 'date-fns';
 
 export type {
   CompiledNetworkAllowEntry,
@@ -245,6 +246,17 @@ class enclaveServiceImpl {
     return (await this.compileNetworkRules({ ...d })).compiledNetworkRules;
   }
 
+  async useEnclave(d: { tenant: Tenant; environment: Environment; enclave: Enclave }) {
+    if (!d.enclave.lastUsedAt || differenceInMinutes(new Date(), d.enclave.lastUsedAt) > 15) {
+      await db.enclave.updateMany({
+        where: { oid: d.enclave.oid },
+        data: { lastUsedAt: new Date() }
+      });
+    }
+
+    return await this.getCompiledNetworkRules(d);
+  }
+
   async updateEnclave(d: {
     tenant: Tenant;
     solution: Solution;
@@ -276,6 +288,25 @@ class enclaveServiceImpl {
       );
 
       return enclave;
+    });
+  }
+
+  async getLastUsedEnclaves(d: {
+    tenant: Tenant;
+    environment: Environment;
+    limit?: number;
+  }) {
+    let limit = Math.min(Math.max(d.limit ?? 20, 1), 100);
+
+    return db.enclave.findMany({
+      where: {
+        tenantOid: d.tenant.oid,
+        environmentOid: d.environment.oid,
+        lastUsedAt: { not: null }
+      },
+      orderBy: { lastUsedAt: 'desc' },
+      take: limit,
+      include
     });
   }
 }

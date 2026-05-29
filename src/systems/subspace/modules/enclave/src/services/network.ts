@@ -8,6 +8,7 @@ import {
   resolveEnclaves,
   resolveFirewalls
 } from '@metorial-subspace/list-utils';
+import { networkInternalService } from './networkInternal';
 
 let include = {
   firewalls: {
@@ -95,6 +96,10 @@ class networkServiceImpl {
   }
 
   async getNetworkById(d: { tenant: Tenant; environment: Environment; networkId: string }) {
+    if (d.networkId === 'default') {
+      return networkInternalService.ensureNetworkForEnvironment(d);
+    }
+
     let network = await db.network.findFirst({
       where: {
         id: d.networkId,

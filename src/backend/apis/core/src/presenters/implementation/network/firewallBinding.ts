@@ -4,7 +4,7 @@ import { Presenter } from '@metorial/presenter';
 import { firewallBindingType } from '../../types';
 
 let firewallPreviewSchema = v.object({
-  object: v.literal('firewall#preview'),
+  object: v.literal('network.firewall#preview'),
   id: v.string(),
   slug: v.string(),
   name: v.string()
@@ -30,11 +30,11 @@ let presentBindingTarget = (firewallBinding: SubspaceFirewallBinding) => {
 
 export let v1FirewallBindingPresenter = Presenter.create(firewallBindingType)
   .presenter(async ({ firewallBinding }) => ({
-    object: network.'firewall.binding' as const,
+    object: 'network.firewall.binding' as const,
     id: firewallBinding.id,
     target_type: firewallBinding.targetType,
     firewall: {
-      object: 'firewall#preview' as const,
+      object: 'network.firewall#preview' as const,
       id: firewallBinding.firewall.id,
       slug: firewallBinding.firewall.slug,
       name: firewallBinding.firewall.name
@@ -44,7 +44,7 @@ export let v1FirewallBindingPresenter = Presenter.create(firewallBindingType)
   }))
   .schema(
     v.object({
-      object: v.literalnetwork.('firewall.binding'),
+      object: v.literal('network.firewall.binding'),
       id: v.string(),
       target_type: v.enumOf(['enclave', 'provider', 'network']),
       firewall: firewallPreviewSchema,

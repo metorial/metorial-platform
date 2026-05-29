@@ -44,6 +44,7 @@ import {
   customProviderDeploymentController,
   customProviderEnvironmentController,
   customProviderVersionController,
+  dashboardEnclaveController,
   documentController,
   documentParticipantController,
   documentVersionController,
@@ -649,6 +650,7 @@ export let dashboardController = Controller.create<any>(
 
     networkController,
     enclaveController,
+    dashboardEnclaveController,
     firewallController,
     firewallBindingController,
     networkPolicyController,

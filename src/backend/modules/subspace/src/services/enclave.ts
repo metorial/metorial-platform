@@ -3,7 +3,7 @@ import { subspace } from '../subspace';
 
 export let subspaceEnclaveService = createSubspaceService(
   subspace.enclave,
-  ['get', 'list', 'listNetworkLogs'],
+  ['get', 'list', 'listNetworkLogs', 'getLastUsedEnclaves'],
   () => ({})
 );
 

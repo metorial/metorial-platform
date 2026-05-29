@@ -105,12 +105,10 @@ export class ProviderRun extends IProviderRun {
 }
 
 export class ProviderRunConnection extends IProviderRunConnection {
-  private enclaveInvocationContextPromise:
-    | Promise<{
-        enclaveId?: string;
-        egressPolicy?: PrismaJson.CompiledEgressNetworkAllowList;
-      }>
-    | null = null;
+  private enclaveInvocationContextPromise: Promise<{
+    enclaveId?: string;
+    egressPolicy?: PrismaJson.CompiledEgressNetworkAllowList;
+  }> | null = null;
 
   constructor(
     private readonly params: ProviderRunCreateParam,
@@ -142,7 +140,7 @@ export class ProviderRunConnection extends IProviderRunConnection {
           return {};
         }
 
-        let compiledNetworkRules = await enclaveService.getCompiledNetworkRules({
+        let compiledNetworkRules = await enclaveService.useEnclave({
           tenant: this.params.tenant,
           environment: providerDeployment.environment,
           enclave: providerDeployment.enclave
@@ -150,7 +148,8 @@ export class ProviderRunConnection extends IProviderRunConnection {
 
         return {
           enclaveId: providerDeployment.enclave.id,
-          egressPolicy: compiledNetworkRules.egress as PrismaJson.CompiledEgressNetworkAllowList
+          egressPolicy:
+            compiledNetworkRules.egress as PrismaJson.CompiledEgressNetworkAllowList
         };
       })();
     }

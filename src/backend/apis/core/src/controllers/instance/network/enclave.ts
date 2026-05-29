@@ -2,11 +2,12 @@ import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { subspaceEnclaveService } from '@metorial/module-subspace';
-import { Controller } from '@metorial/rest';
+import { Controller, Path } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { isDashboardGroup } from '../../../middleware/isDashboard';
 import { enclavePresenter } from '../../../presenters';
 
 let networkReadScopes = ['instance.network:read'] as const;
@@ -85,5 +86,58 @@ export let enclaveController = Controller.create(
       .use(checkAccess({ possibleScopes: [...networkReadScopes] }))
       .output(enclavePresenter)
       .do(async ctx => enclavePresenter.present({ enclave: ctx.enclave }))
+  }
+);
+
+export let dashboardEnclaveController = Controller.create(
+  {
+    name: 'Enclaves (Dashboard)',
+    description: 'Dashboard-only enclave utilities.',
+    hideInDocs: true
+  },
+  {
+    getLastUsed: instanceGroup
+      .get(
+        Path(
+          '/dashboard/instances/:instanceId/enclaves/last-used',
+          'dashboard.instance.enclaves.getLastUsed'
+        ),
+        {
+          name: 'Get last used enclaves',
+          description: 'Returns recently used enclaves for dashboard filters.',
+          hideInDocs: true
+        }
+      )
+      .use(isDashboardGroup())
+      .use(checkAccess({ possibleScopes: [...networkReadScopes] }))
+      .outputList(enclavePresenter)
+      .query(
+        'default',
+        v.object({
+          limit: v.optional(
+            v.number({
+              description: 'Maximum number of enclaves to return',
+              modifiers: [v.positive(), v.integer(), v.maxValue(100)]
+            })
+          )
+        })
+      )
+      .do(async ctx => {
+        let enclaves = await subspaceEnclaveService.getLastUsedEnclaves({
+          instance: ctx.instance,
+          limit: ctx.query.limit
+        });
+
+        return Paginator.present(
+          {
+            items: enclaves,
+            pagination: {
+              hasNextPage: false,
+              hasPreviousPage: false
+            }
+          },
+          enclave => enclavePresenter.present({ enclave })
+        );
+      })
   }
 );

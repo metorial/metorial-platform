@@ -26,7 +26,8 @@ export let v1EnclavePresenter = Presenter.create(enclaveType)
       type: enclave.enclaveEnvironment.type,
       created_at: enclave.enclaveEnvironment.createdAt
     },
-    created_at: enclave.createdAt
+    created_at: enclave.createdAt,
+    last_used_at: enclave.lastUsedAt ?? null
   }))
   .schema(
     v.object({
@@ -38,7 +39,8 @@ export let v1EnclavePresenter = Presenter.create(enclaveType)
       network_id: v.string(),
       provider_deployment_id: v.string(),
       enclave_environment: enclaveEnvironmentPreviewSchema,
-      created_at: v.date()
+      created_at: v.date(),
+      last_used_at: v.nullable(v.date())
     })
   )
   .build();

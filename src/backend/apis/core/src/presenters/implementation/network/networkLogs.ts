@@ -4,7 +4,7 @@ import { networkLogsType } from '../../types';
 
 let networkLogRecordSchema = v.object({
   object: v.literal('network.log'),
-  enclave_id: v.optional(v.string()),
+  enclave_id: v.string(),
   bucket_start: v.string(),
   hostname: v.string(),
   ip: v.string(),

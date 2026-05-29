@@ -127,5 +127,24 @@ export let enclaveController = app.controller({
           intervalMinutes: ctx.input.intervalMinutes
         }
       })
+    ),
+
+  getLastUsedEnclaves: tenantApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        environmentId: v.string(),
+        limit: v.optional(v.number())
+      })
     )
+    .do(async ctx => {
+      let enclaves = await enclaveService.getLastUsedEnclaves({
+        tenant: ctx.tenant,
+        environment: ctx.environment,
+        limit: ctx.input.limit
+      });
+
+      return enclaves.map(enclavePresenter);
+    })
 });

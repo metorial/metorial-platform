@@ -28,5 +28,6 @@ export let enclavePresenter = (
   providerDeploymentId: enclave.providerDeployment.id,
   enclaveEnvironment: enclaveEnvironmentPreviewPresenter(enclave.enclaveEnvironment),
 
-  createdAt: enclave.createdAt
+  createdAt: enclave.createdAt,
+  lastUsedAt: enclave.lastUsedAt
 });

@@ -33,7 +33,7 @@ let getEnclaveConnectionContext = async (data: ProviderRunCreateParam) => {
 
   if (!providerDeployment?.enclave) return {};
 
-  let compiledNetworkRules = await enclaveService.getCompiledNetworkRules({
+  let compiledNetworkRules = await enclaveService.useEnclave({
     tenant: data.tenant,
     environment: providerDeployment.environment,
     enclave: providerDeployment.enclave

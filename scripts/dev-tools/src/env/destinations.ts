@@ -15,8 +15,7 @@ import {
   slatesHubEnv,
   slatesRegistryEnv,
   subspaceDbEnv,
-  subspaceDevEnv,
-  subspaceEnclaveEnv
+  subspaceDevEnv
 } from './services';
 import type { Destination } from './type';
 
@@ -66,11 +65,6 @@ export let destinations: Destination[] = [
     type: 'oss',
     env: subspaceDbEnv,
     path: 'src/systems/subspace/db'
-  },
-  {
-    type: 'oss',
-    env: subspaceEnclaveEnv,
-    path: 'src/systems/subspace/modules/enclave'
   },
 
   {
