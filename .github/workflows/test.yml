@@ -24,19 +24,21 @@ jobs:
       - name: Install Bun
         uses: oven-sh/setup-bun@v2
 
-      # - name: Patch bun
-      #   run: mv _package.json package.json
-
       - name: Install Packages
         run: bun i
 
       - name: Generate Prisma Clients
         run: |
-          bunx turbo run --ui=stream prisma:generate --filter=!./src/systems/**
-          bun run --cwd ./src/systems/cargo/db prisma:generate
+          bun x nx run-many --target=prisma:generate --all --parallel=1 \
+            --exclude=@metorial/slates,@metorial/slates-registry,@metorial/synthesis,@metorial/ares,@metorial/forge,@metorial/function-bay,@metorial/signal,@metorial/cargo,@metorial/shuttle,@metorial/origin,@metorial/voyager,@metorial-subspace/app-public,@metorial-subspace/app-controller,@metorial-subspace/app-worker,@metorial-cargo/service,@metorial-cargo/db,@metorial-subspace/db
+          bun x nx run @metorial-cargo/db:prisma:generate
 
       - name: Build Packages
-        run: bunx turbo run --ui=stream build --filter=!./src/systems/**
+        run: |
+          bun x nx run-many --target=build --all --parallel=1 \
+            --exclude=@metorial/slates,@metorial/slates-registry,@metorial/synthesis,@metorial/ares,@metorial/forge,@metorial/function-bay,@metorial/signal,@metorial/cargo,@metorial/shuttle,@metorial/origin,@metorial/voyager,@metorial-subspace/app-public,@metorial-subspace/app-controller,@metorial-subspace/app-worker,@metorial-cargo/service
 
       - name: Test
-        run: bunx turbo run --concurrency=1 --ui=stream test --filter=!./src/systems/**
+        run: |
+          bun x nx run-many --target=test --all --parallel=1 \
+            --exclude=@metorial/slates,@metorial/slates-registry,@metorial/synthesis,@metorial/ares,@metorial/forge,@metorial/function-bay,@metorial/signal,@metorial/cargo,@metorial/shuttle,@metorial/origin,@metorial/voyager,@metorial-subspace/app-public,@metorial-subspace/app-controller,@metorial-subspace/app-worker,@metorial-cargo/service

@@ -71,6 +71,19 @@
         "{projectRoot}/frontend/**/dist/**"
       ]
     },
+    "admin:build": {
+      "cache": true,
+      "dependsOn": [
+        "^build"
+      ],
+      "inputs": [
+        "production",
+        "^production"
+      ],
+      "outputs": [
+        "{projectRoot}/dist/admin/**"
+      ]
+    },
     "worker:build": {
       "cache": true,
       "dependsOn": [
