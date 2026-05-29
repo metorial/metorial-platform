@@ -48,6 +48,7 @@
     "ts-proto": "^2.7.5"
   },
   "overrides": {
+    "fast-xml-parser": "5.7.3",
     "@aws-sdk/client-cognito-identity": "3.1048.0",
     "@aws-sdk/client-dynamodb": "3.1048.0",
     "@aws-sdk/client-sso": "3.1048.0",
