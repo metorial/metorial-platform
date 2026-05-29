@@ -2,7 +2,7 @@ import {
   DashboardInstanceFirewallsListOutput,
   DashboardInstanceFirewallsListQuery
 } from '@metorial/dashboard-sdk';
-import { renderWithLoader, useForm } from '@metorial/data-hooks';
+import { useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import {
   useCreateFirewall,
@@ -12,7 +12,6 @@ import {
   useFirewalls,
   useNetworks
 } from '@metorial/state';
-import { useNetworkManagementAccess } from '../_gate';
 import { Button, Dialog, Input, RenderDate, Spacer, Text, showModal } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import { useNavigate } from 'react-router-dom';
@@ -22,6 +21,7 @@ import {
   TableStateProviderResult
 } from '../../../../../components/table/type';
 import { statusBadge } from '../_common';
+import { useNetworkManagementAccess } from '../_gate';
 
 type Firewall = DashboardInstanceFirewallsListOutput['items'][number];
 
@@ -120,32 +120,32 @@ let FirewallsTable = () => {
     instance,
     emptyState: 'No firewalls configured.',
     headerActions: () =>
-      canWrite ?
+      canWrite ? (
         <Button
-        size="2"
-        disabled={!instance.data || !networks.data?.items[0]}
-        onClick={() => {
-          let network = networks.data?.items[0];
-          if (!instance.data || !network) return;
+          size="2"
+          disabled={!instance.data || !networks.data?.items[0]}
+          onClick={() => {
+            let network = networks.data?.items[0];
+            if (!instance.data || !network) return;
 
-          showCreateFirewallModal({
-            instanceId: instance.data.id,
-            networkId: network.id,
-            onCreate: firewallId =>
-              navigate(
-                Paths.instance.networkFirewall(
-                  organization.data,
-                  project.data,
-                  instance.data,
-                  firewallId
+            showCreateFirewallModal({
+              instanceId: instance.data.id,
+              networkId: network.id,
+              onCreate: firewallId =>
+                navigate(
+                  Paths.instance.networkFirewall(
+                    organization.data,
+                    project.data,
+                    instance.data,
+                    firewallId
+                  )
                 )
-              )
-          });
-        }}
+            });
+          }}
         >
           Create Firewall
         </Button>
-      : null
+      ) : null
   });
 };
 
@@ -207,21 +207,9 @@ let showCreateFirewallModal = (p: {
 
 export let NetworkFirewallsPage = () => {
   let instance = useCurrentInstance();
-  let networks = useNetworks(instance.data?.id, { limit: 1 });
 
   return (
     <>
-      {renderWithLoader({ networks })(({ networks }) =>
-        !networks.data.items[0] ? (
-          <>
-            <Text size="2" color="gray600">
-              Firewalls need a default network before they can be created.
-            </Text>
-            <Spacer size={20} />
-          </>
-        ) : null
-      )}
-
       <FirewallsTable />
     </>
   );

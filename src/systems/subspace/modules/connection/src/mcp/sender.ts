@@ -271,11 +271,6 @@ export class McpSender {
         return this.handleInitializedMessage(initNotification.data);
       }
 
-      console.warn(
-        'Received MCP message without id or with notification method, ignoring:',
-        msg
-      );
-
       // TODO: handle notification for mcp-compatible backends
       // -> send to all backends that support it
       return;
