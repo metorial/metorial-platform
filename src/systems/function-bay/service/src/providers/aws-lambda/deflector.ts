@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import { SignJWT, type JWTPayload } from 'jose';
 import { env } from '../../env';
 
@@ -37,6 +38,7 @@ export let createDeflectorToken = async (d: {
     functionVersionId: d.functionVersionId,
     enclaveId: d.enclave?.id,
     enclaveIdentifier: d.enclave?.identifier,
+    jti: randomUUID(),
     iat: now,
     nbf: now - 30,
     exp: now + 5 * 60

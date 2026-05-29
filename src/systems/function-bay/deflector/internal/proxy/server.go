@@ -3,7 +3,10 @@ package proxy
 import (
 	"bufio"
 	"context"
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"io"
 	"log/slog"
@@ -51,6 +54,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Metorial Magic Network: proxy authentication failed", http.StatusProxyAuthRequired)
 		return
 	}
+	s.logAuthorizedRequest(r, requestPolicy)
 
 	if r.Method == http.MethodConnect {
 		s.handleConnect(w, r, requestPolicy)
@@ -152,6 +156,60 @@ func authFailureReason(err error) string {
 		return "jwt_missing_invocation_claims"
 	default:
 		return "jwt_invalid"
+	}
+}
+
+func (s *Server) logAuthorizedRequest(r *http.Request, requestPolicy *requestPolicy) {
+	if s.Logger == nil {
+		return
+	}
+
+	summary := policyLogSummary(requestPolicy.Claims.EgressPolicy)
+	s.Logger.Info(
+		"proxy request authorized",
+		"jti", requestPolicy.Claims.ID,
+		"tenantId", requestPolicy.Claims.TenantID,
+		"functionId", requestPolicy.Claims.FunctionID,
+		"effectiveFunctionId", requestPolicy.Claims.EffectiveFunctionID,
+		"functionVersionId", requestPolicy.Claims.FunctionVersionID,
+		"enclaveId", requestPolicy.Claims.EnclaveID,
+		"method", r.Method,
+		"host", r.Host,
+		"path", r.URL.Path,
+		"policyMode", summary.Mode,
+		"policyDirection", summary.Direction,
+		"policyEntries", summary.Entries,
+		"policyFingerprint", summary.Fingerprint,
+	)
+}
+
+type policySummary struct {
+	Mode        string
+	Direction   string
+	Entries     int
+	Fingerprint string
+}
+
+func policyLogSummary(egressPolicy *policy.CompiledNetworkAllowList) policySummary {
+	if egressPolicy == nil {
+		return policySummary{Mode: "default"}
+	}
+
+	serialized, err := json.Marshal(egressPolicy)
+	if err != nil {
+		return policySummary{
+			Mode:      "explicit",
+			Direction: egressPolicy.Direction,
+			Entries:   len(egressPolicy.Entries),
+		}
+	}
+
+	hash := sha256.Sum256(serialized)
+	return policySummary{
+		Mode:        "explicit",
+		Direction:   egressPolicy.Direction,
+		Entries:     len(egressPolicy.Entries),
+		Fingerprint: hex.EncodeToString(hash[:]),
 	}
 }
 

@@ -1,7 +1,10 @@
 package proxy
 
 import (
+	"bytes"
 	"encoding/base64"
+	"encoding/json"
+	"log/slog"
 	"net"
 	"net/http/httptest"
 	"testing"
@@ -92,5 +95,50 @@ func TestExplicitPrivateIPAllowlistOverridesDefaultBlock(t *testing.T) {
 	}
 	if !compiled.AllowsDestination(net.ParseIP("10.0.0.1"), 443) {
 		t.Fatal("expected explicit private IP allowlist to allow matching IP")
+	}
+}
+
+func TestLogAuthorizedRequestIncludesJTIAndPolicySummary(t *testing.T) {
+	var buf bytes.Buffer
+	server := &Server{
+		Logger: slog.New(slog.NewJSONHandler(&buf, nil)),
+	}
+
+	request := httptest.NewRequest("GET", "http://example.com/resource", nil)
+	server.logAuthorizedRequest(request, &requestPolicy{
+		Claims: policy.Claims{
+			TenantID:          "tenant_123",
+			FunctionID:        "function_123",
+			FunctionVersionID: "functionVersion_123",
+			EgressPolicy: &policy.CompiledNetworkAllowList{
+				Direction: "egress",
+				Entries: []policy.CompiledNetworkAllowEntry{
+					{CIDR: "93.184.216.34/32", PortRange: &policy.PortRange{From: 443, To: 443}},
+				},
+			},
+			RegisteredClaims: jwt.RegisteredClaims{
+				ID: "jti_123",
+			},
+		},
+	})
+
+	var logged map[string]any
+	if err := json.Unmarshal(buf.Bytes(), &logged); err != nil {
+		t.Fatal(err)
+	}
+	if logged["msg"] != "proxy request authorized" {
+		t.Fatalf("unexpected log message %q", logged["msg"])
+	}
+	if logged["jti"] != "jti_123" {
+		t.Fatalf("unexpected jti %q", logged["jti"])
+	}
+	if logged["policyMode"] != "explicit" || logged["policyDirection"] != "egress" {
+		t.Fatalf("unexpected policy summary %#v", logged)
+	}
+	if logged["policyEntries"] != float64(1) {
+		t.Fatalf("unexpected policy entries %#v", logged["policyEntries"])
+	}
+	if logged["policyFingerprint"] == "" {
+		t.Fatal("expected policy fingerprint")
 	}
 }

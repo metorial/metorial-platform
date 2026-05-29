@@ -64,6 +64,19 @@ describe('deflector token', () => {
         ]
       }
     });
+    expect(verified.payload.jti).toEqual(expect.any(String));
+
+    let nextToken = await createDeflectorToken({
+      tenantId: 'tenant_123',
+      functionId: 'function_123',
+      functionVersionId: 'functionVersion_123'
+    });
+    let nextVerified = await jwtVerify(nextToken!, new TextEncoder().encode('test-secret'), {
+      audience: 'deflector',
+      algorithms: ['HS256']
+    });
+    expect(nextVerified.payload.jti).toEqual(expect.any(String));
+    expect(nextVerified.payload.jti).not.toBe(verified.payload.jti);
   });
 
   it('returns the configured proxy url', () => {
