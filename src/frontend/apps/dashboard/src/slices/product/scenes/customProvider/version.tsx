@@ -23,6 +23,7 @@ import {
 } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import { RiArrowDownSLine } from '@remixicon/react';
+import Ansi from 'ansi-to-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import React, { useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
@@ -331,6 +332,8 @@ let StepLogLineContent = styled.span`
   font-family: 'JetBrains Mono', monospace;
 `;
 
+let AnsiText = ({ children }: { children: string }) => <Ansi>{children}</Ansi>;
+
 let StepDetails = ({ step }: { step: Step }) => {
   let [isExpanded, setIsExpanded] = useState(false);
   let logsRef = useRef<HTMLDivElement>(null);
@@ -391,7 +394,7 @@ let StepDetails = ({ step }: { step: Step }) => {
                       transition={{ duration: 0.3 }}
                       key={currentLine}
                     >
-                      {currentLine}
+                      <AnsiText>{currentLine}</AnsiText>
                     </StepHeaderExcerptLine>
                   </AnimatePresence>
                 </StepHeaderExcerptWrapper>
@@ -447,7 +450,9 @@ let StepDetails = ({ step }: { step: Step }) => {
             {step.logs.map((log, index) => (
               <StepLogLine key={index} data-log-type={log.type}>
                 <StepLogTs>{log.timestamp?.toLocaleTimeString() ?? '--:--:--'}</StepLogTs>
-                <StepLogLineContent>{log.line}</StepLogLineContent>
+                <StepLogLineContent>
+                  <AnsiText>{log.line}</AnsiText>
+                </StepLogLineContent>
               </StepLogLine>
             ))}
             <Spacer height={5} />
