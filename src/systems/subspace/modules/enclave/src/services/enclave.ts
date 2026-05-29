@@ -23,7 +23,8 @@ import { checkTenant } from '@metorial-subspace/module-tenant';
 import { differenceInMinutes } from 'date-fns';
 import {
   type CompiledNetworkAllowList,
-  compileNetworkAllowList
+  compileNetworkAllowList,
+  unrestrictedNetworkAllowList
 } from '../lib/compileNetworkAllowList';
 import { compileNetworkRulesForEnclave } from '../lib/compileNetworkRules';
 import { enclaveUpdatedQueue } from '../queues/lifecycle/enclave';
@@ -203,25 +204,30 @@ class enclaveServiceImpl {
       orderBy: { createdAt: 'asc' }
     });
 
-    let rules = compileNetworkRulesForEnclave({
-      enclaveNetworkOid: enclave.networkOid,
-      firewalls: bindings.map(binding => binding.firewall)
-    });
+    let rules =
+      bindings.length === 0
+        ? []
+        : compileNetworkRulesForEnclave({
+            enclaveNetworkOid: enclave.networkOid,
+            firewalls: bindings.map(binding => binding.firewall)
+          });
 
-    let allowListIngress = compileNetworkAllowList({
-      direction: 'ingress',
-      rules
-    });
-
-    let allowListEgress = compileNetworkAllowList({
-      direction: 'egress',
-      rules
-    });
-
-    let compiledNetworkRules = {
-      ingress: allowListIngress,
-      egress: allowListEgress
-    };
+    let compiledNetworkRules =
+      bindings.length === 0
+        ? {
+            ingress: unrestrictedNetworkAllowList({ direction: 'ingress' }),
+            egress: unrestrictedNetworkAllowList({ direction: 'egress' })
+          }
+        : {
+            ingress: compileNetworkAllowList({
+              direction: 'ingress',
+              rules
+            }),
+            egress: compileNetworkAllowList({
+              direction: 'egress',
+              rules
+            })
+          };
 
     await db.enclave.updateMany({
       where: { oid: d.enclave.oid },

@@ -40,12 +40,50 @@ let baseRule = {
   priority: 100
 };
 
-describe('enclaveService.compileNetworkRules', () => {
+let enclave = {
+  oid: BigInt(300),
+  id: 'enc_test',
+  tenantOid: tenant.oid,
+  environmentOid: environment.oid,
+  compiledNetworkRules: null
+} as any;
+
+describe('enclaveService.getCompiledNetworkRules', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('returns raw rules and a compiled allow list for the requested direction', async () => {
+  it('allows all ingress and egress when no firewalls are applied', async () => {
+    mockDb.enclave.findFirst.mockResolvedValueOnce({
+      oid: BigInt(300),
+      networkOid: BigInt(100),
+      providerDeployment: {
+        providerOid: BigInt(400)
+      }
+    });
+    mockDb.firewallBinding.findMany.mockResolvedValueOnce([]);
+
+    let result = await enclaveService.getCompiledNetworkRules({
+      tenant,
+      environment,
+      enclave
+    });
+
+    expect(result.ingress).toEqual({
+      direction: 'ingress',
+      entries: [{ cidr: '0.0.0.0/0' }, { cidr: '::/0' }]
+    });
+    expect(result.egress).toEqual({
+      direction: 'egress',
+      entries: [{ cidr: '0.0.0.0/0' }, { cidr: '::/0' }]
+    });
+    expect(mockDb.enclave.updateMany).toHaveBeenCalledWith({
+      where: { oid: BigInt(300) },
+      data: { compiledNetworkRules: result }
+    });
+  });
+
+  it('compiles firewall rules when firewalls are applied', async () => {
     mockDb.enclave.findFirst.mockResolvedValueOnce({
       oid: BigInt(300),
       networkOid: BigInt(100),
@@ -93,16 +131,10 @@ describe('enclaveService.compileNetworkRules', () => {
       }
     ]);
 
-    let result = await enclaveService.compileNetworkRules({
+    let result = await enclaveService.getCompiledNetworkRules({
       tenant,
       environment,
-      direction: 'ingress',
-      enclave: {
-        oid: BigInt(300),
-        id: 'enc_test',
-        tenantOid: tenant.oid,
-        environmentOid: environment.oid
-      } as any
+      enclave
     });
 
     expect(mockDb.firewallBinding.findMany).toHaveBeenCalledWith(
@@ -117,12 +149,10 @@ describe('enclaveService.compileNetworkRules', () => {
         })
       })
     );
-    expect(result.rules).toEqual([baseRule]);
-    expect(result.allowList.direction).toBe('ingress');
-    expect(result.allowList.entries).toContainEqual({ cidr: '10.0.0.0/8' });
+    expect(result.ingress.entries).toContainEqual({ cidr: '10.0.0.0/8' });
     expect(mockDb.enclave.updateMany).toHaveBeenCalledWith({
       where: { oid: BigInt(300) },
-      data: { compiledNetworkRules: result.allowList }
+      data: { compiledNetworkRules: result }
     });
   });
 });

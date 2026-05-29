@@ -258,6 +258,18 @@ let emptyFallbackEntries = (): CompiledNetworkAllowEntry[] => [
   { cidr: emptyCidr('ipv6') }
 ];
 
+let unrestrictedEntries = (): CompiledNetworkAllowEntry[] => [
+  { cidr: universeCidr('ipv4') },
+  { cidr: universeCidr('ipv6') }
+];
+
+export let unrestrictedNetworkAllowList = (d: {
+  direction: 'ingress' | 'egress';
+}): CompiledNetworkAllowList => ({
+  direction: d.direction,
+  entries: unrestrictedEntries()
+});
+
 export let compileNetworkAllowList = (d: {
   direction: 'ingress' | 'egress';
   rules: NetworkPolicyRules;

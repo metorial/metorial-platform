@@ -7,7 +7,7 @@ vi.mock('@metorial-subspace/db', () => ({
   })
 }));
 
-import { compileNetworkAllowList } from './compileNetworkAllowList';
+import { compileNetworkAllowList, unrestrictedNetworkAllowList } from './compileNetworkAllowList';
 
 let rule = (
   overrides: Partial<PrismaJson.NetworkPolicyRule> &
@@ -44,6 +44,17 @@ describe('compileNetworkAllowList', () => {
     });
 
     expect(result.entries).toEqual([{ cidr: '0.0.0.0/0' }]);
+  });
+
+  it('returns unrestricted allow lists for both directions', () => {
+    expect(unrestrictedNetworkAllowList({ direction: 'ingress' })).toEqual({
+      direction: 'ingress',
+      entries: [{ cidr: '0.0.0.0/0' }, { cidr: '::/0' }]
+    });
+    expect(unrestrictedNetworkAllowList({ direction: 'egress' })).toEqual({
+      direction: 'egress',
+      entries: [{ cidr: '0.0.0.0/0' }, { cidr: '::/0' }]
+    });
   });
 
   it('returns empty sentinel when no enabled rules match', () => {
