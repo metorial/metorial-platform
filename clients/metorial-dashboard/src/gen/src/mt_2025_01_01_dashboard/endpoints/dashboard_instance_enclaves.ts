@@ -17,8 +17,8 @@ import {
 } from '../resources';
 
 /**
- * @name Enclaves controller
- * @description Read enclave records for provider deployments in an instance.
+ * @name Enclaves (Dashboard) controller
+ * @description Dashboard-only enclave utilities.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -41,6 +41,38 @@ export class MetorialDashboardInstanceEnclavesEndpoint {
   }
   private _delete(request: any) {
     return this._manager._delete(request);
+  }
+
+  /**
+   * @name Get last used enclaves
+   * @description Returns recently used enclaves for dashboard filters.
+   *
+   * @param `instanceId` - string
+   * @param `query` - DashboardInstanceEnclavesGetLastUsedQuery
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardInstanceEnclavesGetLastUsedOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  getLastUsed(
+    instanceId: string,
+    query?: DashboardInstanceEnclavesGetLastUsedQuery,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceEnclavesGetLastUsedOutput> {
+    let path = `dashboard/instances/${instanceId}/enclaves/last-used`;
+
+    let request = {
+      path,
+
+      query: query
+        ? mapDashboardInstanceEnclavesGetLastUsedQuery.transformTo(query)
+        : undefined,
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._get(request).transform(
+      mapDashboardInstanceEnclavesGetLastUsedOutput
+    );
   }
 
   /**
@@ -98,37 +130,5 @@ export class MetorialDashboardInstanceEnclavesEndpoint {
     } as any;
 
     return this._get(request).transform(mapDashboardInstanceEnclavesGetOutput);
-  }
-
-  /**
-   * @name Get last used enclaves
-   * @description Returns recently used enclaves for dashboard filters.
-   *
-   * @param `instanceId` - string
-   * @param `query` - DashboardInstanceEnclavesGetLastUsedQuery
-   * @param `opts` - { headers?: Record<string, string> }
-   * @returns DashboardInstanceEnclavesGetLastUsedOutput
-   * @see https://metorial.com/api
-   * @see https://metorial.com/docs
-   */
-  getLastUsed(
-    instanceId: string,
-    query?: DashboardInstanceEnclavesGetLastUsedQuery,
-    opts?: { headers?: Record<string, string> }
-  ): Promise<DashboardInstanceEnclavesGetLastUsedOutput> {
-    let path = `dashboard/instances/${instanceId}/enclaves/last-used`;
-
-    let request = {
-      path,
-
-      query: query
-        ? mapDashboardInstanceEnclavesGetLastUsedQuery.transformTo(query)
-        : undefined,
-      ...(opts?.headers ? { headers: opts.headers } : {})
-    } as any;
-
-    return this._get(request).transform(
-      mapDashboardInstanceEnclavesGetLastUsedOutput
-    );
   }
 }

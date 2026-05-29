@@ -7,9 +7,13 @@ import {
   mapDashboardInstanceNetworkPoliciesRulesCreateBody,
   mapDashboardInstanceNetworkPoliciesRulesCreateOutput,
   mapDashboardInstanceNetworkPoliciesRulesDeleteOutput,
+  mapDashboardInstanceNetworkPoliciesRulesUpdateBody,
+  mapDashboardInstanceNetworkPoliciesRulesUpdateOutput,
   type DashboardInstanceNetworkPoliciesRulesCreateBody,
   type DashboardInstanceNetworkPoliciesRulesCreateOutput,
-  type DashboardInstanceNetworkPoliciesRulesDeleteOutput
+  type DashboardInstanceNetworkPoliciesRulesDeleteOutput,
+  type DashboardInstanceNetworkPoliciesRulesUpdateBody,
+  type DashboardInstanceNetworkPoliciesRulesUpdateOutput
 } from '../resources';
 
 /**
@@ -70,6 +74,42 @@ export class MetorialManagementInstanceNetworkPoliciesRulesEndpoint {
 
     return this._post(request).transform(
       mapDashboardInstanceNetworkPoliciesRulesCreateOutput
+    );
+  }
+
+  /**
+   * @name Update network policy rule
+   * @description Updates a rule on a network policy.
+   *
+   * @param `instanceId` - string
+   * @param `networkPolicyId` - string
+   * @param `ruleId` - string
+   * @param `body` - DashboardInstanceNetworkPoliciesRulesUpdateBody
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardInstanceNetworkPoliciesRulesUpdateOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  update(
+    instanceId: string,
+    networkPolicyId: string,
+    ruleId: string,
+    body: DashboardInstanceNetworkPoliciesRulesUpdateBody,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceNetworkPoliciesRulesUpdateOutput> {
+    let path = `instances/${instanceId}/network-policies/${networkPolicyId}/rules/${ruleId}`;
+
+    let request = {
+      path,
+      body: mapDashboardInstanceNetworkPoliciesRulesUpdateBody.transformTo(
+        body
+      ),
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._patch(request).transform(
+      mapDashboardInstanceNetworkPoliciesRulesUpdateOutput
     );
   }
 
