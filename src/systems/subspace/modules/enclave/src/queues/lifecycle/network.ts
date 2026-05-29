@@ -1,5 +1,5 @@
 import { createQueue, QueueRetryError } from '@lowerdeck/queue';
-import { db } from '@metorial-subspace/db';
+import { db, Prisma } from '@metorial-subspace/db';
 import { env } from '../../env';
 
 export let networkCreatedQueue = createQueue<{ networkId: string }>({
@@ -16,6 +16,6 @@ export let networkCreatedQueueProcessor = networkCreatedQueue.process(async data
 
   await db.enclave.updateMany({
     where: { networkOid: network.oid },
-    data: { compiledNetworkRules: null }
+    data: { compiledNetworkRules: Prisma.JsonNull }
   });
 });

@@ -140,10 +140,12 @@ class enclaveServiceImpl {
     tenant: Tenant;
     environment: Environment;
     enclave: Enclave;
-    direction: 'ingress' | 'egress';
   }): Promise<{
     rules: PrismaJson.NetworkPolicyRules;
-    allowList: CompiledNetworkAllowList;
+    compiledNetworkRules: {
+      ingress: CompiledNetworkAllowList;
+      egress: CompiledNetworkAllowList;
+    };
   }> {
     checkTenant(d, d.enclave);
 
@@ -205,23 +207,33 @@ class enclaveServiceImpl {
       firewalls: bindings.map(binding => binding.firewall)
     });
 
-    let allowList = compileNetworkAllowList({
-      direction: d.direction,
+    let allowListIngress = compileNetworkAllowList({
+      direction: 'ingress',
       rules
     });
 
+    let allowListEgress = compileNetworkAllowList({
+      direction: 'egress',
+      rules
+    });
+
+    let compiledNetworkRules = {
+      ingress: allowListIngress,
+      egress: allowListEgress
+    };
+
     await db.enclave.updateMany({
       where: { oid: d.enclave.oid },
-      data: { compiledNetworkRules: allowList }
+      data: { compiledNetworkRules }
     });
 
     return {
       rules,
-      allowList
+      compiledNetworkRules
     };
   }
 
-  async getCompiledIngressNetworkRules(d: {
+  async getCompiledNetworkRules(d: {
     tenant: Tenant;
     environment: Environment;
     enclave: Enclave;
@@ -230,7 +242,7 @@ class enclaveServiceImpl {
       return d.enclave.compiledNetworkRules;
     }
 
-    return (await this.compileNetworkRules({ ...d, direction: 'ingress' })).allowList;
+    return (await this.compileNetworkRules({ ...d })).compiledNetworkRules;
   }
 
   async updateEnclave(d: {

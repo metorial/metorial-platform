@@ -1,5 +1,5 @@
 import { createQueue, QueueRetryError } from '@lowerdeck/queue';
-import { db } from '@metorial-subspace/db';
+import { db, Prisma } from '@metorial-subspace/db';
 import { providerTypeService } from '@metorial-subspace/module-catalog';
 import { env } from '../../env';
 import { functionBay, getTenantForFunctionBay } from '../../functionBay';
@@ -25,7 +25,7 @@ export let enclaveCreatedQueueProcessor = enclaveCreatedQueue.process(async data
 
     await functionBay.enclave.upsert({
       tenantId: fbTenant.id,
-      identifier: `sub:${enclave.id}`,
+      identifier: enclave.id,
       name: enclave.name,
       id: enclave.id
     });
@@ -40,6 +40,6 @@ export let enclaveUpdatedQueue = createQueue<{ enclaveId: string }>({
 export let enclaveUpdatedQueueProcessor = enclaveUpdatedQueue.process(async data => {
   await db.enclave.updateMany({
     where: { id: data.enclaveId },
-    data: { compiledNetworkRules: null }
+    data: { compiledNetworkRules: Prisma.JsonNull }
   });
 });

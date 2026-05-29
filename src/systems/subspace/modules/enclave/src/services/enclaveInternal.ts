@@ -6,6 +6,7 @@ import {
   type Enclave,
   type Environment,
   getId,
+  Prisma,
   type Provider,
   type ProviderDeployment,
   type Solution,
@@ -80,7 +81,8 @@ class enclaveInternalServiceImpl {
             providerDeploymentOid: d.providerDeployment.oid,
             networkOid: network.oid,
             tenantOid: d.tenant.oid,
-            environmentOid: d.environment.oid
+            environmentOid: d.environment.oid,
+            compiledNetworkRules: Prisma.JsonNull
           }
         });
 

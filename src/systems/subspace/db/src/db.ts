@@ -253,5 +253,20 @@ declare global {
     };
 
     type NetworkPolicyRules = NetworkPolicyRule[];
+
+    type CompiledNetworkAllowEntry = {
+      cidr: string;
+      portRange?: NetworkPolicyPortRange;
+    };
+
+    type CompiledNetworkAllowList = {
+      direction: 'ingress' | 'egress';
+      entries: CompiledNetworkAllowEntry[];
+    };
+
+    type CompiledNetworkRules = {
+      ingress: CompiledNetworkAllowList;
+      egress: CompiledNetworkAllowList;
+    };
   }
 }

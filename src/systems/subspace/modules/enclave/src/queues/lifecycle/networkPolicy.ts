@@ -1,5 +1,5 @@
 import { createQueue } from '@lowerdeck/queue';
-import { db, type Prisma } from '@metorial-subspace/db';
+import { db, Prisma } from '@metorial-subspace/db';
 import { env } from '../../env';
 
 type FirewallWithBindings = {
@@ -50,7 +50,7 @@ let resetCompiledNetworkRulesForFirewall = async (firewall: FirewallWithBindings
       environmentOid: firewall.environmentOid,
       OR: orConditions
     },
-    data: { compiledNetworkRules: null }
+    data: { compiledNetworkRules: Prisma.JsonNull }
   });
 };
 
