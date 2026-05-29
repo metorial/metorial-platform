@@ -16,6 +16,9 @@ model Tenant {
   originTenantId         String?
   originTenantIdentifier String?
 
+  functionBayTenantId         String?
+  functionBayTenantIdentifier String?
+
   onlyAllowTrustedProviders Boolean @default(false)
   isWhitelabel              Boolean @default(false)
 

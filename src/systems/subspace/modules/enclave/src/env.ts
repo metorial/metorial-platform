@@ -4,5 +4,9 @@ import { v } from '@lowerdeck/validation';
 export let env = createValidatedEnv({
   service: {
     REDIS_URL: v.string()
+  },
+
+  functionBay: {
+    FUNCTION_BAY_URL: v.string()
   }
 });

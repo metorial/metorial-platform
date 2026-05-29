@@ -63,6 +63,7 @@ class enclaveServiceImpl {
     input: {
       name: string;
       identifier: string;
+      id?: string;
     };
   }) {
     return await db.enclave.upsert({
@@ -75,7 +76,7 @@ class enclaveServiceImpl {
       update: { name: d.input.name },
       create: {
         oid: snowflake.nextId(),
-        id: await ID.generateId('enclave'),
+        id: d.input.id ?? (await ID.generateId('enclave')),
         name: d.input.name,
         identifier: d.input.identifier,
         tenantOid: d.tenant.oid

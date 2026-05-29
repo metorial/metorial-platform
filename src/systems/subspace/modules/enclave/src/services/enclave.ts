@@ -136,7 +136,7 @@ class enclaveServiceImpl {
     return enclave;
   }
 
-  async compileNetworkRules(d: {
+  private async compileNetworkRules(d: {
     tenant: Tenant;
     environment: Environment;
     enclave: Enclave;
@@ -201,13 +201,32 @@ class enclaveServiceImpl {
       firewalls: bindings.map(binding => binding.firewall)
     });
 
+    let allowList = compileNetworkAllowList({
+      direction: d.direction,
+      rules
+    });
+
+    await db.enclave.updateMany({
+      where: { oid: d.enclave.oid },
+      data: { compiledNetworkRules: allowList }
+    });
+
     return {
       rules,
-      allowList: compileNetworkAllowList({
-        direction: d.direction,
-        rules
-      })
+      allowList
     };
+  }
+
+  async getCompiledIngressNetworkRules(d: {
+    tenant: Tenant;
+    environment: Environment;
+    enclave: Enclave;
+  }) {
+    if (d.enclave.compiledNetworkRules) {
+      return d.enclave.compiledNetworkRules;
+    }
+
+    return (await this.compileNetworkRules({ ...d, direction: 'ingress' })).allowList;
   }
 
   async updateEnclave(d: {

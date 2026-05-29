@@ -29,6 +29,9 @@ model Enclave {
   name        String
   description String?
 
+  /// [CompiledNetworkRules]
+  compiledNetworkRules Json
+
   enclaveEnvironmentOid BigInt
   enclaveEnvironment    EnclaveEnvironment @relation(fields: [enclaveEnvironmentOid], references: [oid], onDelete: Cascade)
 
@@ -44,7 +47,9 @@ model Enclave {
   environmentOid BigInt
   environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
 
-  createdAt DateTime @default(now())
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  lastUsedAt DateTime?
 
   firewallBindings FirewallBinding[]
 

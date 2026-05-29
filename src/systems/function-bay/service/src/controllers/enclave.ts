@@ -11,6 +11,7 @@ export let enclaveController = app.controller({
     .input(
       v.object({
         tenantId: v.string(),
+        id: v.optional(v.string()),
         name: v.string(),
         identifier: v.string()
       })
@@ -19,6 +20,7 @@ export let enclaveController = app.controller({
       let enclave = await enclaveService.upsertEnclave({
         tenant: ctx.tenant,
         input: {
+          id: ctx.input.id,
           name: ctx.input.name,
           identifier: ctx.input.identifier
         }

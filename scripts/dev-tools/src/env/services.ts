@@ -393,6 +393,10 @@ export let subspaceDevEnv: Env = [
   {
     key: 'CARGO_API_URL',
     defaultValue: 'http://localhost:52150/metorial-cargo'
+  },
+  {
+    key: 'FUNCTION_BAY_URL',
+    defaultValue: 'http://localhost:52030/metorial-function-bay'
   }
 ];
 

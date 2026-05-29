@@ -3,7 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 let { mockDb } = vi.hoisted(() => ({
   mockDb: {
     enclave: {
-      findFirst: vi.fn()
+      findFirst: vi.fn(),
+      updateMany: vi.fn()
     },
     firewallBinding: {
       findMany: vi.fn()
@@ -118,5 +119,9 @@ describe('enclaveService.compileNetworkRules', () => {
     expect(result.rules).toEqual([baseRule]);
     expect(result.allowList.direction).toBe('ingress');
     expect(result.allowList.entries).toContainEqual({ cidr: '10.0.0.0/8' });
+    expect(mockDb.enclave.updateMany).toHaveBeenCalledWith({
+      where: { oid: BigInt(300) },
+      data: { compiledNetworkRules: result.allowList }
+    });
   });
 });

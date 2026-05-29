@@ -352,6 +352,11 @@ class firewallServiceImpl {
     checkTenant(d, d.firewall);
 
     return withTransaction(async db => {
+      let network = await db.network.findFirst({
+        where: { oid: d.firewall.networkOid },
+        select: { id: true }
+      });
+
       await db.firewallBinding.deleteMany({
         where: { firewallOid: d.firewall.oid }
       });
@@ -364,7 +369,7 @@ class firewallServiceImpl {
       });
 
       await addAfterTransactionHook(async () =>
-        firewallDeletedQueue.add({ firewallId: deletedFirewall.id })
+        firewallDeletedQueue.add({ networkId: network!.id })
       );
 
       return deletedFirewall;

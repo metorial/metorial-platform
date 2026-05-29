@@ -1,4 +1,5 @@
-import { createQueue } from '@lowerdeck/queue';
+import { createQueue, QueueRetryError } from '@lowerdeck/queue';
+import { db } from '@metorial-subspace/db';
 import { env } from '../../env';
 
 export let networkCreatedQueue = createQueue<{ networkId: string }>({
@@ -6,4 +7,15 @@ export let networkCreatedQueue = createQueue<{ networkId: string }>({
   redisUrl: env.service.REDIS_URL
 });
 
-export let networkCreatedQueueProcessor = networkCreatedQueue.process(async () => {});
+export let networkCreatedQueueProcessor = networkCreatedQueue.process(async data => {
+  let network = await db.network.findFirst({
+    where: { id: data.networkId },
+    select: { oid: true }
+  });
+  if (!network) throw new QueueRetryError();
+
+  await db.enclave.updateMany({
+    where: { networkOid: network.oid },
+    data: { compiledNetworkRules: null }
+  });
+});
