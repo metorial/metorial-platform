@@ -4,7 +4,8 @@ import { AppLayout, OssApplicationLayoutNav } from '@metorial/layout';
 import {
   lastInstanceIdStore,
   useCurrentInstance,
-  useCurrentOrganization
+  useCurrentOrganization,
+  useDashboardFlags
 } from '@metorial/state';
 import {
   RiBriefcase4Line,
@@ -56,6 +57,9 @@ export let ProjectPageLayout = () => {
     EntityParam,
     EntityParam
   ];
+  let dashboardFlags = useDashboardFlags();
+  let networkingEnabled = !!dashboardFlags.data?.flags['networking-enabled'];
+
   return (
     <AppLayout
       Nav={() => <OssApplicationLayoutNav />}
@@ -184,49 +188,59 @@ export let ProjectPageLayout = () => {
           ]
         },
 
-        {
-          label: 'Security',
-          collapsible: true,
-          items: [
+        ...(networkingEnabled ?
+          [
             {
-              icon: <RiShieldKeyholeLine />,
-              label: 'Overview',
-              to: Paths.instance.security(...params),
-              getProps: i => ({ isActive: checkPath(i, { exact: true }) })
-            },
-            {
-              icon: <RiFlowChart />,
-              label: 'Network',
-              to: Paths.instance.network(...params),
-              getProps: i => ({
-                isActive:
-                  checkPath(i, { exact: true }) ||
-                  i.pathname.includes('/network/firewall/')
-              }),
-              children: [
+              label: 'Security',
+              collapsible: true,
+              items: [
                 {
-                  label: 'Firewalls',
-                  to: Paths.instance.networkFirewalls(...params),
-                  getProps: i => ({
-                    isActive:
-                      checkPath(i, { exact: true }) ||
-                      i.pathname.includes('/network/firewall/')
+                  icon: <RiShieldKeyholeLine />,
+                  label: 'Overview',
+                  to: Paths.instance.security(...params),
+                  getProps: (i: { pathname: string; to: string }) => ({
+                    isActive: checkPath(i, { exact: true })
                   })
                 },
                 {
-                  label: 'Enclaves',
-                  to: Paths.instance.networkEnclaves(...params),
-                  getProps: i => ({ isActive: checkPath(i, { exact: true }) })
-                },
-                {
-                  label: 'Network Settings',
-                  to: Paths.instance.networkSettings(...params),
-                  getProps: i => ({ isActive: checkPath(i, { exact: true }) })
+                  icon: <RiFlowChart />,
+                  label: 'Network',
+                  to: Paths.instance.network(...params),
+                  getProps: (i: { pathname: string; to: string }) => ({
+                    isActive:
+                      checkPath(i, { exact: true }) ||
+                      i.pathname.includes('/network/firewall/')
+                  }),
+                  children: [
+                    {
+                      label: 'Firewalls',
+                      to: Paths.instance.networkFirewalls(...params),
+                      getProps: (i: { pathname: string; to: string }) => ({
+                        isActive:
+                          checkPath(i, { exact: true }) ||
+                          i.pathname.includes('/network/firewall/')
+                      })
+                    },
+                    {
+                      label: 'Enclaves',
+                      to: Paths.instance.networkEnclaves(...params),
+                      getProps: (i: { pathname: string; to: string }) => ({
+                        isActive: checkPath(i, { exact: true })
+                      })
+                    },
+                    {
+                      label: 'Network Settings',
+                      to: Paths.instance.networkSettings(...params),
+                      getProps: (i: { pathname: string; to: string }) => ({
+                        isActive: checkPath(i, { exact: true })
+                      })
+                    }
+                  ]
                 }
               ]
             }
           ]
-        },
+        : []),
 
         {
           label: 'Gateway',

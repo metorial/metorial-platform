@@ -31,6 +31,10 @@ import type {
   SubspaceCustomProvider,
   SubspaceCustomProviderCommit,
   SubspaceCustomProviderVersion,
+  SubspaceFirewall,
+  SubspaceFirewallBinding,
+  SubspaceNetworkPolicy,
+  SubspaceNetworkPolicyRule,
   SubspaceProviderAuthConfig,
   SubspaceProviderAuthCredentials,
   SubspaceProviderAuthExport,
@@ -409,4 +413,33 @@ export interface FabricEvents {
 
   'provider.provider_listing_group.created:before': ProviderEventBase;
   'provider.provider_listing_group.created:after': ProviderEventBase & { providerGroup: SubspaceProviderListingGroup };
+
+  'instance.network.firewall.created:before': ProviderEventBase;
+  'instance.network.firewall.created:after': ProviderEventBase & { firewall: SubspaceFirewall };
+  'instance.network.firewall.updated:before': ProviderEventBase;
+  'instance.network.firewall.updated:after': ProviderEventBase & { firewall: SubspaceFirewall };
+  'instance.network.firewall.deleted:before': ProviderEventBase;
+  'instance.network.firewall.deleted:after': ProviderEventBase & { firewall: SubspaceFirewall };
+  'instance.network.firewall.network_policy.attached:before': ProviderEventBase;
+  'instance.network.firewall.network_policy.attached:after': ProviderEventBase & { firewall: SubspaceFirewall };
+  'instance.network.firewall.network_policy.detached:before': ProviderEventBase;
+  'instance.network.firewall.network_policy.detached:after': ProviderEventBase & { firewall: SubspaceFirewall };
+
+  'instance.network.firewall_binding.created:before': ProviderEventBase;
+  'instance.network.firewall_binding.created:after': ProviderEventBase & { firewallBinding: SubspaceFirewallBinding };
+  'instance.network.firewall_binding.deleted:before': ProviderEventBase;
+  'instance.network.firewall_binding.deleted:after': ProviderEventBase & { firewallBinding: SubspaceFirewallBinding };
+
+  'instance.network.network_policy.created:before': ProviderEventBase;
+  'instance.network.network_policy.created:after': ProviderEventBase & { networkPolicy: SubspaceNetworkPolicy };
+  'instance.network.network_policy.updated:before': ProviderEventBase;
+  'instance.network.network_policy.updated:after': ProviderEventBase & { networkPolicy: SubspaceNetworkPolicy };
+  'instance.network.network_policy.deleted:before': ProviderEventBase;
+  'instance.network.network_policy.deleted:after': ProviderEventBase & { networkPolicy: SubspaceNetworkPolicy };
+  'instance.network.network_policy.rule.created:before': ProviderEventBase;
+  'instance.network.network_policy.rule.created:after': ProviderEventBase & { networkPolicy: SubspaceNetworkPolicy; rule: SubspaceNetworkPolicyRule };
+  'instance.network.network_policy.rule.updated:before': ProviderEventBase;
+  'instance.network.network_policy.rule.updated:after': ProviderEventBase & { networkPolicy: SubspaceNetworkPolicy; rule: SubspaceNetworkPolicyRule };
+  'instance.network.network_policy.rule.deleted:before': ProviderEventBase;
+  'instance.network.network_policy.rule.deleted:after': ProviderEventBase & { networkPolicy: SubspaceNetworkPolicy };
 }

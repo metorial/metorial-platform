@@ -157,13 +157,13 @@ export let firewallController = app.controller({
       })
     )
     .do(async ctx => {
-      await firewallService.archiveFirewall({
+      let firewall = await firewallService.archiveFirewall({
         firewall: ctx.firewall,
         tenant: ctx.tenant,
         environment: ctx.environment
       });
 
-      return { deleted: true };
+      return firewallPresenter(firewall);
     }),
 
   addNetworkPolicy: firewallApp

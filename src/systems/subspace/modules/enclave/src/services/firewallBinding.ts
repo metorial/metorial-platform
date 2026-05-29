@@ -203,7 +203,8 @@ class firewallBindingServiceImpl {
     checkTenant(d, d.firewallBinding);
 
     return db.firewallBinding.delete({
-      where: { oid: d.firewallBinding.oid }
+      where: { oid: d.firewallBinding.oid },
+      include: bindingInclude
     });
   }
 

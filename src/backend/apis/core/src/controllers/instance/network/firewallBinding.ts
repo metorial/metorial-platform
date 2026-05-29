@@ -6,14 +6,15 @@ import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { instancePath } from '../../../middleware/instanceGroup';
+import { networkInstanceGroup } from './_middleware';
 import { firewallBindingPresenter } from '../../../presenters';
 import { firewallBindingTargetValidator } from './_validators';
 
 let networkReadScopes = ['instance.network:read'] as const;
 let networkWriteScopes = ['instance.network:write'] as const;
 
-export let firewallBindingGroup = instanceGroup.use(async ctx => {
+export let firewallBindingGroup = networkInstanceGroup.use(async ctx => {
   if (!ctx.params.firewallBindingId) {
     throw new ServiceError(
       badRequestError({
@@ -37,7 +38,7 @@ export let firewallBindingController = Controller.create(
     description: 'Manage bindings that apply firewalls to enclaves, providers, or networks.'
   },
   {
-    list: instanceGroup
+    list: networkInstanceGroup
       .get(instancePath('firewall-bindings', 'firewallBindings.list'), {
         name: 'List firewall bindings',
         description: 'Returns a paginated list of firewall bindings.'
@@ -95,7 +96,7 @@ export let firewallBindingController = Controller.create(
         firewallBindingPresenter.present({ firewallBinding: ctx.firewallBinding })
       ),
 
-    create: instanceGroup
+    create: networkInstanceGroup
       .post(instancePath('firewall-bindings', 'firewallBindings.create'), {
         name: 'Create firewall binding',
         description: 'Creates a binding that applies a firewall to a target.'

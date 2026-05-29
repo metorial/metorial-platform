@@ -279,13 +279,13 @@ export let networkPolicyController = app.controller({
       })
     )
     .do(async ctx => {
-      await networkPolicyService.archiveNetworkPolicy({
+      let networkPolicy = await networkPolicyService.archiveNetworkPolicy({
         networkPolicy: ctx.networkPolicy,
         tenant: ctx.tenant,
         environment: ctx.environment
       });
 
-      return { deleted: true };
+      return networkPolicyPresenter(networkPolicy);
     }),
 
   listVersions: networkPolicyApp

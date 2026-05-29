@@ -13,6 +13,7 @@ import { RiMore2Line } from '@remixicon/react';
 import { useParams } from 'react-router-dom';
 import { showApplyFirewallPanel } from '../../(network)/_applyFirewallPanel';
 import { EmptyText, Stack } from '../../(network)/_common';
+import { useNetworkManagementAccess } from '../../(network)/_gate';
 import { ProviderDeploymentTabSection } from '../../../scenes/providerDeployments/tabSection';
 
 export let ProviderDeploymentNetworkPage = () => {
@@ -30,6 +31,7 @@ export let ProviderDeploymentNetworkPage = () => {
     intervalMinutes: 60
   });
   let deleteBinding = useDeleteFirewallBinding();
+  let { canWrite } = useNetworkManagementAccess();
 
   return renderWithLoader({ deployment, enclaves, firewallBindings, networkLogs })(
     ({ deployment, enclaves, firewallBindings, networkLogs }) => (
@@ -70,21 +72,23 @@ export let ProviderDeploymentNetworkPage = () => {
                   title={`${enclave.name} Firewall Rules`}
                   description="Apply firewalls to this enclave."
                   rightActions={
-                    <Button
-                      size="2"
-                      onClick={() =>
-                        showApplyFirewallPanel({
-                          instanceId: instance.data!.id,
-                          targetType: 'enclave',
-                          targetId: enclave.id,
-                          title: 'Apply Firewall',
+                    canWrite ?
+                      <Button
+                        size="2"
+                        onClick={() =>
+                          showApplyFirewallPanel({
+                            instanceId: instance.data!.id,
+                            targetType: 'enclave',
+                            targetId: enclave.id,
+                            title: 'Apply Firewall',
                           description: `Choose the firewalls that should apply to ${enclave.name}.`,
                           onComplete: () => firewallBindings.refetch()
                         })
                       }
-                    >
-                      Apply Firewall
-                    </Button>
+                      >
+                        Apply Firewall
+                      </Button>
+                    : undefined
                   }
                 >
                   {enclaveBindings.length > 0 ? (
@@ -96,27 +100,29 @@ export let ProviderDeploymentNetworkPage = () => {
                             {binding.firewall.name}
                           </Text>,
                           <RenderDate date={binding.createdAt} />,
-                          <div style={{ display: 'flex', justifyContent: 'flex-end', width: '100%' }}>
-                            <Menu
-                              items={[{ id: 'remove', label: 'Remove' }]}
-                              onItemClick={async item => {
-                                if (item !== 'remove') return;
+                          canWrite ?
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', width: '100%' }}>
+                              <Menu
+                                items={[{ id: 'remove', label: 'Remove' }]}
+                                onItemClick={async item => {
+                                  if (item !== 'remove') return;
 
-                                await deleteBinding.mutate({
-                                  instanceId: instance.data!.id,
-                                  firewallBindingId: binding.id
-                                });
-                                firewallBindings.refetch();
-                              }}
-                            >
-                              <Button
-                                size="1"
-                                variant="outline"
-                                iconLeft={<RiMore2Line />}
-                                title="Firewall actions"
-                              />
-                            </Menu>
-                          </div>
+                                  await deleteBinding.mutate({
+                                    instanceId: instance.data!.id,
+                                    firewallBindingId: binding.id
+                                  });
+                                  firewallBindings.refetch();
+                                }}
+                              >
+                                <Button
+                                  size="1"
+                                  variant="outline"
+                                  iconLeft={<RiMore2Line />}
+                                  title="Firewall actions"
+                                />
+                              </Menu>
+                            </div>
+                          : null
                         ]
                       }))}
                     />

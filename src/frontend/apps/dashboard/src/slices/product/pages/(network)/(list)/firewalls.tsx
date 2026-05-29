@@ -12,6 +12,7 @@ import {
   useFirewalls,
   useNetworks
 } from '@metorial/state';
+import { useNetworkManagementAccess } from '../_gate';
 import { Button, Dialog, Input, RenderDate, Spacer, Text, showModal } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import { useNavigate } from 'react-router-dom';
@@ -111,14 +112,16 @@ let FirewallsTable = () => {
   let instance = useCurrentInstance();
   let navigate = useNavigate();
   let networks = useNetworks(instance.data?.id, { limit: 1 });
+  let { canWrite } = useNetworkManagementAccess();
 
   return firewallsTable({
     organization,
     project,
     instance,
     emptyState: 'No firewalls configured.',
-    headerActions: () => (
-      <Button
+    headerActions: () =>
+      canWrite ?
+        <Button
         size="2"
         disabled={!instance.data || !networks.data?.items[0]}
         onClick={() => {
@@ -139,10 +142,10 @@ let FirewallsTable = () => {
               )
           });
         }}
-      >
-        Create Firewall
-      </Button>
-    )
+        >
+          Create Firewall
+        </Button>
+      : null
   });
 };
 

@@ -6,14 +6,15 @@ import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { instancePath } from '../../../middleware/instanceGroup';
+import { networkInstanceGroup } from './_middleware';
 import { networkPolicyPresenter, networkPolicyRulePresenter } from '../../../presenters';
 import { networkPolicyRuleValidator } from './_validators';
 
 let networkReadScopes = ['instance.network:read'] as const;
 let networkWriteScopes = ['instance.network:write'] as const;
 
-export let networkPolicyGroup = instanceGroup.use(async ctx => {
+export let networkPolicyGroup = networkInstanceGroup.use(async ctx => {
   if (!ctx.params.networkPolicyId) {
     throw new ServiceError(
       badRequestError({
@@ -38,7 +39,7 @@ export let networkPolicyController = Controller.create(
     description: 'Manage reusable network policy definitions and their rules.'
   },
   {
-    list: instanceGroup
+    list: networkInstanceGroup
       .get(instancePath('network-policies', 'networkPolicies.list'), {
         name: 'List network policies',
         description: 'Returns a paginated list of network policies.'
@@ -93,7 +94,7 @@ export let networkPolicyController = Controller.create(
       .output(networkPolicyPresenter)
       .do(async ctx => networkPolicyPresenter.present({ networkPolicy: ctx.networkPolicy })),
 
-    create: instanceGroup
+    create: networkInstanceGroup
       .post(instancePath('network-policies', 'networkPolicies.create'), {
         name: 'Create network policy',
         description: 'Creates a new network policy.'

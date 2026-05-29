@@ -10,9 +10,11 @@ import { Box, ID, Table } from '@metorial/ui-product';
 import { RiMore2Line } from '@remixicon/react';
 import { showApplyFirewallPanel } from '../_applyFirewallPanel';
 import { EmptyText } from '../_common';
+import { useNetworkManagementAccess } from '../_gate';
 
 export let NetworkSettingsPage = () => {
   let instance = useCurrentInstance();
+  let { canWrite } = useNetworkManagementAccess();
   let networks = useNetworks(instance.data?.id, { limit: 100, order: 'desc' });
   let firewallBindings = useFirewallBindings(instance.data?.id, { limit: 100, order: 'desc' });
   let deleteBinding = useDeleteFirewallBinding();
@@ -56,7 +58,7 @@ export let NetworkSettingsPage = () => {
           title="Applied Firewalls"
           description="Firewall bindings that apply to the default network."
           rightActions={
-            network ? (
+            network && canWrite ?
               <Button
                 size="2"
                 onClick={() =>
@@ -73,7 +75,7 @@ export let NetworkSettingsPage = () => {
               >
                 Apply Firewall
               </Button>
-            ) : undefined
+            : undefined
           }
         >
           {networkBindings.length > 0 ? (
@@ -86,27 +88,29 @@ export let NetworkSettingsPage = () => {
                   </Text>,
                   <Text size="2">{binding.target?.name ?? 'Default network'}</Text>,
                   <RenderDate date={binding.createdAt} />,
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', width: '100%' }}>
-                    <Menu
-                      items={[{ id: 'remove', label: 'Remove' }]}
-                      onItemClick={async item => {
-                        if (item !== 'remove') return;
+                  canWrite ?
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', width: '100%' }}>
+                      <Menu
+                        items={[{ id: 'remove', label: 'Remove' }]}
+                        onItemClick={async item => {
+                          if (item !== 'remove') return;
 
-                        await deleteBinding.mutate({
-                          instanceId: instance.data!.id,
-                          firewallBindingId: binding.id
-                        });
-                        firewallBindings.refetch();
-                      }}
-                    >
-                      <Button
-                        size="1"
-                        variant="outline"
-                        iconLeft={<RiMore2Line />}
-                        title="Firewall actions"
-                      />
-                    </Menu>
-                  </div>
+                          await deleteBinding.mutate({
+                            instanceId: instance.data!.id,
+                            firewallBindingId: binding.id
+                          });
+                          firewallBindings.refetch();
+                        }}
+                      >
+                        <Button
+                          size="1"
+                          variant="outline"
+                          iconLeft={<RiMore2Line />}
+                          title="Firewall actions"
+                        />
+                      </Menu>
+                    </div>
+                  : null
                 ]
               }))}
             />

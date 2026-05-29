@@ -17,6 +17,7 @@ import { Box, ID, Table } from '@metorial/ui-product';
 import { RiArrowDownLine, RiArrowUpLine, RiMore2Line } from '@remixicon/react';
 import { Link, useParams } from 'react-router-dom';
 import { EmptyText, Stack } from '../_common';
+import { useNetworkManagementAccess } from '../_gate';
 
 type PolicyRuleInput = {
   effect: 'allow' | 'deny';
@@ -354,6 +355,7 @@ let PolicyBox = (p: {
   firewallId: string;
   policyId: string;
   onComplete: () => void;
+  canWrite: boolean;
 }) => {
   let policy = useNetworkPolicy(p.instanceId, p.policyId);
   let updatePolicy = policy.useUpdateMutator();
@@ -367,33 +369,34 @@ let PolicyBox = (p: {
       title={policy.data.name}
       description={`Version ${policy.data.version}`}
       rightActions={
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Button
-            size="2"
-            onClick={() =>
-              showRuleModal({
-                title: 'Add Network Rule',
-                description: 'Add a rule to this network policy.',
-                initialValues: {
-                  effect: 'allow',
-                  direction: 'egress',
-                  cidrs: '0.0.0.0/0',
-                  priority: String(policy.data.rules.length + 100),
-                  portFrom: '',
-                  portTo: '',
-                  description: ''
-                },
-                onSubmit: async rule => {
-                  await createRule.mutate(rule);
-                  p.onComplete();
-                }
-              })
-            }
-          >
-            Add Rule
-          </Button>
+        p.canWrite ?
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Button
+              size="2"
+              onClick={() =>
+                showRuleModal({
+                  title: 'Add Network Rule',
+                  description: 'Add a rule to this network policy.',
+                  initialValues: {
+                    effect: 'allow',
+                    direction: 'egress',
+                    cidrs: '0.0.0.0/0',
+                    priority: String(policy.data.rules.length + 100),
+                    portFrom: '',
+                    portTo: '',
+                    description: ''
+                  },
+                  onSubmit: async rule => {
+                    await createRule.mutate(rule);
+                    p.onComplete();
+                  }
+                })
+              }
+            >
+              Add Rule
+            </Button>
 
-          <Menu
+            <Menu
             items={[
               { id: 'edit', label: 'Edit' },
               { id: 'detach', label: 'Detach' }
@@ -429,8 +432,9 @@ let PolicyBox = (p: {
               iconLeft={<RiMore2Line />}
               title="Policy actions"
             />
-          </Menu>
-        </div>
+            </Menu>
+          </div>
+        : undefined
       }
     >
       {policy.data.rules.length > 0 ? (
@@ -447,13 +451,14 @@ let PolicyBox = (p: {
                 {rule.ports?.map(port => `${port.from}-${port.to}`).join(', ') ?? 'All'}
               </Text>,
               <Text size="2">{rule.priority}</Text>,
-              <div style={{ display: 'flex', justifyContent: 'flex-end', width: '100%' }}>
-                <Menu
-                  items={[
-                    { id: 'edit', label: 'Edit' },
-                    { id: 'remove', label: 'Remove' }
-                  ]}
-                  onItemClick={async item => {
+              p.canWrite ?
+                <div style={{ display: 'flex', justifyContent: 'flex-end', width: '100%' }}>
+                  <Menu
+                    items={[
+                      { id: 'edit', label: 'Edit' },
+                      { id: 'remove', label: 'Remove' }
+                    ]}
+                    onItemClick={async item => {
                     if (item === 'edit') {
                       showRuleModal({
                         title: 'Edit Network Rule',
@@ -503,8 +508,9 @@ let PolicyBox = (p: {
                     iconLeft={<RiMore2Line />}
                     title="Rule actions"
                   />
-                </Menu>
-              </div>
+                  </Menu>
+                </div>
+              : null
             ]
           }))}
         />
@@ -522,6 +528,7 @@ export let NetworkFirewallPage = () => {
   let { firewallId } = useParams();
   let firewall = useFirewall(instance.data?.id, firewallId);
   let network = useNetwork(instance.data?.id, firewall.data?.networkId);
+  let { canWrite } = useNetworkManagementAccess();
 
   return renderWithLoader({ firewall })(({ firewall }) => (
     <>
@@ -554,18 +561,20 @@ export let NetworkFirewallPage = () => {
         title="Network Policies"
         description="Network policies define which connections this firewall allows or blocks."
         actions={
-          <Button
-            size="2"
-            onClick={() =>
-              showCreatePolicyModal({
-                instanceId: instance.data!.id,
-                firewallId: firewall.data.id,
-                onComplete: () => firewall.refetch()
-              })
-            }
-          >
-            Create Policy
-          </Button>
+          canWrite ?
+            <Button
+              size="2"
+              onClick={() =>
+                showCreatePolicyModal({
+                  instanceId: instance.data!.id,
+                  firewallId: firewall.data.id,
+                  onComplete: () => firewall.refetch()
+                })
+              }
+            >
+              Create Policy
+            </Button>
+          : undefined
         }
       />
 
@@ -577,6 +586,7 @@ export let NetworkFirewallPage = () => {
               instanceId={instance.data!.id}
               firewallId={firewall.data.id}
               policyId={policy.id}
+              canWrite={canWrite}
               onComplete={() => firewall.refetch()}
             />
           ))}

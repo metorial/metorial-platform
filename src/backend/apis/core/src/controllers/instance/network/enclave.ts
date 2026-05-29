@@ -6,13 +6,14 @@ import { Controller, Path } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { instancePath } from '../../../middleware/instanceGroup';
+import { networkInstanceGroup } from './_middleware';
 import { isDashboardGroup } from '../../../middleware/isDashboard';
 import { enclavePresenter } from '../../../presenters';
 
 let networkReadScopes = ['instance.network:read'] as const;
 
-export let enclaveGroup = instanceGroup.use(async ctx => {
+export let enclaveGroup = networkInstanceGroup.use(async ctx => {
   if (!ctx.params.enclaveId) {
     throw new ServiceError(
       badRequestError({
@@ -36,7 +37,7 @@ export let enclaveController = Controller.create(
     description: 'Read enclave records for provider deployments in an instance.'
   },
   {
-    list: instanceGroup
+    list: networkInstanceGroup
       .get(instancePath('enclaves', 'enclaves.list'), {
         name: 'List enclaves',
         description: 'Returns a paginated list of enclaves.'
@@ -96,7 +97,7 @@ export let dashboardEnclaveController = Controller.create(
     hideInDocs: true
   },
   {
-    getLastUsed: instanceGroup
+    getLastUsed: networkInstanceGroup
       .get(
         Path(
           '/dashboard/instances/:instanceId/enclaves/last-used',

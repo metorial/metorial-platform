@@ -1,6 +1,9 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { firewallBindingService, type FirewallBindingInput } from '@metorial-subspace/module-enclave';
+import {
+  firewallBindingService,
+  type FirewallBindingInput
+} from '@metorial-subspace/module-enclave';
 import { firewallBindingPresenter } from '@metorial-subspace/presenters';
 import { app } from './_app';
 import { createdAtValidator } from './_dateFilter';
@@ -114,12 +117,12 @@ export let firewallBindingController = app.controller({
       })
     )
     .do(async ctx => {
-      await firewallBindingService.deleteFirewallBinding({
+      let firewallBinding = await firewallBindingService.deleteFirewallBinding({
         firewallBinding: ctx.firewallBinding,
         tenant: ctx.tenant,
         environment: ctx.environment
       });
 
-      return { deleted: true };
+      return firewallBindingPresenter(firewallBinding);
     })
 });

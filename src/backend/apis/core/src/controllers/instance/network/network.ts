@@ -6,12 +6,13 @@ import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { instancePath } from '../../../middleware/instanceGroup';
+import { networkInstanceGroup } from './_middleware';
 import { networkLogsPresenter, networkPresenter } from '../../../presenters';
 
 let networkReadScopes = ['instance.network:read'] as const;
 
-export let networkGroup = instanceGroup.use(async ctx => {
+export let networkGroup = networkInstanceGroup.use(async ctx => {
   if (!ctx.params.networkId) {
     throw new ServiceError(
       badRequestError({
@@ -35,7 +36,7 @@ export let networkController = Controller.create(
     description: 'Read network records for an instance environment.'
   },
   {
-    list: instanceGroup
+    list: networkInstanceGroup
       .get(instancePath('networks', 'networks.list'), {
         name: 'List networks',
         description: 'Returns a paginated list of networks.'
@@ -82,7 +83,7 @@ export let networkController = Controller.create(
       .output(networkPresenter)
       .do(async ctx => networkPresenter.present({ network: ctx.network })),
 
-    listNetworkLogs: instanceGroup
+    listNetworkLogs: networkInstanceGroup
       .get(instancePath('network-logs', 'networks.listNetworkLogs'), {
         name: 'List network logs',
         description: 'Returns ingress or egress network logs for enclaves in the instance environment.'

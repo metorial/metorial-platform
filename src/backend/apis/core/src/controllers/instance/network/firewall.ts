@@ -6,14 +6,15 @@ import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { instancePath } from '../../../middleware/instanceGroup';
+import { networkInstanceGroup } from './_middleware';
 import { firewallPresenter } from '../../../presenters';
 import { firewallBindingTargetValidator } from './_validators';
 
 let networkReadScopes = ['instance.network:read'] as const;
 let networkWriteScopes = ['instance.network:write'] as const;
 
-export let firewallGroup = instanceGroup.use(async ctx => {
+export let firewallGroup = networkInstanceGroup.use(async ctx => {
   if (!ctx.params.firewallId) {
     throw new ServiceError(
       badRequestError({
@@ -38,7 +39,7 @@ export let firewallController = Controller.create(
     description: 'Manage firewalls and their attached network policies.'
   },
   {
-    list: instanceGroup
+    list: networkInstanceGroup
       .get(instancePath('firewalls', 'firewalls.list'), {
         name: 'List firewalls',
         description: 'Returns a paginated list of firewalls.'
@@ -99,7 +100,7 @@ export let firewallController = Controller.create(
       .output(firewallPresenter)
       .do(async ctx => firewallPresenter.present({ firewall: ctx.firewall })),
 
-    create: instanceGroup
+    create: networkInstanceGroup
       .post(instancePath('firewalls', 'firewalls.create'), {
         name: 'Create firewall',
         description: 'Creates a new firewall.'

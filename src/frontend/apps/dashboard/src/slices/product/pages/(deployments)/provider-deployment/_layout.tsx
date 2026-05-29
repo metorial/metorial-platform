@@ -5,6 +5,7 @@ import {
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
+  useDashboardFlags,
   useProviderDeployment
 } from '@metorial/state';
 import { Button, LinkTabs } from '@metorial/ui';
@@ -29,6 +30,8 @@ export let ProviderDeploymentLayout = () => {
     instance.data,
     deployment.data?.id ?? providerDeploymentId
   ] as const;
+  let dashboardFlags = useDashboardFlags();
+  let networkingEnabled = !!dashboardFlags.data?.flags['networking-enabled'];
 
   return (
     <ContentLayout>
@@ -113,10 +116,14 @@ export let ProviderDeploymentLayout = () => {
                 label: 'Vaults',
                 to: `${Paths.instance.providerDeployment(...deploymentPathParams, 'config-vaults')}${search}`
               },
-              {
-                label: 'Network',
-                to: `${Paths.instance.providerDeployment(...deploymentPathParams, 'network')}${search}`
-              },
+              ...(networkingEnabled ?
+                [
+                  {
+                    label: 'Network',
+                    to: `${Paths.instance.providerDeployment(...deploymentPathParams, 'network')}${search}`
+                  }
+                ]
+              : []),
               {
                 label: 'Settings',
                 to: `${Paths.instance.providerDeployment(...deploymentPathParams, 'settings')}${search}`
