@@ -69,10 +69,10 @@ export let ProviderDeploymentNetworkPage = () => {
               return (
                 <Box
                   key={enclave.id}
-                  title={`${enclave.name} Firewall Rules`}
+                  title="Firewall Rules"
                   description="Apply firewalls to this enclave."
                   rightActions={
-                    canWrite ?
+                    canWrite ? (
                       <Button
                         size="2"
                         onClick={() =>
@@ -81,14 +81,14 @@ export let ProviderDeploymentNetworkPage = () => {
                             targetType: 'enclave',
                             targetId: enclave.id,
                             title: 'Apply Firewall',
-                          description: `Choose the firewalls that should apply to ${enclave.name}.`,
-                          onComplete: () => firewallBindings.refetch()
-                        })
-                      }
+                            description: `Choose the firewalls that should apply to ${enclave.name}.`,
+                            onComplete: () => firewallBindings.refetch()
+                          })
+                        }
                       >
                         Apply Firewall
                       </Button>
-                    : undefined
+                    ) : undefined
                   }
                 >
                   {enclaveBindings.length > 0 ? (
@@ -100,8 +100,14 @@ export let ProviderDeploymentNetworkPage = () => {
                             {binding.firewall.name}
                           </Text>,
                           <RenderDate date={binding.createdAt} />,
-                          canWrite ?
-                            <div style={{ display: 'flex', justifyContent: 'flex-end', width: '100%' }}>
+                          canWrite ? (
+                            <div
+                              style={{
+                                display: 'flex',
+                                justifyContent: 'flex-end',
+                                width: '100%'
+                              }}
+                            >
                               <Menu
                                 items={[{ id: 'remove', label: 'Remove' }]}
                                 onItemClick={async item => {
@@ -122,7 +128,7 @@ export let ProviderDeploymentNetworkPage = () => {
                                 />
                               </Menu>
                             </div>
-                          : null
+                          ) : null
                         ]
                       }))}
                     />
