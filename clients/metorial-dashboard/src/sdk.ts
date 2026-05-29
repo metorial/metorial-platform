@@ -28,8 +28,12 @@ import {
   MetorialDashboardInstanceDocumentsParticipantsEndpoint,
   MetorialDashboardInstanceDocumentsPermissionsEndpoint,
   MetorialDashboardInstanceDocumentsVersionsEndpoint,
+  MetorialDashboardInstanceEnclavesEndpoint,
   MetorialDashboardInstanceFilesEndpoint,
   MetorialDashboardInstanceFilesLinksEndpoint,
+  MetorialDashboardInstanceFirewallBindingsEndpoint,
+  MetorialDashboardInstanceFirewallsEndpoint,
+  MetorialDashboardInstanceFirewallsNetworkPoliciesEndpoint,
   MetorialDashboardInstanceIdentitiesCredentialsEndpoint,
   MetorialDashboardInstanceIdentitiesDelegationConfigsEndpoint,
   MetorialDashboardInstanceIdentitiesDelegationRequestsEndpoint,
@@ -50,6 +54,9 @@ import {
   MetorialDashboardInstanceMagicMcpServersSessionEndpoint,
   MetorialDashboardInstanceMagicMcpSessionsEndpoint,
   MetorialDashboardInstanceMagicMcpTokensEndpoint,
+  MetorialDashboardInstanceNetworkPoliciesEndpoint,
+  MetorialDashboardInstanceNetworkPoliciesRulesEndpoint,
+  MetorialDashboardInstanceNetworksEndpoint,
   MetorialDashboardInstancePortalsAccessEndpoint,
   MetorialDashboardInstancePortalsAccessRequestsEndpoint,
   MetorialDashboardInstancePortalsAuthAppEndpoint,
@@ -532,6 +539,17 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
   skillExports: new MetorialDashboardInstanceSkillsExportsEndpoint(manager),
 
   skillSyncs: new MetorialDashboardInstanceSkillsSyncsEndpoint(manager),
+
+  networks: new MetorialDashboardInstanceNetworksEndpoint(manager),
+  networkPolicies: Object.assign(
+    new MetorialDashboardInstanceNetworkPoliciesEndpoint(manager),
+    { rules: new MetorialDashboardInstanceNetworkPoliciesRulesEndpoint(manager) }
+  ),
+  enclaves: new MetorialDashboardInstanceEnclavesEndpoint(manager),
+  firewalls: Object.assign(new MetorialDashboardInstanceFirewallsEndpoint(manager), {
+    networkPolicies: new MetorialDashboardInstanceFirewallsNetworkPoliciesEndpoint(manager)
+  }),
+  firewallBindings: new MetorialDashboardInstanceFirewallBindingsEndpoint(manager),
 
   magicMcp: {
     servers: Object.assign(new MetorialDashboardInstanceMagicMcpServersEndpoint(manager), {
