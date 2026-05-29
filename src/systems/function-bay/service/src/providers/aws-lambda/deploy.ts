@@ -64,10 +64,25 @@ let originalHttpRequest;
 let originalHttpGet;
 let originalHttpsRequest;
 let originalHttpsGet;
+let currentHttpAgent;
+let currentHttpsAgent;
+let currentProxyDispatcher;
+
+function destroyAgent(agent) {
+  if (agent && typeof agent.destroy === 'function') {
+    agent.destroy();
+  }
+}
 
 function patchNodeHttpAgents(proxyUrl) {
   const httpAgent = new HttpProxyAgent(proxyUrl);
   const httpsAgent = new HttpsProxyAgent(proxyUrl);
+
+  const previousHttpAgent = currentHttpAgent;
+  const previousHttpsAgent = currentHttpsAgent;
+
+  currentHttpAgent = httpAgent;
+  currentHttpsAgent = httpsAgent;
 
   http.globalAgent = httpAgent;
   https.globalAgent = httpsAgent;
@@ -79,26 +94,29 @@ function patchNodeHttpAgents(proxyUrl) {
     originalHttpsGet = https.get;
 
     http.request = function patchedHttpRequest(...args) {
-      args = withAgent(args, httpAgent);
+      args = withAgent(args, currentHttpAgent);
       return originalHttpRequest.apply(this, args);
     };
     http.get = function patchedHttpGet(...args) {
-      args = withAgent(args, httpAgent);
+      args = withAgent(args, currentHttpAgent);
       const req = originalHttpRequest.apply(this, args);
       req.end();
       return req;
     };
     https.request = function patchedHttpsRequest(...args) {
-      args = withAgent(args, httpsAgent);
+      args = withAgent(args, currentHttpsAgent);
       return originalHttpsRequest.apply(this, args);
     };
     https.get = function patchedHttpsGet(...args) {
-      args = withAgent(args, httpsAgent);
+      args = withAgent(args, currentHttpsAgent);
       const req = originalHttpsRequest.apply(this, args);
       req.end();
       return req;
     };
   }
+
+  if (previousHttpAgent && previousHttpAgent !== httpAgent) destroyAgent(previousHttpAgent);
+  if (previousHttpsAgent && previousHttpsAgent !== httpsAgent) destroyAgent(previousHttpsAgent);
 
   syncBuiltinESMExports();
 }
@@ -144,10 +162,15 @@ exports.applyDeflector = function applyDeflector(event) {
   process.env.no_proxy = noProxy;
 
   patchNodeHttpAgents(proxyUrlWithAuth);
-  setGlobalDispatcher(new ProxyAgent({
+  const previousProxyDispatcher = currentProxyDispatcher;
+  currentProxyDispatcher = new ProxyAgent({
     uri: deflector.proxyUrl,
     token: proxyAuthorization
-  }));
+  });
+  setGlobalDispatcher(currentProxyDispatcher);
+  if (previousProxyDispatcher && previousProxyDispatcher !== currentProxyDispatcher) {
+    destroyAgent(previousProxyDispatcher);
+  }
 };
 `;
 
@@ -244,7 +267,7 @@ let getNodeProxyWrapperBootstrapCachePath = () =>
   join(
     tmpdir(),
     'function-bay-wrapper-build',
-    `metorial-deflector-bootstrap-v2-${process.version.replace(/[^a-zA-Z0-9.-]/g, '-')}.js`
+    `metorial-deflector-bootstrap-v3-${process.version.replace(/[^a-zA-Z0-9.-]/g, '-')}.js`
   );
 
 let bundleNodeProxyWrapperBootstrap = async () => {
@@ -306,6 +329,9 @@ let buildNodeProxyWrapper = async (originalHandler: string) =>
 
 export let buildNodeProxyWrapperScript = (originalHandler: string) =>
   nodeProxyWrapper(originalHandler, 'exports.applyDeflector = function applyDeflector() {};');
+
+export let buildNodeProxyWrapperScriptWithDeflector = (originalHandler: string) =>
+  nodeProxyWrapper(originalHandler, nodeProxyWrapperBootstrap);
 
 let prepareZip = async (d: {
   zipFile: Buffer;

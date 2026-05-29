@@ -17,6 +17,15 @@ import (
 	"github.com/metorial/function-bay-deflector/internal/policy"
 )
 
+var (
+	errMissingProxyAuthorization            = errors.New("missing proxy authorization")
+	errInvalidProxyAuthorization            = errors.New("invalid proxy authorization")
+	errUnsupportedProxyAuthorizationScheme  = errors.New("unsupported proxy authorization scheme")
+	errInvalidProxyAuthorizationCredentials = errors.New("invalid proxy authorization credentials")
+	errVerifierRequired                     = errors.New("jwt verifier is required")
+	errInvalidEgressPolicy                  = errors.New("invalid egress policy")
+)
+
 type Server struct {
 	Logger   *slog.Logger
 	Dialer   *net.Dialer
@@ -38,7 +47,8 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	requestPolicy, err := s.policyFromRequest(r)
 	if err != nil {
-		http.Error(w, "proxy authentication failed", http.StatusProxyAuthRequired)
+		s.logAuthFailure(r, err)
+		http.Error(w, "Metorial Magic Network: proxy authentication failed", http.StatusProxyAuthRequired)
 		return
 	}
 
@@ -52,7 +62,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) policyFromRequest(r *http.Request) (*requestPolicy, error) {
 	if s.Verifier == nil {
-		return nil, errors.New("jwt verifier is required")
+		return nil, errVerifierRequired
 	}
 
 	token, err := tokenFromProxyAuthorization(r.Header.Get("Proxy-Authorization"))
@@ -66,57 +76,103 @@ func (s *Server) policyFromRequest(r *http.Request) (*requestPolicy, error) {
 	}
 	compiled, err := policy.Compile(claims)
 	if err != nil {
-		return nil, err
+		return nil, errors.Join(errInvalidEgressPolicy, err)
 	}
 	return &requestPolicy{Claims: claims, Compiled: compiled}, nil
 }
 
 func tokenFromProxyAuthorization(header string) (string, error) {
 	if header == "" {
-		return "", errors.New("missing proxy authorization")
+		return "", errMissingProxyAuthorization
 	}
 
 	scheme, value, ok := strings.Cut(header, " ")
 	if !ok || value == "" {
-		return "", errors.New("invalid proxy authorization")
+		return "", errInvalidProxyAuthorization
 	}
 
 	if strings.EqualFold(scheme, "Bearer") {
 		return value, nil
 	}
 	if !strings.EqualFold(scheme, "Basic") {
-		return "", errors.New("unsupported proxy authorization scheme")
+		return "", errUnsupportedProxyAuthorizationScheme
 	}
 
 	decoded, err := base64.StdEncoding.DecodeString(value)
 	if err != nil {
-		return "", err
+		return "", errors.Join(errInvalidProxyAuthorizationCredentials, err)
 	}
 	username, _, ok := strings.Cut(string(decoded), ":")
 	if !ok || username == "" {
-		return "", errors.New("invalid proxy authorization credentials")
+		return "", errInvalidProxyAuthorizationCredentials
 	}
 	return username, nil
+}
+
+func (s *Server) logAuthFailure(r *http.Request, err error) {
+	if s.Logger == nil {
+		return
+	}
+	s.Logger.Warn(
+		"proxy authentication failed",
+		"reason", authFailureReason(err),
+		"method", r.Method,
+		"host", r.Host,
+		"path", r.URL.Path,
+	)
+}
+
+func authFailureReason(err error) string {
+	switch {
+	case errors.Is(err, errVerifierRequired):
+		return "verifier_unconfigured"
+	case errors.Is(err, errMissingProxyAuthorization):
+		return "missing_proxy_authorization"
+	case errors.Is(err, errInvalidProxyAuthorization):
+		return "invalid_proxy_authorization"
+	case errors.Is(err, errUnsupportedProxyAuthorizationScheme):
+		return "unsupported_proxy_authorization_scheme"
+	case errors.Is(err, errInvalidProxyAuthorizationCredentials):
+		return "invalid_proxy_authorization_credentials"
+	case errors.Is(err, errInvalidEgressPolicy):
+		return "invalid_egress_policy"
+	}
+
+	message := strings.ToLower(err.Error())
+	switch {
+	case strings.Contains(message, "expired"):
+		return "jwt_expired"
+	case strings.Contains(message, "audience"):
+		return "jwt_audience_mismatch"
+	case strings.Contains(message, "not valid yet"):
+		return "jwt_not_before"
+	case strings.Contains(message, "signature"):
+		return "jwt_signature_invalid"
+	case strings.Contains(message, "missing required invocation claims"):
+		return "jwt_missing_invocation_claims"
+	default:
+		return "jwt_invalid"
+	}
 }
 
 func (s *Server) handleConnect(w http.ResponseWriter, r *http.Request, requestPolicy *requestPolicy) {
 	host, port, err := net.SplitHostPort(r.Host)
 	if err != nil {
-		http.Error(w, "invalid CONNECT target", http.StatusBadRequest)
+		http.Error(w, "Metorial Magic Network: invalid CONNECT target", http.StatusBadRequest)
 		return
 	}
 
 	upstream, err := s.dialAllowed(r.Context(), host, port, requestPolicy)
 	if err != nil {
 		s.Logger.Warn("proxy denied connect", "host", host, "error", err)
-		http.Error(w, "destination not allowed", http.StatusForbidden)
+		http.Error(w, "Metorial Magic Network: policy denied outgoing request", http.StatusForbidden)
 		return
 	}
 	defer upstream.Close()
 
 	hijacker, ok := w.(http.Hijacker)
 	if !ok {
-		http.Error(w, "hijacking unsupported", http.StatusInternalServerError)
+		http.Error(w, "Metorial Magic Network: hijacking unsupported", http.StatusInternalServerError)
 		return
 	}
 	client, _, err := hijacker.Hijack()
@@ -143,7 +199,7 @@ func (s *Server) handleHTTP(w http.ResponseWriter, r *http.Request, requestPolic
 	upstream, err := s.dialAllowed(r.Context(), host, port, requestPolicy)
 	if err != nil {
 		s.Logger.Warn("proxy denied http request", "host", host, "error", err)
-		http.Error(w, "destination not allowed", http.StatusForbidden)
+		http.Error(w, "Metorial Magic Network: policy denied outgoing request", http.StatusForbidden)
 		return
 	}
 	defer upstream.Close()
@@ -161,13 +217,13 @@ func (s *Server) handleHTTP(w http.ResponseWriter, r *http.Request, requestPolic
 	out.Header.Del("Proxy-Connection")
 
 	if err := out.Write(upstream); err != nil {
-		http.Error(w, "upstream write failed", http.StatusBadGateway)
+		http.Error(w, "Metorial Magic Network: upstream write failed", http.StatusBadGateway)
 		return
 	}
 
 	resp, err := http.ReadResponse(bufio.NewReader(upstream), r)
 	if err != nil {
-		http.Error(w, "upstream read failed", http.StatusBadGateway)
+		http.Error(w, "Metorial Magic Network: upstream read failed", http.StatusBadGateway)
 		return
 	}
 	defer resp.Body.Close()
@@ -195,7 +251,7 @@ func isUpgradeRequest(r *http.Request) bool {
 func (s *Server) handleUpgrade(w http.ResponseWriter, r *http.Request, upstream net.Conn) {
 	hijacker, ok := w.(http.Hijacker)
 	if !ok {
-		http.Error(w, "hijacking unsupported", http.StatusInternalServerError)
+		http.Error(w, "Metorial Magic Network: hijacking unsupported", http.StatusInternalServerError)
 		return
 	}
 
