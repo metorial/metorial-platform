@@ -18,14 +18,30 @@ let { mockDb } = vi.hoisted(() => ({
 }));
 
 vi.mock('@metorial-subspace/db', () => ({
-  withTransaction: async (cb: (db: typeof mockDb) => Promise<unknown>, opts?: { ifExists?: boolean }) => {
+  withTransaction: async (
+    cb: (db: typeof mockDb) => Promise<unknown>,
+    opts?: { ifExists?: boolean }
+  ) => {
     void opts;
     return cb(mockDb);
   },
+  addAfterTransactionHook: async (cb: () => Promise<void>) => cb(),
   getId: (model: string) => ({
     oid: BigInt(1),
     id: `${model}_test_id`
   })
+}));
+
+vi.mock('@metorial-subspace/module-catalog', () => ({
+  providerTypeService: {
+    getProviderTypeByOid: vi.fn(async () => ({
+      attributes: { backend: 'slates' }
+    }))
+  }
+}));
+
+vi.mock('../queues/lifecycle/enclave', () => ({
+  enclaveCreatedQueue: { add: vi.fn() }
 }));
 
 vi.mock('./networkInternal', () => ({
@@ -74,6 +90,7 @@ let environment = {
 
 let provider = {
   oid: BigInt(30),
+  typeOid: 1,
   name: 'My Provider'
 } as any;
 

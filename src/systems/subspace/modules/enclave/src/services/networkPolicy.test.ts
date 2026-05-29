@@ -21,10 +21,17 @@ let { mockDb } = vi.hoisted(() => ({
 vi.mock('@metorial-subspace/db', () => ({
   db: mockDb,
   withTransaction: async (cb: (db: typeof mockDb) => Promise<unknown>) => cb(mockDb),
+  addAfterTransactionHook: async (cb: () => Promise<void>) => cb(),
   getId: (model: string) => ({
     oid: BigInt(model === 'networkPolicy' ? 1 : model === 'networkPolicyRule' ? 2 : 3),
     id: `${model}_test_id`
   })
+}));
+
+vi.mock('../queues/lifecycle/networkPolicy', () => ({
+  networkPolicyCreatedQueue: { add: vi.fn() },
+  networkPolicyUpdatedQueue: { add: vi.fn() },
+  networkPolicyDeletedQueue: { add: vi.fn() }
 }));
 
 vi.mock('@metorial-subspace/module-tenant', () => ({
@@ -120,7 +127,12 @@ describe('networkPolicyService', () => {
         version: 2,
         rules: [
           { ...baseRule(), id: 'npr_existing' },
-          { ...baseRule(), direction: 'egress', id: 'networkPolicyRule_test_id', ports: [{ from: 443, to: 443 }] }
+          {
+            ...baseRule(),
+            direction: 'egress',
+            id: 'networkPolicyRule_test_id',
+            ports: [{ from: 443, to: 443 }]
+          }
         ]
       },
       firewallLinks: []
@@ -229,7 +241,12 @@ describe('networkPolicyService', () => {
         version: 2,
         rules: [
           { ...baseRule(), id: 'npr_keep' },
-          { ...baseRule(), direction: 'egress', id: 'networkPolicyRule_test_id', ports: [{ from: 443, to: 443 }] }
+          {
+            ...baseRule(),
+            direction: 'egress',
+            id: 'networkPolicyRule_test_id',
+            ports: [{ from: 443, to: 443 }]
+          }
         ]
       },
       firewallLinks: []

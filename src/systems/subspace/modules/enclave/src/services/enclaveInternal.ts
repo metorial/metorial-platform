@@ -2,6 +2,7 @@ import { generatePlainId } from '@lowerdeck/id';
 import { Service } from '@lowerdeck/service';
 import { slugify } from '@lowerdeck/slugify';
 import {
+  addAfterTransactionHook,
   type Enclave,
   type Environment,
   getId,
@@ -11,33 +12,37 @@ import {
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
+import { enclaveCreatedQueue } from '../queues/lifecycle/enclave';
 import { networkInternalService } from './networkInternal';
 
 class enclaveInternalServiceImpl {
   private async upsertSystemEnclaveEnvironment(d: { tenant: Tenant }) {
-    return withTransaction(async db => {
-      let systemIdentifier = `system:${d.tenant.id}`;
+    return withTransaction(
+      async db => {
+        let systemIdentifier = `system:${d.tenant.id}`;
 
-      let existing = await db.enclaveEnvironment.findFirst({
-        where: { systemIdentifier }
-      });
-      if (existing) return existing;
+        let existing = await db.enclaveEnvironment.findFirst({
+          where: { systemIdentifier }
+        });
+        if (existing) return existing;
 
-      return db.enclaveEnvironment.upsert({
-        where: { systemIdentifier },
-        update: {
-          name: `Metorial Platform`,
-          type: 'metorial'
-        },
-        create: {
-          ...getId('enclaveEnvironment'),
-          name: `Metorial Platform`,
-          type: 'metorial',
-          systemIdentifier,
-          tenantOid: d.tenant.oid
-        }
-      });
-    }, { ifExists: true });
+        return db.enclaveEnvironment.upsert({
+          where: { systemIdentifier },
+          update: {
+            name: `Metorial Platform`,
+            type: 'metorial'
+          },
+          create: {
+            ...getId('enclaveEnvironment'),
+            name: `Metorial Platform`,
+            type: 'metorial',
+            systemIdentifier,
+            tenantOid: d.tenant.oid
+          }
+        });
+      },
+      { ifExists: true }
+    );
   }
 
   async ensureEnclaveForProviderDeployment(d: {
@@ -65,7 +70,7 @@ class enclaveInternalServiceImpl {
           tenant: d.tenant
         });
 
-        return db.enclave.create({
+        let enclave = await db.enclave.create({
           data: {
             ...getId('enclave'),
             slug: `${slugify(d.provider.name)}-${generatePlainId(10).toLowerCase()}`,
@@ -78,6 +83,12 @@ class enclaveInternalServiceImpl {
             environmentOid: d.environment.oid
           }
         });
+
+        await addAfterTransactionHook(async () =>
+          enclaveCreatedQueue.add({ enclaveId: enclave.id })
+        );
+
+        return enclave;
       },
       { ifExists: true }
     );

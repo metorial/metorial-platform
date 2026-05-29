@@ -39,10 +39,17 @@ let { mockDb } = vi.hoisted(() => ({
 vi.mock('@metorial-subspace/db', () => ({
   db: mockDb,
   withTransaction: async (cb: (db: typeof mockDb) => Promise<unknown>) => cb(mockDb),
+  addAfterTransactionHook: async (cb: () => Promise<void>) => cb(),
   getId: (model: string) => ({
     oid: BigInt(model.length),
     id: `${model}_test_id`
   })
+}));
+
+vi.mock('../queues/lifecycle/firewall', () => ({
+  firewallCreatedQueue: { add: vi.fn() },
+  firewallUpdatedQueue: { add: vi.fn() },
+  firewallDeletedQueue: { add: vi.fn() }
 }));
 
 vi.mock('@metorial-subspace/module-tenant', () => ({

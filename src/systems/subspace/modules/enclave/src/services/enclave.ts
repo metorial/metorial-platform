@@ -2,6 +2,7 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
+  addAfterTransactionHook,
   db,
   type Enclave,
   type Environment,
@@ -20,12 +21,16 @@ import {
 } from '@metorial-subspace/list-utils';
 import { checkTenant } from '@metorial-subspace/module-tenant';
 import {
-  compileNetworkAllowList,
-  type CompiledNetworkAllowList
+  type CompiledNetworkAllowList,
+  compileNetworkAllowList
 } from '../lib/compileNetworkAllowList';
 import { compileNetworkRulesForEnclave } from '../lib/compileNetworkRules';
+import { enclaveUpdatedQueue } from '../queues/lifecycle/enclave';
 
-export type { CompiledNetworkAllowEntry, CompiledNetworkAllowList } from '../lib/compileNetworkAllowList';
+export type {
+  CompiledNetworkAllowEntry,
+  CompiledNetworkAllowList
+} from '../lib/compileNetworkAllowList';
 
 let include = {
   enclaveEnvironment: true,
@@ -97,9 +102,7 @@ class enclaveServiceImpl {
               providerDeployments
                 ? { providerDeploymentOid: providerDeployments.in }
                 : undefined!,
-              providers
-                ? { providerDeployment: { providerOid: providers.in } }
-                : undefined!,
+              providers ? { providerDeployment: { providerOid: providers.in } } : undefined!,
               firewalls
                 ? { firewallBindings: { some: { firewallOid: firewalls.in } } }
                 : undefined!,
@@ -219,8 +222,8 @@ class enclaveServiceImpl {
   }) {
     checkTenant(d, d.enclave);
 
-    return withTransaction(async db =>
-      db.enclave.update({
+    return withTransaction(async db => {
+      let enclave = await db.enclave.update({
         where: {
           oid: d.enclave.oid,
           tenantOid: d.tenant.oid,
@@ -231,8 +234,14 @@ class enclaveServiceImpl {
           description: d.input.description ?? d.enclave.description
         },
         include
-      })
-    );
+      });
+
+      await addAfterTransactionHook(async () =>
+        enclaveUpdatedQueue.add({ enclaveId: enclave.id })
+      );
+
+      return enclave;
+    });
   }
 }
 

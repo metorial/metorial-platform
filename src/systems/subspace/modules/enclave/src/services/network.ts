@@ -6,8 +6,7 @@ import {
   type DateFilter,
   normalizeDateFilter,
   resolveEnclaves,
-  resolveFirewalls,
-  resolveNetworks
+  resolveFirewalls
 } from '@metorial-subspace/list-utils';
 
 let include = {
@@ -112,4 +111,7 @@ class networkServiceImpl {
   }
 }
 
-export let networkService = Service.create('networkService', () => new networkServiceImpl()).build();
+export let networkService = Service.create(
+  'networkService',
+  () => new networkServiceImpl()
+).build();

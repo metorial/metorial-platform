@@ -3,10 +3,11 @@ import { createLock } from '@lowerdeck/lock';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
+  addAfterTransactionHook,
   db,
   type Environment,
-  type NetworkPolicy,
   getId,
+  type NetworkPolicy,
   type Solution,
   type Tenant,
   withTransaction
@@ -22,10 +23,15 @@ import {
   assignNetworkPolicyRuleIds,
   createNetworkPolicyRule,
   getCurrentNetworkPolicyRules,
-  networkPolicyRulesEqual,
-  type NetworkPolicyRuleInput
+  type NetworkPolicyRuleInput,
+  networkPolicyRulesEqual
 } from '../lib/networkPolicyRules';
 import { validateNetworkPolicyRules } from '../lib/networkPolicyValidation';
+import {
+  networkPolicyCreatedQueue,
+  networkPolicyDeletedQueue,
+  networkPolicyUpdatedQueue
+} from '../queues/lifecycle/networkPolicy';
 
 type NetworkPolicyRules = PrismaJson.NetworkPolicyRules;
 
@@ -146,13 +152,19 @@ class networkPolicyServiceImpl {
         }
       });
 
-      return this.publishRulesVersion({
+      let createdNetworkPolicy = await this.publishRulesVersion({
         tenant: d.tenant,
         environment: d.environment,
         networkPolicy,
         rules,
         currentVersionNumber: 0
       });
+
+      await addAfterTransactionHook(async () =>
+        networkPolicyCreatedQueue.add({ networkPolicyId: createdNetworkPolicy.id })
+      );
+
+      return createdNetworkPolicy;
     });
   }
 
@@ -169,8 +181,8 @@ class networkPolicyServiceImpl {
     checkTenant(d, d.networkPolicy);
 
     if (d.input.rules === undefined) {
-      return withTransaction(async db =>
-        db.networkPolicy.update({
+      return withTransaction(async db => {
+        let updatedNetworkPolicy = await db.networkPolicy.update({
           where: {
             oid: d.networkPolicy.oid,
             tenantOid: d.tenant.oid,
@@ -184,8 +196,14 @@ class networkPolicyServiceImpl {
                 : d.networkPolicy.description
           },
           include
-        })
-      );
+        });
+
+        await addAfterTransactionHook(async () =>
+          networkPolicyUpdatedQueue.add({ networkPolicyId: updatedNetworkPolicy.id })
+        );
+
+        return updatedNetworkPolicy;
+      });
     }
 
     return ruleChangeLock.usingLock([d.networkPolicy.id], async () => {
@@ -210,30 +228,34 @@ class networkPolicyServiceImpl {
           });
         }
 
-        if (rulesChanged) {
-          return this.publishRulesVersion({
-            tenant: d.tenant,
-            environment: d.environment,
-            networkPolicy,
-            rules,
-            currentVersionNumber: networkPolicy.currentVersionNumber,
-            name,
-            description
-          });
-        }
+        let updatedNetworkPolicy = rulesChanged
+          ? await this.publishRulesVersion({
+              tenant: d.tenant,
+              environment: d.environment,
+              networkPolicy,
+              rules,
+              currentVersionNumber: networkPolicy.currentVersionNumber,
+              name,
+              description
+            })
+          : await db.networkPolicy.update({
+              where: {
+                oid: networkPolicy.oid,
+                tenantOid: d.tenant.oid,
+                environmentOid: d.environment.oid
+              },
+              data: {
+                name,
+                description
+              },
+              include
+            });
 
-        return db.networkPolicy.update({
-          where: {
-            oid: networkPolicy.oid,
-            tenantOid: d.tenant.oid,
-            environmentOid: d.environment.oid
-          },
-          data: {
-            name,
-            description
-          },
-          include
-        });
+        await addAfterTransactionHook(async () =>
+          networkPolicyUpdatedQueue.add({ networkPolicyId: updatedNetworkPolicy.id })
+        );
+
+        return updatedNetworkPolicy;
       });
     });
   }
@@ -264,6 +286,10 @@ class networkPolicyServiceImpl {
           currentVersionNumber: networkPolicy.currentVersionNumber
         });
 
+        await addAfterTransactionHook(async () =>
+          networkPolicyUpdatedQueue.add({ networkPolicyId: updatedNetworkPolicy.id })
+        );
+
         return {
           networkPolicy: updatedNetworkPolicy,
           rule: newRule
@@ -286,20 +312,24 @@ class networkPolicyServiceImpl {
       return withTransaction(async db => {
         let currentRules = getCurrentNetworkPolicyRules(networkPolicy.currentVersion);
         if (!currentRules.some(rule => rule.id === d.ruleId)) {
-          throw new ServiceError(
-            notFoundError('network.policy.rule', d.ruleId)
-          );
+          throw new ServiceError(notFoundError('network.policy.rule', d.ruleId));
         }
 
         let rules = currentRules.filter(rule => rule.id !== d.ruleId);
 
-        return this.publishRulesVersion({
+        let updatedNetworkPolicy = await this.publishRulesVersion({
           tenant: d.tenant,
           environment: d.environment,
           networkPolicy,
           rules,
           currentVersionNumber: networkPolicy.currentVersionNumber
         });
+
+        await addAfterTransactionHook(async () =>
+          networkPolicyUpdatedQueue.add({ networkPolicyId: updatedNetworkPolicy.id })
+        );
+
+        return updatedNetworkPolicy;
       });
     });
   }
@@ -365,9 +395,17 @@ class networkPolicyServiceImpl {
         );
       }
 
-      return db.networkPolicy.delete({
+      let networkPolicyId = d.networkPolicy.id;
+
+      let deletedNetworkPolicy = await db.networkPolicy.delete({
         where: { oid: d.networkPolicy.oid }
       });
+
+      await addAfterTransactionHook(async () =>
+        networkPolicyDeletedQueue.add({ networkPolicyId })
+      );
+
+      return deletedNetworkPolicy;
     });
   }
 
@@ -402,36 +440,39 @@ class networkPolicyServiceImpl {
     name?: string;
     description?: string | null;
   }) {
-    return withTransaction(async db => {
-      validateNetworkPolicyRules(d.rules);
+    return withTransaction(
+      async db => {
+        validateNetworkPolicyRules(d.rules);
 
-      let nextVersionNumber = Math.max(d.currentVersionNumber, 0) + 1;
+        let nextVersionNumber = Math.max(d.currentVersionNumber, 0) + 1;
 
-      let version = await db.networkPolicyVersion.create({
-        data: {
-          ...getId('networkPolicyVersion'),
-          version: nextVersionNumber,
-          rules: d.rules,
-          networkPolicyOid: d.networkPolicy.oid
-        }
-      });
+        let version = await db.networkPolicyVersion.create({
+          data: {
+            ...getId('networkPolicyVersion'),
+            version: nextVersionNumber,
+            rules: d.rules,
+            networkPolicyOid: d.networkPolicy.oid
+          }
+        });
 
-      return db.networkPolicy.update({
-        where: {
-          oid: d.networkPolicy.oid,
-          tenantOid: d.tenant.oid,
-          environmentOid: d.environment.oid
-        },
-        data: {
-          name: d.name ?? d.networkPolicy.name,
-          description:
-            d.description !== undefined ? d.description : d.networkPolicy.description,
-          currentVersionOid: version.oid,
-          currentVersionNumber: nextVersionNumber
-        },
-        include
-      });
-    }, { ifExists: true });
+        return db.networkPolicy.update({
+          where: {
+            oid: d.networkPolicy.oid,
+            tenantOid: d.tenant.oid,
+            environmentOid: d.environment.oid
+          },
+          data: {
+            name: d.name ?? d.networkPolicy.name,
+            description:
+              d.description !== undefined ? d.description : d.networkPolicy.description,
+            currentVersionOid: version.oid,
+            currentVersionNumber: nextVersionNumber
+          },
+          include
+        });
+      },
+      { ifExists: true }
+    );
   }
 }
 

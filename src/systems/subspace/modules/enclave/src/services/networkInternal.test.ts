@@ -10,14 +10,22 @@ let { mockDb } = vi.hoisted(() => ({
 }));
 
 vi.mock('@metorial-subspace/db', () => ({
-  withTransaction: async (cb: (db: typeof mockDb) => Promise<unknown>, opts?: { ifExists?: boolean }) => {
+  withTransaction: async (
+    cb: (db: typeof mockDb) => Promise<unknown>,
+    opts?: { ifExists?: boolean }
+  ) => {
     void opts;
     return cb(mockDb);
   },
+  addAfterTransactionHook: async (cb: () => Promise<void>) => cb(),
   getId: (model: string) => ({
     oid: BigInt(1),
     id: `${model}_test_id`
   })
+}));
+
+vi.mock('../queues/lifecycle/network', () => ({
+  networkCreatedQueue: { add: vi.fn() }
 }));
 
 import { networkInternalService } from './networkInternal';

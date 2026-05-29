@@ -13,7 +13,12 @@ let { mockDb } = vi.hoisted(() => ({
 
 vi.mock('@metorial-subspace/db', () => ({
   db: mockDb,
-  withTransaction: async (cb: (db: typeof mockDb) => Promise<unknown>) => cb(mockDb)
+  withTransaction: async (cb: (db: typeof mockDb) => Promise<unknown>) => cb(mockDb),
+  addAfterTransactionHook: async (cb: () => Promise<void>) => cb()
+}));
+
+vi.mock('../queues/lifecycle/enclave', () => ({
+  enclaveUpdatedQueue: { add: vi.fn() }
 }));
 
 vi.mock('@metorial-subspace/module-tenant', () => ({
