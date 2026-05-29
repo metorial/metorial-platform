@@ -36,6 +36,7 @@ import {
   firewallDeletedQueue,
   firewallUpdatedQueue
 } from '../queues/lifecycle/firewall';
+import { firewallNetworkPolicyLinksUpdatedQueue } from '../queues/lifecycle/firewallNetworkPolicy';
 import { firewallBindingService } from './firewallBinding';
 
 let include = {
@@ -247,9 +248,11 @@ class firewallServiceImpl {
         include
       });
 
-      await addAfterTransactionHook(async () =>
-        firewallUpdatedQueue.add({ firewallId: updatedFirewall.id })
-      );
+      if (d.input.networkPolicyIds === undefined) {
+        await addAfterTransactionHook(async () =>
+          firewallUpdatedQueue.add({ firewallId: updatedFirewall.id })
+        );
+      }
 
       return updatedFirewall;
     });
@@ -319,7 +322,7 @@ class firewallServiceImpl {
       });
 
       await addAfterTransactionHook(async () =>
-        firewallUpdatedQueue.add({ firewallId: updatedFirewall.id })
+        firewallNetworkPolicyLinksUpdatedQueue.add({ firewallId: updatedFirewall.id })
       );
 
       return updatedFirewall;
@@ -360,7 +363,7 @@ class firewallServiceImpl {
       });
 
       await addAfterTransactionHook(async () =>
-        firewallUpdatedQueue.add({ firewallId: updatedFirewall.id })
+        firewallNetworkPolicyLinksUpdatedQueue.add({ firewallId: updatedFirewall.id })
       );
 
       return updatedFirewall;
@@ -406,43 +409,47 @@ class firewallServiceImpl {
           where: { firewallOid: d.firewall.oid }
         });
 
-        if (!d.networkPolicyIds.length) return;
-
-        let policies = await db.networkPolicy.findMany({
-          where: {
-            id: { in: d.networkPolicyIds },
-            tenantOid: d.tenant.oid,
-            environmentOid: d.environment.oid
-          }
-        });
-
-        if (policies.length !== d.networkPolicyIds.length) {
-          throw new ServiceError(
-            badRequestError({
-              code: 'invalid_firewall_network_policies',
-              message: 'One or more network policies were not found in this environment.'
-            })
-          );
-        }
-
-        for (let policy of policies) {
-          checkDeletedRelation(policy);
-        }
-
-        let positionByPolicyId = new Map(
-          d.networkPolicyIds.map((id, index) => [id, d.positions?.[id] ?? index])
-        );
-
-        for (let policy of policies) {
-          await db.firewallNetworkPolicy.create({
-            data: {
-              ...getId('firewallNetworkPolicy'),
-              firewallOid: d.firewall.oid,
-              networkPolicyOid: policy.oid,
-              position: positionByPolicyId.get(policy.id) ?? 0
+        if (d.networkPolicyIds.length) {
+          let policies = await db.networkPolicy.findMany({
+            where: {
+              id: { in: d.networkPolicyIds },
+              tenantOid: d.tenant.oid,
+              environmentOid: d.environment.oid
             }
           });
+
+          if (policies.length !== d.networkPolicyIds.length) {
+            throw new ServiceError(
+              badRequestError({
+                code: 'invalid_firewall_network_policies',
+                message: 'One or more network policies were not found in this environment.'
+              })
+            );
+          }
+
+          for (let policy of policies) {
+            checkDeletedRelation(policy);
+          }
+
+          let positionByPolicyId = new Map(
+            d.networkPolicyIds.map((id, index) => [id, d.positions?.[id] ?? index])
+          );
+
+          for (let policy of policies) {
+            await db.firewallNetworkPolicy.create({
+              data: {
+                ...getId('firewallNetworkPolicy'),
+                firewallOid: d.firewall.oid,
+                networkPolicyOid: policy.oid,
+                position: positionByPolicyId.get(policy.id) ?? 0
+              }
+            });
+          }
         }
+
+        await addAfterTransactionHook(async () =>
+          firewallNetworkPolicyLinksUpdatedQueue.add({ firewallId: d.firewall.id })
+        );
       },
       { ifExists: true }
     );

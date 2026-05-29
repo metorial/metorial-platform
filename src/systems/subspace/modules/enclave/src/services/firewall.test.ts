@@ -52,6 +52,15 @@ vi.mock('../queues/lifecycle/firewall', () => ({
   firewallDeletedQueue: { add: vi.fn() }
 }));
 
+vi.mock('../queues/lifecycle/firewallBinding', () => ({
+  firewallBindingCreatedQueue: { add: vi.fn() },
+  firewallBindingDeletedQueue: { add: vi.fn() }
+}));
+
+vi.mock('../queues/lifecycle/firewallNetworkPolicy', () => ({
+  firewallNetworkPolicyLinksUpdatedQueue: { add: vi.fn() }
+}));
+
 vi.mock('@metorial-subspace/module-tenant', () => ({
   checkTenant: vi.fn()
 }));
@@ -69,6 +78,11 @@ vi.mock('@lowerdeck/slugify', () => ({
 }));
 
 import { firewallService } from './firewall';
+
+let { firewallUpdatedQueue } = await import('../queues/lifecycle/firewall');
+let { firewallNetworkPolicyLinksUpdatedQueue } = await import(
+  '../queues/lifecycle/firewallNetworkPolicy'
+);
 
 let tenant = { oid: BigInt(10), id: 'ktn_test' } as any;
 let environment = { oid: BigInt(20), id: 'ken_test' } as any;
@@ -96,6 +110,9 @@ describe('firewallService', () => {
       providerOid: BigInt(400)
     });
     mockDb.firewallBinding.findFirst.mockResolvedValue(null);
+    mockDb.firewallBinding.create
+      .mockResolvedValueOnce({ id: 'fwb_test_1' })
+      .mockResolvedValueOnce({ id: 'fwb_test_2' });
     mockDb.firewall.findFirstOrThrow.mockResolvedValueOnce({
       oid: BigInt(200),
       id: 'fwl_test',
@@ -151,6 +168,37 @@ describe('firewallService', () => {
       where: { firewallOid: BigInt(200) }
     });
     expect(mockDb.firewallNetworkPolicy.create).toHaveBeenCalledTimes(2);
+    expect(firewallNetworkPolicyLinksUpdatedQueue.add).toHaveBeenCalledWith({
+      firewallId: 'fwl_test'
+    });
+    expect(firewallUpdatedQueue.add).not.toHaveBeenCalled();
+  });
+
+  it('enqueues a firewall update when only metadata changes', async () => {
+    mockDb.firewall.update.mockResolvedValueOnce({
+      oid: BigInt(200),
+      id: 'fwl_test',
+      networkPolicyLinks: [],
+      network: { id: 'net_test' }
+    });
+
+    await firewallService.updateFirewall({
+      tenant,
+      environment,
+      firewall: {
+        oid: BigInt(200),
+        id: 'fwl_test',
+        status: 'active',
+        tenantOid: tenant.oid,
+        environmentOid: environment.oid
+      } as any,
+      input: {
+        name: 'Renamed firewall'
+      }
+    });
+
+    expect(firewallUpdatedQueue.add).toHaveBeenCalledWith({ firewallId: 'fwl_test' });
+    expect(firewallNetworkPolicyLinksUpdatedQueue.add).not.toHaveBeenCalled();
   });
 
   it('adds a network policy link', async () => {
@@ -189,6 +237,9 @@ describe('firewallService', () => {
         position: 0
       })
     });
+    expect(firewallNetworkPolicyLinksUpdatedQueue.add).toHaveBeenCalledWith({
+      firewallId: 'fwl_test'
+    });
   });
 
   it('removes a network policy link', async () => {
@@ -217,6 +268,9 @@ describe('firewallService', () => {
 
     expect(mockDb.firewallNetworkPolicy.delete).toHaveBeenCalledWith({
       where: { oid: BigInt(600) }
+    });
+    expect(firewallNetworkPolicyLinksUpdatedQueue.add).toHaveBeenCalledWith({
+      firewallId: 'fwl_test'
     });
   });
 

@@ -5,6 +5,11 @@ import {
   firewallDeletedQueueProcessor,
   firewallUpdatedQueueProcessor
 } from './firewall';
+import {
+  firewallBindingCreatedQueueProcessor,
+  firewallBindingDeletedQueueProcessor
+} from './firewallBinding';
+import { firewallNetworkPolicyLinksUpdatedQueueProcessor } from './firewallNetworkPolicy';
 import { networkCreatedQueueProcessor } from './network';
 import {
   networkPolicyCreatedQueueProcessor,
@@ -19,6 +24,9 @@ export let lifecycleQueues = combineQueueProcessors([
   firewallCreatedQueueProcessor,
   firewallUpdatedQueueProcessor,
   firewallDeletedQueueProcessor,
+  firewallBindingCreatedQueueProcessor,
+  firewallBindingDeletedQueueProcessor,
+  firewallNetworkPolicyLinksUpdatedQueueProcessor,
   networkPolicyCreatedQueueProcessor,
   networkPolicyUpdatedQueueProcessor,
   networkPolicyDeletedQueueProcessor

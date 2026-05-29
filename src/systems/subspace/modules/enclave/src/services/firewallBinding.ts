@@ -2,6 +2,7 @@ import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
+  addAfterTransactionHook,
   db,
   type Environment,
   type Firewall,
@@ -29,6 +30,11 @@ import {
   validateFirewallBindingInput,
   validateFirewallBindingInputs
 } from '../lib/firewallBindingValidation';
+import {
+  firewallBindingCreatedQueue,
+  firewallBindingDeletedQueue,
+  type FirewallBindingLifecycleTarget
+} from '../queues/lifecycle/firewallBinding';
 
 export type { FirewallBindingInput };
 
@@ -202,9 +208,40 @@ class firewallBindingServiceImpl {
   }) {
     checkTenant(d, d.firewallBinding);
 
-    return db.firewallBinding.delete({
-      where: { oid: d.firewallBinding.oid },
-      include: bindingInclude
+    return withTransaction(async db => {
+      let binding = await db.firewallBinding.findFirst({
+        where: {
+          oid: d.firewallBinding.oid,
+          tenantOid: d.tenant.oid,
+          environmentOid: d.environment.oid
+        },
+        include: {
+          firewall: {
+            select: {
+              networkOid: true
+            }
+          }
+        }
+      });
+      if (!binding) {
+        throw new ServiceError(notFoundError('firewall.binding', d.firewallBinding.id));
+      }
+
+      let deleted = await db.firewallBinding.delete({
+        where: { oid: d.firewallBinding.oid },
+        include: bindingInclude
+      });
+
+      await addAfterTransactionHook(async () =>
+        firewallBindingDeletedQueue.add(
+          toFirewallBindingLifecycleTarget({
+            binding,
+            firewallNetworkOid: binding.firewall.networkOid
+          })
+        )
+      );
+
+      return deleted;
     });
   }
 
@@ -239,7 +276,7 @@ class firewallBindingServiceImpl {
         });
         if (existing) return existing;
 
-        return db.firewallBinding.create({
+        let created = await db.firewallBinding.create({
           data: {
             ...getId('firewallBinding'),
             firewallOid: d.firewall.oid,
@@ -252,6 +289,12 @@ class firewallBindingServiceImpl {
           },
           include: bindingInclude
         });
+
+        await addAfterTransactionHook(async () =>
+          firewallBindingCreatedQueue.add({ firewallBindingId: created.id })
+        );
+
+        return created;
       },
       { ifExists: true }
     );
@@ -325,6 +368,21 @@ class firewallBindingServiceImpl {
     );
   }
 }
+
+let toFirewallBindingLifecycleTarget = (d: {
+  binding: Pick<
+    FirewallBinding,
+    'tenantOid' | 'environmentOid' | 'enclaveOid' | 'providerOid' | 'networkOid'
+  >;
+  firewallNetworkOid: bigint;
+}): FirewallBindingLifecycleTarget => ({
+  firewallNetworkOid: d.firewallNetworkOid.toString(),
+  tenantOid: d.binding.tenantOid.toString(),
+  environmentOid: d.binding.environmentOid.toString(),
+  enclaveOid: d.binding.enclaveOid?.toString() ?? null,
+  providerOid: d.binding.providerOid?.toString() ?? null,
+  bindingNetworkOid: d.binding.networkOid?.toString() ?? null
+});
 
 export let firewallBindingService = Service.create(
   'firewallBindingService',

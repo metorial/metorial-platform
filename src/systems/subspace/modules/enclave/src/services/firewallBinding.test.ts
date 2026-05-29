@@ -1,28 +1,37 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-let { mockDb } = vi.hoisted(() => ({
-  mockDb: {
-    firewall: {
-      findFirst: vi.fn()
+let { mockDb, mockFirewallBindingCreatedQueue, mockFirewallBindingDeletedQueue } = vi.hoisted(
+  () => ({
+    mockDb: {
+      firewall: {
+        findFirst: vi.fn()
+      },
+      firewallBinding: {
+        findFirst: vi.fn(),
+        findMany: vi.fn(),
+        create: vi.fn(),
+        delete: vi.fn()
+      },
+      enclave: {
+        findFirst: vi.fn()
+      },
+      providerUse: {
+        findFirst: vi.fn()
+      }
     },
-    firewallBinding: {
-      findFirst: vi.fn(),
-      findMany: vi.fn(),
-      create: vi.fn(),
-      delete: vi.fn()
+    mockFirewallBindingCreatedQueue: {
+      add: vi.fn()
     },
-    enclave: {
-      findFirst: vi.fn()
-    },
-    providerUse: {
-      findFirst: vi.fn()
+    mockFirewallBindingDeletedQueue: {
+      add: vi.fn()
     }
-  }
-}));
+  })
+);
 
 vi.mock('@metorial-subspace/db', () => ({
   db: mockDb,
   withTransaction: async (cb: (db: typeof mockDb) => Promise<unknown>) => cb(mockDb),
+  addAfterTransactionHook: async (cb: () => Promise<void>) => cb(),
   getId: (model: string) => ({
     oid: BigInt(model.length),
     id: `${model}_test_id`
@@ -36,6 +45,11 @@ vi.mock('@metorial-subspace/module-tenant', () => ({
 vi.mock('../lib/firewallBindingValidation', () => ({
   validateFirewallBindingInput: (binding: unknown) => binding,
   validateFirewallBindingInputs: (bindings: unknown[]) => bindings
+}));
+
+vi.mock('../queues/lifecycle/firewallBinding', () => ({
+  firewallBindingCreatedQueue: mockFirewallBindingCreatedQueue,
+  firewallBindingDeletedQueue: mockFirewallBindingDeletedQueue
 }));
 
 import { firewallBindingService } from './firewallBinding';
@@ -80,6 +94,9 @@ describe('firewallBindingService', () => {
 
     expect(binding).toEqual(bindingIncludeResult);
     expect(mockDb.firewallBinding.create).toHaveBeenCalledTimes(1);
+    expect(mockFirewallBindingCreatedQueue.add).toHaveBeenCalledWith({
+      firewallBindingId: 'fwb_test'
+    });
   });
 
   it('returns an existing binding when the target is already bound', async () => {
@@ -103,9 +120,22 @@ describe('firewallBindingService', () => {
 
     expect(binding).toEqual(bindingIncludeResult);
     expect(mockDb.firewallBinding.create).not.toHaveBeenCalled();
+    expect(mockFirewallBindingCreatedQueue.add).not.toHaveBeenCalled();
   });
 
-  it('deletes a binding', async () => {
+  it('deletes a binding and resets linked enclaves', async () => {
+    mockDb.firewallBinding.findFirst.mockResolvedValueOnce({
+      oid: BigInt(900),
+      id: 'fwb_test',
+      tenantOid: tenant.oid,
+      environmentOid: environment.oid,
+      enclaveOid: BigInt(300),
+      providerOid: null,
+      networkOid: null,
+      firewall: {
+        networkOid: BigInt(100)
+      }
+    });
     mockDb.firewallBinding.delete.mockResolvedValueOnce({ id: 'fwb_test' });
 
     await firewallBindingService.deleteFirewallBinding({
@@ -113,13 +143,23 @@ describe('firewallBindingService', () => {
       environment,
       firewallBinding: {
         oid: BigInt(900),
+        id: 'fwb_test',
         tenantOid: tenant.oid,
         environmentOid: environment.oid
       } as any
     });
 
     expect(mockDb.firewallBinding.delete).toHaveBeenCalledWith({
-      where: { oid: BigInt(900) }
+      where: { oid: BigInt(900) },
+      include: expect.any(Object)
+    });
+    expect(mockFirewallBindingDeletedQueue.add).toHaveBeenCalledWith({
+      firewallNetworkOid: '100',
+      tenantOid: '10',
+      environmentOid: '20',
+      enclaveOid: '300',
+      providerOid: null,
+      bindingNetworkOid: null
     });
   });
 });
