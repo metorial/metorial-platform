@@ -264,6 +264,11 @@ declare global {
       entries: CompiledNetworkAllowEntry[];
     };
 
+    type CompiledEgressNetworkAllowList = {
+      direction: 'egress';
+      entries: CompiledNetworkAllowEntry[];
+    };
+
     type CompiledNetworkRules = {
       ingress: CompiledNetworkAllowList;
       egress: CompiledNetworkAllowList;

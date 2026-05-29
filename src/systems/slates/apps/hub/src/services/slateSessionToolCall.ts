@@ -53,6 +53,8 @@ class slateSessionToolCallServiceImpl {
 
       toolId: string;
       authConfigId?: string;
+      enclaveId?: string;
+      egressPolicy?: PrismaJson.CompiledEgressNetworkAllowList;
       input: Record<string, any>;
       participants: SlatesParticipant[];
     };
@@ -160,8 +162,11 @@ class slateSessionToolCallServiceImpl {
     let startTime = Date.now();
 
     let stack = await slateInvocationService.createInvocationWithState({
+      tenant: session.tenant,
       participants: d.input.participants,
       slateVersion: session.slateVersion,
+      enclaveId: d.input.enclaveId,
+      egressPolicy: d.input.egressPolicy,
 
       config: session.slateInstance.currentConfig.value ?? {},
       session: { id: session.id, state: {} },

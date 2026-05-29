@@ -11,7 +11,11 @@ import type {
 import z from 'zod';
 import type { SlateInvocation, SlateVersion } from '../../../prisma/generated/client';
 import { db } from '../../db';
-import { functionBay, functionBayTenant } from '../../functionBay';
+import {
+  functionBay,
+  functionBayTenant,
+  getFunctionBayTenantForTenant
+} from '../../functionBay';
 import { hub } from '../../hub';
 import { ID, snowflake } from '../../id';
 import { invocationsBucketRecord } from '../../storage';
@@ -36,6 +40,9 @@ export class SlateInvocationStack {
   #initialMessages: SlatesRequest[];
   #slateVersion: SlateVersion;
   #participants: SlatesParticipant[];
+  #tenant?: SlateInvocationBaseParams['tenant'];
+  #enclaveId?: string;
+  #egressPolicy?: PrismaJson.CompiledEgressNetworkAllowList;
   #productiveMessages: SlatesRequest[] = [];
   #alreadyInvoked = false;
   #runPromise: ReturnType<typeof this.run>;
@@ -44,6 +51,9 @@ export class SlateInvocationStack {
     this.#initialMessages = d.initialMessages ?? [];
     this.#slateVersion = d.slateVersion;
     this.#participants = d.participants;
+    this.#tenant = d.tenant;
+    this.#enclaveId = d.enclaveId;
+    this.#egressPolicy = d.egressPolicy;
 
     this.#runPromise = this.run();
   }
@@ -78,11 +88,19 @@ export class SlateInvocationStack {
     ];
 
     let invocationId = await ID.generateId('slateInvocation');
+    let [runtimeTenant, deploymentTenant] = await Promise.all([
+      this.#tenant ? getFunctionBayTenantForTenant(this.#tenant) : functionBayTenant,
+      functionBayTenant
+    ]);
     let [providerInvocation, invocationRecord] = await Promise.all([
       functionBay.function.invoke({
-        tenantId: (await functionBayTenant).id,
+        tenantId: runtimeTenant.id,
+        functionTenantId: deploymentTenant.id,
         functionId: this.#slateVersion.providerDeploymentInfo.functionId,
-        payload: { messages, invocationId }
+        payload: { messages, invocationId },
+        enclave:
+          this.#enclaveId && runtimeTenant ? { identifier: this.#enclaveId } : undefined,
+        egressPolicy: this.#egressPolicy
       }),
       db.slateInvocation.create({
         data: {

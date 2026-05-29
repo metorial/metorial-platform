@@ -51,6 +51,23 @@ export let slateSessionToolCallController = app.controller({
           sessionId: v.string(),
           toolId: v.string(),
           authConfigId: v.optional(v.string()),
+          enclaveId: v.optional(v.string()),
+          egressPolicy: v.optional(
+            v.object({
+              direction: v.literal('egress'),
+              entries: v.array(
+                v.object({
+                  cidr: v.string(),
+                  portRange: v.optional(
+                    v.object({
+                      from: v.number(),
+                      to: v.number()
+                    })
+                  )
+                })
+              )
+            })
+          ),
           input: v.record(v.any()),
           participants: v.array(
             v.object({
@@ -71,6 +88,8 @@ export let slateSessionToolCallController = app.controller({
           sessionId: ctx.input.sessionId,
           toolId: ctx.input.toolId,
           authConfigId: ctx.input.authConfigId,
+          enclaveId: ctx.input.enclaveId,
+          egressPolicy: ctx.input.egressPolicy,
           input: ctx.input.input,
           participants: ctx.input.participants
         }

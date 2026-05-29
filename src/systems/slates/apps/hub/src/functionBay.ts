@@ -1,6 +1,7 @@
 import { delay } from '@lowerdeck/delay';
 import { ProgrammablePromise } from '@lowerdeck/programmable-promise';
 import { createFunctionBayClient } from '@metorial-platform-systems/function-bay-client';
+import type { Tenant } from '../prisma/generated/client';
 import { db } from './db';
 import { env } from './env';
 import { getId } from './id';
@@ -50,3 +51,30 @@ export let functionBayProvider = await db.deploymentProvider.upsert({
     await delay(5000);
   }
 })();
+
+export let getFunctionBayTenantForTenant = async (
+  tenant: Pick<
+    Tenant,
+    'oid' | 'identifier' | 'name' | 'functionBayTenantId' | 'functionBayTenantIdentifier'
+  >
+) => {
+  if (!tenant.functionBayTenantId) {
+    let functionBayTenant = await functionBay.tenant.upsert({
+      identifier: tenant.identifier,
+      name: tenant.name
+    });
+
+    tenant = await db.tenant.update({
+      where: { oid: tenant.oid },
+      data: {
+        functionBayTenantId: functionBayTenant.id,
+        functionBayTenantIdentifier: functionBayTenant.identifier
+      }
+    });
+  }
+
+  return {
+    id: tenant.functionBayTenantId!,
+    identifier: tenant.functionBayTenantIdentifier!
+  };
+};

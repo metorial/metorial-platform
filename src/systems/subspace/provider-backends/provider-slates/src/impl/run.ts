@@ -4,6 +4,7 @@ import {
   snowflake,
   type SlateSession
 } from '@metorial-subspace/db';
+import { enclaveService } from '@metorial-subspace/module-enclave';
 import type {
   HandleMcpNotificationOrRequestParam,
   HandleMcpNotificationOrRequestRes,
@@ -104,6 +105,13 @@ export class ProviderRun extends IProviderRun {
 }
 
 export class ProviderRunConnection extends IProviderRunConnection {
+  private enclaveInvocationContextPromise:
+    | Promise<{
+        enclaveId?: string;
+        egressPolicy?: PrismaJson.CompiledEgressNetworkAllowList;
+      }>
+    | null = null;
+
   constructor(
     private readonly params: ProviderRunCreateParam,
     private readonly slateSession: SlateSession
@@ -117,6 +125,37 @@ export class ProviderRunConnection extends IProviderRunConnection {
 
   private get tenant() {
     return this.params.tenant;
+  }
+
+  private async getEnclaveInvocationContext() {
+    if (!this.enclaveInvocationContextPromise) {
+      this.enclaveInvocationContextPromise = (async () => {
+        let providerDeployment = await db.providerDeployment.findUnique({
+          where: { oid: this.params.providerDeployment.oid },
+          include: {
+            environment: true,
+            enclave: true
+          }
+        });
+
+        if (!providerDeployment?.enclave) {
+          return {};
+        }
+
+        let compiledNetworkRules = await enclaveService.getCompiledNetworkRules({
+          tenant: this.params.tenant,
+          environment: providerDeployment.environment,
+          enclave: providerDeployment.enclave
+        });
+
+        return {
+          enclaveId: providerDeployment.enclave.id,
+          egressPolicy: compiledNetworkRules.egress as PrismaJson.CompiledEgressNetworkAllowList
+        };
+      })();
+    }
+
+    return this.enclaveInvocationContextPromise;
   }
 
   override async handleMcpResponseOrNotification(
@@ -139,6 +178,7 @@ export class ProviderRunConnection extends IProviderRunConnection {
           where: { oid: this.providerAuthConfigVersion.slateAuthConfigOid }
         })
       : null;
+    let enclaveInvocationContext = await this.getEnclaveInvocationContext();
 
     let input = await messageInputToToolCall(data.input, data.message);
 
@@ -147,6 +187,8 @@ export class ProviderRunConnection extends IProviderRunConnection {
       toolId: data.tool.callableId,
       sessionId: this.slateSession.id,
       authConfigId: slateAuthConfig?.id,
+      enclaveId: enclaveInvocationContext.enclaveId,
+      egressPolicy: enclaveInvocationContext.egressPolicy,
 
       input,
 
