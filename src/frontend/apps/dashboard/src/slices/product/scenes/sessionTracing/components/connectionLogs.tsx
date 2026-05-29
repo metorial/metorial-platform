@@ -1,6 +1,6 @@
 import { DashboardInstanceSessionsGetOutput } from '@metorial/dashboard-sdk';
 import { Callout, CenteredSpinner } from '@metorial/ui';
-import { RefObject, useCallback, useEffect, useRef } from 'react';
+import { RefObject, useCallback, useEffect, useMemo, useRef } from 'react';
 import styled from 'styled-components';
 import { useConnectionTimeline } from '../hooks/useConnectionTimeline';
 import { SessionConnection } from '../types';
@@ -54,6 +54,10 @@ export let ConnectionLogs = ({
     session,
     connection
   });
+  let sortedTimelineItemData = useMemo(
+    () => [...timelineItemData].sort((a, b) => a.time.getTime() - b.time.getTime()),
+    [timelineItemData]
+  );
   let handledFocusKeysRef = useRef(new Set<string>());
   let scrollToIndexRef = useRef<(index: number) => void>(() => {});
 
@@ -66,7 +70,7 @@ export let ConnectionLogs = ({
     let focusKey = `${connection.id}:${focusedItemId}`;
     if (handledFocusKeysRef.current.has(focusKey)) return;
 
-    let index = timelineItemData.findIndex(item => item.id === focusedItemId);
+    let index = sortedTimelineItemData.findIndex(item => item.id === focusedItemId);
     if (index < 0) return;
 
     let id = window.requestAnimationFrame(() => {
@@ -75,7 +79,7 @@ export let ConnectionLogs = ({
     });
 
     return () => window.cancelAnimationFrame(id);
-  }, [connection.id, focusedItemId, timelineItemData]);
+  }, [connection.id, focusedItemId, sortedTimelineItemData]);
 
   return (
     <DetailContent>
