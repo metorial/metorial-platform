@@ -41,8 +41,43 @@ type PolicyRule = {
   ports: ({ object: 'network.policy.port_range'; from: number; to: number }[] | null);
 };
 
-let cidrRegex =
-  /^(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)\/(?:[0-9]|[12]\d|3[0-2])$/;
+let ipv4AddressRegex =
+  /^(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)$/;
+
+let ipv6SegmentRegex = /^[0-9a-fA-F]{1,4}$/;
+
+let isValidIPv6Address = (address: string) => {
+  if (!address.includes(':')) return false;
+
+  let compressedParts = address.split('::');
+  if (compressedParts.length > 2) return false;
+
+  let [left, right = ''] = compressedParts;
+  let leftSegments = left === '' ? [] : left.split(':');
+  let rightSegments = right === '' ? [] : right.split(':');
+  let segments = [...leftSegments, ...rightSegments];
+
+  if (segments.some(segment => !ipv6SegmentRegex.test(segment))) return false;
+
+  if (compressedParts.length === 1) return segments.length === 8;
+
+  return segments.length < 8;
+};
+
+let isValidCidr = (cidr: string) => {
+  let parts = cidr.split('/');
+  if (parts.length !== 2) return false;
+
+  let [address, prefix] = parts;
+  if (!/^\d+$/.test(prefix)) return false;
+
+  let prefixNumber = Number(prefix);
+
+  if (ipv4AddressRegex.test(address)) return prefixNumber >= 0 && prefixNumber <= 32;
+  if (isValidIPv6Address(address)) return prefixNumber >= 0 && prefixNumber <= 128;
+
+  return false;
+};
 
 let parsePorts = (portFrom: string, portTo: string) =>
   portFrom !== '' && portTo !== '' ? [{ from: Number(portFrom), to: Number(portTo) }] : undefined;
@@ -122,12 +157,12 @@ let showCreatePolicyModal = (p: {
             .string()
             .trim()
             .required('At least one CIDR is required')
-            .test('cidrs', 'Enter valid IPv4 CIDRs separated by commas', value => {
+            .test('cidrs', 'Enter valid IPv4 or IPv6 CIDRs separated by commas', value => {
               let cidrs = (value ?? '')
                 .split(',')
                 .map(cidr => cidr.trim())
                 .filter(Boolean);
-              return cidrs.length > 0 && cidrs.every(cidr => cidrRegex.test(cidr));
+              return cidrs.length > 0 && cidrs.every(isValidCidr);
             })
         }) as any
     });
@@ -252,12 +287,12 @@ let showRuleModal = (p: {
             .string()
             .trim()
             .required('At least one CIDR is required')
-            .test('cidrs', 'Enter valid IPv4 CIDRs separated by commas', value => {
+            .test('cidrs', 'Enter valid IPv4 or IPv6 CIDRs separated by commas', value => {
               let cidrs = (value ?? '')
                 .split(',')
                 .map(cidr => cidr.trim())
                 .filter(Boolean);
-              return cidrs.length > 0 && cidrs.every(cidr => cidrRegex.test(cidr));
+              return cidrs.length > 0 && cidrs.every(isValidCidr);
             }),
           priority: yup
             .number()
