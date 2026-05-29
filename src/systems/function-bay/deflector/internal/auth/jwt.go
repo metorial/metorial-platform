@@ -3,10 +3,13 @@ package auth
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/metorial/function-bay-deflector/internal/policy"
 )
+
+const verifierClockSkewLeeway = 30 * time.Second
 
 type Verifier struct {
 	secret   []byte
@@ -26,6 +29,7 @@ func (v *Verifier) Verify(ctx context.Context, token string) (policy.Claims, err
 	parserOptions := []jwt.ParserOption{
 		jwt.WithExpirationRequired(),
 		jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}),
+		jwt.WithLeeway(verifierClockSkewLeeway),
 	}
 	if v.audience != "" {
 		parserOptions = append(parserOptions, jwt.WithAudience(v.audience))

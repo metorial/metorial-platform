@@ -67,3 +67,18 @@ func TestVerifierRejectsExpiredToken(t *testing.T) {
 		t.Fatal("expected expired token to be rejected")
 	}
 }
+
+func TestVerifierAcceptsTokenWithinClockSkewLeeway(t *testing.T) {
+	verifier := NewVerifier("secret", "deflector")
+
+	claims, err := verifier.Verify(
+		context.Background(),
+		signedToken(t, "secret", "deflector", time.Now().Add(-10*time.Second)),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if claims.FunctionVersionID != "functionVersion_123" {
+		t.Fatalf("unexpected function version id %q", claims.FunctionVersionID)
+	}
+}
