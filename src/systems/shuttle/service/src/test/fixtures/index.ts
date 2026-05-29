@@ -12,7 +12,6 @@ import { ServerDiscoveryFixtures } from './serverDiscoveryFixtures';
 import { ServerConnectionFixtures } from './serverConnectionFixtures';
 import { ChangeNotificationFixtures } from './changeNotificationFixtures';
 import { ServerDeploymentFixtures } from './serverDeploymentFixtures';
-import { NetworkingRulesetFixtures } from './networkingRulesetFixtures';
 import { ServerAuthConfigFixtures } from './serverAuthConfigFixtures';
 import { ConnectionLogsBucketFixtures } from './connectionLogsBucketFixtures';
 
@@ -32,7 +31,6 @@ export function fixtures(db: PrismaClient) {
     connectionLogsBucket: ConnectionLogsBucketFixtures(db),
     changeNotification: ChangeNotificationFixtures(db),
     serverDeployment: ServerDeploymentFixtures(db),
-    networkingRuleset: NetworkingRulesetFixtures(db),
     serverAuthConfig: ServerAuthConfigFixtures(db)
   };
 }
@@ -51,7 +49,6 @@ export {
   ServerConnectionFixtures,
   ChangeNotificationFixtures,
   ServerDeploymentFixtures,
-  NetworkingRulesetFixtures,
   ServerAuthConfigFixtures,
   ConnectionLogsBucketFixtures
 };

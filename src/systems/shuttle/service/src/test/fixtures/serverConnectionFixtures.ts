@@ -36,6 +36,8 @@ export const ServerConnectionFixtures = (db: PrismaClient) => {
           roots: {},
           sampling: {}
         },
+        enclaveId: data.overrides?.enclaveId ?? null,
+        egressPolicy: data.overrides?.egressPolicy ?? null,
         serverConfigOid: data.serverConfigOid,
         serverVersionOid: data.serverVersionOid,
         serverAuthConfigOid: data.overrides?.serverAuthConfigOid ?? null,

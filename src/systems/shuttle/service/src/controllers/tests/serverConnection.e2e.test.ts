@@ -186,3 +186,46 @@ describe('serverConnection:get E2E', () => {
     ).rejects.toThrow('could not be found');
   });
 });
+
+describe('serverConnection:create E2E', () => {
+  const f = fixtures(testDb);
+
+  beforeEach(async () => {
+    await cleanDatabase();
+  });
+
+  it('persists enclave egress policy context', async () => {
+    const { tenant, server, serverVersion } = await f.tenant.withServerAndVersion();
+    const secret = await f.secret.serverConfigValue({ tenantOid: tenant.oid });
+    const config = await f.serverConfig.default({
+      serverOid: server.oid,
+      secretOid: secret.oid,
+      tenantOid: tenant.oid
+    });
+    const egressPolicy = {
+      direction: 'egress' as const,
+      entries: [{ cidr: '10.0.0.0/8', portRange: { from: 443, to: 443 } }]
+    };
+
+    const result = await shuttleClient.serverConnection.create({
+      tenantId: tenant.id,
+      serverConfigId: config.id,
+      serverVersionId: serverVersion.id,
+      enclaveId: 'enc_test',
+      egressPolicy,
+      client: { name: 'test-client', version: '1.0.0' },
+      capabilities: {}
+    });
+
+    expect(result).toMatchObject({
+      enclaveId: 'enc_test',
+      egressPolicy
+    });
+
+    const persisted = await testDb.serverConnection.findUniqueOrThrow({
+      where: { id: result.id }
+    });
+    expect(persisted.enclaveId).toBe('enc_test');
+    expect(persisted.egressPolicy).toEqual(egressPolicy);
+  });
+});

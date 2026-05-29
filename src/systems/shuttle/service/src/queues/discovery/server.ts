@@ -90,7 +90,8 @@ export let discoverServerQueueProcessor = discoverServerQueue.process(async data
       client: { name: 'Metorial Discovery', version: '1.0.0' },
       capabilities: {},
 
-      networkRulesetIds: []
+      enclaveId: undefined,
+      egressPolicy: undefined
     }
   });
 

@@ -12,9 +12,9 @@ import type {
   ServerConnection
 } from '../../../prisma/generated/client';
 import { env } from '../../env';
+import { egressPolicyToRuntimeNetworkRules } from '../../lib/network/egressPolicy';
 import { safeParse } from '../../lib/safeParse';
 import { secretService } from '../../services';
-import { networkingRulesetService } from '../../services/networkRuleset';
 import type { McpConnectionBackendAdapter } from '../connection/adapter';
 import { ConnectionManager } from '../utils/connection';
 import { ConnectionLogger } from '../utils/logger';
@@ -159,12 +159,11 @@ export class HolopodConnection implements McpConnectionBackendAdapter {
       note: `hmcp.cfg:${this.connection.id}:${this.serverConfig.id}`
     });
 
-    let rules = await networkingRulesetService.getRulesetForConnection({
-      connection: this.connection
-    });
+    let egressPolicy =
+      this.connection.egressPolicy as PrismaJson.CompiledEgressNetworkAllowList | null;
     mcpTraceLog('init:config-loaded', {
       hasRegistryAuth: !!auth,
-      rulesCount: rules.rules.length
+      rulesCount: egressPolicy?.entries.length ?? 0
     });
 
     this.#lastMessageAt = Date.now();
@@ -233,18 +232,13 @@ export class HolopodConnection implements McpConnectionBackendAdapter {
           args: config.args ?? [],
           env: config.env ?? {},
 
-          network: {
-            defaultPolicy: rules.defaultAction == 'accept' ? 'allow' : 'deny',
-            dnsServers: getHolopodDnsServers(),
-            rules: rules.rules.map(r => ({
-              action: r.action == 'accept' ? 'allow' : 'deny',
-              protocol: r.protocol,
-              destination: r.destination,
-              portRangeStart: r.portRange?.start,
-              portRangeEnd:
-                r.portRange?.start == r.portRange?.end ? undefined : r.portRange?.end
-            }))
-          }
+          network: egressPolicy
+            ? {
+                defaultPolicy: 'deny',
+                dnsServers: getHolopodDnsServers(),
+                rules: egressPolicyToRuntimeNetworkRules(egressPolicy)
+              }
+            : undefined
         }
       }
     });

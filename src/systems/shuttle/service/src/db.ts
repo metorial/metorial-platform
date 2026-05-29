@@ -69,15 +69,14 @@ declare global {
 
     type RemoteOAuthConfig = any;
 
-    type NetworkingRulesetList = {
-      v: 1;
-      defaultAction: 'accept' | 'deny';
-      rules: {
-        action: 'accept' | 'deny';
-        protocol?: 'tcp' | 'udp' | 'icmp';
-        destination?: string;
-        portRange?: { start: number; end: number };
-      }[];
+    type CompiledNetworkAllowEntry = {
+      cidr: string;
+      portRange?: { from: number; to: number };
+    };
+
+    type CompiledEgressNetworkAllowList = {
+      direction: 'egress';
+      entries: CompiledNetworkAllowEntry[];
     };
 
     type FunctionServerProviderDeploymentInfo = {

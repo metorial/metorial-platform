@@ -7,6 +7,10 @@ export type FunctionCallLog = { timestamp: number; message: string };
 
 export let callFunction = async <T>(
   server: FunctionServer,
+  options: {
+    enclaveId?: string | null;
+    egressPolicy?: PrismaJson.CompiledEgressNetworkAllowList | null;
+  },
   handler: (tools: ReturnType<typeof clientAdapter>) => Promise<T>
 ) => {
   let error: { current: { code: string; message: string } | undefined } = {
@@ -20,6 +24,8 @@ export let callFunction = async <T>(
       let res = (await functionBay.function.invoke({
         tenantId: server.functionBayTenantId,
         functionId: server.functionBayFunctionId,
+        enclave: options.enclaveId ? { identifier: options.enclaveId } : undefined,
+        egressPolicy: options.egressPolicy ?? undefined,
         payload: {
           messages
         }

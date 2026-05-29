@@ -6,7 +6,6 @@ import { containerRepositoryController } from './containerRepository';
 import { containerRepositoryTagController } from './containerRepositoryTag';
 import { containerRepositoryVersionController } from './containerRepositoryVersion';
 import { functionServerInvocationController } from './functionServerInvocation';
-import { networkingRulesetController } from './networkingRuleset';
 import { serverController } from './server';
 import { serverAuthConfigController } from './serverAuthConfig';
 import { serverAuthConfigEventController } from './serverAuthConfigEvent';
@@ -42,9 +41,7 @@ export let rootController = app.controller({
   serverOAuthSetupEvent: serverOAuthSetupEventController,
   serverOAuthCredentials: serverOAuthCredentialsController,
 
-  changeNotification: changeNotificationController,
-
-  networkingRuleset: networkingRulesetController
+  changeNotification: changeNotificationController
 });
 
 export let ShuttleRPC = createServer({})(rootController);

@@ -38,8 +38,6 @@ export let ID = createIdGenerator({
   serverOAuthSetupEvent: idType.sorted('csose_'),
   serverOAuthCredentials: idType.sorted('csocd_'),
 
-  networkingRuleset: idType.sorted('cnr_'),
-
   deploymentProvider: idType.sorted('cdp_'),
 
   functionServer: idType.sorted('cfs_'),

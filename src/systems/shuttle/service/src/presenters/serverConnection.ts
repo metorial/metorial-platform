@@ -19,6 +19,8 @@ export let serverConnectionPresenter = (
 
   client: serverConnection.client,
   capabilities: serverConnection.capabilities,
+  enclaveId: serverConnection.enclaveId,
+  egressPolicy: serverConnection.egressPolicy,
 
   serverConfigId: serverConnection.serverConfig.id,
   serverVersionId: serverConnection.serverVersion.id,

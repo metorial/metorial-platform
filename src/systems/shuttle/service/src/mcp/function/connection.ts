@@ -124,16 +124,23 @@ export class FunctionConnection implements McpConnectionBackendAdapter {
     return await this.#processingQueue.add(async () => {
       let token = await this.#authManager.getToken();
 
-      let res = await callFunction(this.functionServer, client =>
-        client.handleMcpMessages({
-          client: {
-            client: this.connection.client,
-            capabilities: this.connection.capabilities
-          },
-          config: this.DECRYPTED_config_value,
-          authConfig: token ?? undefined,
-          message: [message]
-        })
+      let res = await callFunction(
+        this.functionServer,
+        {
+          enclaveId: this.connection.enclaveId,
+          egressPolicy:
+            this.connection.egressPolicy as PrismaJson.CompiledEgressNetworkAllowList | null
+        },
+        client =>
+          client.handleMcpMessages({
+            client: {
+              client: this.connection.client,
+              capabilities: this.connection.capabilities
+            },
+            config: this.DECRYPTED_config_value,
+            authConfig: token ?? undefined,
+            message: [message]
+          })
       );
 
       (async () => {

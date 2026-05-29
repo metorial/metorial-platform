@@ -26,7 +26,7 @@ export let deployFunctionServerDiscoverQueueProcessor =
     let step = await dep.step('discovering');
 
     try {
-      let discoveryRes = await callFunction(functionServer, client => client.discover());
+      let discoveryRes = await callFunction(functionServer, {}, client => client.discover());
 
       step.log(discoveryRes.logs.map(l => l.message));
 

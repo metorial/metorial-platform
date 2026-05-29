@@ -12,6 +12,21 @@ import {
 import { app } from './_app';
 import { tenantApp } from './tenant';
 
+let egressPolicyValidator = v.object({
+  direction: v.literal('egress'),
+  entries: v.array(
+    v.object({
+      cidr: v.string(),
+      portRange: v.optional(
+        v.object({
+          from: v.number(),
+          to: v.number()
+        })
+      )
+    })
+  )
+});
+
 export let serverConnectionApp = tenantApp.use(async ctx => {
   let serverConnectionId = ctx.body.serverConnectionId;
   if (!serverConnectionId) throw new Error('serverConnectionId is required');
@@ -84,7 +99,8 @@ export let serverConnectionController = app.controller({
         serverVersionId: v.string(),
         serverAuthConfigId: v.optional(v.string()),
 
-        networkRulesetIds: v.optional(v.array(v.string())),
+        enclaveId: v.optional(v.string()),
+        egressPolicy: v.optional(egressPolicyValidator),
 
         client: v.record(v.any()),
         capabilities: v.optional(v.record(v.any()))
@@ -137,7 +153,8 @@ export let serverConnectionController = app.controller({
           client: schema.data.params.clientInfo,
           capabilities: schema.data.params.capabilities,
 
-          networkRulesetIds: ctx.input.networkRulesetIds ?? []
+          enclaveId: ctx.input.enclaveId,
+          egressPolicy: ctx.input.egressPolicy
         }
       });
 
