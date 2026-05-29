@@ -85,13 +85,14 @@ export let networkController = Controller.create(
     listNetworkLogs: instanceGroup
       .get(instancePath('network-logs', 'networks.listNetworkLogs'), {
         name: 'List network logs',
-        description: 'Returns egress network logs for enclaves in the instance environment.'
+        description: 'Returns ingress or egress network logs for enclaves in the instance environment.'
       })
       .use(checkAccess({ possibleScopes: [...networkReadScopes] }))
       .output(networkLogsPresenter)
       .query(
         'default',
         v.object({
+          direction: v.enumOf(['ingress', 'egress']),
           enclave_id: v.optional(v.union([v.string(), v.array(v.string())])),
           hostname: v.optional(v.union([v.string(), v.array(v.string())])),
           ip: v.optional(v.union([v.string(), v.array(v.string())])),
@@ -103,6 +104,7 @@ export let networkController = Controller.create(
       .do(async ctx => {
         let logs = await subspaceEnclaveService.listNetworkLogs({
           instance: ctx.instance,
+          direction: ctx.query.direction,
           enclaveIds: normalizeArrayParam(ctx.query.enclave_id),
           hostnames: normalizeArrayParam(ctx.query.hostname),
           ips: normalizeArrayParam(ctx.query.ip),

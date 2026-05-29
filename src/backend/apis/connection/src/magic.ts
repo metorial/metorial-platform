@@ -308,6 +308,8 @@ export let handleMagicMcpRequest = async (d: {
         sessionInfo.subspaceSessionId,
         {
           agentClient: sessionInfo.agentClient,
+          enforceIngressNetworkPolicy: true,
+          ingressIp: context.ip,
           onSubspaceSessionResolved: async ({ subspaceSessionId }) => {
             let magicMcpSession = await syncMagicMcpSubspaceSession(
               sessionInfo.magicMcpTarget,

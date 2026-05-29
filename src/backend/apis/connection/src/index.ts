@@ -48,7 +48,10 @@ export let startMcpServer = (d: { port: number; authenticate: Authenticator<Auth
         }),
         async () => {
           let { instance } = await authenticateAndResolveInstance(req, url, d.authenticate);
-          return proxyMcpRequestToSubspace(c, instance, sessionId);
+          return proxyMcpRequestToSubspace(c, instance, sessionId, {
+            enforceIngressNetworkPolicy: true,
+            ingressIp: context.ip
+          });
         }
       );
     })
