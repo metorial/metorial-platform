@@ -28,8 +28,13 @@ describe('deflector token', () => {
         identifier: 'preview'
       },
       egressPolicy: {
-        allowedHosts: ['api.example.com'],
-        allowedIps: ['203.0.113.10']
+        direction: 'egress',
+        entries: [
+          {
+            cidr: '203.0.113.10/32',
+            portRange: { from: 443, to: 443 }
+          }
+        ]
       }
     });
 
@@ -49,8 +54,15 @@ describe('deflector token', () => {
       functionVersionId: 'functionVersion_123',
       enclaveId: 'enclave_123',
       enclaveIdentifier: 'preview',
-      allowedHosts: ['api.example.com'],
-      allowedIps: ['203.0.113.10']
+      egressPolicy: {
+        direction: 'egress',
+        entries: [
+          {
+            cidr: '203.0.113.10/32',
+            portRange: { from: 443, to: 443 }
+          }
+        ]
+      }
     });
   });
 

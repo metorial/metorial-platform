@@ -112,14 +112,14 @@ class enclaveServiceImpl {
   }
 
   async resolveInvocationOverride(d: {
+    tenantId: string;
     enclave: {
-      tenantId: string;
       identifier: string;
     };
     function: Function;
     sourceVersion: FunctionVersion;
   }) {
-    let tenant = await tenantService.getTenantById({ id: d.enclave.tenantId });
+    let tenant = await tenantService.getTenantById({ id: d.tenantId });
 
     let enclave = await this.getOrCreateEnclave({
       tenantOid: tenant.oid,

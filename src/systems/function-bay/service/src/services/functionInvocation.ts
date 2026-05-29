@@ -39,20 +39,17 @@ let getFunctionData = createLocallyCachedFunction({
 class functionInvocationServiceImpl {
   async invokeFunction(d: {
     tenantId: string;
+    functionTenantId?: string;
     functionId: string;
     versionId?: string;
     payload: Record<string, any>;
-    egressPolicy?: {
-      allowedIps?: string[];
-      allowedHosts?: string[];
-    };
+    egressPolicy?: PrismaJson.CompiledEgressNetworkAllowList;
     enclave?: {
-      tenantId: string;
       identifier: string;
     };
   }): Promise<FunctionInvokeResponse> {
     let func = await getFunctionData({
-      tenantId: d.tenantId,
+      tenantId: d.functionTenantId ?? d.tenantId,
       functionId: d.functionId,
       versionId: d.versionId
     });
@@ -75,6 +72,7 @@ class functionInvocationServiceImpl {
 
     let invocationTarget = d.enclave
       ? await enclaveService.resolveInvocationOverride({
+          tenantId: d.tenantId,
           enclave: d.enclave,
           function: func,
           sourceVersion: version

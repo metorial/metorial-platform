@@ -42,12 +42,16 @@ func TestPolicyFromRequestRequiresValidToken(t *testing.T) {
 		t.Fatal("expected missing token to be rejected")
 	}
 
-	allowedHosts := []string{"example.com"}
 	token := proxyToken(t, "secret", policy.Claims{
 		TenantID:          "tenant_123",
 		FunctionID:        "function_123",
 		FunctionVersionID: "functionVersion_123",
-		AllowedHosts:      &allowedHosts,
+		EgressPolicy: &policy.CompiledNetworkAllowList{
+			Direction: "egress",
+			Entries: []policy.CompiledNetworkAllowEntry{
+				{CIDR: "93.184.216.34/32", PortRange: &policy.PortRange{From: 443, To: 443}},
+			},
+		},
 		RegisteredClaims: jwt.RegisteredClaims{
 			Audience:  jwt.ClaimStrings{"deflector"},
 			Subject:   "functionVersion_123",
@@ -66,21 +70,27 @@ func TestPolicyFromRequestRequiresValidToken(t *testing.T) {
 	if requestPolicy.Claims.TenantID != "tenant_123" {
 		t.Fatalf("unexpected tenant id %q", requestPolicy.Claims.TenantID)
 	}
-	if !requestPolicy.Compiled.AllowsHost("example.com") {
-		t.Fatal("expected verified claims to allow configured host")
+	if !requestPolicy.Compiled.AllowsDestination(net.ParseIP("93.184.216.34"), 443) {
+		t.Fatal("expected verified claims to allow configured destination")
 	}
-	if requestPolicy.Compiled.AllowsHost("other.example") {
-		t.Fatal("expected verified claims to deny unconfigured host")
+	if requestPolicy.Compiled.AllowsDestination(net.ParseIP("93.184.216.34"), 80) {
+		t.Fatal("expected verified claims to deny unconfigured port")
 	}
 }
 
 func TestExplicitPrivateIPAllowlistOverridesDefaultBlock(t *testing.T) {
-	allowedIPs := []string{"10.0.0.1"}
-	compiled, err := policy.Compile(policy.Claims{AllowedIPs: &allowedIPs})
+	compiled, err := policy.Compile(policy.Claims{
+		EgressPolicy: &policy.CompiledNetworkAllowList{
+			Direction: "egress",
+			Entries: []policy.CompiledNetworkAllowEntry{
+				{CIDR: "10.0.0.1/32"},
+			},
+		},
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !compiled.AllowsIP(net.ParseIP("10.0.0.1")) {
+	if !compiled.AllowsDestination(net.ParseIP("10.0.0.1"), 443) {
 		t.Fatal("expected explicit private IP allowlist to allow matching IP")
 	}
 }

@@ -243,18 +243,19 @@ func copyStreaming(w http.ResponseWriter, r io.Reader) {
 }
 
 func (s *Server) dialAllowed(ctx context.Context, host string, port string, requestPolicy *requestPolicy) (net.Conn, error) {
-	if !requestPolicy.Compiled.AllowsHost(host) {
-		return nil, errors.New("host denied")
-	}
-
 	resolver := net.DefaultResolver
 	ips, err := resolver.LookupIP(ctx, "ip", host)
 	if err != nil {
 		return nil, err
 	}
 
+	portNum, err := net.LookupPort("tcp", port)
+	if err != nil {
+		return nil, err
+	}
+
 	for _, ip := range ips {
-		if !requestPolicy.Compiled.AllowsIP(ip) {
+		if !requestPolicy.Compiled.AllowsDestination(ip, portNum) {
 			continue
 		}
 		dialer := s.Dialer

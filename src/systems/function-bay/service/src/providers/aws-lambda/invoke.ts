@@ -47,10 +47,7 @@ export let invokeFunction = async (d: {
     identifier: string;
   };
   payload: Record<string, any>;
-  egressPolicy?: {
-    allowedIps?: string[];
-    allowedHosts?: string[];
-  };
+  egressPolicy?: PrismaJson.CompiledEgressNetworkAllowList;
   providerData: {
     functionArn: string;
     functionName: string;

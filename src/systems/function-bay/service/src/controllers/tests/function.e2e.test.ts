@@ -219,7 +219,6 @@ describe('function:invoke E2E', () => {
       functionId: sourceVersion.function.id,
       payload: { input: 'test' },
       enclave: {
-        tenantId: enclaveTenant.id,
         identifier: 'customer-a'
       }
     });
@@ -265,7 +264,6 @@ describe('function:invoke E2E', () => {
       functionId: sourceVersion.function.id,
       payload: { input: 'test' },
       enclave: {
-        tenantId: enclaveTenant.id,
         identifier: 'customer-a'
       }
     });
@@ -346,7 +344,6 @@ describe('function:invoke E2E', () => {
       functionId: sourceVersion.function.id,
       payload: { input: 'test' },
       enclave: {
-        tenantId: enclaveTenant.id,
         identifier: 'customer-a'
       }
     });
@@ -358,6 +355,45 @@ describe('function:invoke E2E', () => {
         function: expect.objectContaining({ id: cloneFunction.id }),
         functionVersion: expect.objectContaining({ id: cloneVersion.id }),
         providerData: expect.objectContaining({ functionName: 'override-function' })
+      })
+    );
+  });
+
+  it('supports invoking a shared function through a tenant-scoped runtime context', async () => {
+    const version = await f.functionVersion.complete();
+    const runtimeTenant = await f.tenant.withIdentifier('runtime-tenant');
+    const egressPolicy = {
+      direction: 'egress' as const,
+      entries: [
+        {
+          cidr: '203.0.113.10/32',
+          portRange: { from: 443, to: 443 }
+        }
+      ]
+    };
+
+    providerMocks.invokeFunction.mockResolvedValue({
+      type: 'success',
+      result: { ok: true },
+      logs: [],
+      computeTimeMs: 10,
+      billedTimeMs: 10
+    });
+
+    await functionBayClient.function.invoke({
+      tenantId: runtimeTenant.id,
+      functionTenantId: version.function.tenant.id,
+      functionId: version.function.id,
+      payload: { input: 'test' },
+      egressPolicy
+    });
+
+    expect(providerMocks.invokeFunction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tenantId: runtimeTenant.id,
+        function: expect.objectContaining({ id: version.function.id }),
+        functionVersion: expect.objectContaining({ id: version.id }),
+        egressPolicy
       })
     );
   });

@@ -15,10 +15,7 @@ export let createDeflectorToken = async (d: {
     id: string;
     identifier: string;
   };
-  egressPolicy?: {
-    allowedIps?: string[];
-    allowedHosts?: string[];
-  };
+  egressPolicy?: PrismaJson.CompiledEgressNetworkAllowList;
 }) => {
   if (!jwtSecret) return undefined;
 
@@ -30,8 +27,7 @@ export let createDeflectorToken = async (d: {
     functionVersionId: string;
     enclaveId?: string;
     enclaveIdentifier?: string;
-    allowedIps?: string[];
-    allowedHosts?: string[];
+    egressPolicy?: PrismaJson.CompiledEgressNetworkAllowList;
   } = {
     aud: env.deflector.DEFLECTOR_JWT_AUDIENCE ?? 'deflector',
     sub: d.functionVersionId,
@@ -46,11 +42,8 @@ export let createDeflectorToken = async (d: {
     exp: now + 5 * 60
   };
 
-  if (d.egressPolicy?.allowedIps !== undefined) {
-    payload.allowedIps = d.egressPolicy.allowedIps;
-  }
-  if (d.egressPolicy?.allowedHosts !== undefined) {
-    payload.allowedHosts = d.egressPolicy.allowedHosts;
+  if (d.egressPolicy !== undefined) {
+    payload.egressPolicy = d.egressPolicy;
   }
 
   return await new SignJWT(payload)

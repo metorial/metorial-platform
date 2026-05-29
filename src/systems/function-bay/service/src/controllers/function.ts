@@ -95,19 +95,29 @@ export let functionController = app.controller({
     .input(
       v.object({
         tenantId: v.string(),
+        functionTenantId: v.optional(v.string()),
         functionId: v.string(),
 
         payload: v.record(v.any()),
         egressPolicy: v.optional(
           v.object({
-            allowedIps: v.optional(v.array(v.string())),
-            allowedHosts: v.optional(v.array(v.string()))
+            direction: v.literal('egress'),
+            entries: v.array(
+              v.object({
+                cidr: v.string(),
+                portRange: v.optional(
+                  v.object({
+                    from: v.number(),
+                    to: v.number()
+                  })
+                )
+              })
+            )
           })
         ),
 
         enclave: v.optional(
           v.object({
-            tenantId: v.string(),
             identifier: v.string()
           })
         )
@@ -118,6 +128,7 @@ export let functionController = app.controller({
         await functionInvocationService.invokeFunction({
           functionId: ctx.input.functionId,
           tenantId: ctx.input.tenantId,
+          functionTenantId: ctx.input.functionTenantId,
           payload: ctx.input.payload,
           egressPolicy: ctx.input.egressPolicy,
           enclave: ctx.input.enclave
