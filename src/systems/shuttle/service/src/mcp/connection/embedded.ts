@@ -8,6 +8,11 @@ import {
   type MessageExtraInfo
 } from '@modelcontextprotocol/sdk/types.js';
 import type { ServerConnection } from '../../../prisma/generated/client';
+import {
+  EGRESS_POLICY_BLOCKED_CODE,
+  getEgressPolicyErrorMessage,
+  isEgressPolicyError
+} from '../../lib/network/egressPolicy';
 import { ConnectionBackend } from '../backend';
 import type { McpConnectionBackendAdapter } from './adapter';
 
@@ -49,7 +54,18 @@ class McpTransport implements Transport {
       method: 'method' in message ? message.method : undefined,
       id: 'id' in message ? (message as any).id : undefined
     });
-    await this.adapter.sendMcpMessage(message);
+    try {
+      await this.adapter.sendMcpMessage(message);
+    } catch (error) {
+      if (isEgressPolicyError(error)) {
+        throw new EmbeddedConnectionError(
+          EGRESS_POLICY_BLOCKED_CODE,
+          getEgressPolicyErrorMessage(error)
+        );
+      }
+
+      throw error;
+    }
   }
 
   async close() {
@@ -88,15 +104,30 @@ export class EmbeddedConnection {
         }
       });
 
-      await backend.waitForInitialization();
-      mcpTraceLog('create:backend-initialized');
+      try {
+        await backend.waitForInitialization();
+        mcpTraceLog('create:backend-initialized');
 
-      let client = new Client(connection.client);
-      await client.connect(new McpTransport(backend));
-      mcpTraceLog('create:client-connected');
+        let client = new Client(connection.client);
+        await client.connect(new McpTransport(backend));
+        mcpTraceLog('create:client-connected');
 
-      resolve(new EmbeddedConnection(backend, client));
-      cleanup();
+        resolve(new EmbeddedConnection(backend, client));
+      } catch (error) {
+        if (isEgressPolicyError(error)) {
+          reject(
+            new EmbeddedConnectionError(
+              EGRESS_POLICY_BLOCKED_CODE,
+              getEgressPolicyErrorMessage(error)
+            )
+          );
+          return;
+        }
+
+        reject(error);
+      } finally {
+        cleanup();
+      }
     });
   }
 
@@ -116,6 +147,16 @@ export class EmbeddedConnection {
           mcpTraceLog('op:success');
         } catch (e) {
           mcpTraceLog('op:failure', e);
+          if (isEgressPolicyError(e)) {
+            reject(
+              new EmbeddedConnectionError(
+                EGRESS_POLICY_BLOCKED_CODE,
+                getEgressPolicyErrorMessage(e)
+              )
+            );
+            return;
+          }
+
           reject(e);
         } finally {
           cleanup();

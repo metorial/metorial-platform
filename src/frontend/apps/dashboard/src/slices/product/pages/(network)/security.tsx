@@ -4,11 +4,14 @@ import { getConfig } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
 import {
   useCurrentInstance,
+  useCurrentOrganization,
+  useCurrentProject,
   useLastUsedEnclaves,
   useNetworks
 } from '@metorial/state';
-import { Spacer } from '@metorial/ui';
+import { Attributes, Spacer } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
+import { RiArrowRightSLine } from '@remixicon/react';
 import { EmptyText, EnclavesTable } from './_common';
 
 type NetworkDiagramProps = {
@@ -22,6 +25,8 @@ let NetworkDiagram = dynamicComponent<[NetworkDiagramProps]>(() =>
 );
 
 export let SecurityOverviewPage = () => {
+  let organization = useCurrentOrganization();
+  let project = useCurrentProject();
   let instance = useCurrentInstance();
   let networks = useNetworks(instance.data?.id, { limit: 1 });
   let lastUsedEnclaves = useLastUsedEnclaves(instance.data?.id, { limit: 8 });
@@ -39,6 +44,32 @@ export let SecurityOverviewPage = () => {
 
         return (
           <>
+            <Attributes
+              itemWidth="300px"
+              attributes={[
+                {
+                  label: 'Project',
+                  content: (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      {organization.data?.name ?? 'Organization'}
+                      <RiArrowRightSLine size={14} />
+                      {project.data?.name ?? 'Project'}
+                    </span>
+                  )
+                },
+                {
+                  label: 'Public IP',
+                  content: networkPublicIp?.ip ?? '-'
+                },
+                {
+                  label: 'Region',
+                  content: networkPublicIp?.region ?? '-'
+                }
+              ]}
+            />
+
+            <Spacer size={20} />
+
             {networkPublicIp && (
               <>
                 <NetworkDiagram

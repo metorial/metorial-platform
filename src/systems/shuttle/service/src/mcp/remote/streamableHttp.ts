@@ -5,6 +5,11 @@ import type {
   ServerConfig,
   ServerConnection
 } from '../../../prisma/generated/client';
+import {
+  EGRESS_POLICY_BLOCKED_CODE,
+  getEgressPolicyErrorMessage,
+  isEgressPolicyError
+} from '../../lib/network/egressPolicy';
 import { safeParse } from '../../lib/safeParse';
 import { fetchEventSource } from '../../lib/sse/fetch';
 import type { McpConnectionBackendAdapter } from '../connection/adapter';
@@ -62,7 +67,7 @@ export class StreamableHttpRemoteConnection implements McpConnectionBackendAdapt
   async sendMcpMessage(message: JSONRPCMessage) {
     if (this.#exiting) {
       console.warn(
-        'Attempted to send MCP message connection after container began exiting',
+        'Attempted to send MCP message connection after server began exiting',
         message
       );
       return;
@@ -71,8 +76,8 @@ export class StreamableHttpRemoteConnection implements McpConnectionBackendAdapt
     try {
       await fetchEventSource(this.version.remoteUrl!, {
         method: 'POST',
-        egressPolicy:
-          this.connection.egressPolicy as PrismaJson.CompiledEgressNetworkAllowList | null,
+        egressPolicy: this.connection
+          .egressPolicy as PrismaJson.CompiledEgressNetworkAllowList | null,
         headers: {
           ...(await this.getHeaders()),
           'Content-Type': 'application/json'
@@ -112,11 +117,14 @@ export class StreamableHttpRemoteConnection implements McpConnectionBackendAdapt
         }
       });
     } catch (e) {
+      let isPolicyError = isEgressPolicyError(e);
       this.messenger.sendToListeners({
         type: 'error',
         data: {
-          code: 'connection_error',
-          message: (e as Error).message || 'Unknown connection error'
+          code: isPolicyError ? EGRESS_POLICY_BLOCKED_CODE : 'connection_error',
+          message: isPolicyError
+            ? getEgressPolicyErrorMessage(e)
+            : (e as Error).message || 'Unknown connection error'
         }
       });
     }
@@ -151,8 +159,8 @@ export class StreamableHttpRemoteConnection implements McpConnectionBackendAdapt
 
       await fetchEventSource(this.version.remoteUrl!, {
         method: 'GET',
-        egressPolicy:
-          this.connection.egressPolicy as PrismaJson.CompiledEgressNetworkAllowList | null,
+        egressPolicy: this.connection
+          .egressPolicy as PrismaJson.CompiledEgressNetworkAllowList | null,
         headers: await this.getHeaders(),
         signal: this.#abortController.signal,
 
@@ -163,6 +171,20 @@ export class StreamableHttpRemoteConnection implements McpConnectionBackendAdapt
         }
       });
     } catch (e) {
+      if (isEgressPolicyError(e)) {
+        let message = getEgressPolicyErrorMessage(e);
+
+        this.logger.log('debug.error', `streamable HTTP connection error: ${message}`);
+        await this.messenger.sendToListeners({
+          type: 'error',
+          data: {
+            code: EGRESS_POLICY_BLOCKED_CODE,
+            message
+          }
+        });
+        return;
+      }
+
       this.logger.log(
         'debug.error',
         `streamable HTTP connection error: ${(e as Error).message || e}`

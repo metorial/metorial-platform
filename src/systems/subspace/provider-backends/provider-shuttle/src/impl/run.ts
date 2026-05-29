@@ -145,8 +145,15 @@ class ProviderRunConnection extends IProviderRunConnection {
     close: () => Promise<void>;
     sendMcpMessage: (msg: JSONRPCMessage) => Promise<void>;
   } | null = null;
+  #connectionError: ProviderRunConnectionError | null = null;
 
-  #mcpMessageListeners = new Map<string | number, (msg: JSONRPCMessage) => Promise<void>>();
+  #mcpMessageListeners = new Map<
+    string | number,
+    {
+      resolve: (msg: JSONRPCMessage) => Promise<void>;
+      reject: (error: ProviderRunConnectionError) => void;
+    }
+  >();
 
   constructor(
     private data: ProviderRunCreateParam,
@@ -167,54 +174,88 @@ class ProviderRunConnection extends IProviderRunConnection {
   async handleToolInvocation(
     data: ToolInvocationCreateParam
   ): Promise<ToolInvocationCreateRes> {
-    let mcpMessage = await messageTranslator.toMcp({
-      data: data.input,
-      message: data.message,
-      tool: data.tool,
-      sessionProvider: data.sessionProvider,
-      recipient: 'provider_backend'
-    });
-    if (!mcpMessage) {
-      return {
-        output: {
-          type: 'error',
-          error: {
-            code: 'invalid_request',
-            message: 'Unable to process the provided input message'
+    try {
+      let mcpMessage = await messageTranslator.toMcp({
+        data: data.input,
+        message: data.message,
+        tool: data.tool,
+        sessionProvider: data.sessionProvider,
+        recipient: 'provider_backend'
+      });
+      if (!mcpMessage) {
+        return {
+          output: {
+            type: 'error',
+            error: {
+              code: 'invalid_request',
+              message: 'Unable to process the provided input message'
+            }
           }
-        }
-      };
-    }
+        };
+      }
 
-    await this.#readyPromise;
+      await this.#readyPromise;
 
-    if (!this.#conRef) {
-      throw new Error('Connection is not established');
-    }
+      if (this.#connectionError) {
+        throw this.#connectionError;
+      }
 
-    let id = 'id' in mcpMessage && mcpMessage.id ? mcpMessage.id : undefined;
+      if (!this.#conRef) {
+        throw new Error('Connection is not established');
+      }
 
-    if (id !== undefined) {
-      let responsePromise = new ProgrammablePromise<JSONRPCMessage>();
-      this.#mcpMessageListeners.set(id, async msg => responsePromise.resolve(msg));
+      let id = 'id' in mcpMessage && mcpMessage.id ? mcpMessage.id : undefined;
 
-      await this.#conRef.sendMcpMessage(mcpMessage);
+      if (id !== undefined) {
+        let responsePromise = new ProgrammablePromise<JSONRPCMessage>();
+        this.#mcpMessageListeners.set(id, {
+          resolve: async msg => responsePromise.resolve(msg),
+          reject: error => responsePromise.reject(error)
+        });
 
-      let outputMessage = await responsePromise.promise;
+        await this.#conRef.sendMcpMessage(mcpMessage);
 
-      return {
-        output: {
-          type: 'success',
-          data: {
-            type: 'mcp',
-            data: outputMessage
+        let outputMessage = await responsePromise.promise;
+
+        return {
+          output: {
+            type: 'success',
+            data: {
+              type: 'mcp',
+              data: outputMessage
+            }
           }
-        }
-      };
-    } else {
-      await this.#conRef.sendMcpMessage(mcpMessage);
-      return {};
+        };
+      } else {
+        await this.#conRef.sendMcpMessage(mcpMessage);
+        return {};
+      }
+    } catch (error) {
+      if (error instanceof ProviderRunConnectionError) {
+        return {
+          output: {
+            type: 'error',
+            error: {
+              code: error.code,
+              message: error.message
+            }
+          }
+        };
+      }
+
+      throw error;
     }
+  }
+
+  private handleConnectionError(error: { code: string; message: string }) {
+    let connectionError = new ProviderRunConnectionError(error.code, error.message);
+    this.#connectionError = connectionError;
+    this.#readyPromise.resolve();
+
+    for (let listener of this.#mcpMessageListeners.values()) {
+      listener.reject(connectionError);
+    }
+    this.#mcpMessageListeners.clear();
   }
 
   async close(): Promise<void> {
@@ -237,14 +278,20 @@ class ProviderRunConnection extends IProviderRunConnection {
       onClose: async () => {
         await this.emitClose();
       },
-      onMessage: async data => {
+      onMessage: async (
+        data:
+          | { type: 'mcp.message'; data: JSONRPCMessage }
+          | { type: 'close'; data?: undefined }
+          | { type: 'initialized'; data: unknown }
+          | { type: 'error'; data: { code: string; message: string } }
+      ) => {
         if (data.type === 'mcp.message') {
           // Handle response to a specific tool invocation
           let id = 'id' in data.data && data.data.id ? data.data.id : undefined;
           if (id !== undefined) {
             let listener = this.#mcpMessageListeners.get(id);
             if (listener) {
-              await listener(data.data);
+              await listener.resolve(data.data);
               this.#mcpMessageListeners.delete(id);
 
               return; // No need to emit as mcp request/notification
@@ -255,11 +302,24 @@ class ProviderRunConnection extends IProviderRunConnection {
         } else if (data.type === 'close') {
           await this.emitClose();
         } else if (data.type === 'error') {
+          if (data.data.code === 'egress_policy_blocked') {
+            this.handleConnectionError(data.data);
+          }
           this.close();
         }
       }
     });
 
     this.#conRef = con;
+  }
+}
+
+class ProviderRunConnectionError extends Error {
+  constructor(
+    public readonly code: string,
+    message: string
+  ) {
+    super(message);
+    this.name = 'ProviderRunConnectionError';
   }
 }

@@ -1,4 +1,4 @@
-import { ServiceError, badRequestError } from '@lowerdeck/error';
+import { ServiceError, badRequestError, isServiceError } from '@lowerdeck/error';
 import { lookup } from 'node:dns/promises';
 import { isValidCIDR, parse, parseCIDR } from 'ipaddr.js';
 
@@ -10,6 +10,17 @@ export type RuntimeNetworkRule = {
 };
 
 let fullPortRange = { from: 1, to: 65535 };
+export let EGRESS_POLICY_BLOCKED_CODE = 'egress_policy_blocked';
+export let EGRESS_POLICY_BLOCKED_MESSAGE =
+  'Remote URL is not allowed by the connection egress policy';
+
+export let isEgressPolicyError = (error: unknown) =>
+  isServiceError(error) && error.data.code === EGRESS_POLICY_BLOCKED_CODE;
+
+export let getEgressPolicyErrorMessage = (error: unknown) =>
+  isServiceError(error) && error.data.code === EGRESS_POLICY_BLOCKED_CODE
+    ? error.data.message
+    : EGRESS_POLICY_BLOCKED_MESSAGE;
 
 let getPortForUrl = (url: URL) => {
   if (url.port) return Number(url.port);
@@ -75,7 +86,8 @@ export let assertUrlAllowedByEgressPolicy = async (d: {
   if (!isAllowed) {
     throw new ServiceError(
       badRequestError({
-        message: `Remote URL is not allowed by the connection egress policy`
+        code: EGRESS_POLICY_BLOCKED_CODE,
+        message: EGRESS_POLICY_BLOCKED_MESSAGE
       })
     );
   }

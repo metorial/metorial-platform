@@ -166,7 +166,12 @@ describe('safeFetch', () => {
               entries: [{ cidr: '192.0.2.0/24' }]
             }
           })
-        ).rejects.toThrow(/egress policy/i);
+        ).rejects.toMatchObject({
+          data: {
+            code: 'egress_policy_blocked',
+            message: 'Remote URL is not allowed by the connection egress policy'
+          }
+        });
 
         expect(f.mock).not.toHaveBeenCalled();
       });
@@ -194,7 +199,12 @@ describe('safeFetch', () => {
               entries: [{ cidr: '93.184.216.0/24', portRange: { from: 80, to: 80 } }]
             }
           })
-        ).rejects.toThrow(/egress policy/i);
+        ).rejects.toMatchObject({
+          data: {
+            code: 'egress_policy_blocked',
+            message: 'Remote URL is not allowed by the connection egress policy'
+          }
+        });
 
         expect(f.mock).toHaveBeenCalledOnce();
       });

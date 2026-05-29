@@ -6,6 +6,11 @@ import {
   type JSONRPCMessage
 } from '@modelcontextprotocol/sdk/types.js';
 import type { ServerConnection } from '../../../prisma/generated/client';
+import {
+  EGRESS_POLICY_BLOCKED_CODE,
+  getEgressPolicyErrorMessage,
+  isEgressPolicyError
+} from '../../lib/network/egressPolicy';
 import { ConnectionBackend } from '../backend';
 import type { ConnectionMessage } from '../utils/messenger';
 import type { McpConnectionAdapter, McpConnectionBackendAdapter } from './adapter';
@@ -115,6 +120,16 @@ export class ClientConnection implements McpConnectionAdapter {
       this.#initPromise.resolve();
     } catch (error) {
       mcpTraceLog('init:failed', error);
+      if (isEgressPolicyError(error)) {
+        await this.adapter.messenger.sendToListeners({
+          type: 'error',
+          data: {
+            code: EGRESS_POLICY_BLOCKED_CODE,
+            message: getEgressPolicyErrorMessage(error)
+          }
+        });
+      }
+
       this.#initPromise.reject(error);
     }
   }
@@ -161,8 +176,22 @@ export class ClientConnection implements McpConnectionAdapter {
         }
       });
 
-      await this.adapter.sendMcpMessage(message);
-      mcpTraceLog('wait-response:sent', { id: (message as any).id });
+      try {
+        await this.adapter.sendMcpMessage(message);
+        mcpTraceLog('wait-response:sent', { id: (message as any).id });
+      } catch (error) {
+        mcpTraceLog('wait-response:send-failed', error);
+
+        if (isEgressPolicyError(error)) {
+          clearTimeout(to);
+          off();
+          reject(
+            new Error(
+              `Connection error (${EGRESS_POLICY_BLOCKED_CODE}): ${getEgressPolicyErrorMessage(error)}`
+            )
+          );
+        }
+      }
     });
   }
 }

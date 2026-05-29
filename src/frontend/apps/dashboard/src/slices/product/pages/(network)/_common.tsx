@@ -1,7 +1,14 @@
+import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
-import { useCurrentInstance, useCurrentOrganization, useCurrentProject } from '@metorial/state';
+import {
+  useCurrentInstance,
+  useCurrentOrganization,
+  useCurrentProject,
+  useProviderDeployments
+} from '@metorial/state';
 import { Badge, RenderDate, Text, theme } from '@metorial/ui';
-import { ID, Table } from '@metorial/ui-product';
+import { Table } from '@metorial/ui-product';
+import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 
@@ -72,37 +79,61 @@ export let EnclavesTable = (p: {
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
   let instance = useCurrentInstance();
-
-  return (
-    <Table
-      headers={['Name', 'Network', 'Deployment', 'Last Used', 'Created']}
-      data={p.enclaves.map(enclave => ({
-        href: Paths.instance.providerDeployment(
-          organization.data,
-          project.data,
-          instance.data,
-          enclave.providerDeploymentId,
-          'network'
-        ),
-        data: [
-          <div>
-            <Text size="2" weight="strong">
-              {enclave.name}
-            </Text>
-            {enclave.description && (
-              <Text size="1" color="gray600">
-                {enclave.description}
-              </Text>
-            )}
-          </div>,
-          <ID id={enclave.networkId} />,
-          <ID id={enclave.providerDeploymentId} />,
-          enclave.lastUsedAt ? <RenderDate date={enclave.lastUsedAt} /> : '-',
-          <RenderDate date={enclave.createdAt} />
-        ]
-      }))}
-    />
+  let providerDeploymentIds = useMemo(
+    () => Array.from(new Set(p.enclaves.map(enclave => enclave.providerDeploymentId))),
+    [p.enclaves]
   );
+  let providerDeploymentsFilter = useMemo(
+    () =>
+      providerDeploymentIds.length > 0
+        ? { id: providerDeploymentIds, limit: providerDeploymentIds.length }
+        : { id: ['__none__'], limit: 1 },
+    [providerDeploymentIds]
+  );
+  let providerDeployments = useProviderDeployments(
+    instance.data?.id,
+    providerDeploymentsFilter
+  );
+
+  return renderWithLoader({ providerDeployments })(({ providerDeployments }) => {
+    let deploymentById = new Map(
+      providerDeployments.data.items.map(deployment => [deployment.id, deployment])
+    );
+
+    return (
+      <Table
+        headers={['Name', 'Deployment', 'Last Used', 'Created']}
+        data={p.enclaves.map(enclave => {
+          let deployment = deploymentById.get(enclave.providerDeploymentId);
+
+          return {
+            href: Paths.instance.providerDeployment(
+              organization.data,
+              project.data,
+              instance.data,
+              enclave.providerDeploymentId,
+              'network'
+            ),
+            data: [
+              <div>
+                <Text size="2" weight="strong">
+                  {enclave.name}
+                </Text>
+                {enclave.description && (
+                  <Text size="1" color="gray600">
+                    {enclave.description}
+                  </Text>
+                )}
+              </div>,
+              deployment?.name ?? enclave.providerDeploymentId,
+              enclave.lastUsedAt ? <RenderDate date={enclave.lastUsedAt} /> : '-',
+              <RenderDate date={enclave.createdAt} />
+            ]
+          };
+        })}
+      />
+    );
+  });
 };
 
 export let RuleTable = (p: {
@@ -140,7 +171,14 @@ export let FirewallLink = (p: { firewall: { id: string; name: string } }) => {
   let instance = useCurrentInstance();
 
   return (
-    <Link to={Paths.instance.networkFirewall(organization.data, project.data, instance.data, p.firewall.id)}>
+    <Link
+      to={Paths.instance.networkFirewall(
+        organization.data,
+        project.data,
+        instance.data,
+        p.firewall.id
+      )}
+    >
       {p.firewall.name}
     </Link>
   );
