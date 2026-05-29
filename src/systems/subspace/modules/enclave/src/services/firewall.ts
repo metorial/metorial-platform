@@ -120,7 +120,7 @@ class firewallServiceImpl {
         id: d.firewallId,
         tenantOid: d.tenant.oid,
         environmentOid: d.environment.oid,
-        ...normalizeStatusForGet(d).hasParent
+        ...normalizeStatusForGet(d).noParent
       },
       include
     });

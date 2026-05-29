@@ -28,7 +28,9 @@ import {
   createNetworkPolicyRule,
   getCurrentNetworkPolicyRules,
   type NetworkPolicyRuleInput,
-  networkPolicyRulesEqual
+  networkPolicyRulesEqual,
+  normalizeNetworkPolicyRuleInput,
+  rulesContentEqual
 } from '../lib/networkPolicyRules';
 import { validateNetworkPolicyRules } from '../lib/networkPolicyValidation';
 import {
@@ -128,7 +130,7 @@ class networkPolicyServiceImpl {
         id: d.networkPolicyId,
         tenantOid: d.tenant.oid,
         environmentOid: d.environment.oid,
-        ...normalizeStatusForGet(d).hasParent
+        ...normalizeStatusForGet(d).noParent
       },
       include
     });
@@ -305,6 +307,67 @@ class networkPolicyServiceImpl {
         return {
           networkPolicy: updatedNetworkPolicy,
           rule: newRule
+        };
+      });
+    });
+  }
+
+  async updateNetworkPolicyRule(d: {
+    tenant: Tenant;
+    environment: Environment;
+    networkPolicy: NetworkPolicy;
+    ruleId: string;
+    input: {
+      rule: NetworkPolicyRuleInput;
+    };
+  }) {
+    checkTenant(d, d.networkPolicy);
+    checkDeletedEdit(d.networkPolicy, 'update');
+
+    return ruleChangeLock.usingLock([d.networkPolicy.id], async () => {
+      let networkPolicy = await this.getNetworkPolicyForRuleMutation(d);
+
+      return withTransaction(async db => {
+        let currentRules = getCurrentNetworkPolicyRules(networkPolicy.currentVersion);
+        let ruleIndex = currentRules.findIndex(rule => rule.id === d.ruleId);
+        if (ruleIndex === -1) {
+          throw new ServiceError(notFoundError('network.policy.rule', d.ruleId));
+        }
+
+        let currentRule = currentRules[ruleIndex]!;
+        let updatedRule = {
+          ...normalizeNetworkPolicyRuleInput(d.input.rule),
+          id: d.ruleId
+        };
+
+        if (rulesContentEqual(currentRule, updatedRule)) {
+          return {
+            networkPolicy: await db.networkPolicy.findFirstOrThrow({
+              where: { oid: networkPolicy.oid },
+              include
+            }),
+            rule: updatedRule
+          };
+        }
+
+        let rules = [...currentRules];
+        rules[ruleIndex] = updatedRule;
+
+        let updatedNetworkPolicy = await this.publishRulesVersion({
+          tenant: d.tenant,
+          environment: d.environment,
+          networkPolicy,
+          rules,
+          currentVersionNumber: networkPolicy.currentVersionNumber
+        });
+
+        await addAfterTransactionHook(async () =>
+          networkPolicyUpdatedQueue.add({ networkPolicyId: updatedNetworkPolicy.id })
+        );
+
+        return {
+          networkPolicy: updatedNetworkPolicy,
+          rule: updatedRule
         };
       });
     });

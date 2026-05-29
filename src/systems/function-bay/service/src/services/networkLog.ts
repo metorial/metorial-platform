@@ -28,9 +28,7 @@ class networkLogServiceImpl {
     intervalMinutes?: number;
   }) {
     if (!env.observer.OBSERVER_QUERY_URL) {
-      throw new ServiceError(
-        preconditionFailedError({ message: 'Observer query URL is not configured' })
-      );
+      return [];
     }
 
     let url = new URL('/logs', env.observer.OBSERVER_QUERY_URL);

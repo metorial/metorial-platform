@@ -20,13 +20,13 @@ import {
   resolveProviders
 } from '@metorial-subspace/list-utils';
 import { checkTenant } from '@metorial-subspace/module-tenant';
+import { differenceInMinutes } from 'date-fns';
 import {
   type CompiledNetworkAllowList,
   compileNetworkAllowList
 } from '../lib/compileNetworkAllowList';
 import { compileNetworkRulesForEnclave } from '../lib/compileNetworkRules';
 import { enclaveUpdatedQueue } from '../queues/lifecycle/enclave';
-import { differenceInMinutes } from 'date-fns';
 
 export type {
   CompiledNetworkAllowEntry,
@@ -291,11 +291,7 @@ class enclaveServiceImpl {
     });
   }
 
-  async getLastUsedEnclaves(d: {
-    tenant: Tenant;
-    environment: Environment;
-    limit?: number;
-  }) {
+  async getLastUsedEnclaves(d: { tenant: Tenant; environment: Environment; limit?: number }) {
     let limit = Math.min(Math.max(d.limit ?? 20, 1), 100);
 
     return db.enclave.findMany({

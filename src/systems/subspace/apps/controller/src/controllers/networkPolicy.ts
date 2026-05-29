@@ -198,6 +198,56 @@ export let networkPolicyController = app.controller({
       };
     }),
 
+  updateRule: networkPolicyApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        environmentId: v.string(),
+        networkPolicyId: v.string(),
+        ruleId: v.string(),
+
+        effect: v.enumOf(['allow', 'deny']),
+        direction: v.enumOf(['ingress', 'egress']),
+        cidrs: v.array(v.string()),
+        description: v.optional(v.string()),
+        enabled: v.boolean(),
+        priority: v.number(),
+        ports: v.optional(
+          v.array(
+            v.object({
+              from: v.number(),
+              to: v.number()
+            })
+          )
+        )
+      })
+    )
+    .do(async ctx => {
+      let { networkPolicy, rule } = await networkPolicyService.updateNetworkPolicyRule({
+        networkPolicy: ctx.networkPolicy,
+        tenant: ctx.tenant,
+        environment: ctx.environment,
+        ruleId: ctx.input.ruleId,
+        input: {
+          rule: {
+            effect: ctx.input.effect,
+            direction: ctx.input.direction,
+            cidrs: ctx.input.cidrs,
+            description: ctx.input.description,
+            enabled: ctx.input.enabled,
+            priority: ctx.input.priority,
+            ports: ctx.input.ports as NetworkPolicyRuleInput['ports']
+          }
+        }
+      });
+
+      return {
+        networkPolicy: networkPolicyPresenter(networkPolicy),
+        rule: networkPolicyRulePresenter(rule)
+      };
+    }),
+
   removeRule: networkPolicyApp
     .handler()
     .input(

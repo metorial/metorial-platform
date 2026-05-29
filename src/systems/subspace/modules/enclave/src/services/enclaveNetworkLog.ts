@@ -105,7 +105,8 @@ class enclaveNetworkLogServiceImpl {
           tenantOid: d.tenant.oid,
           environmentOid: d.environment.oid
         },
-        select: { id: true, hasFunctionBayBacking: true }
+        select: { id: true, hasFunctionBayBacking: true },
+        take: 500
       });
 
       if (enclaves.length !== d.enclaveIds.length) {
@@ -122,7 +123,8 @@ class enclaveNetworkLogServiceImpl {
         tenantOid: d.tenant.oid,
         environmentOid: d.environment.oid
       },
-      select: { id: true, hasFunctionBayBacking: true }
+      select: { id: true, hasFunctionBayBacking: true },
+      take: 500
     });
   }
 }

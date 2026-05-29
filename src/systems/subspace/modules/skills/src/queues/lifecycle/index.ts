@@ -2,7 +2,8 @@ import { combineQueueProcessors } from '@lowerdeck/queue';
 import {
   skillArchivedQueueProcessor,
   skillCreatedQueueProcessor,
-  skillUpdatedQueueProcessor
+  skillUpdatedQueueProcessor,
+  syncSkillToCargoQueueProcessor
 } from './skill';
 import {
   skillGroupArchivedQueueProcessor,
@@ -27,5 +28,6 @@ export let lifecycleQueues = combineQueueProcessors([
   skillItemArchivedQueueProcessor,
   skillTemplateCreatedQueueProcessor,
   skillTemplateUpdatedQueueProcessor,
-  skillTemplateArchivedQueueProcessor
+  skillTemplateArchivedQueueProcessor,
+  syncSkillToCargoQueueProcessor
 ]);

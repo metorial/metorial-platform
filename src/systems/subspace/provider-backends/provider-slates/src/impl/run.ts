@@ -136,6 +136,8 @@ export class ProviderRunConnection extends IProviderRunConnection {
           }
         });
 
+        console.log('Provider deployment:', providerDeployment);
+
         if (!providerDeployment?.enclave) {
           return {};
         }
@@ -200,6 +202,7 @@ export class ProviderRunConnection extends IProviderRunConnection {
         }
       ]
     });
+    console.log('Tool call result:', JSON.stringify(res));
 
     let slateToolCall = await db.slateToolCall.create({
       data: {
