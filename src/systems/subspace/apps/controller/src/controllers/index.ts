@@ -48,7 +48,6 @@ import { integrationVersionController } from './integrationVersion';
 import { magicMcpBackingController } from './magicMcpBacking';
 import { magicMcpServerProviderController } from './magicMcpServerProvider';
 import { managedProviderAuthCredentialsController } from './managedProviderAuthCredentials';
-import { networkingRulesetController } from './networkingRuleset';
 import { providerController } from './provider';
 import { providerAuthConfigController } from './providerAuthConfig';
 import { providerAuthCredentialsController } from './providerAuthCredentials';
@@ -218,7 +217,6 @@ let extensionControllers = {
   customProviderEnvironment: customProviderEnvironmentController,
   containerRegistry: containerRegistryController,
   containerRepository: containerRepositoryController,
-  networkingRuleset: networkingRulesetController,
   scmConnection: scmConnectionController,
   scmConnectionSetupSession: scmConnectionSetupSessionController,
   scmProvider: scmProviderController,

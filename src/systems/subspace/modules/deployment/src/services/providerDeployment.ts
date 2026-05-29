@@ -211,7 +211,6 @@ class providerDeploymentServiceImpl {
       toolFilters?: PrismaJson.ToolFilter | null;
       isEphemeral?: boolean;
       isDefault?: boolean;
-      networkingRulesetIds?: string[];
 
       config:
         | {
@@ -251,14 +250,6 @@ class providerDeploymentServiceImpl {
       }
 
       let backend = await getBackend({ entity: d.provider.defaultVariant });
-
-      if (d.input.networkingRulesetIds?.length) {
-        await backend.deployment.validateNetworkingRulesetIds({
-          tenant: d.tenant,
-          provider: d.provider,
-          networkingRulesetIds: d.input.networkingRulesetIds
-        });
-      }
 
       let environmentProvider = await db.environmentProvider.findFirst({
         where: { tenantOid: d.tenant.oid, providerOid: d.provider.oid }
@@ -309,7 +300,7 @@ class providerDeploymentServiceImpl {
           privateMetadata: d.input.privateMetadata,
           toolFilter: normalizeToolFilters(d.input.toolFilters),
 
-          networkingRulesetIds: d.input.networkingRulesetIds || [],
+          networkingRulesetIds: [],
 
           tenantOid: d.tenant.oid,
           solutionOid: d.solution.oid,
@@ -460,22 +451,11 @@ class providerDeploymentServiceImpl {
       metadata?: Record<string, any>;
       privateMetadata?: Record<string, any>;
       toolFilters?: PrismaJson.ToolFilter | null;
-      networkingRulesetIds?: string[];
     };
   }) {
     checkDeletedEdit(d.providerDeployment, 'update');
 
     return withTransaction(async db => {
-      let backend = await getBackend({ entity: d.providerDeployment.providerVariant });
-
-      if (d.input.networkingRulesetIds?.length) {
-        await backend.deployment.validateNetworkingRulesetIds({
-          tenant: d.tenant,
-          provider: d.providerDeployment.provider,
-          networkingRulesetIds: d.input.networkingRulesetIds
-        });
-      }
-
       let providerDeployment = await db.providerDeployment.update({
         where: {
           oid: d.providerDeployment.oid,
@@ -490,9 +470,7 @@ class providerDeploymentServiceImpl {
           privateMetadata: d.input.privateMetadata ?? d.providerDeployment.privateMetadata,
           toolFilter: d.input.toolFilters
             ? normalizeToolFilters(d.input.toolFilters)
-            : d.providerDeployment.toolFilter,
-          networkingRulesetIds:
-            d.input.networkingRulesetIds ?? d.providerDeployment.networkingRulesetIds
+            : d.providerDeployment.toolFilter
         },
         include
       });

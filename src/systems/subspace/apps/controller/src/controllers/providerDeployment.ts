@@ -142,8 +142,6 @@ export let providerDeploymentController = app.controller({
         providerId: v.string(),
         lockedProviderVersionId: v.optional(v.string()),
 
-        networkingRulesetIds: v.optional(v.array(v.string())),
-
         config: v.optional(configSourceValidator),
         toolFilters: toolFiltersValidator
       })
