@@ -301,6 +301,7 @@ class providerDeploymentServiceImpl {
 
           isEphemeral: !!d.input.isEphemeral,
           isDefault: !!d.input.isDefault,
+          isEnclaveReconciled: true,
 
           name: d.input.name?.trim() || undefined,
           description: d.input.description?.trim() || undefined,

@@ -7,6 +7,7 @@ export * from './providerListing';
 export * from './providerSpecification';
 export * from './providerTool';
 export * from './providerTrigger';
+export * from './providerType';
 export * from './providerVariant';
 export * from './providerVersion';
 export * from './publisher';

@@ -11,7 +11,6 @@ import {
 } from './cidrSet';
 import {
   fullPortRange,
-  portRangeSetEqualsUniverse,
   portRangeSetIntersect,
   portRangeSetIsEmpty,
   portRangeSetSubtract,

@@ -72,5 +72,7 @@ export let validateFirewallBindingInput = (binding: FirewallBindingInput) => {
     return;
   }
 
-  throwValidationError(`Unknown firewall binding target type "${binding.targetType as string}".`);
+  throwValidationError(
+    `Unknown firewall binding target type "${binding.targetType as string}".`
+  );
 };

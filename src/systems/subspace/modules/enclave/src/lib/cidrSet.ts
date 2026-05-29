@@ -16,12 +16,12 @@ let ipv4ToBigInt = (octets: number[]) =>
 
 let bigIntToIpv4 = (value: bigint) => {
   let n = Number(value);
-  return [
-    (n >>> 24) & 255,
-    (n >>> 16) & 255,
-    (n >>> 8) & 255,
-    n & 255
-  ] as [number, number, number, number];
+  return [(n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255] as [
+    number,
+    number,
+    number,
+    number
+  ];
 };
 
 let bytesToBigInt = (bytes: number[]) =>
@@ -120,7 +120,7 @@ let rangeToMinimalCidrs = (range: IpRange): string[] => {
 
     while (stretch < BigInt(bits)) {
       let nextStretch = stretch + BigInt(1);
-      if (current % (BigInt(2) ** nextStretch) !== BigInt(0)) break;
+      if (current % BigInt(2) ** nextStretch !== BigInt(0)) break;
       stretch = nextStretch;
     }
 
@@ -210,7 +210,8 @@ let intersectRange = (a: IpRange, b: IpRange): IpRange | null => {
 
 let cidrsToRanges = (cidrs: string[]) => normalizeRanges(cidrs.map(cidrToRange));
 
-export let cidrSetUnion = (cidrs: string[]) => rangesToCidrs(normalizeRanges(cidrsToRanges(cidrs)));
+export let cidrSetUnion = (cidrs: string[]) =>
+  rangesToCidrs(normalizeRanges(cidrsToRanges(cidrs)));
 
 export let cidrSetSubtract = (base: string[], remove: string[]) => {
   let result = cidrsToRanges(base);
@@ -245,8 +246,7 @@ export let cidrSetEqualsUniverse = (cidrs: string[], family: AddressFamily) => {
 
 export let cidrSetNormalize = (cidrs: string[]) => cidrSetUnion(cidrs);
 
-export let getAddressFamily = (cidr: string): AddressFamily =>
-  parseCidrOrThrow(cidr).family;
+export let getAddressFamily = (cidr: string): AddressFamily => parseCidrOrThrow(cidr).family;
 
 export let splitCidrsByFamily = (cidrs: string[]) => ({
   ipv4: cidrs.filter(cidr => getAddressFamily(cidr) === 'ipv4'),

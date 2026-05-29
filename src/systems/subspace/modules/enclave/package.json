@@ -9,11 +9,13 @@
     "lint": "prettier src/**/*.ts --check"
   },
   "dependencies": {
+    "@lowerdeck/cron": "^1.1.3",
     "@lowerdeck/env": "^1.0.6",
     "@lowerdeck/error": "^1.2.3",
     "@lowerdeck/id": "^1.0.8",
     "@lowerdeck/lock": "^1.0.6",
     "@lowerdeck/pagination": "^1.0.8",
+    "@lowerdeck/queue": "^1.0.11",
     "@lowerdeck/service": "^1.0.7",
     "@lowerdeck/slugify": "^1.0.6",
     "@metorial-subspace/db": "^1.0.0",

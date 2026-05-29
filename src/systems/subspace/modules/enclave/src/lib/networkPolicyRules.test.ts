@@ -7,7 +7,11 @@ vi.mock('@metorial-subspace/db', () => ({
   })
 }));
 
-import { assignNetworkPolicyRuleIds, createNetworkPolicyRule, rulesContentEqual } from './networkPolicyRules';
+import {
+  assignNetworkPolicyRuleIds,
+  createNetworkPolicyRule,
+  rulesContentEqual
+} from './networkPolicyRules';
 
 let baseRuleInput = {
   effect: 'allow' as const,

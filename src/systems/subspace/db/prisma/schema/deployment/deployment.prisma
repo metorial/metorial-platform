@@ -11,8 +11,9 @@ model ProviderDeployment {
   status     ProviderDeploymentStatus
   archivedAt DateTime?
 
-  isEphemeral Boolean
-  isDefault   Boolean
+  isEphemeral         Boolean
+  isDefault           Boolean
+  isEnclaveReconciled Boolean @default(false)
 
   name            String?
   description     String?
@@ -73,6 +74,7 @@ model ProviderDeployment {
   @@index([status])
   @@index([archivedAt])
   @@index([status, archivedAt])
+  @@index([isEnclaveReconciled])
 }
 
 model ProviderDeploymentVersion {

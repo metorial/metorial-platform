@@ -10,7 +10,8 @@ vi.mock('@metorial-subspace/db', () => ({
 import { compileNetworkAllowList } from './compileNetworkAllowList';
 
 let rule = (
-  overrides: Partial<PrismaJson.NetworkPolicyRule> & Pick<PrismaJson.NetworkPolicyRule, 'effect'>
+  overrides: Partial<PrismaJson.NetworkPolicyRule> &
+    Pick<PrismaJson.NetworkPolicyRule, 'effect'>
 ): PrismaJson.NetworkPolicyRule => ({
   id: overrides.id ?? 'npr_test',
   effect: overrides.effect,

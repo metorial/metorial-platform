@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { validateNetworkPolicyRuleInput, validateNetworkPolicyRules } from './networkPolicyValidation';
+import {
+  validateNetworkPolicyRuleInput,
+  validateNetworkPolicyRules
+} from './networkPolicyValidation';
 
 let baseRuleInput = {
   effect: 'allow' as const,

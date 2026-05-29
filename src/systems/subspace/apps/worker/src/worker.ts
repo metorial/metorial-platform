@@ -9,6 +9,7 @@ import { catalogQueueProcessor } from '@metorial-subspace/module-catalog/src/que
 import { connectionQueueProcessor } from '@metorial-subspace/module-connection/src/queueProcessor';
 import { customProviderQueueProcessor } from '@metorial-subspace/module-custom-provider/src/queues';
 import { deploymentQueueProcessor } from '@metorial-subspace/module-deployment/src/queues';
+import { enclaveQueueProcessor } from '@metorial-subspace/module-enclave/src/queues';
 import { identityQueueProcessor } from '@metorial-subspace/module-identity/src/queues';
 import { integrationQueueProcessor } from '@metorial-subspace/module-integration/src/queues';
 import { providerInternalQueueProcessor } from '@metorial-subspace/module-provider-internal/src/queues';
@@ -25,6 +26,7 @@ runQueueProcessors([
   authQueueProcessor,
   catalogQueueProcessor,
   deploymentQueueProcessor,
+  enclaveQueueProcessor,
   tenantQueueProcessors,
   providerInternalQueueProcessor,
   nativeProviderQueues,

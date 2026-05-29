@@ -26,12 +26,9 @@ describe('portRangeSet', () => {
   });
 
   it('intersects overlapping ranges', () => {
-    expect(
-      portRangeSetIntersect(
-        [{ from: 1, to: 100 }],
-        [{ from: 80, to: 200 }]
-      )
-    ).toEqual([{ from: 80, to: 100 }]);
+    expect(portRangeSetIntersect([{ from: 1, to: 100 }], [{ from: 80, to: 200 }])).toEqual([
+      { from: 80, to: 100 }
+    ]);
   });
 
   it('detects empty and universe sets', () => {

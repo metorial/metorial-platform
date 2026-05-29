@@ -87,7 +87,9 @@ let validateNetworkPolicyRuleShape = (
     }
 
     if (!Array.isArray(rule.ports) || rule.ports.length === 0) {
-      throwValidationError(`${label} must include at least one port range when ports are set.`);
+      throwValidationError(
+        `${label} must include at least one port range when ports are set.`
+      );
     }
 
     for (let portRange of rule.ports) {
