@@ -34,6 +34,7 @@ import {
   agentInstanceService,
   agentService
 } from '@metorial-subspace/module-agent';
+import { enclaveIngressPolicyService } from '@metorial-subspace/module-enclave';
 import {
   checkToolAccess,
   checkToolScopesSatisfied,
@@ -109,6 +110,12 @@ export interface SenderMangerProps {
     oauthRegistrationId: string;
   };
   connectionPrivateMetadata?: Record<string, any>;
+  ingressPolicyCheck?: {
+    sourceIp: string;
+    hostname?: string;
+    port?: number;
+    recordLog?: boolean;
+  };
 }
 
 export class SenderManager {
@@ -199,6 +206,23 @@ export class SenderManager {
       throw new ServiceError(
         goneError({ message: 'Connection has been archived or deleted' })
       );
+    }
+
+    if (d.ingressPolicyCheck) {
+      let environment = await db.environment.findUniqueOrThrow({
+        where: { oid: session.environmentOid }
+      });
+
+      await enclaveIngressPolicyService.assertSessionIngressAccess({
+        tenant: session.tenant,
+        solution: session.solution,
+        environment,
+        sessionId: session.id,
+        sourceIp: d.ingressPolicyCheck.sourceIp,
+        hostname: d.ingressPolicyCheck.hostname,
+        port: d.ingressPolicyCheck.port,
+        recordLog: d.ingressPolicyCheck.recordLog
+      });
     }
 
     if (connection) {

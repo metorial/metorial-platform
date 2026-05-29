@@ -41,6 +41,7 @@ export let ID = createIdGenerator({
   networkPolicyRule: idType.sorted('npr'),
   networkPolicyVersion: idType.sorted('npv'),
   firewallNetworkPolicy: idType.sorted('fwn'),
+  enclaveIngressNetworkLog: idType.sorted('einl'),
 
   providerConfig: idType.sorted('pcf'),
   providerConfigVersion: idType.sorted('pcv'),

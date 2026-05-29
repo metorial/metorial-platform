@@ -165,3 +165,38 @@ model FirewallNetworkPolicy {
 
   @@unique([firewallOid, networkPolicyOid])
 }
+
+enum EnclaveIngressNetworkLogResult {
+  allowed
+  denied
+}
+
+model EnclaveIngressNetworkLog {
+  oid BigInt @id
+  id  String @unique
+
+  enclaveOid BigInt
+  sessionId  String?
+
+  bucketStart DateTime
+
+  sourceIp String
+  hostname String
+  port     Int
+
+  result EnclaveIngressNetworkLogResult
+  count  Int @default(1)
+
+  tenantOid      BigInt
+  environmentOid BigInt
+  solutionOid    Int
+
+  firstSeenAt DateTime
+  lastSeenAt  DateTime
+  createdAt   DateTime @default(now())
+
+  @@index([tenantOid, environmentOid, bucketStart])
+  @@index([enclaveOid, bucketStart])
+  @@index([sourceIp])
+  @@index([result])
+}

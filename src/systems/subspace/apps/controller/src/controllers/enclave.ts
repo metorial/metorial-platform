@@ -1,6 +1,10 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { enclaveNetworkLogService, enclaveService } from '@metorial-subspace/module-enclave';
+import {
+  enclaveIngressPolicyService,
+  enclaveNetworkLogService,
+  enclaveService
+} from '@metorial-subspace/module-enclave';
 import { enclavePresenter } from '@metorial-subspace/presenters';
 import { app } from './_app';
 import { createdAtValidator } from './_dateFilter';
@@ -105,6 +109,7 @@ export let enclaveController = app.controller({
       v.object({
         tenantId: v.string(),
         environmentId: v.string(),
+        direction: v.enumOf(['ingress', 'egress']),
         enclaveIds: v.optional(v.array(v.string())),
         hostnames: v.optional(v.array(v.string())),
         ips: v.optional(v.array(v.string())),
@@ -118,6 +123,7 @@ export let enclaveController = app.controller({
         tenant: ctx.tenant,
         environment: ctx.environment,
         solution: ctx.solution,
+        direction: ctx.input.direction,
         enclaveIds: ctx.input.enclaveIds,
         filters: {
           hostnames: ctx.input.hostnames,
@@ -126,6 +132,32 @@ export let enclaveController = app.controller({
           to: ctx.input.to,
           intervalMinutes: ctx.input.intervalMinutes
         }
+      })
+    ),
+
+  checkIngressAccess: tenantApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        environmentId: v.string(),
+        sessionIds: v.array(v.string()),
+        sourceIp: v.string(),
+        hostname: v.optional(v.string()),
+        port: v.optional(v.number()),
+        recordLog: v.optional(v.boolean())
+      })
+    )
+    .do(async ctx =>
+      enclaveIngressPolicyService.checkSessionIngressAccess({
+        tenant: ctx.tenant,
+        environment: ctx.environment,
+        solution: ctx.solution,
+        sessionIds: ctx.input.sessionIds,
+        sourceIp: ctx.input.sourceIp,
+        hostname: ctx.input.hostname,
+        port: ctx.input.port,
+        recordLog: ctx.input.recordLog
       })
     ),
 
