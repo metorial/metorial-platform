@@ -146,6 +146,7 @@ import {
   SubspaceIntegrationProvider,
   SubspaceIntegrationSetupSession,
   SubspaceEnclave,
+  SubspaceEnclaveNetworkLogs,
   SubspaceFirewall,
   SubspaceFirewallBinding,
   SubspaceMagicMcpServerProvider,
@@ -1222,6 +1223,10 @@ export let skillTemplateItemType = PresentableType.create<{
 export let networkType = PresentableType.create<{
   network: SubspaceNetwork;
 }>()('network');
+
+export let networkLogsType = PresentableType.create<{
+  logs: SubspaceEnclaveNetworkLogs;
+}>()('networkLogs');
 
 export let enclaveType = PresentableType.create<{
   enclave: SubspaceEnclave;

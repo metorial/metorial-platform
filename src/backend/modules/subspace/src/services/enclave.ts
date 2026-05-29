@@ -3,8 +3,11 @@ import { subspace } from '../subspace';
 
 export let subspaceEnclaveService = createSubspaceService(
   subspace.enclave,
-  ['get', 'list'],
+  ['get', 'list', 'listNetworkLogs'],
   () => ({})
 );
 
 export type SubspaceEnclave = Awaited<ReturnType<typeof subspace.enclave.get>>;
+export type SubspaceEnclaveNetworkLogs = Awaited<
+  ReturnType<typeof subspace.enclave.listNetworkLogs>
+>;

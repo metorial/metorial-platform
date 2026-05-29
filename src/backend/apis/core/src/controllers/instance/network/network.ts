@@ -1,13 +1,13 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { subspaceNetworkService } from '@metorial/module-subspace';
+import { subspaceEnclaveService, subspaceNetworkService } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { networkPresenter } from '../../../presenters';
+import { networkLogsPresenter, networkPresenter } from '../../../presenters';
 
 let networkReadScopes = ['instance.network:read'] as const;
 
@@ -80,6 +80,38 @@ export let networkController = Controller.create(
       })
       .use(checkAccess({ possibleScopes: [...networkReadScopes] }))
       .output(networkPresenter)
-      .do(async ctx => networkPresenter.present({ network: ctx.network }))
+      .do(async ctx => networkPresenter.present({ network: ctx.network })),
+
+    listNetworkLogs: instanceGroup
+      .get(instancePath('network-logs', 'networks.listNetworkLogs'), {
+        name: 'List network logs',
+        description: 'Returns egress network logs for enclaves in the instance environment.'
+      })
+      .use(checkAccess({ possibleScopes: [...networkReadScopes] }))
+      .output(networkLogsPresenter)
+      .query(
+        'default',
+        v.object({
+          enclave_id: v.optional(v.union([v.string(), v.array(v.string())])),
+          hostname: v.optional(v.union([v.string(), v.array(v.string())])),
+          ip: v.optional(v.union([v.string(), v.array(v.string())])),
+          from: v.optional(v.string()),
+          to: v.optional(v.string()),
+          interval_minutes: v.optional(v.number())
+        })
+      )
+      .do(async ctx => {
+        let logs = await subspaceEnclaveService.listNetworkLogs({
+          instance: ctx.instance,
+          enclaveIds: normalizeArrayParam(ctx.query.enclave_id),
+          hostnames: normalizeArrayParam(ctx.query.hostname),
+          ips: normalizeArrayParam(ctx.query.ip),
+          from: ctx.query.from,
+          to: ctx.query.to,
+          intervalMinutes: ctx.query.interval_minutes
+        });
+
+        return networkLogsPresenter.present({ logs });
+      })
   }
 );

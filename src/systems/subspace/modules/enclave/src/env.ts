@@ -7,6 +7,6 @@ export let env = createValidatedEnv({
   },
 
   functionBay: {
-    FUNCTION_BAY_URL: v.string()
+    FUNCTION_BAY_API_URL: v.string()
   }
 });

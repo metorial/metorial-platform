@@ -4,7 +4,7 @@ import { db, type Tenant } from '@metorial-subspace/db';
 import { env } from './env';
 
 export let functionBay: ReturnType<typeof createFunctionBayClient> = createFunctionBayClient({
-  endpoint: env.functionBay.FUNCTION_BAY_URL
+  endpoint: env.functionBay.FUNCTION_BAY_API_URL
 });
 
 (async () => {

@@ -29,6 +29,8 @@ model Enclave {
   name        String
   description String?
 
+  hasFunctionBayBacking Boolean @default(false)
+
   /// [CompiledNetworkRules]
   compiledNetworkRules Json?
 

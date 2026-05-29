@@ -1,6 +1,6 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { enclaveService } from '@metorial-subspace/module-enclave';
+import { enclaveNetworkLogService, enclaveService } from '@metorial-subspace/module-enclave';
 import { enclavePresenter } from '@metorial-subspace/presenters';
 import { app } from './_app';
 import { createdAtValidator } from './_dateFilter';
@@ -97,5 +97,35 @@ export let enclaveController = app.controller({
       });
 
       return enclavePresenter(enclave);
-    })
+    }),
+
+  listNetworkLogs: tenantApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        environmentId: v.string(),
+        enclaveIds: v.optional(v.array(v.string())),
+        hostnames: v.optional(v.array(v.string())),
+        ips: v.optional(v.array(v.string())),
+        from: v.optional(v.string()),
+        to: v.optional(v.string()),
+        intervalMinutes: v.optional(v.number())
+      })
+    )
+    .do(async ctx =>
+      enclaveNetworkLogService.listNetworkLogs({
+        tenant: ctx.tenant,
+        environment: ctx.environment,
+        solution: ctx.solution,
+        enclaveIds: ctx.input.enclaveIds,
+        filters: {
+          hostnames: ctx.input.hostnames,
+          ips: ctx.input.ips,
+          from: ctx.input.from,
+          to: ctx.input.to,
+          intervalMinutes: ctx.input.intervalMinutes
+        }
+      })
+    )
 });

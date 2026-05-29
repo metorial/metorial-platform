@@ -29,6 +29,11 @@ export let enclaveCreatedQueueProcessor = enclaveCreatedQueue.process(async data
       name: enclave.name,
       id: enclave.id
     });
+
+    await db.enclave.updateMany({
+      where: { oid: enclave.oid },
+      data: { hasFunctionBayBacking: true }
+    });
   }
 });
 
