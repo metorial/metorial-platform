@@ -71,6 +71,8 @@ export class StreamableHttpRemoteConnection implements McpConnectionBackendAdapt
     try {
       await fetchEventSource(this.version.remoteUrl!, {
         method: 'POST',
+        egressPolicy:
+          this.connection.egressPolicy as PrismaJson.CompiledEgressNetworkAllowList | null,
         headers: {
           ...(await this.getHeaders()),
           'Content-Type': 'application/json'
@@ -149,6 +151,8 @@ export class StreamableHttpRemoteConnection implements McpConnectionBackendAdapt
 
       await fetchEventSource(this.version.remoteUrl!, {
         method: 'GET',
+        egressPolicy:
+          this.connection.egressPolicy as PrismaJson.CompiledEgressNetworkAllowList | null,
         headers: await this.getHeaders(),
         signal: this.#abortController.signal,
 

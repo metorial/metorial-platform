@@ -8,6 +8,7 @@ import type {
   ServerConnection
 } from '../../../prisma/generated/client';
 import { safeParse } from '../../lib/safeParse';
+import { safeFetch } from '../../lib/http/fetchSsrf';
 import { fetchEventSource } from '../../lib/sse/fetch';
 import type { McpConnectionBackendAdapter } from '../connection/adapter';
 import { ConnectionManager } from '../utils/connection';
@@ -84,8 +85,10 @@ export class SSERemoteConnection implements McpConnectionBackendAdapter {
       return;
     }
 
-    await fetch(this.#endpointUrl, {
+    await safeFetch(this.#endpointUrl, {
       method: 'POST',
+      egressPolicy:
+        this.connection.egressPolicy as PrismaJson.CompiledEgressNetworkAllowList | null,
       headers: {
         ...(await this.getHeaders()),
         'Content-Type': 'application/json'
@@ -132,6 +135,8 @@ export class SSERemoteConnection implements McpConnectionBackendAdapter {
 
       await fetchEventSource(url.toString(), {
         method: 'GET',
+        egressPolicy:
+          this.connection.egressPolicy as PrismaJson.CompiledEgressNetworkAllowList | null,
         headers: await this.getHeaders(),
 
         signal: this.#abortController.signal,
