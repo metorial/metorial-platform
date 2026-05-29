@@ -69,4 +69,3 @@ export let getTenantForShuttle = async (tenant: Tenant) => {
 
 export type ContainerRegistry = Awaited<ReturnType<typeof shuttle.containerRegistry.get>>;
 export type ContainerRepository = Awaited<ReturnType<typeof shuttle.containerRepository.get>>;
-export type NetworkingRuleset = Awaited<ReturnType<typeof shuttle.networkingRuleset.get>>;
