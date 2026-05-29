@@ -4,7 +4,6 @@ export * from './containerRepository';
 export * from './containerRepositoryTag';
 export * from './containerRepositoryVersion';
 export * from './functionServerInvocation';
-export * from './networkRuleset';
 export * from './oauth';
 export * from './secret';
 export * from './server';

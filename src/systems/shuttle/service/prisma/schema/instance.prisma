@@ -96,6 +96,11 @@ model ServerConnection {
   /// [ServerConnectionCapabilities]
   capabilities Json
 
+  enclaveId String?
+
+  /// [CompiledEgressNetworkAllowList]
+  egressPolicy Json?
+
   serverConfigOid BigInt
   serverConfig    ServerConfig @relation(fields: [serverConfigOid], references: [oid])
 
@@ -111,7 +116,6 @@ model ServerConnection {
   createdAt  DateTime  @default(now())
   lastPingAt DateTime?
 
-  networkingRules           ServerConnectionNetworkRule[]
   serverDiscoveries         ServerDiscovery[]
   serverConnectionLogsTemps ServerConnectionLogsTemp[]
   functionServerInvocations FunctionServerInvocation[]
@@ -137,18 +141,6 @@ model ServerAuthConfigEvent {
   @@index([serverAuthConfigOid, createdAt])
   @@index([functionInvocationId])
   @@index([serverConnectionId])
-}
-
-model ServerConnectionNetworkRule {
-  oid BigInt @id
-
-  serverConnectionOid BigInt
-  serverConnection    ServerConnection @relation(fields: [serverConnectionOid], references: [oid])
-
-  networkingRulesetOid BigInt
-  networkingRuleset    NetworkingRuleset @relation(fields: [networkingRulesetOid], references: [oid])
-
-  createdAt DateTime @default(now())
 }
 
 model ServerConnectionLogsTemp {

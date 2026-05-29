@@ -66,7 +66,7 @@ let refreshToken = async (d: {
       connection: d.connection
     });
 
-  let res = await callFunction(d.connection.functionServer, client =>
+  let res = await callFunction(d.connection.functionServer, {}, client =>
     client.handleOauthTokenRefresh({
       authConfig: token.authConfigValue,
       authState: token.authStateValue,

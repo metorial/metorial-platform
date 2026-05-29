@@ -60,7 +60,7 @@ class delegatedOauthAuthorizationServiceImpl {
         connection: d.connection
       });
 
-    let res = await callFunction(setup.connection.functionServer, client =>
+    let res = await callFunction(setup.connection.functionServer, {}, client =>
       client.getOauthAuthorizationUrl({
         authConfig: d.authConfig,
         clientId: DANGEROUS_unencryptedCredentials.clientId,
@@ -250,7 +250,7 @@ class delegatedOauthAuthorizationServiceImpl {
         connection: setup.connection
       });
 
-    let res = await callFunction(connection.functionServer, client =>
+    let res = await callFunction(connection.functionServer, {}, client =>
       client.handleOauthCallback({
         authConfig: setup.authConfigValue,
         authState: setup.authStateValue,

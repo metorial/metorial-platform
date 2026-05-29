@@ -11,7 +11,7 @@ import type {
   Tenant
 } from '../../prisma/generated/client';
 import { db, outputTypeMapper } from '../db';
-import { getId, snowflake } from '../id';
+import { getId } from '../id';
 import { offload } from '../lib/offload';
 import { connectionLogsBucketRecord } from '../storage';
 
@@ -76,17 +76,11 @@ class serverConnectionServiceImpl {
       client: InitializeRequest['params']['clientInfo'];
       capabilities: InitializeRequest['params']['capabilities'];
 
-      networkRulesetIds: string[];
+      enclaveId?: string;
+      egressPolicy?: PrismaJson.CompiledEgressNetworkAllowList;
     };
   }) {
     let paramRes = await this.resolveServerConnectionParams(d);
-
-    let networkRulesets = await db.networkingRuleset.findMany({
-      where: {
-        tenantOid: d.tenant.oid,
-        id: { in: d.input.networkRulesetIds }
-      }
-    });
 
     return await db.serverConnection.create({
       data: {
@@ -97,16 +91,11 @@ class serverConnectionServiceImpl {
 
         client: d.input.client,
         capabilities: d.input.capabilities,
+        enclaveId: d.input.enclaveId,
+        egressPolicy: d.input.egressPolicy,
 
         tenantOid: d.tenant.oid,
         logBucketOid: connectionLogsBucketRecord.oid,
-
-        networkingRules: {
-          create: networkRulesets.map(nr => ({
-            oid: snowflake.nextId(),
-            networkingRulesetOid: nr.oid
-          }))
-        },
 
         isLogsInStorage: false
       },

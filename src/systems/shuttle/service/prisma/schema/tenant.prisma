@@ -29,7 +29,6 @@ model Tenant {
   serverAuthConfigs                  ServerAuthConfig[]
   serverOAuthSetups                  ServerOAuthSetup[]
   serverOAuthCredentials             ServerOAuthCredentials[]
-  networkingRules                    NetworkingRuleset[]
   delegatedOAuthConnections          DelegatedOAuthConnection[]
   delegatedOAuthConnectionSetups     DelegatedOAuthConnectionSetup[]
   delegatedOAuthConnectionAuthTokens DelegatedOAuthConnectionAuthToken[]
