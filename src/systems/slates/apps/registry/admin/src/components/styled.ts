@@ -1,5 +1,5 @@
 import { styled } from 'styled-components';
-import { Flex } from '@metorial-io/ui';
+import { Flex } from '@metorial/ui';
 
 // Empty state container used in list pages
 export let EmptyState = styled(Flex)`

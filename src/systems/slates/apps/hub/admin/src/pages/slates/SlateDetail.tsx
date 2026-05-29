@@ -1,5 +1,5 @@
-import { renderWithLoader } from '@metorial-io/data-hooks';
-import { Badge, Datalist, Flex, Group, InlineCopy, RenderDate, Text } from '@metorial-io/ui';
+import { renderWithLoader } from '@metorial/data-hooks';
+import { Badge, Datalist, Flex, Group, InlineCopy, RenderDate, Text } from '@metorial/ui';
 import { Link, useParams } from 'react-router-dom';
 import { styled } from 'styled-components';
 import {

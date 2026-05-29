@@ -7,7 +7,7 @@ import {
   Group,
   Tabs,
   Text
-} from '@metorial-io/ui';
+} from '@metorial/ui';
 import { useState } from 'react';
 import { useDiscoverySpecification } from '../state/discoveries.js';
 import { MonoCode } from './styled';

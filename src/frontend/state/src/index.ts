@@ -1,4 +1,3 @@
-export type * from '@metorial/dashboard-sdk';
 export type { MetorialEnterpriseWindow } from './types/metorialEnterpriseWindow';
 
 export { setConsumerSetup, withDashboardSDK, requireConsumerSetup } from './sdk';

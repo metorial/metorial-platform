@@ -1,5 +1,5 @@
-import { Breadcrumbs, ExtraHeaderLayout, LargePaneLayout, SidebarPane } from '@metorial-io/layout';
-import { Logo } from '@metorial-io/ui';
+import { Breadcrumbs, ExtraHeaderLayout, LargePaneLayout, SidebarPane } from '@metorial/layout';
+import { Logo } from '@metorial/ui';
 import {
   RiApps2Line,
   RiBuildingLine,

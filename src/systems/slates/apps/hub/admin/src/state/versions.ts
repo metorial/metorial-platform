@@ -1,4 +1,4 @@
-import { createLoader } from '@metorial-io/data-hooks';
+import { createLoader } from '@metorial/data-hooks';
 import { adminClient, withAuthRedirect } from '../hooks/client.js';
 import { slateLoader } from './slates.js';
 import { usePaginatedLoader } from './usePaginatedLoader.js';

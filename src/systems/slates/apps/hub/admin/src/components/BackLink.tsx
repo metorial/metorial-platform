@@ -1,4 +1,4 @@
-import { Button } from '@metorial-io/ui';
+import { Button } from '@metorial/ui';
 import { RiArrowLeftLine } from '@remixicon/react';
 import { Link } from 'react-router-dom';
 

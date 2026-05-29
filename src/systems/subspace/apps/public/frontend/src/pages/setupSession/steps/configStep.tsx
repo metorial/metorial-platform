@@ -1,4 +1,4 @@
-import { useForm } from '@metorial-io/data-hooks';
+import { useForm } from '@metorial/data-hooks';
 import { Button, Flex } from '@metorial/ui';
 import type { JsonSchema } from '../../../lib/jsonSchema';
 import { getDefaultValues, schemaToYup } from '../../../lib/jsonSchema';

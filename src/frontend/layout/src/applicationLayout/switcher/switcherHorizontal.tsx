@@ -1,10 +1,6 @@
 import { Paths } from '@metorial/frontend-config';
-import {
-  MetorialOrganization,
-  MetorialProject,
-  useBoot,
-  useCurrentOrganization
-} from '@metorial/state';
+import type { MetorialOrganization, MetorialProject } from '@metorial/dashboard-sdk';
+import { useBoot, useCurrentOrganization } from '@metorial/state';
 import { Avatar, LinkButton, Logo, Text, theme } from '@metorial/ui';
 import * as Popover from '@radix-ui/react-popover';
 import { RiArrowRightSLine } from '@remixicon/react';

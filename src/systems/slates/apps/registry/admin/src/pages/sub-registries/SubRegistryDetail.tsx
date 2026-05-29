@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { renderWithLoader, useForm } from '@metorial-io/data-hooks';
-import { Button, Flex, Text, Group, Badge, Input, Spacer, Datalist, Select, Callout, RenderDate, confirm } from '@metorial-io/ui';
+import { renderWithLoader, useForm } from '@metorial/data-hooks';
+import { Button, Flex, Text, Group, Badge, Input, Spacer, Datalist, Select, Callout, RenderDate, confirm } from '@metorial/ui';
 import { useSubRegistry, useTenant, useAddSubRegistryFilter, useRemoveSubRegistryFilter } from '../../hooks';
 import { BackLink } from '../../components/BackLink';
 import { MonoCode, MonoText } from '../../components/styled';

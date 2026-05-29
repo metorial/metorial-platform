@@ -3,8 +3,8 @@ import {
   ExtraHeaderLayout,
   LargePaneLayout,
   SidebarPane
-} from '@metorial-io/layout';
-import { Logo } from '@metorial-io/ui';
+} from '@metorial/layout';
+import { Logo } from '@metorial/ui';
 import { RiFileList3Line, RiRocketLine, RiSearchEyeLine, RiTimeLine } from '@remixicon/react';
 import { Outlet, useLocation, useParams } from 'react-router-dom';
 import styled from 'styled-components';

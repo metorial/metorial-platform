@@ -1,5 +1,5 @@
 import { isServiceError } from '@mtsrc/error';
-import { createLoader } from '@metorial-io/data-hooks';
+import { createLoader } from '@metorial/data-hooks';
 import { adminClient } from './client';
 
 let redirectToAuthIfNotAuthenticated = async <R>(fn: () => Promise<R>) => {

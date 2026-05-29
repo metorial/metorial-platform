@@ -1,4 +1,4 @@
-import { ModalRoot, Toaster } from '@metorial-io/ui';
+import { ModalRoot, Toaster } from '@metorial/ui';
 import { useEffect, useRef } from 'react';
 import { createBrowserRouter, Outlet, RouterProvider } from 'react-router-dom';
 import { RouterErrorPage } from './pages/_error/routerError';

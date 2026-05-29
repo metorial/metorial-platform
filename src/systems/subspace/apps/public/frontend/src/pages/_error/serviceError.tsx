@@ -1,5 +1,5 @@
 import { ServiceError } from '@mtsrc/error';
-import { ErrorPage, NotFound } from '@metorial-io/pages';
+import { ErrorPage, NotFound } from '@metorial/pages';
 
 export let ServiceErrorPage = ({ error }: { error: ServiceError<any> }) => {
   if (error.data.status === 404) return <NotFound />;

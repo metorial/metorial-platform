@@ -1,6 +1,6 @@
-import { renderWithLoader } from '@metorial-io/data-hooks';
-import { Datalist, Spacer, Title } from '@metorial-io/ui';
-import { Table } from '@metorial-io/ui-product';
+import { renderWithLoader } from '@metorial/data-hooks';
+import { Datalist, Spacer, Title } from '@metorial/ui';
+import { Table } from '@metorial/ui-product';
 import { useParams } from 'react-router-dom';
 import { userState } from '../../../state';
 

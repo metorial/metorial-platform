@@ -1,7 +1,7 @@
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { renderWithPagination } from '@metorial-io/data-hooks';
-import { Button, Text, Title, Badge, Flex, Spacer, Group, Input } from '@metorial-io/ui';
-import { Table } from '@metorial-io/ui-product';
+import { renderWithPagination } from '@metorial/data-hooks';
+import { Button, Text, Title, Badge, Flex, Spacer, Group, Input } from '@metorial/ui';
+import { Table } from '@metorial/ui-product';
 import { useEffect, useState } from 'react';
 import { useSlates } from '../../hooks';
 import { EmptyState, SlateLogoImage, SlateLogoPlaceholder } from '../../components/styled';

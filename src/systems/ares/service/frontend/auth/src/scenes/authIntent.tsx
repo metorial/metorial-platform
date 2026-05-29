@@ -1,6 +1,6 @@
 import { useInterval } from '@looped/hooks';
 import { Turnstile } from '@marsidev/react-turnstile';
-import { useForm, useMutation } from '@metorial-io/data-hooks';
+import { useForm, useMutation } from '@metorial/data-hooks';
 import {
   Button,
   CenteredSpinner,
@@ -10,7 +10,7 @@ import {
   Spacer,
   Switch,
   Text
-} from '@metorial-io/ui';
+} from '@metorial/ui';
 import { differenceInMinutes } from 'date-fns';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';

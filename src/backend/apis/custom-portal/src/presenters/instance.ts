@@ -1,6 +1,4 @@
-import { portalService } from '@metorial/module-consumer';
-
-type PortalWithSurface = Awaited<ReturnType<typeof portalService.getPortalPublic>>;
+import type { PortalWithSurface } from '../types/portal';
 
 export let instancePresenter = (d: { portal: PortalWithSurface }) => ({
   object: 'organization.instance' as const,

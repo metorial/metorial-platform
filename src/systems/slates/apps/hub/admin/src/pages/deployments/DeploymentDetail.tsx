@@ -1,4 +1,4 @@
-import { renderWithLoader } from '@metorial-io/data-hooks';
+import { renderWithLoader } from '@metorial/data-hooks';
 import {
   Badge,
   Button,
@@ -8,7 +8,7 @@ import {
   InlineCopy,
   RenderDate,
   Text
-} from '@metorial-io/ui';
+} from '@metorial/ui';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { deploymentStatusColors } from '../../constants/statusColors.js';

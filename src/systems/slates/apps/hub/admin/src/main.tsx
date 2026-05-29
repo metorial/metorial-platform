@@ -1,4 +1,4 @@
-import { Toaster } from '@metorial-io/ui';
+import { Toaster } from '@metorial/ui';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';

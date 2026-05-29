@@ -12,17 +12,13 @@ import {
   portalService
 } from '@metorial/module-consumer';
 import type { ServiceRequest } from '@metorial/rpc';
+import type { PortalTokenSession, PortalWithSurface } from '../types/portal';
 import {
   clearPortalSessionCookie,
   getAuthStateCookieName,
   getSessionCookieName,
   setPortalSessionCookie
 } from './cookies';
-
-type PortalWithSurface = Awaited<ReturnType<typeof portalService.getPortalPublic>>;
-type PortalTokenSession = Parameters<
-  typeof consumerAuthService.getConsumerToken
->[0]['session'];
 
 export let getPortalPublishableApiKey = (d: { portal: PortalWithSurface }) => {
   let secret =
@@ -56,7 +52,9 @@ export let getPortalSsoAuthorizationCodeOrThrow = (d: { code?: string | null }) 
   );
 };
 
-export let resolvePortalFromUrl = async (d: { url: string }) => {
+export let resolvePortalFromUrl = async (d: {
+  url: string;
+}): Promise<{ portal: PortalWithSurface; portalUrl: string }> => {
   let parsed = await portalService.parsePortalIdFromHost({
     url: d.url
   });
@@ -72,7 +70,9 @@ export let resolvePortalFromUrl = async (d: { url: string }) => {
   };
 };
 
-export let resolvePortalFromId = async (d: { portalId?: string | null }) => {
+export let resolvePortalFromId = async (d: {
+  portalId?: string | null;
+}): Promise<{ portal: PortalWithSurface; portalUrl: string }> => {
   if (!d.portalId) {
     throw new ServiceError(notFoundError('portal'));
   }

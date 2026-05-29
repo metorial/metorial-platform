@@ -1,6 +1,6 @@
-import { renderWithPagination } from '@metorial-io/data-hooks';
-import { Badge, Flex, Group, RenderDate, Spacer, Text, Title } from '@metorial-io/ui';
-import { Table } from '@metorial-io/ui-product';
+import { renderWithPagination } from '@metorial/data-hooks';
+import { Badge, Flex, Group, RenderDate, Spacer, Text, Title } from '@metorial/ui';
+import { Table } from '@metorial/ui-product';
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { BackLink } from '../../components/BackLink.js';

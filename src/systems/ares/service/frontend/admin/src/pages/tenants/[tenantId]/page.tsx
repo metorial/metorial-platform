@@ -1,5 +1,5 @@
-import { renderWithLoader } from '@metorial-io/data-hooks';
-import { Datalist, Title } from '@metorial-io/ui';
+import { renderWithLoader } from '@metorial/data-hooks';
+import { Datalist, Title } from '@metorial/ui';
 import { useParams } from 'react-router-dom';
 import { tenantState } from '../../../state';
 

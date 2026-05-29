@@ -1,7 +1,7 @@
 import { useNavigate, useParams } from 'react-router-dom';
-import { renderWithPagination } from '@metorial-io/data-hooks';
-import { Avatar, Button, Text, Title, Flex, Spacer, Badge, Group, RenderDate } from '@metorial-io/ui';
-import { Table } from '@metorial-io/ui-product';
+import { renderWithPagination } from '@metorial/data-hooks';
+import { Avatar, Button, Text, Title, Flex, Spacer, Badge, Group, RenderDate } from '@metorial/ui';
+import { Table } from '@metorial/ui-product';
 import { useSubRegistries } from '../../hooks';
 import { EmptyState, MonoText } from '../../components/styled';
 

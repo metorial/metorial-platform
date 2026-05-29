@@ -1,4 +1,4 @@
-import { useMutation } from '@metorial-io/data-hooks';
+import { useMutation } from '@metorial/data-hooks';
 import { useEffect, useState } from 'react';
 import { adminClient } from '../../state/client';
 

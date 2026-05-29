@@ -1,6 +1,6 @@
-import { renderWithLoader, useForm, useMutation } from '@metorial-io/data-hooks';
-import { Button, Checkbox, Dialog, Input, showModal, Spacer } from '@metorial-io/ui';
-import { Table } from '@metorial-io/ui-product';
+import { renderWithLoader, useForm, useMutation } from '@metorial/data-hooks';
+import { Button, Checkbox, Dialog, Input, showModal, Spacer } from '@metorial/ui';
+import { Table } from '@metorial/ui-product';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { appsState } from '../../state';

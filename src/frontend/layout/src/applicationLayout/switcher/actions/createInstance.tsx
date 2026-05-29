@@ -1,5 +1,6 @@
 import { useForm } from '@metorial/data-hooks';
-import { MetorialInstance, MetorialProject, useInstance, useInstances } from '@metorial/state';
+import type { MetorialInstance, MetorialProject } from '@metorial/dashboard-sdk';
+import { useInstance, useInstances } from '@metorial/state';
 import { Button, Dialog, Input, Select, showModal, Spacer } from '@metorial/ui';
 import React from 'react';
 

@@ -1,4 +1,4 @@
-import { renderWithLoader } from '@metorial-io/data-hooks';
+import { renderWithLoader } from '@metorial/data-hooks';
 import {
   Badge,
   Datalist,
@@ -7,7 +7,7 @@ import {
   InlineCopy,
   RenderDate,
   Text
-} from '@metorial-io/ui';
+} from '@metorial/ui';
 import { useParams } from 'react-router-dom';
 import { discoveryStatusColors } from '../../constants/statusColors.js';
 import {

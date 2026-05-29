@@ -1,4 +1,4 @@
-import { Flex } from '@metorial-io/ui';
+import { Flex } from '@metorial/ui';
 import { Link } from 'react-router-dom';
 import { styled } from 'styled-components';
 

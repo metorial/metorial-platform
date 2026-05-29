@@ -1,7 +1,7 @@
 import { useInterval } from '@looped/hooks';
 import { delay } from '@mtsrc/delay';
 import { Turnstile } from '@marsidev/react-turnstile';
-import { useForm, useMutation } from '@metorial-io/data-hooks';
+import { useForm, useMutation } from '@metorial/data-hooks';
 import {
   Avatar,
   Button,
@@ -12,7 +12,7 @@ import {
   Or,
   Spacer,
   Text
-} from '@metorial-io/ui';
+} from '@metorial/ui';
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { GithubLogo } from '../components/github';

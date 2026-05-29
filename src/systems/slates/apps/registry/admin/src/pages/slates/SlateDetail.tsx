@@ -1,5 +1,5 @@
 import { useNavigate, useParams } from 'react-router-dom';
-import { renderWithLoader } from '@metorial-io/data-hooks';
+import { renderWithLoader } from '@metorial/data-hooks';
 import {
   Badge,
   Button,
@@ -9,7 +9,7 @@ import {
   CenteredSpinner,
   RenderDate,
   Datalist
-} from '@metorial-io/ui';
+} from '@metorial/ui';
 import { useSlate, useSlateVersions } from '../../hooks';
 import { BackLink } from '../../components/BackLink';
 import { MonoCode, SlateLogoImage, SlateLogoPlaceholder } from '../../components/styled';

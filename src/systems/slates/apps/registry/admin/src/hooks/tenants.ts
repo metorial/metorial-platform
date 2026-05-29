@@ -1,4 +1,4 @@
-import { createLoader } from '@metorial-io/data-hooks';
+import { createLoader } from '@metorial/data-hooks';
 import { useMemo, useState } from 'react';
 import { adminClient, withAuthRedirect } from './client';
 

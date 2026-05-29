@@ -1,6 +1,6 @@
-import { renderWithLoader } from '@metorial-io/data-hooks';
-import { Button, Input } from '@metorial-io/ui';
-import { Table } from '@metorial-io/ui-product';
+import { renderWithLoader } from '@metorial/data-hooks';
+import { Button, Input } from '@metorial/ui';
+import { Table } from '@metorial/ui-product';
 import { useState } from 'react';
 import { adminsState } from '../../state';
 

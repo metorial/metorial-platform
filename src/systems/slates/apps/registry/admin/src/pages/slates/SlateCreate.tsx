@@ -1,5 +1,5 @@
-import { useForm } from '@metorial-io/data-hooks';
-import { Button, Flex, Group, Select, Spacer, Text } from '@metorial-io/ui';
+import { useForm } from '@metorial/data-hooks';
+import { Button, Flex, Group, Select, Spacer, Text } from '@metorial/ui';
 import { useNavigate, useParams } from 'react-router-dom';
 import { BackLink } from '../../components/BackLink';
 import { FileInput, FormWrapper } from '../../components/styled';

@@ -2,7 +2,7 @@ import type {
   DashboardInstanceProviderDeploymentsSetupSessionsCreateOutput,
   DashboardInstanceProviderDeploymentsSetupSessionsGetOutput,
   DashboardInstanceProvidersAuthMethodsListOutput
-} from '@metorial/state';
+} from '@metorial/dashboard-sdk';
 
 export type AuthMethod = DashboardInstanceProvidersAuthMethodsListOutput['items'][number];
 export type CredentialsMode = 'existing' | 'new';

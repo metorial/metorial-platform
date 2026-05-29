@@ -1,4 +1,4 @@
-import { Error } from '@metorial-io/ui';
+import { Error } from '@metorial/ui';
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { AuthLayout } from '../components/layout';

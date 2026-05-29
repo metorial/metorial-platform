@@ -1,4 +1,4 @@
-import { renderWithLoader, useForm, useMutation } from '@metorial-io/data-hooks';
+import { renderWithLoader, useForm, useMutation } from '@metorial/data-hooks';
 import {
   Badge,
   Button,
@@ -11,8 +11,8 @@ import {
   Spacer,
   Text,
   Title
-} from '@metorial-io/ui';
-import { Table } from '@metorial-io/ui-product';
+} from '@metorial/ui';
+import { Table } from '@metorial/ui-product';
 import { Link, useParams } from 'react-router-dom';
 import {
   accessGroupsState,

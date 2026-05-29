@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Button } from '@metorial-io/ui';
+import { Button } from '@metorial/ui';
 import { RiArrowLeftLine } from '@remixicon/react';
 
 type BackLinkProps = {

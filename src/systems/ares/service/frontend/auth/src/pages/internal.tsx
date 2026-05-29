@@ -1,5 +1,5 @@
-import { useMutation } from '@metorial-io/data-hooks';
-import { Error } from '@metorial-io/ui';
+import { useMutation } from '@metorial/data-hooks';
+import { Error } from '@metorial/ui';
 import { useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { AuthLayout } from '../components/layout';

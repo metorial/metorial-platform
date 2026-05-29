@@ -1,4 +1,4 @@
-import { ErrorPage, NotFound } from '@metorial-io/pages';
+import { ErrorPage, NotFound } from '@metorial/pages';
 import { useRouteError } from 'react-router-dom';
 
 export let RouterErrorPage = () => {

@@ -1,4 +1,4 @@
-import { createLoader } from '@metorial-io/data-hooks';
+import { createLoader } from '@metorial/data-hooks';
 import { authClient } from './client';
 
 export let authIntentState = createLoader({

@@ -1,6 +1,6 @@
-import { renderWithPagination } from '@metorial-io/data-hooks';
-import { Badge, Flex, Group, Input, Spacer, Text, Title } from '@metorial-io/ui';
-import { Table } from '@metorial-io/ui-product';
+import { renderWithPagination } from '@metorial/data-hooks';
+import { Badge, Flex, Group, Input, Spacer, Text, Title } from '@metorial/ui';
+import { Table } from '@metorial/ui-product';
 import { useEffect, useState } from 'react';
 import { styled } from 'styled-components';
 import { EmptyState, SlateLogoPlaceholder } from '../../components/styled.js';

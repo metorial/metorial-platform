@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Badge, Button, Flex, Group, Select, Spacer, Text } from '@metorial-io/ui';
+import { Badge, Button, Flex, Group, Select, Spacer, Text } from '@metorial/ui';
 import { BackLink } from '../../components/BackLink';
 import { FormWrapper } from '../../components/styled';
 import { adminClient, withAuthRedirect } from '../../hooks/client';

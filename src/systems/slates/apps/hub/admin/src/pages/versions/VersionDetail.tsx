@@ -1,5 +1,5 @@
-import { renderWithLoader } from '@metorial-io/data-hooks';
-import { Badge, Button, Datalist, Flex, Group, InlineCopy, Text } from '@metorial-io/ui';
+import { renderWithLoader } from '@metorial/data-hooks';
+import { Badge, Button, Datalist, Flex, Group, InlineCopy, Text } from '@metorial/ui';
 import { Link, useParams } from 'react-router-dom';
 import { deploymentStatusColors, versionStatusColors } from '../../constants/statusColors.js';
 import {

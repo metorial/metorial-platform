@@ -1,4 +1,4 @@
-import { createLoader } from '@metorial-io/data-hooks';
+import { createLoader } from '@metorial/data-hooks';
 import { authIntentState } from './authIntent';
 import { authClient } from './client';
 

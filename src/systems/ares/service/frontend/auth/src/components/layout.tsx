@@ -1,4 +1,4 @@
-import { Logo, Text, theme, Title } from '@metorial-io/ui';
+import { Logo, Text, theme, Title } from '@metorial/ui';
 import React from 'react';
 import { styled } from 'styled-components';
 

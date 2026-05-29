@@ -1,6 +1,6 @@
-import { renderWithLoader, useMutation } from '@metorial-io/data-hooks';
-import { Button, Datalist, Spacer, Switch, Title } from '@metorial-io/ui';
-import { Table } from '@metorial-io/ui-product';
+import { renderWithLoader, useMutation } from '@metorial/data-hooks';
+import { Button, Datalist, Spacer, Switch, Title } from '@metorial/ui';
+import { Table } from '@metorial/ui-product';
 import { useParams } from 'react-router-dom';
 import { ssoConnectionsState, ssoTenantState } from '../../../../../state';
 import { adminClient } from '../../../../../state/client';
