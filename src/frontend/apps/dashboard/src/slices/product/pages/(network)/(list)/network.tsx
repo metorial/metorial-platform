@@ -9,7 +9,7 @@ import {
   useNetworkLogs,
   useNetworks
 } from '@metorial/state';
-import { Badge, RenderDate, Spacer, Text } from '@metorial/ui';
+import { Badge, Callout, RenderDate, Spacer, Text } from '@metorial/ui';
 import { Box, ID, Table } from '@metorial/ui-product';
 import { useMemo } from 'react';
 import { EmptyText } from '../_common';
@@ -37,9 +37,9 @@ let getHourlyBuckets = (from: Date, to: Date) => {
 let getNetworkLogSeries = (
   records: {
     bucketStart: string;
-    hostname: string;
     ip: string;
     count: number;
+    result?: 'allowed' | 'denied';
   }[],
   from: Date,
   to: Date
@@ -55,7 +55,9 @@ let getNetworkLogSeries = (
     let bucketKey = bucket.toISOString();
     if (!bucketKeys.has(bucketKey)) continue;
 
-    let groupKey = record.hostname || record.ip || 'Unknown';
+    let result = record.result === 'denied' ? 'Denied' : 'Accepted';
+    let ip = record.ip || 'Unknown IP';
+    let groupKey = `${ip} (${result})`;
     let group = grouped.get(groupKey) ?? new Map<string, number>();
     group.set(bucketKey, (group.get(bucketKey) ?? 0) + record.count);
     grouped.set(groupKey, group);
@@ -75,6 +77,16 @@ let getNetworkLogSeries = (
     .slice(0, 7);
 };
 
+let getDeniedNetworkLogCount = (
+  records: {
+    count: number;
+    result?: 'allowed' | 'denied';
+  }[]
+) =>
+  records
+    .filter(record => record.result === 'denied')
+    .reduce((sum, record) => sum + record.count, 0);
+
 export let NetworkOverviewPage = () => {
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
@@ -86,7 +98,8 @@ export let NetworkOverviewPage = () => {
     () => ({
       from: range.from.toISOString(),
       to: range.to.toISOString(),
-      intervalMinutes: 60
+      intervalMinutes: 60,
+      direction: 'ingress' as const
     }),
     [range]
   );
@@ -95,18 +108,29 @@ export let NetworkOverviewPage = () => {
   return renderWithLoader({ networks, firewalls, networkLogs })(
     ({ firewalls, networkLogs }) => {
       let series = getNetworkLogSeries(networkLogs.data.records, range.from, range.to);
+      let deniedCount = getDeniedNetworkLogCount(networkLogs.data.records);
 
       return (
         <>
           <Box
             title="Recent Connections"
-            description="Connections grouped by hostname or IP in 60-minute intervals over the last 24 hours."
+            description="Ingress connections grouped by IP and result in 60-minute intervals over the last 24 hours."
           >
             {series.length > 0 ? (
               <Chart height={300} type="line" series={series} />
             ) : (
               <EmptyText>No network connections found in the last 24 hours.</EmptyText>
             )}
+
+            {deniedCount > 0 ? (
+              <>
+                <Spacer size={12} />
+                <Callout color="red">
+                  {deniedCount} ingress {deniedCount === 1 ? 'request was' : 'requests were'}{' '}
+                  denied by Metorial Magic Network policies.
+                </Callout>
+              </>
+            ) : null}
           </Box>
 
           <Spacer size={20} />

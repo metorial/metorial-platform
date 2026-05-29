@@ -70,7 +70,16 @@ export let networkLogsLoader = createLoader({
 export let useNetworkLogs = (
   instanceId: string | null | undefined,
   query?: DashboardInstanceNetworksListNetworkLogsQuery | null
-) => networkLogsLoader.use(instanceId && query !== null ? { instanceId, ...(query ?? {}) } : null);
+) => {
+  let queryWithDirection = {
+    direction: 'egress',
+    ...(query ?? {})
+  } as DashboardInstanceNetworksListNetworkLogsQuery;
+
+  return networkLogsLoader.use(
+    instanceId && query !== null ? { instanceId, ...queryWithDirection } : null
+  );
+};
 
 export let enclavesLoader = createLoader({
   name: 'enclaves',
@@ -296,15 +305,15 @@ export let networkPolicyLoader = createLoader({
                   description: rule.description ?? undefined,
                   enabled: rule.enabled,
                   priority: rule.priority,
-                  ports: rule.direction === 'egress' ? rule.ports ?? undefined : undefined
+                  ports: rule.direction === 'egress' ? (rule.ports ?? undefined) : undefined
                 }
           )
         })
       ),
-    deleteRule: (
-      body: { ruleId: string },
-      { input: { instanceId, networkPolicyId } }
-    ) => withAuth(sdk => sdk.networkPolicies.rules.delete(instanceId, networkPolicyId, body.ruleId))
+    deleteRule: (body: { ruleId: string }, { input: { instanceId, networkPolicyId } }) =>
+      withAuth(sdk =>
+        sdk.networkPolicies.rules.delete(instanceId, networkPolicyId, body.ruleId)
+      )
   }
 });
 

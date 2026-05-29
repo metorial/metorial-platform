@@ -102,7 +102,7 @@ export class MetorialDashboardInstanceNetworksEndpoint {
 
   /**
    * @name List network logs
-   * @description Returns egress network logs for enclaves in the instance environment.
+   * @description Returns ingress or egress network logs for enclaves in the instance environment.
    *
    * @param `instanceId` - string
    * @param `query` - DashboardInstanceNetworksListNetworkLogsQuery

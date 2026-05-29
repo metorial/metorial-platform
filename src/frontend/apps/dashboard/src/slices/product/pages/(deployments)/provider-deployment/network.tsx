@@ -25,7 +25,10 @@ export let ProviderDeploymentNetworkPage = () => {
     order: 'desc'
   });
   let firewallBindings = useFirewallBindings(instance.data?.id, { limit: 100, order: 'desc' });
-  let networkLogs = useNetworkLogs(instance.data?.id, { intervalMinutes: 60 });
+  let networkLogs = useNetworkLogs(instance.data?.id, {
+    direction: 'egress',
+    intervalMinutes: 60
+  });
   let deleteBinding = useDeleteFirewallBinding();
 
   return renderWithLoader({ deployment, enclaves, firewallBindings, networkLogs })(
