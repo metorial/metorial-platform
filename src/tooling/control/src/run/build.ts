@@ -13,6 +13,7 @@ import { formatBatchSummary, formatRunPlan, formatServiceHeader } from '../log/f
 import { ControlError, DockerError } from '../errors';
 import type { BatchResult, BatchServiceResult, BuildOptions, ControlService } from '../types';
 import { runShell } from './shell';
+import { preparePrebuiltBuildArtifacts } from './prebuiltArtifacts';
 
 type BuildContext = {
   index: number;
@@ -83,6 +84,12 @@ let runBuildForService = async (
   });
   logger.info(`Building ${specs.length} runner image(s) for ${graph.name}...`);
 
+  await preparePrebuiltBuildArtifacts({
+    graph,
+    registry,
+    verbose: opts.verbose
+  });
+
   for (let spec of specs) {
     let dockerfilePath = resolve(spec.context, spec.dockerfile);
     let dockerContext = spec.context;
@@ -93,7 +100,7 @@ let runBuildForService = async (
       image: opts.image,
       tags: opts.tags
     });
-    let targetService = registry.byName.get(spec.name);
+    let targetService = registry.byName.get(graph.name);
 
     logger.info(`Building ${spec.name} (${spec.target}) ...`);
 
