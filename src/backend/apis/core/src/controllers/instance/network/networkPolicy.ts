@@ -192,6 +192,31 @@ export let networkPolicyController = Controller.create(
         return networkPolicyRulePresenter.present({ rule: result.rule });
       }),
 
+    updateRule: networkPolicyGroup
+      .patch(
+        instancePath(
+          'network-policies/:networkPolicyId/rules/:ruleId',
+          'networkPolicies.rules.update'
+        ),
+        {
+          name: 'Update network policy rule',
+          description: 'Updates a rule on a network policy.'
+        }
+      )
+      .use(checkAccess({ possibleScopes: [...networkWriteScopes] }))
+      .body('default', networkPolicyRuleValidator)
+      .output(networkPolicyRulePresenter)
+      .do(async ctx => {
+        let result = await subspaceNetworkPolicyService.updateRule({
+          instance: ctx.instance,
+          networkPolicyId: ctx.networkPolicy.id,
+          ruleId: ctx.params.ruleId,
+          ...ctx.body
+        });
+
+        return networkPolicyRulePresenter.present({ rule: result.rule });
+      }),
+
     deleteRule: networkPolicyGroup
       .delete(
         instancePath(

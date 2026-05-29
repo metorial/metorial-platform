@@ -30,6 +30,47 @@ let InstancePaths = Object.assign(
       instance: EntityParam,
       ...subPages: SubPages
     ) => InstancePaths(organization, project, instance, 'callbacks', ...subPages),
+
+    security: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'security', ...subPages),
+    network: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'network', ...subPages),
+    networkFirewalls: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'network', 'firewalls', ...subPages),
+    networkEnclaves: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'network', 'enclaves', ...subPages),
+    networkFirewall: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: SubPages
+    ) => {
+      if (!id) return '#';
+      return InstancePaths(organization, project, instance, 'network', 'firewall', id, ...subPages);
+    },
+    networkSettings: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'network', 'settings', ...subPages),
     callback: (
       organization: EntityParam,
       project: EntityParam,

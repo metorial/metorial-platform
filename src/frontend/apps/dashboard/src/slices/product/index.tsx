@@ -121,6 +121,38 @@ let ProviderDeploymentSettingsPage = dynamicPage(() =>
     c => c.ProviderDeploymentSettingsPage
   )
 );
+let ProviderDeploymentNetworkPage = dynamicPage(() =>
+  import('./pages/(deployments)/provider-deployment/network').then(
+    c => c.ProviderDeploymentNetworkPage
+  )
+);
+let SecurityOverviewPage = dynamicPage(() =>
+  import('./pages/(network)/security').then(c => c.SecurityOverviewPage)
+);
+let NetworkListLayout = dynamicPage(() =>
+  import('./pages/(network)/(list)/_layout').then(c => c.NetworkListLayout)
+);
+let NetworkOverviewPage = dynamicPage(() =>
+  import('./pages/(network)/(list)/network').then(c => c.NetworkOverviewPage)
+);
+let NetworkFirewallsPage = dynamicPage(() =>
+  import('./pages/(network)/(list)/firewalls').then(c => c.NetworkFirewallsPage)
+);
+let NetworkEnclavesPage = dynamicPage(() =>
+  import('./pages/(network)/(list)/enclaves').then(c => c.NetworkEnclavesPage)
+);
+let NetworkFirewallPageLayout = dynamicPage(() =>
+  import('./pages/(network)/firewall/_layout').then(c => c.NetworkFirewallPageLayout)
+);
+let NetworkFirewallPage = dynamicPage(() =>
+  import('./pages/(network)/firewall/index').then(c => c.NetworkFirewallPage)
+);
+let NetworkFirewallSettingsPage = dynamicPage(() =>
+  import('./pages/(network)/firewall/settings').then(c => c.NetworkFirewallSettingsPage)
+);
+let NetworkSettingsPage = dynamicPage(() =>
+  import('./pages/(network)/(list)/settings').then(c => c.NetworkSettingsPage)
+);
 let ProviderConfigLayout = dynamicPage(() =>
   import('./pages/(deployments)/provider-config/_layout').then(c => c.ProviderConfigLayout)
 );
@@ -1343,6 +1375,47 @@ export let productHomeSlice = createSlice([
           },
 
           {
+            path: 'security',
+            element: <SecurityOverviewPage />
+          },
+          {
+            path: 'network',
+            element: <NetworkListLayout />,
+            children: [
+              {
+                path: '',
+                element: <NetworkOverviewPage />
+              },
+              {
+                path: 'firewalls',
+                element: <NetworkFirewallsPage />
+              },
+              {
+                path: 'enclaves',
+                element: <NetworkEnclavesPage />
+              },
+              {
+                path: 'settings',
+                element: <NetworkSettingsPage />
+              }
+            ]
+          },
+          {
+            path: 'network/firewall/:firewallId',
+            element: <NetworkFirewallPageLayout />,
+            children: [
+              {
+                path: '',
+                element: <NetworkFirewallPage />
+              },
+              {
+                path: 'settings',
+                element: <NetworkFirewallSettingsPage />
+              }
+            ]
+          },
+
+          {
             path: 'provider/:providerId',
             element: <ProviderLayout />,
             children: [
@@ -1408,6 +1481,10 @@ export let productHomeSlice = createSlice([
               {
                 path: 'settings',
                 element: <ProviderDeploymentSettingsPage />
+              },
+              {
+                path: 'network',
+                element: <ProviderDeploymentNetworkPage />
               }
             ]
           },

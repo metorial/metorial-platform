@@ -116,8 +116,8 @@ export let dashboardEnclaveController = Controller.create(
         v.object({
           limit: v.optional(
             v.number({
-              description: 'Maximum number of enclaves to return',
-              modifiers: [v.positive(), v.integer(), v.maxValue(100)]
+              description: 'Maximum number of enclaves to return'
+              // modifiers: [v.positive(), v.integer(), v.maxValue(100)]
             })
           )
         })

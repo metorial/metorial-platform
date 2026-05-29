@@ -114,6 +114,10 @@ export let ProviderDeploymentLayout = () => {
                 to: `${Paths.instance.providerDeployment(...deploymentPathParams, 'config-vaults')}${search}`
               },
               {
+                label: 'Network',
+                to: `${Paths.instance.providerDeployment(...deploymentPathParams, 'network')}${search}`
+              },
+              {
                 label: 'Settings',
                 to: `${Paths.instance.providerDeployment(...deploymentPathParams, 'settings')}${search}`
               }

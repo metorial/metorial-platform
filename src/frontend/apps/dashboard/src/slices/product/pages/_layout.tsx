@@ -185,6 +185,50 @@ export let ProjectPageLayout = () => {
         },
 
         {
+          label: 'Security',
+          collapsible: true,
+          items: [
+            {
+              icon: <RiShieldKeyholeLine />,
+              label: 'Overview',
+              to: Paths.instance.security(...params),
+              getProps: i => ({ isActive: checkPath(i, { exact: true }) })
+            },
+            {
+              icon: <RiFlowChart />,
+              label: 'Network',
+              to: Paths.instance.network(...params),
+              getProps: i => ({
+                isActive:
+                  checkPath(i, { exact: true }) ||
+                  i.pathname.includes('/network/firewall/')
+              }),
+              children: [
+                {
+                  label: 'Firewalls',
+                  to: Paths.instance.networkFirewalls(...params),
+                  getProps: i => ({
+                    isActive:
+                      checkPath(i, { exact: true }) ||
+                      i.pathname.includes('/network/firewall/')
+                  })
+                },
+                {
+                  label: 'Enclaves',
+                  to: Paths.instance.networkEnclaves(...params),
+                  getProps: i => ({ isActive: checkPath(i, { exact: true }) })
+                },
+                {
+                  label: 'Network Settings',
+                  to: Paths.instance.networkSettings(...params),
+                  getProps: i => ({ isActive: checkPath(i, { exact: true }) })
+                }
+              ]
+            }
+          ]
+        },
+
+        {
           label: 'Gateway',
           collapsible: true,
           items: [

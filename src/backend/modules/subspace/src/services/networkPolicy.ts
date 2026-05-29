@@ -3,7 +3,7 @@ import { subspace } from '../subspace';
 
 export let subspaceNetworkPolicyService = createSubspaceService(
   subspace.networkPolicy,
-  ['get', 'list', 'create', 'update', 'delete', 'addRule', 'removeRule'],
+  ['get', 'list', 'create', 'update', 'delete', 'addRule', 'updateRule', 'removeRule'],
   () => ({})
 );
 

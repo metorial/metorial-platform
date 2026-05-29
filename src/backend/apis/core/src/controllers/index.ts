@@ -649,8 +649,8 @@ export let dashboardController = Controller.create<any>(
     callbackNotificationController,
 
     networkController,
-    enclaveController,
     dashboardEnclaveController,
+    enclaveController,
     firewallController,
     firewallBindingController,
     networkPolicyController,
