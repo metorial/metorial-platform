@@ -1,9 +1,10 @@
 import { getSentry } from '@lowerdeck/sentry';
+import type { FunctionInvokeResponse } from '@metorial-platform-systems/function-bay-client';
 import PQueue from 'p-queue';
 import type { SlateInvocation } from '../../../prisma/generated/client';
 import { db } from '../../db';
-import type { FunctionInvokeResponse } from '@metorial-platform-systems/function-bay-client';
 import { invocationsBucketRecord, storage } from '../../storage';
+import { deepClone } from '../deepClone';
 import type {
   SlateInvocationBaseParams,
   SlatesRequest,
@@ -54,10 +55,10 @@ export let storeSlateInvocation = (
         if ('id' in m && m.id) idToMethodMap.set(m.id, m.method);
 
         if (m.method.startsWith('slates/auth.')) {
-          let updatedParams: any = m.params;
+          let updatedParams: any = deepClone(m.params);
 
           for (let field of authFieldsToRedact) {
-            if (field in m.params) {
+            if (field in updatedParams) {
               updatedParams[field] = '[REDACTED]';
             }
           }
@@ -78,10 +79,10 @@ export let storeSlateInvocation = (
         if ('error' in m) hasResponseError = true;
 
         if (method && 'result' in m && method.startsWith('slates/auth.')) {
-          let updatedResult: any = m.result;
+          let updatedResult: any = deepClone(m.result);
 
           for (let field of authFieldsToRedact) {
-            if (field in m.result) {
+            if (field in updatedResult) {
               updatedResult[field] = '[REDACTED]';
             }
           }
@@ -151,9 +152,7 @@ export let storeSlateInvocation = (
           requests: sanitizedRequests as any,
           responses: (sanitizedResponses ?? []) as any,
           provider,
-          logs: d.invocationResult.logs.map(
-            log => [log.timestamp, log.message] as const
-          ),
+          logs: d.invocationResult.logs.map(log => [log.timestamp, log.message] as const),
           requestTraces
         } satisfies StoredSlateInvocation)
       );
