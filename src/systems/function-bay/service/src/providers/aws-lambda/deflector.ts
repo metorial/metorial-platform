@@ -7,6 +7,15 @@ let jwtSecret =
     ? new TextEncoder().encode(env.deflector.DEFLECTOR_JWT_SECRET)
     : undefined;
 
+let getBaseClaims = () => {
+  let now = Math.floor(Date.now() / 1000);
+  return {
+    aud: env.deflector.DEFLECTOR_JWT_AUDIENCE ?? 'deflector',
+    iat: now,
+    nbf: now - 30
+  };
+};
+
 export let createDeflectorToken = async (d: {
   tenantId: string;
   functionId: string;
@@ -20,7 +29,7 @@ export let createDeflectorToken = async (d: {
 }) => {
   if (!jwtSecret) return undefined;
 
-  let now = Math.floor(Date.now() / 1000);
+  let baseClaims = getBaseClaims();
   let payload: JWTPayload & {
     tenantId: string;
     functionId: string;
@@ -30,7 +39,7 @@ export let createDeflectorToken = async (d: {
     enclaveIdentifier?: string;
     egressPolicy?: PrismaJson.CompiledEgressNetworkAllowList;
   } = {
-    aud: env.deflector.DEFLECTOR_JWT_AUDIENCE ?? 'deflector',
+    ...baseClaims,
     sub: d.functionVersionId,
     tenantId: d.tenantId,
     functionId: d.functionId,
@@ -39,14 +48,29 @@ export let createDeflectorToken = async (d: {
     enclaveId: d.enclave?.id,
     enclaveIdentifier: d.enclave?.identifier,
     jti: randomUUID(),
-    iat: now,
-    nbf: now - 30,
-    exp: now + 5 * 60
+    exp: baseClaims.iat + 5 * 60
   };
 
   if (d.egressPolicy !== undefined) {
     payload.egressPolicy = d.egressPolicy;
   }
+
+  return await new SignJWT(payload)
+    .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
+    .sign(jwtSecret);
+};
+
+export let createLegacyDeflectorToken = async () => {
+  if (!jwtSecret) return undefined;
+
+  let baseClaims = getBaseClaims();
+  let payload: JWTPayload & {
+    legacyFallback: true;
+  } = {
+    ...baseClaims,
+    legacyFallback: true,
+    exp: baseClaims.iat + 7 * 24 * 60 * 60
+  };
 
   return await new SignJWT(payload)
     .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })

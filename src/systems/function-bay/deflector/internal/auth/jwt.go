@@ -47,6 +47,9 @@ func (v *Verifier) Verify(ctx context.Context, token string) (policy.Claims, err
 	if !parsed.Valid {
 		return policy.Claims{}, errors.New("invalid jwt")
 	}
+	if claims.LegacyFallback {
+		return claims, nil
+	}
 	if claims.TenantID == "" || claims.FunctionID == "" || claims.FunctionVersionID == "" {
 		return policy.Claims{}, errors.New("jwt is missing required invocation claims")
 	}

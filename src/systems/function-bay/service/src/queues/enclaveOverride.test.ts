@@ -76,6 +76,7 @@ describe('enclave override clone queue', () => {
     expect(override.overrideFunctionVersion.providerData).toMatchObject({
       functionName: 'cloned-function'
     });
+    expect(override.overrideFunctionVersion.supportsV2Proxy).toBe(true);
     await expect(testDb.functionDeployment.count()).resolves.toBe(0);
   });
 

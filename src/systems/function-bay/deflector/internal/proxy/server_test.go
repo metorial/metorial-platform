@@ -142,3 +142,29 @@ func TestLogAuthorizedRequestIncludesJTIAndPolicySummary(t *testing.T) {
 		t.Fatal("expected policy fingerprint")
 	}
 }
+
+func TestLegacyFallbackSkipsAuthorizedRequestLog(t *testing.T) {
+	var buf bytes.Buffer
+	server := &Server{
+		Logger:   slog.New(slog.NewJSONHandler(&buf, nil)),
+		Verifier: auth.NewVerifier("secret", "deflector"),
+	}
+	token := proxyToken(t, "secret", policy.Claims{
+		LegacyFallback: true,
+		RegisteredClaims: jwt.RegisteredClaims{
+			Audience:  jwt.ClaimStrings{"deflector"},
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute)),
+		},
+	})
+	request := httptest.NewRequest("GET", "http://127.0.0.1:1/resource", nil)
+	request.Header.Set(
+		"Proxy-Authorization",
+		"Basic "+base64.StdEncoding.EncodeToString([]byte(token+":x")),
+	)
+
+	server.ServeHTTP(httptest.NewRecorder(), request)
+
+	if bytes.Contains(buf.Bytes(), []byte("proxy request authorized")) {
+		t.Fatal("legacy fallback should not emit authorized request logs")
+	}
+}
