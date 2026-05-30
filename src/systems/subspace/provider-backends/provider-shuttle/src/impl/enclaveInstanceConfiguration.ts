@@ -1,8 +1,8 @@
+import { db, getId } from '@metorial-subspace/db';
 import {
   IProviderEnclaveInstanceConfiguration,
   type ProviderEnclaveInstanceConfigurationSyncParam
 } from '@metorial-subspace/provider-utils';
-import { db, getId } from '@metorial-subspace/db';
 import { getTenantForShuttle, shuttle } from '../client';
 
 export class ProviderEnclaveInstanceConfiguration extends IProviderEnclaveInstanceConfiguration {
@@ -24,8 +24,10 @@ export class ProviderEnclaveInstanceConfiguration extends IProviderEnclaveInstan
 
     let link =
       providerDeployment.serverInstanceConfiguration ??
-      (await db.serverInstanceConfiguration.create({
-        data: {
+      (await db.serverInstanceConfiguration.upsert({
+        where: { id: configuration.id },
+        update: {},
+        create: {
           ...getId('serverInstanceConfiguration'),
           id: configuration.id,
           tenantOid: data.providerDeployment.tenantOid,
