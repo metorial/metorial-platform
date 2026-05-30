@@ -1,7 +1,8 @@
 import { renderWithPagination } from '@metorial-io/data-hooks';
-import { Badge, Flex, Group, Input, Spacer, Text, Title } from '@metorial-io/ui';
+import { Badge, Button, Flex, Group, Input, Spacer, Text, Title } from '@metorial-io/ui';
 import { Table } from '@metorial-io/ui-product';
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { styled } from 'styled-components';
 import { EmptyState, SlateLogoPlaceholder } from '../../components/styled.js';
 import { versionStatusColors } from '../../constants/statusColors.js';
@@ -52,15 +53,22 @@ export let SlateList = () => {
             All slates registered in the hub. View versions, deployments, and events.
           </Text>
         </div>
-        <div style={{ width: '100%', maxWidth: 320 }}>
-          <Input
-            label="Search slates"
-            hideLabel
-            placeholder="Search by slate name"
-            value={search}
-            onInput={value => setSearch(value)}
-          />
-        </div>
+        <Flex align="end" gap={12} style={{ flexWrap: 'wrap' }}>
+          <div style={{ width: '100%', maxWidth: 320 }}>
+            <Input
+              label="Search slates"
+              hideLabel
+              placeholder="Search by slate name"
+              value={search}
+              onInput={value => setSearch(value)}
+            />
+          </div>
+          <Link to="/slates/redeploy" style={{ textDecoration: 'none' }}>
+            <Button as="span" variant="outline">
+              Bulk redeploy
+            </Button>
+          </Link>
+        </Flex>
       </Flex>
 
       {renderWithPagination(slates, { emptyState })(({ data }) => {
