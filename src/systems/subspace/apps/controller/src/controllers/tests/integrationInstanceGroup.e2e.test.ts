@@ -190,7 +190,6 @@ let createProviderFixture = async (d: {
       isEphemeral: false,
       isDefault: true,
       name: `Deployment ${d.key}`,
-      networkingRulesetIds: [],
       tenantOid: d.tenant.oid,
       solutionOid: d.solution.oid,
       environmentOid: d.environment.oid,
