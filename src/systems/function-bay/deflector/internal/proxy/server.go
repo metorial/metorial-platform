@@ -30,10 +30,11 @@ var (
 )
 
 type Server struct {
-	Logger   *slog.Logger
-	Dialer   *net.Dialer
-	Verifier *auth.Verifier
-	Recorder *observer.Recorder
+	Logger                *slog.Logger
+	Dialer                *net.Dialer
+	Verifier              *auth.Verifier
+	Recorder              *observer.Recorder
+	DisableAuthentication bool
 }
 
 type requestPolicy struct {
@@ -67,6 +68,15 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) policyFromRequest(r *http.Request) (*requestPolicy, error) {
+	if s.DisableAuthentication {
+		claims := policy.Claims{LegacyFallback: true}
+		compiled, err := policy.Compile(claims)
+		if err != nil {
+			return nil, errors.Join(errInvalidEgressPolicy, err)
+		}
+		return &requestPolicy{Claims: claims, Compiled: compiled}, nil
+	}
+
 	if s.Verifier == nil {
 		return nil, errVerifierRequired
 	}

@@ -81,6 +81,25 @@ func TestPolicyFromRequestRequiresValidToken(t *testing.T) {
 	}
 }
 
+func TestPolicyFromRequestAllowsAllWhenAuthenticationDisabled(t *testing.T) {
+	server := &Server{DisableAuthentication: true}
+	request := httptest.NewRequest("GET", "http://example.com", nil)
+
+	requestPolicy, err := server.policyFromRequest(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !requestPolicy.Claims.LegacyFallback {
+		t.Fatal("expected disabled auth to use legacy fallback claims")
+	}
+	if !requestPolicy.Compiled.AllowsDestination(net.ParseIP("10.0.0.1"), 443) {
+		t.Fatal("expected disabled auth to allow private destinations")
+	}
+	if !requestPolicy.Compiled.AllowsDestination(net.ParseIP("169.254.169.254"), 80) {
+		t.Fatal("expected disabled auth to allow metadata destination")
+	}
+}
+
 func TestExplicitPrivateIPAllowlistOverridesDefaultBlock(t *testing.T) {
 	compiled, err := policy.Compile(policy.Claims{
 		EgressPolicy: &policy.CompiledNetworkAllowList{

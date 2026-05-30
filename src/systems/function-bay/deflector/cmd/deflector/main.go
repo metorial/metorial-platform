@@ -23,8 +23,9 @@ func main() {
 	if addr == "" {
 		addr = ":8080"
 	}
+	disableProxyAuthentication := envBool("DEFLECTOR_DISABLE_PROXY_AUTHENTICATION", false)
 	jwtSecret := os.Getenv("DEFLECTOR_JWT_SECRET")
-	if jwtSecret == "" {
+	if jwtSecret == "" && !disableProxyAuthentication {
 		logger.Error("DEFLECTOR_JWT_SECRET is required")
 		os.Exit(1)
 	}
@@ -82,9 +83,13 @@ func main() {
 		)
 	}
 
+	if disableProxyAuthentication {
+		logger.Warn("proxy authentication disabled by DEFLECTOR_DISABLE_PROXY_AUTHENTICATION")
+	}
+
 	srv := &http.Server{
 		Addr:              addr,
-		Handler:           &proxy.Server{Logger: logger, Verifier: auth.NewVerifier(jwtSecret, jwtAudience), Recorder: recorder},
+		Handler:           &proxy.Server{Logger: logger, Verifier: auth.NewVerifier(jwtSecret, jwtAudience), Recorder: recorder, DisableAuthentication: disableProxyAuthentication},
 		ReadHeaderTimeout: 5 * time.Second,
 		IdleTimeout:       90 * time.Second,
 		MaxHeaderBytes:    32 << 10,
@@ -95,6 +100,18 @@ func main() {
 		logger.Error("deflector exited", "error", err)
 		os.Exit(1)
 	}
+}
+
+func envBool(name string, fallback bool) bool {
+	raw := os.Getenv(name)
+	if raw == "" {
+		return fallback
+	}
+	value, err := strconv.ParseBool(raw)
+	if err != nil {
+		return fallback
+	}
+	return value
 }
 
 func envDurationSeconds(name string, fallback time.Duration) time.Duration {
