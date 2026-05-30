@@ -210,6 +210,7 @@ class providerOAuthSetupServiceImpl {
         tenant: d.tenant,
         provider: d.provider,
         providerVersion: version,
+        providerDeployment: d.providerDeployment,
         input: d.input.config,
         credentials,
         authMethod,

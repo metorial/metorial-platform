@@ -76,7 +76,9 @@ class remoteOauthAuthorizationServiceImpl {
       },
       include: {
         tenant: true,
-        serverOAuthSetup: true
+        serverOAuthSetup: {
+          include: { serverInstanceConfiguration: true }
+        }
       }
     });
 
@@ -200,7 +202,9 @@ class remoteOauthAuthorizationServiceImpl {
           include: { config: true, serverOAuthCredentials: true }
         },
         tenant: true,
-        serverOAuthSetup: true
+        serverOAuthSetup: {
+          include: { serverInstanceConfiguration: true }
+        }
       }
     });
     if (!attempt || !attempt.connection.serverOAuthCredentials || !attempt.serverOAuthSetup) {
@@ -214,6 +218,8 @@ class remoteOauthAuthorizationServiceImpl {
     }
 
     let connection = attempt.connection;
+    let egressPolicy = attempt.serverOAuthSetup.serverInstanceConfiguration
+      ?.egressPolicy as PrismaJson.CompiledEgressNetworkAllowList | null;
 
     let tokenResponse: TokenResponse;
     let profile: RemoteOAuthConnectionProfile | null = null;
@@ -232,7 +238,8 @@ class remoteOauthAuthorizationServiceImpl {
         code: d.response.code!,
         redirectUri: oauthCallbackUrl,
         codeVerifier: attempt.codeVerifier ?? undefined,
-        config: connection.config.config
+        config: connection.config.config,
+        egressPolicy
       });
 
       if (!tokenResponse.access_token) {
@@ -278,7 +285,8 @@ class remoteOauthAuthorizationServiceImpl {
       try {
         providerProfile = await OAuthUtils.getUserProfile({
           userInfoEndpoint: connection.config.config.userinfo_endpoint,
-          accessToken: tokenResponse.access_token
+          accessToken: tokenResponse.access_token,
+          egressPolicy
         });
       } catch (error) {
         // Ignore

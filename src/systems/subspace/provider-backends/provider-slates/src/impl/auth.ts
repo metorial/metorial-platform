@@ -184,11 +184,18 @@ export class ProviderAuth extends IProviderAuth {
     let slateOAuthCredentials = await db.slateOAuthCredentials.findUniqueOrThrow({
       where: { oid: data.credentials.slateCredentialsOid }
     });
+    let providerDeployment = data.providerDeployment
+      ? await db.providerDeployment.findUnique({
+          where: { oid: data.providerDeployment.oid },
+          include: { slateInstanceConfiguration: true }
+        })
+      : null;
 
     let oauthSetup = await slates.slateOAuthSetup.create({
       tenantId: tenant.id,
       slateId: slate.id,
       slateVersionId: slateVersion.id,
+      slateInstanceConfigurationId: providerDeployment?.slateInstanceConfiguration?.id,
       authMethodId: data.authMethod.specId,
 
       input: data.input,

@@ -18,7 +18,13 @@ class slateOAuthHandlerServiceImpl {
   async startOAuthFlow(d: { setupId: string }) {
     let setup = await db.slateInstanceOAuthSetup.findUnique({
       where: { id: d.setupId },
-      include: { slateVersion: true, authMethod: true, oauthCredentials: true, tenant: true }
+      include: {
+        slateVersion: true,
+        authMethod: true,
+        oauthCredentials: true,
+        tenant: true,
+        instanceConfiguration: true
+      }
     });
     if (!setup || setup.status === 'completed') {
       throw new ServiceError(
@@ -57,7 +63,11 @@ class slateOAuthHandlerServiceImpl {
     let urlRes = await slateInvocationService.getOAuthUrl({
       stack: await slateInvocationService.createInvocation({
         participants: [],
-        slateVersion: setup.slateVersion
+        slateVersion: setup.slateVersion,
+        enclaveId: setup.instanceConfiguration?.enclaveId,
+        egressPolicy:
+          (setup.instanceConfiguration
+            ?.egressPolicy as PrismaJson.CompiledEgressNetworkAllowList | null) ?? undefined
       }),
 
       authenticationMethodId: setup.authMethod.key,
@@ -180,7 +190,13 @@ class slateOAuthHandlerServiceImpl {
           ...(d.input.state ? [{ id: d.input.state }] : [])
         ]
       },
-      include: { slateVersion: true, authMethod: true, oauthCredentials: true, tenant: true }
+      include: {
+        slateVersion: true,
+        authMethod: true,
+        oauthCredentials: true,
+        tenant: true,
+        instanceConfiguration: true
+      }
     });
     let setup = setups.find(s => s.id === d.input.state) ?? setups[0];
     if (!setup || setup.status === 'completed') {
@@ -215,7 +231,11 @@ class slateOAuthHandlerServiceImpl {
     let authRes = await slateInvocationService.getOAuthCallback({
       stack: await slateInvocationService.createInvocation({
         participants: [],
-        slateVersion: setup.slateVersion
+        slateVersion: setup.slateVersion,
+        enclaveId: setup.instanceConfiguration?.enclaveId,
+        egressPolicy:
+          (setup.instanceConfiguration
+            ?.egressPolicy as PrismaJson.CompiledEgressNetworkAllowList | null) ?? undefined
       }),
 
       code: d.input.code,

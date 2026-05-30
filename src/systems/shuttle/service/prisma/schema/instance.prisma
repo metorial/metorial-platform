@@ -34,6 +34,7 @@ model ServerInstanceConfiguration {
   updatedAt DateTime @default(now()) @updatedAt
 
   serverConnections ServerConnection[]
+  serverOAuthSetups ServerOAuthSetup[]
 }
 
 enum ServerAuthConfigType {

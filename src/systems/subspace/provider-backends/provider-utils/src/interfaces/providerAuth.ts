@@ -5,6 +5,7 @@ import type {
   ProviderAuthCredentials,
   ProviderAuthCredentialsType,
   ProviderAuthMethod,
+  ProviderDeployment,
   ProviderOAuthSetup,
   ProviderVariant,
   ProviderVersion,
@@ -156,6 +157,7 @@ export interface ProviderOAuthSetupCreateParam {
   tenant: Tenant;
   provider: Provider & { defaultVariant: ProviderVariant | null };
   providerVersion: ProviderVersion;
+  providerDeployment?: ProviderDeployment | null;
   credentials: ProviderAuthCredentials;
   authMethod: ProviderAuthMethod;
   redirectUrl: string;

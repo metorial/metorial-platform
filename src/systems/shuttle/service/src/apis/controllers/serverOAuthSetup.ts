@@ -4,6 +4,7 @@ import { serverOAuthSetupLogsPresenter, serverOAuthSetupPresenter } from '../../
 import {
   serverOAuthCredentialsService,
   serverOAuthSetupService,
+  serverInstanceConfigurationService,
   serverService
 } from '../../services';
 import { app } from './_app';
@@ -104,6 +105,7 @@ export let serverOAuthSetupController = app.controller({
         tenantId: v.string(),
 
         serverCredentialsId: v.optional(v.string()),
+        serverInstanceConfigurationId: v.optional(v.string()),
         serverId: v.string(),
         redirectUrl: v.string(),
         callbackUrlOverride: v.optional(v.string()),
@@ -122,12 +124,19 @@ export let serverOAuthSetupController = app.controller({
             serverOAuthCredentialsId: ctx.input.serverCredentialsId
           })
         : undefined;
+      let serverInstanceConfiguration = ctx.input.serverInstanceConfigurationId
+        ? await serverInstanceConfigurationService.getServerInstanceConfigurationById({
+            tenant: ctx.tenant,
+            serverInstanceConfigurationId: ctx.input.serverInstanceConfigurationId
+          })
+        : undefined;
 
       let res = await serverOAuthSetupService.createServerOAuthSetup({
         tenant: ctx.tenant,
         input: {
           server,
           credentials,
+          serverInstanceConfiguration,
           authConfig: ctx.input.input,
           redirectUrl: ctx.input.redirectUrl,
           callbackUrlOverride: ctx.input.callbackUrlOverride

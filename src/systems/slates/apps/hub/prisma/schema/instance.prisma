@@ -47,7 +47,8 @@ model SlateInstanceConfiguration {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  slateSessions SlateSession[]
+  slateSessions            SlateSession[]
+  slateInstanceOAuthSetups SlateInstanceOAuthSetup[]
 }
 
 enum SlateInstanceEventType {
@@ -267,6 +268,9 @@ model SlateInstanceOAuthSetup {
 
   slateAuthConfigOid BigInt?
   slateAuthConfig    SlateAuthConfig? @relation(fields: [slateAuthConfigOid], references: [oid])
+
+  instanceConfigurationOid BigInt?
+  instanceConfiguration    SlateInstanceConfiguration? @relation(fields: [instanceConfigurationOid], references: [oid])
 
   secretOid BigInt
   secret    Secret @relation(fields: [secretOid], references: [oid])
