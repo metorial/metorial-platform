@@ -25,14 +25,16 @@ model Function {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  functionVersions                FunctionVersion[]
-  functionDeployments             FunctionDeployment[]
-  runtime                         Runtime?                  @relation(fields: [runtimeOid], references: [oid])
-  runtimeOid                      BigInt?
-  functionBundles                 FunctionBundle[]
-  enclaveFunctions                EnclaveFunction[]
-  enclaveFunctionOverrides        EnclaveFunctionOverride[]
-  enclaveFunctionOverrideBackings EnclaveFunctionOverride[] @relation("EnclaveFunctionOverrideFunction")
+  functionVersions                          FunctionVersion[]
+  functionDeployments                       FunctionDeployment[]
+  runtime                                   Runtime?                            @relation(fields: [runtimeOid], references: [oid])
+  runtimeOid                                BigInt?
+  functionBundles                           FunctionBundle[]
+  enclaveFunctions                          EnclaveFunction[]
+  enclaveFunctionOverrides                  EnclaveFunctionOverride[]
+  enclaveFunctionOverrideBackings           EnclaveFunctionOverride[]           @relation("EnclaveFunctionOverrideFunction")
+  enclaveFunctionOverrideDeploymentSources  EnclaveFunctionOverrideDeployment[] @relation("EnclaveFunctionOverrideDeploymentSourceFunction")
+  enclaveFunctionOverrideDeploymentBackings EnclaveFunctionOverrideDeployment[] @relation("EnclaveFunctionOverrideDeploymentFunction")
 
   @@unique([identifier, tenantOid])
 }
@@ -155,10 +157,12 @@ model FunctionVersion {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  functions                              Function[]                @relation(name: "CurrentVersion")
-  functionDeployments                    FunctionDeployment[]
-  enclaveFunctionOverrideSourceVersions  EnclaveFunctionOverride[] @relation("EnclaveFunctionOverrideSourceVersion")
-  enclaveFunctionOverrideVersionBackings EnclaveFunctionOverride[] @relation("EnclaveFunctionOverrideVersion")
+  functions                                       Function[]                          @relation(name: "CurrentVersion")
+  functionDeployments                             FunctionDeployment[]
+  enclaveFunctionOverrideSourceVersions           EnclaveFunctionOverride[]           @relation("EnclaveFunctionOverrideSourceVersion")
+  enclaveFunctionOverrideVersionBackings          EnclaveFunctionOverride[]           @relation("EnclaveFunctionOverrideVersion")
+  enclaveFunctionOverrideDeploymentSourceVersions EnclaveFunctionOverrideDeployment[] @relation("EnclaveFunctionOverrideDeploymentSourceVersion")
+  enclaveFunctionOverrideDeploymentBackings       EnclaveFunctionOverrideDeployment[] @relation("EnclaveFunctionOverrideDeploymentVersion")
 
   @@unique([identifier, functionOid])
 }

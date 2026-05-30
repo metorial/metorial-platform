@@ -4,8 +4,12 @@ import { db } from '../db';
 import { encryption } from '../encryption';
 import { env } from '../env';
 import { ID, snowflake } from '../id';
+import { decryptFunctionVersionEnvironmentVariables } from '../lib/decryptFunctionVersionEnvironmentVariables';
 import { getProvider } from '../providers';
 import { storage } from '../storage';
+
+let getErrorMessage = (err: unknown) =>
+  err instanceof Error ? err.message : String(err);
 
 export let enclaveOverrideCloneQueue = createQueue<{
   enclaveId: string;
@@ -64,128 +68,160 @@ export let processEnclaveOverrideClone = async (data: {
   });
   if (!sourceVersion) throw new QueueRetryError();
 
-  if (
-    sourceVersion.functionBundle.status !== 'available' ||
-    !sourceVersion.functionBundle.bucket ||
-    !sourceVersion.functionBundle.storageKey
-  ) {
-    throw new QueueRetryError();
-  }
-
-  let previousOverride = await db.enclaveFunctionOverride.findFirst({
-    where: {
+  let overrideDeployment = await db.enclaveFunctionOverrideDeployment.create({
+    data: {
+      oid: snowflake.nextId(),
+      id: await ID.generateId('enclaveFunctionOverrideDeployment'),
+      status: 'pending',
       enclaveOid: enclave.oid,
-      sourceFunctionOid: func.oid
-    },
-    include: {
-      overrideFunction: true
-    },
-    orderBy: { oid: 'desc' }
+      sourceFunctionOid: func.oid,
+      sourceFunctionVersionOid: sourceVersion.oid
+    }
   });
 
-  let cloneFunction =
-    previousOverride?.overrideFunction ??
-    (await db.function.upsert({
+  try {
+    if (
+      sourceVersion.functionBundle.status !== 'available' ||
+      !sourceVersion.functionBundle.bucket ||
+      !sourceVersion.functionBundle.storageKey
+    ) {
+      throw new QueueRetryError();
+    }
+
+    let previousOverride = await db.enclaveFunctionOverride.findFirst({
       where: {
-        identifier_tenantOid: {
+        enclaveOid: enclave.oid,
+        sourceFunctionOid: func.oid
+      },
+      include: {
+        overrideFunction: true
+      },
+      orderBy: { oid: 'desc' }
+    });
+
+    let cloneFunction =
+      previousOverride?.overrideFunction ??
+      (await db.function.upsert({
+        where: {
+          identifier_tenantOid: {
+            identifier: `${func.identifier}--enclave-${enclave.id}`,
+            tenantOid: enclave.tenantOid
+          }
+        },
+        update: {
+          status: 'active',
+          name: func.name,
+          runtimeOid: sourceVersion.runtimeOid,
+          cloneOfFunctionOid: func.oid
+        },
+        create: {
+          oid: snowflake.nextId(),
+          id: await ID.generateId('function'),
+          status: 'active',
           identifier: `${func.identifier}--enclave-${enclave.id}`,
-          tenantOid: enclave.tenantOid
+          name: func.name,
+          tenantOid: enclave.tenantOid,
+          runtimeOid: sourceVersion.runtimeOid,
+          cloneOfFunctionOid: func.oid
+        }
+      }));
+
+    let cloneVersionId = await ID.generateId('functionVersion');
+    let envVars = await decryptFunctionVersionEnvironmentVariables({
+      functionVersion: sourceVersion
+    });
+    let bundle = await storage.getObject(
+      sourceVersion.functionBundle.bucket,
+      sourceVersion.functionBundle.storageKey
+    );
+
+    let provider = getProvider(sourceVersion.runtime.providerOid);
+    let manifest = sourceVersion.manifest;
+    let runtimeConfig = manifest.runtime ?? {
+      ...sourceVersion.runtime.configuration,
+      handler: manifest.entrypoint ?? 'index.handler'
+    };
+
+    let res = await provider.cloneFunctionVersion({
+      functionVersion: { id: cloneVersionId },
+      sourceFunctionVersion: sourceVersion,
+      function: cloneFunction,
+      runtimeConfig,
+      runtime: sourceVersion.runtime,
+      env: envVars,
+      zipFile: bundle.data
+    });
+
+    let encryptedEnvironmentVariables = await encryption.encrypt({
+      entityId: cloneVersionId,
+      secret: JSON.stringify(envVars)
+    });
+
+    let cloneVersion = await db.functionVersion.create({
+      data: {
+        oid: snowflake.nextId(),
+        id: cloneVersionId,
+        identifier: generatePlainId(12),
+        name: sourceVersion.name,
+        status: 'active',
+        supportsV2Proxy: sourceVersion.supportsV2Proxy,
+        functionOid: cloneFunction.oid,
+        runtimeOid: sourceVersion.runtimeOid,
+        functionBundleOid: sourceVersion.functionBundleOid,
+        cloneOfFunctionVersionOid: sourceVersion.oid,
+        encryptedEnvironmentVariables,
+        configuration: sourceVersion.configuration,
+        providerData: res.providerData,
+        manifest: sourceVersion.manifest
+      }
+    });
+
+    await db.function.update({
+      where: { oid: cloneFunction.oid },
+      data: { currentVersionOid: cloneVersion.oid }
+    });
+
+    let override = await db.enclaveFunctionOverride.upsert({
+      where: {
+        enclaveOid_sourceFunctionOid_sourceFunctionVersionOid: {
+          enclaveOid: enclave.oid,
+          sourceFunctionOid: func.oid,
+          sourceFunctionVersionOid: sourceVersion.oid
         }
       },
       update: {
-        name: func.name,
-        status: 'active',
-        runtimeOid: sourceVersion.runtimeOid,
-        cloneOfFunctionOid: func.oid
+        overrideFunctionOid: cloneFunction.oid,
+        overrideFunctionVersionOid: cloneVersion.oid
       },
       create: {
         oid: snowflake.nextId(),
-        id: await ID.generateId('function'),
-        status: 'active',
-        identifier: `${func.identifier}--enclave-${enclave.id}`,
-        name: func.name,
-        tenantOid: enclave.tenantOid,
-        runtimeOid: sourceVersion.runtimeOid,
-        cloneOfFunctionOid: func.oid
-      }
-    }));
-
-  let cloneVersionId = await ID.generateId('functionVersion');
-  let envVars = JSON.parse(
-    await encryption.decrypt({
-      entityId: sourceVersion.id,
-      encrypted: sourceVersion.encryptedEnvironmentVariables
-    })
-  );
-  let bundle = await storage.getObject(
-    sourceVersion.functionBundle.bucket,
-    sourceVersion.functionBundle.storageKey
-  );
-
-  let provider = getProvider(sourceVersion.runtime.providerOid);
-  let manifest = sourceVersion.manifest;
-  let runtimeConfig = manifest.runtime ?? {
-    ...sourceVersion.runtime.configuration,
-    handler: manifest.entrypoint ?? 'index.handler'
-  };
-
-  let res = await provider.cloneFunctionVersion({
-    functionVersion: { id: cloneVersionId },
-    sourceFunctionVersion: sourceVersion,
-    function: cloneFunction,
-    runtimeConfig,
-    runtime: sourceVersion.runtime,
-    env: envVars,
-    zipFile: bundle.data
-  });
-
-  let encryptedEnvironmentVariables = await encryption.encrypt({
-    entityId: cloneVersionId,
-    secret: JSON.stringify(envVars)
-  });
-
-  let cloneVersion = await db.functionVersion.create({
-    data: {
-      oid: snowflake.nextId(),
-      id: cloneVersionId,
-      identifier: generatePlainId(12),
-      name: sourceVersion.name,
-      status: 'active',
-      supportsV2Proxy: sourceVersion.supportsV2Proxy,
-      functionOid: cloneFunction.oid,
-      runtimeOid: sourceVersion.runtimeOid,
-      functionBundleOid: sourceVersion.functionBundleOid,
-      cloneOfFunctionVersionOid: sourceVersion.oid,
-      encryptedEnvironmentVariables,
-      configuration: sourceVersion.configuration,
-      providerData: res.providerData,
-      manifest: sourceVersion.manifest
-    }
-  });
-
-  await db.function.update({
-    where: { oid: cloneFunction.oid },
-    data: { currentVersionOid: cloneVersion.oid }
-  });
-
-  await db.enclaveFunctionOverride.upsert({
-    where: {
-      enclaveOid_sourceFunctionOid_sourceFunctionVersionOid: {
         enclaveOid: enclave.oid,
         sourceFunctionOid: func.oid,
-        sourceFunctionVersionOid: sourceVersion.oid
+        sourceFunctionVersionOid: sourceVersion.oid,
+        overrideFunctionOid: cloneFunction.oid,
+        overrideFunctionVersionOid: cloneVersion.oid
       }
-    },
-    update: {},
-    create: {
-      oid: snowflake.nextId(),
-      enclaveOid: enclave.oid,
-      sourceFunctionOid: func.oid,
-      sourceFunctionVersionOid: sourceVersion.oid,
-      overrideFunctionOid: cloneFunction.oid,
-      overrideFunctionVersionOid: cloneVersion.oid
-    }
-  });
+    });
+
+    await db.enclaveFunctionOverrideDeployment.update({
+      where: { oid: overrideDeployment.oid },
+      data: {
+        status: 'succeeded',
+        overrideFunctionOid: cloneFunction.oid,
+        overrideFunctionVersionOid: cloneVersion.oid,
+        enclaveFunctionOverrideOid: override.oid
+      }
+    });
+  } catch (err) {
+    await db.enclaveFunctionOverrideDeployment.update({
+      where: { oid: overrideDeployment.oid },
+      data: {
+        status: 'failed',
+        errorMessage: getErrorMessage(err)
+      }
+    });
+    throw err;
+  }
 };
 
 export let enclaveOverrideCloneQueueProcessor = enclaveOverrideCloneQueue.process(

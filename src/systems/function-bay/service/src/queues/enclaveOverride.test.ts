@@ -77,7 +77,61 @@ describe('enclave override clone queue', () => {
       functionName: 'cloned-function'
     });
     expect(override.overrideFunctionVersion.supportsV2Proxy).toBe(true);
+    await expect(
+      testDb.enclaveFunctionOverrideDeployment.findFirstOrThrow({
+        where: {
+          enclaveOid: enclave.oid,
+          sourceFunctionOid: sourceVersion.function.oid,
+          sourceFunctionVersionOid: sourceVersion.oid
+        }
+      })
+    ).resolves.toMatchObject({
+      status: 'succeeded',
+      overrideFunctionOid: override.overrideFunctionOid,
+      overrideFunctionVersionOid: override.overrideFunctionVersionOid,
+      enclaveFunctionOverrideOid: override.oid,
+      errorMessage: null
+    });
     await expect(testDb.functionDeployment.count()).resolves.toBe(0);
+  });
+
+  it('decrypts source env vars from the deployment for versions with legacy ciphertext', async () => {
+    let sourceVersion = await f.functionVersion.complete();
+    let deployment = await f.functionDeployment.default({
+      functionOid: sourceVersion.function.oid,
+      runtimeOid: sourceVersion.runtimeOid,
+      functionBundleOid: sourceVersion.functionBundleOid,
+      overrides: {
+        functionVersionOid: sourceVersion.oid
+      }
+    });
+    await testDb.functionVersion.update({
+      where: { oid: sourceVersion.oid },
+      data: { encryptedEnvironmentVariables: deployment.encryptedEnvironmentVariables }
+    });
+
+    let enclaveTenant = await f.tenant.default({ hasAutomaticEnclaveOverride: true });
+    let enclave = await testDb.enclave.create({
+      data: {
+        ...getId('enclave'),
+        identifier: 'customer-a',
+        name: 'customer-a',
+        tenantOid: enclaveTenant.oid
+      }
+    });
+
+    let { processEnclaveOverrideClone } = await import('./enclaveOverride');
+    await processEnclaveOverrideClone({
+      enclaveId: enclave.id,
+      functionId: sourceVersion.function.id,
+      sourceFunctionVersionId: sourceVersion.id
+    });
+
+    expect(providerMocks.cloneFunctionVersion).toHaveBeenCalledWith(
+      expect.objectContaining({
+        env: {}
+      })
+    );
   });
 
   it('reuses the backing function from an existing override', async () => {
@@ -151,5 +205,43 @@ describe('enclave override clone queue', () => {
 
     expect(override.overrideFunctionOid).toBe(backingFunction.oid);
     expect(override.overrideFunctionOid).not.toBe(unrelatedClone.oid);
+  });
+
+  it('marks the override deployment as failed when cloning fails', async () => {
+    providerMocks.cloneFunctionVersion.mockRejectedValueOnce(new Error('provider failed'));
+    let sourceVersion = await f.functionVersion.complete();
+    let enclaveTenant = await f.tenant.default({ hasAutomaticEnclaveOverride: true });
+    let enclave = await testDb.enclave.create({
+      data: {
+        ...getId('enclave'),
+        identifier: 'customer-a',
+        name: 'customer-a',
+        tenantOid: enclaveTenant.oid
+      }
+    });
+
+    let { processEnclaveOverrideClone } = await import('./enclaveOverride');
+    await expect(
+      processEnclaveOverrideClone({
+        enclaveId: enclave.id,
+        functionId: sourceVersion.function.id,
+        sourceFunctionVersionId: sourceVersion.id
+      })
+    ).rejects.toThrow('provider failed');
+
+    await expect(
+      testDb.enclaveFunctionOverrideDeployment.findFirstOrThrow({
+        where: {
+          enclaveOid: enclave.oid,
+          sourceFunctionOid: sourceVersion.function.oid,
+          sourceFunctionVersionOid: sourceVersion.oid
+        }
+      })
+    ).resolves.toMatchObject({
+      status: 'failed',
+      errorMessage: 'provider failed',
+      overrideFunctionVersionOid: null,
+      enclaveFunctionOverrideOid: null
+    });
   });
 });
