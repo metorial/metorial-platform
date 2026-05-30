@@ -50,6 +50,7 @@ describe('aws lambda deflector invocation token selection', () => {
       } as any,
       payload: { value: 'hello' },
       providerData: {
+        functionArn: 'arn:aws:lambda:us-east-1:123456789012:function:lambda-name',
         functionName: 'lambda-name'
       }
     });

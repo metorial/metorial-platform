@@ -11,6 +11,9 @@ import { storage } from '../storage';
 let getErrorMessage = (err: unknown) =>
   err instanceof Error ? err.message : String(err);
 
+let isCorruptedZipError = (err: unknown) =>
+  err instanceof Error && err.message.includes("can't find end of central directory");
+
 export let enclaveOverrideCloneQueue = createQueue<{
   enclaveId: string;
   functionId: string;
@@ -80,6 +83,17 @@ export let processEnclaveOverrideClone = async (data: {
   });
 
   try {
+    if (sourceVersion.functionBundle.status === 'failed') {
+      await db.enclaveFunctionOverrideDeployment.update({
+        where: { oid: overrideDeployment.oid },
+        data: {
+          status: 'failed',
+          errorMessage: 'Source function bundle is marked as failed.'
+        }
+      });
+      return;
+    }
+
     if (
       sourceVersion.functionBundle.status !== 'available' ||
       !sourceVersion.functionBundle.bucket ||
@@ -220,6 +234,13 @@ export let processEnclaveOverrideClone = async (data: {
         errorMessage: getErrorMessage(err)
       }
     });
+    if (isCorruptedZipError(err)) {
+      await db.functionBundle.update({
+        where: { oid: sourceVersion.functionBundle.oid },
+        data: { status: 'failed' }
+      });
+      return;
+    }
     throw err;
   }
 };

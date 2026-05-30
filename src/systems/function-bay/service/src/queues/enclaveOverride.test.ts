@@ -244,4 +244,47 @@ describe('enclave override clone queue', () => {
       enclaveFunctionOverrideOid: null
     });
   });
+
+  it('marks corrupt source bundles as failed without retrying the queue', async () => {
+    providerMocks.cloneFunctionVersion.mockRejectedValueOnce(
+      new Error("Corrupted zip: can't find end of central directory")
+    );
+    let sourceVersion = await f.functionVersion.complete();
+    let enclaveTenant = await f.tenant.default({ hasAutomaticEnclaveOverride: true });
+    let enclave = await testDb.enclave.create({
+      data: {
+        ...getId('enclave'),
+        identifier: 'customer-a',
+        name: 'customer-a',
+        tenantOid: enclaveTenant.oid
+      }
+    });
+
+    let { processEnclaveOverrideClone } = await import('./enclaveOverride');
+    await expect(
+      processEnclaveOverrideClone({
+        enclaveId: enclave.id,
+        functionId: sourceVersion.function.id,
+        sourceFunctionVersionId: sourceVersion.id
+      })
+    ).resolves.toBeUndefined();
+
+    await expect(
+      testDb.enclaveFunctionOverrideDeployment.findFirstOrThrow({
+        where: {
+          enclaveOid: enclave.oid,
+          sourceFunctionOid: sourceVersion.function.oid,
+          sourceFunctionVersionOid: sourceVersion.oid
+        }
+      })
+    ).resolves.toMatchObject({
+      status: 'failed',
+      errorMessage: "Corrupted zip: can't find end of central directory"
+    });
+    await expect(
+      testDb.functionBundle.findUniqueOrThrow({
+        where: { oid: sourceVersion.functionBundleOid }
+      })
+    ).resolves.toMatchObject({ status: 'failed' });
+  });
 });

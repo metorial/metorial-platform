@@ -2,7 +2,7 @@ import { functionBayRuntimeConfig, type FunctionBayRuntimeConfig } from '@functi
 import { generatePlainId } from '@lowerdeck/id';
 import { combineQueueProcessors, createQueue, QueueRetryError } from '@lowerdeck/queue';
 import { v } from '@lowerdeck/validation';
-import { Readable } from 'stream';
+import JSZip from 'jszip';
 import { db } from '../db';
 import { encryption } from '../encryption';
 import { env } from '../env';
@@ -413,12 +413,15 @@ let uploadBundleQueueProcessor = uploadBundleQueue.process(async data => {
   let bucket = env.storage.BUNDLE_BUCKET_NAME;
 
   try {
-    await storage.putObject(
-      bucket,
-      storageKey,
-      await fetch(data.outputUrl).then(res => Readable.fromWeb(res.body! as any) as any),
-      'application/zip'
-    );
+    let res = await fetch(data.outputUrl);
+    if (!res.ok) {
+      throw new Error(`Failed to download function bundle: ${res.status} ${res.statusText}`);
+    }
+
+    let zipFile = Buffer.from(await res.arrayBuffer());
+    await JSZip.loadAsync(zipFile);
+
+    await storage.putObject(bucket, storageKey, zipFile, 'application/zip');
 
     await db.functionBundle.updateMany({
       where: { id: data.bundleId },
