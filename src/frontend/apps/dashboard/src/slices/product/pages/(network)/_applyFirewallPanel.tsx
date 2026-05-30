@@ -50,12 +50,14 @@ export let showApplyFirewallPanel = (p: {
 
     useEffect(() => {
       if (!firewalls.data) return;
-      setLocalFirewalls(current => current ?? firewalls.data.items);
+      setLocalFirewalls(current => current ?? firewalls.data?.items ?? []);
     }, [firewalls.data]);
 
     useEffect(() => {
       if (!firewallBindings.data) return;
-      setLocalBindings(current => current ?? firewallBindings.data.items.map(toLocalBinding));
+      setLocalBindings(
+        current => current ?? firewallBindings.data?.items.map(toLocalBinding) ?? []
+      );
     }, [firewallBindings.data]);
 
     let setFirewallPending = (firewallId: string, pending: boolean) => {
@@ -74,122 +76,125 @@ export let showApplyFirewallPanel = (p: {
         </Panel.Header>
 
         <Panel.Content>
-          {renderWithLoader({ firewalls, firewallBindings })(({ firewalls, firewallBindings }) => {
-            let displayedFirewalls = localFirewalls ?? firewalls.data.items;
-            let displayedBindings =
-              localBindings ?? firewallBindings.data.items.map(toLocalBinding);
-            let targetBindings = displayedBindings.filter(binding =>
-              targetMatches(binding, p.targetId)
-            );
+          {renderWithLoader({ firewalls, firewallBindings })(
+            ({ firewalls, firewallBindings }) => {
+              let displayedFirewalls = localFirewalls ?? firewalls.data.items;
+              let displayedBindings =
+                localBindings ?? firewallBindings.data.items.map(toLocalBinding);
+              let targetBindings = displayedBindings.filter(binding =>
+                targetMatches(binding, p.targetId)
+              );
 
-            return (
-              <Table
-                headers={['', 'Firewall', 'Status', 'Policies']}
-                data={displayedFirewalls.map(firewall => {
-                  let binding = targetBindings.find(
-                    binding => binding.firewall.id === firewall.id
-                  );
-                  let isApplied = !!binding;
-                  let isPending = pendingFirewallIds.includes(firewall.id);
+              return (
+                <Table
+                  headers={['', 'Firewall', 'Status', 'Policies']}
+                  data={displayedFirewalls.map(firewall => {
+                    let binding = targetBindings.find(
+                      binding => binding.firewall.id === firewall.id
+                    );
+                    let isApplied = !!binding;
+                    let isPending = pendingFirewallIds.includes(firewall.id);
 
-                  return {
-                    data: [
-                      <Checkbox
-                        label={`Apply ${firewall.name}`}
-                        hideLabel
-                        checked={isApplied}
-                        disabled={isPending || (!isApplied && firewall.status !== 'active')}
-                        onCheckedChange={async checked => {
-                          let previousBindings = displayedBindings;
-                          setFirewallPending(firewall.id, true);
+                    return {
+                      data: [
+                        <Checkbox
+                          label={`Apply ${firewall.name}`}
+                          hideLabel
+                          checked={isApplied}
+                          disabled={isPending || (!isApplied && firewall.status !== 'active')}
+                          onCheckedChange={async checked => {
+                            let previousBindings = displayedBindings;
+                            setFirewallPending(firewall.id, true);
 
-                          if (checked && !binding) {
-                            let optimisticBinding: LocalFirewallBinding = {
-                              id: `optimistic:${firewall.id}:${p.targetId}`,
-                              firewall: { id: firewall.id },
-                              target: { id: p.targetId }
-                            };
+                            if (checked && !binding) {
+                              let optimisticBinding: LocalFirewallBinding = {
+                                id: `optimistic:${firewall.id}:${p.targetId}`,
+                                firewall: { id: firewall.id },
+                                target: { id: p.targetId }
+                              };
 
-                            setLocalBindings(current =>
-                              (current ?? previousBindings)
-                                .filter(
-                                  binding =>
-                                    !(
-                                      targetMatches(binding, p.targetId) &&
-                                      binding.firewall.id === firewall.id
-                                    )
-                                )
-                                .concat(optimisticBinding)
-                            );
-
-                            let [createdBinding, error] = await createBinding.mutate({
-                              instanceId: p.instanceId,
-                              firewallId: firewall.id,
-                              targetType: p.targetType,
-                              ...(p.targetType === 'network'
-                                ? { networkId: p.targetId }
-                                : { enclaveId: p.targetId })
-                            });
-
-                            if (error) {
                               setLocalBindings(current =>
-                                (current ?? [])
-                                  .filter(item => item.id !== optimisticBinding.id)
+                                (current ?? previousBindings)
                                   .filter(
-                                    item =>
+                                    binding =>
                                       !(
-                                        targetMatches(item, p.targetId) &&
-                                        item.firewall.id === firewall.id
+                                        targetMatches(binding, p.targetId) &&
+                                        binding.firewall.id === firewall.id
                                       )
                                   )
+                                  .concat(optimisticBinding)
                               );
+
+                              let [createdBinding, error] = await createBinding.mutate({
+                                instanceId: p.instanceId,
+                                firewallId: firewall.id,
+                                targetType: p.targetType,
+                                ...(p.targetType === 'network'
+                                  ? { networkId: p.targetId }
+                                  : { enclaveId: p.targetId })
+                              });
+
+                              if (error) {
+                                setLocalBindings(current =>
+                                  (current ?? [])
+                                    .filter(item => item.id !== optimisticBinding.id)
+                                    .filter(
+                                      item =>
+                                        !(
+                                          targetMatches(item, p.targetId) &&
+                                          item.firewall.id === firewall.id
+                                        )
+                                    )
+                                );
+                                setFirewallPending(firewall.id, false);
+                                return;
+                              }
+
+                              if (createdBinding) {
+                                setLocalBindings(current =>
+                                  (current ?? []).map(binding =>
+                                    binding.id === optimisticBinding.id
+                                      ? toLocalBinding(createdBinding)
+                                      : binding
+                                  )
+                                );
+                              }
+
                               setFirewallPending(firewall.id, false);
+                              p.onComplete();
                               return;
                             }
 
-                            if (createdBinding) {
+                            if (!checked && binding) {
                               setLocalBindings(current =>
-                                (current ?? []).map(binding =>
-                                  binding.id === optimisticBinding.id
-                                    ? toLocalBinding(createdBinding)
-                                    : binding
+                                (current ?? previousBindings).filter(
+                                  item => item.id !== binding.id
                                 )
                               );
-                            }
 
-                            setFirewallPending(firewall.id, false);
-                            p.onComplete();
-                            return;
-                          }
-
-                          if (!checked && binding) {
-                            setLocalBindings(current =>
-                              (current ?? previousBindings).filter(item => item.id !== binding.id)
-                            );
-
-                            let [, error] = await deleteBinding.mutate({
-                              instanceId: p.instanceId,
-                              firewallBindingId: binding.id
-                            });
-
-                            if (error) {
-                              setLocalBindings(current => {
-                                let bindings = (current ?? []).filter(
-                                  item => item.id !== binding.id
-                                );
-                                return bindings.concat(binding);
+                              let [, error] = await deleteBinding.mutate({
+                                instanceId: p.instanceId,
+                                firewallBindingId: binding.id
                               });
+
+                              if (error) {
+                                setLocalBindings(current => {
+                                  let bindings = (current ?? []).filter(
+                                    item => item.id !== binding.id
+                                  );
+                                  return bindings.concat(binding);
+                                });
+                                setFirewallPending(firewall.id, false);
+                                return;
+                              }
+
                               setFirewallPending(firewall.id, false);
+                              p.onComplete();
                               return;
                             }
 
                             setFirewallPending(firewall.id, false);
-                            p.onComplete();
-                            return;
-                          }
-
-                          setFirewallPending(firewall.id, false);
-                        }}
+                          }}
                         />,
                         <Text size="2" weight="strong">
                           {firewall.name}
@@ -201,7 +206,8 @@ export let showApplyFirewallPanel = (p: {
                   })}
                 />
               );
-            })}
+            }
+          )}
 
           <createBinding.RenderError />
           <deleteBinding.RenderError />

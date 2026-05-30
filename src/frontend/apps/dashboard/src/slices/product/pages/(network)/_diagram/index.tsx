@@ -349,8 +349,6 @@ let RightLegendBar = styled(LegendBar)`
 `;
 
 let StatusPill = styled.span<{ $tone?: 'green' }>`
-  position: relative;
-  isolation: isolate;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -361,21 +359,6 @@ let StatusPill = styled.span<{ $tone?: 'green' }>`
   color: ${({ $tone }) => ($tone === 'green' ? '#15803d' : '#374151')};
   background: ${({ $tone }) => ($tone === 'green' ? '#f0fdf4' : '#f8f8f8')};
   border: 1px solid ${({ $tone }) => ($tone === 'green' ? '#86efac' : '#d4d4d8')};
-
-  ${({ $tone }) =>
-    $tone === 'green'
-      ? `
-    &::before {
-      content: '';
-      position: absolute;
-      inset: -4px;
-      z-index: -1;
-      border-radius: inherit;
-      border: 1px solid #22c55e;
-      animation: green-ripple 1.8s ease-out infinite;
-    }
-  `
-      : ''}
 
   > svg {
     width: 16px;
@@ -402,18 +385,6 @@ let CanvasFrame = styled.section`
   @keyframes dash-traffic {
     to {
       stroke-dashoffset: -18;
-    }
-  }
-
-  @keyframes green-ripple {
-    0% {
-      opacity: 0.45;
-      transform: scale(1);
-    }
-
-    100% {
-      opacity: 0;
-      transform: scale(1.18);
     }
   }
 `;
