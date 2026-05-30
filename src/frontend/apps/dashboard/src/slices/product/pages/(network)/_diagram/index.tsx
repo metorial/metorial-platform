@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { RiShieldCheckLine } from '@remixicon/react';
 import ReactFlow, {
   Background,
   BackgroundVariant,
@@ -125,7 +126,9 @@ let buildFlowFromNetwork = (
       yOffset
   }));
 
-  let managedComponents = positionedComponents.filter(component => component.kind !== 'platform');
+  let managedComponents = positionedComponents.filter(
+    component => component.kind !== 'platform'
+  );
   let managedLeft = Math.min(
     ...managedComponents.map(component => component.x - getNodeWidth(component.kind) / 2)
   );
@@ -303,6 +306,12 @@ export let NetworkDiagram = (p: { ipAddress: string; region: string; apiHost: st
         <StatusPill>Production</StatusPill>
         <StatusPill>{p.region}</StatusPill>
       </LegendBar>
+      <RightLegendBar>
+        <StatusPill $tone="green" aria-label="Protected">
+          <RiShieldCheckLine />
+          Operating Normally
+        </StatusPill>
+      </RightLegendBar>
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -318,12 +327,7 @@ export let NetworkDiagram = (p: { ipAddress: string; region: string; apiHost: st
         zoomOnScroll
         zoomOnPinch
       >
-        <Background
-          variant={BackgroundVariant.Dots}
-          color="#b6b6b6"
-          size={1.5}
-          gap={18}
-        />
+        <Background variant={BackgroundVariant.Dots} color="#b6b6b6" size={1.5} gap={18} />
       </ReactFlow>
     </CanvasFrame>
   );
@@ -339,16 +343,45 @@ let LegendBar = styled.div`
   pointer-events: none;
 `;
 
-let StatusPill = styled.span`
+let RightLegendBar = styled(LegendBar)`
+  left: auto;
+  right: 12px;
+`;
+
+let StatusPill = styled.span<{ $tone?: 'green' }>`
+  position: relative;
+  isolation: isolate;
   display: inline-flex;
   align-items: center;
+  gap: 6px;
   padding: 8px 12px;
   border-radius: 999px;
   font-size: 13px;
   font-weight: 600;
-  color: #374151;
-  background: #f8f8f8;
-  border: 1px solid #d4d4d8;
+  color: ${({ $tone }) => ($tone === 'green' ? '#15803d' : '#374151')};
+  background: ${({ $tone }) => ($tone === 'green' ? '#f0fdf4' : '#f8f8f8')};
+  border: 1px solid ${({ $tone }) => ($tone === 'green' ? '#86efac' : '#d4d4d8')};
+
+  ${({ $tone }) =>
+    $tone === 'green'
+      ? `
+    &::before {
+      content: '';
+      position: absolute;
+      inset: -4px;
+      z-index: -1;
+      border-radius: inherit;
+      border: 1px solid #22c55e;
+      animation: green-ripple 1.8s ease-out infinite;
+    }
+  `
+      : ''}
+
+  > svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+  }
 `;
 
 let CanvasFrame = styled.section`
@@ -369,6 +402,18 @@ let CanvasFrame = styled.section`
   @keyframes dash-traffic {
     to {
       stroke-dashoffset: -18;
+    }
+  }
+
+  @keyframes green-ripple {
+    0% {
+      opacity: 0.45;
+      transform: scale(1);
+    }
+
+    100% {
+      opacity: 0;
+      transform: scale(1.18);
     }
   }
 `;
