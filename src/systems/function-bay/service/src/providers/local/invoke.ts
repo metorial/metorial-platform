@@ -3,8 +3,8 @@ import { promises as fs } from 'fs';
 import JSZip from 'jszip';
 import { tmpdir } from 'os';
 import { dirname, join, resolve, sep } from 'path';
-import { encryption } from '../../encryption';
 import { env } from '../../env';
+import { decryptFunctionVersionEnvironmentVariables } from '../../lib/decryptFunctionVersionEnvironmentVariables';
 import { storage } from '../../storage';
 import type { FunctionInvocationParams } from '../_lib';
 import { parseInvocationPayload } from '../_lib';
@@ -217,12 +217,10 @@ export let invokeFunction = async (d: FunctionInvocationParams) => {
     await fs.writeFile(runnerPath, LOCAL_RUNNER_SCRIPT, 'utf-8');
     await fs.writeFile(eventPath, JSON.stringify({ payload: d.payload }), 'utf-8');
 
-    let envVars = JSON.parse(
-      await encryption.decrypt({
-        entityId: d.functionVersion.id,
-        encrypted: d.providerData.encryptedEnvironmentVariables
-      })
-    );
+    let envVars = await decryptFunctionVersionEnvironmentVariables({
+      functionVersion: d.functionVersion,
+      encryptedEnvironmentVariables: d.providerData.encryptedEnvironmentVariables
+    });
 
     let exitCode = await captureProcessLogs({
       command: process.execPath,

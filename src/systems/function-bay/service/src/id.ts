@@ -5,6 +5,7 @@ export let ID = createIdGenerator({
   tenant: idType.sorted('bten_'),
   enclave: idType.sorted('benc_'),
   enclaveFunctionOverride: idType.sorted('befo_'),
+  enclaveFunctionOverrideDeployment: idType.sorted('befod_'),
 
   provider: idType.sorted('bpro_'),
   runtime: idType.sorted('brtm_'),
