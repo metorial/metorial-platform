@@ -7,7 +7,8 @@ import type {
   FunctionServer,
   ServerAuthConfig,
   ServerConfig,
-  ServerConnection
+  ServerConnection,
+  ServerInstanceConfiguration
 } from '../../../prisma/generated/client';
 import { db } from '../../db';
 import { snowflake } from '../../id';
@@ -41,6 +42,7 @@ export class FunctionConnection implements McpConnectionBackendAdapter {
     readonly connection: ServerConnection & {
       serverConfig: ServerConfig;
       serverAuthConfig: ServerAuthConfig | null;
+      serverInstanceConfiguration: ServerInstanceConfiguration | null;
     },
     private readonly functionServer: FunctionServer,
     private readonly DECRYPTED_config_value: Record<string, unknown>
@@ -64,6 +66,7 @@ export class FunctionConnection implements McpConnectionBackendAdapter {
     connection: ServerConnection & {
       serverConfig: ServerConfig;
       serverAuthConfig: ServerAuthConfig | null;
+      serverInstanceConfiguration: ServerInstanceConfiguration | null;
     }
   ) {
     if (!version.functionServerOid) {
@@ -127,9 +130,9 @@ export class FunctionConnection implements McpConnectionBackendAdapter {
       let res = await callFunction(
         this.functionServer,
         {
-          enclaveId: this.connection.enclaveId,
-          egressPolicy:
-            this.connection.egressPolicy as PrismaJson.CompiledEgressNetworkAllowList | null
+          enclaveId: this.connection.serverInstanceConfiguration?.enclaveId,
+          egressPolicy: this.connection.serverInstanceConfiguration
+            ?.egressPolicy as PrismaJson.CompiledEgressNetworkAllowList | null
         },
         client =>
           client.handleMcpMessages({

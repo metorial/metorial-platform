@@ -68,6 +68,7 @@ class slateSessionToolCallServiceImpl {
         slate: true,
         slateInstance: { include: { currentConfig: true } },
         slateVersion: { include: { specification: true } },
+        instanceConfiguration: true,
         tenant: true
       }
     });
@@ -165,8 +166,12 @@ class slateSessionToolCallServiceImpl {
       tenant: session.tenant,
       participants: d.input.participants,
       slateVersion: session.slateVersion,
-      enclaveId: d.input.enclaveId,
-      egressPolicy: d.input.egressPolicy,
+      enclaveId: d.input.enclaveId ?? session.instanceConfiguration?.enclaveId,
+      egressPolicy:
+        d.input.egressPolicy ??
+        (session.instanceConfiguration
+          ?.egressPolicy as PrismaJson.CompiledEgressNetworkAllowList | null) ??
+        undefined,
 
       config: session.slateInstance.currentConfig.value ?? {},
       session: { id: session.id, state: {} },

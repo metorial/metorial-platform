@@ -9,7 +9,8 @@ import type {
   ContainerRepository,
   ContainerRepositoryVersion,
   ServerConfig,
-  ServerConnection
+  ServerConnection,
+  ServerInstanceConfiguration
 } from '../../../prisma/generated/client';
 import { env } from '../../env';
 import { egressPolicyToRuntimeNetworkRules } from '../../lib/network/egressPolicy';
@@ -67,7 +68,9 @@ export class HolopodConnection implements McpConnectionBackendAdapter {
 
   constructor(
     readonly tenant: Tenant,
-    readonly connection: ServerConnection,
+    readonly connection: ServerConnection & {
+      serverInstanceConfiguration: ServerInstanceConfiguration | null;
+    },
     readonly serverConfig: ServerConfig,
     readonly version: ContainerRepositoryVersion & {
       repository: ContainerRepository & {
@@ -90,7 +93,9 @@ export class HolopodConnection implements McpConnectionBackendAdapter {
   }
 
   static async create(
-    connection: ServerConnection,
+    connection: ServerConnection & {
+      serverInstanceConfiguration: ServerInstanceConfiguration | null;
+    },
     version: ContainerRepositoryVersion & {
       repository: ContainerRepository & {
         registry: ContainerRegistry;
@@ -159,8 +164,8 @@ export class HolopodConnection implements McpConnectionBackendAdapter {
       note: `hmcp.cfg:${this.connection.id}:${this.serverConfig.id}`
     });
 
-    let egressPolicy =
-      this.connection.egressPolicy as PrismaJson.CompiledEgressNetworkAllowList | null;
+    let egressPolicy = this.connection.serverInstanceConfiguration
+      ?.egressPolicy as PrismaJson.CompiledEgressNetworkAllowList | null;
     mcpTraceLog('init:config-loaded', {
       hasRegistryAuth: !!auth,
       rulesCount: egressPolicy?.entries.length ?? 0

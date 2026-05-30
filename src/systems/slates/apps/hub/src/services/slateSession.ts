@@ -4,6 +4,7 @@ import { Service } from '@lowerdeck/service';
 import type {
   Slate,
   SlateInstance,
+  SlateInstanceConfiguration,
   SlateVersion,
   Tenant
 } from '../../prisma/generated/client';
@@ -13,7 +14,8 @@ import { getId } from '../id';
 let include = {
   slate: true,
   slateInstance: true,
-  slateVersion: true
+  slateVersion: true,
+  instanceConfiguration: true
 };
 
 class slateSessionServiceImpl {
@@ -23,6 +25,7 @@ class slateSessionServiceImpl {
       slateInstance: SlateInstance;
       slate: Slate;
       lockedVersion?: SlateVersion;
+      instanceConfiguration?: SlateInstanceConfiguration;
     };
   }) {
     let version =
@@ -39,7 +42,8 @@ class slateSessionServiceImpl {
         tenantOid: d.tenant.oid,
         slateOid: d.input.slate.oid,
         slateVersionOid: version.oid,
-        slateInstanceOid: d.input.slateInstance.oid
+        slateInstanceOid: d.input.slateInstance.oid,
+        instanceConfigurationOid: d.input.instanceConfiguration?.oid
       },
       include
     });

@@ -7,6 +7,7 @@ import type {
   ServerAuthConfig,
   ServerConfig,
   ServerConnection,
+  ServerInstanceConfiguration,
   ServerVersion,
   Tenant
 } from '../../prisma/generated/client';
@@ -18,7 +19,8 @@ import { connectionLogsBucketRecord } from '../storage';
 let include = {
   serverConfig: true,
   serverAuthConfig: true,
-  serverVersion: true
+  serverVersion: true,
+  serverInstanceConfiguration: true
 };
 
 class serverConnectionServiceImpl {
@@ -72,12 +74,10 @@ class serverConnectionServiceImpl {
       serverConfig: ServerConfig;
       serverAuthConfig?: ServerAuthConfig;
       serverVersion: ServerVersion & { server: Server };
+      serverInstanceConfiguration?: ServerInstanceConfiguration;
 
       client: InitializeRequest['params']['clientInfo'];
       capabilities: InitializeRequest['params']['capabilities'];
-
-      enclaveId?: string;
-      egressPolicy?: PrismaJson.CompiledEgressNetworkAllowList;
     };
   }) {
     let paramRes = await this.resolveServerConnectionParams(d);
@@ -91,8 +91,7 @@ class serverConnectionServiceImpl {
 
         client: d.input.client,
         capabilities: d.input.capabilities,
-        enclaveId: d.input.enclaveId,
-        egressPolicy: d.input.egressPolicy,
+        serverInstanceConfigurationOid: d.input.serverInstanceConfiguration?.oid,
 
         tenantOid: d.tenant.oid,
         logBucketOid: connectionLogsBucketRecord.oid,

@@ -9,6 +9,7 @@ export * from './slateDeployment';
 export * from './slateError';
 export * from './slateEvent';
 export * from './slateInstance';
+export * from './slateInstanceConfiguration';
 export * from './slateInstanceEvent';
 export * from './slateInvocation';
 export * from './slateOAuthCredentials';
