@@ -18,6 +18,9 @@ let { mockDb } = vi.hoisted(() => ({
 }));
 
 vi.mock('@metorial-subspace/db', () => ({
+  Prisma: {
+    JsonNull: Symbol('JsonNull')
+  },
   withTransaction: async (
     cb: (db: typeof mockDb) => Promise<unknown>,
     opts?: { ifExists?: boolean }
@@ -187,7 +190,8 @@ describe('enclaveInternalService.ensureEnclaveForProviderDeployment', () => {
         tenantOid: tenant.oid,
         environmentOid: environment.oid,
         networkOid: BigInt(55),
-        enclaveEnvironmentOid: BigInt(50)
+        enclaveEnvironmentOid: BigInt(50),
+        needsEnclaveReconciliation: true
       })
     });
 

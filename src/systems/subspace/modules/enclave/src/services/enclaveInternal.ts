@@ -82,7 +82,8 @@ class enclaveInternalServiceImpl {
             networkOid: network.oid,
             tenantOid: d.tenant.oid,
             environmentOid: d.environment.oid,
-            compiledNetworkRules: Prisma.JsonNull
+            compiledNetworkRules: Prisma.JsonNull,
+            needsEnclaveReconciliation: true
           }
         });
 
