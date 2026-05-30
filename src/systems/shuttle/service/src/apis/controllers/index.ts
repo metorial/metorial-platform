@@ -11,6 +11,7 @@ import { serverAuthConfigController } from './serverAuthConfig';
 import { serverAuthConfigEventController } from './serverAuthConfigEvent';
 import { serverConfigController } from './serverConfig';
 import { serverConnectionController } from './serverConnection';
+import { serverInstanceConfigurationController } from './serverInstanceConfiguration';
 import { serverDeploymentController } from './serverDeployment';
 import { serverDiscoveryController } from './serverDiscovery';
 import { serverOAuthCredentialsController } from './serverOAuthCredentials';
@@ -34,6 +35,7 @@ export let rootController = app.controller({
   serverConfig: serverConfigController,
   serverDeployment: serverDeploymentController,
   serverConnection: serverConnectionController,
+  serverInstanceConfiguration: serverInstanceConfigurationController,
   serverAuthConfig: serverAuthConfigController,
   serverAuthConfigEvent: serverAuthConfigEventController,
 

@@ -2,6 +2,7 @@ import type {
   ServerAuthConfig,
   ServerConfig,
   ServerConnection,
+  ServerInstanceConfiguration,
   ServerVersion
 } from '../../prisma/generated/client';
 
@@ -10,6 +11,7 @@ export let serverConnectionPresenter = (
     serverConfig: ServerConfig;
     serverVersion: ServerVersion;
     serverAuthConfig: ServerAuthConfig | null;
+    serverInstanceConfiguration: ServerInstanceConfiguration | null;
   }
 ) => ({
   object: 'shuttle#server_connection',
@@ -19,12 +21,11 @@ export let serverConnectionPresenter = (
 
   client: serverConnection.client,
   capabilities: serverConnection.capabilities,
-  enclaveId: serverConnection.enclaveId,
-  egressPolicy: serverConnection.egressPolicy,
 
   serverConfigId: serverConnection.serverConfig.id,
   serverVersionId: serverConnection.serverVersion.id,
   serverAuthConfigId: serverConnection.serverAuthConfig?.id,
+  serverInstanceConfigurationId: serverConnection.serverInstanceConfiguration?.id,
 
   createdAt: serverConnection.createdAt
 });

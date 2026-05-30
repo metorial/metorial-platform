@@ -18,6 +18,7 @@ model Tenant {
   repositoryTags                     ContainerRepositoryTag[]
   repositoryVersions                 ContainerRepositoryVersion[]
   serverConfigs                      ServerConfig[]
+  serverInstanceConfigurations       ServerInstanceConfiguration[]
   serverConnections                  ServerConnection[]
   serverDiscoveries                  ServerDiscovery[]
   servers                            Server[]
