@@ -12,7 +12,18 @@ import {
   useNetwork,
   useNetworkPolicy
 } from '@metorial/state';
-import { Attributes, Badge, Button, Dialog, Input, Menu, Select, Spacer, Text, showModal } from '@metorial/ui';
+import {
+  Attributes,
+  Badge,
+  Button,
+  Dialog,
+  Input,
+  Menu,
+  Select,
+  Spacer,
+  Text,
+  showModal
+} from '@metorial/ui';
 import { Box, ID, Table } from '@metorial/ui-product';
 import { RiArrowDownLine, RiArrowUpLine, RiMore2Line } from '@remixicon/react';
 import { Link, useParams } from 'react-router-dom';
@@ -38,11 +49,10 @@ type PolicyRule = {
   description: string | null;
   enabled: boolean;
   priority: number;
-  ports: ({ object: 'network.policy.port_range'; from: number; to: number }[] | null);
+  ports: { object: 'network.policy.port_range'; from: number; to: number }[] | null;
 };
 
-let ipv4AddressRegex =
-  /^(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)$/;
+let ipv4AddressRegex = /^(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)$/;
 
 let ipv6SegmentRegex = /^[0-9a-fA-F]{1,4}$/;
 
@@ -80,7 +90,9 @@ let isValidCidr = (cidr: string) => {
 };
 
 let parsePorts = (portFrom: string, portTo: string) =>
-  portFrom !== '' && portTo !== '' ? [{ from: Number(portFrom), to: Number(portTo) }] : undefined;
+  portFrom !== '' && portTo !== ''
+    ? [{ from: Number(portFrom), to: Number(portTo) }]
+    : undefined;
 
 let getRuleInput = (values: {
   effect: 'allow' | 'deny';
@@ -306,7 +318,11 @@ let showRuleModal = (p: {
             .max(65535, 'Port must be 65535 or lower')
             .transform((value, originalValue) => (originalValue === '' ? undefined : value))
             .test('port-pair', 'Port From is required when Port To is set', function (value) {
-              return this.parent.direction === 'ingress' || this.parent.portTo === undefined || value !== undefined;
+              return (
+                this.parent.direction === 'ingress' ||
+                this.parent.portTo === undefined ||
+                value !== undefined
+              );
             })
             .optional(),
           portTo: yup
@@ -316,11 +332,24 @@ let showRuleModal = (p: {
             .max(65535, 'Port must be 65535 or lower')
             .transform((value, originalValue) => (originalValue === '' ? undefined : value))
             .test('port-pair', 'Port To is required when Port From is set', function (value) {
-              return this.parent.direction === 'ingress' || this.parent.portFrom === undefined || value !== undefined;
+              return (
+                this.parent.direction === 'ingress' ||
+                this.parent.portFrom === undefined ||
+                value !== undefined
+              );
             })
-            .test('port-range', 'Port To must be greater than or equal to Port From', function (value) {
-              return this.parent.direction === 'ingress' || this.parent.portFrom === undefined || value === undefined || value >= this.parent.portFrom;
-            })
+            .test(
+              'port-range',
+              'Port To must be greater than or equal to Port From',
+              function (value) {
+                return (
+                  this.parent.direction === 'ingress' ||
+                  this.parent.portFrom === undefined ||
+                  value === undefined ||
+                  value >= this.parent.portFrom
+                );
+              }
+            )
             .optional(),
           description: yup.string()
         }) as any
@@ -357,15 +386,35 @@ let showRuleModal = (p: {
           <Input label="CIDRs" {...form.getFieldProps('cidrs')} />
           <form.RenderError field="cidrs" />
           <Spacer size={12} />
-          <Input label="Priority" type="number" min={0} step={1} {...form.getFieldProps('priority')} />
+          <Input
+            label="Priority"
+            type="number"
+            min={0}
+            step={1}
+            {...form.getFieldProps('priority')}
+          />
           <form.RenderError field="priority" />
           {form.values.direction === 'egress' && (
             <>
               <Spacer size={12} />
-              <Input label="Port From" type="number" min={1} max={65535} step={1} {...form.getFieldProps('portFrom')} />
+              <Input
+                label="Port From"
+                type="number"
+                min={1}
+                max={65535}
+                step={1}
+                {...form.getFieldProps('portFrom')}
+              />
               <form.RenderError field="portFrom" />
               <Spacer size={12} />
-              <Input label="Port To" type="number" min={1} max={65535} step={1} {...form.getFieldProps('portTo')} />
+              <Input
+                label="Port To"
+                type="number"
+                min={1}
+                max={65535}
+                step={1}
+                {...form.getFieldProps('portTo')}
+              />
               <form.RenderError field="portTo" />
             </>
           )}
@@ -404,7 +453,7 @@ let PolicyBox = (p: {
       title={policy.data.name}
       description={`Version ${policy.data.version}`}
       rightActions={
-        p.canWrite ?
+        p.canWrite ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <Button
               size="2"
@@ -432,44 +481,44 @@ let PolicyBox = (p: {
             </Button>
 
             <Menu
-            items={[
-              { id: 'edit', label: 'Edit' },
-              { id: 'detach', label: 'Detach' }
-            ]}
-            onItemClick={async item => {
-              if (item === 'edit') {
-                showEditPolicyModal({
-                  name: policy.data.name,
-                  description: policy.data.description,
-                  onSubmit: async values => {
-                    await updatePolicy.mutate({
-                      name: values.name,
-                      description: values.description || undefined
-                    });
-                    p.onComplete();
-                  }
-                });
-              }
+              items={[
+                { id: 'edit', label: 'Edit' },
+                { id: 'detach', label: 'Detach' }
+              ]}
+              onItemClick={async item => {
+                if (item === 'edit') {
+                  showEditPolicyModal({
+                    name: policy.data.name,
+                    description: policy.data.description,
+                    onSubmit: async values => {
+                      await updatePolicy.mutate({
+                        name: values.name,
+                        description: values.description || undefined
+                      });
+                      p.onComplete();
+                    }
+                  });
+                }
 
-              if (item === 'detach') {
-                await detachPolicy.mutate({
-                  instanceId: p.instanceId,
-                  firewallId: p.firewallId,
-                  networkPolicyId: p.policyId
-                });
-                p.onComplete();
-              }
-            }}
-          >
-            <Button
-              size="2"
-              variant="outline"
-              iconLeft={<RiMore2Line />}
-              title="Policy actions"
-            />
+                if (item === 'detach') {
+                  await detachPolicy.mutate({
+                    instanceId: p.instanceId,
+                    firewallId: p.firewallId,
+                    networkPolicyId: p.policyId
+                  });
+                  p.onComplete();
+                }
+              }}
+            >
+              <Button
+                size="2"
+                variant="outline"
+                iconLeft={<RiMore2Line />}
+                title="Policy actions"
+              />
             </Menu>
           </div>
-        : undefined
+        ) : undefined
       }
     >
       {policy.data.rules.length > 0 ? (
@@ -486,7 +535,7 @@ let PolicyBox = (p: {
                 {rule.ports?.map(port => `${port.from}-${port.to}`).join(', ') ?? 'All'}
               </Text>,
               <Text size="2">{rule.priority}</Text>,
-              p.canWrite ?
+              p.canWrite ? (
                 <div style={{ display: 'flex', justifyContent: 'flex-end', width: '100%' }}>
                   <Menu
                     items={[
@@ -494,58 +543,60 @@ let PolicyBox = (p: {
                       { id: 'remove', label: 'Remove' }
                     ]}
                     onItemClick={async item => {
-                    if (item === 'edit') {
-                      showRuleModal({
-                        title: 'Edit Network Rule',
-                        description: 'Update this network policy rule.',
-                        initialValues: {
-                          effect: rule.effect,
-                          direction: rule.direction,
-                          cidrs: rule.cidrs.join(', '),
-                          priority: String(rule.priority),
-                          portFrom: rule.ports?.[0] ? String(rule.ports[0].from) : '',
-                          portTo: rule.ports?.[0] ? String(rule.ports[0].to) : '',
-                          description: rule.description ?? ''
-                        },
-                        onSubmit: async nextRule => {
-                          await updateRule.mutate({
-                            ruleId: rule.id,
-                            rule: nextRule,
-                            currentRules: policy.data.rules.map((currentRule: PolicyRule) => ({
-                              id: currentRule.id,
-                              effect: currentRule.effect,
-                              direction: currentRule.direction,
-                              cidrs: currentRule.cidrs,
-                              description: currentRule.description,
-                              enabled: currentRule.enabled,
-                              priority: currentRule.priority,
-                              ports:
-                                currentRule.ports?.map(port => ({
-                                  from: port.from,
-                                  to: port.to
-                                })) ?? null
-                            }))
-                          });
-                          p.onComplete();
-                        }
-                      });
-                    }
+                      if (item === 'edit') {
+                        showRuleModal({
+                          title: 'Edit Network Rule',
+                          description: 'Update this network policy rule.',
+                          initialValues: {
+                            effect: rule.effect,
+                            direction: rule.direction,
+                            cidrs: rule.cidrs.join(', '),
+                            priority: String(rule.priority),
+                            portFrom: rule.ports?.[0] ? String(rule.ports[0].from) : '',
+                            portTo: rule.ports?.[0] ? String(rule.ports[0].to) : '',
+                            description: rule.description ?? ''
+                          },
+                          onSubmit: async nextRule => {
+                            await updateRule.mutate({
+                              ruleId: rule.id,
+                              rule: nextRule,
+                              currentRules: policy.data.rules.map(
+                                (currentRule: PolicyRule) => ({
+                                  id: currentRule.id,
+                                  effect: currentRule.effect,
+                                  direction: currentRule.direction,
+                                  cidrs: currentRule.cidrs,
+                                  description: currentRule.description,
+                                  enabled: currentRule.enabled,
+                                  priority: currentRule.priority,
+                                  ports:
+                                    currentRule.ports?.map(port => ({
+                                      from: port.from,
+                                      to: port.to
+                                    })) ?? null
+                                })
+                              )
+                            });
+                            p.onComplete();
+                          }
+                        });
+                      }
 
-                    if (item === 'remove') {
-                      await deleteRule.mutate({ ruleId: rule.id });
-                      p.onComplete();
-                    }
-                  }}
-                >
-                  <Button
-                    size="1"
-                    variant="outline"
-                    iconLeft={<RiMore2Line />}
-                    title="Rule actions"
-                  />
+                      if (item === 'remove') {
+                        await deleteRule.mutate({ ruleId: rule.id });
+                        p.onComplete();
+                      }
+                    }}
+                  >
+                    <Button
+                      size="1"
+                      variant="outline"
+                      iconLeft={<RiMore2Line />}
+                      title="Rule actions"
+                    />
                   </Menu>
                 </div>
-              : null
+              ) : null
             ]
           }))}
         />
@@ -577,7 +628,9 @@ export let NetworkFirewallPage = () => {
           {
             label: 'Network',
             content: (
-              <Link to={Paths.instance.network(organization.data, project.data, instance.data)}>
+              <Link
+                to={Paths.instance.network(organization.data, project.data, instance.data)}
+              >
                 {network.data?.name ?? 'Loading...'}
               </Link>
             )
@@ -596,7 +649,7 @@ export let NetworkFirewallPage = () => {
         title="Network Policies"
         description="Network policies define which connections this firewall allows or blocks."
         actions={
-          canWrite ?
+          canWrite ? (
             <Button
               size="2"
               onClick={() =>
@@ -609,7 +662,7 @@ export let NetworkFirewallPage = () => {
             >
               Create Policy
             </Button>
-          : undefined
+          ) : undefined
         }
       />
 

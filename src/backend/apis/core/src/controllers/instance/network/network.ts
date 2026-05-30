@@ -1,16 +1,23 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
+import type { Organization } from '@metorial/db';
+import { flagService } from '@metorial/module-flags';
 import { subspaceEnclaveService, subspaceNetworkService } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instancePath } from '../../../middleware/instanceGroup';
-import { networkInstanceGroup } from './_middleware';
 import { networkLogsPresenter, networkPresenter } from '../../../presenters';
+import { networkInstanceGroup } from './_middleware';
 
 let networkReadScopes = ['instance.network:read'] as const;
+
+let getMaskPublicIp = async (organization: Organization) => {
+  let flags = await flagService.getFlags({ organization });
+  return !flags['paid-network-ip-access'];
+};
 
 export let networkGroup = networkInstanceGroup.use(async ctx => {
   if (!ctx.params.networkId) {
@@ -66,10 +73,12 @@ export let networkController = Controller.create(
         });
 
         let list = await paginator.run(ctx.query);
+        let maskPublicIp = await getMaskPublicIp(ctx.instance.organization);
 
         return Paginator.present(list, network =>
           networkPresenter.present({
-            network
+            network,
+            maskPublicIp
           })
         );
       }),
@@ -81,12 +90,17 @@ export let networkController = Controller.create(
       })
       .use(checkAccess({ possibleScopes: [...networkReadScopes] }))
       .output(networkPresenter)
-      .do(async ctx => networkPresenter.present({ network: ctx.network })),
+      .do(async ctx => {
+        let maskPublicIp = await getMaskPublicIp(ctx.instance.organization);
+
+        return networkPresenter.present({ network: ctx.network, maskPublicIp });
+      }),
 
     listNetworkLogs: networkInstanceGroup
       .get(instancePath('network-logs', 'networks.listNetworkLogs'), {
         name: 'List network logs',
-        description: 'Returns ingress or egress network logs for enclaves in the instance environment.'
+        description:
+          'Returns ingress or egress network logs for enclaves in the instance environment.'
       })
       .use(checkAccess({ possibleScopes: [...networkReadScopes] }))
       .output(networkLogsPresenter)

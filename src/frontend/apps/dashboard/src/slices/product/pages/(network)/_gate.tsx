@@ -9,10 +9,16 @@ export let useNetworkManagementAccess = () => {
     flags,
     isEnabled: !!flags.data?.flags['networking-enabled'],
     isPaid: !!flags.data?.flags['paid-networking'],
+    hasPublicIpAccess: !!flags.data?.flags['paid-network-ip-access'],
     canWrite:
       !!flags.data?.flags['networking-enabled'] && !!flags.data?.flags['paid-networking']
   };
 };
+
+export let getDisplayedNetworkPublicIp = (
+  ip: string | undefined,
+  hasPublicIpAccess: boolean
+) => (hasPublicIpAccess ? ip ?? '-' : 'shared');
 
 export let NetworkManagedPage = ({ children }: { children: React.ReactNode }) => {
   let flags = useDashboardFlags();

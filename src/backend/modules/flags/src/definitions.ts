@@ -27,6 +27,7 @@ export type Flags = {
   'paid-portals': boolean;
   'paid-key-providers': boolean;
   'paid-networking': boolean;
+  'paid-network-ip-access': boolean;
 };
 
 export let defaultFlags: Flags = {
@@ -55,7 +56,8 @@ export let defaultFlags: Flags = {
   'paid-sso-tenants': true,
   'paid-portals': true,
   'paid-key-providers': true,
-  'paid-networking': false
+  'paid-networking': false,
+  'paid-network-ip-access': false
 };
 
 export type FlagProviderParams = {

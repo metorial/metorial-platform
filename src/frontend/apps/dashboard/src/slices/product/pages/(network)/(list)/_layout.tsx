@@ -8,6 +8,7 @@ import {
 } from '@metorial/state';
 import { LinkTabs } from '@metorial/ui';
 import { Outlet, useLocation } from 'react-router-dom';
+import { NetworkManagedPage } from '../_gate';
 
 export let NetworkListLayout = () => {
   let organization = useCurrentOrganization();
@@ -22,31 +23,45 @@ export let NetworkListLayout = () => {
         description="Monitor network activity and manage firewalls for this instance."
       />
 
-      <LinkTabs
-        current={location.pathname}
-        links={[
-          {
-            label: 'Overview',
-            to: Paths.instance.network(organization.data, project.data, instance.data)
-          },
-          {
-            label: 'Firewalls',
-            to: Paths.instance.networkFirewalls(organization.data, project.data, instance.data)
-          },
-          {
-            label: 'Enclaves',
-            to: Paths.instance.networkEnclaves(organization.data, project.data, instance.data)
-          },
-          {
-            label: 'Settings',
-            to: Paths.instance.networkSettings(organization.data, project.data, instance.data)
-          }
-        ]}
-      />
+      <NetworkManagedPage>
+        <LinkTabs
+          current={location.pathname}
+          links={[
+            {
+              label: 'Overview',
+              to: Paths.instance.network(organization.data, project.data, instance.data)
+            },
+            {
+              label: 'Firewalls',
+              to: Paths.instance.networkFirewalls(
+                organization.data,
+                project.data,
+                instance.data
+              )
+            },
+            {
+              label: 'Enclaves',
+              to: Paths.instance.networkEnclaves(
+                organization.data,
+                project.data,
+                instance.data
+              )
+            },
+            {
+              label: 'Settings',
+              to: Paths.instance.networkSettings(
+                organization.data,
+                project.data,
+                instance.data
+              )
+            }
+          ]}
+        />
 
-      <PaginationSearchParamsProvider enabled={true}>
-        <Outlet />
-      </PaginationSearchParamsProvider>
+        <PaginationSearchParamsProvider enabled={true}>
+          <Outlet />
+        </PaginationSearchParamsProvider>
+      </NetworkManagedPage>
     </ContentLayout>
   );
 };

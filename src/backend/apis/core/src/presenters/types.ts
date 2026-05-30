@@ -1222,6 +1222,7 @@ export let skillTemplateItemType = PresentableType.create<{
 
 export let networkType = PresentableType.create<{
   network: SubspaceNetwork;
+  maskPublicIp?: boolean;
 }>()('network');
 
 export let networkLogsType = PresentableType.create<{
