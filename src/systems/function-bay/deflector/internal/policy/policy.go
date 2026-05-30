@@ -31,11 +31,13 @@ type Claims struct {
 	EnclaveID           string                    `json:"enclaveId,omitempty"`
 	EnclaveIdentifier   string                    `json:"enclaveIdentifier,omitempty"`
 	EgressPolicy        *CompiledNetworkAllowList `json:"egressPolicy,omitempty"`
+	LegacyFallback      bool                      `json:"legacyFallback,omitempty"`
 	jwt.RegisteredClaims
 }
 
 type Compiled struct {
-	entries *[]compiledEntry
+	entries  *[]compiledEntry
+	allowAll bool
 }
 
 type compiledEntry struct {
@@ -45,6 +47,10 @@ type compiledEntry struct {
 
 func Compile(claims Claims) (*Compiled, error) {
 	c := &Compiled{}
+	if claims.LegacyFallback {
+		c.allowAll = true
+		return c, nil
+	}
 
 	if claims.EgressPolicy != nil {
 		if claims.EgressPolicy.Direction != "egress" {
@@ -86,6 +92,10 @@ func (c *Compiled) AllowsDestination(ip net.IP, port int) bool {
 		return false
 	}
 	addr = addr.Unmap()
+
+	if c.allowAll {
+		return port >= 1 && port <= 65535
+	}
 
 	if c.entries == nil {
 		return !isAlwaysBlocked(addr)

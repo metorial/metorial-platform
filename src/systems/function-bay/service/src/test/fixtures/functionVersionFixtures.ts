@@ -46,6 +46,7 @@ export const FunctionVersionFixtures = (db: PrismaClient) => {
         status: data.overrides?.status ?? FunctionVersionStatus.active,
         identifier,
         name: data.overrides?.name ?? `Version ${identifier}`,
+        supportsV2Proxy: data.overrides?.supportsV2Proxy ?? true,
         functionOid: data.functionOid,
         runtimeOid: data.runtimeOid,
         functionBundleOid: data.functionBundleOid,

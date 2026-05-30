@@ -295,6 +295,7 @@ let deployToFunctionBayQueueProcessor = deployToFunctionBayQueue.process(async d
 
       name: deployment.name,
       status: 'active',
+      supportsV2Proxy: true,
 
       functionOid: deployment.functionOid,
       runtimeOid: deployment.runtimeOid,

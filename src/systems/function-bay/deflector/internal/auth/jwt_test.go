@@ -29,6 +29,23 @@ func signedToken(t *testing.T, secret string, audience string, expiresAt time.Ti
 	return token
 }
 
+func signedLegacyToken(t *testing.T, secret string, audience string, expiresAt time.Time) string {
+	t.Helper()
+
+	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, policy.Claims{
+		LegacyFallback: true,
+		RegisteredClaims: jwt.RegisteredClaims{
+			Audience:  jwt.ClaimStrings{audience},
+			ExpiresAt: jwt.NewNumericDate(expiresAt),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+		},
+	}).SignedString([]byte(secret))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return token
+}
+
 func TestVerifierAcceptsValidToken(t *testing.T) {
 	verifier := NewVerifier("secret", "deflector")
 
@@ -80,5 +97,23 @@ func TestVerifierAcceptsTokenWithinClockSkewLeeway(t *testing.T) {
 	}
 	if claims.FunctionVersionID != "functionVersion_123" {
 		t.Fatalf("unexpected function version id %q", claims.FunctionVersionID)
+	}
+}
+
+func TestVerifierAcceptsLegacyFallbackWithoutInvocationClaims(t *testing.T) {
+	verifier := NewVerifier("secret", "deflector")
+
+	claims, err := verifier.Verify(
+		context.Background(),
+		signedLegacyToken(t, "secret", "deflector", time.Now().Add(time.Minute)),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !claims.LegacyFallback {
+		t.Fatal("expected legacy fallback claim")
+	}
+	if claims.TenantID != "" || claims.FunctionID != "" || claims.FunctionVersionID != "" {
+		t.Fatalf("expected no invocation identifiers: %#v", claims)
 	}
 }
