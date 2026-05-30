@@ -108,6 +108,7 @@ model Provider {
   skillTemplateItems             SkillTemplateItem[]
   tenantOAuthCallbackUrls        TenantOAuthCallbackUrl[]
   firewallBindings               FirewallBinding[]
+  monitors                       Monitor[]
 
   @@index([status])
   @@index([access])

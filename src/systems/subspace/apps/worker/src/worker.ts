@@ -12,6 +12,7 @@ import { deploymentQueueProcessor } from '@metorial-subspace/module-deployment/s
 import { enclaveQueueProcessor } from '@metorial-subspace/module-enclave/src/queues';
 import { identityQueueProcessor } from '@metorial-subspace/module-identity/src/queues';
 import { integrationQueueProcessor } from '@metorial-subspace/module-integration/src/queues';
+import { monitorQueueProcessor } from '@metorial-subspace/module-monitor/src/queues';
 import { providerInternalQueueProcessor } from '@metorial-subspace/module-provider-internal/src/queues';
 import { sessionQueueProcessor } from '@metorial-subspace/module-session/src/queues';
 import { skillsQueueProcessor } from '@metorial-subspace/module-skills/src/queues';
@@ -36,6 +37,7 @@ runQueueProcessors([
   callbackQueueProcessor,
   identityQueueProcessor,
   integrationQueueProcessor,
+  monitorQueueProcessor,
   skillsQueueProcessor,
   agentQueueProcessor
 ]);

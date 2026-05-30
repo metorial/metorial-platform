@@ -1,0 +1,66 @@
+enum MonitorAlertStatus {
+  pending
+  resolved
+}
+
+model MonitorAlert {
+  oid BigInt @id
+  id  String @unique
+
+  status MonitorAlertStatus
+
+  monitorOid BigInt
+  monitor    Monitor @relation(fields: [monitorOid], references: [oid], onDelete: Cascade)
+
+  protoGuardAlertOid BigInt?
+  protoGuardAlert    ProtoGuardAlert? @relation(fields: [protoGuardAlertOid], references: [oid], onDelete: Cascade)
+
+  specificationChangeNotificationOid BigInt?
+  specificationChangeNotification    ProviderSpecificationChangeNotification? @relation(fields: [specificationChangeNotificationOid], references: [oid], onDelete: SetNull)
+
+  tenantOid BigInt?
+  tenant    Tenant? @relation(fields: [tenantOid], references: [oid])
+
+  environmentOid BigInt?
+  environment    Environment? @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  solutionOid Int?
+  solution    Solution? @relation(fields: [solutionOid], references: [oid])
+
+  createdAt  DateTime  @default(now())
+  resolvedAt DateTime?
+
+  monitorAlertEvents MonitorAlertEvent[]
+
+  @@unique([monitorOid, protoGuardAlertOid])
+  @@unique([monitorOid, specificationChangeNotificationOid])
+  @@index([status])
+  @@index([tenantOid, createdAt])
+  @@index([createdAt])
+  @@index([resolvedAt])
+}
+
+enum MonitorAlertEventType {
+  created
+  viewed
+  resolved
+  unresolved
+}
+
+model MonitorAlertEvent {
+  oid BigInt @id
+  id  String @unique
+
+  type MonitorAlertEventType
+
+  monitorAlertOid BigInt
+  monitorAlert    MonitorAlert @relation(fields: [monitorAlertOid], references: [oid], onDelete: Cascade)
+
+  actorOid BigInt?
+  actor    TenantActor? @relation(fields: [actorOid], references: [oid], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([type])
+  @@index([createdAt])
+}

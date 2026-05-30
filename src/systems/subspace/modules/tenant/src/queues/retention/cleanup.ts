@@ -118,6 +118,44 @@ let cleanupSessionWarnings = async (d: { tenantOid: bigint; cutoffDate: Date }) 
   });
 };
 
+let cleanupProtoGuardRuns = async (d: { tenantOid: bigint; cutoffDate: Date }) => {
+  await processBatch<{ oid: bigint }>({
+    findMany: () =>
+      db.protoGuardRun.findMany({
+        where: {
+          tenantOid: d.tenantOid,
+          createdAt: { lt: d.cutoffDate }
+        },
+        orderBy: { createdAt: 'asc' },
+        take: RETENTION_BATCH_SIZE,
+        select: { oid: true }
+      }),
+    deleteMany: records =>
+      db.protoGuardRun.deleteMany({
+        where: { oid: { in: records.map(record => record.oid) } }
+      })
+  });
+};
+
+let cleanupMonitorAlerts = async (d: { tenantOid: bigint; cutoffDate: Date }) => {
+  await processBatch<{ oid: bigint }>({
+    findMany: () =>
+      db.monitorAlert.findMany({
+        where: {
+          tenantOid: d.tenantOid,
+          createdAt: { lt: d.cutoffDate }
+        },
+        orderBy: { createdAt: 'asc' },
+        take: RETENTION_BATCH_SIZE,
+        select: { oid: true }
+      }),
+    deleteMany: records =>
+      db.monitorAlert.deleteMany({
+        where: { oid: { in: records.map(record => record.oid) } }
+      })
+  });
+};
+
 let cleanupSessionErrors = async (d: { tenantOid: bigint; cutoffDate: Date }) => {
   await processBatch<{
     oid: bigint;
@@ -321,6 +359,18 @@ let cleanupSessionConnections = async (d: { tenantOid: bigint; cutoffDate: Date 
               connectionOid: null,
               isParentDeleted: true
             }
+          }),
+          tx.protoGuardRun.updateMany({
+            where: { connectionOid: { in: connectionOids } },
+            data: {
+              connectionOid: null
+            }
+          }),
+          tx.protoGuardAlert.updateMany({
+            where: { connectionOid: { in: connectionOids } },
+            data: {
+              connectionOid: null
+            }
           })
         ]);
 
@@ -485,6 +535,14 @@ export let tenantLogRetentionCleanupQueueProcessor = tenantLogRetentionCleanupQu
       cutoffDate
     });
     await cleanupSessionWarnings({
+      tenantOid: tenant.oid,
+      cutoffDate
+    });
+    await cleanupProtoGuardRuns({
+      tenantOid: tenant.oid,
+      cutoffDate
+    });
+    await cleanupMonitorAlerts({
       tenantOid: tenant.oid,
       cutoffDate
     });

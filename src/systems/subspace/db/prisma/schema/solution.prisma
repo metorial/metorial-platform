@@ -71,4 +71,8 @@ model Solution {
   skillEntities                            SkillEntity[]
   skillForks                               SkillFork[]
   skillTemplates                           SkillTemplate[]
+  protoGuardRuns                           ProtoGuardRun[]
+  protoGuardAlerts                         ProtoGuardAlert[]
+  monitors                                 Monitor[]
+  monitorAlerts                            MonitorAlert[]
 }

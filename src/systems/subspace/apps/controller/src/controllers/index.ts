@@ -48,6 +48,8 @@ import { integrationVersionController } from './integrationVersion';
 import { magicMcpBackingController } from './magicMcpBacking';
 import { magicMcpServerProviderController } from './magicMcpServerProvider';
 import { managedProviderAuthCredentialsController } from './managedProviderAuthCredentials';
+import { monitorController } from './monitor';
+import { monitorAlertController } from './monitorAlert';
 import { providerController } from './provider';
 import { providerAuthConfigController } from './providerAuthConfig';
 import { providerAuthCredentialsController } from './providerAuthCredentials';
@@ -71,6 +73,7 @@ import { providerToolController } from './providerTool';
 import { providerTriggerController } from './providerTrigger';
 import { providerVariantController } from './providerVariant';
 import { providerVersionController } from './providerVersion';
+import { protoGuardConfigController } from './protoGuardConfig';
 import { publisherController } from './publisher';
 import { scmConnectionController } from './scmConnection';
 import { scmConnectionSetupSessionController } from './scmConnectionSetupSession';
@@ -137,7 +140,10 @@ let integrationControllers = {
 let configControllers = {
   authConfigEvent: authConfigEventController,
   authConfigError: authConfigErrorController,
-  authConfigErrorGlobal: authConfigErrorGlobalController
+  authConfigErrorGlobal: authConfigErrorGlobalController,
+  monitor: monitorController,
+  monitorAlert: monitorAlertController,
+  protoGuardConfig: protoGuardConfigController
 };
 
 let callbackControllers = {

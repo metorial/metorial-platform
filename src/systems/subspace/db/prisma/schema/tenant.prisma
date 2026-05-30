@@ -119,6 +119,12 @@ model Tenant {
   firewalls                                Firewall[]
   networkPolicies                          NetworkPolicy[]
   firewallBindings                         FirewallBinding[]
+  protoGuardSetting                        ProtoGuardTenantSetting?
+  protoGuardFilterSettings                 ProtoGuardTenantFilterSetting[]
+  protoGuardRuns                           ProtoGuardRun[]
+  protoGuardAlerts                         ProtoGuardAlert[]
+  monitors                                 Monitor[]
+  monitorAlerts                            MonitorAlert[]
 }
 
 enum EnvironmentType {
@@ -200,6 +206,10 @@ model Environment {
   firewalls                                Firewall[]
   networkPolicies                          NetworkPolicy[]
   firewallBindings                         FirewallBinding[]
+  protoGuardRuns                           ProtoGuardRun[]
+  protoGuardAlerts                         ProtoGuardAlert[]
+  monitors                                 Monitor[]
+  monitorAlerts                            MonitorAlert[]
 }
 
 enum TenantActorType {
@@ -232,6 +242,7 @@ model TenantActor {
   skills                    Skill[]
   skillForks                SkillFork[]
   skillEvents               SkillEvent[]
+  monitorAlertEvents        MonitorAlertEvent[]
 
   @@unique([tenantOid, identifier])
   @@map("Actor")
