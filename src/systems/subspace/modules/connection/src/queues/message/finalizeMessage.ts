@@ -2,6 +2,7 @@ import { createQueue } from '@lowerdeck/queue';
 import { db } from '@metorial-subspace/db';
 import { v7 } from 'uuid';
 import { env } from '../../env';
+import { protoGuardMessageQueue } from './protoGuard';
 
 export let finalizeMessageQueue = createQueue<{ messageId: string }>({
   name: 'sub/con/msg/fin',
@@ -72,4 +73,6 @@ export let finalizeMessageQueueProcessor = finalizeMessageQueue.process(async da
       }
     });
   }
+
+  await protoGuardMessageQueue.add({ messageId: message.id });
 });

@@ -64,6 +64,8 @@ model Session {
   toolCalls                         ToolCall[]
   sessionWarnings                   SessionWarning[]
   sessionUsageRecords               SessionUsageRecord[]
+  protoGuardRuns                    ProtoGuardRun[]
+  protoGuardAlerts                  ProtoGuardAlert[]
   currentForEphemeralManagedSession EphemeralManagedSession?  @relation("EphemeralManagedSessionCurrentSession")
 
   @@index([createdAt])

@@ -84,11 +84,13 @@ model SessionConnection {
   lastActiveAt   DateTime?
   disconnectedAt DateTime?
 
-  sessionEvents   SessionEvent[]
-  providerRuns    ProviderRun[]
-  sessionMessages SessionMessage[]
-  sessionErrors   SessionError[]
-  sessionWarnings SessionWarning[]
+  sessionEvents    SessionEvent[]
+  providerRuns     ProviderRun[]
+  sessionMessages  SessionMessage[]
+  sessionErrors    SessionError[]
+  sessionWarnings  SessionWarning[]
+  protoGuardRuns   ProtoGuardRun[]
+  protoGuardAlerts ProtoGuardAlert[]
 
   @@index([createdAt])
   @@index([lastActiveAt])
