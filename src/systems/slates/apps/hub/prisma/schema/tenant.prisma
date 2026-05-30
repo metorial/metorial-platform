@@ -21,6 +21,7 @@ model Tenant {
   slateAuthConfigs         SlateAuthConfig[]
   slateInstanceOAuthSetups SlateInstanceOAuthSetup[]
   slateInstanceConfigs     SlateInstanceConfig[]
+  slateInstanceConfigurations SlateInstanceConfiguration[]
   slateInstanceEvents      SlateInstanceEvent[]
   slateSessions            SlateSession[]
   slateTriggerDestinations SlateTriggerDestination[]

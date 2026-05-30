@@ -25,6 +25,7 @@ export let ID = createIdGenerator({
 
   slateInstance: idType.sorted('shin'),
   slateInstanceConfig: idType.sorted('shic'),
+  slateInstanceConfiguration: idType.sorted('shinc'),
   slateAuthConfig: idType.sorted('shiac'),
   slateInstanceEvent: idType.sorted('hsiev'),
   slateInstanceOAuthSetup: idType.sorted('shios'),

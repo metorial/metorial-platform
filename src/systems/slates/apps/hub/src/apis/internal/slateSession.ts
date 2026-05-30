@@ -3,6 +3,7 @@ import { v } from '@lowerdeck/validation';
 import { slateSessionPresenter } from '../../presenters';
 import {
   slateInstanceService,
+  slateInstanceConfigurationService,
   slateService,
   slateSessionService,
   slateVersionService
@@ -52,6 +53,7 @@ export let slateSessionController = app.controller({
           tenantId: v.string(),
           slateId: v.string(),
           slateInstanceId: v.string(),
+          slateInstanceConfigurationId: v.optional(v.string()),
           lockedSlateVersion: v.optional(v.string())
         })
       )
@@ -70,6 +72,12 @@ export let slateSessionController = app.controller({
             id: ctx.input.lockedSlateVersion
           })
         : undefined;
+      let instanceConfiguration = ctx.input.slateInstanceConfigurationId
+        ? await slateInstanceConfigurationService.getSlateInstanceConfigurationById({
+            tenant: ctx.tenant,
+            slateInstanceConfigurationId: ctx.input.slateInstanceConfigurationId
+          })
+        : undefined;
 
       let res = await slateSessionService.createSlateSession({
         tenant: ctx.tenant,
@@ -77,7 +85,8 @@ export let slateSessionController = app.controller({
         input: {
           slate,
           slateInstance,
-          lockedVersion
+          lockedVersion,
+          instanceConfiguration
         }
       });
 
