@@ -185,7 +185,7 @@ model EnclaveIngressNetworkLog {
   port     Int
 
   result EnclaveIngressNetworkLogResult
-  count  Int @default(1)
+  count  Int                            @default(1)
 
   tenantOid      BigInt
   environmentOid BigInt
