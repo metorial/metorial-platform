@@ -161,8 +161,8 @@ export let ProviderDeploymentNetworkPage = () => {
                       <Text size="2">{record.ip}</Text>,
                       <Text size="2">{record.port}</Text>,
                       <Text size="2">{record.count}</Text>,
-                      <Text size="2">{record.firstSeenAt}</Text>,
-                      <Text size="2">{record.lastSeenAt}</Text>
+                      <RenderDate date={record.firstSeenAt} />,
+                      <RenderDate date={record.lastSeenAt} />
                     ]
                   }))}
                 />
