@@ -1,3 +1,4 @@
+import { getSentry } from '@lowerdeck/sentry';
 import { spawn } from 'child_process';
 import { promises as fs } from 'fs';
 import JSZip from 'jszip';
@@ -8,6 +9,8 @@ import { decryptFunctionVersionEnvironmentVariables } from '../../lib/decryptFun
 import { storage } from '../../storage';
 import type { FunctionInvocationParams } from '../_lib';
 import { parseInvocationPayload } from '../_lib';
+
+let Sentry = getSentry();
 
 let RUNNER_FILE_NAME = '__metorial_local_runner__.cjs';
 
@@ -257,6 +260,20 @@ export let invokeFunction = async (d: FunctionInvocationParams) => {
       internalError: exitCode === 0 ? undefined : `Local runtime exited with code ${exitCode}`
     });
   } catch (err) {
+    Sentry.captureException(err, {
+      extra: {
+        error: String(err),
+        functionVersionId: d.functionVersion.id,
+        functionId: d.function.id
+      }
+    });
+
+    console.warn('Failed to invoke local function', {
+      error: String(err),
+      functionVersionId: d.functionVersion.id,
+      functionId: d.function.id
+    });
+
     outputs.computeTimeMs = Date.now() - startedAt;
     outputs.billedTimeMs = outputs.computeTimeMs;
 

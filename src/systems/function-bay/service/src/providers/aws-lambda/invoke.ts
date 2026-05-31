@@ -102,6 +102,20 @@ export let invokeFunction = async (d: {
       })
     );
   } catch (err) {
+    Sentry.captureException(err, {
+      extra: {
+        error: String(err),
+        functionVersionId: d.functionVersion.id,
+        functionId: d.function.id
+      }
+    });
+
+    console.warn('Failed to invoke Lambda function', {
+      error: String(err),
+      functionVersionId: d.functionVersion.id,
+      functionId: d.function.id
+    });
+
     return {
       type: 'error' as const,
       error: {
