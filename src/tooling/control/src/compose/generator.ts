@@ -27,7 +27,7 @@ let networkConfig = (alias: string) => ({
 let defaultServiceHealth = (port: number, path = '/') => ({
   test: [
     'CMD-SHELL',
-    `bun -e "fetch('http://localhost:${port}${path}').then(()=>process.exit(0)).catch(()=>process.exit(1))"`
+    `if command -v curl >/dev/null 2>&1; then curl -fsS http://localhost:${port}${path} >/dev/null; elif command -v wget >/dev/null 2>&1; then wget -qO- http://localhost:${port}${path} >/dev/null; else bun -e "fetch('http://localhost:${port}${path}').then(()=>process.exit(0)).catch(()=>process.exit(1))"; fi`
   ],
   interval: '5s',
   timeout: '5s',
