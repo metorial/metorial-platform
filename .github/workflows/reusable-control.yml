@@ -308,7 +308,7 @@ jobs:
         run: |
           set -euo pipefail
           shopt -s globstar nullglob
-          archives=(.control/prebuilt-images/*.tar .control/prebuilt-images/**/*.tar)
+          archives=(.control/prebuilt-images/**/*.tar)
           if [ "${#archives[@]}" -eq 0 ]; then
             echo "No prebuilt image archives found" >&2
             exit 1

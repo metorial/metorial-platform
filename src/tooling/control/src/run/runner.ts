@@ -141,6 +141,20 @@ let collectMaterializedBuildContexts = async (opts: {
   return contexts;
 };
 
+let hasInlineBuild = (graph: ResolvedGraph): boolean => {
+  for (let dep of graph.deps) {
+    if (dep.kind === 'inline' && typeof dep.config.inline === 'object' && dep.config.inline.build) {
+      return true;
+    }
+
+    if (dep.kind === 'control' && dep.children && hasInlineBuild(dep.children)) {
+      return true;
+    }
+  }
+
+  return false;
+};
+
 let resolvePrebuiltImages = () => {
   if (process.env.CONTROL_PREBUILT_IMAGES !== '1') return undefined;
 
@@ -192,7 +206,7 @@ export let runControl = async (
     });
   }
 
-  let buildContexts = prebuiltImages
+  let buildContexts = prebuiltImages && !hasInlineBuild(graph)
     ? {}
     : await collectMaterializedBuildContexts({
         graph,
