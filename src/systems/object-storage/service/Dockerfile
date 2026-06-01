@@ -32,8 +32,10 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
   curl && rm -rf /var/lib/apt/lists/*
 COPY --from=build /app/src/systems/object-storage/service/target/release/object-store-service /app/object-store-service
 ENV RUST_LOG="info"
-ENV OBJECT_STORE_BACKEND_TYPE="local"
-ENV OBJECT_STORE_BACKEND_ROOT_PATH="/app/data"
+ENV OBJECT_STORE_SERVER__HOST="0.0.0.0"
+ENV OBJECT_STORE_SERVER__PORT="52010"
+ENV OBJECT_STORE_BACKEND__TYPE="local"
+ENV OBJECT_STORE_BACKEND__ROOT_PATH="/app/data"
 EXPOSE 52010
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD curl -f http://localhost:52010/health || exit 1

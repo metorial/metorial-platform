@@ -48,7 +48,7 @@ copy = [
 [build.runtime]
 base_image = "debian:trixie-slim"
 packages = ["ca-certificates", "libssl3", "curl"]
-env = { RUST_LOG = "info", OBJECT_STORE_BACKEND_TYPE = "local", OBJECT_STORE_BACKEND_ROOT_PATH = "/app/data" }
+env = { RUST_LOG = "info", OBJECT_STORE_SERVER__HOST = "0.0.0.0", OBJECT_STORE_SERVER__PORT = "52010", OBJECT_STORE_BACKEND__TYPE = "local", OBJECT_STORE_BACKEND__ROOT_PATH = "/app/data" }
 expose = [52010]
 command = "/app/object-store-service"
 healthcheck = "curl -f http://localhost:52010/health || exit 1"
@@ -64,5 +64,7 @@ runner = "service"
 
 [env]
 RUST_LOG = "info"
-OBJECT_STORE_BACKEND_TYPE = "local"
-OBJECT_STORE_BACKEND_ROOT_PATH = "/app/data"
+OBJECT_STORE_SERVER__HOST = "0.0.0.0"
+OBJECT_STORE_SERVER__PORT = "52010"
+OBJECT_STORE_BACKEND__TYPE = "local"
+OBJECT_STORE_BACKEND__ROOT_PATH = "/app/data"
