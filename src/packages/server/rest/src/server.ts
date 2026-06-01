@@ -90,6 +90,36 @@ let emptyShape = (value: any): any => {
   return '';
 };
 
+let isSensitiveLogField = (key: string) =>
+  ['clientsecret', 'client_secret', 'key', 'token', 'secret'].includes(key.toLowerCase());
+
+let redactSensitiveFields = (value: any): any => {
+  if (Array.isArray(value)) return value.map(item => redactSensitiveFields(item));
+  if (value && typeof value == 'object') {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, val]) => [
+        key,
+        isSensitiveLogField(key) ? '[redacted]' : redactSensitiveFields(val)
+      ])
+    );
+  }
+
+  return value;
+};
+
+let getPathForLogUrl = (path: string) => (path.startsWith('/') ? path : `/${path}`);
+
+let getUrlForLogging = (url: URL, routePath: string, confidential: boolean) => {
+  if (confidential) return `${url.origin}${getPathForLogUrl(routePath)}`;
+
+  let logUrl = new URL(url);
+  for (let key of Array.from(logUrl.searchParams.keys())) {
+    if (isSensitiveLogField(key)) logUrl.searchParams.set(key, '[redacted]');
+  }
+
+  return logUrl.toString();
+};
+
 export class RestServerBuilder<AuthInfo, ApiVersion extends string> {
   #authenticate?: Authenticator<AuthInfo>;
   #checkCors?: (i: { origin: string; auth: AuthInfo }) => boolean;
@@ -356,16 +386,16 @@ export class RestServer<AuthInfo, ApiVersion extends string> {
                       }
 
                       if (this.logger) {
-                        let shouldLogShapeOnly =
-                          !!handler.descriptor.confidential && response.status == 200;
+                        let isConfidential = !!handler.descriptor.confidential;
+                        let requestQuery = redactSensitiveFields(query);
+                        let requestParams = c.req.param() as any;
+                        let shouldRedactResponse = isConfidential && response.status < 400;
                         try {
                           await this.logger({
                             surface: 'rest',
                             requestId: c.env.requestId,
                             method: handler.method,
-                            url: shouldLogShapeOnly
-                              ? `${c.env.url.origin}${c.env.url.pathname}`
-                              : c.req.url,
+                            url: getUrlForLogging(c.env.url, path, isConfidential),
                             path,
                             apiVersion,
                             endpoint: {
@@ -377,13 +407,13 @@ export class RestServer<AuthInfo, ApiVersion extends string> {
                             },
                             status: response.status,
                             durationMs: Date.now() - startedAt,
-                            query: shouldLogShapeOnly ? emptyShape(query) : query,
-                            params: c.req.param() as any,
-                            body: shouldLogShapeOnly ? emptyShape(request.body) : request.body,
-                            response: shouldLogShapeOnly
+                            query: isConfidential ? emptyShape(requestQuery) : requestQuery,
+                            params: isConfidential ? emptyShape(requestParams) : requestParams,
+                            body: isConfidential ? emptyShape(request.body) : request.body,
+                            response: shouldRedactResponse
                               ? emptyShape(response.body)
                               : response.body,
-                            error,
+                            error: isConfidential ? undefined : error,
                             auth: c.env.auth,
                             context: c.env.context
                           });
