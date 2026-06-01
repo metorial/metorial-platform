@@ -165,7 +165,7 @@ jobs:
       cache_prefix: control-ci
       runs-on: ubuntu-latest
       image: ${{ matrix.image }}
-      push_image: ${{ github.event_name != 'pull_request' }}
+      push_image: false
       build_test_runner: true
       save_image_artifact: true
       image_artifact_name: control-image-${{ matrix.service }}
