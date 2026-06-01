@@ -10,12 +10,18 @@ import type z from 'zod';
 import type { SlateInvocation, SlateVersion, Tenant } from '../../../prisma/generated/client';
 import type { SlateInvocationProviderMetadata } from './store';
 
+export interface SlateInvocationDeploymentTarget {
+  providerDeploymentInfo: NonNullable<PrismaJson.SlateDeploymentProviderDeploymentInfo>;
+  activeDeploymentOid: bigint;
+}
+
 export interface SlateInvocationBaseParams {
   tenant?: Pick<
     Tenant,
     'oid' | 'identifier' | 'name' | 'functionBayTenantId' | 'functionBayTenantIdentifier'
   >;
   slateVersion: SlateVersion;
+  deploymentTarget?: SlateInvocationDeploymentTarget;
   participants: SlatesParticipant[];
   enclaveId?: string;
   egressPolicy?: PrismaJson.CompiledEgressNetworkAllowList;
