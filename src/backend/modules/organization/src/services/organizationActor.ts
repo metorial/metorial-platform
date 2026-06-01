@@ -144,6 +144,12 @@ class OrganizationActorService {
             where: {
               organizationOid: d.organization.oid,
 
+              member: {
+                user: {
+                  type: { not: 'system' }
+                }
+              },
+
               teams: teams
                 ? {
                     some: {

@@ -258,6 +258,10 @@ class OrganizationMemberService {
               organizationOid: d.organization.oid,
               status: 'active',
 
+              user: {
+                type: { not: 'system' }
+              },
+
               actor: teams
                 ? {
                     teams: {
