@@ -12,7 +12,14 @@ import { PresenterContext } from '@metorial/presenter';
 import opentelemetry, { context, propagation, Span } from '@opentelemetry/api';
 import { Hono } from 'hono';
 import qs from 'qs';
-import { EndpointDescriptor, Group, Handler, IController, ServiceRequest } from './controller';
+import {
+  EndpointDescriptor,
+  Group,
+  Handler,
+  IController,
+  Method,
+  ServiceRequest
+} from './controller';
 import { introspectApi } from './introspect';
 import { parseBody } from './parseBody';
 import { RateLimiter } from './ratelimit';
@@ -40,12 +47,56 @@ interface CustomHandler<AuthInfo, ApiVersion extends string> {
   path: RegExp;
 }
 
+export type RestRequestLogEvent<AuthInfo, ApiVersion extends string> = {
+  surface: 'rest';
+  requestId: string;
+  method: Method;
+  url: string;
+  path: string;
+  apiVersion: ApiVersion;
+  endpoint: {
+    name: string;
+    description: string;
+    confidential: boolean;
+    hideInDocs: boolean;
+    paths: Array<{ path: string; sdkPath: string }>;
+  };
+  status: number;
+  durationMs: number;
+  query: any;
+  params: Record<string, string>;
+  body: any;
+  response: any;
+  error?: unknown;
+  auth: AuthInfo;
+  context: Context;
+};
+
+export type RestRequestLogger<AuthInfo, ApiVersion extends string> = (
+  event: RestRequestLogEvent<AuthInfo, ApiVersion>
+) => void | Promise<void>;
+
+let emptyShape = (value: any): any => {
+  if (Array.isArray(value)) return value.map(item => emptyShape(item));
+  if (value instanceof Date) return '';
+  if (value && typeof value == 'object') {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, val]) => [key, emptyShape(val)])
+    );
+  }
+  if (typeof value == 'number') return 0;
+  if (typeof value == 'boolean') return false;
+  if (value == null) return value;
+  return '';
+};
+
 export class RestServerBuilder<AuthInfo, ApiVersion extends string> {
   #authenticate?: Authenticator<AuthInfo>;
   #checkCors?: (i: { origin: string; auth: AuthInfo }) => boolean;
   #rateLimiter?: RateLimiter<AuthInfo>;
   #customHandlers: CustomHandler<AuthInfo, ApiVersion>[] = [];
   #getPresenterContext?: (auth: AuthInfo & { apiVersion: ApiVersion }) => PresenterContext;
+  #logger?: RestRequestLogger<AuthInfo, ApiVersion>;
 
   constructor() {}
 
@@ -69,6 +120,11 @@ export class RestServerBuilder<AuthInfo, ApiVersion extends string> {
     return this;
   }
 
+  logger(logger: RestRequestLogger<AuthInfo, ApiVersion>) {
+    this.#logger = logger;
+    return this;
+  }
+
   providePresenterContext(
     getPresenterContext: (auth: AuthInfo & { apiVersion: ApiVersion }) => PresenterContext
   ) {
@@ -85,7 +141,8 @@ export class RestServerBuilder<AuthInfo, ApiVersion extends string> {
       this.#checkCors ?? (() => false),
       this.#rateLimiter,
       this.#customHandlers,
-      this.#getPresenterContext
+      this.#getPresenterContext,
+      this.#logger
     );
   }
 }
@@ -98,7 +155,8 @@ export class RestServer<AuthInfo, ApiVersion extends string> {
     private customHandlers: CustomHandler<AuthInfo, ApiVersion>[],
     private getPresenterContext?: (
       auth: AuthInfo & { apiVersion: ApiVersion }
-    ) => PresenterContext
+    ) => PresenterContext,
+    private logger?: RestRequestLogger<AuthInfo, ApiVersion>
   ) {}
 
   static $$create$$_internal<AuthInfo, ApiVersion extends string>(
@@ -106,14 +164,16 @@ export class RestServer<AuthInfo, ApiVersion extends string> {
     checkCors: (i: { origin: string; auth: AuthInfo }) => boolean,
     rateLimiter: RateLimiter<AuthInfo>,
     customHandlers: CustomHandler<AuthInfo, ApiVersion>[],
-    getPresenterContext?: (auth: AuthInfo & { apiVersion: ApiVersion }) => PresenterContext
+    getPresenterContext?: (auth: AuthInfo & { apiVersion: ApiVersion }) => PresenterContext,
+    logger?: RestRequestLogger<AuthInfo, ApiVersion>
   ) {
     return new RestServer(
       authenticate,
       checkCors,
       rateLimiter,
       customHandlers,
-      getPresenterContext
+      getPresenterContext,
+      logger
     );
   }
 
@@ -194,7 +254,8 @@ export class RestServer<AuthInfo, ApiVersion extends string> {
                         status: 200,
                         body: null
                       };
-                      // let startedAt = new Date();
+                      let error: unknown;
+                      let startedAt = Date.now();
 
                       let body = await parseBody(c);
 
@@ -275,6 +336,7 @@ export class RestServer<AuthInfo, ApiVersion extends string> {
                         };
                         // objects = handlerRes.objects;
                       } catch (e) {
+                        error = e;
                         if (isServiceError(e)) {
                           response = {
                             status: e.data.status,
@@ -290,6 +352,43 @@ export class RestServer<AuthInfo, ApiVersion extends string> {
                             status: 500,
                             body: internalServerError().toResponse()
                           };
+                        }
+                      }
+
+                      if (this.logger) {
+                        let shouldLogShapeOnly =
+                          !!handler.descriptor.confidential && response.status == 200;
+                        try {
+                          await this.logger({
+                            surface: 'rest',
+                            requestId: c.env.requestId,
+                            method: handler.method,
+                            url: shouldLogShapeOnly
+                              ? `${c.env.url.origin}${c.env.url.pathname}`
+                              : c.req.url,
+                            path,
+                            apiVersion,
+                            endpoint: {
+                              name: handler.descriptor.name,
+                              description: handler.descriptor.description,
+                              confidential: !!handler.descriptor.confidential,
+                              hideInDocs: !!handler.descriptor.hideInDocs,
+                              paths: handler.paths
+                            },
+                            status: response.status,
+                            durationMs: Date.now() - startedAt,
+                            query: shouldLogShapeOnly ? emptyShape(query) : query,
+                            params: c.req.param() as any,
+                            body: shouldLogShapeOnly ? emptyShape(request.body) : request.body,
+                            response: shouldLogShapeOnly
+                              ? emptyShape(response.body)
+                              : response.body,
+                            error,
+                            auth: c.env.auth,
+                            context: c.env.context
+                          });
+                        } catch (e) {
+                          console.error('Error in request logger', e);
                         }
                       }
 

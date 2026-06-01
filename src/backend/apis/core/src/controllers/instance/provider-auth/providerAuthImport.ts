@@ -125,7 +125,8 @@ export let providerAuthImportController = Controller.create(
         ),
         {
           name: 'Create provider auth import',
-          description: 'Imports authentication credentials for a provider.'
+          description: 'Imports authentication credentials for a provider.',
+          confidential: true
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:import'] }))

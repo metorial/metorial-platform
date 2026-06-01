@@ -311,7 +311,8 @@ export let oauthApplicationManagementController = Controller.create(
         ),
         {
           name: 'Create OAuth application client secret',
-          description: 'Creates a new client secret for an OAuth application.'
+          description: 'Creates a new client secret for an OAuth application.',
+          confidential: true
         }
       )
       .use(checkAccess({ possibleScopes: ['organization.oauth_app:write'] }))

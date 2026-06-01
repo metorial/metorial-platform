@@ -37,7 +37,8 @@ export let documentController = Controller.create(
     list: instanceGroup
       .get(instancePath('documents', 'documents.list'), {
         name: 'List documents',
-        description: 'Returns a paginated list of documents owned by the instance.'
+        description: 'Returns a paginated list of documents owned by the instance.',
+        confidential: true
       })
       .use(
         checkAccess({
@@ -81,7 +82,8 @@ export let documentController = Controller.create(
     create: instanceGroup
       .post(instancePath('documents', 'documents.create'), {
         name: 'Create document',
-        description: 'Creates a new document for the instance.'
+        description: 'Creates a new document for the instance.',
+        confidential: true
       })
       .use(
         checkAccess({
@@ -116,7 +118,8 @@ export let documentController = Controller.create(
     get: documentGroup
       .get(instancePath('documents/:documentId', 'documents.get'), {
         name: 'Get document by ID',
-        description: 'Retrieves a document by its ID.'
+        description: 'Retrieves a document by its ID.',
+        confidential: true
       })
       .use(
         checkAccess({
@@ -155,7 +158,8 @@ export let documentController = Controller.create(
     update: documentGroup
       .patch(instancePath('documents/:documentId', 'documents.update'), {
         name: 'Update document by ID',
-        description: 'Updates a specific document.'
+        description: 'Updates a specific document.',
+        confidential: true
       })
       .use(
         checkAccess({
@@ -191,7 +195,8 @@ export let documentController = Controller.create(
     delete: documentGroup
       .delete(instancePath('documents/:documentId', 'documents.delete'), {
         name: 'Delete document by ID',
-        description: 'Deletes a specific document.'
+        description: 'Deletes a specific document.',
+        confidential: true
       })
       .use(
         checkAccess({
@@ -216,7 +221,8 @@ export let documentController = Controller.create(
     clone: documentGroup
       .post(instancePath('documents/:documentId/clone', 'documents.clone'), {
         name: 'Clone document by ID',
-        description: 'Clones a specific document.'
+        description: 'Clones a specific document.',
+        confidential: true
       })
       .use(checkAccess({ possibleScopes: ['instance.file:write'] }))
       .body(

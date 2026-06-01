@@ -118,7 +118,8 @@ export let magicMcpTokenController = Controller.create(
     create: instanceGroup
       .post(instancePath('magic-mcp-tokens', 'magicMcpTokens.create'), {
         name: 'Create magic MCP token',
-        description: 'Creates a new magic MCP token.'
+        description: 'Creates a new magic MCP token.',
+        confidential: true
       })
       .use(
         checkAccess({
