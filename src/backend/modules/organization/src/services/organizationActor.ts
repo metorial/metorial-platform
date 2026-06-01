@@ -43,8 +43,8 @@ class OrganizationActorService {
           email: d.input.email,
           image: d.input.image ?? { type: 'default' },
 
-          // True or null -> to ensure that the field is unique
-          isSystem: d.input.type == 'system' ? true : null,
+          // This is for the main system actor, not for actors representing system users
+          isSystem: false,
 
           organizationOid: d.organization.oid
         },
@@ -143,6 +143,8 @@ class OrganizationActorService {
             ...opts,
             where: {
               organizationOid: d.organization.oid,
+
+              type: { not: 'system' },
 
               member: {
                 user: {

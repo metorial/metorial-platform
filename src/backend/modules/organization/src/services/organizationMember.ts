@@ -76,7 +76,7 @@ class OrganizationMemberService {
         existingMember?.actor ??
         (await organizationActorService.createOrganizationActor({
           input: {
-            type: 'member',
+            type: d.user.type === 'system' ? 'system' : 'member',
             name: d.user.name,
             email: d.user.email,
             image: d.user.image
