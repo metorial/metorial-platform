@@ -242,7 +242,7 @@ export let runControl = async (
   }
 
   let isSidecar = graph.config.test?.e2e?.runner === 'sidecar';
-  let runnerContainer = isSidecar || prebuiltImages ? `${projectName}-test` : `${projectName}-service`;
+  let runnerContainer = isSidecar ? `${projectName}-test` : `${projectName}-service`;
   let failedPhase: RunPhase = 'build';
   let composeStack = { projectName, composeFile, cwd: runDir };
   if (!opts.keep) registerComposeStack(composeStack);
@@ -266,7 +266,7 @@ export let runControl = async (
 
     failedPhase = 'health';
     let waitServices = collectContainerNames(graph, projectName);
-    if (prebuiltImages) {
+    if (prebuiltImages && isSidecar) {
       for (let container of [`${projectName}-service`, `${projectName}-test`]) {
         if (!waitServices.includes(container)) waitServices.push(container);
       }

@@ -435,12 +435,12 @@ export let generateComposeServices = (
   let build = applyBuildContext(graph.name, resolveBuild(graph, { role: 'test-runner' }), composeOptions);
   let isSidecar = graph.config.test?.e2e?.runner === 'sidecar';
   let isPrebuilt = !!composeOptions?.prebuiltImages;
-  let runnerKey = isPrebuilt ? `${graph.rootPrefix}-test` : graph.testRunnerComposeName;
-  let runnerContainer = isSidecar || isPrebuilt
+  let runnerKey = isPrebuilt && isSidecar ? `${graph.rootPrefix}-test` : graph.testRunnerComposeName;
+  let runnerContainer = isSidecar
     ? containerNameFor(projectName, 'test')
     : containerNameFor(projectName, 'service');
 
-  if (isPrebuilt) {
+  if (isPrebuilt && isSidecar) {
     let serviceHealth = resolveServiceHealth(graph);
     services[graph.serviceComposeName] = {
       image: composeImage(graph.name, composeOptions),
