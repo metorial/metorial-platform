@@ -101,7 +101,7 @@ class monitorServiceImpl {
           include: monitorInclude
         });
 
-        return monitors;
+        return monitors as MonitorWithRelations[];
       })
     );
   }

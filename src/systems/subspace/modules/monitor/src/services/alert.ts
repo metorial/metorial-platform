@@ -5,22 +5,20 @@ import {
   db,
   getId,
   withTransaction,
-  type Environment,
+  type TransactionDB,
   type MonitorAlertStatus,
   type MonitorOwner,
   type MonitorTarget,
-  type Solution,
-  type Tenant,
   type TenantActor
 } from '@metorial-subspace/db';
 import {
   normalizeDateFilter,
   resolveMonitorOids,
-  resolveProviderOids,
-  resolveProviderRunOids,
   resolveProtoGuardAlertOids,
   resolveProtoGuardFilterOids,
   resolveProtoGuardRunOids,
+  resolveProviderOids,
+  resolveProviderRunOids,
   resolveSessionConnectionOids,
   resolveSessionMessageOids,
   resolveSessionOids,
@@ -49,18 +47,72 @@ export let monitorAlertInclude = {
       version: { include: { provider: true } }
     }
   },
-  monitorAlertEvents: true
+  monitorAlertEvents: true,
+  monitorAlertRecipients: {
+    include: {
+      recipient: true
+    }
+  }
 } as const;
 
-let getAlertById = async (d: Scope & { alertId: string }) => {
+let upsertRecipientViewed = async (d: {
+  db: TransactionDB;
+  alertOid: bigint;
+  actor: TenantActor;
+  viewedAt: Date;
+}) =>
+  await d.db.monitorAlertRecipient.upsert({
+    where: {
+      monitorAlertOid_recipientOid: {
+        monitorAlertOid: d.alertOid,
+        recipientOid: d.actor.oid
+      }
+    },
+    update: {
+      viewedAt: d.viewedAt
+    },
+    create: {
+      ...getId('monitorAlertRecipient'),
+      monitorAlertOid: d.alertOid,
+      recipientOid: d.actor.oid,
+      viewedAt: d.viewedAt
+    }
+  });
+
+let getAlertById = async (d: Scope & { alertId: string; actor?: TenantActor | null }) => {
   let alert = await db.monitorAlert.findFirst({
     where: {
       id: d.alertId,
-      OR: [{ tenantOid: d.tenant.oid }, { tenantOid: null }]
+      tenantOid: d.tenant.oid
     },
     include: monitorAlertInclude
   });
   if (!alert) throw new ServiceError(notFoundError('monitor alert', d.alertId));
+
+  if (d.actor) {
+    let existingRecipient = alert.monitorAlertRecipients.find(
+      recipient => recipient.recipientOid === d.actor?.oid
+    );
+
+    if (!existingRecipient) {
+      return await withTransaction(
+        async db => {
+          await upsertRecipientViewed({
+            db,
+            alertOid: alert.oid,
+            actor: d.actor!,
+            viewedAt: new Date()
+          });
+
+          return await db.monitorAlert.findFirstOrThrow({
+            where: { oid: alert.oid },
+            include: monitorAlertInclude
+          });
+        },
+        { ifExists: true }
+      );
+    }
+  }
 
   return alert;
 };
@@ -116,7 +168,7 @@ class alertServiceImpl {
         return await db.monitorAlert.findMany({
           ...opts,
           where: {
-            OR: [{ tenantOid: d.tenant.oid }, { tenantOid: null }],
+            tenantOid: d.tenant.oid,
             AND: [
               d.ids ? { id: { in: d.ids } } : undefined!,
               monitorOids ? { monitorOid: { in: monitorOids } } : undefined!,
@@ -185,20 +237,34 @@ class alertServiceImpl {
     );
   }
 
-  async getAlertById(d: Scope & { alertId: string }) {
+  async getAlertById(d: Scope & { alertId: string; actor?: TenantActor | null }) {
     return await getAlertById(d);
   }
 
   async markViewed(d: Scope & { alertId: string; actor?: TenantActor | null }) {
     let alert = await getAlertById(d);
 
-    await db.monitorAlertEvent.create({
-      data: {
-        ...getId('monitorAlertEvent'),
-        type: 'viewed',
-        monitorAlertOid: alert.oid,
-        actorOid: d.actor?.oid
+    let now = new Date();
+
+    await withTransaction(async db => {
+      if (d.actor) {
+        await upsertRecipientViewed({
+          db,
+          alertOid: alert.oid,
+          actor: d.actor,
+          viewedAt: now
+        });
       }
+
+      await db.monitorAlertEvent.create({
+        data: {
+          ...getId('monitorAlertEvent'),
+          type: 'viewed',
+          monitorAlertOid: alert.oid,
+          actorOid: d.actor?.oid,
+          createdAt: now
+        }
+      });
     });
 
     return await getAlertById(d);
@@ -216,6 +282,15 @@ class alertServiceImpl {
           resolvedAt: now
         }
       });
+
+      if (d.actor) {
+        await upsertRecipientViewed({
+          db,
+          alertOid: alert.oid,
+          actor: d.actor,
+          viewedAt: now
+        });
+      }
 
       await db.monitorAlertEvent.create({
         data: {
@@ -243,6 +318,15 @@ class alertServiceImpl {
           resolvedAt: null
         }
       });
+
+      if (d.actor) {
+        await upsertRecipientViewed({
+          db,
+          alertOid: alert.oid,
+          actor: d.actor,
+          viewedAt: now
+        });
+      }
 
       await db.monitorAlertEvent.create({
         data: {

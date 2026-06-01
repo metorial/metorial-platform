@@ -14,6 +14,7 @@ model ProviderDeployment {
   isEphemeral         Boolean
   isDefault           Boolean
   isEnclaveReconciled Boolean @default(false)
+  isMonitorReconciled Boolean @default(false)
 
   name            String?
   description     String?
@@ -75,6 +76,7 @@ model ProviderDeployment {
   @@index([archivedAt])
   @@index([status, archivedAt])
   @@index([isEnclaveReconciled])
+  @@index([isMonitorReconciled])
 }
 
 model ProviderDeploymentVersion {

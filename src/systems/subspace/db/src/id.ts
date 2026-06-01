@@ -120,6 +120,7 @@ export let ID = createIdGenerator({
   monitor: idType.sorted('mon'),
   monitorAlert: idType.sorted('mal'),
   monitorAlertEvent: idType.sorted('mae'),
+  monitorAlertRecipient: idType.sorted('mar'),
 
   providerRun: idType.sorted('prun'),
 

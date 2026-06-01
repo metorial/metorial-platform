@@ -2,6 +2,7 @@ import { createQueue } from '@lowerdeck/queue';
 import { db, getId } from '@metorial-subspace/db';
 import { providerAuthConfigArchivedQueue } from '../../../../auth/src/queues/lifecycle/providerAuthConfig';
 import { env } from '../../env';
+import { reconcileProviderDeploymentMonitorSingleQueue } from '../reconcile/providerDeploymentMonitor';
 import { indexProviderDeploymentQueue } from '../search/providerDeployment';
 import { providerConfigArchivedQueue } from './providerConfig';
 import { providerConfigVaultArchivedQueue } from './providerConfigVault';
@@ -18,6 +19,9 @@ export let providerDeploymentCreatedQueueProcessor = providerDeploymentCreatedQu
     });
 
     await indexProviderDeploymentQueue.add({
+      providerDeploymentId: data.providerDeploymentId
+    });
+    await reconcileProviderDeploymentMonitorSingleQueue.add({
       providerDeploymentId: data.providerDeploymentId
     });
 

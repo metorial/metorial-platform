@@ -100,73 +100,73 @@ class alertInternalServiceImpl {
     return alerts;
   }
 
-  async createFromProviderSpecificationChangeNotification(d: { notificationId: string }) {
-    let notification = await db.providerSpecificationChangeNotification.findUniqueOrThrow({
-      where: { id: d.notificationId },
-      include: {
-        tenant: true,
-        environment: true,
-        solution: true,
-        version: { include: { provider: true } }
-      }
-    });
+  // async createFromProviderSpecificationChangeNotification(d: { notificationId: string }) {
+  //   let notification = await db.providerSpecificationChangeNotification.findUniqueOrThrow({
+  //     where: { id: d.notificationId },
+  //     include: {
+  //       tenant: true,
+  //       environment: true,
+  //       solution: true,
+  //       version: { include: { provider: true } }
+  //     }
+  //   });
 
-    let monitor = await monitorInternalService.upsertProviderSpecChangeMonitor({
-      tenant: notification.tenant,
-      environment: notification.environment,
-      solution: notification.solution,
-      provider: notification.version.provider,
-      timestamp: notification.createdAt
-    });
+  //   let monitor = await monitorInternalService.upsertProviderSpecChangeMonitor({
+  //     tenant: notification.tenant,
+  //     environment: notification.environment,
+  //     solution: notification.solution,
+  //     provider: notification.version.provider,
+  //     timestamp: notification.createdAt
+  //   });
 
-    return await withTransaction(async db => {
-      let existing = await db.monitorAlert.findUnique({
-        where: {
-          monitorOid_specificationChangeNotificationOid: {
-            monitorOid: monitor.oid,
-            specificationChangeNotificationOid: notification.oid
-          }
-        },
-        include: { monitorAlertEvents: true }
-      });
-      if (existing) return existing;
+  //   return await withTransaction(async db => {
+  //     let existing = await db.monitorAlert.findUnique({
+  //       where: {
+  //         monitorOid_specificationChangeNotificationOid: {
+  //           monitorOid: monitor.oid,
+  //           specificationChangeNotificationOid: notification.oid
+  //         }
+  //       },
+  //       include: { monitorAlertEvents: true }
+  //     });
+  //     if (existing) return existing;
 
-      let created = await db.monitorAlert.create({
-        data: {
-          ...getId('monitorAlert'),
-          status: 'pending',
-          monitorOid: monitor.oid,
-          specificationChangeNotificationOid: notification.oid,
-          tenantOid: notification.tenantOid,
-          environmentOid: notification.environmentOid,
-          solutionOid: notification.solutionOid,
-          createdAt: notification.createdAt
-        }
-      });
+  //     let created = await db.monitorAlert.create({
+  //       data: {
+  //         ...getId('monitorAlert'),
+  //         status: 'pending',
+  //         monitorOid: monitor.oid,
+  //         specificationChangeNotificationOid: notification.oid,
+  //         tenantOid: notification.tenantOid,
+  //         environmentOid: notification.environmentOid,
+  //         solutionOid: notification.solutionOid,
+  //         createdAt: notification.createdAt
+  //       }
+  //     });
 
-      await db.monitorAlertEvent.create({
-        data: {
-          ...getId('monitorAlertEvent'),
-          type: 'created',
-          monitorAlertOid: created.oid,
-          createdAt: notification.createdAt
-        }
-      });
+  //     await db.monitorAlertEvent.create({
+  //       data: {
+  //         ...getId('monitorAlertEvent'),
+  //         type: 'created',
+  //         monitorAlertOid: created.oid,
+  //         createdAt: notification.createdAt
+  //       }
+  //     });
 
-      await db.monitor.updateMany({
-        where: { oid: monitor.oid },
-        data: {
-          firstAlertAt: monitor.firstAlertAt ?? notification.createdAt,
-          lastAlertAt: notification.createdAt
-        }
-      });
+  //     await db.monitor.updateMany({
+  //       where: { oid: monitor.oid },
+  //       data: {
+  //         firstAlertAt: monitor.firstAlertAt ?? notification.createdAt,
+  //         lastAlertAt: notification.createdAt
+  //       }
+  //     });
 
-      return await db.monitorAlert.findUniqueOrThrow({
-        where: { oid: created.oid },
-        include: { monitorAlertEvents: true }
-      });
-    });
-  }
+  //     return await db.monitorAlert.findUniqueOrThrow({
+  //       where: { oid: created.oid },
+  //       include: { monitorAlertEvents: true }
+  //     });
+  //   });
+  // }
 }
 
 export let alertInternalService = Service.create(

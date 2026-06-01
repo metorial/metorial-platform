@@ -1,6 +1,7 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { alertService } from '@metorial-subspace/module-monitor';
+import { actorService } from '@metorial-subspace/module-tenant';
 import { monitorAlertPresenter } from '@metorial-subspace/presenters';
 import { app } from './_app';
 import { createdAtValidator } from './_dateFilter';
@@ -10,6 +11,14 @@ let monitorTargetValidator = v.enumOf(['protoguard_filter', 'schema_change']);
 let monitorOwnerValidator = v.enumOf(['tenant', 'system']);
 let monitorAlertStatusValidator = v.enumOf(['pending', 'resolved']);
 let monitorAlertSourceValidator = v.enumOf(['protoguard', 'specification_change']);
+
+let getOptionalActor = async (ctx: { tenant: any; input: { actorId?: string } }) =>
+  ctx.input.actorId
+    ? await actorService.getActorById({
+        tenant: ctx.tenant,
+        id: ctx.input.actorId
+      })
+    : null;
 
 export let monitorAlertApp = tenantApp.use(async ctx => {
   let alertId = ctx.body.alertId;
@@ -86,10 +95,21 @@ export let monitorAlertController = app.controller({
       v.object({
         tenantId: v.string(),
         environmentId: v.string(),
-        alertId: v.string()
+        alertId: v.string(),
+        actorId: v.optional(v.string())
       })
     )
-    .do(async ctx => monitorAlertPresenter(ctx.alert)),
+    .do(async ctx =>
+      monitorAlertPresenter(
+        await alertService.getAlertById({
+          tenant: ctx.tenant,
+          environment: ctx.environment,
+          solution: ctx.solution,
+          alertId: ctx.input.alertId,
+          actor: await getOptionalActor(ctx)
+        })
+      )
+    ),
 
   viewed: monitorAlertApp
     .handler()
@@ -97,7 +117,8 @@ export let monitorAlertController = app.controller({
       v.object({
         tenantId: v.string(),
         environmentId: v.string(),
-        alertId: v.string()
+        alertId: v.string(),
+        actorId: v.optional(v.string())
       })
     )
     .do(async ctx =>
@@ -106,7 +127,8 @@ export let monitorAlertController = app.controller({
           tenant: ctx.tenant,
           environment: ctx.environment,
           solution: ctx.solution,
-          alertId: ctx.input.alertId
+          alertId: ctx.input.alertId,
+          actor: await getOptionalActor(ctx)
         })
       )
     ),
@@ -117,7 +139,8 @@ export let monitorAlertController = app.controller({
       v.object({
         tenantId: v.string(),
         environmentId: v.string(),
-        alertId: v.string()
+        alertId: v.string(),
+        actorId: v.optional(v.string())
       })
     )
     .do(async ctx =>
@@ -126,7 +149,8 @@ export let monitorAlertController = app.controller({
           tenant: ctx.tenant,
           environment: ctx.environment,
           solution: ctx.solution,
-          alertId: ctx.input.alertId
+          alertId: ctx.input.alertId,
+          actor: await getOptionalActor(ctx)
         })
       )
     ),
@@ -137,7 +161,8 @@ export let monitorAlertController = app.controller({
       v.object({
         tenantId: v.string(),
         environmentId: v.string(),
-        alertId: v.string()
+        alertId: v.string(),
+        actorId: v.optional(v.string())
       })
     )
     .do(async ctx =>
@@ -146,7 +171,8 @@ export let monitorAlertController = app.controller({
           tenant: ctx.tenant,
           environment: ctx.environment,
           solution: ctx.solution,
-          alertId: ctx.input.alertId
+          alertId: ctx.input.alertId,
+          actor: await getOptionalActor(ctx)
         })
       )
     )

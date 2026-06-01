@@ -243,6 +243,7 @@ model TenantActor {
   skillForks                SkillFork[]
   skillEvents               SkillEvent[]
   monitorAlertEvents        MonitorAlertEvent[]
+  monitorAlertRecipients    MonitorAlertRecipient[]
 
   @@unique([tenantOid, identifier])
   @@map("Actor")

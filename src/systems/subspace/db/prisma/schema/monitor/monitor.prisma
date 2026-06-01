@@ -34,14 +34,14 @@ model Monitor {
   providerOid BigInt?
   provider    Provider? @relation(fields: [providerOid], references: [oid], onDelete: SetNull)
 
-  tenantOid BigInt?
-  tenant    Tenant? @relation(fields: [tenantOid], references: [oid])
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
 
-  environmentOid BigInt?
-  environment    Environment? @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
 
-  solutionOid Int?
-  solution    Solution? @relation(fields: [solutionOid], references: [oid])
+  solutionOid Int
+  solution    Solution @relation(fields: [solutionOid], references: [oid])
 
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @default(now()) @updatedAt

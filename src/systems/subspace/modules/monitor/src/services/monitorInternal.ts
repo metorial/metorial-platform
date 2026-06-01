@@ -3,8 +3,8 @@ import {
   db,
   getId,
   type Environment,
-  type Provider,
   type ProtoGuardFilter,
+  type Provider,
   type Solution,
   type Tenant
 } from '@metorial-subspace/db';
@@ -25,7 +25,7 @@ class monitorInternalServiceImpl {
     environment: Environment;
     solution: Solution;
     filter: ProtoGuardFilter;
-    timestamp: Date;
+    timestamp?: Date;
   }) {
     let key = [scopeKey({ ...d, owner: 'tenant' }), 'protoguard_filter', d.filter.key].join(
       ':'
@@ -56,14 +56,13 @@ class monitorInternalServiceImpl {
   }
 
   async upsertProviderSpecChangeMonitor(d: {
-    tenant?: Tenant | null;
-    environment?: Environment | null;
-    solution?: Solution | null;
+    tenant: Tenant;
+    environment: Environment;
+    solution: Solution;
     provider: Provider;
-    timestamp: Date;
+    timestamp?: Date;
   }) {
-    let owner: 'tenant' | 'system' = d.tenant ? 'tenant' : 'system';
-    let key = [scopeKey({ ...d, owner }), 'schema_change', d.provider.id].join(':');
+    let key = [scopeKey({ ...d, owner: 'tenant' }), 'schema_change', d.provider.id].join(':');
 
     return await db.monitor.upsert({
       where: { key },
@@ -78,11 +77,11 @@ class monitorInternalServiceImpl {
         description: `Schema changes detected for ${d.provider.name}.`,
         target: 'schema_change',
         status: 'active',
-        owner,
+        owner: 'tenant',
         providerOid: d.provider.oid,
-        tenantOid: d.tenant?.oid,
-        environmentOid: d.environment?.oid,
-        solutionOid: d.solution?.oid,
+        tenantOid: d.tenant.oid,
+        environmentOid: d.environment.oid,
+        solutionOid: d.solution.oid,
         firstAlertAt: d.timestamp,
         lastAlertAt: d.timestamp
       }
