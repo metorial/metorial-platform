@@ -43,7 +43,8 @@ export let documentVersionController = Controller.create(
     list: documentGroup
       .get(instancePath('documents/:documentId/versions', 'documents.versions.list'), {
         name: 'List document versions',
-        description: 'Returns a paginated list of versions for a specific document.'
+        description: 'Returns a paginated list of versions for a specific document.',
+        confidential: true
       })
       .use(
         checkAccess({
@@ -89,7 +90,8 @@ export let documentVersionController = Controller.create(
         ),
         {
           name: 'Get document version by ID',
-          description: 'Retrieves a specific document version by its ID.'
+          description: 'Retrieves a specific document version by its ID.',
+          confidential: true
         }
       )
       .use(

@@ -35,7 +35,8 @@ export let callbackDestinationController = Controller.create(
     list: instanceGroup
       .get(instancePath('callback-destinations', 'callbacks.destinations.list'), {
         name: 'List callback destinations',
-        description: 'Returns a paginated list of callback destinations.'
+        description: 'Returns a paginated list of callback destinations.',
+        confidential: true
       })
       .use(checkAccess({ possibleScopes: ['instance.callback:read'] }))
       .outputList(callbackDestinationPresenter)
@@ -69,7 +70,8 @@ export let callbackDestinationController = Controller.create(
       .get(
         instancePath(
           'callback-destinations/:callbackDestinationId',
-          'callbacks.destinations.get'
+          'callbacks.destinations.get',
+        confidential: true
         ),
         {
           name: 'Get callback destination',
@@ -85,7 +87,8 @@ export let callbackDestinationController = Controller.create(
     create: instanceGroup
       .post(instancePath('callback-destinations', 'callbacks.destinations.create'), {
         name: 'Create callback destination',
-        description: 'Creates a new callback destination.'
+        description: 'Creates a new callback destination.',
+        confidential: true
       })
       .use(checkAccess({ possibleScopes: ['instance.callback:write'] }))
       .body(
@@ -134,7 +137,8 @@ export let callbackDestinationController = Controller.create(
         ),
         {
           name: 'Update callback destination',
-          description: 'Updates a callback destination.'
+          description: 'Updates a callback destination.',
+        confidential: true
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.callback:write'] }))
@@ -185,7 +189,8 @@ export let callbackDestinationController = Controller.create(
       .delete(
         instancePath(
           'callback-destinations/:callbackDestinationId',
-          'callbacks.destinations.delete'
+          'callbacks.destinations.delete',
+        confidential: true
         ),
         {
           name: 'Delete callback destination',

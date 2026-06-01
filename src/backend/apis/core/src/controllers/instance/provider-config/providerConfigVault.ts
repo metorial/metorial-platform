@@ -121,7 +121,8 @@ export let providerConfigVaultController = Controller.create(
         instancePath('provider-config-vaults', 'providerDeployments.configVaults.create'),
         {
           name: 'Create provider config vault',
-          description: 'Creates a new provider config vault.'
+          description: 'Creates a new provider config vault.',
+          confidential: true
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.config_vault:write'] }))

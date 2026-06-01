@@ -74,6 +74,7 @@ export let introspectApi = (version: {
           name: out.name,
           description: out.description,
           hideInDocs: !!out.hideInDocs,
+          confidential: !!out.confidential,
 
           bodyId: out.body
             ? ensureType({
