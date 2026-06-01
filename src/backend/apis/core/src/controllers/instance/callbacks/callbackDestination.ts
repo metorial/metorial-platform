@@ -70,12 +70,12 @@ export let callbackDestinationController = Controller.create(
       .get(
         instancePath(
           'callback-destinations/:callbackDestinationId',
-          'callbacks.destinations.get',
-        confidential: true
+          'callbacks.destinations.get'
         ),
         {
           name: 'Get callback destination',
-          description: 'Retrieves a specific callback destination.'
+          description: 'Retrieves a specific callback destination.',
+          confidential: true
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.callback:read'] }))
@@ -138,7 +138,7 @@ export let callbackDestinationController = Controller.create(
         {
           name: 'Update callback destination',
           description: 'Updates a callback destination.',
-        confidential: true
+          confidential: true
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.callback:write'] }))
@@ -189,12 +189,12 @@ export let callbackDestinationController = Controller.create(
       .delete(
         instancePath(
           'callback-destinations/:callbackDestinationId',
-          'callbacks.destinations.delete',
-        confidential: true
+          'callbacks.destinations.delete'
         ),
         {
           name: 'Delete callback destination',
-          description: 'Archives a callback destination.'
+          description: 'Archives a callback destination.',
+          confidential: true
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.callback:write'] }))
