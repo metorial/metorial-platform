@@ -18,6 +18,25 @@ model ServerConfig {
   serverDiscoveries ServerDiscovery[]
 }
 
+model ServerInstanceConfiguration {
+  oid BigInt @id
+  id  String @unique
+
+  enclaveId String
+
+  /// [CompiledEgressNetworkAllowList]
+  egressPolicy Json
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  serverConnections ServerConnection[]
+  serverOAuthSetups ServerOAuthSetup[]
+}
+
 enum ServerAuthConfigType {
   remote
   delegated
@@ -96,11 +115,6 @@ model ServerConnection {
   /// [ServerConnectionCapabilities]
   capabilities Json
 
-  enclaveId String?
-
-  /// [CompiledEgressNetworkAllowList]
-  egressPolicy Json?
-
   serverConfigOid BigInt
   serverConfig    ServerConfig @relation(fields: [serverConfigOid], references: [oid])
 
@@ -109,6 +123,9 @@ model ServerConnection {
 
   serverAuthConfigOid BigInt?
   serverAuthConfig    ServerAuthConfig? @relation(fields: [serverAuthConfigOid], references: [oid])
+
+  serverInstanceConfigurationOid BigInt?
+  serverInstanceConfiguration    ServerInstanceConfiguration? @relation(fields: [serverInstanceConfigurationOid], references: [oid])
 
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])

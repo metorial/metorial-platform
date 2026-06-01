@@ -1,13 +1,16 @@
+import { getSentry } from '@lowerdeck/sentry';
 import { spawn } from 'child_process';
 import { promises as fs } from 'fs';
 import JSZip from 'jszip';
 import { tmpdir } from 'os';
 import { dirname, join, resolve, sep } from 'path';
-import { encryption } from '../../encryption';
 import { env } from '../../env';
+import { decryptFunctionVersionEnvironmentVariables } from '../../lib/decryptFunctionVersionEnvironmentVariables';
 import { storage } from '../../storage';
 import type { FunctionInvocationParams } from '../_lib';
 import { parseInvocationPayload } from '../_lib';
+
+let Sentry = getSentry();
 
 let RUNNER_FILE_NAME = '__metorial_local_runner__.cjs';
 
@@ -217,12 +220,10 @@ export let invokeFunction = async (d: FunctionInvocationParams) => {
     await fs.writeFile(runnerPath, LOCAL_RUNNER_SCRIPT, 'utf-8');
     await fs.writeFile(eventPath, JSON.stringify({ payload: d.payload }), 'utf-8');
 
-    let envVars = JSON.parse(
-      await encryption.decrypt({
-        entityId: d.functionVersion.id,
-        encrypted: d.providerData.encryptedEnvironmentVariables
-      })
-    );
+    let envVars = await decryptFunctionVersionEnvironmentVariables({
+      functionVersion: d.functionVersion,
+      encryptedEnvironmentVariables: d.providerData.encryptedEnvironmentVariables
+    });
 
     let exitCode = await captureProcessLogs({
       command: process.execPath,
@@ -259,6 +260,20 @@ export let invokeFunction = async (d: FunctionInvocationParams) => {
       internalError: exitCode === 0 ? undefined : `Local runtime exited with code ${exitCode}`
     });
   } catch (err) {
+    Sentry.captureException(err, {
+      extra: {
+        error: String(err),
+        functionVersionId: d.functionVersion.id,
+        functionId: d.function.id
+      }
+    });
+
+    console.warn('Failed to invoke local function', {
+      error: String(err),
+      functionVersionId: d.functionVersion.id,
+      functionId: d.function.id
+    });
+
     outputs.computeTimeMs = Date.now() - startedAt;
     outputs.billedTimeMs = outputs.computeTimeMs;
 

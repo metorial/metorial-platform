@@ -300,8 +300,6 @@ class providerDeploymentServiceImpl {
           privateMetadata: d.input.privateMetadata,
           toolFilter: normalizeToolFilters(d.input.toolFilters),
 
-          networkingRulesetIds: [],
-
           tenantOid: d.tenant.oid,
           solutionOid: d.solution.oid,
           environmentOid: d.environment.oid,

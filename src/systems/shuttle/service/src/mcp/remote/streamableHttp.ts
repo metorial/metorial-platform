@@ -3,7 +3,8 @@ import type { ServerVersion, Tenant } from '../../../prisma/generated/browser';
 import type {
   ServerAuthConfig,
   ServerConfig,
-  ServerConnection
+  ServerConnection,
+  ServerInstanceConfiguration
 } from '../../../prisma/generated/client';
 import {
   EGRESS_POLICY_BLOCKED_CODE,
@@ -40,6 +41,7 @@ export class StreamableHttpRemoteConnection implements McpConnectionBackendAdapt
     readonly connection: ServerConnection & {
       serverConfig: ServerConfig;
       serverAuthConfig: ServerAuthConfig | null;
+      serverInstanceConfiguration: ServerInstanceConfiguration | null;
     }
   ) {
     if (!version.remoteUrl || version.remoteProtocol != 'streamable_http') {
@@ -59,6 +61,7 @@ export class StreamableHttpRemoteConnection implements McpConnectionBackendAdapt
     connection: ServerConnection & {
       serverConfig: ServerConfig;
       serverAuthConfig: ServerAuthConfig | null;
+      serverInstanceConfiguration: ServerInstanceConfiguration | null;
     }
   ) {
     return new StreamableHttpRemoteConnection(tenant, version, connection);
@@ -76,8 +79,8 @@ export class StreamableHttpRemoteConnection implements McpConnectionBackendAdapt
     try {
       await fetchEventSource(this.version.remoteUrl!, {
         method: 'POST',
-        egressPolicy: this.connection
-          .egressPolicy as PrismaJson.CompiledEgressNetworkAllowList | null,
+        egressPolicy: this.connection.serverInstanceConfiguration
+          ?.egressPolicy as PrismaJson.CompiledEgressNetworkAllowList | null,
         headers: {
           ...(await this.getHeaders()),
           'Content-Type': 'application/json'
@@ -159,8 +162,8 @@ export class StreamableHttpRemoteConnection implements McpConnectionBackendAdapt
 
       await fetchEventSource(this.version.remoteUrl!, {
         method: 'GET',
-        egressPolicy: this.connection
-          .egressPolicy as PrismaJson.CompiledEgressNetworkAllowList | null,
+        egressPolicy: this.connection.serverInstanceConfiguration
+          ?.egressPolicy as PrismaJson.CompiledEgressNetworkAllowList | null,
         headers: await this.getHeaders(),
         signal: this.#abortController.signal,
 

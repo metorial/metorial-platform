@@ -13,6 +13,7 @@ import { oauthCallbackUrl } from '../../config';
 import { db } from '../../db';
 import { getId } from '../../id';
 import { getAxiosSsrfFilter } from '../http/axiosSsrf';
+import { assertUrlAllowedByEgressPolicy } from '../network/egressPolicy';
 import {
   type OAuthConfiguration,
   type RegistrationResponse,
@@ -93,7 +94,8 @@ export class OAuthUtils {
     code,
     redirectUri,
     codeVerifier,
-    config
+    config,
+    egressPolicy
   }: {
     tokenEndpoint: string;
     clientId: string;
@@ -102,6 +104,7 @@ export class OAuthUtils {
     redirectUri: string;
     codeVerifier?: string;
     config: OAuthConfiguration;
+    egressPolicy?: PrismaJson.CompiledEgressNetworkAllowList | null;
   }): Promise<TokenResponse> {
     let body = new URLSearchParams({
       grant_type: 'authorization_code',
@@ -134,6 +137,8 @@ export class OAuthUtils {
     }
 
     try {
+      await assertUrlAllowedByEgressPolicy({ url: tokenEndpoint, egressPolicy });
+
       let response = await axios.post<TokenResponse>(tokenEndpoint, body.toString(), {
         headers,
         maxRedirects: 5,
@@ -230,12 +235,16 @@ export class OAuthUtils {
 
   static async getUserProfile({
     userInfoEndpoint,
-    accessToken
+    accessToken,
+    egressPolicy
   }: {
     userInfoEndpoint: string;
     accessToken: string;
+    egressPolicy?: PrismaJson.CompiledEgressNetworkAllowList | null;
   }): Promise<UserProfile | null> {
     try {
+      await assertUrlAllowedByEgressPolicy({ url: userInfoEndpoint, egressPolicy });
+
       let response = await axios.get(userInfoEndpoint, {
         headers: {
           Authorization: `Bearer ${accessToken}`,

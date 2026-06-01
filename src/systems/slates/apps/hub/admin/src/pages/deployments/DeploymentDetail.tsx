@@ -10,9 +10,16 @@ import {
   Text
 } from '@metorial-io/ui';
 import { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { deploymentStatusColors } from '../../constants/statusColors.js';
-import { redeploySlateDeployment, useBuildOutput, useInternalLogs, useSlate, useSlateDeployment } from '../../state/index.js';
+import {
+  redeploySlateDeployment,
+  useBuildOutput,
+  useInternalLogs,
+  useSlate,
+  useSlateDeployment,
+  waitForRedeployDeployment
+} from '../../state/index.js';
 import { BackLink } from '../../components/BackLink.js';
 import {
   LogViewer,
@@ -53,6 +60,7 @@ let BuildStepView = ({ step }: { step: BuildStep }) => {
 
 export let DeploymentDetail = () => {
   let { slateId, deploymentId } = useParams<{ slateId: string; deploymentId: string }>();
+  let navigate = useNavigate();
   let slate = useSlate(slateId);
   let deployment = useSlateDeployment(slateId, deploymentId);
   let buildOutput = useBuildOutput(slateId, deploymentId);
@@ -65,7 +73,14 @@ export let DeploymentDetail = () => {
     if (!confirm('This will cancel any ongoing deployments for this version and start a new one. Continue?')) return;
     setRedeploying(true);
     try {
-      await redeploySlateDeployment(slateId, deploymentId);
+      let result = await redeploySlateDeployment(slateId, deploymentId);
+      let deployment = await waitForRedeployDeployment({
+        slateId,
+        versionId: result.versionId,
+        queuedAt: result.queuedAt
+      });
+
+      if (deployment) navigate(`/slates/${slateId}/deployments/${deployment.id}`);
     } finally {
       setRedeploying(false);
     }

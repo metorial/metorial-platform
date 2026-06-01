@@ -1,6 +1,6 @@
 import { ServiceError, badRequestError, isServiceError } from '@lowerdeck/error';
-import { lookup } from 'node:dns/promises';
 import { isValidCIDR, parse, parseCIDR } from 'ipaddr.js';
+import { lookup } from 'node:dns/promises';
 
 export type RuntimeNetworkRule = {
   action: 'allow';
@@ -12,7 +12,7 @@ export type RuntimeNetworkRule = {
 let fullPortRange = { from: 1, to: 65535 };
 export let EGRESS_POLICY_BLOCKED_CODE = 'egress_policy_blocked';
 export let EGRESS_POLICY_BLOCKED_MESSAGE =
-  'Remote URL is not allowed by the connection egress policy';
+  'Metorial Magic Network: Remote URL is not allowed by the connection egress policy';
 
 export let isEgressPolicyError = (error: unknown) =>
   isServiceError(error) && error.data.code === EGRESS_POLICY_BLOCKED_CODE;
@@ -29,10 +29,7 @@ let getPortForUrl = (url: URL) => {
   return null;
 };
 
-let isPortAllowed = (
-  entry: PrismaJson.CompiledNetworkAllowEntry,
-  port: number | null
-) => {
+let isPortAllowed = (entry: PrismaJson.CompiledNetworkAllowEntry, port: number | null) => {
   if (port === null) return false;
 
   let portRange = entry.portRange ?? fullPortRange;

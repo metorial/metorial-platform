@@ -30,10 +30,11 @@ var (
 )
 
 type Server struct {
-	Logger   *slog.Logger
-	Dialer   *net.Dialer
-	Verifier *auth.Verifier
-	Recorder *observer.Recorder
+	Logger                *slog.Logger
+	Dialer                *net.Dialer
+	Verifier              *auth.Verifier
+	Recorder              *observer.Recorder
+	DisableAuthentication bool
 }
 
 type requestPolicy struct {
@@ -54,7 +55,9 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Metorial Magic Network: proxy authentication failed", http.StatusProxyAuthRequired)
 		return
 	}
-	s.logAuthorizedRequest(r, requestPolicy)
+	if !requestPolicy.Claims.LegacyFallback {
+		s.logAuthorizedRequest(r, requestPolicy)
+	}
 
 	if r.Method == http.MethodConnect {
 		s.handleConnect(w, r, requestPolicy)
@@ -65,6 +68,15 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) policyFromRequest(r *http.Request) (*requestPolicy, error) {
+	if s.DisableAuthentication {
+		claims := policy.Claims{LegacyFallback: true}
+		compiled, err := policy.Compile(claims)
+		if err != nil {
+			return nil, errors.Join(errInvalidEgressPolicy, err)
+		}
+		return &requestPolicy{Claims: claims, Compiled: compiled}, nil
+	}
+
 	if s.Verifier == nil {
 		return nil, errVerifierRequired
 	}
@@ -378,7 +390,7 @@ func (s *Server) dialAllowed(ctx context.Context, host string, port string, requ
 		}
 		conn, err := dialer.DialContext(ctx, "tcp", net.JoinHostPort(ip.String(), port))
 		if err == nil {
-			if s.Recorder != nil {
+			if s.Recorder != nil && !requestPolicy.Claims.LegacyFallback {
 				s.Recorder.Record(requestPolicy.Claims, host, ip.String(), port)
 			}
 			return conn, nil

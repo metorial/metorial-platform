@@ -47,7 +47,10 @@ export let resetCompiledNetworkRulesForBindingTargets = async (d: {
       environmentOid: d.environmentOid,
       OR: orConditions
     },
-    data: { compiledNetworkRules: Prisma.JsonNull }
+    data: {
+      compiledNetworkRules: Prisma.JsonNull,
+      needsEnclaveReconciliation: true
+    }
   });
 };
 

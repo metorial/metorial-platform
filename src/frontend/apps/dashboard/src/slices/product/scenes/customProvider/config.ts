@@ -11,19 +11,13 @@ let createEmptySchema = (): JSONSchema7 => ({
 export let remoteServerTemplates = [
   {
     name: 'Linear',
-    remoteUrl: 'https://mcp.linear.app/sse',
+    remoteUrl: 'https://mcp.linear.app/mcp',
     type: 'oauth' as const,
-    protocol: 'sse' as const
+    protocol: 'streamable_http' as const
   },
   {
     name: 'Neon',
-    remoteUrl: 'https://mcp.neon.tech/sse',
-    type: 'oauth' as const,
-    protocol: 'sse' as const
-  },
-  {
-    name: 'Zapier',
-    remoteUrl: 'https://mcp.zapier.com/api/mcp/mcp',
+    remoteUrl: 'https://mcp.neon.tech/mcp',
     type: 'oauth' as const,
     protocol: 'streamable_http' as const
   },
@@ -35,9 +29,9 @@ export let remoteServerTemplates = [
   },
   {
     name: 'monday.com',
-    remoteUrl: 'https://mcp.monday.com/sse',
+    remoteUrl: 'https://mcp.monday.com/mcp',
     type: 'oauth' as const,
-    protocol: 'sse' as const
+    protocol: 'streamable_http' as const
   },
   {
     name: 'Notion',
@@ -53,39 +47,27 @@ export let remoteServerTemplates = [
   },
   {
     name: 'Sentry',
-    remoteUrl: 'https://mcp.sentry.dev/sse',
+    remoteUrl: 'https://mcp.sentry.dev/mcp',
     type: 'oauth' as const,
-    protocol: 'sse' as const
+    protocol: 'streamable_http' as const
   },
   {
     name: 'Cloudflare Workers',
-    remoteUrl: 'https://bindings.mcp.cloudflare.com/sse',
+    remoteUrl: 'https://bindings.mcp.cloudflare.com/mcp',
     type: 'oauth' as const,
-    protocol: 'sse' as const
+    protocol: 'streamable_http' as const
   },
   {
     name: 'Square',
-    remoteUrl: 'https://mcp.squareup.com/sse',
+    remoteUrl: 'https://mcp.squareup.com/mcp',
     type: 'oauth' as const,
-    protocol: 'sse' as const
+    protocol: 'streamable_http' as const
   },
   {
     name: 'Webflow',
     remoteUrl: 'https://mcp.webflow.com/sse',
     type: 'oauth' as const,
     protocol: 'sse' as const
-  },
-  {
-    name: 'Wix',
-    remoteUrl: 'https://mcp.wix.com/sse',
-    type: 'oauth' as const,
-    protocol: 'sse' as const
-  },
-  {
-    name: 'Hugging Face',
-    remoteUrl: 'https://hf.co/mcp',
-    type: 'other' as const, // Both oauth and unauthenticated access
-    protocol: 'streamable_http' as const
   },
   {
     name: 'PayPal',

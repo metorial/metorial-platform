@@ -1,99 +1,45 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { Prisma } from '@metorial-subspace/db';
 
-let { mockDb } = vi.hoisted(() => ({
-  mockDb: {
-    firewall: {
-      findFirst: vi.fn()
-    },
+let enclaveUpdateMany = vi.fn();
+
+vi.mock('@metorial-subspace/db', () => ({
+  Prisma: {
+    JsonNull: Symbol('JsonNull')
+  },
+  db: {
     enclave: {
-      updateMany: vi.fn()
+      updateMany: (...args: unknown[]) => enclaveUpdateMany(...args)
     }
   }
 }));
 
-vi.mock('@metorial-subspace/db', () => ({
-  db: mockDb,
-  Prisma: {
-    JsonNull: 'JsonNull'
-  }
-}));
-
-import {
-  resetCompiledNetworkRulesForBindingTargets,
-  resetCompiledNetworkRulesForFirewallId
-} from './resetCompiledNetworkRules';
+import { resetCompiledNetworkRulesForBindingTargets } from './resetCompiledNetworkRules';
 
 describe('resetCompiledNetworkRulesForBindingTargets', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    enclaveUpdateMany.mockReset();
   });
 
-  it('resets enclaves linked to an enclave binding target', async () => {
+  it('sets needsEnclaveReconciliation when invalidating compiled rules', async () => {
     await resetCompiledNetworkRulesForBindingTargets({
-      networkOid: BigInt(100),
-      tenantOid: BigInt(10),
-      environmentOid: BigInt(20),
-      bindings: [{ enclaveOid: BigInt(300), providerOid: null, networkOid: null }]
+      networkOid: 1n,
+      tenantOid: 2n,
+      environmentOid: 3n,
+      bindings: [{ enclaveOid: 4n, providerOid: null, networkOid: null }]
     });
 
-    expect(mockDb.enclave.updateMany).toHaveBeenCalledWith({
+    expect(enclaveUpdateMany).toHaveBeenCalledWith({
       where: {
-        networkOid: BigInt(100),
-        tenantOid: BigInt(10),
-        environmentOid: BigInt(20),
-        OR: [{ oid: { in: [BigInt(300)] } }]
+        networkOid: 1n,
+        tenantOid: 2n,
+        environmentOid: 3n,
+        OR: [{ oid: { in: [4n] } }]
       },
-      data: { compiledNetworkRules: 'JsonNull' }
-    });
-  });
-
-  it('resets enclaves linked to provider and network binding targets', async () => {
-    await resetCompiledNetworkRulesForBindingTargets({
-      networkOid: BigInt(100),
-      tenantOid: BigInt(10),
-      environmentOid: BigInt(20),
-      bindings: [
-        { enclaveOid: null, providerOid: BigInt(400), networkOid: null },
-        { enclaveOid: null, providerOid: null, networkOid: BigInt(100) }
-      ]
-    });
-
-    expect(mockDb.enclave.updateMany).toHaveBeenCalledWith({
-      where: {
-        networkOid: BigInt(100),
-        tenantOid: BigInt(10),
-        environmentOid: BigInt(20),
-        OR: [
-          { providerDeployment: { providerOid: { in: [BigInt(400)] } } },
-          { networkOid: BigInt(100) }
-        ]
-      },
-      data: { compiledNetworkRules: 'JsonNull' }
-    });
-  });
-
-  it('resets linked enclaves for a firewall id', async () => {
-    mockDb.firewall.findFirst.mockResolvedValueOnce({
-      networkOid: BigInt(100),
-      tenantOid: BigInt(10),
-      environmentOid: BigInt(20),
-      bindings: [{ enclaveOid: BigInt(300), providerOid: null, networkOid: null }]
-    });
-
-    await resetCompiledNetworkRulesForFirewallId('fwl_test');
-
-    expect(mockDb.firewall.findFirst).toHaveBeenCalledWith({
-      where: { id: 'fwl_test' },
-      include: { bindings: true }
-    });
-    expect(mockDb.enclave.updateMany).toHaveBeenCalledWith({
-      where: {
-        networkOid: BigInt(100),
-        tenantOid: BigInt(10),
-        environmentOid: BigInt(20),
-        OR: [{ oid: { in: [BigInt(300)] } }]
-      },
-      data: { compiledNetworkRules: 'JsonNull' }
+      data: {
+        compiledNetworkRules: Prisma.JsonNull,
+        needsEnclaveReconciliation: true
+      }
     });
   });
 });

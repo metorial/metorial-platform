@@ -3,7 +3,7 @@ model Enclave {
   id  String @unique
 
   name       String
-  identifier String 
+  identifier String
 
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
@@ -11,8 +11,9 @@ model Enclave {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  enclaveFunctions         EnclaveFunction[]
-  enclaveFunctionOverrides EnclaveFunctionOverride[]
+  enclaveFunctions                   EnclaveFunction[]
+  enclaveFunctionOverrides           EnclaveFunctionOverride[]
+  enclaveFunctionOverrideDeployments EnclaveFunctionOverrideDeployment[]
 
   @@unique([identifier, tenantOid])
 }
@@ -47,8 +48,43 @@ model EnclaveFunctionOverride {
   overrideFunctionVersionOid BigInt
   overrideFunctionVersion    FunctionVersion @relation("EnclaveFunctionOverrideVersion", fields: [overrideFunctionVersionOid], references: [oid])
 
+  deployments EnclaveFunctionOverrideDeployment[]
+
   @@unique([enclaveOid, sourceFunctionOid, sourceFunctionVersionOid])
   @@index([enclaveOid, sourceFunctionOid])
-  @@index([overrideFunctionOid])
-  @@index([overrideFunctionVersionOid])
+}
+
+enum EnclaveFunctionOverrideDeploymentStatus {
+  pending
+  succeeded
+  failed
+}
+
+model EnclaveFunctionOverrideDeployment {
+  oid    BigInt                                  @id
+  id     String                                  @unique
+  status EnclaveFunctionOverrideDeploymentStatus
+
+  enclaveOid BigInt
+  enclave    Enclave @relation(fields: [enclaveOid], references: [oid])
+
+  sourceFunctionOid BigInt
+  sourceFunction    Function @relation("EnclaveFunctionOverrideDeploymentSourceFunction", fields: [sourceFunctionOid], references: [oid])
+
+  sourceFunctionVersionOid BigInt
+  sourceFunctionVersion    FunctionVersion @relation("EnclaveFunctionOverrideDeploymentSourceVersion", fields: [sourceFunctionVersionOid], references: [oid])
+
+  overrideFunctionOid BigInt?
+  overrideFunction    Function? @relation("EnclaveFunctionOverrideDeploymentFunction", fields: [overrideFunctionOid], references: [oid])
+
+  overrideFunctionVersionOid BigInt?
+  overrideFunctionVersion    FunctionVersion? @relation("EnclaveFunctionOverrideDeploymentVersion", fields: [overrideFunctionVersionOid], references: [oid])
+
+  enclaveFunctionOverrideOid BigInt?
+  enclaveFunctionOverride    EnclaveFunctionOverride? @relation(fields: [enclaveFunctionOverrideOid], references: [oid])
+
+  errorMessage String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 }

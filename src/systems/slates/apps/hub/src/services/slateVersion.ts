@@ -61,7 +61,7 @@ class slateVersionServiceImpl {
             where: {
               slateOid: d.slate.oid
             },
-            orderBy: { createdAt: 'desc' },
+            orderBy: [{ createdAt: 'desc' }, { oid: 'desc' }],
             include
           })
       )

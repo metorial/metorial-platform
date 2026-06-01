@@ -45,6 +45,9 @@ export let enclaveUpdatedQueue = createQueue<{ enclaveId: string }>({
 export let enclaveUpdatedQueueProcessor = enclaveUpdatedQueue.process(async data => {
   await db.enclave.updateMany({
     where: { id: data.enclaveId },
-    data: { compiledNetworkRules: Prisma.JsonNull }
+    data: {
+      compiledNetworkRules: Prisma.JsonNull,
+      needsEnclaveReconciliation: true
+    }
   });
 });

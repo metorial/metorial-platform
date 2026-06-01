@@ -22,7 +22,9 @@
     "@metorial-platform-systems/function-bay-client": "^1.0.0",
     "@metorial-subspace/db": "^1.0.0",
     "@metorial-subspace/list-utils": "^1.0.0",
+    "@metorial-subspace/module-catalog": "^1.0.0",
     "@metorial-subspace/module-tenant": "^1.0.0",
+    "@metorial-subspace/provider": "^1.0.0",
     "ipaddr.js": "^2.2.0"
   },
   "devDependencies": {

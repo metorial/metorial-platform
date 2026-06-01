@@ -5,7 +5,6 @@ import {
   snowflake,
   type ShuttleConnection
 } from '@metorial-subspace/db';
-import { enclaveService } from '@metorial-subspace/module-enclave';
 import {
   IProviderRun,
   IProviderRunConnection,
@@ -21,29 +20,6 @@ import {
 import type { JSONRPCMessage } from '@modelcontextprotocol/sdk/types.js';
 import PQueue from 'p-queue';
 import { getTenantForShuttle, shuttle, shuttleLiveClient } from '../client';
-
-let getEnclaveConnectionContext = async (data: ProviderRunCreateParam) => {
-  let providerDeployment = await db.providerDeployment.findUnique({
-    where: { oid: data.providerDeployment.oid },
-    include: {
-      environment: true,
-      enclave: true
-    }
-  });
-
-  if (!providerDeployment?.enclave) return {};
-
-  let compiledNetworkRules = await enclaveService.useEnclave({
-    tenant: data.tenant,
-    environment: providerDeployment.environment,
-    enclave: providerDeployment.enclave
-  });
-
-  return {
-    enclaveId: providerDeployment.enclave.id,
-    egressPolicy: compiledNetworkRules.egress as PrismaJson.CompiledEgressNetworkAllowList
-  };
-};
 
 export class ProviderRun extends IProviderRun {
   override async createProviderRun(
@@ -74,20 +50,23 @@ export class ProviderRun extends IProviderRun {
           where: { oid: data.providerAuthConfigVersion.shuttleAuthConfigOid }
         })
       : null;
-    let enclaveConnectionContext = await getEnclaveConnectionContext(data);
+    let providerDeployment = await db.providerDeployment.findUniqueOrThrow({
+      where: { oid: data.providerDeployment.oid },
+      include: { serverInstanceConfiguration: true }
+    });
 
     let res = await shuttle.serverConnection.create({
       tenantId: tenant.id,
       serverVersionId: shuttleVersion.id,
       serverConfigId: shuttleConfig.id,
       serverAuthConfigId: shuttleAuthConfig?.id,
+      serverInstanceConfigurationId: providerDeployment.serverInstanceConfiguration?.id,
 
       client: data.mcp?.clientInfo ?? {
         name: data.participant.name,
         version: '1.0.0'
       },
-      capabilities: data.mcp?.capabilities ?? {},
-      ...enclaveConnectionContext
+      capabilities: data.mcp?.capabilities ?? {}
     });
 
     let shuttleConnection = await db.shuttleConnection.create({

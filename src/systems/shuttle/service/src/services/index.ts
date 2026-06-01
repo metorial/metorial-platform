@@ -9,6 +9,7 @@ export * from './secret';
 export * from './server';
 export * from './serverConfig';
 export * from './serverConnection';
+export * from './serverInstanceConfiguration';
 export * from './serverDeployment';
 export * from './serverDiscovery';
 export * from './serverVersion';

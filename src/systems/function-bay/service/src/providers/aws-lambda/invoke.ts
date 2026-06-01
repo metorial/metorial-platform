@@ -2,7 +2,11 @@ import { InvokeCommand, type InvokeCommandOutput } from '@aws-sdk/client-lambda'
 import { getSentry } from '@lowerdeck/sentry';
 import type { Function, FunctionVersion } from '../../../prisma/generated/client';
 import { parseInvocationPayload } from '../_lib';
-import { createDeflectorToken, getDeflectorProxyUrl } from './deflector';
+import {
+  createDeflectorToken,
+  createLegacyDeflectorToken,
+  getDeflectorProxyUrl
+} from './deflector';
 import { lambdaClient } from './lambda';
 
 let Sentry = getSentry();
@@ -66,14 +70,17 @@ export let invokeFunction = async (d: {
   let startTs = Date.now();
 
   try {
-    let deflectorToken = await createDeflectorToken({
-      tenantId: d.tenantId,
-      functionId: d.sourceFunction.id,
-      effectiveFunctionId: d.function.id !== d.sourceFunction.id ? d.function.id : undefined,
-      functionVersionId: d.functionVersion.id,
-      enclave: d.enclave,
-      egressPolicy: d.egressPolicy
-    });
+    let deflectorToken = d.functionVersion.supportsV2Proxy
+      ? await createDeflectorToken({
+          tenantId: d.tenantId,
+          functionId: d.sourceFunction.id,
+          effectiveFunctionId:
+            d.function.id !== d.sourceFunction.id ? d.function.id : undefined,
+          functionVersionId: d.functionVersion.id,
+          enclave: d.enclave,
+          egressPolicy: d.egressPolicy
+        })
+      : await createLegacyDeflectorToken();
 
     res = await lambdaClient.send(
       new InvokeCommand({
@@ -95,6 +102,20 @@ export let invokeFunction = async (d: {
       })
     );
   } catch (err) {
+    Sentry.captureException(err, {
+      extra: {
+        error: String(err),
+        functionVersionId: d.functionVersion.id,
+        functionId: d.function.id
+      }
+    });
+
+    console.warn('Failed to invoke Lambda function', {
+      error: String(err),
+      functionVersionId: d.functionVersion.id,
+      functionId: d.function.id
+    });
+
     return {
       type: 'error' as const,
       error: {

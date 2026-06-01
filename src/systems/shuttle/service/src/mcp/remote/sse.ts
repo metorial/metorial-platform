@@ -5,7 +5,8 @@ import type { ServerVersion, Tenant } from '../../../prisma/generated/browser';
 import type {
   ServerAuthConfig,
   ServerConfig,
-  ServerConnection
+  ServerConnection,
+  ServerInstanceConfiguration
 } from '../../../prisma/generated/client';
 import { safeFetch } from '../../lib/http/fetchSsrf';
 import {
@@ -46,6 +47,7 @@ export class SSERemoteConnection implements McpConnectionBackendAdapter {
     readonly connection: ServerConnection & {
       serverConfig: ServerConfig;
       serverAuthConfig: ServerAuthConfig | null;
+      serverInstanceConfiguration: ServerInstanceConfiguration | null;
     }
   ) {
     if (!version.remoteUrl || version.remoteProtocol != 'sse') {
@@ -67,6 +69,7 @@ export class SSERemoteConnection implements McpConnectionBackendAdapter {
     connection: ServerConnection & {
       serverConfig: ServerConfig;
       serverAuthConfig: ServerAuthConfig | null;
+      serverInstanceConfiguration: ServerInstanceConfiguration | null;
     }
   ) {
     return new SSERemoteConnection(tenant, version, connection);
@@ -92,8 +95,8 @@ export class SSERemoteConnection implements McpConnectionBackendAdapter {
 
     await safeFetch(this.#endpointUrl, {
       method: 'POST',
-      egressPolicy: this.connection
-        .egressPolicy as PrismaJson.CompiledEgressNetworkAllowList | null,
+      egressPolicy: this.connection.serverInstanceConfiguration
+        ?.egressPolicy as PrismaJson.CompiledEgressNetworkAllowList | null,
       headers: {
         ...(await this.getHeaders()),
         'Content-Type': 'application/json'
@@ -140,8 +143,8 @@ export class SSERemoteConnection implements McpConnectionBackendAdapter {
 
       await fetchEventSource(url.toString(), {
         method: 'GET',
-        egressPolicy: this.connection
-          .egressPolicy as PrismaJson.CompiledEgressNetworkAllowList | null,
+        egressPolicy: this.connection.serverInstanceConfiguration
+          ?.egressPolicy as PrismaJson.CompiledEgressNetworkAllowList | null,
         headers: await this.getHeaders(),
 
         signal: this.#abortController.signal,

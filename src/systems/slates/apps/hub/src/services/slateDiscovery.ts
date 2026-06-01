@@ -97,6 +97,7 @@ class slateVersionDiscoveryServiceImpl {
               slateVersionOid: versions ? { in: versions.map(v => v.oid) } : undefined,
               status: d.status
             },
+            orderBy: [{ createdAt: 'desc' }, { oid: 'desc' }],
             include
           })
       )

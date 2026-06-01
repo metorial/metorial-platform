@@ -12,6 +12,13 @@ let include = {
     include: {
       specification: true
     }
+  },
+  slateVersions: {
+    orderBy: [{ createdAt: 'desc' as const }, { oid: 'desc' as const }],
+    take: 1,
+    include: {
+      specification: true
+    }
   }
 };
 
@@ -77,6 +84,7 @@ class slateServiceImpl {
                   }
                 : {})
             },
+            orderBy: [{ createdAt: 'desc' }, { oid: 'desc' }],
             include
           })
       )

@@ -81,6 +81,25 @@ func TestPolicyFromRequestRequiresValidToken(t *testing.T) {
 	}
 }
 
+func TestPolicyFromRequestAllowsAllWhenAuthenticationDisabled(t *testing.T) {
+	server := &Server{DisableAuthentication: true}
+	request := httptest.NewRequest("GET", "http://example.com", nil)
+
+	requestPolicy, err := server.policyFromRequest(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !requestPolicy.Claims.LegacyFallback {
+		t.Fatal("expected disabled auth to use legacy fallback claims")
+	}
+	if !requestPolicy.Compiled.AllowsDestination(net.ParseIP("10.0.0.1"), 443) {
+		t.Fatal("expected disabled auth to allow private destinations")
+	}
+	if !requestPolicy.Compiled.AllowsDestination(net.ParseIP("169.254.169.254"), 80) {
+		t.Fatal("expected disabled auth to allow metadata destination")
+	}
+}
+
 func TestExplicitPrivateIPAllowlistOverridesDefaultBlock(t *testing.T) {
 	compiled, err := policy.Compile(policy.Claims{
 		EgressPolicy: &policy.CompiledNetworkAllowList{
@@ -140,5 +159,31 @@ func TestLogAuthorizedRequestIncludesJTIAndPolicySummary(t *testing.T) {
 	}
 	if logged["policyFingerprint"] == "" {
 		t.Fatal("expected policy fingerprint")
+	}
+}
+
+func TestLegacyFallbackSkipsAuthorizedRequestLog(t *testing.T) {
+	var buf bytes.Buffer
+	server := &Server{
+		Logger:   slog.New(slog.NewJSONHandler(&buf, nil)),
+		Verifier: auth.NewVerifier("secret", "deflector"),
+	}
+	token := proxyToken(t, "secret", policy.Claims{
+		LegacyFallback: true,
+		RegisteredClaims: jwt.RegisteredClaims{
+			Audience:  jwt.ClaimStrings{"deflector"},
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute)),
+		},
+	})
+	request := httptest.NewRequest("GET", "http://127.0.0.1:1/resource", nil)
+	request.Header.Set(
+		"Proxy-Authorization",
+		"Basic "+base64.StdEncoding.EncodeToString([]byte(token+":x")),
+	)
+
+	server.ServeHTTP(httptest.NewRecorder(), request)
+
+	if bytes.Contains(buf.Bytes(), []byte("proxy request authorized")) {
+		t.Fatal("legacy fallback should not emit authorized request logs")
 	}
 }

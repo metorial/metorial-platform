@@ -10,6 +10,7 @@ export * from './serverAuthConfig';
 export * from './serverAuthConfigEvent';
 export * from './serverConfig';
 export * from './serverConnection';
+export * from './serverInstanceConfiguration';
 export * from './serverDeployment';
 export * from './serverOAuthCredentials';
 export * from './serverOAuthSetup';

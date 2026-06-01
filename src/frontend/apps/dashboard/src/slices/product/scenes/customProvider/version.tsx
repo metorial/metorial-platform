@@ -242,6 +242,12 @@ let StepWrapper = styled.div`
   padding: 15px;
   display: flex;
   flex-direction: column;
+
+  code {
+    background: unset;
+    padding: unset;
+    font-family: unset;
+  }
 `;
 
 let StepHeader = styled.header`
@@ -330,6 +336,13 @@ let StepLogLineContent = styled.span`
   white-space: pre-wrap;
   word-break: break-word;
   font-family: 'JetBrains Mono', monospace;
+
+  code {
+    background: unset;
+    padding: unset;
+    font-family: inherit;
+    font-size: inherit;
+  }
 `;
 
 let AnsiText = ({ children }: { children: string }) => <Ansi>{children}</Ansi>;

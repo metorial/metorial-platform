@@ -61,13 +61,13 @@ class slateDeploymentServiceImpl {
     });
   }
 
-  async redeploy(d: { slateDeployment: SlateDeployment }) {
-    let versionOid = d.slateDeployment.slateVersionOid;
+  private async redeployVersion(d: { versionOid: bigint }) {
+    let queuedAt = new Date();
 
     // Cancel all ongoing deployments for this version
     await db.slateDeployment.updateMany({
       where: {
-        slateVersionOid: versionOid,
+        slateVersionOid: d.versionOid,
         status: { in: ['pending', 'running'] }
       },
       data: {
@@ -80,10 +80,56 @@ class slateDeploymentServiceImpl {
 
     // Find the version to queue a new deployment
     let version = await db.slateVersion.findUniqueOrThrow({
-      where: { oid: versionOid }
+      where: { oid: d.versionOid }
     });
 
     await deploySlateVersionQueue.add({ versionId: version.id });
+
+    return { version, queuedAt };
+  }
+
+  async redeploy(d: { slateDeployment: SlateDeployment }) {
+    return this.redeployVersion({ versionOid: d.slateDeployment.slateVersionOid });
+  }
+
+  async redeployLatestSlateVersion(d: { slate: Slate }) {
+    let version = await db.slateVersion.findFirst({
+      where: { slateOid: d.slate.oid },
+      orderBy: [{ createdAt: 'desc' }, { oid: 'desc' }]
+    });
+    if (!version) throw new ServiceError(notFoundError('slate.version'));
+
+    return this.redeployVersion({ versionOid: version.oid });
+  }
+
+  async bulkRedeployLatestSlateVersions(d: { slates: Slate[] }) {
+    let results: {
+      slateId: string;
+      status: 'queued' | 'failed';
+      versionId?: string;
+      queuedAt?: Date;
+      error?: { message: string };
+    }[] = [];
+
+    for (let slate of d.slates) {
+      try {
+        let { version, queuedAt } = await this.redeployLatestSlateVersion({ slate });
+        results.push({
+          slateId: slate.id,
+          status: 'queued',
+          versionId: version.id,
+          queuedAt
+        });
+      } catch (error) {
+        results.push({
+          slateId: slate.id,
+          status: 'failed',
+          error: { message: error instanceof Error ? error.message : 'Unknown error' }
+        });
+      }
+    }
+
+    return results;
   }
 
   async listSlateDeployments(d: {
@@ -114,6 +160,7 @@ class slateDeploymentServiceImpl {
               slateVersionOid: versions ? { in: versions.map(v => v.oid) } : undefined,
               status: d.status
             },
+            orderBy: [{ createdAt: 'desc' }, { oid: 'desc' }],
             include
           })
       )

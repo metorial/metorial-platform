@@ -32,6 +32,25 @@ model SlateInstance {
   slateErrors             SlateError[]
 }
 
+model SlateInstanceConfiguration {
+  oid BigInt @id
+  id  String @unique
+
+  enclaveId String
+
+  /// [CompiledEgressNetworkAllowList]
+  egressPolicy Json
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  slateSessions            SlateSession[]
+  slateInstanceOAuthSetups SlateInstanceOAuthSetup[]
+}
+
 enum SlateInstanceEventType {
   slate_instance_created
   slate_config_set
@@ -249,6 +268,9 @@ model SlateInstanceOAuthSetup {
 
   slateAuthConfigOid BigInt?
   slateAuthConfig    SlateAuthConfig? @relation(fields: [slateAuthConfigOid], references: [oid])
+
+  instanceConfigurationOid BigInt?
+  instanceConfiguration    SlateInstanceConfiguration? @relation(fields: [instanceConfigurationOid], references: [oid])
 
   secretOid BigInt
   secret    Secret @relation(fields: [secretOid], references: [oid])

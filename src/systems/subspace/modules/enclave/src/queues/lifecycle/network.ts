@@ -16,6 +16,9 @@ export let networkCreatedQueueProcessor = networkCreatedQueue.process(async data
 
   await db.enclave.updateMany({
     where: { networkOid: network.oid },
-    data: { compiledNetworkRules: Prisma.JsonNull }
+    data: {
+      compiledNetworkRules: Prisma.JsonNull,
+      needsEnclaveReconciliation: true
+    }
   });
 });

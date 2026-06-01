@@ -7,8 +7,8 @@ import { Error } from '@metorial/ui';
 import { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Upgrade } from '../../components/emptyState';
-import { NetworkManagedPage } from './pages/(network)/_gate';
 import { ProjectHomePage } from './pages';
+import { NetworkManagedPage } from './pages/(network)/_gate';
 import { InstanceLayout } from './pages/_instanceLayout';
 
 // Provider API pages
@@ -1377,19 +1377,11 @@ export let productHomeSlice = createSlice([
 
           {
             path: 'security',
-            element: (
-              <NetworkManagedPage>
-                <SecurityOverviewPage />
-              </NetworkManagedPage>
-            )
+            element: <SecurityOverviewPage />
           },
           {
             path: 'network',
-            element: (
-              <NetworkManagedPage>
-                <NetworkListLayout />
-              </NetworkManagedPage>
-            ),
+            element: <NetworkListLayout />,
             children: [
               {
                 path: '',
@@ -1411,11 +1403,7 @@ export let productHomeSlice = createSlice([
           },
           {
             path: 'network/firewall/:firewallId',
-            element: (
-              <NetworkManagedPage>
-                <NetworkFirewallPageLayout />
-              </NetworkManagedPage>
-            ),
+            element: <NetworkFirewallPageLayout />,
             children: [
               {
                 path: '',

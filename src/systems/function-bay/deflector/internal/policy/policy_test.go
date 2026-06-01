@@ -61,6 +61,23 @@ func TestMissingRulesAllowPublicDestinations(t *testing.T) {
 	}
 }
 
+func TestLegacyFallbackAllowsAllDestinations(t *testing.T) {
+	compiled, err := Compile(Claims{LegacyFallback: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !compiled.AllowsDestination(net.ParseIP("10.0.0.1"), 443) {
+		t.Fatal("legacy fallback should allow private IPs")
+	}
+	if !compiled.AllowsDestination(net.ParseIP("169.254.169.254"), 80) {
+		t.Fatal("legacy fallback should allow metadata IPs")
+	}
+	if !compiled.AllowsDestination(net.ParseIP("93.184.216.34"), 443) {
+		t.Fatal("legacy fallback should allow public IPs")
+	}
+}
+
 func TestEmptyRulesDenyAllForDimension(t *testing.T) {
 	compiled, err := Compile(Claims{
 		EgressPolicy: &CompiledNetworkAllowList{

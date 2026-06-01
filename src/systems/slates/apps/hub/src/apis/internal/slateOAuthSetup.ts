@@ -3,6 +3,7 @@ import { v } from '@lowerdeck/validation';
 import { slateInstanceOAuthSetupPresenter } from '../../presenters';
 import { slateInstanceOAuthSetupLogsPresenter } from '../../presenters/slateOAuthSetupLogs';
 import {
+  slateInstanceConfigurationService,
   slateOAuthCredentialsService,
   slateOAuthSetupService,
   slateService,
@@ -85,6 +86,7 @@ export let slateOAuthSetupController = app.controller({
           slateId: v.string(),
           slateOAuthCredentialsId: v.string(),
           slateVersionId: v.optional(v.string()),
+          slateInstanceConfigurationId: v.optional(v.string()),
           authMethodId: v.optional(v.string()),
           redirectUrl: v.string(),
           input: v.record(v.any()),
@@ -106,6 +108,12 @@ export let slateOAuthSetupController = app.controller({
             slate
           })
         : undefined;
+      let instanceConfiguration = ctx.input.slateInstanceConfigurationId
+        ? await slateInstanceConfigurationService.getSlateInstanceConfigurationById({
+            tenant: ctx.tenant,
+            slateInstanceConfigurationId: ctx.input.slateInstanceConfigurationId
+          })
+        : undefined;
 
       let res = await slateOAuthSetupService.createSlateInstanceOAuthSetup({
         tenant: ctx.tenant,
@@ -114,6 +122,7 @@ export let slateOAuthSetupController = app.controller({
           slate,
           slateVersion,
           oauthCredentials,
+          instanceConfiguration,
 
           redirectUrl: ctx.input.redirectUrl,
           authMethodId: ctx.input.authMethodId,

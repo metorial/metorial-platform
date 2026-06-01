@@ -3,6 +3,7 @@ import type {
   FunctionBayRuntimeConfig,
   FunctionBayRuntimeSpec
 } from '@function-bay/types';
+import { getSentry } from '@lowerdeck/sentry';
 import type {
   Function,
   FunctionBundle,
@@ -13,6 +14,8 @@ import type {
 } from '../../prisma/generated/client';
 import type { ForgeWorkflowStep } from '../forge';
 import type { FunctionInvocationResult } from '../lib/presentInvokeResponse';
+
+let Sentry = getSentry();
 
 export interface ProviderRuntimeResult {
   runtime: Runtime;
@@ -205,6 +208,20 @@ export let parseInvocationPayload = (d: {
       };
     }
 
+    console.warn('Function returned an unrecognized response format', {
+      payload: d.payload,
+      decodedPayload,
+      body
+    });
+
+    Sentry.captureMessage('Function returned unrecognized response format', {
+      extra: {
+        payload: d.payload,
+        decodedPayload,
+        body
+      }
+    });
+
     return {
       type: 'error',
       error: {
@@ -215,6 +232,18 @@ export let parseInvocationPayload = (d: {
       ...d.outputs
     };
   } catch (err) {
+    Sentry.captureException(err, {
+      extra: {
+        payload: d.payload,
+        error: String(err)
+      }
+    });
+
+    console.warn('Failed to parse function invocation response', {
+      payload: d.payload,
+      error: String(err)
+    });
+
     return {
       type: 'error',
       error: {

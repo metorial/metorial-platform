@@ -7,25 +7,11 @@ import {
   serverAuthConfigService,
   serverConfigService,
   serverConnectionService,
+  serverInstanceConfigurationService,
   serverVersionService
 } from '../../services';
 import { app } from './_app';
 import { tenantApp } from './tenant';
-
-let egressPolicyValidator = v.object({
-  direction: v.literal('egress'),
-  entries: v.array(
-    v.object({
-      cidr: v.string(),
-      portRange: v.optional(
-        v.object({
-          from: v.number(),
-          to: v.number()
-        })
-      )
-    })
-  )
-});
 
 export let serverConnectionApp = tenantApp.use(async ctx => {
   let serverConnectionId = ctx.body.serverConnectionId;
@@ -98,9 +84,7 @@ export let serverConnectionController = app.controller({
         serverConfigId: v.string(),
         serverVersionId: v.string(),
         serverAuthConfigId: v.optional(v.string()),
-
-        enclaveId: v.optional(v.string()),
-        egressPolicy: v.optional(egressPolicyValidator),
+        serverInstanceConfigurationId: v.optional(v.string()),
 
         client: v.record(v.any()),
         capabilities: v.optional(v.record(v.any()))
@@ -142,6 +126,12 @@ export let serverConnectionController = app.controller({
             serverAuthConfigId: ctx.input.serverAuthConfigId
           })
         : undefined;
+      let serverInstanceConfiguration = ctx.input.serverInstanceConfigurationId
+        ? await serverInstanceConfigurationService.getServerInstanceConfigurationById({
+            tenant: ctx.tenant,
+            serverInstanceConfigurationId: ctx.input.serverInstanceConfigurationId
+          })
+        : undefined;
 
       let res = await serverConnectionService.createServerConnection({
         tenant: ctx.tenant,
@@ -149,12 +139,10 @@ export let serverConnectionController = app.controller({
           serverConfig,
           serverVersion,
           serverAuthConfig,
+          serverInstanceConfiguration,
 
           client: schema.data.params.clientInfo,
-          capabilities: schema.data.params.capabilities,
-
-          enclaveId: ctx.input.enclaveId,
-          egressPolicy: ctx.input.egressPolicy
+          capabilities: schema.data.params.capabilities
         }
       });
 

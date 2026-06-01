@@ -1,12 +1,12 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  useFreshModules,
   allowPrivateUrls,
   denyPrivateUrls,
-  enableSsrfBypass,
   disableSsrfBypass,
+  enableSsrfBypass,
+  mockBunDns,
   mockFetch,
-  mockBunDns
+  useFreshModules
 } from './ssrf.test-helpers';
 
 let importModule = () => import('./fetchSsrf');
@@ -169,7 +169,8 @@ describe('safeFetch', () => {
         ).rejects.toMatchObject({
           data: {
             code: 'egress_policy_blocked',
-            message: 'Remote URL is not allowed by the connection egress policy'
+            message:
+              'Metorial Magic Network: Remote URL is not allowed by the connection egress policy'
           }
         });
 
@@ -202,7 +203,8 @@ describe('safeFetch', () => {
         ).rejects.toMatchObject({
           data: {
             code: 'egress_policy_blocked',
-            message: 'Remote URL is not allowed by the connection egress policy'
+            message:
+              'Metorial Magic Network: Remote URL is not allowed by the connection egress policy'
           }
         });
 

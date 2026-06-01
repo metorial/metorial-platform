@@ -4,8 +4,15 @@ import { db } from '../db';
 import { encryption } from '../encryption';
 import { env } from '../env';
 import { ID, snowflake } from '../id';
+import { decryptFunctionVersionEnvironmentVariables } from '../lib/decryptFunctionVersionEnvironmentVariables';
 import { getProvider } from '../providers';
 import { storage } from '../storage';
+
+let getErrorMessage = (err: unknown) =>
+  err instanceof Error ? err.message : String(err);
+
+let isCorruptedZipError = (err: unknown) =>
+  err instanceof Error && err.message.includes("can't find end of central directory");
 
 export let enclaveOverrideCloneQueue = createQueue<{
   enclaveId: string;
@@ -31,38 +38,61 @@ export let processEnclaveOverrideClone = async (data: {
   functionId: string;
   sourceFunctionVersionId: string;
 }) => {
-    let existingOverride = await db.enclaveFunctionOverride.findFirst({
-      where: {
-        enclave: { id: data.enclaveId },
-        sourceFunction: { id: data.functionId },
-        sourceFunctionVersion: { id: data.sourceFunctionVersionId }
-      }
-    });
-    if (existingOverride) return;
+  let existingOverride = await db.enclaveFunctionOverride.findFirst({
+    where: {
+      enclave: { id: data.enclaveId },
+      sourceFunction: { id: data.functionId },
+      sourceFunctionVersion: { id: data.sourceFunctionVersionId }
+    }
+  });
+  if (existingOverride) return;
 
-    let enclave = await db.enclave.findFirst({
-      where: { id: data.enclaveId },
-      include: { tenant: true }
-    });
-    if (!enclave) throw new QueueRetryError();
+  let enclave = await db.enclave.findFirst({
+    where: { id: data.enclaveId },
+    include: { tenant: true }
+  });
+  if (!enclave) throw new QueueRetryError();
 
-    let func = await db.function.findFirst({
-      where: { id: data.functionId },
-      include: { tenant: true }
-    });
-    if (!func) throw new QueueRetryError();
+  let func = await db.function.findFirst({
+    where: { id: data.functionId },
+    include: { tenant: true }
+  });
+  if (!func) throw new QueueRetryError();
 
-    let sourceVersion = await db.functionVersion.findFirst({
-      where: {
-        id: data.sourceFunctionVersionId,
-        functionOid: func.oid
-      },
-      include: {
-        runtime: true,
-        functionBundle: true
-      }
-    });
-    if (!sourceVersion) throw new QueueRetryError();
+  let sourceVersion = await db.functionVersion.findFirst({
+    where: {
+      id: data.sourceFunctionVersionId,
+      functionOid: func.oid
+    },
+    include: {
+      runtime: true,
+      functionBundle: true
+    }
+  });
+  if (!sourceVersion) throw new QueueRetryError();
+
+  let overrideDeployment = await db.enclaveFunctionOverrideDeployment.create({
+    data: {
+      oid: snowflake.nextId(),
+      id: await ID.generateId('enclaveFunctionOverrideDeployment'),
+      status: 'pending',
+      enclaveOid: enclave.oid,
+      sourceFunctionOid: func.oid,
+      sourceFunctionVersionOid: sourceVersion.oid
+    }
+  });
+
+  try {
+    if (sourceVersion.functionBundle.status === 'failed') {
+      await db.enclaveFunctionOverrideDeployment.update({
+        where: { oid: overrideDeployment.oid },
+        data: {
+          status: 'failed',
+          errorMessage: 'Source function bundle is marked as failed.'
+        }
+      });
+      return;
+    }
 
     if (
       sourceVersion.functionBundle.status !== 'available' ||
@@ -93,8 +123,8 @@ export let processEnclaveOverrideClone = async (data: {
           }
         },
         update: {
-          name: func.name,
           status: 'active',
+          name: func.name,
           runtimeOid: sourceVersion.runtimeOid,
           cloneOfFunctionOid: func.oid
         },
@@ -111,12 +141,9 @@ export let processEnclaveOverrideClone = async (data: {
       }));
 
     let cloneVersionId = await ID.generateId('functionVersion');
-    let envVars = JSON.parse(
-      await encryption.decrypt({
-        entityId: sourceVersion.id,
-        encrypted: sourceVersion.encryptedEnvironmentVariables
-      })
-    );
+    let envVars = await decryptFunctionVersionEnvironmentVariables({
+      functionVersion: sourceVersion
+    });
     let bundle = await storage.getObject(
       sourceVersion.functionBundle.bucket,
       sourceVersion.functionBundle.storageKey
@@ -151,6 +178,7 @@ export let processEnclaveOverrideClone = async (data: {
         identifier: generatePlainId(12),
         name: sourceVersion.name,
         status: 'active',
+        supportsV2Proxy: sourceVersion.supportsV2Proxy,
         functionOid: cloneFunction.oid,
         runtimeOid: sourceVersion.runtimeOid,
         functionBundleOid: sourceVersion.functionBundleOid,
@@ -167,7 +195,7 @@ export let processEnclaveOverrideClone = async (data: {
       data: { currentVersionOid: cloneVersion.oid }
     });
 
-    await db.enclaveFunctionOverride.upsert({
+    let override = await db.enclaveFunctionOverride.upsert({
       where: {
         enclaveOid_sourceFunctionOid_sourceFunctionVersionOid: {
           enclaveOid: enclave.oid,
@@ -175,7 +203,10 @@ export let processEnclaveOverrideClone = async (data: {
           sourceFunctionVersionOid: sourceVersion.oid
         }
       },
-      update: {},
+      update: {
+        overrideFunctionOid: cloneFunction.oid,
+        overrideFunctionVersionOid: cloneVersion.oid
+      },
       create: {
         oid: snowflake.nextId(),
         enclaveOid: enclave.oid,
@@ -185,7 +216,34 @@ export let processEnclaveOverrideClone = async (data: {
         overrideFunctionVersionOid: cloneVersion.oid
       }
     });
-  };
+
+    await db.enclaveFunctionOverrideDeployment.update({
+      where: { oid: overrideDeployment.oid },
+      data: {
+        status: 'succeeded',
+        overrideFunctionOid: cloneFunction.oid,
+        overrideFunctionVersionOid: cloneVersion.oid,
+        enclaveFunctionOverrideOid: override.oid
+      }
+    });
+  } catch (err) {
+    await db.enclaveFunctionOverrideDeployment.update({
+      where: { oid: overrideDeployment.oid },
+      data: {
+        status: 'failed',
+        errorMessage: getErrorMessage(err)
+      }
+    });
+    if (isCorruptedZipError(err)) {
+      await db.functionBundle.update({
+        where: { oid: sourceVersion.functionBundle.oid },
+        data: { status: 'failed' }
+      });
+      return;
+    }
+    throw err;
+  }
+};
 
 export let enclaveOverrideCloneQueueProcessor = enclaveOverrideCloneQueue.process(
   processEnclaveOverrideClone

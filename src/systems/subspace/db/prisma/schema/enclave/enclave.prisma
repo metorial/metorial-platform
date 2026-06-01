@@ -34,6 +34,8 @@ model Enclave {
   /// [CompiledNetworkRules]
   compiledNetworkRules Json?
 
+  needsEnclaveReconciliation Boolean @default(true)
+
   enclaveEnvironmentOid BigInt
   enclaveEnvironment    EnclaveEnvironment @relation(fields: [enclaveEnvironmentOid], references: [oid], onDelete: Cascade)
 
@@ -56,4 +58,5 @@ model Enclave {
   firewallBindings FirewallBinding[]
 
   @@unique([environmentOid, slug])
+  @@index([needsEnclaveReconciliation])
 }
