@@ -35,5 +35,5 @@ COPY --from=build /app/src/systems/forge/service/prisma.config.ts /app/prisma.co
 ENV NODE_ENV="development"
 EXPOSE 52020
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD curl -f http://localhost:52020/ping && curl -f http://localhost:12121/ || exit 1
+  CMD curl -f http://localhost:52020/ping || exit 1
 CMD ["sh", "-c", "bun prisma db push --accept-data-loss && bun /app/dist/index.js"]

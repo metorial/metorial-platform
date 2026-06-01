@@ -29,6 +29,41 @@ let graph = (runner: 'service' | 'sidecar'): ResolvedGraph => ({
 });
 
 describe('generateComposeServices', () => {
+  it('uses generated runtime healthchecks for prebuilt service dependencies', () => {
+    let dependencyGraph = graph('service');
+    dependencyGraph.config.build = {
+      builder: 'node',
+      runtime: {
+        healthcheck: 'curl -f http://localhost:52020/ping || exit 1'
+      }
+    };
+
+    let parent = graph('sidecar');
+    parent.deps = [
+      {
+        key: 'forge',
+        name: 'forge',
+        composeName: 'example-forge',
+        alias: 'forge',
+        kind: 'control',
+        config: { name: 'forge', control: '../forge', scope: 'service' },
+        sourceDir: '/repo/src/systems/example/service',
+        children: dependencyGraph
+      }
+    ];
+
+    let { services } = generateComposeServices(parent, 'example-ci', {
+      prebuiltImages: { prefix: 'control', tag: 'test-tag' }
+    });
+
+    expect(services['example-forge'].healthcheck).toEqual({
+      test: ['CMD-SHELL', 'curl -f http://localhost:52020/ping || exit 1'],
+      interval: '5s',
+      timeout: '5s',
+      retries: 20
+    });
+  });
+
   it('keeps prebuilt service-runner tests in the service container', () => {
     let { services } = generateComposeServices(graph('service'), 'example-ci', {
       prebuiltImages: { prefix: 'control', tag: 'test-tag' }

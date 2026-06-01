@@ -36,10 +36,18 @@ let defaultServiceHealth = (port: number, path = '/') => ({
 
 let resolveServiceHealth = (graph: ResolvedGraph) => {
   let svc = graph.config.service;
-  if (!svc?.port) return undefined;
-  if (svc.health?.cmd) {
+  if (svc?.health?.cmd) {
     return { test: ['CMD-SHELL', svc.health.cmd], interval: '5s', timeout: '5s', retries: 20 };
   }
+  if (graph.config.build?.runtime?.healthcheck) {
+    return {
+      test: ['CMD-SHELL', graph.config.build.runtime.healthcheck],
+      interval: '5s',
+      timeout: '5s',
+      retries: 20
+    };
+  }
+  if (!svc?.port) return undefined;
   return defaultServiceHealth(svc.port, svc.health?.path ?? '/');
 };
 

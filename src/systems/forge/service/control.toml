@@ -33,7 +33,7 @@ packages = ["curl"]
 env = { NODE_ENV = "development" }
 expose = [52020]
 command = "bun prisma db push --accept-data-loss && bun /app/dist/index.js"
-healthcheck = "curl -f http://localhost:52020/ping && curl -f http://localhost:12121/ || exit 1"
+healthcheck = "curl -f http://localhost:52020/ping || exit 1"
 
 [test.unit]
 command = "bun run test:unit"

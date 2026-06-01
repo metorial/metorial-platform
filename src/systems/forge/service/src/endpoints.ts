@@ -2,8 +2,14 @@ import { RedisClient } from 'bun';
 import { forgeApi } from './controllers';
 import { db } from './db';
 
+let serveApi: typeof forgeApi = (request, server) => {
+  let url = new URL(request.url);
+  if (url.pathname === '/ping') return new Response('OK');
+  return forgeApi(request, server);
+};
+
 let server = Bun.serve({
-  fetch: forgeApi,
+  fetch: serveApi,
   port: 52020
 });
 
