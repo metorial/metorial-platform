@@ -256,18 +256,59 @@ jobs:
 
       - name: Download prebuilt image artifacts
         if: ${{ inputs.download_image_artifacts }}
-        uses: actions/download-artifact@v4
-        with:
-          pattern: ${{ inputs.image_artifact_pattern }}
-          path: .control/prebuilt-images
-          merge-multiple: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARTIFACT_PATTERN: ${{ inputs.image_artifact_pattern }}
+          FILTER: ${{ inputs.filter }}
+        run: |
+          set -euo pipefail
+
+          mkdir -p .control/prebuilt-images
+
+          if [ "${ARTIFACT_PATTERN}" != "control-image-*" ]; then
+            gh run download "${{ github.run_id }}" \
+              --pattern "${ARTIFACT_PATTERN}" \
+              --dir .control/prebuilt-images
+            exit 0
+          fi
+
+          if [ -z "${FILTER}" ]; then
+            echo "filter is required to resolve prebuilt image artifacts" >&2
+            exit 1
+          fi
+
+          GRAPH_FILE=".control/prebuilt-images/graph.json"
+          ARTIFACTS_FILE=".control/prebuilt-images/artifacts.txt"
+
+          bun run control graph "${FILTER}" > "${GRAPH_FILE}"
+          bun -e '
+            let graph = JSON.parse(await Bun.file(process.argv.at(-1)).text());
+            let names = new Set();
+            let visit = graph => {
+              names.add(graph.name);
+              for (let dep of graph.deps ?? []) {
+                if (dep.kind === "control" && dep.children) visit(dep.children);
+              }
+            };
+            visit(graph);
+            console.log([...names].sort().join("\n"));
+          ' "${GRAPH_FILE}" > "${ARTIFACTS_FILE}"
+
+          while IFS= read -r service; do
+            if [ -z "${service}" ]; then
+              continue
+            fi
+            gh run download "${{ github.run_id }}" \
+              --name "control-image-${service}" \
+              --dir .control/prebuilt-images
+          done < "${ARTIFACTS_FILE}"
 
       - name: Load prebuilt images
         if: ${{ inputs.download_image_artifacts }}
         run: |
           set -euo pipefail
-          shopt -s nullglob
-          archives=(.control/prebuilt-images/*.tar)
+          shopt -s globstar nullglob
+          archives=(.control/prebuilt-images/*.tar .control/prebuilt-images/**/*.tar)
           if [ "${#archives[@]}" -eq 0 ]; then
             echo "No prebuilt image archives found" >&2
             exit 1
