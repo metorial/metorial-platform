@@ -1,4 +1,4 @@
-import { Button, Callout, CenteredSpinner, Flex, Tabs, Text, theme } from '@metorial/ui';
+import { Button, Callout, CenteredSpinner, Flex, Input, Tabs, Text, theme } from '@metorial/ui';
 import type {
   CompatibilityCallToolResult,
   GetPromptResult,
@@ -11,7 +11,7 @@ import type {
 } from '@modelcontextprotocol/sdk/types.js';
 import { RiArrowDownSLine } from '@remixicon/react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { startTransition, useEffect, useMemo, useRef, useState } from 'react';
+import { startTransition, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { MarkdownDescription } from './components/markdownDescription';
 import { PromptResultView, ResourceResultView, ToolResultView } from './components/resultView';
@@ -131,6 +131,10 @@ let Panel = styled.div`
   gap: 14px;
 `;
 
+let SearchRow = styled.div`
+  max-width: 420px;
+`;
+
 let Card = styled.div<{ $open: boolean; $error?: boolean }>`
   border: 1px solid
     ${({ $error, $open }) =>
@@ -143,7 +147,7 @@ let Card = styled.div<{ $open: boolean; $error?: boolean }>`
   transition: all 0.2s ease;
 `;
 
-let CardHeaderButton = styled.button`
+let CardHeaderButton = styled.div`
   width: 100%;
   border: none;
   background: transparent;
@@ -161,6 +165,7 @@ let CardHeaderContent = styled.div`
   flex-direction: column;
   gap: 6px;
   min-width: 0;
+  width: 100%;
 `;
 
 let CardTitle = styled.h3`
@@ -171,6 +176,42 @@ let CardTitle = styled.h3`
 `;
 
 let CardDescription = styled(MarkdownDescription)``;
+
+let DescriptionFrame = styled(motion.div)<{ $expanded: boolean; $canExpand: boolean }>`
+  position: relative;
+  overflow: ${({ $canExpand }) => ($canExpand ? 'hidden' : 'visible')};
+`;
+
+let DescriptionOverlay = styled.div`
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 86px;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.92) 62%,
+    ${cssValue(theme.colors.white100)} 100%
+  );
+`;
+
+let DescriptionExpandButtonWrap = styled.div`
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 14px;
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+  padding-top: 10px;
+  pointer-events: none;
+
+  button {
+    pointer-events: auto;
+  }
+`;
 
 let CardBody = styled.div`
   display: flex;
@@ -268,6 +309,20 @@ let getErrorMessage = (error: unknown) => {
   return typeof error === 'string' ? error : 'Unknown error';
 };
 
+let normalizeSearchValue = (value: string) => value.trim().toLowerCase();
+
+let matchesNameSearch = (name: string | null | undefined, query: string) => {
+  if (!query) return true;
+  return (name ?? '').toLowerCase().includes(query);
+};
+
+let getTabLabel = (tab: TabId) => {
+  if (tab === 'tools') return 'tools';
+  if (tab === 'resources') return 'resources';
+  if (tab === 'resource-templates') return 'resource templates';
+  return 'prompts';
+};
+
 let readOperationNamePrefixes = [
   'list',
   'get',
@@ -297,6 +352,84 @@ let prioritizeReadOperationTools = (tools: Tool[]) =>
     if (aIsReadOperation === bIsReadOperation) return 0;
     return aIsReadOperation ? -1 : 1;
   });
+
+let ExpandableDescription = ({ content }: { content: string }) => {
+  let descriptionRef = useRef<HTMLDivElement | null>(null);
+  let [expanded, setExpanded] = useState(false);
+  let [canExpand, setCanExpand] = useState(false);
+  let [shouldAnimateHeight, setShouldAnimateHeight] = useState(false);
+
+  useEffect(() => {
+    setExpanded(false);
+    setShouldAnimateHeight(false);
+  }, [content]);
+
+  useEffect(() => {
+    if (!canExpand) {
+      setShouldAnimateHeight(false);
+      return;
+    }
+
+    let frame = window.requestAnimationFrame(() => {
+      setShouldAnimateHeight(true);
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [canExpand, content]);
+
+  useLayoutEffect(() => {
+    let element = descriptionRef.current;
+    if (!element) return;
+
+    let updateCanExpand = () => {
+      setCanExpand(element.scrollHeight > 250);
+    };
+
+    updateCanExpand();
+
+    let observer = new ResizeObserver(updateCanExpand);
+    observer.observe(element);
+    window.addEventListener('resize', updateCanExpand);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', updateCanExpand);
+    };
+  }, [content, expanded]);
+
+  return (
+    <DescriptionFrame
+      ref={descriptionRef}
+      $expanded={expanded}
+      $canExpand={canExpand}
+      initial={false}
+      animate={{ height: !expanded && canExpand ? 250 : 'auto' }}
+      transition={{ duration: shouldAnimateHeight ? 0.22 : 0, ease: 'easeInOut' }}
+    >
+      <CardDescription content={content} />
+      {!expanded && canExpand ? (
+        <>
+          <DescriptionOverlay />
+          <DescriptionExpandButtonWrap>
+            <Button
+              type="button"
+              size="2"
+              variant="solid"
+              style={blackButtonStyle}
+              onKeyDown={event => event.stopPropagation()}
+              onClick={event => {
+                event.stopPropagation();
+                setExpanded(true);
+              }}
+            >
+              Expand Description
+            </Button>
+          </DescriptionExpandButtonWrap>
+        </>
+      ) : null}
+    </DescriptionFrame>
+  );
+};
 
 let ExpandableCard = ({
   title,
@@ -335,10 +468,19 @@ let ExpandableCard = ({
 
   return (
     <Card $open={open} $error={error}>
-      <CardHeaderButton type="button" onClick={() => setOpen(current => !current)}>
+      <CardHeaderButton
+        role="button"
+        tabIndex={0}
+        onClick={() => setOpen(current => !current)}
+        onKeyDown={event => {
+          if (event.key !== 'Enter' && event.key !== ' ') return;
+          event.preventDefault();
+          setOpen(current => !current);
+        }}
+      >
         <CardHeaderContent>
           <CardTitle>{title}</CardTitle>
-          {description ? <CardDescription content={description} /> : null}
+          {description ? <ExpandableDescription content={description} /> : null}
         </CardHeaderContent>
         <ExpandIndicator $open={open}>
           <RiArrowDownSLine />
@@ -562,6 +704,12 @@ export let ExplorerApp = () => {
   let shouldWaitForPostedToken = isEmbedded && !baseQuery.token && !query.token;
 
   let [activeTab, setActiveTab] = useState<TabId>('tools');
+  let [searchByTab, setSearchByTab] = useState<Record<TabId, string>>({
+    tools: '',
+    resources: '',
+    'resource-templates': '',
+    prompts: ''
+  });
   let [status, setStatus] = useState<ConnectionStatus>(
     query.errors.length > 0 ? 'error' : 'idle'
   );
@@ -847,6 +995,70 @@ export let ExplorerApp = () => {
     </EmptyState>
   );
 
+  let renderSearchBox = (tab: TabId) => {
+    let label = getTabLabel(tab);
+
+    return (
+      <SearchRow>
+        <Input
+          label={`Search ${label}`}
+          hideLabel
+          placeholder={`Search ${label} by name...`}
+          value={searchByTab[tab]}
+          onChange={event => {
+            let value = event.currentTarget.value;
+
+            setSearchByTab(current => ({
+              ...current,
+              [tab]: value
+            }));
+          }}
+        />
+      </SearchRow>
+    );
+  };
+
+  let toolSearch = normalizeSearchValue(searchByTab.tools);
+  let resourceSearch = normalizeSearchValue(searchByTab.resources);
+  let resourceTemplateSearch = normalizeSearchValue(searchByTab['resource-templates']);
+  let promptSearch = normalizeSearchValue(searchByTab.prompts);
+
+  let filteredTools = collections.tools.items.filter(tool =>
+    matchesNameSearch(tool.name, toolSearch)
+  );
+  let filteredResources = collections.resources.items.filter(resource =>
+    matchesNameSearch(resource.name ?? resource.uri, resourceSearch)
+  );
+  let filteredResourceTemplates = collections.resourceTemplates.items.filter(resourceTemplate =>
+    matchesNameSearch(resourceTemplate.name ?? resourceTemplate.uriTemplate, resourceTemplateSearch)
+  );
+  let filteredPrompts = collections.prompts.items.filter(prompt =>
+    matchesNameSearch(prompt.name, promptSearch)
+  );
+
+  let tabs = [
+    { id: 'tools', label: `Tools [${collections.tools.items.length}]` },
+    ...(collections.resourceTemplates.items.length
+      ? [
+          {
+            id: 'resource-templates',
+            label: `Resource Templates [${collections.resourceTemplates.items.length}]`
+          }
+        ]
+      : []),
+    ...(collections.prompts.items.length
+      ? [{ id: 'prompts', label: `Prompts [${collections.prompts.items.length}]` }]
+      : []),
+    ...(collections.resources.items.length
+      ? [
+          {
+            id: 'resources',
+            label: `Resources [${collections.resources.items.length}]`
+          }
+        ]
+      : [])
+  ] satisfies { id: TabId; label: string }[];
+
   let content = (() => {
     if (status === 'connecting' || status === 'idle') {
       return (
@@ -874,71 +1086,89 @@ export let ExplorerApp = () => {
       case 'tools':
         return (
           <Panel>
+            {renderSearchBox('tools')}
             {renderTruncationNotice(collections.tools.truncated)}
             {collections.tools.items.length === 0
               ? renderEmptyState('No tools found', "This provider doesn't support tools.")
-              : collections.tools.items.map(tool => (
-                  <ToolCard
-                    key={tool.name}
-                    tool={tool}
-                    state={toolStates[tool.name]}
-                    onCall={handleToolCall}
-                  />
-                ))}
+              : filteredTools.length === 0
+                ? renderEmptyState('No matching tools found', 'No tools match your search.')
+                : filteredTools.map(tool => (
+                    <ToolCard
+                      key={tool.name}
+                      tool={tool}
+                      state={toolStates[tool.name]}
+                      onCall={handleToolCall}
+                    />
+                  ))}
           </Panel>
         );
       case 'resources':
         return (
           <Panel>
+            {renderSearchBox('resources')}
             {renderTruncationNotice(collections.resources.truncated)}
             {collections.resources.items.length === 0
               ? renderEmptyState(
                   'No resources found',
                   "This provider doesn't support resources."
                 )
-              : collections.resources.items.map(resource => (
-                  <ResourceCard
-                    key={resource.uri}
-                    resource={resource}
-                    state={resourceStates[resource.uri]}
-                    onRead={handleResourceRead}
-                  />
-                ))}
+              : filteredResources.length === 0
+                ? renderEmptyState(
+                    'No matching resources found',
+                    'No resources match your search.'
+                  )
+                : filteredResources.map(resource => (
+                    <ResourceCard
+                      key={resource.uri}
+                      resource={resource}
+                      state={resourceStates[resource.uri]}
+                      onRead={handleResourceRead}
+                    />
+                  ))}
           </Panel>
         );
       case 'resource-templates':
         return (
           <Panel>
+            {renderSearchBox('resource-templates')}
             {renderTruncationNotice(collections.resourceTemplates.truncated)}
             {collections.resourceTemplates.items.length === 0
               ? renderEmptyState(
                   'No resource templates found',
                   "This provider doesn't support resource templates."
                 )
-              : collections.resourceTemplates.items.map(resourceTemplate => (
-                  <ResourceTemplateCard
-                    key={resourceTemplate.uriTemplate}
-                    resourceTemplate={resourceTemplate}
-                    state={templateStates[resourceTemplate.uriTemplate]}
-                    onRead={handleResourceTemplateRead}
-                  />
-                ))}
+              : filteredResourceTemplates.length === 0
+                ? renderEmptyState(
+                    'No matching resource templates found',
+                    'No resource templates match your search.'
+                  )
+                : filteredResourceTemplates.map(resourceTemplate => (
+                    <ResourceTemplateCard
+                      key={resourceTemplate.uriTemplate}
+                      resourceTemplate={resourceTemplate}
+                      state={templateStates[resourceTemplate.uriTemplate]}
+                      onRead={handleResourceTemplateRead}
+                    />
+                  ))}
           </Panel>
         );
       case 'prompts':
         return (
           <Panel>
+            {renderSearchBox('prompts')}
             {renderTruncationNotice(collections.prompts.truncated)}
             {collections.prompts.items.length === 0
               ? renderEmptyState('No prompts found', "This provider doesn't support prompts.")
-              : collections.prompts.items.map(prompt => (
-                  <PromptCard
-                    key={prompt.name}
-                    prompt={prompt}
-                    state={promptStates[prompt.name]}
-                    onGet={handlePromptGet}
-                  />
-                ))}
+              : filteredPrompts.length === 0
+                ? renderEmptyState('No matching prompts found', 'No prompts match your search.')
+                : filteredPrompts.map(prompt => (
+                    <PromptCard
+                      key={prompt.name}
+                      prompt={prompt}
+                      state={promptStates[prompt.name]}
+                      onGet={handlePromptGet}
+                    />
+                  ))}
           </Panel>
         );
     }
@@ -987,28 +1217,14 @@ export let ExplorerApp = () => {
         </Hero>
 
         <Section>
-          <Tabs
-            current={activeTab}
-            action={value => setActiveTab(value as TabId)}
-            tabs={[
-              { id: 'tools', label: `Tools [${collections.tools.items.length}]` },
-              {
-                id: 'resource-templates',
-                label: `Resource Templates [${collections.resourceTemplates.items.length}]`
-              },
-              { id: 'prompts', label: `Prompts [${collections.prompts.items.length}]` },
-
-              ...(collections.resources.items.length
-                ? [
-                    {
-                      id: 'resources',
-                      label: `Resources [${collections.resources.items.length}]`
-                    }
-                  ]
-                : [])
-            ]}
-            margin={{ bottom: 18, top: 0 }}
-          />
+          {tabs.length > 1 ? (
+            <Tabs
+              current={activeTab}
+              action={value => setActiveTab(value as TabId)}
+              tabs={tabs}
+              margin={{ bottom: 18, top: 0 }}
+            />
+          ) : null}
 
           {content}
         </Section>
