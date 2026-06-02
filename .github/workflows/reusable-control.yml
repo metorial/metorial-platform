@@ -254,7 +254,7 @@ jobs:
 
           echo "tag=${TAG}" >> "${GITHUB_OUTPUT}"
 
-      - name: Download prebuilt image artifacts
+      - name: Download and load prebuilt image artifacts
         if: ${{ inputs.download_image_artifacts }}
         env:
           GH_TOKEN: ${{ github.token }}
@@ -262,13 +262,30 @@ jobs:
           FILTER: ${{ inputs.filter }}
         run: |
           set -euo pipefail
+          shopt -s globstar nullglob
 
           mkdir -p .control/prebuilt-images
 
+          load_archives_from_dir() {
+            local dir="$1"
+            local archives=("${dir}"/**/*.tar)
+            if [ "${#archives[@]}" -eq 0 ]; then
+              echo "No prebuilt image archives found in ${dir}" >&2
+              exit 1
+            fi
+            for archive in "${archives[@]}"; do
+              docker load -i "${archive}"
+              rm -f "${archive}"
+            done
+          }
+
           if [ "${ARTIFACT_PATTERN}" != "control-image-*" ]; then
+            DOWNLOAD_DIR="$(mktemp -d .control/prebuilt-images/custom.XXXXXX)"
             gh run download "${{ github.run_id }}" \
               --pattern "${ARTIFACT_PATTERN}" \
-              --dir .control/prebuilt-images
+              --dir "${DOWNLOAD_DIR}"
+            load_archives_from_dir "${DOWNLOAD_DIR}"
+            rm -rf "${DOWNLOAD_DIR}"
             exit 0
           fi
 
@@ -278,44 +295,59 @@ jobs:
           fi
 
           GRAPH_FILE=".control/prebuilt-images/graph.json"
-          ARTIFACTS_FILE=".control/prebuilt-images/artifacts.txt"
+          LOAD_PLAN_FILE=".control/prebuilt-images/load-plan.tsv"
 
           bun run control graph "${FILTER}" > "${GRAPH_FILE}"
           bun -e '
             let graph = JSON.parse(await Bun.file(process.argv.at(-1)).text());
-            let names = new Set();
-            let visit = graph => {
-              names.add(graph.name);
+            let rows = [];
+            let seen = new Set();
+            let add = (service, archive) => {
+              let key = `${service}\t${archive}`;
+              if (seen.has(key)) return;
+              seen.add(key);
+              rows.push([service, archive]);
+            };
+            let visitDeps = graph => {
               for (let dep of graph.deps ?? []) {
-                if (dep.kind === "control" && dep.children) visit(dep.children);
+                if (dep.kind === "control" && dep.children) {
+                  add(dep.children.name, `${dep.children.name}.tar`);
+                  visitDeps(dep.children);
+                }
               }
             };
-            visit(graph);
-            console.log([...names].sort().join("\n"));
-          ' "${GRAPH_FILE}" > "${ARTIFACTS_FILE}"
+            visitDeps(graph);
 
-          while IFS= read -r service; do
-            if [ -z "${service}" ]; then
+            let runner = graph.config?.test?.e2e?.runner ?? "service";
+            if (runner === "sidecar") add(graph.name, `${graph.name}.tar`);
+            add(graph.name, `${graph.name}-test.tar`);
+
+            rows.sort(([aService, aArchive], [bService, bArchive]) =>
+              aService.localeCompare(bService) || aArchive.localeCompare(bArchive)
+            );
+            console.log(rows.map(row => row.join("\t")).join("\n"));
+          ' "${GRAPH_FILE}" > "${LOAD_PLAN_FILE}"
+
+          while IFS=$'\t' read -r service archive; do
+            if [ -z "${service}" ] || [ -z "${archive}" ]; then
               continue
             fi
+
+            DOWNLOAD_DIR="$(mktemp -d ".control/prebuilt-images/${service}.XXXXXX")"
             gh run download "${{ github.run_id }}" \
               --name "control-image-${service}" \
-              --dir .control/prebuilt-images
-          done < "${ARTIFACTS_FILE}"
+              --dir "${DOWNLOAD_DIR}"
 
-      - name: Load prebuilt images
-        if: ${{ inputs.download_image_artifacts }}
-        run: |
-          set -euo pipefail
-          shopt -s globstar nullglob
-          archives=(.control/prebuilt-images/**/*.tar)
-          if [ "${#archives[@]}" -eq 0 ]; then
-            echo "No prebuilt image archives found" >&2
-            exit 1
-          fi
-          for archive in "${archives[@]}"; do
-            docker load -i "${archive}"
-          done
+            matches=("${DOWNLOAD_DIR}"/**/"${archive}")
+            if [ "${#matches[@]}" -eq 0 ]; then
+              echo "Expected archive ${archive} in artifact control-image-${service}" >&2
+              rm -rf "${DOWNLOAD_DIR}"
+              exit 1
+            fi
+
+            docker load -i "${matches[0]}"
+            rm -rf "${DOWNLOAD_DIR}"
+          done < "${LOAD_PLAN_FILE}"
 
       - name: Log in to GitHub Container Registry
         if: ${{ inputs.command == 'build' && inputs.push_image }}
@@ -500,7 +532,9 @@ jobs:
           docker tag "${IMAGE}-test:${IMAGE_TAG}" "control/${SERVICE}-test:${IMAGE_TAG}"
           docker save \
             -o ".control/image-artifacts/${SERVICE}.tar" \
-            "control/${SERVICE}:${IMAGE_TAG}" \
+            "control/${SERVICE}:${IMAGE_TAG}"
+          docker save \
+            -o ".control/image-artifacts/${SERVICE}-test.tar" \
             "control/${SERVICE}-test:${IMAGE_TAG}"
 
       - name: Upload image archive
