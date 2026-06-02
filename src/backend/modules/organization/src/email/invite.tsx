@@ -19,11 +19,11 @@ export let sendOrgInviteEmail = notificationClient.createTemplate(
 
       if (invite.action === 'onboarding') {
         return createEmail({
-          subject: `Welcome ${organization.name} to Metorial!`,
+          subject: `Welcome to Metorial ${organization.name}!`,
           preview: `We have set up your organization, ${organization.name}, on Metorial. Click the button below to get started and complete the onboarding process.`,
           content: (
             <Layout
-              title={`Welcome ${organization.name} to Metorial!`}
+              title={`Welcome to Metorial ${organization.name}!`}
               description={`We have set up your organization, ${organization.name}, on Metorial. Click the button below to get started and complete the onboarding process.`}
             >
               <Button href={url.toString()}>Get Started</Button>
