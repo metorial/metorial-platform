@@ -35,7 +35,7 @@ let BrandText = styled.p`
 `;
 
 let Box = styled.div`
-  --box-width: 1100px;
+  --box-width: 650px;
   --box-height: 550px;
   --border-color: #ccc;
   --dash-length: 10px;
@@ -128,8 +128,8 @@ let BorderOverlay = styled.div`
 `;
 
 let Inner = styled.div`
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 1px minmax(0, 1fr);
+  /* display: grid;
+  grid-template-columns: minmax(0, 1fr) 1px minmax(0, 1fr); */
   flex: 1;
   position: relative;
   z-index: 1;
@@ -292,7 +292,7 @@ export let InnerLayout = ({ children }: { children: React.ReactNode }) => {
       <Box>
         <BorderOverlay />
         <Inner>
-          <IntroSide>
+          {/* <IntroSide>
             <IntroBlock>
               <Eyebrow>Connect to 1000+ verified integrations</Eyebrow>
               <IntroTitle>Agentic infrastructure to power AI-native companies.</IntroTitle>
@@ -331,7 +331,7 @@ export let InnerLayout = ({ children }: { children: React.ReactNode }) => {
               <IntegrationPill>Salesforce</IntegrationPill>
             </IntegrationGroup>
           </IntroSide>
-          <Divider />
+          <Divider /> */}
           <Side>
             <Content>{children}</Content>
           </Side>
