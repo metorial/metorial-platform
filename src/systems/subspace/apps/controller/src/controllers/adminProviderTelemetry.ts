@@ -18,6 +18,20 @@ let dateRangeValidator = v.object({
   to: v.optional(v.date())
 });
 
+let telemetryMetricScopeValidator = {
+  tenantId: v.optional(v.string()),
+  tenantIds: v.optional(v.array(v.string())),
+  tenantSearch: v.optional(v.string()),
+  environmentId: v.optional(v.string()),
+  environmentIds: v.optional(v.array(v.string())),
+  range: v.optional(dateRangeValidator)
+};
+
+let telemetryScopeValidator = {
+  providerId: v.optional(v.string()),
+  ...telemetryMetricScopeValidator
+};
+
 let withDefaultRange = (range?: { from?: Date; to?: Date }) => {
   let to = range?.to ?? new Date();
   let from = range?.from ?? new Date(to.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -34,6 +48,158 @@ let bucketDate = (date: Date, bucket: 'hour' | 'day') => {
   d.setMinutes(0, 0, 0);
   if (bucket === 'day') d.setHours(0, 0, 0, 0);
   return d.toISOString();
+};
+
+let uniqueStrings = (values: (string | null | undefined)[]) =>
+  Array.from(new Set(values.map(v => v?.trim()).filter(Boolean) as string[]));
+
+let uniqueBigints = (values: bigint[]) => Array.from(new Set(values));
+
+let oidFilter = (oids?: bigint[]) => (oids ? { in: oids } : undefined);
+
+let createdAtOrder = (order?: 'asc' | 'desc') => [
+  { createdAt: order ?? ('desc' as const) },
+  { id: order ?? ('desc' as const) }
+];
+
+let emptyList = () => ({
+  object: 'list',
+  items: [],
+  pagination: {
+    has_more_after: false,
+    has_more_before: false
+  }
+});
+
+let paginateSortedItems = <T extends { id: string }>(
+  sorted: T[],
+  input: { limit?: number; after?: string; before?: string }
+) => {
+  let limit = Number(input.limit ?? 100);
+  if (Number.isNaN(limit)) limit = 100;
+  limit = Math.min(Math.max(limit, 1), 100);
+
+  let cursorType = input.before ? 'before' : input.after ? 'after' : 'none';
+  let cursorId = input.before ?? input.after;
+  let cursorItem = cursorId ? sorted.find(item => item.id === cursorId) : null;
+
+  let start = 0;
+  let end = sorted.length;
+
+  if (cursorItem) {
+    let cursorIndex = sorted.indexOf(cursorItem);
+    if (cursorType === 'after') start = cursorIndex + 1;
+    else if (cursorType === 'before') end = cursorIndex;
+  }
+
+  let available = sorted.slice(start, end);
+
+  if (cursorType === 'before') {
+    return {
+      items: available.slice(-limit),
+      pagination: {
+        has_more_after: !!cursorItem,
+        has_more_before: available.length > limit
+      }
+    };
+  }
+
+  return {
+    items: available.slice(0, limit),
+    pagination: {
+      has_more_after: available.length > limit,
+      has_more_before: cursorType === 'after' && !!cursorItem
+    }
+  };
+};
+
+let resolveProvider = async (providerId?: string) => {
+  if (!providerId) return undefined;
+
+  return await db.provider.findFirstOrThrow({
+    where: {
+      OR: [
+        { id: providerId },
+        { slug: providerId },
+        { globalIdentifier: providerId },
+        { listing: { id: providerId } },
+        { listing: { slug: providerId } }
+      ]
+    }
+  });
+};
+
+let resolveTelemetryScope = async (input: {
+  providerId?: string;
+  tenantId?: string;
+  tenantIds?: string[];
+  tenantSearch?: string;
+  environmentId?: string;
+  environmentIds?: string[];
+  range?: { from?: Date; to?: Date };
+}) => {
+  let { from, to } = withDefaultRange(input.range);
+  let provider = await resolveProvider(input.providerId);
+  let tenantIds = uniqueStrings([input.tenantId, ...(input.tenantIds ?? [])]);
+  let tenantSearch = input.tenantSearch?.trim();
+  let environmentIds = uniqueStrings([input.environmentId, ...(input.environmentIds ?? [])]);
+
+  if (
+    (input.tenantIds && tenantIds.length === 0) ||
+    (input.environmentIds && environmentIds.length === 0)
+  ) {
+    return { provider, from, to, isEmpty: true as const };
+  }
+
+  let tenants = tenantIds.length
+    ? await db.tenant.findMany({ where: { id: { in: tenantIds } } })
+    : [];
+  if (tenantIds.length && tenants.length !== tenantIds.length) {
+    throw new Error('One or more tenant IDs were not found');
+  }
+
+  let tenantSearchMatches = tenantSearch
+    ? await db.tenant.findMany({
+        where: {
+          OR: [
+            { id: { contains: tenantSearch, mode: 'insensitive' } },
+            { identifier: { contains: tenantSearch, mode: 'insensitive' } },
+            { urlKey: { contains: tenantSearch, mode: 'insensitive' } },
+            { name: { contains: tenantSearch, mode: 'insensitive' } }
+          ]
+        }
+      })
+    : [];
+
+  if (tenantSearch && tenantSearchMatches.length === 0 && tenantIds.length === 0) {
+    return { provider, from, to, isEmpty: true as const };
+  }
+
+  let tenantOids = uniqueBigints(
+    [...tenants, ...tenantSearchMatches].map(tenant => tenant.oid)
+  );
+  let environments = environmentIds.length
+    ? await db.environment.findMany({
+        where: {
+          id: { in: environmentIds },
+          tenantOid: tenantOids.length ? { in: tenantOids } : undefined
+        }
+      })
+    : [];
+  if (environmentIds.length && environments.length !== environmentIds.length) {
+    throw new Error('One or more environment IDs were not found');
+  }
+
+  return {
+    provider,
+    from,
+    to,
+    tenantOids: tenantOids.length ? tenantOids : undefined,
+    environmentOids: environments.length
+      ? environments.map(environment => environment.oid)
+      : undefined,
+    isEmpty: false as const
+  };
 };
 
 let firstPartyProviderWhere = (input: {
@@ -95,18 +261,26 @@ let providerListingInclude = {
   }
 };
 
-let presentProvider = async (listing: any, range?: { from?: Date; to?: Date }) => {
+let presentProvider = async (
+  listing: any,
+  range?: { from?: Date; to?: Date },
+  scope?: { tenantOids?: bigint[]; environmentOids?: bigint[] }
+) => {
   let { from, to } = withDefaultRange(range);
 
   let [runs, errors, authFailures, latestRun] = await Promise.all([
     db.providerRun.count({
       where: {
         providerOid: listing.providerOid,
+        tenantOid: oidFilter(scope?.tenantOids),
+        environmentOid: oidFilter(scope?.environmentOids),
         createdAt: { gte: from, lte: to }
       }
     }),
     db.sessionError.count({
       where: {
+        tenantOid: oidFilter(scope?.tenantOids),
+        environmentOid: oidFilter(scope?.environmentOids),
         providerRun: { providerOid: listing.providerOid },
         createdAt: { gte: from, lte: to }
       }
@@ -114,12 +288,20 @@ let presentProvider = async (listing: any, range?: { from?: Date; to?: Date }) =
     db.providerSetupSessionEvent.count({
       where: {
         type: 'oauth_setup_failed',
-        session: { providerOid: listing.providerOid },
+        session: {
+          providerOid: listing.providerOid,
+          tenantOid: oidFilter(scope?.tenantOids),
+          environmentOid: oidFilter(scope?.environmentOids)
+        },
         createdAt: { gte: from, lte: to }
       }
     }),
     db.providerRun.findFirst({
-      where: { providerOid: listing.providerOid },
+      where: {
+        providerOid: listing.providerOid,
+        tenantOid: oidFilter(scope?.tenantOids),
+        environmentOid: oidFilter(scope?.environmentOids)
+      },
       orderBy: { createdAt: 'desc' },
       select: { id: true, createdAt: true, status: true }
     })
@@ -190,8 +372,8 @@ let presentProvider = async (listing: any, range?: { from?: Date; to?: Date }) =
 
 let summarizeBuckets = async (input: {
   providerOid?: bigint;
-  tenantOid?: bigint;
-  environmentOid?: bigint;
+  tenantOids?: bigint[];
+  environmentOids?: bigint[];
   from: Date;
   to: Date;
   bucket: 'hour' | 'day';
@@ -200,16 +382,16 @@ let summarizeBuckets = async (input: {
     db.providerRun.findMany({
       where: {
         providerOid: input.providerOid,
-        tenantOid: input.tenantOid,
-        environmentOid: input.environmentOid,
+        tenantOid: oidFilter(input.tenantOids),
+        environmentOid: oidFilter(input.environmentOids),
         createdAt: { gte: input.from, lte: input.to }
       },
       select: { createdAt: true, status: true }
     }),
     db.sessionError.findMany({
       where: {
-        tenantOid: input.tenantOid,
-        environmentOid: input.environmentOid,
+        tenantOid: oidFilter(input.tenantOids),
+        environmentOid: oidFilter(input.environmentOids),
         providerRun: input.providerOid ? { providerOid: input.providerOid } : undefined,
         createdAt: { gte: input.from, lte: input.to }
       },
@@ -217,8 +399,8 @@ let summarizeBuckets = async (input: {
     }),
     db.sessionMessage.findMany({
       where: {
-        tenantOid: input.tenantOid,
-        environmentOid: input.environmentOid,
+        tenantOid: oidFilter(input.tenantOids),
+        environmentOid: oidFilter(input.environmentOids),
         providerRun: input.providerOid ? { providerOid: input.providerOid } : undefined,
         createdAt: { gte: input.from, lte: input.to }
       },
@@ -229,8 +411,8 @@ let summarizeBuckets = async (input: {
         type: 'oauth_setup_failed',
         session: {
           providerOid: input.providerOid,
-          tenantOid: input.tenantOid,
-          environmentOid: input.environmentOid
+          tenantOid: oidFilter(input.tenantOids),
+          environmentOid: oidFilter(input.environmentOids)
         },
         createdAt: { gte: input.from, lte: input.to }
       },
@@ -379,32 +561,39 @@ export let adminProviderTelemetryController = app.controller({
           search: v.optional(v.string()),
           providerIds: v.optional(v.array(v.string())),
           includeDeprecated: v.optional(v.boolean()),
-          range: v.optional(dateRangeValidator)
+          ...telemetryMetricScopeValidator
         })
       )
     )
     .do(async ctx => {
-      let paginator = Paginator.create(({ prisma }) =>
-        prisma(
-          async opts =>
-            await db.providerListing.findMany({
-              ...opts,
-              where: firstPartyProviderWhere({
-                search: ctx.input.search,
-                providerIds: ctx.input.providerIds,
-                includeDeprecated: ctx.input.includeDeprecated
-              }),
-              include: providerListingInclude
-            })
-        )
+      let scope = await resolveTelemetryScope(ctx.input);
+      if (scope.isEmpty) return emptyList();
+
+      let paginator = Paginator.create(
+        ({ prisma }) =>
+          prisma(
+            async opts =>
+              await db.providerListing.findMany({
+                ...opts,
+                orderBy: createdAtOrder(ctx.input.order),
+                where: firstPartyProviderWhere({
+                  search: ctx.input.search,
+                  providerIds: ctx.input.providerIds,
+                  includeDeprecated: ctx.input.includeDeprecated
+                }),
+                include: providerListingInclude
+              })
+          ),
+        { defaultOrder: 'desc' }
       );
 
       let list = await paginator.run(ctx.input);
       let items = await Promise.all(
-        list.items.map(listing => presentProvider(listing, ctx.input.range))
+        list.items.map(listing => presentProvider(listing, ctx.input.range, scope))
       );
 
       return {
+        object: 'list',
         items,
         pagination: {
           has_more_after: list.pagination.hasNextPage,
@@ -497,37 +686,38 @@ export let adminProviderTelemetryController = app.controller({
     .handler()
     .input(
       v.object({
-        providerId: v.optional(v.string()),
-        tenantId: v.optional(v.string()),
-        environmentId: v.optional(v.string()),
-        range: v.optional(dateRangeValidator),
+        ...telemetryScopeValidator,
         bucket: v.optional(v.enumOf(['hour', 'day']))
       })
     )
     .do(async ctx => {
-      let { from, to } = withDefaultRange(ctx.input.range);
-      let { tenant, environment } = await getTenantEnvironment(ctx.input);
-      let provider = ctx.input.providerId
-        ? await db.provider.findFirstOrThrow({
-            where: {
-              OR: [
-                { id: ctx.input.providerId },
-                { slug: ctx.input.providerId },
-                { globalIdentifier: ctx.input.providerId },
-                { listing: { id: ctx.input.providerId } },
-                { listing: { slug: ctx.input.providerId } }
-              ]
-            }
-          })
-        : undefined;
+      let scope = await resolveTelemetryScope(ctx.input);
+      let bucket = ctx.input.bucket ?? 'day';
+
+      if (scope.isEmpty) {
+        return {
+          object: 'admin.provider_telemetry',
+          range: { from: scope.from, to: scope.to },
+          bucket,
+          totals: {
+            runs: 0,
+            errors: 0,
+            messages: 0,
+            failed_messages: 0,
+            auth_failures: 0,
+            error_rate: 0
+          },
+          buckets: []
+        };
+      }
 
       let buckets = await summarizeBuckets({
-        providerOid: provider?.oid,
-        tenantOid: tenant?.oid,
-        environmentOid: environment?.oid,
-        from,
-        to,
-        bucket: ctx.input.bucket ?? 'day'
+        providerOid: scope.provider?.oid,
+        tenantOids: scope.tenantOids,
+        environmentOids: scope.environmentOids,
+        from: scope.from,
+        to: scope.to,
+        bucket
       });
 
       let totals = buckets.reduce(
@@ -543,8 +733,8 @@ export let adminProviderTelemetryController = app.controller({
 
       return {
         object: 'admin.provider_telemetry',
-        range: { from, to },
-        bucket: ctx.input.bucket ?? 'day',
+        range: { from: scope.from, to: scope.to },
+        bucket,
         totals: {
           ...totals,
           error_rate: totals.runs > 0 ? totals.errors / totals.runs : 0
@@ -558,9 +748,7 @@ export let adminProviderTelemetryController = app.controller({
     .input(
       Paginator.validate(
         v.object({
-          providerId: v.optional(v.string()),
-          tenantId: v.optional(v.string()),
-          environmentId: v.optional(v.string()),
+          ...telemetryScopeValidator,
           types: v.optional(
             v.array(
               v.enumOf([
@@ -570,61 +758,50 @@ export let adminProviderTelemetryController = app.controller({
                 'provider_discovery_failed'
               ])
             )
-          ),
-          range: v.optional(dateRangeValidator)
+          )
         })
       )
     )
     .do(async ctx => {
-      let { from, to } = withDefaultRange(ctx.input.range);
-      let { tenant, environment } = await getTenantEnvironment(ctx.input);
-      let provider = ctx.input.providerId
-        ? await db.provider.findFirstOrThrow({
-            where: {
-              OR: [
-                { id: ctx.input.providerId },
-                { slug: ctx.input.providerId },
-                { globalIdentifier: ctx.input.providerId },
-                { listing: { id: ctx.input.providerId } },
-                { listing: { slug: ctx.input.providerId } }
-              ]
-            }
-          })
-        : undefined;
+      let scope = await resolveTelemetryScope(ctx.input);
+      if (scope.isEmpty) return emptyList();
 
-      let paginator = Paginator.create(({ prisma }) =>
-        prisma(
-          async opts =>
-            await db.sessionErrorGroup.findMany({
-              ...opts,
-              where: {
-                providerOid: provider?.oid,
-                tenantOid: tenant?.oid,
-                environmentOid: environment?.oid,
-                type: ctx.input.types ? { in: ctx.input.types } : undefined,
-                instances: {
-                  some: {
-                    createdAt: { gte: from, lte: to }
-                  }
-                }
-              },
-              include: {
-                provider: true,
-                tenant: true,
-                environment: true,
-                firstOccurrence: {
-                  include: {
-                    session: true,
-                    providerRun: true
+      let paginator = Paginator.create(
+        ({ prisma }) =>
+          prisma(
+            async opts =>
+              await db.sessionErrorGroup.findMany({
+                ...opts,
+                orderBy: createdAtOrder(ctx.input.order),
+                where: {
+                  providerOid: scope.provider?.oid,
+                  tenantOid: oidFilter(scope.tenantOids),
+                  environmentOid: oidFilter(scope.environmentOids),
+                  type: ctx.input.types ? { in: ctx.input.types } : undefined,
+                  instances: {
+                    some: {
+                      createdAt: { gte: scope.from, lte: scope.to }
+                    }
                   }
                 },
-                sessionErrorGroupOccurrencePeriods: {
-                  where: { startsAt: { lte: to }, endsAt: { gte: from } },
-                  orderBy: { startsAt: 'asc' }
+                include: {
+                  provider: true,
+                  tenant: true,
+                  environment: true,
+                  firstOccurrence: {
+                    include: {
+                      session: true,
+                      providerRun: true
+                    }
+                  },
+                  sessionErrorGroupOccurrencePeriods: {
+                    where: { startsAt: { lte: scope.to }, endsAt: { gte: scope.from } },
+                    orderBy: { startsAt: 'asc' }
+                  }
                 }
-              }
-            })
-        )
+              })
+          ),
+        { defaultOrder: 'desc' }
       );
 
       let list = await paginator.run(ctx.input);
@@ -737,30 +914,15 @@ export let adminProviderTelemetryController = app.controller({
     .input(
       Paginator.validate(
         v.object({
-          providerId: v.optional(v.string()),
-          tenantId: v.optional(v.string()),
-          environmentId: v.optional(v.string()),
-          providerVersionIds: v.optional(v.array(v.string())),
-          range: v.optional(dateRangeValidator)
+          ...telemetryScopeValidator,
+          providerVersionIds: v.optional(v.array(v.string()))
         })
       )
     )
     .do(async ctx => {
-      let { from, to } = withDefaultRange(ctx.input.range);
-      let { tenant, environment } = await getTenantEnvironment(ctx.input);
-      let provider = ctx.input.providerId
-        ? await db.provider.findFirstOrThrow({
-            where: {
-              OR: [
-                { id: ctx.input.providerId },
-                { slug: ctx.input.providerId },
-                { globalIdentifier: ctx.input.providerId },
-                { listing: { id: ctx.input.providerId } },
-                { listing: { slug: ctx.input.providerId } }
-              ]
-            }
-          })
-        : undefined;
+      let scope = await resolveTelemetryScope(ctx.input);
+      if (scope.isEmpty) return emptyList();
+
       let providerVersions = ctx.input.providerVersionIds?.length
         ? await db.providerVersion.findMany({
             where: { id: { in: ctx.input.providerVersionIds } },
@@ -768,30 +930,33 @@ export let adminProviderTelemetryController = app.controller({
           })
         : undefined;
 
-      let paginator = Paginator.create(({ prisma }) =>
-        prisma(
-          async opts =>
-            await db.providerRun.findMany({
-              ...opts,
-              where: {
-                providerOid: provider?.oid,
-                tenantOid: tenant?.oid,
-                environmentOid: environment?.oid,
-                providerVersionOid: providerVersions
-                  ? { in: providerVersions.map(v => v.oid) }
-                  : undefined,
-                createdAt: { gte: from, lte: to }
-              },
-              include: {
-                provider: true,
-                providerVersion: true,
-                tenant: true,
-                environment: true,
-                session: true,
-                sessionErrors: { take: 5, orderBy: { createdAt: 'desc' } }
-              }
-            })
-        )
+      let paginator = Paginator.create(
+        ({ prisma }) =>
+          prisma(
+            async opts =>
+              await db.providerRun.findMany({
+                ...opts,
+                orderBy: createdAtOrder(ctx.input.order),
+                where: {
+                  providerOid: scope.provider?.oid,
+                  tenantOid: oidFilter(scope.tenantOids),
+                  environmentOid: oidFilter(scope.environmentOids),
+                  providerVersionOid: providerVersions
+                    ? { in: providerVersions.map(v => v.oid) }
+                    : undefined,
+                  createdAt: { gte: scope.from, lte: scope.to }
+                },
+                include: {
+                  provider: true,
+                  providerVersion: true,
+                  tenant: true,
+                  environment: true,
+                  session: true,
+                  sessionErrors: { take: 5, orderBy: { createdAt: 'desc' } }
+                }
+              })
+          ),
+        { defaultOrder: 'desc' }
       );
 
       let list = await paginator.run(ctx.input);
@@ -828,10 +993,7 @@ export let adminProviderTelemetryController = app.controller({
     .input(
       Paginator.validate(
         v.object({
-          providerId: v.optional(v.string()),
-          tenantId: v.optional(v.string()),
-          environmentId: v.optional(v.string()),
-          range: v.optional(dateRangeValidator),
+          ...telemetryScopeValidator,
           types: v.optional(
             v.array(
               v.enumOf([
@@ -850,51 +1012,41 @@ export let adminProviderTelemetryController = app.controller({
       )
     )
     .do(async ctx => {
-      let { from, to } = withDefaultRange(ctx.input.range);
-      let { tenant, environment } = await getTenantEnvironment(ctx.input);
-      let provider = ctx.input.providerId
-        ? await db.provider.findFirstOrThrow({
-            where: {
-              OR: [
-                { id: ctx.input.providerId },
-                { slug: ctx.input.providerId },
-                { globalIdentifier: ctx.input.providerId },
-                { listing: { id: ctx.input.providerId } },
-                { listing: { slug: ctx.input.providerId } }
-              ]
-            }
-          })
-        : undefined;
+      let scope = await resolveTelemetryScope(ctx.input);
+      if (scope.isEmpty) return emptyList();
 
-      let paginator = Paginator.create(({ prisma }) =>
-        prisma(
-          async opts =>
-            await db.providerSetupSessionEvent.findMany({
-              ...opts,
-              where: {
-                type: ctx.input.types ? { in: ctx.input.types } : undefined,
-                session: {
-                  providerOid: provider?.oid,
-                  tenantOid: tenant?.oid,
-                  environmentOid: environment?.oid
+      let paginator = Paginator.create(
+        ({ prisma }) =>
+          prisma(
+            async opts =>
+              await db.providerSetupSessionEvent.findMany({
+                ...opts,
+                orderBy: createdAtOrder(ctx.input.order),
+                where: {
+                  type: ctx.input.types ? { in: ctx.input.types } : undefined,
+                  session: {
+                    providerOid: scope.provider?.oid,
+                    tenantOid: oidFilter(scope.tenantOids),
+                    environmentOid: oidFilter(scope.environmentOids)
+                  },
+                  createdAt: { gte: scope.from, lte: scope.to }
                 },
-                createdAt: { gte: from, lte: to }
-              },
-              include: {
-                setup: true,
-                session: {
-                  include: {
-                    provider: true,
-                    authMethod: true,
-                    authConfig: true,
-                    authCredentials: true,
-                    tenant: true,
-                    environment: true
+                include: {
+                  setup: true,
+                  session: {
+                    include: {
+                      provider: true,
+                      authMethod: true,
+                      authConfig: true,
+                      authCredentials: true,
+                      tenant: true,
+                      environment: true
+                    }
                   }
                 }
-              }
-            })
-        )
+              })
+          ),
+        { defaultOrder: 'desc' }
       );
 
       let list = await paginator.run(ctx.input);
@@ -922,6 +1074,213 @@ export let adminProviderTelemetryController = app.controller({
         auth_credentials_id: event.session.authCredentials?.id ?? null,
         created_at: event.createdAt
       }));
+    }),
+
+  listProviderVersionDeployments: app
+    .handler()
+    .input(
+      Paginator.validate(
+        v.object({
+          ...telemetryScopeValidator,
+          providerId: v.string(),
+          providerVersionId: v.string()
+        })
+      )
+    )
+    .do(async ctx => {
+      let scope = await resolveTelemetryScope(ctx.input);
+      let provider = scope.provider!;
+      let providerWithDefaults = await db.provider.findFirstOrThrow({
+        where: { oid: provider.oid },
+        include: {
+          defaultVariant: {
+            include: {
+              currentVersion: true
+            }
+          }
+        }
+      });
+
+      let providerVersion = await db.providerVersion.findFirstOrThrow({
+        where: {
+          providerOid: provider.oid,
+          OR: [
+            { id: ctx.input.providerVersionId },
+            { tag: ctx.input.providerVersionId },
+            { identifier: ctx.input.providerVersionId }
+          ]
+        }
+      });
+
+      let providerEnvironmentVersionByEnvironmentOid = new Map<bigint, bigint>();
+      if (providerWithDefaults.hasEnvironments) {
+        let providerEnvironments = await db.providerEnvironment.findMany({
+          where: {
+            providerOid: provider.oid,
+            environmentOid: oidFilter(scope.environmentOids)
+          },
+          select: {
+            environmentOid: true,
+            currentVersionOid: true
+          }
+        });
+
+        for (let providerEnvironment of providerEnvironments) {
+          if (!providerEnvironment.currentVersionOid) continue;
+
+          providerEnvironmentVersionByEnvironmentOid.set(
+            providerEnvironment.environmentOid,
+            providerEnvironment.currentVersionOid
+          );
+        }
+      }
+
+      if (scope.isEmpty) {
+        return {
+          object: 'admin.provider_version_deployments',
+          provider: { id: provider.id, name: provider.name, slug: provider.slug },
+          provider_version: {
+            id: providerVersion.id,
+            tag: providerVersion.tag,
+            name: providerVersion.name,
+            created_at: providerVersion.createdAt
+          },
+          range: { from: scope.from, to: scope.to },
+          total_deployments: 0,
+          items: [],
+          pagination: { has_more_after: false, has_more_before: false }
+        };
+      }
+
+      let deployments = await db.providerDeployment.findMany({
+        where: {
+          providerOid: provider.oid,
+          tenantOid: oidFilter(scope.tenantOids),
+          environmentOid: oidFilter(scope.environmentOids),
+          isEphemeral: false,
+          status: { not: 'deleted' },
+          currentVersion: {
+            OR: [{ lockedVersionOid: providerVersion.oid }, { lockedVersionOid: null }]
+          }
+        },
+        include: {
+          tenant: true,
+          environment: true,
+          currentVersion: true
+        },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }]
+      });
+
+      deployments = deployments.filter(deployment => {
+        let lockedVersionOid = deployment.currentVersion?.lockedVersionOid;
+        if (lockedVersionOid) return lockedVersionOid === providerVersion.oid;
+
+        if (providerWithDefaults.hasEnvironments) {
+          return (
+            providerEnvironmentVersionByEnvironmentOid.get(deployment.environmentOid) ===
+            providerVersion.oid
+          );
+        }
+
+        return providerWithDefaults.defaultVariant?.currentVersionOid === providerVersion.oid;
+      });
+
+      let deploymentOids = deployments.map(deployment => deployment.oid);
+      let runs = deploymentOids.length
+        ? await db.providerRun.findMany({
+            where: {
+              providerOid: provider.oid,
+              providerVersionOid: providerVersion.oid,
+              tenantOid: oidFilter(scope.tenantOids),
+              environmentOid: oidFilter(scope.environmentOids),
+              createdAt: { gte: scope.from, lte: scope.to },
+              sessionProvider: {
+                deploymentOid: { in: deploymentOids }
+              }
+            },
+            select: {
+              id: true,
+              createdAt: true,
+              sessionProvider: {
+                select: {
+                  deploymentOid: true
+                }
+              }
+            },
+            orderBy: [{ createdAt: 'desc' }, { id: 'desc' }]
+          })
+        : [];
+
+      let usageByDeploymentOid = new Map<
+        string,
+        { run_count: number; last_used_at: Date; last_run_id: string }
+      >();
+
+      for (let run of runs) {
+        let key = run.sessionProvider.deploymentOid.toString();
+        let usage = usageByDeploymentOid.get(key);
+        if (usage) {
+          usage.run_count++;
+          continue;
+        }
+
+        usageByDeploymentOid.set(key, {
+          run_count: 1,
+          last_used_at: run.createdAt,
+          last_run_id: run.id
+        });
+      }
+
+      let items = deployments
+        .map(deployment => {
+          let usage = usageByDeploymentOid.get(deployment.oid.toString());
+
+          return {
+            object: 'admin.provider_version_deployment',
+            id: deployment.id,
+            name: deployment.name,
+            status: deployment.status,
+            is_default: deployment.isDefault,
+            tenant: { id: deployment.tenant.id, name: deployment.tenant.name },
+            environment: {
+              id: deployment.environment.id,
+              name: deployment.environment.name
+            },
+            run_count: usage?.run_count ?? 0,
+            last_used_at: usage?.last_used_at ?? null,
+            last_run_id: usage?.last_run_id ?? null,
+            created_at: deployment.createdAt,
+            updated_at: deployment.updatedAt
+          };
+        })
+        .sort((a, b) => {
+          if (a.last_used_at && b.last_used_at) {
+            let diff = b.last_used_at.getTime() - a.last_used_at.getTime();
+            if (diff !== 0) return diff;
+          } else if (a.last_used_at) {
+            return -1;
+          } else if (b.last_used_at) {
+            return 1;
+          }
+
+          return b.created_at.getTime() - a.created_at.getTime() || b.id.localeCompare(a.id);
+        });
+      let page = paginateSortedItems(items, ctx.input);
+
+      return {
+        object: 'admin.provider_version_deployments',
+        provider: { id: provider.id, name: provider.name, slug: provider.slug },
+        provider_version: {
+          id: providerVersion.id,
+          tag: providerVersion.tag,
+          name: providerVersion.name,
+          created_at: providerVersion.createdAt
+        },
+        range: { from: scope.from, to: scope.to },
+        total_deployments: deployments.length,
+        items: page.items,
+        pagination: page.pagination
+      };
     }),
 
   getSession: app
