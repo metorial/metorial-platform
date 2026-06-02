@@ -79,7 +79,7 @@ class OrganizationService {
 
       let systemActor = await organizationActorService.createOrganizationActor({
         input: {
-          type: 'system',
+          type: 'primary_system',
           name: 'Metorial',
           image: {
             type: 'url',
