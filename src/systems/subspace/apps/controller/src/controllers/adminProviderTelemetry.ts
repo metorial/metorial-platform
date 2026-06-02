@@ -18,14 +18,18 @@ let dateRangeValidator = v.object({
   to: v.optional(v.date())
 });
 
-let telemetryScopeValidator = {
-  providerId: v.optional(v.string()),
+let telemetryMetricScopeValidator = {
   tenantId: v.optional(v.string()),
   tenantIds: v.optional(v.array(v.string())),
   tenantSearch: v.optional(v.string()),
   environmentId: v.optional(v.string()),
   environmentIds: v.optional(v.array(v.string())),
   range: v.optional(dateRangeValidator)
+};
+
+let telemetryScopeValidator = {
+  providerId: v.optional(v.string()),
+  ...telemetryMetricScopeValidator
 };
 
 let withDefaultRange = (range?: { from?: Date; to?: Date }) => {
@@ -557,7 +561,7 @@ export let adminProviderTelemetryController = app.controller({
           search: v.optional(v.string()),
           providerIds: v.optional(v.array(v.string())),
           includeDeprecated: v.optional(v.boolean()),
-          ...telemetryScopeValidator
+          ...telemetryMetricScopeValidator
         })
       )
     )
@@ -589,6 +593,7 @@ export let adminProviderTelemetryController = app.controller({
       );
 
       return {
+        object: 'list',
         items,
         pagination: {
           has_more_after: list.pagination.hasNextPage,
