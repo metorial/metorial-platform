@@ -22,6 +22,7 @@ let telemetryScopeValidator = {
   providerId: v.optional(v.string()),
   tenantId: v.optional(v.string()),
   tenantIds: v.optional(v.array(v.string())),
+  tenantSearch: v.optional(v.string()),
   environmentId: v.optional(v.string()),
   environmentIds: v.optional(v.array(v.string())),
   range: v.optional(dateRangeValidator)
@@ -48,6 +49,8 @@ let bucketDate = (date: Date, bucket: 'hour' | 'day') => {
 let uniqueStrings = (values: (string | null | undefined)[]) =>
   Array.from(new Set(values.map(v => v?.trim()).filter(Boolean) as string[]));
 
+let uniqueBigints = (values: bigint[]) => Array.from(new Set(values));
+
 let oidFilter = (oids?: bigint[]) => (oids ? { in: oids } : undefined);
 
 let createdAtOrder = (order?: 'asc' | 'desc') => [
@@ -63,6 +66,48 @@ let emptyList = () => ({
     has_more_before: false
   }
 });
+
+let paginateSortedItems = <T extends { id: string }>(
+  sorted: T[],
+  input: { limit?: number; after?: string; before?: string }
+) => {
+  let limit = Number(input.limit ?? 100);
+  if (Number.isNaN(limit)) limit = 100;
+  limit = Math.min(Math.max(limit, 1), 100);
+
+  let cursorType = input.before ? 'before' : input.after ? 'after' : 'none';
+  let cursorId = input.before ?? input.after;
+  let cursorItem = cursorId ? sorted.find(item => item.id === cursorId) : null;
+
+  let start = 0;
+  let end = sorted.length;
+
+  if (cursorItem) {
+    let cursorIndex = sorted.indexOf(cursorItem);
+    if (cursorType === 'after') start = cursorIndex + 1;
+    else if (cursorType === 'before') end = cursorIndex;
+  }
+
+  let available = sorted.slice(start, end);
+
+  if (cursorType === 'before') {
+    return {
+      items: available.slice(-limit),
+      pagination: {
+        has_more_after: !!cursorItem,
+        has_more_before: available.length > limit
+      }
+    };
+  }
+
+  return {
+    items: available.slice(0, limit),
+    pagination: {
+      has_more_after: available.length > limit,
+      has_more_before: cursorType === 'after' && !!cursorItem
+    }
+  };
+};
 
 let resolveProvider = async (providerId?: string) => {
   if (!providerId) return undefined;
@@ -84,6 +129,7 @@ let resolveTelemetryScope = async (input: {
   providerId?: string;
   tenantId?: string;
   tenantIds?: string[];
+  tenantSearch?: string;
   environmentId?: string;
   environmentIds?: string[];
   range?: { from?: Date; to?: Date };
@@ -91,6 +137,7 @@ let resolveTelemetryScope = async (input: {
   let { from, to } = withDefaultRange(input.range);
   let provider = await resolveProvider(input.providerId);
   let tenantIds = uniqueStrings([input.tenantId, ...(input.tenantIds ?? [])]);
+  let tenantSearch = input.tenantSearch?.trim();
   let environmentIds = uniqueStrings([input.environmentId, ...(input.environmentIds ?? [])]);
 
   if (
@@ -107,7 +154,26 @@ let resolveTelemetryScope = async (input: {
     throw new Error('One or more tenant IDs were not found');
   }
 
-  let tenantOids = tenants.map(tenant => tenant.oid);
+  let tenantSearchMatches = tenantSearch
+    ? await db.tenant.findMany({
+        where: {
+          OR: [
+            { id: { contains: tenantSearch, mode: 'insensitive' } },
+            { identifier: { contains: tenantSearch, mode: 'insensitive' } },
+            { urlKey: { contains: tenantSearch, mode: 'insensitive' } },
+            { name: { contains: tenantSearch, mode: 'insensitive' } }
+          ]
+        }
+      })
+    : [];
+
+  if (tenantSearch && tenantSearchMatches.length === 0 && tenantIds.length === 0) {
+    return { provider, from, to, isEmpty: true as const };
+  }
+
+  let tenantOids = uniqueBigints(
+    [...tenants, ...tenantSearchMatches].map(tenant => tenant.oid)
+  );
   let environments = environmentIds.length
     ? await db.environment.findMany({
         where: {
@@ -491,11 +557,7 @@ export let adminProviderTelemetryController = app.controller({
           search: v.optional(v.string()),
           providerIds: v.optional(v.array(v.string())),
           includeDeprecated: v.optional(v.boolean()),
-          tenantId: v.optional(v.string()),
-          tenantIds: v.optional(v.array(v.string())),
-          environmentId: v.optional(v.string()),
-          environmentIds: v.optional(v.array(v.string())),
-          range: v.optional(dateRangeValidator)
+          ...telemetryScopeValidator
         })
       )
     )
@@ -681,11 +743,7 @@ export let adminProviderTelemetryController = app.controller({
     .input(
       Paginator.validate(
         v.object({
-          providerId: v.optional(v.string()),
-          tenantId: v.optional(v.string()),
-          tenantIds: v.optional(v.array(v.string())),
-          environmentId: v.optional(v.string()),
-          environmentIds: v.optional(v.array(v.string())),
+          ...telemetryScopeValidator,
           types: v.optional(
             v.array(
               v.enumOf([
@@ -695,8 +753,7 @@ export let adminProviderTelemetryController = app.controller({
                 'provider_discovery_failed'
               ])
             )
-          ),
-          range: v.optional(dateRangeValidator)
+          )
         })
       )
     )
@@ -852,13 +909,8 @@ export let adminProviderTelemetryController = app.controller({
     .input(
       Paginator.validate(
         v.object({
-          providerId: v.optional(v.string()),
-          tenantId: v.optional(v.string()),
-          tenantIds: v.optional(v.array(v.string())),
-          environmentId: v.optional(v.string()),
-          environmentIds: v.optional(v.array(v.string())),
-          providerVersionIds: v.optional(v.array(v.string())),
-          range: v.optional(dateRangeValidator)
+          ...telemetryScopeValidator,
+          providerVersionIds: v.optional(v.array(v.string()))
         })
       )
     )
@@ -936,12 +988,7 @@ export let adminProviderTelemetryController = app.controller({
     .input(
       Paginator.validate(
         v.object({
-          providerId: v.optional(v.string()),
-          tenantId: v.optional(v.string()),
-          tenantIds: v.optional(v.array(v.string())),
-          environmentId: v.optional(v.string()),
-          environmentIds: v.optional(v.array(v.string())),
-          range: v.optional(dateRangeValidator),
+          ...telemetryScopeValidator,
           types: v.optional(
             v.array(
               v.enumOf([
@@ -1027,25 +1074,27 @@ export let adminProviderTelemetryController = app.controller({
   listProviderVersionDeployments: app
     .handler()
     .input(
-      v.object({
-        providerId: v.string(),
-        providerVersionId: v.string(),
-        tenantId: v.optional(v.string()),
-        tenantIds: v.optional(v.array(v.string())),
-        environmentId: v.optional(v.string()),
-        environmentIds: v.optional(v.array(v.string())),
-        range: v.optional(dateRangeValidator),
-        limit: v.optional(
-          v.number({
-            modifiers: [v.minValue(1), v.maxValue(100)]
-          })
-        )
-      })
+      Paginator.validate(
+        v.object({
+          ...telemetryScopeValidator,
+          providerId: v.string(),
+          providerVersionId: v.string()
+        })
+      )
     )
     .do(async ctx => {
       let scope = await resolveTelemetryScope(ctx.input);
       let provider = scope.provider!;
-      let limit = ctx.input.limit ?? 100;
+      let providerWithDefaults = await db.provider.findFirstOrThrow({
+        where: { oid: provider.oid },
+        include: {
+          defaultVariant: {
+            include: {
+              currentVersion: true
+            }
+          }
+        }
+      });
 
       let providerVersion = await db.providerVersion.findFirstOrThrow({
         where: {
@@ -1057,6 +1106,29 @@ export let adminProviderTelemetryController = app.controller({
           ]
         }
       });
+
+      let providerEnvironmentVersionByEnvironmentOid = new Map<bigint, bigint>();
+      if (providerWithDefaults.hasEnvironments) {
+        let providerEnvironments = await db.providerEnvironment.findMany({
+          where: {
+            providerOid: provider.oid,
+            environmentOid: oidFilter(scope.environmentOids)
+          },
+          select: {
+            environmentOid: true,
+            currentVersionOid: true
+          }
+        });
+
+        for (let providerEnvironment of providerEnvironments) {
+          if (!providerEnvironment.currentVersionOid) continue;
+
+          providerEnvironmentVersionByEnvironmentOid.set(
+            providerEnvironment.environmentOid,
+            providerEnvironment.currentVersionOid
+          );
+        }
+      }
 
       if (scope.isEmpty) {
         return {
@@ -1083,7 +1155,7 @@ export let adminProviderTelemetryController = app.controller({
           isEphemeral: false,
           status: { not: 'deleted' },
           currentVersion: {
-            lockedVersionOid: providerVersion.oid
+            OR: [{ lockedVersionOid: providerVersion.oid }, { lockedVersionOid: null }]
           }
         },
         include: {
@@ -1092,6 +1164,20 @@ export let adminProviderTelemetryController = app.controller({
           currentVersion: true
         },
         orderBy: [{ createdAt: 'desc' }, { id: 'desc' }]
+      });
+
+      deployments = deployments.filter(deployment => {
+        let lockedVersionOid = deployment.currentVersion?.lockedVersionOid;
+        if (lockedVersionOid) return lockedVersionOid === providerVersion.oid;
+
+        if (providerWithDefaults.hasEnvironments) {
+          return (
+            providerEnvironmentVersionByEnvironmentOid.get(deployment.environmentOid) ===
+            providerVersion.oid
+          );
+        }
+
+        return providerWithDefaults.defaultVariant?.currentVersionOid === providerVersion.oid;
       });
 
       let deploymentOids = deployments.map(deployment => deployment.oid);
@@ -1174,6 +1260,7 @@ export let adminProviderTelemetryController = app.controller({
 
           return b.created_at.getTime() - a.created_at.getTime() || b.id.localeCompare(a.id);
         });
+      let page = paginateSortedItems(items, ctx.input);
 
       return {
         object: 'admin.provider_version_deployments',
@@ -1186,11 +1273,8 @@ export let adminProviderTelemetryController = app.controller({
         },
         range: { from: scope.from, to: scope.to },
         total_deployments: deployments.length,
-        items: items.slice(0, limit),
-        pagination: {
-          has_more_after: items.length > limit,
-          has_more_before: false
-        }
+        items: page.items,
+        pagination: page.pagination
       };
     }),
 
