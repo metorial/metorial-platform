@@ -1,5 +1,6 @@
 import { canonicalize } from '@lowerdeck/canonicalize';
 import {
+  conflictError,
   forbiddenError,
   notFoundError,
   notImplementedError,
@@ -121,6 +122,7 @@ class OrganizationService {
   async updateOrganization(d: {
     input: {
       name?: string;
+      slug?: string;
       image?: PrismaJson.EntityImage;
       imageFileId?: string | null;
     };
@@ -134,6 +136,26 @@ class OrganizationService {
       await Fabric.fire('organization.updated:before', d);
 
       let nextImage = d.input.image;
+      if (d.input.slug && d.input.slug != d.organization.slug) {
+        let existingOrganization = await db.organization.findFirst({
+          where: {
+            slug: d.input.slug,
+            id: { not: d.organization.id }
+          }
+        });
+        let existingCellOrganization = await db.cellOrganization.findFirst({
+          where: { slug: d.input.slug }
+        });
+
+        if (existingOrganization || existingCellOrganization) {
+          throw new ServiceError(
+            conflictError({
+              message: 'An organization with this slug already exists'
+            })
+          );
+        }
+      }
+
       if (d.input.imageFileId !== undefined) {
         nextImage = await fileReferenceService.resolveImageEntityImage({
           imageFileId: d.input.imageFileId,
@@ -152,6 +174,7 @@ class OrganizationService {
         where: { id: d.organization.id },
         data: {
           name: d.input.name,
+          slug: d.input.slug,
           image: nextImage
         }
       });

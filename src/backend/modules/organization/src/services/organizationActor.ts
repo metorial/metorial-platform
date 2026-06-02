@@ -44,7 +44,7 @@ class OrganizationActorService {
           image: d.input.image ?? { type: 'default' },
 
           // This is for the main system actor, not for actors representing system users
-          isSystem: false,
+          isSystem: null,
 
           organizationOid: d.organization.oid
         },
