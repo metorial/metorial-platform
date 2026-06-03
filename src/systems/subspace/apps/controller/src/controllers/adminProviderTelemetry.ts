@@ -1032,15 +1032,81 @@ export let adminProviderTelemetryController = app.controller({
                   createdAt: { gte: scope.from, lte: scope.to }
                 },
                 include: {
-                  setup: true,
+                  setup: {
+                    select: {
+                      id: true,
+                      status: true,
+                      name: true,
+                      description: true,
+                      metadata: true,
+                      redirectUrl: true,
+                      backendUrl: true,
+                      errorCode: true,
+                      errorMessage: true,
+                      createdAt: true,
+                      updatedAt: true,
+                      expiresAt: true
+                    }
+                  },
                   session: {
-                    include: {
-                      provider: true,
-                      authMethod: true,
-                      authConfig: true,
-                      authCredentials: true,
-                      tenant: true,
-                      environment: true
+                    select: {
+                      id: true,
+                      status: true,
+                      typeSelected: true,
+                      typeConcrete: true,
+                      uiMode: true,
+                      name: true,
+                      description: true,
+                      metadata: true,
+                      redirectUrl: true,
+                      createdAt: true,
+                      updatedAt: true,
+                      expiresAt: true,
+                      provider: {
+                        select: {
+                          id: true,
+                          name: true,
+                          slug: true
+                        }
+                      },
+                      authMethod: {
+                        select: {
+                          id: true,
+                          name: true
+                        }
+                      },
+                      authConfig: {
+                        select: {
+                          id: true
+                        }
+                      },
+                      authCredentials: {
+                        select: {
+                          id: true,
+                          managedCredentials: {
+                            select: { id: true }
+                          },
+                          managedCredentialsBacking: {
+                            select: {
+                              managedCredentials: {
+                                select: { id: true }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      tenant: {
+                        select: {
+                          id: true,
+                          name: true
+                        }
+                      },
+                      environment: {
+                        select: {
+                          id: true,
+                          name: true
+                        }
+                      }
                     }
                   }
                 }
@@ -1050,30 +1116,70 @@ export let adminProviderTelemetryController = app.controller({
       );
 
       let list = await paginator.run(ctx.input);
-      return Paginator.presentLight(list, event => ({
-        object: 'admin.provider_auth_log',
-        id: event.id,
-        type: event.type,
-        provider: event.session.provider
-          ? {
-              id: event.session.provider.id,
-              name: event.session.provider.name,
-              slug: event.session.provider.slug
-            }
-          : null,
-        tenant: { id: event.session.tenant.id, name: event.session.tenant.name },
-        environment: {
-          id: event.session.environment.id,
-          name: event.session.environment.name
-        },
-        setup_session_id: event.session.id,
-        oauth_setup_id: event.setup?.id ?? null,
-        auth_method_id: event.session.authMethod?.id ?? null,
-        auth_method_name: event.session.authMethod?.name ?? null,
-        auth_config_id: event.session.authConfig?.id ?? null,
-        auth_credentials_id: event.session.authCredentials?.id ?? null,
-        created_at: event.createdAt
-      }));
+      return Paginator.presentLight(list, event => {
+        let managedAuthCredentialsId =
+          event.session.authCredentials?.managedCredentials?.id ??
+          event.session.authCredentials?.managedCredentialsBacking?.managedCredentials.id ??
+          null;
+
+        return {
+          object: 'admin.provider_auth_log',
+          id: event.id,
+          type: event.type,
+          provider: event.session.provider
+            ? {
+                id: event.session.provider.id,
+                name: event.session.provider.name,
+                slug: event.session.provider.slug
+              }
+            : null,
+          tenant: { id: event.session.tenant.id, name: event.session.tenant.name },
+          environment: {
+            id: event.session.environment.id,
+            name: event.session.environment.name
+          },
+          setup_session_id: event.session.id,
+          oauth_setup_id: event.setup?.id ?? null,
+          auth_method_id: event.session.authMethod?.id ?? null,
+          auth_method_name: event.session.authMethod?.name ?? null,
+          auth_config_id: event.session.authConfig?.id ?? null,
+          auth_credentials_id: event.session.authCredentials?.id ?? null,
+          managed_auth_credentials_id: managedAuthCredentialsId,
+          event_ip: event.ip ?? null,
+          event_user_agent: event.ua ?? null,
+          setup_session: {
+            id: event.session.id,
+            status: event.session.status,
+            type_selected: event.session.typeSelected,
+            type_concrete: event.session.typeConcrete,
+            ui_mode: event.session.uiMode,
+            name: event.session.name,
+            description: event.session.description,
+            metadata: event.session.metadata,
+            redirect_url: event.session.redirectUrl,
+            created_at: event.session.createdAt,
+            updated_at: event.session.updatedAt,
+            expires_at: event.session.expiresAt
+          },
+          oauth_setup: event.setup
+            ? {
+                id: event.setup.id,
+                status: event.setup.status,
+                name: event.setup.name,
+                description: event.setup.description,
+                metadata: event.setup.metadata,
+                redirect_url: event.setup.redirectUrl,
+                backend_url: event.setup.backendUrl,
+                error_code: event.setup.errorCode,
+                error_message: event.setup.errorMessage,
+                created_at: event.setup.createdAt,
+                updated_at: event.setup.updatedAt,
+                expires_at: event.setup.expiresAt
+              }
+            : null,
+          created_at: event.createdAt
+        };
+      });
     }),
 
   listProviderVersionDeployments: app
