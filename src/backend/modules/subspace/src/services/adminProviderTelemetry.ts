@@ -13,6 +13,7 @@ export let subspaceAdminProviderTelemetryService = createSubspacePublicService(
     'listRuns',
     'getRunLogs',
     'listAuthLogs',
+    'listProviderVersionDeployments',
     'getSession',
     'listSessionMessages',
     'listSessionRuns',

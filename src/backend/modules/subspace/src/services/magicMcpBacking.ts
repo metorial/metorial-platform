@@ -6,6 +6,7 @@ export let subspaceMagicMcpBackingService = createSubspaceService(
   [
     'upsertProviderTemplate',
     'reconcileProviderTemplate',
+    'upsertProviderTemplateFromIntegration',
     'upsertServer',
     'upsertEndpoint',
     'getProviderTemplate',

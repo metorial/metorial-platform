@@ -3,6 +3,7 @@ import {
   syncAuthConfigEventQueueProcessor,
   syncAuthConfigEventsQueueProcessor
 } from './authConfigEvents';
+import { syncAuthConfigProcessingQueueProcessor } from './authConfigProcessing';
 import { syncChangeNotificationsQueueProcessor } from './changeNotifications';
 import {
   syncAuthConfigEventsCron,
@@ -17,6 +18,7 @@ import { syncSlatesQueueProcessor } from './syncSlates';
 export let syncQueues = combineQueueProcessors([
   syncAuthConfigEventsQueueProcessor,
   syncAuthConfigEventQueueProcessor,
+  syncAuthConfigProcessingQueueProcessor,
   syncAuthConfigEventsCron,
   syncChangeNotificationsQueueProcessor,
   syncChangeNotificationsCron,

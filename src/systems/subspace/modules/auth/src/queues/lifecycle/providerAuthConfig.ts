@@ -1,8 +1,27 @@
 import { createQueue } from '@lowerdeck/queue';
 import { db, getId } from '@metorial-subspace/db';
 import { integrationInstanceProviderCredentialSyncQueue } from '@metorial-subspace/module-identity/src/queues/lifecycle/integrationInstanceProviderCredential';
+import { getBackend } from '@metorial-subspace/provider';
 import { env } from '../../env';
 import { indexProviderAuthConfigQueue } from '../search/providerAuthConfig';
+
+let notifyBackendAuthConfigVersionCreated = async (d: { providerAuthConfigId: string }) => {
+  let providerAuthConfig = await db.providerAuthConfig.findUnique({
+    where: { id: d.providerAuthConfigId },
+    include: {
+      tenant: true,
+      currentVersion: true
+    }
+  });
+  if (!providerAuthConfig?.currentVersion) return;
+
+  let backend = await getBackend({ entity: providerAuthConfig });
+  await backend.auth.onProviderAuthConfigVersionCreated({
+    tenant: providerAuthConfig.tenant,
+    authConfig: providerAuthConfig,
+    authConfigVersion: providerAuthConfig.currentVersion
+  });
+};
 
 export let providerAuthConfigCreatedQueue = createQueue<{
   providerAuthConfigId: string;
@@ -18,6 +37,9 @@ export let providerAuthConfigCreatedQueueProcessor = providerAuthConfigCreatedQu
     });
 
     await indexProviderAuthConfigQueue.add({
+      providerAuthConfigId: data.providerAuthConfigId
+    });
+    await notifyBackendAuthConfigVersionCreated({
       providerAuthConfigId: data.providerAuthConfigId
     });
 
@@ -60,6 +82,9 @@ export let providerAuthConfigUpdatedQueue = createQueue<{
 export let providerAuthConfigUpdatedQueueProcessor = providerAuthConfigUpdatedQueue.process(
   async data => {
     await indexProviderAuthConfigQueue.add({
+      providerAuthConfigId: data.providerAuthConfigId
+    });
+    await notifyBackendAuthConfigVersionCreated({
       providerAuthConfigId: data.providerAuthConfigId
     });
   }

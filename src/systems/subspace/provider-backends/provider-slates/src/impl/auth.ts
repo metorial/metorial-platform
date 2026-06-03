@@ -10,6 +10,8 @@ import type {
   ProviderAuthConfigCreateRes,
   ProviderAuthConfigDeleteParam,
   ProviderAuthConfigDeleteRes,
+  ProviderAuthConfigVersionCreatedParam,
+  ProviderAuthConfigVersionCreatedRes,
   ProviderAuthCredentialsCreateParam,
   ProviderAuthCredentialsCreateRes,
   ProviderAuthCredentialsDeleteParam,
@@ -25,8 +27,22 @@ import type {
 } from '@metorial-subspace/provider-utils';
 import { IProviderAuth } from '@metorial-subspace/provider-utils';
 import { getTenantForSlates, slates } from '../client';
+import { enqueueAuthConfigProcessingSync } from '../queues/sync/authConfigProcessing';
 
 export class ProviderAuth extends IProviderAuth {
+  override async onProviderAuthConfigVersionCreated(
+    data: ProviderAuthConfigVersionCreatedParam
+  ): Promise<ProviderAuthConfigVersionCreatedRes> {
+    if (!data.authConfigVersion.slateAuthConfigOid) return {};
+
+    await enqueueAuthConfigProcessingSync({
+      providerAuthConfigId: data.authConfig.id,
+      providerAuthConfigVersionId: data.authConfigVersion.id
+    });
+
+    return {};
+  }
+
   override async createProviderAuthCredentials(
     data: ProviderAuthCredentialsCreateParam
   ): Promise<ProviderAuthCredentialsCreateRes> {

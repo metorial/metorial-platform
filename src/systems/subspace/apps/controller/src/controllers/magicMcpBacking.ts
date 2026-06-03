@@ -149,6 +149,31 @@ export let magicMcpBackingController = app.controller({
       return providerTemplateBackingPresenter(backing);
     }),
 
+  upsertProviderTemplateFromIntegration: tenantApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        environmentId: v.string(),
+        providerTemplateId: v.string(),
+        integrationId: v.string()
+      })
+    )
+    .do(async ctx => {
+      let backing =
+        await providerTemplateBackingService.upsertProviderTemplateBackingFromIntegration({
+          tenant: ctx.tenant,
+          solution: ctx.solution,
+          environment: ctx.environment,
+          input: {
+            providerTemplateId: ctx.input.providerTemplateId,
+            integrationId: ctx.input.integrationId
+          }
+        });
+
+      return providerTemplateBackingPresenter(backing);
+    }),
+
   upsertServer: tenantApp
     .handler()
     .input(

@@ -6,6 +6,7 @@ import {
   ID,
   Instance,
   Organization,
+  Prisma,
   ProviderTemplate,
   ProviderTemplateStatus,
   withTransaction
@@ -16,7 +17,10 @@ import {
   type AnyAccessTagSelector
 } from '@metorial/module-access';
 import { searchProviderTemplateIds } from '@metorial/module-search';
-import { ensureProviderTemplateBacking } from '../lib/backing';
+import {
+  ensureProviderTemplateBacking,
+  ensureProviderTemplateBackingFromIntegration
+} from '../lib/backing';
 import {
   providerTemplateArchivedQueue,
   providerTemplateCreatedQueue,
@@ -39,7 +43,47 @@ export type ProviderTemplateProviderInput = {
   toolFilters?: any;
 };
 
+type ProviderTemplateCreateInput = {
+  name: string;
+  description?: string;
+  metadata?: Record<string, unknown>;
+} & (
+  | {
+      providers: ProviderTemplateProviderInput[];
+      integrationId?: never;
+    }
+  | {
+      providers?: never;
+      integrationId: string;
+    }
+);
+
 class ProviderTemplateServiceImpl {
+  private async getActiveProviderTemplateByIntegrationId(d: {
+    instance: Instance;
+    integrationId: string;
+  }) {
+    return await db.providerTemplate.findFirst({
+      where: {
+        instanceOid: d.instance.oid,
+        subspaceIntegrationId: d.integrationId,
+        status: 'active'
+      }
+    });
+  }
+
+  private async getProviderTemplateByIntegrationId(d: {
+    instance: Instance;
+    integrationId: string;
+  }) {
+    return await db.providerTemplate.findFirst({
+      where: {
+        instanceOid: d.instance.oid,
+        subspaceIntegrationId: d.integrationId
+      }
+    });
+  }
+
   async getProviderTemplateById(d: {
     instance: Instance;
     providerTemplateId: string;
@@ -76,13 +120,60 @@ class ProviderTemplateServiceImpl {
   async createProviderTemplate(d: {
     organization: Organization;
     instance: Instance;
-    input: {
-      name: string;
-      description?: string;
-      metadata?: Record<string, unknown>;
-      providers: ProviderTemplateProviderInput[];
-    };
+    input: ProviderTemplateCreateInput;
   }): Promise<EnrichedProviderTemplate> {
+    if (d.input.integrationId) {
+      let integrationId = d.input.integrationId;
+      let existing = await this.getActiveProviderTemplateByIntegrationId({
+        instance: d.instance,
+        integrationId
+      });
+      if (existing) return existing;
+
+      let backing = await ensureProviderTemplateBackingFromIntegration({
+        instance: d.instance,
+        providerTemplateId: await ID.generateId('providerTemplate'),
+        integrationId
+      });
+
+      existing = await this.getActiveProviderTemplateByIntegrationId({
+        instance: d.instance,
+        integrationId: backing.integrationId
+      });
+      if (existing) return existing;
+
+      try {
+        let providerTemplate = await withTransaction(async db => {
+          return await db.providerTemplate.create({
+            data: {
+              id: backing.id,
+              status: 'active',
+              name: d.input.name,
+              description: d.input.description,
+              metadata: d.input.metadata ?? {},
+              organizationOid: d.organization.oid,
+              instanceOid: d.instance.oid,
+              hasSubspaceBacking: true,
+              subspaceIntegrationId: backing.integrationId
+            }
+          });
+        });
+
+        await providerTemplateCreatedQueue.add({ providerTemplateId: providerTemplate.id });
+        return providerTemplate;
+      } catch (error) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+          let providerTemplate = await this.getProviderTemplateByIntegrationId({
+            instance: d.instance,
+            integrationId: backing.integrationId
+          });
+          if (providerTemplate) return providerTemplate;
+        }
+
+        throw error;
+      }
+    }
+
     let providerTemplate = await withTransaction(async db => {
       return await db.providerTemplate.create({
         data: {

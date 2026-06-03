@@ -159,6 +159,21 @@ export let ensureProviderTemplateBacking = async (d: {
     return d.providerTemplate;
   });
 
+export let ensureProviderTemplateBackingFromIntegration = async (d: {
+  instance: Instance;
+  providerTemplateId: string;
+  integrationId: string;
+}) =>
+  withLocalBackingLock(
+    `provider-template-integration:${d.integrationId}`,
+    async () =>
+      await subspaceMagicMcpBackingService.upsertProviderTemplateFromIntegration({
+        instance: d.instance,
+        providerTemplateId: d.providerTemplateId,
+        integrationId: d.integrationId
+      })
+  );
+
 export let ensureMagicMcpServerBacking = async (d: {
   instance: Instance;
   server: MagicMcpServer;
