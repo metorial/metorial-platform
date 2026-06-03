@@ -1119,7 +1119,7 @@ export let adminProviderTelemetryController = app.controller({
       return Paginator.presentLight(list, event => {
         let managedAuthCredentialsId =
           event.session.authCredentials?.managedCredentials?.id ??
-          event.session.authCredentials?.managedCredentialsBacking?.managedCredentials.id ??
+          event.session.authCredentials?.managedCredentialsBacking?.managedCredentials?.id ??
           null;
 
         return {
