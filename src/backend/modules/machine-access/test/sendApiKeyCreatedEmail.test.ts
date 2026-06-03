@@ -67,7 +67,10 @@ describe('sendApiKeyCreatedEmailQueueProcessor', () => {
       oid: 1n
     });
     db.organizationMember.findMany.mockResolvedValue([{ id: 'admin-1' }, { id: 'admin-2' }]);
-    db.organizationMember.findFirst.mockResolvedValue({ id: 'creator-member' });
+    db.organizationMember.findFirst.mockResolvedValue({
+      id: 'creator-member',
+      user: { type: 'user' }
+    });
 
     await sendApiKeyCreatedEmailQueueProcessor({
       apiKeyId: 'api-key-id',
@@ -109,7 +112,10 @@ describe('sendApiKeyCreatedEmailQueueProcessor', () => {
       oid: 1n
     });
     db.organizationMember.findMany.mockResolvedValue([{ id: 'admin-1' }]);
-    db.organizationMember.findFirst.mockResolvedValue({ id: 'admin-1' });
+    db.organizationMember.findFirst.mockResolvedValue({
+      id: 'admin-1',
+      user: { type: 'user' }
+    });
 
     await sendApiKeyCreatedEmailQueueProcessor({
       apiKeyId: 'api-key-id',

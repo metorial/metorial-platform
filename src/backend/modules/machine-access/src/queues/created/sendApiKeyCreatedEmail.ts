@@ -76,7 +76,7 @@ export let sendApiKeyCreatedEmailQueueProcessor = sendApiKeyCreatedEmailQueue.pr
       })
     ]);
 
-    if (creatorMember?.user.type === 'system') return;
+    if (creatorMember?.user?.type === 'system') return;
 
     let uniqueMemberIds = new Set(adminMembers.map(member => member.id));
 
