@@ -1,4 +1,5 @@
 import {
+  conflictError,
   forbiddenError,
   notFoundError,
   notImplementedError,
@@ -98,6 +99,7 @@ class ProjectService {
     context: Context;
     input: {
       name?: string;
+      slug?: string;
       onlyAllowTrustedProviders?: boolean;
       magicMcpSessionDurationMinutes?: number;
     };
@@ -107,10 +109,28 @@ class ProjectService {
     return withTransaction(async db => {
       await Fabric.fire('organization.project.updated:before', d);
 
+      if (d.input.slug && d.input.slug !== d.project.slug) {
+        let existingProject = await db.project.findFirst({
+          where: {
+            slug: d.input.slug,
+            id: { not: d.project.id }
+          }
+        });
+
+        if (existingProject) {
+          throw new ServiceError(
+            conflictError({
+              message: 'A project with this slug already exists'
+            })
+          );
+        }
+      }
+
       let project = await db.project.update({
         where: { oid: d.project.oid },
         data: {
           name: d.input.name,
+          slug: d.input.slug,
           onlyAllowTrustedProviders: d.input.onlyAllowTrustedProviders,
           magicMcpSessionDurationMinutes: d.input.magicMcpSessionDurationMinutes
         },
