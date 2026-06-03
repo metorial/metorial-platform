@@ -40,7 +40,7 @@ class UserSessionService {
     if (d.user.type === 'system') {
       throw new ServiceError(
         notImplementedError({
-          message: 'System users cannot create sessions'
+          message: 'System users cannot delete sessions'
         })
       );
     }

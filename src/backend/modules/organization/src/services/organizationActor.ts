@@ -146,11 +146,16 @@ class OrganizationActorService {
 
               type: { not: 'system' },
 
-              member: {
-                user: {
-                  type: { not: 'system' }
+              OR: [
+                { member: null },
+                {
+                  member: {
+                    user: {
+                      type: { not: 'system' }
+                    }
+                  }
                 }
-              },
+              ],
 
               teams: teams
                 ? {

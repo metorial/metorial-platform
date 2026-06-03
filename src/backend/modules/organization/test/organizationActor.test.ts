@@ -459,6 +459,36 @@ describe('OrganizationActorService', () => {
       expect(result).toBeDefined();
       expect(typeof result).toBe('function');
     });
+
+    it('should include actors without organization members', async () => {
+      let mockOrg = { id: 'org-1', oid: 1 };
+      vi.mocked(db.organizationActor.findMany).mockResolvedValue([]);
+
+      let paginator = organizationActorService.listOrganizationActors({
+        organization: mockOrg as any
+      });
+
+      await paginator({
+        prisma: run => run({})
+      });
+
+      expect(db.organizationActor.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            OR: [
+              { member: null },
+              {
+                member: {
+                  user: {
+                    type: { not: 'system' }
+                  }
+                }
+              }
+            ]
+          })
+        })
+      );
+    });
   });
 
   describe('edge cases', () => {
