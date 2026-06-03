@@ -1,4 +1,5 @@
-import { Context, cors, createHono, useRequestContext } from '@lowerdeck/hono';
+import { Context, cors, useRequestContext } from '@lowerdeck/hono';
+import { createHono } from './lib/hono';
 import { OAuthError } from './lib/errors';
 import {
   getClientCredentials,
