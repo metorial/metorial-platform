@@ -77,8 +77,8 @@ class OrganizationMemberService {
         (await organizationActorService.createOrganizationActor({
           input: {
             type: d.user.type === 'system' ? 'system' : 'member',
+            email: d.user.type === 'system' ? undefined : d.user.email,
             name: d.user.name,
-            email: d.user.email,
             image: d.user.image
           },
           performedBy: { type: 'user', user: d.user },
