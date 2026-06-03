@@ -464,7 +464,7 @@ describe('OrganizationActorService', () => {
       let mockOrg = { id: 'org-1', oid: 1 };
       vi.mocked(db.organizationActor.findMany).mockResolvedValue([]);
 
-      let paginator = organizationActorService.listOrganizationActors({
+      let paginator = await organizationActorService.listOrganizationActors({
         organization: mockOrg as any
       });
 

@@ -60,6 +60,7 @@
     "@aws-sdk/credential-providers": "3.1048.0",
     "@aws-sdk/nested-clients": "3.997.9",
     "@aws-sdk/util-dynamodb": "3.996.2",
-    "hono": "4.12.23"
+    "hono": "4.12.23",
+    "protobufjs": "7.5.5"
   }
 }
