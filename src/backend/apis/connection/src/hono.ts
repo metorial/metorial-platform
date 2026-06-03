@@ -1,6 +1,7 @@
 import { internalServerError, isServiceError, notFoundError } from '@lowerdeck/error';
 import { getSentry } from '@lowerdeck/sentry';
-import { Context, Env, Hono } from 'hono';
+import { Context, createHono } from '@lowerdeck/hono';
+import type { Env } from 'hono';
 
 let Sentry = getSentry();
 
@@ -8,9 +9,7 @@ let normalizeErrorForSentry = (error: unknown) => {
   if (error instanceof Error) return error;
 
   let normalized = new Error(
-    error === null
-      ? 'Non-Error thrown: null'
-      : `Non-Error thrown: ${typeof error}`
+    error === null ? 'Non-Error thrown: null' : `Non-Error thrown: ${typeof error}`
   );
 
   try {
@@ -49,23 +48,7 @@ export let reportConnectionError = (
 };
 
 export let createConnectionHono = <E extends Env>(basePath?: string) => {
-  let app = new Hono<E>();
-  if (basePath) app = app.basePath(basePath);
-
-  app.use(async (c, next) => {
-    await next();
-    c.res.headers.set('X-Powered-By', 'Metorial');
-  });
-
-  app.notFound(c => {
-    return c.json(
-      {
-        ...notFoundError('endpoint', null).toResponse(),
-        error: 'not_found'
-      },
-      404
-    );
-  });
+  let app = createHono<E>(basePath);
 
   app.onError((e, c) => {
     if (isServiceError(e)) {

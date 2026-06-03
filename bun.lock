@@ -128,7 +128,6 @@
         "@metorial/module-protect": "^1.0.0",
         "@metorial/module-subspace": "1.0.0",
         "@metorial/rest": "^1.0.0",
-        "hono": "^4.0.0",
       },
     },
     "src/backend/apis/core": {
@@ -1828,7 +1827,7 @@
         "@metorial-cargo/list-utils": "^1.0.0",
         "@metorial-cargo/module-file": "^1.0.0",
         "@metorial-cargo/module-store": "^1.0.0",
-        "hono": "^4.11.3",
+        "hono": "4.12.23",
       },
       "devDependencies": {
         "@types/bun": "latest",
@@ -2437,7 +2436,7 @@
         "axios": "^1.13.2",
         "date-fns": "^4.1.0",
         "drizzle-orm": "^0.45.1",
-        "hono": "^4.11.3",
+        "hono": "4.12.23",
         "ipaddr.js": "^2.3.0",
         "jsonata": "^2.1.0",
         "jszip": "^3.10.1",
@@ -2567,7 +2566,7 @@
         "@types/semver": "^7.7.1",
         "@types/unzipper": "^0.10.11",
         "date-fns": "^4.1.0",
-        "hono": "^4.11.3",
+        "hono": "4.12.23",
         "jszip": "^3.10.1",
         "lodash": "4.17.21",
         "object-storage-client": "^0.2.5",
@@ -2644,7 +2643,7 @@
         "@types/semver": "^7.7.1",
         "@types/unzipper": "^0.10.11",
         "date-fns": "^4.1.0",
-        "hono": "^4.11.3",
+        "hono": "4.12.23",
         "jszip": "^3.10.1",
         "lodash-es": "^4.17.22",
         "object-storage-client": "^0.2.5",
@@ -2740,7 +2739,7 @@
         "@sentry/cli": "^3.2.0",
         "@types/minimatch": "^6.0.0",
         "@vercel/ncc": "^0.38.3",
-        "hono": "^4.11.3",
+        "hono": "4.12.23",
         "zod": "^4.3.6",
       },
       "devDependencies": {
@@ -2790,7 +2789,7 @@
         "@sentry/bun": "^10.34.0",
         "@sentry/cli": "^3.2.0",
         "@vercel/ncc": "^0.38.3",
-        "hono": "^4.11.3",
+        "hono": "4.12.23",
         "zod": "^4.3.6",
       },
       "devDependencies": {
@@ -3604,7 +3603,7 @@
         "@sentry/bun": "^10.38.0",
         "@sentry/cli": "^3.2.0",
         "ai": "^6.0.175",
-        "hono": "^4.9.6",
+        "hono": "4.12.23",
         "just-bash": "^2.14.4",
         "prisma": "^7.2.0",
         "prisma-json-types-generator": "^4.0.1",
@@ -6600,7 +6599,7 @@
 
     "hoist-non-react-statics": ["hoist-non-react-statics@3.3.2", "", { "dependencies": { "react-is": "^16.7.0" } }, "sha512-/gGivxi8JPKWNm/W0jSmzcMPpfpPLc3dY/6GxhX2hQ9iGj3aDfklV4ET7NjKpSinLpJ5vafa9iiGIEZg10SfBw=="],
 
-    "hono": ["hono@4.12.5", "", {}, "sha512-3qq+FUBtlTHhtYxbxheZgY8NIFnkkC/MR8u5TTsr7YZ3wixryQ3cCwn3iZbg8p8B88iDBBAYSfZDS75t8MN7Vg=="],
+    "hono": ["hono@4.12.23", "", {}, "sha512-eIaZ9qDgu7XV0pxOCrg7/WhnQ6Ivm22UcxhXx/A3dcbqbbYgBEkc6e/J/s7j2tS96zoB0S9VBdLwQNCWwUo4LA=="],
 
     "hosted-git-info": ["hosted-git-info@2.8.9", "", {}, "sha512-mxIDAb9Lsm6DoOJ7xH+5+X4y1LU/4Hi50L9C5sIswK3JzULS4bwk1FvjdBgvYR4bzT4tuUQiC15FE2f5HbLvYw=="],
 
@@ -8888,6 +8887,8 @@
 
     "@lowerdeck/api-mux/@lowerdeck/error": ["@lowerdeck/error@1.2.2", "", { "dependencies": { "@lowerdeck/case": "^1.0.9", "@lowerdeck/validation": "^1.0.8" } }, "sha512-elbVMzRrKlN+/hk4s9sh0Sysc7Sxtmt7qj+qOWSH0U7h9gwfkFDCPSkJkhuNtHYUvDwe5LyoXPXO+o0LpBaRqw=="],
 
+    "@lowerdeck/hono/hono": ["hono@4.12.5", "", {}, "sha512-3qq+FUBtlTHhtYxbxheZgY8NIFnkkC/MR8u5TTsr7YZ3wixryQ3cCwn3iZbg8p8B88iDBBAYSfZDS75t8MN7Vg=="],
+
     "@lowerdeck/id/@lowerdeck/error": ["@lowerdeck/error@1.2.2", "", { "dependencies": { "@lowerdeck/case": "^1.0.9", "@lowerdeck/validation": "^1.0.8" } }, "sha512-elbVMzRrKlN+/hk4s9sh0Sysc7Sxtmt7qj+qOWSH0U7h9gwfkFDCPSkJkhuNtHYUvDwe5LyoXPXO+o0LpBaRqw=="],
 
     "@lowerdeck/jwt/jose": ["jose@5.10.0", "", {}, "sha512-s+3Al/p9g32Iq+oqXxkW//7jk2Vig6FF1CFqzVXoTUXt2qz89YWbL+OwS17NFYEvxC35n0FKeGO2LGYSxeM2Gg=="],
@@ -9113,6 +9114,8 @@
     "@metorial/synthesis/vitest": ["vitest@4.0.17", "", { "dependencies": { "@vitest/expect": "4.0.17", "@vitest/mocker": "4.0.17", "@vitest/pretty-format": "4.0.17", "@vitest/runner": "4.0.17", "@vitest/snapshot": "4.0.17", "@vitest/spy": "4.0.17", "@vitest/utils": "4.0.17", "es-module-lexer": "^1.7.0", "expect-type": "^1.2.2", "magic-string": "^0.30.21", "obug": "^2.1.1", "pathe": "^2.0.3", "picomatch": "^4.0.3", "std-env": "^3.10.0", "tinybench": "^2.9.0", "tinyexec": "^1.0.2", "tinyglobby": "^0.2.15", "tinyrainbow": "^3.0.3", "vite": "^6.0.0 || ^7.0.0", "why-is-node-running": "^2.3.0" }, "peerDependencies": { "@edge-runtime/vm": "*", "@opentelemetry/api": "^1.9.0", "@types/node": "^20.0.0 || ^22.0.0 || >=24.0.0", "@vitest/browser-playwright": "4.0.17", "@vitest/browser-preview": "4.0.17", "@vitest/browser-webdriverio": "4.0.17", "@vitest/ui": "4.0.17", "happy-dom": "*", "jsdom": "*" }, "optionalPeers": ["@edge-runtime/vm", "@opentelemetry/api", "@types/node", "@vitest/browser-playwright", "@vitest/browser-preview", "@vitest/browser-webdriverio", "@vitest/ui", "happy-dom", "jsdom"], "bin": { "vitest": "vitest.mjs" } }, "sha512-FQMeF0DJdWY0iOnbv466n/0BudNdKj1l5jYgl5JVTwjSsZSlqyXFt/9+1sEyhR6CLowbZpV7O1sCHrzBhucKKg=="],
 
     "@metorial/ui/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
+
+    "@modelcontextprotocol/sdk/hono": ["hono@4.12.5", "", {}, "sha512-3qq+FUBtlTHhtYxbxheZgY8NIFnkkC/MR8u5TTsr7YZ3wixryQ3cCwn3iZbg8p8B88iDBBAYSfZDS75t8MN7Vg=="],
 
     "@modelcontextprotocol/sdk/jose": ["jose@6.1.3", "", {}, "sha512-0TpaTfihd4QMNwrz/ob2Bp7X04yuxJkjRGi4aKmOqwhov54i6u79oCv7T+C7lo70MKH6BesI3vscD1yb/yzKXQ=="],
 

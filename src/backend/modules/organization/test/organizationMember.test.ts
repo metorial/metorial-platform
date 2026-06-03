@@ -278,7 +278,7 @@ describe('OrganizationMemberService', () => {
       );
     });
 
-    it('should throw conflict error when user is already an active member', async () => {
+    it('should return existing member when user is already an active member', async () => {
       let mockOrg = { id: 'org-1', oid: 1 };
       let mockUser = { id: 'user-1', oid: 1 };
       let existingMember = {
@@ -293,21 +293,23 @@ describe('OrganizationMemberService', () => {
       vi.mocked(withTransaction).mockImplementation(async callback => {
         let mockDb = {
           organizationMember: {
-            findFirst: vi.fn().mockResolvedValue(existingMember)
+            findFirst: vi.fn().mockResolvedValue(existingMember),
+            create: vi.fn(),
+            update: vi.fn()
           }
         };
         return callback(mockDb as any);
       });
 
-      await expect(
-        organizationMemberService.createOrganizationMember({
-          user: mockUser as any,
-          organization: mockOrg as any,
-          input: { role: 'member' },
-          context: {} as any,
-          performedBy: { type: 'user', user: mockUser as any }
-        })
-      ).rejects.toThrow(ServiceError);
+      let result = await organizationMemberService.createOrganizationMember({
+        user: mockUser as any,
+        organization: mockOrg as any,
+        input: { role: 'member' },
+        context: {} as any,
+        performedBy: { type: 'user', user: mockUser as any }
+      });
+
+      expect(result).toEqual(existingMember);
     });
 
     it('should reactivate deleted member with existing actor', async () => {

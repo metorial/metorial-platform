@@ -21,9 +21,11 @@ export let subspaceProviderListingGroupService = createSubspaceService(
     },
     delete: async (...params: Parameters<typeof inner.delete>) => {
       let eventBase = toEventBase(params[0]);
+      let providerGroup = await inner.get(params[0]);
+
       await Fabric.fire('provider.provider_listing_group.deleted:before', eventBase);
 
-      let providerGroup = await inner.delete(...params);
+      await inner.delete(...params);
 
       await Fabric.fire('provider.provider_listing_group.deleted:after', {
         ...eventBase,

@@ -1,4 +1,4 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
@@ -351,6 +351,14 @@ class SkillMarketplaceServiceImpl {
     }
   ) {
     let { scope } = await resolveCargoAccess(d);
+
+    if (d.owner.type !== 'instance') {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Skill marketplaces can only be created for instances'
+        })
+      );
+    }
 
     await Fabric.fire('skill.marketplace.created:before', {
       organization: d.owner.organization,
