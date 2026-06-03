@@ -350,6 +350,12 @@ class SkillPluginServiceImpl {
     }
   ) {
     let { scope } = await resolveCargoAccess(d);
+
+    await Fabric.fire('skill.plugin.created:before', {
+      organization: d.owner.organization,
+      instance: d.owner.instance
+    });
+
     let skillPlugin = await cargo.skillPlugin.create({
       tenantId: scope.tenantId,
       environmentId: scope.environmentId,

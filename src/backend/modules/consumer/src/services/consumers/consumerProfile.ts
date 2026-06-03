@@ -19,6 +19,7 @@ import {
   Prisma,
   withTransaction
 } from '@metorial/db';
+import { Fabric } from '@metorial/fabric';
 import { createLock } from '@metorial/lock';
 import { searchConsumerIds } from '@metorial/module-search';
 import { consumerInviteUpdatedQueue } from '../../queues/lifecycle/consumerInvite';
@@ -597,6 +598,11 @@ class ConsumerProfileServiceImpl {
     );
 
     if (res.lifecycleAction === 'created') {
+      await Fabric.fire('consumer.profile.created:after', {
+        consumerProfile: res.consumerProfile,
+        surface: res.consumerProfile.surface
+      });
+
       await consumerProfileCreatedQueue.add({ consumerProfileId: res.consumerProfile.id });
     } else {
       await consumerProfileUpdatedQueue.add({ consumerProfileId: res.consumerProfile.id });

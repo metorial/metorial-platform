@@ -15,6 +15,7 @@ import {
   ProviderTemplate,
   type Instance
 } from '@metorial/db';
+import { Fabric } from '@metorial/fabric';
 import { type AnyAccessTagSelector } from '@metorial/module-access';
 import { providerTemplateService } from '@metorial/module-magic';
 import { subspaceIntegrationSetupSessionService } from '@metorial/module-subspace';
@@ -157,6 +158,10 @@ class ConsumerProviderSetupSessionServiceImpl {
       consumerProfile: d.consumerProfile
     });
 
+    await Fabric.fire('consumer.integration_setup_session.created:before', {
+      instance: d.instance
+    });
+
     let setupSession = await subspaceIntegrationSetupSessionService.create({
       instance: d.instance,
       integrationId: providerTemplate.subspaceIntegrationId,
@@ -188,6 +193,11 @@ class ConsumerProviderSetupSessionServiceImpl {
         providerTemplateOid: providerTemplate.oid,
         instanceOid: d.instance.oid
       }
+    });
+
+    await Fabric.fire('consumer.integration_setup_session.created:after', {
+      instance: d.instance,
+      setupSession
     });
 
     return setupSession;
