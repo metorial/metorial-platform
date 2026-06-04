@@ -8,6 +8,7 @@ export * from './organization';
 export * from './organizationInvite';
 export * from './projectConfiguration';
 export * from './profile';
+export * from './resourceCounts';
 export * from './toolCallingConfiguration';
 export * from './usage';
 export * from './user';

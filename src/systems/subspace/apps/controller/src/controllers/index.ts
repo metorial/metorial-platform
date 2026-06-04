@@ -72,6 +72,7 @@ import { providerTriggerController } from './providerTrigger';
 import { providerVariantController } from './providerVariant';
 import { providerVersionController } from './providerVersion';
 import { publisherController } from './publisher';
+import { resourceCountController } from './resourceCount';
 import { scmConnectionController } from './scmConnection';
 import { scmConnectionSetupSessionController } from './scmConnectionSetupSession';
 import { scmProviderController } from './scmProvider';
@@ -181,6 +182,7 @@ let providerControllers = {
   providerTrigger: providerTriggerController,
   providerVariant: providerVariantController,
   providerVersion: providerVersionController,
+  resourceCount: resourceCountController,
   providerRun: providerRunController
 };
 

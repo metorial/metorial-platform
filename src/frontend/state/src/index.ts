@@ -12,6 +12,7 @@ export * from './deployment';
 export * from './developer';
 export * from './files';
 export * from './identity';
+export * from './infrastructure';
 export * from './integration';
 export * from './oauth';
 export * from './organization';

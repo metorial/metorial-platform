@@ -19,6 +19,7 @@ import {
   RiListCheck2,
   RiPlugLine,
   RiRfidLine,
+  RiServerLine,
   RiSettings2Line,
   RiShieldKeyholeLine,
   RiSurveyLine,
@@ -132,7 +133,7 @@ export let ProjectPageLayout = () => {
 
             {
               icon: <RiListCheck2 />,
-              label: 'Logs',
+              label: 'Monitoring',
               to: Paths.instance.providerSessions(...params),
               getProps: i => ({ isActive: checkPath(i, { exact: true }) }),
 
@@ -191,7 +192,7 @@ export let ProjectPageLayout = () => {
         ...(networkingEnabled ?
           [
             {
-              label: 'Security',
+              label: 'Compute',
               collapsible: true,
               items: [
                 {
@@ -222,13 +223,6 @@ export let ProjectPageLayout = () => {
                       })
                     },
                     {
-                      label: 'Enclaves',
-                      to: Paths.instance.networkEnclaves(...params),
-                      getProps: (i: { pathname: string; to: string }) => ({
-                        isActive: checkPath(i, { exact: true })
-                      })
-                    },
-                    {
                       label: 'Network Settings',
                       to: Paths.instance.networkSettings(...params),
                       getProps: (i: { pathname: string; to: string }) => ({
@@ -236,6 +230,14 @@ export let ProjectPageLayout = () => {
                       })
                     }
                   ]
+                },
+                {
+                  icon: <RiServerLine />,
+                  label: 'Enclaves',
+                  to: Paths.instance.networkEnclaves(...params),
+                  getProps: (i: { pathname: string; to: string }) => ({
+                    isActive: checkPath(i, { exact: true })
+                  })
                 }
               ]
             }
