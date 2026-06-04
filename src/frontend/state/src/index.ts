@@ -14,6 +14,7 @@ export * from './files';
 export * from './identity';
 export * from './infrastructure';
 export * from './integration';
+export * from './monitoring';
 export * from './oauth';
 export * from './organization';
 export * from './provider';

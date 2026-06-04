@@ -21,6 +21,9 @@ let ProvidersPage = dynamicPage(() =>
 let ProviderDeploymentsListLayout = dynamicPage(() =>
   import('./pages/(deployments)/(list)/_layout').then(c => c.ProviderDeploymentsListLayout)
 );
+let ProviderAuthCredentialsListLayout = dynamicPage(() =>
+  import('./pages/(deployments)/(list)/_layout').then(c => c.ProviderAuthCredentialsListLayout)
+);
 let ProviderDeploymentsPage = dynamicPage(() =>
   import('./pages/(deployments)/(list)/provider-deployments').then(
     c => c.ProviderDeploymentsPage
@@ -619,6 +622,24 @@ let SessionLogsListLayout = dynamicPage(() =>
 let AuthLogsListLayout = dynamicPage(() =>
   import('./pages/(logs)/(list)/_layout').then(c => c.AuthLogsListLayout)
 );
+let AlertsListLayout = dynamicPage(() =>
+  import('./pages/(logs)/(alerts)/_layout').then(c => c.AlertsListLayout)
+);
+let AlertsPage = dynamicPage(() =>
+  import('./pages/(logs)/(alerts)/alerts').then(c => c.AlertsPage)
+);
+let MonitorsPage = dynamicPage(() =>
+  import('./pages/(logs)/(alerts)/monitors').then(c => c.MonitorsPage)
+);
+let ProtoGuardPage = dynamicPage(() =>
+  import('./pages/(logs)/protoguard').then(c => c.ProtoGuardPage)
+);
+let ProtoGuardSettingsPage = dynamicPage(() =>
+  import('./pages/(logs)/protoguard/settings').then(c => c.ProtoGuardSettingsPage)
+);
+let ProtoGuardLayout = dynamicPage(() =>
+  import('./pages/(logs)/protoguard/_layout').then(c => c.ProtoGuardLayout)
+);
 let ServerErrorsPage = dynamicPage(() =>
   import('./pages/(logs)/(list)/provider-errors').then(c => c.ProviderErrorsPage)
 );
@@ -645,6 +666,26 @@ let ServerRunPage = dynamicPage(() =>
 );
 let ServerRunLayout = dynamicPage(() =>
   import('./pages/(logs)/provider-run/_layout').then(c => c.ProviderRunLayout)
+);
+let AlertPage = dynamicPage(() => import('./pages/(logs)/alert').then(c => c.AlertPage));
+let AlertAccessPage = dynamicPage(() =>
+  import('./pages/(logs)/alert/access').then(c => c.AlertAccessPage)
+);
+let AlertLayout = dynamicPage(() =>
+  import('./pages/(logs)/alert/_layout').then(c => c.AlertLayout)
+);
+let MonitorPage = dynamicPage(() => import('./pages/(logs)/monitor').then(c => c.MonitorPage));
+let MonitorLayout = dynamicPage(() =>
+  import('./pages/(logs)/monitor/_layout').then(c => c.MonitorLayout)
+);
+let ProtoGuardFilterSettingsPage = dynamicPage(() =>
+  import('./pages/(logs)/protoguard/filter').then(c => c.ProtoGuardFilterSettingsPage)
+);
+let ProtoGuardFilterEventsPage = dynamicPage(() =>
+  import('./pages/(logs)/protoguard/filter/events').then(c => c.ProtoGuardFilterEventsPage)
+);
+let ProtoGuardFilterLayout = dynamicPage(() =>
+  import('./pages/(logs)/protoguard/filter/_layout').then(c => c.ProtoGuardFilterLayout)
 );
 let ProviderAuthErrorsPage = dynamicPage(() =>
   import('./pages/(logs)/(list)/provider-auth-errors').then(c => c.ProviderAuthErrorsPage)
@@ -783,6 +824,21 @@ export let productTraceSlice = createSlice([
                     element: <ProviderAuthErrorsPage />
                   }
                 ]
+              },
+              {
+                path: '',
+                element: <AlertsListLayout />,
+
+                children: [
+                  {
+                    path: 'alerts',
+                    element: <AlertsPage />
+                  },
+                  {
+                    path: 'monitors',
+                    element: <MonitorsPage />
+                  }
+                ]
               }
             ]
           },
@@ -836,6 +892,40 @@ export let productTraceSlice = createSlice([
                 element: <ServerErrorsPage />
               }
             ]
+          },
+          {
+            path: 'alerts',
+            element: <AlertsListLayout />,
+            children: [
+              {
+                path: '',
+                element: <AlertsPage />
+              }
+            ]
+          },
+          {
+            path: 'monitors',
+            element: <AlertsListLayout />,
+            children: [
+              {
+                path: '',
+                element: <MonitorsPage />
+              }
+            ]
+          },
+          {
+            path: 'protoguard',
+            element: <ProtoGuardLayout />,
+            children: [
+              {
+                path: '',
+                element: <ProtoGuardPage />
+              },
+              {
+                path: 'settings',
+                element: <ProtoGuardSettingsPage />
+              }
+            ]
           }
         ]
       }
@@ -872,6 +962,50 @@ export let productTraceDetailSlice = createSlice([
               {
                 path: '',
                 element: <ServerRunPage />
+              }
+            ]
+          },
+
+          {
+            path: 'alert/:monitorAlertId',
+            element: <AlertLayout />,
+
+            children: [
+              {
+                path: '',
+                element: <AlertPage />
+              },
+              {
+                path: 'access',
+                element: <AlertAccessPage />
+              }
+            ]
+          },
+
+          {
+            path: 'monitor/:monitorId',
+            element: <MonitorLayout />,
+
+            children: [
+              {
+                path: '',
+                element: <MonitorPage />
+              }
+            ]
+          },
+
+          {
+            path: 'protoguard/filter/:filterId',
+            element: <ProtoGuardFilterLayout />,
+
+            children: [
+              {
+                path: '',
+                element: <ProtoGuardFilterSettingsPage />
+              },
+              {
+                path: 'events',
+                element: <ProtoGuardFilterEventsPage />
               }
             ]
           },
@@ -1191,12 +1325,18 @@ export let productInfrastructureSlice = createSlice([
                 element: <ProviderConfigVaultsOverviewPage />
               },
               {
-                path: 'auth-credentials',
-                element: <ProviderAuthCredentialsOverviewPage />
-              },
-              {
                 path: 'auth-configs',
                 element: <ProviderAuthConfigsOverviewPage />
+              }
+            ]
+          },
+          {
+            path: 'configurations/auth-credentials',
+            element: <ProviderAuthCredentialsListLayout />,
+            children: [
+              {
+                path: '',
+                element: <ProviderAuthCredentialsOverviewPage />
               }
             ]
           },

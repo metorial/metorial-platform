@@ -69,7 +69,15 @@ let InstancePaths = Object.assign(
       ...subPages: SubPages
     ) => {
       if (!id) return '#';
-      return InstancePaths(organization, project, instance, 'network', 'firewall', id, ...subPages);
+      return InstancePaths(
+        organization,
+        project,
+        instance,
+        'network',
+        'firewall',
+        id,
+        ...subPages
+      );
     },
     networkSettings: (
       organization: EntityParam,
@@ -308,6 +316,63 @@ let InstancePaths = Object.assign(
       instance: EntityParam,
       ...subPages: SubPages
     ) => InstancePaths(organization, project, instance, 'logs', ...subPages),
+
+    alerts: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'alerts', ...subPages),
+    alert: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: SubPages
+    ) => {
+      if (!id) return '#';
+      return InstancePaths(organization, project, instance, 'alert', id, ...subPages);
+    },
+    monitors: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'monitors', ...subPages),
+    monitor: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: SubPages
+    ) => {
+      if (!id) return '#';
+      return InstancePaths(organization, project, instance, 'monitor', id, ...subPages);
+    },
+    protoguard: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'protoguard', ...subPages),
+    protoguardFilter: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: SubPages
+    ) => {
+      if (!id) return '#';
+      return InstancePaths(
+        organization,
+        project,
+        instance,
+        'protoguard',
+        'filter',
+        id,
+        ...subPages
+      );
+    },
 
     providerErrors: (
       organization: EntityParam,

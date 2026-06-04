@@ -10,7 +10,10 @@ import { Button, LinkTabs } from '@metorial/ui';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { showSessionTemplateFormModal } from '../../../scenes/sessionTemplates/modal';
 
-export { ProviderDeploymentsListLayout } from './providerDeploymentsListLayout';
+export {
+  ProviderAuthCredentialsListLayout,
+  ProviderDeploymentsListLayout
+} from './providerDeploymentsListLayout';
 
 export let ProvidersListLayout = () => {
   return (

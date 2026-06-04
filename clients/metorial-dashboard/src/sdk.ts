@@ -54,6 +54,8 @@ import {
   MetorialDashboardInstanceMagicMcpServersSessionEndpoint,
   MetorialDashboardInstanceMagicMcpSessionsEndpoint,
   MetorialDashboardInstanceMagicMcpTokensEndpoint,
+  MetorialDashboardInstanceMonitorAlertsEndpoint,
+  MetorialDashboardInstanceMonitorsEndpoint,
   MetorialDashboardInstanceNetworkPoliciesEndpoint,
   MetorialDashboardInstanceNetworkPoliciesRulesEndpoint,
   MetorialDashboardInstanceNetworksEndpoint,
@@ -92,6 +94,8 @@ import {
   MetorialDashboardInstanceProvidersTriggersEndpoint,
   MetorialDashboardInstanceProvidersVersionsEndpoint,
   MetorialDashboardInstanceProviderTemplatesEndpoint,
+  MetorialDashboardInstanceProtoGuardAlertsEndpoint,
+  MetorialDashboardInstanceProtoGuardConfigEndpoint,
   MetorialDashboardInstancePublishersEndpoint,
   MetorialDashboardInstancesResourceCountsEndpoint,
   MetorialDashboardInstanceScmAccountsEndpoint,
@@ -715,6 +719,10 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
   }),
 
   providerRuns: new MetorialDashboardInstanceProviderRunsEndpoint(manager),
+  monitorAlerts: new MetorialDashboardInstanceMonitorAlertsEndpoint(manager),
+  monitors: new MetorialDashboardInstanceMonitorsEndpoint(manager),
+  protoGuardAlerts: new MetorialDashboardInstanceProtoGuardAlertsEndpoint(manager),
+  protoGuardConfig: new MetorialDashboardInstanceProtoGuardConfigEndpoint(manager),
   providerAuthConfigErrors: Object.assign(
     new MetorialDashboardInstanceProviderAuthConfigErrorsEndpoint(manager),
     {
