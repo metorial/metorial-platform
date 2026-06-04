@@ -104,6 +104,7 @@ export let InstanceMenuLayout = ({ children }: { children: React.ReactNode }) =>
   if (!instance.data || instance.data.type === 'production') return <>{children}</>;
 
   let productionInstance = project.data?.instances.find(i => i.type === 'production');
+  let devInstances = project.data?.instances.filter(i => i.type === 'development') ?? [];
 
   return (
     <Wrapper
@@ -129,15 +130,17 @@ export let InstanceMenuLayout = ({ children }: { children: React.ReactNode }) =>
             setIsOpen={setSelectorOpen}
             title="Select Sandbox"
             items={[
-              ...(project.data?.instances
-                .filter(i => i.type === 'development')
-                .map(instance => ({
-                  id: instance.slug,
-                  label: instance.name
-                })) ?? []),
-              {
-                type: 'separator' as const
-              },
+              ...devInstances.map(instance => ({
+                id: instance.slug,
+                label: instance.name
+              })),
+              ...(devInstances.length
+                ? [
+                    {
+                      type: 'separator' as const
+                    }
+                  ]
+                : []),
               ...(productionInstance
                 ? [
                     {
@@ -213,6 +216,7 @@ export let SandboxButton = () => {
   let org = useCurrentOrganization();
 
   let productionInstance = project.data?.instances.find(i => i.type === 'production');
+  let devInstances = project.data?.instances.filter(i => i.type === 'development') ?? [];
 
   let navigate = useNavigate();
 
@@ -222,15 +226,17 @@ export let SandboxButton = () => {
     <Menu
       title="Select Sandbox"
       items={[
-        ...(project.data?.instances
-          .filter(i => i.type === 'development')
-          .map(instance => ({
-            id: instance.slug,
-            label: instance.name
-          })) ?? []),
-        {
-          type: 'separator' as const
-        },
+        ...devInstances.map(instance => ({
+          id: instance.slug,
+          label: instance.name
+        })),
+        ...(devInstances.length
+          ? [
+              {
+                type: 'separator' as const
+              }
+            ]
+          : []),
         ...(instance.data?.type === 'development'
           ? [
               {
