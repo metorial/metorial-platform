@@ -73,6 +73,8 @@ model Instance {
   previousSlugs String[]
   name          String
 
+  hasBeenReconciled Boolean @default(false)
+
   projectOid BigInt
   project    Project @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
 

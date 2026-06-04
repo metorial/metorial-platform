@@ -243,8 +243,9 @@ describe('InstanceService', () => {
         organization: { id: 'org-1', oid: 1 }
       };
       vi.mocked(ID.generateId).mockResolvedValue('generated-id');
+      let mockDb: ReturnType<typeof withCompanionMocks>;
       vi.mocked(withTransaction).mockImplementation(async callback => {
-        let mockDb = withCompanionMocks({
+        mockDb = withCompanionMocks({
           instance: {
             create: vi.fn().mockResolvedValue(mockInstance)
           }
@@ -264,7 +265,7 @@ describe('InstanceService', () => {
         }
       });
 
-      expect(db.environment.create).toHaveBeenCalledWith({
+      expect(mockDb!.environment.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           name: 'Test Instance',
           type: 'development',
@@ -273,7 +274,7 @@ describe('InstanceService', () => {
           creatorActorOid: 7
         })
       });
-      expect(db.sandbox.create).toHaveBeenCalledWith({
+      expect(mockDb!.sandbox.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           name: 'Test Instance',
           status: 'active',
@@ -284,7 +285,15 @@ describe('InstanceService', () => {
     });
 
     it('should reject creating a second production instance', async () => {
-      vi.mocked(db.instance.findFirst).mockResolvedValue({ id: 'inst-existing' } as any);
+      vi.mocked(withTransaction).mockImplementation(async callback => {
+        let mockDb = withCompanionMocks({
+          instance: {
+            findFirst: vi.fn().mockResolvedValue({ id: 'inst-existing' })
+          }
+        });
+
+        return callback(mockDb as any);
+      });
 
       await expect(
         instanceService.createInstance({
@@ -829,6 +838,7 @@ describe('InstanceService', () => {
         let mockDb = withCompanionMocks({
           instance: {
             findMany: vi.fn().mockResolvedValue([developmentInstance]),
+            findFirst: vi.fn().mockResolvedValue(null),
             update
           }
         });
@@ -853,7 +863,8 @@ describe('InstanceService', () => {
           name: 'Production',
           slug: 'test-slug',
           previousSlugs: { push: 'development' },
-          type: 'production'
+          type: 'production',
+          hasBeenReconciled: true
         },
         include: {
           organization: true,

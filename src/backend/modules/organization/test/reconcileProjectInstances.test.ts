@@ -86,16 +86,26 @@ describe('reconcileProjectInstances queues', () => {
     expect(db.project.findMany).toHaveBeenCalledWith({
       where: {
         status: 'active',
-        id: undefined
+        id: undefined,
+        instances: {
+          some: {
+            status: 'active',
+            hasBeenReconciled: false
+          }
+        }
       },
       orderBy: { id: 'asc' },
       take: 500,
       select: { id: true }
     });
-    expect(reconcileProjectInstancesQueue.addMany).toHaveBeenCalledWith([
+    expect(reconcileProjectInstancesQueue.add).toHaveBeenCalledWith(
       { projectId: 'proj-1' },
-      { projectId: 'proj-2' }
-    ]);
+      { id: 'proj-1' }
+    );
+    expect(reconcileProjectInstancesQueue.add).toHaveBeenCalledWith(
+      { projectId: 'proj-2' },
+      { id: 'proj-2' }
+    );
     expect(reconcileProjectInstancesSearchQueue.add).toHaveBeenCalledWith({
       cursor: 'proj-2'
     });

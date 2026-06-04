@@ -85,7 +85,10 @@ export type DashboardOrganizationsInstancesListQuery = {
   before?: string | undefined;
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
-} & { projectId?: string | string[] | undefined };
+} & {
+  projectId?: string | string[] | undefined;
+  type?: 'prod' | 'dev' | 'production' | 'development' | undefined;
+};
 
 export let mapDashboardOrganizationsInstancesListQuery = mtMap.union([
   mtMap.unionOption(
@@ -105,7 +108,8 @@ export let mapDashboardOrganizationsInstancesListQuery = mtMap.union([
             mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
           )
         ])
-      )
+      ),
+      type: mtMap.objectField('type', mtMap.passthrough())
     })
   )
 ]);

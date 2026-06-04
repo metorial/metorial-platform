@@ -2,8 +2,7 @@ import { Paths } from '@metorial/frontend-config';
 import {
   useCurrentInstance,
   useCurrentOrganization,
-  useCurrentProject,
-  useInstances
+  useCurrentProject
 } from '@metorial/state';
 import { Menu, theme } from '@metorial/ui';
 import { RiArrowDownSLine } from '@remixicon/react';
@@ -119,7 +118,6 @@ export let InstanceMenuLayout = ({ children }: { children: React.ReactNode }) =>
   let instance = useCurrentInstance();
   let project = useCurrentProject();
   let org = useCurrentOrganization();
-  let projects = useInstances(instance.data?.organizationId);
 
   let [restrictHeight, setRestrictHeight] = useState(false);
   let restrictHeightRef = useRef(false);
@@ -141,8 +139,6 @@ export let InstanceMenuLayout = ({ children }: { children: React.ReactNode }) =>
 
   let navigate = useNavigate();
   let [selectorOpen, setSelectorOpen] = useState(false);
-
-  let createInstanceMutator = projects.createMutator();
 
   let color = !instance.data
     ? ('white' as const)
@@ -172,31 +168,14 @@ export let InstanceMenuLayout = ({ children }: { children: React.ReactNode }) =>
                     id: instance.slug,
                     label: instance.name
                   })) ?? []),
-                  ...(!project.data?.instances.some(i => i.type == 'production')
-                    ? [
-                        {
-                          id: '__production_instance__',
-                          label: 'Production'
-                        }
-                      ]
-                    : []),
                   { type: 'separator' },
                   {
                     id: '__new_instance__',
-                    label: 'Create Instance'
+                    label: 'Create Sandbox'
                   }
                 ]}
                 onItemClick={async id => {
-                  if (id == '__production_instance__') {
-                    // @ts-ignore
-                    await window.metorial_enterprise?.beforeCreateInstance?.();
-                    let [res] = await createInstanceMutator.mutate({
-                      name: 'Production',
-                      type: 'production',
-                      projectId: project.data?.id!
-                    });
-                    if (res) navigate(Paths.instance(org.data!, project.data!, res));
-                  } else if (id == '__new_instance__') {
+                  if (id == '__new_instance__') {
                     // @ts-ignore
                     await window.metorial_enterprise?.beforeCreateInstance?.();
                     createInstance(project.data!);

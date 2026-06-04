@@ -69,110 +69,125 @@ class InstanceService {
   }
 
   private async ensureInstanceSlugAvailable(d: { slug: string; instance?: Instance }) {
-    let existingInstance = await db.instance.findFirst({
-      where: {
-        OR: [{ slug: d.slug }, { previousSlugs: { has: d.slug } }],
-        id: d.instance ? { not: d.instance.id } : undefined
-      }
-    });
+    await withTransaction(
+      async db => {
+        let existingInstance = await db.instance.findFirst({
+          where: {
+            OR: [{ slug: d.slug }, { previousSlugs: { has: d.slug } }],
+            id: d.instance ? { not: d.instance.id } : undefined
+          }
+        });
 
-    if (existingInstance) {
-      throw new ServiceError(
-        conflictError({
-          message: 'An instance with this slug already exists'
-        })
-      );
-    }
+        if (existingInstance) {
+          throw new ServiceError(
+            conflictError({
+              message: 'An instance with this slug already exists'
+            })
+          );
+        }
+      },
+      { ifExists: true }
+    );
   }
 
   private async ensureCanCreateProductionInstance(d: { project: Project }) {
-    let existingProductionInstance = await db.instance.findFirst({
-      where: {
-        projectOid: d.project.oid,
-        type: 'production',
-        status: 'active'
-      },
-      select: { id: true }
-    });
+    await withTransaction(
+      async db => {
+        let existingProductionInstance = await db.instance.findFirst({
+          where: {
+            projectOid: d.project.oid,
+            type: 'production',
+            status: 'active'
+          },
+          select: { id: true }
+        });
 
-    if (existingProductionInstance) {
-      throw new ServiceError(
-        conflictError({
-          message: 'A project can only have one production instance'
-        })
-      );
-    }
+        if (existingProductionInstance) {
+          throw new ServiceError(
+            conflictError({
+              message: 'A project can only have one production instance'
+            })
+          );
+        }
+      },
+      { ifExists: true }
+    );
   }
 
   private async syncInstanceCompanions(d: {
     instance: Instance;
     performedBy: OrganizationActor;
   }) {
-    let environment = await db.environment.findFirst({
-      where: {
-        instanceOid: d.instance.oid
-      }
-    });
-
-    if (environment) {
-      await db.environment.update({
-        where: { oid: environment.oid },
-        data: {
-          name: d.instance.name,
-          type: d.instance.type,
-          status: 'active',
-          deletedAt: null
-        }
-      });
-    } else {
-      await db.environment.create({
-        data: {
-          id: await ID.generateId('environment'),
-          name: d.instance.name,
-          type: d.instance.type,
-          status: 'active',
-          instanceOid: d.instance.oid,
-          creatorActorOid: d.performedBy.oid
-        }
-      });
-    }
-
-    let sandbox = await db.sandbox.findFirst({
-      where: {
-        instanceOid: d.instance.oid
-      }
-    });
-
-    if (d.instance.type === 'development') {
-      if (sandbox) {
-        await db.sandbox.update({
-          where: { oid: sandbox.oid },
-          data: {
-            name: d.instance.name,
-            status: 'active',
-            deletedAt: null
+    await withTransaction(
+      async db => {
+        let environment = await db.environment.findFirst({
+          where: {
+            instanceOid: d.instance.oid
           }
         });
-      } else {
-        await db.sandbox.create({
-          data: {
-            id: await ID.generateId('sandbox'),
-            name: d.instance.name,
-            status: 'active',
-            instanceOid: d.instance.oid,
-            creatorActorOid: d.performedBy.oid
+
+        if (environment) {
+          await db.environment.update({
+            where: { oid: environment.oid },
+            data: {
+              name: d.instance.name,
+              type: d.instance.type,
+              status: 'active',
+              deletedAt: null
+            }
+          });
+        } else {
+          await db.environment.create({
+            data: {
+              id: await ID.generateId('environment'),
+              name: d.instance.name,
+              type: d.instance.type,
+              status: 'active',
+              instanceOid: d.instance.oid,
+              creatorActorOid: d.performedBy.oid
+            }
+          });
+        }
+
+        let sandbox = await db.sandbox.findFirst({
+          where: {
+            instanceOid: d.instance.oid
           }
         });
-      }
-    } else if (sandbox && sandbox.status !== 'deleted') {
-      await db.sandbox.update({
-        where: { oid: sandbox.oid },
-        data: {
-          status: 'deleted',
-          deletedAt: new Date()
+
+        if (d.instance.type === 'development') {
+          if (sandbox) {
+            await db.sandbox.update({
+              where: { oid: sandbox.oid },
+              data: {
+                name: d.instance.name,
+                status: 'active',
+                deletedAt: null
+              }
+            });
+          } else {
+            await db.sandbox.create({
+              data: {
+                id: await ID.generateId('sandbox'),
+                name: d.instance.name,
+                status: 'active',
+                instanceOid: d.instance.oid,
+                creatorActorOid: d.performedBy.oid
+              }
+            });
+          }
+        } else if (sandbox && sandbox.status !== 'deleted') {
+          await db.sandbox.update({
+            where: { oid: sandbox.oid },
+            data: {
+              status: 'deleted',
+              deletedAt: new Date()
+            }
+          });
         }
-      });
-    }
+      },
+      { ifExists: true }
+    );
   }
 
   private async getSandboxOrThrow(d: {
@@ -240,6 +255,7 @@ class InstanceService {
           slug: await getInstanceSlug({ input: `${d.input.name}-${generateCode(5)}` }),
           name: d.input.name,
           type: d.input.type,
+          hasBeenReconciled: true,
           organizationOid: d.organization.oid,
           projectOid: d.project.oid
         },
@@ -443,6 +459,7 @@ class InstanceService {
     projectIds?: string[];
     instanceIds?: string[];
     filterProjectIds?: string[];
+    filterType?: InstanceType;
   }) {
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -453,6 +470,7 @@ class InstanceService {
               organizationOid: d.organization.oid,
               projectOid: d.project?.oid,
               status: 'active',
+              type: d.filterType,
               id:
                 (d.projectIds !== undefined || d.instanceIds !== undefined) &&
                 !d.projectIds?.length &&
@@ -744,7 +762,8 @@ class InstanceService {
       let instances = await db.instance.findMany({
         where: {
           projectOid: d.project.oid,
-          status: 'active'
+          status: 'active',
+          hasBeenReconciled: false
         },
         orderBy: { createdAt: 'asc' },
         include: {
@@ -755,10 +774,19 @@ class InstanceService {
 
       if (instances.length === 0) return { reconciled: 0 };
 
-      let productionInstances = instances.filter(instance => instance.type === 'production');
+      let productionInstance = await db.instance.findFirst({
+        where: {
+          projectOid: d.project.oid,
+          status: 'active',
+          type: 'production'
+        },
+        select: {
+          id: true
+        }
+      });
       let promotedInstanceId: string | undefined;
 
-      if (productionInstances.length === 0) {
+      if (!productionInstance) {
         let oldestDevelopmentInstance = instances[0];
         let slug = await getInstanceSlug({ input: `Production-${generateCode(5)}` });
 
@@ -768,7 +796,8 @@ class InstanceService {
             name: 'Production',
             slug,
             previousSlugs: { push: oldestDevelopmentInstance.slug },
-            type: 'production'
+            type: 'production',
+            hasBeenReconciled: true
           },
           include: {
             organization: true,
@@ -790,6 +819,13 @@ class InstanceService {
         await this.syncInstanceCompanions({
           instance,
           performedBy: d.performedBy
+        });
+
+        await db.instance.update({
+          where: { oid: instance.oid },
+          data: {
+            hasBeenReconciled: true
+          }
         });
       }
 

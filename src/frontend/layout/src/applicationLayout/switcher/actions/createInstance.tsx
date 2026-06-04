@@ -1,26 +1,25 @@
 import { useForm } from '@metorial/data-hooks';
-import { MetorialInstance, MetorialProject, useInstance, useInstances } from '@metorial/state';
-import { Button, Dialog, Input, Select, showModal, Spacer } from '@metorial/ui';
+import {
+  DashboardOrganizationsSandboxesListOutput,
+  MetorialProject,
+  useInstance,
+  useSandboxes
+} from '@metorial/state';
+import { Button, Dialog, Input, showModal, Spacer } from '@metorial/ui';
 import React from 'react';
 
-export let createInstance = (
-  project_: MetorialProject,
-  opts?: {
-    type?: 'development' | 'production';
-  }
-) =>
+export let createInstance = (project_: MetorialProject) =>
   showModal(({ close, dialogProps }) => {
-    let instances = useInstances(project_.organizationId);
-    let create = instances.createMutator();
+    let sandboxes = useSandboxes(project_.organizationId, { projectId: project_.id });
+    let create = sandboxes.createMutator();
 
     let form = useForm({
       initialValues: {
-        name: '',
-        type: opts?.type ?? ('development' as 'development' | 'production')
+        name: ''
       },
       onSubmit: async values => {
         let [res] = await create.mutate({
-          ...values,
+          name: values.name,
           projectId: project_.id
         });
 
@@ -31,20 +30,15 @@ export let createInstance = (
       },
       schema: yup =>
         yup.object().shape({
-          name: yup.string().required('Name is required'),
-          type: yup
-            .string()
-            .oneOf(['development', 'production'] as const)
-            .required('Environment is required')
+          name: yup.string().required('Name is required')
         })
     });
 
     return (
       <Dialog.Wrapper {...dialogProps}>
-        <Dialog.Title>Create Instance</Dialog.Title>
+        <Dialog.Title>Create Sandbox</Dialog.Title>
         <Dialog.Description>
-          You can create multiple project instances for different environments. For example,
-          one for production, one for staging, and one for development.
+          Create a development sandbox environment for this project.
         </Dialog.Description>
 
         <form onSubmit={form.handleSubmit}>
@@ -52,22 +46,6 @@ export let createInstance = (
           <form.RenderError field="name" />
 
           <Spacer size={15} />
-
-          {!opts?.type && (
-            <>
-              <Select
-                label="Environment"
-                items={[
-                  { id: 'development', label: 'Staging' },
-                  { id: 'production', label: 'Production' }
-                ]}
-                value={form.values.type}
-                onChange={value => form.setFieldValue('type', value)}
-              />
-
-              <Spacer size={15} />
-            </>
-          )}
 
           <Dialog.Actions>
             <Button
@@ -86,7 +64,63 @@ export let createInstance = (
     );
   });
 
-export let updateInstance = (instance_: MetorialInstance) =>
+export let updateSandbox = (
+  sandbox_: DashboardOrganizationsSandboxesListOutput['items'][number]
+) =>
+  showModal(({ close, dialogProps }) => {
+    let sandboxes = useSandboxes(sandbox_.organizationId, {
+      projectId: sandbox_.instance.project.id
+    });
+    let update = sandboxes.updateMutator();
+
+    let form = useForm({
+      initialValues: {
+        name: sandbox_.name
+      },
+      updateInitialValues: true,
+      onSubmit: async values => {
+        let [res] = await update.mutate({
+          sandboxId: sandbox_.id,
+          name: values.name
+        });
+        if (res) close();
+      },
+      schema: yup =>
+        yup.object().shape({
+          name: yup.string().required('Name is required')
+        })
+    });
+
+    return (
+      <Dialog.Wrapper {...dialogProps}>
+        <Dialog.Title>Edit Sandbox</Dialog.Title>
+        <Dialog.Description>
+          You can edit the name of this sandbox environment.
+        </Dialog.Description>
+
+        <form onSubmit={form.handleSubmit}>
+          <Input label="Name" {...form.getFieldProps('name')} />
+          <form.RenderError field="name" />
+
+          <Spacer size={15} />
+
+          <Dialog.Actions>
+            <Button type="button" disabled={update.isLoading} onClick={close}>
+              Cancel
+            </Button>
+
+            <Button type="submit" loading={update.isLoading} success={update.isSuccess}>
+              Save
+            </Button>
+          </Dialog.Actions>
+
+          <update.RenderError />
+        </form>
+      </Dialog.Wrapper>
+    );
+  });
+
+export let updateInstance = (instance_: { id: string; organizationId: string }) =>
   showModal(({ close, dialogProps }) => {
     let instance = useInstance(instance_.organizationId, instance_.id);
     let update = instance.updateMutator();

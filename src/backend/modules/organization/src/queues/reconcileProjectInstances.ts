@@ -23,12 +23,22 @@ export let reconcileProjectInstancesSearchQueue = createQueue<{ cursor?: string 
   name: 'org/project-instances/reconcile/search'
 });
 
+setTimeout(() => {
+  reconcileProjectInstancesSearchQueue.add({});
+}, 10000);
+
 export let reconcileProjectInstancesSearchQueueProcessor =
   reconcileProjectInstancesSearchQueue.process(async data => {
     let projects = await db.project.findMany({
       where: {
         status: 'active',
-        id: data.cursor ? { gt: data.cursor } : undefined
+        id: data.cursor ? { gt: data.cursor } : undefined,
+        instances: {
+          some: {
+            status: 'active',
+            hasBeenReconciled: false
+          }
+        }
       },
       orderBy: { id: 'asc' },
       take: RECONCILE_PROJECT_INSTANCES_BATCH_SIZE,
@@ -38,11 +48,14 @@ export let reconcileProjectInstancesSearchQueueProcessor =
     });
     if (projects.length === 0) return;
 
-    await reconcileProjectInstancesQueue.addMany(
-      projects.map(project => ({
-        projectId: project.id
-      }))
-    );
+    for (let project of projects) {
+      await reconcileProjectInstancesQueue.add(
+        {
+          projectId: project.id
+        },
+        { id: project.id }
+      );
+    }
 
     let lastProject = projects[projects.length - 1];
     if (!lastProject) return;

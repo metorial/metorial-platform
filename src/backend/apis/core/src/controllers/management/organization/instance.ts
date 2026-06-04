@@ -29,6 +29,15 @@ let resolveProjectFilter = async (d: {
     .filter(projectId => d.accessProjectIds?.includes(projectId));
 };
 
+let normalizeInstanceTypeFilter = (
+  type: 'prod' | 'dev' | 'production' | 'development' | undefined
+) => {
+  if (!type) return undefined;
+  if (type === 'prod') return 'production';
+  if (type === 'dev') return 'development';
+  return type;
+};
+
 export let instanceManagementController = Controller.create(
   {
     name: 'Instance',
@@ -46,7 +55,8 @@ export let instanceManagementController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            project_id: v.optional(v.union([v.string(), v.array(v.string())]))
+            project_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            type: v.optional(v.enumOf(['prod', 'dev', 'production', 'development']))
           })
         )
       )
@@ -76,7 +86,8 @@ export let instanceManagementController = Controller.create(
             organization: ctx.organization,
             requestedProjectIds,
             accessProjectIds
-          })
+          }),
+          filterType: normalizeInstanceTypeFilter(ctx.query.type)
         });
 
         let list = await paginator.run(ctx.query);
