@@ -1261,6 +1261,20 @@ export let productHomeSlice = createSlice([
             ]
           },
           {
+            path: 'skill-templates/:skillTemplateId',
+            element: <SkillTemplateLayout />,
+            children: [
+              {
+                path: '',
+                element: <SkillTemplatePage />
+              },
+              {
+                path: 'settings',
+                element: <SkillTemplateSettingsPage />
+              }
+            ]
+          },
+          {
             path: 'skill-template/:skillTemplateId',
             element: <SkillTemplateLayout />,
             children: [

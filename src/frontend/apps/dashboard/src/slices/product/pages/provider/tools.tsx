@@ -1,4 +1,4 @@
-import { DashboardInstanceProvidersToolsListOutput } from '@metorial/dashboard-sdk';
+import { DashboardInstanceProviderToolsListOutput } from '@metorial/dashboard-sdk';
 import { renderWithLoader } from '@metorial/data-hooks';
 import { useCurrentInstance, useProviderTools } from '@metorial/state';
 import { Badge, Button, Dialog, Flex, Text, showModal, theme } from '@metorial/ui';
@@ -12,7 +12,7 @@ import { getJsonSchemaObject } from '../../lib/jsonSchema';
 import { useProviderVersionContext } from './_layout';
 
 type SchemaProperty = JSONSchema7;
-type ProviderTool = DashboardInstanceProvidersToolsListOutput['items'][number];
+type ProviderTool = DashboardInstanceProviderToolsListOutput['items'][number];
 type ToolModeBadge = { label: string; color: 'red' | 'green' };
 
 let isSchemaObject = (

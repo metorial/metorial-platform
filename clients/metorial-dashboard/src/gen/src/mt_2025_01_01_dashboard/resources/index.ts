@@ -24,6 +24,7 @@ export * from './network-policies';
 export * from './networks';
 export * from './organizations';
 export * from './portals';
+export * from './provider';
 export * from './provider-auth-config-errors';
 export * from './provider-auth-config-events';
 export * from './provider-categories';

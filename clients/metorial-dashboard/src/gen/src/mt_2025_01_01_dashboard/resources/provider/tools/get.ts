@@ -1,6 +1,6 @@
 import { mtMap } from '@metorial/util-resource-mapper';
 
-export type ProvidersToolsGetOutput = {
+export type ProviderToolsGetOutput = {
   object: 'provider.tool';
   id: string;
   key: string;
@@ -18,7 +18,7 @@ export type ProvidersToolsGetOutput = {
   updatedAt: Date;
 };
 
-export let mapProvidersToolsGetOutput = mtMap.object<ProvidersToolsGetOutput>({
+export let mapProviderToolsGetOutput = mtMap.object<ProviderToolsGetOutput>({
   object: mtMap.objectField('object', mtMap.passthrough()),
   id: mtMap.objectField('id', mtMap.passthrough()),
   key: mtMap.objectField('key', mtMap.passthrough()),

@@ -266,7 +266,7 @@ export class RestServer<AuthInfo, ApiVersion extends string> {
           let handlers = getHandlers(controller.handlers);
 
           for (let handler of handlers) {
-            for (let { path } of handler.paths) {
+            for (let path of handler.getRoutePaths()) {
               app[handler.method](path, c =>
                 Sentry.withIsolationScope(() =>
                   Sentry.startSpan(
@@ -403,7 +403,8 @@ export class RestServer<AuthInfo, ApiVersion extends string> {
                               description: handler.descriptor.description,
                               confidential: !!handler.descriptor.confidential,
                               hideInDocs: !!handler.descriptor.hideInDocs,
-                              paths: handler.paths
+                              paths: handler.paths,
+                              legacyPaths: handler.descriptor.legacyPaths
                             },
                             status: response.status,
                             durationMs: Date.now() - startedAt,

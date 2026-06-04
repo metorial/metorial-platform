@@ -103,3 +103,9 @@ export let instancePath = (path: string, sdkPath: string) => [
   Path(`/instances/:instanceId/${path}`, `management.instance.${sdkPath}`),
   Path(`/dashboard/instances/:instanceId/${path}`, `dashboard.instance.${sdkPath}`)
 ];
+
+export let instanceLegacyPath = (segment: string) => [
+  `/${segment}`,
+  `/instances/:instanceId/${segment}`,
+  `/dashboard/instances/:instanceId/${segment}`
+];

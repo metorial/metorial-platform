@@ -1,4 +1,4 @@
-import { DashboardInstanceProvidersToolsListQuery } from '@metorial/dashboard-sdk';
+import { DashboardInstanceProviderToolsListQuery } from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
 import { autoPaginate } from '../../lib/autoPaginate';
 import { withAuth } from '../../user';
@@ -6,9 +6,9 @@ import { withAuth } from '../../user';
 export let providerToolsLoader = createLoader({
   name: 'providerTools',
   parents: [],
-  fetch: async (i: { instanceId: string } & DashboardInstanceProvidersToolsListQuery) => {
+  fetch: async (i: { instanceId: string } & DashboardInstanceProviderToolsListQuery) => {
     return await withAuth(sdk =>
-      autoPaginate(c => sdk.providers.tools.list(i.instanceId, { ...i, ...c }))
+      autoPaginate(c => sdk.provider.tools.list(i.instanceId, { ...i, ...c }))
     );
   },
   mutators: {}
@@ -16,7 +16,7 @@ export let providerToolsLoader = createLoader({
 
 export let useProviderTools = (
   instanceId: string | null | undefined,
-  opts: DashboardInstanceProvidersToolsListQuery | null
+  opts: DashboardInstanceProviderToolsListQuery | null
 ) => {
   let data = providerToolsLoader.use(instanceId && opts ? { instanceId, ...opts } : null);
 
@@ -38,7 +38,7 @@ export let providerToolLoader = createLoader({
   name: 'providerTool',
   parents: [providerToolsLoader],
   fetch: async (i: { instanceId: string; providerToolId: string }) => {
-    return await withAuth(sdk => sdk.providers.tools.get(i.instanceId, i.providerToolId));
+    return await withAuth(sdk => sdk.provider.tools.get(i.instanceId, i.providerToolId));
   },
   mutators: {}
 });

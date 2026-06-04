@@ -63,7 +63,7 @@ export class MetorialManagementInstanceSkillsTemplatesItemsEndpoint {
     query?: DashboardInstanceSkillsTemplatesItemsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsTemplatesItemsListOutput> {
-    let path = `instances/${instanceId}/skill-template/${skillTemplateId}/items`;
+    let path = `instances/${instanceId}/skill-templates/${skillTemplateId}/items`;
 
     let request = {
       path,
@@ -97,7 +97,7 @@ export class MetorialManagementInstanceSkillsTemplatesItemsEndpoint {
     skillTemplateItemId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsTemplatesItemsGetOutput> {
-    let path = `instances/${instanceId}/skill-template/${skillTemplateId}/items/${skillTemplateItemId}`;
+    let path = `instances/${instanceId}/skill-templates/${skillTemplateId}/items/${skillTemplateItemId}`;
 
     let request = {
       path,
@@ -128,7 +128,7 @@ export class MetorialManagementInstanceSkillsTemplatesItemsEndpoint {
     body: DashboardInstanceSkillsTemplatesItemsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsTemplatesItemsCreateOutput> {
-    let path = `instances/${instanceId}/skill-template/${skillTemplateId}/items`;
+    let path = `instances/${instanceId}/skill-templates/${skillTemplateId}/items`;
 
     let request = {
       path,
@@ -162,7 +162,7 @@ export class MetorialManagementInstanceSkillsTemplatesItemsEndpoint {
     skillTemplateItemId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsTemplatesItemsDeleteOutput> {
-    let path = `instances/${instanceId}/skill-template/${skillTemplateId}/items/${skillTemplateItemId}`;
+    let path = `instances/${instanceId}/skill-templates/${skillTemplateId}/items/${skillTemplateItemId}`;
 
     let request = {
       path,
