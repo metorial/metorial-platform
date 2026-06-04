@@ -65,7 +65,7 @@ export class MetorialManagementInstanceSkillsTemplatesEndpoint {
     query?: DashboardInstanceSkillsTemplatesListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsTemplatesListOutput> {
-    let path = `instances/${instanceId}/skill-template`;
+    let path = `instances/${instanceId}/skill-templates`;
 
     let request = {
       path,
@@ -97,7 +97,7 @@ export class MetorialManagementInstanceSkillsTemplatesEndpoint {
     skillTemplateId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsTemplatesGetOutput> {
-    let path = `instances/${instanceId}/skill-template/${skillTemplateId}`;
+    let path = `instances/${instanceId}/skill-templates/${skillTemplateId}`;
 
     let request = {
       path,
@@ -126,7 +126,7 @@ export class MetorialManagementInstanceSkillsTemplatesEndpoint {
     body: DashboardInstanceSkillsTemplatesCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsTemplatesCreateOutput> {
-    let path = `instances/${instanceId}/skill-template`;
+    let path = `instances/${instanceId}/skill-templates`;
 
     let request = {
       path,
@@ -158,7 +158,7 @@ export class MetorialManagementInstanceSkillsTemplatesEndpoint {
     body: DashboardInstanceSkillsTemplatesUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsTemplatesUpdateOutput> {
-    let path = `instances/${instanceId}/skill-template/${skillTemplateId}`;
+    let path = `instances/${instanceId}/skill-templates/${skillTemplateId}`;
 
     let request = {
       path,
@@ -188,7 +188,7 @@ export class MetorialManagementInstanceSkillsTemplatesEndpoint {
     skillTemplateId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsTemplatesDeleteOutput> {
-    let path = `instances/${instanceId}/skill-template/${skillTemplateId}`;
+    let path = `instances/${instanceId}/skill-templates/${skillTemplateId}`;
 
     let request = {
       path,

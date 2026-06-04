@@ -28,6 +28,9 @@ export type EndpointDescriptor = {
   hideInDocs?: boolean;
   deprecated?: boolean;
   confidential?: boolean;
+
+  /** HTTP-only aliases; registered on the server but excluded from introspect allPaths */
+  legacyPaths?: string[];
 };
 
 export type ControllerCategory = {
@@ -396,6 +399,13 @@ export class Handler<
   extractObjects(cb: (response: Output) => RequestObject[]) {
     this._extractObjects = cb;
     return this;
+  }
+
+  getRoutePaths() {
+    return [
+      ...this.paths.map(p => p.path),
+      ...(this.descriptor.legacyPaths ?? [])
+    ];
   }
 
   introspect(i: { apiVersion: string }) {

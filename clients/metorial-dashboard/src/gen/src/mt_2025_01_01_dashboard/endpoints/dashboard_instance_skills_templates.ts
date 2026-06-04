@@ -65,7 +65,7 @@ export class MetorialDashboardInstanceSkillsTemplatesEndpoint {
     query?: DashboardInstanceSkillsTemplatesListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsTemplatesListOutput> {
-    let path = `dashboard/instances/${instanceId}/skill-template`;
+    let path = `dashboard/instances/${instanceId}/skill-templates`;
 
     let request = {
       path,
@@ -97,7 +97,7 @@ export class MetorialDashboardInstanceSkillsTemplatesEndpoint {
     skillTemplateId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsTemplatesGetOutput> {
-    let path = `dashboard/instances/${instanceId}/skill-template/${skillTemplateId}`;
+    let path = `dashboard/instances/${instanceId}/skill-templates/${skillTemplateId}`;
 
     let request = {
       path,
@@ -126,7 +126,7 @@ export class MetorialDashboardInstanceSkillsTemplatesEndpoint {
     body: DashboardInstanceSkillsTemplatesCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsTemplatesCreateOutput> {
-    let path = `dashboard/instances/${instanceId}/skill-template`;
+    let path = `dashboard/instances/${instanceId}/skill-templates`;
 
     let request = {
       path,
@@ -158,7 +158,7 @@ export class MetorialDashboardInstanceSkillsTemplatesEndpoint {
     body: DashboardInstanceSkillsTemplatesUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsTemplatesUpdateOutput> {
-    let path = `dashboard/instances/${instanceId}/skill-template/${skillTemplateId}`;
+    let path = `dashboard/instances/${instanceId}/skill-templates/${skillTemplateId}`;
 
     let request = {
       path,
@@ -188,7 +188,7 @@ export class MetorialDashboardInstanceSkillsTemplatesEndpoint {
     skillTemplateId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsTemplatesDeleteOutput> {
-    let path = `dashboard/instances/${instanceId}/skill-template/${skillTemplateId}`;
+    let path = `dashboard/instances/${instanceId}/skill-templates/${skillTemplateId}`;
 
     let request = {
       path,

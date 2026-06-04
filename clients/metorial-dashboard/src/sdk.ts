@@ -656,8 +656,8 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
   ),
 
   providers: Object.assign(new MetorialDashboardInstanceProvidersEndpoint(manager), {
-    versions: new MetorialDashboardInstanceProvidersVersionsEndpoint(manager),
     tools: new MetorialDashboardInstanceProvidersToolsEndpoint(manager),
+    versions: new MetorialDashboardInstanceProvidersVersionsEndpoint(manager),
     triggers: new MetorialDashboardInstanceProvidersTriggersEndpoint(manager),
     authMethods: new MetorialDashboardInstanceProvidersAuthMethodsEndpoint(manager),
     authConfigs: new MetorialDashboardInstanceProviderDeploymentsAuthConfigsEndpoint(manager),

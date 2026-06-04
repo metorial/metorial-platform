@@ -4,7 +4,7 @@ import { v } from '@lowerdeck/validation';
 import { subspaceProviderToolService } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../../middleware/checkAccess';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { instanceGroup, instanceLegacyPath, instancePath } from '../../../middleware/instanceGroup';
 import { providerToolPresenter } from '../../../presenters';
 
 let providerToolGroup = instanceGroup.use(async ctx => {
@@ -33,10 +33,11 @@ export let providerToolController = Controller.create(
   },
   {
     list: instanceGroup
-      .get(instancePath('providers-tools', 'providers.tools.list'), {
+      .get(instancePath('provider-tools', 'providers.tools.list'), {
         name: 'List provider tools',
         description:
-          'Returns a paginated list of provider tools. By default returns tools from the latest version. Use optional filters to get tools for a specific version.'
+          'Returns a paginated list of provider tools. By default returns tools from the latest version. Use optional filters to get tools for a specific version.',
+        legacyPaths: instanceLegacyPath('providers-tools')
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.specification:read'] }))
       .outputList(providerToolPresenter)
@@ -51,10 +52,7 @@ export let providerToolController = Controller.create(
       .do(async ctx => {
         let listInput = {
           instance: ctx.instance,
-          // Compatibility: some subspace controller-client builds validate this field
-          // as `providerVersion` instead of `providerVersionId`.
-          providerVersionId: ctx.query.provider_version_id,
-          providerVersion: ctx.query.provider_version_id
+          providerVersionId: ctx.query.provider_version_id
         };
 
         let paginator = await subspaceProviderToolService.list(listInput);
@@ -65,9 +63,10 @@ export let providerToolController = Controller.create(
       }),
 
     get: providerToolGroup
-      .get(instancePath('providers-tools/:providerToolId', 'providers.tools.get'), {
+      .get(instancePath('provider-tools/:providerToolId', 'providers.tools.get'), {
         name: 'Get provider tool',
-        description: 'Retrieves a specific provider tool by ID.'
+        description: 'Retrieves a specific provider tool by ID.',
+        legacyPaths: instanceLegacyPath('providers-tools/:providerToolId')
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.specification:read'] }))
       .output(providerToolPresenter)
