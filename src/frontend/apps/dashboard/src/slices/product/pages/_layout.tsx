@@ -19,6 +19,7 @@ import {
   RiListCheck2,
   RiPlugLine,
   RiRfidLine,
+  RiServerLine,
   RiSettings2Line,
   RiShieldKeyholeLine,
   RiSurveyLine,
@@ -231,7 +232,7 @@ export let ProjectPageLayout = () => {
                   ]
                 },
                 {
-                  icon: <RiFlowChart />,
+                  icon: <RiServerLine />,
                   label: 'Enclaves',
                   to: Paths.instance.networkEnclaves(...params),
                   getProps: (i: { pathname: string; to: string }) => ({

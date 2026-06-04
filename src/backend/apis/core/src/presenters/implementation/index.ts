@@ -9,6 +9,7 @@ export * from './organization';
 export * from './platform';
 export * from './portal';
 export * from './provider';
+export * from './resourceCounts';
 export * from './scm';
 export * from './skills';
 export * from './testHelpers';
