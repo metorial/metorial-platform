@@ -60,6 +60,7 @@ export type RestRequestLogEvent<AuthInfo, ApiVersion extends string> = {
     confidential: boolean;
     hideInDocs: boolean;
     paths: Array<{ path: string; sdkPath: string }>;
+    legacyPaths?: string[];
   };
   status: number;
   durationMs: number;
