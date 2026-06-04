@@ -188,9 +188,16 @@ export let getForegroundColor = memo((color: ColorKey) => {
   }
 
   let value = colors[color];
+  if (value.length == 4) {
+    value = `#${value[1]}${value[1]}${value[2]}${value[2]}${value[3]}${value[3]}`;
+  }
+
   let r = parseInt(value.substr(1, 2), 16);
   let g = parseInt(value.substr(3, 2), 16);
   let b = parseInt(value.substr(5, 2), 16);
   let brightness = (r * 299 + g * 587 + b * 114) / 1000;
+
+  if (Number.isNaN(brightness)) return '#fff';
+
   return brightness > 125 ? '#000' : '#fff';
 });

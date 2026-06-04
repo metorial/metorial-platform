@@ -1781,12 +1781,8 @@ export let productHomeSlice = createSlice([
                 element: <AssistantConversationPage />
               }
             ]
-          }
-        ]
-      },
+          },
 
-      {
-        children: [
           {
             path: '',
             element: <ManagedServersListLayout />,

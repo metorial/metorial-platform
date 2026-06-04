@@ -16,4 +16,4 @@ export let theme = createTheme({
   }
 });
 
-export type { ColorType } from './colors';
+export type { ColorKey, ColorType } from './colors';

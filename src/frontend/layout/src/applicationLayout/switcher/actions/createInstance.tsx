@@ -1,4 +1,5 @@
 import { useForm } from '@metorial/data-hooks';
+import { Paths } from '@metorial/frontend-config';
 import {
   DashboardOrganizationsSandboxesListOutput,
   MetorialProject,
@@ -7,9 +8,13 @@ import {
 } from '@metorial/state';
 import { Button, Dialog, Input, showModal, Spacer } from '@metorial/ui';
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
-export let createInstance = (project_: MetorialProject) =>
+export let createInstance = (
+  project_: MetorialProject & { organization?: { slug: string } }
+) =>
   showModal(({ close, dialogProps }) => {
+    let navigate = useNavigate();
     let sandboxes = useSandboxes(project_.organizationId, { projectId: project_.id });
     let create = sandboxes.createMutator();
 
@@ -25,7 +30,11 @@ export let createInstance = (project_: MetorialProject) =>
 
         if (res) {
           close();
-          // setTimeout(() => window.location.reload(), 50);
+          if (project_.organization) {
+            navigate(
+              Paths.instance(project_.organization, res.instance.project, res.instance)
+            );
+          }
         }
       },
       schema: yup =>
