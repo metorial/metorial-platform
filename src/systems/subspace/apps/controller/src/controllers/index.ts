@@ -68,6 +68,7 @@ import { providerOAuthSetupController } from './providerOAuthSetup';
 import { providerRunController } from './providerRun';
 import { providerRunUsageRecordController } from './providerRunUsageRecord';
 import { providerSetupSessionController } from './providerSetupSession';
+import { providerSpecificationChangeNotificationController } from './providerSpecificationChangeNotification';
 import { providerSpecificationController } from './providerSpecification';
 import { providerToolController } from './providerTool';
 import { providerTriggerController } from './providerTrigger';
@@ -183,6 +184,7 @@ let providerControllers = {
   providerListing: providerListingController,
   providerOAuthSetup: providerOAuthSetupController,
   providerSpecification: providerSpecificationController,
+  providerSpecificationChangeNotification: providerSpecificationChangeNotificationController,
   providerTool: providerToolController,
   providerTrigger: providerTriggerController,
   providerVariant: providerVariantController,

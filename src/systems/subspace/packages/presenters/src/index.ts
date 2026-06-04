@@ -61,6 +61,7 @@ export * from './providerListingGroup';
 export * from './providerRun';
 export * from './providerRunUsageRecord';
 export * from './providerSpecification';
+export * from './providerSpecificationChangeNotification';
 export * from './providerTool';
 export * from './providerTrigger';
 export * from './providerVariant';

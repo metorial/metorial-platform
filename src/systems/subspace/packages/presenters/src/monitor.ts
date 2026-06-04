@@ -8,10 +8,14 @@ import type {
   MonitorOwner,
   MonitorStatus,
   MonitorTarget,
-  Provider,
   ProtoGuardFilter,
+  Provider,
   TenantActor
 } from '@metorial-subspace/db';
+import {
+  providerSpecificationChangeNotificationPresenter,
+  type ProviderSpecificationChangeNotificationPresenterProps
+} from './providerSpecificationChangeNotification';
 
 export type MonitorPresenterProps = Monitor & {
   protoGuardFilter: ProtoGuardFilter | null;
@@ -48,7 +52,7 @@ export type MonitorAlertPresenterProps = MonitorAlert & {
   monitorAlertEvents: MonitorAlertEvent[];
   monitorAlertRecipients: (MonitorAlertRecipient & { recipient: TenantActor })[];
   protoGuardAlert: { id: string; run: { id: string } } | null;
-  specificationChangeNotification: { id: string } | null;
+  specificationChangeNotification: ProviderSpecificationChangeNotificationPresenterProps | null;
 };
 
 export let monitorAlertPresenter = (alert: MonitorAlertPresenterProps) => ({
@@ -58,7 +62,9 @@ export let monitorAlertPresenter = (alert: MonitorAlertPresenterProps) => ({
   monitor: monitorPresenter(alert.monitor),
   protoGuardAlertId: alert.protoGuardAlert?.id ?? null,
   protoGuardRunId: alert.protoGuardAlert?.run.id ?? null,
-  specificationChangeNotificationId: alert.specificationChangeNotification?.id ?? null,
+  specificationChangeNotification: alert.specificationChangeNotification
+    ? providerSpecificationChangeNotificationPresenter(alert.specificationChangeNotification)
+    : null,
   createdAt: alert.createdAt,
   resolvedAt: alert.resolvedAt,
   recipients: alert.monitorAlertRecipients.map(recipient => ({

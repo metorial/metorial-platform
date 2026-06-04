@@ -44,7 +44,24 @@ export let monitorAlertInclude = {
   },
   specificationChangeNotification: {
     include: {
-      version: { include: { provider: true } }
+      version: { include: { provider: true } },
+      deploymentConfigPair: true,
+      versionSpecificationChange: {
+        include: {
+          fromSpecification: true,
+          toSpecification: true,
+          fromVersion: true,
+          toVersion: true
+        }
+      },
+      pairSpecificationChange: {
+        include: {
+          fromSpecification: true,
+          toSpecification: true,
+          fromPairVersion: { include: { version: true } },
+          toPairVersion: { include: { version: true } }
+        }
+      }
     }
   },
   monitorAlertEvents: true,
@@ -83,7 +100,9 @@ let getAlertById = async (d: Scope & { alertId: string; actor?: TenantActor | nu
   let alert = await db.monitorAlert.findFirst({
     where: {
       id: d.alertId,
-      tenantOid: d.tenant.oid
+      tenantOid: d.tenant.oid,
+      environmentOid: d.environment.oid,
+      solutionOid: d.solution.oid
     },
     include: monitorAlertInclude
   });
@@ -105,7 +124,12 @@ let getAlertById = async (d: Scope & { alertId: string; actor?: TenantActor | nu
           });
 
           return await db.monitorAlert.findFirstOrThrow({
-            where: { oid: alert.oid },
+            where: {
+              oid: alert.oid,
+              tenantOid: d.tenant.oid,
+              environmentOid: d.environment.oid,
+              solutionOid: d.solution.oid
+            },
             include: monitorAlertInclude
           });
         },
@@ -169,6 +193,8 @@ class alertServiceImpl {
           ...opts,
           where: {
             tenantOid: d.tenant.oid,
+            environmentOid: d.environment.oid,
+            solutionOid: d.solution.oid,
             AND: [
               d.ids ? { id: { in: d.ids } } : undefined!,
               monitorOids ? { monitorOid: { in: monitorOids } } : undefined!,
