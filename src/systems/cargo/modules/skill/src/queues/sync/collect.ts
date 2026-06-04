@@ -136,9 +136,13 @@ let getSyncTaskNames = async (tasks: SyncTask[]) => {
   ]);
 
   return {
-    marketplaces: new Map(marketplaces.map(marketplace => [marketplace.id, marketplace.name])),
-    plugins: new Map(plugins.map(plugin => [plugin.id, plugin.name])),
-    skills: new Map(skills.map(skill => [skill.id, skill.name ?? 'Untitled skill']))
+    marketplaces: new Map(
+      marketplaces.map(marketplace => [marketplace.id, marketplace.name] as [string, string])
+    ),
+    plugins: new Map(plugins.map(plugin => [plugin.id, plugin.name] as [string, string])),
+    skills: new Map(
+      skills.map(skill => [skill.id, skill.name ?? 'Untitled skill'] as [string, string])
+    )
   };
 };
 

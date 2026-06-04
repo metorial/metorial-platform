@@ -34,8 +34,7 @@ class monitorInternalServiceImpl {
     return await db.monitor.upsert({
       where: { key },
       update: {
-        status: 'active',
-        lastAlertAt: d.timestamp
+        status: 'active'
       },
       create: {
         ...getId('monitor'),
@@ -67,8 +66,7 @@ class monitorInternalServiceImpl {
     return await db.monitor.upsert({
       where: { key },
       update: {
-        status: 'active',
-        lastAlertAt: d.timestamp
+        status: 'active'
       },
       create: {
         ...getId('monitor'),
