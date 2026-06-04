@@ -50,6 +50,12 @@ export let sendApiKeyCreatedEmailToMemberQueueProcessor =
 
     if (!member) return;
     if (apiKey.machineAccess.organizationOid != organization.oid) return;
+    if (
+      member.role != 'admin' ||
+      member.user.status != 'active' ||
+      member.user.type === 'system'
+    )
+      return;
 
     let existingSend = await db.apiKeyCreatedEmailSend.findFirst({
       where: {

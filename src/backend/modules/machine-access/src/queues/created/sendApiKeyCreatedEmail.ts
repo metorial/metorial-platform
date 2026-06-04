@@ -52,7 +52,8 @@ export let sendApiKeyCreatedEmailQueueProcessor = sendApiKeyCreatedEmailQueue.pr
           role: 'admin',
           status: 'active',
           user: {
-            status: 'active'
+            status: 'active',
+            type: 'user'
           }
         },
         select: {
