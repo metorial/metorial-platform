@@ -150,6 +150,8 @@ import {
   SubspaceFirewall,
   SubspaceFirewallBinding,
   SubspaceMagicMcpServerProvider,
+  SubspaceMonitor,
+  SubspaceMonitorAlert,
   SubspaceNetwork,
   SubspaceNetworkPolicy,
   SubspaceNetworkPolicyRule,
@@ -175,6 +177,7 @@ import {
   SubspaceProviderRunLogs,
   SubspaceProviderSetupSession,
   SubspaceProviderSpecification,
+  SubspaceProviderSpecificationChangeNotification,
   SubspaceProviderTool,
   SubspaceProviderTrigger,
   SubspaceProviderType,
@@ -1130,6 +1133,18 @@ export let providerAuthMethodType = PresentableType.create<{
 export let providerSpecificationType = PresentableType.create<{
   specification: SubspaceProviderSpecification;
 }>()('specification');
+
+export let providerSpecificationChangeNotificationType = PresentableType.create<{
+  notification: SubspaceProviderSpecificationChangeNotification;
+}>()('provider.specification_change_notification');
+
+export let monitorType = PresentableType.create<{
+  monitor: SubspaceMonitor;
+}>()('monitor');
+
+export let monitorAlertType = PresentableType.create<{
+  alert: SubspaceMonitorAlert;
+}>()('monitor.alert');
 
 export let deploymentPreviewType = PresentableType.create<{
   deployment: NonNullable<SubspaceProviderAuthConfig['deploymentPreview']>;

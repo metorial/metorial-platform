@@ -95,6 +95,8 @@ import {
   v1MagicMcpServerProviderPresenter,
   v1MagicMcpSessionPresenter,
   v1MagicMcpTokenPresenter,
+  v1MonitorAlertPresenter,
+  v1MonitorPresenter,
   v1EnclavePresenter,
   v1FirewallBindingPresenter,
   v1FirewallPresenter,
@@ -150,6 +152,7 @@ import {
   v1ProviderPresenter,
   v1ProviderRunLogsPresenter,
   v1ProviderRunPresenter,
+  v1ProviderSpecificationChangeNotificationPresenter,
   v1ProviderSpecificationPresenter,
   v1ProviderTemplatePresenter,
   v1ProviderToolCallPresenter,
@@ -287,6 +290,8 @@ import {
   magicMcpServerType,
   magicMcpSessionType,
   magicMcpTokenType,
+  monitorAlertType,
+  monitorType,
   enclaveType,
   firewallBindingType,
   firewallType,
@@ -339,6 +344,7 @@ import {
   providerRunType,
   providerSessionType,
   providerSetupSessionType,
+  providerSpecificationChangeNotificationType,
   providerSpecificationType,
   providerTemplateType,
   providerToolType,
@@ -1035,6 +1041,24 @@ export let providerSpecificationPresenter = declarePresenter(providerSpecificati
   mt_2025_01_01_dashboard: v1ProviderSpecificationPresenter,
   mt_2026_01_01_magnetar: v1ProviderSpecificationPresenter,
   mt_2026_04_01_consumer: v1ProviderSpecificationPresenter
+});
+
+export let providerSpecificationChangeNotificationPresenter = declarePresenter(
+  providerSpecificationChangeNotificationType,
+  {
+    mt_2025_01_01_dashboard: v1ProviderSpecificationChangeNotificationPresenter,
+    mt_2026_01_01_magnetar: v1ProviderSpecificationChangeNotificationPresenter
+  }
+);
+
+export let monitorPresenter = declarePresenter(monitorType, {
+  mt_2025_01_01_dashboard: v1MonitorPresenter,
+  mt_2026_01_01_magnetar: v1MonitorPresenter
+});
+
+export let monitorAlertPresenter = declarePresenter(monitorAlertType, {
+  mt_2025_01_01_dashboard: v1MonitorAlertPresenter,
+  mt_2026_01_01_magnetar: v1MonitorAlertPresenter
 });
 
 export let providerDeploymentPresenter = declarePresenter(providerDeploymentType, {

@@ -207,6 +207,10 @@ let scopeResourceMetadata: Record<string, { name: string; description: string }>
     description:
       'These endpoints manage provider sessions, session events, and session artifacts.'
   },
+  'instance.monitor': {
+    name: 'Monitoring',
+    description: 'These endpoints read monitors and manage monitor alerts.'
+  },
   'instance.provider.config': {
     name: 'Provider Configs',
     description: 'These endpoints manage provider configuration records and schemas.'

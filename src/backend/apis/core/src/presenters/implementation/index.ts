@@ -4,6 +4,7 @@ export * from './assistant';
 export * from './auth';
 export * from './consumer';
 export * from './files';
+export * from './monitor';
 export * from './network';
 export * from './organization';
 export * from './platform';

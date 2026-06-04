@@ -24,6 +24,12 @@ export let sessionDocsCategory = createCategory({
   indexHint: getIndexHint()
 });
 
+export let monitoringDocsCategory = createCategory({
+  id: 'monitoring',
+  name: 'Monitoring',
+  indexHint: getIndexHint()
+});
+
 export let configurationDocsCategory = createCategory({
   id: 'configuration',
   name: 'Configurations',

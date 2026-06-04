@@ -7,6 +7,7 @@ import {
   identityDocsCategory,
   integrationDocsCategory,
   magicMcpDocsCategory,
+  monitoringDocsCategory,
   networkDocsCategory,
   portalDocsCategory,
   providerDocsCategory,
@@ -74,6 +75,8 @@ import {
   magicMcpServerControllerDashboard,
   magicMcpSessionController,
   magicMcpTokenController,
+  monitorAlertController,
+  monitorController,
   networkController,
   networkPolicyController,
   portalAuthDashboardController,
@@ -104,6 +107,7 @@ import {
   providerRunController,
   providerSetupSessionController,
   providerSpecificationController,
+  providerSpecificationChangeNotificationController,
   providerTemplateController,
   providerToolController,
   providerTriggerController,
@@ -187,12 +191,19 @@ let setControllerDocsMetadata = <
   providerListingController,
   providerVersionController,
   providerSpecificationController,
+  providerSpecificationChangeNotificationController,
   providerTriggerController,
   providerToolController,
   providerAuthMethodController
 ].forEach(controller =>
   setControllerDocsMetadata(controller, {
     category: providerDocsCategory
+  })
+);
+
+[monitorController, monitorAlertController].forEach(controller =>
+  setControllerDocsMetadata(controller, {
+    category: monitoringDocsCategory
   })
 );
 
@@ -385,6 +396,7 @@ export let magnetarController = Controller.create<any>(
     providerListingController,
     providerVersionController,
     providerSpecificationController,
+    providerSpecificationChangeNotificationController,
     providerTriggerController,
     providerToolController,
     providerAuthMethodController,
@@ -434,6 +446,8 @@ export let magnetarController = Controller.create<any>(
     sessionErrorController,
     sessionErrorGroupController,
     providerRunController,
+    monitorController,
+    monitorAlertController,
     sessionMessageController,
     sessionConnectionController,
     sessionEventController,
@@ -626,6 +640,7 @@ export let dashboardController = Controller.create<any>(
 
     providerVersionController,
     providerSpecificationController,
+    providerSpecificationChangeNotificationController,
     providerTriggerController,
     providerToolController,
     providerAuthMethodController,
@@ -662,6 +677,8 @@ export let dashboardController = Controller.create<any>(
     sessionErrorController,
     sessionErrorGroupController,
     providerRunController: providerRunController,
+    monitorController,
+    monitorAlertController,
     sessionMessageController,
     sessionConnectionController,
     sessionEventController,

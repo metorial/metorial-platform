@@ -18,6 +18,9 @@ export let instanceScopes = [
   'instance.session:read' as const,
   'instance.session:write' as const,
 
+  'instance.monitor:read' as const,
+  'instance.monitor:write' as const,
+
   'instance.provider_oauth.connection:read' as const,
   'instance.provider_oauth.connection:write' as const,
 
