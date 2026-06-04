@@ -20,7 +20,8 @@ export let dashboardOAuthAuthorizationRequestController = Controller.create(
         ),
         {
           name: 'Get OAuth authorization request',
-          description: 'Get an oauth authorization request by its url token'
+          description: 'Get an oauth authorization request by its url token',
+          confidential: true
         }
       )
       .output(oauthAuthorizationRequestPresenter)
@@ -44,7 +45,8 @@ export let dashboardOAuthAuthorizationRequestController = Controller.create(
         ),
         {
           name: 'Approve OAuth authorization request',
-          description: 'Approve an oauth authorization request for an organization'
+          description: 'Approve an oauth authorization request for an organization',
+          confidential: true
         }
       )
       .body(
@@ -81,7 +83,8 @@ export let dashboardOAuthAuthorizationRequestController = Controller.create(
         ),
         {
           name: 'Reject OAuth authorization request',
-          description: 'Reject an oauth authorization request'
+          description: 'Reject an oauth authorization request',
+          confidential: true
         }
       )
       .body(

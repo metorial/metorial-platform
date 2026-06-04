@@ -25,7 +25,7 @@ import {
   type SubspaceProxyAgentClient
 } from '@metorial/module-subspace';
 import { Authenticator } from '@metorial/rest';
-import type { Context } from 'hono';
+import type { Context } from '@lowerdeck/hono';
 import { authenticateAndResolveInstance } from './getSession';
 
 type MagicMcpTargetForRouting = Awaited<ReturnType<typeof resolveMagicMcpTargetByIdOrAlias>>;

@@ -138,7 +138,8 @@ export let providerConfigController = Controller.create(
     create: instanceGroup
       .post(instancePath('provider-configs', 'providerDeployments.configs.create'), {
         name: 'Create provider config',
-        description: 'Creates a new provider config.'
+        description: 'Creates a new provider config.',
+        confidential: true
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.config:write'] }))
       .body(

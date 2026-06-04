@@ -35,7 +35,8 @@ export let callbackDestinationController = Controller.create(
     list: instanceGroup
       .get(instancePath('callback-destinations', 'callbacks.destinations.list'), {
         name: 'List callback destinations',
-        description: 'Returns a paginated list of callback destinations.'
+        description: 'Returns a paginated list of callback destinations.',
+        confidential: true
       })
       .use(checkAccess({ possibleScopes: ['instance.callback:read'] }))
       .outputList(callbackDestinationPresenter)
@@ -73,7 +74,8 @@ export let callbackDestinationController = Controller.create(
         ),
         {
           name: 'Get callback destination',
-          description: 'Retrieves a specific callback destination.'
+          description: 'Retrieves a specific callback destination.',
+          confidential: true
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.callback:read'] }))
@@ -85,7 +87,8 @@ export let callbackDestinationController = Controller.create(
     create: instanceGroup
       .post(instancePath('callback-destinations', 'callbacks.destinations.create'), {
         name: 'Create callback destination',
-        description: 'Creates a new callback destination.'
+        description: 'Creates a new callback destination.',
+        confidential: true
       })
       .use(checkAccess({ possibleScopes: ['instance.callback:write'] }))
       .body(
@@ -134,7 +137,8 @@ export let callbackDestinationController = Controller.create(
         ),
         {
           name: 'Update callback destination',
-          description: 'Updates a callback destination.'
+          description: 'Updates a callback destination.',
+          confidential: true
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.callback:write'] }))
@@ -189,7 +193,8 @@ export let callbackDestinationController = Controller.create(
         ),
         {
           name: 'Delete callback destination',
-          description: 'Archives a callback destination.'
+          description: 'Archives a callback destination.',
+          confidential: true
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.callback:write'] }))

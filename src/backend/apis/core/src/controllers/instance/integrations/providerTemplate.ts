@@ -26,7 +26,8 @@ let providerTemplateCreateBodyValidator = v.object({
   name: v.string(),
   description: v.optional(v.string()),
   metadata: v.optional(v.record(v.any())),
-  providers: v.array(providerTemplateProviderValidator)
+  providers: v.optional(v.array(providerTemplateProviderValidator)),
+  integration_id: v.optional(v.string())
 });
 
 let normalizeProviderTemplateProviders = (
@@ -160,6 +161,16 @@ export let providerTemplateController = Controller.create(
       .body('default', providerTemplateCreateBodyValidator)
       .output(providerTemplatePresenter)
       .do(async ctx => {
+        if (!!ctx.body.integration_id === !!ctx.body.providers) {
+          throw new ServiceError(
+            badRequestError({
+              message: 'Provide exactly one of providers or integration_id.',
+              description:
+                'Provider templates can be created from provider definitions or an existing integration, but not both.'
+            })
+          );
+        }
+
         let providerTemplate = await providerTemplateService.createProviderTemplate({
           organization: ctx.organization,
           instance: ctx.instance,
@@ -167,7 +178,11 @@ export let providerTemplateController = Controller.create(
             name: ctx.body.name,
             description: ctx.body.description,
             metadata: ctx.body.metadata,
-            providers: normalizeProviderTemplateProviders(ctx.body.providers)
+            ...(ctx.body.integration_id
+              ? { integrationId: ctx.body.integration_id }
+              : {
+                  providers: normalizeProviderTemplateProviders(ctx.body.providers!)
+                })
           }
         });
 

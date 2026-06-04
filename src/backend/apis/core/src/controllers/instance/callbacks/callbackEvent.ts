@@ -37,7 +37,8 @@ export let callbackEventController = Controller.create(
     list: callbackGroup
       .get(instancePath('callbacks/:callbackId/events', 'callbacks.events.list'), {
         name: 'List callback events',
-        description: 'Returns a paginated list of callback events.'
+        description: 'Returns a paginated list of callback events.',
+        confidential: true
       })
       .use(checkAccess({ possibleScopes: ['instance.callback:read'] }))
       .outputList(callbackEventPresenter)
@@ -76,7 +77,8 @@ export let callbackEventController = Controller.create(
         instancePath('callbacks/:callbackId/events/:callbackEventId', 'callbacks.events.get'),
         {
           name: 'Get callback event',
-          description: 'Retrieves a specific callback event.'
+          description: 'Retrieves a specific callback event.',
+          confidential: true
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.callback:read'] }))

@@ -60,6 +60,12 @@ export abstract class IProviderAuth extends IProviderFunctionality {
     data: GetProviderAuthConfigScopesParam
   ): Promise<GetProviderAuthScopesRes>;
 
+  async onProviderAuthConfigVersionCreated(
+    data: ProviderAuthConfigVersionCreatedParam
+  ): Promise<ProviderAuthConfigVersionCreatedRes> {
+    return {};
+  }
+
   async getManyProviderAuthCredentialsScopes(
     data: ProviderAuthCredentialsScopesParam
   ): Promise<ProviderAuthCredentialsScopesRes> {
@@ -140,6 +146,14 @@ export interface ProviderAuthConfigCreateRes {
   shuttleAuthConfig?: ShuttleAuthConfig;
   expiresAt: Date | null;
 }
+
+export interface ProviderAuthConfigVersionCreatedParam {
+  tenant: Tenant;
+  authConfig: ProviderAuthConfig;
+  authConfigVersion: ProviderAuthConfigVersion;
+}
+
+export interface ProviderAuthConfigVersionCreatedRes {}
 
 export interface ProviderAuthConfigDeleteBacking {
   slateAuthConfigOid?: bigint | null;

@@ -27,6 +27,7 @@ export type EndpointDescriptor = {
 
   hideInDocs?: boolean;
   deprecated?: boolean;
+  confidential?: boolean;
 };
 
 export type ControllerCategory = {
@@ -40,8 +41,9 @@ export type ControllerDescriptor = EndpointDescriptor & {
   category?: ControllerCategory;
 };
 
-export let createCategory = <Category extends ControllerCategory>(category: Category): Category =>
-  category;
+export let createCategory = <Category extends ControllerCategory>(
+  category: Category
+): Category => category;
 
 export type GetHandlerContext<
   AuthInfo,
@@ -404,6 +406,7 @@ export class Handler<
       name: this.descriptor.name,
       description: this.descriptor.description,
       hideInDocs: this.descriptor.hideInDocs,
+      confidential: this.descriptor.confidential,
       body: this._validationBody
         ? {
             name: 'Body',

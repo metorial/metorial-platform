@@ -17,6 +17,7 @@ import {
   Prisma,
   withTransaction
 } from '@metorial/db';
+import { Fabric } from '@metorial/fabric';
 import { generatePlainId } from '@metorial/id';
 import {
   consumerMagicMcpReadRoles,
@@ -239,6 +240,10 @@ class MagicMcpEndpointImpl {
       servers?: MagicMcpEndpointServerInput[];
     };
   }) {
+    await Fabric.fire('magic_mcp.endpoint.created:before', {
+      instance: d.instance
+    });
+
     let requestedServers = dedupeServerInputs(d.input.servers);
     let serverInputsById = new Map(
       requestedServers.map(server => [server.magicMcpServerId, server] as const)
@@ -292,6 +297,11 @@ class MagicMcpEndpointImpl {
 
       await magicMcpEndpointCreatedQueue.add({ magicMcpEndpointId: magicMcpEndpoint.id });
 
+      await Fabric.fire('magic_mcp.endpoint.created:after', {
+        instance: d.instance,
+        magicMcpEndpoint
+      });
+
       return magicMcpEndpoint;
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
@@ -329,6 +339,17 @@ class MagicMcpEndpointImpl {
     });
 
     await magicMcpEndpointDeletedQueue.add({ magicMcpEndpointId: magicMcpEndpoint.id });
+
+    let instance = await db.instance.findUniqueOrThrow({
+      where: {
+        oid: d.endpoint.instanceOid
+      }
+    });
+
+    await Fabric.fire('magic_mcp.endpoint.archived:after', {
+      instance,
+      magicMcpEndpoint
+    });
 
     return magicMcpEndpoint;
   }

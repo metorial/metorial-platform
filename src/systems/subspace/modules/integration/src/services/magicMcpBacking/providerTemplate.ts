@@ -33,6 +33,16 @@ type UpsertProviderTemplateBackingInput = {
   };
 };
 
+type UpsertProviderTemplateBackingFromIntegrationInput = {
+  tenant: Tenant;
+  solution: Solution;
+  environment: Environment;
+  input: {
+    providerTemplateId: string;
+    integrationId: string;
+  };
+};
+
 type ProviderTemplateBackingProviderInput = {
   providerId: string;
   providerDeploymentId?: string | null;
@@ -213,6 +223,53 @@ class providerTemplateBackingServiceImpl {
     }
 
     return backing;
+  }
+
+  async upsertProviderTemplateBackingFromIntegration(
+    d: UpsertProviderTemplateBackingFromIntegrationInput
+  ) {
+    await withMagicMcpBackingLock(
+      [
+        `provider_template:${d.input.providerTemplateId}`,
+        `provider_template_integration:${d.input.integrationId}`
+      ],
+      async () =>
+        await withTransaction(async db => {
+          let integration = await integrationService.getIntegrationById({
+            tenant: d.tenant,
+            solution: d.solution,
+            environment: d.environment,
+            integrationId: d.input.integrationId
+          });
+
+          let existing = await db.providerTemplateBacking.findUnique({
+            where: { integrationOid: integration.oid },
+            include: magicMcpProviderTemplateBackingInclude
+          });
+          if (existing) return existing;
+
+          return await db.providerTemplateBacking.create({
+            data: {
+              oid: snowflake.nextId(),
+              id: d.input.providerTemplateId,
+              integrationOid: integration.oid
+            },
+            include: magicMcpProviderTemplateBackingInclude
+          });
+        })
+    );
+
+    return await db.providerTemplateBacking.findFirstOrThrow({
+      where: {
+        integration: {
+          id: d.input.integrationId,
+          tenantOid: d.tenant.oid,
+          solutionOid: d.solution.oid,
+          environmentOid: d.environment.oid
+        }
+      },
+      include: magicMcpProviderTemplateBackingInclude
+    });
   }
 
   async getProviderTemplateBackingById(d: {

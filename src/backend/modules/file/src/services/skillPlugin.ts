@@ -1,4 +1,4 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { db, type Instance, type Organization, type SkillPlugin } from '@metorial/db';
@@ -350,6 +350,20 @@ class SkillPluginServiceImpl {
     }
   ) {
     let { scope } = await resolveCargoAccess(d);
+
+    if (d.owner.type !== 'instance') {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Skill plugins can only be created for instances'
+        })
+      );
+    }
+
+    await Fabric.fire('skill.plugin.created:before', {
+      organization: d.owner.organization,
+      instance: d.owner.instance
+    });
+
     let skillPlugin = await cargo.skillPlugin.create({
       tenantId: scope.tenantId,
       environmentId: scope.environmentId,

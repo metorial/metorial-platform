@@ -1,5 +1,5 @@
 import { getConfig } from '@metorial/config';
-import { Context } from 'hono';
+import { Context } from '@lowerdeck/hono';
 import { createConnectionHono } from '../hono';
 
 export type PortalOAuthRouteInput = {
@@ -178,7 +178,7 @@ export let createPortalOAuthServers = <TRoute>(
   let servers = createOAuthRouteServers({
     paths: portalOAuthPaths,
     parseRouteInput: c => {
-      let portalId = c.req.param('portalId');
+      let portalId = c.req.param('portalId')!;
       let rawMagicMcpTargetId = c.req.param('magicMcpTargetId');
 
       return {
@@ -203,7 +203,7 @@ export let createPluginOAuthServers = <TRoute>(
 ) => {
   let servers = createOAuthRouteServers({
     paths: pluginOAuthPaths,
-    parseRouteInput: c => ({ skillPluginId: c.req.param('skillPluginId') }),
+    parseRouteInput: c => ({ skillPluginId: c.req.param('skillPluginId')! }),
     handlers
   });
 

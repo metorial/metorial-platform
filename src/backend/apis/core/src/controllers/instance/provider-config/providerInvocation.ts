@@ -5,7 +5,10 @@ import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { isDashboardGroup } from '../../../middleware/isDashboard';
-import { providerInvocationPresenter, providerInvocationsPresenter } from '../../../presenters';
+import {
+  providerInvocationPresenter,
+  providerInvocationsPresenter
+} from '../../../presenters';
 
 export let providerInvocationController = Controller.create(
   {
@@ -16,13 +19,11 @@ export let providerInvocationController = Controller.create(
   {
     get: instanceGroup
       .get(
-        instancePath(
-          'provider-invocations/:providerInvocationId',
-          'providerInvocations.get'
-        ),
+        instancePath('provider-invocations/:providerInvocationId', 'providerInvocations.get'),
         {
           name: 'Get provider invocation',
-          description: 'Returns a single normalized provider invocation by ID.'
+          description: 'Returns a single normalized provider invocation by ID.',
+          confidential: true
         }
       )
       .use(isDashboardGroup())
@@ -45,7 +46,8 @@ export let providerInvocationController = Controller.create(
       .get(instancePath('provider-invocations', 'providerInvocations.list'), {
         name: 'List provider invocations',
         description:
-          'Returns normalized provider invocations and their logs for dashboard diagnostics.'
+          'Returns normalized provider invocations and their logs for dashboard diagnostics.',
+        confidential: true
       })
       .use(isDashboardGroup())
       .use(

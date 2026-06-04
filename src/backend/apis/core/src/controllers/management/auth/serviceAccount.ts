@@ -230,7 +230,8 @@ export let serviceAccountManagementController = Controller.create(
         ),
         {
           name: 'Create service account client secret',
-          description: 'Creates a new client secret for a service account.'
+          description: 'Creates a new client secret for a service account.',
+          confidential: true
         }
       )
       .use(checkAccess({ possibleScopes: ['organization.oauth_app:write'] }))

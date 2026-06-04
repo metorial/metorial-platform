@@ -6,9 +6,13 @@ export let upsertUser = async (
   user: User,
   db: Pick<Prisma.TransactionClient, 'user'> = globalDB
 ) => {
+  if (user.type === 'system') {
+    throw new Error('System users should not be upserted');
+  }
+
   let inner = {
     status: user.status,
-    type: user.type,
+    type: user.type as 'user',
     email: user.email,
     name: user.name,
     firstName: user.firstName,

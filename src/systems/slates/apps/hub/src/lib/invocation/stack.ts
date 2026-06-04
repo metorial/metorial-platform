@@ -24,6 +24,7 @@ import type {
   InvocationError,
   InvocationResult,
   SlateInvocationBaseParams,
+  SlateInvocationDeploymentTarget,
   SlatesRequest,
   SlatesResponse
 } from './types';
@@ -39,6 +40,7 @@ let errorSchema = z.object({
 export class SlateInvocationStack {
   #initialMessages: SlatesRequest[];
   #slateVersion: SlateVersion;
+  #deploymentTarget?: SlateInvocationDeploymentTarget;
   #participants: SlatesParticipant[];
   #tenant?: SlateInvocationBaseParams['tenant'];
   #enclaveId?: string;
@@ -50,6 +52,7 @@ export class SlateInvocationStack {
   constructor(d: SlateInvocationBaseParams & { initialMessages?: SlatesRequest[] }) {
     this.#initialMessages = d.initialMessages ?? [];
     this.#slateVersion = d.slateVersion;
+    this.#deploymentTarget = d.deploymentTarget;
     this.#participants = d.participants;
     this.#tenant = d.tenant;
     this.#enclaveId = d.enclaveId;
@@ -59,10 +62,13 @@ export class SlateInvocationStack {
   }
 
   private async run() {
-    if (
-      !this.#slateVersion.providerDeploymentInfo ||
-      !this.#slateVersion.activeDeploymentOid
-    ) {
+    let providerDeploymentInfo =
+      this.#deploymentTarget?.providerDeploymentInfo ??
+      this.#slateVersion.providerDeploymentInfo;
+    let activeDeploymentOid =
+      this.#deploymentTarget?.activeDeploymentOid ?? this.#slateVersion.activeDeploymentOid;
+
+    if (!providerDeploymentInfo || !activeDeploymentOid) {
       throw new ServiceError(badRequestError({ message: 'Slate version is not deployed' }));
     }
 
@@ -96,7 +102,7 @@ export class SlateInvocationStack {
       functionBay.function.invoke({
         tenantId: runtimeTenant.id,
         functionTenantId: deploymentTenant.id,
-        functionId: this.#slateVersion.providerDeploymentInfo.functionId,
+        functionId: providerDeploymentInfo.functionId,
         payload: { messages, invocationId },
         enclave:
           this.#enclaveId && runtimeTenant ? { identifier: this.#enclaveId } : undefined,
@@ -106,7 +112,7 @@ export class SlateInvocationStack {
         data: {
           oid: snowflake.nextId(),
           id: invocationId,
-          deploymentOid: this.#slateVersion.activeDeploymentOid,
+          deploymentOid: activeDeploymentOid,
           bucketOid: invocationsBucketRecord.oid,
           isPending: true,
           providerInvocationId: '',

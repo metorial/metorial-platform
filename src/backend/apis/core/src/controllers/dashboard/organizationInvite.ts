@@ -15,7 +15,8 @@ export let dashboardOrganizationInviteController = Controller.create(
       .use(isDashboardGroup())
       .get(Path('/dashboard/organization-join/find', 'dashboard.organizations.join.get'), {
         name: 'Join organization',
-        description: 'Join an organization'
+        description: 'Join an organization',
+        confidential: true
       })
       .query(
         'default',
@@ -38,7 +39,8 @@ export let dashboardOrganizationInviteController = Controller.create(
         Path('/dashboard/organization-join/accept', 'dashboard.organizations.join.accept'),
         {
           name: 'Join organization',
-          description: 'Join an organization'
+          description: 'Join an organization',
+          confidential: true
         }
       )
       .body(
@@ -64,7 +66,8 @@ export let dashboardOrganizationInviteController = Controller.create(
         Path('/dashboard/organization-join/reject', 'dashboard.organizations.join.reject'),
         {
           name: 'Reject organization invite',
-          description: 'Reject an organization invite'
+          description: 'Reject an organization invite',
+          confidential: true
         }
       )
       .body(

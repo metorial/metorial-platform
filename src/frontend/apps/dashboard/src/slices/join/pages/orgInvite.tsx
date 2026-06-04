@@ -27,8 +27,8 @@ export let OrganizationInvitePage = () => {
   return (
     <SetupLayout
       main={{
-        title: `Join ${invite.data?.organization?.name ?? '...'}`,
-        description: 'Join your team and start collaborating.'
+        title: `Join ${invite.data?.organization?.name ?? '...'} on Metorial`,
+        description: `${invite.data?.invitedBy ? `${invite.data.invitedBy.name} has` : 'You have'} been invited to join ${invite.data?.organization?.name ?? 'an organization'} on Metorial.`
       }}
       backgroundUrl={bg}
     >

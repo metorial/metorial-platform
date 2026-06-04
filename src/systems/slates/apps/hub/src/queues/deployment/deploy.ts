@@ -14,6 +14,15 @@ import { getRegistryClient, getRegistryQuery } from '../../registry';
 import { discoverSlateQueue } from '../discovery/discover';
 import { buildSlateDeploymentFiles } from './packageFiles';
 
+export let hasServingSlateDeployment = (version: {
+  status: string;
+  providerDeploymentInfo: PrismaJson.SlateDeploymentProviderDeploymentInfo;
+  activeDeploymentOid: bigint | null;
+}) =>
+  version.status === 'active' &&
+  !!version.providerDeploymentInfo &&
+  !!version.activeDeploymentOid;
+
 let log = (deployment: { id: string } | string, message: string, ...args: any[]) => {
   let deploymentId = typeof deployment === 'string' ? deployment : deployment.id;
 
@@ -77,10 +86,12 @@ export let deploySlateVersionQueueProcessor = deploySlateVersionQueue.process(as
     `Created deployment record with id ${deployment.id} for slate version ${version.version}`
   );
 
-  await db.slateVersion.update({
-    where: { oid: version.oid },
-    data: { status: 'deploying' }
-  });
+  if (!hasServingSlateDeployment(version)) {
+    await db.slateVersion.update({
+      where: { oid: version.oid },
+      data: { status: 'deploying' }
+    });
+  }
 
   await db.slateEvent.create({
     data: {
@@ -335,12 +346,14 @@ export let deploySlateVersionFailedQueueProcessor = deploySlateVersionFailedQueu
         }
       });
 
-      await db.slateVersion.update({
-        where: { oid: deployment.slateVersionOid },
-        data: {
-          status: 'deployment_failed'
-        }
-      });
+      if (!hasServingSlateDeployment(deployment.slateVersion)) {
+        await db.slateVersion.update({
+          where: { oid: deployment.slateVersionOid },
+          data: {
+            status: 'deployment_failed'
+          }
+        });
+      }
 
       await db.slateEvent.create({
         data: {
@@ -396,7 +409,7 @@ export let deploySlateVersionCompletedQueueProcessor =
 
         await log(deployment, `Function deployment status: ${funcDep.status}`);
 
-        let updatedDeployment = await db.slateDeployment.update({
+        await db.slateDeployment.update({
           where: { id: deployment.id },
           data: {
             status: 'succeeded',
@@ -409,14 +422,14 @@ export let deploySlateVersionCompletedQueueProcessor =
           }
         });
 
-        await db.slateVersion.updateMany({
-          where: { oid: deployment.slateVersion.oid },
-          data: {
-            status: 'discovering',
-            providerDeploymentInfo: updatedDeployment.providerDeploymentInfo,
-            activeDeploymentOid: updatedDeployment.oid
-          }
-        });
+        if (!hasServingSlateDeployment(deployment.slateVersion)) {
+          await db.slateVersion.updateMany({
+            where: { oid: deployment.slateVersion.oid },
+            data: {
+              status: 'discovering'
+            }
+          });
+        }
 
         await db.slateEvent.create({
           data: {
@@ -431,8 +444,8 @@ export let deploySlateVersionCompletedQueueProcessor =
         await log(deployment, `Deployment marked as succeeded, adding to discovery queue...`);
 
         await discoverSlateQueue.add(
-          { versionId: deployment.slateVersion.id },
-          { delay: 10_000, id: deployment.slateVersion.id }
+          { versionId: deployment.slateVersion.id, deploymentId: deployment.id },
+          { delay: 10_000, id: deployment.id }
         );
       });
     })

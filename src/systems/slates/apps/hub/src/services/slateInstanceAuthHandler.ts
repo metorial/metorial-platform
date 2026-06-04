@@ -14,6 +14,17 @@ let include = { secret: true, authMethod: true };
 
 let Sentry = getSentry();
 
+let throwStoredAuthConfigError = (d: { errorCode: string; errorMessage?: string | null }) => {
+  throw new ServiceError(
+    badRequestError({
+      code: 'invalid_provider_authentication_configuration',
+      message: `Provider authentication configuration has an error: ${
+        d.errorMessage ?? d.errorCode
+      }`
+    })
+  );
+};
+
 class slateAuthHandlerServiceImpl {
   async getSlateInstanceAuth(d: {
     tenant: Tenant;
@@ -57,6 +68,13 @@ class slateAuthHandlerServiceImpl {
           })
         );
       }
+    }
+
+    if (authConfig.errorCode) {
+      throwStoredAuthConfigError({
+        errorCode: authConfig.errorCode,
+        errorMessage: authConfig.errorMessage
+      });
     }
 
     if (d.slateInstance) {

@@ -68,7 +68,7 @@ export let syncUserUpdateSingleQueueProcessor = syncUserUpdateSingleQueue.proces
       data: {
         name: user.name,
         image: user.image as any,
-        email: user.email
+        email: user.type === 'system' ? undefined : user.email
       }
     });
 

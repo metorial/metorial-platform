@@ -45,6 +45,15 @@ type SlateToolCallAttachment = {
 
 let ATTACHMENT_EXPIRATION_DAYS = 7;
 
+let throwStoredConfigError = (d: { errorCode: string; errorMessage?: string | null }) => {
+  throw new ServiceError(
+    badRequestError({
+      code: 'invalid_provider_configuration',
+      message: `Provider instance configuration has an error: ${d.errorMessage ?? d.errorCode}`
+    })
+  );
+};
+
 class slateSessionToolCallServiceImpl {
   async createSlateToolCall(d: {
     input: {
@@ -86,6 +95,12 @@ class slateSessionToolCallServiceImpl {
           message: 'Provider instance does not have a current configuration set.'
         })
       );
+    }
+    if (session.slateInstance.currentConfig.errorCode) {
+      throwStoredConfigError({
+        errorCode: session.slateInstance.currentConfig.errorCode,
+        errorMessage: session.slateInstance.currentConfig.errorMessage
+      });
     }
 
     let lastActiveOrCreatedAt = session.lastActiveAt ?? session.createdAt;

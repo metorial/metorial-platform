@@ -1,4 +1,5 @@
 import {
+  conflictError,
   forbiddenError,
   notFoundError,
   notImplementedError,
@@ -85,6 +86,7 @@ class InstanceService {
     context: Context;
     input: {
       name?: string;
+      slug?: string;
     };
   }) {
     await this.ensureInstanceActive(d.instance);
@@ -95,10 +97,28 @@ class InstanceService {
         project: d.instance.project
       });
 
+      if (d.input.slug && d.input.slug !== d.instance.slug) {
+        let existingInstance = await db.instance.findFirst({
+          where: {
+            slug: d.input.slug,
+            id: { not: d.instance.id }
+          }
+        });
+
+        if (existingInstance) {
+          throw new ServiceError(
+            conflictError({
+              message: 'An instance with this slug already exists'
+            })
+          );
+        }
+      }
+
       let instance = await db.instance.update({
         where: { oid: d.instance.oid },
         data: {
-          name: d.input.name
+          name: d.input.name,
+          slug: d.input.slug
         },
         include: {
           organization: true,

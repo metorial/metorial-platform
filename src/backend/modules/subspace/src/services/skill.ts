@@ -14,6 +14,7 @@ import {
   Skill,
   SkillStatus
 } from '@metorial/db';
+import { Fabric } from '@metorial/fabric';
 import { createSubspaceService } from '../lib/subspaceService';
 import { subspace } from '../subspace';
 
@@ -134,8 +135,18 @@ export let syncSkillFromSubspace = async (d: {
   };
 }) => {
   let image = d.skill.image ?? Prisma.DbNull;
+  let existingSkill = await db.skill.findUnique({
+    where: {
+      id: d.skill.id
+    }
+  });
+  if (!existingSkill && statusFromSubspace(d.skill.status) == 'active') {
+    await Fabric.fire('skill.created:before', {
+      instance: d.instance
+    });
+  }
 
-  return await db.skill.upsert({
+  let skill = await db.skill.upsert({
     where: {
       id: d.skill.id
     },
@@ -167,6 +178,25 @@ export let syncSkillFromSubspace = async (d: {
       deletedAt: d.skill.status === 'deleted' ? new Date() : undefined
     }
   });
+
+  if (!existingSkill && skill.status == 'active') {
+    await Fabric.fire('skill.created:after', {
+      instance: d.instance,
+      skill
+    });
+  } else if (existingSkill?.status == 'active' && skill.status == 'archived') {
+    await Fabric.fire('skill.archived:after', {
+      instance: d.instance,
+      skill
+    });
+  } else if (existingSkill?.status == 'active' && skill.status == 'deleted') {
+    await Fabric.fire('skill.deleted:after', {
+      instance: d.instance,
+      skill
+    });
+  }
+
+  return skill;
 };
 
 let localSkillNeedsSync = (d: {

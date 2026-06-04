@@ -11,6 +11,7 @@ import {
   Prisma,
   withTransaction
 } from '@metorial/db';
+import { Fabric } from '@metorial/fabric';
 import { createLock } from '@metorial/lock';
 import {
   skillConfigurationService,
@@ -59,6 +60,25 @@ export type AresAppConfig = {
 let internalCreateLock = createLock({
   name: 'cons/consumer-surface/internal-create'
 });
+
+let fireConsumerAuthTenantLifecycleEvent = async (
+  event: 'consumer.auth_tenant.archived:after' | 'consumer.auth_tenant.deleted:after',
+  consumerSurface: ConsumerSurfaceWithPublishableApiKey
+) => {
+  if (!consumerSurface.consumerAuthTenant) return;
+
+  let organization = await db.organization.findUniqueOrThrow({
+    where: {
+      oid: consumerSurface.organizationOid
+    }
+  });
+
+  await Fabric.fire(event, {
+    organization,
+    consumerAuthTenant: consumerSurface.consumerAuthTenant,
+    consumerSurface
+  });
+};
 
 class ConsumerSurfaceServiceImpl {
   private async getSurfaceCargoOwner(d: {
@@ -352,6 +372,11 @@ class ConsumerSurfaceServiceImpl {
     });
 
     try {
+      await Fabric.fire('consumer.auth_tenant.created:before', {
+        organization: d.organization,
+        instance: d.instance
+      });
+
       let consumerSurface = await withTransaction(async tx => {
         let consumerAuthTenant = await tx.consumerAuthTenant.create({
           data: {
@@ -360,7 +385,7 @@ class ConsumerSurfaceServiceImpl {
           }
         });
 
-        return await tx.consumerSurface.create({
+        let consumerSurface = await tx.consumerSurface.create({
           data: {
             id: await ID.generateId('consumerSurface'),
             status: 'active',
@@ -380,6 +405,14 @@ class ConsumerSurfaceServiceImpl {
           },
           include: consumerSurfaceInclude
         });
+
+        await Fabric.fire('consumer.auth_tenant.created:after', {
+          organization: d.organization,
+          consumerAuthTenant,
+          consumerSurface
+        });
+
+        return consumerSurface;
       });
 
       await consumerSurfaceCreatedQueue.add({ consumerSurfaceId: consumerSurface.id });
@@ -556,6 +589,10 @@ class ConsumerSurfaceServiceImpl {
     });
 
     await consumerSurfaceArchivedQueue.add({ consumerSurfaceId: consumerSurface.id });
+    await fireConsumerAuthTenantLifecycleEvent(
+      'consumer.auth_tenant.archived:after',
+      consumerSurface
+    );
 
     return consumerSurface;
   }
@@ -578,6 +615,10 @@ class ConsumerSurfaceServiceImpl {
     });
 
     await consumerSurfaceDeletedQueue.add({ consumerSurfaceId: consumerSurface.id });
+    await fireConsumerAuthTenantLifecycleEvent(
+      'consumer.auth_tenant.deleted:after',
+      consumerSurface
+    );
 
     return consumerSurface;
   }
