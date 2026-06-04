@@ -9,7 +9,7 @@ import { tenantApp } from './tenant';
 
 let monitorTargetValidator = v.enumOf(['protoguard_filter', 'schema_change']);
 let monitorOwnerValidator = v.enumOf(['tenant', 'system']);
-let monitorAlertStatusValidator = v.enumOf(['pending', 'resolved']);
+let monitorAlertStatusValidator = v.enumOf(['pending', 'resolved', 'ignored']);
 let monitorAlertSourceValidator = v.enumOf(['protoguard', 'specification_change']);
 
 let getOptionalActor = async (ctx: { tenant: any; input: { actorId?: string } }) =>

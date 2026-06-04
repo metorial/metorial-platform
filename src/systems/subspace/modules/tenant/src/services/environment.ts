@@ -1,6 +1,7 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import { db, type EnvironmentType, getId, type Tenant } from '@metorial-subspace/db';
+import { reconcileProviderDeploymentMonitorForEnvironmentQueue } from '@metorial-subspace/module-deployment/src/queues/reconcile/providerDeploymentMonitor';
 
 let include = {};
 
@@ -14,7 +15,12 @@ class environmentServiceImpl {
     };
   }) {
     try {
-      return await db.environment.upsert({
+      let existingEnvironment = await db.environment.findUnique({
+        where: { identifier: d.input.identifier },
+        select: { id: true }
+      });
+
+      let environment = await db.environment.upsert({
         where: { identifier: d.input.identifier },
         update: { name: d.input.name },
         create: {
@@ -26,6 +32,15 @@ class environmentServiceImpl {
         },
         include
       });
+
+      if (!existingEnvironment) {
+        await reconcileProviderDeploymentMonitorForEnvironmentQueue.add(
+          { environmentId: environment.id },
+          { id: `provider-deployment-monitor-env:${environment.id}` }
+        );
+      }
+
+      return environment;
     } catch (error: any) {
       if (error.code === 'P2002') {
         return await db.environment.findFirstOrThrow({

@@ -7,7 +7,7 @@
     "client:generate": "bun run generate:client",
     "client:generate:dashboard": "turbo run generate:client:dashboard",
     "client:generate:consumer": "turbo run generate:client:consumer",
-    "dev": "turbo run --concurrency 99 dev",
+    "dev": "turbo run --concurrency 99 --continue=always dev",
     "test": "turbo run --concurrency=1 --ui=stream test",
     "prisma:generate": "turbo run --ui=stream prisma:generate",
     "prisma:push": "turbo run --ui=stream --concurrency=1 prisma:push --",

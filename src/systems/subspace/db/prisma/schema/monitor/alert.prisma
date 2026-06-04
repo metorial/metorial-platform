@@ -1,6 +1,7 @@
 enum MonitorAlertStatus {
   pending
   resolved
+  ignored
 }
 
 model MonitorAlert {

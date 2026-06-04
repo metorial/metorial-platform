@@ -1,5 +1,6 @@
 import { combineQueueProcessors, createQueue, QueueRetryError } from '@lowerdeck/queue';
 import { db } from '@metorial-subspace/db';
+import { enqueueSchemaChangeMonitorBackfill } from '@metorial-subspace/module-monitor/src/queues/schemaChange';
 import { monitorInternalService } from '@metorial-subspace/module-monitor';
 import { env } from '../../env';
 
@@ -24,12 +25,14 @@ export let reconcileProviderDeploymentMonitor = async (providerDeploymentId: str
     return;
   }
 
-  await monitorInternalService.upsertProviderSpecChangeMonitor({
+  let monitor = await monitorInternalService.upsertProviderSpecChangeMonitor({
     tenant: providerDeployment.tenant,
     solution: providerDeployment.solution,
     environment: providerDeployment.environment,
     provider: providerDeployment.provider
   });
+
+  await enqueueSchemaChangeMonitorBackfill({ monitorId: monitor.id });
 
   await db.providerDeployment.update({
     where: { oid: providerDeployment.oid },
@@ -69,6 +72,43 @@ let reconcileProviderDeploymentMonitorManyQueueProcessor =
     });
   });
 
+export let reconcileProviderDeploymentMonitorForEnvironmentQueue = createQueue<{
+  environmentId: string;
+  cursor?: string;
+}>({
+  name: 'sub/dep/rec/providerDeploymentMonitor/env',
+  redisUrl: env.service.REDIS_URL
+});
+
+let reconcileProviderDeploymentMonitorForEnvironmentQueueProcessor =
+  reconcileProviderDeploymentMonitorForEnvironmentQueue.process(async data => {
+    let providerDeployments = await db.providerDeployment.findMany({
+      where: {
+        isMonitorReconciled: false,
+        environment: { id: data.environmentId },
+        id: data.cursor ? { gt: data.cursor } : undefined
+      },
+      orderBy: { id: 'asc' },
+      take: 100,
+      select: { id: true }
+    });
+    if (providerDeployments.length === 0) return;
+
+    await reconcileProviderDeploymentMonitorSingleQueue.addMany(
+      providerDeployments.map(providerDeployment => ({
+        providerDeploymentId: providerDeployment.id
+      }))
+    );
+
+    let lastProviderDeployment = providerDeployments[providerDeployments.length - 1];
+    if (!lastProviderDeployment) return;
+
+    await reconcileProviderDeploymentMonitorForEnvironmentQueue.add({
+      environmentId: data.environmentId,
+      cursor: lastProviderDeployment.id
+    });
+  });
+
 export let reconcileProviderDeploymentMonitorSingleQueue = createQueue<{
   providerDeploymentId: string;
 }>({
@@ -84,6 +124,7 @@ let reconcileProviderDeploymentMonitorSingleQueueProcessor =
 
 export let reconcileProviderDeploymentMonitorProcessors = combineQueueProcessors([
   reconcileProviderDeploymentMonitorManyQueueProcessor,
+  reconcileProviderDeploymentMonitorForEnvironmentQueueProcessor,
   reconcileProviderDeploymentMonitorSingleQueueProcessor
 ]);
 
