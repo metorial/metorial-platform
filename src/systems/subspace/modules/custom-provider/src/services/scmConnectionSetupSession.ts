@@ -1,12 +1,16 @@
 import { Service } from '@lowerdeck/service';
 import type { Tenant, TenantActor } from '@metorial-subspace/db';
-import { getTenantForOrigin, origin } from '../origin';
+import {
+  getTenantForOrigin,
+  origin,
+  type ScmConnectionSetupSession
+} from '../origin';
 
 class scmConnectionSetupSessionServiceImpl {
   async getScmConnectionSetupSessionById(d: {
     scmConnectionSetupSessionId: string;
     tenant: Tenant;
-  }) {
+  }): Promise<ScmConnectionSetupSession> {
     let tenant = await getTenantForOrigin(d.tenant);
     return origin.scmInstallationSession.get({
       tenantId: tenant.id,
@@ -18,7 +22,7 @@ class scmConnectionSetupSessionServiceImpl {
     tenant: Tenant;
     actor: TenantActor;
     redirectUrl?: string;
-  }) {
+  }): Promise<ScmConnectionSetupSession> {
     let tenant = await getTenantForOrigin(d.tenant);
     let actor = await origin.actor.upsert({
       identifier: d.actor.identifier,

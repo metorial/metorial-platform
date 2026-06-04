@@ -1,10 +1,18 @@
 import type { PaginatorInput } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type { Tenant } from '@metorial-subspace/db';
-import { getTenantForOrigin, origin } from '../origin';
+import {
+  getTenantForOrigin,
+  origin,
+  type OriginList,
+  type ScmProvider
+} from '../origin';
 
 class scmProviderServiceImpl {
-  async getScmProviderById(d: { scmProviderId: string; tenant: Tenant }) {
+  async getScmProviderById(d: {
+    scmProviderId: string;
+    tenant: Tenant;
+  }): Promise<ScmProvider> {
     let tenant = await getTenantForOrigin(d.tenant);
     return origin.scmBackend.get({
       tenantId: tenant.id,
@@ -12,7 +20,9 @@ class scmProviderServiceImpl {
     });
   }
 
-  async listScmProviders(d: { tenant: Tenant } & PaginatorInput) {
+  async listScmProviders(
+    d: { tenant: Tenant } & PaginatorInput
+  ): Promise<OriginList<ScmProvider>> {
     let tenant = await getTenantForOrigin(d.tenant);
     return origin.scmBackend.list({
       ...(d as any),
