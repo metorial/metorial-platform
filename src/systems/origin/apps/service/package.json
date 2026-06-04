@@ -70,7 +70,7 @@
     "pg": "^8.18.0",
     "prisma": "^7.4.1",
     "prisma-json-types-generator": "^4.0.1",
-    "protobufjs": "^7.5.3",
+    "protobufjs": "^7.5.5",
     "yaml": "^2.8.2"
   }
 }

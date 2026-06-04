@@ -21,6 +21,7 @@ import {
   Prisma,
   withTransaction
 } from '@metorial/db';
+import { Fabric } from '@metorial/fabric';
 import { generatePlainId } from '@metorial/id';
 import {
   accessTagService,
@@ -192,6 +193,11 @@ class MagicMcpServerImpl {
       }[];
     };
   }) {
+    await Fabric.fire('magic_mcp.server.created:before', {
+      organization: d.organization,
+      instance: d.instance
+    });
+
     let magicMcpServer = await withTransaction(async db => {
       return await db.magicMcpServer.create({
         data: {
@@ -224,10 +230,18 @@ class MagicMcpServerImpl {
       isReconciliation: false
     });
 
-    return await db.magicMcpServer.findUniqueOrThrow({
+    let server = await db.magicMcpServer.findUniqueOrThrow({
       where: { id: magicMcpServer.id },
       include
     });
+
+    await Fabric.fire('magic_mcp.server.created:after', {
+      organization: d.organization,
+      instance: d.instance,
+      magicMcpServer: server
+    });
+
+    return server;
   }
 
   async checkWriteAccess(d: {
@@ -299,6 +313,21 @@ class MagicMcpServerImpl {
     });
 
     await magicMcpServerDeletedQueue.add({ magicMcpServerId: magicMcpServer.id });
+
+    let instance = await db.instance.findUniqueOrThrow({
+      where: {
+        oid: d.server.instanceOid
+      },
+      include: {
+        organization: true
+      }
+    });
+
+    await Fabric.fire('magic_mcp.server.archived:after', {
+      organization: instance.organization,
+      instance,
+      magicMcpServer
+    });
 
     return magicMcpServer;
   }

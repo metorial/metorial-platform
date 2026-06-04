@@ -4,8 +4,13 @@ import {
   AccessPolicyAssignment,
   AccessRole,
   ApiKey,
+  ConsumerAuthTenant,
+  ConsumerProfile,
+  ConsumerSurface,
   Instance,
   MachineAccess,
+  MagicMcpEndpoint,
+  MagicMcpServer,
   OAuthApplication,
   OAuthAuthorization,
   OAuthInstallation,
@@ -19,6 +24,8 @@ import {
   Project,
   ServiceAccount,
   ServiceAccountCredential,
+  Skill,
+  SkillMarketplace,
   SkillPlugin,
   Team,
   TeamMember,
@@ -28,11 +35,17 @@ import {
 } from '@metorial/db';
 import type { OAuthAuthorizationRequestWithRelations } from '@metorial/module-machine-access';
 import type {
+  SubspaceCallback,
+  SubspaceCallbackDestination,
+  SubspaceCallbackInstance,
   SubspaceCustomProvider,
   SubspaceCustomProviderCommit,
   SubspaceCustomProviderVersion,
   SubspaceFirewall,
   SubspaceFirewallBinding,
+  SubspaceIntegration,
+  SubspaceIntegrationInstance,
+  SubspaceIntegrationSetupSession,
   SubspaceNetworkPolicy,
   SubspaceNetworkPolicyRule,
   SubspaceProviderAuthConfig,
@@ -317,10 +330,39 @@ export interface FabricEvents {
   'portal.archived:before': { portal: Portal };
   'portal.archived:after': { portal: Portal };
 
+  'consumer.profile.created:before': { surface: ConsumerSurface };
+  'consumer.profile.created:after': { consumerProfile: ConsumerProfile, surface: ConsumerSurface };
+
+  'consumer.auth_tenant.created:before': { organization: Organization; instance: Instance };
+  'consumer.auth_tenant.created:after': { organization: Organization, consumerAuthTenant: ConsumerAuthTenant, consumerSurface: ConsumerSurface };
+  'consumer.auth_tenant.archived:after': { organization: Organization, consumerAuthTenant: ConsumerAuthTenant, consumerSurface: ConsumerSurface };
+  'consumer.auth_tenant.deleted:after': { organization: Organization, consumerAuthTenant: ConsumerAuthTenant, consumerSurface: ConsumerSurface };
+
+  'consumer.integration_setup_session.created:before': { instance: Instance };
+  'consumer.integration_setup_session.created:after': { instance: Instance; setupSession: SubspaceIntegrationSetupSession };
+
+  'magic_mcp.server.created:before': { organization: Organization; instance: Instance };
+  'magic_mcp.server.created:after': { organization: Organization; instance: Instance; magicMcpServer: MagicMcpServer };
+  'magic_mcp.server.archived:after': { organization: Organization; instance: Instance; magicMcpServer: MagicMcpServer };
+  'magic_mcp.endpoint.created:before': { instance: Instance };
+  'magic_mcp.endpoint.created:after': { instance: Instance; magicMcpEndpoint: MagicMcpEndpoint };
+  'magic_mcp.endpoint.archived:after': { instance: Instance; magicMcpEndpoint: MagicMcpEndpoint };
+
+  'skill.created:before': { instance: Instance };
+  'skill.created:after': { instance: Instance; skill: Skill };
+  'skill.archived:after': { instance: Instance; skill: Skill };
+  'skill.deleted:after': { instance: Instance; skill: Skill };
+
+  'skill.plugin.created:before': { organization: Organization; instance: Instance };
   'skill.plugin.created:after': { organization: Organization; instance: Instance; skillPlugin: SkillPlugin };
   'skill.plugin.updated:after': { organization: Organization; instance: Instance; skillPlugin: SkillPlugin };
   'skill.plugin.archived:after': { organization: Organization; instance: Instance; skillPlugin: SkillPlugin };
   'skill.plugin.deleted:after': { organization: Organization; instance: Instance; skillPlugin: SkillPlugin };
+
+  'skill.marketplace.created:before': { organization: Organization; instance: Instance };
+  'skill.marketplace.created:after': { organization: Organization; instance: Instance; skillMarketplace: SkillMarketplace };
+  'skill.marketplace.archived:after': { organization: Organization; instance: Instance; skillMarketplace: SkillMarketplace };
+  'skill.marketplace.deleted:after': { organization: Organization; instance: Instance; skillMarketplace: SkillMarketplace };
 
   'provider.deployment.created:before': ProviderEventBase;
   'provider.deployment.created:after': ProviderEventBase & { deployment: SubspaceProviderDeployment };
@@ -363,10 +405,35 @@ export interface FabricEvents {
   'provider.config_vault.deleted:before': ProviderEventBase;
   'provider.config_vault.deleted:after': ProviderEventBase & { configVault: SubspaceProviderConfigVault };
 
+  'provider.integration.created:before': ProviderEventBase;
+  'provider.integration.created:after': ProviderEventBase & { integration: SubspaceIntegration };
+  'provider.integration.deleted:before': ProviderEventBase;
+  'provider.integration.deleted:after': ProviderEventBase & { integration: SubspaceIntegration };
+
+  'provider.integration_instance.created:before': ProviderEventBase;
+  'provider.integration_instance.created:after': ProviderEventBase & { integrationInstance: SubspaceIntegrationInstance };
+  'provider.integration_instance.deleted:before': ProviderEventBase;
+  'provider.integration_instance.deleted:after': ProviderEventBase & { integrationInstance: SubspaceIntegrationInstance };
+
   'provider.setup_session.created:before': ProviderEventBase;
   'provider.setup_session.created:after': ProviderEventBase & { setupSession: SubspaceProviderSetupSession };
   'provider.setup_session.updated:before': ProviderEventBase;
   'provider.setup_session.updated:after': ProviderEventBase & { setupSession: SubspaceProviderSetupSession };
+
+  'provider.callback.created:before': ProviderEventBase;
+  'provider.callback.created:after': ProviderEventBase & { callback: SubspaceCallback };
+  'provider.callback.archived:before': ProviderEventBase;
+  'provider.callback.archived:after': ProviderEventBase & { callback: SubspaceCallback };
+
+  'provider.callback_instance.attached:before': ProviderEventBase;
+  'provider.callback_instance.attached:after': ProviderEventBase & { callbackInstance: SubspaceCallbackInstance };
+  'provider.callback_instance.detached:before': ProviderEventBase;
+  'provider.callback_instance.detached:after': ProviderEventBase & { callbackInstance: SubspaceCallbackInstance };
+
+  'provider.callback_destination.created:before': ProviderEventBase;
+  'provider.callback_destination.created:after': ProviderEventBase & { callbackDestination: SubspaceCallbackDestination };
+  'provider.callback_destination.archived:before': ProviderEventBase;
+  'provider.callback_destination.archived:after': ProviderEventBase & { callbackDestination: SubspaceCallbackDestination };
 
   'provider.session.created:before': ProviderEventBase;
   'provider.session.created:after': ProviderEventBase & { session: SubspaceSession };
@@ -413,6 +480,8 @@ export interface FabricEvents {
 
   'provider.provider_listing_group.created:before': ProviderEventBase;
   'provider.provider_listing_group.created:after': ProviderEventBase & { providerGroup: SubspaceProviderListingGroup };
+  'provider.provider_listing_group.deleted:before': ProviderEventBase;
+  'provider.provider_listing_group.deleted:after': ProviderEventBase & { providerGroup: SubspaceProviderListingGroup };
 
   'instance.network.firewall.created:before': ProviderEventBase;
   'instance.network.firewall.created:after': ProviderEventBase & { firewall: SubspaceFirewall };

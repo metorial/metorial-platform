@@ -14,6 +14,7 @@ import {
 import { Fabric } from '@metorial/fabric';
 import { generatePlainId } from '@metorial/id';
 import { addDays, differenceInDays } from 'date-fns';
+import { sendOrgInviteEmail } from '../email/invite';
 import { env } from '../env';
 
 class OrganizationInviteService {
@@ -39,6 +40,11 @@ class OrganizationInviteService {
       | {
           type: 'link';
         }
+      | {
+          type: 'onboarding';
+          email: string;
+          message?: string;
+        }
     );
     organization: Organization;
     context: Context;
@@ -47,7 +53,7 @@ class OrganizationInviteService {
     return withTransaction(async db => {
       await Fabric.fire('organization.invitation.created:before', d);
 
-      if (d.input.type === 'email' && !d.input.email) {
+      if (d.input.type === 'email') {
         let existingMember = await db.organizationMember.findFirst({
           where: {
             organizationOid: d.organization.oid,
@@ -94,16 +100,20 @@ class OrganizationInviteService {
         data: {
           id: await ID.generateId('organizationInvite'),
           status: 'pending',
-          type: d.input.type,
+
+          type: d.input.type === 'onboarding' ? 'email' : d.input.type,
+          action: d.input.type === 'onboarding' ? 'onboarding' : 'invite',
           role: d.input.role,
+
           key: `mt_${generatePlainId(30)}_${env.service.METORIAL_REGION ?? 'ext'}`,
           expiresAt: addDays(new Date(), 14),
 
           organizationOid: d.organization.oid,
           invitedByOid: d.performedBy.oid,
 
-          message: d.input.type == 'email' ? d.input.message : null,
-          email: d.input.type == 'email' ? d.input.email : null
+          message:
+            d.input.type == 'email' || d.input.type == 'onboarding' ? d.input.message : null,
+          email: d.input.type == 'email' || d.input.type == 'onboarding' ? d.input.email : null
         },
         include: {
           organization: true,
@@ -111,9 +121,7 @@ class OrganizationInviteService {
         }
       });
 
-      if (invite.type === 'email' && invite.email) {
-        let { sendOrgInviteEmail } = await import('../email/invite');
-
+      if (invite.email) {
         await sendOrgInviteEmail.send({
           data: {
             organization: invite.organization,
@@ -274,7 +282,8 @@ class OrganizationInviteService {
             where: {
               organizationOid: d.organization.oid,
               status: 'pending',
-              type: 'email'
+              type: 'email',
+              action: 'invite'
             },
             include: {
               organization: true,

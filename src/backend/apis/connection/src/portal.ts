@@ -12,7 +12,7 @@ import {
   consumerOAuthTokenService
 } from '@metorial/module-consumer';
 import { Authenticator } from '@metorial/rest';
-import { Context } from 'hono';
+import { Context } from '@lowerdeck/hono';
 import { getMagicMcpTokenSecretFromRequest, handleMagicMcpRequest } from './magic';
 import {
   buildOAuthClientConfig,

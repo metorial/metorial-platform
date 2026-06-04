@@ -16,9 +16,11 @@ class UserAuthService {
     return withTransaction(async db => {
       let user = await db.user.findFirst({
         where: {
-          email: d.input.email
+          email: d.input.email,
+          type: 'user'
         }
       });
+
       let isValid = user?.passwordHash
         ? await Bun.password.verify(d.input.password, user.passwordHash)
         : false;

@@ -1,4 +1,4 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
@@ -8,6 +8,7 @@ import {
   type SkillMarketplace,
   type SkillPlugin
 } from '@metorial/db';
+import { Fabric } from '@metorial/fabric';
 import {
   cargo,
   type CargoSkillMarketplace,
@@ -147,6 +148,30 @@ class SkillMarketplaceServiceImpl {
         }
       }
     });
+
+    for (let backing of backings) {
+      let existingBacking = existingByCargoId.get(backing.id);
+
+      if (!existingBacking && backing.status == 'active') {
+        await Fabric.fire('skill.marketplace.created:after', {
+          organization: d.owner.organization,
+          instance: d.owner.instance,
+          skillMarketplace: backing
+        });
+      } else if (existingBacking?.status == 'active' && backing.status == 'archived') {
+        await Fabric.fire('skill.marketplace.archived:after', {
+          organization: d.owner.organization,
+          instance: d.owner.instance,
+          skillMarketplace: backing
+        });
+      } else if (existingBacking?.status == 'active' && backing.status == 'deleted') {
+        await Fabric.fire('skill.marketplace.deleted:after', {
+          organization: d.owner.organization,
+          instance: d.owner.instance,
+          skillMarketplace: backing
+        });
+      }
+    }
 
     return new Map(backings.map(backing => [backing.id, backing]));
   }
@@ -326,6 +351,20 @@ class SkillMarketplaceServiceImpl {
     }
   ) {
     let { scope } = await resolveCargoAccess(d);
+
+    if (d.owner.type !== 'instance') {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Skill marketplaces can only be created for instances'
+        })
+      );
+    }
+
+    await Fabric.fire('skill.marketplace.created:before', {
+      organization: d.owner.organization,
+      instance: d.owner.instance
+    });
+
     let skillMarketplace = await cargo.skillMarketplace.create({
       tenantId: scope.tenantId,
       environmentId: scope.environmentId,

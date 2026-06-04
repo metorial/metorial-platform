@@ -1,4 +1,4 @@
-import { conflictError, forbiddenError, notFoundError, ServiceError } from '@lowerdeck/error';
+import { forbiddenError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { Context } from '@metorial/context';
@@ -60,25 +60,25 @@ class OrganizationMemberService {
           organizationOid: d.organization.oid,
           userOid: d.user.oid
         },
-        include: {
-          actor: true
-        }
+        include
       });
       if (existingMember && existingMember.status == 'active') {
-        throw new ServiceError(
-          conflictError({
-            message: 'User is already a member of the organization'
-          })
-        );
+        // throw new ServiceError(
+        //   conflictError({
+        //     message: 'User is already a member of the organization'
+        //   })
+        // );
+
+        return existingMember;
       }
 
       let actor =
         existingMember?.actor ??
         (await organizationActorService.createOrganizationActor({
           input: {
-            type: 'member',
+            type: d.user.type === 'system' ? 'system' : 'member',
+            email: d.user.type === 'system' ? undefined : d.user.email,
             name: d.user.name,
-            email: d.user.email,
             image: d.user.image
           },
           performedBy: { type: 'user', user: d.user },
@@ -257,6 +257,10 @@ class OrganizationMemberService {
             where: {
               organizationOid: d.organization.oid,
               status: 'active',
+
+              user: {
+                type: { not: 'system' }
+              },
 
               actor: teams
                 ? {

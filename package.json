@@ -48,6 +48,10 @@
     "ts-proto": "^2.7.5"
   },
   "overrides": {
+    "react": "19.1.1",
+    "react-dom": "19.1.1",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
     "fast-xml-parser": "5.7.3",
     "@aws-sdk/client-cognito-identity": "3.1048.0",
     "@aws-sdk/client-dynamodb": "3.1048.0",
@@ -55,6 +59,8 @@
     "@aws-sdk/core": "3.974.11",
     "@aws-sdk/credential-providers": "3.1048.0",
     "@aws-sdk/nested-clients": "3.997.9",
-    "@aws-sdk/util-dynamodb": "3.996.2"
+    "@aws-sdk/util-dynamodb": "3.996.2",
+    "hono": "4.12.23",
+    "protobufjs": "7.5.5"
   }
 }

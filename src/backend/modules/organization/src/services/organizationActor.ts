@@ -23,7 +23,7 @@ let include = {
 class OrganizationActorService {
   async createOrganizationActor(d: {
     input: {
-      type: OrganizationActorType;
+      type: OrganizationActorType | 'primary_system';
       name: string;
       email?: string;
       image?: PrismaJson.EntityImage;
@@ -38,13 +38,13 @@ class OrganizationActorService {
       let actor = await db.organizationActor.create({
         data: {
           id: await ID.generateId('organizationActor'),
-          type: d.input.type,
+          type: d.input.type === 'primary_system' ? 'system' : d.input.type,
           name: d.input.name,
           email: d.input.email,
           image: d.input.image ?? { type: 'default' },
 
-          // True or null -> to ensure that the field is unique
-          isSystem: d.input.type == 'system' ? true : null,
+          // This is for the main system actor, not for actors representing system users
+          isSystem: d.input.type === 'primary_system' ? true : null,
 
           organizationOid: d.organization.oid
         },
@@ -143,6 +143,19 @@ class OrganizationActorService {
             ...opts,
             where: {
               organizationOid: d.organization.oid,
+
+              type: { not: 'system' },
+
+              OR: [
+                { member: null },
+                {
+                  member: {
+                    user: {
+                      type: { not: 'system' }
+                    }
+                  }
+                }
+              ],
 
               teams: teams
                 ? {

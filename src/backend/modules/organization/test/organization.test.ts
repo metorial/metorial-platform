@@ -352,7 +352,7 @@ describe('OrganizationService', () => {
 
       expect(organizationActorService.createOrganizationActor).toHaveBeenCalledWith({
         input: {
-          type: 'system',
+          type: 'primary_system',
           name: 'Metorial',
           image: {
             type: 'url',

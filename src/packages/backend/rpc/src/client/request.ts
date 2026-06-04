@@ -42,8 +42,33 @@ let performRequest = (call: Call) => {
       calls[key].calls = [];
       calls[key].to = null;
 
-      let url = new URL(call.endpoint);
-      url.search = new URLSearchParams(call.query).toString();
+      let rejectAsUnableToReachServer = (error: any, stage: string) => {
+        c.forEach(x =>
+          x.reject(
+            new ServiceError(internalServerError({ message: 'Unable to reach server' }))
+          )
+        );
+      };
+
+      let url: URL;
+      let body: string;
+
+      try {
+        url = new URL(call.endpoint);
+        url.search = new URLSearchParams(call.query).toString();
+        body = serialize.encode({
+          calls: c
+            .map(x => ({
+              id: x.call.id,
+              name: x.call.name,
+              payload: x.call.payload
+            }))
+            .sort((a, b) => a.name.localeCompare(b.name))
+        });
+      } catch (e) {
+        rejectAsUnableToReachServer(e, 'prepare');
+        return;
+      }
 
       fetch(url.toString(), {
         method: 'POST',
@@ -52,15 +77,7 @@ let performRequest = (call: Call) => {
           'Content-Type': 'application/rpc+json',
           ...c[0].call.headers
         },
-        body: serialize.encode({
-          calls: c
-            .map(x => ({
-              id: x.call.id,
-              name: x.call.name,
-              payload: x.call.payload
-            }))
-            .sort((a, b) => a.name.localeCompare(b.name))
-        }),
+        body,
         credentials: 'include',
         referrerPolicy: c[0].call.referrerPolicy,
 
@@ -107,6 +124,7 @@ let performRequest = (call: Call) => {
                 status: callRes.status,
                 headers
               });
+              continue;
             }
 
             let err = ServiceError.fromResponse(callRes.result);
@@ -114,11 +132,7 @@ let performRequest = (call: Call) => {
           }
         })
         .catch(e => {
-          c.forEach(x =>
-            x.reject(
-              new ServiceError(internalServerError({ message: 'Unable to reach server' }))
-            )
-          );
+          rejectAsUnableToReachServer(e, 'fetch-or-response');
         });
     },
     isServer ? 0 : 10

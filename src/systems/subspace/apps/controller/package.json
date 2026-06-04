@@ -70,7 +70,7 @@
     "@sentry/cli": "^3.2.0",
     "@types/minimatch": "^6.0.0",
     "@vercel/ncc": "^0.38.3",
-    "hono": "^4.11.3",
+    "hono": "4.12.23",
     "zod": "^4.3.6"
   }
 }
