@@ -26,7 +26,7 @@ let protoGuardAlertsTableState: TableStateProvider<
   TableStateProviderResult<ProtoGuardAlert>
 > = (props, opts) => {
   let alerts = useProtoGuardAlerts(props.instance.data?.id, {
-    order: 'desc',
+    order: 'desc' as const,
     id: getStringFilterValue(opts.filter.id),
     runId: getStringFilterValue(opts.filter.runId),
     filterId: props.filterId ?? getStringFilterValue(opts.filter.filterId),

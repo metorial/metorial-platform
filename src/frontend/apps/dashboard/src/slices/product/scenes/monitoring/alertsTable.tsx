@@ -171,7 +171,7 @@ let alertsTableState: TableStateProvider<
   TableStateProviderResult<MonitorAlert>
 > = (props, opts) => {
   let alerts = useMonitorAlerts(props.instance.data?.id, {
-    order: 'desc',
+    order: 'desc' as const,
     id: getStringFilterValue(opts.filter.id),
     monitorId: props.monitorId ?? getStringFilterValue(opts.filter.monitorId),
     status: getStatusFilterValue(opts.filter.status),
