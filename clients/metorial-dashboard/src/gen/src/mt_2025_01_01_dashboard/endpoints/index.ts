@@ -150,6 +150,7 @@ export * from './dashboard_instance_stores_items';
 export * from './dashboard_instance_stores_participants';
 export * from './dashboard_instance_stores_permissions';
 export * from './dashboard_instance_tool-calls';
+export * from './dashboard_instances_resource-counts';
 export * from './dashboard_oauth_authorization-requests';
 export * from './dashboard_organizations';
 export * from './dashboard_organizations_access-policies';

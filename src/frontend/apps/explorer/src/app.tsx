@@ -1036,28 +1036,27 @@ export let ExplorerApp = () => {
     matchesNameSearch(prompt.name, promptSearch)
   );
 
-  let tabs = [
-    { id: 'tools', label: `Tools [${collections.tools.items.length}]` },
-    ...(collections.resourceTemplates.items.length
-      ? [
-          {
-            id: 'resource-templates',
-            label: `Resource Templates [${collections.resourceTemplates.items.length}]`
-          }
-        ]
-      : []),
-    ...(collections.prompts.items.length
-      ? [{ id: 'prompts', label: `Prompts [${collections.prompts.items.length}]` }]
-      : []),
-    ...(collections.resources.items.length
-      ? [
-          {
-            id: 'resources',
-            label: `Resources [${collections.resources.items.length}]`
-          }
-        ]
-      : [])
-  ] satisfies { id: TabId; label: string }[];
+  let tabs: { id: TabId; label: string }[] = [
+    { id: 'tools', label: `Tools [${collections.tools.items.length}]` }
+  ];
+
+  if (collections.resourceTemplates.items.length) {
+    tabs.push({
+      id: 'resource-templates',
+      label: `Resource Templates [${collections.resourceTemplates.items.length}]`
+    });
+  }
+
+  if (collections.prompts.items.length) {
+    tabs.push({ id: 'prompts', label: `Prompts [${collections.prompts.items.length}]` });
+  }
+
+  if (collections.resources.items.length) {
+    tabs.push({
+      id: 'resources',
+      label: `Resources [${collections.resources.items.length}]`
+    });
+  }
 
   let content = (() => {
     if (status === 'connecting' || status === 'idle') {

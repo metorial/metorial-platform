@@ -77,6 +77,7 @@ import { providerVersionController } from './providerVersion';
 import { protoGuardAlertController } from './protoGuardAlert';
 import { protoGuardConfigController } from './protoGuardConfig';
 import { publisherController } from './publisher';
+import { resourceCountController } from './resourceCount';
 import { scmConnectionController } from './scmConnection';
 import { scmConnectionSetupSessionController } from './scmConnectionSetupSession';
 import { scmProviderController } from './scmProvider';
@@ -191,6 +192,7 @@ let providerControllers = {
   providerTrigger: providerTriggerController,
   providerVariant: providerVariantController,
   providerVersion: providerVersionController,
+  resourceCount: resourceCountController,
   providerRun: providerRunController
 };
 

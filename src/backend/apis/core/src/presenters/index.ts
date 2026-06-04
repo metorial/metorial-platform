@@ -106,6 +106,7 @@ import {
   v1NetworkPolicyRulePresenter,
   v1NetworkPresenter,
   v1NetworkLogsPresenter,
+  v1ResourceCountsPresenter,
   v1OAuthApplicationClientSecretPresenter,
   v1OAuthApplicationPresenter,
   v1OAuthAuthorizationLogPresenter,
@@ -301,6 +302,7 @@ import {
   networkPolicyType,
   networkType,
   networkLogsType,
+  resourceCountsType,
   oauthApplicationClientSecretType,
   oauthApplicationType,
   oauthAuthorizationLogType,
@@ -1208,6 +1210,11 @@ export let networkPresenter = declarePresenter(networkType, {
 export let networkLogsPresenter = declarePresenter(networkLogsType, {
   mt_2025_01_01_dashboard: v1NetworkLogsPresenter,
   mt_2026_01_01_magnetar: v1NetworkLogsPresenter
+});
+
+export let resourceCountsPresenter = declarePresenter(resourceCountsType, {
+  mt_2025_01_01_dashboard: v1ResourceCountsPresenter,
+  mt_2026_01_01_magnetar: v1ResourceCountsPresenter
 });
 
 export let enclavePresenter = declarePresenter(enclaveType, {

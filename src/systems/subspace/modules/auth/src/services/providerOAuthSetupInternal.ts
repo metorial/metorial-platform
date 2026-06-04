@@ -106,15 +106,21 @@ class providerOAuthSetupInternalServiceImpl {
           }
         }
 
+        let nextSetupStatus: typeof providerOAuthSetup.status | undefined =
+          record.status === 'failed'
+            ? 'failed'
+            : record.status === 'completed'
+              ? 'completed'
+              : providerOAuthSetup.status === 'completed' ||
+                  providerOAuthSetup.status === 'failed' ||
+                  providerOAuthSetup.status === 'expired'
+                ? undefined
+                : 'opened';
+
         let setup = await db.providerOAuthSetup.update({
           where: { oid: providerOAuthSetup.oid },
           data: {
-            status:
-              record.status === 'failed'
-                ? 'failed'
-                : record.status === 'completed'
-                  ? 'completed'
-                  : undefined,
+            status: nextSetupStatus,
 
             errorCode: record.error?.code,
             errorMessage: record.error?.message ?? record.error?.code,
@@ -129,7 +135,7 @@ class providerOAuthSetupInternalServiceImpl {
         let session = await db.providerSetupSession.findFirst({
           where: {
             oauthSetupOid: providerOAuthSetup.oid,
-            status: { notIn: ['completed', 'expired', 'archived', 'deleted'] }
+            status: { notIn: ['completed', 'failed', 'expired', 'archived', 'deleted'] }
           }
         });
         if (session) {

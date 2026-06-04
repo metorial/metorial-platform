@@ -68,6 +68,7 @@ export * from './providerVersion';
 export * from './protoGuardAlert';
 export * from './protoGuardConfig';
 export * from './publisher';
+export * from './resourceCount';
 export * from './scmConnection';
 export * from './scmConnectionSetupSession';
 export * from './scmProvider';

@@ -1254,6 +1254,13 @@ export let networkLogsType = PresentableType.create<{
   logs: SubspaceEnclaveNetworkLogs;
 }>()('networkLogs');
 
+export let resourceCountsType = PresentableType.create<{
+  resources: {
+    resource: string;
+    count: number;
+  }[];
+}>()('resourceCounts');
+
 export let enclaveType = PresentableType.create<{
   enclave: SubspaceEnclave;
 }>()('enclave');
