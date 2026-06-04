@@ -135,7 +135,7 @@ class providerOAuthSetupInternalServiceImpl {
         let session = await db.providerSetupSession.findFirst({
           where: {
             oauthSetupOid: providerOAuthSetup.oid,
-            status: { notIn: ['completed', 'expired', 'archived', 'deleted'] }
+            status: { notIn: ['completed', 'failed', 'expired', 'archived', 'deleted'] }
           }
         });
         if (session) {

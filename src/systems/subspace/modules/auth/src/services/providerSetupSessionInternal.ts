@@ -383,6 +383,7 @@ class providerSetupSessionInternalServiceImpl {
     return withTransaction(async db => {
       if (
         d.session.status === 'completed' ||
+        d.session.status === 'failed' ||
         d.session.status === 'archived' ||
         d.session.status === 'deleted' ||
         d.session.status === 'expired'
