@@ -74,6 +74,7 @@ import { providerToolController } from './providerTool';
 import { providerTriggerController } from './providerTrigger';
 import { providerVariantController } from './providerVariant';
 import { providerVersionController } from './providerVersion';
+import { protoGuardAlertController } from './protoGuardAlert';
 import { protoGuardConfigController } from './protoGuardConfig';
 import { publisherController } from './publisher';
 import { scmConnectionController } from './scmConnection';
@@ -144,6 +145,7 @@ let configControllers = {
   authConfigErrorGlobal: authConfigErrorGlobalController,
   monitor: monitorController,
   monitorAlert: monitorAlertController,
+  protoGuardAlert: protoGuardAlertController,
   protoGuardConfig: protoGuardConfigController
 };
 

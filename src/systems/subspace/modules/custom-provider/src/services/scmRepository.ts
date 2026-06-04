@@ -6,6 +6,8 @@ import { type DateFilter, normalizeDateFilter, resolveCustomProviders } from '@m
 import { ensureScmRepoForOrigin } from '../internal/linkRepo';
 import {
   getTenantForOrigin,
+  normalizeScmAccountPreview,
+  normalizeScmRepositoryPreview,
   origin,
   type ScmAccountPreview,
   type ScmRepositoryPreview
@@ -128,10 +130,14 @@ class scmRepositoryServiceImpl {
     };
   }): Promise<{ accounts: ScmAccountPreview[] }> {
     let tenant = await getTenantForOrigin(d.tenant);
-    return origin.scmRepository.listAccountPreviews({
+    let result = await origin.scmRepository.listAccountPreviews({
       tenantId: tenant.id,
       scmInstallationId: d.input.scmConnectionId
     });
+
+    return {
+      accounts: result.accounts.map(normalizeScmAccountPreview)
+    };
   }
 
   async listScmRepositoryPreviews(d: {
@@ -142,11 +148,15 @@ class scmRepositoryServiceImpl {
     };
   }): Promise<{ repositories: ScmRepositoryPreview[] }> {
     let tenant = await getTenantForOrigin(d.tenant);
-    return origin.scmRepository.listRepositoryPreviews({
+    let result = await origin.scmRepository.listRepositoryPreviews({
       tenantId: tenant.id,
       scmInstallationId: d.input.scmConnectionId,
       externalAccountId: d.input.externalAccountId
     });
+
+    return {
+      repositories: result.repositories.map(normalizeScmRepositoryPreview)
+    };
   }
 }
 

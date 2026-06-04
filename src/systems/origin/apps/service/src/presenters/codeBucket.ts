@@ -4,7 +4,7 @@ import { repositoryPresenter } from './repository';
 export let codeBucketPresenter = (
   codeBucket: CodeBucket & { repository: (ScmRepository & { account: ScmAccount }) | null }
 ) => ({
-  object: 'origin#codeBucket',
+  object: 'origin#codeBucket' as const,
 
   id: codeBucket.id,
   status: codeBucket.status,

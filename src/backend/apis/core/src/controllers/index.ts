@@ -112,6 +112,8 @@ import {
   providerToolController,
   providerTriggerController,
   providerVersionController,
+  protoGuardAlertController,
+  protoGuardConfigController,
   publisherController,
   scmAccountsController,
   scmConnectionsController,
@@ -201,7 +203,12 @@ let setControllerDocsMetadata = <
   })
 );
 
-[monitorController, monitorAlertController].forEach(controller =>
+[
+  monitorController,
+  monitorAlertController,
+  protoGuardAlertController,
+  protoGuardConfigController
+].forEach(controller =>
   setControllerDocsMetadata(controller, {
     category: monitoringDocsCategory
   })
@@ -448,6 +455,8 @@ export let magnetarController = Controller.create<any>(
     providerRunController,
     monitorController,
     monitorAlertController,
+    protoGuardAlertController,
+    protoGuardConfigController,
     sessionMessageController,
     sessionConnectionController,
     sessionEventController,
@@ -679,6 +688,8 @@ export let dashboardController = Controller.create<any>(
     providerRunController: providerRunController,
     monitorController,
     monitorAlertController,
+    protoGuardAlertController,
+    protoGuardConfigController,
     sessionMessageController,
     sessionConnectionController,
     sessionEventController,

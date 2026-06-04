@@ -97,6 +97,8 @@ import {
   v1MagicMcpTokenPresenter,
   v1MonitorAlertPresenter,
   v1MonitorPresenter,
+  v1ProtoGuardAlertPresenter,
+  v1ProtoGuardConfigPresenter,
   v1EnclavePresenter,
   v1FirewallBindingPresenter,
   v1FirewallPresenter,
@@ -323,6 +325,8 @@ import {
   projectAuthConfigConfigurationType,
   projectToolCallingConfigurationType,
   projectType,
+  protoGuardAlertType,
+  protoGuardConfigType,
   providerAuthConfigErrorGroupType,
   providerAuthConfigErrorType,
   providerAuthConfigEventType,
@@ -1059,6 +1063,16 @@ export let monitorPresenter = declarePresenter(monitorType, {
 export let monitorAlertPresenter = declarePresenter(monitorAlertType, {
   mt_2025_01_01_dashboard: v1MonitorAlertPresenter,
   mt_2026_01_01_magnetar: v1MonitorAlertPresenter
+});
+
+export let protoGuardAlertPresenter = declarePresenter(protoGuardAlertType, {
+  mt_2025_01_01_dashboard: v1ProtoGuardAlertPresenter,
+  mt_2026_01_01_magnetar: v1ProtoGuardAlertPresenter
+});
+
+export let protoGuardConfigPresenter = declarePresenter(protoGuardConfigType, {
+  mt_2025_01_01_dashboard: v1ProtoGuardConfigPresenter,
+  mt_2026_01_01_magnetar: v1ProtoGuardConfigPresenter
 });
 
 export let providerDeploymentPresenter = declarePresenter(providerDeploymentType, {

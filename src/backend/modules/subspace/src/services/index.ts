@@ -65,6 +65,8 @@ export * from './providerTool';
 export * from './providerTrigger';
 export * from './providerVariant';
 export * from './providerVersion';
+export * from './protoGuardAlert';
+export * from './protoGuardConfig';
 export * from './publisher';
 export * from './scmConnection';
 export * from './scmConnectionSetupSession';

@@ -23,6 +23,8 @@ export * from './monitors';
 export * from './network-policies';
 export * from './networks';
 export * from './portals';
+export * from './proto-guard-alerts';
+export * from './proto-guard-config';
 export * from './provider-auth-config-errors';
 export * from './provider-auth-config-events';
 export * from './provider-categories';

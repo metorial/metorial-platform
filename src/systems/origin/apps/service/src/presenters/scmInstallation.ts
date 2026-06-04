@@ -1,7 +1,7 @@
 import type { ScmInstallation } from '../../prisma/generated/client';
 
 export let scmInstallationPresenter = (installation: ScmInstallation) => ({
-  object: 'origin#scm_installation',
+  object: 'origin#scm_installation' as const,
 
   id: installation.id,
   provider: installation.provider,

@@ -8,7 +8,7 @@ import { repositoryPresenter } from './repository';
 export let scmRepositoryPushPresenter = (
   push: ScmRepositoryPush & { repo: ScmRepository & { account: ScmAccount } }
 ) => ({
-  object: 'origin#scmRepositoryPush',
+  object: 'origin#scmRepositoryPush' as const,
 
   id: push.id,
   sha: push.sha,

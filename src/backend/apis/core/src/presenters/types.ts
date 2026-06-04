@@ -182,6 +182,8 @@ import {
   SubspaceProviderTrigger,
   SubspaceProviderType,
   SubspaceProviderVersion,
+  SubspaceProtoGuardAlert,
+  SubspaceProtoGuardConfig,
   SubspacePublisher,
   SubspaceScmAccountPreviews,
   SubspaceScmConnection,
@@ -1145,6 +1147,14 @@ export let monitorType = PresentableType.create<{
 export let monitorAlertType = PresentableType.create<{
   alert: SubspaceMonitorAlert;
 }>()('monitor.alert');
+
+export let protoGuardAlertType = PresentableType.create<{
+  alert: SubspaceProtoGuardAlert;
+}>()('protoguard.alert');
+
+export let protoGuardConfigType = PresentableType.create<{
+  config: SubspaceProtoGuardConfig;
+}>()('protoguard.filter_config');
 
 export let deploymentPreviewType = PresentableType.create<{
   deployment: NonNullable<SubspaceProviderAuthConfig['deploymentPreview']>;

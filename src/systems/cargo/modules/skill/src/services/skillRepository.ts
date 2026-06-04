@@ -57,6 +57,23 @@ export type EnrichedSkillRepositoryRecord = SkillRepositoryRecord & {
   originRepository: OriginRepositoryRecord | null;
 };
 
+type OriginObject<T> = Omit<T, 'object'> & { object: string };
+
+let normalizeOriginScmAccount = (account: OriginObject<OriginScmAccountRecord>): OriginScmAccountRecord => ({
+  ...account,
+  object: 'origin#scmAccount'
+});
+
+let normalizeOriginRepository = (
+  repository: Omit<OriginObject<OriginRepositoryRecord>, 'account'> & {
+    account: OriginObject<OriginScmAccountRecord> | undefined;
+  }
+): OriginRepositoryRecord => ({
+  ...repository,
+  object: 'origin#repository',
+  account: repository.account ? normalizeOriginScmAccount(repository.account) : undefined
+});
+
 class SkillRepositoryServiceImpl {
   async getOriginRepositories(
     d: CargoTenantEnvironment & { repoIds: string[] }
@@ -69,7 +86,7 @@ class SkillRepositoryServiceImpl {
       scmRepositoryIds: d.repoIds
     });
 
-    return result.repositories;
+    return result.repositories.map(normalizeOriginRepository);
   }
 
   async getOriginRepository(

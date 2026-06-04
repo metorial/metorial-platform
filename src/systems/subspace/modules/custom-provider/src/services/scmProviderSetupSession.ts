@@ -2,6 +2,7 @@ import { Service } from '@lowerdeck/service';
 import type { Tenant } from '@metorial-subspace/db';
 import {
   getTenantForOrigin,
+  normalizeScmProviderSetupSession,
   origin,
   type ScmProviderSetupSession
 } from '../origin';
@@ -12,10 +13,10 @@ class scmProviderSetupSessionServiceImpl {
     tenant: Tenant;
   }): Promise<ScmProviderSetupSession> {
     let tenant = await getTenantForOrigin(d.tenant);
-    return origin.scmBackendSetupSession.get({
+    return normalizeScmProviderSetupSession(await origin.scmBackendSetupSession.get({
       tenantId: tenant.id,
       sessionId: d.scmProviderSetupSessionId
-    });
+    }));
   }
 
   async createScmProviderSetupSession(d: {
@@ -23,10 +24,10 @@ class scmProviderSetupSessionServiceImpl {
     type: 'github_enterprise' | 'gitlab_selfhosted';
   }): Promise<ScmProviderSetupSession> {
     let tenant = await getTenantForOrigin(d.tenant);
-    return origin.scmBackendSetupSession.create({
+    return normalizeScmProviderSetupSession(await origin.scmBackendSetupSession.create({
       tenantId: tenant.id,
       type: d.type
-    });
+    }));
   }
 }
 

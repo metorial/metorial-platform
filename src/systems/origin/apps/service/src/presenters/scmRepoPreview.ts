@@ -1,7 +1,7 @@
 import type { ScmAccountPreview, ScmRepoPreview } from '../types';
 
 export let scmRepoPreviewPresenter = (preview: ScmRepoPreview) => ({
-  object: 'origin#scm_account_preview',
+  object: 'origin#scm_account_preview' as const,
 
   provider: preview.provider,
   name: preview.name,
@@ -21,7 +21,7 @@ export let scmRepoPreviewPresenter = (preview: ScmRepoPreview) => ({
 });
 
 export let scmAccountPreviewPresenter = (preview: ScmAccountPreview) => ({
-  object: 'origin#scm_account_preview',
+  object: 'origin#scm_account_preview' as const,
 
   provider: preview.provider,
   externalId: preview.externalId,

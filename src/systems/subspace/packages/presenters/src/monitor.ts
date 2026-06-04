@@ -102,3 +102,28 @@ export let protoGuardFilterConfigPresenter = (d: {
     alertConfidenceThreshold: item.alertConfidenceThreshold
   }))
 });
+
+export type ProtoGuardAlertPresenterProps = any;
+
+export let protoGuardAlertPresenter = (alert: ProtoGuardAlertPresenterProps) => ({
+  object: 'protoguard.alert',
+  id: alert.id,
+  runId: alert.run.id,
+  sessionId: alert.session?.id ?? null,
+  sessionMessageId: alert.message?.id ?? null,
+  sessionConnectionId: alert.connection?.id ?? null,
+  providerRunId: alert.providerRun?.id ?? null,
+  createdAt: alert.createdAt,
+  filters: alert.instances.map((instance: any) => ({
+    object: 'protoguard.alert_filter',
+    id: instance.id,
+    filterId: instance.filter.id,
+    key: instance.filter.key,
+    name: instance.filter.name,
+    description: instance.filter.description,
+    issueType: instance.filter.issueType,
+    severity: instance.filter.severity,
+    confidence: instance.confidence ?? null,
+    createdAt: instance.createdAt
+  }))
+});

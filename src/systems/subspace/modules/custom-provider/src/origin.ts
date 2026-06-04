@@ -139,3 +139,53 @@ export type ScmRepositoryPreview = {
     provider: ScmProviderName;
   };
 };
+
+type OriginObject<T> = Omit<T, 'object'> & { object: string };
+
+export let normalizeScmConnection = (connection: OriginObject<ScmConnection>): ScmConnection => ({
+  ...connection,
+  object: 'origin#scm_installation'
+});
+
+export let normalizeScmProvider = (provider: OriginObject<ScmProvider>): ScmProvider => ({
+  ...provider,
+  object: 'origin#scmBackend'
+});
+
+export let normalizeScmProviderSetupSession = (
+  session: Omit<OriginObject<ScmProviderSetupSession>, 'backend'> & {
+    backend: OriginObject<ScmProvider> | null;
+  }
+): ScmProviderSetupSession => ({
+  ...session,
+  object: 'origin#scmBackendSetupSession',
+  backend: session.backend ? normalizeScmProvider(session.backend) : null
+});
+
+export let normalizeScmConnectionSetupSession = (
+  session: Omit<ScmConnectionSetupSession, 'installation'> & {
+    installation: OriginObject<ScmConnection> | null;
+  }
+): ScmConnectionSetupSession => ({
+  ...session,
+  installation: session.installation ? normalizeScmConnection(session.installation) : null
+});
+
+export let normalizeScmAccountPreview = (
+  account: OriginObject<ScmAccountPreview>
+): ScmAccountPreview => ({
+  ...account,
+  object: 'origin#scm_account_preview'
+});
+
+export let normalizeScmRepositoryPreview = (
+  repository: Omit<OriginObject<ScmRepositoryPreview>, 'name' | 'identifier'> & {
+    name: string | String;
+    identifier: string | String;
+  }
+): ScmRepositoryPreview => ({
+  ...repository,
+  object: 'origin#scm_account_preview',
+  name: repository.name.toString(),
+  identifier: repository.identifier.toString()
+});

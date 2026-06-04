@@ -3,6 +3,7 @@ import { Service } from '@lowerdeck/service';
 import type { Tenant, TenantActor } from '@metorial-subspace/db';
 import {
   getTenantForOrigin,
+  normalizeScmConnection,
   origin,
   type OriginList,
   type ScmConnection
@@ -14,10 +15,10 @@ class scmConnectionServiceImpl {
     tenant: Tenant;
   }): Promise<ScmConnection> {
     let tenant = await getTenantForOrigin(d.tenant);
-    return origin.scmInstallation.get({
+    return normalizeScmConnection(await origin.scmInstallation.get({
       tenantId: tenant.id,
       scmInstallationId: d.scmConnectionId
-    });
+    }));
   }
 
   async listScmConnections(
@@ -29,13 +30,19 @@ class scmConnectionServiceImpl {
       name: d.actor.name
     });
 
-    return origin.scmInstallation.list({
+    let list = await origin.scmInstallation.list({
       ...(d as any),
       tenantId: tenant.id,
       actorId: actor.id,
       tenant: undefined,
       actor: undefined
     });
+
+    return {
+      ...list,
+      object: 'list' as const,
+      items: list.items.map(normalizeScmConnection)
+    };
   }
 }
 
