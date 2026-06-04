@@ -103,6 +103,7 @@ import {
   v1NetworkPresenter,
   v1NetworkLogsPresenter,
   v1ResourceCountsPresenter,
+  v1SandboxPresenter,
   v1OAuthApplicationClientSecretPresenter,
   v1OAuthApplicationPresenter,
   v1OAuthAuthorizationLogPresenter,
@@ -296,6 +297,7 @@ import {
   networkType,
   networkLogsType,
   resourceCountsType,
+  sandboxType,
   oauthApplicationClientSecretType,
   oauthApplicationType,
   oauthAuthorizationLogType,
@@ -504,6 +506,11 @@ export let instancePresenter = declarePresenter(instanceType, {
 export let instanceListPresenter = declarePresenter(instanceListType, {
   mt_2025_01_01_dashboard: v1InstanceListPresenter,
   mt_2026_01_01_magnetar: v1InstanceListPresenter
+});
+
+export let sandboxPresenter = declarePresenter(sandboxType, {
+  mt_2025_01_01_dashboard: v1SandboxPresenter,
+  mt_2026_01_01_magnetar: v1SandboxPresenter
 });
 
 export let machineAccessPresenter = declarePresenter(machineAccessType, {

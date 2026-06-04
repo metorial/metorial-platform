@@ -164,6 +164,7 @@ import {
   organizationManagementController,
   organizationMemberManagementController,
   projectManagementController,
+  sandboxManagementController,
   serviceAccountManagementController,
   teamManagementController
 } from './management';
@@ -564,6 +565,7 @@ export let dashboardController = Controller.create<any>(
     organizationInviteManagementController,
     organizationMemberManagementController,
     projectManagementController,
+    sandboxManagementController,
     dashboardUserController,
 
     integrationController,

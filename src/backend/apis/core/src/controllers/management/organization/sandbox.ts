@@ -9,7 +9,7 @@ import {
   organizationGroup,
   organizationManagementPath
 } from '../../../middleware/organizationGroup';
-import { instancePresenter } from '../../../presenters';
+import { sandboxPresenter } from '../../../presenters';
 
 let resolveProjectFilter = async (d: {
   organization: Parameters<typeof projectService.getManyProjectsByIds>[0]['organization'];
@@ -29,19 +29,19 @@ let resolveProjectFilter = async (d: {
     .filter(projectId => d.accessProjectIds?.includes(projectId));
 };
 
-export let instanceManagementController = Controller.create(
+export let sandboxManagementController = Controller.create(
   {
-    name: 'Instance',
-    description: 'Read and write instance information'
+    name: 'Sandbox',
+    description: 'Read and write development sandbox information'
   },
   {
     list: organizationGroup
-      .get(organizationManagementPath('instances', 'instances.list'), {
-        name: 'List organization instances',
-        description: 'List all organization instances'
+      .get(organizationManagementPath('sandboxes', 'sandboxes.list'), {
+        name: 'List organization sandboxes',
+        description: 'List all organization sandboxes'
       })
-      .use(checkAccess({ possibleScopes: ['organization.instance:read'] }))
-      .outputList(instancePresenter)
+      .use(checkAccess({ possibleScopes: ['organization.sandbox:read'] }))
+      .outputList(sandboxPresenter)
       .query(
         'default',
         Paginator.validate(
@@ -55,7 +55,7 @@ export let instanceManagementController = Controller.create(
           authInfo: ctx.auth,
           organization: ctx.organization,
           member: ctx.member,
-          possibleScopes: ['organization.instance:read']
+          possibleScopes: ['organization.sandbox:read']
         });
         let accessProjectIds =
           targetAccessFilter && !targetAccessFilter.all
@@ -63,7 +63,7 @@ export let instanceManagementController = Controller.create(
             : undefined;
         let requestedProjectIds = normalizeArrayParam(ctx.query.project_id);
 
-        let paginator = await instanceService.listInstances({
+        let paginator = await instanceService.listSandboxes({
           organization: ctx.organization,
           member: ctx.member,
           actor: ctx.actor,
@@ -81,24 +81,20 @@ export let instanceManagementController = Controller.create(
 
         let list = await paginator.run(ctx.query);
 
-        return Paginator.present(list, instance => instancePresenter.present({ instance }));
+        return Paginator.present(list, sandbox => sandboxPresenter.present({ sandbox }));
       }),
 
     get: organizationGroup
-      .get(organizationManagementPath('instances/:instanceId', 'instances.get'), {
-        name: 'Get organization instance',
-        description: 'Get the information of a specific organization instance'
+      .get(organizationManagementPath('sandboxes/:sandboxId', 'sandboxes.get'), {
+        name: 'Get organization sandbox',
+        description: 'Get the information of a specific organization sandbox'
       })
-      .use(
-        checkAccess({
-          possibleScopes: ['organization.instance:read', 'consumer#organization:read']
-        })
-      )
-      .output(instancePresenter)
+      .use(checkAccess({ possibleScopes: ['organization.sandbox:read'] }))
+      .output(sandboxPresenter)
       .do(async ctx => {
-        let instance = await instanceService.getInstanceById({
+        let sandbox = await instanceService.getSandboxById({
           organization: ctx.organization,
-          instanceId: ctx.params.instanceId,
+          sandboxId: ctx.params.sandboxId,
           member: ctx.member,
           actor: ctx.actor
         });
@@ -107,25 +103,32 @@ export let instanceManagementController = Controller.create(
           authInfo: ctx.auth,
           organization: ctx.organization,
           member: ctx.member,
-          project: instance.project,
-          instance,
-          possibleScopes: ['organization.instance:read']
+          project: sandbox.instance.project,
+          instance: sandbox.instance,
+          possibleScopes: ['organization.sandbox:read']
         });
 
-        return instancePresenter.present({ instance });
+        return sandboxPresenter.present({ sandbox });
       }),
 
-    delete: organizationGroup
-      .delete(organizationManagementPath('instances/:instanceId', 'instances.delete'), {
-        name: 'Delete organization instance',
-        description: 'Remove an organization instance'
+    create: organizationGroup
+      .post(organizationManagementPath('sandboxes', 'sandboxes.create'), {
+        name: 'Create organization sandbox',
+        description: 'Create a new development sandbox'
       })
-      .use(checkAccess({ possibleScopes: ['organization.instance:write'] }))
-      .output(instancePresenter)
+      .use(checkAccess({ possibleScopes: ['organization.sandbox:write'] }))
+      .body(
+        'default',
+        v.object({
+          name: v.string(),
+          project_id: v.string()
+        })
+      )
+      .output(sandboxPresenter)
       .do(async ctx => {
-        let instance = await instanceService.getInstanceById({
+        let project = await projectService.getProjectById({
           organization: ctx.organization,
-          instanceId: ctx.params.instanceId,
+          projectId: ctx.body.project_id,
           member: ctx.member,
           actor: ctx.actor
         });
@@ -134,38 +137,40 @@ export let instanceManagementController = Controller.create(
           authInfo: ctx.auth,
           organization: ctx.organization,
           member: ctx.member,
-          project: instance.project,
-          instance,
-          possibleScopes: ['organization.instance:write']
+          project,
+          possibleScopes: ['organization.sandbox:write']
         });
 
-        instance = await instanceService.deleteInstance({
-          instance,
+        let sandbox = await instanceService.createSandbox({
+          input: {
+            name: ctx.body.name
+          },
+          project,
           organization: ctx.organization,
           context: ctx.context,
           performedBy: ctx.actor
         });
 
-        return instancePresenter.present({ instance });
+        return sandboxPresenter.present({ sandbox });
       }),
 
     update: organizationGroup
-      .post(organizationManagementPath('instances/:instanceId', 'instances.update'), {
-        name: 'Update organization instance',
-        description: 'Update the role of an organization instance'
+      .post(organizationManagementPath('sandboxes/:sandboxId', 'sandboxes.update'), {
+        name: 'Update organization sandbox',
+        description: 'Update a development sandbox'
       })
-      .use(checkAccess({ possibleScopes: ['organization.instance:write'] }))
+      .use(checkAccess({ possibleScopes: ['organization.sandbox:write'] }))
       .body(
         'default',
         v.object({
           name: v.optional(v.string())
         })
       )
-      .output(instancePresenter)
+      .output(sandboxPresenter)
       .do(async ctx => {
-        let instance = await instanceService.getInstanceById({
+        let sandbox = await instanceService.getSandboxById({
           organization: ctx.organization,
-          instanceId: ctx.params.instanceId,
+          sandboxId: ctx.params.sandboxId,
           member: ctx.member,
           actor: ctx.actor
         });
@@ -174,13 +179,13 @@ export let instanceManagementController = Controller.create(
           authInfo: ctx.auth,
           organization: ctx.organization,
           member: ctx.member,
-          project: instance.project,
-          instance,
-          possibleScopes: ['organization.instance:write']
+          project: sandbox.instance.project,
+          instance: sandbox.instance,
+          possibleScopes: ['organization.sandbox:write']
         });
 
-        instance = await instanceService.updateInstance({
-          instance,
+        sandbox = await instanceService.updateSandbox({
+          sandbox,
           organization: ctx.organization,
           input: {
             name: ctx.body.name
@@ -189,7 +194,7 @@ export let instanceManagementController = Controller.create(
           performedBy: ctx.actor
         });
 
-        return instancePresenter.present({ instance });
+        return sandboxPresenter.present({ sandbox });
       })
   }
 );

@@ -464,12 +464,12 @@ describe('OrganizationActorService', () => {
       let mockOrg = { id: 'org-1', oid: 1 };
       vi.mocked(db.organizationActor.findMany).mockResolvedValue([]);
 
-      let paginator = await organizationActorService.listOrganizationActors({
+      let paginator: any = await organizationActorService.listOrganizationActors({
         organization: mockOrg as any
       });
 
       await paginator({
-        prisma: run => run({})
+        prisma: (run: any) => run({})
       });
 
       expect(db.organizationActor.findMany).toHaveBeenCalledWith(
