@@ -133,6 +133,9 @@ let SecurityOverviewPage = dynamicPage(() =>
 let NetworkListLayout = dynamicPage(() =>
   import('./pages/(network)/(list)/_layout').then(c => c.NetworkListLayout)
 );
+let NetworkEnclavesListLayout = dynamicPage(() =>
+  import('./pages/(network)/(list)/_layout').then(c => c.NetworkEnclavesListLayout)
+);
 let NetworkOverviewPage = dynamicPage(() =>
   import('./pages/(network)/(list)/network').then(c => c.NetworkOverviewPage)
 );
@@ -682,6 +685,9 @@ let AssistantConversationPage = dynamicPage(() =>
   import('./pages/assistant/conversation').then(c => c.AssistantConversationPage)
 );
 let DocumentPage = dynamicPage(() => import('./pages/doc').then(c => c.DocumentPage));
+let InfrastructureOverviewPage = dynamicPage(() =>
+  import('./pages/(infrastructure)/overview').then(c => c.InfrastructureOverviewPage)
+);
 let FlaggedPage = ({ children, flag }: { children: React.ReactNode; flag: string }) => {
   let flags = useDashboardFlags();
 
@@ -1154,6 +1160,232 @@ export let productIdentitySlice = createSlice([
   }
 ]);
 
+export let productInfrastructureSlice = createSlice([
+  {
+    element: <ProductWrapper />,
+
+    children: [
+      {
+        element: <InstanceLayout />,
+
+        children: [
+          {
+            path: 'infra',
+            element: <InfrastructureOverviewPage />
+          },
+
+          {
+            path: 'configurations',
+            element: <ProviderDeploymentsListLayout />,
+            children: [
+              {
+                path: '',
+                element: <ProviderDeploymentsPage />
+              },
+              {
+                path: 'configs',
+                element: <ProviderConfigsOverviewPage />
+              },
+              {
+                path: 'config-vaults',
+                element: <ProviderConfigVaultsOverviewPage />
+              },
+              {
+                path: 'auth-credentials',
+                element: <ProviderAuthCredentialsOverviewPage />
+              },
+              {
+                path: 'auth-configs',
+                element: <ProviderAuthConfigsOverviewPage />
+              }
+            ]
+          },
+
+          {
+            path: 'security',
+            element: <SecurityOverviewPage />
+          },
+          {
+            path: 'network',
+            element: <NetworkListLayout />,
+            children: [
+              {
+                path: '',
+                element: <NetworkOverviewPage />
+              },
+              {
+                path: 'firewalls',
+                element: <NetworkFirewallsPage />
+              },
+              {
+                path: 'settings',
+                element: <NetworkSettingsPage />
+              }
+            ]
+          },
+          {
+            path: 'network/enclaves',
+            element: <NetworkEnclavesListLayout />,
+            children: [
+              {
+                path: '',
+                element: <NetworkEnclavesPage />
+              }
+            ]
+          },
+          {
+            path: 'network/firewall/:firewallId',
+            element: <NetworkFirewallPageLayout />,
+            children: [
+              {
+                path: '',
+                element: <NetworkFirewallPage />
+              },
+              {
+                path: 'settings',
+                element: <NetworkFirewallSettingsPage />
+              }
+            ]
+          },
+
+          {
+            path: 'configurations/:providerDeploymentId',
+            element: <ProviderDeploymentLayout />,
+            children: [
+              {
+                path: '',
+                element: <ProviderDeploymentOverviewPage />
+              },
+              {
+                path: 'configs',
+                element: <ProviderDeploymentConfigsPage />
+              },
+              {
+                path: 'config-vaults',
+                element: <ProviderDeploymentConfigVaultsPage />
+              },
+              {
+                path: 'auth-methods',
+                element: <ProviderDeploymentAuthMethodsPage />
+              },
+              {
+                path: 'auth-configs',
+                element: <ProviderDeploymentAuthConfigsPage />
+              },
+              {
+                path: 'auth-credentials',
+                element: <ProviderDeploymentAuthCredentialsPage />
+              },
+              {
+                path: 'settings',
+                element: <ProviderDeploymentSettingsPage />
+              },
+              {
+                path: 'network',
+                element: (
+                  <NetworkManagedPage>
+                    <ProviderDeploymentNetworkPage />
+                  </NetworkManagedPage>
+                )
+              }
+            ]
+          },
+          {
+            path: 'provider-config-vault/:providerConfigVaultId',
+            element: <ProviderConfigVaultLayout />,
+            children: [
+              {
+                path: '',
+                element: <ProviderConfigVaultOverviewPage />
+              },
+              {
+                path: 'configs',
+                element: <ProviderConfigVaultConfigsPage />
+              },
+              {
+                path: 'settings',
+                element: <ProviderConfigVaultSettingsPage />
+              }
+            ]
+          },
+          {
+            path: 'configurations/config/:providerConfigId',
+            element: <ProviderConfigLayout />,
+            children: [
+              {
+                path: '',
+                element: <ProviderConfigOverviewPage />
+              },
+              {
+                path: 'settings',
+                element: <ProviderConfigSettingsPage />
+              }
+            ]
+          },
+          {
+            path: 'configurations/auth-credential/:providerAuthCredentialsId',
+            element: <ProviderAuthCredentialLayout />,
+            children: [
+              {
+                path: '',
+                element: <ProviderAuthCredentialOverviewPage />
+              },
+              {
+                path: 'auth-configs',
+                element: <ProviderAuthCredentialAuthConfigsPage />
+              },
+              {
+                path: 'settings',
+                element: <ProviderAuthCredentialSettingsPage />
+              }
+            ]
+          },
+          {
+            path: 'configurations/auth-config/:providerAuthConfigId',
+            element: <ProviderAuthConfigLayout />,
+            children: [
+              {
+                path: '',
+                element: <ProviderAuthConfigOverviewPage />
+              },
+              {
+                path: 'settings',
+                element: <ProviderAuthConfigSettingsPage />
+              }
+            ]
+          },
+
+          {
+            path: 'session-templates',
+            element: <SessionTemplatesListLayout />,
+            children: [
+              {
+                path: '',
+                element: <SessionTemplatesPage />
+              }
+            ]
+          },
+
+          {
+            path: 'session-template/:sessionTemplateId',
+            element: <SessionTemplateLayout />,
+            children: [
+              {
+                path: '',
+                element: <SessionTemplateOverviewPage />
+              },
+              {
+                path: 'settings',
+                element: <SessionTemplateSettingsPage />
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]);
+
 export let productHomeSlice = createSlice([
   {
     element: <ProductWrapper />,
@@ -1349,74 +1581,6 @@ export let productHomeSlice = createSlice([
           },
 
           {
-            path: 'configurations',
-            element: <ProviderDeploymentsListLayout />,
-            children: [
-              {
-                path: '',
-                element: <ProviderDeploymentsPage />
-              },
-              {
-                path: 'configs',
-                element: <ProviderConfigsOverviewPage />
-              },
-              {
-                path: 'config-vaults',
-                element: <ProviderConfigVaultsOverviewPage />
-              },
-              {
-                path: 'auth-credentials',
-                element: <ProviderAuthCredentialsOverviewPage />
-              },
-              {
-                path: 'auth-configs',
-                element: <ProviderAuthConfigsOverviewPage />
-              }
-            ]
-          },
-
-          {
-            path: 'security',
-            element: <SecurityOverviewPage />
-          },
-          {
-            path: 'network',
-            element: <NetworkListLayout />,
-            children: [
-              {
-                path: '',
-                element: <NetworkOverviewPage />
-              },
-              {
-                path: 'firewalls',
-                element: <NetworkFirewallsPage />
-              },
-              {
-                path: 'enclaves',
-                element: <NetworkEnclavesPage />
-              },
-              {
-                path: 'settings',
-                element: <NetworkSettingsPage />
-              }
-            ]
-          },
-          {
-            path: 'network/firewall/:firewallId',
-            element: <NetworkFirewallPageLayout />,
-            children: [
-              {
-                path: '',
-                element: <NetworkFirewallPage />
-              },
-              {
-                path: 'settings',
-                element: <NetworkFirewallSettingsPage />
-              }
-            ]
-          },
-
-          {
             path: 'provider/:providerId',
             element: <ProviderLayout />,
             children: [
@@ -1447,139 +1611,6 @@ export let productHomeSlice = createSlice([
               {
                 path: 'versions',
                 element: <ProviderVersionsPage />
-              }
-            ]
-          },
-
-          {
-            path: 'configurations/:providerDeploymentId',
-            element: <ProviderDeploymentLayout />,
-            children: [
-              {
-                path: '',
-                element: <ProviderDeploymentOverviewPage />
-              },
-              {
-                path: 'configs',
-                element: <ProviderDeploymentConfigsPage />
-              },
-              {
-                path: 'config-vaults',
-                element: <ProviderDeploymentConfigVaultsPage />
-              },
-              {
-                path: 'auth-methods',
-                element: <ProviderDeploymentAuthMethodsPage />
-              },
-              {
-                path: 'auth-configs',
-                element: <ProviderDeploymentAuthConfigsPage />
-              },
-              {
-                path: 'auth-credentials',
-                element: <ProviderDeploymentAuthCredentialsPage />
-              },
-              {
-                path: 'settings',
-                element: <ProviderDeploymentSettingsPage />
-              },
-              {
-                path: 'network',
-                element: (
-                  <NetworkManagedPage>
-                    <ProviderDeploymentNetworkPage />
-                  </NetworkManagedPage>
-                )
-              }
-            ]
-          },
-          {
-            path: 'provider-config-vault/:providerConfigVaultId',
-            element: <ProviderConfigVaultLayout />,
-            children: [
-              {
-                path: '',
-                element: <ProviderConfigVaultOverviewPage />
-              },
-              {
-                path: 'configs',
-                element: <ProviderConfigVaultConfigsPage />
-              },
-              {
-                path: 'settings',
-                element: <ProviderConfigVaultSettingsPage />
-              }
-            ]
-          },
-          {
-            path: 'configurations/config/:providerConfigId',
-            element: <ProviderConfigLayout />,
-            children: [
-              {
-                path: '',
-                element: <ProviderConfigOverviewPage />
-              },
-              {
-                path: 'settings',
-                element: <ProviderConfigSettingsPage />
-              }
-            ]
-          },
-          {
-            path: 'configurations/auth-credential/:providerAuthCredentialsId',
-            element: <ProviderAuthCredentialLayout />,
-            children: [
-              {
-                path: '',
-                element: <ProviderAuthCredentialOverviewPage />
-              },
-              {
-                path: 'auth-configs',
-                element: <ProviderAuthCredentialAuthConfigsPage />
-              },
-              {
-                path: 'settings',
-                element: <ProviderAuthCredentialSettingsPage />
-              }
-            ]
-          },
-          {
-            path: 'configurations/auth-config/:providerAuthConfigId',
-            element: <ProviderAuthConfigLayout />,
-            children: [
-              {
-                path: '',
-                element: <ProviderAuthConfigOverviewPage />
-              },
-              {
-                path: 'settings',
-                element: <ProviderAuthConfigSettingsPage />
-              }
-            ]
-          },
-
-          {
-            path: 'session-templates',
-            element: <SessionTemplatesListLayout />,
-            children: [
-              {
-                path: '',
-                element: <SessionTemplatesPage />
-              }
-            ]
-          },
-
-          {
-            path: 'session-template/:sessionTemplateId',
-            element: <SessionTemplateLayout />,
-            children: [
-              {
-                path: '',
-                element: <SessionTemplateOverviewPage />
-              },
-              {
-                path: 'settings',
-                element: <SessionTemplateSettingsPage />
               }
             ]
           },
@@ -1843,6 +1874,7 @@ export let productSlice = createSlice([
       ...productTraceDetailSlice.routes,
       ...productExplorerSlice.routes,
       ...productDocumentSlice.routes,
+      ...productInfrastructureSlice.routes,
       ...productIdentitySlice.routes,
       ...productHomeSlice.routes
     ]

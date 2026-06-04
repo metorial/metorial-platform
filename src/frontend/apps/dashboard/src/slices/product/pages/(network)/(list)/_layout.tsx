@@ -40,14 +40,6 @@ export let NetworkListLayout = () => {
               )
             },
             {
-              label: 'Enclaves',
-              to: Paths.instance.networkEnclaves(
-                organization.data,
-                project.data,
-                instance.data
-              )
-            },
-            {
               label: 'Settings',
               to: Paths.instance.networkSettings(
                 organization.data,
@@ -58,6 +50,23 @@ export let NetworkListLayout = () => {
           ]}
         />
 
+        <PaginationSearchParamsProvider enabled={true}>
+          <Outlet />
+        </PaginationSearchParamsProvider>
+      </NetworkManagedPage>
+    </ContentLayout>
+  );
+};
+
+export let NetworkEnclavesListLayout = () => {
+  return (
+    <ContentLayout>
+      <PageHeader
+        title="Enclaves"
+        description="Inspect provider deployment enclaves and their recent network usage."
+      />
+
+      <NetworkManagedPage>
         <PaginationSearchParamsProvider enabled={true}>
           <Outlet />
         </PaginationSearchParamsProvider>

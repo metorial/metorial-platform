@@ -17,6 +17,12 @@ let InstancePaths = Object.assign(
   {
     home: (organization: EntityParam, project: EntityParam, instance: EntityParam) =>
       InstancePaths(organization, project, instance),
+    infrastructure: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'infra', ...subPages),
     developer: (
       organization: EntityParam,
       project: EntityParam,
