@@ -245,7 +245,8 @@ class InstanceService {
         },
         include: {
           organization: true,
-          project: true
+          project: true,
+          sandbox: true
         }
       });
 
@@ -309,7 +310,8 @@ class InstanceService {
         },
         include: {
           organization: true,
-          project: true
+          project: true,
+          sandbox: true
         }
       });
 
@@ -402,7 +404,8 @@ class InstanceService {
 
     return {
       ...d.instance,
-      organization: d.organization
+      organization: d.organization,
+      sandbox: null
     };
   }
 
@@ -423,7 +426,8 @@ class InstanceService {
       },
       include: {
         organization: true,
-        project: true
+        project: true,
+        sandbox: true
       }
     });
     if (!instance) throw new ServiceError(notFoundError('instance', d.instanceId));
@@ -507,7 +511,8 @@ class InstanceService {
             },
             include: {
               organization: true,
-              project: true
+              project: true,
+              sandbox: true
             }
           })
       )
@@ -531,7 +536,8 @@ class InstanceService {
       },
       include: {
         organization: true,
-        project: true
+        project: true,
+        sandbox: true
       }
     });
   }
@@ -557,7 +563,8 @@ class InstanceService {
       },
       include: {
         organization: true,
-        project: true
+        project: true,
+        sandbox: true
       }
     });
   }
@@ -593,7 +600,8 @@ class InstanceService {
             }
           }
         },
-        project: true
+        project: true,
+        sandbox: true
       }
     });
     let member = instance?.organization.members[0];

@@ -513,16 +513,13 @@ describe('InstanceService', () => {
       expect(result).toEqual(mockInstance);
       expect(db.instance.findFirst).toHaveBeenCalledWith({
         where: {
-          OR: [
-            { id: 'inst-1' },
-            { slug: 'inst-1' },
-            { previousSlugs: { has: 'inst-1' } }
-          ],
+          OR: [{ id: 'inst-1' }, { slug: 'inst-1' }, { previousSlugs: { has: 'inst-1' } }],
           organizationOid: 1
         },
         include: {
           organization: true,
-          project: true
+          project: true,
+          sandbox: true
         }
       });
     });
@@ -629,7 +626,8 @@ describe('InstanceService', () => {
         },
         include: {
           organization: true,
-          project: true
+          project: true,
+          sandbox: true
         }
       });
     });

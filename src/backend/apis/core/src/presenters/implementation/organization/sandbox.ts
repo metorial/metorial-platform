@@ -11,7 +11,9 @@ export let v1SandboxPresenter = Presenter.create(sandboxType)
     id: sandbox.id,
     name: sandbox.name,
     organization_id: sandbox.instance.organization.id,
-    instance: await v1InstancePresenter.present({ instance: sandbox.instance }, opts).run(),
+    instance: await v1InstancePresenter
+      .present({ instance: { ...sandbox.instance, sandbox } }, opts)
+      .run(),
     creator_actor: await v1OrganizationActorPresenter
       .present({ organizationActor: sandbox.creatorActor }, opts)
       .run(),

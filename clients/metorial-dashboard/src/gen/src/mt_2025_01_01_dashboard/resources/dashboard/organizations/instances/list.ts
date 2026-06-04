@@ -7,6 +7,7 @@ export type DashboardOrganizationsInstancesListOutput = {
     slug: string;
     name: string;
     organizationId: string;
+    sandboxId: string | null;
     type: 'development' | 'production';
     createdAt: Date;
     updatedAt: Date;
@@ -39,6 +40,7 @@ export let mapDashboardOrganizationsInstancesListOutput =
             'organization_id',
             mtMap.passthrough()
           ),
+          sandboxId: mtMap.objectField('sandbox_id', mtMap.passthrough()),
           type: mtMap.objectField('type', mtMap.passthrough()),
           createdAt: mtMap.objectField('created_at', mtMap.date()),
           updatedAt: mtMap.objectField('updated_at', mtMap.date()),
@@ -83,7 +85,7 @@ export type DashboardOrganizationsInstancesListQuery = {
   before?: string | undefined;
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
-} & {};
+} & { projectId?: string | string[] | undefined };
 
 export let mapDashboardOrganizationsInstancesListQuery = mtMap.union([
   mtMap.unionOption(
@@ -93,7 +95,17 @@ export let mapDashboardOrganizationsInstancesListQuery = mtMap.union([
       after: mtMap.objectField('after', mtMap.passthrough()),
       before: mtMap.objectField('before', mtMap.passthrough()),
       cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough())
+      order: mtMap.objectField('order', mtMap.passthrough()),
+      projectId: mtMap.objectField(
+        'project_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      )
     })
   )
 ]);
