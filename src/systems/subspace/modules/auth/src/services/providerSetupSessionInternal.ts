@@ -384,46 +384,10 @@ class providerSetupSessionInternalServiceImpl {
       if (
         d.session.status === 'completed' ||
         d.session.status === 'archived' ||
-        d.session.status === 'deleted'
+        d.session.status === 'deleted' ||
+        d.session.status === 'expired'
       )
         return d.setup;
-
-      let now = new Date();
-      let setupExpired = d.setup.status === 'expired' || d.setup.expiresAt <= now;
-      let sessionExpired = d.session.status === 'expired' || d.session.expiresAt <= now;
-
-      if (setupExpired || sessionExpired) {
-        if (d.setup.status !== 'expired' && d.setup.expiresAt <= now) {
-          d.setup = await db.providerOAuthSetup.update({
-            where: { oid: d.setup.oid },
-            data: { status: 'expired' }
-          });
-        }
-
-        if (d.session.status !== 'expired') {
-          await db.providerSetupSession.update({
-            where: { oid: d.session.oid },
-            data: { status: 'expired' }
-          });
-
-          await db.providerSetupSessionEvent.createMany({
-            data: {
-              ...getId('providerSetupSessionEvent'),
-              type: 'expired',
-              ip: d.context.ip,
-              ua: d.context.ua,
-              sessionOid: d.session.oid,
-              setupOid: d.setup.oid
-            }
-          });
-
-          addAfterTransactionHook(async () =>
-            providerSetupSessionUpdatedQueue.add({ providerSetupSessionId: d.session.id })
-          );
-        }
-
-        return d.setup;
-      }
 
       if (d.setup.status === 'completed') {
         await db.providerSetupSession.update({
@@ -487,7 +451,39 @@ class providerSetupSessionInternalServiceImpl {
           }
         });
       } else {
-        // Abort if the setup session is not in a terminal state
+        let now = new Date();
+        let setupExpired = d.setup.status === 'expired' || d.setup.expiresAt <= now;
+        let sessionExpired = d.session.expiresAt <= now;
+
+        if (setupExpired || sessionExpired) {
+          if (d.setup.status !== 'expired' && d.setup.expiresAt <= now) {
+            d.setup = await db.providerOAuthSetup.update({
+              where: { oid: d.setup.oid },
+              data: { status: 'expired' }
+            });
+          }
+
+          await db.providerSetupSession.update({
+            where: { oid: d.session.oid },
+            data: { status: 'expired' }
+          });
+
+          await db.providerSetupSessionEvent.createMany({
+            data: {
+              ...getId('providerSetupSessionEvent'),
+              type: 'expired',
+              ip: d.context.ip,
+              ua: d.context.ua,
+              sessionOid: d.session.oid,
+              setupOid: d.setup.oid
+            }
+          });
+
+          addAfterTransactionHook(async () =>
+            providerSetupSessionUpdatedQueue.add({ providerSetupSessionId: d.session.id })
+          );
+        }
+
         return d.setup;
       }
 

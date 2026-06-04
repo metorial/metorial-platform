@@ -107,14 +107,14 @@ class providerOAuthSetupInternalServiceImpl {
         }
 
         let nextSetupStatus: typeof providerOAuthSetup.status | undefined =
-          providerOAuthSetup.status === 'completed' ||
-          providerOAuthSetup.status === 'failed' ||
-          providerOAuthSetup.status === 'expired'
-            ? undefined
-            : record.status === 'failed'
-              ? 'failed'
-              : record.status === 'completed'
-                ? 'completed'
+          record.status === 'failed'
+            ? 'failed'
+            : record.status === 'completed'
+              ? 'completed'
+              : providerOAuthSetup.status === 'completed' ||
+                  providerOAuthSetup.status === 'failed' ||
+                  providerOAuthSetup.status === 'expired'
+                ? undefined
                 : 'opened';
 
         let setup = await db.providerOAuthSetup.update({
