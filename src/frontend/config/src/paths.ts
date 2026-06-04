@@ -147,7 +147,7 @@ let InstancePaths = Object.assign(
       ...subPages: SubPages
     ) => {
       if (!id) return '#';
-      return InstancePaths(organization, project, instance, 'skill-templates', id, ...subPages);
+      return InstancePaths(organization, project, instance, 'skill-template', id, ...subPages);
     },
     skillGroups: (
       organization: EntityParam,
