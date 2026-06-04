@@ -5,8 +5,8 @@
   "private": true,
   "scripts": {
     "start": "bun run server:start",
-    "dev": "bun --watch ./src/server.ts",
-    "worker:dev": "bun --watch ./src/worker.ts",
+    "dev": "bun \"$(ROOT=$(git rev-parse --show-toplevel); if [ -f \"$ROOT/scripts/dev-tools/src/cli.ts\" ]; then echo \"$ROOT/scripts/dev-tools/src/cli.ts\"; else echo \"$ROOT/oss/scripts/dev-tools/src/cli.ts\"; fi)\" watch-bun ./src/server.ts",
+    "worker:dev": "bun \"$(ROOT=$(git rev-parse --show-toplevel); if [ -f \"$ROOT/scripts/dev-tools/src/cli.ts\" ]; then echo \"$ROOT/scripts/dev-tools/src/cli.ts\"; else echo \"$ROOT/oss/scripts/dev-tools/src/cli.ts\"; fi)\" watch-bun ./src/worker.ts",
     "enterprise:dev": "bun run dev",
     "server:build": "ncc build ./src/server.ts -o ./dist --source-map --transpile-only && bun run sentry:sourcemaps:if-token",
     "worker:build": "ncc build ./src/worker.ts -o ./dist-worker --source-map --transpile-only",

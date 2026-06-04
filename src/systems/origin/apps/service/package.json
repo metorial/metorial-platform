@@ -4,7 +4,7 @@
   "type": "commonjs",
   "private": true,
   "scripts": {
-    "enterprise:dev": "bun --watch ./src/server.ts",
+    "enterprise:dev": "bun \"$(ROOT=$(git rev-parse --show-toplevel); if [ -f \"$ROOT/scripts/dev-tools/src/cli.ts\" ]; then echo \"$ROOT/scripts/dev-tools/src/cli.ts\"; else echo \"$ROOT/oss/scripts/dev-tools/src/cli.ts\"; fi)\" watch-bun ./src/server.ts",
     "start": "bun run server:start",
     "check-types": "tsc --noEmit -p tsconfig.server.json",
     "server:build": "bun run check-types && ncc build ./src/server.ts -o ./dist --source-map --transpile-only && bun run sentry:sourcemaps:if-token",

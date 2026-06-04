@@ -8,7 +8,7 @@
     "server:build": "ncc build ./src/server.ts -o ./dist --source-map --transpile-only && bun run sentry:sourcemaps",
     "sentry:sourcemaps": "(sentry-cli sourcemaps inject --org metorial --project mte-function-bay ./dist && sentry-cli sourcemaps upload --org metorial --project mte-function-bay ./dist) || true",
     "server:start": "bun ./dist/index.js",
-    "dev": "bun --watch ./src/server.ts",
+    "dev": "bun \"$(ROOT=$(git rev-parse --show-toplevel); if [ -f \"$ROOT/scripts/dev-tools/src/cli.ts\" ]; then echo \"$ROOT/scripts/dev-tools/src/cli.ts\"; else echo \"$ROOT/oss/scripts/dev-tools/src/cli.ts\"; fi)\" watch-bun ./src/server.ts",
     "enterprise:dev": "bun run dev",
     "infra:up": "docker compose -p function-bay -f ./docker-compose.dev.yml --profile infra up -d --pull always",
     "infra:down": "docker compose -p function-bay -f ./docker-compose.dev.yml --profile infra down",

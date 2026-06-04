@@ -4,7 +4,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "start:dev:server": "bun --watch ./src/server.ts",
+    "start:dev:server": "bun \"$(ROOT=$(git rev-parse --show-toplevel); if [ -f \"$ROOT/scripts/dev-tools/src/cli.ts\" ]; then echo \"$ROOT/scripts/dev-tools/src/cli.ts\"; else echo \"$ROOT/oss/scripts/dev-tools/src/cli.ts\"; fi)\" watch-bun ./src/server.ts",
     "start:dev:vite": "bun run dev",
     "start:dev": "bun run start:dev:server",
     "dev": "vite build --watch ./frontend",

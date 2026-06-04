@@ -2,9 +2,10 @@ import { createLock } from '@lowerdeck/lock';
 import { type Environment, type Solution, type Tenant } from '@metorial-subspace/db';
 import { identityActorService, identityService } from '@metorial-subspace/module-identity';
 import { env } from '../../env';
-import { integrationInclude } from '../integration';
+import { integrationProviderVersionInclude } from '../../lib/integrationIncludes';
 import { integrationInstanceProviderInclude } from '../integrationInstance';
 import { integrationInstanceGroupInclude } from '../integrationInstanceGroup';
+import { integrationVersionInclude } from '../integrationVersion';
 
 export type BackingProviderInput = {
   providerDeploymentId: string;
@@ -47,9 +48,26 @@ export let withMagicMcpBackingLock = async <T>(
   return await run(0);
 };
 
+let magicMcpBackingIntegrationInclude = {
+  currentVersion: {
+    include: integrationVersionInclude
+  },
+  providers: {
+    where: { status: 'active' as const },
+    include: {
+      provider: true,
+      currentVersion: {
+        include: integrationProviderVersionInclude
+      }
+    }
+  },
+  providerTemplateBacking: true,
+  magicMcpServerBacking: true
+} as const;
+
 export let magicMcpProviderTemplateBackingInclude = {
   integration: {
-    include: integrationInclude
+    include: magicMcpBackingIntegrationInclude
   }
 } as const;
 
@@ -58,10 +76,10 @@ export let magicMcpServerBackingInclude = {
     include: magicMcpProviderTemplateBackingInclude
   },
   ownerIntegration: {
-    include: integrationInclude
+    include: magicMcpBackingIntegrationInclude
   },
   integration: {
-    include: integrationInclude
+    include: magicMcpBackingIntegrationInclude
   },
   integrationInstance: {
     include: {

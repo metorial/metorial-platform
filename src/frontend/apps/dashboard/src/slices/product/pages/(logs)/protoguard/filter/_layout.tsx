@@ -69,14 +69,6 @@ export let ProtoGuardFilterLayout = () => {
                 )
               }
             ]}
-            extra={
-              <Flex gap="2" align="center" wrap="wrap">
-                <ProtoGuardSeverityBadge severity={filter.severity} />
-                <Text size="1" color="gray600">
-                  {filter.enabled ? 'Enabled' : 'Disabled'}
-                </Text>
-              </Flex>
-            }
             links={{
               current: pathname,
               items: [

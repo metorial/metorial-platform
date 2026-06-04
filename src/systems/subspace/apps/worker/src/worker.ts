@@ -13,6 +13,7 @@ import { enclaveQueueProcessor } from '@metorial-subspace/module-enclave/src/que
 import { identityQueueProcessor } from '@metorial-subspace/module-identity/src/queues';
 import { integrationQueueProcessor } from '@metorial-subspace/module-integration/src/queues';
 import { monitorQueueProcessor } from '@metorial-subspace/module-monitor/src/queues';
+import { syncProtoGuardFilters } from '@metorial-subspace/module-connection/src/protoguard/registry';
 import { providerInternalQueueProcessor } from '@metorial-subspace/module-provider-internal/src/queues';
 import { sessionQueueProcessor } from '@metorial-subspace/module-session/src/queues';
 import { skillsQueueProcessor } from '@metorial-subspace/module-skills/src/queues';
@@ -20,6 +21,10 @@ import { tenantQueueProcessors } from '@metorial-subspace/module-tenant/src/queu
 import { nativeProviderQueues } from '@metorial-subspace/provider-native';
 import { shuttleProviderQueues } from '@metorial-subspace/provider-shuttle';
 import { slatesProviderQueues } from '@metorial-subspace/provider-slates';
+
+setTimeout(async () => {
+  await syncProtoGuardFilters();
+}, 10_000);
 
 runQueueProcessors([
   sessionQueueProcessor,

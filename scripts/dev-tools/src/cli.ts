@@ -2,6 +2,7 @@
 
 import { initMinio } from './commands/initMinio';
 import { setEnv } from './commands/setEnv';
+import { watchBun } from './commands/watchBun';
 
 let args = process.argv.slice(2);
 
@@ -15,6 +16,10 @@ switch (command) {
 
   case 'init-minio':
     initMinio();
+    break;
+
+  case 'watch-bun':
+    await watchBun(args);
     break;
 
   default:

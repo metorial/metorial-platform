@@ -66,6 +66,7 @@ let AlertHeaderActions = ({ alert }: { alert: ReturnType<typeof useMonitorAlert>
         color="black"
         variant="outline"
         loading={unresolve.isLoading}
+        success={unresolve.isSuccess}
         onClick={() => unresolve.mutate(undefined)}
       >
         Reopen
@@ -79,6 +80,7 @@ let AlertHeaderActions = ({ alert }: { alert: ReturnType<typeof useMonitorAlert>
       color="black"
       variant="solid"
       loading={resolve.isLoading}
+      success={resolve.isSuccess}
       onClick={() => resolve.mutate(undefined)}
     >
       Resolve

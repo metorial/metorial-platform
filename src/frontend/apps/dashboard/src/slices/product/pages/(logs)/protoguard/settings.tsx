@@ -3,6 +3,11 @@ import { useCurrentInstance, useProtoGuardConfig } from '@metorial/state';
 import { Button, Input, Spacer } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
 
+let parseOptionalNumber = (value: unknown) => {
+  let stringValue = String(value ?? '').trim();
+  return stringValue === '' ? null : Number(stringValue);
+};
+
 let ThresholdForm = ({ config }: { config: ReturnType<typeof useProtoGuardConfig> }) => {
   let mutator = config.setAlertFilterCountThresholdMutator();
   let form = useForm({
@@ -12,7 +17,7 @@ let ThresholdForm = ({ config }: { config: ReturnType<typeof useProtoGuardConfig
     updateInitialValues: true,
     onSubmit: async values => {
       await mutator.mutate({
-        threshold: values.threshold.trim() === '' ? null : Number(values.threshold)
+        threshold: parseOptionalNumber(values.threshold)
       });
     },
     schema: yup =>
@@ -30,13 +35,14 @@ let ThresholdForm = ({ config }: { config: ReturnType<typeof useProtoGuardConfig
         placeholder="Number of matching filters"
         {...form.getFieldProps('threshold')}
       />
+      <form.RenderError field="threshold" />
 
       <Spacer height={15} />
 
       <Button type="submit" size="2" loading={mutator.isLoading} success={mutator.isSuccess}>
         Save
       </Button>
-      <form.RenderError field="threshold" />
+      <mutator.RenderError />
     </form>
   );
 };

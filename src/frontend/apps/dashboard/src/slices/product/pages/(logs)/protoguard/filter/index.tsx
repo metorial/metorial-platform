@@ -1,8 +1,7 @@
 import { renderWithLoader, useForm } from '@metorial/data-hooks';
-import { PageHeader } from '@metorial/layout';
 import { useCurrentInstance, useProtoGuardConfig } from '@metorial/state';
-import { Button, Flex, Input, Switch, theme } from '@metorial/ui';
-import { Table } from '@metorial/ui-product';
+import { Button, Flex, Input, Switch } from '@metorial/ui';
+import { Box, Table } from '@metorial/ui-product';
 import { useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { ProtoGuardSeverityBadge } from '../../../../scenes/monitoring/badges';
@@ -30,16 +29,10 @@ let SettingsForm = styled.form`
   max-width: 560px;
 `;
 
-let Section = styled.section`
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-`;
-
-let Divider = styled.div`
-  height: 1px;
-  background: ${theme.colors.gray300};
-`;
+let parseOptionalNumber = (value: unknown) => {
+  let stringValue = String(value ?? '').trim();
+  return stringValue === '' ? null : Number(stringValue);
+};
 
 export let ProtoGuardFilterSettingsPage = () => {
   let instance = useCurrentInstance();
@@ -60,10 +53,7 @@ export let ProtoGuardFilterSettingsPage = () => {
       await updateFilter.mutate({
         filterId,
         enabled: values.enabled,
-        alertConfidenceThreshold:
-          values.alertConfidenceThreshold.trim() === ''
-            ? null
-            : Number(values.alertConfidenceThreshold)
+        alertConfidenceThreshold: parseOptionalNumber(values.alertConfidenceThreshold)
       });
     },
     schema: yup =>
@@ -79,50 +69,45 @@ export let ProtoGuardFilterSettingsPage = () => {
 
     return (
       <PageWrapper>
-        <Section>
-          <PageHeader
-            size="3"
-            title="Settings"
-            description="Configure whether this filter can create ProtoGuard alerts and which confidence threshold it should use."
-          />
-        </Section>
+        <Box
+          title="Settings"
+          description="Configure whether this filter can create ProtoGuard alerts and which confidence threshold it should use."
+        >
+          <SettingsForm onSubmit={form.handleSubmit}>
+            <Switch
+              label="Enabled"
+              description="Enable this filter for ProtoGuard alert creation."
+              checked={form.values.enabled}
+              onCheckedChange={checked => form.setFieldValue('enabled', checked)}
+            />
+            <form.RenderError field="enabled" />
 
-        <SettingsForm onSubmit={form.handleSubmit}>
-          <Switch
-            label="Enabled"
-            description="Enable this filter for ProtoGuard alert creation."
-            checked={form.values.enabled}
-            onCheckedChange={checked => form.setFieldValue('enabled', checked)}
-          />
-          <form.RenderError field="enabled" />
+            <Input
+              label="Alert confidence threshold"
+              description="Leave empty to clear the override and use the default threshold."
+              type="number"
+              min={0}
+              max={1}
+              step="0.01"
+              {...form.getFieldProps('alertConfidenceThreshold')}
+            />
+            <form.RenderError field="alertConfidenceThreshold" />
 
-          <Input
-            label="Alert confidence threshold"
-            description="Leave empty to clear the override and use the default threshold."
-            type="number"
-            min={0}
-            max={1}
-            step="0.01"
-            {...form.getFieldProps('alertConfidenceThreshold')}
-          />
-          <form.RenderError field="alertConfidenceThreshold" />
+            <Flex>
+              <Button
+                type="submit"
+                size="2"
+                loading={updateFilter.isLoading}
+                success={updateFilter.isSuccess}
+              >
+                Save filter
+              </Button>
+            </Flex>
+            <updateFilter.RenderError />
+          </SettingsForm>
+        </Box>
 
-          <Flex>
-            <Button
-              type="submit"
-              size="2"
-              loading={updateFilter.isLoading}
-              success={updateFilter.isSuccess}
-            >
-              Save filter
-            </Button>
-          </Flex>
-        </SettingsForm>
-
-        <Divider />
-
-        <Section>
-          <PageHeader size="3" title="Reference" />
+        <Box title="Reference">
           <Table
             headers={[
               'Severity',
@@ -141,7 +126,7 @@ export let ProtoGuardFilterSettingsPage = () => {
               ]
             ]}
           />
-        </Section>
+        </Box>
       </PageWrapper>
     );
   });
