@@ -548,6 +548,10 @@ class ConsumerProfileServiceImpl {
             };
           }
 
+          await Fabric.fire('consumer.profile.created:before', {
+            surface: d.surface
+          });
+
           let accessTag = await db.accessTag.create({
             data: {
               instanceOid: d.surface.instanceOid

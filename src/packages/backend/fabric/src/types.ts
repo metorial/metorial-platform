@@ -330,6 +330,7 @@ export interface FabricEvents {
   'portal.archived:before': { portal: Portal };
   'portal.archived:after': { portal: Portal };
 
+  'consumer.profile.created:before': { surface: ConsumerSurface };
   'consumer.profile.created:after': { consumerProfile: ConsumerProfile, surface: ConsumerSurface };
 
   'consumer.auth_tenant.created:before': { organization: Organization; instance: Instance };
