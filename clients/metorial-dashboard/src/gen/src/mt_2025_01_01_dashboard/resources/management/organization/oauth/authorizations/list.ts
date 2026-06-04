@@ -78,6 +78,7 @@ export type ManagementOrganizationOauthAuthorizationsListOutput = {
         slug: string;
         name: string;
         organizationId: string;
+        sandboxId: string | null;
         type: 'development' | 'production';
         createdAt: Date;
         updatedAt: Date;
@@ -299,6 +300,10 @@ export let mapManagementOrganizationOauthAuthorizationsListOutput =
                   name: mtMap.objectField('name', mtMap.passthrough()),
                   organizationId: mtMap.objectField(
                     'organization_id',
+                    mtMap.passthrough()
+                  ),
+                  sandboxId: mtMap.objectField(
+                    'sandbox_id',
                     mtMap.passthrough()
                   ),
                   type: mtMap.objectField('type', mtMap.passthrough()),

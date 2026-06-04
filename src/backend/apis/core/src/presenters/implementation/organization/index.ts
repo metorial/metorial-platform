@@ -9,5 +9,6 @@ export * from './projectBrand';
 export * from './projectRetention';
 export * from './projectAuthConfigConfiguration';
 export * from './projectToolCallingConfiguration';
+export * from './sandbox';
 export * from './team';
 export * from './user';

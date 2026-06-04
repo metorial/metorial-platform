@@ -6,43 +6,37 @@ import { bootLoader } from './boot';
 export let instancesLoader = createLoader({
   name: 'instances',
   parents: [bootLoader],
-  fetch: (i: { organizationId: string }) =>
+  fetch: (i: {
+    organizationId: string;
+    projectId?: string;
+    type?: 'development' | 'production';
+  }) =>
     withAuth(sdk =>
       autoPaginate(
-        cursor => sdk.instances.list(i.organizationId, { ...cursor, limit: 100 }),
+        cursor =>
+          sdk.instances.list(i.organizationId, {
+            ...cursor,
+            limit: 100,
+            projectId: i.projectId,
+            type: i.type
+          }),
         (item: { id: string }) => item.id
       )
     ),
-  mutators: {
-    create: (
-      i: {
-        name: string;
-        type: 'development' | 'production';
-        projectId: string;
-      },
-      { input: { organizationId } }
-    ) =>
-      withAuth(sdk =>
-        sdk.instances.create(organizationId, {
-          name: i.name,
-          type: i.type,
-          projectId: i.projectId
-        })
-      )
-  }
+  mutators: {}
 });
 
 export let useInstances = (
   organizationId: string | null | undefined,
   opts?: {
     projectId?: string;
+    type?: 'development' | 'production';
   }
 ) => {
   let instances = instancesLoader.use(organizationId ? { organizationId, ...opts } : null);
 
   return {
-    ...instances,
-    createMutator: instances.useMutator('create')
+    ...instances
   };
 };
 

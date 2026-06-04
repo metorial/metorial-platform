@@ -33,6 +33,10 @@ let scopeResourceMetadata: Record<string, { name: string; description: string }>
     name: 'Organization Instances',
     description: 'These endpoints manage instance records that belong to an organization.'
   },
+  'organization.sandbox': {
+    name: 'Organization Sandboxes',
+    description: 'These endpoints manage development sandboxes that belong to an organization.'
+  },
   'organization.team': {
     name: 'Organization Teams',
     description: 'These endpoints manage team records and assignments.'

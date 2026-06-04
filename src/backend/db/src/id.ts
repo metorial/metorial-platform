@@ -17,6 +17,8 @@ export let ID = createIdGenerator({
   projectBrand: idType.sorted('pbr'),
   projectBrandUpdate: idType.sorted('pbu'),
   instance: idType.sorted('ins'),
+  environment: idType.sorted('env'),
+  sandbox: idType.sorted('sbx'),
 
   machineAccess: idType.sorted('mac'),
   apiKey: idType.sorted('apk'),

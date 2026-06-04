@@ -45,6 +45,8 @@ model OrganizationActor {
   consumerProfiles    ConsumerProfile[]
   consumerInvites     ConsumerInvite[]
   createdSkills       Skill[]
+  sandboxes           Sandbox[]
+  environments        Environment[]
 
   @@unique([isSystem, organizationOid])
 }

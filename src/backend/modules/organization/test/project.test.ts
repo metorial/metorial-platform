@@ -99,7 +99,7 @@ describe('ProjectService', () => {
   });
 
   describe('createProject', () => {
-    it('should create project with development instance', async () => {
+    it('should create project with production instance', async () => {
       let mockOrg = { id: 'org-1', oid: 1 };
       let mockActor = { id: 'actor-1', oid: 1 };
       let mockProject = {
@@ -151,8 +151,8 @@ describe('ProjectService', () => {
         performedBy: mockActor,
         context: {},
         input: {
-          name: 'Development',
-          type: 'development'
+          name: 'Production',
+          type: 'production'
         }
       });
     });

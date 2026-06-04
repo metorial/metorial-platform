@@ -4,16 +4,12 @@ import {
 } from '@metorial/util-endpoint';
 
 import {
-  mapDashboardOrganizationsInstancesCreateBody,
-  mapDashboardOrganizationsInstancesCreateOutput,
   mapDashboardOrganizationsInstancesDeleteOutput,
   mapDashboardOrganizationsInstancesGetOutput,
   mapDashboardOrganizationsInstancesListOutput,
   mapDashboardOrganizationsInstancesListQuery,
   mapDashboardOrganizationsInstancesUpdateBody,
   mapDashboardOrganizationsInstancesUpdateOutput,
-  type DashboardOrganizationsInstancesCreateBody,
-  type DashboardOrganizationsInstancesCreateOutput,
   type DashboardOrganizationsInstancesDeleteOutput,
   type DashboardOrganizationsInstancesGetOutput,
   type DashboardOrganizationsInstancesListOutput,
@@ -103,34 +99,6 @@ export class MetorialManagementOrganizationInstancesEndpoint {
 
     return this._get(request).transform(
       mapDashboardOrganizationsInstancesGetOutput
-    );
-  }
-
-  /**
-   * @name Create organization instance
-   * @description Create a new organization instance
-   *
-   * @param `body` - DashboardOrganizationsInstancesCreateBody
-   * @param `opts` - { headers?: Record<string, string> }
-   * @returns DashboardOrganizationsInstancesCreateOutput
-   * @see https://metorial.com/api
-   * @see https://metorial.com/docs
-   */
-  create(
-    body: DashboardOrganizationsInstancesCreateBody,
-    opts?: { headers?: Record<string, string> }
-  ): Promise<DashboardOrganizationsInstancesCreateOutput> {
-    let path = 'organization/instances';
-
-    let request = {
-      path,
-      body: mapDashboardOrganizationsInstancesCreateBody.transformTo(body),
-
-      ...(opts?.headers ? { headers: opts.headers } : {})
-    } as any;
-
-    return this._post(request).transform(
-      mapDashboardOrganizationsInstancesCreateOutput
     );
   }
 

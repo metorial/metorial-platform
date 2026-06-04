@@ -52,6 +52,7 @@ import {
   Portal,
   Profile,
   Project,
+  Sandbox,
   ProviderTemplate,
   Secret,
   SecretType,
@@ -293,12 +294,27 @@ export let projectBrandType = PresentableType.create<{
 }>()('projectBrand');
 
 export let instanceType = PresentableType.create<{
-  instance: Instance & { project: Project; organization: Organization };
+  instance: Instance & {
+    project: Project;
+    organization: Organization;
+    sandbox?: Sandbox | null;
+  };
 }>()('instance');
 
 export let instanceListType = PresentableType.create<{
-  instances: (Instance & { project: Project; organization: Organization })[];
+  instances: (Instance & {
+    project: Project;
+    organization: Organization;
+    sandbox?: Sandbox | null;
+  })[];
 }>()('instanceList');
+
+export let sandboxType = PresentableType.create<{
+  sandbox: Sandbox & {
+    creatorActor: OrganizationActor & { organization: Organization };
+    instance: Instance & { project: Project; organization: Organization };
+  };
+}>()('sandbox');
 
 export let organizationType = PresentableType.create<{
   organization: Organization;

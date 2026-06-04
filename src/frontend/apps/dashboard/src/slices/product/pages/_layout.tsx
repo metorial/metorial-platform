@@ -13,13 +13,13 @@ import {
   RiFileList3Line,
   RiFlowChart,
   RiFolderSettingsLine,
-  RiFunctionLine,
   RiGroupLine,
   RiHome6Line,
   RiKey2Line,
   RiListCheck2,
   RiPlugLine,
   RiRfidLine,
+  RiSafeLine,
   RiServerLine,
   RiSettings2Line,
   RiShieldKeyholeLine,
@@ -328,8 +328,8 @@ export let ProjectPageLayout = () => {
               getProps: i => ({ isActive: checkPath(i, { exact: true }) })
             },
             {
-              icon: <RiFunctionLine />,
-              label: 'Instances',
+              icon: <RiSafeLine />,
+              label: 'Sandboxes',
               to: Paths.instance.developer(...params, 'environments'),
               getProps: i => ({ isActive: checkPath(i, { exact: true }) })
             },

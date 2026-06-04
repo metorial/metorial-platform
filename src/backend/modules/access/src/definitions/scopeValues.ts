@@ -176,6 +176,9 @@ let coreScopesRaw = [
   'organization.instance:read' as const,
   'organization.instance:write' as const,
 
+  'organization.sandbox:read' as const,
+  'organization.sandbox:write' as const,
+
   'organization.team:read' as const,
   'organization.team:write' as const,
 

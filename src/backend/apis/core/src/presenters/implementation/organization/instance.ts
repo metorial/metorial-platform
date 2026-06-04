@@ -11,6 +11,7 @@ export let v1InstancePresenter = Presenter.create(instanceType)
     slug: instance.slug,
     name: instance.name,
     organization_id: instance.organization.id,
+    sandbox_id: instance.sandbox?.id ?? null,
     type: instance.type,
     created_at: new Date(instance.createdAt),
     updated_at: new Date(instance.updatedAt),
@@ -45,6 +46,13 @@ export let v1InstancePresenter = Presenter.create(instanceType)
         description: `The organization's unique identifier`,
         examples: ['org_7hNkPqRsTuVwXyZa']
       }),
+      sandbox_id: v.nullable(
+        v.string({
+          name: 'sandbox_id',
+          description: `The sandbox's unique identifier, if this instance is a sandbox`,
+          examples: ['sbx_9sTuVwXyZaBcDeFg']
+        })
+      ),
       type: v.enumOf(['development', 'production'], {
         name: 'type',
         description: `The instance's type`

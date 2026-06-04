@@ -1,6 +1,7 @@
 import { combineQueueProcessors } from '@metorial/queue';
 import { reconcileAuthVersionProcessors } from './queues/reconcileAuthVersion';
 import { reconcileDefaultPoliciesProcessors } from './queues/reconcileDefaultPolicies';
+import { reconcileProjectInstancesProcessors } from './queues/reconcileProjectInstances';
 import {
   syncBrandOrganizationQueueProcessor,
   syncBrandQueueProcessor
@@ -19,6 +20,7 @@ export let organizationQueueProcessor = combineQueueProcessors([
 
   reconcileAuthVersionProcessors,
   reconcileDefaultPoliciesProcessors,
+  reconcileProjectInstancesProcessors,
 
   syncSubspaceTenantProcessors
 ]);
