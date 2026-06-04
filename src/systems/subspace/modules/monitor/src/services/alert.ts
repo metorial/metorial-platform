@@ -96,6 +96,33 @@ let upsertRecipientViewed = async (d: {
     }
   });
 
+let createViewedEventOnce = async (d: {
+  db: TransactionDB;
+  alertOid: bigint;
+  actor?: TenantActor | null;
+  viewedAt: Date;
+}) => {
+  let existing = await d.db.monitorAlertEvent.findFirst({
+    where: {
+      type: 'viewed',
+      monitorAlertOid: d.alertOid,
+      actorOid: d.actor?.oid ?? null
+    },
+    select: { oid: true }
+  });
+  if (existing) return;
+
+  await d.db.monitorAlertEvent.create({
+    data: {
+      ...getId('monitorAlertEvent'),
+      type: 'viewed',
+      monitorAlertOid: d.alertOid,
+      actorOid: d.actor?.oid,
+      createdAt: d.viewedAt
+    }
+  });
+};
+
 let getAlertById = async (d: Scope & { alertId: string; actor?: TenantActor | null }) => {
   let alert = await db.monitorAlert.findFirst({
     where: {
@@ -116,11 +143,20 @@ let getAlertById = async (d: Scope & { alertId: string; actor?: TenantActor | nu
     if (!existingRecipient) {
       return await withTransaction(
         async db => {
+          let viewedAt = new Date();
+
           await upsertRecipientViewed({
             db,
             alertOid: alert.oid,
             actor: d.actor!,
-            viewedAt: new Date()
+            viewedAt
+          });
+
+          await createViewedEventOnce({
+            db,
+            alertOid: alert.oid,
+            actor: d.actor,
+            viewedAt
           });
 
           return await db.monitorAlert.findFirstOrThrow({
@@ -282,14 +318,11 @@ class alertServiceImpl {
         });
       }
 
-      await db.monitorAlertEvent.create({
-        data: {
-          ...getId('monitorAlertEvent'),
-          type: 'viewed',
-          monitorAlertOid: alert.oid,
-          actorOid: d.actor?.oid,
-          createdAt: now
-        }
+      await createViewedEventOnce({
+        db,
+        alertOid: alert.oid,
+        actor: d.actor,
+        viewedAt: now
       });
     });
 
