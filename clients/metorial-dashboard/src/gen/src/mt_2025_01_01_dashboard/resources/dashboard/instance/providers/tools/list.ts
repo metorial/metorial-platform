@@ -1,6 +1,6 @@
 import { mtMap } from '@metorial/util-resource-mapper';
 
-export type DashboardInstanceProviderToolsListOutput = {
+export type DashboardInstanceProvidersToolsListOutput = {
   items: {
     object: 'provider.tool';
     id: string;
@@ -21,8 +21,8 @@ export type DashboardInstanceProviderToolsListOutput = {
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
-export let mapDashboardInstanceProviderToolsListOutput =
-  mtMap.object<DashboardInstanceProviderToolsListOutput>({
+export let mapDashboardInstanceProvidersToolsListOutput =
+  mtMap.object<DashboardInstanceProvidersToolsListOutput>({
     items: mtMap.objectField(
       'items',
       mtMap.array(
@@ -87,7 +87,7 @@ export let mapDashboardInstanceProviderToolsListOutput =
     )
   });
 
-export type DashboardInstanceProviderToolsListQuery = {
+export type DashboardInstanceProvidersToolsListQuery = {
   limit?: number | undefined;
   after?: string | undefined;
   before?: string | undefined;
@@ -95,7 +95,7 @@ export type DashboardInstanceProviderToolsListQuery = {
   order?: 'asc' | 'desc' | undefined;
 } & { providerVersionId: string };
 
-export let mapDashboardInstanceProviderToolsListQuery = mtMap.union([
+export let mapDashboardInstanceProvidersToolsListQuery = mtMap.union([
   mtMap.unionOption(
     'object',
     mtMap.object({

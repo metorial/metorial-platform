@@ -4,12 +4,12 @@ import {
 } from '@metorial/util-endpoint';
 
 import {
-  mapDashboardInstanceProviderToolsGetOutput,
-  mapDashboardInstanceProviderToolsListOutput,
-  mapDashboardInstanceProviderToolsListQuery,
-  type DashboardInstanceProviderToolsGetOutput,
-  type DashboardInstanceProviderToolsListOutput,
-  type DashboardInstanceProviderToolsListQuery
+  mapDashboardInstanceProvidersToolsGetOutput,
+  mapDashboardInstanceProvidersToolsListOutput,
+  mapDashboardInstanceProvidersToolsListQuery,
+  type DashboardInstanceProvidersToolsGetOutput,
+  type DashboardInstanceProvidersToolsListOutput,
+  type DashboardInstanceProvidersToolsListQuery
 } from '../resources';
 
 /**
@@ -19,7 +19,7 @@ import {
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
  */
-export class MetorialProviderToolsEndpoint {
+export class MetorialProvidersToolsEndpoint {
   constructor(private readonly _manager: MetorialEndpointManager<any>) {}
 
   // thin proxies so method bodies stay unchanged
@@ -43,29 +43,29 @@ export class MetorialProviderToolsEndpoint {
    * @name List provider tools
    * @description Returns a paginated list of provider tools. By default returns tools from the latest version. Use optional filters to get tools for a specific version.
    *
-   * @param `query` - DashboardInstanceProviderToolsListQuery
+   * @param `query` - DashboardInstanceProvidersToolsListQuery
    * @param `opts` - { headers?: Record<string, string> }
-   * @returns DashboardInstanceProviderToolsListOutput
+   * @returns DashboardInstanceProvidersToolsListOutput
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
   list(
-    query?: DashboardInstanceProviderToolsListQuery,
+    query?: DashboardInstanceProvidersToolsListQuery,
     opts?: { headers?: Record<string, string> }
-  ): Promise<DashboardInstanceProviderToolsListOutput> {
+  ): Promise<DashboardInstanceProvidersToolsListOutput> {
     let path = 'provider-tools';
 
     let request = {
       path,
 
       query: query
-        ? mapDashboardInstanceProviderToolsListQuery.transformTo(query)
+        ? mapDashboardInstanceProvidersToolsListQuery.transformTo(query)
         : undefined,
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
     return this._get(request).transform(
-      mapDashboardInstanceProviderToolsListOutput
+      mapDashboardInstanceProvidersToolsListOutput
     );
   }
 
@@ -75,14 +75,14 @@ export class MetorialProviderToolsEndpoint {
    *
    * @param `providerToolId` - string
    * @param `opts` - { headers?: Record<string, string> }
-   * @returns DashboardInstanceProviderToolsGetOutput
+   * @returns DashboardInstanceProvidersToolsGetOutput
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
   get(
     providerToolId: string,
     opts?: { headers?: Record<string, string> }
-  ): Promise<DashboardInstanceProviderToolsGetOutput> {
+  ): Promise<DashboardInstanceProvidersToolsGetOutput> {
     let path = `provider-tools/${providerToolId}`;
 
     let request = {
@@ -92,7 +92,7 @@ export class MetorialProviderToolsEndpoint {
     } as any;
 
     return this._get(request).transform(
-      mapDashboardInstanceProviderToolsGetOutput
+      mapDashboardInstanceProvidersToolsGetOutput
     );
   }
 }

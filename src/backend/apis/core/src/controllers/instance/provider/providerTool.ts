@@ -33,7 +33,7 @@ export let providerToolController = Controller.create(
   },
   {
     list: instanceGroup
-      .get(instancePath('provider-tools', 'provider.tools.list'), {
+      .get(instancePath('provider-tools', 'providers.tools.list'), {
         name: 'List provider tools',
         description:
           'Returns a paginated list of provider tools. By default returns tools from the latest version. Use optional filters to get tools for a specific version.',
@@ -63,7 +63,7 @@ export let providerToolController = Controller.create(
       }),
 
     get: providerToolGroup
-      .get(instancePath('provider-tools/:providerToolId', 'provider.tools.get'), {
+      .get(instancePath('provider-tools/:providerToolId', 'providers.tools.get'), {
         name: 'Get provider tool',
         description: 'Retrieves a specific provider tool by ID.',
         legacyPaths: instanceLegacyPath('providers-tools/:providerToolId')
