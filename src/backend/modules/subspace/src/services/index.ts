@@ -63,6 +63,7 @@ export * from './providerTrigger';
 export * from './providerVariant';
 export * from './providerVersion';
 export * from './publisher';
+export * from './resourceCount';
 export * from './scmConnection';
 export * from './scmConnectionSetupSession';
 export * from './scmProvider';

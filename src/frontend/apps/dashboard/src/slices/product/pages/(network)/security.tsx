@@ -37,7 +37,7 @@ export let SecurityOverviewPage = () => {
   return (
     <ContentLayout>
       <PageHeader
-        title="Security"
+        title="Compute"
         description="Review your Metorial Magic Network, firewall options, and recent network activity."
       />
 
