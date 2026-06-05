@@ -18,11 +18,24 @@ import { secretService } from '../../secret';
 import { serverEventService } from '../serverEvent';
 import { remoteOAuthConnectionService } from './connection';
 
+export let getRemoteOAuthRedirectUri = (d: {
+  connection: Pick<RemoteOAuthConnection, 'registrationOid'>;
+  serverOAuthSetup?: { callbackUrlOverride?: string | null } | null;
+}) => {
+  // Auto registrations are created against Shuttle's default callback URL.
+  if (d.serverOAuthSetup?.callbackUrlOverride && !d.connection.registrationOid) {
+    return d.serverOAuthSetup.callbackUrlOverride;
+  }
+
+  return oauthCallbackUrl;
+};
+
 class remoteOauthAuthorizationServiceImpl {
   async startAuthorization(d: {
     connection: RemoteOAuthConnection & {
       config: RemoteOAuthConfig;
     };
+    serverOAuthSetup?: { callbackUrlOverride?: string | null } | null;
   }) {
     if (d.connection.status != 'active') {
       throw new ServiceError(
@@ -91,6 +104,10 @@ class remoteOauthAuthorizationServiceImpl {
         tenant: setup.tenant,
         connection: d.connection
       });
+    let redirectUri = getRemoteOAuthRedirectUri({
+      connection: d.connection,
+      serverOAuthSetup: d.serverOAuthSetup ?? setup.serverOAuthSetup
+    });
 
     return {
       type: 'redirect' as const,
@@ -98,11 +115,7 @@ class remoteOauthAuthorizationServiceImpl {
       redirectUrl: OAuthUtils.buildAuthorizationUrl({
         authEndpoint: config.authorization_endpoint,
         clientId: DANGEROUS_unencryptedCredentials.clientId,
-        redirectUri:
-          // For auto registrations, we always want to use the default redirect URI
-          setup.serverOAuthSetup?.callbackUrlOverride && !d.connection.registrationOid
-            ? setup.serverOAuthSetup.callbackUrlOverride
-            : oauthCallbackUrl,
+        redirectUri,
         scopes: d.connection.config.scopes,
         state: setup.stateIdentifier!,
         codeChallenge
@@ -220,6 +233,10 @@ class remoteOauthAuthorizationServiceImpl {
     let connection = attempt.connection;
     let egressPolicy = attempt.serverOAuthSetup.serverInstanceConfiguration
       ?.egressPolicy as PrismaJson.CompiledEgressNetworkAllowList | null;
+    let redirectUri = getRemoteOAuthRedirectUri({
+      connection,
+      serverOAuthSetup: attempt.serverOAuthSetup
+    });
 
     let tokenResponse: TokenResponse;
     let profile: RemoteOAuthConnectionProfile | null = null;
@@ -236,7 +253,7 @@ class remoteOauthAuthorizationServiceImpl {
         clientId: DANGEROUS_unencryptedCredentials.clientId,
         clientSecret: DANGEROUS_unencryptedCredentials.clientSecret ?? undefined,
         code: d.response.code!,
-        redirectUri: oauthCallbackUrl,
+        redirectUri,
         codeVerifier: attempt.codeVerifier ?? undefined,
         config: connection.config.config,
         egressPolicy

@@ -2,9 +2,9 @@ import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { serverOAuthSetupLogsPresenter, serverOAuthSetupPresenter } from '../../presenters';
 import {
+  serverInstanceConfigurationService,
   serverOAuthCredentialsService,
   serverOAuthSetupService,
-  serverInstanceConfigurationService,
   serverService
 } from '../../services';
 import { app } from './_app';
