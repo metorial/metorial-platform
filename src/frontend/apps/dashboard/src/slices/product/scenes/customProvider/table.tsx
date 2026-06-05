@@ -123,19 +123,6 @@ let customProviderTableColumns: TableColumn<CustomProvider, CustomProvidersTable
     )
   },
   {
-    id: 'version',
-    isDefault: true,
-    header: 'Version',
-    render: (provider: CustomProvider) => (
-      <Text
-        size="2"
-        color={provider.provider?.currentVersion?.version ? undefined : 'gray600'}
-      >
-        {provider.provider?.currentVersion?.version ?? '-'}
-      </Text>
-    )
-  },
-  {
     id: 'createdAt',
     isDefault: true,
     header: 'Created',

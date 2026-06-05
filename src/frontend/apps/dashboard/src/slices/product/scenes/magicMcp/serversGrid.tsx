@@ -7,17 +7,25 @@ import {
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
-  useMagicMcpServers
+  useAllProviderListings,
+  useMagicMcpServers,
+  useProviderListings
 } from '@metorial/state';
 import { Badge, RenderDate, Text } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
+import { useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Table as DashboardTable } from '../../../../components/table';
-import { FilterPayload } from '../../../../components/table/filter';
+import { FilterPayload, TableFilter } from '../../../../components/table/filter';
 import {
   TableStateProvider,
   TableStateProviderResult
 } from '../../../../components/table/type';
-import { getEnumListFilterValue, getStringFilterValue } from '../../../../lib/dataTableUtils';
+import {
+  getEnumListFilterValue,
+  getListFilterValue,
+  getStringFilterValue
+} from '../../../../lib/dataTableUtils';
 
 type Server = DashboardInstanceMagicMcpServersListOutput['items'][number];
 
@@ -33,6 +41,38 @@ let getServerStatusFilterValue = (
 ): DashboardInstanceMagicMcpServersListQuery['status'] =>
   getEnumListFilterValue(value, ['active', 'archived', 'deleted']);
 
+let getMagicMcpServerFilters = (
+  providerOptions: { id: string; label: string }[]
+): TableFilter<Server>[] => [
+  {
+    id: 'status',
+    fields: ['status'],
+    label: 'Status',
+    description: 'Filter by status',
+    type: 'select',
+    options: [
+      { id: 'active', label: 'Active' },
+      { id: 'archived', label: 'Archived' },
+      { id: 'deleted', label: 'Deleted' }
+    ]
+  },
+  {
+    id: 'magicMcpGroupId',
+    fields: ['magicMcpGroupId'],
+    label: 'Group ID',
+    description: 'Filter by group ID',
+    type: 'string'
+  },
+  {
+    id: 'providerId',
+    fields: ['providerId'],
+    label: 'Provider',
+    description: 'Filter by provider',
+    type: 'select',
+    options: providerOptions
+  }
+];
+
 let magicServersState: TableStateProvider<
   MagicMcpServersTableProps,
   Server,
@@ -43,6 +83,7 @@ let magicServersState: TableStateProvider<
     status: getServerStatusFilterValue(opts.filter.status) ?? props.status,
     magicMcpGroupId:
       getStringFilterValue(opts.filter.magicMcpGroupId) ?? props.magicMcpGroupId,
+    providerId: getListFilterValue(opts.filter.providerId) ?? props.providerId,
     consumerId: props.consumerId,
     consumerProfileId: props.consumerProfileId,
     search: opts.search ?? props.search
@@ -140,27 +181,7 @@ let magicServersTable = new DashboardTable<MagicMcpServersTableProps, Server>(
       render: server => <ID id={server.id} />
     }
   ])
-  .filters([
-    {
-      id: 'status',
-      fields: ['status'],
-      label: 'Status',
-      description: 'Filter by status',
-      type: 'select',
-      options: [
-        { id: 'active', label: 'Active' },
-        { id: 'archived', label: 'Archived' },
-        { id: 'deleted', label: 'Deleted' }
-      ]
-    },
-    {
-      id: 'magicMcpGroupId',
-      fields: ['magicMcpGroupId'],
-      label: 'Group ID',
-      description: 'Filter by group ID',
-      type: 'string'
-    }
-  ])
+  .filters(getMagicMcpServerFilters([]))
   .search('Search Magic MCP servers...')
   .link((server, props) =>
     Paths.instance.magicMcp.server(
@@ -180,6 +201,50 @@ export let MagicMcpServersTable = (
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
+  let location = useLocation();
+  let selectedProviderIds = useMemo(() => {
+    let ids = new Set<string>();
+    let providerIdParam = new URLSearchParams(location.search).get('providerId');
+
+    if (providerIdParam) {
+      for (let id of providerIdParam.split(',')) {
+        if (id.trim()) ids.add(id.trim());
+      }
+    }
+
+    for (let id of Array.isArray(filter.providerId)
+      ? filter.providerId
+      : filter.providerId
+        ? [filter.providerId]
+        : []) {
+      if (id.trim()) ids.add(id.trim());
+    }
+
+    return [...ids].sort();
+  }, [filter.providerId, location.search]);
+  let providerListings = useProviderListings(instance.data?.id, {
+    orderByRank: true,
+    limit: 100
+  });
+  let selectedProviderListings = useAllProviderListings(instance.data?.id, selectedProviderIds);
+  let providerOptions = useMemo(
+    () =>
+      [
+        ...new Map(
+          [...(providerListings.data?.items ?? []), ...(selectedProviderListings.data ?? [])].map(
+            listing => [
+              listing.provider.id,
+              {
+                id: listing.provider.id,
+                label: listing.name ?? listing.provider.name ?? listing.provider.slug
+              }
+            ]
+          )
+        ).values()
+      ].sort((a, b) => a.label.localeCompare(b.label)),
+    [providerListings.data?.items, selectedProviderListings.data]
+  );
+  let filters = useMemo(() => getMagicMcpServerFilters(providerOptions), [providerOptions]);
 
   return magicServersTable({
     instanceId: instance.data!.id,
@@ -187,6 +252,7 @@ export let MagicMcpServersTable = (
     project,
     instance,
     ...filter,
+    tableFilters: filters,
     emptyState: 'No Magic MCP servers found.',
     headerActions: filter.headerActions ? () => filter.headerActions : undefined
   });

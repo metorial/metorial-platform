@@ -1,14 +1,8 @@
 import { PaginationSearchParamsProvider } from '@metorial/data-hooks';
 import { ContentLayout, PageHeader } from '@metorial/layout';
-import {
-  useCurrentInstance,
-  useCurrentOrganization,
-  useCurrentProject,
-  useDashboardFlags,
-  useUser
-} from '@metorial/state';
+import { useDashboardFlags, useUser } from '@metorial/state';
 import { Button, Menu } from '@metorial/ui';
-import { Outlet, useLocation } from 'react-router-dom';
+import { Outlet } from 'react-router-dom';
 import { showCustomProviderRemoteFormModal } from '../../../scenes/customProvider/modal';
 
 export let ManagedProvidersListLayout = () => {
@@ -25,22 +19,22 @@ export let ManagedProvidersListLayout = () => {
   return (
     <ContentLayout>
       <PageHeader
-        title="Custom Providers"
-        description="Build custom MCP providers powered by Metorial. Deploy them on your own infrastructure or use our custom providers."
+        title="Custom MCP Servers"
+        description="Build custom MCP servers powered by Metorial. Deploy them on your own infrastructure or use Metorial-managed infrastructure."
         actions={
           !!flags.data?.flags['paid-custom-docker-providers'] ? (
             <Menu
-              label="Create Custom Provider"
+              label="Create Custom MCP Server"
               items={[
                 {
                   id: 'docker',
-                  label: 'Docker Provider',
-                  description: 'Deploy a custom Docker image as an MCP provider on Metorial.'
+                  label: 'Docker MCP Server',
+                  description: 'Deploy a custom Docker image as an MCP server on Metorial.'
                 },
                 {
                   id: 'managed',
-                  label: 'Custom Provider',
-                  description: 'Connect a GitHub repo and deploy to Metorial automatically.'
+                  label: 'Custom MCP Server',
+                  description: 'Connect a GitHub repo and deploy a custom MCP server to Metorial automatically.'
                 }
               ]}
               onItemClick={id => {
@@ -59,7 +53,7 @@ export let ManagedProvidersListLayout = () => {
                 loading={user.isLoading}
                 disabled={!user.data && !user.isLoading}
               >
-                Create Custom Provider
+                Create Custom MCP Server
               </Button>
             </Menu>
           ) : (
@@ -73,7 +67,7 @@ export let ManagedProvidersListLayout = () => {
                 disabled={!user.data && !user.isLoading}
                 size="2"
               >
-                Create Custom Provider
+                Create Custom MCP Server
               </Button>
             )
           )
@@ -88,19 +82,13 @@ export let ManagedProvidersListLayout = () => {
 };
 
 export let ExternalProvidersListLayout = () => {
-  let instance = useCurrentInstance();
-  let project = useCurrentProject();
-  let organization = useCurrentOrganization();
-
-  let pathname = useLocation().pathname;
-
   let flags = useDashboardFlags();
 
   return (
     <ContentLayout>
       <PageHeader
-        title="External Providers"
-        description="Connect to external MCP providers using the Metorial platform."
+        title="Remote MCP Servers"
+        description="Connect to remote MCP servers using the Metorial platform."
         actions={
           !!flags.data?.flags['paid-custom-providers'] && (
             <Button
@@ -111,7 +99,7 @@ export let ExternalProvidersListLayout = () => {
               }
               size="2"
             >
-              Link Remote Provider
+              Link Remote MCP Server
             </Button>
           )
         }

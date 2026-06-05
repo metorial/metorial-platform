@@ -49,7 +49,7 @@ export let CustomProviderLayout = () => {
         title={customProvider.data?.name ?? '...'}
         pagination={[
           {
-            label: isExternalProvider ? 'External Providers' : 'Custom Providers',
+            label: isExternalProvider ? 'Remote MCP Servers' : 'Custom MCP Servers',
             href: isExternalProvider
               ? Paths.instance.externalProviders(
                   organization.data,

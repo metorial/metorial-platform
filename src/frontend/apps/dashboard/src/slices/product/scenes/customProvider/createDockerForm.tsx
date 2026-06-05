@@ -63,7 +63,7 @@ export let CustomProviderDockerCreateForm = (p: {
       });
 
       if (customProviderRes) {
-        toast.success('Provider created successfully');
+        toast.success('Custom MCP server created successfully');
 
         if (p.onCreate) {
           p.onCreate(customProviderRes);
@@ -127,7 +127,7 @@ export let CustomProviderDockerCreateForm = (p: {
                 >
                   <Input
                     label="Docker Image"
-                    description="The Docker image URL for your MCP provider"
+                    description="The Docker image URL for your custom MCP server."
                     placeholder="e.g. ghcr.io/metorial/mcp-server:latest"
                     {...form.getFieldProps('dockerImage')}
                   />
@@ -159,7 +159,7 @@ export let CustomProviderDockerCreateForm = (p: {
 
           {
             title: 'Finish',
-            subtitle: 'Review and deploy',
+            subtitle: 'Review and create the Docker MCP server',
             render: () => {
               return (
                 <form onSubmit={form.handleSubmit}>
@@ -180,7 +180,7 @@ export let CustomProviderDockerCreateForm = (p: {
                       type="submit"
                       size="2"
                     >
-                      Create
+                      Create Docker MCP Server
                     </Button>
                   </Actions>
                 </form>
