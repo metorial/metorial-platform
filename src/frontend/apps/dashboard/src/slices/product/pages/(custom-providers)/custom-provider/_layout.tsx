@@ -5,16 +5,12 @@ import {
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
-  useCustomProvider,
-  useDashboardFlags
+  useCustomProvider
 } from '@metorial/state';
-import { Button, Callout, LinkTabs, Menu, Spacer } from '@metorial/ui';
-import { Link, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
-import {
-  showMagicMcpServerFormModal,
-  showProviderDeploymentFormModal
-} from '../../../scenes/providerDeployments/modal';
+import { Button, Callout, LinkTabs, Spacer } from '@metorial/ui';
+import { Link, Outlet, useLocation, useParams } from 'react-router-dom';
 import { isCustomProviderScmBacked } from '../../../scenes/customProvider/utils';
+import { UseProviderButton } from '../../../scenes/providers/useProviderButton';
 
 export let CustomProviderLayout = () => {
   let instance = useCurrentInstance();
@@ -80,9 +76,7 @@ export let CustomProviderLayout = () => {
               </Link>
             )}
 
-            <DeployServerButton providerId={customProvider.data?.provider?.id}>
-              Deploy Provider
-            </DeployServerButton>
+            <UseProviderButton providerId={customProvider.data?.provider?.id} />
           </>
         }
       />
@@ -148,94 +142,5 @@ export let CustomProviderLayout = () => {
         </>
       ))}
     </ContentLayout>
-  );
-};
-
-export let DeployServerButton = ({
-  children,
-  providerId,
-  disabled
-}: {
-  children: React.ReactNode;
-  providerId: string | undefined;
-  disabled?: boolean;
-}) => {
-  let instance = useCurrentInstance();
-  let organization = useCurrentOrganization();
-  let project = useCurrentProject();
-  let navigate = useNavigate();
-  let flags = useDashboardFlags();
-  let isDisabled = disabled || !providerId;
-
-  return !isDisabled && flags.data?.flags['magic-mcp-enabled'] ? (
-    <Menu
-      items={[
-        {
-          id: 'provider-deployment',
-          label: 'Provider Deployment',
-          description: 'More powerful and flexible.'
-        },
-
-        ...(flags.data?.flags['magic-mcp-enabled']
-          ? [
-              {
-                id: 'magic-mcp-server',
-                label: 'Magic MCP Server',
-                description: 'Easier to use and manage.'
-              }
-            ]
-          : [])
-      ]}
-      onItemClick={item => {
-        if (item === 'provider-deployment') {
-          if (!instance.data) return;
-          showProviderDeploymentFormModal({
-            type: 'create',
-            instanceId: instance.data.id,
-            providerId,
-            onCreate: deployment =>
-              navigate(
-                Paths.instance.providerDeployment(
-                  organization.data,
-                  project.data,
-                  instance.data,
-                  deployment.id
-                )
-              )
-          });
-        } else if (item === 'magic-mcp-server') {
-          showMagicMcpServerFormModal({
-            type: 'create',
-            for: { providerId }
-          });
-        }
-      }}
-    >
-      <Button size="2">{children}</Button>
-    </Menu>
-  ) : (
-    <Button
-      disabled={isDisabled}
-      size="2"
-      onClick={() =>
-        instance.data &&
-        showProviderDeploymentFormModal({
-          type: 'create',
-          instanceId: instance.data.id,
-          providerId,
-          onCreate: deployment =>
-            navigate(
-              Paths.instance.providerDeployment(
-                organization.data,
-                project.data,
-                instance.data,
-                deployment.id
-              )
-            )
-        })
-      }
-    >
-      {children}
-    </Button>
   );
 };

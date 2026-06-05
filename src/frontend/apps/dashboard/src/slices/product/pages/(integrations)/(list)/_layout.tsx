@@ -8,7 +8,7 @@ import {
 } from '@metorial/state';
 import { Button } from '@metorial/ui';
 import { Outlet, useNavigate } from 'react-router-dom';
-import { showIntegrationFormModal } from '../../../scenes/integrations/modal';
+import { showCreateIntegrationProviderFirstFlow } from '../../../scenes/integrations/providerPanelFlow';
 
 export let IntegrationsListLayout = () => {
   let instance = useCurrentInstance();
@@ -26,9 +26,7 @@ export let IntegrationsListLayout = () => {
             size="2"
             onClick={() =>
               instance.data &&
-              showIntegrationFormModal({
-                type: 'create',
-                instanceId: instance.data.id,
+              showCreateIntegrationProviderFirstFlow({
                 onCreate: integration => {
                   navigate(
                     Paths.instance.integration(

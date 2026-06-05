@@ -48,6 +48,7 @@ import { ProvidersWithDeploymentsSearch } from '../providers/search';
 type AddProviderPanelFormValues = {
   selectedProviderId: string;
   selectedProviderName: string;
+  selectedProviderDescription: string;
   selectedDeploymentId: string;
   selectedConfiguration: ConfigurationSelection;
   selectedAuthConfigId: string;
@@ -71,6 +72,8 @@ type InitialToolFilter =
 
 export type ProviderPanelSubmitInput = {
   providerId: string;
+  providerName?: string;
+  providerDescription?: string | null;
   providerDeploymentId?: string;
   providerConfigId?: string;
   providerConfigVaultId?: string;
@@ -110,7 +113,7 @@ type AddProviderPanelFlowProps = {
   onComplete: () => void;
 };
 
-let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
+export let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
   let createConfigMutation = useCreateProviderConfig();
   let createMutation = useCreateSessionTemplateProvider();
   let deleteMutation = useDeleteSessionTemplateProvider();
@@ -119,6 +122,7 @@ let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
   let selectedProvider = useProvider(p.instanceId, p.providerId);
   let resolvedProviderName =
     selectedProvider.data?.name ?? selectedProvider.data?.slug ?? p.providerId ?? '';
+  let resolvedProviderDescription = selectedProvider.data?.description ?? '';
   let selectedProviderRequiresConfig = selectedProvider.data?.type.config.status == 'enabled';
   let selectedProviderRequiresAuth = selectedProvider.data?.type.auth.status == 'enabled';
   let [step, setStep] = useState(p.hideProviderStep ? 0 : p.providerId ? 1 : 0);
@@ -145,6 +149,7 @@ let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
     initialValues: {
       selectedProviderId: p.providerId ?? '',
       selectedProviderName: resolvedProviderName,
+      selectedProviderDescription: resolvedProviderDescription,
       selectedDeploymentId: p.initialDeploymentId ?? '',
       selectedConfiguration: p.initialConfigId
         ? { kind: 'config', id: p.initialConfigId }
@@ -180,6 +185,8 @@ let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
 
       let submitInput: ProviderPanelSubmitInput = {
         providerId: values.selectedProviderId,
+        providerName: values.selectedProviderName,
+        providerDescription: values.selectedProviderDescription || undefined,
         ...(values.selectedDeploymentId
           ? { providerDeploymentId: values.selectedDeploymentId }
           : {}),
@@ -270,6 +277,7 @@ let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
       yup.object({
         selectedProviderId: yup.string().defined(),
         selectedProviderName: yup.string().defined(),
+        selectedProviderDescription: yup.string().optional().default(''),
         selectedDeploymentId: yup.string().optional().default(''),
         selectedConfiguration: yup.mixed<ConfigurationSelection>().defined(),
         selectedAuthConfigId: yup.string().optional().default(''),
@@ -288,11 +296,20 @@ let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
     if (resolvedProviderName && form.values.selectedProviderName !== resolvedProviderName) {
       form.setFieldValue('selectedProviderName', resolvedProviderName);
     }
+
+    if (
+      resolvedProviderDescription &&
+      form.values.selectedProviderDescription !== resolvedProviderDescription
+    ) {
+      form.setFieldValue('selectedProviderDescription', resolvedProviderDescription);
+    }
   }, [
     p.providerId,
     resolvedProviderName,
+    resolvedProviderDescription,
     form.values.selectedProviderId,
-    form.values.selectedProviderName
+    form.values.selectedProviderName,
+    form.values.selectedProviderDescription
   ]);
 
   useEffect(() => {
@@ -304,6 +321,10 @@ let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
 
     if (resolvedProviderName && !form.values.selectedProviderName) {
       form.setFieldValue('selectedProviderName', resolvedProviderName);
+    }
+
+    if (resolvedProviderDescription && !form.values.selectedProviderDescription) {
+      form.setFieldValue('selectedProviderDescription', resolvedProviderDescription);
     }
 
     if (p.initialDeploymentId && !form.values.selectedDeploymentId) {
@@ -334,8 +355,10 @@ let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
     selectedProviderRequiresConfig,
     selectedProviderRequiresAuth,
     resolvedProviderName,
+    resolvedProviderDescription,
     form.values.selectedProviderId,
     form.values.selectedProviderName,
+    form.values.selectedProviderDescription,
     form.values.selectedDeploymentId,
     form.values.selectedConfiguration.kind,
     form.values.selectedAuthConfigId
@@ -386,9 +409,14 @@ let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
     resetConfigurationState();
   };
 
-  let handleProviderSelect = (providerId: string, providerName: string) => {
+  let handleProviderSelect = (
+    providerId: string,
+    providerName: string,
+    providerDescription?: string | null
+  ) => {
     form.setFieldValue('selectedProviderId', providerId);
     form.setFieldValue('selectedProviderName', providerName);
+    form.setFieldValue('selectedProviderDescription', providerDescription ?? '');
     resetDeploymentAndConfigurationState();
     setStep(1);
   };
@@ -1301,7 +1329,11 @@ let PickProviderStep = (p: {
   instanceId: string;
   excludeProviderIds?: string[];
   selectedProviderId?: string;
-  onSelect: (providerId: string, providerName: string) => void;
+  onSelect: (
+    providerId: string,
+    providerName: string,
+    providerDescription?: string | null
+  ) => void;
 }) => {
   let [search, setSearch] = useState('');
   let [filterState, setFilterState] = useState<TableFilterState[]>([]);
@@ -1335,7 +1367,11 @@ let PickProviderStep = (p: {
         selectedProviderId={p.selectedProviderId}
         onSelect={provider => {
           requestAnimationFrame(() => {
-            p.onSelect(provider.id, provider.name ?? provider.slug ?? 'Provider');
+            p.onSelect(
+              provider.id,
+              provider.name ?? provider.slug ?? 'Provider',
+              provider.description
+            );
           });
         }}
       />

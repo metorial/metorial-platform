@@ -4,6 +4,7 @@ import {
   IntegrationInstanceProvider,
   IntegrationPreview,
   IntegrationProvider,
+  useCreateIntegration,
   useCreateIntegrationProvider,
   useCreateProviderConfig,
   useCreateProviderDeployment,
@@ -62,6 +63,8 @@ type IntegrationProviderFormValues = ToolFilterFormValues & {
 
 export type IntegrationProviderPanelSubmitInput = {
   providerId: string;
+  providerName?: string;
+  providerDescription?: string | null;
   providerDeploymentId: string;
   providerConfigId?: string | null;
   providerAuthMethodId?: string | null;
@@ -163,7 +166,8 @@ let useProviderSetupVisibility = (p: {
     shouldAutoCreateEmptyConfig,
     configRequirement,
     mustRequestInstanceConfig,
-    providerName: getProviderName(provider.data, p.providerId ?? undefined)
+    providerName: getProviderName(provider.data, p.providerId ?? undefined),
+    providerDescription: provider.data?.description
   };
 };
 
@@ -581,6 +585,8 @@ let IntegrationProviderSetupStep = (p: {
     if (p.onSubmitProvider) {
       let result = await p.onSubmitProvider({
         providerId: p.providerId,
+        providerName: visibility.providerName,
+        providerDescription: visibility.providerDescription ?? undefined,
         providerDeploymentId: deployment.id,
         providerConfigId: providerConfigId ?? null,
         providerAuthMethodId: providerAuthMethodId ?? null,
@@ -900,6 +906,8 @@ let IntegrationProviderSetupStep = (p: {
 let AddIntegrationProviderPanel = (p: {
   integration?: IntegrationPreview;
   integrationProvider?: IntegrationProvider;
+  providerId?: string;
+  hideProviderStep?: boolean;
   close: () => void;
   setPanelWidth: (width: number) => void;
   onComplete: () => void;
@@ -911,8 +919,10 @@ let AddIntegrationProviderPanel = (p: {
   ) => Promise<{ error?: unknown; success?: boolean }>;
 }) => {
   let instance = useCurrentInstance();
-  let [step, setStep] = useState(p.integrationProvider ? 1 : 0);
-  let [providerId, setProviderId] = useState(p.integrationProvider?.provider?.id ?? '');
+  let [step, setStep] = useState(p.integrationProvider || p.providerId ? 1 : 0);
+  let [providerId, setProviderId] = useState(
+    p.integrationProvider?.provider?.id ?? p.providerId ?? ''
+  );
   let excludedProviderIds = useMemo(
     () =>
       (p.integration?.providers ?? [])
@@ -922,8 +932,8 @@ let AddIntegrationProviderPanel = (p: {
   );
 
   useEffect(() => {
-    p.setPanelWidth(step === 0 ? 1050 : 660);
-  }, [step, p.setPanelWidth]);
+    p.setPanelWidth(!p.hideProviderStep && step === 0 ? 1050 : 660);
+  }, [step, p.hideProviderStep, p.setPanelWidth]);
 
   let steps = useMemo(
     () => [
@@ -950,7 +960,7 @@ let AddIntegrationProviderPanel = (p: {
               integrationProvider={p.integrationProvider}
               providerId={providerId}
               close={p.close}
-              onBack={p.integrationProvider ? undefined : () => setStep(0)}
+              onBack={p.integrationProvider || p.hideProviderStep ? undefined : () => setStep(0)}
               onComplete={p.onComplete}
               submitLabel={p.submitLabel}
               onSubmitProvider={p.onSubmitProvider}
@@ -965,6 +975,7 @@ let AddIntegrationProviderPanel = (p: {
       providerId,
       p.integration,
       p.integrationProvider,
+      p.hideProviderStep,
       p.close,
       p.onComplete
     ]
@@ -979,14 +990,14 @@ let AddIntegrationProviderPanel = (p: {
           ? 'Update optional provider settings for this integration.'
           : 'Choose a provider to add to this integration.')
       }
-      steps={p.integrationProvider ? [steps[1]!] : steps}
-      currentStep={p.integrationProvider ? 0 : step}
+      steps={p.integrationProvider || p.hideProviderStep ? [steps[1]!] : steps}
+      currentStep={p.integrationProvider || p.hideProviderStep ? 0 : step}
       setCurrentStep={nextStep => {
-        if (p.integrationProvider) return;
+        if (p.integrationProvider || p.hideProviderStep) return;
         if (nextStep === 0 || providerId) setStep(nextStep);
       }}
       isStepDisabled={nextStep => nextStep === 1 && !providerId}
-      hideStepper={!!p.integrationProvider}
+      hideStepper={!!p.integrationProvider || !!p.hideProviderStep}
     />
   );
 };
@@ -1016,6 +1027,7 @@ export let showConfigureIntegrationProviderPanelFlow = (p: {
   title?: string;
   description?: string;
   submitLabel?: string;
+  providerId?: string;
   onSubmitProvider: (
     input: IntegrationProviderPanelSubmitInput
   ) => Promise<{ error?: unknown; success?: boolean }>;
@@ -1026,12 +1038,86 @@ export let showConfigureIntegrationProviderPanelFlow = (p: {
       title={p.title}
       description={p.description}
       submitLabel={p.submitLabel}
+      providerId={p.providerId}
+      hideProviderStep={!!p.providerId}
       close={close}
       setPanelWidth={setWidth}
       onSubmitProvider={p.onSubmitProvider}
       onComplete={p.onComplete}
     />
-  ));
+  ), p.providerId ? { width: 660 } : undefined);
+
+let CreateIntegrationProviderFirstPanel = (p: {
+  providerId?: string;
+  close: () => void;
+  setPanelWidth: (width: number) => void;
+  onCreate?: (integration: IntegrationPreview) => void;
+}) => {
+  let instance = useCurrentInstance();
+  let createIntegration = useCreateIntegration();
+  let createIntegrationProvider = useCreateIntegrationProvider();
+  let createdIntegrationRef = useRef<IntegrationPreview | null>(null);
+
+  return (
+    <AddIntegrationProviderPanel
+      providerId={p.providerId}
+      hideProviderStep={!!p.providerId}
+      close={p.close}
+      setPanelWidth={p.setPanelWidth}
+      title="Create Integration"
+      description={
+        p.providerId
+          ? 'Configure this provider, then create an integration from it.'
+          : 'Select and configure a provider to create an integration.'
+      }
+      submitLabel="Create Integration"
+      onSubmitProvider={async input => {
+        if (!instance.data) return { success: false };
+
+        let [integration] = await createIntegration.mutate({
+          instanceId: instance.data.id,
+          name: input.providerName?.trim() || 'Integration',
+          description: undefined
+        });
+        if (!integration) return { success: false, error: createIntegration.error };
+
+        let [provider] = await createIntegrationProvider.mutate({
+          instanceId: instance.data.id,
+          integrationId: integration.id,
+          providerId: input.providerId,
+          providerDeploymentId: input.providerDeploymentId,
+          providerConfigId: input.providerConfigId ?? null,
+          providerAuthMethodId: input.providerAuthMethodId ?? null,
+          providerAuthCredentialsId: input.providerAuthCredentialsId ?? null,
+          toolFilters: input.toolFilters
+        });
+        if (!provider) return { success: false, error: createIntegrationProvider.error };
+
+        createdIntegrationRef.current = integration;
+        return { success: true };
+      }}
+      onComplete={() => {
+        if (createdIntegrationRef.current) p.onCreate?.(createdIntegrationRef.current);
+      }}
+    />
+  );
+};
+
+export let showCreateIntegrationProviderFirstFlow = (p: {
+  providerId?: string;
+  onCreate?: (integration: IntegrationPreview) => void;
+}) =>
+  showProviderCreationPanel(
+    ({ close, setWidth }) => (
+      <CreateIntegrationProviderFirstPanel
+        providerId={p.providerId}
+        close={close}
+        setPanelWidth={setWidth}
+        onCreate={p.onCreate}
+      />
+    ),
+    p.providerId ? { width: 660 } : undefined
+  );
 
 let IntegrationInstanceProviderPanel = (p: {
   integration: IntegrationPreview;

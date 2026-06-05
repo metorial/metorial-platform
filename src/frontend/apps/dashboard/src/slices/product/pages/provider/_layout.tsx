@@ -17,8 +17,8 @@ import {
 } from '@metorial/state';
 import { Button, Callout, LinkTabs, Spacer } from '@metorial/ui';
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { Link, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { DeployServerButton } from '../(custom-providers)/custom-provider/_layout';
+import { Link, Outlet, useLocation, useParams } from 'react-router-dom';
+import { UseProviderButton } from '../../scenes/providers/useProviderButton';
 
 type ProviderVersion = DashboardInstanceProvidersVersionsListOutput['items'][number];
 type ProviderVersionId = ProviderVersion['id'];
@@ -47,7 +47,6 @@ export let ProviderLayout = () => {
   let instance = useCurrentInstance();
   let project = useCurrentProject();
   let organization = useCurrentOrganization();
-  let navigate = useNavigate();
 
   let { providerId } = useParams();
   let provider = useProvider(instance.data?.id, providerId);
@@ -186,9 +185,11 @@ export let ProviderLayout = () => {
                 </Button>
               </Link>
 
-              <DeployServerButton providerId={providerData?.id}>
-                Deploy Provider
-              </DeployServerButton>
+              <UseProviderButton
+                providerId={providerData?.id}
+                providerName={listing?.name ?? providerData?.name}
+                providerDescription={listing?.description ?? providerData?.description}
+              />
             </>
           }
         />

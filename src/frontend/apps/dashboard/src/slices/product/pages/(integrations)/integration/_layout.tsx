@@ -171,7 +171,7 @@ export let IntegrationLayout = () => {
                 Edit
               </Button> */}
 
-              <Button
+              {/* <Button
                 size="2"
                 variant="outline"
                 onClick={() =>
@@ -182,8 +182,8 @@ export let IntegrationLayout = () => {
                   })
                 }
               >
-                Create Setup Session
-              </Button>
+                Create Setup Link
+              </Button> */}
 
               <Button
                 size="2"

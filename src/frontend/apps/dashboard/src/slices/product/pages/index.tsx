@@ -21,7 +21,6 @@ import {
 import { ApiKeySecret } from '../scenes/apiKeys';
 import { useResolvedInstanceApiKeySecret } from '../scenes/apiKeys/useResolvedInstanceApiKeySecret';
 import { ProvidersGrid } from '../scenes/providers/grid';
-import { ProviderSessionsTable } from '../scenes/providerSessions/table';
 import { InstructionItem } from './provider/components/instructions';
 import { KeySelector } from './provider/components/keySelector';
 
@@ -86,15 +85,15 @@ export let ProjectHomePage = () => {
     ) : (
       <>
         <Text>
-          Before you can use a provider, you need to deploy it. You can do this using the
-          Metorial API or by clicking the button below.
+          Before you can use a provider, create a Magic MCP server or Integration from it.
+          You can do this using the Metorial API or by clicking the button below.
         </Text>
 
         <Spacer height={10} />
 
         <Link to={Paths.instance.providers(...pathItems)}>
           <Button as="span" size="2">
-            Deploy Provider
+            Use Provider
           </Button>
         </Link>
       </>
@@ -184,31 +183,6 @@ export let ProjectHomePage = () => {
 
       {renderWithLoader({ instance, deployments })(() => (
         <>
-          {!hasDeployments && (
-            <>
-              <SideBox
-                title="Welcome to Metorial!"
-                description={
-                  <>
-                    Getting started is super easy. Let's begin by{' '}
-                    <Link to={Paths.instance.providers(...pathItems)}>
-                      deploying your first MCP provider
-                    </Link>
-                    .
-                  </>
-                }
-              >
-                <Link to={Paths.instance.providers(...pathItems)}>
-                  <Button as="span" size="2">
-                    Deploy Provider
-                  </Button>
-                </Link>
-              </SideBox>
-
-              <Spacer height={25} />
-            </>
-          )}
-
           <div
             style={{
               display: 'grid',
@@ -245,85 +219,6 @@ export let ProjectHomePage = () => {
           </div>
 
           <Spacer height={25} />
-
-          {/* <PageHeader
-            title="Get Started"
-            description="Integrate Metorial into your application in just a few steps."
-            size="5"
-          />
-
-          <Spacer height={15} /> */}
-
-          {/* <Instructions
-            variants={[
-              {
-                title: 'JS & AI SDK',
-                icon: (
-                  <img
-                    src="https://cdn.metorial.com/2025-06-09--10-17-03/logos/providers/vercel.svg"
-                    alt="AI SDK"
-                  />
-                ),
-                instructions: [
-                  ...getJSStartInstructions({ additionalPackages: ['@metorial/ai-sdk'] })
-                ],
-                codeViewer: getCodeViewer({
-                  repo: 'metorial-node',
-                  path: 'examples/typescript-ai-sdk',
-                  initialFile: 'index.ts'
-                })
-              },
-              {
-                title: 'JS & OpenAI',
-                icon: (
-                  <img
-                    src="https://cdn.metorial.com/2025-06-09--10-17-03/logos/providers/openai.svg"
-                    alt="OpenAI"
-                  />
-                ),
-                instructions: [
-                  ...getJSStartInstructions({ additionalPackages: ['@metorial/openai'] })
-                ],
-                codeViewer: getCodeViewer({
-                  repo: 'metorial-node',
-                  path: 'examples/typescript-openai',
-                  initialFile: 'index.ts'
-                })
-              },
-              {
-                title: 'Node.js',
-                icon: (
-                  <img
-                    src="https://cdn.metorial.com/2025-06-09--10-17-03/logos/languages/typescript.svg"
-                    alt="TypeScript"
-                  />
-                ),
-                instructions: [...getJSStartInstructions()],
-                codeViewer: getCodeViewer({
-                  repo: 'metorial-node',
-                  path: 'examples/typescript-openai',
-                  initialFile: 'index.ts'
-                })
-              },
-              {
-                title: 'Python',
-                icon: (
-                  <img
-                    src="https://cdn.metorial.com/2025-06-09--10-17-03/logos/languages/python.svg"
-                    alt="Python"
-                  />
-                ),
-                instructions: [...getPythonStartInstructions()],
-                codeViewer: getCodeViewer({
-                  repo: 'metorial-python',
-                  path: 'examples',
-                  initialFile: 'python-openai.py'
-                })
-              }
-            ]}
-          />
-
-          <Spacer height={35} /> */}
 
           {portalsEnabled && !!portals.data?.items.length && (
             <>
@@ -385,24 +280,7 @@ export let ProjectHomePage = () => {
             }
           />
 
-          <ProvidersGrid limit={9} orderByUse="last_deployment_at" orderByRank />
-
-          <Spacer height={25} />
-
-          <PageHeader
-            title="Recent Sessions"
-            description="Your recent sessions are listed below. Click on a session to view its details."
-            size="5"
-            actions={
-              <Link to={Paths.instance.logs(...pathItems)}>
-                <Button size="2" as="span" variant="outline">
-                  View Logs
-                </Button>
-              </Link>
-            }
-          />
-
-          <ProviderSessionsTable limit={15} />
+          <ProvidersGrid limit={15} orderByUse="last_deployment_at" orderByRank />
         </>
       ))}
     </ContentLayout>

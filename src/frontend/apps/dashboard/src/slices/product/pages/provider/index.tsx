@@ -9,8 +9,10 @@ import {
 } from '@metorial/state';
 import { Attributes, Button, Spacer, Text } from '@metorial/ui';
 import { Box, ID, SideBox, Table } from '@metorial/ui-product';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import styled from 'styled-components';
+import { showCreateIntegrationProviderFirstFlow } from '../../scenes/integrations/providerPanelFlow';
+import { showMagicMcpServerCreateFlow } from '../../scenes/providerDeployments/magicMcpForm';
 import { Skills } from './components/skills';
 
 let Header = styled.div`
@@ -21,6 +23,7 @@ let Header = styled.div`
 
 export let ProviderOverviewPage = () => {
   let instance = useCurrentInstance();
+  let navigate = useNavigate();
 
   let { providerId } = useParams();
   let provider = useProvider(instance.data?.id, providerId);
@@ -93,17 +96,40 @@ export let ProviderOverviewPage = () => {
         title="Integrations"
         description="Integrations that include this provider."
         rightActions={
-          <Link
-            to={`${Paths.instance.integrations(
-              instance.data?.organization,
-              instance.data?.project,
-              instance.data
-            )}${providerFilterQuery}`}
-          >
-            <Button as="span" size="1" variant="outline">
-              View All
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Button
+              size="1"
+              onClick={() =>
+                providerId &&
+                showCreateIntegrationProviderFirstFlow({
+                  providerId,
+                  onCreate: integration => {
+                    navigate(
+                      Paths.instance.integration(
+                        instance.data?.organization,
+                        instance.data?.project,
+                        instance.data,
+                        integration.id
+                      )
+                    );
+                  }
+                })
+              }
+            >
+              Create Integration
             </Button>
-          </Link>
+            <Link
+              to={`${Paths.instance.integrations(
+                instance.data?.organization,
+                instance.data?.project,
+                instance.data
+              )}${providerFilterQuery}`}
+            >
+              <Button as="span" size="1" variant="outline">
+                View All
+              </Button>
+            </Link>
+          </div>
         }
       >
         {integrations.isLoading ? (
@@ -144,17 +170,32 @@ export let ProviderOverviewPage = () => {
         title="Magic MCP Servers"
         description="Magic MCP servers that include this provider."
         rightActions={
-          <Link
-            to={`${Paths.instance.magicMcp.servers(
-              instance.data?.organization,
-              instance.data?.project,
-              instance.data
-            )}${providerFilterQuery}`}
-          >
-            <Button as="span" size="1" variant="outline">
-              View All
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Button
+              size="1"
+              onClick={() =>
+                instance.data &&
+                providerId &&
+                showMagicMcpServerCreateFlow({
+                  instanceId: instance.data.id,
+                  providerId
+                })
+              }
+            >
+              Create Magic MCP Server
             </Button>
-          </Link>
+            <Link
+              to={`${Paths.instance.magicMcp.servers(
+                instance.data?.organization,
+                instance.data?.project,
+                instance.data
+              )}${providerFilterQuery}`}
+            >
+              <Button as="span" size="1" variant="outline">
+                View All
+              </Button>
+            </Link>
+          </div>
         }
       >
         {magicMcpServers.isLoading ? (
