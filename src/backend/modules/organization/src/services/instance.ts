@@ -37,6 +37,16 @@ let getInstanceSlug = createSlugGenerator(
     }))
 );
 
+let getNextPreviousSlugs = (d: {
+  previousSlugs: string[];
+  currentSlug: string;
+  nextSlug: string;
+}) => {
+  return Array.from(
+    new Set([...d.previousSlugs.filter(slug => slug !== d.nextSlug), d.currentSlug])
+  );
+};
+
 type InstanceWithRelations = Instance & {
   organization: Organization;
   project: Project;
@@ -68,22 +78,42 @@ class InstanceService {
     }
   }
 
-  private async ensureInstanceSlugAvailable(d: { slug: string; instance?: Instance }) {
+  private async reclaimInstanceSlugOrThrow(d: { slug: string; instance?: Instance }) {
     await withTransaction(
       async db => {
-        let existingInstance = await db.instance.findFirst({
+        let currentSlugInstance = await db.instance.findFirst({
           where: {
-            OR: [{ slug: d.slug }, { previousSlugs: { has: d.slug } }],
+            slug: d.slug,
             id: d.instance ? { not: d.instance.id } : undefined
           }
         });
 
-        if (existingInstance) {
+        if (currentSlugInstance) {
           throw new ServiceError(
             conflictError({
               message: 'An instance with this slug already exists'
             })
           );
+        }
+
+        let previousSlugInstances = await db.instance.findMany({
+          where: {
+            previousSlugs: { has: d.slug },
+            id: d.instance ? { not: d.instance.id } : undefined
+          },
+          select: {
+            oid: true,
+            previousSlugs: true
+          }
+        });
+
+        for (let instance of previousSlugInstances) {
+          await db.instance.update({
+            where: { oid: instance.oid },
+            data: {
+              previousSlugs: instance.previousSlugs.filter(slug => slug !== d.slug)
+            }
+          });
         }
       },
       { ifExists: true }
@@ -305,7 +335,7 @@ class InstanceService {
       });
 
       if (d.input.slug && d.input.slug !== d.instance.slug) {
-        await this.ensureInstanceSlugAvailable({
+        await this.reclaimInstanceSlugOrThrow({
           slug: d.input.slug,
           instance: d.instance
         });
@@ -318,9 +348,11 @@ class InstanceService {
           slug: d.input.slug,
           previousSlugs:
             d.input.slug && d.input.slug !== d.instance.slug
-              ? {
-                  push: d.instance.slug
-                }
+              ? getNextPreviousSlugs({
+                  previousSlugs: d.instance.previousSlugs ?? [],
+                  currentSlug: d.instance.slug,
+                  nextSlug: d.input.slug
+                })
               : undefined,
           type: d.input.type
         },
@@ -486,7 +518,8 @@ class InstanceService {
                         project: {
                           OR: [
                             { id: { in: d.filterProjectIds } },
-                            { slug: { in: d.filterProjectIds } }
+                            { slug: { in: d.filterProjectIds } },
+                            { previousSlugs: { hasSome: d.filterProjectIds } }
                           ]
                         }
                       }
@@ -502,7 +535,8 @@ class InstanceService {
                                   project: {
                                     OR: [
                                       { id: { in: d.projectIds } },
-                                      { slug: { in: d.projectIds } }
+                                      { slug: { in: d.projectIds } },
+                                      { previousSlugs: { hasSome: d.projectIds } }
                                     ]
                                   }
                                 }
@@ -693,7 +727,8 @@ class InstanceService {
                           project: {
                             OR: [
                               { id: { in: d.filterProjectIds } },
-                              { slug: { in: d.filterProjectIds } }
+                              { slug: { in: d.filterProjectIds } },
+                              { previousSlugs: { hasSome: d.filterProjectIds } }
                             ]
                           }
                         }
@@ -709,7 +744,8 @@ class InstanceService {
                                     project: {
                                       OR: [
                                         { id: { in: d.projectIds } },
-                                        { slug: { in: d.projectIds } }
+                                        { slug: { in: d.projectIds } },
+                                        { previousSlugs: { hasSome: d.projectIds } }
                                       ]
                                     }
                                   }
@@ -795,7 +831,11 @@ class InstanceService {
           data: {
             name: 'Production',
             slug,
-            previousSlugs: { push: oldestDevelopmentInstance.slug },
+            previousSlugs: getNextPreviousSlugs({
+              previousSlugs: oldestDevelopmentInstance.previousSlugs ?? [],
+              currentSlug: oldestDevelopmentInstance.slug,
+              nextSlug: slug
+            }),
             type: 'production',
             hasBeenReconciled: true
           },

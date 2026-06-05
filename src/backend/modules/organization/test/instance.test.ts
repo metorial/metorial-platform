@@ -451,6 +451,105 @@ describe('InstanceService', () => {
       // Should still complete without error
       expect(Fabric.fire).toHaveBeenCalled();
     });
+
+    it('should reject slug updates when another instance has the current slug', async () => {
+      let mockInstance = {
+        id: 'inst-1',
+        oid: 1,
+        status: 'active',
+        slug: 'old-slug',
+        previousSlugs: [],
+        project: { id: 'proj-1', oid: 1 }
+      };
+      let update = vi.fn();
+
+      vi.mocked(withTransaction).mockImplementation(async callback => {
+        let mockDb = withCompanionMocks({
+          instance: {
+            findFirst: vi.fn().mockResolvedValue({ id: 'inst-2' }),
+            update
+          }
+        });
+        return callback(mockDb as any);
+      });
+
+      await expect(
+        instanceService.updateInstance({
+          instance: mockInstance as any,
+          organization: { id: 'org-1', oid: 1 } as any,
+          performedBy: { id: 'actor-1', oid: 1 } as any,
+          context: {} as any,
+          input: {
+            slug: 'new-slug'
+          }
+        })
+      ).rejects.toThrow(ServiceError);
+
+      expect(update).not.toHaveBeenCalled();
+    });
+
+    it('should reclaim previous slug conflicts and keep slug history on update', async () => {
+      let mockInstance = {
+        id: 'inst-1',
+        oid: 1,
+        status: 'active',
+        slug: 'old-slug',
+        previousSlugs: ['older-slug', 'new-slug'],
+        project: { id: 'proj-1', oid: 1 }
+      };
+      let updatedInstance = {
+        ...mockInstance,
+        slug: 'new-slug',
+        previousSlugs: ['older-slug', 'old-slug']
+      };
+      let update = vi
+        .fn()
+        .mockResolvedValueOnce({ oid: 2, previousSlugs: ['kept-slug'] })
+        .mockResolvedValueOnce(updatedInstance);
+
+      vi.mocked(withTransaction).mockImplementation(async callback => {
+        let mockDb = withCompanionMocks({
+          instance: {
+            findFirst: vi.fn().mockResolvedValue(null),
+            findMany: vi.fn().mockResolvedValue([
+              {
+                oid: 2,
+                previousSlugs: ['new-slug', 'kept-slug']
+              }
+            ]),
+            update
+          }
+        });
+        return callback(mockDb as any);
+      });
+
+      let result = await instanceService.updateInstance({
+        instance: mockInstance as any,
+        organization: { id: 'org-1', oid: 1 } as any,
+        performedBy: { id: 'actor-1', oid: 1 } as any,
+        context: {} as any,
+        input: {
+          slug: 'new-slug'
+        }
+      });
+
+      expect(result).toEqual(updatedInstance);
+      expect(update).toHaveBeenCalledWith({
+        where: { oid: 2 },
+        data: {
+          previousSlugs: ['kept-slug']
+        }
+      });
+      expect(update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { oid: 1 },
+          data: expect.objectContaining({
+            slug: 'new-slug',
+            previousSlugs: ['older-slug', 'old-slug']
+          })
+        })
+      );
+    });
   });
 
   describe('deleteInstance', () => {
@@ -551,6 +650,38 @@ describe('InstanceService', () => {
       });
 
       expect(result).toEqual(mockInstance);
+    });
+
+    it('should return instance by previous slug', async () => {
+      let mockInstance = {
+        id: 'inst-1',
+        oid: 1,
+        slug: 'current-slug',
+        previousSlugs: ['old-slug'],
+        organizationOid: 1
+      };
+
+      vi.mocked(db.instance.findFirst).mockResolvedValue(mockInstance as any);
+
+      let result = await instanceService.getInstanceById({
+        organization: { id: 'org-1', oid: 1 } as any,
+        instanceId: 'old-slug',
+        actor: { id: 'actor-1', oid: 1 } as any,
+        member: undefined
+      });
+
+      expect(result).toEqual(mockInstance);
+      expect(db.instance.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            OR: [
+              { id: 'old-slug' },
+              { slug: 'old-slug' },
+              { previousSlugs: { has: 'old-slug' } }
+            ]
+          })
+        })
+      );
     });
 
     it('should throw not found error when instance does not exist', async () => {
@@ -820,6 +951,7 @@ describe('InstanceService', () => {
         id: 'inst-1',
         oid: 1,
         slug: 'development',
+        previousSlugs: [],
         name: 'Development',
         type: 'development',
         status: 'active',
@@ -862,7 +994,7 @@ describe('InstanceService', () => {
         data: {
           name: 'Production',
           slug: 'test-slug',
-          previousSlugs: { push: 'development' },
+          previousSlugs: ['development'],
           type: 'production',
           hasBeenReconciled: true
         },
