@@ -6,8 +6,8 @@ import {
   getProviderAuthMethodTypeColor,
   getProviderAuthMethodTypeLabel,
   showProviderAuthMethodDetailsModal
-} from '../../scenes/providers/authMethodDetails';
-import { useProviderVersionContext } from './_layout';
+} from '../../../scenes/providers/authMethodDetails';
+import { useProviderVersionContext } from '../_layout';
 
 export let ProviderAuthMethodsPage = () => {
   let instance = useCurrentInstance();
