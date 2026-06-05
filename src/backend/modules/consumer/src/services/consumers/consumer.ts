@@ -153,8 +153,8 @@ class ConsumerServiceImpl {
       email: string;
     };
   }) {
-    let instanceConsumer = await withTransaction(async tx => {
-      let consumer = await tx.consumer.upsert({
+    let instanceConsumer = await withTransaction(async db => {
+      let consumer = await db.consumer.upsert({
         where: {
           email_organizationOid: {
             email: d.input.email,
@@ -187,7 +187,7 @@ class ConsumerServiceImpl {
         }
       });
 
-      let instanceConsumer = await tx.instanceConsumer.upsert({
+      let instanceConsumer = await db.instanceConsumer.upsert({
         where: {
           instanceOid_consumerOid: {
             instanceOid: d.instance.oid,
@@ -214,7 +214,7 @@ class ConsumerServiceImpl {
         include: getInclude({ instanceOid: d.instance.oid })
       });
 
-      await tx.consumerProfile.updateMany({
+      await db.consumerProfile.updateMany({
         where: {
           instanceOid: d.instance.oid,
           consumerOid: consumer.oid
@@ -246,11 +246,11 @@ class ConsumerServiceImpl {
       email?: string;
     };
   }) {
-    let consumer = await withTransaction(async tx => {
+    let consumer = await withTransaction(async db => {
       let name = d.input.name ?? d.consumer.name;
       let email = d.input.email ?? d.consumer.email;
 
-      await tx.consumer.update({
+      await db.consumer.update({
         where: {
           oid: d.consumer.consumerOid
         },
@@ -270,7 +270,7 @@ class ConsumerServiceImpl {
         }
       });
 
-      let consumer = await tx.instanceConsumer.update({
+      let consumer = await db.instanceConsumer.update({
         where: {
           oid: d.consumer.oid
         },
@@ -284,7 +284,7 @@ class ConsumerServiceImpl {
         include: getInclude({ instanceOid: d.consumer.instanceOid })
       });
 
-      await tx.consumerProfile.updateMany({
+      await db.consumerProfile.updateMany({
         where: {
           instanceOid: d.consumer.instanceOid,
           consumerOid: d.consumer.consumerOid

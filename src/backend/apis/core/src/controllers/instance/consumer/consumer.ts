@@ -203,6 +203,16 @@ export let consumerController = Controller.create(
           );
         }
 
+        if (ctx.auth.type === 'user' && ctx.user.type === 'system') {
+          throw new ServiceError(
+            forbiddenError({
+              message: 'System users cannot use this endpoint',
+              description:
+                'The authenticated user is a system user and cannot use this endpoint.'
+            })
+          );
+        }
+
         let consumerSurface = await consumerSurfaceService.ensureInternalConsumerSurface({
           instance: ctx.instance,
           identifier: ctx.body.surface_identifier,
