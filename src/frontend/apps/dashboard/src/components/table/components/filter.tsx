@@ -114,7 +114,7 @@ let FilterPopover = styled(RadixPopover.Content)`
   width: 500px;
   height: 350px;
   display: grid;
-  grid-template-columns: 160px auto;
+  grid-template-columns: 200px auto;
 
   &[data-state='open'] {
     animation: ${fadeIn} 0.15s ease-in-out;

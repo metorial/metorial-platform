@@ -727,6 +727,7 @@ export type DashboardInstanceMagicMcpServersListQuery = {
     | undefined;
   magicMcpGroupId?: string | string[] | undefined;
   providerTemplateId?: string | string[] | undefined;
+  providerId?: string | string[] | undefined;
   consumerId?: string | string[] | undefined;
   consumerProfileId?: string | string[] | undefined;
   search?: string | undefined;
@@ -759,6 +760,16 @@ export let mapDashboardInstanceMagicMcpServersListQuery = mtMap.union([
       ),
       providerTemplateId: mtMap.objectField(
         'provider_template_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      providerId: mtMap.objectField(
+        'provider_id',
         mtMap.union([
           mtMap.unionOption('string', mtMap.passthrough()),
           mtMap.unionOption(
