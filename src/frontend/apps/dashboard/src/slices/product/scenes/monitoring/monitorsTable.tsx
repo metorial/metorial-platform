@@ -17,7 +17,7 @@ import {
   getEnumListFilterValue,
   getStringFilterValue
 } from '../../../../lib/dataTableUtils';
-import { MonitorOwnerBadge, MonitorStatusBadge, MonitorTargetBadge } from './badges';
+import { MonitorStatusBadge, MonitorTargetBadge } from './badges';
 
 type Monitor = DashboardInstanceMonitorsListOutput['items'][number];
 
@@ -71,16 +71,16 @@ let monitorsTable = new DashboardTable<MonitorsTableStateProps, Monitor>('monito
       render: monitor => <MonitorTargetBadge target={monitor.target} />
     },
     {
-      id: 'status',
+      id: 'name',
       isDefault: true,
-      header: 'Status',
-      render: monitor => <MonitorStatusBadge status={monitor.status} />
+      header: 'Name',
+      render: monitor => <Text size="2">{monitor.name}</Text>
     },
     {
-      id: 'owner',
+      id: 'status',
       isDefault: false,
-      header: 'Owner',
-      render: monitor => <MonitorOwnerBadge owner={monitor.owner} />
+      header: 'Status',
+      render: monitor => <MonitorStatusBadge status={monitor.status} />
     },
     {
       id: 'association',
@@ -127,7 +127,7 @@ let monitorsTable = new DashboardTable<MonitorsTableStateProps, Monitor>('monito
     },
     {
       id: 'createdAt',
-      isDefault: true,
+      isDefault: false,
       header: 'Created',
       render: monitor => <RenderDate date={monitor.createdAt} />
     },
