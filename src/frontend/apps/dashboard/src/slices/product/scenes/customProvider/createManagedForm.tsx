@@ -81,6 +81,7 @@ export let CustomProviderManagedCreateForm = (p: {
     DashboardInstanceScmReposCreateOutput | undefined
   >(undefined);
   let selectedRepoId = selectedRepo?.id;
+  let selectedExternalRepoId = selectedRepo?.provider.id;
 
   let navigate = useNavigate();
   let [templateId, setTemplateId] = useState<string | undefined>(undefined);
@@ -256,7 +257,7 @@ export let CustomProviderManagedCreateForm = (p: {
                 >
                   <TemplateWrapper>
                     <SelectRepo
-                      selectedRepoId={selectedRepoId}
+                      selectedExternalRepoId={selectedExternalRepoId}
                       onSelect={repo => {
                         setSelectedRepo(repo);
                         form.resetForm();

@@ -199,7 +199,10 @@ export let CustomProviderCodePage = () => {
                         Select a repository from your connected Git accounts to link it to this
                         provider.
                       </Dialog.Description>
-                      <SelectRepo onSelect={repo => setRepo(repo)} selectedRepoId={repo?.id} />
+                      <SelectRepo
+                        onSelect={repo => setRepo(repo)}
+                        selectedExternalRepoId={repo?.provider.id}
+                      />
 
                       <Spacer height={15} />
 

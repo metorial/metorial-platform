@@ -225,7 +225,7 @@ export let ConnectGitHubButton = (p: { onConnected: () => void }) => {
 
 export let SelectRepo = (props: {
   onSelect: (repo: DashboardInstanceScmReposCreateOutput) => void;
-  selectedRepoId?: string;
+  selectedExternalRepoId?: string;
 }) => {
   let instance = useCurrentInstance();
 
@@ -348,7 +348,7 @@ export let SelectRepo = (props: {
                       r.name.toLowerCase().includes(repoSearch.toLowerCase())
                   )
                   .map(r => {
-                    let isSelected = props.selectedRepoId == r.externalId;
+                    let isSelected = props.selectedExternalRepoId == r.externalId;
 
                     return (
                       <RepoItem
