@@ -46,6 +46,7 @@ export type TableActions<Item, HooksState> = {
 export type TableItemAction<Item, Actions extends TableActions<any, any>> = {
   id: string;
   label: string;
+  hidden?: (row: Item) => boolean;
   icon: React.ReactNode;
   disabled?: (row: Item) => boolean;
   action: keyof Actions;

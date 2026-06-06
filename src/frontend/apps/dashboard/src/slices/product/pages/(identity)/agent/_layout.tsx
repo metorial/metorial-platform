@@ -1,4 +1,4 @@
-import { renderWithLoader } from '@metorial/data-hooks';
+import { InitialLoadBoundary, renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
 import {
@@ -44,58 +44,60 @@ export let AgentLayout = () => {
         ]}
       />
 
-      {renderWithLoader({ instance, organization, project, agent })(
-        ({ instance, organization, project, agent }) => (
-          <>
-            <LinkTabs
-              current={location.pathname}
-              links={[
-                {
-                  label: 'Overview',
-                  to: Paths.instance.identity.agent(
-                    organization.data,
-                    project.data,
-                    instance.data,
-                    agent.data.id
-                  )
-                },
-                {
-                  label: 'Operations',
-                  to: Paths.instance.identity.agent(
-                    organization.data,
-                    project.data,
-                    instance.data,
-                    agent.data.id,
-                    'operations'
-                  )
-                },
-                {
-                  label: 'Connections',
-                  to: Paths.instance.identity.agent(
-                    organization.data,
-                    project.data,
-                    instance.data,
-                    agent.data.id,
-                    'connections'
-                  )
-                },
-                {
-                  label: 'Delegations',
-                  to: Paths.instance.identity.agent(
-                    organization.data,
-                    project.data,
-                    instance.data,
-                    agent.data.id,
-                    'delegations'
-                  )
-                }
-              ]}
-            />
+      <InitialLoadBoundary>
+        {renderWithLoader({ instance, organization, project, agent })(
+          ({ instance, organization, project, agent }) => (
+            <>
+              <LinkTabs
+                current={location.pathname}
+                links={[
+                  {
+                    label: 'Overview',
+                    to: Paths.instance.identity.agent(
+                      organization.data,
+                      project.data,
+                      instance.data,
+                      agent.data.id
+                    )
+                  },
+                  {
+                    label: 'Operations',
+                    to: Paths.instance.identity.agent(
+                      organization.data,
+                      project.data,
+                      instance.data,
+                      agent.data.id,
+                      'operations'
+                    )
+                  },
+                  {
+                    label: 'Connections',
+                    to: Paths.instance.identity.agent(
+                      organization.data,
+                      project.data,
+                      instance.data,
+                      agent.data.id,
+                      'connections'
+                    )
+                  },
+                  {
+                    label: 'Delegations',
+                    to: Paths.instance.identity.agent(
+                      organization.data,
+                      project.data,
+                      instance.data,
+                      agent.data.id,
+                      'delegations'
+                    )
+                  }
+                ]}
+              />
 
-            <Outlet />
-          </>
-        )
-      )}
+              <Outlet />
+            </>
+          )
+        )}
+      </InitialLoadBoundary>
     </ContentLayout>
   );
 };

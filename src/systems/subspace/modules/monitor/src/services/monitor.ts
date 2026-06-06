@@ -55,7 +55,9 @@ class monitorServiceImpl {
         let and: Prisma.MonitorWhereInput[] = [
           d.ids ? { id: { in: d.ids } } : undefined!,
           d.targets ? { target: { in: d.targets } } : undefined!,
-          d.statuses ? { status: { in: d.statuses } } : undefined!,
+          d.statuses
+            ? { status: { in: d.statuses } }
+            : { status: { not: 'archived' as const } },
           d.owners ? { owner: { in: d.owners } } : undefined!,
           protoGuardFilterOids
             ? { protoGuardFilterOid: { in: protoGuardFilterOids } }

@@ -6,6 +6,7 @@ enum MonitorTarget {
 enum MonitorStatus {
   active
   inactive
+  archived
 }
 
 enum MonitorOwner {

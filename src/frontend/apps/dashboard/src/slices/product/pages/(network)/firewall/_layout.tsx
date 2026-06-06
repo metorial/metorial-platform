@@ -1,4 +1,4 @@
-import { renderWithLoader } from '@metorial/data-hooks';
+import { InitialLoadBoundary, renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
 import {
@@ -28,7 +28,11 @@ export let NetworkFirewallPageLayout = () => {
             pagination={[
               {
                 label: 'Firewalls',
-                href: Paths.instance.networkFirewalls(organization.data, project.data, instance.data)
+                href: Paths.instance.networkFirewalls(
+                  organization.data,
+                  project.data,
+                  instance.data
+                )
               },
               {
                 label: firewall.data.name,
@@ -67,7 +71,9 @@ export let NetworkFirewallPageLayout = () => {
             ]}
           />
 
-          <Outlet />
+          <InitialLoadBoundary>
+            <Outlet />
+          </InitialLoadBoundary>
         </>
       ))}
     </ContentLayout>

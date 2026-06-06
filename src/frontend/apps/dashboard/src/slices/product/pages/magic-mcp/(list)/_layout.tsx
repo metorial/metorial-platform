@@ -1,4 +1,4 @@
-import { PaginationSearchParamsProvider } from '@metorial/data-hooks';
+import { InitialLoadBoundary, PaginationSearchParamsProvider } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
 import {
@@ -10,7 +10,7 @@ import { Button, LinkTabs } from '@metorial/ui';
 import { Outlet, useLocation } from 'react-router-dom';
 import { createMagicMcpGroupModal } from '../../../scenes/magicMcp/groupsTable';
 import { createMagicMcpTokenModal } from '../../../scenes/magicMcp/tokensTable';
-import { showMagicMcpServerFormModal } from '../../../scenes/providerDeployments/modal';
+import { showMagicMcpServerCreateFlow } from '../../../scenes/providerDeployments/magicMcpForm';
 
 export let MagicMcpListLayout = () => {
   let instance = useCurrentInstance();
@@ -30,8 +30,9 @@ export let MagicMcpListLayout = () => {
             servers: (
               <Button
                 onClick={() =>
-                  showMagicMcpServerFormModal({
-                    type: 'create'
+                  instance.data &&
+                  showMagicMcpServerCreateFlow({
+                    instanceId: instance.data.id
                   })
                 }
                 size="2"
@@ -79,9 +80,11 @@ export let MagicMcpListLayout = () => {
         ]}
       />
 
-      <PaginationSearchParamsProvider enabled={true}>
-        <Outlet />
-      </PaginationSearchParamsProvider>
+      <InitialLoadBoundary>
+        <PaginationSearchParamsProvider enabled={true}>
+          <Outlet />
+        </PaginationSearchParamsProvider>
+      </InitialLoadBoundary>
     </ContentLayout>
   );
 };

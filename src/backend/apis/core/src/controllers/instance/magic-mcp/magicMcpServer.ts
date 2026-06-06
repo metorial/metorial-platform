@@ -193,6 +193,58 @@ let getMagicMcpServerPresentationData = async (d: {
   };
 };
 
+let getMagicMcpServerListPresentationData = async (d: {
+  instance: Parameters<typeof magicMcpServerService.getMagicMcpServerById>[0]['instance'];
+  magicMcpServers: Awaited<
+    ReturnType<Awaited<ReturnType<typeof magicMcpServerService.listMagicMcpServers>>['run']>
+  >['items'];
+  portal?: Parameters<typeof magicMcpServerPresenter.present>[0]['portal'];
+}) => {
+  let presentationData = new Map<
+    string,
+    Parameters<typeof magicMcpServerPresenter.present>[0]
+  >();
+  let backedServerIds = d.magicMcpServers
+    .filter(magicMcpServer => magicMcpServer.hasSubspaceBacking)
+    .map(magicMcpServer => magicMcpServer.id);
+  let providersByServerId = new Map<string, any[]>();
+
+  if (backedServerIds.length > 0) {
+    let after: string | undefined;
+
+    while (true) {
+      let result = await subspaceMagicMcpBackingService.listServerProviders({
+        instance: d.instance,
+        allowDeleted: true,
+        magicMcpServerBackingIds: backedServerIds,
+        limit: 100,
+        ...(after ? { after } : {})
+      });
+
+      for (let provider of result.items) {
+        let providers = providersByServerId.get(provider.magicMcpServerId) ?? [];
+        providers.push(provider);
+        providersByServerId.set(provider.magicMcpServerId, providers);
+      }
+
+      if (!result.pagination.has_more_after || result.items.length === 0) break;
+      after = result.items[result.items.length - 1]!.id;
+    }
+  }
+
+  for (let magicMcpServer of d.magicMcpServers) {
+    presentationData.set(magicMcpServer.id, {
+      magicMcpServer,
+      portal: d.portal,
+      integration: null,
+      integrationInstance: null,
+      magicMcpServerProviders: providersByServerId.get(magicMcpServer.id) ?? []
+    });
+  }
+
+  return presentationData;
+};
+
 let magicMcpServerProviderGroup = magicMcpServerGroup.use(async ctx => {
   if (!ctx.params.magicMcpServerProviderId) {
     throw new ServiceError(
@@ -281,9 +333,14 @@ export let magicMcpServerController = Controller.create(
         });
 
         let list = await paginator.run(ctx.query);
+        let presentationData = await getMagicMcpServerListPresentationData({
+          instance: ctx.instance,
+          magicMcpServers: list.items,
+          portal: ctx.portal
+        });
 
         return Paginator.present(list, magicMcpServer =>
-          magicMcpServerPresenter.present({ magicMcpServer })
+          magicMcpServerPresenter.present(presentationData.get(magicMcpServer.id)!)
         );
       }),
 

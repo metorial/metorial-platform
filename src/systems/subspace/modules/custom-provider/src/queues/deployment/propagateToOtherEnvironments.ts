@@ -16,6 +16,7 @@ export let customDeploymentPropagateToOtherEnvironmentsQueueProcessor =
     let deployment = await db.customProviderDeployment.findFirst({
       where: { id: data.customProviderDeploymentId },
       include: {
+        customProvider: true,
         scmRepoPush: true,
         commit: {
           include: {
@@ -27,6 +28,7 @@ export let customDeploymentPropagateToOtherEnvironmentsQueueProcessor =
       }
     });
     if (!deployment) throw new QueueRetryError();
+    if (deployment.customProvider.status !== 'active') return;
 
     // If the deployment is linked to an scm push, there might be other environments
     // that also want to receive the deployment since they track the same branch

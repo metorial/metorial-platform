@@ -15,6 +15,7 @@ import {
   consumerPresenter,
   consumerProfilePresenter
 } from '../../../presenters';
+import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 
 let getAssignedConsumerGroupsByProfileId = async (d: {
   consumerProfiles: Awaited<
@@ -102,6 +103,12 @@ export let consumerController = Controller.create(
         Paginator.validate(
           v.object({
             search: v.optional(v.string()),
+            email: v.optional(
+              v.union([
+                v.string({ modifiers: [v.email()] }),
+                v.array(v.string({ modifiers: [v.email()] }))
+              ])
+            ),
             id: v.optional(v.string())
           })
         )
@@ -110,6 +117,7 @@ export let consumerController = Controller.create(
         let paginator = await consumerService.listConsumers({
           instance: ctx.instance,
           search: ctx.query.search,
+          emails: normalizeArrayParam(ctx.query.email),
           id: ctx.query.id
         });
         let list = await paginator.run(ctx.query);

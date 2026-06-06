@@ -3,21 +3,18 @@ import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, useProviderConfigVault } from '@metorial/state';
 import { Button, Input, Spacer } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { DeleteResourceDangerZone } from '../../../scenes/deleteResourceDangerZone';
-import { getFromDeployment } from '../fromDeployment';
 
 export let ProviderConfigVaultSettingsPage = () => {
   let instance = useCurrentInstance();
   let navigate = useNavigate();
-  let location = useLocation();
 
   let { providerConfigVaultId } = useParams();
   let vault = useProviderConfigVault(instance.data?.id, providerConfigVaultId);
 
   let updateMutator = vault.useUpdateMutator();
   let deleteMutator = vault.useDeleteMutator();
-  let fromDeploymentId = getFromDeployment(location.search, vault.data?.deployment?.id);
   let form = useForm({
     initialValues: {
       name: vault.data?.name ?? '',
@@ -84,19 +81,11 @@ export let ProviderConfigVaultSettingsPage = () => {
           if (!res) return;
 
           navigate(
-            fromDeploymentId
-              ? Paths.instance.providerDeployment(
-                  instance.data?.organization,
-                  instance.data?.project,
-                  instance.data,
-                  fromDeploymentId,
-                  'config-vaults'
-                )
-              : Paths.instance.providerConfigVaults(
-                  instance.data?.organization,
-                  instance.data?.project,
-                  instance.data
-                )
+            Paths.instance.providerConfigVaults(
+              instance.data?.organization,
+              instance.data?.project,
+              instance.data
+            )
           );
         }}
       />

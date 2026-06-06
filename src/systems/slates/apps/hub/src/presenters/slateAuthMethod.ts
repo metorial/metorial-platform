@@ -20,6 +20,7 @@ export let slateAuthMethodPresenter = (
   inputSchema: method.spec.inputSchema,
   outputSchema: method.spec.outputSchema,
   scopes: method.spec.scopes,
+  docs: method.spec.docs ?? [],
 
   createdAt: method.createdAt
 });

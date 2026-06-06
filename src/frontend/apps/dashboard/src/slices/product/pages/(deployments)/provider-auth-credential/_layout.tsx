@@ -1,17 +1,15 @@
-import { renderWithLoader } from '@metorial/data-hooks';
+import { InitialLoadBoundary, renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
 import {
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
-  useProviderAuthCredential,
-  useProviderDeployment
+  useProviderAuthCredential
 } from '@metorial/state';
 import { LinkTabs } from '@metorial/ui';
 import { Outlet, useLocation, useParams } from 'react-router-dom';
 import { DeletedRecordCallout } from '../../../scenes/deletedRecordCallout';
-import { getFromDeployment, withFromDeployment } from '../fromDeployment';
 
 export let ProviderAuthCredentialLayout = () => {
   let instance = useCurrentInstance();
@@ -23,8 +21,6 @@ export let ProviderAuthCredentialLayout = () => {
 
   let location = useLocation();
   let pathname = location.pathname;
-  let fromDeployment = getFromDeployment(location.search);
-  let deployment = useProviderDeployment(instance.data?.id, fromDeployment);
 
   let credentialPathParams = [
     organization.data,
@@ -32,23 +28,14 @@ export let ProviderAuthCredentialLayout = () => {
     instance.data,
     credential.data?.id ?? providerAuthCredentialsId
   ] as const;
-  let deploymentPathParams = [
-    organization.data,
-    project.data,
-    instance.data,
-    deployment.data?.id ?? fromDeployment
-  ] as const;
-  let overviewPath = withFromDeployment(
-    Paths.instance.providerAuthCredential(...credentialPathParams),
-    fromDeployment
+  let overviewPath = Paths.instance.providerAuthCredential(...credentialPathParams);
+  let authConfigsPath = Paths.instance.providerAuthCredential(
+    ...credentialPathParams,
+    'auth-configs'
   );
-  let authConfigsPath = withFromDeployment(
-    Paths.instance.providerAuthCredential(...credentialPathParams, 'auth-configs'),
-    fromDeployment
-  );
-  let settingsPath = withFromDeployment(
-    Paths.instance.providerAuthCredential(...credentialPathParams, 'settings'),
-    fromDeployment
+  let settingsPath = Paths.instance.providerAuthCredential(
+    ...credentialPathParams,
+    'settings'
   );
 
   return (
@@ -56,81 +43,49 @@ export let ProviderAuthCredentialLayout = () => {
       <PageHeader
         title={credential.data?.name ?? '...'}
         description={credential.data?.description ?? undefined}
-        pagination={
-          fromDeployment
-            ? [
-                {
-                  label: 'Deployments',
-                  href: Paths.instance.providerDeployments(
-                    organization.data,
-                    project.data,
-                    instance.data
-                  )
-                },
-                {
-                  label: deployment.data?.name ?? '...',
-                  href: withFromDeployment(
-                    Paths.instance.providerDeployment(...deploymentPathParams),
-                    fromDeployment
-                  )
-                },
-                {
-                  label: 'Auth Credentials',
-                  href: withFromDeployment(
-                    Paths.instance.providerDeployment(
-                      ...deploymentPathParams,
-                      'auth-credentials'
-                    ),
-                    fromDeployment
-                  )
-                },
-                {
-                  label: credential.data?.name ?? '...',
-                  href: overviewPath
-                }
-              ]
-            : [
-                {
-                  label: 'Auth Credentials',
-                  href: Paths.instance.providerAuthCredentials(
-                    organization.data,
-                    project.data,
-                    instance.data
-                  )
-                },
-                {
-                  label: credential.data?.name ?? '...',
-                  href: overviewPath
-                }
-              ]
-        }
+        pagination={[
+          {
+            label: 'Auth Credentials',
+            href: Paths.instance.providerAuthCredentials(
+              organization.data,
+              project.data,
+              instance.data
+            )
+          },
+          {
+            label: credential.data?.name ?? '...',
+            href: overviewPath
+          }
+        ]}
       />
 
-      {renderWithLoader({ credential })(() => (
-        <>
-          <DeletedRecordCallout status={credential.data?.status} />
+      <InitialLoadBoundary>
+        {renderWithLoader({ credential })(() => (
+          <>
+            <DeletedRecordCallout status={credential.data?.status} />
 
-          <LinkTabs
-            current={pathname}
-            links={[
-              {
-                label: 'Overview',
-                to: overviewPath
-              },
-              {
-                label: 'Auth Configs',
-                to: authConfigsPath
-              },
-              {
-                label: 'Settings',
-                to: settingsPath
-              }
-            ]}
-          />
+            <LinkTabs
+              current={pathname}
+              links={[
+                {
+                  label: 'Overview',
+                  to: overviewPath
+                },
+                {
+                  label: 'Auth Configs',
+                  to: authConfigsPath
+                },
+                {
+                  label: 'Settings',
+                  to: settingsPath
+                }
+              ]}
+            />
 
-          <Outlet />
-        </>
-      ))}
+            <Outlet />
+          </>
+        ))}
+      </InitialLoadBoundary>
     </ContentLayout>
   );
 };
