@@ -304,6 +304,8 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
         getKey: action => `${action.type}:${action.id}`
       });
 
+      // authMethods.authenticationMethods[0]?.docs
+
       let discoveryHashes = await buildDiscoveredSpecificationHashes({
         providerInfo: {
           protocol: providerInfo.protocol,

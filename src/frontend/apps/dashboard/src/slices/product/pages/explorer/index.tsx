@@ -50,7 +50,8 @@ type ProviderSelection =
 
 let Wrapper = styled.div`
   display: flex;
-  height: calc(100vh - 78px);
+  height: 100%;
+  min-height: 0;
 `;
 
 let Aside = styled(motion.aside)`

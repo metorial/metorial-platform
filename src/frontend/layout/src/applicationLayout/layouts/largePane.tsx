@@ -31,14 +31,16 @@ let Wrapper = styled('div')<{ $bottomOffset?: string }>`
 export let LargePaneLayout = ({
   children,
   bottomOffset,
+  height,
   Nav
 }: {
   children: React.ReactNode;
   bottomOffset?: string;
+  height?: number | string;
   Nav: () => React.ReactNode;
 }) => {
   return (
-    <RootLayout Nav={Nav}>
+    <RootLayout Nav={Nav} height={height}>
       <Outer>
         <Wrapper $bottomOffset={bottomOffset}>{children}</Wrapper>
       </Outer>
