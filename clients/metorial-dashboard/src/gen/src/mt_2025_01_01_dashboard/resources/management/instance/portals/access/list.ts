@@ -7,6 +7,7 @@ export type ManagementInstancePortalsAccessListOutput = {
     name: string;
     description: string | null;
     readme: string | null;
+    listing: { id: string; name: string; description: string | null } | null;
     access:
       | {
           type: 'provider_template';
@@ -98,6 +99,14 @@ export let mapManagementInstancePortalsAccessListOutput =
           name: mtMap.objectField('name', mtMap.passthrough()),
           description: mtMap.objectField('description', mtMap.passthrough()),
           readme: mtMap.objectField('readme', mtMap.passthrough()),
+          listing: mtMap.objectField(
+            'listing',
+            mtMap.object({
+              id: mtMap.objectField('id', mtMap.passthrough()),
+              name: mtMap.objectField('name', mtMap.passthrough()),
+              description: mtMap.objectField('description', mtMap.passthrough())
+            })
+          ),
           access: mtMap.objectField(
             'access',
             mtMap.union([

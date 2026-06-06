@@ -624,6 +624,7 @@ class MagicMcpServerImpl {
     search?: string;
     groupIds?: string[];
     providerTemplateIds?: string[];
+    providerIds?: string[];
     ids?: string[];
     preconfiguredOnly?: boolean;
     accessTags?: AnyAccessTagSelector;
@@ -705,6 +706,20 @@ class MagicMcpServerImpl {
     if (!d.accessTags && !d.filterAccessTags && !d.consumerSurface) {
       andFilters.push({
         source: 'manual'
+      });
+    }
+
+    if (d.providerIds?.length) {
+      let providerServers =
+        await subspaceMagicMcpBackingService.resolveServerProviderBackingIds({
+          instance: d.instance,
+          providerIds: d.providerIds
+        });
+
+      andFilters.push({
+        id: {
+          in: providerServers.magicMcpServerBackingIds
+        }
       });
     }
 

@@ -20,12 +20,14 @@ export let customDeploymentMonitorQueueProcessor = customDeploymentMonitorQueue.
     let deployment = await db.customProviderDeployment.findFirst({
       where: { id: data.customProviderDeploymentId },
       include: {
+        customProvider: true,
         shuttleCustomServerDeployment: true,
         tenant: true,
         shuttleCustomServer: { include: { server: true } }
       }
     });
     if (!deployment) throw new QueueRetryError();
+    if (deployment.customProvider.status !== 'active') return;
 
     let shuttleDeploymentRecord = deployment.shuttleCustomServerDeployment;
     let shuttleCustomServerRecord = deployment.shuttleCustomServer;

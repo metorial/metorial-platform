@@ -357,7 +357,10 @@ export let createLoader = <
     <I, O>(mutator: (data: I) => Promise<O>, opts?: { disableToast?: boolean }) =>
     () =>
       useMutation(mutator, {
-        onSuccess: refetchAll,
+        onSuccess: () => {
+          refetchAll();
+          refetchParents();
+        },
         disableToast: opts?.disableToast
       });
 

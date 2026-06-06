@@ -161,6 +161,7 @@ export type DashboardInstanceProviderDeploymentsUpdateBody = {
       )[]
     | null
     | undefined;
+  lockedProviderVersionId?: string | null | undefined;
 };
 
 export let mapDashboardInstanceProviderDeploymentsUpdateBody =
@@ -201,6 +202,10 @@ export let mapDashboardInstanceProviderDeploymentsUpdateBody =
           ])
         )
       ])
+    ),
+    lockedProviderVersionId: mtMap.objectField(
+      'locked_provider_version_id',
+      mtMap.passthrough()
     )
   });
 

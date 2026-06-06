@@ -3,14 +3,16 @@ import type {
   DashboardInstanceProvidersListOutput,
   ProviderListingsGetOutput
 } from '@metorial/dashboard-sdk';
-import { renderWithLoader, useForm } from '@metorial/data-hooks';
+import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import {
   useCreateProviderDeployment,
+  useCreateProviderConfig,
   useCreateSession,
   useCurrentInstance,
   useProvider,
   useProviderConfigs,
+  useProviderConfigSchemaTarget,
   useProviderConfigVaults,
   useProviderDeployment,
   useProviderDeployments,
@@ -23,17 +25,15 @@ import {
   CenteredSpinner,
   Entity,
   Flex,
-  Input,
   RenderDate,
   Spacer,
-  Tabs,
   Text,
   theme,
   Title
 } from '@metorial/ui';
 import { RiArrowLeftLine, RiArrowRightLine, RiCloseLine } from '@remixicon/react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { Explainer } from '../../../../components/explainer';
@@ -41,7 +41,7 @@ import {
   emptyConfigurationSelection,
   type ConfigurationSelection
 } from '../../lib/configSelection';
-import { ProviderDeploymentsList } from '../../scenes/providerDeployments/list';
+import { getProviderConfigSchemaCapabilities } from '../../lib/providerCreationCapabilities';
 import { ProviderSearch } from '../../scenes/providers/search';
 import { ProviderSetupSections } from '../../scenes/sessionTemplates/addProviderPanelFlow';
 import { SessionTracingScene } from '../../scenes/sessionTracing';
@@ -53,7 +53,8 @@ type ProviderSelection =
 
 let Wrapper = styled.div`
   display: flex;
-  height: calc(100vh - 78px);
+  height: 100%;
+  min-height: 0;
 `;
 
 let Aside = styled(motion.aside)`
@@ -114,13 +115,6 @@ let Providers = styled.div`
   padding: 20px;
 `;
 
-let CreateForm = styled.form`
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-  padding-top: 15px;
-`;
-
 let MainSetup = styled.div`
   height: 100%;
   width: 100%;
@@ -173,9 +167,10 @@ export let ExplorerPage = () => {
     (location.state as { magicMcpServerId?: string } | null)?.magicMcpServerId ?? null;
   let isSessionFirstMode = !!sessionIdParam && !providerDeploymentIdParam && !providerIdParam;
 
-  let [open, setOpen] = useState(!providerDeploymentIdParam && !sessionIdParam);
+  let [open, setOpen] = useState(
+    !providerDeploymentIdParam && !sessionIdParam && !providerIdParam
+  );
 
-  let [providerTab, setProviderTab] = useState<'create' | 'list'>('create');
   let [providerDeploymentId, setProviderDeploymentId] = useState<string | null>(null);
   let [selectedConfiguration, setSelectedConfiguration] = useState<ConfigurationSelection>(
     emptyConfigurationSelection()
@@ -183,9 +178,14 @@ export let ExplorerPage = () => {
   let [selectedAuthConfigId, setSelectedAuthConfigId] = useState('');
   let [sessionId, setSessionId] = useState<string | null>(null);
   let [isCreatingSession, setIsCreatingSession] = useState(false);
+  let [selectedProvider, _setSelectedProvider] = useState<ProviderSelection | null>(null);
+  let resolvingProviderIdRef = useRef<string | null>(null);
+  let failedAutoCreateProviderIdRef = useRef<string | null>(null);
+  let providerIdToResolveRef = useRef<string | null>(null);
 
   let instance = useCurrentInstance();
   let createSession = useCreateSession(instance.data?.id);
+  let createProviderConfig = useCreateProviderConfig();
 
   useEffect(() => {
     if (sessionIdParam) setSessionId(sessionIdParam);
@@ -195,6 +195,39 @@ export let ExplorerPage = () => {
     setSelectedConfiguration(emptyConfigurationSelection());
     setSelectedAuthConfigId('');
   }, []);
+
+  let resetExplorerSelection = useCallback(() => {
+    resolvingProviderIdRef.current = null;
+    failedAutoCreateProviderIdRef.current = null;
+    _setSelectedProvider(null);
+    setProviderDeploymentId(null);
+    setSessionId(null);
+    resetSessionSetupSelections();
+    setSearch(() => new URLSearchParams(), { replace: true });
+    setOpen(true);
+  }, [resetSessionSetupSelections, setSearch]);
+
+  let selectProvider = useCallback(
+    (provider: ProviderSelection) => {
+      resolvingProviderIdRef.current = null;
+      failedAutoCreateProviderIdRef.current = null;
+      setProviderDeploymentId(null);
+      setSessionId(null);
+      resetSessionSetupSelections();
+      _setSelectedProvider(provider);
+      setOpen(false);
+      setSearch(
+        v => {
+          v.set('provider_id', provider.id);
+          v.delete('provider_deployment_id');
+          v.delete('session_id');
+          return v;
+        },
+        { replace: true }
+      );
+    },
+    [resetSessionSetupSelections, setSearch]
+  );
 
   let createSessionForDeployment = useCallback(
     async (
@@ -280,7 +313,6 @@ export let ExplorerPage = () => {
     }
     return lookup;
   }, [sessionProviderListings.data?.items]);
-  let [selectedProvider, _setSelectedProvider] = useState<ProviderSelection | null>(null);
   useEffect(() => {
     if (provider.data) {
       _setSelectedProvider(provider.data);
@@ -297,6 +329,7 @@ export let ExplorerPage = () => {
 
   let selectDeployment = useCallback(
     (deploymentId: string) => {
+      resolvingProviderIdRef.current = null;
       setProviderDeploymentId(deploymentId);
       setSessionId(null);
       resetSessionSetupSelections();
@@ -304,11 +337,11 @@ export let ExplorerPage = () => {
     },
     [resetSessionSetupSelections]
   );
+  let providerIdToResolve =
+    !isSessionFirstMode && !providerDeploymentId ? (selectedProvider?.id ?? providerIdParam) : null;
   let deploymentsFilter = useMemo(
-    () => ({
-      providerId: selectedProvider ? selectedProvider.id : undefined
-    }),
-    [selectedProvider]
+    () => (providerIdToResolve ? { providerId: providerIdToResolve } : undefined),
+    [providerIdToResolve]
   );
 
   let deployments = useProviderDeployments(instance.data?.id, deploymentsFilter);
@@ -325,15 +358,98 @@ export let ExplorerPage = () => {
   let providerConfigVaults = useProviderConfigVaults(instance.data?.id, {
     providerDeploymentId: providerDeploymentId ?? undefined
   });
+  let providerSupportsConfig = activeProvider.data?.type.config.status == 'enabled';
+  let providerConfigSchema = useProviderConfigSchemaTarget(
+    instance.data?.id,
+    providerDeploymentId
+      ? { providerDeploymentId }
+      : activeProviderId
+        ? { providerId: activeProviderId }
+        : null
+  );
+  let configCapabilities = getProviderConfigSchemaCapabilities({
+    schemaValue: providerConfigSchema.data?.schema,
+    hasVaults: (providerConfigVaults.data?.items ?? []).length > 0,
+    isLoading: providerSupportsConfig ? providerConfigSchema.isLoading : false
+  });
+  let createMutation = useCreateProviderDeployment();
 
   useEffect(() => {
-    let deploymentsForCurrentProvider = deployments.data?.items.filter(
-      d => d.providerId == (selectedProvider?.id ?? providerIdParam)
-    );
+    providerIdToResolveRef.current = providerIdToResolve;
+  }, [providerIdToResolve]);
 
-    if (!deployments.isLoading && deploymentsForCurrentProvider?.length)
-      setProviderTab('list');
-  }, [deployments.data, deployments.isLoading, providerIdParam, selectedProvider?.id]);
+  useEffect(() => {
+    if (
+      !instance.data ||
+      !providerIdToResolve ||
+      providerDeploymentId ||
+      sessionId ||
+      isSessionFirstMode ||
+      provider.isLoading ||
+      deployments.isLoading ||
+      failedAutoCreateProviderIdRef.current === providerIdToResolve
+    ) {
+      return;
+    }
+
+    let providerForName = selectedProvider ?? provider.data;
+    if (!providerForName) return;
+
+    let matchingDeployments = (deployments.data?.items ?? [])
+      .filter(deployment => deployment.providerId === providerIdToResolve)
+      .sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+
+    if (matchingDeployments[0]) {
+      selectDeployment(matchingDeployments[0].id);
+      return;
+    }
+
+    if (
+      createMutation.isPending ||
+      resolvingProviderIdRef.current === providerIdToResolve
+    ) {
+      return;
+    }
+
+    resolvingProviderIdRef.current = providerIdToResolve;
+
+    createMutation
+      .mutate({
+        instanceId: instance.data.id,
+        name: `${providerForName.name ?? providerForName.slug ?? 'Provider'} Deployment`,
+        providerId: providerIdToResolve
+      })
+      .then(([result, err]) => {
+        if (resolvingProviderIdRef.current === providerIdToResolve) {
+          resolvingProviderIdRef.current = null;
+        }
+
+        if (providerIdToResolveRef.current !== providerIdToResolve) return;
+
+        if (err) {
+          failedAutoCreateProviderIdRef.current = providerIdToResolve;
+          console.error('Failed to create deployment:', err);
+          return;
+        }
+
+        if (result) selectDeployment(result.id);
+      });
+  }, [
+    createMutation,
+    deployments.data?.items,
+    deployments.isLoading,
+    instance.data,
+    isSessionFirstMode,
+    provider.data,
+    provider.isLoading,
+    providerDeploymentId,
+    providerIdToResolve,
+    selectDeployment,
+    selectedProvider,
+    sessionId
+  ]);
 
   useEffect(() => {
     if (!providerDeploymentId) {
@@ -357,36 +473,6 @@ export let ExplorerPage = () => {
     );
     if (!exists) setSelectedConfiguration(emptyConfigurationSelection());
   }, [providerConfigVaults.data, providerConfigVaults.isLoading, selectedConfiguration]);
-
-  let createMutation = useCreateProviderDeployment();
-  let createDeploymentForm = useForm({
-    initialValues: {
-      deploymentName: '',
-      deploymentDescription: ''
-    },
-    onSubmit: async values => {
-      if (!instance.data || !selectedProvider || !values.deploymentName.trim()) return;
-
-      let [result, err] = await createMutation.mutate({
-        instanceId: instance.data.id,
-        name: values.deploymentName.trim(),
-        description: values.deploymentDescription.trim() || undefined,
-        providerId: selectedProvider.id
-      });
-
-      if (err) {
-        console.error('Failed to create deployment:', err);
-      } else if (result) {
-        createDeploymentForm.resetForm();
-        selectDeployment(result.id);
-      }
-    },
-    schema: yup =>
-      yup.object({
-        deploymentName: yup.string().required('Deployment name is required'),
-        deploymentDescription: yup.string().optional().default('')
-      })
-  });
 
   useEffect(() => {
     if (
@@ -414,8 +500,76 @@ export let ExplorerPage = () => {
     setSearch
   ]);
 
-  let requiresProviderConfig = activeProvider.data?.type.config.status == 'enabled';
+  let canAutoCreateProviderConfig =
+    !!providerSupportsConfig &&
+    !configCapabilities.isLoading &&
+    configCapabilities.canAutoCreateEmptyConfig;
+  let showConfigSection =
+    !!providerSupportsConfig &&
+    (configCapabilities.hasSchemaFields || !canAutoCreateProviderConfig);
+  let configRequirement: 'required' | 'optional' =
+    providerSupportsConfig && !canAutoCreateProviderConfig ? 'required' : 'optional';
+  let requiresProviderConfig = providerSupportsConfig && !canAutoCreateProviderConfig;
   let requiresAuthConfig = activeProvider.data?.type.auth.status == 'enabled';
+  let isResolvingProviderDeployment =
+    !!providerIdToResolve &&
+    !providerDeploymentId &&
+    !sessionId &&
+    (provider.isLoading ||
+      deployments.isLoading ||
+      createMutation.isPending ||
+      resolvingProviderIdRef.current === providerIdToResolve);
+
+  let createSessionWithSelectedSetup = useCallback(
+    async (deploymentId: string, options?: { name?: string }) => {
+      let providerConfigId =
+        selectedConfiguration.kind === 'config' ? selectedConfiguration.id : undefined;
+      let providerConfigVaultId =
+        selectedConfiguration.kind === 'vault' ? selectedConfiguration.id : undefined;
+
+      if (
+        !providerConfigId &&
+        !providerConfigVaultId &&
+        canAutoCreateProviderConfig &&
+        activeProviderId &&
+        instance.data
+      ) {
+        setIsCreatingSession(true);
+        let [config] = await createProviderConfig.mutate({
+          instanceId: instance.data.id,
+          providerId: activeProviderId,
+          providerDeploymentId: deploymentId,
+          name: `${activeProvider.data?.name ?? provider.data?.name ?? 'Provider'} Config`,
+          value: configCapabilities.defaultConfigValue
+        });
+
+        providerConfigId = config?.id;
+        if (!providerConfigId) {
+          setIsCreatingSession(false);
+          return;
+        }
+      }
+
+      await createSessionForDeployment(deploymentId, {
+        name: options?.name,
+        providerConfigId,
+        providerConfigVaultId,
+        providerAuthConfigId: selectedAuthConfigId || undefined
+      });
+    },
+    [
+      activeProvider.data?.name,
+      activeProviderId,
+      canAutoCreateProviderConfig,
+      configCapabilities.defaultConfigValue,
+      createProviderConfig,
+      createSessionForDeployment,
+      instance.data,
+      provider.data?.name,
+      selectedAuthConfigId,
+      selectedConfiguration
+    ]
+  );
 
   useEffect(() => {
     if (
@@ -424,10 +578,10 @@ export let ExplorerPage = () => {
       !isCreatingSession &&
       !!activeProvider.data &&
       !activeProvider.isLoading &&
-      !requiresProviderConfig &&
+      !showConfigSection &&
       !requiresAuthConfig
     ) {
-      createSessionForDeployment(providerDeploymentId, {
+      createSessionWithSelectedSetup(providerDeploymentId, {
         name: `Explorer Session - ${new Date().toLocaleString()}`
       });
     }
@@ -437,9 +591,9 @@ export let ExplorerPage = () => {
     isCreatingSession,
     activeProvider.data,
     activeProvider.isLoading,
-    requiresProviderConfig,
+    showConfigSection,
     requiresAuthConfig,
-    createSessionForDeployment
+    createSessionWithSelectedSetup
   ]);
 
   let renderSetupPanel = () => {
@@ -494,6 +648,8 @@ export let ExplorerPage = () => {
             selectedAuthConfigId={selectedAuthConfigId}
             onSelectedAuthConfigIdChange={setSelectedAuthConfigId}
             showToolFilters={false}
+            showConfigSection={showConfigSection}
+            configRequirement={configRequirement}
             configError={
               providerConfigs.error || providerConfigVaults.error ? (
                 <Text size="2" color="red500">
@@ -504,9 +660,14 @@ export let ExplorerPage = () => {
               ) : null
             }
             emptyState={null}
-            supplementaryContent={<createSession.RenderError />}
+            supplementaryContent={
+              <>
+                <createProviderConfig.RenderError />
+                <createSession.RenderError />
+              </>
+            }
             footer={
-              (requiresProviderConfig || requiresAuthConfig) && (
+              (showConfigSection || requiresAuthConfig) && (
                 <Flex gap={10}>
                   <Button
                     type="button"
@@ -514,18 +675,8 @@ export let ExplorerPage = () => {
                     onClick={() => {
                       if (!canOpenExplorer) return;
 
-                      createSessionForDeployment(providerDeploymentId, {
-                        name: `Explorer Session - ${new Date().toLocaleString()}`,
-
-                        providerConfigId:
-                          selectedConfiguration.kind === 'config'
-                            ? selectedConfiguration.id
-                            : undefined,
-                        providerConfigVaultId:
-                          selectedConfiguration.kind === 'vault'
-                            ? selectedConfiguration.id
-                            : undefined,
-                        providerAuthConfigId: selectedAuthConfigId || undefined
+                      createSessionWithSelectedSetup(providerDeploymentId, {
+                        name: `Explorer Session - ${new Date().toLocaleString()}`
                       });
                     }}
                     loading={isCreatingSession}
@@ -673,19 +824,31 @@ export let ExplorerPage = () => {
                   </>
                 )}
 
-                {!isSessionFirstMode && !selectedProvider && !providerIdParam && (
+                {!isSessionFirstMode && (
                   <>
-                    {providerDeploymentId && (
+                    {(providerDeploymentId || selectedProvider || providerIdParam || sessionId) && (
                       <>
-                        <Button
-                          iconLeft={<RiCloseLine />}
-                          onClick={() => setOpen(!open)}
-                          size="1"
-                          variant="outline"
-                          type="button"
-                        >
-                          Close
-                        </Button>
+                        <Flex justify="space-between" align="center">
+                          <Button
+                            iconLeft={<RiArrowLeftLine />}
+                            onClick={resetExplorerSelection}
+                            size="1"
+                            variant="outline"
+                            type="button"
+                          >
+                            Back
+                          </Button>
+
+                          <Button
+                            iconLeft={<RiCloseLine />}
+                            onClick={() => setOpen(!open)}
+                            size="1"
+                            variant="outline"
+                            type="button"
+                          >
+                            Close
+                          </Button>
+                        </Flex>
 
                         <Spacer height={10} />
                       </>
@@ -702,135 +865,10 @@ export let ExplorerPage = () => {
                         orderByUse: 'deployments',
                         order: 'desc'
                       }}
-                      onSelect={provider => {
-                        setProviderDeploymentId(null);
-                        setSessionId(null);
-                        resetSessionSetupSelections();
-                        _setSelectedProvider(provider);
-                        setSearch(
-                          v => {
-                            v.set('provider_id', provider.id);
-                            return v;
-                          },
-                          { replace: true }
-                        );
-                      }}
+                      onSelect={selectProvider}
                     />
                   </>
                 )}
-
-                {selectedProvider &&
-                  renderWithLoader({ deployments, provider })(() => (
-                    <>
-                      <Flex justify="space-between" align="center">
-                        <Button
-                          iconLeft={<RiArrowLeftLine />}
-                          onClick={() => {
-                            _setSelectedProvider(null);
-                            setProviderDeploymentId(null);
-                            setSessionId(null);
-                            resetSessionSetupSelections();
-                            setSearch(v => new URLSearchParams(), { replace: true });
-                            setOpen(true);
-                          }}
-                          size="1"
-                          variant="outline"
-                          type="button"
-                        >
-                          Back
-                        </Button>
-
-                        <Button
-                          iconLeft={<RiCloseLine />}
-                          onClick={() => setOpen(!open)}
-                          size="1"
-                          variant="outline"
-                          type="button"
-                        >
-                          Close
-                        </Button>
-                      </Flex>
-
-                      <Spacer height={10} />
-
-                      <Text as="p" size="3" weight="strong" color="gray900">
-                        {providerTab == 'create' ? (
-                          <>
-                            Set up{' '}
-                            {selectedProvider.name ?? selectedProvider.slug ?? 'Provider'}
-                          </>
-                        ) : (
-                          <>Choose a deployment</>
-                        )}
-                      </Text>
-
-                      <Spacer height={5} />
-
-                      <Tabs
-                        tabs={[
-                          { id: 'create', label: 'Create' },
-                          { id: 'list', label: 'Your Deployments' }
-                        ]}
-                        action={v => setProviderTab(v as 'create' | 'list')}
-                        current={providerTab}
-                      />
-
-                      {providerTab == 'create' && (
-                        <CreateForm onSubmit={createDeploymentForm.handleSubmit}>
-                          <Input
-                            label="Deployment Name"
-                            {...createDeploymentForm.getFieldProps('deploymentName')}
-                            placeholder="My Deployment"
-                            autoFocus
-                          />
-                          <createDeploymentForm.RenderError field="deploymentName" />
-
-                          <Input
-                            label="Description"
-                            {...createDeploymentForm.getFieldProps('deploymentDescription')}
-                            placeholder="Optional description"
-                            as="textarea"
-                            minRows={2}
-                          />
-                          <createMutation.RenderError />
-
-                          <Flex gap={10}>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="2"
-                              onClick={() => {
-                                _setSelectedProvider(null);
-                                setProviderDeploymentId(null);
-                                setSessionId(null);
-                                resetSessionSetupSelections();
-                                setSearch(v => new URLSearchParams(), { replace: true });
-                                setOpen(true);
-                              }}
-                            >
-                              Back
-                            </Button>
-                            <Button
-                              type="submit"
-                              size="2"
-                              loading={createMutation.isPending}
-                              disabled={!createDeploymentForm.values.deploymentName.trim()}
-                            >
-                              Create Deployment
-                            </Button>
-                          </Flex>
-                        </CreateForm>
-                      )}
-
-                      {providerTab == 'list' && (
-                        <ProviderDeploymentsList
-                          providerId={selectedProvider.id}
-                          order="desc"
-                          onDeploymentClick={deployment => selectDeployment(deployment.id)}
-                        />
-                      )}
-                    </>
-                  ))}
               </Providers>
             )}
           </AsideInner>
@@ -840,7 +878,11 @@ export let ExplorerPage = () => {
       <Main>
         {!providerDeploymentId && !sessionId && (
           <MainEmpty>
-            <p>Click on a provider to start</p>
+            {isResolvingProviderDeployment ? (
+              <CenteredSpinner />
+            ) : (
+              <p>Click on a provider to start</p>
+            )}
           </MainEmpty>
         )}
 

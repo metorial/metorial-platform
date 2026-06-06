@@ -345,6 +345,31 @@ export let magicMcpBackingController = app.controller({
       return Paginator.presentLight(list, magicMcpServerProviderPresenter);
     }),
 
+  resolveServerProviderBackingIds: tenantApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        environmentId: v.string(),
+        allowDeleted: v.optional(v.boolean()),
+        status: v.optional(v.array(v.enumOf(['pending', 'active', 'archived', 'deleted']))),
+        providerIds: v.array(v.string())
+      })
+    )
+    .do(async ctx => {
+      let magicMcpServerBackingIds =
+        await magicMcpServerProviderService.resolveMagicMcpServerBackingIds({
+          tenant: ctx.tenant,
+          solution: ctx.solution,
+          environment: ctx.environment,
+          allowDeleted: ctx.input.allowDeleted,
+          status: ctx.input.status,
+          providerIds: ctx.input.providerIds
+        });
+
+      return { magicMcpServerBackingIds };
+    }),
+
   getServerProvider: tenantApp
     .handler()
     .input(

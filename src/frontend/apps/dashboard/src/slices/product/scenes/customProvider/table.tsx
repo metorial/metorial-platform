@@ -116,7 +116,7 @@ let customProviderTableColumns: TableColumn<CustomProvider, CustomProvidersTable
   },
   {
     id: 'status',
-    isDefault: true,
+    isDefault: false,
     header: 'Status',
     render: (provider: CustomProvider) => (
       <Badge color={getCustomProviderStatusColor(provider.status)}>{provider.status}</Badge>
@@ -267,6 +267,16 @@ let customProviderTableColumns: TableColumn<CustomProvider, CustomProvidersTable
   }
 ];
 
+let getCustomProviderTableColumns = (opts?: { defaultRemoteUrl?: boolean }) =>
+  customProviderTableColumns.map(column =>
+    column.id === 'remoteUrl'
+      ? {
+          ...column,
+          isDefault: !!opts?.defaultRemoteUrl
+        }
+      : column
+  );
+
 let getCommonCustomProviderFilters = (): TableFilter<CustomProvider>[] => [
   {
     id: 'status',
@@ -360,10 +370,14 @@ let useCustomProvidersTableState: TableStateProvider<
   };
 };
 
-let createCustomProvidersTable = (name: string, filters: TableFilter<CustomProvider>[]) =>
+let createCustomProvidersTable = (
+  name: string,
+  filters: TableFilter<CustomProvider>[],
+  columns: TableColumn<CustomProvider, CustomProvidersTableProps>[] = getCustomProviderTableColumns()
+) =>
   new DashboardTable<CustomProvidersTableProps, CustomProvider>(name)
     .state(useCustomProvidersTableState)
-    .columns(customProviderTableColumns)
+    .columns(columns)
     .filters(filters)
     .search('Search providers...')
     .link((provider, props) =>
@@ -383,7 +397,8 @@ let managedCustomProvidersTable = createCustomProvidersTable(
 
 let externalCustomProvidersTable = createCustomProvidersTable(
   'custom-providers-external',
-  externalCustomProviderFilters
+  externalCustomProviderFilters,
+  getCustomProviderTableColumns({ defaultRemoteUrl: true })
 );
 
 export let CustomProvidersTable = ({

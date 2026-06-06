@@ -163,6 +163,7 @@ export class Table<
       props: StateProps & {
         emptyState?: (() => React.ReactNode) | string;
         sidePadding?: number;
+        tableFilters?: TableFilter<Item>[];
         onItemClick?: (row: Item) => void;
         selectedItemId?: string;
         headerActions?: (d: {
@@ -175,6 +176,7 @@ export class Table<
         ...opts,
         sidePadding: props.sidePadding,
         emptyState: props.emptyState,
+        filters: props.tableFilters ?? opts.filters,
         props,
         clickable: opts.clickable,
         onItemClick: props.onItemClick,

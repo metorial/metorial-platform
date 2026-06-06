@@ -1,4 +1,4 @@
-import { renderWithLoader } from '@metorial/data-hooks';
+import { InitialLoadBoundary, renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
 import {
@@ -27,8 +27,7 @@ export let IntegrationInstanceLayout = () => {
   let pathname = useLocation().pathname;
 
   let handleOpenExplorer = async () => {
-    let activeIntegrationInstanceId =
-      integrationInstance.data?.id ?? integrationInstanceId;
+    let activeIntegrationInstanceId = integrationInstance.data?.id ?? integrationInstanceId;
     if (
       isCreatingSession ||
       !instance.data ||
@@ -95,9 +94,7 @@ export let IntegrationInstanceLayout = () => {
                 size="2"
                 variant="outline"
                 onClick={handleOpenExplorer}
-                disabled={
-                  isCreatingSession || integrationInstance.data?.status !== 'active'
-                }
+                disabled={isCreatingSession || integrationInstance.data?.status !== 'active'}
                 loading={isCreatingSession}
               >
                 Open Explorer
@@ -107,26 +104,28 @@ export let IntegrationInstanceLayout = () => {
         }
       />
 
-      {renderWithLoader({ integrationInstance })(({ integrationInstance }) => (
-        <>
-          <DeletedRecordCallout status={integrationInstance.data.status} />
+      <InitialLoadBoundary>
+        {renderWithLoader({ integrationInstance })(({ integrationInstance }) => (
+          <>
+            <DeletedRecordCallout status={integrationInstance.data.status} />
 
-          <LinkTabs
-            current={pathname}
-            links={[
-              {
-                label: 'Overview',
-                to: Paths.instance.integrationInstance(...instancePathParams)
-              },
-              {
-                label: 'Settings',
-                to: Paths.instance.integrationInstance(...instancePathParams, 'settings')
-              }
-            ]}
-          />
-          <Outlet />
-        </>
-      ))}
+            <LinkTabs
+              current={pathname}
+              links={[
+                {
+                  label: 'Overview',
+                  to: Paths.instance.integrationInstance(...instancePathParams)
+                },
+                {
+                  label: 'Settings',
+                  to: Paths.instance.integrationInstance(...instancePathParams, 'settings')
+                }
+              ]}
+            />
+            <Outlet />
+          </>
+        ))}
+      </InitialLoadBoundary>
     </ContentLayout>
   );
 };

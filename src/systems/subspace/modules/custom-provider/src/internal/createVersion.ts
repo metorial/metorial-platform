@@ -232,6 +232,7 @@ export let syncVersionToCustomProvider = async (d: {
   if (!fullProviderVersion.provider.customProvider) return;
 
   let customProvider = fullProviderVersion.provider.customProvider;
+  if (customProvider.status !== 'active') return;
 
   let environments = await ensureEnvironments({
     customProvider

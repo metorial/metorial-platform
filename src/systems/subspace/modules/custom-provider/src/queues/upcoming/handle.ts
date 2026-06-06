@@ -97,6 +97,13 @@ export let handleUpcomingCustomProviderQueueProcessor =
       }
     });
     if (!upcoming) throw new QueueRetryError();
+    if (upcoming.customProvider.status !== 'active') {
+      await db.upcomingCustomProvider.deleteMany({
+        where: { id: upcoming.id }
+      });
+      return;
+    }
+
     try {
       let resolvedFrom = resolveCustomProviderFromForDeployment({
         partial: upcoming.payload.from,

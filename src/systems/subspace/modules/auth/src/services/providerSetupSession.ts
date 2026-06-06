@@ -129,6 +129,7 @@ class providerSetupSessionServiceImpl {
 
               AND: [
                 d.ids ? { id: { in: d.ids } } : undefined!,
+                d.status ? { status: { in: d.status } } : undefined!,
                 providers ? { providerOid: providers.in } : undefined!,
                 deployments ? { deploymentOid: deployments.in } : undefined!,
                 authConfigs ? { authConfigOid: authConfigs.in } : undefined!,
