@@ -194,7 +194,8 @@ class serverOAuthSetupServiceImpl {
       }
 
       let inner = await remoteOauthAuthorizationService.startAuthorization({
-        connection: setup.credentials.remoteConnection
+        connection: setup.credentials.remoteConnection,
+        serverOAuthSetup: setup
       });
 
       await db.serverOAuthSetup.updateMany({
