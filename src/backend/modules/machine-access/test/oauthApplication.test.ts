@@ -1,3 +1,4 @@
+import { ServiceError } from '@lowerdeck/error';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let { machineAccessCreateMock, machineAccessUpdateMock, mockDb } = vi.hoisted(() => ({
@@ -174,6 +175,56 @@ describe('oauthApplicationService', () => {
     expect(result.scopedInstallation?.oid).toBe('oauth-installation-oid');
   });
 
+  it('creates an oauth app with local http redirect uris', async () => {
+    await oauthApplicationService.createOAuthApplication({
+      organization: baseOrg,
+      performedBy: baseActor,
+      context: baseContext,
+      input: {
+        type: 'server_side',
+        accessLevel: 'organization',
+        name: 'Server App',
+        redirectUris: [
+          'http://localhost:3000/callback',
+          'http://127.0.0.1:3000/callback',
+          'http://[::1]:3000/callback'
+        ],
+        scopes: ['organization:read']
+      }
+    });
+
+    expect(mockDb.oAuthApplication.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          redirectUris: [
+            'http://localhost:3000/callback',
+            'http://127.0.0.1:3000/callback',
+            'http://[::1]:3000/callback'
+          ]
+        })
+      })
+    );
+  });
+
+  it('rejects creating an oauth app with a non-local http redirect uri', async () => {
+    await expect(
+      oauthApplicationService.createOAuthApplication({
+        organization: baseOrg,
+        performedBy: baseActor,
+        context: baseContext,
+        input: {
+          type: 'server_side',
+          accessLevel: 'organization',
+          name: 'Server App',
+          redirectUris: ['http://example.com/callback'],
+          scopes: ['organization:read']
+        }
+      })
+    ).rejects.toThrow(ServiceError);
+
+    expect(mockDb.oAuthApplication.create).not.toHaveBeenCalled();
+  });
+
   it('updates server-side scopes and syncs them to installation and machine access', async () => {
     await oauthApplicationService.updateOAuthApplication({
       oauthApplication: {
@@ -210,6 +261,60 @@ describe('oauthApplicationService', () => {
         scopes: ['organization:write']
       }
     });
+  });
+
+  it('updates an oauth app with local http redirect uris', async () => {
+    await oauthApplicationService.updateOAuthApplication({
+      oauthApplication: {
+        oid: 'oauth-app-oid',
+        type: 'server_side',
+        status: 'active',
+        accessLevel: 'organization'
+      } as any,
+      organization: baseOrg,
+      performedBy: baseActor,
+      context: baseContext,
+      input: {
+        redirectUris: [
+          'http://localhost:3000/callback',
+          'http://127.0.0.1:3000/callback',
+          'http://[::1]:3000/callback'
+        ]
+      }
+    });
+
+    expect(mockDb.oAuthApplication.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          redirectUris: [
+            'http://localhost:3000/callback',
+            'http://127.0.0.1:3000/callback',
+            'http://[::1]:3000/callback'
+          ]
+        })
+      })
+    );
+  });
+
+  it('rejects updating an oauth app with a non-local http redirect uri', async () => {
+    await expect(
+      oauthApplicationService.updateOAuthApplication({
+        oauthApplication: {
+          oid: 'oauth-app-oid',
+          type: 'server_side',
+          status: 'active',
+          accessLevel: 'organization'
+        } as any,
+        organization: baseOrg,
+        performedBy: baseActor,
+        context: baseContext,
+        input: {
+          redirectUris: ['http://example.com/callback']
+        }
+      })
+    ).rejects.toThrow(ServiceError);
+
+    expect(mockDb.oAuthApplication.update).not.toHaveBeenCalled();
   });
 
   it('archives app by revoking authorizations and installations', async () => {
