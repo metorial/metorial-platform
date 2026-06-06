@@ -66,6 +66,7 @@ export let providerListingPresenter = async (
   aliases: providerListing.aliases,
 
   readme: providerListing.readme ?? null,
+  docs: providerListing.docs ?? null,
   skills: providerListing.skills,
 
   rank: providerListing.rank,

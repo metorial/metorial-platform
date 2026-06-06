@@ -17,6 +17,24 @@ import { slateInvocationService } from '../../services';
 
 let Sentry = getSentry();
 
+let normalizeDiscoveredDocs = (docs: unknown): PrismaJson.SlateDocReferences => {
+  if (!Array.isArray(docs)) return [];
+
+  return docs
+    .filter(
+      (doc): doc is { name: string; url: string; type?: string } =>
+        !!doc &&
+        typeof doc === 'object' &&
+        typeof (doc as any).name === 'string' &&
+        typeof (doc as any).url === 'string'
+    )
+    .map(doc => ({
+      ...(typeof doc.type === 'string' ? { type: doc.type } : {}),
+      name: doc.name,
+      url: doc.url
+    }));
+};
+
 let syncSpecificationActions = async (d: {
   specificationOid: bigint;
   actions: Array<{ oid: bigint }>;
@@ -304,14 +322,19 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
         getKey: action => `${action.type}:${action.id}`
       });
 
-      // authMethods.authenticationMethods[0]?.docs
+      let providerDocs = normalizeDiscoveredDocs(providerInfo.docs);
+      let configSchemaDocs = normalizeDiscoveredDocs(configSchema.docs);
 
       let discoveryHashes = await buildDiscoveredSpecificationHashes({
         providerInfo: {
           protocol: providerInfo.protocol,
-          provider: providerInfo.provider
+          provider: providerInfo.provider,
+          docs: providerDocs
         },
-        configSchema: configSchema.schema,
+        configSchema: {
+          schema: configSchema.schema,
+          docs: configSchemaDocs
+        },
         authMethods: discoveredAuthMethods,
         actions: discoveredActions
       });
@@ -324,7 +347,9 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
         protocolVersion: providerInfo.protocol,
 
         providerInfo: providerInfo.provider,
+        providerDocs,
         configSchema: configSchema.schema,
+        configSchemaDocs,
         authMethods: discoveredAuthMethods,
         actions: discoveredActions
       };
@@ -409,10 +434,12 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
           hash: discoveryHashes.configSchemaHash,
           identifier: configIdentifier,
 
-          schema: configSchema.schema
+          schema: configSchema.schema,
+          docs: configSchemaDocs
         },
         update: {
-          schema: configSchema.schema
+          schema: configSchema.schema,
+          docs: configSchemaDocs
         }
       });
 
