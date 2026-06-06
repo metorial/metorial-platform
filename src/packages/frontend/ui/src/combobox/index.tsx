@@ -227,6 +227,10 @@ let ItemDescription = styled('div')`
   font-size: 12px;
   color: ${theme.colors.gray700};
   line-height: 1.35;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 let EmptyState = styled(BaseCombobox.Empty)`

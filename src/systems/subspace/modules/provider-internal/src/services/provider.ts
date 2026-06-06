@@ -6,6 +6,7 @@ import {
   db,
   type EntityImage,
   getId,
+  Prisma,
   type Provider,
   type ProviderVariant,
   type Publisher,
@@ -99,6 +100,7 @@ class providerInternalServiceImpl {
       image?: EntityImage | null;
       skills?: string[];
       readme?: string;
+      docs?: PrismaJson.ProviderListingDocs | null;
       categories?: string[];
     };
 
@@ -283,6 +285,7 @@ class providerInternalServiceImpl {
             image: d.info.image ?? { type: 'default' as const },
 
             readme: d.info.readme,
+            docs: d.info.docs ?? Prisma.DbNull,
 
             skills: d.info.skills || [],
 

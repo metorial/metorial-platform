@@ -30,6 +30,33 @@ export let InputDescription = styled('p')`
   user-select: none;
 `;
 
+let LabelRow = styled('div')`
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+  margin-bottom: 5px;
+
+  ${InputLabel} {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 0;
+  }
+`;
+
+let LabelHelp = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
 let InputWrapper = styled('div')`
   outline: 1px solid transparent;
   background: ${theme.colors.gray300};
@@ -108,6 +135,7 @@ export let Input = ({
   size = '3',
   label,
   description,
+  help,
   hideLabel,
   error,
   as = 'input',
@@ -121,6 +149,7 @@ export let Input = ({
   size?: ButtonSize;
   label: React.ReactNode;
   description?: React.ReactNode;
+  help?: React.ReactNode;
   hideLabel?: boolean;
   error?: any;
   as?: 'textarea' | 'input';
@@ -138,7 +167,10 @@ export let Input = ({
           <InputLabel htmlFor={id}>{label}</InputLabel>
         </VisuallyHidden>
       ) : (
-        <InputLabel htmlFor={id}>{label}</InputLabel>
+        <LabelRow>
+          <InputLabel htmlFor={id}>{label}</InputLabel>
+          {help && <LabelHelp>{help}</LabelHelp>}
+        </LabelRow>
       )}
 
       {description && <InputDescription>{description}</InputDescription>}
