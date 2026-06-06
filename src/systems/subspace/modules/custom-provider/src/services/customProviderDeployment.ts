@@ -14,12 +14,11 @@ import {
 import {
   type DateFilter,
   normalizeDateFilter,
-  resolveCustomProviderDeployments,
   resolveCustomProviderEnvironments,
   resolveCustomProviders,
-  resolveProviderVersions,
   resolveCustomProviderVersions,
-  resolveProviders
+  resolveProviders,
+  resolveProviderVersions
 } from '@metorial-subspace/list-utils';
 import { getTenantForShuttle, shuttle } from '@metorial-subspace/provider-shuttle/src/client';
 
@@ -57,7 +56,10 @@ class customProviderDeploymentServiceImpl {
     let providers = await resolveProviders(d, d.providerIds);
     let providerVersions = await resolveProviderVersions(d, d.providerVersionIds);
     let customProviders = await resolveCustomProviders(d, d.customProviderIds);
-    let customProviderVersions = await resolveCustomProviderVersions(d, d.customProviderVersionIds);
+    let customProviderVersions = await resolveCustomProviderVersions(
+      d,
+      d.customProviderVersionIds
+    );
     let customProviderEnvironments = await resolveCustomProviderEnvironments(
       d,
       d.customProviderEnvironmentIds
@@ -75,10 +77,8 @@ class customProviderDeploymentServiceImpl {
               AND: [
                 {
                   customProvider: {
-                    is: {
-                      status: {
-                        notIn: ['archived', 'deleted'] as CustomProviderStatus[]
-                      }
+                    status: {
+                      notIn: ['archived', 'deleted'] as CustomProviderStatus[]
                     }
                   }
                 },

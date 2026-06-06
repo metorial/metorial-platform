@@ -106,10 +106,8 @@ class enclaveServiceImpl {
                 ? { providerDeploymentOid: providerDeployments.in }
                 : {
                     providerDeployment: {
-                      is: {
-                        status: {
-                          notIn: ['archived', 'deleted'] as ProviderDeploymentStatus[]
-                        }
+                      status: {
+                        notIn: ['archived', 'deleted'] as ProviderDeploymentStatus[]
                       }
                     }
                   },
