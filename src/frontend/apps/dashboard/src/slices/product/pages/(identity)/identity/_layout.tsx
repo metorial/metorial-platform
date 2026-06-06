@@ -1,4 +1,4 @@
-import { renderWithLoader } from '@metorial/data-hooks';
+import { InitialLoadBoundary, renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
 import {
@@ -105,58 +105,60 @@ export let IdentityLayout = () => {
         ]}
       />
 
-      {renderWithLoader({ instance, organization, project, identity: _identity })(
-        ({ instance, organization, project, identity }) => (
-          <>
-            <LinkTabs
-              current={pathname}
-              links={[
-                {
-                  label: 'Overview',
-                  to: Paths.instance.identity.identity(
-                    organization.data,
-                    project.data,
-                    instance.data,
-                    identity.data.id
-                  )
-                },
-                {
-                  label: 'Delegations',
-                  to: Paths.instance.identity.identity(
-                    organization.data,
-                    project.data,
-                    instance.data,
-                    identity.data.id,
-                    'delegations'
-                  )
-                },
-                {
-                  label: 'Delegation Requests',
-                  to: Paths.instance.identity.identity(
-                    organization.data,
-                    project.data,
-                    instance.data,
-                    identity.data.id,
-                    'delegation-requests'
-                  )
-                },
-                {
-                  label: 'Settings',
-                  to: Paths.instance.identity.identity(
-                    organization.data,
-                    project.data,
-                    instance.data,
-                    identity.data.id,
-                    'settings'
-                  )
-                }
-              ]}
-            />
+      <InitialLoadBoundary>
+        {renderWithLoader({ instance, organization, project, identity: _identity })(
+          ({ instance, organization, project, identity }) => (
+            <>
+              <LinkTabs
+                current={pathname}
+                links={[
+                  {
+                    label: 'Overview',
+                    to: Paths.instance.identity.identity(
+                      organization.data,
+                      project.data,
+                      instance.data,
+                      identity.data.id
+                    )
+                  },
+                  {
+                    label: 'Delegations',
+                    to: Paths.instance.identity.identity(
+                      organization.data,
+                      project.data,
+                      instance.data,
+                      identity.data.id,
+                      'delegations'
+                    )
+                  },
+                  {
+                    label: 'Delegation Requests',
+                    to: Paths.instance.identity.identity(
+                      organization.data,
+                      project.data,
+                      instance.data,
+                      identity.data.id,
+                      'delegation-requests'
+                    )
+                  },
+                  {
+                    label: 'Settings',
+                    to: Paths.instance.identity.identity(
+                      organization.data,
+                      project.data,
+                      instance.data,
+                      identity.data.id,
+                      'settings'
+                    )
+                  }
+                ]}
+              />
 
-            <Outlet />
-          </>
-        )
-      )}
+              <Outlet />
+            </>
+          )
+        )}
+      </InitialLoadBoundary>
     </ContentLayout>
   );
 };

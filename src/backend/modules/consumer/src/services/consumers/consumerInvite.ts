@@ -19,6 +19,16 @@ let include = {
   }
 } as const;
 
+let normalizeEmailFilter = (emails?: string[]) => {
+  let normalizedEmails = (emails ?? [])
+    .map(email => email.trim().toLowerCase())
+    .filter(Boolean);
+
+  if (!normalizedEmails.length) return undefined;
+
+  return Array.from(new Set(normalizedEmails));
+};
+
 class ConsumerInviteServiceImpl {
   async inviteConsumer(d: {
     consumerSurface: ConsumerSurface;
@@ -103,9 +113,11 @@ class ConsumerInviteServiceImpl {
   async listConsumerInvites(d: {
     consumerSurface: ConsumerSurface;
     search?: string;
+    emails?: string[];
     statuses?: string[];
   }) {
     let search = d.search?.trim();
+    let emails = normalizeEmailFilter(d.emails);
     let statuses = d.statuses?.length
       ? Array.from(new Set(d.statuses)).filter(
           (status): status is 'pending' | 'accepted' =>
@@ -150,6 +162,16 @@ class ConsumerInviteServiceImpl {
       andParts.push({
         status: {
           in: statuses
+        }
+      });
+    }
+
+    if (emails?.length) {
+      andParts.push({
+        consumerProfile: {
+          email: {
+            in: emails
+          }
         }
       });
     }

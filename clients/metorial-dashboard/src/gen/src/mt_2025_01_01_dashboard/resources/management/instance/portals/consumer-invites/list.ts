@@ -81,6 +81,7 @@ export type ManagementInstancePortalsConsumerInvitesListQuery = {
   order?: 'asc' | 'desc' | undefined;
 } & {
   search?: string | undefined;
+  email?: string | string[] | undefined;
   status?: 'pending' | 'accepted' | ('pending' | 'accepted')[] | undefined;
 };
 
@@ -94,6 +95,16 @@ export let mapManagementInstancePortalsConsumerInvitesListQuery = mtMap.union([
       cursor: mtMap.objectField('cursor', mtMap.passthrough()),
       order: mtMap.objectField('order', mtMap.passthrough()),
       search: mtMap.objectField('search', mtMap.passthrough()),
+      email: mtMap.objectField(
+        'email',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
       status: mtMap.objectField(
         'status',
         mtMap.union([mtMap.unionOption('array', mtMap.union([]))])

@@ -4,34 +4,37 @@ import {
   useCurrentInstance,
   useProvider,
   useProviderAuthCredential,
-  useProviderAuthMethods
+  useProviderAuthMethods,
+  useProviderListing
 } from '@metorial/state';
 import { Button, Callout, Input, Spacer } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
 import { useMemo, useState } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
+import { getScopeDoc, ProviderDocsLink } from '../../../lib/providerDocs';
 import { DeleteResourceDangerZone } from '../../../scenes/deleteResourceDangerZone';
-import { getFromDeployment } from '../fromDeployment';
 import { ScopePicker } from './components/scopePicker';
 
 export let ProviderAuthCredentialSettingsPage = () => {
   let instance = useCurrentInstance();
   let navigate = useNavigate();
-  let location = useLocation();
 
   let { providerAuthCredentialsId } = useParams();
   let credential = useProviderAuthCredential(instance.data?.id, providerAuthCredentialsId);
   let provider = useProvider(instance.data?.id, credential.data?.providerId);
+  let providerListing = useProviderListing(instance.data?.id, credential.data?.providerId);
   let versionId = provider.data?.currentVersion?.id;
   let authMethods = useProviderAuthMethods(
     instance.data?.id,
     versionId ? { providerVersionId: versionId } : null
   );
 
-  let availableScopes = useMemo(() => {
-    let oauthMethod = (authMethods.data?.items ?? []).find(m => m.type === 'oauth');
-    return oauthMethod?.scopes ?? [];
-  }, [authMethods.data?.items]);
+  let oauthMethod = useMemo(
+    () => (authMethods.data?.items ?? []).find(m => m.type === 'oauth'),
+    [authMethods.data?.items]
+  );
+  let availableScopes = oauthMethod?.scopes ?? [];
+  let scopeDoc = getScopeDoc(providerListing.data, oauthMethod);
 
   let [selectedScopes, setSelectedScopes] = useState<string[] | null>(null);
 
@@ -42,7 +45,6 @@ export let ProviderAuthCredentialSettingsPage = () => {
   let updateMutator = credential.useUpdateMutator();
   let scopesMutator = credential.useUpdateMutator();
   let deleteMutator = credential.useDeleteMutator();
-  let fromDeploymentId = getFromDeployment(location.search);
   let form = useForm({
     initialValues: {
       name: credential.data?.name ?? '',
@@ -106,6 +108,7 @@ export let ProviderAuthCredentialSettingsPage = () => {
           <Box
             title="Scopes"
             description="Select which OAuth scopes this credential should request."
+            rightActions={<ProviderDocsLink doc={scopeDoc}>Scope docs</ProviderDocsLink>}
           >
             <ScopePicker
               scopes={availableScopes}
@@ -146,19 +149,11 @@ export let ProviderAuthCredentialSettingsPage = () => {
           if (!res) return;
 
           navigate(
-            fromDeploymentId
-              ? Paths.instance.providerDeployment(
-                  instance.data?.organization,
-                  instance.data?.project,
-                  instance.data,
-                  fromDeploymentId,
-                  'auth-credentials'
-                )
-              : Paths.instance.providerAuthCredentials(
-                  instance.data?.organization,
-                  instance.data?.project,
-                  instance.data
-                )
+            Paths.instance.providerAuthCredentials(
+              instance.data?.organization,
+              instance.data?.project,
+              instance.data
+            )
           );
         }}
       >

@@ -31,6 +31,16 @@ let upsertLock = createLock({
   name: 'cons/upsert'
 });
 
+let normalizeEmailFilter = (emails?: string[]) => {
+  let normalizedEmails = (emails ?? [])
+    .map(email => email.trim().toLowerCase())
+    .filter(Boolean);
+
+  if (!normalizedEmails.length) return undefined;
+
+  return Array.from(new Set(normalizedEmails));
+};
+
 type InstanceConsumerWithRelations = InstanceConsumer & {
   consumer: ConsumerWithRelations;
 };
@@ -82,8 +92,14 @@ class ConsumerServiceImpl {
     return consumer;
   }
 
-  async listConsumers(d: { instance: Instance; search?: string; id?: string }) {
+  async listConsumers(d: {
+    instance: Instance;
+    search?: string;
+    emails?: string[];
+    id?: string;
+  }) {
     let search = d.search?.trim();
+    let emails = normalizeEmailFilter(d.emails);
     let id = d.id?.trim();
     let searchedConsumerIds = search
       ? await searchConsumerIds({
@@ -103,6 +119,7 @@ class ConsumerServiceImpl {
                 isPending: false
               },
               ...(search ? [{ id: { in: searchedConsumerIds ?? [] } }] : []),
+              ...(emails?.length ? [{ email: { in: emails } }] : []),
               ...(id ? [{ OR: [{ id }, { consumer: { id } }] }] : [])
             ]
           },

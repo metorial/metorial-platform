@@ -2,6 +2,8 @@ import { canonicalize } from '@lowerdeck/canonicalize';
 import { Hash } from '@lowerdeck/hash';
 import type { SlateAuthenticationMethod, SlatesAction } from '@slates/proto';
 
+type SlateDocReference = PrismaJson.SlateDocReference;
+
 export let dedupeDiscoveredItems = <T extends { id: string }>(
   items: T[],
   d: {
@@ -40,10 +42,13 @@ export let dedupeDiscoveredItems = <T extends { id: string }>(
 export let hashDiscoveredProviderInfo = async (d: {
   protocol: string;
   provider: Record<string, any>;
+  docs: SlateDocReference[];
 }) => await Hash.sha256(canonicalize(d));
 
-export let hashDiscoveredConfigSchema = async (schema: Record<string, any>) =>
-  await Hash.sha256(canonicalize(schema));
+export let hashDiscoveredConfigSchema = async (d: {
+  schema: Record<string, any>;
+  docs: SlateDocReference[];
+}) => await Hash.sha256(canonicalize(d));
 
 export let hashDiscoveredAuthMethod = async (method: SlateAuthenticationMethod) =>
   await Hash.sha256(canonicalize(method));
@@ -55,8 +60,12 @@ export let buildDiscoveredSpecificationHashes = async (d: {
   providerInfo: {
     protocol: string;
     provider: Record<string, any>;
+    docs: SlateDocReference[];
   };
-  configSchema: Record<string, any>;
+  configSchema: {
+    schema: Record<string, any>;
+    docs: SlateDocReference[];
+  };
   authMethods: SlateAuthenticationMethod[];
   actions: SlatesAction[];
 }) => {

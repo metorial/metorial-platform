@@ -1,4 +1,4 @@
-import { renderWithLoader } from '@metorial/data-hooks';
+import { InitialLoadBoundary, renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
 import {
@@ -42,25 +42,27 @@ export let SkillGroupLayout = () => {
         ]}
       />
 
-      {renderWithLoader({ skillGroup })(() => (
-        <>
-          <LinkTabs
-            current={pathname}
-            links={[
-              {
-                label: 'Overview',
-                to: Paths.instance.skillGroup(...skillGroupPathParams)
-              },
-              {
-                label: 'Settings',
-                to: Paths.instance.skillGroup(...skillGroupPathParams, 'settings')
-              }
-            ]}
-          />
+      <InitialLoadBoundary>
+        {renderWithLoader({ skillGroup })(() => (
+          <>
+            <LinkTabs
+              current={pathname}
+              links={[
+                {
+                  label: 'Overview',
+                  to: Paths.instance.skillGroup(...skillGroupPathParams)
+                },
+                {
+                  label: 'Settings',
+                  to: Paths.instance.skillGroup(...skillGroupPathParams, 'settings')
+                }
+              ]}
+            />
 
-          <Outlet />
-        </>
-      ))}
+            <Outlet />
+          </>
+        ))}
+      </InitialLoadBoundary>
     </ContentLayout>
   );
 };

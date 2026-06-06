@@ -6,10 +6,12 @@ export let ProviderAuthConfigManualCreateContent = (p: {
   providerDeploymentId?: string;
   providerId?: string;
   initialAuthMethodId: string;
+  defaultAuthConfigName?: string;
   close: () => void;
-  onCreate?: (authConfig: { id: string }) => void;
+  onCreate?: (authConfig: { id: string; name?: string | null }) => void;
   onBack?: () => void;
   embedded?: boolean;
+  hideDetailsInputs?: boolean;
 }) => {
   let useFlatLayout = true;
 
@@ -33,10 +35,12 @@ export let ProviderAuthConfigManualCreateContent = (p: {
         hideAuthMethodStep
         flattenCreateStep={useFlatLayout}
         hideProviderContext={useFlatLayout}
+        defaultName={p.defaultAuthConfigName}
+        hideDetailsInputs={p.hideDetailsInputs}
         close={p.close}
         onBack={p.onBack}
         onCreate={authConfig => {
-          p.onCreate?.({ id: authConfig.id });
+          p.onCreate?.({ id: authConfig.id, name: authConfig.name });
         }}
       />
     </>
