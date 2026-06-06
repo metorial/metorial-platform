@@ -1,5 +1,6 @@
 export * from './lib/atom';
 export * from './lib/emitter';
+export * from './lib/initialLoad';
 export * from './lib/listeners';
 export * from './lib/onFocus';
 export * from './lib/paginationSearchParams';

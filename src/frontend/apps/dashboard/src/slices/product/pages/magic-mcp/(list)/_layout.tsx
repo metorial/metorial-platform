@@ -1,4 +1,4 @@
-import { PaginationSearchParamsProvider } from '@metorial/data-hooks';
+import { InitialLoadBoundary, PaginationSearchParamsProvider } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
 import {
@@ -80,9 +80,11 @@ export let MagicMcpListLayout = () => {
         ]}
       />
 
-      <PaginationSearchParamsProvider enabled={true}>
-        <Outlet />
-      </PaginationSearchParamsProvider>
+      <InitialLoadBoundary>
+        <PaginationSearchParamsProvider enabled={true}>
+          <Outlet />
+        </PaginationSearchParamsProvider>
+      </InitialLoadBoundary>
     </ContentLayout>
   );
 };

@@ -1,4 +1,3 @@
-import { RiDeleteBinLine } from '@remixicon/react';
 import { CustomProvidersGetOutput } from '@metorial/dashboard-sdk';
 import { useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
@@ -8,7 +7,8 @@ import {
   useCustomProvider,
   useCustomProviderEnv
 } from '@metorial/state';
-import { Button, Group, Input, Select, Spacer, Text, theme, toast } from '@metorial/ui';
+import { Button, Group, Input, Select, Spacer, Text, toast } from '@metorial/ui';
+import { RiDeleteBinLine } from '@remixicon/react';
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
@@ -39,13 +39,6 @@ let EnvRow = styled.div`
   grid-template-columns: minmax(180px, 1fr) minmax(220px, 1.2fr) auto;
   gap: 12px;
   align-items: end;
-`;
-
-let EnvActions = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
 `;
 
 let SaveActions = styled.div`
@@ -87,8 +80,10 @@ export let CustomProviderUpdateForm = (p: { customProvider?: CustomProvidersGetO
   let customProvider = useCustomProvider(instance.data?.id, p.customProvider?.id);
   let navigate = useNavigate();
   let updateMutator = customProvider.useUpdateMutator();
-  let createVersionMutator = useCreateCustomProviderVersion();
+  let remoteVersionMutator = useCreateCustomProviderVersion();
+  let envVersionMutator = useCreateCustomProviderVersion();
   let customProviderData = customProvider.data ?? p.customProvider;
+  let isArchived = customProviderData?.status === 'archived';
   let isFunctionProvider = customProviderData?.type === 'function';
   let customProviderEnv = useCustomProviderEnv(
     isFunctionProvider ? instance.data?.id : null,
@@ -99,98 +94,136 @@ export let CustomProviderUpdateForm = (p: { customProvider?: CustomProvidersGetO
   let currentRemoteProtocol =
     customProviderData?.draft?.remoteMcpServer?.transport ??
     getCustomProviderRemoteProtocolFromUrl(currentRemoteUrl);
-  let isSaving = updateMutator.isLoading || createVersionMutator.isLoading;
-  let isSaved = !isSaving && (updateMutator.isSuccess || createVersionMutator.isSuccess);
   let currentEnv = useMemo(
     () => normalizeEnvRecord(customProviderEnv.data?.env),
     [customProviderEnv.data?.env]
   );
   let initialEnvRows = useMemo(() => envRecordToRows(currentEnv), [currentEnv]);
 
-  let form = useForm({
+  let generalForm = useForm({
     initialValues: {
       name: customProviderData?.name ?? '',
-      description: customProviderData?.description ?? '',
+      description: customProviderData?.description ?? ''
+    },
+    updateInitialValues: true,
+    onSubmit: async values => {
+      if (!instance.data) return;
+      if (!customProviderData) return;
+      if (isArchived) return;
+
+      await updateMutator.mutate({
+        name: values.name.trim(),
+        description: values.description.trim() || undefined
+      });
+      await customProvider.refetch();
+    },
+    schema: yup =>
+      yup.object({
+        name: yup.string().trim().required('Name is required'),
+        description: yup.string()
+      })
+  });
+
+  let remoteForm = useForm({
+    initialValues: {
       remoteUrl: currentRemoteUrl,
-      remoteProtocol: currentRemoteProtocol,
+      remoteProtocol: currentRemoteProtocol
+    },
+    updateInitialValues: true,
+    onSubmit: async values => {
+      if (!instance.data) return;
+      if (!customProviderData) return;
+      if (isArchived) return;
+      if (!isExternalProvider) return;
+
+      let nextRemoteUrl = values.remoteUrl.trim();
+      let nextRemoteProtocol: 'sse' | 'streamable_http' =
+        values.remoteProtocol == 'sse' ? 'sse' : 'streamable_http';
+      let didUpdateRemote =
+        nextRemoteUrl !== currentRemoteUrl || nextRemoteProtocol !== currentRemoteProtocol;
+      if (!didUpdateRemote) return;
+
+      let [version] = await remoteVersionMutator.mutate({
+        instanceId: instance.data.id,
+        customProviderId: customProviderData.id,
+        from: {
+          type: 'remote',
+          remoteUrl: nextRemoteUrl,
+          protocol: nextRemoteProtocol
+        }
+      });
+
+      if (version) {
+        toast.success('External provider update started');
+        await customProvider.refetch();
+
+        navigate(
+          Paths.instance.customProvider(
+            instance.data.organization,
+            instance.data.project,
+            instance.data,
+            customProviderData.id,
+            'versions',
+            { version_id: version.id }
+          ),
+          {
+            state: {
+              category: 'external'
+            }
+          }
+        );
+      }
+    },
+    schema: yup =>
+      yup.object({
+        remoteUrl: yup
+          .string()
+          .trim()
+          .url('Remote URL must be a valid URL')
+          .required('Remote URL is required'),
+        remoteProtocol: yup
+          .mixed<CustomProviderRemoteProtocol>()
+          .oneOf(['sse', 'streamable_http'])
+          .required('Transport protocol is required')
+      })
+  });
+
+  let envForm = useForm({
+    initialValues: {
       envRows: initialEnvRows
     },
     updateInitialValues: true,
     onSubmit: async values => {
       if (!instance.data) return;
       if (!customProviderData) return;
+      if (isArchived) return;
+      if (!isFunctionProvider) return;
 
-      let nextRemoteUrl = values.remoteUrl.trim();
-      let nextRemoteProtocol: 'sse' | 'streamable_http' =
-        values.remoteProtocol == 'sse' ? 'sse' : 'streamable_http';
       let nextEnv = rowsToEnvRecord(values.envRows);
-      let didUpdateRemote =
-        isExternalProvider &&
-        (nextRemoteUrl !== currentRemoteUrl || nextRemoteProtocol !== currentRemoteProtocol);
-      let didUpdateEnv =
-        isFunctionProvider && stringifyEnvRecord(nextEnv) !== stringifyEnvRecord(currentEnv);
+      let didUpdateEnv = stringifyEnvRecord(nextEnv) !== stringifyEnvRecord(currentEnv);
+      if (!didUpdateEnv) return;
 
-      await updateMutator.mutate({
-        name: values.name.trim(),
-        description: values.description.trim() || undefined
+      let [version] = await envVersionMutator.mutate({
+        instanceId: instance.data.id,
+        customProviderId: customProviderData.id,
+        from: getFunctionProviderVersionFrom(customProviderData, nextEnv)
       });
 
-      if (didUpdateRemote) {
-        let [version] = await createVersionMutator.mutate({
-          instanceId: instance.data.id,
-          customProviderId: customProviderData.id,
-          from: {
-            type: 'remote',
-            remoteUrl: values.remoteUrl.trim(),
-            protocol: nextRemoteProtocol
-          }
-        });
+      if (version) {
+        toast.success('Environment variable update started');
+        await customProvider.refetch();
+        await customProviderEnv.refetch();
 
-        if (version) {
-          toast.success('External provider update started');
-          await customProvider.refetch();
-
-          navigate(
-            Paths.instance.customProvider(
-              instance.data.organization,
-              instance.data.project,
-              instance.data,
-              customProviderData.id,
-              'versions',
-              { version_id: version.id }
-            ),
-            {
-              state: {
-                category: 'external'
-              }
-            }
-          );
-        }
-      }
-
-      if (didUpdateEnv) {
-        let [version] = await createVersionMutator.mutate({
-          instanceId: instance.data.id,
-          customProviderId: customProviderData.id,
-          from: getFunctionProviderVersionFrom(customProviderData, nextEnv)
-        });
-
-        if (version) {
-          toast.success('Environment variable update started');
-          await customProvider.refetch();
-          await customProviderEnv.refetch();
-
-          navigate(
-            Paths.instance.customProvider(
-              instance.data.organization,
-              instance.data.project,
-              instance.data,
-              customProviderData.id,
-              'versions',
-              { version_id: version.id }
-            )
-          );
-        }
+        navigate(
+          Paths.instance.customProvider(
+            instance.data.organization,
+            instance.data.project,
+            instance.data,
+            customProviderData.id,
+            'versions',
+            { version_id: version.id }
+          )
+        );
       }
     },
     schema: yup => {
@@ -211,113 +244,148 @@ export let CustomProviderUpdateForm = (p: { customProvider?: CustomProvidersGetO
           return (rows ?? []).every(row => row.key?.trim() || !row.value);
         });
 
-      return isExternalProvider
-        ? yup.object({
-            name: yup.string().trim().required('Name is required'),
-            description: yup.string(),
-            remoteUrl: isExternalProvider
-              ? yup
-                  .string()
-                  .trim()
-                  .url('Remote URL must be a valid URL')
-                  .required('Remote URL is required')
-              : yup.string(),
-            remoteProtocol: yup
-              .mixed<CustomProviderRemoteProtocol>()
-              .oneOf(['sse', 'streamable_http'])
-              .required('Transport protocol is required'),
-            envRows
-          })
-        : (yup.object({
-            name: yup.string().trim().required('Name is required'),
-            description: yup.string(),
-            remoteUrl: yup.string().optional(),
-            remoteProtocol: yup.mixed<CustomProviderRemoteProtocol>().optional(),
-            envRows
-          }) as any);
+      return yup.object({ envRows });
     }
   });
 
   let addEnvRow = () => {
-    form.setFieldValue('envRows', [
-      ...form.values.envRows,
+    envForm.setFieldValue('envRows', [
+      ...envForm.values.envRows,
       { id: `env-${Date.now()}`, key: '', value: '' }
     ]);
   };
 
   let updateEnvRow = (id: string, values: Partial<EnvVarRow>) => {
-    form.setFieldValue(
+    envForm.setFieldValue(
       'envRows',
-      form.values.envRows.map(row => (row.id === id ? { ...row, ...values } : row))
+      envForm.values.envRows.map(row => (row.id === id ? { ...row, ...values } : row))
     );
   };
 
   let removeEnvRow = (id: string) => {
-    form.setFieldValue(
+    envForm.setFieldValue(
       'envRows',
-      form.values.envRows.filter(row => row.id !== id)
+      envForm.values.envRows.filter(row => row.id !== id)
     );
   };
 
   return (
     <FormPage>
-      <form onSubmit={form.handleSubmit}>
+      <form onSubmit={generalForm.handleSubmit}>
         <Group.Wrapper>
           <Group.Header
             title="General"
             description={
               isExternalProvider
-                ? 'Update the details of your external provider. Changing the remote URL publishes a new version.'
+                ? 'Update the display details of your external provider.'
                 : 'Update the details of your custom provider.'
             }
           />
 
           <Group.Content>
-            <Input label="Name" {...form.getFieldProps('name')} />
-            <form.RenderError field="name" />
+            <Input label="Name" disabled={isArchived} {...generalForm.getFieldProps('name')} />
+            <generalForm.RenderError field="name" />
 
             <Spacer size={15} />
 
-            <Input label="Description" {...form.getFieldProps('description')} />
-            <form.RenderError field="description" />
+            <Input
+              label="Description"
+              disabled={isArchived}
+              {...generalForm.getFieldProps('description')}
+            />
+            <generalForm.RenderError field="description" />
 
-            {isExternalProvider && (
-              <>
-                <Spacer size={15} />
+            <Spacer size={15} />
 
+            <SaveActions>
+              <Button
+                size="2"
+                type="submit"
+                loading={updateMutator.isLoading}
+                success={updateMutator.isSuccess}
+                disabled={isArchived}
+              >
+                Save
+              </Button>
+            </SaveActions>
+
+            {updateMutator.error && <updateMutator.RenderError />}
+          </Group.Content>
+        </Group.Wrapper>
+      </form>
+
+      {isExternalProvider && (
+        <>
+          <form onSubmit={remoteForm.handleSubmit}>
+            <Group.Wrapper>
+              <Group.Header
+                title="Remote Provider"
+                description="Update the remote MCP endpoint. Changes publish a new provider version."
+              />
+
+              <Group.Content>
                 <Input
                   label="Remote URL"
                   description="Changing this URL publishes a new version for the external provider."
-                  {...form.getFieldProps('remoteUrl')}
+                  disabled={isArchived}
+                  {...remoteForm.getFieldProps('remoteUrl')}
                 />
-                <form.RenderError field="remoteUrl" />
+                <remoteForm.RenderError field="remoteUrl" />
 
                 <Spacer size={15} />
 
                 <Select
-                  value={String(form.values.remoteProtocol || '')}
+                  value={String(remoteForm.values.remoteProtocol || '')}
                   label="MCP Transport Protocol"
                   description="Use the protocol supported by the remote MCP provider."
+                  disabled={isArchived}
                   items={[
                     { label: 'SSE (Server-Sent Events)', id: 'sse' },
                     { label: 'Streamable HTTP', id: 'streamable_http' }
                   ]}
-                  onChange={v => form.setFieldValue('remoteProtocol', v)}
+                  onChange={v => remoteForm.setFieldValue('remoteProtocol', v)}
                 />
-                <form.RenderError field="remoteProtocol" />
-              </>
-            )}
-          </Group.Content>
-        </Group.Wrapper>
+                <remoteForm.RenderError field="remoteProtocol" />
 
-        {isFunctionProvider && (
-          <>
-            <Spacer size={15} />
+                <Spacer size={15} />
 
+                <SaveActions>
+                  <Button
+                    size="2"
+                    type="submit"
+                    loading={remoteVersionMutator.isLoading}
+                    success={remoteVersionMutator.isSuccess}
+                    disabled={isArchived}
+                  >
+                    Save
+                  </Button>
+                </SaveActions>
+
+                {remoteVersionMutator.error && <remoteVersionMutator.RenderError />}
+              </Group.Content>
+            </Group.Wrapper>
+          </form>
+        </>
+      )}
+
+      {isFunctionProvider && (
+        <>
+          <form onSubmit={envForm.handleSubmit}>
             <Group.Wrapper>
               <Group.Header
                 title="Environment Variables"
                 description="Set custom environment variables for your provider. Use configs and auth configs for sensitive and user-specific data."
+                actions={
+                  <Button
+                    size="2"
+                    variant="outline"
+                    type="button"
+                    disabled={isArchived}
+                    onClick={addEnvRow}
+                  >
+                    Add Variable
+                  </Button>
+                }
               />
 
               <Group.Content>
@@ -327,14 +395,15 @@ export let CustomProviderUpdateForm = (p: { customProvider?: CustomProvidersGetO
                   </Text>
                 ) : (
                   <>
-                    {form.values.envRows.length > 0 && (
+                    {envForm.values.envRows.length > 0 && (
                       <EnvRows>
-                        {form.values.envRows.map((row, idx) => (
+                        {envForm.values.envRows.map((row, idx) => (
                           <EnvRow key={row.id}>
                             <Input
                               label="Name"
                               hideLabel={idx !== 0}
                               placeholder="DATABASE_URL"
+                              disabled={isArchived}
                               value={row.key}
                               onChange={e => updateEnvRow(row.id, { key: e.target.value })}
                             />
@@ -344,6 +413,7 @@ export let CustomProviderUpdateForm = (p: { customProvider?: CustomProvidersGetO
                               hideLabel={idx !== 0}
                               placeholder="Enter value"
                               type="password"
+                              disabled={isArchived}
                               value={row.value}
                               onChange={e => updateEnvRow(row.id, { value: e.target.value })}
                             />
@@ -352,6 +422,7 @@ export let CustomProviderUpdateForm = (p: { customProvider?: CustomProvidersGetO
                               variant="soft"
                               color="red"
                               type="button"
+                              disabled={isArchived}
                               onClick={() => removeEnvRow(row.id)}
                               iconRight={<RiDeleteBinLine />}
                             />
@@ -360,36 +431,41 @@ export let CustomProviderUpdateForm = (p: { customProvider?: CustomProvidersGetO
                       </EnvRows>
                     )}
 
-                    <EnvActions>
-                      <Button size="2" variant="outline" type="button" onClick={addEnvRow}>
-                        Add variable
-                      </Button>
-                    </EnvActions>
+                    {envForm.values.envRows.length === 0 && (
+                      <Text size="2" color="gray600">
+                        No environment variables configured.
+                      </Text>
+                    )}
                   </>
                 )}
 
-                <form.RenderError field="envRows" />
+                <envForm.RenderError field="envRows" />
                 {customProviderEnv.error && (
                   <Text size="2" color="red600">
                     {customProviderEnv.error.message}
                   </Text>
                 )}
+
+                <Spacer size={15} />
+
+                <SaveActions>
+                  <Button
+                    size="2"
+                    type="submit"
+                    loading={envVersionMutator.isLoading}
+                    success={envVersionMutator.isSuccess}
+                    disabled={isArchived || customProviderEnv.isLoading}
+                  >
+                    Save
+                  </Button>
+                </SaveActions>
+
+                {envVersionMutator.error && <envVersionMutator.RenderError />}
               </Group.Content>
             </Group.Wrapper>
-          </>
-        )}
-
-        <Spacer size={15} />
-
-        <SaveActions>
-          <Button size="2" type="submit" loading={isSaving} success={isSaved}>
-            Save
-          </Button>
-        </SaveActions>
-
-        {updateMutator.error && <updateMutator.RenderError />}
-        {createVersionMutator.error && <createVersionMutator.RenderError />}
-      </form>
+          </form>
+        </>
+      )}
     </FormPage>
   );
 };

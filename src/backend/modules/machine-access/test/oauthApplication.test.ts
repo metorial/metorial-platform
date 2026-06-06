@@ -1,3 +1,4 @@
+import { ServiceError } from '@lowerdeck/error';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let { machineAccessCreateMock, machineAccessUpdateMock, mockDb } = vi.hoisted(() => ({
@@ -174,6 +175,90 @@ describe('oauthApplicationService', () => {
     expect(result.scopedInstallation?.oid).toBe('oauth-installation-oid');
   });
 
+  it('creates an oauth app with local http redirect uris', async () => {
+    await oauthApplicationService.createOAuthApplication({
+      organization: baseOrg,
+      performedBy: baseActor,
+      context: baseContext,
+      input: {
+        type: 'server_side',
+        accessLevel: 'organization',
+        name: 'Server App',
+        redirectUris: [
+          'http://localhost:3000/callback',
+          'http://127.0.0.1:3000/callback',
+          'http://[::1]:3000/callback'
+        ],
+        scopes: ['organization:read']
+      }
+    });
+
+    expect(mockDb.oAuthApplication.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          redirectUris: [
+            'http://localhost:3000/callback',
+            'http://127.0.0.1:3000/callback',
+            'http://[::1]:3000/callback'
+          ]
+        })
+      })
+    );
+  });
+
+  it('rejects creating an oauth app with a non-local http redirect uri', async () => {
+    await expect(
+      oauthApplicationService.createOAuthApplication({
+        organization: baseOrg,
+        performedBy: baseActor,
+        context: baseContext,
+        input: {
+          type: 'server_side',
+          accessLevel: 'organization',
+          name: 'Server App',
+          redirectUris: ['http://example.com/callback'],
+          scopes: ['organization:read']
+        }
+      })
+    ).rejects.toThrow(ServiceError);
+
+    expect(mockDb.oAuthApplication.create).not.toHaveBeenCalled();
+  });
+
+  it('creates a global user-facing oauth app without an organization or scoped installation', async () => {
+    mockDb.oAuthApplication.create.mockImplementationOnce(async ({ data }: any) => ({
+      oid: 'oauth-app-oid',
+      ...data,
+      clientSecrets: [],
+      organization: null,
+      serverSideMachineAccess: null,
+      scopedInstallation: null
+    }));
+
+    let result = await oauthApplicationService.createGlobalUserFacingOAuthApplication({
+      input: {
+        name: 'Global App',
+        redirectUris: ['https://example.com/callback'],
+        scopes: ['organization:read']
+      }
+    });
+
+    expect(machineAccessCreateMock).not.toHaveBeenCalled();
+    expect(mockDb.oAuthInstallation.create).not.toHaveBeenCalled();
+    expect(mockDb.oAuthApplication.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          type: 'user_facing',
+          accessLevel: 'global',
+          organizationOid: null,
+          scopedInstallationOid: null,
+          serverSideMachineAccessOid: null
+        })
+      })
+    );
+    expect(result.accessLevel).toBe('global');
+  });
+
   it('updates server-side scopes and syncs them to installation and machine access', async () => {
     await oauthApplicationService.updateOAuthApplication({
       oauthApplication: {
@@ -212,6 +297,122 @@ describe('oauthApplicationService', () => {
     });
   });
 
+  it('updates an oauth app with local http redirect uris', async () => {
+    await oauthApplicationService.updateOAuthApplication({
+      oauthApplication: {
+        oid: 'oauth-app-oid',
+        type: 'server_side',
+        status: 'active',
+        accessLevel: 'organization'
+      } as any,
+      organization: baseOrg,
+      performedBy: baseActor,
+      context: baseContext,
+      input: {
+        redirectUris: [
+          'http://localhost:3000/callback',
+          'http://127.0.0.1:3000/callback',
+          'http://[::1]:3000/callback'
+        ]
+      }
+    });
+
+    expect(mockDb.oAuthApplication.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          redirectUris: [
+            'http://localhost:3000/callback',
+            'http://127.0.0.1:3000/callback',
+            'http://[::1]:3000/callback'
+          ]
+        })
+      })
+    );
+  });
+
+  it('rejects updating an oauth app with a non-local http redirect uri', async () => {
+    await expect(
+      oauthApplicationService.updateOAuthApplication({
+        oauthApplication: {
+          oid: 'oauth-app-oid',
+          type: 'server_side',
+          status: 'active',
+          accessLevel: 'organization'
+        } as any,
+        organization: baseOrg,
+        performedBy: baseActor,
+        context: baseContext,
+        input: {
+          redirectUris: ['http://example.com/callback']
+        }
+      })
+    ).rejects.toThrow(ServiceError);
+
+    expect(mockDb.oAuthApplication.update).not.toHaveBeenCalled();
+  });
+
+  it('updates a global user-facing oauth app', async () => {
+    mockDb.oAuthApplication.update.mockImplementationOnce(async ({ data }: any) => ({
+      oid: 'oauth-app-oid',
+      id: 'oauth-app-id',
+      status: 'active',
+      type: 'user_facing',
+      accessLevel: 'global',
+      organization: null,
+      serverSideMachineAccess: null,
+      scopedInstallation: null,
+      clientSecrets: [],
+      ...data
+    }));
+
+    let result = await oauthApplicationService.updateGlobalUserFacingOAuthApplication({
+      oauthApplication: {
+        oid: 'oauth-app-oid',
+        type: 'user_facing',
+        status: 'active',
+        accessLevel: 'global',
+        isImportedFromOtherInstance: false
+      } as any,
+      input: {
+        name: 'Global App 2',
+        redirectUris: ['https://example.com/callback'],
+        scopes: ['organization:write']
+      }
+    });
+
+    expect(machineAccessUpdateMock).not.toHaveBeenCalled();
+    expect(mockDb.oAuthInstallation.update).not.toHaveBeenCalled();
+    expect(mockDb.oAuthApplication.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          name: 'Global App 2',
+          redirectUris: ['https://example.com/callback'],
+          scopes: ['organization:write']
+        })
+      })
+    );
+    expect(result.name).toBe('Global App 2');
+  });
+
+  it('rejects updating an imported global oauth app', async () => {
+    await expect(
+      oauthApplicationService.updateGlobalUserFacingOAuthApplication({
+        oauthApplication: {
+          oid: 'oauth-app-oid',
+          type: 'user_facing',
+          status: 'active',
+          accessLevel: 'global',
+          isImportedFromOtherInstance: true
+        } as any,
+        input: {
+          name: 'Imported App'
+        }
+      })
+    ).rejects.toThrow(ServiceError);
+
+    expect(mockDb.oAuthApplication.update).not.toHaveBeenCalled();
+  });
+
   it('archives app by revoking authorizations and installations', async () => {
     let result = await oauthApplicationService.archiveOAuthApplication({
       oauthApplication: {
@@ -225,6 +426,29 @@ describe('oauthApplicationService', () => {
     });
 
     expect(mockDb.oAuthAuthorization.updateMany).toHaveBeenCalled();
+    expect(mockDb.oAuthInstallation.updateMany).toHaveBeenCalled();
+    expect(result.status).toBe('archived');
+  });
+
+  it('archives a global user-facing oauth app', async () => {
+    let result = await oauthApplicationService.archiveGlobalUserFacingOAuthApplication({
+      oauthApplication: {
+        oid: 'oauth-app-oid',
+        type: 'user_facing',
+        status: 'active',
+        accessLevel: 'global',
+        isImportedFromOtherInstance: false
+      } as any
+    });
+
+    expect(mockDb.oAuthAuthorization.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          oauthApplicationOid: 'oauth-app-oid',
+          status: 'active'
+        })
+      })
+    );
     expect(mockDb.oAuthInstallation.updateMany).toHaveBeenCalled();
     expect(result.status).toBe('archived');
   });

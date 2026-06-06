@@ -1,4 +1,8 @@
-import { PaginationSearchParamsProvider, renderWithLoader } from '@metorial/data-hooks';
+import {
+  InitialLoadBoundary,
+  PaginationSearchParamsProvider,
+  renderWithLoader
+} from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { ContentPanelLayout, ExtraHeaderLayout } from '@metorial/layout';
 import {
@@ -94,11 +98,13 @@ export let ProtoGuardFilterLayout = () => {
               ]
             }}
           >
-            <OutletWrapper>
-              <PaginationSearchParamsProvider enabled={true}>
-                <Outlet />
-              </PaginationSearchParamsProvider>
-            </OutletWrapper>
+            <InitialLoadBoundary>
+              <OutletWrapper>
+                <PaginationSearchParamsProvider enabled={true}>
+                  <Outlet />
+                </PaginationSearchParamsProvider>
+              </OutletWrapper>
+            </InitialLoadBoundary>
           </ContentPanelLayout>
         );
       })}

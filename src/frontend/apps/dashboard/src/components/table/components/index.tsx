@@ -731,11 +731,13 @@ export let TableComponent = reactMemo(
                                 <Menu
                                   items={[
                                     ...(to ? [{ id: '$$open$$', label: 'Open' }] : []),
-                                    ...(props.rowActions ?? []).map(action => ({
-                                      id: action.id,
-                                      label: action.label,
-                                      disabled: action.disabled?.(row)
-                                    }))
+                                    ...(props.rowActions ?? [])
+                                      .filter(action => !action.hidden?.(row))
+                                      .map(action => ({
+                                        id: action.id,
+                                        label: action.label,
+                                        disabled: action.disabled?.(row)
+                                      }))
                                   ]}
                                   onItemClick={id => {
                                     if (id == '$$open$$') return navigate(to!);
