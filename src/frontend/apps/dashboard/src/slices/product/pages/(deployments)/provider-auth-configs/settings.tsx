@@ -3,20 +3,17 @@ import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, useProviderAuthConfig } from '@metorial/state';
 import { Button, Input, Spacer } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { DeleteResourceDangerZone } from '../../../scenes/deleteResourceDangerZone';
-import { getFromDeployment } from '../fromDeployment';
 
 export let ProviderAuthConfigSettingsPage = () => {
   let instance = useCurrentInstance();
   let navigate = useNavigate();
-  let location = useLocation();
 
   let { providerAuthConfigId } = useParams();
   let authConfig = useProviderAuthConfig(instance.data?.id, providerAuthConfigId);
   let updateMutator = authConfig.useUpdateMutator();
   let deleteMutator = authConfig.useDeleteMutator();
-  let fromDeploymentId = getFromDeployment(location.search);
   let form = useForm({
     initialValues: {
       name: authConfig.data?.name ?? '',
@@ -79,12 +76,12 @@ export let ProviderAuthConfigSettingsPage = () => {
           if (!res) return;
 
           navigate(
-            fromDeploymentId
+            authConfig.data.deployment?.id
               ? Paths.instance.providerDeployment(
                   instance.data?.organization,
                   instance.data?.project,
                   instance.data,
-                  fromDeploymentId,
+                  authConfig.data.deployment.id,
                   'auth-configs'
                 )
               : Paths.instance.providerAuthConfigs(

@@ -9,15 +9,13 @@ import {
 import { Button, Callout, Input, Spacer } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
 import { useMemo, useState } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { DeleteResourceDangerZone } from '../../../scenes/deleteResourceDangerZone';
-import { getFromDeployment } from '../fromDeployment';
 import { ScopePicker } from './components/scopePicker';
 
 export let ProviderAuthCredentialSettingsPage = () => {
   let instance = useCurrentInstance();
   let navigate = useNavigate();
-  let location = useLocation();
 
   let { providerAuthCredentialsId } = useParams();
   let credential = useProviderAuthCredential(instance.data?.id, providerAuthCredentialsId);
@@ -42,7 +40,6 @@ export let ProviderAuthCredentialSettingsPage = () => {
   let updateMutator = credential.useUpdateMutator();
   let scopesMutator = credential.useUpdateMutator();
   let deleteMutator = credential.useDeleteMutator();
-  let fromDeploymentId = getFromDeployment(location.search);
   let form = useForm({
     initialValues: {
       name: credential.data?.name ?? '',
@@ -146,19 +143,11 @@ export let ProviderAuthCredentialSettingsPage = () => {
           if (!res) return;
 
           navigate(
-            fromDeploymentId
-              ? Paths.instance.providerDeployment(
-                  instance.data?.organization,
-                  instance.data?.project,
-                  instance.data,
-                  fromDeploymentId,
-                  'auth-credentials'
-                )
-              : Paths.instance.providerAuthCredentials(
-                  instance.data?.organization,
-                  instance.data?.project,
-                  instance.data
-                )
+            Paths.instance.providerAuthCredentials(
+              instance.data?.organization,
+              instance.data?.project,
+              instance.data
+            )
           );
         }}
       >
