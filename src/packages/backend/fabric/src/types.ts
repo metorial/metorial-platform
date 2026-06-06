@@ -471,6 +471,8 @@ export interface FabricEvents {
   'provider.custom_provider.created:after': ProviderEventBase & { customProvider: SubspaceCustomProvider };
   'provider.custom_provider.updated:before': ProviderEventBase;
   'provider.custom_provider.updated:after': ProviderEventBase & { customProvider: SubspaceCustomProvider };
+  'provider.custom_provider.archived:before': ProviderEventBase;
+  'provider.custom_provider.archived:after': ProviderEventBase & { customProvider: SubspaceCustomProvider };
 
   'provider.custom_provider.version.created:before': ProviderEventBase;
   'provider.custom_provider.version.created:after': ProviderEventBase & { customProviderVersion: SubspaceCustomProviderVersion };

@@ -1,4 +1,4 @@
-import { renderWithLoader } from '@metorial/data-hooks';
+import { InitialLoadBoundary, renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { ContentPanelLayout, ExtraHeaderLayout } from '@metorial/layout';
 import {
@@ -46,11 +46,7 @@ export let ProviderSessionLayout = () => {
     <ExtraHeaderLayout
       header={
         <Link
-          to={Paths.instance.providerSessions(
-            organization.data,
-            project.data,
-            instance.data
-          )}
+          to={Paths.instance.providerSessions(organization.data, project.data, instance.data)}
         >
           <Button size="2" variant="outline" iconLeft={<RiArrowLeftSLine />}>
             Back to all sessions
@@ -95,14 +91,16 @@ export let ProviderSessionLayout = () => {
           ]
         }}
       >
-        {renderWithLoader(
-          { session },
-          { spaceTop: 20 }
-        )(({ session }) => (
-          <OutletWrapper>
-            <Outlet />
-          </OutletWrapper>
-        ))}
+        <InitialLoadBoundary>
+          {renderWithLoader(
+            { session },
+            { spaceTop: 20 }
+          )(({ session }) => (
+            <OutletWrapper>
+              <Outlet />
+            </OutletWrapper>
+          ))}
+        </InitialLoadBoundary>
       </ContentPanelLayout>
     </ExtraHeaderLayout>
   );

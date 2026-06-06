@@ -1,4 +1,4 @@
-import { renderWithLoader } from '@metorial/data-hooks';
+import { InitialLoadBoundary, renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
 import {
@@ -81,25 +81,27 @@ export let SkillTemplateLayout = () => {
         }
       />
 
-      {renderWithLoader({ skillTemplate })(() => (
-        <>
-          <LinkTabs
-            current={pathname}
-            links={[
-              {
-                label: 'Overview',
-                to: Paths.instance.skillTemplate(...skillTemplatePathParams)
-              },
-              {
-                label: 'Settings',
-                to: Paths.instance.skillTemplate(...skillTemplatePathParams, 'settings')
-              }
-            ]}
-          />
+      <InitialLoadBoundary>
+        {renderWithLoader({ skillTemplate })(() => (
+          <>
+            <LinkTabs
+              current={pathname}
+              links={[
+                {
+                  label: 'Overview',
+                  to: Paths.instance.skillTemplate(...skillTemplatePathParams)
+                },
+                {
+                  label: 'Settings',
+                  to: Paths.instance.skillTemplate(...skillTemplatePathParams, 'settings')
+                }
+              ]}
+            />
 
-          <Outlet />
-        </>
-      ))}
+            <Outlet />
+          </>
+        ))}
+      </InitialLoadBoundary>
     </ContentLayout>
   );
 };

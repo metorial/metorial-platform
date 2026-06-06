@@ -1,4 +1,4 @@
-import { renderWithLoader } from '@metorial/data-hooks';
+import { InitialLoadBoundary, renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
 import {
@@ -65,7 +65,9 @@ export let MagicMcpGroupLayout = () => {
               ]}
             />
 
-            <Outlet />
+            <InitialLoadBoundary>
+              <Outlet />
+            </InitialLoadBoundary>
           </>
         );
       })}
