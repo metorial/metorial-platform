@@ -385,8 +385,23 @@ let languageDotColor: Record<string, string> = {
 
 let capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
-let getTokenPreview = (token: string) =>
-  `${token.slice(0, 20)}${token.length > 20 ? '...' : ''}`;
+let getMaskedSecret = (value: string) => {
+  if (value.length <= 4) return '•'.repeat(value.length);
+
+  let prefixLen = Math.min(16, value.length - 4);
+  let prefix = value.slice(0, prefixLen);
+  let suffix = value.slice(-4);
+  let hiddenLen = value.length - prefixLen - 4;
+
+  if (hiddenLen <= 0) return `${prefix}${suffix}`;
+
+  return `${prefix}${'•'.repeat(Math.min(hiddenLen, 20))}${suffix}`;
+};
+
+let maskTokenInValue = (value: string, token?: string | null) => {
+  if (!token || token === '...' || !value.includes(token)) return value;
+  return value.split(token).join(getMaskedSecret(token));
+};
 
 let LuxeCodeBlock = ({
   code,
@@ -404,7 +419,7 @@ let LuxeCodeBlock = ({
   let dotColor = languageDotColor[language] ?? theme.colors.gray500;
   let hasToken = !!token && code.includes(token);
   let displayCode =
-    hasToken && token && !revealed ? code.split(token).join(getTokenPreview(token)) : code;
+    hasToken && token && !revealed ? maskTokenInValue(code, token) : code;
 
   return (
     <CodeCard>
@@ -470,20 +485,30 @@ let CredentialRow = ({
   value,
   copyValue,
   icon,
-  secret
+  secret,
+  revealed,
+  onRevealChange
 }: {
   label: string;
   value: string;
   copyValue: string;
   icon: ReactNode;
   secret?: boolean;
+  revealed?: boolean;
+  onRevealChange?: (revealed: boolean) => void;
 }) => {
   let copy = useCopy();
-  let [revealed, setRevealed] = useState(false);
+  let [internalRevealed, setInternalRevealed] = useState(false);
+  let isRevealed = revealed ?? internalRevealed;
+  let toggleRevealed = () => {
+    let nextRevealed = !isRevealed;
+    if (onRevealChange) onRevealChange(nextRevealed);
+    else setInternalRevealed(nextRevealed);
+  };
 
   let hasValue = value && value !== '...';
-  let shouldMask = secret && hasValue && !revealed;
-  let displayValue = shouldMask ? '•'.repeat(Math.min(Math.max(value.length, 12), 40)) : value;
+  let shouldMask = secret && hasValue && !isRevealed;
+  let displayValue = shouldMask ? getMaskedSecret(value) : value;
 
   return (
     <CredentialCard>
@@ -500,10 +525,10 @@ let CredentialRow = ({
         {secret && hasValue && (
           <IconButton
             type="button"
-            aria-label={revealed ? 'Hide value' : 'Reveal value'}
-            onClick={() => setRevealed(r => !r)}
+            aria-label={isRevealed ? 'Hide value' : 'Reveal value'}
+            onClick={toggleRevealed}
           >
-            {revealed ? <RiEyeOffLine size={15} /> : <RiEyeLine size={15} />}
+            {isRevealed ? <RiEyeOffLine size={15} /> : <RiEyeLine size={15} />}
           </IconButton>
         )}
         <IconButton
@@ -570,6 +595,7 @@ export let McpConnectionInstructionsScene = ({
   emptyState
 }: McpConnectionInstructionsSceneProps) => {
   let [tab, setTab] = useState<ConnectionType>('cursor');
+  let [tokenRevealed, setTokenRevealed] = useState(false);
 
   let connection = useMemo(() => {
     if (!snippetUrl || !snippetToken) return null;
@@ -581,6 +607,11 @@ export let McpConnectionInstructionsScene = ({
   }, [name, snippetToken, snippetUrl, tab]);
 
   let activeName = connectionTypes[tab].name;
+  let endpointTokenValue = tokenValue ?? tokenCopyValue ?? snippetToken;
+  let displayEndpointValue =
+    endpointValue && !tokenRevealed
+      ? maskTokenInValue(endpointValue, endpointTokenValue)
+      : endpointValue;
 
   let clientScrollRef = useRef<HTMLDivElement>(null);
   let clientScroll = useScroll(clientScrollRef as any);
@@ -599,7 +630,7 @@ export let McpConnectionInstructionsScene = ({
         <CredentialGroup>
           <CredentialRow
             label={endpointLabel}
-            value={endpointValue ?? '...'}
+            value={displayEndpointValue ?? '...'}
             copyValue={endpointCopyValue ?? endpointValue ?? ''}
             icon={<RiLinkM size={16} />}
           />
@@ -611,6 +642,8 @@ export let McpConnectionInstructionsScene = ({
               copyValue={tokenCopyValue ?? tokenValue ?? ''}
               icon={<RiKey2Line size={16} />}
               secret
+              revealed={tokenRevealed}
+              onRevealChange={setTokenRevealed}
             />
           )}
         </CredentialGroup>

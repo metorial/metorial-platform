@@ -1,4 +1,4 @@
-import { renderWithLoader, useForm } from '@metorial/data-hooks';
+import { InitialLoadBoundary, renderWithLoader, useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
 import {
@@ -171,7 +171,7 @@ export let IntegrationLayout = () => {
                 Edit
               </Button> */}
 
-              <Button
+              {/* <Button
                 size="2"
                 variant="outline"
                 onClick={() =>
@@ -182,8 +182,8 @@ export let IntegrationLayout = () => {
                   })
                 }
               >
-                Create Setup Session
-              </Button>
+                Create Setup Link
+              </Button> */}
 
               <Button
                 size="2"
@@ -212,29 +212,31 @@ export let IntegrationLayout = () => {
         }
       />
 
-      {renderWithLoader({ integration })(({ integration }) => (
-        <>
-          <DeletedRecordCallout status={integration.data.status} />
-          <LinkTabs
-            current={pathname}
-            links={[
-              {
-                label: 'Overview',
-                to: Paths.instance.integration(...params)
-              },
-              {
-                label: 'Instances',
-                to: Paths.instance.integration(...params, 'instances')
-              },
-              {
-                label: 'Settings',
-                to: Paths.instance.integration(...params, 'settings')
-              }
-            ]}
-          />
-          <Outlet />
-        </>
-      ))}
+      <InitialLoadBoundary>
+        {renderWithLoader({ integration })(({ integration }) => (
+          <>
+            <DeletedRecordCallout status={integration.data.status} />
+            <LinkTabs
+              current={pathname}
+              links={[
+                {
+                  label: 'Overview',
+                  to: Paths.instance.integration(...params)
+                },
+                {
+                  label: 'Instances',
+                  to: Paths.instance.integration(...params, 'instances')
+                },
+                {
+                  label: 'Settings',
+                  to: Paths.instance.integration(...params, 'settings')
+                }
+              ]}
+            />
+            <Outlet />
+          </>
+        ))}
+      </InitialLoadBoundary>
     </ContentLayout>
   );
 };

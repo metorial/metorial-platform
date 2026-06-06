@@ -13,6 +13,7 @@ import {
   type ProviderConfigVault,
   type ProviderDeployment,
   type ProviderDeploymentStatus,
+  type ProviderDeploymentVersion,
   type ProviderVariant,
   type ProviderVersion,
   snowflake,
@@ -442,6 +443,7 @@ class providerDeploymentServiceImpl {
     providerDeployment: ProviderDeployment & {
       providerVariant: ProviderVariant;
       provider: Provider;
+      currentVersion: ProviderDeploymentVersion | null;
     };
     input: {
       name?: string;
@@ -449,11 +451,31 @@ class providerDeploymentServiceImpl {
       metadata?: Record<string, any>;
       privateMetadata?: Record<string, any>;
       toolFilters?: PrismaJson.ToolFilter | null;
+      lockedVersion?: ProviderVersion | null;
     };
   }) {
     checkDeletedEdit(d.providerDeployment, 'update');
 
     return withTransaction(async db => {
+      let currentVersionOid = d.providerDeployment.currentVersionOid;
+
+      if (d.input.lockedVersion !== undefined) {
+        let currentLock = d.providerDeployment.currentVersion?.lockedVersionOid ?? null;
+        let newLock = d.input.lockedVersion?.oid ?? null;
+
+        if (currentLock !== newLock) {
+          let newVersion = await db.providerDeploymentVersion.create({
+            data: {
+              ...getId('providerDeploymentVersion'),
+              lockedVersionOid: newLock,
+              providerVariantOid: d.providerDeployment.providerVariantOid,
+              deploymentOid: d.providerDeployment.oid
+            }
+          });
+          currentVersionOid = newVersion.oid;
+        }
+      }
+
       let providerDeployment = await db.providerDeployment.update({
         where: {
           oid: d.providerDeployment.oid,
@@ -468,7 +490,10 @@ class providerDeploymentServiceImpl {
           privateMetadata: d.input.privateMetadata ?? d.providerDeployment.privateMetadata,
           toolFilter: d.input.toolFilters
             ? normalizeToolFilters(d.input.toolFilters)
-            : d.providerDeployment.toolFilter
+            : d.providerDeployment.toolFilter,
+          ...(currentVersionOid !== d.providerDeployment.currentVersionOid
+            ? { currentVersionOid }
+            : {})
         },
         include
       });

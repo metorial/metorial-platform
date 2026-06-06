@@ -371,6 +371,31 @@ export let customProviderController = Controller.create(
         return subspaceCustomProviderPresenter.present({
           customProvider: customProvider
         });
+      }),
+
+    archive: customProviderGroup
+      .post(
+        instancePath('custom-providers/:customProviderId/archive', 'customProviders.archive'),
+        {
+          name: 'Archive custom provider',
+          description:
+            'Archives a specific custom provider and disables new connections to it.'
+        }
+      )
+      .use(checkAccess({ possibleScopes: ['instance.provider.custom:write'] }))
+      .use(hasFlags(['custom-providers-enabled', 'paid-custom-providers']))
+      .output(subspaceCustomProviderPresenter)
+      .do(async ctx => {
+        let customProvider = await subspaceCustomProviderService.archive({
+          instance: ctx.instance,
+          organizationActor: ctx.actor!,
+
+          customProviderId: ctx.customProvider.id
+        });
+
+        return subspaceCustomProviderPresenter.present({
+          customProvider: customProvider
+        });
       })
   }
 );

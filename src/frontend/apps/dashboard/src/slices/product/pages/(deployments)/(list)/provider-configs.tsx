@@ -28,7 +28,6 @@ import {
   getEnumListFilterValue,
   getStringFilterValue
 } from '../../../../../lib/dataTableUtils';
-import { withFromDeployment } from '../fromDeployment';
 import { showCreateProviderConfigFlow } from './providerCreationFlows';
 
 type ProviderConfig = DashboardInstanceProviderDeploymentsConfigsListOutput['items'][number];
@@ -61,7 +60,6 @@ type ProviderConfigsOverviewTableProps = {
   project: ReturnType<typeof useCurrentProject>;
   instance: ReturnType<typeof useCurrentInstance>;
   filters?: ProviderConfigFilters;
-  fromDeploymentId?: string;
 };
 
 let providerConfigsOverviewTableState: TableStateProvider<
@@ -329,14 +327,11 @@ export let providerConfigsOverviewTable = new DashboardTable<
   ])
   .search('Search configs...')
   .link((row, props) =>
-    withFromDeployment(
-      Paths.instance.providerConfig(
-        props.organization.data,
-        props.project.data,
-        props.instance.data,
-        row.id
-      ),
-      props.fromDeploymentId
+    Paths.instance.providerConfig(
+      props.organization.data,
+      props.project.data,
+      props.instance.data,
+      row.id
     )
   )
   .actions({

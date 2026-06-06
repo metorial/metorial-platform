@@ -18,18 +18,29 @@ let Wrapper = styled.div`
   }
 `;
 
+let SidebarColumn = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+`;
+
 let Main = styled.div``;
 
 export let SimpleSidebarLayout = ({
   children,
-  groups
+  groups,
+  extraTop
 }: {
   children: React.ReactNode;
   groups: SimpleSidebarGroup[];
+  extraTop?: React.ReactNode;
 }) => {
   return (
     <Wrapper>
-      <SimpleSidebar groups={groups} />
+      <SidebarColumn>
+        {extraTop}
+        <SimpleSidebar groups={groups} />
+      </SidebarColumn>
       <Main>{children}</Main>
     </Wrapper>
   );

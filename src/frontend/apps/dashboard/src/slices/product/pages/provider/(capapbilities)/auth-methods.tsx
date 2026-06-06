@@ -6,8 +6,8 @@ import {
   getProviderAuthMethodTypeColor,
   getProviderAuthMethodTypeLabel,
   showProviderAuthMethodDetailsModal
-} from '../../scenes/providers/authMethodDetails';
-import { useProviderVersionContext } from './_layout';
+} from '../../../scenes/providers/authMethodDetails';
+import { useProviderVersionContext } from '../_layout';
 
 export let ProviderAuthMethodsPage = () => {
   let instance = useCurrentInstance();
@@ -32,19 +32,6 @@ export let ProviderAuthMethodsPage = () => {
               <Flex direction="column" gap={2}>
                 <Text size="2" weight="strong">
                   {method.name}
-                </Text>
-                <Text
-                  size="2"
-                  color="gray600"
-                  style={{
-                    display: 'block',
-                    maxWidth: '100%',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis'
-                  }}
-                >
-                  {description}
                 </Text>
               </Flex>,
               <Flex gap={6} style={{ alignItems: 'center', flexWrap: 'wrap' }}>

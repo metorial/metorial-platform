@@ -1,4 +1,4 @@
-import { renderWithLoader } from '@metorial/data-hooks';
+import { InitialLoadBoundary, renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { ContentPanelLayout, ExtraHeaderLayout } from '@metorial/layout';
 import {
@@ -148,14 +148,16 @@ export let ProviderAuthErrorLayout = () => {
           ]
         }}
       >
-        {renderWithLoader(
-          { group },
-          { spaceTop: 20 }
-        )(({ group: _group }) => (
-          <OutletWrapper>
-            <Outlet />
-          </OutletWrapper>
-        ))}
+        <InitialLoadBoundary>
+          {renderWithLoader(
+            { group },
+            { spaceTop: 20 }
+          )(({ group: _group }) => (
+            <OutletWrapper>
+              <Outlet />
+            </OutletWrapper>
+          ))}
+        </InitialLoadBoundary>
       </ContentPanelLayout>
     </ExtraHeaderLayout>
   );

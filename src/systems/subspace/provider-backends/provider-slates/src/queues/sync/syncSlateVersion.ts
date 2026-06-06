@@ -61,6 +61,61 @@ let metorialDomains = [
   'localhost'
 ];
 
+let normalizeDocs = (docs: unknown): PrismaJson.ProviderListingDocReference[] => {
+  if (!Array.isArray(docs)) return [];
+
+  return docs
+    .filter(
+      (doc): doc is { name: string; url: string; type?: string } =>
+        !!doc &&
+        typeof doc === 'object' &&
+        typeof (doc as any).name === 'string' &&
+        typeof (doc as any).url === 'string'
+    )
+    .map(doc => ({
+      ...(typeof doc.type === 'string' ? { type: doc.type } : {}),
+      name: doc.name,
+      url: doc.url
+    }));
+};
+
+let buildProviderListingDocs = (spec: any): PrismaJson.ProviderListingDocs | undefined => {
+  if (!spec) return undefined;
+
+  let providerDocs = normalizeDocs(spec.providerDocs);
+  let configDocs = normalizeDocs(spec.configSchemaDocs);
+  let authMethods = (spec.authMethods ?? [])
+    .map((authMethod: any) => ({
+      key: authMethod.key,
+      name: authMethod.name,
+      type: authMethod.type,
+      docs: normalizeDocs(authMethod.docs)
+    }))
+    .filter((authMethod: any) => authMethod.docs.length > 0);
+  let actions = [...(spec.tools ?? []), ...(spec.triggers ?? [])]
+    .map((action: any) => ({
+      key: action.key,
+      name: action.name,
+      type: action.type,
+      docs: normalizeDocs(action.docs)
+    }))
+    .filter((action: any) => action.docs.length > 0);
+
+  let hasDocs =
+    providerDocs.length > 0 ||
+    configDocs.length > 0 ||
+    authMethods.length > 0 ||
+    actions.length > 0;
+  if (!hasDocs) return undefined;
+
+  return {
+    provider: providerDocs,
+    config: configDocs,
+    authMethods,
+    actions
+  };
+};
+
 export let syncSlateVersionQueueProcessor = syncSlateVersionQueue.process(async data => {
   let version = await slates.slateVersion.get({
     slateId: data.slateId,
@@ -145,6 +200,7 @@ export let syncSlateVersionQueueProcessor = syncSlateVersionQueue.process(async 
   let hasAuthConfig = !!(spec && spec.authMethods.length > 0);
   let hasOAuth = spec?.authMethods.some(am => am.type === 'oauth');
   let hasTriggers = !!(spec ? spec.triggers.length > 0 : false);
+  let docs = buildProviderListingDocs(spec);
 
   let type = {
     name: 'Slates',
@@ -209,6 +265,7 @@ export let syncSlateVersionQueueProcessor = syncSlateVersionQueue.process(async 
         image: registryRecord.logoUrl ? { type: 'url', url: registryRecord.logoUrl } : null,
         skills: registryRecord.skills,
         readme: readme,
+        docs,
         categories: registryRecord.categories?.map((c: any) => c.identifier) ?? [],
         globalIdentifier
       };
