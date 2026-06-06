@@ -1,4 +1,4 @@
-import { renderWithLoader } from '@metorial/data-hooks';
+import { InitialLoadBoundary, renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
 import {
@@ -103,57 +103,59 @@ export let SkillPluginLayout = () => {
         }
       />
 
-      {renderWithLoader({ plugin })(() => (
-        <>
-          <LinkTabs
-            current={pathname}
-            links={[
-              {
-                label: 'Overview',
-                to: Paths.instance.skillPlugin(...pluginPathParams)
-              },
-              {
-                label: 'Preview',
-                to: Paths.instance.skillPlugin(...pluginPathParams, 'editor')
-              },
-              {
-                label: 'Syncs',
-                to: Paths.instance.skillPlugin(...pluginPathParams, 'syncs')
-              },
-              {
-                label: 'Settings',
-                to: Paths.instance.skillPlugin(...pluginPathParams, 'settings')
-              }
-            ]}
-          />
+      <InitialLoadBoundary>
+        {renderWithLoader({ plugin })(() => (
+          <>
+            <LinkTabs
+              current={pathname}
+              links={[
+                {
+                  label: 'Overview',
+                  to: Paths.instance.skillPlugin(...pluginPathParams)
+                },
+                {
+                  label: 'Preview',
+                  to: Paths.instance.skillPlugin(...pluginPathParams, 'editor')
+                },
+                {
+                  label: 'Syncs',
+                  to: Paths.instance.skillPlugin(...pluginPathParams, 'syncs')
+                },
+                {
+                  label: 'Settings',
+                  to: Paths.instance.skillPlugin(...pluginPathParams, 'settings')
+                }
+              ]}
+            />
 
-          {plugin.data?.syncStatus !== 'synced' && (
-            <>
-              <Callout color="blue">
-                <span>
-                  <strong>Upcoming changes:</strong> Skills or configurations linked to this
-                  plugin have changed. Metorial is processing these changes and updating the
-                  plugin.
-                </span>
-                {plugin.data?.syncStatus === 'pending' && (
-                  <Button
-                    size="2"
-                    loading={syncPlugin.isLoading}
-                    onClick={() => syncPlugin.mutate({})}
-                    style={{ marginLeft: 16 }}
-                  >
-                    Sync Now
-                  </Button>
-                )}
-              </Callout>
+            {plugin.data?.syncStatus !== 'synced' && (
+              <>
+                <Callout color="blue">
+                  <span>
+                    <strong>Upcoming changes:</strong> Skills or configurations linked to this
+                    plugin have changed. Metorial is processing these changes and updating the
+                    plugin.
+                  </span>
+                  {plugin.data?.syncStatus === 'pending' && (
+                    <Button
+                      size="2"
+                      loading={syncPlugin.isLoading}
+                      onClick={() => syncPlugin.mutate({})}
+                      style={{ marginLeft: 16 }}
+                    >
+                      Sync Now
+                    </Button>
+                  )}
+                </Callout>
 
-              <Spacer height={20} />
-            </>
-          )}
+                <Spacer height={20} />
+              </>
+            )}
 
-          <Outlet />
-        </>
-      ))}
+            <Outlet />
+          </>
+        ))}
+      </InitialLoadBoundary>
     </ContentLayout>
   );
 };

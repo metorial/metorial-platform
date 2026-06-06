@@ -19,7 +19,8 @@ export let handlePushQueueProcessor = handlePushQueue.process(async data => {
   let codeBuckets = await db.customProvider.findMany({
     where: {
       id: data.cursor ? { gt: data.cursor } : undefined,
-      scmRepoOid: push.repoOid
+      scmRepoOid: push.repoOid,
+      status: 'active'
     },
     orderBy: { id: 'asc' },
     take: 100,
@@ -69,6 +70,7 @@ export let processProviderPushQueueProcessor = processProviderPushQueue.process(
     include: { tenant: true, solution: true }
   });
   if (!provider) throw new QueueRetryError();
+  if (provider.status !== 'active') return;
 
   let env = await db.customProviderEnvironment.findFirst({
     where: {

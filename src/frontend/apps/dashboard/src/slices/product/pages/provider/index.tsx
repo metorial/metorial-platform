@@ -35,7 +35,8 @@ export let ProviderOverviewPage = () => {
     {
       providerId,
       status: ['active'],
-      limit: 3
+      limit: 15,
+      order: 'desc'
     }
   );
   let magicMcpServers = useMagicMcpServers(
@@ -43,7 +44,8 @@ export let ProviderOverviewPage = () => {
     {
       providerId,
       status: ['active'],
-      limit: 3
+      limit: 15,
+      order: 'desc'
     }
   );
 

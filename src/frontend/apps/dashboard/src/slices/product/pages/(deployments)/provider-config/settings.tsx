@@ -3,20 +3,17 @@ import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, useProviderConfig } from '@metorial/state';
 import { Button, Input, Spacer } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { DeleteResourceDangerZone } from '../../../scenes/deleteResourceDangerZone';
-import { getFromDeployment } from '../fromDeployment';
 
 export let ProviderConfigSettingsPage = () => {
   let instance = useCurrentInstance();
   let navigate = useNavigate();
-  let location = useLocation();
 
   let { providerConfigId } = useParams();
   let config = useProviderConfig(instance.data?.id, providerConfigId);
   let updateMutator = config.useUpdateMutator();
   let deleteMutator = config.useDeleteMutator();
-  let fromDeploymentId = getFromDeployment(location.search);
   let form = useForm({
     initialValues: {
       name: config.data?.name ?? '',
@@ -79,12 +76,12 @@ export let ProviderConfigSettingsPage = () => {
           if (!res) return;
 
           navigate(
-            fromDeploymentId
+            config.data.deployment?.id
               ? Paths.instance.providerDeployment(
                   instance.data?.organization,
                   instance.data?.project,
                   instance.data,
-                  fromDeploymentId,
+                  config.data.deployment.id,
                   'configs'
                 )
               : Paths.instance.providerConfigs(

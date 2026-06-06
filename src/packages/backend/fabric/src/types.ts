@@ -78,23 +78,29 @@ export type MachineAccessInput =
     };
 
 export type OAuthApplicationCreateInput = {
+  status?: 'active' | 'archived';
   type: 'user_facing' | 'server_side' | 'cli_auth';
   accessLevel: 'organization' | 'global';
+  allowClientSecretlessTokenExchange?: boolean;
   name: string;
   description?: string;
   websiteUrl?: string;
   privacyPolicyUrl?: string;
   termsOfServiceUrl?: string;
+  redirectUris?: string[];
   scopes: string[];
   image?: PrismaJson.EntityImage;
 };
 
 export type OAuthApplicationUpdateInput = {
+  accessLevel?: 'organization' | 'global';
+  allowClientSecretlessTokenExchange?: boolean;
   name?: string;
   description?: string | null;
   websiteUrl?: string | null;
   privacyPolicyUrl?: string | null;
   termsOfServiceUrl?: string | null;
+  redirectUris?: string[];
   scopes?: string[];
   image?: PrismaJson.EntityImage;
 };
@@ -285,8 +291,8 @@ export interface FabricEvents {
   'machine_access.oauth_application.created:after': { organization: Organization | null; performedBy: OrganizationActor | null; context: Context | null; input: OAuthApplicationCreateInput; serverSideMachineAccess: MachineAccess | null; oauthApplication: OAuthApplication; };
   'machine_access.oauth_application.updated:before': { oauthApplication: OAuthApplication; organization: Organization | null; performedBy: OrganizationActor | null; context: Context | null; input: OAuthApplicationUpdateInput; };
   'machine_access.oauth_application.updated:after': { oauthApplication: OAuthApplication; organization: Organization | null; performedBy: OrganizationActor | null; context: Context | null; input: OAuthApplicationUpdateInput; };
-  'machine_access.oauth_application.archived:before': { oauthApplication: OAuthApplication; organization: Organization; performedBy: OrganizationActor; context: Context; };
-  'machine_access.oauth_application.archived:after': { oauthApplication: OAuthApplication; organization: Organization; performedBy: OrganizationActor; context: Context; };
+  'machine_access.oauth_application.archived:before': { oauthApplication: OAuthApplication; organization: Organization | null; performedBy: OrganizationActor | null; context: Context | null; };
+  'machine_access.oauth_application.archived:after': { oauthApplication: OAuthApplication; organization: Organization | null; performedBy: OrganizationActor | null; context: Context | null; };
   'machine_access.oauth_application.client_secret.create:after': { oauthApplication: OAuthApplication; };
   'machine_access.oauth_application.client_secret.revoked:after': { oauthApplication: OAuthApplication; };
 
@@ -471,6 +477,8 @@ export interface FabricEvents {
   'provider.custom_provider.created:after': ProviderEventBase & { customProvider: SubspaceCustomProvider };
   'provider.custom_provider.updated:before': ProviderEventBase;
   'provider.custom_provider.updated:after': ProviderEventBase & { customProvider: SubspaceCustomProvider };
+  'provider.custom_provider.archived:before': ProviderEventBase;
+  'provider.custom_provider.archived:after': ProviderEventBase & { customProvider: SubspaceCustomProvider };
 
   'provider.custom_provider.version.created:before': ProviderEventBase;
   'provider.custom_provider.version.created:after': ProviderEventBase & { customProviderVersion: SubspaceCustomProviderVersion };

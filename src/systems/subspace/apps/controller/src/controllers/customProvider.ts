@@ -276,5 +276,34 @@ export let customProviderController = app.controller({
       });
 
       return await customProviderPresenter(customProvider, { tenant: ctx.tenant });
+    }),
+
+  archive: customProviderApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        environmentId: v.string(),
+        actorId: v.string(),
+
+        customProviderId: v.string(),
+        allowDeleted: v.optional(v.boolean())
+      })
+    )
+    .do(async ctx => {
+      let actor = await actorService.getActorById({
+        tenant: ctx.tenant,
+        id: ctx.input.actorId
+      });
+
+      let customProvider = await customProviderService.archiveCustomProvider({
+        customProvider: ctx.customProvider,
+        tenant: ctx.tenant,
+        environment: ctx.environment,
+        solution: ctx.solution,
+        actor
+      });
+
+      return await customProviderPresenter(customProvider, { tenant: ctx.tenant });
     })
 });

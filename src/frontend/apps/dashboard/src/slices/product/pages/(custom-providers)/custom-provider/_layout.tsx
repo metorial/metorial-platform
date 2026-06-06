@@ -1,4 +1,4 @@
-import { renderWithLoader } from '@metorial/data-hooks';
+import { InitialLoadBoundary, renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
 import {
@@ -30,12 +30,13 @@ export let CustomProviderLayout = () => {
   ] as const;
 
   let isExternalProvider = customProvider.data?.type == 'remote';
+  let isArchived = customProvider.data?.status === 'archived';
   let isScmBackedProvider = isCustomProviderScmBacked(customProvider.data);
   let hasCodeManagement = Boolean(
     customProvider.data &&
-      !isExternalProvider &&
-      !customProvider.data.draft?.containerImage &&
-      !isScmBackedProvider
+    !isExternalProvider &&
+    !customProvider.data.draft?.containerImage &&
+    !isScmBackedProvider
   );
   let hasVersionManagement = Boolean(customProvider.data);
 
@@ -76,71 +77,76 @@ export let CustomProviderLayout = () => {
               </Link>
             )}
 
-            <UseProviderButton providerId={customProvider.data?.provider?.id} />
+            <UseProviderButton
+              providerId={customProvider.data?.provider?.id}
+              disabled={isArchived}
+            />
           </>
         }
       />
 
-      {renderWithLoader({ customProvider })(({ customProvider }) => (
-        <>
-          <LinkTabs
-            current={pathname}
-            links={[
-              {
-                label: 'Overview',
-                to: Paths.instance.customProvider(...pathParams)
-              },
+      <InitialLoadBoundary>
+        {renderWithLoader({ customProvider })(({ customProvider }) => (
+          <>
+            <LinkTabs
+              current={pathname}
+              links={[
+                {
+                  label: 'Overview',
+                  to: Paths.instance.customProvider(...pathParams)
+                },
 
-              ...(hasCodeManagement
-                ? [
-                    {
-                      label: 'Code',
-                      to: Paths.instance.customProvider(...pathParams, 'code')
-                    }
-                  ]
-                : []),
-              ...(hasVersionManagement
-                ? [
-                    {
-                      label: 'Versions',
-                      to: Paths.instance.customProvider(...pathParams, 'versions')
-                    }
-                  ]
-                : []),
-              {
-                label: 'Commits',
-                to: Paths.instance.customProvider(...pathParams, 'commits')
-              },
-              {
-                label: 'Deployments',
-                to: Paths.instance.customProvider(...pathParams, 'deployments')
-              },
+                ...(hasCodeManagement
+                  ? [
+                      {
+                        label: 'Code',
+                        to: Paths.instance.customProvider(...pathParams, 'code')
+                      }
+                    ]
+                  : []),
+                ...(hasVersionManagement
+                  ? [
+                      {
+                        label: 'Versions',
+                        to: Paths.instance.customProvider(...pathParams, 'versions')
+                      }
+                    ]
+                  : []),
+                {
+                  label: 'Commits',
+                  to: Paths.instance.customProvider(...pathParams, 'commits')
+                },
+                {
+                  label: 'Deployments',
+                  to: Paths.instance.customProvider(...pathParams, 'deployments')
+                },
 
-              {
-                label: 'Listing',
-                to: Paths.instance.customProvider(...pathParams, 'listing')
-              },
+                {
+                  label: 'Listing',
+                  to: Paths.instance.customProvider(...pathParams, 'listing')
+                },
 
-              {
-                label: 'Settings',
-                to: Paths.instance.customProvider(...pathParams, 'settings')
-              }
-            ]}
-          />
+                {
+                  label: 'Settings',
+                  to: Paths.instance.customProvider(...pathParams, 'settings')
+                }
+              ]}
+            />
 
-          {customProvider.data?.status == 'archived' && (
-            <>
-              <Callout color="orange">
-                This provider is archived. It cannot be used for new connections.
-              </Callout>
+            {customProvider.data?.status == 'archived' && (
+              <>
+                <Callout color="orange">
+                  This provider is archived. It cannot be used for new connections.
+                </Callout>
 
-              <Spacer height={15} />
-            </>
-          )}
+                <Spacer height={15} />
+              </>
+            )}
 
-          <Outlet />
-        </>
-      ))}
+            <Outlet />
+          </>
+        ))}
+      </InitialLoadBoundary>
     </ContentLayout>
   );
 };

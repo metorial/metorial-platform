@@ -39,6 +39,7 @@ import {
   emptyConfigurationSelection
 } from '../../lib/configSelection';
 import { getProviderConfigSchemaCapabilities } from '../../lib/providerCreationCapabilities';
+import { getProviderOAuthAutoRegistrationEnabled } from '../../lib/providerOAuthAutoRegistration';
 import { AuthMethodPicker } from '../providerAuthConfigs/authMethodPicker';
 import { showProviderAuthCredentialsFormModal } from '../providerAuthCredentials/modal';
 import {
@@ -123,7 +124,8 @@ let useProviderSetupVisibility = (p: {
   if (p.respectIntegrationToolFilterPolicy === false) allowToolFilters = true;
   let providerSupportsAuth = provider.data?.type.auth.status === 'enabled';
   let requiresProviderConfig =
-    providerSupportsConfig && configCapabilities.hasRequiredFields;
+    providerSupportsConfig && !configCapabilities.canAutoCreateEmptyConfig;
+  let hasEditableConfigFields = configCapabilities.hasSchemaFields;
   let isInstanceProviderPanel =
     p.inheritedConfigId !== undefined || p.instanceConfigId !== undefined;
   let satisfiedConfigId = isInstanceProviderPanel
@@ -148,7 +150,9 @@ let useProviderSetupVisibility = (p: {
   let showConfig = p.isUpdate
     ? allowCustomConfigs
     : mustRequestInstanceConfig ||
-      (allowCustomConfigs && providerSupportsConfig && !shouldAutoCreateEmptyConfig);
+      (allowCustomConfigs &&
+        providerSupportsConfig &&
+        (hasEditableConfigFields || !shouldAutoCreateEmptyConfig));
   let configRequirement: 'required' | 'optional' = isInstanceProviderPanel
     ? mustRequestInstanceConfig
       ? 'required'
@@ -164,6 +168,7 @@ let useProviderSetupVisibility = (p: {
     showAuth: (p.allowAuthConfig ?? true) && providerSupportsAuth,
     showToolFilters: allowToolFilters,
     shouldAutoCreateEmptyConfig,
+    defaultConfigValue: configCapabilities.defaultConfigValue,
     configRequirement,
     mustRequestInstanceConfig,
     providerName: getProviderName(provider.data, p.providerId ?? undefined),
@@ -362,10 +367,13 @@ let IntegrationProviderAuthSection = (p: {
   selectedAuthCredentialsId: string;
   selectedAuthCredentialsLabel?: string;
   onSelectedAuthCredentialsIdChange: (value: string) => void;
+  oauthAutoRegistrationEnabled?: boolean;
   authMethodError?: React.ReactNode;
   authCredentialsError?: React.ReactNode;
 }) => {
   let authMethodItems = p.authMethods.data?.items ?? [];
+  let showAuthCredentials =
+    p.selectedAuthMethod?.type === 'oauth' && !p.oauthAutoRegistrationEnabled;
 
   return (
     <Flex direction="column" gap={12}>
@@ -394,11 +402,16 @@ let IntegrationProviderAuthSection = (p: {
                 }))}
               />
               {p.authMethodError}
+              {p.selectedAuthMethod?.type === 'oauth' && p.oauthAutoRegistrationEnabled ? (
+                <Callout color="gray">
+                  OAuth credentials will be registered automatically for this provider.
+                </Callout>
+              ) : null}
             </Flex>
           </ConfigureSectionCard>
 
           <AnimatePresence initial={false}>
-            {p.selectedAuthMethod?.type === 'oauth' ? (
+            {showAuthCredentials ? (
               <motion.div
                 key="oauth-auth-credentials"
                 initial={{ opacity: 0, y: -8, height: 0 }}
@@ -532,6 +545,9 @@ let IntegrationProviderSetupStep = (p: {
   let effectiveShowAuth =
     visibility.showAuth &&
     (!isUpdate || (!authMethods.isLoading && (authMethods.data?.items.length ?? 0) > 0));
+  let oauthAutoRegistrationEnabled = getProviderOAuthAutoRegistrationEnabled(
+    visibility.provider.data
+  );
 
   let submitProviderSetup = async (values: IntegrationProviderFormValues) => {
     if (!instance.data) return false;
@@ -550,13 +566,16 @@ let IntegrationProviderSetupStep = (p: {
         instanceId: instance.data.id,
         providerId: p.providerId,
         name: `${visibility.providerName} Config`,
-        value: {}
+        value: visibility.defaultConfigValue
       });
       providerConfigId = config?.id;
     }
 
     let providerAuthMethodId = values.selectedAuthMethodId || undefined;
-    let providerAuthCredentialsId = values.selectedAuthCredentialsId || undefined;
+    let providerAuthCredentialsId =
+      selectedAuthMethod?.type === 'oauth' && !oauthAutoRegistrationEnabled
+        ? values.selectedAuthCredentialsId || undefined
+        : undefined;
 
     let toolFilters = getToolFilters(values);
 
@@ -647,7 +666,11 @@ let IntegrationProviderSetupStep = (p: {
           return;
         }
 
-        if (selectedAuthMethod?.type === 'oauth' && !values.selectedAuthCredentialsId) {
+        if (
+          selectedAuthMethod?.type === 'oauth' &&
+          !oauthAutoRegistrationEnabled &&
+          !values.selectedAuthCredentialsId
+        ) {
           form.setFieldTouched('selectedAuthCredentialsId', true, false);
           form.setFieldError('selectedAuthCredentialsId', 'Select auth credentials');
           return;
@@ -659,7 +682,7 @@ let IntegrationProviderSetupStep = (p: {
         !isConfigSelectionComplete(values.selectedConfiguration)
       ) {
         form.setFieldTouched('selectedConfiguration', true, false);
-        form.setFieldError('selectedConfiguration', 'Select a config or config vault');
+        form.setFieldError('selectedConfiguration', 'Select a config');
         return;
       }
 
@@ -678,9 +701,11 @@ let IntegrationProviderSetupStep = (p: {
   let selectedAuthMethod = authMethods.data?.items.find(
     method => method.id === form.values.selectedAuthMethodId
   );
+  let requiresAuthCredentials =
+    selectedAuthMethod?.type === 'oauth' && !oauthAutoRegistrationEnabled;
   let authCredentials = useProviderAuthCredentials(
     instance.data?.id,
-    effectiveShowAuth
+    effectiveShowAuth && requiresAuthCredentials
       ? {
           providerId: p.providerId,
           ...(form.values.selectedAuthMethodId
@@ -711,13 +736,18 @@ let IntegrationProviderSetupStep = (p: {
 
   useEffect(() => {
     if (authMethods.isLoading) return;
-    if (selectedAuthMethod?.type === 'oauth') return;
+    if (selectedAuthMethod?.type === 'oauth' && !oauthAutoRegistrationEnabled) return;
     if (!form.values.selectedAuthCredentialsId) return;
 
     form.setFieldValue('selectedAuthCredentialsId', '');
     form.setFieldTouched('selectedAuthCredentialsId', false, false);
     form.setFieldError('selectedAuthCredentialsId', undefined);
-  }, [authMethods.isLoading, selectedAuthMethod?.type, form.values.selectedAuthCredentialsId]);
+  }, [
+    authMethods.isLoading,
+    oauthAutoRegistrationEnabled,
+    selectedAuthMethod?.type,
+    form.values.selectedAuthCredentialsId
+  ]);
 
   useEffect(() => {
     if (!effectiveShowAuth) return;
@@ -747,7 +777,7 @@ let IntegrationProviderSetupStep = (p: {
       isConfigSelectionComplete(form.values.selectedConfiguration)) &&
     (!effectiveShowAuth ||
       (Boolean(form.values.selectedAuthMethodId) &&
-        (selectedAuthMethod?.type !== 'oauth' || Boolean(form.values.selectedAuthCredentialsId))));
+        (!requiresAuthCredentials || Boolean(form.values.selectedAuthCredentialsId))));
   let isSaving =
     createDeployment.isPending ||
     createConfig.isLoading ||
@@ -835,6 +865,7 @@ let IntegrationProviderSetupStep = (p: {
               form.setFieldTouched('selectedAuthCredentialsId', false, false);
               form.setFieldError('selectedAuthCredentialsId', undefined);
             }}
+            oauthAutoRegistrationEnabled={oauthAutoRegistrationEnabled}
             authMethodError={<form.RenderError field="selectedAuthMethodId" />}
             authCredentialsError={<form.RenderError field="selectedAuthCredentialsId" />}
           />
@@ -1158,7 +1189,7 @@ let IntegrationInstanceProviderPanel = (p: {
         instanceId: instance.data.id,
         providerId,
         name: `${visibility.providerName} Config`,
-        value: {}
+        value: visibility.defaultConfigValue
       });
       providerConfigId = config?.id;
     }
@@ -1205,7 +1236,7 @@ let IntegrationInstanceProviderPanel = (p: {
         !isConfigSelectionComplete(values.selectedConfiguration)
       ) {
         form.setFieldTouched('selectedConfiguration', true, false);
-        form.setFieldError('selectedConfiguration', 'Select a config or config vault');
+        form.setFieldError('selectedConfiguration', 'Select a config');
         return;
       }
 

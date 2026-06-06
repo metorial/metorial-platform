@@ -74,6 +74,8 @@ export type ProviderAuthConfigFormProps =
       showAuthMethodStepInStepper?: boolean;
       flattenCreateStep?: boolean;
       hideProviderContext?: boolean;
+      defaultName?: string;
+      hideDetailsInputs?: boolean;
     }
   | {
       type: 'update';
@@ -129,7 +131,7 @@ export let ProviderAuthConfigForm = (
 
   let form = useForm({
     initialValues: {
-      name: '',
+      name: props.type === 'create' ? (props.defaultName ?? '') : '',
       description: '',
       authMethodId: props.type === 'create' ? (props.initialAuthMethodId ?? '') : '',
       credentialsDataJson: '{}',
@@ -142,12 +144,9 @@ export let ProviderAuthConfigForm = (
       if (!values.authMethodId) return;
 
       if (props.type === 'create' && props.flattenCreateStep && skipAuthMethodStep) {
-        form.setFieldTouched('name', true, false);
-        await form.validateField('name');
         let credentialsValid = await validateCredentialsForContinuation();
-        let nameValid = !!values.name.trim();
 
-        if (!credentialsValid || !nameValid) return;
+        if (!credentialsValid) return;
       }
 
       let parsedCredentials: Record<string, unknown> = {};
@@ -169,13 +168,16 @@ export let ProviderAuthConfigForm = (
 
       if (props.type !== 'create' || !instanceId) return;
 
+      let name = values.name.trim() || props.defaultName?.trim();
+      let description = props.hideDetailsInputs ? undefined : values.description || undefined;
+
       let [result] = await createMutation.mutate({
         instanceId,
         ...(props.providerDeploymentId
           ? { providerDeploymentId: props.providerDeploymentId }
           : {}),
-        name: values.name.trim(),
-        description: values.description || undefined,
+        ...(name ? { name } : {}),
+        ...(description ? { description } : {}),
         providerAuthMethodId: values.authMethodId,
         value: parsedCredentials
       });
@@ -188,7 +190,7 @@ export let ProviderAuthConfigForm = (
     schemaDependencies: [authMethods.data?.items, oauthAutoRegistrationEnabled],
     schema: yup =>
       yup.object({
-        name: yup.string().trim().required('Name is required'),
+        name: yup.string().trim(),
         description: yup.string().ensure(),
         authMethodId: yup.string().required('Authentication method is required'),
         credentialsData: yup.mixed<Record<string, unknown>>().defined(),
@@ -402,6 +404,7 @@ export let ProviderAuthConfigForm = (
   if (props.type === 'create') {
     let credentialsStepIndex = includeAuthMethodStep ? 1 : 0;
     let detailsStepIndex = includeAuthMethodStep ? 2 : 1;
+    let hideDetailsInputs = !!props.hideDetailsInputs;
 
     let goToCredentialsStep = async () => {
       form.setFieldTouched('authMethodId', true, false);
@@ -425,28 +428,32 @@ export let ProviderAuthConfigForm = (
 
           <form noValidate onSubmit={form.handleSubmit}>
             <FlatCreateSections>
-              <Input
-                label="Auth Config Name"
-                {...form.getFieldProps('name')}
-                description="Name this auth config so your team can identify it quickly."
-                placeholder={
-                  useOAuthAuthConfigNameHints
-                    ? 'e.g. John Doe'
-                    : 'e.g. CRM Production Connection'
-                }
-              />
-              <form.RenderError field="name" />
+              {!hideDetailsInputs ? (
+                <>
+                  <Input
+                    label="Auth Config Name"
+                    {...form.getFieldProps('name')}
+                    description="Name this auth config so your team can identify it quickly."
+                    placeholder={
+                      useOAuthAuthConfigNameHints
+                        ? 'e.g. John Doe'
+                        : 'e.g. CRM Production Connection'
+                    }
+                  />
+                  <form.RenderError field="name" />
 
-              <Spacer size={10} />
+                  <Spacer size={10} />
 
-              <Input
-                label="Auth Config Description"
-                {...authConfigDescriptionInputHints}
-                {...form.getFieldProps('description')}
-              />
-              <form.RenderError field="description" />
+                  <Input
+                    label="Auth Config Description"
+                    {...authConfigDescriptionInputHints}
+                    {...form.getFieldProps('description')}
+                  />
+                  <form.RenderError field="description" />
 
-              <Spacer size={15} />
+                  <Spacer size={15} />
+                </>
+              ) : null}
 
               <FlatCreateSectionGroup>
                 <InputLabel>Credentials</InputLabel>

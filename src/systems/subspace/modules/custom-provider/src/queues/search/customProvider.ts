@@ -15,7 +15,10 @@ export let indexCustomProviderQueueProcessor = indexCustomProviderQueue.process(
   });
   if (!customProvider) throw new QueueRetryError();
 
-  if (!customProvider.name && !customProvider.description) {
+  if (
+    customProvider.status !== 'active' ||
+    (!customProvider.name && !customProvider.description)
+  ) {
     await voyager.record.delete({
       sourceId: (await voyagerSource).id,
       indexId: voyagerIndex.customProvider.id,

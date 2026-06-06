@@ -33,14 +33,23 @@ export let validateRedirectUri = (d: {
   }
 };
 
+let isLoopbackHost = (hostname: string) =>
+  hostname == 'localhost' ||
+  hostname == '127.0.0.1' ||
+  hostname == '::1' ||
+  hostname == '[::1]';
+
 export let validateUri = (uri: string) => {
   try {
     let url = new URL(uri);
 
-    if (url.protocol != 'https:') {
+    if (
+      url.protocol != 'https:' &&
+      !(url.protocol == 'http:' && isLoopbackHost(url.hostname))
+    ) {
       throw new ServiceError(
         badRequestError({
-          message: 'URI must use https scheme'
+          message: 'URI must use https scheme unless it targets localhost'
         })
       );
     }

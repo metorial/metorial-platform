@@ -110,3 +110,62 @@ export let reconcileSkillProviderLinksForIntegrationProviderQueueProcessor =
       skills.map(skill => ({ skillId: skill.id }))
     );
   });
+
+export let reconcileSkillProviderLinksForProviderQueue = createQueue<{
+  providerId: string;
+}>({
+  name: 'sub/sk/lc/reconcileSkillProviderLinksForProvider',
+  redisUrl: env.service.REDIS_URL
+});
+
+export let reconcileSkillProviderLinksForProviderQueueProcessor =
+  reconcileSkillProviderLinksForProviderQueue.process(async data => {
+    let provider = await db.provider.findUnique({
+      where: { id: data.providerId }
+    });
+    if (!provider) throw new QueueRetryError();
+
+    let skills = await db.skill.findMany({
+      where: {
+        status: 'active' as const,
+        OR: [
+          {
+            skillProviders: {
+              some: {
+                status: 'active' as const,
+                providerOid: provider.oid
+              }
+            }
+          },
+          {
+            skillProviderLinks: {
+              some: {
+                providerOid: provider.oid
+              }
+            }
+          },
+          {
+            skillIntegrations: {
+              some: {
+                status: 'active' as const,
+                integration: {
+                  providers: {
+                    some: {
+                      status: 'active' as const,
+                      providerOid: provider.oid
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      select: { id: true }
+    });
+    if (!skills.length) return;
+
+    await reconcileSkillProviderLinksQueue.addMany(
+      skills.map(skill => ({ skillId: skill.id }))
+    );
+  });

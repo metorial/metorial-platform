@@ -1,4 +1,4 @@
-import { renderWithLoader } from '@metorial/data-hooks';
+import { InitialLoadBoundary, renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
 import {
@@ -54,9 +54,11 @@ export let IdentityDelegationLayout = () => {
         ]}
       />
 
-      {renderWithLoader({ instance, organization, project, delegation })(() => (
-        <Outlet />
-      ))}
+      <InitialLoadBoundary>
+        {renderWithLoader({ instance, organization, project, delegation })(() => (
+          <Outlet />
+        ))}
+      </InitialLoadBoundary>
     </ContentLayout>
   );
 };

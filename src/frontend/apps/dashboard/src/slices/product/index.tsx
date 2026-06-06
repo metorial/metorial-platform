@@ -97,24 +97,9 @@ let ProviderDeploymentConfigsPage = dynamicPage(() =>
     c => c.ProviderDeploymentConfigsPage
   )
 );
-let ProviderDeploymentConfigVaultsPage = dynamicPage(() =>
-  import('./pages/(deployments)/provider-deployment/config-vaults').then(
-    c => c.ProviderDeploymentConfigVaultsPage
-  )
-);
-let ProviderDeploymentAuthMethodsPage = dynamicPage(() =>
-  import('./pages/(deployments)/provider-deployment/auth-methods').then(
-    c => c.ProviderDeploymentAuthMethodsPage
-  )
-);
 let ProviderDeploymentAuthConfigsPage = dynamicPage(() =>
   import('./pages/(deployments)/provider-deployment/auth-configs').then(
     c => c.ProviderDeploymentAuthConfigsPage
-  )
-);
-let ProviderDeploymentAuthCredentialsPage = dynamicPage(() =>
-  import('./pages/(deployments)/provider-deployment/auth-credentials').then(
-    c => c.ProviderDeploymentAuthCredentialsPage
   )
 );
 let ProviderDeploymentSettingsPage = dynamicPage(() =>
@@ -1398,20 +1383,8 @@ export let productInfrastructureSlice = createSlice([
                 element: <ProviderDeploymentConfigsPage />
               },
               {
-                path: 'config-vaults',
-                element: <ProviderDeploymentConfigVaultsPage />
-              },
-              {
-                path: 'auth-methods',
-                element: <ProviderDeploymentAuthMethodsPage />
-              },
-              {
                 path: 'auth-configs',
                 element: <ProviderDeploymentAuthConfigsPage />
-              },
-              {
-                path: 'auth-credentials',
-                element: <ProviderDeploymentAuthCredentialsPage />
               },
               {
                 path: 'settings',
