@@ -682,7 +682,7 @@ let IntegrationProviderSetupStep = (p: {
         !isConfigSelectionComplete(values.selectedConfiguration)
       ) {
         form.setFieldTouched('selectedConfiguration', true, false);
-        form.setFieldError('selectedConfiguration', 'Select a config or config vault');
+        form.setFieldError('selectedConfiguration', 'Select a config');
         return;
       }
 
@@ -1236,7 +1236,7 @@ let IntegrationInstanceProviderPanel = (p: {
         !isConfigSelectionComplete(values.selectedConfiguration)
       ) {
         form.setFieldTouched('selectedConfiguration', true, false);
-        form.setFieldError('selectedConfiguration', 'Select a config or config vault');
+        form.setFieldError('selectedConfiguration', 'Select a config');
         return;
       }
 

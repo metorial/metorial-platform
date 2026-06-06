@@ -999,7 +999,7 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
       <ConfigureSectionCard
         key="config"
         title="Config"
-        description="Choose the provider configuration or vault this setup should use."
+        description="Choose the provider configuration this setup should use."
         requirement={configRequirement}
         completed={isConfigCompleted}
       >
@@ -1011,7 +1011,6 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
             value={p.selectedConfiguration}
             onChange={p.onSelectedConfigurationChange}
             label="Config"
-            includeVaults
             createConfigButtonLabel="Create Config"
             showExistingOptions={showExistingConfigOptions}
             filterAvailableResources={filterAvailableResources}
@@ -1617,7 +1616,7 @@ let ConfigureStep = (p: {
       p.form.values.selectedConfiguration.kind === 'none'
     ) {
       p.form.setFieldTouched('selectedConfiguration', true, false);
-      p.form.setFieldError('selectedConfiguration', 'Select a config or config vault');
+      p.form.setFieldError('selectedConfiguration', 'Select a config');
       isValid = false;
     }
 

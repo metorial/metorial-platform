@@ -71,6 +71,13 @@ declare global {
 
     type SlateConfigSchema = any;
 
+    type SlateDocReference = {
+      type?: string;
+      name: string;
+      url: string;
+    };
+    type SlateDocReferences = SlateDocReference[];
+
     type SlateAuthMethod = SlateAuthenticationMethod;
     type SlateAction = ProtoSlatesAction;
 

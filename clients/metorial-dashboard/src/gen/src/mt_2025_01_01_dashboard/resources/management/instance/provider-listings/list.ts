@@ -87,6 +87,22 @@ export type ManagementInstanceProviderListingsListOutput = {
     createdAt: Date;
     updatedAt: Date;
   } & {
+    docs: {
+      provider: { type?: string | undefined; name: string; url: string }[];
+      config: { type?: string | undefined; name: string; url: string }[];
+      authMethods: {
+        key: string;
+        name: string;
+        type: string;
+        docs: { type?: string | undefined; name: string; url: string }[];
+      }[];
+      actions: {
+        key: string;
+        name: string;
+        type: 'tool' | 'trigger';
+        docs: { type?: string | undefined; name: string; url: string }[];
+      }[];
+    } | null;
     provider: {
       object: 'provider';
       id: string;
@@ -507,7 +523,84 @@ export let mapManagementInstanceProviderListingsListOutput =
                 )
               ),
               createdAt: mtMap.objectField('created_at', mtMap.date()),
-              updatedAt: mtMap.objectField('updated_at', mtMap.date())
+              updatedAt: mtMap.objectField('updated_at', mtMap.date()),
+              docs: mtMap.objectField(
+                'docs',
+                mtMap.object({
+                  provider: mtMap.objectField(
+                    'provider',
+                    mtMap.array(
+                      mtMap.object({
+                        type: mtMap.objectField('type', mtMap.passthrough()),
+                        name: mtMap.objectField('name', mtMap.passthrough()),
+                        url: mtMap.objectField('url', mtMap.passthrough())
+                      })
+                    )
+                  ),
+                  config: mtMap.objectField(
+                    'config',
+                    mtMap.array(
+                      mtMap.object({
+                        type: mtMap.objectField('type', mtMap.passthrough()),
+                        name: mtMap.objectField('name', mtMap.passthrough()),
+                        url: mtMap.objectField('url', mtMap.passthrough())
+                      })
+                    )
+                  ),
+                  authMethods: mtMap.objectField(
+                    'auth_methods',
+                    mtMap.array(
+                      mtMap.object({
+                        key: mtMap.objectField('key', mtMap.passthrough()),
+                        name: mtMap.objectField('name', mtMap.passthrough()),
+                        type: mtMap.objectField('type', mtMap.passthrough()),
+                        docs: mtMap.objectField(
+                          'docs',
+                          mtMap.array(
+                            mtMap.object({
+                              type: mtMap.objectField(
+                                'type',
+                                mtMap.passthrough()
+                              ),
+                              name: mtMap.objectField(
+                                'name',
+                                mtMap.passthrough()
+                              ),
+                              url: mtMap.objectField('url', mtMap.passthrough())
+                            })
+                          )
+                        )
+                      })
+                    )
+                  ),
+                  actions: mtMap.objectField(
+                    'actions',
+                    mtMap.array(
+                      mtMap.object({
+                        key: mtMap.objectField('key', mtMap.passthrough()),
+                        name: mtMap.objectField('name', mtMap.passthrough()),
+                        type: mtMap.objectField('type', mtMap.passthrough()),
+                        docs: mtMap.objectField(
+                          'docs',
+                          mtMap.array(
+                            mtMap.object({
+                              type: mtMap.objectField(
+                                'type',
+                                mtMap.passthrough()
+                              ),
+                              name: mtMap.objectField(
+                                'name',
+                                mtMap.passthrough()
+                              ),
+                              url: mtMap.objectField('url', mtMap.passthrough())
+                            })
+                          )
+                        )
+                      })
+                    )
+                  )
+                })
+              )
             })
           )
         ])

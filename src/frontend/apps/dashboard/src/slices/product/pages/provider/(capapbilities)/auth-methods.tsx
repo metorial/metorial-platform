@@ -33,19 +33,6 @@ export let ProviderAuthMethodsPage = () => {
                 <Text size="2" weight="strong">
                   {method.name}
                 </Text>
-                <Text
-                  size="2"
-                  color="gray600"
-                  style={{
-                    display: 'block',
-                    maxWidth: '100%',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis'
-                  }}
-                >
-                  {description}
-                </Text>
               </Flex>,
               <Flex gap={6} style={{ alignItems: 'center', flexWrap: 'wrap' }}>
                 <Badge color={getProviderAuthMethodTypeColor(method.type)} size="1">

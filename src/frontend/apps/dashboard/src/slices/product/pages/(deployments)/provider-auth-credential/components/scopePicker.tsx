@@ -1,5 +1,7 @@
-import { Checkbox, Flex, OptionToggle, Text, theme } from '@metorial/ui';
+import { Checkbox, Flex, InputLabel, OptionToggle, Text, theme } from '@metorial/ui';
+import type { ReactNode } from 'react';
 import { useMemo, useState } from 'react';
+import styled from 'styled-components';
 
 type ScopePermissionMode = 'allow' | 'reject' | 'mixed';
 type ScopeSectionId = 'read' | 'write' | 'dangerous';
@@ -10,6 +12,39 @@ export type ScopePickerScope = {
   name?: string | null;
   description?: string | null;
 };
+
+let ScopeFieldHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+  margin-bottom: 5px;
+
+  ${InputLabel} {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 0;
+  }
+`;
+
+let ScopeFieldHelp = styled.div`
+  min-width: 0;
+  flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+let ScopeFieldBox = styled.div`
+  width: 100%;
+  min-width: 0;
+  overflow: auto;
+  border: 1px solid ${theme.colors.gray300};
+  border-radius: 10px;
+  padding: 10px 12px;
+`;
 
 let dangerousScopeKeywords = [
   'admin',
@@ -56,12 +91,14 @@ export let ScopePicker = ({
   scopes,
   selectedScopes,
   onSelectedScopesChange,
-  disabled
+  disabled,
+  flushScrollPadding = true
 }: {
   scopes: ScopePickerScope[];
   selectedScopes: string[];
   onSelectedScopesChange: (scopes: string[]) => void;
   disabled?: boolean;
+  flushScrollPadding?: boolean;
 }) => {
   let [sectionModeOverrides, setSectionModeOverrides] = useState<
     Partial<Record<ScopeSectionId, ScopePermissionMode>>
@@ -145,8 +182,8 @@ export let ScopePicker = ({
   return (
     <div
       style={{
-        marginRight: -20,
-        paddingRight: 20
+        marginRight: flushScrollPadding ? -20 : 0,
+        paddingRight: flushScrollPadding ? 20 : 0
       }}
     >
       <Flex direction="column" gap={12}>
@@ -219,6 +256,31 @@ export let ScopePicker = ({
             </div>
           ))}
       </Flex>
+    </div>
+  );
+};
+
+export let ScopePickerField = ({
+  label = 'Scopes',
+  help,
+  maxHeight = 260,
+  ...props
+}: {
+  label?: ReactNode;
+  help?: ReactNode;
+  maxHeight?: number | string;
+} & Omit<Parameters<typeof ScopePicker>[0], 'flushScrollPadding'>) => {
+  if (props.scopes.length === 0) return null;
+
+  return (
+    <div>
+      <ScopeFieldHeader>
+        <InputLabel>{label}</InputLabel>
+        {help && <ScopeFieldHelp>{help}</ScopeFieldHelp>}
+      </ScopeFieldHeader>
+      <ScopeFieldBox style={{ maxHeight }}>
+        <ScopePicker {...props} flushScrollPadding={false} />
+      </ScopeFieldBox>
     </div>
   );
 };
