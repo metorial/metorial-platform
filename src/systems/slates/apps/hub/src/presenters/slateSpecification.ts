@@ -29,7 +29,9 @@ export let slateSpecificationPresenter = (
   protocolVersion: spec.protocolVersion,
 
   providerInfo: spec.providerInfo,
+  providerDocs: spec.providerDocs,
   configSchema: spec.configSchema,
+  configSchemaDocs: spec.configSchemaDocs,
 
   authMethods: spec.slateAuthMethods.map(sam =>
     slateAuthMethodPresenter({ ...sam.authMethod, slate: spec.slate })

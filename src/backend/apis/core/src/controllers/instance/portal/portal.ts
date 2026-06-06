@@ -54,10 +54,18 @@ export let portalController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.portal:read'] }))
       .use(hasFlags(['paid-portals', 'portals-access']))
       .outputList(portalPresenter)
-      .query('default', Paginator.validate(v.object({})))
+      .query(
+        'default',
+        Paginator.validate(
+          v.object({
+            search: v.optional(v.string({ description: 'Search by name or description' }))
+          })
+        )
+      )
       .do(async ctx => {
         let paginator = portalService.listPortals({
-          instance: ctx.instance
+          instance: ctx.instance,
+          search: ctx.query.search
         });
         let list = await paginator.run(ctx.query);
 

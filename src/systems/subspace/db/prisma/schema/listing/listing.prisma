@@ -29,6 +29,9 @@ model ProviderListing {
   description String?
   readme      String?
 
+  /// [ProviderListingDocs]
+  docs Json?
+
   rank Int @default(0)
 
   skills String[]

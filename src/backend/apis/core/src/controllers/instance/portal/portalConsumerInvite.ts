@@ -50,6 +50,12 @@ export let portalConsumerInviteController = Controller.create(
         Paginator.validate(
           v.object({
             search: v.optional(v.string()),
+            email: v.optional(
+              v.union([
+                v.string({ modifiers: [v.email()] }),
+                v.array(v.string({ modifiers: [v.email()] }))
+              ])
+            ),
             status: v.optional(
               v.union([
                 v.enumOf(['pending', 'accepted']),
@@ -63,6 +69,7 @@ export let portalConsumerInviteController = Controller.create(
         let paginator = await consumerInviteService.listConsumerInvites({
           consumerSurface: ctx.portal.surface,
           search: ctx.query.search,
+          emails: normalizeArrayParam(ctx.query.email),
           statuses: normalizeArrayParam(ctx.query.status)
         });
         let list = await paginator.run(ctx.query);
