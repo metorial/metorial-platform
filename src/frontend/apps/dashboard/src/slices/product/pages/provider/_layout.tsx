@@ -3,7 +3,7 @@ import type {
   DashboardInstanceProvidersGetOutput,
   DashboardInstanceProvidersVersionsListOutput
 } from '@metorial/dashboard-sdk';
-import { renderWithLoader } from '@metorial/data-hooks';
+import { InitialLoadBoundary, renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
 import {
@@ -17,8 +17,8 @@ import {
 } from '@metorial/state';
 import { Button, Callout, LinkTabs, Spacer } from '@metorial/ui';
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { Link, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { DeployServerButton } from '../(custom-providers)/custom-provider/_layout';
+import { Link, Outlet, useLocation, useParams } from 'react-router-dom';
+import { UseProviderButton } from '../../scenes/providers/useProviderButton';
 
 type ProviderVersion = DashboardInstanceProvidersVersionsListOutput['items'][number];
 type ProviderVersionId = ProviderVersion['id'];
@@ -47,7 +47,6 @@ export let ProviderLayout = () => {
   let instance = useCurrentInstance();
   let project = useCurrentProject();
   let organization = useCurrentOrganization();
-  let navigate = useNavigate();
 
   let { providerId } = useParams();
   let provider = useProvider(instance.data?.id, providerId);
@@ -186,105 +185,109 @@ export let ProviderLayout = () => {
                 </Button>
               </Link>
 
-              <DeployServerButton providerId={providerData?.id}>
-                Deploy Provider
-              </DeployServerButton>
+              <UseProviderButton
+                providerId={providerData?.id}
+                providerName={listing?.name ?? providerData?.name}
+                providerDescription={listing?.description ?? providerData?.description}
+              />
             </>
           }
         />
 
-        {renderWithLoader({ provider })(({ provider }) => (
-          <>
-            {provider.data.access == 'tenant' ? (
-              <>
-                <Callout color="blue">
-                  <span>
-                    This provider is managed and run by your organization. View{' '}
-                    <Link
-                      to={
-                        customProvider.data
-                          ? Paths.instance.customProvider(
-                              organization.data,
-                              project.data,
-                              instance.data,
-                              customProvider.data.id
-                            )
-                          : '#'
-                      }
-                      style={{
-                        color: 'inherit',
-                        textDecoration: 'underline'
-                      }}
-                    >
-                      custom provider
-                    </Link>{' '}
-                    for details.
-                  </span>
-                </Callout>
+        <InitialLoadBoundary>
+          {renderWithLoader({ provider })(({ provider }) => (
+            <>
+              {provider.data.access == 'tenant' ? (
+                <>
+                  <Callout color="blue">
+                    <span>
+                      This provider is managed and run by your organization. View{' '}
+                      <Link
+                        to={
+                          customProvider.data
+                            ? Paths.instance.customProvider(
+                                organization.data,
+                                project.data,
+                                instance.data,
+                                customProvider.data.id
+                              )
+                            : '#'
+                        }
+                        style={{
+                          color: 'inherit',
+                          textDecoration: 'underline'
+                        }}
+                      >
+                        custom provider
+                      </Link>{' '}
+                      for details.
+                    </span>
+                  </Callout>
 
-                <Spacer height={20} />
-              </>
-            ) : (
-              <>
-                {provider.data.type.backend == 'mcp.remote' &&
-                  !listing?.attributes.isOfficial && (
+                  <Spacer height={20} />
+                </>
+              ) : (
+                <>
+                  {provider.data.type.backend == 'mcp.remote' &&
+                    !listing?.attributes.isOfficial && (
+                      <>
+                        <Callout color="blue">
+                          <span>
+                            This provider is managed and run by{' '}
+                            <strong>{listing?.provider.publisher.name}</strong>. Data you send
+                            to it will leave Metorial's platform.
+                          </span>
+                        </Callout>
+
+                        <Spacer height={20} />
+                      </>
+                    )}
+
+                  {provider.data.type.backend == 'mcp.container' && (
                     <>
                       <Callout color="blue">
                         <span>
-                          This provider is managed and run by{' '}
-                          <strong>{listing?.provider.publisher.name}</strong>. Data you send to
-                          it will leave Metorial's platform.
+                          This provider is not managed by Metorial. Make sure to verify the
+                          provider's trustworthiness. Contact{' '}
+                          <a
+                            href="https://metorial.com/support"
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            Metorial Support
+                          </a>{' '}
+                          if you have questions.
                         </span>
                       </Callout>
 
                       <Spacer height={20} />
                     </>
                   )}
+                </>
+              )}
 
-                {provider.data.type.backend == 'mcp.container' && (
-                  <>
-                    <Callout color="blue">
-                      <span>
-                        This provider is not managed by Metorial. Make sure to verify the
-                        provider's trustworthiness. Contact{' '}
-                        <a
-                          href="https://metorial.com/support"
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          Metorial Support
-                        </a>{' '}
-                        if you have questions.
-                      </span>
-                    </Callout>
+              <LinkTabs
+                current={pathname}
+                links={[
+                  {
+                    label: 'Overview',
+                    to: Paths.instance.provider(...providerPathParams)
+                  },
+                  {
+                    label: 'Tools & Capabilities',
+                    to: Paths.instance.provider(...providerPathParams, 'capabilities')
+                  },
+                  {
+                    label: 'Versions',
+                    to: Paths.instance.provider(...providerPathParams, 'versions')
+                  }
+                ]}
+              />
 
-                    <Spacer height={20} />
-                  </>
-                )}
-              </>
-            )}
-
-            <LinkTabs
-              current={pathname}
-              links={[
-                {
-                  label: 'Overview',
-                  to: Paths.instance.provider(...providerPathParams)
-                },
-                {
-                  label: 'Tools & Capabilities',
-                  to: Paths.instance.provider(...providerPathParams, 'capabilities')
-                },
-                {
-                  label: 'Versions',
-                  to: Paths.instance.provider(...providerPathParams, 'versions')
-                }
-              ]}
-            />
-
-            <Outlet />
-          </>
-        ))}
+              <Outlet />
+            </>
+          ))}
+        </InitialLoadBoundary>
       </ContentLayout>
     </ProviderVersionContext.Provider>
   );

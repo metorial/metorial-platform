@@ -1,6 +1,7 @@
+import { useInitialLoadRegistration } from '@metorial/data-hooks';
 import { Error } from '@metorial/ui';
 import PQueue from 'p-queue';
-import React, { ReactNode, useEffect, useRef, useState } from 'react';
+import React, { ReactNode, useEffect, useState } from 'react';
 
 let queue = new PQueue({ concurrency: 10 });
 
@@ -33,9 +34,9 @@ export let dynamicPage = <Params extends any[]>(
 
   return (props: Params[0] extends undefined ? {} : Params[0]) => {
     let [Component, setComponent] = useState<((p: any) => ReactNode) | null>(null);
-    let [spinner, setSpinner] = useState(false);
     let [error, setError] = useState(false);
-    let completedRef = useRef(false);
+
+    useInitialLoadRegistration(!Component && !error);
 
     useEffect(() => {
       if (loadPromise == null) {
@@ -45,7 +46,6 @@ export let dynamicPage = <Params extends any[]>(
       loadPromise!
         .then(c => {
           setComponent(() => c);
-          completedRef.current = true;
         })
         .catch(() => {
           setError(true);
@@ -57,26 +57,10 @@ export let dynamicPage = <Params extends any[]>(
           current.searchParams.set('_cmp_ref', Date.now().toString());
           window.location.href = current.toString();
         });
-
-      setTimeout(() => {
-        if (!completedRef.current) setSpinner(true);
-      }, 500);
     }, []);
 
     // if (!Component && error) return <Error>Unable to load page</Error>;
     if (!Component && error) return React.createElement(Error, null, 'Unable to load page');
-
-    // if (!Component && spinner) {
-    //   return React.createElement(
-    //     'div',
-    //     {
-    //       style: {
-    //         marginTop: 20
-    //       }
-    //     },
-    //     React.createElement(CenteredSpinner, null)
-    //   );
-    // }
 
     if (Component) return React.createElement(Component as any, props as any);
 

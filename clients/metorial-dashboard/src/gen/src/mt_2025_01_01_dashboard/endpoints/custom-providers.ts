@@ -4,6 +4,7 @@ import {
 } from '@metorial/util-endpoint';
 
 import {
+  mapDashboardInstanceCustomProvidersArchiveOutput,
   mapDashboardInstanceCustomProvidersCreateBody,
   mapDashboardInstanceCustomProvidersCreateOutput,
   mapDashboardInstanceCustomProvidersGetEnvOutput,
@@ -12,6 +13,7 @@ import {
   mapDashboardInstanceCustomProvidersListQuery,
   mapDashboardInstanceCustomProvidersUpdateBody,
   mapDashboardInstanceCustomProvidersUpdateOutput,
+  type DashboardInstanceCustomProvidersArchiveOutput,
   type DashboardInstanceCustomProvidersCreateBody,
   type DashboardInstanceCustomProvidersCreateOutput,
   type DashboardInstanceCustomProvidersGetEnvOutput,
@@ -188,6 +190,33 @@ export class MetorialCustomProvidersEndpoint {
 
     return this._patch(request).transform(
       mapDashboardInstanceCustomProvidersUpdateOutput
+    );
+  }
+
+  /**
+   * @name Archive custom provider
+   * @description Archives a specific custom provider and disables new connections to it.
+   *
+   * @param `customProviderId` - string
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardInstanceCustomProvidersArchiveOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  archive(
+    customProviderId: string,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceCustomProvidersArchiveOutput> {
+    let path = `custom-providers/${customProviderId}/archive`;
+
+    let request = {
+      path,
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._post(request).transform(
+      mapDashboardInstanceCustomProvidersArchiveOutput
     );
   }
 }

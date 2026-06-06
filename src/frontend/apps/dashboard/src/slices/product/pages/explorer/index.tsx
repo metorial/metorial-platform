@@ -7,10 +7,12 @@ import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import {
   useCreateProviderDeployment,
+  useCreateProviderConfig,
   useCreateSession,
   useCurrentInstance,
   useProvider,
   useProviderConfigs,
+  useProviderConfigSchemaTarget,
   useProviderConfigVaults,
   useProviderDeployment,
   useProviderDeployments,
@@ -39,6 +41,7 @@ import {
   emptyConfigurationSelection,
   type ConfigurationSelection
 } from '../../lib/configSelection';
+import { getProviderConfigSchemaCapabilities } from '../../lib/providerCreationCapabilities';
 import { ProviderSearch } from '../../scenes/providers/search';
 import { ProviderSetupSections } from '../../scenes/sessionTemplates/addProviderPanelFlow';
 import { SessionTracingScene } from '../../scenes/sessionTracing';
@@ -50,7 +53,8 @@ type ProviderSelection =
 
 let Wrapper = styled.div`
   display: flex;
-  height: calc(100vh - 78px);
+  height: 100%;
+  min-height: 0;
 `;
 
 let Aside = styled(motion.aside)`
@@ -181,6 +185,7 @@ export let ExplorerPage = () => {
 
   let instance = useCurrentInstance();
   let createSession = useCreateSession(instance.data?.id);
+  let createProviderConfig = useCreateProviderConfig();
 
   useEffect(() => {
     if (sessionIdParam) setSessionId(sessionIdParam);
@@ -353,6 +358,20 @@ export let ExplorerPage = () => {
   let providerConfigVaults = useProviderConfigVaults(instance.data?.id, {
     providerDeploymentId: providerDeploymentId ?? undefined
   });
+  let providerSupportsConfig = activeProvider.data?.type.config.status == 'enabled';
+  let providerConfigSchema = useProviderConfigSchemaTarget(
+    instance.data?.id,
+    providerDeploymentId
+      ? { providerDeploymentId }
+      : activeProviderId
+        ? { providerId: activeProviderId }
+        : null
+  );
+  let configCapabilities = getProviderConfigSchemaCapabilities({
+    schemaValue: providerConfigSchema.data?.schema,
+    hasVaults: (providerConfigVaults.data?.items ?? []).length > 0,
+    isLoading: providerSupportsConfig ? providerConfigSchema.isLoading : false
+  });
   let createMutation = useCreateProviderDeployment();
 
   useEffect(() => {
@@ -481,7 +500,16 @@ export let ExplorerPage = () => {
     setSearch
   ]);
 
-  let requiresProviderConfig = activeProvider.data?.type.config.status == 'enabled';
+  let canAutoCreateProviderConfig =
+    !!providerSupportsConfig &&
+    !configCapabilities.isLoading &&
+    configCapabilities.canAutoCreateEmptyConfig;
+  let showConfigSection =
+    !!providerSupportsConfig &&
+    (configCapabilities.hasSchemaFields || !canAutoCreateProviderConfig);
+  let configRequirement: 'required' | 'optional' =
+    providerSupportsConfig && !canAutoCreateProviderConfig ? 'required' : 'optional';
+  let requiresProviderConfig = providerSupportsConfig && !canAutoCreateProviderConfig;
   let requiresAuthConfig = activeProvider.data?.type.auth.status == 'enabled';
   let isResolvingProviderDeployment =
     !!providerIdToResolve &&
@@ -492,6 +520,57 @@ export let ExplorerPage = () => {
       createMutation.isPending ||
       resolvingProviderIdRef.current === providerIdToResolve);
 
+  let createSessionWithSelectedSetup = useCallback(
+    async (deploymentId: string, options?: { name?: string }) => {
+      let providerConfigId =
+        selectedConfiguration.kind === 'config' ? selectedConfiguration.id : undefined;
+      let providerConfigVaultId =
+        selectedConfiguration.kind === 'vault' ? selectedConfiguration.id : undefined;
+
+      if (
+        !providerConfigId &&
+        !providerConfigVaultId &&
+        canAutoCreateProviderConfig &&
+        activeProviderId &&
+        instance.data
+      ) {
+        setIsCreatingSession(true);
+        let [config] = await createProviderConfig.mutate({
+          instanceId: instance.data.id,
+          providerId: activeProviderId,
+          providerDeploymentId: deploymentId,
+          name: `${activeProvider.data?.name ?? provider.data?.name ?? 'Provider'} Config`,
+          value: configCapabilities.defaultConfigValue
+        });
+
+        providerConfigId = config?.id;
+        if (!providerConfigId) {
+          setIsCreatingSession(false);
+          return;
+        }
+      }
+
+      await createSessionForDeployment(deploymentId, {
+        name: options?.name,
+        providerConfigId,
+        providerConfigVaultId,
+        providerAuthConfigId: selectedAuthConfigId || undefined
+      });
+    },
+    [
+      activeProvider.data?.name,
+      activeProviderId,
+      canAutoCreateProviderConfig,
+      configCapabilities.defaultConfigValue,
+      createProviderConfig,
+      createSessionForDeployment,
+      instance.data,
+      provider.data?.name,
+      selectedAuthConfigId,
+      selectedConfiguration
+    ]
+  );
+
   useEffect(() => {
     if (
       providerDeploymentId &&
@@ -499,10 +578,10 @@ export let ExplorerPage = () => {
       !isCreatingSession &&
       !!activeProvider.data &&
       !activeProvider.isLoading &&
-      !requiresProviderConfig &&
+      !showConfigSection &&
       !requiresAuthConfig
     ) {
-      createSessionForDeployment(providerDeploymentId, {
+      createSessionWithSelectedSetup(providerDeploymentId, {
         name: `Explorer Session - ${new Date().toLocaleString()}`
       });
     }
@@ -512,9 +591,9 @@ export let ExplorerPage = () => {
     isCreatingSession,
     activeProvider.data,
     activeProvider.isLoading,
-    requiresProviderConfig,
+    showConfigSection,
     requiresAuthConfig,
-    createSessionForDeployment
+    createSessionWithSelectedSetup
   ]);
 
   let renderSetupPanel = () => {
@@ -569,6 +648,8 @@ export let ExplorerPage = () => {
             selectedAuthConfigId={selectedAuthConfigId}
             onSelectedAuthConfigIdChange={setSelectedAuthConfigId}
             showToolFilters={false}
+            showConfigSection={showConfigSection}
+            configRequirement={configRequirement}
             configError={
               providerConfigs.error || providerConfigVaults.error ? (
                 <Text size="2" color="red500">
@@ -579,9 +660,14 @@ export let ExplorerPage = () => {
               ) : null
             }
             emptyState={null}
-            supplementaryContent={<createSession.RenderError />}
+            supplementaryContent={
+              <>
+                <createProviderConfig.RenderError />
+                <createSession.RenderError />
+              </>
+            }
             footer={
-              (requiresProviderConfig || requiresAuthConfig) && (
+              (showConfigSection || requiresAuthConfig) && (
                 <Flex gap={10}>
                   <Button
                     type="button"
@@ -589,18 +675,8 @@ export let ExplorerPage = () => {
                     onClick={() => {
                       if (!canOpenExplorer) return;
 
-                      createSessionForDeployment(providerDeploymentId, {
-                        name: `Explorer Session - ${new Date().toLocaleString()}`,
-
-                        providerConfigId:
-                          selectedConfiguration.kind === 'config'
-                            ? selectedConfiguration.id
-                            : undefined,
-                        providerConfigVaultId:
-                          selectedConfiguration.kind === 'vault'
-                            ? selectedConfiguration.id
-                            : undefined,
-                        providerAuthConfigId: selectedAuthConfigId || undefined
+                      createSessionWithSelectedSetup(providerDeploymentId, {
+                        name: `Explorer Session - ${new Date().toLocaleString()}`
                       });
                     }}
                     loading={isCreatingSession}

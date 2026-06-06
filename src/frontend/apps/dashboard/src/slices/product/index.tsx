@@ -70,20 +70,17 @@ let ProviderOverviewPage = dynamicPage(() =>
 let ProviderVersionsPage = dynamicPage(() =>
   import('./pages/provider/versions').then(c => c.ProviderVersionsPage)
 );
+let ProviderCapabilitiesLayout = dynamicPage(() =>
+  import('./pages/provider/(capapbilities)/_layout').then(c => c.ProviderCapabilitiesLayout)
+);
 let ProviderToolsPage = dynamicPage(() =>
-  import('./pages/provider/tools').then(c => c.ProviderToolsPage)
+  import('./pages/provider/(capapbilities)').then(c => c.ProviderToolsPage)
 );
 let ProviderTriggersPage = dynamicPage(() =>
-  import('./pages/provider/triggers').then(c => c.ProviderTriggersPage)
-);
-let ProviderDetailsDeploymentsPage = dynamicPage(() =>
-  import('./pages/provider/deployments').then(c => c.ProviderDeploymentsPage)
+  import('./pages/provider/(capapbilities)/triggers').then(c => c.ProviderTriggersPage)
 );
 let ProviderAuthMethodsPage = dynamicPage(() =>
-  import('./pages/provider/auth-methods').then(c => c.ProviderAuthMethodsPage)
-);
-let ProviderReadmePage = dynamicPage(() =>
-  import('./pages/provider/readme').then(c => c.ProviderReadmePage)
+  import('./pages/provider/(capapbilities)/auth-methods').then(c => c.ProviderAuthMethodsPage)
 );
 let ProviderDeploymentLayout = dynamicPage(() =>
   import('./pages/(deployments)/provider-deployment/_layout').then(
@@ -100,24 +97,9 @@ let ProviderDeploymentConfigsPage = dynamicPage(() =>
     c => c.ProviderDeploymentConfigsPage
   )
 );
-let ProviderDeploymentConfigVaultsPage = dynamicPage(() =>
-  import('./pages/(deployments)/provider-deployment/config-vaults').then(
-    c => c.ProviderDeploymentConfigVaultsPage
-  )
-);
-let ProviderDeploymentAuthMethodsPage = dynamicPage(() =>
-  import('./pages/(deployments)/provider-deployment/auth-methods').then(
-    c => c.ProviderDeploymentAuthMethodsPage
-  )
-);
 let ProviderDeploymentAuthConfigsPage = dynamicPage(() =>
   import('./pages/(deployments)/provider-deployment/auth-configs').then(
     c => c.ProviderDeploymentAuthConfigsPage
-  )
-);
-let ProviderDeploymentAuthCredentialsPage = dynamicPage(() =>
-  import('./pages/(deployments)/provider-deployment/auth-credentials').then(
-    c => c.ProviderDeploymentAuthCredentialsPage
   )
 );
 let ProviderDeploymentSettingsPage = dynamicPage(() =>
@@ -1401,20 +1383,8 @@ export let productInfrastructureSlice = createSlice([
                 element: <ProviderDeploymentConfigsPage />
               },
               {
-                path: 'config-vaults',
-                element: <ProviderDeploymentConfigVaultsPage />
-              },
-              {
-                path: 'auth-methods',
-                element: <ProviderDeploymentAuthMethodsPage />
-              },
-              {
                 path: 'auth-configs',
                 element: <ProviderDeploymentAuthConfigsPage />
-              },
-              {
-                path: 'auth-credentials',
-                element: <ProviderDeploymentAuthCredentialsPage />
               },
               {
                 path: 'settings',
@@ -1729,24 +1699,22 @@ export let productHomeSlice = createSlice([
                 element: <ProviderOverviewPage />
               },
               {
-                path: 'readme',
-                element: <ProviderReadmePage />
-              },
-              {
-                path: 'tools',
-                element: <ProviderToolsPage />
-              },
-              {
-                path: 'triggers',
-                element: <ProviderTriggersPage />
-              },
-              {
-                path: 'deployments',
-                element: <ProviderDetailsDeploymentsPage />
-              },
-              {
-                path: 'auth-methods',
-                element: <ProviderAuthMethodsPage />
+                path: 'capabilities',
+                element: <ProviderCapabilitiesLayout />,
+                children: [
+                  {
+                    path: '',
+                    element: <ProviderToolsPage />
+                  },
+                  {
+                    path: 'triggers',
+                    element: <ProviderTriggersPage />
+                  },
+                  {
+                    path: 'auth-methods',
+                    element: <ProviderAuthMethodsPage />
+                  }
+                ]
               },
               {
                 path: 'versions',

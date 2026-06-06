@@ -36,6 +36,7 @@ export let commitApplyQueueProcessor = commitApplyQueue.process(async data => {
     let targetVersion = commit.targetCustomProviderVersion;
     let targetGlobalEnvironment = commit.toEnvironment.environment;
 
+    if (customProvider.status !== 'active') return;
     if (!customProvider.providerOid || !customProvider.providerVariantOid) return;
 
     if (targetVersion.status === 'deployment_failed') {

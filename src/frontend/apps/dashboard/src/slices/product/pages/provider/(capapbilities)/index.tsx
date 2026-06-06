@@ -111,19 +111,6 @@ export let ProviderToolsPage = () => {
                 <Text size="2" weight="strong">
                   {tool.name}
                 </Text>
-                <Text
-                  size="2"
-                  color="gray600"
-                  style={{
-                    display: 'block',
-                    maxWidth: '100%',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis'
-                  }}
-                >
-                  {description}
-                </Text>
               </Flex>,
               <Flex gap={6} style={{ alignItems: 'center', flexWrap: 'wrap' }}>
                 {modeBadges.length > 0 ? (

@@ -12,7 +12,7 @@ export let ProjectDeveloperPage = () => {
         <>
           <ApiKeysScene
             header={{
-              title: 'Developer',
+              title: 'API Keys',
               description: 'Manage your API keys and applications.'
             }}
             filter={{

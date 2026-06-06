@@ -1,4 +1,4 @@
-import { renderWithLoader } from '@metorial/data-hooks';
+import { InitialLoadBoundary, renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
 import {
@@ -44,78 +44,80 @@ export let ConsumerLayout = () => {
         ]}
       />
 
-      {renderWithLoader({ instance, organization, project, consumer })(
-        ({ instance, organization, project, consumer }) => (
-          <>
-            <LinkTabs
-              current={pathname}
-              links={[
-                {
-                  label: 'Overview',
-                  to: Paths.instance.identity.consumer(
-                    organization.data,
-                    project.data,
-                    instance.data,
-                    consumer.data.id
-                  )
-                },
-                {
-                  label: 'Operations',
-                  to: Paths.instance.identity.consumer(
-                    organization.data,
-                    project.data,
-                    instance.data,
-                    consumer.data.id,
-                    'operations'
-                  )
-                },
-                {
-                  label: 'Connections',
-                  to: Paths.instance.identity.consumer(
-                    organization.data,
-                    project.data,
-                    instance.data,
-                    consumer.data.id,
-                    'connections'
-                  )
-                },
-                {
-                  label: 'Delegations',
-                  to: Paths.instance.identity.consumer(
-                    organization.data,
-                    project.data,
-                    instance.data,
-                    consumer.data.id,
-                    'delegations'
-                  )
-                },
-                {
-                  label: 'Magic MCP Servers',
-                  to: Paths.instance.identity.consumer(
-                    organization.data,
-                    project.data,
-                    instance.data,
-                    consumer.data.id,
-                    'magic-mcp-servers'
-                  )
-                },
-                {
-                  label: 'Settings',
-                  to: Paths.instance.identity.consumer(
-                    organization.data,
-                    project.data,
-                    instance.data,
-                    consumer.data.id,
-                    'settings'
-                  )
-                }
-              ]}
-            />
+      <InitialLoadBoundary>
+        {renderWithLoader({ instance, organization, project, consumer })(
+          ({ instance, organization, project, consumer }) => (
+            <>
+              <LinkTabs
+                current={pathname}
+                links={[
+                  {
+                    label: 'Overview',
+                    to: Paths.instance.identity.consumer(
+                      organization.data,
+                      project.data,
+                      instance.data,
+                      consumer.data.id
+                    )
+                  },
+                  {
+                    label: 'Operations',
+                    to: Paths.instance.identity.consumer(
+                      organization.data,
+                      project.data,
+                      instance.data,
+                      consumer.data.id,
+                      'operations'
+                    )
+                  },
+                  {
+                    label: 'Connections',
+                    to: Paths.instance.identity.consumer(
+                      organization.data,
+                      project.data,
+                      instance.data,
+                      consumer.data.id,
+                      'connections'
+                    )
+                  },
+                  {
+                    label: 'Delegations',
+                    to: Paths.instance.identity.consumer(
+                      organization.data,
+                      project.data,
+                      instance.data,
+                      consumer.data.id,
+                      'delegations'
+                    )
+                  },
+                  {
+                    label: 'Magic MCP Servers',
+                    to: Paths.instance.identity.consumer(
+                      organization.data,
+                      project.data,
+                      instance.data,
+                      consumer.data.id,
+                      'magic-mcp-servers'
+                    )
+                  },
+                  {
+                    label: 'Settings',
+                    to: Paths.instance.identity.consumer(
+                      organization.data,
+                      project.data,
+                      instance.data,
+                      consumer.data.id,
+                      'settings'
+                    )
+                  }
+                ]}
+              />
 
-            <Outlet />
-          </>
-        )
-      )}
+              <Outlet />
+            </>
+          )
+        )}
+      </InitialLoadBoundary>
     </ContentLayout>
   );
 };

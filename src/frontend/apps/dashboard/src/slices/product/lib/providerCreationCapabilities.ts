@@ -5,7 +5,13 @@ import {
   useProviderDeployment,
   useProviderDeploymentConfigSchema
 } from '@metorial/state';
-import { getJsonSchemaObject, hasJsonSchemaProperties, hasRequiredJsonSchemaFields } from './jsonSchema';
+import {
+  areJsonSchemaRequiredFieldsDefaulted,
+  getJsonSchemaDefaultObject,
+  getJsonSchemaObject,
+  hasJsonSchemaProperties,
+  hasRequiredJsonSchemaFields
+} from './jsonSchema';
 import { getProviderOAuthAutoRegistrationEnabled } from './providerOAuthAutoRegistration';
 
 let getAuthMethodOrderRank = (type: string | null | undefined) => {
@@ -58,12 +64,14 @@ export let getProviderConfigSchemaCapabilities = (d: {
   let hasSchemaObject = !!schemaObject;
   let hasSchemaFields = hasJsonSchemaProperties(d.schemaValue);
   let hasRequiredFields = hasRequiredJsonSchemaFields(d.schemaValue);
+  let requiredFieldsHaveDefaults = areJsonSchemaRequiredFieldsDefaulted(d.schemaValue);
+  let defaultConfigValue = getJsonSchemaDefaultObject(d.schemaValue);
   let hasExplicitEmptySchema = Boolean(
     schemaObject && !hasSchemaFields && schemaObject.additionalProperties === false
   );
   let canCreateConfig = hasSchemaFields || hasExplicitEmptySchema || d.hasVaults;
   let canCreateConfigVault = hasSchemaFields || hasExplicitEmptySchema;
-  let canAutoCreateEmptyConfig = !hasRequiredFields;
+  let canAutoCreateEmptyConfig = !hasRequiredFields || requiredFieldsHaveDefaults;
   let isLoading = !!d.isLoading;
   let configDisabledReason = isLoading
     ? 'Loading configuration options...'
@@ -81,6 +89,8 @@ export let getProviderConfigSchemaCapabilities = (d: {
     hasSchemaObject,
     hasSchemaFields,
     hasRequiredFields,
+    requiredFieldsHaveDefaults,
+    defaultConfigValue,
     hasExplicitEmptySchema,
     hasVaults: d.hasVaults,
     isLoading,
