@@ -131,19 +131,6 @@ export let ProviderTriggersPage = () => {
                 <Text size="2" weight="strong">
                   {trigger.name}
                 </Text>
-                <Text
-                  size="2"
-                  color="gray600"
-                  style={{
-                    display: 'block',
-                    maxWidth: '100%',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis'
-                  }}
-                >
-                  {description}
-                </Text>
               </Flex>,
               <Badge color={invocationBadge.color} size="1">
                 {invocationBadge.label}
