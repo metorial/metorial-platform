@@ -172,6 +172,29 @@ declare global {
       config?: CustomProviderConfig;
     };
 
+    type ProviderListingDocReference = {
+      type?: string;
+      name: string;
+      url: string;
+    };
+
+    type ProviderListingDocs = {
+      provider: ProviderListingDocReference[];
+      config: ProviderListingDocReference[];
+      authMethods: {
+        key: string;
+        name: string;
+        type: string;
+        docs: ProviderListingDocReference[];
+      }[];
+      actions: {
+        key: string;
+        name: string;
+        type: 'tool' | 'trigger';
+        docs: ProviderListingDocReference[];
+      }[];
+    };
+
     type ProviderTypeAttributes = {
       provider: 'metorial-slates' | 'metorial-shuttle' | 'metorial-native';
       backend: 'slates' | 'mcp.container' | 'mcp.function' | 'mcp.remote' | 'native';

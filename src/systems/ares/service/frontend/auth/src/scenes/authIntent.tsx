@@ -8,18 +8,25 @@ import {
   Input,
   LinkButton,
   Spacer,
-  Switch,
-  Text
+  Switch
 } from '@metorial-io/ui';
 import { differenceInMinutes } from 'date-fns';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { styled } from 'styled-components';
 import { CodeInput } from '../components/codeInput';
 import { AuthLayout } from '../components/layout';
 import { useNonNullable } from '../hooks/useNonNullable';
 import { authIntentState } from '../state/authIntent';
 import type { IAuthIntent } from '../state/client';
+
+let FullSpinner = styled.div`
+  height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
 
 let CreateUserStep = ({
   authIntent,
@@ -224,9 +231,9 @@ let AuthIntentStep = ({
   }
 
   return (
-    <AuthLayout>
+    <FullSpinner>
       <CenteredSpinner />
-    </AuthLayout>
+    </FullSpinner>
   );
 };
 
@@ -272,9 +279,9 @@ export let AuthIntentScene = (p: {
   if (authIntent.error) {
     if (authIntent.error.data.status == 404) {
       return (
-        <AuthLayout>
+        <FullSpinner>
           <CenteredSpinner />
-        </AuthLayout>
+        </FullSpinner>
       );
     }
 

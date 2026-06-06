@@ -171,6 +171,9 @@ model SlateConfigSchema {
   /// [SlateConfigSchema]
   schema Json
 
+  /// [SlateDocReferences]
+  docs Json @default("[]")
+
   slateOid BigInt
   slate    Slate  @relation(fields: [slateOid], references: [oid])
 
@@ -263,8 +266,14 @@ model SlateSpecification {
   /// [SlateProviderInfo]
   providerInfo Json
 
+  /// [SlateDocReferences]
+  providerDocs Json @default("[]")
+
   /// [SlateConfigSchema]
   configSchema Json
+
+  /// [SlateDocReferences]
+  configSchemaDocs Json @default("[]")
 
   /// [SlateAuthMethods]
   authMethods Json

@@ -123,6 +123,22 @@ class OAuthApplicationService {
     }
   }
 
+  private assertGlobalUserFacingApplication(oauthApplication: OAuthApplication) {
+    if (
+      oauthApplication.type == 'user_facing' &&
+      oauthApplication.accessLevel == 'global' &&
+      oauthApplication.organizationOid == null
+    ) {
+      return;
+    }
+
+    throw new ServiceError(
+      forbiddenError({
+        message: 'Only global user-facing oauth applications are supported by this action'
+      })
+    );
+  }
+
   private assertAllowedAccessLevel(d: {
     type: Exclude<OAuthApplicationType, 'cli_auth'>;
     accessLevel: OAuthAuthorizationAccessLevel;
@@ -446,6 +462,207 @@ class OAuthApplicationService {
     });
   }
 
+  async createGlobalUserFacingOAuthApplication(d: {
+    input: {
+      allowClientSecretlessTokenExchange?: boolean;
+      name: string;
+      description?: string;
+      websiteUrl?: string;
+      privacyPolicyUrl?: string;
+      termsOfServiceUrl?: string;
+      redirectUris?: string[];
+      scopes: string[];
+      image?: PrismaJson.EntityImage;
+    };
+  }) {
+    let scopes = validateOAuthScopes(d.input.scopes);
+    let redirectUris = (d.input.redirectUris ?? []).map(uri => {
+      validateUri(uri);
+      return uri;
+    });
+
+    let input = {
+      status: 'active' as const,
+      type: 'user_facing' as const,
+      accessLevel: 'global' as const,
+      allowClientSecretlessTokenExchange: d.input.allowClientSecretlessTokenExchange ?? false,
+      name: d.input.name,
+      description: d.input.description,
+      websiteUrl: d.input.websiteUrl,
+      privacyPolicyUrl: d.input.privacyPolicyUrl,
+      termsOfServiceUrl: d.input.termsOfServiceUrl,
+      redirectUris,
+      scopes,
+      image: d.input.image ?? { type: 'default' as const }
+    };
+
+    return await withTransaction(async db => {
+      await Fabric.fire('machine_access.oauth_application.created:before', {
+        organization: null,
+        performedBy: null,
+        context: null,
+        input,
+        serverSideMachineAccess: null
+      });
+
+      let oauthApplication = await db.oAuthApplication.create({
+        data: {
+          id: await ID.generateId('oauthApplication'),
+          clientId: generateCustomId('mt_oauth_', 32),
+          ...input,
+          organizationOid: null,
+          serverSideMachineAccessOid: null,
+          scopedInstallationOid: null
+        },
+        include
+      });
+
+      addAfterTransactionHook(() =>
+        Fabric.fire('machine_access.oauth_application.created:after', {
+          organization: null,
+          performedBy: null,
+          context: null,
+          input,
+          serverSideMachineAccess: null,
+          oauthApplication
+        })
+      );
+
+      return oauthApplication;
+    });
+  }
+
+  async updateGlobalUserFacingOAuthApplication(d: {
+    oauthApplication: OAuthApplication;
+    input: {
+      allowClientSecretlessTokenExchange?: boolean;
+      name?: string;
+      description?: string | null;
+      websiteUrl?: string | null;
+      privacyPolicyUrl?: string | null;
+      termsOfServiceUrl?: string | null;
+      redirectUris?: string[];
+      scopes?: string[];
+      image?: PrismaJson.EntityImage;
+    };
+  }) {
+    await this.assertApplicationActive(d.oauthApplication);
+    this.assertApplicationOwnedLocally(d.oauthApplication);
+    this.assertGlobalUserFacingApplication(d.oauthApplication);
+
+    let scopes = d.input.scopes ? validateOAuthScopes(d.input.scopes) : undefined;
+    let redirectUris = d.input.redirectUris
+      ? d.input.redirectUris.map(uri => {
+          validateUri(uri);
+          return uri;
+        })
+      : undefined;
+
+    return await withTransaction(async db => {
+      await Fabric.fire('machine_access.oauth_application.updated:before', {
+        oauthApplication: d.oauthApplication,
+        organization: null,
+        performedBy: null,
+        context: null,
+        input: {
+          ...d.input,
+          scopes,
+          redirectUris
+        }
+      });
+
+      let oauthApplication = await db.oAuthApplication.update({
+        where: { oid: d.oauthApplication.oid },
+        data: {
+          allowClientSecretlessTokenExchange: d.input.allowClientSecretlessTokenExchange,
+          name: d.input.name,
+          description: d.input.description,
+          websiteUrl: d.input.websiteUrl,
+          privacyPolicyUrl: d.input.privacyPolicyUrl,
+          termsOfServiceUrl: d.input.termsOfServiceUrl,
+          redirectUris,
+          scopes,
+          image: d.input.image
+        },
+        include
+      });
+
+      addAfterTransactionHook(() =>
+        Fabric.fire('machine_access.oauth_application.updated:after', {
+          oauthApplication,
+          organization: null,
+          performedBy: null,
+          context: null,
+          input: {
+            ...d.input,
+            scopes,
+            redirectUris
+          }
+        })
+      );
+
+      return oauthApplication;
+    });
+  }
+
+  async archiveGlobalUserFacingOAuthApplication(d: { oauthApplication: OAuthApplication }) {
+    await this.assertApplicationActive(d.oauthApplication);
+    this.assertApplicationOwnedLocally(d.oauthApplication);
+    this.assertGlobalUserFacingApplication(d.oauthApplication);
+
+    let now = new Date();
+
+    return await withTransaction(async db => {
+      await Fabric.fire('machine_access.oauth_application.archived:before', {
+        oauthApplication: d.oauthApplication,
+        organization: null,
+        performedBy: null,
+        context: null
+      });
+
+      await db.oAuthAuthorization.updateMany({
+        where: {
+          oauthApplicationOid: d.oauthApplication.oid,
+          status: 'active'
+        },
+        data: {
+          status: 'revoked',
+          revokedAt: now
+        }
+      });
+
+      await db.oAuthInstallation.updateMany({
+        where: {
+          oauthApplicationOid: d.oauthApplication.oid,
+          status: 'active'
+        },
+        data: {
+          status: 'revoked',
+          revokedAt: now
+        }
+      });
+
+      let oauthApplication = await db.oAuthApplication.update({
+        where: { oid: d.oauthApplication.oid },
+        data: {
+          status: 'archived'
+        },
+        include
+      });
+
+      addAfterTransactionHook(() =>
+        Fabric.fire('machine_access.oauth_application.archived:after', {
+          oauthApplication,
+          organization: null,
+          performedBy: null,
+          context: null
+        })
+      );
+
+      return oauthApplication;
+    });
+  }
+
   async getOAuthApplicationById(d: {
     organization: Organization;
     oauthApplicationId: string;
@@ -457,6 +674,23 @@ class OAuthApplicationService {
         type: {
           in: ['user_facing', 'server_side']
         }
+      },
+      include
+    });
+    if (!oauthApplication) {
+      throw new ServiceError(notFoundError('oauth_application', d.oauthApplicationId));
+    }
+
+    return oauthApplication;
+  }
+
+  async getGlobalUserFacingOAuthApplicationById(d: { oauthApplicationId: string }) {
+    let oauthApplication = await db.oAuthApplication.findFirst({
+      where: {
+        id: d.oauthApplicationId,
+        organizationOid: null,
+        type: 'user_facing',
+        accessLevel: 'global'
       },
       include
     });
@@ -482,6 +716,37 @@ class OAuthApplicationService {
               type: {
                 in: ['user_facing']
               }
+            },
+            include
+          })
+      )
+    );
+  }
+
+  async listGlobalUserFacingOAuthApplications(d: {
+    statuses?: OAuthApplicationStatus[];
+    search?: string;
+  }) {
+    let search = d.search?.trim();
+
+    return Paginator.create(({ prisma }) =>
+      prisma(
+        async opts =>
+          await db.oAuthApplication.findMany({
+            ...opts,
+            where: {
+              organizationOid: null,
+              accessLevel: 'global',
+              status: d.statuses ? { in: d.statuses } : 'active',
+              type: 'user_facing',
+              OR: search
+                ? [
+                    { id: { contains: search, mode: 'insensitive' } },
+                    { clientId: { contains: search, mode: 'insensitive' } },
+                    { name: { contains: search, mode: 'insensitive' } },
+                    { description: { contains: search, mode: 'insensitive' } }
+                  ]
+                : undefined
             },
             include
           })

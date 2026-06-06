@@ -225,6 +225,40 @@ describe('oauthApplicationService', () => {
     expect(mockDb.oAuthApplication.create).not.toHaveBeenCalled();
   });
 
+  it('creates a global user-facing oauth app without an organization or scoped installation', async () => {
+    mockDb.oAuthApplication.create.mockImplementationOnce(async ({ data }: any) => ({
+      oid: 'oauth-app-oid',
+      ...data,
+      clientSecrets: [],
+      organization: null,
+      serverSideMachineAccess: null,
+      scopedInstallation: null
+    }));
+
+    let result = await oauthApplicationService.createGlobalUserFacingOAuthApplication({
+      input: {
+        name: 'Global App',
+        redirectUris: ['https://example.com/callback'],
+        scopes: ['organization:read']
+      }
+    });
+
+    expect(machineAccessCreateMock).not.toHaveBeenCalled();
+    expect(mockDb.oAuthInstallation.create).not.toHaveBeenCalled();
+    expect(mockDb.oAuthApplication.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          type: 'user_facing',
+          accessLevel: 'global',
+          organizationOid: null,
+          scopedInstallationOid: null,
+          serverSideMachineAccessOid: null
+        })
+      })
+    );
+    expect(result.accessLevel).toBe('global');
+  });
+
   it('updates server-side scopes and syncs them to installation and machine access', async () => {
     await oauthApplicationService.updateOAuthApplication({
       oauthApplication: {
@@ -317,6 +351,68 @@ describe('oauthApplicationService', () => {
     expect(mockDb.oAuthApplication.update).not.toHaveBeenCalled();
   });
 
+  it('updates a global user-facing oauth app', async () => {
+    mockDb.oAuthApplication.update.mockImplementationOnce(async ({ data }: any) => ({
+      oid: 'oauth-app-oid',
+      id: 'oauth-app-id',
+      status: 'active',
+      type: 'user_facing',
+      accessLevel: 'global',
+      organization: null,
+      serverSideMachineAccess: null,
+      scopedInstallation: null,
+      clientSecrets: [],
+      ...data
+    }));
+
+    let result = await oauthApplicationService.updateGlobalUserFacingOAuthApplication({
+      oauthApplication: {
+        oid: 'oauth-app-oid',
+        type: 'user_facing',
+        status: 'active',
+        accessLevel: 'global',
+        isImportedFromOtherInstance: false
+      } as any,
+      input: {
+        name: 'Global App 2',
+        redirectUris: ['https://example.com/callback'],
+        scopes: ['organization:write']
+      }
+    });
+
+    expect(machineAccessUpdateMock).not.toHaveBeenCalled();
+    expect(mockDb.oAuthInstallation.update).not.toHaveBeenCalled();
+    expect(mockDb.oAuthApplication.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          name: 'Global App 2',
+          redirectUris: ['https://example.com/callback'],
+          scopes: ['organization:write']
+        })
+      })
+    );
+    expect(result.name).toBe('Global App 2');
+  });
+
+  it('rejects updating an imported global oauth app', async () => {
+    await expect(
+      oauthApplicationService.updateGlobalUserFacingOAuthApplication({
+        oauthApplication: {
+          oid: 'oauth-app-oid',
+          type: 'user_facing',
+          status: 'active',
+          accessLevel: 'global',
+          isImportedFromOtherInstance: true
+        } as any,
+        input: {
+          name: 'Imported App'
+        }
+      })
+    ).rejects.toThrow(ServiceError);
+
+    expect(mockDb.oAuthApplication.update).not.toHaveBeenCalled();
+  });
+
   it('archives app by revoking authorizations and installations', async () => {
     let result = await oauthApplicationService.archiveOAuthApplication({
       oauthApplication: {
@@ -330,6 +426,29 @@ describe('oauthApplicationService', () => {
     });
 
     expect(mockDb.oAuthAuthorization.updateMany).toHaveBeenCalled();
+    expect(mockDb.oAuthInstallation.updateMany).toHaveBeenCalled();
+    expect(result.status).toBe('archived');
+  });
+
+  it('archives a global user-facing oauth app', async () => {
+    let result = await oauthApplicationService.archiveGlobalUserFacingOAuthApplication({
+      oauthApplication: {
+        oid: 'oauth-app-oid',
+        type: 'user_facing',
+        status: 'active',
+        accessLevel: 'global',
+        isImportedFromOtherInstance: false
+      } as any
+    });
+
+    expect(mockDb.oAuthAuthorization.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          oauthApplicationOid: 'oauth-app-oid',
+          status: 'active'
+        })
+      })
+    );
     expect(mockDb.oAuthInstallation.updateMany).toHaveBeenCalled();
     expect(result.status).toBe('archived');
   });
