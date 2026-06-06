@@ -1,4 +1,4 @@
-import { renderWithLoader } from '@metorial/data-hooks';
+import { InitialLoadBoundary, renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
 import {
@@ -73,68 +73,70 @@ export let IdentityActorLayout = () => {
         ]}
       />
 
-      {renderWithLoader({ instance, organization, project, actor })(
-        ({ instance, organization, project, actor }) => (
-          <>
-            <LinkTabs
-              current={location.pathname}
-              links={[
-                {
-                  label: 'Overview',
-                  to: Paths.instance.identity.actor(
-                    organization.data,
-                    project.data,
-                    instance.data,
-                    actor.data.id
-                  )
-                },
-                {
-                  label: 'Operations',
-                  to: Paths.instance.identity.actor(
-                    organization.data,
-                    project.data,
-                    instance.data,
-                    actor.data.id,
-                    'operations'
-                  )
-                },
-                {
-                  label: 'Connections',
-                  to: Paths.instance.identity.actor(
-                    organization.data,
-                    project.data,
-                    instance.data,
-                    actor.data.id,
-                    'connections'
-                  )
-                },
-                {
-                  label: 'Delegations',
-                  to: Paths.instance.identity.actor(
-                    organization.data,
-                    project.data,
-                    instance.data,
-                    actor.data.id,
-                    'delegations'
-                  )
-                },
-                {
-                  label: 'Settings',
-                  to: Paths.instance.identity.actor(
-                    organization.data,
-                    project.data,
-                    instance.data,
-                    actor.data.id,
-                    'settings'
-                  )
-                }
-              ]}
-            />
+      <InitialLoadBoundary>
+        {renderWithLoader({ instance, organization, project, actor })(
+          ({ instance, organization, project, actor }) => (
+            <>
+              <LinkTabs
+                current={location.pathname}
+                links={[
+                  {
+                    label: 'Overview',
+                    to: Paths.instance.identity.actor(
+                      organization.data,
+                      project.data,
+                      instance.data,
+                      actor.data.id
+                    )
+                  },
+                  {
+                    label: 'Operations',
+                    to: Paths.instance.identity.actor(
+                      organization.data,
+                      project.data,
+                      instance.data,
+                      actor.data.id,
+                      'operations'
+                    )
+                  },
+                  {
+                    label: 'Connections',
+                    to: Paths.instance.identity.actor(
+                      organization.data,
+                      project.data,
+                      instance.data,
+                      actor.data.id,
+                      'connections'
+                    )
+                  },
+                  {
+                    label: 'Delegations',
+                    to: Paths.instance.identity.actor(
+                      organization.data,
+                      project.data,
+                      instance.data,
+                      actor.data.id,
+                      'delegations'
+                    )
+                  },
+                  {
+                    label: 'Settings',
+                    to: Paths.instance.identity.actor(
+                      organization.data,
+                      project.data,
+                      instance.data,
+                      actor.data.id,
+                      'settings'
+                    )
+                  }
+                ]}
+              />
 
-            <Outlet />
-          </>
-        )
-      )}
+              <Outlet />
+            </>
+          )
+        )}
+      </InitialLoadBoundary>
     </ContentLayout>
   );
 };

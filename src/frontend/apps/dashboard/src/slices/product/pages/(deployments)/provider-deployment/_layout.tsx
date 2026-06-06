@@ -1,4 +1,4 @@
-import { renderWithLoader } from '@metorial/data-hooks';
+import { InitialLoadBoundary, renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
 import {
@@ -85,55 +85,45 @@ export let ProviderDeploymentLayout = () => {
         }
       />
 
-      {renderWithLoader({ deployment })(({ deployment }) => (
-        <>
-          <DeletedRecordCallout status={deployment.data?.status} />
+      <InitialLoadBoundary>
+        {renderWithLoader({ deployment })(({ deployment }) => (
+          <>
+            <DeletedRecordCallout status={deployment.data?.status} />
 
-          <LinkTabs
-            current={pathname}
-            links={[
-              {
-                label: 'Overview',
-                to: `${Paths.instance.providerDeployment(...deploymentPathParams)}${search}`
-              },
-              {
-                label: 'Auth Configs',
-                to: `${Paths.instance.providerDeployment(...deploymentPathParams, 'auth-configs')}${search}`
-              },
-              {
-                label: 'Auth Credentials',
-                to: `${Paths.instance.providerDeployment(...deploymentPathParams, 'auth-credentials')}${search}`
-              },
-              {
-                label: 'Auth Methods',
-                to: `${Paths.instance.providerDeployment(...deploymentPathParams, 'auth-methods')}${search}`
-              },
-              {
-                label: 'Configs',
-                to: `${Paths.instance.providerDeployment(...deploymentPathParams, 'configs')}${search}`
-              },
-              {
-                label: 'Vaults',
-                to: `${Paths.instance.providerDeployment(...deploymentPathParams, 'config-vaults')}${search}`
-              },
-              ...(networkingEnabled ?
-                [
-                  {
-                    label: 'Network',
-                    to: `${Paths.instance.providerDeployment(...deploymentPathParams, 'network')}${search}`
-                  }
-                ]
-              : []),
-              {
-                label: 'Settings',
-                to: `${Paths.instance.providerDeployment(...deploymentPathParams, 'settings')}${search}`
-              }
-            ]}
-          />
+            <LinkTabs
+              current={pathname}
+              links={[
+                {
+                  label: 'Overview',
+                  to: `${Paths.instance.providerDeployment(...deploymentPathParams)}${search}`
+                },
+                {
+                  label: 'Auth Configs',
+                  to: `${Paths.instance.providerDeployment(...deploymentPathParams, 'auth-configs')}${search}`
+                },
+                {
+                  label: 'Configs',
+                  to: `${Paths.instance.providerDeployment(...deploymentPathParams, 'configs')}${search}`
+                },
+                ...(networkingEnabled
+                  ? [
+                      {
+                        label: 'Network',
+                        to: `${Paths.instance.providerDeployment(...deploymentPathParams, 'network')}${search}`
+                      }
+                    ]
+                  : []),
+                {
+                  label: 'Settings',
+                  to: `${Paths.instance.providerDeployment(...deploymentPathParams, 'settings')}${search}`
+                }
+              ]}
+            />
 
-          <Outlet />
-        </>
-      ))}
+            <Outlet />
+          </>
+        ))}
+      </InitialLoadBoundary>
     </ContentLayout>
   );
 };

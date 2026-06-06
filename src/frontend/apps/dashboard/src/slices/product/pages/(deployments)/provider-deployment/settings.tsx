@@ -1,11 +1,17 @@
 import { renderWithLoader, useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
-import { useCurrentInstance, useProviderDeployment } from '@metorial/state';
-import { Button, Input, Spacer } from '@metorial/ui';
+import {
+  useCurrentInstance,
+  useProviderDeployment,
+  useProviderVersions
+} from '@metorial/state';
+import { Button, Input, Select, Spacer } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
 import { useNavigate, useParams } from 'react-router-dom';
 import { DeleteResourceDangerZone } from '../../../scenes/deleteResourceDangerZone';
 import { ProviderDeploymentTabSection } from '../../../scenes/providerDeployments/tabSection';
+
+let latestVersionOptionId = '__latest__';
 
 export let ProviderDeploymentSettingsPage = () => {
   let instance = useCurrentInstance();
@@ -14,7 +20,28 @@ export let ProviderDeploymentSettingsPage = () => {
   let { providerDeploymentId } = useParams();
   let deployment = useProviderDeployment(instance.data?.id, providerDeploymentId);
   let updateMutator = deployment.useUpdateMutator();
+  let versionLockMutator = deployment.useUpdateMutator();
   let deleteMutator = deployment.useDeleteMutator();
+  let versions = useProviderVersions(instance.data?.id, deployment.data?.providerId);
+  let versionItems = versions.data?.items ?? [];
+  let versionOptions = [
+    { id: latestVersionOptionId, label: 'Latest' },
+    ...versionItems.map(version => ({
+      id: version.id,
+      label: version.isCurrent ? `${version.version} (current)` : version.version
+    }))
+  ];
+
+  if (
+    deployment.data?.lockedVersion &&
+    !versionOptions.some(option => option.id === deployment.data?.lockedVersion?.id)
+  ) {
+    versionOptions.push({
+      id: deployment.data.lockedVersion.id,
+      label: `${deployment.data.lockedVersion.version} (pinned)`
+    });
+  }
+
   let form = useForm({
     initialValues: {
       name: deployment.data?.name ?? '',
@@ -31,6 +58,24 @@ export let ProviderDeploymentSettingsPage = () => {
       yup.object({
         name: yup.string().trim().required('Name is required'),
         description: yup.string()
+      }) as any
+  });
+  let versionLockForm = useForm({
+    initialValues: {
+      lockedProviderVersionId: deployment.data?.lockedVersion?.id ?? latestVersionOptionId
+    },
+    updateInitialValues: true,
+    onSubmit: async values => {
+      await versionLockMutator.mutate({
+        lockedProviderVersionId:
+          values.lockedProviderVersionId === latestVersionOptionId
+            ? null
+            : values.lockedProviderVersionId
+      });
+    },
+    schema: yup =>
+      yup.object({
+        lockedProviderVersionId: yup.string().required('Version is required')
       }) as any
   });
 
@@ -60,6 +105,44 @@ export let ProviderDeploymentSettingsPage = () => {
           </div>
 
           <updateMutator.RenderError />
+        </form>
+      </Box>
+
+      <Spacer size={20} />
+
+      <Box
+        title="Version Locking"
+        description="Pin this deployment to a specific provider version, or let it follow the latest version."
+      >
+        <form onSubmit={versionLockForm.handleSubmit}>
+          <Select
+            label="Version"
+            value={versionLockForm.values.lockedProviderVersionId}
+            onChange={value => {
+              versionLockForm.setFieldValue('lockedProviderVersionId', value);
+              versionLockForm.setFieldTouched('lockedProviderVersionId', false, false);
+              versionLockForm.setFieldError('lockedProviderVersionId', undefined);
+            }}
+            items={versionOptions}
+            disabled={versions.isLoading || versionLockMutator.isLoading}
+          />
+          <versionLockForm.RenderError field="lockedProviderVersionId" />
+
+          <Spacer size={15} />
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <Button
+              size="2"
+              type="submit"
+              loading={versionLockMutator.isLoading}
+              success={versionLockMutator.isSuccess}
+              disabled={versions.isLoading}
+            >
+              Save Version Lock
+            </Button>
+          </div>
+
+          <versionLockMutator.RenderError />
         </form>
       </Box>
 

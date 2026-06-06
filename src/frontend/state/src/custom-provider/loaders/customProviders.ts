@@ -58,7 +58,13 @@ export let customProviderLoader = createLoader({
       {
         input: { instanceId, customProviderId }
       }: { input: { instanceId: string; customProviderId: string } }
-    ) => withAuth(sdk => sdk.customProviders.update(instanceId, customProviderId, i))
+    ) => withAuth(sdk => sdk.customProviders.update(instanceId, customProviderId, i)),
+    archive: (
+      _: {},
+      {
+        input: { instanceId, customProviderId }
+      }: { input: { instanceId: string; customProviderId: string } }
+    ) => withAuth(sdk => sdk.customProviders.archive(instanceId, customProviderId))
   }
 });
 
@@ -82,7 +88,8 @@ export let useCustomProvider = (
 
   return {
     ...data,
-    useUpdateMutator: data.useMutator('update')
+    useUpdateMutator: data.useMutator('update'),
+    useArchiveMutator: data.useMutator('archive')
   };
 };
 

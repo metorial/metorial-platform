@@ -1,7 +1,7 @@
 import { renderWithPagination } from '@metorial/data-hooks';
 import { useSkillParticipants } from '@metorial/state';
 import { Avatar, Badge, Entity, Flex, RenderDate, Text } from '@metorial/ui';
-import { Box, ID } from '@metorial/ui-product';
+import { Box } from '@metorial/ui-product';
 import styled from 'styled-components';
 
 let EmptyState = styled.div`
@@ -62,14 +62,14 @@ export let SkillParticipantsScene = (p: {
                   description={participant.actor.email ?? undefined}
                 />
 
-                <Entity.Field
+                {/* <Entity.Field
                   title="Type"
                   value={
                     <Badge color="gray" size="1">
                       {actorTypeLabels[participant.actor.type] ?? participant.actor.type}
                     </Badge>
                   }
-                />
+                /> */}
 
                 <Entity.Field
                   title="Roles"
@@ -88,7 +88,6 @@ export let SkillParticipantsScene = (p: {
                   title="Created"
                   value={<RenderDate date={participant.createdAt} />}
                 />
-                <Entity.Field title="ID" value={<ID id={participant.id} />} />
               </Entity.Content>
             </Entity.Wrapper>
           ))}

@@ -148,6 +148,7 @@ class providerServiceImpl {
             ...opts,
             where: {
               AND: [
+                { status: 'active' },
                 getProviderTenantFilter({
                   ...d,
                   includeDeprecated

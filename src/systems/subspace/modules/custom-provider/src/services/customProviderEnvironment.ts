@@ -1,7 +1,13 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { db, type Environment, type Solution, type Tenant } from '@metorial-subspace/db';
+import {
+  db,
+  type CustomProviderStatus,
+  type Environment,
+  type Solution,
+  type Tenant
+} from '@metorial-subspace/db';
 import {
   type DateFilter,
   normalizeDateFilter,
@@ -52,6 +58,15 @@ class customProviderEnvironmentServiceImpl {
               solutionOid: d.solution.oid,
 
               AND: [
+                {
+                  customProvider: {
+                    is: {
+                      status: {
+                        notIn: ['archived', 'deleted'] as CustomProviderStatus[]
+                      }
+                    }
+                  }
+                },
                 d.ids ? { id: { in: d.ids } } : undefined!,
                 customProviders ? { customProviderOid: customProviders.in } : undefined!,
                 customProviderVersions

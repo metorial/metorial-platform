@@ -59,6 +59,16 @@ type EnrichedConsumerProfile<T extends ConsumerProfileWithRelations> = T & {
 let getInstanceConsumerKey = (d: { instanceOid: bigint; consumerOid: bigint }) =>
   `${d.instanceOid.toString()}:${d.consumerOid.toString()}`;
 
+let normalizeEmailFilter = (emails?: string[]) => {
+  let normalizedEmails = (emails ?? [])
+    .map(email => email.trim().toLowerCase())
+    .filter(Boolean);
+
+  if (!normalizedEmails.length) return undefined;
+
+  return Array.from(new Set(normalizedEmails));
+};
+
 export let ensureProfileLock = createLock({
   name: 'cons/ensureProfile'
 });
@@ -202,10 +212,12 @@ class ConsumerProfileServiceImpl {
   async listConsumerProfiles(d: {
     consumerSurface: ConsumerSurface;
     search?: string;
+    emails?: string[];
     consumerGroupId?: string;
     statuses?: Array<'active' | 'invited'>;
   }) {
     let search = d.search?.trim();
+    let emails = normalizeEmailFilter(d.emails);
     let consumerGroupId = d.consumerGroupId?.trim();
     let statuses = d.statuses?.length ? new Set(d.statuses) : null;
     let instance = search
@@ -292,6 +304,7 @@ class ConsumerProfileServiceImpl {
       { surfaceOid: d.consumerSurface.oid },
       ...(groupMembershipWhere ? [groupMembershipWhere] : []),
       ...(inviteStatusWhere ? [inviteStatusWhere] : []),
+      ...(emails?.length ? [{ email: { in: emails } }] : []),
       ...(search ? [{ consumerOid: { in: searchedConsumerOids ?? [] } }] : [])
     ];
 

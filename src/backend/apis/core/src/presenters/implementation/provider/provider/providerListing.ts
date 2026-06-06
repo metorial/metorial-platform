@@ -7,6 +7,56 @@ import { v1ProviderListingCollectionPresenter } from './collection';
 import { v1ProviderListingGroupPresenter } from './group';
 import { dashboardProviderPresenter, v1ProviderPresenter } from './provider';
 
+let providerListingDocReferenceSchema = v.object({
+  type: v.optional(v.string({ description: 'The protocol-specific documentation type.' })),
+  name: v.string({ description: 'The display name for this documentation reference.' }),
+  url: v.string({ description: 'The documentation URL.' })
+});
+
+let providerListingDocsSchema = v.nullable(
+  v.object({
+    provider: v.array(providerListingDocReferenceSchema),
+    config: v.array(providerListingDocReferenceSchema),
+    auth_methods: v.array(
+      v.object({
+        key: v.string(),
+        name: v.string(),
+        type: v.string(),
+        docs: v.array(providerListingDocReferenceSchema)
+      })
+    ),
+    actions: v.array(
+      v.object({
+        key: v.string(),
+        name: v.string(),
+        type: v.enumOf(['tool', 'trigger']),
+        docs: v.array(providerListingDocReferenceSchema)
+      })
+    )
+  })
+);
+
+let presentProviderListingDocs = (docs: any) => {
+  if (!docs) return null;
+
+  return {
+    provider: docs.provider ?? [],
+    config: docs.config ?? [],
+    auth_methods: (docs.authMethods ?? []).map((authMethod: any) => ({
+      key: authMethod.key,
+      name: authMethod.name,
+      type: authMethod.type,
+      docs: authMethod.docs ?? []
+    })),
+    actions: (docs.actions ?? []).map((action: any) => ({
+      key: action.key,
+      name: action.name,
+      type: action.type,
+      docs: action.docs ?? []
+    }))
+  };
+};
+
 export let v1ProviderListingPresenter = Presenter.create(providerListingType)
   .presenter(async ({ providerListing }, opts) => {
     return {
@@ -153,6 +203,7 @@ export let dashboardProviderListingPresenter = Presenter.create(providerListingT
 
     return {
       ...inner,
+      docs: presentProviderListingDocs((input.providerListing as any).docs),
       provider: await dashboardProviderPresenter
         .present({ provider: input.providerListing.provider }, opts)
         .run()
@@ -162,6 +213,7 @@ export let dashboardProviderListingPresenter = Presenter.create(providerListingT
     v.intersection([
       v1ProviderListingPresenter.schema,
       v.object({
+        docs: providerListingDocsSchema,
         provider: dashboardProviderPresenter.schema
       })
     ])

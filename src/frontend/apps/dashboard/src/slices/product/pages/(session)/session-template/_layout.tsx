@@ -1,4 +1,4 @@
-import { renderWithLoader } from '@metorial/data-hooks';
+import { InitialLoadBoundary, renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
 import {
@@ -105,27 +105,29 @@ export let SessionTemplateLayout = () => {
         }
       />
 
-      {renderWithLoader({ template })(({ template }) => (
-        <>
-          <DeletedRecordCallout status={template.data?.status} />
+      <InitialLoadBoundary>
+        {renderWithLoader({ template })(({ template }) => (
+          <>
+            <DeletedRecordCallout status={template.data?.status} />
 
-          <LinkTabs
-            current={pathname}
-            links={[
-              {
-                label: 'Overview',
-                to: Paths.instance.sessionTemplate(...templatePathParams)
-              },
-              {
-                label: 'Settings',
-                to: Paths.instance.sessionTemplate(...templatePathParams, 'settings')
-              }
-            ]}
-          />
+            <LinkTabs
+              current={pathname}
+              links={[
+                {
+                  label: 'Overview',
+                  to: Paths.instance.sessionTemplate(...templatePathParams)
+                },
+                {
+                  label: 'Settings',
+                  to: Paths.instance.sessionTemplate(...templatePathParams, 'settings')
+                }
+              ]}
+            />
 
-          <Outlet />
-        </>
-      ))}
+            <Outlet />
+          </>
+        ))}
+      </InitialLoadBoundary>
     </ContentLayout>
   );
 };

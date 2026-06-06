@@ -1,6 +1,21 @@
 import { combineQueueProcessors } from '@lowerdeck/queue';
 import {
+  customProviderArchivedQueueProcessor,
+  customProviderArchiveAuthConfigsManyQueueProcessor,
+  customProviderArchiveAuthCredentialsManyQueueProcessor,
+  customProviderArchiveConfigsManyQueueProcessor,
+  customProviderArchiveConfigVaultsManyQueueProcessor,
+  customProviderArchiveDeploymentsManyQueueProcessor,
+  customProviderArchiveIdentityCredentialsManyQueueProcessor,
+  customProviderArchiveIntegrationProvidersManyQueueProcessor,
+  customProviderArchiveMagicMcpServerProvidersManyQueueProcessor,
+  customProviderArchiveMonitorsManyQueueProcessor,
+  customProviderArchiveProviderSetupSessionsManyQueueProcessor,
+  customProviderArchiveSessionProvidersManyQueueProcessor,
+  customProviderArchiveSessionTemplateProvidersManyQueueProcessor,
+  customProviderArchiveSkillResourcesManyQueueProcessor,
   customProviderCreatedQueueProcessor,
+  customProviderDeleteFirewallBindingsManyQueueProcessor,
   customProviderUpdatedQueueProcessor
 } from './customProvider';
 import { customProviderDeploymentCreatedQueueProcessor } from './customProviderDeployment';
@@ -8,6 +23,21 @@ import { customProviderDeploymentCreatedQueueProcessor } from './customProviderD
 export let lifecycleQueues = combineQueueProcessors([
   customProviderCreatedQueueProcessor,
   customProviderUpdatedQueueProcessor,
+  customProviderArchivedQueueProcessor,
+  customProviderArchiveIntegrationProvidersManyQueueProcessor,
+  customProviderArchiveMagicMcpServerProvidersManyQueueProcessor,
+  customProviderArchiveDeploymentsManyQueueProcessor,
+  customProviderArchiveConfigsManyQueueProcessor,
+  customProviderArchiveAuthConfigsManyQueueProcessor,
+  customProviderArchiveAuthCredentialsManyQueueProcessor,
+  customProviderArchiveConfigVaultsManyQueueProcessor,
+  customProviderArchiveProviderSetupSessionsManyQueueProcessor,
+  customProviderArchiveIdentityCredentialsManyQueueProcessor,
+  customProviderArchiveSessionProvidersManyQueueProcessor,
+  customProviderArchiveSessionTemplateProvidersManyQueueProcessor,
+  customProviderDeleteFirewallBindingsManyQueueProcessor,
+  customProviderArchiveSkillResourcesManyQueueProcessor,
+  customProviderArchiveMonitorsManyQueueProcessor,
 
   customProviderDeploymentCreatedQueueProcessor
 ]);
