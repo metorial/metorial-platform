@@ -5,6 +5,7 @@ import { shadowId } from '@lowerdeck/shadow-id';
 import {
   type CustomProviderDeployment,
   type CustomProviderDeploymentStatus,
+  type CustomProviderStatus,
   db,
   type Environment,
   type Solution,
@@ -72,6 +73,15 @@ class customProviderDeploymentServiceImpl {
               solutionOid: d.solution.oid,
 
               AND: [
+                {
+                  customProvider: {
+                    is: {
+                      status: {
+                        notIn: ['archived', 'deleted'] as CustomProviderStatus[]
+                      }
+                    }
+                  }
+                },
                 d.ids ? { id: { in: d.ids } } : undefined!,
 
                 d.status ? { status: { in: d.status } } : undefined!,

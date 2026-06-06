@@ -6,6 +6,7 @@ import {
   db,
   type Enclave,
   type Environment,
+  type ProviderDeploymentStatus,
   type Solution,
   type Tenant,
   withTransaction
@@ -103,7 +104,15 @@ class enclaveServiceImpl {
                 : undefined!,
               providerDeployments
                 ? { providerDeploymentOid: providerDeployments.in }
-                : undefined!,
+                : {
+                    providerDeployment: {
+                      is: {
+                        status: {
+                          notIn: ['archived', 'deleted'] as ProviderDeploymentStatus[]
+                        }
+                      }
+                    }
+                  },
               providers ? { providerDeployment: { providerOid: providers.in } } : undefined!,
               firewalls
                 ? { firewallBindings: { some: { firewallOid: firewalls.in } } }
