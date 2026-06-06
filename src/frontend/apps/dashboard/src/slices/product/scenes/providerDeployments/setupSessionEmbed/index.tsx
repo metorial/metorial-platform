@@ -8,12 +8,14 @@ import {
   useProvider,
   useProviderAuthCredentials,
   useProviderAuthMethods,
-  useProviderDeployment
+  useProviderDeployment,
+  useProviderListing
 } from '@metorial/state';
 import { Button, Flex, Text } from '@metorial/ui';
 import { sortBy } from 'lodash';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Stepper } from '../../../../../components/stepper';
+import { getConfigDoc, getProviderDoc, getScopeDoc } from '../../../lib/providerDocs';
 import { getProviderOAuthAutoRegistrationEnabled } from '../../../lib/providerOAuthAutoRegistration';
 import {
   ConnectStep,
@@ -59,6 +61,7 @@ export let ProviderSetupSessionEmbed = ({
   let deployment = useProviderDeployment(instanceId, deploymentId);
   let lockedVersionId = deployment.data?.lockedVersion?.id;
   let provider = useProvider(instanceId, providerId);
+  let providerListing = useProviderListing(instanceId, providerId);
   let project = useCurrentProject();
   let projectBrand = useProjectBrand(project.data?.organization.id, project.data?.id);
   let effectiveVersionId = lockedVersionId ?? provider.data?.currentVersion?.id;
@@ -110,7 +113,8 @@ export let ProviderSetupSessionEmbed = ({
       selectedCredentialId: fixedCredentialId ?? '',
       newCredName: '',
       newCredClientId: '',
-      newCredClientSecret: ''
+      newCredClientSecret: '',
+      newCredScopes: [] as string[]
     },
     onSubmit: async () => {
       let providerAuthCredentialsId = await resolveSelectedCredentialId();
@@ -201,6 +205,11 @@ export let ProviderSetupSessionEmbed = ({
     () => (authMethods.data?.items ?? []).find(method => method.id === selectedMethodId),
     [authMethods.data?.items, selectedMethodId]
   );
+  let selectedMethodScopes = useMemo(
+    () => selectedMethod?.scopes?.map(scope => scope.scope) ?? [],
+    [selectedMethod?.scopes]
+  );
+  let selectedMethodScopeKey = selectedMethodScopes.join('\n');
 
   let providerName = deployment.data?.name ?? provider.data?.name ?? providerId;
   let oauthMethodName = selectedMethod?.name ?? 'OAuth';
@@ -210,6 +219,9 @@ export let ProviderSetupSessionEmbed = ({
   let projectBrandImageUrl = projectBrand.data?.imageUrl;
   let projectBrandName = projectBrand.data?.name ?? project.data?.name ?? 'Metorial';
   let providerImageUrl = provider.data?.publisher.imageUrl;
+  let providerDoc = getProviderDoc(providerListing.data);
+  let configDoc = getConfigDoc(providerListing.data);
+  let scopeDoc = getScopeDoc(providerListing.data, selectedMethod);
 
   let visibleAuthCredentials = sortBy(authCredentials.data?.items ?? [], [
     credential => Number(!credential.isManaged),
@@ -360,6 +372,10 @@ export let ProviderSetupSessionEmbed = ({
   };
 
   useEffect(() => {
+    void credentialsForm.setFieldValue('newCredScopes', selectedMethodScopes);
+  }, [selectedMethod?.id, selectedMethodScopeKey]);
+
+  useEffect(() => {
     if (!collectAuthConfigDetails || !onAuthConfigDetailsChange) return;
 
     onAuthConfigDetailsChange({
@@ -484,7 +500,8 @@ export let ProviderSetupSessionEmbed = ({
   ]);
 
   let handleCreateCredentials = async (): Promise<string | null> => {
-    let { newCredClientId, newCredClientSecret, newCredName } = credentialsForm.values;
+    let { newCredClientId, newCredClientSecret, newCredName, newCredScopes } =
+      credentialsForm.values;
     if (!newCredName || !newCredClientId || !newCredClientSecret || !selectedMethod) return null;
 
     setError(null);
@@ -497,7 +514,7 @@ export let ProviderSetupSessionEmbed = ({
         type: 'oauth',
         clientId: newCredClientId,
         clientSecret: newCredClientSecret,
-        scopes: selectedMethod.scopes?.map(scope => scope.scope) ?? []
+        scopes: newCredScopes
       }
     });
 
@@ -514,6 +531,7 @@ export let ProviderSetupSessionEmbed = ({
     await credentialsForm.setFieldValue('newCredName', '');
     await credentialsForm.setFieldValue('newCredClientId', '');
     await credentialsForm.setFieldValue('newCredClientSecret', '');
+    await credentialsForm.setFieldValue('newCredScopes', selectedMethodScopes);
 
     return result.id;
   };
@@ -529,6 +547,7 @@ export let ProviderSetupSessionEmbed = ({
     if (value === '__create_new__') {
       void credentialsForm.setFieldValue('credentialMode', 'new');
       void credentialsForm.setFieldValue('selectedCredentialId', '');
+      void credentialsForm.setFieldValue('newCredScopes', selectedMethodScopes);
       return;
     }
 
@@ -877,6 +896,10 @@ export let ProviderSetupSessionEmbed = ({
     isManagedSelected,
     error,
     createCredentials,
+    selectedMethod,
+    providerDoc,
+    configDoc,
+    scopeDoc,
     showHiddenMethodStep,
     includeMethodStep,
     skipMethodStep,
@@ -899,6 +922,10 @@ export let ProviderSetupSessionEmbed = ({
     hasManagedVisibleCredentials,
     createCredentials,
     createSetupSession,
+    selectedMethod,
+    providerDoc,
+    configDoc,
+    scopeDoc,
     error,
     setupSession,
     setupWindowBlocked,

@@ -50,6 +50,12 @@ export let portalConsumerProfileController = Controller.create(
         Paginator.validate(
           v.object({
             search: v.optional(v.string()),
+            email: v.optional(
+              v.union([
+                v.string({ modifiers: [v.email()] }),
+                v.array(v.string({ modifiers: [v.email()] }))
+              ])
+            ),
             consumer_group_id: v.optional(v.string()),
             status: v.optional(
               v.union([
@@ -64,6 +70,7 @@ export let portalConsumerProfileController = Controller.create(
         let paginator = await consumerProfileService.listConsumerProfiles({
           consumerSurface: ctx.portal.surface,
           search: ctx.query.search,
+          emails: normalizeArrayParam(ctx.query.email),
           consumerGroupId: ctx.query.consumer_group_id,
           statuses: normalizeArrayParam(ctx.query.status)
         });
