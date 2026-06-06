@@ -263,7 +263,7 @@ export let ScopePicker = ({
 export let ScopePickerField = ({
   label = 'Scopes',
   help,
-  maxHeight = 260,
+  maxHeight = 410,
   ...props
 }: {
   label?: ReactNode;

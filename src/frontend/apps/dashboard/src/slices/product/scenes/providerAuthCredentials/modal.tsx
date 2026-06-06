@@ -42,7 +42,8 @@ export let ProviderAuthCredentialsForm = ({
   onBack,
   onCreate,
   embedded = false,
-  hideProviderContext = false
+  hideProviderContext = false,
+  showScopePicker = false
 }: {
   instanceId: string;
   providerId: string;
@@ -54,6 +55,7 @@ export let ProviderAuthCredentialsForm = ({
   ) => void;
   embedded?: boolean;
   hideProviderContext?: boolean;
+  showScopePicker?: boolean;
 }) => {
   let effectiveHideProviderContext = hideProviderContext || !!deploymentId;
   let dismissSecondaryLabel = effectiveHideProviderContext ? 'Close' : 'Back';
@@ -190,8 +192,6 @@ export let ProviderAuthCredentialsForm = ({
           <Dialog.Description>
             Enter your {oauthMethodName} app credentials for {providerName}.
           </Dialog.Description>
-
-          <Spacer size={15} />
         </>
       )}
 
@@ -258,7 +258,7 @@ export let ProviderAuthCredentialsForm = ({
         />
         <form.RenderError field="clientSecret" />
 
-        {availableScopes.length > 0 && (
+        {showScopePicker && availableScopes.length > 0 && (
           <>
             <Spacer size={10} />
             <ScopePickerField

@@ -4,7 +4,7 @@ import styled from 'styled-components';
 
 let Card = styled.div`
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 10px;
   padding: 10px 12px;
   border: 1px solid ${theme.colors.gray300};
