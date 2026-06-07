@@ -5,8 +5,8 @@ import {
 import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import {
-  useCurrentInstance,
   useCreateCustomProviderVersion,
+  useCurrentInstance,
   useCustomProviderDeployment,
   useCustomProviderDeploymentLogs,
   useCustomProviderEnv,
@@ -22,8 +22,8 @@ import {
   Spacer,
   Text,
   theme,
-  Tooltip,
-  toast
+  toast,
+  Tooltip
 } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import { RiArrowDownSLine } from '@remixicon/react';
@@ -121,8 +121,8 @@ export let CustomProviderVersion = ({
     !!customProvider?.id &&
     !!redeployInput &&
     !isDeploying &&
-    !customProviderEnv.isLoading;
-  let showRedeploy = customProvider?.type !== 'remote' && !!redeployInput;
+    (!customProviderEnv.isLoading || !isFunctionProvider);
+  let showRedeploy = customProvider?.type !== 'remote' && !isDeploying && !!redeployInput;
 
   let redeploy = async () => {
     if (!instance.data || !customProvider?.id || !redeployInput) return;
