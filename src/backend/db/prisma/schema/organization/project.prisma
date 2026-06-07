@@ -9,8 +9,9 @@ model Project {
 
   status ProjectStatus
 
-  slug String @unique
-  name String
+  slug          String   @unique
+  previousSlugs String[]
+  name          String
 
   onlyAllowTrustedProviders      Boolean @default(false)
   magicMcpSessionDurationMinutes Int     @default(1440)
@@ -39,4 +40,6 @@ model Project {
   accessPolicyProjects AccessPolicyProject[]
   brand                ProjectBrand?
   teams                TeamProject[]
+
+  @@index([previousSlugs])
 }

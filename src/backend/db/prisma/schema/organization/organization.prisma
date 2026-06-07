@@ -29,8 +29,9 @@ model Organization {
 
   ignoreAndDoNotUse_canCreateGlobalOauthApps Boolean @default(false) @map("canCreateGlobalOauthApps")
 
-  slug String @unique
-  name String
+  slug          String   @unique
+  previousSlugs String[]
+  name          String
 
   /// [EntityImage]
   image Json
@@ -88,4 +89,5 @@ model Organization {
   consumerAuthTestAuthorizations ConsumerAuthTestAuthorization[]
 
   @@index([authVersion])
+  @@index([previousSlugs])
 }
