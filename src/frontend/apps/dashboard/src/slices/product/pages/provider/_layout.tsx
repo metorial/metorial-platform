@@ -15,7 +15,7 @@ import {
   useProviderListing,
   useProviderVersions
 } from '@metorial/state';
-import { Button, Callout, LinkTabs, Spacer } from '@metorial/ui';
+import { Avatar, Button, Callout, Flex, LinkTabs, Spacer } from '@metorial/ui';
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { Link, Outlet, useLocation, useParams } from 'react-router-dom';
 import { UseProviderButton } from '../../scenes/providers/useProviderButton';
@@ -156,23 +156,14 @@ export let ProviderLayout = () => {
     <ProviderVersionContext.Provider value={versionContext}>
       <ContentLayout>
         <PageHeader
-          title={listing?.name ?? providerData?.name ?? '...'}
+          // top={<Avatar entity={listing ?? null} size={50} radius={5} />}
+          title={
+            <Flex align="center" gap={10}>
+              <Avatar entity={listing ?? null} size={50} radius={5} />
+              {listing?.name ?? providerData?.name ?? '...'}
+            </Flex>
+          }
           description={listing?.description ?? providerData?.description ?? undefined}
-          pagination={[
-            {
-              label: 'Providers',
-              href: Paths.instance.providers(organization.data, project.data, instance.data)
-            },
-            {
-              label: providerData?.name,
-              href: Paths.instance.provider(
-                organization.data,
-                project.data,
-                instance.data,
-                providerData?.id ?? providerId
-              )
-            }
-          ]}
           actions={
             <>
               <Link

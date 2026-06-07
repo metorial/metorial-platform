@@ -32,17 +32,21 @@ export let LargePaneLayout = ({
   children,
   bottomOffset,
   height,
+  onContentScroll,
   Nav
 }: {
   children: React.ReactNode;
   bottomOffset?: string;
   height?: number | string;
+  onContentScroll?: React.UIEventHandler<HTMLDivElement>;
   Nav: () => React.ReactNode;
 }) => {
   return (
     <RootLayout Nav={Nav} height={height}>
       <Outer>
-        <Wrapper $bottomOffset={bottomOffset}>{children}</Wrapper>
+        <Wrapper $bottomOffset={bottomOffset} onScroll={onContentScroll}>
+          {children}
+        </Wrapper>
       </Outer>
     </RootLayout>
   );

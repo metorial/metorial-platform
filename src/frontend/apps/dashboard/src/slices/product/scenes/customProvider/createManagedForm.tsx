@@ -1,6 +1,6 @@
 import {
-  type DashboardInstanceScmReposCreateOutput,
-  CustomProvidersGetOutput
+  CustomProvidersGetOutput,
+  type DashboardInstanceScmReposCreateOutput
 } from '@metorial/dashboard-sdk';
 import { renderWithLoader, useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
@@ -40,9 +40,9 @@ import {
 import {
   Actions,
   Form,
+  TemplateIconFrame,
   Templates,
   TemplatesItem,
-  TemplateIconFrame,
   TemplateWrapper
 } from './createFormShared';
 import { SelectRepo } from './selectRepo';
@@ -107,8 +107,9 @@ export let CustomProviderManagedCreateForm = (p: {
       let runtime = { identifier: 'nodejs' as const, version: '22.x' as const };
       let repoPath = values.path?.trim() || undefined;
       let template =
-        managedServerTemplates.data.items.find(t => t.id === templateId || t.slug === templateId) ??
-        managedServerTemplates.data.items[0]!;
+        managedServerTemplates.data.items.find(
+          t => t.id === templateId || t.slug === templateId
+        ) ?? managedServerTemplates.data.items[0]!;
 
       let [customProviderRes] = await createCustomProvider.mutate({
         instanceId: instance.data.id,
@@ -256,96 +257,98 @@ export let CustomProviderManagedCreateForm = (p: {
                   }}
                 >
                   <TemplateWrapper>
-                    <SelectRepo
-                      selectedExternalRepoId={selectedExternalRepoId}
-                      onSelect={repo => {
-                        setSelectedRepo(repo);
-                        form.resetForm();
-                        form.setFieldValue('name', repo.provider.name);
-                        setTemplateId(undefined);
-                      }}
-                    />
+                    {renderWithLoader({ installations })(({ installations }) => (
+                      <>
+                        <SelectRepo
+                          selectedExternalRepoId={selectedExternalRepoId}
+                          onSelect={repo => {
+                            setSelectedRepo(repo);
+                            form.resetForm();
+                            form.setFieldValue('name', repo.provider.name);
+                            setTemplateId(undefined);
+                          }}
+                        />
 
-                    {renderWithLoader({ installations })(({ installations }) =>
-                      installations.data.items.length
-                        ? renderWithLoader({ accounts })(({ accounts }) => (
-                            <>
-                              {installations.data.items.length > 1 && (
-                                <Select
-                                  label="GitHub Installation"
-                                  items={installations.data.items.map(i => ({
-                                    label:
-                                      i.externalAccount.name ??
-                                      i.externalAccount.email ??
-                                      i.externalAccount.login,
-                                    id: i.id
-                                  }))}
-                                  value={selectedInstallationId}
-                                  onChange={v => setSelectedInstallationId(v)}
+                        {installations.data.items.length
+                          ? renderWithLoader({ accounts })(({ accounts }) => (
+                              <>
+                                {installations.data.items.length > 1 && (
+                                  <Select
+                                    label="GitHub Installation"
+                                    items={installations.data.items.map(i => ({
+                                      label:
+                                        i.externalAccount.name ??
+                                        i.externalAccount.email ??
+                                        i.externalAccount.login,
+                                      id: i.id
+                                    }))}
+                                    value={selectedInstallationId}
+                                    onChange={v => setSelectedInstallationId(v)}
+                                  />
+                                )}
+
+                                {accounts.data.accounts.filter(Boolean).length > 0 && (
+                                  <Select
+                                    label="GitHub Account"
+                                    items={accounts.data.accounts.filter(Boolean).map(i => ({
+                                      label: i.name,
+                                      id: i.externalId
+                                    }))}
+                                    value={selectedAccountId}
+                                    onChange={v => setSelectedAccountId(v)}
+                                  />
+                                )}
+
+                                <Input
+                                  label="Repository Name"
+                                  placeholder="e.g. my-repo"
+                                  value={createRepoName}
+                                  onChange={e => setCreateRepoName(e.target.value)}
                                 />
-                              )}
 
-                              {accounts.data.accounts.filter(Boolean).length > 0 && (
                                 <Select
-                                  label="GitHub Account"
-                                  items={accounts.data.accounts.filter(Boolean).map(i => ({
-                                    label: i.name,
-                                    id: i.externalId
-                                  }))}
-                                  value={selectedAccountId}
-                                  onChange={v => setSelectedAccountId(v)}
+                                  label="Repository Visibility"
+                                  items={[
+                                    { label: 'Private', id: 'private' },
+                                    { label: 'Public', id: 'public' }
+                                  ]}
+                                  value={createRepoIsPrivate ? 'private' : 'public'}
+                                  onChange={v => setCreateRepoIsPrivate(v === 'private')}
                                 />
-                              )}
 
-                              <Input
-                                label="Repository Name"
-                                placeholder="e.g. my-repo"
-                                value={createRepoName}
-                                onChange={e => setCreateRepoName(e.target.value)}
-                              />
-
-                              <Select
-                                label="Repository Visibility"
-                                items={[
-                                  { label: 'Private', id: 'private' },
-                                  { label: 'Public', id: 'public' }
-                                ]}
-                                value={createRepoIsPrivate ? 'private' : 'public'}
-                                onChange={v => setCreateRepoIsPrivate(v === 'private')}
-                              />
-
-                              <Button
-                                type="button"
-                                size="2"
-                                disabled={
-                                  !selectedInstallationId ||
-                                  !selectedAccountId ||
-                                  !createRepoName.trim()
-                                }
-                                onClick={async () => {
-                                  let [res] = await createRepo.mutate({
-                                    instanceId: instance.data?.id!,
-                                    installationId: selectedInstallationId!,
-                                    externalAccountId: selectedAccountId!,
-                                    name: createRepoName,
-                                    isPrivate: createRepoIsPrivate
-                                  });
-
-                                  if (res) {
-                                    setSelectedRepo(res);
-                                    form.resetForm();
-                                    form.setFieldValue('name', createRepoName);
-                                    setTemplateId(undefined);
+                                <Button
+                                  type="button"
+                                  size="2"
+                                  disabled={
+                                    !selectedInstallationId ||
+                                    !selectedAccountId ||
+                                    !createRepoName.trim()
                                   }
-                                }}
-                                loading={createRepo.isLoading}
-                              >
-                                Create Repository
-                              </Button>
-                            </>
-                          ))
-                        : null
-                    )}
+                                  onClick={async () => {
+                                    let [res] = await createRepo.mutate({
+                                      instanceId: instance.data?.id!,
+                                      installationId: selectedInstallationId!,
+                                      externalAccountId: selectedAccountId!,
+                                      name: createRepoName,
+                                      isPrivate: createRepoIsPrivate
+                                    });
+
+                                    if (res) {
+                                      setSelectedRepo(res);
+                                      form.resetForm();
+                                      form.setFieldValue('name', createRepoName);
+                                      setTemplateId(undefined);
+                                    }
+                                  }}
+                                  loading={createRepo.isLoading}
+                                >
+                                  Create Repository
+                                </Button>
+                              </>
+                            ))
+                          : null}
+                      </>
+                    ))}
 
                     <Spacer size={10} />
 
@@ -358,7 +361,7 @@ export let CustomProviderManagedCreateForm = (p: {
                         <TemplatesItem
                           key={template.id}
                           type="button"
-                        onClick={() => setTemplate(template.id, { advance: true })}
+                          onClick={() => setTemplate(template.id, { advance: true })}
                         >
                           <TemplateIcon template={template} />
                           <span>{template.name}</span>
