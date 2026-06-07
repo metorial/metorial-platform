@@ -135,18 +135,26 @@ export let clientAdapter = (
 
       setTimeout(async () => {
         isSent.current = true;
+        let pending = queue;
+        queue = [];
+        isSending.current = false;
 
         try {
-          let res = await transport(queue.map(q => q.msg));
-          res.forEach((r, i) => {
-            queue[i].resolve(r);
+          let res = await transport(pending.map(q => q.msg));
+
+          if (res.length !== pending.length) {
+            throw new Error(
+              `MCP adapter transport returned ${res.length} responses for ${pending.length} messages`
+            );
+          }
+
+          pending.forEach((q, i) => {
+            q.resolve(res[i]);
           });
         } catch (err) {
-          queue.forEach(q => {
+          pending.forEach(q => {
             q.reject(err);
           });
-        } finally {
-          queue = [];
         }
       }, 2);
     }

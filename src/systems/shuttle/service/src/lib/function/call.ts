@@ -5,6 +5,18 @@ import { functionBay } from '../../functionBay';
 
 export type FunctionCallLog = { timestamp: number; message: string };
 
+class FunctionInvokeError extends Error {
+  constructor(
+    public readonly invokeError: {
+      code: string;
+      message: string;
+    }
+  ) {
+    super(invokeError.message);
+    this.name = 'FunctionInvokeError';
+  }
+}
+
 export let callFunction = async <T>(
   server: FunctionServer,
   options: {
@@ -39,7 +51,7 @@ export let callFunction = async <T>(
           code: res.error.code,
           message: res.error.message
         };
-        return [];
+        throw new FunctionInvokeError(error.current);
       }
 
       return res.result;
@@ -49,9 +61,8 @@ export let callFunction = async <T>(
 
     if (error.current) {
       return {
-        status: 'success' as const,
+        status: 'error' as const,
         error: error.current,
-        result: res,
         functionCallId: functionCallId.current,
         logs: logs.current
       };
@@ -64,7 +75,9 @@ export let callFunction = async <T>(
       logs: logs.current
     };
   } catch (err) {
-    console.warn('Function call error:', err);
+    if (!(err instanceof FunctionInvokeError)) {
+      console.warn('Function call error:', err);
+    }
 
     return {
       status: 'error' as const,
