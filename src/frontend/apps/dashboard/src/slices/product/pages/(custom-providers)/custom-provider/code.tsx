@@ -8,20 +8,30 @@ import {
   useCustomProviderCodeEditorToken,
   useCustomProviderEnv
 } from '@metorial/state';
-import { Button, Dialog, Flex, Input, showModal, Spacer, Text, theme, toast } from '@metorial/ui';
+import {
+  Button,
+  Dialog,
+  Flex,
+  Input,
+  showModal,
+  Spacer,
+  Text,
+  theme,
+  toast
+} from '@metorial/ui';
 import { SideBox } from '@metorial/ui-product';
 import { RiArrowRightSLine, RiExpandDiagonal2Line, RiUpload2Line } from '@remixicon/react';
 import { motion } from 'framer-motion';
 import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import styled from 'styled-components';
+import { SelectRepo } from '../../../scenes/customProvider/selectRepo';
 import {
   getCustomProviderLinkedRepo,
   getFunctionProviderVersionFrom,
   normalizeEnvRecord,
   normalizeRepoPath
 } from '../../../scenes/customProvider/utils';
-import { SelectRepo } from '../../../scenes/customProvider/selectRepo';
 
 let Wrapper = styled.div`
   &[data-expanded='true'] {
@@ -273,7 +283,7 @@ export let CustomProviderCodePage = () => {
           >
             <Button
               size="1"
-              variant="outline"
+              variant="soft"
               iconLeft={<RiUpload2Line />}
               disabled={!canPublish}
               loading={customProviderEnv.isLoading || createVersion.isLoading}
@@ -284,7 +294,7 @@ export let CustomProviderCodePage = () => {
 
             <Button
               size="1"
-              variant="outline"
+              variant="soft"
               iconLeft={<RiExpandDiagonal2Line />}
               onClick={() => setIsExpanded(expanded => !expanded)}
             >

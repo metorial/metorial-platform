@@ -97,18 +97,11 @@ export let MagicMcpServerOverviewPage = () => {
       streamableHttpUrl && activeTokenSecret
         ? `${streamableHttpUrl}?key=${activeTokenSecret}`
         : null;
-    let hasRelatedActiveToken = tokens.data.items.length > 0;
-    let detailsPathParams = [
-      instance.data?.organization,
-      instance.data?.project,
-      instance.data,
-      server.data.id
-    ] as const;
 
     return (
       <Flex direction="column" gap={16}>
         <Attributes
-          itemWidth="280px"
+          itemWidth="300px"
           attributes={[
             {
               label: 'ID',
