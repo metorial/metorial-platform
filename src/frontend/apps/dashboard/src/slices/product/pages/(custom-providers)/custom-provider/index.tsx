@@ -15,10 +15,10 @@ export let CustomProviderOverviewPage = () => {
 
   let { customProviderId } = useParams();
   let customProvider = useCustomProvider(instance.data?.id, customProviderId);
-  let isExternalProvider = Boolean(customProvider.data?.draft?.remoteMcpServer);
 
   return renderWithLoader({ customProvider })(({ customProvider }) => {
     let scmLink = getCustomProviderScmLink(customProvider.data);
+    let remoteMcpServer = customProvider.data.draft.remoteMcpServer;
 
     return (
       <>
@@ -49,11 +49,11 @@ export let CustomProviderOverviewPage = () => {
                     )
                   }
                 ]
-              : isExternalProvider
+              : remoteMcpServer
                 ? [
                     {
                       label: 'Remote MCP Server',
-                      content: customProvider.data?.draft?.remoteMcpServer.url
+                      content: remoteMcpServer.url
                     }
                   ]
                 : [
