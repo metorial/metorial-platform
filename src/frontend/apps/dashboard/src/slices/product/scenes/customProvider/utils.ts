@@ -51,6 +51,33 @@ export let getFunctionProviderVersionFrom = (
   };
 };
 
+export let getCustomProviderRedeployInput = (
+  customProvider: DashboardInstanceCustomProvidersGetOutput | null | undefined,
+  env: Record<string, string>
+): Pick<DashboardInstanceCustomProvidersVersionsCreateBody, 'from'> | null => {
+  if (!customProvider || customProvider.status === 'archived') return null;
+
+  if (customProvider.type === 'function') {
+    return {
+      from: getFunctionProviderVersionFrom(customProvider, env)
+    };
+  }
+
+  if (customProvider.type === 'container') {
+    let containerImage = customProvider.draft?.containerImage?.containerImage;
+    if (!containerImage) return null;
+
+    return {
+      from: {
+        type: 'container',
+        imageRef: containerImage
+      }
+    };
+  }
+
+  return null;
+};
+
 export let normalizeTrackedBranch = (branch: string | null | undefined) => {
   let normalizedBranch = branch?.trim();
   return normalizedBranch ? normalizedBranch : undefined;

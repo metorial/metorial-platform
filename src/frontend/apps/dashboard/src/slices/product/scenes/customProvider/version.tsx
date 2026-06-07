@@ -3,10 +3,13 @@ import {
   DashboardInstanceCustomProvidersVersionsGetOutput
 } from '@metorial/dashboard-sdk';
 import { renderWithLoader } from '@metorial/data-hooks';
+import { Paths } from '@metorial/frontend-config';
 import {
   useCurrentInstance,
+  useCreateCustomProviderVersion,
   useCustomProviderDeployment,
   useCustomProviderDeploymentLogs,
+  useCustomProviderEnv,
   useCustomProviderVersion
 } from '@metorial/state';
 import {
@@ -19,14 +22,17 @@ import {
   Spacer,
   Text,
   theme,
-  Tooltip
+  Tooltip,
+  toast
 } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import { RiArrowDownSLine } from '@remixicon/react';
 import Ansi from 'ansi-to-react';
 import { AnimatePresence, motion } from 'framer-motion';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
+import { getCustomProviderRedeployInput, normalizeEnvRecord } from './utils';
 
 const CUSTOM_SERVER_VERSION_STATUS_BADGES = {
   current: <Badge color="blue">Current</Badge>,
@@ -74,6 +80,13 @@ export let CustomProviderVersion = ({
   customProvider: DashboardInstanceCustomProvidersGetOutput | undefined | null;
 }) => {
   let instance = useCurrentInstance();
+  let navigate = useNavigate();
+  let redeployMutator = useCreateCustomProviderVersion();
+  let isFunctionProvider = customProvider?.type === 'function';
+  let customProviderEnv = useCustomProviderEnv(
+    isFunctionProvider ? instance.data?.id : null,
+    isFunctionProvider ? customProvider?.id : null
+  );
   let version = useCustomProviderVersion(
     instance.data?.id,
     customProvider?.id ?? versionId,
@@ -90,6 +103,53 @@ export let CustomProviderVersion = ({
     version.data?.deployment?.id,
     deployment.data?.status
   );
+  let redeployInput = useMemo(
+    () =>
+      getCustomProviderRedeployInput(
+        customProvider,
+        normalizeEnvRecord(customProviderEnv.data?.env)
+      ),
+    [customProvider, customProviderEnv.data?.env]
+  );
+  let isDeploying =
+    deployment.data?.status === 'queued' ||
+    deployment.data?.status === 'deploying' ||
+    version.data?.status === 'queued' ||
+    version.data?.status === 'deploying';
+  let canRedeploy =
+    !!instance.data &&
+    !!customProvider?.id &&
+    !!redeployInput &&
+    !isDeploying &&
+    !customProviderEnv.isLoading;
+  let showRedeploy = customProvider?.type !== 'remote' && !!redeployInput;
+
+  let redeploy = async () => {
+    if (!instance.data || !customProvider?.id || !redeployInput) return;
+
+    let [newVersion] = await redeployMutator.mutate({
+      instanceId: instance.data.id,
+      customProviderId: customProvider.id,
+      message: 'Redeploy from dashboard',
+      ...redeployInput
+    });
+
+    if (!newVersion) return;
+
+    toast.success('Redeploy started');
+    await Promise.all([version.refetch(), deployment.refetch(), deploymentLogs.refetch()]);
+
+    navigate(
+      Paths.instance.customProvider(
+        instance.data.organization,
+        instance.data.project,
+        instance.data,
+        customProvider.id,
+        'versions',
+        { version_id: newVersion.id }
+      )
+    );
+  };
 
   let logsData = deploymentLogs.data;
   let steps: Step[] = (() => {
@@ -175,11 +235,35 @@ export let CustomProviderVersion = ({
         <Group.Header
           title="Deployment Details"
           description="Details about the deployment of this version."
+          actions={
+            showRedeploy ? (
+              <Button
+                size="2"
+                variant="outline"
+                loading={redeployMutator.isLoading}
+                disabled={!canRedeploy}
+                onClick={redeploy}
+              >
+                Redeploy
+              </Button>
+            ) : null
+          }
         />
+
+        {redeployMutator.error && (
+          <Group.Row>
+            <Spacer height={20} />
+
+            <redeployMutator.RenderError />
+            <Spacer height={20} />
+          </Group.Row>
+        )}
 
         {deploymentLogs.isLoading && steps.length === 0 && (
           <Group.Row>
+            <Spacer height={20} />
             <CenteredSpinner />
+            <Spacer height={20} />
           </Group.Row>
         )}
 
