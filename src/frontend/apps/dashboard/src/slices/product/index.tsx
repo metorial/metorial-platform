@@ -557,11 +557,8 @@ let CustomProviderListingPage = dynamicPage(() =>
     c => c.CustomProviderListingPage
   )
 );
-let ManagedServersListLayout = dynamicPage(() =>
-  import('./pages/(custom-providers)/(list)/_layout').then(c => c.ManagedProvidersListLayout)
-);
-let ExternalServersListLayout = dynamicPage(() =>
-  import('./pages/(custom-providers)/(list)/_layout').then(c => c.ExternalProvidersListLayout)
+let CustomProvidersListLayout = dynamicPage(() =>
+  import('./pages/(custom-providers)/(list)/_layout').then(c => c.CustomProvidersListLayout)
 );
 let ExternalServersPage = dynamicPage(() =>
   import('./pages/(custom-providers)/(list)/external-providers').then(
@@ -1893,24 +1890,16 @@ export let productHomeSlice = createSlice([
 
           {
             path: '',
-            element: <ManagedServersListLayout />,
-
-            children: [
-              {
-                path: 'custom-providers',
-                element: <ManagedServersPage />
-              }
-            ]
-          },
-
-          {
-            path: '',
-            element: <ExternalServersListLayout />,
+            element: <CustomProvidersListLayout />,
 
             children: [
               {
                 path: 'external-providers',
                 element: <ExternalServersPage />
+              },
+              {
+                path: 'custom-providers',
+                element: <ManagedServersPage />
               }
             ]
           },
