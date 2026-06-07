@@ -129,8 +129,8 @@ let useProviderSetupVisibility = (p: {
   let isInstanceProviderPanel =
     p.inheritedConfigId !== undefined || p.instanceConfigId !== undefined;
   let satisfiedConfigId = isInstanceProviderPanel
-    ? p.instanceConfigId ?? p.inheritedConfigId ?? null
-    : p.existingConfigId ?? null;
+    ? (p.instanceConfigId ?? p.inheritedConfigId ?? null)
+    : (p.existingConfigId ?? null);
   let mustRequestInstanceConfig =
     isInstanceProviderPanel && requiresProviderConfig && !satisfiedConfigId;
   // Auto-creating an empty config silently is only desirable on initial
@@ -386,7 +386,7 @@ let IntegrationProviderAuthSection = (p: {
         <>
           <ConfigureSectionCard
             title="Auth Method"
-            description="Choose how this integration provider authenticates with the provider."
+            description="Choose how this integration authenticates with the provider."
             requirement="required"
             completed={Boolean(p.selectedAuthMethodId)}
           >
@@ -425,7 +425,7 @@ let IntegrationProviderAuthSection = (p: {
               >
                 <ConfigureSectionCard
                   title="Auth Credentials"
-                  description="Select or create the OAuth credentials this integration provider should use."
+                  description="Select or create the OAuth credentials this integration should use."
                   requirement="required"
                   completed={Boolean(p.selectedAuthCredentialsId)}
                 >
@@ -482,7 +482,10 @@ let IntegrationProviderAuthSection = (p: {
                               providerId: p.providerId,
                               deploymentId: p.providerDeploymentId,
                               onCreate: credentials => {
-                                p.onSelectedAuthCredentialsIdChange(credentials.id, credentials);
+                                p.onSelectedAuthCredentialsIdChange(
+                                  credentials.id,
+                                  credentials
+                                );
                               }
                             })
                           }
@@ -525,6 +528,7 @@ let IntegrationProviderSetupStep = (p: {
   let createIntegrationProvider = useCreateIntegrationProvider();
   let updateIntegrationProvider = useUpdateIntegrationProvider();
   let autoSubmitAttemptedRef = useRef(false);
+  let managedAuthCredentialsDefaultedKeysRef = useRef(new Set<string>());
   let [createdAuthCredentialsSelection, setCreatedAuthCredentialsSelection] = useState<{
     id: string;
     label: string;
@@ -722,6 +726,28 @@ let IntegrationProviderSetupStep = (p: {
         }
       : null
   );
+  let managedAuthCredentials = useProviderAuthCredentials(
+    instance.data?.id,
+    effectiveShowAuth && requiresAuthCredentials && form.values.selectedAuthMethodId
+      ? {
+          ...(p.integrationProvider?.deployment.id
+            ? { providerDeploymentId: p.integrationProvider.deployment.id }
+            : { providerId: p.providerId }),
+          providerAuthMethodId: form.values.selectedAuthMethodId,
+          origin: ['managed'],
+          limit: 10
+        }
+      : null
+  );
+  let preferredManagedAuthCredential =
+    managedAuthCredentials.data?.items.find(credential => credential.isDefault) ??
+    managedAuthCredentials.data?.items[0];
+  let managedAuthCredentialsDefaultKey = [
+    instance.data?.id ?? '',
+    p.providerId,
+    p.integrationProvider?.deployment.id ?? '',
+    form.values.selectedAuthMethodId
+  ].join(':');
   let selectedAuthCredential = useProviderAuthCredential(
     instance.data?.id,
     form.values.selectedAuthCredentialsId || null
@@ -754,6 +780,36 @@ let IntegrationProviderSetupStep = (p: {
     authMethods.isLoading,
     oauthAutoRegistrationEnabled,
     selectedAuthMethod?.type,
+    form.values.selectedAuthCredentialsId
+  ]);
+
+  useEffect(() => {
+    if (!effectiveShowAuth) return;
+    if (!requiresAuthCredentials) return;
+    if (!form.values.selectedAuthMethodId) return;
+    if (form.values.selectedAuthCredentialsId) return;
+    if (managedAuthCredentials.isLoading) return;
+    if (!preferredManagedAuthCredential) return;
+    if (managedAuthCredentialsDefaultedKeysRef.current.has(managedAuthCredentialsDefaultKey)) {
+      return;
+    }
+
+    managedAuthCredentialsDefaultedKeysRef.current.add(managedAuthCredentialsDefaultKey);
+    form.setFieldValue('selectedAuthCredentialsId', preferredManagedAuthCredential.id);
+    form.setFieldTouched('selectedAuthCredentialsId', false, false);
+    form.setFieldError('selectedAuthCredentialsId', undefined);
+    setCreatedAuthCredentialsSelection({
+      id: preferredManagedAuthCredential.id,
+      label: preferredManagedAuthCredential.name ?? preferredManagedAuthCredential.id
+    });
+  }, [
+    effectiveShowAuth,
+    requiresAuthCredentials,
+    managedAuthCredentials.isLoading,
+    managedAuthCredentialsDefaultKey,
+    preferredManagedAuthCredential?.id,
+    preferredManagedAuthCredential?.name,
+    form.values.selectedAuthMethodId,
     form.values.selectedAuthCredentialsId
   ]);
 
@@ -864,6 +920,13 @@ let IntegrationProviderSetupStep = (p: {
               form.setFieldValue('selectedAuthMethodId', value);
               form.setFieldTouched('selectedAuthMethodId', false, false);
               form.setFieldError('selectedAuthMethodId', undefined);
+
+              if (value !== form.values.selectedAuthMethodId) {
+                form.setFieldValue('selectedAuthCredentialsId', '');
+                form.setFieldTouched('selectedAuthCredentialsId', false, false);
+                form.setFieldError('selectedAuthCredentialsId', undefined);
+                setCreatedAuthCredentialsSelection(null);
+              }
             }}
             selectedAuthCredentialsId={form.values.selectedAuthCredentialsId}
             selectedAuthCredentialsLabel={
@@ -878,6 +941,9 @@ let IntegrationProviderSetupStep = (p: {
               form.values.selectedAuthCredentialsId
             }
             onSelectedAuthCredentialsIdChange={(value, credentials) => {
+              managedAuthCredentialsDefaultedKeysRef.current.add(
+                managedAuthCredentialsDefaultKey
+              );
               form.setFieldValue('selectedAuthCredentialsId', value);
               form.setFieldTouched('selectedAuthCredentialsId', false, false);
               form.setFieldError('selectedAuthCredentialsId', undefined);
@@ -1020,7 +1086,9 @@ let AddIntegrationProviderPanel = (p: {
               integrationProvider={p.integrationProvider}
               providerId={providerId}
               close={p.close}
-              onBack={p.integrationProvider || p.hideProviderStep ? undefined : () => setStep(0)}
+              onBack={
+                p.integrationProvider || p.hideProviderStep ? undefined : () => setStep(0)
+              }
               onComplete={p.onComplete}
               submitLabel={p.submitLabel}
               onSubmitProvider={p.onSubmitProvider}
@@ -1093,19 +1161,22 @@ export let showConfigureIntegrationProviderPanelFlow = (p: {
   ) => Promise<{ error?: unknown; success?: boolean }>;
   onComplete: () => void;
 }) =>
-  showProviderCreationPanel(({ close, setWidth }) => (
-    <AddIntegrationProviderPanel
-      title={p.title}
-      description={p.description}
-      submitLabel={p.submitLabel}
-      providerId={p.providerId}
-      hideProviderStep={!!p.providerId}
-      close={close}
-      setPanelWidth={setWidth}
-      onSubmitProvider={p.onSubmitProvider}
-      onComplete={p.onComplete}
-    />
-  ), p.providerId ? { width: 660 } : undefined);
+  showProviderCreationPanel(
+    ({ close, setWidth }) => (
+      <AddIntegrationProviderPanel
+        title={p.title}
+        description={p.description}
+        submitLabel={p.submitLabel}
+        providerId={p.providerId}
+        hideProviderStep={!!p.providerId}
+        close={close}
+        setPanelWidth={setWidth}
+        onSubmitProvider={p.onSubmitProvider}
+        onComplete={p.onComplete}
+      />
+    ),
+    p.providerId ? { width: 660 } : undefined
+  );
 
 let CreateIntegrationProviderFirstPanel = (p: {
   providerId?: string;
