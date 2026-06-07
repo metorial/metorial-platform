@@ -1,4 +1,3 @@
-import type { ReactNode } from 'react';
 import { Paths } from '@metorial/frontend-config';
 import {
   useCurrentInstance,
@@ -6,6 +5,7 @@ import {
   useCurrentProject
 } from '@metorial/state';
 import { Button, Menu } from '@metorial/ui';
+import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { showCreateIntegrationProviderFirstFlow } from '../integrations/providerPanelFlow';
 import { showMagicMcpServerCreateFlow } from '../providerDeployments/magicMcpForm';
@@ -33,7 +33,7 @@ export let UseProviderButton = (p: UseProviderButtonProps) => {
         {
           id: 'magic-mcp-server',
           label: 'Magic MCP Server',
-          description: 'Create a server from this provider.'
+          description: 'Create a connectable MCP server.'
         },
         {
           id: 'integration',

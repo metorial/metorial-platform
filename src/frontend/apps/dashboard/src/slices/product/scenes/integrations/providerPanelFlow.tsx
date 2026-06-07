@@ -366,7 +366,10 @@ let IntegrationProviderAuthSection = (p: {
   onSelectedAuthMethodIdChange: (value: string) => void;
   selectedAuthCredentialsId: string;
   selectedAuthCredentialsLabel?: string;
-  onSelectedAuthCredentialsIdChange: (value: string) => void;
+  onSelectedAuthCredentialsIdChange: (
+    value: string,
+    credentials?: { id: string; name?: string | null }
+  ) => void;
   oauthAutoRegistrationEnabled?: boolean;
   authMethodError?: React.ReactNode;
   authCredentialsError?: React.ReactNode;
@@ -479,7 +482,7 @@ let IntegrationProviderAuthSection = (p: {
                               providerId: p.providerId,
                               deploymentId: p.providerDeploymentId,
                               onCreate: credentials => {
-                                p.onSelectedAuthCredentialsIdChange(credentials.id);
+                                p.onSelectedAuthCredentialsIdChange(credentials.id, credentials);
                               }
                             })
                           }
@@ -522,6 +525,10 @@ let IntegrationProviderSetupStep = (p: {
   let createIntegrationProvider = useCreateIntegrationProvider();
   let updateIntegrationProvider = useUpdateIntegrationProvider();
   let autoSubmitAttemptedRef = useRef(false);
+  let [createdAuthCredentialsSelection, setCreatedAuthCredentialsSelection] = useState<{
+    id: string;
+    label: string;
+  } | null>(null);
   let isUpdate = !!p.integrationProvider;
   let visibility = useProviderSetupVisibility({
     instanceId: instance.data?.id,
@@ -742,6 +749,7 @@ let IntegrationProviderSetupStep = (p: {
     form.setFieldValue('selectedAuthCredentialsId', '');
     form.setFieldTouched('selectedAuthCredentialsId', false, false);
     form.setFieldError('selectedAuthCredentialsId', undefined);
+    setCreatedAuthCredentialsSelection(null);
   }, [
     authMethods.isLoading,
     oauthAutoRegistrationEnabled,
@@ -753,20 +761,26 @@ let IntegrationProviderSetupStep = (p: {
     if (!effectiveShowAuth) return;
     if (!form.values.selectedAuthCredentialsId) return;
     if (authCredentials.isLoading) return;
+    if (selectedAuthCredential.isLoading) return;
 
     let credentialExists = (authCredentials.data?.items ?? []).some(
       credential => credential.id === form.values.selectedAuthCredentialsId
     );
+    let selectedCredentialExists =
+      selectedAuthCredential.data?.id === form.values.selectedAuthCredentialsId;
 
-    if (!credentialExists) {
+    if (!credentialExists && !selectedCredentialExists) {
       form.setFieldValue('selectedAuthCredentialsId', '');
       form.setFieldTouched('selectedAuthCredentialsId', false, false);
       form.setFieldError('selectedAuthCredentialsId', undefined);
+      setCreatedAuthCredentialsSelection(null);
     }
   }, [
     effectiveShowAuth,
     authCredentials.isLoading,
     authCredentials.data?.items,
+    selectedAuthCredential.isLoading,
+    selectedAuthCredential.data?.id,
     form.values.selectedAuthCredentialsId
   ]);
 
@@ -855,15 +869,30 @@ let IntegrationProviderSetupStep = (p: {
             selectedAuthCredentialsLabel={
               selectedAuthCredential.data?.name ??
               selectedAuthCredential.data?.id ??
+              (createdAuthCredentialsSelection?.id === form.values.selectedAuthCredentialsId
+                ? createdAuthCredentialsSelection.label
+                : undefined) ??
               authCredentials.data?.items.find(
                 credential => credential.id === form.values.selectedAuthCredentialsId
               )?.name ??
               form.values.selectedAuthCredentialsId
             }
-            onSelectedAuthCredentialsIdChange={value => {
+            onSelectedAuthCredentialsIdChange={(value, credentials) => {
               form.setFieldValue('selectedAuthCredentialsId', value);
               form.setFieldTouched('selectedAuthCredentialsId', false, false);
               form.setFieldError('selectedAuthCredentialsId', undefined);
+
+              if (credentials && value) {
+                setCreatedAuthCredentialsSelection({
+                  id: credentials.id,
+                  label: credentials.name ?? credentials.id
+                });
+                return;
+              }
+
+              if (!value || createdAuthCredentialsSelection?.id !== value) {
+                setCreatedAuthCredentialsSelection(null);
+              }
             }}
             oauthAutoRegistrationEnabled={oauthAutoRegistrationEnabled}
             authMethodError={<form.RenderError field="selectedAuthMethodId" />}

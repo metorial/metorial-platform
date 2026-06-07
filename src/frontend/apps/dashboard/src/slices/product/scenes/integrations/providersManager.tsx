@@ -74,12 +74,13 @@ let useIntegrationProvidersTableState = (
     hasMoreBefore: providers.data?.pagination.hasMoreBefore ?? false,
     items: providers.data?.items ?? [],
     loadNext: providers.next,
-    loadPrevious: providers.previous
+    loadPrevious: providers.previous,
+    providers
   };
 };
 
 let useIntegrationProvidersTableHookState = (
-  _: ReturnType<typeof useIntegrationProvidersTableState>,
+  tableState: ReturnType<typeof useIntegrationProvidersTableState>,
   props: IntegrationProvidersManagerProps
 ) => {
   let deleteProvider = useDeleteIntegrationProvider();
@@ -87,6 +88,7 @@ let useIntegrationProvidersTableHookState = (
 
   return {
     deleteProvider,
+    providers: tableState.providers,
     instanceId: props.instanceId,
     integration: props.integration,
     onComplete: props.onComplete,
@@ -106,6 +108,7 @@ let deleteIntegrationProviderImmediately = async (
       instanceId: state.instanceId,
       integrationProviderId: provider.id
     });
+    await state.providers.refetch();
     state.onComplete?.();
   } finally {
     state.setLoadingIds(current => current.filter(id => id !== provider.id));
