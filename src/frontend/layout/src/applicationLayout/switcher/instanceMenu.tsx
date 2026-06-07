@@ -237,6 +237,10 @@ export let SandboxButton = () => {
               }
             ]
           : []),
+        {
+          id: '__manage_sandboxes__',
+          label: 'Manage Sandboxes'
+        },
         ...(instance.data?.type === 'development'
           ? [
               {
@@ -252,7 +256,10 @@ export let SandboxButton = () => {
             ])
       ]}
       onItemClick={async id => {
-        if (id == '__new_instance__') {
+        if (id == '__manage_sandboxes__') {
+          navigate(Paths.organization.project(org.data!, project.data!, 'environments'));
+          return;
+        } else if (id == '__new_instance__') {
           // @ts-ignore
           await window.metorial_enterprise?.beforeCreateInstance?.();
           createInstance(project.data!);

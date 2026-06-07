@@ -1011,7 +1011,11 @@ let OrganizationPaths = Object.assign(
     policies: (organization: EntityParam, ...subPages: SubPages) =>
       OrganizationPaths.settings(organization, 'policies', ...subPages),
     projects: (organization: EntityParam, ...subPages: SubPages) =>
-      OrganizationPaths.settings(organization, 'projects', ...subPages)
+      OrganizationPaths.settings(organization, 'projects', ...subPages),
+    project: (organization: EntityParam, project: EntityParam, ...subPages: SubPages) => {
+      if (!project) return '#';
+      return OrganizationPaths.settings(organization, 'project', project.slug, ...subPages);
+    }
   }
 );
 
