@@ -130,7 +130,6 @@ export let CustomProviderVersion = ({
     let [newVersion] = await redeployMutator.mutate({
       instanceId: instance.data.id,
       customProviderId: customProvider.id,
-      message: 'Redeploy from dashboard',
       ...redeployInput
     });
 
