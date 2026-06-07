@@ -16,6 +16,11 @@ let include = {
   functionServer: true
 };
 
+type FunctionServerInvocationErrorFields = {
+  errorCode?: string | null;
+  errorMessage?: string | null;
+};
+
 let parseStoredLogs = (logs: unknown): FunctionCallLog[] => {
   if (!Array.isArray(logs)) return [];
 
@@ -29,6 +34,46 @@ let parseStoredLogs = (logs: unknown): FunctionCallLog[] => {
 
     return [{ timestamp, message }];
   });
+};
+
+let getInvocationError = (invocation: FunctionServerInvocationErrorFields) => {
+  if (!invocation.errorMessage) return null;
+
+  return {
+    code: invocation.errorCode ?? 'function_bay.function_error',
+    message: invocation.errorMessage
+  };
+};
+
+let formatInvocationError = (error: { code: string; message: string }) =>
+  `Invocation failed: ${error.code} - ${error.message}`;
+
+let addInvocationErrorLog = (
+  logs: FunctionCallLog[],
+  invocation: FunctionServerInvocation & FunctionServerInvocationErrorFields
+) => {
+  let error = getInvocationError(invocation);
+  if (!error) return logs;
+  let formattedError = formatInvocationError(error);
+
+  if (
+    logs.some(log => log.message.includes(formattedError) || log.message.includes(error.code))
+  ) {
+    return logs;
+  }
+
+  let timestamp =
+    logs.length > 0
+      ? Math.max(...logs.map(log => log.timestamp)) + 1
+      : invocation.createdAt.getTime();
+
+  return [
+    ...logs,
+    {
+      timestamp,
+      message: formattedError
+    }
+  ];
 };
 
 let presentInvocationLogs = (logs: FunctionCallLog[], functionInvocationId: string) => ({
@@ -48,6 +93,10 @@ class functionServerInvocationServiceImpl {
     tenant: Tenant;
     functionInvocationId: string | null | undefined;
     isError: boolean;
+    error?: {
+      code: string;
+      message: string;
+    } | null;
     connection?: ServerConnection | null;
     logs?: FunctionCallLog[];
   }) {
@@ -59,13 +108,30 @@ class functionServerInvocationServiceImpl {
       },
       include
     });
-    if (existing) return existing;
+    if (existing) {
+      let existingWithError = existing as typeof existing &
+        FunctionServerInvocationErrorFields;
+      if (d.error && !existingWithError.errorMessage) {
+        return await db.functionServerInvocation.update({
+          where: { oid: existing.oid },
+          data: {
+            errorCode: d.error.code,
+            errorMessage: d.error.message
+          },
+          include
+        });
+      }
+
+      return existing;
+    }
 
     return await db.functionServerInvocation.create({
       data: {
         oid: snowflake.nextId(),
         isError: d.isError,
         functionBayInvocationId: d.functionInvocationId,
+        errorCode: d.error?.code ?? null,
+        errorMessage: d.error?.message ?? null,
         connectionOid: d.connection?.oid ?? null,
         functionServerOid: d.functionServer.oid,
         tenantOid: d.tenant.oid,
@@ -108,18 +174,21 @@ class functionServerInvocationServiceImpl {
     functionServerInvocation: FunctionServerInvocation & {
       functionServer: FunctionServer;
       connection: ServerConnection | null;
-    };
+    } & FunctionServerInvocationErrorFields;
   }) {
     let storedLogs = parseStoredLogs(d.functionServerInvocation.logs);
     if (storedLogs.length > 0) {
       return presentInvocationLogs(
-        storedLogs,
+        addInvocationErrorLog(storedLogs, d.functionServerInvocation),
         d.functionServerInvocation.functionBayInvocationId
       );
     }
 
     if (!d.functionServerInvocation.connection) {
-      return presentInvocationLogs([], d.functionServerInvocation.functionBayInvocationId);
+      return presentInvocationLogs(
+        addInvocationErrorLog([], d.functionServerInvocation),
+        d.functionServerInvocation.functionBayInvocationId
+      );
     }
 
     let nextInvocation = d.functionServerInvocation.connectionOid
@@ -143,9 +212,7 @@ class functionServerInvocationServiceImpl {
       .filter(log => {
         let ts = log.timestamp.getTime();
         return (
-          log.outputType === 'stdout' &&
-          ts >= invocationCreatedAt - 1000 &&
-          ts < upperBoundMs
+          log.outputType === 'stdout' && ts >= invocationCreatedAt - 1000 && ts < upperBoundMs
         );
       })
       .map(log => ({
@@ -153,7 +220,10 @@ class functionServerInvocationServiceImpl {
         message: log.message
       }));
 
-    return presentInvocationLogs(logs, d.functionServerInvocation.functionBayInvocationId);
+    return presentInvocationLogs(
+      addInvocationErrorLog(logs, d.functionServerInvocation),
+      d.functionServerInvocation.functionBayInvocationId
+    );
   }
 }
 

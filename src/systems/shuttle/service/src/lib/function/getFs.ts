@@ -15,6 +15,16 @@ let commonEntrypoints = commonDirs.flatMap(dir =>
   commonNames.flatMap(name => extension.map(ext => dir + name + ext))
 );
 
+type FunctionFile = PrismaJson.UpcomingFunctionServerPayload['files'][number];
+
+let decodeFileContent = (file: FunctionFile) =>
+  file.encoding === 'base64'
+    ? Buffer.from(file.content, 'base64').toString('utf-8')
+    : file.content;
+
+let encodeFileContent = (file: FunctionFile, content: string) =>
+  file.encoding === 'base64' ? Buffer.from(content, 'utf-8').toString('base64') : content;
+
 export let getFunctionFs = (d: { payload: PrismaJson.UpcomingFunctionServerPayload }) => {
   let files = d.payload.files;
   let functionEntrypoint: string | undefined;
@@ -25,10 +35,7 @@ export let getFunctionFs = (d: { payload: PrismaJson.UpcomingFunctionServerPaylo
   let logs: string[] = [];
 
   if (packageJson?.content) {
-    let stringContents =
-      packageJson.encoding === 'base64'
-        ? Buffer.from(packageJson.content, 'base64').toString('utf-8')
-        : packageJson.content;
+    let stringContents = decodeFileContent(packageJson);
 
     try {
       let pkg = JSON.parse(stringContents);
@@ -89,10 +96,27 @@ export let getFunctionFs = (d: { payload: PrismaJson.UpcomingFunctionServerPaylo
     }
   ];
   let initialFilenames = new Set(initialFiles.map(f => f.filename));
+  let packagedFiles = files.map(file => {
+    if (file !== packageJson || !packageJson.content) return file;
+
+    try {
+      let pkg = JSON.parse(decodeFileContent(packageJson));
+      if (pkg.type !== 'module') return file;
+
+      delete pkg.type;
+
+      return {
+        ...file,
+        content: encodeFileContent(file, JSON.stringify(pkg, null, 2))
+      };
+    } catch {
+      return file;
+    }
+  });
 
   return {
     ok: true as const,
     logs,
-    files: [...initialFiles, ...files.filter(f => !initialFilenames.has(f.filename))]
+    files: [...initialFiles, ...packagedFiles.filter(f => !initialFilenames.has(f.filename))]
   };
 };

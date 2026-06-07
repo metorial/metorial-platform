@@ -6,6 +6,7 @@ import { env } from '../../env';
 import { DeploymentManager } from '../../lib/deployment';
 import { callFunction } from '../../lib/function/call';
 import { normalizeJsonSchema } from '../../lib/jsonSchema/normalizeJsonSchema';
+import { functionServerInvocationService } from '../../services';
 import { deployServerFailedQueue } from '../deployment/failed';
 import { deployFunctionServerPublishQueue } from './publish';
 
@@ -46,7 +47,7 @@ export let deployFunctionServerDiscoverQueueProcessor =
     let failDiscovery = async (d: {
       errorCode: string;
       errorMessage: string;
-      logMessage?: string;
+      logMessage?: string | string[];
     }) => {
       await db.functionServer.update({
         where: { id: functionServer.id },
@@ -88,15 +89,40 @@ export let deployFunctionServerDiscoverQueueProcessor =
         })
       ]);
 
-      step.log(discoveryRes.logs.map(l => l.message));
+      let functionLogs = discoveryRes.logs
+        .map(l => l.message)
+        .filter(message => message.trim());
 
       if (discoveryRes.status == 'error') {
+        if (discoveryRes.functionCallId && dep.serverDeployment.tenantOid) {
+          let tenant = await db.tenant.findUnique({
+            where: { oid: dep.serverDeployment.tenantOid }
+          });
+
+          if (tenant) {
+            await functionServerInvocationService.ensureFunctionServerInvocation({
+              functionServer,
+              tenant,
+              functionInvocationId: discoveryRes.functionCallId,
+              isError: true,
+              error: discoveryRes.error,
+              logs: discoveryRes.logs
+            });
+          }
+        }
+
         await failDiscovery({
           errorCode: discoveryRes.error.code,
-          errorMessage: discoveryRes.error.message
+          errorMessage: discoveryRes.error.message,
+          logMessage: [
+            ...(functionLogs.length ? ['Function logs:', ...functionLogs] : []),
+            `Discovery failed: ${discoveryRes.error.code} - ${discoveryRes.error.message}`
+          ]
         });
         return;
       } else {
+        step.log(functionLogs);
+
         await db.functionServer.update({
           where: { id: functionServer.id },
           data: {

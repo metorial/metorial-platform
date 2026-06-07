@@ -9,14 +9,23 @@ export let functionServerInvocationPresenter = (
     connection: ServerConnection | null;
     functionServer: FunctionServer;
   }
-) => ({
-  object: 'shuttle#function_server.invocation',
+) => {
+  let invocationError = invocation as typeof invocation & {
+    errorCode?: string | null;
+    errorMessage?: string | null;
+  };
 
-  id: invocation.functionBayInvocationId,
-  isError: invocation.isError,
+  return {
+    object: 'shuttle#function_server.invocation',
 
-  serverConnectionId: invocation.connection?.id ?? null,
-  functionServerId: invocation.functionServer.id,
+    id: invocation.functionBayInvocationId,
+    isError: invocation.isError,
+    errorCode: invocationError.errorCode ?? null,
+    errorMessage: invocationError.errorMessage ?? null,
 
-  createdAt: invocation.createdAt
-});
+    serverConnectionId: invocation.connection?.id ?? null,
+    functionServerId: invocation.functionServer.id,
+
+    createdAt: invocation.createdAt
+  };
+};

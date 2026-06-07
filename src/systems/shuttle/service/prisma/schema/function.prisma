@@ -80,6 +80,8 @@ model FunctionServerInvocation {
   isError Boolean
 
   functionBayInvocationId String
+  errorCode               String?
+  errorMessage            String?
 
   connectionOid BigInt?
   connection    ServerConnection? @relation(fields: [connectionOid], references: [oid])

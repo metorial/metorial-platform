@@ -11,9 +11,8 @@ import type {
   ServerInstanceConfiguration
 } from '../../../prisma/generated/client';
 import { db } from '../../db';
-import { snowflake } from '../../id';
 import { callFunction } from '../../lib/function/call';
-import { secretService } from '../../services';
+import { functionServerInvocationService, secretService } from '../../services';
 import type { McpConnectionBackendAdapter } from '../connection/adapter';
 import { ConnectionManager } from '../utils/connection';
 import { ConnectionLogger } from '../utils/logger';
@@ -148,16 +147,14 @@ export class FunctionConnection implements McpConnectionBackendAdapter {
 
       (async () => {
         if (res.functionCallId) {
-          await db.functionServerInvocation.create({
-            data: {
-              oid: snowflake.nextId(),
-              isError: res.status == 'error',
-              functionBayInvocationId: res.functionCallId,
-              connectionOid: this.connection.oid,
-              functionServerOid: this.functionServer.oid,
-              tenantOid: this.tenant.oid,
-              logs: res.logs.length > 0 ? res.logs : undefined
-            }
+          await functionServerInvocationService.ensureFunctionServerInvocation({
+            functionServer: this.functionServer,
+            tenant: this.tenant,
+            functionInvocationId: res.functionCallId,
+            isError: res.status == 'error',
+            error: res.status == 'error' ? res.error : null,
+            connection: this.connection,
+            logs: res.logs
           });
 
           for (let logEntry of res.logs) {

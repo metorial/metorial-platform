@@ -180,7 +180,10 @@ export let parseInvocationPayload = (d: {
     }
 
     let errorBody = body as any;
-    if (errorBody?.errorType == 'Error' && typeof errorBody?.errorMessage == 'string') {
+    if (
+      typeof errorBody?.errorType == 'string' &&
+      typeof errorBody?.errorMessage == 'string'
+    ) {
       let traceArr = errorBody?.trace && Array.isArray(errorBody.trace) ? errorBody.trace : [];
       let trace = traceArr.join('\n');
 
@@ -188,7 +191,7 @@ export let parseInvocationPayload = (d: {
         type: 'error',
         error: {
           code: 'function_bay.function_error',
-          message: `Function invocation resulted in an error:\nError ${errorBody.errorMessage}\n\n${trace}`
+          message: `Function invocation resulted in an error:\n${errorBody.errorType} ${errorBody.errorMessage}\n\n${trace}`
         },
         internalError: d.internalError,
         ...d.outputs
