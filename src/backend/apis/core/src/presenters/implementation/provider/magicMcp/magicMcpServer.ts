@@ -35,6 +35,83 @@ let magicMcpServerSchema = v.object({
   updated_at: v.date()
 });
 
+let dashboardMagicMcpServerConsumerOwnerSchema = v.object({
+  consumer_integration_id: v.nullable(v.string()),
+  consumer_id: v.string(),
+  consumer_profile_id: v.string(),
+  consumer_name: v.string(),
+  consumer_email: v.string(),
+  consumer_profile_name: v.string(),
+  consumer_profile_email: v.string()
+});
+
+let getDashboardConsumerOwners = (magicMcpServer: {
+  consumerIntegrations: {
+    id: string;
+    consumer: { id: string; name: string; email: string };
+    consumerProfile: { id: string; name: string; email: string };
+  }[];
+  accessTagEntities?: {
+    accessTagPolicy: { systemIdentifier: string | null };
+    accessTag: {
+      consumerGroup: {
+        personalOwner: {
+          id: string;
+          name: string;
+          email: string;
+          consumer: { id: string; name: string; email: string };
+        } | null;
+      } | null;
+    };
+  }[];
+}) => {
+  let owners = new Map<
+    string,
+    {
+      consumer_integration_id: string | null;
+      consumer_id: string;
+      consumer_profile_id: string;
+      consumer_name: string;
+      consumer_email: string;
+      consumer_profile_name: string;
+      consumer_profile_email: string;
+    }
+  >();
+
+  for (let consumerIntegration of magicMcpServer.consumerIntegrations) {
+    owners.set(consumerIntegration.consumerProfile.id, {
+      consumer_integration_id: consumerIntegration.id,
+      consumer_id: consumerIntegration.consumer.id,
+      consumer_profile_id: consumerIntegration.consumerProfile.id,
+      consumer_name: consumerIntegration.consumer.name,
+      consumer_email: consumerIntegration.consumer.email,
+      consumer_profile_name: consumerIntegration.consumerProfile.name,
+      consumer_profile_email: consumerIntegration.consumerProfile.email
+    });
+  }
+
+  for (let accessTagEntity of magicMcpServer.accessTagEntities ?? []) {
+    if (accessTagEntity.accessTagPolicy.systemIdentifier !== 'consumer_magic_mcp_write') {
+      continue;
+    }
+
+    let consumerProfile = accessTagEntity.accessTag.consumerGroup?.personalOwner;
+    if (!consumerProfile || owners.has(consumerProfile.id)) continue;
+
+    owners.set(consumerProfile.id, {
+      consumer_integration_id: null,
+      consumer_id: consumerProfile.consumer.id,
+      consumer_profile_id: consumerProfile.id,
+      consumer_name: consumerProfile.consumer.name,
+      consumer_email: consumerProfile.consumer.email,
+      consumer_profile_name: consumerProfile.name,
+      consumer_profile_email: consumerProfile.email
+    });
+  }
+
+  return Array.from(owners.values());
+};
+
 export let v1MagicMcpServerPresenter = Presenter.create(magicMcpServerType)
   .presenter(
     async (
@@ -90,6 +167,10 @@ export let dashboardMagicMcpServerPresenter = Presenter.create(magicMcpServerTyp
     return {
       ...inner,
 
+      integration_id: input.integration?.id ?? null,
+      integration_instance_id: input.integrationInstance?.id ?? null,
+      consumer_owners: getDashboardConsumerOwners(input.magicMcpServer),
+
       providers: await Promise.all(
         (input.magicMcpServerProviders ?? []).map(magicMcpServerProvider =>
           dashboardMagicMcpServerProviderPresenter
@@ -103,6 +184,9 @@ export let dashboardMagicMcpServerPresenter = Presenter.create(magicMcpServerTyp
     v.intersection([
       magicMcpServerSchema,
       v.object({
+        integration_id: v.nullable(v.string()),
+        integration_instance_id: v.nullable(v.string()),
+        consumer_owners: v.array(dashboardMagicMcpServerConsumerOwnerSchema),
         providers: v.array(dashboardMagicMcpServerProviderPresenter.schema)
       })
     ])
