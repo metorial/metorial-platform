@@ -118,6 +118,9 @@ type AddProviderPanelFlowProps = {
   initialAuthConfigId?: string;
   initialToolFilter?: InitialToolFilter;
   filterAvailableResources?: boolean;
+  showToolFilters?: boolean;
+  ensureProviderConfig?: boolean;
+  autoSubmitWhenReady?: boolean;
   title?: string;
   description?: string;
   action?: string;
@@ -184,6 +187,7 @@ export let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
       setSubmitError(null);
       let fallbackProviderConfigId: string | undefined;
       let needsFallbackConfig =
+        shouldManageProviderConfig &&
         canAutoCreateEmptyConfig &&
         values.selectedConfiguration.kind === 'none' &&
         values.selectedProviderId;
@@ -328,10 +332,23 @@ export let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
     hasVaults: false,
     isLoading: selectedConfigSchema.isLoading
   });
+  let shouldManageProviderConfig = !!configuredProviderRequiresConfig || !!p.ensureProviderConfig;
+  let configStateLoading = shouldManageProviderConfig && selectedConfigSchema.isLoading;
+  let hasRequiredNonDefaultConfig =
+    shouldManageProviderConfig &&
+    selectedConfigCapabilities.hasRequiredFields &&
+    !selectedConfigCapabilities.requiredFieldsHaveDefaults;
   let canAutoCreateEmptyConfig =
-    !!configuredProviderRequiresConfig &&
+    shouldManageProviderConfig &&
     !selectedConfigSchema.isLoading &&
     selectedConfigCapabilities.canAutoCreateEmptyConfig;
+  let showConfigSection =
+    shouldManageProviderConfig &&
+    !selectedConfigSchema.isLoading &&
+    (selectedConfigCapabilities.hasSchemaFields || hasRequiredNonDefaultConfig);
+  let configRequirement: 'required' | 'optional' = hasRequiredNonDefaultConfig
+    ? 'required'
+    : 'optional';
 
   useEffect(() => {
     if (!p.providerId) return;
@@ -478,6 +495,9 @@ export let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
             instanceId={p.instanceId}
             providerId={form.values.selectedProviderId}
             providerName={form.values.selectedProviderName}
+            configStateLoading={configStateLoading}
+            configRequirement={configRequirement}
+            showConfigSection={showConfigSection}
             canAutoCreateEmptyConfig={canAutoCreateEmptyConfig}
             saving={
               createConfigMutation.isLoading ||
@@ -487,6 +507,13 @@ export let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
             }
             mutationError={
               <>
+                {submitError ? (
+                  <Callout color="red">
+                    {submitError instanceof Error
+                      ? submitError.message
+                      : 'Something went wrong. Please try again.'}
+                  </Callout>
+                ) : null}
                 <createConfigMutation.RenderError />
                 <createMutation.RenderError />
                 <deleteMutation.RenderError />
@@ -494,6 +521,8 @@ export let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
             }
             submitLabel={p.action || 'Add Provider'}
             filterAvailableResources={p.filterAvailableResources}
+            showToolFilters={p.showToolFilters}
+            autoSubmitWhenReady={p.autoSubmitWhenReady}
             onBack={p.hideProviderStep ? p.close : () => setStep(0)}
           />
         ) : (
@@ -530,9 +559,14 @@ export let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
     submitError,
     createMutation.isPending,
     deleteMutation.isPending,
+    configStateLoading,
+    configRequirement,
+    showConfigSection,
     canAutoCreateEmptyConfig,
     form.handleSubmit,
     p.action,
+    p.showToolFilters,
+    p.autoSubmitWhenReady,
     p.hideProviderStep,
     p.close
   ]);
@@ -1594,25 +1628,28 @@ let ConfigureStep = (p: {
   instanceId: string;
   providerId: string;
   providerName: string;
+  configStateLoading: boolean;
+  configRequirement: 'required' | 'optional';
+  showConfigSection: boolean;
   canAutoCreateEmptyConfig: boolean;
   saving: boolean;
   mutationError: ReactNode;
   submitLabel: string;
   filterAvailableResources?: boolean;
+  showToolFilters?: boolean;
+  autoSubmitWhenReady?: boolean;
   onBack: () => void;
 }) => {
+  let autoSubmitAttemptedRef = useRef(false);
   let provider = useProvider(p.instanceId, p.providerId);
-  let requiresProviderConfig = provider.data?.type.config.status == 'enabled';
   let requiresAuthConfig = provider.data?.type.auth.status == 'enabled';
-  let configRequirement: 'required' | 'optional' = p.canAutoCreateEmptyConfig
-    ? 'optional'
-    : 'required';
+  let showToolFilters = p.showToolFilters ?? true;
+  let hasVisibleInputs = p.showConfigSection || requiresAuthConfig || showToolFilters;
   let validateRequiredSelections = () => {
     let isValid = true;
 
     if (
-      requiresProviderConfig &&
-      !p.canAutoCreateEmptyConfig &&
+      p.configRequirement === 'required' &&
       p.form.values.selectedConfiguration.kind === 'none'
     ) {
       p.form.setFieldTouched('selectedConfiguration', true, false);
@@ -1630,8 +1667,7 @@ let ConfigureStep = (p: {
   };
 
   let canSubmit =
-    (!requiresProviderConfig ||
-      p.canAutoCreateEmptyConfig ||
+    (p.configRequirement !== 'required' ||
       p.form.values.selectedConfiguration.kind !== 'none') &&
     (!requiresAuthConfig || Boolean(p.form.values.selectedAuthConfigId));
 
@@ -1642,6 +1678,28 @@ let ConfigureStep = (p: {
     await p.form.submitForm();
   };
 
+  useEffect(() => {
+    if (!p.autoSubmitWhenReady) return;
+    if (provider.isLoading || p.configStateLoading || p.saving) return;
+    if (hasVisibleInputs || !canSubmit) return;
+    if (autoSubmitAttemptedRef.current) return;
+
+    autoSubmitAttemptedRef.current = true;
+    void p.form.submitForm();
+  }, [
+    canSubmit,
+    hasVisibleInputs,
+    p.autoSubmitWhenReady,
+    p.configStateLoading,
+    p.form,
+    p.saving,
+    provider.isLoading
+  ]);
+
+  if (provider.isLoading || p.configStateLoading) {
+    return <CenteredSpinner />;
+  }
+
   return (
     <ProviderSetupSections
       instanceId={p.instanceId}
@@ -1649,7 +1707,10 @@ let ConfigureStep = (p: {
       providerName={p.providerName}
       providerDeploymentId={p.form.values.selectedDeploymentId || undefined}
       filterAvailableResources={p.filterAvailableResources}
-      configRequirement={configRequirement}
+      showConfigSection={p.showConfigSection}
+      forceConfigSectionVisible={p.showConfigSection}
+      showToolFilters={showToolFilters}
+      configRequirement={p.configRequirement}
       selectedConfiguration={p.form.values.selectedConfiguration}
       onSelectedConfigurationChange={value => {
         p.form.setFieldValue('selectedConfiguration', value);
@@ -1713,6 +1774,9 @@ export let showAddProviderPanelFlow = (p: {
   initialAuthConfigId?: string;
   initialToolFilter?: InitialToolFilter;
   filterAvailableResources?: boolean;
+  showToolFilters?: boolean;
+  ensureProviderConfig?: boolean;
+  autoSubmitWhenReady?: boolean;
   title?: string;
   description?: string;
   action?: string;
@@ -1736,6 +1800,9 @@ export let showAddProviderPanelFlow = (p: {
       initialAuthConfigId={p.initialAuthConfigId}
       initialToolFilter={p.initialToolFilter}
       filterAvailableResources={p.filterAvailableResources}
+      showToolFilters={p.showToolFilters}
+      ensureProviderConfig={p.ensureProviderConfig}
+      autoSubmitWhenReady={p.autoSubmitWhenReady}
       title={p.title}
       description={p.description}
       action={p.action}

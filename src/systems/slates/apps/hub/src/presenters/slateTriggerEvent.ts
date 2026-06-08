@@ -24,6 +24,8 @@ export let slateTriggerEventPresenter = (
   triggerReceiverTriggerId: event.receiverTrigger.id,
   triggerId: event.action.id,
   triggerKey: event.action.key,
+  callbackId: event.callbackId,
+  callbackInstanceId: event.callbackInstanceId,
 
   input: event.input,
   output: event.output,

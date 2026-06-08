@@ -14,7 +14,7 @@ let signalTriggerSenderPromise = new ProgrammablePromise<
 >();
 export let signalTriggerSender = signalTriggerSenderPromise.promise;
 
-export let getTenantAndSenderForSignal = async (tenant: Tenant) => {
+export let getTenantForSignal = async (tenant: Tenant) => {
   if (!tenant.signalTenantId) {
     let newTenant = await signal.tenant.upsert({
       name: tenant.name,
@@ -28,11 +28,15 @@ export let getTenantAndSenderForSignal = async (tenant: Tenant) => {
   }
 
   return {
+    id: tenant.signalTenantId!,
+    identifier: tenant.identifier
+  };
+};
+
+export let getTenantAndSenderForSignal = async (tenant: Tenant) => {
+  return {
     sender: await signalTriggerSender,
-    tenant: {
-      id: tenant.signalTenantId!,
-      identifier: tenant.identifier
-    }
+    tenant: await getTenantForSignal(tenant)
   };
 };
 

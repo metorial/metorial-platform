@@ -9,7 +9,8 @@ let include = {
     include: {
       event: {
         include: {
-          sender: true
+          sender: true,
+          callback: true
         }
       },
       destination: true
@@ -102,6 +103,30 @@ class eventDeliveryAttemptServiceImpl {
           })
       )
     );
+  }
+
+  async listEventDeliveryAttemptsByIntentIds(d: { tenant: Tenant; intentIds: string[] }) {
+    if (d.intentIds.length === 0) return [];
+
+    let intents = await db.eventDeliveryIntent.findMany({
+      where: {
+        id: { in: d.intentIds },
+        event: {
+          tenantOid: d.tenant.oid
+        }
+      },
+      select: { oid: true }
+    });
+
+    if (intents.length === 0) return [];
+
+    return await db.eventDeliveryAttempt.findMany({
+      where: {
+        intentOid: { in: intents.map(intent => intent.oid) }
+      },
+      include,
+      orderBy: [{ attemptNumber: 'asc' }, { createdAt: 'asc' }]
+    });
   }
 }
 

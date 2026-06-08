@@ -38,6 +38,7 @@ class providerInvocationServiceImpl {
     inputs: {
       providerRunIds?: string[];
       sessionMessageIds?: string[];
+      callbackEventSourceIds?: string[];
       authConfigEventIds?: string[];
     };
   }) {
@@ -46,6 +47,7 @@ class providerInvocationServiceImpl {
       {
         providerRunIds: string[];
         sessionMessageIds: string[];
+        callbackEventSourceIds: string[];
         authConfigEventIds: string[];
       }
     >();
@@ -56,6 +58,7 @@ class providerInvocationServiceImpl {
         bucket = {
           providerRunIds: [],
           sessionMessageIds: [],
+          callbackEventSourceIds: [],
           authConfigEventIds: []
         };
         buckets.set(backendOid, bucket);
@@ -111,6 +114,20 @@ class providerInvocationServiceImpl {
       }
     }
 
+    if (d.inputs.callbackEventSourceIds?.length) {
+      let backend = await db.backend.findFirst({
+        where: {
+          type: 'slates'
+        }
+      });
+
+      if (backend) {
+        ensureBucket(backend.oid).callbackEventSourceIds.push(
+          ...d.inputs.callbackEventSourceIds
+        );
+      }
+    }
+
     if (d.inputs.authConfigEventIds?.length) {
       let authConfigEvents = await db.providerAuthConfigEvent.findMany({
         where: {
@@ -144,6 +161,7 @@ class providerInvocationServiceImpl {
         inputs: {
           providerRunIds: bucket.providerRunIds,
           sessionMessageIds: bucket.sessionMessageIds,
+          callbackEventSourceIds: bucket.callbackEventSourceIds,
           authConfigEventIds: bucket.authConfigEventIds
         }
       });

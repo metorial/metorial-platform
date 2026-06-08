@@ -10,10 +10,49 @@ import {
   type Tenant
 } from '@metorial-subspace/db';
 import { type DateFilter, normalizeDateFilter } from '@metorial-subspace/list-utils';
-import { getTenantForSlates, slates } from '@metorial-subspace/provider-slates/src/client';
 import { callbackRegistrationService } from './callbackRegistration';
+import { getTenantForSignal, signal } from '../signal';
+
+type SignalDestination = Awaited<ReturnType<typeof signal.eventDestination.get>>;
+type EnrichedCallbackDestination = CallbackDestination & {
+  signalDestination?: SignalDestination | null;
+};
 
 class callbackDestinationServiceImpl {
+  async enrichCallbackDestination(d: {
+    tenant: Tenant;
+    callbackDestination: CallbackDestination;
+  }): Promise<EnrichedCallbackDestination> {
+    let eventDestinationId =
+      d.callbackDestination.signalEventDestinationId ?? d.callbackDestination.id;
+
+    try {
+      let signalTenant = await getTenantForSignal(d.tenant);
+      let signalDestination = await signal.eventDestination.get({
+        tenantId: signalTenant.id,
+        eventDestinationId
+      });
+
+      return {
+        ...d.callbackDestination,
+        signalDestination
+      };
+    } catch {
+      return d.callbackDestination;
+    }
+  }
+
+  async enrichCallbackDestinations(d: {
+    tenant: Tenant;
+    callbackDestinations: CallbackDestination[];
+  }) {
+    return await Promise.all(
+      d.callbackDestinations.map(callbackDestination =>
+        this.enrichCallbackDestination({ tenant: d.tenant, callbackDestination })
+      )
+    );
+  }
+
   private normalizeAndValidateEndpoint(d: { url: string; method?: 'POST' | 'PUT' | 'PATCH' }) {
     let parsed: URL;
     try {
@@ -45,6 +84,7 @@ class callbackDestinationServiceImpl {
   async listCallbackDestinations(d: {
     tenant: Tenant;
     solution: Solution;
+    callbackIds?: string[];
     createdAt?: DateFilter;
     updatedAt?: DateFilter;
   }) {
@@ -55,8 +95,26 @@ class callbackDestinationServiceImpl {
           where: {
             tenantOid: d.tenant.oid,
             solutionOid: d.solution.oid,
-            status: { notIn: [CallbackDestinationStatus.deleted] },
+            status: {
+              notIn: [
+                CallbackDestinationStatus.archived,
+                CallbackDestinationStatus.deleted
+              ]
+            },
             AND: [
+              d.callbackIds?.length
+                ? {
+                    callbackDestinationLinks: {
+                      some: {
+                        callback: {
+                          id: { in: d.callbackIds },
+                          tenantOid: d.tenant.oid,
+                          solutionOid: d.solution.oid
+                        }
+                      }
+                    }
+                  }
+                : undefined!,
               d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
               d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
             ].filter(Boolean)
@@ -76,7 +134,9 @@ class callbackDestinationServiceImpl {
         tenantOid: d.tenant.oid,
         solutionOid: d.solution.oid,
         id: d.callbackDestinationId,
-        status: { notIn: [CallbackDestinationStatus.deleted] }
+        status: {
+          notIn: [CallbackDestinationStatus.archived, CallbackDestinationStatus.deleted]
+        }
       }
     });
     if (!callbackDestination) {
@@ -101,15 +161,6 @@ class callbackDestinationServiceImpl {
       method: 'POST'
     });
 
-    let slatesTenant = await getTenantForSlates(d.tenant);
-    let slateDestination = await slates.slateTriggerDestination.create({
-      tenantId: slatesTenant.id,
-      name: d.input.name,
-      description: d.input.description,
-      url: endpoint.url,
-      method: endpoint.method
-    });
-
     return await db.callbackDestination.create({
       data: {
         ...getId('callbackDestination'),
@@ -120,8 +171,7 @@ class callbackDestinationServiceImpl {
         description: d.input.description,
         metadata: d.input.metadata,
         url: endpoint.url,
-        method: endpoint.method,
-        slateTriggerDestinationId: slateDestination.id
+        method: endpoint.method
       }
     });
   }
@@ -146,16 +196,6 @@ class callbackDestinationServiceImpl {
         })
       : null;
 
-    let slatesTenant = await getTenantForSlates(d.tenant);
-    await slates.slateTriggerDestination.update({
-      tenantId: slatesTenant.id,
-      slateTriggerDestinationId: destination.slateTriggerDestinationId,
-      name: d.input.name,
-      description: d.input.description,
-      url: endpoint?.url,
-      method: endpoint?.method
-    });
-
     let updated = await db.callbackDestination.update({
       where: { oid: destination.oid },
       data: {
@@ -171,14 +211,15 @@ class callbackDestinationServiceImpl {
       where: { callbackDestinationOid: updated.oid },
       select: { callback: { select: { id: true } } }
     });
-
     await Promise.all(
       callbacks.map(link =>
-        callbackRegistrationService.enqueueReconcile({ callbackId: link.callback.id })
+        callbackRegistrationService.syncCallback({ callbackId: link.callback.id })
       )
     );
 
-    return updated;
+    return await db.callbackDestination.findFirstOrThrow({
+      where: { oid: updated.oid }
+    });
   }
 
   async archiveCallbackDestination(d: {
@@ -202,11 +243,13 @@ class callbackDestinationServiceImpl {
 
     await Promise.all(
       callbacks.map(link =>
-        callbackRegistrationService.enqueueReconcile({ callbackId: link.callback.id })
+        callbackRegistrationService.syncCallback({ callbackId: link.callback.id })
       )
     );
 
-    return archived;
+    return await db.callbackDestination.findFirstOrThrow({
+      where: { oid: archived.oid }
+    });
   }
 }
 

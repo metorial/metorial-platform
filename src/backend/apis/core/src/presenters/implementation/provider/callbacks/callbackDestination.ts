@@ -12,6 +12,24 @@ export let v1CallbackDestinationPresenter = Presenter.create(callbackDestination
     metadata: callbackDestination.metadata,
     url: callbackDestination.url,
     method: callbackDestination.method,
+    signing_secret:
+      (
+        callbackDestination as typeof callbackDestination & {
+          webhook?: {
+            signatureToken?: string | null;
+            signingSecret?: string | null;
+          } | null;
+        }
+      ).webhook?.signatureToken ??
+      (
+        callbackDestination as typeof callbackDestination & {
+          webhook?: {
+            signatureToken?: string | null;
+            signingSecret?: string | null;
+          } | null;
+        }
+      ).webhook?.signingSecret ??
+      null,
     created_at: callbackDestination.createdAt,
     updated_at: callbackDestination.updatedAt
   }))
@@ -58,6 +76,14 @@ export let v1CallbackDestinationPresenter = Presenter.create(callbackDestination
         description: 'HTTP method used for webhook delivery',
         examples: ['POST']
       }),
+      signing_secret: v.nullable(
+        v.string({
+          name: 'signing_secret',
+          description:
+            'Secret used to verify callback webhook signatures. Populated on detailed destination responses when available.',
+          examples: ['whsec_4dEfGhJkLmNpQrSt']
+        })
+      ),
       created_at: v.date({
         name: 'created_at',
         description: 'Timestamp when the callback destination was created',

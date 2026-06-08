@@ -1,21 +1,29 @@
 import { Panel, showModal } from '@metorial/ui';
-import { ProviderInvocationById } from './details';
+import { ProviderInvocationByCallbackEventId, ProviderInvocationById } from './details';
 
-export let ProviderInvocationPanel = (p: { providerInvocationId: string }) => (
+type ProviderInvocationPanelProps =
+  | { providerInvocationId: string }
+  | { callbackEventId: string };
+
+export let ProviderInvocationPanel = (p: ProviderInvocationPanelProps) => (
   <>
     <Panel.Header>
       <Panel.Title>Provider Invocation</Panel.Title>
     </Panel.Header>
 
     <Panel.Content>
-      <ProviderInvocationById providerInvocationId={p.providerInvocationId} />
+      {'providerInvocationId' in p ? (
+        <ProviderInvocationById providerInvocationId={p.providerInvocationId} />
+      ) : (
+        <ProviderInvocationByCallbackEventId callbackEventId={p.callbackEventId} />
+      )}
     </Panel.Content>
   </>
 );
 
-export let showProviderInvocationPanel = (p: { providerInvocationId: string }) =>
+export let showProviderInvocationPanel = (p: ProviderInvocationPanelProps) =>
   showModal(({ dialogProps }) => (
     <Panel.Wrapper {...dialogProps} width={900}>
-      <ProviderInvocationPanel providerInvocationId={p.providerInvocationId} />
+      <ProviderInvocationPanel {...p} />
     </Panel.Wrapper>
   ));

@@ -43,6 +43,24 @@ export type ManagementInstanceCallbacksNotificationsGetOutput = {
     createdAt: Date;
     updatedAt: Date;
   };
+  attempts:
+    | {
+        object: 'callback.notification.attempt';
+        id: string;
+        status: 'succeeded' | 'failed';
+        attemptNumber: number;
+        durationMs: number;
+        error: { code: string; message: string } | null;
+        response: {
+          statusCode: number;
+          body: string | null;
+          headers: { key: string; value: string }[] | null;
+        } | null;
+        createdAt: Date;
+        startedAt: Date;
+        completedAt: Date;
+      }[]
+    | null;
   createdAt: Date;
   updatedAt: Date;
   lastAttemptAt: Date | null;
@@ -127,6 +145,47 @@ export let mapManagementInstanceCallbacksNotificationsGetOutput =
         createdAt: mtMap.objectField('created_at', mtMap.date()),
         updatedAt: mtMap.objectField('updated_at', mtMap.date())
       })
+    ),
+    attempts: mtMap.objectField(
+      'attempts',
+      mtMap.array(
+        mtMap.object({
+          object: mtMap.objectField('object', mtMap.passthrough()),
+          id: mtMap.objectField('id', mtMap.passthrough()),
+          status: mtMap.objectField('status', mtMap.passthrough()),
+          attemptNumber: mtMap.objectField(
+            'attempt_number',
+            mtMap.passthrough()
+          ),
+          durationMs: mtMap.objectField('duration_ms', mtMap.passthrough()),
+          error: mtMap.objectField(
+            'error',
+            mtMap.object({
+              code: mtMap.objectField('code', mtMap.passthrough()),
+              message: mtMap.objectField('message', mtMap.passthrough())
+            })
+          ),
+          response: mtMap.objectField(
+            'response',
+            mtMap.object({
+              statusCode: mtMap.objectField('status_code', mtMap.passthrough()),
+              body: mtMap.objectField('body', mtMap.passthrough()),
+              headers: mtMap.objectField(
+                'headers',
+                mtMap.array(
+                  mtMap.object({
+                    key: mtMap.objectField('key', mtMap.passthrough()),
+                    value: mtMap.objectField('value', mtMap.passthrough())
+                  })
+                )
+              )
+            })
+          ),
+          createdAt: mtMap.objectField('created_at', mtMap.date()),
+          startedAt: mtMap.objectField('started_at', mtMap.date()),
+          completedAt: mtMap.objectField('completed_at', mtMap.date())
+        })
+      )
     ),
     createdAt: mtMap.objectField('created_at', mtMap.date()),
     updatedAt: mtMap.objectField('updated_at', mtMap.date()),

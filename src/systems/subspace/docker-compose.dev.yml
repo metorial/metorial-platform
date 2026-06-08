@@ -257,7 +257,7 @@ services:
       INVOCATIONS_BUCKET_NAME: subspace-invocations
       INITIAL_REGISTRIES: 'http://slates-registry:52040'
       SIGNAL_API_URL: http://signal:52050/metorial-signal
-      SIGNAL_SENDER_IDENTIFIER: dev-subspace
+      SIGNAL_SENDER_IDENTIFIER: subspace-slates-hub
       SLATES_HUB_INSTANCE_IDENTIFIER: dev-subspace
       SERVICE_PUBLIC_URL: http://localhost:52045
     depends_on:

@@ -1,15 +1,16 @@
-import type { createSlatesHubInternalClient } from '@metorial-platform-systems/slates-client';
+import type { createSignalClient } from '@metorial-platform-systems/signal-client';
 
-type SlatesClient = ReturnType<typeof createSlatesHubInternalClient>;
+type SignalClient = ReturnType<typeof createSignalClient>;
 
-type CallbackDelivery = Awaited<ReturnType<SlatesClient['slateTriggerDelivery']['get']>>;
-type CallbackDeliveryList = Awaited<ReturnType<SlatesClient['slateTriggerDelivery']['list']>>;
+type CallbackDelivery = Awaited<ReturnType<SignalClient['callback']['getDelivery']>>;
+type CallbackDeliveryList = Awaited<ReturnType<SignalClient['callback']['listDeliveries']>>;
 type CallbackDeliveryAttempt = Awaited<
-  ReturnType<SlatesClient['slateTriggerDelivery']['getAttempt']>
+  ReturnType<SignalClient['callback']['getDeliveryAttempt']>
 >;
 type CallbackDeliveryAttemptList = Awaited<
-  ReturnType<SlatesClient['slateTriggerDelivery']['listAttempts']>
+  ReturnType<SignalClient['callback']['listDeliveryAttempts']>
 >;
+type CallbackDeliveryEmbeddedAttempt = NonNullable<CallbackDelivery['attempts']>[number];
 
 let presentDestination = (destination: CallbackDelivery['destination']) => ({
   object: 'callback.delivery.destination',
@@ -50,6 +51,21 @@ let presentEvent = (event: CallbackDelivery['event']) => ({
   updatedAt: event.updatedAt
 });
 
+let presentAttempt = (attempt: CallbackDeliveryEmbeddedAttempt) => ({
+  object: 'callback.delivery_attempt',
+
+  id: attempt.id,
+  status: attempt.status,
+  attemptNumber: attempt.attemptNumber,
+  durationMs: attempt.durationMs,
+  error: attempt.error,
+  response: attempt.response,
+
+  createdAt: attempt.createdAt,
+  startedAt: attempt.startedAt,
+  completedAt: attempt.completedAt
+});
+
 export let callbackDeliveryPresenter = (delivery: CallbackDelivery) => ({
   object: 'callback.delivery',
 
@@ -60,6 +76,7 @@ export let callbackDeliveryPresenter = (delivery: CallbackDelivery) => ({
 
   event: presentEvent(delivery.event),
   destination: presentDestination(delivery.destination),
+  attempts: delivery.attempts ? delivery.attempts.map(presentAttempt) : null,
 
   createdAt: delivery.createdAt,
   updatedAt: delivery.updatedAt,

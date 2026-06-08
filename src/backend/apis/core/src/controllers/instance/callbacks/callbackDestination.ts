@@ -4,6 +4,7 @@ import { v } from '@lowerdeck/validation';
 import { subspaceCallbackDestinationService } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
+import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { callbackDestinationPresenter } from '../../../presenters';
@@ -45,6 +46,9 @@ export let callbackDestinationController = Controller.create(
         Paginator.validate(
           v.object(
             {
+              callback_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+                description: 'Only include destinations linked to the callback ID(s).'
+              }),
               created_at: dateFilterValidator('callback destination creation time'),
               updated_at: dateFilterValidator('callback destination last update time')
             },
@@ -55,6 +59,7 @@ export let callbackDestinationController = Controller.create(
       .do(async ctx => {
         let paginator = await subspaceCallbackDestinationService.list({
           instance: ctx.instance,
+          callbackIds: normalizeArrayParam(ctx.query.callback_id),
           createdAt: ctx.query.created_at,
           updatedAt: ctx.query.updated_at
         });

@@ -10,6 +10,7 @@ export type ManagementInstanceCallbacksDestinationsListOutput = {
     metadata: Record<string, any> | null;
     url: string;
     method: string;
+    signingSecret: string | null;
     createdAt: Date;
     updatedAt: Date;
   }[];
@@ -30,6 +31,10 @@ export let mapManagementInstanceCallbacksDestinationsListOutput =
           metadata: mtMap.objectField('metadata', mtMap.passthrough()),
           url: mtMap.objectField('url', mtMap.passthrough()),
           method: mtMap.objectField('method', mtMap.passthrough()),
+          signingSecret: mtMap.objectField(
+            'signing_secret',
+            mtMap.passthrough()
+          ),
           createdAt: mtMap.objectField('created_at', mtMap.date()),
           updatedAt: mtMap.objectField('updated_at', mtMap.date())
         })
@@ -54,6 +59,7 @@ export type ManagementInstanceCallbacksDestinationsListQuery = {
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
 } & {
+  callbackId?: string | string[] | undefined;
   createdAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
   updatedAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
 };
@@ -67,6 +73,16 @@ export let mapManagementInstanceCallbacksDestinationsListQuery = mtMap.union([
       before: mtMap.objectField('before', mtMap.passthrough()),
       cursor: mtMap.objectField('cursor', mtMap.passthrough()),
       order: mtMap.objectField('order', mtMap.passthrough()),
+      callbackId: mtMap.objectField(
+        'callback_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
       createdAt: mtMap.objectField(
         'created_at',
         mtMap.object({

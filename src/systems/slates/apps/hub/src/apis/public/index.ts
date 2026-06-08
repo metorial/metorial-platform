@@ -14,6 +14,25 @@ let cookieOpts = {
   path: '/'
 };
 
+let getWebhookRequestPayload = async (c: any) => {
+  let headers = Object.fromEntries(c.req.raw.headers.entries());
+  let bodyBuffer = await c.req.arrayBuffer();
+  let body =
+    bodyBuffer.byteLength > 0
+      ? {
+          encoding: 'base64' as const,
+          content: Buffer.from(bodyBuffer).toString('base64')
+        }
+      : null;
+
+  return {
+    url: c.req.url,
+    method: c.req.method,
+    headers,
+    body
+  };
+};
+
 export let hubApp = createHono()
   .use(async (c, next) => {
     await next();
@@ -78,24 +97,20 @@ export let hubApp = createHono()
     let receiverTriggerId = c.req.param('receiverTriggerId');
     if (!receiverTriggerId) return c.text('Missing trigger receiver ID', 400);
 
-    let headers = Object.fromEntries(c.req.raw.headers.entries());
-    let bodyBuffer = await c.req.arrayBuffer();
-    let body =
-      bodyBuffer.byteLength > 0
-        ? {
-            encoding: 'base64' as const,
-            content: Buffer.from(bodyBuffer).toString('base64')
-          }
-        : null;
-
     let requestRecord = await slateTriggerWebhookRequestService.createWebhookRequest({
       receiverTriggerId,
-      request: {
-        url: c.req.url,
-        method: c.req.method,
-        headers,
-        body
-      }
+      request: await getWebhookRequestPayload(c)
+    });
+
+    return c.json({ status: 'queued', webhookRequestId: requestRecord.id });
+  })
+  .post('/slates-hub/triggers/receiver-webhook/:receiverId/:key*?', async c => {
+    let receiverId = c.req.param('receiverId');
+    if (!receiverId) return c.text('Missing trigger receiver ID', 400);
+
+    let requestRecord = await slateTriggerWebhookRequestService.createWebhookRequest({
+      receiverId,
+      request: await getWebhookRequestPayload(c)
     });
 
     return c.json({ status: 'queued', webhookRequestId: requestRecord.id });

@@ -1,6 +1,7 @@
 import { apiMux } from '@lowerdeck/api-mux';
 import { createServer, rpcMux, type InferClient } from '@lowerdeck/rpc-server';
 import { app } from './_app';
+import { callbackController } from './callback';
 import { eventController } from './event';
 import { eventDeliveryAttemptController } from './eventDeliveryAttempt';
 import { eventDeliveryIntentController } from './eventDeliveryIntent';
@@ -11,6 +12,7 @@ import { tenantController } from './tenant';
 export let rootController = app.controller({
   tenant: tenantController,
   sender: senderController,
+  callback: callbackController,
   event: eventController,
   eventDestination: eventDestinationController,
   eventDeliveryAttempt: eventDeliveryAttemptController,

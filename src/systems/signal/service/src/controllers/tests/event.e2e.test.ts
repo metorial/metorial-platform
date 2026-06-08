@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { cleanDatabase, testDb } from '../../test/setup';
-import { fixtures } from '../../test/fixtures';
+import { env } from '../../env';
+import { eventCleanupQueueProcessor } from '../../queues/send/cleanup';
+import { storage } from '../../storage';
 import { signalClient } from '../../test/client';
+import { fixtures } from '../../test/fixtures';
+import { cleanDatabase, testDb } from '../../test/setup';
 
 describe('event.e2e', () => {
   const f = fixtures(testDb);
@@ -67,5 +70,44 @@ describe('event.e2e', () => {
     expect(result.items.map(item => item.id)).toEqual(
       expect.arrayContaining([eventA1.id, eventA2.id])
     );
+  });
+
+  it('reads event payloads after cleanup offloads them to storage', async () => {
+    let tenant = await f.tenant.default();
+    let sender = await f.sender.default();
+    let payloadJson = JSON.stringify({ offloaded: true });
+
+    await storage.upsertBucket(env.storage.LOGS_BUCKET_NAME);
+
+    let event = await f.event.default({
+      tenantOid: tenant.oid,
+      senderOid: sender.oid,
+      overrides: {
+        payloadJson,
+        headers: [['content-type', 'application/json']]
+      }
+    });
+
+    await (eventCleanupQueueProcessor as any).handler({ eventId: event.id });
+
+    let offloaded = await testDb.event.findUniqueOrThrow({
+      where: { id: event.id }
+    });
+
+    expect(offloaded.payloadJson).toBeNull();
+    expect(offloaded.headers).toEqual([]);
+
+    let result = await signalClient.event.get({
+      tenantId: tenant.id,
+      eventId: event.id
+    });
+
+    expect(result).toMatchObject({
+      id: event.id,
+      request: {
+        body: payloadJson,
+        headers: [{ key: 'content-type', value: 'application/json' }]
+      }
+    });
   });
 });

@@ -29,6 +29,8 @@ let include = {
 class eventDestinationServiceImpl {
   async createEventDestination(d: {
     input: {
+      externalId?: string;
+      isCallbackDestination?: boolean;
       name: string;
       description?: string;
       eventTypes?: string[];
@@ -49,6 +51,7 @@ class eventDestinationServiceImpl {
     sender: Sender;
   }) {
     return db.$transaction(async db => {
+      let destinationId = getId('eventDestination');
       let webhook = await db.webhookDestinationWebhook.create({
         data: {
           ...getId('eventDestinationWebhook'),
@@ -64,9 +67,12 @@ class eventDestinationServiceImpl {
 
       let destination = await db.eventDestination.create({
         data: {
-          ...getId('eventDestination'),
+          ...destinationId,
+          id: d.input.externalId ?? destinationId.id,
+          externalId: d.input.externalId,
 
           status: 'active',
+          isCallbackDestination: d.input.isCallbackDestination ?? false,
           type: 'http_endpoint',
 
           eventTypes: d.input.eventTypes || [],
@@ -148,6 +154,7 @@ class eventDestinationServiceImpl {
       name?: string;
       description?: string;
       eventTypes?: string[];
+      isCallbackDestination?: boolean;
 
       retry?: {
         type: EventRetryType;
@@ -220,6 +227,7 @@ class eventDestinationServiceImpl {
       data: {
         name: d.input.name,
         description: d.input.description,
+        isCallbackDestination: d.input.isCallbackDestination,
 
         ...(d.input.eventTypes
           ? {
@@ -230,7 +238,8 @@ class eventDestinationServiceImpl {
 
         retryType: d.input.retry?.type,
         retryDelaySeconds: d.input.retry?.delaySeconds,
-        retryMaxAttempts: d.input.retry?.maxAttempts
+        retryMaxAttempts: d.input.retry?.maxAttempts,
+        currentInstanceOid: instance?.oid
       },
       include
     });
