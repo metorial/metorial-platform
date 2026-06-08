@@ -96,6 +96,12 @@ class slateTriggerReceiverServiceImpl {
     return this.runtime.handleTriggerWebhook(d);
   }
 
+  async handleReceiverWebhook(
+    d: Parameters<SlateTriggerReceiverRuntime['handleReceiverWebhook']>[0]
+  ) {
+    return this.runtime.handleReceiverWebhook(d);
+  }
+
   private validateAuthConfig(d: {
     tenant: Tenant;
     slate: Slate;

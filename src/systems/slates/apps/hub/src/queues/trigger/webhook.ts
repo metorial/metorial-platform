@@ -38,7 +38,8 @@ type TriggerWebhookBody = TriggerWebhookRequestPayload['body'];
 let finalizeWebhookRequest = async (d: {
   request: {
     id: string;
-    receiverTriggerId: string;
+    receiverTriggerId: string | null;
+    receiverId: string | null;
     url: string;
     method: string;
     headers: Record<string, string>;
@@ -54,6 +55,7 @@ let finalizeWebhookRequest = async (d: {
       JSON.stringify({
         id: d.request.id,
         receiverTriggerId: d.request.receiverTriggerId,
+        receiverId: d.request.receiverId,
         url: d.request.url,
         method: d.request.method,
         headers: d.request.headers,
@@ -84,49 +86,116 @@ export let slateTriggerWebhookQueueProcessor = slateTriggerWebhookQueue.process(
     let body = request.body as TriggerWebhookBody;
     let bodyStorageKey = body ? getTriggerWebhookRequestStorageKey(request.id) : null;
 
-    let receiverTrigger = await db.slateTriggerReceiverTrigger.findFirst({
-      where: { id: request.receiverTriggerId },
-      select: { id: true }
-    });
-    if (!receiverTrigger) {
-      await finalizeWebhookRequest({
-        request: {
-          id: request.id,
-          receiverTriggerId: request.receiverTriggerId,
-          url: request.url,
-          method: request.method,
-          headers,
-          createdAt: request.createdAt
-        },
-        body,
-        bodyStorageKey
+    if (request.receiverTriggerId) {
+      let receiverTrigger = await db.slateTriggerReceiverTrigger.findFirst({
+        where: { id: request.receiverTriggerId },
+        select: { id: true }
       });
-      return;
+      if (!receiverTrigger) {
+        await finalizeWebhookRequest({
+          request: {
+            id: request.id,
+            receiverTriggerId: request.receiverTriggerId,
+            receiverId: request.receiverId,
+            url: request.url,
+            method: request.method,
+            headers,
+            createdAt: request.createdAt
+          },
+          body,
+          bodyStorageKey
+        });
+        return;
+      }
+
+      return webhookLock.usingLock(receiverTrigger.id, async () => {
+        await slateTriggerReceiverService.handleTriggerWebhook({
+          receiverTriggerId: receiverTrigger.id,
+          request: {
+            url: request.url,
+            method: request.method,
+            headers,
+            body
+          }
+        });
+
+        await finalizeWebhookRequest({
+          request: {
+            id: request.id,
+            receiverTriggerId: request.receiverTriggerId,
+            receiverId: request.receiverId,
+            url: request.url,
+            method: request.method,
+            headers,
+            createdAt: request.createdAt
+          },
+          body,
+          bodyStorageKey
+        });
+      });
     }
 
-    return webhookLock.usingLock(receiverTrigger.id, async () => {
-      await slateTriggerReceiverService.handleTriggerWebhook({
-        receiverTriggerId: receiverTrigger.id,
-        request: {
-          url: request.url,
-          method: request.method,
-          headers,
-          body
-        }
+    if (request.receiverId) {
+      let receiver = await db.slateTriggerReceiver.findFirst({
+        where: { id: request.receiverId },
+        select: { id: true }
       });
+      if (!receiver) {
+        await finalizeWebhookRequest({
+          request: {
+            id: request.id,
+            receiverTriggerId: request.receiverTriggerId,
+            receiverId: request.receiverId,
+            url: request.url,
+            method: request.method,
+            headers,
+            createdAt: request.createdAt
+          },
+          body,
+          bodyStorageKey
+        });
+        return;
+      }
 
-      await finalizeWebhookRequest({
-        request: {
-          id: request.id,
-          receiverTriggerId: request.receiverTriggerId,
-          url: request.url,
-          method: request.method,
-          headers,
-          createdAt: request.createdAt
-        },
-        body,
-        bodyStorageKey
+      return webhookLock.usingLock(`receiver:${receiver.id}`, async () => {
+        await slateTriggerReceiverService.handleReceiverWebhook({
+          receiverId: receiver.id,
+          request: {
+            url: request.url,
+            method: request.method,
+            headers,
+            body
+          }
+        });
+
+        await finalizeWebhookRequest({
+          request: {
+            id: request.id,
+            receiverTriggerId: request.receiverTriggerId,
+            receiverId: request.receiverId,
+            url: request.url,
+            method: request.method,
+            headers,
+            createdAt: request.createdAt
+          },
+          body,
+          bodyStorageKey
+        });
       });
+    }
+
+    await finalizeWebhookRequest({
+      request: {
+        id: request.id,
+        receiverTriggerId: request.receiverTriggerId,
+        receiverId: request.receiverId,
+        url: request.url,
+        method: request.method,
+        headers,
+        createdAt: request.createdAt
+      },
+      body,
+      bodyStorageKey
     });
   } catch (error) {
     Sentry.captureException(error, {

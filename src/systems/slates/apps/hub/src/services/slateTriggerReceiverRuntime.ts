@@ -25,6 +25,7 @@ import { slateInvocationService } from './slateInvocation';
 import type { SlateTriggerReceiverCore } from './slateTriggerReceiverCore';
 import {
   getTriggerSpec,
+  receiverInclude,
   receiverTriggerInclude,
   type ReceiverTriggerWithRelations
 } from './slateTriggerReceiverShared';
@@ -32,11 +33,36 @@ import {
 let Sentry = getSentry();
 
 const MAX_TRIGGER_EVENT_INPUT_ATTEMPTS = 5;
+const MAX_WEBHOOK_INVOCATION_PAYLOAD_BYTES = 4 * 1024 * 1024;
 const ARCHIVE_INPUT_STATUSES = new Set<SlateTriggerEventInputStatus>([
   SlateTriggerEventInputStatus.succeeded,
   SlateTriggerEventInputStatus.failed,
   SlateTriggerEventInputStatus.skipped
 ]);
+
+let getWebhookInvocationPayloadBytes = (d: {
+  actionId: string;
+  request: TriggerWebhookRequestPayload;
+  state: any;
+}) =>
+  Buffer.byteLength(
+    JSON.stringify({
+      actionId: d.actionId,
+      url: d.request.url,
+      method: d.request.method,
+      headers: d.request.headers,
+      body: d.request.body ?? null,
+      state: d.state
+    })
+  );
+
+let getWebhookLifecycleInput = (request: TriggerWebhookRequestPayload) => ({
+  url: request.url,
+  method: request.method,
+  headers: request.headers,
+  body: request.body,
+  receivedAt: new Date().toISOString()
+});
 
 export class SlateTriggerReceiverRuntime {
   private readonly core: SlateTriggerReceiverCore;
@@ -433,6 +459,32 @@ export class SlateTriggerReceiverRuntime {
     }
   }
 
+  private async createTerminalWebhookEventInput(d: {
+    receiverTrigger: ReceiverTriggerWithRelations;
+    status: SlateTriggerEventInputStatus;
+    input: Record<string, any> | null;
+    errorCode?: string | null;
+    errorMessage?: string | null;
+  }) {
+    let eventInput = await db.slateTriggerEventInput.create({
+      data: {
+        ...getId('slateTriggerEventInput'),
+        receiverOid: d.receiverTrigger.receiver.oid,
+        receiverTriggerOid: d.receiverTrigger.oid,
+        actionOid: d.receiverTrigger.actionOid,
+        slateOid: d.receiverTrigger.receiver.slate.oid,
+        slateInstanceOid: d.receiverTrigger.receiver.slateInstance.oid,
+        status: d.status,
+        input: d.input,
+        errorCode: d.errorCode,
+        errorMessage: d.errorMessage
+      }
+    });
+
+    await this.enqueueEventInputArchive(eventInput.id);
+    return eventInput;
+  }
+
   async sendTriggerEvent(d: { eventId: string }) {
     let event = await db.slateTriggerEvent.findFirst({
       where: { id: d.eventId },
@@ -679,23 +731,42 @@ export class SlateTriggerReceiverRuntime {
     });
   }
 
-  async handleTriggerWebhook(d: {
-    receiverTriggerId: string;
+  private async handleWebhookForReceiverTrigger(d: {
+    receiverTrigger: ReceiverTriggerWithRelations;
     request: TriggerWebhookRequestPayload;
   }) {
-    let receiverTrigger = await db.slateTriggerReceiverTrigger.findFirst({
-      where: {
-        id: d.receiverTriggerId
-      },
-      include: receiverTriggerInclude
-    });
-    if (!receiverTrigger)
-      throw new ServiceError(notFoundError('slate.trigger.receiver_trigger'));
-
+    let receiverTrigger = d.receiverTrigger;
     if (receiverTrigger.source !== SlateTriggerReceiverTriggerSource.webhook) return;
     if (receiverTrigger.receiver.status !== SlateTriggerReceiverStatus.active) return;
 
     let context = await this.core.getInvocationContext({ receiverTrigger });
+
+    let payloadBytes = getWebhookInvocationPayloadBytes({
+      actionId: context.action.key,
+      request: d.request,
+      state: receiverTrigger.state
+    });
+    if (payloadBytes > MAX_WEBHOOK_INVOCATION_PAYLOAD_BYTES) {
+      console.error('Webhook payload is too large to process.', {
+        receiverId: receiverTrigger.receiver.id,
+        receiverTriggerId: receiverTrigger.id,
+        payloadBytes,
+        maxPayloadBytes: MAX_WEBHOOK_INVOCATION_PAYLOAD_BYTES
+      });
+      await this.core.recordCallbackEventLifecycle({
+        receiver: receiverTrigger.receiver,
+        action: context.action,
+        event: {
+          id: getId('slateTriggerEventInput').id,
+          status: 'failed',
+          type: context.action.key,
+          input: getWebhookLifecycleInput(d.request),
+          errorCode: 'webhook_payload_too_large',
+          errorMessage: 'Webhook payload is too large to process.'
+        }
+      });
+      return;
+    }
 
     let stack = await this.core.createInvocationStack({
       receiver: receiverTrigger.receiver,
@@ -727,6 +798,27 @@ export class SlateTriggerReceiverRuntime {
         receiverTriggerId: receiverTrigger.id,
         error: res.error
       });
+      let eventInput = await this.createTerminalWebhookEventInput({
+        receiverTrigger,
+        status: SlateTriggerEventInputStatus.failed,
+        input: getWebhookLifecycleInput(d.request),
+        errorCode: res.error.code,
+        errorMessage: res.error.message
+      });
+
+      await this.core.recordCallbackEventLifecycle({
+        receiver: receiverTrigger.receiver,
+        action: context.action,
+        event: {
+          id: eventInput.id,
+          status: 'failed',
+          type: context.action.key,
+          input: eventInput.input as Record<string, any> | null,
+          errorCode: res.error.code,
+          errorMessage: res.error.message,
+          providerInvocation: res.invocation
+        }
+      });
       return;
     }
 
@@ -738,9 +830,90 @@ export class SlateTriggerReceiverRuntime {
       }
     });
 
+    if (res.data.inputs.length === 0) {
+      let eventInput = await this.createTerminalWebhookEventInput({
+        receiverTrigger,
+        status: SlateTriggerEventInputStatus.skipped,
+        input: getWebhookLifecycleInput(d.request)
+      });
+
+      await this.core.recordCallbackEventLifecycle({
+        receiver: receiverTrigger.receiver,
+        action: context.action,
+        event: {
+          id: eventInput.id,
+          status: 'skipped',
+          type: context.action.key,
+          input: eventInput.input as Record<string, any> | null,
+          providerInvocation: res.invocation
+        }
+      });
+      return;
+    }
+
     await this.core.enqueueTriggerEventInputs({
       receiverTrigger,
       inputs: res.data.inputs
     });
+  }
+
+  async handleTriggerWebhook(d: {
+    receiverTriggerId: string;
+    request: TriggerWebhookRequestPayload;
+  }) {
+    let receiverTrigger = await db.slateTriggerReceiverTrigger.findFirst({
+      where: {
+        id: d.receiverTriggerId
+      },
+      include: receiverTriggerInclude
+    });
+    if (!receiverTrigger)
+      throw new ServiceError(notFoundError('slate.trigger.receiver_trigger'));
+
+    await this.handleWebhookForReceiverTrigger({
+      receiverTrigger: receiverTrigger as ReceiverTriggerWithRelations,
+      request: d.request
+    });
+  }
+
+  async handleReceiverWebhook(d: { receiverId: string; request: TriggerWebhookRequestPayload }) {
+    let receiver = await db.slateTriggerReceiver.findFirst({
+      where: {
+        id: d.receiverId
+      },
+      include: receiverInclude
+    });
+    if (!receiver) throw new ServiceError(notFoundError('slate.trigger.receiver'));
+    if (receiver.status !== SlateTriggerReceiverStatus.active) return;
+
+    let webhookTriggers = receiver.triggers.filter(
+      trigger => trigger.source === SlateTriggerReceiverTriggerSource.webhook
+    );
+
+    await Promise.all(
+      webhookTriggers.map(async trigger => {
+        try {
+          await this.handleWebhookForReceiverTrigger({
+            receiverTrigger: {
+              ...trigger,
+              receiver
+            } as ReceiverTriggerWithRelations,
+            request: d.request
+          });
+        } catch (error) {
+          Sentry.captureException(error, {
+            extra: {
+              receiverId: receiver.id,
+              receiverTriggerId: trigger.id
+            }
+          });
+          console.error('Failed to fan out trigger webhook:', {
+            receiverId: receiver.id,
+            receiverTriggerId: trigger.id,
+            error
+          });
+        }
+      })
+    );
   }
 }

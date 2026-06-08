@@ -292,7 +292,8 @@ model SlateTriggerWebhookRequest {
   oid BigInt @id
   id  String @unique
 
-  receiverTriggerId String
+  receiverTriggerId String?
+  receiverId        String?
 
   url     String
   method  String
@@ -306,5 +307,7 @@ model SlateTriggerWebhookRequest {
 
   @@index([receiverTriggerId])
   @@index([receiverTriggerId, createdAt])
+  @@index([receiverId])
+  @@index([receiverId, createdAt])
   @@index([processedAt])
 }

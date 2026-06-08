@@ -7,7 +7,10 @@ import {
   type SlateTriggerReceiver,
   type SlateTriggerReceiverTrigger
 } from '../../prisma/generated/client';
-import { getTriggerWebhookBaseUrl } from '../lib/triggerWebhook';
+import {
+  getReceiverWebhookBaseUrl,
+  getTriggerWebhookBaseUrl
+} from '../lib/triggerWebhook';
 
 export let slateTriggerReceiverPresenter = (
   receiver: SlateTriggerReceiver & {
@@ -33,6 +36,7 @@ export let slateTriggerReceiverPresenter = (
   eventTypes: receiver.eventTypes,
   consecutivePollingFailures: receiver.consecutivePollingFailures,
   consecutiveEventFailures: receiver.consecutiveEventFailures,
+  receiverWebhookUrl: getReceiverWebhookBaseUrl(receiver.id),
 
   triggers: receiver.triggers.map(trigger => ({
     object: 'slate.trigger.receiver.trigger',
