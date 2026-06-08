@@ -179,7 +179,7 @@ class ConsumerProviderSetupSessionServiceImpl {
       redirectUrl: buildProviderSetupRedirectUrl(portal.slug),
       configuration: {
         ui: {
-          layout: 'side'
+          layout: 'box'
         }
       }
     });
