@@ -26,7 +26,7 @@ model MagicMcpServerBacking {
   integrationOid BigInt?      @unique
   integration    Integration? @relation("MagicMcpServerBackingIntegration", fields: [integrationOid], references: [oid], onDelete: Cascade)
 
-  integrationInstanceOid BigInt              @unique
+  integrationInstanceOid BigInt
   integrationInstance    IntegrationInstance @relation(fields: [integrationInstanceOid], references: [oid], onDelete: Cascade)
 
   sessionTemplateOid BigInt
@@ -42,6 +42,8 @@ model MagicMcpServerBacking {
 
   endpoints               MagicMcpEndpointServerBacking[]
   magicMcpServerProviders MagicMcpServerProvider[]
+
+  @@index([integrationInstanceOid, ownerType])
 }
 
 model MagicMcpServerProvider {
@@ -57,7 +59,7 @@ model MagicMcpServerProvider {
   integrationProviderOid BigInt
   integrationProvider    IntegrationProvider @relation(fields: [integrationProviderOid], references: [oid], onDelete: Cascade)
 
-  integrationInstanceProviderOid BigInt?                      @unique
+  integrationInstanceProviderOid BigInt?
   integrationInstanceProvider    IntegrationInstanceProvider? @relation(fields: [integrationInstanceProviderOid], references: [oid], onDelete: SetNull)
 
   createdAt DateTime @default(now())
@@ -67,6 +69,7 @@ model MagicMcpServerProvider {
   @@index([status])
   @@index([magicMcpServerBackingOid, status])
   @@index([integrationProviderOid, status])
+  @@index([integrationInstanceProviderOid])
 }
 
 model MagicMcpEndpointBacking {

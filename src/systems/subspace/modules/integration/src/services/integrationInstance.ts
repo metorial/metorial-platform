@@ -88,8 +88,7 @@ export let integrationInstanceInclude = {
   integrationInstanceProviders: {
     where: { status: 'active' as const, isParentDeleted: false },
     include: integrationInstanceProviderInclude
-  },
-  magicMcpServerBacking: true
+  }
 } as const;
 
 export let magicMcpBackingIntegrationInstanceInclude = {

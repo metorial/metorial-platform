@@ -22,10 +22,11 @@ import {
 } from '../../queues/lifecycle/magicMcpBackingReconcile';
 import {
   type BackingProviderInput,
-  getMagicMcpOwnerType,
   type MagicMcpBackingInputBase,
+  type MagicMcpOwnerType,
   magicMcpProviderTemplateBackingInclude,
   magicMcpServerBackingInclude,
+  resolveMagicMcpBackingPolicy,
   resolveActorOid,
   withMagicMcpBackingLock
 } from './shared';
@@ -390,14 +391,30 @@ class magicMcpServerBackingServiceImpl {
     let backing = await this.getMagicMcpServerBackingById(d);
     checkTenant(d, backing.integrationInstance);
 
-    await integrationInstanceService.archiveIntegrationInstance({
-      tenant: d.tenant,
-      solution: d.solution,
-      environment: d.environment,
-      integrationInstance: backing.integrationInstance,
-      _canModifyMagicMcpBacking: true
+    let policy = resolveMagicMcpBackingPolicy(backing);
+    let archivedAt = new Date();
+
+    await db.magicMcpServerProvider.updateMany({
+      where: {
+        magicMcpServerBackingOid: backing.oid,
+        status: { in: ['pending', 'active'] }
+      },
+      data: {
+        status: 'archived',
+        archivedAt
+      }
     });
-    if (getMagicMcpOwnerType(backing) === 'server_owned' && backing.integration) {
+
+    if (policy.archivesIntegrationInstance) {
+      await integrationInstanceService.archiveIntegrationInstance({
+        tenant: d.tenant,
+        solution: d.solution,
+        environment: d.environment,
+        integrationInstance: backing.integrationInstance,
+        _canModifyMagicMcpBacking: true
+      });
+    }
+    if (policy.archivesIntegration && backing.integration) {
       await integrationService.archiveIntegration({
         tenant: d.tenant,
         solution: d.solution,
@@ -427,6 +444,78 @@ class magicMcpServerBackingServiceImpl {
     });
 
     return await this.getMagicMcpServerBackingById(d);
+  }
+
+  async resolveMagicMcpServerBackingIdsByIntegrationResource(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    integrationId?: string | null;
+    integrationInstanceId?: string | null;
+  }) {
+    if (!d.integrationId && !d.integrationInstanceId) return [];
+
+    let rows = await db.magicMcpServerBacking.findMany({
+      where: {
+        ownerType: 'integration',
+        integrationInstance: {
+          tenantOid: d.tenant.oid,
+          solutionOid: d.solution.oid,
+          environmentOid: d.environment.oid,
+          id: d.integrationInstanceId ?? undefined,
+          integration: d.integrationId ? { id: d.integrationId } : undefined
+        }
+      },
+      select: {
+        id: true
+      }
+    });
+
+    return [...new Set(rows.map(row => row.id))].sort();
+  }
+
+  async resolveMagicMcpServerBackingIdsForIntegrationInstanceUsage(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    integrationInstanceId: string;
+    ownerTypes?: MagicMcpOwnerType[];
+  }) {
+    let integrationInstance = await db.integrationInstance.findFirst({
+      where: {
+        id: d.integrationInstanceId,
+        tenantOid: d.tenant.oid,
+        solutionOid: d.solution.oid,
+        environmentOid: d.environment.oid
+      },
+      select: {
+        oid: true
+      }
+    });
+    if (!integrationInstance) {
+      throw new ServiceError(notFoundError('integration.instance', d.integrationInstanceId));
+    }
+
+    let ownerTypes = d.ownerTypes?.length
+      ? d.ownerTypes
+      : (['server_owned', 'provider_template', 'integration'] satisfies MagicMcpOwnerType[]);
+
+    let rows = await db.magicMcpServerBacking.findMany({
+      where: {
+        ownerType: { in: ownerTypes },
+        integrationInstance: {
+          tenantOid: d.tenant.oid,
+          solutionOid: d.solution.oid,
+          environmentOid: d.environment.oid
+        },
+        integrationInstanceOid: integrationInstance.oid
+      },
+      select: {
+        id: true
+      }
+    });
+
+    return [...new Set(rows.map(row => row.id))].sort();
   }
 }
 
