@@ -114,9 +114,15 @@ export let mapPortalsAccessDeleteOutput =
                 id: mtMap.objectField('id', mtMap.passthrough()),
                 status: mtMap.objectField('status', mtMap.passthrough()),
                 name: mtMap.objectField('name', mtMap.passthrough()),
-                description: mtMap.objectField('description', mtMap.passthrough()),
+                description: mtMap.objectField(
+                  'description',
+                  mtMap.passthrough()
+                ),
                 metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-                integrationId: mtMap.objectField('integration_id', mtMap.passthrough()),
+                integrationId: mtMap.objectField(
+                  'integration_id',
+                  mtMap.passthrough()
+                ),
                 createdAt: mtMap.objectField('created_at', mtMap.date()),
                 updatedAt: mtMap.objectField('updated_at', mtMap.date())
               })
@@ -128,7 +134,10 @@ export let mapPortalsAccessDeleteOutput =
                 id: mtMap.objectField('id', mtMap.passthrough()),
                 status: mtMap.objectField('status', mtMap.passthrough()),
                 name: mtMap.objectField('name', mtMap.passthrough()),
-                description: mtMap.objectField('description', mtMap.passthrough())
+                description: mtMap.objectField(
+                  'description',
+                  mtMap.passthrough()
+                )
               })
             ),
             skill: mtMap.objectField(
@@ -148,7 +157,10 @@ export let mapPortalsAccessDeleteOutput =
                 status: mtMap.objectField('status', mtMap.passthrough()),
                 owner: mtMap.objectField('owner', mtMap.passthrough()),
                 name: mtMap.objectField('name', mtMap.passthrough()),
-                description: mtMap.objectField('description', mtMap.passthrough())
+                description: mtMap.objectField(
+                  'description',
+                  mtMap.passthrough()
+                )
               })
             ),
             skillGroup: mtMap.objectField(
@@ -158,7 +170,10 @@ export let mapPortalsAccessDeleteOutput =
                 id: mtMap.objectField('id', mtMap.passthrough()),
                 status: mtMap.objectField('status', mtMap.passthrough()),
                 name: mtMap.objectField('name', mtMap.passthrough()),
-                description: mtMap.objectField('description', mtMap.passthrough())
+                description: mtMap.objectField(
+                  'description',
+                  mtMap.passthrough()
+                )
               })
             ),
             skillMarketplace: mtMap.objectField(
@@ -182,7 +197,10 @@ export let mapPortalsAccessDeleteOutput =
         name: mtMap.objectField('name', mtMap.passthrough()),
         description: mtMap.objectField('description', mtMap.passthrough()),
         isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
-        ssoGroupIds: mtMap.objectField('sso_group_ids', mtMap.array(mtMap.passthrough())),
+        ssoGroupIds: mtMap.objectField(
+          'sso_group_ids',
+          mtMap.array(mtMap.passthrough())
+        ),
         createdAt: mtMap.objectField('created_at', mtMap.date()),
         updatedAt: mtMap.objectField('updated_at', mtMap.date())
       })
@@ -190,3 +208,4 @@ export let mapPortalsAccessDeleteOutput =
     createdAt: mtMap.objectField('created_at', mtMap.date()),
     updatedAt: mtMap.objectField('updated_at', mtMap.date())
   });
+

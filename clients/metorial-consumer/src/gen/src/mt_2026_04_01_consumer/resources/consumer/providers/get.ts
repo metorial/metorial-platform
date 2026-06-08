@@ -151,7 +151,10 @@ export let mapConsumerProvidersGetOutput = mtMap.union([
           name: mtMap.objectField('name', mtMap.passthrough()),
           description: mtMap.objectField('description', mtMap.passthrough()),
           metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-          integrationId: mtMap.objectField('integration_id', mtMap.passthrough()),
+          integrationId: mtMap.objectField(
+            'integration_id',
+            mtMap.passthrough()
+          ),
           createdAt: mtMap.objectField('created_at', mtMap.date()),
           updatedAt: mtMap.objectField('updated_at', mtMap.date())
         })
@@ -169,7 +172,10 @@ export let mapConsumerProvidersGetOutput = mtMap.union([
               object: mtMap.objectField('object', mtMap.passthrough()),
               id: mtMap.objectField('id', mtMap.passthrough()),
               name: mtMap.objectField('name', mtMap.passthrough()),
-              description: mtMap.objectField('description', mtMap.passthrough()),
+              description: mtMap.objectField(
+                'description',
+                mtMap.passthrough()
+              ),
               imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
               createdAt: mtMap.objectField('created_at', mtMap.date()),
               updatedAt: mtMap.objectField('updated_at', mtMap.date())
@@ -184,9 +190,15 @@ export let mapConsumerProvidersGetOutput = mtMap.union([
               providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
               isCurrent: mtMap.objectField('is_current', mtMap.passthrough()),
               name: mtMap.objectField('name', mtMap.passthrough()),
-              description: mtMap.objectField('description', mtMap.passthrough()),
+              description: mtMap.objectField(
+                'description',
+                mtMap.passthrough()
+              ),
               metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-              specificationId: mtMap.objectField('specification_id', mtMap.passthrough()),
+              specificationId: mtMap.objectField(
+                'specification_id',
+                mtMap.passthrough()
+              ),
               createdAt: mtMap.objectField('created_at', mtMap.date()),
               updatedAt: mtMap.objectField('updated_at', mtMap.date())
             })
@@ -195,7 +207,10 @@ export let mapConsumerProvidersGetOutput = mtMap.union([
             'oauth',
             mtMap.object({
               status: mtMap.objectField('status', mtMap.passthrough()),
-              callbackUrl: mtMap.objectField('callback_url', mtMap.passthrough()),
+              callbackUrl: mtMap.objectField(
+                'callback_url',
+                mtMap.passthrough()
+              ),
               autoRegistration: mtMap.objectField(
                 'auto_registration',
                 mtMap.object({
@@ -222,7 +237,10 @@ export let mapConsumerProvidersGetOutput = mtMap.union([
           description: mtMap.objectField('description', mtMap.passthrough()),
           isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
           providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-          lockedVersionId: mtMap.objectField('locked_version_id', mtMap.passthrough())
+          lockedVersionId: mtMap.objectField(
+            'locked_version_id',
+            mtMap.passthrough()
+          )
         })
       ),
       toolFilter: mtMap.objectField('tool_filter', mtMap.passthrough()),
@@ -243,7 +261,10 @@ export let mapConsumerProvidersGetOutput = mtMap.union([
             key: mtMap.objectField('key', mtMap.passthrough()),
             name: mtMap.objectField('name', mtMap.passthrough()),
             description: mtMap.objectField('description', mtMap.passthrough()),
-            capabilities: mtMap.objectField('capabilities', mtMap.passthrough()),
+            capabilities: mtMap.objectField(
+              'capabilities',
+              mtMap.passthrough()
+            ),
             inputSchema: mtMap.objectField(
               'input_schema',
               mtMap.object({
@@ -266,7 +287,10 @@ export let mapConsumerProvidersGetOutput = mtMap.union([
                   id: mtMap.objectField('id', mtMap.passthrough()),
                   scope: mtMap.objectField('scope', mtMap.passthrough()),
                   name: mtMap.objectField('name', mtMap.passthrough()),
-                  description: mtMap.objectField('description', mtMap.passthrough())
+                  description: mtMap.objectField(
+                    'description',
+                    mtMap.passthrough()
+                  )
                 })
               )
             ),
@@ -293,3 +317,4 @@ export let mapConsumerProvidersGetOutput = mtMap.union([
     })
   )
 ]);
+
