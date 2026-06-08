@@ -1,7 +1,6 @@
 import type {
   DashboardInstanceProviderListingsGetOutput,
-  DashboardInstanceProvidersGetOutput,
-  DashboardInstanceProvidersVersionsListOutput
+  DashboardInstanceProvidersGetOutput
 } from '@metorial/dashboard-sdk';
 import { InitialLoadBoundary, renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
@@ -16,32 +15,18 @@ import {
   useProviderVersions
 } from '@metorial/state';
 import { Avatar, Button, Callout, Flex, LinkTabs, Spacer } from '@metorial/ui';
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, Outlet, useLocation, useParams } from 'react-router-dom';
 import { UseProviderButton } from '../../scenes/providers/useProviderButton';
+import {
+  ProviderVersionContext,
+  type ProviderVersion,
+  type ProviderVersionContextValue,
+  type ProviderVersionId
+} from './providerVersionContext';
 
-type ProviderVersion = DashboardInstanceProvidersVersionsListOutput['items'][number];
-type ProviderVersionId = ProviderVersion['id'];
 type ProviderListing = DashboardInstanceProviderListingsGetOutput;
 type ProviderData = DashboardInstanceProvidersGetOutput;
-
-type ProviderVersionContextValue = {
-  selectedVersionId: ProviderVersionId | undefined;
-  setSelectedVersionId: (id: ProviderVersionId | undefined) => void;
-  currentVersionId: ProviderVersionId | undefined;
-  selectedVersion: ProviderVersion | undefined;
-  allVersions: ProviderVersion[];
-  isDefaultVersion: boolean;
-  resetToDefault: () => void;
-};
-
-let ProviderVersionContext = createContext<ProviderVersionContextValue | null>(null);
-
-export let useProviderVersionContext = () => {
-  let ctx = useContext(ProviderVersionContext);
-  if (!ctx) throw new Error('useProviderVersionContext must be used within ProviderLayout');
-  return ctx;
-};
 
 export let ProviderLayout = () => {
   let instance = useCurrentInstance();

@@ -1,6 +1,6 @@
 import { Badge, Button, Entity, Flex, RenderDate, Spacer, Text } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
-import { useProviderVersionContext } from './_layout';
+import { useProviderVersionContext } from './providerVersionContext';
 
 export let ProviderVersionsPage = () => {
   let { selectedVersionId, setSelectedVersionId, currentVersionId, allVersions } =

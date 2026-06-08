@@ -120,7 +120,7 @@ let GridButton = styled.button`
 
   &:disabled {
     cursor: not-allowed;
-    opacity: 0.55;
+    opacity: 0.72;
   }
 `;
 
@@ -145,7 +145,11 @@ let ProviderCardWrapper = styled.div`
   position: relative;
 
   &[data-disabled='true'] {
-    opacity: 0.55;
+    opacity: 0.72;
+  }
+
+  &[data-creating='true'] [data-button='true'] {
+    opacity: 0.72;
   }
 
   [data-button='true'] {

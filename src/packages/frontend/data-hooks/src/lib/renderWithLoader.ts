@@ -91,6 +91,18 @@ let renderLoaderError = (error: LoaderError, opts: RenderWithLoaderOptions) =>
           'An error occurred'
       });
 
+let renderContentStyle = (visible: boolean): React.CSSProperties =>
+  visible
+    ? { display: 'contents' }
+    : {
+        display: 'block',
+        height: 0,
+        opacity: 0,
+        overflow: 'hidden',
+        pointerEvents: 'none',
+        visibility: 'hidden'
+      };
+
 let RenderWithLoaderInner = <Loaders extends RenderWithLoaderLoaders>({
   loaders,
   opts,
@@ -221,7 +233,7 @@ let RenderWithLoaderInner = <Loaders extends RenderWithLoaderLoaders>({
   let inner = canRenderChildren
     ? React.createElement('div', {
         key: 'content',
-        style: { display: phase == 'revealed' ? 'contents' : 'none' },
+        style: renderContentStyle(phase == 'revealed'),
         children: children(loaders as any)
       })
     : null;
