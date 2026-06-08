@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@metorial/ui": "^1.0.0",
+    "@radix-ui/react-popover": "^1.1.11",
     "react": "^19.0.0",
     "react-use": "^17.5.1",
     "copy-to-clipboard": "^3.3.3",

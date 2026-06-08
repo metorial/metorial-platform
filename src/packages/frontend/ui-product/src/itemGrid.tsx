@@ -42,7 +42,13 @@ let HeaderContent = styled.div`
   display: flex;
   flex-direction: column;
   gap: 5px;
+  flex: 1;
+  min-width: 0;
   max-width: 100%;
+`;
+
+let IconSlot = styled.div`
+  width: 100%;
 `;
 
 let MenuWrapper = styled.div`
@@ -71,6 +77,7 @@ export let ItemGrid = {
     description,
     icon,
     entity,
+    showCopyId = true,
     menu,
     onClick,
     bottom,
@@ -81,6 +88,7 @@ export let ItemGrid = {
     description?: React.ReactNode;
     icon?: React.ReactNode;
     entity?: { id: string; hasUsage?: boolean };
+    showCopyId?: boolean;
     menu?: { label: string; onClick: () => void }[];
     onClick?: () => void;
     bottom?: React.ReactNode;
@@ -88,7 +96,7 @@ export let ItemGrid = {
     height?: number;
   }) => {
     let menuItems = [
-      ...(entity ? [{ id: 'id', label: 'Copy ID' }] : []),
+      ...(entity && showCopyId ? [{ id: 'id', label: 'Copy ID' }] : []),
       ...(menu?.map((item, i) => ({ id: String(i), label: item.label })) ?? [])
     ];
 
@@ -101,7 +109,7 @@ export let ItemGrid = {
       >
         <Header>
           <HeaderContent>
-            {icon && <div>{icon}</div>}
+            {icon && <IconSlot>{icon}</IconSlot>}
 
             <Title as="h2" size={small ? '3' : '4'} weight="strong">
               {title}

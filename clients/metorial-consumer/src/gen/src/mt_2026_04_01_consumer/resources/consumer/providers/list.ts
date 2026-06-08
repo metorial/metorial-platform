@@ -72,6 +72,7 @@ export type ConsumerProvidersListOutput = {
           providerId: string;
           lockedVersionId: string | null;
         };
+        toolFilter: any;
         configSchema: {
           type: 'json_schema';
           schema: Record<string, any>;
@@ -296,6 +297,7 @@ export let mapConsumerProvidersListOutput =
                   )
                 })
               ),
+              toolFilter: mtMap.objectField('tool_filter', mtMap.passthrough()),
               configSchema: mtMap.objectField(
                 'config_schema',
                 mtMap.object({
@@ -404,7 +406,10 @@ export type ConsumerProvidersListQuery = {
   before?: string | undefined;
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
-} & { search?: string | undefined; providerGroupId?: string | undefined };
+} & {
+  search?: string | undefined;
+  providerGroupId?: string | string[] | undefined;
+};
 
 export let mapConsumerProvidersListQuery = mtMap.union([
   mtMap.unionOption(
@@ -418,7 +423,13 @@ export let mapConsumerProvidersListQuery = mtMap.union([
       search: mtMap.objectField('search', mtMap.passthrough()),
       providerGroupId: mtMap.objectField(
         'provider_group_id',
-        mtMap.passthrough()
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
       )
     })
   )
