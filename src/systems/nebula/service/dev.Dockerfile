@@ -4,16 +4,13 @@ WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends python3 python3-setuptools make g++ && rm -rf /var/lib/apt/lists/*
 
-# Copy package files
-COPY package.json bun.lock* ./
-
-# Install dependencies
-RUN bun install
-
-# Copy source code
+# Install from the OSS workspace root so workspace dependencies resolve locally.
 COPY . .
+RUN bun install --linker=hoisted
+RUN bunx turbo run --ui=stream build --filter='./src/lowerdeck/packages/**'
 
-# Expose port
+WORKDIR /app/src/systems/nebula/service
+
 EXPOSE 52170
 
 # Run in dev mode with hot reloading

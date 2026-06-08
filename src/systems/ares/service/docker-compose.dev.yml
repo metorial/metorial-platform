@@ -60,8 +60,8 @@ services:
   ares:
     profiles: ['service']
     build:
-      context: .
-      dockerfile: dev.Dockerfile
+      context: ../../../..
+      dockerfile: src/systems/ares/service/dev.Dockerfile
     container_name: ares-service
     restart: unless-stopped
     ports:
@@ -99,13 +99,13 @@ services:
       EMAIL_SES_SECRET_ACCESS_KEY: ${EMAIL_SES_SECRET_ACCESS_KEY:-}
       EMAIL_SES_REGION: ${EMAIL_SES_REGION:-}
     volumes:
-      - ./src:/app/service/src:ro
-      - ./frontend:/app/service/frontend:ro
-      - ./package.json:/app/service/package.json:ro
-      - ./tsconfig.json:/app/service/tsconfig.json:ro
-      - ./tsconfig.backend.json:/app/service/tsconfig.backend.json:ro
-      - ./prisma:/app/service/prisma:ro
-      - ./prisma.config.ts:/app/service/prisma.config.ts:ro
+      - ./src:/app/src/systems/ares/service/src:ro
+      - ./frontend:/app/src/systems/ares/service/frontend:ro
+      - ./package.json:/app/src/systems/ares/service/package.json:ro
+      - ./tsconfig.json:/app/src/systems/ares/service/tsconfig.json:ro
+      - ./tsconfig.backend.json:/app/src/systems/ares/service/tsconfig.backend.json:ro
+      - ./prisma:/app/src/systems/ares/service/prisma:ro
+      - ./prisma.config.ts:/app/src/systems/ares/service/prisma.config.ts:ro
     depends_on:
       postgres:
         condition: service_healthy

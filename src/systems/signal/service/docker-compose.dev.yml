@@ -67,8 +67,8 @@ services:
   signal:
     profiles: ['service']
     build:
-      context: .
-      dockerfile: dev.Dockerfile
+      context: ../../../..
+      dockerfile: src/systems/signal/service/dev.Dockerfile
     container_name: signal-service
     restart: unless-stopped
     ports:
@@ -79,9 +79,9 @@ services:
       OBJECT_STORAGE_URL: ${OBJECT_STORAGE_URL}
       LOGS_BUCKET_NAME: ${LOGS_BUCKET_NAME}
     volumes:
-      - ./src:/app/service/src:ro
-      - ./package.json:/app/service/package.json:ro
-      - ./tsconfig.json:/app/service/tsconfig.json:ro
+      - ./src:/app/src/systems/signal/service/src:ro
+      - ./package.json:/app/src/systems/signal/service/package.json:ro
+      - ./tsconfig.json:/app/src/systems/signal/service/tsconfig.json:ro
     depends_on:
       postgres:
         condition: service_healthy

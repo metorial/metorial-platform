@@ -67,8 +67,8 @@ services:
   forge:
     profiles: ['service']
     build:
-      context: .
-      dockerfile: dev.Dockerfile
+      context: ../../../..
+      dockerfile: src/systems/forge/service/dev.Dockerfile
     container_name: forge-service
     restart: unless-stopped
     ports:
@@ -90,9 +90,9 @@ services:
       CODE_BUILD_PROJECT_NAME: ${CODE_BUILD_PROJECT_NAME:-}
       CODE_BUILD_ROLE_ARN: ${CODE_BUILD_ROLE_ARN:-}
     volumes:
-      - ./src:/app/src:ro
-      - ./package.json:/app/package.json:ro
-      - ./tsconfig.json:/app/tsconfig.json:ro
+      - ./src:/app/src/systems/forge/service/src:ro
+      - ./package.json:/app/src/systems/forge/service/package.json:ro
+      - ./tsconfig.json:/app/src/systems/forge/service/tsconfig.json:ro
     depends_on:
       postgres:
         condition: service_healthy
