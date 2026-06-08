@@ -39,6 +39,7 @@ export let processAuthQueueProcessor = processAuthQueue.process(async data => {
   });
 
   let secretUpdated = false;
+  let grantedScopes: string[] | undefined;
 
   if (
     decrypted.input &&
@@ -124,6 +125,9 @@ export let processAuthQueueProcessor = processAuthQueue.process(async data => {
     }
 
     decrypted.output = res.data.output;
+    if (res.data.scopes?.length) {
+      grantedScopes = res.data.scopes;
+    }
     secretUpdated = true;
   }
 
@@ -146,7 +150,13 @@ export let processAuthQueueProcessor = processAuthQueue.process(async data => {
 
   await db.slateAuthConfig.updateMany({
     where: { oid: authConfig.oid },
-    data: { isProcessing: false, errorCode: null, errorMessage: null, errorInvocationId: null }
+    data: {
+      isProcessing: false,
+      errorCode: null,
+      errorMessage: null,
+      errorInvocationId: null,
+      ...(grantedScopes ? { grantedScopes } : {})
+    }
   });
 
   if (authConfig.authMethod.spec.capabilities.getProfile?.enabled) {

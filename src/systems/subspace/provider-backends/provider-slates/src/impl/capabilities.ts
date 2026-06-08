@@ -174,6 +174,7 @@ export class ProviderCapabilities extends IProviderCapabilities {
           type: 'tool.callable'
         },
         scopes: t.scopes ?? null,
+        authMethods: t.authMethods ?? null,
         tags: t.tags,
         metadata: {}
       }))

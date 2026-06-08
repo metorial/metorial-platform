@@ -6,12 +6,14 @@ import {
   type Environment,
   type ProviderAuthConfig,
   type ProviderAuthCredentials,
+  type ProviderAuthMethod,
   type ProviderSpecification,
   type ProviderVersion,
   type Solution,
   type Tenant
 } from '@metorial-subspace/db';
 import {
+  checkToolAuthMethodSatisfied,
   checkToolScopesSatisfied,
   resolveGrantedScopes
 } from '@metorial-subspace/module-provider-internal';
@@ -180,7 +182,7 @@ class providerToolServiceImpl {
 
     providerVersion: ProviderVersion;
 
-    providerAuthConfig?: ProviderAuthConfig | null;
+    providerAuthConfig?: (ProviderAuthConfig & { authMethod?: ProviderAuthMethod | null }) | null;
     providerAuthCredentials?: ProviderAuthCredentials | null;
   }) {
     let version = d.providerVersion?.oid
@@ -201,16 +203,31 @@ class providerToolServiceImpl {
       authConfig: d.providerAuthConfig,
       authCredentials: d.providerAuthCredentials
     });
+    let authMethod = d.providerAuthConfig
+      ? ((d.providerAuthConfig as any).authMethod ??
+        (await db.providerAuthMethod.findUnique({
+          where: { oid: d.providerAuthConfig.authMethodOid }
+        })))
+      : null;
 
-    if (grantedScopes === null) {
+    if (grantedScopes === null && !d.providerAuthConfig) {
       return Paginator.create(({ prisma }) => prisma(opts => queryTools(ctx, opts)));
     }
 
     return Paginator.create(() => async input => {
       let allTools = await queryTools(ctx);
-      let filtered = allTools.filter(
-        tool => checkToolScopesSatisfied(tool, grantedScopes).allowed
-      );
+      let filtered = allTools.filter(tool => {
+        if (
+          d.providerAuthConfig &&
+          !checkToolAuthMethodSatisfied(tool, authMethod).allowed
+        ) {
+          return false;
+        }
+
+        return grantedScopes === null
+          ? true
+          : checkToolScopesSatisfied(tool, grantedScopes).allowed;
+      });
       return paginateInMemory(filtered, input);
     });
   }

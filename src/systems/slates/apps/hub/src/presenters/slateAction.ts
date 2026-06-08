@@ -27,6 +27,7 @@ export let slateActionPresenter = (
   metadata: method.spec.metadata,
   tags: method.spec.tags,
   scopes: method.spec.scopes,
+  authMethods: method.spec.authMethods,
 
   createdAt: method.createdAt
 });
