@@ -27,6 +27,10 @@ export type EndpointDescriptor = {
 
   hideInDocs?: boolean;
   deprecated?: boolean;
+  confidential?: boolean;
+
+  /** HTTP-only aliases; registered on the server but excluded from introspect allPaths */
+  legacyPaths?: string[];
 };
 
 export type ControllerCategory = {
@@ -40,8 +44,9 @@ export type ControllerDescriptor = EndpointDescriptor & {
   category?: ControllerCategory;
 };
 
-export let createCategory = <Category extends ControllerCategory>(category: Category): Category =>
-  category;
+export let createCategory = <Category extends ControllerCategory>(
+  category: Category
+): Category => category;
 
 export type GetHandlerContext<
   AuthInfo,
@@ -396,6 +401,13 @@ export class Handler<
     return this;
   }
 
+  getRoutePaths() {
+    return [
+      ...this.paths.map(p => p.path),
+      ...(this.descriptor.legacyPaths ?? [])
+    ];
+  }
+
   introspect(i: { apiVersion: string }) {
     return {
       path: this.paths[0],
@@ -404,6 +416,7 @@ export class Handler<
       name: this.descriptor.name,
       description: this.descriptor.description,
       hideInDocs: this.descriptor.hideInDocs,
+      confidential: this.descriptor.confidential,
       body: this._validationBody
         ? {
             name: 'Body',

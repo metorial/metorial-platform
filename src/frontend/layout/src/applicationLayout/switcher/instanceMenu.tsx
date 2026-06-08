@@ -2,10 +2,9 @@ import { Paths } from '@metorial/frontend-config';
 import {
   useCurrentInstance,
   useCurrentOrganization,
-  useCurrentProject,
-  useInstances
+  useCurrentProject
 } from '@metorial/state';
-import { Menu, theme } from '@metorial/ui';
+import { Button, Menu, theme } from '@metorial/ui';
 import { RiArrowDownSLine } from '@remixicon/react';
 import React, { useLayoutEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -22,12 +21,19 @@ let Wrapper = styled('div')`
 
 let Header = styled('header')`
   display: flex;
-  height: ${HEIGHT}px;
-  align-items: center;
-  padding: 0px 10px;
+  position: sticky;
+  flex-direction: column;
   position: sticky;
   top: 0;
   z-index: 10;
+  background: ${theme.colors.background};
+`;
+
+let HeaderBar = styled('div')`
+  display: flex;
+  height: ${HEIGHT}px;
+  align-items: center;
+  padding: 0px 10px;
   flex-shrink: 0;
   transition: background 0.2s;
 `;
@@ -40,68 +46,16 @@ let HeaderMarker = styled('div')`
   transition: all 0.2s;
   padding-bottom: 15px;
   z-index: 11;
-
-  & > div {
-    height: 10px;
-    min-width: 100px;
-    max-width: 100px;
-    border-radius: 5px;
-    transition: all 0.2s;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    & > div {
-      opacity: 0;
-      pointer-events: none;
-      transition: all 0.2s;
-      padding: 0px;
-    }
-  }
-
-  &:hover,
-  &:focus,
-  &:active,
-  &:focus-within,
-  &[data-state='open'] {
-    padding-top: 10px;
-
-    & > div {
-      border-radius: 100px;
-      width: auto;
-      height: 30px;
-      min-width: 30px;
-      max-width: 500px;
-
-      & > div {
-        opacity: 1;
-        pointer-events: all;
-      }
-    }
-  }
 `;
 
-let TitleButton = styled('button')`
-  background: none;
-  border: none;
-  color: ${theme.colors.gray900};
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 600;
-  padding: 0px 7px 0px 9px;
+let InstanceBar = styled.div`
   display: flex;
   align-items: center;
-  gap: 4px;
-  transition: background 0.2s;
-  border-radius: 60px;
-  outline: none;
-  height: 30px;
-
-  &:focus,
-  &:active {
-    background: rgba(0, 0, 0, 0.05);
-  }
+  padding: 8px 24px 8px 12px;
+  border-bottom: 1px solid ${theme.colors.gray300};
+  gap: 15px;
+  justify-content: space-between;
+  flex-shrink: 0;
 `;
 
 let RestrictedWrapper = styled('div')`
@@ -119,7 +73,6 @@ export let InstanceMenuLayout = ({ children }: { children: React.ReactNode }) =>
   let instance = useCurrentInstance();
   let project = useCurrentProject();
   let org = useCurrentOrganization();
-  let projects = useInstances(instance.data?.organizationId);
 
   let [restrictHeight, setRestrictHeight] = useState(false);
   let restrictHeightRef = useRef(false);
@@ -142,13 +95,16 @@ export let InstanceMenuLayout = ({ children }: { children: React.ReactNode }) =>
   let navigate = useNavigate();
   let [selectorOpen, setSelectorOpen] = useState(false);
 
-  let createInstanceMutator = projects.createMutator();
-
   let color = !instance.data
     ? ('white' as const)
     : instance.data.type == 'production'
       ? ('blue' as const)
       : ('orange' as const);
+
+  if (!instance.data || instance.data.type === 'production') return <>{children}</>;
+
+  let productionInstance = project.data?.instances.find(i => i.type === 'production');
+  let devInstances = project.data?.instances.filter(i => i.type === 'development') ?? [];
 
   return (
     <Wrapper
@@ -156,81 +112,175 @@ export let InstanceMenuLayout = ({ children }: { children: React.ReactNode }) =>
         height: restrictHeight ? '100%' : undefined
       }}
     >
-      <Header
-        style={{
-          background: theme.colors[`${color}700`]
-        }}
-      >
-        <HeaderMarker data-state={selectorOpen ? 'open' : 'closed'}>
-          <div style={{ background: theme.colors[`${color}700`] }}>
-            <div>
-              <Menu
-                setIsOpen={setSelectorOpen}
-                title="Select Instance"
-                items={[
-                  ...(project.data?.instances.map(instance => ({
-                    id: instance.slug,
-                    label: instance.name
-                  })) ?? []),
-                  ...(!project.data?.instances.some(i => i.type == 'production')
-                    ? [
-                        {
-                          id: '__production_instance__',
-                          label: 'Production'
-                        }
-                      ]
-                    : []),
-                  { type: 'separator' },
-                  {
-                    id: '__new_instance__',
-                    label: 'Create Instance'
-                  }
-                ]}
-                onItemClick={async id => {
-                  if (id == '__production_instance__') {
-                    // @ts-ignore
-                    await window.metorial_enterprise?.beforeCreateInstance?.();
-                    let [res] = await createInstanceMutator.mutate({
-                      name: 'Production',
-                      type: 'production',
-                      projectId: project.data?.id!
-                    });
-                    if (res) navigate(Paths.instance(org.data!, project.data!, res));
-                  } else if (id == '__new_instance__') {
-                    // @ts-ignore
-                    await window.metorial_enterprise?.beforeCreateInstance?.();
-                    createInstance(project.data!);
-                  } else {
-                    let foundInstance = project.data?.instances.find(
-                      i => i.slug == id || i.id == id
-                    );
-                    if (!foundInstance) return;
-
-                    navigate(
-                      Paths.instance(
-                        org.data!,
-                        project.data!,
-                        foundInstance
-                        // afterPath
-                      )
-                    );
-                  }
-                }}
-              >
-                <TitleButton>
-                  <span>{instance.data?.name}</span>
-
-                  <RiArrowDownSLine size={16} />
-                </TitleButton>
-              </Menu>
+      <Header>
+        <HeaderBar
+          style={{
+            background: theme.colors[`${color}700`]
+          }}
+        >
+          <HeaderMarker data-state={selectorOpen ? 'open' : 'closed'}>
+            <div style={{ background: theme.colors[`${color}700`] }}>
+              <div></div>
             </div>
-          </div>
-        </HeaderMarker>
+          </HeaderMarker>
+        </HeaderBar>
+
+        <InstanceBar>
+          <Menu
+            setIsOpen={setSelectorOpen}
+            title="Select Sandbox"
+            items={[
+              ...devInstances.map(instance => ({
+                id: instance.slug,
+                label: instance.name
+              })),
+              ...(devInstances.length
+                ? [
+                    {
+                      type: 'separator' as const
+                    }
+                  ]
+                : []),
+              ...(productionInstance
+                ? [
+                    {
+                      id: productionInstance.slug,
+                      label: 'Exit Sandbox'
+                    }
+                  ]
+                : [
+                    {
+                      id: '__new_instance__',
+                      label: 'Create Sandbox'
+                    }
+                  ])
+            ]}
+            onItemClick={async id => {
+              if (id == '__new_instance__') {
+                // @ts-ignore
+                await window.metorial_enterprise?.beforeCreateInstance?.();
+                createInstance(project.data!);
+              } else {
+                let foundInstance = project.data?.instances.find(
+                  i => i.slug == id || i.id == id
+                );
+                if (!foundInstance) return;
+
+                navigate(
+                  Paths.instance(
+                    org.data!,
+                    project.data!,
+                    foundInstance
+                    // afterPath
+                  )
+                );
+              }
+            }}
+          >
+            <Button iconRight={<RiArrowDownSLine />} size="2" variant="outline">
+              {instance.data?.name}
+            </Button>
+          </Menu>
+
+          {productionInstance && (
+            <Button
+              size="2"
+              variant="outline"
+              onClick={() => {
+                navigate(
+                  Paths.instance(
+                    org.data!,
+                    project.data!,
+                    productionInstance
+                    // afterPath
+                  )
+                );
+              }}
+            >
+              Exit Sandbox
+            </Button>
+          )}
+        </InstanceBar>
       </Header>
 
       <RestrictedWrapper data-state={restrictHeight ? 'active' : 'closed'}>
         {children}
       </RestrictedWrapper>
     </Wrapper>
+  );
+};
+
+export let SandboxButton = () => {
+  let instance = useCurrentInstance();
+  let project = useCurrentProject();
+  let org = useCurrentOrganization();
+
+  let productionInstance = project.data?.instances.find(i => i.type === 'production');
+  let devInstances = project.data?.instances.filter(i => i.type === 'development') ?? [];
+
+  let navigate = useNavigate();
+
+  if (!productionInstance) return null;
+
+  return (
+    <Menu
+      title="Select Sandbox"
+      items={[
+        ...devInstances.map(instance => ({
+          id: instance.slug,
+          label: instance.name
+        })),
+        ...(devInstances.length
+          ? [
+              {
+                type: 'separator' as const
+              }
+            ]
+          : []),
+        {
+          id: '__manage_sandboxes__',
+          label: 'Manage Sandboxes'
+        },
+        ...(instance.data?.type === 'development'
+          ? [
+              {
+                id: productionInstance.slug,
+                label: 'Exit Sandbox'
+              }
+            ]
+          : [
+              {
+                id: '__new_instance__',
+                label: 'Create Sandbox'
+              }
+            ])
+      ]}
+      onItemClick={async id => {
+        if (id == '__manage_sandboxes__') {
+          navigate(Paths.organization.project(org.data!, project.data!, 'environments'));
+          return;
+        } else if (id == '__new_instance__') {
+          // @ts-ignore
+          await window.metorial_enterprise?.beforeCreateInstance?.();
+          createInstance(project.data!);
+        } else {
+          let foundInstance = project.data?.instances.find(i => i.slug == id || i.id == id);
+          if (!foundInstance) return;
+
+          navigate(
+            Paths.instance(
+              org.data!,
+              project.data!,
+              foundInstance
+              // afterPath
+            )
+          );
+        }
+      }}
+    >
+      <Button size="2" color="gray400" shadow={false}>
+        Sandboxes
+      </Button>
+    </Menu>
   );
 };

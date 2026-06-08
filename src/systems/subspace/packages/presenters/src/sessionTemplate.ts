@@ -1,4 +1,6 @@
 import type {
+  Identity,
+  IdentityActor,
   IntegrationInstanceGroup,
   IntegrationInstanceGroupProvider,
   IntegrationInstance,
@@ -14,6 +16,8 @@ import { sessionTemplateProviderPresenter } from './sessionTemplateProvider';
 
 export let sessionTemplatePresenter = (
   sessionTemplate: SessionTemplate & {
+    identity: Identity | null;
+    identityActor: IdentityActor | null;
     integrationInstance: IntegrationInstance | null;
     integrationInstanceGroup: IntegrationInstanceGroup | null;
     providers: (SessionTemplateProvider & {
@@ -40,6 +44,9 @@ export let sessionTemplatePresenter = (
 
   integrationInstanceId: sessionTemplate.integrationInstance?.id ?? null,
   integrationInstanceGroupId: sessionTemplate.integrationInstanceGroup?.id ?? null,
+
+  identityActorId: sessionTemplate.identityActor?.id ?? null,
+  identityId: sessionTemplate.identity?.id ?? null,
 
   providers: sessionTemplate.providers
     .filter(p => p.status === 'active')

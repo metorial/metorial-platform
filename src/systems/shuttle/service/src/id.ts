@@ -12,6 +12,7 @@ export let ID = createIdGenerator({
   repositoryTagDiscoveryError: idType.sorted('ctd_'),
 
   serverConfig: idType.sorted('csi_'),
+  serverInstanceConfiguration: idType.sorted('csic_'),
   serverConnection: idType.sorted('csc_'),
   serverDiscovery: idType.sorted('csd_'),
   serverSpecification: idType.sorted('css_'),
@@ -37,8 +38,6 @@ export let ID = createIdGenerator({
   serverOAuthSetup: idType.sorted('csos_'),
   serverOAuthSetupEvent: idType.sorted('csose_'),
   serverOAuthCredentials: idType.sorted('csocd_'),
-
-  networkingRuleset: idType.sorted('cnr_'),
 
   deploymentProvider: idType.sorted('cdp_'),
 

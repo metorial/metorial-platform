@@ -3,12 +3,12 @@ import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { subspaceToolCallService } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
-import { resolveActorIdsForLogFilters } from './_logFilterActors';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { toolCallPresenter } from '../../../presenters';
+import { resolveActorIdsForLogFilters } from './_logFilterActors';
 
 let toolCallGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.toolCallId) {
@@ -98,8 +98,8 @@ export let toolCallController = Controller.create(
         let paginator = await subspaceToolCallService.list({
           instance: ctx.instance,
           allowDeleted: false,
-          agentIds: normalizeArrayParam(ctx.query.agent_id),
           actorIds,
+          agentIds: normalizeArrayParam(ctx.query.agent_id),
           agentInstanceIds: normalizeArrayParam(ctx.query.agent_instance_id),
           sessionTemplateIds: normalizeArrayParam(ctx.query.session_template_id),
           sessionProviderIds: normalizeArrayParam(ctx.query.session_provider_id),

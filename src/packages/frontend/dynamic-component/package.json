@@ -9,6 +9,7 @@
     "lint": "prettier src/**/*.ts --check"
   },
   "dependencies": {
+    "@metorial/data-hooks": "^1.0.0",
     "@metorial/ui": "^1.0.0",
     "p-queue": "^8.1.0"
   },

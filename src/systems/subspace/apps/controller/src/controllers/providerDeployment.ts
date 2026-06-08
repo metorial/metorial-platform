@@ -1,3 +1,4 @@
+import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { providerService, providerVersionService } from '@metorial-subspace/module-catalog';
@@ -142,8 +143,6 @@ export let providerDeploymentController = app.controller({
         providerId: v.string(),
         lockedProviderVersionId: v.optional(v.string()),
 
-        networkingRulesetIds: v.optional(v.array(v.string())),
-
         config: v.optional(configSourceValidator),
         toolFilters: toolFiltersValidator
       })
@@ -205,10 +204,51 @@ export let providerDeploymentController = app.controller({
         description: v.optional(v.string()),
         metadata: v.optional(v.record(v.any())),
         privateMetadata: v.optional(v.record(v.any())),
-        toolFilters: toolFiltersValidator
+        toolFilters: toolFiltersValidator,
+        lockedProviderVersionId: v.optional(v.nullable(v.string()))
       })
     )
     .do(async ctx => {
+      if (
+        ctx.input.lockedProviderVersionId !== undefined &&
+        ctx.providerDeployment.isEphemeral
+      ) {
+        throw new ServiceError(
+          badRequestError({
+            message: 'Cannot update locked version on ephemeral provider deployment',
+            description:
+              'Ephemeral provider deployments are short-lived and cannot have their locked version changed.'
+          })
+        );
+      }
+
+      let lockedVersion: Awaited<
+        ReturnType<typeof providerVersionService.getProviderVersionById>
+      > | null | undefined = undefined;
+
+      if (ctx.input.lockedProviderVersionId !== undefined) {
+        if (ctx.input.lockedProviderVersionId === null) {
+          lockedVersion = null;
+        } else {
+          lockedVersion = await providerVersionService.getProviderVersionById({
+            providerVersionId: ctx.input.lockedProviderVersionId,
+            tenant: ctx.tenant,
+            environment: ctx.environment,
+            solution: ctx.solution
+          });
+
+          if (lockedVersion.providerOid !== ctx.providerDeployment.providerOid) {
+            throw new ServiceError(
+              badRequestError({
+                message: 'Provider version does not belong to this deployment provider',
+                description:
+                  'The locked provider version must belong to the same provider as the deployment.'
+              })
+            );
+          }
+        }
+      }
+
       let providerDeployment = await providerDeploymentService.updateProviderDeployment({
         providerDeployment: ctx.providerDeployment,
         tenant: ctx.tenant,
@@ -220,7 +260,8 @@ export let providerDeploymentController = app.controller({
           description: ctx.input.description,
           metadata: ctx.input.metadata,
           privateMetadata: ctx.input.privateMetadata,
-          toolFilters: normalizeToolFilters(ctx.input.toolFilters as any)
+          toolFilters: normalizeToolFilters(ctx.input.toolFilters as any),
+          lockedVersion
         }
       });
 

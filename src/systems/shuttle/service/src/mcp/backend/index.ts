@@ -26,7 +26,8 @@ export class ConnectionBackend implements McpConnectionBackendAdapter {
       where: { oid: _connection.oid },
       include: {
         serverConfig: true,
-        serverAuthConfig: true
+        serverAuthConfig: true,
+        serverInstanceConfiguration: true
       }
     });
 

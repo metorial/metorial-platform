@@ -37,6 +37,26 @@ export let db = baseClient;
 
 declare global {
   namespace PrismaJson {
+    type PortRange = {
+      from: number;
+      to: number;
+    };
+
+    type CompiledNetworkAllowEntry = {
+      cidr: string;
+      portRange?: PortRange;
+    };
+
+    type CompiledNetworkAllowList = {
+      direction: 'ingress' | 'egress';
+      entries: CompiledNetworkAllowEntry[];
+    };
+
+    type CompiledEgressNetworkAllowList = {
+      direction: 'egress';
+      entries: CompiledNetworkAllowEntry[];
+    };
+
     interface SlateJson {
       name: string;
       version: string;
@@ -50,6 +70,13 @@ declare global {
     } | null;
 
     type SlateConfigSchema = any;
+
+    type SlateDocReference = {
+      type?: string;
+      name: string;
+      url: string;
+    };
+    type SlateDocReferences = SlateDocReference[];
 
     type SlateAuthMethod = SlateAuthenticationMethod;
     type SlateAction = ProtoSlatesAction;

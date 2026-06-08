@@ -1,5 +1,5 @@
 import type { DashboardInstanceProviderListingsListQuery } from '@metorial/dashboard-sdk';
-import { renderWithLoader } from '@metorial/data-hooks';
+import { renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, useProviderListings } from '@metorial/state';
 import { Avatar, Badge, Text } from '@metorial/ui';
@@ -29,7 +29,7 @@ export let ProvidersGrid = (filter: DashboardInstanceProviderListingsListQuery) 
   let instance = useCurrentInstance();
   let providers = useProviderListings(instance.data?.id, filter);
 
-  return renderWithLoader({ providers })(({ providers }) => (
+  return renderWithPagination(providers)(providers => (
     <>
       {providers.data.items.length > 0 && (
         <ItemGrid.Root width="300px">

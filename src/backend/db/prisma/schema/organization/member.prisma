@@ -60,14 +60,20 @@ enum OrganizationInviteStatus {
   deleted
 }
 
+enum OrganizationInviteAction {
+  invite
+  onboarding
+}
+
 model OrganizationInvite {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
   status OrganizationInviteStatus
 
-  type OrganizationInviteType
-  role OrganizationMemberRole
+  type   OrganizationInviteType
+  role   OrganizationMemberRole
+  action OrganizationInviteAction @default(invite)
 
   key String @unique
 

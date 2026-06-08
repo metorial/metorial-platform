@@ -106,7 +106,9 @@ export let deployContainerServerWatchQueueProcessor = deployContainerServerWatch
 
       step.log([
         `Container registry tag successfully discovered. Pinning to server version to digest ${tag.currentVersion?.digest}.`,
-        `New digests for tag '${tag.tag}' will trigger new deployments.`,
+        server.tenantOid
+          ? `New digests for tag '${tag.tag}' will trigger new deployments.`
+          : 'Public servers are pinned; new digests will not trigger automatic redeployments.',
         'MCP server deployment succeeded.'
       ]);
       step.succeed();

@@ -12,17 +12,40 @@ vi.mock('@metorial/db', () => ({
     },
     organizationMember: {
       update: vi.fn()
+    },
+    environment: {
+      findFirst: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn()
+    },
+    sandbox: {
+      findFirst: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      findMany: vi.fn()
     }
   },
   ID: {
     generateId: vi.fn()
   },
+  addAfterTransactionHook: vi.fn(async callback => await callback()),
   withTransaction: vi.fn(callback =>
     callback({
       instance: {
         create: vi.fn(),
         update: vi.fn(),
         findFirst: vi.fn(),
+        findMany: vi.fn()
+      },
+      environment: {
+        findFirst: vi.fn().mockResolvedValue(null),
+        create: vi.fn(),
+        update: vi.fn()
+      },
+      sandbox: {
+        findFirst: vi.fn().mockResolvedValue(null),
+        create: vi.fn(),
+        update: vi.fn(),
         findMany: vi.fn()
       }
     })
@@ -57,10 +80,40 @@ vi.mock('date-fns', () => ({
   differenceInMinutes: vi.fn()
 }));
 
+vi.mock('../src/queues/syncSubspaceTenant', () => ({
+  syncSubspaceTenantQueue: {
+    add: vi.fn()
+  }
+}));
+
 import { db, ID, withTransaction } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { differenceInMinutes } from 'date-fns';
 import { instanceService } from '../src/services/instance';
+
+let withCompanionMocks = (mockDb: any) => ({
+  ...mockDb,
+  instance: {
+    create: vi.fn(),
+    update: vi.fn(),
+    findFirst: vi.fn().mockResolvedValue(null),
+    findMany: vi.fn(),
+    ...mockDb.instance
+  },
+  environment: {
+    findFirst: vi.fn().mockResolvedValue(null),
+    create: vi.fn(),
+    update: vi.fn(),
+    ...mockDb.environment
+  },
+  sandbox: {
+    findFirst: vi.fn().mockResolvedValue(null),
+    create: vi.fn(),
+    update: vi.fn(),
+    findMany: vi.fn(),
+    ...mockDb.sandbox
+  }
+});
 
 describe('InstanceService', () => {
   beforeEach(() => {
@@ -92,7 +145,7 @@ describe('InstanceService', () => {
             create: vi.fn().mockResolvedValue(mockInstance)
           }
         };
-        return callback(mockDb as any);
+        return callback(withCompanionMocks(mockDb) as any);
       });
 
       let result = await instanceService.createInstance({
@@ -134,7 +187,7 @@ describe('InstanceService', () => {
             create: vi.fn().mockResolvedValue(mockInstance)
           }
         };
-        return callback(mockDb as any);
+        return callback(withCompanionMocks(mockDb) as any);
       });
 
       let result = await instanceService.createInstance({
@@ -161,7 +214,7 @@ describe('InstanceService', () => {
             create: vi.fn().mockResolvedValue(mockInstance)
           }
         };
-        return callback(mockDb as any);
+        return callback(withCompanionMocks(mockDb) as any);
       });
 
       let result = await instanceService.createInstance({
@@ -176,6 +229,131 @@ describe('InstanceService', () => {
       });
 
       expect(result.slug).toBe('test-slug');
+    });
+
+    it('should create environment and sandbox companions for development instances', async () => {
+      let mockInstance = {
+        id: 'inst-1',
+        oid: 10,
+        slug: 'test-instance',
+        name: 'Test Instance',
+        type: 'development',
+        status: 'active',
+        project: { id: 'proj-1', oid: 1 },
+        organization: { id: 'org-1', oid: 1 }
+      };
+      vi.mocked(ID.generateId).mockResolvedValue('generated-id');
+      let mockDb: ReturnType<typeof withCompanionMocks>;
+      vi.mocked(withTransaction).mockImplementation(async callback => {
+        mockDb = withCompanionMocks({
+          instance: {
+            create: vi.fn().mockResolvedValue(mockInstance)
+          }
+        });
+
+        return callback(mockDb as any);
+      });
+
+      await instanceService.createInstance({
+        project: { id: 'proj-1', oid: 1 } as any,
+        organization: { id: 'org-1', oid: 1 } as any,
+        performedBy: { id: 'actor-1', oid: 7 } as any,
+        context: {} as any,
+        input: {
+          name: 'Test Instance',
+          type: 'development'
+        }
+      });
+
+      expect(mockDb!.environment.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          name: 'Test Instance',
+          type: 'development',
+          status: 'active',
+          instanceOid: 10,
+          creatorActorOid: 7
+        })
+      });
+      expect(mockDb!.sandbox.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          name: 'Test Instance',
+          status: 'active',
+          instanceOid: 10,
+          creatorActorOid: 7
+        })
+      });
+    });
+
+    it('should reject creating a second production instance', async () => {
+      vi.mocked(withTransaction).mockImplementation(async callback => {
+        let mockDb = withCompanionMocks({
+          instance: {
+            findFirst: vi.fn().mockResolvedValue({ id: 'inst-existing' })
+          }
+        });
+
+        return callback(mockDb as any);
+      });
+
+      await expect(
+        instanceService.createInstance({
+          project: { id: 'proj-1', oid: 1 } as any,
+          organization: { id: 'org-1', oid: 1 } as any,
+          performedBy: { id: 'actor-1', oid: 1 } as any,
+          context: {} as any,
+          input: {
+            name: 'Production Instance',
+            type: 'production'
+          }
+        })
+      ).rejects.toThrow(ServiceError);
+    });
+  });
+
+  describe('sandbox methods', () => {
+    it('should create a sandbox by delegating to development instance creation', async () => {
+      let sandbox = {
+        id: 'sbox-1',
+        status: 'active',
+        name: 'Sandbox',
+        creatorActor: { id: 'actor-1' },
+        instance: {
+          id: 'inst-1',
+          slug: 'sandbox',
+          project: { id: 'proj-1' },
+          organization: { id: 'org-1', oid: 1 }
+        }
+      };
+      let createInstanceSpy = vi
+        .spyOn(instanceService, 'createInstance')
+        .mockResolvedValue({ id: 'inst-1' } as any);
+      vi.mocked(db.sandbox.findFirst).mockResolvedValue(sandbox as any);
+
+      try {
+        let result = await instanceService.createSandbox({
+          project: { id: 'proj-1', oid: 1 } as any,
+          organization: { id: 'org-1', oid: 1 } as any,
+          performedBy: { id: 'actor-1', oid: 1 } as any,
+          context: {} as any,
+          input: {
+            name: 'Sandbox'
+          }
+        });
+
+        expect(createInstanceSpy).toHaveBeenCalledWith({
+          project: { id: 'proj-1', oid: 1 },
+          organization: { id: 'org-1', oid: 1 },
+          performedBy: { id: 'actor-1', oid: 1 },
+          context: {},
+          input: {
+            name: 'Sandbox',
+            type: 'development'
+          }
+        });
+        expect(result).toEqual(sandbox);
+      } finally {
+        createInstanceSpy.mockRestore();
+      }
     });
   });
 
@@ -199,7 +377,7 @@ describe('InstanceService', () => {
             update: vi.fn().mockResolvedValue(updatedInstance)
           }
         };
-        return callback(mockDb as any);
+        return callback(withCompanionMocks(mockDb) as any);
       });
 
       let result = await instanceService.updateInstance({
@@ -259,7 +437,7 @@ describe('InstanceService', () => {
             update: vi.fn().mockResolvedValue(mockInstance)
           }
         };
-        return callback(mockDb as any);
+        return callback(withCompanionMocks(mockDb) as any);
       });
 
       await instanceService.updateInstance({
@@ -272,6 +450,105 @@ describe('InstanceService', () => {
 
       // Should still complete without error
       expect(Fabric.fire).toHaveBeenCalled();
+    });
+
+    it('should reject slug updates when another instance has the current slug', async () => {
+      let mockInstance = {
+        id: 'inst-1',
+        oid: 1,
+        status: 'active',
+        slug: 'old-slug',
+        previousSlugs: [],
+        project: { id: 'proj-1', oid: 1 }
+      };
+      let update = vi.fn();
+
+      vi.mocked(withTransaction).mockImplementation(async callback => {
+        let mockDb = withCompanionMocks({
+          instance: {
+            findFirst: vi.fn().mockResolvedValue({ id: 'inst-2' }),
+            update
+          }
+        });
+        return callback(mockDb as any);
+      });
+
+      await expect(
+        instanceService.updateInstance({
+          instance: mockInstance as any,
+          organization: { id: 'org-1', oid: 1 } as any,
+          performedBy: { id: 'actor-1', oid: 1 } as any,
+          context: {} as any,
+          input: {
+            slug: 'new-slug'
+          }
+        })
+      ).rejects.toThrow(ServiceError);
+
+      expect(update).not.toHaveBeenCalled();
+    });
+
+    it('should reclaim previous slug conflicts and keep slug history on update', async () => {
+      let mockInstance = {
+        id: 'inst-1',
+        oid: 1,
+        status: 'active',
+        slug: 'old-slug',
+        previousSlugs: ['older-slug', 'new-slug'],
+        project: { id: 'proj-1', oid: 1 }
+      };
+      let updatedInstance = {
+        ...mockInstance,
+        slug: 'new-slug',
+        previousSlugs: ['older-slug', 'old-slug']
+      };
+      let update = vi
+        .fn()
+        .mockResolvedValueOnce({ oid: 2, previousSlugs: ['kept-slug'] })
+        .mockResolvedValueOnce(updatedInstance);
+
+      vi.mocked(withTransaction).mockImplementation(async callback => {
+        let mockDb = withCompanionMocks({
+          instance: {
+            findFirst: vi.fn().mockResolvedValue(null),
+            findMany: vi.fn().mockResolvedValue([
+              {
+                oid: 2,
+                previousSlugs: ['new-slug', 'kept-slug']
+              }
+            ]),
+            update
+          }
+        });
+        return callback(mockDb as any);
+      });
+
+      let result = await instanceService.updateInstance({
+        instance: mockInstance as any,
+        organization: { id: 'org-1', oid: 1 } as any,
+        performedBy: { id: 'actor-1', oid: 1 } as any,
+        context: {} as any,
+        input: {
+          slug: 'new-slug'
+        }
+      });
+
+      expect(result).toEqual(updatedInstance);
+      expect(update).toHaveBeenCalledWith({
+        where: { oid: 2 },
+        data: {
+          previousSlugs: ['kept-slug']
+        }
+      });
+      expect(update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { oid: 1 },
+          data: expect.objectContaining({
+            slug: 'new-slug',
+            previousSlugs: ['older-slug', 'old-slug']
+          })
+        })
+      );
     });
   });
 
@@ -344,12 +621,13 @@ describe('InstanceService', () => {
       expect(result).toEqual(mockInstance);
       expect(db.instance.findFirst).toHaveBeenCalledWith({
         where: {
-          OR: [{ id: 'inst-1' }, { slug: 'inst-1' }],
+          OR: [{ id: 'inst-1' }, { slug: 'inst-1' }, { previousSlugs: { has: 'inst-1' } }],
           organizationOid: 1
         },
         include: {
           organization: true,
-          project: true
+          project: true,
+          sandbox: true
         }
       });
     });
@@ -372,6 +650,38 @@ describe('InstanceService', () => {
       });
 
       expect(result).toEqual(mockInstance);
+    });
+
+    it('should return instance by previous slug', async () => {
+      let mockInstance = {
+        id: 'inst-1',
+        oid: 1,
+        slug: 'current-slug',
+        previousSlugs: ['old-slug'],
+        organizationOid: 1
+      };
+
+      vi.mocked(db.instance.findFirst).mockResolvedValue(mockInstance as any);
+
+      let result = await instanceService.getInstanceById({
+        organization: { id: 'org-1', oid: 1 } as any,
+        instanceId: 'old-slug',
+        actor: { id: 'actor-1', oid: 1 } as any,
+        member: undefined
+      });
+
+      expect(result).toEqual(mockInstance);
+      expect(db.instance.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            OR: [
+              { id: 'old-slug' },
+              { slug: 'old-slug' },
+              { previousSlugs: { has: 'old-slug' } }
+            ]
+          })
+        })
+      );
     });
 
     it('should throw not found error when instance does not exist', async () => {
@@ -447,12 +757,17 @@ describe('InstanceService', () => {
       expect(result).toEqual(mockInstances);
       expect(db.instance.findMany).toHaveBeenCalledWith({
         where: {
-          id: { in: ['inst-1', 'inst-2'] },
+          OR: [
+            { id: { in: ['inst-1', 'inst-2'] } },
+            { slug: { in: ['inst-1', 'inst-2'] } },
+            { previousSlugs: { hasSome: ['inst-1', 'inst-2'] } }
+          ],
           organizationOid: 1
         },
         include: {
           organization: true,
-          project: true
+          project: true,
+          sandbox: true
         }
       });
     });
@@ -630,6 +945,67 @@ describe('InstanceService', () => {
     });
   });
 
+  describe('reconcileProjectInstances', () => {
+    it('should promote the oldest development instance when a project has no production instance', async () => {
+      let developmentInstance = {
+        id: 'inst-1',
+        oid: 1,
+        slug: 'development',
+        previousSlugs: [],
+        name: 'Development',
+        type: 'development',
+        status: 'active',
+        project: { id: 'proj-1', oid: 1 },
+        organization: { id: 'org-1', oid: 1 }
+      };
+      let productionInstance = {
+        ...developmentInstance,
+        name: 'Production',
+        type: 'production',
+        slug: 'test-slug'
+      };
+      let update = vi.fn().mockResolvedValue(productionInstance);
+
+      vi.mocked(withTransaction).mockImplementation(async callback => {
+        let mockDb = withCompanionMocks({
+          instance: {
+            findMany: vi.fn().mockResolvedValue([developmentInstance]),
+            findFirst: vi.fn().mockResolvedValue(null),
+            update
+          }
+        });
+
+        return callback(mockDb as any);
+      });
+
+      let result = await instanceService.reconcileProjectInstances({
+        project: {
+          id: 'proj-1',
+          oid: 1,
+          organization: { id: 'org-1', oid: 1 }
+        } as any,
+        performedBy: { id: 'actor-1', oid: 7 } as any,
+        context: {} as any
+      });
+
+      expect(result).toEqual({ reconciled: 1 });
+      expect(update).toHaveBeenCalledWith({
+        where: { oid: 1 },
+        data: {
+          name: 'Production',
+          slug: 'test-slug',
+          previousSlugs: ['development'],
+          type: 'production',
+          hasBeenReconciled: true
+        },
+        include: {
+          organization: true,
+          project: true
+        }
+      });
+    });
+  });
+
   describe('edge cases', () => {
     it('should handle transaction failures', async () => {
       vi.mocked(withTransaction).mockRejectedValue(new Error('Transaction failed'));
@@ -671,7 +1047,7 @@ describe('InstanceService', () => {
             create: vi.fn().mockResolvedValue(mockInstance)
           }
         };
-        return callback(mockDb as any);
+        return callback(withCompanionMocks(mockDb) as any);
       });
 
       let result = await instanceService.createInstance({

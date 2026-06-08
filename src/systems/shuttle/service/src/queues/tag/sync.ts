@@ -74,7 +74,8 @@ export let syncTagQueueProcessor = syncTagQueue.process(async data => {
           ? await secretService.DANGEROUSLY_decryptSecret({
               secret,
               tenant: tag.tenant,
-              purpose: 'registry_credentials'
+              purpose: 'registry_credentials',
+              note: `tag.sync:${tag.id}:${tag.repository.registry.id}`
             })
           : undefined;
 

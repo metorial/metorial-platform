@@ -1,5 +1,6 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Hash } from '@lowerdeck/hash';
+import { generatePlainId } from '@lowerdeck/id';
 import { Service } from '@lowerdeck/service';
 import { slugify } from '@lowerdeck/slugify';
 import type { Prisma, SkillPluginSkillStatus, SkillPluginStatus } from '@metorial-cargo/db';
@@ -47,7 +48,7 @@ class ManagedSkillPluginServiceImpl {
       name,
       description,
       slug: slugify(
-        `managed-${(skill.clientName ?? skill.name ?? skill.id).replaceAll('_', '-')}`
+        `managed-${(skill.clientName ?? skill.name ?? skill.id).replaceAll('_', '-')}-${generatePlainId(12)}`.toLowerCase()
       ),
       configHash: await Hash.sha256(
         JSON.stringify({
@@ -195,8 +196,7 @@ class ManagedSkillPluginServiceImpl {
     let skillPluginChanged =
       managedSkillPlugin.skillPlugin.status !== 'active' ||
       managedSkillPlugin.skillPlugin.name !== values.name ||
-      managedSkillPlugin.skillPlugin.description !== values.description ||
-      managedSkillPlugin.skillPlugin.slug !== values.slug;
+      managedSkillPlugin.skillPlugin.description !== values.description;
 
     let managedConfigChanged = managedSkillPlugin.configHash !== values.configHash;
 
@@ -209,8 +209,7 @@ class ManagedSkillPluginServiceImpl {
           data: {
             status: 'active',
             name: values.name,
-            description: values.description,
-            slug: values.slug
+            description: values.description
           },
           include: skillPluginInclude
         });

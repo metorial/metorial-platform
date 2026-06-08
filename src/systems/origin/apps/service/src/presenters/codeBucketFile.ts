@@ -6,7 +6,7 @@ export let codeBucketFileInfoPresenter = (file: {
   contentType: string;
   modifiedAt: Long;
 }) => ({
-  object: 'origin#codeBucketFileInfo',
+  object: 'origin#codeBucketFileInfo' as const,
   path: file.path,
   size: file.size.toString(),
   contentType: file.contentType,
@@ -20,7 +20,7 @@ export let codeBucketFileContentPresenter = (file: {
   modifiedAt: Long;
   content: Uint8Array;
 }) => ({
-  object: 'origin#codeBucketFileContent',
+  object: 'origin#codeBucketFileContent' as const,
   path: file.path,
   size: file.size.toString(),
   contentType: file.contentType,

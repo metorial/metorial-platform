@@ -34,6 +34,8 @@ type FileToUpload struct {
 	Content []byte
 }
 
+type FileIterator func(func(FileToUpload) error) error
+
 type githubRefResponse struct {
 	Object struct {
 		SHA string `json:"sha"`
@@ -96,6 +98,17 @@ type githubUpdateRefRequest struct {
 }
 
 func UploadToRepo(owner, repo, targetPath, branch, commitMessage, token string, files []FileToUpload) error {
+	return UploadToRepoIter(owner, repo, targetPath, branch, commitMessage, token, func(yield func(FileToUpload) error) error {
+		for _, file := range files {
+			if err := yield(file); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+func UploadToRepoIter(owner, repo, targetPath, branch, commitMessage, token string, iter FileIterator) error {
 	if token == "" {
 		return fmt.Errorf("GitHub token is required")
 	}
@@ -106,7 +119,7 @@ func UploadToRepo(owner, repo, targetPath, branch, commitMessage, token string, 
 		branch = "main"
 	}
 	if commitMessage == "" {
-		commitMessage = fmt.Sprintf("Upload %d files", len(files))
+		commitMessage = "Upload files"
 	}
 
 	ref, err := githubJSON[githubRefResponse](client, "GET", fmt.Sprintf("%s/repos/%s/%s/git/ref/heads/%s", baseURL, owner, repo, branch), token, nil)
@@ -131,15 +144,15 @@ func UploadToRepo(owner, repo, targetPath, branch, commitMessage, token string, 
 		}
 	}
 
-	treeEntries := make([]githubTreeEntry, 0, len(files))
-	for _, file := range files {
+	treeEntries := make([]githubTreeEntry, 0)
+	if err := iter(func(file FileToUpload) error {
 		// Normalize the path by joining targetPath with file.Path
 		fullPath := path.Join(targetPath, file.Path)
 		// Clean up any double slashes or leading slashes
 		fullPath = strings.TrimPrefix(fullPath, "/")
 
 		if existingBlobShas[fullPath] == gitBlobSHA(file.Content) {
-			continue
+			return nil
 		}
 
 		blob, err := githubJSON[githubCreateBlobResponse](
@@ -162,6 +175,9 @@ func UploadToRepo(owner, repo, targetPath, branch, commitMessage, token string, 
 			Type: "blob",
 			SHA:  blob.SHA,
 		})
+		return nil
+	}); err != nil {
+		return err
 	}
 
 	if len(treeEntries) == 0 {

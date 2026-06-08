@@ -29,17 +29,20 @@ export type ProviderTemplatesCreateBody = {
   name: string;
   description?: string | undefined;
   metadata?: Record<string, any> | undefined;
-  providers: {
-    providerId: string;
-    providerDeploymentId?: string | null | undefined;
-    providerAuthMethodId?: string | null | undefined;
-    providerAuthCredentialsId?: string | null | undefined;
-    providerConfigId?: string | null | undefined;
-    name?: string | undefined;
-    description?: string | null | undefined;
-    metadata?: Record<string, any> | null | undefined;
-    toolFilters?: any | undefined;
-  }[];
+  providers?:
+    | {
+        providerId: string;
+        providerDeploymentId?: string | null | undefined;
+        providerAuthMethodId?: string | null | undefined;
+        providerAuthCredentialsId?: string | null | undefined;
+        providerConfigId?: string | null | undefined;
+        name?: string | undefined;
+        description?: string | null | undefined;
+        metadata?: Record<string, any> | null | undefined;
+        toolFilters?: any | undefined;
+      }[]
+    | undefined;
+  integrationId?: string | undefined;
 };
 
 export let mapProviderTemplatesCreateBody =
@@ -74,6 +77,7 @@ export let mapProviderTemplatesCreateBody =
           toolFilters: mtMap.objectField('tool_filters', mtMap.passthrough())
         })
       )
-    )
+    ),
+    integrationId: mtMap.objectField('integration_id', mtMap.passthrough())
   });
 

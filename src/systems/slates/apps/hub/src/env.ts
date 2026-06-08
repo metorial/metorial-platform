@@ -44,5 +44,15 @@ export let env = createValidatedEnv({
 
   slates: {
     SLATES_HUB_INSTANCE_IDENTIFIER: v.string()
+  },
+
+  nebula: {
+    NEBULA_API_URL: v.string(),
+    NEBULA_CONSUMER_IDENTIFIER: v.string(),
+    NEBULA_CONSUMER_TOKEN: v.string()
+  },
+
+  secrets: {
+    SLATES_DELEGATE_SECRETS_TO_NEBULA: v.boolean()
   }
 });

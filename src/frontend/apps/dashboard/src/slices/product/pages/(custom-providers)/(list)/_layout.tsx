@@ -1,4 +1,5 @@
 import { PaginationSearchParamsProvider } from '@metorial/data-hooks';
+import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
 import {
   useCurrentInstance,
@@ -7,117 +8,129 @@ import {
   useDashboardFlags,
   useUser
 } from '@metorial/state';
-import { Button, Menu } from '@metorial/ui';
+import { Button, LinkTabs, Menu } from '@metorial/ui';
 import { Outlet, useLocation } from 'react-router-dom';
 import { showCustomProviderRemoteFormModal } from '../../../scenes/customProvider/modal';
 
-export let ManagedProvidersListLayout = () => {
+export let CustomProvidersListLayout = () => {
+  let instance = useCurrentInstance();
+  let organization = useCurrentOrganization();
+  let project = useCurrentProject();
   let flags = useDashboardFlags();
   let user = useUser();
-  let openManagedCreateModal = () => {
-    if (!user.data) return;
+  let pathname = useLocation().pathname;
+
+  let listPathParams = [organization.data, project.data, instance.data] as const;
+  let isRemoteList = pathname.endsWith('/external-providers');
+  let page = isRemoteList
+    ? {
+        title: 'Remote MCP Servers',
+        description: 'Connect to remote MCP servers using the Metorial platform.',
+        actionLabel: 'Link Remote MCP Server',
+        actionType: 'remote' as const
+      }
+    : {
+        title: 'Custom MCP Servers',
+        description:
+          'Build custom MCP servers powered by Metorial. Deploy them on your own infrastructure or use Metorial-managed infrastructure.',
+        actionLabel: 'Create Custom MCP Server',
+        actionType: 'managed' as const
+      };
+
+  let openCreateModal = (type: 'remote' | 'managed' | 'docker') => {
+    if (type === 'managed' && !user.data) return;
 
     showCustomProviderRemoteFormModal({
-      type: 'managed'
+      type
     });
+  };
+
+  let renderActions = () => {
+    if (isRemoteList) {
+      return (
+        !!flags.data?.flags['paid-custom-providers'] && (
+          <Button onClick={() => openCreateModal(page.actionType)} size="2">
+            {page.actionLabel}
+          </Button>
+        )
+      );
+    }
+
+    if (flags.data?.flags['paid-custom-docker-providers']) {
+      return (
+        <Menu
+          label={page.actionLabel}
+          items={[
+            {
+              id: 'docker',
+              label: 'Docker MCP Server',
+              description: 'Deploy a custom Docker image as an MCP server on Metorial.'
+            },
+            {
+              id: 'managed',
+              label: 'Custom MCP Server',
+              description:
+                'Connect a GitHub repo and deploy a custom MCP server to Metorial automatically.'
+            }
+          ]}
+          onItemClick={id => {
+            if (id === 'managed') {
+              openCreateModal(page.actionType);
+              return;
+            }
+
+            openCreateModal('docker');
+          }}
+        >
+          <Button size="2" loading={user.isLoading} disabled={!user.data && !user.isLoading}>
+            {page.actionLabel}
+          </Button>
+        </Menu>
+      );
+    }
+
+    return (
+      !!(
+        flags.data?.flags['custom-providers-enabled'] &&
+        flags.data?.flags['paid-custom-providers']
+      ) && (
+        <Button
+          onClick={() => openCreateModal(page.actionType)}
+          loading={user.isLoading}
+          disabled={!user.data && !user.isLoading}
+          size="2"
+        >
+          {page.actionLabel}
+        </Button>
+      )
+    );
   };
 
   return (
     <ContentLayout>
       <PageHeader
-        title="Custom Providers"
-        description="Build custom MCP providers powered by Metorial. Deploy them on your own infrastructure or use our custom providers."
-        actions={
-          !!flags.data?.flags['paid-custom-docker-providers'] ? (
-            <Menu
-              label="Create Custom Provider"
-              items={[
-                {
-                  id: 'docker',
-                  label: 'Docker Provider',
-                  description: 'Deploy a custom Docker image as an MCP provider on Metorial.'
-                },
-                {
-                  id: 'managed',
-                  label: 'Custom Provider',
-                  description: 'Connect a GitHub repo and deploy to Metorial automatically.'
-                }
-              ]}
-              onItemClick={id => {
-                if (id === 'managed') {
-                  openManagedCreateModal();
-                  return;
-                }
+        title={page.title}
+        description={page.description}
+        actions={renderActions()}
+      />
 
-                showCustomProviderRemoteFormModal({
-                  type: 'docker'
-                });
-              }}
-            >
-              <Button
-                size="2"
-                loading={user.isLoading}
-                disabled={!user.data && !user.isLoading}
-              >
-                Create Custom Provider
-              </Button>
-            </Menu>
-          ) : (
-            !!(
-              flags.data?.flags['custom-providers-enabled'] &&
-              flags.data?.flags['paid-custom-providers']
-            ) && (
-              <Button
-                onClick={openManagedCreateModal}
-                loading={user.isLoading}
-                disabled={!user.data && !user.isLoading}
-                size="2"
-              >
-                Create Custom Provider
-              </Button>
-            )
-          )
-        }
+      <LinkTabs
+        current={pathname}
+        links={[
+          {
+            label: 'Remote MCP Server',
+            to: Paths.instance.externalProviders(...listPathParams)
+          },
+          {
+            label: 'Custom MCP Server',
+            to: Paths.instance.customProviders(...listPathParams)
+          }
+        ]}
       />
 
       <PaginationSearchParamsProvider enabled={true}>
         <Outlet />
       </PaginationSearchParamsProvider>
-    </ContentLayout>
-  );
-};
-
-export let ExternalProvidersListLayout = () => {
-  let instance = useCurrentInstance();
-  let project = useCurrentProject();
-  let organization = useCurrentOrganization();
-
-  let pathname = useLocation().pathname;
-
-  let flags = useDashboardFlags();
-
-  return (
-    <ContentLayout>
-      <PageHeader
-        title="External Providers"
-        description="Connect to external MCP providers using the Metorial platform."
-        actions={
-          !!flags.data?.flags['paid-custom-providers'] && (
-            <Button
-              onClick={() =>
-                showCustomProviderRemoteFormModal({
-                  type: 'remote'
-                })
-              }
-              size="2"
-            >
-              Link Remote Provider
-            </Button>
-          )
-        }
-      />
-
-      <Outlet />
     </ContentLayout>
   );
 };

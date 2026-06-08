@@ -14,7 +14,6 @@ import {
   type ProviderConfig,
   type Solution,
   type Tenant,
-  type TransactionDB,
   withTransaction
 } from '@metorial-subspace/db';
 import {
@@ -41,7 +40,10 @@ import {
   normalizeIntegrationProviderToolFilter,
   refreshIntegrationInstanceStatus
 } from '../lib/versions';
-import { integrationInstanceProviderSetQueue } from '../queues/lifecycle/integrationInstanceProvider';
+import {
+  enqueueIntegrationInstanceProviderSet,
+  enqueueIntegrationInstanceProvidersSet
+} from '../queues/lifecycle/integrationInstanceProvider';
 import { getIntegrationToolFilterCapabilities } from './integration';
 import {
   integrationInstanceProviderInclude,
@@ -50,34 +52,37 @@ import {
 import { integrationProviderService, MAX_INTEGRATION_PROVIDERS } from './integrationProvider';
 
 let requireCurrentIntegrationProviderVersion = async (d: {
-  db?: TransactionDB;
   integrationProviderOid: bigint;
 }) => {
-  let tx = d.db ?? db;
-  let integrationProvider = await tx.integrationProvider.findUniqueOrThrow({
-    where: { oid: d.integrationProviderOid },
-    include: {
-      integration: { include: { currentVersion: true } },
-      provider: { include: { type: true } },
-      currentVersion: {
-        include: {
-          deployment: true,
-          config: true
+  return withTransaction(async db => {
+    let integrationProvider = await db.integrationProvider.findUniqueOrThrow({
+      where: { oid: d.integrationProviderOid },
+      include: {
+        integration: { include: { currentVersion: true } },
+        provider: { include: { type: true } },
+        currentVersion: {
+          include: {
+            deployment: true,
+            config: true
+          }
         }
       }
+    });
+
+    if (
+      !integrationProvider.currentVersion ||
+      !integrationProvider.integration.currentVersion
+    ) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Integration provider has no active version.',
+          code: 'integration_provider_version_required'
+        })
+      );
     }
+
+    return integrationProvider;
   });
-
-  if (!integrationProvider.currentVersion || !integrationProvider.integration.currentVersion) {
-    throw new ServiceError(
-      badRequestError({
-        message: 'Integration provider has no active version.',
-        code: 'integration_provider_version_required'
-      })
-    );
-  }
-
-  return integrationProvider;
 };
 
 let isAllowAllToolFilter = (toolFilter: PrismaJson.ToolFilter | null | undefined) =>
@@ -422,7 +427,6 @@ class integrationInstanceProviderServiceImpl {
       let materialProviders = await Promise.all(
         integrationProviders.map(integrationProvider =>
           requireCurrentIntegrationProviderVersion({
-            db,
             integrationProviderOid: integrationProvider.oid
           })
         )
@@ -520,8 +524,15 @@ class integrationInstanceProviderServiceImpl {
         if (inheritSharedConfigs[idx] && sharedConfigId) return sharedConfigId;
 
         if (input.providerConfigId === undefined) {
-          return existingByIntegrationProviderOid.get(integrationProviders[idx]!.oid)
-            ?.currentVersion?.config?.id;
+          let existingConfigId = existingByIntegrationProviderOid.get(
+            integrationProviders[idx]!.oid
+          )?.currentVersion?.config?.id;
+          if (existingConfigId) return existingConfigId;
+
+          // On create, inherit the integration provider's shared config by default.
+          if (sharedConfigId) return sharedConfigId;
+
+          return undefined;
         }
 
         if (input.providerConfigId === null) return undefined;
@@ -588,7 +599,6 @@ class integrationInstanceProviderServiceImpl {
         let existing = existingByIntegrationProviderOid.get(integrationProvider.oid);
         let deploymentOid = materialProvider.currentVersion!.deploymentOid;
         let isInheritedSharedConfig =
-          inheritSharedConfigs[idx] &&
           materialProvider.currentVersion!.config?.oid === combination.config.oid;
 
         if (!isInheritedSharedConfig) {
@@ -755,7 +765,7 @@ class integrationInstanceProviderServiceImpl {
       let orderedRes = integrationInstanceProviderOids.map(oid => resByOid.get(oid)!);
 
       await addAfterTransactionHook(async () =>
-        integrationInstanceProviderSetQueue.addMany(
+        enqueueIntegrationInstanceProvidersSet(
           orderedRes.map(integrationInstanceProvider => ({
             integrationInstanceId: d.integrationInstance.id,
             integrationInstanceProviderId: integrationInstanceProvider.id
@@ -898,7 +908,7 @@ class integrationInstanceProviderServiceImpl {
       });
 
       await addAfterTransactionHook(async () =>
-        integrationInstanceProviderSetQueue.add({
+        enqueueIntegrationInstanceProviderSet({
           integrationInstanceId: res.integrationInstance.id,
           integrationInstanceProviderId: res.id
         })

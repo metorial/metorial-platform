@@ -1,4 +1,4 @@
-import { DashboardInstanceSkillGroupsCreateOutput } from '@metorial/dashboard-sdk';
+import { DashboardInstanceSkillsGroupsCreateOutput } from '@metorial/dashboard-sdk';
 import { useForm } from '@metorial/data-hooks';
 import { useCreateSkillGroup } from '@metorial/state';
 import { Button, Dialog, Input, Spacer } from '@metorial/ui';
@@ -10,7 +10,7 @@ export let SkillGroupForm = ({
 }: {
   instanceId: string;
   close?: () => void;
-  onCreate?: (skillGroup: DashboardInstanceSkillGroupsCreateOutput) => void;
+  onCreate?: (skillGroup: DashboardInstanceSkillsGroupsCreateOutput) => void;
 }) => {
   let createMutation = useCreateSkillGroup();
   let form = useForm({

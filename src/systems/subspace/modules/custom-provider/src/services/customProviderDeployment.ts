@@ -5,6 +5,7 @@ import { shadowId } from '@lowerdeck/shadow-id';
 import {
   type CustomProviderDeployment,
   type CustomProviderDeploymentStatus,
+  type CustomProviderStatus,
   db,
   type Environment,
   type Solution,
@@ -13,12 +14,11 @@ import {
 import {
   type DateFilter,
   normalizeDateFilter,
-  resolveCustomProviderDeployments,
   resolveCustomProviderEnvironments,
   resolveCustomProviders,
-  resolveProviderVersions,
   resolveCustomProviderVersions,
-  resolveProviders
+  resolveProviders,
+  resolveProviderVersions
 } from '@metorial-subspace/list-utils';
 import { getTenantForShuttle, shuttle } from '@metorial-subspace/provider-shuttle/src/client';
 
@@ -56,7 +56,10 @@ class customProviderDeploymentServiceImpl {
     let providers = await resolveProviders(d, d.providerIds);
     let providerVersions = await resolveProviderVersions(d, d.providerVersionIds);
     let customProviders = await resolveCustomProviders(d, d.customProviderIds);
-    let customProviderVersions = await resolveCustomProviderVersions(d, d.customProviderVersionIds);
+    let customProviderVersions = await resolveCustomProviderVersions(
+      d,
+      d.customProviderVersionIds
+    );
     let customProviderEnvironments = await resolveCustomProviderEnvironments(
       d,
       d.customProviderEnvironmentIds
@@ -72,6 +75,13 @@ class customProviderDeploymentServiceImpl {
               solutionOid: d.solution.oid,
 
               AND: [
+                {
+                  customProvider: {
+                    status: {
+                      notIn: ['archived', 'deleted'] as CustomProviderStatus[]
+                    }
+                  }
+                },
                 d.ids ? { id: { in: d.ids } } : undefined!,
 
                 d.status ? { status: { in: d.status } } : undefined!,

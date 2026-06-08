@@ -1,7 +1,7 @@
 import type {
-  DashboardInstanceIntegrationInstanceProvidersListOutput,
-  DashboardInstanceIntegrationInstanceProvidersListQuery,
-  DashboardInstanceIntegrationInstanceProvidersSetBody
+  DashboardInstanceIntegrationsInstancesProvidersListOutput,
+  DashboardInstanceIntegrationsInstancesProvidersListQuery,
+  DashboardInstanceIntegrationsInstancesProvidersSetBody
 } from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
 import { usePaginator } from '../../lib/usePaginator';
@@ -12,13 +12,13 @@ import {
 } from './integrationInstances';
 
 export type IntegrationInstanceProvider =
-  DashboardInstanceIntegrationInstanceProvidersListOutput['items'][number];
+  DashboardInstanceIntegrationsInstancesProvidersListOutput['items'][number];
 
 export let integrationInstanceProvidersLoader = createLoader({
   name: 'integrationInstanceProviders',
   parents: [integrationInstancesLoader, integrationInstanceLoader],
   fetch: (
-    i: { instanceId: string } & DashboardInstanceIntegrationInstanceProvidersListQuery
+    i: { instanceId: string } & DashboardInstanceIntegrationsInstancesProvidersListQuery
   ) =>
     withAuth(sdk => {
       let { instanceId, ...query } = i;
@@ -29,7 +29,7 @@ export let integrationInstanceProvidersLoader = createLoader({
 
 export let useIntegrationInstanceProviders = (
   instanceId: string | null | undefined,
-  query?: DashboardInstanceIntegrationInstanceProvidersListQuery
+  query?: DashboardInstanceIntegrationsInstancesProvidersListQuery
 ) => {
   let data = usePaginator(pagination =>
     integrationInstanceProvidersLoader.use(
@@ -47,7 +47,7 @@ export let useSetIntegrationInstanceProvider =
         instanceId: string;
         integrationInstanceId: string;
         providerId: string;
-      } & DashboardInstanceIntegrationInstanceProvidersSetBody
+      } & DashboardInstanceIntegrationsInstancesProvidersSetBody
     ) =>
       withAuth(sdk =>
         sdk.integration.instances.providers.set(

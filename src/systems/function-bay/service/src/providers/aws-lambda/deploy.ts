@@ -64,10 +64,25 @@ let originalHttpRequest;
 let originalHttpGet;
 let originalHttpsRequest;
 let originalHttpsGet;
+let currentHttpAgent;
+let currentHttpsAgent;
+let currentProxyDispatcher;
+
+function destroyAgent(agent) {
+  if (agent && typeof agent.destroy === 'function') {
+    agent.destroy();
+  }
+}
 
 function patchNodeHttpAgents(proxyUrl) {
   const httpAgent = new HttpProxyAgent(proxyUrl);
   const httpsAgent = new HttpsProxyAgent(proxyUrl);
+
+  const previousHttpAgent = currentHttpAgent;
+  const previousHttpsAgent = currentHttpsAgent;
+
+  currentHttpAgent = httpAgent;
+  currentHttpsAgent = httpsAgent;
 
   http.globalAgent = httpAgent;
   https.globalAgent = httpsAgent;
@@ -79,26 +94,29 @@ function patchNodeHttpAgents(proxyUrl) {
     originalHttpsGet = https.get;
 
     http.request = function patchedHttpRequest(...args) {
-      args = withAgent(args, httpAgent);
+      args = withAgent(args, currentHttpAgent);
       return originalHttpRequest.apply(this, args);
     };
     http.get = function patchedHttpGet(...args) {
-      args = withAgent(args, httpAgent);
+      args = withAgent(args, currentHttpAgent);
       const req = originalHttpRequest.apply(this, args);
       req.end();
       return req;
     };
     https.request = function patchedHttpsRequest(...args) {
-      args = withAgent(args, httpsAgent);
+      args = withAgent(args, currentHttpsAgent);
       return originalHttpsRequest.apply(this, args);
     };
     https.get = function patchedHttpsGet(...args) {
-      args = withAgent(args, httpsAgent);
+      args = withAgent(args, currentHttpsAgent);
       const req = originalHttpsRequest.apply(this, args);
       req.end();
       return req;
     };
   }
+
+  if (previousHttpAgent && previousHttpAgent !== httpAgent) destroyAgent(previousHttpAgent);
+  if (previousHttpsAgent && previousHttpsAgent !== httpsAgent) destroyAgent(previousHttpsAgent);
 
   syncBuiltinESMExports();
 }
@@ -144,49 +162,100 @@ exports.applyDeflector = function applyDeflector(event) {
   process.env.no_proxy = noProxy;
 
   patchNodeHttpAgents(proxyUrlWithAuth);
-  setGlobalDispatcher(new ProxyAgent({
+  const previousProxyDispatcher = currentProxyDispatcher;
+  currentProxyDispatcher = new ProxyAgent({
     uri: deflector.proxyUrl,
     token: proxyAuthorization
-  }));
+  });
+  setGlobalDispatcher(currentProxyDispatcher);
+  if (previousProxyDispatcher && previousProxyDispatcher !== currentProxyDispatcher) {
+    destroyAgent(previousProxyDispatcher);
+  }
 };
 `;
 
 let nodeProxyWrapper = (originalHandler: string, bootstrapCode: string) => `
 ${bootstrapCode}
 const originalHandler = ${JSON.stringify(originalHandler)};
-const [modulePath, exportName = 'handler'] = originalHandler.split(/\\.([^.]*)$/).filter(Boolean);
 const path = require('path');
+const fs = require('fs');
 const { pathToFileURL } = require('url');
 let loaded;
 
-async function loadOriginalModule() {
-  try {
-    return require('./' + modulePath);
-  } catch (err) {
-    const candidates = [
-      modulePath,
-      /\\.[cm]?js$/.test(modulePath) ? undefined : modulePath + '.js',
-      /\\.[cm]?js$/.test(modulePath) ? undefined : modulePath + '.mjs'
-    ].filter(Boolean);
-
-    let lastError = err;
-    for (const candidate of candidates) {
-      try {
-        return await import(pathToFileURL(path.resolve(__dirname, candidate)).href);
-      } catch (importErr) {
-        lastError = importErr;
-      }
-    }
-    throw lastError;
+function resolveHandlerParts(handler) {
+  const lastSeparator = handler.lastIndexOf('.');
+  if (lastSeparator === -1) {
+    return { modulePath: handler, exportName: 'handler' };
   }
+
+  return {
+    modulePath: handler.slice(0, lastSeparator),
+    exportName: handler.slice(lastSeparator + 1) || 'handler'
+  };
+}
+
+function getModuleCandidates(modulePath) {
+  if (/\\.[cm]?js$/.test(modulePath)) return [modulePath];
+  return [modulePath, modulePath + '.js', modulePath + '.cjs', modulePath + '.mjs'];
+}
+
+function resolveOriginalModulePath(modulePath) {
+  const candidates = getModuleCandidates(modulePath);
+  for (const candidate of candidates) {
+    const resolved = path.resolve(__dirname, candidate);
+    if (fs.existsSync(resolved)) return resolved;
+  }
+
+  let availableFiles = [];
+  try {
+    availableFiles = fs.readdirSync(__dirname).sort();
+  } catch {}
+
+  throw new Error(
+    'Original handler module not found. Handler=' +
+      originalHandler +
+      '; tried=' +
+      candidates.join(', ') +
+      '; available=' +
+      availableFiles.join(', ')
+  );
+}
+
+async function loadOriginalModule(modulePath) {
+  const resolvedModulePath = resolveOriginalModulePath(modulePath);
+
+  try {
+    return require(resolvedModulePath);
+  } catch (err) {
+    if (err && err.code === 'ERR_REQUIRE_ESM') {
+      return await import(pathToFileURL(resolvedModulePath).href);
+    }
+
+    throw err;
+  }
+}
+
+function getHandler(moduleExports, exportName) {
+  if (typeof moduleExports[exportName] === 'function') return moduleExports[exportName];
+
+  if (moduleExports.default && typeof moduleExports.default[exportName] === 'function') {
+    return moduleExports.default[exportName];
+  }
+
+  if (exportName === 'handler' && typeof moduleExports.default === 'function') {
+    return moduleExports.default;
+  }
+
+  return undefined;
 }
 
 exports.handler = async (event, context) => {
   exports.applyDeflector(event);
+  const { modulePath, exportName } = resolveHandlerParts(originalHandler);
   if (!loaded) {
-    loaded = await loadOriginalModule();
+    loaded = await loadOriginalModule(modulePath);
   }
-  const handler = loaded[exportName];
+  const handler = getHandler(loaded, exportName);
   if (typeof handler !== 'function') throw new Error('Original handler export not found');
   return await handler(event, context);
 };
@@ -198,7 +267,7 @@ let getNodeProxyWrapperBootstrapCachePath = () =>
   join(
     tmpdir(),
     'function-bay-wrapper-build',
-    `metorial-deflector-bootstrap-v2-${process.version.replace(/[^a-zA-Z0-9.-]/g, '-')}.js`
+    `metorial-deflector-bootstrap-v3-${process.version.replace(/[^a-zA-Z0-9.-]/g, '-')}.js`
   );
 
 let bundleNodeProxyWrapperBootstrap = async () => {
@@ -258,11 +327,17 @@ let getNodeProxyWrapperBootstrap = async () => {
 let buildNodeProxyWrapper = async (originalHandler: string) =>
   nodeProxyWrapper(originalHandler, await getNodeProxyWrapperBootstrap());
 
+export let buildNodeProxyWrapperScript = (originalHandler: string) =>
+  nodeProxyWrapper(originalHandler, 'exports.applyDeflector = function applyDeflector() {};');
+
+export let buildNodeProxyWrapperScriptWithDeflector = (originalHandler: string) =>
+  nodeProxyWrapper(originalHandler, nodeProxyWrapperBootstrap);
+
 let prepareZip = async (d: {
-  zipFileUrl: string;
+  zipFile: Buffer;
   runtimeConfig: FunctionBayRuntimeConfig;
 }) => {
-  let zipBytes = Buffer.from(await (await fetch(d.zipFileUrl)).arrayBuffer());
+  let zipBytes = d.zipFile;
 
   if (d.runtimeConfig.runtime.identifier !== 'nodejs' || !getDeflectorProxyUrl()) {
     return {
@@ -280,20 +355,20 @@ let prepareZip = async (d: {
   };
 };
 
-export let deployFunction = async (d: {
+let deployFunctionZip = async (d: {
   functionVersion: { id: string };
   function: Function;
-  functionDeployment: FunctionDeployment;
   runtimeConfig: FunctionBayRuntimeConfig;
   runtime: Runtime;
   env: Record<string, string>;
-  zipFileUrl: string;
+  zipFile: Buffer;
+  config: PrismaJson.FunctionConfiguration;
 }) => {
   if (!lambdaClient) throw new Error('Lambda client not initialized');
 
   let role = await ensureLambdaExecutionRole();
   let zip = await prepareZip({
-    zipFileUrl: d.zipFileUrl,
+    zipFile: d.zipFile,
     runtimeConfig: d.runtimeConfig
   });
 
@@ -307,8 +382,8 @@ export let deployFunction = async (d: {
       Code: {
         ZipFile: zip.zipBytes
       },
-      Timeout: d.functionDeployment.configuration.timeoutSeconds,
-      MemorySize: d.functionDeployment.configuration.memorySizeMb,
+      Timeout: d.config.timeoutSeconds,
+      MemorySize: d.config.memorySizeMb,
       VpcConfig: lambdaNetworkConfig
         ? {
             SubnetIds: lambdaNetworkConfig.subnetIds,
@@ -361,3 +436,41 @@ export let deployFunction = async (d: {
     }
   };
 };
+
+export let deployFunction = async (d: {
+  functionVersion: { id: string };
+  function: Function;
+  functionDeployment: FunctionDeployment;
+  runtimeConfig: FunctionBayRuntimeConfig;
+  runtime: Runtime;
+  env: Record<string, string>;
+  zipFileUrl: string;
+}) =>
+  await deployFunctionZip({
+    functionVersion: d.functionVersion,
+    function: d.function,
+    runtimeConfig: d.runtimeConfig,
+    runtime: d.runtime,
+    env: d.env,
+    zipFile: Buffer.from(await (await fetch(d.zipFileUrl)).arrayBuffer()),
+    config: d.functionDeployment.configuration
+  });
+
+export let cloneFunctionVersion = async (d: {
+  functionVersion: { id: string };
+  sourceFunctionVersion: { configuration: PrismaJson.FunctionConfiguration };
+  function: Function;
+  runtimeConfig: FunctionBayRuntimeConfig;
+  runtime: Runtime;
+  env: Record<string, string>;
+  zipFile: Buffer;
+}) =>
+  await deployFunctionZip({
+    functionVersion: d.functionVersion,
+    function: d.function,
+    runtimeConfig: d.runtimeConfig,
+    runtime: d.runtime,
+    env: d.env,
+    zipFile: d.zipFile,
+    config: d.sourceFunctionVersion.configuration
+  });

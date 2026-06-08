@@ -1,3 +1,57 @@
+enum EnvironmentType {
+  development
+  production
+}
+
+enum EnvironmentStatus {
+  active
+  deleted
+}
+
+model Environment {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  type   EnvironmentType
+  status EnvironmentStatus
+
+  name String
+
+  instanceOid BigInt   @unique
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  creatorActorOid BigInt
+  creatorActor    OrganizationActor @relation(fields: [creatorActorOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
+  updatedAt DateTime  @default(now()) @updatedAt
+}
+
+enum SandboxStatus {
+  active
+  deleted
+}
+
+model Sandbox {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status SandboxStatus
+
+  name String
+
+  instanceOid BigInt   @unique
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  creatorActorOid BigInt
+  creatorActor    OrganizationActor @relation(fields: [creatorActorOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
+  updatedAt DateTime  @default(now()) @updatedAt
+}
+
 enum InstanceType {
   development
   production
@@ -15,10 +69,11 @@ model Instance {
   type   InstanceType
   status InstanceStatus
 
-  slug String @unique
-  name String
+  slug          String   @unique
+  previousSlugs String[]
+  name          String
 
-  defaultCallbackPollingIntervalSeconds Int @default(1800)
+  hasBeenReconciled Boolean @default(false)
 
   projectOid BigInt
   project    Project @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
@@ -26,8 +81,8 @@ model Instance {
   organizationOid BigInt
   organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
 
-  internalTenantIdentifier      String?
-  internalEnvironmentIdentifier String?
+  internalTenantIdentifier      String? @map("subspaceTenantIdentifier")
+  internalEnvironmentIdentifier String? @map("subspaceEnvironmentIdentifier")
 
   subspaceTenantId  String?
   cargoTenantId     String?
@@ -73,4 +128,11 @@ model Instance {
   consumerIntegrationEndpoints         ConsumerIntegrationEndpoint[]
   consumerIntegrationSessions          ConsumerIntegrationSession[]
   magicMcpSessions                     MagicMcpSession[]
+  consumerClients                      ConsumerClient[]
+  consumerAuthClients                  ConsumerAuthClient[]
+  consumerAuthTestAuthorizations       ConsumerAuthTestAuthorization[]
+  environment                          Environment?
+  sandbox                              Sandbox?
+
+  @@index([previousSlugs])
 }

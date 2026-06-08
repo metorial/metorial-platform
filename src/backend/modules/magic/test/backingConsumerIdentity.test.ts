@@ -16,6 +16,7 @@ vi.mock('@metorial/db', () => {
       update: vi.fn()
     },
     magicMcpServer: {
+      findUnique: vi.fn(),
       update: vi.fn()
     },
     magicMcpEndpoint: {
@@ -70,7 +71,17 @@ describe('Magic MCP consumer identity backing', () => {
       integrationId: 'integration_existing'
     } as any);
     vi.mocked(db.magicMcpServer.update).mockImplementation(
-      (async (args: any) => args.data as any) as any
+      (async (args: any) => ({ oid: args.where.oid, ...args.data }) as any) as any
+    );
+    vi.mocked(db.magicMcpServer.findUnique).mockImplementation(
+      (async (args: any) =>
+        ({
+          oid: args.where.oid,
+          id: 'linked_server',
+          hasSubspaceBacking: true,
+          subspaceEphemeralManagedSessionId: 'ems_server',
+          isSubspaceBackingReconciling: false
+        }) as any) as any
     );
     vi.mocked(db.magicMcpEndpoint.update).mockImplementation(
       (async (args: any) => args.data as any) as any

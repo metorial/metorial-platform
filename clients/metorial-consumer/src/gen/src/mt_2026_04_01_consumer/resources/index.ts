@@ -1,4 +1,6 @@
+export * from './assistants';
 export * from './consumer';
+export * from './conversations';
 export * from './dashboard';
 export * from './magic-mcp-endpoints';
 export * from './magic-mcp-groups';

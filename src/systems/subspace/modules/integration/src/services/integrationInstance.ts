@@ -40,15 +40,16 @@ import {
   identityInternalService
 } from '@metorial-subspace/module-identity';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
-import { sessionTemplateService } from '@metorial-subspace/module-session';
-import { syncIntegrationInstanceSessionTemplateQueue } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedSessionTemplate';
+import { sessionService, sessionTemplateService } from '@metorial-subspace/module-session';
+import { enqueueSyncIntegrationInstanceSessionTemplate } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedSessionTemplate';
+import { type SessionProviderTemplateInput } from '@metorial-subspace/module-session/src/services/sessionProviderInput';
 import { checkTenant } from '@metorial-subspace/module-tenant';
 import {
   integrationInstanceArchivedQueue,
   integrationInstanceCreatedQueue,
   integrationInstanceUpdatedQueue
 } from '../queues/lifecycle/integrationInstance';
-import { integrationProviderVersionInclude } from './integration';
+import { integrationProviderVersionInclude } from '../lib/integrationIncludes';
 import {
   integrationInstanceProviderService,
   type SetIntegrationInstanceProviderInput
@@ -91,6 +92,12 @@ export let integrationInstanceInclude = {
   magicMcpServerBacking: true
 } as const;
 
+export let magicMcpBackingIntegrationInstanceInclude = {
+  integration: true,
+  identityActor: true,
+  identity: true
+} as const;
+
 type IntegrationIdentityInput = {
   identityActorId?: string | null;
   identityId?: string | null;
@@ -105,6 +112,17 @@ type IntegrationInstanceWriteInput = {
   identityId?: string | null;
   providers?: SetIntegrationInstanceProviderInput[];
 };
+
+let DEFAULT_SESSION_TEMPLATE_POLL_INTERVAL_MS = 250;
+let DEFAULT_SESSION_TEMPLATE_POLL_ATTEMPTS = 20;
+
+let wait = async (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+let defaultSessionTemplateTimeoutError = () =>
+  badRequestError({
+    message: 'Timed out waiting for the default session template to become available.',
+    code: 'default_session_template_timeout'
+  });
 
 let mergeIntegrationIdentityInput = (d: {
   current?: {
@@ -212,6 +230,7 @@ class integrationInstanceServiceImpl {
     integrationInstance: IntegrationInstance;
     input: IntegrationInstanceWriteInput;
     current?: Parameters<typeof mergeIntegrationIdentityInput>[0]['current'];
+    isMagicMcpBacking?: boolean;
   }) {
     let mergedIdentityInput = mergeIntegrationIdentityInput({
       current: d.current,
@@ -596,6 +615,11 @@ class integrationInstanceServiceImpl {
         }
       });
 
+      integrationInstance = await db.integrationInstance.findUniqueOrThrow({
+        where: { oid: integrationInstance.oid },
+        include: integrationInstanceInclude
+      });
+
       await addAfterTransactionHook(async () =>
         integrationInstanceCreatedQueue.add({ integrationInstanceId: integrationInstance.id })
       );
@@ -640,7 +664,7 @@ class integrationInstanceServiceImpl {
               input: d.input,
               isMagicMcpBacking: true
             }),
-            include: integrationInstanceInclude
+            include: magicMcpBackingIntegrationInstanceInclude
           })
         : await db.integrationInstance.create({
             data: this.integrationInstanceCreateData({
@@ -652,7 +676,7 @@ class integrationInstanceServiceImpl {
               input: d.input,
               isMagicMcpBacking: true
             }),
-            include: integrationInstanceInclude
+            include: magicMcpBackingIntegrationInstanceInclude
           });
       let isNew = integrationInstance.id === newId.id;
 
@@ -813,12 +837,105 @@ class integrationInstanceServiceImpl {
       });
 
       await addAfterTransactionHook(async () =>
-        syncIntegrationInstanceSessionTemplateQueue.add({
-          sessionTemplateId: sessionTemplate.id
-        })
+        enqueueSyncIntegrationInstanceSessionTemplate(sessionTemplate.id)
       );
 
       return sessionTemplate;
+    });
+  }
+
+  async waitForDefaultSessionTemplateForIntegrationInstance(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    integrationInstance: IntegrationInstance;
+  }) {
+    checkTenant(d, d.integrationInstance);
+    checkDeletedRelation(d.integrationInstance);
+
+    for (let attempt = 0; attempt < DEFAULT_SESSION_TEMPLATE_POLL_ATTEMPTS; attempt++) {
+      let integrationInstance = await db.integrationInstance.findFirst({
+        where: {
+          oid: d.integrationInstance.oid,
+          tenantOid: d.tenant.oid,
+          solutionOid: d.solution.oid,
+          environmentOid: d.environment.oid,
+          status: { notIn: ['archived', 'deleted'] }
+        },
+        include: {
+          integrationInstanceProviders: {
+            where: {
+              status: 'active',
+              isParentDeleted: false,
+              currentVersion: { configOid: { not: null } }
+            },
+            select: { oid: true }
+          },
+          defaultSessionTemplate: {
+            include: {
+              providers: {
+                where: { status: 'active' },
+                include: {
+                  deployment: true,
+                  config: true,
+                  authConfig: true
+                }
+              }
+            }
+          }
+        }
+      });
+
+      let template = integrationInstance?.defaultSessionTemplate;
+      let expectedProviderCount =
+        integrationInstance?.integrationInstanceProviders.length ?? 0;
+      if (template && template.providers.length >= expectedProviderCount) {
+        return template as SessionProviderTemplateInput;
+      }
+
+      if (attempt < DEFAULT_SESSION_TEMPLATE_POLL_ATTEMPTS - 1) {
+        await wait(DEFAULT_SESSION_TEMPLATE_POLL_INTERVAL_MS);
+      }
+    }
+
+    throw new ServiceError(defaultSessionTemplateTimeoutError());
+  }
+
+  async createSessionForIntegrationInstance(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    integrationInstance: IntegrationInstance;
+    input: {
+      name?: string;
+      description?: string;
+      metadata?: Record<string, any>;
+      privateMetadata?: Record<string, any>;
+    };
+  }) {
+    checkTenant(d, d.integrationInstance);
+    checkDeletedRelation(d.integrationInstance);
+
+    let template = await this.waitForDefaultSessionTemplateForIntegrationInstance({
+      tenant: d.tenant,
+      solution: d.solution,
+      environment: d.environment,
+      integrationInstance: d.integrationInstance
+    });
+
+    return await sessionService.createSession({
+      tenant: d.tenant,
+      solution: d.solution,
+      environment: d.environment,
+      input: {
+        ...d.input,
+        providers: [
+          {
+            sessionTemplateId: template.id,
+            __sessionTemplate: template
+          }
+        ]
+      }
     });
   }
 

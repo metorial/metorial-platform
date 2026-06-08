@@ -39,8 +39,18 @@ class EnvironmentServiceImpl {
 
     let { oid, id } = getId('environment');
 
-    let environment = await db.environment.create({
-      data: {
+    let environment = await db.environment.upsert({
+      where: {
+        tenantOid_identifier: {
+          tenantOid: d.tenant.oid,
+          identifier: d.input.identifier
+        }
+      },
+      update: {
+        name: d.input.name,
+        type: d.input.type
+      },
+      create: {
         oid,
         id,
         tenantOid: d.tenant.oid,

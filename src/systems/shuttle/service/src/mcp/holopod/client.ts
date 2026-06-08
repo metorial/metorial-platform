@@ -1,4 +1,3 @@
-import { delay } from '@lowerdeck/delay';
 import axios from 'axios';
 import { EventEmitter } from 'events';
 import * as https from 'https';
@@ -243,21 +242,21 @@ export let checkHolopodHealth = async (opts?: { timeoutMs?: number }) => {
   return response.data;
 };
 
-(async () => {
-  if (process.env.NODE_ENV !== 'production') return;
+// (async () => {
+//   if (process.env.NODE_ENV !== 'production') return;
 
-  let interval = 1000 * 30;
+//   let interval = 1000 * 30;
 
-  while (true) {
-    try {
-      let health = await checkHolopodHealth({ timeoutMs: 5000 });
-      console.log(`[${new Date().toISOString()}] Holopod health:`, JSON.stringify(health));
+//   while (true) {
+//     try {
+//       let health = await checkHolopodHealth({ timeoutMs: 5000 });
+//       console.log(`[${new Date().toISOString()}] Holopod health:`, JSON.stringify(health));
 
-      interval = 1000 * 60 * 5;
-    } catch (err) {
-      console.error(`[${new Date().toISOString()}] Holopod health check failed:`, err);
-    }
+//       interval = 1000 * 60 * 5;
+//     } catch (err) {
+//       console.error(`[${new Date().toISOString()}] Holopod health check failed:`, err);
+//     }
 
-    await delay(interval);
-  }
-})();
+//     await delay(interval);
+//   }
+// })();

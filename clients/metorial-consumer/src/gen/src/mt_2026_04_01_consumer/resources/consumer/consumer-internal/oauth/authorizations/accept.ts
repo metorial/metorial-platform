@@ -8,6 +8,8 @@ export type ConsumerConsumerInternalOauthAuthorizationsAcceptOutput = {
   redirectUrl: string | null;
   consumerProfileId: string | null;
   magicMcpEndpointId: string | null;
+  skillPlugin: { id: string; name: string | null; slug: string | null } | null;
+  skillPluginSupportedProviderIds: string[];
   createdAt: Date;
   updatedAt: Date;
   expiresAt: Date;
@@ -24,7 +26,12 @@ export type ConsumerConsumerInternalOauthAuthorizationsAcceptOutput = {
       | 'client_secret_post'
       | 'none';
     portalId: string | null;
-    consumerSurfaceId: string;
+    consumerSurfaceId: string | null;
+    skillPlugin: {
+      id: string;
+      name: string | null;
+      slug: string | null;
+    } | null;
     magicMcpServerId: string | null;
     magicMcpEndpointId: string | null;
     createdAt: Date;
@@ -46,6 +53,18 @@ export let mapConsumerConsumerInternalOauthAuthorizationsAcceptOutput =
     magicMcpEndpointId: mtMap.objectField(
       'magic_mcp_endpoint_id',
       mtMap.passthrough()
+    ),
+    skillPlugin: mtMap.objectField(
+      'skill_plugin',
+      mtMap.object({
+        id: mtMap.objectField('id', mtMap.passthrough()),
+        name: mtMap.objectField('name', mtMap.passthrough()),
+        slug: mtMap.objectField('slug', mtMap.passthrough())
+      })
+    ),
+    skillPluginSupportedProviderIds: mtMap.objectField(
+      'skill_plugin_supported_provider_ids',
+      mtMap.array(mtMap.passthrough())
     ),
     createdAt: mtMap.objectField('created_at', mtMap.date()),
     updatedAt: mtMap.objectField('updated_at', mtMap.date()),
@@ -71,6 +90,14 @@ export let mapConsumerConsumerInternalOauthAuthorizationsAcceptOutput =
         consumerSurfaceId: mtMap.objectField(
           'consumer_surface_id',
           mtMap.passthrough()
+        ),
+        skillPlugin: mtMap.objectField(
+          'skill_plugin',
+          mtMap.object({
+            id: mtMap.objectField('id', mtMap.passthrough()),
+            name: mtMap.objectField('name', mtMap.passthrough()),
+            slug: mtMap.objectField('slug', mtMap.passthrough())
+          })
         ),
         magicMcpServerId: mtMap.objectField(
           'magic_mcp_server_id',

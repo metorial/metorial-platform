@@ -11,8 +11,10 @@ model ProviderDeployment {
   status     ProviderDeploymentStatus
   archivedAt DateTime?
 
-  isEphemeral Boolean
-  isDefault   Boolean
+  isEphemeral         Boolean
+  isDefault           Boolean
+  isEnclaveReconciled Boolean @default(false)
+  isMonitorReconciled Boolean @default(false)
 
   name            String?
   description     String?
@@ -21,8 +23,6 @@ model ProviderDeployment {
 
   /// [ToolFilter]
   toolFilter Json @default("{\"type\":\"v1.allow_all\"}")
-
-  networkingRulesetIds String[]
 
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
@@ -48,6 +48,14 @@ model ProviderDeployment {
   currentVersionOid BigInt?
   currentVersion    ProviderDeploymentVersion? @relation(fields: [currentVersionOid], references: [oid], name: "currentVersion")
 
+  enclave Enclave?
+
+  slateInstanceConfigurationOid BigInt?                     @unique
+  slateInstanceConfiguration    SlateInstanceConfiguration? @relation(fields: [slateInstanceConfigurationOid], references: [oid])
+
+  serverInstanceConfigurationOid BigInt?                      @unique
+  serverInstanceConfiguration    ServerInstanceConfiguration? @relation(fields: [serverInstanceConfigurationOid], references: [oid])
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
@@ -71,6 +79,8 @@ model ProviderDeployment {
   @@index([status])
   @@index([archivedAt])
   @@index([status, archivedAt])
+  @@index([isEnclaveReconciled])
+  @@index([isMonitorReconciled])
 }
 
 model ProviderDeploymentVersion {

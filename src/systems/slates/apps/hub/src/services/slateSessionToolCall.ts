@@ -45,6 +45,15 @@ type SlateToolCallAttachment = {
 
 let ATTACHMENT_EXPIRATION_DAYS = 7;
 
+let throwStoredConfigError = (d: { errorCode: string; errorMessage?: string | null }) => {
+  throw new ServiceError(
+    badRequestError({
+      code: 'invalid_provider_configuration',
+      message: `Provider instance configuration has an error: ${d.errorMessage ?? d.errorCode}`
+    })
+  );
+};
+
 class slateSessionToolCallServiceImpl {
   async createSlateToolCall(d: {
     input: {
@@ -53,6 +62,8 @@ class slateSessionToolCallServiceImpl {
 
       toolId: string;
       authConfigId?: string;
+      enclaveId?: string;
+      egressPolicy?: PrismaJson.CompiledEgressNetworkAllowList;
       input: Record<string, any>;
       participants: SlatesParticipant[];
     };
@@ -66,6 +77,7 @@ class slateSessionToolCallServiceImpl {
         slate: true,
         slateInstance: { include: { currentConfig: true } },
         slateVersion: { include: { specification: true } },
+        instanceConfiguration: true,
         tenant: true
       }
     });
@@ -83,6 +95,12 @@ class slateSessionToolCallServiceImpl {
           message: 'Provider instance does not have a current configuration set.'
         })
       );
+    }
+    if (session.slateInstance.currentConfig.errorCode) {
+      throwStoredConfigError({
+        errorCode: session.slateInstance.currentConfig.errorCode,
+        errorMessage: session.slateInstance.currentConfig.errorMessage
+      });
     }
 
     let lastActiveOrCreatedAt = session.lastActiveAt ?? session.createdAt;
@@ -160,8 +178,15 @@ class slateSessionToolCallServiceImpl {
     let startTime = Date.now();
 
     let stack = await slateInvocationService.createInvocationWithState({
+      tenant: session.tenant,
       participants: d.input.participants,
       slateVersion: session.slateVersion,
+      enclaveId: d.input.enclaveId ?? session.instanceConfiguration?.enclaveId,
+      egressPolicy:
+        d.input.egressPolicy ??
+        (session.instanceConfiguration
+          ?.egressPolicy as PrismaJson.CompiledEgressNetworkAllowList | null) ??
+        undefined,
 
       config: session.slateInstance.currentConfig.value ?? {},
       session: { id: session.id, state: {} },

@@ -35,5 +35,9 @@ export let env = createValidatedEnv({
 
   encryption: {
     ENCRYPTION_SECRET: v.string()
+  },
+
+  nebula: {
+    NEBULA_API_URL: v.string()
   }
 });

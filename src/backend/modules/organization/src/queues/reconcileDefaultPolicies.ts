@@ -46,9 +46,10 @@ let reconcileDefaultPoliciesManyQueueProcessor = reconcileDefaultPoliciesManyQue
 
     if (accessPolicies.length == 0) return;
 
-    await reconcileDefaultPoliciesSingleQueue.addMany(
+    await reconcileDefaultPoliciesSingleQueue.addManyWithOps(
       accessPolicies.map(accessPolicy => ({
-        accessPolicyId: accessPolicy.id
+        data: { accessPolicyId: accessPolicy.id },
+        opts: { id: accessPolicy.id }
       }))
     );
 

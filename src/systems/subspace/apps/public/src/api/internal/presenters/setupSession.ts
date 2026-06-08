@@ -229,7 +229,6 @@ export let setupSessionDeploymentPreviewPresenter = (
   description: providerDeployment.description,
   metadata: providerDeployment.metadata,
   toolFilter: providerDeployment.toolFilter,
-  networkingRulesetIds: providerDeployment.networkingRulesetIds,
 
   providerId: providerDeployment.provider.id,
 

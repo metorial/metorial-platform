@@ -8,12 +8,14 @@ import {
   useProvider,
   useProviderAuthCredentials,
   useProviderAuthMethods,
-  useProviderDeployment
+  useProviderDeployment,
+  useProviderListing
 } from '@metorial/state';
 import { Button, Flex, Text } from '@metorial/ui';
 import { sortBy } from 'lodash';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Stepper } from '../../../../../components/stepper';
+import { getConfigDoc, getProviderDoc } from '../../../lib/providerDocs';
 import { getProviderOAuthAutoRegistrationEnabled } from '../../../lib/providerOAuthAutoRegistration';
 import {
   ConnectStep,
@@ -59,6 +61,7 @@ export let ProviderSetupSessionEmbed = ({
   let deployment = useProviderDeployment(instanceId, deploymentId);
   let lockedVersionId = deployment.data?.lockedVersion?.id;
   let provider = useProvider(instanceId, providerId);
+  let providerListing = useProviderListing(instanceId, providerId);
   let project = useCurrentProject();
   let projectBrand = useProjectBrand(project.data?.organization.id, project.data?.id);
   let effectiveVersionId = lockedVersionId ?? provider.data?.currentVersion?.id;
@@ -210,6 +213,8 @@ export let ProviderSetupSessionEmbed = ({
   let projectBrandImageUrl = projectBrand.data?.imageUrl;
   let projectBrandName = projectBrand.data?.name ?? project.data?.name ?? 'Metorial';
   let providerImageUrl = provider.data?.publisher.imageUrl;
+  let providerDoc = getProviderDoc(providerListing.data);
+  let configDoc = getConfigDoc(providerListing.data);
 
   let visibleAuthCredentials = sortBy(authCredentials.data?.items ?? [], [
     credential => Number(!credential.isManaged),
@@ -877,6 +882,8 @@ export let ProviderSetupSessionEmbed = ({
     isManagedSelected,
     error,
     createCredentials,
+    providerDoc,
+    configDoc,
     showHiddenMethodStep,
     includeMethodStep,
     skipMethodStep,
@@ -899,6 +906,8 @@ export let ProviderSetupSessionEmbed = ({
     hasManagedVisibleCredentials,
     createCredentials,
     createSetupSession,
+    providerDoc,
+    configDoc,
     error,
     setupSession,
     setupWindowBlocked,

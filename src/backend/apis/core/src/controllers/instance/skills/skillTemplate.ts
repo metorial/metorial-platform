@@ -7,30 +7,32 @@ import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { instanceGroup, instanceLegacyPath, instancePath } from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
 import { skillTemplatePresenter } from '../../../presenters';
 
-export let skillTemplateGroup = instanceGroup.use(hasFlags(['skills-enabled'])).use(async ctx => {
-  if (!ctx.params.skillTemplateId) {
-    throw new ServiceError(
-      badRequestError({
-        message: 'skillTemplateId is required',
-        description: 'The skillTemplateId path parameter is required.'
-      })
-    );
-  }
+export let skillTemplateGroup = instanceGroup
+  .use(hasFlags(['skills-enabled']))
+  .use(async ctx => {
+    if (!ctx.params.skillTemplateId) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'skillTemplateId is required',
+          description: 'The skillTemplateId path parameter is required.'
+        })
+      );
+    }
 
-  let skillTemplate = await subspaceSkillTemplateService.get({
-    instance: ctx.instance,
-    skillTemplateId: ctx.params.skillTemplateId,
-    allowDeleted: true,
-    consumerProfile: ctx.consumerProfile,
-    consumerGroups: ctx.consumerGroups
+    let skillTemplate = await subspaceSkillTemplateService.get({
+      instance: ctx.instance,
+      skillTemplateId: ctx.params.skillTemplateId,
+      allowDeleted: true,
+      consumerProfile: ctx.consumerProfile,
+      consumerGroups: ctx.consumerGroups
+    });
+
+    return { skillTemplate };
   });
-
-  return { skillTemplate };
-});
 
 export let skillTemplateController = Controller.create(
   {
@@ -39,9 +41,10 @@ export let skillTemplateController = Controller.create(
   },
   {
     list: instanceGroup
-      .get(instancePath('skill-template', 'skillTemplates.list'), {
+      .get(instancePath('skill-templates', 'skills.templates.list'), {
         name: 'List skill templates',
-        description: 'Returns a paginated list of skill templates.'
+        description: 'Returns a paginated list of skill templates.',
+        legacyPaths: instanceLegacyPath('skill-template')
       })
       .use(hasFlags(['skills-enabled']))
       .use(
@@ -100,9 +103,10 @@ export let skillTemplateController = Controller.create(
       }),
 
     get: skillTemplateGroup
-      .get(instancePath('skill-template/:skillTemplateId', 'skillTemplates.get'), {
+      .get(instancePath('skill-templates/:skillTemplateId', 'skills.templates.get'), {
         name: 'Get skill template',
-        description: 'Retrieves a specific skill template.'
+        description: 'Retrieves a specific skill template.',
+        legacyPaths: instanceLegacyPath('skill-template/:skillTemplateId')
       })
       .use(hasFlags(['skills-enabled']))
       .use(
@@ -117,9 +121,10 @@ export let skillTemplateController = Controller.create(
       }),
 
     create: instanceGroup
-      .post(instancePath('skill-template', 'skillTemplates.create'), {
+      .post(instancePath('skill-templates', 'skills.templates.create'), {
         name: 'Create skill template',
-        description: 'Creates a skill template.'
+        description: 'Creates a skill template.',
+        legacyPaths: instanceLegacyPath('skill-template')
       })
       .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: ['instance.skill:write'] }))
@@ -146,9 +151,10 @@ export let skillTemplateController = Controller.create(
       }),
 
     update: skillTemplateGroup
-      .patch(instancePath('skill-template/:skillTemplateId', 'skillTemplates.update'), {
+      .patch(instancePath('skill-templates/:skillTemplateId', 'skills.templates.update'), {
         name: 'Update skill template',
-        description: 'Updates a skill template.'
+        description: 'Updates a skill template.',
+        legacyPaths: instanceLegacyPath('skill-template/:skillTemplateId')
       })
       .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: ['instance.skill:write'] }))
@@ -175,9 +181,10 @@ export let skillTemplateController = Controller.create(
       }),
 
     delete: skillTemplateGroup
-      .delete(instancePath('skill-template/:skillTemplateId', 'skillTemplates.delete'), {
+      .delete(instancePath('skill-templates/:skillTemplateId', 'skills.templates.delete'), {
         name: 'Delete skill template',
-        description: 'Archives a skill template.'
+        description: 'Archives a skill template.',
+        legacyPaths: instanceLegacyPath('skill-template/:skillTemplateId')
       })
       .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: ['instance.skill:write'] }))

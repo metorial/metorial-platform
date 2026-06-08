@@ -7,9 +7,15 @@ export let tenantPresenter = (tenant: Tenant) => ({
   identifier: tenant.identifier,
   name: tenant.name,
   logRetentionInDays: tenant.logRetentionInDays,
+  enforceSessionExpiry: tenant.enforceSessionExpiry,
 
   onlyAllowTrustedProviders: tenant.onlyAllowTrustedProviders,
   isWhitelabel: tenant.isWhitelabel,
+
+  allowAuthConfigExport: tenant.allowAuthConfigExport,
+  allowAuthConfigImport: tenant.allowAuthConfigImport,
+
+  collectOperationDescriptionForToolCalls: tenant.collectOperationDescriptionForToolCalls,
 
   createdAt: tenant.createdAt
 });

@@ -10,6 +10,7 @@ export type PortalsGetOutput = {
   allowConsumerSkillAuthoring: boolean;
   allowConsumerSkillPublishing: boolean;
   skillConfiguration: {
+    object: 'portal.skill_configuration';
     id: string;
     isDefault: boolean;
     allowScripts: boolean;
@@ -44,6 +45,7 @@ export let mapPortalsGetOutput = mtMap.object<PortalsGetOutput>({
   skillConfiguration: mtMap.objectField(
     'skill_configuration',
     mtMap.object({
+      object: mtMap.objectField('object', mtMap.passthrough()),
       id: mtMap.objectField('id', mtMap.passthrough()),
       isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
       allowScripts: mtMap.objectField('allow_scripts', mtMap.passthrough()),

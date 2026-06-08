@@ -1,4 +1,4 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { forbiddenError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
@@ -120,6 +120,14 @@ class providerAuthExportServiceImpl {
     checkTenant(d, d.authConfig);
     checkDeletedRelation(d.authConfig);
     await checkManagedCredentialsBlocked(d.authConfig);
+
+    if (!d.tenant.allowAuthConfigExport) {
+      throw new ServiceError(
+        forbiddenError({
+          message: 'Auth config export is not enabled for this project'
+        })
+      );
+    }
 
     let backend = await getBackend({ entity: d.authConfig });
 

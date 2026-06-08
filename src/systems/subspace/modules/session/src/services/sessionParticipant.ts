@@ -13,6 +13,7 @@ import {
   type DateFilter,
   normalizeDateFilter,
   resolveAgents,
+  resolveIdentities,
   resolveIdentityActors,
   resolveSessionConnections,
   resolveSessionMessages,
@@ -21,6 +22,8 @@ import {
 
 let include = {
   provider: true,
+  identityActor: true,
+  identity: true,
   agentInstance: {
     include: {
       agent: {
@@ -47,6 +50,7 @@ class sessionParticipantServiceImpl {
     ids?: string[];
     agentIds?: string[];
     actorIds?: string[];
+    identityIds?: string[];
     agentInstanceIds?: string[];
     sessionIds?: string[];
     sessionConnectionIds?: string[];
@@ -56,6 +60,7 @@ class sessionParticipantServiceImpl {
   }) {
     let agents = await resolveAgents(d, d.agentIds);
     let actors = await resolveIdentityActors(d, d.actorIds);
+    let identities = await resolveIdentities(d, d.identityIds);
     let sessions = await resolveSessions(d, d.sessionIds);
     let connections = await resolveSessionConnections(d, d.sessionConnectionIds);
     let messages = await resolveSessionMessages(d, d.sessionMessageIds);
@@ -77,7 +82,8 @@ class sessionParticipantServiceImpl {
                   ? { agentInstance: { id: { in: d.agentInstanceIds } } }
                   : undefined!,
                 agents ? { agentInstance: { agentOid: agents.in } } : undefined!,
-                actors ? { agentInstance: { agent: { actorOid: actors.in } } } : undefined!,
+                actors ? { identityActorOid: actors.in } : undefined!,
+                identities ? { identityOid: identities.in } : undefined!,
 
                 sessions
                   ? { sessionConnections: { some: { sessionOid: sessions.in } } }

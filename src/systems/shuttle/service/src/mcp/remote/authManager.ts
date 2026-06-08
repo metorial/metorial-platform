@@ -70,7 +70,8 @@ export class RemoteConnectionAuthManager {
         let { transformed: config } = await secretService.DANGEROUSLY_decryptSecret({
           secretOid: this.serverConfig.secretOid,
           purpose: 'server_config_value',
-          tenant: this.tenant
+          tenant: this.tenant,
+          note: `rmcp.cfg:${this.connection.id}:${this.serverConfig.id}`
         });
 
         return config;

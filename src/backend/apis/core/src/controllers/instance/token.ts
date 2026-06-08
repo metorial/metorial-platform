@@ -13,7 +13,8 @@ export let tokenController = Controller.create(
     get: apiGroup
       .get(Path('token', 'token.get'), {
         name: 'Get token details',
-        description: 'Retrieves metadata and configuration details for a specific token.'
+        description: 'Retrieves metadata and configuration details for a specific token.',
+        confidential: true
       })
       .output(tokenPresenter)
       .do(async ctx =>

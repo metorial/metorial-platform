@@ -18,7 +18,7 @@ import {
   type ConsumerSurfaceSkillConfigurationInput,
   type ConsumerSurfaceWithPublishableApiKey,
   type EnrichedConsumerSurface
-} from './consumerSurface';
+} from './consumers/consumerSurface';
 
 let include = {
   surface: {
@@ -187,7 +187,10 @@ class PortalServiceImpl {
     });
   }
 
-  listPortals(d: { instance: Instance }) {
+  listPortals(d: { instance: Instance; search?: string }) {
+    let normalizedSearch = d.search?.trim();
+    if (!normalizedSearch?.length) normalizedSearch = undefined;
+
     let paginator = Paginator.create(({ prisma }) =>
       prisma(async opts => {
         return await db.portal.findMany({
@@ -197,7 +200,15 @@ class PortalServiceImpl {
             status: 'active',
             surface: {
               status: 'active'
-            }
+            },
+            OR: normalizedSearch
+              ? [
+                  { id: { contains: normalizedSearch, mode: 'insensitive' } },
+                  { slug: { contains: normalizedSearch, mode: 'insensitive' } },
+                  { name: { contains: normalizedSearch, mode: 'insensitive' } },
+                  { description: { contains: normalizedSearch, mode: 'insensitive' } }
+                ]
+              : undefined
           },
           include
         });

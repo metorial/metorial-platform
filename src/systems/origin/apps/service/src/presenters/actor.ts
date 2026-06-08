@@ -1,7 +1,7 @@
 import type { Actor } from '../../prisma/generated/browser';
 
 export let actorPresenter = (actor: Actor) => ({
-  object: 'origin#actor',
+  object: 'origin#actor' as const,
 
   id: actor.id,
   identifier: actor.identifier,

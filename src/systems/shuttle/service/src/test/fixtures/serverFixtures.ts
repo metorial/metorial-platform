@@ -81,8 +81,44 @@ export const ServerFixtures = (db: PrismaClient) => {
       }
     });
 
+  const global = async (data?: { overrides?: Partial<Server> }): Promise<Server> => {
+    const { oid, id } = getId('server');
+    const name = data?.overrides?.name ?? `Global Server ${randomBytes(4).toString('hex')}`;
+
+    const factory = defineFactory<Server>(
+      {
+        oid,
+        id,
+        type: ServerType.container,
+        name,
+        description: data?.overrides?.description ?? null,
+        draftConfigSchema: data?.overrides?.draftConfigSchema ?? {
+          type: 'object',
+          properties: {}
+        },
+        draftConfigTransformer: data?.overrides?.draftConfigTransformer ?? '$.config',
+        draftRemoteUrl: data?.overrides?.draftRemoteUrl ?? null,
+        draftRemoteProtocol: data?.overrides?.draftRemoteProtocol ?? null,
+        draftRepositoryTagOid: data?.overrides?.draftRepositoryTagOid ?? null,
+        tenantOid: null,
+        currentVersionOid: data?.overrides?.currentVersionOid ?? null,
+        remoteOauthConfigOid: data?.overrides?.remoteOauthConfigOid ?? null,
+        delegatedOauthConfigOid: data?.overrides?.delegatedOauthConfigOid ?? null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        ...data?.overrides
+      } as Server,
+      {
+        persist: value => db.server.create({ data: value })
+      }
+    );
+
+    return factory.create(data?.overrides ?? {});
+  };
+
   return {
     default: defaultServer,
+    global,
     withTenant,
     withDescription
   };

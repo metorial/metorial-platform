@@ -1,9 +1,10 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import type { Slate, Tenant } from '../../prisma/generated/client';
+import type { Prisma, Slate, Tenant } from '../../prisma/generated/client';
 import { db } from '../db';
 import { buildSlateFilterClause, type SubRegistryWithFilters } from '../lib/subRegistryFilter';
+import { buildSlateSupportsPrebuiltWhere } from '../lib/slateVersion/visibility';
 
 let include = {
   scope: true,
@@ -14,31 +15,53 @@ let include = {
   categories: { include: { category: true } }
 };
 
+let buildSlateIdWhere = (id: string): Prisma.SlateWhereInput => {
+  let normalizedId = id.startsWith('@') ? id.slice(1) : id;
+  let [scopeIdentifier, slateIdentifier] = normalizedId.includes('/')
+    ? normalizedId.split('/', 2)
+    : [undefined, undefined];
+
+  return {
+    OR: [
+      { id: normalizedId },
+      { fullIdentifier: normalizedId },
+      { id: `@${normalizedId}` },
+      { fullIdentifier: `@${normalizedId}` },
+      ...(scopeIdentifier && slateIdentifier
+        ? [
+            {
+              AND: [
+                {
+                  scope: {
+                    OR: [{ id: scopeIdentifier }, { identifier: scopeIdentifier }]
+                  }
+                },
+                {
+                  OR: [{ identifier: slateIdentifier }, { id: slateIdentifier }]
+                }
+              ]
+            }
+          ]
+        : [])
+    ]
+  };
+};
+
 class slateServiceImpl {
   async getSlateById(d: {
     id: string;
     tenant?: Tenant;
     subRegistry?: SubRegistryWithFilters | null;
+    supportsPrebuilt?: boolean;
   }) {
     let filterClause = buildSlateFilterClause(d.subRegistry, d.tenant?.oid);
-
-    let normalizedId = d.id.startsWith('@') ? d.id.slice(1) : d.id;
+    let supportsPrebuiltClause = buildSlateSupportsPrebuiltWhere(d.supportsPrebuilt);
 
     let slate = await db.slate.findFirst({
       where: {
         status: 'active',
 
-        AND: [
-          {
-            OR: [
-              { id: normalizedId },
-              { fullIdentifier: normalizedId },
-              { id: `@${normalizedId}` },
-              { fullIdentifier: `@${normalizedId}` }
-            ]
-          },
-          filterClause
-        ]
+        AND: [buildSlateIdWhere(d.id), filterClause, supportsPrebuiltClause]
       },
       include
     });

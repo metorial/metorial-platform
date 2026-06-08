@@ -1,10 +1,7 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import {
-  subspaceIntegrationInstanceService,
-  subspaceSessionService
-} from '@metorial/module-subspace';
+import { subspaceIntegrationInstanceService } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
@@ -52,7 +49,7 @@ export let integrationInstanceController = Controller.create(
   },
   {
     list: instanceGroup
-      .get(instancePath('integration-instances', 'integrationInstances.list'), {
+      .get(instancePath('integration-instances', 'integrations.instances.list'), {
         name: 'List integration instances',
         description: 'Returns a paginated list of integration instances.'
       })
@@ -117,7 +114,7 @@ export let integrationInstanceController = Controller.create(
       .get(
         instancePath(
           'integration-instances/:integrationInstanceId',
-          'integrationInstances.get'
+          'integrations.instances.get'
         ),
         {
           name: 'Get integration instance',
@@ -134,7 +131,7 @@ export let integrationInstanceController = Controller.create(
       .post(
         instancePath(
           'integration-instances/:integrationInstanceId/session-template',
-          'integrationInstances.createSessionTemplate'
+          'integrations.instances.createSessionTemplate'
         ),
         {
           name: 'Create integration instance session template',
@@ -168,7 +165,7 @@ export let integrationInstanceController = Controller.create(
       .post(
         instancePath(
           'integration-instances/:integrationInstanceId/session',
-          'integrationInstances.createSession'
+          'integrations.instances.createSession'
         ),
         {
           name: 'Create integration instance session',
@@ -187,33 +184,19 @@ export let integrationInstanceController = Controller.create(
       )
       .output(providerSessionPresenter)
       .do(async ctx => {
-        if (!ctx.integrationInstance.defaultSessionTemplateId) {
-          throw new ServiceError(
-            badRequestError({
-              message:
-                'This integration instance does not have a shared session template yet.',
-              code: 'integration_instance_shared_session_template_missing'
-            })
-          );
-        }
-
-        let session = await subspaceSessionService.create({
+        let session = await subspaceIntegrationInstanceService.createSession({
           instance: ctx.instance,
+          integrationInstanceId: ctx.integrationInstance.id,
           name: ctx.body.name ?? `Session ${new Date().toISOString()}`,
           description: ctx.body.description,
-          metadata: ctx.body.metadata,
-          providers: [
-            {
-              sessionTemplateId: ctx.integrationInstance.defaultSessionTemplateId
-            }
-          ]
+          metadata: ctx.body.metadata
         });
 
         return providerSessionPresenter.present({ session });
       }),
 
     create: instanceGroup
-      .post(instancePath('integration-instances', 'integrationInstances.create'), {
+      .post(instancePath('integration-instances', 'integrations.instances.create'), {
         name: 'Create integration instance',
         description: 'Creates a new integration instance.'
       })
@@ -256,7 +239,7 @@ export let integrationInstanceController = Controller.create(
       .patch(
         instancePath(
           'integration-instances/:integrationInstanceId',
-          'integrationInstances.update'
+          'integrations.instances.update'
         ),
         {
           name: 'Update integration instance',
@@ -302,7 +285,7 @@ export let integrationInstanceController = Controller.create(
       .delete(
         instancePath(
           'integration-instances/:integrationInstanceId',
-          'integrationInstances.delete'
+          'integrations.instances.delete'
         ),
         {
           name: 'Delete integration instance',

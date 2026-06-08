@@ -1,6 +1,16 @@
 import { renderWithLoader } from '@metorial-io/data-hooks';
-import { Badge, Datalist, Flex, Group, InlineCopy, RenderDate, Text } from '@metorial-io/ui';
-import { Link, useParams } from 'react-router-dom';
+import {
+  Badge,
+  Button,
+  Datalist,
+  Flex,
+  Group,
+  InlineCopy,
+  RenderDate,
+  Text
+} from '@metorial-io/ui';
+import { useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { styled } from 'styled-components';
 import {
   deploymentStatusColors,
@@ -16,6 +26,7 @@ import {
   useSlateStats,
   useSlateVersions
 } from '../../state/index.js';
+import { redeployLatestSlate, waitForRedeployDeployment } from '../../state/deployments.js';
 import { BackLink } from '../../components/BackLink.js';
 import { MonoCode, SlateLogoPlaceholder } from '../../components/styled.js';
 
@@ -100,6 +111,9 @@ let ViewAllLink = styled(Link)`
 
 export let SlateDetail = () => {
   let { slateId } = useParams<{ slateId: string }>();
+  let navigate = useNavigate();
+  let [isRedeploying, setIsRedeploying] = useState(false);
+  let [redeployError, setRedeployError] = useState<string | null>(null);
   let slate = useSlate(slateId);
   let stats = useSlateStats(slateId);
   let versions = useSlateVersions(slateId);
@@ -127,9 +141,47 @@ export let SlateDetail = () => {
                   S
                 </LargeLogoPlaceholder>
                 <Flex direction="column" style={{ flex: 1 }}>
-                  <Text size="5" weight="bold" style={{ marginBottom: 8 }}>
-                    {slateData.name || slateData.identifier}
-                  </Text>
+                  <Flex align="center" justify="space-between" gap={16}>
+                    <Text size="5" weight="bold" style={{ marginBottom: 8 }}>
+                      {slateData.name || slateData.identifier}
+                    </Text>
+                    <Button
+                      size="2"
+                      color="blue"
+                      disabled={!versionItems.length || isRedeploying}
+                      loading={isRedeploying}
+                      onClick={async () => {
+                        if (!slateId) return;
+                        setRedeployError(null);
+                        setIsRedeploying(true);
+                        try {
+                          let result = await redeployLatestSlate(slateId);
+                          let deployment = await waitForRedeployDeployment({
+                            slateId,
+                            versionId: result.versionId,
+                            queuedAt: result.queuedAt
+                          });
+
+                          if (!deployment) {
+                            setRedeployError(
+                              'Redeploy queued, but the deployment page is not ready yet.'
+                            );
+                            return;
+                          }
+
+                          navigate(`/slates/${slateId}/deployments/${deployment.id}`);
+                        } catch (error) {
+                          setRedeployError(
+                            error instanceof Error ? error.message : 'Failed to redeploy slate'
+                          );
+                        } finally {
+                          setIsRedeploying(false);
+                        }
+                      }}
+                    >
+                      Redeploy latest version
+                    </Button>
+                  </Flex>
                   <Flex align="center" gap={6} style={{ marginBottom: 12 }}>
                     <MonoCode>
                       {slateData.slate?.fullIdentifier || slateData.identifier}
@@ -141,6 +193,16 @@ export let SlateDetail = () => {
                   {slateData.description && (
                     <Text size="2" color="gray600">
                       {slateData.description}
+                    </Text>
+                  )}
+                  {redeployError && (
+                    <Text size="1" color="red600" style={{ marginTop: 8 }}>
+                      {redeployError}
+                    </Text>
+                  )}
+                  {!versionItems.length && (
+                    <Text size="1" color="gray600" style={{ marginTop: 8 }}>
+                      Add a version before redeploying this slate.
                     </Text>
                   )}
                 </Flex>

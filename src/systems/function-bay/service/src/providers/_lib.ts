@@ -3,6 +3,7 @@ import type {
   FunctionBayRuntimeConfig,
   FunctionBayRuntimeSpec
 } from '@function-bay/types';
+import { getSentry } from '@lowerdeck/sentry';
 import type {
   Function,
   FunctionBundle,
@@ -12,6 +13,9 @@ import type {
   Runtime
 } from '../../prisma/generated/client';
 import type { ForgeWorkflowStep } from '../forge';
+import type { FunctionInvocationResult } from '../lib/presentInvokeResponse';
+
+let Sentry = getSentry();
 
 export interface ProviderRuntimeResult {
   runtime: Runtime;
@@ -35,36 +39,30 @@ export interface ProviderDeployFunctionResult {
   providerData: Record<string, any>;
 }
 
+export interface ProviderCloneFunctionVersionParams {
+  functionVersion: { id: string };
+  sourceFunctionVersion: FunctionVersion;
+  function: Function;
+  runtimeConfig: FunctionBayRuntimeConfig;
+  runtime: Runtime;
+  env: Record<string, string>;
+  zipFile: Buffer;
+}
+
 export interface FunctionInvocationParams {
+  tenantId: string;
   functionVersion: FunctionVersion;
   function: Function;
+  sourceFunction: Function;
+  enclave?: {
+    id: string;
+    identifier: string;
+  };
   payload: Record<string, any>;
   providerData: any;
   functionBundle?: FunctionBundle | null;
-  egressPolicy?: {
-    allowedIps?: string[];
-    allowedHosts?: string[];
-  };
+  egressPolicy?: PrismaJson.CompiledEgressNetworkAllowList;
 }
-
-export type FunctionInvocationResult = (
-  | {
-      type: 'success';
-      result: any;
-    }
-  | {
-      type: 'error';
-      error: {
-        code: any;
-        message: any;
-      };
-      internalError?: string;
-    }
-) & {
-  logs: [number, string][];
-  computeTimeMs: number;
-  billedTimeMs: number;
-};
 
 export abstract class ProviderAdapter {
   abstract readonly provider: Provider;
@@ -73,6 +71,9 @@ export abstract class ProviderAdapter {
   abstract getRuntime(runtime: FunctionBayRuntimeSpec): Promise<ProviderRuntimeResult>;
   abstract deployFunction(
     params: ProviderDeployFunctionParams
+  ): Promise<ProviderDeployFunctionResult>;
+  abstract cloneFunctionVersion(
+    params: ProviderCloneFunctionVersionParams
   ): Promise<ProviderDeployFunctionResult>;
   abstract invokeFunction(d: FunctionInvocationParams): Promise<FunctionInvocationResult>;
 
@@ -89,6 +90,9 @@ export class ProviderImpl extends ProviderAdapter {
   #deployFunction: (
     params: ProviderDeployFunctionParams
   ) => Promise<ProviderDeployFunctionResult>;
+  #cloneFunctionVersion: (
+    params: ProviderCloneFunctionVersionParams
+  ) => Promise<ProviderDeployFunctionResult>;
   #invokeFunction: (d: FunctionInvocationParams) => Promise<FunctionInvocationResult>;
 
   constructor(d: {
@@ -98,6 +102,9 @@ export class ProviderImpl extends ProviderAdapter {
     deployFunction: (
       params: ProviderDeployFunctionParams
     ) => Promise<ProviderDeployFunctionResult>;
+    cloneFunctionVersion: (
+      params: ProviderCloneFunctionVersionParams
+    ) => Promise<ProviderDeployFunctionResult>;
     invokeFunction: (d: FunctionInvocationParams) => Promise<FunctionInvocationResult>;
   }) {
     super();
@@ -105,6 +112,7 @@ export class ProviderImpl extends ProviderAdapter {
     this.workflow = d.workflow;
     this.#getRuntime = d.getRuntime;
     this.#deployFunction = d.deployFunction;
+    this.#cloneFunctionVersion = d.cloneFunctionVersion;
     this.#invokeFunction = d.invokeFunction;
   }
 
@@ -114,6 +122,10 @@ export class ProviderImpl extends ProviderAdapter {
 
   async deployFunction(params: ProviderDeployFunctionParams) {
     return await this.#deployFunction(params);
+  }
+
+  async cloneFunctionVersion(params: ProviderCloneFunctionVersionParams) {
+    return await this.#cloneFunctionVersion(params);
   }
 
   async invokeFunction(d: FunctionInvocationParams) {
@@ -168,7 +180,10 @@ export let parseInvocationPayload = (d: {
     }
 
     let errorBody = body as any;
-    if (errorBody?.errorType == 'Error' && typeof errorBody?.errorMessage == 'string') {
+    if (
+      typeof errorBody?.errorType == 'string' &&
+      typeof errorBody?.errorMessage == 'string'
+    ) {
       let traceArr = errorBody?.trace && Array.isArray(errorBody.trace) ? errorBody.trace : [];
       let trace = traceArr.join('\n');
 
@@ -176,7 +191,7 @@ export let parseInvocationPayload = (d: {
         type: 'error',
         error: {
           code: 'function_bay.function_error',
-          message: `Function invocation resulted in an error:\nError ${errorBody.errorMessage}\n\n${trace}`
+          message: `Function invocation resulted in an error:\n${errorBody.errorType} ${errorBody.errorMessage}\n\n${trace}`
         },
         internalError: d.internalError,
         ...d.outputs
@@ -196,6 +211,20 @@ export let parseInvocationPayload = (d: {
       };
     }
 
+    console.warn('Function returned an unrecognized response format', {
+      payload: d.payload,
+      decodedPayload,
+      body
+    });
+
+    Sentry.captureMessage('Function returned unrecognized response format', {
+      extra: {
+        payload: d.payload,
+        decodedPayload,
+        body
+      }
+    });
+
     return {
       type: 'error',
       error: {
@@ -206,6 +235,18 @@ export let parseInvocationPayload = (d: {
       ...d.outputs
     };
   } catch (err) {
+    Sentry.captureException(err, {
+      extra: {
+        payload: d.payload,
+        error: String(err)
+      }
+    });
+
+    console.warn('Failed to parse function invocation response', {
+      payload: d.payload,
+      error: String(err)
+    });
+
     return {
       type: 'error',
       error: {

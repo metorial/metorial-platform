@@ -60,13 +60,16 @@ export let providerTemplateBackingPresenter = (
 
 export let magicMcpServerBackingPresenter = (
   backing: MagicMcpServerBacking & {
-    providerTemplateBacking: ProviderTemplateBacking | null;
-    ownerIntegration: Integration | null;
-    integration: Integration | null;
-    integrationInstance: IntegrationInstance;
-    sessionTemplate: SessionTemplate;
-    ephemeralManagedSession: EphemeralManagedSession;
-    actor: IdentityActor | null;
+    providerTemplateBacking: Pick<ProviderTemplateBacking, 'id'> | null;
+    ownerIntegration: Pick<Integration, 'id'> | null;
+    integration: Pick<Integration, 'id'> | null;
+    integrationInstance: Pick<IntegrationInstance, 'id'>;
+    sessionTemplate: Pick<SessionTemplate, 'id'>;
+    ephemeralManagedSession: Pick<
+      EphemeralManagedSession,
+      'id' | 'willRotateAt' | 'isReconciling'
+    >;
+    actor: Pick<IdentityActor, 'id'> | null;
   }
 ) => ({
   object: 'magic_mcp.server_backing',
@@ -78,6 +81,7 @@ export let magicMcpServerBackingPresenter = (
   integrationInstanceId: backing.integrationInstance.id,
   sessionTemplateId: backing.sessionTemplate.id,
   ephemeralManagedSessionId: backing.ephemeralManagedSession.id,
+  isReconciling: backing.ephemeralManagedSession.isReconciling,
   willRotateAt: backing.ephemeralManagedSession.willRotateAt,
   identityActorId: backing.actor?.id ?? null,
   createdAt: backing.createdAt
@@ -85,7 +89,7 @@ export let magicMcpServerBackingPresenter = (
 
 export let magicMcpEndpointServerBackingPresenter = (
   backing: MagicMcpEndpointServerBacking & {
-    magicMcpServerBacking: MagicMcpServerBacking;
+    magicMcpServerBacking: Pick<MagicMcpServerBacking, 'id'>;
   }
 ) => ({
   object: 'magic_mcp.endpoint_server_backing',
@@ -96,12 +100,15 @@ export let magicMcpEndpointServerBackingPresenter = (
 
 export let magicMcpEndpointBackingPresenter = (
   backing: MagicMcpEndpointBacking & {
-    integrationGroup: IntegrationInstanceGroup;
-    sessionTemplate: SessionTemplate;
-    ephemeralManagedSession: EphemeralManagedSession;
-    actor: IdentityActor | null;
+    integrationGroup: Pick<IntegrationInstanceGroup, 'id'>;
+    sessionTemplate: Pick<SessionTemplate, 'id'>;
+    ephemeralManagedSession: Pick<
+      EphemeralManagedSession,
+      'id' | 'willRotateAt' | 'isReconciling'
+    >;
+    actor: Pick<IdentityActor, 'id'> | null;
     servers: (MagicMcpEndpointServerBacking & {
-      magicMcpServerBacking: MagicMcpServerBacking;
+      magicMcpServerBacking: Pick<MagicMcpServerBacking, 'id'>;
     })[];
   }
 ) => ({
@@ -110,6 +117,7 @@ export let magicMcpEndpointBackingPresenter = (
   integrationInstanceGroupId: backing.integrationGroup.id,
   sessionTemplateId: backing.sessionTemplate.id,
   ephemeralManagedSessionId: backing.ephemeralManagedSession.id,
+  isReconciling: backing.ephemeralManagedSession.isReconciling,
   willRotateAt: backing.ephemeralManagedSession.willRotateAt,
   identityActorId: backing.actor?.id ?? null,
   servers: backing.servers.map(magicMcpEndpointServerBackingPresenter),

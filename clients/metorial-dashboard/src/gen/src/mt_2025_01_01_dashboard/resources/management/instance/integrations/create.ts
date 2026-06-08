@@ -40,6 +40,24 @@ export type ManagementInstanceIntegrationsCreateOutput = {
           ignoreParentFilters: boolean;
         }
       | null;
+    providerId: string;
+    deploymentId: string;
+    authMethodId: string | null;
+    authCredentialsId: string | null;
+    config: {
+      object: 'provider.config#preview';
+      id: string;
+      isDefault: boolean;
+      name: string | null;
+      description: string | null;
+      metadata: Record<string, any> | null;
+      providerId: string;
+      createdAt: Date;
+      updatedAt: Date;
+    } | null;
+    createdAt: Date;
+    updatedAt: Date;
+    archivedAt: Date | null;
     provider: {
       object: 'provider#preview';
       id: string;
@@ -99,20 +117,6 @@ export type ManagementInstanceIntegrationsCreateOutput = {
       createdAt: Date;
       updatedAt: Date;
     } | null;
-    config: {
-      object: 'provider.config#preview';
-      id: string;
-      isDefault: boolean;
-      name: string | null;
-      description: string | null;
-      metadata: Record<string, any> | null;
-      providerId: string;
-      createdAt: Date;
-      updatedAt: Date;
-    } | null;
-    createdAt: Date;
-    updatedAt: Date;
-    archivedAt: Date | null;
   }[];
   createdAt: Date;
   updatedAt: Date;
@@ -221,6 +225,36 @@ export let mapManagementInstanceIntegrationsCreateOutput =
               )
             ])
           ),
+          providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
+          deploymentId: mtMap.objectField('deployment_id', mtMap.passthrough()),
+          authMethodId: mtMap.objectField(
+            'auth_method_id',
+            mtMap.passthrough()
+          ),
+          authCredentialsId: mtMap.objectField(
+            'auth_credentials_id',
+            mtMap.passthrough()
+          ),
+          config: mtMap.objectField(
+            'config',
+            mtMap.object({
+              object: mtMap.objectField('object', mtMap.passthrough()),
+              id: mtMap.objectField('id', mtMap.passthrough()),
+              isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
+              name: mtMap.objectField('name', mtMap.passthrough()),
+              description: mtMap.objectField(
+                'description',
+                mtMap.passthrough()
+              ),
+              metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+              providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
+              createdAt: mtMap.objectField('created_at', mtMap.date()),
+              updatedAt: mtMap.objectField('updated_at', mtMap.date())
+            })
+          ),
+          createdAt: mtMap.objectField('created_at', mtMap.date()),
+          updatedAt: mtMap.objectField('updated_at', mtMap.date()),
+          archivedAt: mtMap.objectField('archived_at', mtMap.date()),
           provider: mtMap.objectField(
             'provider',
             mtMap.object({
@@ -330,27 +364,7 @@ export let mapManagementInstanceIntegrationsCreateOutput =
               createdAt: mtMap.objectField('created_at', mtMap.date()),
               updatedAt: mtMap.objectField('updated_at', mtMap.date())
             })
-          ),
-          config: mtMap.objectField(
-            'config',
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
-              name: mtMap.objectField('name', mtMap.passthrough()),
-              description: mtMap.objectField(
-                'description',
-                mtMap.passthrough()
-              ),
-              metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-              providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-              createdAt: mtMap.objectField('created_at', mtMap.date()),
-              updatedAt: mtMap.objectField('updated_at', mtMap.date())
-            })
-          ),
-          createdAt: mtMap.objectField('created_at', mtMap.date()),
-          updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-          archivedAt: mtMap.objectField('archived_at', mtMap.date())
+          )
         })
       )
     ),

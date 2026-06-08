@@ -4,15 +4,19 @@ import {
 } from '@metorial/util-endpoint';
 
 import {
+  mapDashboardInstanceCustomProvidersArchiveOutput,
   mapDashboardInstanceCustomProvidersCreateBody,
   mapDashboardInstanceCustomProvidersCreateOutput,
+  mapDashboardInstanceCustomProvidersGetEnvOutput,
   mapDashboardInstanceCustomProvidersGetOutput,
   mapDashboardInstanceCustomProvidersListOutput,
   mapDashboardInstanceCustomProvidersListQuery,
   mapDashboardInstanceCustomProvidersUpdateBody,
   mapDashboardInstanceCustomProvidersUpdateOutput,
+  type DashboardInstanceCustomProvidersArchiveOutput,
   type DashboardInstanceCustomProvidersCreateBody,
   type DashboardInstanceCustomProvidersCreateOutput,
+  type DashboardInstanceCustomProvidersGetEnvOutput,
   type DashboardInstanceCustomProvidersGetOutput,
   type DashboardInstanceCustomProvidersListOutput,
   type DashboardInstanceCustomProvidersListQuery,
@@ -109,6 +113,35 @@ export class MetorialManagementInstanceCustomProvidersEndpoint {
   }
 
   /**
+   * @name Get custom provider environment
+   * @description Retrieves the environment variables for a specific custom provider by ID.
+   *
+   * @param `instanceId` - string
+   * @param `customProviderId` - string
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardInstanceCustomProvidersGetEnvOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  getEnv(
+    instanceId: string,
+    customProviderId: string,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceCustomProvidersGetEnvOutput> {
+    let path = `instances/${instanceId}/custom-providers/${customProviderId}/env`;
+
+    let request = {
+      path,
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._get(request).transform(
+      mapDashboardInstanceCustomProvidersGetEnvOutput
+    );
+  }
+
+  /**
    * @name Create custom provider
    * @description Creates a new custom provider.
    *
@@ -167,6 +200,35 @@ export class MetorialManagementInstanceCustomProvidersEndpoint {
 
     return this._patch(request).transform(
       mapDashboardInstanceCustomProvidersUpdateOutput
+    );
+  }
+
+  /**
+   * @name Archive custom provider
+   * @description Archives a specific custom provider and disables new connections to it.
+   *
+   * @param `instanceId` - string
+   * @param `customProviderId` - string
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardInstanceCustomProvidersArchiveOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  archive(
+    instanceId: string,
+    customProviderId: string,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceCustomProvidersArchiveOutput> {
+    let path = `instances/${instanceId}/custom-providers/${customProviderId}/archive`;
+
+    let request = {
+      path,
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._post(request).transform(
+      mapDashboardInstanceCustomProvidersArchiveOutput
     );
   }
 }

@@ -10,6 +10,8 @@ import type {
   ProviderAuthConfigCreateRes,
   ProviderAuthConfigDeleteParam,
   ProviderAuthConfigDeleteRes,
+  ProviderAuthConfigVersionCreatedParam,
+  ProviderAuthConfigVersionCreatedRes,
   ProviderAuthCredentialsCreateParam,
   ProviderAuthCredentialsCreateRes,
   ProviderAuthCredentialsDeleteParam,
@@ -25,8 +27,22 @@ import type {
 } from '@metorial-subspace/provider-utils';
 import { IProviderAuth } from '@metorial-subspace/provider-utils';
 import { getTenantForSlates, slates } from '../client';
+import { enqueueAuthConfigProcessingSync } from '../queues/sync/authConfigProcessing';
 
 export class ProviderAuth extends IProviderAuth {
+  override async onProviderAuthConfigVersionCreated(
+    data: ProviderAuthConfigVersionCreatedParam
+  ): Promise<ProviderAuthConfigVersionCreatedRes> {
+    if (!data.authConfigVersion.slateAuthConfigOid) return {};
+
+    await enqueueAuthConfigProcessingSync({
+      providerAuthConfigId: data.authConfig.id,
+      providerAuthConfigVersionId: data.authConfigVersion.id
+    });
+
+    return {};
+  }
+
   override async createProviderAuthCredentials(
     data: ProviderAuthCredentialsCreateParam
   ): Promise<ProviderAuthCredentialsCreateRes> {
@@ -184,11 +200,18 @@ export class ProviderAuth extends IProviderAuth {
     let slateOAuthCredentials = await db.slateOAuthCredentials.findUniqueOrThrow({
       where: { oid: data.credentials.slateCredentialsOid }
     });
+    let providerDeployment = data.providerDeployment
+      ? await db.providerDeployment.findUnique({
+          where: { oid: data.providerDeployment.oid },
+          include: { slateInstanceConfiguration: true }
+        })
+      : null;
 
     let oauthSetup = await slates.slateOAuthSetup.create({
       tenantId: tenant.id,
       slateId: slate.id,
       slateVersionId: slateVersion.id,
+      slateInstanceConfigurationId: providerDeployment?.slateInstanceConfiguration?.id,
       authMethodId: data.authMethod.specId,
 
       input: data.input,

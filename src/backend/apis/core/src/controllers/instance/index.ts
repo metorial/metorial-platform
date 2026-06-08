@@ -7,6 +7,8 @@ export * from './instance';
 export * from './instances';
 export * from './integrations';
 export * from './magic-mcp';
+export * from './monitor';
+export * from './network';
 export * from './portal';
 export * from './provider';
 export * from './provider-auth';

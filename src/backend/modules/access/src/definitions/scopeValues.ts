@@ -18,6 +18,9 @@ export let instanceScopes = [
   'instance.session:read' as const,
   'instance.session:write' as const,
 
+  'instance.monitor:read' as const,
+  'instance.monitor:write' as const,
+
   'instance.provider_oauth.connection:read' as const,
   'instance.provider_oauth.connection:write' as const,
 
@@ -39,6 +42,9 @@ export let instanceScopes = [
 
   'instance.callback:read' as const,
   'instance.callback:write' as const,
+
+  'instance.network:read' as const,
+  'instance.network:write' as const,
 
   'instance.server.config_vault:read' as const,
   'instance.server.config_vault:write' as const,
@@ -169,6 +175,9 @@ let coreScopesRaw = [
 
   'organization.instance:read' as const,
   'organization.instance:write' as const,
+
+  'organization.sandbox:read' as const,
+  'organization.sandbox:write' as const,
 
   'organization.team:read' as const,
   'organization.team:write' as const,

@@ -417,6 +417,7 @@ services:
       SLATES_HUB_PUBLIC_URL: http://localhost:52045
       ORIGIN_URL: http://origin:52090/metorial-origin
       REGISTRY_URL: https://metorial-saas-staging.registry.metorial-enterprise.com/metorial-registry-root
+      FUNCTION_BAY_API_URL: http://function-bay:52030/metorial-function-bay
 
     volumes:
       - ./apps/controller:/app/src/systems/subspace/apps/controller:${SUBSPACE_SOURCE_MOUNT_MODE:-ro}
@@ -644,6 +645,7 @@ services:
       SLATES_HUB_PUBLIC_URL: http://localhost:52045
       ORIGIN_URL: http://origin:52090/metorial-origin
       REGISTRY_URL: https://metorial-saas-staging.registry.metorial-enterprise.com/metorial-registry-root
+      FUNCTION_BAY_API_URL: http://function-bay:52030/metorial-function-bay
 
     volumes:
       - ./apps/worker:/app/src/systems/subspace/apps/worker:ro

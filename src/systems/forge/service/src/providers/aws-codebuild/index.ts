@@ -227,6 +227,8 @@ export class AwsCodeBuildAdapter extends ForgeBuildAdapter {
             }
           }
         } else if (data.buildStarted && !data.buildEnded && data.currentStepOid) {
+          if (!message) continue;
+
           let string = collectedMessages.get(data.currentStepOid) || '';
           string += JSON.stringify([event.timestamp || 0, message]) + '\n';
           collectedMessages.set(data.currentStepOid, string);

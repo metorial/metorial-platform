@@ -40,7 +40,8 @@ export let callbackNotificationController = Controller.create(
         instancePath('callbacks/:callbackId/notifications', 'callbacks.notifications.list'),
         {
           name: 'List callback notifications',
-          description: 'Returns a paginated list of callback notifications.'
+          description: 'Returns a paginated list of callback notifications.',
+          confidential: true
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.callback:read'] }))
@@ -89,7 +90,8 @@ export let callbackNotificationController = Controller.create(
         ),
         {
           name: 'Get callback notification',
-          description: 'Retrieves a specific callback notification.'
+          description: 'Retrieves a specific callback notification.',
+          confidential: true
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.callback:read'] }))

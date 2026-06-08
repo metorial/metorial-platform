@@ -50,6 +50,7 @@ model Identity {
   sessionTemplates           SessionTemplate[]
   sessions                   Session[]
   ephemeralManagedSessions   EphemeralManagedSession[]
+  sessionParticipants        SessionParticipant[]
 
   @@index([createdAt])
   @@index([updatedAt])

@@ -121,7 +121,8 @@ export let providerAuthExportController = Controller.create(
         ),
         {
           name: 'Create provider auth export',
-          description: 'Exports authentication credentials from a provider.'
+          description: 'Exports authentication credentials from a provider.',
+          confidential: true
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:export'] }))

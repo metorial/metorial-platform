@@ -1,6 +1,5 @@
 import React, { useRef, useState } from 'react';
 import { useInterval } from 'react-use';
-import { theme } from '../theme';
 import { Tooltip } from '../tooltip';
 
 let loadedSet = new Set<string>();
@@ -52,7 +51,7 @@ export let Avatar = ({
         width: size,
         aspectRatio: '1 / 1',
         borderRadius: typeof radius == 'number' ? radius : '50%',
-        backgroundColor: theme.colors.gray200,
+        // backgroundColor: theme.colors.gray200,
         display: 'flex',
         position: 'relative',
         overflow: 'hidden'

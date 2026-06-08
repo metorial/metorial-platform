@@ -25,7 +25,7 @@ import {
   type SubspaceProxyAgentClient
 } from '@metorial/module-subspace';
 import { Authenticator } from '@metorial/rest';
-import type { Context } from 'hono';
+import type { Context } from '@lowerdeck/hono';
 import { authenticateAndResolveInstance } from './getSession';
 
 type MagicMcpTargetForRouting = Awaited<ReturnType<typeof resolveMagicMcpTargetByIdOrAlias>>;
@@ -160,11 +160,13 @@ let resolveAgentClientForConsumerToken = (d: {
   let consumerAuthClient =
     d.consumerToken?.magicMcpToken.consumerAuthAttempts[0]?.consumerAuthClient;
   if (!consumerAuthClient) return null;
+  let consumerClient =
+    consumerAuthClient.consumerAuthClientSurfaces[0]?.consumerClient ?? null;
 
   return {
-    name: consumerAuthClient.consumerClient?.name ?? consumerAuthClient.name,
+    name: consumerClient?.name ?? consumerAuthClient.name,
     type: 'mcp_client_oauth',
-    foreignId: consumerAuthClient.consumerClient?.id ?? consumerAuthClient.id,
+    foreignId: consumerClient?.id ?? consumerAuthClient.id,
     oauthRegistrationId: consumerAuthClient.id
   };
 };
@@ -306,10 +308,13 @@ export let handleMagicMcpRequest = async (d: {
         sessionInfo.subspaceSessionId,
         {
           agentClient: sessionInfo.agentClient,
+          enforceIngressNetworkPolicy: true,
+          ingressIp: context.ip,
           onSubspaceSessionResolved: async ({ subspaceSessionId }) => {
             let magicMcpSession = await syncMagicMcpSubspaceSession(
               sessionInfo.magicMcpTarget,
-              subspaceSessionId
+              subspaceSessionId,
+              sessionInfo.subspaceSessionId
             );
             if (!sessionInfo.consumerProfileForOwnership) return;
 

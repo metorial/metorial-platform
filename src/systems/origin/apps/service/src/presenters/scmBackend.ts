@@ -1,7 +1,7 @@
 import type { ScmBackend } from '../../prisma/generated/client';
 
 export let scmBackendPresenter = (backend: ScmBackend) => ({
-  object: 'origin#scmBackend',
+  object: 'origin#scmBackend' as const,
   id: backend.id,
   type: backend.type,
   name: backend.name,

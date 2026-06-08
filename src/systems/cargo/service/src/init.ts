@@ -15,3 +15,5 @@ if (!process.env.DATABASE_URL && !process.env.CARGO_DATABASE_URL) {
 process.env.CARGO_API_PORT ??= '52150';
 process.env.CARGO_CONTENT_PORT ??= '52151';
 process.env.CARGO_HEALTH_PORT ??= '12121';
+
+export {};

@@ -6,6 +6,9 @@ import {
   fileCollectionDocsCategory,
   identityDocsCategory,
   integrationDocsCategory,
+  magicMcpDocsCategory,
+  monitoringDocsCategory,
+  networkDocsCategory,
   portalDocsCategory,
   providerDocsCategory,
   sessionDocsCategory,
@@ -14,10 +17,15 @@ import {
 import { consumerProviderController, consumerSessionController } from './consumer';
 import {
   dashboardAssistantController,
+  dashboardAuthConfigConfigurationController,
   dashboardBootController,
+  dashboardKeyProviderController,
   dashboardOAuthAuthorizationRequestController,
   dashboardOrganizationController,
   dashboardOrganizationInviteController,
+  dashboardProjectConfigurationController,
+  dashboardResourceCountsController,
+  dashboardToolCallingConfigurationController,
   dashboardUsageController,
   dashboardUserController,
   flagsController,
@@ -38,11 +46,15 @@ import {
   customProviderDeploymentController,
   customProviderEnvironmentController,
   customProviderVersionController,
+  dashboardEnclaveController,
   documentController,
   documentParticipantController,
   documentVersionController,
+  enclaveController,
   fileController,
   fileLinkController,
+  firewallBindingController,
+  firewallController,
   identityActorController,
   identityController,
   identityCredentialController,
@@ -64,6 +76,10 @@ import {
   magicMcpServerControllerDashboard,
   magicMcpSessionController,
   magicMcpTokenController,
+  monitorAlertController,
+  monitorController,
+  networkController,
+  networkPolicyController,
   portalAuthDashboardController,
   portalConsumerAccessController,
   portalConsumerAccessListingController,
@@ -92,10 +108,13 @@ import {
   providerRunController,
   providerSetupSessionController,
   providerSpecificationController,
+  providerSpecificationChangeNotificationController,
   providerTemplateController,
   providerToolController,
   providerTriggerController,
   providerVersionController,
+  protoGuardAlertController,
+  protoGuardConfigController,
   publisherController,
   scmAccountsController,
   scmConnectionsController,
@@ -126,6 +145,7 @@ import {
   skillPluginController,
   skillPluginRepositoryController,
   skillPluginSkillController,
+  skillSyncController,
   skillTemplateController,
   skillTemplateItemController,
   skillVersionController,
@@ -150,9 +170,11 @@ import {
   organizationManagementController,
   organizationMemberManagementController,
   projectManagementController,
+  sandboxManagementController,
   serviceAccountManagementController,
   teamManagementController
 } from './management';
+import { testHelperConsumerOAuthController } from './test-helpers';
 
 let setControllerDocsMetadata = <
   T extends { descriptor: Record<string, any>; handlers: Record<string, any> }
@@ -173,12 +195,24 @@ let setControllerDocsMetadata = <
   providerListingController,
   providerVersionController,
   providerSpecificationController,
+  providerSpecificationChangeNotificationController,
   providerTriggerController,
   providerToolController,
   providerAuthMethodController
 ].forEach(controller =>
   setControllerDocsMetadata(controller, {
     category: providerDocsCategory
+  })
+);
+
+[
+  monitorController,
+  monitorAlertController,
+  protoGuardAlertController,
+  protoGuardConfigController
+].forEach(controller =>
+  setControllerDocsMetadata(controller, {
+    category: monitoringDocsCategory
   })
 );
 
@@ -258,6 +292,18 @@ let setControllerDocsMetadata = <
 );
 
 [
+  networkController,
+  enclaveController,
+  firewallController,
+  firewallBindingController,
+  networkPolicyController
+].forEach(controller =>
+  setControllerDocsMetadata(controller, {
+    category: networkDocsCategory
+  })
+);
+
+[
   integrationController,
   integrationProviderController,
   integrationSetupSessionController,
@@ -287,6 +333,18 @@ let setControllerDocsMetadata = <
 );
 
 [
+  magicMcpEndpointController,
+  magicMcpServerController,
+  magicMcpSessionController,
+  magicMcpTokenController,
+  magicMcpGroupController
+].forEach(controller =>
+  setControllerDocsMetadata(controller, {
+    category: magicMcpDocsCategory
+  })
+);
+
+[
   portalController,
   portalAuthDashboardController,
   portalConsumerAccessController,
@@ -295,7 +353,6 @@ let setControllerDocsMetadata = <
   portalConsumerGroupController,
   portalConsumerProfileController,
   portalConsumerInviteController,
-  portalConsumerSurfaceProviderGroupController,
   providerTemplateController
 ].forEach(controller =>
   setControllerDocsMetadata(controller, {
@@ -338,6 +395,8 @@ export let magnetarController = Controller.create<any>(
 
     tokenController,
 
+    testHelperConsumerOAuthController,
+
     publisherController,
     providerController,
     providerCategoryController,
@@ -346,6 +405,7 @@ export let magnetarController = Controller.create<any>(
     providerListingController,
     providerVersionController,
     providerSpecificationController,
+    providerSpecificationChangeNotificationController,
     providerTriggerController,
     providerToolController,
     providerAuthMethodController,
@@ -381,6 +441,12 @@ export let magnetarController = Controller.create<any>(
     callbackInstanceController,
     callbackNotificationController,
 
+    networkController,
+    enclaveController,
+    firewallController,
+    firewallBindingController,
+    networkPolicyController,
+
     sessionController,
     sessionTemplateController,
     sessionTemplateProviderController,
@@ -389,6 +455,10 @@ export let magnetarController = Controller.create<any>(
     sessionErrorController,
     sessionErrorGroupController,
     providerRunController,
+    monitorController,
+    monitorAlertController,
+    protoGuardAlertController,
+    protoGuardConfigController,
     sessionMessageController,
     sessionConnectionController,
     sessionEventController,
@@ -432,23 +502,24 @@ export let magnetarController = Controller.create<any>(
     skillPluginController,
     skillPluginSkillController,
 
-    consumerController,
-    consumerSurfaceController,
-    portalController,
-    providerTemplateController,
-
     consumerSessionController,
     consumerProviderController,
 
     managementApiKeyController,
-    dashboardAssistantController
+    dashboardAssistantController,
 
-    // teamManagementController,
-    // portalConsumerGroupController,
-    // portalConsumerAccessController,
-    // portalConsumerProfileController,
-    // portalConsumerAuthFactorController,
-    // consumerSessionController,
+    consumerController,
+    consumerSurfaceController,
+
+    portalController,
+    portalAuthDashboardController,
+    portalConsumerAccessController,
+    portalConsumerAccessListingController,
+    portalConsumerAccessRequestController,
+    portalConsumerGroupController,
+    portalConsumerProfileController,
+    portalConsumerInviteController,
+    providerTemplateController
 
     // ssoTenantController,
     // ssoUserController,
@@ -489,8 +560,14 @@ export let dashboardController = Controller.create<any>(
   {
     dashboardOrganizationController,
     dashboardOrganizationInviteController,
+    dashboardProjectConfigurationController,
+    dashboardKeyProviderController,
+    dashboardResourceCountsController,
+    dashboardAuthConfigConfigurationController,
+    dashboardToolCallingConfigurationController,
     dashboardOAuthAuthorizationRequestController,
     dashboardBootController,
+    testHelperConsumerOAuthController,
     dashboardUsageController,
     dashboardAssistantController,
     flagsController,
@@ -511,6 +588,7 @@ export let dashboardController = Controller.create<any>(
     organizationInviteManagementController,
     organizationMemberManagementController,
     projectManagementController,
+    sandboxManagementController,
     dashboardUserController,
 
     integrationController,
@@ -547,6 +625,7 @@ export let dashboardController = Controller.create<any>(
     skillPluginController,
     skillPluginRepositoryController,
     skillPluginSkillController,
+    skillSyncController,
 
     consumerController,
     consumerSurfaceController,
@@ -574,6 +653,7 @@ export let dashboardController = Controller.create<any>(
 
     providerVersionController,
     providerSpecificationController,
+    providerSpecificationChangeNotificationController,
     providerTriggerController,
     providerToolController,
     providerAuthMethodController,
@@ -596,6 +676,13 @@ export let dashboardController = Controller.create<any>(
     callbackInstanceController,
     callbackNotificationController,
 
+    networkController,
+    dashboardEnclaveController,
+    enclaveController,
+    firewallController,
+    firewallBindingController,
+    networkPolicyController,
+
     sessionTemplateController,
     sessionTemplateProviderController,
     sessionProviderController,
@@ -603,6 +690,10 @@ export let dashboardController = Controller.create<any>(
     sessionErrorController,
     sessionErrorGroupController,
     providerRunController: providerRunController,
+    monitorController,
+    monitorAlertController,
+    protoGuardAlertController,
+    protoGuardConfigController,
     sessionMessageController,
     sessionConnectionController,
     sessionEventController,
@@ -657,7 +748,12 @@ export let fullDashboardController = Controller.create<any>(dashboardController.
 
   dashboardOrganizationController,
   dashboardOrganizationInviteController,
+  dashboardProjectConfigurationController,
+  dashboardKeyProviderController,
+  dashboardAuthConfigConfigurationController,
+  dashboardToolCallingConfigurationController,
   dashboardOAuthAuthorizationRequestController,
   dashboardBootController,
+  testHelperConsumerOAuthController,
   dashboardUserController
 });

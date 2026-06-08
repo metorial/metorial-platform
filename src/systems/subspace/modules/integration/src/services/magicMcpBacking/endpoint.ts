@@ -3,6 +3,7 @@ import { Service } from '@lowerdeck/service';
 import {
   db,
   type Environment,
+  Prisma,
   snowflake,
   type Solution,
   type Tenant,
@@ -10,13 +11,14 @@ import {
 } from '@metorial-subspace/db';
 import {
   ephemeralManagedSessionService,
-  sessionTemplateProviderService,
   sessionTemplateService
 } from '@metorial-subspace/module-session';
-import { sessionTemplateSyncHashQueue } from '@metorial-subspace/module-session/src/queues/lifecycle/sessionTemplateProvider';
 import { checkTenant } from '@metorial-subspace/module-tenant';
+import {
+  enqueueMagicMcpEndpointBackingReconcile,
+  reconcileMagicMcpEndpointBacking
+} from '../../queues/lifecycle/magicMcpBackingReconcile';
 import { integrationInstanceGroupService } from '../integrationInstanceGroup';
-import { integrationInstanceGroupProviderService } from '../integrationInstanceGroupProvider';
 import {
   type MagicMcpBackingInputBase,
   magicMcpEndpointBackingInclude,
@@ -35,6 +37,7 @@ type UpsertMagicMcpEndpointBackingInput = {
       toolFilters?: PrismaJson.ToolFilter | null;
     }[];
     isReconciliation?: boolean;
+    deferReconcile?: boolean;
   };
 };
 
@@ -46,6 +49,7 @@ class magicMcpEndpointBackingServiceImpl {
       identityId: d.input.identityId
     });
 
+    let shouldDeferReconcile = d.input.deferReconcile !== false;
     let syncTarget = await withMagicMcpBackingLock(
       [`endpoint:${d.input.id}`],
       async () =>
@@ -62,10 +66,8 @@ class magicMcpEndpointBackingServiceImpl {
             include: {
               integrationInstance: {
                 include: {
-                  integrationInstanceProviders: {
-                    where: { status: 'active', isParentDeleted: false },
-                    include: { currentVersion: true }
-                  }
+                  identityActor: true,
+                  identity: true
                 }
               }
             }
@@ -84,7 +86,11 @@ class magicMcpEndpointBackingServiceImpl {
 
           let existing = await db.magicMcpEndpointBacking.findUnique({
             where: { id: d.input.id },
-            include: magicMcpEndpointBackingInclude
+            include: {
+              integrationGroup: true,
+              sessionTemplate: true,
+              ephemeralManagedSession: true
+            }
           });
 
           let group =
@@ -130,11 +136,12 @@ class magicMcpEndpointBackingServiceImpl {
               sessionTemplate,
               input: {
                 maxSessionDurationInMinutes: d.input.maxSessionDurationInMinutes,
-                actorOid
+                actorOid,
+                isReconciling: shouldDeferReconcile
               }
             });
 
-          await db.magicMcpEndpointBacking.upsert({
+          let backing = await db.magicMcpEndpointBacking.upsert({
             where: { id: d.input.id },
             create: {
               oid: snowflake.nextId(),
@@ -152,71 +159,66 @@ class magicMcpEndpointBackingServiceImpl {
             }
           });
 
-          let backing = await db.magicMcpEndpointBacking.findUniqueOrThrow({
+          let persistedBacking = await db.magicMcpEndpointBacking.findUniqueOrThrow({
             where: { id: d.input.id }
           });
           let requestedJoinIds = new Set(d.input.servers.map(server => server.id));
           await db.magicMcpEndpointServerBacking.deleteMany({
             where: {
-              magicMcpEndpointBackingOid: backing.oid,
+              magicMcpEndpointBackingOid: persistedBacking.oid,
               id: { notIn: Array.from(requestedJoinIds) }
             }
           });
 
+          let servers = [];
           for (let serverInput of d.input.servers) {
             let serverBacking = serverBackingsById.get(serverInput.magicMcpServerBackingId)!;
-            await db.magicMcpEndpointServerBacking.upsert({
+            let server = await db.magicMcpEndpointServerBacking.upsert({
               where: { id: serverInput.id },
               create: {
                 oid: snowflake.nextId(),
                 id: serverInput.id,
-                magicMcpEndpointBackingOid: backing.oid,
-                magicMcpServerBackingOid: serverBacking.oid
+                magicMcpEndpointBackingOid: persistedBacking.oid,
+                magicMcpServerBackingOid: serverBacking.oid,
+                toolFilters: serverInput.toolFilters ?? Prisma.JsonNull
               },
               update: {
-                magicMcpEndpointBackingOid: backing.oid,
-                magicMcpServerBackingOid: serverBacking.oid
+                magicMcpEndpointBackingOid: persistedBacking.oid,
+                magicMcpServerBackingOid: serverBacking.oid,
+                toolFilters: serverInput.toolFilters ?? Prisma.JsonNull
               }
             });
+            servers.push({ ...server, magicMcpServerBacking: serverBacking });
           }
 
-          let groupProviderInput = d.input.servers.flatMap(serverInput => {
-            let serverBacking = serverBackingsById.get(serverInput.magicMcpServerBackingId)!;
-            return serverBacking.integrationInstance.integrationInstanceProviders
-              .filter(provider => provider.currentVersion?.configOid)
-              .map(provider => ({
-                integrationInstanceProviderId: provider.id,
-                toolFilters: serverInput.toolFilters
-              }));
-          });
-
-          return { group, sessionTemplate, groupProviderInput };
+          return { backing, group, sessionTemplate, ephemeralManagedSession, servers };
         })
     );
 
-    await integrationInstanceGroupProviderService.syncMagicMcpIntegrationInstanceGroupProviders(
-      {
+    if (shouldDeferReconcile) {
+      await enqueueMagicMcpEndpointBackingReconcile({
         tenant: d.tenant,
         solution: d.solution,
         environment: d.environment,
-        integrationInstanceGroup: syncTarget.group,
-        isReconciliation: d.input.isReconciliation,
-        input: syncTarget.groupProviderInput
-      }
-    );
+        magicMcpEndpointBackingId: d.input.id
+      });
+    } else {
+      await reconcileMagicMcpEndpointBacking({
+        tenant: d.tenant,
+        solution: d.solution,
+        environment: d.environment,
+        magicMcpEndpointBackingId: d.input.id
+      });
+    }
 
-    await sessionTemplateProviderService.syncForIntegrationInstanceGroup({
+    return {
+      ...syncTarget.backing,
+      integrationGroup: syncTarget.group,
       sessionTemplate: syncTarget.sessionTemplate,
-      integrationInstanceGroup: syncTarget.group
-    });
-    await sessionTemplateSyncHashQueue.add({
-      sessionTemplateId: syncTarget.sessionTemplate.id
-    });
-
-    return await db.magicMcpEndpointBacking.findUniqueOrThrow({
-      where: { id: d.input.id },
-      include: magicMcpEndpointBackingInclude
-    });
+      ephemeralManagedSession: syncTarget.ephemeralManagedSession,
+      actor: null,
+      servers: syncTarget.servers
+    };
   }
 
   async getMagicMcpEndpointBackingById(d: {

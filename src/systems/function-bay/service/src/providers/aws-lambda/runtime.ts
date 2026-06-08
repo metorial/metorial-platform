@@ -42,7 +42,7 @@ export let getRuntime = async (
     })
   )}`;
 
-  let runtime = persistedRuntimes.get(identifier);
+  let runtime = process.env.NODE_ENV === 'test' ? undefined : persistedRuntimes.get(identifier);
 
   if (!runtime) {
     let name = `AWS Lambda ${spec.identifier}@${spec.version}`;
@@ -65,6 +65,7 @@ export let getRuntime = async (
         name
       }
     });
+    if (process.env.NODE_ENV !== 'test') persistedRuntimes.set(identifier, runtime);
   }
 
   return {

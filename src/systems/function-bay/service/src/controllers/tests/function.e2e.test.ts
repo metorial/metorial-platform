@@ -3,15 +3,24 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { functionBayClient } from '../../test/client';
 import { fixtures } from '../../test/fixtures';
 import { cleanDatabase, testDb } from '../../test/setup';
+import { getId, snowflake } from '../../id';
 
 const providerMocks = vi.hoisted(() => ({
   invokeFunction: vi.fn()
+}));
+
+const queueMocks = vi.hoisted(() => ({
+  enqueueEnclaveOverrideClone: vi.fn()
 }));
 
 vi.mock('../../providers', () => ({
   getProvider: () => ({
     invokeFunction: providerMocks.invokeFunction
   })
+}));
+
+vi.mock('../../queues/enclaveOverride', () => ({
+  enqueueEnclaveOverrideClone: queueMocks.enqueueEnclaveOverrideClone
 }));
 
 describe('function:upsert E2E', () => {
@@ -159,6 +168,7 @@ describe('function:invoke E2E', () => {
   beforeEach(async () => {
     await cleanDatabase();
     providerMocks.invokeFunction.mockReset();
+    queueMocks.enqueueEnclaveOverrideClone.mockReset();
   });
 
   it('invokes the current function version', async () => {
@@ -167,7 +177,7 @@ describe('function:invoke E2E', () => {
     providerMocks.invokeFunction.mockResolvedValue({
       type: 'success',
       result: { ok: true },
-      logs: [],
+      logs: [[1_700_000_000_000, 'hello']],
       computeTimeMs: 10,
       billedTimeMs: 10
     });
@@ -180,10 +190,215 @@ describe('function:invoke E2E', () => {
 
     expect(result).toMatchObject({
       type: 'success',
+      status: 'succeeded',
       result: { ok: true },
-      id: expect.any(String)
+      error: null,
+      id: expect.any(String),
+      functionVersionId: version.id,
+      computeTimeMs: 10,
+      billedTimeMs: 10,
+      logs: [{ timestamp: 1_700_000_000_000, message: 'hello' }]
     });
     expect(providerMocks.invokeFunction).toHaveBeenCalledOnce();
+  });
+
+  it('lazily creates an enclave link and routes to the original version while override is disabled', async () => {
+    const sourceVersion = await f.functionVersion.complete();
+    const enclaveTenant = await f.tenant.default();
+
+    providerMocks.invokeFunction.mockResolvedValue({
+      type: 'success',
+      result: { ok: true },
+      logs: [],
+      computeTimeMs: 10,
+      billedTimeMs: 10
+    });
+
+    const result = await functionBayClient.function.invoke({
+      tenantId: enclaveTenant.id,
+      functionTenantId: sourceVersion.function.tenant.id,
+      functionId: sourceVersion.function.id,
+      payload: { input: 'test' },
+      enclave: {
+        identifier: 'customer-a'
+      }
+    });
+
+    expect(result.functionVersionId).toBe(sourceVersion.id);
+    expect(queueMocks.enqueueEnclaveOverrideClone).not.toHaveBeenCalled();
+    expect(providerMocks.invokeFunction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        function: expect.objectContaining({ id: sourceVersion.function.id }),
+        functionVersion: expect.objectContaining({ id: sourceVersion.id })
+      })
+    );
+
+    const enclave = await testDb.enclave.findFirstOrThrow({
+      where: { identifier: 'customer-a', tenantOid: enclaveTenant.oid }
+    });
+    await expect(
+      testDb.enclaveFunction.findFirstOrThrow({
+        where: {
+          enclaveOid: enclave.oid,
+          functionOid: sourceVersion.function.oid
+        }
+      })
+    ).resolves.toBeDefined();
+  });
+
+  it('schedules an enclave override clone when automatic overrides are enabled', async () => {
+    const sourceVersion = await f.functionVersion.complete();
+    const enclaveTenant = await f.tenant.default({
+      hasAutomaticEnclaveOverride: true
+    });
+
+    providerMocks.invokeFunction.mockResolvedValue({
+      type: 'success',
+      result: { ok: true },
+      logs: [],
+      computeTimeMs: 10,
+      billedTimeMs: 10
+    });
+
+    const result = await functionBayClient.function.invoke({
+      tenantId: enclaveTenant.id,
+      functionTenantId: sourceVersion.function.tenant.id,
+      functionId: sourceVersion.function.id,
+      payload: { input: 'test' },
+      enclave: {
+        identifier: 'customer-a'
+      }
+    });
+
+    expect(result.functionVersionId).toBe(sourceVersion.id);
+    expect(queueMocks.enqueueEnclaveOverrideClone).toHaveBeenCalledWith({
+      enclaveId: expect.any(String),
+      functionId: sourceVersion.function.id,
+      sourceFunctionVersionId: sourceVersion.id
+    });
+  });
+
+  it('routes enclave invocations to an existing override version', async () => {
+    const sourceVersion = await f.functionVersion.complete();
+    const enclaveTenant = await f.tenant.default({
+      hasAutomaticEnclaveOverride: true
+    });
+    const enclaveIds = getId('enclave');
+    const cloneFunction = await f.function.default({
+      tenantOid: enclaveTenant.oid,
+      runtimeOid: sourceVersion.runtimeOid,
+      overrides: {
+        cloneOfFunctionOid: sourceVersion.function.oid
+      }
+    });
+    const cloneBundle = await f.functionBundle.available({
+      functionOid: cloneFunction.oid
+    });
+    const cloneVersion = await f.functionVersion.default({
+      functionOid: cloneFunction.oid,
+      runtimeOid: sourceVersion.runtimeOid,
+      functionBundleOid: cloneBundle.oid,
+      overrides: {
+        cloneOfFunctionVersionOid: sourceVersion.oid,
+        providerData: {
+          functionArn: 'override-arn',
+          functionName: 'override-function'
+        }
+      }
+    });
+
+    const enclave = await testDb.enclave.create({
+      data: {
+        ...enclaveIds,
+        identifier: 'customer-a',
+        name: 'customer-a',
+        tenantOid: enclaveTenant.oid
+      }
+    });
+    await testDb.enclaveFunction.create({
+      data: {
+        oid: snowflake.nextId(),
+        enclaveOid: enclave.oid,
+        functionOid: sourceVersion.function.oid
+      }
+    });
+    await testDb.enclaveFunctionOverride.create({
+      data: {
+        oid: snowflake.nextId(),
+        enclaveOid: enclave.oid,
+        sourceFunctionOid: sourceVersion.function.oid,
+        sourceFunctionVersionOid: sourceVersion.oid,
+        overrideFunctionOid: cloneFunction.oid,
+        overrideFunctionVersionOid: cloneVersion.oid
+      }
+    });
+
+    providerMocks.invokeFunction.mockResolvedValue({
+      type: 'success',
+      result: { ok: true },
+      logs: [],
+      computeTimeMs: 10,
+      billedTimeMs: 10
+    });
+
+    const result = await functionBayClient.function.invoke({
+      tenantId: enclaveTenant.id,
+      functionTenantId: sourceVersion.function.tenant.id,
+      functionId: sourceVersion.function.id,
+      payload: { input: 'test' },
+      enclave: {
+        identifier: 'customer-a'
+      }
+    });
+
+    expect(result.functionVersionId).toBe(cloneVersion.id);
+    expect(queueMocks.enqueueEnclaveOverrideClone).not.toHaveBeenCalled();
+    expect(providerMocks.invokeFunction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        function: expect.objectContaining({ id: cloneFunction.id }),
+        functionVersion: expect.objectContaining({ id: cloneVersion.id }),
+        providerData: expect.objectContaining({ functionName: 'override-function' })
+      })
+    );
+  });
+
+  it('supports invoking a shared function through a tenant-scoped runtime context', async () => {
+    const version = await f.functionVersion.complete();
+    const runtimeTenant = await f.tenant.withIdentifier('runtime-tenant');
+    const egressPolicy = {
+      direction: 'egress' as const,
+      entries: [
+        {
+          cidr: '203.0.113.10/32',
+          portRange: { from: 443, to: 443 }
+        }
+      ]
+    };
+
+    providerMocks.invokeFunction.mockResolvedValue({
+      type: 'success',
+      result: { ok: true },
+      logs: [],
+      computeTimeMs: 10,
+      billedTimeMs: 10
+    });
+
+    await functionBayClient.function.invoke({
+      tenantId: runtimeTenant.id,
+      functionTenantId: version.function.tenant.id,
+      functionId: version.function.id,
+      payload: { input: 'test' },
+      egressPolicy
+    });
+
+    expect(providerMocks.invokeFunction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tenantId: runtimeTenant.id,
+        function: expect.objectContaining({ id: version.function.id }),
+        functionVersion: expect.objectContaining({ id: version.id }),
+        egressPolicy
+      })
+    );
   });
 
   it('returns error when function has no deployed versions', async () => {

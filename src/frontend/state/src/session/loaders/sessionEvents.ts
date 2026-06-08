@@ -1,9 +1,15 @@
-import { DashboardInstanceSessionsEventsListQuery } from '@metorial/dashboard-sdk';
+import {
+  DashboardInstanceSessionsEventsListOutput,
+  DashboardInstanceSessionsEventsListQuery
+} from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
+import { useMemo } from 'react';
+import { useAccumulatedPaginatedLoader } from '../../lib/useAccumulatedPaginatedLoader';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
 
 type SessionEventsQuery = Omit<DashboardInstanceSessionsEventsListQuery, 'sessionId'>;
+type SessionEventsItem = DashboardInstanceSessionsEventsListOutput['items'][number];
 
 export let sessionEventsLoader = createLoader({
   name: 'sessionEvents',
@@ -51,4 +57,35 @@ export let useSessionEvent = (
   );
 
   return data;
+};
+
+export let useAccumulatedSessionEvents = (
+  instanceId: string | null | undefined,
+  sessionId: string | null | undefined,
+  query?: SessionEventsQuery,
+  options?: { pollIntervalMs?: number; pausePolling?: boolean }
+) => {
+  let queryKey = useMemo(
+    () =>
+      JSON.stringify({
+        instanceId: instanceId ?? null,
+        sessionId: sessionId ?? null,
+        query: query ?? null
+      }),
+    [instanceId, query, sessionId]
+  );
+
+  let enabledParams =
+    instanceId && sessionId ? { instanceId, sessionId, ...query } : null;
+
+  return useAccumulatedPaginatedLoader<
+    SessionEventsItem,
+    { instanceId: string; sessionId: string } & SessionEventsQuery
+  >({
+    enabledParams,
+    queryKey,
+    useLoader: params => sessionEventsLoader.use(params),
+    pollIntervalMs: options?.pollIntervalMs,
+    pausePolling: options?.pausePolling
+  });
 };

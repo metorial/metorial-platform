@@ -93,10 +93,12 @@ model SessionMessage {
   createdAt   DateTime  @default(now())
   completedAt DateTime?
 
-  sessionEvents   SessionEvent[]
-  providerTool    ProviderTool?  @relation(fields: [providerToolOid], references: [oid])
-  providerToolOid BigInt?
-  toolCall        ToolCall?
+  sessionEvents    SessionEvent[]
+  providerTool     ProviderTool?     @relation(fields: [providerToolOid], references: [oid])
+  providerToolOid  BigInt?
+  toolCall         ToolCall?
+  protoGuardRun    ProtoGuardRun?
+  protoGuardAlerts ProtoGuardAlert[]
 
   @@index([createdAt])
   @@index([isOffloadedToStorage])

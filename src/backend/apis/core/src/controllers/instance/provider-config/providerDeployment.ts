@@ -322,7 +322,14 @@ export let providerDeploymentController = Controller.create(
             v.record(v.any(), { examples: [{ team: 'platform', environment: 'staging' }] }),
             { description: 'Custom key-value pairs for storing additional information' }
           ),
-          tool_filters: toolFiltersValidator
+          tool_filters: toolFiltersValidator,
+          locked_provider_version_id: v.optional(
+            v.nullable(v.string({ examples: ['prv_4dEfGhJkLmNpQrSt'] })),
+            {
+              description:
+                'Pin this deployment to a specific provider version, or null to follow latest'
+            }
+          )
         })
       )
       .output(providerDeploymentPresenter)
@@ -333,7 +340,8 @@ export let providerDeploymentController = Controller.create(
           name: ctx.body.name,
           description: ctx.body.description,
           metadata: ctx.body.metadata,
-          toolFilters: ctx.body.tool_filters
+          toolFilters: ctx.body.tool_filters,
+          lockedProviderVersionId: ctx.body.locked_provider_version_id
         });
 
         return providerDeploymentPresenter.present({

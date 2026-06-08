@@ -51,7 +51,7 @@ vi.mock('@lowerdeck/service', () => ({
 }));
 
 import { db } from '@metorial/db';
-import { consumerIntegrationService } from '../src/services/consumerIntegration';
+import { consumerIntegrationService } from '../src/services/consumerEntities/consumerIntegration';
 
 describe('consumerIntegrationService', () => {
   beforeEach(() => {

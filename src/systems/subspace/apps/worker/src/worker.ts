@@ -9,8 +9,11 @@ import { catalogQueueProcessor } from '@metorial-subspace/module-catalog/src/que
 import { connectionQueueProcessor } from '@metorial-subspace/module-connection/src/queueProcessor';
 import { customProviderQueueProcessor } from '@metorial-subspace/module-custom-provider/src/queues';
 import { deploymentQueueProcessor } from '@metorial-subspace/module-deployment/src/queues';
+import { enclaveQueueProcessor } from '@metorial-subspace/module-enclave/src/queues';
 import { identityQueueProcessor } from '@metorial-subspace/module-identity/src/queues';
 import { integrationQueueProcessor } from '@metorial-subspace/module-integration/src/queues';
+import { monitorQueueProcessor } from '@metorial-subspace/module-monitor/src/queues';
+import { syncProtoGuardFilters } from '@metorial-subspace/module-connection/src/protoguard/registry';
 import { providerInternalQueueProcessor } from '@metorial-subspace/module-provider-internal/src/queues';
 import { sessionQueueProcessor } from '@metorial-subspace/module-session/src/queues';
 import { skillsQueueProcessor } from '@metorial-subspace/module-skills/src/queues';
@@ -19,12 +22,17 @@ import { nativeProviderQueues } from '@metorial-subspace/provider-native';
 import { shuttleProviderQueues } from '@metorial-subspace/provider-shuttle';
 import { slatesProviderQueues } from '@metorial-subspace/provider-slates';
 
+setTimeout(async () => {
+  await syncProtoGuardFilters();
+}, 10_000);
+
 runQueueProcessors([
   sessionQueueProcessor,
   connectionQueueProcessor,
   authQueueProcessor,
   catalogQueueProcessor,
   deploymentQueueProcessor,
+  enclaveQueueProcessor,
   tenantQueueProcessors,
   providerInternalQueueProcessor,
   nativeProviderQueues,
@@ -34,6 +42,7 @@ runQueueProcessors([
   callbackQueueProcessor,
   identityQueueProcessor,
   integrationQueueProcessor,
+  monitorQueueProcessor,
   skillsQueueProcessor,
   agentQueueProcessor
 ]);

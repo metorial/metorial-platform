@@ -3,6 +3,8 @@ import { generatePlainId } from '@lowerdeck/id';
 import { Service } from '@lowerdeck/service';
 import { db, type EnvironmentType, getId } from '@metorial-subspace/db';
 import { reconcileTenantManagedBackingsQueue } from '@metorial-subspace/module-auth/src/queues/reconcile';
+import { networkInternalService } from '@metorial-subspace/module-enclave';
+import { reconcileProviderDeploymentMonitorForEnvironmentQueue } from '@metorial-subspace/module-deployment/src/queues/reconcile/providerDeploymentMonitor';
 import { tenantLogRetentionSyncQueue } from '../queues/retention/sync';
 
 let include = {};
@@ -15,6 +17,10 @@ class tenantServiceImpl {
       onlyAllowTrustedProviders?: boolean;
       isWhitelabel?: boolean;
       logRetentionInDays?: number;
+      enforceSessionExpiry?: boolean;
+      allowAuthConfigExport?: boolean;
+      allowAuthConfigImport?: boolean;
+      collectOperationDescriptionForToolCalls?: boolean;
       environments: {
         name: string;
         identifier: string;
@@ -37,7 +43,12 @@ class tenantServiceImpl {
           name: d.input.name,
           onlyAllowTrustedProviders: d.input.onlyAllowTrustedProviders,
           isWhitelabel: d.input.isWhitelabel,
-          logRetentionInDays: d.input.logRetentionInDays
+          logRetentionInDays: d.input.logRetentionInDays,
+          enforceSessionExpiry: d.input.enforceSessionExpiry,
+          allowAuthConfigExport: d.input.allowAuthConfigExport,
+          allowAuthConfigImport: d.input.allowAuthConfigImport,
+          collectOperationDescriptionForToolCalls:
+            d.input.collectOperationDescriptionForToolCalls
         },
         create: {
           ...getId('tenant'),
@@ -46,6 +57,11 @@ class tenantServiceImpl {
           onlyAllowTrustedProviders: d.input.onlyAllowTrustedProviders,
           isWhitelabel: d.input.isWhitelabel,
           logRetentionInDays: d.input.logRetentionInDays ?? 30,
+          enforceSessionExpiry: d.input.enforceSessionExpiry ?? false,
+          allowAuthConfigExport: d.input.allowAuthConfigExport ?? false,
+          allowAuthConfigImport: d.input.allowAuthConfigImport ?? false,
+          collectOperationDescriptionForToolCalls:
+            d.input.collectOperationDescriptionForToolCalls ?? true,
 
           urlKey: generatePlainId(10).toLowerCase()
         }
@@ -61,6 +77,20 @@ class tenantServiceImpl {
         );
       }
 
+      let inputEnvironmentIdentifiers = [
+        ...new Set(d.input.environments.map(environment => environment.identifier))
+      ];
+      let existingEnvironments = await db.environment.findMany({
+        where: {
+          tenantOid: tenant.oid,
+          identifier: { in: inputEnvironmentIdentifiers }
+        },
+        select: { identifier: true }
+      });
+      let existingEnvironmentIdentifiers = new Set(
+        existingEnvironments.map(environment => environment.identifier)
+      );
+
       await db.environment.createMany({
         skipDuplicates: true,
         data: d.input.environments.map(env => ({
@@ -71,6 +101,29 @@ class tenantServiceImpl {
           type: env.type
         }))
       });
+
+      let environments = await db.environment.findMany({
+        where: { tenantOid: tenant.oid }
+      });
+      let inputEnvironmentIdentifierSet = new Set(inputEnvironmentIdentifiers);
+      let createdEnvironments = environments.filter(
+        environment =>
+          inputEnvironmentIdentifierSet.has(environment.identifier) &&
+          !existingEnvironmentIdentifiers.has(environment.identifier)
+      );
+
+      for (let environment of environments) {
+        await networkInternalService.ensureNetworkForEnvironment({ tenant, environment });
+      }
+
+      if (createdEnvironments.length > 0) {
+        await reconcileProviderDeploymentMonitorForEnvironmentQueue.addManyWithOps(
+          createdEnvironments.map(environment => ({
+            data: { environmentId: environment.id },
+            opts: { id: `provider-deployment-monitor-env:${environment.id}` }
+          }))
+        );
+      }
 
       if (!existingTenant) {
         let solutions = await db.solution.findMany({

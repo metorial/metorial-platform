@@ -10,6 +10,11 @@ import { deployContainerServerWatchQueueProcessor } from './queues/container/mon
 import { deployContainerServerStartQueueProcessor } from './queues/container/startDeployment';
 import { deployServerFailedQueueProcessor } from './queues/deployment/failed';
 import { deployServerSucceededQueueProcessor } from './queues/deployment/succeeded';
+import {
+  deployServerTimeoutCron,
+  deployServerTimeoutManyQueueProcessor,
+  deployServerTimeoutSingleQueueProcessor
+} from './queues/deployment/timeout';
 import { discoverRemoteOAuthConfigQueueProcessor } from './queues/discovery/remoteOAuthConfig';
 import { discoverRemoteOAuthConnectionQueueProcessor } from './queues/discovery/remoteOAuthConnection';
 import { discoverServerQueueProcessor } from './queues/discovery/server';
@@ -81,5 +86,9 @@ await runQueueProcessors([
   deployRemoteServerStartQueueProcessor,
 
   deployServerFailedQueueProcessor,
-  deployServerSucceededQueueProcessor
+  deployServerSucceededQueueProcessor,
+
+  deployServerTimeoutCron,
+  deployServerTimeoutManyQueueProcessor,
+  deployServerTimeoutSingleQueueProcessor
 ]);

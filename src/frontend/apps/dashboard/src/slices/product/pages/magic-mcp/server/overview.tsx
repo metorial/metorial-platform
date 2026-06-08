@@ -97,50 +97,34 @@ export let MagicMcpServerOverviewPage = () => {
       streamableHttpUrl && activeTokenSecret
         ? `${streamableHttpUrl}?key=${activeTokenSecret}`
         : null;
-    let hasRelatedActiveToken = tokens.data.items.length > 0;
-    let detailsPathParams = [
-      instance.data?.organization,
-      instance.data?.project,
-      instance.data,
-      server.data.id
-    ] as const;
 
     return (
       <Flex direction="column" gap={16}>
-        <Box
-          title={
-            <Flex gap={8} style={{ alignItems: 'center', flexWrap: 'wrap' }}>
-              <span>{server.data.name ?? 'Magic MCP Server'}</span>
-            </Flex>
-          }
-          description="Magic MCP servers are reusable MCP servers linked to providers in Metorial."
-        >
-          <Attributes
-            itemWidth="280px"
-            attributes={[
-              {
-                label: 'ID',
-                content: <ID id={server.data.id} />
-              },
-              {
-                label: 'Server Identifier',
-                content: <ID id={server.data.endpoints[0]?.alias ?? '...'} />
-              },
-              {
-                label: 'Created At',
-                content: <RenderDate date={server.data.createdAt} />
-              }
-            ]}
-          />
+        <Attributes
+          itemWidth="300px"
+          attributes={[
+            {
+              label: 'ID',
+              content: <ID id={server.data.id} />
+            },
+            {
+              label: 'Server Identifier',
+              content: <ID id={server.data.endpoints[0]?.alias ?? '...'} />
+            },
+            {
+              label: 'Created At',
+              content: <RenderDate date={server.data.createdAt} />
+            }
+          ]}
+        />
 
-          {/* <Spacer height={16} />
+        {/* <Spacer height={16} />
 
             <Copy
               label="Primary Endpoint"
               value={streamableHttpUrl ?? '...'}
               copyValue={streamableHttpUrl ?? ''}
             /> */}
-        </Box>
 
         {/* <Box
             title="Providers"

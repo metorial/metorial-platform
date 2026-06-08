@@ -30,28 +30,39 @@ let getRedirectUrl = (d: {
 };
 
 export let v1PortalOAuthAuthorizationPresenter = Presenter.create(portalOAuthAuthorizationType)
-  .presenter(async ({ portalOAuthAuthorization }, opts) => ({
-    object: 'portal.oauth_authorization' as const,
-    id: portalOAuthAuthorization.id,
-    status: portalOAuthAuthorization.status,
-    redirect_uri: portalOAuthAuthorization.redirectUri,
-    redirect_url: getRedirectUrl({
-      redirectUri: portalOAuthAuthorization.redirectUri,
-      state: portalOAuthAuthorization.state,
+  .presenter(async ({ portalOAuthAuthorization }, opts) => {
+    return {
+      object: 'portal.oauth_authorization' as const,
+      id: portalOAuthAuthorization.id,
       status: portalOAuthAuthorization.status,
-      authorizationCode: portalOAuthAuthorization.authorizationCode
-    }),
-    consumer_profile_id: portalOAuthAuthorization.consumerProfile?.id ?? null,
-    magic_mcp_endpoint_id: portalOAuthAuthorization.magicMcpEndpoint?.id ?? null,
-    created_at: portalOAuthAuthorization.createdAt,
-    updated_at: portalOAuthAuthorization.updatedAt,
-    expires_at: portalOAuthAuthorization.expiresAt,
-    authorized_at: portalOAuthAuthorization.authorizedAt,
-    denied_at: portalOAuthAuthorization.deniedAt,
-    oauth_client: await v1PortalOAuthClientPresenter
-      .present({ portalAuthClient: portalOAuthAuthorization.consumerAuthClient }, opts)
-      .run()
-  }))
+      redirect_uri: portalOAuthAuthorization.redirectUri,
+      redirect_url: getRedirectUrl({
+        redirectUri: portalOAuthAuthorization.redirectUri,
+        state: portalOAuthAuthorization.state,
+        status: portalOAuthAuthorization.status,
+        authorizationCode: portalOAuthAuthorization.authorizationCode
+      }),
+      consumer_profile_id: portalOAuthAuthorization.consumerProfile?.id ?? null,
+      magic_mcp_endpoint_id: portalOAuthAuthorization.magicMcpEndpoint?.id ?? null,
+      skill_plugin: portalOAuthAuthorization.skillPlugin
+        ? {
+            id: portalOAuthAuthorization.skillPlugin.id,
+            name: portalOAuthAuthorization.skillPlugin.name,
+            slug: portalOAuthAuthorization.skillPlugin.slug
+          }
+        : null,
+      skill_plugin_supported_provider_ids:
+        portalOAuthAuthorization.skillPluginSupportedProviderIds ?? [],
+      created_at: portalOAuthAuthorization.createdAt,
+      updated_at: portalOAuthAuthorization.updatedAt,
+      expires_at: portalOAuthAuthorization.expiresAt,
+      authorized_at: portalOAuthAuthorization.authorizedAt,
+      denied_at: portalOAuthAuthorization.deniedAt,
+      oauth_client: await v1PortalOAuthClientPresenter
+        .present({ portalAuthClient: portalOAuthAuthorization.consumerAuthClient }, opts)
+        .run()
+    };
+  })
   .schema(
     v.object({
       object: v.literal('portal.oauth_authorization'),
@@ -61,6 +72,14 @@ export let v1PortalOAuthAuthorizationPresenter = Presenter.create(portalOAuthAut
       redirect_url: v.nullable(v.string()),
       consumer_profile_id: v.nullable(v.string()),
       magic_mcp_endpoint_id: v.nullable(v.string()),
+      skill_plugin: v.nullable(
+        v.object({
+          id: v.string(),
+          name: v.nullable(v.string()),
+          slug: v.nullable(v.string())
+        })
+      ),
+      skill_plugin_supported_provider_ids: v.array(v.string()),
       created_at: v.date(),
       updated_at: v.date(),
       expires_at: v.date(),

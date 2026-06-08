@@ -1,3 +1,4 @@
+import { renderWithLoader } from '@metorial/data-hooks';
 import {
   IntegrationInstance,
   IntegrationInstanceProvider,
@@ -5,11 +6,12 @@ import {
   IntegrationProvider,
   useDeleteIntegrationProvider,
   useIntegrationInstanceProviders,
-  useIntegrationProviders
+  useIntegrationProviders,
+  useProviderListings
 } from '@metorial/state';
-import { Badge, RenderDate, Text, confirm } from '@metorial/ui';
+import { Avatar, Badge, Flex, RenderDate, Text, confirm } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
-import { RiDeleteBinLine } from '@remixicon/react';
+import { RiDeleteBinLine, RiSettings3Line } from '@remixicon/react';
 import { useMemo, useState } from 'react';
 import { Table as DashboardTable } from '../../../../components/table';
 import { FilterPayload } from '../../../../components/table/filter';
@@ -24,15 +26,29 @@ let getProviderLabel = (provider?: { provider?: any }) =>
 
 let getConfigLabel = (config?: any | null) => config?.name ?? config?.id ?? 'None';
 
+let getAuthLabel = (
+  integrationProvider: IntegrationProvider,
+  instanceProvider?: IntegrationInstanceProvider
+) =>
+  instanceProvider?.authConfig?.name ??
+  instanceProvider?.authConfig?.id ??
+  integrationProvider.authMethod?.name ??
+  integrationProvider.authCredentials?.id ??
+  'None';
+
 let getProviderStatusColor = (status: IntegrationProvider['status']) => {
   if (status === 'active') return 'green';
   if (status === 'archived') return 'orange';
   return 'gray';
 };
 
+type ProviderListingLookup = Record<string, { name: string; imageUrl: string }>;
+
 type IntegrationProvidersManagerProps = {
   instanceId: string;
   integration: IntegrationPreview;
+  onComplete?: () => void;
+  listingLookup?: ProviderListingLookup;
 };
 
 let getProviderStatusFilterValue = (value: FilterPayload | undefined) =>
@@ -58,12 +74,13 @@ let useIntegrationProvidersTableState = (
     hasMoreBefore: providers.data?.pagination.hasMoreBefore ?? false,
     items: providers.data?.items ?? [],
     loadNext: providers.next,
-    loadPrevious: providers.previous
+    loadPrevious: providers.previous,
+    providers
   };
 };
 
 let useIntegrationProvidersTableHookState = (
-  _: ReturnType<typeof useIntegrationProvidersTableState>,
+  tableState: ReturnType<typeof useIntegrationProvidersTableState>,
   props: IntegrationProvidersManagerProps
 ) => {
   let deleteProvider = useDeleteIntegrationProvider();
@@ -71,8 +88,10 @@ let useIntegrationProvidersTableHookState = (
 
   return {
     deleteProvider,
+    providers: tableState.providers,
     instanceId: props.instanceId,
     integration: props.integration,
+    onComplete: props.onComplete,
     loadingIds,
     setLoadingIds
   };
@@ -89,6 +108,8 @@ let deleteIntegrationProviderImmediately = async (
       instanceId: state.instanceId,
       integrationProviderId: provider.id
     });
+    await state.providers.refetch();
+    state.onComplete?.();
   } finally {
     state.setLoadingIds(current => current.filter(id => id !== provider.id));
   }
@@ -97,7 +118,7 @@ let deleteIntegrationProviderImmediately = async (
 let integrationProvidersTable = new DashboardTable<
   IntegrationProvidersManagerProps,
   IntegrationProvider
->('integration-providers')
+>('integration-providers', { hasPagination: false })
   .state(useIntegrationProvidersTableState)
   .hookState(useIntegrationProvidersTableHookState)
   .columns([
@@ -105,11 +126,25 @@ let integrationProvidersTable = new DashboardTable<
       id: 'provider',
       isDefault: true,
       header: 'Provider',
-      render: (provider: IntegrationProvider) => (
-        <Text size="2" weight="strong">
-          {getProviderLabel(provider)}
-        </Text>
-      )
+      render: (provider: IntegrationProvider, props: IntegrationProvidersManagerProps) => {
+        let listing = props.listingLookup?.[provider.provider.id];
+        let providerName = listing?.name ?? getProviderLabel(provider);
+
+        return (
+          <Flex gap={10} style={{ alignItems: 'center' }}>
+            <Avatar
+              entity={{ name: providerName, photoUrl: listing?.imageUrl }}
+              size={24}
+              radius={6}
+              noTooltip
+              imageFit="contain"
+            />
+            <Text size="2" weight="strong">
+              {providerName}
+            </Text>
+          </Flex>
+        );
+      }
     },
     {
       id: 'config',
@@ -189,7 +224,7 @@ let integrationProvidersTable = new DashboardTable<
     showIntegrationProviderPanelFlow({
       integration: props.integration,
       integrationProvider: provider,
-      onComplete: () => {}
+      onComplete: props.onComplete ?? (() => {})
     });
   }) as any)
   .actions({
@@ -235,11 +270,44 @@ let integrationProvidersTable = new DashboardTable<
   ])
   .build();
 
-export let IntegrationProvidersManager = (p: IntegrationProvidersManagerProps) => {
-  return integrationProvidersTable({
-    instanceId: p.instanceId,
-    integration: p.integration,
-    emptyState: 'No providers are attached to this integration yet.'
+export let IntegrationProvidersManager = (p: {
+  instanceId: string;
+  integration: IntegrationPreview;
+  onComplete?: () => void;
+}) => {
+  let providerIds = useMemo(
+    () => [...new Set((p.integration.providers ?? []).map(item => item.provider.id))],
+    [p.integration.providers]
+  );
+  let listings = useProviderListings(
+    p.instanceId,
+    providerIds.length > 0 ? { id: providerIds, limit: 100 } : null
+  );
+
+  let renderTable = (listingLookup: ProviderListingLookup) =>
+    integrationProvidersTable({
+      instanceId: p.instanceId,
+      integration: p.integration,
+      onComplete: p.onComplete,
+      listingLookup,
+      emptyState: 'No providers are attached to this integration yet.'
+    });
+
+  if (providerIds.length === 0) {
+    return renderTable({});
+  }
+
+  return renderWithLoader({ listings })(() => {
+    let listingLookup: ProviderListingLookup = {};
+
+    for (let listing of listings.data?.items ?? []) {
+      listingLookup[listing.provider.id] = {
+        name: listing.name ?? listing.provider.name,
+        imageUrl: listing.imageUrl
+      };
+    }
+
+    return renderTable(listingLookup);
   });
 };
 
@@ -247,12 +315,49 @@ type InstanceProviderRow = {
   id: string;
   integrationProvider: IntegrationProvider;
   instanceProvider: IntegrationInstanceProvider | undefined;
+  integrationInstanceStatus: IntegrationInstance['status'];
 };
 
 type IntegrationInstanceProvidersManagerProps = {
   instanceId: string;
   integration: IntegrationPreview;
   integrationInstance: IntegrationInstance;
+  onComplete?: () => void;
+  listingLookup?: ProviderListingLookup;
+};
+
+let isInstanceProviderConfigureDisabled = (row: InstanceProviderRow) => {
+  if (
+    row.integrationInstanceStatus === 'archived' ||
+    row.integrationInstanceStatus === 'deleted'
+  ) {
+    return true;
+  }
+
+  if (
+    row.integrationInstanceStatus === 'active' &&
+    !row.instanceProvider?.config &&
+    !row.instanceProvider?.authConfig
+  ) {
+    return true;
+  }
+
+  return false;
+};
+
+let openIntegrationInstanceProviderPanel = (
+  row: InstanceProviderRow,
+  state: ReturnType<typeof useIntegrationInstanceProvidersTableHookState>
+) => {
+  if (isInstanceProviderConfigureDisabled(row)) return;
+
+  showIntegrationInstanceProviderPanelFlow({
+    integration: state.integration,
+    integrationInstance: state.integrationInstance,
+    integrationProvider: row.integrationProvider,
+    instanceProvider: row.instanceProvider,
+    onComplete: state.onComplete ?? (() => {})
+  });
 };
 
 let useIntegrationInstanceProvidersTableState = (
@@ -277,9 +382,10 @@ let useIntegrationInstanceProvidersTableState = (
     return integrationProviders.map(integrationProvider => ({
       id: integrationProvider.id,
       integrationProvider: integrationProvider as IntegrationProvider,
-      instanceProvider: instanceProviderByIntegrationProviderId.get(integrationProvider.id)
+      instanceProvider: instanceProviderByIntegrationProviderId.get(integrationProvider.id),
+      integrationInstanceStatus: props.integrationInstance.status
     }));
-  }, [integrationProviders, providerItems]);
+  }, [integrationProviders, providerItems, props.integrationInstance.status]);
 
   return {
     isLoading: providers.isLoading,
@@ -302,6 +408,7 @@ let useIntegrationInstanceProvidersTableHookState = (
     instanceId: props.instanceId,
     integration: props.integration,
     integrationInstance: props.integrationInstance,
+    onComplete: props.onComplete,
     loadingIds,
     setLoadingIds
   };
@@ -318,16 +425,30 @@ let integrationInstanceProvidersTable = new DashboardTable<
       id: 'provider',
       isDefault: true,
       header: 'Provider',
-      render: (row: InstanceProviderRow) => (
-        <Text size="2" weight="strong">
-          {getProviderLabel(row.integrationProvider)}
-        </Text>
-      )
+      render: (row: InstanceProviderRow, props: IntegrationInstanceProvidersManagerProps) => {
+        let listing = props.listingLookup?.[row.integrationProvider.provider.id];
+        let providerName = listing?.name ?? getProviderLabel(row.integrationProvider);
+
+        return (
+          <Flex gap={10} style={{ alignItems: 'center' }}>
+            <Avatar
+              entity={{ name: providerName, photoUrl: listing?.imageUrl }}
+              size={24}
+              radius={6}
+              noTooltip
+              imageFit="contain"
+            />
+            <Text size="2" weight="strong">
+              {providerName}
+            </Text>
+          </Flex>
+        );
+      }
     },
     {
       id: 'config',
       isDefault: true,
-      header: 'Instance Config',
+      header: 'Config',
       render: (row: InstanceProviderRow) => (
         <Text size="2">
           {getConfigLabel(row.instanceProvider?.config ?? row.integrationProvider.config)}
@@ -339,23 +460,24 @@ let integrationInstanceProvidersTable = new DashboardTable<
       isDefault: true,
       header: 'Auth',
       render: (row: InstanceProviderRow) => (
-        <Text size="2">
-          {row.instanceProvider?.authConfig?.id ??
-            row.integrationProvider.authMethod?.name ??
-            'None'}
-        </Text>
+        <Text size="2">{getAuthLabel(row.integrationProvider, row.instanceProvider)}</Text>
       )
     },
     {
       id: 'status',
       isDefault: true,
       header: 'Status',
-      render: (row: InstanceProviderRow) =>
-        row.instanceProvider ? (
-          <Badge color="green">Configured</Badge>
-        ) : (
-          <Badge color="gray">Not set</Badge>
-        )
+      render: (row: InstanceProviderRow) => {
+        if (row.instanceProvider) {
+          return <Badge color="green">Configured</Badge>;
+        }
+
+        if (row.integrationInstanceStatus === 'draft') {
+          return <Badge color="orange">Pending</Badge>;
+        }
+
+        return <Badge color="gray">Inherited</Badge>;
+      }
     },
     {
       id: 'updatedAt',
@@ -378,23 +500,74 @@ let integrationInstanceProvidersTable = new DashboardTable<
     }
   ] as any)
   .clickable(((row: InstanceProviderRow, props: IntegrationInstanceProvidersManagerProps) => {
+    if (isInstanceProviderConfigureDisabled(row)) return;
+
     showIntegrationInstanceProviderPanelFlow({
       integration: props.integration,
       integrationInstance: props.integrationInstance,
       integrationProvider: row.integrationProvider,
       instanceProvider: row.instanceProvider,
-      onComplete: () => {}
+      onComplete: props.onComplete ?? (() => {})
     });
   }) as any)
+  .actions({
+    configure: async (rows, state) => {
+      let row = rows[0];
+      if (!row) return;
+
+      openIntegrationInstanceProviderPanel(row, state);
+    }
+  })
+  .rowActions([
+    {
+      id: 'configure',
+      label: 'Configure',
+      icon: <RiSettings3Line />,
+      action: 'configure',
+      disabled: isInstanceProviderConfigureDisabled
+    }
+  ])
   .build();
 
-export let IntegrationInstanceProvidersManager = (
-  p: IntegrationInstanceProvidersManagerProps
-) => {
-  return integrationInstanceProvidersTable({
-    instanceId: p.instanceId,
-    integration: p.integration,
-    integrationInstance: p.integrationInstance,
-    emptyState: 'This integration does not have any providers yet.'
+export let IntegrationInstanceProvidersManager = (p: {
+  instanceId: string;
+  integration: IntegrationPreview;
+  integrationInstance: IntegrationInstance;
+  onComplete?: () => void;
+}) => {
+  let providerIds = useMemo(
+    () => [...new Set((p.integration.providers ?? []).map(item => item.provider.id))],
+    [p.integration.providers]
+  );
+  let listings = useProviderListings(
+    p.instanceId,
+    providerIds.length > 0 ? { id: providerIds, limit: 100 } : null
+  );
+
+  let renderTable = (listingLookup: ProviderListingLookup) =>
+    integrationInstanceProvidersTable({
+      instanceId: p.instanceId,
+      integration: p.integration,
+      integrationInstance: p.integrationInstance,
+      onComplete: p.onComplete,
+      listingLookup,
+      emptyState: 'This integration does not have any providers yet.'
+    });
+
+  if (providerIds.length === 0) {
+    return renderTable({});
+  }
+
+  return renderWithLoader({ listings })(() => {
+    let listingLookup: ProviderListingLookup = {};
+
+    for (let listing of listings.data?.items ?? []) {
+      listingLookup[listing.provider.id] = {
+        name: listing.name ?? listing.provider.name,
+        imageUrl: listing.imageUrl
+      };
+    }
+
+    return renderTable(listingLookup);
   });
 };

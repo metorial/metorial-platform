@@ -36,4 +36,5 @@ model ProviderTemplate {
   consumerAccessListings       ConsumerAccessListing[]
 
   @@unique([instanceOid, legacyProviderDeploymentId])
+  @@unique([instanceOid, subspaceIntegrationId])
 }

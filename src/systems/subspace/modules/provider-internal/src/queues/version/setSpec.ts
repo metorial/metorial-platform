@@ -4,6 +4,7 @@ import {
   getId,
   type ProviderVersionSpecificationDiscoveryStatus
 } from '@metorial-subspace/db';
+import { schemaChangeNotificationAlertIngestQueue } from '@metorial-subspace/module-monitor/src/queues/schemaChange';
 import { env } from '../../env';
 
 export let providerVersionSetSpecificationQueue = createQueue<{
@@ -95,7 +96,7 @@ export let providerVersionSetSpecificationQueueProcessor =
               fromVersionOid: previousVersion.oid
             }
           });
-          await db.providerSpecificationChangeNotification.create({
+          let notification = await db.providerSpecificationChangeNotification.create({
             data: {
               ...getId('providerSpecificationChangeNotification'),
 
@@ -103,6 +104,10 @@ export let providerVersionSetSpecificationQueueProcessor =
               versionOid: version.oid,
               versionSpecificationChangeOid: change.oid
             }
+          });
+
+          await schemaChangeNotificationAlertIngestQueue.add({
+            notificationId: notification.id
           });
         } catch (e) {
           // Maybe a duplicate

@@ -16,12 +16,21 @@ model Tenant {
   originTenantId         String?
   originTenantIdentifier String?
 
+  functionBayTenantId         String?
+  functionBayTenantIdentifier String?
+
   onlyAllowTrustedProviders Boolean @default(false)
   isWhitelabel              Boolean @default(false)
 
   createdAt DateTime @default(now())
 
-  logRetentionInDays Int @default(30)
+  logRetentionInDays   Int     @default(30)
+  enforceSessionExpiry Boolean @default(false)
+
+  allowAuthConfigExport Boolean @default(false)
+  allowAuthConfigImport Boolean @default(false)
+
+  collectOperationDescriptionForToolCalls Boolean @default(true)
 
   providers                                Provider[]
   providerListingGroups                    ProviderListingGroup[]
@@ -32,6 +41,8 @@ model Tenant {
   providerConfigs                          ProviderConfig[]
   providerConfigVaults                     ProviderConfigVault[]
   slateInstances                           SlateInstance[]
+  slateInstanceConfigurations              SlateInstanceConfiguration[]
+  serverInstanceConfigurations             ServerInstanceConfiguration[]
   providerDeploymentConfigPairs            ProviderDeploymentConfigPair[]
   providerAuthCredentials                  ProviderAuthCredentials[]
   managedProviderAuthCredentialsBackings   ManagedProviderAuthCredentialsBacking[]
@@ -103,6 +114,19 @@ model Tenant {
   skillEntities                            SkillEntity[]
   skillForks                               SkillFork[]
   skillTemplates                           SkillTemplate[]
+  tenantOAuthCallbackUrls                  TenantOAuthCallbackUrl[]
+  enclaveEnvironments                      EnclaveEnvironment[]
+  enclaves                                 Enclave[]
+  networks                                 Network[]
+  firewalls                                Firewall[]
+  networkPolicies                          NetworkPolicy[]
+  firewallBindings                         FirewallBinding[]
+  protoGuardSetting                        ProtoGuardTenantSetting?
+  protoGuardFilterSettings                 ProtoGuardTenantFilterSetting[]
+  protoGuardRuns                           ProtoGuardRun[]
+  protoGuardAlerts                         ProtoGuardAlert[]
+  monitors                                 Monitor[]
+  monitorAlerts                            MonitorAlert[]
 }
 
 enum EnvironmentType {
@@ -179,6 +203,17 @@ model Environment {
   skillEntities                            SkillEntity[]
   skillForks                               SkillFork[]
   skillTemplates                           SkillTemplate[]
+  enclaves                                 Enclave[]
+  slateInstanceConfigurations              SlateInstanceConfiguration[]
+  serverInstanceConfigurations             ServerInstanceConfiguration[]
+  networks                                 Network[]
+  firewalls                                Firewall[]
+  networkPolicies                          NetworkPolicy[]
+  firewallBindings                         FirewallBinding[]
+  protoGuardRuns                           ProtoGuardRun[]
+  protoGuardAlerts                         ProtoGuardAlert[]
+  monitors                                 Monitor[]
+  monitorAlerts                            MonitorAlert[]
 }
 
 enum TenantActorType {
@@ -211,6 +246,8 @@ model TenantActor {
   skills                    Skill[]
   skillForks                SkillFork[]
   skillEvents               SkillEvent[]
+  monitorAlertEvents        MonitorAlertEvent[]
+  monitorAlertRecipients    MonitorAlertRecipient[]
 
   @@unique([tenantOid, identifier])
   @@map("Actor")

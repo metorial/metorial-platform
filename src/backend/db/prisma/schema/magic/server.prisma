@@ -24,6 +24,7 @@ model MagicMcpServer {
   ownerType            MagicMcpServerOwnerType @default(server_owned)
   isConsumerReconciled Boolean                 @default(false)
   hasSubspaceBacking   Boolean                 @default(false)
+  isSubspaceBackingReconciling Boolean         @default(false)
 
   providerTemplateId                String?
   legacySubspaceSessionTemplateId   String? @map("subspaceSessionTemplateId")

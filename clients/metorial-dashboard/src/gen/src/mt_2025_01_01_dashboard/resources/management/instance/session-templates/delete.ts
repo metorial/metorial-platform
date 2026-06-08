@@ -9,6 +9,8 @@ export type ManagementInstanceSessionTemplatesDeleteOutput = {
   metadata: Record<string, any> | null;
   integrationInstanceId: string | null;
   integrationInstanceGroupId: string | null;
+  identityActorId: string | null;
+  identityId: string | null;
   providers: {
     object: 'session.template.provider';
     id: string;
@@ -75,6 +77,11 @@ export let mapManagementInstanceSessionTemplatesDeleteOutput =
       'integration_instance_group_id',
       mtMap.passthrough()
     ),
+    identityActorId: mtMap.objectField(
+      'identity_actor_id',
+      mtMap.passthrough()
+    ),
+    identityId: mtMap.objectField('identity_id', mtMap.passthrough()),
     providers: mtMap.objectField(
       'providers',
       mtMap.array(

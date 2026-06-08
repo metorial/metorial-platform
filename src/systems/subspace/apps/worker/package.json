@@ -4,10 +4,10 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "start:dev": "bun --watch ./src/server.ts",
+    "start:dev": "bun \"$(ROOT=$(git rev-parse --show-toplevel); if [ -f \"$ROOT/scripts/dev-tools/src/cli.ts\" ]; then echo \"$ROOT/scripts/dev-tools/src/cli.ts\"; else echo \"$ROOT/oss/scripts/dev-tools/src/cli.ts\"; fi)\" watch-bun ./src/server.ts",
     "start": "bun ./src/server.ts",
     "server:build": "ncc build ./src/server.ts -o ./dist --source-map --external bun:sqlite --external bun && bun run sentry:sourcemaps:if-token",
-    "sentry:sourcemaps": "sentry-cli sourcemaps inject --org metorial --project mte-subspace-worker ./dist && sentry-cli sourcemaps upload --org metorial --project mte-subspace-worker ./dist",
+    "sentry:sourcemaps": "(sentry-cli sourcemaps inject --org metorial --project mte-subspace-worker ./dist && sentry-cli sourcemaps upload --org metorial --project mte-subspace-worker ./dist) || true",
     "sentry:sourcemaps:if-token": "sh -c 'if [ -n \"$SENTRY_AUTH_TOKEN\" ]; then bun run sentry:sourcemaps; else echo \"Skipping Sentry sourcemap upload\"; fi'"
   },
   "devDependencies": {
@@ -24,6 +24,7 @@
     "@metorial-subspace/module-connection": "^1.0.0",
     "@metorial-subspace/module-deployment": "^1.0.0",
     "@metorial-subspace/module-integration": "^1.0.0",
+    "@metorial-subspace/module-monitor": "^1.0.0",
     "@metorial-subspace/module-provider-internal": "^1.0.0",
     "@metorial-subspace/module-skills": "^1.0.0",
     "@lowerdeck/telemetry": "^1.1.1",

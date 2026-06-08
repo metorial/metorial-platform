@@ -26,7 +26,6 @@ let skillPluginInput = {
   description: v.optional(v.nullable(v.string())),
   longDescription: v.optional(v.nullable(v.string())),
   category: v.optional(v.nullable(v.string())),
-  slug: v.optional(v.string()),
   providerOverrides: metadataSchema,
   imageFileId: v.optional(v.nullable(v.string())),
   skillConfigurationId: v.optional(v.nullable(v.string()))
@@ -53,7 +52,6 @@ export let skillPluginController = app.controller({
             description: ctx.input.description,
             longDescription: ctx.input.longDescription,
             category: ctx.input.category,
-            slug: ctx.input.slug,
             providerOverrides: ctx.input.providerOverrides,
             imageFileId: ctx.input.imageFileId,
             skillConfigurationId: ctx.input.skillConfigurationId
@@ -76,7 +74,6 @@ export let skillPluginController = app.controller({
           statuses: statusFilterSchema,
           search: v.optional(v.string()),
           category: v.optional(v.string()),
-          slug: v.optional(v.string()),
           createdAt: dateFilterSchema,
           updatedAt: dateFilterSchema
         })
@@ -93,7 +90,6 @@ export let skillPluginController = app.controller({
         statuses: ctx.input.statuses,
         search: ctx.input.search,
         category: ctx.input.category,
-        slug: ctx.input.slug,
         createdAt: ctx.input.createdAt,
         updatedAt: ctx.input.updatedAt
       });
@@ -154,7 +150,6 @@ export let skillPluginController = app.controller({
             description: ctx.input.description,
             longDescription: ctx.input.longDescription,
             category: ctx.input.category,
-            slug: ctx.input.slug,
             providerOverrides: ctx.input.providerOverrides,
             imageFileId: ctx.input.imageFileId,
             skillConfigurationId: ctx.input.skillConfigurationId

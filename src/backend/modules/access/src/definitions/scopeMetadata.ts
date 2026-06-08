@@ -33,6 +33,10 @@ let scopeResourceMetadata: Record<string, { name: string; description: string }>
     name: 'Organization Instances',
     description: 'These endpoints manage instance records that belong to an organization.'
   },
+  'organization.sandbox': {
+    name: 'Organization Sandboxes',
+    description: 'These endpoints manage development sandboxes that belong to an organization.'
+  },
   'organization.team': {
     name: 'Organization Teams',
     description: 'These endpoints manage team records and assignments.'
@@ -153,6 +157,11 @@ let scopeResourceMetadata: Record<string, { name: string; description: string }>
     name: 'Callbacks',
     description: 'These endpoints manage callback registrations and callback processing.'
   },
+  'instance.network': {
+    name: 'Network Access',
+    description:
+      'These endpoints manage networks, enclaves, firewalls, firewall bindings, and network policies.'
+  },
   'instance.server.config_vault': {
     name: 'Server Config Vaults',
     description: 'These endpoints manage secure server configuration vault values.'
@@ -201,6 +210,10 @@ let scopeResourceMetadata: Record<string, { name: string; description: string }>
     name: 'Provider Sessions',
     description:
       'These endpoints manage provider sessions, session events, and session artifacts.'
+  },
+  'instance.monitor': {
+    name: 'Monitoring',
+    description: 'These endpoints read monitors and manage monitor alerts.'
   },
   'instance.provider.config': {
     name: 'Provider Configs',

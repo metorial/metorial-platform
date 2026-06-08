@@ -29,10 +29,8 @@ import {
 import { checkTenant } from '@metorial-subspace/module-tenant';
 import { addMinutes } from 'date-fns';
 import { normalizeIntegrationProviderToolFilter } from '../lib/versions';
-import {
-  getIntegrationToolFilterCapabilities,
-  integrationProviderVersionInclude
-} from './integration';
+import { integrationProviderVersionInclude } from '../lib/integrationIncludes';
+import { getIntegrationToolFilterCapabilities } from './integration';
 import {
   integrationInstanceInclude,
   integrationInstanceProviderInclude,

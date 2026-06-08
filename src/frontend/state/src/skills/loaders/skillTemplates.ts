@@ -1,27 +1,27 @@
 import type {
   DashboardInstanceSkillsCreateOutput,
-  DashboardInstanceSkillTemplatesCreateBody,
-  DashboardInstanceSkillTemplatesGetOutput,
-  DashboardInstanceSkillTemplatesItemsCreateBody,
-  DashboardInstanceSkillTemplatesItemsGetOutput,
-  DashboardInstanceSkillTemplatesItemsListQuery,
-  DashboardInstanceSkillTemplatesListQuery,
-  DashboardInstanceSkillTemplatesUpdateBody
+  DashboardInstanceSkillsTemplatesCreateBody,
+  DashboardInstanceSkillsTemplatesGetOutput,
+  DashboardInstanceSkillsTemplatesItemsCreateBody,
+  DashboardInstanceSkillsTemplatesItemsGetOutput,
+  DashboardInstanceSkillsTemplatesItemsListQuery,
+  DashboardInstanceSkillsTemplatesListQuery,
+  DashboardInstanceSkillsTemplatesUpdateBody
 } from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
 import { autoPaginate } from '../../lib/autoPaginate';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
 
-export type SkillTemplate = DashboardInstanceSkillTemplatesGetOutput;
-export type SkillTemplateItem = DashboardInstanceSkillTemplatesItemsGetOutput;
+export type SkillTemplate = DashboardInstanceSkillsTemplatesGetOutput;
+export type SkillTemplateItem = DashboardInstanceSkillsTemplatesItemsGetOutput;
 
 let toArrayIfString = <T extends string>(value: T | T[] | undefined) =>
   typeof value === 'string' ? [value] : value;
 
 let normalizeSkillTemplatesListQuery = (
-  query: DashboardInstanceSkillTemplatesListQuery
-): DashboardInstanceSkillTemplatesListQuery => ({
+  query: DashboardInstanceSkillsTemplatesListQuery
+): DashboardInstanceSkillsTemplatesListQuery => ({
   ...query,
   status: toArrayIfString(query.status),
   owner: toArrayIfString(query.owner)
@@ -30,7 +30,7 @@ let normalizeSkillTemplatesListQuery = (
 export let skillTemplatesLoader = createLoader({
   name: 'skillTemplates',
   parents: [],
-  fetch: (i: { instanceId: string } & DashboardInstanceSkillTemplatesListQuery) =>
+  fetch: (i: { instanceId: string } & DashboardInstanceSkillsTemplatesListQuery) =>
     withAuth(sdk =>
       sdk.skillTemplates.list(i.instanceId, normalizeSkillTemplatesListQuery(i))
     ),
@@ -38,7 +38,7 @@ export let skillTemplatesLoader = createLoader({
 });
 
 export let useCreateSkillTemplate = skillTemplatesLoader.createExternalMutator(
-  (i: DashboardInstanceSkillTemplatesCreateBody & { instanceId: string }) =>
+  (i: DashboardInstanceSkillsTemplatesCreateBody & { instanceId: string }) =>
     withAuth(sdk => sdk.skillTemplates.create(i.instanceId, i))
 );
 
@@ -115,7 +115,7 @@ export let useCreateSkillFromTemplate = skillTemplatesLoader.createExternalMutat
 
 export let useSkillTemplates = (
   instanceId: string | null | undefined,
-  query?: DashboardInstanceSkillTemplatesListQuery | null
+  query?: DashboardInstanceSkillsTemplatesListQuery | null
 ) => {
   return usePaginator(
     pagination =>
@@ -133,7 +133,7 @@ export let skillTemplateLoader = createLoader({
     withAuth(sdk => sdk.skillTemplates.get(i.instanceId, i.skillTemplateId)),
   mutators: {
     update: (
-      i: DashboardInstanceSkillTemplatesUpdateBody,
+      i: DashboardInstanceSkillsTemplatesUpdateBody,
       {
         input: { instanceId, skillTemplateId }
       }: { input: { instanceId: string; skillTemplateId: string } }
@@ -170,14 +170,14 @@ export let skillTemplateItemsLoader = createLoader({
     i: {
       instanceId: string;
       skillTemplateId: string;
-    } & DashboardInstanceSkillTemplatesItemsListQuery
+    } & DashboardInstanceSkillsTemplatesItemsListQuery
   ) => withAuth(sdk => sdk.skillTemplates.items.list(i.instanceId, i.skillTemplateId, i)),
   mutators: {}
 });
 
 export let useCreateSkillTemplateItem = skillTemplateItemsLoader.createExternalMutator(
   (
-    i: DashboardInstanceSkillTemplatesItemsCreateBody & {
+    i: DashboardInstanceSkillsTemplatesItemsCreateBody & {
       instanceId: string;
       skillTemplateId: string;
     }
@@ -194,7 +194,7 @@ export let useDeleteSkillTemplateItem = skillTemplateItemsLoader.createExternalM
 export let useSkillTemplateItems = (
   instanceId: string | null | undefined,
   skillTemplateId: string | null | undefined,
-  query?: DashboardInstanceSkillTemplatesItemsListQuery | null
+  query?: DashboardInstanceSkillsTemplatesItemsListQuery | null
 ) => {
   return usePaginator(
     pagination =>
@@ -214,7 +214,7 @@ export let allSkillTemplateItemsLoader = createLoader({
     i: {
       instanceId: string;
       skillTemplateId: string;
-    } & Omit<DashboardInstanceSkillTemplatesItemsListQuery, 'after' | 'before' | 'cursor'>
+    } & Omit<DashboardInstanceSkillsTemplatesItemsListQuery, 'after' | 'before' | 'cursor'>
   ) =>
     withAuth(sdk =>
       autoPaginate(cursor =>
@@ -233,7 +233,7 @@ export let useAllSkillTemplateItems = (
   instanceId: string | null | undefined,
   skillTemplateId: string | null | undefined,
   query?: Omit<
-    DashboardInstanceSkillTemplatesItemsListQuery,
+    DashboardInstanceSkillsTemplatesItemsListQuery,
     'after' | 'before' | 'cursor'
   > | null
 ) => {

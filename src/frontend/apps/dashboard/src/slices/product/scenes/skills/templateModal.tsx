@@ -1,10 +1,10 @@
-import { DashboardInstanceSkillTemplatesCreateOutput } from '@metorial/dashboard-sdk';
+import { DashboardInstanceSkillsTemplatesCreateOutput } from '@metorial/dashboard-sdk';
 import { Dialog, showModal } from '@metorial/ui';
 import { SkillTemplateForm } from './templateForm';
 
 export let showSkillTemplateFormModal = (p: {
   instanceId: string;
-  onCreate?: (skillTemplate: DashboardInstanceSkillTemplatesCreateOutput) => void;
+  onCreate?: (skillTemplate: DashboardInstanceSkillsTemplatesCreateOutput) => void;
 }) =>
   showModal(({ dialogProps, close }) => (
     <Dialog.Wrapper {...dialogProps} width={550}>

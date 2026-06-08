@@ -35,10 +35,13 @@ export let portalConsumerInviteController = Controller.create(
   },
   {
     list: portalGroup
-      .get(instancePath('portals/:portalId/invites', 'portals.consumerInvites.list'), {
-        name: 'List portal consumer invites',
-        description: 'Returns a paginated list of invites for a portal.'
-      })
+      .get(
+        instancePath('portals/:portalId/consumer-invites', 'portals.consumerInvites.list'),
+        {
+          name: 'List portal consumer invites',
+          description: 'Returns a paginated list of invites for a portal.'
+        }
+      )
       .use(checkAccess({ possibleScopes: ['instance.portal.consumers:read'] }))
       .use(hasFlags(['paid-portals', 'portals-access']))
       .outputList(consumerInvitePresenter)
@@ -47,6 +50,12 @@ export let portalConsumerInviteController = Controller.create(
         Paginator.validate(
           v.object({
             search: v.optional(v.string()),
+            email: v.optional(
+              v.union([
+                v.string({ modifiers: [v.email()] }),
+                v.array(v.string({ modifiers: [v.email()] }))
+              ])
+            ),
             status: v.optional(
               v.union([
                 v.enumOf(['pending', 'accepted']),
@@ -60,6 +69,7 @@ export let portalConsumerInviteController = Controller.create(
         let paginator = await consumerInviteService.listConsumerInvites({
           consumerSurface: ctx.portal.surface,
           search: ctx.query.search,
+          emails: normalizeArrayParam(ctx.query.email),
           statuses: normalizeArrayParam(ctx.query.status)
         });
         let list = await paginator.run(ctx.query);
@@ -70,10 +80,13 @@ export let portalConsumerInviteController = Controller.create(
       }),
 
     create: portalGroup
-      .post(instancePath('portals/:portalId/invites', 'portals.consumerInvites.create'), {
-        name: 'Create portal consumer invite',
-        description: 'Invites a consumer to a portal.'
-      })
+      .post(
+        instancePath('portals/:portalId/consumer-invites', 'portals.consumerInvites.create'),
+        {
+          name: 'Create portal consumer invite',
+          description: 'Invites a consumer to a portal.'
+        }
+      )
       .use(checkAccess({ possibleScopes: ['instance.portal.consumers:write'] }))
       .use(hasFlags(['paid-portals', 'portals-access']))
       .body(
@@ -104,7 +117,7 @@ export let portalConsumerInviteController = Controller.create(
     get: consumerInviteGroup
       .get(
         instancePath(
-          'portals/:portalId/invites/:consumerInviteId',
+          'portals/:portalId/consumer-invites/:consumerInviteId',
           'portals.consumerInvites.get'
         ),
         {

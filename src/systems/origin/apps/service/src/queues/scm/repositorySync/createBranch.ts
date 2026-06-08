@@ -2,7 +2,12 @@ import { createQueue } from '@lowerdeck/queue';
 import { db } from '../../../db';
 import { env } from '../../../env';
 import { createRepositorySyncBranch } from '../../../lib/scmRepositorySyncProvider';
-import { logRepositorySyncQueueError, logRepositorySyncQueueEvent, markRepositorySyncFailed } from './_lib';
+import {
+  appendRepositorySyncLog,
+  logRepositorySyncQueueError,
+  logRepositorySyncQueueEvent,
+  markRepositorySyncFailed
+} from './_lib';
 import { syncContentsRepositorySyncQueue } from './syncContents';
 
 export let createBranchRepositorySyncQueue = createQueue<{ syncId: string }>({
@@ -58,7 +63,9 @@ export let createBranchRepositorySyncQueueProcessor = createBranchRepositorySync
         branchName: sync.branchName
       });
 
+      await appendRepositorySyncLog(sync.id, 'Preparing an update branch.');
       await createRepositorySyncBranch(sync);
+      await appendRepositorySyncLog(sync.id, 'Update branch is ready.');
       logRepositorySyncQueueEvent('createBranch', 'provider branch is ready', {
         syncId: sync.id,
         repoId: sync.repo.id,

@@ -20,7 +20,16 @@ export let projectsLoader = createLoader({
     create: (
       i: DashboardOrganizationsProjectsCreateBody,
       { input: { organizationId } }: any
-    ) => withAuth(sdk => sdk.projects.create(organizationId, i))
+    ) =>
+      withAuth(async sdk => {
+        let res = await sdk.projects.create(organizationId, i);
+        let instances = await sdk.instances.list(organizationId, { projectId: res.id });
+
+        return {
+          ...res,
+          instances: instances.items
+        };
+      })
   }
 });
 

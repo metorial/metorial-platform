@@ -1,5 +1,6 @@
 import { canonicalize } from '@lowerdeck/canonicalize';
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
+import { generatePlainId } from '@lowerdeck/id';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { slugify } from '@lowerdeck/slugify';
@@ -75,24 +76,10 @@ type SkillMarketplaceInput = {
   providerOverrides?: Prisma.InputJsonValue | null;
   name?: string;
   description?: string | null;
-  slug?: string;
   skillConfigurationId?: string | null;
 };
 
 class SkillMarketplaceServiceImpl {
-  private normalizeSlug(d: { slug?: string; name: string }) {
-    let normalized = slugify(d.slug ?? d.name);
-    if (!normalized) {
-      throw new ServiceError(
-        badRequestError({
-          message: 'Skill marketplace slug must include at least one slug character'
-        })
-      );
-    }
-
-    return normalized;
-  }
-
   private assertName(name: string) {
     if (name.trim()) return;
 
@@ -110,7 +97,6 @@ class SkillMarketplaceServiceImpl {
       input.providerOverrides !== undefined ||
       input.name !== undefined ||
       input.description !== undefined ||
-      input.slug !== undefined ||
       input.skillConfigurationId !== undefined
     );
   }
@@ -172,7 +158,6 @@ class SkillMarketplaceServiceImpl {
       skillConfigurationIds?: string[];
       statuses?: SkillMarketplaceStatusFilter[];
       search?: string;
-      slug?: string;
       createdAt?: DateFilter;
       updatedAt?: DateFilter;
     }
@@ -206,7 +191,6 @@ class SkillMarketplaceServiceImpl {
                   ? { skillConfigurationOid: skillConfigurations.in }
                   : undefined!,
                 { status: { in: statuses } },
-                d.slug ? { slug: d.slug } : undefined!,
                 search ? { id: { in: search.map(r => r.documentId) } } : undefined!,
                 d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
                 d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
@@ -245,7 +229,6 @@ class SkillMarketplaceServiceImpl {
       environment: d.environment,
       skillConfigurationId: d.input.skillConfigurationId
     });
-    let slug = this.normalizeSlug({ slug: d.input.slug, name: d.input.name });
 
     return await withTransaction(async db => {
       let destination = await createSkillDestination({ tenant: d.tenant });
@@ -256,7 +239,7 @@ class SkillMarketplaceServiceImpl {
           providerOverrides: d.input.providerOverrides as any,
           name: d.input.name,
           description: d.input.description,
-          slug,
+          slug: `${slugify((d.input.slug ?? d.input.name).replaceAll('_', '-'))}-${generatePlainId(6)}`.toLowerCase(),
           tenantOid: d.tenant.oid,
           environmentOid: d.environment.oid,
           skillConfigurationOid,
@@ -335,13 +318,6 @@ class SkillMarketplaceServiceImpl {
         providerOverrides: d.input.providerOverrides as any,
         name: d.input.name,
         description: d.input.description,
-        slug:
-          d.input.slug !== undefined
-            ? this.normalizeSlug({
-                slug: d.input.slug,
-                name: d.input.name ?? d.skillMarketplace.name
-              })
-            : undefined,
         skillConfigurationOid
       }
     });

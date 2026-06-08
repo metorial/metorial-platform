@@ -1,6 +1,8 @@
 import { createRequire } from 'module';
 
-let require = createRequire(import.meta.url);
+// Provide CommonJS `require` in ESM runtime for bundled deps.
+const require = createRequire(import.meta.url);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 (globalThis as any).require = require;
 
 async function main() {

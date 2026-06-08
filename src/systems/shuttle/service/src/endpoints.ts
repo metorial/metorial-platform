@@ -74,9 +74,6 @@ if (process.env.NODE_ENV === 'production') {
           step = 'checking redis';
           await checkRedis();
 
-          // step = 'checking holopod';
-          // await checkHolopodHealth();
-
           return new Response('OK');
         } catch (e) {
           console.error(`Health check failed at step: ${step}`, e);

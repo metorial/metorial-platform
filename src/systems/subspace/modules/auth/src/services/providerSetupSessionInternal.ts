@@ -383,6 +383,7 @@ class providerSetupSessionInternalServiceImpl {
     return withTransaction(async db => {
       if (
         d.session.status === 'completed' ||
+        d.session.status === 'failed' ||
         d.session.status === 'archived' ||
         d.session.status === 'deleted' ||
         d.session.status === 'expired'
@@ -430,7 +431,7 @@ class providerSetupSessionInternalServiceImpl {
           where: { oid: d.setup.oid },
           data: { redirectUrl: d.session.redirectUrl }
         });
-      } else {
+      } else if (d.setup.status === 'failed') {
         await db.providerSetupSession.update({
           where: { oid: d.session.oid },
           data: {
@@ -450,12 +451,49 @@ class providerSetupSessionInternalServiceImpl {
             setupOid: d.setup.oid
           }
         });
+      } else {
+        let now = new Date();
+        let setupExpired = d.setup.status === 'expired' || d.setup.expiresAt <= now;
+        let sessionExpired = d.session.expiresAt <= now;
+
+        if (setupExpired || sessionExpired) {
+          if (d.setup.status !== 'expired' && d.setup.expiresAt <= now) {
+            d.setup = await db.providerOAuthSetup.update({
+              where: { oid: d.setup.oid },
+              data: { status: 'expired' }
+            });
+          }
+
+          await db.providerSetupSession.update({
+            where: { oid: d.session.oid },
+            data: { status: 'expired' }
+          });
+
+          await db.providerSetupSessionEvent.createMany({
+            data: {
+              ...getId('providerSetupSessionEvent'),
+              type: 'expired',
+              ip: d.context.ip,
+              ua: d.context.ua,
+              sessionOid: d.session.oid,
+              setupOid: d.setup.oid
+            }
+          });
+
+          addAfterTransactionHook(async () =>
+            providerSetupSessionUpdatedQueue.add({ providerSetupSessionId: d.session.id })
+          );
+        }
+
+        return d.setup;
       }
 
-      await this.evaluate({
-        session: d.session,
-        context: { ip: d.context.ip, ua: d.context.ua }
-      });
+      if (d.setup.status === 'completed') {
+        await this.evaluate({
+          session: d.session,
+          context: { ip: d.context.ip, ua: d.context.ua }
+        });
+      }
 
       addAfterTransactionHook(async () =>
         providerSetupSessionUpdatedQueue.add({ providerSetupSessionId: d.session.id })

@@ -91,7 +91,7 @@ export let integrationSetupSessionController = Controller.create(
   },
   {
     list: instanceGroup
-      .get(instancePath('integration-setup-sessions', 'integrationSetupSessions.list'), {
+      .get(instancePath('integration-setup-sessions', 'integrations.setupSessions.list'), {
         name: 'List integration setup sessions',
         description: 'Returns a paginated list of integration setup sessions.'
       })
@@ -138,7 +138,7 @@ export let integrationSetupSessionController = Controller.create(
       .get(
         instancePath(
           'integration-setup-sessions/:integrationSetupSessionId',
-          'integrationSetupSessions.get'
+          'integrations.setupSessions.get'
         ),
         {
           name: 'Get integration setup session',
@@ -154,7 +154,7 @@ export let integrationSetupSessionController = Controller.create(
       ),
 
     create: instanceGroup
-      .post(instancePath('integration-setup-sessions', 'integrationSetupSessions.create'), {
+      .post(instancePath('integration-setup-sessions', 'integrations.setupSessions.create'), {
         name: 'Create integration setup session',
         description: 'Creates a new integration setup session and draft integration instance.'
       })

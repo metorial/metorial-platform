@@ -11,6 +11,7 @@ export type PortalsListOutput = {
     allowConsumerSkillAuthoring: boolean;
     allowConsumerSkillPublishing: boolean;
     skillConfiguration: {
+      object: 'portal.skill_configuration';
       id: string;
       isDefault: boolean;
       allowScripts: boolean;
@@ -51,6 +52,7 @@ export let mapPortalsListOutput = mtMap.object<PortalsListOutput>({
         skillConfiguration: mtMap.objectField(
           'skill_configuration',
           mtMap.object({
+            object: mtMap.objectField('object', mtMap.passthrough()),
             id: mtMap.objectField('id', mtMap.passthrough()),
             isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
             allowScripts: mtMap.objectField(
@@ -114,7 +116,7 @@ export type PortalsListQuery = {
   before?: string | undefined;
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
-} & {};
+} & { search?: string | undefined };
 
 export let mapPortalsListQuery = mtMap.union([
   mtMap.unionOption(
@@ -124,7 +126,8 @@ export let mapPortalsListQuery = mtMap.union([
       after: mtMap.objectField('after', mtMap.passthrough()),
       before: mtMap.objectField('before', mtMap.passthrough()),
       cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough())
+      order: mtMap.objectField('order', mtMap.passthrough()),
+      search: mtMap.objectField('search', mtMap.passthrough())
     })
   )
 ]);

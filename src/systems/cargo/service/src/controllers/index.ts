@@ -21,6 +21,7 @@ import { skillParticipantController } from './skillParticipant';
 import { skillPluginController } from './skillPlugin';
 import { skillPluginRepositoryController } from './skillPluginRepository';
 import { skillPluginSkillController } from './skillPluginSkill';
+import { skillSyncController } from './skillSync';
 import { skillTemplateController } from './skillTemplate';
 import { skillVersionController } from './skillVersion';
 import { storeController } from './store';
@@ -29,14 +30,34 @@ import { storeParticipantController } from './storeParticipant';
 import { storeTemplateController } from './storeTemplate';
 import { tenantController } from './tenant';
 
-export let rootController = app.controller({
+let tenantControllers = {
   tenant: tenantController,
   environment: environmentController,
-  actor: actorController,
+  actor: actorController
+};
+
+let fileControllers = {
   filePurpose: filePurposeController,
   file: fileController,
   fileLink: fileLinkController,
   fileReference: fileReferenceController,
+  reconcile: reconcileController
+};
+
+let documentControllers = {
+  document: documentController,
+  documentVersion: documentVersionController,
+  documentParticipant: documentParticipantController
+};
+
+let storeControllers = {
+  store: storeController,
+  storeItem: storeItemController,
+  storeParticipant: storeParticipantController,
+  storeTemplate: storeTemplateController
+};
+
+let skillControllers = {
   skill: skillController,
   skillAgent: skillAgentController,
   skillConfiguration: skillConfigurationController,
@@ -48,17 +69,33 @@ export let rootController = app.controller({
   skillPlugin: skillPluginController,
   skillPluginRepository: skillPluginRepositoryController,
   skillPluginSkill: skillPluginSkillController,
+  skillSync: skillSyncController,
   skillTemplate: skillTemplateController,
-  skillVersion: skillVersionController,
-  store: storeController,
-  storeItem: storeItemController,
-  storeParticipant: storeParticipantController,
-  storeTemplate: storeTemplateController,
-  document: documentController,
-  documentVersion: documentVersionController,
-  documentParticipant: documentParticipantController,
-  reconcile: reconcileController
-});
+  skillVersion: skillVersionController
+};
+
+type TenantControllers = typeof tenantControllers;
+type FileControllers = typeof fileControllers;
+type DocumentControllers = typeof documentControllers;
+type StoreControllers = typeof storeControllers;
+type SkillControllers = typeof skillControllers;
+
+export type RootController = TenantControllers &
+  FileControllers &
+  DocumentControllers &
+  StoreControllers &
+  SkillControllers;
+
+let createRootController = (): RootController =>
+  app.controller({
+    ...tenantControllers,
+    ...fileControllers,
+    ...documentControllers,
+    ...storeControllers,
+    ...skillControllers
+  });
+
+let rootController: RootController = createRootController();
 
 export let CargoRPC = createServer({})(rootController);
 

@@ -4,7 +4,8 @@ import { Service } from '@lowerdeck/service';
 import { subMinutes } from 'date-fns';
 import type {
   DelegatedOAuthConfig,
-  DelegatedOAuthConnection
+  DelegatedOAuthConnection,
+  ServerInstanceConfiguration
 } from '../../../../prisma/generated/client';
 import { oauthCallbackUrl } from '../../../config';
 import { db } from '../../../db';
@@ -24,6 +25,7 @@ class delegatedOauthAuthorizationServiceImpl {
     };
 
     authConfig: PrismaJson.DelegatedOAuthConnectionAuthConfig;
+    serverInstanceConfiguration?: ServerInstanceConfiguration | null;
   }) {
     if (d.connection.status != 'active') {
       throw new ServiceError(
@@ -60,14 +62,22 @@ class delegatedOauthAuthorizationServiceImpl {
         connection: d.connection
       });
 
-    let res = await callFunction(setup.connection.functionServer, client =>
-      client.getOauthAuthorizationUrl({
-        authConfig: d.authConfig,
-        clientId: DANGEROUS_unencryptedCredentials.clientId,
-        clientSecret: DANGEROUS_unencryptedCredentials.clientSecret!,
-        state: setup.stateIdentifier!,
-        redirectUri: setup.serverOAuthSetup?.callbackUrlOverride ?? oauthCallbackUrl
-      })
+    let res = await callFunction(
+      setup.connection.functionServer,
+      {
+        enclaveId: d.serverInstanceConfiguration?.enclaveId,
+        egressPolicy:
+          (d.serverInstanceConfiguration
+            ?.egressPolicy as PrismaJson.CompiledEgressNetworkAllowList | null) ?? undefined
+      },
+      client =>
+        client.getOauthAuthorizationUrl({
+          authConfig: d.authConfig,
+          clientId: DANGEROUS_unencryptedCredentials.clientId,
+          clientSecret: DANGEROUS_unencryptedCredentials.clientSecret!,
+          state: setup.stateIdentifier!,
+          redirectUri: setup.serverOAuthSetup?.callbackUrlOverride ?? oauthCallbackUrl
+        })
     );
 
     let functionInvocation =
@@ -229,7 +239,9 @@ class delegatedOauthAuthorizationServiceImpl {
           include: { config: true, serverOAuthCredentials: true, functionServer: true }
         },
         tenant: true,
-        serverOAuthSetup: true
+        serverOAuthSetup: {
+          include: { serverInstanceConfiguration: true }
+        }
       }
     });
     if (!setup || !setup.connection.serverOAuthCredentials || !setup.serverOAuthSetup) {
@@ -250,18 +262,26 @@ class delegatedOauthAuthorizationServiceImpl {
         connection: setup.connection
       });
 
-    let res = await callFunction(connection.functionServer, client =>
-      client.handleOauthCallback({
-        authConfig: setup.authConfigValue,
-        authState: setup.authStateValue,
-        clientId: DANGEROUS_unencryptedCredentials.clientId,
-        clientSecret: DANGEROUS_unencryptedCredentials.clientSecret!,
-        code: d.response.code!,
-        state: d.response.state!,
-        redirectUri: setup.serverOAuthSetup?.callbackUrlOverride ?? oauthCallbackUrl,
-        callbackUrl: d.fullUrl,
-        authorizationUrl: ''
-      })
+    let res = await callFunction(
+      connection.functionServer,
+      {
+        enclaveId: setup.serverOAuthSetup.serverInstanceConfiguration?.enclaveId,
+        egressPolicy:
+          (setup.serverOAuthSetup.serverInstanceConfiguration
+            ?.egressPolicy as PrismaJson.CompiledEgressNetworkAllowList | null) ?? undefined
+      },
+      client =>
+        client.handleOauthCallback({
+          authConfig: setup.authConfigValue,
+          authState: setup.authStateValue,
+          clientId: DANGEROUS_unencryptedCredentials.clientId,
+          clientSecret: DANGEROUS_unencryptedCredentials.clientSecret!,
+          code: d.response.code!,
+          state: d.response.state!,
+          redirectUri: setup.serverOAuthSetup?.callbackUrlOverride ?? oauthCallbackUrl,
+          callbackUrl: d.fullUrl,
+          authorizationUrl: ''
+        })
     );
 
     let functionInvocation =

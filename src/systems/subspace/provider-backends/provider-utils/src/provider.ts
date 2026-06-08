@@ -2,6 +2,7 @@ import type {
   IProviderAuth,
   IProviderCapabilities,
   IProviderDeployment,
+  IProviderEnclaveInstanceConfiguration,
   IProviderEnrichments,
   IProviderFeatures,
   IProviderInvocation,
@@ -15,6 +16,9 @@ export interface ProviderImpl {
   providerInvocation: new (params: ProviderFunctionalityCtorParams) => IProviderInvocation;
   features: new (params: ProviderFunctionalityCtorParams) => IProviderFeatures;
   deployment: new (params: ProviderFunctionalityCtorParams) => IProviderDeployment;
+  enclaveInstanceConfiguration: new (
+    params: ProviderFunctionalityCtorParams
+  ) => IProviderEnclaveInstanceConfiguration;
   capabilities: new (params: ProviderFunctionalityCtorParams) => IProviderCapabilities;
   enrichment: new (params: ProviderFunctionalityCtorParams) => IProviderEnrichments;
 }
@@ -24,6 +28,7 @@ export let createProvider = (impl: ProviderImpl) => ({
     auth: new impl.auth(params),
     features: new impl.features(params),
     deployment: new impl.deployment(params),
+    enclaveInstanceConfiguration: new impl.enclaveInstanceConfiguration(params),
     providerRun: new impl.providerRun(params),
     providerInvocation: new impl.providerInvocation(params),
     capabilities: new impl.capabilities(params),

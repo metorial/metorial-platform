@@ -1,5 +1,6 @@
 import { createQueue } from '@lowerdeck/queue';
 import { db, env } from '@metorial-cargo/db';
+import { appendSkillDestinationSyncLog } from './_lib/logs';
 
 export let syncFinishQueue = createQueue<{
   skillDestinationSyncId: string;
@@ -21,4 +22,5 @@ export let syncFinishQueueProcessor = syncFinishQueue.process(async data => {
     where: { id: data.skillDestinationSyncId },
     data: { status: 'completed', completedAt: new Date() }
   });
+  await appendSkillDestinationSyncLog(data.skillDestinationSyncId, 'Sync completed.');
 });

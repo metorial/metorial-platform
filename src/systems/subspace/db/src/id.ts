@@ -8,6 +8,7 @@ export let ID = createIdGenerator({
   backend: idType.sorted('kbe'),
   brand: idType.sorted('kbr'),
   tenantActor: idType.sorted('pact'),
+  tenantOAuthCallbackUrl: idType.sorted('cbu'),
 
   publisher: idType.sorted('pub'),
 
@@ -30,6 +31,19 @@ export let ID = createIdGenerator({
 
   providerDeployment: idType.sorted('pde'),
   providerDeploymentVersion: idType.sorted('pdv'),
+
+  enclave: idType.sorted('enc'),
+  enclaveEnvironment: idType.sorted('een'),
+  network: idType.sorted('net'),
+  firewall: idType.sorted('fwl'),
+  firewallBinding: idType.sorted('fwb'),
+  networkPolicy: idType.sorted('npo'),
+  networkPolicyRule: idType.sorted('npr'),
+  networkPolicyVersion: idType.sorted('npv'),
+  firewallNetworkPolicy: idType.sorted('fwn'),
+  enclaveIngressNetworkLog: idType.sorted('einl'),
+  slateInstanceConfiguration: idType.sorted('sicf'),
+  serverInstanceConfiguration: idType.sorted('shic'),
 
   providerConfig: idType.sorted('pcf'),
   providerConfigVersion: idType.sorted('pcv'),
@@ -99,6 +113,16 @@ export let ID = createIdGenerator({
   sessionError: idType.sorted('serr'),
   sessionErrorGroup: idType.sorted('serg'),
   sessionWarning: idType.sorted('swarn'),
+  protoGuardFilter: idType.sorted('pgf'),
+  protoGuardTenantSetting: idType.sorted('pgts'),
+  protoGuardTenantFilterSetting: idType.sorted('pgtf'),
+  protoGuardRun: idType.sorted('pgrn'),
+  protoGuardAlert: idType.sorted('pga'),
+  protoGuardAlertInstance: idType.sorted('pgai'),
+  monitor: idType.sorted('mon'),
+  monitorAlert: idType.sorted('mal'),
+  monitorAlertEvent: idType.sorted('mae'),
+  monitorAlertRecipient: idType.sorted('mar'),
 
   providerRun: idType.sorted('prun'),
 

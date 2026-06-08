@@ -4,7 +4,14 @@ import { Service } from '@lowerdeck/service';
 import { db, type Environment, type Solution, type Tenant } from '@metorial-subspace/db';
 import { type DateFilter, normalizeDateFilter, resolveCustomProviders } from '@metorial-subspace/list-utils';
 import { ensureScmRepoForOrigin } from '../internal/linkRepo';
-import { getTenantForOrigin, origin } from '../origin';
+import {
+  getTenantForOrigin,
+  normalizeScmAccountPreview,
+  normalizeScmRepositoryPreview,
+  origin,
+  type ScmAccountPreview,
+  type ScmRepositoryPreview
+} from '../origin';
 
 class scmRepositoryServiceImpl {
   async listScmRepositories(d: {
@@ -121,12 +128,16 @@ class scmRepositoryServiceImpl {
     input: {
       scmConnectionId: string;
     };
-  }) {
+  }): Promise<{ accounts: ScmAccountPreview[] }> {
     let tenant = await getTenantForOrigin(d.tenant);
-    return origin.scmRepository.listAccountPreviews({
+    let result = await origin.scmRepository.listAccountPreviews({
       tenantId: tenant.id,
       scmInstallationId: d.input.scmConnectionId
     });
+
+    return {
+      accounts: result.accounts.map(normalizeScmAccountPreview)
+    };
   }
 
   async listScmRepositoryPreviews(d: {
@@ -135,13 +146,17 @@ class scmRepositoryServiceImpl {
       scmConnectionId: string;
       externalAccountId?: string;
     };
-  }) {
+  }): Promise<{ repositories: ScmRepositoryPreview[] }> {
     let tenant = await getTenantForOrigin(d.tenant);
-    return origin.scmRepository.listRepositoryPreviews({
+    let result = await origin.scmRepository.listRepositoryPreviews({
       tenantId: tenant.id,
       scmInstallationId: d.input.scmConnectionId,
       externalAccountId: d.input.externalAccountId
     });
+
+    return {
+      repositories: result.repositories.map(normalizeScmRepositoryPreview)
+    };
   }
 }
 

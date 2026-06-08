@@ -1,6 +1,7 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { db, type Solution } from '@metorial-subspace/db';
+import { db, type Solution, type Tenant } from '@metorial-subspace/db';
+import { mergeRetentionWithDateFilter } from '@metorial-subspace/list-utils';
 
 let include = {
   session: true,
@@ -8,13 +9,16 @@ let include = {
 };
 
 class sessionUsageRecordServiceImpl {
-  async listSessionUsageRecords(d: { solution: Solution }) {
+  async listSessionUsageRecords(d: { tenant?: Tenant; solution: Solution }) {
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
           await db.sessionUsageRecord.findMany({
             ...opts,
-            where: { solutionOid: d.solution.oid },
+            where: {
+              solutionOid: d.solution.oid,
+              ...(d.tenant ? mergeRetentionWithDateFilter(d.tenant) : {})
+            },
             include
           })
       )

@@ -16,6 +16,7 @@ import type {
 } from '@metorial-subspace/db';
 import { actorPresenter } from './actor';
 import { customProviderEnvironmentPresenter } from './customProviderEnvironment';
+import { type CustomProviderPresenterOptions } from './presentCustomProviderFrom';
 import { customProviderVersionPresenter } from './customProviderVersion';
 import { scmPushPresenter } from './scmPush';
 
@@ -100,7 +101,8 @@ export let customProviderCommitPresenter = (
     creatorActor: TenantActor;
 
     scmRepoPush: (ScmRepoPush & { repo: ScmRepo }) | null;
-  }
+  },
+  opts?: CustomProviderPresenterOptions
 ) => ({
   object: 'custom_provider.commit',
 
@@ -132,15 +134,21 @@ export let customProviderCommitPresenter = (
       })
     : null,
 
-  targetCustomProviderVersion: customProviderVersionPresenter({
-    ...customProviderCommit.targetCustomProviderVersion,
-    customProvider: customProviderCommit.customProvider
-  }),
+  targetCustomProviderVersion: customProviderVersionPresenter(
+    {
+      ...customProviderCommit.targetCustomProviderVersion,
+      customProvider: customProviderCommit.customProvider
+    },
+    opts
+  ),
   previousCustomProviderVersion: customProviderCommit.toEnvironmentVersionBefore
-    ? customProviderVersionPresenter({
-        ...customProviderCommit.toEnvironmentVersionBefore,
-        customProvider: customProviderCommit.customProvider
-      })
+    ? customProviderVersionPresenter(
+        {
+          ...customProviderCommit.toEnvironmentVersionBefore,
+          customProvider: customProviderCommit.customProvider
+        },
+        opts
+      )
     : null,
 
   actor: actorPresenter(customProviderCommit.creatorActor),

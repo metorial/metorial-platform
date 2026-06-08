@@ -42,6 +42,8 @@ export type ProviderConfigFormProps = {
   providerDeploymentId?: string;
   instanceId?: string;
   embedded?: boolean;
+  defaultName?: string;
+  hideDetailsInputs?: boolean;
 };
 
 export let ProviderConfigForm = (
@@ -100,11 +102,14 @@ export let ProviderConfigForm = (
       return;
     }
 
+    let name = values.name.trim() || props.defaultName?.trim();
+    let description = props.hideDetailsInputs ? undefined : values.description || undefined;
+
     if (values.sourceMode === 'vault') {
       let [result] = await createMutation.mutate({
         instanceId,
-        name: values.name.trim(),
-        description: values.description || undefined,
+        ...(name ? { name } : {}),
+        ...(description ? { description } : {}),
         providerId,
         ...(props.providerDeploymentId
           ? { providerDeploymentId: props.providerDeploymentId }
@@ -121,8 +126,8 @@ export let ProviderConfigForm = (
 
     let [result] = await createMutation.mutate({
       instanceId,
-      name: values.name.trim(),
-      description: values.description || undefined,
+      ...(name ? { name } : {}),
+      ...(description ? { description } : {}),
       providerId,
       ...(props.providerDeploymentId
         ? { providerDeploymentId: props.providerDeploymentId }
@@ -138,17 +143,17 @@ export let ProviderConfigForm = (
 
   let form = useForm({
     initialValues: {
-      name: '',
+      name: props.defaultName ?? '',
       description: '',
       sourceMode: '' as ConfigSourceMode,
       providerConfigVaultId: '',
-      configData: {} as Record<string, unknown>
+      configData: schemaCapabilities.defaultConfigValue
     },
     onSubmit: async () => undefined,
     schemaDependencies: [canCreateFromVault, schemaCapabilities.hasSchemaFields],
     schema: yup =>
       yup.object({
-        name: yup.string().trim().required('Name is required'),
+        name: yup.string().trim(),
         description: yup.string(),
         sourceMode: yup
           .string()
@@ -189,6 +194,18 @@ export let ProviderConfigForm = (
     }
   }, [canCreateFromVault, canCreateManualConfig, form, form.values.sourceMode]);
 
+  let defaultConfigValueKey = JSON.stringify(schemaCapabilities.defaultConfigValue);
+
+  useEffect(() => {
+    if (!canCreateManualConfig) return;
+    if (Object.keys(form.values.configData).length > 0) return;
+
+    let defaultConfigValue = schemaCapabilities.defaultConfigValue;
+    if (Object.keys(defaultConfigValue).length === 0) return;
+
+    form.setFieldValue('configData', defaultConfigValue);
+  }, [canCreateManualConfig, defaultConfigValueKey, form, form.values.configData]);
+
   if (props.providerDeploymentId && deployment.isLoading) {
     return <CenteredSpinner />;
   }
@@ -227,10 +244,6 @@ export let ProviderConfigForm = (
   let closeAction = props.onBack ?? props.close;
 
   let createConfig = async () => {
-    form.setFieldTouched('name', true, false);
-    await form.validateField('name');
-    if (form.getFieldMeta('name').error || !form.values.name.trim()) return;
-
     form.setFieldTouched('sourceMode', true, false);
     await form.validateField('sourceMode');
     if (form.getFieldMeta('sourceMode').error || !form.values.sourceMode) return;
@@ -250,6 +263,7 @@ export let ProviderConfigForm = (
     ...(canCreateFromVault ? [{ id: 'vault', label: 'Use config vault' }] : [])
   ];
   let hideSourceSelectInFlatCreate = canCreateManualConfig && !canCreateFromVault;
+  let hideDetailsInputs = !!props.hideDetailsInputs;
 
   return (
     <>
@@ -260,15 +274,19 @@ export let ProviderConfigForm = (
             void createConfig();
           }}
         >
-          <Input label="Name" {...form.getFieldProps('name')} />
-          <form.RenderError field="name" />
+          {!hideDetailsInputs ? (
+            <>
+              <Input label="Name" {...form.getFieldProps('name')} />
+              <form.RenderError field="name" />
 
-          <Spacer size={8} />
+              <Spacer size={8} />
 
-          <Input label="Description" {...form.getFieldProps('description')} />
-          <form.RenderError field="description" />
+              <Input label="Description" {...form.getFieldProps('description')} />
+              <form.RenderError field="description" />
 
-          <Spacer size={10} />
+              <Spacer size={10} />
+            </>
+          ) : null}
 
           {!hideSourceSelectInFlatCreate ? (
             <>
@@ -342,7 +360,6 @@ export let ProviderConfigForm = (
               loading={createMutation.isLoading}
               disabled={
                 !form.values.sourceMode ||
-                !form.values.name.trim() ||
                 (form.values.sourceMode === 'vault' && !form.values.providerConfigVaultId)
               }
             >

@@ -11,18 +11,18 @@ import { consumerAccessListingPresenter } from '../../../presenters';
 import { portalGroup } from './portal';
 
 let consumerAccessListingGroup = portalGroup.use(async ctx => {
-  if (!ctx.params.consumerAccessListingId) {
+  if (!ctx.params.listingId) {
     throw new ServiceError(
       badRequestError({
-        message: 'consumerAccessListingId is required',
-        description: 'The consumerAccessListingId path parameter is required.'
+        message: 'listingId is required',
+        description: 'The listingId path parameter is required.'
       })
     );
   }
 
   let consumerAccessListing = await consumerAccessListingService.getById({
     consumerSurface: ctx.portal.surface,
-    consumerAccessListingId: ctx.params.consumerAccessListingId
+    consumerAccessListingId: ctx.params.listingId
   });
 
   return { consumerAccessListing };
@@ -30,22 +30,15 @@ let consumerAccessListingGroup = portalGroup.use(async ctx => {
 
 export let portalConsumerAccessListingController = Controller.create(
   {
-    name: 'Portal Consumer Access Listings',
-    description: 'Read the shared consumer access listings available on a portal surface.'
+    name: 'Portal Listings',
+    description: 'Read the shared listings available on a portal surface.'
   },
   {
     list: portalGroup
-      .get(
-        instancePath(
-          'portals/:portalId/consumer-access-listings',
-          'portals.consumerAccessListings.list'
-        ),
-        {
-          name: 'List portal consumer access listings',
-          description:
-            'Returns a paginated list of shared consumer access listings for a portal.'
-        }
-      )
+      .get(instancePath('portals/:portalId/listings', 'portals.listings.list'), {
+        name: 'List portal listings',
+        description: 'Returns a paginated list of shared listings for a portal.'
+      })
       .use(checkAccess({ possibleScopes: ['instance.portal.access:read'] }))
       .use(hasFlags(['paid-portals', 'portals-access']))
       .outputList(consumerAccessListingPresenter)
@@ -111,16 +104,10 @@ export let portalConsumerAccessListingController = Controller.create(
       }),
 
     get: consumerAccessListingGroup
-      .get(
-        instancePath(
-          'portals/:portalId/consumer-access-listings/:consumerAccessListingId',
-          'portals.consumerAccessListings.get'
-        ),
-        {
-          name: 'Get portal consumer access listing',
-          description: 'Retrieves one shared consumer access listing for a portal.'
-        }
-      )
+      .get(instancePath('portals/:portalId/listings/:listingId', 'portals.listings.get'), {
+        name: 'Get portal listing',
+        description: 'Retrieves one shared listing for a portal.'
+      })
       .use(checkAccess({ possibleScopes: ['instance.portal.access:read'] }))
       .use(hasFlags(['paid-portals', 'portals-access']))
       .output(consumerAccessListingPresenter)
@@ -131,16 +118,10 @@ export let portalConsumerAccessListingController = Controller.create(
       }),
 
     create: portalGroup
-      .post(
-        instancePath(
-          'portals/:portalId/consumer-access-listings',
-          'portals.consumerAccessListings.create'
-        ),
-        {
-          name: 'Create portal consumer access listing',
-          description: 'Creates a shared consumer access listing for a portal.'
-        }
-      )
+      .post(instancePath('portals/:portalId/listings', 'portals.listings.create'), {
+        name: 'Create portal listing',
+        description: 'Creates a shared listing for a portal.'
+      })
       .use(checkAccess({ possibleScopes: ['instance.portal.access:write'] }))
       .use(hasFlags(['paid-portals', 'portals-access']))
       .body(
@@ -224,13 +205,10 @@ export let portalConsumerAccessListingController = Controller.create(
 
     update: consumerAccessListingGroup
       .patch(
-        instancePath(
-          'portals/:portalId/consumer-access-listings/:consumerAccessListingId',
-          'portals.consumerAccessListings.update'
-        ),
+        instancePath('portals/:portalId/listings/:listingId', 'portals.listings.update'),
         {
-          name: 'Update portal consumer access listing',
-          description: 'Updates listing metadata for a portal consumer access listing.'
+          name: 'Update portal listing',
+          description: 'Updates listing metadata for a portal listing.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.portal.access:write'] }))
@@ -259,14 +237,10 @@ export let portalConsumerAccessListingController = Controller.create(
 
     delete: consumerAccessListingGroup
       .delete(
-        instancePath(
-          'portals/:portalId/consumer-access-listings/:consumerAccessListingId',
-          'portals.consumerAccessListings.delete'
-        ),
+        instancePath('portals/:portalId/listings/:listingId', 'portals.listings.delete'),
         {
-          name: 'Delete portal consumer access listing',
-          description:
-            'Deletes a portal consumer access listing and all consumer access attached to it.'
+          name: 'Delete portal listing',
+          description: 'Deletes a portal listing and all consumer access attached to it.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.portal.access:write'] }))

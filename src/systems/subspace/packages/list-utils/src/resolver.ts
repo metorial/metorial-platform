@@ -1,4 +1,4 @@
-import { startOfDay, subDays } from 'date-fns';
+import { getRetentionCutoffDate } from './retention';
 import type { TenantSelector, TenantSelectorOptional } from './tenant';
 
 let getSelectors = (oids: bigint[]) => ({
@@ -12,7 +12,7 @@ export let createResolver =
     cb: (d: {
       selector: TenantSelector;
       ts: { tenantOid: bigint; solutionOid: number; environmentOid: bigint };
-      onlyLogsAfter: Date;
+      retentionCutoff: Date;
       ids: string[];
     }) => Promise<R[]>
   ) =>
@@ -25,7 +25,7 @@ export let createResolver =
     let res = await cb({
       ids,
       selector,
-      onlyLogsAfter: startOfDay(subDays(new Date(), selector.tenant.logRetentionInDays)),
+      retentionCutoff: getRetentionCutoffDate(selector.tenant.logRetentionInDays),
       ts: {
         tenantOid: selector.tenant.oid,
         solutionOid: selector.solution.oid,

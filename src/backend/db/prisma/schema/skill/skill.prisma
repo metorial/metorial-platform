@@ -1,0 +1,57 @@
+enum SkillStatus {
+  active
+  archived
+  deleted
+}
+
+enum SkillOwnerType {
+  instance
+  consumer
+}
+
+model Skill {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status SkillStatus @default(active)
+
+  name String
+
+  /// [EntityImage]
+  image Json?
+
+  storeId       String
+  skillEntityId String
+
+  ownerType SkillOwnerType @default(instance)
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  createdByOrganizationActorOid BigInt?
+  createdByOrganizationActor    OrganizationActor? @relation(fields: [createdByOrganizationActorOid], references: [oid], onDelete: SetNull)
+
+  createdByConsumerOid BigInt?
+  createdByConsumer    Consumer? @relation(fields: [createdByConsumerOid], references: [oid], onDelete: SetNull)
+
+  createdByConsumerProfileOid BigInt?
+  createdByConsumerProfile    ConsumerProfile? @relation(fields: [createdByConsumerProfileOid], references: [oid], onDelete: SetNull)
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
+  archivedAt DateTime?
+  deletedAt  DateTime?
+
+  accessTagEntities      AccessTagEntity[]
+  consumerAccesses       ConsumerAccess[]        @relation("ConsumerAccessSkill")
+  consumerAccessListings ConsumerAccessListing[]
+  consumerSkills         ConsumerSkill[]
+  skillGroupItems        SkillGroupItem[]
+
+  @@index([instanceOid, status])
+  @@index([instanceOid, storeId])
+  @@index([createdByConsumerProfileOid])
+}

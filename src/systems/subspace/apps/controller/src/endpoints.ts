@@ -1,7 +1,12 @@
 import { withTracingSuppressed } from '@lowerdeck/telemetry';
 import { db } from '@metorial-subspace/db';
+import { syncProtoGuardFilters } from '@metorial-subspace/module-connection/src/protoguard/registry';
 import { RedisClient } from 'bun';
 import { subspaceControllerApi } from './controllers';
+
+setTimeout(async () => {
+  await syncProtoGuardFilters();
+}, 10_000);
 
 let redis = new RedisClient(process.env.REDIS_URL?.replace('rediss://', 'redis://'), {
   tls: process.env.REDIS_URL?.startsWith('rediss://')

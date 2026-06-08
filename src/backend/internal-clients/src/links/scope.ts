@@ -11,10 +11,7 @@ import {
   ensureSubspaceInstanceScope,
   ensureSynthesisInstanceScope
 } from './instance';
-import {
-  ensureCargoOrganizationScope,
-  ensureSynthesisOrganizationScope
-} from './organization';
+import { ensureCargoOrganizationScope } from './organization';
 import {
   ensureCargoProjectTenant,
   ensureInternalProjectTenant,
@@ -24,7 +21,7 @@ import {
 import type { InternalActorRef, InternalScopeOwner, InternalService } from './types';
 import { ensureCargoUserScope, ensureSynthesisUserScope } from './user';
 
-let unsupportedInternalService = (service: never): never => {
+let unsupportedInternalService = (service: never | string): never => {
   throw new Error(`unsupported internal service: ${service}`);
 };
 
@@ -46,17 +43,15 @@ export let ensureInternalScope = async (d: {
       return unsupportedInternalService(d.service);
 
     case 'organization':
-      if (d.service == 'subspace') {
-        throw new Error('subspace organization scopes are not supported');
+      if (d.service == 'cargo') {
+        return await ensureCargoOrganizationScope(d.owner.organization);
       }
 
-      return d.service == 'cargo'
-        ? await ensureCargoOrganizationScope(d.owner.organization)
-        : await ensureSynthesisOrganizationScope(d.owner.organization);
+      return unsupportedInternalService(d.service);
 
     case 'user':
       if (d.service == 'subspace') {
-        throw new Error('subspace user scopes are not supported');
+        return unsupportedInternalService(d.service);
       }
 
       return d.service == 'cargo'

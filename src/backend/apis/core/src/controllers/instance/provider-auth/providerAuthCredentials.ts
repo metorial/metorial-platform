@@ -139,7 +139,8 @@ export let providerAuthCredentialsController = Controller.create(
         ),
         {
           name: 'Create provider auth credentials',
-          description: 'Creates new provider auth credentials.'
+          description: 'Creates new provider auth credentials.',
+          confidential: true
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
@@ -207,7 +208,8 @@ export let providerAuthCredentialsController = Controller.create(
         ),
         {
           name: 'Update provider auth credentials',
-          description: 'Updates specific provider auth credentials.'
+          description: 'Updates specific provider auth credentials.',
+          confidential: true
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))

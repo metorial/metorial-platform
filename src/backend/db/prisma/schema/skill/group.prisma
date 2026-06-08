@@ -1,0 +1,56 @@
+enum SkillGroupStatus {
+  active
+  archived
+  deleted
+}
+
+enum SkillGroupItemStatus {
+  active
+  archived
+  deleted
+}
+
+model SkillGroup {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status SkillGroupStatus @default(active)
+
+  name        String
+  description String?
+  metadata    Json?
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  items                  SkillGroupItem[]
+  accessTagEntities      AccessTagEntity[]
+  consumerAccesses       ConsumerAccess[]        @relation("ConsumerAccessSkillGroup")
+  consumerAccessListings ConsumerAccessListing[]
+
+  @@index([instanceOid, status])
+}
+
+model SkillGroupItem {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status SkillGroupItemStatus @default(active)
+
+  skillGroupOid BigInt
+  skillGroup    SkillGroup @relation(fields: [skillGroupOid], references: [oid], onDelete: Cascade)
+
+  skillOid BigInt
+  skill    Skill  @relation(fields: [skillOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([skillGroupOid, skillOid])
+  @@index([skillOid, status])
+}

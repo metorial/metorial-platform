@@ -10,6 +10,10 @@ export let ProjectRedirect = () => {
   let [search] = useSearchParams();
   let path = search.get('path');
 
+  let nonPathQuery = new URLSearchParams(search);
+  nonPathQuery.delete('path');
+  let nonPathQueryObj = Object.fromEntries(nonPathQuery.entries());
+
   let navigatedRef = useRef(false);
   useLayoutEffect(() => {
     if (!project.data || navigatedRef.current) return;
@@ -20,9 +24,18 @@ export let ProjectRedirect = () => {
     if (!instance) instance = project.data.instances[0];
     if (!instance) return navigate('/');
 
-    navigate(Paths.instance(project.data.organization, instance.project, instance, path), {
-      replace: true
-    });
+    navigate(
+      Paths.instance(
+        project.data.organization,
+        instance.project,
+        instance,
+        path,
+        nonPathQueryObj
+      ),
+      {
+        replace: true
+      }
+    );
   }, [project.data]);
 
   return null;

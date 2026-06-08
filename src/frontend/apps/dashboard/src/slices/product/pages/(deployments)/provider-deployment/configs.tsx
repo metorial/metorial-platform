@@ -7,7 +7,6 @@ import {
 } from '@metorial/state';
 import { Button, Tooltip } from '@metorial/ui';
 import { useNavigate, useParams } from 'react-router-dom';
-import { withFromDeployment } from '../fromDeployment';
 import { useProviderConfigCreationCapabilities } from '../../../lib/providerCreationCapabilities';
 import { showProviderConfigFormModal } from '../../../scenes/providerConfigs/modal';
 import { ProviderDeploymentTabSection } from '../../../scenes/providerDeployments/tabSection';
@@ -32,7 +31,6 @@ export let ProviderDeploymentConfigsPage = () => {
         project,
         instance,
         filters: { providerDeploymentId: providerDeploymentId! },
-        fromDeploymentId: providerDeploymentId!,
         emptyState: 'No configs for this deployment.',
         headerActions: () => (
           <Tooltip
@@ -51,14 +49,11 @@ export let ProviderDeploymentConfigsPage = () => {
                     providerDeploymentId: providerDeploymentId!,
                     onCreate: config => {
                       navigate(
-                        withFromDeployment(
-                          Paths.instance.providerConfig(
-                            organization.data,
-                            project.data,
-                            instance.data!,
-                            config.id
-                          ),
-                          providerDeploymentId
+                        Paths.instance.providerConfig(
+                          organization.data,
+                          project.data,
+                          instance.data!,
+                          config.id
                         )
                       );
                     }

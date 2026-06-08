@@ -12,6 +12,12 @@ import {
   resolveSkills
 } from '@metorial-cargo/list-utils';
 import type { CargoTenantEnvironment } from '@metorial-cargo/module-file';
+import {
+  CargoSkillLimitError,
+  assertSkillMarketplaceSkillLimit,
+  assertSkillPluginSkillLimit,
+  toCargoSkillLimitServiceError
+} from '../lib/limits';
 import { enqueueSkillPluginSkillLifecycle } from '../queues/lifecycle';
 import type { SkillPluginRecord } from './skillPlugin';
 import { assertPluginIsNotManaged, skillPluginInclude } from './skillPlugin';
@@ -271,6 +277,44 @@ class SkillPluginSkillServiceImpl {
 
       let skillPluginSkill = matches[0];
       let lifecycleEvent: 'created' | 'updated' = 'updated';
+      let activatesSkillLink = !skillPluginSkill || skillPluginSkill.status !== 'active';
+      let activeSkillDelta = activatesSkillLink && skill.status === 'active' ? 1 : 0;
+
+      if (activeSkillDelta > 0) {
+        try {
+          await assertSkillPluginSkillLimit({
+            skillPluginOid: d.skillPlugin.oid,
+            additionalCount: activeSkillDelta
+          });
+
+          let marketplacePlugins = await db.skillMarketplacePlugin.findMany({
+            where: {
+              skillPluginOid: d.skillPlugin.oid,
+              status: 'active',
+              skillMarketplace: {
+                status: 'active'
+              }
+            },
+            select: {
+              skillMarketplaceOid: true
+            }
+          });
+
+          for (let marketplacePlugin of marketplacePlugins) {
+            await assertSkillMarketplaceSkillLimit({
+              skillMarketplaceOid: marketplacePlugin.skillMarketplaceOid,
+              additionalCount: activeSkillDelta
+            });
+          }
+        } catch (error) {
+          if (error instanceof CargoSkillLimitError) {
+            throw toCargoSkillLimitServiceError(error);
+          }
+
+          throw error;
+        }
+      }
+
       if (skillPluginSkill) {
         if (skillPluginSkill.pluginSkillSlug !== pluginSkillSlug) {
           throw new ServiceError(

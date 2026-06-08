@@ -222,7 +222,8 @@ class slateAuthConfigServiceImpl {
     let secret = await secretService.DANGEROUSLY_decryptSecret({
       secretOid: d.slateAuthConfig.secretOid,
       purpose: 'slate_authentication_configuration',
-      tenant: d.tenant
+      tenant: d.tenant,
+      note: `manual auth:${d.slateAuthConfig.id} ${d.note}`
     });
 
     await db.slateAuthConfigManualDecrypt.create({

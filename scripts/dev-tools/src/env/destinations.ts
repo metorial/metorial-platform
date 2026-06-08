@@ -6,6 +6,7 @@ import {
   forgeServiceEnv,
   functionBayServiceEnv,
   horizonServiceEnv,
+  nebulaServiceEnv,
   originCodeBucketEnv,
   originServiceEnv,
   signalServiceEnv,
@@ -110,6 +111,11 @@ export let destinations: Destination[] = [
     type: 'oss',
     env: forgeServiceEnv,
     path: 'src/systems/forge/service'
+  },
+  {
+    type: 'oss',
+    env: nebulaServiceEnv,
+    path: 'src/systems/nebula/service'
   },
   {
     type: 'oss',

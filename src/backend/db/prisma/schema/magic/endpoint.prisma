@@ -11,12 +11,16 @@ model MagicMcpEndpoint {
   status               MagicMcpEndpointStatus
   isConsumerReconciled Boolean                @default(false)
   hasSubspaceBacking   Boolean                @default(false)
+  isSubspaceBackingReconciling Boolean        @default(false)
 
   instanceOid BigInt
   instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
 
   consumerProfileOid BigInt?
   consumerProfile    ConsumerProfile? @relation(fields: [consumerProfileOid], references: [oid], onDelete: SetNull)
+
+  skillPluginOid BigInt?
+  skillPlugin    SkillPlugin? @relation(fields: [skillPluginOid], references: [oid], onDelete: SetNull)
 
   legacySubspaceSessionTemplateId   String? @map("subspaceSessionTemplateId")
   subspaceEphemeralManagedSessionId String?
@@ -31,14 +35,15 @@ model MagicMcpEndpoint {
   updatedAt DateTime  @default(now()) @updatedAt
   deletedAt DateTime?
 
-  servers                      MagicMcpEndpointServer[]
-  subspaceSession              MagicMcpSession[]
-  tokens                       MagicMcpToken[]
-  uses                         MagicMcpTokenUse[]
-  accessTagEntities            AccessTagEntity[]
-  consumerAuthClients          ConsumerAuthClient[]
-  consumerAuthAttempts         ConsumerAuthAttempt[]
-  consumerIntegrationEndpoints ConsumerIntegrationEndpoint[]
+  servers                        MagicMcpEndpointServer[]
+  subspaceSession                MagicMcpSession[]
+  tokens                         MagicMcpToken[]
+  uses                           MagicMcpTokenUse[]
+  accessTagEntities              AccessTagEntity[]
+  consumerAuthClients            ConsumerAuthClient[]
+  consumerAuthAttempts           ConsumerAuthAttempt[]
+  consumerAuthTestAuthorizations ConsumerAuthTestAuthorization[]
+  consumerIntegrationEndpoints   ConsumerIntegrationEndpoint[]
 }
 
 model MagicMcpEndpointServer {

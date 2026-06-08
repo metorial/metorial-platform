@@ -66,7 +66,7 @@ let refreshToken = async (d: {
       connection: d.connection
     });
 
-  let res = await callFunction(d.connection.functionServer, client =>
+  let res = await callFunction(d.connection.functionServer, {}, client =>
     client.handleOauthTokenRefresh({
       authConfig: token.authConfigValue,
       authState: token.authStateValue,
@@ -191,7 +191,8 @@ class delegatedAuthTokenServiceImpl {
     let DANGEROUS_secretData = await secretService.DANGEROUSLY_decryptSecret({
       secretOid: token.secretOid!,
       purpose: 'oauth_token',
-      tenant: d.tenant
+      tenant: d.tenant,
+      note: `doat.use:${token.id}`
     });
 
     let didRefresh = false;

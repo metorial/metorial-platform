@@ -7,8 +7,7 @@ import {
   cargo,
   ensureCargoScope,
   reconcileCargoPurposes,
-  resolveCargoScopeDescriptorForOwner,
-  resolveCargoScopeDescriptorForProject
+  resolveCargoScopeDescriptorForOwner
 } from '../cargo';
 import type { FileOwner } from './file';
 import { resolveCargoScopeForOwner } from './scope';
@@ -59,24 +58,21 @@ class FileReferenceServiceImpl {
   }): Promise<EntityImage> {
     await reconcileCargoPurposes();
 
-    let descriptor =
-      d.entityType === 'project_brand'
-        ? await resolveCargoScopeDescriptorForProject(d.entityId)
-        : await resolveCargoScopeDescriptorForOwner(
-            d.owner.type === 'user'
-              ? {
-                  type: 'user',
-                  user: {
-                    id: d.owner.userId
-                  }
-                }
-              : {
-                  type: 'organization',
-                  organization: {
-                    id: d.owner.organizationId
-                  }
-                }
-          );
+    let descriptor = await resolveCargoScopeDescriptorForOwner(
+      d.owner.type === 'user'
+        ? {
+            type: 'user',
+            user: {
+              id: d.owner.userId
+            }
+          }
+        : {
+            type: 'organization',
+            organization: {
+              id: d.owner.organizationId
+            }
+          }
+    );
     if (!descriptor) {
       throw new ServiceError(notFoundError('file.scope', d.fileId));
     }

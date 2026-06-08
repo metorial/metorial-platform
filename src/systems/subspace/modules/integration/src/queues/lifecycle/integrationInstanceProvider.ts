@@ -3,10 +3,24 @@ import { db } from '@metorial-subspace/db';
 import { providerAuthConfigService } from '@metorial-subspace/module-auth';
 import { providerConfigService } from '@metorial-subspace/module-deployment';
 import { identityInternalService } from '@metorial-subspace/module-identity';
-import { syncIntegrationInstanceGroupSessionTemplatesQueue } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedIntegrationInstanceGroupTemplate';
-import { syncIntegrationInstanceSessionTemplatesQueue } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedSessionTemplate';
+import { queueJobId } from '@metorial-subspace/module-session/src/lib/sessionTemplateSync';
+import { enqueueSyncIntegrationInstanceGroupSessionTemplatesMany } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedIntegrationInstanceGroupTemplate';
+import { enqueueSyncIntegrationInstanceSessionTemplates } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedSessionTemplate';
 import { env } from '../../env';
 import { indexIntegrationInstanceQueue } from '../search/integrationInstance';
+
+let isOwnedByIntegrationInstanceProvider = (
+  resource: {
+    owningIntegrationInstanceOid: bigint | null;
+    owningIntegrationInstanceProviderOid: bigint | null;
+  },
+  owner: {
+    integrationInstanceOid: bigint;
+    integrationInstanceProviderOid: bigint;
+  }
+) =>
+  resource.owningIntegrationInstanceOid === owner.integrationInstanceOid &&
+  resource.owningIntegrationInstanceProviderOid === owner.integrationInstanceProviderOid;
 
 export let integrationInstanceProviderSetQueue = createQueue<{
   integrationInstanceId: string;
@@ -15,6 +29,31 @@ export let integrationInstanceProviderSetQueue = createQueue<{
   name: 'sub/int/lc/integrationInstanceProvider/set',
   redisUrl: env.service.REDIS_URL
 });
+
+export let enqueueIntegrationInstanceProviderSet = async (d: {
+  integrationInstanceId: string;
+  integrationInstanceProviderId: string;
+}) => {
+  await integrationInstanceProviderSetQueue.add(d, {
+    id: queueJobId('iip', d.integrationInstanceProviderId)
+  });
+};
+
+export let enqueueIntegrationInstanceProvidersSet = async (
+  items: {
+    integrationInstanceId: string;
+    integrationInstanceProviderId: string;
+  }[]
+) => {
+  if (!items.length) return;
+
+  await integrationInstanceProviderSetQueue.addManyWithOps(
+    items.map(item => ({
+      data: item,
+      opts: { id: queueJobId('iip', item.integrationInstanceProviderId) }
+    }))
+  );
+};
 
 export let integrationInstanceProviderSetQueueProcessor =
   integrationInstanceProviderSetQueue.process(async data => {
@@ -30,11 +69,11 @@ export let integrationInstanceProviderSetQueueProcessor =
     await identityInternalService.syncIntegrationInstanceProviderCredential({
       integrationInstanceProviderId: data.integrationInstanceProviderId
     });
-    await syncIntegrationInstanceSessionTemplatesQueue.add({
+    await enqueueSyncIntegrationInstanceSessionTemplates({
       integrationInstanceId: data.integrationInstanceId
     });
 
-    await integrationInstanceProviderSyncGroupProvidersManyQueue.add({
+    await enqueueIntegrationInstanceProviderSyncGroupProvidersMany({
       integrationInstanceProviderId: data.integrationInstanceProviderId
     });
 
@@ -45,9 +84,16 @@ export let integrationInstanceProviderSetQueueProcessor =
       });
 
       let seen = new Set<string>();
+      let owner = {
+        integrationInstanceOid: integrationInstanceProvider.integrationInstanceOid,
+        integrationInstanceProviderOid: integrationInstanceProvider.oid
+      };
 
       for (let current of versions) {
-        if (current.config?.status === 'active') {
+        if (
+          current.config?.status === 'active' &&
+          isOwnedByIntegrationInstanceProvider(current.config, owner)
+        ) {
           if (seen.has(current.config.oid.toString())) continue;
           seen.add(current.config.oid.toString());
 
@@ -60,7 +106,10 @@ export let integrationInstanceProviderSetQueueProcessor =
           });
         }
 
-        if (current.authConfig?.status === 'active') {
+        if (
+          current.authConfig?.status === 'active' &&
+          isOwnedByIntegrationInstanceProvider(current.authConfig, owner)
+        ) {
           if (seen.has(current.authConfig.oid.toString())) continue;
           seen.add(current.authConfig.oid.toString());
 
@@ -83,6 +132,15 @@ export let integrationInstanceProviderSyncGroupProvidersManyQueue = createQueue<
   name: 'sub/int/lc/integrationInstanceProvider/syncGroupProvidersMany',
   redisUrl: env.service.REDIS_URL
 });
+
+let enqueueIntegrationInstanceProviderSyncGroupProvidersMany = async (d: {
+  integrationInstanceProviderId: string;
+  cursor?: string;
+}) => {
+  await integrationInstanceProviderSyncGroupProvidersManyQueue.add(d, {
+    id: queueJobId('iipg', d.integrationInstanceProviderId, d.cursor ?? 'start')
+  });
+};
 
 export let integrationInstanceProviderSyncGroupProvidersManyQueueProcessor =
   integrationInstanceProviderSyncGroupProvidersManyQueue.process(async data => {
@@ -113,7 +171,7 @@ export let integrationInstanceProviderSyncGroupProvidersManyQueueProcessor =
       });
     }
 
-    await syncIntegrationInstanceGroupSessionTemplatesQueue.addMany(
+    await enqueueSyncIntegrationInstanceGroupSessionTemplatesMany(
       Array.from(
         new Set(groupProviders.map(provider => provider.integrationInstanceGroup.id))
       ).map(integrationInstanceGroupId => ({ integrationInstanceGroupId }))
@@ -122,7 +180,7 @@ export let integrationInstanceProviderSyncGroupProvidersManyQueueProcessor =
     let lastProvider = groupProviders[groupProviders.length - 1];
     if (!lastProvider) return;
 
-    await integrationInstanceProviderSyncGroupProvidersManyQueue.add({
+    await enqueueIntegrationInstanceProviderSyncGroupProvidersMany({
       integrationInstanceProviderId: data.integrationInstanceProviderId,
       cursor: lastProvider.id
     });

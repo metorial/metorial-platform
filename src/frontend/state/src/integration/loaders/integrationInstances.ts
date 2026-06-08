@@ -1,21 +1,22 @@
 import type {
-  DashboardInstanceIntegrationInstancesCreateBody,
-  DashboardInstanceIntegrationInstancesListOutput,
-  DashboardInstanceIntegrationInstancesListQuery,
-  DashboardInstanceIntegrationInstancesUpdateBody
+  DashboardInstanceIntegrationsInstancesCreateBody,
+  DashboardInstanceIntegrationsInstancesCreateSessionOutput,
+  DashboardInstanceIntegrationsInstancesListOutput,
+  DashboardInstanceIntegrationsInstancesListQuery,
+  DashboardInstanceIntegrationsInstancesUpdateBody
 } from '@metorial/dashboard-sdk';
-import { createLoader } from '@metorial/data-hooks';
+import { createLoader, useMutation } from '@metorial/data-hooks';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
 import { integrationLoader, integrationsLoader } from './integrations';
 
 export type IntegrationInstance =
-  DashboardInstanceIntegrationInstancesListOutput['items'][number];
+  DashboardInstanceIntegrationsInstancesListOutput['items'][number];
 
 export let integrationInstancesLoader = createLoader({
   name: 'integrationInstances',
   parents: [integrationsLoader, integrationLoader],
-  fetch: (i: { instanceId: string } & DashboardInstanceIntegrationInstancesListQuery) =>
+  fetch: (i: { instanceId: string } & DashboardInstanceIntegrationsInstancesListQuery) =>
     withAuth(sdk => {
       let { instanceId, ...query } = i;
       return sdk.integration.instances.list(instanceId, query);
@@ -25,7 +26,7 @@ export let integrationInstancesLoader = createLoader({
 
 export let useIntegrationInstances = (
   instanceId: string | null | undefined,
-  query?: DashboardInstanceIntegrationInstancesListQuery
+  query?: DashboardInstanceIntegrationsInstancesListQuery
 ) => {
   let data = usePaginator(pagination =>
     integrationInstancesLoader.use(instanceId ? { instanceId, ...pagination, ...query } : null)
@@ -35,7 +36,7 @@ export let useIntegrationInstances = (
 };
 
 export let useCreateIntegrationInstance = integrationInstancesLoader.createExternalMutator(
-  (i: { instanceId: string } & DashboardInstanceIntegrationInstancesCreateBody) =>
+  (i: { instanceId: string } & DashboardInstanceIntegrationsInstancesCreateBody) =>
     withAuth(sdk => sdk.integration.instances.create(i.instanceId, i)),
   { disableToast: true }
 );
@@ -52,7 +53,7 @@ export let integrationInstanceLoader = createLoader({
     withAuth(sdk => sdk.integration.instances.get(i.instanceId, i.integrationInstanceId)),
   mutators: {
     update: (
-      body: DashboardInstanceIntegrationInstancesUpdateBody,
+      body: DashboardInstanceIntegrationsInstancesUpdateBody,
       { input: { instanceId, integrationInstanceId } }
     ) =>
       withAuth(sdk =>
@@ -77,3 +78,15 @@ export let useIntegrationInstance = (
     useDeleteMutator: data.useMutator('delete')
   };
 };
+
+export let useCreateIntegrationInstanceSession = () =>
+  useMutation(
+    (i: {
+      instanceId: string;
+      integrationInstanceId: string;
+    }): Promise<DashboardInstanceIntegrationsInstancesCreateSessionOutput> =>
+      withAuth(sdk =>
+        sdk.integration.instances.createSession(i.instanceId, i.integrationInstanceId, {})
+      ),
+    { disableToast: true }
+  );

@@ -40,7 +40,12 @@ export let sendExpiredApiKeyEmailQueueProcessor = sendExpiredApiKeyEmailQueue.pr
 
     if (!member) return;
     if (apiKey.status != 'expired' || apiKey.machineAccessOid == null) return;
-    if (member.role != 'admin' || member.user.status != 'active') return;
+    if (
+      member.role != 'admin' ||
+      member.user.status != 'active' ||
+      member.user.type === 'system'
+    )
+      return;
 
     let existingSend = await db.apiKeyExpiredEmailSend.findFirst({
       where: {

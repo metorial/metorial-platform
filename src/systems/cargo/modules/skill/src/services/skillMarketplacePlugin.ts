@@ -12,6 +12,12 @@ import {
   resolveSkillPlugins
 } from '@metorial-cargo/list-utils';
 import type { CargoTenantEnvironment } from '@metorial-cargo/module-file';
+import {
+  CargoSkillLimitError,
+  assertSkillMarketplacePluginLimit,
+  assertSkillMarketplaceSkillLimit,
+  toCargoSkillLimitServiceError
+} from '../lib/limits';
 import { enqueueSkillMarketplacePluginLifecycle } from '../queues/lifecycle';
 import type { SkillMarketplaceRecord } from './skillMarketplace';
 import { assertPluginIsNotManaged, skillPluginInclude } from './skillPlugin';
@@ -246,6 +252,31 @@ class SkillMarketplacePluginServiceImpl {
 
       let skillMarketplacePlugin = matches[0];
       let lifecycleEvent: 'created' | 'updated' = 'updated';
+      let activatesMarketplacePlugin =
+        !skillMarketplacePlugin || skillMarketplacePlugin.status !== 'active';
+
+      if (activatesMarketplacePlugin) {
+        try {
+          await assertSkillMarketplacePluginLimit({
+            skillMarketplaceOid: d.skillMarketplace.oid,
+            additionalCount: 1
+          });
+
+          await assertSkillMarketplaceSkillLimit({
+            skillMarketplaceOid: d.skillMarketplace.oid,
+            additionalCount: skillPlugin.skillPluginSkills.filter(
+              skillPluginSkill => skillPluginSkill.skill.status === 'active'
+            ).length
+          });
+        } catch (error) {
+          if (error instanceof CargoSkillLimitError) {
+            throw toCargoSkillLimitServiceError(error);
+          }
+
+          throw error;
+        }
+      }
+
       if (skillMarketplacePlugin) {
         if (skillMarketplacePlugin.pluginSlug !== pluginSlug) {
           throw new ServiceError(

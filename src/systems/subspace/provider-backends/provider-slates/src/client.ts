@@ -21,7 +21,7 @@ export let slates = createSlatesHubInternalClient({
       console.error('Failed to connect to Slates, retrying in 5 seconds...', error);
     }
 
-    delay(5000);
+    await delay(5000);
   }
 })();
 

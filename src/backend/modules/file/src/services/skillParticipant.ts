@@ -2,11 +2,11 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { cargo, type CargoSkillParticipant } from '../cargo';
 import { resolveCargoAccess, type CargoAccessActor } from './access';
-import type { FileOwner } from './file';
 import {
   documentParticipantService,
   type EnrichedCargoDocumentActor
 } from './documentParticipant';
+import type { FileOwner } from './file';
 
 export type EnrichedCargoSkillParticipant = Omit<CargoSkillParticipant, 'actor'> & {
   actor: EnrichedCargoDocumentActor;

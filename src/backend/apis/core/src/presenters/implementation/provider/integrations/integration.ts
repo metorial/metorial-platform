@@ -2,7 +2,10 @@ import { v } from '@lowerdeck/validation';
 import { SubspaceIntegrationPreview } from '@metorial/module-subspace';
 import { Presenter } from '@metorial/presenter';
 import { integrationType } from '../../../types';
-import { v1IntegrationProviderPresenter } from './integrationProvider';
+import {
+  dashboardIntegrationProviderPresenter,
+  v1IntegrationProviderPresenter
+} from './integrationProvider';
 
 export let v1IntegrationPresenter = Presenter.create(integrationType)
   .presenter(async ({ integration }, opts) => ({
@@ -111,3 +114,24 @@ export let v1IntegrationPreviewPresenter = Object.assign(
     })
   }
 );
+
+export let dashboardIntegrationPresenter = Presenter.create(integrationType)
+  .presenter(async ({ integration }, opts) => {
+    let inner = await v1IntegrationPresenter.present({ integration }, opts).run();
+
+    return {
+      ...inner,
+      providers: await Promise.all(
+        integration.providers.map(integrationProvider =>
+          dashboardIntegrationProviderPresenter.present({ integrationProvider }, opts).run()
+        )
+      )
+    };
+  })
+  .schema(
+    v.object({
+      ...v1IntegrationPresenter.schema.properties,
+      providers: v.array(dashboardIntegrationProviderPresenter.schema)
+    }) as any
+  )
+  .build();

@@ -21,10 +21,12 @@ export let syncOrgMemberQueueProcessor = syncOrgMemberQueue.process(async data =
       },
       include: {
         organization: true,
-        instanceConsumers: true
+        instanceConsumers: true,
+        user: true
       }
     });
     if (!member) throw new QueueRetryError();
+    if (member.user.type === 'system') return;
 
     if (member.instanceConsumers.length) {
       await syncOrgMemberConsumerQueue.addManyWithOps(

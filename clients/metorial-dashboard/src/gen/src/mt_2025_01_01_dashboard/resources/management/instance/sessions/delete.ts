@@ -69,6 +69,8 @@ export type ManagementInstanceSessionsDeleteOutput = {
   fromTemplatesIds: string[];
   hasErrors: boolean;
   hasWarnings: boolean;
+  identityActorId: string | null;
+  identityId: string | null;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -222,6 +224,11 @@ export let mapManagementInstanceSessionsDeleteOutput =
     ),
     hasErrors: mtMap.objectField('has_errors', mtMap.passthrough()),
     hasWarnings: mtMap.objectField('has_warnings', mtMap.passthrough()),
+    identityActorId: mtMap.objectField(
+      'identity_actor_id',
+      mtMap.passthrough()
+    ),
+    identityId: mtMap.objectField('identity_id', mtMap.passthrough()),
     createdAt: mtMap.objectField('created_at', mtMap.date()),
     updatedAt: mtMap.objectField('updated_at', mtMap.date())
   });

@@ -1,17 +1,41 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  useFreshModules,
   allowPrivateUrls,
   denyPrivateUrls,
-  enableSsrfBypass,
   disableSsrfBypass,
+  enableSsrfBypass,
+  mockBunDns,
   mockFetch,
-  mockBunDns
+  useFreshModules
 } from './ssrf.test-helpers';
 
 let importModule = () => import('./fetchSsrf');
 
+let setNodeDnsMock = (addresses: Record<string, string[]> | string[]) => {
+  vi.doMock('node:dns/promises', () => ({
+    lookup: vi.fn().mockImplementation((hostname: string) => {
+      let resolvedAddresses = Array.isArray(addresses)
+        ? addresses
+        : (addresses[hostname] ?? []);
+
+      return Promise.resolve(resolvedAddresses.map(address => ({ address })));
+    })
+  }));
+};
+
+let mockNodeDns = (addresses: Record<string, string[]> | string[]) => {
+  beforeEach(() => setNodeDnsMock(addresses));
+
+  afterEach(() => {
+    vi.doUnmock('node:dns/promises');
+  });
+};
+
 useFreshModules();
+
+afterEach(() => {
+  vi.doUnmock('node:dns/promises');
+});
 
 describe('safeFetch', () => {
   describe('SHUTTLE_UNSAFE_SSRF_BYPASS', () => {
@@ -87,6 +111,33 @@ describe('safeFetch', () => {
           expect.objectContaining({ redirect: 'manual' })
         );
       });
+
+      describe('with egress policy', () => {
+        mockNodeDns(['93.184.216.34']);
+
+        let egressPolicy = {
+          direction: 'egress' as const,
+          entries: [{ cidr: '93.184.216.0/24', portRange: { from: 80, to: 80 } }]
+        };
+
+        it('allows requests when the resolved address and port match the policy', async () => {
+          let { safeFetch } = await importModule();
+          await safeFetch('http://example.com', { egressPolicy });
+
+          expect(f.mock).toHaveBeenCalledWith(
+            'http://example.com/',
+            expect.objectContaining({ redirect: 'manual' })
+          );
+        });
+
+        it('does not pass internal options through to fetch', async () => {
+          let { safeFetch } = await importModule();
+          await safeFetch('http://example.com', { egressPolicy, maxRedirects: 3 });
+
+          expect(f.mock.mock.calls[0]?.[1]).not.toHaveProperty('egressPolicy');
+          expect(f.mock.mock.calls[0]?.[1]).not.toHaveProperty('maxRedirects');
+        });
+      });
     });
 
     describe('with private DNS', () => {
@@ -98,6 +149,66 @@ describe('safeFetch', () => {
           'Private or internal IP blocked'
         );
         expect(f.mock).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('with egress policy', () => {
+      mockBunDns(['93.184.216.34']);
+
+      it('blocks requests outside the egress policy', async () => {
+        setNodeDnsMock(['93.184.216.34']);
+
+        let { safeFetch } = await importModule();
+        await expect(
+          safeFetch('http://example.com', {
+            egressPolicy: {
+              direction: 'egress',
+              entries: [{ cidr: '192.0.2.0/24' }]
+            }
+          })
+        ).rejects.toMatchObject({
+          data: {
+            code: 'egress_policy_blocked',
+            message:
+              'Metorial Magic Network: Remote URL is not allowed by the connection egress policy'
+          }
+        });
+
+        expect(f.mock).not.toHaveBeenCalled();
+      });
+
+      it('blocks redirect targets outside the egress policy', async () => {
+        setNodeDnsMock({
+          'example.com': ['93.184.216.34'],
+          'redirect.example.com': ['192.0.2.10']
+        });
+
+        f.mock
+          .mockResolvedValueOnce(
+            new Response('', {
+              status: 302,
+              headers: { location: 'http://redirect.example.com/' }
+            })
+          )
+          .mockResolvedValueOnce(new Response('ok'));
+
+        let { safeFetch } = await importModule();
+        await expect(
+          safeFetch('http://example.com', {
+            egressPolicy: {
+              direction: 'egress',
+              entries: [{ cidr: '93.184.216.0/24', portRange: { from: 80, to: 80 } }]
+            }
+          })
+        ).rejects.toMatchObject({
+          data: {
+            code: 'egress_policy_blocked',
+            message:
+              'Metorial Magic Network: Remote URL is not allowed by the connection egress policy'
+          }
+        });
+
+        expect(f.mock).toHaveBeenCalledOnce();
       });
     });
 

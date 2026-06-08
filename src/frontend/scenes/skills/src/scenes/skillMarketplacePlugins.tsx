@@ -8,6 +8,7 @@ import {
   useCreateSkillPlugin,
   useCreateSkillPluginSkill,
   useDeleteSkillMarketplacePlugin,
+  useSkillMarketplace,
   useSkillPlugins,
   useSkills
 } from '@metorial/state';
@@ -379,6 +380,7 @@ export let SkillMarketplacePluginsScene = (p: {
   getSkillPluginPath?: (skillPluginId: string) => string;
   getSkillPath?: (skillId: string) => string;
 }) => {
+  let marketplace = useSkillMarketplace(p.instanceId, p.skillMarketplaceId);
   let marketplacePlugins = useAllSkillMarketplacePlugins(p.instanceId, p.skillMarketplaceId, {
     order: 'asc',
     status: ['active']
@@ -451,7 +453,10 @@ export let SkillMarketplacePluginsScene = (p: {
           skillMarketplaceId: p.skillMarketplaceId!,
           skillPluginId: plugin.id
         });
-        if (created) await marketplacePlugins.refetch();
+        if (created) {
+          await marketplacePlugins.refetch();
+          await marketplace.refetch();
+        }
       }
     });
   };
@@ -464,7 +469,10 @@ export let SkillMarketplacePluginsScene = (p: {
       skillMarketplaceId: p.skillMarketplaceId,
       skillMarketplacePluginId: item.id
     });
-    if (deleted) await marketplacePlugins.refetch();
+    if (deleted) {
+      await marketplacePlugins.refetch();
+      await marketplace.refetch();
+    }
   };
 
   return renderWithLoader({ marketplacePlugins })(({ marketplacePlugins }) => (

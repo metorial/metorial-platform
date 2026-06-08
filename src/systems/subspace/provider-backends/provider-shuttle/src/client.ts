@@ -29,7 +29,7 @@ export let shuttleLiveClient = await createLiveConnectionClient({
       console.error('Failed to connect to Shuttle, retrying in 5 seconds...', error);
     }
 
-    delay(5000);
+    await delay(5000);
   }
 })();
 
@@ -69,4 +69,3 @@ export let getTenantForShuttle = async (tenant: Tenant) => {
 
 export type ContainerRegistry = Awaited<ReturnType<typeof shuttle.containerRegistry.get>>;
 export type ContainerRepository = Awaited<ReturnType<typeof shuttle.containerRepository.get>>;
-export type NetworkingRuleset = Awaited<ReturnType<typeof shuttle.networkingRuleset.get>>;

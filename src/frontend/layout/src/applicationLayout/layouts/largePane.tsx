@@ -20,8 +20,8 @@ let Outer = styled('div')`
   animation: ${fadeIn} 0.2s cubic-bezier(0.26, 1.11, 0.87, 1.25);
 `;
 
-let Wrapper = styled('div')`
-  height: calc(100dvh - 70px);
+let Wrapper = styled('div')<{ $bottomOffset?: string }>`
+  height: calc(100dvh - 70px - ${({ $bottomOffset }) => $bottomOffset ?? '0px'});
   background: ${theme.colors.background};
   border-radius: 10px;
   box-shadow: ${theme.shadows.large};
@@ -30,15 +30,23 @@ let Wrapper = styled('div')`
 
 export let LargePaneLayout = ({
   children,
+  bottomOffset,
+  height,
+  onContentScroll,
   Nav
 }: {
   children: React.ReactNode;
+  bottomOffset?: string;
+  height?: number | string;
+  onContentScroll?: React.UIEventHandler<HTMLDivElement>;
   Nav: () => React.ReactNode;
 }) => {
   return (
-    <RootLayout Nav={Nav}>
+    <RootLayout Nav={Nav} height={height}>
       <Outer>
-        <Wrapper>{children}</Wrapper>
+        <Wrapper $bottomOffset={bottomOffset} onScroll={onContentScroll}>
+          {children}
+        </Wrapper>
       </Outer>
     </RootLayout>
   );

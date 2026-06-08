@@ -117,6 +117,13 @@ export let v1ConsumerAccessPresenter = Presenter.create(consumerAccessType)
               ? consumerAccess.skillGroup!.description
               : null),
     readme: consumerAccess.listing?.readme ?? null,
+    listing: consumerAccess.listing
+      ? {
+          id: consumerAccess.listing.id,
+          name: consumerAccess.listing.name,
+          description: consumerAccess.listing.description
+        }
+      : null,
 
     access:
       consumerAccess.type == 'provider_template'
@@ -165,6 +172,13 @@ export let v1ConsumerAccessPresenter = Presenter.create(consumerAccessType)
       name: v.string(),
       description: v.nullable(v.string()),
       readme: v.nullable(v.string()),
+      listing: v.nullable(
+        v.object({
+          id: v.string(),
+          name: v.string(),
+          description: v.nullable(v.string())
+        })
+      ),
       access: v.union([
         v.object({
           type: v.literal('provider_template'),

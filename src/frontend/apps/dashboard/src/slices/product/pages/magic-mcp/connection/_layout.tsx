@@ -1,3 +1,4 @@
+import { InitialLoadBoundary } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
 import {
@@ -118,7 +119,9 @@ export let MagicMcpConnectionLayout = () => {
                   }
                 ]}
               >
-                <Outlet />
+                <InitialLoadBoundary>
+                  <Outlet />
+                </InitialLoadBoundary>
               </AttributesLayout>
             </>
           );

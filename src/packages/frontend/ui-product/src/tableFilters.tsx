@@ -111,11 +111,12 @@ let FilterPopover = styled(RadixPopover.Content)<{ $compact?: boolean }>`
   box-shadow: ${theme.shadows.medium};
   overflow: hidden;
   z-index: 999;
-  width: ${({ $compact }) => ($compact ? 'min(320px, calc(100vw - 32px))' : 'min(500px, calc(100vw - 32px))')};
+  width: ${({ $compact }) =>
+    $compact ? 'min(320px, calc(100vw - 32px))' : 'min(500px, calc(100vw - 32px))'};
   height: ${({ $compact }) => ($compact ? 'auto' : '350px')};
   max-height: min(350px, calc(100vh - 32px));
   display: grid;
-  grid-template-columns: ${({ $compact }) => ($compact ? '1fr' : '160px auto')};
+  grid-template-columns: ${({ $compact }) => ($compact ? '1fr' : '200px auto')};
 
   &[data-state='open'] {
     animation: ${fadeIn} 0.15s ease-in-out;

@@ -5,6 +5,7 @@ import { actorController } from './actor';
 import { agentController } from './agent';
 import { agentClientController } from './agentClient';
 import { agentInstanceController } from './agentInstance';
+import { adminProviderTelemetryController } from './adminProviderTelemetry';
 import { authConfigErrorController } from './authConfigError';
 import { authConfigErrorGlobalController } from './authConfigErrorGlobal';
 import { authConfigEventController } from './authConfigEvent';
@@ -22,6 +23,11 @@ import { customProviderController } from './customProvider';
 import { customProviderCommitController } from './customProviderCommit';
 import { customProviderDeploymentController } from './customProviderDeployment';
 import { customProviderEnvironmentController } from './customProviderEnvironment';
+import { enclaveController } from './enclave';
+import { firewallController } from './firewall';
+import { firewallBindingController } from './firewallBinding';
+import { networkController } from './network';
+import { networkPolicyController } from './networkPolicy';
 import { customProviderVersionController } from './customProviderVersion';
 import { environmentController } from './environment';
 import { ephemeralManagedSessionController } from './ephemeralManagedSession';
@@ -42,7 +48,8 @@ import { integrationVersionController } from './integrationVersion';
 import { magicMcpBackingController } from './magicMcpBacking';
 import { magicMcpServerProviderController } from './magicMcpServerProvider';
 import { managedProviderAuthCredentialsController } from './managedProviderAuthCredentials';
-import { networkingRulesetController } from './networkingRuleset';
+import { monitorController } from './monitor';
+import { monitorAlertController } from './monitorAlert';
 import { providerController } from './provider';
 import { providerAuthConfigController } from './providerAuthConfig';
 import { providerAuthCredentialsController } from './providerAuthCredentials';
@@ -61,12 +68,16 @@ import { providerOAuthSetupController } from './providerOAuthSetup';
 import { providerRunController } from './providerRun';
 import { providerRunUsageRecordController } from './providerRunUsageRecord';
 import { providerSetupSessionController } from './providerSetupSession';
+import { providerSpecificationChangeNotificationController } from './providerSpecificationChangeNotification';
 import { providerSpecificationController } from './providerSpecification';
 import { providerToolController } from './providerTool';
 import { providerTriggerController } from './providerTrigger';
 import { providerVariantController } from './providerVariant';
 import { providerVersionController } from './providerVersion';
+import { protoGuardAlertController } from './protoGuardAlert';
+import { protoGuardConfigController } from './protoGuardConfig';
 import { publisherController } from './publisher';
+import { resourceCountController } from './resourceCount';
 import { scmConnectionController } from './scmConnection';
 import { scmConnectionSetupSessionController } from './scmConnectionSetupSession';
 import { scmProviderController } from './scmProvider';
@@ -132,7 +143,11 @@ let integrationControllers = {
 let configControllers = {
   authConfigEvent: authConfigEventController,
   authConfigError: authConfigErrorController,
-  authConfigErrorGlobal: authConfigErrorGlobalController
+  authConfigErrorGlobal: authConfigErrorGlobalController,
+  monitor: monitorController,
+  monitorAlert: monitorAlertController,
+  protoGuardAlert: protoGuardAlertController,
+  protoGuardConfig: protoGuardConfigController
 };
 
 let callbackControllers = {
@@ -148,6 +163,7 @@ let callbackControllers = {
 };
 
 let providerControllers = {
+  adminProviderTelemetry: adminProviderTelemetryController,
   provider: providerController,
   providerInvocation: providerInvocationController,
   managedProviderAuthCredentials: managedProviderAuthCredentialsController,
@@ -163,13 +179,20 @@ let providerControllers = {
   providerConfig: providerConfigController,
   providerConfigVault: providerConfigVaultController,
   providerDeployment: providerDeploymentController,
+  enclave: enclaveController,
+  network: networkController,
+  firewall: firewallController,
+  firewallBinding: firewallBindingController,
+  networkPolicy: networkPolicyController,
   providerListing: providerListingController,
   providerOAuthSetup: providerOAuthSetupController,
   providerSpecification: providerSpecificationController,
+  providerSpecificationChangeNotification: providerSpecificationChangeNotificationController,
   providerTool: providerToolController,
   providerTrigger: providerTriggerController,
   providerVariant: providerVariantController,
   providerVersion: providerVersionController,
+  resourceCount: resourceCountController,
   providerRun: providerRunController
 };
 
@@ -206,7 +229,6 @@ let extensionControllers = {
   customProviderEnvironment: customProviderEnvironmentController,
   containerRegistry: containerRegistryController,
   containerRepository: containerRepositoryController,
-  networkingRuleset: networkingRulesetController,
   scmConnection: scmConnectionController,
   scmConnectionSetupSession: scmConnectionSetupSessionController,
   scmProvider: scmProviderController,

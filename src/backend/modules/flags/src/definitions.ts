@@ -10,6 +10,8 @@ export type Flags = {
   'identity-management': boolean;
   'portals-access': boolean;
   'skills-enabled': boolean;
+  'advanced-security-management-enabled': boolean;
+  'networking-enabled': boolean;
 
   'paid-oauth-import': boolean;
   'paid-oauth-export': boolean;
@@ -23,6 +25,9 @@ export type Flags = {
   'paid-magic-mcp-groups': boolean;
   'paid-sso-tenants': boolean;
   'paid-portals': boolean;
+  'paid-key-providers': boolean;
+  'paid-networking': boolean;
+  'paid-network-ip-access': boolean;
 };
 
 export let defaultFlags: Flags = {
@@ -35,6 +40,8 @@ export let defaultFlags: Flags = {
   'portals-access': false,
   'identity-management': false,
   'skills-enabled': false,
+  'advanced-security-management-enabled': false,
+  'networking-enabled': false,
 
   'paid-oauth-import': true,
   'paid-oauth-export': true,
@@ -47,7 +54,10 @@ export let defaultFlags: Flags = {
   'paid-audit-logs': true,
   'paid-magic-mcp-groups': true,
   'paid-sso-tenants': true,
-  'paid-portals': true
+  'paid-portals': true,
+  'paid-key-providers': true,
+  'paid-networking': false,
+  'paid-network-ip-access': false
 };
 
 export type FlagProviderParams = {

@@ -67,6 +67,9 @@ model ServerOAuthSetup {
   authConfigOid BigInt?
   authConfig    ServerAuthConfig? @relation(fields: [authConfigOid], references: [oid])
 
+  serverInstanceConfigurationOid BigInt?
+  serverInstanceConfiguration    ServerInstanceConfiguration? @relation(fields: [serverInstanceConfigurationOid], references: [oid])
+
   remoteOAuthConnectionSetupOid BigInt?                     @unique
   remoteOAuthConnectionSetup    RemoteOAuthConnectionSetup? @relation(fields: [remoteOAuthConnectionSetupOid], references: [oid])
 

@@ -30,6 +30,7 @@ import {
   providerDeploymentConfigPairInternalService
 } from '@metorial-subspace/module-provider-internal';
 import { getTenantForSlates, slates } from '@metorial-subspace/provider-slates/src/client';
+import { callbackService } from './callback';
 import { callbackRegistrationService } from './callbackRegistration';
 
 let callbackInstanceInclude = {
@@ -60,6 +61,26 @@ let callbackInstanceInclude = {
 };
 
 class callbackInstanceServiceImpl {
+  async get(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    callbackId: string;
+    callbackInstanceId: string;
+  }) {
+    let callback = await callbackService.getCallbackById({
+      tenant: d.tenant,
+      solution: d.solution,
+      environment: d.environment,
+      callbackId: d.callbackId
+    });
+
+    return this.getById({
+      callback,
+      callbackInstanceId: d.callbackInstanceId
+    });
+  }
+
   async getById(d: { callback: Callback; callbackInstanceId: string }) {
     let callbackInstance = await db.callbackInstance.findFirst({
       where: {

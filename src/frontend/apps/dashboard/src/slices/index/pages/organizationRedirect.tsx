@@ -10,6 +10,10 @@ export let OrganizationRedirect = () => {
   let [search] = useSearchParams();
   let path = search.get('path');
 
+  let nonPathQuery = new URLSearchParams(search);
+  nonPathQuery.delete('path');
+  let nonPathQueryObj = Object.fromEntries(nonPathQuery.entries());
+
   let navigatedRef = useRef(false);
   useLayoutEffect(() => {
     if (!org.data || navigatedRef.current) return;
@@ -19,7 +23,9 @@ export let OrganizationRedirect = () => {
     let instance = orgInstances[0];
 
     if (instance) {
-      navigate(Paths.instance(org.data, instance.project, instance, path), { replace: true });
+      navigate(Paths.instance(org.data, instance.project, instance, path, nonPathQueryObj), {
+        replace: true
+      });
     } else {
       createProject({ organizationId: org.data.id, name: 'Default Project' });
     }

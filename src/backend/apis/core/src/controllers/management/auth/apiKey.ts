@@ -217,7 +217,8 @@ export let managementApiKeyController = Controller.create(
     create: organizationGroup
       .post(organizationManagementPath('api-keys', 'apiKeys.create'), {
         name: 'Create API key',
-        description: 'Create a new API key'
+        description: 'Create a new API key',
+        confidential: true
       })
       .body(
         'default',
@@ -414,7 +415,8 @@ export let managementApiKeyController = Controller.create(
     rotate: organizationGroup
       .post(organizationManagementPath('api-keys/:apiKeyId/rotate', 'apiKeys.rotate'), {
         name: 'Rotate API key',
-        description: 'Rotate a specific API key'
+        description: 'Rotate a specific API key',
+        confidential: true
       })
       .body(
         'default',
@@ -465,7 +467,8 @@ export let managementApiKeyController = Controller.create(
     reveal: organizationGroup
       .post(organizationManagementPath('api-keys/:apiKeyId/reveal', 'apiKeys.reveal'), {
         name: 'Reveal API key',
-        description: 'Reveal a specific API key'
+        description: 'Reveal a specific API key',
+        confidential: true
       })
       .use(checkAccess({ possibleScopes: ['organization.api_key:reveal'] }))
       .output(apiKeyPresenter)

@@ -166,10 +166,25 @@ class workflowRunServiceImpl {
     );
   }
 
+  private trimBlankLogEdges(
+    logs: {
+      timestamp: number;
+      message: string;
+    }[]
+  ) {
+    let start = 0;
+    let end = logs.length;
+
+    while (start < end && !logs[start]!.message.trim()) start++;
+    while (end > start && !logs[end - 1]!.message.trim()) end--;
+
+    return logs.slice(start, end);
+  }
+
   private presentOutput(lines: string | string[]) {
     let array = (Array.isArray(lines) ? lines : lines.split('\n')).filter(Boolean);
 
-    return array
+    let logs = array
       .map(line => {
         if (!line.startsWith('[')) return undefined!;
         try {
@@ -180,6 +195,8 @@ class workflowRunServiceImpl {
         }
       })
       .filter(Boolean);
+
+    return this.trimBlankLogEdges(logs);
   }
 
   async getWorkflowRunOutput(d: { run: WorkflowRun }) {

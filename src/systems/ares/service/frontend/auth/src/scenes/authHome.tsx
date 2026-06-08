@@ -215,7 +215,7 @@ export let AuthHomeScene = ({
           <>
             <Spacer height={10} />
 
-            <Text align="center" color="gray600" weight="medium" size="1">
+            <Text color="gray600" weight="medium" size="1">
               {type == 'login' ? (
                 <Link
                   to={`/signup?client_id=${encodeURIComponent(clientId)}&nextUrl=${encodeURIComponent(nextUrl)}`}

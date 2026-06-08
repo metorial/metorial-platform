@@ -14,7 +14,7 @@ import { useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { styled } from 'styled-components';
 import { EmptyState } from '../../../../components/emptyState';
-import { showIntegrationFormModal } from './modal';
+import { showCreateIntegrationProviderFirstFlow } from './providerPanelFlow';
 
 let Alias = styled.div`
   background: ${theme.colors.gray300};
@@ -55,7 +55,6 @@ export let IntegrationsGrid = (
   let navigate = useNavigate();
   let integrations = useIntegrations(instanceId, {
     order: 'desc',
-    status: ['active', 'archived'],
     ...query
   });
   let providerIds = useMemo(
@@ -82,9 +81,7 @@ export let IntegrationsGrid = (
   let showCreateIntegrationModal = () => {
     if (!instance.data) return;
 
-    showIntegrationFormModal({
-      type: 'create',
-      instanceId: instance.data.id,
+    showCreateIntegrationProviderFirstFlow({
       onCreate: integration => {
         navigate(
           Paths.instance.integration(

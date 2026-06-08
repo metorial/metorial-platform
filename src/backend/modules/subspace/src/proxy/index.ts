@@ -30,6 +30,8 @@ export let proxyMcpRequestToSubspace = async (
   sessionId: string,
   d?: {
     agentClient?: SubspaceProxyAgentClient | null;
+    enforceIngressNetworkPolicy?: boolean;
+    ingressIp?: string | null;
     onSubspaceSessionResolved?: (d: {
       subspaceSessionId: string;
       response: Response;
@@ -60,12 +62,17 @@ export let proxyMcpRequestToSubspace = async (
   headers.set(
     'Metorial-Proxy-URL',
     process.env.NODE_ENV == 'production'
-      ? `https://${inputUrl.hostname}${inputUrl.pathname}${inputUrl.search}`
+      ? `https://${finalHostName}${inputUrl.pathname}${inputUrl.search}`
       : `http://${inputUrl.host}${inputUrl.pathname}${inputUrl.search}`
   );
 
   if (d?.agentClient) {
     headers.set('Metorial-Agent-Client', JSON.stringify(d.agentClient));
+  }
+
+  if (d?.enforceIngressNetworkPolicy) {
+    headers.set('Metorial-Ingress-Policy-Check', 'true');
+    if (d.ingressIp) headers.set('Metorial-Ingress-IP', d.ingressIp);
   }
 
   await Fabric.fire('provider.session_message.created:before', { instance });

@@ -17,6 +17,8 @@ export let ID = createIdGenerator({
   projectBrand: idType.sorted('pbr'),
   projectBrandUpdate: idType.sorted('pbu'),
   instance: idType.sorted('ins'),
+  environment: idType.sorted('env'),
+  sandbox: idType.sorted('sbx'),
 
   machineAccess: idType.sorted('mac'),
   apiKey: idType.sorted('apk'),
@@ -194,7 +196,9 @@ export let ID = createIdGenerator({
 
   portal: idType.sorted('ptl'),
   consumerAuthClient: idType.sorted('coac'),
+  consumerAuthClientSurface: idType.sorted('coacf'),
   consumerAuthAttempt: idType.sorted('coaa'),
+  consumerAuthTestAuthorization: idType.sorted('coata'),
   consumerAuthClientId: idType.unsorted('coaci'),
   consumerAuthClientSecret: idType.unsorted('coacs', 32),
 

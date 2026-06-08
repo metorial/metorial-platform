@@ -66,6 +66,7 @@ class slateSpecificationChangeServiceImpl {
                   ]
                 : undefined
             },
+            orderBy: [{ createdAt: 'desc' }, { oid: 'desc' }],
             include
           })
       )

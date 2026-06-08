@@ -17,6 +17,28 @@ export let sendOrgInviteEmail = notificationClient.createTemplate(
     }) => {
       let url = getConfig().urls.getInviteUrl(invite);
 
+      if (invite.action === 'onboarding') {
+        return createEmail({
+          subject: `Welcome to Metorial, ${organization.name}!`,
+          preview: `We have set up your organization, ${organization.name}, on Metorial. Click the button below to get started and complete the onboarding process.`,
+          content: (
+            <Layout
+              title={`Welcome to Metorial, ${organization.name}!`}
+              description={`We have set up your organization, ${organization.name}, on Metorial. Click the button below to get started and complete the onboarding process.`}
+            >
+              <Button href={url.toString()}>Get Started</Button>
+
+              {!!invite.message?.trim().length && <Text>{invite.message}</Text>}
+
+              <Text>
+                Please don't hesitate to reach out if you have any questions or need help
+                getting started.
+              </Text>
+            </Layout>
+          )
+        });
+      }
+
       return createEmail({
         subject: `Join ${organization.name} on Metorial`,
         preview: `${actor.name} has invited you to join ${organization.name} on Metorial.`,

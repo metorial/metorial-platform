@@ -11,7 +11,11 @@ import type {
 import z from 'zod';
 import type { SlateInvocation, SlateVersion } from '../../../prisma/generated/client';
 import { db } from '../../db';
-import { functionBay, functionBayTenant } from '../../functionBay';
+import {
+  functionBay,
+  functionBayTenant,
+  getFunctionBayTenantForTenant
+} from '../../functionBay';
 import { hub } from '../../hub';
 import { ID, snowflake } from '../../id';
 import { invocationsBucketRecord } from '../../storage';
@@ -20,6 +24,7 @@ import type {
   InvocationError,
   InvocationResult,
   SlateInvocationBaseParams,
+  SlateInvocationDeploymentTarget,
   SlatesRequest,
   SlatesResponse
 } from './types';
@@ -35,7 +40,11 @@ let errorSchema = z.object({
 export class SlateInvocationStack {
   #initialMessages: SlatesRequest[];
   #slateVersion: SlateVersion;
+  #deploymentTarget?: SlateInvocationDeploymentTarget;
   #participants: SlatesParticipant[];
+  #tenant?: SlateInvocationBaseParams['tenant'];
+  #enclaveId?: string;
+  #egressPolicy?: PrismaJson.CompiledEgressNetworkAllowList;
   #productiveMessages: SlatesRequest[] = [];
   #alreadyInvoked = false;
   #runPromise: ReturnType<typeof this.run>;
@@ -43,16 +52,23 @@ export class SlateInvocationStack {
   constructor(d: SlateInvocationBaseParams & { initialMessages?: SlatesRequest[] }) {
     this.#initialMessages = d.initialMessages ?? [];
     this.#slateVersion = d.slateVersion;
+    this.#deploymentTarget = d.deploymentTarget;
     this.#participants = d.participants;
+    this.#tenant = d.tenant;
+    this.#enclaveId = d.enclaveId;
+    this.#egressPolicy = d.egressPolicy;
 
     this.#runPromise = this.run();
   }
 
   private async run() {
-    if (
-      !this.#slateVersion.providerDeploymentInfo ||
-      !this.#slateVersion.activeDeploymentOid
-    ) {
+    let providerDeploymentInfo =
+      this.#deploymentTarget?.providerDeploymentInfo ??
+      this.#slateVersion.providerDeploymentInfo;
+    let activeDeploymentOid =
+      this.#deploymentTarget?.activeDeploymentOid ?? this.#slateVersion.activeDeploymentOid;
+
+    if (!providerDeploymentInfo || !activeDeploymentOid) {
       throw new ServiceError(badRequestError({ message: 'Slate version is not deployed' }));
     }
 
@@ -78,17 +94,25 @@ export class SlateInvocationStack {
     ];
 
     let invocationId = await ID.generateId('slateInvocation');
+    let [runtimeTenant, deploymentTenant] = await Promise.all([
+      this.#tenant ? getFunctionBayTenantForTenant(this.#tenant) : functionBayTenant,
+      functionBayTenant
+    ]);
     let [providerInvocation, invocationRecord] = await Promise.all([
       functionBay.function.invoke({
-        tenantId: (await functionBayTenant).id,
-        functionId: this.#slateVersion.providerDeploymentInfo.functionId,
-        payload: { messages, invocationId }
+        tenantId: runtimeTenant.id,
+        functionTenantId: deploymentTenant.id,
+        functionId: providerDeploymentInfo.functionId,
+        payload: { messages, invocationId },
+        enclave:
+          this.#enclaveId && runtimeTenant ? { identifier: this.#enclaveId } : undefined,
+        egressPolicy: this.#egressPolicy
       }),
       db.slateInvocation.create({
         data: {
           oid: snowflake.nextId(),
           id: invocationId,
-          deploymentOid: this.#slateVersion.activeDeploymentOid,
+          deploymentOid: activeDeploymentOid,
           bucketOid: invocationsBucketRecord.oid,
           isPending: true,
           providerInvocationId: '',
@@ -279,8 +303,11 @@ export class SlateInvocationStack {
       );
 
       return new SlateInvocationStack({
+        tenant: this.#tenant,
         slateVersion: this.#slateVersion,
         participants: this.#participants,
+        enclaveId: this.#enclaveId,
+        egressPolicy: this.#egressPolicy,
         initialMessages: this.#initialMessages
       }).invoke(method, params);
     }

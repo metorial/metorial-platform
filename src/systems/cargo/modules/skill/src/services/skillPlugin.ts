@@ -1,5 +1,6 @@
 import { canonicalize } from '@lowerdeck/canonicalize';
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
+import { generatePlainId } from '@lowerdeck/id';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { slugify } from '@lowerdeck/slugify';
@@ -103,24 +104,10 @@ type SkillPluginInput = {
   description?: string | null;
   longDescription?: string | null;
   category?: string | null;
-  slug?: string;
   skillConfigurationId?: string | null;
 };
 
 class SkillPluginServiceImpl {
-  private normalizeSlug(d: { slug?: string; name: string }) {
-    let normalized = slugify(d.slug ?? d.name);
-    if (!normalized) {
-      throw new ServiceError(
-        badRequestError({
-          message: 'Skill plugin slug must include at least one slug character'
-        })
-      );
-    }
-
-    return normalized;
-  }
-
   private assertName(name: string) {
     if (name.trim()) return;
 
@@ -140,7 +127,6 @@ class SkillPluginServiceImpl {
       input.description !== undefined ||
       input.longDescription !== undefined ||
       input.category !== undefined ||
-      input.slug !== undefined ||
       input.skillConfigurationId !== undefined
     );
   }
@@ -204,7 +190,6 @@ class SkillPluginServiceImpl {
       statuses?: SkillPluginStatusFilter[];
       search?: string;
       category?: string;
-      slug?: string;
       createdAt?: DateFilter;
       updatedAt?: DateFilter;
     }
@@ -261,13 +246,29 @@ class SkillPluginServiceImpl {
                   : undefined!,
                 { status: { in: statuses } },
                 d.category ? { category: d.category } : undefined!,
-                d.slug ? { slug: d.slug } : undefined!,
                 search ? { id: { in: search.map(r => r.documentId) } } : undefined!,
                 d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
                 d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
               ].filter(Boolean)
             },
             include: skillPluginInclude
+          })
+      )
+    );
+  }
+
+  async reconcileSkillPlugins(d: {}) {
+    return Paginator.create(({ prisma }) =>
+      prisma(
+        async opts =>
+          await db.skillPlugin.findMany({
+            ...opts,
+            where: {},
+            include: {
+              ...skillPluginInclude,
+              tenant: true,
+              environment: true
+            }
           })
       )
     );
@@ -302,7 +303,6 @@ class SkillPluginServiceImpl {
       environment: d.environment,
       skillConfigurationId: d.input.skillConfigurationId
     });
-    let slug = this.normalizeSlug({ slug: d.input.slug, name: d.input.name });
 
     return await withTransaction(async db => {
       let destination = await createSkillDestination({ tenant: d.tenant });
@@ -316,7 +316,7 @@ class SkillPluginServiceImpl {
           description: d.input.description,
           longDescription: d.input.longDescription,
           category: d.input.category,
-          slug,
+          slug: `${slugify((d.input.slug ?? d.input.name).replaceAll('_', '-'))}-${generatePlainId(6)}`.toLowerCase(),
           tenantOid: d.tenant.oid,
           environmentOid: d.environment.oid,
           skillConfigurationOid,
@@ -396,13 +396,6 @@ class SkillPluginServiceImpl {
         description: d.input.description,
         longDescription: d.input.longDescription,
         category: d.input.category,
-        slug:
-          d.input.slug !== undefined
-            ? this.normalizeSlug({
-                slug: d.input.slug,
-                name: d.input.name ?? d.skillPlugin.name
-              })
-            : undefined,
         skillConfigurationOid
       }
     });

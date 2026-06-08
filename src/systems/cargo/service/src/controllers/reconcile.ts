@@ -1,11 +1,14 @@
+import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
+import { reconcileService } from '@metorial-cargo/module-file';
+import { skillPluginService } from '@metorial-cargo/module-skill';
 import {
   fileLinkPresenter,
   filePresenter,
   filePurposePresenter,
-  fileReferencePresenter
+  fileReferencePresenter,
+  skillPluginPresenter
 } from '../presenters';
-import { reconcileService } from '@metorial-cargo/module-file';
 import { app } from './_app';
 import { tenantApp } from './tenant';
 
@@ -85,5 +88,18 @@ export let reconcileController = app.controller({
           references: linkItem.references.map(fileReferencePresenter)
         }))
       }))
-    )
+    ),
+
+  listSkillPlugins: app
+    .handler()
+    .input(Paginator.validate())
+    .do(async ctx => {
+      let paginator = await skillPluginService.reconcileSkillPlugins({});
+      let list = await paginator.run(ctx.input);
+      return await Paginator.presentLight(list, s => ({
+        ...skillPluginPresenter(s),
+        tenant: { id: s.tenant.id, identifier: s.tenant.identifier },
+        environment: { id: s.environment.id, identifier: s.environment.identifier }
+      }));
+    })
 });

@@ -11,7 +11,7 @@ vi.mock('@metorial/db', () => ({
   }
 }));
 
-vi.mock('../src/services/consumerAccess', () => ({
+vi.mock('../src/services/consumerAccess/consumerAccess', () => ({
   consumerAccessService: {
     createConsumerAccess: vi.fn()
   }
@@ -56,7 +56,7 @@ describe('consumerAccessRequestUpdatedQueueProcessor', () => {
     vi.resetModules();
 
     db = (await import('@metorial/db')).db;
-    consumerAccessService = (await import('../src/services/consumerAccess'))
+    consumerAccessService = (await import('../src/services/consumerAccess/consumerAccess'))
       .consumerAccessService;
     indexConsumerAccessRequestSearchQueue = (
       await import('../src/queues/search/consumerAccessRequest')

@@ -47,10 +47,19 @@ export let normalizeScopes = (input: string[] | undefined) => {
   return normalized;
 };
 
-export let normalizePolicyDocument = (document: PolicyDocument): PolicyDocument => ({
+let normalizeStoredScopes = (input: string[] | undefined) => [...new Set(input || [])];
+
+export let normalizePolicyDocument = (
+  document: PolicyDocument,
+  opts?: { validateScopes?: boolean }
+): PolicyDocument => ({
   access: document.access.map(entry => ({
     target: entry.target,
-    scopes: entry.scopes ? normalizeScopes(entry.scopes) : undefined,
+    scopes: entry.scopes
+      ? opts?.validateScopes === false
+        ? normalizeStoredScopes(entry.scopes)
+        : normalizeScopes(entry.scopes)
+      : undefined,
     roles: entry.roles ? [...new Set(entry.roles)] : undefined
   }))
 });

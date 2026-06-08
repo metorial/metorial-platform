@@ -24,10 +24,6 @@ export abstract class IProviderDeployment extends IProviderFunctionality {
   ): Promise<ProviderConfigCreateRes>;
 
   abstract deleteProviderConfig(data: ProviderConfigDeleteParam): Promise<ProviderConfigDeleteRes>;
-
-  abstract validateNetworkingRulesetIds(
-    data: ValidateNetworkingRulesetIdsParam
-  ): Promise<ValidateNetworkingRulesetIdsRes>;
 }
 
 export interface ProviderDeploymentCreateParam {
@@ -77,11 +73,3 @@ export interface ProviderConfigDeleteParam {
 }
 
 export interface ProviderConfigDeleteRes {}
-
-export interface ValidateNetworkingRulesetIdsParam {
-  tenant: Tenant;
-  provider: Provider;
-  networkingRulesetIds: string[];
-}
-
-export interface ValidateNetworkingRulesetIdsRes {}

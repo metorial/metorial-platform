@@ -2,10 +2,7 @@ import { OrganizationMember } from '@metorial/db';
 import { combineQueueProcessors } from '@metorial/queue';
 import { sendApprovedConsumerAccessRequestEmailQueueProcessor } from './queues/accessRequest/sendApprovedConsumerAccessRequestEmail';
 import { sendRejectedConsumerAccessRequestEmailQueueProcessor } from './queues/accessRequest/sendRejectedConsumerAccessRequestEmail';
-import { backfillAccessListingsProcessors } from './queues/backfillAccessListings';
 import { consumerLifecycleQueueProcessor } from './queues/lifecycle';
-import { reconcileConsumerClientProcessors } from './queues/reconcileConsumerClient';
-import { reconcileMagicMcpConsumerOwnershipProcessors } from './queues/reconcileMagicMcpConsumerOwnership';
 import { consumerSearchQueueProcessor } from './queues/search';
 import {
   reconcileConsumerActorQueueProcessor,
@@ -35,9 +32,6 @@ export let consumerQueueProcessor = combineQueueProcessors([
   sendRejectedConsumerAccessRequestEmailQueueProcessor,
   syncIdentityConsumerQueueProcessor,
   reconcileConsumerActorQueueProcessor,
-  backfillAccessListingsProcessors,
-  reconcileMagicMcpConsumerOwnershipProcessors,
-  reconcileConsumerClientProcessors,
 
   syncOrgMemberQueueProcessor,
   syncOrgMemberConsumerQueueProcessor,

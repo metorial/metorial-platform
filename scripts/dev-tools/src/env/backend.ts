@@ -106,7 +106,7 @@ export let backendEnv: Env = [
 
   {
     key: 'PORTALS_URL',
-    defaultValue: `http://${HOSTNAME}:4315`
+    defaultValue: `http://${HOSTNAME}:4304`
   },
   {
     key: 'PORTAL_API_PORT',
@@ -176,6 +176,10 @@ export let backendEnv: Env = [
   {
     key: 'VOYAGER_URL',
     defaultValue: 'http://services:52060/metorial-voyager'
+  },
+  {
+    key: 'NEBULA_API_URL',
+    defaultValue: 'http://localhost:52170/metorial-nebula'
   },
   { key: 'AI_GATEWAY_API_KEY', isRequired: false },
   { key: 'SCOUT_URL', isRequired: false },

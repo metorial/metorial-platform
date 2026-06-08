@@ -148,6 +148,7 @@ class providerServiceImpl {
             ...opts,
             where: {
               AND: [
+                { status: 'active' },
                 getProviderTenantFilter({
                   ...d,
                   includeDeprecated
@@ -183,9 +184,19 @@ class providerServiceImpl {
     input: {
       name?: string;
       description?: string;
+      readme?: string;
       slug?: string;
+      aliases?: string[];
       image?: EntityImage | null;
       skills?: string[];
+      access?: 'public' | 'tenant';
+      status?: 'active' | 'archived' | 'deleted';
+      isDeprecated?: boolean;
+      isPublic?: boolean;
+      isMetorial?: boolean;
+      isVerified?: boolean;
+      isOfficial?: boolean;
+      rank?: number;
     };
   }) {
     await providerInternalService.updateProvider({
@@ -193,9 +204,19 @@ class providerServiceImpl {
       input: {
         name: d.input.name?.trim() || undefined,
         description: d.input.description?.trim() || undefined,
+        readme: d.input.readme,
         slug: d.input.slug,
+        aliases: d.input.aliases,
         image: d.input.image,
-        skills: d.input.skills
+        skills: d.input.skills,
+        access: d.input.access,
+        status: d.input.status,
+        isDeprecated: d.input.isDeprecated,
+        isPublic: d.input.isPublic,
+        isMetorial: d.input.isMetorial,
+        isVerified: d.input.isVerified,
+        isOfficial: d.input.isOfficial,
+        rank: d.input.rank
       }
     });
 

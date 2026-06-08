@@ -1,5 +1,5 @@
 import { createHono } from '@lowerdeck/hono';
-import { db } from '@metorial-subspace/db';
+import { parseTenantOAuthCallbackSlug } from '@metorial-subspace/db';
 
 export let oauthCallbackApp = createHono()
   .use(async (c, next) => {
@@ -15,24 +15,10 @@ export let oauthCallbackApp = createHono()
   })
   .get('/:oauthIdentifier', async c => {
     let oauthIdentifier = c.req.param('oauthIdentifier');
-    let [tenantUrlKey, providerTag, typeKey] = oauthIdentifier.split('-');
-    if (!tenantUrlKey || !providerTag || !typeKey) {
-      return c.text('Invalid oauth callback URL', 400);
-    }
+    let parsed = await parseTenantOAuthCallbackSlug(oauthIdentifier);
+    if (!parsed) return c.text('Invalid oauth callback URL', 400);
 
-    let tenant = await db.tenant.findFirst({
-      where: { urlKey: tenantUrlKey }
-    });
-    let type = await db.providerType.findFirst({
-      where: { shortKey: typeKey }
-    });
-    let provider = await db.provider.findFirst({
-      where: { tag: providerTag }
-    });
-    if (!tenant || !provider || !type) {
-      return c.text('Invalid oauth callback URL', 400);
-    }
-
+    let { tenant, provider, providerType: type } = parsed;
     if (
       type.attributes.auth.status === 'disabled' ||
       type.attributes.auth.oauth.status === 'disabled'

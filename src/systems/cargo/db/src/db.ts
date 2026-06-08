@@ -39,6 +39,12 @@ export let db = baseClient;
 
 export type TransactionDB = Parameters<Parameters<typeof db.$transaction>[0]>[0];
 
+declare global {
+  namespace PrismaJson {
+    type SyncLogEntry = [number, string];
+  }
+}
+
 let tdbStorage = new AsyncLocalStorage<{
   tdb: TransactionDB;
   afterHooks: Array<() => Promise<void | any>>;
@@ -101,12 +107,8 @@ export let addAfterTransactionHook = (hook: () => any) =>
     } else if (process.env.NODE_ENV === 'test') {
       enqueueAfterHook(hook, ctx);
     } else {
-      setTimeout(
-        () => {
-          enqueueAfterHook(hook, ctx);
-        },
-        5000
-      );
+      setTimeout(() => {
+        enqueueAfterHook(hook, ctx);
+      }, 5000);
     }
   });
-

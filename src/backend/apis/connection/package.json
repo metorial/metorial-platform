@@ -11,13 +11,13 @@
     "@lowerdeck/error": "^1.2.3",
     "@lowerdeck/execution-context": "^1.1.1",
     "@lowerdeck/hono": "^1.0.10",
+    "@lowerdeck/sentry": "^1.0.2",
     "@metorial/id": "^1.0.0",
     "@metorial/mcp-utils": "^1.0.0",
     "@metorial/module-access": "^1.0.0",
     "@metorial/module-magic": "^1.0.0",
     "@metorial/module-protect": "^1.0.0",
     "@metorial/module-subspace": "1.0.0",
-    "@metorial/rest": "^1.0.0",
-    "hono": "^4.0.0"
+    "@metorial/rest": "^1.0.0"
   }
 }

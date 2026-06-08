@@ -124,6 +124,7 @@ export type DashboardInstanceMagicMcpEndpointsCreateBody = {
   description?: string | undefined;
   metadata?: Record<string, any> | undefined;
   consumerProfileId?: string | undefined;
+  skillPluginId?: string | undefined;
   magicMcpServers?:
     | {
         magicMcpServerId: string;
@@ -159,6 +160,7 @@ export let mapDashboardInstanceMagicMcpEndpointsCreateBody =
       'consumer_profile_id',
       mtMap.passthrough()
     ),
+    skillPluginId: mtMap.objectField('skill_plugin_id', mtMap.passthrough()),
     magicMcpServers: mtMap.objectField(
       'magic_mcp_servers',
       mtMap.array(

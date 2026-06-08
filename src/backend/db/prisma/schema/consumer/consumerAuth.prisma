@@ -1,0 +1,214 @@
+enum ConsumerAuthClientTokenEndpointAuthMethod {
+  client_secret_basic
+  client_secret_post
+  none
+}
+
+enum ConsumerAuthAttemptStatus {
+  pending
+  authorized
+  active
+  denied
+  revoked
+}
+
+enum ConsumerAuthAttemptCodeChallengeMethod {
+  none
+  s256
+}
+
+model ConsumerClient {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  hash String
+  name String
+
+  redirectUris String[]
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid], onDelete: SetNull)
+
+  organizationOid BigInt?
+  organization    Organization? @relation(fields: [organizationOid], references: [oid], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  consumerAuthClients ConsumerAuthClient[]
+
+  consumerSurfaceOid BigInt
+  consumerSurface    ConsumerSurface @relation(fields: [consumerSurfaceOid], references: [oid], onDelete: Cascade)
+
+  consumerAuthClientSurfaces ConsumerAuthClientSurface[]
+
+  // @@unique([consumerSurfaceOid, hash])
+  @@index([hash])
+}
+
+model ConsumerAuthClient {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  name String
+
+  clientId       String  @unique
+  clientSecret   String?
+  registrationIp String?
+
+  tokenEndpointAuthMethod ConsumerAuthClientTokenEndpointAuthMethod @default(client_secret_basic)
+
+  redirectUris String[]
+
+  magicMcpServerOid BigInt?
+  magicMcpServer    MagicMcpServer? @relation(fields: [magicMcpServerOid], references: [oid], onDelete: Cascade)
+
+  magicMcpEndpointOid BigInt?
+  magicMcpEndpoint    MagicMcpEndpoint? @relation(fields: [magicMcpEndpointOid], references: [oid], onDelete: Cascade)
+
+  skillPluginOid BigInt?
+  skillPlugin    SkillPlugin? @relation(fields: [skillPluginOid], references: [oid], onDelete: SetNull)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid], onDelete: SetNull)
+
+  organizationOid BigInt?
+  organization    Organization? @relation(fields: [organizationOid], references: [oid], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  expiresAt DateTime
+
+  consumerAuthAttempts       ConsumerAuthAttempt[]
+  consumerAuthClientSurfaces ConsumerAuthClientSurface[]
+  testAuthorizations         ConsumerAuthTestAuthorization[]
+
+  legacyDoNotUseConsumerSurfaceOid BigInt?          @map("consumerSurfaceOid")
+  legacyDoNotUseConsumerSurface    ConsumerSurface? @relation(fields: [legacyDoNotUseConsumerSurfaceOid], references: [oid], onDelete: Cascade)
+
+  legacyDoNotUseConsumerClientOid BigInt?         @map("consumerClientOid")
+  legacyDoNotUseConsumerClient    ConsumerClient? @relation(fields: [legacyDoNotUseConsumerClientOid], references: [oid], onDelete: SetNull)
+
+  @@index([registrationIp, createdAt])
+  @@index([instanceOid])
+  @@index([organizationOid])
+  @@index([skillPluginOid])
+}
+
+model ConsumerAuthClientSurface {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  consumerSurfaceOid BigInt
+  consumerSurface    ConsumerSurface @relation(fields: [consumerSurfaceOid], references: [oid], onDelete: Cascade)
+
+  consumerAuthClientOid BigInt
+  consumerAuthClient    ConsumerAuthClient @relation(fields: [consumerAuthClientOid], references: [oid], onDelete: Cascade)
+
+  consumerClientOid BigInt
+  consumerClient    ConsumerClient @relation(fields: [consumerClientOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([consumerSurfaceOid, consumerAuthClientOid])
+  @@unique([consumerAuthClientOid, consumerClientOid])
+  @@index([consumerAuthClientOid])
+}
+
+model ConsumerAuthAttempt {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status ConsumerAuthAttemptStatus @default(pending)
+
+  consumerAuthClientOid BigInt
+  consumerAuthClient    ConsumerAuthClient @relation(fields: [consumerAuthClientOid], references: [oid], onDelete: Cascade)
+
+  redirectUri String
+  state       String?
+
+  authorizationCode          String?   @unique
+  authorizationCodeExpiresAt DateTime?
+  authorizationCodeUsedAt    DateTime?
+
+  refreshToken String? @unique
+
+  codeChallengeMethod ConsumerAuthAttemptCodeChallengeMethod @default(none)
+  codeChallenge       String?
+
+  consumerProfileOid BigInt?
+  consumerProfile    ConsumerProfile? @relation(fields: [consumerProfileOid], references: [oid], onDelete: SetNull)
+
+  magicMcpEndpointOid BigInt?
+  magicMcpEndpoint    MagicMcpEndpoint? @relation(fields: [magicMcpEndpointOid], references: [oid], onDelete: SetNull)
+
+  consumerIntegrationEndpointOid BigInt?
+  consumerIntegrationEndpoint    ConsumerIntegrationEndpoint? @relation(fields: [consumerIntegrationEndpointOid], references: [oid], onDelete: SetNull)
+
+  magicMcpTokenOid BigInt?
+  magicMcpToken    MagicMcpToken? @relation(fields: [magicMcpTokenOid], references: [oid], onDelete: SetNull)
+
+  skillPluginOid BigInt?
+  skillPlugin    SkillPlugin? @relation(fields: [skillPluginOid], references: [oid], onDelete: SetNull)
+
+  testAuthorization ConsumerAuthTestAuthorization?
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @default(now()) @updatedAt
+  authorizedAt DateTime?
+  deniedAt     DateTime?
+  revokedAt    DateTime?
+  expiresAt    DateTime
+
+  @@index([consumerIntegrationEndpointOid])
+  @@index([skillPluginOid])
+}
+
+model ConsumerAuthTestAuthorization {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  clientId String
+
+  consumerAuthClientOid BigInt
+  consumerAuthClient    ConsumerAuthClient @relation(fields: [consumerAuthClientOid], references: [oid], onDelete: Cascade)
+
+  consumerSurfaceOid BigInt
+  consumerSurface    ConsumerSurface @relation(fields: [consumerSurfaceOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  consumerProfileOid BigInt
+  consumerProfile    ConsumerProfile @relation(fields: [consumerProfileOid], references: [oid], onDelete: Cascade)
+
+  magicMcpEndpointOid BigInt
+  magicMcpEndpoint    MagicMcpEndpoint @relation(fields: [magicMcpEndpointOid], references: [oid], onDelete: Cascade)
+
+  skillPluginOid BigInt?
+  skillPlugin    SkillPlugin? @relation(fields: [skillPluginOid], references: [oid], onDelete: SetNull)
+
+  consumerAuthAttemptOid BigInt?              @unique
+  consumerAuthAttempt    ConsumerAuthAttempt? @relation(fields: [consumerAuthAttemptOid], references: [oid], onDelete: SetNull)
+
+  redirectUri String
+  state       String?
+
+  codeChallengeMethod ConsumerAuthAttemptCodeChallengeMethod @default(none)
+  codeChallenge       String?
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
+  expiresAt  DateTime
+  consumedAt DateTime?
+
+  @@index([consumerAuthClientOid])
+  @@index([consumerSurfaceOid, createdAt])
+  @@index([instanceOid, createdAt])
+  @@index([expiresAt])
+  @@index([consumedAt])
+}

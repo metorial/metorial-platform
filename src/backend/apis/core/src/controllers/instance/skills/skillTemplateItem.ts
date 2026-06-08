@@ -8,7 +8,7 @@ import {
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
-import { instancePath } from '../../../middleware/instanceGroup';
+import { instanceLegacyPath, instancePath } from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
 import { skillTemplateItemPresenter } from '../../../presenters';
 import { skillTemplateGroup } from './skillTemplate';
@@ -52,10 +52,11 @@ export let skillTemplateItemController = Controller.create(
   {
     list: skillTemplateGroup
       .get(
-        instancePath('skill-template/:skillTemplateId/items', 'skillTemplates.items.list'),
+        instancePath('skill-templates/:skillTemplateId/items', 'skills.templates.items.list'),
         {
           name: 'List skill template items',
-          description: 'Returns a paginated list of items for a skill template.'
+          description: 'Returns a paginated list of items for a skill template.',
+          legacyPaths: instanceLegacyPath('skill-template/:skillTemplateId/items')
         }
       )
       .use(hasFlags(['skills-enabled']))
@@ -92,12 +93,15 @@ export let skillTemplateItemController = Controller.create(
     get: skillTemplateItemGroup
       .get(
         instancePath(
-          'skill-template/:skillTemplateId/items/:skillTemplateItemId',
-          'skillTemplates.items.get'
+          'skill-templates/:skillTemplateId/items/:skillTemplateItemId',
+          'skills.templates.items.get'
         ),
         {
           name: 'Get skill template item',
-          description: 'Retrieves a specific skill template item.'
+          description: 'Retrieves a specific skill template item.',
+          legacyPaths: instanceLegacyPath(
+            'skill-template/:skillTemplateId/items/:skillTemplateItemId'
+          )
         }
       )
       .use(hasFlags(['skills-enabled']))
@@ -126,10 +130,11 @@ export let skillTemplateItemController = Controller.create(
 
     create: skillTemplateGroup
       .post(
-        instancePath('skill-template/:skillTemplateId/items', 'skillTemplates.items.create'),
+        instancePath('skill-templates/:skillTemplateId/items', 'skills.templates.items.create'),
         {
           name: 'Create skill template item',
-          description: 'Adds a provider or integration item to a skill template.'
+          description: 'Adds a provider or integration item to a skill template.',
+          legacyPaths: instanceLegacyPath('skill-template/:skillTemplateId/items')
         }
       )
       .use(hasFlags(['skills-enabled']))
@@ -162,12 +167,15 @@ export let skillTemplateItemController = Controller.create(
     delete: skillTemplateItemGroup
       .delete(
         instancePath(
-          'skill-template/:skillTemplateId/items/:skillTemplateItemId',
-          'skillTemplates.items.delete'
+          'skill-templates/:skillTemplateId/items/:skillTemplateItemId',
+          'skills.templates.items.delete'
         ),
         {
           name: 'Delete skill template item',
-          description: 'Deletes a skill template item.'
+          description: 'Deletes a skill template item.',
+          legacyPaths: instanceLegacyPath(
+            'skill-template/:skillTemplateId/items/:skillTemplateItemId'
+          )
         }
       )
       .use(hasFlags(['skills-enabled']))

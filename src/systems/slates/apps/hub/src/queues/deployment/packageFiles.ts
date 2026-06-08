@@ -3,6 +3,13 @@ type DeploymentArchiveFile = {
   buffer: Buffer;
 };
 
+type SlatePackageJson = {
+  [key: string]: any;
+  main?: string;
+  dependencies?: Record<string, any>;
+  scripts?: Record<string, string | undefined>;
+};
+
 let logoFiles = ['png', 'jpg', 'jpeg', 'svg'].map(ext => `logo.${ext}`);
 let wrapperDependencies = {
   '@slates/provider-handler': 'latest',
@@ -16,13 +23,26 @@ let fallbackEntrypoints = [
   'src/index.js',
   'index.ts',
   'index.js',
-  'dist/index.js'
+  'dist/index.js',
+  'dist/index.cjs'
 ];
+let sourceProviderImportCandidates = ['src/index.ts', 'src/index.js', 'index.ts', 'index.js'];
 
 let getArchiveFile = (files: DeploymentArchiveFile[], path: string) =>
   files.find(file => file.path === path);
 
 let normalizeArchivePath = (value: string) => value.replace(/^\.\/+/, '').replace(/^\/+/, '');
+
+let nccBuildPattern = /(^|\s)(?:@vercel\/)?ncc\s+build(\s|$)/;
+let nccTranspileOnlyPattern = /(^|\s)--transpile-only(\s|$)/;
+
+let ensureNccTranspileOnly = (buildScript: string | undefined) => {
+  if (!buildScript) return buildScript;
+  if (!nccBuildPattern.test(buildScript)) return buildScript;
+  if (nccTranspileOnlyPattern.test(buildScript)) return buildScript;
+
+  return `${buildScript} --transpile-only`;
+};
 
 let getEntrypointCandidates = (value: string) => {
   let normalized = normalizeArchivePath(value);
@@ -43,7 +63,7 @@ let getEntrypointCandidates = (value: string) => {
 
 let getSlateEntrypoint = (
   files: DeploymentArchiveFile[],
-  packageJson: { main?: string } | null
+  packageJson: Pick<SlatePackageJson, 'main'> | null
 ): string => {
   if (packageJson?.main) {
     for (let candidate of getEntrypointCandidates(packageJson.main)) {
@@ -60,20 +80,70 @@ let getSlateEntrypoint = (
   );
 };
 
-let getMergedPackageJson = (packageJson: Record<string, any> | null) => ({
-  ...(packageJson ?? {
-    name: 'slate-version-function',
-    version: '1.0.0'
-  }),
-  dependencies: {
-    ...(packageJson?.dependencies ?? {}),
-    ...wrapperDependencies
-  }
-});
+let getProviderImportPath = (
+  files: DeploymentArchiveFile[],
+  slateEntrypoint: string
+): string => {
+  if (!slateEntrypoint.startsWith('dist/')) return slateEntrypoint;
 
-let getFunctionBayConfig = (slateEntrypoint: string) => ({
+  for (let candidate of sourceProviderImportCandidates) {
+    if (getArchiveFile(files, candidate)) {
+      console.log(
+        `[Deployment]: Using source provider import ${candidate} instead of prebuilt ${slateEntrypoint}`
+      );
+      return candidate;
+    }
+  }
+
+  return slateEntrypoint;
+};
+
+let isPrebuiltNccArtifact = (filePath: string) => {
+  let normalized = normalizeArchivePath(filePath);
+  if (!normalized.startsWith('dist/')) return false;
+
+  if (normalized.endsWith('.map')) return true;
+  if (normalized.includes('sourcemap-register')) return true;
+  if (/^dist\/index\.(js|cjs|mjs)$/.test(normalized)) return true;
+  if (/^dist\/[0-9a-f]{10,}\.js$/i.test(normalized)) return true;
+
+  return false;
+};
+
+let stripSourcemapRegisterImport = (content: string) =>
+  content.replace(/^import\s+['"]\.\/?sourcemap-register\.cjs['"];?\s*/m, '');
+
+let getMergedPackageJson = (packageJson: SlatePackageJson | null) => {
+  let mergedPackageJson: SlatePackageJson = {
+    ...(packageJson ?? {
+      name: 'slate-version-function',
+      version: '1.0.0'
+    }),
+    dependencies: {
+      ...(packageJson?.dependencies ?? {}),
+      ...wrapperDependencies
+    }
+  };
+
+  if (mergedPackageJson.type === 'module') {
+    delete mergedPackageJson.type;
+  }
+
+  let buildScript = ensureNccTranspileOnly(mergedPackageJson.scripts?.build);
+  if (!buildScript) return mergedPackageJson;
+
+  return {
+    ...mergedPackageJson,
+    scripts: {
+      ...mergedPackageJson.scripts,
+      build: buildScript
+    }
+  };
+};
+
+let getFunctionBayConfig = (providerImportPath: string) => ({
   entrypoint: 'slates_entry_point.js',
-  ...(slateEntrypoint.startsWith('dist/')
+  ...(providerImportPath.startsWith('dist/')
     ? {
         scripts: {
           build: 'echo "Skipping slate build in favor of hub wrapper entrypoint"'
@@ -84,7 +154,7 @@ let getFunctionBayConfig = (slateEntrypoint: string) => ({
 
 export let buildSlateDeploymentFiles = (files: DeploymentArchiveFile[]) => {
   let packageJsonFile = getArchiveFile(files, 'package.json');
-  let packageJson: Record<string, any> | null = null;
+  let packageJson: SlatePackageJson | null = null;
 
   if (packageJsonFile) {
     try {
@@ -98,6 +168,14 @@ export let buildSlateDeploymentFiles = (files: DeploymentArchiveFile[]) => {
   }
 
   let slateEntrypoint = getSlateEntrypoint(files, packageJson);
+  let providerImportPath = getProviderImportPath(files, slateEntrypoint);
+  let usePrebuiltDist = providerImportPath.startsWith('dist/');
+
+  console.log(`[Deployment]: Using slate entrypoint: ${slateEntrypoint}`);
+  if (providerImportPath !== slateEntrypoint) {
+    console.log(`[Deployment]: Provider import path: ${providerImportPath}`);
+  }
+
   let generatedFiles = [
     {
       filename: 'package.json',
@@ -105,13 +183,13 @@ export let buildSlateDeploymentFiles = (files: DeploymentArchiveFile[]) => {
     },
     {
       filename: 'function-bay.json',
-      content: JSON.stringify(getFunctionBayConfig(slateEntrypoint), null, 2)
+      content: JSON.stringify(getFunctionBayConfig(providerImportPath), null, 2)
     },
     {
       filename: 'slates_entry_point.js',
       content: `
           import { createRequire } from 'node:module';
-          import { provider } from './${slateEntrypoint}';
+          import { provider } from './${providerImportPath}';
           import { createProviderHandler } from '@slates/provider-handler';
           import { SlatesProviderProtoHandlerManager } from '@slates/proto';
           import { serialize } from '@lowerdeck/serialize';
@@ -187,16 +265,35 @@ export let buildSlateDeploymentFiles = (files: DeploymentArchiveFile[]) => {
 
   return {
     slateEntrypoint,
+    providerImportPath,
     files: [
       ...generatedFiles,
       ...files
         .filter(file => file.path !== 'package.json')
         .filter(file => !logoFiles.some(logo => file.path.endsWith(logo)))
-        .map(file => ({
-          filename: generatedFilenames.has(file.path) ? `_${file.path}` : file.path,
-          content: file.buffer.toString('base64'),
-          encoding: 'base64' as const
-        }))
+        .filter(file => usePrebuiltDist || !isPrebuiltNccArtifact(file.path))
+        .map(file => {
+          let filename = generatedFilenames.has(file.path) ? `_${file.path}` : file.path;
+          let content = file.buffer.toString('base64');
+
+          if (
+            usePrebuiltDist &&
+            (filename === 'dist/index.js' ||
+              filename === 'dist/index.cjs' ||
+              filename === 'dist/index.mjs')
+          ) {
+            let sanitized = stripSourcemapRegisterImport(file.buffer.toString('utf-8'));
+            if (sanitized !== file.buffer.toString('utf-8')) {
+              content = Buffer.from(sanitized, 'utf-8').toString('base64');
+            }
+          }
+
+          return {
+            filename,
+            content,
+            encoding: 'base64' as const
+          };
+        })
     ]
   };
 };

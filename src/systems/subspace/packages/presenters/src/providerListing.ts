@@ -17,7 +17,7 @@ import { providerListingCategoryPresenter } from './providerListingCategory';
 import { providerListingCollectionPresenter } from './providerListingCollection';
 import { providerListingGroupPresenter } from './providerListingGroup';
 
-export let providerListingPresenter = (
+export let providerListingPresenter = async (
   providerListing: Omit<ProviderListing, 'readme'> & {
     provider: Provider & {
       entry: ProviderEntry;
@@ -66,6 +66,7 @@ export let providerListingPresenter = (
   aliases: providerListing.aliases,
 
   readme: providerListing.readme ?? null,
+  docs: providerListing.docs ?? null,
   skills: providerListing.skills,
 
   rank: providerListing.rank,
@@ -74,7 +75,7 @@ export let providerListingPresenter = (
   providerSessionsCount: providerListing.providerSessionsCount,
   providerMessagesCount: providerListing.providerMessagesCount,
 
-  provider: providerPresenter(providerListing.provider, d),
+  provider: await providerPresenter(providerListing.provider, d),
 
   categories: (providerListing.categories ?? []).map(category =>
     providerListingCategoryPresenter(category)

@@ -1,10 +1,7 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import {
-  subspaceIntegrationInstanceGroupService,
-  subspaceSessionService
-} from '@metorial/module-subspace';
+import { subspaceIntegrationInstanceGroupService } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
@@ -49,7 +46,7 @@ export let integrationInstanceGroupController = Controller.create(
   },
   {
     list: instanceGroup
-      .get(instancePath('integration-instance-groups', 'integrationInstanceGroups.list'), {
+      .get(instancePath('integration-instance-groups', 'integrations.instanceGroups.list'), {
         name: 'List integration instance groups',
         description: 'Returns a paginated list of integration instance groups.'
       })
@@ -114,7 +111,7 @@ export let integrationInstanceGroupController = Controller.create(
       .get(
         instancePath(
           'integration-instance-groups/:integrationInstanceGroupId',
-          'integrationInstanceGroups.get'
+          'integrations.instanceGroups.get'
         ),
         {
           name: 'Get integration instance group',
@@ -133,7 +130,7 @@ export let integrationInstanceGroupController = Controller.create(
       .post(
         instancePath(
           'integration-instance-groups/:integrationInstanceGroupId/session-template',
-          'integrationInstanceGroups.createSessionTemplate'
+          'integrations.instanceGroups.createSessionTemplate'
         ),
         {
           name: 'Create integration instance group session template',
@@ -168,7 +165,7 @@ export let integrationInstanceGroupController = Controller.create(
       .post(
         instancePath(
           'integration-instance-groups/:integrationInstanceGroupId/session',
-          'integrationInstanceGroups.createSession'
+          'integrations.instanceGroups.createSession'
         ),
         {
           name: 'Create integration instance group session',
@@ -187,36 +184,25 @@ export let integrationInstanceGroupController = Controller.create(
       )
       .output(providerSessionPresenter)
       .do(async ctx => {
-        if (!ctx.integrationInstanceGroup.defaultSessionTemplateId) {
-          throw new ServiceError(
-            badRequestError({
-              message:
-                'This integration instance group does not have a shared session template yet.',
-              code: 'integration_instance_group_shared_session_template_missing'
-            })
-          );
-        }
-
-        let session = await subspaceSessionService.create({
+        let session = await subspaceIntegrationInstanceGroupService.createSession({
           instance: ctx.instance,
+          integrationInstanceGroupId: ctx.integrationInstanceGroup.id,
           name: ctx.body.name ?? `Session ${new Date().toISOString()}`,
           description: ctx.body.description,
-          metadata: ctx.body.metadata,
-          providers: [
-            {
-              sessionTemplateId: ctx.integrationInstanceGroup.defaultSessionTemplateId
-            }
-          ]
+          metadata: ctx.body.metadata
         });
 
         return providerSessionPresenter.present({ session });
       }),
 
     create: instanceGroup
-      .post(instancePath('integration-instance-groups', 'integrationInstanceGroups.create'), {
-        name: 'Create integration instance group',
-        description: 'Creates a new integration instance group.'
-      })
+      .post(
+        instancePath('integration-instance-groups', 'integrations.instanceGroups.create'),
+        {
+          name: 'Create integration instance group',
+          description: 'Creates a new integration instance group.'
+        }
+      )
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
       .body(
         'default',
@@ -247,7 +233,7 @@ export let integrationInstanceGroupController = Controller.create(
       .patch(
         instancePath(
           'integration-instance-groups/:integrationInstanceGroupId',
-          'integrationInstanceGroups.update'
+          'integrations.instanceGroups.update'
         ),
         {
           name: 'Update integration instance group',
@@ -286,7 +272,7 @@ export let integrationInstanceGroupController = Controller.create(
       .delete(
         instancePath(
           'integration-instance-groups/:integrationInstanceGroupId',
-          'integrationInstanceGroups.delete'
+          'integrations.instanceGroups.delete'
         ),
         {
           name: 'Delete integration instance group',

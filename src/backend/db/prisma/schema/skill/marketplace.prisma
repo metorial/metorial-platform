@@ -1,0 +1,26 @@
+enum SkillMarketplaceStatus {
+  active
+  archived
+  deleted
+}
+
+model SkillMarketplace {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status SkillMarketplaceStatus @default(active)
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  consumerAccesses       ConsumerAccess[]        @relation("ConsumerAccessSkillMarketplace")
+  consumerAccessListings ConsumerAccessListing[]
+
+  @@index([instanceOid, status])
+}

@@ -2,7 +2,12 @@ import { createQueue } from '@lowerdeck/queue';
 import { db } from '../../../db';
 import { env } from '../../../env';
 import { mergeRepositorySyncPullRequest } from '../../../lib/scmRepositorySyncProvider';
-import { logRepositorySyncQueueError, logRepositorySyncQueueEvent, markRepositorySyncFailed } from './_lib';
+import {
+  appendRepositorySyncLog,
+  logRepositorySyncQueueError,
+  logRepositorySyncQueueEvent,
+  markRepositorySyncFailed
+} from './_lib';
 
 export let mergeRepositorySyncQueue = createQueue<{ syncId: string }>({
   name: 'ori/rep-sync/merge',
@@ -35,10 +40,14 @@ export let mergeRepositorySyncQueueProcessor = mergeRepositorySyncQueue.process(
     });
 
     if (!sync) {
-      logRepositorySyncQueueEvent('merge', 'skipped sync because expected status was not present', {
-        syncId: data.syncId,
-        expectedStatus: 'merging'
-      });
+      logRepositorySyncQueueEvent(
+        'merge',
+        'skipped sync because expected status was not present',
+        {
+          syncId: data.syncId,
+          expectedStatus: 'merging'
+        }
+      );
       return;
     }
 
@@ -50,7 +59,9 @@ export let mergeRepositorySyncQueueProcessor = mergeRepositorySyncQueue.process(
       repo: sync.repo.externalName,
       providerPrId: sync.providerPrId
     });
+    await appendRepositorySyncLog(sync.id, 'Merging the pull request.');
     let merge = await mergeRepositorySyncPullRequest(sync);
+    await appendRepositorySyncLog(sync.id, 'Pull request merged.');
     logRepositorySyncQueueEvent('merge', 'provider pull request merged', {
       syncId: sync.id,
       repoId: sync.repo.id,
@@ -66,6 +77,7 @@ export let mergeRepositorySyncQueueProcessor = mergeRepositorySyncQueue.process(
         completedAt: new Date()
       }
     });
+    await appendRepositorySyncLog(sync.id, 'Repository update completed.');
     logRepositorySyncQueueEvent('merge', 'marked sync merged', {
       syncId: sync.id,
       mergeSha: merge.mergeSha

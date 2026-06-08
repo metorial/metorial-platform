@@ -5,6 +5,7 @@ import {
   withTransaction,
   type ProviderDeploymentConfigPairSpecificationDiscoveryStatus
 } from '@metorial-subspace/db';
+import { schemaChangeNotificationAlertIngestQueue } from '@metorial-subspace/module-monitor/src/queues/schemaChange';
 import { env } from '../../env';
 import { providerVersionSetSpecificationQueue } from '../version/setSpec';
 
@@ -177,11 +178,12 @@ export let providerDeploymentConfigPairSetSpecificationQueueProcessor =
               fromSpecificationOid: previousPairVersion.specificationOid
             }
           });
-          await db.providerSpecificationChangeNotification.create({
+          let notification = await db.providerSpecificationChangeNotification.create({
             data: {
               ...getId('providerSpecificationChangeNotification'),
 
               tenantOid: providerDeployment.tenantOid,
+              environmentOid: providerDeployment.environmentOid,
               solutionOid: providerDeployment.solutionOid,
 
               target: 'deployment_config_pair',
@@ -189,6 +191,10 @@ export let providerDeploymentConfigPairSetSpecificationQueueProcessor =
               pairSpecificationChangeOid: change.oid,
               deploymentConfigPairOid: newPairVersion.pairOid
             }
+          });
+
+          await schemaChangeNotificationAlertIngestQueue.add({
+            notificationId: notification.id
           });
         } catch (e) {
           // Maybe a unique constraint violation, ignore for now

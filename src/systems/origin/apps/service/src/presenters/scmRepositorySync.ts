@@ -1,7 +1,7 @@
 import type { ScmRepositorySync } from '../../prisma/generated/client';
 
 export let scmRepositorySyncPresenter = (sync: ScmRepositorySync) => ({
-  object: 'origin#repository_sync',
+  object: 'origin#repository_sync' as const,
 
   id: sync.id,
   status: sync.status,
@@ -20,6 +20,7 @@ export let scmRepositorySyncPresenter = (sync: ScmRepositorySync) => ({
   errorMessage: sync.errorMessage,
   ciState: sync.ciState,
   attemptCount: sync.attemptCount,
+  logs: sync.logs,
 
   lastPolledAt: sync.lastPolledAt,
   nextPollAt: sync.nextPollAt,

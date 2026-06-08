@@ -9,7 +9,10 @@ import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { subspaceCustomProviderPresenter } from '../../../presenters';
+import {
+  subspaceCustomProviderEnvPresenter,
+  subspaceCustomProviderPresenter
+} from '../../../presenters';
 
 export let customProviderGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.customProviderId) {
@@ -23,7 +26,8 @@ export let customProviderGroup = instanceGroup.use(async ctx => {
 
   let customProvider = await subspaceCustomProviderService.get({
     instance: ctx.instance,
-    customProviderId: ctx.params.customProviderId
+    customProviderId: ctx.params.customProviderId,
+    includeEnv: false
   });
 
   return { customProvider };
@@ -262,6 +266,27 @@ export let customProviderController = Controller.create(
         });
       }),
 
+    getEnv: customProviderGroup
+      .get(instancePath('custom-providers/:customProviderId/env', 'customProviders.getEnv'), {
+        name: 'Get custom provider environment',
+        description:
+          'Retrieves the environment variables for a specific custom provider by ID.'
+      })
+      .use(checkAccess({ possibleScopes: ['instance.provider.custom:read'] }))
+      .use(hasFlags(['custom-providers-enabled', 'paid-custom-providers']))
+      .output(subspaceCustomProviderEnvPresenter)
+      .do(async ctx => {
+        let customProvider = await subspaceCustomProviderService.get({
+          instance: ctx.instance,
+          customProviderId: ctx.params.customProviderId,
+          includeEnv: true
+        });
+
+        return subspaceCustomProviderEnvPresenter.present({
+          customProviderFrom: customProvider.draft.from
+        });
+      }),
+
     create: instanceGroup
       .post(instancePath('custom-providers', 'customProviders.create'), {
         name: 'Create custom provider',
@@ -341,6 +366,31 @@ export let customProviderController = Controller.create(
           description: ctx.body.description,
           metadata: ctx.body.metadata,
           readme: ctx.body.readme
+        });
+
+        return subspaceCustomProviderPresenter.present({
+          customProvider: customProvider
+        });
+      }),
+
+    archive: customProviderGroup
+      .post(
+        instancePath('custom-providers/:customProviderId/archive', 'customProviders.archive'),
+        {
+          name: 'Archive custom provider',
+          description:
+            'Archives a specific custom provider and disables new connections to it.'
+        }
+      )
+      .use(checkAccess({ possibleScopes: ['instance.provider.custom:write'] }))
+      .use(hasFlags(['custom-providers-enabled', 'paid-custom-providers']))
+      .output(subspaceCustomProviderPresenter)
+      .do(async ctx => {
+        let customProvider = await subspaceCustomProviderService.archive({
+          instance: ctx.instance,
+          organizationActor: ctx.actor!,
+
+          customProviderId: ctx.customProvider.id
         });
 
         return subspaceCustomProviderPresenter.present({

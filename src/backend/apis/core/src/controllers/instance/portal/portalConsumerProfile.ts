@@ -50,6 +50,12 @@ export let portalConsumerProfileController = Controller.create(
         Paginator.validate(
           v.object({
             search: v.optional(v.string()),
+            email: v.optional(
+              v.union([
+                v.string({ modifiers: [v.email()] }),
+                v.array(v.string({ modifiers: [v.email()] }))
+              ])
+            ),
             consumer_group_id: v.optional(v.string()),
             status: v.optional(
               v.union([
@@ -64,6 +70,7 @@ export let portalConsumerProfileController = Controller.create(
         let paginator = await consumerProfileService.listConsumerProfiles({
           consumerSurface: ctx.portal.surface,
           search: ctx.query.search,
+          emails: normalizeArrayParam(ctx.query.email),
           consumerGroupId: ctx.query.consumer_group_id,
           statuses: normalizeArrayParam(ctx.query.status)
         });
@@ -106,6 +113,38 @@ export let portalConsumerProfileController = Controller.create(
           consumerProfile: ctx.consumerProfile,
           instanceConsumer: ctx.consumerProfile.instanceConsumer,
           assignedConsumerGroups
+        });
+      }),
+
+    create: portalGroup
+      .post(
+        instancePath('portals/:portalId/consumer-profile', 'portals.consumerProfiles.create'),
+        {
+          name: 'Create portal consumer profile',
+          description: 'Creates a new portal consumer profile.'
+        }
+      )
+      .use(checkAccess({ possibleScopes: ['instance.portal.consumers:write'] }))
+      .use(hasFlags(['paid-portals', 'portals-access']))
+      .body(
+        'default',
+        v.object({
+          email: v.string({ modifiers: [v.email()] }),
+          name: v.string()
+        })
+      )
+      .output(consumerProfilePresenter)
+      .do(async ctx => {
+        let consumerProfile = await consumerProfileService.createConsumerProfile({
+          surface: ctx.portal.surface,
+          email: ctx.body.email,
+          name: ctx.body.name
+        });
+
+        return consumerProfilePresenter.present({
+          consumerProfile,
+          instanceConsumer: consumerProfile.instanceConsumer,
+          assignedConsumerGroups: []
         });
       }),
 

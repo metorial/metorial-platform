@@ -5,6 +5,7 @@ enum UserStatus {
 
 enum UserType {
   user
+  system
 }
 
 model User {

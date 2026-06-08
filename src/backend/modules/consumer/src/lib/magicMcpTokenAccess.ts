@@ -1,10 +1,13 @@
 import { ConsumerGroup, ConsumerProfile, MagicMcpToken, Organization } from '@metorial/db';
-import { consumerAccessPolicyService } from '../services/accessPolicy';
-import { consumerIntegrationService } from '../services/consumerIntegration';
+import { consumerAccessPolicyService } from '../services/consumerAccess/accessPolicy';
+import { consumerIntegrationService } from '../services/consumerEntities/consumerIntegration';
 
 export let grantConsumerOwnedMagicMcpTokenAccess = async (d: {
   organization: Organization;
-  consumerProfile: Pick<ConsumerProfile, 'oid' | 'instanceOid' | 'consumerOid' | 'personalConsumerGroupOid'>;
+  consumerProfile: Pick<
+    ConsumerProfile,
+    'oid' | 'instanceOid' | 'consumerOid' | 'personalConsumerGroupOid'
+  >;
   consumerGroups?: Array<Pick<ConsumerGroup, 'oid' | 'accessTagOid'>>;
   magicMcpToken: Pick<MagicMcpToken, 'oid' | 'instanceOid'>;
 }) => {

@@ -1,0 +1,59 @@
+enum MonitorTarget {
+  protoguard_filter
+  schema_change
+}
+
+enum MonitorStatus {
+  active
+  inactive
+  archived
+}
+
+enum MonitorOwner {
+  tenant
+  system
+}
+
+model Monitor {
+  oid BigInt @id
+  id  String @unique
+
+  key String @unique
+
+  name        String
+  description String?
+
+  target MonitorTarget
+  status MonitorStatus
+  owner  MonitorOwner
+
+  // For protoguard_filter target
+  protoGuardFilterOid BigInt?
+  protoGuardFilter    ProtoGuardFilter? @relation(fields: [protoGuardFilterOid], references: [oid], onDelete: SetNull)
+
+  // For schema_change target
+  providerOid BigInt?
+  provider    Provider? @relation(fields: [providerOid], references: [oid], onDelete: SetNull)
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  solutionOid Int
+  solution    Solution @relation(fields: [solutionOid], references: [oid])
+
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @default(now()) @updatedAt
+  firstAlertAt  DateTime?
+  lastAlertAt   DateTime?
+  monitorAlerts MonitorAlert[]
+
+  @@index([target])
+  @@index([status])
+  @@index([owner])
+  @@index([tenantOid, environmentOid, solutionOid])
+  @@index([protoGuardFilterOid])
+  @@index([providerOid])
+}

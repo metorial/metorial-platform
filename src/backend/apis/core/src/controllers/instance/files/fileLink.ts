@@ -31,7 +31,7 @@ export let fileLinkController = Controller.create(
   },
   {
     listRoot: instanceGroup
-      .get(instancePath('file-links', 'fileLinks.list'), {
+      .get(instancePath('file-links', 'files.links.list'), {
         name: 'List file links',
         description:
           'Returns a paginated list of file links owned by the instance organization.'
@@ -69,7 +69,7 @@ export let fileLinkController = Controller.create(
       }),
 
     getRoot: fileLinkRootGroup
-      .get(instancePath('file-links/:linkId', 'fileLinks.get'), {
+      .get(instancePath('file-links/:linkId', 'files.links.get'), {
         name: 'Get file link by ID',
         description: 'Retrieves the details of a specific file link by its ID.'
       })
@@ -84,7 +84,7 @@ export let fileLinkController = Controller.create(
       }),
 
     createRoot: instanceGroup
-      .post(instancePath('file-links', 'fileLinks.create'), {
+      .post(instancePath('file-links', 'files.links.create'), {
         name: 'Create file link',
         description: 'Creates a new link for a specific file.'
       })
@@ -133,7 +133,7 @@ export let fileLinkController = Controller.create(
       }),
 
     deleteRoot: fileLinkRootGroup
-      .delete(instancePath('file-links/:linkId', 'fileLinks.delete'), {
+      .delete(instancePath('file-links/:linkId', 'files.links.delete'), {
         name: 'Delete file link by ID',
         description: 'Deletes a specific file link by its ID.'
       })

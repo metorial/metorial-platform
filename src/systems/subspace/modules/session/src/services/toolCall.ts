@@ -15,10 +15,12 @@ import {
 import {
   checkDeletedRelation,
   type DateFilter,
+  mergeRetentionWithDateFilter,
   normalizeDateFilter,
   normalizeStatusForGet,
   normalizeStatusForList,
   resolveAgents,
+  resolveIdentities,
   resolveIdentityActors,
   resolveProviderAuthConfigs,
   resolveProviderConfigs,
@@ -77,6 +79,7 @@ class toolCallServiceImpl {
     ids?: string[];
     agentIds?: string[];
     actorIds?: string[];
+    identityIds?: string[];
     agentInstanceIds?: string[];
     sessionTemplateIds?: string[];
     sessionProviderIds?: string[];
@@ -90,6 +93,7 @@ class toolCallServiceImpl {
   }) {
     let agents = await resolveAgents(d, d.agentIds);
     let actors = await resolveIdentityActors(d, d.actorIds);
+    let identities = await resolveIdentities(d, d.identityIds);
     let sessionTemplates = await resolveSessionTemplates(d, d.sessionTemplateIds);
     let sessionProviders = await resolveProviders(d, d.sessionProviderIds);
     let providers = await resolveProviders(d, d.providerIds);
@@ -153,16 +157,30 @@ class toolCallServiceImpl {
                       OR: [
                         {
                           senderParticipant: {
-                            agentInstance: {
-                              agent: { actorOid: actors.in }
-                            }
+                            identityActorOid: actors.in
                           }
                         },
                         {
                           responderParticipant: {
-                            agentInstance: {
-                              agent: { actorOid: actors.in }
-                            }
+                            identityActorOid: actors.in
+                          }
+                        }
+                      ]
+                    }
+                  }
+                : undefined!,
+              identities
+                ? {
+                    message: {
+                      OR: [
+                        {
+                          senderParticipant: {
+                            identityOid: identities.in
+                          }
+                        },
+                        {
+                          responderParticipant: {
+                            identityOid: identities.in
                           }
                         }
                       ]
@@ -204,7 +222,7 @@ class toolCallServiceImpl {
                 ? { session: { providers: { some: { authConfigOid: authConfigs.in } } } }
                 : undefined!,
 
-              d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
+              mergeRetentionWithDateFilter(d.tenant, d.createdAt),
               d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
             ].filter(Boolean)
           },
@@ -230,7 +248,8 @@ class toolCallServiceImpl {
         solutionOid: d.solution.oid,
         environmentOid: d.environment.oid,
 
-        message: normalizeStatusForGet(d).onlyParent
+        message: normalizeStatusForGet(d).onlyParent,
+        ...mergeRetentionWithDateFilter(d.tenant)
       },
       include
     });

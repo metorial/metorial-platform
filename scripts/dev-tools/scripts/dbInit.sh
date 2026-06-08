@@ -19,6 +19,7 @@ export SLATES_REGISTRY_DATABASE_URL="postgres://postgres:postgres@localhost:3543
 export SUBSPACE_DATABASE_URL="postgres://postgres:postgres@localhost:35432/subspace"
 export SHUTTLE_DATABASE_URL="postgres://postgres:postgres@localhost:35432/shuttle"
 export FORGE_DATABASE_URL="postgres://postgres:postgres@localhost:35432/forge"
+export NEBULA_DATABASE_URL="postgres://postgres:postgres@localhost:35432/nebula"
 export FUNCTION_BAY_DATABASE_URL="postgres://postgres:postgres@localhost:35432/function-bay"
 export HORIZON_DATABASE_URL="postgres://postgres:postgres@localhost:35432/horizon"
 export ARES_DATABASE_URL="postgres://postgres:postgres@localhost:35432/ares"

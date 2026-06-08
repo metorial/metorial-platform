@@ -2,7 +2,12 @@ import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type { SlateInstanceOAuthSetup, SlateVersion } from '../../prisma/generated/browser';
-import type { Slate, SlateOAuthCredentials, Tenant } from '../../prisma/generated/client';
+import type {
+  Slate,
+  SlateInstanceConfiguration,
+  SlateOAuthCredentials,
+  Tenant
+} from '../../prisma/generated/client';
 import { db } from '../db';
 import { getId } from '../id';
 import { validateJsonSchema } from '../lib/validateJsonSchema';
@@ -15,7 +20,8 @@ let include = {
       authMethod: true
     }
   },
-  oauthCredentials: true
+  oauthCredentials: true,
+  instanceConfiguration: true
 };
 
 class slateOAuthSetupServiceImpl {
@@ -29,6 +35,7 @@ class slateOAuthSetupServiceImpl {
       redirectUrl: string;
       input: Record<string, any>;
       callbackUrlOverride?: string;
+      instanceConfiguration?: SlateInstanceConfiguration;
     };
   }) {
     if (d.input.slateVersion && d.input.slateVersion.slateOid !== d.input.slate.oid) {
@@ -95,7 +102,8 @@ class slateOAuthSetupServiceImpl {
         secretOid: secret.oid,
         oauthCredentialsOid: d.input.oauthCredentials.oid,
         authMethodOid: authMethod.oid,
-        slateVersionOid: version.oid
+        slateVersionOid: version.oid,
+        instanceConfigurationOid: d.input.instanceConfiguration?.oid
       },
       include
     });

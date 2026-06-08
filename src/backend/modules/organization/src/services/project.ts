@@ -1,4 +1,5 @@
 import {
+  conflictError,
   forbiddenError,
   notFoundError,
   notImplementedError,
@@ -25,8 +26,23 @@ import { syncSubspaceTenantQueue } from '../queues/syncSubspaceTenant';
 import { instanceService } from './instance';
 
 let getProjectSlug = createSlugGenerator(
-  async slug => !(await db.project.findFirst({ where: { slug } }))
+  async slug =>
+    !(await db.project.findFirst({
+      where: {
+        OR: [{ slug }, { previousSlugs: { has: slug } }]
+      }
+    }))
 );
+
+let getNextPreviousSlugs = (d: {
+  previousSlugs: string[];
+  currentSlug: string;
+  nextSlug: string;
+}) => {
+  return Array.from(
+    new Set([...d.previousSlugs.filter(slug => slug !== d.nextSlug), d.currentSlug])
+  );
+};
 
 class ProjectService {
   private async ensureProjectActive(project: Project) {
@@ -37,6 +53,48 @@ class ProjectService {
         })
       );
     }
+  }
+
+  private async reclaimProjectSlugOrThrow(d: { slug: string; project?: Project }) {
+    await withTransaction(
+      async db => {
+        let currentSlugProject = await db.project.findFirst({
+          where: {
+            slug: d.slug,
+            id: d.project ? { not: d.project.id } : undefined
+          }
+        });
+
+        if (currentSlugProject) {
+          throw new ServiceError(
+            conflictError({
+              message: 'A project with this slug already exists'
+            })
+          );
+        }
+
+        let previousSlugProjects = await db.project.findMany({
+          where: {
+            previousSlugs: { has: d.slug },
+            id: d.project ? { not: d.project.id } : undefined
+          },
+          select: {
+            oid: true,
+            previousSlugs: true
+          }
+        });
+
+        for (let project of previousSlugProjects) {
+          await db.project.update({
+            where: { oid: project.oid },
+            data: {
+              previousSlugs: project.previousSlugs.filter(slug => slug !== d.slug)
+            }
+          });
+        }
+      },
+      { ifExists: true }
+    );
   }
 
   async createProject(d: {
@@ -71,8 +129,8 @@ class ProjectService {
         performedBy: d.performedBy,
         context: d.context,
         input: {
-          name: `Development`,
-          type: 'development'
+          name: `Production`,
+          type: 'production'
         }
       });
 
@@ -98,6 +156,7 @@ class ProjectService {
     context: Context;
     input: {
       name?: string;
+      slug?: string;
       onlyAllowTrustedProviders?: boolean;
       magicMcpSessionDurationMinutes?: number;
     };
@@ -107,10 +166,26 @@ class ProjectService {
     return withTransaction(async db => {
       await Fabric.fire('organization.project.updated:before', d);
 
+      if (d.input.slug && d.input.slug !== d.project.slug) {
+        await this.reclaimProjectSlugOrThrow({
+          slug: d.input.slug,
+          project: d.project
+        });
+      }
+
       let project = await db.project.update({
         where: { oid: d.project.oid },
         data: {
           name: d.input.name,
+          slug: d.input.slug,
+          previousSlugs:
+            d.input.slug && d.input.slug !== d.project.slug
+              ? getNextPreviousSlugs({
+                  previousSlugs: d.project.previousSlugs ?? [],
+                  currentSlug: d.project.slug,
+                  nextSlug: d.input.slug
+                })
+              : undefined,
           onlyAllowTrustedProviders: d.input.onlyAllowTrustedProviders,
           magicMcpSessionDurationMinutes: d.input.magicMcpSessionDurationMinutes
         },
@@ -162,7 +237,11 @@ class ProjectService {
   }) {
     let project = await db.project.findFirst({
       where: {
-        OR: [{ id: d.projectId }, { slug: d.projectId }],
+        OR: [
+          { id: d.projectId },
+          { slug: d.projectId },
+          { previousSlugs: { has: d.projectId } }
+        ],
         organizationOid: d.organization.oid
       },
       include: {
@@ -189,7 +268,13 @@ class ProjectService {
             where: {
               organizationOid: d.organization.oid,
               status: 'active',
-              id: d.projectIds ? { in: d.projectIds } : undefined
+              OR: d.projectIds
+                ? [
+                    { id: { in: d.projectIds } },
+                    { slug: { in: d.projectIds } },
+                    { previousSlugs: { hasSome: d.projectIds } }
+                  ]
+                : undefined
             },
             include: {
               organization: true
@@ -220,7 +305,11 @@ class ProjectService {
     let projects = await db.project.findMany({
       where: {
         organizationOid: d.organization.oid,
-        OR: [{ id: { in: d.projectIds } }, { slug: { in: d.projectIds } }]
+        OR: [
+          { id: { in: d.projectIds } },
+          { slug: { in: d.projectIds } },
+          { previousSlugs: { hasSome: d.projectIds } }
+        ]
       },
       include: {
         organization: true

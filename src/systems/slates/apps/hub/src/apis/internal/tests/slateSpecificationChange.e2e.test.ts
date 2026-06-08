@@ -14,7 +14,11 @@ describe('slateSpecificationChange:list E2E', () => {
   it('returns specification changes', async () => {
     const { change, fromVersion, toVersion } = await f.slateSpecificationChange.withVersions();
 
-    await f.slateSpecificationChange.withVersions();
+    const {
+      change: laterChange,
+      fromVersion: laterFromVersion,
+      toVersion: laterToVersion
+    } = await f.slateSpecificationChange.withVersions();
 
     const result = await slatesHubClient.slateSpecificationChange.list({
       limit: 10
@@ -22,6 +26,13 @@ describe('slateSpecificationChange:list E2E', () => {
 
     expect(result.items).toHaveLength(2);
     expect(result.items[0]).toMatchObject({
+      id: laterChange.id,
+      type: SlateSpecificationChangeType.between_versions,
+      fromVersionId: laterFromVersion.id,
+      toVersionId: laterToVersion.id,
+      createdAt: expect.any(Date)
+    });
+    expect(result.items[1]).toMatchObject({
       id: change.id,
       type: SlateSpecificationChangeType.between_versions,
       fromVersionId: fromVersion.id,

@@ -17,7 +17,7 @@ import { providerVersionPresenter } from './providerVersion';
 import { publisherPresenter } from './publisher';
 import { tenantPresenter } from './tenant';
 
-export let providerPresenter = (
+export let providerPresenter = async (
   provider: Provider & {
     entry: ProviderEntry;
     publisher: Publisher;
@@ -38,7 +38,7 @@ export let providerPresenter = (
   },
   d: { tenant: Tenant | undefined }
 ) => {
-  let type = providerTypePresenter(provider.type, {
+  let type = await providerTypePresenter(provider.type, {
     tenant: d.tenant,
     provider
   });

@@ -1,10 +1,17 @@
 import { flushDocumentDraft } from '@metorial-cargo/module-doc';
-import { skillMarketplaceService, skillPluginService } from '@metorial-cargo/module-skill';
+import {
+  skillMarketplacePluginService,
+  skillMarketplaceService,
+  skillPluginService,
+  skillPluginSkillService
+} from '@metorial-cargo/module-skill';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { db, getId } from '../../db';
+import { db, getId, snowflake } from '../../db';
 import { storeVersionService } from '@metorial-cargo/module-store';
 import { cargoClient } from '../../test/client';
 import { cleanDatabase } from '../../test/setup';
+import { applyMarketplace } from '../../../../modules/skill/src/serializers/marketplace';
+import { applyPlugin } from '../../../../modules/skill/src/serializers/plugin';
 
 let subtractHours = (date: Date, hours: number) =>
   new Date(date.getTime() - hours * 60 * 60 * 1000);
@@ -136,9 +143,193 @@ let createTestSkillMarketplacePlugin = async (d: {
     }
   });
 
+let createTestSkillSync = async (d: {
+  destinationOid: bigint;
+  status: 'pending' | 'completed' | 'failed' | 'processing' | 'canceled';
+  logMessage: string;
+}) =>
+  await db.skillDestinationSync.create({
+    data: {
+      ...getId('skillDestinationSync'),
+      status: d.status,
+      destinationOid: d.destinationOid,
+      logs: [[Date.now(), d.logMessage]]
+    }
+  });
+
+let createManyTestSkills = async (d: {
+  tenantOid: bigint;
+  environmentOid: bigint;
+  count: number;
+  prefix: string;
+}) => {
+  let stores = Array.from({ length: d.count }, (_, idx) => ({
+    ...getId('store'),
+    name: `${d.prefix} Store ${idx}`,
+    access: 'private',
+    cloneType: null,
+    itemCount: 0,
+    tenantOid: d.tenantOid,
+    environmentOid: d.environmentOid,
+    lastEditedAt: new Date()
+  }));
+  let skills = stores.map((store, idx) => ({
+    oid: snowflake.nextId(),
+    id: `${d.prefix}-skill-${idx}`,
+    status: 'active',
+    name: `${d.prefix} Skill ${idx}`,
+    slug: `${d.prefix}-skill-${idx}`,
+    clientName: `${d.prefix} Skill ${idx}`,
+    tenantOid: d.tenantOid,
+    environmentOid: d.environmentOid,
+    storeOid: store.oid
+  }));
+
+  await db.store.createMany({ data: stores as any });
+  await db.skill.createMany({ data: skills as any });
+
+  return await db.skill.findMany({
+    where: { id: { in: skills.map(skill => skill.id) } },
+    orderBy: { id: 'asc' }
+  });
+};
+
+let createManyTestPlugins = async (d: {
+  tenantOid: bigint;
+  environmentOid: bigint;
+  count: number;
+  prefix: string;
+}) => {
+  let destinations = Array.from({ length: d.count }, (_, idx) => ({
+    ...getId('skillDestination'),
+    codeBucketId: `${d.prefix}-plugin-bucket-${idx}`
+  }));
+  let plugins = destinations.map((destination, idx) => ({
+    ...getId('skillPlugin'),
+    status: 'active',
+    isManaged: false,
+    name: `${d.prefix} Plugin ${idx}`,
+    slug: `${d.prefix}-plugin-${idx}`,
+    tenantOid: d.tenantOid,
+    environmentOid: d.environmentOid,
+    destinationOid: destination.oid
+  }));
+
+  await db.skillDestination.createMany({ data: destinations });
+  await db.skillPlugin.createMany({ data: plugins as any });
+
+  return await db.skillPlugin.findMany({
+    where: { id: { in: plugins.map(plugin => plugin.id) } },
+    orderBy: { id: 'asc' }
+  });
+};
+
 describe('cargo skill.e2e', () => {
   beforeEach(async () => {
     await cleanDatabase();
+  });
+
+  it('lists and gets skill syncs by plugin and marketplace', async () => {
+    let { tenant, environment } = await createScope();
+    let scope = await getCargoScopeRecords({
+      tenantId: tenant.id,
+      environmentId: environment.id
+    });
+    let otherEnvironment = await cargoClient.environment.upsert({
+      tenantId: tenant.id,
+      identifier: 'staging',
+      name: 'Staging',
+      type: 'development'
+    });
+    let otherScope = await getCargoScopeRecords({
+      tenantId: tenant.id,
+      environmentId: otherEnvironment.id
+    });
+    let skillPlugin = await createTestSkillPlugin({
+      tenantOid: scope.tenant.oid,
+      environmentOid: scope.environment.oid,
+      name: 'Sync Plugin',
+      slug: 'sync-plugin'
+    });
+    let skillMarketplace = await createTestSkillMarketplace({
+      tenantOid: scope.tenant.oid,
+      environmentOid: scope.environment.oid,
+      name: 'Sync Marketplace',
+      slug: 'sync-marketplace'
+    });
+    let otherSkillPlugin = await createTestSkillPlugin({
+      tenantOid: otherScope.tenant.oid,
+      environmentOid: otherScope.environment.oid,
+      name: 'Other Sync Plugin',
+      slug: 'other-sync-plugin'
+    });
+    let pluginSync = await createTestSkillSync({
+      destinationOid: skillPlugin.destinationOid,
+      status: 'processing',
+      logMessage: 'Plugin sync started'
+    });
+    let marketplaceSync = await createTestSkillSync({
+      destinationOid: skillMarketplace.destinationOid,
+      status: 'completed',
+      logMessage: 'Marketplace sync completed'
+    });
+    let otherSync = await createTestSkillSync({
+      destinationOid: otherSkillPlugin.destinationOid,
+      status: 'processing',
+      logMessage: 'Other sync started'
+    });
+
+    let listedForPlugin = await cargoClient.skillSync.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillPluginIds: [skillPlugin.id],
+      limit: 10
+    });
+    let listedForMarketplace = await cargoClient.skillSync.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillMarketplaceIds: [skillMarketplace.id],
+      limit: 10
+    });
+    let listedForEnvironment = await cargoClient.skillSync.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      limit: 10
+    });
+    let fetched = await cargoClient.skillSync.get({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillSyncId: pluginSync.id
+    });
+
+    expect(listedForPlugin.items.map(item => item.id)).toEqual([pluginSync.id]);
+    expect(listedForPlugin.items[0]).toMatchObject({
+      object: 'cargo#skillSync',
+      id: pluginSync.id,
+      status: 'processing',
+      skillPluginId: skillPlugin.id
+    });
+    expect(listedForMarketplace.items.map(item => item.id)).toEqual([
+      marketplaceSync.id
+    ]);
+    expect(listedForMarketplace.items[0]).toMatchObject({
+      object: 'cargo#skillSync',
+      id: marketplaceSync.id,
+      status: 'completed',
+      skillMarketplaceId: skillMarketplace.id
+    });
+    expect(listedForEnvironment.items.map(item => item.id)).not.toContain(otherSync.id);
+    expect(fetched).toMatchObject({
+      id: pluginSync.id,
+      logs: [[expect.any(Number), 'Plugin sync started']]
+    });
+    await expect(
+      cargoClient.skillSync.get({
+        tenantId: tenant.id,
+        environmentId: environment.id,
+        skillSyncId: otherSync.id
+      })
+    ).rejects.toThrow();
   });
 
   it('filters skill exports by creator actor', async () => {
@@ -374,6 +565,293 @@ describe('cargo skill.e2e', () => {
         storeId: created.storeId
       })
     ).rejects.toThrow('Cannot delete store: it is linked to a skill');
+  });
+
+  it('rejects adding more than 100 active skills to a plugin', async () => {
+    let { tenant, environment } = await createScope();
+    let scope = await getCargoScopeRecords({
+      tenantId: tenant.id,
+      environmentId: environment.id
+    });
+    let skillPluginRecord = await createTestSkillPlugin({
+      tenantOid: scope.tenant.oid,
+      environmentOid: scope.environment.oid,
+      name: 'Limited Plugin',
+      slug: 'limited-plugin'
+    });
+    let skillPlugin = await skillPluginService.getSkillPluginById({
+      tenant: scope.tenant,
+      environment: scope.environment,
+      skillPluginId: skillPluginRecord.id
+    });
+    let skills = await createManyTestSkills({
+      tenantOid: scope.tenant.oid,
+      environmentOid: scope.environment.oid,
+      count: 101,
+      prefix: 'plugin-limit'
+    });
+
+    await db.skillPluginSkill.createMany({
+      data: skills.slice(0, 100).map((skill, idx) => ({
+        ...getId('skillPluginSkill'),
+        status: 'active',
+        pluginSkillSlug: `plugin-limit-${idx}`,
+        skillOid: skill.oid,
+        skillPluginOid: skillPlugin.oid
+      }))
+    });
+
+    await expect(
+      skillPluginSkillService.addSkillPluginSkill({
+        tenant: scope.tenant,
+        environment: scope.environment,
+        skillPlugin,
+        input: {
+          skillId: skills[100]!.id
+        }
+      })
+    ).rejects.toThrow('Plugin skills cannot exceed 100');
+  });
+
+  it('rejects adding more than 500 active plugins to a marketplace', async () => {
+    let { tenant, environment } = await createScope();
+    let scope = await getCargoScopeRecords({
+      tenantId: tenant.id,
+      environmentId: environment.id
+    });
+    let skillMarketplaceRecord = await createTestSkillMarketplace({
+      tenantOid: scope.tenant.oid,
+      environmentOid: scope.environment.oid,
+      name: 'Limited Marketplace',
+      slug: 'limited-marketplace'
+    });
+    let skillMarketplace = await skillMarketplaceService.getSkillMarketplaceById({
+      tenant: scope.tenant,
+      environment: scope.environment,
+      skillMarketplaceId: skillMarketplaceRecord.id
+    });
+    let plugins = await createManyTestPlugins({
+      tenantOid: scope.tenant.oid,
+      environmentOid: scope.environment.oid,
+      count: 501,
+      prefix: 'marketplace-plugin-limit'
+    });
+
+    await db.skillMarketplacePlugin.createMany({
+      data: plugins.slice(0, 500).map((plugin, idx) => ({
+        ...getId('skillMarketplacePlugin'),
+        status: 'active',
+        pluginSlug: `marketplace-plugin-limit-${idx}`,
+        skillMarketplaceOid: skillMarketplace.oid,
+        skillPluginOid: plugin.oid
+      }))
+    });
+
+    await expect(
+      skillMarketplacePluginService.addSkillMarketplacePlugin({
+        tenant: scope.tenant,
+        environment: scope.environment,
+        skillMarketplace,
+        input: {
+          skillPluginId: plugins[500]!.id
+        }
+      })
+    ).rejects.toThrow('Marketplace plugins cannot exceed 500');
+  });
+
+  it('rejects adding marketplace plugins that would exceed 1000 active skills', async () => {
+    let { tenant, environment } = await createScope();
+    let scope = await getCargoScopeRecords({
+      tenantId: tenant.id,
+      environmentId: environment.id
+    });
+    let skillMarketplaceRecord = await createTestSkillMarketplace({
+      tenantOid: scope.tenant.oid,
+      environmentOid: scope.environment.oid,
+      name: 'Skill Limited Marketplace',
+      slug: 'skill-limited-marketplace'
+    });
+    let skillMarketplace = await skillMarketplaceService.getSkillMarketplaceById({
+      tenant: scope.tenant,
+      environment: scope.environment,
+      skillMarketplaceId: skillMarketplaceRecord.id
+    });
+    let skillPluginRecord = await createTestSkillPlugin({
+      tenantOid: scope.tenant.oid,
+      environmentOid: scope.environment.oid,
+      name: 'Oversized Marketplace Plugin',
+      slug: 'oversized-marketplace-plugin'
+    });
+    let skillPlugin = await skillPluginService.getSkillPluginById({
+      tenant: scope.tenant,
+      environment: scope.environment,
+      skillPluginId: skillPluginRecord.id
+    });
+    let skills = await createManyTestSkills({
+      tenantOid: scope.tenant.oid,
+      environmentOid: scope.environment.oid,
+      count: 1001,
+      prefix: 'marketplace-skill-limit'
+    });
+
+    await db.skillPluginSkill.createMany({
+      data: skills.map((skill, idx) => ({
+        ...getId('skillPluginSkill'),
+        status: 'active',
+        pluginSkillSlug: `marketplace-skill-limit-${idx}`,
+        skillOid: skill.oid,
+        skillPluginOid: skillPlugin.oid
+      }))
+    });
+
+    await expect(
+      skillMarketplacePluginService.addSkillMarketplacePlugin({
+        tenant: scope.tenant,
+        environment: scope.environment,
+        skillMarketplace,
+        input: {
+          skillPluginId: skillPlugin.id
+        }
+      })
+    ).rejects.toThrow('Marketplace skills cannot exceed 1000');
+  });
+
+  it('rejects creating the 1001st exportable file in a skill store', async () => {
+    let { tenant, environment } = await createScope();
+    let skill = await cargoClient.skill.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillId: 'csk_store_file_limit',
+      name: 'Store File Limited Skill'
+    });
+    let store = await db.store.findUniqueOrThrow({
+      where: { id: skill.storeId }
+    });
+    let currentExportableCount = await db.storeItem.count({
+      where: {
+        storeOid: store.oid,
+        kind: { in: ['document', 'file'] }
+      }
+    });
+
+    await db.storeItem.createMany({
+      data: Array.from({ length: 1000 - currentExportableCount }, (_, idx) => ({
+        ...getId('storeItem'),
+        kind: 'file',
+        path: `/limit-${idx}.txt`,
+        storeOid: store.oid
+      }))
+    });
+
+    await expect(
+      cargoClient.document.create({
+        tenantId: tenant.id,
+        environmentId: environment.id,
+        title: 'Too Many Files',
+        content: 'limit',
+        store: {
+          id: skill.storeId,
+          path: '/too-many.md'
+        }
+      })
+    ).rejects.toThrow('Skill store files cannot exceed 1000');
+  });
+
+  it('rejects oversized plugin and marketplace data during serializer initialization', async () => {
+    let { tenant, environment } = await createScope();
+    let scope = await getCargoScopeRecords({
+      tenantId: tenant.id,
+      environmentId: environment.id
+    });
+    let skillMarketplaceRecord = await createTestSkillMarketplace({
+      tenantOid: scope.tenant.oid,
+      environmentOid: scope.environment.oid,
+      name: 'Serializer Limited Marketplace',
+      slug: 'serializer-limited-marketplace'
+    });
+    let skillMarketplace = await skillMarketplaceService.getSkillMarketplaceById({
+      tenant: scope.tenant,
+      environment: scope.environment,
+      skillMarketplaceId: skillMarketplaceRecord.id
+    });
+    let skillPluginRecord = await createTestSkillPlugin({
+      tenantOid: scope.tenant.oid,
+      environmentOid: scope.environment.oid,
+      name: 'Serializer Limited Plugin',
+      slug: 'serializer-limited-plugin'
+    });
+    let skillPlugin = await skillPluginService.getSkillPluginById({
+      tenant: scope.tenant,
+      environment: scope.environment,
+      skillPluginId: skillPluginRecord.id
+    });
+    let skills = await createManyTestSkills({
+      tenantOid: scope.tenant.oid,
+      environmentOid: scope.environment.oid,
+      count: 101,
+      prefix: 'serializer-plugin-limit'
+    });
+
+    await db.skillPluginSkill.createMany({
+      data: skills.map((skill, idx) => ({
+        ...getId('skillPluginSkill'),
+        status: 'active',
+        pluginSkillSlug: `serializer-plugin-limit-${idx}`,
+        skillOid: skill.oid,
+        skillPluginOid: skillPlugin.oid
+      }))
+    });
+    await db.skillMarketplacePlugin.create({
+      data: {
+        ...getId('skillMarketplacePlugin'),
+        status: 'active',
+        pluginSlug: 'serializer-plugin-limit',
+        skillMarketplaceOid: skillMarketplace.oid,
+        skillPluginOid: skillPlugin.oid
+      }
+    });
+
+    await expect(
+      applyPlugin.init({
+        skillPlugin: {
+          ...skillPlugin,
+          skills: [],
+          skillConfiguration: null
+        }
+      } as any)
+    ).rejects.toThrow('Plugin skills cannot exceed 100');
+
+    let pluginLimitedMarketplaceRecord = await createTestSkillMarketplace({
+      tenantOid: scope.tenant.oid,
+      environmentOid: scope.environment.oid,
+      name: 'Serializer Plugin Limited Marketplace',
+      slug: 'serializer-plugin-limited-marketplace'
+    });
+    let pluginLimitedMarketplace = await skillMarketplaceService.getSkillMarketplaceById({
+      tenant: scope.tenant,
+      environment: scope.environment,
+      skillMarketplaceId: pluginLimitedMarketplaceRecord.id
+    });
+    let plugins = await createManyTestPlugins({
+      tenantOid: scope.tenant.oid,
+      environmentOid: scope.environment.oid,
+      count: 501,
+      prefix: 'serializer-marketplace-plugin-limit'
+    });
+
+    await db.skillMarketplacePlugin.createMany({
+      data: plugins.map((plugin, idx) => ({
+        ...getId('skillMarketplacePlugin'),
+        status: 'active',
+        pluginSlug: `serializer-marketplace-plugin-limit-${idx}`,
+        skillMarketplaceOid: pluginLimitedMarketplace.oid,
+        skillPluginOid: plugin.oid
+      }))
+    });
+
+    await expect(
+      applyMarketplace.init({ skillMarketplace: pluginLimitedMarketplace } as any)
+    ).rejects.toThrow('Marketplace plugins cannot exceed 500');
   });
 
   it('archives plugin links when archiving a plugin', async () => {
@@ -1170,7 +1648,7 @@ describe('cargo skill.e2e', () => {
 
     expect(forkerParticipant).toMatchObject({
       skillId: parent.id,
-      roles: ['forker'],
+      roles: expect.arrayContaining(['forker']),
       actor: {
         id: forker.id
       }

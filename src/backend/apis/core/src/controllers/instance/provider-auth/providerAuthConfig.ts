@@ -155,7 +155,8 @@ export let providerAuthConfigController = Controller.create(
     create: instanceGroup
       .post(instancePath('provider-auth-configs', 'providerDeployments.authConfigs.create'), {
         name: 'Create provider auth config',
-        description: 'Creates a new provider auth config.'
+        description: 'Creates a new provider auth config.',
+        confidential: true
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
       .body(

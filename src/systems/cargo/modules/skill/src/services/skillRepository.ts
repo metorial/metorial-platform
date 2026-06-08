@@ -22,16 +22,62 @@ export type SkillRepositoryRecord = Prisma.SkillRepositoryGetPayload<{
   include: typeof skillRepositoryInclude;
 }>;
 
-export type OriginRepositoryRecord = Awaited<
-  ReturnType<typeof origin.scmRepository.getMany>
->['repositories'][number];
+export type OriginScmProvider = 'github' | 'gitlab';
+
+export type OriginScmAccountRecord = {
+  object: 'origin#scmAccount';
+  id: string;
+  provider: OriginScmProvider;
+  type: 'user' | 'organization';
+  name: string;
+  identifier: string;
+  externalId: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export type OriginRepositoryRecord = {
+  object: 'origin#repository';
+  id: string;
+  identifier: string;
+  name: string;
+  provider: OriginScmProvider;
+  externalId: string;
+  externalOwner: string;
+  externalName: string;
+  externalUrl: string;
+  externalIsPrivate: boolean;
+  defaultBranch: string;
+  account: OriginScmAccountRecord | undefined;
+  createdAt: Date;
+  updatedAt: Date;
+};
 
 export type EnrichedSkillRepositoryRecord = SkillRepositoryRecord & {
   originRepository: OriginRepositoryRecord | null;
 };
 
+type OriginObject<T> = Omit<T, 'object'> & { object: string };
+
+let normalizeOriginScmAccount = (account: OriginObject<OriginScmAccountRecord>): OriginScmAccountRecord => ({
+  ...account,
+  object: 'origin#scmAccount'
+});
+
+let normalizeOriginRepository = (
+  repository: Omit<OriginObject<OriginRepositoryRecord>, 'account'> & {
+    account: OriginObject<OriginScmAccountRecord> | undefined;
+  }
+): OriginRepositoryRecord => ({
+  ...repository,
+  object: 'origin#repository',
+  account: repository.account ? normalizeOriginScmAccount(repository.account) : undefined
+});
+
 class SkillRepositoryServiceImpl {
-  async getOriginRepositories(d: CargoTenantEnvironment & { repoIds: string[] }) {
+  async getOriginRepositories(
+    d: CargoTenantEnvironment & { repoIds: string[] }
+  ): Promise<OriginRepositoryRecord[]> {
     if (d.repoIds.length === 0) return [];
 
     let originTenant = await getOriginTenant(d.tenant);
@@ -40,10 +86,12 @@ class SkillRepositoryServiceImpl {
       scmRepositoryIds: d.repoIds
     });
 
-    return result.repositories;
+    return result.repositories.map(normalizeOriginRepository);
   }
 
-  async getOriginRepository(d: CargoTenantEnvironment & { repoId: string }) {
+  async getOriginRepository(
+    d: CargoTenantEnvironment & { repoId: string }
+  ): Promise<OriginRepositoryRecord> {
     let repositories = await this.getOriginRepositories({
       tenant: d.tenant,
       environment: d.environment,

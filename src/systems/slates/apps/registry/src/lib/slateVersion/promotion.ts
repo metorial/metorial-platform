@@ -24,6 +24,14 @@ export let getSlateVersionPromotion = (d: {
     };
   }
 
+  if (d.backend === 'local_built' || d.backend === 'npm') {
+    return {
+      shouldSetUnbuiltCurrentVersion: false,
+      shouldSetBuiltOrUnbuiltCurrentVersion:
+        !d.builtOrUnbuiltCurrentVersion || semver.gt(d.version, d.builtOrUnbuiltCurrentVersion)
+    };
+  }
+
   return {
     shouldSetUnbuiltCurrentVersion: false,
     shouldSetBuiltOrUnbuiltCurrentVersion:

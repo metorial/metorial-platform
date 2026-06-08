@@ -1,6 +1,82 @@
-import type { DashboardInstanceCustomProvidersGetOutput } from '@metorial/dashboard-sdk';
+import type {
+  CustomProvidersGetOutput,
+  DashboardInstanceCustomProvidersGetOutput,
+  DashboardInstanceCustomProvidersVersionsCreateBody
+} from '@metorial/dashboard-sdk';
 
 export type CustomProviderRemoteProtocol = 'sse' | 'streamable_http';
+
+export let normalizeRepoPath = (path: string | null | undefined) => {
+  let trimmed = path?.trim();
+  return trimmed ? trimmed : undefined;
+};
+
+export let normalizeEnvRecord = (env: Record<string, any> | null | undefined) => {
+  let normalized: Record<string, string> = {};
+
+  for (let [key, value] of Object.entries(env ?? {})) {
+    let normalizedKey = key.trim();
+    if (!normalizedKey) continue;
+    normalized[normalizedKey] = String(value ?? '');
+  }
+
+  return normalized;
+};
+
+export let getFunctionProviderVersionFrom = (
+  customProvider: CustomProvidersGetOutput | DashboardInstanceCustomProvidersGetOutput,
+  env: Record<string, string>
+): DashboardInstanceCustomProvidersVersionsCreateBody['from'] => {
+  let linkedRepo = getCustomProviderLinkedRepo(customProvider);
+  let runtime = { identifier: 'nodejs' as const, version: '22.x' as const };
+
+  if (linkedRepo?.id) {
+    return {
+      type: 'function',
+      env,
+      runtime,
+      repository: {
+        repositoryId: linkedRepo.id,
+        branch: linkedRepo.defaultBranch || 'main',
+        path: normalizeRepoPath(linkedRepo.path)
+      }
+    };
+  }
+
+  return {
+    type: 'function',
+    files: [],
+    env,
+    runtime
+  };
+};
+
+export let getCustomProviderRedeployInput = (
+  customProvider: DashboardInstanceCustomProvidersGetOutput | null | undefined,
+  env: Record<string, string>
+): Pick<DashboardInstanceCustomProvidersVersionsCreateBody, 'from'> | null => {
+  if (!customProvider || customProvider.status === 'archived') return null;
+
+  if (customProvider.type === 'function') {
+    return {
+      from: getFunctionProviderVersionFrom(customProvider, env)
+    };
+  }
+
+  if (customProvider.type === 'container') {
+    let containerImage = customProvider.draft?.containerImage?.containerImage;
+    if (!containerImage) return null;
+
+    return {
+      from: {
+        type: 'container',
+        imageRef: containerImage
+      }
+    };
+  }
+
+  return null;
+};
 
 export let normalizeTrackedBranch = (branch: string | null | undefined) => {
   let normalizedBranch = branch?.trim();

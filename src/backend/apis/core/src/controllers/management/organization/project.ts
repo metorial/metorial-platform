@@ -224,7 +224,8 @@ export let projectManagementController = Controller.create(
         organizationManagementPath('projects/:projectId/branding', 'projects.branding.update'),
         {
           name: 'Update project branding',
-          description: 'Update branding information for a specific project'
+          description: 'Update branding information for a specific project',
+          hideInDocs: true
         }
       )
       .use(checkAccess({ possibleScopes: ['organization.project:write'] }))

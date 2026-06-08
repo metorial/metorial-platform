@@ -1,15 +1,15 @@
+import { db, type Instance, type Organization, type User } from '@metorial/db';
 import {
-  cargo as internalCargo,
   ensureInternalActor,
   ensureInternalScope,
+  cargo as internalCargo,
   type InternalScope,
   type InternalScopeOwner
 } from '@metorial/internal-clients';
-import { db, type Instance, type Organization, type User } from '@metorial/db';
 import { uploadFile as uploadCargoHttpFile } from '../../../../systems/_clients/cargo/src';
-import type { CargoAccessActor, CargoStorePermission } from './services/access';
 import { purposes, purposeSlugs } from './definitions';
 import { env } from './env';
+import type { CargoAccessActor, CargoStorePermission } from './services/access';
 
 export let cargo = internalCargo;
 
@@ -85,6 +85,8 @@ export type CargoSkillConfigurationList = Awaited<
 >;
 export type CargoSkillExport = Awaited<ReturnType<typeof cargo.skillExport.get>>;
 export type CargoSkillExportList = Awaited<ReturnType<typeof cargo.skillExport.list>>;
+export type CargoSkillSync = Awaited<ReturnType<typeof cargo.skillSync.get>>;
+export type CargoSkillSyncList = Awaited<ReturnType<typeof cargo.skillSync.list>>;
 export type CargoSkillVersion = Awaited<ReturnType<typeof cargo.skillVersion.get>>;
 export type CargoSkillVersionList = Awaited<ReturnType<typeof cargo.skillVersion.list>>;
 export type CargoSkillVersionSnapshot = Awaited<

@@ -114,20 +114,21 @@ model ConsumerProfile {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  consumerSessions             ConsumerSession[]
-  groups                       ConsumerProfileGroup[]
-  accessRequests               ConsumerAccessRequest[]
-  providerSetupSessionBindings ConsumerProviderSetupSessionBinding[]
-  magicMcpEndpoints            MagicMcpEndpoint[]
-  actors                       ConsumerActor[]
-  consumerTokens               ConsumerToken[]
-  integrations                 ConsumerIntegration[]
-  integrationEndpoints         ConsumerIntegrationEndpoint[]
-  integrationSessions          ConsumerIntegrationSession[]
-  consumerAuthAttempts         ConsumerAuthAttempt[]
-  invite                       ConsumerInvite?
-  createdSkills                Skill[]
-  consumerSkills               ConsumerSkill[]
+  consumerSessions               ConsumerSession[]
+  groups                         ConsumerProfileGroup[]
+  accessRequests                 ConsumerAccessRequest[]
+  providerSetupSessionBindings   ConsumerProviderSetupSessionBinding[]
+  magicMcpEndpoints              MagicMcpEndpoint[]
+  actors                         ConsumerActor[]
+  consumerTokens                 ConsumerToken[]
+  integrations                   ConsumerIntegration[]
+  integrationEndpoints           ConsumerIntegrationEndpoint[]
+  integrationSessions            ConsumerIntegrationSession[]
+  consumerAuthAttempts           ConsumerAuthAttempt[]
+  consumerAuthTestAuthorizations ConsumerAuthTestAuthorization[]
+  invite                         ConsumerInvite?
+  createdSkills                  Skill[]
+  consumerSkills                 ConsumerSkill[]
 
   @@unique([surfaceOid, aresUserId])
   @@unique([email, surfaceOid])

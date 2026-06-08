@@ -7,16 +7,9 @@ import {
   buildChangeNotificationFilterClause,
   type SubRegistryWithFilters
 } from '../lib/subRegistryFilter';
+import { buildChangeNotificationSupportsPrebuiltWhere } from '../lib/slateVersion/visibility';
 
 class changeNotificationServiceImpl {
-  private buildVisibilityClause(supportsPrebuilt?: boolean) {
-    if (supportsPrebuilt === true) return {};
-
-    return {
-      OR: [{ slateVersionOid: null }, { slateVersion: { backend: 'local_unbuilt' as const } }]
-    };
-  }
-
   async getChangeNotificationById(d: {
     id: string;
     tenant?: Tenant;
@@ -24,7 +17,7 @@ class changeNotificationServiceImpl {
     supportsPrebuilt?: boolean;
   }) {
     let filterClause = buildChangeNotificationFilterClause(d.subRegistry, d.tenant?.oid);
-    let visibilityClause = this.buildVisibilityClause(d.supportsPrebuilt);
+    let visibilityClause = buildChangeNotificationSupportsPrebuiltWhere(d.supportsPrebuilt);
 
     let notification = await db.changeNotification.findFirst({
       where: {
@@ -41,7 +34,7 @@ class changeNotificationServiceImpl {
     supportsPrebuilt?: boolean;
   }) {
     let filterClause = buildChangeNotificationFilterClause(d.subRegistry, d.tenant?.oid);
-    let visibilityClause = this.buildVisibilityClause(d.supportsPrebuilt);
+    let visibilityClause = buildChangeNotificationSupportsPrebuiltWhere(d.supportsPrebuilt);
 
     return Paginator.create(({ prisma }) =>
       prisma(

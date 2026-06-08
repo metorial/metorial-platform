@@ -46,7 +46,7 @@ export let mcpRouter = createHono().all(`/:key?`, async c => {
     c.res.headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, DELETE');
     c.res.headers.set(
       'Access-Control-Allow-Headers',
-      'Content-Type, Metorial-Proxy-URL, Metorial-Agent-Client, Metorial-Connection-Private-Metadata, MCP-Protocol-Version, MCP-Session-ID, Authorization'
+      'Content-Type, Metorial-Proxy-URL, Metorial-Agent-Client, Metorial-Connection-Private-Metadata, Metorial-Ingress-Policy-Check, Metorial-Ingress-IP, MCP-Protocol-Version, MCP-Session-ID, Authorization'
     );
     c.res.headers.set('Access-Control-Allow-Credentials', 'true');
     c.res.headers.set(
@@ -75,6 +75,14 @@ export let mcpRouter = createHono().all(`/:key?`, async c => {
     agentClient: undefined as z.infer<typeof agentClientHeaderSchema> | undefined,
     connectionPrivateMetadata: undefined as
       | z.infer<typeof privateMetadataHeaderSchema>
+      | undefined,
+    ingressPolicyCheck: undefined as
+      | {
+          sourceIp: string;
+          hostname?: string;
+          port?: number;
+          recordLog?: boolean;
+        }
       | undefined
   };
 
@@ -82,6 +90,28 @@ export let mcpRouter = createHono().all(`/:key?`, async c => {
   if (!metorialProxyUrl) {
     if (!isDev) return c.text('Missing Metorial-Proxy-URL header', 400);
     metorialProxyUrl = c.req.url;
+  }
+
+  let enforceIngressPolicy = c.req.header('metorial-ingress-policy-check') === 'true';
+  if (enforceIngressPolicy) {
+    let sourceIp = c.req.header('metorial-ingress-ip');
+    if (!sourceIp) return c.text('Missing Metorial-Ingress-IP header', 400);
+
+    let proxyUrl = new URL(metorialProxyUrl);
+    let port = proxyUrl.port
+      ? Number(proxyUrl.port)
+      : proxyUrl.protocol === 'https:'
+        ? 443
+        : proxyUrl.protocol === 'http:'
+          ? 80
+          : 0;
+
+    baseParams.ingressPolicyCheck = {
+      sourceIp,
+      hostname: proxyUrl.hostname,
+      port,
+      recordLog: true
+    };
   }
 
   let agentClientHeader = parseOptionalJsonHeader(

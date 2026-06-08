@@ -111,6 +111,7 @@ export let AppLayout = ({
   Nav,
   height,
   bottomOffset,
+  onContentScroll,
   sidebarTransition
 }: {
   id: string;
@@ -122,6 +123,7 @@ export let AppLayout = ({
   Nav: () => React.ReactNode;
   height?: number | string;
   bottomOffset?: number | string;
+  onContentScroll?: React.UIEventHandler<HTMLDivElement>;
   sidebarTransition?: {
     key: string;
     direction?: 'forward' | 'backward';
@@ -200,6 +202,7 @@ export let AppLayout = ({
 
         <Outer>
           <Content
+            onScroll={onContentScroll}
             style={{
               height: `calc(100dvh - 70px - ${bottomOffset ?? '0px'})`
             }}

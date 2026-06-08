@@ -21,6 +21,7 @@ import {
   Prisma,
   withTransaction
 } from '@metorial/db';
+import { Fabric } from '@metorial/fabric';
 import { generatePlainId } from '@metorial/id';
 import {
   accessTagService,
@@ -152,7 +153,8 @@ class MagicMcpServerImpl {
         : await ensureMagicMcpServerBacking({
             instance: d.instance,
             server: d.server,
-            isReconciliation: true
+            isReconciliation: true,
+            deferReconcile: false
           });
       let backing = await subspaceMagicMcpBackingService.getServer({
         instance: d.instance,
@@ -191,6 +193,11 @@ class MagicMcpServerImpl {
       }[];
     };
   }) {
+    await Fabric.fire('magic_mcp.server.created:before', {
+      organization: d.organization,
+      instance: d.instance
+    });
+
     let magicMcpServer = await withTransaction(async db => {
       return await db.magicMcpServer.create({
         data: {
@@ -198,6 +205,7 @@ class MagicMcpServerImpl {
           status: 'active',
           source: d.input.source ?? 'manual',
           isConsumerReconciled: true,
+          isSubspaceBackingReconciling: true,
           providerTemplateId: d.input.providerTemplateId,
           subspaceIntegrationInstanceId: d.input.subspaceIntegrationInstanceId,
           name: d.input.name,
@@ -216,19 +224,24 @@ class MagicMcpServerImpl {
       });
     });
 
-    await magicMcpServerCreatedQueue.add({ magicMcpServerId: magicMcpServer.id });
-
-    await ensureMagicMcpServerBacking({
-      instance: d.instance,
-      server: magicMcpServer,
+    await magicMcpServerCreatedQueue.add({
+      magicMcpServerId: magicMcpServer.id,
       providers: d.input.providers,
       isReconciliation: false
     });
 
-    return await db.magicMcpServer.findUniqueOrThrow({
+    let server = await db.magicMcpServer.findUniqueOrThrow({
       where: { id: magicMcpServer.id },
       include
     });
+
+    await Fabric.fire('magic_mcp.server.created:after', {
+      organization: d.organization,
+      instance: d.instance,
+      magicMcpServer: server
+    });
+
+    return server;
   }
 
   async checkWriteAccess(d: {
@@ -286,6 +299,12 @@ class MagicMcpServerImpl {
     }
 
     let magicMcpServer = await withTransaction(async db => {
+      await db.magicMcpEndpointServer.deleteMany({
+        where: {
+          magicMcpServerOid: d.server.oid
+        }
+      });
+
       return await db.magicMcpServer.update({
         where: { id: d.server.id },
         data: { status: 'archived', deletedAt: new Date() },
@@ -294,6 +313,21 @@ class MagicMcpServerImpl {
     });
 
     await magicMcpServerDeletedQueue.add({ magicMcpServerId: magicMcpServer.id });
+
+    let instance = await db.instance.findUniqueOrThrow({
+      where: {
+        oid: d.server.instanceOid
+      },
+      include: {
+        organization: true
+      }
+    });
+
+    await Fabric.fire('magic_mcp.server.archived:after', {
+      organization: instance.organization,
+      instance,
+      magicMcpServer
+    });
 
     return magicMcpServer;
   }
@@ -359,6 +393,7 @@ class MagicMcpServerImpl {
             description:
               d.input.description === undefined ? d.server.description : d.input.description,
             metadata: d.input.metadata === undefined ? d.server.metadata : d.input.metadata,
+            isSubspaceBackingReconciling: true,
             aliases: {
               create: nextAliases.map(slug => ({ slug }))
             }
@@ -377,14 +412,10 @@ class MagicMcpServerImpl {
       throw error;
     }
 
-    await magicMcpServerUpdatedQueue.add({ magicMcpServerId: server.id });
-    if (d.instance) {
-      await ensureMagicMcpServerBacking({
-        instance: d.instance,
-        server,
-        isReconciliation: false
-      });
-    }
+    await magicMcpServerUpdatedQueue.add({
+      magicMcpServerId: server.id,
+      isReconciliation: false
+    });
 
     return server;
   }
@@ -416,7 +447,8 @@ class MagicMcpServerImpl {
       : await ensureMagicMcpServerBacking({
           instance: d.instance,
           server: d.server,
-          isReconciliation: true
+          isReconciliation: true,
+          deferReconcile: false
         });
 
     return {
@@ -472,7 +504,8 @@ class MagicMcpServerImpl {
       : await ensureMagicMcpServerBacking({
           instance: d.instance,
           server: d.server,
-          isReconciliation: true
+          isReconciliation: true,
+          deferReconcile: false
         });
     let provider = await subspaceMagicMcpBackingService.getServerProvider({
       instance: d.instance,
@@ -504,10 +537,16 @@ class MagicMcpServerImpl {
       accessTags: d.accessTags
     });
 
+    await db.magicMcpServer.update({
+      where: { oid: d.server.oid },
+      data: { isSubspaceBackingReconciling: true }
+    });
+
     let server = await ensureMagicMcpServerBacking({
       instance: d.instance,
       server: d.server,
-      isReconciliation: false
+      isReconciliation: false,
+      deferReconcile: false
     });
 
     return await subspaceMagicMcpBackingService.createServerProvider({
@@ -585,6 +624,7 @@ class MagicMcpServerImpl {
     search?: string;
     groupIds?: string[];
     providerTemplateIds?: string[];
+    providerIds?: string[];
     ids?: string[];
     preconfiguredOnly?: boolean;
     accessTags?: AnyAccessTagSelector;
@@ -666,6 +706,20 @@ class MagicMcpServerImpl {
     if (!d.accessTags && !d.filterAccessTags && !d.consumerSurface) {
       andFilters.push({
         source: 'manual'
+      });
+    }
+
+    if (d.providerIds?.length) {
+      let providerServers =
+        await subspaceMagicMcpBackingService.resolveServerProviderBackingIds({
+          instance: d.instance,
+          providerIds: d.providerIds
+        });
+
+      andFilters.push({
+        id: {
+          in: providerServers.magicMcpServerBackingIds
+        }
       });
     }
 

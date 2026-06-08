@@ -1,7 +1,7 @@
+import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import {
   SkillAgentsScene,
-  SkillGroupsForSkillScene,
   SkillLinkProvidersScene,
   StoreFileViewerScene
 } from '@metorial/scene-skills';
@@ -29,35 +29,42 @@ export let SkillPage = () => {
 
   return (
     <PageStack>
-      <StoreFileViewerScene
-        instanceId={instance.data?.id}
-        storeId={skill.data?.storeId}
-        title="Skill Files"
-        description="Manage the documents and files of this skill. Describe workflows, behaviors, and tasks for agentic workflows."
-        getDocumentPath={documentId =>
-          Paths.instance(organization.data, project.data, instance.data, 'doc', documentId)
-        }
-      />
-      <SkillAgentsScene
-        instanceId={instance.data?.id}
-        skillId={skillId}
-        getDocumentPath={documentId =>
-          Paths.instance(organization.data, project.data, instance.data, 'doc', documentId)
-        }
-      />
-      <SkillLinkProvidersScene instanceId={instance.data?.id} skillId={skillId} />
-      <SkillGroupsForSkillScene
-        instanceId={instance.data?.id}
-        skillId={skillId}
-        getSkillGroupPath={skillGroupId =>
-          Paths.instance.skillGroup(
-            organization.data,
-            project.data,
-            instance.data,
-            skillGroupId
-          )
-        }
-      />
+      {renderWithLoader({ skill })(({ skill }) => (
+        <>
+          <StoreFileViewerScene
+            instanceId={instance.data?.id}
+            storeId={skill.data.storeId}
+            title="Skill Files"
+            description="Manage the documents and files of this skill. Describe workflows, behaviors, and tasks for agentic workflows."
+            getDocumentPath={documentId =>
+              Paths.instance(organization.data, project.data, instance.data, 'doc', documentId)
+            }
+          />
+
+          <SkillAgentsScene
+            instanceId={instance.data?.id}
+            skillId={skillId}
+            getDocumentPath={documentId =>
+              Paths.instance(organization.data, project.data, instance.data, 'doc', documentId)
+            }
+          />
+
+          <SkillLinkProvidersScene instanceId={instance.data?.id} skillId={skillId} />
+
+          {/* <SkillGroupsForSkillScene
+            instanceId={instance.data?.id}
+            skillId={skillId}
+            getSkillGroupPath={skillGroupId =>
+              Paths.instance.skillGroup(
+                organization.data,
+                project.data,
+                instance.data,
+                skillGroupId
+              )
+            }
+          /> */}
+        </>
+      ))}
     </PageStack>
   );
 };

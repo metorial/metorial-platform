@@ -6,6 +6,7 @@ import {
   useProvider,
   useProviderAuthConfig,
   useProviderAuthConfigs,
+  useProviderConfigSchemaTarget,
   useProviderListing,
   useProviderTools
 } from '@metorial/state';
@@ -20,8 +21,11 @@ import {
   Dialog,
   Entity,
   Flex,
+  Menu,
   OptionToggle,
   Text,
+  Tooltip,
+  type ButtonSize,
   theme
 } from '@metorial/ui';
 import { RiAddLine, RiArrowDownSLine, RiCheckLine } from '@remixicon/react';
@@ -32,7 +36,18 @@ import {
   emptyConfigurationSelection,
   type ConfigurationSelection
 } from '../../lib/configSelection';
-import { ProviderAuthConfigCreateButton } from '../providerAuthConfigs/modal';
+import {
+  getProviderConfigSchemaCapabilities,
+  useProviderAuthCreationCapabilities
+} from '../../lib/providerCreationCapabilities';
+import {
+  ProviderAuthConfigCreateFlowContent,
+  showProviderAuthConfigCreateModal
+} from '../providerAuthConfigs/createModal';
+import {
+  getCreateMethodDescription,
+  isSetupFlowAuthMethod
+} from '../providerAuthConfigs/modalHelpers';
 import { ProviderConfigurationSelection } from '../providerConfigs/selection';
 import {
   ProviderCreationPanelShell,
@@ -48,6 +63,7 @@ import { ProvidersWithDeploymentsSearch } from '../providers/search';
 type AddProviderPanelFormValues = {
   selectedProviderId: string;
   selectedProviderName: string;
+  selectedProviderDescription: string;
   selectedDeploymentId: string;
   selectedConfiguration: ConfigurationSelection;
   selectedAuthConfigId: string;
@@ -71,6 +87,8 @@ type InitialToolFilter =
 
 export type ProviderPanelSubmitInput = {
   providerId: string;
+  providerName?: string;
+  providerDescription?: string | null;
   providerDeploymentId?: string;
   providerConfigId?: string;
   providerConfigVaultId?: string;
@@ -110,7 +128,14 @@ type AddProviderPanelFlowProps = {
   onComplete: () => void;
 };
 
-let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
+let getProviderSetupGeneratedName = (providerName: string | null | undefined) => {
+  let normalizedProviderName = providerName?.trim() || 'Provider';
+  let date = new Date().toISOString().slice(0, 10);
+
+  return `${normalizedProviderName} - ${date}`;
+};
+
+export let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
   let createConfigMutation = useCreateProviderConfig();
   let createMutation = useCreateSessionTemplateProvider();
   let deleteMutation = useDeleteSessionTemplateProvider();
@@ -119,6 +144,7 @@ let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
   let selectedProvider = useProvider(p.instanceId, p.providerId);
   let resolvedProviderName =
     selectedProvider.data?.name ?? selectedProvider.data?.slug ?? p.providerId ?? '';
+  let resolvedProviderDescription = selectedProvider.data?.description ?? '';
   let selectedProviderRequiresConfig = selectedProvider.data?.type.config.status == 'enabled';
   let selectedProviderRequiresAuth = selectedProvider.data?.type.auth.status == 'enabled';
   let [step, setStep] = useState(p.hideProviderStep ? 0 : p.providerId ? 1 : 0);
@@ -145,6 +171,7 @@ let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
     initialValues: {
       selectedProviderId: p.providerId ?? '',
       selectedProviderName: resolvedProviderName,
+      selectedProviderDescription: resolvedProviderDescription,
       selectedDeploymentId: p.initialDeploymentId ?? '',
       selectedConfiguration: p.initialConfigId
         ? { kind: 'config', id: p.initialConfigId }
@@ -157,18 +184,19 @@ let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
       setSubmitError(null);
       let fallbackProviderConfigId: string | undefined;
       let needsFallbackConfig =
-        !values.selectedDeploymentId &&
+        canAutoCreateEmptyConfig &&
         values.selectedConfiguration.kind === 'none' &&
-        !values.selectedAuthConfigId;
+        values.selectedProviderId;
 
       if (needsFallbackConfig) {
-        let fallbackConfigName = `${values.selectedProviderName || 'Provider'} Config`;
         let [config, configError] = await createConfigMutation.mutate({
           instanceId: p.instanceId,
           providerId: values.selectedProviderId,
-          name: fallbackConfigName,
-          description: 'Automatically created for session template provider setup.',
-          value: {}
+          ...(values.selectedDeploymentId
+            ? { providerDeploymentId: values.selectedDeploymentId }
+            : {}),
+          name: getProviderSetupGeneratedName(values.selectedProviderName),
+          value: selectedConfigCapabilities.defaultConfigValue
         });
 
         if (!config || configError) {
@@ -180,6 +208,8 @@ let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
 
       let submitInput: ProviderPanelSubmitInput = {
         providerId: values.selectedProviderId,
+        providerName: values.selectedProviderName,
+        providerDescription: values.selectedProviderDescription || undefined,
         ...(values.selectedDeploymentId
           ? { providerDeploymentId: values.selectedDeploymentId }
           : {}),
@@ -270,6 +300,7 @@ let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
       yup.object({
         selectedProviderId: yup.string().defined(),
         selectedProviderName: yup.string().defined(),
+        selectedProviderDescription: yup.string().optional().default(''),
         selectedDeploymentId: yup.string().optional().default(''),
         selectedConfiguration: yup.mixed<ConfigurationSelection>().defined(),
         selectedAuthConfigId: yup.string().optional().default(''),
@@ -277,6 +308,30 @@ let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
         selectedToolKeys: yup.array().of(yup.string().required()).defined()
       })
   });
+
+  let configuredProvider = useProvider(
+    p.instanceId,
+    form.values.selectedProviderId || p.providerId || null
+  );
+  let configuredProviderRequiresConfig =
+    configuredProvider.data?.type.config.status == 'enabled';
+  let selectedConfigSchema = useProviderConfigSchemaTarget(
+    p.instanceId,
+    form.values.selectedDeploymentId
+      ? { providerDeploymentId: form.values.selectedDeploymentId }
+      : form.values.selectedProviderId
+        ? { providerId: form.values.selectedProviderId }
+        : null
+  );
+  let selectedConfigCapabilities = getProviderConfigSchemaCapabilities({
+    schemaValue: selectedConfigSchema.data?.schema,
+    hasVaults: false,
+    isLoading: selectedConfigSchema.isLoading
+  });
+  let canAutoCreateEmptyConfig =
+    !!configuredProviderRequiresConfig &&
+    !selectedConfigSchema.isLoading &&
+    selectedConfigCapabilities.canAutoCreateEmptyConfig;
 
   useEffect(() => {
     if (!p.providerId) return;
@@ -288,11 +343,20 @@ let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
     if (resolvedProviderName && form.values.selectedProviderName !== resolvedProviderName) {
       form.setFieldValue('selectedProviderName', resolvedProviderName);
     }
+
+    if (
+      resolvedProviderDescription &&
+      form.values.selectedProviderDescription !== resolvedProviderDescription
+    ) {
+      form.setFieldValue('selectedProviderDescription', resolvedProviderDescription);
+    }
   }, [
     p.providerId,
     resolvedProviderName,
+    resolvedProviderDescription,
     form.values.selectedProviderId,
-    form.values.selectedProviderName
+    form.values.selectedProviderName,
+    form.values.selectedProviderDescription
   ]);
 
   useEffect(() => {
@@ -304,6 +368,10 @@ let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
 
     if (resolvedProviderName && !form.values.selectedProviderName) {
       form.setFieldValue('selectedProviderName', resolvedProviderName);
+    }
+
+    if (resolvedProviderDescription && !form.values.selectedProviderDescription) {
+      form.setFieldValue('selectedProviderDescription', resolvedProviderDescription);
     }
 
     if (p.initialDeploymentId && !form.values.selectedDeploymentId) {
@@ -334,8 +402,10 @@ let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
     selectedProviderRequiresConfig,
     selectedProviderRequiresAuth,
     resolvedProviderName,
+    resolvedProviderDescription,
     form.values.selectedProviderId,
     form.values.selectedProviderName,
+    form.values.selectedProviderDescription,
     form.values.selectedDeploymentId,
     form.values.selectedConfiguration.kind,
     form.values.selectedAuthConfigId
@@ -386,9 +456,14 @@ let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
     resetConfigurationState();
   };
 
-  let handleProviderSelect = (providerId: string, providerName: string) => {
+  let handleProviderSelect = (
+    providerId: string,
+    providerName: string,
+    providerDescription?: string | null
+  ) => {
     form.setFieldValue('selectedProviderId', providerId);
     form.setFieldValue('selectedProviderName', providerName);
+    form.setFieldValue('selectedProviderDescription', providerDescription ?? '');
     resetDeploymentAndConfigurationState();
     setStep(1);
   };
@@ -398,30 +473,29 @@ let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
       title: 'Configure',
       render: () =>
         form.values.selectedProviderId ? (
-          <form onSubmit={form.handleSubmit}>
-            <ConfigureStep
-              form={form}
-              instanceId={p.instanceId}
-              providerId={form.values.selectedProviderId}
-              providerName={form.values.selectedProviderName}
-              saving={
-                createConfigMutation.isLoading ||
-                isSubmitting ||
-                createMutation.isPending ||
-                deleteMutation.isPending
-              }
-              mutationError={
-                <>
-                  <createConfigMutation.RenderError />
-                  <createMutation.RenderError />
-                  <deleteMutation.RenderError />
-                </>
-              }
-              submitLabel={p.action || 'Add Provider'}
-              filterAvailableResources={p.filterAvailableResources}
-              onBack={p.hideProviderStep ? p.close : () => setStep(0)}
-            />
-          </form>
+          <ConfigureStep
+            form={form}
+            instanceId={p.instanceId}
+            providerId={form.values.selectedProviderId}
+            providerName={form.values.selectedProviderName}
+            canAutoCreateEmptyConfig={canAutoCreateEmptyConfig}
+            saving={
+              createConfigMutation.isLoading ||
+              isSubmitting ||
+              createMutation.isPending ||
+              deleteMutation.isPending
+            }
+            mutationError={
+              <>
+                <createConfigMutation.RenderError />
+                <createMutation.RenderError />
+                <deleteMutation.RenderError />
+              </>
+            }
+            submitLabel={p.action || 'Add Provider'}
+            filterAvailableResources={p.filterAvailableResources}
+            onBack={p.hideProviderStep ? p.close : () => setStep(0)}
+          />
         ) : (
           <CenteredSpinner />
         )
@@ -456,6 +530,7 @@ let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
     submitError,
     createMutation.isPending,
     deleteMutation.isPending,
+    canAutoCreateEmptyConfig,
     form.handleSubmit,
     p.action,
     p.hideProviderStep,
@@ -725,6 +800,7 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
     id: string;
     label: string;
   } | null>(null);
+  let [inlineAuthMethodId, setInlineAuthMethodId] = useState<string | null>(null);
   let scrollContainerRef = useRef<HTMLDivElement | null>(null);
   let [scrollIndicators, setScrollIndicators] = useState({
     canScrollUp: false,
@@ -822,6 +898,10 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
   }, [createdAuthConfigSelection, p.selectedAuthConfigId]);
 
   useEffect(() => {
+    setInlineAuthMethodId(null);
+  }, [p.providerId, p.providerDeploymentId, p.fixedAuthMethodId]);
+
+  useEffect(() => {
     if (!showToolFilters || toolItems.length === 0) return;
     if (!p.onSelectedToolKeysChange || !p.onToolFilterModeChange) return;
     if (toolFilterMode !== 'all') return;
@@ -888,6 +968,7 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
     ? 'Create Auth Config'
     : `Log in with ${providerDisplayName}`;
   let providerImageUrl = providerListing.data?.imageUrl;
+  let generatedResourceName = getProviderSetupGeneratedName(providerDisplayName);
 
   if (showProviderSummary) {
     sectionItems.push(
@@ -918,7 +999,7 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
       <ConfigureSectionCard
         key="config"
         title="Config"
-        description="Choose the provider configuration or vault this setup should use."
+        description="Choose the provider configuration this setup should use."
         requirement={configRequirement}
         completed={isConfigCompleted}
       >
@@ -930,10 +1011,12 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
             value={p.selectedConfiguration}
             onChange={p.onSelectedConfigurationChange}
             label="Config"
-            includeVaults
             createConfigButtonLabel="Create Config"
             showExistingOptions={showExistingConfigOptions}
             filterAvailableResources={filterAvailableResources}
+            inlineCreateConfig
+            defaultConfigName={generatedResourceName}
+            hideCreateConfigDetails
             disabled={p.disabled}
           />
           {p.configError}
@@ -967,6 +1050,29 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
                 Choose another
               </Button>
             </Flex>
+          ) : inlineAuthMethodId ? (
+            <ProviderAuthConfigCreateFlowContent
+              instanceId={p.instanceId}
+              providerDeploymentId={p.providerDeploymentId ?? undefined}
+              providerId={p.providerId}
+              initialAuthMethodId={inlineAuthMethodId}
+              fixedAuthCredentialsId={p.fixedAuthCredentialsId}
+              defaultAuthConfigName={generatedResourceName}
+              autoStartManagedCredentialSetup={autoStartManagedCredentialSetup}
+              close={() => setInlineAuthMethodId(null)}
+              onBack={() => setInlineAuthMethodId(null)}
+              embedded
+              hideDetailsInputs
+              onCreate={authConfig => {
+                pendingCreatedAuthConfigIdRef.current = authConfig.id;
+                setCreatedAuthConfigSelection({
+                  id: authConfig.id,
+                  label: authConfig.name ?? generatedResourceName
+                });
+                setInlineAuthMethodId(null);
+                p.onSelectedAuthConfigIdChange(authConfig.id);
+              }}
+            />
           ) : (
             <Flex gap={8} align="end">
               {showExistingAuthOptions ? (
@@ -1012,7 +1118,7 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
                 </div>
               ) : null}
 
-              <ProviderAuthConfigCreateButton
+              <ProviderAuthConfigCreateAction
                 instanceId={p.instanceId}
                 providerDeploymentId={p.providerDeploymentId ?? undefined}
                 providerId={p.providerId}
@@ -1020,6 +1126,7 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
                 fixedAuthCredentialsId={p.fixedAuthCredentialsId}
                 defaultAuthConfigName={p.defaultAuthConfigName}
                 autoStartManagedCredentialSetup={autoStartManagedCredentialSetup}
+                onInlineCreate={authMethodId => setInlineAuthMethodId(authMethodId)}
                 onCreate={async authConfig => {
                   pendingCreatedAuthConfigIdRef.current = authConfig.id;
                   setCreatedAuthConfigSelection({
@@ -1034,7 +1141,7 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
                 disabled={p.disabled}
               >
                 {createAuthConfigLabel}
-              </ProviderAuthConfigCreateButton>
+              </ProviderAuthConfigCreateAction>
             </Flex>
           )}
 
@@ -1297,11 +1404,146 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
   );
 };
 
+let ProviderAuthConfigCreateAction = (p: {
+  instanceId: string;
+  providerDeploymentId?: string;
+  providerId?: string;
+  fixedAuthMethodId?: string;
+  fixedAuthCredentialsId?: string;
+  defaultAuthConfigName?: string;
+  autoStartManagedCredentialSetup?: boolean;
+  onInlineCreate: (authMethodId: string) => void;
+  onCreate?: (authConfig: { id: string; name?: string | null }) => void;
+  onBack?: () => void;
+  size?: ButtonSize;
+  iconLeft?: ReactNode;
+  children: ReactNode;
+  ariaLabel?: string;
+  disabled?: boolean;
+}) => {
+  let authCreation = useProviderAuthCreationCapabilities(
+    p.instanceId,
+    p.providerDeploymentId,
+    p.providerId
+  );
+
+  let openCreateFlow = (authMethodId: string) => {
+    let method = authCreation.authMethodItems.find(method => method.id === authMethodId);
+
+    if (method && !isSetupFlowAuthMethod(method)) {
+      p.onInlineCreate(authMethodId);
+      return;
+    }
+
+    showProviderAuthConfigCreateModal({
+      instanceId: p.instanceId,
+      providerDeploymentId: p.providerDeploymentId,
+      providerId: p.providerId,
+      initialAuthMethodId: authMethodId,
+      fixedAuthCredentialsId: p.fixedAuthCredentialsId,
+      defaultAuthConfigName: p.defaultAuthConfigName,
+      autoStartManagedCredentialSetup: p.autoStartManagedCredentialSetup,
+      onCreate: p.onCreate,
+      onBack: p.onBack
+    });
+  };
+
+  let disabledReason = authCreation.isLoading
+    ? 'Loading authentication options...'
+    : authCreation.authConfigDisabledReason;
+  let isDisabled = p.disabled || authCreation.isLoading || !authCreation.canCreateAuthConfig;
+
+  if (p.fixedAuthMethodId) {
+    return (
+      <Tooltip content={disabledReason ?? ''} enabled={!p.disabled && isDisabled}>
+        <div style={{ display: 'inline-flex' }}>
+          <Button
+            type="button"
+            size={p.size}
+            iconLeft={p.iconLeft}
+            aria-label={p.ariaLabel}
+            disabled={isDisabled}
+            onClick={() => openCreateFlow(p.fixedAuthMethodId!)}
+          >
+            {p.children}
+          </Button>
+        </div>
+      </Tooltip>
+    );
+  }
+
+  if (isDisabled) {
+    return (
+      <Tooltip
+        content={disabledReason ?? ''}
+        enabled={!p.disabled && !authCreation.canCreateAuthConfig}
+        delayDuration={0}
+      >
+        <div style={{ display: 'inline-flex' }}>
+          <Button
+            type="button"
+            size={p.size}
+            iconLeft={p.iconLeft}
+            aria-label={p.ariaLabel}
+            disabled
+          >
+            {p.children}
+          </Button>
+        </div>
+      </Tooltip>
+    );
+  }
+
+  if (authCreation.authMethodItems.length <= 1) {
+    let method = authCreation.authMethodItems[0];
+
+    return (
+      <Button
+        type="button"
+        size={p.size}
+        iconLeft={p.iconLeft}
+        aria-label={p.ariaLabel}
+        disabled={p.disabled || !method}
+        onClick={() => method && openCreateFlow(method.id)}
+      >
+        {p.children}
+      </Button>
+    );
+  }
+
+  return (
+    <Menu
+      label={typeof p.children === 'string' ? p.children : p.ariaLabel}
+      title="Choose authentication method"
+      items={authCreation.authMethodItems.map(method => ({
+        id: method.id,
+        label: method.name,
+        description: getCreateMethodDescription(method)
+      }))}
+      onItemClick={authMethodId => openCreateFlow(authMethodId)}
+    >
+      <Button
+        type="button"
+        size={p.size}
+        iconLeft={p.iconLeft}
+        aria-label={p.ariaLabel}
+        disabled={p.disabled}
+      >
+        {p.children}
+      </Button>
+    </Menu>
+  );
+};
+
 let PickProviderStep = (p: {
   instanceId: string;
   excludeProviderIds?: string[];
   selectedProviderId?: string;
-  onSelect: (providerId: string, providerName: string) => void;
+  onSelect: (
+    providerId: string,
+    providerName: string,
+    providerDescription?: string | null
+  ) => void;
 }) => {
   let [search, setSearch] = useState('');
   let [filterState, setFilterState] = useState<TableFilterState[]>([]);
@@ -1335,7 +1577,11 @@ let PickProviderStep = (p: {
         selectedProviderId={p.selectedProviderId}
         onSelect={provider => {
           requestAnimationFrame(() => {
-            p.onSelect(provider.id, provider.name ?? provider.slug ?? 'Provider');
+            p.onSelect(
+              provider.id,
+              provider.name ?? provider.slug ?? 'Provider',
+              provider.description
+            );
           });
         }}
       />
@@ -1348,6 +1594,7 @@ let ConfigureStep = (p: {
   instanceId: string;
   providerId: string;
   providerName: string;
+  canAutoCreateEmptyConfig: boolean;
   saving: boolean;
   mutationError: ReactNode;
   submitLabel: string;
@@ -1357,12 +1604,19 @@ let ConfigureStep = (p: {
   let provider = useProvider(p.instanceId, p.providerId);
   let requiresProviderConfig = provider.data?.type.config.status == 'enabled';
   let requiresAuthConfig = provider.data?.type.auth.status == 'enabled';
+  let configRequirement: 'required' | 'optional' = p.canAutoCreateEmptyConfig
+    ? 'optional'
+    : 'required';
   let validateRequiredSelections = () => {
     let isValid = true;
 
-    if (requiresProviderConfig && p.form.values.selectedConfiguration.kind === 'none') {
+    if (
+      requiresProviderConfig &&
+      !p.canAutoCreateEmptyConfig &&
+      p.form.values.selectedConfiguration.kind === 'none'
+    ) {
       p.form.setFieldTouched('selectedConfiguration', true, false);
-      p.form.setFieldError('selectedConfiguration', 'Select a config or config vault');
+      p.form.setFieldError('selectedConfiguration', 'Select a config');
       isValid = false;
     }
 
@@ -1376,7 +1630,9 @@ let ConfigureStep = (p: {
   };
 
   let canSubmit =
-    (!requiresProviderConfig || p.form.values.selectedConfiguration.kind !== 'none') &&
+    (!requiresProviderConfig ||
+      p.canAutoCreateEmptyConfig ||
+      p.form.values.selectedConfiguration.kind !== 'none') &&
     (!requiresAuthConfig || Boolean(p.form.values.selectedAuthConfigId));
 
   let handleSubmitClick = async () => {
@@ -1393,6 +1649,7 @@ let ConfigureStep = (p: {
       providerName={p.providerName}
       providerDeploymentId={p.form.values.selectedDeploymentId || undefined}
       filterAvailableResources={p.filterAvailableResources}
+      configRequirement={configRequirement}
       selectedConfiguration={p.form.values.selectedConfiguration}
       onSelectedConfigurationChange={value => {
         p.form.setFieldValue('selectedConfiguration', value);

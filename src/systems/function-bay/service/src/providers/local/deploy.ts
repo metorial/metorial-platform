@@ -37,3 +37,27 @@ export let deployFunction = async (d: {
     }
   };
 };
+
+export let cloneFunctionVersion = async (d: {
+  functionVersion: { id: string };
+  function: { id: string };
+  sourceFunctionVersion: any;
+  runtime: { identifier: string };
+  runtimeConfig: { handler: string };
+  env: Record<string, string>;
+}) => {
+  ensureLocalProviderEnabled();
+
+  return {
+    providerData: {
+      bucket: d.sourceFunctionVersion.functionBundle.bucket,
+      storageKey: d.sourceFunctionVersion.functionBundle.storageKey,
+      handler: d.runtimeConfig.handler,
+      runtimeIdentifier: d.runtime.identifier,
+      encryptedEnvironmentVariables: await encryption.encrypt({
+        entityId: d.functionVersion.id,
+        secret: JSON.stringify(d.env)
+      })
+    }
+  };
+};

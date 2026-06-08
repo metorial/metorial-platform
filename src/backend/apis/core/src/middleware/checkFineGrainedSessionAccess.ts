@@ -1,5 +1,6 @@
 import { forbiddenError, ServiceError } from '@lowerdeck/error';
 import { AuthInfo, Scope } from '@metorial/module-access';
+import { subspaceEnclaveService } from '@metorial/module-subspace';
 import { apiGroup } from './apiGroup';
 
 type FineGrainedSessionCtx = {
@@ -7,6 +8,8 @@ type FineGrainedSessionCtx = {
   params: Record<string, any>;
   query: Record<string, any>;
   body: Record<string, any>;
+  context: { ip: string };
+  url: string;
 } & Record<string, any>;
 
 let getAllowedSessionIds = (
@@ -30,7 +33,59 @@ export let getFineGrainedAllowedSessionIds = (
   requiredRoles?: Scope[]
 ) => getAllowedSessionIds(ctx, requiredRoles);
 
-let ensureSessionAllowed = (d: {
+let getFineGrainedInstance = (ctx: FineGrainedSessionCtx) => {
+  if (ctx.auth.type != 'fine_grained' || ctx.auth.restrictions.type != 'instance') {
+    return undefined;
+  }
+
+  return {
+    ...ctx.auth.restrictions.instance,
+    organization: ctx.auth.restrictions.organization
+  } as any;
+};
+
+let getRequestHost = (ctx: FineGrainedSessionCtx) => {
+  try {
+    let url = new URL(ctx.url);
+    return {
+      hostname: url.hostname,
+      port: url.port
+        ? Number(url.port)
+        : url.protocol === 'https:'
+          ? 443
+          : url.protocol === 'http:'
+            ? 80
+            : 0
+    };
+  } catch {
+    return { hostname: 'api', port: 0 };
+  }
+};
+
+let filterIngressAllowedSessionIds = async (d: {
+  ctx: FineGrainedSessionCtx;
+  sessionIds: string[];
+  recordLog?: boolean;
+}) => {
+  let instance = getFineGrainedInstance(d.ctx);
+  if (!instance || d.sessionIds.length === 0) return d.sessionIds;
+
+  let host = getRequestHost(d.ctx);
+  let check = await subspaceEnclaveService.checkIngressAccess({
+    instance,
+    sessionIds: d.sessionIds,
+    sourceIp: d.ctx.context.ip,
+    hostname: host.hostname,
+    port: host.port,
+    recordLog: d.recordLog
+  });
+
+  return check.results
+    .filter((result: any) => result.allowed)
+    .map((result: any) => result.sessionId);
+};
+
+let ensureSessionAllowed = async (d: {
   ctx: FineGrainedSessionCtx;
   sessionId: string | undefined;
   requiredRoles?: Scope[];
@@ -46,6 +101,20 @@ let ensureSessionAllowed = (d: {
       })
     );
   }
+
+  let ingressAllowedSessionIds = await filterIngressAllowedSessionIds({
+    ctx: d.ctx,
+    sessionIds: [d.sessionId],
+    recordLog: true
+  });
+
+  if (!ingressAllowedSessionIds.includes(d.sessionId)) {
+    throw new ServiceError(
+      forbiddenError({
+        message: 'Ingress network policy blocked access to this session'
+      })
+    );
+  }
 };
 
 export let requireFineGrainedSessionAccess = (d: {
@@ -54,7 +123,7 @@ export let requireFineGrainedSessionAccess = (d: {
   message?: string;
 }) =>
   apiGroup.createMiddleware(async ctx => {
-    ensureSessionAllowed({
+    await ensureSessionAllowed({
       ctx,
       sessionId: d.resolveSessionId(ctx),
       requiredRoles: d.requiredRoles,
@@ -111,12 +180,19 @@ export let constrainFineGrainedSessionQuery = (
     }
 
     if (currentValue === undefined || currentValue === null || currentValue === '') {
-      query[queryKey] = allowedSessionIds;
+      query[queryKey] = await filterIngressAllowedSessionIds({
+        ctx,
+        sessionIds: allowedSessionIds
+      });
       return;
     }
 
     let current = Array.isArray(currentValue) ? currentValue : [currentValue];
     let intersection = current.filter(v => allowedSessionIds.includes(v));
+    intersection = await filterIngressAllowedSessionIds({
+      ctx,
+      sessionIds: intersection
+    });
     if (intersection.length == 0) {
       throw new ServiceError(
         forbiddenError({

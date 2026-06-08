@@ -1,5 +1,5 @@
 import { isServiceError } from '@lowerdeck/error';
-import { Context } from 'hono';
+import { Context } from '@lowerdeck/hono';
 import { OAuthError } from './errors';
 
 export let getString = (value: unknown): string | undefined => {

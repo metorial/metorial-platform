@@ -14,6 +14,7 @@ export let v1PortalPresenter = Presenter.create(portalType)
     allow_consumer_skill_authoring: portal.surface.allowConsumerSkillAuthoring,
     allow_consumer_skill_publishing: portal.surface.allowConsumerSkillPublishing,
     skill_configuration: {
+      object: 'portal.skill_configuration' as const,
       id: portal.surface.skillConfiguration.id,
       is_default: portal.surface.skillConfiguration.isDefault,
       allow_scripts: portal.surface.skillConfiguration.allowScripts,
@@ -48,6 +49,7 @@ export let v1PortalPresenter = Presenter.create(portalType)
       allow_consumer_skill_authoring: v.boolean(),
       allow_consumer_skill_publishing: v.boolean(),
       skill_configuration: v.object({
+        object: v.literal('portal.skill_configuration'),
         id: v.string(),
         is_default: v.boolean(),
         allow_scripts: v.boolean(),

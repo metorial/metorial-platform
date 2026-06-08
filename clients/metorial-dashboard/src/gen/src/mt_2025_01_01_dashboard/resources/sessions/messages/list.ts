@@ -58,6 +58,8 @@ export type SessionsMessagesListOutput = {
         agentId: string | null;
         agentInstanceId: string | null;
         identityActorId: string | null;
+        identityId: string | null;
+        agentActorId: string | null;
         agentClientId: string | null;
         consumerId: string | null;
         createdAt: Date;
@@ -74,6 +76,8 @@ export type SessionsMessagesListOutput = {
         agentId: string | null;
         agentInstanceId: string | null;
         identityActorId: string | null;
+        identityId: string | null;
+        agentActorId: string | null;
         agentClientId: string | null;
         consumerId: string | null;
         createdAt: Date;
@@ -131,6 +135,8 @@ export type SessionsMessagesListOutput = {
       agentId: string | null;
       agentInstanceId: string | null;
       identityActorId: string | null;
+      identityId: string | null;
+      agentActorId: string | null;
       agentClientId: string | null;
       consumerId: string | null;
       createdAt: Date;
@@ -147,6 +153,8 @@ export type SessionsMessagesListOutput = {
       agentId: string | null;
       agentInstanceId: string | null;
       identityActorId: string | null;
+      identityId: string | null;
+      agentActorId: string | null;
       agentClientId: string | null;
       consumerId: string | null;
       createdAt: Date;
@@ -302,6 +310,14 @@ export let mapSessionsMessagesListOutput =
                     'identity_actor_id',
                     mtMap.passthrough()
                   ),
+                  identityId: mtMap.objectField(
+                    'identity_id',
+                    mtMap.passthrough()
+                  ),
+                  agentActorId: mtMap.objectField(
+                    'agent_actor_id',
+                    mtMap.passthrough()
+                  ),
                   agentClientId: mtMap.objectField(
                     'agent_client_id',
                     mtMap.passthrough()
@@ -349,6 +365,14 @@ export let mapSessionsMessagesListOutput =
                   ),
                   identityActorId: mtMap.objectField(
                     'identity_actor_id',
+                    mtMap.passthrough()
+                  ),
+                  identityId: mtMap.objectField(
+                    'identity_id',
+                    mtMap.passthrough()
+                  ),
+                  agentActorId: mtMap.objectField(
+                    'agent_actor_id',
                     mtMap.passthrough()
                   ),
                   agentClientId: mtMap.objectField(
@@ -490,6 +514,11 @@ export let mapSessionsMessagesListOutput =
                 'identity_actor_id',
                 mtMap.passthrough()
               ),
+              identityId: mtMap.objectField('identity_id', mtMap.passthrough()),
+              agentActorId: mtMap.objectField(
+                'agent_actor_id',
+                mtMap.passthrough()
+              ),
               agentClientId: mtMap.objectField(
                 'agent_client_id',
                 mtMap.passthrough()
@@ -528,6 +557,11 @@ export let mapSessionsMessagesListOutput =
               ),
               identityActorId: mtMap.objectField(
                 'identity_actor_id',
+                mtMap.passthrough()
+              ),
+              identityId: mtMap.objectField('identity_id', mtMap.passthrough()),
+              agentActorId: mtMap.objectField(
+                'agent_actor_id',
                 mtMap.passthrough()
               ),
               agentClientId: mtMap.objectField(

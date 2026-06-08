@@ -39,6 +39,7 @@ export const ServerConnectionFixtures = (db: PrismaClient) => {
         serverConfigOid: data.serverConfigOid,
         serverVersionOid: data.serverVersionOid,
         serverAuthConfigOid: data.overrides?.serverAuthConfigOid ?? null,
+        serverInstanceConfigurationOid: data.overrides?.serverInstanceConfigurationOid ?? null,
         tenantOid: data.tenantOid,
         createdAt: new Date(),
         lastPingAt: null,

@@ -86,6 +86,54 @@ export let slateDeploymentController = authedApp.controller({
       });
     }),
 
+  redeployLatest: slateApp
+    .handler()
+    .input(
+      v.object({
+        slateId: v.string()
+      })
+    )
+    .do(async ctx => {
+      let { version, queuedAt } = await slateDeploymentService.redeployLatestSlateVersion({
+        slate: ctx.slate
+      });
+
+      return {
+        object: 'slate.deployment.redeploy_result',
+        slateId: ctx.slate.id,
+        versionId: version.id,
+        queuedAt,
+        status: 'queued'
+      };
+    }),
+
+  bulkRedeployLatest: authedApp
+    .handler()
+    .input(
+      v.object({
+        slateIds: v.array(v.string())
+      })
+    )
+    .do(async ctx => {
+      let slates = await slateService.getManySlatesByIds({
+        ids: [...new Set(ctx.input.slateIds)]
+      });
+      let foundSlateIds = new Set(slates.map(slate => slate.id));
+      let missingResults = ctx.input.slateIds
+        .filter(slateId => !foundSlateIds.has(slateId))
+        .map(slateId => ({
+          slateId,
+          status: 'failed' as const,
+          error: { message: 'Slate not found' }
+        }));
+      let results = await slateDeploymentService.bulkRedeployLatestSlateVersions({ slates });
+
+      return {
+        object: 'slate.deployment.bulk_redeploy_result',
+        results: [...results, ...missingResults]
+      };
+    }),
+
   redeploy: slateDeploymentApp
     .handler()
     .input(
@@ -95,9 +143,16 @@ export let slateDeploymentController = authedApp.controller({
       })
     )
     .do(async ctx => {
-      await slateDeploymentService.redeploy({
+      let { version, queuedAt } = await slateDeploymentService.redeploy({
         slateDeployment: ctx.slateDeployment
       });
-      return {};
+
+      return {
+        object: 'slate.deployment.redeploy_result',
+        slateId: ctx.slate.id,
+        versionId: version.id,
+        queuedAt,
+        status: 'queued'
+      };
     })
 });

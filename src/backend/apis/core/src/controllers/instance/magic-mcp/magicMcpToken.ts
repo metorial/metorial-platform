@@ -49,7 +49,8 @@ export let magicMcpTokenController = Controller.create(
     list: instanceGroup
       .get(instancePath('magic-mcp-tokens', 'magicMcpTokens.list'), {
         name: 'List magic MCP tokens',
-        description: 'Returns a paginated list of magic MCP tokens.'
+        description: 'Returns a paginated list of magic MCP tokens.',
+        confidential: true
       })
       .use(
         checkAccess({
@@ -98,7 +99,8 @@ export let magicMcpTokenController = Controller.create(
     get: magicMcpTokenGroup
       .get(instancePath('magic-mcp-tokens/:magicMcpTokenId', 'magicMcpTokens.get'), {
         name: 'Get magic MCP token',
-        description: 'Retrieves a specific magic MCP token.'
+        description: 'Retrieves a specific magic MCP token.',
+        confidential: true
       })
       .use(
         checkAccess({
@@ -118,7 +120,8 @@ export let magicMcpTokenController = Controller.create(
     create: instanceGroup
       .post(instancePath('magic-mcp-tokens', 'magicMcpTokens.create'), {
         name: 'Create magic MCP token',
-        description: 'Creates a new magic MCP token.'
+        description: 'Creates a new magic MCP token.',
+        confidential: true
       })
       .use(
         checkAccess({

@@ -79,6 +79,10 @@ export class McpSender {
     return this.manager.connection;
   }
 
+  get tenant() {
+    return this.manager.tenant;
+  }
+
   private encodeResourceCursor(d: { providerId: string; cursor?: string }) {
     return Buffer.from(JSON.stringify(d)).toString('base64url');
   }
@@ -267,11 +271,6 @@ export class McpSender {
         return this.handleInitializedMessage(initNotification.data);
       }
 
-      console.warn(
-        'Received MCP message without id or with notification method, ignoring:',
-        msg
-      );
-
       // TODO: handle notification for mcp-compatible backends
       // -> send to all backends that support it
       return;
@@ -393,6 +392,8 @@ export class McpSender {
     );
 
     let isMetorialExplorer = this.connection?.participant?.name === 'Metorial Explorer';
+    let collectOperationDescriptionForToolCalls =
+      this.tenant.collectOperationDescriptionForToolCalls && !isMetorialExplorer;
 
     return {
       store: true,
@@ -408,11 +409,13 @@ export class McpSender {
               name: presented.key,
               title: presented.title ?? presented.name,
 
-              inputSchema: isMetorialExplorer
-                ? presented.inputJsonSchema
-                : (injectToolCallOperationIntoInputSchema(presented.inputJsonSchema) as any),
-              outputSchema:
-                presented.outputJsonSchema?.type === 'object'
+              inputSchema: collectOperationDescriptionForToolCalls
+                ? (injectToolCallOperationIntoInputSchema(presented.inputJsonSchema) as any)
+                : presented.inputJsonSchema,
+
+              outputSchema: isMetorialExplorer
+                ? undefined
+                : presented.outputJsonSchema?.type === 'object'
                   ? (mcpOutputSchemaNormalizer(presented.outputJsonSchema, {
                       isRoot: true
                     }) as any)
@@ -814,10 +817,18 @@ export class McpSender {
 
     if (!opts.waitForResponse) return { message: result.message };
 
+    let isMetorialExplorer = this.connection?.participant?.name === 'Metorial Explorer';
+    let res = await conduitResultToMcpMessage(result);
+
+    if (isMetorialExplorer) {
+      // @ts-ignore
+      delete res?.result?.structuredContent;
+    }
+
     return {
       store: true,
       message: result.message,
-      mcp: await conduitResultToMcpMessage(result)
+      mcp: res
     };
   }
 

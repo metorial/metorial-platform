@@ -5,8 +5,15 @@ import type { ServerVersion, Tenant } from '../../../prisma/generated/browser';
 import type {
   ServerAuthConfig,
   ServerConfig,
-  ServerConnection
+  ServerConnection,
+  ServerInstanceConfiguration
 } from '../../../prisma/generated/client';
+import { safeFetch } from '../../lib/http/fetchSsrf';
+import {
+  EGRESS_POLICY_BLOCKED_CODE,
+  getEgressPolicyErrorMessage,
+  isEgressPolicyError
+} from '../../lib/network/egressPolicy';
 import { safeParse } from '../../lib/safeParse';
 import { fetchEventSource } from '../../lib/sse/fetch';
 import type { McpConnectionBackendAdapter } from '../connection/adapter';
@@ -40,6 +47,7 @@ export class SSERemoteConnection implements McpConnectionBackendAdapter {
     readonly connection: ServerConnection & {
       serverConfig: ServerConfig;
       serverAuthConfig: ServerAuthConfig | null;
+      serverInstanceConfiguration: ServerInstanceConfiguration | null;
     }
   ) {
     if (!version.remoteUrl || version.remoteProtocol != 'sse') {
@@ -61,6 +69,7 @@ export class SSERemoteConnection implements McpConnectionBackendAdapter {
     connection: ServerConnection & {
       serverConfig: ServerConfig;
       serverAuthConfig: ServerAuthConfig | null;
+      serverInstanceConfiguration: ServerInstanceConfiguration | null;
     }
   ) {
     return new SSERemoteConnection(tenant, version, connection);
@@ -69,7 +78,7 @@ export class SSERemoteConnection implements McpConnectionBackendAdapter {
   async sendMcpMessage(message: JSONRPCMessage) {
     if (this.#exiting) {
       console.warn(
-        'Attempted to send MCP message connection after container began exiting',
+        'Attempted to send MCP message connection after server began exiting',
         message
       );
       return;
@@ -84,8 +93,10 @@ export class SSERemoteConnection implements McpConnectionBackendAdapter {
       return;
     }
 
-    await fetch(this.#endpointUrl, {
+    await safeFetch(this.#endpointUrl, {
       method: 'POST',
+      egressPolicy: this.connection.serverInstanceConfiguration
+        ?.egressPolicy as PrismaJson.CompiledEgressNetworkAllowList | null,
       headers: {
         ...(await this.getHeaders()),
         'Content-Type': 'application/json'
@@ -132,6 +143,8 @@ export class SSERemoteConnection implements McpConnectionBackendAdapter {
 
       await fetchEventSource(url.toString(), {
         method: 'GET',
+        egressPolicy: this.connection.serverInstanceConfiguration
+          ?.egressPolicy as PrismaJson.CompiledEgressNetworkAllowList | null,
         headers: await this.getHeaders(),
 
         signal: this.#abortController.signal,
@@ -174,6 +187,23 @@ export class SSERemoteConnection implements McpConnectionBackendAdapter {
         }
       });
     } catch (e) {
+      if (isEgressPolicyError(e)) {
+        let message = getEgressPolicyErrorMessage(e);
+
+        this.logger.log('debug.error', `SSE connection error: ${message}`);
+        await this.messenger.sendToListeners({
+          type: 'error',
+          data: {
+            code: EGRESS_POLICY_BLOCKED_CODE,
+            message
+          }
+        });
+
+        this.#initPromise.reject(e);
+        await this.terminate();
+        return;
+      }
+
       this.logger.log('debug.error', `SSE connection error: ${(e as Error).message || e}`);
       this.messenger.sendToListeners({
         type: 'error',

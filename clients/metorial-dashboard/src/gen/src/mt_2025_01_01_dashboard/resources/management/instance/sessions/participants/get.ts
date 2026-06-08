@@ -12,6 +12,8 @@ export type ManagementInstanceSessionsParticipantsGetOutput = {
   agentId: string | null;
   agentInstanceId: string | null;
   identityActorId: string | null;
+  identityId: string | null;
+  agentActorId: string | null;
   agentClientId: string | null;
   consumerId: string | null;
   createdAt: Date;
@@ -42,6 +44,8 @@ export let mapManagementInstanceSessionsParticipantsGetOutput =
       'identity_actor_id',
       mtMap.passthrough()
     ),
+    identityId: mtMap.objectField('identity_id', mtMap.passthrough()),
+    agentActorId: mtMap.objectField('agent_actor_id', mtMap.passthrough()),
     agentClientId: mtMap.objectField('agent_client_id', mtMap.passthrough()),
     consumerId: mtMap.objectField('consumer_id', mtMap.passthrough()),
     createdAt: mtMap.objectField('created_at', mtMap.date())

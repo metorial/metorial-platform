@@ -14,6 +14,9 @@ model SlateSession {
   slateVersionOid BigInt
   slateVersion    SlateVersion @relation(fields: [slateVersionOid], references: [oid], onDelete: Cascade)
 
+  instanceConfigurationOid BigInt?
+  instanceConfiguration    SlateInstanceConfiguration? @relation(fields: [instanceConfigurationOid], references: [oid])
+
   createdAt    DateTime  @default(now())
   lastActiveAt DateTime?
 

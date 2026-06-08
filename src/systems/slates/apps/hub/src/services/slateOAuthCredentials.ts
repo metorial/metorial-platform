@@ -60,7 +60,8 @@ class slateOAuthCredentialsServiceImpl {
       let current = await secretService.DANGEROUSLY_decryptSecret({
         secretOid: d.slateOAuthCredentials.secretOid,
         purpose: 'slate_oauth_credentials',
-        tenant: d.tenant
+        tenant: d.tenant,
+        note: `creds-upd creds:${d.slateOAuthCredentials.id}`
       });
 
       let secret = await secretService.createSecret({

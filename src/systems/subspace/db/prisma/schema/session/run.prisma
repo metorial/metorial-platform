@@ -49,6 +49,8 @@ model ProviderRun {
   toolCalls               ToolCall[]
   shuttleConnections      ShuttleConnection[]
   providerRunUsageRecords ProviderRunUsageRecord[]
+  protoGuardRuns          ProtoGuardRun[]
+  protoGuardAlerts        ProtoGuardAlert[]
 
   @@index([createdAt])
   @@index([updatedAt])

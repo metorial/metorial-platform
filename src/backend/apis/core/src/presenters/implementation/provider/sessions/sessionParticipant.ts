@@ -18,6 +18,8 @@ export let v1SessionParticipantPresenter = Presenter.create(sessionParticipantTy
     agent_id: sessionParticipant.agentId ?? null,
     agent_instance_id: sessionParticipant.agentInstanceId ?? null,
     identity_actor_id: sessionParticipant.identityActorId ?? null,
+    identity_id: sessionParticipant.identityId ?? null,
+    agent_actor_id: sessionParticipant.agentActorId ?? null,
     agent_client_id: sessionParticipant.agentClientId ?? null,
     consumer_id:
       'consumerId' in sessionParticipant ? (sessionParticipant.consumerId ?? null) : null,
@@ -79,6 +81,8 @@ export let v1SessionParticipantPresenter = Presenter.create(sessionParticipantTy
       agent_id: v.nullable(v.string()),
       agent_instance_id: v.nullable(v.string()),
       identity_actor_id: v.nullable(v.string()),
+      identity_id: v.nullable(v.string()),
+      agent_actor_id: v.nullable(v.string()),
       agent_client_id: v.nullable(v.string()),
       consumer_id: v.nullable(v.string()),
       created_at: v.date({

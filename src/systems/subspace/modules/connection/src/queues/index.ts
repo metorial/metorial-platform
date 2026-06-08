@@ -7,6 +7,7 @@ import { finalizeMessageQueueProcessor } from './message/finalizeMessage';
 import { messageCreatedQueueProcessor } from './message/messageCreated';
 import { messageTimeoutQueueProcessor } from './message/messageTimeout';
 import { offloadQueues } from './message/offloadMessage';
+import { protoGuardMessageQueueProcessor } from './message/protoGuard';
 import { providerRunStartQueueProcessor } from './provderRun/providerRunStart';
 import { stopProviderRunsCron } from './provderRun/stopProviderRuns';
 
@@ -15,6 +16,7 @@ export let queues = combineQueueProcessors([
   expireSessionsCron,
   messageTimeoutQueueProcessor,
   finalizeMessageQueueProcessor,
+  protoGuardMessageQueueProcessor,
   offloadQueues,
   createErrorQueueProcessor,
   createWarningQueueProcessor,

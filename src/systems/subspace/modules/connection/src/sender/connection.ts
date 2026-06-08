@@ -27,6 +27,10 @@ export class SenderConnection {
     return this.manager.session;
   }
 
+  get tenant() {
+    return this.manager.tenant;
+  }
+
   listener(d?: { replayFromMessageId?: string }) {
     if (!this.manager.connection) {
       throw new ServiceError(

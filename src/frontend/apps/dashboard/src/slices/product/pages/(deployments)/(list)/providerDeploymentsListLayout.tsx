@@ -1,4 +1,5 @@
 import { Paths } from '@metorial/frontend-config';
+import { PaginationSearchParamsProvider } from '@metorial/data-hooks';
 import { ContentLayout, PageHeader } from '@metorial/layout';
 import {
   useCurrentInstance,
@@ -25,13 +26,11 @@ type ProviderDeploymentsTabId =
 
 let providerConfigurationsTabOrder: Exclude<ProviderDeploymentsTabId, 'deployments'>[] = [
   'auth-configs',
-  'auth-credentials',
   'configs',
   'config-vaults'
 ];
 
 let getActiveTab = (pathname: string): ProviderDeploymentsTabId => {
-  if (pathname.endsWith('/auth-credentials')) return 'auth-credentials';
   if (pathname.endsWith('/auth-configs')) return 'auth-configs';
   if (pathname.endsWith('/config-vaults')) return 'config-vaults';
   if (pathname.endsWith('/configs')) return 'configs';
@@ -194,6 +193,33 @@ export let ProviderDeploymentsListLayout = () => {
       )}
 
       <Outlet />
+    </ContentLayout>
+  );
+};
+
+export let ProviderAuthCredentialsListLayout = () => {
+  let instance = useCurrentInstance();
+  let project = useCurrentProject();
+  let organization = useCurrentOrganization();
+  let navigate = useNavigate();
+  let tab = providerDeploymentsTabs['auth-credentials'];
+
+  return (
+    <ContentLayout>
+      <PageHeader
+        title="Auth Credentials"
+        description={tab.description}
+        actions={tab.renderAction({
+          instance: instance.data,
+          organization: organization.data,
+          project: project.data,
+          navigate
+        })}
+      />
+
+      <PaginationSearchParamsProvider enabled={true}>
+        <Outlet />
+      </PaginationSearchParamsProvider>
     </ContentLayout>
   );
 };

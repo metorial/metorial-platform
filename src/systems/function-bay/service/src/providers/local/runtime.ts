@@ -41,7 +41,7 @@ export let getRuntime = async (
     })
   )}`;
 
-  let runtime = persistedRuntimes.get(identifier);
+  let runtime = process.env.NODE_ENV === 'test' ? undefined : persistedRuntimes.get(identifier);
 
   if (!runtime) {
     let name = getRuntimeName(spec);
@@ -64,7 +64,7 @@ export let getRuntime = async (
         name
       }
     });
-    persistedRuntimes.set(identifier, runtime);
+    if (process.env.NODE_ENV !== 'test') persistedRuntimes.set(identifier, runtime);
   }
 
   return {

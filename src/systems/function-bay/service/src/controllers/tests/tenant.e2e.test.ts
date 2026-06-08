@@ -38,6 +38,32 @@ describe('tenant:upsert E2E', () => {
       name: 'Updated Name'
     });
   });
+
+  it('marks service default tenants', async () => {
+    const result = await functionBayClient.tenant.upsert({
+      identifier: 'shuttle-default',
+      name: 'Shuttle Default',
+      isServiceDefault: true
+    });
+
+    expect(result).toMatchObject({
+      identifier: 'shuttle-default',
+      isServiceDefault: true
+    });
+  });
+
+  it('enables automatic enclave overrides', async () => {
+    const result = await functionBayClient.tenant.upsert({
+      identifier: 'auto-enclave-tenant',
+      name: 'Auto Enclave Tenant',
+      hasAutomaticEnclaveOverride: true
+    });
+
+    expect(result).toMatchObject({
+      identifier: 'auto-enclave-tenant',
+      hasAutomaticEnclaveOverride: true
+    });
+  });
 });
 
 describe('tenant:get E2E', () => {
@@ -59,6 +85,24 @@ describe('tenant:get E2E', () => {
       identifier: tenant.identifier,
       name: tenant.name,
       createdAt: expect.any(Date)
+    });
+  });
+
+  it('returns service default tenants from cache by identifier', async () => {
+    const tenant = await functionBayClient.tenant.upsert({
+      identifier: 'slates-default',
+      name: 'Slates Default',
+      isServiceDefault: true
+    });
+
+    const result = await functionBayClient.tenant.get({
+      tenantId: tenant.identifier
+    });
+
+    expect(result).toMatchObject({
+      id: tenant.id,
+      identifier: 'slates-default',
+      isServiceDefault: true
     });
   });
 });

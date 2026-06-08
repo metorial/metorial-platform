@@ -389,6 +389,38 @@ let resolveIntegrationProviderMaterialInput = async (d: {
 };
 
 class magicMcpServerProviderServiceImpl {
+  async resolveMagicMcpServerBackingIds(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    allowDeleted?: boolean;
+    status?: ('pending' | 'active' | 'archived' | 'deleted')[];
+    providerIds?: string[];
+  }) {
+    if (!d.providerIds?.length) return [];
+
+    let rows = await db.magicMcpServerProvider.findMany({
+      where: {
+        magicMcpServerBacking: getBackingScopeWhere(d),
+        status: normalizeStatusForList(d).noParent.status as any,
+        integrationProvider: {
+          provider: {
+            id: { in: d.providerIds }
+          }
+        }
+      },
+      select: {
+        magicMcpServerBacking: {
+          select: {
+            id: true
+          }
+        }
+      }
+    });
+
+    return [...new Set(rows.map(row => row.magicMcpServerBacking.id))].sort();
+  }
+
   async listMagicMcpServerProviders(d: {
     tenant: Tenant;
     solution: Solution;

@@ -1,11 +1,11 @@
 import { DashboardInstanceSessionsGetOutput } from '@metorial/dashboard-sdk';
 import { Callout, CenteredSpinner } from '@metorial/ui';
-import { useEffect, useRef } from 'react';
+import { RefObject, useCallback, useEffect, useMemo, useRef } from 'react';
 import styled from 'styled-components';
-import { ItemList } from '../../session/components/itemList';
 import { useConnectionTimeline } from '../hooks/useConnectionTimeline';
 import { SessionConnection } from '../types';
 import { ConnectionTraceHeader } from './connectionTraceHeader';
+import { VirtualizedTimelineList } from './virtualizedTimelineList';
 
 let DetailContent = styled.div`
   display: flex;
@@ -29,45 +29,57 @@ let LoadingWrap = styled.div`
 `;
 
 export let ConnectionLogs = ({
-  session,
   connection,
-  focusedItemId
+  focusedItemId,
+  scrollRef,
+  session
 }: {
-  session: DashboardInstanceSessionsGetOutput;
   connection: SessionConnection;
   focusedItemId?: string | null;
+  scrollRef: RefObject<HTMLElement | null>;
+  session: DashboardInstanceSessionsGetOutput;
 }) => {
   let {
     connection: connectionDetails,
     connectionProviders,
+    hasMoreAfter,
     hasTimelineActivity,
     isLoading,
+    isLoadingMore,
+    loadMore,
     mcp,
-    sessionEntry,
-    timelineItems
+    timelineItemData,
+    timelineRowContext
   } = useConnectionTimeline({
     session,
     connection
   });
+  let sortedTimelineItemData = useMemo(
+    () => [...timelineItemData].sort((a, b) => a.time.getTime() - b.time.getTime()),
+    [timelineItemData]
+  );
   let handledFocusKeysRef = useRef(new Set<string>());
+  let scrollToIndexRef = useRef<(index: number) => void>(() => {});
+
+  let handleScrollToIndexReady = useCallback((scrollToIndex: (index: number) => void) => {
+    scrollToIndexRef.current = scrollToIndex;
+  }, []);
 
   useEffect(() => {
     if (!focusedItemId) return;
     let focusKey = `${connection.id}:${focusedItemId}`;
     if (handledFocusKeysRef.current.has(focusKey)) return;
 
-    let id = window.requestAnimationFrame(() => {
-      let element = document.querySelector(
-        `[data-timeline-item-id="${focusedItemId}"]`
-      ) as HTMLElement | null;
-      if (!element) return;
+    let index = sortedTimelineItemData.findIndex(item => item.id === focusedItemId);
+    if (index < 0) return;
 
+    let id = window.requestAnimationFrame(() => {
+      scrollToIndexRef.current(index);
       handledFocusKeysRef.current.add(focusKey);
-      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
 
     return () => window.cancelAnimationFrame(id);
-  }, [connection.id, focusedItemId, timelineItems]);
+  }, [connection.id, focusedItemId, sortedTimelineItemData]);
 
   return (
     <DetailContent>
@@ -79,9 +91,16 @@ export let ConnectionLogs = ({
       />
 
       <DetailTimeline>
-        {sessionEntry}
-
-        <ItemList items={timelineItems} selectedItemId={focusedItemId} />
+        <VirtualizedTimelineList
+          context={timelineRowContext}
+          focusedItemId={focusedItemId}
+          hasMoreAfter={hasMoreAfter}
+          isLoadingMore={isLoadingMore}
+          items={timelineItemData}
+          loadMore={loadMore}
+          onScrollToIndexReady={handleScrollToIndexReady}
+          scrollRef={scrollRef}
+        />
 
         {!hasTimelineActivity && !isLoading && (
           <Callout color="gray">
@@ -90,6 +109,12 @@ export let ConnectionLogs = ({
         )}
 
         {isLoading && (
+          <LoadingWrap>
+            <CenteredSpinner size={16} />
+          </LoadingWrap>
+        )}
+
+        {isLoadingMore && hasTimelineActivity && (
           <LoadingWrap>
             <CenteredSpinner size={16} />
           </LoadingWrap>

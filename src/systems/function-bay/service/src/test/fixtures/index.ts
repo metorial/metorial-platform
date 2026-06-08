@@ -7,7 +7,6 @@ import { FunctionBundleFixtures } from './functionBundleFixtures';
 import { FunctionVersionFixtures } from './functionVersionFixtures';
 import { FunctionDeploymentFixtures } from './functionDeploymentFixtures';
 import { FunctionDeploymentStepFixtures } from './functionDeploymentStepFixtures';
-import { FunctionInvocationFixtures } from './functionInvocationFixtures';
 import { RuntimeForgeWorkflowFixtures } from './runtimeForgeWorkflowFixtures';
 
 export function fixtures(db: PrismaClient) {
@@ -20,7 +19,6 @@ export function fixtures(db: PrismaClient) {
     functionVersion: FunctionVersionFixtures(db),
     functionDeployment: FunctionDeploymentFixtures(db),
     functionDeploymentStep: FunctionDeploymentStepFixtures(db),
-    functionInvocation: FunctionInvocationFixtures(db),
     runtimeForgeWorkflow: RuntimeForgeWorkflowFixtures(db)
   };
 }
@@ -34,6 +32,5 @@ export {
   FunctionVersionFixtures,
   FunctionDeploymentFixtures,
   FunctionDeploymentStepFixtures,
-  FunctionInvocationFixtures,
   RuntimeForgeWorkflowFixtures
 };
