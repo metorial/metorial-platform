@@ -71,6 +71,15 @@ export type TableFilterState =
   | TableFilterStateString
   | TableFilterStateSelect;
 
+export let toFilterFieldNames = (fields: ReadonlyArray<PropertyKey>): string[] =>
+  fields.map(field => field.toString());
+
+export let isEmptyFilterValue = (state: TableFilterState) => {
+  if (state.type == 'select') return state.value.length == 0;
+  if (state.type == 'string') return !state.value;
+  return false;
+};
+
 export type FilterPayload =
   | number
   | Date
@@ -148,7 +157,7 @@ export let deserializeFromQuery = (query: URLSearchParams, filters: TableFilter<
   let filterState: TableFilterState[] = [];
 
   for (let filter of filters) {
-    let fields = filter.fields.map(f => f.toString());
+    let fields = toFilterFieldNames(filter.fields);
     let type = filter.type;
 
     if (type == 'number') {

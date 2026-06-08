@@ -20,7 +20,9 @@ import {
   TableFilterStateDate,
   TableFilterStateNumber,
   TableFilterStateSelect,
-  TableFilterStateString
+  TableFilterStateString,
+  isEmptyFilterValue,
+  toFilterFieldNames
 } from './tableFilter';
 
 let fadeIn = keyframes`
@@ -178,25 +180,31 @@ let FilterContentFooter = styled('footer')`
 `;
 
 let getFilterText = (filter: TableFilter<any>, state: TableFilterState): string => {
-  if (filter.type == 'select') {
+  if (filter.type == 'select' && state.type == 'select') {
     return filter.options
-      .filter(option => (state.value as string[]).includes(option.id))
+      .filter(option => state.value.includes(option.id))
       .map(option => option.label)
       .join(', ');
   }
 
-  if (filter.type == 'number' && Array.isArray(state.value)) {
-    return `${state.value[0]} - ${state.value[1]}`;
-  }
-
-  if (filter.type == 'date') {
-    if (Array.isArray(state.value)) {
-      return `${(state.value as any)[0].toLocaleDateString()} - ${(
-        state.value as any
-      )[1].toLocaleDateString()}`;
+  if (filter.type == 'number' && state.type == 'number') {
+    if (state.operation == 'between') {
+      return `${state.value[0]} - ${state.value[1]}`;
     }
 
-    return (state.value as any).toLocaleDateString();
+    return state.value.toString();
+  }
+
+  if (filter.type == 'date' && state.type == 'date') {
+    if (state.operation == 'between') {
+      return `${state.value[0].toLocaleDateString()} - ${state.value[1].toLocaleDateString()}`;
+    }
+
+    return state.value.toLocaleDateString();
+  }
+
+  if (state.type == 'string') {
+    return state.value;
   }
 
   return state.value.toString();
@@ -213,7 +221,7 @@ export let TableFilters = memo(
     popoverAlign = 'end'
   }: {
     filters: TableFilter<any>[];
-    filterState: [
+    filterState: readonly [
       TableFilterState[],
       React.Dispatch<React.SetStateAction<TableFilterState[]>>
     ];
@@ -256,7 +264,7 @@ export let TableFilters = memo(
 
     let applyFilter = (state: TableFilterState) => {
       setFilterState(prev => {
-        if ((state.value as any).length === 0) {
+        if (isEmptyFilterValue(state)) {
           return prev.filter(f => f.id != state.id);
         }
 
@@ -446,7 +454,7 @@ let FilterString = ({
           onClick={() => {
             apply({
               id: filter.id,
-              fields: filter.fields as string[],
+              fields: toFilterFieldNames(filter.fields),
               type: 'string',
               operation: 'eq',
               value
@@ -521,7 +529,7 @@ let FilterSelect = ({
           onClick={() => {
             apply({
               id: filter.id,
-              fields: filter.fields as string[],
+              fields: toFilterFieldNames(filter.fields),
               type: 'select',
               operation: 'eq',
               value
@@ -565,7 +573,9 @@ let FilterNumber = ({
     [state]
   );
 
-  let [operation, setOperation] = useState(() => state?.operation ?? 'eq');
+  let [operation, setOperation] = useState<TableFilterStateNumber['operation']>(
+    () => state?.operation ?? 'eq'
+  );
 
   let { valid, value1Num, value2Num } = useMemo(() => {
     let value1Num = parseFloat(value1.toString());
@@ -600,7 +610,7 @@ let FilterNumber = ({
         <Select
           label="Operation"
           value={operation}
-          onChange={setOperation as any}
+          onChange={value => setOperation(value as TableFilterStateNumber['operation'])}
           size="2"
           items={[
             { id: 'eq', label: 'Equals' },
@@ -667,13 +677,24 @@ let FilterNumber = ({
           disabled={!valid}
           type="submit"
           onClick={() => {
+            if (operation == 'between') {
+              apply({
+                id: filter.id,
+                fields: toFilterFieldNames(filter.fields),
+                type: 'number',
+                operation: 'between',
+                value: [value1Num, value2Num]
+              });
+              return;
+            }
+
             apply({
               id: filter.id,
-              fields: filter.fields as string[],
+              fields: toFilterFieldNames(filter.fields),
               type: 'number',
               operation,
-              value: operation == 'between' ? [value1Num, value2Num] : value1Num
-            } as TableFilterStateNumber);
+              value: value1Num
+            });
           }}
         >
           Apply
@@ -713,7 +734,9 @@ let FilterDate = ({
     [state]
   );
 
-  let [operation, setOperation] = useState(() => state?.operation ?? 'eq');
+  let [operation, setOperation] = useState<TableFilterStateDate['operation']>(
+    () => state?.operation ?? 'eq'
+  );
 
   let { valid } = useMemo(() => {
     if (
@@ -732,7 +755,7 @@ let FilterDate = ({
         <Select
           label="Operation"
           value={operation}
-          onChange={setOperation as any}
+          onChange={value => setOperation(value as TableFilterStateDate['operation'])}
           size="2"
           items={[
             { id: 'eq', label: 'Equals' },
@@ -779,13 +802,28 @@ let FilterDate = ({
           disabled={!valid}
           type="submit"
           onClick={() => {
+            if (operation == 'between') {
+              if (!value1 || !value2) return;
+
+              apply({
+                id: filter.id,
+                fields: toFilterFieldNames(filter.fields),
+                type: 'date',
+                operation: 'between',
+                value: [value1, value2]
+              });
+              return;
+            }
+
+            if (!value1) return;
+
             apply({
               id: filter.id,
-              fields: filter.fields as string[],
+              fields: toFilterFieldNames(filter.fields),
               type: 'date',
               operation,
-              value: operation == 'between' ? [value1, value2] : value1
-            } as TableFilterStateDate);
+              value: value1
+            });
           }}
         >
           Apply

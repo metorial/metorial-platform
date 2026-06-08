@@ -18,9 +18,15 @@ let SearchWrapper = styled.div`
   min-width: 220px;
 `;
 
+type SearchState = readonly [string, Dispatch<SetStateAction<string>>];
+type FilterState = readonly [
+  TableFilterState[],
+  Dispatch<SetStateAction<TableFilterState[]>>
+];
+
 export let SearchFiltersToolbar = (p: {
-  searchState: [string, Dispatch<SetStateAction<string>>];
-  filterState: [TableFilterState[], Dispatch<SetStateAction<TableFilterState[]>>];
+  searchState: SearchState;
+  filterState: FilterState;
   filters: TableFilter<any>[];
   placeholder: string;
   defaultFilterId?: string;
