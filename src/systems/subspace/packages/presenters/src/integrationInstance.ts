@@ -60,9 +60,12 @@ export let integrationInstancePresenter = (
         | null;
     })[];
     defaultSessionTemplate: SessionTemplate | null;
+    magicMcpServerBackings: {
+      id: string;
+    }[];
   }
 ) => {
-  let magicMcpServerBackingId: string | null = null;
+  let magicMcpServerBackingId = integrationInstance.magicMcpServerBackings[0]?.id ?? null;
 
   return {
     object: 'integration.instance',

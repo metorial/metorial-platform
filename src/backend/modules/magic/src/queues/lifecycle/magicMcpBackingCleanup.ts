@@ -1,4 +1,4 @@
-import { db, withTransaction } from '@metorial/db';
+import { db, type Prisma, withTransaction } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { subspaceMagicMcpBackingService } from '@metorial/module-subspace';
 import { createQueue } from '@metorial/queue';
@@ -14,7 +14,7 @@ let archiveLinkedMagicMcpServer = async (d: { magicMcpServerId: string }) => {
   let magicMcpServer = await db.magicMcpServer.findFirst({
     where: {
       id: d.magicMcpServerId,
-      ownerType: 'integration',
+      ownerType: { in: ['integration', 'server_owned'] },
       status: 'active'
     },
     include: {
@@ -51,21 +51,18 @@ let archiveLinkedMagicMcpServer = async (d: { magicMcpServerId: string }) => {
   });
 };
 
-export let magicMcpBackingCleanupQueue =
-  createQueue<MagicMcpBackingCleanupQueueInput>({
-    name: 'mgc/lc/magicMcpBacking/cleanup'
-  });
+export let magicMcpBackingCleanupQueue = createQueue<MagicMcpBackingCleanupQueueInput>({
+  name: 'mgc/lc/magicMcpBacking/cleanup'
+});
 
-export let enqueueMagicMcpBackingCleanup = async (
-  d: MagicMcpBackingCleanupQueueInput
-) => {
+export let enqueueMagicMcpBackingCleanup = async (d: MagicMcpBackingCleanupQueueInput) => {
   if (!d.integrationId && !d.integrationInstanceId) return;
 
   await magicMcpBackingCleanupQueue.add(d);
 };
 
-export let magicMcpBackingCleanupQueueProcessor =
-  magicMcpBackingCleanupQueue.process(async data => {
+export let magicMcpBackingCleanupQueueProcessor = magicMcpBackingCleanupQueue.process(
+  async data => {
     let instance = await db.instance.findUnique({
       where: { id: data.instanceId }
     });
@@ -77,14 +74,28 @@ export let magicMcpBackingCleanupQueueProcessor =
         integrationId: data.integrationId,
         integrationInstanceId: data.integrationInstanceId
       });
-    if (!magicMcpServerBackingIds.length) return;
+    let linkedServerFilters: Prisma.MagicMcpServerWhereInput[] = [];
+
+    if (magicMcpServerBackingIds.length) {
+      linkedServerFilters.push({
+        id: { in: magicMcpServerBackingIds }
+      });
+    }
+
+    if (data.integrationInstanceId) {
+      linkedServerFilters.push({
+        subspaceIntegrationInstanceId: data.integrationInstanceId
+      });
+    }
+
+    if (!linkedServerFilters.length) return;
 
     let linkedServers = await db.magicMcpServer.findMany({
       where: {
         instanceOid: instance.oid,
-        ownerType: 'integration',
+        ownerType: { in: ['integration', 'server_owned'] },
         status: 'active',
-        id: { in: magicMcpServerBackingIds }
+        OR: linkedServerFilters
       },
       select: {
         id: true
@@ -94,7 +105,8 @@ export let magicMcpBackingCleanupQueueProcessor =
     for (let server of linkedServers) {
       await archiveLinkedMagicMcpServer({ magicMcpServerId: server.id });
     }
-  });
+  }
+);
 
 Fabric.listen('provider.integration.deleted:after', async event => {
   await enqueueMagicMcpBackingCleanup({
