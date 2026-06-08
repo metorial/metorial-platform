@@ -87,5 +87,7 @@ describe('eventDeliveryIntent.e2e', () => {
 
     expect(listed.items).toHaveLength(1);
     expect(listed.items[0]?.id).toBe(intent.id);
+    expect(listed.items[0]?.event.request).toBeNull();
+    expect(listed.items[0]?.attempts).toBeNull();
   });
 });

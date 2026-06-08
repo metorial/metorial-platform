@@ -40,7 +40,8 @@ export let callbackEventPresenter = async (
           callback?: Callback | null;
         })
       | null;
-  }
+  },
+  { includePayload }: { includePayload: boolean }
 ) => ({
   object: 'signal#callback.event',
 
@@ -61,8 +62,12 @@ export let callbackEventPresenter = async (
         }
       : null,
 
-  input: await readPayload(callbackEvent.inputJson, callbackEvent.inputStorageKey),
-  output: await readPayload(callbackEvent.outputJson, callbackEvent.outputStorageKey),
+  input: includePayload
+    ? await readPayload(callbackEvent.inputJson, callbackEvent.inputStorageKey)
+    : null,
+  output: includePayload
+    ? await readPayload(callbackEvent.outputJson, callbackEvent.outputStorageKey)
+    : null,
   deliveryStatus: callbackEvent.event
     ? getDeliveryStatus(callbackEvent.event)
     : getLifecycleDeliveryStatus(callbackEvent.status),

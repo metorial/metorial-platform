@@ -1,8 +1,6 @@
-import { Hash } from '@lowerdeck/hash';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { env } from '../../env';
 import { storageKey } from '../../lib/storageKey';
-import { offloadCallbackEventPayloadQueueProcessor } from '../../queues/send/callbackEventPayload';
 import { storage } from '../../storage';
 import { signalClient } from '../../test/client';
 import { fixtures } from '../../test/fixtures';
@@ -55,16 +53,24 @@ describe('callback.e2e', () => {
     expect(inlineRecord.inputStorageKey).toBeNull();
     expect(inlineRecord.outputStorageKey).toBeNull();
 
-    await (offloadCallbackEventPayloadQueueProcessor as any).handler({
-      callbackEventId: recorded.id,
-      payloadType: 'input',
-      payloadHash: await Hash.sha256(inputJson)
-    });
-
-    await (offloadCallbackEventPayloadQueueProcessor as any).handler({
-      callbackEventId: recorded.id,
-      payloadType: 'output',
-      payloadHash: await Hash.sha256(outputJson)
+    await storage.putObject(
+      env.storage.LOGS_BUCKET_NAME,
+      storageKey.callbackEventInput(inlineRecord),
+      inputJson
+    );
+    await storage.putObject(
+      env.storage.LOGS_BUCKET_NAME,
+      storageKey.callbackEventOutput(inlineRecord),
+      outputJson
+    );
+    await testDb.callbackEvent.update({
+      where: { id: recorded.id },
+      data: {
+        inputJson: null,
+        inputStorageKey: storageKey.callbackEventInput(inlineRecord),
+        outputJson: null,
+        outputStorageKey: storageKey.callbackEventOutput(inlineRecord)
+      }
     });
 
     let offloadedRecord = await testDb.callbackEvent.findUniqueOrThrow({
@@ -102,6 +108,23 @@ describe('callback.e2e', () => {
       id: recorded.id,
       input: { stage: 'input', ok: true },
       output: { stage: 'output', ok: true }
+    });
+
+    let listed = await signalClient.callback.listEvents({
+      tenantId: tenant.id,
+      callbackId: 'callback-orders',
+      limit: 10
+    });
+
+    expect(listed.items).toHaveLength(1);
+    expect(listed.items[0]).toMatchObject({
+      id: recorded.id,
+      input: null,
+      output: null
+    });
+    expect(listed.pagination).toMatchObject({
+      has_more_after: false,
+      has_more_before: false
     });
   });
 });

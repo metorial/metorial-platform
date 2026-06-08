@@ -136,7 +136,7 @@ export let callbackController = app.controller({
         }
       });
 
-      return callbackEventPresenter(event);
+      return callbackEventPresenter(event, { includePayload: true });
     }),
 
   listEvents: callbackApp
@@ -161,7 +161,7 @@ export let callbackController = app.controller({
 
       let list = await paginator.run(ctx.input);
       return Paginator.presentLight(list, event =>
-        callbackEventPresenter(event)
+        callbackEventPresenter(event, { includePayload: false })
       );
     }),
 
@@ -179,7 +179,9 @@ export let callbackController = app.controller({
         callbackEventIds: ctx.input.callbackEventIds
       });
 
-      return await Promise.all(events.map(event => callbackEventPresenter(event)));
+      return await Promise.all(
+        events.map(event => callbackEventPresenter(event, { includePayload: false }))
+      );
     }),
 
   getEvent: callbackApp
@@ -198,7 +200,7 @@ export let callbackController = app.controller({
         callbackEventId: ctx.input.callbackEventId
       });
 
-      return callbackEventPresenter(event);
+      return callbackEventPresenter(event, { includePayload: true });
     }),
 
   listDeliveries: callbackApp
