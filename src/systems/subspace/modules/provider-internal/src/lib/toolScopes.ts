@@ -51,6 +51,19 @@ export let checkToolScopesSatisfied = (
   return { allowed: true as const };
 };
 
+export let checkToolScopesSatisfiedByAuthMethods = (
+  tool: ToolScopeCarrier,
+  authMethodScopes: (string[] | null | undefined)[]
+) => {
+  for (let scopes of authMethodScopes) {
+    if (!checkToolScopesSatisfied(tool, scopes ?? []).allowed) {
+      return { allowed: false as const };
+    }
+  }
+
+  return { allowed: true as const };
+};
+
 export let filterToolsByScopes = <T extends ToolScopeCarrier>(
   tools: T[],
   grantedScopes: string[] | null | undefined

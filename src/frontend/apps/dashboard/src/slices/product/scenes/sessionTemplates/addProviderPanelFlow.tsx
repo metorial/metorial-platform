@@ -757,6 +757,7 @@ type ProviderSetupSectionsProps = {
   defaultAuthConfigName?: string;
   providerDeploymentId?: string | null;
   fixedAuthMethodId?: string;
+  providerAuthMethodId?: string | null;
   fixedAuthCredentialsId?: string;
   selectedConfiguration: ConfigurationSelection;
   onSelectedConfigurationChange: (value: ConfigurationSelection) => void;
@@ -821,9 +822,16 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
   let showExistingAuthOptions = p.showExistingAuthOptions ?? true;
   let filterAvailableResources = p.filterAvailableResources ?? false;
   let autoStartManagedCredentialSetup = p.autoStartManagedCredentialSetup ?? false;
+  let providerAuthMethodId =
+    p.fixedAuthMethodId ?? inlineAuthMethodId ?? p.providerAuthMethodId ?? undefined;
   let tools = useProviderTools(
     p.instanceId,
-    showToolFilters && providerVersionId ? { providerVersionId } : null
+    showToolFilters && providerVersionId
+      ? {
+          providerVersionId,
+          ...(providerAuthMethodId ? { providerAuthMethodId } : {})
+        }
+      : null
   );
   let toolItems = tools.data?.items ?? [];
   let requiresProviderConfig =
@@ -899,7 +907,7 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
 
   useEffect(() => {
     setInlineAuthMethodId(null);
-  }, [p.providerId, p.providerDeploymentId, p.fixedAuthMethodId]);
+  }, [p.providerId, p.providerDeploymentId, p.fixedAuthMethodId, p.providerAuthMethodId]);
 
   useEffect(() => {
     if (!showToolFilters || toolItems.length === 0) return;
@@ -1097,7 +1105,7 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
                           : {
                               providerDeploymentId: p.providerDeploymentId ?? undefined
                             }),
-                        providerAuthMethodId: p.fixedAuthMethodId ?? undefined
+                        providerAuthMethodId
                       });
 
                       return {

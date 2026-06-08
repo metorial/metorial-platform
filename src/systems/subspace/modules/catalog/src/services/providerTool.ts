@@ -13,6 +13,7 @@ import {
 } from '@metorial-subspace/db';
 import {
   checkToolScopesSatisfied,
+  checkToolScopesSatisfiedByAuthMethods,
   resolveGrantedScopes
 } from '@metorial-subspace/module-provider-internal';
 import { getProviderTenantFilter } from './provider';
@@ -172,6 +173,77 @@ let paginateInMemory = <T extends { id: string }>(
   };
 };
 
+type AuthMethodScopeRecord = {
+  id: string;
+  global: { id: string };
+  value: { scopes?: { id: string }[] | null };
+};
+
+let mapAuthMethodScopeSets = (ids: string[], authMethods: AuthMethodScopeRecord[]) => {
+  let foundIds = new Set<string>();
+  for (let authMethod of authMethods) {
+    foundIds.add(authMethod.id);
+    foundIds.add(authMethod.global.id);
+  }
+
+  let missingId = ids.find(id => !foundIds.has(id));
+  if (missingId) {
+    throw new ServiceError(notFoundError('provider_auth_method', missingId));
+  }
+
+  return authMethods.map(authMethod => authMethod.value.scopes?.map(scope => scope.id) ?? []);
+};
+
+let resolveProviderAuthMethodsForToolFilter = async (
+  ctx: ListToolsContext,
+  providerAuthMethodIds?: string[]
+) => {
+  let ids = [...new Set(providerAuthMethodIds?.filter(Boolean) ?? [])];
+  if (!ids.length) return null;
+
+  if (ctx.version?.specificationOid) {
+    let authMethods = await db.providerAuthMethod.findMany({
+      where: {
+        provider: getProviderTenantFilter({
+          ...ctx,
+          includeDeprecated: true
+        }),
+        providerOid: ctx.providerVersion.providerOid,
+        specificationOid: ctx.version.specificationOid,
+        OR: [{ id: { in: ids } }, { global: { id: { in: ids } } }]
+      },
+      include: { global: true }
+    });
+
+    return mapAuthMethodScopeSets(ids, authMethods);
+  } else if (!hasVersionWithoutSpecification(ctx)) {
+    let globals = await db.providerAuthMethodGlobal.findMany({
+      where: {
+        provider: getProviderTenantFilter({
+          ...ctx,
+          includeDeprecated: true
+        }),
+        providerOid: ctx.providerVersion.providerOid,
+        currentInstance: { isNot: null },
+        OR: [{ id: { in: ids } }, { providerAuthMethods: { some: { id: { in: ids } } } }]
+      },
+      include: {
+        currentInstance: {
+          include: { global: true }
+        }
+      }
+    });
+
+    let authMethods = globals.flatMap(global =>
+      global.currentInstance ? [global.currentInstance] : []
+    );
+
+    return mapAuthMethodScopeSets(ids, authMethods);
+  }
+
+  throw new ServiceError(notFoundError('provider_auth_method', ids[0]));
+};
+
 class providerToolServiceImpl {
   async listProviderTools(d: {
     solution: Solution;
@@ -182,6 +254,7 @@ class providerToolServiceImpl {
 
     providerAuthConfig?: ProviderAuthConfig | null;
     providerAuthCredentials?: ProviderAuthCredentials | null;
+    providerAuthMethodIds?: string[];
   }) {
     let version = d.providerVersion?.oid
       ? await db.providerVersion.findFirstOrThrow({
@@ -201,16 +274,31 @@ class providerToolServiceImpl {
       authConfig: d.providerAuthConfig,
       authCredentials: d.providerAuthCredentials
     });
+    let authMethodScopes = await resolveProviderAuthMethodsForToolFilter(
+      ctx,
+      d.providerAuthMethodIds
+    );
 
-    if (grantedScopes === null) {
+    if (grantedScopes === null && authMethodScopes === null) {
       return Paginator.create(({ prisma }) => prisma(opts => queryTools(ctx, opts)));
     }
 
     return Paginator.create(() => async input => {
       let allTools = await queryTools(ctx);
-      let filtered = allTools.filter(
-        tool => checkToolScopesSatisfied(tool, grantedScopes).allowed
-      );
+      let filtered = allTools.filter(tool => {
+        if (grantedScopes !== null && !checkToolScopesSatisfied(tool, grantedScopes).allowed) {
+          return false;
+        }
+
+        if (
+          authMethodScopes !== null &&
+          !checkToolScopesSatisfiedByAuthMethods(tool, authMethodScopes).allowed
+        ) {
+          return false;
+        }
+
+        return true;
+      });
       return paginateInMemory(filtered, input);
     });
   }

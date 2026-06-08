@@ -970,6 +970,7 @@ let IntegrationProviderSetupStep = (p: {
           instanceId={instance.data!.id}
           providerId={p.providerId}
           providerDeploymentId={p.integrationProvider?.deployment.id}
+          providerAuthMethodId={form.values.selectedAuthMethodId || undefined}
           providerName={visibility.providerName}
           showProviderSummary={false}
           selectedConfiguration={form.values.selectedConfiguration}

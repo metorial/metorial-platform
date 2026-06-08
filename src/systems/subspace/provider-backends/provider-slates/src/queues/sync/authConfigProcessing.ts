@@ -234,6 +234,24 @@ export let syncAuthConfigProcessingQueueProcessor = syncAuthConfigProcessingQueu
         },
         record
       });
+      return;
+    }
+
+    if (record.status === 'active') {
+      let scopes = record.grantedScopes?.length
+        ? record.grantedScopes
+        : (record.oauthCredentials?.scopes ?? []);
+
+      await db.providerAuthConfig.updateMany({
+        where: {
+          id: data.providerAuthConfigId,
+          currentVersionOid: authConfigVersion.oid
+        },
+        data: {
+          scopes,
+          needsScopeSync: false
+        }
+      });
     }
   }
 );

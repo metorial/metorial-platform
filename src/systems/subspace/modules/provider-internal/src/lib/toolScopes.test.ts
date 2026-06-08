@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   checkToolScopesSatisfied,
+  checkToolScopesSatisfiedByAuthMethods,
   filterToolsByScopes,
   resolveGrantedScopes
 } from './toolScopes';
@@ -48,6 +49,40 @@ describe('checkToolScopesSatisfied', () => {
 
     expect(checkToolScopesSatisfied(tool, ['read:x'])).toEqual({ allowed: true });
     expect(checkToolScopesSatisfied(tool, [])).toEqual({ allowed: false });
+  });
+});
+
+describe('checkToolScopesSatisfiedByAuthMethods', () => {
+  let restricted = createTool({ AND: [{ OR: ['read:x'] }] });
+  let unrestricted = createTool(null);
+
+  it('allows scoped tools for a matching auth method', () => {
+    expect(checkToolScopesSatisfiedByAuthMethods(restricted, [['read:x']])).toEqual({
+      allowed: true
+    });
+  });
+
+  it('denies scoped tools when any selected auth method lacks a required scope', () => {
+    expect(
+      checkToolScopesSatisfiedByAuthMethods(restricted, [['read:x'], ['write:y']])
+    ).toEqual({ allowed: false });
+  });
+
+  it('checks OR alternatives per auth method instead of intersecting scopes', () => {
+    let tool = createTool({ AND: [{ OR: ['channels:manage', 'channels:write'] }] });
+
+    expect(
+      checkToolScopesSatisfiedByAuthMethods(tool, [['channels:manage'], ['channels:write']])
+    ).toEqual({ allowed: true });
+  });
+
+  it('allows unscoped tools for auth methods without declared scopes', () => {
+    expect(checkToolScopesSatisfiedByAuthMethods(unrestricted, [[], null])).toEqual({
+      allowed: true
+    });
+    expect(checkToolScopesSatisfiedByAuthMethods(restricted, [[], null])).toEqual({
+      allowed: false
+    });
   });
 });
 
