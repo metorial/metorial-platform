@@ -2579,6 +2579,7 @@
         "@types/node": "^25.0.3",
         "dts-bundle-generator": "^9.5.1",
         "microbundle": "^0.15.1",
+        "tsup": "^8.5.1",
         "typescript": "^5.8.3",
         "vitest": "^3.1.2",
       },
@@ -3150,6 +3151,7 @@
       "devDependencies": {
         "@function-bay/tsconfig": "^1.0.0",
         "microbundle": "^0.15.1",
+        "tsup": "^8.5.1",
         "typescript": "^5.9.3",
         "vitest": "^3.2.4",
       },
@@ -3165,6 +3167,7 @@
       "devDependencies": {
         "@function-bay/tsconfig": "^1.0.0",
         "microbundle": "^0.15.1",
+        "tsup": "^8.5.1",
         "typescript": "^5.9.3",
         "vitest": "^3.2.4",
       },
@@ -3736,6 +3739,7 @@
       "devDependencies": {
         "dts-bundle-generator": "^9.5.1",
         "microbundle": "^0.15.1",
+        "tsup": "^8.5.1",
         "typescript": "^5.8.3",
         "vitest": "^3.1.2",
       },
@@ -3749,6 +3753,7 @@
       "devDependencies": {
         "dts-bundle-generator": "^9.5.1",
         "microbundle": "^0.15.1",
+        "tsup": "^8.5.1",
         "typescript": "^5.8.3",
         "vitest": "^3.1.2",
       },
