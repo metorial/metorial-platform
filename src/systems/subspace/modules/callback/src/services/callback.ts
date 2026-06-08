@@ -165,7 +165,7 @@ class callbackServiceImpl {
       throw new ServiceError(
         badRequestError({
           code: 'callback_not_supported',
-          message: 'Callbacks are only supported for trigger-enabled slates providers.'
+          message: 'Callbacks are not supported for the provider of the specified deployment.'
         })
       );
     }

@@ -312,7 +312,7 @@ export let v1CallbackNotificationPresenter = Presenter.create(callbackNotificati
       updated_at: callbackNotification.destination.updatedAt
     },
     attempts: callbackNotification.attempts
-      ? callbackNotification.attempts.map(attempt => ({
+      ? callbackNotification.attempts.map((attempt: any) => ({
           object: 'callback.notification.attempt' as const,
           id: attempt.id,
           status: attempt.status,
@@ -347,13 +347,10 @@ export let v1CallbackNotificationPresenter = Presenter.create(callbackNotificati
           'Unique callback notification identifier. This delivery intent ID should be used to fetch notification details.',
         examples: ['sdi_0mn59k130hP1fPd2zSMT4C']
       }),
-      status: v.enumOf(
-        ['pending', 'delivered', 'retrying', 'failed'] as const,
-        {
-          name: 'status',
-          description: 'Current notification delivery status'
-        }
-      ),
+      status: v.enumOf(['pending', 'delivered', 'retrying', 'failed'] as const, {
+        name: 'status',
+        description: 'Current notification delivery status'
+      }),
       error: v.nullable(
         v.object(
           {
