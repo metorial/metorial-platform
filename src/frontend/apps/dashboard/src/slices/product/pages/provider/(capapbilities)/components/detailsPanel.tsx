@@ -1,4 +1,4 @@
-import { Badge, Flex, Panel, Text, theme } from '@metorial/ui';
+import { Badge, Flex, Panel, Text, theme, type BadgeStyleProps } from '@metorial/ui';
 import { RiArrowDownSLine } from '@remixicon/react';
 import { JSONSchema7, JSONSchema7Definition } from 'json-schema';
 import React, { useState } from 'react';
@@ -8,7 +8,7 @@ import { getJsonSchemaObject } from '../../../../lib/jsonSchema';
 
 type SchemaProperty = JSONSchema7;
 type PanelWrapperProps = React.ComponentProps<typeof Panel.Wrapper>;
-type BadgeColor = React.ComponentProps<typeof Badge>['color'];
+type BadgeColor = BadgeStyleProps['color'];
 
 export type CapabilityMetadataBadge = {
   label: string;
