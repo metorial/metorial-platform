@@ -13,8 +13,8 @@ let emptyList = {
   object: 'list',
   items: [],
   pagination: {
-    hasNextPage: false,
-    hasPreviousPage: false
+    has_more_after: false,
+    has_more_before: false
   }
 };
 
@@ -93,10 +93,7 @@ class callbackEventServiceImpl {
     return {
       object: res.object,
       items: res.items.map(toCallbackEvent),
-      pagination: {
-        hasNextPage: res.pagination.has_more_after,
-        hasPreviousPage: res.pagination.has_more_before
-      }
+      pagination: res.pagination
     };
   }
 

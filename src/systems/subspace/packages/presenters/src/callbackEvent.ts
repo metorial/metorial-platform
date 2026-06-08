@@ -42,8 +42,8 @@ export let callbackEventPresenter = (event: CallbackEvent) => ({
 type CallbackEventListResult = {
   items: CallbackEvent[];
   pagination: {
-    hasNextPage: boolean;
-    hasPreviousPage: boolean;
+    has_more_after: boolean;
+    has_more_before: boolean;
   };
 };
 

@@ -23,13 +23,14 @@ class callbackDestinationServiceImpl {
     tenant: Tenant;
     callbackDestination: CallbackDestination;
   }): Promise<EnrichedCallbackDestination> {
-    if (!d.callbackDestination.signalEventDestinationId) return d.callbackDestination;
+    let eventDestinationId =
+      d.callbackDestination.signalEventDestinationId ?? d.callbackDestination.id;
 
     try {
       let signalTenant = await getTenantForSignal(d.tenant);
       let signalDestination = await signal.eventDestination.get({
         tenantId: signalTenant.id,
-        eventDestinationId: d.callbackDestination.signalEventDestinationId
+        eventDestinationId
       });
 
       return {
@@ -94,7 +95,12 @@ class callbackDestinationServiceImpl {
           where: {
             tenantOid: d.tenant.oid,
             solutionOid: d.solution.oid,
-            status: { notIn: [CallbackDestinationStatus.deleted] },
+            status: {
+              notIn: [
+                CallbackDestinationStatus.archived,
+                CallbackDestinationStatus.deleted
+              ]
+            },
             AND: [
               d.callbackIds?.length
                 ? {
@@ -128,7 +134,9 @@ class callbackDestinationServiceImpl {
         tenantOid: d.tenant.oid,
         solutionOid: d.solution.oid,
         id: d.callbackDestinationId,
-        status: { notIn: [CallbackDestinationStatus.deleted] }
+        status: {
+          notIn: [CallbackDestinationStatus.archived, CallbackDestinationStatus.deleted]
+        }
       }
     });
     if (!callbackDestination) {

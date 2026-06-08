@@ -24,6 +24,11 @@ export type CallbackInstanceReceiverTrigger = Awaited<
   ReturnType<SlatesClient['slateTriggerReceiver']['get']>
 >['triggers'][number];
 
+export type CallbackInstanceReceiver = {
+  receiverWebhookUrl: string | null;
+  triggers: EnrichedCallbackInstanceTrigger[];
+};
+
 export type EnrichedCallbackInstanceTrigger = CallbackInstanceReceiverTrigger & {
   providerTrigger:
     | (ProviderTrigger & {
@@ -71,7 +76,7 @@ export let callbackInstancePresenter = (
     slateTriggerReceiverId?: string | null;
     activeRegistration?: CallbackReceiverRegistration | null;
   },
-  receiverTriggers?: EnrichedCallbackInstanceTrigger[]
+  receiver?: CallbackInstanceReceiver
 ) => ({
   object: 'callback.instance',
 
@@ -103,7 +108,10 @@ export let callbackInstancePresenter = (
       })
     : null,
 
-  triggers: (receiverTriggers ?? []).map(callbackInstanceTriggerPresenter),
+  webhookUrl: receiver?.receiverWebhookUrl ?? null,
+  receiverWebhookUrl: receiver?.receiverWebhookUrl ?? null,
+
+  triggers: (receiver?.triggers ?? []).map(callbackInstanceTriggerPresenter),
 
   createdAt: callbackInstance.createdAt,
   updatedAt: callbackInstance.updatedAt
