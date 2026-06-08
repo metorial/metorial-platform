@@ -449,6 +449,7 @@ class callbackServiceImpl {
         await tx.callbackProviderTrigger.deleteMany({
           where: { callbackOid: d.callback.oid }
         });
+
         if (triggerDefs.length) {
           await tx.callbackProviderTrigger.createMany({
             data: triggerDefs.map(trigger => ({
