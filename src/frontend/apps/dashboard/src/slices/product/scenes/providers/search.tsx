@@ -12,6 +12,7 @@ import {
   Avatar,
   Badge,
   ButtonSize,
+  CenteredSpinner,
   getButtonSize,
   Input,
   InputLabel,
@@ -141,6 +142,8 @@ let CardCategories = styled.div`
 `;
 
 let ProviderCardWrapper = styled.div`
+  position: relative;
+
   &[data-disabled='true'] {
     opacity: 0.55;
   }
@@ -166,6 +169,16 @@ let ProviderCardWrapper = styled.div`
   &[data-selected='true'] [data-button='true']:focus {
     border-color: ${theme.colors.black900};
   }
+`;
+
+let CreatingCardSpinner = styled.div`
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
 `;
 
 let CardCategory = styled.div`
@@ -209,7 +222,9 @@ let ProviderItemsGrid = ({
   selectionMode = 'default',
   variant = 'compactList',
   cardSize = 'default',
-  selectedProviderId
+  selectedProviderId,
+  creatingProviderId,
+  selectionDisabled
 }: {
   items: ProviderSearchItem[];
   onSelect?: (provider: ProviderSearchItem) => void;
@@ -219,6 +234,8 @@ let ProviderItemsGrid = ({
   variant?: ProviderSearchVariant;
   cardSize?: ProviderCardSize;
   selectedProviderId?: string;
+  creatingProviderId?: string;
+  selectionDisabled?: boolean;
 }) => {
   if (items.length === 0) {
     return (
@@ -232,11 +249,16 @@ let ProviderItemsGrid = ({
     return (
       <ItemGrid.Root width={cardSize === 'compact' ? '270px' : '300px'}>
         {items.map(provider => {
-          let isDisabled =
+          let isCreating = creatingProviderId === provider.id;
+          let isUnavailable =
             selectionMode === 'authCredentialsCreate' && provider.oauthAutoRegistrationEnabled;
-          let disabledReason = isDisabled
+          let isDisabled = isUnavailable || (!!selectionDisabled && !isCreating);
+          let clickDisabled = isDisabled || !!selectionDisabled;
+          let disabledReason = isUnavailable
             ? 'This provider uses OAuth auto-registration, so manual app credentials are not supported.'
-            : undefined;
+            : isDisabled
+              ? 'A callback is already being created.'
+              : undefined;
           let description = provider.description
             ? provider.description.slice(0, cardSize === 'compact' ? 80 : 100) +
               (provider.description.length > (cardSize === 'compact' ? 80 : 100) ? '...' : '')
@@ -247,13 +269,20 @@ let ProviderItemsGrid = ({
               key={provider.id}
               title={disabledReason}
               data-disabled={isDisabled ? 'true' : 'false'}
+              data-creating={isCreating ? 'true' : 'false'}
               data-selected={selectedProviderId === provider.id ? 'true' : 'false'}
             >
+              {isCreating && (
+                <CreatingCardSpinner>
+                  <CenteredSpinner />
+                </CreatingCardSpinner>
+              )}
+
               <ItemGrid.Item
                 title={provider.name ?? provider.slug ?? 'Provider'}
                 description={description}
                 height={cardSize === 'compact' ? 220 : 250}
-                onClick={isDisabled ? undefined : () => onSelect?.(provider)}
+                onClick={clickDisabled ? undefined : () => onSelect?.(provider)}
                 icon={
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <Avatar
@@ -302,17 +331,22 @@ let ProviderItemsGrid = ({
   return (
     <Grid $columns={columns}>
       {items.map(provider => {
-        let isDisabled =
+        let isCreating = creatingProviderId === provider.id;
+        let isUnavailable =
           selectionMode === 'authCredentialsCreate' && provider.oauthAutoRegistrationEnabled;
-        let disabledReason = isDisabled
+        let isDisabled = isUnavailable || (!!selectionDisabled && !isCreating);
+        let clickDisabled = isDisabled || !!selectionDisabled;
+        let disabledReason = isUnavailable
           ? 'This provider uses OAuth auto-registration, so manual app credentials are not supported.'
-          : undefined;
+          : isDisabled
+            ? 'A callback is already being created.'
+            : undefined;
 
         return (
           <div key={provider.id} title={disabledReason} style={{ display: 'flex' }}>
             <GridButton
               type="button"
-              disabled={isDisabled}
+              disabled={clickDisabled}
               onClick={() => onSelect?.(provider)}
             >
               <Avatar
@@ -349,7 +383,9 @@ let ProviderSearchGrid = ({
   hideSearch = false,
   internalScroll = false,
   internalScrollHeight,
-  selectedProviderId
+  selectedProviderId,
+  creatingProviderId,
+  selectionDisabled
 }: {
   items: ProviderSearchItem[];
   onSelect?: (provider: ProviderSearchItem) => void;
@@ -365,6 +401,8 @@ let ProviderSearchGrid = ({
   internalScroll?: boolean;
   internalScrollHeight?: string | number;
   selectedProviderId?: string;
+  creatingProviderId?: string;
+  selectionDisabled?: boolean;
 }) => {
   let [search, setSearch] = useState('');
   let searchDebounced = useDebounced(search, 300);
@@ -389,6 +427,8 @@ let ProviderSearchGrid = ({
       variant={variant}
       cardSize={cardSize}
       selectedProviderId={selectedProviderId}
+      creatingProviderId={creatingProviderId}
+      selectionDisabled={selectionDisabled}
     />
   );
 
@@ -426,7 +466,9 @@ export let ProviderSearch = ({
   hideSearch = false,
   internalScroll = false,
   internalScrollHeight,
-  selectedProviderId
+  selectedProviderId,
+  creatingProviderId,
+  selectionDisabled
 }: {
   onSelect?: (provider: ProviderListingsGetOutput['provider']) => void;
   stickyTop?: number;
@@ -439,6 +481,8 @@ export let ProviderSearch = ({
   internalScroll?: boolean;
   internalScrollHeight?: string | number;
   selectedProviderId?: string;
+  creatingProviderId?: string;
+  selectionDisabled?: boolean;
 }) => {
   let [search, setSearch] = useState('');
   let searchDebounced = useDebounced(search, 500);
@@ -466,6 +510,8 @@ export let ProviderSearch = ({
       variant={variant}
       cardSize={cardSize}
       selectedProviderId={selectedProviderId}
+      creatingProviderId={creatingProviderId}
+      selectionDisabled={selectionDisabled}
       onSelect={provider => {
         let selectedProvider = providers.data.items.find(item => item.id === provider.id);
         if (selectedProvider) onSelect?.(selectedProvider.provider);
@@ -508,12 +554,15 @@ export let ProvidersWithDeploymentsSearch = ({
   cardSize = 'default',
   includeAllProviders = false,
   prioritizeProvidersWithDeployments = false,
+  loadProviderDeployments,
   providerListingsFilter,
   excludeProviderIds,
   hideSearch = false,
   internalScroll = false,
   internalScrollHeight,
-  selectedProviderId
+  selectedProviderId,
+  creatingProviderId,
+  selectionDisabled
 }: {
   instanceId: string;
   onSelect?: (provider: ProviderSearchItem) => void;
@@ -526,14 +575,22 @@ export let ProvidersWithDeploymentsSearch = ({
   cardSize?: ProviderCardSize;
   includeAllProviders?: boolean;
   prioritizeProvidersWithDeployments?: boolean;
+  loadProviderDeployments?: boolean;
   providerListingsFilter?: DashboardInstanceProviderListingsListQuery;
   excludeProviderIds?: string[];
   hideSearch?: boolean;
   internalScroll?: boolean;
   internalScrollHeight?: string | number;
   selectedProviderId?: string;
+  creatingProviderId?: string;
+  selectionDisabled?: boolean;
 }) => {
-  let deployments = useProviderDeployments(instanceId, limit ? { limit } : undefined);
+  let shouldLoadProviderDeployments =
+    loadProviderDeployments ?? (!includeAllProviders || prioritizeProvidersWithDeployments);
+  let deployments = useProviderDeployments(
+    shouldLoadProviderDeployments ? instanceId : null,
+    limit ? { limit } : undefined
+  );
   let excludedProviderIds = useMemo(() => new Set(excludeProviderIds ?? []), [excludeProviderIds]);
   let providerIds = useMemo(
     () =>
@@ -607,6 +664,8 @@ export let ProvidersWithDeploymentsSearch = ({
           internalScroll={internalScroll}
           internalScrollHeight={internalScrollHeight}
           selectedProviderId={selectedProviderId}
+          creatingProviderId={creatingProviderId}
+          selectionDisabled={selectionDisabled}
         />
       );
     });
@@ -680,6 +739,8 @@ export let ProvidersWithDeploymentsSearch = ({
         internalScroll={internalScroll}
         internalScrollHeight={internalScrollHeight}
         selectedProviderId={selectedProviderId}
+        creatingProviderId={creatingProviderId}
+        selectionDisabled={selectionDisabled}
       />
     );
   });

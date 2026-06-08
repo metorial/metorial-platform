@@ -57,6 +57,10 @@ export let ProviderSelectionStep = (p: {
   internalScrollHeight?: string | number;
   providerListingsFilter?: DashboardInstanceProviderListingsListQuery;
   excludeProviderIds?: string[];
+  prioritizeProvidersWithDeployments?: boolean;
+  selectedProviderId?: string;
+  creatingProviderId?: string;
+  selectionDisabled?: boolean;
 }) => {
   let { search, setSearch, searchQuery } = useSearchFilter(500, {
     updateSearchParams: false
@@ -89,12 +93,15 @@ export let ProviderSelectionStep = (p: {
         variant="providerCard"
         cardSize="compact"
         includeAllProviders
-        prioritizeProvidersWithDeployments
+        prioritizeProvidersWithDeployments={p.prioritizeProvidersWithDeployments ?? true}
         internalScroll
         internalScrollHeight={p.internalScrollHeight ?? 'calc(100vh - 260px)'}
         selectionMode={p.selectionMode}
         providerListingsFilter={providerListingsFilter}
         excludeProviderIds={p.excludeProviderIds}
+        selectedProviderId={p.selectedProviderId}
+        creatingProviderId={p.creatingProviderId}
+        selectionDisabled={p.selectionDisabled}
         hideSearch
         emptyText={p.emptyText ?? 'No providers found.'}
         onSelect={provider => {
