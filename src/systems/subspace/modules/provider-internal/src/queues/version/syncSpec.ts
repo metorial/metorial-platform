@@ -6,6 +6,11 @@ import { env } from '../../env';
 import { providerSpecificationInternalService } from '../../services/providerSpecification';
 import { providerVersionSetSpecificationQueue } from './setSpec';
 
+let hasProviderTools = async (specificationOid: bigint) =>
+  (await db.providerTool.count({
+    where: { specificationOid }
+  })) > 0;
+
 export let providerVersionSyncSpecificationQueue = createQueue<{ providerVersionId: string }>({
   name: 'sub/pint/pver/spec/sync',
   redisUrl: env.service.REDIS_URL,
@@ -22,7 +27,12 @@ export let providerVersionSyncSpecificationQueueProcessor =
   providerVersionSyncSpecificationQueue.process(async data => {
     let version = await db.providerVersion.findFirst({
       where: { id: data.providerVersionId },
-      include: { provider: { include: { ownerTenant: true } }, providerVariant: true }
+      include: {
+        provider: { include: { ownerTenant: true } },
+        providerVariant: true,
+        specification: true,
+        shuttleServer: true
+      }
     });
     if (!version) throw new QueueRetryError();
 
@@ -61,6 +71,36 @@ export let providerVersionSyncSpecificationQueueProcessor =
           versionOid: version.oid,
           result: { status: 'not_discoverable' }
         });
+        return;
+      }
+
+      if (version.specification?.type === 'full' && capabilities.type === 'preliminary') {
+        console.warn(
+          'Skipping preliminary provider version specification over existing full spec',
+          {
+            providerVersionId: version.id,
+            providerId: version.provider.id,
+            existingSpecificationOid: version.specificationOid?.toString()
+          }
+        );
+        return;
+      }
+
+      if (
+        version.shuttleServer?.type === 'remote' &&
+        version.specificationOid &&
+        capabilities.tools.length === 0 &&
+        (await hasProviderTools(version.specificationOid))
+      ) {
+        console.warn(
+          'Skipping empty remote provider version specification over existing tools',
+          {
+            providerVersionId: version.id,
+            providerId: version.provider.id,
+            existingSpecificationOid: version.specificationOid.toString(),
+            newSpecificationType: capabilities.type
+          }
+        );
         return;
       }
 
