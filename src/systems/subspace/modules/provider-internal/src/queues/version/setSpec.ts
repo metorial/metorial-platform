@@ -47,7 +47,7 @@ export let providerVersionSetSpecificationQueueProcessor =
     } else {
       result = {
         specificationDiscoveryStatus: data.result.status,
-        specificationOid: null
+        specificationOid: version.specificationOid
       };
     }
 

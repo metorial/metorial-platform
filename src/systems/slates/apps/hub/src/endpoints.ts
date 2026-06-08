@@ -7,12 +7,14 @@ import { db } from './db';
 
 Bun.serve({
   fetch: hubApp.fetch,
-  port: 52045
+  port: 52045,
+  idleTimeout: 250
 });
 
 Bun.serve({
   fetch: slatesHubApi,
-  port: 52046
+  port: 52046,
+  idleTimeout: 250
 });
 
 Bun.serve({

@@ -86,7 +86,7 @@ export let providerDeploymentConfigPairSetSpecificationQueueProcessor =
     } else {
       result = {
         specificationDiscoveryStatus: 'failed',
-        specificationOid: null
+        specificationOid: existingPairVersion?.specificationOid ?? null
       };
     }
 

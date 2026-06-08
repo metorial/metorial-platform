@@ -6,6 +6,11 @@ import { env } from '../../env';
 import { providerSpecificationInternalService } from '../../services/providerSpecification';
 import { providerDeploymentConfigPairSetSpecificationQueue } from './setSpec';
 
+let hasProviderTools = async (specificationOid: bigint) =>
+  (await db.providerTool.count({
+    where: { specificationOid }
+  })) > 0;
+
 export let providerDeploymentConfigPairSyncSpecificationQueue = createQueue<{
   providerDeploymentConfigPairId: string;
   versionId: string;
@@ -41,7 +46,16 @@ export let providerDeploymentConfigPairSyncSpecificationQueueProcessor =
 
     let version = await db.providerVersion.findFirstOrThrow({
       where: { id: data.versionId },
-      include: { specification: true }
+      include: { specification: true, shuttleServer: true }
+    });
+
+    let existingPairVersion = await db.providerDeploymentConfigPairProviderVersion.findUnique({
+      where: {
+        pairOid_versionOid: {
+          pairOid: pair.oid,
+          versionOid: version.oid
+        }
+      }
     });
 
     try {
@@ -88,15 +102,36 @@ export let providerDeploymentConfigPairSyncSpecificationQueueProcessor =
         console.error('Error discovering capabilities:', e);
       }
 
+      let warnings = [...(capabilities?.warnings ?? [])];
+      let shouldPreserveExistingSpec =
+        capabilities?.status === 'success' &&
+        version.shuttleServer?.type === 'remote' &&
+        existingPairVersion?.specificationOid &&
+        capabilities.tools.length === 0 &&
+        (await hasProviderTools(existingPairVersion.specificationOid));
+
+      if (shouldPreserveExistingSpec) {
+        warnings.push({
+          code: 'empty_tools_discovery_result',
+          message:
+            'Remote provider discovery returned no tools after a previous non-empty specification; keeping the existing specification.',
+          data: {
+            providerDeploymentConfigPairId: pair.id,
+            providerVersionId: version.id,
+            existingSpecificationOid: existingPairVersion!.specificationOid!.toString()
+          }
+        });
+      }
+
       let record =
-        capabilities?.warnings?.length || capabilities?.status == 'failure'
+        warnings.length || capabilities?.status == 'failure'
           ? await db.providerDeploymentConfigPairDiscovery.create({
               data: {
                 ...getId('providerDeploymentConfigPairDiscovery'),
                 status:
-                  capabilities.status === 'success' ? 'succeeded_with_warnings' : 'failed',
-                error: capabilities.status === 'failure' ? capabilities.error : null,
-                warnings: capabilities.warnings,
+                  capabilities?.status === 'success' ? 'succeeded_with_warnings' : 'failed',
+                error: capabilities?.status === 'failure' ? capabilities.error : null,
+                warnings,
                 pairOid: pair.oid,
                 versionOid: version.oid
               }
@@ -105,6 +140,15 @@ export let providerDeploymentConfigPairSyncSpecificationQueueProcessor =
 
       // Some backends might need a config to be able to discover specifications
       if (!capabilities || capabilities.status == 'failure') {
+        await providerDeploymentConfigPairSetSpecificationQueue.add({
+          providerDeploymentConfigPairOid: pair.oid,
+          versionOid: version.oid,
+          result: { status: 'failure', discoveryRecordOid: record?.oid }
+        });
+        return;
+      }
+
+      if (shouldPreserveExistingSpec) {
         await providerDeploymentConfigPairSetSpecificationQueue.add({
           providerDeploymentConfigPairOid: pair.oid,
           versionOid: version.oid,
