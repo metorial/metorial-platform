@@ -15,7 +15,7 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@looped/hooks": "^0.1.3",
-    "@lowerdeck/memo": "^1.0.4",
+    "@lowerdeck/memo": "workspace:2.0.0",
     "@radix-ui/react-accordion": "^1.2.8",
     "@radix-ui/react-alert-dialog": "^1.1.11",
     "@radix-ui/react-checkbox": "^1.2.3",

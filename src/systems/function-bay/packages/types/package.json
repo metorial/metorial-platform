@@ -37,6 +37,6 @@
     "vitest": "^3.2.4"
   },
   "dependencies": {
-    "@lowerdeck/validation": "^1.0.10"
+    "@lowerdeck/validation": "workspace:2.0.0"
   }
 }

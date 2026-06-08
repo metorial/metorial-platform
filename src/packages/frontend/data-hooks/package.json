@@ -14,8 +14,11 @@
     "react-router-dom": "^6.26.1",
     "yup": "^1.4.0",
     "@metorial/ui": "1.0.0",
-    "@lowerdeck/error": "^1.2.3",
-    "@lowerdeck/memo": "1.0.4"
+    "@lowerdeck/error": "workspace:2.0.0",
+    "@lowerdeck/memo": "workspace:2.0.0",
+    "@lowerdeck/canonicalize": "workspace:2.0.0",
+    "@lowerdeck/sentry": "workspace:2.0.0",
+    "@lowerdeck/validation": "workspace:2.0.0"
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",

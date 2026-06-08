@@ -1,0 +1,39 @@
+{
+  "name": "@lowerdeck/ip-info",
+  "version": "2.0.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "src/**",
+    "dist/**",
+    "README.md",
+    "package.json"
+  ],
+  "author": "Tobias Herber",
+  "license": "Apache 2",
+  "type": "module",
+  "source": "src/index.ts",
+  "exports": {
+    "types": "./dist/index.d.ts",
+    "require": "./dist/index.cjs",
+    "import": "./dist/index.module.js",
+    "default": "./dist/index.module.js"
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.module.js",
+  "types": "dist/index.d.ts",
+  "unpkg": "./dist/index.umd.js",
+  "scripts": {
+    "test": "vitest run --passWithNoTests",
+    "lint": "prettier src/**/*.ts --check",
+    "build": "rm -rf ./dist && microbundle"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "microbundle": "^0.15.1",
+    "@lowerdeck/tsconfig": "workspace:2.0.0",
+    "typescript": "5.8.2",
+    "vitest": "^3.1.2"
+  }
+}

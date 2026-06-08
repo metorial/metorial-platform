@@ -35,8 +35,8 @@
     "vitest": "^3.1.2"
   },
   "dependencies": {
-    "@lowerdeck/proxy": "^1.0.4",
-    "@lowerdeck/serialize": "^1.0.4",
+    "@lowerdeck/proxy": "workspace:2.0.0",
+    "@lowerdeck/serialize": "workspace:2.0.0",
     "@metorial/mcp": "^1.0.0-rc.2",
     "@metorial/mcp-transport-memory": "^1.0.0",
     "@modelcontextprotocol/sdk": "^1.25.3",

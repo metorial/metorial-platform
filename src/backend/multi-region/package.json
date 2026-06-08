@@ -12,14 +12,14 @@
   },
   "dependencies": {
     "@aws-sdk/rds-signer": "^3.1018.0",
-    "@lowerdeck/base62": "^1.0.4",
-    "@lowerdeck/delay": "^1.0.4",
-    "@lowerdeck/env": "^1.0.6",
-    "@lowerdeck/error": "^1.2.3",
-    "@lowerdeck/service": "^1.0.7",
-    "@lowerdeck/shadow-id": "^1.0.7",
-    "@lowerdeck/slugify": "^1.0.6",
-    "@lowerdeck/validation": "^1.0.10",
+    "@lowerdeck/base62": "workspace:2.0.0",
+    "@lowerdeck/delay": "workspace:2.0.0",
+    "@lowerdeck/env": "workspace:2.0.0",
+    "@lowerdeck/error": "workspace:2.0.0",
+    "@lowerdeck/service": "workspace:2.0.0",
+    "@lowerdeck/shadow-id": "workspace:2.0.0",
+    "@lowerdeck/slugify": "workspace:2.0.0",
+    "@lowerdeck/validation": "workspace:2.0.0",
     "@metorial/cache": "^1.0.0",
     "@metorial/context": "^1.0.0",
     "@metorial/cron": "^1.0.0",
@@ -33,7 +33,8 @@
     "prisma": "^7.4.1",
     "prisma-json-types-generator": "^4.1.1",
     "stripe": "^18.5.0",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "@lowerdeck/queue": "workspace:2.0.0"
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",

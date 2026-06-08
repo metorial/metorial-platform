@@ -11,8 +11,8 @@
     "prisma:generate": "./prisma-generate.sh"
   },
   "dependencies": {
-    "@lowerdeck/snowflake": "^1.0.2",
-    "@lowerdeck/execution-context": "^1.1.1",
+    "@lowerdeck/snowflake": "workspace:2.0.0",
+    "@lowerdeck/execution-context": "workspace:2.0.0",
     "@metorial/id": "^1.0.0",
     "@modelcontextprotocol/sdk": "^1.11.4",
     "@prisma/adapter-pg": "6.19.0",

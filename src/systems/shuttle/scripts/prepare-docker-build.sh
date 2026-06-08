@@ -7,6 +7,8 @@ cd /app
 # before the service bundle is built.
 bun install --linker=hoisted
 
+bunx turbo run --ui=stream build --filter='./src/lowerdeck/packages/**'
+
 bun run --cwd ./src/systems/forge/service db:generate
 bun run --cwd ./src/systems/function-bay/service db:generate
 

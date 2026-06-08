@@ -30,7 +30,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@lowerdeck/rpc-client": "^1.1.4",
+    "@lowerdeck/rpc-client": "workspace:2.0.0",
     "@types/bun": "^1.3.7"
   },
   "devDependencies": {

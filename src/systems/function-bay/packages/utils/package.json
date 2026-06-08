@@ -36,8 +36,8 @@
     "vitest": "^3.2.4"
   },
   "dependencies": {
-    "@lowerdeck/env": "^1.0.6",
-    "@lowerdeck/validation": "^1.0.10",
+    "@lowerdeck/env": "workspace:2.0.0",
+    "@lowerdeck/validation": "workspace:2.0.0",
     "jszip": "^3.10.1"
   }
 }

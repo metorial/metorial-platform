@@ -1,0 +1,61 @@
+import { generateCode, generatePlainId } from '@lowerdeck/id';
+import _slugify from 'slugify';
+
+export let slugify = (slug: string) =>
+  _slugify(slug, {
+    lower: true,
+    strict: true,
+    replacement: '-',
+    remove: /[*+~.()'"!:@]/g
+  });
+
+export let createSlugGenerator =
+  <Opts = void>(cb: (slug: string, opts: Opts) => Promise<boolean>) =>
+  async (d: { input: string; current?: string }, opts: Opts) => {
+    let slug = slugify(d.input);
+
+    if (slug.length < 5) {
+      slug += generateCode(5 - slug.length);
+    }
+
+    for (let i = 0; i < 10; i++) {
+      if (d.current && slug == d.current) return slug;
+
+      let ok = false;
+
+      try {
+        ok = await cb(slug, opts);
+      } catch (e) {}
+
+      if (ok) return slug;
+
+      slug = `${slug}${i == 0 ? '-' : ''}${generateCode(2)}`;
+    }
+
+    slug = generatePlainId(20);
+    return slug;
+  };
+
+export let createShortIdGenerator =
+  <Opts = void>(cb: (id: string, opts: Opts) => Promise<boolean>, d?: { length?: number }) =>
+  async (opts: Opts) => {
+    let length = d?.length ?? 6;
+
+    let id = generatePlainId(length).toLowerCase();
+
+    for (let i = 0; i < 10; i++) {
+      let ok = false;
+
+      try {
+        ok = await cb(id, opts);
+      } catch (e) {}
+
+      if (ok) return id;
+
+      id = generatePlainId(length).toLowerCase();
+    }
+
+    id = generatePlainId(20).toLowerCase();
+
+    return id;
+  };

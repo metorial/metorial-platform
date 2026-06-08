@@ -14,13 +14,14 @@
     "@metorial/frontend-config": "^1.0.0",
     "@metorial/data-hooks": "^1.0.0",
     "@metorial-platform-systems/synthesis-client": "1.0.0",
-    "@lowerdeck/error": "^1.2.3",
-    "@lowerdeck/programmable-promise": "^1.0.6",
-    "@lowerdeck/sentry": "^1.0.2",
+    "@lowerdeck/error": "workspace:2.0.0",
+    "@lowerdeck/programmable-promise": "workspace:2.0.0",
+    "@lowerdeck/sentry": "workspace:2.0.0",
     "@metorial/generated": "latest",
     "@metorial/storage": "^1.0.0",
     "react": "^19.1.0",
-    "react-router-dom": "^6.26.1"
+    "react-router-dom": "^6.26.1",
+    "@lowerdeck/delay": "workspace:2.0.0"
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",
