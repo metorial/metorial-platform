@@ -87,144 +87,116 @@ export type PortalsConsumerAccessListOutput = {
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
-export let mapPortalsConsumerAccessListOutput =
-  mtMap.object<PortalsConsumerAccessListOutput>({
-    items: mtMap.objectField(
-      'items',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough()),
-          description: mtMap.objectField('description', mtMap.passthrough()),
-          readme: mtMap.objectField('readme', mtMap.passthrough()),
-          access: mtMap.objectField(
-            'access',
-            mtMap.union([
-              mtMap.unionOption(
-                'object',
-                mtMap.object({
-                  type: mtMap.objectField('type', mtMap.passthrough()),
-                  providerTemplate: mtMap.objectField(
-                    'provider_template',
-                    mtMap.object({
-                      object: mtMap.objectField('object', mtMap.passthrough()),
-                      id: mtMap.objectField('id', mtMap.passthrough()),
-                      status: mtMap.objectField('status', mtMap.passthrough()),
-                      name: mtMap.objectField('name', mtMap.passthrough()),
-                      description: mtMap.objectField(
-                        'description',
-                        mtMap.passthrough()
-                      ),
-                      metadata: mtMap.objectField(
-                        'metadata',
-                        mtMap.passthrough()
-                      ),
-                      integrationId: mtMap.objectField(
-                        'integration_id',
-                        mtMap.passthrough()
-                      ),
-                      createdAt: mtMap.objectField('created_at', mtMap.date()),
-                      updatedAt: mtMap.objectField('updated_at', mtMap.date())
-                    })
-                  ),
-                  magicMcpServer: mtMap.objectField(
-                    'magic_mcp_server',
-                    mtMap.object({
-                      object: mtMap.objectField('object', mtMap.passthrough()),
-                      id: mtMap.objectField('id', mtMap.passthrough()),
-                      status: mtMap.objectField('status', mtMap.passthrough()),
-                      name: mtMap.objectField('name', mtMap.passthrough()),
-                      description: mtMap.objectField(
-                        'description',
-                        mtMap.passthrough()
-                      )
-                    })
-                  ),
-                  skill: mtMap.objectField(
-                    'skill',
-                    mtMap.object({
-                      object: mtMap.objectField('object', mtMap.passthrough()),
-                      id: mtMap.objectField('id', mtMap.passthrough()),
-                      status: mtMap.objectField('status', mtMap.passthrough()),
-                      name: mtMap.objectField('name', mtMap.passthrough())
-                    })
-                  ),
-                  skillTemplate: mtMap.objectField(
-                    'skill_template',
-                    mtMap.object({
-                      object: mtMap.objectField('object', mtMap.passthrough()),
-                      id: mtMap.objectField('id', mtMap.passthrough()),
-                      status: mtMap.objectField('status', mtMap.passthrough()),
-                      owner: mtMap.objectField('owner', mtMap.passthrough()),
-                      name: mtMap.objectField('name', mtMap.passthrough()),
-                      description: mtMap.objectField(
-                        'description',
-                        mtMap.passthrough()
-                      )
-                    })
-                  ),
-                  skillGroup: mtMap.objectField(
-                    'skill_group',
-                    mtMap.object({
-                      object: mtMap.objectField('object', mtMap.passthrough()),
-                      id: mtMap.objectField('id', mtMap.passthrough()),
-                      status: mtMap.objectField('status', mtMap.passthrough()),
-                      name: mtMap.objectField('name', mtMap.passthrough()),
-                      description: mtMap.objectField(
-                        'description',
-                        mtMap.passthrough()
-                      )
-                    })
-                  ),
-                  skillMarketplace: mtMap.objectField(
-                    'skill_marketplace',
-                    mtMap.object({
-                      object: mtMap.objectField('object', mtMap.passthrough()),
-                      id: mtMap.objectField('id', mtMap.passthrough()),
-                      status: mtMap.objectField('status', mtMap.passthrough())
-                    })
-                  )
-                })
-              )
-            ])
-          ),
-          consumerGroup: mtMap.objectField(
-            'consumer_group',
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              status: mtMap.objectField('status', mtMap.passthrough()),
-              name: mtMap.objectField('name', mtMap.passthrough()),
-              description: mtMap.objectField(
-                'description',
-                mtMap.passthrough()
-              ),
-              isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
-              ssoGroupIds: mtMap.objectField(
-                'sso_group_ids',
-                mtMap.array(mtMap.passthrough())
-              ),
-              createdAt: mtMap.objectField('created_at', mtMap.date()),
-              updatedAt: mtMap.objectField('updated_at', mtMap.date())
-            })
-          ),
-          createdAt: mtMap.objectField('created_at', mtMap.date()),
-          updatedAt: mtMap.objectField('updated_at', mtMap.date())
-        })
-      )
-    ),
-    pagination: mtMap.objectField(
-      'pagination',
+export let mapPortalsConsumerAccessListOutput = mtMap.object<PortalsConsumerAccessListOutput>({
+  items: mtMap.objectField(
+    'items',
+    mtMap.array(
       mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
+        object: mtMap.objectField('object', mtMap.passthrough()),
+        id: mtMap.objectField('id', mtMap.passthrough()),
+        name: mtMap.objectField('name', mtMap.passthrough()),
+        description: mtMap.objectField('description', mtMap.passthrough()),
+        readme: mtMap.objectField('readme', mtMap.passthrough()),
+        access: mtMap.objectField(
+          'access',
+          mtMap.union([
+            mtMap.unionOption(
+              'object',
+              mtMap.object({
+                type: mtMap.objectField('type', mtMap.passthrough()),
+                providerTemplate: mtMap.objectField(
+                  'provider_template',
+                  mtMap.object({
+                    object: mtMap.objectField('object', mtMap.passthrough()),
+                    id: mtMap.objectField('id', mtMap.passthrough()),
+                    status: mtMap.objectField('status', mtMap.passthrough()),
+                    name: mtMap.objectField('name', mtMap.passthrough()),
+                    description: mtMap.objectField('description', mtMap.passthrough()),
+                    metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+                    integrationId: mtMap.objectField('integration_id', mtMap.passthrough()),
+                    createdAt: mtMap.objectField('created_at', mtMap.date()),
+                    updatedAt: mtMap.objectField('updated_at', mtMap.date())
+                  })
+                ),
+                magicMcpServer: mtMap.objectField(
+                  'magic_mcp_server',
+                  mtMap.object({
+                    object: mtMap.objectField('object', mtMap.passthrough()),
+                    id: mtMap.objectField('id', mtMap.passthrough()),
+                    status: mtMap.objectField('status', mtMap.passthrough()),
+                    name: mtMap.objectField('name', mtMap.passthrough()),
+                    description: mtMap.objectField('description', mtMap.passthrough())
+                  })
+                ),
+                skill: mtMap.objectField(
+                  'skill',
+                  mtMap.object({
+                    object: mtMap.objectField('object', mtMap.passthrough()),
+                    id: mtMap.objectField('id', mtMap.passthrough()),
+                    status: mtMap.objectField('status', mtMap.passthrough()),
+                    name: mtMap.objectField('name', mtMap.passthrough())
+                  })
+                ),
+                skillTemplate: mtMap.objectField(
+                  'skill_template',
+                  mtMap.object({
+                    object: mtMap.objectField('object', mtMap.passthrough()),
+                    id: mtMap.objectField('id', mtMap.passthrough()),
+                    status: mtMap.objectField('status', mtMap.passthrough()),
+                    owner: mtMap.objectField('owner', mtMap.passthrough()),
+                    name: mtMap.objectField('name', mtMap.passthrough()),
+                    description: mtMap.objectField('description', mtMap.passthrough())
+                  })
+                ),
+                skillGroup: mtMap.objectField(
+                  'skill_group',
+                  mtMap.object({
+                    object: mtMap.objectField('object', mtMap.passthrough()),
+                    id: mtMap.objectField('id', mtMap.passthrough()),
+                    status: mtMap.objectField('status', mtMap.passthrough()),
+                    name: mtMap.objectField('name', mtMap.passthrough()),
+                    description: mtMap.objectField('description', mtMap.passthrough())
+                  })
+                ),
+                skillMarketplace: mtMap.objectField(
+                  'skill_marketplace',
+                  mtMap.object({
+                    object: mtMap.objectField('object', mtMap.passthrough()),
+                    id: mtMap.objectField('id', mtMap.passthrough()),
+                    status: mtMap.objectField('status', mtMap.passthrough())
+                  })
+                )
+              })
+            )
+          ])
         ),
-        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
+        consumerGroup: mtMap.objectField(
+          'consumer_group',
+          mtMap.object({
+            object: mtMap.objectField('object', mtMap.passthrough()),
+            id: mtMap.objectField('id', mtMap.passthrough()),
+            status: mtMap.objectField('status', mtMap.passthrough()),
+            name: mtMap.objectField('name', mtMap.passthrough()),
+            description: mtMap.objectField('description', mtMap.passthrough()),
+            isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
+            ssoGroupIds: mtMap.objectField('sso_group_ids', mtMap.array(mtMap.passthrough())),
+            createdAt: mtMap.objectField('created_at', mtMap.date()),
+            updatedAt: mtMap.objectField('updated_at', mtMap.date())
+          })
+        ),
+        createdAt: mtMap.objectField('created_at', mtMap.date()),
+        updatedAt: mtMap.objectField('updated_at', mtMap.date())
       })
     )
-  });
+  ),
+  pagination: mtMap.objectField(
+    'pagination',
+    mtMap.object({
+      hasMoreBefore: mtMap.objectField('has_more_before', mtMap.passthrough()),
+      hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
+    })
+  )
+});
 
 export type PortalsConsumerAccessListQuery = {
   limit?: number | undefined;
@@ -357,4 +329,3 @@ export let mapPortalsConsumerAccessListQuery = mtMap.union([
     })
   )
 ]);
-

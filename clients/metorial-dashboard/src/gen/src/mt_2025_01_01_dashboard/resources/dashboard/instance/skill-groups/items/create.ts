@@ -42,14 +42,8 @@ export let mapDashboardInstanceSkillGroupsItemsCreateOutput =
         description: mtMap.objectField('description', mtMap.passthrough()),
         imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
         clientName: mtMap.objectField('client_name', mtMap.passthrough()),
-        clientDescription: mtMap.objectField(
-          'client_description',
-          mtMap.passthrough()
-        ),
-        clientMetadata: mtMap.objectField(
-          'client_metadata',
-          mtMap.passthrough()
-        ),
+        clientDescription: mtMap.objectField('client_description', mtMap.passthrough()),
+        clientMetadata: mtMap.objectField('client_metadata', mtMap.passthrough()),
         license: mtMap.objectField('license', mtMap.passthrough()),
         compatibility: mtMap.objectField('compatibility', mtMap.passthrough()),
         metadata: mtMap.objectField('metadata', mtMap.passthrough()),
@@ -60,10 +54,11 @@ export let mapDashboardInstanceSkillGroupsItemsCreateOutput =
     createdAt: mtMap.objectField('created_at', mtMap.date())
   });
 
-export type DashboardInstanceSkillGroupsItemsCreateBody = { skillId: string };
+export type DashboardInstanceSkillGroupsItemsCreateBody = {
+  skillId: string;
+};
 
 export let mapDashboardInstanceSkillGroupsItemsCreateBody =
   mtMap.object<DashboardInstanceSkillGroupsItemsCreateBody>({
     skillId: mtMap.objectField('skill_id', mtMap.passthrough())
   });
-

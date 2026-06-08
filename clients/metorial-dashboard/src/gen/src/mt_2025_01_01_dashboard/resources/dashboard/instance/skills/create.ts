@@ -176,10 +176,7 @@ export let mapDashboardInstanceSkillsCreateOutput =
     description: mtMap.objectField('description', mtMap.passthrough()),
     imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
     clientName: mtMap.objectField('client_name', mtMap.passthrough()),
-    clientDescription: mtMap.objectField(
-      'client_description',
-      mtMap.passthrough()
-    ),
+    clientDescription: mtMap.objectField('client_description', mtMap.passthrough()),
     clientMetadata: mtMap.objectField('client_metadata', mtMap.passthrough()),
     license: mtMap.objectField('license', mtMap.passthrough()),
     compatibility: mtMap.objectField('compatibility', mtMap.passthrough()),
@@ -190,10 +187,7 @@ export let mapDashboardInstanceSkillsCreateOutput =
       mtMap.object({
         object: mtMap.objectField('object', mtMap.passthrough()),
         type: mtMap.objectField('type', mtMap.passthrough()),
-        parentSkillId: mtMap.objectField(
-          'parent_skill_id',
-          mtMap.passthrough()
-        ),
+        parentSkillId: mtMap.objectField('parent_skill_id', mtMap.passthrough()),
         creator: mtMap.objectField(
           'creator',
           mtMap.object({
@@ -207,10 +201,7 @@ export let mapDashboardInstanceSkillsCreateOutput =
                 object: mtMap.objectField('object', mtMap.passthrough()),
                 id: mtMap.objectField('id', mtMap.passthrough()),
                 type: mtMap.objectField('type', mtMap.passthrough()),
-                organizationId: mtMap.objectField(
-                  'organization_id',
-                  mtMap.passthrough()
-                ),
+                organizationId: mtMap.objectField('organization_id', mtMap.passthrough()),
                 name: mtMap.objectField('name', mtMap.passthrough()),
                 email: mtMap.objectField('email', mtMap.passthrough()),
                 imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
@@ -221,10 +212,7 @@ export let mapDashboardInstanceSkillsCreateOutput =
                       id: mtMap.objectField('id', mtMap.passthrough()),
                       name: mtMap.objectField('name', mtMap.passthrough()),
                       slug: mtMap.objectField('slug', mtMap.passthrough()),
-                      assignmentId: mtMap.objectField(
-                        'assignment_id',
-                        mtMap.passthrough()
-                      ),
+                      assignmentId: mtMap.objectField('assignment_id', mtMap.passthrough()),
                       createdAt: mtMap.objectField('created_at', mtMap.date()),
                       updatedAt: mtMap.objectField('updated_at', mtMap.date())
                     })
@@ -252,10 +240,7 @@ export let mapDashboardInstanceSkillsCreateOutput =
           'fork',
           mtMap.object({
             id: mtMap.objectField('id', mtMap.passthrough()),
-            parentSkillId: mtMap.objectField(
-              'parent_skill_id',
-              mtMap.passthrough()
-            ),
+            parentSkillId: mtMap.objectField('parent_skill_id', mtMap.passthrough()),
             creator: mtMap.objectField(
               'creator',
               mtMap.object({
@@ -269,16 +254,10 @@ export let mapDashboardInstanceSkillsCreateOutput =
                     object: mtMap.objectField('object', mtMap.passthrough()),
                     id: mtMap.objectField('id', mtMap.passthrough()),
                     type: mtMap.objectField('type', mtMap.passthrough()),
-                    organizationId: mtMap.objectField(
-                      'organization_id',
-                      mtMap.passthrough()
-                    ),
+                    organizationId: mtMap.objectField('organization_id', mtMap.passthrough()),
                     name: mtMap.objectField('name', mtMap.passthrough()),
                     email: mtMap.objectField('email', mtMap.passthrough()),
-                    imageUrl: mtMap.objectField(
-                      'image_url',
-                      mtMap.passthrough()
-                    ),
+                    imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
                     teams: mtMap.objectField(
                       'teams',
                       mtMap.array(
@@ -290,14 +269,8 @@ export let mapDashboardInstanceSkillsCreateOutput =
                             'assignment_id',
                             mtMap.passthrough()
                           ),
-                          createdAt: mtMap.objectField(
-                            'created_at',
-                            mtMap.date()
-                          ),
-                          updatedAt: mtMap.objectField(
-                            'updated_at',
-                            mtMap.date()
-                          )
+                          createdAt: mtMap.objectField('created_at', mtMap.date()),
+                          updatedAt: mtMap.objectField('updated_at', mtMap.date())
                         })
                       )
                     ),
@@ -312,10 +285,7 @@ export let mapDashboardInstanceSkillsCreateOutput =
                     id: mtMap.objectField('id', mtMap.passthrough()),
                     name: mtMap.objectField('name', mtMap.passthrough()),
                     email: mtMap.objectField('email', mtMap.passthrough()),
-                    imageUrl: mtMap.objectField(
-                      'image_url',
-                      mtMap.passthrough()
-                    ),
+                    imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
                     createdAt: mtMap.objectField('created_at', mtMap.date()),
                     updatedAt: mtMap.objectField('updated_at', mtMap.date())
                   })
@@ -335,16 +305,10 @@ export let mapDashboardInstanceSkillsCreateOutput =
                     object: mtMap.objectField('object', mtMap.passthrough()),
                     id: mtMap.objectField('id', mtMap.passthrough()),
                     type: mtMap.objectField('type', mtMap.passthrough()),
-                    organizationId: mtMap.objectField(
-                      'organization_id',
-                      mtMap.passthrough()
-                    ),
+                    organizationId: mtMap.objectField('organization_id', mtMap.passthrough()),
                     name: mtMap.objectField('name', mtMap.passthrough()),
                     email: mtMap.objectField('email', mtMap.passthrough()),
-                    imageUrl: mtMap.objectField(
-                      'image_url',
-                      mtMap.passthrough()
-                    ),
+                    imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
                     teams: mtMap.objectField(
                       'teams',
                       mtMap.array(
@@ -356,14 +320,8 @@ export let mapDashboardInstanceSkillsCreateOutput =
                             'assignment_id',
                             mtMap.passthrough()
                           ),
-                          createdAt: mtMap.objectField(
-                            'created_at',
-                            mtMap.date()
-                          ),
-                          updatedAt: mtMap.objectField(
-                            'updated_at',
-                            mtMap.date()
-                          )
+                          createdAt: mtMap.objectField('created_at', mtMap.date()),
+                          updatedAt: mtMap.objectField('updated_at', mtMap.date())
                         })
                       )
                     ),
@@ -378,10 +336,7 @@ export let mapDashboardInstanceSkillsCreateOutput =
                     id: mtMap.objectField('id', mtMap.passthrough()),
                     name: mtMap.objectField('name', mtMap.passthrough()),
                     email: mtMap.objectField('email', mtMap.passthrough()),
-                    imageUrl: mtMap.objectField(
-                      'image_url',
-                      mtMap.passthrough()
-                    ),
+                    imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
                     createdAt: mtMap.objectField('created_at', mtMap.date()),
                     updatedAt: mtMap.objectField('updated_at', mtMap.date())
                   })
@@ -399,10 +354,7 @@ export let mapDashboardInstanceSkillsCreateOutput =
             name: mtMap.objectField('name', mtMap.passthrough()),
             slug: mtMap.objectField('slug', mtMap.passthrough()),
             description: mtMap.objectField('description', mtMap.passthrough()),
-            parentSkillId: mtMap.objectField(
-              'parent_skill_id',
-              mtMap.passthrough()
-            ),
+            parentSkillId: mtMap.objectField('parent_skill_id', mtMap.passthrough()),
             createdAt: mtMap.objectField('created_at', mtMap.date()),
             updatedAt: mtMap.objectField('updated_at', mtMap.date())
           })
@@ -471,6 +423,7 @@ export type DashboardInstanceSkillsCreateBody = {
   clientMetadata?: Record<string, any> | undefined;
   imageFileId?: string | null | undefined;
   templateId?: string | undefined;
+  skillGroupId?: string | undefined;
 };
 
 export let mapDashboardInstanceSkillsCreateBody =
@@ -479,14 +432,11 @@ export let mapDashboardInstanceSkillsCreateBody =
     description: mtMap.objectField('description', mtMap.passthrough()),
     metadata: mtMap.objectField('metadata', mtMap.passthrough()),
     clientName: mtMap.objectField('client_name', mtMap.passthrough()),
-    clientDescription: mtMap.objectField(
-      'client_description',
-      mtMap.passthrough()
-    ),
+    clientDescription: mtMap.objectField('client_description', mtMap.passthrough()),
     license: mtMap.objectField('license', mtMap.passthrough()),
     compatibility: mtMap.objectField('compatibility', mtMap.passthrough()),
     clientMetadata: mtMap.objectField('client_metadata', mtMap.passthrough()),
     imageFileId: mtMap.objectField('image_file_id', mtMap.passthrough()),
-    templateId: mtMap.objectField('template_id', mtMap.passthrough())
+    templateId: mtMap.objectField('template_id', mtMap.passthrough()),
+    skillGroupId: mtMap.objectField('skill_group_id', mtMap.passthrough())
   });
-

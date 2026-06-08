@@ -86,6 +86,7 @@ export type ConsumerProviderCatalogEntry =
     > & {
       deployment: ConsumerProviderDeployment;
       provider: ConsumerProvider;
+      toolFilter: unknown;
       configSchema: ConsumerProviderConfigSchema | null;
       authMethods: ConsumerProviderAuthMethodList;
     })
@@ -194,7 +195,7 @@ class ConsumerProviderCatalogServiceImpl {
     consumerGroups: Pick<ConsumerGroup, 'oid'>[];
     consumerProfile?: Pick<ConsumerProfile, 'oid'>;
     search?: string;
-    providerGroupId?: string;
+    providerGroupIds?: string[];
     accessTags?: AnyAccessTagSelector;
     includeCapabilities?: boolean;
     pagination?: ConsumerCatalogListInput;
@@ -206,7 +207,7 @@ class ConsumerProviderCatalogServiceImpl {
           consumerSurface: d.consumerSurface,
           consumerGroups: d.consumerGroups,
           search: d.search,
-          providerGroupId: d.providerGroupId,
+          providerGroupIds: d.providerGroupIds,
           pagination: input
         });
 
@@ -315,7 +316,7 @@ class ConsumerProviderCatalogServiceImpl {
     consumerSurface: Pick<ConsumerSurface, 'oid'>;
     consumerGroups: Pick<ConsumerGroup, 'oid'>[];
     search?: string;
-    providerGroupId?: string;
+    providerGroupIds?: string[];
     pagination: ConsumerCatalogListInput;
   }) {
     let limit =
@@ -338,7 +339,7 @@ class ConsumerProviderCatalogServiceImpl {
       consumerSurface: d.consumerSurface,
       consumerGroups: d.consumerGroups,
       search: d.search,
-      providerGroupId: d.providerGroupId,
+      providerGroupIds: d.providerGroupIds,
       limit,
       direction,
       order,
@@ -364,7 +365,7 @@ class ConsumerProviderCatalogServiceImpl {
     consumerSurface: Pick<ConsumerSurface, 'oid'>;
     consumerGroups: Pick<ConsumerGroup, 'oid'>[];
     search?: string;
-    providerGroupId?: string;
+    providerGroupIds?: string[];
     limit: number;
     direction: ConsumerCatalogDirection;
     order: 'asc' | 'desc';
@@ -419,12 +420,12 @@ class ConsumerProviderCatalogServiceImpl {
 
     let filters: Prisma.ConsumerAccessListingWhereInput[] = [];
 
-    if (d.providerGroupId) {
+    if (d.providerGroupIds?.length) {
       filters.push({
         consumerSurfaceProviderGroups: {
           some: {
             consumerSurfaceProviderGroup: {
-              id: d.providerGroupId,
+              id: { in: d.providerGroupIds },
               consumerSurfaceOid: d.consumerSurface.oid
             }
           }
@@ -689,13 +690,13 @@ class ConsumerProviderCatalogServiceImpl {
 
     let backings = await subspaceMagicMcpBackingService.getManyProviderTemplates({
       instance: d.instance,
-      providerTemplateBackingIds: providerTemplates.map(providerTemplate => providerTemplate.id)
+      providerTemplateBackingIds: providerTemplates.map(
+        providerTemplate => providerTemplate.id
+      )
     });
     let backingMap = new Map(backings.map(backing => [backing.id, backing]));
-    let primaryProviderEntries: [
-      string,
-      (typeof backings)[number]['providers'][number]
-    ][] = [];
+    let primaryProviderEntries: [string, (typeof backings)[number]['providers'][number]][] =
+      [];
     for (let backing of backings) {
       let provider = backing.providers[0];
       if (provider) {
@@ -854,6 +855,7 @@ class ConsumerProviderCatalogServiceImpl {
         providerTemplate,
         deployment,
         provider,
+        toolFilter: primaryProvider.toolFilter,
         configSchema:
           availability == 'available_now' ? (capabilities?.configSchema ?? null) : null,
         authMethods: availability == 'available_now' ? (capabilities?.authMethods ?? []) : []

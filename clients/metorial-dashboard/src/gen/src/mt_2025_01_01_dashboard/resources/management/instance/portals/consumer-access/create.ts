@@ -105,15 +105,9 @@ export let mapManagementInstancePortalsConsumerAccessCreateOutput =
                 id: mtMap.objectField('id', mtMap.passthrough()),
                 status: mtMap.objectField('status', mtMap.passthrough()),
                 name: mtMap.objectField('name', mtMap.passthrough()),
-                description: mtMap.objectField(
-                  'description',
-                  mtMap.passthrough()
-                ),
+                description: mtMap.objectField('description', mtMap.passthrough()),
                 metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-                integrationId: mtMap.objectField(
-                  'integration_id',
-                  mtMap.passthrough()
-                ),
+                integrationId: mtMap.objectField('integration_id', mtMap.passthrough()),
                 createdAt: mtMap.objectField('created_at', mtMap.date()),
                 updatedAt: mtMap.objectField('updated_at', mtMap.date())
               })
@@ -125,10 +119,7 @@ export let mapManagementInstancePortalsConsumerAccessCreateOutput =
                 id: mtMap.objectField('id', mtMap.passthrough()),
                 status: mtMap.objectField('status', mtMap.passthrough()),
                 name: mtMap.objectField('name', mtMap.passthrough()),
-                description: mtMap.objectField(
-                  'description',
-                  mtMap.passthrough()
-                )
+                description: mtMap.objectField('description', mtMap.passthrough())
               })
             ),
             skill: mtMap.objectField(
@@ -148,10 +139,7 @@ export let mapManagementInstancePortalsConsumerAccessCreateOutput =
                 status: mtMap.objectField('status', mtMap.passthrough()),
                 owner: mtMap.objectField('owner', mtMap.passthrough()),
                 name: mtMap.objectField('name', mtMap.passthrough()),
-                description: mtMap.objectField(
-                  'description',
-                  mtMap.passthrough()
-                )
+                description: mtMap.objectField('description', mtMap.passthrough())
               })
             ),
             skillGroup: mtMap.objectField(
@@ -161,10 +149,7 @@ export let mapManagementInstancePortalsConsumerAccessCreateOutput =
                 id: mtMap.objectField('id', mtMap.passthrough()),
                 status: mtMap.objectField('status', mtMap.passthrough()),
                 name: mtMap.objectField('name', mtMap.passthrough()),
-                description: mtMap.objectField(
-                  'description',
-                  mtMap.passthrough()
-                )
+                description: mtMap.objectField('description', mtMap.passthrough())
               })
             ),
             skillMarketplace: mtMap.objectField(
@@ -188,10 +173,7 @@ export let mapManagementInstancePortalsConsumerAccessCreateOutput =
         name: mtMap.objectField('name', mtMap.passthrough()),
         description: mtMap.objectField('description', mtMap.passthrough()),
         isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
-        ssoGroupIds: mtMap.objectField(
-          'sso_group_ids',
-          mtMap.array(mtMap.passthrough())
-        ),
+        ssoGroupIds: mtMap.objectField('sso_group_ids', mtMap.array(mtMap.passthrough())),
         createdAt: mtMap.objectField('created_at', mtMap.date()),
         updatedAt: mtMap.objectField('updated_at', mtMap.date())
       })
@@ -216,10 +198,7 @@ export type ManagementInstancePortalsConsumerAccessCreateBody = {
 
 export let mapManagementInstancePortalsConsumerAccessCreateBody =
   mtMap.object<ManagementInstancePortalsConsumerAccessCreateBody>({
-    consumerGroupId: mtMap.objectField(
-      'consumer_group_id',
-      mtMap.passthrough()
-    ),
+    consumerGroupId: mtMap.objectField('consumer_group_id', mtMap.passthrough()),
     name: mtMap.objectField('name', mtMap.passthrough()),
     description: mtMap.objectField('description', mtMap.passthrough()),
     readme: mtMap.objectField('readme', mtMap.passthrough()),
@@ -230,30 +209,14 @@ export let mapManagementInstancePortalsConsumerAccessCreateBody =
           'object',
           mtMap.object({
             type: mtMap.objectField('type', mtMap.passthrough()),
-            providerTemplateId: mtMap.objectField(
-              'provider_template_id',
-              mtMap.passthrough()
-            ),
-            magicMcpServerId: mtMap.objectField(
-              'magic_mcp_server_id',
-              mtMap.passthrough()
-            ),
+            providerTemplateId: mtMap.objectField('provider_template_id', mtMap.passthrough()),
+            magicMcpServerId: mtMap.objectField('magic_mcp_server_id', mtMap.passthrough()),
             skillId: mtMap.objectField('skill_id', mtMap.passthrough()),
-            skillTemplateId: mtMap.objectField(
-              'skill_template_id',
-              mtMap.passthrough()
-            ),
-            skillGroupId: mtMap.objectField(
-              'skill_group_id',
-              mtMap.passthrough()
-            ),
-            skillMarketplaceId: mtMap.objectField(
-              'skill_marketplace_id',
-              mtMap.passthrough()
-            )
+            skillTemplateId: mtMap.objectField('skill_template_id', mtMap.passthrough()),
+            skillGroupId: mtMap.objectField('skill_group_id', mtMap.passthrough()),
+            skillMarketplaceId: mtMap.objectField('skill_marketplace_id', mtMap.passthrough())
           })
         )
       ])
     )
   });
-

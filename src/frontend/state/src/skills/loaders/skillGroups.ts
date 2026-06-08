@@ -1,4 +1,5 @@
 import type {
+  DashboardInstanceSkillsCreateBody,
   DashboardInstanceSkillGroupsCreateBody,
   DashboardInstanceSkillGroupsGetOutput,
   DashboardInstanceSkillGroupsItemsCreateBody,
@@ -7,7 +8,7 @@ import type {
   DashboardInstanceSkillGroupsListQuery,
   DashboardInstanceSkillGroupsUpdateBody
 } from '@metorial/dashboard-sdk';
-import { createLoader } from '@metorial/data-hooks';
+import { createLoader, useMutation } from '@metorial/data-hooks';
 import { autoPaginate } from '../../lib/autoPaginate';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
@@ -57,6 +58,28 @@ export let useUpdateSkillGroup = skillGroupsLoader.createExternalMutator(
     }
   ) => withAuth(sdk => sdk.skillGroups.update(i.instanceId, i.skillGroupId, i))
 );
+
+export let useCreateSkillInGroup = () =>
+  useMutation(
+    (
+      i: DashboardInstanceSkillsCreateBody & {
+        instanceId: string;
+        skillGroupId: string;
+      }
+    ) =>
+      withAuth(sdk =>
+        sdk.skills.create(i.instanceId, {
+          ...i,
+          skillGroupId: i.skillGroupId
+        })
+      ),
+    {
+      onSuccess: () => {
+        skillGroupLoader.refetchAll();
+        skillGroupsLoader.refetchAll();
+      }
+    }
+  );
 
 export let useSkillGroups = (
   instanceId: string | null | undefined,
@@ -127,21 +150,102 @@ export let skillGroupItemsLoader = createLoader({
   mutators: {}
 });
 
-export let useCreateSkillGroupItem = skillGroupItemsLoader.createExternalMutator(
-  (
-    i: DashboardInstanceSkillGroupsItemsCreateBody & {
-      instanceId: string;
-      skillGroupId: string;
+export let useCreateSkillGroupItem = () =>
+  useMutation(
+    (
+      i: DashboardInstanceSkillGroupsItemsCreateBody & {
+        instanceId: string;
+        skillGroupId: string;
+      }
+    ) => withAuth(sdk => sdk.skillGroups.items.create(i.instanceId, i.skillGroupId, i)),
+    {
+      onSuccess: () => {
+        skillGroupItemsLoader.refetchAll();
+        skillGroupLoader.refetchAll();
+        skillGroupsLoader.refetchAll();
+      }
     }
-  ) => withAuth(sdk => sdk.skillGroups.items.create(i.instanceId, i.skillGroupId, i))
-);
+  );
 
-export let useDeleteSkillGroupItem = skillGroupItemsLoader.createExternalMutator(
-  (i: { instanceId: string; skillGroupId: string; skillGroupItemId: string }) =>
-    withAuth(sdk =>
-      sdk.skillGroups.items.delete(i.instanceId, i.skillGroupId, i.skillGroupItemId)
-    )
-);
+export let useDeleteSkillGroupItem = () =>
+  useMutation(
+    (i: { instanceId: string; skillGroupId: string; skillGroupItemId: string }) =>
+      withAuth(sdk =>
+        sdk.skillGroups.items.delete(i.instanceId, i.skillGroupId, i.skillGroupItemId)
+      ),
+    {
+      onSuccess: () => {
+        skillGroupItemsLoader.refetchAll();
+        skillGroupLoader.refetchAll();
+        skillGroupsLoader.refetchAll();
+      }
+    }
+  );
+
+export let useRemoveSkillFromSkillGroup = () =>
+  useMutation(
+    async (i: { instanceId: string; skillGroupId: string; skillId: string }) => {
+      let list = await withAuth(sdk =>
+        sdk.skillGroups.items.list(i.instanceId, i.skillGroupId, {
+          skillId: i.skillId,
+          status: ['active'],
+          limit: 1
+        })
+      );
+      let item = list.items[0];
+      if (!item) return null;
+
+      return await withAuth(sdk =>
+        sdk.skillGroups.items.delete(i.instanceId, i.skillGroupId, item.id)
+      );
+    },
+    {
+      onSuccess: () => {
+        skillGroupItemsLoader.refetchAll();
+        skillGroupLoader.refetchAll();
+        skillGroupsLoader.refetchAll();
+      }
+    }
+  );
+
+// Quiet variants used by inline access toggles. They do not refetch any
+// loaders on success so the caller can optimistically update local state
+// without triggering global re-renders (e.g. sidebar) during the interaction.
+export let useCreateSkillGroupItemQuiet = () =>
+  useMutation(
+    (
+      i: DashboardInstanceSkillGroupsItemsCreateBody & {
+        instanceId: string;
+        skillGroupId: string;
+      }
+    ) => withAuth(sdk => sdk.skillGroups.items.create(i.instanceId, i.skillGroupId, i))
+  );
+
+export let useRemoveSkillFromSkillGroupQuiet = () =>
+  useMutation(async (i: { instanceId: string; skillGroupId: string; skillId: string }) => {
+    let list = await withAuth(sdk =>
+      sdk.skillGroups.items.list(i.instanceId, i.skillGroupId, {
+        skillId: i.skillId,
+        status: ['active'],
+        limit: 1
+      })
+    );
+    let item = list.items[0];
+    if (!item) return null;
+
+    return await withAuth(sdk =>
+      sdk.skillGroups.items.delete(i.instanceId, i.skillGroupId, item.id)
+    );
+  });
+
+// Caller-controlled refresh for skill group membership loaders. Use this after
+// a batch of quiet mutations has settled so consumers (sidebars, group lists)
+// catch up without competing with the user interaction.
+export let refetchSkillGroupMembershipLoaders = () => {
+  skillGroupItemsLoader.refetchAll();
+  skillGroupLoader.refetchAll();
+  skillGroupsLoader.refetchAll();
+};
 
 export let useSkillGroupItems = (
   instanceId: string | null | undefined,

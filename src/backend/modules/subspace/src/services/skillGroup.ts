@@ -215,27 +215,6 @@ let enrichSkillGroupsFromList = async (d: {
     }));
   }
 
-  let directlyVisible = new Set(
-    (
-      await db.skillGroup.findMany({
-        where: {
-          oid: {
-            in: localSkillGroups.map(skillGroup => skillGroup.oid)
-          },
-          consumerAccesses: {
-            some: {
-              consumerGroupOid: {
-                in: d.consumerGroups?.map(group => group.oid) ?? []
-              }
-            }
-          }
-        },
-        select: {
-          oid: true
-        }
-      })
-    ).map(skillGroup => skillGroup.oid.toString())
-  );
   let visibleSkillIdsByGroupOid = new Map<string, Set<string>>();
   let visibleSkills = await db.skill.findMany({
     where: {
@@ -281,13 +260,6 @@ let enrichSkillGroupsFromList = async (d: {
 
   return d.skillGroups.map(skillGroup => {
     let localSkillGroup = localGroupById.get(skillGroup.id)!;
-    if (directlyVisible.has(localSkillGroup.oid.toString())) {
-      return {
-        ...skillGroup,
-        localSkillGroup
-      };
-    }
-
     let visibleSkillIds =
       visibleSkillIdsByGroupOid.get(localSkillGroup.oid.toString()) ?? new Set<string>();
 

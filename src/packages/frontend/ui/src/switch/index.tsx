@@ -6,11 +6,15 @@ import { styled } from 'styled-components';
 import { theme } from '..';
 import { InputDescription, InputLabel } from '../input';
 
-let Wrapper = styled('div')`
+let Wrapper = styled('div')<{ $readOnly?: boolean; $disabled?: boolean }>`
   display: flex;
   gap: 10px;
   align-items: center;
-  cursor: pointer;
+  cursor: ${({ $readOnly, $disabled }) => {
+    if ($readOnly) return 'default';
+    if ($disabled) return 'not-allowed';
+    return 'pointer';
+  }};
 `;
 
 let Root = styled(RadixSwitch.Root)`
@@ -51,11 +55,11 @@ let Thumb = styled(RadixSwitch.Thumb)`
   border-radius: 50px;
   top: 2px;
 
-  ${Root}[data-state='checked'] & {
+  &[data-state='checked'] {
     left: 12px;
   }
 
-  ${Root}[data-state='unchecked'] & {
+  &[data-state='unchecked'] {
     left: 2px;
   }
 `;
@@ -65,6 +69,7 @@ export let Switch = ({
   onCheckedChange,
   label,
   disabled,
+  readOnly,
   description,
   hideLabel
 }: {
@@ -72,27 +77,33 @@ export let Switch = ({
   onCheckedChange?: (checked: boolean) => void;
   label: React.ReactNode;
   disabled?: boolean;
+  readOnly?: boolean;
   description?: React.ReactNode;
   hideLabel?: boolean;
 }) => {
   let id = useId();
   let root = createRef<HTMLDivElement>();
+  let isInteractive = !disabled && !readOnly;
 
   return (
     <>
-      <Wrapper>
+      <Wrapper $readOnly={readOnly} $disabled={disabled}>
         <Root
-          className={clsx({ disabled })}
+          className={clsx({ disabled: disabled && !readOnly })}
           id={id}
           checked={checked}
           onCheckedChange={onCheckedChange}
+          disabled={disabled || readOnly}
           ref={root as any}
         >
           <Thumb />
         </Root>
 
         <div
-          onClick={e => root.current?.click()}
+          onClick={e => {
+            if (!isInteractive) return;
+            root.current?.click();
+          }}
           style={{
             display: 'flex',
             flexDirection: 'column',

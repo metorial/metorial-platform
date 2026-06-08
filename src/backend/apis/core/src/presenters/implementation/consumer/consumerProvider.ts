@@ -17,7 +17,8 @@ export let v1ConsumerProviderPresenter = Presenter.create(consumerProviderType)
       description: consumerProvider.listing.description,
       readme: consumerProvider.listing.readme,
       availability: consumerProvider.availability,
-      has_pending_access_request: consumerProvider.hasPendingAccessRequest
+      has_pending_access_request: consumerProvider.hasPendingAccessRequest,
+      consumer_access_ids: consumerProvider.consumerAccessIds
     };
 
     if (consumerProvider.type == 'magic_mcp_server') {
@@ -56,6 +57,7 @@ export let v1ConsumerProviderPresenter = Presenter.create(consumerProviderType)
         provider_id: consumerProvider.deployment.providerId,
         locked_version_id: consumerProvider.deployment.lockedVersion?.id ?? null
       },
+      tool_filter: consumerProvider.toolFilter,
 
       config_schema: consumerProvider.configSchema?.configSchema
         ? {
@@ -96,6 +98,7 @@ export let v1ConsumerProviderPresenter = Presenter.create(consumerProviderType)
           provider_id: v.string(),
           locked_version_id: v.nullable(v.string())
         }),
+        tool_filter: v.any(),
         config_schema: v.nullable(
           v.object({
             type: v.literal('json_schema'),

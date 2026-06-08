@@ -6,10 +6,8 @@ import type {
   DashboardInstanceSkillsListQuery
 } from '@metorial/dashboard-sdk';
 import { useCurrentInstance, useProviderListings } from '@metorial/state';
-import { Input } from '@metorial/ui';
+import { SearchFiltersToolbar } from '@metorial/ui-product';
 import { type Dispatch, type SetStateAction, useMemo } from 'react';
-import styled from 'styled-components';
-import { TableFilters } from '../../../../components/table/components/filter';
 import {
   TableFilter,
   TableFilterState,
@@ -21,19 +19,6 @@ import {
   getEnumListFilterValue,
   getStringFilterValue
 } from '../../../../lib/dataTableUtils';
-
-let Toolbar = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  flex-wrap: nowrap;
-`;
-
-let SearchWrapper = styled.div`
-  flex: 1 1 auto;
-  min-width: 220px;
-`;
 
 let skillStatusValues = ['active', 'archived', 'deleted'] as const;
 let skillTemplateOwnerValues = ['system', 'tenant'] as const;
@@ -356,31 +341,11 @@ export let SkillResourceFilters = (p: {
   filterState: [TableFilterState[], Dispatch<SetStateAction<TableFilterState[]>>];
   filters: TableFilter<any>[];
   placeholder: string;
-}) => {
-  let [search, setSearch] = p.searchState;
-  let [filterState, setFilterState] = p.filterState;
-
-  return (
-    <Toolbar>
-      <SearchWrapper>
-        <Input
-          label="Search"
-          hideLabel
-          size="2"
-          placeholder={p.placeholder}
-          value={search}
-          onInput={setSearch}
-        />
-      </SearchWrapper>
-
-      <TableFilters
-        filters={p.filters}
-        filterState={[filterState, setFilterState]}
-        fullWidth={false}
-        wrap={false}
-        defaultFilterId="status"
-        resetCurrentFilterOnOpen
-      />
-    </Toolbar>
-  );
-};
+}) => (
+  <SearchFiltersToolbar
+    {...p}
+    defaultFilterId={
+      p.filters.some(filter => filter.id == 'status') ? 'status' : p.filters[0]?.id
+    }
+  />
+);
