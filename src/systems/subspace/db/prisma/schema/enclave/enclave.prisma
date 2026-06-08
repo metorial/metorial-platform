@@ -1,0 +1,62 @@
+enum EnclaveEnvironmentType {
+  metorial
+  outpost
+}
+
+model EnclaveEnvironment {
+  oid BigInt @id
+  id  String @unique
+
+  name String
+
+  type EnclaveEnvironmentType
+
+  systemIdentifier String? @unique
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  enclaves Enclave[]
+}
+
+model Enclave {
+  oid BigInt @id
+  id  String @unique
+
+  slug        String
+  name        String
+  description String?
+
+  hasFunctionBayBacking Boolean @default(false)
+
+  /// [CompiledNetworkRules]
+  compiledNetworkRules Json?
+
+  needsEnclaveReconciliation Boolean @default(true)
+
+  enclaveEnvironmentOid BigInt
+  enclaveEnvironment    EnclaveEnvironment @relation(fields: [enclaveEnvironmentOid], references: [oid], onDelete: Cascade)
+
+  providerDeploymentOid BigInt             @unique
+  providerDeployment    ProviderDeployment @relation(fields: [providerDeploymentOid], references: [oid])
+
+  networkOid BigInt
+  network    Network @relation(fields: [networkOid], references: [oid], onDelete: Cascade)
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  lastUsedAt DateTime?
+
+  firewallBindings FirewallBinding[]
+
+  @@unique([environmentOid, slug])
+  @@index([needsEnclaveReconciliation])
+}

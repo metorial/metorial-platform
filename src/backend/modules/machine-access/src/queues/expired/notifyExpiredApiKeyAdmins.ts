@@ -33,7 +33,8 @@ export let notifyExpiredApiKeyAdminsQueueProcessor = notifyExpiredApiKeyAdminsQu
         role: 'admin',
         status: 'active',
         user: {
-          status: 'active'
+          status: 'active',
+          type: 'user'
         }
       },
       select: {

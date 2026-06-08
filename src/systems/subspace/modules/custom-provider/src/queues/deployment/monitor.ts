@@ -20,17 +20,21 @@ export let customDeploymentMonitorQueueProcessor = customDeploymentMonitorQueue.
     let deployment = await db.customProviderDeployment.findFirst({
       where: { id: data.customProviderDeploymentId },
       include: {
+        customProvider: true,
         shuttleCustomServerDeployment: true,
         tenant: true,
         shuttleCustomServer: { include: { server: true } }
       }
     });
     if (!deployment) throw new QueueRetryError();
+    if (deployment.customProvider.status !== 'active') return;
 
     let shuttleDeploymentRecord = deployment.shuttleCustomServerDeployment;
     let shuttleCustomServerRecord = deployment.shuttleCustomServer;
     let shuttleServerRecord = shuttleCustomServerRecord?.server;
-    if (!shuttleDeploymentRecord || !shuttleCustomServerRecord || !shuttleServerRecord) return;
+    if (!shuttleDeploymentRecord || !shuttleCustomServerRecord || !shuttleServerRecord) {
+      throw new QueueRetryError();
+    }
 
     let shuttleTenant = await getTenantForShuttle(deployment.tenant);
     let shuttleDeployment = await shuttle.serverDeployment.get({
@@ -98,7 +102,7 @@ export let customDeploymentMonitorQueueProcessor = customDeploymentMonitorQueue.
             customProviderDeploymentId: deployment.id
           });
           return;
-        } catch (err) {
+        } catch {
           throw new QueueRetryError();
         }
       }

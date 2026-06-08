@@ -15,11 +15,14 @@ service CodeBucket {
   rpc GetBucketFile(GetBucketFileRequest) returns (GetBucketFileResponse);
   rpc GetBucketFiles(GetBucketFilesRequest) returns (GetBucketFilesResponse);
   rpc GetBucketFilesWithContent(GetBucketFilesRequest) returns (GetBucketFilesWithContentResponse);
+  rpc GetBucketFilesWithContentStream(GetBucketFilesRequest) returns (stream GetBucketFilesWithContentChunk);
   rpc GetBucketFilesAsZip(GetBucketFilesAsZipRequest) returns (GetBucketFilesAsZipResponse);
+  rpc GetBucketFilesAsZipStream(GetBucketFilesAsZipRequest) returns (stream GetBucketFilesAsZipChunk);
 
   rpc SetBucketFiles(SetBucketFilesRequest) returns (SetBucketFilesResponse);
   rpc SetBucketFile(SetBucketFileRequest) returns (SetBucketFileResponse);
   rpc DeleteBucketFile(DeleteBucketFileRequest) returns (DeleteBucketFileResponse);
+  rpc DeleteBucketPath(DeleteBucketPathRequest) returns (DeleteBucketPathResponse);
 
   rpc ExportBucketToGithub(ExportBucketToGithubRequest) returns (ExportBucketToGithubResponse);
   rpc ExportBucketToGitlab(ExportBucketToGitlabRequest) returns (ExportBucketToGitlabResponse);
@@ -102,6 +105,10 @@ message GetBucketFilesWithContentResponse {
   repeated FileContent files = 1;
 }
 
+message GetBucketFilesWithContentChunk {
+  repeated FileContent files = 1;
+}
+
 message GetBucketFilesAsZipRequest {
   string bucket_id = 1;
   string prefix = 2; // Optional filter
@@ -110,6 +117,10 @@ message GetBucketFilesAsZipRequest {
 message GetBucketFilesAsZipResponse {
   string download_url = 1;
   int64 expires_at = 2;
+}
+
+message GetBucketFilesAsZipChunk {
+  bytes content = 1;
 }
 
 message SetBucketFilesRequest {
@@ -134,12 +145,21 @@ message DeleteBucketFileRequest {
 
 message DeleteBucketFileResponse {}
 
+message DeleteBucketPathRequest {
+  string bucket_id = 1;
+  string path = 2;
+}
+
+message DeleteBucketPathResponse {}
+
 message ExportBucketToGithubRequest {
   string bucket_id = 1;
   string owner = 2;
   string repo = 3;
   string path = 4;
   string token = 5;
+  string branch = 6;
+  string commit_message = 7;
 }
 
 message ExportBucketToGithubResponse {}
@@ -159,6 +179,8 @@ message ExportBucketToGitlabRequest {
   string path = 3;
   string token = 4;
   string gitlab_api_url = 5;
+  string branch = 6;
+  string commit_message = 7;
 }
 
 message ExportBucketToGitlabResponse {}

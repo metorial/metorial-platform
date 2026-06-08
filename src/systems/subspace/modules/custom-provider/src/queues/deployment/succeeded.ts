@@ -21,6 +21,7 @@ export let customDeploymentSucceededQueueProcessor = customDeploymentSucceededQu
       where: { id: data.customProviderDeploymentId },
       include: {
         tenant: true,
+        customProvider: true,
         customProviderVersion: true,
         shuttleCustomServer: { include: { server: true } },
         shuttleServerVersion: true,
@@ -35,14 +36,36 @@ export let customDeploymentSucceededQueueProcessor = customDeploymentSucceededQu
     let commit = deployment?.commit;
 
     if (!deployment) throw new QueueRetryError();
+    if (deployment.customProvider.status !== 'active') return;
+
     if (
       !customProviderVersion ||
       !shuttleServerRecord ||
       !shuttleServerVersionRecord ||
       !sourceEnvironment ||
       !commit
-    )
+    ) {
+      throw new QueueRetryError();
+    }
+
+    if (customProviderVersion.providerVersionOid) {
+      if (deployment.status !== 'succeeded') {
+        await db.customProviderDeployment.updateMany({
+          where: { id: deployment.id },
+          data: {
+            status: 'succeeded',
+            startedAt: deployment.startedAt ?? new Date(),
+            endedAt: deployment.endedAt ?? new Date()
+          }
+        });
+      }
+
+      if (commit.status !== 'applied') {
+        await commitApplyQueue.add({ customProviderCommitId: commit.id });
+      }
+
       return;
+    }
 
     let tenant = await getTenantForShuttle(deployment.tenant);
 

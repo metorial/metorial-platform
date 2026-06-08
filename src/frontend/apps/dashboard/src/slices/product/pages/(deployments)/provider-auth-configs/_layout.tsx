@@ -1,4 +1,4 @@
-import { renderWithLoader } from '@metorial/data-hooks';
+import { InitialLoadBoundary, renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
 import {
@@ -11,7 +11,6 @@ import {
 import { LinkTabs } from '@metorial/ui';
 import { Outlet, useLocation, useParams } from 'react-router-dom';
 import { DeletedRecordCallout } from '../../../scenes/deletedRecordCallout';
-import { getFromDeployment, withFromDeployment } from '../fromDeployment';
 
 export let ProviderAuthConfigLayout = () => {
   let instance = useCurrentInstance();
@@ -23,9 +22,9 @@ export let ProviderAuthConfigLayout = () => {
 
   let location = useLocation();
   let pathname = location.pathname;
-  let fromDeployment = getFromDeployment(location.search, authConfig.data?.deployment?.id);
+  let deploymentId = authConfig.data?.deployment?.id;
 
-  let deployment = useProviderDeployment(instance.data?.id, fromDeployment);
+  let deployment = useProviderDeployment(instance.data?.id, deploymentId);
 
   let authConfigPathParams = [
     organization.data,
@@ -38,19 +37,13 @@ export let ProviderAuthConfigLayout = () => {
     organization.data,
     project.data,
     instance.data,
-    deployment.data?.id ?? fromDeployment
+    deployment.data?.id ?? deploymentId
   ] as const;
 
-  let overviewPath = withFromDeployment(
-    Paths.instance.providerAuthConfig(...authConfigPathParams),
-    fromDeployment
-  );
-  let settingsPath = withFromDeployment(
-    Paths.instance.providerAuthConfig(...authConfigPathParams, 'settings'),
-    fromDeployment
-  );
+  let overviewPath = Paths.instance.providerAuthConfig(...authConfigPathParams);
+  let settingsPath = Paths.instance.providerAuthConfig(...authConfigPathParams, 'settings');
 
-  let pagination = fromDeployment
+  let pagination = deploymentId
     ? [
         {
           label: 'Deployments',
@@ -62,16 +55,13 @@ export let ProviderAuthConfigLayout = () => {
         },
         {
           label: deployment.data?.name ?? '...',
-          href: withFromDeployment(
-            Paths.instance.providerDeployment(...deploymentBreadcrumbParams),
-            fromDeployment
-          )
+          href: Paths.instance.providerDeployment(...deploymentBreadcrumbParams)
         },
         {
           label: 'Auth Configs',
-          href: withFromDeployment(
-            Paths.instance.providerDeployment(...deploymentBreadcrumbParams, 'auth-configs'),
-            fromDeployment
+          href: Paths.instance.providerDeployment(
+            ...deploymentBreadcrumbParams,
+            'auth-configs'
           )
         },
         {
@@ -102,27 +92,29 @@ export let ProviderAuthConfigLayout = () => {
         pagination={pagination}
       />
 
-      {renderWithLoader({ authConfig })(() => (
-        <>
-          <DeletedRecordCallout status={authConfig.data?.status} />
+      <InitialLoadBoundary>
+        {renderWithLoader({ authConfig })(() => (
+          <>
+            <DeletedRecordCallout status={authConfig.data?.status} />
 
-          <LinkTabs
-            current={pathname}
-            links={[
-              {
-                label: 'Overview',
-                to: overviewPath
-              },
-              {
-                label: 'Settings',
-                to: settingsPath
-              }
-            ]}
-          />
+            <LinkTabs
+              current={pathname}
+              links={[
+                {
+                  label: 'Overview',
+                  to: overviewPath
+                },
+                {
+                  label: 'Settings',
+                  to: settingsPath
+                }
+              ]}
+            />
 
-          <Outlet />
-        </>
-      ))}
+            <Outlet />
+          </>
+        ))}
+      </InitialLoadBoundary>
     </ContentLayout>
   );
 };

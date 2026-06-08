@@ -45,7 +45,7 @@ export let showMagicMcpServerFormModal = (
         <Dialog.Description>
           {p.type == 'update'
             ? 'Update the Magic MCP server details.'
-            : 'Create a new Magic MCP server.'}
+            : 'Connect any provider on Metorial to any agent with a Magic MCP server.'}
         </Dialog.Description>
 
         <MagicMcpServerForm {...p} close={close} />

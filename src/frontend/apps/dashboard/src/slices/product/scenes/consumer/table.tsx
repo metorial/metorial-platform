@@ -45,7 +45,7 @@ let useConsumersTableState: TableStateProvider<
 
 let consumersTable = new DashboardTable<ConsumersTableProps, Consumer>('consumers')
   .state(useConsumersTableState)
-  .search('Search consumers...')
+  .search('Search accounts...')
   .columns([
     {
       id: 'name',
@@ -114,7 +114,7 @@ let consumersTable = new DashboardTable<ConsumersTableProps, Consumer>('consumer
     {
       id: 'id',
       isDefault: false,
-      header: 'Consumer ID',
+      header: 'Account ID',
       render: (consumer, _input) => <ID id={consumer.id} />
     }
   ])
@@ -138,6 +138,6 @@ export let ConsumersTable = ({ instanceId }: { instanceId: string }) => {
     instance,
     organization,
     project,
-    emptyState: 'No consumers found.'
+    emptyState: 'No accounts found.'
   });
 };

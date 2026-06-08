@@ -1,4 +1,4 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
@@ -14,6 +14,7 @@ import {
   withTransaction
 } from '@metorial-subspace/db';
 import {
+  assertNoActiveIntegrationIdentityLink,
   checkDeletedEdit,
   checkDeletedRelation,
   type DateFilter,
@@ -21,7 +22,16 @@ import {
   normalizeStatusForGet,
   normalizeStatusForList,
   resolveAgents,
-  resolveIdentityActors
+  resolveIdentities,
+  resolveIdentityActors,
+  resolveIdentityCredentials,
+  resolveIntegrationInstanceProviders,
+  resolveIntegrationInstances,
+  resolveIntegrations,
+  resolveProviderAuthConfigs,
+  resolveProviderConfigs,
+  resolveProviderDeployments,
+  resolveProviders
 } from '@metorial-subspace/list-utils';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
 import { checkTenant } from '@metorial-subspace/module-tenant';
@@ -33,6 +43,11 @@ import {
 import { type IdentityCredentialInput, identityCredentialService } from './identityCredential';
 
 let include = {
+  ownedByIntegrationInstance: {
+    select: {
+      id: true
+    }
+  },
   actor: {
     include: {
       agent: true
@@ -46,10 +61,12 @@ let include = {
       deployment: true,
       config: true,
       authConfig: true,
-      delegationConfig: true
+      delegationConfig: true,
+      integrationInstance: true,
+      integrationInstanceProvider: true
     }
   }
-};
+} as const;
 
 class identityServiceImpl {
   async listIdentities(d: {
@@ -65,11 +82,32 @@ class identityServiceImpl {
     ids?: string[];
     agentIds?: string[];
     actorIds?: string[];
+    identityIds?: string[];
+    identityCredentialIds?: string[];
+    integrationIds?: string[];
+    integrationInstanceIds?: string[];
+    integrationInstanceProviderIds?: string[];
+    providerIds?: string[];
+    providerDeploymentIds?: string[];
+    providerConfigIds?: string[];
+    providerAuthConfigIds?: string[];
     createdAt?: DateFilter;
     updatedAt?: DateFilter;
   }) {
     let agents = await resolveAgents(d, d.agentIds);
     let actors = await resolveIdentityActors(d, d.actorIds);
+    let identities = await resolveIdentities(d, d.identityIds);
+    let credentials = await resolveIdentityCredentials(d, d.identityCredentialIds);
+    let integrations = await resolveIntegrations(d, d.integrationIds);
+    let integrationInstances = await resolveIntegrationInstances(d, d.integrationInstanceIds);
+    let integrationInstanceProviders = await resolveIntegrationInstanceProviders(
+      d,
+      d.integrationInstanceProviderIds
+    );
+    let providers = await resolveProviders(d, d.providerIds);
+    let deployments = await resolveProviderDeployments(d, d.providerDeploymentIds);
+    let configs = await resolveProviderConfigs(d, d.providerConfigIds);
+    let authConfigs = await resolveProviderAuthConfigs(d, d.providerAuthConfigIds);
 
     let search = d.search
       ? await voyager.record.search({
@@ -95,9 +133,54 @@ class identityServiceImpl {
               AND: [
                 d.ids ? { id: { in: d.ids } } : undefined!,
                 search ? { id: { in: search.map(r => r.documentId) } } : undefined!,
+                identities ? { oid: { in: identities.oids } } : undefined!,
 
                 agents ? { actor: { agent: agents.oidIn } } : undefined!,
                 actors ? { actor: actors.oidIn } : undefined!,
+                credentials
+                  ? { credentials: { some: { oid: { in: credentials.oids } } } }
+                  : undefined!,
+                integrations
+                  ? {
+                      OR: [
+                        {
+                          integrationInstances: { some: { integrationOid: integrations.in } }
+                        },
+                        {
+                          ownedByIntegrationInstance: {
+                            is: { integrationOid: integrations.in }
+                          }
+                        }
+                      ]
+                    }
+                  : undefined!,
+                integrationInstances
+                  ? {
+                      OR: [
+                        { integrationInstances: { some: { oid: integrationInstances.in } } },
+                        { ownedByIntegrationInstanceOid: integrationInstances.in }
+                      ]
+                    }
+                  : undefined!,
+                integrationInstanceProviders
+                  ? {
+                      credentials: {
+                        some: {
+                          integrationInstanceProviderOid: integrationInstanceProviders.in
+                        }
+                      }
+                    }
+                  : undefined!,
+                providers
+                  ? { credentials: { some: { providerOid: providers.in } } }
+                  : undefined!,
+                deployments
+                  ? { credentials: { some: { deploymentOid: deployments.in } } }
+                  : undefined!,
+                configs ? { credentials: { some: { configOid: configs.in } } } : undefined!,
+                authConfigs
+                  ? { credentials: { some: { authConfigOid: authConfigs.in } } }
+                  : undefined!,
 
                 d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
                 d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
@@ -239,6 +322,15 @@ class identityServiceImpl {
   }) {
     checkTenant(d, d.identity);
     checkDeletedEdit(d.identity, 'archive');
+
+    await assertNoActiveIntegrationIdentityLink({
+      tenant: d.tenant,
+      solution: d.solution,
+      environment: d.environment,
+      identityOid: d.identity.oid,
+      identityId: d.identity.id,
+      ownedByIntegrationInstanceOid: d.identity.ownedByIntegrationInstanceOid
+    });
 
     return withTransaction(async db => {
       let identity = await db.identity.update({

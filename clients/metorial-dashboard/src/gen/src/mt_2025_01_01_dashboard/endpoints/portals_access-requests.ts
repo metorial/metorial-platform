@@ -17,8 +17,8 @@ import {
 } from '../resources';
 
 /**
- * @name Portal Consumer Access Requests controller
- * @description Review and resolve consumer access requests for a portal.
+ * @name Portal Access Requests controller
+ * @description Review and resolve access requests for a portal.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -44,8 +44,8 @@ export class MetorialPortalsAccessRequestsEndpoint {
   }
 
   /**
-   * @name List portal consumer access requests
-   * @description Returns a paginated list of consumer access requests for a portal.
+   * @name List portal access requests
+   * @description Returns a paginated list of access requests for a portal.
    *
    * @param `portalId` - string
    * @param `query` - DashboardInstancePortalsAccessRequestsListQuery
@@ -76,11 +76,11 @@ export class MetorialPortalsAccessRequestsEndpoint {
   }
 
   /**
-   * @name Get portal consumer access request
-   * @description Retrieves a consumer access request by ID.
+   * @name Get portal access request
+   * @description Retrieves a access request by ID.
    *
    * @param `portalId` - string
-   * @param `consumerAccessRequestId` - string
+   * @param `accessRequestId` - string
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstancePortalsAccessRequestsGetOutput
    * @see https://metorial.com/api
@@ -88,10 +88,10 @@ export class MetorialPortalsAccessRequestsEndpoint {
    */
   get(
     portalId: string,
-    consumerAccessRequestId: string,
+    accessRequestId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePortalsAccessRequestsGetOutput> {
-    let path = `portals/${portalId}/access-requests/${consumerAccessRequestId}`;
+    let path = `portals/${portalId}/access-requests/${accessRequestId}`;
 
     let request = {
       path,
@@ -105,11 +105,11 @@ export class MetorialPortalsAccessRequestsEndpoint {
   }
 
   /**
-   * @name Review portal consumer access request
-   * @description Approves or rejects a consumer access request.
+   * @name Review portal access request
+   * @description Approves or rejects a access request.
    *
    * @param `portalId` - string
-   * @param `consumerAccessRequestId` - string
+   * @param `accessRequestId` - string
    * @param `body` - DashboardInstancePortalsAccessRequestsUpdateBody
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstancePortalsAccessRequestsUpdateOutput
@@ -118,11 +118,11 @@ export class MetorialPortalsAccessRequestsEndpoint {
    */
   update(
     portalId: string,
-    consumerAccessRequestId: string,
+    accessRequestId: string,
     body: DashboardInstancePortalsAccessRequestsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePortalsAccessRequestsUpdateOutput> {
-    let path = `portals/${portalId}/access-requests/${consumerAccessRequestId}`;
+    let path = `portals/${portalId}/access-requests/${accessRequestId}`;
 
     let request = {
       path,

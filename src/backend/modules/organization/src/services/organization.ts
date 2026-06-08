@@ -1,5 +1,6 @@
 import { canonicalize } from '@lowerdeck/canonicalize';
 import {
+  conflictError,
   forbiddenError,
   notFoundError,
   notImplementedError,
@@ -11,6 +12,7 @@ import { createSlugGenerator } from '@lowerdeck/slugify';
 import { Context } from '@metorial/context';
 import {
   addAfterTransactionHook,
+  ConsumerProfile,
   db,
   ID,
   Organization,
@@ -31,9 +33,22 @@ import { projectService } from './project';
 
 let getOrgSlug = createSlugGenerator(
   async slug =>
-    !(await db.organization.findFirst({ where: { slug } })) &&
-    !(await db.cellOrganization.findFirst({ where: { slug } }))
+    !(await db.organization.findFirst({
+      where: {
+        OR: [{ slug }, { previousSlugs: { has: slug } }]
+      }
+    })) && !(await db.cellOrganization.findFirst({ where: { slug } }))
 );
+
+let getNextPreviousSlugs = (d: {
+  previousSlugs: string[];
+  currentSlug: string;
+  nextSlug: string;
+}) => {
+  return Array.from(
+    new Set([...d.previousSlugs.filter(slug => slug !== d.nextSlug), d.currentSlug])
+  );
+};
 
 class OrganizationService {
   private async ensureOrganizationActive(organization: Organization) {
@@ -44,6 +59,54 @@ class OrganizationService {
         })
       );
     }
+  }
+
+  private async reclaimOrganizationSlugOrThrow(d: {
+    slug: string;
+    organization?: Organization;
+  }) {
+    await withTransaction(
+      async db => {
+        let currentSlugOrganization = await db.organization.findFirst({
+          where: {
+            slug: d.slug,
+            id: d.organization ? { not: d.organization.id } : undefined
+          }
+        });
+        let existingCellOrganization = await db.cellOrganization.findFirst({
+          where: { slug: d.slug }
+        });
+
+        if (currentSlugOrganization || existingCellOrganization) {
+          throw new ServiceError(
+            conflictError({
+              message: 'An organization with this slug already exists'
+            })
+          );
+        }
+
+        let previousSlugOrganizations = await db.organization.findMany({
+          where: {
+            previousSlugs: { has: d.slug },
+            id: d.organization ? { not: d.organization.id } : undefined
+          },
+          select: {
+            oid: true,
+            previousSlugs: true
+          }
+        });
+
+        for (let organization of previousSlugOrganizations) {
+          await db.organization.update({
+            where: { oid: organization.oid },
+            data: {
+              previousSlugs: organization.previousSlugs.filter(slug => slug !== d.slug)
+            }
+          });
+        }
+      },
+      { ifExists: true }
+    );
   }
 
   async createOrganization(d: {
@@ -77,7 +140,7 @@ class OrganizationService {
 
       let systemActor = await organizationActorService.createOrganizationActor({
         input: {
-          type: 'system',
+          type: 'primary_system',
           name: 'Metorial',
           image: {
             type: 'url',
@@ -120,6 +183,7 @@ class OrganizationService {
   async updateOrganization(d: {
     input: {
       name?: string;
+      slug?: string;
       image?: PrismaJson.EntityImage;
       imageFileId?: string | null;
     };
@@ -133,6 +197,13 @@ class OrganizationService {
       await Fabric.fire('organization.updated:before', d);
 
       let nextImage = d.input.image;
+      if (d.input.slug && d.input.slug != d.organization.slug) {
+        await this.reclaimOrganizationSlugOrThrow({
+          slug: d.input.slug,
+          organization: d.organization
+        });
+      }
+
       if (d.input.imageFileId !== undefined) {
         nextImage = await fileReferenceService.resolveImageEntityImage({
           imageFileId: d.input.imageFileId,
@@ -151,6 +222,15 @@ class OrganizationService {
         where: { id: d.organization.id },
         data: {
           name: d.input.name,
+          slug: d.input.slug,
+          previousSlugs:
+            d.input.slug && d.input.slug !== d.organization.slug
+              ? getNextPreviousSlugs({
+                  previousSlugs: d.organization.previousSlugs ?? [],
+                  currentSlug: d.organization.slug,
+                  nextSlug: d.input.slug
+                })
+              : undefined,
           image: nextImage
         }
       });
@@ -201,7 +281,11 @@ class OrganizationService {
   async getOrganizationByIdForUser(d: { organizationId: string; user: { id: string } }) {
     let org = await db.organization.findFirst({
       where: {
-        OR: [{ id: d.organizationId }, { slug: d.organizationId }],
+        OR: [
+          { id: d.organizationId },
+          { slug: d.organizationId },
+          { previousSlugs: { has: d.organizationId } }
+        ],
         members: {
           some: {
             user: { id: d.user.id },
@@ -354,6 +438,63 @@ class OrganizationService {
 
     return {
       user: d.user,
+      organizations: orgsWithProjectAndInstances,
+      projects: orgsWithProjectAndInstances.flatMap(org =>
+        org.projects.map(project => ({ ...project, organization: org }))
+      ),
+      instances: orgsWithProjectAndInstances.flatMap(org =>
+        org.instances.map(instance => ({
+          ...instance,
+          organization: org,
+          project: instance.project
+        }))
+      )
+    };
+  }
+
+  async bootConsumer(d: { consumerProfile: ConsumerProfile }) {
+    let instance = await db.instance.findUniqueOrThrow({
+      where: { oid: d.consumerProfile.instanceOid },
+      include: {
+        project: {
+          include: {
+            organization: true
+          }
+        }
+      }
+    });
+
+    let org = instance.project.organization;
+    let orgsWithProjectAndInstances = [
+      {
+        ...org,
+        projects: [
+          {
+            ...instance.project,
+            organization: org,
+            instances: [instance]
+          }
+        ],
+        instances: [instance]
+      }
+    ];
+
+    let [firstName, ...rest] = d.consumerProfile.name.split(' ');
+    let lastName = rest.join(' ');
+
+    return {
+      user: {
+        id: d.consumerProfile.id,
+        status: 'active' as const,
+        type: 'consumer' as const,
+        email: d.consumerProfile.email,
+        name: d.consumerProfile.name,
+        firstName: firstName,
+        lastName: lastName,
+        image: { type: 'default' as const },
+        createdAt: d.consumerProfile.createdAt,
+        updatedAt: d.consumerProfile.updatedAt
+      },
       organizations: orgsWithProjectAndInstances,
       projects: orgsWithProjectAndInstances.flatMap(org =>
         org.projects.map(project => ({ ...project, organization: org }))

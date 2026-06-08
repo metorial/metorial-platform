@@ -14,28 +14,19 @@ vi.mock('@metorial/queue', () => ({
 
 vi.mock('@metorial/db', () => ({
   db: {
-    instance: {
-      findUnique: vi.fn()
-    },
     magicMcpServer: {
       findUnique: vi.fn()
     },
     magicMcpEndpoint: {
       findUnique: vi.fn()
-    },
-    magicMcpSession: {
-      findMany: vi.fn(),
-      deleteMany: vi.fn()
     }
   }
 }));
 
 vi.mock('@metorial/module-subspace', () => ({
-  subspaceSessionService: {
-    delete: vi.fn()
-  },
-  subspaceSessionTemplateService: {
-    delete: vi.fn()
+  subspaceMagicMcpBackingService: {
+    archiveServer: vi.fn(),
+    archiveEndpoint: vi.fn()
   }
 }));
 
@@ -46,45 +37,24 @@ vi.mock('../src/queues/search/magicMcpServer', () => ({
 }));
 
 import { db } from '@metorial/db';
-import {
-  subspaceSessionService,
-  subspaceSessionTemplateService
-} from '@metorial/module-subspace';
+import { subspaceMagicMcpBackingService } from '@metorial/module-subspace';
+import { magicMcpEndpointDeletedQueueProcessor } from '../src/queues/lifecycle/magicMcpEndpoint';
+import { magicMcpServerDeletedQueueProcessor } from '../src/queues/lifecycle/magicMcpServer';
 import { indexMagicMcpServerSearchQueue } from '../src/queues/search/magicMcpServer';
-import {
-  magicMcpEndpointDeletedQueueProcessor,
-  magicMcpEndpointDeletedSubspaceSessionQueue,
-  magicMcpEndpointDeletedSubspaceSessionQueueProcessor
-} from '../src/queues/lifecycle/magicMcpEndpoint';
-import {
-  magicMcpServerDeletedQueueProcessor,
-  magicMcpServerDeletedSubspaceSessionQueue,
-  magicMcpServerDeletedSubspaceSessionQueueProcessor
-} from '../src/queues/lifecycle/magicMcpServer';
 
 describe('magic MCP lifecycle delete fanout', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('fans out server session deletes into child jobs', async () => {
+  it('archives a server backing without deleting legacy session templates', async () => {
+    let instance = { id: 'instance-1' };
     vi.mocked(db.magicMcpServer.findUnique).mockResolvedValue({
       oid: 10n,
       id: 'server-1',
-      subspaceSessionTemplateId: 'template-inline',
-      instance: {
-        id: 'instance-1'
-      }
+      hasSubspaceBacking: true,
+      instance
     } as any);
-    vi.mocked(db.magicMcpSession.findMany)
-      .mockResolvedValueOnce([
-        { subspaceSessionTemplateId: 'template-a' },
-        { subspaceSessionTemplateId: 'template-b' }
-      ] as any)
-      .mockResolvedValueOnce([
-        { subspaceSessionId: 'session-a' },
-        { subspaceSessionId: 'session-b' }
-      ] as any);
 
     await (magicMcpServerDeletedQueueProcessor as any).handler({
       magicMcpServerId: 'server-1'
@@ -93,88 +63,28 @@ describe('magic MCP lifecycle delete fanout', () => {
     expect(indexMagicMcpServerSearchQueue.add).toHaveBeenCalledWith({
       magicMcpServerId: 'server-1'
     });
-    expect(subspaceSessionTemplateService.delete).toHaveBeenCalledTimes(3);
-    expect(magicMcpServerDeletedSubspaceSessionQueue.addMany).toHaveBeenCalledWith([
-      {
-        instanceId: 'instance-1',
-        subspaceSessionId: 'session-a'
-      },
-      {
-        instanceId: 'instance-1',
-        subspaceSessionId: 'session-b'
-      }
-    ]);
-    expect(subspaceSessionService.delete).not.toHaveBeenCalled();
+    expect(subspaceMagicMcpBackingService.archiveServer).toHaveBeenCalledWith({
+      instance,
+      magicMcpServerBackingId: 'server-1'
+    });
   });
 
-  it('fans out endpoint session deletes into child jobs', async () => {
+  it('archives an endpoint backing without deleting legacy session rows', async () => {
+    let instance = { id: 'instance-2' };
     vi.mocked(db.magicMcpEndpoint.findUnique).mockResolvedValue({
       oid: 20n,
       id: 'endpoint-1',
-      instance: {
-        id: 'instance-2'
-      }
+      hasSubspaceBacking: true,
+      instance
     } as any);
-    vi.mocked(db.magicMcpSession.findMany)
-      .mockResolvedValueOnce([
-        { subspaceSessionTemplateId: 'template-a' },
-        { subspaceSessionTemplateId: null }
-      ] as any)
-      .mockResolvedValueOnce([
-        { subspaceSessionId: 'session-a' },
-        { subspaceSessionId: 'session-b' }
-      ] as any);
 
     await (magicMcpEndpointDeletedQueueProcessor as any).handler({
       magicMcpEndpointId: 'endpoint-1'
     });
 
-    expect(db.magicMcpSession.deleteMany).toHaveBeenCalledWith({
-      where: {
-        magicMcpEndpointOid: 20n
-      }
-    });
-    expect(subspaceSessionTemplateService.delete).toHaveBeenCalledTimes(1);
-    expect(magicMcpEndpointDeletedSubspaceSessionQueue.addMany).toHaveBeenCalledWith([
-      {
-        instanceId: 'instance-2',
-        subspaceSessionId: 'session-a'
-      },
-      {
-        instanceId: 'instance-2',
-        subspaceSessionId: 'session-b'
-      }
-    ]);
-    expect(subspaceSessionService.delete).not.toHaveBeenCalled();
-  });
-
-  it('deletes one subspace session per child job', async () => {
-    vi.mocked(db.instance.findUnique).mockResolvedValue({
-      id: 'instance-3'
-    } as any);
-
-    await (magicMcpServerDeletedSubspaceSessionQueueProcessor as any).handler({
-      instanceId: 'instance-3',
-      subspaceSessionId: 'session-a'
-    });
-    await (magicMcpEndpointDeletedSubspaceSessionQueueProcessor as any).handler({
-      instanceId: 'instance-3',
-      subspaceSessionId: 'session-b'
-    });
-
-    expect(subspaceSessionService.delete).toHaveBeenNthCalledWith(1, {
-      instance: {
-        id: 'instance-3'
-      },
-      sessionId: 'session-a',
-      _allowMagicMcpDelete: true
-    });
-    expect(subspaceSessionService.delete).toHaveBeenNthCalledWith(2, {
-      instance: {
-        id: 'instance-3'
-      },
-      sessionId: 'session-b',
-      _allowMagicMcpDelete: true
+    expect(subspaceMagicMcpBackingService.archiveEndpoint).toHaveBeenCalledWith({
+      instance,
+      magicMcpEndpointBackingId: 'endpoint-1'
     });
   });
 });

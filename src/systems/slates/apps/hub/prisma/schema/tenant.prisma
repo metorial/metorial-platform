@@ -5,22 +5,26 @@ model Tenant {
   identifier String @unique
   name       String
 
-  signalTenantId String? @unique
+  signalTenantId              String? @unique
+  nebulaTenantId              String?
+  functionBayTenantId         String?
+  functionBayTenantIdentifier String?
 
   logRetentionInDays Int @default(30)
 
   createdAt DateTime @default(now())
 
-  secrets                  Secret[]
-  registries               Registry[]
-  slateInstances           SlateInstance[]
-  slateOAuthCredentials    SlateOAuthCredentials[]
-  slateAuthConfigs         SlateAuthConfig[]
-  slateInstanceOAuthSetups SlateInstanceOAuthSetup[]
-  slateInstanceConfigs     SlateInstanceConfig[]
-  slateInstanceEvents      SlateInstanceEvent[]
-  slateSessions            SlateSession[]
-  slateTriggerDestinations SlateTriggerDestination[] @ignore
-  slateTriggerReceivers    SlateTriggerReceiver[]
-  slateErrors              SlateError[]
+  secrets                     Secret[]
+  registries                  Registry[]
+  slateInstances              SlateInstance[]
+  slateOAuthCredentials       SlateOAuthCredentials[]
+  slateAuthConfigs            SlateAuthConfig[]
+  slateInstanceOAuthSetups    SlateInstanceOAuthSetup[]
+  slateInstanceConfigs        SlateInstanceConfig[]
+  slateInstanceEvents         SlateInstanceEvent[]
+  slateSessions               SlateSession[]
+  slateTriggerDestinations    SlateTriggerDestination[]    @ignore
+  slateTriggerReceivers       SlateTriggerReceiver[]
+  slateErrors                 SlateError[]
+  slateInstanceConfigurations SlateInstanceConfiguration[]
 }

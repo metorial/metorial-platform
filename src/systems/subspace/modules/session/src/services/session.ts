@@ -1,11 +1,10 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
   addAfterTransactionHook,
   db,
   type Environment,
-  getId,
   type Session,
   type SessionStatus,
   type Solution,
@@ -15,9 +14,12 @@ import {
 import {
   checkDeletedEdit,
   type DateFilter,
+  getSessionRetentionFilter,
   normalizeDateFilter,
   normalizeStatusForGet,
   normalizeStatusForList,
+  resolveAgents,
+  resolveIdentityActors,
   resolveProviderAuthConfigs,
   resolveProviderConfigs,
   resolveProviderDeployments,
@@ -25,22 +27,24 @@ import {
   resolveSessionTemplates
 } from '@metorial-subspace/list-utils';
 import { checkTenant } from '@metorial-subspace/module-tenant';
-import {
-  sessionArchivedQueue,
-  sessionCreatedQueue,
-  sessionUpdatedQueue
-} from '../queues/lifecycle/session';
-import { sessionProviderInclude } from './sessionProvider';
-import {
-  type SessionProviderInput,
-  sessionProviderInputService
-} from './sessionProviderInput';
+import { sessionArchivedQueue, sessionUpdatedQueue } from '../queues/lifecycle/session';
+import { createSessionRecord, sessionInclude as include } from './_shared/createSession';
+import { type SessionProviderInput } from './sessionProviderInput';
 
-let include = {
-  providers: {
-    include: sessionProviderInclude,
-    where: { status: 'active' as const }
+let assertCanWriteSession = (
+  session: Pick<Session, 'ephemeralManagedSessionOid'>,
+  action: string
+) => {
+  if (!session.ephemeralManagedSessionOid) {
+    return;
   }
+
+  throw new ServiceError(
+    badRequestError({
+      message: `Cannot ${action} a session that is managed by Metorial.`,
+      code: 'session_is_metorial_managed'
+    })
+  );
 };
 
 class sessionServiceImpl {
@@ -53,6 +57,8 @@ class sessionServiceImpl {
     allowDeleted?: boolean;
 
     ids?: string[];
+    agentIds?: string[];
+    actorIds?: string[];
     sessionTemplateIds?: string[];
     sessionProviderIds?: string[];
     providerIds?: string[];
@@ -62,6 +68,8 @@ class sessionServiceImpl {
     createdAt?: DateFilter;
     updatedAt?: DateFilter;
   }) {
+    let agents = await resolveAgents(d, d.agentIds);
+    let actors = await resolveIdentityActors(d, d.actorIds);
     let sessionTemplates = await resolveSessionTemplates(d, d.sessionTemplateIds);
     let sessionProviders = await resolveProviders(d, d.sessionProviderIds);
     let providers = await resolveProviders(d, d.providerIds);
@@ -79,12 +87,34 @@ class sessionServiceImpl {
               solutionOid: d.solution.oid,
               environmentOid: d.environment.oid,
 
-              isEphemeral: false,
+              // isEphemeral: false,
 
               ...normalizeStatusForList(d).noParent,
 
               AND: [
                 d.ids ? { id: { in: d.ids } } : undefined!,
+                agents
+                  ? {
+                      sessionConnections: {
+                        some: {
+                          participant: {
+                            agentInstance: { agentOid: agents.in }
+                          }
+                        }
+                      }
+                    }
+                  : undefined!,
+                actors
+                  ? {
+                      sessionConnections: {
+                        some: {
+                          participant: {
+                            agentInstance: { agent: { actorOid: actors.in } }
+                          }
+                        }
+                      }
+                    }
+                  : undefined!,
 
                 sessionTemplates
                   ? { providers: { some: { fromTemplateOid: sessionTemplates.in } } }
@@ -108,7 +138,10 @@ class sessionServiceImpl {
                   ? { providers: { some: { authConfigOid: authConfigs.in } } }
                   : undefined!,
 
-                d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
+                getSessionRetentionFilter(d.tenant, d.createdAt)!,
+                !d.tenant.enforceSessionExpiry && d.createdAt
+                  ? { createdAt: normalizeDateFilter(d.createdAt) }
+                  : undefined!,
                 d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
               ].filter(Boolean)
             },
@@ -132,7 +165,8 @@ class sessionServiceImpl {
         solutionOid: d.solution.oid,
         environmentOid: d.environment.oid,
 
-        ...normalizeStatusForGet(d).noParent
+        ...normalizeStatusForGet(d).noParent,
+        ...getSessionRetentionFilter(d.tenant)
       },
       include
     });
@@ -154,7 +188,8 @@ class sessionServiceImpl {
         tenantOid: d.tenant.oid,
         solutionOid: d.solution.oid,
         environmentOid: d.environment.oid,
-        ...normalizeStatusForGet(d).noParent
+        ...normalizeStatusForGet(d).noParent,
+        ...getSessionRetentionFilter(d.tenant)
       },
       include
     });
@@ -173,51 +208,16 @@ class sessionServiceImpl {
       providers: SessionProviderInput[];
     };
   }) {
-    return withTransaction(async db => {
-      let session = await db.session.create({
-        data: {
-          ...getId('session'),
-          status: 'active',
-
-          isEphemeral: false,
-
-          name: d.input.name?.trim() || undefined,
-          description: d.input.description?.trim() || undefined,
-          metadata: d.input.metadata,
-          privateMetadata: d.input.privateMetadata,
-
-          tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
-          environmentOid: d.environment.oid,
-
-          sessionEvents: {
-            create: {
-              ...getId('sessionEvent'),
-              type: 'session_created',
-              tenantOid: d.tenant.oid,
-              solutionOid: d.solution.oid,
-              environmentOid: d.environment.oid
-            }
-          }
-        },
-        include
-      });
-
-      session.providers = await sessionProviderInputService.createSessionProvidersForInput({
+    return withTransaction(async db =>
+      createSessionRecord({
+        db,
         tenant: d.tenant,
         solution: d.solution,
         environment: d.environment,
-        session,
-
-        providers: d.input.providers
-      });
-
-      await addAfterTransactionHook(async () =>
-        sessionCreatedQueue.add({ sessionId: session.id })
-      );
-
-      return session;
-    });
+        input: d.input,
+        isEphemeral: false
+      })
+    );
   }
 
   async updateSession(d: {
@@ -234,6 +234,7 @@ class sessionServiceImpl {
   }) {
     checkTenant(d, d.session);
     checkDeletedEdit(d.session, 'update');
+    assertCanWriteSession(d.session, 'update');
 
     return withTransaction(async db => {
       let session = await db.session.update({
@@ -268,6 +269,7 @@ class sessionServiceImpl {
   }) {
     checkTenant(d, d.session);
     checkDeletedEdit(d.session, 'archive');
+    assertCanWriteSession(d.session, 'archive');
 
     return withTransaction(async db => {
       let archivedAt = new Date();

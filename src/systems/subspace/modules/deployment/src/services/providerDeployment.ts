@@ -1,4 +1,4 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { createLock } from '@lowerdeck/lock';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
@@ -13,6 +13,7 @@ import {
   type ProviderConfigVault,
   type ProviderDeployment,
   type ProviderDeploymentStatus,
+  type ProviderDeploymentVersion,
   type ProviderVariant,
   type ProviderVersion,
   snowflake,
@@ -21,6 +22,8 @@ import {
   withTransaction
 } from '@metorial-subspace/db';
 import {
+  assertNoActiveIdentityCredentialDeploymentLink,
+  assertNoActiveIntegrationInstanceProviderDeploymentLink,
   checkDeletedEdit,
   checkDeletedRelation,
   type DateFilter,
@@ -40,6 +43,7 @@ import {
   normalizeToolFilters,
   providerDeploymentInternalService
 } from '@metorial-subspace/module-provider-internal';
+import { enclaveInternalService } from '@metorial-subspace/module-enclave';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
 import { checkTenant } from '@metorial-subspace/module-tenant';
 import { getBackend } from '@metorial-subspace/provider';
@@ -56,6 +60,11 @@ let include = {
   provider: true,
   defaultConfig: true,
   providerVariant: true,
+  enclave: {
+    select: {
+      id: true
+    }
+  },
   currentVersion: { include: { lockedVersion: { include: { specification: true } } } }
 };
 
@@ -149,17 +158,21 @@ class providerDeploymentServiceImpl {
     providerDeploymentId: string;
     allowDeleted?: boolean;
   }) {
-    let providerDeployment = await db.providerDeployment.findFirst({
-      where: {
-        id: d.providerDeploymentId,
-        tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
-        environmentOid: d.environment.oid,
+    let providerDeployment = await withTransaction(
+      async db =>
+        await db.providerDeployment.findFirst({
+          where: {
+            id: d.providerDeploymentId,
+            tenantOid: d.tenant.oid,
+            solutionOid: d.solution.oid,
+            environmentOid: d.environment.oid,
 
-        ...normalizeStatusForGet(d).noParent
-      },
-      include
-    });
+            ...normalizeStatusForGet(d).noParent
+          },
+          include
+        }),
+      { ifExists: true }
+    );
     if (!providerDeployment)
       throw new ServiceError(notFoundError('provider.deployment', d.providerDeploymentId));
 
@@ -199,7 +212,6 @@ class providerDeploymentServiceImpl {
       toolFilters?: PrismaJson.ToolFilter | null;
       isEphemeral?: boolean;
       isDefault?: boolean;
-      networkingRulesetIds?: string[];
 
       config:
         | {
@@ -239,14 +251,6 @@ class providerDeploymentServiceImpl {
       }
 
       let backend = await getBackend({ entity: d.provider.defaultVariant });
-
-      if (d.input.networkingRulesetIds?.length) {
-        await backend.deployment.validateNetworkingRulesetIds({
-          tenant: d.tenant,
-          provider: d.provider,
-          networkingRulesetIds: d.input.networkingRulesetIds
-        });
-      }
 
       let environmentProvider = await db.environmentProvider.findFirst({
         where: { tenantOid: d.tenant.oid, providerOid: d.provider.oid }
@@ -289,14 +293,13 @@ class providerDeploymentServiceImpl {
 
           isEphemeral: !!d.input.isEphemeral,
           isDefault: !!d.input.isDefault,
+          isEnclaveReconciled: true,
 
           name: d.input.name?.trim() || undefined,
           description: d.input.description?.trim() || undefined,
           metadata: d.input.metadata,
           privateMetadata: d.input.privateMetadata,
           toolFilter: normalizeToolFilters(d.input.toolFilters),
-
-          networkingRulesetIds: d.input.networkingRulesetIds || [],
 
           tenantOid: d.tenant.oid,
           solutionOid: d.solution.oid,
@@ -386,6 +389,14 @@ class providerDeploymentServiceImpl {
         });
       }
 
+      await enclaveInternalService.ensureEnclaveForProviderDeployment({
+        tenant: d.tenant,
+        solution: d.solution,
+        environment: d.environment,
+        provider: d.provider,
+        providerDeployment
+      });
+
       await addAfterTransactionHook(async () =>
         providerDeploymentCreatedQueue.add({ providerDeploymentId: providerDeployment.id })
       );
@@ -432,6 +443,7 @@ class providerDeploymentServiceImpl {
     providerDeployment: ProviderDeployment & {
       providerVariant: ProviderVariant;
       provider: Provider;
+      currentVersion: ProviderDeploymentVersion | null;
     };
     input: {
       name?: string;
@@ -439,20 +451,29 @@ class providerDeploymentServiceImpl {
       metadata?: Record<string, any>;
       privateMetadata?: Record<string, any>;
       toolFilters?: PrismaJson.ToolFilter | null;
-      networkingRulesetIds?: string[];
+      lockedVersion?: ProviderVersion | null;
     };
   }) {
     checkDeletedEdit(d.providerDeployment, 'update');
 
     return withTransaction(async db => {
-      let backend = await getBackend({ entity: d.providerDeployment.providerVariant });
+      let currentVersionOid = d.providerDeployment.currentVersionOid;
 
-      if (d.input.networkingRulesetIds?.length) {
-        await backend.deployment.validateNetworkingRulesetIds({
-          tenant: d.tenant,
-          provider: d.providerDeployment.provider,
-          networkingRulesetIds: d.input.networkingRulesetIds
-        });
+      if (d.input.lockedVersion !== undefined) {
+        let currentLock = d.providerDeployment.currentVersion?.lockedVersionOid ?? null;
+        let newLock = d.input.lockedVersion?.oid ?? null;
+
+        if (currentLock !== newLock) {
+          let newVersion = await db.providerDeploymentVersion.create({
+            data: {
+              ...getId('providerDeploymentVersion'),
+              lockedVersionOid: newLock,
+              providerVariantOid: d.providerDeployment.providerVariantOid,
+              deploymentOid: d.providerDeployment.oid
+            }
+          });
+          currentVersionOid = newVersion.oid;
+        }
       }
 
       let providerDeployment = await db.providerDeployment.update({
@@ -470,8 +491,9 @@ class providerDeploymentServiceImpl {
           toolFilter: d.input.toolFilters
             ? normalizeToolFilters(d.input.toolFilters)
             : d.providerDeployment.toolFilter,
-          networkingRulesetIds:
-            d.input.networkingRulesetIds ?? d.providerDeployment.networkingRulesetIds
+          ...(currentVersionOid !== d.providerDeployment.currentVersionOid
+            ? { currentVersionOid }
+            : {})
         },
         include
       });
@@ -492,6 +514,21 @@ class providerDeploymentServiceImpl {
   }) {
     checkTenant(d, d.providerDeployment);
     checkDeletedEdit(d.providerDeployment, 'archive');
+    await this.assertNoActiveIntegrationProviderLink(d);
+    await assertNoActiveIntegrationInstanceProviderDeploymentLink({
+      tenant: d.tenant,
+      solution: d.solution,
+      environment: d.environment,
+      deploymentOid: d.providerDeployment.oid,
+      resourceId: d.providerDeployment.id
+    });
+    await assertNoActiveIdentityCredentialDeploymentLink({
+      tenant: d.tenant,
+      solution: d.solution,
+      environment: d.environment,
+      deploymentOid: d.providerDeployment.oid,
+      resourceId: d.providerDeployment.id
+    });
 
     return withTransaction(async db => {
       let archivedAt = new Date();
@@ -541,6 +578,50 @@ class providerDeploymentServiceImpl {
           include: { ...include, currentVersion: true }
         }),
       { ifExists: true }
+    );
+  }
+
+  private async assertNoActiveIntegrationProviderLink(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    providerDeployment: ProviderDeployment;
+  }) {
+    let integrationProvider = await db.integrationProvider.findFirst({
+      where: {
+        tenantOid: d.tenant.oid,
+        solutionOid: d.solution.oid,
+        environmentOid: d.environment.oid,
+        status: 'active',
+        integration: {
+          status: 'active'
+        },
+        currentVersion: {
+          deploymentOid: d.providerDeployment.oid
+        }
+      },
+      select: {
+        id: true,
+        integration: {
+          select: {
+            id: true
+          }
+        }
+      }
+    });
+    if (!integrationProvider) return;
+
+    throw new ServiceError(
+      badRequestError({
+        message:
+          'Provider deployment is linked to an active integration provider and cannot be archived directly.',
+        code: 'provider_deployment_integration_provider_archive_not_allowed',
+        data: {
+          id: d.providerDeployment.id,
+          integrationProviderId: integrationProvider.id,
+          integrationId: integrationProvider.integration.id
+        }
+      })
     );
   }
 }

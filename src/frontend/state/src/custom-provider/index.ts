@@ -4,6 +4,7 @@ export * from './loaders/customProviderEvents';
 export * from './loaders/customProviderListing';
 export * from './loaders/customProviders';
 export * from './loaders/customProviderVersions';
+export * from './loaders/magicMcpEndpoint';
 export * from './loaders/magicMcpGroup';
 export * from './loaders/magicMcpServer';
 export * from './loaders/magicMcpSession';

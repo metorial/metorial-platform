@@ -26,7 +26,10 @@ import {
   TableStateProvider,
   TableStateProviderResult
 } from '../../../../components/table/type';
-import { showAddProviderPanelFlow } from './addProviderPanelFlow';
+import {
+  type ProviderPanelSubmitInput,
+  showAddProviderPanelFlow
+} from './addProviderPanelFlow';
 
 type SessionTemplateProviderRow =
   DashboardInstanceSessionTemplatesProvidersListOutput['items'][number];
@@ -94,7 +97,7 @@ let getToolFilterSummary = (toolFilter: SessionTemplateProviderToolFilter) => {
   }
 
   if (summary.hasUnsupportedFilters) return 'Custom filter';
-  if (summary.selectedToolKeys.length === 0) return 'All tools';
+  if (summary.selectedToolKeys.length === 0) return 'No tools';
   if (summary.selectedToolKeys.length === 1) return '1 selected';
 
   return `${summary.selectedToolKeys.length} selected`;
@@ -122,18 +125,24 @@ let getProviderListing = (
 
 export let showAddProviderSidePanel = (p: {
   instanceId: string;
-  sessionTemplateId: string;
+  sessionTemplateId?: string;
   onComplete: () => void;
   sessionTemplateProviderId?: string;
+  excludeProviderIds?: string[];
   providerId?: string;
   hideProviderStep?: boolean;
   initialDeploymentId?: string;
   initialConfigId?: string;
   initialAuthConfigId?: string;
   initialToolFilter?: SessionTemplateProviderToolFilter;
+  filterAvailableResources?: boolean;
   title?: string;
   description?: string;
   action?: string;
+  onSubmitProvider?: (
+    input: ProviderPanelSubmitInput,
+    currentProviderId?: string
+  ) => Promise<{ error?: unknown; success?: boolean }>;
 }) => showAddProviderPanelFlow(p);
 
 export let showAddProviderModal = showAddProviderSidePanel;

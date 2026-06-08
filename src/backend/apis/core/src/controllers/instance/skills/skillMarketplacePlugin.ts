@@ -1,0 +1,180 @@
+import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { Paginator } from '@lowerdeck/pagination';
+import { v } from '@lowerdeck/validation';
+import { skillPluginService } from '@metorial/module-file';
+import { Controller } from '@metorial/rest';
+import { dateFilterValidator } from '../../../lib/dateFilter';
+import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
+import { checkAccess } from '../../../middleware/checkAccess';
+import { hasFlags } from '../../../middleware/hasFlags';
+import { instancePath } from '../../../middleware/instanceGroup';
+import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
+import { skillMarketplacePluginPresenter } from '../../../presenters';
+import { skillMarketplaceGroup } from './skillMarketplace';
+import { getSkillPluginAccess } from './skillPlugin';
+
+let readScopes = ['instance.skill:read', 'consumer#instance.skill:read'] as const;
+let writeScopes = ['instance.skill:write'] as const;
+
+export let skillMarketplacePluginGroup = skillMarketplaceGroup.use(async ctx => {
+  if (!ctx.params.skillMarketplacePluginId) {
+    throw new ServiceError(
+      badRequestError({
+        message: 'skillMarketplacePluginId is required',
+        description: 'The skillMarketplacePluginId path parameter is required.'
+      })
+    );
+  }
+
+  let skillMarketplacePlugin = await skillPluginService.getSkillMarketplacePluginById({
+    ...getSkillPluginAccess(ctx),
+    skillMarketplace: ctx.skillMarketplace,
+    skillMarketplacePluginId: ctx.params.skillMarketplacePluginId
+  });
+
+  return { skillMarketplacePlugin };
+});
+
+export let skillMarketplacePluginController = Controller.create(
+  {
+    name: 'Skill Marketplace Plugins',
+    description: 'Manage plugin links for skill marketplaces.'
+  },
+  {
+    list: skillMarketplaceGroup
+      .get(
+        instancePath(
+          'skill-marketplaces/:skillMarketplaceId/plugins',
+          'skills.marketplaces.plugins.list'
+        ),
+        {
+          name: 'List skill marketplace plugins',
+          description: 'Returns plugins linked to a skill marketplace.'
+        }
+      )
+      .use(hasFlags(['skills-enabled']))
+      .use(checkAccess({ possibleScopes: [...readScopes] }))
+      .use(requireConsumerTokenForPublishableKey())
+      .outputList(skillMarketplacePluginPresenter)
+      .query(
+        'default',
+        Paginator.validate(
+          v.object({
+            id: v.optional(v.union([v.string(), v.array(v.string())])),
+            skill_plugin_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            status: v.optional(
+              v.union([
+                v.enumOf(['active', 'archived', 'deleted']),
+                v.array(v.enumOf(['active', 'archived', 'deleted']))
+              ])
+            ),
+            skill_configuration_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            created_at: dateFilterValidator('skill marketplace plugin creation time'),
+            updated_at: dateFilterValidator('skill marketplace plugin last update time')
+          })
+        )
+      )
+      .do(async ctx => {
+        let paginator = await skillPluginService.listSkillMarketplacePlugins({
+          ...getSkillPluginAccess(ctx),
+          skillMarketplace: ctx.skillMarketplace,
+          ids: normalizeArrayParam(ctx.query.id),
+          skillPluginIds: normalizeArrayParam(ctx.query.skill_plugin_id),
+          statuses: normalizeArrayParam(ctx.query.status),
+          skillConfigurationIds: normalizeArrayParam(ctx.query.skill_configuration_id),
+          createdAt: ctx.query.created_at,
+          updatedAt: ctx.query.updated_at
+        });
+        let list = await paginator.run(ctx.query);
+
+        return Paginator.present(list, skillMarketplacePlugin =>
+          skillMarketplacePluginPresenter.present({ skillMarketplacePlugin })
+        );
+      }),
+
+    add: skillMarketplaceGroup
+      .post(
+        instancePath(
+          'skill-marketplaces/:skillMarketplaceId/plugins',
+          'skills.marketplaces.plugins.add'
+        ),
+        {
+          name: 'Add skill marketplace plugin',
+          description: 'Adds a skill plugin to a skill marketplace.'
+        }
+      )
+      .use(hasFlags(['skills-enabled']))
+      .use(checkAccess({ possibleScopes: [...writeScopes] }))
+      .body(
+        'default',
+        v.object({
+          skill_plugin_id: v.string(),
+          skill_configuration_id: v.optional(v.nullable(v.string())),
+          identifier: v.optional(v.string())
+        })
+      )
+      .output(skillMarketplacePluginPresenter)
+      .do(async ctx => {
+        let skillPlugin = await skillPluginService.getSkillPluginById({
+          ...getSkillPluginAccess(ctx),
+          skillPluginId: ctx.body.skill_plugin_id
+        });
+        let skillMarketplacePlugin = await skillPluginService.addSkillMarketplacePlugin({
+          ...getSkillPluginAccess(ctx),
+          skillMarketplace: ctx.skillMarketplace,
+          skillPlugin,
+          input: {
+            pluginSlug: ctx.body.identifier,
+            skillConfigurationId: ctx.body.skill_configuration_id
+          }
+        });
+
+        return skillMarketplacePluginPresenter.present({ skillMarketplacePlugin });
+      }),
+
+    get: skillMarketplacePluginGroup
+      .get(
+        instancePath(
+          'skill-marketplaces/:skillMarketplaceId/plugins/:skillMarketplacePluginId',
+          'skills.marketplaces.plugins.get'
+        ),
+        {
+          name: 'Get skill marketplace plugin',
+          description: 'Retrieves a skill marketplace plugin link.'
+        }
+      )
+      .use(hasFlags(['skills-enabled']))
+      .use(checkAccess({ possibleScopes: [...readScopes] }))
+      .use(requireConsumerTokenForPublishableKey())
+      .output(skillMarketplacePluginPresenter)
+      .do(async ctx =>
+        skillMarketplacePluginPresenter.present({
+          skillMarketplacePlugin: ctx.skillMarketplacePlugin
+        })
+      ),
+
+    remove: skillMarketplacePluginGroup
+      .delete(
+        instancePath(
+          'skill-marketplaces/:skillMarketplaceId/plugins/:skillMarketplacePluginId',
+          'skills.marketplaces.plugins.remove'
+        ),
+        {
+          name: 'Remove skill marketplace plugin',
+          description: 'Removes a skill plugin from a skill marketplace.'
+        }
+      )
+      .use(hasFlags(['skills-enabled']))
+      .use(checkAccess({ possibleScopes: [...writeScopes] }))
+      .output(skillMarketplacePluginPresenter)
+      .do(async ctx => {
+        let skillMarketplacePlugin = await skillPluginService.removeSkillMarketplacePlugin({
+          ...getSkillPluginAccess(ctx),
+          skillMarketplace: ctx.skillMarketplace,
+          skillMarketplacePluginId: ctx.skillMarketplacePlugin.id
+        });
+
+        return skillMarketplacePluginPresenter.present({ skillMarketplacePlugin });
+      })
+  }
+);

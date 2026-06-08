@@ -8,7 +8,10 @@ import { providerService } from '@metorial-subspace/module-catalog';
 import { providerDeploymentService } from '@metorial-subspace/module-deployment';
 import { identityService } from '@metorial-subspace/module-identity';
 import { brandService } from '@metorial-subspace/module-tenant';
-import { providerSetupSessionPresenter } from '@metorial-subspace/presenters';
+import {
+  providerSetupSessionEventPresenter,
+  providerSetupSessionPresenter
+} from '@metorial-subspace/presenters';
 import { app } from './_app';
 import { createdAtValidator, updatedAtValidator } from './_dateFilter';
 import { tenantApp } from './tenant';
@@ -88,6 +91,26 @@ export let providerSetupSessionController = app.controller({
       })
     )
     .do(async ctx => providerSetupSessionPresenter(ctx.providerSetupSession)),
+
+  events: providerSetupSessionApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        environmentId: v.string(),
+        providerSetupSessionId: v.string(),
+        allowDeleted: v.optional(v.boolean())
+      })
+    )
+    .do(async ctx => {
+      let events = await providerSetupSessionService.listProviderSetupSessionEvents({
+        providerSetupSession: ctx.providerSetupSession
+      });
+
+      return {
+        events: events.map(providerSetupSessionEventPresenter)
+      };
+    }),
 
   create: tenantApp
     .handler()

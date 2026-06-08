@@ -1,0 +1,79 @@
+model AssistantImplementation {
+  oid BigInt @id
+  id  String @unique
+
+  name String
+  slug String @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  assistants Assistant[]
+}
+
+enum AssistantOwner {
+  metorial
+  tenant
+}
+
+model Assistant {
+  oid BigInt @id
+  id  String @unique
+
+  ownerType AssistantOwner
+
+  tenantOid BigInt?
+  tenant    Tenant? @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  implementationOid BigInt
+  implementation    AssistantImplementation @relation(fields: [implementationOid], references: [oid], onDelete: Cascade)
+
+  name             String
+  slug             String  @unique
+  systemIdentifier String? @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  assistantInstances     AssistantInstance[]
+  assistantConversations AssistantConversation[]
+  assistantRequests      AssistantRequest[]
+  assistantMessages      AssistantMessage[]
+  modelRuns              ModelRun[]
+
+  @@index([tenantOid])
+  @@index([implementationOid])
+}
+
+model AssistantConfig {
+  oid BigInt @id
+  id  String @unique
+
+  tenantOid BigInt @unique
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+model AssistantInstance {
+  oid BigInt @id
+  id  String @unique
+
+  assistantOid BigInt
+  assistant    Assistant @relation(fields: [assistantOid], references: [oid], onDelete: Cascade)
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  assistantConversations AssistantConversation[]
+  assistantRequests      AssistantRequest[]
+  assistantMessages      AssistantMessage[]
+  modelRuns              ModelRun[]
+
+  @@unique([assistantOid, tenantOid])
+  @@index([tenantOid])
+}

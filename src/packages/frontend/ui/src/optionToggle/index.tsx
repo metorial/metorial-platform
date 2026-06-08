@@ -127,17 +127,32 @@ export let OptionToggle = ({
   let itemBorderRadius = `calc(${sizeStyles.borderRadius} - 2px)`;
 
   let selectedItem = useMemo(() => items.find(item => item.id == value), [items, value]);
+  let updateIndicator = (nextIndicator: { width: number; left: number } | null) => {
+    setIndicator(current => {
+      if (current === null && nextIndicator === null) return current;
+      if (current && nextIndicator) {
+        if (
+          current.width === nextIndicator.width &&
+          current.left === nextIndicator.left
+        ) {
+          return current;
+        }
+      }
+
+      return nextIndicator;
+    });
+  };
 
   useLayoutEffect(() => {
     let measure = () => {
       let root = rootRef.current;
       let item = selectedItem ? itemRefs.current[selectedItem.id] : null;
       if (!root || !item) {
-        setIndicator(null);
+        updateIndicator(null);
         return;
       }
 
-      setIndicator({
+      updateIndicator({
         width: item.offsetWidth,
         left: item.offsetLeft - 4
       });
@@ -165,9 +180,12 @@ export let OptionToggle = ({
     let handleResize = () => {
       let root = rootRef.current;
       let item = selectedItem ? itemRefs.current[selectedItem.id] : null;
-      if (!root || !item) return;
+      if (!root || !item) {
+        updateIndicator(null);
+        return;
+      }
 
-      setIndicator({
+      updateIndicator({
         width: item.offsetWidth,
         left: item.offsetLeft - 4
       });

@@ -1,8 +1,8 @@
 enum ProviderVersionSpecificationDiscoveryStatus {
   discovering
   discovered
-  not_discoverable
   waiting_for_pair
+  not_discoverable
 }
 
 model ProviderVersion {

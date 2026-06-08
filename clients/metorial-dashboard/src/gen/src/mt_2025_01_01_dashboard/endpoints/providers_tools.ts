@@ -53,7 +53,7 @@ export class MetorialProvidersToolsEndpoint {
     query?: DashboardInstanceProvidersToolsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProvidersToolsListOutput> {
-    let path = 'providers-tools';
+    let path = 'provider-tools';
 
     let request = {
       path,
@@ -83,7 +83,7 @@ export class MetorialProvidersToolsEndpoint {
     providerToolId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProvidersToolsGetOutput> {
-    let path = `providers-tools/${providerToolId}`;
+    let path = `provider-tools/${providerToolId}`;
 
     let request = {
       path,

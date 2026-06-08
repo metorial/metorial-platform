@@ -52,7 +52,8 @@ export let slateApp = tenantApp.use(async ctx => {
 
   let slate = await slateService.getSlateById({
     id: slateId,
-    tenant: ctx.tenant
+    tenant: ctx.tenant,
+    supportsPrebuilt: true
   });
 
   return { slate };
@@ -139,7 +140,8 @@ export let slateController = app.controller({
       )
       .do(async ctx => {
         let paginator = await slateVersionService.listSlateVersions({
-          slate: ctx.slate
+          slate: ctx.slate,
+          supportsPrebuilt: true
         });
 
         let list = await paginator.run(ctx.input);
@@ -187,7 +189,8 @@ export let slateController = app.controller({
 
         let slate = await slateService.getSlateById({
           id: slateVersion.slate.id,
-          tenant: ctx.tenant
+          tenant: ctx.tenant,
+          supportsPrebuilt: true
         });
 
         return presentAdminSlateVersion(slate, slateVersion);

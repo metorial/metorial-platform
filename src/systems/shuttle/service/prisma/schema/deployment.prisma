@@ -29,6 +29,8 @@ model ServerDeployment {
   serverVersion ServerVersion?
 
   @@index([tenantOid, createdAt])
+  @@index([status, startedAt])
+  @@index([status, createdAt])
 }
 
 enum ServerDeploymentStepType {

@@ -10,7 +10,10 @@ import { Button, LinkTabs } from '@metorial/ui';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { showSessionTemplateFormModal } from '../../../scenes/sessionTemplates/modal';
 
-export { ProviderDeploymentsListLayout } from './providerDeploymentsListLayout';
+export {
+  ProviderAuthCredentialsListLayout,
+  ProviderDeploymentsListLayout
+} from './providerDeploymentsListLayout';
 
 export let ProvidersListLayout = () => {
   return (
@@ -90,6 +93,18 @@ export let ProviderSessionsListLayout = () => {
           {
             label: 'Sessions',
             to: Paths.instance.providerSessions(organization.data, project.data, instance.data)
+          },
+          {
+            label: 'Connections',
+            to: Paths.instance.sessionConnections(
+              organization.data,
+              project.data,
+              instance.data
+            )
+          },
+          {
+            label: 'Tool Calls',
+            to: Paths.instance.toolCalls(organization.data, project.data, instance.data)
           },
           {
             label: 'Provider Runs',

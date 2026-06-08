@@ -49,7 +49,7 @@ let getIndexHtmlTemplate = async () => {
   return template;
 };
 
-let renderIndexHtml = async (preload: unknown) => {
+export let renderIndexHtml = async (preload: unknown) => {
   let template = await getIndexHtmlTemplate();
   let preloadScript = `<script type="application/json" id="preload-data">${htmlEncode(
     JSON.stringify(preload)

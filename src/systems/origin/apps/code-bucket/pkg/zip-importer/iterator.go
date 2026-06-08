@@ -10,11 +10,12 @@ import (
 )
 
 type ZipFileIterator struct {
-	filePaths []string
-	current   int
+	files     chan string
+	done      chan struct{}
+	closeOnce sync.Once
+	err       error
 	tempDir   string
-
-	mutex sync.Mutex
+	mutex     sync.Mutex
 }
 
 type ZipFileItem struct {
@@ -23,14 +24,10 @@ type ZipFileItem struct {
 }
 
 func (it *ZipFileIterator) Next() (*ZipFileItem, bool) {
-	if it.current >= len(it.filePaths) {
+	filePath, ok := <-it.files
+	if !ok {
 		return nil, false
 	}
-
-	it.mutex.Lock()
-	filePath := it.filePaths[it.current]
-	it.current++
-	it.mutex.Unlock()
 
 	content, err := os.ReadFile(filePath)
 	if err != nil {
@@ -43,7 +40,17 @@ func (it *ZipFileIterator) Next() (*ZipFileItem, bool) {
 	}, true
 }
 
+func (it *ZipFileIterator) Err() error {
+	it.mutex.Lock()
+	defer it.mutex.Unlock()
+	return it.err
+}
+
 func (it *ZipFileIterator) Close() error {
+	it.closeOnce.Do(func() {
+		close(it.done)
+	})
+
 	it.mutex.Lock()
 	defer it.mutex.Unlock()
 
@@ -56,4 +63,39 @@ func (it *ZipFileIterator) Close() error {
 	}
 
 	return nil
+}
+
+func NewZipFileIterator(tempDir string) *ZipFileIterator {
+	it := &ZipFileIterator{
+		files:   make(chan string),
+		done:    make(chan struct{}),
+		tempDir: tempDir,
+	}
+
+	go func() {
+		defer close(it.files)
+
+		err := filepath.WalkDir(tempDir, func(p string, entry os.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
+			if entry.IsDir() {
+				return nil
+			}
+
+			select {
+			case it.files <- p:
+			case <-it.done:
+				return filepath.SkipAll
+			}
+			return nil
+		})
+		if err != nil {
+			it.mutex.Lock()
+			it.err = err
+			it.mutex.Unlock()
+		}
+	}()
+
+	return it
 }

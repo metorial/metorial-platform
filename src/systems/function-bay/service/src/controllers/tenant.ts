@@ -18,14 +18,18 @@ export let tenantController = app.controller({
     .input(
       v.object({
         name: v.string(),
-        identifier: v.string()
+        identifier: v.string(),
+        isServiceDefault: v.optional(v.boolean()),
+        hasAutomaticEnclaveOverride: v.optional(v.boolean())
       })
     )
     .do(async ctx => {
       let tenant = await tenantService.upsertTenant({
         input: {
           name: ctx.input.name,
-          identifier: ctx.input.identifier
+          identifier: ctx.input.identifier,
+          isServiceDefault: ctx.input.isServiceDefault,
+          hasAutomaticEnclaveOverride: ctx.input.hasAutomaticEnclaveOverride
         }
       });
       return tenantPresenter(tenant);

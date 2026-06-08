@@ -1,3 +1,5 @@
+export { getRetentionCutoffDate } from '@metorial-subspace/list-utils';
+
 export let RETENTION_BATCH_SIZE = 500;
 
 export let retentionCleanupWorkerOpts = {
@@ -22,10 +24,4 @@ export let retentionSyncWorkerOpts = {
     max: 5,
     duration: 1000
   }
-};
-
-export let getRetentionCutoffDate = (logRetentionInDays: number) => {
-  let cutoffDate = new Date();
-  cutoffDate.setDate(cutoffDate.getDate() - Math.max(logRetentionInDays, 0));
-  return cutoffDate;
 };

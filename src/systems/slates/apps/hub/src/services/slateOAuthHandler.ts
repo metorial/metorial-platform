@@ -18,7 +18,13 @@ class slateOAuthHandlerServiceImpl {
   async startOAuthFlow(d: { setupId: string }) {
     let setup = await db.slateInstanceOAuthSetup.findUnique({
       where: { id: d.setupId },
-      include: { slateVersion: true, authMethod: true, oauthCredentials: true, tenant: true }
+      include: {
+        slateVersion: true,
+        authMethod: true,
+        oauthCredentials: true,
+        tenant: true,
+        instanceConfiguration: true
+      }
     });
     if (!setup || setup.status === 'completed') {
       throw new ServiceError(
@@ -44,18 +50,24 @@ class slateOAuthHandlerServiceImpl {
     let oauthSecret = await secretService.DANGEROUSLY_decryptSecret({
       secretOid: setup.secretOid,
       purpose: 'slate_oauth_setup',
-      tenant: setup.tenant
+      tenant: setup.tenant,
+      note: `oauth-url setup:${setup.id}`
     });
     let credentialsSecrets = await secretService.DANGEROUSLY_decryptSecret({
       secretOid: setup.oauthCredentials.secretOid,
       purpose: 'slate_oauth_credentials',
-      tenant: setup.tenant
+      tenant: setup.tenant,
+      note: `oauth-url creds:${setup.oauthCredentials.id} setup:${setup.id}`
     });
 
     let urlRes = await slateInvocationService.getOAuthUrl({
       stack: await slateInvocationService.createInvocation({
         participants: [],
-        slateVersion: setup.slateVersion
+        slateVersion: setup.slateVersion,
+        enclaveId: setup.instanceConfiguration?.enclaveId,
+        egressPolicy:
+          (setup.instanceConfiguration
+            ?.egressPolicy as PrismaJson.CompiledEgressNetworkAllowList | null) ?? undefined
       }),
 
       authenticationMethodId: setup.authMethod.key,
@@ -178,7 +190,13 @@ class slateOAuthHandlerServiceImpl {
           ...(d.input.state ? [{ id: d.input.state }] : [])
         ]
       },
-      include: { slateVersion: true, authMethod: true, oauthCredentials: true, tenant: true }
+      include: {
+        slateVersion: true,
+        authMethod: true,
+        oauthCredentials: true,
+        tenant: true,
+        instanceConfiguration: true
+      }
     });
     let setup = setups.find(s => s.id === d.input.state) ?? setups[0];
     if (!setup || setup.status === 'completed') {
@@ -200,18 +218,24 @@ class slateOAuthHandlerServiceImpl {
     let oauthSecret = await secretService.DANGEROUSLY_decryptSecret({
       secretOid: setup.secretOid,
       purpose: 'slate_oauth_setup',
-      tenant: setup.tenant
+      tenant: setup.tenant,
+      note: `oauth-cb setup:${setup.id}`
     });
     let credentialsSecrets = await secretService.DANGEROUSLY_decryptSecret({
       secretOid: setup.oauthCredentials.secretOid,
       purpose: 'slate_oauth_credentials',
-      tenant: setup.tenant
+      tenant: setup.tenant,
+      note: `oauth-cb creds:${setup.oauthCredentials.id} setup:${setup.id}`
     });
 
     let authRes = await slateInvocationService.getOAuthCallback({
       stack: await slateInvocationService.createInvocation({
         participants: [],
-        slateVersion: setup.slateVersion
+        slateVersion: setup.slateVersion,
+        enclaveId: setup.instanceConfiguration?.enclaveId,
+        egressPolicy:
+          (setup.instanceConfiguration
+            ?.egressPolicy as PrismaJson.CompiledEgressNetworkAllowList | null) ?? undefined
       }),
 
       code: d.input.code,

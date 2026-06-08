@@ -58,7 +58,13 @@ export let customProviderLoader = createLoader({
       {
         input: { instanceId, customProviderId }
       }: { input: { instanceId: string; customProviderId: string } }
-    ) => withAuth(sdk => sdk.customProviders.update(instanceId, customProviderId, i))
+    ) => withAuth(sdk => sdk.customProviders.update(instanceId, customProviderId, i)),
+    archive: (
+      _: {},
+      {
+        input: { instanceId, customProviderId }
+      }: { input: { instanceId: string; customProviderId: string } }
+    ) => withAuth(sdk => sdk.customProviders.archive(instanceId, customProviderId))
   }
 });
 
@@ -82,6 +88,28 @@ export let useCustomProvider = (
 
   return {
     ...data,
-    useUpdateMutator: data.useMutator('update')
+    useUpdateMutator: data.useMutator('update'),
+    useArchiveMutator: data.useMutator('archive')
+  };
+};
+
+export let customProviderEnvLoader = createLoader({
+  name: 'customProviderEnv',
+  parents: [customProviderLoader],
+  fetch: (i: { instanceId: string; customProviderId: string }) =>
+    withAuth(sdk => sdk.customProviders.getEnv(i.instanceId, i.customProviderId)),
+  mutators: {}
+});
+
+export let useCustomProviderEnv = (
+  instanceId: string | null | undefined,
+  customProviderId: string | null | undefined
+) => {
+  let data = customProviderEnvLoader.use(
+    instanceId && customProviderId ? { instanceId, customProviderId } : null
+  );
+
+  return {
+    ...data
   };
 };

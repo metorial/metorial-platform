@@ -1,0 +1,22 @@
+model Tenant {
+  oid BigInt @id
+  id  String @unique
+
+  identifier String @unique
+  name       String
+
+  keyReuseTimeSeconds Int?
+
+  defaultKeyProviderOid BigInt?
+  defaultKeyProvider    KeyProvider? @relation("TenantDefaultKeyProvider", fields: [defaultKeyProviderOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  keyProviders   KeyProvider[]   @relation("TenantKeyProviders")
+  keys           Key[]
+  keyErrors      KeyError[]
+  secrets        Secret[]
+  secretVersions SecretVersion[]
+  secretUses     SecretUse[]
+}

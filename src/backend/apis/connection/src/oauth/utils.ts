@@ -1,5 +1,5 @@
 import { ServiceError, badRequestError, unauthorizedError } from '@lowerdeck/error';
-import { Context } from 'hono';
+import { Context } from '@lowerdeck/hono';
 
 export let getString = (value: unknown) => {
   if (typeof value == 'string' && value.trim().length > 0) return value;

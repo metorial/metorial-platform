@@ -8,6 +8,7 @@ export let ID = createIdGenerator({
   backend: idType.sorted('kbe'),
   brand: idType.sorted('kbr'),
   tenantActor: idType.sorted('pact'),
+  tenantOAuthCallbackUrl: idType.sorted('cbu'),
 
   publisher: idType.sorted('pub'),
 
@@ -30,6 +31,19 @@ export let ID = createIdGenerator({
 
   providerDeployment: idType.sorted('pde'),
   providerDeploymentVersion: idType.sorted('pdv'),
+
+  enclave: idType.sorted('enc'),
+  enclaveEnvironment: idType.sorted('een'),
+  network: idType.sorted('net'),
+  firewall: idType.sorted('fwl'),
+  firewallBinding: idType.sorted('fwb'),
+  networkPolicy: idType.sorted('npo'),
+  networkPolicyRule: idType.sorted('npr'),
+  networkPolicyVersion: idType.sorted('npv'),
+  firewallNetworkPolicy: idType.sorted('fwn'),
+  enclaveIngressNetworkLog: idType.sorted('einl'),
+  slateInstanceConfiguration: idType.sorted('sicf'),
+  serverInstanceConfiguration: idType.sorted('shic'),
 
   providerConfig: idType.sorted('pcf'),
   providerConfigVersion: idType.sorted('pcv'),
@@ -84,6 +98,7 @@ export let ID = createIdGenerator({
   upcomingCustomProvider: idType.sorted('ucp'),
 
   session: idType.sorted('ses'),
+  ephemeralManagedSession: idType.sorted('ems'),
   sessionTemplate: idType.sorted('set'),
   sessionTemplateProvider: idType.sorted('stp'),
   sessionProvider: idType.sorted('spv'),
@@ -98,6 +113,16 @@ export let ID = createIdGenerator({
   sessionError: idType.sorted('serr'),
   sessionErrorGroup: idType.sorted('serg'),
   sessionWarning: idType.sorted('swarn'),
+  protoGuardFilter: idType.sorted('pgf'),
+  protoGuardTenantSetting: idType.sorted('pgts'),
+  protoGuardTenantFilterSetting: idType.sorted('pgtf'),
+  protoGuardRun: idType.sorted('pgrn'),
+  protoGuardAlert: idType.sorted('pga'),
+  protoGuardAlertInstance: idType.sorted('pgai'),
+  monitor: idType.sorted('mon'),
+  monitorAlert: idType.sorted('mal'),
+  monitorAlertEvent: idType.sorted('mae'),
+  monitorAlertRecipient: idType.sorted('mar'),
 
   providerRun: idType.sorted('prun'),
 
@@ -125,7 +150,40 @@ export let ID = createIdGenerator({
   delegatedIdentityUpdate: idType.sorted('diu'),
   delegatedIdentityUpdateCredential: idType.sorted('diuc'),
   identityDelegationCredentialOverride: idType.sorted('idco'),
-  agent: idType.sorted('agt')
+  agent: idType.sorted('agt'),
+  agentClient: idType.sorted('agc'),
+  agentClientRegistration: idType.sorted('agr'),
+  agentInstance: idType.sorted('agi'),
+
+  integration: idType.sorted('int'),
+  integrationInstanceGroup: idType.sorted('dii'),
+  integrationInstanceGroupSource: idType.sorted('dis'),
+  integrationInstanceGroupProvider: idType.sorted('dip'),
+  integrationInstance: idType.sorted('ini'),
+  integrationInstanceProvider: idType.sorted('iip'),
+  integrationInstanceProviderVersion: idType.sorted('iiv'),
+  integrationProvider: idType.sorted('inp'),
+  magicMcpServerProvider: idType.sorted('msp'),
+  integrationProviderVersion: idType.sorted('ipv'),
+  integrationVersion: idType.sorted('inv'),
+  integrationVersionProvider: idType.sorted('ivp'),
+  integrationSetupSession: idType.sorted('iss'),
+  integrationSetupSession_clientSecret: idType.key('iss_secret'),
+  integrationSetupSessionProvider: idType.sorted('isp'),
+  integrationSetupSessionStep: idType.sorted('isst'),
+  integrationSetupSessionEvent: idType.sorted('ise'),
+
+  skillEntity: idType.sorted('ske'),
+  skill: idType.sorted('skl'),
+  skillFork: idType.sorted('skf'),
+  skillGroup: idType.sorted('skg'),
+  skillGroupItem: idType.sorted('skgi'),
+  skillTemplate: idType.sorted('skt'),
+  skillTemplateItem: idType.sorted('skti'),
+  skillItem: idType.sorted('ski'),
+  skillIntegration: idType.sorted('skn'),
+  skillProvider: idType.sorted('skp'),
+  skillProviderLink: idType.sorted('skpl')
 });
 
 let workerIdBits = 12;

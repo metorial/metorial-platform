@@ -1,28 +1,33 @@
 import { Service } from '@lowerdeck/service';
 import type { Tenant } from '@metorial-subspace/db';
-import { getTenantForOrigin, origin } from '../origin';
+import {
+  getTenantForOrigin,
+  normalizeScmProviderSetupSession,
+  origin,
+  type ScmProviderSetupSession
+} from '../origin';
 
 class scmProviderSetupSessionServiceImpl {
   async getScmProviderSetupSessionById(d: {
     scmProviderSetupSessionId: string;
     tenant: Tenant;
-  }) {
+  }): Promise<ScmProviderSetupSession> {
     let tenant = await getTenantForOrigin(d.tenant);
-    return origin.scmBackendSetupSession.get({
+    return normalizeScmProviderSetupSession(await origin.scmBackendSetupSession.get({
       tenantId: tenant.id,
       sessionId: d.scmProviderSetupSessionId
-    });
+    }));
   }
 
   async createScmProviderSetupSession(d: {
     tenant: Tenant;
     type: 'github_enterprise' | 'gitlab_selfhosted';
-  }) {
+  }): Promise<ScmProviderSetupSession> {
     let tenant = await getTenantForOrigin(d.tenant);
-    return origin.scmBackendSetupSession.create({
+    return normalizeScmProviderSetupSession(await origin.scmBackendSetupSession.create({
       tenantId: tenant.id,
       type: d.type
-    });
+    }));
   }
 }
 

@@ -125,10 +125,17 @@ export class ProviderAuth extends IProviderAuth {
     let shuttleOAuthCredentials = await db.shuttleOAuthCredentials.findUniqueOrThrow({
       where: { oid: data.credentials.shuttleCredentialsOid }
     });
+    let providerDeployment = data.providerDeployment
+      ? await db.providerDeployment.findUnique({
+          where: { oid: data.providerDeployment.oid },
+          include: { serverInstanceConfiguration: true }
+        })
+      : null;
 
     let oauthSetup = await shuttle.serverOAuthSetup.create({
       tenantId: tenant.id,
       serverId: shuttleServer.id,
+      serverInstanceConfigurationId: providerDeployment?.serverInstanceConfiguration?.id,
       input: data.input,
       redirectUrl: data.redirectUrl,
       serverCredentialsId: shuttleOAuthCredentials.id,

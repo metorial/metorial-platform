@@ -36,6 +36,7 @@ export let commitApplyQueueProcessor = commitApplyQueue.process(async data => {
     let targetVersion = commit.targetCustomProviderVersion;
     let targetGlobalEnvironment = commit.toEnvironment.environment;
 
+    if (customProvider.status !== 'active') return;
     if (!customProvider.providerOid || !customProvider.providerVariantOid) return;
 
     if (targetVersion.status === 'deployment_failed') {
@@ -58,6 +59,7 @@ export let commitApplyQueueProcessor = commitApplyQueue.process(async data => {
     ) {
       // Re-enqueue until the target version is deployed
       await commitApplyQueue.add(data, { delay: 2500 });
+      return;
     }
 
     await withTransaction(async db => {
@@ -120,6 +122,22 @@ export let commitApplyQueueProcessor = commitApplyQueue.process(async data => {
       await db.providerVersion.updateMany({
         where: { oid: targetVersion.providerVersionOid! },
         data: { isEnvironmentLocked: true }
+      });
+
+      await db.providerVariant.updateMany({
+        where: { oid: customProvider.providerVariantOid! },
+        data: { currentVersionOid: targetVersion.providerVersionOid! }
+      });
+      await db.providerVersion.updateMany({
+        where: {
+          providerVariantOid: customProvider.providerVariantOid!,
+          oid: { not: targetVersion.providerVersionOid! }
+        },
+        data: { isCurrent: false }
+      });
+      await db.providerVersion.updateMany({
+        where: { oid: targetVersion.providerVersionOid! },
+        data: { isCurrent: true }
       });
 
       await db.provider.updateMany({

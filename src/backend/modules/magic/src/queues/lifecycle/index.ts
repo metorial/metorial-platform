@@ -2,7 +2,6 @@ import { combineQueueProcessors } from '@metorial/queue';
 import {
   magicMcpEndpointCreatedQueueProcessor,
   magicMcpEndpointDeletedQueueProcessor,
-  magicMcpEndpointDeletedSubspaceSessionQueueProcessor,
   magicMcpEndpointUpdatedQueueProcessor
 } from './magicMcpEndpoint';
 import {
@@ -13,24 +12,30 @@ import {
 import {
   magicMcpServerCreatedQueueProcessor,
   magicMcpServerDeletedQueueProcessor,
-  magicMcpServerDeletedSubspaceSessionQueueProcessor,
   magicMcpServerUpdatedQueueProcessor
 } from './magicMcpServer';
+import {
+  providerTemplateArchivedQueueProcessor,
+  providerTemplateCreatedQueueProcessor,
+  providerTemplateUpdatedQueueProcessor
+} from './providerTemplate';
 
 export * from './magicMcpEndpoint';
 export * from './magicMcpGroup';
 export * from './magicMcpServer';
+export * from './providerTemplate';
 
 export let magicLifecycleQueueProcessor = combineQueueProcessors([
   magicMcpEndpointCreatedQueueProcessor,
   magicMcpEndpointUpdatedQueueProcessor,
   magicMcpEndpointDeletedQueueProcessor,
-  magicMcpEndpointDeletedSubspaceSessionQueueProcessor,
   magicMcpGroupCreatedQueueProcessor,
   magicMcpGroupUpdatedQueueProcessor,
   magicMcpGroupDeletedQueueProcessor,
   magicMcpServerCreatedQueueProcessor,
   magicMcpServerUpdatedQueueProcessor,
   magicMcpServerDeletedQueueProcessor,
-  magicMcpServerDeletedSubspaceSessionQueueProcessor
+  providerTemplateCreatedQueueProcessor,
+  providerTemplateUpdatedQueueProcessor,
+  providerTemplateArchivedQueueProcessor
 ]);

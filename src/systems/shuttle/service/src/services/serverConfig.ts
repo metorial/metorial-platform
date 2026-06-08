@@ -155,12 +155,6 @@ class serverConfigServiceImpl {
       });
 
       if (connectionOids.length) {
-        await db.serverConnectionNetworkRule.deleteMany({
-          where: {
-            serverConnectionOid: { in: connectionOids }
-          }
-        });
-
         await db.serverConnectionLogsTemp.deleteMany({
           where: {
             serverConnectionOid: { in: connectionOids }

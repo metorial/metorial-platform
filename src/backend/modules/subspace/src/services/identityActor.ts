@@ -1,4 +1,5 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { Paginator } from '@lowerdeck/pagination';
 import {
   Consumer,
   ConsumerProfile,
@@ -67,6 +68,10 @@ export let subspaceIdentityActorService = createSubspaceService(
         let consumerActorIds = await resolveConsumerActorIds(arg0.consumerIds);
 
         arg0.ids = [...(arg0.ids ?? []), ...consumerActorIds];
+
+        if (!arg0.ids.length) {
+          return Paginator.create(({ prisma }) => prisma(async () => []));
+        }
       }
 
       let res = await inner.list(arg0);

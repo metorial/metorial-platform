@@ -7,7 +7,8 @@ import {
   useCreateProviderAuthCredentials,
   useProvider,
   useProviderAuthMethods,
-  useProviderDeployment
+  useProviderDeployment,
+  useProviderListing
 } from '@metorial/state';
 import {
   Button,
@@ -16,12 +17,19 @@ import {
   Copy,
   Dialog,
   Input,
+  showModal,
   Spacer,
-  Text,
-  showModal
+  Text
 } from '@metorial/ui';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useProviderAuthCreationCapabilities } from '../../lib/providerCreationCapabilities';
+import {
+  getConfigDoc,
+  getProviderDoc,
+  getScopeDoc,
+  ProviderDocsLink
+} from '../../lib/providerDocs';
+import { ScopePickerField } from '../../pages/(deployments)/provider-auth-credential/components/scopePicker';
 import { ProviderContextCard } from '../providerContextCard';
 
 type AuthMethod = DashboardInstanceProvidersAuthMethodsListOutput['items'][number];
@@ -34,7 +42,8 @@ export let ProviderAuthCredentialsForm = ({
   onBack,
   onCreate,
   embedded = false,
-  hideProviderContext = false
+  hideProviderContext = false,
+  showScopePicker = false
 }: {
   instanceId: string;
   providerId: string;
@@ -46,6 +55,7 @@ export let ProviderAuthCredentialsForm = ({
   ) => void;
   embedded?: boolean;
   hideProviderContext?: boolean;
+  showScopePicker?: boolean;
 }) => {
   let effectiveHideProviderContext = hideProviderContext || !!deploymentId;
   let dismissSecondaryLabel = effectiveHideProviderContext ? 'Close' : 'Back';
@@ -65,6 +75,17 @@ export let ProviderAuthCredentialsForm = ({
   let providerName = deployment.data?.name ?? provider.data?.name ?? providerId;
   let oauthMethodName = oauthMethod?.name ?? 'OAuth';
   let authCreation = useProviderAuthCreationCapabilities(instanceId, deploymentId, providerId);
+  let providerListing = useProviderListing(instanceId, providerId);
+  let providerDoc = getProviderDoc(providerListing.data);
+  let configDoc = getConfigDoc(providerListing.data);
+  let scopeDoc = getScopeDoc(providerListing.data, oauthMethod);
+  let availableScopes = oauthMethod?.scopes ?? [];
+  let defaultScopes = useMemo(
+    () => availableScopes.map(scope => scope.scope),
+    [availableScopes]
+  );
+  let [selectedScopes, setSelectedScopes] = useState<string[] | null>(null);
+  let effectiveScopes = selectedScopes ?? defaultScopes;
 
   let createCredentials = useCreateProviderAuthCredentials();
 
@@ -83,7 +104,7 @@ export let ProviderAuthCredentialsForm = ({
           type: 'oauth',
           clientId: values.clientId,
           clientSecret: values.clientSecret,
-          scopes: oauthMethod?.scopes?.map(scope => scope.scope) ?? []
+          scopes: effectiveScopes
         }
       });
 
@@ -99,6 +120,10 @@ export let ProviderAuthCredentialsForm = ({
         clientSecret: yup.string().required('Client Secret is required')
       })
   });
+
+  useEffect(() => {
+    setSelectedScopes(null);
+  }, [oauthMethod?.id]);
 
   if (authCreation.isLoading) {
     return (
@@ -167,8 +192,6 @@ export let ProviderAuthCredentialsForm = ({
           <Dialog.Description>
             Enter your {oauthMethodName} app credentials for {providerName}.
           </Dialog.Description>
-
-          <Spacer size={15} />
         </>
       )}
 
@@ -194,6 +217,11 @@ export let ProviderAuthCredentialsForm = ({
             </Text>
             <Text size="1" color="gray600" style={{ marginBottom: 5 }}>
               You must configure this redirect URI in your OAuth app.
+              {configDoc ? (
+                <>
+                  <ProviderDocsLink doc={configDoc}>View config docs</ProviderDocsLink>
+                </>
+              ) : null}
             </Text>
             <Copy value={redirectUri} />
             <Spacer size={10} />
@@ -213,6 +241,7 @@ export let ProviderAuthCredentialsForm = ({
         <Input
           label="Client ID"
           placeholder="Enter client ID from provider"
+          help={<ProviderDocsLink doc={providerDoc}>Provider docs</ProviderDocsLink>}
           required
           {...form.getFieldProps('clientId')}
         />
@@ -228,6 +257,18 @@ export let ProviderAuthCredentialsForm = ({
           {...form.getFieldProps('clientSecret')}
         />
         <form.RenderError field="clientSecret" />
+
+        {showScopePicker && availableScopes.length > 0 && (
+          <>
+            <Spacer size={10} />
+            <ScopePickerField
+              scopes={availableScopes}
+              selectedScopes={effectiveScopes}
+              onSelectedScopesChange={setSelectedScopes}
+              help={<ProviderDocsLink doc={scopeDoc}>Scope docs</ProviderDocsLink>}
+            />
+          </>
+        )}
 
         <createCredentials.RenderError />
 

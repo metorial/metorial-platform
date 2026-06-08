@@ -1,10 +1,18 @@
 enum SessionParticipantType {
-  mcp_client
-  metorial_protocol_client
+  legacy_mcp_client               @map("mcp_client")
+  legacy_metorial_protocol_client @map("metorial_protocol_client")
+  legacy_tool_call                @map("tool_call")
+
+  agent
   provider
   system
-  tool_call
   unknown
+}
+
+enum SessionParticipantConnectionType {
+  mcp
+  metorial_protocol
+  tool_call
 }
 
 model SessionParticipant {
@@ -16,6 +24,8 @@ model SessionParticipant {
   hash       String
   identifier String
   name       String
+
+  connectionType SessionParticipantConnectionType?
 
   /// [SessionParticipantPayload]
   payload Json
@@ -29,6 +39,15 @@ model SessionParticipant {
   providerOid BigInt?
   provider    Provider? @relation(fields: [providerOid], references: [oid])
 
+  agentInstanceOid BigInt?
+  agentInstance    AgentInstance? @relation(fields: [agentInstanceOid], references: [oid])
+
+  identityActorOid BigInt?
+  identityActor    IdentityActor? @relation(fields: [identityActorOid], references: [oid], onDelete: SetNull)
+
+  identityOid BigInt?
+  identity    Identity? @relation(fields: [identityOid], references: [oid], onDelete: SetNull)
+
   createdAt DateTime @default(now())
 
   sessionConnections       SessionConnection[]
@@ -38,4 +57,6 @@ model SessionParticipant {
   @@unique([tenantOid, type, hash])
   @@index([createdAt])
   @@index([type])
+  @@index([identityActorOid])
+  @@index([identityOid])
 }

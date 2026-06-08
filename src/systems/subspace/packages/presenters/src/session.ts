@@ -1,4 +1,6 @@
 import type {
+  Identity,
+  IdentityActor,
   Provider,
   ProviderAuthConfig,
   ProviderConfig,
@@ -12,6 +14,8 @@ import { sessionProviderPresenter } from './sessionProvider';
 
 export let sessionPresenter = (
   session: Session & {
+    identity: Identity | null;
+    identityActor: IdentityActor | null;
     providers: (SessionProvider & {
       provider: Provider;
       deployment: ProviderDeployment;
@@ -55,6 +59,9 @@ export let sessionPresenter = (
   fromTemplatesIds: [
     ...new Set(session.providers.map(p => p.fromTemplate?.id!).filter(Boolean))
   ],
+
+  identityActorId: session.identityActor?.id ?? null,
+  identityId: session.identity?.id ?? null,
 
   createdAt: session.createdAt,
   updatedAt: session.updatedAt

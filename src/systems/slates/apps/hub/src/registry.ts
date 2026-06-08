@@ -124,8 +124,9 @@ export let createSlatesRegistryClient = (o: {
     init: { redirect: 'follow' }
   }) as unknown as RegistryClient;
 
-export let getRegistryQuery = () =>
-  env.registry.SUPPORTS_PREBUILT_SLATES ? { supports_prebuilt: true } : {};
+export let supportsPrebuiltSlates = () => env.registry.SUPPORTS_PREBUILT_SLATES !== false;
+
+export let getRegistryQuery = () => ({ supports_prebuilt: 'true' as const });
 
 export let getRegistryClient = async (registry: Registry): Promise<RegistryClient> => {
   let token = await getReaderToken(registry);

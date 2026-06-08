@@ -30,7 +30,7 @@ export let voyagerSource = voyagerSourceProm.promise;
       console.error('Failed to create source in Voyager, retrying in 5 seconds...', error);
     }
 
-    delay(5000);
+    await delay(5000);
   }
 })();
 
@@ -83,6 +83,36 @@ export let voyagerIndex = {
     name: 'Custom Providers'
   }),
 
+  integration: await voyager.index.upsert({
+    sourceId: (await voyagerSource).id,
+    identifier: getIndexName('integration'),
+    name: 'Integrations'
+  }),
+
+  skill: await voyager.index.upsert({
+    sourceId: (await voyagerSource).id,
+    identifier: getIndexName('skill'),
+    name: 'Skills'
+  }),
+
+  skillGroup: await voyager.index.upsert({
+    sourceId: (await voyagerSource).id,
+    identifier: getIndexName('skill_group'),
+    name: 'Skill Groups'
+  }),
+
+  skillTemplate: await voyager.index.upsert({
+    sourceId: (await voyagerSource).id,
+    identifier: getIndexName('skill_template'),
+    name: 'Skill Templates'
+  }),
+
+  integrationInstance: await voyager.index.upsert({
+    sourceId: (await voyagerSource).id,
+    identifier: getIndexName('integration_instance'),
+    name: 'Integration Instances'
+  }),
+
   identityActor: await voyager.index.upsert({
     sourceId: (await voyagerSource).id,
     identifier: getIndexName('identity_actor'),
@@ -93,6 +123,12 @@ export let voyagerIndex = {
     sourceId: (await voyagerSource).id,
     identifier: getIndexName('agent'),
     name: 'Agents'
+  }),
+
+  agentClient: await voyager.index.upsert({
+    sourceId: (await voyagerSource).id,
+    identifier: getIndexName('agent_client'),
+    name: 'Agent Clients'
   }),
 
   identity: await voyager.index.upsert({

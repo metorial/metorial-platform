@@ -121,6 +121,7 @@ model ProviderAuthMethod {
   managedProviderAuthCredentials ManagedProviderAuthCredentials[]
   currentInGlobal                ProviderAuthMethodGlobal[]       @relation("currentAuthMethodInstance")
   providerSetupSessions          ProviderSetupSession[]
+  integrationProviderVersions    IntegrationProviderVersion[]
 
   @@unique([providerOid, specificationOid, hash])
   @@unique([specificationOid, key])

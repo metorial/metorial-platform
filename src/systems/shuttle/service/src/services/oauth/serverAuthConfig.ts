@@ -208,12 +208,6 @@ class serverAuthConfigServiceImpl {
           }
         });
 
-        await db.serverConnectionNetworkRule.deleteMany({
-          where: {
-            serverConnectionOid: { in: connectionOids }
-          }
-        });
-
         await db.serverConnectionLogsTemp.deleteMany({
           where: {
             serverConnectionOid: { in: connectionOids }

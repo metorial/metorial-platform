@@ -114,6 +114,93 @@ export let signalServiceEnv: Env = [
   }
 ];
 
+export let synthesisServiceEnv: Env = [
+  {
+    key: 'SYNTHESIS_DATABASE_URL',
+    defaultValue: 'postgresql://postgres:postgres@localhost:35432/synthesis'
+  },
+  {
+    key: 'REDIS_URL',
+    defaultValue: 'redis://localhost:36379/0'
+  },
+  {
+    key: 'SYNTHESIS_API_PORT',
+    defaultValue: '52160'
+  },
+  {
+    key: 'SYNTHESIS_HEALTH_PORT',
+    defaultValue: '12121'
+  },
+  { key: 'AI_GATEWAY_API_KEY', isRequired: false },
+  {
+    key: 'SCOUT_URL',
+    defaultValue: 'https://scout-fra-fly-prod.metorial-enterprise.com/metorial-scout'
+  },
+  {
+    key: 'SCOUT_TOKEN',
+    isRequired: false
+  }
+];
+
+export let cargoServiceEnv: Env = [
+  {
+    key: 'DATABASE_URL',
+    defaultValue: 'postgresql://postgres:postgres@localhost:35432/cargo'
+  },
+  {
+    key: 'REDIS_URL',
+    defaultValue: 'redis://localhost:36379/0'
+  },
+  {
+    key: 'OBJECT_STORAGE_URL',
+    defaultValue: 'http://services:52010'
+  },
+  {
+    key: 'FILES_BUCKET_NAME',
+    defaultValue: 'mte-files'
+  },
+  {
+    key: 'DOWNLOAD_PUBLIC_URL',
+    defaultValue: `http://${HOSTNAME}:52151`
+  },
+  {
+    key: 'CARGO_REGION',
+    defaultValue: 'dev'
+  },
+  {
+    key: 'SIGNED_DOWNLOAD_URL_TOKEN_SECRET',
+    defaultValue: 'dev-cargo-download-token-secret'
+  },
+  {
+    key: 'CARGO_API_PORT',
+    defaultValue: '52150'
+  },
+  {
+    key: 'CARGO_CONTENT_PORT',
+    defaultValue: '52151'
+  },
+  {
+    key: 'CARGO_HEALTH_PORT',
+    defaultValue: '12121'
+  },
+  {
+    key: 'API_URL',
+    defaultValue: `http://${HOSTNAME}:4310`
+  },
+  {
+    key: 'ORIGIN_URL',
+    defaultValue: `http://${HOSTNAME}:52090/metorial-origin`
+  },
+  {
+    key: 'CODE_BUCKET_SERVICE_URL',
+    defaultValue: `${HOSTNAME}:5050`
+  },
+  {
+    key: 'VOYAGER_URL',
+    defaultValue: 'http://services:52060/metorial-voyager'
+  }
+];
+
 export let slatesHubEnv: Env = [
   {
     key: 'DATABASE_URL',
@@ -177,6 +264,22 @@ export let slatesHubEnv: Env = [
   // }
   {
     key: 'SUPPORTS_PREBUILT_SLATES',
+    defaultValue: 'true'
+  },
+  {
+    key: 'NEBULA_API_URL',
+    defaultValue: 'http://localhost:52170/metorial-nebula'
+  },
+  {
+    key: 'NEBULA_CONSUMER_IDENTIFIER',
+    defaultValue: 'dev-slates-hub'
+  },
+  {
+    key: 'NEBULA_CONSUMER_TOKEN',
+    defaultValue: 'local-dev-nebula-slates-registration-secret'
+  },
+  {
+    key: 'SLATES_DELEGATE_SECRETS_TO_NEBULA',
     defaultValue: 'true'
   }
 ];
@@ -290,6 +393,14 @@ export let subspaceDevEnv: Env = [
   {
     key: 'SIGNAL_API_URL',
     defaultValue: `http://localhost:52050/metorial-signal`
+  },
+  {
+    key: 'CARGO_API_URL',
+    defaultValue: 'http://localhost:52150/metorial-cargo'
+  },
+  {
+    key: 'FUNCTION_BAY_API_URL',
+    defaultValue: 'http://localhost:52030/metorial-function-bay'
   }
   // {
   //   key: 'SIGNAL_SENDER_IDENTIFIER',
@@ -360,6 +471,22 @@ export let shuttleServiceEnv: Env = [
   {
     key: 'FUNCTION_BAY_DEFAULT_TIMEOUT_SECONDS',
     defaultValue: '15'
+  },
+  {
+    key: 'NEBULA_API_URL',
+    defaultValue: 'http://localhost:52170/metorial-nebula'
+  },
+  {
+    key: 'NEBULA_CONSUMER_IDENTIFIER',
+    defaultValue: 'dev-shuttle'
+  },
+  {
+    key: 'NEBULA_CONSUMER_TOKEN',
+    defaultValue: 'local-dev-nebula-shuttle-registration-secret'
+  },
+  {
+    key: 'SHUTTLE_DELEGATE_SECRETS_TO_NEBULA',
+    defaultValue: 'true'
   }
 ];
 
@@ -412,6 +539,49 @@ export let forgeServiceEnv: Env = [
   //   key: 'CODE_BUILD_ROLE_ARN',
   //   isRequired: false
   // }
+];
+
+export let nebulaServiceEnv: Env = [
+  {
+    key: 'DATABASE_URL',
+    defaultValue: 'postgresql://postgres:postgres@localhost:35432/nebula'
+  },
+  {
+    key: 'REDIS_URL',
+    defaultValue: 'redis://localhost:36379/0'
+  },
+  {
+    key: 'DEFAULT_PROVIDER',
+    defaultValue: 'local'
+  },
+  {
+    key: 'LOCAL_MASTER_SECRET',
+    defaultValue: 'local-dev-nebula-master-secret-with-enough-entropy'
+  },
+  {
+    key: 'KMS_AWS_REGION',
+    defaultValue: 'us-east-1'
+  },
+  {
+    key: 'KMS_CREATE_DEFAULT_KEY',
+    defaultValue: 'false'
+  },
+  {
+    key: 'CONSUMER_INSTANCE_TOKEN_SECRET',
+    defaultValue: 'local-dev-nebula-consumer-token-secret-with-enough-entropy'
+  },
+  {
+    key: 'CONSUMER_INSTANCE_TOKEN_TTL_SECONDS',
+    defaultValue: '3600'
+  },
+  {
+    key: 'CONSUMER_REGISTRATION_SLATES',
+    defaultValue: 'local-dev-nebula-slates-registration-secret'
+  },
+  {
+    key: 'CONSUMER_REGISTRATION_SHUTTLE',
+    defaultValue: 'local-dev-nebula-shuttle-registration-secret'
+  }
 ];
 
 export let functionBayServiceEnv: Env = [

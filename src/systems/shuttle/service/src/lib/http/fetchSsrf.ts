@@ -1,22 +1,33 @@
 import { checkIp } from './axiosSsrf';
+import { assertUrlAllowedByEgressPolicy } from '../network/egressPolicy';
 
 let unsafeSsrfBypass = process.env.SHUTTLE_UNSAFE_SSRF_BYPASS === 'true';
 
 type SafeFetchOptions = RequestInit & {
   maxRedirects?: number;
+  egressPolicy?: PrismaJson.CompiledEgressNetworkAllowList | null;
 };
 
 export let safeFetch = async (input: string, options: SafeFetchOptions = {}) => {
-  if (unsafeSsrfBypass) return fetch(input, options);
+  let { maxRedirects: maxRedirectsOption, egressPolicy, ...fetchOptions } = options;
 
-  let maxRedirects = options.maxRedirects ?? 5;
+  if (unsafeSsrfBypass && !egressPolicy) return fetch(input, fetchOptions);
+
+  let maxRedirects = maxRedirectsOption ?? 5;
   let currentUrl = validateUrl(input);
 
   for (let i = 0; i <= maxRedirects; i++) {
-    await assertPublicAddress(currentUrl.hostname);
+    if (!unsafeSsrfBypass) {
+      await assertPublicAddress(currentUrl.hostname);
+    }
+
+    await assertUrlAllowedByEgressPolicy({
+      url: currentUrl.toString(),
+      egressPolicy
+    });
 
     let response = await fetch(currentUrl.toString(), {
-      ...options,
+      ...fetchOptions,
       redirect: 'manual'
     });
 

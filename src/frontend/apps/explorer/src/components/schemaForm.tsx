@@ -111,7 +111,7 @@ let createAjv = () => {
     validateSchema: false
   });
 
-  addFormats(ajv);
+  addFormats(ajv as unknown as Parameters<typeof addFormats>[0]);
 
   return ajv;
 };

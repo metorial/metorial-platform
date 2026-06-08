@@ -1,6 +1,6 @@
 import {
-  type DashboardInstanceScmReposCreateOutput,
-  CustomProvidersGetOutput
+  CustomProvidersGetOutput,
+  type DashboardInstanceScmReposCreateOutput
 } from '@metorial/dashboard-sdk';
 import { renderWithLoader, useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
@@ -13,63 +13,56 @@ import {
   useScmInstallations
 } from '@metorial/state';
 import {
+  Avatar,
   Button,
   CenteredSpinner,
-  Flex,
   Input,
   Or,
   Select,
   Spacer,
-  theme,
   toast
 } from '@metorial/ui';
+import {
+  RiBracesLine,
+  RiCodeBoxLine,
+  RiGlobalLine,
+  RiKey2Line,
+  RiSettings3Line
+} from '@remixicon/react';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import styled from 'styled-components';
 import { Stepper } from '../../../../components/stepper';
-import { ConnectGitHubButton, SelectRepo } from './selectRepo';
+import {
+  getManagedServerTemplateFiles,
+  managedServerTemplates as managedServerTemplateCatalog,
+  type ManagedServerTemplate
+} from './config';
+import {
+  Actions,
+  Form,
+  TemplateIconFrame,
+  Templates,
+  TemplatesItem,
+  TemplateWrapper
+} from './createFormShared';
+import { SelectRepo } from './selectRepo';
 import { waitForCustomProviderVersionId } from './utils';
 
-let PageWrapper = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-`;
-
-let Actions = styled.div`
-  display: flex;
-  gap: 10px;
-  justify-content: flex-end;
-  margin-top: 10px;
-`;
-
-let Templates = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 10px;
-`;
-
-let TemplatesItem = styled.button`
-  display: flex;
-  align-items: center;
-  padding: 10px;
-  background: none;
-  border: ${theme.colors.gray400} 1px solid;
-  border-radius: 8px;
-  text-align: left;
-  gap: 10px;
-
-  span {
-    font-size: 14px;
-    font-weight: 600;
-    color: ${theme.colors.gray800};
+let TemplateIcon = ({ template }: { template: ManagedServerTemplate }) => {
+  if (template.imageUrl) {
+    return <Avatar entity={template} size={24} imageFit="contain" />;
   }
-`;
 
-let Form = styled.div`
-  display: flex;
-  flex-direction: column;
-`;
+  let icon = (() => {
+    if (template.icon === 'http') return <RiGlobalLine size={20} />;
+    if (template.icon === 'config') return <RiSettings3Line size={20} />;
+    if (template.icon === 'oauth') return <RiKey2Line size={20} />;
+    if (template.icon === 'tools') return <RiBracesLine size={20} />;
+    return <RiCodeBoxLine size={20} />;
+  })();
+
+  return <TemplateIconFrame>{icon}</TemplateIconFrame>;
+};
 
 export let CustomProviderManagedCreateForm = (p: {
   templateId?: string;
@@ -79,7 +72,7 @@ export let CustomProviderManagedCreateForm = (p: {
   let instance = useCurrentInstance();
   let createCustomProvider = useCreateCustomProvider();
   let managedServerTemplates = {
-    data: { items: [] as { id: string; name: string | null; slug: string | null }[] },
+    data: { items: managedServerTemplateCatalog },
     isLoading: false,
     error: null
   };
@@ -88,10 +81,10 @@ export let CustomProviderManagedCreateForm = (p: {
     DashboardInstanceScmReposCreateOutput | undefined
   >(undefined);
   let selectedRepoId = selectedRepo?.id;
+  let selectedExternalRepoId = selectedRepo?.provider.id;
 
   let navigate = useNavigate();
   let [templateId, setTemplateId] = useState<string | undefined>(undefined);
-  let hasTemplates = managedServerTemplates.data.items.length > 0;
   let [currentStep, setCurrentStep] = useState(0);
 
   let form = useForm({
@@ -111,99 +104,12 @@ export let CustomProviderManagedCreateForm = (p: {
     onSubmit: async values => {
       if (!instance.data) return;
 
-      let starterFiles = [
-        {
-          filename: 'index.ts',
-          content: [
-            `import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";`,
-            `import { createMcpServer } from "@metorial/mcp-server";`,
-            `import { z } from "zod";`,
-            ``,
-            `let server = new McpServer({`,
-            `  name: "${values.name || 'mcp-server'}",`,
-            `  version: "1.0.0",`,
-            `});`,
-            ``,
-            `let numberPairSchema = {`,
-            `  a: z.number().describe("First number"),`,
-            `  b: z.number().describe("Second number"),`,
-            `};`,
-            ``,
-            `server.tool(`,
-            `  "add",`,
-            `  "Add two numbers.",`,
-            `  numberPairSchema,`,
-            `  async ({ a, b }) => ({`,
-            `    content: [{ type: "text", text: String(a + b) }],`,
-            `  })`,
-            `);`,
-            ``,
-            `server.tool(`,
-            `  "multiply",`,
-            `  "Multiply two numbers.",`,
-            `  numberPairSchema,`,
-            `  async ({ a, b }) => ({`,
-            `    content: [{ type: "text", text: String(a * b) }],`,
-            `  })`,
-            `);`,
-            ``,
-            `server.resource(`,
-            `  "calculator-help",`,
-            `  "memory://calculator/help",`,
-            `  {`,
-            `    description: "Example inputs for the calculator tools.",`,
-            `  },`,
-            `  async (uri) => ({`,
-            `    contents: [`,
-            `      {`,
-            `        uri: uri.toString(),`,
-            `        mimeType: "application/json",`,
-            `        text: JSON.stringify(`,
-            `          {`,
-            `            tools: {`,
-            `              add: { a: 2, b: 3 },`,
-            `              multiply: { a: 2, b: 3 },`,
-            `            },`,
-            `            examples: [`,
-            `              "add(a=2, b=3) => 5",`,
-            `              "multiply(a=2, b=3) => 6",`,
-            `            ],`,
-            `          },`,
-            `          null,`,
-            `          2`,
-            `        ),`,
-            `      },`,
-            `    ],`,
-            `  })`,
-            `);`,
-            ``,
-            `export { server };`,
-            `export default createMcpServer({ server });`,
-            ``
-          ].join('\n')
-        },
-        {
-          filename: 'package.json',
-          content: `${JSON.stringify(
-            {
-              name: 'custom-provider',
-              private: true,
-              version: '1.0.0',
-              main: 'index.ts',
-              dependencies: {
-                '@metorial/mcp-server': 'latest',
-                '@modelcontextprotocol/sdk': 'latest',
-                zod: 'latest'
-              }
-            },
-            null,
-            2
-          )}\n`
-        }
-      ];
-
       let runtime = { identifier: 'nodejs' as const, version: '22.x' as const };
       let repoPath = values.path?.trim() || undefined;
+      let template =
+        managedServerTemplates.data.items.find(
+          t => t.id === templateId || t.slug === templateId
+        ) ?? managedServerTemplates.data.items[0]!;
 
       let [customProviderRes] = await createCustomProvider.mutate({
         instanceId: instance.data.id,
@@ -222,7 +128,7 @@ export let CustomProviderManagedCreateForm = (p: {
             }
           : {
               type: 'function',
-              files: starterFiles,
+              files: getManagedServerTemplateFiles(template),
               env: {},
               runtime
             }
@@ -239,7 +145,7 @@ export let CustomProviderManagedCreateForm = (p: {
           return versionsRes?.items[0]?.id;
         });
 
-        toast.success('Provider created successfully');
+        toast.success('Custom MCP server created successfully');
 
         if (p.onCreate) {
           p.onCreate(customProviderRes);
@@ -279,7 +185,6 @@ export let CustomProviderManagedCreateForm = (p: {
   );
 
   let installations = useScmInstallations(instance.data?.id);
-  let installationsOuter = installations;
   let createRepo = useCreateScmRepo();
   let [selectedInstallationId, setSelectedInstallationId] = useState<string | undefined>(
     undefined
@@ -301,19 +206,20 @@ export let CustomProviderManagedCreateForm = (p: {
     }
   }, [accountItems]);
 
-  let setTemplate = (templateId: string) => {
+  let setTemplate = (templateId: string, opts?: { advance?: boolean }) => {
     let template = managedServerTemplates.data?.items.find(
-      (t: { id: string; slug: string | null }) => t.id === templateId || t.slug === templateId
+      t => t.id === templateId || t.slug === templateId
     );
-    // if (!template) return;
+    if (!template) return;
 
     form.resetForm();
-    form.setFieldValue('name', template?.name ?? '');
-    setCreateRepoName(template?.slug ?? '');
-    setTemplateId(template?.id ?? templateId);
+    form.setFieldValue('name', template.name);
+    form.setFieldValue('description', template.description);
+    setCreateRepoName(template.slug);
+    setTemplateId(template.id);
     setSelectedRepo(undefined);
 
-    setCurrentStep(1);
+    if (opts?.advance) setCurrentStep(1);
   };
 
   let settingTemplateRef = useRef(false);
@@ -323,10 +229,15 @@ export let CustomProviderManagedCreateForm = (p: {
     if (settingTemplateRef.current) return;
     settingTemplateRef.current = true;
 
-    setTemplate(p.templateId);
+    setTemplate(p.templateId, { advance: true });
   }, [p.templateId, managedServerTemplates.data, installations.isLoading]);
 
   if (p.templateId && !templateId) return <CenteredSpinner />;
+
+  let handleSetupSubmit = () => {
+    if (!selectedRepo && !templateId) return;
+    setCurrentStep(1);
+  };
 
   return (
     <Form>
@@ -334,102 +245,58 @@ export let CustomProviderManagedCreateForm = (p: {
         currentStep={currentStep}
         setCurrentStep={setCurrentStep}
         steps={[
-          ...(hasTemplates
-            ? [
-                {
-                  title: 'Choose Template',
-                  subtitle: 'Choose a template for your MCP provider',
-                  render: () => {
-                    return (
-                      <PageWrapper>
-                        <Templates>
-                          {managedServerTemplates.data.items.map(template => (
-                            <TemplatesItem
-                              key={template.id}
-                              type="button"
-                              onClick={() => setTemplate(template.id)}
-                            >
-                              <span>{template.name}</span>
-                            </TemplatesItem>
-                          ))}
-                        </Templates>
-
-                        <Spacer size={10} />
-
-                        <Or />
-
-                        <Spacer size={10} />
-
+          {
+            title: 'Setup',
+            subtitle: 'Choose a source',
+            render: () => {
+              return (
+                <form
+                  onSubmit={e => {
+                    e.preventDefault();
+                    handleSetupSubmit();
+                  }}
+                >
+                  <TemplateWrapper>
+                    {renderWithLoader({ installations })(({ installations }) => (
+                      <>
                         <SelectRepo
+                          selectedExternalRepoId={selectedExternalRepoId}
                           onSelect={repo => {
                             setSelectedRepo(repo);
                             form.resetForm();
                             form.setFieldValue('name', repo.provider.name);
-                            setCurrentStep(2);
                             setTemplateId(undefined);
                           }}
                         />
 
-                        <Actions>
-                          {close}
-
-                          <Button
-                            type="button"
-                            size="2"
-                            onClick={() => {
-                              setSelectedRepo(undefined);
-                              setTemplateId(undefined);
-                              setCurrentStep(2);
-                            }}
-                          >
-                            Continue without template
-                          </Button>
-                        </Actions>
-                      </PageWrapper>
-                    );
-                  }
-                },
-                {
-                  title: 'Connect Repository',
-                  subtitle: 'Connect a GitHub repository',
-                  render: () => {
-                    return (
-                      <>
-                        {renderWithLoader({ installations })(({ installations }) => (
-                          <>
-                            {installations.data?.items.length ? (
+                        {installations.data.items.length
+                          ? renderWithLoader({ accounts })(({ accounts }) => (
                               <>
                                 {installations.data.items.length > 1 && (
-                                  <>
-                                    <Select
-                                      label="GitHub Installation"
-                                      items={installations.data.items.map(i => ({
-                                        label:
-                                          i.externalAccount.name ??
-                                          i.externalAccount.email ??
-                                          i.externalAccount.login,
-                                        id: i.id
-                                      }))}
-                                      value={selectedInstallationId}
-                                      onChange={v => setSelectedInstallationId(v)}
-                                    />
-                                    <Spacer size={10} />
-                                  </>
+                                  <Select
+                                    label="GitHub Installation"
+                                    items={installations.data.items.map(i => ({
+                                      label:
+                                        i.externalAccount.name ??
+                                        i.externalAccount.email ??
+                                        i.externalAccount.login,
+                                      id: i.id
+                                    }))}
+                                    value={selectedInstallationId}
+                                    onChange={v => setSelectedInstallationId(v)}
+                                  />
                                 )}
 
-                                {accountItems.length > 0 && (
-                                  <>
-                                    <Select
-                                      label="GitHub Account"
-                                      items={accountItems.map(i => ({
-                                        label: i.name,
-                                        id: i.externalId
-                                      }))}
-                                      value={selectedAccountId}
-                                      onChange={v => setSelectedAccountId(v)}
-                                    />
-                                    <Spacer size={10} />
-                                  </>
+                                {accounts.data.accounts.filter(Boolean).length > 0 && (
+                                  <Select
+                                    label="GitHub Account"
+                                    items={accounts.data.accounts.filter(Boolean).map(i => ({
+                                      label: i.name,
+                                      id: i.externalId
+                                    }))}
+                                    value={selectedAccountId}
+                                    onChange={v => setSelectedAccountId(v)}
+                                  />
                                 )}
 
                                 <Input
@@ -438,8 +305,6 @@ export let CustomProviderManagedCreateForm = (p: {
                                   value={createRepoName}
                                   onChange={e => setCreateRepoName(e.target.value)}
                                 />
-
-                                <Spacer size={10} />
 
                                 <Select
                                   label="Repository Visibility"
@@ -450,106 +315,76 @@ export let CustomProviderManagedCreateForm = (p: {
                                   value={createRepoIsPrivate ? 'private' : 'public'}
                                   onChange={v => setCreateRepoIsPrivate(v === 'private')}
                                 />
-                              </>
-                            ) : (
-                              <ConnectGitHubButton
-                                onConnected={() => {
-                                  installationsOuter.refetch();
-                                }}
-                              />
-                            )}
 
-                            <Spacer size={10} />
-
-                            <Flex align="center" gap="10px">
-                              <Button
-                                size="2"
-                                disabled={
-                                  !selectedInstallationId ||
-                                  !selectedAccountId ||
-                                  !createRepoName.trim()
-                                }
-                                onClick={async () => {
-                                  let [res] = await createRepo.mutate({
-                                    instanceId: instance.data?.id!,
-                                    installationId: selectedInstallationId!,
-                                    externalAccountId: selectedAccountId!,
-                                    name: createRepoName,
-                                    isPrivate: createRepoIsPrivate
-                                  });
-
-                                  if (res) {
-                                    setSelectedRepo(res);
-                                    form.resetForm();
-                                    form.setFieldValue('name', createRepoName);
-                                    setCurrentStep(hasTemplates ? 2 : 1);
+                                <Button
+                                  type="button"
+                                  size="2"
+                                  disabled={
+                                    !selectedInstallationId ||
+                                    !selectedAccountId ||
+                                    !createRepoName.trim()
                                   }
-                                }}
-                                loading={createRepo.isLoading}
-                              >
-                                Continue
-                              </Button>
+                                  onClick={async () => {
+                                    let [res] = await createRepo.mutate({
+                                      instanceId: instance.data?.id!,
+                                      installationId: selectedInstallationId!,
+                                      externalAccountId: selectedAccountId!,
+                                      name: createRepoName,
+                                      isPrivate: createRepoIsPrivate
+                                    });
 
-                              <Button
-                                size="2"
-                                variant="outline"
-                                disabled={createRepo.isLoading}
-                                onClick={() => {
-                                  setSelectedRepo(undefined);
-                                  form.resetForm();
-                                  setCurrentStep(hasTemplates ? 2 : 1);
-                                }}
-                              >
-                                Continue without Repo
-                              </Button>
-                            </Flex>
-                          </>
-                        ))}
+                                    if (res) {
+                                      setSelectedRepo(res);
+                                      form.resetForm();
+                                      form.setFieldValue('name', createRepoName);
+                                      setTemplateId(undefined);
+                                    }
+                                  }}
+                                  loading={createRepo.isLoading}
+                                >
+                                  Create Repository
+                                </Button>
+                              </>
+                            ))
+                          : null}
                       </>
-                    );
-                  }
-                }
-              ]
-            : [
-                {
-                  title: 'Connect Repository',
-                  subtitle: 'Connect a GitHub repository',
-                  render: () => {
-                    return (
-                      <>
-                        <SelectRepo
-                          onSelect={repo => {
-                            setSelectedRepo(repo);
-                            form.resetForm();
-                            form.setFieldValue('name', repo.provider.name);
-                            setCurrentStep(1);
-                          }}
-                        />
+                    ))}
 
-                        <Actions>
-                          {close}
+                    <Spacer size={10} />
 
-                          <Button
-                            type="button"
-                            size="2"
-                            onClick={() => {
-                              setSelectedRepo(undefined);
-                              form.resetForm();
-                              setCurrentStep(1);
-                            }}
-                          >
-                            Continue without repository
-                          </Button>
-                        </Actions>
-                      </>
-                    );
-                  }
-                }
-              ]),
+                    <Or text="OR" />
+
+                    <Spacer size={10} />
+
+                    <Templates>
+                      {managedServerTemplates.data.items.map(template => (
+                        <TemplatesItem
+                          key={template.id}
+                          type="button"
+                          onClick={() => setTemplate(template.id, { advance: true })}
+                        >
+                          <TemplateIcon template={template} />
+                          <span>{template.name}</span>
+                        </TemplatesItem>
+                      ))}
+                    </Templates>
+
+                    <Actions>
+                      {close}
+
+                      <Button type="submit" size="2" disabled={!selectedRepo && !templateId}>
+                        Continue
+                      </Button>
+                    </Actions>
+                  </TemplateWrapper>
+                </form>
+              );
+            }
+          },
 
           {
             title: 'Finish',
-            subtitle: 'Review and deploy',
+            subtitle: 'Review and create the custom MCP server',
             render: () => {
               return (
                 <form onSubmit={form.handleSubmit}>
@@ -585,7 +420,7 @@ export let CustomProviderManagedCreateForm = (p: {
                       type="submit"
                       size="2"
                     >
-                      Create
+                      Create Custom MCP Server
                     </Button>
                   </Actions>
                 </form>

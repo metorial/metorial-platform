@@ -6,57 +6,16 @@ import {
   useCreateCustomProvider,
   useCurrentInstance
 } from '@metorial/state';
-import { Avatar, Button, Input, Or, Select, Spacer, theme, toast } from '@metorial/ui';
+import { Avatar, Button, Input, Or, Select, Spacer, toast } from '@metorial/ui';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import styled from 'styled-components';
 import { Stepper } from '../../../../components/stepper';
 import { remoteServerTemplates } from './config';
+import { Actions, Form, Templates, TemplatesItem, TemplateWrapper } from './createFormShared';
 import {
   getCustomProviderRemoteProtocolFromUrl,
   waitForCustomProviderVersionId
 } from './utils';
-
-let TemplateWrapper = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-`;
-
-let Actions = styled.div`
-  display: flex;
-  gap: 10px;
-  justify-content: flex-end;
-  margin-top: 10px;
-`;
-
-let Templates = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 10px;
-`;
-
-let TemplatesItem = styled.button`
-  display: flex;
-  align-items: center;
-  padding: 10px;
-  background: none;
-  border: ${theme.colors.gray300} 1px solid;
-  border-radius: 8px;
-  text-align: left;
-  gap: 10px;
-
-  span {
-    font-size: 14px;
-    font-weight: 600;
-    color: ${theme.colors.gray800};
-  }
-`;
-
-let Form = styled.div`
-  display: flex;
-  flex-direction: column;
-`;
 
 export let CustomProviderRemoteCreateForm = (p: {
   close?: () => any;
@@ -111,7 +70,7 @@ export let CustomProviderRemoteCreateForm = (p: {
           return versionsRes?.items[0]?.id;
         });
 
-        toast.success('Provider linked successfully');
+        toast.success('Remote MCP server linked successfully');
 
         if (p.onCreate) {
           p.onCreate(customProviderRes);
@@ -186,7 +145,7 @@ export let CustomProviderRemoteCreateForm = (p: {
                   <TemplateWrapper>
                     <Input
                       label="Remote URL"
-                      description="Enter the MCP provider URL you want to connect to."
+                      description="Enter the remote MCP server URL you want to connect to."
                       placeholder="https://mcp.monday.com/sse"
                       {...form.getFieldProps('remoteUrl')}
                     />
@@ -197,7 +156,7 @@ export let CustomProviderRemoteCreateForm = (p: {
                     <Select
                       value={form.values.remoteProtocol}
                       label="MCP Transport Protocol"
-                      description="Which transport protocol does your MCP provider support?"
+                      description="Which transport protocol does your remote MCP server support?"
                       items={[
                         { label: 'SSE (Server-Sent Events)', id: 'sse' },
                         { label: 'Streamable HTTP', id: 'streamable_http' }
@@ -211,7 +170,7 @@ export let CustomProviderRemoteCreateForm = (p: {
 
                     <Spacer size={10} />
 
-                    <Or text="Or" />
+                    <Or text="OR" />
 
                     <Spacer size={10} />
 
@@ -256,7 +215,7 @@ export let CustomProviderRemoteCreateForm = (p: {
 
           {
             title: 'Finish',
-            subtitle: 'Review and deploy',
+            subtitle: 'Review and link the remote MCP server',
             render: () => {
               return (
                 <form onSubmit={form.handleSubmit}>
@@ -277,7 +236,7 @@ export let CustomProviderRemoteCreateForm = (p: {
                       type="submit"
                       size="2"
                     >
-                      Create
+                      Link Remote MCP Server
                     </Button>
                   </Actions>
                 </form>

@@ -1,6 +1,6 @@
 import { GetLogEventsCommand } from '@aws-sdk/client-cloudwatch-logs';
 import { BatchGetBuildsCommand, StartBuildCommand } from '@aws-sdk/client-codebuild';
-import { createQueue } from '@lowerdeck/queue';
+import { createQueue, type IQueue, type IQueueProcessor } from '@lowerdeck/queue';
 import { stringify } from 'yaml';
 import { env } from '../../env';
 import { storage } from '../../storage';
@@ -13,7 +13,7 @@ import { ensureProject } from './project';
 let SYSTEM_OUTPUT_PREFIX = `X@%%MT0RL-)AL:: `;
 
 export class AwsCodeBuildAdapter extends ForgeBuildAdapter {
-  readonly startBuildQueue = createQueue<{ runId: string }>({
+  readonly startBuildQueue: IQueue<{ runId: string }, any> = createQueue<{ runId: string }>({
     redisUrl: env.service.REDIS_URL,
     name: 'frg/aws.cb/bld/start',
     workerOpts: {
@@ -227,6 +227,8 @@ export class AwsCodeBuildAdapter extends ForgeBuildAdapter {
             }
           }
         } else if (data.buildStarted && !data.buildEnded && data.currentStepOid) {
+          if (!message) continue;
+
           let string = collectedMessages.get(data.currentStepOid) || '';
           string += JSON.stringify([event.timestamp || 0, message]) + '\n';
           collectedMessages.set(data.currentStepOid, string);
@@ -303,7 +305,7 @@ export class AwsCodeBuildAdapter extends ForgeBuildAdapter {
     });
   });
 
-  readonly buildProviderProcessors = this.combineProcessors([
+  readonly buildProviderProcessors: IQueueProcessor = this.combineProcessors([
     this.startBuildQueueProcessor,
     this.waitForBuildQueueProcessor,
     this.startedBuildQueueProcessor,

@@ -4,6 +4,8 @@ import type {
   IdentityActor,
   IdentityCredential,
   IdentityDelegationConfig,
+  IntegrationInstance,
+  IntegrationInstanceProvider,
   Provider,
   ProviderAuthConfig,
   ProviderConfig,
@@ -14,12 +16,15 @@ import { identityCredentialPresenter } from './identityCredential';
 
 export let identityPresenter = (
   identity: Identity & {
+    ownedByIntegrationInstance: Pick<IntegrationInstance, 'id'> | null;
     actor: IdentityActor & {
       agent: Agent | null;
     };
     delegationConfig: IdentityDelegationConfig | null;
     credentials: (IdentityCredential & {
       identity: Identity;
+      integrationInstance: IntegrationInstance | null;
+      integrationInstanceProvider: IntegrationInstanceProvider | null;
       provider: Provider;
       deployment: ProviderDeployment | null;
       config: ProviderConfig | null;
@@ -43,6 +48,7 @@ export let identityPresenter = (
     actor: identityActorPresenter(identity.actor)
   },
 
+  integrationInstanceId: identity.ownedByIntegrationInstance?.id ?? null,
   credentials: identity.credentials.map(identityCredentialPresenter),
   delegationConfigId: identity.delegationConfig?.id ?? null,
 

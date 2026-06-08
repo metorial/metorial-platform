@@ -3,14 +3,16 @@ import { v } from '@lowerdeck/validation';
 import { sessionUsageRecordService } from '@metorial-subspace/module-session';
 import { sessionUsageRecordPresenter } from '@metorial-subspace/presenters';
 import { app } from './_app';
+import { tenantOptionalWithoutEnvironmentApp } from './tenant';
 
 export let sessionUsageRecordController = app.controller({
-  list: app
+  list: tenantOptionalWithoutEnvironmentApp
     .handler()
-    .input(Paginator.validate(v.object({})))
+    .input(Paginator.validate(v.object({ tenantId: v.optional(v.string()) })))
     .do(async ctx => {
       let paginator = await sessionUsageRecordService.listSessionUsageRecords({
         ...ctx.input,
+        tenant: ctx.tenant,
         solution: ctx.solution
       });
 

@@ -21,6 +21,8 @@ export const SecretFixtures = (db: PrismaClient) => {
         status: SecretStatus.active,
         tenantOid: data.tenantOid,
         encryptedSecret: `encrypted_${randomBytes(16).toString('hex')}`,
+        isDelegatedToNebula: false,
+        nebulaSecretId: null,
         ...data.overrides
       } as Secret,
       {

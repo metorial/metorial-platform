@@ -14,6 +14,11 @@ type PreloadData =
       data: Awaited<ReturnType<typeof client.setupSession.get>>;
       input: { sessionId: string; clientSecret: string };
     }
+  | {
+      type: 'integration_setup_session';
+      data: Awaited<ReturnType<typeof client.integrationSetupSession.get>>;
+      input: { sessionId: string; clientSecret: string };
+    }
   | null;
 
 let getPreloadData = (): PreloadData => {
@@ -79,6 +84,26 @@ export let providerSearchState = createLoader({
   mutators: {}
 });
 
+export let integrationSetupSessionState = createLoader({
+  name: 'integrationSetupSession',
+  fetch: (d: { sessionId: string; clientSecret: string }) =>
+    client.integrationSetupSession.get({
+      sessionId: d.sessionId,
+      clientSecret: d.clientSecret
+    }),
+  mutators: {
+    startStep: (
+      i: { stepId: string },
+      d: { input: { sessionId: string; clientSecret: string } }
+    ) =>
+      client.integrationSetupSession.startStep({
+        sessionId: d.input.sessionId,
+        clientSecret: d.input.clientSecret,
+        stepId: i.stepId
+      })
+  }
+});
+
 export let useProviderSearch = (
   input: {
     sessionId: string;
@@ -126,6 +151,14 @@ let getInputFromUrl = (): { sessionId: string; clientSecret: string } | null => 
   return null;
 };
 
+let getIntegrationInputFromUrl = (): { sessionId: string; clientSecret: string } | null => {
+  let match = window.location.pathname.match(/\/integration-setup-session\/([^/?]+)/);
+  let sessionId = match?.[1];
+  let clientSecret = new URLSearchParams(window.location.search).get('client_secret');
+  if (sessionId && clientSecret) return { sessionId, clientSecret };
+  return null;
+};
+
 export let useSetupSession = () => {
   let input =
     PRELOAD?.type === 'data'
@@ -137,6 +170,24 @@ export let useSetupSession = () => {
   let data = setupSessionState.use(input);
 
   if (PRELOAD?.type === 'data' && !data.data && !data.error) data.data = PRELOAD.data;
+  if (PRELOAD?.type === 'error' && !data.data && !data.error)
+    data.error = ServiceError.fromResponse(PRELOAD.error) as any;
+
+  return data;
+};
+
+export let useIntegrationSetupSession = () => {
+  let input =
+    PRELOAD?.type === 'integration_setup_session'
+      ? { sessionId: PRELOAD.data.session.id, clientSecret: PRELOAD.input.clientSecret }
+      : PRELOAD?.type === 'error'
+        ? null
+        : getIntegrationInputFromUrl();
+
+  let data = integrationSetupSessionState.use(input);
+
+  if (PRELOAD?.type === 'integration_setup_session' && !data.data && !data.error)
+    data.data = PRELOAD.data;
   if (PRELOAD?.type === 'error' && !data.data && !data.error)
     data.error = ServiceError.fromResponse(PRELOAD.error) as any;
 

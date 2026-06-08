@@ -138,7 +138,7 @@ export class MetorialConsumerProvidersEndpoint {
 
   /**
    * @name Start consumer provider setup
-   * @description Starts an OAuth setup flow for a portal provider template.
+   * @description Starts an integration setup flow for a portal provider template.
    *
    * @param `catalogItemId` - string
    * @param `body` - ConsumerProvidersSetupBody
@@ -166,7 +166,7 @@ export class MetorialConsumerProvidersEndpoint {
 
   /**
    * @name Get consumer provider setup
-   * @description Reads the status of an OAuth setup flow for a portal provider template.
+   * @description Reads the status of an integration setup flow for a portal provider template.
    *
    * @param `catalogItemId` - string
    * @param `providerSetupSessionId` - string

@@ -5,13 +5,14 @@ import { Context, cors, createHono } from '@lowerdeck/hono';
 import { authenticate } from '@metorial/auth';
 import { generatePlainId } from '@metorial/id';
 import {
-  fileLinkService,
-  fileService,
-  getOssFilesBucketName,
-  getStorage,
-  purposeSlugs
+  documentService,
+  purposeSlugs,
+  resolveCargoAccess,
+  uploadCargoFile
 } from '@metorial/module-file';
-import { organizationService } from '@metorial/module-organization';
+import { upgradeWebSocket, websocket } from 'hono/bun';
+import { getFileDownloadUrl } from '../../../../systems/_clients/cargo/src';
+import { resolveUploadTarget } from './uploadAccess';
 
 type FileApiAuthResult = Awaited<ReturnType<typeof authenticate>>;
 
@@ -23,6 +24,8 @@ type FileApiOptions = {
     auth: FileApiAuthResult['auth'];
   }>;
 };
+
+export { websocket };
 
 let createFileUploadHandler =
   (authenticateRequest: NonNullable<FileApiOptions['authenticateRequest']>) =>
@@ -37,21 +40,14 @@ let createFileUploadHandler =
       async () => {
         let { auth } = await authenticateRequest(c.req.raw, new URL(c.req.url));
 
-        if (
-          auth.type == 'fine_grained' ||
-          (auth.type == 'machine' && auth.restrictions.type == 'instance')
-        ) {
-          throw new ServiceError(
-            forbiddenError({
-              message: 'Instance API keys are not allowed to upload files'
-            })
-          );
-        }
-
         let body = await c.req.formData();
         let file = body.get('file') as File;
         let purpose = body.get('purpose') as string;
-        let organizationId = body.get('organization_id') as string;
+        let organizationId = body.get('organization_id');
+        let instanceId = body.get('instance_id');
+        let attachedStoreId = body.get('store_id');
+        let attachedStorePath = body.get('path');
+        let title = (body.get('title') || undefined) as string | undefined;
 
         if (!file || !purpose) {
           throw new ServiceError(
@@ -69,42 +65,42 @@ let createFileUploadHandler =
           );
         }
 
-        let storeId = generatePlainId(20);
-        await getStorage().putObject(
-          getOssFilesBucketName(),
-          storeId,
-          file,
-          file.type ?? 'application/octet-stream'
-        );
+        if (!!attachedStoreId !== !!attachedStorePath) {
+          throw new ServiceError(
+            badRequestError({
+              message: 'store_id and path must be provided together'
+            })
+          );
+        }
 
-        let createdFile = await fileService.createFile({
-          owner:
-            auth.type == 'machine'
-              ? {
-                  type: 'organization',
-                  organization: auth.restrictions.organization
-                }
-              : organizationId
-                ? {
-                    type: 'organization',
-                    organization: (
-                      await organizationService.getOrganizationByIdForUser({
-                        organizationId,
-                        user: auth.user
-                      })
-                    ).organization
-                  }
-                : {
-                    type: 'user',
-                    user: auth.user
-                  },
-          storeId,
+        let target = await resolveUploadTarget({
+          auth,
+          instanceId: typeof instanceId == 'string' ? instanceId : null,
+          organizationId: typeof organizationId == 'string' ? organizationId : null
+        });
+
+        if ((attachedStoreId || attachedStorePath) && !target.isInstanceOwner) {
+          throw new ServiceError(
+            badRequestError({
+              message: 'Files can only be attached to stores when uploading to an instance'
+            })
+          );
+        }
+
+        let createdFile = await uploadCargoFile({
+          owner: target.owner,
           purpose,
-          input: {
-            name: file.name,
-            mimeType: file.type ?? 'application/octet-stream',
-            size: file.size
-          }
+          file,
+          title,
+          fileName: file.name,
+          ...target.cargoAccess,
+          store:
+            typeof attachedStoreId == 'string' && typeof attachedStorePath == 'string'
+              ? {
+                  id: attachedStoreId,
+                  path: attachedStorePath
+                }
+              : undefined
         });
 
         return c.json({
@@ -130,37 +126,231 @@ let createFileUploadHandler =
       }
     );
 
-let getServedContentType = (contentType?: string | null) => {
-  if (contentType?.startsWith('image/')) return contentType;
+let getCargoHttpBaseUrl = () => {
+  if (!process.env.CARGO_API_URL) {
+    throw new Error('CARGO_API_URL is required');
+  }
 
-  return 'application/octet-stream';
+  let url = new URL(process.env.CARGO_API_URL);
+
+  if (url.pathname.endsWith('/metorial-cargo')) {
+    url.pathname = url.pathname.slice(0, -'/metorial-cargo'.length) || '/';
+  }
+
+  url.search = '';
+
+  return url;
+};
+
+let getCargoContentEndpoint = () => {
+  if (process.env.CARGO_CONTENT_URL) {
+    return process.env.CARGO_CONTENT_URL.replace(/\/$/, '');
+  }
+
+  let url = getCargoHttpBaseUrl();
+
+  if (url.hostname === 'cargo') {
+    url.hostname = 'cargo-content';
+    url.port = '52151';
+  } else if (
+    (url.hostname === 'localhost' || url.hostname === '127.0.0.1') &&
+    url.port === '52150'
+  ) {
+    url.port = '52151';
+  }
+
+  return url.toString().replace(/\/$/, '');
 };
 
 let getFileContentHandler = async (c: Context) => {
   let { fileId, key } = c.req.param();
 
-  let { link, file } = await fileLinkService.getFileLinkByKey({
-    fileId,
-    key
-  });
-
-  if (link.expiresAt && link.expiresAt < new Date()) {
-    throw new ServiceError(badRequestError({ message: 'Link has expired' }));
+  if (!fileId || !key) {
+    throw new ServiceError(
+      badRequestError({
+        message: 'Missing fileId or key'
+      })
+    );
   }
 
-  let res = await getStorage().getObject(getOssFilesBucketName(), file.storeId);
-  let contentType = getServedContentType(res.metadata.content_type ?? file.fileType);
-
-  return new Response(res.data as any, {
-    headers: {
-      'Content-Type': contentType,
-      'Cache-Control': link.expiresAt
-        ? 'private, no-store'
-        : 'public, max-age=31536000, immutable',
-      'X-Content-Type-Options': 'nosniff'
+  let url = new URL(c.req.url);
+  let response = await fetch(
+    getFileDownloadUrl({
+      contentEndpoint: getCargoContentEndpoint(),
+      fileId,
+      key,
+      download: url.searchParams.has('download')
+    }),
+    {
+      headers: {
+        ...(c.req.header('Authorization')
+          ? { Authorization: c.req.header('Authorization')! }
+          : {}),
+        ...(c.req.header('sentry-trace')
+          ? { 'sentry-trace': c.req.header('sentry-trace')! }
+          : {}),
+        ...(c.req.header('baggage') ? { baggage: c.req.header('baggage')! } : {})
+      }
     }
+  );
+
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: response.headers
   });
 };
+
+let getQueryParam = (url: URL, keys: string[]) => {
+  for (let key of keys) {
+    let value = url.searchParams.get(key);
+    if (value) return value;
+  }
+
+  return null;
+};
+
+let getCargoDocumentLiveUrl = (d: { actorId: string; documentId: string }) => {
+  let url = getCargoHttpBaseUrl();
+
+  url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+  url.pathname = `${url.pathname.replace(/\/$/, '')}/document-live`;
+  url.search = '';
+  url.searchParams.set('actorId', d.actorId);
+  url.searchParams.set('documentId', d.documentId);
+
+  return url.toString();
+};
+
+let createDocumentsLiveHandler = (
+  authenticateRequest: NonNullable<FileApiOptions['authenticateRequest']>
+) =>
+  createHono()
+    .use(async (c, next) => {
+      c.res.headers.set('Access-Control-Allow-Origin', c.req.header('Origin') || '*');
+      c.res.headers.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
+      c.res.headers.set(
+        'Access-Control-Allow-Headers',
+        'Content-Type, Authorization, Cookies, metorial-version, metorial-instance-id, metorial-consumer-profile-id, metorial-organization-id, baggage, sentry-trace, metorial-client, metorial-consumer-session-client-secret'
+      );
+      c.res.headers.set('Access-Control-Allow-Credentials', 'true');
+      c.res.headers.set('Access-Control-Max-Age', '86400');
+
+      if (c.req.method === 'OPTIONS') {
+        return c.text('OK', 200);
+      }
+
+      await next();
+    })
+    .options('*', c => c.text(''))
+    .get(
+      '/documents-live',
+      upgradeWebSocket(async c => {
+        let url = new URL(c.req.url);
+        let documentId = getQueryParam(url, ['documentId', 'document_id']);
+        let instanceId = getQueryParam(url, ['instanceId', 'instance_id']);
+        let organizationId = getQueryParam(url, ['organizationId', 'organization_id']);
+
+        if (!documentId) {
+          throw new ServiceError(
+            badRequestError({
+              message: 'Missing documentId query parameter'
+            })
+          );
+        }
+
+        let { auth } = await authenticateRequest(c.req.raw, url);
+        let target = await resolveUploadTarget({
+          auth,
+          instanceId,
+          organizationId
+        });
+
+        if (!target.cargoAccess?.accessActor) {
+          throw new ServiceError(
+            forbiddenError({
+              message: 'Actor context is required',
+              description:
+                'Live document connections require an organization actor or consumer actor context.'
+            })
+          );
+        }
+
+        await documentService.getDocumentById({
+          owner: target.owner,
+          documentId,
+          ...target.cargoAccess
+        });
+
+        let { actorId } = await resolveCargoAccess({
+          owner: target.owner,
+          ...target.cargoAccess
+        });
+        if (!actorId) {
+          throw new ServiceError(
+            forbiddenError({
+              message: 'Actor context is required'
+            })
+          );
+        }
+
+        let upstreamUrl = getCargoDocumentLiveUrl({
+          actorId,
+          documentId
+        });
+        let upstream: WebSocket | null = null;
+
+        return {
+          onOpen: async (_, ws) => {
+            upstream = new WebSocket(upstreamUrl);
+
+            upstream.onmessage = event => {
+              ws.send(typeof event.data === 'string' ? event.data : event.data.toString());
+            };
+
+            upstream.onerror = () => {
+              try {
+                ws.close(1011, 'upstream_error');
+              } catch {}
+            };
+
+            upstream.onclose = event => {
+              try {
+                ws.close(event.code || 1000, event.reason);
+              } catch {}
+            };
+          },
+
+          onMessage: async event => {
+            if (!upstream || upstream.readyState !== WebSocket.OPEN) {
+              return;
+            }
+
+            upstream.send(event.data.toString());
+          },
+
+          onClose: async () => {
+            if (!upstream) return;
+            if (
+              upstream.readyState === WebSocket.OPEN ||
+              upstream.readyState === WebSocket.CONNECTING
+            ) {
+              upstream.close();
+            }
+          },
+
+          onError: async () => {
+            if (!upstream) return;
+            if (
+              upstream.readyState === WebSocket.OPEN ||
+              upstream.readyState === WebSocket.CONNECTING
+            ) {
+              upstream.close();
+            }
+          }
+        };
+      })
+    );
 
 export let createFileUploadApi = (d?: FileApiOptions) => {
   let authenticateRequest = d?.authenticateRequest ?? authenticate;
@@ -175,12 +365,18 @@ export let createFileUploadApi = (d?: FileApiOptions) => {
           'Content-Type',
           'metorial-version',
           'sentry-trace',
-          'baggage'
+          'baggage',
+          'metorial-consumer-session-client-secret'
         ],
         credentials: true
       })
     )
     .post('/files', createFileUploadHandler(authenticateRequest));
+};
+
+export let createDocumentsLiveApi = (d?: FileApiOptions) => {
+  let authenticateRequest = d?.authenticateRequest ?? authenticate;
+  return createDocumentsLiveHandler(authenticateRequest);
 };
 
 export let createFileContentApi = () =>
@@ -204,3 +400,4 @@ export let createFileContentApi = () =>
 
 export let fileUploadApi = createFileUploadApi();
 export let fileContentApi = createFileContentApi();
+export let documentsLiveApi = createDocumentsLiveApi();

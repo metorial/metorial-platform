@@ -137,6 +137,11 @@ export let providerConfigDeleteQueueProcessor = providerConfigDeleteQueue.proces
       data: { status: 'deleted' }
     });
 
+    await db.identityCredential.updateMany({
+      where: { configOid: { in: relatedConfigOids } },
+      data: { status: 'archived', archivedAt: new Date() }
+    });
+
     await db.providerDeployment.updateMany({
       where: { defaultConfigOid: { in: relatedConfigOids } },
       data: { defaultConfigOid: null }

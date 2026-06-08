@@ -1,7 +1,7 @@
 import type { ScmAccount } from '../../prisma/generated/client';
 
 export let scmAccountPresenter = (account: ScmAccount) => ({
-  object: 'origin#scmAccount',
+  object: 'origin#scmAccount' as const,
 
   id: account.id,
   provider: account.provider,

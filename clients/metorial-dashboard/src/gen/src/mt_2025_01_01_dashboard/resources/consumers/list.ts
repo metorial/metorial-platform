@@ -6,6 +6,7 @@ export type ConsumersListOutput = {
     id: string;
     name: string;
     email: string;
+    imageUrl: string;
     createdAt: Date;
     updatedAt: Date;
   } & { isPortalConsumer: boolean; isOrganizationMember: boolean })[];
@@ -24,6 +25,7 @@ export let mapConsumersListOutput = mtMap.object<ConsumersListOutput>({
             id: mtMap.objectField('id', mtMap.passthrough()),
             name: mtMap.objectField('name', mtMap.passthrough()),
             email: mtMap.objectField('email', mtMap.passthrough()),
+            imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
             createdAt: mtMap.objectField('created_at', mtMap.date()),
             updatedAt: mtMap.objectField('updated_at', mtMap.date()),
             isPortalConsumer: mtMap.objectField(
@@ -54,7 +56,11 @@ export type ConsumersListQuery = {
   before?: string | undefined;
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
-} & { search?: string | undefined; id?: string | undefined };
+} & {
+  search?: string | undefined;
+  email?: string | string[] | undefined;
+  id?: string | undefined;
+};
 
 export let mapConsumersListQuery = mtMap.union([
   mtMap.unionOption(
@@ -66,6 +72,16 @@ export let mapConsumersListQuery = mtMap.union([
       cursor: mtMap.objectField('cursor', mtMap.passthrough()),
       order: mtMap.objectField('order', mtMap.passthrough()),
       search: mtMap.objectField('search', mtMap.passthrough()),
+      email: mtMap.objectField(
+        'email',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
       id: mtMap.objectField('id', mtMap.passthrough())
     })
   )

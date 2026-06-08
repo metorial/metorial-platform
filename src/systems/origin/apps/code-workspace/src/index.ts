@@ -47,9 +47,17 @@ window.product = {
       'vscode.vscode-web': ['fileSearchProvider', 'textSearchProvider']
     }
   },
+  configurationDefaults: isReadOnly
+    ? {
+        'files.readonlyInclude': {
+          '**': true
+        },
+        'files.readonlyFromPermissions': true
+      }
+    : undefined,
   folderUri: {
     scheme: 'memfs',
-    path: `/mtbucket::${btoa(JSON.stringify({ id, token, url }))}/${projectName}`
+    path: `/mtbucket::${btoa(JSON.stringify({ id, token, url, readonly: isReadOnly }))}/${projectName}`
   },
   additionalBuiltinExtensions: [
     {

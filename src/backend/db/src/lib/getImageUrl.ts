@@ -1,12 +1,21 @@
 export type EntityImage =
-  | { type: 'file'; fileId: string; fileLinkId: string; fileReferenceId: string; fileUrl: string; url?: string }
-  | { type: 'enterprise_file'; fileId: string }
+  | {
+      type: 'file';
+      fileId: string;
+      fileLinkId: string;
+      fileReferenceId: string;
+      fileUrl: string;
+      url?: string;
+    }
   | { type: 'url'; url: string }
   | { type: 'default' };
 
+type EntityImageOuter = EntityImage;
+
 declare global {
   namespace PrismaJson {
-    type EntityImage = import('./getImageUrl').EntityImage;
+    // @ts-ignore
+    type EntityImage = EntityImageOuter;
   }
 }
 
@@ -18,9 +27,6 @@ export type GetImageFieldsParams = {
 };
 
 export let getImageFieldsDefaultImpl = async (entity: GetImageFieldsParams) => {
-  if (entity.image?.type == 'enterprise_file')
-    throw new Error('Enterprise file images are not supported in this context.');
-
   if (entity.image?.type == 'file') {
     return {
       imageUrl: entity.image.fileUrl ?? entity.image.url ?? ''

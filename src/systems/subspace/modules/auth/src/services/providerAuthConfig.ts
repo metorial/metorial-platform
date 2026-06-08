@@ -21,6 +21,8 @@ import {
   withTransaction
 } from '@metorial-subspace/db';
 import {
+  assertNoActiveIdentityCredentialAuthConfigLink,
+  assertNoActiveIntegrationInstanceProviderAuthConfigLink,
   checkDeletedEdit,
   checkDeletedRelation,
   type DateFilter,
@@ -71,6 +73,8 @@ class providerAuthConfigServiceImpl {
     ids?: string[];
     providerIds?: string[];
     providerDeploymentIds?: string[];
+    availableForUse?: boolean;
+    availableForProviderDeploymentId?: string;
     providerAuthCredentialsIds?: string[];
     providerAuthMethodIds?: string[];
     actorIds?: string[];
@@ -82,6 +86,17 @@ class providerAuthConfigServiceImpl {
   }) {
     let providers = await resolveProviders(d, d.providerIds);
     let deployments = await resolveProviderDeployments(d, d.providerDeploymentIds);
+    let availableForDeployment = d.availableForProviderDeploymentId
+      ? await db.providerDeployment.findFirst({
+          where: {
+            tenantOid: d.tenant.oid,
+            solutionOid: d.solution.oid,
+            environmentOid: d.environment.oid,
+            id: d.availableForProviderDeploymentId
+          },
+          select: { oid: true }
+        })
+      : null;
     let credentials = await resolveProviderAuthCredentials(d, d.providerAuthCredentialsIds);
     let authMethods = await resolveProviderAuthMethods(d, d.providerAuthMethodIds);
     let actors = await resolveIdentityActors(d, d.actorIds);
@@ -115,6 +130,22 @@ class providerAuthConfigServiceImpl {
                 search ? { id: { in: search.map(r => r.documentId) } } : undefined!,
                 providers ? { providerOid: providers.in } : undefined!,
                 deployments ? { deploymentOid: deployments.in } : undefined!,
+                d.availableForUse
+                  ? {
+                      owningIntegrationInstanceOid: null,
+                      owningIntegrationInstanceProviderOid: null
+                    }
+                  : undefined!,
+                d.availableForProviderDeploymentId
+                  ? {
+                      OR: [
+                        { deploymentOid: null },
+                        ...(availableForDeployment
+                          ? [{ deploymentOid: availableForDeployment.oid }]
+                          : [])
+                      ]
+                    }
+                  : undefined!,
                 credentials ? { authCredentialsOid: credentials.in } : undefined!,
                 authMethods ? { authMethodOid: authMethods.in } : undefined!,
                 actors
@@ -143,21 +174,25 @@ class providerAuthConfigServiceImpl {
     providerAuthConfigId: string;
     allowDeleted?: boolean;
   }) {
-    let providerAuthConfig = await db.providerAuthConfig.findFirst({
-      where: {
-        tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
-        environmentOid: d.environment.oid,
+    let providerAuthConfig = await withTransaction(
+      async db =>
+        await db.providerAuthConfig.findFirst({
+          where: {
+            tenantOid: d.tenant.oid,
+            solutionOid: d.solution.oid,
+            environmentOid: d.environment.oid,
 
-        OR: [
-          { id: d.providerAuthConfigId },
-          { providerSetupSession: { id: d.providerAuthConfigId } }
-        ],
+            OR: [
+              { id: d.providerAuthConfigId },
+              { providerSetupSession: { id: d.providerAuthConfigId } }
+            ],
 
-        ...normalizeStatusForGet(d).hasParent
-      },
-      include
-    });
+            ...normalizeStatusForGet(d).hasParent
+          },
+          include
+        }),
+      { ifExists: true }
+    );
     if (!providerAuthConfig)
       throw new ServiceError(notFoundError('provider.auth_config', d.providerAuthConfigId));
 
@@ -544,9 +579,25 @@ class providerAuthConfigServiceImpl {
     solution: Solution;
     environment: Environment;
     providerAuthConfig: ProviderAuthConfig;
+    _canArchiveOwned?: boolean;
   }) {
     checkTenant(d, d.providerAuthConfig);
     checkDeletedEdit(d.providerAuthConfig, 'archive');
+    this.assertCanArchiveOwned(d);
+    await assertNoActiveIntegrationInstanceProviderAuthConfigLink({
+      tenant: d.tenant,
+      solution: d.solution,
+      environment: d.environment,
+      authConfigOid: d.providerAuthConfig.oid,
+      resourceId: d.providerAuthConfig.id
+    });
+    await assertNoActiveIdentityCredentialAuthConfigLink({
+      tenant: d.tenant,
+      solution: d.solution,
+      environment: d.environment,
+      authConfigOid: d.providerAuthConfig.oid,
+      resourceId: d.providerAuthConfig.id
+    });
 
     return withTransaction(async db => {
       let archivedAt = new Date();
@@ -573,6 +624,28 @@ class providerAuthConfigServiceImpl {
 
       return providerAuthConfig;
     });
+  }
+
+  private assertCanArchiveOwned(d: {
+    providerAuthConfig: ProviderAuthConfig;
+    _canArchiveOwned?: boolean;
+  }) {
+    if (d._canArchiveOwned) return;
+    if (
+      d.providerAuthConfig.owningIntegrationInstanceOid === null &&
+      d.providerAuthConfig.owningIntegrationInstanceProviderOid === null
+    ) {
+      return;
+    }
+
+    throw new ServiceError(
+      badRequestError({
+        message:
+          'Provider auth config is owned by an integration instance provider and cannot be archived directly.',
+        code: 'provider_auth_config_owned_archive_not_allowed',
+        data: { id: d.providerAuthConfig.id }
+      })
+    );
   }
 }
 

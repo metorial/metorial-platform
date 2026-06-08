@@ -1,3 +1,8 @@
+enum ConsumerProviderSetupSessionType {
+  provider_setup_session
+  integration_setup_session
+}
+
 model ConsumerSession {
   oid BigInt @id @default(autoincrement())
   id  String @unique
@@ -51,6 +56,7 @@ model ConsumerProviderSetupSessionBinding {
   id  String @unique
 
   providerSetupSessionId String
+  type                   ConsumerProviderSetupSessionType @default(provider_setup_session)
 
   consumerProfileOid BigInt
   consumerProfile    ConsumerProfile @relation(fields: [consumerProfileOid], references: [oid], onDelete: Cascade)

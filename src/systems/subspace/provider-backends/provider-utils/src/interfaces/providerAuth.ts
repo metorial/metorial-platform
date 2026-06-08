@@ -5,6 +5,7 @@ import type {
   ProviderAuthCredentials,
   ProviderAuthCredentialsType,
   ProviderAuthMethod,
+  ProviderDeployment,
   ProviderOAuthSetup,
   ProviderVariant,
   ProviderVersion,
@@ -58,6 +59,12 @@ export abstract class IProviderAuth extends IProviderFunctionality {
   abstract getProviderAuthConfigScopes(
     data: GetProviderAuthConfigScopesParam
   ): Promise<GetProviderAuthScopesRes>;
+
+  async onProviderAuthConfigVersionCreated(
+    data: ProviderAuthConfigVersionCreatedParam
+  ): Promise<ProviderAuthConfigVersionCreatedRes> {
+    return {};
+  }
 
   async getManyProviderAuthCredentialsScopes(
     data: ProviderAuthCredentialsScopesParam
@@ -140,6 +147,14 @@ export interface ProviderAuthConfigCreateRes {
   expiresAt: Date | null;
 }
 
+export interface ProviderAuthConfigVersionCreatedParam {
+  tenant: Tenant;
+  authConfig: ProviderAuthConfig;
+  authConfigVersion: ProviderAuthConfigVersion;
+}
+
+export interface ProviderAuthConfigVersionCreatedRes {}
+
 export interface ProviderAuthConfigDeleteBacking {
   slateAuthConfigOid?: bigint | null;
   shuttleAuthConfigOid?: bigint | null;
@@ -156,6 +171,7 @@ export interface ProviderOAuthSetupCreateParam {
   tenant: Tenant;
   provider: Provider & { defaultVariant: ProviderVariant | null };
   providerVersion: ProviderVersion;
+  providerDeployment?: ProviderDeployment | null;
   credentials: ProviderAuthCredentials;
   authMethod: ProviderAuthMethod;
   redirectUrl: string;

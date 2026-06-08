@@ -61,7 +61,7 @@ export class MetorialManagementInstancePortalsConsumerInvitesEndpoint {
     query?: DashboardInstancePortalsConsumerInvitesListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePortalsConsumerInvitesListOutput> {
-    let path = `instances/${instanceId}/portals/${portalId}/invites`;
+    let path = `instances/${instanceId}/portals/${portalId}/consumer-invites`;
 
     let request = {
       path,
@@ -95,7 +95,7 @@ export class MetorialManagementInstancePortalsConsumerInvitesEndpoint {
     body: DashboardInstancePortalsConsumerInvitesCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePortalsConsumerInvitesCreateOutput> {
-    let path = `instances/${instanceId}/portals/${portalId}/invites`;
+    let path = `instances/${instanceId}/portals/${portalId}/consumer-invites`;
 
     let request = {
       path,
@@ -129,7 +129,7 @@ export class MetorialManagementInstancePortalsConsumerInvitesEndpoint {
     consumerInviteId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePortalsConsumerInvitesGetOutput> {
-    let path = `instances/${instanceId}/portals/${portalId}/invites/${consumerInviteId}`;
+    let path = `instances/${instanceId}/portals/${portalId}/consumer-invites/${consumerInviteId}`;
 
     let request = {
       path,

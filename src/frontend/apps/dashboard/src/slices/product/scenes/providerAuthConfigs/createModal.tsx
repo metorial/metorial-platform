@@ -12,10 +12,12 @@ export type ProviderAuthConfigCreateModalProps = {
   providerDeploymentId?: string;
   providerId?: string;
   initialAuthMethodId: string;
+  fixedAuthCredentialsId?: string;
   defaultAuthConfigName?: string;
   autoStartManagedCredentialSetup?: boolean;
   onCreate?: (authConfig: { id: string; name?: string | null }) => void;
   onBack?: () => void;
+  hideDetailsInputs?: boolean;
 };
 
 let ProviderAuthConfigCreateModalContent = (
@@ -163,6 +165,7 @@ export let ProviderAuthConfigCreateFlowContent = (
             providerImageUrl={authCreation.provider.data?.publisher.imageUrl}
             defaultAuthConfigName={p.defaultAuthConfigName}
             selectedMethod={method}
+            fixedAuthCredentialsId={p.fixedAuthCredentialsId}
             autoStartManagedCredentialSetup={p.autoStartManagedCredentialSetup}
             previewMode={previewMode}
             onPreviewModeChange={setPreviewMode}
@@ -181,10 +184,12 @@ export let ProviderAuthConfigCreateFlowContent = (
           providerDeploymentId={p.providerDeploymentId}
           providerId={providerId}
           initialAuthMethodId={method.id}
+          defaultAuthConfigName={p.defaultAuthConfigName}
           close={p.close}
           onBack={p.onBack}
           onCreate={p.onCreate}
           embedded={p.embedded}
+          hideDetailsInputs={p.hideDetailsInputs}
         />
       );
     }

@@ -37,7 +37,10 @@ import type { ProviderVariantEnrichment } from '@metorial-subspace/provider-util
 import { prepareVersion } from '../internal/createVersion';
 import { linkRepo } from '../internal/linkRepo';
 import { getTenantForOrigin, origin } from '../origin';
-import { customProviderUpdatedQueue } from '../queues/lifecycle/customProvider';
+import {
+  customProviderArchivedQueue,
+  customProviderUpdatedQueue
+} from '../queues/lifecycle/customProvider';
 import { handleUpcomingCustomProviderQueue } from '../queues/upcoming/handle';
 
 let include = {
@@ -163,7 +166,11 @@ class customProviderServiceImpl {
   }) {
     let customProvider = await db.customProvider.findFirst({
       where: {
-        id: d.customProviderId,
+        OR: [
+          { id: d.customProviderId },
+          { provider: { id: d.customProviderId } },
+          { provider: { slug: d.customProviderId } }
+        ],
         tenantOid: d.tenant.oid,
         solutionOid: d.solution.oid,
         ...normalizeStatusForGet(d).noParent
@@ -405,6 +412,42 @@ class customProviderServiceImpl {
         where: { oid: customProvider.oid },
         include
       });
+    });
+
+    let [enriched] = await this.enrichCustomProviders({ customProviders: [customProvider] });
+    return enriched!;
+  }
+
+  async archiveCustomProvider(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    actor: TenantActor;
+    customProvider: CustomProvider;
+  }) {
+    checkTenant(d, d.customProvider);
+    checkDeletedEdit(d.customProvider, 'archive');
+
+    let customProvider = await withTransaction(async db => {
+      let customProvider = await db.customProvider.update({
+        where: {
+          oid: d.customProvider.oid,
+          tenantOid: d.tenant.oid,
+          solutionOid: d.solution.oid
+        },
+        data: { status: 'archived' },
+        include
+      });
+
+      await db.upcomingCustomProvider.deleteMany({
+        where: { customProviderOid: customProvider.oid }
+      });
+
+      await addAfterTransactionHook(async () =>
+        customProviderArchivedQueue.add({ customProviderId: customProvider.id })
+      );
+
+      return customProvider;
     });
 
     let [enriched] = await this.enrichCustomProviders({ customProviders: [customProvider] });

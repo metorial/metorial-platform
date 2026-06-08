@@ -2,12 +2,15 @@ import { backendEnv } from './backend';
 import { frontendEnv } from './frontend';
 import {
   aresServiceEnv,
+  cargoServiceEnv,
   forgeServiceEnv,
   functionBayServiceEnv,
   horizonServiceEnv,
+  nebulaServiceEnv,
   originCodeBucketEnv,
   originServiceEnv,
   signalServiceEnv,
+  synthesisServiceEnv,
   shuttleServiceEnv,
   slatesHubEnv,
   slatesRegistryEnv,
@@ -71,6 +74,16 @@ export let destinations: Destination[] = [
   },
   {
     type: 'oss',
+    env: synthesisServiceEnv,
+    path: 'src/systems/synthesis/service'
+  },
+  {
+    type: 'oss',
+    env: cargoServiceEnv,
+    path: 'src/systems/cargo/service'
+  },
+  {
+    type: 'oss',
     env: slatesHubEnv,
     path: 'src/systems/slates/apps/hub'
   },
@@ -98,6 +111,11 @@ export let destinations: Destination[] = [
     type: 'oss',
     env: forgeServiceEnv,
     path: 'src/systems/forge/service'
+  },
+  {
+    type: 'oss',
+    env: nebulaServiceEnv,
+    path: 'src/systems/nebula/service'
   },
   {
     type: 'oss',

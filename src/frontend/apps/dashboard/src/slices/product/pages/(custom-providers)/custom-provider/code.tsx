@@ -5,17 +5,33 @@ import {
   useCreateCustomProviderVersion,
   useCurrentInstance,
   useCustomProvider,
-  useCustomProviderCodeEditorToken
+  useCustomProviderCodeEditorToken,
+  useCustomProviderEnv
 } from '@metorial/state';
-import { Button, Dialog, Flex, Input, showModal, Spacer, Text, theme } from '@metorial/ui';
+import {
+  Button,
+  Dialog,
+  Flex,
+  Input,
+  showModal,
+  Spacer,
+  Text,
+  theme,
+  toast
+} from '@metorial/ui';
 import { SideBox } from '@metorial/ui-product';
 import { RiArrowRightSLine, RiExpandDiagonal2Line, RiUpload2Line } from '@remixicon/react';
 import { motion } from 'framer-motion';
 import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import styled from 'styled-components';
-import { getCustomProviderLinkedRepo } from '../../../scenes/customProvider/utils';
 import { SelectRepo } from '../../../scenes/customProvider/selectRepo';
+import {
+  getCustomProviderLinkedRepo,
+  getFunctionProviderVersionFrom,
+  normalizeEnvRecord,
+  normalizeRepoPath
+} from '../../../scenes/customProvider/utils';
 
 let Wrapper = styled.div`
   &[data-expanded='true'] {
@@ -57,16 +73,12 @@ let Iframe = styled.iframe`
   background: #fff;
 `;
 
-let normalizeRepoPath = (path: string | null | undefined) => {
-  let trimmed = path?.trim();
-  return trimmed ? trimmed : undefined;
-};
-
 export let CustomProviderCodePage = () => {
   let instance = useCurrentInstance();
 
   let { customProviderId } = useParams();
   let customProvider = useCustomProvider(instance.data?.id, customProviderId);
+  let customProviderEnv = useCustomProviderEnv(instance.data?.id, customProvider.data?.id);
 
   let editorToken = useCustomProviderCodeEditorToken(
     instance.data?.id,
@@ -93,28 +105,22 @@ export let CustomProviderCodePage = () => {
     Boolean(customProvider.data?.draft?.containerImage);
 
   let publishFrom = useMemo(() => {
-    if (linkedRepo?.id) {
-      return {
-        type: 'function' as const,
-        env: {},
-        runtime: { identifier: 'nodejs' as const, version: '22.x' as const },
-        repository: {
-          repositoryId: linkedRepo.id,
-          branch: linkedRepo.defaultBranch || 'main',
-          path: normalizeRepoPath(linkedRepo.path)
-        }
-      };
-    }
+    if (!customProvider.data) return null;
+    let env = normalizeEnvRecord(customProviderEnv.data?.env);
+    return getFunctionProviderVersionFrom(customProvider.data, env);
+  }, [customProvider.data, customProviderEnv.data?.env]);
 
-    return {
-      type: 'function' as const,
-      files: [],
-      env: {},
-      runtime: { identifier: 'nodejs' as const, version: '22.x' as const }
-    };
-  }, [linkedRepo]);
+  let canPublish =
+    Boolean(publishFrom) && !customProviderEnv.isLoading && !customProviderEnv.error;
 
   let publishNewVersion = async () => {
+    if (!canPublish || !publishFrom) {
+      if (customProviderEnv.error) {
+        toast.error('Could not load environment variables. Try again from Settings.');
+      }
+      return;
+    }
+
     let [version] = await createVersion.mutate({
       instanceId: instance.data!.id,
       customProviderId: customProvider.data!.id,
@@ -153,7 +159,14 @@ export let CustomProviderCodePage = () => {
             description="Code is managed through the connected repository."
           >
             <Flex align="center" gap={10}>
-              <Button as="span" size="2" variant="outline" onClick={publishNewVersion}>
+              <Button
+                as="span"
+                size="2"
+                variant="outline"
+                disabled={!canPublish}
+                loading={customProviderEnv.isLoading || createVersion.isLoading}
+                onClick={publishNewVersion}
+              >
                 Publish New Version
               </Button>
 
@@ -196,7 +209,10 @@ export let CustomProviderCodePage = () => {
                         Select a repository from your connected Git accounts to link it to this
                         provider.
                       </Dialog.Description>
-                      <SelectRepo onSelect={repo => setRepo(repo)} selectedRepoId={repo?.id} />
+                      <SelectRepo
+                        onSelect={repo => setRepo(repo)}
+                        selectedExternalRepoId={repo?.provider.id}
+                      />
 
                       <Spacer height={15} />
 
@@ -267,8 +283,10 @@ export let CustomProviderCodePage = () => {
           >
             <Button
               size="1"
-              variant="outline"
+              variant="soft"
               iconLeft={<RiUpload2Line />}
+              disabled={!canPublish}
+              loading={customProviderEnv.isLoading || createVersion.isLoading}
               onClick={publishNewVersion}
             >
               Publish New Version
@@ -276,7 +294,7 @@ export let CustomProviderCodePage = () => {
 
             <Button
               size="1"
-              variant="outline"
+              variant="soft"
               iconLeft={<RiExpandDiagonal2Line />}
               onClick={() => setIsExpanded(expanded => !expanded)}
             >

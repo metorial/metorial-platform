@@ -50,7 +50,6 @@ type ProviderTemplateIndexInput = {
   status: 'active' | 'archived' | 'deleted';
   name: string;
   description?: string | null;
-  providerDeploymentId: string;
 };
 
 type ConsumerAccessRequestIndexInput = {
@@ -327,15 +326,13 @@ export let indexProviderTemplateDocument = async (d: ProviderTemplateIndexInput)
     instanceId: d.instanceId,
     fields: {
       providerTemplateId: d.id,
-      status: d.status,
-      providerDeploymentId: d.providerDeploymentId
+      status: d.status
     },
     body: {
       id: d.id,
       status: d.status,
       name: d.name,
-      description: d.description ?? undefined,
-      providerDeploymentId: d.providerDeploymentId
+      description: d.description ?? undefined
     }
   });
 

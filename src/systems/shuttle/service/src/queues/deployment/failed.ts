@@ -10,13 +10,24 @@ export let deployServerFailedQueue = createQueue<{
 });
 
 export let deployServerFailedQueueProcessor = deployServerFailedQueue.process(async data => {
-  let deployment = await db.serverDeployment.update({
+  let deployment = await db.serverDeployment.findFirst({
     where: { id: data.serverDeploymentId },
+    select: { oid: true }
+  });
+  if (!deployment) return;
+
+  let endedAt = new Date();
+  let update = await db.serverDeployment.updateMany({
+    where: {
+      id: data.serverDeploymentId,
+      status: { in: ['queued', 'deploying'] }
+    },
     data: {
       status: 'failed',
-      endedAt: new Date()
+      endedAt
     }
   });
+  if (update.count === 0) return;
 
   await db.serverDeploymentStep.updateMany({
     where: {
@@ -25,7 +36,7 @@ export let deployServerFailedQueueProcessor = deployServerFailedQueue.process(as
     },
     data: {
       status: 'failed',
-      endedAt: deployment.endedAt
+      endedAt
     }
   });
 });

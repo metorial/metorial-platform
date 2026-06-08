@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import {
   SlateSessionToolCallStatus,
   SlateVersionDiscoveryStatus
@@ -6,27 +6,6 @@ import {
 import { slatesHubClient } from '../../../test/client';
 import { fixtures } from '../../../test/fixtures';
 import { cleanDatabase, testDb } from '../../../test/setup';
-
-const buildOutputState = vi.hoisted(() => ({
-  value: {
-    logs: [[Date.now(), 'Discovery build log']],
-    status: 'succeeded',
-    createdAt: new Date()
-  }
-}));
-
-vi.mock('../../../functionBay', () => ({
-  functionBay: {
-    tenant: {
-      upsert: vi.fn(async () => ({ id: 'fb-tenant' }))
-    },
-    functionInvocation: {
-      get: vi.fn(async () => buildOutputState.value)
-    }
-  },
-  functionBayTenant: { id: 'fb-tenant' },
-  functionBayProvider: { oid: BigInt(1) }
-}));
 
 describe('slateDiscovery:list E2E', () => {
   const f = fixtures(testDb);
@@ -149,9 +128,12 @@ describe('slateDiscovery:getBuildOutput E2E', () => {
     });
 
     const bucket = await f.storageBucket.default();
-    const invocation = await f.slateInvocation.default({
+    const invocation = await f.slateInvocation.succeeded({
       deploymentOid: deployment.oid,
-      bucketOid: bucket.oid
+      bucketOid: bucket.oid,
+      overrides: {
+        providerInvocationId: 'bfi_discovery_test'
+      }
     });
 
     const discovery = await f.slateVersionDiscovery.default({
@@ -167,8 +149,8 @@ describe('slateDiscovery:getBuildOutput E2E', () => {
     });
 
     expect(result).toMatchObject({
-      logs: buildOutputState.value.logs,
-      status: buildOutputState.value.status
+      logs: [{ message: 'Test invocation completed', timestamp: expect.any(Number) }],
+      status: 'succeeded'
     });
     expect(result?.createdAt).toBeInstanceOf(Date);
   });
@@ -182,25 +164,26 @@ describe('slateDiscovery:getToolCallStats E2E', () => {
   });
 
   it('returns aggregated tool call stats', async () => {
-    const { slate, version, session, action, invocation } =
-      await f.slateSessionToolCall.complete();
+    let setup = await f.slateSessionToolCall.complete({
+      status: SlateSessionToolCallStatus.succeeded
+    });
 
-    const discovery = await f.slateVersionDiscovery.default({
-      slateVersionOid: version.oid,
-      specificationOid: version.specification.oid
+    let discovery = await f.slateVersionDiscovery.default({
+      slateVersionOid: setup.version.oid,
+      specificationOid: setup.version.specification.oid
     });
 
     await f.slateSessionToolCall.default({
-      sessionOid: session.oid,
-      actionOid: action.oid,
-      invocationOid: invocation.oid,
-      versionOid: version.oid,
+      sessionOid: setup.session.oid,
+      actionOid: setup.action.oid,
+      invocationOid: setup.invocation.oid,
+      versionOid: setup.version.oid,
       status: SlateSessionToolCallStatus.failed
     });
 
-    const result = await slatesHubClient.slateDiscovery.getToolCallStats({
-      slateId: slate.id,
-      slateVersionId: version.id,
+    let result = await slatesHubClient.slateDiscovery.getToolCallStats({
+      slateId: setup.slate.id,
+      slateVersionId: setup.version.id,
       slateDiscoveryId: discovery.id
     });
 
@@ -209,11 +192,7 @@ describe('slateDiscovery:getToolCallStats E2E', () => {
       succeeded: 1,
       failed: 1,
       byTool: {
-        [action.key]: {
-          total: 2,
-          succeeded: 1,
-          failed: 1
-        }
+        [setup.action.key]: { total: 2, succeeded: 1, failed: 1 }
       }
     });
   });

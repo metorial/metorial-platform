@@ -1,0 +1,86 @@
+model Model {
+  oid BigInt @id
+  id  String @unique
+
+  name String
+  slug String
+
+  contextWindow              Int
+  inputCostPerMillionTokens  Float
+  outputCostPerMillionTokens Float
+
+  providerOid BigInt
+  provider    ModelProvider @relation(fields: [providerOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  messages          AssistantMessage[]
+  assistantRequests AssistantRequest[]
+  modelRuns         ModelRun[]
+
+  @@unique([slug, providerOid])
+  @@index([providerOid])
+}
+
+model ModelProvider {
+  oid BigInt @id
+  id  String @unique
+
+  slug     String @unique
+  name     String
+  imageUrl String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  models Model[]
+}
+
+enum AssistantRunStatus {
+  pending
+  running
+  completed
+  cancelled
+  failed
+}
+
+model ModelRun {
+  oid BigInt @id
+  id  String @unique
+
+  status AssistantRunStatus
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  requestOid BigInt?
+  request    AssistantRequest? @relation(fields: [requestOid], references: [oid], onDelete: Cascade)
+
+  conversationOid BigInt?
+  conversation    AssistantConversation? @relation(fields: [conversationOid], references: [oid], onDelete: Cascade)
+
+  assistantInstanceOid BigInt?
+  assistantInstance    AssistantInstance? @relation(fields: [assistantInstanceOid], references: [oid], onDelete: Cascade)
+
+  assistantOid BigInt?
+  assistant    Assistant? @relation(fields: [assistantOid], references: [oid], onDelete: Cascade)
+
+  modelOid BigInt
+  model    Model  @relation(fields: [modelOid], references: [oid], onDelete: Cascade)
+
+  /// [AssistantRunCost]
+  cost Json
+
+  /// [AssistantRunMetadata]
+  metadata Json
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  messages AssistantMessage[]
+
+  @@index([requestOid])
+  @@index([conversationOid, status])
+  @@index([assistantInstanceOid])
+}

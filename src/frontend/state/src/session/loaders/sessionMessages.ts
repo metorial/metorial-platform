@@ -1,9 +1,15 @@
-import { DashboardInstanceSessionsMessagesListQuery } from '@metorial/dashboard-sdk';
+import {
+  DashboardInstanceSessionsMessagesListOutput,
+  DashboardInstanceSessionsMessagesListQuery
+} from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
+import { useMemo } from 'react';
+import { useAccumulatedPaginatedLoader } from '../../lib/useAccumulatedPaginatedLoader';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
 
 type SessionMessagesQuery = Omit<DashboardInstanceSessionsMessagesListQuery, 'sessionId'>;
+type SessionMessagesItem = DashboardInstanceSessionsMessagesListOutput['items'][number];
 
 export let sessionMessagesLoader = createLoader({
   name: 'sessionMessages',
@@ -51,4 +57,35 @@ export let useSessionMessage = (
   );
 
   return data;
+};
+
+export let useAccumulatedSessionMessages = (
+  instanceId: string | null | undefined,
+  sessionId: string | null | undefined,
+  query?: SessionMessagesQuery,
+  options?: { pollIntervalMs?: number; pausePolling?: boolean }
+) => {
+  let queryKey = useMemo(
+    () =>
+      JSON.stringify({
+        instanceId: instanceId ?? null,
+        sessionId: sessionId ?? null,
+        query: query ?? null
+      }),
+    [instanceId, query, sessionId]
+  );
+
+  let enabledParams =
+    instanceId && sessionId ? { instanceId, sessionId, ...query } : null;
+
+  return useAccumulatedPaginatedLoader<
+    SessionMessagesItem,
+    { instanceId: string; sessionId: string } & SessionMessagesQuery
+  >({
+    enabledParams,
+    queryKey,
+    useLoader: params => sessionMessagesLoader.use(params),
+    pollIntervalMs: options?.pollIntervalMs,
+    pausePolling: options?.pausePolling
+  });
 };

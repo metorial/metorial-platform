@@ -74,7 +74,7 @@ export let PageHeader = ({
   size?: '7' | '3' | '1' | '2' | '4' | '5' | '6' | '8' | '9';
 }) => {
   return (
-    <Wrapper data-size={size}>
+    <Wrapper data-size={size} style={{ gap: Math.round(Number(size) * 1.2) }}>
       <HeaderSection>
         <Content>
           {pagination && (

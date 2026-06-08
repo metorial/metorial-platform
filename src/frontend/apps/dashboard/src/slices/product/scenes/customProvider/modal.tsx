@@ -14,8 +14,8 @@ export let showCustomProviderRemoteFormModal = (p: {
       <Dialog.Wrapper {...dialogProps} width={650}>
         {p.type == 'remote' && (
           <>
-            <Dialog.Title>Link Remote Provider</Dialog.Title>
-            <Dialog.Description>Link a remote MCP provider to Metorial.</Dialog.Description>
+            <Dialog.Title>Link Remote MCP Server</Dialog.Title>
+            <Dialog.Description>Link a remote MCP server to Metorial.</Dialog.Description>
 
             <CustomProviderRemoteCreateForm {...p} close={close} onCreate={p.onCreate} />
           </>
@@ -23,9 +23,9 @@ export let showCustomProviderRemoteFormModal = (p: {
 
         {p.type == 'managed' && (
           <>
-            <Dialog.Title>Create Custom Provider</Dialog.Title>
+            <Dialog.Title>Create Custom MCP Server</Dialog.Title>
             <Dialog.Description>
-              Create a new custom MCP provider powered by Metorial.
+              Create a new custom MCP server powered by Metorial.
             </Dialog.Description>
 
             <CustomProviderManagedCreateForm
@@ -38,9 +38,9 @@ export let showCustomProviderRemoteFormModal = (p: {
 
         {p.type == 'docker' && (
           <>
-            <Dialog.Title>Create Docker Provider</Dialog.Title>
+            <Dialog.Title>Create Docker MCP Server</Dialog.Title>
             <Dialog.Description>
-              Deploy a custom Docker image as an MCP provider on Metorial.
+              Deploy a custom Docker image as an MCP server on Metorial.
             </Dialog.Description>
 
             <CustomProviderDockerCreateForm {...p} close={close} onCreate={p.onCreate} />

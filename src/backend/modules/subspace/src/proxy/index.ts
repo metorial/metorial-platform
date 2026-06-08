@@ -10,6 +10,14 @@ let baseConnectionUrl = env.subspace.SUBSPACE_CONNECTION_URL;
 
 let Sentry = getSentry();
 
+export type SubspaceProxyAgentClient = {
+  name: string;
+  type: 'mcp_client_oauth';
+  privateMetadata?: Record<string, any>;
+  foreignId: string;
+  oauthRegistrationId: string;
+};
+
 let getSubspaceMcpUrl = async (instance: Instance, sessionId: string, inputUrl: URL) => {
   let { tenant, solution } = await getTenantForSubspace(instance);
 
@@ -19,13 +27,23 @@ let getSubspaceMcpUrl = async (instance: Instance, sessionId: string, inputUrl: 
 export let proxyMcpRequestToSubspace = async (
   c: Context,
   instance: Instance,
-  sessionId: string
+  sessionId: string,
+  d?: {
+    agentClient?: SubspaceProxyAgentClient | null;
+    enforceIngressNetworkPolicy?: boolean;
+    ingressIp?: string | null;
+    onSubspaceSessionResolved?: (d: {
+      subspaceSessionId: string;
+      response: Response;
+    }) => Promise<void> | void;
+  }
 ): Promise<Response> => {
   let inputUrl = new URL(c.req.url);
   let subspaceUrl = await getSubspaceMcpUrl(instance, sessionId, inputUrl);
 
   let headers = new Headers(c.req.raw.headers);
   headers.set('User-Agent', c.req.header('User-Agent') || 'unknown');
+  headers.delete('Metorial-Agent-Client');
 
   let finalHostName = inputUrl.hostname;
   if (
@@ -44,9 +62,18 @@ export let proxyMcpRequestToSubspace = async (
   headers.set(
     'Metorial-Proxy-URL',
     process.env.NODE_ENV == 'production'
-      ? `https://${inputUrl.hostname}${inputUrl.pathname}${inputUrl.search}`
+      ? `https://${finalHostName}${inputUrl.pathname}${inputUrl.search}`
       : `http://${inputUrl.host}${inputUrl.pathname}${inputUrl.search}`
   );
+
+  if (d?.agentClient) {
+    headers.set('Metorial-Agent-Client', JSON.stringify(d.agentClient));
+  }
+
+  if (d?.enforceIngressNetworkPolicy) {
+    headers.set('Metorial-Ingress-Policy-Check', 'true');
+    if (d.ingressIp) headers.set('Metorial-Ingress-IP', d.ingressIp);
+  }
 
   await Fabric.fire('provider.session_message.created:before', { instance });
 
@@ -70,6 +97,14 @@ export let proxyMcpRequestToSubspace = async (
     signal: c.req.raw.signal,
     body: c.req.raw.body
   });
+
+  let subspaceSessionId = response.headers.get('Metorial-Session-Id');
+  if (subspaceSessionId) {
+    await d?.onSubspaceSessionResolved?.({
+      subspaceSessionId,
+      response
+    });
+  }
 
   return new Response(response.body, {
     status: response.status,

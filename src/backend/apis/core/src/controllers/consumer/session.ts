@@ -19,7 +19,8 @@ export let consumerSessionController = Controller.create(
     getSession: consumerGroup
       .post(consumerPath('session', 'session.get'), {
         name: 'Get consumer session',
-        description: 'Returns the authenticated consumer session.'
+        description: 'Returns the authenticated consumer session.',
+        confidential: true
       })
       .output(consumerSessionPresenter)
       .do(async ctx => {
@@ -31,7 +32,8 @@ export let consumerSessionController = Controller.create(
     logout: consumerGroup
       .post(consumerPath('session/logout', 'session.logout'), {
         name: 'Logout consumer session',
-        description: 'Revokes the authenticated consumer session.'
+        description: 'Revokes the authenticated consumer session.',
+        confidential: true
       })
       .output(consumerSessionPresenter)
       .do(async ctx => {
@@ -47,7 +49,8 @@ export let consumerSessionController = Controller.create(
     getProfile: consumerGroup
       .post(consumerPath('profile', 'profile.get'), {
         name: 'Get consumer profile',
-        description: 'Returns the authenticated consumer profile.'
+        description: 'Returns the authenticated consumer profile.',
+        confidential: true
       })
       .output(consumerProfilePresenter)
       .do(async ctx => {

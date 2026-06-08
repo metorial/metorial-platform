@@ -41,12 +41,17 @@ export class ProviderRun extends IProviderRun {
     let slateVersion = await db.slateVersion.findUniqueOrThrow({
       where: { oid: data.providerVersion.slateVersionOid }
     });
+    let providerDeployment = await db.providerDeployment.findUniqueOrThrow({
+      where: { oid: data.providerDeployment.oid },
+      include: { slateInstanceConfiguration: true }
+    });
 
     let res = await slates.slateSession.create({
       tenantId: tenant.id,
       slateId: slate.id,
       slateInstanceId: slateInstance.id,
-      lockedSlateVersion: slateVersion.id
+      lockedSlateVersion: slateVersion.id,
+      slateInstanceConfigurationId: providerDeployment.slateInstanceConfiguration?.id
     });
 
     let slateSession = await db.slateSession.create({
@@ -139,7 +144,6 @@ export class ProviderRunConnection extends IProviderRunConnection {
           where: { oid: this.providerAuthConfigVersion.slateAuthConfigOid }
         })
       : null;
-
     let input = await messageInputToToolCall(data.input, data.message);
 
     let res = await slates.slateSessionToolCall.call({

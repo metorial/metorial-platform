@@ -1,7 +1,7 @@
 import { db } from '@metorial/db';
-import { portalService } from '@metorial/module-portal';
 import { createQueue, QueueRetryError } from '@metorial/queue';
 import { sendConsumerInviteEmail } from '../../email/invite';
+import { portalService } from '../../services/portal';
 
 let processInviteLifecycle = async (consumerInviteId: string) => {
   let consumerInvite = await db.consumerInvite.findUnique({

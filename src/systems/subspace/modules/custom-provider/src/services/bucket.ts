@@ -1,7 +1,13 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { type CodeBucket, db, type Environment, type Solution, type Tenant } from '@metorial-subspace/db';
+import {
+  type CodeBucket,
+  db,
+  type Environment,
+  type Solution,
+  type Tenant
+} from '@metorial-subspace/db';
 import {
   type DateFilter,
   normalizeDateFilter,

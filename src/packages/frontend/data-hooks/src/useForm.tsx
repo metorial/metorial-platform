@@ -3,22 +3,8 @@ import { Error } from '@metorial/ui';
 import equal from 'fast-deep-equal';
 import type { FormikConfig } from 'formik';
 import { useFormik } from 'formik';
-import { useEffect, useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import * as Yup from 'yup';
-
-// any
-// array
-// boolean
-// data
-// enum
-// intersection
-// literal
-// null
-// number
-// object
-// record
-// string
-// union
 
 let validationTypeToYup = (t: ValidationType<any>): Yup.Schema<any> => {
   let elementary = (() => {

@@ -75,8 +75,72 @@ class scmAuthServiceImpl {
     provider: 'github';
     installationId: string;
     setupAction: string;
-    state: string;
+    state?: string;
   }) {
+    if (!i.state) {
+      if (i.setupAction !== 'update') {
+        throw new ServiceError(
+          badRequestError({
+            message: 'Missing state for GitHub installation callback'
+          })
+        );
+      }
+
+      let existingInstallation = await db.scmInstallation.findFirst({
+        where: {
+          provider: i.provider,
+          externalInstallationId: i.installationId
+        },
+        include: {
+          backend: true
+        }
+      });
+
+      if (!existingInstallation) {
+        throw new ServiceError(
+          badRequestError({
+            message:
+              'GitHub installation update callback did not include state and no existing installation was found'
+          })
+        );
+      }
+
+      let octokit = createGitHubAppClient(existingInstallation.backend);
+      let installationRes = await octokit.request('GET /app/installations/{installation_id}', {
+        installation_id: parseInt(i.installationId)
+      });
+
+      let installation = installationRes.data;
+      let account = installation.account;
+
+      if (!account) {
+        throw new ServiceError(badRequestError({ message: 'Installation account not found' }));
+      }
+
+      let accountType: 'user' | 'organization' =
+        'type' in account && account.type === 'User' ? 'user' : 'organization';
+      let accountLogin =
+        'login' in account ? account.login : 'slug' in account ? account.slug : '';
+      let accountName = account.name || accountLogin;
+      let accountEmail = 'email' in account ? account.email : null;
+
+      let updatedInstallation = await db.scmInstallation.update({
+        where: {
+          oid: existingInstallation.oid
+        },
+        data: {
+          accountType,
+          externalAccountId: account.id.toString(),
+          externalAccountLogin: accountLogin,
+          externalAccountName: accountName || null,
+          externalAccountEmail: accountEmail || null,
+          externalAccountImageUrl: account.avatar_url || null
+        }
+      });
+
+      return updatedInstallation;
+    }
+
     let session = await db.scmInstallationSession.findUnique({
       where: {
         state: i.state

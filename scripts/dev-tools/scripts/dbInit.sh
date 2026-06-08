@@ -13,11 +13,13 @@ export MAIN_GLOBAL_DATABASE_URL="postgres://postgres:postgres@localhost:35432/$D
 
 export ORIGIN_DATABASE_URL="postgres://postgres:postgres@localhost:35432/origin"
 export SIGNAL_DATABASE_URL="postgres://postgres:postgres@localhost:35432/signal"
+export SYNTHESIS_DATABASE_URL="postgres://postgres:postgres@localhost:35432/synthesis"
 export SLATES_HUB_DATABASE_URL="postgres://postgres:postgres@localhost:35432/slates-hub"
 export SLATES_REGISTRY_DATABASE_URL="postgres://postgres:postgres@localhost:35432/slates-registry"
 export SUBSPACE_DATABASE_URL="postgres://postgres:postgres@localhost:35432/subspace"
 export SHUTTLE_DATABASE_URL="postgres://postgres:postgres@localhost:35432/shuttle"
 export FORGE_DATABASE_URL="postgres://postgres:postgres@localhost:35432/forge"
+export NEBULA_DATABASE_URL="postgres://postgres:postgres@localhost:35432/nebula"
 export FUNCTION_BAY_DATABASE_URL="postgres://postgres:postgres@localhost:35432/function-bay"
 export HORIZON_DATABASE_URL="postgres://postgres:postgres@localhost:35432/horizon"
 export ARES_DATABASE_URL="postgres://postgres:postgres@localhost:35432/ares"

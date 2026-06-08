@@ -13,6 +13,7 @@ import { slateDiscoveryController } from './slateDiscovery';
 import { slateErrorController } from './slateError';
 import { slateEventController } from './slateEvent';
 import { slateInstanceController } from './slateInstance';
+import { slateInstanceConfigurationController } from './slateInstanceConfiguration';
 import { slateInvocationController } from './slateInvocation';
 import { slateOAuthCredentialsController } from './slateOAuthCredentials';
 import { slateOAuthSetupController } from './slateOAuthSetup';
@@ -47,6 +48,7 @@ export let rootController = app.controller({
   slateEvent: slateEventController,
   slateSpecification: slateSpecificationController,
   slateInstance: slateInstanceController,
+  slateInstanceConfiguration: slateInstanceConfigurationController,
   slateOAuthCredentials: slateOAuthCredentialsController,
   slateOAuthSetup: slateOAuthSetupController,
   slateOAuthSetupEvent: slateOAuthSetupEventController,

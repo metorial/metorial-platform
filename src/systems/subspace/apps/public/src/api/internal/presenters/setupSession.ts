@@ -50,14 +50,7 @@ export let setupSessionProviderListingItemPresenter = (provider: {
   name: string;
   description: string | null;
   slug: string;
-  image: {
-    type: 'file';
-    fileUrl?: string | null;
-    url?: string | null;
-  } | {
-    type: 'url';
-    url: string;
-  } | null;
+  image: PrismaJson.EntityImage | null;
   groups: Array<{
     id: string;
     name: string;
@@ -101,7 +94,11 @@ export let setupSessionSelectedProviderPresenter = (
 
   name: provider.listing?.name ?? provider.name,
   description: provider.listing?.description ?? provider.description,
-  slug: provider.listing?.prettySlug ?? provider.listing?.slug ?? provider.prettySlug ?? provider.slug,
+  slug:
+    provider.listing?.prettySlug ??
+    provider.listing?.slug ??
+    provider.prettySlug ??
+    provider.slug,
   metadata: provider.metadata,
   imageUrl: getImageUrl({
     id: provider.listing?.id ?? provider.id,
@@ -232,7 +229,6 @@ export let setupSessionDeploymentPreviewPresenter = (
   description: providerDeployment.description,
   metadata: providerDeployment.metadata,
   toolFilter: providerDeployment.toolFilter,
-  networkingRulesetIds: providerDeployment.networkingRulesetIds,
 
   providerId: providerDeployment.provider.id,
 

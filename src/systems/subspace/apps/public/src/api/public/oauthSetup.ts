@@ -1,5 +1,7 @@
 import { createHono, useRequestContext } from '@lowerdeck/hono';
 import { providerOAuthSetupInternalService } from '@metorial-subspace/module-auth';
+import { integrationSetupSessionService } from '@metorial-subspace/module-integration';
+import { integrationSetupSessionPresenter } from '@metorial-subspace/presenters';
 
 export let oauthSetupApp = createHono()
   .use(async (c, next) => {
@@ -60,6 +62,24 @@ export let oauthSetupApp = createHono()
         ua: context.ua ?? 'unknown'
       }
     });
+
+    if (setupRes.session) {
+      await integrationSetupSessionService.reconcileProviderSetupSessionCompleted({
+        providerSetupSession: setupRes.session,
+        context: {
+          ip: context.ip,
+          ua: context.ua ?? 'unknown'
+        }
+      });
+
+      let integrationSetupSession =
+        await integrationSetupSessionService.getIntegrationSetupSessionByProviderSetupSession({
+          providerSetupSession: setupRes.session
+        });
+      if (integrationSetupSession) {
+        return c.redirect(integrationSetupSessionPresenter(integrationSetupSession).url);
+      }
+    }
 
     if (setupRes.status != 'completed' && setupRes.status != 'failed') {
       return c.redirect(`/oauth-setup/${setupRes.id}?client_secret=${clientSecret}`);

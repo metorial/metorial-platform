@@ -8,6 +8,7 @@ import {
 import { Context } from '@metorial/context';
 import {
   ApiKey,
+  Consumer,
   ConsumerProfile,
   ConsumerSession,
   ConsumerSurface,
@@ -46,7 +47,7 @@ export type FineGrainedAccessTagGrant = {
 export type AuthenticatedConsumerContext = {
   consumerSurface: ConsumerSurface;
   consumerSession: ConsumerSession;
-  consumerProfile: ConsumerProfile;
+  consumerProfile: ConsumerProfile & { consumer: Consumer };
   consumerGroups: Awaited<
     ReturnType<typeof getConsumerAccessContextForSession>
   >['consumerGroups'];

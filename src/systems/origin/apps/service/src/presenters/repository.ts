@@ -2,7 +2,7 @@ import type { ScmAccount, ScmRepository } from '../../prisma/generated/client';
 import { scmAccountPresenter } from './scmAccount';
 
 export let repositoryPresenter = (repository: ScmRepository & { account: ScmAccount }) => ({
-  object: 'origin#repository',
+  object: 'origin#repository' as const,
 
   id: repository.id,
   identifier: repository.identifier,

@@ -1,7 +1,6 @@
 import { createQueue } from '@lowerdeck/queue';
 import { db } from '@metorial-subspace/db';
 import { env } from '../../env';
-import { reconcileTenantManagedProviderAuthCredentialsBackings } from '../../lib/managedProviderAuthCredentialsBacking';
 
 let RECONCILE_ALL_TENANTS_BATCH_SIZE = 100;
 
@@ -29,6 +28,10 @@ export let reconcileTenantManagedBackingsQueueProcessor =
       }
     });
     if (!tenant || !solution) return;
+
+    let { reconcileTenantManagedProviderAuthCredentialsBackings } = await import(
+      '../../lib/managedProviderAuthCredentialsBacking'
+    );
 
     await reconcileTenantManagedProviderAuthCredentialsBackings({
       tenant,

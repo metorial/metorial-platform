@@ -8,7 +8,7 @@ import {
 } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import { Context } from '@metorial/context';
-import { db, ID, User, withTransaction } from '@metorial/db';
+import { db, ID, User, UserType, withTransaction } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { fileReferenceService } from '@metorial/module-file';
 import { syncUserUpdateQueue } from '../queues/syncUserUpdate';
@@ -31,6 +31,7 @@ class UserService {
       image?: PrismaJson.EntityImage;
       password?: string;
     };
+    type?: UserType;
     context: Context;
   }) {
     return withTransaction(async db => {
@@ -53,7 +54,7 @@ class UserService {
         data: {
           id: await ID.generateId('user'),
           status: 'active',
-          type: 'user',
+          type: d.type ?? 'user',
 
           email: d.input.email,
           name: d.input.name,

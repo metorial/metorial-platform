@@ -6,6 +6,7 @@ import { DeploymentList } from './pages/deployments/DeploymentList';
 import { DiscoveryDetail } from './pages/discoveries/DiscoveryDetail';
 import { DiscoveryList } from './pages/discoveries/DiscoveryList';
 import { EventList } from './pages/events/EventList';
+import { SlateBulkRedeploy } from './pages/slates/SlateBulkRedeploy';
 import { SlateDetail } from './pages/slates/SlateDetail';
 import { SlateList } from './pages/slates/SlateList';
 import { VersionDetail } from './pages/versions/VersionDetail';
@@ -20,6 +21,7 @@ export let App = () => {
         <Route path="/" element={<Navigate to="/slates" replace />} />
 
         <Route path="/slates" element={<SlateList />} />
+        <Route path="/slates/redeploy" element={<SlateBulkRedeploy />} />
         <Route path="/slates/:slateId" element={<SlateDetail />} />
 
         <Route path="/slates/:slateId/versions" element={<VersionList />} />

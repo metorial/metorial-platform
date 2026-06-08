@@ -1,7 +1,12 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import type { Server, ServerOAuthCredentials, Tenant } from '../../../prisma/generated/client';
+import type {
+  Server,
+  ServerInstanceConfiguration,
+  ServerOAuthCredentials,
+  Tenant
+} from '../../../prisma/generated/client';
 import { db } from '../../db';
 import { getId } from '../../id';
 import { validateWithJsonSchema } from '../../lib/jsonSchema/validateData';
@@ -23,6 +28,7 @@ let include = {
       }
     }
   },
+  serverInstanceConfiguration: true,
   authConfig: {
     include: {
       remoteOAuthConnectionAuthToken: {
@@ -48,6 +54,7 @@ class serverOAuthSetupServiceImpl {
       redirectUrl: string;
       authConfig?: Record<string, unknown>;
       callbackUrlOverride?: string;
+      serverInstanceConfiguration?: ServerInstanceConfiguration;
     };
   }) {
     if (d.input.credentials && d.input.credentials.serverOid !== d.input.server.oid) {
@@ -90,7 +97,8 @@ class serverOAuthSetupServiceImpl {
       callbackUrlOverride: d.input.callbackUrlOverride || null,
       tenantOid: d.tenant.oid,
       serverOid: d.input.server.oid,
-      credentialsOid: d.input.credentials.oid
+      credentialsOid: d.input.credentials.oid,
+      serverInstanceConfigurationOid: d.input.serverInstanceConfiguration?.oid
     };
 
     if (d.input.server.type == 'remote') {
@@ -166,6 +174,7 @@ class serverOAuthSetupServiceImpl {
     let setup = await db.serverOAuthSetup.findFirst({
       where: { id: d.serverOAuthSetupId },
       include: {
+        serverInstanceConfiguration: true,
         credentials: {
           include: {
             remoteConnection: { include: { config: true } },
@@ -185,7 +194,8 @@ class serverOAuthSetupServiceImpl {
       }
 
       let inner = await remoteOauthAuthorizationService.startAuthorization({
-        connection: setup.credentials.remoteConnection
+        connection: setup.credentials.remoteConnection,
+        serverOAuthSetup: setup
       });
 
       await db.serverOAuthSetup.updateMany({
@@ -217,7 +227,8 @@ class serverOAuthSetupServiceImpl {
 
       let inner = await delegatedOauthAuthorizationService.startAuthorization({
         connection: setup.credentials.delegatedConnection,
-        authConfig: setup.authConfigValue
+        authConfig: setup.authConfigValue,
+        serverInstanceConfiguration: setup.serverInstanceConfiguration
       });
 
       await db.serverOAuthSetup.updateMany({

@@ -1,6 +1,10 @@
 enum ConsumerAccessTargetType {
   provider_template
   magic_mcp_server
+  skill
+  skill_template
+  skill_group
+  skill_marketplace
 }
 
 model ConsumerAccess {
@@ -21,6 +25,18 @@ model ConsumerAccess {
   magicMcpServerOid BigInt?
   magicMcpServer    MagicMcpServer? @relation("ConsumerAccessMagicMcpServer", fields: [magicMcpServerOid], references: [oid], onDelete: Cascade)
 
+  skillOid BigInt?
+  skill    Skill?  @relation("ConsumerAccessSkill", fields: [skillOid], references: [oid], onDelete: Cascade)
+
+  skillTemplateOid BigInt?
+  skillTemplate    SkillTemplate? @relation("ConsumerAccessSkillTemplate", fields: [skillTemplateOid], references: [oid], onDelete: Cascade)
+
+  skillGroupOid BigInt?
+  skillGroup    SkillGroup? @relation("ConsumerAccessSkillGroup", fields: [skillGroupOid], references: [oid], onDelete: Cascade)
+
+  skillMarketplaceOid BigInt?
+  skillMarketplace    SkillMarketplace? @relation("ConsumerAccessSkillMarketplace", fields: [skillMarketplaceOid], references: [oid], onDelete: Cascade)
+
   listingOid BigInt?
   listing    ConsumerAccessListing? @relation(fields: [listingOid], references: [oid], onDelete: Cascade)
 
@@ -29,6 +45,10 @@ model ConsumerAccess {
 
   @@unique([consumerGroupOid, providerTemplateOid])
   @@unique([consumerGroupOid, magicMcpServerOid])
+  @@unique([consumerGroupOid, skillOid])
+  @@unique([consumerGroupOid, skillTemplateOid])
+  @@unique([consumerGroupOid, skillGroupOid])
+  @@unique([consumerGroupOid, skillMarketplaceOid])
 }
 
 model ConsumerAccessListing {
@@ -48,6 +68,18 @@ model ConsumerAccessListing {
   magicMcpServerOid BigInt?
   magicMcpServer    MagicMcpServer? @relation(fields: [magicMcpServerOid], references: [oid], onDelete: Cascade)
 
+  skillOid BigInt?
+  skill    Skill?  @relation(fields: [skillOid], references: [oid], onDelete: Cascade)
+
+  skillTemplateOid BigInt?
+  skillTemplate    SkillTemplate? @relation(fields: [skillTemplateOid], references: [oid], onDelete: Cascade)
+
+  skillGroupOid BigInt?
+  skillGroup    SkillGroup? @relation(fields: [skillGroupOid], references: [oid], onDelete: Cascade)
+
+  skillMarketplaceOid BigInt?
+  skillMarketplace    SkillMarketplace? @relation(fields: [skillMarketplaceOid], references: [oid], onDelete: Cascade)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
@@ -56,4 +88,8 @@ model ConsumerAccessListing {
 
   @@unique([surfaceOid, providerTemplateOid])
   @@unique([surfaceOid, magicMcpServerOid])
+  @@unique([surfaceOid, skillOid])
+  @@unique([surfaceOid, skillTemplateOid])
+  @@unique([surfaceOid, skillGroupOid])
+  @@unique([surfaceOid, skillMarketplaceOid])
 }

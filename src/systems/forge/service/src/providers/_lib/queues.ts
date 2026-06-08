@@ -1,5 +1,5 @@
 import { createLock } from '@lowerdeck/lock';
-import { combineQueueProcessors, createQueue } from '@lowerdeck/queue';
+import { combineQueueProcessors, createQueue, type IQueue, type IQueueProcessor } from '@lowerdeck/queue';
 import { db } from '../../db';
 import { env } from '../../env';
 import { workflowArtifactService } from '../../services';
@@ -10,7 +10,12 @@ let runLock = createLock({
   redisUrl: env.service.REDIS_URL
 });
 
-export let buildEndedQueue = createQueue<{
+export let buildEndedQueue: IQueue<{
+  runId: string;
+  status: 'failed' | 'succeeded';
+  endedAt: Date;
+  stepArtifacts: { stepId: string; bucket: string; storageKey: string }[];
+}, any> = createQueue<{
   runId: string;
   status: 'failed' | 'succeeded';
   endedAt: Date;
@@ -163,7 +168,7 @@ let storeOutputCleanupQueueProcessor = storeOutputCleanupQueue.process(async dat
   });
 });
 
-export let buildQueueProcessors = combineQueueProcessors([
+export let buildQueueProcessors: IQueueProcessor = combineQueueProcessors([
   buildEndedQueueProcessor,
   storeOutputQueueProcessor,
   storeOutputCleanupQueueProcessor,

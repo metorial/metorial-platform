@@ -12,7 +12,7 @@ export let presentScmBackendSetupSession = (
     parentInstallationSession: ScmInstallationSession | null;
   }
 ) => ({
-  object: 'origin#scmBackendSetupSession',
+  object: 'origin#scmBackendSetupSession' as const,
   id: session.id,
   type: session.type,
   url: `${env.service.ORIGIN_SERVICE_PUBLIC_URL}/origin/scm/backend-setup/${session.id}`,

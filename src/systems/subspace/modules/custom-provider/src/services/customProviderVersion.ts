@@ -3,7 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type {
   CustomProviderConfig,
-  CustomProviderFrom,
+  CustomProviderFromUpdate,
   CustomProviderVersion,
   ProviderVersion
 } from '@metorial-subspace/db';
@@ -21,18 +21,22 @@ import {
 } from '@metorial-subspace/db';
 import {
   checkDeletedRelation,
-  type DateFilter,
   normalizeDateFilter,
   resolveCustomProviderDeployments,
   resolveCustomProviderEnvironments,
   resolveCustomProviders,
+  resolveProviders,
   resolveProviderVersions,
-  resolveProviders
+  type DateFilter
 } from '@metorial-subspace/list-utils';
-import type { ProviderVersionEnrichment } from '@metorial-subspace/provider-utils';
 import { providerVersionInternalService } from '@metorial-subspace/module-provider-internal';
 import { checkTenant } from '@metorial-subspace/module-tenant';
+import type { ProviderVersionEnrichment } from '@metorial-subspace/provider-utils';
 import { prepareVersion } from '../internal/createVersion';
+import {
+  resolveCustomProviderConfig,
+  resolveCustomProviderFromForDeployment
+} from '../internal/resolveFrom';
 import { handleUpcomingCustomProviderQueue } from '../queues/upcoming/handle';
 
 let include = {
@@ -106,26 +110,36 @@ class customProviderVersionServiceImpl {
     customProvider: CustomProvider;
     input: {
       message?: string;
-      from?: CustomProviderFrom;
+      from?: CustomProviderFromUpdate;
       config?: CustomProviderConfig;
     };
   }) {
     checkTenant(d, d.customProvider);
     checkDeletedRelation(d.customProvider);
 
-    let from = d.input.from || d.customProvider.payload.from;
-    let config = d.input.config || d.customProvider.payload.config;
+    let resolvedFrom = resolveCustomProviderFromForDeployment({
+      partial: d.input.from,
+      provider: d.customProvider
+    });
+    let resolvedConfig = resolveCustomProviderConfig(
+      d.input.config,
+      d.customProvider.payload.config
+    );
 
-    if (d.customProvider.type !== from.type) {
+    if (d.customProvider.type !== resolvedFrom.type) {
       throw new ServiceError(
         badRequestError({
-          message: `Custom provider type '${d.customProvider.type}' does not match deployment from type '${from.type}'`,
+          message: `Custom provider type '${d.customProvider.type}' does not match deployment from type '${resolvedFrom.type}'`,
           hint: 'Please ensure the deployment from type matches the custom provider type.'
         })
       );
     }
 
-    if (from.type === 'function' && from.files?.length && from.repository) {
+    if (
+      resolvedFrom.type === 'function' &&
+      resolvedFrom.files?.length &&
+      (resolvedFrom.repository || d.customProvider.scmRepoOid)
+    ) {
       throw new ServiceError(
         badRequestError({
           message:
@@ -135,23 +149,16 @@ class customProviderVersionServiceImpl {
       );
     }
 
-    if (from.type === 'function' && !from.files && !from.repository) {
-      throw new ServiceError(
-        badRequestError({
-          message:
-            'No deployment source provided. Either files or an SCM repository must be set to create a deployment.',
-          hint: 'Please provide either deployment files or link an SCM repository.'
-        })
-      );
-    }
-
     let customProvider = await withTransaction(async db => {
       let updatedProvider = await db.customProvider.update({
         where: { oid: d.customProvider.oid },
         data: {
           payload: {
-            from: from.type === 'function' ? { ...from, files: undefined } : from,
-            config
+            from:
+              resolvedFrom.type === 'function'
+                ? { ...resolvedFrom, files: undefined }
+                : resolvedFrom,
+            config: resolvedConfig
           }
         }
       });
@@ -183,9 +190,9 @@ class customProviderVersionServiceImpl {
           customProviderDeploymentOid: versionPrep.deployment.oid,
 
           payload: {
-            from,
-            config
-          }
+            ...(d.input.from !== undefined ? { from: d.input.from } : {}),
+            ...(d.input.config !== undefined ? { config: d.input.config } : {})
+          } satisfies PrismaJson.UpcomingCustomProviderPayload
         }
       });
 

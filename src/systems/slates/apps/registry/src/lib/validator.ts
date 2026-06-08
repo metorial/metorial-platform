@@ -1,17 +1,11 @@
 import { zValidator } from '@hono/zod-validator';
 import { validationError } from '@lowerdeck/error';
-import type { ValidationTargets } from 'hono';
-import type z from 'zod';
-
-export let useValidation = <Target extends keyof ValidationTargets, T extends z.ZodType<any>>(
-  target: Target,
-  schema: T
-) =>
+export let useValidation = ((target: any, schema: any) =>
   zValidator(target, schema, (data, c) => {
     if (!data.success)
       return c.json(
         validationError({
-          entity: 'query',
+          entity: target,
           errors: data.error.issues.map(e => ({
             code: e.code,
             message: e.message,
@@ -20,4 +14,4 @@ export let useValidation = <Target extends keyof ValidationTargets, T extends z.
         }).toResponse(),
         400
       ) as never;
-  });
+  })) as typeof zValidator;

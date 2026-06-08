@@ -10,6 +10,7 @@ import {
 
 export let ProviderAuthConfigCreateButton = (
   p: Omit<ProviderAuthConfigCreateModalProps, 'initialAuthMethodId'> & {
+    fixedAuthMethodId?: string;
     size?: ButtonSize;
     iconLeft?: ReactNode;
     children: ReactNode;
@@ -29,11 +30,27 @@ export let ProviderAuthConfigCreateButton = (
       providerDeploymentId: p.providerDeploymentId,
       providerId: p.providerId,
       initialAuthMethodId: authMethodId,
+      fixedAuthCredentialsId: p.fixedAuthCredentialsId,
       defaultAuthConfigName: p.defaultAuthConfigName,
       autoStartManagedCredentialSetup: p.autoStartManagedCredentialSetup,
       onCreate: p.onCreate,
       onBack: p.onBack
     });
+
+  if (p.fixedAuthMethodId) {
+    return (
+      <Button
+        type="button"
+        size={p.size}
+        iconLeft={p.iconLeft}
+        aria-label={p.ariaLabel}
+        disabled={p.disabled}
+        onClick={() => openCreateFlow(p.fixedAuthMethodId!)}
+      >
+        {p.children}
+      </Button>
+    );
+  }
 
   if (p.disabled || !authCreation.canCreateAuthConfig) {
     return (

@@ -135,9 +135,11 @@ export let CallbackDestinationsList = (p: { callbackId: string | undefined }) =>
               <Text size="2" weight="strong">
                 {destination.name}
               </Text>
-              <Text size="1" color="gray600" truncate>
-                {destination.description || 'No description'}
-              </Text>
+              {destination.description && (
+                <Text size="1" color="gray600" truncate>
+                  {destination.description}
+                </Text>
+              )}
             </Flex>,
             destination.url,
             latestNotification ? (

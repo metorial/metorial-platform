@@ -14,7 +14,9 @@ model ProviderTemplate {
   description String?
   metadata    Json
 
-  providerDeploymentId String
+  legacyProviderDeploymentId String? @map("providerDeploymentId")
+  hasSubspaceBacking         Boolean @default(false)
+  subspaceIntegrationId      String?
 
   organizationOid BigInt
   organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
@@ -33,5 +35,6 @@ model ProviderTemplate {
   providerSetupSessionBindings ConsumerProviderSetupSessionBinding[]
   consumerAccessListings       ConsumerAccessListing[]
 
-  @@unique([instanceOid, providerDeploymentId])
+  @@unique([instanceOid, legacyProviderDeploymentId])
+  @@unique([instanceOid, subspaceIntegrationId])
 }

@@ -36,9 +36,10 @@ export let rediscoverSlatesQueueProcessor = rediscoverSlatesQueue.process(async 
   });
   if (versions.length === 0) return;
 
-  await rediscoverSlateQueue.addMany(
+  await rediscoverSlateQueue.addManyWithOps(
     versions.map(v => ({
-      slateVersionId: v.id
+      data: { slateVersionId: v.id },
+      opts: { id: v.id }
     }))
   );
 
@@ -51,10 +52,10 @@ let rediscoverSlateQueue = createQueue<{ slateVersionId: string }>({
   name: 'shub/rds/sing',
   redisUrl: env.service.REDIS_URL,
   workerOpts: {
-    limiter: {
-      max: 5,
-      duration: 60_000
-    },
+    // limiter: {
+    //   max: 5,
+    //   duration: 60_000
+    // },
     concurrency: 5
   }
 });

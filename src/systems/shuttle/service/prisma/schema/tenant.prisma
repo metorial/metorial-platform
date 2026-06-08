@@ -6,6 +6,7 @@ model Tenant {
   name       String
 
   functionBayTenantId String?
+  nebulaTenantId      String?
 
   logRetentionInDays Int @default(30)
 
@@ -17,6 +18,7 @@ model Tenant {
   repositoryTags                     ContainerRepositoryTag[]
   repositoryVersions                 ContainerRepositoryVersion[]
   serverConfigs                      ServerConfig[]
+  serverInstanceConfigurations       ServerInstanceConfiguration[]
   serverConnections                  ServerConnection[]
   serverDiscoveries                  ServerDiscovery[]
   servers                            Server[]
@@ -28,7 +30,6 @@ model Tenant {
   serverAuthConfigs                  ServerAuthConfig[]
   serverOAuthSetups                  ServerOAuthSetup[]
   serverOAuthCredentials             ServerOAuthCredentials[]
-  networkingRules                    NetworkingRuleset[]
   delegatedOAuthConnections          DelegatedOAuthConnection[]
   delegatedOAuthConnectionSetups     DelegatedOAuthConnectionSetup[]
   delegatedOAuthConnectionAuthTokens DelegatedOAuthConnectionAuthToken[]

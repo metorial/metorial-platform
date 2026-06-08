@@ -1,20 +1,20 @@
 import { createLocallyCachedFunction } from '@lowerdeck/cache';
 import { notFoundError, preconditionFailedError, ServiceError } from '@lowerdeck/error';
-import { Paginator } from '@lowerdeck/pagination';
-import { getSentry } from '@lowerdeck/sentry';
 import { Service } from '@lowerdeck/service';
-import type { Function } from '../../prisma/generated/client';
 import { db } from '../db';
-import { ID, snowflake } from '../id';
+import { ID } from '../id';
+import {
+  presentInvokeResponse,
+  type FunctionInvokeResponse
+} from '../lib/presentInvokeResponse';
 import { getProvider } from '../providers';
+import { enclaveService } from './enclave';
 
-let Sentry = getSentry();
-
-let include = { functionVersion: true };
+export type { FunctionInvokeResponse };
 
 let getFunctionData = createLocallyCachedFunction({
   getHash: (i: { tenantId: string; functionId: string; versionId?: string }) =>
-    `${i.tenantId}:${i.functionId}`,
+    `${i.tenantId}:${i.functionId}:${i.versionId ?? 'current'}`,
   provider: async i =>
     await db.function.findFirst({
       where: {
@@ -39,17 +39,19 @@ let getFunctionData = createLocallyCachedFunction({
 class functionInvocationServiceImpl {
   async invokeFunction(d: {
     tenantId: string;
+    functionTenantId?: string;
     functionId: string;
     versionId?: string;
     payload: Record<string, any>;
-    egressPolicy?: {
-      allowedIps?: string[];
-      allowedHosts?: string[];
+    egressPolicy?: PrismaJson.CompiledEgressNetworkAllowList;
+    enclave?: {
+      identifier: string;
     };
-  }) {
+  }): Promise<FunctionInvokeResponse> {
     let func = await getFunctionData({
-      tenantId: d.tenantId,
-      functionId: d.functionId
+      tenantId: d.functionTenantId ?? d.tenantId,
+      functionId: d.functionId,
+      versionId: d.versionId
     });
     if (!func) throw new ServiceError(notFoundError('function'));
 
@@ -68,84 +70,43 @@ class functionInvocationServiceImpl {
       );
     }
 
-    let provider = getProvider((version as any).runtime.providerOid);
+    let invocationTarget = d.enclave
+      ? await enclaveService.resolveInvocationOverride({
+          tenantId: d.tenantId,
+          enclave: d.enclave,
+          function: func,
+          sourceVersion: version
+        })
+      : {
+          function: func,
+          version,
+          enclave: undefined
+        };
 
+    let provider = getProvider((invocationTarget.version as any).runtime.providerOid);
     let id = await ID.generateId('functionInvocation');
 
     let res = await provider.invokeFunction({
-      function: func,
-      functionVersion: version,
-      providerData: version.providerData,
+      tenantId: d.tenantId,
+      function: invocationTarget.function,
+      sourceFunction: func,
+      functionVersion: invocationTarget.version,
+      enclave: invocationTarget.enclave
+        ? {
+            id: invocationTarget.enclave.id,
+            identifier: invocationTarget.enclave.identifier
+          }
+        : undefined,
+      providerData: (invocationTarget.version as any).providerData,
       payload: d.payload,
       egressPolicy: d.egressPolicy
     });
 
-    (async () => {
-      await db.functionInvocation.create({
-        data: {
-          oid: snowflake.nextId(),
-          id,
-
-          status: res.type === 'success' ? 'succeeded' : 'failed',
-          logs: res.logs.map(l => JSON.stringify(l)).join('\n'),
-
-          error: res.type == 'error' ? res.error : null,
-
-          billedTimeMs: res.billedTimeMs,
-          computeTimeMs: res.computeTimeMs,
-
-          functionVersionOid: version.oid
-        }
-      });
-    })().catch(e => Sentry.captureException(e));
-
-    if (res.type === 'error') {
-      return {
-        id,
-        type: 'error' as const,
-        error: res.error
-      };
-    }
-
-    return {
+    return presentInvokeResponse({
       id,
-      type: 'success' as const,
-      result: res.result
-    };
-  }
-
-  async getFunctionInvocationById(d: { id: string; function: Function }) {
-    let functionInvocation = await db.functionInvocation.findFirst({
-      where: {
-        id: d.id,
-        functionVersion: {
-          functionOid: d.function.oid
-        }
-      },
-      include
+      functionVersionId: invocationTarget.version.id,
+      res
     });
-    if (!functionInvocation) throw new ServiceError(notFoundError('function.invocation'));
-    return functionInvocation;
-  }
-
-  async listFunctionInvocations(d: { function: Function; functionVersionIds?: string[] }) {
-    return Paginator.create(({ prisma }) =>
-      prisma(
-        async opts =>
-          await db.functionInvocation.findMany({
-            ...opts,
-            where: {
-              AND: [
-                { functionVersion: { functionOid: d.function.oid } },
-                ...(d.functionVersionIds
-                  ? [{ functionVersion: { id: { in: d.functionVersionIds } } }]
-                  : [])
-              ]
-            },
-            include
-          })
-      )
-    );
   }
 }
 

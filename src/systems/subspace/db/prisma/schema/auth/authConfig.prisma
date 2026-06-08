@@ -61,6 +61,12 @@ model ProviderAuthConfig {
   backendOid BigInt
   backend    Backend @relation(fields: [backendOid], references: [oid])
 
+  owningIntegrationInstanceOid BigInt?
+  owningIntegrationInstance    IntegrationInstance? @relation(fields: [owningIntegrationInstanceOid], references: [oid])
+
+  owningIntegrationInstanceProviderOid BigInt?
+  owningIntegrationInstanceProvider    IntegrationInstanceProvider? @relation(fields: [owningIntegrationInstanceProviderOid], references: [oid])
+
   deploymentOid BigInt?
   deployment    ProviderDeployment? @relation(fields: [deploymentOid], references: [oid])
 
@@ -75,17 +81,18 @@ model ProviderAuthConfig {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  providerOAuthSetups        ProviderOAuthSetup[]
-  deploymentAuthConfigs      ProviderDeployment[]        @relation("defaultAuthConfig")
-  providerAuthExports        ProviderAuthExport[]
-  providerAuthImports        ProviderAuthImport[]
-  providerAuthConfigUpdates  ProviderAuthConfigUpdate[]
-  sessionProviders           SessionProvider[]
-  sessionTemplateProviders   SessionTemplateProvider[]
-  providerAuthConfigVersions ProviderAuthConfigVersion[]
-  identityCredentials        IdentityCredential[]
-  authConfigEvents           ProviderAuthConfigEvent[]
-  authConfigErrors           ProviderAuthConfigError[]
+  providerOAuthSetups                 ProviderOAuthSetup[]
+  deploymentAuthConfigs               ProviderDeployment[]                 @relation("defaultAuthConfig")
+  providerAuthExports                 ProviderAuthExport[]
+  providerAuthImports                 ProviderAuthImport[]
+  providerAuthConfigUpdates           ProviderAuthConfigUpdate[]
+  sessionProviders                    SessionProvider[]
+  sessionTemplateProviders            SessionTemplateProvider[]
+  providerAuthConfigVersions          ProviderAuthConfigVersion[]
+  identityCredentials                 IdentityCredential[]
+  authConfigEvents                    ProviderAuthConfigEvent[]
+  authConfigErrors                    ProviderAuthConfigError[]
+  integrationInstanceProviderVersions IntegrationInstanceProviderVersion[]
 
   @@index([createdAt])
   @@index([updatedAt])

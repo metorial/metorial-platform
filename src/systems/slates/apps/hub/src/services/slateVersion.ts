@@ -3,6 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type { Registry, Slate, SlateVersion } from '../../prisma/generated/client';
 import { db } from '../db';
+import { getRegistrySlatePathParams } from '../lib/registrySlatePath';
 import { getRegistryClient, getRegistryQuery } from '../registry';
 
 let include = {
@@ -31,11 +32,12 @@ class slateVersionServiceImpl {
     slateVersion: SlateVersion & { slate: Slate & { registry: Registry } };
   }) {
     let reg = await getRegistryClient(d.slateVersion.slate.registry);
+    let { scopeId, slateId } = getRegistrySlatePathParams(d.slateVersion.slate);
 
     let res = await reg.slates[':scopeId'][':slateId'].versions[':versionId'].$get({
       param: {
-        scopeId: d.slateVersion.slate.slateScopeIdentifierOnRegistry,
-        slateId: d.slateVersion.slate.slateIdentifierOnRegistry,
+        scopeId,
+        slateId,
         versionId: d.slateVersion.versionIdentifierOnRegistry
       },
       query: getRegistryQuery()
@@ -43,7 +45,7 @@ class slateVersionServiceImpl {
     if (res.status !== 200)
       throw new ServiceError(
         badRequestError({
-          message: `Failed to fetch slate record from registry: ${res.statusText}`
+          message: `Failed to fetch slate version record from registry: ${res.statusText} (${scopeId}/${slateId}/${d.slateVersion.versionIdentifierOnRegistry})`
         })
       );
 
@@ -59,7 +61,7 @@ class slateVersionServiceImpl {
             where: {
               slateOid: d.slate.oid
             },
-            orderBy: { createdAt: 'desc' },
+            orderBy: [{ createdAt: 'desc' }, { oid: 'desc' }],
             include
           })
       )

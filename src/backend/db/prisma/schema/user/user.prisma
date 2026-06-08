@@ -5,6 +5,7 @@ enum UserStatus {
 
 enum UserType {
   user
+  system
 }
 
 model User {
@@ -23,6 +24,12 @@ model User {
   image Json
 
   passwordHash String?
+
+  internalTenantIdentifier String?
+  cargoTenantId            String?
+  cargoEnvironmentId       String?
+  synthesisTenantId        String?
+  synthesisEnvironmentId   String?
 
   deletedAt DateTime?
   createdAt DateTime  @default(now())

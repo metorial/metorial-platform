@@ -1,5 +1,6 @@
 import { theme } from '@metorial/ui';
 import styled from 'styled-components';
+import { METORIAL_LOGO_URL } from './setupBranding';
 
 export let StepWrapper = styled.div<{ $isMetorialElement: boolean }>`
   display: flex;
@@ -62,9 +63,6 @@ let SecuredByLogo = styled.img<{ $size?: number }>`
   height: ${p => p.$size || 14}px;
   border-radius: 3px;
 `;
-
-let METORIAL_LOGO_URL =
-  'https://cdn.metorial.com/2025-06-13--14-59-55/logos/metorial/primary_logo/raw.svg';
 
 interface SecuredByFooterProps {
   isMetorialElement?: boolean;

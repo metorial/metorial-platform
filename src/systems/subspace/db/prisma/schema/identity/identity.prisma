@@ -33,6 +33,9 @@ model Identity {
   delegationConfigOid BigInt?
   delegationConfig    IdentityDelegationConfig? @relation(fields: [delegationConfigOid], references: [oid], onDelete: Cascade)
 
+  ownedByIntegrationInstanceOid BigInt?              @unique
+  ownedByIntegrationInstance    IntegrationInstance? @relation(fields: [ownedByIntegrationInstanceOid], references: [oid], onDelete: Cascade, name: "ownedIdentities")
+
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @default(now()) @updatedAt
   archivedAt DateTime?
@@ -42,6 +45,12 @@ model Identity {
   identityDelegations        IdentityDelegation[]
   identityDelegationRequests IdentityDelegationRequest[]
   delegatedIdentities        DelegatedIdentity[]
+  integrationInstances       IntegrationInstance[]
+  integrationInstanceGroups  IntegrationInstanceGroup[]
+  sessionTemplates           SessionTemplate[]
+  sessions                   Session[]
+  ephemeralManagedSessions   EphemeralManagedSession[]
+  sessionParticipants        SessionParticipant[]
 
   @@index([createdAt])
   @@index([updatedAt])
@@ -79,6 +88,12 @@ model IdentityCredential {
 
   delegationConfigOid BigInt?
   delegationConfig    IdentityDelegationConfig? @relation(fields: [delegationConfigOid], references: [oid], onDelete: Cascade)
+
+  integrationInstanceOid BigInt?
+  integrationInstance    IntegrationInstance? @relation(fields: [integrationInstanceOid], references: [oid], onDelete: Cascade)
+
+  integrationInstanceProviderOid BigInt?                      @unique
+  integrationInstanceProvider    IntegrationInstanceProvider? @relation(fields: [integrationInstanceProviderOid], references: [oid], onDelete: Cascade)
 
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @default(now()) @updatedAt

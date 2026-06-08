@@ -18,6 +18,7 @@ export let ProviderAuthConfigSetupFlowCreateContent = (p: {
   providerImageUrl?: string | null;
   defaultAuthConfigName?: string;
   selectedMethod: AuthMethod;
+  fixedAuthCredentialsId?: string;
   autoStartManagedCredentialSetup?: boolean;
   previewMode: PreviewMode;
   onPreviewModeChange: (mode: PreviewMode) => void;
@@ -46,6 +47,7 @@ export let ProviderAuthConfigSetupFlowCreateContent = (p: {
             providerId={p.providerId}
             deploymentId={p.providerDeploymentId}
             initialMethodId={p.selectedMethod.id}
+            fixedCredentialId={p.fixedAuthCredentialsId}
             hideMethodStep
             hideCredentialsIntro
             flattenOAuthCredentialsFlow

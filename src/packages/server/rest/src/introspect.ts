@@ -1,9 +1,9 @@
-import { EndpointDescriptor, Handler, IController } from './controller';
+import { ControllerDescriptor, Handler, IController } from './controller';
 
 export let introspectApi = (version: {
   rootController: {
     handlers: IController<any>;
-    descriptor: EndpointDescriptor;
+    descriptor: ControllerDescriptor;
   };
   displayVersion: string;
   version: string;
@@ -16,6 +16,7 @@ export let introspectApi = (version: {
     name: string;
     description: string;
     deprecated: boolean;
+    category?: ControllerDescriptor['category'];
   }[] = [];
 
   let endpoints: any[] = [];
@@ -40,14 +41,15 @@ export let introspectApi = (version: {
 
   let resolveController = (i: {
     handlers: IController<any>;
-    descriptor: EndpointDescriptor;
+    descriptor: ControllerDescriptor;
   }) => {
     let controller = {
       id: `controller_${idIndex++}`,
       name: i.descriptor.name,
       description: i.descriptor.description,
       deprecated: !!i.descriptor.deprecated,
-      hideInDocs: !!i.descriptor.hideInDocs
+      hideInDocs: !!i.descriptor.hideInDocs,
+      category: i.descriptor.category
     };
 
     controllers.push(controller);
@@ -72,6 +74,7 @@ export let introspectApi = (version: {
           name: out.name,
           description: out.description,
           hideInDocs: !!out.hideInDocs,
+          confidential: !!out.confidential,
 
           bodyId: out.body
             ? ensureType({

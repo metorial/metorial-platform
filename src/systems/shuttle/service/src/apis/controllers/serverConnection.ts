@@ -7,6 +7,7 @@ import {
   serverAuthConfigService,
   serverConfigService,
   serverConnectionService,
+  serverInstanceConfigurationService,
   serverVersionService
 } from '../../services';
 import { app } from './_app';
@@ -83,8 +84,7 @@ export let serverConnectionController = app.controller({
         serverConfigId: v.string(),
         serverVersionId: v.string(),
         serverAuthConfigId: v.optional(v.string()),
-
-        networkRulesetIds: v.optional(v.array(v.string())),
+        serverInstanceConfigurationId: v.optional(v.string()),
 
         client: v.record(v.any()),
         capabilities: v.optional(v.record(v.any()))
@@ -126,6 +126,12 @@ export let serverConnectionController = app.controller({
             serverAuthConfigId: ctx.input.serverAuthConfigId
           })
         : undefined;
+      let serverInstanceConfiguration = ctx.input.serverInstanceConfigurationId
+        ? await serverInstanceConfigurationService.getServerInstanceConfigurationById({
+            tenant: ctx.tenant,
+            serverInstanceConfigurationId: ctx.input.serverInstanceConfigurationId
+          })
+        : undefined;
 
       let res = await serverConnectionService.createServerConnection({
         tenant: ctx.tenant,
@@ -133,11 +139,10 @@ export let serverConnectionController = app.controller({
           serverConfig,
           serverVersion,
           serverAuthConfig,
+          serverInstanceConfiguration,
 
           client: schema.data.params.clientInfo,
-          capabilities: schema.data.params.capabilities,
-
-          networkRulesetIds: ctx.input.networkRulesetIds ?? []
+          capabilities: schema.data.params.capabilities
         }
       });
 

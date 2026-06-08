@@ -34,6 +34,9 @@ export let toolCallController = app.controller({
           allowDeleted: v.optional(v.boolean()),
 
           ids: v.optional(v.array(v.string())),
+          agentIds: v.optional(v.array(v.string())),
+          actorIds: v.optional(v.array(v.string())),
+          agentInstanceIds: v.optional(v.array(v.string())),
           sessionTemplateIds: v.optional(v.array(v.string())),
           sessionProviderIds: v.optional(v.array(v.string())),
           providerIds: v.optional(v.array(v.string())),
@@ -56,6 +59,9 @@ export let toolCallController = app.controller({
         allowDeleted: ctx.input.allowDeleted,
 
         ids: ctx.input.ids,
+        agentIds: ctx.input.agentIds,
+        actorIds: ctx.input.actorIds,
+        agentInstanceIds: ctx.input.agentInstanceIds,
         sessionTemplateIds: ctx.input.sessionTemplateIds,
         sessionProviderIds: ctx.input.sessionProviderIds,
         providerIds: ctx.input.providerIds,
@@ -94,7 +100,10 @@ export let toolCallController = app.controller({
 
         sessionId: v.string(),
 
+        agentId: v.optional(v.string()),
         metadata: v.optional(v.record(v.any())),
+        rationale: v.optional(v.string()),
+        operation: v.optional(v.string()),
         input: v.record(v.any()),
         toolId: v.string()
       })
@@ -115,7 +124,10 @@ export let toolCallController = app.controller({
         session,
 
         input: {
+          agentId: ctx.input.agentId,
           metadata: ctx.input.metadata,
+          rationale: ctx.input.rationale,
+          operation: ctx.input.operation,
           input: ctx.input.input,
           toolId: ctx.input.toolId
         }

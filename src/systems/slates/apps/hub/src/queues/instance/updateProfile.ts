@@ -42,7 +42,8 @@ export let updateProfileQueueProcessor = updateProfileQueue.process(async data =
   let decrypted = await secretService.DANGEROUSLY_decryptSecret({
     secretOid: authConfig.secretOid,
     purpose: 'slate_authentication_configuration',
-    tenant: authConfig.tenant
+    tenant: authConfig.tenant,
+    note: `prof cfg:${authConfig.id}`
   });
 
   let stack = await slateInvocationService.createInvocation({

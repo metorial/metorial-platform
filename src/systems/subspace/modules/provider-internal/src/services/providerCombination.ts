@@ -49,6 +49,7 @@ class providerCombinationServiceImpl {
     providers: ProviderCombinationInput[];
 
     allowEphemeral?: boolean;
+    allowMissingAuthConfig?: boolean;
     limit?: number;
   }) {
     return withTransaction(
@@ -233,7 +234,7 @@ class providerCombinationServiceImpl {
               }
             }
 
-            if (!authConfig && spec.value.authMethods.length > 0) {
+            if (!authConfig && spec.value.authMethods.length > 0 && !d.allowMissingAuthConfig) {
               if (deployment.defaultAuthConfigOid) {
                 authConfig = await db.providerAuthConfig.findFirstOrThrow({
                   where: { ...ts, oid: deployment.defaultAuthConfigOid },
@@ -250,7 +251,7 @@ class providerCombinationServiceImpl {
               }
             }
 
-            if (spec.value.authMethods.length > 0 && !authConfig) {
+            if (spec.value.authMethods.length > 0 && !authConfig && !d.allowMissingAuthConfig) {
               throw new ServiceError(
                 badRequestError({ message: 'Provider requires an auth config to be provided' })
               );

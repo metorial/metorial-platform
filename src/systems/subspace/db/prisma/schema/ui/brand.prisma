@@ -11,6 +11,7 @@ model Brand {
   tenantOid BigInt? @unique
   tenant    Tenant? @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
 
-  createdAt             DateTime               @default(now())
-  providerSetupSessions ProviderSetupSession[]
+  createdAt                DateTime                  @default(now())
+  providerSetupSessions    ProviderSetupSession[]
+  integrationSetupSessions IntegrationSetupSession[]
 }

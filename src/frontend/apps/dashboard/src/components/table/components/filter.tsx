@@ -110,11 +110,11 @@ let FilterPopover = styled(RadixPopover.Content)`
   border-radius: 10px;
   box-shadow: ${theme.shadows.medium};
   overflow: hidden;
-  z-index: 9999;
+  z-index: 999;
   width: 500px;
   height: 350px;
   display: grid;
-  grid-template-columns: 160px auto;
+  grid-template-columns: 200px auto;
 
   &[data-state='open'] {
     animation: ${fadeIn} 0.15s ease-in-out;

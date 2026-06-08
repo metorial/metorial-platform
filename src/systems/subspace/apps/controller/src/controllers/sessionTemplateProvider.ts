@@ -44,6 +44,12 @@ export let sessionTemplateProviderController = app.controller({
           providerDeploymentIds: v.optional(v.array(v.string())),
           providerConfigIds: v.optional(v.array(v.string())),
           providerAuthConfigIds: v.optional(v.array(v.string())),
+          integrationIds: v.optional(v.array(v.string())),
+          integrationInstanceIds: v.optional(v.array(v.string())),
+          integrationInstanceGroupIds: v.optional(v.array(v.string())),
+          integrationProviderIds: v.optional(v.array(v.string())),
+          integrationInstanceProviderIds: v.optional(v.array(v.string())),
+          integrationInstanceGroupProviderIds: v.optional(v.array(v.string())),
 
           createdAt: createdAtValidator,
           updatedAt: updatedAtValidator
@@ -62,6 +68,13 @@ export let sessionTemplateProviderController = app.controller({
         providerDeploymentIds: ctx.input.providerDeploymentIds,
         providerConfigIds: ctx.input.providerConfigIds,
         providerAuthConfigIds: ctx.input.providerAuthConfigIds,
+        integrationIds: ctx.input.integrationIds,
+        integrationInstanceIds: ctx.input.integrationInstanceIds,
+        integrationInstanceGroupIds: ctx.input.integrationInstanceGroupIds,
+        integrationProviderIds: ctx.input.integrationProviderIds,
+        integrationInstanceProviderIds: ctx.input.integrationInstanceProviderIds,
+        integrationInstanceGroupProviderIds:
+          ctx.input.integrationInstanceGroupProviderIds,
 
         createdAt: ctx.input.createdAt,
         updatedAt: ctx.input.updatedAt

@@ -8,12 +8,14 @@ import {
   useProvider,
   useProviderAuthCredentials,
   useProviderAuthMethods,
-  useProviderDeployment
+  useProviderDeployment,
+  useProviderListing
 } from '@metorial/state';
 import { Button, Flex, Text } from '@metorial/ui';
 import { sortBy } from 'lodash';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Stepper } from '../../../../../components/stepper';
+import { getConfigDoc, getProviderDoc } from '../../../lib/providerDocs';
 import { getProviderOAuthAutoRegistrationEnabled } from '../../../lib/providerOAuthAutoRegistration';
 import {
   ConnectStep,
@@ -34,6 +36,7 @@ export let ProviderSetupSessionEmbed = ({
   instanceId,
   providerId,
   deploymentId,
+  fixedCredentialId,
   onComplete,
   onCancel,
   cancelLabel = 'Cancel',
@@ -58,6 +61,7 @@ export let ProviderSetupSessionEmbed = ({
   let deployment = useProviderDeployment(instanceId, deploymentId);
   let lockedVersionId = deployment.data?.lockedVersion?.id;
   let provider = useProvider(instanceId, providerId);
+  let providerListing = useProviderListing(instanceId, providerId);
   let project = useCurrentProject();
   let projectBrand = useProjectBrand(project.data?.organization.id, project.data?.id);
   let effectiveVersionId = lockedVersionId ?? provider.data?.currentVersion?.id;
@@ -106,7 +110,7 @@ export let ProviderSetupSessionEmbed = ({
   let credentialsForm = useForm({
     initialValues: {
       credentialMode: 'existing' as CredentialsMode,
-      selectedCredentialId: '',
+      selectedCredentialId: fixedCredentialId ?? '',
       newCredName: '',
       newCredClientId: '',
       newCredClientSecret: ''
@@ -209,6 +213,8 @@ export let ProviderSetupSessionEmbed = ({
   let projectBrandImageUrl = projectBrand.data?.imageUrl;
   let projectBrandName = projectBrand.data?.name ?? project.data?.name ?? 'Metorial';
   let providerImageUrl = provider.data?.publisher.imageUrl;
+  let providerDoc = getProviderDoc(providerListing.data);
+  let configDoc = getConfigDoc(providerListing.data);
 
   let visibleAuthCredentials = sortBy(authCredentials.data?.items ?? [], [
     credential => Number(!credential.isManaged),
@@ -226,50 +232,58 @@ export let ProviderSetupSessionEmbed = ({
     customVisibleCredentials[0] ??
     (visibleAuthCredentials.length === 1 ? visibleAuthCredentials[0] : null);
   let effectiveSelectedCredentialId =
-    credentialsForm.values.credentialMode === 'new'
+    fixedCredentialId ||
+    (credentialsForm.values.credentialMode === 'new'
       ? ''
-      : credentialsForm.values.selectedCredentialId || preferredVisibleCredential?.id || '';
+      : credentialsForm.values.selectedCredentialId || preferredVisibleCredential?.id || '');
   let selectedVisibleCredential = visibleAuthCredentials.find(
     credential => credential.id === effectiveSelectedCredentialId
   );
-  let credentialSelectItems = [
-    ...(managedVisibleCredentials.length > 0
-      ? [
-          {
-            id: '__managed_heading__',
-            label: 'Metorial Managed',
-            disabled: true
-          } as const,
-          ...managedVisibleCredentials.map(credential => ({
-            id: credential.id,
-            label: `${credential.name || credential.id} (Metorial Managed)`
-          }))
-        ]
-      : []),
-    ...(managedVisibleCredentials.length > 0 && customVisibleCredentials.length > 0
-      ? [{ type: 'separator' as const }]
-      : []),
-    ...(customVisibleCredentials.length > 0
-      ? [
-          {
-            id: '__custom_heading__',
-            label: 'Your credentials',
-            disabled: true
-          } as const,
-          ...customVisibleCredentials.map(credential => ({
-            id: credential.id,
-            label: credential.isDefault
-              ? `${credential.name || credential.id} (Default)`
-              : credential.name || credential.id
-          }))
-        ]
-      : []),
-    ...(visibleAuthCredentials.length > 0 ? [{ type: 'separator' as const }] : []),
-    { id: '__create_new__', label: 'Add credentials' }
-  ];
+  let credentialSelectItems = fixedCredentialId
+    ? [
+        {
+          id: fixedCredentialId,
+          label: selectedVisibleCredential?.name ?? selectedVisibleCredential?.id ?? fixedCredentialId
+        }
+      ]
+    : [
+        ...(managedVisibleCredentials.length > 0
+          ? [
+              {
+                id: '__managed_heading__',
+                label: 'Metorial Managed',
+                disabled: true
+              } as const,
+              ...managedVisibleCredentials.map(credential => ({
+                id: credential.id,
+                label: `${credential.name || credential.id} (Metorial Managed)`
+              }))
+            ]
+          : []),
+        ...(managedVisibleCredentials.length > 0 && customVisibleCredentials.length > 0
+          ? [{ type: 'separator' as const }]
+          : []),
+        ...(customVisibleCredentials.length > 0
+          ? [
+              {
+                id: '__custom_heading__',
+                label: 'Your credentials',
+                disabled: true
+              } as const,
+              ...customVisibleCredentials.map(credential => ({
+                id: credential.id,
+                label: credential.isDefault
+                  ? `${credential.name || credential.id} (Default)`
+                  : credential.name || credential.id
+              }))
+            ]
+          : []),
+        ...(visibleAuthCredentials.length > 0 ? [{ type: 'separator' as const }] : []),
+        { id: '__create_new__', label: 'Add credentials' }
+      ];
 
   let showManagedChoiceStep = requiresManualOAuthCredentials;
-  let isCreatingCredentials = credentialsForm.values.credentialMode === 'new';
+  let isCreatingCredentials = !fixedCredentialId && credentialsForm.values.credentialMode === 'new';
   let isManagedSelected = !isCreatingCredentials && !!selectedVisibleCredential?.isManaged;
   let isCustomSelected = !isManagedSelected;
   let isLatestCreatedCredentialSelected =
@@ -294,6 +308,7 @@ export let ProviderSetupSessionEmbed = ({
     selectedVisibleCredential?.name ??
     latestCreatedCredentialLabel ??
     selectedVisibleCredential?.id ??
+    fixedCredentialId ??
     (isManagedSelected ? 'Managed credentials' : 'No credentials selected');
 
   let openSetupWindow = (url = setupSession?.url) => {
@@ -410,6 +425,17 @@ export let ProviderSetupSessionEmbed = ({
   }, [authMethods.data?.items, hasSingleMethod, methodForm.setFieldValue, selectedMethodId]);
 
   useEffect(() => {
+    if (!fixedCredentialId) return;
+    if (credentialsForm.values.credentialMode !== 'existing') {
+      void credentialsForm.setFieldValue('credentialMode', 'existing');
+    }
+    if (credentialsForm.values.selectedCredentialId !== fixedCredentialId) {
+      void credentialsForm.setFieldValue('selectedCredentialId', fixedCredentialId);
+    }
+  }, [credentialsForm, credentialsForm.values.credentialMode, credentialsForm.values.selectedCredentialId, fixedCredentialId]);
+
+  useEffect(() => {
+    if (fixedCredentialId) return;
     if (!requiresManualOAuthCredentials) return;
     if (authCredentials.isLoading || !authCredentials.data) return;
 
@@ -455,6 +481,7 @@ export let ProviderSetupSessionEmbed = ({
     authCredentials.isLoading,
     credentialsForm.values.credentialMode,
     credentialsForm.values.selectedCredentialId,
+    fixedCredentialId,
     isLatestCreatedCredentialSelected,
     preferredVisibleCredential,
     requiresManualOAuthCredentials,
@@ -497,6 +524,7 @@ export let ProviderSetupSessionEmbed = ({
   };
 
   let handleCredentialSelectionChange = (value: string) => {
+    if (fixedCredentialId) return;
     setError(null);
     setLatestCreatedCredentialId(null);
     setLatestCreatedCredentialLabel(null);
@@ -518,6 +546,8 @@ export let ProviderSetupSessionEmbed = ({
   }, [onWindowOpenStateChange, setupSession?.url]);
 
   let resolveSelectedCredentialId = async () => {
+    if (fixedCredentialId) return fixedCredentialId;
+
     let providerAuthCredentialsId = effectiveSelectedCredentialId;
 
     if (credentialsForm.values.credentialMode === 'new') {
@@ -844,6 +874,7 @@ export let ProviderSetupSessionEmbed = ({
     redirectUri: redirectUri ?? undefined,
     isCustomSelected,
     isCreatingCredentials,
+    disableCredentialSelection: !!fixedCredentialId,
     projectBrandImageUrl,
     projectBrandName,
     providerName,
@@ -851,6 +882,8 @@ export let ProviderSetupSessionEmbed = ({
     isManagedSelected,
     error,
     createCredentials,
+    providerDoc,
+    configDoc,
     showHiddenMethodStep,
     includeMethodStep,
     skipMethodStep,
@@ -867,11 +900,14 @@ export let ProviderSetupSessionEmbed = ({
     isCustomSelected,
     credentialsForm,
     isCreatingCredentials,
+    disableCredentialSelection: !!fixedCredentialId,
     credentialSelectItems,
     handleCredentialSelectionChange,
     hasManagedVisibleCredentials,
     createCredentials,
     createSetupSession,
+    providerDoc,
+    configDoc,
     error,
     setupSession,
     setupWindowBlocked,

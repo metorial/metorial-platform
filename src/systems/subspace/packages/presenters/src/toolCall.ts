@@ -2,16 +2,17 @@ import { getOffloadedSessionMessage } from '@metorial-subspace/connection-utils'
 import {
   messageInputToToolCall,
   messageOutputToToolCall,
+  presentToolCallAttachment,
   type Provider,
   type ProviderSpecification,
   type ProviderTool,
-  type ToolCallAttachment,
-  type ToolCall
+  type ToolCall,
+  type ToolCallAttachment
 } from '@metorial-subspace/db';
 import { providerToolPresenter } from './providerTool';
 import { sessionErrorPresenter } from './sessionError';
+import { sessionParticipantPresenter } from './sessionParticipant';
 import type { SessionMessagePresenterProps } from './sessionMessage';
-import { presentToolCallAttachment } from '@metorial-subspace/db';
 
 export type ToolCallPresenterProps = ToolCall & {
   attachments: ToolCallAttachment[];
@@ -36,6 +37,8 @@ export let toolCallPresenter = async (toolCall: ToolCallPresenterProps) => {
 
     id: toolCall.id,
     toolKey: toolCall.toolKey,
+    rationale: toolCall.rationale,
+    operation: toolCall.operation,
 
     type: 'tool_call',
     status: toolCall.message.status,
@@ -48,6 +51,10 @@ export let toolCallPresenter = async (toolCall: ToolCallPresenterProps) => {
     sessionProviderId: toolCall.message.sessionProvider?.id || null,
     connectionId: toolCall.message.connection?.id || null,
     providerRunId: toolCall.message.providerRun?.id || null,
+    senderParticipant: sessionParticipantPresenter(toolCall.message.senderParticipant),
+    responderParticipant: toolCall.message.responderParticipant
+      ? sessionParticipantPresenter(toolCall.message.responderParticipant)
+      : null,
 
     tool: providerToolPresenter(toolCall.tool),
 

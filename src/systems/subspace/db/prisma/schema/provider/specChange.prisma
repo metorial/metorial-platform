@@ -52,6 +52,10 @@ model ProviderSpecificationChangeNotification {
 
   pairSpecificationChangeOid BigInt?                                          @unique
   pairSpecificationChange    ProviderDeploymentConfigPairSpecificationChange? @relation(fields: [pairSpecificationChangeOid], references: [oid])
+  monitorAlerts              MonitorAlert[]
+
+  createdAt DateTime @default(now())
 
   @@index([target])
+  @@index([createdAt])
 }

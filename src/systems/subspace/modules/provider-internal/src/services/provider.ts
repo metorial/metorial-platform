@@ -6,6 +6,7 @@ import {
   db,
   type EntityImage,
   getId,
+  Prisma,
   type Provider,
   type ProviderVariant,
   type Publisher,
@@ -99,6 +100,7 @@ class providerInternalServiceImpl {
       image?: EntityImage | null;
       skills?: string[];
       readme?: string;
+      docs?: PrismaJson.ProviderListingDocs | null;
       categories?: string[];
     };
 
@@ -283,6 +285,7 @@ class providerInternalServiceImpl {
             image: d.info.image ?? { type: 'default' as const },
 
             readme: d.info.readme,
+            docs: d.info.docs ?? Prisma.DbNull,
 
             skills: d.info.skills || [],
 
@@ -362,9 +365,17 @@ class providerInternalServiceImpl {
       description?: string;
       readme?: string;
       slug?: string;
+      aliases?: string[];
       image?: EntityImage | null;
       skills?: string[];
       access?: 'public' | 'tenant';
+      status?: 'active' | 'archived' | 'deleted';
+      isDeprecated?: boolean;
+      isPublic?: boolean;
+      isMetorial?: boolean;
+      isVerified?: boolean;
+      isOfficial?: boolean;
+      rank?: number;
     };
   }) {
     return withTransaction(async db => {
@@ -374,10 +385,36 @@ class providerInternalServiceImpl {
           slug: d.input.slug,
           name: d.input.name?.trim() || undefined,
           description: d.input.description?.trim() || undefined,
-          access: d.input.access
+          access: d.input.access,
+          status: d.input.status,
+          isDeprecated: d.input.isDeprecated
         }
       });
 
+      let existingListing = await db.providerListing.findFirstOrThrow({
+        where: { providerOid: provider.oid }
+      });
+      let snapshotListing = (listing: typeof existingListing) => ({
+        id: listing.id,
+        status: listing.status,
+        isDeprecated: listing.isDeprecated,
+        isPublic: listing.isPublic,
+        isCustomized: listing.isCustomized,
+        isMetorial: listing.isMetorial,
+        isVerified: listing.isVerified,
+        isOfficial: listing.isOfficial,
+        name: listing.name,
+        slug: listing.slug,
+        prettySlug: listing.prettySlug,
+        aliases: listing.aliases,
+        image: listing.image,
+        description: listing.description,
+        readme: listing.readme,
+        rank: listing.rank,
+        skills: listing.skills
+      });
+
+      let before = snapshotListing(existingListing);
       let listing = await db.providerListing.update({
         where: { providerOid: provider.oid },
         data: {
@@ -385,10 +422,25 @@ class providerInternalServiceImpl {
           name: provider.name,
           description: provider.description,
           readme: d.input.readme,
+          aliases: d.input.aliases,
           skills: d.input.skills,
           image: d.input.image ?? undefined,
-          isPublic: provider.access === 'public',
-          isDeprecated: provider.isDeprecated
+          isPublic: d.input.isPublic ?? provider.access === 'public',
+          isDeprecated: d.input.isDeprecated ?? provider.isDeprecated,
+          isMetorial: d.input.isMetorial,
+          isVerified: d.input.isVerified,
+          isOfficial: d.input.isOfficial,
+          rank: d.input.rank,
+          isCustomized: true
+        }
+      });
+
+      await db.providerListingUpdate.create({
+        data: {
+          ...getId('providerListingUpdate'),
+          providerListingOid: listing.oid,
+          before,
+          after: snapshotListing(listing)
         }
       });
 

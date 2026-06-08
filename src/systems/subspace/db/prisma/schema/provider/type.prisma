@@ -20,7 +20,8 @@ model ProviderType {
 
   createdAt DateTime @default(now())
 
-  providers        Provider[]
-  providerVersions ProviderVersion[]
-  providerListings ProviderListing[]
+  providers               Provider[]
+  providerVersions        ProviderVersion[]
+  providerListings        ProviderListing[]
+  tenantOAuthCallbackUrls TenantOAuthCallbackUrl[]
 }

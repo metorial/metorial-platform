@@ -104,6 +104,7 @@ export let Button = React.forwardRef(
       variant,
       color,
       size,
+      shadow,
       onHover,
       as = 'button',
       ...props
@@ -127,7 +128,8 @@ export let Button = React.forwardRef(
     let style = getButtonStyles({
       color,
       variant,
-      size
+      size,
+      shadow
     });
 
     let loadingVisible = useDelayed(loading, 200, [false]);

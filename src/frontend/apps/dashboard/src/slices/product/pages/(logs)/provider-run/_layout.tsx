@@ -1,4 +1,4 @@
-import { renderWithLoader } from '@metorial/data-hooks';
+import { InitialLoadBoundary, renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import {
   ContentPanelLayout,
@@ -119,9 +119,11 @@ export let ProviderRunLayout = () => {
         }}
       >
         <ContentPanelLayoutInner>
-          {renderWithLoader({ run })(({ run: _run }) => (
-            <Outlet />
-          ))}
+          <InitialLoadBoundary>
+            {renderWithLoader({ run })(({ run: _run }) => (
+              <Outlet />
+            ))}
+          </InitialLoadBoundary>
         </ContentPanelLayoutInner>
       </ContentPanelLayout>
     </ExtraHeaderLayout>

@@ -2,9 +2,10 @@ import type { ProviderTool } from '@metorial-subspace/db';
 import safeRegex from 'safe-regex2';
 
 type ToolFilter = PrismaJson.ToolFilter;
+type ToolFilterChain = PrismaJson.ToolFilterChain;
 type ToolFilterRule = Extract<ToolFilter, { type: 'v1.filter' }>['filters'][number];
 type ToolFilterCarrier = {
-  toolFilter?: ToolFilter | null;
+  toolFilter?: ToolFilterChain | null;
   deployment?: {
     toolFilter?: ToolFilter | null;
   } | null;
@@ -21,6 +22,17 @@ type ToolFilterEnvelopeInput = {
 };
 
 let allowAllFilter = (): ToolFilter => ({ type: 'v1.allow_all' });
+
+let stripToolFilterControlFields = (filter: ToolFilter): ToolFilter => {
+  if (filter.type === 'v1.allow_all') {
+    return { type: 'v1.allow_all' };
+  }
+
+  return {
+    type: 'v1.filter',
+    filters: filter.filters
+  };
+};
 
 let validateAndUseRegex = (pattern: string, flags?: string) => {
   if (!safeRegex(pattern)) {
@@ -98,30 +110,94 @@ export let normalizeToolFilters = (
   };
 };
 
+export let normalizeToolFilterChain = (
+  input: ToolFilterChain | null | undefined
+): ToolFilter[] => {
+  if (!input) return [];
+
+  return (Array.isArray(input) ? input : [input]).map(filter => normalizeToolFilters(filter));
+};
+
+export let resolveStackedToolFilterChain = (
+  filters: (ToolFilterChain | null | undefined)[]
+): ToolFilter[] => {
+  let chain: ToolFilter[] = [];
+
+  for (let input of filters) {
+    for (let filter of normalizeToolFilterChain(input)) {
+      if (filter.ignoreParentFilters) chain = [];
+      chain.push(stripToolFilterControlFields(filter));
+    }
+  }
+
+  return chain;
+};
+
+let isNoopToolFilter = (filter: ToolFilter) =>
+  filter.type === 'v1.allow_all' || filter.filters.length === 0;
+
+export let buildIntegrationProviderToolFilterChain = (d: {
+  canAttachCustomToolFilters?: boolean | null;
+  canOverrideToolFilters?: boolean | null;
+  integrationProviderToolFilter?: ToolFilter | null;
+  integrationInstanceProviderToolFilter?: ToolFilter | null;
+  integrationInstanceProviderIsOverride?: boolean | null;
+  integrationInstanceGroupProviderToolFilter?: ToolFilter | null;
+  integrationInstanceGroupProviderIsOverride?: boolean | null;
+}): ToolFilterChain => {
+  let chain: ToolFilter[] = [];
+  let canAttachCustomToolFilters = d.canAttachCustomToolFilters ?? true;
+  let canOverrideToolFilters = d.canOverrideToolFilters ?? true;
+  let addFilter = (input: ToolFilter | null | undefined, isOverride?: boolean | null) => {
+    if (!input && !isOverride) return;
+
+    let filter = normalizeToolFilters(input);
+    if (canOverrideToolFilters && (isOverride || filter.ignoreParentFilters)) chain = [];
+
+    let storedFilter = stripToolFilterControlFields(filter);
+    if (isNoopToolFilter(storedFilter)) return;
+
+    chain.push(storedFilter);
+  };
+
+  addFilter(d.integrationProviderToolFilter);
+  if (canAttachCustomToolFilters) {
+    addFilter(
+      d.integrationInstanceProviderToolFilter,
+      d.integrationInstanceProviderIsOverride
+    );
+    addFilter(
+      d.integrationInstanceGroupProviderToolFilter,
+      d.integrationInstanceGroupProviderIsOverride
+    );
+  }
+
+  if (!chain.length) return allowAllFilter();
+  if (chain.length === 1) return chain[0]!;
+
+  return chain;
+};
+
 export let resolveToolFilterChain = (d: {
   providerConfigToolFilter?: ToolFilter | null;
   providerAuthConfigToolFilter?: ToolFilter | null;
   providerDeploymentToolFilter?: ToolFilter | null;
-  sessionProviderToolFilter?: ToolFilter | null;
+  sessionProviderToolFilter?: ToolFilterChain | null;
 }) => {
   let providerConfigToolFilter = normalizeToolFilters(d.providerConfigToolFilter);
   let providerAuthConfigToolFilter = normalizeToolFilters(d.providerAuthConfigToolFilter);
   let providerDeploymentToolFilter = normalizeToolFilters(d.providerDeploymentToolFilter);
-  let sessionProviderToolFilter = normalizeToolFilters(d.sessionProviderToolFilter);
-
-  if (sessionProviderToolFilter.ignoreParentFilters) {
-    return [sessionProviderToolFilter];
-  }
+  let sessionProviderToolFilterChain = normalizeToolFilterChain(d.sessionProviderToolFilter);
 
   if (providerDeploymentToolFilter.ignoreParentFilters) {
-    return [providerDeploymentToolFilter, sessionProviderToolFilter];
+    return [providerDeploymentToolFilter, ...sessionProviderToolFilterChain];
   }
 
   if (providerAuthConfigToolFilter.ignoreParentFilters) {
     return [
       providerAuthConfigToolFilter,
       providerDeploymentToolFilter,
-      sessionProviderToolFilter
+      ...sessionProviderToolFilterChain
     ];
   }
 
@@ -130,7 +206,7 @@ export let resolveToolFilterChain = (d: {
       providerConfigToolFilter,
       providerAuthConfigToolFilter,
       providerDeploymentToolFilter,
-      sessionProviderToolFilter
+      ...sessionProviderToolFilterChain
     ];
   }
 
@@ -138,7 +214,7 @@ export let resolveToolFilterChain = (d: {
     providerConfigToolFilter,
     providerAuthConfigToolFilter,
     providerDeploymentToolFilter,
-    sessionProviderToolFilter
+    ...sessionProviderToolFilterChain
   ];
 };
 

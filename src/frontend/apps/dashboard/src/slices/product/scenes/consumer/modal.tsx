@@ -8,9 +8,9 @@ export let showConsumerFormModal = (p: {
 }) =>
   showModal(({ dialogProps, close }) => (
     <Dialog.Wrapper {...dialogProps} width={550}>
-      <Dialog.Title>Create Consumer</Dialog.Title>
+      <Dialog.Title>Create Account</Dialog.Title>
       <Dialog.Description>
-        Add a consumer to this instance so you can manage profiles across consumer surfaces.
+        Add an account to this instance so you can manage profiles across account surfaces.
       </Dialog.Description>
 
       <ConsumerForm {...p} close={close} onCreate={p.onCreate} />

@@ -17,6 +17,10 @@ import { env } from '../../env';
 import { createVersion } from '../../internal/createVersion';
 import { ensureEnvironments } from '../../internal/ensureEnvironments';
 import { getImmutableBucketForCustomProviderVersion } from '../../internal/files';
+import {
+  resolveCustomProviderConfig,
+  resolveCustomProviderFromForDeployment
+} from '../../internal/resolveFrom';
 import { origin } from '../../origin';
 import { customDeploymentFailedQueue } from '../deployment/failed';
 import { customProviderCreatedQueue } from '../lifecycle/customProvider';
@@ -87,20 +91,36 @@ export let handleUpcomingCustomProviderQueueProcessor =
         solution: true,
         environment: true,
         actor: true,
-        customProvider: true,
+        customProvider: { include: { scmRepo: true } },
         customProviderDeployment: true,
         customProviderVersion: true
       }
     });
     if (!upcoming) throw new QueueRetryError();
+    if (upcoming.customProvider.status !== 'active') {
+      await db.upcomingCustomProvider.deleteMany({
+        where: { id: upcoming.id }
+      });
+      return;
+    }
+
     try {
+      let resolvedFrom = resolveCustomProviderFromForDeployment({
+        partial: upcoming.payload.from,
+        provider: upcoming.customProvider
+      });
+      let resolvedConfig = resolveCustomProviderConfig(
+        upcoming.payload.config,
+        upcoming.customProvider.payload.config
+      );
+
       let from = await mapFrom({
-        isInitial: false,
+        isInitial: upcoming.type === 'create_custom_provider',
 
         deployment: upcoming.customProviderDeployment,
         version: upcoming.customProviderVersion,
         provider: upcoming.customProvider,
-        from: upcoming.payload.from,
+        from: resolvedFrom,
 
         tenant: upcoming.tenant,
         solution: upcoming.solution,
@@ -116,14 +136,14 @@ export let handleUpcomingCustomProviderQueueProcessor =
               name: upcoming.customProvider.name,
               description: upcoming.customProvider.description ?? undefined,
 
-              config: upcoming.payload.config,
+              config: resolvedConfig,
               from
             })
           : await backend.createCustomProviderVersion({
               tenant: upcoming.tenant,
               customProvider: upcoming.customProvider,
 
-              config: upcoming.payload.config,
+              config: resolvedConfig,
               from
             });
 

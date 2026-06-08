@@ -118,8 +118,7 @@ export let providerDeploymentDeleteQueueProcessor = providerDeploymentDeleteQueu
         defaultAuthConfigOid: null,
         name: '[deleted]',
         description: null,
-        metadata: {},
-        networkingRulesetIds: []
+        metadata: {}
       }
     });
 

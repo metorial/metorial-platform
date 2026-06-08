@@ -1,4 +1,4 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
@@ -6,8 +6,11 @@ import {
   db,
   type Environment,
   getId,
-  type SessionProviderStatus,
+  type IntegrationInstance,
+  type IntegrationInstanceGroup,
+  Prisma,
   type SessionTemplate,
+  type SessionTemplateStatus,
   type Solution,
   type Tenant,
   withTransaction
@@ -18,6 +21,12 @@ import {
   normalizeDateFilter,
   normalizeStatusForGet,
   normalizeStatusForList,
+  resolveIntegrationInstanceGroupProviders,
+  resolveIntegrationInstanceGroups,
+  resolveIntegrationInstanceProviders,
+  resolveIntegrationInstances,
+  resolveIntegrationProviders,
+  resolveIntegrations,
   resolveProviderAuthConfigs,
   resolveProviderConfigs,
   resolveProviderDeployments,
@@ -28,6 +37,7 @@ import { providerToolService } from '@metorial-subspace/module-catalog';
 import { checkToolAccess } from '@metorial-subspace/module-provider-internal';
 import { checkTenant } from '@metorial-subspace/module-tenant';
 import { sessionTemplateArchivedQueue } from '../queues/lifecycle/sessionTemplate';
+import { queueJobId, withSessionTemplateSyncLock } from '../lib/sessionTemplateSync';
 import {
   type SessionProviderInput,
   sessionProviderInputService
@@ -35,10 +45,44 @@ import {
 import { sessionTemplateProviderInclude } from './sessionTemplateProvider';
 
 let include = {
+  identityActor: true,
+  identity: true,
+  integrationInstance: true,
+  integrationInstanceGroup: true,
   providers: {
     include: sessionTemplateProviderInclude,
     where: { status: 'active' as const }
   }
+};
+
+let assertCanWriteSessionTemplate = async (
+  template: Pick<
+    SessionTemplate,
+    | 'oid'
+    | 'defaultSessionTemplateForIntegrationInstanceOid'
+    | 'defaultSessionTemplateForIntegrationInstanceGroupOid'
+  >,
+  action: 'update' | 'archive'
+) => {
+  let hasDefaultLink =
+    !!template.defaultSessionTemplateForIntegrationInstanceOid ||
+    !!template.defaultSessionTemplateForIntegrationInstanceGroupOid;
+  let hasEphemeralManagedSession =
+    (await db.ephemeralManagedSession.count({
+      where: {
+        sessionTemplateOid: template.oid,
+        status: { not: 'deleted' }
+      }
+    })) > 0;
+
+  if (!hasDefaultLink && !hasEphemeralManagedSession) return;
+
+  throw new ServiceError(
+    badRequestError({
+      message: `Cannot ${action} an internally managed session template.`,
+      code: 'internal_session_template_readonly'
+    })
+  );
 };
 
 class sessionTemplateServiceImpl {
@@ -47,7 +91,7 @@ class sessionTemplateServiceImpl {
     solution: Solution;
     environment: Environment;
 
-    status?: SessionProviderStatus[];
+    status?: SessionTemplateStatus[];
     allowDeleted?: boolean;
 
     ids?: string[];
@@ -57,6 +101,12 @@ class sessionTemplateServiceImpl {
     providerDeploymentIds?: string[];
     providerConfigIds?: string[];
     providerAuthConfigIds?: string[];
+    integrationIds?: string[];
+    integrationInstanceIds?: string[];
+    integrationInstanceGroupIds?: string[];
+    integrationProviderIds?: string[];
+    integrationInstanceProviderIds?: string[];
+    integrationInstanceGroupProviderIds?: string[];
     createdAt?: DateFilter;
     updatedAt?: DateFilter;
   }) {
@@ -66,6 +116,21 @@ class sessionTemplateServiceImpl {
     let deployments = await resolveProviderDeployments(d, d.providerDeploymentIds);
     let configs = await resolveProviderConfigs(d, d.providerConfigIds);
     let authConfigs = await resolveProviderAuthConfigs(d, d.providerAuthConfigIds);
+    let integrations = await resolveIntegrations(d, d.integrationIds);
+    let integrationInstances = await resolveIntegrationInstances(d, d.integrationInstanceIds);
+    let integrationInstanceGroups = await resolveIntegrationInstanceGroups(
+      d,
+      d.integrationInstanceGroupIds
+    );
+    let integrationProviders = await resolveIntegrationProviders(d, d.integrationProviderIds);
+    let integrationInstanceProviders = await resolveIntegrationInstanceProviders(
+      d,
+      d.integrationInstanceProviderIds
+    );
+    let integrationInstanceGroupProviders = await resolveIntegrationInstanceGroupProviders(
+      d,
+      d.integrationInstanceGroupProviderIds
+    );
 
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -100,6 +165,45 @@ class sessionTemplateServiceImpl {
                 configs ? { providers: { some: { configOid: configs.in } } } : undefined!,
                 authConfigs
                   ? { providers: { some: { authConfigOid: authConfigs.in } } }
+                  : undefined!,
+                integrations
+                  ? { integrationInstance: { integrationOid: integrations.in } }
+                  : undefined!,
+                integrationInstances
+                  ? { integrationInstanceOid: integrationInstances.in }
+                  : undefined!,
+                integrationInstanceGroups
+                  ? { integrationInstanceGroupOid: integrationInstanceGroups.in }
+                  : undefined!,
+                integrationProviders
+                  ? {
+                      providers: {
+                        some: {
+                          integrationInstanceProvider: {
+                            integrationProviderOid: integrationProviders.in
+                          }
+                        }
+                      }
+                    }
+                  : undefined!,
+                integrationInstanceProviders
+                  ? {
+                      providers: {
+                        some: {
+                          integrationInstanceProviderOid: integrationInstanceProviders.in
+                        }
+                      }
+                    }
+                  : undefined!,
+                integrationInstanceGroupProviders
+                  ? {
+                      providers: {
+                        some: {
+                          integrationInstanceGroupProviderOid:
+                            integrationInstanceGroupProviders.in
+                        }
+                      }
+                    }
                   : undefined!,
 
                 d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
@@ -201,6 +305,71 @@ class sessionTemplateServiceImpl {
     });
   }
 
+  async upsertInternalLinkedSessionTemplate(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    sessionTemplate?: SessionTemplate | null;
+    linkAsDefault?: boolean;
+    input: {
+      name?: string | null;
+      description?: string | null;
+      metadata?: Record<string, any> | null;
+      privateMetadata?: Record<string, any> | null;
+      integrationInstance?: IntegrationInstance | null;
+      integrationInstanceGroup?: IntegrationInstanceGroup | null;
+    };
+  }) {
+    return withTransaction(async db => {
+      let data = {
+        status: 'active' as const,
+        name: d.input.name?.trim() || undefined,
+        description: d.input.description?.trim() || null,
+        metadata: d.input.metadata ?? Prisma.JsonNull,
+        privateMetadata: d.input.privateMetadata ?? Prisma.JsonNull,
+        isInternal: true,
+        integrationInstanceOid: d.input.integrationInstance?.oid ?? null,
+        integrationInstanceGroupOid: d.input.integrationInstanceGroup?.oid ?? null,
+        identityActorOid:
+          d.input.integrationInstance?.identityActorOid ??
+          d.input.integrationInstanceGroup?.identityActorOid ??
+          null,
+        identityOid:
+          d.input.integrationInstance?.identityOid ??
+          d.input.integrationInstanceGroup?.identityOid ??
+          null,
+        defaultSessionTemplateForIntegrationInstanceOid:
+          d.linkAsDefault === false ? null : (d.input.integrationInstance?.oid ?? null),
+        defaultSessionTemplateForIntegrationInstanceGroupOid:
+          d.input.integrationInstanceGroup?.oid ?? null
+      };
+
+      if (d.sessionTemplate) {
+        return await db.sessionTemplate.update({
+          where: {
+            oid: d.sessionTemplate.oid,
+            tenantOid: d.tenant.oid,
+            solutionOid: d.solution.oid,
+            environmentOid: d.environment.oid
+          },
+          data,
+          include
+        });
+      }
+
+      return await db.sessionTemplate.create({
+        data: {
+          ...getId('sessionTemplate'),
+          ...data,
+          tenantOid: d.tenant.oid,
+          solutionOid: d.solution.oid,
+          environmentOid: d.environment.oid
+        },
+        include
+      });
+    });
+  }
+
   async updateSessionTemplate(d: {
     tenant: Tenant;
     solution: Solution;
@@ -212,9 +381,11 @@ class sessionTemplateServiceImpl {
       metadata?: Record<string, any>;
       privateMetadata?: Record<string, any>;
     };
+    _allowLinked?: boolean;
   }) {
     checkTenant(d, d.template);
     checkDeletedEdit(d.template, 'update');
+    if (!d._allowLinked) await assertCanWriteSessionTemplate(d.template, 'update');
 
     return withTransaction(async db => {
       let template = await db.sessionTemplate.update({
@@ -241,41 +412,48 @@ class sessionTemplateServiceImpl {
     solution: Solution;
     environment: Environment;
     sessionTemplate: SessionTemplate;
+    _allowLinked?: boolean;
   }) {
     checkTenant(d, d.sessionTemplate);
     checkDeletedEdit(d.sessionTemplate, 'archive');
+    if (!d._allowLinked) await assertCanWriteSessionTemplate(d.sessionTemplate, 'archive');
 
-    return withTransaction(async db => {
-      let archivedAt = new Date();
+    return withSessionTemplateSyncLock(d.sessionTemplate.id, async () =>
+      withTransaction(async db => {
+        let archivedAt = new Date();
 
-      await db.sessionTemplateProvider.updateMany({
-        where: {
-          sessionTemplateOid: d.sessionTemplate.oid
-        },
-        data: {
-          status: 'archived' as const
-        }
-      });
+        await db.sessionTemplateProvider.updateMany({
+          where: {
+            sessionTemplateOid: d.sessionTemplate.oid
+          },
+          data: {
+            status: 'archived' as const
+          }
+        });
 
-      let sessionTemplate = await db.sessionTemplate.update({
-        where: {
-          oid: d.sessionTemplate.oid
-        },
-        data: {
-          status: 'archived' as const,
-          archivedAt
-        },
-        include
-      });
+        let sessionTemplate = await db.sessionTemplate.update({
+          where: {
+            oid: d.sessionTemplate.oid
+          },
+          data: {
+            status: 'archived' as const,
+            archivedAt
+          },
+          include
+        });
 
-      await addAfterTransactionHook(async () =>
-        sessionTemplateArchivedQueue.add({
-          sessionTemplateId: sessionTemplate.id
-        })
-      );
+        await addAfterTransactionHook(async () =>
+          sessionTemplateArchivedQueue.add(
+            {
+              sessionTemplateId: sessionTemplate.id
+            },
+            { id: queueJobId('sta', sessionTemplate.id) }
+          )
+        );
 
-      return sessionTemplate;
-    });
+        return sessionTemplate;
+      })
+    );
   }
 
   async deleteSessionTemplate(d: {
@@ -283,6 +461,7 @@ class sessionTemplateServiceImpl {
     solution: Solution;
     environment: Environment;
     sessionTemplate: SessionTemplate;
+    _allowLinked?: boolean;
   }) {
     return this.archiveSessionTemplate(d);
   }

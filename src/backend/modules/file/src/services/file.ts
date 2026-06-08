@@ -1,19 +1,24 @@
-import {
-  badRequestError,
-  forbiddenError,
-  notFoundError,
-  ServiceError
-} from '@lowerdeck/error';
+import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { db, File, ID, Instance, Organization } from '@metorial/db';
+import { Instance, Organization, User } from '@metorial/db';
+import { cargo, reconcileCargoPurposes, type CargoActor, type CargoFile } from '../cargo';
 import { purposes } from '../definitions';
+import {
+  resolveCargoAccess,
+  type CargoAccessActor,
+  type CargoStorePermission
+} from './access';
+import {
+  documentParticipantService,
+  type EnrichedCargoDocumentActor
+} from './documentParticipant';
 import { fileReferenceService } from './fileReference';
 
 export type FileOwner =
   | {
       type: 'user';
-      user: { id: string };
+      user: User;
     }
   | {
       type: 'organization';
@@ -25,29 +30,61 @@ export type FileOwner =
       instance: Instance;
     };
 
+export type EnrichedCargoFile = Omit<CargoFile, 'createdBy'> & {
+  createdBy: EnrichedCargoDocumentActor | null;
+};
+
 class FileServiceImpl {
-  private async ensureFileActive(file: File) {
-    if (file.status !== 'active') {
+  private validatePurposeOwner(d: { purpose: { ownerType: string }; owner: FileOwner }) {
+    if (d.purpose.ownerType !== d.owner.type) {
       throw new ServiceError(
-        forbiddenError({
-          message: 'Cannot perform this action on a deleted file'
+        badRequestError({
+          message: 'Invalid file purpose for owner'
         })
       );
     }
   }
 
-  private async getUserOid(userId: string) {
-    let user = await db.user.findFirst({
-      where: { id: userId }
+  async enrichFiles(d: {
+    owner: FileOwner;
+    files: CargoFile[];
+  }): Promise<EnrichedCargoFile[]> {
+    let creators = d.files
+      .map(file => file.createdBy)
+      .filter((creator): creator is CargoActor => !!creator);
+
+    let enrichedCreators = await documentParticipantService.enrichActors({
+      owner: d.owner,
+      actors: creators
     });
-    if (!user) throw new Error('WTF - user not found');
-    return user.oid;
+
+    let nextCreatorIndex = 0;
+    return d.files.map(file => {
+      let createdBy = file.createdBy ? (enrichedCreators[nextCreatorIndex++] ?? null) : null;
+
+      return {
+        ...file,
+        createdBy
+      };
+    });
+  }
+
+  async enrichFile(d: { owner: FileOwner; file: CargoFile }): Promise<EnrichedCargoFile> {
+    let [file] = await this.enrichFiles({
+      owner: d.owner,
+      files: [d.file]
+    });
+
+    return file!;
   }
 
   async createFile(d: {
     owner: FileOwner;
     storeId: string;
     purpose: string;
+    accessActor?: CargoAccessActor;
+    defaultPermissions?: CargoStorePermission[];
+    overridePermissions?: boolean;
     input: {
       name: string;
       mimeType: string;
@@ -65,101 +102,85 @@ class FileServiceImpl {
       );
     }
 
-    if (purpose.ownerType !== d.owner.type) {
-      throw new ServiceError(
-        badRequestError({
-          message: 'Invalid file purpose for owner'
-        })
-      );
-    }
+    this.validatePurposeOwner({ purpose, owner: d.owner });
 
-    return await db.file.create({
-      data: {
-        id: await ID.generateId('file'),
-        storeId: d.storeId,
-        purposeOid: purpose.oid,
-        organizationOid: d.owner.type === 'organization' ? d.owner.organization.oid : null,
-        userOid: d.owner.type === 'user' ? await this.getUserOid(d.owner.user.id) : null,
+    await reconcileCargoPurposes();
 
-        fileName: d.input.name,
-        fileSize: d.input.size,
-        fileType: d.input.mimeType,
+    let { scope, actorId, defaultPermissions, overridePermissions } =
+      await resolveCargoAccess(d);
 
-        title: d.input.title
-      },
-      include: {
-        purpose: true
-      }
+    let file = await cargo.file.create({
+      tenantId: scope.tenantId,
+      environmentId: scope.environmentId,
+      purpose: d.purpose,
+      storeId: d.storeId,
+      name: d.input.name,
+      mimeType: d.input.mimeType,
+      size: d.input.size,
+      title: d.input.title,
+      actorId,
+      defaultPermissions,
+      overridePermissions
     });
+
+    return await this.enrichFile({ owner: d.owner, file });
   }
 
-  async getFileById(d: { fileId: string; owner: FileOwner }) {
-    let userOid = d.owner.type === 'user' ? await this.getUserOid(d.owner.user.id) : null;
-
-    let file = await db.file.findUnique({
-      where: {
-        id: d.fileId,
-
-        ...(d.owner.type === 'organization' || d.owner.type === 'instance'
-          ? {
-              organizationOid: d.owner.organization.oid
-            }
-          : {
-              OR: [
-                {
-                  userOid: userOid!
-                },
-                {
-                  organization: {
-                    members: {
-                      some: {
-                        userOid: userOid!
-                      }
-                    }
-                  }
-                }
-              ]
-            })
-      },
-      include: {
-        purpose: true
-      }
+  async getFileById(d: {
+    fileId: string;
+    owner: FileOwner;
+    accessActor?: CargoAccessActor;
+    defaultPermissions?: CargoStorePermission[];
+    overridePermissions?: boolean;
+  }) {
+    let { scope, actorId, defaultPermissions, overridePermissions } =
+      await resolveCargoAccess(d);
+    let file = await cargo.file.get({
+      tenantId: scope.tenantId,
+      environmentId: scope.environmentId,
+      fileId: d.fileId,
+      actorId,
+      defaultPermissions,
+      overridePermissions
     });
-    if (!file) {
-      throw new ServiceError(notFoundError('file', d.fileId));
-    }
 
-    return file;
+    return await this.enrichFile({ owner: d.owner, file });
   }
 
   async updateFile(d: {
-    file: File;
+    file: Pick<CargoFile, 'id'>;
+    owner: FileOwner;
     input: {
       title?: string;
     };
   }) {
-    await this.ensureFileActive(d.file);
-
-    let file = await db.file.update({
-      where: {
-        id: d.file.id
-      },
-      data: {
-        title: d.input.title
-      },
-      include: {
-        purpose: true
-      }
+    let { scope } = await resolveCargoAccess({
+      owner: d.owner
     });
 
-    return file;
+    let file = await cargo.file.update({
+      tenantId: scope.tenantId,
+      environmentId: scope.environmentId,
+      fileId: d.file.id,
+      title: d.input.title
+    });
+
+    return await this.enrichFile({ owner: d.owner, file });
   }
 
-  async deleteFile(d: { file: File }) {
-    await this.ensureFileActive(d.file);
+  async deleteFile(d: {
+    file: Pick<CargoFile, 'id'>;
+    owner: FileOwner;
+    accessActor?: CargoAccessActor;
+    defaultPermissions?: CargoStorePermission[];
+    overridePermissions?: boolean;
+  }) {
+    let { scope, actorId, defaultPermissions, overridePermissions } =
+      await resolveCargoAccess(d);
 
     let hasRefs = await fileReferenceService.hasReferencesForFile({
-      file: d.file
+      file: d.file,
+      owner: d.owner
     });
     if (hasRefs) {
       throw new ServiceError(
@@ -169,51 +190,62 @@ class FileServiceImpl {
       );
     }
 
-    return await db.file.update({
-      where: {
-        id: d.file.id
-      },
-      data: {
-        status: 'deleted'
-      },
-      include: {
-        purpose: true
-      }
+    let file = await cargo.file.delete({
+      tenantId: scope.tenantId,
+      environmentId: scope.environmentId,
+      fileId: d.file.id,
+      actorId,
+      defaultPermissions,
+      overridePermissions
     });
+
+    return await this.enrichFile({ owner: d.owner, file });
   }
 
-  async listFiles(d: { owner: FileOwner; purpose?: string }) {
-    let purpose = d.purpose ? await purposes[d.purpose as keyof typeof purposes] : undefined;
-    if (purpose && purpose.ownerType !== d.owner.type) {
-      throw new ServiceError(
-        badRequestError({
-          message: 'Invalid file purpose for owner'
-        })
-      );
-    }
+  async listFiles(d: {
+    owner: FileOwner;
+    ids?: string[];
+    purpose?: string[];
+    storeIds?: string[];
+    documentIds?: string[];
+    fileLinkIds?: string[];
+    createdAt?: { gt?: Date; lt?: Date };
+    updatedAt?: { gt?: Date; lt?: Date };
+    accessActor?: CargoAccessActor;
+    defaultPermissions?: CargoStorePermission[];
+    overridePermissions?: boolean;
+  }) {
+    let { scope, actorId, defaultPermissions, overridePermissions } =
+      await resolveCargoAccess(d);
 
-    return Paginator.create(({ prisma }) =>
-      prisma(
-        async opts =>
-          await db.file.findMany({
-            ...opts,
-            where: {
-              status: 'active',
-              ...(d.owner.type === 'organization' || d.owner.type === 'instance'
-                ? {
-                    organizationOid: d.owner.organization.oid
-                  }
-                : {
-                    userOid: await this.getUserOid(d.owner.user.id)
-                  }),
-              purposeOid: purpose?.oid
-            },
-            include: {
-              purpose: true
-            }
-          })
-      )
-    );
+    return Paginator.create(() => async input => {
+      let result = await cargo.file.list({
+        tenantId: scope.tenantId,
+        environmentId: scope.environmentId,
+        fileIds: d.ids,
+        purpose: d.purpose,
+        storeIds: d.storeIds,
+        documentIds: d.documentIds,
+        fileLinkIds: d.fileLinkIds,
+        createdAt: d.createdAt,
+        updatedAt: d.updatedAt,
+        actorId,
+        defaultPermissions,
+        overridePermissions,
+        ...input
+      });
+
+      return {
+        items: await this.enrichFiles({
+          owner: d.owner,
+          files: result.items
+        }),
+        pagination: {
+          hasNextPage: result.pagination.has_more_after,
+          hasPreviousPage: result.pagination.has_more_before
+        }
+      };
+    });
   }
 }
 

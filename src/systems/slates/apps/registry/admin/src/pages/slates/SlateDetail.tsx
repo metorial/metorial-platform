@@ -161,7 +161,16 @@ export let SlateDetail = () => {
                       <Text size="3" weight="bold" style={{ fontFamily: 'monospace' }}>
                         v{version.version}
                       </Text>
-                      <Badge color={version.backend === 'npm' ? 'purple' : 'orange'} size="1">
+                      <Badge
+                        color={
+                          version.backend === 'npm'
+                            ? 'purple'
+                            : version.backend === 'local_built'
+                              ? 'blue'
+                              : 'orange'
+                        }
+                        size="1"
+                      >
                         {version.backend}
                       </Badge>
                       {version.isUnbuiltCurrent && (

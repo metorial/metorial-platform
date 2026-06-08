@@ -15,7 +15,7 @@ export let changeNotificationPresenter = (
     tenant: Tenant;
   }
 ) => ({
-  object: 'origin#changeNotification',
+  object: 'origin#changeNotification' as const,
 
   id: notification.id,
   type: notification.type,

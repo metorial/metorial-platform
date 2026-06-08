@@ -11,10 +11,11 @@
   "dependencies": {
     "@lowerdeck/env": "^1.0.6",
     "@lowerdeck/error": "^1.2.3",
+    "@lowerdeck/hash": "^1.0.4",
     "@lowerdeck/id": "^1.0.8",
     "@lowerdeck/lock": "^1.0.6",
     "@lowerdeck/pagination": "^1.0.8",
-    "@lowerdeck/queue": "^1.0.9",
+    "@lowerdeck/queue": "^1.0.11",
     "@lowerdeck/service": "^1.0.7",
     "@lowerdeck/slugify": "^1.0.6",
     "@lowerdeck/validation": "^1.0.10",

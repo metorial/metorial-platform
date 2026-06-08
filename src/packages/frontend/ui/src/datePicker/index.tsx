@@ -7,6 +7,7 @@ import { Button, InputDescription, InputLabel } from '..';
 import { AnimateContent } from '../animateContent';
 import { AnimatePanes } from '../animatePanes';
 import { ButtonSize, getButtonSize } from '../button/constants';
+import { useDialogZIndex } from '../dialog/state';
 import { Title } from '../text';
 import { theme } from '../theme';
 import { Tooltip } from '../tooltip';
@@ -74,7 +75,6 @@ let Content = styled(RadixPopover.Content)`
   border-radius: 10px;
   box-shadow: ${theme.shadows.medium};
   overflow: hidden;
-  z-index: 9999;
   display: flex;
   flex-direction: column;
   pointer-events: auto;
@@ -182,6 +182,7 @@ export let DatePicker = (
   let state = useDatePickerState(props);
   let [open, setOpen] = useState(false);
   let sizeStyles = getButtonSize(props.size ?? '3');
+  let zIndex = useDialogZIndex(open);
 
   return (
     <div>
@@ -209,7 +210,7 @@ export let DatePicker = (
         </div>
 
         <RadixPopover.Portal>
-          <Content sideOffset={5} side="bottom">
+          <Content sideOffset={5} side="bottom" style={{ zIndex }}>
             <Header>
               <Tooltip content="Previous Month">
                 <Button

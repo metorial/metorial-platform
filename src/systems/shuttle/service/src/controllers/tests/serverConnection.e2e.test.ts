@@ -106,8 +106,7 @@ describe('serverConnection:get E2E', () => {
   });
 
   it('returns a single server connection by ID', async () => {
-    const { tenant, server, serverVersion: version } =
-      await f.tenant.withServerAndVersion();
+    const { tenant, server, serverVersion: version } = await f.tenant.withServerAndVersion();
     const secret = await f.secret.serverConfigValue({ tenantOid: tenant.oid });
     const config = await f.serverConfig.default({
       serverOid: server.oid,
@@ -146,10 +145,13 @@ describe('serverConnection:get E2E', () => {
       server: serverA,
       serverVersion: versionA
     } = await f.tenant.withServerAndVersion();
-    const { tenant: tenantB, server: serverB, serverVersion: versionB } =
-      await f.tenant.withServerAndVersion({
-        tenantOverrides: { identifier: 'other-tenant' }
-      });
+    const {
+      tenant: tenantB,
+      server: serverB,
+      serverVersion: versionB
+    } = await f.tenant.withServerAndVersion({
+      tenantOverrides: { identifier: 'other-tenant' }
+    });
     const secretA = await f.secret.serverConfigValue({ tenantOid: tenantA.oid });
     const configA = await f.serverConfig.default({
       serverOid: serverA.oid,
@@ -184,5 +186,54 @@ describe('serverConnection:get E2E', () => {
         serverConnectionId: connectionA.id
       })
     ).rejects.toThrow('could not be found');
+  });
+});
+
+describe('serverConnection:create E2E', () => {
+  const f = fixtures(testDb);
+
+  beforeEach(async () => {
+    await cleanDatabase();
+  });
+
+  it('links a server instance configuration', async () => {
+    const { tenant, server, serverVersion } = await f.tenant.withServerAndVersion();
+    const secret = await f.secret.serverConfigValue({ tenantOid: tenant.oid });
+    const config = await f.serverConfig.default({
+      serverOid: server.oid,
+      secretOid: secret.oid,
+      tenantOid: tenant.oid
+    });
+    const egressPolicy = {
+      direction: 'egress' as const,
+      entries: [{ cidr: '10.0.0.0/8', portRange: { from: 443, to: 443 } }]
+    };
+    const instanceConfiguration = await shuttleClient.serverInstanceConfiguration.upsert({
+      tenantId: tenant.id,
+      enclaveId: 'enc_test',
+      egressPolicy
+    });
+
+    const result = await shuttleClient.serverConnection.create({
+      tenantId: tenant.id,
+      serverConfigId: config.id,
+      serverVersionId: serverVersion.id,
+      serverInstanceConfigurationId: instanceConfiguration.id,
+      client: { name: 'test-client', version: '1.0.0' },
+      capabilities: {}
+    });
+
+    expect(result).toMatchObject({
+      serverInstanceConfigurationId: instanceConfiguration.id
+    });
+
+    const persisted = await testDb.serverConnection.findUniqueOrThrow({
+      where: { id: result.id }
+    });
+    const persistedInstanceConfiguration =
+      await testDb.serverInstanceConfiguration.findUniqueOrThrow({
+        where: { id: instanceConfiguration.id }
+      });
+    expect(persisted.serverInstanceConfigurationOid).toBe(persistedInstanceConfiguration.oid);
   });
 });

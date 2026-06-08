@@ -70,6 +70,8 @@ export type SessionsListOutput = {
     fromTemplatesIds: string[];
     hasErrors: boolean;
     hasWarnings: boolean;
+    identityActorId: string | null;
+    identityId: string | null;
     createdAt: Date;
     updatedAt: Date;
   }[];
@@ -243,6 +245,11 @@ export let mapSessionsListOutput = mtMap.object<SessionsListOutput>({
         ),
         hasErrors: mtMap.objectField('has_errors', mtMap.passthrough()),
         hasWarnings: mtMap.objectField('has_warnings', mtMap.passthrough()),
+        identityActorId: mtMap.objectField(
+          'identity_actor_id',
+          mtMap.passthrough()
+        ),
+        identityId: mtMap.objectField('identity_id', mtMap.passthrough()),
         createdAt: mtMap.objectField('created_at', mtMap.date()),
         updatedAt: mtMap.objectField('updated_at', mtMap.date())
       })
@@ -266,6 +273,10 @@ export type SessionsListQuery = {
 } & {
   status?: 'active' | 'archived' | ('active' | 'archived')[] | undefined;
   id?: string | string[] | undefined;
+  agentId?: string | string[] | undefined;
+  actorId?: string | string[] | undefined;
+  consumerId?: string | string[] | undefined;
+  identityId?: string | string[] | undefined;
   sessionTemplateId?: string | string[] | undefined;
   sessionProviderId?: string | string[] | undefined;
   providerId?: string | string[] | undefined;
@@ -291,6 +302,46 @@ export let mapSessionsListQuery = mtMap.union([
       ),
       id: mtMap.objectField(
         'id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      agentId: mtMap.objectField(
+        'agent_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      actorId: mtMap.objectField(
+        'actor_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      consumerId: mtMap.objectField(
+        'consumer_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      identityId: mtMap.objectField(
+        'identity_id',
         mtMap.union([
           mtMap.unionOption('string', mtMap.passthrough()),
           mtMap.unionOption(

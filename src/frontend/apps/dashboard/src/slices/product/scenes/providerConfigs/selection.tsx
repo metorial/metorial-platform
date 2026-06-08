@@ -19,6 +19,7 @@ import {
 } from '../../lib/configSelection';
 import { getProviderConfigSchemaCapabilities } from '../../lib/providerCreationCapabilities';
 import { showProviderConfigVaultFormModal } from '../providerConfigVaults/modal';
+import { ProviderConfigForm } from './form';
 import { showProviderConfigFormModal } from './modal';
 
 type ConfigItem = DashboardInstanceProviderDeploymentsConfigsListOutput['items'][number];
@@ -39,7 +40,11 @@ export let ProviderConfigurationSelection = ({
   includeVaults = true,
   createConfigButtonLabel,
   showExistingOptions = true,
-  disabled = false
+  filterAvailableResources = false,
+  disabled = false,
+  inlineCreateConfig = false,
+  defaultConfigName,
+  hideCreateConfigDetails = false
 }: {
   instanceId: string;
   providerDeploymentId?: string;
@@ -50,15 +55,32 @@ export let ProviderConfigurationSelection = ({
   includeVaults?: boolean;
   createConfigButtonLabel?: string;
   showExistingOptions?: boolean;
+  filterAvailableResources?: boolean;
   disabled?: boolean;
+  inlineCreateConfig?: boolean;
+  defaultConfigName?: string;
+  hideCreateConfigDetails?: boolean;
 }) => {
-  let query = providerDeploymentId
+  let query = filterAvailableResources
+    ? {
+        ...(providerId ? { providerId } : {}),
+        availableForUse: true,
+        ...(providerDeploymentId
+          ? { availableForProviderDeploymentId: providerDeploymentId }
+          : {})
+      }
+    : providerDeploymentId
+      ? { providerDeploymentId }
+      : providerId
+        ? { providerId }
+        : {};
+  let vaultQuery = providerDeploymentId
     ? { providerDeploymentId }
     : providerId
       ? { providerId }
       : {};
   let configs = useProviderConfigs(instanceId, query);
-  let vaults = useProviderConfigVaults(instanceId, query);
+  let vaults = useProviderConfigVaults(instanceId, vaultQuery);
   let configSchema = useProviderConfigSchemaTarget(
     instanceId,
     providerDeploymentId ? { providerDeploymentId } : providerId ? { providerId } : null
@@ -80,9 +102,11 @@ export let ProviderConfigurationSelection = ({
   let scopeKey = providerDeploymentId ?? providerId ?? '__none__';
   let handledAutoSelectionRef = useRef<string | null>(null);
   let [createdSelection, setCreatedSelection] = useState<CreatedSelectionState | null>(null);
+  let [isCreatingInlineConfig, setIsCreatingInlineConfig] = useState(false);
 
   useEffect(() => {
     handledAutoSelectionRef.current = null;
+    setIsCreatingInlineConfig(false);
   }, [scopeKey]);
 
   useEffect(() => {
@@ -121,6 +145,14 @@ export let ProviderConfigurationSelection = ({
       : effectiveValue.kind === 'vault'
         ? (selectedVault.data?.name ?? selectedVault.data?.id)
         : undefined);
+  let handleConfigCreated = async (config: { id: string; name?: string | null }) => {
+    let label = config.name ?? config.id;
+    onChange({ kind: 'config', id: config.id });
+    setCreatedSelection({ kind: 'config', id: config.id, label });
+    setIsCreatingInlineConfig(false);
+    await Promise.resolve(configs.refetch?.());
+    onChange({ kind: 'config', id: config.id });
+  };
 
   return (
     <Flex direction="column" gap={8}>
@@ -141,6 +173,17 @@ export let ProviderConfigurationSelection = ({
             </Button>
           </Flex>
         </Callout>
+      ) : isCreatingInlineConfig ? (
+        <ProviderConfigForm
+          type="create"
+          instanceId={instanceId}
+          providerDeploymentId={providerDeploymentId}
+          providerId={providerId}
+          defaultName={defaultConfigName}
+          hideDetailsInputs={hideCreateConfigDetails}
+          close={() => setIsCreatingInlineConfig(false)}
+          onCreate={handleConfigCreated}
+        />
       ) : (
         <Flex gap={8} align="end">
           {showExistingOptions ? (
@@ -162,7 +205,7 @@ export let ProviderConfigurationSelection = ({
                     includeVaults ? instanceId : null,
                     includeVaults
                       ? {
-                          ...query,
+                          ...vaultQuery,
                           limit: 25,
                           search: searchQuery || undefined
                         }
@@ -209,21 +252,20 @@ export let ProviderConfigurationSelection = ({
                 size="3"
                 iconLeft={<RiAddLine />}
                 disabled={disabled || !configCreation.canCreateConfig}
-                onClick={() =>
+                onClick={() => {
+                  if (inlineCreateConfig) {
+                    setIsCreatingInlineConfig(true);
+                    return;
+                  }
+
                   showProviderConfigFormModal({
                     type: 'create',
                     instanceId,
                     ...(providerDeploymentId ? { providerDeploymentId } : {}),
                     ...(providerId ? { providerId } : {}),
-                    onCreate: async config => {
-                      let label = config.name ?? config.id;
-                      onChange({ kind: 'config', id: config.id });
-                      setCreatedSelection({ kind: 'config', id: config.id, label });
-                      await Promise.resolve(configs.refetch?.());
-                      onChange({ kind: 'config', id: config.id });
-                    }
-                  })
-                }
+                    onCreate: handleConfigCreated
+                  });
+                }}
               >
                 {createConfigButtonLabel}
               </Button>

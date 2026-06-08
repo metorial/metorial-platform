@@ -1,7 +1,9 @@
 import { createCron } from '@lowerdeck/cron';
 import { createQueue } from '@lowerdeck/queue';
+import { sessionMessageBucketRecord, storage } from '@metorial-subspace/connection-utils';
 import { db, withTransaction } from '@metorial-subspace/db';
 import { env } from '../../env';
+import { getConnectionRetentionWhere } from '@metorial-subspace/list-utils';
 import {
   getRetentionCutoffDate,
   RETENTION_BATCH_SIZE,
@@ -111,6 +113,44 @@ let cleanupSessionWarnings = async (d: { tenantOid: bigint; cutoffDate: Date }) 
       }),
     deleteMany: records =>
       db.sessionWarning.deleteMany({
+        where: { oid: { in: records.map(record => record.oid) } }
+      })
+  });
+};
+
+let cleanupProtoGuardRuns = async (d: { tenantOid: bigint; cutoffDate: Date }) => {
+  await processBatch<{ oid: bigint }>({
+    findMany: () =>
+      db.protoGuardRun.findMany({
+        where: {
+          tenantOid: d.tenantOid,
+          createdAt: { lt: d.cutoffDate }
+        },
+        orderBy: { createdAt: 'asc' },
+        take: RETENTION_BATCH_SIZE,
+        select: { oid: true }
+      }),
+    deleteMany: records =>
+      db.protoGuardRun.deleteMany({
+        where: { oid: { in: records.map(record => record.oid) } }
+      })
+  });
+};
+
+let cleanupMonitorAlerts = async (d: { tenantOid: bigint; cutoffDate: Date }) => {
+  await processBatch<{ oid: bigint }>({
+    findMany: () =>
+      db.monitorAlert.findMany({
+        where: {
+          tenantOid: d.tenantOid,
+          createdAt: { lt: d.cutoffDate }
+        },
+        orderBy: { createdAt: 'asc' },
+        take: RETENTION_BATCH_SIZE,
+        select: { oid: true }
+      }),
+    deleteMany: records =>
+      db.monitorAlert.deleteMany({
         where: { oid: { in: records.map(record => record.oid) } }
       })
   });
@@ -277,9 +317,11 @@ let cleanupSessionConnections = async (d: { tenantOid: bigint; cutoffDate: Date 
       db.sessionConnection.findMany({
         where: {
           tenantOid: d.tenantOid,
-          createdAt: { lt: d.cutoffDate },
-          state: 'disconnected',
-          providerRuns: { none: {} }
+          providerRuns: { none: {} },
+          ...getConnectionRetentionWhere({
+            cutoff: d.cutoffDate,
+            beforeCutoff: true
+          })
         },
         orderBy: { createdAt: 'asc' },
         take: RETENTION_BATCH_SIZE,
@@ -316,6 +358,18 @@ let cleanupSessionConnections = async (d: { tenantOid: bigint; cutoffDate: Date 
             data: {
               connectionOid: null,
               isParentDeleted: true
+            }
+          }),
+          tx.protoGuardRun.updateMany({
+            where: { connectionOid: { in: connectionOids } },
+            data: {
+              connectionOid: null
+            }
+          }),
+          tx.protoGuardAlert.updateMany({
+            where: { connectionOid: { in: connectionOids } },
+            data: {
+              connectionOid: null
             }
           })
         ]);
@@ -484,6 +538,14 @@ export let tenantLogRetentionCleanupQueueProcessor = tenantLogRetentionCleanupQu
       tenantOid: tenant.oid,
       cutoffDate
     });
+    await cleanupProtoGuardRuns({
+      tenantOid: tenant.oid,
+      cutoffDate
+    });
+    await cleanupMonitorAlerts({
+      tenantOid: tenant.oid,
+      cutoffDate
+    });
     await cleanupSessionErrors({
       tenantOid: tenant.oid,
       cutoffDate
@@ -531,8 +593,5 @@ export let tenantLogRetentionStorageCleanupQueue = createQueue<StorageCleanupRec
 
 export let tenantLogRetentionStorageCleanupQueueProcessor =
   tenantLogRetentionStorageCleanupQueue.process(async data => {
-    let { sessionMessageBucketRecord, storage } =
-      await import('@metorial-subspace/connection-utils');
-
     await storage.deleteObject(sessionMessageBucketRecord.bucket, data.key);
   });

@@ -235,99 +235,82 @@ describe('OrganizationInviteService', () => {
       });
 
       it('should check for existing member when creating email invite', async () => {
-        // Note: Due to a bug in the source code line 50, the check for existing member
-        // only happens when d.input.type === 'email' && !d.input.email (which is never true when email is provided)
-        // This test verifies the current behavior - the invite is created even if user is a member
         let mockOrg = { id: 'org-1', oid: 1 };
         let mockPerformedBy = { id: 'actor-1', oid: 1 };
-        let mockInvite = {
-          id: 'invite-1',
-          oid: 1,
-          type: 'email',
-          email: 'existing@example.com',
-          role: 'member',
-          organization: mockOrg,
-          invitedBy: mockPerformedBy
-        };
+        let existingMember = { id: 'member-1', oid: 1 };
 
-        vi.mocked(ID.generateId).mockResolvedValue('invite-1');
-        vi.mocked(generatePlainId).mockReturnValue('metorial_inv_test');
         vi.mocked(withTransaction).mockImplementation(async callback => {
           let mockDb = {
+            organizationMember: {
+              findFirst: vi.fn().mockResolvedValue(existingMember)
+            },
             organizationInvite: {
-              create: vi.fn().mockResolvedValue(mockInvite)
+              findFirst: vi.fn(),
+              create: vi.fn()
             }
           };
           return callback(mockDb as any);
         });
 
-        // Currently, due to the bug, this succeeds instead of throwing
-        let result = await organizationInviteService.createOrganizationInvite({
-          input: {
-            type: 'email',
-            email: 'existing@example.com',
-            role: 'member'
-          },
-          organization: mockOrg as any,
-          context: {} as any,
-          performedBy: mockPerformedBy as any
-        });
-
-        expect(result).toBeDefined();
-        expect(result.email).toBe('existing@example.com');
+        await expect(
+          organizationInviteService.createOrganizationInvite({
+            input: {
+              type: 'email',
+              email: 'existing@example.com',
+              role: 'member'
+            },
+            organization: mockOrg as any,
+            context: {} as any,
+            performedBy: mockPerformedBy as any
+          })
+        ).rejects.toThrow(ServiceError);
       });
 
       it('should check for existing invite when creating email invite', async () => {
-        // Note: Due to a bug in the source code line 50, the check for existing invite
-        // only happens when d.input.type === 'email' && !d.input.email (which is never true when email is provided)
-        // This test verifies the current behavior - a new invite is created
         let mockOrg = { id: 'org-1', oid: 1 };
         let mockPerformedBy = { id: 'actor-1', oid: 1 };
-        let mockInvite = {
-          id: 'invite-2',
-          oid: 2,
-          type: 'email',
+        let existingInvite = {
+          oid: 1,
           email: 'user@example.com',
-          role: 'member',
-          organization: mockOrg,
-          invitedBy: mockPerformedBy
+          status: 'pending',
+          expiresAt: addDays(new Date(), 5)
         };
 
-        vi.mocked(ID.generateId).mockResolvedValue('invite-2');
-        vi.mocked(generatePlainId).mockReturnValue('metorial_inv_test2');
         vi.mocked(withTransaction).mockImplementation(async callback => {
           let mockDb = {
+            organizationMember: {
+              findFirst: vi.fn().mockResolvedValue(null)
+            },
             organizationInvite: {
-              create: vi.fn().mockResolvedValue(mockInvite)
+              findFirst: vi.fn().mockResolvedValue(existingInvite),
+              create: vi.fn()
             }
           };
           return callback(mockDb as any);
         });
 
-        // Currently, due to the bug, this succeeds and creates a new invite
-        let result = await organizationInviteService.createOrganizationInvite({
-          input: {
-            type: 'email',
-            email: 'user@example.com',
-            role: 'member'
-          },
-          organization: mockOrg as any,
-          context: {} as any,
-          performedBy: mockPerformedBy as any
-        });
-
-        expect(result).toBeDefined();
-        expect(result.email).toBe('user@example.com');
+        await expect(
+          organizationInviteService.createOrganizationInvite({
+            input: {
+              type: 'email',
+              email: 'user@example.com',
+              role: 'member'
+            },
+            organization: mockOrg as any,
+            context: {} as any,
+            performedBy: mockPerformedBy as any
+          })
+        ).rejects.toThrow(ServiceError);
       });
 
-      it('should delete old invite and create new one when invite expires in less than 7 days', async () => {
+      it('should delete old invite and create new one when invite expires in more than 7 days', async () => {
         let mockOrg = { id: 'org-1', oid: 1 };
         let mockPerformedBy = { id: 'actor-1', oid: 1 };
         let oldInvite = {
           oid: 1,
           email: 'user@example.com',
           status: 'pending',
-          expiresAt: addDays(new Date(), 5) // Less than 7 days from now
+          expiresAt: addDays(new Date(), 10)
         };
         let newInvite = {
           id: 'invite-2',

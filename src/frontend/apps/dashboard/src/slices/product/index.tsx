@@ -8,6 +8,7 @@ import { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Upgrade } from '../../components/emptyState';
 import { ProjectHomePage } from './pages';
+import { NetworkManagedPage } from './pages/(network)/_gate';
 import { InstanceLayout } from './pages/_instanceLayout';
 
 // Provider API pages
@@ -19,6 +20,9 @@ let ProvidersPage = dynamicPage(() =>
 );
 let ProviderDeploymentsListLayout = dynamicPage(() =>
   import('./pages/(deployments)/(list)/_layout').then(c => c.ProviderDeploymentsListLayout)
+);
+let ProviderAuthCredentialsListLayout = dynamicPage(() =>
+  import('./pages/(deployments)/(list)/_layout').then(c => c.ProviderAuthCredentialsListLayout)
 );
 let ProviderDeploymentsPage = dynamicPage(() =>
   import('./pages/(deployments)/(list)/provider-deployments').then(
@@ -66,20 +70,17 @@ let ProviderOverviewPage = dynamicPage(() =>
 let ProviderVersionsPage = dynamicPage(() =>
   import('./pages/provider/versions').then(c => c.ProviderVersionsPage)
 );
+let ProviderCapabilitiesLayout = dynamicPage(() =>
+  import('./pages/provider/(capapbilities)/_layout').then(c => c.ProviderCapabilitiesLayout)
+);
 let ProviderToolsPage = dynamicPage(() =>
-  import('./pages/provider/tools').then(c => c.ProviderToolsPage)
+  import('./pages/provider/(capapbilities)').then(c => c.ProviderToolsPage)
 );
 let ProviderTriggersPage = dynamicPage(() =>
-  import('./pages/provider/triggers').then(c => c.ProviderTriggersPage)
-);
-let ProviderDetailsDeploymentsPage = dynamicPage(() =>
-  import('./pages/provider/deployments').then(c => c.ProviderDeploymentsPage)
+  import('./pages/provider/(capapbilities)/triggers').then(c => c.ProviderTriggersPage)
 );
 let ProviderAuthMethodsPage = dynamicPage(() =>
-  import('./pages/provider/auth-methods').then(c => c.ProviderAuthMethodsPage)
-);
-let ProviderReadmePage = dynamicPage(() =>
-  import('./pages/provider/readme').then(c => c.ProviderReadmePage)
+  import('./pages/provider/(capapbilities)/auth-methods').then(c => c.ProviderAuthMethodsPage)
 );
 let ProviderDeploymentLayout = dynamicPage(() =>
   import('./pages/(deployments)/provider-deployment/_layout').then(
@@ -96,30 +97,50 @@ let ProviderDeploymentConfigsPage = dynamicPage(() =>
     c => c.ProviderDeploymentConfigsPage
   )
 );
-let ProviderDeploymentConfigVaultsPage = dynamicPage(() =>
-  import('./pages/(deployments)/provider-deployment/config-vaults').then(
-    c => c.ProviderDeploymentConfigVaultsPage
-  )
-);
-let ProviderDeploymentAuthMethodsPage = dynamicPage(() =>
-  import('./pages/(deployments)/provider-deployment/auth-methods').then(
-    c => c.ProviderDeploymentAuthMethodsPage
-  )
-);
 let ProviderDeploymentAuthConfigsPage = dynamicPage(() =>
   import('./pages/(deployments)/provider-deployment/auth-configs').then(
     c => c.ProviderDeploymentAuthConfigsPage
-  )
-);
-let ProviderDeploymentAuthCredentialsPage = dynamicPage(() =>
-  import('./pages/(deployments)/provider-deployment/auth-credentials').then(
-    c => c.ProviderDeploymentAuthCredentialsPage
   )
 );
 let ProviderDeploymentSettingsPage = dynamicPage(() =>
   import('./pages/(deployments)/provider-deployment/settings').then(
     c => c.ProviderDeploymentSettingsPage
   )
+);
+let ProviderDeploymentNetworkPage = dynamicPage(() =>
+  import('./pages/(deployments)/provider-deployment/network').then(
+    c => c.ProviderDeploymentNetworkPage
+  )
+);
+let SecurityOverviewPage = dynamicPage(() =>
+  import('./pages/(network)/security').then(c => c.SecurityOverviewPage)
+);
+let NetworkListLayout = dynamicPage(() =>
+  import('./pages/(network)/(list)/_layout').then(c => c.NetworkListLayout)
+);
+let NetworkEnclavesListLayout = dynamicPage(() =>
+  import('./pages/(network)/(list)/_layout').then(c => c.NetworkEnclavesListLayout)
+);
+let NetworkOverviewPage = dynamicPage(() =>
+  import('./pages/(network)/(list)/network').then(c => c.NetworkOverviewPage)
+);
+let NetworkFirewallsPage = dynamicPage(() =>
+  import('./pages/(network)/(list)/firewalls').then(c => c.NetworkFirewallsPage)
+);
+let NetworkEnclavesPage = dynamicPage(() =>
+  import('./pages/(network)/(list)/enclaves').then(c => c.NetworkEnclavesPage)
+);
+let NetworkFirewallPageLayout = dynamicPage(() =>
+  import('./pages/(network)/firewall/_layout').then(c => c.NetworkFirewallPageLayout)
+);
+let NetworkFirewallPage = dynamicPage(() =>
+  import('./pages/(network)/firewall/index').then(c => c.NetworkFirewallPage)
+);
+let NetworkFirewallSettingsPage = dynamicPage(() =>
+  import('./pages/(network)/firewall/settings').then(c => c.NetworkFirewallSettingsPage)
+);
+let NetworkSettingsPage = dynamicPage(() =>
+  import('./pages/(network)/(list)/settings').then(c => c.NetworkSettingsPage)
 );
 let ProviderConfigLayout = dynamicPage(() =>
   import('./pages/(deployments)/provider-config/_layout').then(c => c.ProviderConfigLayout)
@@ -203,7 +224,7 @@ let SessionTemplateLayout = dynamicPage(() =>
   import('./pages/(session)/session-template/_layout').then(c => c.SessionTemplateLayout)
 );
 let SessionTemplateOverviewPage = dynamicPage(() =>
-  import('./pages/(session)/session-template/index').then(c => c.SessionTemplateOverviewPage)
+  import('./pages/(session)/session-template').then(c => c.SessionTemplateOverviewPage)
 );
 let SessionTemplateSettingsPage = dynamicPage(() =>
   import('./pages/(session)/session-template/settings').then(
@@ -211,11 +232,135 @@ let SessionTemplateSettingsPage = dynamicPage(() =>
   )
 );
 
+let IntegrationsListLayout = dynamicPage(() =>
+  import('./pages/(integrations)/(list)/_layout').then(c => c.IntegrationsListLayout)
+);
+let IntegrationsPage = dynamicPage(() =>
+  import('./pages/(integrations)/(list)/integrations').then(c => c.IntegrationsPage)
+);
+let SkillsListLayout = dynamicPage(() =>
+  import('./pages/(skills)/(list)/_layout').then(c => c.SkillsListLayout)
+);
+let SkillsPage = dynamicPage(() =>
+  import('./pages/(skills)/(list)/skills').then(c => c.SkillsPage)
+);
+let SkillTemplatesPage = dynamicPage(() =>
+  import('./pages/(skills)/(list)/templates').then(c => c.SkillTemplatesPage)
+);
+let SkillGroupsPage = dynamicPage(() =>
+  import('./pages/(skills)/(list)/groups').then(c => c.SkillGroupsPage)
+);
+let SkillMarketplacesPage = dynamicPage(() =>
+  import('./pages/(skills)/(list)/marketplaces').then(c => c.SkillMarketplacesPage)
+);
+let SkillPluginsPage = dynamicPage(() =>
+  import('./pages/(skills)/(list)/plugins').then(c => c.SkillPluginsPage)
+);
+let SkillConfigurationSettingsPage = dynamicPage(() =>
+  import('./pages/(skills)/(list)/settings').then(c => c.SkillConfigurationSettingsPage)
+);
+let SkillLayout = dynamicPage(() =>
+  import('./pages/(skills)/skill/_layout').then(c => c.SkillLayout)
+);
+let SkillPage = dynamicPage(() => import('./pages/(skills)/skill').then(c => c.SkillPage));
+let SkillParticipantsPage = dynamicPage(() =>
+  import('./pages/(skills)/skill/participants').then(c => c.SkillParticipantsPage)
+);
+let SkillVersionsPage = dynamicPage(() =>
+  import('./pages/(skills)/skill/versions').then(c => c.SkillVersionsPage)
+);
+let SkillSettingsPage = dynamicPage(() =>
+  import('./pages/(skills)/skill/settings').then(c => c.SkillSettingsPage)
+);
+let SkillTemplateLayout = dynamicPage(() =>
+  import('./pages/(skills)/skill-template/_layout').then(c => c.SkillTemplateLayout)
+);
+let SkillTemplatePage = dynamicPage(() =>
+  import('./pages/(skills)/skill-template').then(c => c.SkillTemplatePage)
+);
+let SkillTemplateSettingsPage = dynamicPage(() =>
+  import('./pages/(skills)/skill-template/settings').then(c => c.SkillTemplateSettingsPage)
+);
+let SkillGroupLayout = dynamicPage(() =>
+  import('./pages/(skills)/skill-group/_layout').then(c => c.SkillGroupLayout)
+);
+let SkillGroupPage = dynamicPage(() =>
+  import('./pages/(skills)/skill-group').then(c => c.SkillGroupPage)
+);
+let SkillGroupSettingsPage = dynamicPage(() =>
+  import('./pages/(skills)/skill-group/settings').then(c => c.SkillGroupSettingsPage)
+);
+let SkillMarketplaceLayout = dynamicPage(() =>
+  import('./pages/(skills)/skill-marketplace/_layout').then(c => c.SkillMarketplaceLayout)
+);
+let SkillMarketplacePage = dynamicPage(() =>
+  import('./pages/(skills)/skill-marketplace').then(c => c.SkillMarketplacePage)
+);
+let SkillMarketplaceEditorPage = dynamicPage(() =>
+  import('./pages/(skills)/skill-marketplace/editor').then(c => c.SkillMarketplaceEditorPage)
+);
+let SkillMarketplaceSyncsPage = dynamicPage(() =>
+  import('./pages/(skills)/skill-marketplace/syncs').then(c => c.SkillMarketplaceSyncsPage)
+);
+let SkillMarketplaceSettingsPage = dynamicPage(() =>
+  import('./pages/(skills)/skill-marketplace/settings').then(
+    c => c.SkillMarketplaceSettingsPage
+  )
+);
+let SkillPluginLayout = dynamicPage(() =>
+  import('./pages/(skills)/skill-plugin/_layout').then(c => c.SkillPluginLayout)
+);
+let SkillPluginPage = dynamicPage(() =>
+  import('./pages/(skills)/skill-plugin').then(c => c.SkillPluginPage)
+);
+let SkillPluginEditorPage = dynamicPage(() =>
+  import('./pages/(skills)/skill-plugin/editor').then(c => c.SkillPluginEditorPage)
+);
+let SkillPluginSyncsPage = dynamicPage(() =>
+  import('./pages/(skills)/skill-plugin/syncs').then(c => c.SkillPluginSyncsPage)
+);
+let SkillPluginSettingsPage = dynamicPage(() =>
+  import('./pages/(skills)/skill-plugin/settings').then(c => c.SkillPluginSettingsPage)
+);
+let IntegrationLayout = dynamicPage(() =>
+  import('./pages/(integrations)/integration/_layout').then(c => c.IntegrationLayout)
+);
+let IntegrationOverviewPage = dynamicPage(() =>
+  import('./pages/(integrations)/integration').then(c => c.IntegrationOverviewPage)
+);
+let IntegrationInstancesPage = dynamicPage(() =>
+  import('./pages/(integrations)/integration/instances').then(c => c.IntegrationInstancesPage)
+);
+let IntegrationSettingsPage = dynamicPage(() =>
+  import('./pages/(integrations)/integration/settings').then(c => c.IntegrationSettingsPage)
+);
+let IntegrationInstanceLayout = dynamicPage(() =>
+  import('./pages/(integrations)/integration-instance/_layout').then(
+    c => c.IntegrationInstanceLayout
+  )
+);
+let IntegrationInstanceOverviewPage = dynamicPage(() =>
+  import('./pages/(integrations)/integration-instance').then(
+    c => c.IntegrationInstanceOverviewPage
+  )
+);
+let IntegrationInstanceSettingsPage = dynamicPage(() =>
+  import('./pages/(integrations)/integration-instance/settings').then(
+    c => c.IntegrationInstanceSettingsPage
+  )
+);
+
 let IdentityListLayout = dynamicPage(() =>
   import('./pages/(identity)/(list)/_layout').then(c => c.IdentityListLayout)
 );
+let AgentsListLayout = dynamicPage(() =>
+  import('./pages/(identity)/(list)/_layout').then(c => c.AgentsListLayout)
+);
 let ConsumersPage = dynamicPage(() =>
   import('./pages/(identity)/(list)/consumers').then(c => c.ConsumersPage)
+);
+let AgentsPage = dynamicPage(() =>
+  import('./pages/(identity)/(list)/agents').then(c => c.AgentsPage)
 );
 let IdentityActorsPage = dynamicPage(() =>
   import('./pages/(identity)/(list)/actors').then(c => c.IdentityActorsPage)
@@ -234,11 +379,23 @@ let IdentityDelegationConfigsPage = dynamicPage(() =>
 let IdentityActorLayout = dynamicPage(() =>
   import('./pages/(identity)/actor/_layout').then(c => c.IdentityActorLayout)
 );
+let AgentLayout = dynamicPage(() =>
+  import('./pages/(identity)/agent/_layout').then(c => c.AgentLayout)
+);
 let ConsumerLayout = dynamicPage(() =>
   import('./pages/(identity)/consumer/_layout').then(c => c.ConsumerLayout)
 );
 let ConsumerPage = dynamicPage(() =>
   import('./pages/(identity)/consumer').then(c => c.ConsumerPage)
+);
+let ConsumerOperationsPage = dynamicPage(() =>
+  import('./pages/(identity)/consumer/operations').then(c => c.ConsumerOperationsPage)
+);
+let ConsumerConnectionsPage = dynamicPage(() =>
+  import('./pages/(identity)/consumer/connections').then(c => c.ConsumerConnectionsPage)
+);
+let ConsumerDelegationsPage = dynamicPage(() =>
+  import('./pages/(identity)/consumer/delegations').then(c => c.ConsumerDelegationsPage)
 );
 let ConsumerSettingsPage = dynamicPage(() =>
   import('./pages/(identity)/consumer/settings').then(c => c.ConsumerSettingsPage)
@@ -250,6 +407,25 @@ let ConsumerMagicMcpServersPage = dynamicPage(() =>
 );
 let IdentityActorPage = dynamicPage(() =>
   import('./pages/(identity)/actor').then(c => c.IdentityActorPage)
+);
+let IdentityActorOperationsPage = dynamicPage(() =>
+  import('./pages/(identity)/actor/operations').then(c => c.IdentityActorOperationsPage)
+);
+let IdentityActorConnectionsPage = dynamicPage(() =>
+  import('./pages/(identity)/actor/connections').then(c => c.IdentityActorConnectionsPage)
+);
+let IdentityActorDelegationsPage = dynamicPage(() =>
+  import('./pages/(identity)/actor/delegations').then(c => c.IdentityActorDelegationsPage)
+);
+let AgentPage = dynamicPage(() => import('./pages/(identity)/agent').then(c => c.AgentPage));
+let AgentOperationsPage = dynamicPage(() =>
+  import('./pages/(identity)/agent/operations').then(c => c.AgentOperationsPage)
+);
+let AgentConnectionsPage = dynamicPage(() =>
+  import('./pages/(identity)/agent/connections').then(c => c.AgentConnectionsPage)
+);
+let AgentDelegationsPage = dynamicPage(() =>
+  import('./pages/(identity)/agent/delegations').then(c => c.AgentDelegationsPage)
 );
 let IdentityActorSettingsPage = dynamicPage(() =>
   import('./pages/(identity)/actor/settings').then(c => c.IdentityActorSettingsPage)
@@ -381,11 +557,8 @@ let CustomProviderListingPage = dynamicPage(() =>
     c => c.CustomProviderListingPage
   )
 );
-let ManagedServersListLayout = dynamicPage(() =>
-  import('./pages/(custom-providers)/(list)/_layout').then(c => c.ManagedProvidersListLayout)
-);
-let ExternalServersListLayout = dynamicPage(() =>
-  import('./pages/(custom-providers)/(list)/_layout').then(c => c.ExternalProvidersListLayout)
+let CustomProvidersListLayout = dynamicPage(() =>
+  import('./pages/(custom-providers)/(list)/_layout').then(c => c.CustomProvidersListLayout)
 );
 let ExternalServersPage = dynamicPage(() =>
   import('./pages/(custom-providers)/(list)/external-providers').then(
@@ -428,6 +601,24 @@ let SessionLogsListLayout = dynamicPage(() =>
 let AuthLogsListLayout = dynamicPage(() =>
   import('./pages/(logs)/(list)/_layout').then(c => c.AuthLogsListLayout)
 );
+let AlertsListLayout = dynamicPage(() =>
+  import('./pages/(logs)/(alerts)/_layout').then(c => c.AlertsListLayout)
+);
+let AlertsPage = dynamicPage(() =>
+  import('./pages/(logs)/(alerts)/alerts').then(c => c.AlertsPage)
+);
+let MonitorsPage = dynamicPage(() =>
+  import('./pages/(logs)/(alerts)/monitors').then(c => c.MonitorsPage)
+);
+let ProtoGuardPage = dynamicPage(() =>
+  import('./pages/(logs)/protoguard').then(c => c.ProtoGuardPage)
+);
+let ProtoGuardSettingsPage = dynamicPage(() =>
+  import('./pages/(logs)/protoguard/settings').then(c => c.ProtoGuardSettingsPage)
+);
+let ProtoGuardLayout = dynamicPage(() =>
+  import('./pages/(logs)/protoguard/_layout').then(c => c.ProtoGuardLayout)
+);
 let ServerErrorsPage = dynamicPage(() =>
   import('./pages/(logs)/(list)/provider-errors').then(c => c.ProviderErrorsPage)
 );
@@ -436,6 +627,12 @@ let ServerRunsPage = dynamicPage(() =>
 );
 let SessionsPage = dynamicPage(() =>
   import('./pages/(logs)/(list)/sessions').then(c => c.SessionsPage)
+);
+let SessionConnectionsPage = dynamicPage(() =>
+  import('./pages/(logs)/(list)/connections').then(c => c.SessionConnectionsPage)
+);
+let ToolCallsPage = dynamicPage(() =>
+  import('./pages/(logs)/(list)/tool-calls').then(c => c.ToolCallsPage)
 );
 let ServerErrorPage = dynamicPage(() =>
   import('./pages/(logs)/provider-error').then(c => c.ProviderErrorPage)
@@ -448,6 +645,26 @@ let ServerRunPage = dynamicPage(() =>
 );
 let ServerRunLayout = dynamicPage(() =>
   import('./pages/(logs)/provider-run/_layout').then(c => c.ProviderRunLayout)
+);
+let AlertPage = dynamicPage(() => import('./pages/(logs)/alert').then(c => c.AlertPage));
+let AlertAccessPage = dynamicPage(() =>
+  import('./pages/(logs)/alert/access').then(c => c.AlertAccessPage)
+);
+let AlertLayout = dynamicPage(() =>
+  import('./pages/(logs)/alert/_layout').then(c => c.AlertLayout)
+);
+let MonitorPage = dynamicPage(() => import('./pages/(logs)/monitor').then(c => c.MonitorPage));
+let MonitorLayout = dynamicPage(() =>
+  import('./pages/(logs)/monitor/_layout').then(c => c.MonitorLayout)
+);
+let ProtoGuardFilterSettingsPage = dynamicPage(() =>
+  import('./pages/(logs)/protoguard/filter').then(c => c.ProtoGuardFilterSettingsPage)
+);
+let ProtoGuardFilterEventsPage = dynamicPage(() =>
+  import('./pages/(logs)/protoguard/filter/events').then(c => c.ProtoGuardFilterEventsPage)
+);
+let ProtoGuardFilterLayout = dynamicPage(() =>
+  import('./pages/(logs)/protoguard/filter/_layout').then(c => c.ProtoGuardFilterLayout)
 );
 let ProviderAuthErrorsPage = dynamicPage(() =>
   import('./pages/(logs)/(list)/provider-auth-errors').then(c => c.ProviderAuthErrorsPage)
@@ -483,6 +700,14 @@ let ProjectDeveloperAPIPage = dynamicPage(() =>
   import('./pages/developer/api').then(c => c.ProjectDeveloperAPIPage)
 );
 let ExplorerPage = dynamicPage(() => import('./pages/explorer').then(c => c.ExplorerPage));
+let AssistantPage = dynamicPage(() => import('./pages/assistant').then(c => c.AssistantPage));
+let AssistantConversationPage = dynamicPage(() =>
+  import('./pages/assistant/conversation').then(c => c.AssistantConversationPage)
+);
+let DocumentPage = dynamicPage(() => import('./pages/doc').then(c => c.DocumentPage));
+let InfrastructureOverviewPage = dynamicPage(() =>
+  import('./pages/(infrastructure)/overview').then(c => c.InfrastructureOverviewPage)
+);
 let FlaggedPage = ({ children, flag }: { children: React.ReactNode; flag: string }) => {
   let flags = useDashboardFlags();
 
@@ -547,6 +772,14 @@ export let productTraceSlice = createSlice([
                     element: <SessionsPage />
                   },
                   {
+                    path: 'session-connections',
+                    element: <SessionConnectionsPage />
+                  },
+                  {
+                    path: 'tool-calls',
+                    element: <ToolCallsPage />
+                  },
+                  {
                     path: 'provider-runs',
                     element: <ServerRunsPage />
                   },
@@ -570,6 +803,21 @@ export let productTraceSlice = createSlice([
                     element: <ProviderAuthErrorsPage />
                   }
                 ]
+              },
+              {
+                path: '',
+                element: <AlertsListLayout />,
+
+                children: [
+                  {
+                    path: 'alerts',
+                    element: <AlertsPage />
+                  },
+                  {
+                    path: 'monitors',
+                    element: <MonitorsPage />
+                  }
+                ]
               }
             ]
           },
@@ -581,6 +829,26 @@ export let productTraceSlice = createSlice([
               {
                 path: '',
                 element: <ProviderSessionsPage />
+              }
+            ]
+          },
+          {
+            path: 'session-connections',
+            element: <ProviderSessionsListLayout />,
+            children: [
+              {
+                path: '',
+                element: <SessionConnectionsPage />
+              }
+            ]
+          },
+          {
+            path: 'tool-calls',
+            element: <ProviderSessionsListLayout />,
+            children: [
+              {
+                path: '',
+                element: <ToolCallsPage />
               }
             ]
           },
@@ -601,6 +869,40 @@ export let productTraceSlice = createSlice([
               {
                 path: '',
                 element: <ServerErrorsPage />
+              }
+            ]
+          },
+          {
+            path: 'alerts',
+            element: <AlertsListLayout />,
+            children: [
+              {
+                path: '',
+                element: <AlertsPage />
+              }
+            ]
+          },
+          {
+            path: 'monitors',
+            element: <AlertsListLayout />,
+            children: [
+              {
+                path: '',
+                element: <MonitorsPage />
+              }
+            ]
+          },
+          {
+            path: 'protoguard',
+            element: <ProtoGuardLayout />,
+            children: [
+              {
+                path: '',
+                element: <ProtoGuardPage />
+              },
+              {
+                path: 'settings',
+                element: <ProtoGuardSettingsPage />
               }
             ]
           }
@@ -639,6 +941,50 @@ export let productTraceDetailSlice = createSlice([
               {
                 path: '',
                 element: <ServerRunPage />
+              }
+            ]
+          },
+
+          {
+            path: 'alert/:monitorAlertId',
+            element: <AlertLayout />,
+
+            children: [
+              {
+                path: '',
+                element: <AlertPage />
+              },
+              {
+                path: 'access',
+                element: <AlertAccessPage />
+              }
+            ]
+          },
+
+          {
+            path: 'monitor/:monitorId',
+            element: <MonitorLayout />,
+
+            children: [
+              {
+                path: '',
+                element: <MonitorPage />
+              }
+            ]
+          },
+
+          {
+            path: 'protoguard/filter/:filterId',
+            element: <ProtoGuardFilterLayout />,
+
+            children: [
+              {
+                path: '',
+                element: <ProtoGuardFilterSettingsPage />
+              },
+              {
+                path: 'events',
+                element: <ProtoGuardFilterEventsPage />
               }
             ]
           },
@@ -710,7 +1056,20 @@ export let productExplorerSlice = createSlice([
   }
 ]);
 
-export let productHomeSlice = createSlice([
+export let productDocumentSlice = createSlice([
+  {
+    element: <ProductWrapper />,
+
+    children: [
+      {
+        path: 'doc/:id',
+        element: <DocumentPage />
+      }
+    ]
+  }
+]);
+
+export let productIdentitySlice = createSlice([
   {
     element: <ProductWrapper />,
 
@@ -720,19 +1079,212 @@ export let productHomeSlice = createSlice([
 
         children: [
           {
-            path: '',
-            element: <ProjectHomePage />
-          },
-
-          {
-            path: 'providers',
-            element: <ProvidersHubLayout />,
+            path: 'agents',
+            element: <AgentsListLayout />,
             children: [
               {
                 path: '',
-                element: <ProvidersPage />
+                element: <AgentsPage />
               }
             ]
+          },
+          {
+            element: <IdentityListLayout />,
+            children: [
+              {
+                path: 'actors',
+                element: <IdentityActorsPage />
+              },
+              {
+                path: 'identities',
+                element: <IdentitiesPage />
+              },
+
+              {
+                path: 'identity',
+                children: [
+                  {
+                    path: 'delegations',
+                    element: <IdentityDelegationsPage />
+                  },
+                  {
+                    path: 'delegation-configs',
+                    element: <IdentityDelegationConfigsPage />
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            path: 'consumers',
+            element: <ConsumersPage />
+          },
+
+          {
+            path: 'agent/:agentId',
+            element: (
+              <IdentityManagedPage>
+                <AgentLayout />
+              </IdentityManagedPage>
+            ),
+            children: [
+              {
+                path: '',
+                element: <AgentPage />
+              },
+              {
+                path: 'operations',
+                element: <AgentOperationsPage />
+              },
+              {
+                path: 'connections',
+                element: <AgentConnectionsPage />
+              },
+              {
+                path: 'delegations',
+                element: <AgentDelegationsPage />
+              }
+            ]
+          },
+
+          {
+            path: 'consumer/:consumerId',
+            element: (
+              <IdentityManagedPage>
+                <ConsumerLayout />
+              </IdentityManagedPage>
+            ),
+            children: [
+              {
+                path: '',
+                element: <ConsumerPage />
+              },
+              {
+                path: 'operations',
+                element: <ConsumerOperationsPage />
+              },
+              {
+                path: 'connections',
+                element: <ConsumerConnectionsPage />
+              },
+              {
+                path: 'delegations',
+                element: <ConsumerDelegationsPage />
+              },
+              {
+                path: 'settings',
+                element: <ConsumerSettingsPage />
+              },
+              {
+                path: 'magic-mcp-servers',
+                element: <ConsumerMagicMcpServersPage />
+              }
+            ]
+          },
+
+          {
+            path: 'actor/:identityActorId',
+            element: (
+              <IdentityManagedPage>
+                <IdentityActorLayout />
+              </IdentityManagedPage>
+            ),
+            children: [
+              {
+                path: '',
+                element: <IdentityActorPage />
+              },
+              {
+                path: 'operations',
+                element: <IdentityActorOperationsPage />
+              },
+              {
+                path: 'connections',
+                element: <IdentityActorConnectionsPage />
+              },
+              {
+                path: 'delegations',
+                element: <IdentityActorDelegationsPage />
+              },
+              {
+                path: 'settings',
+                element: <IdentityActorSettingsPage />
+              }
+            ]
+          },
+
+          {
+            path: 'identity/:identityId',
+            element: (
+              <IdentityManagedPage>
+                <IdentityLayout />
+              </IdentityManagedPage>
+            ),
+            children: [
+              {
+                path: '',
+                element: <IdentityPage />
+              },
+              {
+                path: 'delegations',
+                element: <IdentityDetailsDelegationsPage />
+              },
+              {
+                path: 'delegation-requests',
+                element: <IdentityDelegationRequestsPage />
+              },
+              {
+                path: 'settings',
+                element: <IdentitySettingsPage />
+              }
+            ]
+          },
+          {
+            path: 'identity/delegation/:identityDelegationId',
+            element: (
+              <IdentityManagedPage>
+                <IdentityDelegationLayout />
+              </IdentityManagedPage>
+            ),
+            children: [
+              {
+                path: '',
+                element: <IdentityDelegationPage />
+              }
+            ]
+          },
+          {
+            path: 'identity/delegation-config/:identityDelegationConfigId',
+            element: (
+              <IdentityManagedPage>
+                <IdentityDelegationConfigLayout />
+              </IdentityManagedPage>
+            ),
+            children: [
+              {
+                path: '',
+                element: <IdentityDelegationConfigPage />
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]);
+
+export let productInfrastructureSlice = createSlice([
+  {
+    element: <ProductWrapper />,
+
+    children: [
+      {
+        element: <InstanceLayout />,
+
+        children: [
+          {
+            path: 'infra',
+            element: <InfrastructureOverviewPage />
           },
 
           {
@@ -752,47 +1304,65 @@ export let productHomeSlice = createSlice([
                 element: <ProviderConfigVaultsOverviewPage />
               },
               {
-                path: 'auth-credentials',
-                element: <ProviderAuthCredentialsOverviewPage />
-              },
-              {
                 path: 'auth-configs',
                 element: <ProviderAuthConfigsOverviewPage />
               }
             ]
           },
-
           {
-            path: 'provider/:providerId',
-            element: <ProviderLayout />,
+            path: 'configurations/auth-credentials',
+            element: <ProviderAuthCredentialsListLayout />,
             children: [
               {
                 path: '',
-                element: <ProviderOverviewPage />
+                element: <ProviderAuthCredentialsOverviewPage />
+              }
+            ]
+          },
+
+          {
+            path: 'security',
+            element: <SecurityOverviewPage />
+          },
+          {
+            path: 'network',
+            element: <NetworkListLayout />,
+            children: [
+              {
+                path: '',
+                element: <NetworkOverviewPage />
               },
               {
-                path: 'readme',
-                element: <ProviderReadmePage />
+                path: 'firewalls',
+                element: <NetworkFirewallsPage />
               },
               {
-                path: 'tools',
-                element: <ProviderToolsPage />
+                path: 'settings',
+                element: <NetworkSettingsPage />
+              }
+            ]
+          },
+          {
+            path: 'network/enclaves',
+            element: <NetworkEnclavesListLayout />,
+            children: [
+              {
+                path: '',
+                element: <NetworkEnclavesPage />
+              }
+            ]
+          },
+          {
+            path: 'network/firewall/:firewallId',
+            element: <NetworkFirewallPageLayout />,
+            children: [
+              {
+                path: '',
+                element: <NetworkFirewallPage />
               },
               {
-                path: 'triggers',
-                element: <ProviderTriggersPage />
-              },
-              {
-                path: 'deployments',
-                element: <ProviderDetailsDeploymentsPage />
-              },
-              {
-                path: 'auth-methods',
-                element: <ProviderAuthMethodsPage />
-              },
-              {
-                path: 'versions',
-                element: <ProviderVersionsPage />
+                path: 'settings',
+                element: <NetworkFirewallSettingsPage />
               }
             ]
           },
@@ -810,24 +1380,20 @@ export let productHomeSlice = createSlice([
                 element: <ProviderDeploymentConfigsPage />
               },
               {
-                path: 'config-vaults',
-                element: <ProviderDeploymentConfigVaultsPage />
-              },
-              {
-                path: 'auth-methods',
-                element: <ProviderDeploymentAuthMethodsPage />
-              },
-              {
                 path: 'auth-configs',
                 element: <ProviderDeploymentAuthConfigsPage />
               },
               {
-                path: 'auth-credentials',
-                element: <ProviderDeploymentAuthCredentialsPage />
-              },
-              {
                 path: 'settings',
                 element: <ProviderDeploymentSettingsPage />
+              },
+              {
+                path: 'network',
+                element: (
+                  <NetworkManagedPage>
+                    <ProviderDeploymentNetworkPage />
+                  </NetworkManagedPage>
+                )
               }
             ]
           },
@@ -920,138 +1486,236 @@ export let productHomeSlice = createSlice([
                 element: <SessionTemplateSettingsPage />
               }
             ]
+          }
+        ]
+      }
+    ]
+  }
+]);
+
+export let productHomeSlice = createSlice([
+  {
+    element: <ProductWrapper />,
+
+    children: [
+      {
+        element: <InstanceLayout />,
+
+        children: [
+          {
+            path: '',
+            element: <ProjectHomePage />
           },
 
           {
-            element: <IdentityListLayout />,
+            path: 'providers',
+            element: <ProvidersHubLayout />,
             children: [
               {
-                path: 'identities',
-                element: <IdentitiesPage />
-              },
+                path: '',
+                element: <ProvidersPage />
+              }
+            ]
+          },
 
+          {
+            path: 'integrations',
+            element: <IntegrationsListLayout />,
+            children: [
               {
-                path: 'identity',
+                path: '',
+                element: <IntegrationsPage />
+              }
+            ]
+          },
+          {
+            path: 'skills',
+            element: <SkillsListLayout />,
+            children: [
+              {
+                path: '',
+                element: <SkillsPage />
+              },
+              {
+                path: 'templates',
+                element: <SkillTemplatesPage />
+              },
+              {
+                path: 'groups',
+                element: <SkillGroupsPage />
+              },
+              {
+                path: 'marketplaces',
+                element: <SkillMarketplacesPage />
+              },
+              {
+                path: 'plugins',
+                element: <SkillPluginsPage />
+              },
+              {
+                path: 'settings',
+                element: <SkillConfigurationSettingsPage />
+              }
+            ]
+          },
+
+          {
+            path: 'integration/:integrationId',
+            element: <IntegrationLayout />,
+            children: [
+              {
+                path: '',
+                element: <IntegrationOverviewPage />
+              },
+              {
+                path: 'instances',
+                element: <IntegrationInstancesPage />
+              },
+              {
+                path: 'settings',
+                element: <IntegrationSettingsPage />
+              }
+            ]
+          },
+          {
+            path: 'skill/:skillId',
+            element: <SkillLayout />,
+            children: [
+              {
+                path: '',
+                element: <SkillPage />
+              },
+              {
+                path: 'participants',
+                element: <SkillParticipantsPage />
+              },
+              {
+                path: 'versions',
+                element: <SkillVersionsPage />
+              },
+              {
+                path: 'settings',
+                element: <SkillSettingsPage />
+              }
+            ]
+          },
+          {
+            path: 'skill-template/:skillTemplateId',
+            element: <SkillTemplateLayout />,
+            children: [
+              {
+                path: '',
+                element: <SkillTemplatePage />
+              },
+              {
+                path: 'settings',
+                element: <SkillTemplateSettingsPage />
+              }
+            ]
+          },
+          {
+            path: 'skill-group/:skillGroupId',
+            element: <SkillGroupLayout />,
+            children: [
+              {
+                path: '',
+                element: <SkillGroupPage />
+              },
+              {
+                path: 'settings',
+                element: <SkillGroupSettingsPage />
+              }
+            ]
+          },
+          {
+            path: 'skill-marketplace/:skillMarketplaceId',
+            element: <SkillMarketplaceLayout />,
+            children: [
+              {
+                path: '',
+                element: <SkillMarketplacePage />
+              },
+              {
+                path: 'editor',
+                element: <SkillMarketplaceEditorPage />
+              },
+              {
+                path: 'syncs',
+                element: <SkillMarketplaceSyncsPage />
+              },
+              {
+                path: 'settings',
+                element: <SkillMarketplaceSettingsPage />
+              }
+            ]
+          },
+          {
+            path: 'skill-plugin/:skillPluginId',
+            element: <SkillPluginLayout />,
+            children: [
+              {
+                path: '',
+                element: <SkillPluginPage />
+              },
+              {
+                path: 'editor',
+                element: <SkillPluginEditorPage />
+              },
+              {
+                path: 'syncs',
+                element: <SkillPluginSyncsPage />
+              },
+              {
+                path: 'settings',
+                element: <SkillPluginSettingsPage />
+              }
+            ]
+          },
+
+          {
+            path: 'integration-instance/:integrationInstanceId',
+            element: <IntegrationInstanceLayout />,
+            children: [
+              {
+                path: '',
+                element: <IntegrationInstanceOverviewPage />
+              },
+              {
+                path: 'settings',
+                element: <IntegrationInstanceSettingsPage />
+              }
+            ]
+          },
+
+          {
+            path: 'provider/:providerId',
+            element: <ProviderLayout />,
+            children: [
+              {
+                path: '',
+                element: <ProviderOverviewPage />
+              },
+              {
+                path: 'capabilities',
+                element: <ProviderCapabilitiesLayout />,
                 children: [
                   {
-                    path: 'delegations',
-                    element: <IdentityDelegationsPage />
+                    path: '',
+                    element: <ProviderToolsPage />
                   },
                   {
-                    path: 'delegation-configs',
-                    element: <IdentityDelegationConfigsPage />
+                    path: 'triggers',
+                    element: <ProviderTriggersPage />
+                  },
+                  {
+                    path: 'auth-methods',
+                    element: <ProviderAuthMethodsPage />
                   }
                 ]
-              }
-            ]
-          },
-
-          {
-            children: [
-              {
-                path: 'consumers',
-                element: <ConsumersPage />
               },
               {
-                path: 'actors',
-                element: <IdentityActorsPage />
-              }
-            ]
-          },
-
-          {
-            path: 'consumer/:consumerId',
-            element: (
-              <IdentityManagedPage>
-                <ConsumerLayout />
-              </IdentityManagedPage>
-            ),
-            children: [
-              {
-                path: '',
-                element: <ConsumerPage />
-              },
-              {
-                path: 'settings',
-                element: <ConsumerSettingsPage />
-              },
-              {
-                path: 'magic-mcp-servers',
-                element: <ConsumerMagicMcpServersPage />
-              }
-            ]
-          },
-
-          {
-            path: 'actor/:identityActorId',
-            element: (
-              <IdentityManagedPage>
-                <IdentityActorLayout />
-              </IdentityManagedPage>
-            ),
-            children: [
-              {
-                path: '',
-                element: <IdentityActorPage />
-              },
-              {
-                path: 'settings',
-                element: <IdentityActorSettingsPage />
-              }
-            ]
-          },
-
-          {
-            path: 'identity/:identityId',
-            element: (
-              <IdentityManagedPage>
-                <IdentityLayout />
-              </IdentityManagedPage>
-            ),
-            children: [
-              {
-                path: '',
-                element: <IdentityPage />
-              },
-              {
-                path: 'delegations',
-                element: <IdentityDetailsDelegationsPage />
-              },
-              {
-                path: 'delegation-requests',
-                element: <IdentityDelegationRequestsPage />
-              },
-              {
-                path: 'settings',
-                element: <IdentitySettingsPage />
-              }
-            ]
-          },
-          {
-            path: 'identity/delegation/:identityDelegationId',
-            element: (
-              <IdentityManagedPage>
-                <IdentityDelegationLayout />
-              </IdentityManagedPage>
-            ),
-            children: [
-              {
-                path: '',
-                element: <IdentityDelegationPage />
-              }
-            ]
-          },
-          {
-            path: 'identity/delegation-config/:identityDelegationConfigId',
-            element: (
-              <IdentityManagedPage>
-                <IdentityDelegationConfigLayout />
-              </IdentityManagedPage>
-            ),
-            children: [
-              {
-                path: '',
-                element: <IdentityDelegationConfigPage />
+                path: 'versions',
+                element: <ProviderVersionsPage />
               }
             ]
           },
@@ -1209,32 +1873,33 @@ export let productHomeSlice = createSlice([
                 element: <ProjectDeveloperAPIPage />
               }
             ]
-          }
-        ]
-      },
-
-      {
-        children: [
+          },
           {
-            path: '',
-            element: <ManagedServersListLayout />,
-
+            path: 'assistant',
             children: [
               {
-                path: 'custom-providers',
-                element: <ManagedServersPage />
+                path: '',
+                element: <AssistantPage />
+              },
+              {
+                path: 'conversation/:assistantConversationId',
+                element: <AssistantConversationPage />
               }
             ]
           },
 
           {
             path: '',
-            element: <ExternalServersListLayout />,
+            element: <CustomProvidersListLayout />,
 
             children: [
               {
                 path: 'external-providers',
                 element: <ExternalServersPage />
+              },
+              {
+                path: 'custom-providers',
+                element: <ManagedServersPage />
               }
             ]
           },
@@ -1301,6 +1966,9 @@ export let productSlice = createSlice([
       ...productTraceSlice.routes,
       ...productTraceDetailSlice.routes,
       ...productExplorerSlice.routes,
+      ...productDocumentSlice.routes,
+      ...productInfrastructureSlice.routes,
+      ...productIdentitySlice.routes,
       ...productHomeSlice.routes
     ]
   },

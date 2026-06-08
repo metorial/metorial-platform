@@ -1,7 +1,7 @@
 import { Callout, Spacer } from '@metorial/ui';
 
 export let DeletedRecordCallout = (p: {
-  status?: 'active' | 'archived' | 'deleted' | null;
+  status?: 'active' | 'archived' | 'deleted' | string | null;
 }) => {
   if (p.status !== 'archived' && p.status !== 'deleted') return null;
 

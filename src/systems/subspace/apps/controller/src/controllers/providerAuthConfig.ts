@@ -45,6 +45,8 @@ export let providerAuthConfigController = app.controller({
           ids: v.optional(v.array(v.string())),
           providerIds: v.optional(v.array(v.string())),
           providerDeploymentIds: v.optional(v.array(v.string())),
+          availableForUse: v.optional(v.boolean()),
+          availableForProviderDeploymentId: v.optional(v.string()),
           providerAuthCredentialsIds: v.optional(v.array(v.string())),
           providerAuthMethodIds: v.optional(v.array(v.string())),
           actorIds: v.optional(v.array(v.string())),
@@ -69,6 +71,8 @@ export let providerAuthConfigController = app.controller({
         ids: ctx.input.ids,
         providerIds: ctx.input.providerIds,
         providerDeploymentIds: ctx.input.providerDeploymentIds,
+        availableForUse: ctx.input.availableForUse,
+        availableForProviderDeploymentId: ctx.input.availableForProviderDeploymentId,
         providerAuthCredentialsIds: ctx.input.providerAuthCredentialsIds,
         providerAuthMethodIds: ctx.input.providerAuthMethodIds,
         actorIds: ctx.input.actorIds,
@@ -94,13 +98,14 @@ export let providerAuthConfigController = app.controller({
       })
     )
     .do(async ctx => {
-      let providerAuthConfigs = await providerAuthConfigService.getManyProviderAuthConfigsByIds({
-        tenant: ctx.tenant,
-        environment: ctx.environment,
-        solution: ctx.solution,
-        ids: ctx.input.ids,
-        allowDeleted: ctx.input.allowDeleted
-      });
+      let providerAuthConfigs =
+        await providerAuthConfigService.getManyProviderAuthConfigsByIds({
+          tenant: ctx.tenant,
+          environment: ctx.environment,
+          solution: ctx.solution,
+          ids: ctx.input.ids,
+          allowDeleted: ctx.input.allowDeleted
+        });
 
       return providerAuthConfigs.map(providerAuthConfigPresenter);
     }),

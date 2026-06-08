@@ -1,8 +1,83 @@
 import { memo } from '@lowerdeck/memo';
 import { theme } from '../theme';
-import { ColorType, getColorKey, getForegroundColor } from '../theme/colors';
+import {
+  ColorFacet,
+  ColorKey,
+  ColorType,
+  colors,
+  getColorKey,
+  getForegroundColor
+} from '../theme/colors';
 import { linearGradient } from '../theme/gradient';
 import { createTheme, createThemeToken } from '../theme/tokens';
+
+export type ButtonColor = ColorType | ColorKey;
+
+let colorTypes: ColorType[] = [
+  'gray',
+  'blue',
+  'pink',
+  'cyan',
+  'indigo',
+  'iris',
+  'green',
+  'orange',
+  'purple',
+  'red',
+  'violet',
+  'yellow',
+  'white',
+  'black'
+];
+
+let colorFacets: ColorFacet[] = ['100', '200', '300', '400', '500', '600', '700', '800', '900'];
+
+let isColorType = (color: ButtonColor): color is ColorType => colorTypes.includes(color as ColorType);
+let isColorKey = (color: ButtonColor): color is ColorKey => color in colors;
+
+let parseColorKey = (color: ColorKey) => {
+  for (let facet of colorFacets) {
+    if (color.endsWith(facet)) {
+      let colorName = color.slice(0, -facet.length);
+
+      return { colorName, facet };
+    }
+  }
+
+  return null;
+};
+
+let getColorKeyByFacet = (
+  parsed: ReturnType<typeof parseColorKey> | null,
+  facet: ColorFacet
+): ColorKey | null => {
+  if (!parsed) return null;
+
+  let colorKey = `${parsed.colorName}${facet}` as ColorKey;
+  return colorKey in colors ? colorKey : null;
+};
+
+let getThemeColorByFacet = (
+  parsed: ReturnType<typeof parseColorKey> | null,
+  facet: ColorFacet,
+  fallback: string
+) => {
+  let colorKey = getColorKeyByFacet(parsed, facet);
+  return colorKey ? theme.colors[colorKey] : fallback;
+};
+
+let getShiftedThemeColor = (
+  parsed: ReturnType<typeof parseColorKey> | null,
+  offset: number,
+  fallback: string
+) => {
+  if (!parsed) return fallback;
+
+  let index = colorFacets.indexOf(parsed.facet);
+  let shiftedFacet = colorFacets[Math.min(Math.max(index + offset, 0), colorFacets.length - 1)];
+
+  return getThemeColorByFacet(parsed, shiftedFacet, fallback);
+};
 
 let coloredButtonVariants = memo((color: ColorType) => ({
   solid: {
@@ -192,6 +267,112 @@ let monoChromeButtonVariants = {
   }
 };
 
+let concreteButtonVariants = memo((color: ColorKey) => {
+  let parsed = parseColorKey(color);
+  let baseColor = theme.colors[color];
+  let softBackground = getThemeColorByFacet(parsed, '100', monoChromeButtonVariants.soft.passive.background);
+  let softActiveBackground = getThemeColorByFacet(
+    parsed,
+    '200',
+    monoChromeButtonVariants.soft.active.background
+  );
+  let spinnerBackground = getThemeColorByFacet(parsed, '200', monoChromeButtonVariants.soft.spinner.background);
+
+  return {
+    solid: {
+      passive: {
+        color: getForegroundColor(color),
+        background: baseColor,
+        border: baseColor,
+        shadow: theme.shadows.small
+      },
+
+      active: {
+        color: getForegroundColor(color),
+        background: baseColor,
+        border: baseColor,
+        shadow: theme.shadows.medium
+      },
+
+      spinner: {
+        foreground: getForegroundColor(color),
+        background: getShiftedThemeColor(parsed, -3, baseColor)
+      },
+
+      animateClickScale: true
+    },
+
+    outline: {
+      passive: {
+        color: baseColor,
+        background: 'transparent',
+        border: baseColor,
+        shadow: 'none'
+      },
+
+      active: {
+        color: baseColor,
+        background: 'transparent',
+        border: baseColor,
+        shadow: 'none'
+      },
+
+      spinner: {
+        foreground: baseColor,
+        background: spinnerBackground
+      },
+
+      animateClickScale: false
+    },
+
+    soft: {
+      passive: {
+        color: baseColor,
+        background: softBackground,
+        border: softBackground,
+        shadow: 'none'
+      },
+
+      active: {
+        color: baseColor,
+        background: softActiveBackground,
+        border: softActiveBackground,
+        shadow: 'none'
+      },
+
+      spinner: {
+        foreground: baseColor,
+        background: spinnerBackground
+      },
+
+      animateClickScale: false
+    },
+
+    ghost: {
+      passive: {
+        color: baseColor,
+        background: 'transparent',
+        border: 'transparent',
+        shadow: 'none'
+      },
+
+      active: {
+        color: baseColor,
+        background: 'transparent',
+        border: 'transparent',
+        shadow: 'none'
+      },
+
+      spinner: {
+        foreground: baseColor,
+        background: spinnerBackground
+      },
+
+      animateClickScale: false
+    }
+  };
+});
+
 export type ButtonVariant = 'solid' | 'outline' | 'soft' | 'ghost';
 
 let sizes = {
@@ -239,9 +420,10 @@ let sizes = {
 export type ButtonSize = keyof typeof sizes;
 
 export type ButtonStyleProps = {
-  color?: ColorType;
+  color?: ButtonColor;
   variant?: ButtonVariant;
   size?: ButtonSize;
+  shadow?: boolean;
 };
 
 export let buttonTheme = createTheme({
@@ -260,19 +442,27 @@ export let buttonTheme = createTheme({
   spinner_background: createThemeToken()
 });
 
-let getColorButtonTheme = memo((color: ColorType | undefined, variant: ButtonVariant) => {
-  let v = (color ? coloredButtonVariants(color) : monoChromeButtonVariants)[variant];
+let getColorButtonTheme = memo((color: ButtonColor | undefined, variant: ButtonVariant, shadow = true) => {
+  let v = (
+    color
+      ? isColorType(color)
+        ? coloredButtonVariants(color)
+        : isColorKey(color)
+          ? concreteButtonVariants(color)
+          : monoChromeButtonVariants
+      : monoChromeButtonVariants
+  )[variant];
 
   return buttonTheme.setRootStyles({
     passive_color: v.passive.color,
     passive_background: v.passive.background,
     passive_border: v.passive.border,
-    passive_shadow: v.passive.shadow,
+    passive_shadow: shadow ? v.passive.shadow : 'none',
 
     active_color: v.active.color,
     active_background: v.active.background,
     active_border: v.active.border,
-    active_shadow: v.active.shadow,
+    active_shadow: shadow ? v.active.shadow : 'none',
 
     active_transform: v.animateClickScale ? 'scale(0.98)' : 'none',
 
@@ -298,7 +488,7 @@ export let getButtonStyles = (props: ButtonStyleProps) => {
 
     ...size,
 
-    ...getColorButtonTheme(props.color, props.variant ?? 'solid')
+    ...getColorButtonTheme(props.color, props.variant ?? 'solid', props.shadow)
   };
 };
 

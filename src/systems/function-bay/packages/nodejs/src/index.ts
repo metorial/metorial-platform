@@ -7,6 +7,7 @@ import path from 'path';
 import { getMetorialLauncher } from './launcher';
 import { cleanup } from './lib/cleanup';
 import { fileExistsSync, readJsonFileOptional } from './lib/fs';
+import { sanitizeLambdaBundle } from './lib/sanitizeLambdaBundle';
 
 let $ = (...args: Parameters<typeof _$>) => {
   let commandString = '';
@@ -147,9 +148,11 @@ export let build = async (): Promise<void> => {
   }
 
   let outputTempDir = await tempDir();
-  await $`ncc build ${launcher.entrypoint} -o ${outputTempDir} --minify --source-map --debug --target es2020`.env(
+  await $`ncc build ${launcher.entrypoint} -o ${outputTempDir} --minify --source-map --no-source-map-register --target es2020 --transpile-only`.env(
     env
   );
+
+  await sanitizeLambdaBundle(outputTempDir);
 
   console.log('\nCreating function package...');
 

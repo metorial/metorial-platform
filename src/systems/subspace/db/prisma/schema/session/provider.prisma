@@ -15,9 +15,10 @@ model SessionProvider {
   totalProductiveClientMessageCount   Int @default(0)
   totalProductiveProviderMessageCount Int @default(0)
 
-  tag String
+  tag          String
+  nameTemplate String?
 
-  /// [ToolFilter]
+  /// [ToolFilterChain]
   toolFilter Json
 
   sessionOid BigInt
@@ -61,6 +62,7 @@ model SessionProvider {
   toolCalls                ToolCall[]
 
   @@unique([sessionOid, tag])
+  @@unique([sessionOid, nameTemplate])
   @@index([createdAt])
   @@index([updatedAt])
   @@index([status])

@@ -1,20 +1,4 @@
-type ImageValue =
-  | {
-      type: 'file';
-      fileUrl?: string | null;
-      url?: string | null;
-    }
-  | {
-      type: 'url';
-      url: string;
-    }
-  | null
-  | undefined;
-
-export let getImageUrl = (entity: {
-  id: string;
-  image: ImageValue;
-}) => {
+export let getImageUrl = (entity: { id: string; image: PrismaJson.EntityImage | null }) => {
   if (entity.image?.type === 'file') {
     return entity.image.fileUrl ?? entity.image.url ?? '';
   }
@@ -23,5 +7,7 @@ export let getImageUrl = (entity: {
     return entity.image.url;
   }
 
-  return new URL(`https://avatar-cdn.metorial.com/aimg_${entity.id.split('_').pop()}`).toString();
+  return new URL(
+    `https://avatar-cdn.metorial.com/aimg_${entity.id.split('_').pop()}`
+  ).toString();
 };

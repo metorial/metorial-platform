@@ -1,8 +1,10 @@
 import { combineQueueProcessors } from '@lowerdeck/queue';
 import {
-  sessionArchivedCleanupCron,
   sessionDeleteManyQueueProcessor,
-  sessionDeleteQueueProcessor
+  sessionDeleteQueueProcessor,
+  sessionRetentionCleanupCron,
+  sessionRetentionTenantQueueProcessor,
+  sessionRetentionTenantSearchQueueProcessor
 } from './session';
 import {
   sessionTemplateArchivedCleanupCron,
@@ -11,7 +13,9 @@ import {
 } from './sessionTemplate';
 
 export let deleteQueues = combineQueueProcessors([
-  sessionArchivedCleanupCron,
+  sessionRetentionCleanupCron,
+  sessionRetentionTenantSearchQueueProcessor,
+  sessionRetentionTenantQueueProcessor,
   sessionDeleteManyQueueProcessor,
   sessionDeleteQueueProcessor,
   sessionTemplateArchivedCleanupCron,

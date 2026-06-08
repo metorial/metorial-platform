@@ -11,6 +11,7 @@ import { createLock } from '@lowerdeck/lock';
 import { getSentry } from '@lowerdeck/sentry';
 import type { ConduitInput, ConduitResult } from '@metorial-subspace/connection-utils';
 import {
+  type AgentInstance,
   db,
   getId,
   ID,
@@ -29,12 +30,24 @@ import {
 } from '@metorial-subspace/db';
 import { isRecordDeleted } from '@metorial-subspace/list-utils';
 import {
+  agentClientService,
+  agentInstanceService,
+  agentService
+} from '@metorial-subspace/module-agent';
+import { enclaveIngressPolicyService } from '@metorial-subspace/module-enclave';
+import {
   checkToolAccess,
   checkToolScopesSatisfied,
   providerDeploymentConfigPairInternalService,
   providerDeploymentInternalService,
   resolveGrantedScopes
 } from '@metorial-subspace/module-provider-internal';
+import {
+  applySessionProviderNameTemplate,
+  parseNameFromSessionProviderTemplates,
+  sessionProviderNameTemplateService
+} from '@metorial-subspace/module-session';
+import { ephemeralManagedSessionService } from '@metorial-subspace/module-session/src/services/ephemeralManagedSession';
 import { addDays, addMinutes } from 'date-fns';
 import {
   DEFAULT_SESSION_EXPIRATION_DAYS,
@@ -48,6 +61,7 @@ import { completeMessage } from '../shared/completeMessage';
 import { createError } from '../shared/createError';
 import { createMessage, type CreateMessageProps } from '../shared/createMessage';
 import { createWarning } from '../shared/createWarning';
+import { extractToolCallOperation } from '../shared/toolCallOperation';
 import { upsertParticipant } from '../shared/upsertParticipant';
 
 let Sentry = getSentry();
@@ -68,6 +82,7 @@ export interface InitProps {
   mcpCapabilities?: Record<string, any>;
   mcpProtocolVersion?: string;
   mcpTransport: SessionConnectionMcpConnectionTransport;
+  agentInstance?: AgentInstance | null;
 }
 
 export interface CallToolProps {
@@ -75,6 +90,8 @@ export interface CallToolProps {
   input: PrismaJson.SessionMessageInput;
   waitForResponse: boolean;
   transport: SessionConnectionTransport;
+  rationale?: string;
+  operation?: string;
   clientMcpId?: PrismaJson.SessionMessageClientMcpId;
   parentMessage?: SessionMessage;
 }
@@ -85,6 +102,20 @@ export interface SenderMangerProps {
   tenantId: string;
   connectionToken?: string;
   transport: SessionConnectionTransport;
+  agentClient?: {
+    name: string;
+    type: 'mcp_client_oauth';
+    privateMetadata?: Record<string, any>;
+    foreignId: string;
+    oauthRegistrationId: string;
+  };
+  connectionPrivateMetadata?: Record<string, any>;
+  ingressPolicyCheck?: {
+    sourceIp: string;
+    hostname?: string;
+    port?: number;
+    recordLog?: boolean;
+  };
 }
 
 export class SenderManager {
@@ -97,7 +128,9 @@ export class SenderManager {
       | undefined,
     readonly tenant: Tenant,
     readonly solution: Solution,
-    readonly transport: SessionConnectionTransport
+    readonly transport: SessionConnectionTransport,
+    readonly agentClient: SenderMangerProps['agentClient'],
+    readonly connectionPrivateMetadata: SenderMangerProps['connectionPrivateMetadata']
   ) {}
 
   private static async resolveSession(d: SenderMangerProps) {
@@ -137,10 +170,23 @@ export class SenderManager {
         solution: true
       }
     });
-    if (!session) return null;
+    if (session) {
+      return {
+        ...session,
+        connection: undefined
+      };
+    }
+
+    let ephemeralManagedSession =
+      await ephemeralManagedSessionService.resolveBackingSessionById({
+        sessionId: d.sessionId,
+        tenantId: d.tenantId,
+        solutionId: d.solutionId
+      });
+    if (!ephemeralManagedSession) return null;
 
     return {
-      ...session,
+      ...ephemeralManagedSession,
       connection: undefined
     };
   }
@@ -160,6 +206,23 @@ export class SenderManager {
       throw new ServiceError(
         goneError({ message: 'Connection has been archived or deleted' })
       );
+    }
+
+    if (d.ingressPolicyCheck) {
+      let environment = await db.environment.findUniqueOrThrow({
+        where: { oid: session.environmentOid }
+      });
+
+      await enclaveIngressPolicyService.assertSessionIngressAccess({
+        tenant: session.tenant,
+        solution: session.solution,
+        environment,
+        sessionId: session.id,
+        sourceIp: d.ingressPolicyCheck.sourceIp,
+        hostname: d.ingressPolicyCheck.hostname,
+        port: d.ingressPolicyCheck.port,
+        recordLog: d.ingressPolicyCheck.recordLog
+      });
     }
 
     if (connection) {
@@ -235,8 +298,74 @@ export class SenderManager {
       connection,
       session.tenant,
       session.solution,
-      d.transport
+      d.transport,
+      d.agentClient,
+      d.connectionPrivateMetadata
     );
+  }
+
+  #upsertAgentClientPromise: ReturnType<typeof this.upsertAgentClientIfNeeded> | null = null;
+  private async upsertAgentClientIfNeeded() {
+    if (!this.agentClient) return null;
+
+    let environment = await db.environment.findUniqueOrThrow({
+      where: { oid: this.session.environmentOid }
+    });
+
+    return await agentClientService.upsertAgentClient({
+      tenant: this.tenant,
+      solution: this.solution,
+      environment,
+      input: this.agentClient
+    });
+  }
+
+  private async ensureAgentClientUpserted() {
+    if (!this.agentClient) return null;
+    if (this.#upsertAgentClientPromise) return await this.#upsertAgentClientPromise;
+
+    this.#upsertAgentClientPromise = this.upsertAgentClientIfNeeded();
+    return await this.#upsertAgentClientPromise;
+  }
+
+  private async ensureConnectionClientAgentContext(d: InitProps['client']) {
+    let agentClientContext = await this.ensureAgentClientUpserted();
+
+    let environment = await db.environment.findUniqueOrThrow({
+      where: { oid: this.session.environmentOid }
+    });
+
+    let agent = await agentService.upsertAgent({
+      tenant: this.tenant,
+      solution: this.solution,
+      environment,
+      input: {
+        name: d.name,
+        type: 'mcp_client'
+      }
+    });
+
+    let agentInstance = await agentInstanceService.upsertAgentInstance({
+      tenant: this.tenant,
+      solution: this.solution,
+      environment,
+      agent,
+      agentClient: agentClientContext?.agentClient,
+      agentClientRegistration: agentClientContext?.agentClientRegistration,
+      input: {
+        name: d.name,
+        version: typeof d.version === 'string' ? d.version : undefined,
+        description: undefined,
+        type: 'mcp_client'
+      }
+    });
+
+    return {
+      agent,
+      agentClient: agentClientContext?.agentClient ?? null,
+      agentClientRegistration: agentClientContext?.agentClientRegistration ?? null,
+      agentInstance
+    };
   }
 
   private async ensureConnectionParticipant() {
@@ -407,6 +536,7 @@ export class SenderManager {
 
   private async listToolsForProvider(
     provider: SessionProvider & {
+      provider: { name: string };
       deployment: ProviderDeployment;
       authConfig?:
         | (ProviderAuthConfig & { authCredentials?: ProviderAuthCredentials | null })
@@ -449,7 +579,7 @@ export class SenderManager {
       status: 'ok' as const,
       tools: scopeFilteredTools.map(t => ({
         ...t,
-        key: `${t.key}_${provider.tag}`,
+        key: applySessionProviderNameTemplate(provider.nameTemplate!, t.key),
         sessionProvider: provider,
         sessionProviderInstance: res.instance
       }))
@@ -457,7 +587,7 @@ export class SenderManager {
   }
 
   async listProviders() {
-    return await db.sessionProvider.findMany({
+    let providers = await db.sessionProvider.findMany({
       where: { sessionOid: this.session.oid, status: 'active', isParentDeleted: false },
       include: {
         provider: true,
@@ -466,6 +596,8 @@ export class SenderManager {
         authConfig: { include: { authCredentials: true } }
       }
     });
+
+    return await sessionProviderNameTemplateService.ensureForSessionProviders(providers);
   }
 
   async listToolsIncludingInternalAndNonAllowed() {
@@ -528,6 +660,7 @@ export class SenderManager {
         status: 'active'
       },
       include: {
+        provider: true,
         deployment: true,
         config: true,
         authConfig: { include: { authCredentials: true } }
@@ -537,20 +670,43 @@ export class SenderManager {
     return provider;
   }
 
-  async getToolById(d: { toolId: string }) {
+  private async getLegacyToolMatch(d: { toolId: string }) {
     let parts = d.toolId.split('_');
     let providerTag = parts.pop();
     let toolKeyParts = parts;
     if (toolKeyParts.length === 0 || !providerTag?.trim()) {
-      throw new ServiceError(badRequestError({ message: 'Invalid tool ID format' }));
+      return null;
     }
 
-    let toolKey = toolKeyParts.join('_');
+    let provider: Awaited<ReturnType<SenderManager['getProviderByTag']>> | null = null;
+    try {
+      provider = await this.getProviderByTag({ tag: providerTag! });
+    } catch (error) {
+      if (error instanceof ServiceError) {
+        return null;
+      }
 
-    let provider = await this.getProviderByTag({ tag: providerTag! });
+      throw error;
+    }
 
-    // Get the current instance for the provider
-    let instanceRes = await this.ensureProviderInstance(provider);
+    return {
+      provider,
+      originalToolName: toolKeyParts.join('_'),
+      finalToolName: d.toolId
+    };
+  }
+
+  private async getProviderToolByResolvedName(d: {
+    provider: SessionProvider & {
+      provider: { name: string };
+      authConfig?:
+        | (ProviderAuthConfig & { authCredentials?: ProviderAuthCredentials | null })
+        | null;
+    };
+    originalToolName: string;
+    finalToolName: string;
+  }) {
+    let instanceRes = await this.ensureProviderInstance(d.provider);
     if (!instanceRes) throw new ServiceError(notFoundError('provider.instance'));
 
     if (instanceRes.status === 'discovery_failed') {
@@ -572,26 +728,26 @@ export class SenderManager {
 
       await delay(2000);
 
-      instanceRes = (await this.ensureProviderInstance(provider))! as any;
+      instanceRes = (await this.ensureProviderInstance(d.provider))! as any;
     }
 
     // Find the tool by key in the specification of the current instance
     let tool = await db.providerTool.findFirst({
       where: {
-        key: toolKey,
+        key: d.originalToolName,
         specificationOid: instanceRes.instance.pairVersion.specificationOid
       }
     });
-    if (!tool) throw new ServiceError(notFoundError('tool', d.toolId));
+    if (!tool) return null;
 
-    let { allowed } = checkToolAccess(tool, provider, 'call');
+    let { allowed } = checkToolAccess(tool, d.provider, 'call');
     if (!allowed) {
       throw new ServiceError(badRequestError({ message: 'Tool access not allowed' }));
     }
 
     let grantedScopes = resolveGrantedScopes({
-      authConfig: provider.authConfig,
-      authCredentials: provider.authConfig?.authCredentials
+      authConfig: d.provider.authConfig,
+      authCredentials: d.provider.authConfig?.authCredentials
     });
     if (grantedScopes !== null) {
       let scopeCheck = checkToolScopesSatisfied(tool, grantedScopes);
@@ -605,15 +761,74 @@ export class SenderManager {
     }
 
     return {
-      provider,
+      provider: d.provider,
       instance: instanceRes.instance,
       tool: {
         ...tool,
-        key: `${tool.key}_${provider.tag}`,
-        sessionProvider: provider,
+        key: d.finalToolName,
+        sessionProvider: d.provider,
         sessionProviderInstance: instanceRes.instance
       }
     };
+  }
+
+  async getToolById(d: { toolId: string }) {
+    let providers = await this.listProviders();
+
+    let templateMatch: {
+      provider: (typeof providers)[number];
+      originalToolName: string;
+      finalToolName: string;
+    } | null = null;
+
+    try {
+      let match = parseNameFromSessionProviderTemplates(d.toolId, providers);
+      if (match) {
+        templateMatch = {
+          provider: match.provider,
+          originalToolName: match.originalName,
+          finalToolName: match.finalName
+        };
+      }
+    } catch (error: any) {
+      throw new ServiceError(badRequestError({ message: error.message }));
+    }
+
+    let legacyMatch = await this.getLegacyToolMatch(d);
+    let matches = [templateMatch, legacyMatch].filter(Boolean);
+
+    if (matches.length === 0) {
+      throw new ServiceError(badRequestError({ message: 'Invalid tool ID format' }));
+    }
+
+    for (let match of matches) {
+      let resolved = await this.getProviderToolByResolvedName(match!);
+      if (resolved) return resolved;
+    }
+
+    throw new ServiceError(notFoundError('tool', d.toolId));
+  }
+
+  async getInternalToolByProviderType(d: {
+    provider: Awaited<ReturnType<SenderManager['listProviders']>>[number];
+    type: string;
+  }) {
+    let toolsRes = await this.listToolsForProvider(d.provider);
+    if (toolsRes.status === 'discovery_failed') {
+      throw new ServiceError(
+        preconditionFailedError({
+          message: 'Failed to discover provider specification',
+          _mcpError: toolsRes.mcpError
+        })
+      );
+    }
+
+    let tool = toolsRes.tools.find(item => item.value.mcpToolType.type === d.type);
+    if (!tool) {
+      throw new ServiceError(notFoundError('tool', d.type));
+    }
+
+    return tool;
   }
 
   async createMessage(d: CreateMessageProps) {
@@ -640,6 +855,11 @@ export class SenderManager {
     }
 
     let { provider, tool, instance } = await this.getToolById({ toolId: d.toolId });
+    let extractedToolCall = extractToolCallOperation({
+      input: d.input,
+      rationale: d.rationale,
+      operation: d.operation
+    });
 
     let { allowed } = checkToolAccess(tool, provider, 'call');
 
@@ -651,7 +871,9 @@ export class SenderManager {
       status: 'waiting_for_response',
       type: d.transport === 'mcp' ? 'mcp_message' : 'tool_call',
       source: 'client',
-      input: d.input,
+      input: extractedToolCall.input,
+      rationale: extractedToolCall.rationale,
+      operation: extractedToolCall.operation,
       senderParticipant: participant,
       clientMcpId: d.clientMcpId,
       transport: d.transport,
@@ -672,7 +894,7 @@ export class SenderManager {
           toolId: tool.id,
           toolKey: tool.key,
 
-          input: d.input
+          input: extractedToolCall.input
         } satisfies ConduitInput);
 
         if (!res.success) {
@@ -725,6 +947,8 @@ export class SenderManager {
 
   #createConnectionPromise: Promise<SessionConnection> | null = null;
   async createConnection() {
+    await this.ensureAgentClientUpserted();
+
     if (this.connection) return this.connection;
     if (this.#createConnectionPromise) return await this.#createConnectionPromise;
 
@@ -747,6 +971,7 @@ export class SenderManager {
 
           mcpTransport: 'none',
           mcpProtocolVersion: null,
+          privateMetadata: this.connectionPrivateMetadata,
 
           sessionOid: this.session.oid,
           tenantOid: this.session.tenantOid,
@@ -810,6 +1035,8 @@ export class SenderManager {
   }
 
   async initialize(d: InitProps & { isManualConnection?: boolean }) {
+    await this.ensureAgentClientUpserted();
+
     // Ignore if already initialized
     if (this.connection?.initState === 'completed') return this.connection;
 
@@ -821,15 +1048,29 @@ export class SenderManager {
       );
     }
 
+    let connectionClientAgentContext = d.agentInstance
+      ? { agentInstance: d.agentInstance }
+      : d.client.identifier.startsWith('metorial#') || d.isManualConnection
+        ? null
+        : await this.ensureConnectionClientAgentContext(d.client);
+
     let participant = await upsertParticipant({
       session: this.session,
-      from: d.client.identifier.startsWith('metorial#')
-        ? { type: 'system' }
-        : {
+      from: d.agentInstance
+        ? {
             type: 'connection_client',
-            transport: d.mcpTransport === 'none' ? 'metorial' : 'mcp',
-            participant: d.client
+            transport: d.mcpTransport === 'none' ? 'metorial_protocol' : 'mcp',
+            participant: d.client,
+            agentInstance: d.agentInstance
           }
+        : d.client.identifier.startsWith('metorial#')
+          ? { type: 'system' }
+          : {
+              type: 'connection_client',
+              transport: d.mcpTransport === 'none' ? 'metorial_protocol' : 'mcp',
+              participant: d.client,
+              agentInstance: connectionClientAgentContext?.agentInstance
+            }
     });
 
     let connectionData = {
@@ -878,6 +1119,7 @@ export class SenderManager {
           tenantOid: this.tenant.oid,
           solutionOid: this.solution.oid,
           environmentOid: this.session.environmentOid,
+          privateMetadata: this.connectionPrivateMetadata,
           token: await ID.generateId('sessionConnection_token')
         },
         include: { participant: true }

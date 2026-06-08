@@ -35,6 +35,15 @@ model Session {
   solutionOid Int
   solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
 
+  identityActorOid BigInt?
+  identityActor    IdentityActor? @relation(fields: [identityActorOid], references: [oid], onDelete: SetNull)
+
+  identityOid BigInt?
+  identity    Identity? @relation(fields: [identityOid], references: [oid], onDelete: SetNull)
+
+  ephemeralManagedSessionOid BigInt?
+  ephemeralManagedSession    EphemeralManagedSession? @relation("EphemeralManagedSessionSessions", fields: [ephemeralManagedSessionOid], references: [oid])
+
   totalProductiveClientMessageCount   Int @default(0)
   totalProductiveProviderMessageCount Int @default(0)
 
@@ -45,16 +54,19 @@ model Session {
   lastMessageAt           DateTime?
   lastActiveAt            DateTime?
 
-  providers                SessionProvider[]
-  providerRuns             ProviderRun[]
-  sessionMessages          SessionMessage[]
-  sessionEvents            SessionEvent[]
-  connections              SessionConnection[]
-  sessionErrors            SessionError[]
-  sessionProviderInstances SessionProviderInstance[]
-  toolCalls                ToolCall[]
-  sessionWarnings          SessionWarning[]
-  sessionUsageRecords      SessionUsageRecord[]
+  providers                         SessionProvider[]
+  providerRuns                      ProviderRun[]
+  sessionMessages                   SessionMessage[]
+  sessionEvents                     SessionEvent[]
+  connections                       SessionConnection[]
+  sessionErrors                     SessionError[]
+  sessionProviderInstances          SessionProviderInstance[]
+  toolCalls                         ToolCall[]
+  sessionWarnings                   SessionWarning[]
+  sessionUsageRecords               SessionUsageRecord[]
+  protoGuardRuns                    ProtoGuardRun[]
+  protoGuardAlerts                  ProtoGuardAlert[]
+  currentForEphemeralManagedSession EphemeralManagedSession?  @relation("EphemeralManagedSessionCurrentSession")
 
   @@index([createdAt])
   @@index([updatedAt])
@@ -63,5 +75,8 @@ model Session {
   @@index([status])
   @@index([archivedAt])
   @@index([status, archivedAt])
+  @@index([identityActorOid])
+  @@index([identityOid])
   @@index([isEphemeral])
+  @@index([ephemeralManagedSessionOid])
 }

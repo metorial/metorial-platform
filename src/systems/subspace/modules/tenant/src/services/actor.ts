@@ -8,27 +8,40 @@ class actorServiceImpl {
   async upsertActor(d: {
     tenant: Tenant;
     input: {
+      id?: string;
       name: string;
       identifier: string;
       type: TenantActorType;
       organizationActorId?: string;
+      consumerId?: string;
     };
   }) {
     return await db.tenantActor.upsert({
-      where: {
-        tenantOid_identifier: {
-          identifier: d.input.identifier,
-          tenantOid: d.tenant.oid
-        }
+      where: d.input.id
+        ? {
+            id: d.input.id
+          }
+        : {
+            tenantOid_identifier: {
+              identifier: d.input.identifier,
+              tenantOid: d.tenant.oid
+            }
+          },
+      update: {
+        name: d.input.name,
+        identifier: d.input.identifier,
+        type: d.input.type,
+        organizationActorId: d.input.organizationActorId,
+        consumerId: d.input.consumerId
       },
-      update: { name: d.input.name },
       create: {
         ...getId('tenantActor'),
         name: d.input.name,
         identifier: d.input.identifier,
         type: d.input.type,
         tenantOid: d.tenant.oid,
-        organizationActorId: d.input.organizationActorId
+        organizationActorId: d.input.organizationActorId,
+        consumerId: d.input.consumerId
       },
       include
     });

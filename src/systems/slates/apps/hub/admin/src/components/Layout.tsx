@@ -5,7 +5,13 @@ import {
   SidebarPane
 } from '@metorial-io/layout';
 import { Logo } from '@metorial-io/ui';
-import { RiFileList3Line, RiRocketLine, RiSearchEyeLine, RiTimeLine } from '@remixicon/react';
+import {
+  RiFileList3Line,
+  RiRefreshLine,
+  RiRocketLine,
+  RiSearchEyeLine,
+  RiTimeLine
+} from '@remixicon/react';
 import { Outlet, useLocation, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { useSlate } from '../state';
@@ -28,7 +34,13 @@ export let Layout = () => {
       icon: <RiFileList3Line />,
       label: 'Slates',
       to: '/slates',
-      isActive: isPrefixMatch(pathname, '/slates')
+      isActive: isPrefixMatch(pathname, '/slates') && pathname !== '/slates/redeploy'
+    },
+    {
+      icon: <RiRefreshLine />,
+      label: 'Bulk Redeploy',
+      to: '/slates/redeploy',
+      isActive: pathname === '/slates/redeploy'
     },
     {
       icon: <RiRocketLine />,

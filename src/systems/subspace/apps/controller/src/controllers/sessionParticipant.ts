@@ -34,15 +34,26 @@ export let sessionParticipantController = app.controller({
               v.enumOf([
                 'unknown',
                 'provider',
+                'agent',
+                'system',
+
+                // Legacy
                 'mcp_client',
                 'metorial_protocol_client',
-                'system',
                 'tool_call'
               ])
             )
           ),
 
+          connectionTypes: v.optional(
+            v.array(v.enumOf(['mcp', 'metorial_protocol', 'tool_call']))
+          ),
+
           ids: v.optional(v.array(v.string())),
+          agentIds: v.optional(v.array(v.string())),
+          actorIds: v.optional(v.array(v.string())),
+          identityIds: v.optional(v.array(v.string())),
+          agentInstanceIds: v.optional(v.array(v.string())),
           sessionIds: v.optional(v.array(v.string())),
           sessionConnectionIds: v.optional(v.array(v.string())),
           sessionMessageIds: v.optional(v.array(v.string())),
@@ -58,9 +69,30 @@ export let sessionParticipantController = app.controller({
         environment: ctx.environment,
         solution: ctx.solution,
 
-        types: ctx.input.types,
+        types: ctx.input.types?.flatMap(t => {
+          if (
+            t === 'mcp_client' ||
+            t === 'metorial_protocol_client' ||
+            t === 'tool_call' ||
+            t === 'agent'
+          ) {
+            return [
+              'legacy_mcp_client',
+              'legacy_metorial_protocol_client',
+              'legacy_tool_call',
+              'agent'
+            ] as const;
+          }
 
+          return t;
+        }),
+
+        connectionTypes: ctx.input.connectionTypes,
         ids: ctx.input.ids,
+        agentIds: ctx.input.agentIds,
+        actorIds: ctx.input.actorIds,
+        identityIds: ctx.input.identityIds,
+        agentInstanceIds: ctx.input.agentInstanceIds,
         sessionIds: ctx.input.sessionIds,
         sessionConnectionIds: ctx.input.sessionConnectionIds,
         sessionMessageIds: ctx.input.sessionMessageIds,

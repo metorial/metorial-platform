@@ -9,16 +9,27 @@ enum MagicMcpServerSource {
   consumer_provider_template
 }
 
+enum MagicMcpServerOwnerType {
+  server_owned
+  provider_template
+  integration
+}
+
 model MagicMcpServer {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
   status               MagicMcpServerStatus
-  source               MagicMcpServerSource @default(manual)
-  isConsumerReconciled Boolean              @default(false)
+  source               MagicMcpServerSource    @default(manual)
+  ownerType            MagicMcpServerOwnerType @default(server_owned)
+  isConsumerReconciled Boolean                 @default(false)
+  hasSubspaceBacking   Boolean                 @default(false)
+  isSubspaceBackingReconciling Boolean         @default(false)
 
-  providerTemplateId        String?
-  subspaceSessionTemplateId String
+  providerTemplateId                String?
+  legacySubspaceSessionTemplateId   String? @map("subspaceSessionTemplateId")
+  subspaceIntegrationInstanceId     String?
+  subspaceEphemeralManagedSessionId String?
 
   instanceOid BigInt
   instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)

@@ -28,8 +28,8 @@ export let ConsumersPage = () => {
   return (
     <ContentLayout>
       <PageHeader
-        title="Consumers"
-        description="Manage the access that consumers have across Metorial."
+        title="Accounts"
+        description="Manage the access that accounts have across Metorial."
         actions={
           <Button
             size="2"
@@ -50,7 +50,7 @@ export let ConsumersPage = () => {
               });
             }}
           >
-            Create Consumer
+            Create Account
           </Button>
         }
       />

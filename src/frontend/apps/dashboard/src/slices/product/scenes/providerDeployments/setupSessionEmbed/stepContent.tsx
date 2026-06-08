@@ -11,6 +11,7 @@ import {
   Text
 } from '@metorial/ui';
 import type { ReactNode } from 'react';
+import { ProviderDocsLink, type ProviderDocReference } from '../../../lib/providerDocs';
 import { AuthMethodPicker } from '../../providerAuthConfigs/authMethodPicker';
 import {
   FlatConnectForm,
@@ -127,7 +128,10 @@ export let AuthConfigDetailsFields = (p: {
   );
 };
 
-let RedirectUriField = (p: { redirectUri: string }) => {
+let RedirectUriField = (p: {
+  redirectUri: string;
+  configDoc?: ProviderDocReference | null;
+}) => {
   return (
     <>
       <Spacer size={12} />
@@ -136,13 +140,23 @@ let RedirectUriField = (p: { redirectUri: string }) => {
       </Text>
       <Text size="1" color="gray600" style={{ marginBottom: 5 }}>
         You must configure this redirect URI in your OAuth app.
+        {p.configDoc ? (
+          <>
+            {' '}
+            <ProviderDocsLink doc={p.configDoc}>View config docs</ProviderDocsLink>
+          </>
+        ) : null}
       </Text>
       <Copy value={p.redirectUri} />
     </>
   );
 };
 
-let NewCredentialsFields = (p: { credentialsForm: AnyForm; disabled?: boolean }) => {
+let NewCredentialsFields = (p: {
+  credentialsForm: AnyForm;
+  providerDoc?: ProviderDocReference | null;
+  disabled?: boolean;
+}) => {
   return (
     <>
       <Spacer size={12} />
@@ -164,6 +178,7 @@ let NewCredentialsFields = (p: { credentialsForm: AnyForm; disabled?: boolean })
         disabled={p.disabled}
         onChange={e => p.credentialsForm.setFieldValue('newCredClientId', e.target.value)}
         placeholder="Enter client ID from provider"
+        help={<ProviderDocsLink doc={p.providerDoc}>Provider docs</ProviderDocsLink>}
       />
       <p.credentialsForm.RenderError field="newCredClientId" />
 
@@ -190,7 +205,10 @@ let CredentialsSelector = (p: {
   hasManagedVisibleCredentials: boolean;
   isCreatingCredentials: boolean;
   redirectUri?: string;
+  providerDoc?: ProviderDocReference | null;
+  configDoc?: ProviderDocReference | null;
   isCustomSelected: boolean;
+  disableCredentialSelection?: boolean;
   disabled?: boolean;
 }) => {
   let shouldShowRedirectUri =
@@ -202,20 +220,24 @@ let CredentialsSelector = (p: {
     <>
       <Select
         label="Credentials"
-        description="Select existing credentials or add new ones for this provider."
+        description={
+          p.disableCredentialSelection
+            ? 'Credentials are fixed by the integration provider for this auth config.'
+            : 'Select existing credentials or add new ones for this provider.'
+        }
         value={
           p.credentialsForm.values.credentialMode === 'new'
             ? '__create_new__'
             : p.selectedCredentialId
         }
         placeholder="Select or add credentials"
-        disabled={p.disabled}
+        disabled={p.disabled || p.disableCredentialSelection}
         onChange={p.handleCredentialSelectionChange}
         items={p.credentialSelectItems}
       />
       <p.credentialsForm.RenderError field="selectedCredentialId" />
 
-      {p.hasManagedVisibleCredentials && (
+      {p.hasManagedVisibleCredentials && !p.disableCredentialSelection && (
         <>
           <Spacer size={5} />
           <Text size="1" color="gray600">
@@ -226,11 +248,15 @@ let CredentialsSelector = (p: {
       )}
 
       {shouldShowRedirectUri && p.redirectUri && (
-        <RedirectUriField redirectUri={p.redirectUri} />
+        <RedirectUriField redirectUri={p.redirectUri} configDoc={p.configDoc} />
       )}
 
-      {p.isCreatingCredentials && (
-        <NewCredentialsFields credentialsForm={p.credentialsForm} disabled={p.disabled} />
+      {p.isCreatingCredentials && !p.disableCredentialSelection && (
+        <NewCredentialsFields
+          credentialsForm={p.credentialsForm}
+          providerDoc={p.providerDoc}
+          disabled={p.disabled}
+        />
       )}
     </>
   );
@@ -392,7 +418,6 @@ export let MethodSelectionStep = (p: {
         )}
 
         <AuthMethodPicker
-          label="Authentication Method"
           hideLabel
           focusOnMount
           value={p.selectedMethodId}
@@ -434,8 +459,11 @@ export let CredentialsSelectionStep = (p: {
   handleCredentialSelectionChange: (value: string) => void;
   hasManagedVisibleCredentials: boolean;
   redirectUri?: string;
+  providerDoc?: ProviderDocReference | null;
+  configDoc?: ProviderDocReference | null;
   isCustomSelected: boolean;
   isCreatingCredentials: boolean;
+  disableCredentialSelection?: boolean;
   projectBrandImageUrl?: string | null;
   projectBrandName: string;
   providerName: string;
@@ -479,7 +507,10 @@ export let CredentialsSelectionStep = (p: {
                 hasManagedVisibleCredentials={p.hasManagedVisibleCredentials}
                 isCreatingCredentials={p.isCreatingCredentials}
                 redirectUri={p.redirectUri}
+                providerDoc={p.providerDoc}
+                configDoc={p.configDoc}
                 isCustomSelected={p.isCustomSelected}
+                disableCredentialSelection={p.disableCredentialSelection}
               />
             </ManagedCredentialsColumn>
 
@@ -503,7 +534,10 @@ export let CredentialsSelectionStep = (p: {
             hasManagedVisibleCredentials={p.hasManagedVisibleCredentials}
             isCreatingCredentials={p.isCreatingCredentials}
             redirectUri={p.redirectUri}
+            providerDoc={p.providerDoc}
+            configDoc={p.configDoc}
             isCustomSelected={p.isCustomSelected}
+            disableCredentialSelection={p.disableCredentialSelection}
           />
         )}
 
@@ -566,11 +600,14 @@ export let FlatOAuthConnectStep = (p: {
   isCustomSelected: boolean;
   credentialsForm: AnyForm;
   isCreatingCredentials: boolean;
+  disableCredentialSelection?: boolean;
   credentialSelectItems: CredentialSelectItem[];
   handleCredentialSelectionChange: (value: string) => void;
   hasManagedVisibleCredentials: boolean;
   createCredentials: { isPending: boolean; RenderError: () => ReactNode };
   createSetupSession: { isPending: boolean; RenderError: () => ReactNode };
+  providerDoc?: ProviderDocReference | null;
+  configDoc?: ProviderDocReference | null;
   error: string | null;
   setupSession: SetupSessionState | null;
   setupWindowBlocked: boolean;
@@ -623,8 +660,11 @@ export let FlatOAuthConnectStep = (p: {
                 handleCredentialSelectionChange={p.handleCredentialSelectionChange}
                 hasManagedVisibleCredentials={p.hasManagedVisibleCredentials}
                 redirectUri={p.redirectUri}
+                providerDoc={p.providerDoc}
+                configDoc={p.configDoc}
                 isCreatingCredentials={p.isCreatingCredentials}
                 isCustomSelected={p.isCustomSelected}
+                disableCredentialSelection={p.disableCredentialSelection}
                 disabled={isWindowOpen}
               />
             </FlatConnectSection>

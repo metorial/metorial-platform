@@ -1,14 +1,8 @@
 import { renderWithLoader } from '@metorial/data-hooks';
-import {
-  useCurrentInstance,
-  useMagicMcpServer,
-  useMagicMcpTokens,
-  useProviders,
-  useSessionTemplateProviders
-} from '@metorial/state';
+import { useCurrentInstance, useMagicMcpServer, useMagicMcpTokens } from '@metorial/state';
 import { Attributes, Flex, RenderDate, Text } from '@metorial/ui';
 import { Box, ID } from '@metorial/ui-product';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { McpConnectionInstructionsScene } from '../../../scenes/mcpConnectionInstructions';
 
@@ -25,10 +19,6 @@ export let MagicMcpServerOverviewPage = () => {
     }
   );
   let createToken = tokens.createMutator();
-  let templateProviders = useSessionTemplateProviders(
-    instance.data?.id,
-    server.data?.sessionTemplateId
-  );
   let initializingTokenRef = useRef<string | undefined>(undefined);
   let [creatingInitialToken, setCreatingInitialToken] = useState(false);
   let [createdInitialToken, setCreatedInitialToken] = useState<{
@@ -39,17 +29,6 @@ export let MagicMcpServerOverviewPage = () => {
     status: 'active';
     groups: [];
   } | null>(null);
-  let providerIds = useMemo(
-    () => [
-      ...new Set(
-        (templateProviders.data?.items ?? []).map(
-          p => p.providerId ?? p.deployment.providerId ?? p.id
-        )
-      )
-    ],
-    [templateProviders.data?.items]
-  );
-  let providers = useProviders(instance.data?.id, { id: providerIds });
   let existingServerTokenId = tokens.data?.items.find(
     t => t.status === 'active' && t.server?.id === server.data?.id
   )?.id;
@@ -103,77 +82,51 @@ export let MagicMcpServerOverviewPage = () => {
     tokens.isLoading
   ]);
 
-  return renderWithLoader({ server, tokens, templateProviders, providers })(
-    ({ server, tokens, templateProviders, providers }) => {
-      let streamableHttpUrl = server.data.endpoints[0]?.url;
-      let createdToken =
-        createdInitialToken?.instanceId === instance.data?.id &&
-        createdInitialToken?.serverId === server.data.id
-          ? createdInitialToken
-          : null;
-      let activeToken =
-        tokens.data.items.find(
-          t => t.status === 'active' && t.server?.id === server.data.id
-        ) ?? createdToken;
-      let activeTokenSecret = activeToken?.secret;
-      let fullUrl =
-        streamableHttpUrl && activeTokenSecret
-          ? `${streamableHttpUrl}?key=${activeTokenSecret}`
-          : null;
-      let hasRelatedActiveToken = tokens.data.items.length > 0;
-      let providerNameMap = new Map<string, string>();
-      for (let provider of providers.data?.items ?? []) {
-        if (provider.id && provider.name) providerNameMap.set(provider.id, provider.name);
-      }
+  return renderWithLoader({ server, tokens })(({ server, tokens }) => {
+    let streamableHttpUrl = server.data.endpoints[0]?.url;
+    let createdToken =
+      createdInitialToken?.instanceId === instance.data?.id &&
+      createdInitialToken?.serverId === server.data.id
+        ? createdInitialToken
+        : null;
+    let activeToken =
+      tokens.data.items.find(t => t.status === 'active' && t.server?.id === server.data.id) ??
+      createdToken;
+    let activeTokenSecret = activeToken?.secret;
+    let fullUrl =
+      streamableHttpUrl && activeTokenSecret
+        ? `${streamableHttpUrl}?key=${activeTokenSecret}`
+        : null;
 
-      let providerPreviewItems = templateProviders.data.items.slice(0, 4);
-      let remainingProviderCount =
-        templateProviders.data.items.length - providerPreviewItems.length;
-      let detailsPathParams = [
-        instance.data?.organization,
-        instance.data?.project,
-        instance.data,
-        server.data.id
-      ] as const;
-
-      return (
-        <Flex direction="column" gap={16}>
-          <Box
-            title={
-              <Flex gap={8} style={{ alignItems: 'center', flexWrap: 'wrap' }}>
-                <span>{server.data.name ?? 'Magic MCP Server'}</span>
-              </Flex>
+    return (
+      <Flex direction="column" gap={16}>
+        <Attributes
+          itemWidth="300px"
+          attributes={[
+            {
+              label: 'ID',
+              content: <ID id={server.data.id} />
+            },
+            {
+              label: 'Server Identifier',
+              content: <ID id={server.data.endpoints[0]?.alias ?? '...'} />
+            },
+            {
+              label: 'Created At',
+              content: <RenderDate date={server.data.createdAt} />
             }
-            description="Magic MCP servers are reusable MCP servers linked to providers in Metorial."
-          >
-            <Attributes
-              itemWidth="280px"
-              attributes={[
-                {
-                  label: 'ID',
-                  content: <ID id={server.data.id} />
-                },
-                {
-                  label: 'Server Identifier',
-                  content: <ID id={server.data.endpoints[0]?.alias ?? '...'} />
-                },
-                {
-                  label: 'Created At',
-                  content: <RenderDate date={server.data.createdAt} />
-                }
-              ]}
-            />
+          ]}
+        />
 
-            {/* <Spacer height={16} />
+        {/* <Spacer height={16} />
 
             <Copy
               label="Primary Endpoint"
               value={streamableHttpUrl ?? '...'}
               copyValue={streamableHttpUrl ?? ''}
             /> */}
-          </Box>
 
-          {/* <Box
+        {/* <Box
             title="Providers"
             description="Sessions created through this server inherit providers from its session template."
             rightActions={
@@ -237,33 +190,32 @@ export let MagicMcpServerOverviewPage = () => {
             </Flex>
           </Box> */}
 
-          <Box
-            title={`Connect to ${server.data.name ?? 'Magic MCP Server'}`}
-            description="Use this Magic MCP endpoint to connect to your server."
-          >
-            <McpConnectionInstructionsScene
-              name={server.data.name ?? 'Magic MCP Server'}
-              tokenLabel="Magic MCP Token"
-              tokenValue={activeTokenSecret ?? null}
-              tokenCopyValue={activeTokenSecret ?? ''}
-              endpointLabel="Endpoint"
-              endpointValue={fullUrl ?? streamableHttpUrl ?? '...'}
-              endpointCopyValue={fullUrl ?? streamableHttpUrl ?? ''}
-              snippetUrl={streamableHttpUrl ?? null}
-              snippetToken={activeTokenSecret ?? null}
-              emptyState={
-                <Flex direction="column" gap={12} style={{ alignItems: 'flex-start' }}>
-                  <Text size="2">
-                    {creatingInitialToken
-                      ? 'Creating a Magic MCP token for this server...'
-                      : 'No active Magic MCP token found for this server. Create one from the Tokens tab to connect clients.'}
-                  </Text>
-                </Flex>
-              }
-            />
-          </Box>
-        </Flex>
-      );
-    }
-  );
+        <Box
+          title={`Connect to ${server.data.name ?? 'Magic MCP Server'}`}
+          description="Use this Magic MCP endpoint to connect to your server."
+        >
+          <McpConnectionInstructionsScene
+            name={server.data.name ?? 'Magic MCP Server'}
+            tokenLabel="Magic MCP Token"
+            tokenValue={activeTokenSecret ?? null}
+            tokenCopyValue={activeTokenSecret ?? ''}
+            endpointLabel="Endpoint"
+            endpointValue={fullUrl ?? streamableHttpUrl ?? '...'}
+            endpointCopyValue={fullUrl ?? streamableHttpUrl ?? ''}
+            snippetUrl={streamableHttpUrl ?? null}
+            snippetToken={activeTokenSecret ?? null}
+            emptyState={
+              <Flex direction="column" gap={12} style={{ alignItems: 'flex-start' }}>
+                <Text size="2">
+                  {creatingInitialToken
+                    ? 'Creating a Magic MCP token for this server...'
+                    : 'No active Magic MCP token found for this server. Create one from the Tokens tab to connect clients.'}
+                </Text>
+              </Flex>
+            }
+          />
+        </Box>
+      </Flex>
+    );
+  });
 };

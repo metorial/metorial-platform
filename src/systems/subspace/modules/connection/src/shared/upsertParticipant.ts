@@ -1,8 +1,10 @@
 import { canonicalize } from '@lowerdeck/canonicalize';
 import { Hash } from '@lowerdeck/hash';
 import {
+  type AgentInstance,
   db,
   getId,
+  SessionParticipantConnectionType,
   type Provider,
   type Session,
   type SessionParticipantType
@@ -13,15 +15,13 @@ export let upsertParticipant = async (d: {
   from:
     | {
         type: 'connection_client';
-        transport: 'mcp' | 'metorial';
+        transport: SessionParticipantConnectionType;
         participant: PrismaJson.SessionParticipantPayload;
+        agentInstance?: AgentInstance | null;
       }
     | {
         type: 'provider';
         provider: Provider;
-      }
-    | {
-        type: 'tool_call';
       }
     | {
         type: 'system';
@@ -33,12 +33,14 @@ export let upsertParticipant = async (d: {
   let hash: string = d.from.type;
   let participantData: PrismaJson.SessionParticipantPayload;
   let type: SessionParticipantType;
+  let connectionType: SessionParticipantConnectionType | undefined;
 
   switch (d.from.type) {
     case 'connection_client':
       participantData = d.from.participant;
       hash = await Hash.sha256(canonicalize([d.session.tenantOid, participantData]));
-      type = d.from.transport === 'mcp' ? 'mcp_client' : 'metorial_protocol_client';
+      connectionType = d.from.transport;
+      type = 'agent';
       break;
 
     case 'provider':
@@ -48,14 +50,6 @@ export let upsertParticipant = async (d: {
       };
       hash = `provider:${d.from.provider.id}`;
       type = 'provider';
-      break;
-
-    case 'tool_call':
-      participantData = {
-        identifier: 'tool_call',
-        name: 'Tool Call'
-      };
-      type = 'tool_call';
       break;
 
     case 'system':
@@ -89,11 +83,29 @@ export let upsertParticipant = async (d: {
       type,
       identifier: participantData.identifier,
       name: participantData.name,
+      connectionType,
       payload: participantData,
       tenantOid: d.session.tenantOid,
       environmentOid: d.session.environmentOid,
-      providerOid: d.from.type === 'provider' ? d.from.provider.oid : undefined
+      providerOid: d.from.type === 'provider' ? d.from.provider.oid : undefined,
+      agentInstanceOid:
+        d.from.type === 'connection_client' ? d.from.agentInstance?.oid : undefined,
+      identityActorOid:
+        d.from.type === 'connection_client' ? (d.session.identityActorOid ?? null) : undefined,
+      identityOid:
+        d.from.type === 'connection_client' ? (d.session.identityOid ?? null) : undefined
     },
-    update: {}
+    update:
+      d.from.type === 'connection_client'
+        ? {
+            identifier: participantData.identifier,
+            name: participantData.name,
+            payload: participantData,
+            connectionType,
+            agentInstanceOid: d.from.agentInstance?.oid,
+            identityActorOid: d.session.identityActorOid ?? null,
+            identityOid: d.session.identityOid ?? null
+          }
+        : {}
   });
 };

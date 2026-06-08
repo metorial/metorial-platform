@@ -99,7 +99,7 @@ describe('ProjectService', () => {
   });
 
   describe('createProject', () => {
-    it('should create project with development instance', async () => {
+    it('should create project with production instance', async () => {
       let mockOrg = { id: 'org-1', oid: 1 };
       let mockActor = { id: 'actor-1', oid: 1 };
       let mockProject = {
@@ -151,8 +151,8 @@ describe('ProjectService', () => {
         performedBy: mockActor,
         context: {},
         input: {
-          name: 'Development',
-          type: 'development'
+          name: 'Production',
+          type: 'production'
         }
       });
     });
@@ -360,6 +360,103 @@ describe('ProjectService', () => {
         })
       );
     });
+
+    it('should reject slug updates when another project has the current slug', async () => {
+      let mockProject = {
+        id: 'proj-1',
+        oid: 1,
+        status: 'active',
+        slug: 'old-slug',
+        previousSlugs: []
+      };
+      let update = vi.fn();
+
+      vi.mocked(withTransaction).mockImplementation(async callback => {
+        let mockDb = {
+          project: {
+            findFirst: vi.fn().mockResolvedValue({ id: 'proj-2' }),
+            update
+          }
+        };
+        return callback(mockDb as any);
+      });
+
+      await expect(
+        projectService.updateProject({
+          project: mockProject as any,
+          organization: { id: 'org-1', oid: 1 } as any,
+          performedBy: { id: 'actor-1', oid: 1 } as any,
+          context: {} as any,
+          input: {
+            slug: 'new-slug'
+          }
+        })
+      ).rejects.toThrow(ServiceError);
+
+      expect(update).not.toHaveBeenCalled();
+    });
+
+    it('should reclaim previous slug conflicts and keep slug history on update', async () => {
+      let mockProject = {
+        id: 'proj-1',
+        oid: 1,
+        status: 'active',
+        slug: 'old-slug',
+        previousSlugs: ['older-slug', 'new-slug']
+      };
+      let updatedProject = {
+        ...mockProject,
+        slug: 'new-slug',
+        previousSlugs: ['older-slug', 'old-slug']
+      };
+      let update = vi
+        .fn()
+        .mockResolvedValueOnce({ oid: 2, previousSlugs: ['kept-slug'] })
+        .mockResolvedValueOnce(updatedProject);
+
+      vi.mocked(withTransaction).mockImplementation(async callback => {
+        let mockDb = {
+          project: {
+            findFirst: vi.fn().mockResolvedValue(null),
+            findMany: vi.fn().mockResolvedValue([
+              {
+                oid: 2,
+                previousSlugs: ['new-slug', 'kept-slug']
+              }
+            ]),
+            update
+          }
+        };
+        return callback(mockDb as any);
+      });
+
+      let result = await projectService.updateProject({
+        project: mockProject as any,
+        organization: { id: 'org-1', oid: 1 } as any,
+        performedBy: { id: 'actor-1', oid: 1 } as any,
+        context: {} as any,
+        input: {
+          slug: 'new-slug'
+        }
+      });
+
+      expect(result).toEqual(updatedProject);
+      expect(update).toHaveBeenCalledWith({
+        where: { oid: 2 },
+        data: {
+          previousSlugs: ['kept-slug']
+        }
+      });
+      expect(update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { oid: 1 },
+          data: expect.objectContaining({
+            slug: 'new-slug',
+            previousSlugs: ['older-slug', 'old-slug']
+          })
+        })
+      );
+    });
   });
 
   describe('deleteProject', () => {
@@ -428,7 +525,7 @@ describe('ProjectService', () => {
       expect(result).toEqual(mockProject);
       expect(db.project.findFirst).toHaveBeenCalledWith({
         where: {
-          OR: [{ id: 'proj-1' }, { slug: 'proj-1' }],
+          OR: [{ id: 'proj-1' }, { slug: 'proj-1' }, { previousSlugs: { has: 'proj-1' } }],
           organizationOid: 1
         },
         include: {
@@ -455,6 +552,38 @@ describe('ProjectService', () => {
       });
 
       expect(result).toEqual(mockProject);
+    });
+
+    it('should return project by previous slug', async () => {
+      let mockProject = {
+        id: 'proj-1',
+        oid: 1,
+        slug: 'current-slug',
+        previousSlugs: ['old-slug'],
+        organizationOid: 1
+      };
+
+      vi.mocked(db.project.findFirst).mockResolvedValue(mockProject as any);
+
+      let result = await projectService.getProjectById({
+        organization: { id: 'org-1', oid: 1 } as any,
+        projectId: 'old-slug',
+        actor: { id: 'actor-1', oid: 1 } as any,
+        member: undefined
+      });
+
+      expect(result).toEqual(mockProject);
+      expect(db.project.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            OR: [
+              { id: 'old-slug' },
+              { slug: 'old-slug' },
+              { previousSlugs: { has: 'old-slug' } }
+            ]
+          })
+        })
+      );
     });
 
     it('should throw not found error when project does not exist', async () => {

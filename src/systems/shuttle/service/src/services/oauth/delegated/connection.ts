@@ -109,7 +109,8 @@ class delegatedOAuthConnectionServiceImpl {
       let secret = await secretService.DANGEROUSLY_decryptSecret({
         secretOid: d.connection.secretOid,
         purpose: 'oauth_connection_credentials',
-        tenant: d.tenant
+        tenant: d.tenant,
+        note: `docn.cred:${d.connection.id}`
       });
 
       return {

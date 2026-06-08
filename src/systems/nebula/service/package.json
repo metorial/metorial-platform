@@ -1,0 +1,63 @@
+{
+  "name": "@metorial/nebula",
+  "module": "index.ts",
+  "type": "commonjs",
+  "private": true,
+  "scripts": {
+    "start": "bun run server:start",
+    "server:build": "ncc build ./src/server.ts -o ./dist --source-map --transpile-only && bun run sentry:sourcemaps:if-token",
+    "sentry:sourcemaps": "sentry-cli sourcemaps inject --org metorial --project mte-nebula ./dist && sentry-cli sourcemaps upload --org metorial --project mte-nebula ./dist",
+    "sentry:sourcemaps:if-token": "sh -c 'if [ -n \"$SENTRY_AUTH_TOKEN\" ]; then bun run sentry:sourcemaps; else echo \"Skipping Sentry sourcemap upload\"; fi'",
+    "server:start": "bun ./dist/index.js",
+    "dev": "bun \"$(ROOT=$(git rev-parse --show-toplevel); if [ -f \"$ROOT/scripts/dev-tools/src/cli.ts\" ]; then echo \"$ROOT/scripts/dev-tools/src/cli.ts\"; else echo \"$ROOT/oss/scripts/dev-tools/src/cli.ts\"; fi)\" watch-bun ./src/server.ts",
+    "enterprise:dev": "bun run dev",
+    "prisma:generate": "bun run db:generate",
+    "prisma:push": "bun run db:push:dev",
+    "db:generate": "bun prisma generate",
+    "db:push:dev": "sh -c 'set -a; . .env; set +a; bun prisma db push --accept-data-loss'",
+    "db:push:test": "sh -c 'set -a; . .env.test; set +a; bun prisma db push --accept-data-loss'",
+    "db:push": "bun run db:push:dev && bun run db:push:test",
+    "test": "bunx vitest run --passWithNoTests",
+    "test:watch": "bunx vitest watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@lowerdeck/testing-tools": "^1.0.1",
+    "@types/bun": "latest",
+    "@types/node": "^25.0.3",
+    "@vercel/ncc": "^0.38.1",
+    "vitest": "4.0.17"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@aws-sdk/client-kms": "^3.957.0",
+    "@aws-sdk/credential-providers": "^3.957.0",
+    "@lowerdeck/api-mux": "^1.0.4",
+    "@lowerdeck/cache": "^1.0.2",
+    "@lowerdeck/canonicalize": "^1.0.4",
+    "@lowerdeck/cron": "^1.1.3",
+    "@lowerdeck/env": "^1.0.6",
+    "@lowerdeck/error": "^1.2.3",
+    "@lowerdeck/hash": "^1.0.4",
+    "@lowerdeck/id": "^1.0.8",
+    "@lowerdeck/jwt": "^1.0.4",
+    "@lowerdeck/lock": "^1.0.6",
+    "@lowerdeck/pagination": "^1.0.8",
+    "@lowerdeck/queue": "^1.0.11",
+    "@lowerdeck/rpc-client": "^1.1.4",
+    "@lowerdeck/rpc-server": "^1.0.11",
+    "@lowerdeck/sentry": "^1.0.2",
+    "@lowerdeck/service": "^1.0.7",
+    "@lowerdeck/snowflake": "^1.0.2",
+    "@lowerdeck/validation": "^1.0.10",
+    "@prisma/adapter-pg": "^7.2.0",
+    "@prisma/client": "^7.2.0",
+    "@prisma/extension-read-replicas": "^0.5.0",
+    "@sentry/bun": "^10.38.0",
+    "@sentry/cli": "^3.2.0",
+    "date-fns": "^4.1.0",
+    "prisma": "^7.2.0"
+  }
+}

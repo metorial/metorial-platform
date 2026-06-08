@@ -11,6 +11,7 @@ import {
   type Identity,
   type Provider,
   type ProviderAuthCredentials,
+  type ProviderConfig,
   type ProviderDeployment,
   type ProviderDeploymentVersion,
   type ProviderSetupSession,
@@ -122,11 +123,13 @@ class providerSetupSessionServiceImpl {
               tenantOid: d.tenant.oid,
               solutionOid: d.solution.oid,
               environmentOid: d.environment.oid,
+              integrationSetupSessionProviderOid: null,
 
               ...normalizeStatusForList(d).onlyParent,
 
               AND: [
                 d.ids ? { id: { in: d.ids } } : undefined!,
+                d.status ? { status: { in: d.status } } : undefined!,
                 providers ? { providerOid: providers.in } : undefined!,
                 deployments ? { deploymentOid: deployments.in } : undefined!,
                 authConfigs ? { authConfigOid: authConfigs.in } : undefined!,
@@ -155,6 +158,7 @@ class providerSetupSessionServiceImpl {
         tenantOid: d.tenant.oid,
         solutionOid: d.solution.oid,
         environmentOid: d.environment.oid,
+        integrationSetupSessionProviderOid: null,
         ...normalizeStatusForGet(d).onlyParent
       },
       include
@@ -179,6 +183,7 @@ class providerSetupSessionServiceImpl {
         | (ProviderDeploymentVersion & { lockedVersion: ProviderVersion | null })
         | null;
     };
+    providerConfig?: ProviderConfig;
     identity?: Identity;
     credentials?: ProviderAuthCredentials;
     brand?: Brand;
@@ -203,15 +208,20 @@ class providerSetupSessionServiceImpl {
       ua: string;
       note?: string | undefined;
     };
+    internal?: {
+      integrationSetupSessionProviderOid?: bigint;
+    };
   }) {
     let normalizedConfiguration = normalizeProviderSetupSessionConfiguration(
       d.input.configuration
     );
 
     checkTenant(d, d.providerDeployment);
+    checkTenant(d, d.providerConfig);
     checkTenant(d, d.identity);
 
     checkDeletedRelation(d.providerDeployment);
+    checkDeletedRelation(d.providerConfig);
     checkDeletedRelation(d.identity);
     checkDeletedRelation(d.credentials);
 
@@ -220,6 +230,8 @@ class providerSetupSessionServiceImpl {
 
       if (d.providerDeployment) {
         providerOid = d.providerDeployment.providerOid;
+      } else if (d.providerConfig) {
+        providerOid = d.providerConfig.providerOid;
       } else if (d.credentials) {
         providerOid = d.credentials.providerOid;
       }
@@ -258,6 +270,7 @@ class providerSetupSessionServiceImpl {
       if (d.provider) {
         checkProviderMatch(d.provider, d.credentials);
         checkProviderMatch(d.provider, d.providerDeployment);
+        checkProviderMatch(d.provider, d.providerConfig);
 
         let initialized =
           await providerSetupSessionInternalService.initializeProviderSetupSessionProvider({
@@ -276,6 +289,7 @@ class providerSetupSessionServiceImpl {
               type: d.input.type,
               authConfigInput: d.input.authConfigInput,
               configInput: d.input.configInput,
+              providerConfig: d.providerConfig,
               toolFilters: normalizedConfiguration.toolFilters?.enabled
                 ? { type: 'v1.allow_all' }
                 : undefined,
@@ -289,6 +303,11 @@ class providerSetupSessionServiceImpl {
 
         concreteType = initialized.concreteType;
         inner = initialized.inner as typeof inner;
+      }
+
+      if (d.providerConfig) {
+        inner.configOid = inner.configOid ?? d.providerConfig.oid;
+        inner.deploymentOid = inner.deploymentOid ?? d.providerConfig.deploymentOid;
       }
 
       let session = await db.providerSetupSession.create({
@@ -316,10 +335,11 @@ class providerSetupSessionServiceImpl {
           solutionOid: d.solution.oid,
           environmentOid: d.environment.oid,
           providerOid: d.provider?.oid,
-          deploymentOid: d.providerDeployment?.oid,
+          deploymentOid: d.providerDeployment?.oid ?? d.providerConfig?.deploymentOid,
           identityOid: d.identity?.oid ?? null,
           brandOid: d.brand?.oid,
           authCredentialsOid: inner.authCredentialsOid ?? d.credentials?.oid,
+          integrationSetupSessionProviderOid: d.internal?.integrationSetupSessionProviderOid,
 
           expiresAt
         },
@@ -357,6 +377,13 @@ class providerSetupSessionServiceImpl {
         where: { oid: session.oid },
         include
       });
+    });
+  }
+
+  async listProviderSetupSessionEvents(d: { providerSetupSession: ProviderSetupSession }) {
+    return await db.providerSetupSessionEvent.findMany({
+      where: { sessionOid: d.providerSetupSession.oid },
+      orderBy: { createdAt: 'asc' }
     });
   }
 

@@ -120,8 +120,7 @@ export let mapMagicMcpEndpointsAddServersOutput =
   });
 
 export type MagicMcpEndpointsAddServersBody = {
-  magicMcpServerIds?: string[] | undefined;
-  servers?:
+  magicMcpServers?:
     | {
         magicMcpServerId: string;
         toolFilters?:
@@ -149,12 +148,8 @@ export type MagicMcpEndpointsAddServersBody = {
 
 export let mapMagicMcpEndpointsAddServersBody =
   mtMap.object<MagicMcpEndpointsAddServersBody>({
-    magicMcpServerIds: mtMap.objectField(
-      'magic_mcp_server_ids',
-      mtMap.array(mtMap.passthrough())
-    ),
-    servers: mtMap.objectField(
-      'servers',
+    magicMcpServers: mtMap.objectField(
+      'magic_mcp_servers',
       mtMap.array(
         mtMap.object({
           magicMcpServerId: mtMap.objectField(

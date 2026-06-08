@@ -14,6 +14,9 @@ export let slatePresenter = (
           specification: SlateSpecification | null;
         })
       | null;
+    slateVersions?: (SlateVersion & {
+      specification: SlateSpecification | null;
+    })[];
   }
 ) => ({
   object: 'slate',
@@ -29,6 +32,13 @@ export let slatePresenter = (
   currentVersion: slate.currentVersion
     ? slateVersionPresenter({
         ...slate.currentVersion,
+        slate: slate
+      })
+    : null,
+
+  latestVersion: slate.slateVersions?.[0]
+    ? slateVersionPresenter({
+        ...slate.slateVersions[0],
         slate: slate
       })
     : null,

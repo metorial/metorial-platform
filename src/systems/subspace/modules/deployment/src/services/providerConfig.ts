@@ -25,6 +25,8 @@ import {
   withTransaction
 } from '@metorial-subspace/db';
 import {
+  assertNoActiveIdentityCredentialConfigLink,
+  assertNoActiveIntegrationInstanceProviderConfigLink,
   checkDeletedEdit,
   checkDeletedRelation,
   type DateFilter,
@@ -86,6 +88,8 @@ class providerConfigServiceImpl {
     providerIds?: string[];
     providerSpecificationIds?: string[];
     providerDeploymentIds?: string[];
+    availableForUse?: boolean;
+    availableForProviderDeploymentId?: string;
     providerConfigVaultIds?: string[];
     actorIds?: string[];
     identityIds?: string[];
@@ -97,6 +101,17 @@ class providerConfigServiceImpl {
     let providers = await resolveProviders(d, d.providerIds);
     let specifications = await resolveProviderSpecifications(d, d.providerSpecificationIds);
     let deployments = await resolveProviderDeployments(d, d.providerDeploymentIds);
+    let availableForDeployment = d.availableForProviderDeploymentId
+      ? await db.providerDeployment.findFirst({
+          where: {
+            tenantOid: d.tenant.oid,
+            solutionOid: d.solution.oid,
+            environmentOid: d.environment.oid,
+            id: d.availableForProviderDeploymentId
+          },
+          select: { oid: true }
+        })
+      : null;
     let vaults = await resolveProviderConfigs(d, d.providerConfigVaultIds);
     let actors = await resolveIdentityActors(d, d.actorIds);
     let identities = await resolveIdentities(d, d.identityIds);
@@ -131,6 +146,22 @@ class providerConfigServiceImpl {
                 providers ? { providerOid: providers.in } : undefined!,
                 specifications ? { specificationOid: specifications.in } : undefined!,
                 deployments ? { deploymentOid: deployments.in } : undefined!,
+                d.availableForUse
+                  ? {
+                      owningIntegrationInstanceOid: null,
+                      owningIntegrationInstanceProviderOid: null
+                    }
+                  : undefined!,
+                d.availableForProviderDeploymentId
+                  ? {
+                      OR: [
+                        { deploymentOid: null },
+                        ...(availableForDeployment
+                          ? [{ deploymentOid: availableForDeployment.oid }]
+                          : [])
+                      ]
+                    }
+                  : undefined!,
                 vaults ? { fromVaultOid: vaults.in } : undefined!,
                 actors
                   ? { identityCredentials: { some: { identity: { actor: actors.oidIn } } } }
@@ -158,17 +189,21 @@ class providerConfigServiceImpl {
     providerConfigId: string;
     allowDeleted?: boolean;
   }) {
-    let providerConfig = await db.providerConfig.findFirst({
-      where: {
-        id: d.providerConfigId,
-        tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
-        environmentOid: d.environment.oid,
-        isForVault: false,
-        ...normalizeStatusForGet(d).noParent
-      },
-      include
-    });
+    let providerConfig = await withTransaction(
+      async db =>
+        await db.providerConfig.findFirst({
+          where: {
+            id: d.providerConfigId,
+            tenantOid: d.tenant.oid,
+            solutionOid: d.solution.oid,
+            environmentOid: d.environment.oid,
+            isForVault: false,
+            ...normalizeStatusForGet(d).noParent
+          },
+          include
+        }),
+      { ifExists: true }
+    );
     if (!providerConfig)
       throw new ServiceError(notFoundError('provider.config', d.providerConfigId));
 
@@ -594,10 +629,27 @@ class providerConfigServiceImpl {
     solution: Solution;
     environment: Environment;
     providerConfig: ProviderConfig;
+    _canArchiveOwned?: boolean;
   }) {
     await this.assertNotForVault(d);
     checkTenant(d, d.providerConfig);
     checkDeletedEdit(d.providerConfig, 'archive');
+    await this.assertNoActiveIntegrationProviderLink(d);
+    this.assertCanArchiveOwned(d);
+    await assertNoActiveIntegrationInstanceProviderConfigLink({
+      tenant: d.tenant,
+      solution: d.solution,
+      environment: d.environment,
+      configOid: d.providerConfig.oid,
+      resourceId: d.providerConfig.id
+    });
+    await assertNoActiveIdentityCredentialConfigLink({
+      tenant: d.tenant,
+      solution: d.solution,
+      environment: d.environment,
+      configOid: d.providerConfig.oid,
+      resourceId: d.providerConfig.id
+    });
 
     return withTransaction(async db => {
       let archivedAt = new Date();
@@ -653,6 +705,72 @@ class providerConfigServiceImpl {
         })
       );
     }
+  }
+
+  private async assertNoActiveIntegrationProviderLink(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    providerConfig: ProviderConfig;
+  }) {
+    let integrationProvider = await db.integrationProvider.findFirst({
+      where: {
+        tenantOid: d.tenant.oid,
+        solutionOid: d.solution.oid,
+        environmentOid: d.environment.oid,
+        status: 'active',
+        integration: {
+          status: 'active'
+        },
+        currentVersion: {
+          configOid: d.providerConfig.oid
+        }
+      },
+      select: {
+        id: true,
+        integration: {
+          select: {
+            id: true
+          }
+        }
+      }
+    });
+    if (!integrationProvider) return;
+
+    throw new ServiceError(
+      badRequestError({
+        message:
+          'Provider config is linked to an active integration provider and cannot be archived directly.',
+        code: 'provider_config_integration_provider_archive_not_allowed',
+        data: {
+          id: d.providerConfig.id,
+          integrationProviderId: integrationProvider.id,
+          integrationId: integrationProvider.integration.id
+        }
+      })
+    );
+  }
+
+  private assertCanArchiveOwned(d: {
+    providerConfig: ProviderConfig;
+    _canArchiveOwned?: boolean;
+  }) {
+    if (d._canArchiveOwned) return;
+    if (
+      d.providerConfig.owningIntegrationInstanceOid === null &&
+      d.providerConfig.owningIntegrationInstanceProviderOid === null
+    ) {
+      return;
+    }
+
+    throw new ServiceError(
+      badRequestError({
+        message:
+          'Provider config is owned by an integration instance provider and cannot be archived directly.',
+        code: 'provider_config_owned_archive_not_allowed',
+        data: { id: d.providerConfig.id }
+      })
+    );
   }
 }
 

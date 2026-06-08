@@ -1,0 +1,163 @@
+enum IntegrationInstanceGroupStatus {
+  draft
+  active
+  archived
+  deleted
+}
+
+model IntegrationInstanceGroup {
+  oid BigInt @id
+  id  String @unique
+
+  status     IntegrationInstanceGroupStatus
+  archivedAt DateTime?
+
+  isMagicMcpBacking Boolean @default(false)
+
+  name            String
+  description     String?
+  metadata        Json?
+  privateMetadata Json?
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  solutionOid Int
+  solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
+
+  identityActorOid BigInt?
+  identityActor    IdentityActor? @relation(fields: [identityActorOid], references: [oid], onDelete: SetNull)
+
+  identityOid BigInt?
+  identity    Identity? @relation(fields: [identityOid], references: [oid], onDelete: SetNull)
+
+  defaultSessionTemplate SessionTemplate? @relation("defaultSessionTemplateForIntegrationInstanceGroup")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  sources                 IntegrationInstanceGroupSource[]
+  providers               IntegrationInstanceGroupProvider[]
+  sessionTemplates        SessionTemplate[]
+  magicMcpEndpointBacking MagicMcpEndpointBacking?
+
+  @@index([tenantOid, solutionOid, environmentOid, status])
+  @@index([createdAt])
+  @@index([updatedAt])
+  @@index([status])
+  @@index([archivedAt])
+  @@index([status, archivedAt])
+  @@index([identityActorOid])
+  @@index([identityOid])
+}
+
+enum IntegrationInstanceGroupSourceStatus {
+  active
+  archived
+  deleted
+}
+
+model IntegrationInstanceGroupSource {
+  oid BigInt @id
+  id  String @unique
+
+  status          IntegrationInstanceGroupSourceStatus
+  isParentDeleted Boolean                              @default(false)
+  archivedAt      DateTime?
+
+  integrationInstanceGroupOid BigInt
+  integrationInstanceGroup    IntegrationInstanceGroup @relation(fields: [integrationInstanceGroupOid], references: [oid], onDelete: Cascade)
+
+  integrationInstanceOid BigInt
+  integrationInstance    IntegrationInstance @relation(fields: [integrationInstanceOid], references: [oid], onDelete: Cascade)
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  solutionOid Int
+  solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  providers IntegrationInstanceGroupProvider[]
+
+  @@unique([integrationInstanceGroupOid, integrationInstanceOid])
+  @@index([tenantOid, solutionOid, environmentOid, status])
+  @@index([integrationInstanceGroupOid, status])
+  @@index([integrationInstanceOid, status])
+  @@index([status, archivedAt])
+}
+
+enum IntegrationInstanceGroupProviderStatus {
+  active
+  archived
+  deleted
+}
+
+model IntegrationInstanceGroupProvider {
+  oid BigInt @id
+  id  String @unique
+
+  status          IntegrationInstanceGroupProviderStatus
+  isParentDeleted Boolean                                @default(false)
+  archivedAt      DateTime?
+
+  name            String
+  description     String?
+  metadata        Json?
+  privateMetadata Json?
+
+  integrationInstanceGroupOid BigInt
+  integrationInstanceGroup    IntegrationInstanceGroup @relation(fields: [integrationInstanceGroupOid], references: [oid], onDelete: Cascade, map: "dii_provider_dii_fkey")
+
+  integrationInstanceGroupSourceOid BigInt
+  integrationInstanceGroupSource    IntegrationInstanceGroupSource @relation(fields: [integrationInstanceGroupSourceOid], references: [oid], onDelete: Cascade, map: "dii_provider_source_fkey")
+
+  integrationOid BigInt
+  integration    Integration @relation(fields: [integrationOid], references: [oid])
+
+  integrationInstanceOid BigInt
+  integrationInstance    IntegrationInstance @relation(fields: [integrationInstanceOid], references: [oid], onDelete: Cascade)
+
+  integrationInstanceProviderOid BigInt
+  integrationInstanceProvider    IntegrationInstanceProvider @relation(fields: [integrationInstanceProviderOid], references: [oid], onDelete: Cascade)
+
+  integrationProviderOid BigInt
+  integrationProvider    IntegrationProvider @relation(fields: [integrationProviderOid], references: [oid], onDelete: Cascade)
+
+  /// [ToolFilter]
+  toolFilter Json?
+
+  isOverrideToolFilter Boolean @default(false)
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  solutionOid Int
+  solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  sessionTemplateProviders SessionTemplateProvider[]
+
+  @@unique([integrationInstanceGroupOid, integrationProviderOid], map: "dii_provider_integration_provider_key")
+  @@unique([integrationInstanceGroupOid, integrationInstanceProviderOid], map: "dii_provider_source_provider_key")
+  @@index([tenantOid, solutionOid, environmentOid, status])
+  @@index([integrationInstanceGroupOid, status], map: "dii_provider_dii_status_idx")
+  @@index([integrationInstanceGroupSourceOid, status], map: "dii_provider_source_status_idx")
+  @@index([integrationInstanceOid, status])
+  @@index([integrationInstanceProviderOid, status])
+  @@index([integrationProviderOid, status])
+  @@index([status, archivedAt])
+}

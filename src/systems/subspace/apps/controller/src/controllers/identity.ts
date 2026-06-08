@@ -45,6 +45,15 @@ export let identityController = app.controller({
           ids: v.optional(v.array(v.string())),
           agentIds: v.optional(v.array(v.string())),
           actorIds: v.optional(v.array(v.string())),
+          identityIds: v.optional(v.array(v.string())),
+          identityCredentialIds: v.optional(v.array(v.string())),
+          integrationIds: v.optional(v.array(v.string())),
+          integrationInstanceIds: v.optional(v.array(v.string())),
+          integrationInstanceProviderIds: v.optional(v.array(v.string())),
+          providerIds: v.optional(v.array(v.string())),
+          providerDeploymentIds: v.optional(v.array(v.string())),
+          providerConfigIds: v.optional(v.array(v.string())),
+          providerAuthConfigIds: v.optional(v.array(v.string())),
 
           createdAt: createdAtValidator,
           updatedAt: updatedAtValidator
@@ -65,6 +74,15 @@ export let identityController = app.controller({
         ids: ctx.input.ids,
         agentIds: ctx.input.agentIds,
         actorIds: ctx.input.actorIds,
+        identityIds: ctx.input.identityIds,
+        identityCredentialIds: ctx.input.identityCredentialIds,
+        integrationIds: ctx.input.integrationIds,
+        integrationInstanceIds: ctx.input.integrationInstanceIds,
+        integrationInstanceProviderIds: ctx.input.integrationInstanceProviderIds,
+        providerIds: ctx.input.providerIds,
+        providerDeploymentIds: ctx.input.providerDeploymentIds,
+        providerConfigIds: ctx.input.providerConfigIds,
+        providerAuthConfigIds: ctx.input.providerAuthConfigIds,
 
         createdAt: ctx.input.createdAt,
         updatedAt: ctx.input.updatedAt

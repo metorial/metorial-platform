@@ -11,13 +11,13 @@ export let ExternalProvidersPage = () => {
     <>
       {!flags.data.flags['custom-providers-enabled'] ? (
         <ComingSoon
-          title="Custom Providers"
-          description="Deploy custom MCP providers on the same reliable infra that runs every MCP provider on Metorial. Implement custom behavior or fork existing providers."
+          title="Remote MCP Servers"
+          description="Connect remote MCP servers to Metorial and enjoy managed OAuth, monitoring and more."
         />
       ) : !flags.data.flags['paid-custom-providers'] ? (
         <Upgrade
-          title="External Providers"
-          description="Connect external MCP providers to Metorial and enjoy managed OAuth, monitoring and more."
+          title="Remote MCP Servers"
+          description="Connect remote MCP servers to Metorial and enjoy managed OAuth, monitoring and more."
         />
       ) : (
         <CustomProvidersTable type={['remote']} />

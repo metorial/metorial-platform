@@ -1,6 +1,6 @@
 import { ProviderImpl } from '../_lib';
 import { checkLambdaAccess } from './access';
-import { deployFunction } from './deploy';
+import { cloneFunctionVersion, deployFunction } from './deploy';
 import { invokeFunction } from './invoke';
 import { provider } from './provider';
 import { getRuntime } from './runtime';
@@ -11,6 +11,7 @@ export let awsLambda = new ProviderImpl({
   workflow,
   getRuntime,
   deployFunction,
+  cloneFunctionVersion,
   invokeFunction
 });
 

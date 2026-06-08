@@ -1,5 +1,5 @@
 import { ProviderImpl } from '../_lib';
-import { deployFunction } from './deploy';
+import { cloneFunctionVersion, deployFunction } from './deploy';
 import { invokeFunction } from './invoke';
 import { provider } from './provider';
 import { getRuntime } from './runtime';
@@ -10,5 +10,6 @@ export let localProvider = new ProviderImpl({
   workflow,
   getRuntime,
   deployFunction,
+  cloneFunctionVersion,
   invokeFunction
 });

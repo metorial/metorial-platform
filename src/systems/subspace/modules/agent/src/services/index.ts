@@ -1,1 +1,3 @@
-export * from './actor';
+export * from './agent';
+export * from './agentClient';
+export * from './agentInstance';

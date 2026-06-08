@@ -3,10 +3,13 @@ import {
   DashboardInstanceCustomProvidersVersionsGetOutput
 } from '@metorial/dashboard-sdk';
 import { renderWithLoader } from '@metorial/data-hooks';
+import { Paths } from '@metorial/frontend-config';
 import {
+  useCreateCustomProviderVersion,
   useCurrentInstance,
   useCustomProviderDeployment,
   useCustomProviderDeploymentLogs,
+  useCustomProviderEnv,
   useCustomProviderVersion
 } from '@metorial/state';
 import {
@@ -19,13 +22,17 @@ import {
   Spacer,
   Text,
   theme,
+  toast,
   Tooltip
 } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import { RiArrowDownSLine } from '@remixicon/react';
+import Ansi from 'ansi-to-react';
 import { AnimatePresence, motion } from 'framer-motion';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
+import { getCustomProviderRedeployInput, normalizeEnvRecord } from './utils';
 
 const CUSTOM_SERVER_VERSION_STATUS_BADGES = {
   current: <Badge color="blue">Current</Badge>,
@@ -73,6 +80,13 @@ export let CustomProviderVersion = ({
   customProvider: DashboardInstanceCustomProvidersGetOutput | undefined | null;
 }) => {
   let instance = useCurrentInstance();
+  let navigate = useNavigate();
+  let redeployMutator = useCreateCustomProviderVersion();
+  let isFunctionProvider = customProvider?.type === 'function';
+  let customProviderEnv = useCustomProviderEnv(
+    isFunctionProvider ? instance.data?.id : null,
+    isFunctionProvider ? customProvider?.id : null
+  );
   let version = useCustomProviderVersion(
     instance.data?.id,
     customProvider?.id ?? versionId,
@@ -89,6 +103,52 @@ export let CustomProviderVersion = ({
     version.data?.deployment?.id,
     deployment.data?.status
   );
+  let redeployInput = useMemo(
+    () =>
+      getCustomProviderRedeployInput(
+        customProvider,
+        normalizeEnvRecord(customProviderEnv.data?.env)
+      ),
+    [customProvider, customProviderEnv.data?.env]
+  );
+  let isDeploying =
+    deployment.data?.status === 'queued' ||
+    deployment.data?.status === 'deploying' ||
+    version.data?.status === 'queued' ||
+    version.data?.status === 'deploying';
+  let canRedeploy =
+    !!instance.data &&
+    !!customProvider?.id &&
+    !!redeployInput &&
+    !isDeploying &&
+    (!customProviderEnv.isLoading || !isFunctionProvider);
+  let showRedeploy = customProvider?.type !== 'remote' && !isDeploying && !!redeployInput;
+
+  let redeploy = async () => {
+    if (!instance.data || !customProvider?.id || !redeployInput) return;
+
+    let [newVersion] = await redeployMutator.mutate({
+      instanceId: instance.data.id,
+      customProviderId: customProvider.id,
+      ...redeployInput
+    });
+
+    if (!newVersion) return;
+
+    toast.success('Redeploy started');
+    await Promise.all([version.refetch(), deployment.refetch(), deploymentLogs.refetch()]);
+
+    navigate(
+      Paths.instance.customProvider(
+        instance.data.organization,
+        instance.data.project,
+        instance.data,
+        customProvider.id,
+        'versions',
+        { version_id: newVersion.id }
+      )
+    );
+  };
 
   let logsData = deploymentLogs.data;
   let steps: Step[] = (() => {
@@ -174,11 +234,35 @@ export let CustomProviderVersion = ({
         <Group.Header
           title="Deployment Details"
           description="Details about the deployment of this version."
+          actions={
+            showRedeploy ? (
+              <Button
+                size="2"
+                variant="outline"
+                loading={redeployMutator.isLoading}
+                disabled={!canRedeploy}
+                onClick={redeploy}
+              >
+                Redeploy
+              </Button>
+            ) : null
+          }
         />
+
+        {redeployMutator.error && (
+          <Group.Row>
+            <Spacer height={20} />
+
+            <redeployMutator.RenderError />
+            <Spacer height={20} />
+          </Group.Row>
+        )}
 
         {deploymentLogs.isLoading && steps.length === 0 && (
           <Group.Row>
+            <Spacer height={20} />
             <CenteredSpinner />
+            <Spacer height={20} />
           </Group.Row>
         )}
 
@@ -241,6 +325,12 @@ let StepWrapper = styled.div`
   padding: 15px;
   display: flex;
   flex-direction: column;
+
+  code {
+    background: unset;
+    padding: unset;
+    font-family: unset;
+  }
 `;
 
 let StepHeader = styled.header`
@@ -329,7 +419,16 @@ let StepLogLineContent = styled.span`
   white-space: pre-wrap;
   word-break: break-word;
   font-family: 'JetBrains Mono', monospace;
+
+  code {
+    background: unset;
+    padding: unset;
+    font-family: inherit;
+    font-size: inherit;
+  }
 `;
+
+let AnsiText = ({ children }: { children: string }) => <Ansi>{children}</Ansi>;
 
 let StepDetails = ({ step }: { step: Step }) => {
   let [isExpanded, setIsExpanded] = useState(false);
@@ -391,7 +490,7 @@ let StepDetails = ({ step }: { step: Step }) => {
                       transition={{ duration: 0.3 }}
                       key={currentLine}
                     >
-                      {currentLine}
+                      <AnsiText>{currentLine}</AnsiText>
                     </StepHeaderExcerptLine>
                   </AnimatePresence>
                 </StepHeaderExcerptWrapper>
@@ -447,7 +546,9 @@ let StepDetails = ({ step }: { step: Step }) => {
             {step.logs.map((log, index) => (
               <StepLogLine key={index} data-log-type={log.type}>
                 <StepLogTs>{log.timestamp?.toLocaleTimeString() ?? '--:--:--'}</StepLogTs>
-                <StepLogLineContent>{log.line}</StepLogLineContent>
+                <StepLogLineContent>
+                  <AnsiText>{log.line}</AnsiText>
+                </StepLogLineContent>
               </StepLogLine>
             ))}
             <Spacer height={5} />

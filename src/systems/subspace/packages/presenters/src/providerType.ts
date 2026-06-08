@@ -5,7 +5,7 @@ import {
   type Tenant
 } from '@metorial-subspace/db';
 
-let mapAuth = (
+let mapAuth = async (
   auth: ProviderType['attributes']['auth'],
   providerType: ProviderType,
   provider: Provider,
@@ -20,14 +20,14 @@ let mapAuth = (
         ? {
             ...auth.oauth,
             oauthCallbackUrl: tenant
-              ? getOAuthCallbackUrl(providerType, provider, tenant)
+              ? await getOAuthCallbackUrl(providerType, provider, tenant)
               : null
           }
         : auth.oauth
   };
 };
 
-export let providerTypePresenter = (
+export let providerTypePresenter = async (
   providerType: ProviderType,
   d: { tenant: Tenant | undefined; provider: Provider }
 ) => ({
@@ -40,7 +40,7 @@ export let providerTypePresenter = (
 
   config: providerType.attributes.config,
   triggers: providerType.attributes.triggers,
-  auth: mapAuth(providerType.attributes.auth, providerType, d.provider, d.tenant),
+  auth: await mapAuth(providerType.attributes.auth, providerType, d.provider, d.tenant),
 
   createdAt: providerType.createdAt
 });

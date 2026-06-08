@@ -102,6 +102,13 @@ model Provider {
   providerUses                   ProviderUse[]
   identityCredentials            IdentityCredential[]
   managedProviderAuthCredentials ManagedProviderAuthCredentials[]
+  integrationProviders           IntegrationProvider[]
+  skillProviders                 SkillProvider[]
+  skillProviderLinks             SkillProviderLink[]
+  skillTemplateItems             SkillTemplateItem[]
+  tenantOAuthCallbackUrls        TenantOAuthCallbackUrl[]
+  firewallBindings               FirewallBinding[]
+  monitors                       Monitor[]
 
   @@index([status])
   @@index([access])

@@ -227,7 +227,7 @@ describe('userAuthService', () => {
         context: mockContext
       });
 
-      expect(capturedWhere).toEqual({ email: 'test@example.com' });
+      expect(capturedWhere).toEqual({ email: 'test@example.com', type: 'user' });
     });
   });
 

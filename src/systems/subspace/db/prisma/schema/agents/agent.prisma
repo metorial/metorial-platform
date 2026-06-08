@@ -4,6 +4,12 @@ enum AgentStatus {
   deleted
 }
 
+enum AgentType {
+  mcp_client
+  custom
+  tool_call
+}
+
 model Agent {
   oid BigInt @id
   id  String @unique
@@ -16,6 +22,10 @@ model Agent {
   slug            String
   metadata        Json?
   privateMetadata Json?
+
+  hash String?
+
+  type AgentType @default(custom)
 
   actorOid BigInt        @unique
   actor    IdentityActor @relation(fields: [actorOid], references: [oid], onDelete: Cascade)
@@ -33,5 +43,8 @@ model Agent {
   updatedAt  DateTime  @default(now()) @updatedAt
   archivedAt DateTime?
 
+  agentInstances AgentInstance[]
+
   @@unique([environmentOid, slug])
+  @@unique([environmentOid, hash])
 }

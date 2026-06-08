@@ -238,6 +238,20 @@ class scmRepoServiceImpl {
     throw new ServiceError(badRequestError({ message: 'Unsupported provider' }));
   }
 
+  async getManyScmReposByIds(i: { tenant: Tenant; scmRepoIds: string[] }) {
+    if (i.scmRepoIds.length === 0) return [];
+
+    return await db.scmRepository.findMany({
+      where: {
+        tenantOid: i.tenant.oid,
+        id: { in: i.scmRepoIds }
+      },
+      include: {
+        account: true
+      }
+    });
+  }
+
   async linkRepository(i: {
     installation: ScmInstallation & { backend: ScmBackend };
     externalId: string;

@@ -6,11 +6,13 @@ import {
 import {
   mapDashboardInstanceCustomProvidersVersionsCreateBody,
   mapDashboardInstanceCustomProvidersVersionsCreateOutput,
+  mapDashboardInstanceCustomProvidersVersionsGetEnvOutput,
   mapDashboardInstanceCustomProvidersVersionsGetOutput,
   mapDashboardInstanceCustomProvidersVersionsListOutput,
   mapDashboardInstanceCustomProvidersVersionsListQuery,
   type DashboardInstanceCustomProvidersVersionsCreateBody,
   type DashboardInstanceCustomProvidersVersionsCreateOutput,
+  type DashboardInstanceCustomProvidersVersionsGetEnvOutput,
   type DashboardInstanceCustomProvidersVersionsGetOutput,
   type DashboardInstanceCustomProvidersVersionsListOutput,
   type DashboardInstanceCustomProvidersVersionsListQuery
@@ -99,6 +101,33 @@ export class MetorialCustomProvidersVersionsEndpoint {
 
     return this._get(request).transform(
       mapDashboardInstanceCustomProvidersVersionsGetOutput
+    );
+  }
+
+  /**
+   * @name Get custom provider version environment
+   * @description Retrieves the environment variables for a specific version of a custom provider.
+   *
+   * @param `customProviderVersionId` - string
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardInstanceCustomProvidersVersionsGetEnvOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  getEnv(
+    customProviderVersionId: string,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceCustomProvidersVersionsGetEnvOutput> {
+    let path = `custom-provider-versions/${customProviderVersionId}/env`;
+
+    let request = {
+      path,
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._get(request).transform(
+      mapDashboardInstanceCustomProvidersVersionsGetEnvOutput
     );
   }
 

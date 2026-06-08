@@ -2,6 +2,10 @@ import { apiMux } from '@lowerdeck/api-mux';
 import { createServer, type InferClient, rpcMux } from '@lowerdeck/rpc-server';
 import { app } from './_app';
 import { actorController } from './actor';
+import { agentController } from './agent';
+import { agentClientController } from './agentClient';
+import { agentInstanceController } from './agentInstance';
+import { adminProviderTelemetryController } from './adminProviderTelemetry';
 import { authConfigErrorController } from './authConfigError';
 import { authConfigErrorGlobalController } from './authConfigErrorGlobal';
 import { authConfigEventController } from './authConfigEvent';
@@ -19,16 +23,33 @@ import { customProviderController } from './customProvider';
 import { customProviderCommitController } from './customProviderCommit';
 import { customProviderDeploymentController } from './customProviderDeployment';
 import { customProviderEnvironmentController } from './customProviderEnvironment';
+import { enclaveController } from './enclave';
+import { firewallController } from './firewall';
+import { firewallBindingController } from './firewallBinding';
+import { networkController } from './network';
+import { networkPolicyController } from './networkPolicy';
 import { customProviderVersionController } from './customProviderVersion';
 import { environmentController } from './environment';
+import { ephemeralManagedSessionController } from './ephemeralManagedSession';
 import { identityController } from './identity';
 import { identityActorController } from './identityActor';
 import { identityCredentialController } from './identityCredential';
 import { identityDelegationController } from './identityDelegation';
 import { identityDelegationConfigController } from './identityDelegationConfig';
 import { identityDelegationRequestController } from './identityDelegationRequest';
+import { integrationController } from './integration';
+import { integrationInstanceController } from './integrationInstance';
+import { integrationInstanceGroupController } from './integrationInstanceGroup';
+import { integrationInstanceGroupProviderController } from './integrationInstanceGroupProvider';
+import { integrationInstanceProviderController } from './integrationInstanceProvider';
+import { integrationProviderController } from './integrationProvider';
+import { integrationSetupSessionController } from './integrationSetupSession';
+import { integrationVersionController } from './integrationVersion';
+import { magicMcpBackingController } from './magicMcpBacking';
+import { magicMcpServerProviderController } from './magicMcpServerProvider';
 import { managedProviderAuthCredentialsController } from './managedProviderAuthCredentials';
-import { networkingRulesetController } from './networkingRuleset';
+import { monitorController } from './monitor';
+import { monitorAlertController } from './monitorAlert';
 import { providerController } from './provider';
 import { providerAuthConfigController } from './providerAuthConfig';
 import { providerAuthCredentialsController } from './providerAuthCredentials';
@@ -47,12 +68,16 @@ import { providerOAuthSetupController } from './providerOAuthSetup';
 import { providerRunController } from './providerRun';
 import { providerRunUsageRecordController } from './providerRunUsageRecord';
 import { providerSetupSessionController } from './providerSetupSession';
+import { providerSpecificationChangeNotificationController } from './providerSpecificationChangeNotification';
 import { providerSpecificationController } from './providerSpecification';
 import { providerToolController } from './providerTool';
 import { providerTriggerController } from './providerTrigger';
 import { providerVariantController } from './providerVariant';
 import { providerVersionController } from './providerVersion';
+import { protoGuardAlertController } from './protoGuardAlert';
+import { protoGuardConfigController } from './protoGuardConfig';
 import { publisherController } from './publisher';
+import { resourceCountController } from './resourceCount';
 import { scmConnectionController } from './scmConnection';
 import { scmConnectionSetupSessionController } from './scmConnectionSetupSession';
 import { scmProviderController } from './scmProvider';
@@ -70,6 +95,12 @@ import { sessionProviderController } from './sessionProvider';
 import { sessionTemplateController } from './sessionTemplate';
 import { sessionTemplateProviderController } from './sessionTemplateProvider';
 import { sessionUsageRecordController } from './sessionUsageRecord';
+import { skillController } from './skill';
+import { skillGroupController } from './skillGroup';
+import { skillGroupItemController } from './skillGroupItem';
+import { skillItemController } from './skillItem';
+import { skillTemplateController } from './skillTemplate';
+import { skillTemplateItemController } from './skillTemplateItem';
 import { solutionController } from './solution';
 import { tenantController } from './tenant';
 import { toolCallController } from './toolCall';
@@ -77,17 +108,46 @@ import { toolCallController } from './toolCall';
 let systemControllers = {
   environment: environmentController,
   actor: actorController,
-  authConfigEvent: authConfigEventController,
-  authConfigError: authConfigErrorController,
-  authConfigErrorGlobal: authConfigErrorGlobalController,
+  solution: solutionController,
+  tenant: tenantController
+};
+
+let agentControllers = {
+  agent: agentController,
+  agentClient: agentClientController,
+  agentInstance: agentInstanceController
+};
+
+let identityControllers = {
   identity: identityController,
   identityActor: identityActorController,
   identityDelegation: identityDelegationController,
   identityDelegationConfig: identityDelegationConfigController,
   identityDelegationRequest: identityDelegationRequestController,
-  identityCredential: identityCredentialController,
-  solution: solutionController,
-  tenant: tenantController
+  integrationInstanceGroup: integrationInstanceGroupController,
+  integrationInstanceGroupProvider: integrationInstanceGroupProviderController,
+  identityCredential: identityCredentialController
+};
+
+let integrationControllers = {
+  integration: integrationController,
+  integrationSetupSession: integrationSetupSessionController,
+  integrationInstance: integrationInstanceController,
+  integrationInstanceProvider: integrationInstanceProviderController,
+  integrationProvider: integrationProviderController,
+  integrationVersion: integrationVersionController,
+  magicMcpBacking: magicMcpBackingController,
+  magicMcpServerProvider: magicMcpServerProviderController
+};
+
+let configControllers = {
+  authConfigEvent: authConfigEventController,
+  authConfigError: authConfigErrorController,
+  authConfigErrorGlobal: authConfigErrorGlobalController,
+  monitor: monitorController,
+  monitorAlert: monitorAlertController,
+  protoGuardAlert: protoGuardAlertController,
+  protoGuardConfig: protoGuardConfigController
 };
 
 let callbackControllers = {
@@ -103,6 +163,7 @@ let callbackControllers = {
 };
 
 let providerControllers = {
+  adminProviderTelemetry: adminProviderTelemetryController,
   provider: providerController,
   providerInvocation: providerInvocationController,
   managedProviderAuthCredentials: managedProviderAuthCredentialsController,
@@ -118,18 +179,26 @@ let providerControllers = {
   providerConfig: providerConfigController,
   providerConfigVault: providerConfigVaultController,
   providerDeployment: providerDeploymentController,
+  enclave: enclaveController,
+  network: networkController,
+  firewall: firewallController,
+  firewallBinding: firewallBindingController,
+  networkPolicy: networkPolicyController,
   providerListing: providerListingController,
   providerOAuthSetup: providerOAuthSetupController,
   providerSpecification: providerSpecificationController,
+  providerSpecificationChangeNotification: providerSpecificationChangeNotificationController,
   providerTool: providerToolController,
   providerTrigger: providerTriggerController,
   providerVariant: providerVariantController,
   providerVersion: providerVersionController,
+  resourceCount: resourceCountController,
   providerRun: providerRunController
 };
 
 let sessionControllers = {
   session: sessionController,
+  ephemeralManagedSession: ephemeralManagedSessionController,
   sessionProvider: sessionProviderController,
   sessionConnection: sessionConnectionController,
   sessionError: sessionErrorController,
@@ -143,6 +212,15 @@ let sessionControllers = {
   providerRunUsageRecord: providerRunUsageRecordController
 };
 
+let skillControllers = {
+  skill: skillController,
+  skillGroup: skillGroupController,
+  skillGroupItem: skillGroupItemController,
+  skillItem: skillItemController,
+  skillTemplate: skillTemplateController,
+  skillTemplateItem: skillTemplateItemController
+};
+
 let extensionControllers = {
   customProvider: customProviderController,
   customProviderCommit: customProviderCommitController,
@@ -151,7 +229,6 @@ let extensionControllers = {
   customProviderEnvironment: customProviderEnvironmentController,
   containerRegistry: containerRegistryController,
   containerRepository: containerRepositoryController,
-  networkingRuleset: networkingRulesetController,
   scmConnection: scmConnectionController,
   scmConnectionSetupSession: scmConnectionSetupSessionController,
   scmProvider: scmProviderController,
@@ -165,13 +242,23 @@ type SystemControllers = typeof systemControllers;
 type CallbackControllers = typeof callbackControllers;
 type ProviderControllers = typeof providerControllers;
 type SessionControllers = typeof sessionControllers;
+type SkillControllers = typeof skillControllers;
 type ExtensionControllers = typeof extensionControllers;
+type AgentControllers = typeof agentControllers;
+type IdentityControllers = typeof identityControllers;
+type IntegrationControllers = typeof integrationControllers;
+type ConfigControllers = typeof configControllers;
 
 type RootController = SystemControllers &
   CallbackControllers &
   ProviderControllers &
   SessionControllers &
-  ExtensionControllers;
+  SkillControllers &
+  ExtensionControllers &
+  AgentControllers &
+  IdentityControllers &
+  IntegrationControllers &
+  ConfigControllers;
 
 let createRootController = (): RootController =>
   app.controller({
@@ -179,7 +266,12 @@ let createRootController = (): RootController =>
     ...callbackControllers,
     ...providerControllers,
     ...sessionControllers,
-    ...extensionControllers
+    ...skillControllers,
+    ...extensionControllers,
+    ...agentControllers,
+    ...identityControllers,
+    ...integrationControllers,
+    ...configControllers
   });
 
 export type SubspaceControllerRoot = RootController;

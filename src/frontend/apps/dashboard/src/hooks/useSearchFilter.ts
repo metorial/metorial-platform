@@ -1,13 +1,26 @@
+import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useDebounced } from './useDebounced';
 
-export let useSearchFilter = (delay = 500) => {
+export let useSearchFilter = (
+  delay = 500,
+  opts: {
+    updateSearchParams?: boolean;
+  } = {}
+) => {
+  let updateSearchParams = opts.updateSearchParams ?? true;
+  let [localSearch, setLocalSearch] = useState('');
   let [searchParams, setSearchParams] = useSearchParams();
-  let search = searchParams.get('search') ?? '';
+  let search = updateSearchParams ? (searchParams.get('search') ?? '') : localSearch;
   let searchDebounced = useDebounced(search, delay);
   let searchQuery = searchDebounced.trim() || undefined;
 
   let setSearch = (value: string) => {
+    if (!updateSearchParams) {
+      setLocalSearch(value);
+      return;
+    }
+
     setSearchParams(
       current => {
         let next = new URLSearchParams(current);

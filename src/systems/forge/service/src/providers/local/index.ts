@@ -1,7 +1,7 @@
 import { spawn } from 'child_process';
 import { promises as fs } from 'fs';
 import JSZip from 'jszip';
-import { createQueue } from '@lowerdeck/queue';
+import { createQueue, type IQueue, type IQueueProcessor } from '@lowerdeck/queue';
 import { tmpdir } from 'os';
 import { dirname, join, posix, resolve, sep } from 'path';
 import { env } from '../../env';
@@ -160,7 +160,7 @@ let runDockerCommand = async (args: string[], onLine?: (line: string) => Promise
 };
 
 export class LocalBuildAdapter extends ForgeBuildAdapter {
-  readonly startBuildQueue = createQueue<{ runId: string }>({
+  readonly startBuildQueue: IQueue<{ runId: string }, any> = createQueue<{ runId: string }>({
     redisUrl: env.service.REDIS_URL,
     name: 'frg/local/bld/start',
     workerOpts: {
@@ -170,7 +170,9 @@ export class LocalBuildAdapter extends ForgeBuildAdapter {
 
   private readonly startBuildQueueProcessor = this.createStartBuildProcessor();
 
-  readonly buildProviderProcessors = this.combineProcessors([this.startBuildQueueProcessor]);
+  readonly buildProviderProcessors: IQueueProcessor = this.combineProcessors([
+    this.startBuildQueueProcessor
+  ]);
 
   async startBuild(runId: string) {
     if (env.provider.DEFAULT_PROVIDER !== 'local') {

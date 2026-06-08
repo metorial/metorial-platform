@@ -16,7 +16,7 @@ describe('slateEvent:list E2E', () => {
       type: SlateEventType.version_pulled
     });
 
-    await f.slateEvent.default({
+    const laterEvent = await f.slateEvent.default({
       slateOid: slate.oid,
       slateVersionOid: slate.currentVersion.oid
     });
@@ -28,6 +28,20 @@ describe('slateEvent:list E2E', () => {
 
     expect(result.items).toHaveLength(2);
     expect(result.items[0]).toMatchObject({
+      id: laterEvent.id,
+      type: SlateEventType.version_pulled,
+      message: expect.any(String),
+      slate: {
+        id: slate.id
+      },
+      version: {
+        id: slate.currentVersion.id
+      },
+      deployment: null,
+      discovery: null,
+      createdAt: expect.any(Date)
+    });
+    expect(result.items[1]).toMatchObject({
       id: event.id,
       type: SlateEventType.version_pulled,
       message: expect.any(String),

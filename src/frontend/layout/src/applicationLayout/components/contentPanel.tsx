@@ -30,6 +30,27 @@ let HeaderWrapperLine = styled('div')`
   padding-bottom: 10px;
 `;
 
+let HeaderMain = styled('div')`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+`;
+
+let HeaderTitle = styled('div')`
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+`;
+
+let HeaderActions = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+`;
+
 let Content = styled('main')`
   flex: 1;
   min-height: 0;
@@ -45,11 +66,13 @@ export let ContentPanelLayout = ({
   description,
   breadcrumbs,
   links,
-  extra
+  extra,
+  actions
 }: {
   children: React.ReactNode;
   title?: React.ReactNode;
   description?: React.ReactNode;
+  actions?: React.ReactNode;
   links?: {
     current: string;
     items: {
@@ -67,17 +90,23 @@ export let ContentPanelLayout = ({
     <HeaderInner>
       {breadcrumbs && <Breadcrumbs breadcrumbs={breadcrumbs} />}
 
-      {title && (
-        <Title as="h1" size="3" weight="strong">
-          {title}
-        </Title>
-      )}
+      <HeaderMain>
+        <HeaderTitle>
+          {title && (
+            <Title as="h1" size="3" weight="strong">
+              {title}
+            </Title>
+          )}
 
-      {description && (
-        <Text size="1" color="gray600" weight="medium">
-          {description}
-        </Text>
-      )}
+          {description && (
+            <Text size="1" color="gray600" weight="medium">
+              {description}
+            </Text>
+          )}
+        </HeaderTitle>
+
+        {actions && <HeaderActions>{actions}</HeaderActions>}
+      </HeaderMain>
 
       {extra}
     </HeaderInner>

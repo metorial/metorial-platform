@@ -3,6 +3,20 @@ enum ScmProvider {
   gitlab
 }
 
+enum ScmRepositorySyncStatus {
+  pending
+  creating_branch
+  syncing_contents
+  creating_pr
+  waiting_for_ci
+  merging
+  merged
+  failed
+  cancelled
+  complete_unmerged
+  complete_no_changes
+}
+
 enum ScmAccountType {
   user
   organization
@@ -70,8 +84,56 @@ model ScmRepository {
   scmRepoWebhooks     ScmRepositoryWebhook[]
   scmRepoPushes       ScmRepositoryPush[]
   changeNotifications ChangeNotification[]
+  scmRepositorySyncs  ScmRepositorySync[]
 
   @@unique([tenantOid, backendOid, externalId])
+}
+
+model ScmRepositorySync {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status ScmRepositorySyncStatus @default(pending)
+
+  branchName String
+  baseBranch String
+
+  title       String
+  description String?
+
+  enableAutoMerge Boolean @default(true)
+
+  providerPrId     String?
+  providerPrUrl    String?
+  providerMergeSha String?
+
+  errorMessage String?
+  ciState      String?
+  attemptCount Int     @default(0)
+
+  /// [SyncLogEntry]
+  logs Json[] @default([])
+
+  lastPolledAt DateTime?
+  nextPollAt   DateTime?
+  completedAt  DateTime?
+
+  repoOid BigInt
+  repo    ScmRepository @relation(fields: [repoOid], references: [oid], onDelete: Cascade)
+
+  codeBucketOid BigInt
+  codeBucket    CodeBucket @relation(fields: [codeBucketOid], references: [oid], onDelete: Cascade)
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([tenantOid])
+  @@index([repoOid])
+  @@index([codeBucketOid])
+  @@index([status])
 }
 
 model ScmInstallation {

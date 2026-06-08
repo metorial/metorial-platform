@@ -2,12 +2,16 @@ import {
   isServiceError,
   notFoundError,
   preconditionFailedError,
-  unauthorizedError,
-  ServiceError
+  ServiceError,
+  unauthorizedError
 } from '@lowerdeck/error';
+import {
+  consumerAuthService,
+  isPathBasedPortalRoutingTemplate,
+  env as portalEnv,
+  portalService
+} from '@metorial/module-consumer';
 import type { ServiceRequest } from '@metorial/rpc';
-import { consumerAuthService } from '@metorial/module-consumer';
-import { env as portalEnv, isPathBasedPortalRoutingTemplate, portalService } from '@metorial/module-portal';
 import {
   clearPortalSessionCookie,
   getAuthStateCookieName,
@@ -16,7 +20,9 @@ import {
 } from './cookies';
 
 type PortalWithSurface = Awaited<ReturnType<typeof portalService.getPortalPublic>>;
-type PortalTokenSession = Parameters<typeof consumerAuthService.getConsumerToken>[0]['session'];
+type PortalTokenSession = Parameters<
+  typeof consumerAuthService.getConsumerToken
+>[0]['session'];
 
 export let getPortalPublishableApiKey = (d: { portal: PortalWithSurface }) => {
   let secret =
@@ -38,9 +44,7 @@ export let getCanonicalPortalUrl = async (d: { portal: PortalWithSurface }) => {
   return (await portalService.getPortalHost({ portal: d.portal })).host;
 };
 
-export let getPortalSsoAuthorizationCodeOrThrow = (d: {
-  code?: string | null;
-}) => {
+export let getPortalSsoAuthorizationCodeOrThrow = (d: { code?: string | null }) => {
   if (d.code) {
     return d.code;
   }

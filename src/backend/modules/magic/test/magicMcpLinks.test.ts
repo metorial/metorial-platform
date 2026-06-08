@@ -20,7 +20,8 @@ vi.mock('@metorial/db', () => {
       findFirst: vi.fn()
     },
     magicMcpEndpointServer: {
-      count: vi.fn()
+      count: vi.fn(),
+      upsert: vi.fn()
     },
     magicMcpGroup: {
       findMany: vi.fn()
@@ -114,7 +115,18 @@ vi.mock('../src/queues/lifecycle/magicMcpGroup', () => ({
   enqueueMagicMcpGroupUpdated: vi.fn()
 }));
 
+vi.mock('../src/lib/backing', () => ({
+  ensureMagicMcpEndpointBacking: vi.fn()
+}));
+
+vi.mock('../src/queues/lifecycle/magicMcpEndpoint', () => ({
+  magicMcpEndpointCreatedQueue: { add: vi.fn() },
+  magicMcpEndpointDeletedQueue: { add: vi.fn() },
+  magicMcpEndpointUpdatedQueue: { add: vi.fn() }
+}));
+
 import { db } from '@metorial/db';
+import { magicMcpEndpointService } from '../src/services/magicMcpEndpoint';
 import { magicMcpGroupService } from '../src/services/magicMcpGroup';
 import { magicMcpTokenService } from '../src/services/magicMcpToken';
 
@@ -171,6 +183,29 @@ describe('magic MCP link guards', () => {
         instance: { oid: 1n } as any
       })
     ).rejects.toThrow('inactive servers');
+  });
+
+  it('rejects linking an inactive server to an endpoint', async () => {
+    vi.mocked(db.magicMcpServer.findMany).mockResolvedValue([
+      {
+        oid: 5n,
+        id: 'magic-server-1',
+        status: 'archived'
+      }
+    ] as any);
+
+    await expect(
+      magicMcpEndpointService.addServersToEndpoint({
+        endpoint: {
+          oid: 8n,
+          id: 'magic-endpoint-1',
+          instanceOid: 1n
+        } as any,
+        servers: [{ magicMcpServerId: 'magic-server-1' }]
+      })
+    ).rejects.toThrow('only be linked to active magic MCP servers');
+
+    expect(db.magicMcpEndpointServer.upsert).not.toHaveBeenCalled();
   });
 
   it('rejects linking an inactive server to a group', async () => {

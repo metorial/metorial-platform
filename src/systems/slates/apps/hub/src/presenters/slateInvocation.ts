@@ -6,9 +6,8 @@ import type {
   SlateVersion
 } from '../../prisma/generated/client';
 import { db } from '../db';
-import { getStoredInvocationStorageKey } from '../lib/invocation/store';
+import { loadStoredSlateInvocation } from '../lib/invocation/loadStored';
 import type { StoredSlateInvocation } from '../lib/invocation/types';
-import { invocationsBucketRecord, storage } from '../storage';
 import { slateInvocationAttachmentsPresenter } from './slateAttachment';
 
 let Sentry = getSentry();
@@ -50,21 +49,14 @@ export let slateInvocationLitePresenter = async (inv: InvocationWithStoredAttach
     }
   }
 
-  let output = inv.isPending
-    ? ({
-        id: inv.id,
-        requests: [],
-        responses: [],
-        logs: []
-      } satisfies StoredSlateInvocation)
-    : (JSON.parse(
-        (
-          await storage.getObject(
-            invocationsBucketRecord.bucket,
-            getStoredInvocationStorageKey(inv)
-          )
-        ).data.toString('utf-8')
-      ) as StoredSlateInvocation);
+  let output: StoredSlateInvocation =
+    (await loadStoredSlateInvocation(inv)) ??
+    ({
+      id: inv.id,
+      requests: [],
+      responses: [],
+      logs: []
+    } satisfies StoredSlateInvocation);
 
   return {
     object: 'slate.invocation',

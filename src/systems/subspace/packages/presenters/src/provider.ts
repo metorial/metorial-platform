@@ -1,6 +1,7 @@
 import type {
   Provider,
   ProviderEntry,
+  ProviderListing,
   ProviderSpecification,
   ProviderType,
   ProviderVariant,
@@ -8,6 +9,7 @@ import type {
   Publisher,
   Tenant
 } from '@metorial-subspace/db';
+import { getImageUrl } from './brand';
 import { providerEntryPresenter } from './providerEntry';
 import { providerTypePresenter } from './providerType';
 import { providerVariantPresenter } from './providerVariant';
@@ -15,7 +17,7 @@ import { providerVersionPresenter } from './providerVersion';
 import { publisherPresenter } from './publisher';
 import { tenantPresenter } from './tenant';
 
-export let providerPresenter = (
+export let providerPresenter = async (
   provider: Provider & {
     entry: ProviderEntry;
     publisher: Publisher;
@@ -36,7 +38,7 @@ export let providerPresenter = (
   },
   d: { tenant: Tenant | undefined }
 ) => {
-  let type = providerTypePresenter(provider.type, {
+  let type = await providerTypePresenter(provider.type, {
     tenant: d.tenant,
     provider
   });
@@ -96,7 +98,9 @@ export let providerPresenter = (
   };
 };
 
-export let providerPreviewPresenter = (provider: Provider) => ({
+export let providerPreviewPresenter = (
+  provider: Provider & { listing?: Pick<ProviderListing, 'id' | 'image'> | null }
+) => ({
   object: 'provider',
 
   id: provider.id,
@@ -110,6 +114,12 @@ export let providerPreviewPresenter = (provider: Provider) => ({
   description: provider.description,
   slug: provider.prettySlug ?? provider.slug,
   metadata: provider.metadata,
+  imageUrl: provider.listing
+    ? getImageUrl({
+        id: provider.listing.id,
+        image: provider.listing.image
+      })
+    : null,
 
   createdAt: provider.createdAt,
   updatedAt: provider.updatedAt

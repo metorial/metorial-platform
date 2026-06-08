@@ -1,7 +1,8 @@
+import { generateCustomId } from '@lowerdeck/id';
 import {
   db,
-  getRawToolCallAttachmentsFromOutput,
   getId,
+  getRawToolCallAttachmentsFromOutput,
   presentToolCallAttachment,
   replaceToolCallAttachmentsInOutput,
   type ProviderRun,
@@ -9,7 +10,6 @@ import {
   type SessionMessageFailureReason,
   type SessionParticipant
 } from '@metorial-subspace/db';
-import { generateCustomId } from '@lowerdeck/id';
 import { finalizeMessageQueue } from '../queues/message/finalizeMessage';
 import { createError, messageFailureReasonToErrorType } from './createError';
 
@@ -72,7 +72,7 @@ export let completeMessage = async (
   let toolCallAttachmentRecords = currentMessage?.toolCall
     ? toolCallAttachments.map(attachment => ({
         ...getId('toolCallAttachment'),
-        urlKey: generateCustomId('tca_link_', 35),
+        urlKey: generateCustomId('tca_link_', 50),
         url: attachment.url,
         mimeType: attachment.mimeType,
         expiresAt: attachment.expiresAt,

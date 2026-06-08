@@ -1,0 +1,44 @@
+enum ConsumerSkillPermission {
+  read
+  write
+}
+
+enum ConsumerSkillSource {
+  access
+  owner
+}
+
+model ConsumerSkill {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  source      ConsumerSkillSource
+  permissions ConsumerSkillPermission[]
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  surfaceOid BigInt
+  surface    ConsumerSurface @relation(fields: [surfaceOid], references: [oid], onDelete: Cascade)
+
+  consumerProfileOid BigInt
+  consumerProfile    ConsumerProfile @relation(fields: [consumerProfileOid], references: [oid], onDelete: Cascade)
+
+  consumerOid BigInt
+  consumer    Consumer @relation(fields: [consumerOid], references: [oid], onDelete: Cascade)
+
+  skillOid BigInt
+  skill    Skill  @relation(fields: [skillOid], references: [oid], onDelete: Cascade)
+
+  cargoStoreParticipantId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([consumerProfileOid, skillOid])
+  @@index([skillOid])
+  @@index([instanceOid, consumerOid])
+}

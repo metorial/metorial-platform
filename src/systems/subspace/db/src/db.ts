@@ -11,20 +11,12 @@ import type { InitializeRequest, JSONRPCMessage } from '@modelcontextprotocol/sd
 import { PrismaPg } from '@prisma/adapter-pg';
 import { readReplicas } from '@prisma/extension-read-replicas';
 import { PrismaClient } from '../prisma/generated/client';
-import type { CustomProviderConfig, CustomProviderFrom } from './types';
-
-export type EntityImage =
-  | {
-      type: 'file';
-      fileId: string;
-      fileLinkId: string;
-      fileReferenceId: string;
-      fileUrl: string;
-      url?: string;
-    }
-  | { type: 'enterprise_file'; fileId: string }
-  | { type: 'url'; url: string }
-  | { type: 'default' };
+import type {
+  CustomProviderConfig,
+  CustomProviderFrom,
+  CustomProviderFromUpdate
+} from './types';
+export type { EntityImage } from '../../../_shared/entityImage';
 
 let mainAdapter = new PrismaPg({
   connectionString: process.env.SUBSPACE_DATABASE_URL ?? process.env.DATABASE_URL
@@ -124,6 +116,8 @@ declare global {
           )[];
         };
 
+    type ToolFilterChain = ToolFilter | ToolFilter[];
+
     type ProviderSetupSessionProviderSearch = {
       groups?: { groupId: string }[];
       collections?: { collectionId: string }[];
@@ -171,6 +165,34 @@ declare global {
     type CustomProviderPayload = {
       from: CustomProviderFrom;
       config: CustomProviderConfig | undefined;
+    };
+
+    type UpcomingCustomProviderPayload = {
+      from?: CustomProviderFromUpdate;
+      config?: CustomProviderConfig;
+    };
+
+    type ProviderListingDocReference = {
+      type?: string;
+      name: string;
+      url: string;
+    };
+
+    type ProviderListingDocs = {
+      provider: ProviderListingDocReference[];
+      config: ProviderListingDocReference[];
+      authMethods: {
+        key: string;
+        name: string;
+        type: string;
+        docs: ProviderListingDocReference[];
+      }[];
+      actions: {
+        key: string;
+        name: string;
+        type: 'tool' | 'trigger';
+        docs: ProviderListingDocReference[];
+      }[];
     };
 
     type ProviderTypeAttributes = {
@@ -235,6 +257,44 @@ declare global {
       code: string;
       message: string;
       data?: any;
+    };
+
+    type NetworkPolicyPortRange = {
+      from: number;
+      to: number;
+    };
+
+    type NetworkPolicyRule = {
+      id: string;
+      effect: 'allow' | 'deny';
+      direction: 'ingress' | 'egress';
+      cidrs: string[];
+      description?: string;
+      enabled: boolean;
+      priority: number;
+      ports?: NetworkPolicyPortRange[];
+    };
+
+    type NetworkPolicyRules = NetworkPolicyRule[];
+
+    type CompiledNetworkAllowEntry = {
+      cidr: string;
+      portRange?: NetworkPolicyPortRange;
+    };
+
+    type CompiledNetworkAllowList = {
+      direction: 'ingress' | 'egress';
+      entries: CompiledNetworkAllowEntry[];
+    };
+
+    type CompiledEgressNetworkAllowList = {
+      direction: 'egress';
+      entries: CompiledNetworkAllowEntry[];
+    };
+
+    type CompiledNetworkRules = {
+      ingress: CompiledNetworkAllowList;
+      egress: CompiledNetworkAllowList;
     };
   }
 }

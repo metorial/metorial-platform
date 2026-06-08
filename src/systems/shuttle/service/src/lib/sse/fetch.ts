@@ -8,6 +8,7 @@ export let EventStreamContentType = 'text/event-stream';
 
 export interface FetchEventSourceInit extends RequestInit {
   headers?: Record<string, string>;
+  egressPolicy?: PrismaJson.CompiledEgressNetworkAllowList | null;
   onopen?: (response: Response) => Promise<void>;
   onmessage?: (ev: EventSourceMessage) => void;
   onclose?: () => void;
@@ -27,6 +28,7 @@ export let fetchEventSource = async (
     onerror,
     openWhenHidden,
     handleNonStreamResponses,
+    egressPolicy,
     ...rest
   }: FetchEventSourceInit
 ) => {
@@ -38,6 +40,7 @@ export let fetchEventSource = async (
 
   let response = await safeFetch(input, {
     ...rest,
+    egressPolicy,
     headers
   });
 

@@ -8,7 +8,7 @@ import {
   useCurrentProject,
   useIdentityActors
 } from '@metorial/state';
-import { Attributes, Badge, RenderDate, Spacer, Text } from '@metorial/ui';
+import { Attributes, Avatar, Badge, RenderDate, Spacer, Text } from '@metorial/ui';
 import { Box, ID, Table } from '@metorial/ui-product';
 import { useParams } from 'react-router-dom';
 
@@ -70,21 +70,30 @@ export let ConsumerPage = () => {
 
         <Box
           title="Profiles"
-          description="Profiles linked to this consumer across consumer surfaces."
+          description="Profiles linked to this account across account portals."
         >
           {renderWithPagination(profiles)(profiles => (
             <>
               <Table
-                headers={['Name', 'Email', 'Surface', 'Groups', 'ID', 'Created']}
+                headers={['Name', 'Email', 'Portal', 'Groups', 'ID', 'Created']}
                 data={profiles.data.items.map(profile => ({
                   data: [
                     <Text size="2" weight="strong">
                       {profile.name}
                     </Text>,
                     <Text size="2">{profile.email}</Text>,
-                    <Text size="2" weight="strong">
-                      {profile.surface.name}
-                    </Text>,
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <Avatar
+                        entity={{ name: profile.surface.name }}
+                        size={26}
+                        radius={8}
+                        withInitials
+                        noTooltip
+                      />
+                      <Text size="2" weight="strong">
+                        {profile.surface.name}
+                      </Text>
+                    </div>,
                     profile.groups?.length ? (
                       <Text>{profile.groups.length} groups</Text>
                     ) : (
@@ -100,7 +109,7 @@ export let ConsumerPage = () => {
 
               {profiles.data.items.length === 0 && (
                 <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-                  No profiles for this consumer.
+                  No profiles for this account.
                 </Text>
               )}
             </>
@@ -109,7 +118,55 @@ export let ConsumerPage = () => {
 
         <Spacer size={20} />
 
-        <Box title="Actors" description="Identity actors linked to this consumer.">
+        <Box title="Agents" description="Agents that were used by this account.">
+          {renderWithPagination(actors)(actors => {
+            let agentActors = actors.data.items.filter(actor => !!actor.agentId);
+
+            return (
+              <>
+                <Table
+                  headers={['Actor', 'Agent ID', 'Status', 'Created']}
+                  data={agentActors.map(actor => ({
+                    href: Paths.instance.identity.actor(
+                      organization.data,
+                      project.data,
+                      instance.data,
+                      actor.id
+                    ),
+                    data: [
+                      <Text size="2" weight="strong">
+                        {actor.name}
+                      </Text>,
+                      actor.agentId ? <ID id={actor.agentId} /> : '—',
+                      <Badge
+                        color={
+                          actor.status === 'active'
+                            ? 'green'
+                            : actor.status === 'archived'
+                              ? 'orange'
+                              : 'gray'
+                        }
+                      >
+                        {actor.status}
+                      </Badge>,
+                      <RenderDate date={actor.createdAt} />
+                    ]
+                  }))}
+                />
+
+                {agentActors.length === 0 && (
+                  <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
+                    No agent-backed actors linked to this account.
+                  </Text>
+                )}
+              </>
+            );
+          })}
+        </Box>
+
+        <Spacer size={20} />
+
+        <Box title="Actors" description="Identity actors linked to this account.">
           {renderWithPagination(actors)(actors => (
             <>
               <Table
@@ -142,7 +199,7 @@ export let ConsumerPage = () => {
 
               {actors.data.items.length === 0 && (
                 <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-                  No actors for this consumer.
+                  No actors for this account.
                 </Text>
               )}
             </>

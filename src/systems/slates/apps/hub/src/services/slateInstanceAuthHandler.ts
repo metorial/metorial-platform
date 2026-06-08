@@ -14,6 +14,17 @@ let include = { secret: true, authMethod: true };
 
 let Sentry = getSentry();
 
+let throwStoredAuthConfigError = (d: { errorCode: string; errorMessage?: string | null }) => {
+  throw new ServiceError(
+    badRequestError({
+      code: 'invalid_provider_authentication_configuration',
+      message: `Provider authentication configuration has an error: ${
+        d.errorMessage ?? d.errorCode
+      }`
+    })
+  );
+};
+
 class slateAuthHandlerServiceImpl {
   async getSlateInstanceAuth(d: {
     tenant: Tenant;
@@ -59,6 +70,13 @@ class slateAuthHandlerServiceImpl {
       }
     }
 
+    if (authConfig.errorCode) {
+      throwStoredAuthConfigError({
+        errorCode: authConfig.errorCode,
+        errorMessage: authConfig.errorMessage
+      });
+    }
+
     if (d.slateInstance) {
       db.slateAuthConfigUsedForInstance
         .createMany({
@@ -80,7 +98,8 @@ class slateAuthHandlerServiceImpl {
     let decrypted = await secretService.DANGEROUSLY_decryptSecret({
       secret: authConfig.secret,
       purpose: 'slate_authentication_configuration',
-      tenant: d.tenant
+      tenant: d.tenant,
+      note: `auth-get cfg:${authConfig.id} inst:${d.slateInstance?.id ?? 'none'}`
     });
 
     if (authConfig.tokenExpiresAt) {
@@ -108,7 +127,8 @@ class slateAuthHandlerServiceImpl {
         let oauthDecrypted = await secretService.DANGEROUSLY_decryptSecret({
           secret: oauthCredentials.secret,
           purpose: 'slate_oauth_credentials',
-          tenant: d.tenant
+          tenant: d.tenant,
+          note: `oauth-rfr creds:${oauthCredentials.id} cfg:${authConfig.id}`
         });
 
         let authMethod = await db.slateAuthMethod.findFirstOrThrow({

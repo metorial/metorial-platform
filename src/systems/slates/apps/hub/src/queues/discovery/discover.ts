@@ -17,6 +17,24 @@ import { slateInvocationService } from '../../services';
 
 let Sentry = getSentry();
 
+let normalizeDiscoveredDocs = (docs: unknown): PrismaJson.SlateDocReferences => {
+  if (!Array.isArray(docs)) return [];
+
+  return docs
+    .filter(
+      (doc): doc is { name: string; url: string; type?: string } =>
+        !!doc &&
+        typeof doc === 'object' &&
+        typeof (doc as any).name === 'string' &&
+        typeof (doc as any).url === 'string'
+    )
+    .map(doc => ({
+      ...(typeof doc.type === 'string' ? { type: doc.type } : {}),
+      name: doc.name,
+      url: doc.url
+    }));
+};
+
 let syncSpecificationActions = async (d: {
   specificationOid: bigint;
   actions: Array<{ oid: bigint }>;
@@ -158,7 +176,7 @@ let buildAuthMethodUpsertData = async (d: {
     };
   });
 
-export let discoverSlateQueue = createQueue<{ versionId: string }>({
+export let discoverSlateQueue = createQueue<{ versionId: string; deploymentId?: string }>({
   name: 'shub/dis/sing',
   redisUrl: env.service.REDIS_URL,
   workerOpts: {
@@ -175,6 +193,36 @@ let discoverLock = createLock({
   redisUrl: env.service.REDIS_URL
 });
 
+export let getSlateDiscoveryDeploymentTarget = (d: {
+  version: {
+    providerDeploymentInfo: PrismaJson.SlateDeploymentProviderDeploymentInfo;
+    activeDeploymentOid: bigint | null;
+  };
+  stagedDeployment?: {
+    providerDeploymentInfo: PrismaJson.SlateDeploymentProviderDeploymentInfo;
+    oid: bigint;
+  } | null;
+}) => {
+  let providerDeploymentInfo =
+    d.stagedDeployment?.providerDeploymentInfo ?? d.version.providerDeploymentInfo;
+  let activeDeploymentOid = d.stagedDeployment?.oid ?? d.version.activeDeploymentOid;
+
+  if (!providerDeploymentInfo || !activeDeploymentOid) return null;
+
+  return { providerDeploymentInfo, activeDeploymentOid };
+};
+
+export let shouldPreserveActiveVersionOnStagedDiscoveryFailure = (d: {
+  version: {
+    status: string;
+    activeDeploymentOid: bigint | null;
+  };
+  stagedDeployment?: { oid: bigint } | null;
+}) =>
+  !!d.stagedDeployment &&
+  d.version.status === 'active' &&
+  d.version.activeDeploymentOid !== d.stagedDeployment.oid;
+
 export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data => {
   let outerVersion = await db.slateVersion.findFirst({
     where: { id: data.versionId }
@@ -187,9 +235,21 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
       include: { activeDeployment: true, slate: { include: { currentVersion: true } } }
     });
     if (!version) throw new QueueRetryError();
-    if (!version.providerDeploymentInfo || !version.activeDeploymentOid) return;
+    let stagedDeployment = data.deploymentId
+      ? await db.slateDeployment.findFirst({
+          where: {
+            id: data.deploymentId,
+            slateVersionOid: version.oid
+          }
+        })
+      : null;
+    if (data.deploymentId && !stagedDeployment) throw new QueueRetryError();
+
+    let target = getSlateDiscoveryDeploymentTarget({ version, stagedDeployment });
+    if (!target) return;
 
     if (
+      !data.deploymentId &&
       version.lastDiscoveredAt &&
       Math.abs(differenceInMinutes(new Date(), version.lastDiscoveredAt)) < 10
     ) {
@@ -217,6 +277,10 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
     try {
       let stack = await slateInvocationService.createInvocation({
         slateVersion: version,
+        deploymentTarget: {
+          providerDeploymentInfo: target.providerDeploymentInfo,
+          activeDeploymentOid: target.activeDeploymentOid
+        },
         participants: [] // Only the hub
       });
 
@@ -236,6 +300,7 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
 
         await discoverSlateErrorQueue.add({
           versionId: version.id,
+          deploymentId: data.deploymentId,
           invocationOid: invocation.oid,
           error
         });
@@ -257,12 +322,19 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
         getKey: action => `${action.type}:${action.id}`
       });
 
+      let providerDocs = normalizeDiscoveredDocs(providerInfo.docs);
+      let configSchemaDocs = normalizeDiscoveredDocs(configSchema.docs);
+
       let discoveryHashes = await buildDiscoveredSpecificationHashes({
         providerInfo: {
           protocol: providerInfo.protocol,
-          provider: providerInfo.provider
+          provider: providerInfo.provider,
+          docs: providerDocs
         },
-        configSchema: configSchema.schema,
+        configSchema: {
+          schema: configSchema.schema,
+          docs: configSchemaDocs
+        },
         authMethods: discoveredAuthMethods,
         actions: discoveredActions
       });
@@ -275,7 +347,9 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
         protocolVersion: providerInfo.protocol,
 
         providerInfo: providerInfo.provider,
+        providerDocs,
         configSchema: configSchema.schema,
+        configSchemaDocs,
         authMethods: discoveredAuthMethods,
         actions: discoveredActions
       };
@@ -360,10 +434,12 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
           hash: discoveryHashes.configSchemaHash,
           identifier: configIdentifier,
 
-          schema: configSchema.schema
+          schema: configSchema.schema,
+          docs: configSchemaDocs
         },
         update: {
-          schema: configSchema.schema
+          schema: configSchema.schema,
+          docs: configSchemaDocs
         }
       });
 
@@ -392,14 +468,17 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
         }
       });
 
-      await db.slateVersion.updateMany({
-        where: { oid: version.oid },
-        data: {
-          status: 'active',
-          specificationOid: specification.oid,
-          lastDiscoveredAt: new Date()
-        }
-      });
+      let versionUpdateData = {
+        status: 'active' as const,
+        specificationOid: specification.oid,
+        lastDiscoveredAt: new Date(),
+        ...(stagedDeployment
+          ? {
+              providerDeploymentInfo: target.providerDeploymentInfo,
+              activeDeploymentOid: target.activeDeploymentOid
+            }
+          : {})
+      };
 
       if (version.specificationOid && version.specificationOid !== specification.oid) {
         await db.slateSpecificationChange.create({
@@ -420,6 +499,11 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
         (!slate.currentVersion || semver.gt(version.version, slate.currentVersion.version))
       ) {
         await db.$transaction(async db => {
+          await db.slateVersion.updateMany({
+            where: { oid: version.oid },
+            data: versionUpdateData
+          });
+
           await db.slateSpecification.updateMany({
             where: { oid: specification.oid },
             data: { mostRecentVersionOid: version.oid }
@@ -483,6 +567,11 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
             });
           }
         });
+      } else {
+        await db.slateVersion.updateMany({
+          where: { oid: version.oid },
+          data: versionUpdateData
+        });
       }
 
       await db.changeNotification.create({
@@ -503,6 +592,7 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
 
       await discoverSlateErrorQueue.add({
         versionId: version.id,
+        deploymentId: data.deploymentId,
         error: {
           code: 'discovery/internal_error',
           message: `Internal error during discovery: ${(e as Error).message}`
@@ -514,6 +604,7 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
 
 let discoverSlateErrorQueue = createQueue<{
   versionId: string;
+  deploymentId?: string;
   invocationOid?: bigint;
   error: InvocationError;
 }>({
@@ -527,6 +618,16 @@ export let discoverSlateErrorQueueProcessor = discoverSlateErrorQueue.process(as
     include: { slate: true }
   });
   if (!version) throw new QueueRetryError();
+  let stagedDeployment = data.deploymentId
+    ? await db.slateDeployment.findFirst({
+        where: {
+          id: data.deploymentId,
+          slateVersionOid: version.oid
+        }
+      })
+    : null;
+  let isFailedStagedRedeployOfActiveVersion =
+    shouldPreserveActiveVersionOnStagedDiscoveryFailure({ version, stagedDeployment });
 
   await db.slateEvent.create({
     data: {
@@ -549,11 +650,24 @@ export let discoverSlateErrorQueueProcessor = discoverSlateErrorQueue.process(as
     }
   });
 
-  await db.slateVersion.updateMany({
-    where: { oid: version.oid },
-    data: {
-      status: 'discovery_failed',
-      lastDiscoveredAt: new Date()
-    }
-  });
+  if (stagedDeployment) {
+    await db.slateDeployment.updateMany({
+      where: { oid: stagedDeployment.oid },
+      data: {
+        status: 'failed',
+        errorCode: data.error.code,
+        errorMessage: `Discovery failed: [${data.error.code}] - ${data.error.message}`
+      }
+    });
+  }
+
+  if (!isFailedStagedRedeployOfActiveVersion) {
+    await db.slateVersion.updateMany({
+      where: { oid: version.oid },
+      data: {
+        status: 'discovery_failed',
+        lastDiscoveredAt: new Date()
+      }
+    });
+  }
 });

@@ -1,10 +1,11 @@
 import { apiMux } from '@lowerdeck/api-mux';
 import { createServer, rpcMux, type InferClient } from '@lowerdeck/rpc-server';
 import { app } from './_app';
+import { enclaveController } from './enclave';
 import { functionController } from './function';
 import { functionDeploymentController } from './functionDeployment';
-import { functionInvocationController } from './functionInvocation';
 import { functionVersionController } from './functionVersion';
+import { networkLogController } from './networkLog';
 import { providerController } from './provider';
 import { runtimeController } from './runtime';
 import { tenantController } from './tenant';
@@ -13,10 +14,11 @@ export let rootController = app.controller({
   runtime: runtimeController,
   tenant: tenantController,
   provider: providerController,
+  enclave: enclaveController,
   function: functionController,
   functionVersion: functionVersionController,
   functionDeployment: functionDeploymentController,
-  functionInvocation: functionInvocationController
+  networkLog: networkLogController
 });
 
 export let functionBayRPC = createServer({})(rootController);
@@ -25,3 +27,4 @@ export let functionBayApi = apiMux([
 ]);
 
 export type FunctionBayClient = InferClient<typeof rootController>;
+export type { FunctionInvokeResponse } from '../lib/presentInvokeResponse';

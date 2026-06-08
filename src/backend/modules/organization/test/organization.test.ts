@@ -352,7 +352,7 @@ describe('OrganizationService', () => {
 
       expect(organizationActorService.createOrganizationActor).toHaveBeenCalledWith({
         input: {
-          type: 'system',
+          type: 'primary_system',
           name: 'Metorial',
           image: {
             type: 'url',
@@ -698,6 +698,107 @@ describe('OrganizationService', () => {
       );
     });
 
+    it('should reject slug updates when another organization has the current slug', async () => {
+      let mockOrg = {
+        id: 'org-1',
+        oid: 1,
+        status: 'active',
+        slug: 'old-slug',
+        previousSlugs: []
+      };
+      let update = vi.fn();
+
+      vi.mocked(withTransaction).mockImplementation(async callback => {
+        let mockDb = {
+          organization: {
+            findFirst: vi.fn().mockResolvedValue({ id: 'org-2' }),
+            update
+          },
+          cellOrganization: {
+            findFirst: vi.fn().mockResolvedValue(null)
+          }
+        };
+        return callback(mockDb as any);
+      });
+
+      await expect(
+        organizationService.updateOrganization({
+          input: {
+            slug: 'new-slug'
+          },
+          organization: mockOrg as any,
+          context: {} as any,
+          performedBy: { id: 'actor-1', oid: 1 } as any
+        })
+      ).rejects.toThrow(ServiceError);
+
+      expect(update).not.toHaveBeenCalled();
+    });
+
+    it('should reclaim previous slug conflicts and keep slug history on update', async () => {
+      let mockOrg = {
+        id: 'org-1',
+        oid: 1,
+        status: 'active',
+        slug: 'old-slug',
+        previousSlugs: ['older-slug', 'new-slug']
+      };
+      let updatedOrg = {
+        ...mockOrg,
+        slug: 'new-slug',
+        previousSlugs: ['older-slug', 'old-slug']
+      };
+      let update = vi
+        .fn()
+        .mockResolvedValueOnce({ oid: 2, previousSlugs: ['kept-slug'] })
+        .mockResolvedValueOnce(updatedOrg);
+
+      vi.mocked(withTransaction).mockImplementation(async callback => {
+        let mockDb = {
+          organization: {
+            findFirst: vi.fn().mockResolvedValue(null),
+            findMany: vi.fn().mockResolvedValue([
+              {
+                oid: 2,
+                previousSlugs: ['new-slug', 'kept-slug']
+              }
+            ]),
+            update
+          },
+          cellOrganization: {
+            findFirst: vi.fn().mockResolvedValue(null)
+          }
+        };
+        return callback(mockDb as any);
+      });
+
+      let result = await organizationService.updateOrganization({
+        input: {
+          slug: 'new-slug'
+        },
+        organization: mockOrg as any,
+        context: {} as any,
+        performedBy: { id: 'actor-1', oid: 1 } as any
+      });
+
+      expect(result).toEqual(updatedOrg);
+      expect(update).toHaveBeenCalledWith({
+        where: { oid: 2 },
+        data: {
+          previousSlugs: ['kept-slug']
+        }
+      });
+      expect(update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'org-1' },
+          data: expect.objectContaining({
+            slug: 'new-slug',
+            previousSlugs: ['older-slug', 'old-slug']
+          })
+        })
+      );
+    });
+
     it('should throw forbidden error when organization is deleted', async () => {
       let mockOrg = {
         id: 'org-1',
@@ -849,7 +950,7 @@ describe('OrganizationService', () => {
       expect(result.actor).toEqual(mockActor);
       expect(db.organization.findFirst).toHaveBeenCalledWith({
         where: {
-          OR: [{ id: 'org-1' }, { slug: 'org-1' }],
+          OR: [{ id: 'org-1' }, { slug: 'org-1' }, { previousSlugs: { has: 'org-1' } }],
           members: {
             some: {
               user: { id: 'user-1' },
@@ -896,7 +997,11 @@ describe('OrganizationService', () => {
       expect(result.organization).toMatchObject(mockOrg);
       expect(db.organization.findFirst).toHaveBeenCalledWith({
         where: {
-          OR: [{ id: 'test-org' }, { slug: 'test-org' }],
+          OR: [
+            { id: 'test-org' },
+            { slug: 'test-org' },
+            { previousSlugs: { has: 'test-org' } }
+          ],
           members: {
             some: {
               user: { id: 'user-1' },
@@ -906,6 +1011,42 @@ describe('OrganizationService', () => {
         },
         include: expect.any(Object)
       });
+    });
+
+    it('should return organization by previous slug', async () => {
+      let mockUser = { id: 'user-1', oid: 1 };
+      let mockOrg = {
+        id: 'org-1',
+        oid: 1,
+        slug: 'current-org',
+        previousSlugs: ['old-org']
+      };
+      let mockActor = { id: 'actor-1', oid: 1 };
+      let mockMember = {
+        id: 'member-1',
+        oid: 1,
+        lastActiveAt: new Date()
+      };
+
+      vi.mocked(db.organization.findFirst).mockResolvedValue({
+        ...mockOrg,
+        members: [{ ...mockMember, actor: mockActor, user: mockUser }]
+      } as any);
+      vi.mocked(differenceInMinutes).mockReturnValue(10);
+
+      let result = await organizationService.getOrganizationByIdForUser({
+        organizationId: 'old-org',
+        user: mockUser
+      });
+
+      expect(result.organization).toMatchObject(mockOrg);
+      expect(db.organization.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            OR: [{ id: 'old-org' }, { slug: 'old-org' }, { previousSlugs: { has: 'old-org' } }]
+          })
+        })
+      );
     });
 
     it('should update lastActiveAt when more than 30 minutes', async () => {

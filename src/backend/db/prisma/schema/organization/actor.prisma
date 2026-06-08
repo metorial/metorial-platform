@@ -3,6 +3,7 @@ enum OrganizationActorType {
   machine_access
   system
   oauth_application
+  agent
 }
 
 model OrganizationActor {
@@ -22,6 +23,11 @@ model OrganizationActor {
   organizationOid BigInt
   organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
 
+  internalActorIdentifier String?
+  cargoActorId            String?
+  subspaceActorId         String?
+  synthesisActorId        String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
@@ -38,6 +44,9 @@ model OrganizationActor {
   instanceConsumers   InstanceConsumer[]
   consumerProfiles    ConsumerProfile[]
   consumerInvites     ConsumerInvite[]
+  createdSkills       Skill[]
+  sandboxes           Sandbox[]
+  environments        Environment[]
 
   @@unique([isSystem, organizationOid])
 }

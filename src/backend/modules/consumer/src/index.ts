@@ -2,11 +2,8 @@ import { OrganizationMember } from '@metorial/db';
 import { combineQueueProcessors } from '@metorial/queue';
 import { sendApprovedConsumerAccessRequestEmailQueueProcessor } from './queues/accessRequest/sendApprovedConsumerAccessRequestEmail';
 import { sendRejectedConsumerAccessRequestEmailQueueProcessor } from './queues/accessRequest/sendRejectedConsumerAccessRequestEmail';
-import { backfillAccessListingsProcessors } from './queues/backfillAccessListings';
 import { consumerLifecycleQueueProcessor } from './queues/lifecycle';
-import { reconcileMagicMcpConsumerOwnershipProcessors } from './queues/reconcileMagicMcpConsumerOwnership';
 import { consumerSearchQueueProcessor } from './queues/search';
-import { tempFixSearchProcessors } from './queues/tempFixSearch';
 import {
   reconcileConsumerActorQueueProcessor,
   syncIdentityConsumerQueueProcessor
@@ -18,6 +15,14 @@ import {
   syncOrgMemberQueueProcessor
 } from './queues/syncOrgMember';
 
+export * from './env';
+export * from './lib/consumerProviderContext';
+export * from './lib/consumerSurfaceEmailWhitelist';
+export * from './lib/magicMcpEndpointAccess';
+export * from './lib/magicMcpServerAccess';
+export * from './lib/magicMcpTokenAccess';
+export * from './lib/oauth';
+export * from './portalUrlTemplate';
 export * from './services';
 
 export let consumerQueueProcessor = combineQueueProcessors([
@@ -27,9 +32,6 @@ export let consumerQueueProcessor = combineQueueProcessors([
   sendRejectedConsumerAccessRequestEmailQueueProcessor,
   syncIdentityConsumerQueueProcessor,
   reconcileConsumerActorQueueProcessor,
-  backfillAccessListingsProcessors,
-  reconcileMagicMcpConsumerOwnershipProcessors,
-  tempFixSearchProcessors,
 
   syncOrgMemberQueueProcessor,
   syncOrgMemberConsumerQueueProcessor,

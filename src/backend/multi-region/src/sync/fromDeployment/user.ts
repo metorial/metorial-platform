@@ -23,7 +23,8 @@ let syncUsersManyQueue = createQueue<{ cursor?: string }>({
 export let syncUsersManyQueueProcessor = syncUsersManyQueue.process(async data => {
   let users = await db.user.findMany({
     where: {
-      id: { gt: data.cursor }
+      id: { gt: data.cursor },
+      type: 'user'
     },
     orderBy: { id: 'asc' },
     take: 100,
@@ -42,7 +43,7 @@ let syncUserSingleQueue = createQueue<{ userId: string; force?: boolean }>({
 
 export let syncUserSingleQueueProcessor = syncUserSingleQueue.process(async data => {
   let user = await db.user.findUnique({
-    where: { id: data.userId }
+    where: { id: data.userId, type: 'user' }
   });
   if (!user) return;
 

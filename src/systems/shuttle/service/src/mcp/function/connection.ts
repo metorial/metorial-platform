@@ -7,12 +7,12 @@ import type {
   FunctionServer,
   ServerAuthConfig,
   ServerConfig,
-  ServerConnection
+  ServerConnection,
+  ServerInstanceConfiguration
 } from '../../../prisma/generated/client';
 import { db } from '../../db';
-import { snowflake } from '../../id';
-import { callFunction, getFunctionCallLogs } from '../../lib/function/call';
-import { secretService } from '../../services';
+import { callFunction } from '../../lib/function/call';
+import { functionServerInvocationService, secretService } from '../../services';
 import type { McpConnectionBackendAdapter } from '../connection/adapter';
 import { ConnectionManager } from '../utils/connection';
 import { ConnectionLogger } from '../utils/logger';
@@ -41,6 +41,7 @@ export class FunctionConnection implements McpConnectionBackendAdapter {
     readonly connection: ServerConnection & {
       serverConfig: ServerConfig;
       serverAuthConfig: ServerAuthConfig | null;
+      serverInstanceConfiguration: ServerInstanceConfiguration | null;
     },
     private readonly functionServer: FunctionServer,
     private readonly DECRYPTED_config_value: Record<string, unknown>
@@ -64,6 +65,7 @@ export class FunctionConnection implements McpConnectionBackendAdapter {
     connection: ServerConnection & {
       serverConfig: ServerConfig;
       serverAuthConfig: ServerAuthConfig | null;
+      serverInstanceConfiguration: ServerInstanceConfiguration | null;
     }
   ) {
     if (!version.functionServerOid) {
@@ -81,7 +83,8 @@ export class FunctionConnection implements McpConnectionBackendAdapter {
     let { transformed: config } = await secretService.DANGEROUSLY_decryptSecret({
       secretOid: connection.serverConfig.secretOid,
       purpose: 'server_config_value',
-      tenant
+      tenant,
+      note: `fmcp.cfg:${connection.id}:${connection.serverConfig.id}`
     });
 
     return new FunctionConnection(tenant, version, connection, functionServer, config);
@@ -123,37 +126,38 @@ export class FunctionConnection implements McpConnectionBackendAdapter {
     return await this.#processingQueue.add(async () => {
       let token = await this.#authManager.getToken();
 
-      let res = await callFunction(this.functionServer, client =>
-        client.handleMcpMessages({
-          client: {
-            client: this.connection.client,
-            capabilities: this.connection.capabilities
-          },
-          config: this.DECRYPTED_config_value,
-          authConfig: token ?? undefined,
-          message: [message]
-        })
+      let res = await callFunction(
+        this.functionServer,
+        {
+          enclaveId: this.connection.serverInstanceConfiguration?.enclaveId,
+          egressPolicy: this.connection.serverInstanceConfiguration
+            ?.egressPolicy as PrismaJson.CompiledEgressNetworkAllowList | null
+        },
+        client =>
+          client.handleMcpMessages({
+            client: {
+              client: this.connection.client,
+              capabilities: this.connection.capabilities
+            },
+            config: this.DECRYPTED_config_value,
+            authConfig: token ?? undefined,
+            message: [message]
+          })
       );
 
       (async () => {
         if (res.functionCallId) {
-          await db.functionServerInvocation.create({
-            data: {
-              oid: snowflake.nextId(),
-              isError: res.status == 'error',
-              functionBayInvocationId: res.functionCallId,
-              connectionOid: this.connection.oid,
-              functionServerOid: this.functionServer.oid,
-              tenantOid: this.tenant.oid
-            }
+          await functionServerInvocationService.ensureFunctionServerInvocation({
+            functionServer: this.functionServer,
+            tenant: this.tenant,
+            functionInvocationId: res.functionCallId,
+            isError: res.status == 'error',
+            error: res.status == 'error' ? res.error : null,
+            connection: this.connection,
+            logs: res.logs
           });
 
-          let logs = await getFunctionCallLogs({
-            server: this.functionServer,
-            functionCallId: res.functionCallId
-          });
-
-          for (let logEntry of logs) {
+          for (let logEntry of res.logs) {
             this.logger.log('stdout', logEntry.message, logEntry.timestamp);
           }
         }

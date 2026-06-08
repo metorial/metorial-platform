@@ -38,7 +38,8 @@ export let fallbackFunctionBayTenant = fallbackFunctionBayTenantPromise.promise;
       let tenant = await Promise.race([
         functionBay.tenant.upsert({
           name: 'Shuttle Function Servers',
-          identifier: env.functionBay.FUNCTION_BAY_TENANT_IDENTIFIER
+          identifier: env.functionBay.FUNCTION_BAY_TENANT_IDENTIFIER,
+          isServiceDefault: true
         }),
         delay(10000).then(() => {
           throw new Error('Function bay tenant initialization timed out');
@@ -58,6 +59,22 @@ export let fallbackFunctionBayTenant = fallbackFunctionBayTenantPromise.promise;
 })();
 
 export let getTenantForFunctionBay = async (tenant: Tenant) => {
+  if (tenant.identifier === env.functionBay.FUNCTION_BAY_TENANT_IDENTIFIER) {
+    let fbTenant = await fallbackFunctionBayTenant;
+
+    if (!tenant.functionBayTenantId) {
+      tenant = await db.tenant.update({
+        where: { id: tenant.id },
+        data: { functionBayTenantId: fbTenant.id }
+      });
+    }
+
+    return {
+      id: fbTenant.id,
+      identifier: fbTenant.identifier
+    };
+  }
+
   if (!tenant.functionBayTenantId) {
     let newTenant = await functionBay.tenant.upsert({
       name: tenant.name,

@@ -18,17 +18,19 @@ export type ManagementInstanceSessionsConnectionsGetOutput = {
   participant: {
     object: 'session.participant';
     id: string;
-    type:
-      | 'unknown'
-      | 'provider'
-      | 'mcp_client'
-      | 'metorial_protocol_client'
-      | 'system'
-      | 'tool_call';
+    type: 'unknown' | 'provider' | 'agent' | 'system';
     identifier: string;
     name: string;
     data: { identifier: string; name: string };
     providerId: string | null;
+    connectionType: 'mcp' | 'metorial_protocol' | 'tool_call' | null;
+    agentId: string | null;
+    agentInstanceId: string | null;
+    identityActorId: string | null;
+    identityId: string | null;
+    agentActorId: string | null;
+    agentClientId: string | null;
+    consumerId: string | null;
     createdAt: Date;
   } | null;
   hasErrors: boolean;
@@ -85,6 +87,26 @@ export let mapManagementInstanceSessionsConnectionsGetOutput =
           })
         ),
         providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
+        connectionType: mtMap.objectField(
+          'connection_type',
+          mtMap.passthrough()
+        ),
+        agentId: mtMap.objectField('agent_id', mtMap.passthrough()),
+        agentInstanceId: mtMap.objectField(
+          'agent_instance_id',
+          mtMap.passthrough()
+        ),
+        identityActorId: mtMap.objectField(
+          'identity_actor_id',
+          mtMap.passthrough()
+        ),
+        identityId: mtMap.objectField('identity_id', mtMap.passthrough()),
+        agentActorId: mtMap.objectField('agent_actor_id', mtMap.passthrough()),
+        agentClientId: mtMap.objectField(
+          'agent_client_id',
+          mtMap.passthrough()
+        ),
+        consumerId: mtMap.objectField('consumer_id', mtMap.passthrough()),
         createdAt: mtMap.objectField('created_at', mtMap.date())
       })
     ),

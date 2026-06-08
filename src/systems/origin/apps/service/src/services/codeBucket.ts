@@ -7,6 +7,7 @@ import type { CodeBucket, CodeBucketTemplate, Tenant } from '../../prisma/genera
 import { db } from '../db';
 import { getId } from '../id';
 import { codeBucketClient } from '../lib/codeWorkspace';
+import { getInstallationAccessToken } from '../lib/githubApp';
 import { normalizePath } from '../lib/normalizePath';
 import { cloneBucketQueue } from '../queues/codeBucket/cloneBucket';
 import { copyFromToBucketQueue } from '../queues/codeBucket/copyFromToBucket';
@@ -237,18 +238,24 @@ class codeBucketServiceImpl {
     codeBucket: CodeBucket;
     repo: ScmRepository;
     path: string;
+    branchName?: string;
+    commitMessage?: string;
   }) {
     if (d.repo.provider === 'github') {
       await exportGithubQueue.add({
         bucketId: d.codeBucket.id,
         repoId: d.repo.id,
-        path: d.path
+        path: d.path,
+        branchName: d.branchName,
+        commitMessage: d.commitMessage
       });
     } else if (d.repo.provider === 'gitlab') {
       await exportGitlabQueue.add({
         bucketId: d.codeBucket.id,
         repoId: d.repo.id,
-        path: d.path
+        path: d.path,
+        branchName: d.branchName,
+        commitMessage: d.commitMessage
       });
     } else {
       throw new ServiceError(
@@ -259,13 +266,62 @@ class codeBucketServiceImpl {
     }
   }
 
-  // Deprecated: Use exportCodeBucketToRepo instead
-  async exportCodeBucketToGithub(d: {
+  async exportCodeBucketToRepoNow(d: {
     codeBucket: CodeBucket;
     repo: ScmRepository;
     path: string;
+    branchName?: string;
+    commitMessage?: string;
   }) {
-    return this.exportCodeBucketToRepo(d);
+    let repo = await db.scmRepository.findFirstOrThrow({
+      where: { oid: d.repo.oid },
+      include: { installation: { include: { backend: true } } }
+    });
+    let branch = d.branchName ?? repo.defaultBranch ?? 'main';
+    let commitMessage = d.commitMessage ?? `Export code bucket ${d.codeBucket.id}`;
+
+    await this.waitForCodeBucketReady({ codeBucketId: d.codeBucket.id });
+
+    if (repo.provider === 'github') {
+      if (!repo.installation.externalInstallationId) {
+        throw new ServiceError(badRequestError({ message: 'Installation ID not found' }));
+      }
+
+      let token = await getInstallationAccessToken(
+        repo.installation.externalInstallationId,
+        repo.installation.backend
+      );
+
+      await codeBucketClient.exportBucketToGithub({
+        bucketId: d.codeBucket.id,
+        owner: repo.externalOwner,
+        repo: repo.externalName,
+        path: d.path,
+        token,
+        branch,
+        commitMessage
+      });
+      return;
+    }
+
+    if (repo.provider === 'gitlab') {
+      if (!repo.installation.accessToken) {
+        throw new ServiceError(badRequestError({ message: 'Access token not found' }));
+      }
+
+      await codeBucketClient.exportBucketToGitlab({
+        bucketId: d.codeBucket.id,
+        projectId: Long.fromString(repo.externalId),
+        path: d.path,
+        token: repo.installation.accessToken,
+        gitlabApiUrl: repo.installation.backend.apiUrl,
+        branch,
+        commitMessage
+      });
+      return;
+    }
+
+    throw new ServiceError(badRequestError({ message: 'Unsupported repository provider' }));
   }
 
   async getCodeBucketFiles(d: { codeBucket: CodeBucket; prefix?: string }) {
@@ -428,6 +484,23 @@ class codeBucketServiceImpl {
     }
 
     await codeBucketClient.deleteBucketFile({
+      bucketId: d.codeBucket.id,
+      path: normalizePath(d.path)
+    });
+  }
+
+  async deletePath(d: { codeBucket: CodeBucket; path: string }) {
+    await this.waitForCodeBucketReady({ codeBucketId: d.codeBucket.id });
+
+    if (d.codeBucket.isReadOnly) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Cannot modify files in a read-only code bucket'
+        })
+      );
+    }
+
+    await codeBucketClient.deleteBucketPath({
       bucketId: d.codeBucket.id,
       path: normalizePath(d.path)
     });

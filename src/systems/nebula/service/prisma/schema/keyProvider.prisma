@@ -1,0 +1,79 @@
+enum KeyProviderType {
+  aws_kms
+  local
+}
+
+enum KeyProviderOwner {
+  tenant
+  system
+}
+
+enum KeyProviderStatus {
+  active
+  inactive
+  degraded
+}
+
+enum KeyProviderErrorOperation {
+  create_system_provider
+  validate_provider
+  generate_data_key
+  decrypt_data_key
+}
+
+model KeyProvider {
+  oid BigInt @id
+  id  String @unique
+
+  systemIdentifier String            @unique
+  name             String
+  type             KeyProviderType
+  owner            KeyProviderOwner
+  status           KeyProviderStatus
+
+  isMetorialManaged Boolean @default(false)
+
+  keyInfo Json
+
+  keyReuseTimeSeconds Int?
+
+  tenantOid BigInt?
+  tenant    Tenant? @relation("TenantKeyProviders", fields: [tenantOid], references: [oid])
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+  deletedAt DateTime?
+
+  defaultForTenants Tenant[]        @relation("TenantDefaultKeyProvider")
+  keys              Key[]
+  keyErrors         KeyError[]
+  secretVersions    SecretVersion[]
+
+  @@index([tenantOid])
+}
+
+model KeyError {
+  oid BigInt @id
+  id  String @unique
+
+  keyProviderOid BigInt
+  keyProvider    KeyProvider @relation(fields: [keyProviderOid], references: [oid])
+
+  tenantOid BigInt?
+  tenant    Tenant? @relation(fields: [tenantOid], references: [oid])
+
+  day         DateTime
+  operation   KeyProviderErrorOperation
+  code        String
+  messageHash String
+  count       Int                       @default(1)
+
+  sampleMessage String?
+
+  firstSeenAt DateTime @default(now())
+  lastSeenAt  DateTime @default(now())
+
+  @@unique([keyProviderOid, day, operation, code, messageHash])
+  @@index([tenantOid, day])
+  @@index([day])
+}

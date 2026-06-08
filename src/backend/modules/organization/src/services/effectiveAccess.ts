@@ -100,7 +100,9 @@ let getEntryScopes = (d: {
 };
 
 let resolvePolicyEntries = (accessPolicy: AccessPolicyWithRoles): EffectiveAccessEntry[] => {
-  let document = normalizePolicyDocument(accessPolicy.document as PolicyDocument);
+  let document = normalizePolicyDocument(accessPolicy.document as PolicyDocument, {
+    validateScopes: false
+  });
 
   return document.access
     .map(entry => ({

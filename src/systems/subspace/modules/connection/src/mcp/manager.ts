@@ -23,6 +23,10 @@ export class McpManager {
     return this._connection.connection;
   }
 
+  get tenant() {
+    return this._connection.tenant;
+  }
+
   senderListener(d: { selectedChannels: 'all' | 'broadcast'; replayFromMessageId?: string }) {
     let listener = this._connection.listener(d);
 
@@ -62,6 +66,12 @@ export class McpManager {
 
   listProviders() {
     return this._connection.listProviders();
+  }
+
+  getInternalToolByProviderType(
+    d: Parameters<SenderConnection['getInternalToolByProviderType']>[0]
+  ) {
+    return this._connection.getInternalToolByProviderType(d);
   }
 
   getToolById(d: { toolId: string }) {

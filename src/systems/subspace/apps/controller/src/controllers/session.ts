@@ -41,6 +41,8 @@ export let sessionController = app.controller({
           allowDeleted: v.optional(v.boolean()),
 
           ids: v.optional(v.array(v.string())),
+          agentIds: v.optional(v.array(v.string())),
+          actorIds: v.optional(v.array(v.string())),
           sessionTemplateIds: v.optional(v.array(v.string())),
           sessionProviderIds: v.optional(v.array(v.string())),
           providerIds: v.optional(v.array(v.string())),
@@ -63,6 +65,8 @@ export let sessionController = app.controller({
         allowDeleted: ctx.input.allowDeleted,
 
         ids: ctx.input.ids,
+        agentIds: ctx.input.agentIds,
+        actorIds: ctx.input.actorIds,
         sessionTemplateIds: ctx.input.sessionTemplateIds,
         sessionProviderIds: ctx.input.sessionProviderIds,
         providerIds: ctx.input.providerIds,

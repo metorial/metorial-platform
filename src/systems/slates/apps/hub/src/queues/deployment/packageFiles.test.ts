@@ -1,109 +1,54 @@
 import { describe, expect, it } from 'vitest';
 import { buildSlateDeploymentFiles } from './packageFiles';
 
-let getFile = (
-  files: { filename: string; content: string; encoding?: 'utf-8' | 'base64' }[],
-  filename: string
-) => {
-  let file = files.find(file => file.filename === filename);
-  expect(file).toBeDefined();
-  return file!;
-};
+let toArchiveFile = (path: string, content: string) => ({
+  path,
+  buffer: Buffer.from(content, 'utf-8')
+});
 
 describe('buildSlateDeploymentFiles', () => {
-  it('builds an unbuilt slate around the source entrypoint and merged dependencies', () => {
+  it('prefers source imports over prebuilt dist and drops ncc artifacts', () => {
     let result = buildSlateDeploymentFiles([
-      {
-        path: 'package.json',
-        buffer: Buffer.from(
-          JSON.stringify({
-            name: '@scope/unbuilt-slate',
-            version: '1.0.0',
-            dependencies: {
-              lodash: '^4.17.21'
-            },
-            scripts: {
-              build: 'tsc -p tsconfig.json'
-            }
-          })
-        )
-      },
-      {
-        path: 'src/index.ts',
-        buffer: Buffer.from('export let provider = {};')
-      },
-      {
-        path: 'logo.png',
-        buffer: Buffer.from('ignored')
-      }
+      toArchiveFile(
+        'package.json',
+        JSON.stringify({ name: 'slate', main: 'dist/index.js', type: 'module' })
+      ),
+      toArchiveFile('dist/index.js', "import './sourcemap-register.cjs';\nexport let provider = {};"),
+      toArchiveFile('dist/sourcemap-register.cjs', 'module.exports = {};'),
+      toArchiveFile('dist/index.js.map', '{}'),
+      toArchiveFile('src/index.ts', 'export let provider = {};')
     ]);
 
-    expect(result.slateEntrypoint).toBe('src/index.ts');
+    expect(result.providerImportPath).toBe('src/index.ts');
+    expect(result.files.find(file => file.filename === 'dist/index.js')).toBeUndefined();
+    expect(result.files.find(file => file.filename === 'dist/sourcemap-register.cjs')).toBeUndefined();
 
-    let packageJson = JSON.parse(getFile(result.files, 'package.json').content);
-    expect(packageJson.dependencies).toMatchObject({
-      lodash: '^4.17.21',
-      '@slates/provider-handler': 'latest',
-      '@slates/proto': 'latest',
-      slates: 'latest',
-      '@lowerdeck/serialize': 'latest'
-    });
-
-    let functionBayJson = JSON.parse(getFile(result.files, 'function-bay.json').content);
-    expect(functionBayJson).toMatchObject({
-      entrypoint: 'slates_entry_point.js'
-    });
-    expect(functionBayJson.scripts).toBeUndefined();
-
-    expect(getFile(result.files, 'slates_entry_point.js').content).toContain(
-      "import { provider } from './src/index.ts';"
+    let packageJson = JSON.parse(
+      result.files.find(file => file.filename === 'package.json')!.content as string
     );
-    expect(result.files.some(file => file.filename === 'logo.png')).toBe(false);
+    expect(packageJson.type).toBeUndefined();
+
+    let entryPoint = result.files.find(file => file.filename === 'slates_entry_point.js')!.content;
+    expect(entryPoint).toContain("from './src/index.ts'");
   });
 
-  it('prefers the prebuilt dist entrypoint and keeps sourcemap files', () => {
+  it('keeps prebuilt dist when no source entrypoint exists', () => {
     let result = buildSlateDeploymentFiles([
-      {
-        path: 'package.json',
-        buffer: Buffer.from(
-          JSON.stringify({
-            name: '@scope/prebuilt-slate',
-            version: '2.0.0',
-            main: 'dist/index.js'
-          })
-        )
-      },
-      {
-        path: 'src/index.ts',
-        buffer: Buffer.from('export let provider = "source";')
-      },
-      {
-        path: 'dist/index.js',
-        buffer: Buffer.from('export let provider = "dist";\n//# sourceMappingURL=index.js.map')
-      },
-      {
-        path: 'dist/index.js.map',
-        buffer: Buffer.from('{"version":3,"file":"index.js"}')
-      }
+      toArchiveFile('package.json', JSON.stringify({ name: 'slate', main: 'dist/index.js' })),
+      toArchiveFile('dist/index.js', "import './sourcemap-register.cjs';\nexport let provider = {};")
     ]);
 
-    expect(result.slateEntrypoint).toBe('dist/index.js');
-    expect(getFile(result.files, 'slates_entry_point.js').content).toContain(
-      "import { provider } from './dist/index.js';"
+    expect(result.providerImportPath).toBe('dist/index.js');
+
+    let distIndex = result.files.find(file => file.filename === 'dist/index.js');
+    expect(distIndex).toBeDefined();
+    expect(Buffer.from(distIndex!.content as string, 'base64').toString('utf-8')).toBe(
+      'export let provider = {};'
     );
 
-    let functionBayJson = JSON.parse(getFile(result.files, 'function-bay.json').content);
-    expect(functionBayJson).toMatchObject({
-      entrypoint: 'slates_entry_point.js',
-      scripts: {
-        build: expect.stringContaining('Skipping slate build')
-      }
-    });
-
-    let mapFile = getFile(result.files, 'dist/index.js.map');
-    expect(mapFile.encoding).toBe('base64');
-    expect(Buffer.from(mapFile.content, 'base64').toString('utf-8')).toContain(
-      '"file":"index.js"'
+    let functionBay = JSON.parse(
+      result.files.find(file => file.filename === 'function-bay.json')!.content as string
     );
+    expect(functionBay.scripts?.build).toContain('Skipping slate build');
   });
 });

@@ -103,10 +103,16 @@ vi.mock('../../../functionBay', () => ({
       upsert: vi.fn(async () => ({ id: 'fb-tenant' }))
     },
     function: {
-      invoke: vi.fn(async () => ({ type: 'error', error: { message: 'mocked' } }))
-    },
-    functionInvocation: {
-      get: vi.fn(async () => null)
+      invoke: vi.fn(async () => ({
+        type: 'error',
+        status: 'failed',
+        error: { code: 'mocked', message: 'mocked' },
+        logs: [],
+        computeTimeMs: 0,
+        billedTimeMs: 0,
+        functionVersionId: 'fv_test',
+        id: 'bfi_test'
+      }))
     }
   },
   functionBayTenant: { id: 'fb-tenant' },

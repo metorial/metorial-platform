@@ -1,0 +1,62 @@
+import type {
+  DashboardInstanceIntegrationsInstancesProvidersListOutput,
+  DashboardInstanceIntegrationsInstancesProvidersListQuery,
+  DashboardInstanceIntegrationsInstancesProvidersSetBody
+} from '@metorial/dashboard-sdk';
+import { createLoader } from '@metorial/data-hooks';
+import { usePaginator } from '../../lib/usePaginator';
+import { withAuth } from '../../user';
+import {
+  integrationInstanceLoader,
+  integrationInstancesLoader
+} from './integrationInstances';
+
+export type IntegrationInstanceProvider =
+  DashboardInstanceIntegrationsInstancesProvidersListOutput['items'][number];
+
+export let integrationInstanceProvidersLoader = createLoader({
+  name: 'integrationInstanceProviders',
+  parents: [integrationInstancesLoader, integrationInstanceLoader],
+  fetch: (
+    i: { instanceId: string } & DashboardInstanceIntegrationsInstancesProvidersListQuery
+  ) =>
+    withAuth(sdk => {
+      let { instanceId, ...query } = i;
+      return sdk.integration.instances.providers.list(instanceId, query);
+    }),
+  mutators: {}
+});
+
+export let useIntegrationInstanceProviders = (
+  instanceId: string | null | undefined,
+  query?: DashboardInstanceIntegrationsInstancesProvidersListQuery
+) => {
+  let data = usePaginator(pagination =>
+    integrationInstanceProvidersLoader.use(
+      instanceId ? { instanceId, ...pagination, ...query } : null
+    )
+  );
+
+  return data;
+};
+
+export let useSetIntegrationInstanceProvider =
+  integrationInstanceProvidersLoader.createExternalMutator(
+    (
+      i: {
+        instanceId: string;
+        integrationInstanceId: string;
+        providerId: string;
+      } & DashboardInstanceIntegrationsInstancesProvidersSetBody
+    ) =>
+      withAuth(sdk =>
+        sdk.integration.instances.providers.set(
+          i.instanceId,
+          i.integrationInstanceId,
+          i.providerId,
+          i
+        )
+      ),
+    { disableToast: true }
+  );
+

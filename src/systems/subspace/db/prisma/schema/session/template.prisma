@@ -14,6 +14,7 @@ model SessionTemplate {
 
   name            String?
   description     String?
+  hash            String?
   metadata        Json?
   privateMetadata Json?
 
@@ -26,17 +27,44 @@ model SessionTemplate {
   solutionOid Int
   solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
 
+  identityActorOid BigInt?
+  identityActor    IdentityActor? @relation(fields: [identityActorOid], references: [oid], onDelete: SetNull)
+
+  identityOid BigInt?
+  identity    Identity? @relation(fields: [identityOid], references: [oid], onDelete: SetNull)
+
+  integrationInstanceOid BigInt?
+  integrationInstance    IntegrationInstance? @relation(fields: [integrationInstanceOid], references: [oid], onDelete: Cascade)
+
+  integrationInstanceGroupOid BigInt?
+  integrationInstanceGroup    IntegrationInstanceGroup? @relation(fields: [integrationInstanceGroupOid], references: [oid], onDelete: Cascade)
+
+  defaultSessionTemplateForIntegrationInstanceOid BigInt?              @unique(map: "stm_default_for_instance_key")
+  defaultSessionTemplateForIntegrationInstance    IntegrationInstance? @relation("defaultSessionTemplateForIntegrationInstance", fields: [defaultSessionTemplateForIntegrationInstanceOid], references: [oid], onDelete: Cascade, map: "stm_default_for_instance_fkey")
+
+  defaultSessionTemplateForIntegrationInstanceGroupOid BigInt?                   @unique(map: "stm_default_for_instance_group_key")
+  defaultSessionTemplateForIntegrationInstanceGroup    IntegrationInstanceGroup? @relation("defaultSessionTemplateForIntegrationInstanceGroup", fields: [defaultSessionTemplateForIntegrationInstanceGroupOid], references: [oid], onDelete: Cascade, map: "stm_default_for_instance_group_fkey")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  providers        SessionTemplateProvider[]
-  sessionProviders SessionProvider[]
+  providers                SessionTemplateProvider[]
+  sessionProviders         SessionProvider[]
+  ephemeralManagedSessions EphemeralManagedSession[]
+  magicMcpServerBackings   MagicMcpServerBacking[]
+  magicMcpEndpointBackings MagicMcpEndpointBacking[]
 
   @@index([createdAt])
   @@index([updatedAt])
   @@index([status])
   @@index([archivedAt])
   @@index([status, archivedAt])
+  @@index([identityActorOid])
+  @@index([identityOid])
+  @@index([integrationInstanceOid, status])
+  @@index([integrationInstanceGroupOid, status])
+  @@index([defaultSessionTemplateForIntegrationInstanceOid, status], map: "stm_default_for_instance_status_idx")
+  @@index([defaultSessionTemplateForIntegrationInstanceGroupOid, status], map: "stm_default_for_instance_group_status_idx")
 }
 
 enum SessionTemplateProviderStatus {
@@ -51,7 +79,7 @@ model SessionTemplateProvider {
 
   status SessionTemplateProviderStatus
 
-  /// [ToolFilter]
+  /// [ToolFilterChain]
   toolFilter Json
 
   sessionTemplateOid BigInt
@@ -69,6 +97,12 @@ model SessionTemplateProvider {
   authConfigOid BigInt?
   authConfig    ProviderAuthConfig? @relation(fields: [authConfigOid], references: [oid])
 
+  integrationInstanceProviderOid BigInt?
+  integrationInstanceProvider    IntegrationInstanceProvider? @relation(fields: [integrationInstanceProviderOid], references: [oid], onDelete: Cascade)
+
+  integrationInstanceGroupProviderOid BigInt?
+  integrationInstanceGroupProvider    IntegrationInstanceGroupProvider? @relation(fields: [integrationInstanceGroupProviderOid], references: [oid], onDelete: Cascade)
+
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
 
@@ -83,7 +117,11 @@ model SessionTemplateProvider {
 
   sessionProviders SessionProvider[]
 
+  @@unique([sessionTemplateOid, integrationInstanceProviderOid], map: "unique_session_template_provider_instance_provider")
+  @@unique([sessionTemplateOid, integrationInstanceGroupProviderOid], map: "unique_session_template_provider_instance_group_provider")
   @@index([createdAt])
   @@index([updatedAt])
   @@index([status])
+  @@index([integrationInstanceProviderOid, status])
+  @@index([integrationInstanceGroupProviderOid, status])
 }

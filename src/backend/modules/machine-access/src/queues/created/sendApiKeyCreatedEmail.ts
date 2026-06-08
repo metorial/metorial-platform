@@ -52,7 +52,8 @@ export let sendApiKeyCreatedEmailQueueProcessor = sendApiKeyCreatedEmailQueue.pr
           role: 'admin',
           status: 'active',
           user: {
-            status: 'active'
+            status: 'active',
+            type: 'user'
           }
         },
         select: {
@@ -70,11 +71,13 @@ export let sendApiKeyCreatedEmailQueueProcessor = sendApiKeyCreatedEmailQueue.pr
             status: 'active'
           }
         },
-        select: {
-          id: true
+        include: {
+          user: true
         }
       })
     ]);
+
+    if (creatorMember?.user?.type === 'system') return;
 
     let uniqueMemberIds = new Set(adminMembers.map(member => member.id));
 

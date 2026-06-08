@@ -162,53 +162,78 @@ func (rs *RcpService) GetBucketFilesAsZip(ctx context.Context, req *rpc.GetBucke
 	}, nil
 }
 
-func (rs *RcpService) GetBucketFilesWithContent(ctx context.Context, req *rpc.GetBucketFilesRequest) (*rpc.GetBucketFilesWithContentResponse, error) {
-	files, err := rs.fsm.GetBucketFiles(ctx, req.BucketId, req.Prefix)
+func (rs *RcpService) GetBucketFilesAsZipStream(req *rpc.GetBucketFilesAsZipRequest, stream rpc.CodeBucket_GetBucketFilesAsZipStreamServer) error {
+	err := rs.fsm.StreamBucketFilesAsZip(stream.Context(), req.BucketId, req.Prefix, func(chunk []byte) error {
+		return stream.Send(&rpc.GetBucketFilesAsZipChunk{
+			Content: chunk,
+		})
+	})
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to get files: %v", err)
+		return status.Errorf(codes.Internal, "failed to stream files as zip: %v", err)
 	}
 
-	var pbFiles []*rpc.FileContent
-	for _, file := range files {
-		_, content, err := rs.fsm.GetBucketFile(ctx, req.BucketId, file.Path)
-		if err != nil {
-			continue
-		}
+	return nil
+}
 
-		pbFiles = append(pbFiles, &rpc.FileContent{
-			FileInfo: &rpc.FileInfo{
-				Path:        file.Path,
-				Size:        file.Size,
-				ContentType: file.ContentType,
-				ModifiedAt:  file.ModifiedAt.Unix(),
-			},
-			Content: content.Content,
-		})
+func (rs *RcpService) GetBucketFilesWithContent(ctx context.Context, req *rpc.GetBucketFilesRequest) (*rpc.GetBucketFilesWithContentResponse, error) {
+	var pbFiles []*rpc.FileContent
+	err := rs.fsm.WalkBucketFileContentBatches(ctx, req.BucketId, req.Prefix, 0, func(batch []fs.FileContentItem) error {
+		for _, file := range batch {
+			pbFiles = append(pbFiles, fileContentItemToRPC(file))
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to get files with content: %v", err)
 	}
 
 	return &rpc.GetBucketFilesWithContentResponse{Files: pbFiles}, nil
 }
 
-func (rs *RcpService) ExportBucketToGithub(ctx context.Context, req *rpc.ExportBucketToGithubRequest) (*rpc.ExportBucketToGithubResponse, error) {
-	files, err := rs.fsm.GetBucketFiles(ctx, req.BucketId, "")
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to get bucket files: %v", err)
-	}
-
-	filesToUpload := make([]github.FileToUpload, 0, len(files))
-	for _, file := range files {
-		_, content, err := rs.fsm.GetBucketFile(ctx, req.BucketId, file.Path)
-		if err != nil {
-			continue
+func (rs *RcpService) GetBucketFilesWithContentStream(req *rpc.GetBucketFilesRequest, stream rpc.CodeBucket_GetBucketFilesWithContentStreamServer) error {
+	err := rs.fsm.WalkBucketFileContentBatches(stream.Context(), req.BucketId, req.Prefix, 0, func(batch []fs.FileContentItem) error {
+		files := make([]*rpc.FileContent, 0, len(batch))
+		for _, file := range batch {
+			files = append(files, fileContentItemToRPC(file))
 		}
 
-		filesToUpload = append(filesToUpload, github.FileToUpload{
-			Path:    file.Path,
-			Content: content.Content,
+		return stream.Send(&rpc.GetBucketFilesWithContentChunk{
+			Files: files,
 		})
+	})
+	if err != nil {
+		return status.Errorf(codes.Internal, "failed to stream files with content: %v", err)
 	}
 
-	if err := github.UploadToRepo(req.Owner, req.Repo, req.Path, req.Token, filesToUpload); err != nil {
+	return nil
+}
+
+func fileContentItemToRPC(file fs.FileContentItem) *rpc.FileContent {
+	return &rpc.FileContent{
+		FileInfo: &rpc.FileInfo{
+			Path:        file.Info.Path,
+			Size:        file.Info.Size,
+			ContentType: file.Info.ContentType,
+			ModifiedAt:  file.Info.ModifiedAt.Unix(),
+		},
+		Content: file.Content,
+	}
+}
+
+func (rs *RcpService) ExportBucketToGithub(ctx context.Context, req *rpc.ExportBucketToGithubRequest) (*rpc.ExportBucketToGithubResponse, error) {
+	if err := github.UploadToRepoIter(req.Owner, req.Repo, req.Path, req.Branch, req.CommitMessage, req.Token, func(yield func(github.FileToUpload) error) error {
+		return rs.fsm.WalkBucketFileContentBatches(ctx, req.BucketId, "", 0, func(batch []fs.FileContentItem) error {
+			for _, file := range batch {
+				if err := yield(github.FileToUpload{
+					Path:    file.Info.Path,
+					Content: file.Content,
+				}); err != nil {
+					return err
+				}
+			}
+			return nil
+		})
+	}); err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to upload to GitHub: %v", err)
 	}
 
@@ -230,25 +255,19 @@ func (rs *RcpService) CreateBucketFromGitlab(ctx context.Context, req *rpc.Creat
 }
 
 func (rs *RcpService) ExportBucketToGitlab(ctx context.Context, req *rpc.ExportBucketToGitlabRequest) (*rpc.ExportBucketToGitlabResponse, error) {
-	files, err := rs.fsm.GetBucketFiles(ctx, req.BucketId, "")
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to get bucket files: %v", err)
-	}
-
-	filesToUpload := make([]gitlab.FileToUpload, 0, len(files))
-	for _, file := range files {
-		_, content, err := rs.fsm.GetBucketFile(ctx, req.BucketId, file.Path)
-		if err != nil {
-			continue
-		}
-
-		filesToUpload = append(filesToUpload, gitlab.FileToUpload{
-			Path:    file.Path,
-			Content: content.Content,
+	if err := gitlab.UploadToRepoIter(req.ProjectId, req.Path, req.Branch, req.CommitMessage, req.Token, req.GitlabApiUrl, func(yield func(gitlab.FileToUpload) error) error {
+		return rs.fsm.WalkBucketFileContentBatches(ctx, req.BucketId, "", 0, func(batch []fs.FileContentItem) error {
+			for _, file := range batch {
+				if err := yield(gitlab.FileToUpload{
+					Path:    file.Info.Path,
+					Content: file.Content,
+				}); err != nil {
+					return err
+				}
+			}
+			return nil
 		})
-	}
-
-	if err := gitlab.UploadToRepo(req.ProjectId, req.Path, req.Token, req.GitlabApiUrl, filesToUpload); err != nil {
+	}); err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to upload to GitLab: %v", err)
 	}
 
@@ -315,4 +334,20 @@ func (rs *RcpService) DeleteBucketFile(ctx context.Context, req *rpc.DeleteBucke
 	}
 
 	return &rpc.DeleteBucketFileResponse{}, nil
+}
+
+func (rs *RcpService) DeleteBucketPath(ctx context.Context, req *rpc.DeleteBucketPathRequest) (*rpc.DeleteBucketPathResponse, error) {
+	if req.BucketId == "" {
+		return nil, status.Errorf(codes.InvalidArgument, "bucket_id is required")
+	}
+
+	if req.Path == "" {
+		return nil, status.Errorf(codes.InvalidArgument, "path is required")
+	}
+
+	if err := rs.fsm.DeleteBucketPath(ctx, req.BucketId, req.Path); err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to delete path: %v", err)
+	}
+
+	return &rpc.DeleteBucketPathResponse{}, nil
 }

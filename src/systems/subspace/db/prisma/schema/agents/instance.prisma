@@ -1,0 +1,34 @@
+enum AgentInstanceType {
+  mcp_client
+  tool_call
+}
+
+model AgentInstance {
+  oid BigInt @id
+  id  String @unique
+
+  name        String
+  version     String?
+  description String?
+
+  hash String
+
+  type AgentInstanceType
+
+  agentOid BigInt
+  agent    Agent  @relation(fields: [agentOid], references: [oid], onDelete: Cascade)
+
+  agentClientOid BigInt?
+  agentClient    AgentClient? @relation(fields: [agentClientOid], references: [oid], onDelete: Cascade)
+
+  agentClientRegistrationOid BigInt?
+  agentClientRegistration    AgentClientRegistration? @relation(fields: [agentClientRegistrationOid], references: [oid], onDelete: Cascade)
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @default(now()) @updatedAt
+  lastConnectedAt DateTime?
+
+  sessionParticipants SessionParticipant[]
+
+  @@unique([agentOid, hash])
+}

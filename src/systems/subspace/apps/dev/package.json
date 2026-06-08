@@ -4,7 +4,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "bun --watch ./src/server.ts",
+    "dev": "bun \"$(ROOT=$(git rev-parse --show-toplevel); if [ -f \"$ROOT/scripts/dev-tools/src/cli.ts\" ]; then echo \"$ROOT/scripts/dev-tools/src/cli.ts\"; else echo \"$ROOT/oss/scripts/dev-tools/src/cli.ts\"; fi)\" watch-bun ./src/server.ts",
     "enterprise:dev": "bun run dev",
     "frontend:build": "mkdir -p frontend/dist && cd ../public && bun frontend:build && cp -r ./frontend/dist ../dev/frontend"
   },
@@ -32,7 +32,7 @@
     "@lowerdeck/hono": "^1.0.10",
     "@lowerdeck/id": "^1.0.8",
     "@lowerdeck/pagination": "^1.0.8",
-    "@lowerdeck/rpc-client": "^1.1.3",
+    "@lowerdeck/rpc-client": "^1.1.4",
     "@lowerdeck/rpc-server": "^1.0.11",
     "@lowerdeck/sentry": "^1.0.2",
     "@lowerdeck/serialize": "^1.0.4",
@@ -49,7 +49,7 @@
     "@metorial-subspace/provider-shuttle": "^1.0.0",
     "@modelcontextprotocol/sdk": "^1.26.0",
     "@sentry/bun": "^10.34.0",
-    "hono": "^4.11.3",
+    "hono": "4.12.23",
     "zod": "^4.3.6",
     "@vercel/ncc": "^0.38.3",
     "@sentry/cli": "^3.2.0"

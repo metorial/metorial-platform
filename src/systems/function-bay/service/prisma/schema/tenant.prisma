@@ -1,0 +1,15 @@
+model Tenant {
+  oid BigInt @id
+  id  String @unique
+
+  identifier String @unique
+  name       String
+
+  isServiceDefault Boolean @default(false)
+  hasAutomaticEnclaveOverride Boolean @default(false)
+
+  createdAt             DateTime               @default(now())
+  runtimeForgeWorkflows RuntimeForgeWorkflow[]
+  functions             Function[]
+  enclaves              Enclave[]
+}

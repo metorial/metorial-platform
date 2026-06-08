@@ -2,7 +2,9 @@ package gitlab
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -12,6 +14,8 @@ import (
 
 	zipImporter "github.com/metorial/metorial/services/code-bucket/pkg/zip-importer"
 )
+
+const maxGitlabCommitPayloadBytes = 8 * 1024 * 1024
 
 func DownloadRepo(projectID int64, repoPath, ref, token, gitlabAPIURL string) (*zipImporter.ZipFileIterator, error) {
 	// GitLab API endpoint for downloading repository archive
@@ -33,10 +37,13 @@ type FileToUpload struct {
 	Content []byte
 }
 
+type FileIterator func(func(FileToUpload) error) error
+
 type gitlabFileAction struct {
 	Action   string `json:"action"`
 	FilePath string `json:"file_path"`
 	Content  string `json:"content"`
+	Encoding string `json:"encoding,omitempty"`
 }
 
 type gitlabCommitRequest struct {
@@ -45,18 +52,54 @@ type gitlabCommitRequest struct {
 	Actions       []gitlabFileAction `json:"actions"`
 }
 
-func UploadToRepo(projectID int64, targetPath, token, gitlabAPIURL string, files []FileToUpload) error {
+func UploadToRepo(projectID int64, targetPath, branch, commitMessage, token, gitlabAPIURL string, files []FileToUpload) error {
+	return UploadToRepoIter(projectID, targetPath, branch, commitMessage, token, gitlabAPIURL, func(yield func(FileToUpload) error) error {
+		for _, file := range files {
+			if err := yield(file); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+func UploadToRepoIter(projectID int64, targetPath, branch, commitMessage, token, gitlabAPIURL string, iter FileIterator) error {
 	if token == "" {
 		return fmt.Errorf("GitLab token is required")
 	}
 
 	client := &http.Client{}
-	branch := "main" // Default to main branch
+	if branch == "" {
+		branch = "main"
+	}
+	if commitMessage == "" {
+		commitMessage = "Upload files"
+	}
 
-	// GitLab supports batch commits, so we can upload all files in a single commit
-	actions := make([]gitlabFileAction, 0, len(files))
+	actions := make([]gitlabFileAction, 0)
+	payloadBytes := 0
+	batch := 1
 
-	for _, file := range files {
+	flush := func() error {
+		if len(actions) == 0 {
+			return nil
+		}
+
+		message := commitMessage
+		if batch > 1 {
+			message = fmt.Sprintf("%s (batch %d)", commitMessage, batch)
+		}
+		if err := createCommit(client, projectID, branch, message, token, gitlabAPIURL, actions); err != nil {
+			return err
+		}
+
+		actions = nil
+		payloadBytes = 0
+		batch++
+		return nil
+	}
+
+	if err := iter(func(file FileToUpload) error {
 		// Normalize the path by joining targetPath with file.Path
 		fullPath := path.Join(targetPath, file.Path)
 		// Clean up any double slashes or leading slashes
@@ -67,21 +110,48 @@ func UploadToRepo(projectID int64, targetPath, token, gitlabAPIURL string, files
 
 		// Check if file exists to determine action
 		action := "create"
-		if fileExists, _ := checkFileExists(client, projectID, fullPath, branch, token, gitlabAPIURL); fileExists {
+		fileInfo, err := getFileInfo(client, projectID, fullPath, branch, token, gitlabAPIURL)
+		if err != nil {
+			return fmt.Errorf("failed to get file info for %s: %w", fullPath, err)
+		}
+		if fileInfo.Exists {
+			if fileInfo.ContentSHA256 == sha256Hex(file.Content) {
+				return nil
+			}
 			action = "update"
+		}
+
+		encodedBytes := len(encodedContent) + len(fullPath)
+		if len(actions) > 0 && payloadBytes+encodedBytes > maxGitlabCommitPayloadBytes {
+			if err := flush(); err != nil {
+				return err
+			}
 		}
 
 		actions = append(actions, gitlabFileAction{
 			Action:   action,
 			FilePath: fullPath,
 			Content:  encodedContent,
+			Encoding: "base64",
 		})
+		payloadBytes += encodedBytes
+
+		if payloadBytes >= maxGitlabCommitPayloadBytes {
+			return flush()
+		}
+
+		return nil
+	}); err != nil {
+		return err
 	}
 
-	// Create commit with all file actions
+	return flush()
+}
+
+func createCommit(client *http.Client, projectID int64, branch, commitMessage, token, gitlabAPIURL string, actions []gitlabFileAction) error {
 	commitReq := gitlabCommitRequest{
 		Branch:        branch,
-		CommitMessage: fmt.Sprintf("Upload %d files", len(files)),
+		CommitMessage: commitMessage,
 		Actions:       actions,
 	}
 
@@ -115,8 +185,18 @@ func UploadToRepo(projectID int64, targetPath, token, gitlabAPIURL string, files
 	return nil
 }
 
-// Helper function to check if a file exists in the repository
-func checkFileExists(client *http.Client, projectID int64, filePath, branch, token, gitlabAPIURL string) (bool, error) {
+type gitlabFileInfo struct {
+	Exists        bool
+	ContentSHA256 string `json:"content_sha256"`
+}
+
+func sha256Hex(content []byte) string {
+	sum := sha256.Sum256(content)
+	return hex.EncodeToString(sum[:])
+}
+
+// Helper function to get file metadata in the repository
+func getFileInfo(client *http.Client, projectID int64, filePath, branch, token, gitlabAPIURL string) (gitlabFileInfo, error) {
 	fileURL := fmt.Sprintf("%s/projects/%d/repository/files/%s?ref=%s",
 		gitlabAPIURL,
 		projectID,
@@ -126,15 +206,30 @@ func checkFileExists(client *http.Client, projectID int64, filePath, branch, tok
 
 	req, err := http.NewRequest("GET", fileURL, nil)
 	if err != nil {
-		return false, err
+		return gitlabFileInfo{}, err
 	}
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return false, err
+		return gitlabFileInfo{}, err
 	}
 	defer resp.Body.Close()
 
-	return resp.StatusCode == http.StatusOK, nil
+	if resp.StatusCode == http.StatusNotFound {
+		return gitlabFileInfo{Exists: false}, nil
+	}
+
+	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return gitlabFileInfo{}, fmt.Errorf("failed to get file metadata (status %d): %s", resp.StatusCode, string(body))
+	}
+
+	var info gitlabFileInfo
+	if err := json.Unmarshal(body, &info); err != nil {
+		return gitlabFileInfo{}, err
+	}
+	info.Exists = true
+
+	return info, nil
 }

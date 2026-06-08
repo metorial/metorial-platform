@@ -12,6 +12,7 @@ export * from './slateError';
 export * from './slateDiscoveryToolCallStats';
 export * from './slateEvent';
 export * from './slateInstance';
+export * from './slateInstanceConfiguration';
 export * from './slateInvocation';
 export * from './slateOAuthCredentials';
 export * from './slateOAuthSetup';

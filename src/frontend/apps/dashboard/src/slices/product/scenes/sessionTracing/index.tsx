@@ -21,16 +21,20 @@ let SplitPaneWrapper = styled.div`
 export let SessionTracingScene = ({
   session,
   initialExplorerTab,
+  initialConnectionId,
+  focusedItemId,
   inspectorOptions
 }: {
   session: DashboardInstanceSessionsGetOutput;
   initialExplorerTab?: boolean;
+  initialConnectionId?: string | null;
+  focusedItemId?: string | null;
   inspectorOptions?: {
     sessionTemplateId?: string | null;
     magicMcpServerId?: string | null;
   };
 }) => {
-  let tracing = useSessionTracing(session, { initialExplorerTab });
+  let tracing = useSessionTracing(session, { initialExplorerTab, initialConnectionId });
 
   return (
     <SplitPaneWrapper>
@@ -63,6 +67,7 @@ export let SessionTracingScene = ({
             activeTabId={tracing.activeTabId}
             connectionIdByExplorerTabId={tracing.connectionIdByExplorerTabId}
             explorerTabIds={tracing.explorerTabIds}
+            focusedItemId={focusedItemId}
             inspectorOptions={inspectorOptions}
             isExplorerActive={tracing.isExplorerActive}
             onCloseTab={tracing.onCloseTab}

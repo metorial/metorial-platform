@@ -12,6 +12,15 @@ export let tenantWithoutEnvironmentApp = app.use(async ctx => {
   return { tenant };
 });
 
+export let tenantOptionalWithoutEnvironmentApp = app.use(async ctx => {
+  let tenantId = ctx.body.tenantId;
+  if (!tenantId) return { tenant: undefined };
+
+  let tenant = await tenantService.getTenantById({ id: tenantId });
+
+  return { tenant };
+});
+
 export let tenantApp = tenantWithoutEnvironmentApp.use(async ctx => {
   let tenantId = ctx.body.tenantId;
   let environmentId = ctx.body.environmentId;
@@ -51,6 +60,10 @@ export let tenantController = app.controller({
         onlyAllowTrustedProviders: v.optional(v.boolean()),
         isWhitelabel: v.optional(v.boolean()),
         logRetentionInDays: v.optional(v.number()),
+        enforceSessionExpiry: v.optional(v.boolean()),
+        allowAuthConfigExport: v.optional(v.boolean()),
+        allowAuthConfigImport: v.optional(v.boolean()),
+        collectOperationDescriptionForToolCalls: v.optional(v.boolean()),
         environments: v.array(
           v.object({
             name: v.string(),
@@ -68,7 +81,12 @@ export let tenantController = app.controller({
           environments: ctx.input.environments as any,
           onlyAllowTrustedProviders: ctx.input.onlyAllowTrustedProviders,
           isWhitelabel: ctx.input.isWhitelabel,
-          logRetentionInDays: ctx.input.logRetentionInDays
+          logRetentionInDays: ctx.input.logRetentionInDays,
+          enforceSessionExpiry: ctx.input.enforceSessionExpiry,
+          allowAuthConfigExport: ctx.input.allowAuthConfigExport,
+          allowAuthConfigImport: ctx.input.allowAuthConfigImport,
+          collectOperationDescriptionForToolCalls:
+            ctx.input.collectOperationDescriptionForToolCalls
         }
       });
       return tenantPresenter(tenant);

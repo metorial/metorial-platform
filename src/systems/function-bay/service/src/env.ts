@@ -20,13 +20,17 @@ export let env = createValidatedEnv({
     FORGE_API_URL: v.string()
   },
 
+  observer: {
+    OBSERVER_QUERY_URL: v.optional(v.string())
+  },
+
   provider: {
     DEFAULT_PROVIDER: v.enumOf(['aws.lambda', 'local'])
   },
 
   deflector: {
     DEFLECTOR_PROXY_URL: v.optional(v.string()),
-    DEFLECTOR_JWT_KMS_KEY_ID: v.optional(v.string()),
+    DEFLECTOR_JWT_SECRET: v.optional(v.string()),
     DEFLECTOR_JWT_AUDIENCE: v.optional(v.string())
   },
 

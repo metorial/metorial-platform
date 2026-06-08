@@ -1,4 +1,5 @@
 import { createCron } from '@lowerdeck/cron';
+import { backend as shuttleBackend } from '../../backend';
 import { env } from '../../env';
 import { syncAuthConfigEventsQueue } from './authConfigEvents';
 import { syncChangeNotificationsQueue } from './changeNotifications';
@@ -11,7 +12,7 @@ export let syncChangeNotificationsCron = createCron(
     cron: '* * * * *'
   },
   async () => {
-    await syncChangeNotificationsQueue.add({}, { id: 'poll' });
+    await syncChangeNotificationsQueue.add({}, { id: shuttleBackend.id });
   }
 );
 

@@ -69,6 +69,7 @@ export let ProviderAuthCredentialsPanelFlow = (p: {
               onBack={() => setStep(0)}
               embedded
               hideProviderContext
+              showScopePicker
               onCreate={credentials => {
                 if (!organization.data || !project.data || !instance.data) return;
 

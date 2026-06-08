@@ -1,0 +1,168 @@
+import { mtMap } from '@metorial/util-resource-mapper';
+
+export type NetworkPoliciesListOutput = {
+  items: {
+    object: 'network.policy';
+    id: string;
+    name: string;
+    description: string | null;
+    status: 'active' | 'archived' | 'deleted';
+    version: number;
+    rules: {
+      object: 'network.policy.rule';
+      id: string;
+      effect: 'allow' | 'deny';
+      direction: 'ingress' | 'egress';
+      cidrs: string[];
+      description: string | null;
+      enabled: boolean;
+      priority: number;
+      ports:
+        | { object: 'network.policy.port_range'; from: number; to: number }[]
+        | null;
+    }[];
+    firewallIds: string[] | null;
+    createdAt: Date;
+    updatedAt: Date;
+    archivedAt: Date | null;
+  }[];
+  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+};
+
+export let mapNetworkPoliciesListOutput =
+  mtMap.object<NetworkPoliciesListOutput>({
+    items: mtMap.objectField(
+      'items',
+      mtMap.array(
+        mtMap.object({
+          object: mtMap.objectField('object', mtMap.passthrough()),
+          id: mtMap.objectField('id', mtMap.passthrough()),
+          name: mtMap.objectField('name', mtMap.passthrough()),
+          description: mtMap.objectField('description', mtMap.passthrough()),
+          status: mtMap.objectField('status', mtMap.passthrough()),
+          version: mtMap.objectField('version', mtMap.passthrough()),
+          rules: mtMap.objectField(
+            'rules',
+            mtMap.array(
+              mtMap.object({
+                object: mtMap.objectField('object', mtMap.passthrough()),
+                id: mtMap.objectField('id', mtMap.passthrough()),
+                effect: mtMap.objectField('effect', mtMap.passthrough()),
+                direction: mtMap.objectField('direction', mtMap.passthrough()),
+                cidrs: mtMap.objectField(
+                  'cidrs',
+                  mtMap.array(mtMap.passthrough())
+                ),
+                description: mtMap.objectField(
+                  'description',
+                  mtMap.passthrough()
+                ),
+                enabled: mtMap.objectField('enabled', mtMap.passthrough()),
+                priority: mtMap.objectField('priority', mtMap.passthrough()),
+                ports: mtMap.objectField(
+                  'ports',
+                  mtMap.array(
+                    mtMap.object({
+                      object: mtMap.objectField('object', mtMap.passthrough()),
+                      from: mtMap.objectField('from', mtMap.passthrough()),
+                      to: mtMap.objectField('to', mtMap.passthrough())
+                    })
+                  )
+                )
+              })
+            )
+          ),
+          firewallIds: mtMap.objectField(
+            'firewall_ids',
+            mtMap.array(mtMap.passthrough())
+          ),
+          createdAt: mtMap.objectField('created_at', mtMap.date()),
+          updatedAt: mtMap.objectField('updated_at', mtMap.date()),
+          archivedAt: mtMap.objectField('archived_at', mtMap.date())
+        })
+      )
+    ),
+    pagination: mtMap.objectField(
+      'pagination',
+      mtMap.object({
+        hasMoreBefore: mtMap.objectField(
+          'has_more_before',
+          mtMap.passthrough()
+        ),
+        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
+      })
+    )
+  });
+
+export type NetworkPoliciesListQuery = {
+  limit?: number | undefined;
+  after?: string | undefined;
+  before?: string | undefined;
+  cursor?: string | undefined;
+  order?: 'asc' | 'desc' | undefined;
+} & {
+  id?: string | string[] | undefined;
+  status?:
+    | 'active'
+    | 'archived'
+    | 'deleted'
+    | ('active' | 'archived' | 'deleted')[]
+    | undefined;
+  firewallId?: string | string[] | undefined;
+  search?: string | undefined;
+  createdAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
+  updatedAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
+};
+
+export let mapNetworkPoliciesListQuery = mtMap.union([
+  mtMap.unionOption(
+    'object',
+    mtMap.object({
+      limit: mtMap.objectField('limit', mtMap.passthrough()),
+      after: mtMap.objectField('after', mtMap.passthrough()),
+      before: mtMap.objectField('before', mtMap.passthrough()),
+      cursor: mtMap.objectField('cursor', mtMap.passthrough()),
+      order: mtMap.objectField('order', mtMap.passthrough()),
+      id: mtMap.objectField(
+        'id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      status: mtMap.objectField(
+        'status',
+        mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
+      ),
+      firewallId: mtMap.objectField(
+        'firewall_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      search: mtMap.objectField('search', mtMap.passthrough()),
+      createdAt: mtMap.objectField(
+        'created_at',
+        mtMap.object({
+          gt: mtMap.objectField('gt', mtMap.date()),
+          lt: mtMap.objectField('lt', mtMap.date())
+        })
+      ),
+      updatedAt: mtMap.objectField(
+        'updated_at',
+        mtMap.object({
+          gt: mtMap.objectField('gt', mtMap.date()),
+          lt: mtMap.objectField('lt', mtMap.date())
+        })
+      )
+    })
+  )
+]);
+

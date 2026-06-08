@@ -114,4 +114,5 @@ model ServerVersion {
   changeNotifications ChangeNotification[]
 
   @@unique([serverOid, identifier])
+  @@index([serverOid, isCurrent])
 }

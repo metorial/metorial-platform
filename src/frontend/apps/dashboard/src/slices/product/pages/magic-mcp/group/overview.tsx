@@ -118,7 +118,7 @@ export let MagicMcpGroupOverviewPage = () => {
   return renderWithLoader({ group })(({ group }) => (
     <>
       <Attributes
-        itemWidth="250px"
+        itemWidth="300px"
         attributes={[
           {
             label: 'Name',

@@ -1,42 +1,42 @@
 import { Flex, Spacer, Spinner, Text, Title } from '@metorial/ui';
-import { RiCheckLine } from '@remixicon/react';
 import { useEffect } from 'react';
+import { SuccessIcon } from '../components/statusIcons';
 
 interface CompletedStepProps {
   redirectUrl: string | null;
+  completionRedirectUrl?: string | null;
 }
 
-export let CompletedStep = ({ redirectUrl }: CompletedStepProps) => {
-  useEffect(() => {
-    if (!redirectUrl) return;
+export let CompletedStep = ({ redirectUrl, completionRedirectUrl }: CompletedStepProps) => {
+  let finalRedirectUrl = completionRedirectUrl ?? redirectUrl;
 
-    let timeout = setTimeout(() => {
-      window.location.href = redirectUrl;
-    }, 1500);
+  useEffect(() => {
+    if (!finalRedirectUrl) return;
+
+    let destOrigin = new URL(finalRedirectUrl).origin;
+    let sourceOrigin = window.location.origin;
+
+    let isSameOrigin = destOrigin === sourceOrigin;
+
+    let timeout = setTimeout(
+      () => {
+        window.location.href = finalRedirectUrl;
+      },
+      isSameOrigin ? 0 : 1500
+    );
 
     return () => clearTimeout(timeout);
-  }, [redirectUrl]);
+  }, [finalRedirectUrl]);
 
-  let description = redirectUrl
+  let description = finalRedirectUrl
     ? 'Your configuration has been saved. Redirecting you back...'
     : 'Your configuration has been saved successfully. You can close this window.';
 
   return (
     <Flex direction="column" align="center" style={{ padding: '24px 0', textAlign: 'center' }}>
-      <Flex
-        align="center"
-        justify="center"
-        style={{
-          width: 64,
-          height: 64,
-          borderRadius: '50%',
-          background: '#10b981',
-          color: 'white',
-          marginBottom: 24
-        }}
-      >
-        <RiCheckLine size={32} />
-      </Flex>
+      <div style={{ marginBottom: 24 }}>
+        <SuccessIcon />
+      </div>
 
       <Title size="3" weight="bold">
         Setup Complete
@@ -51,7 +51,7 @@ export let CompletedStep = ({ redirectUrl }: CompletedStepProps) => {
         {description}
       </Text>
 
-      {redirectUrl && (
+      {finalRedirectUrl && (
         <>
           <Spacer size={24} />
           <Flex align="center" gap={8} style={{ color: '#999', fontSize: 13 }}>

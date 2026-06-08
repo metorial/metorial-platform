@@ -27,7 +27,10 @@ export let slateVersionPresenter = (
   isCurrent: o?.currentVersionId
     ? o.currentVersionId === slateVersion.id
     : slateVersion.isCurrent,
-  build: slateVersion.backend === 'npm' ? 'prebuilt' : 'unbuilt',
+  build:
+    slateVersion.backend === 'npm' || slateVersion.backend === 'local_built'
+      ? 'prebuilt'
+      : 'unbuilt',
 
   slateId: slateVersion.slate.id,
 

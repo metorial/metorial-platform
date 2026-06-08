@@ -1,14 +1,15 @@
 import { createExecutionContext, provideExecutionContext } from '@lowerdeck/execution-context';
-import { createHono, useRequestContext } from '@lowerdeck/hono';
+import { useRequestContext } from '@lowerdeck/hono';
 import { generateSnowflakeId } from '@metorial/id';
 import { AuthInfo } from '@metorial/module-access';
 import { proxyMcpRequestToSubspace } from '@metorial/module-subspace';
 import { Authenticator } from '@metorial/rest';
 import { authenticateAndResolveInstance } from './getSession';
+import { createConnectionHono } from './hono';
 import { handleMagicMcpRequest } from './magic';
 
 export let startMcpServer = (d: { port: number; authenticate: Authenticator<AuthInfo> }) => {
-  let hono = createHono()
+  let hono = createConnectionHono()
     .use(async (c, next) => {
       await next();
 
@@ -20,6 +21,10 @@ export let startMcpServer = (d: { port: number; authenticate: Authenticator<Auth
       c.res.headers.set(
         'Access-Control-Allow-Headers',
         'Content-Type, Authorization, metorial-version, mcp-protocol-version, MCP-Session-ID, Last-Event-ID'
+      );
+      c.res.headers.set(
+        'Access-Control-Expose-Headers',
+        'Metorial-Connection-Id, Metorial-Connection-Token, Metorial-Session-Id, MCP-Session-ID'
       );
       c.res.headers.set('Access-Control-Allow-Credentials', 'true');
       c.res.headers.set('Access-Control-Max-Age', '86400');
@@ -43,7 +48,10 @@ export let startMcpServer = (d: { port: number; authenticate: Authenticator<Auth
         }),
         async () => {
           let { instance } = await authenticateAndResolveInstance(req, url, d.authenticate);
-          return proxyMcpRequestToSubspace(c, instance, sessionId);
+          return proxyMcpRequestToSubspace(c, instance, sessionId, {
+            enforceIngressNetworkPolicy: true,
+            ingressIp: context.ip
+          });
         }
       );
     })

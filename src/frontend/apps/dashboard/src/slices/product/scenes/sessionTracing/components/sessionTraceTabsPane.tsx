@@ -1,5 +1,6 @@
 import { DashboardInstanceSessionsGetOutput } from '@metorial/dashboard-sdk';
 import { theme } from '@metorial/ui';
+import { useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { EditorTabItem, EditorTabs } from '../../../../../components/editorTabs';
 import { TracingConnectionItem } from '../types';
@@ -77,6 +78,7 @@ export let SessionTraceTabsPane = ({
   activeTabId,
   connectionIdByExplorerTabId,
   explorerTabIds,
+  focusedItemId,
   inspectorOptions,
   isExplorerActive,
   onCloseTab,
@@ -90,6 +92,7 @@ export let SessionTraceTabsPane = ({
   activeTabId: string | null;
   connectionIdByExplorerTabId: Record<string, string>;
   explorerTabIds: string[];
+  focusedItemId?: string | null;
   inspectorOptions?: {
     sessionTemplateId?: string | null;
     magicMcpServerId?: string | null;
@@ -102,6 +105,21 @@ export let SessionTraceTabsPane = ({
   openTabs: EditorTabItem[];
   session: DashboardInstanceSessionsGetOutput;
 }) => {
+  let paneBodyRef = useRef<HTMLDivElement>(null);
+  let [mountedExplorerTabIds, setMountedExplorerTabIds] = useState<Set<string>>(
+    () => new Set()
+  );
+
+  useEffect(() => {
+    if (!activeTabId || !explorerTabIds.includes(activeTabId)) return;
+    setMountedExplorerTabIds(current => {
+      if (current.has(activeTabId)) return current;
+      let next = new Set(current);
+      next.add(activeTabId);
+      return next;
+    });
+  }, [activeTabId, explorerTabIds]);
+
   return (
     <PaneSection>
       <EditorTabs
@@ -113,6 +131,8 @@ export let SessionTraceTabsPane = ({
       />
 
       {explorerTabIds.map(id => {
+        if (!mountedExplorerTabIds.has(id)) return null;
+
         let connectionId = connectionIdByExplorerTabId[id];
         return (
           <ExplorerHost key={id} data-active={id === activeTabId}>
@@ -127,11 +147,16 @@ export let SessionTraceTabsPane = ({
       })}
 
       {!isExplorerActive && (
-        <PaneBody>
+        <PaneBody ref={paneBodyRef}>
           {activeTabId === CONNECT_TAB_ID ? (
             <ConnectTabPanel session={session} />
           ) : activeConnection ? (
-            <ConnectionLogs session={session} connection={activeConnection} />
+            <ConnectionLogs
+              session={session}
+              connection={activeConnection}
+              focusedItemId={focusedItemId}
+              scrollRef={paneBodyRef}
+            />
           ) : (
             <DetailEmptyState>
               Select a connection from the left to inspect its logs.

@@ -1,0 +1,118 @@
+enum MagicMcpServerOwnerType {
+  server_owned
+  provider_template
+  integration
+}
+
+enum MagicMcpServerProviderStatus {
+  pending
+  active
+  archived
+  deleted
+}
+
+model MagicMcpServerBacking {
+  oid BigInt @id
+  id  String @unique
+
+  ownerType MagicMcpServerOwnerType @default(server_owned)
+
+  providerTemplateBackingOid BigInt?
+  providerTemplateBacking    ProviderTemplateBacking? @relation(fields: [providerTemplateBackingOid], references: [oid], onDelete: SetNull)
+
+  ownerIntegrationOid BigInt?
+  ownerIntegration    Integration? @relation("MagicMcpServerOwnerIntegration", fields: [ownerIntegrationOid], references: [oid], onDelete: SetNull)
+
+  integrationOid BigInt?      @unique
+  integration    Integration? @relation("MagicMcpServerBackingIntegration", fields: [integrationOid], references: [oid], onDelete: Cascade)
+
+  integrationInstanceOid BigInt              @unique
+  integrationInstance    IntegrationInstance @relation(fields: [integrationInstanceOid], references: [oid], onDelete: Cascade)
+
+  sessionTemplateOid BigInt
+  sessionTemplate    SessionTemplate @relation(fields: [sessionTemplateOid], references: [oid], onDelete: Cascade)
+
+  ephemeralManagedSessionOid BigInt
+  ephemeralManagedSession    EphemeralManagedSession @relation(fields: [ephemeralManagedSessionOid], references: [oid], onDelete: Cascade)
+
+  actorOid BigInt?
+  actor    IdentityActor? @relation(fields: [actorOid], references: [oid], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  endpoints               MagicMcpEndpointServerBacking[]
+  magicMcpServerProviders MagicMcpServerProvider[]
+}
+
+model MagicMcpServerProvider {
+  oid BigInt @id
+  id  String @unique
+
+  status     MagicMcpServerProviderStatus
+  archivedAt DateTime?
+
+  magicMcpServerBackingOid BigInt
+  magicMcpServerBacking    MagicMcpServerBacking @relation(fields: [magicMcpServerBackingOid], references: [oid], onDelete: Cascade)
+
+  integrationProviderOid BigInt
+  integrationProvider    IntegrationProvider @relation(fields: [integrationProviderOid], references: [oid], onDelete: Cascade)
+
+  integrationInstanceProviderOid BigInt?                      @unique
+  integrationInstanceProvider    IntegrationInstanceProvider? @relation(fields: [integrationInstanceProviderOid], references: [oid], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([magicMcpServerBackingOid, integrationProviderOid])
+  @@index([status])
+  @@index([magicMcpServerBackingOid, status])
+  @@index([integrationProviderOid, status])
+}
+
+model MagicMcpEndpointBacking {
+  oid BigInt @id
+  id  String @unique
+
+  createdAt DateTime @default(now())
+
+  integrationGroupOid BigInt                   @unique
+  integrationGroup    IntegrationInstanceGroup @relation(fields: [integrationGroupOid], references: [oid], onDelete: Cascade)
+
+  sessionTemplateOid BigInt
+  sessionTemplate    SessionTemplate @relation(fields: [sessionTemplateOid], references: [oid], onDelete: Cascade)
+
+  ephemeralManagedSessionOid BigInt
+  ephemeralManagedSession    EphemeralManagedSession @relation(fields: [ephemeralManagedSessionOid], references: [oid], onDelete: Cascade)
+
+  actorOid BigInt?
+  actor    IdentityActor? @relation(fields: [actorOid], references: [oid], onDelete: SetNull)
+
+  servers MagicMcpEndpointServerBacking[]
+}
+
+model MagicMcpEndpointServerBacking {
+  oid BigInt @id
+  id  String @unique
+
+  magicMcpEndpointBackingOid BigInt
+  magicMcpEndpointBacking    MagicMcpEndpointBacking @relation(fields: [magicMcpEndpointBackingOid], references: [oid], onDelete: Cascade)
+
+  magicMcpServerBackingOid BigInt
+  magicMcpServerBacking    MagicMcpServerBacking @relation(fields: [magicMcpServerBackingOid], references: [oid], onDelete: Cascade)
+
+  toolFilters Json?
+
+  createdAt DateTime @default(now())
+}
+
+model ProviderTemplateBacking {
+  oid BigInt @id
+  id  String @unique
+
+  integrationOid BigInt      @unique
+  integration    Integration @relation(fields: [integrationOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  magicMcpServers MagicMcpServerBacking[]
+}

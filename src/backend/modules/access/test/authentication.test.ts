@@ -115,6 +115,52 @@ describe('AuthenticationService', () => {
         expect.arrayContaining(instancePublishableTokenScopes)
       );
     });
+
+    it('adds consumer cargo scopes without the regular file scopes', () => {
+      expect(instancePublishableTokenWithConsumerScopes).toContain(
+        'consumer#organization:read'
+      );
+      expect(instancePublishableTokenWithConsumerScopes).toContain('consumer#project:read');
+      expect(instancePublishableTokenWithConsumerScopes).toContain('consumer#instance:read');
+      expect(instancePublishableTokenWithConsumerScopes).toContain(
+        'consumer#instance.portal:read'
+      );
+      expect(instancePublishableTokenWithConsumerScopes).toContain(
+        'consumer#instance.profile:read'
+      );
+      expect(instancePublishableTokenWithConsumerScopes).toContain(
+        'consumer#instance.file:read'
+      );
+      expect(instancePublishableTokenWithConsumerScopes).toContain(
+        'consumer#instance.file:write'
+      );
+      expect(instancePublishableTokenWithConsumerScopes).toContain(
+        'consumer#instance.file_link:read'
+      );
+      expect(instancePublishableTokenWithConsumerScopes).toContain(
+        'consumer#instance.file_link:write'
+      );
+      expect(instancePublishableTokenWithConsumerScopes).toContain(
+        'consumer#instance.document:read'
+      );
+      expect(instancePublishableTokenWithConsumerScopes).toContain(
+        'consumer#instance.document:write'
+      );
+      expect(instancePublishableTokenWithConsumerScopes).toContain(
+        'consumer#instance.store:read'
+      );
+      expect(instancePublishableTokenWithConsumerScopes).toContain(
+        'consumer#instance.store:write'
+      );
+      expect(instancePublishableTokenWithConsumerScopes).not.toContain('instance.file:read');
+      expect(instancePublishableTokenWithConsumerScopes).not.toContain('instance.file:write');
+      expect(instancePublishableTokenWithConsumerScopes).not.toContain(
+        'instance.file_link:read'
+      );
+      expect(instancePublishableTokenWithConsumerScopes).not.toContain(
+        'instance.file_link:write'
+      );
+    });
   });
 
   describe('authenticate', () => {

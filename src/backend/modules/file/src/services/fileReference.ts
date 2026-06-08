@@ -1,9 +1,16 @@
 import { forbiddenError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import { getConfig } from '@metorial/config';
-import { db, EntityImage, File, FileLink, ID, withTransaction } from '@metorial/db';
-import { generatePlainId } from '@metorial/id';
-import { env } from '../env';
+import { EntityImage } from '@metorial/db';
+import {
+  type CargoFile,
+  type CargoFileLink,
+  cargo,
+  ensureCargoScope,
+  reconcileCargoPurposes,
+  resolveCargoScopeDescriptorForOwner
+} from '../cargo';
+import type { FileOwner } from './file';
+import { resolveCargoScopeForOwner } from './scope';
 
 export type ImageFileOwner =
   | {
@@ -16,49 +23,30 @@ export type ImageFileOwner =
     };
 
 class FileReferenceServiceImpl {
-  private async createFileReference(d: {
-    fileLink: FileLink & { file: File };
-    entityType: string;
-    entityId: string;
-  }) {
-    return withTransaction(
-      async db => {
-        return await db.fileReference.create({
-          data: {
-            id: await ID.generateId('fileRef'),
-            fileLinkOid: d.fileLink.oid,
-            entityType: d.entityType,
-            entityId: d.entityId
-          },
-          include: {
-            fileLink: {
-              include: {
-                file: true
-              }
-            }
-          }
-        });
-      },
-      { ifExists: true }
-    );
+  private async getScopeForOwner(owner: FileOwner) {
+    return await resolveCargoScopeForOwner(owner);
   }
 
-  async hasReferences(d: { fileLink: FileLink }) {
-    let count = await db.fileReference.count({
-      where: { fileLinkOid: d.fileLink.oid }
+  async hasReferences(d: { fileLink: CargoFileLink; owner: FileOwner }) {
+    let scope = await this.getScopeForOwner(d.owner);
+    let result = await cargo.fileReference.hasReferences({
+      tenantId: scope.tenantId,
+      environmentId: scope.environmentId,
+      fileLinkId: d.fileLink.id
     });
-    return count > 0;
+
+    return result.hasReferences;
   }
 
-  async hasReferencesForFile(d: { file: File }) {
-    let count = await db.fileReference.count({
-      where: {
-        fileLink: {
-          fileOid: d.file.oid
-        }
-      }
+  async hasReferencesForFile(d: { file: Pick<CargoFile, 'id'>; owner: FileOwner }) {
+    let scope = await this.getScopeForOwner(d.owner);
+    let result = await cargo.fileReference.hasReferencesForFile({
+      tenantId: scope.tenantId,
+      environmentId: scope.environmentId,
+      fileId: d.file.id
     });
-    return count > 0;
+
+    return result.hasReferences;
   }
 
   async createImageEntityImage(d: {
@@ -68,67 +56,65 @@ class FileReferenceServiceImpl {
     entityType: string;
     entityId: string;
   }): Promise<EntityImage> {
-    return withTransaction(async db => {
-      let file = await db.file.findFirst({
-        where: {
-          id: d.fileId,
-          status: 'active',
-          purpose: {
-            slug: d.purpose
-          },
-          ...(d.owner.type == 'user'
-            ? {
-                user: {
-                  id: d.owner.userId
-                }
-              }
-            : {
-                organization: {
-                  id: d.owner.organizationId
-                }
-              })
-        },
-        include: { purpose: true }
-      });
-      if (!file) {
-        throw new ServiceError(notFoundError('file', d.fileId));
-      }
+    await reconcileCargoPurposes();
 
-      if (!file.purpose.canHaveLinks) {
-        throw new ServiceError(
-          forbiddenError({
-            message: 'File purpose does not allow creating links'
-          })
-        );
-      }
+    let descriptor = await resolveCargoScopeDescriptorForOwner(
+      d.owner.type === 'user'
+        ? {
+            type: 'user',
+            user: {
+              id: d.owner.userId
+            }
+          }
+        : {
+            type: 'organization',
+            organization: {
+              id: d.owner.organizationId
+            }
+          }
+    );
+    if (!descriptor) {
+      throw new ServiceError(notFoundError('file.scope', d.fileId));
+    }
 
-      let link = await db.fileLink.create({
-        data: {
-          id: await ID.generateId('fileLink'),
-          fileOid: file.oid,
-          key: `${generatePlainId(30)}_${env.service.METORIAL_REGION ?? 'ext'}`
-        },
-        include: {
-          file: true
-        }
-      });
+    let scope = await ensureCargoScope(descriptor);
 
-      let ref = await this.createFileReference({
-        fileLink: link,
-        entityType: d.entityType,
-        entityId: d.entityId
-      });
-
-      let fileUrl = `${getConfig().urls.filesUrl}/files/${file.id}/${link.key}`;
-
-      return {
-        type: 'file' as const,
-        fileId: file.id,
-        fileLinkId: link.id,
-        fileReferenceId: ref.id,
-        fileUrl
-      };
+    let file = await cargo.file.get({
+      tenantId: scope.tenantId,
+      environmentId: scope.environmentId,
+      fileId: d.fileId
     });
+    if (!file.purpose.canHaveLinks) {
+      throw new ServiceError(
+        forbiddenError({
+          message: 'File purpose does not allow creating links'
+        })
+      );
+    }
+
+    let link = await cargo.fileLink.create({
+      tenantId: scope.tenantId,
+      environmentId: scope.environmentId,
+      fileId: file.id
+    });
+
+    let ref = await cargo.fileReference.create({
+      tenantId: scope.tenantId,
+      environmentId: scope.environmentId,
+      fileLinkId: link.id,
+      entityType: d.entityType,
+      entityId: d.entityId
+    });
+
+    let image = {
+      type: 'file' as const,
+      fileId: file.id,
+      fileLinkId: link.id,
+      fileReferenceId: ref.id,
+      fileUrl: link.downloadUrl!
+    };
+
+    return image;
   }
 
   async resolveImageEntityImage<ClearImage extends EntityImage | null>(d: {
@@ -155,30 +141,8 @@ class FileReferenceServiceImpl {
   async cleanupImageEntityImage(d: { image: EntityImage | null | undefined }) {
     if (d.image?.type != 'file' || !d.image.fileReferenceId || !d.image.fileLinkId) return;
 
-    let img = d.image;
-
-    return withTransaction(async db => {
-      await db.fileReference.deleteMany({
-        where: {
-          id: img.fileReferenceId
-        }
-      });
-
-      let remainingReferences = await db.fileReference.count({
-        where: {
-          fileLink: {
-            id: img.fileLinkId
-          }
-        }
-      });
-
-      if (remainingReferences === 0) {
-        await db.fileLink.deleteMany({
-          where: {
-            id: img.fileLinkId
-          }
-        });
-      }
+    await cargo.fileReference.deleteAndCleanup({
+      fileReferenceId: d.image.fileReferenceId
     });
   }
 }

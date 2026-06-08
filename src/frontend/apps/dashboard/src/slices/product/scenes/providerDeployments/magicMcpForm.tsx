@@ -3,18 +3,120 @@ import { renderWithLoader, useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import {
   useCreateMagicMcpServer,
+  useCreateMagicMcpServerProvider,
   useCurrentInstance,
-  useMagicMcpServer
+  useMagicMcpServer,
+  useUpdateMagicMcpServerProvider
 } from '@metorial/state';
 import { Button, confirm, Input, Spacer, toast } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { showProviderCreationPanel } from '../providerCreationPanel';
+import {
+  AddProviderPanelFlow,
+  ProviderPanelSubmitInput
+} from '../sessionTemplates/addProviderPanelFlow';
 import { showAddProviderSidePanel } from '../sessionTemplates/providersManager';
 
 export type MagicMcpServerFormProps =
   | { type: 'update'; magicMcpServerId: string; for?: undefined }
   | { type: 'create'; for?: { providerId?: string } };
+
+let getProviderDerivedName = (input: ProviderPanelSubmitInput) =>
+  input.providerName?.trim() || 'Magic MCP Server';
+
+let CreateMagicMcpServerProviderFirstPanel = (p: {
+  instanceId: string;
+  providerId?: string;
+  close: () => void;
+  setPanelWidth: (width: number) => void;
+  onCreate?: (server: DashboardInstanceMagicMcpServersGetOutput) => any;
+}) => {
+  let instance = useCurrentInstance();
+  let navigate = useNavigate();
+  let createMutator = useCreateMagicMcpServer();
+  let createProviderMutator = useCreateMagicMcpServerProvider();
+  let createdServerRef = React.useRef<DashboardInstanceMagicMcpServersGetOutput | null>(null);
+
+  return (
+    <AddProviderPanelFlow
+      instanceId={p.instanceId}
+      providerId={p.providerId}
+      hideProviderStep={!!p.providerId}
+      filterAvailableResources
+      title="Create Magic MCP Server"
+      description={
+        p.providerId
+          ? 'Configure this provider, then create a Magic MCP server from it.'
+          : 'Select and configure a provider to create a Magic MCP server.'
+      }
+      action="Create Magic MCP Server"
+      close={p.close}
+      setPanelWidth={p.setPanelWidth}
+      onSubmitProvider={async input => {
+        let [server] = await createMutator.mutate({
+          instanceId: p.instanceId,
+          name: getProviderDerivedName(input),
+          description: undefined
+        });
+        if (!server) return { success: false, error: createMutator.error };
+
+        let [, error] = await createProviderMutator.mutate({
+          instanceId: p.instanceId,
+          magicMcpServerId: server.id,
+          providerId: input.providerId,
+          providerDeploymentId: input.providerDeploymentId!,
+          providerConfigId: input.providerConfigId,
+          providerAuthConfigId: input.providerAuthConfigId,
+          toolFilters: input.toolFilters
+        });
+
+        if (error) return { error };
+
+        createdServerRef.current = server;
+        return { success: true };
+      }}
+      onComplete={() => {
+        let server = createdServerRef.current;
+        if (!server) return;
+
+        if (p.onCreate) {
+          p.onCreate(server);
+          return;
+        }
+
+        if (!instance.data) return;
+        navigate(
+          Paths.instance.magicMcp.server(
+            instance.data.organization,
+            instance.data.project,
+            instance.data,
+            server.id
+          )
+        );
+      }}
+    />
+  );
+};
+
+export let showMagicMcpServerCreateFlow = (p: {
+  instanceId: string;
+  providerId?: string;
+  onCreate?: (server: DashboardInstanceMagicMcpServersGetOutput) => any;
+}) =>
+  showProviderCreationPanel(
+    ({ close, setWidth }) => (
+      <CreateMagicMcpServerProviderFirstPanel
+        instanceId={p.instanceId}
+        providerId={p.providerId}
+        close={close}
+        setPanelWidth={setWidth}
+        onCreate={p.onCreate}
+      />
+    ),
+    p.providerId ? { width: 660 } : undefined
+  );
 
 export let MagicMcpServerForm = (
   p: MagicMcpServerFormProps & {
@@ -27,6 +129,8 @@ export let MagicMcpServerForm = (
   let navigate = useNavigate();
 
   let createMutator = useCreateMagicMcpServer();
+  let createProviderMutator = useCreateMagicMcpServerProvider();
+  let updateProviderMutator = useUpdateMagicMcpServerProvider();
 
   let server = useMagicMcpServer(
     instance.data?.id,
@@ -55,7 +159,6 @@ export let MagicMcpServerForm = (
           description: values.description || undefined
         });
         if (res) {
-          toast.success('Magic MCP server updated');
           p.close?.();
         }
         return;
@@ -76,8 +179,35 @@ export let MagicMcpServerForm = (
         action: 'Create Magic MCP Server',
 
         instanceId: instance.data.id,
-        sessionTemplateId: res.sessionTemplateId,
+        filterAvailableResources: true,
         providerId: p.type === 'create' ? p.for?.providerId : undefined,
+        onSubmitProvider: async (input, currentProviderId) => {
+          if (currentProviderId) {
+            let [, error] = await updateProviderMutator.mutate({
+              instanceId: instance.data!.id,
+              magicMcpServerId: res.id,
+              magicMcpServerProviderId: currentProviderId,
+              providerDeploymentId: input.providerDeploymentId,
+              providerConfigId: input.providerConfigId,
+              providerAuthConfigId: input.providerAuthConfigId,
+              toolFilters: input.toolFilters
+            });
+
+            return error ? { error } : { success: true };
+          }
+
+          let [, error] = await createProviderMutator.mutate({
+            instanceId: instance.data!.id,
+            magicMcpServerId: res.id,
+            providerId: input.providerId,
+            providerDeploymentId: input.providerDeploymentId!,
+            providerConfigId: input.providerConfigId,
+            providerAuthConfigId: input.providerAuthConfigId,
+            toolFilters: input.toolFilters
+          });
+
+          return error ? { error } : { success: true };
+        },
         onComplete: () => {
           if (p.onCreate) {
             p.onCreate(res);
@@ -181,6 +311,9 @@ export let MagicMcpServerForm = (
       <form.RenderError field="description" />
 
       <Spacer size={15} />
+
+      <createMutator.RenderError />
+      <updateMutator.RenderError />
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
         {p.close && (

@@ -38,6 +38,62 @@ let undefinedIfEmpty = <T>(value: T[] | null | undefined): T[] | undefined => {
 };
 
 class providerSetupSessionUiServiceImpl {
+  private canConfirmToolFilters(d: {
+    providerSetupSession: Pick<
+      ProviderSetupSession,
+      'status' | 'expiresAt' | 'configuration'
+    >;
+  }) {
+    return (
+      !!d.providerSetupSession.configuration?.toolFilters?.enabled &&
+      d.providerSetupSession.expiresAt >= new Date()
+    );
+  }
+
+  private async cloneConfigForToolFilters(d: {
+    config: Awaited<ReturnType<typeof db.providerConfig.findUniqueOrThrow>> & {
+      currentVersion: { slateInstanceOid: bigint | null; shuttleConfigOid: bigint | null } | null;
+    };
+    toolFilters?: PrismaJson.ToolFilter | null;
+  }) {
+    let cloned = await db.providerConfig.create({
+      data: {
+        ...getId('providerConfig'),
+        status: 'active',
+        isDefault: false,
+        isEphemeral: true,
+        isForVault: d.config.isForVault,
+        name: d.config.name,
+        description: d.config.description,
+        metadata: d.config.metadata,
+        privateMetadata: d.config.privateMetadata,
+        toolFilter: d.toolFilters ?? d.config.toolFilter,
+        tenantOid: d.config.tenantOid,
+        providerOid: d.config.providerOid,
+        solutionOid: d.config.solutionOid,
+        environmentOid: d.config.environmentOid,
+        specificationOid: d.config.specificationOid,
+        deploymentOid: d.config.deploymentOid,
+        fromVaultOid: d.config.fromVaultOid,
+        parentConfigOid: d.config.oid
+      }
+    });
+
+    let currentVersion = await db.providerConfigVersion.create({
+      data: {
+        ...getId('providerConfigVersion'),
+        configOid: cloned.oid,
+        slateInstanceOid: d.config.currentVersion?.slateInstanceOid,
+        shuttleConfigOid: d.config.currentVersion?.shuttleConfigOid
+      }
+    });
+
+    return await db.providerConfig.update({
+      where: { oid: cloned.oid },
+      data: { currentVersionOid: currentVersion.oid }
+    });
+  }
+
   async getProviderSetupSessionByClientSecret(d: { sessionId: string; clientSecret: string }) {
     let providerSetupSession = await db.providerSetupSession.findFirst({
       where: {
@@ -307,7 +363,12 @@ class providerSetupSessionUiServiceImpl {
       ua: string;
     };
   }) {
-    await this.checkEditable(d);
+    let canConfirmToolFilters = this.canConfirmToolFilters({
+      providerSetupSession: d.providerSetupSession
+    });
+    if (!canConfirmToolFilters) {
+      await this.checkEditable(d);
+    }
 
     if (
       !d.providerSetupSession.typeConcrete ||
@@ -320,7 +381,7 @@ class providerSetupSessionUiServiceImpl {
       );
     }
 
-    if (d.providerSetupSession.configOid) {
+    if (d.providerSetupSession.configOid && !canConfirmToolFilters) {
       throw new ServiceError(
         badRequestError({
           message: 'Config has already been set for this session'
@@ -338,6 +399,11 @@ class providerSetupSessionUiServiceImpl {
             tenant: true,
             solution: true,
             authCredentials: true,
+            config: {
+              include: {
+                currentVersion: true
+              }
+            },
             provider: { include: { defaultVariant: true } },
             authMethod: true,
             environment: true,
@@ -352,7 +418,15 @@ class providerSetupSessionUiServiceImpl {
         });
         this.assertSelectedProvider(currentSession);
 
-        if (currentSession.status === 'completed' || currentSession.configOid) {
+        let allowToolFilterConfirmation =
+          canConfirmToolFilters &&
+          currentSession.configOid &&
+          Object.keys(d.input.configInput).length === 0;
+
+        if (
+          (currentSession.status === 'completed' || currentSession.configOid) &&
+          !allowToolFilterConfirmation
+        ) {
           throw new ServiceError(
             badRequestError({
               message: 'Cannot update a completed provider setup session'
@@ -360,25 +434,49 @@ class providerSetupSessionUiServiceImpl {
           );
         }
 
-        let setConfigInner = await providerSetupSessionInternalService.createProviderConfig({
-          tenant: currentSession.tenant,
-          solution: currentSession.solution,
-          provider: currentSession.provider,
-          environment: currentSession.environment,
-          providerDeployment: currentSession.deployment ?? undefined,
-          input: {
-            name: currentSession.name ?? undefined,
-            description: currentSession.description ?? undefined,
-            metadata: currentSession.metadata ?? undefined,
-            toolFilters: d.input.toolFilters,
-            config: d.input.configInput
-          }
-        });
+        let session: ProviderSetupSession = currentSession;
 
-        let session = await db.providerSetupSession.update({
-          where: { oid: d.providerSetupSession.oid },
-          data: setConfigInner
-        });
+        if (allowToolFilterConfirmation && currentSession.config) {
+          let nextConfig = currentSession.config.isEphemeral
+            ? await providerConfigService.updateProviderConfig({
+                tenant: currentSession.tenant,
+                solution: currentSession.solution,
+                environment: currentSession.environment,
+                providerConfig: currentSession.config,
+                input: {
+                  toolFilters: d.input.toolFilters
+                }
+              })
+            : await this.cloneConfigForToolFilters({
+                config: currentSession.config,
+                toolFilters: d.input.toolFilters
+              });
+
+          session = await db.providerSetupSession.update({
+            where: { oid: d.providerSetupSession.oid },
+            data: { configOid: nextConfig.oid }
+          });
+        } else {
+          let setConfigInner = await providerSetupSessionInternalService.createProviderConfig({
+            tenant: currentSession.tenant,
+            solution: currentSession.solution,
+            provider: currentSession.provider,
+            environment: currentSession.environment,
+            providerDeployment: currentSession.deployment ?? undefined,
+            input: {
+              name: currentSession.name ?? undefined,
+              description: currentSession.description ?? undefined,
+              metadata: currentSession.metadata ?? undefined,
+              toolFilters: d.input.toolFilters,
+              config: d.input.configInput
+            }
+          });
+
+          session = await db.providerSetupSession.update({
+            where: { oid: d.providerSetupSession.oid },
+            data: setConfigInner
+          });
+        }
 
         if (session.configOid) {
           await db.providerSetupSessionEvent.createMany({
@@ -607,7 +705,10 @@ class providerSetupSessionUiServiceImpl {
   }
 
   private async checkEditable(d: { providerSetupSession: ProviderSetupSession }) {
-    if (d.providerSetupSession.status === 'completed') {
+    if (
+      d.providerSetupSession.status === 'completed' &&
+      !this.canConfirmToolFilters({ providerSetupSession: d.providerSetupSession })
+    ) {
       throw new ServiceError(
         badRequestError({
           message: 'Cannot update a completed provider auth session'

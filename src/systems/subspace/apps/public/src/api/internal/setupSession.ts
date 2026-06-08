@@ -1,6 +1,9 @@
 import { v } from '@lowerdeck/validation';
+import type { ProviderSetupSession } from '@metorial-subspace/db';
 import { providerSetupSessionUiService } from '@metorial-subspace/module-auth';
+import { integrationSetupSessionService } from '@metorial-subspace/module-integration';
 import { brandService } from '@metorial-subspace/module-tenant';
+import { integrationSetupSessionPresenter } from '@metorial-subspace/presenters';
 import { app } from './_app';
 import {
   setupSessionBrandPresenter,
@@ -27,6 +30,18 @@ let sessionApp = app.use(async ctx => {
   return { session };
 });
 
+let reconcileIntegrationSetupSessionChild = async (
+  session: Pick<ProviderSetupSession, 'oid' | 'status'>,
+  context: { ip: string; ua: string }
+) => {
+  if (session.status !== 'completed') return;
+
+  await integrationSetupSessionService.reconcileProviderSetupSessionCompleted({
+    providerSetupSession: session,
+    context
+  });
+};
+
 export let getFullSession = async (
   input: {
     sessionId: string;
@@ -45,11 +60,23 @@ export let getFullSession = async (
 
   let brand =
     session.brand ?? (await brandService.getBrandForTenant({ tenantId: session.tenant.id }));
+  let integrationSetupSession =
+    await integrationSetupSessionService.getIntegrationSetupSessionByProviderSetupSession({
+      providerSetupSession: session
+    });
 
   return {
-    provider: session.provider ? setupSessionSelectedProviderPresenter(session.provider) : null,
+    provider: session.provider
+      ? setupSessionSelectedProviderPresenter(session.provider)
+      : null,
     session: setupSessionPresenter(session),
     brand: setupSessionBrandPresenter(brand),
+    completionRedirect: integrationSetupSession
+      ? {
+          type: 'integration_setup_session' as const,
+          url: integrationSetupSessionPresenter(integrationSetupSession).url
+        }
+      : null,
     isWhitelabel: session.tenant.isWhitelabel
   };
 };
@@ -88,7 +115,10 @@ export let setupSessionController = app.controller({
       });
 
       return {
-        schema: setupSessionSchemaPresenter('provider.setup_session.auth_config_schema', schema)
+        schema: setupSessionSchemaPresenter(
+          'provider.setup_session.auth_config_schema',
+          schema
+        )
       };
     }),
 
@@ -122,7 +152,7 @@ export let setupSessionController = app.controller({
       })
     )
     .do(async ctx => {
-      await providerSetupSessionUiService.setConfig({
+      let session = await providerSetupSessionUiService.setConfig({
         providerSetupSession: ctx.session,
         input: {
           configInput: ctx.input.configInput,
@@ -130,6 +160,8 @@ export let setupSessionController = app.controller({
         },
         context: ctx.context
       });
+
+      await reconcileIntegrationSetupSessionChild(session, ctx.context);
     }),
 
   setAuthConfig: sessionApp
@@ -144,7 +176,7 @@ export let setupSessionController = app.controller({
       })
     )
     .do(async ctx => {
-      await providerSetupSessionUiService.setAuthConfig({
+      let session = await providerSetupSessionUiService.setAuthConfig({
         providerSetupSession: ctx.session,
         input: {
           authConfigInput: ctx.input.authConfigInput,
@@ -152,6 +184,8 @@ export let setupSessionController = app.controller({
         },
         context: ctx.context
       });
+
+      await reconcileIntegrationSetupSessionChild(session, ctx.context);
     }),
 
   listProviders: sessionApp
@@ -176,7 +210,9 @@ export let setupSessionController = app.controller({
       });
 
       return {
-        items: providers.items.map(provider => setupSessionProviderListingItemPresenter(provider)),
+        items: providers.items.map(provider =>
+          setupSessionProviderListingItemPresenter(provider)
+        ),
         pagination: {
           hasMoreBefore: providers.pagination.hasPreviousPage,
           hasMoreAfter: providers.pagination.hasNextPage
@@ -198,6 +234,8 @@ export let setupSessionController = app.controller({
         providerSetupSession: ctx.session,
         providerId: ctx.input.providerId
       });
+
+      await reconcileIntegrationSetupSessionChild(session, ctx.context);
 
       return await getFullSession(
         {

@@ -10,6 +10,7 @@ import {
 } from '@metorial-subspace/db';
 import {
   type DateFilter,
+  mergeRetentionWithDateFilter,
   normalizeDateFilter,
   normalizeStatusForGet,
   normalizeStatusForList,
@@ -75,7 +76,7 @@ class providerRunServiceImpl {
                 providers ? { providerOid: providers.in } : undefined!,
                 providerVersions ? { providerVersionOid: providerVersions.in } : undefined!,
 
-                d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
+                mergeRetentionWithDateFilter(d.tenant, d.createdAt),
                 d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
               ].filter(Boolean)
             },
@@ -98,7 +99,8 @@ class providerRunServiceImpl {
         tenantOid: d.tenant.oid,
         solutionOid: d.solution.oid,
         environmentOid: d.environment.oid,
-        ...normalizeStatusForGet(d).onlyParent
+        ...normalizeStatusForGet(d).onlyParent,
+        ...mergeRetentionWithDateFilter(d.tenant)
       },
       include
     });

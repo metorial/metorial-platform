@@ -10,11 +10,10 @@ import {
 } from '@metorial/state';
 import { Attributes, Badge, RenderDate, Spacer, Text, theme } from '@metorial/ui';
 import { Box, ID } from '@metorial/ui-product';
-import { Link, useLocation, useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { styled } from 'styled-components';
 import { ProviderSessionsTable } from '../../../scenes/providerSessions/table';
 import { UsageScene } from '../../../scenes/usage/usage';
-import { getFromDeployment, withFromDeployment } from '../fromDeployment';
 
 let SummaryValue = styled.div`
   display: flex;
@@ -27,8 +26,6 @@ export let ProviderConfigOverviewPage = () => {
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
-  let location = useLocation();
-  let fromDeployment = getFromDeployment(location.search);
 
   let { providerConfigId } = useParams();
   let config = useProviderConfig(instance.data?.id, providerConfigId);
@@ -63,14 +60,11 @@ export let ProviderConfigOverviewPage = () => {
               <SummaryValue>
                 <Badge color="purple">Vault</Badge>
                 <Link
-                  to={withFromDeployment(
-                    Paths.instance.providerConfigVault(
-                      organization.data,
-                      project.data,
-                      instance.data,
-                      config.data.fromVault.id
-                    ),
-                    fromDeployment
+                  to={Paths.instance.providerConfigVault(
+                    organization.data,
+                    project.data,
+                    instance.data,
+                    config.data.fromVault.id
                   )}
                 >
                   {config.data.fromVault.name ?? config.data.fromVault.id}

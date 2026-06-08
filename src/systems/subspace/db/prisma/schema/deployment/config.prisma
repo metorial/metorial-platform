@@ -38,6 +38,12 @@ model ProviderConfig {
   specificationOid BigInt
   specification    ProviderSpecification @relation(fields: [specificationOid], references: [oid])
 
+  owningIntegrationInstanceOid BigInt?
+  owningIntegrationInstance    IntegrationInstance? @relation(fields: [owningIntegrationInstanceOid], references: [oid])
+
+  owningIntegrationInstanceProviderOid BigInt?
+  owningIntegrationInstanceProvider    IntegrationInstanceProvider? @relation(fields: [owningIntegrationInstanceProviderOid], references: [oid])
+
   deploymentOid BigInt?
   deployment    ProviderDeployment? @relation(fields: [deploymentOid], references: [oid])
 
@@ -54,14 +60,16 @@ model ProviderConfig {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  defaultForDeployment     ProviderDeployment?       @relation("defaultConfig")
-  vault                    ProviderConfigVault?
-  providerSetupSession     ProviderSetupSession?
-  sessionProviders         SessionProvider[]
-  sessionTemplateProviders SessionTemplateProvider[]
-  providerConfigVersions   ProviderConfigVersion[]
-  providerConfigUpdates    ProviderConfigUpdate[]
-  identityCredentials      IdentityCredential[]
+  defaultForDeployment                ProviderDeployment?                  @relation("defaultConfig")
+  vault                               ProviderConfigVault?
+  providerSetupSessions               ProviderSetupSession[]
+  sessionProviders                    SessionProvider[]
+  sessionTemplateProviders            SessionTemplateProvider[]
+  providerConfigVersions              ProviderConfigVersion[]
+  providerConfigUpdates               ProviderConfigUpdate[]
+  identityCredentials                 IdentityCredential[]
+  integrationProviderVersions         IntegrationProviderVersion[]
+  integrationInstanceProviderVersions IntegrationInstanceProviderVersion[]
 
   @@index([createdAt])
   @@index([updatedAt])

@@ -11,13 +11,24 @@ export let deployServerSucceededQueue = createQueue<{
 
 export let deployServerSucceededQueueProcessor = deployServerSucceededQueue.process(
   async data => {
-    let deployment = await db.serverDeployment.update({
+    let deployment = await db.serverDeployment.findFirst({
       where: { id: data.serverDeploymentId },
+      select: { oid: true }
+    });
+    if (!deployment) return;
+
+    let endedAt = new Date();
+    let update = await db.serverDeployment.updateMany({
+      where: {
+        id: data.serverDeploymentId,
+        status: { in: ['queued', 'deploying'] }
+      },
       data: {
         status: 'succeeded',
-        endedAt: new Date()
+        endedAt
       }
     });
+    if (update.count === 0) return;
 
     await db.serverDeploymentStep.updateMany({
       where: {
@@ -26,7 +37,7 @@ export let deployServerSucceededQueueProcessor = deployServerSucceededQueue.proc
       },
       data: {
         status: 'succeeded',
-        endedAt: deployment.endedAt
+        endedAt
       }
     });
   }

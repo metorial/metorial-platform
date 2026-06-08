@@ -17,6 +17,8 @@ import {
   ConsumerAccessRequest,
   ConsumerAuthAttempt,
   ConsumerAuthClient,
+  ConsumerAuthClientSurface,
+  ConsumerAuthTestAuthorization,
   ConsumerGroup,
   ConsumerIntegration,
   ConsumerIntegrationEndpoint,
@@ -28,9 +30,6 @@ import {
   ConsumerSurface,
   ConsumerSurfaceProviderGroup,
   ConsumerToken,
-  File,
-  FileLink,
-  FilePurpose,
   Instance,
   InstanceConsumer,
   MachineAccess,
@@ -53,31 +52,72 @@ import {
   Portal,
   Profile,
   Project,
+  Sandbox,
   ProviderTemplate,
   Secret,
   SecretType,
   ServiceAccount,
   ServiceAccountCredential,
+  Skill,
+  SkillGroup,
+  SkillMarketplace,
+  SkillPlugin,
+  SkillTemplate,
   Team,
   TeamMember,
   TeamProject,
-  User
+  User,
+  UserStatus,
+  UserType
 } from '@metorial/db';
+import type {
+  AssistantConversationItemWithMessage,
+  AssistantConversationWithAssistant,
+  AvailableAssistant
+} from '@metorial/module-assistant';
 import {
   ConsumerAresApp,
   ConsumerAresSsoConnection,
   ConsumerAresSsoTenant,
   ConsumerAresSsoTenantSetup,
   ConsumerProviderCatalogEntry,
-  type EnrichedProviderTemplate
+  EnrichedConsumerSurface
 } from '@metorial/module-consumer';
+import type {
+  CargoDocumentPermissions,
+  CargoFileLink,
+  CargoSkillAgent,
+  CargoSkillConfiguration,
+  CargoSkillVersion,
+  CargoSkillVersionSnapshot,
+  CargoStore,
+  CargoStorePermissions,
+  EnrichedCargoDocument,
+  EnrichedCargoDocumentParticipant,
+  EnrichedCargoDocumentVersion,
+  EnrichedCargoFile,
+  EnrichedCargoSkillExport,
+  EnrichedCargoSkillMarketplace,
+  EnrichedCargoSkillMarketplacePlugin,
+  EnrichedCargoSkillMarketplaceRepository,
+  EnrichedCargoSkillParticipant,
+  EnrichedCargoSkillPlugin,
+  EnrichedCargoSkillPluginRepository,
+  EnrichedCargoSkillPluginSkill,
+  EnrichedCargoSkillSync,
+  EnrichedCargoStoreItem,
+  EnrichedCargoStoreParticipant
+} from '@metorial/module-file';
 import { Flags } from '@metorial/module-flags';
 import type {
   OAuthAuthorizationLogWithRelations,
   OAuthAuthorizationRequestWithRelations
 } from '@metorial/module-machine-access';
+import type { EnrichedProviderTemplate } from '@metorial/module-magic';
 import type { PolicyDocument, ProjectBrandOverride } from '@metorial/module-organization';
 import {
+  SubspaceAgent,
+  SubspaceAgentInstance,
   SubspaceAuthConfigError,
   SubspaceAuthConfigErrorGlobal,
   SubspaceAuthConfigEvent,
@@ -93,12 +133,29 @@ import {
   SubspaceCustomProviderDeploymentLogs,
   SubspaceCustomProviderEnvironment,
   SubspaceCustomProviderVersion,
+  SubspaceEnclave,
+  SubspaceEnclaveNetworkLogs,
+  SubspaceFirewall,
+  SubspaceFirewallBinding,
   SubspaceIdentity,
   SubspaceIdentityActor,
   SubspaceIdentityCredential,
   SubspaceIdentityDelegation,
   SubspaceIdentityDelegationConfig,
   SubspaceIdentityDelegationRequest,
+  SubspaceIntegration,
+  SubspaceIntegrationInstance,
+  SubspaceIntegrationInstanceGroup,
+  SubspaceIntegrationInstanceGroupProvider,
+  SubspaceIntegrationInstanceProvider,
+  SubspaceIntegrationProvider,
+  SubspaceIntegrationSetupSession,
+  SubspaceMagicMcpServerProvider,
+  SubspaceMonitor,
+  SubspaceMonitorAlert,
+  SubspaceNetwork,
+  SubspaceNetworkPolicy,
+  SubspaceNetworkPolicyRule,
   SubspaceProvider,
   SubspaceProviderAuthConfig,
   SubspaceProviderAuthConfigSchema,
@@ -121,10 +178,13 @@ import {
   SubspaceProviderRunLogs,
   SubspaceProviderSetupSession,
   SubspaceProviderSpecification,
+  SubspaceProviderSpecificationChangeNotification,
   SubspaceProviderTool,
   SubspaceProviderTrigger,
   SubspaceProviderType,
   SubspaceProviderVersion,
+  SubspaceProtoGuardAlert,
+  SubspaceProtoGuardConfig,
   SubspacePublisher,
   SubspaceScmAccountPreviews,
   SubspaceScmConnection,
@@ -144,14 +204,33 @@ import {
   SubspaceSessionTemplate,
   SubspaceSessionTemplateProvider,
   SubspaceSessionWarning,
+  SubspaceSkill,
+  SubspaceSkillGroup,
+  SubspaceSkillGroupItem,
+  SubspaceSkillItem,
+  SubspaceSkillTemplate,
+  SubspaceSkillTemplateItem,
   SubspaceToolCall
 } from '@metorial/module-subspace';
 import { PresentableType } from '@metorial/presenter';
 
+type UserPresenterInput = {
+  id: string;
+  status: UserStatus;
+  type: 'consumer' | UserType;
+  email: string;
+  name: string;
+  firstName: string | null;
+  lastName: string | null;
+  image: PrismaJson.EntityImage;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
 export let bootType = PresentableType.create<{
-  user: User;
+  user: UserPresenterInput;
   organizations: (Organization & {
-    member: OrganizationMember & {
+    member?: OrganizationMember & {
       actor: OrganizationActor & {
         teams: (TeamMember & {
           team: Team;
@@ -164,12 +243,29 @@ export let bootType = PresentableType.create<{
 }>()('boot');
 
 export let userType = PresentableType.create<{
-  user: User;
+  user: UserPresenterInput;
 }>()('user');
 
 export let projectType = PresentableType.create<{
   project: Project & { organization: Organization };
 }>()('project');
+
+export let projectRetentionType = PresentableType.create<{
+  project: Project;
+}>()('project_retention');
+
+export let projectAuthConfigConfigurationType = PresentableType.create<{
+  project: Project;
+  allowAuthConfigExport: boolean;
+  allowAuthConfigImport: boolean;
+  consumerAuthClientRegistrationsPerHourLimit: number;
+  consumerAuthClientRegistrationsPerMinuteLimit: number;
+}>()('project_auth_config_configuration');
+
+export let projectToolCallingConfigurationType = PresentableType.create<{
+  project: Project;
+  collectOperationDescriptionForToolCalls: boolean;
+}>()('project_tool_calling_configuration');
 
 export let tokenType = PresentableType.create<{
   token: {
@@ -188,17 +284,37 @@ export let tokenType = PresentableType.create<{
   };
 }>()('token');
 
+export let consumerOAuthTestAuthorizationType = PresentableType.create<{
+  testAuthorization: ConsumerAuthTestAuthorization;
+  url: string;
+}>()('consumer_oauth_test_authorization');
+
 export let projectBrandType = PresentableType.create<{
   projectBrand: ProjectBrandOverride;
 }>()('projectBrand');
 
 export let instanceType = PresentableType.create<{
-  instance: Instance & { project: Project; organization: Organization };
+  instance: Instance & {
+    project: Project;
+    organization: Organization;
+    sandbox?: Sandbox | null;
+  };
 }>()('instance');
 
 export let instanceListType = PresentableType.create<{
-  instances: (Instance & { project: Project; organization: Organization })[];
+  instances: (Instance & {
+    project: Project;
+    organization: Organization;
+    sandbox?: Sandbox | null;
+  })[];
 }>()('instanceList');
+
+export let sandboxType = PresentableType.create<{
+  sandbox: Sandbox & {
+    creatorActor: OrganizationActor & { organization: Organization };
+    instance: Instance & { project: Project; organization: Organization };
+  };
+}>()('sandbox');
 
 export let organizationType = PresentableType.create<{
   organization: Organization;
@@ -220,7 +336,7 @@ export let organizationMemberType = PresentableType.create<{
     policies?: (AccessPolicyAssignment & {
       accessPolicy: AccessPolicy;
     })[];
-    user: User;
+    user: { id: string; email: string; name: string; image: PrismaJson.EntityImage };
   };
 }>()('organization_member');
 
@@ -230,6 +346,21 @@ export let organizationActorType = PresentableType.create<{
     teams?: (TeamMember & { team: Team })[] | null | undefined;
   };
 }>()('organization_actor');
+
+export let assistantType = PresentableType.create<{
+  assistant: AvailableAssistant;
+  organization: Organization;
+}>()('assistant');
+
+export let assistantConversationType = PresentableType.create<{
+  assistantConversation: AssistantConversationWithAssistant;
+  organization: Organization;
+  instance: Instance;
+}>()('assistant_conversation');
+
+export let assistantMessageType = PresentableType.create<{
+  assistantConversationItem: AssistantConversationItemWithMessage;
+}>()('assistant_message');
 
 export let machineAccessType = PresentableType.create<{
   machineAccess: MachineAccess & {
@@ -366,16 +497,120 @@ export let serviceAccountCredentialType = PresentableType.create<{
 }>()('service_account_credential');
 
 export let fileType = PresentableType.create<{
-  file: File & { purpose: FilePurpose };
+  file: EnrichedCargoFile;
 }>()('file');
 
 export let fileLinkType = PresentableType.create<{
-  fileLink: FileLink & { file: File };
+  fileLink: CargoFileLink;
 }>()('fileLink');
+
+export let documentType = PresentableType.create<{
+  document: EnrichedCargoDocument;
+}>()('document');
+
+export let documentPermissionsType = PresentableType.create<{
+  permissions: CargoDocumentPermissions;
+}>()('documentPermissions');
+
+export let documentVersionType = PresentableType.create<{
+  documentVersion: EnrichedCargoDocumentVersion;
+}>()('documentVersion');
+
+export let documentParticipantType = PresentableType.create<{
+  documentParticipant: EnrichedCargoDocumentParticipant;
+}>()('documentParticipant');
+
+export let storeType = PresentableType.create<{
+  store: CargoStore;
+}>()('store');
+
+export let storePermissionsType = PresentableType.create<{
+  permissions: CargoStorePermissions;
+}>()('storePermissions');
+
+export let storeItemType = PresentableType.create<{
+  storeItem: EnrichedCargoStoreItem;
+}>()('storeItem');
+
+export let storeItemListType = PresentableType.create<{
+  storeItems: EnrichedCargoStoreItem[];
+}>()('storeItemList');
+
+export let storeParticipantType = PresentableType.create<{
+  storeParticipant: EnrichedCargoStoreParticipant;
+}>()('storeParticipant');
+
+export let skillAgentType = PresentableType.create<{
+  skillAgent: CargoSkillAgent;
+}>()('skillAgent');
+
+export let skillConfigurationType = PresentableType.create<{
+  skillConfiguration: CargoSkillConfiguration;
+}>()('skillConfiguration');
+
+export let skillExportType = PresentableType.create<{
+  skillExport: EnrichedCargoSkillExport;
+}>()('skillExport');
+
+export let skillMarketplaceType = PresentableType.create<{
+  skillMarketplace: EnrichedCargoSkillMarketplace;
+}>()('skillMarketplace');
+
+export let skillMarketplacePluginType = PresentableType.create<{
+  skillMarketplacePlugin: EnrichedCargoSkillMarketplacePlugin;
+}>()('skillMarketplacePlugin');
+
+export let skillMarketplaceRepositoryType = PresentableType.create<{
+  skillMarketplaceRepository: EnrichedCargoSkillMarketplaceRepository;
+}>()('skillMarketplaceRepository');
+
+export let skillPluginType = PresentableType.create<{
+  skillPlugin: EnrichedCargoSkillPlugin;
+}>()('skillPlugin');
+
+export let skillPluginRepositoryType = PresentableType.create<{
+  skillPluginRepository: EnrichedCargoSkillPluginRepository;
+}>()('skillPluginRepository');
+
+export let skillPluginSkillType = PresentableType.create<{
+  skillPluginSkill: EnrichedCargoSkillPluginSkill;
+}>()('skillPluginSkill');
+
+export let skillSyncType = PresentableType.create<{
+  skillSync: EnrichedCargoSkillSync;
+}>()('skillSync');
+
+export let skillParticipantType = PresentableType.create<{
+  skillParticipant: EnrichedCargoSkillParticipant;
+}>()('skillParticipant');
+
+export let skillVersionType = PresentableType.create<{
+  skillVersion: CargoSkillVersion;
+}>()('skillVersion');
+
+export let skillVersionSnapshotType = PresentableType.create<{
+  skillVersionSnapshot: CargoSkillVersionSnapshot;
+}>()('skillVersionSnapshot');
 
 export let secretType = PresentableType.create<{
   secret: Secret & { type: SecretType; organization: Organization; instance: Instance };
 }>()('secret');
+
+export let keyProviderType = PresentableType.create<{
+  keyProvider: import('@metorial/module-secrets').NebulaKeyProvider;
+}>()('key_provider');
+
+export let keyProviderErrorType = PresentableType.create<{
+  keyProviderError: import('@metorial/module-secrets').NebulaKeyProviderError;
+}>()('key_provider_error');
+
+export let keyProviderSetupInfoType = PresentableType.create<{
+  setupInfo: import('@metorial/module-secrets').NebulaKeyProviderSetupInfo;
+}>()('key_provider_setup_info');
+
+export let keyProviderValidationType = PresentableType.create<{
+  validation: import('@metorial/module-secrets').NebulaKeyProviderValidation;
+}>()('key_provider_validation');
 
 export let usageType = PresentableType.create<{
   timeline: {
@@ -405,8 +640,16 @@ export let magicMcpServerType = PresentableType.create<{
       consumerProfile: ConsumerProfile;
     })[];
   };
+  integration?: SubspaceIntegration | null;
+  integrationInstance?: SubspaceIntegrationInstance | null;
+  magicMcpServerProviders?: SubspaceMagicMcpServerProvider[] | null;
   portal?: Portal | null;
 }>()('magic_mcp.server');
+
+export let magicMcpServerProviderType = PresentableType.create<{
+  magicMcpServer: MagicMcpServer;
+  magicMcpServerProvider: SubspaceMagicMcpServerProvider;
+}>()('magic_mcp.server.provider');
 
 export let magicMcpEndpointType = PresentableType.create<{
   magicMcpEndpoint: MagicMcpEndpoint & {
@@ -527,6 +770,10 @@ export let consumerAccessType = PresentableType.create<{
     consumerGroup: ConsumerGroup;
     providerTemplate: ProviderTemplate | null;
     magicMcpServer: MagicMcpServer | null;
+    skill: Skill | null;
+    skillTemplate: SkillTemplate | null;
+    skillGroup: SkillGroup | null;
+    skillMarketplace: SkillMarketplace | null;
     listing: ConsumerAccessListing | null;
   };
 }>()('consumer.access');
@@ -535,6 +782,10 @@ export let consumerAccessListingType = PresentableType.create<{
   consumerAccessListing: ConsumerAccessListing & {
     providerTemplate: ProviderTemplate | null;
     magicMcpServer: MagicMcpServer | null;
+    skill: Skill | null;
+    skillTemplate: SkillTemplate | null;
+    skillGroup: SkillGroup | null;
+    skillMarketplace: SkillMarketplace | null;
     consumerSurfaceProviderGroups: {
       consumerSurfaceProviderGroup: ConsumerSurfaceProviderGroup;
     }[];
@@ -584,7 +835,7 @@ export let consumerAndProfileType = PresentableType.create<{
   };
   consumerProfile: ConsumerProfile & {
     consumer: Consumer;
-    surface: ConsumerSurface;
+    surface: EnrichedConsumerSurface;
     groups: (ConsumerProfileGroup & {
       group: ConsumerGroup;
     })[];
@@ -597,7 +848,7 @@ export let consumerAndProfileType = PresentableType.create<{
 }>()('consumer_and_profile');
 
 export let consumerSurfaceType = PresentableType.create<{
-  consumerSurface: ConsumerSurface;
+  consumerSurface: EnrichedConsumerSurface;
 }>()('consumer.surface');
 
 export let consumerSurfaceProviderGroupType = PresentableType.create<{
@@ -607,7 +858,7 @@ export let consumerSurfaceProviderGroupType = PresentableType.create<{
 export let consumerProfileType = PresentableType.create<{
   consumerProfile: ConsumerProfile & {
     consumer: Consumer;
-    surface: ConsumerSurface;
+    surface: EnrichedConsumerSurface;
     groups: (ConsumerProfileGroup & {
       group: ConsumerGroup;
     })[];
@@ -630,9 +881,12 @@ export let consumerProviderType = PresentableType.create<{
 
 export let portalOAuthClientType = PresentableType.create<{
   portalAuthClient: ConsumerAuthClient & {
-    consumerSurface: ConsumerSurface & {
-      portal: Portal | null;
-    };
+    consumerAuthClientSurfaces: (ConsumerAuthClientSurface & {
+      consumerSurface: ConsumerSurface & {
+        portal: Portal | null;
+      };
+    })[];
+    skillPlugin: SkillPlugin | null;
     magicMcpServer: MagicMcpServer | null;
     magicMcpEndpoint: MagicMcpEndpoint | null;
   };
@@ -641,14 +895,27 @@ export let portalOAuthClientType = PresentableType.create<{
 export let portalOAuthAuthorizationType = PresentableType.create<{
   portalOAuthAuthorization: ConsumerAuthAttempt & {
     consumerAuthClient: ConsumerAuthClient & {
-      consumerSurface: ConsumerSurface & {
-        portal: Portal | null;
-      };
+      consumerAuthClientSurfaces: (ConsumerAuthClientSurface & {
+        consumerSurface: ConsumerSurface & {
+          portal: Portal | null;
+        };
+      })[];
+      skillPlugin: SkillPlugin | null;
       magicMcpServer: MagicMcpServer | null;
       magicMcpEndpoint: MagicMcpEndpoint | null;
     };
     consumerProfile: ConsumerProfile | null;
     magicMcpEndpoint: MagicMcpEndpoint | null;
+    skillPlugin:
+      | (SkillPlugin & {
+          organization: Organization;
+          instance: Instance & {
+            project: Project;
+            organization: Organization;
+          };
+        })
+      | null;
+    skillPluginSupportedProviderIds?: string[];
   };
 }>()('portal.oauth_authorization');
 
@@ -674,7 +941,7 @@ export let callbackInstanceType = PresentableType.create<{
 
 export let portalType = PresentableType.create<{
   portal: Portal & {
-    surface: ConsumerSurface;
+    surface: EnrichedConsumerSurface;
     organization: Organization;
   };
   portalUrl: string;
@@ -809,6 +1076,14 @@ export let publisherType = PresentableType.create<{ publisher: SubspacePublisher
   'publisher'
 );
 
+export let agentType = PresentableType.create<{
+  agent: SubspaceAgent;
+}>()('agent');
+
+export let agentInstanceType = PresentableType.create<{
+  agentInstance: SubspaceAgentInstance;
+}>()('agent.instance');
+
 export let providerVersionType = PresentableType.create<{
   version: SubspaceProviderVersion;
 }>()('version');
@@ -877,6 +1152,26 @@ export let providerSpecificationType = PresentableType.create<{
   specification: SubspaceProviderSpecification;
 }>()('specification');
 
+export let providerSpecificationChangeNotificationType = PresentableType.create<{
+  notification: SubspaceProviderSpecificationChangeNotification;
+}>()('provider.specification_change_notification');
+
+export let monitorType = PresentableType.create<{
+  monitor: SubspaceMonitor;
+}>()('monitor');
+
+export let monitorAlertType = PresentableType.create<{
+  alert: SubspaceMonitorAlert;
+}>()('monitor.alert');
+
+export let protoGuardAlertType = PresentableType.create<{
+  alert: SubspaceProtoGuardAlert;
+}>()('protoguard.alert');
+
+export let protoGuardConfigType = PresentableType.create<{
+  config: SubspaceProtoGuardConfig;
+}>()('protoguard.filter_config');
+
 export let deploymentPreviewType = PresentableType.create<{
   deployment: NonNullable<SubspaceProviderAuthConfig['deploymentPreview']>;
 }>()('deploymentPreview');
@@ -942,10 +1237,93 @@ export let sessionTemplateProviderType = PresentableType.create<{
   sessionTemplateProvider: SubspaceSessionTemplateProvider;
 }>()('sessionTemplateProvider');
 
-export let magicMcpServerProviderType = PresentableType.create<{
-  magicMcpServer: MagicMcpServer;
-  sessionTemplateProvider: SubspaceSessionTemplateProvider;
-}>()('magicMcpServerProvider');
+export let skillType = PresentableType.create<{
+  skill: SubspaceSkill;
+}>()('skill');
+
+export let skillGroupType = PresentableType.create<{
+  skillGroup: SubspaceSkillGroup;
+}>()('skill.group');
+
+export let skillGroupItemType = PresentableType.create<{
+  skillGroupItem: SubspaceSkillGroupItem;
+}>()('skill.group.item');
+
+export let skillItemType = PresentableType.create<{
+  skillItem: SubspaceSkillItem;
+}>()('skill.item');
+
+export let skillTemplateType = PresentableType.create<{
+  skillTemplate: SubspaceSkillTemplate;
+}>()('skill.template');
+
+export let skillTemplateItemType = PresentableType.create<{
+  skillTemplateItem: SubspaceSkillTemplateItem;
+}>()('skill.template.item');
+
+export let networkType = PresentableType.create<{
+  network: SubspaceNetwork;
+  maskPublicIp?: boolean;
+}>()('network');
+
+export let networkLogsType = PresentableType.create<{
+  logs: SubspaceEnclaveNetworkLogs;
+}>()('networkLogs');
+
+export let resourceCountsType = PresentableType.create<{
+  resources: {
+    resource: string;
+    count: number;
+  }[];
+}>()('resourceCounts');
+
+export let enclaveType = PresentableType.create<{
+  enclave: SubspaceEnclave;
+}>()('enclave');
+
+export let firewallType = PresentableType.create<{
+  firewall: SubspaceFirewall;
+}>()('firewall');
+
+export let firewallBindingType = PresentableType.create<{
+  firewallBinding: SubspaceFirewallBinding;
+}>()('firewall.binding');
+
+export let networkPolicyType = PresentableType.create<{
+  networkPolicy: SubspaceNetworkPolicy;
+}>()('network.policy');
+
+export let networkPolicyRuleType = PresentableType.create<{
+  rule: SubspaceNetworkPolicyRule;
+}>()('network.policy.rule');
+
+export let integrationType = PresentableType.create<{
+  integration: SubspaceIntegration;
+}>()('integration');
+
+export let integrationProviderType = PresentableType.create<{
+  integrationProvider: SubspaceIntegrationProvider;
+}>()('integration.provider');
+
+export let integrationInstanceType = PresentableType.create<{
+  integrationInstance: SubspaceIntegrationInstance;
+}>()('integration.instance');
+
+export let integrationSetupSessionType = PresentableType.create<{
+  integrationSetupSession: SubspaceIntegrationSetupSession;
+}>()('integration.setup_session');
+
+export let integrationInstanceProviderType = PresentableType.create<{
+  integrationInstanceProvider: SubspaceIntegrationInstanceProvider;
+}>()('integration.instance.provider');
+
+export let integrationInstanceGroupType = PresentableType.create<{
+  integrationInstanceGroup: SubspaceIntegrationInstanceGroup;
+}>()('integration.instance.group');
+
+export let integrationInstanceGroupProviderType = PresentableType.create<{
+  integrationInstanceGroupProvider: SubspaceIntegrationInstanceGroupProvider;
+}>()('integration.instance.group.provider');
 
 export let sessionProviderType = PresentableType.create<{
   sessionProvider: SubspaceSessionProvider;
@@ -1018,6 +1396,12 @@ export let customProviderType = PresentableType.create<{
 export let customProviderVersionType = PresentableType.create<{
   customProviderVersion: SubspaceCustomProviderVersion;
 }>()('customProviderVersion');
+
+export let customProviderEnvType = PresentableType.create<{
+  customProviderFrom:
+    | SubspaceCustomProviderVersion['from']
+    | SubspaceCustomProvider['draft']['from'];
+}>()('customProviderEnv');
 
 export let customProviderDeploymentType = PresentableType.create<{
   customProviderDeployment: SubspaceCustomProviderDeployment;

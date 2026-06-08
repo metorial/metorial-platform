@@ -35,6 +35,9 @@ export let sessionConnectionController = app.controller({
           allowDeleted: v.optional(v.boolean()),
 
           ids: v.optional(v.array(v.string())),
+          agentIds: v.optional(v.array(v.string())),
+          actorIds: v.optional(v.array(v.string())),
+          agentInstanceIds: v.optional(v.array(v.string())),
           sessionIds: v.optional(v.array(v.string())),
           sessionProviderIds: v.optional(v.array(v.string())),
           participantIds: v.optional(v.array(v.string())),
@@ -56,6 +59,9 @@ export let sessionConnectionController = app.controller({
         connectionState: ctx.input.connectionState,
 
         ids: ctx.input.ids,
+        agentIds: ctx.input.agentIds,
+        actorIds: ctx.input.actorIds,
+        agentInstanceIds: ctx.input.agentInstanceIds,
         sessionIds: ctx.input.sessionIds,
         sessionProviderIds: ctx.input.sessionProviderIds,
         participantIds: ctx.input.participantIds,
