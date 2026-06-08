@@ -34,7 +34,7 @@ import {
   subspaceMagicMcpBackingService,
   subspaceSessionTemplateService
 } from '@metorial/module-subspace';
-import { ensureMagicMcpServerBacking } from '../lib/backing';
+import { type ConsumerOwner, ensureMagicMcpServerBacking } from '../lib/backing';
 import {
   magicMcpServerCreatedQueue,
   magicMcpServerDeletedQueue,
@@ -44,6 +44,24 @@ import { getAccessTagFilter, getActiveStatusFilter } from './consumerAccess';
 
 let include = {
   aliases: true,
+  accessTagEntities: {
+    include: {
+      accessTagPolicy: true,
+      accessTag: {
+        include: {
+          consumerGroup: {
+            include: {
+              personalOwner: {
+                include: {
+                  consumer: true
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
   consumerIntegrations: {
     include: {
       consumer: true,
@@ -56,6 +74,18 @@ let include = {
 type MagicMcpServerWithRelations = Prisma.MagicMcpServerGetPayload<{
   include: typeof include;
 }>;
+
+export type MagicMcpServerOwnerFilter = 'organization' | 'consumer';
+
+let getOwnerSources = (owners?: MagicMcpServerOwnerFilter[]) => {
+  if (!owners?.length) return undefined;
+
+  let sources = new Set<MagicMcpServerSource>();
+  if (owners.includes('organization')) sources.add('manual');
+  if (owners.includes('consumer')) sources.add('consumer_provider_template');
+
+  return Array.from(sources);
+};
 
 let buildAlias = (name?: string | null) => {
   let base = slugify(name ?? '');
@@ -191,6 +221,7 @@ class MagicMcpServerImpl {
         providerAuthConfigId?: string | null;
         toolFilters?: any;
       }[];
+      consumerOwner?: ConsumerOwner;
     };
   }) {
     await Fabric.fire('magic_mcp.server.created:before', {
@@ -227,6 +258,7 @@ class MagicMcpServerImpl {
     await magicMcpServerCreatedQueue.add({
       magicMcpServerId: magicMcpServer.id,
       providers: d.input.providers,
+      owner: d.input.consumerOwner,
       isReconciliation: false
     });
 
@@ -624,8 +656,10 @@ class MagicMcpServerImpl {
     search?: string;
     groupIds?: string[];
     providerTemplateIds?: string[];
+    subspaceIntegrationInstanceIds?: string[];
     providerIds?: string[];
     ids?: string[];
+    owners?: MagicMcpServerOwnerFilter[];
     preconfiguredOnly?: boolean;
     accessTags?: AnyAccessTagSelector;
     filterAccessTags?: AnyAccessTagSelector;
@@ -666,6 +700,7 @@ class MagicMcpServerImpl {
       status: d.status,
       activeStatus: 'active'
     });
+    let ownerSources = getOwnerSources(d.owners);
     let andFilters: Prisma.MagicMcpServerWhereInput[] = [];
 
     if (normalizedSearch) {
@@ -703,9 +738,32 @@ class MagicMcpServerImpl {
       }
     }
 
-    if (!d.accessTags && !d.filterAccessTags && !d.consumerSurface) {
+    if (!ownerSources && !d.accessTags && !d.filterAccessTags && !d.consumerSurface) {
       andFilters.push({
         source: 'manual'
+      });
+    }
+
+    if (d.subspaceIntegrationInstanceIds?.length) {
+      let backingIds = await Promise.all(
+        d.subspaceIntegrationInstanceIds.map(async integrationInstanceId => {
+          let { magicMcpServerBackingIds } =
+            await subspaceMagicMcpBackingService.resolveServerBackingIdsForIntegrationInstanceUsage(
+              {
+                instance: d.instance,
+                integrationInstanceId,
+                ownerTypes: ['server_owned', 'provider_template', 'integration']
+              }
+            );
+
+          return magicMcpServerBackingIds;
+        })
+      );
+
+      andFilters.push({
+        id: {
+          in: Array.from(new Set(backingIds.flat()))
+        }
       });
     }
 
@@ -731,7 +789,11 @@ class MagicMcpServerImpl {
             instanceOid: d.instance.oid,
             id: d.ids ? { in: d.ids } : undefined,
             status: statusFilter ? { in: statusFilter } : { not: 'archived' as const },
-            source: d.preconfiguredOnly ? { not: 'consumer_provider_template' } : undefined,
+            source: d.preconfiguredOnly
+              ? { not: 'consumer_provider_template' }
+              : ownerSources
+                ? { in: ownerSources }
+                : undefined,
             providerTemplateId: d.providerTemplateIds?.length
               ? { in: d.providerTemplateIds }
               : undefined,

@@ -2,6 +2,7 @@ import { db } from '@metorial/db';
 import { subspaceMagicMcpBackingService } from '@metorial/module-subspace';
 import { createQueue } from '@metorial/queue';
 import {
+  type ConsumerOwner,
   ensureMagicMcpServerBacking,
   MAGIC_MCP_BACKING_READY_WORKER_ATTEMPTS,
   waitForMagicMcpServerBackingReady
@@ -20,6 +21,7 @@ type MagicMcpServerLifecycleQueueInput = {
     providerAuthConfigId?: string | null;
     toolFilters?: any;
   }[];
+  owner?: ConsumerOwner;
   isReconciliation?: boolean;
 };
 
@@ -34,6 +36,7 @@ let ensureQueuedMagicMcpServerBacking = async (data: MagicMcpServerLifecycleQueu
     instance: magicMcpServer.instance,
     server: magicMcpServer,
     providers: data.providers,
+    owner: data.owner,
     isReconciliation: data.isReconciliation,
     deferReconcile: true
   });

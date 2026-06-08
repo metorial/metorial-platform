@@ -6,6 +6,7 @@ import {
   MagicMcpServer,
   Organization,
   OrganizationActor,
+  db,
   type Instance
 } from '@metorial/db';
 import { type AnyAccessTagSelector } from '@metorial/module-access';
@@ -15,6 +16,7 @@ import {
   type ConsumerProviderTemplateContext
 } from '../../lib/consumerProviderContext';
 import { consumerAccessPolicyService } from '../consumerAccess/accessPolicy';
+import { consumerIntegrationService } from './consumerIntegration';
 import { consumerProviderSetupSessionService } from './consumerProviderSetupSession';
 
 type ConsumerProviderDeployRollbackState = {
@@ -145,6 +147,28 @@ let assertActiveSetupSessionInstance = (setupSession: any) => {
   }
 };
 
+let getConsumerOwnerForProfile = async (d: {
+  instance: Instance;
+  consumerProfile: ConsumerProfile;
+}) => {
+  let actor = await db.consumerActor.findFirst({
+    where: {
+      instanceOid: d.instance.oid,
+      consumerProfileOid: d.consumerProfile.oid,
+      isDefault: true
+    },
+    select: {
+      id: true,
+      defaultIdentityId: true
+    }
+  });
+
+  return {
+    identityActorId: actor?.id ?? null,
+    identityId: actor?.defaultIdentityId ?? null
+  };
+};
+
 class ConsumerProviderDeploymentServiceImpl {
   async deployProvider(d: {
     organization: Organization;
@@ -176,6 +200,11 @@ class ConsumerProviderDeploymentServiceImpl {
 
       assertActiveSetupSessionInstance(setupSession);
 
+      let consumerOwner = await getConsumerOwnerForProfile({
+        instance: d.instance,
+        consumerProfile: d.consumerProfile
+      });
+
       let magicMcpServer = await magicMcpServerService.createMagicMcpServer({
         organization: d.organization,
         performedBy: d.performedBy,
@@ -192,11 +221,18 @@ class ConsumerProviderDeploymentServiceImpl {
             providerDeploymentDescription: providerContext.deployment.description,
             providerTemplateId: providerContext.providerTemplate.id
           }),
-          subspaceIntegrationInstanceId: setupSession.integrationInstance.id
+          subspaceIntegrationInstanceId: setupSession.integrationInstance.id,
+          consumerOwner
         }
       });
 
       rollbackState.magicMcpServer = magicMcpServer;
+
+      await consumerIntegrationService.upsertConsumerIntegration({
+        consumerProfile: d.consumerProfile,
+        magicMcpServer,
+        isManaged: true
+      });
 
       await Promise.all(
         (['magic_mcp_read', 'magic_mcp_write'] as const).map(permission => {
