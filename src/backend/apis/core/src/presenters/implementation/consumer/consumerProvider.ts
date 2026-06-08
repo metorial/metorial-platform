@@ -1,12 +1,16 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
 import { consumerProviderType } from '../../types';
+import { toolFilterPresenter } from '../_shared/toolFilter';
 import {
   v1MagicMcpServerPreview,
   v1ProviderAuthMethodPresenter,
   v1ProviderTemplatePreview
 } from '../provider';
 import { v1ProviderPresenter } from '../provider/provider';
+
+let presentToolFilter = (toolFilter: unknown) =>
+  toolFilter ? toolFilterPresenter(toolFilter as PrismaJson.ToolFilter) : null;
 
 export let v1ConsumerProviderPresenter = Presenter.create(consumerProviderType)
   .presenter(async ({ consumerProvider }, opts) => {
@@ -57,7 +61,7 @@ export let v1ConsumerProviderPresenter = Presenter.create(consumerProviderType)
         provider_id: consumerProvider.deployment.providerId,
         locked_version_id: consumerProvider.deployment.lockedVersion?.id ?? null
       },
-      tool_filter: consumerProvider.toolFilter,
+      tool_filter: presentToolFilter(consumerProvider.toolFilter),
 
       config_schema: consumerProvider.configSchema?.configSchema
         ? {
@@ -98,7 +102,7 @@ export let v1ConsumerProviderPresenter = Presenter.create(consumerProviderType)
           provider_id: v.string(),
           locked_version_id: v.nullable(v.string())
         }),
-        tool_filter: v.any(),
+        tool_filter: v.nullable(toolFilterPresenter.schema),
         config_schema: v.nullable(
           v.object({
             type: v.literal('json_schema'),
