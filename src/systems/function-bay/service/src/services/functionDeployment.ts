@@ -26,6 +26,18 @@ let include = {
   steps: true
 };
 
+type ForgeDeploymentStepLog = {
+  step: {
+    id: string;
+    name: string;
+    status: string;
+    createdAt: Date;
+    startedAt: Date | null;
+    endedAt: Date | null;
+  };
+  logs: unknown;
+};
+
 class functionDeploymentServiceImpl {
   async createFunctionDeployment(d: {
     function: Function;
@@ -121,7 +133,7 @@ class functionDeploymentServiceImpl {
 
     return {
       steps: [
-        ...(forgeLogs ?? []).map(s => ({
+        ...(forgeLogs ?? []).map((s: ForgeDeploymentStepLog) => ({
           id: `forge#${s.step.id}`,
           name: s.step.name,
           type: 'build' as const,
