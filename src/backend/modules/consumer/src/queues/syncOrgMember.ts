@@ -17,7 +17,8 @@ export let syncOrgMemberQueueProcessor = syncOrgMemberQueue.process(async data =
   syncOrgMemberLock.usingLock(data.memberId, async () => {
     let member = await db.organizationMember.findUnique({
       where: {
-        id: data.memberId
+        id: data.memberId,
+        actor: { type: 'member' }
       },
       include: {
         organization: true,
@@ -115,6 +116,8 @@ export let createOrgMemberConsumerForInstanceQueueProcessor =
       }
     });
     if (!member || !instance) throw new QueueRetryError();
+
+    if (!member.actor.email || member.actor.type !== 'member') return;
 
     await consumerService.upsertConsumer({
       organization: member.organization,

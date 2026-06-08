@@ -521,12 +521,12 @@ You've successfully configured your SAML application. You can now assign users t
 export let templates = [
   { id: 'auth0', name: 'Auth0', md: auth0Md, type: 'saml' as const },
   { id: 'entra', name: 'Microsoft Entra ID', md: entraMd, type: 'saml' as const },
-  {
-    id: 'generic-oidc',
-    name: 'Generic OIDC Provider',
-    md: genericOidcMd,
-    type: 'oidc' as const
-  },
+  // {
+  //   id: 'generic-oidc',
+  //   name: 'Generic OIDC Provider',
+  //   md: genericOidcMd,
+  //   type: 'oidc' as const
+  // },
   {
     id: 'generic-saml',
     name: 'Generic SAML Provider',

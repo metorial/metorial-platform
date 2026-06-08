@@ -115,6 +115,20 @@ class ConsumerServiceImpl {
           where: {
             AND: [
               {
+                OR: [
+                  {
+                    consumer: { organizationMember: null }
+                  },
+                  {
+                    consumer: {
+                      organizationMember: {
+                        actor: { type: 'member' }
+                      }
+                    }
+                  }
+                ]
+              },
+              {
                 instanceOid: d.instance.oid,
                 isPending: false
               },
