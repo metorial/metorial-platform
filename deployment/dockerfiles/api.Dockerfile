@@ -27,7 +27,7 @@ COPY /bun.lock ./bun.lock
 
 ENV NODE_OPTIONS=--max_old_space_size=6144
 
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates python3 make g++ && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates python3 python3-setuptools make g++ && rm -rf /var/lib/apt/lists/*
 
 RUN bun install
 
@@ -51,7 +51,7 @@ COPY /deployment/skeleton .
 # The migrations of these files will be applied by the runner
 COPY "/src/backend/db/prisma" ./prisma/oss
 
-RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends python3 python3-setuptools make g++ && rm -rf /var/lib/apt/lists/*
 
 RUN bun install
 

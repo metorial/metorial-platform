@@ -7,7 +7,7 @@ WORKDIR /app
 COPY . .
 
 # Install CA certificates and native build tools before preparing required workspaces.
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates python3 make g++ && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates python3 python3-setuptools make g++ && rm -rf /var/lib/apt/lists/*
 RUN sh ./src/systems/subspace/scripts/prepare-docker-build.sh
 RUN bun run --cwd ./src/packages/frontend/ui build
 

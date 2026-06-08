@@ -2,7 +2,7 @@ FROM oven/bun:1
 
 # Install curl for health checks
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends curl python3 make g++ && \
+    apt-get install -y --no-install-recommends curl python3 python3-setuptools make g++ && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 

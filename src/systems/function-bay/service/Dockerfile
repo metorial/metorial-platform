@@ -10,7 +10,7 @@ ENV SENTRY_AUTH_TOKEN=${SENTRY_AUTH_TOKEN}
 COPY . .
 
 # Install CA certificates and native build tools before preparing workspace packages.
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates python3 make g++ && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates python3 python3-setuptools make g++ && rm -rf /var/lib/apt/lists/*
 RUN sh ./src/systems/function-bay/scripts/prepare-docker-build.sh
 
 # Generate Prisma client and build the service from the monorepo path.
