@@ -238,7 +238,7 @@ export let syncAuthConfigProcessingQueueProcessor = syncAuthConfigProcessingQueu
     }
 
     if (record.status === 'active') {
-      let scopes = record.grantedScopes?.length
+      let scopes = Array.isArray(record.grantedScopes)
         ? record.grantedScopes
         : (record.oauthCredentials?.scopes ?? []);
 

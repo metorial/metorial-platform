@@ -105,6 +105,29 @@ describe('resolveGrantedScopes', () => {
     ).toEqual(['a', 'b']);
   });
 
+  it('preserves empty scope arrays as known no scopes', () => {
+    expect(
+      resolveGrantedScopes({
+        authConfig: { scopes: [] },
+        authCredentials: null
+      })
+    ).toEqual([]);
+
+    expect(
+      resolveGrantedScopes({
+        authConfig: { scopes: ['a', 'b'] },
+        authCredentials: { scopes: [] }
+      })
+    ).toEqual([]);
+
+    expect(
+      resolveGrantedScopes({
+        authConfig: { scopes: [] },
+        authCredentials: { scopes: ['a'] }
+      })
+    ).toEqual([]);
+  });
+
   it('returns null when neither source is available', () => {
     expect(resolveGrantedScopes({})).toBeNull();
     expect(resolveGrantedScopes({ authConfig: null, authCredentials: null })).toBeNull();

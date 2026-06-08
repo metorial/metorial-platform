@@ -4,29 +4,34 @@ export let slateActionPresenter = (
   method: SlateAction & {
     slate: Slate;
   }
-) => ({
-  object: 'slate.action',
+) => {
+  let spec = method.spec as typeof method.spec & { authMethods?: string[] | null };
 
-  id: method.id,
-  slateId: method.slate.id,
+  return {
+    object: 'slate.action',
 
-  identifier: method.identifier,
+    id: method.id,
+    slateId: method.slate.id,
 
-  name: method.name,
-  key: method.key,
-  type: method.type,
+    identifier: method.identifier,
 
-  capabilities: method.spec.capabilities,
-  invocation: method.spec.type === 'action.trigger' ? method.spec.invocation : undefined,
-  inputSchema: method.spec.inputSchema,
-  outputSchema: method.spec.outputSchema,
-  constraints: method.spec.constraints,
-  description: method.spec.description,
-  instructions: method.spec.instructions,
-  docs: method.spec.docs ?? [],
-  metadata: method.spec.metadata,
-  tags: method.spec.tags,
-  scopes: method.spec.scopes,
+    name: method.name,
+    key: method.key,
+    type: method.type,
 
-  createdAt: method.createdAt
-});
+    capabilities: method.spec.capabilities,
+    invocation: method.spec.type === 'action.trigger' ? method.spec.invocation : undefined,
+    inputSchema: method.spec.inputSchema,
+    outputSchema: method.spec.outputSchema,
+    constraints: method.spec.constraints,
+    description: method.spec.description,
+    instructions: method.spec.instructions,
+    docs: method.spec.docs ?? [],
+    metadata: method.spec.metadata,
+    tags: method.spec.tags,
+    scopes: method.spec.scopes,
+    authMethods: spec.authMethods,
+
+    createdAt: method.createdAt
+  };
+};

@@ -7,13 +7,7 @@ export type ScopeSource = {
   authCredentials?: { scopes?: PrismaJson.ProviderAuthScopes | null } | null;
 };
 
-let intersectArrays = (
-  arr1: string[] | null | undefined,
-  arr2: string[] | null | undefined
-): string[] | null => {
-  if (!arr1?.length) return arr2 ?? null;
-  if (!arr2?.length) return arr1;
-
+let intersectArrays = (arr1: string[], arr2: string[]): string[] => {
   let set2 = new Set(arr2);
   return arr1.filter(item => set2.has(item));
 };
@@ -21,10 +15,15 @@ let intersectArrays = (
 export let resolveGrantedScopes = (source: ScopeSource): string[] | null => {
   let configScopes = source.authConfig?.scopes;
   let credentialScopes = source.authCredentials?.scopes;
+  let hasConfigScopes = Array.isArray(configScopes);
+  let hasCredentialScopes = Array.isArray(credentialScopes);
 
-  if (configScopes?.length || credentialScopes?.length) {
+  if (hasConfigScopes && hasCredentialScopes) {
     return intersectArrays(configScopes, credentialScopes);
   }
+
+  if (hasCredentialScopes) return credentialScopes;
+  if (hasConfigScopes) return configScopes;
 
   return null;
 };

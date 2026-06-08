@@ -6,12 +6,14 @@ import {
   type Environment,
   type ProviderAuthConfig,
   type ProviderAuthCredentials,
+  type ProviderAuthMethod,
   type ProviderSpecification,
   type ProviderVersion,
   type Solution,
   type Tenant
 } from '@metorial-subspace/db';
 import {
+  checkToolAuthMethodSatisfied,
   checkToolScopesSatisfied,
   checkToolScopesSatisfiedByAuthMethods,
   resolveGrantedScopes
@@ -175,11 +177,20 @@ let paginateInMemory = <T extends { id: string }>(
 
 type AuthMethodScopeRecord = {
   id: string;
+  key: string;
   global: { id: string };
   value: { scopes?: { id: string }[] | null };
 };
 
-let mapAuthMethodScopeSets = (ids: string[], authMethods: AuthMethodScopeRecord[]) => {
+type ResolvedAuthMethodToolFilter = {
+  authMethods: AuthMethodScopeRecord[];
+  scopeSets: string[][];
+};
+
+let mapAuthMethodToolFilter = (
+  ids: string[],
+  authMethods: AuthMethodScopeRecord[]
+): ResolvedAuthMethodToolFilter => {
   let foundIds = new Set<string>();
   for (let authMethod of authMethods) {
     foundIds.add(authMethod.id);
@@ -191,7 +202,10 @@ let mapAuthMethodScopeSets = (ids: string[], authMethods: AuthMethodScopeRecord[
     throw new ServiceError(notFoundError('provider_auth_method', missingId));
   }
 
-  return authMethods.map(authMethod => authMethod.value.scopes?.map(scope => scope.id) ?? []);
+  return {
+    authMethods,
+    scopeSets: authMethods.map(authMethod => authMethod.value.scopes?.map(scope => scope.id) ?? [])
+  };
 };
 
 let resolveProviderAuthMethodsForToolFilter = async (
@@ -215,7 +229,7 @@ let resolveProviderAuthMethodsForToolFilter = async (
       include: { global: true }
     });
 
-    return mapAuthMethodScopeSets(ids, authMethods);
+    return mapAuthMethodToolFilter(ids, authMethods);
   } else if (!hasVersionWithoutSpecification(ctx)) {
     let globals = await db.providerAuthMethodGlobal.findMany({
       where: {
@@ -238,7 +252,7 @@ let resolveProviderAuthMethodsForToolFilter = async (
       global.currentInstance ? [global.currentInstance] : []
     );
 
-    return mapAuthMethodScopeSets(ids, authMethods);
+    return mapAuthMethodToolFilter(ids, authMethods);
   }
 
   throw new ServiceError(notFoundError('provider_auth_method', ids[0]));
@@ -252,7 +266,7 @@ class providerToolServiceImpl {
 
     providerVersion: ProviderVersion;
 
-    providerAuthConfig?: ProviderAuthConfig | null;
+    providerAuthConfig?: (ProviderAuthConfig & { authMethod?: ProviderAuthMethod | null }) | null;
     providerAuthCredentials?: ProviderAuthCredentials | null;
     providerAuthMethodIds?: string[];
   }) {
@@ -278,21 +292,43 @@ class providerToolServiceImpl {
       ctx,
       d.providerAuthMethodIds
     );
+    let authMethod = d.providerAuthConfig
+      ? ((d.providerAuthConfig as any).authMethod ??
+        (await db.providerAuthMethod.findUnique({
+          where: { oid: d.providerAuthConfig.authMethodOid }
+        })))
+      : null;
 
-    if (grantedScopes === null && authMethodScopes === null) {
+    if (grantedScopes === null && authMethodScopes === null && !d.providerAuthConfig) {
       return Paginator.create(({ prisma }) => prisma(opts => queryTools(ctx, opts)));
     }
 
     return Paginator.create(() => async input => {
       let allTools = await queryTools(ctx);
       let filtered = allTools.filter(tool => {
+        if (
+          d.providerAuthConfig &&
+          !checkToolAuthMethodSatisfied(tool, authMethod).allowed
+        ) {
+          return false;
+        }
+
+        if (
+          authMethodScopes !== null &&
+          !authMethodScopes.authMethods.every(
+            authMethod => checkToolAuthMethodSatisfied(tool, authMethod).allowed
+          )
+        ) {
+          return false;
+        }
+
         if (grantedScopes !== null && !checkToolScopesSatisfied(tool, grantedScopes).allowed) {
           return false;
         }
 
         if (
           authMethodScopes !== null &&
-          !checkToolScopesSatisfiedByAuthMethods(tool, authMethodScopes).allowed
+          !checkToolScopesSatisfiedByAuthMethods(tool, authMethodScopes.scopeSets).allowed
         ) {
           return false;
         }
