@@ -1,12 +1,11 @@
 import type { DashboardInstanceCallbacksInstancesListOutput } from '@metorial/dashboard-sdk';
-import { renderWithLoader, useForm } from '@metorial/data-hooks';
+import { renderWithLoader } from '@metorial/data-hooks';
 import {
   useCallback,
   useCallbackInstances,
   useCreateCallbackInstance,
   useCurrentInstance,
   useProvider,
-  useProviderAuthConfigs,
   useProviderDeployment,
   useProviderTriggers
 } from '@metorial/state';
@@ -18,13 +17,10 @@ import {
   Copy,
   Datalist,
   Dialog,
-  Flex,
-  InlineCopy,
   Input,
   MultiSelect,
   Panel,
   RenderDate,
-  Select,
   Spacer,
   Text,
   confirm,
@@ -32,16 +28,14 @@ import {
   toast
 } from '@metorial/ui';
 import { Box, ID, Table } from '@metorial/ui-product';
-import { RiAddLine } from '@remixicon/react';
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import {
-  emptyConfigurationSelection,
-  type ConfigurationSelection
-} from '../../lib/configSelection';
-import { ProviderAuthConfigCreateButton } from '../providerAuthConfigs/modal';
-import { ProviderConfigurationSelection } from '../providerConfigs/selection';
+import { showProviderCreationPanel } from '../providerCreationPanel';
 import { RouterPanel } from '../routerPanel';
+import {
+  AddProviderPanelFlow,
+  type ProviderPanelSubmitInput
+} from '../sessionTemplates/addProviderPanelFlow';
 
 type CallbackInstanceListItem = DashboardInstanceCallbacksInstancesListOutput['items'][number];
 let CALLBACK_WAITING_POLL_MS = 3000;
@@ -129,36 +123,36 @@ export let CallbackOverview = (p: { callbackId: string | undefined }) => {
     ({ callback, instances, provider }) => {
       let instanceItems = instances.data.items;
       let triggerInstances = instanceItems.flatMap(instance => instance.triggers);
-      let receiverUrlItems = Array.from(
-        new Map(
-          triggerInstances
-            .filter(
-              (
-                trigger
-              ): trigger is (typeof triggerInstances)[number] & {
-                webhookUrl: string;
-              } => Boolean(trigger.webhookUrl)
-            )
-            .map(trigger => {
-              let providerTriggerLabel = trigger.providerTrigger
-                ? `${trigger.providerTrigger.name} (${trigger.providerTrigger.key})`
-                : trigger.id;
+      // let receiverUrlItems = Array.from(
+      //   new Map(
+      //     triggerInstances
+      //       .filter(
+      //         (
+      //           trigger
+      //         ): trigger is (typeof triggerInstances)[number] & {
+      //           webhookUrl: string;
+      //         } => Boolean(trigger.webhookUrl)
+      //       )
+      //       .map(trigger => {
+      //         let providerTriggerLabel = trigger.providerTrigger
+      //           ? `${trigger.providerTrigger.name} (${trigger.providerTrigger.key})`
+      //           : trigger.id;
 
-              return [
-                `${providerTriggerLabel}:${trigger.webhookUrl}`,
-                {
-                  id: trigger.id,
-                  label: providerTriggerLabel,
-                  webhookUrl: trigger.webhookUrl
-                }
-              ] as const;
-            })
-        ).values()
-      );
-      let receiverUrlTemplate =
-        provider.data.type.triggers.status === 'enabled'
-          ? provider.data.type.triggers.receiverUrl
-          : null;
+      //         return [
+      //           `${providerTriggerLabel}:${trigger.webhookUrl}`,
+      //           {
+      //             id: trigger.id,
+      //             label: providerTriggerLabel,
+      //             webhookUrl: trigger.webhookUrl
+      //           }
+      //         ] as const;
+      //       })
+      //   ).values()
+      // );
+      // let receiverUrlTemplate =
+      //   provider.data.type.triggers.status === 'enabled'
+      //     ? provider.data.type.triggers.receiverUrl
+      //     : null;
       let nextPollAt = triggerInstances
         .map(trigger => trigger.nextPollAt)
         .filter((date): date is Date => Boolean(date))
@@ -169,18 +163,6 @@ export let CallbackOverview = (p: { callbackId: string | undefined }) => {
           <Attributes
             columns={3}
             attributes={[
-              {
-                label: 'Status',
-                content: (
-                  <Badge color={callback.data.status === 'active' ? 'blue' : 'gray'}>
-                    {callback.data.status}
-                  </Badge>
-                )
-              },
-              {
-                label: 'Type',
-                content: getCallbackType(triggerInstances)
-              },
               {
                 label: 'Provider Deployment',
                 content:
@@ -193,17 +175,13 @@ export let CallbackOverview = (p: { callbackId: string | undefined }) => {
               {
                 label: 'ID',
                 content: <ID id={callback.data.id} />
-              },
-              {
-                label: 'Created At',
-                content: <RenderDate date={callback.data.createdAt} />
               }
             ]}
           />
 
           <Spacer height={15} />
 
-          {receiverUrlItems.length > 0 && (
+          {/* {receiverUrlItems.length > 0 && (
             <>
               <Box
                 title="Receiver URLs"
@@ -257,7 +235,7 @@ export let CallbackOverview = (p: { callbackId: string | undefined }) => {
 
               <Spacer height={15} />
             </>
-          )}
+          )} */}
 
           <Box
             title="Manage Triggers"
@@ -441,137 +419,62 @@ let DialogActionsWrapper = (p: { children: React.ReactNode }) => (
   </div>
 );
 
-let CallbackInstanceFormModalContent = (p: {
+let CallbackInstanceAttachPanelContent = (p: {
   instanceId: string;
   callbackId: string;
   providerDeploymentId: string;
   close: () => void;
+  setPanelWidth: (width: number) => void;
   onCreate?: (callbackInstanceId: string) => void;
 }) => {
   let createCallbackInstance = useCreateCallbackInstance();
   let deployment = useProviderDeployment(p.instanceId, p.providerDeploymentId);
-  let authConfigs = useProviderAuthConfigs(
-    p.instanceId,
-    deployment.data?.id ? { providerId: deployment.data.providerId } : undefined
-  );
-  let authConfigItems = authConfigs.data?.items ?? [];
-  let requiresAuthConfig = !authConfigs.isLoading && authConfigItems.length > 0;
-  let emptyAuthConfigLabel = requiresAuthConfig ? 'Select an auth config' : 'None';
-  let form = useForm({
-    initialValues: {
-      selectedConfiguration: emptyConfigurationSelection(),
-      selectedAuthConfigId: ''
-    },
-    onSubmit: async values => {
-      if (values.selectedConfiguration.kind !== 'config') return;
 
-      let [result] = await createCallbackInstance.mutate({
-        instanceId: p.instanceId,
-        callbackId: p.callbackId,
-        providerConfigId: values.selectedConfiguration.id,
-        providerAuthConfigId: values.selectedAuthConfigId || undefined
-      });
+  if (deployment.isLoading) {
+    return <Callout color="gray">Loading provider deployment...</Callout>;
+  }
 
-      if (!result) return;
-
-      p.onCreate?.(result.id);
-      p.close();
-    },
-    schema: yup =>
-      yup.object({
-        selectedConfiguration: yup
-          .mixed<ConfigurationSelection>()
-          .defined()
-          .test(
-            'selectedConfiguration',
-            'Select a provider config',
-            value => value?.kind === 'config'
-          ),
-        selectedAuthConfigId: yup
-          .string()
-          .default('')
-          .test(
-            'selectedAuthConfigId',
-            'Select an auth config',
-            value => !requiresAuthConfig || Boolean(value)
-          )
-      })
-  });
+  if (!deployment.data) {
+    return <Callout color="gray">Could not resolve the callback provider deployment.</Callout>;
+  }
 
   return (
-    <form onSubmit={form.handleSubmit}>
-      <ProviderConfigurationSelection
-        instanceId={p.instanceId}
-        providerDeploymentId={p.providerDeploymentId}
-        value={form.values.selectedConfiguration}
-        onChange={value => {
-          form.setFieldValue('selectedConfiguration', value);
-          form.setFieldTouched('selectedConfiguration', false, false);
-          form.setFieldError('selectedConfiguration', undefined);
-        }}
-        label="Provider Config"
-        includeVaults={false}
-      />
-      <form.RenderError field="selectedConfiguration" />
+    <AddProviderPanelFlow
+      close={p.close}
+      setPanelWidth={p.setPanelWidth}
+      instanceId={p.instanceId}
+      providerId={deployment.data.providerId}
+      hideProviderStep
+      initialDeploymentId={p.providerDeploymentId}
+      filterAvailableResources
+      showToolFilters={false}
+      ensureProviderConfig
+      autoSubmitWhenReady
+      title="Attach Callback Instance"
+      description="Attach this callback to a provider config and optional auth config combination."
+      action="Attach Instance"
+      onSubmitProvider={async (input: ProviderPanelSubmitInput) => {
+        if (!input.providerConfigId) {
+          return {
+            success: false,
+            error: new Error('Could not create a provider config automatically.')
+          };
+        }
 
-      <Spacer height={15} />
+        let [result, error] = await createCallbackInstance.mutate({
+          instanceId: p.instanceId,
+          callbackId: p.callbackId,
+          providerConfigId: input.providerConfigId,
+          providerAuthConfigId: input.providerAuthConfigId || undefined
+        });
 
-      <Flex gap={8} align="end">
-        <div style={{ flex: 1 }}>
-          <Select
-            label={requiresAuthConfig ? 'Auth Config (required)' : 'Auth Config'}
-            value={form.values.selectedAuthConfigId || '__none__'}
-            onChange={value => {
-              form.setFieldValue('selectedAuthConfigId', value === '__none__' ? '' : value);
-              form.setFieldTouched('selectedAuthConfigId', false, false);
-              form.setFieldError('selectedAuthConfigId', undefined);
-            }}
-            items={[
-              { id: '__none__', label: emptyAuthConfigLabel },
-              ...authConfigItems.map(authConfig => ({
-                id: authConfig.id,
-                label: authConfig.name ?? authConfig.id
-              }))
-            ]}
-          />
-          <form.RenderError field="selectedAuthConfigId" />
-        </div>
+        if (!result || error) return { success: false, error };
 
-        <ProviderAuthConfigCreateButton
-          instanceId={p.instanceId}
-          providerDeploymentId={p.providerDeploymentId}
-          onCreate={authConfig => {
-            authConfigs.refetch?.();
-            form.setFieldValue('selectedAuthConfigId', authConfig.id);
-            form.setFieldTouched('selectedAuthConfigId', false, false);
-            form.setFieldError('selectedAuthConfigId', undefined);
-          }}
-          size="3"
-          iconLeft={<RiAddLine />}
-          ariaLabel="Create Auth Config"
-        >
-          Create Auth Config
-        </ProviderAuthConfigCreateButton>
-      </Flex>
-
-      <Spacer height={20} />
-
-      <Dialog.Actions>
-        <Button size="2" type="button" variant="outline" onClick={p.close}>
-          Cancel
-        </Button>
-        <Button
-          size="2"
-          type="submit"
-          loading={createCallbackInstance.isLoading}
-          success={createCallbackInstance.isSuccess}
-        >
-          Attach Instance
-        </Button>
-      </Dialog.Actions>
-
-      <createCallbackInstance.RenderError />
-    </form>
+        p.onCreate?.(result.id);
+        return { success: true };
+      }}
+      onComplete={() => {}}
+    />
   );
 };
 
@@ -581,15 +484,8 @@ let showCallbackInstanceFormModal = (p: {
   providerDeploymentId: string;
   onCreate?: (callbackInstanceId: string) => void;
 }) =>
-  showModal(({ dialogProps, close }) => (
-    <Dialog.Wrapper {...dialogProps} width={650}>
-      <Dialog.Title>Attach Callback Instance</Dialog.Title>
-      <Dialog.Description>
-        Attach this callback to a provider config and optional auth config combination.
-      </Dialog.Description>
-
-      <CallbackInstanceFormModalContent {...p} close={close} />
-    </Dialog.Wrapper>
+  showProviderCreationPanel(({ close, setWidth }) => (
+    <CallbackInstanceAttachPanelContent {...p} close={close} setPanelWidth={setWidth} />
   ));
 
 let getCallbackInstanceStatusBadge = (status: CallbackInstanceListItem['status']) => (

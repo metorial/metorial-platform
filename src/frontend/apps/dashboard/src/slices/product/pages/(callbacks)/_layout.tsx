@@ -24,56 +24,58 @@ export let CallbackLayout = () => {
     instance.data,
     callback.data?.id ?? callbackId
   ] as const;
+  let activeCallbackId = callback.data?.id ?? callbackId;
+  let callbackTitle =
+    callback.data?.name ??
+    (activeCallbackId ? `Callback ${activeCallbackId.slice(0, 8)}...` : '...');
 
   return (
     <ContentLayout>
-      {renderWithLoader({ callback })(({ callback }) => (
-        <>
-          <PageHeader
-            title={callback.data?.name ?? `Callback ${callback.data.id.slice(0, 8)}...`}
-            description={callback.data?.description ?? undefined}
-            pagination={[
-              {
-                label: 'Callbacks',
-                href: Paths.instance.callbacks(organization.data, project.data, instance.data)
-              },
-              {
-                label: callback.data?.name ?? callback.data.id,
-                href: Paths.instance.callback(...callbackPathParams)
-              }
-            ]}
-          />
+      <PageHeader
+        title={callbackTitle}
+        description={callback.data?.description ?? undefined}
+        pagination={[
+          {
+            label: 'Callbacks',
+            href: Paths.instance.callbacks(organization.data, project.data, instance.data)
+          },
+          {
+            label: callback.data?.name ?? activeCallbackId ?? '...',
+            href: Paths.instance.callback(...callbackPathParams)
+          }
+        ]}
+      />
 
-          <LinkTabs
-            current={pathname}
-            links={[
-              {
-                label: 'Overview',
-                to: Paths.instance.callback(...callbackPathParams)
-              },
-              {
-                label: 'Events',
-                to: Paths.instance.callback(...callbackPathParams, 'events')
-              },
-              {
-                label: 'Logs',
-                to: Paths.instance.callback(...callbackPathParams, 'logs')
-              },
-              {
-                label: 'Triggers',
-                to: Paths.instance.callback(...callbackPathParams, 'triggers')
-              },
-              {
-                label: 'Destinations',
-                to: Paths.instance.callback(...callbackPathParams, 'destinations')
-              }
-            ]}
-          />
+      <LinkTabs
+        current={pathname}
+        links={[
+          {
+            label: 'Overview',
+            to: Paths.instance.callback(...callbackPathParams)
+          },
+          {
+            label: 'Events',
+            to: Paths.instance.callback(...callbackPathParams, 'events')
+          },
+          {
+            label: 'Logs',
+            to: Paths.instance.callback(...callbackPathParams, 'logs')
+          },
+          {
+            label: 'Triggers',
+            to: Paths.instance.callback(...callbackPathParams, 'triggers')
+          },
+          {
+            label: 'Destinations',
+            to: Paths.instance.callback(...callbackPathParams, 'destinations')
+          }
+        ]}
+      />
 
-          <InitialLoadBoundary>
-            <Outlet />
-          </InitialLoadBoundary>
-        </>
+      {renderWithLoader({ callback })(() => (
+        <InitialLoadBoundary>
+          <Outlet />
+        </InitialLoadBoundary>
       ))}
     </ContentLayout>
   );
