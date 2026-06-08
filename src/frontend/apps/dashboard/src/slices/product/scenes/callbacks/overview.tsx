@@ -17,7 +17,9 @@ import {
   Copy,
   Datalist,
   Dialog,
+  Flex,
   Input,
+  InlineCopy,
   MultiSelect,
   Panel,
   RenderDate,
@@ -123,36 +125,19 @@ export let CallbackOverview = (p: { callbackId: string | undefined }) => {
     ({ callback, instances, provider }) => {
       let instanceItems = instances.data.items;
       let triggerInstances = instanceItems.flatMap(instance => instance.triggers);
-      // let receiverUrlItems = Array.from(
-      //   new Map(
-      //     triggerInstances
-      //       .filter(
-      //         (
-      //           trigger
-      //         ): trigger is (typeof triggerInstances)[number] & {
-      //           webhookUrl: string;
-      //         } => Boolean(trigger.webhookUrl)
-      //       )
-      //       .map(trigger => {
-      //         let providerTriggerLabel = trigger.providerTrigger
-      //           ? `${trigger.providerTrigger.name} (${trigger.providerTrigger.key})`
-      //           : trigger.id;
-
-      //         return [
-      //           `${providerTriggerLabel}:${trigger.webhookUrl}`,
-      //           {
-      //             id: trigger.id,
-      //             label: providerTriggerLabel,
-      //             webhookUrl: trigger.webhookUrl
-      //           }
-      //         ] as const;
-      //       })
-      //   ).values()
-      // );
-      // let receiverUrlTemplate =
-      //   provider.data.type.triggers.status === 'enabled'
-      //     ? provider.data.type.triggers.receiverUrl
-      //     : null;
+      let receiverUrlItems = instanceItems
+        .filter(
+          (
+            instance
+          ): instance is typeof instance & {
+            webhookUrl: string;
+          } => Boolean(instance.webhookUrl)
+        )
+        .map(instance => ({
+          id: instance.id,
+          label: instance.config.name || instance.config.id,
+          webhookUrl: instance.webhookUrl
+        }));
       let nextPollAt = triggerInstances
         .map(trigger => trigger.nextPollAt)
         .filter((date): date is Date => Boolean(date))
@@ -181,19 +166,19 @@ export let CallbackOverview = (p: { callbackId: string | undefined }) => {
 
           <Spacer height={15} />
 
-          {/* {receiverUrlItems.length > 0 && (
+          {receiverUrlItems.length > 0 && (
             <>
               <Box
                 title="Receiver URLs"
                 description={`${provider.data.name} requires manual configuration. Register the following receiver URLs with the provider to start receiving events.`}
               >
                 <Table
-                  headers={['Trigger', 'Receiver URL', '']}
+                  headers={['Receiver', 'Receiver URL', '']}
                   data={receiverUrlItems.map(item => ({
                     data: [
                       <Flex direction="column" gap={2} style={{ minWidth: 0 }}>
                         <Text size="2" weight="strong">
-                          {item.label.split(' (')[0]}
+                          {item.label}
                         </Text>
                         <Text
                           size="2"
@@ -206,9 +191,7 @@ export let CallbackOverview = (p: { callbackId: string | undefined }) => {
                             textOverflow: 'ellipsis'
                           }}
                         >
-                          {item.label.includes(' (')
-                            ? item.label.slice(item.label.indexOf(' (') + 2, -1)
-                            : item.id}
+                          {item.id}
                         </Text>
                       </Flex>,
                       <div style={{ width: '100%', minWidth: 0 }}>
@@ -235,7 +218,7 @@ export let CallbackOverview = (p: { callbackId: string | undefined }) => {
 
               <Spacer height={15} />
             </>
-          )} */}
+          )}
 
           <Box
             title="Manage Triggers"
@@ -499,7 +482,10 @@ let CallbackInstanceDetails = (p: {
     ReturnType<typeof useCallbackInstances>['useDeleteMutator']
   >;
 }) => {
-  let firstTrigger = p.callbackInstance.triggers.find(trigger => trigger.webhookUrl);
+  let webhookUrl = p.callbackInstance.webhookUrl;
+  let needsManualWebhookSetup = p.callbackInstance.triggers.some(
+    trigger => trigger.webhookUrl && !trigger.isWebhookRegistered
+  );
 
   return (
     <>
@@ -571,54 +557,28 @@ let CallbackInstanceDetails = (p: {
 
       <Spacer height={15} />
 
-      {firstTrigger?.webhookUrl && !firstTrigger.isWebhookRegistered && (
+      {webhookUrl && needsManualWebhookSetup && (
         <>
           <Box
-            title="Trigger Endpoint"
-            description="This trigger needs to be registered with the provider to receive events. Please configure the provider to send events to the following URL."
+            title="Callback Endpoint"
+            description="Configure the provider to send manual webhook events to this callback instance URL. Slates will route matching events to the registered triggers."
           >
-            {p.callbackInstance.triggers.length > 0 ? (
-              <Table
-                headers={['Trigger', 'Webhook URL', '']}
-                data={p.callbackInstance.triggers.map(trigger => ({
-                  data: [
-                    trigger.providerTrigger?.name ?? 'Unknown Trigger',
-                    trigger.webhookUrl ? (
-                      <div style={{ padding: '8px 0px' }}>
-                        <Copy value={trigger.webhookUrl} />
-                      </div>
-                    ) : (
-                      <Text size="2" color="gray600">
-                        N/A
-                      </Text>
-                    ),
-                    trigger.webhookUrl ? (
-                      <Button
-                        size="1"
-                        variant="outline"
-                        onClick={() =>
-                          showCallbackTriggerPostModal({
-                            triggerLabel:
-                              trigger.providerTrigger?.name ??
-                              trigger.providerTrigger?.key ??
-                              trigger.id,
-                            webhookUrl: trigger.webhookUrl!
-                          })
-                        }
-                      >
-                        Send Test POST
-                      </Button>
-                    ) : (
-                      <div />
-                    )
-                  ]
-                }))}
-              />
-            ) : (
-              <Text size="2" color="gray600">
-                No trigger registrations have been created for this callback instance yet.
-              </Text>
-            )}
+            <Copy value={webhookUrl} />
+
+            <Spacer height={15} />
+
+            <Button
+              size="1"
+              variant="outline"
+              onClick={() =>
+                showCallbackTriggerPostModal({
+                  triggerLabel: 'callback instance',
+                  webhookUrl
+                })
+              }
+            >
+              Send Test POST
+            </Button>
           </Box>
           <Spacer height={15} />
         </>
@@ -693,7 +653,7 @@ let CallbackTriggerPostModalContent = (p: {
   return (
     <>
       <Callout color="gray">
-        This sends a direct `POST` request to the registered receiver URL for this trigger.
+        This sends a direct `POST` request to the callback instance receiver URL.
       </Callout>
 
       <Spacer height={15} />

@@ -79,6 +79,10 @@ export let v1CallbackInstancePresenter = Presenter.create(callbackInstanceType)
           .run()
       : null,
 
+    webhook_url:
+      (callbackInstance as typeof callbackInstance & { webhookUrl?: string | null })
+        .webhookUrl ?? null,
+
     triggers: await Promise.all(
       callbackInstance.triggers.map(async trigger => ({
         object: 'callback.instance.trigger' as const,
@@ -118,6 +122,14 @@ export let v1CallbackInstancePresenter = Presenter.create(callbackInstanceType)
       deployment: v1ProviderDeploymentPreviewPresenter.schema,
       config: v1ProviderConfigPreviewPresenter.schema,
       auth_config: v.nullable(v1ProviderAuthConfigPreviewPresenter.schema),
+      webhook_url: v.nullable(
+        v.string({
+          name: 'webhook_url',
+          description:
+            'Shared webhook URL for manual provider setup on this callback instance',
+          examples: ['https://api.example.com/slates-hub/triggers/receiver-webhook/shtr_abc123']
+        })
+      ),
       triggers: v.array(callbackInstanceTriggerSchema, {
         name: 'triggers',
         description: 'Resolved trigger registrations for this callback instance'

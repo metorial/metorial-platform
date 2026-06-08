@@ -446,14 +446,18 @@ let Event = ({ eventId, callbackId }: { eventId: string; callbackId: string }) =
               )}
             </Box>
 
-            <Spacer height={15} />
+            {event.data?.output && (
+              <>
+                <Spacer height={15} />
 
-            <Box
-              title="Output Payload"
-              description="The normalized output stored for downstream callback deliveries."
-            >
-              <CodeBlock variant="seamless" language="json" code={output} />
-            </Box>
+                <Box
+                  title="Output Payload"
+                  description="The normalized output stored for downstream callback deliveries."
+                >
+                  <CodeBlock variant="seamless" language="json" code={output} />
+                </Box>
+              </>
+            )}
 
             <Spacer height={15} />
 
