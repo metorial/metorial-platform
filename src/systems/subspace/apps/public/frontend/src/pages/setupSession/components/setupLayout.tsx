@@ -97,7 +97,8 @@ export let SetupLayout = ({
 };
 
 let Wrapper = styled.div`
-  background: #dcc425;
+  background: rgba(240, 240, 240, 0.8);
+  backdrop-filter: blur(10px);
   height: 100dvh;
   display: flex;
   align-items: center;
