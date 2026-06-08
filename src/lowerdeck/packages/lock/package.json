@@ -17,17 +17,17 @@
   "exports": {
     "types": "./dist/index.d.ts",
     "require": "./dist/index.cjs",
-    "import": "./dist/index.module.js",
-    "default": "./dist/index.module.js"
+    "import": "./dist/index.js",
+    "default": "./dist/index.js"
   },
   "main": "./dist/index.cjs",
-  "module": "./dist/index.module.js",
+  "module": "./dist/index.js",
   "types": "dist/index.d.ts",
-  "unpkg": "./dist/index.umd.js",
+  "unpkg": "./dist/index.js",
   "scripts": {
     "test": "vitest run --passWithNoTests",
     "lint": "prettier src/**/*.ts --check",
-    "build": "rm -rf ./dist && microbundle"
+    "build": "tsup src/index.ts --format cjs,esm --dts --clean --out-dir dist --no-splitting"
   },
   "dependencies": {
     "@lowerdeck/redis": "workspace:2.0.0",
@@ -39,8 +39,9 @@
   },
   "devDependencies": {
     "@lowerdeck/tsconfig": "workspace:2.0.0",
-    "typescript": "5.8.2",
     "microbundle": "^0.15.1",
+    "tsup": "^8.5.1",
+    "typescript": "5.8.2",
     "vitest": "^3.1.2"
   }
 }
