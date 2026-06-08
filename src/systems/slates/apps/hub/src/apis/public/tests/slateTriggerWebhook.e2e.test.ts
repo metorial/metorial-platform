@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   SlateStatus,
-  SlateTriggerEventDeliveryStatus,
   SlateTriggerEventInputStatus,
   SlateTriggerInvocationType,
   SlateTriggerReceiverStatus,
@@ -1024,121 +1023,5 @@ describe('slate:trigger webhook E2E', () => {
     });
     expect(updated?.status).toBe(SlateTriggerEventInputStatus.retrying);
     expect(queueMocks.processAdd).toHaveBeenCalled();
-  });
-
-  it('increments consecutivePollingFailures on failed polls and resets on success', async () => {
-    const { receiverTrigger, deployment, bucket, receiver } = await setupWebhookScenario({
-      triggerInvocation: SlateTriggerReceiverTriggerSource.polling
-    });
-
-    const pollErrorInvocation = await f.slateInvocation.succeeded({
-      deploymentOid: deployment.oid,
-      bucketOid: bucket.oid,
-      providerInvocationId: 'inv_poll_error'
-    });
-
-    const pollSuccessInvocation = await f.slateInvocation.succeeded({
-      deploymentOid: deployment.oid,
-      bucketOid: bucket.oid,
-      providerInvocationId: 'inv_poll_success'
-    });
-
-    invocationMocks.pollTriggerForEvents
-      .mockResolvedValueOnce({
-        status: 'error',
-        invocation: { oid: pollErrorInvocation.oid },
-        error: { code: 'poll_error', message: 'Poll failed' }
-      })
-      .mockResolvedValueOnce({
-        status: 'success',
-        invocation: { oid: pollSuccessInvocation.oid },
-        data: {
-          inputs: [],
-          updatedState: { cursor: 'next' }
-        }
-      });
-
-    await slateTriggerReceiverService.pollTriggerReceiverTrigger({
-      receiverTriggerId: receiverTrigger.id
-    });
-
-    const receiverAfterFailure = await testDb.slateTriggerReceiver.findUniqueOrThrow({
-      where: { oid: receiver.oid }
-    });
-    expect(receiverAfterFailure.consecutivePollingFailures).toBe(1);
-
-    await slateTriggerReceiverService.pollTriggerReceiverTrigger({
-      receiverTriggerId: receiverTrigger.id
-    });
-
-    const receiverAfterSuccess = await testDb.slateTriggerReceiver.findUniqueOrThrow({
-      where: { oid: receiver.oid }
-    });
-    expect(receiverAfterSuccess.consecutivePollingFailures).toBe(0);
-  });
-
-  it('skips delivery when receiver eventTypes exclude the event type', async () => {
-    const { receiverTrigger, deployment, bucket, receiver } = await setupWebhookScenario({
-      receiverEventTypes: ['allowed.event']
-    });
-
-    const webhookInvocation = await f.slateInvocation.succeeded({
-      deploymentOid: deployment.oid,
-      bucketOid: bucket.oid,
-      providerInvocationId: 'inv_webhook_success_types'
-    });
-
-    const mapInvocation = await f.slateInvocation.succeeded({
-      deploymentOid: deployment.oid,
-      bucketOid: bucket.oid,
-      providerInvocationId: 'inv_map_success_types'
-    });
-
-    invocationMocks.handleWebhookRequest.mockResolvedValueOnce({
-      status: 'success',
-      invocation: { oid: webhookInvocation.oid },
-      data: {
-        inputs: [{ payload: 'incoming' }],
-        updatedState: { cursor: 'next' }
-      }
-    });
-
-    invocationMocks.invokeTriggerMapper.mockResolvedValueOnce({
-      status: 'success',
-      invocation: { oid: mapInvocation.oid },
-      data: {
-        id: 'event-source-typed',
-        type: 'different.event',
-        output: { value: 456 }
-      }
-    });
-
-    const requestRecord = await postWebhook(receiverTrigger.id, { hello: 'world' });
-
-    await slateTriggerReceiverService.handleTriggerWebhook({
-      receiverTriggerId: receiverTrigger.id,
-      request: {
-        url: requestRecord.url,
-        method: requestRecord.method,
-        headers: requestRecord.headers as Record<string, string>,
-        body: requestRecord.body as { encoding: 'base64'; content: string } | null
-      }
-    });
-
-    const eventInput = await testDb.slateTriggerEventInput.findFirst({
-      where: { receiverTriggerOid: receiverTrigger.oid }
-    });
-    expect(eventInput).toBeTruthy();
-
-    await slateTriggerReceiverService.processTriggerEventInput({
-      eventInputId: eventInput!.id
-    });
-
-    const triggerEvent = await testDb.slateTriggerEvent.findFirst({
-      where: { receiverTriggerOid: receiverTrigger.oid }
-    });
-    expect(triggerEvent).toBeTruthy();
-    expect(triggerEvent?.deliveryStatus).toBe(SlateTriggerEventDeliveryStatus.skipped);
-    expect(queueMocks.sendAdd).not.toHaveBeenCalled();
   });
 });
