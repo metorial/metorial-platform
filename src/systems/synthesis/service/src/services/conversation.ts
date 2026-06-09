@@ -1,16 +1,12 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import {
-  Prisma,
-  db,
-  withTransaction
-} from '../db';
 import type { AssistantConversation, Environment, Tenant, TenantActor } from '../db';
-import { assistantService } from './assistant';
-import type { AvailableAssistant } from './assistant';
+import { db, Prisma, withTransaction } from '../db';
 import { getId } from '../id';
 import type { State } from '../types';
+import type { AvailableAssistant } from './assistant';
+import { assistantService } from './assistant';
 import {
   assistantConversationParticipantInclude,
   assistantConversationParticipantService
@@ -50,10 +46,11 @@ class AssistantConversationServiceImpl {
     tenant: Tenant;
     conversations: AssistantConversationWithRelations[];
   }): Promise<AssistantConversationWithAssistant[]> {
-    let assistantsById = await assistantService.getAvailableAssistantsByIds({
+    let assistants = await assistantService.getMany({
       tenant: d.tenant,
       assistantIds: d.conversations.map(conversation => conversation.assistant.id)
     });
+    let assistantsById = new Map(assistants.map(assistant => [assistant.id, assistant]));
 
     return d.conversations.map(conversation => {
       let availableAssistant = assistantsById.get(conversation.assistant.id);
@@ -182,7 +179,7 @@ class AssistantConversationServiceImpl {
   }) {
     this.ensureScope(d);
 
-    let assistant = await assistantService.getAvailableAssistant({
+    let assistant = await assistantService.get({
       tenant: d.tenant,
       assistantId: d.input.assistantId
     });

@@ -16,7 +16,7 @@ export let assistantController = app.controller({
       )
     )
     .do(async ctx => {
-      let paginator = await assistantService.listAvailableAssistants({
+      let paginator = await assistantService.list({
         tenant: ctx.tenant
       });
       let list = await paginator.run(ctx.input);
@@ -34,10 +34,27 @@ export let assistantController = app.controller({
     )
     .do(async ctx =>
       assistantPresenter(
-        await assistantService.getAvailableAssistant({
+        await assistantService.get({
           tenant: ctx.tenant,
           assistantId: ctx.input.assistantId
         })
       )
+    ),
+
+  getMany: tenantWithoutEnvironmentApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        assistantIds: v.array(v.string())
+      })
+    )
+    .do(async ctx =>
+      (
+        await assistantService.getMany({
+          tenant: ctx.tenant,
+          assistantIds: ctx.input.assistantIds
+        })
+      ).map(assistantPresenter)
     )
 });

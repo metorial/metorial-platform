@@ -69,7 +69,7 @@ let assistantMessagePartSchema = v.union([
 let assistantConversationGroup = instanceGroup.use(async ctx => {
   let assistantConversationId = requireParam(ctx.params, 'assistantConversationId');
 
-  let assistantConversation = await assistantConversationService.getAssistantConversationById({
+  let assistantConversation = await assistantConversationService.get({
     organization: ctx.organization,
     instance: ctx.instance,
     ...requireAssistantActor(ctx),
@@ -82,11 +82,11 @@ let assistantConversationGroup = instanceGroup.use(async ctx => {
 let assistantMessageGroup = assistantConversationGroup.use(async ctx => {
   let assistantMessageId = requireParam(ctx.params, 'assistantMessageId');
 
-  let assistantConversationItem = await assistantMessageService.getAssistantMessageById({
+  let assistantConversationItem = await assistantMessageService.get({
     organization: ctx.organization,
     instance: ctx.instance,
     ...requireAssistantActor(ctx),
-    conversation: ctx.assistantConversation,
+    conversationId: ctx.assistantConversation.id,
     messageId: assistantMessageId
   });
 
@@ -113,7 +113,7 @@ export let dashboardAssistantController = Controller.create(
       .query('default', Paginator.validate(v.object({})))
       .outputList(assistantPresenter)
       .do(async ctx => {
-        let paginator = await assistantService.listAvailableAssistants({
+        let paginator = await assistantService.list({
           instance: ctx.instance
         });
         let list = await paginator.run(ctx.query);
@@ -136,7 +136,7 @@ export let dashboardAssistantController = Controller.create(
       .use(requireConsumerTokenForPublishableKey())
       .output(assistantPresenter)
       .do(async ctx => {
-        let assistant = await assistantService.getAvailableAssistant({
+        let assistant = await assistantService.get({
           instance: ctx.instance,
           assistantId: requireParam(ctx.params, 'assistantId')
         });
@@ -169,7 +169,7 @@ export let dashboardAssistantController = Controller.create(
       .outputList(assistantConversationPresenter)
       .do(async ctx => {
         let assistantIds = normalizeArrayParam(ctx.query.assistant_id);
-        let paginator = await assistantConversationService.listAssistantConversations({
+        let paginator = await assistantConversationService.list({
           organization: ctx.organization,
           instance: ctx.instance,
           ...requireAssistantActor(ctx),
@@ -209,16 +209,13 @@ export let dashboardAssistantController = Controller.create(
       )
       .output(assistantConversationPresenter)
       .do(async ctx => {
-        let assistantConversation =
-          await assistantConversationService.createAssistantConversation({
-            organization: ctx.organization,
-            instance: ctx.instance,
-            ...requireAssistantActor(ctx),
-            input: {
-              assistantId: ctx.body.assistant_id,
-              title: ctx.body.title
-            }
-          });
+        let assistantConversation = await assistantConversationService.create({
+          organization: ctx.organization,
+          instance: ctx.instance,
+          ...requireAssistantActor(ctx),
+          assistantId: ctx.body.assistant_id,
+          title: ctx.body.title
+        });
 
         return assistantConversationPresenter.present({
           assistantConversation,
@@ -272,16 +269,13 @@ export let dashboardAssistantController = Controller.create(
       )
       .output(assistantConversationPresenter)
       .do(async ctx => {
-        let assistantConversation =
-          await assistantConversationService.updateAssistantConversation({
-            organization: ctx.organization,
-            instance: ctx.instance,
-            ...requireAssistantActor(ctx),
-            conversation: ctx.assistantConversation,
-            input: {
-              title: ctx.body.title
-            }
-          });
+        let assistantConversation = await assistantConversationService.update({
+          organization: ctx.organization,
+          instance: ctx.instance,
+          ...requireAssistantActor(ctx),
+          conversationId: ctx.assistantConversation.id,
+          title: ctx.body.title
+        });
 
         return assistantConversationPresenter.present({
           assistantConversation,
@@ -313,11 +307,11 @@ export let dashboardAssistantController = Controller.create(
       .query('default', Paginator.validate(v.object({})))
       .outputList(assistantMessagePresenter)
       .do(async ctx => {
-        let paginator = await assistantMessageService.listAssistantMessages({
+        let paginator = await assistantMessageService.list({
           organization: ctx.organization,
           instance: ctx.instance,
           ...requireAssistantActor(ctx),
-          conversation: ctx.assistantConversation
+          conversationId: ctx.assistantConversation.id
         });
         let list = await paginator.run(ctx.query);
 
@@ -359,31 +353,29 @@ export let dashboardAssistantController = Controller.create(
       )
       .output(assistantMessagePresenter)
       .do(async ctx => {
-        let { item } = await assistantRequestService.createAssistantRequest({
+        let { item } = await assistantRequestService.create({
           organization: ctx.organization,
           instance: ctx.instance,
           ...requireAssistantActor(ctx),
-          conversation: ctx.assistantConversation,
-          input: {
-            message: {
-              parts: ctx.body.message.parts.map(part =>
-                part.type == 'text'
-                  ? {
-                      type: 'text' as const,
-                      text: part.text
-                    }
-                  : {
-                      type: 'file' as const,
-                      filename: part.filename,
-                      mediaType: part.media_type,
-                      data: part.data,
-                      encoding: part.encoding
-                    }
-              )
-            },
-            parentMessageId: ctx.body.parent_message_id,
-            modelId: ctx.body.model_id
-          }
+          conversationId: ctx.assistantConversation.id,
+          message: {
+            parts: ctx.body.message.parts.map(part =>
+              part.type == 'text'
+                ? {
+                    type: 'text' as const,
+                    text: part.text
+                  }
+                : {
+                    type: 'file' as const,
+                    filename: part.filename,
+                    mediaType: part.media_type,
+                    data: part.data,
+                    encoding: part.encoding
+                  }
+            )
+          },
+          parentMessageId: ctx.body.parent_message_id,
+          modelId: ctx.body.model_id
         });
 
         return assistantMessagePresenter.present({
