@@ -20,12 +20,13 @@ import type {
 } from '@modelcontextprotocol/sdk/types.js';
 import { RiArrowDownSLine } from '@remixicon/react';
 import { AnimatePresence, motion } from 'framer-motion';
+import Fuse, { type IFuseOptions } from 'fuse.js';
 import { startTransition, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { MarkdownDescription } from './components/markdownDescription';
 import { PromptResultView, ResourceResultView, ToolResultView } from './components/resultView';
 import { NamedArgumentsForm, SchemaForm } from './components/schemaForm';
-import { createExplorerMcpClient, type ExplorerMcpClient } from './lib/mcp/client';
+import { acquireExplorerMcpClient, type ExplorerMcpClient } from './lib/mcp/client';
 import {
   collectPaginatedItems,
   MAX_CURSOR_ITEMS,
@@ -318,11 +319,22 @@ let getErrorMessage = (error: unknown) => {
   return typeof error === 'string' ? error : 'Unknown error';
 };
 
-let normalizeSearchValue = (value: string) => value.trim().toLowerCase();
+let normalizeSearchValue = (value: string) => value.trim();
 
-let matchesNameSearch = (name: string | null | undefined, query: string) => {
-  if (!query) return true;
-  return (name ?? '').toLowerCase().includes(query);
+let searchItems = <T,>(
+  items: T[],
+  query: string,
+  keys: IFuseOptions<T>['keys']
+) => {
+  if (!query) return items;
+
+  let fuse = new Fuse(items, {
+    keys,
+    threshold: 0.35,
+    ignoreLocation: true
+  });
+
+  return fuse.search(query).map(result => result.item);
 };
 
 let getTabLabel = (tab: TabId) => {
@@ -755,6 +767,7 @@ export let ExplorerScene = ({ connection }: ExplorerSceneProps) => {
     }
 
     let cancelled = false;
+    let lease: ReturnType<typeof acquireExplorerMcpClient> | null = null;
 
     let connect = async (params: ParsedConnectionParams) => {
       setStatus('connecting');
@@ -768,10 +781,10 @@ export let ExplorerScene = ({ connection }: ExplorerSceneProps) => {
       setPromptStates({});
 
       try {
-        let client = await createExplorerMcpClient(params);
+        lease = acquireExplorerMcpClient(params);
+        let client = await lease.promise;
 
         if (cancelled) {
-          await client.close();
           return;
         }
 
@@ -797,7 +810,6 @@ export let ExplorerScene = ({ connection }: ExplorerSceneProps) => {
         ]);
 
         if (cancelled) {
-          await client.close();
           return;
         }
 
@@ -824,8 +836,8 @@ export let ExplorerScene = ({ connection }: ExplorerSceneProps) => {
 
     return () => {
       cancelled = true;
-      void clientRef.current?.close();
       clientRef.current = null;
+      lease?.release();
     };
   }, [query]);
 
@@ -1008,22 +1020,28 @@ export let ExplorerScene = ({ connection }: ExplorerSceneProps) => {
   let resourceTemplateSearch = normalizeSearchValue(searchByTab['resource-templates']);
   let promptSearch = normalizeSearchValue(searchByTab.prompts);
 
-  let filteredTools = collections.tools.items.filter(tool =>
-    matchesNameSearch(tool.name, toolSearch)
+  let filteredTools = searchItems(collections.tools.items, toolSearch, [
+    { name: 'name', weight: 1 },
+    { name: 'description', weight: 0.15 }
+  ]);
+  let filteredResources = searchItems(collections.resources.items, resourceSearch, [
+    { name: 'name', weight: 1 },
+    { name: 'uri', weight: 0.7 },
+    { name: 'description', weight: 0.15 }
+  ]);
+  let filteredResourceTemplates = searchItems(
+    collections.resourceTemplates.items,
+    resourceTemplateSearch,
+    [
+      { name: 'name', weight: 1 },
+      { name: 'uriTemplate', weight: 0.7 },
+      { name: 'description', weight: 0.15 }
+    ]
   );
-  let filteredResources = collections.resources.items.filter(resource =>
-    matchesNameSearch(resource.name ?? resource.uri, resourceSearch)
-  );
-  let filteredResourceTemplates = collections.resourceTemplates.items.filter(
-    resourceTemplate =>
-      matchesNameSearch(
-        resourceTemplate.name ?? resourceTemplate.uriTemplate,
-        resourceTemplateSearch
-      )
-  );
-  let filteredPrompts = collections.prompts.items.filter(prompt =>
-    matchesNameSearch(prompt.name, promptSearch)
-  );
+  let filteredPrompts = searchItems(collections.prompts.items, promptSearch, [
+    { name: 'name', weight: 1 },
+    { name: 'description', weight: 0.15 }
+  ]);
 
   let tabs: { id: TabId; label: string }[] = [
     { id: 'tools', label: `Tools [${collections.tools.items.length}]` }

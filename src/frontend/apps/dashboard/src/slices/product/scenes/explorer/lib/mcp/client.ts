@@ -100,3 +100,65 @@ export class ExplorerMcpClient {
 
 export let createExplorerMcpClient = (params: ParsedConnectionParams) =>
   ExplorerMcpClient.create(params);
+
+type SharedExplorerMcpClient = {
+  refs: number;
+  promise: Promise<ExplorerMcpClient>;
+  closeTimer?: ReturnType<typeof setTimeout>;
+};
+
+let sharedClients = new Map<string, SharedExplorerMcpClient>();
+
+let getSharedClientKey = (params: ParsedConnectionParams) =>
+  JSON.stringify({
+    transport: params.transport,
+    url: params.url,
+    token: params.token ?? null
+  });
+
+export let acquireExplorerMcpClient = (params: ParsedConnectionParams) => {
+  let key = getSharedClientKey(params);
+  let shared = sharedClients.get(key);
+
+  if (!shared) {
+    let promise = ExplorerMcpClient.create(params);
+    shared = {
+      refs: 0,
+      promise
+    };
+    sharedClients.set(key, shared);
+
+    promise.catch(() => {
+      if (sharedClients.get(key) === shared) {
+        sharedClients.delete(key);
+      }
+    });
+  }
+
+  if (shared.closeTimer) {
+    clearTimeout(shared.closeTimer);
+    shared.closeTimer = undefined;
+  }
+
+  shared.refs++;
+
+  let released = false;
+  return {
+    promise: shared.promise,
+    release: () => {
+      if (released) return;
+      released = true;
+      shared.refs = Math.max(0, shared.refs - 1);
+
+      if (shared.refs > 0) return;
+
+      // React StrictMode replays effects during development. Delay closing so the
+      // replay can re-acquire the same in-flight/client connection.
+      shared.closeTimer = setTimeout(() => {
+        if (shared.refs > 0) return;
+        sharedClients.delete(key);
+        void shared.promise.then(client => client.close()).catch(() => {});
+      }, 250);
+    }
+  };
+};
