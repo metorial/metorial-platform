@@ -25,6 +25,23 @@ let include = {
 
 export let providerInclude = include;
 
+export let getProviderEnvironmentVisibilityFilter = (d: { environment?: Environment }) =>
+  d.environment
+    ? {
+        OR: [
+          { hasEnvironments: false },
+          {
+            providerEnvironments: {
+              some: {
+                environmentOid: d.environment.oid,
+                currentVersionOid: { not: null }
+              }
+            }
+          }
+        ]
+      }
+    : undefined!;
+
 export let getProviderTenantFilter = (d: {
   solution: Solution;
   tenant?: Tenant;
@@ -33,6 +50,7 @@ export let getProviderTenantFilter = (d: {
 }) => ({
   AND: [
     d.includeDeprecated ? undefined! : { isDeprecated: false },
+    getProviderEnvironmentVisibilityFilter(d),
     {
       OR: [
         { access: 'public' as const },

@@ -29,6 +29,43 @@ let include = {
   }
 };
 
+let customProviderEnvironmentScopeFilter = (d: {
+  environment: Environment;
+  includeUnpublished?: boolean;
+  includeOtherEnvironments?: boolean;
+}) => ({
+  AND: [
+    d.includeOtherEnvironments === false ? { environmentOid: d.environment.oid } : undefined!,
+    d.includeUnpublished
+      ? undefined!
+      : {
+          customProvider: {
+            is: {
+              customProviderEnvironments: {
+                some: {
+                  environmentOid: d.environment.oid,
+                  OR: [
+                    {
+                      providerEnvironment: {
+                        is: {
+                          currentVersionOid: { not: null }
+                        }
+                      }
+                    },
+                    {
+                      customProviderEnvironmentVersions: {
+                        some: {}
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+  ].filter(Boolean)
+});
+
 class customProviderEnvironmentServiceImpl {
   async listCustomProviderEnvironments(d: {
     tenant: Tenant;
@@ -58,6 +95,7 @@ class customProviderEnvironmentServiceImpl {
               solutionOid: d.solution.oid,
 
               AND: [
+                customProviderEnvironmentScopeFilter(d),
                 {
                   customProvider: {
                     is: {
@@ -91,12 +129,15 @@ class customProviderEnvironmentServiceImpl {
     solution: Solution;
     environment: Environment;
     customProviderEnvironmentId: string;
+    includeUnpublished?: boolean;
+    includeOtherEnvironments?: boolean;
   }) {
     let customProviderEnvironment = await db.customProviderEnvironment.findFirst({
       where: {
         id: d.customProviderEnvironmentId,
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid
+        solutionOid: d.solution.oid,
+        AND: [customProviderEnvironmentScopeFilter(d)]
       },
       include
     });

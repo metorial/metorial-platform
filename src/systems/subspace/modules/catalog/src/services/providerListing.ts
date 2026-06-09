@@ -12,7 +12,11 @@ import {
 } from '@metorial-subspace/list-utils';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
 import type { ProviderCapabilityFilter } from './provider';
-import { getProviderCapabilityFilter, providerInclude } from './provider';
+import {
+  getProviderCapabilityFilter,
+  getProviderEnvironmentVisibilityFilter,
+  providerInclude
+} from './provider';
 
 export type ProviderListingOrderByUse =
   | 'deployments'
@@ -83,7 +87,13 @@ class ProviderListingService {
                   }
                 : undefined!
             ].filter(Boolean)
-          }
+          },
+
+          d.environment
+            ? {
+                provider: getProviderEnvironmentVisibilityFilter(d)
+              }
+            : undefined!
         ].filter(Boolean)
       },
       include: getInclude(d.tenant, d.solution)
@@ -192,6 +202,11 @@ class ProviderListingService {
                     : undefined!
                 ].filter(Boolean)
               },
+              d.environment
+                ? {
+                    provider: getProviderEnvironmentVisibilityFilter(d)
+                  }
+                : undefined!,
 
               // d.tenant.onlyIncludeVerifiedOfficialOrFromTenant
               //   ? {

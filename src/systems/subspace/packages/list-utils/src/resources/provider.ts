@@ -1,6 +1,59 @@
 import { db } from '@metorial-subspace/db';
 import { createOptionalResolver, createPublicResolver, createResolver } from '../resolver';
 
+let providerEnvironmentVisibilityFilter = (environmentOid?: bigint) =>
+  environmentOid
+    ? {
+        OR: [
+          { hasEnvironments: false },
+          {
+            providerEnvironments: {
+              some: {
+                environmentOid,
+                currentVersionOid: { not: null }
+              }
+            }
+          }
+        ]
+      }
+    : undefined!;
+
+let providerVersionEnvironmentVisibilityFilter = (environmentOid?: bigint) =>
+  environmentOid
+    ? {
+        OR: [
+          { isEnvironmentLocked: false },
+          {
+            providerEnvironmentVersions: {
+              some: { environmentOid }
+            }
+          }
+        ]
+      }
+    : undefined!;
+
+let customProviderManagementVisibilityFilter = (environmentOid: bigint) => ({
+  customProviderEnvironments: {
+    some: {
+      environmentOid,
+      OR: [
+        {
+          providerEnvironment: {
+            is: {
+              currentVersionOid: { not: null }
+            }
+          }
+        },
+        {
+          customProviderEnvironmentVersions: {
+            some: {}
+          }
+        }
+      ]
+    }
+  }
+});
+
 export let resolveProviders = createOptionalResolver(async ({ ts, ids }) =>
   db.provider.findMany({
     where: {
@@ -27,6 +80,7 @@ export let resolveProviders = createOptionalResolver(async ({ ts, ids }) =>
               : undefined!
           ].filter(Boolean)
         },
+        providerEnvironmentVisibilityFilter(ts.environmentOid)
       ].filter(Boolean)
     },
     select: { oid: true }
@@ -37,17 +91,23 @@ export let resolveProviderVersions = createOptionalResolver(async ({ ts, ids }) 
   db.providerVersion.findMany({
     where: {
       id: { in: ids },
+      AND: [providerVersionEnvironmentVisibilityFilter(ts.environmentOid)].filter(Boolean),
 
       provider: {
-        OR: [
-          { access: 'public' as const },
-          ts.tenantOid && ts.solutionOid
-            ? {
-                access: 'tenant' as const,
-                ownerTenantOid: ts.tenantOid,
-                ownerSolutionOid: ts.solutionOid
-              }
-            : undefined!
+        AND: [
+          {
+            OR: [
+              { access: 'public' as const },
+              ts.tenantOid && ts.solutionOid
+                ? {
+                    access: 'tenant' as const,
+                    ownerTenantOid: ts.tenantOid,
+                    ownerSolutionOid: ts.solutionOid
+                  }
+                : undefined!
+            ].filter(Boolean)
+          },
+          providerEnvironmentVisibilityFilter(ts.environmentOid)
         ].filter(Boolean)
       }
     },
@@ -66,15 +126,20 @@ export let resolveProviderListings = createOptionalResolver(async ({ ts, ids }) 
       ],
 
       provider: {
-        OR: [
-          { access: 'public' as const },
-          ts.tenantOid && ts.solutionOid
-            ? {
-                access: 'tenant' as const,
-                ownerTenantOid: ts.tenantOid,
-                ownerSolutionOid: ts.solutionOid
-              }
-            : undefined!
+        AND: [
+          {
+            OR: [
+              { access: 'public' as const },
+              ts.tenantOid && ts.solutionOid
+                ? {
+                    access: 'tenant' as const,
+                    ownerTenantOid: ts.tenantOid,
+                    ownerSolutionOid: ts.solutionOid
+                  }
+                : undefined!
+            ].filter(Boolean)
+          },
+          providerEnvironmentVisibilityFilter(ts.environmentOid)
         ].filter(Boolean)
       }
     },
@@ -132,14 +197,19 @@ export let resolveProviderSpecifications = createResolver(async ({ ts, ids }) =>
   db.providerSpecification.findMany({
     where: {
       provider: {
-        OR: [
-          { access: 'public' as const },
+        AND: [
           {
-            access: 'tenant' as const,
-            ownerTenantOid: ts.tenantOid,
-            ownerSolutionOid: ts.solutionOid
-          }
-        ]
+            OR: [
+              { access: 'public' as const },
+              {
+                access: 'tenant' as const,
+                ownerTenantOid: ts.tenantOid,
+                ownerSolutionOid: ts.solutionOid
+              }
+            ]
+          },
+          providerEnvironmentVisibilityFilter(ts.environmentOid)
+        ].filter(Boolean)
       },
 
       id: { in: ids }
@@ -152,15 +222,20 @@ export let resolveAuthMethods = createResolver(async ({ ts, ids }) =>
   db.providerAuthMethod.findMany({
     where: {
       provider: {
-        OR: [
-          { access: 'public' as const },
-          ts.tenantOid && ts.solutionOid
-            ? {
-                access: 'tenant' as const,
-                ownerTenantOid: ts.tenantOid,
-                ownerSolutionOid: ts.solutionOid
-              }
-            : undefined!
+        AND: [
+          {
+            OR: [
+              { access: 'public' as const },
+              ts.tenantOid && ts.solutionOid
+                ? {
+                    access: 'tenant' as const,
+                    ownerTenantOid: ts.tenantOid,
+                    ownerSolutionOid: ts.solutionOid
+                  }
+                : undefined!
+            ].filter(Boolean)
+          },
+          providerEnvironmentVisibilityFilter(ts.environmentOid)
         ].filter(Boolean)
       },
 
@@ -174,15 +249,20 @@ export let resolveAuthMethodsGlobal = createResolver(async ({ ts, ids }) =>
   db.providerAuthMethodGlobal.findMany({
     where: {
       provider: {
-        OR: [
-          { access: 'public' as const },
-          ts.tenantOid && ts.solutionOid
-            ? {
-                access: 'tenant' as const,
-                ownerTenantOid: ts.tenantOid,
-                ownerSolutionOid: ts.solutionOid
-              }
-            : undefined!
+        AND: [
+          {
+            OR: [
+              { access: 'public' as const },
+              ts.tenantOid && ts.solutionOid
+                ? {
+                    access: 'tenant' as const,
+                    ownerTenantOid: ts.tenantOid,
+                    ownerSolutionOid: ts.solutionOid
+                  }
+                : undefined!
+            ].filter(Boolean)
+          },
+          providerEnvironmentVisibilityFilter(ts.environmentOid)
         ].filter(Boolean)
       },
 
@@ -197,7 +277,8 @@ export let resolveCustomProviders = createResolver(async ({ ts, ids }) =>
     where: {
       id: { in: ids },
       solutionOid: ts.solutionOid,
-      tenantOid: ts.tenantOid
+      tenantOid: ts.tenantOid,
+      AND: [customProviderManagementVisibilityFilter(ts.environmentOid)]
     },
     select: { oid: true }
   })
@@ -219,7 +300,8 @@ export let resolveCustomProviderVersions = createResolver(async ({ ts, ids }) =>
     where: {
       id: { in: ids },
       solutionOid: ts.solutionOid,
-      tenantOid: ts.tenantOid
+      tenantOid: ts.tenantOid,
+      customProvider: customProviderManagementVisibilityFilter(ts.environmentOid)
     },
     select: { oid: true }
   })
@@ -229,7 +311,9 @@ export let resolveCustomProviderEnvironments = createResolver(async ({ ts, ids }
   db.customProviderEnvironment.findMany({
     where: {
       id: { in: ids },
-      tenantOid: ts.tenantOid
+      tenantOid: ts.tenantOid,
+      solutionOid: ts.solutionOid,
+      customProvider: customProviderManagementVisibilityFilter(ts.environmentOid)
     },
     select: { oid: true }
   })

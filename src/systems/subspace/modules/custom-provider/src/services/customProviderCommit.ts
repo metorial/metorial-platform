@@ -6,13 +6,15 @@ import {
   type CustomProviderCommitTrigger,
   type CustomProviderEnvironment,
   type CustomProviderVersion,
+  addAfterTransactionHook,
   db,
   type Environment,
   getId,
   type ScmRepoPush,
   type Solution,
   type Tenant,
-  type TenantActor
+  type TenantActor,
+  withTransaction
 } from '@metorial-subspace/db';
 import {
   type DateFilter,
@@ -23,6 +25,7 @@ import {
   resolveProviders
 } from '@metorial-subspace/list-utils';
 import { checkTenant } from '@metorial-subspace/module-tenant';
+import { commitApplyQueue } from '../queues/commit/apply';
 
 let envInclude = {
   include: {
@@ -106,146 +109,152 @@ class customProviderCommitServiceImpl {
           };
     };
   }) {
-    let dataBase = {
-      ...getId('customProviderCommit'),
+    return await withTransaction(async db => {
+      let dataBase = {
+        ...getId('customProviderCommit'),
 
-      status: 'pending' as const,
-      trigger: d._internal?.trigger ?? ('manual' as const),
-      type: d.input.action.type,
+        status: 'pending' as const,
+        trigger: d._internal?.trigger ?? ('manual' as const),
+        type: d.input.action.type,
 
-      message: d.input.message,
+        message: d.input.message,
 
-      scmRepoPushOid: d._internal?.scmPush?.oid,
+        scmRepoPushOid: d._internal?.scmPush?.oid,
 
-      tenantOid: d.tenant.oid,
-      solutionOid: d.solution.oid,
-      creatorActorOid: d.actor.oid
-    };
+        tenantOid: d.tenant.oid,
+        solutionOid: d.solution.oid,
+        creatorActorOid: d.actor.oid
+      };
 
-    let commit: CustomProviderCommit;
+      let commit: CustomProviderCommit;
 
-    if (d.input.action.type === 'rollback_to_version') {
-      checkTenant(d, d.input.action.environment);
-      checkTenant(d, d.input.action.version);
+      if (d.input.action.type === 'rollback_to_version') {
+        checkTenant(d, d.input.action.environment);
+        checkTenant(d, d.input.action.version);
 
-      let action = d.input.action;
-      if (action.environment.customProviderOid !== action.version.customProviderOid) {
-        throw new ServiceError(
-          badRequestError({
-            message: 'Environment and version must belong to the same custom provider.'
-          })
-        );
-      }
-
-      if (action.version.status !== 'deployment_succeeded') {
-        throw new ServiceError(
-          badRequestError({
-            message: 'Can only rollback to a version that has been successfully deployed.'
-          })
-        );
-      }
-
-      commit = await db.customProviderCommit.create({
-        data: {
-          ...dataBase,
-
-          toEnvironmentOid: d.input.action.environment.oid,
-
-          // Flip the versions
-          toEnvironmentVersionBeforeOid: action.version.oid,
-          targetCustomProviderVersionOid: action.version.oid,
-
-          customProviderOid: action.version.customProviderOid
+        let action = d.input.action;
+        if (action.environment.customProviderOid !== action.version.customProviderOid) {
+          throw new ServiceError(
+            badRequestError({
+              message: 'Environment and version must belong to the same custom provider.'
+            })
+          );
         }
-      });
-    } else if (d.input.action.type === 'merge_version_into_environment') {
-      checkTenant(d, d.input.action.fromEnvironment);
-      checkTenant(d, d.input.action.toEnvironment);
 
-      let action = d.input.action;
+        if (action.version.status !== 'deployment_succeeded') {
+          throw new ServiceError(
+            badRequestError({
+              message: 'Can only rollback to a version that has been successfully deployed.'
+            })
+          );
+        }
 
-      if (action.toEnvironment.oid === action.fromEnvironment.oid) {
-        throw new ServiceError(
-          badRequestError({
-            message: 'Cannot merge version into the same environment.'
-          })
-        );
-      }
-      if (
-        action.toEnvironment.customProviderOid !== action.fromEnvironment.customProviderOid
-      ) {
-        throw new ServiceError(
-          badRequestError({
-            message: 'From and to environments must belong to the same custom provider.'
-          })
-        );
-      }
+        commit = await db.customProviderCommit.create({
+          data: {
+            ...dataBase,
 
-      let toEnvironmentFull = await db.customProviderEnvironment.findUniqueOrThrow({
-        where: { oid: action.toEnvironment.oid },
-        include: {
-          providerEnvironment: {
-            include: {
-              currentVersion: {
-                include: { customProviderVersion: true }
+            toEnvironmentOid: d.input.action.environment.oid,
+
+            // Flip the versions
+            toEnvironmentVersionBeforeOid: action.version.oid,
+            targetCustomProviderVersionOid: action.version.oid,
+
+            customProviderOid: action.version.customProviderOid
+          }
+        });
+      } else if (d.input.action.type === 'merge_version_into_environment') {
+        checkTenant(d, d.input.action.fromEnvironment);
+        checkTenant(d, d.input.action.toEnvironment);
+
+        let action = d.input.action;
+
+        if (action.toEnvironment.oid === action.fromEnvironment.oid) {
+          throw new ServiceError(
+            badRequestError({
+              message: 'Cannot merge version into the same environment.'
+            })
+          );
+        }
+        if (
+          action.toEnvironment.customProviderOid !== action.fromEnvironment.customProviderOid
+        ) {
+          throw new ServiceError(
+            badRequestError({
+              message: 'From and to environments must belong to the same custom provider.'
+            })
+          );
+        }
+
+        let toEnvironmentFull = await db.customProviderEnvironment.findUniqueOrThrow({
+          where: { oid: action.toEnvironment.oid },
+          include: {
+            providerEnvironment: {
+              include: {
+                currentVersion: {
+                  include: { customProviderVersion: true }
+                }
               }
             }
           }
-        }
-      });
-      let fromEnvironmentFull = await db.customProviderEnvironment.findUniqueOrThrow({
-        where: { oid: action.fromEnvironment.oid },
-        include: {
-          providerEnvironment: {
-            include: {
-              currentVersion: {
-                include: { customProviderVersion: true }
+        });
+        let fromEnvironmentFull = await db.customProviderEnvironment.findUniqueOrThrow({
+          where: { oid: action.fromEnvironment.oid },
+          include: {
+            providerEnvironment: {
+              include: {
+                currentVersion: {
+                  include: { customProviderVersion: true }
+                }
               }
             }
           }
+        });
+
+        let toVersion =
+          toEnvironmentFull.providerEnvironment?.currentVersion?.customProviderVersion;
+        let fromVersion =
+          fromEnvironmentFull.providerEnvironment?.currentVersion?.customProviderVersion;
+
+        if (!fromVersion) {
+          throw new ServiceError(
+            badRequestError({
+              message: 'From environment has no version to merge from.'
+            })
+          );
         }
-      });
-
-      let toVersion =
-        toEnvironmentFull.providerEnvironment?.currentVersion?.customProviderVersion;
-      let fromVersion =
-        fromEnvironmentFull.providerEnvironment?.currentVersion?.customProviderVersion;
-
-      if (!fromVersion) {
-        throw new ServiceError(
-          badRequestError({
-            message: 'From environment has no version to merge from.'
-          })
-        );
-      }
-      if (toVersion && toVersion.oid === fromVersion.oid) {
-        throw new ServiceError(
-          badRequestError({
-            message: 'To environment is already at the same version as from environment.'
-          })
-        );
-      }
-
-      commit = await db.customProviderCommit.create({
-        data: {
-          ...dataBase,
-
-          fromEnvironmentOid: action.fromEnvironment.oid,
-          toEnvironmentOid: action.toEnvironment.oid,
-
-          toEnvironmentVersionBeforeOid: toVersion ? toVersion.oid : null,
-          targetCustomProviderVersionOid: fromVersion.oid,
-
-          customProviderOid: fromVersion.customProviderOid
+        if (toVersion && toVersion.oid === fromVersion.oid) {
+          throw new ServiceError(
+            badRequestError({
+              message: 'To environment is already at the same version as from environment.'
+            })
+          );
         }
-      });
-    } else {
-      throw new Error('Unhandled action type');
-    }
 
-    return await db.customProviderCommit.findUniqueOrThrow({
-      where: { oid: commit.oid },
-      include
+        commit = await db.customProviderCommit.create({
+          data: {
+            ...dataBase,
+
+            fromEnvironmentOid: action.fromEnvironment.oid,
+            toEnvironmentOid: action.toEnvironment.oid,
+
+            toEnvironmentVersionBeforeOid: toVersion ? toVersion.oid : null,
+            targetCustomProviderVersionOid: fromVersion.oid,
+
+            customProviderOid: fromVersion.customProviderOid
+          }
+        });
+      } else {
+        throw new Error('Unhandled action type');
+      }
+
+      await addAfterTransactionHook(() =>
+        commitApplyQueue.add({ customProviderCommitId: commit.id })
+      );
+
+      return await db.customProviderCommit.findUniqueOrThrow({
+        where: { oid: commit.oid },
+        include
+      });
     });
   }
 

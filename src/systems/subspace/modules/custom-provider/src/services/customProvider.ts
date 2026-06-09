@@ -69,6 +69,28 @@ let include = {
   draftCodeBucket: { include: { scmRepo: true } }
 };
 
+let customProviderEnvironmentVisibilityFilter = (environment: Environment) => ({
+  customProviderEnvironments: {
+    some: {
+      environmentOid: environment.oid,
+      OR: [
+        {
+          providerEnvironment: {
+            is: {
+              currentVersionOid: { not: null }
+            }
+          }
+        },
+        {
+          customProviderEnvironmentVersions: {
+            some: {}
+          }
+        }
+      ]
+    }
+  }
+});
+
 class customProviderServiceImpl {
   async enrichCustomProviders<
     T extends CustomProvider & {
@@ -140,6 +162,7 @@ class customProviderServiceImpl {
             ...normalizeStatusForList(d).noParent,
 
             AND: [
+              customProviderEnvironmentVisibilityFilter(d.environment),
               d.type ? { type: { in: d.type } } : undefined!,
               d.ids ? { id: { in: d.ids } } : undefined!,
               search ? { id: { in: search.map(r => r.documentId) } } : undefined!,
@@ -173,7 +196,8 @@ class customProviderServiceImpl {
         ],
         tenantOid: d.tenant.oid,
         solutionOid: d.solution.oid,
-        ...normalizeStatusForGet(d).noParent
+        ...normalizeStatusForGet(d).noParent,
+        AND: [customProviderEnvironmentVisibilityFilter(d.environment)]
       },
       include
     });
