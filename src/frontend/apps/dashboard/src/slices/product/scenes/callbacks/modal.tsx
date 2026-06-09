@@ -1,317 +1,163 @@
 import type { DashboardInstanceCallbacksCreateOutput } from '@metorial/dashboard-sdk';
-import { useForm } from '@metorial/data-hooks';
-import { useCreateCallback, useProvider, useProviderDeployment } from '@metorial/state';
 import {
-  Button,
-  Callout,
-  CenteredSpinner,
-  Dialog,
-  Input,
-  Spacer,
-  Text,
-  showModal
-} from '@metorial/ui';
-import { type ReactNode, useState } from 'react';
-import { ProviderContextCard } from '../providerContextCard';
-import { ProviderDeploymentsList } from '../providerDeployments/list';
-import { ProvidersWithDeploymentsSearch } from '../providers/search';
-import { Stepper } from '../../../../components/stepper';
+  useCreateCallback,
+  useCreateProviderDeployment,
+  useProvider,
+  useProviderDeployments
+} from '@metorial/state';
+import { useEffect, useRef, useState } from 'react';
+import {
+  ProviderCreationPanelShell,
+  ProviderSelectionStep,
+  showProviderCreationPanel
+} from '../providerCreationPanel';
 
-let DIALOG_EXIT_MS = 220;
-
-let closeAndThen = (close: () => void, next?: () => void) => {
-  close();
-  if (!next) return;
-  setTimeout(() => next(), DIALOG_EXIT_MS);
+let getCallbackGeneratedName = (providerName: string | null | undefined, providerId: string) => {
+  return `${providerName?.trim() || providerId} Callback`;
 };
 
-let PickerDialogScaffold = ({
-  title,
-  description,
-  close,
-  onBack,
-  children
-}: {
-  title: string;
-  description: string;
-  close: () => void;
-  onBack?: () => void;
-  children: ReactNode;
-}) => (
-  <>
-    <Dialog.Title>{title}</Dialog.Title>
-    <Dialog.Description>{description}</Dialog.Description>
-
-    <Spacer size={10} />
-
-    {children}
-
-    {onBack && (
-      <>
-        <Spacer size={10} />
-
-        <Dialog.Actions>
-          <Button
-            size="2"
-            variant="outline"
-            onClick={() => {
-              closeAndThen(close, onBack);
-            }}
-          >
-            Back
-          </Button>
-        </Dialog.Actions>
-      </>
-    )}
-  </>
-);
-
-let CallbackDeploymentPicker = (p: {
-  providerId: string;
-  close: () => void;
-  onSelect: (deploymentId: string) => void;
-  onBack?: () => void;
-}) => (
-  <PickerDialogScaffold
-    title="Select Deployment"
-    description="Choose a deployment to create a callback for."
-    close={p.close}
-    onBack={p.onBack}
-  >
-    <ProviderDeploymentsList
-      providerId={p.providerId}
-      searchable
-      compact
-      columns={3}
-      limit={18}
-      sectionLabel="Deployments"
-      emptyText="No deployments found for this provider."
-      onDeploymentClick={deployment => {
-        closeAndThen(p.close, () => p.onSelect(deployment.id));
-      }}
-    />
-  </PickerDialogScaffold>
-);
-
-let CallbackProviderPicker = (p: {
+let CallbackCreatePanelFlow = (p: {
   instanceId: string;
   close: () => void;
-  onSelect: (providerId: string) => void;
-}) => (
-  <PickerDialogScaffold
-    title="Create Callback"
-    description="Select a provider that already has a deployment."
-    close={p.close}
-  >
-    <ProvidersWithDeploymentsSearch
-      instanceId={p.instanceId}
-      columns={3}
-      limit={18}
-      emptyText="No providers with deployments found. Create a deployment first."
-      onSelect={provider => {
-        closeAndThen(p.close, () => p.onSelect(provider.id));
-      }}
-    />
-  </PickerDialogScaffold>
-);
-
-let showPickerModal = (children: (d: { close: () => void }) => ReactNode) =>
-  showModal(({ dialogProps, close }) => (
-    <Dialog.Wrapper {...dialogProps} width={550}>
-      {children({ close })}
-    </Dialog.Wrapper>
-  ));
-
-let CallbackCreateModalContent = (p: {
-  instanceId: string;
-  providerId: string;
-  providerDeploymentId: string;
-  close: () => void;
+  setPanelWidth: (width: number) => void;
   onCreate?: (callback: DashboardInstanceCallbacksCreateOutput) => void;
-  onBack?: () => void;
 }) => {
+  let { close, instanceId, onCreate, setPanelWidth } = p;
+  let [selectedProviderId, setSelectedProviderId] = useState<string | null>(null);
+  let [creatingProviderId, setCreatingProviderId] = useState<string | null>(null);
+  let createAttemptedProviderIdRef = useRef<string | null>(null);
+  let createDeployment = useCreateProviderDeployment();
   let createCallback = useCreateCallback();
-  let deployment = useProviderDeployment(p.instanceId, p.providerDeploymentId);
-  let provider = useProvider(p.instanceId, p.providerId);
-  let [step, setStep] = useState(0);
-  let form = useForm({
-    initialValues: {
-      name: '',
-      description: ''
-    },
-    onSubmit: async values => {
+  let provider = useProvider(instanceId, creatingProviderId);
+  let deployments = useProviderDeployments(
+    creatingProviderId ? instanceId : null,
+    creatingProviderId
+      ? {
+          providerId: creatingProviderId,
+          limit: 100
+        }
+      : undefined
+  );
+  let selectedDeployment =
+    deployments.data?.items.find(deployment => deployment.isDefault) ??
+    deployments.data?.items[0];
+
+  useEffect(() => {
+    setPanelWidth(1100);
+  }, [setPanelWidth]);
+
+  useEffect(() => {
+    if (!creatingProviderId) return;
+    if (createAttemptedProviderIdRef.current === creatingProviderId) return;
+    if (deployments.isLoading || provider.isLoading) return;
+    if (!provider.data) {
+      setCreatingProviderId(null);
+      return;
+    }
+
+    createAttemptedProviderIdRef.current = creatingProviderId;
+
+    let create = async () => {
+      let providerDeploymentId = selectedDeployment?.id;
+
+      if (!providerDeploymentId) {
+        let [deployment] = await createDeployment.mutate({
+          instanceId,
+          providerId: creatingProviderId,
+          name: `${provider.data!.name ?? creatingProviderId} Deployment`
+        });
+
+        providerDeploymentId = deployment?.id;
+      }
+
+      if (!providerDeploymentId) {
+        setCreatingProviderId(null);
+        return;
+      }
+
       let [result] = await createCallback.mutate({
-        instanceId: p.instanceId,
-        name: values.name.trim(),
-        description: values.description?.trim() || undefined,
-        providerDeploymentId: p.providerDeploymentId
+        instanceId,
+        name: getCallbackGeneratedName(provider.data!.name, creatingProviderId),
+        providerDeploymentId
       });
 
-      if (!result) return;
+      if (!result) {
+        setCreatingProviderId(null);
+        return;
+      }
 
-      p.onCreate?.(result);
-      p.close();
-    },
-    schema: yup =>
-      yup.object({
-        name: yup.string().trim().required('Enter a name'),
-        description: yup.string().optional()
-      })
-  });
+      onCreate?.(result);
+      close();
+    };
 
-  if (deployment.isLoading || provider.isLoading) {
-    return <CenteredSpinner />;
-  }
-
-  if (!deployment.data || !provider.data) {
-    return (
-      <>
-        <Callout color="gray">
-          Could not resolve the selected provider deployment. Please try again.
-        </Callout>
-
-        <Spacer size={15} />
-
-        <Dialog.Actions>
-          <Button variant="outline" onClick={p.onBack ?? p.close}>
-            Back
-          </Button>
-        </Dialog.Actions>
-      </>
-    );
-  }
-
-  let providerContext = (
-    <ProviderContextCard
-      providerId={provider.data.id}
-      providerName={provider.data.name}
-      providerImageUrl={provider.data.publisher.imageUrl}
-      deploymentName={deployment.data.name}
-      deploymentDescription={deployment.data.description}
-    />
-  );
+    void create();
+  }, [
+    createCallback,
+    createDeployment,
+    creatingProviderId,
+    deployments.isLoading,
+    close,
+    instanceId,
+    onCreate,
+    provider.data,
+    provider.isLoading,
+    selectedDeployment?.id
+  ]);
 
   let steps = [
     {
-      title: 'Provider',
-      subtitle: 'Confirm deployment',
+      title: 'Select Provider',
       render: () => (
         <>
-          {providerContext}
+          <ProviderSelectionStep
+            instanceId={instanceId}
+            limit={30}
+            emptyText="No callback-capable providers found."
+            internalScrollHeight="calc(100vh - 260px)"
+            prioritizeProvidersWithDeployments={false}
+            selectedProviderId={selectedProviderId ?? undefined}
+            creatingProviderId={creatingProviderId ?? undefined}
+            selectionDisabled={!!creatingProviderId}
+            providerListingsFilter={{
+              capabilities: {
+                supportsCallbacks: true
+              }
+            }}
+            onSelect={providerId => {
+              if (creatingProviderId) return;
+              setSelectedProviderId(providerId);
+              setCreatingProviderId(providerId);
+            }}
+          />
 
-          <Spacer size={15} />
-
-          <Callout color="gray">
-            Create the callback now, then add destinations and triggers from the callback
-            details page.
-          </Callout>
-
-          <Spacer size={15} />
-
-          <Dialog.Actions>
-            <Button variant="outline" onClick={p.onBack ?? p.close}>
-              Back
-            </Button>
-            <Button onClick={() => setStep(1)}>Continue</Button>
-          </Dialog.Actions>
-        </>
-      )
-    },
-    {
-      title: 'Details',
-      subtitle: 'Name and create',
-      render: () => (
-        <form onSubmit={form.handleSubmit}>
-          {providerContext}
-
-          <Spacer size={15} />
-
-          <Input label="Name" required {...form.getFieldProps('name')} />
-          <form.RenderError field="name" />
-
-          <Spacer size={15} />
-
-          <Input label="Description" {...form.getFieldProps('description')} />
-          <form.RenderError field="description" />
-
-          <Spacer size={15} />
-
-          <Text size="1" color="gray600">
-            Destinations and triggers can be configured after the callback is created.
-          </Text>
-
-          <Spacer size={20} />
-
-          <Dialog.Actions>
-            <Button type="button" variant="outline" onClick={() => setStep(0)}>
-              Back
-            </Button>
-            <Button
-              type="submit"
-              loading={createCallback.isLoading}
-              success={createCallback.isSuccess}
-            >
-              Create Callback
-            </Button>
-          </Dialog.Actions>
-
+          <createDeployment.RenderError />
           <createCallback.RenderError />
-        </form>
+        </>
       )
     }
   ];
 
-  return <Stepper steps={steps} currentStep={step} setCurrentStep={setStep} />;
+  return (
+    <ProviderCreationPanelShell
+      title="Create Callback"
+      description="Select a callback-capable provider to create a callback."
+      steps={steps}
+      currentStep={0}
+      setCurrentStep={() => {}}
+      hideStepper
+    />
+  );
 };
-
-let showCallbackCreateModal = (p: {
-  instanceId: string;
-  providerId: string;
-  providerDeploymentId: string;
-  onCreate?: (callback: DashboardInstanceCallbacksCreateOutput) => void;
-  onBack?: () => void;
-}) =>
-  showModal(({ dialogProps, close }) => (
-    <Dialog.Wrapper {...dialogProps} width={700}>
-      <Dialog.Title>Create Callback</Dialog.Title>
-      <Dialog.Description>
-        Create a callback for the selected deployed provider. Destinations and triggers can be
-        attached after creation.
-      </Dialog.Description>
-
-      <CallbackCreateModalContent {...p} close={close} />
-    </Dialog.Wrapper>
-  ));
 
 export let showCallbackFormModal = (p: {
   instanceId: string;
   onCreate?: (callback: DashboardInstanceCallbacksCreateOutput) => void;
-}) => {
-  let showDeploymentStep = (providerId: string) =>
-    showPickerModal(({ close }) => (
-      <CallbackDeploymentPicker
-        providerId={providerId}
-        close={close}
-        onBack={() => showCallbackFormModal(p)}
-        onSelect={deploymentId =>
-          showCallbackCreateModal({
-            instanceId: p.instanceId,
-            providerId,
-            providerDeploymentId: deploymentId,
-            onBack: () => showDeploymentStep(providerId),
-            onCreate: p.onCreate
-          })
-        }
-      />
-    ));
-
-  return showPickerModal(({ close }) => (
-    <CallbackProviderPicker
+}) =>
+  showProviderCreationPanel(({ close, setWidth }) => (
+    <CallbackCreatePanelFlow
       instanceId={p.instanceId}
       close={close}
-      onSelect={providerId => {
-        showDeploymentStep(providerId);
-      }}
+      setPanelWidth={setWidth}
+      onCreate={p.onCreate}
     />
   ));
-};

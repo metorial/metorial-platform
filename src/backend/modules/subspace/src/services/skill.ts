@@ -85,6 +85,7 @@ export let getVisibleSkillWhere = (d: {
   let groupOids = d.consumerGroups.map(group => group.oid);
 
   return {
+    status: 'active' as const,
     OR: [
       {
         createdByConsumerProfileOid: d.consumerProfile.oid

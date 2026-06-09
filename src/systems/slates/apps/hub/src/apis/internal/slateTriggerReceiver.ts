@@ -67,7 +67,6 @@ export let slateTriggerReceiverController = app.controller({
           name: v.optional(v.string()),
           description: v.optional(v.string()),
           eventTypes: v.optional(v.array(v.string())),
-          destinations: v.array(v.string()),
           triggers: v.array(
             v.object({
               triggerId: v.string(),
@@ -98,7 +97,6 @@ export let slateTriggerReceiverController = app.controller({
           name: ctx.input.name,
           description: ctx.input.description,
           eventTypes: ctx.input.eventTypes,
-          destinations: ctx.input.destinations,
           triggers: ctx.input.triggers
         }
       });
@@ -126,7 +124,6 @@ export let slateTriggerReceiverController = app.controller({
         name: v.optional(v.nullable(v.string())),
         description: v.optional(v.nullable(v.string())),
         eventTypes: v.optional(v.array(v.string())),
-        destinations: v.optional(v.array(v.string())),
         triggers: v.optional(
           v.array(
             v.object({
@@ -148,7 +145,6 @@ export let slateTriggerReceiverController = app.controller({
           name: ctx.input.name,
           description: ctx.input.description,
           eventTypes: ctx.input.eventTypes,
-          destinations: ctx.input.destinations,
           triggers: ctx.input.triggers
         }
       });

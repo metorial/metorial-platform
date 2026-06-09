@@ -111,7 +111,7 @@ let useIntegrationInstancesTableState = (
   let instances = useIntegrationInstances(props.instanceId, {
     integrationId: props.integration.id,
     order: 'desc',
-    status: getStatusFilterValue(opts.filter.status) ?? ['draft', 'active', 'archived'],
+    status: getStatusFilterValue(opts.filter.status) ?? ['active'],
     id: getStringFilterValue(opts.filter.id),
     integrationProviderId: getStringFilterValue(opts.filter.integrationProviderId),
     identityId: getStringFilterValue(opts.filter.identityId),

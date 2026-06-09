@@ -6,9 +6,7 @@ import type {
   SlateAuthConfig,
   SlateInstance,
   SlateInstanceConfig,
-  SlateTriggerDestination,
   SlateTriggerReceiver,
-  SlateTriggerReceiverDestination,
   SlateTriggerReceiverTrigger,
   Tenant
 } from '../../prisma/generated/client';
@@ -40,9 +38,6 @@ export type ReceiverTriggerWithRelations = SlateTriggerReceiverTrigger & {
     slateInstance: SlateInstance & {
       currentConfig: SlateInstanceConfig | null;
     };
-    destinations: (SlateTriggerReceiverDestination & {
-      destination: SlateTriggerDestination;
-    })[];
     authConfig: SlateAuthConfig | null;
   };
 };
@@ -53,11 +48,6 @@ export const receiverInclude = {
   slateInstance: {
     include: {
       currentConfig: true
-    }
-  },
-  destinations: {
-    include: {
-      destination: true
     }
   },
   triggers: {

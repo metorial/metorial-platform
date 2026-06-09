@@ -4,7 +4,7 @@ import {
   useCurrentOrganization,
   useCurrentProject
 } from '@metorial/state';
-import { Button, Menu, theme } from '@metorial/ui';
+import { Button, Menu, Text, theme } from '@metorial/ui';
 import { RiArrowDownSLine } from '@remixicon/react';
 import React, { useLayoutEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -29,33 +29,20 @@ let Header = styled('header')`
   background: ${theme.colors.background};
 `;
 
-let HeaderBar = styled('div')`
-  display: flex;
-  height: ${HEIGHT}px;
-  align-items: center;
-  padding: 0px 10px;
-  flex-shrink: 0;
-  transition: background 0.2s;
-`;
-
-let HeaderMarker = styled('div')`
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  transition: all 0.2s;
-  padding-bottom: 15px;
-  z-index: 11;
-`;
-
 let InstanceBar = styled.div`
   display: flex;
   align-items: center;
-  padding: 8px 24px 8px 12px;
+  padding: 8px 20px;
   border-bottom: 1px solid ${theme.colors.gray300};
   gap: 15px;
   justify-content: space-between;
   flex-shrink: 0;
+`;
+
+let InstanceBarSide = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
 `;
 
 let RestrictedWrapper = styled('div')`
@@ -113,93 +100,93 @@ export let InstanceMenuLayout = ({ children }: { children: React.ReactNode }) =>
       }}
     >
       <Header>
-        <HeaderBar
+        <InstanceBar
           style={{
-            background: theme.colors[`${color}700`]
+            borderTop: `6px solid ${theme.colors[`${color}700`]}`
           }}
         >
-          <HeaderMarker data-state={selectorOpen ? 'open' : 'closed'}>
-            <div style={{ background: theme.colors[`${color}700`] }}>
-              <div></div>
-            </div>
-          </HeaderMarker>
-        </HeaderBar>
+          <InstanceBarSide>
+            <Text size="2" weight="medium">
+              You're in a sandbox. Changes won't affect production.
+            </Text>
+          </InstanceBarSide>
 
-        <InstanceBar>
-          <Menu
-            setIsOpen={setSelectorOpen}
-            title="Select Sandbox"
-            items={[
-              ...devInstances.map(instance => ({
-                id: instance.slug,
-                label: instance.name
-              })),
-              ...(devInstances.length
-                ? [
-                    {
-                      type: 'separator' as const
-                    }
-                  ]
-                : []),
-              ...(productionInstance
-                ? [
-                    {
-                      id: productionInstance.slug,
-                      label: 'Exit Sandbox'
-                    }
-                  ]
-                : [
-                    {
-                      id: '__new_instance__',
-                      label: 'Create Sandbox'
-                    }
-                  ])
-            ]}
-            onItemClick={async id => {
-              if (id == '__new_instance__') {
-                // @ts-ignore
-                await window.metorial_enterprise?.beforeCreateInstance?.();
-                createInstance(project.data!);
-              } else {
-                let foundInstance = project.data?.instances.find(
-                  i => i.slug == id || i.id == id
-                );
-                if (!foundInstance) return;
+          <InstanceBarSide>
+            <Menu
+              setIsOpen={setSelectorOpen}
+              title="Select Sandbox"
+              items={[
+                ...devInstances.map(instance => ({
+                  id: instance.slug,
+                  label: instance.name
+                })),
+                ...(devInstances.length
+                  ? [
+                      {
+                        type: 'separator' as const
+                      }
+                    ]
+                  : []),
+                ...(productionInstance
+                  ? [
+                      {
+                        id: productionInstance.slug,
+                        label: 'Exit Sandbox'
+                      }
+                    ]
+                  : [
+                      {
+                        id: '__new_instance__',
+                        label: 'Create Sandbox'
+                      }
+                    ])
+              ]}
+              onItemClick={async id => {
+                if (id == '__new_instance__') {
+                  // @ts-ignore
+                  await window.metorial_enterprise?.beforeCreateInstance?.();
+                  createInstance(project.data!);
+                } else {
+                  let foundInstance = project.data?.instances.find(
+                    i => i.slug == id || i.id == id
+                  );
+                  if (!foundInstance) return;
 
-                navigate(
-                  Paths.instance(
-                    org.data!,
-                    project.data!,
-                    foundInstance
-                    // afterPath
-                  )
-                );
-              }
-            }}
-          >
-            <Button iconRight={<RiArrowDownSLine />} size="2" variant="outline">
-              {instance.data?.name}
-            </Button>
-          </Menu>
-
-          {productionInstance && (
-            <Button
-              size="2"
-              variant="outline"
-              onClick={() => {
-                navigate(
-                  Paths.instance(
-                    org.data!,
-                    project.data!,
-                    productionInstance
-                    // afterPath
-                  )
-                );
+                  navigate(
+                    Paths.instance(
+                      org.data!,
+                      project.data!,
+                      foundInstance
+                      // afterPath
+                    )
+                  );
+                }
               }}
             >
-              Exit Sandbox
-            </Button>
-          )}
+              <Button iconRight={<RiArrowDownSLine />} size="2" variant="outline">
+                {instance.data?.name}
+              </Button>
+            </Menu>
+
+            {productionInstance && (
+              <Button
+                size="2"
+                variant="outline"
+                onClick={() => {
+                  navigate(
+                    Paths.instance(
+                      org.data!,
+                      project.data!,
+                      productionInstance
+                      // afterPath
+                    )
+                  );
+                }}
+              >
+                Exit Sandbox
+              </Button>
+            )}
+          </InstanceBarSide>
         </InstanceBar>
       </Header>
 

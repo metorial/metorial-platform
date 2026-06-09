@@ -14,6 +14,7 @@ import {
 } from '@metorial/module-consumer';
 import { magicMcpServerService } from '@metorial/module-magic';
 import { Controller } from '@metorial/rest';
+import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { consumerGroup, consumerPath } from '../../middleware/consumerGroup';
 import { hasFlags } from '../../middleware/hasFlags';
 import {
@@ -293,7 +294,7 @@ export let consumerProviderController = Controller.create(
         Paginator.validate(
           v.object({
             search: v.optional(v.string()),
-            provider_group_id: v.optional(v.string())
+            provider_group_id: v.optional(v.union([v.string(), v.array(v.string())]))
           })
         )
       )
@@ -305,7 +306,7 @@ export let consumerProviderController = Controller.create(
           consumerGroups: ctx.consumerGroups,
           consumerProfile: ctx.consumerProfile,
           search: ctx.query.search,
-          providerGroupId: ctx.query.provider_group_id,
+          providerGroupIds: normalizeArrayParam(ctx.query.provider_group_id),
           accessTags: ctx.accessTags,
           includeCapabilities: false,
           pagination: {

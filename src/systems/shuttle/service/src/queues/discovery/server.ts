@@ -56,6 +56,21 @@ let doWithCheck = async <T>(
   }
 };
 
+let doWithRequiredCheck = async <T>(
+  warnings: PrismaJson.ServerDiscoveryWarning[],
+  fn: () => Promise<T>
+) => {
+  try {
+    await fn();
+  } catch (e) {
+    console.warn('Required step failed during server discovery:', e);
+    let warning = checkInnerError(e);
+    console.warn('Required step failed during server discovery:', warning);
+    passWarning(warnings, warning);
+    throw e;
+  }
+};
+
 class TimeoutError extends Error {}
 
 export let discoverServerQueue = createQueue<{
@@ -138,7 +153,7 @@ export let discoverServerQueueProcessor = discoverServerQueue.process(async data
 
         state.step = 'discovery:tools';
 
-        await doWithCheck(state.warnings, async () => {
+        await doWithRequiredCheck(state.warnings, async () => {
           let toolsRaw = capabilities?.tools
             ? await autoPaginateMcp(cursor => state.client!.listTools({ cursor }))
             : [];

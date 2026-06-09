@@ -71,6 +71,7 @@ export type ConsumerProvidersGetOutput =
         providerId: string;
         lockedVersionId: string | null;
       };
+      toolFilter: any;
       configSchema: { type: 'json_schema'; schema: Record<string, any> } | null;
       authMethods: {
         object: 'provider.capabilities.auth_method';
@@ -242,6 +243,7 @@ export let mapConsumerProvidersGetOutput = mtMap.union([
           )
         })
       ),
+      toolFilter: mtMap.objectField('tool_filter', mtMap.passthrough()),
       configSchema: mtMap.objectField(
         'config_schema',
         mtMap.object({

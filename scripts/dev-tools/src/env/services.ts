@@ -391,6 +391,10 @@ export let subspaceDevEnv: Env = [
     isRequired: false
   },
   {
+    key: 'SIGNAL_API_URL',
+    defaultValue: `http://localhost:52050/metorial-signal`
+  },
+  {
     key: 'CARGO_API_URL',
     defaultValue: 'http://localhost:52150/metorial-cargo'
   },
@@ -398,6 +402,10 @@ export let subspaceDevEnv: Env = [
     key: 'FUNCTION_BAY_API_URL',
     defaultValue: 'http://localhost:52030/metorial-function-bay'
   }
+  // {
+  //   key: 'SIGNAL_SENDER_IDENTIFIER',
+  //   defaultValue: 'dev-subspace'
+  // },
 ];
 
 export let subspaceDbEnv: Env = [

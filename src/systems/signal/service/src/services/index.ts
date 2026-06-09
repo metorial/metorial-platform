@@ -1,3 +1,4 @@
+export * from './callback';
 export * from './event';
 export * from './eventDeliveryAttempt';
 export * from './eventDeliveryIntent';

@@ -9,8 +9,8 @@ ENV SENTRY_AUTH_TOKEN=${SENTRY_AUTH_TOKEN}
 # Copy repository contents from the OSS root context
 COPY . .
 
-# Install CA certificates for Sentry CLI uploads and prepare Slates packages.
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/*
+# Install CA certificates and native build tools before preparing Slates packages.
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates python3 python3-setuptools make g++ && rm -rf /var/lib/apt/lists/*
 RUN sh ./src/systems/slates/scripts/prepare-docker-build.sh
 
 # Build the registry app from the monorepo path.

@@ -12,6 +12,11 @@ enum SlateTriggerReceiverStatus {
   paused
 }
 
+enum SlateTriggerReceiverDeliveryMode {
+  legacy_signal_event
+  callback_v2
+}
+
 enum SlateTriggerReceiverTriggerSource {
   polling
   webhook
@@ -66,6 +71,7 @@ model SlateTriggerDestination {
   deliveries SlateTriggerDelivery[]
 
   @@index([tenantOid, status])
+  @@ignore
 }
 
 model SlateTriggerReceiver {
@@ -86,6 +92,10 @@ model SlateTriggerReceiver {
 
   status SlateTriggerReceiverStatus @default(active)
 
+  deliveryMode       SlateTriggerReceiverDeliveryMode @default(legacy_signal_event)
+  callbackId         String?
+  callbackInstanceId String?
+
   name                       String?
   description                String?
   eventTypes                 String[]
@@ -96,7 +106,7 @@ model SlateTriggerReceiver {
   updatedAt DateTime @default(now()) @updatedAt
 
   triggers     SlateTriggerReceiverTrigger[]
-  destinations SlateTriggerReceiverDestination[]
+  destinations SlateTriggerReceiverDestination[] @ignore
   events       SlateTriggerEvent[]
   eventInputs  SlateTriggerEventInput[]
   invocations  SlateTriggerInvocation[]
@@ -104,6 +114,7 @@ model SlateTriggerReceiver {
 
   @@index([tenantOid, slateInstanceOid])
   @@index([tenantOid, slateOid])
+  @@unique([tenantOid, callbackId, callbackInstanceId])
 }
 
 model SlateTriggerReceiverDestination {
@@ -118,6 +129,7 @@ model SlateTriggerReceiverDestination {
   createdAt DateTime @default(now())
 
   @@unique([receiverOid, destinationOid])
+  @@ignore
 }
 
 model SlateTriggerReceiverTrigger {
@@ -240,17 +252,22 @@ model SlateTriggerEvent {
 
   signalEventId String
 
+  callbackId         String?
+  callbackInstanceId String?
+
   invocationOid BigInt
   invocation    SlateInvocation @relation(fields: [invocationOid], references: [oid], onDelete: Cascade)
 
   createdAt DateTime @default(now())
 
-  deliveries  SlateTriggerDelivery[]
+  deliveries  SlateTriggerDelivery[] @ignore
   invocations SlateTriggerInvocation[]
   eventInputs SlateTriggerEventInput[]
 
   @@unique([receiverTriggerOid, sourceId])
   @@index([receiverOid, createdAt])
+  @@index([callbackId, createdAt])
+  @@index([callbackInstanceId])
 }
 
 model SlateTriggerDelivery {
@@ -268,13 +285,15 @@ model SlateTriggerDelivery {
   createdAt DateTime @default(now())
 
   @@unique([eventOid, destinationOid])
+  @@ignore
 }
 
 model SlateTriggerWebhookRequest {
   oid BigInt @id
   id  String @unique
 
-  receiverTriggerId String
+  receiverTriggerId String?
+  receiverId        String?
 
   url     String
   method  String
@@ -288,5 +307,7 @@ model SlateTriggerWebhookRequest {
 
   @@index([receiverTriggerId])
   @@index([receiverTriggerId, createdAt])
+  @@index([receiverId])
+  @@index([receiverId, createdAt])
   @@index([processedAt])
 }

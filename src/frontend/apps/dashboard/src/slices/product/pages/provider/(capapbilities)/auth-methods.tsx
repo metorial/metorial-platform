@@ -7,7 +7,7 @@ import {
   getProviderAuthMethodTypeLabel,
   showProviderAuthMethodDetailsModal
 } from '../../../scenes/providers/authMethodDetails';
-import { useProviderVersionContext } from '../_layout';
+import { useProviderVersionContext } from '../providerVersionContext';
 
 export let ProviderAuthMethodsPage = () => {
   let instance = useCurrentInstance();

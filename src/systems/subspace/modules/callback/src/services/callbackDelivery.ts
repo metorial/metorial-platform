@@ -1,7 +1,16 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import { db, type Environment, type Solution, type Tenant } from '@metorial-subspace/db';
-import { getTenantForSlates, slates } from '@metorial-subspace/provider-slates/src/client';
+import { getTenantForSignal, signal } from '../signal';
+
+let emptyList = {
+  object: 'list',
+  items: [],
+  pagination: {
+    has_more_after: false,
+    has_more_before: false
+  }
+};
 
 class callbackDeliveryServiceImpl {
   private async resolveContext(d: {
@@ -28,50 +37,16 @@ class callbackDeliveryServiceImpl {
     });
     if (!callback) throw new ServiceError(notFoundError('callback', d.callbackId));
 
-    let registrations = await db.callbackReceiverRegistration.findMany({
-      where: {
-        callbackOid: callback.oid,
-        status: 'active'
-      }
-    });
-
-    let slatesTenant = await getTenantForSlates(d.tenant);
-
     return {
       callback,
-      registrations,
-      slatesTenant,
-      linkedSlatesDestinationIds: callback.callbackDestinationLinks
-        .map(link => link.callbackDestination.slateTriggerDestinationId)
+      linkedDestinationIds: callback.callbackDestinationLinks
+        .map(link => link.callbackDestination.signalEventDestinationId ?? link.callbackDestination.id)
         .filter(Boolean),
-      activeSlatesDestinationIds: callback.callbackDestinationLinks
+      activeDestinationIds: callback.callbackDestinationLinks
         .filter(link => link.callbackDestination.status === 'active')
-        .map(link => link.callbackDestination.slateTriggerDestinationId)
+        .map(link => link.callbackDestination.signalEventDestinationId ?? link.callbackDestination.id)
         .filter(Boolean)
     };
-  }
-
-  private async matchesRegistrationForDeliveryEvent(d: {
-    slatesTenantId: string;
-    registrations: { slateTriggerReceiverId: string }[];
-    deliveryEventId: string;
-  }) {
-    let triggerReceiverIds = d.registrations
-      .map(reg => reg.slateTriggerReceiverId)
-      .filter(Boolean);
-
-    if (triggerReceiverIds.length === 0) return false;
-
-    let events = await slates.slateTriggerEvent.list({
-      tenantId: d.slatesTenantId,
-      triggerReceiverIds,
-      limit: 100,
-      order: 'desc'
-    });
-
-    return events.items.some(
-      event => event.id === d.deliveryEventId || event.signalEventId === d.deliveryEventId
-    );
   }
 
   async listCallbackDeliveries(d: {
@@ -90,10 +65,8 @@ class callbackDeliveryServiceImpl {
     };
   }) {
     let context = await this.resolveContext(d);
+    if (!context.callback.isCallbacksV2) return emptyList;
 
-    let receiverIds = context.registrations
-      .map(reg => reg.slateTriggerReceiverId)
-      .filter(Boolean);
     let destinationIds = d.input.destinationIds?.length
       ? (
           await db.callbackDestination.findMany({
@@ -102,16 +75,17 @@ class callbackDeliveryServiceImpl {
               solutionOid: d.solution.oid,
               id: { in: d.input.destinationIds }
             },
-            select: { slateTriggerDestinationId: true }
+            select: { id: true, signalEventDestinationId: true }
           })
         )
-          .map(item => item.slateTriggerDestinationId)
-          .filter(id => context.activeSlatesDestinationIds.includes(id))
+          .map(item => item.signalEventDestinationId ?? item.id)
+          .filter(id => context.activeDestinationIds.includes(id))
       : undefined;
 
-    return await slates.slateTriggerDelivery.list({
-      tenantId: context.slatesTenant.id,
-      triggerReceiverIds: receiverIds.length ? receiverIds : ['__none__'],
+    let signalTenant = await getTenantForSignal(d.tenant);
+    return await signal.callback.listDeliveries({
+      tenantId: signalTenant.id,
+      callbackId: context.callback.id,
       destinationIds,
       status: d.input.status,
       limit: d.input.limit,
@@ -130,25 +104,16 @@ class callbackDeliveryServiceImpl {
     eventDeliveryIntentId: string;
   }) {
     let context = await this.resolveContext(d);
-    let delivery = await slates.slateTriggerDelivery.get({
-      tenantId: context.slatesTenant.id,
-      eventDeliveryIntentId: d.eventDeliveryIntentId
-    });
-
-    let matchesRegistration = await this.matchesRegistrationForDeliveryEvent({
-      slatesTenantId: context.slatesTenant.id,
-      registrations: context.registrations,
-      deliveryEventId: delivery.event.id
-    });
-
-    if (
-      !matchesRegistration &&
-      !context.linkedSlatesDestinationIds.includes(delivery.destination.id)
-    ) {
+    if (!context.callback.isCallbacksV2) {
       throw new ServiceError(notFoundError('callback.delivery', d.eventDeliveryIntentId));
     }
 
-    return delivery;
+    let signalTenant = await getTenantForSignal(d.tenant);
+    return await signal.callback.getDelivery({
+      tenantId: signalTenant.id,
+      callbackId: context.callback.id,
+      eventDeliveryIntentId: d.eventDeliveryIntentId
+    });
   }
 
   async listCallbackDeliveryAttempts(d: {
@@ -167,10 +132,8 @@ class callbackDeliveryServiceImpl {
     };
   }) {
     let context = await this.resolveContext(d);
+    if (!context.callback.isCallbacksV2) return emptyList;
 
-    let receiverIds = context.registrations
-      .map(reg => reg.slateTriggerReceiverId)
-      .filter(Boolean);
     let destinationIds = d.input.destinationIds?.length
       ? (
           await db.callbackDestination.findMany({
@@ -179,14 +142,15 @@ class callbackDeliveryServiceImpl {
               solutionOid: d.solution.oid,
               id: { in: d.input.destinationIds }
             },
-            select: { slateTriggerDestinationId: true }
+            select: { id: true, signalEventDestinationId: true }
           })
-        ).map(item => item.slateTriggerDestinationId)
+        ).map(item => item.signalEventDestinationId ?? item.id)
       : undefined;
 
-    return await slates.slateTriggerDelivery.listAttempts({
-      tenantId: context.slatesTenant.id,
-      triggerReceiverIds: receiverIds.length ? receiverIds : ['__none__'],
+    let signalTenant = await getTenantForSignal(d.tenant);
+    return await signal.callback.listDeliveryAttempts({
+      tenantId: signalTenant.id,
+      callbackId: context.callback.id,
       destinationIds,
       status: d.input.status,
       limit: d.input.limit,
@@ -205,27 +169,18 @@ class callbackDeliveryServiceImpl {
     eventDeliveryAttemptId: string;
   }) {
     let context = await this.resolveContext(d);
-    let attempt = await slates.slateTriggerDelivery.getAttempt({
-      tenantId: context.slatesTenant.id,
-      eventDeliveryAttemptId: d.eventDeliveryAttemptId
-    });
-
-    let matchesRegistration = await this.matchesRegistrationForDeliveryEvent({
-      slatesTenantId: context.slatesTenant.id,
-      registrations: context.registrations,
-      deliveryEventId: attempt.intent.event.id
-    });
-
-    if (
-      !matchesRegistration &&
-      !context.linkedSlatesDestinationIds.includes(attempt.intent.destination.id)
-    ) {
+    if (!context.callback.isCallbacksV2) {
       throw new ServiceError(
         notFoundError('callback.delivery_attempt', d.eventDeliveryAttemptId)
       );
     }
 
-    return attempt;
+    let signalTenant = await getTenantForSignal(d.tenant);
+    return await signal.callback.getDeliveryAttempt({
+      tenantId: signalTenant.id,
+      callbackId: context.callback.id,
+      eventDeliveryAttemptId: d.eventDeliveryAttemptId
+    });
   }
 }
 

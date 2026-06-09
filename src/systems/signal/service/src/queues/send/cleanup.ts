@@ -32,7 +32,7 @@ export let eventCleanupQueueProcessor = eventCleanupQueue.process(async data => 
     data: { status: 'failed' }
   });
 
-  if (event.payloadJson) {
+  if (event.payloadJson !== null) {
     await storage.putObject(
       env.storage.LOGS_BUCKET_NAME,
       storageKey.event(event),

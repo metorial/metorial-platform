@@ -4,7 +4,7 @@ import { useCurrentInstance, useProviderTriggers } from '@metorial/state';
 import { Badge, Button, Flex, Text, showModal } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
 import { getJsonSchemaObject } from '../../../lib/jsonSchema';
-import { useProviderVersionContext } from '../_layout';
+import { useProviderVersionContext } from '../providerVersionContext';
 import {
   CapabilityDetailsPanel,
   DetailRows,

@@ -29,6 +29,7 @@ export type DashboardInstanceCallbacksListOutput = {
       metadata: Record<string, any> | null;
       url: string;
       method: string;
+      signingSecret: string | null;
       createdAt: Date;
       updatedAt: Date;
     }[];
@@ -98,6 +99,10 @@ export let mapDashboardInstanceCallbacksListOutput =
                 metadata: mtMap.objectField('metadata', mtMap.passthrough()),
                 url: mtMap.objectField('url', mtMap.passthrough()),
                 method: mtMap.objectField('method', mtMap.passthrough()),
+                signingSecret: mtMap.objectField(
+                  'signing_secret',
+                  mtMap.passthrough()
+                ),
                 createdAt: mtMap.objectField('created_at', mtMap.date()),
                 updatedAt: mtMap.objectField('updated_at', mtMap.date())
               })

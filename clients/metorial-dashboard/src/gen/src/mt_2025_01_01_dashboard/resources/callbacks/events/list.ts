@@ -7,8 +7,16 @@ export type CallbacksEventsListOutput = {
     type: string;
     sourceId: string;
     triggerKey: string;
-    input: Record<string, any>;
-    output: Record<string, any>;
+    input: Record<string, any> | null;
+    output: Record<string, any> | null;
+    status:
+      | 'pending'
+      | 'processing'
+      | 'retrying'
+      | 'succeeded'
+      | 'failed'
+      | 'skipped';
+    error: { code: string | null; message: string | null } | null;
     deliveryStatus: 'pending' | 'sent' | 'failed' | 'skipped';
     callbackId: string;
     callbackInstanceId: string | null;
@@ -30,6 +38,14 @@ export let mapCallbacksEventsListOutput =
           triggerKey: mtMap.objectField('trigger_key', mtMap.passthrough()),
           input: mtMap.objectField('input', mtMap.passthrough()),
           output: mtMap.objectField('output', mtMap.passthrough()),
+          status: mtMap.objectField('status', mtMap.passthrough()),
+          error: mtMap.objectField(
+            'error',
+            mtMap.object({
+              code: mtMap.objectField('code', mtMap.passthrough()),
+              message: mtMap.objectField('message', mtMap.passthrough())
+            })
+          ),
           deliveryStatus: mtMap.objectField(
             'delivery_status',
             mtMap.passthrough()

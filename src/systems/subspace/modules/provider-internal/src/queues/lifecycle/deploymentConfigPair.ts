@@ -45,7 +45,6 @@ export let providerDeploymentConfigPairVersionCreatedQueueProcessor =
   });
 
 export let callbackRegistrationReconcileQueue = createQueue<{
-  callbackId?: string;
   callbackInstanceId?: string;
   providerDeploymentConfigPairId?: string;
 }>({

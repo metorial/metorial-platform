@@ -59,6 +59,18 @@ let expectLoaderVisible = (container: HTMLElement, testId: string) => {
   expect((loader!.parentElement as HTMLElement).style.visibility).toBe('visible');
 };
 
+let expectContentHiddenButMeasurable = (container: HTMLElement, testId: string) => {
+  let content = getByTestId(container, testId);
+  expect(content).not.toBeNull();
+
+  let wrapper = content!.parentElement as HTMLElement;
+  expect(wrapper.style.display).toBe('block');
+  expect(wrapper.style.height).toBe('0px');
+  expect(wrapper.style.overflow).toBe('hidden');
+  expect(wrapper.style.pointerEvents).toBe('none');
+  expect(wrapper.style.visibility).toBe('hidden');
+};
+
 let advance = async (ms: number) => {
   await act(async () => {
     vi.advanceTimersByTime(ms);
@@ -337,6 +349,67 @@ describe('renderWithLoader', () => {
     await advance(30);
     expect(getByTestId(container, 'root-loading')).toBeNull();
     expect(getByTestId(container, 'ready')).not.toBeNull();
+  });
+
+  it('keeps discovery content measurable while hiding it visually', async () => {
+    let controls: {
+      setParentLoaded: (loaded: boolean) => void;
+    };
+    let rectSpy = vi
+      .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
+      .mockImplementation(function (this: HTMLElement) {
+        let parent = this.parentElement as HTMLElement | null;
+        let width = parent?.style.display == 'none' ? 0 : 120;
+
+        return {
+          bottom: 20,
+          height: 20,
+          left: 0,
+          right: width,
+          toJSON: () => ({}),
+          top: 0,
+          width,
+          x: 0,
+          y: 0
+        };
+      });
+
+    let Child = () =>
+      renderWithLoader(
+        { child: loader(false) },
+        { loading: () => <div data-testid="child-loading">Child loading</div> }
+      )(() => <div data-testid="child-ready">Child ready</div>);
+
+    let App = () => {
+      let [parentLoaded, setParentLoaded] = useState(false);
+      controls = { setParentLoaded };
+
+      return renderWithLoader(
+        { parent: loader(parentLoaded) },
+        { loading: () => <div data-testid="root-loading">Root loading</div> }
+      )(() => (
+        <>
+          <div data-testid="measurable">Measurable content</div>
+          <Child />
+        </>
+      ));
+    };
+
+    try {
+      await act(async () => {
+        root.render(<App />);
+      });
+
+      await act(async () => {
+        controls.setParentLoaded(true);
+      });
+
+      expectContentHiddenButMeasurable(container, 'measurable');
+      expect(getByTestId(container, 'measurable')!.getBoundingClientRect().width).toBe(120);
+      expect(getByTestId(container, 'root-loading')).not.toBeNull();
+    } finally {
+      rectSpy.mockRestore();
+    }
   });
 
   it('renders cached data immediately without running hidden discovery', async () => {

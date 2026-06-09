@@ -65,6 +65,7 @@ import { createMessage, type CreateMessageProps } from '../shared/createMessage'
 import { createWarning } from '../shared/createWarning';
 import { extractToolCallOperation } from '../shared/toolCallOperation';
 import { upsertParticipant } from '../shared/upsertParticipant';
+import { resolveProviderToolListingSpecificationOid } from './toolSpecification';
 
 let Sentry = getSentry();
 
@@ -475,7 +476,10 @@ export class SenderManager {
         }
       }
 
-      if (pair.version.specificationDiscoveryStatus == 'failed') {
+      if (
+        pair.version.specificationDiscoveryStatus == 'failed' &&
+        !pair.version.specificationOid
+      ) {
         await createError({
           session: this.session,
           connection: this.connection,
@@ -558,17 +562,15 @@ export class SenderManager {
 
     if (res.status === 'discovery_failed') return res;
 
-    let tools = await db.providerTool.findMany({
-      where: {
-        specification: {
-          providerVersions: {
-            some: {
-              oid: res.instance.pairVersion.versionOid
-            }
-          }
-        }
-      }
+    let specificationOid = await resolveProviderToolListingSpecificationOid({
+      pairVersion: res.instance.pairVersion
     });
+
+    let tools = specificationOid
+      ? await db.providerTool.findMany({
+          where: { specificationOid }
+        })
+      : [];
 
     let authMethodFilteredTools = tools.filter(
       tool => checkToolAuthMethodSatisfied(tool, provider.authConfig?.authMethod).allowed

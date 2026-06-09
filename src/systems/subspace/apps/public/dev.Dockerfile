@@ -5,6 +5,8 @@ WORKDIR /app
 # Copy repository contents from the OSS root context
 COPY . .
 
+RUN apt-get update && apt-get install -y --no-install-recommends python3 python3-setuptools make g++ && rm -rf /var/lib/apt/lists/*
+
 RUN sh ./src/systems/subspace/scripts/prepare-docker-build.sh
 
 # Build frontend

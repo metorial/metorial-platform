@@ -21,6 +21,16 @@ export let newEventQueueProcessor = newEventQueue.process(async data => {
     where: {
       tenantOid: event.tenantOid,
       senderOid: event.senderOid,
+      status: 'active',
+      isCallbackDestination: event.callbackOid != null,
+      callbackDestinationLinks: event.callbackOid
+        ? {
+            some: {
+              callbackOid: event.callbackOid,
+              status: 'active'
+            }
+          }
+        : undefined,
 
       OR: [{ hasEventTypesFilter: false }, { eventTypes: { has: event.eventType } }],
 

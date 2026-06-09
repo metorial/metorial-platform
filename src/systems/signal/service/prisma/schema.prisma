@@ -29,6 +29,7 @@ model Tenant {
   eventDestinations          EventDestination[]
   webhookDestinationWebhooks WebhookDestinationWebhook[]
   events                     Event[]
+  callbacks                  Callback[]
 }
 
 model Sender {
@@ -42,6 +43,7 @@ model Sender {
 
   events            Event[]
   eventDestinations EventDestination[]
+  callbacks         Callback[]
 }
 
 enum EventDestinationType {
@@ -59,9 +61,12 @@ enum EventRetryType {
 }
 
 model EventDestination {
-  oid    BigInt                 @id
-  id     String                 @unique
-  status EventDestinationStatus
+  oid        BigInt  @id
+  id         String  @unique
+  externalId String?
+
+  status                EventDestinationStatus
+  isCallbackDestination Boolean                @default(false)
 
   type EventDestinationType
 
@@ -90,8 +95,116 @@ model EventDestination {
   lastActiveAt DateTime?
   expiresAt    DateTime?
 
+  callbackDestinationLinks  CallbackDestinationLink[]
   intents                   EventDeliveryIntent[]
   eventDestinationInstances EventDestinationInstance[]
+
+  @@unique([tenantOid, senderOid, externalId])
+}
+
+enum CallbackStatus {
+  active
+  archived
+}
+
+enum CallbackDestinationLinkStatus {
+  active
+  inactive
+}
+
+enum CallbackEventStatus {
+  pending
+  processing
+  retrying
+  succeeded
+  failed
+  skipped
+}
+
+model Callback {
+  oid BigInt @id
+  id  String @unique
+
+  status CallbackStatus
+
+  name        String
+  description String?
+
+  eventTypes          String[]
+  hasEventTypesFilter Boolean
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  senderOid BigInt
+  sender    Sender @relation(fields: [senderOid], references: [oid])
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
+  archivedAt DateTime?
+
+  destinations CallbackDestinationLink[]
+  events       Event[]
+  callbackEvents CallbackEvent[]
+
+  @@index([tenantOid, status])
+  @@index([senderOid, status])
+}
+
+model CallbackDestinationLink {
+  oid BigInt @id
+
+  callbackOid BigInt
+  callback    Callback @relation(fields: [callbackOid], references: [oid])
+
+  eventDestinationOid BigInt
+  eventDestination    EventDestination @relation(fields: [eventDestinationOid], references: [oid])
+
+  status CallbackDestinationLinkStatus
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([callbackOid, eventDestinationOid])
+  @@index([callbackOid, status])
+  @@index([eventDestinationOid, status])
+}
+
+model CallbackEvent {
+  oid BigInt @id
+  id  String @unique
+
+  idempotencyKey String @unique
+  externalId      String?
+  status         CallbackEventStatus @default(succeeded)
+
+  callbackOid BigInt
+  callback    Callback @relation(fields: [callbackOid], references: [oid])
+
+  eventOid BigInt? @unique
+  event    Event?  @relation(fields: [eventOid], references: [oid])
+
+  type               String
+  sourceId           String?
+  triggerId          String?
+  triggerKey         String?
+  callbackInstanceId String?
+  errorCode          String?
+  errorMessage       String?
+
+  inputJson        String?
+  inputStorageKey  String?
+  outputJson       String?
+  outputStorageKey String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([callbackOid, createdAt])
+  @@index([externalId])
+  @@index([status])
+  @@index([callbackOid, status])
+  @@index([callbackInstanceId])
 }
 
 model EventDestinationInstance {
@@ -141,9 +254,10 @@ enum EventStatus {
 }
 
 model Event {
-  oid    BigInt      @id
-  id     String      @unique
-  status EventStatus
+  oid            BigInt      @id
+  id             String      @unique
+  idempotencyKey String?     @unique
+  status         EventStatus
 
   topics String[]
 
@@ -166,13 +280,23 @@ model Event {
   senderOid BigInt
   sender    Sender @relation(fields: [senderOid], references: [oid])
 
+  callbackOid BigInt?
+  callback    Callback? @relation(fields: [callbackOid], references: [oid])
+
+  callbackInstanceId String?
+  callbackSourceId   String?
+  callbackTriggerId  String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  intents EventDeliveryIntent[]
+  intents       EventDeliveryIntent[]
+  callbackEvent CallbackEvent?
 
   @@index([topics])
   @@index([eventType])
+  @@index([callbackOid, createdAt])
+  @@index([callbackInstanceId])
 }
 
 enum EventDeliveryIntentStatus {

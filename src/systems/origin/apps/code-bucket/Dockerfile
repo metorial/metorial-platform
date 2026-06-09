@@ -7,6 +7,7 @@ FROM oven/bun:1.2-alpine AS workspace-builder
 WORKDIR /workspace
 
 COPY src/systems/origin/apps/code-workspace/package.json ./
+RUN apk add --no-cache python3 py3-setuptools make g++
 RUN bun install
 
 COPY src/systems/origin/apps/code-workspace/ ./

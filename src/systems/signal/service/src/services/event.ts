@@ -1,18 +1,20 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import type { Sender, Tenant } from '../../prisma/generated/client';
+import type { Callback, Sender, Tenant } from '../../prisma/generated/client';
 import { db } from '../db';
 import { getId } from '../id';
 import { newEventQueue } from '../queues/send/init';
 
 let include = {
-  sender: true
+  sender: true,
+  callback: true
 };
 
 class eventServiceImpl {
   async createEvent(d: {
     input: {
+      idempotencyKey?: string;
       topics: string[];
       eventType: string;
       payloadJson: string;
@@ -21,10 +23,26 @@ class eventServiceImpl {
     };
     sender: Sender;
     tenant: Tenant;
+    callback?: Callback;
+    callbackInstanceId?: string | null;
+    callbackSourceId?: string | null;
+    callbackTriggerId?: string | null;
   }) {
+    if (d.input.idempotencyKey) {
+      let existing = await db.event.findFirst({
+        where: {
+          idempotencyKey: d.input.idempotencyKey,
+          tenantOid: d.tenant.oid
+        },
+        include
+      });
+      if (existing) return existing;
+    }
+
     let event = await db.event.create({
       data: {
         ...getId('event'),
+        idempotencyKey: d.input.idempotencyKey,
 
         status: 'pending',
 
@@ -41,7 +59,12 @@ class eventServiceImpl {
         deliverySuccessCount: 0,
 
         senderOid: d.sender.oid,
-        tenantOid: d.tenant.oid
+        tenantOid: d.tenant.oid,
+
+        callbackOid: d.callback?.oid,
+        callbackInstanceId: d.callbackInstanceId,
+        callbackSourceId: d.callbackSourceId,
+        callbackTriggerId: d.callbackTriggerId
       },
       include
     });
@@ -68,6 +91,7 @@ class eventServiceImpl {
     eventTypes?: string[];
     topics?: string[];
     senderIds?: string[];
+    callbackId?: string;
   }) {
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -82,7 +106,8 @@ class eventServiceImpl {
 
               sender: d.senderIds
                 ? { OR: [{ id: { in: d.senderIds } }, { identifier: { in: d.senderIds } }] }
-                : undefined
+                : undefined,
+              callback: d.callbackId ? { id: d.callbackId } : undefined
             },
             include
           })

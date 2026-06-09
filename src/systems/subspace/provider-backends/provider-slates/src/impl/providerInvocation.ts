@@ -63,6 +63,19 @@ let toLogs = (logs: Array<{ timestamp: number | Date; message: string }> = []) =
 let getSlateProviderInvocationId = (slateInvocationId: string) =>
   createProviderInvocationId('slate.invocation', slateInvocationId);
 
+let getCallbackInvocationActionName = (type: string) => {
+  switch (type) {
+    case 'webhook_handle':
+      return 'Receive Webhook Event';
+    case 'poll':
+      return 'Poll For Callback Events';
+    case 'map_event':
+      return 'Process Callback Result';
+    default:
+      return 'Callback Invocation';
+  }
+};
+
 export class ProviderInvocation extends IProviderInvocation {
   override async listProviderInvocations(
     data: ProviderInvocationListParam
@@ -120,6 +133,52 @@ export class ProviderInvocation extends IProviderInvocation {
           metadata: {
             slateSessionId: remote.sessionId,
             slateVersionId: remote.slateVersionId
+          },
+          createdAt: remote.createdAt
+        });
+      })
+    );
+
+    let callbackInvocations = data.inputs.callbackEventSourceIds?.length
+      ? (
+          await slates.slateTriggerInvocation.list({
+            tenantId: tenant.id,
+            slateTriggerEventInputIds: data.inputs.callbackEventSourceIds,
+            limit: data.inputs.callbackEventSourceIds.length * 3
+          })
+        ).items
+      : [];
+
+    await queue.addAll(
+      callbackInvocations.map(triggerInvocation => async () => {
+        let remote = triggerInvocation.invocation;
+
+        mergeInvocation(invocationMap, {
+          id: getSlateProviderInvocationId(remote.id),
+          source: 'slates',
+          type: 'tool_call',
+          status: getInvocationStatus(remote.status),
+          providerRunIds: [],
+          sessionMessageIds: [],
+          authConfigEventIds: [],
+          providerOAuthSetupIds: [],
+          toolCallId: null,
+          action: {
+            id: triggerInvocation.id,
+            key: triggerInvocation.type,
+            name: getCallbackInvocationActionName(triggerInvocation.type)
+          },
+          requests: remote.requests ?? [],
+          responses: remote.responses ?? [],
+          requestTraces: remote.requestTraces ?? [],
+          logs: toLogs(remote.logs ?? []),
+          attachments: remote.attachments ?? [],
+          error: toInvocationError(remote.error),
+          provider: remote.provider ?? null,
+          metadata: {
+            slateTriggerInvocationId: triggerInvocation.id,
+            slateTriggerInvocationType: triggerInvocation.type,
+            slateTriggerEventId: triggerInvocation.triggerEventId
           },
           createdAt: remote.createdAt
         });

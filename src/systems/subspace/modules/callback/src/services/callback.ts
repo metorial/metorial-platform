@@ -165,7 +165,7 @@ class callbackServiceImpl {
       throw new ServiceError(
         badRequestError({
           code: 'callback_not_supported',
-          message: 'Callbacks are only supported for trigger-enabled slates providers.'
+          message: 'Callbacks are not supported for the provider of the specified deployment.'
         })
       );
     }
@@ -337,7 +337,7 @@ class callbackServiceImpl {
       }
     });
 
-    await callbackRegistrationService.enqueueReconcile({ callbackId: callback.id });
+    await callbackRegistrationService.syncCallback({ callbackId: callback.id });
 
     return await this.getCallbackById({
       tenant: d.tenant,
@@ -449,6 +449,7 @@ class callbackServiceImpl {
         await tx.callbackProviderTrigger.deleteMany({
           where: { callbackOid: d.callback.oid }
         });
+
         if (triggerDefs.length) {
           await tx.callbackProviderTrigger.createMany({
             data: triggerDefs.map(trigger => ({
@@ -462,7 +463,7 @@ class callbackServiceImpl {
       }
     });
 
-    await callbackRegistrationService.enqueueReconcile({ callbackId: d.callback.id });
+    await callbackRegistrationService.syncCallback({ callbackId: d.callback.id });
 
     return await this.getCallbackById({
       tenant: d.tenant,
@@ -498,7 +499,7 @@ class callbackServiceImpl {
       return archived;
     });
 
-    await callbackRegistrationService.enqueueReconcile({ callbackId: archived.id });
+    await callbackRegistrationService.syncCallback({ callbackId: archived.id });
 
     return archived;
   }

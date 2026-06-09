@@ -2,6 +2,7 @@ import { Paths } from '@metorial/frontend-config';
 import {
   useCurrentInstance,
   useMonitorAlerts,
+  useProviders,
   useProviderSpecification
 } from '@metorial/state';
 import { RenderDate, Text } from '@metorial/ui';
@@ -21,6 +22,7 @@ import { MonitorAlertStatusBadge, MonitorOwnerBadge, MonitorTargetBadge } from '
 
 type DashboardInstanceMonitorAlertsListQuery = any;
 type MonitorAlert = any;
+type AlertRow = MonitorAlert & { providerName?: string | null };
 type CapabilityItem = { key: string; [key: string]: any };
 
 type AlertsTableProps = {
@@ -167,8 +169,8 @@ let AlertSummary = ({
 
 let alertsTableState: TableStateProvider<
   AlertsTableStateProps,
-  MonitorAlert,
-  TableStateProviderResult<MonitorAlert>
+  AlertRow,
+  TableStateProviderResult<AlertRow>
 > = (props, opts) => {
   let alerts = useMonitorAlerts(props.instance.data?.id, {
     order: 'desc' as const,
@@ -193,19 +195,40 @@ let alertsTableState: TableStateProvider<
     resolvedAt: getDateRangeFilterValue(opts.filter.resolvedAt)
   } satisfies DashboardInstanceMonitorAlertsListQuery);
 
+  let providerIds = [
+    ...new Set(
+      (alerts.data?.items ?? []).map(alert => alert.monitor.providerId!).filter(Boolean)
+    )
+  ];
+  let shouldLoadProviders = providerIds.length > 0;
+  let providers = useProviders(
+    props.instance.data?.id,
+    shouldLoadProviders && providerIds ? { id: providerIds } : null
+  );
+
+  let providerNameMap = new Map<string, string>();
+  for (let provider of providers.data?.items ?? []) {
+    if (provider.id && provider.name) providerNameMap.set(provider.id, provider.name);
+  }
+
   return {
-    isLoading: alerts.isLoading,
-    error: alerts.error,
+    isLoading: alerts.isLoading || (shouldLoadProviders && providers.isLoading),
+    error: alerts.error ?? (shouldLoadProviders ? providers.error : null),
     hasMoreAfter: alerts.data?.pagination.hasMoreAfter ?? false,
     hasMoreBefore: alerts.data?.pagination.hasMoreBefore ?? false,
-    items: alerts.data?.items ?? [],
+    items: (alerts.data?.items ?? []).map(alert => ({
+      ...alert,
+      providerName: alert.monitor.providerId
+        ? (providerNameMap.get(alert.monitor.providerId) ?? null)
+        : null
+    })),
     loadNext: alerts.next,
     loadPrevious: alerts.previous
   };
 };
 
 let createAlertsTable = () =>
-  new DashboardTable<AlertsTableStateProps, MonitorAlert>('monitor-alerts')
+  new DashboardTable<AlertsTableStateProps, AlertRow>('monitor-alerts')
     .state(alertsTableState)
     .columns([
       {
@@ -245,12 +268,6 @@ let createAlertsTable = () =>
             <AlertSummary alert={alert} instanceId={input.instance.data?.id} />
           </Text>
         )
-      },
-      {
-        id: 'createdAt',
-        isDefault: true,
-        header: 'Created',
-        render: alert => <RenderDate date={alert.createdAt} />
       },
       {
         id: 'resolvedAt',
@@ -300,9 +317,17 @@ let createAlertsTable = () =>
       },
       {
         id: 'providerId',
-        isDefault: false,
-        header: 'Provider ID',
-        render: alert => alert.monitor.providerId && <ID id={alert.monitor.providerId} />
+        isDefault: true,
+        header: 'Provider',
+        render: alert => (
+          <Text size="2">{alert.providerName ?? alert.monitor.providerId ?? '—'}</Text>
+        )
+      },
+      {
+        id: 'createdAt',
+        isDefault: true,
+        header: 'Created',
+        render: alert => <RenderDate date={alert.createdAt} />
       }
     ])
     .filters([

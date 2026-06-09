@@ -2,7 +2,7 @@
 set -e
 
 # Create databases for CI/local-compose services if they don't exist
-dbs="subspace subspace-test slates-hub slates-registry forge function-bay signal voyager voyager-search shuttle"
+dbs="subspace subspace-test slates-hub slates-registry forge function-bay signal voyager voyager-search shuttle origin"
 for db in $dbs; do
   exists=$(psql --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" \
     -tAc "SELECT 1 FROM pg_database WHERE datname='${db}'")

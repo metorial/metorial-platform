@@ -27,9 +27,9 @@ COPY /bun.lock ./bun.lock
 
 ENV NODE_OPTIONS=--max_old_space_size=6144
 
-RUN bun install
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates python3 python3-setuptools make g++ && rm -rf /var/lib/apt/lists/*
 
-RUN apt-get update && apt-get install -y ca-certificates
+RUN bun install
 
 # RUN bun turbo run build --filter=./oss/src/packages/** --concurrency=1 --ui=stream
 RUN bun turbo run prisma:generate --concurrency=1 --log-prefix=task
@@ -50,6 +50,8 @@ COPY /deployment/skeleton .
 # Copy the required prisma schema files
 # The migrations of these files will be applied by the runner
 COPY "/src/backend/db/prisma" ./prisma/oss
+
+RUN apt-get update && apt-get install -y --no-install-recommends python3 python3-setuptools make g++ && rm -rf /var/lib/apt/lists/*
 
 RUN bun install
 

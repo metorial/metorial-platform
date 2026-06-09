@@ -7,7 +7,7 @@ import {
 } from '@metorial/state';
 import { Select } from '@metorial/ui';
 import { Outlet, useParams } from 'react-router-dom';
-import { useProviderVersionContext } from '../_layout';
+import { useProviderVersionContext } from '../providerVersionContext';
 
 export let ProviderCapabilitiesLayout = () => {
   let organization = useCurrentOrganization();

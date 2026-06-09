@@ -181,6 +181,97 @@ let callbackNotificationEventSchema = v.object({
   })
 });
 
+let callbackNotificationAttemptSchema = v.object({
+  object: v.literal('callback.notification.attempt', {
+    description: "String representing the object's type"
+  }),
+  id: v.string({
+    name: 'id',
+    description: 'Unique delivery attempt identifier',
+    examples: ['sda_4dEfGhJkLmNpQrSt']
+  }),
+  status: v.enumOf(['succeeded', 'failed'] as const, {
+    name: 'status',
+    description: 'Delivery attempt status'
+  }),
+  attempt_number: v.number({
+    name: 'attempt_number',
+    description: '1-based sequence number for the delivery attempt'
+  }),
+  duration_ms: v.number({
+    name: 'duration_ms',
+    description: 'How long the delivery attempt took in milliseconds'
+  }),
+  error: v.nullable(
+    v.object(
+      {
+        code: v.string({
+          name: 'code',
+          description: 'Machine-readable attempt error code'
+        }),
+        message: v.string({
+          name: 'message',
+          description: 'Human-readable attempt error message'
+        })
+      },
+      {
+        name: 'error',
+        description: 'Attempt-specific error payload, if present'
+      }
+    )
+  ),
+  response: v.nullable(
+    v.object(
+      {
+        status_code: v.number({
+          name: 'status_code',
+          description: 'HTTP response status code returned for the attempt'
+        }),
+        body: v.nullable(
+          v.string({
+            name: 'body',
+            description: 'Captured response body for the attempt, if stored'
+          })
+        ),
+        headers: v.nullable(
+          v.array(
+            v.object({
+              key: v.string({
+                name: 'key',
+                description: 'Response header key'
+              }),
+              value: v.string({
+                name: 'value',
+                description: 'Response header value'
+              })
+            }),
+            {
+              name: 'headers',
+              description: 'Captured response headers for the attempt, if stored'
+            }
+          )
+        )
+      },
+      {
+        name: 'response',
+        description: 'Captured delivery response metadata for the attempt'
+      }
+    )
+  ),
+  created_at: v.date({
+    name: 'created_at',
+    description: 'Timestamp when the attempt record was created'
+  }),
+  started_at: v.date({
+    name: 'started_at',
+    description: 'Timestamp when the delivery attempt started'
+  }),
+  completed_at: v.date({
+    name: 'completed_at',
+    description: 'Timestamp when the delivery attempt completed'
+  })
+});
+
 export let v1CallbackNotificationPresenter = Presenter.create(callbackNotificationType)
   .presenter(async ({ callbackNotification }) => ({
     object: 'callback.notification' as const,
@@ -220,6 +311,26 @@ export let v1CallbackNotificationPresenter = Presenter.create(callbackNotificati
       created_at: callbackNotification.destination.createdAt,
       updated_at: callbackNotification.destination.updatedAt
     },
+    attempts: callbackNotification.attempts
+      ? callbackNotification.attempts.map((attempt: any) => ({
+          object: 'callback.notification.attempt' as const,
+          id: attempt.id,
+          status: attempt.status,
+          attempt_number: attempt.attemptNumber,
+          duration_ms: attempt.durationMs,
+          error: attempt.error,
+          response: attempt.response
+            ? {
+                status_code: attempt.response.statusCode,
+                body: attempt.response.body,
+                headers: attempt.response.headers
+              }
+            : null,
+          created_at: attempt.createdAt,
+          started_at: attempt.startedAt,
+          completed_at: attempt.completedAt
+        }))
+      : null,
     created_at: callbackNotification.createdAt,
     updated_at: callbackNotification.updatedAt,
     last_attempt_at: callbackNotification.lastAttemptAt,
@@ -236,13 +347,10 @@ export let v1CallbackNotificationPresenter = Presenter.create(callbackNotificati
           'Unique callback notification identifier. This delivery intent ID should be used to fetch notification details.',
         examples: ['sdi_0mn59k130hP1fPd2zSMT4C']
       }),
-      status: v.enumOf(
-        ['pending', 'delivered', 'retrying', 'failed'] as const,
-        {
-          name: 'status',
-          description: 'Current notification delivery status'
-        }
-      ),
+      status: v.enumOf(['pending', 'delivered', 'retrying', 'failed'] as const, {
+        name: 'status',
+        description: 'Current notification delivery status'
+      }),
       error: v.nullable(
         v.object(
           {
@@ -267,6 +375,13 @@ export let v1CallbackNotificationPresenter = Presenter.create(callbackNotificati
       }),
       event: callbackNotificationEventSchema,
       destination: callbackNotificationDestinationSchema,
+      attempts: v.nullable(
+        v.array(callbackNotificationAttemptSchema, {
+          name: 'attempts',
+          description:
+            'Recorded delivery attempts for this notification. Present on detailed responses when available.'
+        })
+      ),
       created_at: v.date({
         name: 'created_at',
         description: 'Timestamp when the notification was created',

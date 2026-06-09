@@ -1,19 +1,17 @@
-import type { DashboardInstanceCallbacksNotificationsListOutput } from '@metorial/dashboard-sdk';
 import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import {
   useCallback,
   useCallbackDestination,
   useCallbackDestinations,
-  useCallbackNotifications,
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject
 } from '@metorial/state';
 import {
-  Attributes,
   Button,
   Copy,
+  Entity,
   Flex,
   Menu,
   Panel,
@@ -21,24 +19,67 @@ import {
   Spacer,
   Text
 } from '@metorial/ui';
-import { Box, ID, Table } from '@metorial/ui-product';
-import { RiAddLine, RiMore2Line } from '@remixicon/react';
-import { useEffect, useMemo, useState } from 'react';
+import { Box, ID } from '@metorial/ui-product';
+import { RiAddLine, RiEyeLine, RiEyeOffLine, RiMore2Line } from '@remixicon/react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { RouterPanel } from '../routerPanel';
 import { showCallbackDestinationFormModal } from './destinationModal';
-import { CallbackNotificationsTable, getNotificationStatusBadge } from './logs';
+import { CallbackNotificationsTable } from './logs';
 
-type CallbackNotificationListItem =
-  DashboardInstanceCallbacksNotificationsListOutput['items'][number];
+let getMaskedSigningSecret = (signingSecret: string) => {
+  let prefix = 'metorial_whsec_';
+  if (signingSecret.startsWith(prefix)) return `${prefix}${'*'.repeat(12)}`;
+  return '*'.repeat(Math.min(Math.max(signingSecret.length, 8), 24));
+};
+
+let SigningSecretFooter = ({ signingSecret }: { signingSecret: string | null }) => {
+  let [revealed, setRevealed] = useState(false);
+
+  return (
+    <Entity.Footer>
+      <div
+        onClick={event => event.stopPropagation()}
+        onKeyDown={event => event.stopPropagation()}
+        style={{ width: '100%' }}
+      >
+        {signingSecret ? (
+          <Flex gap={10} align="end" wrap="wrap">
+            <div style={{ flex: 1, minWidth: 260 }}>
+              <Copy
+                label="Signing Secret"
+                value={revealed ? signingSecret : getMaskedSigningSecret(signingSecret)}
+                copyValue={signingSecret}
+              />
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="3"
+              iconLeft={revealed ? <RiEyeOffLine /> : <RiEyeLine />}
+              onClick={() => setRevealed(current => !current)}
+            />
+          </Flex>
+        ) : (
+          <Text size="2" color="gray600">
+            Signing secret is not available for this destination.
+          </Text>
+        )}
+      </div>
+    </Entity.Footer>
+  );
+};
 
 export let CallbackDestinationsList = (p: { callbackId: string | undefined }) => {
   let instance = useCurrentInstance();
   let callback = useCallback(instance.data?.id, p.callbackId);
-  let destinations = useCallbackDestinations(instance.data?.id, { order: 'desc' });
-  let notifications = useCallbackNotifications(instance.data?.id, p.callbackId, {
-    order: 'desc'
-  });
+  let destinations = useCallbackDestinations(
+    instance.data?.id && p.callbackId ? instance.data.id : null,
+    {
+      callbackId: p.callbackId,
+      order: 'desc'
+    }
+  );
   let deleteMutator = destinations.useDeleteMutator();
   let updateCallback = callback.useUpdateMutator();
   let [_, setSearchParams] = useSearchParams();
@@ -49,35 +90,6 @@ export let CallbackDestinationsList = (p: { callbackId: string | undefined }) =>
       callback.data?.destinations.map(destination => destination.id) ?? []
     );
   }, [callback.data?.id, callback.data?.updatedAt, callback.data?.destinations]);
-
-  let destinationRows = useMemo(() => {
-    let latestByDestination = new Map<string, CallbackNotificationListItem>();
-
-    for (let notification of notifications.data?.items ?? []) {
-      if (!latestByDestination.has(notification.destination.id)) {
-        latestByDestination.set(notification.destination.id, notification);
-      }
-    }
-
-    let destinationItems = (callback.data?.destinations ?? []).map(destination => ({
-      destination,
-      latestNotification: latestByDestination.get(destination.id)
-    }));
-
-    return {
-      items: destinationItems
-    };
-  }, [callback.data?.destinations, notifications.data?.items]);
-
-  let destinationSelectItems = (destinations.data?.items ?? []).map(destination => ({
-    id: destination.id,
-    label: destination.name
-  }));
-  let currentDestinationIds =
-    callback.data?.destinations.map(destination => destination.id) ?? [];
-  let hasPendingDestinationChanges =
-    selectedDestinationIds.slice().sort().join('|') !==
-    currentDestinationIds.slice().sort().join('|');
 
   return (
     <>
@@ -121,84 +133,109 @@ export let CallbackDestinationsList = (p: { callbackId: string | undefined }) =>
         </>
       ))} */}
 
-      <Table
-        headers={['Info', 'URL', 'Last Delivery', 'Updated', '']}
-        data={destinationRows.items.map(({ destination, latestNotification }) => ({
-          data: [
-            <Flex gap={3} direction="column">
-              <Text size="2" weight="strong">
-                {destination.name}
-              </Text>
-              {destination.description && (
-                <Text size="1" color="gray600" truncate>
-                  {destination.description}
-                </Text>
-              )}
-            </Flex>,
-            destination.url,
-            latestNotification ? (
-              getNotificationStatusBadge(latestNotification.status)
-            ) : (
-              <Text size="2" color="gray600">
-                No deliveries yet
-              </Text>
-            ),
-            <RenderDate date={destination.updatedAt} />,
-            <div
-              onClick={event => {
-                event.stopPropagation();
-                event.preventDefault();
-              }}
-            >
-              <Menu
-                items={[{ id: 'delete', label: 'Delete' }]}
-                onItemClick={id => {
-                  if (id == 'delete') {
-                    deleteMutator.mutate({ callbackDestinationId: destination.id });
-                  }
+      {renderWithLoader({ destinations })(({ destinations }) => (
+        <>
+          <Flex direction="column" gap={10}>
+            {destinations.data.items.map(destination => (
+              <div
+                key={destination.id}
+                role="button"
+                tabIndex={0}
+                onClick={() =>
+                  setSearchParams(params => {
+                    params.set('destination_id', destination.id);
+                    return params;
+                  })
+                }
+                onKeyDown={event => {
+                  if (event.key !== 'Enter' && event.key !== ' ') return;
+                  setSearchParams(params => {
+                    params.set('destination_id', destination.id);
+                    return params;
+                  });
                 }}
+                style={{ cursor: 'pointer' }}
               >
-                <Button variant="outline" size="1" iconLeft={<RiMore2Line />} />
-              </Menu>
-            </div>
-          ],
-          onClick: () =>
-            setSearchParams(params => {
-              params.set('destination_id', destination.id);
-              return params;
-            })
-        }))}
-      />
+                <Entity.Wrapper>
+                  <Entity.Content>
+                    <Entity.Field
+                      title={destination.name}
+                      description={destination.description}
+                    />
+                    <Entity.Field title="URL" value={destination.url} />
+                    <Entity.Field
+                      title="Updated"
+                      value={<RenderDate date={destination.updatedAt} />}
+                    />
+                    <Entity.Field title="Actions" right>
+                      <div
+                        onClick={event => {
+                          event.stopPropagation();
+                          event.preventDefault();
+                        }}
+                      >
+                        <Menu
+                          items={[{ id: 'delete', label: 'Delete' }]}
+                          onItemClick={async id => {
+                            if (id == 'delete') {
+                              await deleteMutator.mutate({
+                                callbackDestinationId: destination.id
+                              });
 
-      {destinationRows.items.length == 0 && (
-        <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-          No destinations are attached to this callback yet.
-        </Text>
-      )}
+                              setSearchParams(params => {
+                                if (params.get('destination_id') == destination.id) {
+                                  params.delete('destination_id');
+                                }
+                                return params;
+                              });
+                              destinations.refetch();
+                              callback.refetch();
+                            }
+                          }}
+                        >
+                          <Button variant="outline" size="1" iconLeft={<RiMore2Line />} />
+                        </Menu>
+                      </div>
+                    </Entity.Field>
+                  </Entity.Content>
+                </Entity.Wrapper>
+              </div>
+            ))}
+          </Flex>
 
-      <Spacer height={15} />
+          {destinations.data.items.length == 0 && (
+            <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
+              No destinations are attached to this callback yet.
+            </Text>
+          )}
 
-      <Button
-        iconRight={<RiAddLine />}
-        size="2"
-        onClick={() =>
-          instance.data &&
-          showCallbackDestinationFormModal({
-            instanceId: instance.data.id,
-            onCreate: destination => {
-              let nextDestinationIds = [
-                ...new Set([...selectedDestinationIds, destination.id])
-              ];
-              setSelectedDestinationIds(nextDestinationIds);
-              updateCallback.mutate({
-                destinationIds: nextDestinationIds
-              });
+          <Spacer height={15} />
+
+          <Button
+            iconRight={<RiAddLine />}
+            size="2"
+            onClick={() =>
+              instance.data &&
+              showCallbackDestinationFormModal({
+                instanceId: instance.data.id,
+                onCreate: destination => {
+                  let nextDestinationIds = [
+                    ...new Set([...selectedDestinationIds, destination.id])
+                  ];
+                  setSelectedDestinationIds(nextDestinationIds);
+                  updateCallback.mutate({
+                    destinationIds: nextDestinationIds
+                  });
+
+                  destinations.refetch();
+                }
+              })
             }
-          })
-        }
-      >
-        Create Destination
-      </Button>
+          >
+            Create Destination
+          </Button>
+        </>
+      ))}
 
       <RouterPanel param="destination_id" width={1000}>
         {destinationId => (
@@ -232,31 +269,19 @@ let Destination = ({
 
   return renderWithLoader({ destination })(({ destination }) => (
     <>
-      <Attributes
-        itemWidth="260px"
-        attributes={[
-          {
-            label: 'ID',
-            content: <ID id={destination.data.id} />
-          },
-          {
-            label: 'Status',
-            content: destination.data.status
-          },
-          {
-            label: 'URL',
-            content: <Copy value={destination.data.url} />
-          },
-          {
-            label: 'Method',
-            content: destination.data.method
-          },
-          {
-            label: 'Created At',
-            content: <RenderDate date={destination.data.createdAt} />
-          }
-        ]}
-      />
+      <Entity.Wrapper>
+        <Entity.Content>
+          <Entity.Field title="ID" value={<ID id={destination.data.id} />} />
+          <Entity.Field title="Status" value={destination.data.status} />
+          <Entity.Field title="URL" value={<Copy value={destination.data.url} />} />
+          <Entity.Field title="Method" value={destination.data.method} />
+          <Entity.Field
+            title="Created"
+            value={<RenderDate date={destination.data.createdAt} />}
+          />
+        </Entity.Content>
+        <SigningSecretFooter signingSecret={destination.data.signingSecret} />
+      </Entity.Wrapper>
 
       <Spacer height={15} />
 

@@ -2,13 +2,11 @@ import { internalServerError, notFoundError, ServiceError } from '@lowerdeck/err
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
-  CallbackReceiverRegistrationStatus,
   db,
   getId,
   withTransaction,
   type Callback,
   type CallbackInstance,
-  type CallbackReceiverRegistration,
   type Environment,
   type ProviderAuthConfig,
   type ProviderConfig,
@@ -228,25 +226,23 @@ class callbackInstanceServiceImpl {
       });
     }
 
-    await callbackRegistrationService.enqueueReconcile({
+    await callbackRegistrationService.syncCallbackInstance({
       callbackInstanceId: callbackInstance.id
     });
 
-    return callbackInstance;
+    return await this.getById({
+      callback: d.callback,
+      callbackInstanceId: callbackInstance.id
+    });
   }
 
-  async detach(d: {
-    tenant: Tenant;
-    callbackInstance: CallbackInstance & {
-      activeRegistration: CallbackReceiverRegistration | null;
-    };
-  }) {
-    if (d.callbackInstance.activeRegistration) {
+  async detach(d: { tenant: Tenant; callbackInstance: CallbackInstance }) {
+    if (d.callbackInstance.slateTriggerReceiverId) {
       let slatesTenant = await getTenantForSlates(d.tenant);
       try {
-        await slates.slateTriggerReceiver.delete({
+        await slates.callbackRegistration.delete({
           tenantId: slatesTenant.id,
-          slateTriggerReceiverId: d.callbackInstance.activeRegistration.slateTriggerReceiverId
+          slateTriggerReceiverId: d.callbackInstance.slateTriggerReceiverId
         });
       } catch (err: any) {
         throw new ServiceError(
@@ -258,22 +254,14 @@ class callbackInstanceServiceImpl {
     }
 
     return await withTransaction(async db => {
-      if (d.callbackInstance.activeRegistration) {
-        await db.callbackReceiverRegistration.update({
-          where: { oid: d.callbackInstance.activeRegistration.oid },
-          data: {
-            status: CallbackReceiverRegistrationStatus.detached,
-            lastSyncedAt: new Date()
-          }
-        });
-      }
-
       return await db.callbackInstance.update({
         where: { oid: d.callbackInstance.oid },
         data: {
           status: 'detached',
           registrationStatus: 'pending',
-          activeRegistrationOid: null
+          activeRegistrationOid: null,
+          slateTriggerReceiverId: null,
+          lastSyncedAt: new Date()
         },
         include: callbackInstanceInclude
       });

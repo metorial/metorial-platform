@@ -26,6 +26,8 @@ class slateTriggerEventServiceImpl {
 
   async listTriggerEvents(d: {
     tenant: Tenant;
+    eventIds?: string[];
+    eventInputIds?: string[];
     receiverIds?: string[];
     receiverTriggerIds?: string[];
     eventTypes?: string[];
@@ -52,6 +54,10 @@ class slateTriggerEventServiceImpl {
             ...opts,
             where: {
               receiver: { tenantOid: d.tenant.oid },
+              id: d.eventIds ? { in: d.eventIds } : undefined,
+              eventInputs: d.eventInputIds
+                ? { some: { id: { in: d.eventInputIds } } }
+                : undefined,
               receiverOid: receivers ? { in: receivers.map(r => r.oid) } : undefined,
               receiverTriggerOid: receiverTriggers
                 ? { in: receiverTriggers.map(rt => rt.oid) }

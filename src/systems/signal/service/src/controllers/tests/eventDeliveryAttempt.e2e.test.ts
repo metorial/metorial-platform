@@ -55,9 +55,16 @@ describe('eventDeliveryAttempt.e2e', () => {
     expect(fetched).toMatchObject({
       id: attempt.id,
       status: 'failed',
+      response: {
+        statusCode: 500,
+        body: 'failed'
+      },
       intent: {
         id: intent.id,
-        event: { id: event.id }
+        event: {
+          id: event.id,
+          request: { body: event.payloadJson }
+        }
       }
     });
 
@@ -69,5 +76,10 @@ describe('eventDeliveryAttempt.e2e', () => {
 
     expect(listed.items).toHaveLength(1);
     expect(listed.items[0]?.id).toBe(attempt.id);
+    expect(listed.items[0]?.response).toMatchObject({
+      statusCode: 500,
+      body: null
+    });
+    expect(listed.items[0]?.intent.event.request).toBeNull();
   });
 });

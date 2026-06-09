@@ -2,6 +2,9 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { cleanDatabase, testDb } from '../../test/setup';
 import { fixtures } from '../../test/fixtures';
 import { signalClient } from '../../test/client';
+import { env } from '../../env';
+import { storageKey } from '../../lib/storageKey';
+import { storage } from '../../storage';
 
 describe('eventDeliveryIntent.e2e', () => {
   const f = fixtures(testDb);
@@ -31,6 +34,24 @@ describe('eventDeliveryIntent.e2e', () => {
       eventOid: event.oid,
       destinationOid: destination.oid
     });
+    const attempt = await f.eventDeliveryAttempt.default({
+      intentOid: intent.oid,
+      destinationInstanceOid: destination.currentInstance!.oid,
+      overrides: {
+        status: 'failed',
+        attemptNumber: 1,
+        responseStatusCode: 500
+      }
+    });
+    await storage.upsertBucket(env.storage.LOGS_BUCKET_NAME);
+    await storage.putObject(
+      env.storage.LOGS_BUCKET_NAME,
+      storageKey.attempt(attempt),
+      JSON.stringify({
+        body: JSON.stringify({ error: 'boom' }),
+        headers: [['content-type', 'application/json']]
+      })
+    );
 
     const fetched = await signalClient.eventDeliveryIntent.get({
       tenantId: tenant.id,
@@ -44,7 +65,18 @@ describe('eventDeliveryIntent.e2e', () => {
         id: event.id,
         request: { body: event.payloadJson }
       },
-      destination: { id: destination.id }
+      destination: { id: destination.id },
+      attempts: [
+        {
+          id: attempt.id,
+          status: 'failed',
+          attemptNumber: 1,
+          response: {
+            statusCode: 500,
+            body: JSON.stringify({ error: 'boom' })
+          }
+        }
+      ]
     });
 
     const listed = await signalClient.eventDeliveryIntent.list({
@@ -55,5 +87,7 @@ describe('eventDeliveryIntent.e2e', () => {
 
     expect(listed.items).toHaveLength(1);
     expect(listed.items[0]?.id).toBe(intent.id);
+    expect(listed.items[0]?.event.request).toBeNull();
+    expect(listed.items[0]?.attempts).toBeNull();
   });
 });

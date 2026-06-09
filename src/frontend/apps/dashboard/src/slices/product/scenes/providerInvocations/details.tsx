@@ -1,6 +1,6 @@
 import type { DashboardInstanceProviderInvocationsGetOutput } from '@metorial/dashboard-sdk';
 import { renderWithLoader } from '@metorial/data-hooks';
-import { useCurrentInstance, useProviderInvocation } from '@metorial/state';
+import { useCurrentInstance, useProviderInvocation, useProviderInvocations } from '@metorial/state';
 import { Badge, Callout, Datalist, RenderDate } from '@metorial/ui';
 import { RunLogs } from '../../components/runLogs';
 import {
@@ -125,4 +125,29 @@ export let ProviderInvocationById = ({
   return renderWithLoader({ invocation })(({ invocation }) => (
     <ProviderInvocationDetails invocation={invocation.data} hideHeader={hideHeader} />
   ));
+};
+
+export let ProviderInvocationByCallbackEventId = ({
+  callbackEventId,
+  hideHeader
+}: {
+  callbackEventId: string;
+  hideHeader?: boolean;
+}) => {
+  let instance = useCurrentInstance();
+  let invocations = useProviderInvocations(instance.data?.id, { callbackEventId });
+
+  return renderWithLoader({ invocations })(({ invocations }) => {
+    let invocation = invocations.data.items[0];
+
+    if (!invocation) {
+      return (
+        <Callout color="gray">
+          <span>No provider invocation logs were captured for this callback event.</span>
+        </Callout>
+      );
+    }
+
+    return <ProviderInvocationDetails invocation={invocation} hideHeader={hideHeader} />;
+  });
 };

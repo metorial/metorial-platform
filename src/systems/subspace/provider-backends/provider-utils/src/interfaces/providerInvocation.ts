@@ -47,6 +47,7 @@ export interface ProviderInvocationListParam {
   inputs: {
     providerRunIds?: string[];
     sessionMessageIds?: string[];
+    callbackEventSourceIds?: string[];
     authConfigEventIds?: string[];
   };
 }

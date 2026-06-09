@@ -3,24 +3,28 @@ import { Presenter } from '@metorial/presenter';
 import { callbackEventType } from '../../../types';
 
 export let v1CallbackEventPresenter = Presenter.create(callbackEventType)
-  .presenter(async ({ callbackEvent }) => ({
-    object: 'callback.event' as const,
+  .presenter(async ({ callbackEvent }) => {
+    return {
+      object: 'callback.event' as const,
 
-    id: callbackEvent.id,
-    type: callbackEvent.type,
-    source_id: callbackEvent.sourceId,
-    trigger_key: callbackEvent.triggerKey,
+      id: callbackEvent.id,
+      type: callbackEvent.type,
+      source_id: callbackEvent.sourceId,
+      trigger_key: callbackEvent.triggerKey,
 
-    input: callbackEvent.input,
-    output: callbackEvent.output,
+      input: callbackEvent.input,
+      output: callbackEvent.output,
 
-    delivery_status: callbackEvent.deliveryStatus,
+      status: callbackEvent.status,
+      error: callbackEvent.error,
+      delivery_status: callbackEvent.deliveryStatus,
 
-    callback_id: callbackEvent.callbackId,
-    callback_instance_id: callbackEvent.callbackInstanceId,
+      callback_id: callbackEvent.callbackId,
+      callback_instance_id: callbackEvent.callbackInstanceId,
 
-    created_at: callbackEvent.createdAt
-  }))
+      created_at: callbackEvent.createdAt
+    };
+  })
   .schema(
     v.object({
       object: v.literal('callback.event', {
@@ -46,14 +50,41 @@ export let v1CallbackEventPresenter = Presenter.create(callbackEventType)
         description: 'Trigger key that produced this event',
         examples: ['messages.created']
       }),
-      input: v.record(v.any(), {
-        name: 'input',
-        description: 'Original trigger input payload captured for the event'
-      }),
-      output: v.record(v.any(), {
-        name: 'output',
-        description: 'Trigger output payload resolved for the event'
-      }),
+      input: v.nullable(
+        v.record(v.any(), {
+          name: 'input',
+          description: 'Original trigger input payload captured for the event'
+        })
+      ),
+      output: v.nullable(
+        v.record(v.any(), {
+          name: 'output',
+          description: 'Trigger output payload resolved for the event'
+        })
+      ),
+      status: v.enumOf(
+        ['pending', 'processing', 'retrying', 'succeeded', 'failed', 'skipped'] as const,
+        {
+          name: 'status',
+          description: 'Lifecycle status for this callback event'
+        }
+      ),
+      error: v.nullable(
+        v.object({
+          code: v.nullable(
+            v.string({
+              name: 'code',
+              description: 'Machine-readable callback event error code'
+            })
+          ),
+          message: v.nullable(
+            v.string({
+              name: 'message',
+              description: 'Human-readable callback event error message'
+            })
+          )
+        })
+      ),
       delivery_status: v.enumOf(['pending', 'sent', 'failed', 'skipped'] as const, {
         name: 'delivery_status',
         description: 'Aggregate delivery status for this callback event'

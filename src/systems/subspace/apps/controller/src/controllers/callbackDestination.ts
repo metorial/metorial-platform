@@ -26,6 +26,7 @@ export let callbackDestinationController = app.controller({
       Paginator.validate(
         v.object({
           tenantId: v.string(),
+          callbackIds: v.optional(v.array(v.string())),
           createdAt: createdAtValidator,
           updatedAt: updatedAtValidator
         })
@@ -35,11 +36,23 @@ export let callbackDestinationController = app.controller({
       let paginator = await callbackDestinationService.listCallbackDestinations({
         tenant: ctx.tenant,
         solution: ctx.solution,
+        callbackIds: ctx.input.callbackIds,
         createdAt: ctx.input.createdAt,
         updatedAt: ctx.input.updatedAt
       });
       let list = await paginator.run(ctx.input);
-      return Paginator.presentLight(list, callbackDestinationPresenter);
+      let enriched = await callbackDestinationService.enrichCallbackDestinations({
+        tenant: ctx.tenant,
+        callbackDestinations: list.items
+      });
+      return Paginator.presentLight(
+        {
+          ...list,
+          items: enriched
+        },
+        callbackDestination =>
+          callbackDestinationPresenter(callbackDestination, { includeSignatureToken: false })
+      );
     }),
 
   get: callbackDestinationApp
@@ -50,7 +63,14 @@ export let callbackDestinationController = app.controller({
         callbackDestinationId: v.string()
       })
     )
-    .do(async ctx => callbackDestinationPresenter(ctx.callbackDestination)),
+    .do(async ctx =>
+      callbackDestinationPresenter(
+        await callbackDestinationService.enrichCallbackDestination({
+          tenant: ctx.tenant,
+          callbackDestination: ctx.callbackDestination
+        })
+      )
+    ),
 
   create: tenantWithoutEnvironmentApp
     .handler()
@@ -74,7 +94,12 @@ export let callbackDestinationController = app.controller({
           url: ctx.input.url!
         }
       });
-      return callbackDestinationPresenter(callbackDestination);
+      return callbackDestinationPresenter(
+        await callbackDestinationService.enrichCallbackDestination({
+          tenant: ctx.tenant,
+          callbackDestination
+        })
+      );
     }),
 
   update: callbackDestinationApp
@@ -101,7 +126,12 @@ export let callbackDestinationController = app.controller({
           url: ctx.input.url
         }
       });
-      return callbackDestinationPresenter(callbackDestination);
+      return callbackDestinationPresenter(
+        await callbackDestinationService.enrichCallbackDestination({
+          tenant: ctx.tenant,
+          callbackDestination
+        })
+      );
     }),
 
   archive: callbackDestinationApp
@@ -118,6 +148,11 @@ export let callbackDestinationController = app.controller({
         solution: ctx.solution,
         callbackDestination: ctx.callbackDestination
       });
-      return callbackDestinationPresenter(callbackDestination);
+      return callbackDestinationPresenter(
+        await callbackDestinationService.enrichCallbackDestination({
+          tenant: ctx.tenant,
+          callbackDestination
+        })
+      );
     })
 });

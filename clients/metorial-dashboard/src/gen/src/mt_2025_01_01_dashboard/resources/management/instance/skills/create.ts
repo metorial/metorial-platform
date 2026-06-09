@@ -471,6 +471,7 @@ export type ManagementInstanceSkillsCreateBody = {
   clientMetadata?: Record<string, any> | undefined;
   imageFileId?: string | null | undefined;
   templateId?: string | undefined;
+  skillGroupId?: string | undefined;
 };
 
 export let mapManagementInstanceSkillsCreateBody =
@@ -487,6 +488,7 @@ export let mapManagementInstanceSkillsCreateBody =
     compatibility: mtMap.objectField('compatibility', mtMap.passthrough()),
     clientMetadata: mtMap.objectField('client_metadata', mtMap.passthrough()),
     imageFileId: mtMap.objectField('image_file_id', mtMap.passthrough()),
-    templateId: mtMap.objectField('template_id', mtMap.passthrough())
+    templateId: mtMap.objectField('template_id', mtMap.passthrough()),
+    skillGroupId: mtMap.objectField('skill_group_id', mtMap.passthrough())
   });
 

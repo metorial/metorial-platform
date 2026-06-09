@@ -8,7 +8,7 @@ ENV SENTRY_AUTH_TOKEN=${SENTRY_AUTH_TOKEN}
 
 COPY . .
 
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates python3 python3-setuptools make g++ && rm -rf /var/lib/apt/lists/*
 RUN sh ./src/systems/origin/scripts/prepare-docker-build.sh
 
 WORKDIR /app/src/systems/origin/apps/service
