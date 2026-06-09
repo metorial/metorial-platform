@@ -1,5 +1,4 @@
 import { ID, get4ByteIntId, getId } from '@metorial-subspace/db';
-import { customProviderEnvironmentService } from '@metorial-subspace/module-custom-provider';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createSubspaceControllerRootTestClient } from '../../test/client';
 import { cleanDatabase, testDb } from '../../test/setup';
@@ -48,7 +47,10 @@ let createTenantContext = async () => {
   return { client, tenant, tenantRecord, devEnvironment, prodEnvironment, solutionRecord };
 };
 
-let createCustomProviderFixture = async (d: Awaited<ReturnType<typeof createTenantContext>>) => {
+let createCustomProviderFixture = async (
+  d: Awaited<ReturnType<typeof createTenantContext>>,
+  opts?: { publishDev?: boolean }
+) => {
   let actor = await testDb.tenantActor.create({
     data: {
       ...getId('actor'),
@@ -282,6 +284,32 @@ let createCustomProviderFixture = async (d: Awaited<ReturnType<typeof createTena
     }
   });
 
+  let commit = await testDb.customProviderCommit.create({
+    data: {
+      ...getId('customProviderCommit'),
+      status: 'pending',
+      trigger: 'manual',
+      type: 'create_version',
+      message: 'Initial commit',
+      creatorActorOid: actor.oid,
+      toEnvironmentOid: devCustomProviderEnvironment.oid,
+      targetCustomProviderVersionOid: customProviderVersion.oid,
+      customProviderOid: customProvider.oid,
+      tenantOid: d.tenantRecord.oid,
+      solutionOid: d.solutionRecord.oid
+    }
+  });
+
+  await testDb.customProviderEnvironmentVersion.create({
+    data: {
+      ...getId('customProviderEnvironmentVersion'),
+      customProviderEnvironmentOid: devCustomProviderEnvironment.oid,
+      customProviderVersionOid: customProviderVersion.oid,
+      environmentOid: d.devEnvironment.oid,
+      commitOid: commit.oid
+    }
+  });
+
   let publishToEnvironment = async (environmentOid: bigint, customProviderEnvironmentOid: bigint) => {
     let providerEnvironment = await testDb.providerEnvironment.create({
       data: {
@@ -310,7 +338,9 @@ let createCustomProviderFixture = async (d: Awaited<ReturnType<typeof createTena
     });
   };
 
-  await publishToEnvironment(d.devEnvironment.oid, devCustomProviderEnvironment.oid);
+  if (opts?.publishDev ?? true) {
+    await publishToEnvironment(d.devEnvironment.oid, devCustomProviderEnvironment.oid);
+  }
 
   return {
     provider,
@@ -326,6 +356,42 @@ let createCustomProviderFixture = async (d: Awaited<ReturnType<typeof createTena
 describe('customProviderVisibility.e2e', () => {
   beforeEach(async () => {
     await cleanDatabase();
+  });
+
+  it('keeps pending source-environment custom providers manageable but out of the catalog', async () => {
+    let ctx = await createTenantContext();
+    let fixture = await createCustomProviderFixture(ctx, { publishDev: false });
+
+    let devListings = await ctx.client.providerListing.list({
+      tenantId: ctx.tenant.id,
+      environmentId: ctx.devEnvironment.id,
+      ids: [fixture.providerListing.id],
+      limit: 10
+    });
+    expect(devListings.items).toHaveLength(0);
+
+    let devCustomProviders = await ctx.client.customProvider.list({
+      tenantId: ctx.tenant.id,
+      environmentId: ctx.devEnvironment.id,
+      ids: [fixture.customProvider.id],
+      limit: 10
+    });
+    expect(devCustomProviders.items.map(item => item.id)).toContain(fixture.customProvider.id);
+
+    let devCustomProvider = await ctx.client.customProvider.get({
+      tenantId: ctx.tenant.id,
+      environmentId: ctx.devEnvironment.id,
+      customProviderId: fixture.customProvider.id
+    });
+    expect(devCustomProvider.id).toBe(fixture.customProvider.id);
+
+    let prodCustomProviders = await ctx.client.customProvider.list({
+      tenantId: ctx.tenant.id,
+      environmentId: ctx.prodEnvironment.id,
+      ids: [fixture.customProvider.id],
+      limit: 10
+    });
+    expect(prodCustomProviders.items).toHaveLength(0);
   });
 
   it('only lists custom providers and listings in published environments', async () => {
@@ -386,30 +452,41 @@ describe('customProviderVisibility.e2e', () => {
     expect(publishedProdCustomProviders.items.map(item => item.id)).toContain(
       fixture.customProvider.id
     );
+
+    let publishedProdListings = await ctx.client.providerListing.list({
+      tenantId: ctx.tenant.id,
+      environmentId: ctx.prodEnvironment.id,
+      ids: [fixture.providerListing.id],
+      limit: 10
+    });
+    expect(publishedProdListings.items.map(item => item.id)).toContain(
+      fixture.providerListing.id
+    );
   });
 
-  it('keeps unpublished target environments resolvable for publish commits', async () => {
+  it('keeps unpublished target environments visible for manageable custom providers', async () => {
     let ctx = await createTenantContext();
-    let fixture = await createCustomProviderFixture(ctx);
+    let fixture = await createCustomProviderFixture(ctx, { publishDev: false });
 
-    await expect(
-      customProviderEnvironmentService.getCustomProviderEnvironmentById({
-        tenant: ctx.tenantRecord,
-        solution: ctx.solutionRecord,
-        environment: ctx.devEnvironment,
-        customProviderEnvironmentId: fixture.prodCustomProviderEnvironment.id
-      })
-    ).rejects.toThrow();
+    let environments = await ctx.client.customProviderEnvironment.list({
+      tenantId: ctx.tenant.id,
+      environmentId: ctx.devEnvironment.id,
+      customProviderIds: [fixture.customProvider.id],
+      limit: 10
+    });
 
-    let targetEnvironment =
-      await customProviderEnvironmentService.getCustomProviderEnvironmentById({
-        tenant: ctx.tenantRecord,
-        solution: ctx.solutionRecord,
-        environment: ctx.devEnvironment,
-        customProviderEnvironmentId: fixture.prodCustomProviderEnvironment.id,
-        includeUnpublished: true,
-        includeOtherEnvironments: true
-      });
+    expect(environments.items.map(item => item.id)).toEqual(
+      expect.arrayContaining([
+        fixture.devCustomProviderEnvironment.id,
+        fixture.prodCustomProviderEnvironment.id
+      ])
+    );
+
+    let targetEnvironment = await ctx.client.customProviderEnvironment.get({
+      tenantId: ctx.tenant.id,
+      environmentId: ctx.devEnvironment.id,
+      customProviderEnvironmentId: fixture.prodCustomProviderEnvironment.id
+    });
 
     expect(targetEnvironment.id).toBe(fixture.prodCustomProviderEnvironment.id);
   });

@@ -32,15 +32,24 @@ let providerVersionEnvironmentVisibilityFilter = (environmentOid?: bigint) =>
       }
     : undefined!;
 
-let customProviderEnvironmentVisibilityFilter = (environmentOid: bigint) => ({
+let customProviderManagementVisibilityFilter = (environmentOid: bigint) => ({
   customProviderEnvironments: {
     some: {
       environmentOid,
-      providerEnvironment: {
-        is: {
-          currentVersionOid: { not: null }
+      OR: [
+        {
+          providerEnvironment: {
+            is: {
+              currentVersionOid: { not: null }
+            }
+          }
+        },
+        {
+          customProviderEnvironmentVersions: {
+            some: {}
+          }
         }
-      }
+      ]
     }
   }
 });
@@ -269,7 +278,7 @@ export let resolveCustomProviders = createResolver(async ({ ts, ids }) =>
       id: { in: ids },
       solutionOid: ts.solutionOid,
       tenantOid: ts.tenantOid,
-      AND: [customProviderEnvironmentVisibilityFilter(ts.environmentOid)]
+      AND: [customProviderManagementVisibilityFilter(ts.environmentOid)]
     },
     select: { oid: true }
   })
@@ -292,7 +301,7 @@ export let resolveCustomProviderVersions = createResolver(async ({ ts, ids }) =>
       id: { in: ids },
       solutionOid: ts.solutionOid,
       tenantOid: ts.tenantOid,
-      customProvider: customProviderEnvironmentVisibilityFilter(ts.environmentOid)
+      customProvider: customProviderManagementVisibilityFilter(ts.environmentOid)
     },
     select: { oid: true }
   })
@@ -304,12 +313,7 @@ export let resolveCustomProviderEnvironments = createResolver(async ({ ts, ids }
       id: { in: ids },
       tenantOid: ts.tenantOid,
       solutionOid: ts.solutionOid,
-      environmentOid: ts.environmentOid,
-      providerEnvironment: {
-        is: {
-          currentVersionOid: { not: null }
-        }
-      }
+      customProvider: customProviderManagementVisibilityFilter(ts.environmentOid)
     },
     select: { oid: true }
   })

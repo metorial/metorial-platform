@@ -35,13 +35,31 @@ let customProviderEnvironmentScopeFilter = (d: {
   includeOtherEnvironments?: boolean;
 }) => ({
   AND: [
-    d.includeOtherEnvironments ? undefined! : { environmentOid: d.environment.oid },
+    d.includeOtherEnvironments === false ? { environmentOid: d.environment.oid } : undefined!,
     d.includeUnpublished
       ? undefined!
       : {
-          providerEnvironment: {
+          customProvider: {
             is: {
-              currentVersionOid: { not: null }
+              customProviderEnvironments: {
+                some: {
+                  environmentOid: d.environment.oid,
+                  OR: [
+                    {
+                      providerEnvironment: {
+                        is: {
+                          currentVersionOid: { not: null }
+                        }
+                      }
+                    },
+                    {
+                      customProviderEnvironmentVersions: {
+                        some: {}
+                      }
+                    }
+                  ]
+                }
+              }
             }
           }
         }

@@ -73,11 +73,20 @@ let customProviderEnvironmentVisibilityFilter = (environment: Environment) => ({
   customProviderEnvironments: {
     some: {
       environmentOid: environment.oid,
-      providerEnvironment: {
-        is: {
-          currentVersionOid: { not: null }
+      OR: [
+        {
+          providerEnvironment: {
+            is: {
+              currentVersionOid: { not: null }
+            }
+          }
+        },
+        {
+          customProviderEnvironmentVersions: {
+            some: {}
+          }
         }
-      }
+      ]
     }
   }
 });
