@@ -284,6 +284,11 @@ class providerToolServiceImpl {
       version
     };
 
+    let authMethodScopes = await resolveProviderAuthMethodsForToolFilter(
+      ctx,
+      d.providerAuthMethodIds
+    );
+
     if (hasVersionWithoutSpecification(ctx)) {
       return Paginator.create(() => async input => paginateInMemory([], input));
     }
@@ -292,10 +297,6 @@ class providerToolServiceImpl {
       authConfig: d.providerAuthConfig,
       authCredentials: d.providerAuthCredentials
     });
-    let authMethodScopes = await resolveProviderAuthMethodsForToolFilter(
-      ctx,
-      d.providerAuthMethodIds
-    );
     let authMethod = d.providerAuthConfig
       ? ((d.providerAuthConfig as any).authMethod ??
         (await db.providerAuthMethod.findUnique({
