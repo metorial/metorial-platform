@@ -11,7 +11,7 @@ export let encodeBase62 = (buffer: Buffer | string) => {
 
   while (bigint > 0n) {
     let remainder = bigint % base;
-    result = BASE62_ALPHABET[Number(remainder)] + result;
+    result = BASE62_ALPHABET[Number(remainder)]! + result;
     bigint = bigint / base;
   }
 
@@ -23,7 +23,7 @@ export let decodeBase62 = (encoded: string) => {
   let base = BigInt(62);
 
   for (let i = 0; i < encoded.length; i++) {
-    let index = BASE62_ALPHABET.indexOf(encoded[i]);
+    let index = BASE62_ALPHABET.indexOf(encoded[i]!);
     if (index === -1) throw new Error('Invalid character');
     bigint = bigint * base + BigInt(index);
   }

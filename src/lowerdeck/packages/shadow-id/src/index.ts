@@ -6,7 +6,7 @@ export let shadowId = (
   otherIds: string[],
   otherStrings: (string | number | bigint | Date)[] = []
 ) => {
-  let time = otherIds[0]?.split('_')[1].substring(0, 9) ?? '';
+  let time = otherIds[0]?.split('_')[1]?.substring(0, 9) ?? '';
   let value = prefix + otherIds.join('') + otherStrings.join('');
 
   let hash = createHash('sha256').update(value).digest();

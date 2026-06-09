@@ -92,7 +92,7 @@ export let createCachedFunction = <I, O>(opts: {
 
   let clearByTagAndWait = async (tag: string) => {
     let redis = await useRedisClient();
-    let tagKey = getTagKeys([tag])[0];
+    let tagKey = getTagKeys([tag])[0]!;
 
     let hashes = await redis.sMembers(tagKey);
 
