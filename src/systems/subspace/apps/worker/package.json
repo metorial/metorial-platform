@@ -6,7 +6,8 @@
   "scripts": {
     "start:dev": "bun \"$(ROOT=$(git rev-parse --show-toplevel); if [ -f \"$ROOT/scripts/dev-tools/src/cli.ts\" ]; then echo \"$ROOT/scripts/dev-tools/src/cli.ts\"; else echo \"$ROOT/oss/scripts/dev-tools/src/cli.ts\"; fi)\" watch-bun ./src/server.ts",
     "start": "bun ./src/server.ts",
-    "server:build": "ncc build ./src/server.ts -o ./dist --source-map --external bun:sqlite --external bun && bun run sentry:sourcemaps:if-token",
+    "check-types": "tsc --noEmit -p tsconfig.json",
+    "server:build": "bun run check-types && ncc build ./src/server.ts -o ./dist --source-map --external bun:sqlite --external bun --transpile-only && bun run sentry:sourcemaps:if-token",
     "sentry:sourcemaps": "(sentry-cli sourcemaps inject --org metorial --project mte-subspace-worker ./dist && sentry-cli sourcemaps upload --org metorial --project mte-subspace-worker ./dist) || true",
     "sentry:sourcemaps:if-token": "sh -c 'if [ -n \"$SENTRY_AUTH_TOKEN\" ]; then bun run sentry:sourcemaps; else echo \"Skipping Sentry sourcemap upload\"; fi'"
   },
@@ -17,7 +18,7 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "@lowerdeck/queue": "^1.0.11",
+    "@lowerdeck/queue": "workspace:2.0.0",
     "@metorial-subspace/app-controller": "workspace:*",
     "@metorial-subspace/module-auth": "^1.0.0",
     "@metorial-subspace/module-catalog": "^1.0.0",
@@ -27,13 +28,15 @@
     "@metorial-subspace/module-monitor": "^1.0.0",
     "@metorial-subspace/module-provider-internal": "^1.0.0",
     "@metorial-subspace/module-skills": "^1.0.0",
-    "@lowerdeck/telemetry": "^1.1.1",
+    "@lowerdeck/telemetry": "workspace:2.0.0",
     "@metorial-subspace/module-tenant": "^1.0.0",
     "@metorial-subspace/provider-native": "^1.0.0",
     "@metorial-subspace/provider-slates": "^1.0.0",
     "@sentry/bun": "^10.34.0",
     "@vercel/ncc": "^0.38.3",
     "@sentry/cli": "^3.2.0",
-    "@metorial-subspace/module-callback": "^1.0.0"
+    "@metorial-subspace/module-callback": "^1.0.0",
+    "@lowerdeck/env": "workspace:2.0.0",
+    "@lowerdeck/sentry": "workspace:2.0.0"
   }
 }

@@ -10,8 +10,8 @@
   },
   "dependencies": {},
   "devDependencies": {
-    "@lowerdeck/programmable-promise": "^1.0.6",
-    "@lowerdeck/join-paths": "^1.0.4",
+    "@lowerdeck/programmable-promise": "workspace:2.0.0",
+    "@lowerdeck/join-paths": "workspace:2.0.0",
     "@metorial/tsconfig": "^1.0.0",
     "typescript": "5.8.2",
     "vitest": "^3.1.2"

@@ -30,8 +30,25 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@lowerdeck/rpc-client": "^1.1.4",
-    "@lowerdeck/validation": "^1.0.10",
+    "@lowerdeck/api-mux": "workspace:2.0.0",
+    "@lowerdeck/cache": "workspace:2.0.0",
+    "@lowerdeck/canonicalize": "workspace:2.0.0",
+    "@lowerdeck/cron": "workspace:2.0.0",
+    "@lowerdeck/env": "workspace:2.0.0",
+    "@lowerdeck/error": "workspace:2.0.0",
+    "@lowerdeck/hash": "workspace:2.0.0",
+    "@lowerdeck/id": "workspace:2.0.0",
+    "@lowerdeck/jwt": "workspace:2.0.0",
+    "@lowerdeck/lock": "workspace:2.0.0",
+    "@lowerdeck/pagination": "workspace:2.0.0",
+    "@lowerdeck/queue": "workspace:2.0.0",
+    "@lowerdeck/rpc-client": "workspace:2.0.0",
+    "@lowerdeck/rpc-server": "workspace:2.0.0",
+    "@lowerdeck/sentry": "workspace:2.0.0",
+    "@lowerdeck/service": "workspace:2.0.0",
+    "@lowerdeck/snowflake": "workspace:2.0.0",
+    "@lowerdeck/testing-tools": "workspace:2.0.0",
+    "@lowerdeck/validation": "workspace:2.0.0",
     "@types/bun": "^1.3.7"
   },
   "devDependencies": {

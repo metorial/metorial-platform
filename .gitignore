@@ -162,6 +162,11 @@ wheels/
 
 # Cache
 cache/
+!src/lowerdeck/packages/cache/
+!src/lowerdeck/packages/cache/**
+src/lowerdeck/packages/cache/.turbo/
+src/lowerdeck/packages/cache/dist/
+src/lowerdeck/packages/cache/node_modules/
 generated/
 
 # Virtual Environment

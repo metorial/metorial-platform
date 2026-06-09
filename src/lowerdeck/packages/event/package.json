@@ -1,0 +1,41 @@
+{
+  "name": "@lowerdeck/event",
+  "version": "2.0.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "src/**",
+    "README.md",
+    "package.json"
+  ],
+  "author": "Tobias Herber",
+  "license": "Apache 2",
+  "type": "module",
+  "source": "src/index.ts",
+  "exports": {
+    "types": "./src/index.ts",
+    "require": "./src/index.ts",
+    "import": "./src/index.ts",
+    "default": "./src/index.ts"
+  },
+  "main": "./src/index.ts",
+  "module": "./src/index.ts",
+  "types": "src/index.ts",
+  "unpkg": "./src/index.ts",
+  "scripts": {
+    "test": "vitest run --passWithNoTests",
+    "lint": "prettier src/**/*.ts --check"
+  },
+  "dependencies": {
+    "@lowerdeck/memo": "workspace:2.0.0",
+    "@lowerdeck/redis": "workspace:2.0.0",
+    "@lowerdeck/sentry": "workspace:2.0.0",
+    "p-queue": "^9.1.0"
+  },
+  "devDependencies": {
+    "@lowerdeck/tsconfig": "workspace:2.0.0",
+    "typescript": "5.8.2",
+    "vitest": "^3.1.2"
+  }
+}

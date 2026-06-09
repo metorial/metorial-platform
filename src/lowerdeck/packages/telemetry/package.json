@@ -1,0 +1,48 @@
+{
+  "name": "@lowerdeck/telemetry",
+  "version": "2.0.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "src/**",
+    "README.md",
+    "package.json"
+  ],
+  "author": "Ivan Siianytsia",
+  "license": "Apache 2",
+  "type": "module",
+  "source": "src/index.ts",
+  "exports": {
+    "types": "./src/index.ts",
+    "require": "./src/index.ts",
+    "import": "./src/index.ts",
+    "default": "./src/index.ts"
+  },
+  "main": "./src/index.ts",
+  "module": "./src/index.ts",
+  "types": "src/index.ts",
+  "unpkg": "./src/index.ts",
+  "scripts": {
+    "test": "vitest run --passWithNoTests",
+    "lint": "prettier src/**/*.ts --check"
+  },
+  "dependencies": {
+    "@lowerdeck/execution-context": "workspace:2.0.0",
+    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/context-async-hooks": "^2.5.0",
+    "@opentelemetry/core": "^2.5.0",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.211.0",
+    "@opentelemetry/instrumentation": "^0.212.0",
+    "@opentelemetry/resources": "^2.5.0",
+    "@opentelemetry/sdk-trace-base": "^2.5.0",
+    "@opentelemetry/sdk-trace-node": "^2.5.0",
+    "@opentelemetry/semantic-conventions": "^1.39.0",
+    "@prisma/instrumentation": "^7.4.1"
+  },
+  "devDependencies": {
+    "@lowerdeck/tsconfig": "workspace:2.0.0",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  }
+}

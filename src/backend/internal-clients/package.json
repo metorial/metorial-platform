@@ -9,10 +9,10 @@
     "lint": "prettier src/**/*.ts --check"
   },
   "dependencies": {
-    "@lowerdeck/delay": "^1.0.4",
-    "@lowerdeck/env": "^1.0.6",
-    "@lowerdeck/programmable-promise": "^1.0.6",
-    "@lowerdeck/validation": "^1.0.10",
+    "@lowerdeck/delay": "workspace:2.0.0",
+    "@lowerdeck/env": "workspace:2.0.0",
+    "@lowerdeck/programmable-promise": "workspace:2.0.0",
+    "@lowerdeck/validation": "workspace:2.0.0",
     "@metorial/db": "1.0.0",
     "@metorial-platform-systems/cargo-client": "1.0.0",
     "@metorial-platform-systems/nebula-client": "workspace:*",

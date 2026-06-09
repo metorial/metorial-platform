@@ -20,6 +20,7 @@ COPY /clients/metorial-dashboard ./clients/metorial-dashboard
 COPY /clients/metorial-consumer ./clients/metorial-consumer
 COPY /src/backend ./src/backend
 COPY /src/packages ./src/packages
+COPY /src/lowerdeck ./src/lowerdeck
 
 COPY /package.json ./package.json
 COPY /turbo.json ./turbo.json

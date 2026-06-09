@@ -1,0 +1,44 @@
+{
+  "name": "@lowerdeck/rpc-client",
+  "version": "2.0.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "src/**",
+    "README.md",
+    "package.json"
+  ],
+  "author": "Tobias Herber",
+  "license": "Apache 2",
+  "type": "module",
+  "source": "src/index.ts",
+  "exports": {
+    "types": "./src/index.ts",
+    "require": "./src/index.ts",
+    "import": "./src/index.ts",
+    "default": "./src/index.ts"
+  },
+  "main": "./src/index.ts",
+  "module": "./src/index.ts",
+  "types": "src/index.ts",
+  "unpkg": "./src/index.ts",
+  "scripts": {
+    "test": "vitest run --passWithNoTests",
+    "lint": "prettier src/**/*.ts --check"
+  },
+  "devDependencies": {
+    "@lowerdeck/tsconfig": "workspace:2.0.0",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  },
+  "dependencies": {
+    "@opentelemetry/api": "^1.9.0",
+    "@lowerdeck/canonicalize": "workspace:2.0.0",
+    "@lowerdeck/error": "workspace:2.0.0",
+    "@lowerdeck/id": "workspace:2.0.0",
+    "@lowerdeck/memo": "workspace:2.0.0",
+    "@lowerdeck/proxy": "workspace:2.0.0",
+    "@lowerdeck/serialize": "workspace:2.0.0"
+  }
+}

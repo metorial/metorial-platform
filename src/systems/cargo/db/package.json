@@ -18,12 +18,12 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "@lowerdeck/env": "^1.0.6",
-    "@lowerdeck/error": "^1.2.3",
-    "@lowerdeck/execution-context": "^1.1.1",
-    "@lowerdeck/id": "^1.0.8",
-    "@lowerdeck/snowflake": "^1.0.2",
-    "@lowerdeck/validation": "1.0.10",
+    "@lowerdeck/env": "workspace:2.0.0",
+    "@lowerdeck/error": "workspace:2.0.0",
+    "@lowerdeck/execution-context": "workspace:2.0.0",
+    "@lowerdeck/id": "workspace:2.0.0",
+    "@lowerdeck/snowflake": "workspace:2.0.0",
+    "@lowerdeck/validation": "workspace:2.0.0",
     "@prisma/adapter-pg": "^7.2.0",
     "@prisma/client": "^7.2.0",
     "@prisma/extension-read-replicas": "^0.5.0",

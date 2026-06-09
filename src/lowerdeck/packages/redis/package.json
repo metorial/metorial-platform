@@ -1,0 +1,44 @@
+{
+  "name": "@lowerdeck/redis",
+  "version": "2.0.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "src/**",
+    "README.md",
+    "package.json"
+  ],
+  "author": "Tobias Herber",
+  "license": "Apache 2",
+  "type": "module",
+  "source": "src/index.ts",
+  "exports": {
+    "types": "./src/index.ts",
+    "require": "./src/index.ts",
+    "import": "./src/index.ts",
+    "default": "./src/index.ts"
+  },
+  "main": "./src/index.ts",
+  "module": "./src/index.ts",
+  "types": "src/index.ts",
+  "unpkg": "./src/index.ts",
+  "scripts": {
+    "test": "vitest run --passWithNoTests",
+    "lint": "prettier src/**/*.ts --check"
+  },
+  "devDependencies": {
+    "@lowerdeck/tsconfig": "workspace:2.0.0",
+    "typescript": "5.8.2",
+    "vitest": "^3.1.2"
+  },
+  "dependencies": {
+    "@lowerdeck/memo": "workspace:2.0.0",
+    "@lowerdeck/id": "workspace:2.0.0",
+    "@lowerdeck/serialize": "workspace:2.0.0",
+    "@lowerdeck/random-number": "workspace:2.0.0",
+    "ioredis": "^5.8.2",
+    "p-queue": "^9.0.1",
+    "redis": "^5.10.0"
+  }
+}

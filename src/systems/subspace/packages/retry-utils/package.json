@@ -13,6 +13,6 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "@lowerdeck/delay": "^1.0.4"
+    "@lowerdeck/delay": "workspace:2.0.0"
   }
 }

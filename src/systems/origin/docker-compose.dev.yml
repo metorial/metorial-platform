@@ -46,8 +46,8 @@ services:
 
   service:
     build:
-      context: ./apps
-      dockerfile: ./service/Dockerfile.dev
+      context: ../../..
+      dockerfile: ./src/systems/origin/apps/service/Dockerfile.dev
     container_name: origin2-service
     restart: unless-stopped
     ports:
@@ -67,9 +67,9 @@ services:
       SCM_GITHUB_APP_CLIENT_SECRET: ${SCM_GITHUB_APP_CLIENT_SECRET}
       SCM_GITHUB_APP_SLUG: ${SCM_GITHUB_APP_SLUG}
     volumes:
-      - ./apps/service/src:/app/src:ro
-      - ./apps/service/prisma:/app/prisma:ro
-      - ./apps/service/prisma.config.ts:/app/prisma.config.ts:ro
+      - ./apps/service/src:/app/src/systems/origin/apps/service/src:ro
+      - ./apps/service/prisma:/app/src/systems/origin/apps/service/prisma:ro
+      - ./apps/service/prisma.config.ts:/app/src/systems/origin/apps/service/prisma.config.ts:ro
       - ./apps/code-bucket/index.ts:/app/node_modules/@metorial/code-bucket-service-generated/index.ts:ro
       - ./apps/code-bucket/ts-proto-gen:/app/node_modules/@metorial/code-bucket-service-generated/ts-proto-gen:ro
     depends_on:

@@ -16,7 +16,7 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "@lowerdeck/error": "^1.2.3",
+    "@lowerdeck/error": "workspace:2.0.0",
     "@metorial-subspace/db": "^1.0.0",
     "date-fns": "^4.1.0"
   }

@@ -62,6 +62,16 @@ let getShuttleFunctionProviderInvocationId = (functionInvocationId: string) =>
 let getShuttleServerConnectionProviderInvocationId = (serverConnectionId: string) =>
   createProviderInvocationId('shuttle.server_connection', serverConnectionId);
 
+type ShuttleFunctionInvocation = Awaited<
+  ReturnType<typeof shuttle.functionServerInvocation.list>
+>[number];
+type ShuttleServerConnectionLog = Awaited<
+  ReturnType<typeof shuttle.serverConnection.getLogsSync>
+>[number];
+type ShuttleFunctionInvocationLog = Awaited<
+  ReturnType<typeof shuttle.functionServerInvocation.getLogs>
+>['logs'][number];
+
 export class ProviderInvocation extends IProviderInvocation {
   override async listProviderInvocations(
     data: ProviderInvocationListParam
@@ -135,8 +145,8 @@ export class ProviderInvocation extends IProviderInvocation {
       : [];
     let serverConnectionIdsWithFunctionInvocations = new Set(
       remoteInvocations
-        .map(invocation => invocation.serverConnectionId)
-        .filter((id): id is string => Boolean(id))
+        .map((invocation: ShuttleFunctionInvocation) => invocation.serverConnectionId)
+        .filter((id: string | null | undefined): id is string => Boolean(id))
     );
 
     let providerRunIdByConnectionId = new Map(
@@ -186,7 +196,7 @@ export class ProviderInvocation extends IProviderInvocation {
             requests: [],
             responses: [],
             requestTraces: [],
-            logs: logs.map(log => ({
+            logs: logs.map((log: ShuttleServerConnectionLog) => ({
               timestamp: log.timestamp,
               message: log.message,
               outputType: log.outputType
@@ -203,7 +213,7 @@ export class ProviderInvocation extends IProviderInvocation {
     );
 
     await queue.addAll(
-      remoteInvocations.map(invocation => async () => {
+      remoteInvocations.map((invocation: ShuttleFunctionInvocation) => async () => {
         let logs = await getFunctionInvocationLogs(invocation.id);
 
         let providerRunId = invocation.serverConnectionId
@@ -226,7 +236,7 @@ export class ProviderInvocation extends IProviderInvocation {
           requests: [],
           responses: [],
           requestTraces: [],
-          logs: logs.logs.map(log => ({
+          logs: logs.logs.map((log: ShuttleFunctionInvocationLog) => ({
             timestamp: log.timestamp,
             message: log.message,
             outputType: log.outputType
@@ -284,7 +294,7 @@ export class ProviderInvocation extends IProviderInvocation {
             requests: [],
             responses: [],
             requestTraces: [],
-            logs: logs.logs.map(log => ({
+            logs: logs.logs.map((log: ShuttleFunctionInvocationLog) => ({
               timestamp: log.timestamp,
               message: log.message,
               outputType: log.outputType
@@ -333,7 +343,7 @@ export class ProviderInvocation extends IProviderInvocation {
           requests: [],
           responses: [],
           requestTraces: [],
-          logs: logs.map(log => ({
+          logs: logs.map((log: ShuttleServerConnectionLog) => ({
             timestamp: log.timestamp,
             message: log.message,
             outputType: log.outputType
@@ -438,7 +448,7 @@ export class ProviderInvocation extends IProviderInvocation {
         requests: [],
         responses: [],
         requestTraces: [],
-        logs: logs.logs.map(log => ({
+        logs: logs.logs.map((log: ShuttleFunctionInvocationLog) => ({
           timestamp: log.timestamp,
           message: log.message,
           outputType: log.outputType
@@ -526,7 +536,7 @@ export class ProviderInvocation extends IProviderInvocation {
       requests: [],
       responses: [],
       requestTraces: [],
-      logs: logs.map(log => ({
+      logs: logs.map((log: ShuttleServerConnectionLog) => ({
         timestamp: log.timestamp,
         message: log.message,
         outputType: log.outputType

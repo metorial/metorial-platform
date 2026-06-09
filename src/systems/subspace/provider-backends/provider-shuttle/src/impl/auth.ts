@@ -273,15 +273,15 @@ export class ProviderAuth extends IProviderAuth {
     let lastFailedEvent = [...record.events]
       .reverse()
       .find(event => event.type.endsWith('_failed'));
+    let status = record.status;
+    if (status !== 'completed' && status !== 'pending' && status !== 'failed') {
+      throw new Error(`Unknown Shuttle OAuth setup status: ${status}`);
+    }
 
     return {
       shuttleOAuthSetup: setup,
       shuttleAuthConfig,
-      status: {
-        completed: 'completed' as const,
-        pending: 'pending' as const,
-        failed: 'failed' as const
-      }[record.status],
+      status,
       url: record.url,
       error:
         record.status === 'failed'

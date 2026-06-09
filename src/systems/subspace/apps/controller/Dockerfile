@@ -20,14 +20,7 @@ ENV SENTRY_AUTH_TOKEN=${SENTRY_AUTH_TOKEN}
 # Build the application using ncc
 # This bundles all dependencies into a single file
 WORKDIR /app/src/systems/subspace/apps/controller
-# Temporarily use the build-friendly tsconfig
-RUN mv tsconfig.json tsconfig.json.bak && \
-  mv tsconfig.build.json tsconfig.json && \
-  bun run server:build; \
-  BUILD_EXIT_CODE=$?; \
-  mv tsconfig.json tsconfig.build.json && \
-  mv tsconfig.json.bak tsconfig.json; \
-  exit $BUILD_EXIT_CODE
+RUN bun run server:build
 
 # Production stage
 FROM oven/bun:1-alpine AS production

@@ -6,3 +6,4 @@ cd /app
 # Install from the OSS workspace so local Signal packages resolve from the
 # monorepo instead of published artifacts.
 bun install --linker=hoisted
+
