@@ -1,4 +1,4 @@
-import { ValidatorOptions } from '../lib/types';
+import type { ValidatorOptions } from '../lib/types';
 import { createValidator } from '../lib/validator';
 
 export let any = createValidator<any, ValidatorOptions<any>>('any', (opts, value) => {

@@ -1,5 +1,5 @@
 import { error } from '../lib/result';
-import { ValidatorOptions } from '../lib/types';
+import type { ValidatorOptions } from '../lib/types';
 import { createValidator } from '../lib/validator';
 
 export let date = createValidator<Date, ValidatorOptions<Date>>('date', (opts, value) => {

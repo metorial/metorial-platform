@@ -1,5 +1,5 @@
 import { error, success } from '../lib/result';
-import { ValidationType, ValidationTypeValue, ValidatorOptions } from '../lib/types';
+import type { ValidationType, ValidationTypeValue, ValidatorOptions } from '../lib/types';
 
 export let record = <Validator extends ValidationType<any>>(
   validator: Validator,

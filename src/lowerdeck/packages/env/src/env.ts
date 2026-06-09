@@ -1,4 +1,4 @@
-import { ValidationType, ValidationTypeValue } from '@lowerdeck/validation';
+import type { ValidationType, ValidationTypeValue } from '@lowerdeck/validation';
 
 export let createValidatedEnv = <
   Env extends Record<string, Record<string, ValidationType<any>>>
@@ -16,7 +16,7 @@ export let createValidatedEnv = <
         Object.entries(value).map(([key, value]) => {
           let res = value.validate(process.env[key]);
           if (!res.success)
-            throw new Error(`ENV VALIDATION: ${key} - ${res.errors[0].message}`);
+            throw new Error(`ENV VALIDATION: ${key} - ${res.errors[0]?.message ?? 'invalid'}`);
 
           return [key, res.value];
         })

@@ -1128,8 +1128,6 @@
       "version": "2.0.0",
       "devDependencies": {
         "@lowerdeck/tsconfig": "workspace:2.0.0",
-        "microbundle": "^0.15.1",
-        "tsup": "^8.5.1",
         "typescript": "^5.8.3",
         "vitest": "^3.1.2",
       },
@@ -1142,8 +1140,6 @@
       },
       "devDependencies": {
         "@lowerdeck/tsconfig": "workspace:2.0.0",
-        "microbundle": "^0.15.1",
-        "tsup": "^8.5.1",
         "typescript": "^5.9.3",
         "vitest": "^3.2.4",
       },
@@ -1156,8 +1152,6 @@
       },
       "devDependencies": {
         "@lowerdeck/tsconfig": "workspace:2.0.0",
-        "microbundle": "^0.15.1",
-        "tsup": "^8.5.1",
         "typescript": "^5.9.3",
         "vitest": "^3.2.4",
       },
@@ -1170,8 +1164,6 @@
       },
       "devDependencies": {
         "@lowerdeck/tsconfig": "workspace:2.0.0",
-        "microbundle": "^0.15.1",
-        "tsup": "^8.5.1",
         "typescript": "^5.8.3",
         "vitest": "^3.1.2",
       },
@@ -1187,8 +1179,6 @@
       },
       "devDependencies": {
         "@lowerdeck/tsconfig": "workspace:2.0.0",
-        "microbundle": "^0.15.1",
-        "tsup": "^8.5.1",
         "typescript": "5.8.2",
         "vitest": "^3.1.2",
       },
@@ -1198,8 +1188,6 @@
       "version": "2.0.0",
       "devDependencies": {
         "@lowerdeck/tsconfig": "workspace:2.0.0",
-        "microbundle": "^0.15.1",
-        "tsup": "^8.5.1",
         "typescript": "^5.8.3",
         "vitest": "^3.1.2",
       },
@@ -1209,8 +1197,6 @@
       "version": "2.0.0",
       "devDependencies": {
         "@lowerdeck/tsconfig": "workspace:2.0.0",
-        "microbundle": "^0.15.1",
-        "tsup": "^8.5.1",
         "typescript": "^5.8.3",
         "vitest": "^3.1.2",
       },
@@ -1228,8 +1214,6 @@
       },
       "devDependencies": {
         "@lowerdeck/tsconfig": "workspace:2.0.0",
-        "microbundle": "^0.15.1",
-        "tsup": "^8.5.1",
         "typescript": "5.8.2",
         "vitest": "^3.1.2",
       },
@@ -1239,8 +1223,6 @@
       "version": "2.0.0",
       "devDependencies": {
         "@lowerdeck/tsconfig": "workspace:2.0.0",
-        "microbundle": "^0.15.1",
-        "tsup": "^8.5.1",
         "typescript": "^5.8.3",
         "vitest": "^3.1.2",
       },
@@ -1250,8 +1232,6 @@
       "version": "2.0.0",
       "devDependencies": {
         "@lowerdeck/tsconfig": "workspace:2.0.0",
-        "microbundle": "^0.15.1",
-        "tsup": "^8.5.1",
         "typescript": "^5.8.3",
         "vitest": "^3.1.2",
       },
@@ -1266,8 +1246,6 @@
       },
       "devDependencies": {
         "@lowerdeck/tsconfig": "workspace:2.0.0",
-        "microbundle": "^0.15.1",
-        "tsup": "^8.5.1",
         "typescript": "5.8.2",
         "vitest": "^3.1.2",
       },
@@ -1280,8 +1258,6 @@
       },
       "devDependencies": {
         "@lowerdeck/tsconfig": "workspace:2.0.0",
-        "microbundle": "^0.15.1",
-        "tsup": "^8.5.1",
         "typescript": "5.8.2",
         "vitest": "^3.1.2",
       },
@@ -1295,8 +1271,6 @@
       },
       "devDependencies": {
         "@lowerdeck/tsconfig": "workspace:2.0.0",
-        "microbundle": "^0.15.1",
-        "tsup": "^8.5.1",
         "typescript": "5.8.2",
         "vitest": "^3.1.2",
       },
@@ -1312,8 +1286,6 @@
       },
       "devDependencies": {
         "@lowerdeck/tsconfig": "workspace:2.0.0",
-        "microbundle": "^0.15.1",
-        "tsup": "^8.5.1",
         "typescript": "5.8.2",
         "vitest": "^3.1.2",
       },
@@ -1328,8 +1300,6 @@
       },
       "devDependencies": {
         "@lowerdeck/tsconfig": "workspace:2.0.0",
-        "microbundle": "^0.15.1",
-        "tsup": "^8.5.1",
         "typescript": "^5.8.3",
         "vitest": "^3.1.2",
       },
@@ -1339,8 +1309,6 @@
       "version": "2.0.0",
       "devDependencies": {
         "@lowerdeck/tsconfig": "workspace:2.0.0",
-        "microbundle": "^0.15.1",
-        "tsup": "^8.5.1",
         "typescript": "^5.8.3",
         "vitest": "^3.1.2",
       },
@@ -1350,8 +1318,6 @@
       "version": "2.0.0",
       "devDependencies": {
         "@lowerdeck/tsconfig": "workspace:2.0.0",
-        "microbundle": "^0.15.1",
-        "tsup": "^8.5.1",
         "typescript": "5.8.2",
         "vitest": "^3.1.2",
       },
@@ -1364,8 +1330,6 @@
       },
       "devDependencies": {
         "@lowerdeck/tsconfig": "workspace:2.0.0",
-        "microbundle": "^0.15.1",
-        "tsup": "^8.5.1",
         "typescript": "^5.8.3",
         "vitest": "^3.1.2",
       },
@@ -1381,8 +1345,6 @@
       },
       "devDependencies": {
         "@lowerdeck/tsconfig": "workspace:2.0.0",
-        "microbundle": "^0.15.1",
-        "tsup": "^8.5.1",
         "typescript": "5.8.2",
         "vitest": "^3.1.2",
       },
@@ -1399,8 +1361,6 @@
       },
       "devDependencies": {
         "@lowerdeck/tsconfig": "workspace:2.0.0",
-        "microbundle": "^0.15.1",
-        "tsup": "^8.5.1",
         "typescript": "^5.8.3",
         "vitest": "^3.1.2",
       },
@@ -1410,8 +1370,6 @@
       "version": "2.0.0",
       "devDependencies": {
         "@lowerdeck/tsconfig": "workspace:2.0.0",
-        "microbundle": "^0.15.1",
-        "tsup": "^8.5.1",
         "typescript": "5.8.2",
         "vitest": "^3.1.2",
       },
@@ -1421,8 +1379,6 @@
       "version": "2.0.0",
       "devDependencies": {
         "@lowerdeck/tsconfig": "workspace:2.0.0",
-        "microbundle": "^0.15.1",
-        "tsup": "^8.5.1",
         "typescript": "^5.8.3",
         "vitest": "^3.1.2",
       },
@@ -1435,8 +1391,6 @@
       },
       "devDependencies": {
         "@lowerdeck/tsconfig": "workspace:2.0.0",
-        "microbundle": "^0.15.1",
-        "tsup": "^8.5.1",
         "typescript": "5.8.2",
         "vitest": "^3.1.2",
       },
@@ -1454,8 +1408,6 @@
       },
       "devDependencies": {
         "@lowerdeck/tsconfig": "workspace:2.0.0",
-        "microbundle": "^0.15.1",
-        "tsup": "^8.5.1",
         "typescript": "5.8.2",
         "vitest": "^3.1.2",
       },
@@ -1465,8 +1417,6 @@
       "version": "2.0.0",
       "devDependencies": {
         "@lowerdeck/tsconfig": "workspace:2.0.0",
-        "microbundle": "^0.15.1",
-        "tsup": "^8.5.1",
         "typescript": "^5.8.3",
         "vitest": "^3.1.2",
       },
@@ -1476,8 +1426,6 @@
       "version": "2.0.0",
       "devDependencies": {
         "@lowerdeck/tsconfig": "workspace:2.0.0",
-        "microbundle": "^0.15.1",
-        "tsup": "^8.5.1",
         "typescript": "^5.8.3",
         "vitest": "^3.1.2",
       },
@@ -1487,8 +1435,6 @@
       "version": "2.0.0",
       "devDependencies": {
         "@lowerdeck/tsconfig": "workspace:2.0.0",
-        "microbundle": "^0.15.1",
-        "tsup": "^8.5.1",
         "typescript": "^5.8.3",
         "vitest": "^3.1.2",
       },
@@ -1498,8 +1444,6 @@
       "version": "2.0.0",
       "devDependencies": {
         "@lowerdeck/tsconfig": "workspace:2.0.0",
-        "microbundle": "^0.15.1",
-        "tsup": "^8.5.1",
         "typescript": "5.8.2",
         "vitest": "^3.1.2",
       },
@@ -1509,8 +1453,6 @@
       "version": "2.0.0",
       "devDependencies": {
         "@lowerdeck/tsconfig": "workspace:2.0.0",
-        "microbundle": "^0.15.1",
-        "tsup": "^8.5.1",
         "typescript": "^5.8.3",
         "vitest": "^3.1.2",
       },
@@ -1525,9 +1467,7 @@
       },
       "devDependencies": {
         "@lowerdeck/tsconfig": "workspace:2.0.0",
-        "microbundle": "^0.15.1",
         "mongoose": "^9.0.2",
-        "tsup": "^8.5.1",
         "typescript": "^5.9.3",
         "vitest": "^3.2.4",
       },
@@ -1540,8 +1480,6 @@
       },
       "devDependencies": {
         "@lowerdeck/tsconfig": "workspace:2.0.0",
-        "microbundle": "^0.15.1",
-        "tsup": "^8.5.1",
         "typescript": "^5.9.3",
         "vitest": "^3.2.4",
       },
@@ -1551,8 +1489,6 @@
       "version": "2.0.0",
       "devDependencies": {
         "@lowerdeck/tsconfig": "workspace:2.0.0",
-        "microbundle": "^0.15.1",
-        "tsup": "^8.5.1",
         "typescript": "^5.8.3",
         "vitest": "^3.1.2",
       },
@@ -1562,8 +1498,6 @@
       "version": "2.0.0",
       "devDependencies": {
         "@lowerdeck/tsconfig": "workspace:2.0.0",
-        "microbundle": "^0.15.1",
-        "tsup": "^8.5.1",
         "typescript": "^5.8.3",
         "vitest": "^3.1.2",
       },
@@ -1584,8 +1518,6 @@
       },
       "devDependencies": {
         "@lowerdeck/tsconfig": "workspace:2.0.0",
-        "microbundle": "^0.15.1",
-        "tsup": "^8.5.1",
         "typescript": "5.8.2",
         "vitest": "^3.1.2",
       },
@@ -1595,8 +1527,6 @@
       "version": "2.0.0",
       "devDependencies": {
         "@lowerdeck/tsconfig": "workspace:2.0.0",
-        "microbundle": "^0.15.1",
-        "tsup": "^8.5.1",
         "typescript": "^5.8.3",
         "vitest": "^3.1.2",
       },
@@ -1606,8 +1536,6 @@
       "version": "2.0.0",
       "devDependencies": {
         "@lowerdeck/tsconfig": "workspace:2.0.0",
-        "microbundle": "^0.15.1",
-        "tsup": "^8.5.1",
         "typescript": "^5.8.3",
         "vitest": "^3.1.2",
       },
@@ -1626,8 +1554,6 @@
       },
       "devDependencies": {
         "@lowerdeck/tsconfig": "workspace:2.0.0",
-        "microbundle": "^0.15.1",
-        "tsup": "^8.5.1",
         "typescript": "5.8.2",
         "vitest": "^3.1.2",
       },
@@ -1646,8 +1572,6 @@
       },
       "devDependencies": {
         "@lowerdeck/tsconfig": "workspace:2.0.0",
-        "microbundle": "^0.15.1",
-        "tsup": "^8.5.1",
         "typescript": "^5.9.3",
         "vitest": "^3.2.4",
       },
@@ -1668,8 +1592,6 @@
       },
       "devDependencies": {
         "@lowerdeck/tsconfig": "workspace:2.0.0",
-        "microbundle": "^0.15.1",
-        "tsup": "^8.5.1",
         "typescript": "^5.9.3",
         "vitest": "^3.2.4",
       },
@@ -1682,8 +1604,6 @@
       },
       "devDependencies": {
         "@lowerdeck/tsconfig": "workspace:2.0.0",
-        "microbundle": "^0.15.1",
-        "tsup": "^8.5.1",
         "typescript": "5.8.2",
         "vitest": "^3.1.2",
       },
@@ -1696,8 +1616,6 @@
       },
       "devDependencies": {
         "@lowerdeck/tsconfig": "workspace:2.0.0",
-        "microbundle": "^0.15.1",
-        "tsup": "^8.5.1",
         "typescript": "5.8.2",
         "vitest": "^3.1.2",
       },
@@ -1710,8 +1628,6 @@
       },
       "devDependencies": {
         "@lowerdeck/tsconfig": "workspace:2.0.0",
-        "microbundle": "^0.15.1",
-        "tsup": "^8.5.1",
         "typescript": "5.8.2",
         "vitest": "^3.1.2",
       },
@@ -1724,8 +1640,6 @@
       },
       "devDependencies": {
         "@lowerdeck/tsconfig": "workspace:2.0.0",
-        "microbundle": "^0.15.1",
-        "tsup": "^8.5.1",
         "typescript": "^5.8.3",
         "vitest": "^3.1.2",
       },
@@ -1739,8 +1653,6 @@
       },
       "devDependencies": {
         "@lowerdeck/tsconfig": "workspace:2.0.0",
-        "microbundle": "^0.15.1",
-        "tsup": "^8.5.1",
         "typescript": "5.8.2",
         "vitest": "^3.1.2",
       },
@@ -1754,8 +1666,6 @@
       },
       "devDependencies": {
         "@lowerdeck/tsconfig": "workspace:2.0.0",
-        "microbundle": "^0.15.1",
-        "tsup": "^8.5.1",
         "typescript": "5.8.2",
         "vitest": "^3.1.2",
       },
@@ -1765,8 +1675,6 @@
       "version": "2.0.0",
       "devDependencies": {
         "@lowerdeck/tsconfig": "workspace:2.0.0",
-        "microbundle": "^0.15.1",
-        "tsup": "^8.5.1",
         "typescript": "5.8.2",
         "vitest": "^3.1.2",
       },
@@ -1789,8 +1697,6 @@
       },
       "devDependencies": {
         "@lowerdeck/tsconfig": "workspace:2.0.0",
-        "microbundle": "^0.15.1",
-        "tsup": "^8.5.1",
         "typescript": "^5.9.3",
         "vitest": "^3.2.4",
       },
@@ -1803,8 +1709,6 @@
       },
       "devDependencies": {
         "@lowerdeck/tsconfig": "workspace:2.0.0",
-        "microbundle": "^0.15.1",
-        "tsup": "^8.5.1",
         "typescript": "5.8.2",
         "vitest": "^3.1.2",
       },
@@ -1817,8 +1721,6 @@
       "version": "2.0.0",
       "devDependencies": {
         "@lowerdeck/tsconfig": "workspace:2.0.0",
-        "microbundle": "^0.15.1",
-        "tsup": "^8.5.1",
         "typescript": "^5.8.3",
         "vitest": "^3.1.2",
       },
@@ -1832,8 +1734,6 @@
       },
       "devDependencies": {
         "@lowerdeck/tsconfig": "workspace:2.0.0",
-        "microbundle": "^0.15.1",
-        "tsup": "^8.5.1",
         "typescript": "5.8.2",
         "vitest": "^3.1.2",
       },
@@ -1850,8 +1750,6 @@
       "version": "2.0.0",
       "devDependencies": {
         "@lowerdeck/tsconfig": "workspace:2.0.0",
-        "microbundle": "^0.15.1",
-        "tsup": "^8.5.1",
         "typescript": "^5.8.3",
         "vitest": "^3.1.2",
       },
@@ -1861,8 +1759,6 @@
       "version": "2.0.0",
       "devDependencies": {
         "@lowerdeck/tsconfig": "workspace:2.0.0",
-        "microbundle": "^0.15.1",
-        "tsup": "^8.5.1",
         "typescript": "^5.8.3",
         "vitest": "^3.1.2",
       },
@@ -1875,8 +1771,6 @@
       },
       "devDependencies": {
         "@lowerdeck/tsconfig": "workspace:2.0.0",
-        "microbundle": "^0.15.1",
-        "tsup": "^8.5.1",
         "typescript": "^5.8.3",
         "vitest": "^3.1.2",
       },

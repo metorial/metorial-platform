@@ -1,4 +1,4 @@
-import { Transformer } from '../lib/types';
+import type { Transformer } from '../lib/types';
 
 export let trim: Transformer<string> = value => value.trim();
 

@@ -1,13 +1,14 @@
 import { canonicalize } from '@lowerdeck/canonicalize';
 import { internalServerError, isServiceError, ServiceError } from '@lowerdeck/error';
 import { serialize } from '@lowerdeck/serialize';
-import { Call, generateRequestId, Requester } from './shared/requester';
+import { generateRequestId } from './shared/requester';
+import type { Call, Requester } from './shared/requester';
 
 // @ts-ignore
-let isServer = typeof window === 'undefined';
+let isServer = typeof (globalThis as any).window === 'undefined';
 
 let verbose =
-  typeof window != 'undefined' ||
+  typeof (globalThis as any).window != 'undefined' ||
   (typeof process !== 'undefined' && process.env.NODE_ENV !== 'production');
 
 let log = (...args: any[]) => {
@@ -41,7 +42,7 @@ let runCalls = (
 
     headers: {
       'Content-Type': 'application/rpc+json',
-      ...c[0].call.headers
+      ...c[0]!.call.headers
     },
     body: serialize.encode({
       calls: c
@@ -108,7 +109,7 @@ let runCalls = (
           new ServiceError(
             internalServerError({
               message:
-                typeof window != 'undefined'
+                typeof (globalThis as any).window != 'undefined'
                   ? 'Unable to reach server'
                   : `Unable to reach server ${call.endpoint}`,
 
@@ -134,7 +135,7 @@ let performRequest = (call: Call) => {
   let key = `${canonicalize(call.headers)}${canonicalize(call.query)}${call.endpoint}`;
 
   if (!calls[key]) calls[key] = { calls: [], to: null };
-  let current = calls[key];
+  let current = calls[key]!;
 
   let promise = new Promise((resolve, reject) => {
     current.calls.push({ call, resolve, reject });
@@ -144,9 +145,9 @@ let performRequest = (call: Call) => {
 
   current.to = setTimeout(
     () => {
-      let c = calls[key].calls;
-      calls[key].calls = [];
-      calls[key].to = null;
+      let c = calls[key]!.calls;
+      calls[key]!.calls = [];
+      calls[key]!.to = null;
 
       runCalls(call, c);
     },
@@ -173,8 +174,8 @@ let requesterInternal: Requester = async call => {
     }
   }
 
-  let maxTries = typeof window === 'undefined' ? 6 : 3;
-  let retryDelay = typeof window === 'undefined' ? 20 : 1000;
+  let maxTries = typeof (globalThis as any).window === 'undefined' ? 6 : 3;
+  let retryDelay = typeof (globalThis as any).window === 'undefined' ? 20 : 1000;
 
   while (tries < maxTries) {
     try {
@@ -217,7 +218,7 @@ let requesterInternal: Requester = async call => {
   throw new ServiceError(
     internalServerError({
       message:
-        typeof window != 'undefined'
+        typeof (globalThis as any).window != 'undefined'
           ? 'Unable to reach server'
           : `Unable to reach server ${call.endpoint}`
     })

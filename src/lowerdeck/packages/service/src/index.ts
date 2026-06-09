@@ -39,8 +39,7 @@ export class Service<Methods extends object> {
 
     let properties = Object.getOwnPropertyNames(Object.getPrototypeOf(this.#methods));
 
-    for (let key in properties) {
-      let methodName = properties[key];
+    for (let methodName of properties) {
       if (methodName === 'constructor') continue;
 
       let method = (this.#methods as any)[methodName];

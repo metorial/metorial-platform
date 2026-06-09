@@ -1,5 +1,5 @@
 import { badRequestError, ServiceError, validationError } from '@lowerdeck/error';
-import { ValidationType } from '@lowerdeck/validation';
+import type { ValidationType } from '@lowerdeck/validation';
 import { Context } from 'hono';
 
 export let useValidatedBody = async <T>(c: Context, v: ValidationType<T>): Promise<T> => {

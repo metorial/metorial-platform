@@ -1,6 +1,7 @@
 import { Cases } from '@lowerdeck/case';
-import { ValidationError } from '@lowerdeck/validation';
-import { ErrorData, createError } from './error';
+import type { ValidationError } from '@lowerdeck/validation';
+import { createError } from './error';
+import type { ErrorData } from './error';
 
 export let validationError = (
   d: { errors: ValidationError[]; entity: string } & Partial<ErrorData<'invalid_data', 400>>

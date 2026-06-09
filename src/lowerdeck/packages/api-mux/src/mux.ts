@@ -22,9 +22,9 @@ export let apiMux = (
 
   return (req: Request, server: any) => {
     let url = new URL(req.url);
-    let host = (req.headers.get('x-host') ?? req.headers.get('host') ?? url.hostname).split(
-      ':'
-    )[0];
+    let host =
+      (req.headers.get('x-host') ?? req.headers.get('host') ?? url.hostname).split(':')[0] ??
+      url.hostname;
     url.host = host;
 
     if (url.pathname == '/ping') {

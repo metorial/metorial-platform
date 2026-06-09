@@ -1,4 +1,4 @@
-import { ValidationType, ValidationTypeValue, ValidatorOptions } from '../lib/types';
+import type { ValidationType, ValidationTypeValue, ValidatorOptions } from '../lib/types';
 
 export let intersection = <A extends ValidationType<object>, B extends ValidationType<object>>(
   validators: [A, B],

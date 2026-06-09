@@ -7,4 +7,3 @@ cd /app
 # monorepo instead of published artifacts.
 bun install --linker=hoisted
 
-bunx turbo run --ui=stream build --filter='./src/lowerdeck/packages/**'

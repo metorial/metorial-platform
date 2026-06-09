@@ -1,5 +1,5 @@
 import { error } from '../lib/result';
-import { ValidationType } from '../lib/types';
+import type { ValidationType } from '../lib/types';
 
 // export let enumType = <
 //   A extends string | number | boolean,

@@ -1,4 +1,4 @@
-import { ValidationType, ValidationTypeValue, ValidatorOptions } from '../lib/types';
+import type { ValidationType, ValidationTypeValue, ValidatorOptions } from '../lib/types';
 
 export let optional = <A extends ValidationType<any>>(
   validator: A,

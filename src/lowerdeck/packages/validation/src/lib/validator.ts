@@ -1,5 +1,5 @@
 import { error, success } from './result';
-import {
+import type {
   Preprocessor,
   Transformer,
   ValidationError,

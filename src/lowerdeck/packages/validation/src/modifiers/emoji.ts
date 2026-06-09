@@ -1,4 +1,4 @@
-import { ValidationModifier } from '../lib/types';
+import type { ValidationModifier } from '../lib/types';
 
 let emojiRegex = /^(\p{Extended_Pictographic}|\p{Emoji_Component})+$/u;
 

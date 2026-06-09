@@ -1,4 +1,4 @@
-import { ValidationModifier } from '../lib/types';
+import type { ValidationModifier } from '../lib/types';
 
 let isoDateRegex = /^\d{4}-(0[1-9]|1[0-2])-([12]\d|0[1-9]|3[01])$/;
 let isoDateTimeRegex =

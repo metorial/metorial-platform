@@ -1,7 +1,7 @@
 import { context as otelContext, propagation } from '@opentelemetry/api';
 import { getSentry } from '@lowerdeck/sentry';
 import { AsyncLocalStorage } from 'async_hooks';
-import { ExecutionContext } from './execution-context';
+import type { ExecutionContext } from './execution-context';
 
 let Sentry = getSentry();
 

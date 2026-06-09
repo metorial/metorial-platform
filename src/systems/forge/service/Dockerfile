@@ -14,7 +14,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
 
 # Install dependencies from the OSS workspace
 RUN bun install --linker=hoisted
-RUN bunx turbo run --ui=stream build --filter='./src/lowerdeck/packages/**'
 
 # Generate Prisma client and build the service from the monorepo path
 WORKDIR /app/src/systems/forge/service

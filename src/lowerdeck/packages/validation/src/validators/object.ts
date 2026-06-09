@@ -1,5 +1,5 @@
 import { error, success } from '../lib/result';
-import { ValidationType, ValidationTypeValue, ValidatorOptions } from '../lib/types';
+import type { ValidationType, ValidationTypeValue, ValidatorOptions } from '../lib/types';
 
 type KeysWhichExtend<T, SelectedType> = {
   [key in keyof T]: SelectedType extends T[key] ? key : never;

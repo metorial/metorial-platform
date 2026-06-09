@@ -1,4 +1,4 @@
-import { ValidationModifier } from '../lib/types';
+import type { ValidationModifier } from '../lib/types';
 
 export let endsWith =
   (suffix: string, opts?: { message?: string }): ValidationModifier<string> =>

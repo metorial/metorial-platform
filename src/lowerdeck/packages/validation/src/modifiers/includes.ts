@@ -1,4 +1,4 @@
-import { ValidationModifier } from '../lib/types';
+import type { ValidationModifier } from '../lib/types';
 
 export let includes =
   (substring: string, opts?: { message?: string }): ValidationModifier<string> =>

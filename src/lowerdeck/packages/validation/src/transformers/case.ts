@@ -1,4 +1,4 @@
-import { Transformer } from '../lib/types';
+import type { Transformer } from '../lib/types';
 
 export let upperCase: Transformer<string> = value => value.toUpperCase();
 

@@ -1,6 +1,6 @@
 import { ServiceError, badRequestError } from '@lowerdeck/error';
 import type { QueryFilter, SortOrder } from 'mongoose';
-import { PaginatedList } from './types';
+import type { PaginatedList } from './types';
 
 export interface PaginatedProviderInput {
   limit: number;

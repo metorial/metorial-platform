@@ -1,5 +1,6 @@
 import { internalServerError, isServiceError, notFoundError } from '@lowerdeck/error';
-import { Context, Env, Hono } from 'hono';
+import { Context, Hono } from 'hono';
+import type { Env } from 'hono';
 import { cors } from 'hono/cors';
 
 export { cors, type Context };

@@ -67,14 +67,15 @@ export let createIdGenerator = <
   idPrefixes: T
 ) => {
   for (let key in idPrefixes) {
-    if (!idPrefixes[key].prefix.endsWith('_')) {
-      idPrefixes[key].prefix = `${idPrefixes[key].prefix}_`;
+    let desc = idPrefixes[key]!;
+    if (!desc.prefix.endsWith('_')) {
+      desc.prefix = `${desc.prefix}_`;
     }
   }
 
   let seenPrefixes = new Set<string>();
   for (let key in idPrefixes) {
-    let prefix = idPrefixes[key].prefix;
+    let prefix = idPrefixes[key]!.prefix;
     if (seenPrefixes.has(prefix)) {
       throw new Error(`Prefix ${prefix} already exists`);
     }

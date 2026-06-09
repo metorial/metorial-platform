@@ -1,4 +1,4 @@
-import { ValidationType } from './types';
+import type { ValidationType } from './types';
 
 export interface IntrospectedType {
   examples: any[];

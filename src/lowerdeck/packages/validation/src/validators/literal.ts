@@ -1,5 +1,5 @@
 import { error } from '../lib/result';
-import { ValidationType, ValidatorOptions } from '../lib/types';
+import type { ValidationType, ValidatorOptions } from '../lib/types';
 
 export let literal = <A extends string | number | boolean>(
   value: A,

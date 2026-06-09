@@ -6,7 +6,8 @@ import {
   SpanStatusCode,
   trace
 } from '@lowerdeck/telemetry';
-import { Controller, Handler, ServiceRequest } from './controller';
+import { Handler } from './controller';
+import type { Controller, ServiceRequest } from './controller';
 
 let Sentry = getSentry();
 let tracer = trace.getTracer('lowerdeck.rpc-server.calls');

@@ -1,10 +1,10 @@
 import { delay } from '@lowerdeck/delay';
 import {
   createExecutionContext,
-  ExecutionContext,
   provideExecutionContext,
   withExecutionContextOptional
 } from '@lowerdeck/execution-context';
+import type { ExecutionContext } from '@lowerdeck/execution-context';
 import { generateSnowflakeId } from '@lowerdeck/id';
 import { memo } from '@lowerdeck/memo';
 import { parseRedisUrl } from '@lowerdeck/redis';
@@ -17,16 +17,13 @@ import {
   trace
 } from '@lowerdeck/telemetry';
 import {
-  DeduplicationOptions,
-  JobsOptions,
   Queue,
   QueueEvents,
-  QueueOptions,
   Worker,
-  WorkerOptions
 } from 'bullmq';
+import type { DeduplicationOptions, JobsOptions, QueueOptions, WorkerOptions } from 'bullmq';
 import { QueueRetryError } from '../lib/queueRetryError';
-import { IQueue } from '../types';
+import type { IQueue } from '../types';
 
 // @ts-ignore
 import SuperJson from 'superjson';

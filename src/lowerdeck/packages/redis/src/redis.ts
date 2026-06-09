@@ -1,5 +1,6 @@
 import { memo } from '@lowerdeck/memo';
-import { createClient, RedisClientOptions } from 'redis';
+import { createClient } from 'redis';
+import type { RedisClientOptions } from 'redis';
 import { parseRedisUrl } from './utils/parseRedisUrl';
 
 export let createRedisClient = (opts: RedisClientOptions & { redisUrl: string }) => {

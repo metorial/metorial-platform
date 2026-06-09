@@ -1,6 +1,6 @@
 import { createExecutionContext, provideExecutionContext } from '@lowerdeck/execution-context';
 import { generateCustomId } from '@lowerdeck/id';
-import { IQueueProcessor } from '@lowerdeck/queue';
+import type { IQueueProcessor } from '@lowerdeck/queue';
 import { parseRedisUrl } from '@lowerdeck/redis';
 import { getSentry } from '@lowerdeck/sentry';
 import { Queue, Worker } from 'bullmq';

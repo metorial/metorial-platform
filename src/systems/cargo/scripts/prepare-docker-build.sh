@@ -7,6 +7,4 @@ cd /app
 # imports through package exports.
 bun install --linker=hoisted
 
-bunx turbo run --ui=stream build --filter='./src/lowerdeck/packages/**'
-
 bunx turbo run --ui=stream build --filter=@metorial-platform-systems/origin-client

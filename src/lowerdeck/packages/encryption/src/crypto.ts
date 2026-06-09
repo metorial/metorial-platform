@@ -7,11 +7,15 @@ let dec = new TextDecoder();
 let getPasswordKey = (password: string) =>
   crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']);
 
-let deriveKey = (passwordKey: CryptoKey, salt: BufferSource, keyUsage: ('encrypt' | 'decrypt')[]) =>
+let deriveKey = (
+  passwordKey: CryptoKey,
+  salt: Uint8Array,
+  keyUsage: ('encrypt' | 'decrypt')[]
+) =>
   crypto.subtle.deriveKey(
     {
       name: 'PBKDF2',
-      salt: salt,
+      salt: salt as any,
       iterations: 250000,
       hash: 'SHA-256'
     },
@@ -46,7 +50,7 @@ let encryptData = async (secretData: string, password: string) => {
 
 let decryptData = async (encryptedData: string, password: string) => {
   let encryptedDataBuff = base86.decode(encryptedData);
-  let salt = encryptedDataBuff.slice(0, 16);
+  let salt = new Uint8Array(encryptedDataBuff.slice(0, 16));
   let iv = encryptedDataBuff.slice(16, 28);
   let data = encryptedDataBuff.slice(28);
   let passwordKey = await getPasswordKey(password);

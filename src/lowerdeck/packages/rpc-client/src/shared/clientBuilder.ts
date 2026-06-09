@@ -1,6 +1,6 @@
 import { context as otelContext, propagation, trace } from '@opentelemetry/api';
 import { proxy } from '@lowerdeck/proxy';
-import { Requester } from './requester';
+import type { Requester } from './requester';
 
 export interface ClientOpts {
   endpoint: string;

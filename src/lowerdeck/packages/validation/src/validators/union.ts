@@ -1,5 +1,5 @@
 import { error } from '../lib/result';
-import {
+import type {
   ValidationError,
   ValidationType,
   ValidationTypeValue,

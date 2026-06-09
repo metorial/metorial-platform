@@ -1,12 +1,12 @@
-import { v, ValidationType } from '@lowerdeck/validation';
+import { v } from '@lowerdeck/validation';
+import type { ValidationType } from '@lowerdeck/validation';
 import { Cursor } from './cursor';
 import {
-  PaginatedProvider,
-  PaginatedProviderInput,
   paginatedProviderMongoose,
   paginatedProviderPrisma
 } from './paginatedProvider';
-import { PaginatedList } from './types';
+import type { PaginatedProvider, PaginatedProviderInput } from './paginatedProvider';
+import type { PaginatedList } from './types';
 
 export interface PaginatorInput {
   limit?: number | string;

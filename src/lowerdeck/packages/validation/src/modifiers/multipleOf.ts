@@ -1,4 +1,4 @@
-import { ValidationModifier } from '../lib/types';
+import type { ValidationModifier } from '../lib/types';
 
 export let multipleOf =
   (multi: number, opts?: { message?: string }): ValidationModifier<number> =>

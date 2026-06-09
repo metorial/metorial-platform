@@ -19,7 +19,7 @@ import {
 } from '@lowerdeck/telemetry';
 import { v } from '@lowerdeck/validation';
 import * as Cookie from 'cookie';
-import { ServiceRequest } from './controller';
+import type { ServiceRequest } from './controller';
 import { parseForwardedFor } from './extractIp';
 
 let verbose = process.env.NODE_ENV !== 'production';
@@ -300,7 +300,7 @@ export let rpcMux = (
                           };
 
                           let pathParts = url.pathname.split('/').filter(Boolean);
-                          let lastPart = pathParts[pathParts.length - 1];
+                          let lastPart = pathParts[pathParts.length - 1] ?? '';
 
                           let isSingle = lastPart[0] == '$';
 
@@ -356,7 +356,7 @@ export let rpcMux = (
 
                           await Promise.all(
                             Array.from(callsByRpc.entries()).map(async ([rpcIndex, calls]) => {
-                              let rpc = rpcs[rpcIndex];
+                              let rpc = rpcs[rpcIndex]!;
                               let res = await rpc.runMany(request, {
                                 requestId: id,
                                 calls

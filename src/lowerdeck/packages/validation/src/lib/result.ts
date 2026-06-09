@@ -1,4 +1,4 @@
-import { ValidationError, ValidationResult } from './types';
+import type { ValidationError, ValidationResult } from './types';
 
 export let success = <T>(value: T): ValidationResult<T> => ({
   success: true,

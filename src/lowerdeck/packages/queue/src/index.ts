@@ -1,5 +1,6 @@
-import { BullMqCreateOptions, createBullMqQueue } from './drivers/bullmq';
-import { IQueueProcessor } from './types';
+import { createBullMqQueue } from './drivers/bullmq';
+import type { BullMqCreateOptions } from './drivers/bullmq';
+import type { IQueueProcessor } from './types';
 
 export type { BullMqCreateOptions, BullMqQueueOptions } from './drivers/bullmq';
 export * from './lib/queueRetryError';
