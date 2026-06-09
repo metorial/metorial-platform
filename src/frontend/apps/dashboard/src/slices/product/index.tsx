@@ -1043,7 +1043,7 @@ export let productExplorerSlice = createSlice([
 
     children: [
       {
-        element: <InstanceLayout />,
+        element: <Outlet />,
 
         children: [
           {
