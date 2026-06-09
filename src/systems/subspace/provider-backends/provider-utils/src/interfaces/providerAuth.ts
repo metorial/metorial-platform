@@ -54,11 +54,11 @@ export abstract class IProviderAuth extends IProviderFunctionality {
 
   abstract getProviderAuthCredentialsScopes(
     data: GetProviderAuthCredentialsScopesParam
-  ): Promise<GetProviderAuthScopesRes>;
+  ): Promise<GetProviderAuthCredentialsScopesRes>;
 
   abstract getProviderAuthConfigScopes(
     data: GetProviderAuthConfigScopesParam
-  ): Promise<GetProviderAuthScopesRes>;
+  ): Promise<GetProviderAuthConfigScopesRes>;
 
   async onProviderAuthConfigVersionCreated(
     data: ProviderAuthConfigVersionCreatedParam
@@ -227,6 +227,10 @@ export interface GetProviderAuthConfigScopesParam {
   authConfigVersion: ProviderAuthConfigVersion;
 }
 
-export interface GetProviderAuthScopesRes {
+export interface GetProviderAuthCredentialsScopesRes {
+  scopes: string[];
+}
+
+export interface GetProviderAuthConfigScopesRes {
   scopes: string[] | null;
 }
