@@ -29,7 +29,6 @@
     "@metorial-platform-systems/synthesis-client": "1.0.0",
     "@metorial/queue": "1.0.0",
     "@metorial/redis": "1.0.0",
-    "@openharness/core": "^0.6.2",
     "ai": "^6.0.175",
     "just-bash": "^2.14.4",
     "zod": "^4.4.3"

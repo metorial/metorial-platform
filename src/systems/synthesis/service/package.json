@@ -32,6 +32,7 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "@ai-sdk/mcp": "^1.0.21",
     "@lowerdeck/error": "^1.2.3",
     "@lowerdeck/execution-context": "^1.1.1",
     "@lowerdeck/api-mux": "^1.0.4",
@@ -48,7 +49,6 @@
     "@lowerdeck/validation": "1.0.10",
     "@lowerdeck/id": "^1.0.8",
     "@metorial-services/scout-client": "^1.0.0",
-    "@openharness/core": "^0.6.2",
     "@prisma/adapter-pg": "^7.2.0",
     "@prisma/client": "^7.2.0",
     "@prisma/extension-read-replicas": "^0.5.0",

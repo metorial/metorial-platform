@@ -1,10 +1,7 @@
-import { Agent } from '@openharness/core';
-import {
-  db,
-  Prisma,
-} from '../../db';
 import type { Assistant, AssistantImplementation, Environment, Tenant } from '../../db';
+import { db, Prisma } from '../../db';
 import { getId } from '../../id';
+import { Agent } from '../open-harness';
 import type { Model } from './model';
 
 export let implementationModelInclude = {

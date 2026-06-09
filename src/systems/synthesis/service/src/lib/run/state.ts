@@ -1,5 +1,4 @@
 import { generatePlainId } from '@lowerdeck/id';
-import type { SessionEvent } from '@openharness/core';
 import type { ModelMessage } from 'ai';
 import type { FileWriteChange, ItemStatus, Message, State, StateItem } from '../../types';
 import type {
@@ -10,6 +9,7 @@ import type {
   WireSnapshot
 } from '../delta';
 import { createServerState } from '../delta';
+import type { SessionEvent } from '../open-harness';
 
 export type AgentRunWireMessage = WireMessage;
 

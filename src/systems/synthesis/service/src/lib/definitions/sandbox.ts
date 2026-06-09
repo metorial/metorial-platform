@@ -1,3 +1,5 @@
+import { Bash, type BashOptions, type IFileSystem } from 'just-bash';
+import { posix as path } from 'node:path';
 import type {
   CreateFsToolsOptions,
   DirEntry,
@@ -5,10 +7,8 @@ import type {
   FsProvider,
   ShellProvider,
   ShellResult
-} from '@openharness/core';
-import { createBashTool, createFsTools } from '@openharness/core';
-import { Bash, type BashOptions, type IFileSystem } from 'just-bash';
-import { posix as path } from 'node:path';
+} from '../open-harness';
+import { createBashTool, createFsTools } from '../open-harness';
 
 export interface SandboxOptions extends BashOptions {
   cwd?: string;

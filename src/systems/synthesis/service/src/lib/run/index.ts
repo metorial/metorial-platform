@@ -1,4 +1,3 @@
-import { Agent, DefaultCompactionStrategy, Session } from '@openharness/core';
 import type { FilePart, ModelMessage, TextPart } from 'ai';
 import type {
   Assistant,
@@ -9,12 +8,11 @@ import type {
 } from '../../db';
 import { summaryModel } from '../../definitions/models/_util';
 import type { InputMessage } from '../../types';
-import { getConversationHistory } from '../history/getHistory';
 import type { Implementation, Model } from '../definitions';
-import {
-  AgentRunState
-} from './state';
+import { getConversationHistory } from '../history/getHistory';
+import { Agent, DefaultCompactionStrategy, Session } from '../open-harness';
 import type { AgentRunResult, AgentRunStateOptions, AgentRunWireMessage } from './state';
+import { AgentRunState } from './state';
 
 export * from './state';
 

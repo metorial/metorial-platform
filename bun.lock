@@ -371,7 +371,6 @@
         "@metorial/module-user": "1.0.0",
         "@metorial/queue": "1.0.0",
         "@metorial/redis": "1.0.0",
-        "@openharness/core": "^0.6.2",
         "ai": "^6.0.175",
         "just-bash": "^2.14.4",
         "zod": "^4.4.3",
@@ -3614,6 +3613,7 @@
     "src/systems/synthesis/service": {
       "name": "@metorial/synthesis",
       "dependencies": {
+        "@ai-sdk/mcp": "^1.0.21",
         "@lowerdeck/api-mux": "^1.0.4",
         "@lowerdeck/env": "^1.0.6",
         "@lowerdeck/error": "^1.2.3",
@@ -3630,7 +3630,6 @@
         "@lowerdeck/telemetry": "^1.1.1",
         "@lowerdeck/validation": "1.0.10",
         "@metorial-services/scout-client": "^1.0.0",
-        "@openharness/core": "^0.6.2",
         "@prisma/adapter-pg": "^7.2.0",
         "@prisma/client": "^7.2.0",
         "@prisma/extension-read-replicas": "^0.5.0",
@@ -4832,8 +4831,6 @@
     "@octokit/request-error": ["@octokit/request-error@7.1.0", "", { "dependencies": { "@octokit/types": "^16.0.0" } }, "sha512-KMQIfq5sOPpkQYajXHwnhjCC0slzCNScLHs9JafXc4RAJI+9f+jNDlBNaIMTvazOPLgb4BnlhGJOTbnN0wIjPw=="],
 
     "@octokit/types": ["@octokit/types@16.0.0", "", { "dependencies": { "@octokit/openapi-types": "^27.0.0" } }, "sha512-sKq+9r1Mm4efXW1FCk7hFSeJo4QKreL/tTbR0rz/qx/r1Oa2VV83LTA/H/MuCOX7uCIJmQVRKBcbmWoySjAnSg=="],
-
-    "@openharness/core": ["@openharness/core@0.6.2", "", { "dependencies": { "@ai-sdk/mcp": "^1.0.21", "ai": "^6.0.97", "zod": "^4.3.6" } }, "sha512-532Wqdj+D3or7EsiwsQBJc667muV07BCWlqBzA78mKYkdi71RqiiPtsb/9QhBNy9eW9zWkGTTzNTV7rh8b36SQ=="],
 
     "@opentelemetry/api": ["@opentelemetry/api@1.9.0", "", {}, "sha512-3giAOQvZiH5F9bMlMiv8+GSPMeqg0dbaeo58/0SlA9sxSqZhnUtxzX9/2FzyhS9sWQf5S0GJE0AKBrFqjpeYcg=="],
 

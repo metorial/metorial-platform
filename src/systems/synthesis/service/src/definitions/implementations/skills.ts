@@ -1,7 +1,6 @@
-// cspell:ignore openharness
-import { Agent } from '@openharness/core';
 import { createSandbox, implementation } from '../../lib/definitions';
 import { detag } from '../../lib/detag';
+import { Agent } from '../../lib/open-harness';
 import { claudeSonnet46 } from '../models/anthropic';
 import { webSearchTools } from '../tools/webSearch';
 import { baseSystemPrompt } from './_systemPrompt';
