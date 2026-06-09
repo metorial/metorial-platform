@@ -76,4 +76,4 @@ jobs:
         forge-object-storage
         forge-service
       test_container: forge-service
-      test_command: cd /app && bun run test
+      test_command: cd /app/src/systems/forge/service && bun run test

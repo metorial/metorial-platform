@@ -63,7 +63,7 @@ export let signature = (opts: { prefix: string; expirationMs: number; key: strin
     let sigStr = signature.slice(opts.prefix.length);
     let [encodedHmac, expiry, id] = sigStr.split('_');
 
-    let hmac = base62.decodeRaw(encodedHmac);
+    let hmac = new Uint8Array(base62.decodeRaw(encodedHmac));
 
     let dataToAuthenticate = JSON.stringify([id, data, exp.parse(expiry)]);
 
@@ -84,7 +84,7 @@ export let signatureBasic = {
   },
 
   verify: async (data: string, signature: string, key: string) => {
-    let hmac = base62.decodeRaw(signature);
+    let hmac = new Uint8Array(base62.decodeRaw(signature));
     return crypto.subtle.verify('HMAC', await importKey(key), hmac, encode(data));
   }
 };

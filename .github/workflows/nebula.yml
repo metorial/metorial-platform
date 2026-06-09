@@ -78,4 +78,4 @@ jobs:
         nebula-redis
         nebula-service
       test_container: nebula-service
-      test_command: cd /app && bun run test
+      test_command: cd /app/src/systems/nebula/service && bun run test
