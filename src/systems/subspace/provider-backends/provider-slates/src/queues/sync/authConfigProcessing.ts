@@ -5,6 +5,7 @@ import { db, getId } from '@metorial-subspace/db';
 import { createProviderInvocationId } from '@metorial-subspace/provider-utils';
 import { getTenantForSlates, slates } from '../../client';
 import { env } from '../../env';
+import { resolveSlateAuthConfigScopes } from '../../impl/scopes';
 
 let INITIAL_DELAY_MS = 5 * 1000;
 let RETRY_DELAY_MS = 15 * 1000;
@@ -233,6 +234,23 @@ export let syncAuthConfigProcessingQueueProcessor = syncAuthConfigProcessingQueu
           slateAuthConfig: authConfigVersion.slateAuthConfig
         },
         record
+      });
+      return;
+    }
+
+    if (record.status === 'active') {
+      let scopes = resolveSlateAuthConfigScopes(record);
+      if (scopes === null) return;
+
+      await db.providerAuthConfig.updateMany({
+        where: {
+          id: data.providerAuthConfigId,
+          currentVersionOid: authConfigVersion.oid
+        },
+        data: {
+          scopes,
+          needsScopeSync: false
+        }
       });
     }
   }

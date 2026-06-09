@@ -94,7 +94,10 @@ export type ProvidersToolsListQuery = {
   before?: string | undefined;
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
-} & { providerVersionId: string };
+} & {
+  providerVersionId: string;
+  providerAuthMethodId?: string | string[] | undefined;
+};
 
 export let mapProvidersToolsListQuery = mtMap.union([
   mtMap.unionOption(
@@ -108,8 +111,17 @@ export let mapProvidersToolsListQuery = mtMap.union([
       providerVersionId: mtMap.objectField(
         'provider_version_id',
         mtMap.passthrough()
+      ),
+      providerAuthMethodId: mtMap.objectField(
+        'provider_auth_method_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
       )
     })
   )
 ]);
-

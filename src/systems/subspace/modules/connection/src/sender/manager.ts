@@ -17,6 +17,7 @@ import {
   ID,
   type ProviderAuthConfig,
   type ProviderAuthCredentials,
+  type ProviderAuthMethod,
   type ProviderDeployment,
   type Session,
   type SessionConnection,
@@ -36,6 +37,7 @@ import {
 } from '@metorial-subspace/module-agent';
 import { enclaveIngressPolicyService } from '@metorial-subspace/module-enclave';
 import {
+  checkToolAuthMethodSatisfied,
   checkToolAccess,
   checkToolScopesSatisfied,
   providerDeploymentConfigPairInternalService,
@@ -543,7 +545,10 @@ export class SenderManager {
       provider: { name: string };
       deployment: ProviderDeployment;
       authConfig?:
-        | (ProviderAuthConfig & { authCredentials?: ProviderAuthCredentials | null })
+        | (ProviderAuthConfig & {
+            authCredentials?: ProviderAuthCredentials | null;
+            authMethod?: ProviderAuthMethod | null;
+          })
         | null;
     }
   ) {
@@ -567,6 +572,10 @@ export class SenderManager {
         })
       : [];
 
+    let authMethodFilteredTools = tools.filter(
+      tool => checkToolAuthMethodSatisfied(tool, provider.authConfig?.authMethod).allowed
+    );
+
     let grantedScopes = resolveGrantedScopes({
       authConfig: provider.authConfig,
       authCredentials: provider.authConfig?.authCredentials
@@ -574,8 +583,10 @@ export class SenderManager {
 
     let scopeFilteredTools =
       grantedScopes === null
-        ? tools
-        : tools.filter(tool => checkToolScopesSatisfied(tool, grantedScopes).allowed);
+        ? authMethodFilteredTools
+        : authMethodFilteredTools.filter(
+            tool => checkToolScopesSatisfied(tool, grantedScopes).allowed
+          );
 
     return {
       status: 'ok' as const,
@@ -595,7 +606,7 @@ export class SenderManager {
         provider: true,
         deployment: true,
         config: true,
-        authConfig: { include: { authCredentials: true } }
+        authConfig: { include: { authCredentials: true, authMethod: true } }
       }
     });
 
@@ -665,7 +676,7 @@ export class SenderManager {
         provider: true,
         deployment: true,
         config: true,
-        authConfig: { include: { authCredentials: true } }
+        authConfig: { include: { authCredentials: true, authMethod: true } }
       }
     });
     if (!provider) throw new ServiceError(notFoundError('provider', d.tag));
@@ -702,7 +713,10 @@ export class SenderManager {
     provider: SessionProvider & {
       provider: { name: string };
       authConfig?:
-        | (ProviderAuthConfig & { authCredentials?: ProviderAuthCredentials | null })
+        | (ProviderAuthConfig & {
+            authCredentials?: ProviderAuthCredentials | null;
+            authMethod?: ProviderAuthMethod | null;
+          })
         | null;
     };
     originalToolName: string;
@@ -745,6 +759,13 @@ export class SenderManager {
     let { allowed } = checkToolAccess(tool, d.provider, 'call');
     if (!allowed) {
       throw new ServiceError(badRequestError({ message: 'Tool access not allowed' }));
+    }
+
+    let authMethodCheck = checkToolAuthMethodSatisfied(tool, d.provider.authConfig?.authMethod);
+    if (!authMethodCheck.allowed) {
+      throw new ServiceError(
+        badRequestError({ message: 'Tool is not available for this authentication method' })
+      );
     }
 
     let grantedScopes = resolveGrantedScopes({
