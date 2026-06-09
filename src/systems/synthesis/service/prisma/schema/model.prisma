@@ -37,7 +37,7 @@ model ModelProvider {
   models Model[]
 }
 
-enum ModelRunStatus {
+enum AssistantRunStatus {
   pending
   running
   waiting_for_user
@@ -50,7 +50,7 @@ model ModelRun {
   oid BigInt @id
   id  String @unique
 
-  status ModelRunStatus
+  status AssistantRunStatus
 
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)

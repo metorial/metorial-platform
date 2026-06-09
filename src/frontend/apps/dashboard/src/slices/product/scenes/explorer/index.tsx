@@ -1,4 +1,13 @@
-import { Button, Callout, CenteredSpinner, Flex, Input, Tabs, Text, theme } from '@metorial/ui';
+import {
+  Button,
+  Callout,
+  CenteredSpinner,
+  Flex,
+  Input,
+  Tabs,
+  Text,
+  theme
+} from '@metorial/ui';
 import type {
   CompatibilityCallToolResult,
   GetPromptResult,
@@ -23,10 +32,8 @@ import {
   type PaginatedItemsResult
 } from './lib/mcp/pagination';
 import {
-  getConnectionOverridesFromConfig,
-  getConnectionParams,
-  isExplorerConfigMessage,
-  type ExplorerConnectionOverrides,
+  normalizeConnectionParams,
+  type ExplorerConnectionInput,
   type ExplorerTransport,
   type ParsedConnectionParams
 } from './lib/mcp/query';
@@ -63,7 +70,9 @@ let blackButtonStyle = {
 };
 
 let Page = styled.div`
-  min-height: 100vh;
+  height: 100%;
+  overflow: auto;
+  background: ${theme.colors.background};
 `;
 
 let PageInner = styled.div`
@@ -689,19 +698,22 @@ let PromptCard = ({
   );
 };
 
-export let ExplorerApp = () => {
-  let search = useMemo(() => window.location.search, []);
-  let baseQuery = useMemo(() => getConnectionParams(search), [search]);
-  let isEmbedded = useMemo(() => window.parent !== window, []);
+export type ExplorerSceneProps = {
+  connection: ExplorerConnectionInput;
+};
 
+export let ExplorerScene = ({ connection }: ExplorerSceneProps) => {
   let clientRef = useRef<ExplorerMcpClient | null>(null);
-  let hasStartedInitialConnectionRef = useRef(false);
-  let [connectionOverrides, setConnectionOverrides] = useState<ExplorerConnectionOverrides>();
   let query = useMemo(
-    () => getConnectionParams(search, connectionOverrides),
-    [connectionOverrides, search]
+    () => normalizeConnectionParams(connection),
+    [
+      connection.description,
+      connection.name,
+      connection.token,
+      connection.transport,
+      connection.url
+    ]
   );
-  let shouldWaitForPostedToken = isEmbedded && !baseQuery.token && !query.token;
 
   let [activeTab, setActiveTab] = useState<TabId>('tools');
   let [searchByTab, setSearchByTab] = useState<Record<TabId, string>>({
@@ -733,54 +745,27 @@ export let ExplorerApp = () => {
   >({});
 
   useEffect(() => {
-    theme.setBodyStyles();
-  }, []);
-
-  useEffect(() => {
-    let handleMessage = (event: MessageEvent) => {
-      if (hasStartedInitialConnectionRef.current) {
-        return;
-      }
-
-      if (event.source !== window.parent || !isExplorerConfigMessage(event.data)) {
-        return;
-      }
-
-      setConnectionOverrides(current => ({
-        ...current,
-        ...getConnectionOverridesFromConfig(event.data)
-      }));
-    };
-
-    window.addEventListener('message', handleMessage);
-
-    return () => window.removeEventListener('message', handleMessage);
-  }, []);
-
-  useEffect(() => {
-    if (hasStartedInitialConnectionRef.current) {
-      return;
-    }
-
-    if (shouldWaitForPostedToken) {
-      setStatus('idle');
-      setConnectionError(null);
-      return;
-    }
-
     if (query.errors.length > 0) {
       setStatus('error');
       setConnectionError(query.errors.join(' '));
+      setCollections(initialCollections);
+      setServerCapabilities(null);
+      setServerVersion(null);
       return;
     }
 
     let cancelled = false;
 
     let connect = async (params: ParsedConnectionParams) => {
-      hasStartedInitialConnectionRef.current = true;
       setStatus('connecting');
       setConnectionError(null);
       setCollections(initialCollections);
+      setServerCapabilities(null);
+      setServerVersion(null);
+      setToolStates({});
+      setResourceStates({});
+      setTemplateStates({});
+      setPromptStates({});
 
       try {
         let client = await createExplorerMcpClient(params);
@@ -842,7 +827,7 @@ export let ExplorerApp = () => {
       void clientRef.current?.close();
       clientRef.current = null;
     };
-  }, [query, shouldWaitForPostedToken]);
+  }, [query]);
 
   let handleToolCall = async (name: string, values: Record<string, unknown>) => {
     setToolStates(current => ({
@@ -1029,8 +1014,12 @@ export let ExplorerApp = () => {
   let filteredResources = collections.resources.items.filter(resource =>
     matchesNameSearch(resource.name ?? resource.uri, resourceSearch)
   );
-  let filteredResourceTemplates = collections.resourceTemplates.items.filter(resourceTemplate =>
-    matchesNameSearch(resourceTemplate.name ?? resourceTemplate.uriTemplate, resourceTemplateSearch)
+  let filteredResourceTemplates = collections.resourceTemplates.items.filter(
+    resourceTemplate =>
+      matchesNameSearch(
+        resourceTemplate.name ?? resourceTemplate.uriTemplate,
+        resourceTemplateSearch
+      )
   );
   let filteredPrompts = collections.prompts.items.filter(prompt =>
     matchesNameSearch(prompt.name, promptSearch)
@@ -1159,7 +1148,10 @@ export let ExplorerApp = () => {
             {collections.prompts.items.length === 0
               ? renderEmptyState('No prompts found', "This provider doesn't support prompts.")
               : filteredPrompts.length === 0
-                ? renderEmptyState('No matching prompts found', 'No prompts match your search.')
+                ? renderEmptyState(
+                    'No matching prompts found',
+                    'No prompts match your search.'
+                  )
                 : filteredPrompts.map(prompt => (
                     <PromptCard
                       key={prompt.name}
@@ -1231,3 +1223,5 @@ export let ExplorerApp = () => {
     </Page>
   );
 };
+
+export let ExplorerApp = ExplorerScene;

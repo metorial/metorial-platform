@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
+import { ExplorerScene } from '../../explorer';
 import { BreathingIndicator } from './breathing';
 
 let Wrapper = styled.div`
@@ -68,7 +69,6 @@ let Status = styled(motion.div)`
 
 type ExplorerRuntimeWindow = Window & {
   METORIAL_EXPLORER_URL?: string;
-  METORIAL_EXPLORER_V2_URL?: string;
   METORIAL_MCP_API_URL?: string;
 };
 
@@ -118,48 +118,46 @@ export let InspectorFrame = (p: {
     };
   }, [session.data, instance.data, name]);
 
-  let url = useMemo(() => {
-    let explorerBase =
-      explorerVersion === 'v2'
-        ? (runtimeWindow.METORIAL_EXPLORER_V2_URL ?? import.meta.env.VITE_EXPLORER_V2_URL!)
-        : (runtimeWindow.METORIAL_EXPLORER_URL ?? import.meta.env.VITE_EXPLORER_URL!);
+  let inspectorUrl = useMemo(() => {
+    if (explorerVersion !== 'v1') return undefined;
 
+    let explorerBase = runtimeWindow.METORIAL_EXPLORER_URL ?? import.meta.env.VITE_EXPLORER_URL!;
     let url = new URL(explorerBase);
 
-    if (explorerVersion === 'v2') {
-      url.searchParams.set('transport', 'streamable-http');
-      url.searchParams.set('endpoint', explorerConfig?.sse_url ?? '');
-
-      if (name) {
-        url.searchParams.set('name', name);
-      }
-
-      if (session.data?.description) {
-        url.searchParams.set('description', session.data.description);
-      }
-    } else {
-      url.searchParams.set('transport_type', 'streamable-http');
-      url.searchParams.set('direction', 'vertical');
-      url.hash = 'tools';
-    }
+    url.searchParams.set('transport_type', 'streamable-http');
+    url.searchParams.set('direction', 'vertical');
+    url.hash = 'tools';
 
     return url.toString();
-  }, [
-    explorerConfig?.sse_url,
-    explorerVersion,
-    name,
-    runtimeWindow,
-    session.data?.description
-  ]);
+  }, [explorerVersion, runtimeWindow]);
+
+  let explorerConnection = useMemo(() => {
+    if (!explorerConfig) return undefined;
+
+    return {
+      name: explorerConfig.name || 'MCP Provider',
+      description: explorerConfig.description,
+      url: explorerConfig.sse_url,
+      token: explorerConfig.bearer_token,
+      transport: 'streamable_http' as const
+    };
+  }, [explorerConfig]);
 
   useEffect(() => {
-    setIsLoading(true);
-  }, [url]);
+    setIsLoading(explorerVersion === 'v1');
+  }, [explorerVersion, inspectorUrl]);
 
   useEffect(() => {
-    if (!iframeRef.current?.contentWindow || !explorerConfig) return;
+    if (
+      explorerVersion !== 'v1' ||
+      !iframeRef.current?.contentWindow ||
+      !explorerConfig ||
+      !inspectorUrl
+    ) {
+      return;
+    }
 
-    let targetOrigin = new URL(url).origin;
+    let targetOrigin = new URL(inspectorUrl).origin;
     let message: ExplorerConfigMessage = {
       type: 'metorial.explorer.config',
       payload: explorerConfig
@@ -174,7 +172,7 @@ export let InspectorFrame = (p: {
     }, 250);
 
     return () => window.clearInterval(timer);
-  }, [explorerConfig, url]);
+  }, [explorerConfig, explorerVersion, inspectorUrl]);
 
   let resolvedSessionTemplateId = p.sessionTemplateId ?? session.data?.fromTemplatesIds?.[0];
 
@@ -258,7 +256,7 @@ export let InspectorFrame = (p: {
           <Center>
             <Error>{session.error?.message ?? 'Unable to load session'}</Error>
           </Center>
-        ) : session.isLoading || !url || !explorerConfig ? (
+        ) : session.isLoading || !explorerConfig || !explorerConnection ? (
           <>
             <AnimatePresence>
               <Overlay>
@@ -266,13 +264,15 @@ export let InspectorFrame = (p: {
               </Overlay>
             </AnimatePresence>
           </>
+        ) : explorerVersion === 'v2' ? (
+          <ExplorerScene connection={explorerConnection} />
         ) : (
           <>
             <Iframe
               ref={iframeRef}
-              src={url}
+              src={inspectorUrl}
               onLoad={() => setIsLoading(false)}
-              key={`${explorerVersion}:${url}`}
+              key={`${explorerVersion}:${inspectorUrl}`}
             />
 
             <AnimatePresence>
