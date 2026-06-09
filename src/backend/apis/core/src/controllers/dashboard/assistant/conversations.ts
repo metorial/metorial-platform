@@ -69,7 +69,8 @@ export let assistantConversationHandlers = {
       'default',
       v.object({
         assistant_id: v.string(),
-        title: v.optional(v.string())
+        title: v.optional(v.string()),
+        input: v.optional(v.record(v.any()))
       })
     )
     .output(assistantConversationPresenter)
@@ -79,7 +80,8 @@ export let assistantConversationHandlers = {
         instance: ctx.instance,
         ...requireAssistantActor(ctx),
         assistantId: ctx.body.assistant_id,
-        title: ctx.body.title
+        title: ctx.body.title,
+        input: ctx.body.input
       });
 
       return assistantConversationPresenter.present({

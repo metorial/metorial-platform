@@ -1,4 +1,12 @@
-import type { Assistant, AssistantImplementation, Environment, Tenant } from '../../db';
+import type { ValidationType } from '@lowerdeck/validation';
+import type {
+  Assistant,
+  AssistantImplementation,
+  AssistantInstance,
+  Environment,
+  Tenant,
+  TenantActor
+} from '../../db';
 import { db, Prisma } from '../../db';
 import { getId } from '../../id';
 import { Agent } from '../open-harness';
@@ -12,19 +20,86 @@ export type ImplementationModelWithProvider = Prisma.ModelGetPayload<{
   include: typeof implementationModelInclude;
 }>;
 
-export let implementation = async (d: {
+type MaybePromise<T> = T | Promise<T>;
+
+type ImplementationBase = {
   defaultModel: Promise<Model>;
   availableModels: Promise<Model>[];
   slug: string;
   name: string;
-  getAgent: (d: {
-    model: Model;
-    tenant: Tenant;
-    environment: Environment;
-    assistant: Assistant;
-    assistantImplementation: AssistantImplementation;
-  }) => Promise<Agent>;
-}) => {
+};
+
+export type ImplementationHandleInputContext<Input> = {
+  input: Input;
+  tenant: Tenant;
+  environment: Environment;
+  actor: TenantActor;
+  assistant: Assistant;
+  assistantInstance: AssistantInstance;
+  assistantImplementation: AssistantImplementation;
+};
+
+export type ImplementationGetAgentContext<Input> = {
+  input: Input;
+  model: Model;
+  tenant: Tenant;
+  environment: Environment;
+  assistant: Assistant;
+  assistantInstance: AssistantInstance;
+  assistantImplementation: AssistantImplementation;
+};
+
+type ImplementationWithoutInput = ImplementationBase & {
+  input?: undefined;
+  handleInput?: undefined;
+  getAgent: (
+    d: {
+      input: undefined;
+    } & Omit<ImplementationGetAgentContext<undefined>, 'input'>
+  ) => Promise<Agent>;
+};
+
+type ImplementationWithInput<Input, HandledInput> = ImplementationBase & {
+  input: ValidationType<Input>;
+  handleInput: (d: ImplementationHandleInputContext<Input>) => MaybePromise<HandledInput>;
+  getAgent: (d: ImplementationGetAgentContext<HandledInput>) => Promise<Agent>;
+};
+
+export type ImplementationDefinition<Input = undefined, HandledInput = Input> =
+  | ImplementationWithoutInput
+  | ImplementationWithInput<Input, HandledInput>;
+
+type PersistedImplementationBase = Omit<
+  ImplementationBase,
+  'defaultModel' | 'availableModels'
+> & {
+  _persisted: AssistantImplementation;
+  persistedDefaultModel: ImplementationModelWithProvider | null;
+  persistedAvailableModels: ImplementationModelWithProvider[];
+  defaultModel: Model;
+  availableModels: Model[];
+};
+
+export type ImplementationWithoutInputResult = PersistedImplementationBase &
+  Omit<ImplementationWithoutInput, 'defaultModel' | 'availableModels'>;
+
+export type ImplementationWithInputResult<Input, HandledInput> = PersistedImplementationBase &
+  Omit<ImplementationWithInput<Input, HandledInput>, 'defaultModel' | 'availableModels'>;
+
+export type Implementation =
+  | ImplementationWithoutInputResult
+  | ImplementationWithInputResult<any, any>;
+
+type ImplementationFactory = {
+  (d: ImplementationWithoutInput): Promise<ImplementationWithoutInputResult>;
+  <Input, HandledInput>(
+    d: ImplementationWithInput<Input, HandledInput>
+  ): Promise<ImplementationWithInputResult<Input, HandledInput>>;
+};
+
+let buildImplementation = async (
+  d: ImplementationDefinition<any, any>
+): Promise<Implementation> => {
   let defaultModel = await d.defaultModel;
   let availableModels = Array.from(
     new Map(
@@ -70,4 +145,4 @@ export let implementation = async (d: {
   };
 };
 
-export type Implementation = Awaited<ReturnType<typeof implementation>>;
+export let implementation = buildImplementation as ImplementationFactory;

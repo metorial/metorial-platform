@@ -3,10 +3,10 @@ import { assertAssistantScope } from '../lib/assertAssistantScope';
 import { createSynthesisService, getSynthesisServicePayload } from '../lib/synthesisService';
 import {
   enrichSynthesisActors,
-  type AssistantActorInput,
   getAssistantActorInput,
   getSynthesisActorsByIds,
   synthesis,
+  type AssistantActorInput,
   type EnrichedAssistantActor,
   type SynthesisScope
 } from '../synthesis';

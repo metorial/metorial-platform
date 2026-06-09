@@ -1,12 +1,12 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { createQueue, QueueRetryError, type IQueue } from '@lowerdeck/queue';
-import { Prisma, db, withTransaction } from '../db';
-import { assistants } from '../definitions/assistants';
+import { db, withTransaction } from '../db';
 import { env } from '../env';
 import { getId } from '../id';
 import { type Model } from '../lib/definitions';
-import { AgentRun } from '../lib/run';
+import { getAssistantDefinition } from '../lib/definitions/assistantDefinition';
 import type { AgentRunUsage } from '../lib/run';
+import { AgentRun } from '../lib/run';
 import { createAssistantRunDeltaPublisher } from '../lib/run/redisDeltas';
 import type { InputMessage, State } from '../types';
 
@@ -19,8 +19,6 @@ export let processAssistantRequestQueue: IQueue<ProcessAssistantRequestJob, any>
     name: 'assistant/request/process',
     redisUrl: env.service.REDIS_URL
   });
-
-type AssistantDefinition = Awaited<(typeof assistants)[keyof typeof assistants]>;
 
 let isRecord = (value: unknown): value is Record<string, unknown> =>
   !!value && typeof value == 'object' && !Array.isArray(value);
@@ -52,21 +50,6 @@ let getInputMessage = (state: unknown): InputMessage => {
   return {
     parts: item.message.parts
   };
-};
-
-let getAssistantDefinition = async (
-  implementationSlug: string
-): Promise<AssistantDefinition> => {
-  let definitions = await Promise.all(Object.values(assistants));
-  let definition = definitions.find(
-    definition => definition.implementation._persisted.slug == implementationSlug
-  );
-
-  if (!definition) {
-    throw new ServiceError(notFoundError('assistant_implementation', implementationSlug));
-  }
-
-  return definition;
 };
 
 let calculateCost = (usage: AgentRunUsage, model: Model): PrismaJson.AssistantRunCost => {
@@ -185,17 +168,24 @@ export let processAssistantRequestQueueProcessor = processAssistantRequestQueue.
       let definition = await getAssistantDefinition(
         conversation.assistant.implementation.slug
       );
-      let model = definition.implementation.availableModels.find(
+      let assistantImplementation = definition.implementation;
+      let model = assistantImplementation.availableModels.find(
         model => model._persisted.oid == request.modelOid
       );
       if (!model) throw new ServiceError(notFoundError('model', requestModel.id));
 
-      let agent = await definition.implementation.getAgent({
+      let getAgent = assistantImplementation.getAgent as (
+        d: Parameters<typeof assistantImplementation.getAgent>[0] & { input: unknown }
+      ) => ReturnType<typeof assistantImplementation.getAgent>;
+
+      let agent = await getAgent({
+        input: assistantImplementation.input ? conversation.input : undefined,
         model,
         tenant: conversation.tenant,
         environment: conversation.environment,
         assistant: conversation.assistant,
-        assistantImplementation: definition.implementation._persisted
+        assistantInstance: conversation.assistantInstance,
+        assistantImplementation: assistantImplementation._persisted
       });
 
       let runner = new AgentRun(
@@ -204,8 +194,8 @@ export let processAssistantRequestQueueProcessor = processAssistantRequestQueue.
         conversation.tenant,
         conversation.environment,
         conversation.assistant,
-        definition.implementation._persisted,
-        definition.implementation
+        assistantImplementation._persisted,
+        assistantImplementation
       );
       let result = await runner.run({
         input: getInputMessage(inputMessage.state),

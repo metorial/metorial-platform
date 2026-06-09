@@ -108,7 +108,8 @@ export let conversationController = app.controller({
         environmentId: v.string(),
         actorId: v.string(),
         assistantId: v.string(),
-        title: v.optional(v.string())
+        title: v.optional(v.string()),
+        input: v.optional(v.any())
       })
     )
     .do(async ctx =>
@@ -119,7 +120,8 @@ export let conversationController = app.controller({
           actor: ctx.actor,
           input: {
             assistantId: ctx.input.assistantId,
-            title: ctx.input.title
+            title: ctx.input.title,
+            input: ctx.input.input
           }
         })
       )

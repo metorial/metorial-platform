@@ -4,6 +4,9 @@ model AssistantConversation {
 
   title String?
 
+  /// [AssistantConversationInput]
+  input Json?
+
   assistantInstanceOid BigInt
   assistantInstance    AssistantInstance @relation(fields: [assistantInstanceOid], references: [oid], onDelete: Cascade)
 

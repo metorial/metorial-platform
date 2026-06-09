@@ -8,9 +8,9 @@ import type {
   TenantActor
 } from '../db';
 import { db, Prisma, withTransaction } from '../db';
-import { assistants } from '../definitions/assistants';
 import { getId } from '../id';
 import type { Implementation } from '../lib/definitions';
+import { getAssistantDefinition } from '../lib/definitions/assistantDefinition';
 import { listenToAssistantRunDeltas } from '../lib/run/redisDeltas';
 import { createItemId, type AgentRunWireMessage } from '../lib/run/state';
 import { generateAssistantConversationTitleQueue } from '../queues/generateConversationTitle';
@@ -63,8 +63,6 @@ let inputMessageState = (input: InputMessage) =>
     ]
   }) satisfies State;
 
-type AssistantDefinition = Awaited<(typeof assistants)[keyof typeof assistants]>;
-
 export let assistantRequestInclude = {
   tenantActor: true,
   conversation: true,
@@ -86,21 +84,6 @@ export let assistantRequestInclude = {
 export type AssistantRequestWithRelations = Prisma.AssistantRequestGetPayload<{
   include: typeof assistantRequestInclude;
 }>;
-
-let getAssistantDefinition = async (
-  implementationSlug: string
-): Promise<AssistantDefinition> => {
-  let definitions = await Promise.all(Object.values(assistants));
-  let definition = definitions.find(
-    definition => definition.implementation._persisted.slug == implementationSlug
-  );
-
-  if (!definition) {
-    throw new ServiceError(notFoundError('assistant_implementation', implementationSlug));
-  }
-
-  return definition;
-};
 
 let chooseModel = (d: {
   implementation: Implementation;

@@ -98,6 +98,7 @@ export let assistantConversationService = createSynthesisService(
         instance: Instance;
         assistantId: string;
         title?: string | null;
+        input?: unknown;
       } & AssistantActorInput
     ) => {
       assertAssistantScope(d);
@@ -108,7 +109,8 @@ export let assistantConversationService = createSynthesisService(
           instance: d.instance,
           ...getAssistantActorInput(d),
           assistantId: d.assistantId,
-          title: d.title ?? undefined
+          title: d.title ?? undefined,
+          input: d.input
         })
       });
     },

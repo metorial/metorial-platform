@@ -40,6 +40,7 @@ export let db = baseClient;
 
 declare global {
   namespace PrismaJson {
+    type AssistantConversationInput = unknown;
     type AssistantMessageStateContent = import('./types').State;
     type AssistantMessageSerializedContent =
       import('./types').AssistantMessageSerializedContent;
