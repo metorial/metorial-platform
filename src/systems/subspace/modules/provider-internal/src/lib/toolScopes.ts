@@ -2,9 +2,14 @@ import type { ProviderTool } from '@metorial-subspace/db';
 
 export type ToolScopeCarrier = Pick<ProviderTool, 'value'>;
 
+type ScopeRecord = {
+  scopes?: PrismaJson.ProviderAuthScopes | null;
+  needsScopeSync?: boolean | null;
+};
+
 export type ScopeSource = {
-  authConfig?: { scopes?: PrismaJson.ProviderAuthScopes | null } | null;
-  authCredentials?: { scopes?: PrismaJson.ProviderAuthScopes | null } | null;
+  authConfig?: ScopeRecord | null;
+  authCredentials?: ScopeRecord | null;
 };
 
 let intersectArrays = (arr1: string[], arr2: string[]): string[] => {
@@ -12,18 +17,24 @@ let intersectArrays = (arr1: string[], arr2: string[]): string[] => {
   return arr1.filter(item => set2.has(item));
 };
 
-export let resolveGrantedScopes = (source: ScopeSource): string[] | null => {
-  let configScopes = source.authConfig?.scopes;
-  let credentialScopes = source.authCredentials?.scopes;
-  let hasConfigScopes = Array.isArray(configScopes);
-  let hasCredentialScopes = Array.isArray(credentialScopes);
+let resolveScopeSet = (source: ScopeRecord | null | undefined) => {
+  if (!Array.isArray(source?.scopes)) return null;
+  if (source.scopes.length > 0) return source.scopes;
+  if (source.needsScopeSync === false) return source.scopes;
 
-  if (hasConfigScopes && hasCredentialScopes) {
+  return null;
+};
+
+export let resolveGrantedScopes = (source: ScopeSource): string[] | null => {
+  let configScopes = resolveScopeSet(source.authConfig);
+  let credentialScopes = resolveScopeSet(source.authCredentials);
+
+  if (configScopes !== null && credentialScopes !== null) {
     return intersectArrays(configScopes, credentialScopes);
   }
 
-  if (hasCredentialScopes) return credentialScopes;
-  if (hasConfigScopes) return configScopes;
+  if (credentialScopes !== null) return credentialScopes;
+  if (configScopes !== null) return configScopes;
 
   return null;
 };

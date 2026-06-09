@@ -105,10 +105,26 @@ describe('resolveGrantedScopes', () => {
     ).toEqual(['a', 'b']);
   });
 
-  it('preserves empty scope arrays as known no scopes', () => {
+  it('treats empty scope arrays as unknown while scope sync is pending', () => {
     expect(
       resolveGrantedScopes({
         authConfig: { scopes: [] },
+        authCredentials: null
+      })
+    ).toBeNull();
+
+    expect(
+      resolveGrantedScopes({
+        authConfig: { scopes: [], needsScopeSync: true },
+        authCredentials: null
+      })
+    ).toBeNull();
+  });
+
+  it('preserves synced empty scope arrays as known no scopes', () => {
+    expect(
+      resolveGrantedScopes({
+        authConfig: { scopes: [], needsScopeSync: false },
         authCredentials: null
       })
     ).toEqual([]);
@@ -116,13 +132,13 @@ describe('resolveGrantedScopes', () => {
     expect(
       resolveGrantedScopes({
         authConfig: { scopes: ['a', 'b'] },
-        authCredentials: { scopes: [] }
+        authCredentials: { scopes: [], needsScopeSync: false }
       })
     ).toEqual([]);
 
     expect(
       resolveGrantedScopes({
-        authConfig: { scopes: [] },
+        authConfig: { scopes: [], needsScopeSync: false },
         authCredentials: { scopes: ['a'] }
       })
     ).toEqual([]);
