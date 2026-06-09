@@ -23,35 +23,6 @@ export let ensureEnvironments = async (
       }))
     });
 
-    if (customProvider.providerOid && customProvider.providerVariantOid) {
-      let customProviderEnvironments = await db.customProviderEnvironment.findMany({
-        where: { customProviderOid: customProvider.oid }
-      });
-      let newProviderEnvironments = await db.providerEnvironment.createManyAndReturn({
-        skipDuplicates: true,
-        data: customProviderEnvironments.map(env => ({
-          ...getId('providerEnvironment'),
-          tenantOid: customProvider.tenantOid,
-          solutionOid: customProvider.solutionOid,
-          environmentOid: env.environmentOid,
-          providerOid: customProvider.providerOid!,
-          providerVariantOid: customProvider.providerVariantOid!
-        }))
-      });
-
-      for (let env of newProviderEnvironments) {
-        let matchingCustomEnv = customProviderEnvironments.find(
-          e => e.environmentOid === env.environmentOid
-        );
-        if (!matchingCustomEnv) continue;
-
-        await db.customProviderEnvironment.updateMany({
-          where: { oid: matchingCustomEnv.oid },
-          data: { providerEnvironmentOid: env.oid }
-        });
-      }
-    }
-
     return await db.customProviderEnvironment.findMany({
       where: { customProviderOid: customProvider.oid },
       include: { environment: true }

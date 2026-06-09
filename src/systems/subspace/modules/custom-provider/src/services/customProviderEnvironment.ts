@@ -29,6 +29,25 @@ let include = {
   }
 };
 
+let customProviderEnvironmentScopeFilter = (d: {
+  environment: Environment;
+  includeUnpublished?: boolean;
+  includeOtherEnvironments?: boolean;
+}) => ({
+  AND: [
+    d.includeOtherEnvironments ? undefined! : { environmentOid: d.environment.oid },
+    d.includeUnpublished
+      ? undefined!
+      : {
+          providerEnvironment: {
+            is: {
+              currentVersionOid: { not: null }
+            }
+          }
+        }
+  ].filter(Boolean)
+});
+
 class customProviderEnvironmentServiceImpl {
   async listCustomProviderEnvironments(d: {
     tenant: Tenant;
@@ -58,6 +77,7 @@ class customProviderEnvironmentServiceImpl {
               solutionOid: d.solution.oid,
 
               AND: [
+                customProviderEnvironmentScopeFilter(d),
                 {
                   customProvider: {
                     is: {
@@ -91,12 +111,15 @@ class customProviderEnvironmentServiceImpl {
     solution: Solution;
     environment: Environment;
     customProviderEnvironmentId: string;
+    includeUnpublished?: boolean;
+    includeOtherEnvironments?: boolean;
   }) {
     let customProviderEnvironment = await db.customProviderEnvironment.findFirst({
       where: {
         id: d.customProviderEnvironmentId,
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid
+        solutionOid: d.solution.oid,
+        AND: [customProviderEnvironmentScopeFilter(d)]
       },
       include
     });

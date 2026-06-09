@@ -142,7 +142,9 @@ export let customProviderCommitController = app.controller({
                       tenant: ctx.tenant,
                       environment: ctx.environment,
                       solution: ctx.solution,
-                      customProviderEnvironmentId: ctx.input.action.toEnvironmentId
+                      customProviderEnvironmentId: ctx.input.action.toEnvironmentId,
+                      includeUnpublished: true,
+                      includeOtherEnvironments: true
                     })
                 }
               : {

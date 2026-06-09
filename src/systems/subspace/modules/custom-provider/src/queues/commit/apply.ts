@@ -84,6 +84,11 @@ export let commitApplyQueueProcessor = commitApplyQueue.process(async data => {
         }
       });
 
+      await db.customProviderEnvironment.updateMany({
+        where: { oid: commit.toEnvironmentOid },
+        data: { providerEnvironmentOid: providerEnvironment.oid }
+      });
+
       let providerVersion = await db.providerEnvironmentVersion.upsert({
         where: {
           providerEnvironmentOid_providerVersionOid: {
