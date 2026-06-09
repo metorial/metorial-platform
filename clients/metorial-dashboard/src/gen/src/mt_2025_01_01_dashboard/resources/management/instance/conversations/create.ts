@@ -218,11 +218,13 @@ export let mapManagementInstanceConversationsCreateOutput =
 export type ManagementInstanceConversationsCreateBody = {
   assistantId: string;
   title?: string | undefined;
+  input?: Record<string, any> | undefined;
 };
 
 export let mapManagementInstanceConversationsCreateBody =
   mtMap.object<ManagementInstanceConversationsCreateBody>({
     assistantId: mtMap.objectField('assistant_id', mtMap.passthrough()),
-    title: mtMap.objectField('title', mtMap.passthrough())
+    title: mtMap.objectField('title', mtMap.passthrough()),
+    input: mtMap.objectField('input', mtMap.passthrough())
   });
 

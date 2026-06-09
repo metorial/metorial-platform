@@ -1,6 +1,6 @@
 import { mtMap } from '@metorial/util-resource-mapper';
 
-export type ManagementInstanceConversationsMessagesCreateOutput = {
+export type DashboardInstanceConversationsMessagesHandoffResponsesOutput = {
   object: 'assistant.message';
   id: string;
   conversationItemId: string;
@@ -72,8 +72,8 @@ export type ManagementInstanceConversationsMessagesCreateOutput = {
   createdAt: Date;
 };
 
-export let mapManagementInstanceConversationsMessagesCreateOutput =
-  mtMap.object<ManagementInstanceConversationsMessagesCreateOutput>({
+export let mapDashboardInstanceConversationsMessagesHandoffResponsesOutput =
+  mtMap.object<DashboardInstanceConversationsMessagesHandoffResponsesOutput>({
     object: mtMap.objectField('object', mtMap.passthrough()),
     id: mtMap.objectField('id', mtMap.passthrough()),
     conversationItemId: mtMap.objectField(
@@ -175,55 +175,20 @@ export let mapManagementInstanceConversationsMessagesCreateOutput =
     createdAt: mtMap.objectField('created_at', mtMap.date())
   });
 
-export type ManagementInstanceConversationsMessagesCreateBody = {
-  message: {
-    parts: (
-      | { type: 'text'; text: string }
-      | {
-          type: 'file';
-          data: string;
-          encoding: 'utf-8' | 'base64';
-          mediaType: string;
-          filename?: string | undefined;
-        }
-    )[];
-  };
-  parentMessageId?: string | undefined;
-  modelId?: string | undefined;
+export type DashboardInstanceConversationsMessagesHandoffResponsesBody = {
+  responses: { toolCallId: string; output: any }[];
 };
 
-export let mapManagementInstanceConversationsMessagesCreateBody =
-  mtMap.object<ManagementInstanceConversationsMessagesCreateBody>({
-    message: mtMap.objectField(
-      'message',
-      mtMap.object({
-        parts: mtMap.objectField(
-          'parts',
-          mtMap.array(
-            mtMap.union([
-              mtMap.unionOption(
-                'object',
-                mtMap.object({
-                  type: mtMap.objectField('type', mtMap.passthrough()),
-                  text: mtMap.objectField('text', mtMap.passthrough()),
-                  data: mtMap.objectField('data', mtMap.passthrough()),
-                  encoding: mtMap.objectField('encoding', mtMap.passthrough()),
-                  mediaType: mtMap.objectField(
-                    'media_type',
-                    mtMap.passthrough()
-                  ),
-                  filename: mtMap.objectField('filename', mtMap.passthrough())
-                })
-              )
-            ])
-          )
-        )
-      })
-    ),
-    parentMessageId: mtMap.objectField(
-      'parent_message_id',
-      mtMap.passthrough()
-    ),
-    modelId: mtMap.objectField('model_id', mtMap.passthrough())
+export let mapDashboardInstanceConversationsMessagesHandoffResponsesBody =
+  mtMap.object<DashboardInstanceConversationsMessagesHandoffResponsesBody>({
+    responses: mtMap.objectField(
+      'responses',
+      mtMap.array(
+        mtMap.object({
+          toolCallId: mtMap.objectField('tool_call_id', mtMap.passthrough()),
+          output: mtMap.objectField('output', mtMap.passthrough())
+        })
+      )
+    )
   });
 
