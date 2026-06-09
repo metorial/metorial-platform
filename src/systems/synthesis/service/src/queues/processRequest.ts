@@ -1,10 +1,11 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { createQueue, QueueRetryError, type IQueue } from '@lowerdeck/queue';
-import { db, type AssistantMessageStatus, withTransaction } from '../db';
+import { db, withTransaction, type AssistantMessageStatus } from '../db';
 import { env } from '../env';
 import { getId } from '../id';
 import { type Model } from '../lib/definitions';
 import { getAssistantDefinition } from '../lib/definitions/assistantDefinition';
+import type { Agent } from '../lib/open-harness';
 import type { AgentRunUsage } from '../lib/run';
 import { AgentRun } from '../lib/run';
 import { createAssistantRunDeltaPublisher } from '../lib/run/redisDeltas';
@@ -178,6 +179,8 @@ export let processAssistantRequestQueueProcessor = processAssistantRequestQueue.
       }
     });
 
+    let agent: Agent | null = null;
+
     try {
       let definition = await getAssistantDefinition(
         conversation.assistant.implementation.slug
@@ -192,7 +195,7 @@ export let processAssistantRequestQueueProcessor = processAssistantRequestQueue.
         d: Parameters<typeof assistantImplementation.getAgent>[0] & { input: unknown }
       ) => ReturnType<typeof assistantImplementation.getAgent>;
 
-      let agent = await getAgent({
+      agent = await getAgent({
         input: assistantImplementation.input ? conversation.input : undefined,
         model,
         tenant: conversation.tenant,
@@ -334,6 +337,7 @@ export let processAssistantRequestQueueProcessor = processAssistantRequestQueue.
         status: 'failed'
       });
     } finally {
+      await agent?.close();
       await publisher.close();
     }
   }

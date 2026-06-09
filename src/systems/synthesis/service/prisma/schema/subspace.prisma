@@ -1,0 +1,43 @@
+model SubspaceMcpConnection {
+  oid BigInt @id
+  id  String @unique
+
+  sessionId       String
+  solutionId      String
+  subspaceTenantId String
+  connectionId    String @unique
+  connectionToken String
+  lastUsedAt      DateTime
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([tenantOid, environmentOid, sessionId])
+  @@index([tenantOid, environmentOid])
+  @@index([lastUsedAt])
+  @@index([createdAt])
+}
+
+model SubspaceMcpToolCache {
+  oid BigInt @id
+  id  String @unique
+
+  connectionId String @unique
+
+  /// [SubspaceMcpToolList]
+  tools Json
+
+  cachedAt  DateTime
+  expiresAt DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([expiresAt])
+}

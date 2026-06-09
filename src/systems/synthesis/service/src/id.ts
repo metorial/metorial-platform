@@ -17,7 +17,9 @@ export let ID = createIdGenerator({
   modelProvider: idType.sorted('mpr_'),
   assistantRequest: idType.sorted('asq_'),
   modelRun: idType.sorted('mrn_'),
-  assistantConfig: idType.sorted('acf_')
+  assistantConfig: idType.sorted('acf_'),
+  subspaceMcpConnection: idType.sorted('smc_'),
+  subspaceMcpToolCache: idType.sorted('smtc_')
 });
 
 let workerIdBits = 12;
