@@ -900,133 +900,131 @@ let IntegrationProviderSetupStep = (p: {
   }
 
   return (
-    <form noValidate onSubmit={form.handleSubmit}>
-      <Flex direction="column" gap={12}>
-        <IntegrationProviderSummaryCard
-          instanceId={instance.data!.id}
-          providerId={p.providerId}
-          providerName={visibility.providerName}
-        />
+    <Flex direction="column" gap={12}>
+      <IntegrationProviderSummaryCard
+        instanceId={instance.data!.id}
+        providerId={p.providerId}
+        providerName={visibility.providerName}
+      />
 
-        {effectiveShowAuth ? (
-          <IntegrationProviderAuthSection
-            instanceId={instance.data!.id}
-            providerId={p.providerId}
-            providerDeploymentId={p.integrationProvider?.deployment.id}
-            authMethods={authMethods}
-            selectedAuthMethod={selectedAuthMethod}
-            selectedAuthMethodId={form.values.selectedAuthMethodId}
-            onSelectedAuthMethodIdChange={value => {
-              form.setFieldValue('selectedAuthMethodId', value);
-              form.setFieldTouched('selectedAuthMethodId', false, false);
-              form.setFieldError('selectedAuthMethodId', undefined);
-
-              if (value !== form.values.selectedAuthMethodId) {
-                form.setFieldValue('selectedAuthCredentialsId', '');
-                form.setFieldTouched('selectedAuthCredentialsId', false, false);
-                form.setFieldError('selectedAuthCredentialsId', undefined);
-                setCreatedAuthCredentialsSelection(null);
-              }
-            }}
-            selectedAuthCredentialsId={form.values.selectedAuthCredentialsId}
-            selectedAuthCredentialsLabel={
-              selectedAuthCredential.data?.name ??
-              selectedAuthCredential.data?.id ??
-              (createdAuthCredentialsSelection?.id === form.values.selectedAuthCredentialsId
-                ? createdAuthCredentialsSelection.label
-                : undefined) ??
-              authCredentials.data?.items.find(
-                credential => credential.id === form.values.selectedAuthCredentialsId
-              )?.name ??
-              form.values.selectedAuthCredentialsId
-            }
-            onSelectedAuthCredentialsIdChange={(value, credentials) => {
-              managedAuthCredentialsDefaultedKeysRef.current.add(
-                managedAuthCredentialsDefaultKey
-              );
-              form.setFieldValue('selectedAuthCredentialsId', value);
-              form.setFieldTouched('selectedAuthCredentialsId', false, false);
-              form.setFieldError('selectedAuthCredentialsId', undefined);
-
-              if (credentials && value) {
-                setCreatedAuthCredentialsSelection({
-                  id: credentials.id,
-                  label: credentials.name ?? credentials.id
-                });
-                return;
-              }
-
-              if (!value || createdAuthCredentialsSelection?.id !== value) {
-                setCreatedAuthCredentialsSelection(null);
-              }
-            }}
-            oauthAutoRegistrationEnabled={oauthAutoRegistrationEnabled}
-            authMethodError={<form.RenderError field="selectedAuthMethodId" />}
-            authCredentialsError={<form.RenderError field="selectedAuthCredentialsId" />}
-          />
-        ) : null}
-
-        <ProviderSetupSections
+      {effectiveShowAuth ? (
+        <IntegrationProviderAuthSection
           instanceId={instance.data!.id}
           providerId={p.providerId}
           providerDeploymentId={p.integrationProvider?.deployment.id}
-          providerAuthMethodId={form.values.selectedAuthMethodId || undefined}
-          providerName={visibility.providerName}
-          showProviderSummary={false}
-          selectedConfiguration={form.values.selectedConfiguration}
-          onSelectedConfigurationChange={value => {
-            form.setFieldValue('selectedConfiguration', value);
-            form.setFieldTouched('selectedConfiguration', false, false);
-            form.setFieldError('selectedConfiguration', undefined);
+          authMethods={authMethods}
+          selectedAuthMethod={selectedAuthMethod}
+          selectedAuthMethodId={form.values.selectedAuthMethodId}
+          onSelectedAuthMethodIdChange={value => {
+            form.setFieldValue('selectedAuthMethodId', value);
+            form.setFieldTouched('selectedAuthMethodId', false, false);
+            form.setFieldError('selectedAuthMethodId', undefined);
+
+            if (value !== form.values.selectedAuthMethodId) {
+              form.setFieldValue('selectedAuthCredentialsId', '');
+              form.setFieldTouched('selectedAuthCredentialsId', false, false);
+              form.setFieldError('selectedAuthCredentialsId', undefined);
+              setCreatedAuthCredentialsSelection(null);
+            }
           }}
-          selectedAuthConfigId=""
-          onSelectedAuthConfigIdChange={() => {}}
-          toolFilterMode={form.values.toolFilterMode}
-          onToolFilterModeChange={value => form.setFieldValue('toolFilterMode', value)}
-          selectedToolKeys={form.values.selectedToolKeys}
-          onSelectedToolKeysChange={keys => form.setFieldValue('selectedToolKeys', keys)}
-          showConfigSection={visibility.showConfig}
-          forceConfigSectionVisible={isUpdate}
-          showAuthSection={false}
-          showToolFilters={visibility.showToolFilters}
-          configRequirement={visibility.configRequirement}
-          authRequirement="optional"
-          configError={<form.RenderError field="selectedConfiguration" />}
-          emptyState={null}
-          supplementaryContent={
-            <>
-              <createDeployment.RenderError />
-              <createConfig.RenderError />
-              <createIntegrationProvider.RenderError />
-              <updateIntegrationProvider.RenderError />
-            </>
+          selectedAuthCredentialsId={form.values.selectedAuthCredentialsId}
+          selectedAuthCredentialsLabel={
+            selectedAuthCredential.data?.name ??
+            selectedAuthCredential.data?.id ??
+            (createdAuthCredentialsSelection?.id === form.values.selectedAuthCredentialsId
+              ? createdAuthCredentialsSelection.label
+              : undefined) ??
+            authCredentials.data?.items.find(
+              credential => credential.id === form.values.selectedAuthCredentialsId
+            )?.name ??
+            form.values.selectedAuthCredentialsId
           }
-          footer={
-            <Dialog.Actions>
-              {p.onBack ? (
-                <Button type="button" variant="outline" onClick={p.onBack}>
-                  Back
-                </Button>
-              ) : (
-                <Button type="button" variant="outline" onClick={p.close}>
-                  Cancel
-                </Button>
-              )}
-              <Button
-                type="button"
-                disabled={!canSubmit}
-                loading={isSaving}
-                onClick={() => {
-                  void form.submitForm();
-                }}
-              >
-                {p.submitLabel ?? (p.integrationProvider ? 'Save Provider' : 'Add Provider')}
-              </Button>
-            </Dialog.Actions>
-          }
+          onSelectedAuthCredentialsIdChange={(value, credentials) => {
+            managedAuthCredentialsDefaultedKeysRef.current.add(
+              managedAuthCredentialsDefaultKey
+            );
+            form.setFieldValue('selectedAuthCredentialsId', value);
+            form.setFieldTouched('selectedAuthCredentialsId', false, false);
+            form.setFieldError('selectedAuthCredentialsId', undefined);
+
+            if (credentials && value) {
+              setCreatedAuthCredentialsSelection({
+                id: credentials.id,
+                label: credentials.name ?? credentials.id
+              });
+              return;
+            }
+
+            if (!value || createdAuthCredentialsSelection?.id !== value) {
+              setCreatedAuthCredentialsSelection(null);
+            }
+          }}
+          oauthAutoRegistrationEnabled={oauthAutoRegistrationEnabled}
+          authMethodError={<form.RenderError field="selectedAuthMethodId" />}
+          authCredentialsError={<form.RenderError field="selectedAuthCredentialsId" />}
         />
-      </Flex>
-    </form>
+      ) : null}
+
+      <ProviderSetupSections
+        instanceId={instance.data!.id}
+        providerId={p.providerId}
+        providerDeploymentId={p.integrationProvider?.deployment.id}
+        providerAuthMethodId={form.values.selectedAuthMethodId || undefined}
+        providerName={visibility.providerName}
+        showProviderSummary={false}
+        selectedConfiguration={form.values.selectedConfiguration}
+        onSelectedConfigurationChange={value => {
+          form.setFieldValue('selectedConfiguration', value);
+          form.setFieldTouched('selectedConfiguration', false, false);
+          form.setFieldError('selectedConfiguration', undefined);
+        }}
+        selectedAuthConfigId=""
+        onSelectedAuthConfigIdChange={() => {}}
+        toolFilterMode={form.values.toolFilterMode}
+        onToolFilterModeChange={value => form.setFieldValue('toolFilterMode', value)}
+        selectedToolKeys={form.values.selectedToolKeys}
+        onSelectedToolKeysChange={keys => form.setFieldValue('selectedToolKeys', keys)}
+        showConfigSection={visibility.showConfig}
+        forceConfigSectionVisible={isUpdate}
+        showAuthSection={false}
+        showToolFilters={visibility.showToolFilters}
+        configRequirement={visibility.configRequirement}
+        authRequirement="optional"
+        configError={<form.RenderError field="selectedConfiguration" />}
+        emptyState={null}
+        supplementaryContent={
+          <>
+            <createDeployment.RenderError />
+            <createConfig.RenderError />
+            <createIntegrationProvider.RenderError />
+            <updateIntegrationProvider.RenderError />
+          </>
+        }
+        footer={
+          <Dialog.Actions>
+            {p.onBack ? (
+              <Button type="button" variant="outline" onClick={p.onBack}>
+                Back
+              </Button>
+            ) : (
+              <Button type="button" variant="outline" onClick={p.close}>
+                Cancel
+              </Button>
+            )}
+            <Button
+              type="button"
+              disabled={!canSubmit}
+              loading={isSaving}
+              onClick={() => {
+                void form.submitForm();
+              }}
+            >
+              {p.submitLabel ?? (p.integrationProvider ? 'Save Provider' : 'Add Provider')}
+            </Button>
+          </Dialog.Actions>
+        }
+      />
+    </Flex>
   );
 };
 
@@ -1420,71 +1418,67 @@ let IntegrationInstanceProviderPanel = (p: {
           {
             title: 'Configure',
             render: () => (
-              <form noValidate onSubmit={form.handleSubmit}>
-                <ProviderSetupSections
-                  instanceId={instance.data!.id}
-                  providerId={providerId}
-                  providerDeploymentId={p.integrationProvider.deployment.id}
-                  fixedAuthMethodId={p.integrationProvider.authMethod?.id}
-                  fixedAuthCredentialsId={p.integrationProvider.authCredentials?.id}
-                  providerName={visibility.providerName}
-                  selectedConfiguration={form.values.selectedConfiguration}
-                  onSelectedConfigurationChange={value => {
-                    form.setFieldValue('selectedConfiguration', value);
-                    form.setFieldTouched('selectedConfiguration', false, false);
-                    form.setFieldError('selectedConfiguration', undefined);
-                  }}
-                  selectedAuthConfigId={form.values.selectedAuthConfigId}
-                  onSelectedAuthConfigIdChange={value => {
-                    form.setFieldValue('selectedAuthConfigId', value);
-                    form.setFieldTouched('selectedAuthConfigId', false, false);
-                    form.setFieldError('selectedAuthConfigId', undefined);
-                  }}
-                  toolFilterMode={form.values.toolFilterMode}
-                  onToolFilterModeChange={value => form.setFieldValue('toolFilterMode', value)}
-                  selectedToolKeys={form.values.selectedToolKeys}
-                  onSelectedToolKeysChange={keys =>
-                    form.setFieldValue('selectedToolKeys', keys)
-                  }
-                  showConfigSection={visibility.showConfig}
-                  forceConfigSectionVisible={isUpdate}
-                  showAuthSection={visibility.showAuth}
-                  showToolFilters={visibility.showToolFilters}
-                  configRequirement={visibility.configRequirement}
-                  authRequirement={visibility.showAuth ? 'required' : 'optional'}
-                  configError={<form.RenderError field="selectedConfiguration" />}
-                  authError={<form.RenderError field="selectedAuthConfigId" />}
-                  supplementaryContent={
-                    <>
-                      {visibility.mustRequestInstanceConfig ? (
-                        <Callout color="gray">
-                          This integration provider has no config attached. Select or create a
-                          config for this instance.
-                        </Callout>
-                      ) : null}
-                      <setProvider.RenderError />
-                      <createConfig.RenderError />
-                    </>
-                  }
-                  footer={
-                    <Dialog.Actions>
-                      <Button type="button" variant="outline" onClick={p.close}>
-                        Cancel
-                      </Button>
-                      <Button
-                        type="button"
-                        disabled={!canSubmit}
-                        loading={isSaving}
-                        onClick={() => {
-                          void form.submitForm();
-                        }}
-                      >
-                        Save Provider
-                      </Button>
-                    </Dialog.Actions>
-                  }
-                />
-              </form>
+              <ProviderSetupSections
+                instanceId={instance.data!.id}
+                providerId={providerId}
+                providerDeploymentId={p.integrationProvider.deployment.id}
+                fixedAuthMethodId={p.integrationProvider.authMethod?.id}
+                fixedAuthCredentialsId={p.integrationProvider.authCredentials?.id}
+                providerName={visibility.providerName}
+                selectedConfiguration={form.values.selectedConfiguration}
+                onSelectedConfigurationChange={value => {
+                  form.setFieldValue('selectedConfiguration', value);
+                  form.setFieldTouched('selectedConfiguration', false, false);
+                  form.setFieldError('selectedConfiguration', undefined);
+                }}
+                selectedAuthConfigId={form.values.selectedAuthConfigId}
+                onSelectedAuthConfigIdChange={value => {
+                  form.setFieldValue('selectedAuthConfigId', value);
+                  form.setFieldTouched('selectedAuthConfigId', false, false);
+                  form.setFieldError('selectedAuthConfigId', undefined);
+                }}
+                toolFilterMode={form.values.toolFilterMode}
+                onToolFilterModeChange={value => form.setFieldValue('toolFilterMode', value)}
+                selectedToolKeys={form.values.selectedToolKeys}
+                onSelectedToolKeysChange={keys => form.setFieldValue('selectedToolKeys', keys)}
+                showConfigSection={visibility.showConfig}
+                forceConfigSectionVisible={isUpdate}
+                showAuthSection={visibility.showAuth}
+                showToolFilters={visibility.showToolFilters}
+                configRequirement={visibility.configRequirement}
+                authRequirement={visibility.showAuth ? 'required' : 'optional'}
+                configError={<form.RenderError field="selectedConfiguration" />}
+                authError={<form.RenderError field="selectedAuthConfigId" />}
+                supplementaryContent={
+                  <>
+                    {visibility.mustRequestInstanceConfig ? (
+                      <Callout color="gray">
+                        This integration provider has no config attached. Select or create a
+                        config for this instance.
+                      </Callout>
+                    ) : null}
+                    <setProvider.RenderError />
+                    <createConfig.RenderError />
+                  </>
+                }
+                footer={
+                  <Dialog.Actions>
+                    <Button type="button" variant="outline" onClick={p.close}>
+                      Cancel
+                    </Button>
+                    <Button
+                      type="button"
+                      disabled={!canSubmit}
+                      loading={isSaving}
+                      onClick={() => {
+                        void form.submitForm();
+                      }}
+                    >
+                      Save Provider
+                    </Button>
+                  </Dialog.Actions>
+                }
+              />
             )
           }
         ]}
