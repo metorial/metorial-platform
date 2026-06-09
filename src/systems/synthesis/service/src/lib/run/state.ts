@@ -1,6 +1,14 @@
 import { generatePlainId } from '@lowerdeck/id';
 import type { ModelMessage } from 'ai';
-import type { FileWriteChange, ItemStatus, Message, State, StateItem } from '../../types';
+import type {
+  FileWriteChange,
+  ItemStatus,
+  Message,
+  State,
+  StateItem,
+  ToolCallState
+} from '../../types';
+import type { ClientHandoffToolMetadata } from '../definitions';
 import type {
   DeltaTransportSink,
   JsonValue,
@@ -20,6 +28,7 @@ export type AgentRunStateOptions = {
 };
 
 export type AgentRunResult = {
+  status: 'completed' | 'waiting_for_user';
   state: State;
   serialized: PrismaJson.AssistantMessageSerializedContent;
   snapshotIndex: number;
@@ -35,6 +44,11 @@ export type AgentRunUsage = {
 
 type UsageEvent = AgentRunUsage & {
   eventType: string;
+};
+
+export type HandoffToolCall = {
+  toolName: string;
+  call: Extract<StateItem, { type: 'tool' }>['calls'][number];
 };
 
 let emptyUsage = (): AgentRunUsage => ({
@@ -137,6 +151,68 @@ let serializeMessages = (
   };
 };
 
+export let getHandoffToolCalls = (state: State) => {
+  let calls: HandoffToolCall[] = [];
+
+  for (let item of state.items) {
+    if (item.type != 'tool') continue;
+
+    for (let call of item.calls) {
+      if (!call.handoff) continue;
+      calls.push({
+        toolName: item.tool.key,
+        call
+      });
+    }
+  }
+
+  return calls;
+};
+
+export let getWaitingHandoffToolCalls = (state: State) =>
+  getHandoffToolCalls(state).filter(({ call }) => call.status == 'waiting_for_user');
+
+export let applyHandoffToolResponses = (
+  state: State,
+  responses: Array<{ toolCallId: string; output: unknown }>
+) => {
+  let nextState = structuredClone(state);
+  let handoffCalls = getHandoffToolCalls(nextState);
+  let handoffCallById = new Map(handoffCalls.map(({ toolName, call }) => [call.id, { toolName, call }]));
+  let seen = new Set<string>();
+
+  for (let response of responses) {
+    if (seen.has(response.toolCallId)) {
+      throw new Error(`Duplicate handoff response for tool call ${response.toolCallId}`);
+    }
+    seen.add(response.toolCallId);
+
+    let handoff = handoffCallById.get(response.toolCallId);
+    if (!handoff) {
+      throw new Error(`No waiting handoff tool call found for ${response.toolCallId}`);
+    }
+    if (handoff.call.status != 'waiting_for_user') {
+      throw new Error(`Handoff tool call ${response.toolCallId} is not waiting for a response`);
+    }
+
+    handoff.call.output = response.output;
+    handoff.call.status = 'completed';
+  }
+
+  return {
+    state: nextState,
+    remaining: getWaitingHandoffToolCalls(nextState),
+    completed: responses.map(response => {
+      let handoff = handoffCallById.get(response.toolCallId)!;
+      return {
+        toolCallId: response.toolCallId,
+        toolName: handoff.toolName,
+        output: response.output
+      };
+    })
+  };
+};
+
 let findLastItem = <T extends StateItem>(
   state: State,
   predicate: (item: StateItem) => item is T
@@ -166,9 +242,13 @@ export class AgentRunState {
   private usageEvents: UsageEvent[] = [];
   private startedAt = new Date();
 
-  constructor(initialMessages: ModelMessage[] = [], options: AgentRunStateOptions = {}) {
+  constructor(
+    initialMessages: ModelMessage[] = [],
+    options: AgentRunStateOptions = {},
+    initialState?: State
+  ) {
     this.delta = createServerState({
-      initial: { items: [] },
+      initial: structuredClone(initialState ?? { items: [] }) as unknown as JsonValue,
       emit: options.emit,
       deltaFormat: options.deltaFormat
     });
@@ -244,7 +324,8 @@ export class AgentRunState {
         this.upsertGenericToolCall({
           toolCallId: event.toolCallId,
           toolName: event.toolName,
-          input: event.input
+          input: event.input,
+          handoff: event.handoff
         });
         break;
 
@@ -321,8 +402,11 @@ export class AgentRunState {
   }
 
   result(): AgentRunResult {
+    let state = this.getSnapshot()[2] as unknown as State;
+
     return {
-      state: this.getSnapshot()[2] as unknown as State,
+      status: getWaitingHandoffToolCalls(state).length > 0 ? 'waiting_for_user' : 'completed',
+      state,
       serialized: this.serialized,
       snapshotIndex: this.version,
       usage: this.usage,
@@ -550,13 +634,25 @@ export class AgentRunState {
     return item;
   }
 
-  private upsertGenericToolCall(d: { toolCallId: string; toolName: string; input: unknown }) {
+  private upsertGenericToolCall(d: {
+    toolCallId: string;
+    toolName: string;
+    input: unknown;
+    handoff?: ClientHandoffToolMetadata;
+  }) {
     let item = this.state.items.find(
       (item): item is Extract<StateItem, { type: 'tool' }> =>
         item.type == 'tool' && item.tool.key == d.toolName
     );
 
     if (!item) {
+      let call: ToolCallState = {
+        id: d.toolCallId,
+        input: d.input,
+        status: d.handoff ? 'waiting_for_user' : 'running',
+        handoff: d.handoff
+      };
+
       item = {
         id: createItemId(),
         type: 'tool',
@@ -564,9 +660,10 @@ export class AgentRunState {
           key: d.toolName,
           name: d.toolName
         },
-        calls: []
+        calls: [call]
       };
       this.state.items.push(item);
+      return call;
     }
 
     let call = item.calls.find(call => call.id == d.toolCallId);
@@ -574,13 +671,15 @@ export class AgentRunState {
       call = {
         id: d.toolCallId,
         input: d.input,
-        status: 'running'
+        status: d.handoff ? 'waiting_for_user' : 'running',
+        handoff: d.handoff
       };
       item.calls.push(call);
     }
 
     call.input = d.input;
-    call.status = 'running';
+    call.status = d.handoff ? 'waiting_for_user' : 'running';
+    call.handoff = d.handoff;
 
     return call;
   }

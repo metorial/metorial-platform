@@ -1,6 +1,6 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { createQueue, QueueRetryError, type IQueue } from '@lowerdeck/queue';
-import { db, withTransaction } from '../db';
+import { db, type AssistantMessageStatus, withTransaction } from '../db';
 import { env } from '../env';
 import { getId } from '../id';
 import { type Model } from '../lib/definitions';
@@ -12,6 +12,11 @@ import type { InputMessage, State } from '../types';
 
 type ProcessAssistantRequestJob = {
   assistantRequestId: string;
+  handoffResponses?: Array<{
+    toolCallId: string;
+    toolName: string;
+    output: unknown;
+  }>;
 };
 
 export let processAssistantRequestQueue: IQueue<ProcessAssistantRequestJob, any> =
@@ -111,6 +116,15 @@ export let processAssistantRequestQueueProcessor = processAssistantRequestQueue.
     let parentMessage = request.message.parentMessage;
     let historySize = request.historySize ?? 100;
     let startedAt = new Date();
+    let existingAssistantMessage = await db.assistantMessage.findFirst({
+      where: {
+        requestOid: request.oid,
+        type: 'assistant'
+      },
+      orderBy: {
+        oid: 'desc'
+      }
+    });
     let run = await withTransaction(async tx => {
       let existingRun = await tx.modelRun.findFirst({
         where: {
@@ -197,46 +211,70 @@ export let processAssistantRequestQueueProcessor = processAssistantRequestQueue.
         assistantImplementation._persisted,
         assistantImplementation
       );
-      let result = await runner.run({
-        input: getInputMessage(inputMessage.state),
-        conversation,
-        lastMessageId: parentMessage.id,
-        historySize,
-        delta: publisher.delta
-      });
+      let result =
+        data.handoffResponses?.length && existingAssistantMessage
+          ? await runner.resume({
+              serialized: existingAssistantMessage.serialized,
+              state: existingAssistantMessage.state as State,
+              responses: data.handoffResponses,
+              delta: publisher.delta
+            })
+          : await runner.run({
+              input: getInputMessage(inputMessage.state),
+              conversation,
+              lastMessageId: parentMessage.id,
+              historySize,
+              delta: publisher.delta
+            });
       let completedAt = new Date();
       let cost = calculateCost(result.usage, model);
 
       await withTransaction(async tx => {
-        let assistantMessage = await tx.assistantMessage.create({
-          data: {
-            ...getId('assistantMessage'),
-            type: 'assistant',
-            runOid: run.oid,
-            requestOid: request.oid,
-            assistantOid: conversation.assistantOid,
-            assistantInstanceOid: conversation.assistantInstanceOid,
-            parentMessageOid: inputMessage.oid,
-            modelOid: model._persisted.oid,
-            state: result.state,
-            serialized: result.serialized
-          }
-        });
+        let messageStatus: AssistantMessageStatus =
+          result.status == 'waiting_for_user' ? 'waiting_for_user' : 'completed';
+        let assistantMessage = existingAssistantMessage
+          ? await tx.assistantMessage.update({
+              where: {
+                oid: existingAssistantMessage.oid
+              },
+              data: {
+                status: messageStatus,
+                state: result.state,
+                serialized: result.serialized
+              }
+            })
+          : await tx.assistantMessage.create({
+              data: {
+                ...getId('assistantMessage'),
+                type: 'assistant',
+                status: messageStatus,
+                runOid: run.oid,
+                requestOid: request.oid,
+                assistantOid: conversation.assistantOid,
+                assistantInstanceOid: conversation.assistantInstanceOid,
+                parentMessageOid: inputMessage.oid,
+                modelOid: model._persisted.oid,
+                state: result.state,
+                serialized: result.serialized
+              }
+            });
 
-        await tx.assistantConversationItem.create({
-          data: {
-            ...getId('assistantConversationItem'),
-            conversationOid: conversation.oid,
-            messageOid: assistantMessage.oid
-          }
-        });
+        if (!existingAssistantMessage) {
+          await tx.assistantConversationItem.create({
+            data: {
+              ...getId('assistantConversationItem'),
+              conversationOid: conversation.oid,
+              messageOid: assistantMessage.oid
+            }
+          });
+        }
 
         await tx.assistantRequest.update({
           where: {
             oid: request.oid
           },
           data: {
-            status: 'completed'
+            status: result.status
           }
         });
 
@@ -245,12 +283,14 @@ export let processAssistantRequestQueueProcessor = processAssistantRequestQueue.
             oid: run.oid
           },
           data: {
-            status: 'completed',
+            status: result.status,
             cost,
             metadata: {
               ...result.metadata,
               startedAt: startedAt.toISOString(),
-              completedAt: completedAt.toISOString(),
+              ...(result.status == 'completed'
+                ? { completedAt: completedAt.toISOString() }
+                : {}),
               durationMs: completedAt.getTime() - startedAt.getTime(),
               finalSnapshotIndex: result.snapshotIndex
             } satisfies PrismaJson.AssistantRunMetadata
@@ -258,7 +298,7 @@ export let processAssistantRequestQueueProcessor = processAssistantRequestQueue.
         });
       });
       await publisher.markDone({
-        status: 'completed'
+        status: result.status
       });
     } catch (error) {
       if (error instanceof QueueRetryError) throw error;

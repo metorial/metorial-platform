@@ -1,21 +1,11 @@
-import {
-  badRequestError,
-  notFoundError,
-  ServiceError,
-  validationError
-} from '@lowerdeck/error';
+import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import type {
-  AssistantConversation,
-  AssistantInstance,
-  Environment,
-  Tenant,
-  TenantActor
-} from '../db';
+import type { AssistantConversation, Environment, Tenant, TenantActor } from '../db';
 import { db, Prisma, withTransaction } from '../db';
 import { getId } from '../id';
 import { getAssistantDefinition } from '../lib/definitions/assistantDefinition';
+import { resolveAssistantConversationInput } from '../lib/definitions/conversationInput';
 import type { State } from '../types';
 import type { AvailableAssistant } from './assistant';
 import { assistantService } from './assistant';
@@ -60,51 +50,6 @@ let toNullableJson = (value: unknown) => {
   if (value === null) return Prisma.JsonNull;
 
   return value as Prisma.InputJsonValue;
-};
-
-let resolveConversationInput = async (d: {
-  tenant: Tenant;
-  environment: Environment;
-  actor: TenantActor;
-  assistant: AvailableAssistant;
-  assistantInstance: AssistantInstance;
-  rawInput: unknown;
-  rawInputProvided: boolean;
-}) => {
-  let definition = await getAssistantDefinition(d.assistant.implementation.slug);
-  let assistantImplementation = definition.implementation;
-
-  if (!assistantImplementation.input || !assistantImplementation.handleInput) {
-    if (d.rawInputProvided) {
-      throw new ServiceError(
-        badRequestError({
-          message: 'This assistant does not accept conversation input.'
-        })
-      );
-    }
-
-    return undefined;
-  }
-
-  let valRes = assistantImplementation.input.validate(d.rawInput);
-  if (!valRes.success) {
-    throw new ServiceError(
-      validationError({
-        entity: 'assistant_conversation.input',
-        errors: valRes.errors
-      })
-    );
-  }
-
-  return await assistantImplementation.handleInput({
-    input: valRes.value,
-    tenant: d.tenant,
-    environment: d.environment,
-    actor: d.actor,
-    assistant: d.assistant,
-    assistantInstance: d.assistantInstance,
-    assistantImplementation: assistantImplementation._persisted
-  });
 };
 
 class AssistantConversationServiceImpl {
@@ -258,12 +203,14 @@ class AssistantConversationServiceImpl {
       throw new ServiceError(notFoundError('model', assistant.id));
     }
     let defaultModel = assistant.defaultModel;
-    let conversationInput = await resolveConversationInput({
+    let definition = await getAssistantDefinition(assistant.implementation.slug);
+    let conversationInput = await resolveAssistantConversationInput({
       tenant: d.tenant,
       environment: d.environment,
       actor: d.actor,
       assistant,
       assistantInstance,
+      assistantImplementation: definition.implementation,
       rawInput: d.input.input,
       rawInputProvided: hasOwn(d.input, 'input')
     });

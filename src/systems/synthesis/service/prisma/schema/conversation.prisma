@@ -57,6 +57,7 @@ model AssistantConversationParticipant {
 
 enum AssistantRequestStatus {
   pending
+  waiting_for_user
   completed
   cancelled
   failed
@@ -105,11 +106,18 @@ enum AssistantMessageType {
   assistant
 }
 
+enum AssistantMessageStatus {
+  pending
+  waiting_for_user
+  completed
+}
+
 model AssistantMessage {
   oid BigInt @id
   id  String @unique
 
   type AssistantMessageType
+  status AssistantMessageStatus @default(completed)
 
   runOid BigInt?
   run    ModelRun? @relation(fields: [runOid], references: [oid], onDelete: Cascade)

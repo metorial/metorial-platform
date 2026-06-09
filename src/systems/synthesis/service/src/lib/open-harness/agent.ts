@@ -7,6 +7,8 @@ import {
   type ModelMessage,
   type ToolSet
 } from 'ai';
+import type { ClientHandoffToolMetadata } from '../definitions/handoffTool';
+import { getHandoffToolMetadata } from '../definitions/handoffTool';
 import { z } from 'zod';
 import {
   AgentRegistry,
@@ -50,7 +52,13 @@ export type AgentEvent =
   | { type: 'text.done'; text: string }
   | { type: 'reasoning.delta'; text: string }
   | { type: 'reasoning.done'; text: string }
-  | { type: 'tool.start'; toolCallId: string; toolName: string; input: unknown }
+  | {
+      type: 'tool.start';
+      toolCallId: string;
+      toolName: string;
+      input: unknown;
+      handoff?: ClientHandoffToolMetadata;
+    }
   | { type: 'tool.done'; toolCallId: string; toolName: string; output: unknown }
   | { type: 'tool.error'; toolCallId: string; toolName: string; error: string }
   | { type: 'step.start'; stepNumber: number }
@@ -339,7 +347,10 @@ export class Agent {
               type: 'tool.start',
               toolCallId: part.toolCallId,
               toolName: part.toolName,
-              input: part.input
+              input: part.input,
+              handoff: tools?.[part.toolName]
+                ? getHandoffToolMetadata(tools[part.toolName])
+                : undefined
             };
             break;
 

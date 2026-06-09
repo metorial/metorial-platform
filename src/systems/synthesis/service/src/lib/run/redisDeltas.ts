@@ -10,7 +10,7 @@ type RedisAgentRunOptions = AgentRunStateOptions & {
 };
 
 type AssistantRunDoneMessage = {
-  status: 'completed' | 'cancelled' | 'failed';
+  status: 'completed' | 'waiting_for_user' | 'cancelled' | 'failed';
 };
 
 export let assistantRunDeltaKeys = (runId: string) => ({
@@ -26,7 +26,8 @@ let messageIndex = (message: WireMessage) =>
 
 let parseWireMessage = (raw: string) => JSON.parse(raw) as AgentRunWireMessage;
 
-let createClient = async () => await createRedisClient({ redisUrl: env.service.REDIS_URL }).eager();
+let createClient = async () =>
+  await createRedisClient({ redisUrl: env.service.REDIS_URL }).eager();
 let deltaReplayLimit = 15;
 
 export let createAssistantRunDeltaPublisher = async (d: {
@@ -138,6 +139,7 @@ export let listenToAssistantRunDeltas = async (d: {
 
     if (
       run.status == 'completed' ||
+      run.status == 'waiting_for_user' ||
       run.status == 'cancelled' ||
       run.status == 'failed'
     ) {
@@ -163,9 +165,7 @@ export let listenToAssistantRunDeltas = async (d: {
       deduped.set(index, message);
     }
 
-    return [...deduped.entries()]
-      .sort((a, b) => a[0] - b[0])
-      .map(([, message]) => message);
+    return [...deduped.entries()].sort((a, b) => a[0] - b[0]).map(([, message]) => message);
   };
 
   let fail = async (error: Error) => {

@@ -149,5 +149,55 @@ export let assistantMessageHandlers = {
       assistantMessagePresenter.present({
         assistantConversationItem: ctx.assistantConversationItem
       })
+    ),
+
+  respondToHandoffs: assistantMessageGroup
+    .post(
+      instancePath(
+        'conversations/:assistantConversationId/messages/:assistantMessageId/handoff-responses',
+        'conversations.messages.handoff_responses'
+      ),
+      {
+        name: 'Respond to assistant handoffs',
+        description: 'Submit one or more client handoff tool responses for a waiting message.'
+      }
     )
+    .use(
+      checkAccess({
+        possibleScopes: [
+          'instance.assistant.conversation:write',
+          'consumer#instance.assistant.conversation:write'
+        ]
+      })
+    )
+    .use(requireConsumerTokenForPublishableKey())
+    .body(
+      'default',
+      v.object({
+        responses: v.array(
+          v.object({
+            tool_call_id: v.string(),
+            output: v.any()
+          })
+        )
+      })
+    )
+    .output(assistantMessagePresenter)
+    .do(async ctx => {
+      let item = await assistantRequestService.respondToHandoffs({
+        organization: ctx.organization,
+        instance: ctx.instance,
+        ...requireAssistantActor(ctx),
+        conversationId: ctx.assistantConversation.id,
+        messageId: ctx.assistantConversationItem.id,
+        responses: ctx.body.responses.map(response => ({
+          toolCallId: response.tool_call_id,
+          output: response.output
+        }))
+      });
+
+      return assistantMessagePresenter.present({
+        assistantConversationItem: item
+      });
+    })
 };
