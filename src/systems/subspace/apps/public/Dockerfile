@@ -24,14 +24,7 @@ WORKDIR /app/src/systems/subspace/apps/public
 RUN bun run frontend:build
 # Remove frontend source (not needed for backend bundle, only dist is needed at runtime)
 RUN rm -rf frontend/src frontend/tsconfig.* frontend/vite.config.ts frontend/index.html
-# Temporarily use the build-friendly tsconfig
-RUN mv tsconfig.json tsconfig.json.bak && \
-  mv tsconfig.build.json tsconfig.json && \
-  bun run server:build; \
-  BUILD_EXIT_CODE=$?; \
-  mv tsconfig.json tsconfig.build.json && \
-  mv tsconfig.json.bak tsconfig.json; \
-  exit $BUILD_EXIT_CODE
+RUN bun run server:build
 
 # Production stage
 FROM oven/bun:1-alpine AS production

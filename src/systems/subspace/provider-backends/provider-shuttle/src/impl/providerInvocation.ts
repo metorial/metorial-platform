@@ -146,7 +146,7 @@ export class ProviderInvocation extends IProviderInvocation {
     let serverConnectionIdsWithFunctionInvocations = new Set(
       remoteInvocations
         .map((invocation: ShuttleFunctionInvocation) => invocation.serverConnectionId)
-        .filter((id): id is string => Boolean(id))
+        .filter((id: string | null | undefined): id is string => Boolean(id))
     );
 
     let providerRunIdByConnectionId = new Map(

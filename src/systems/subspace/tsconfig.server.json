@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "lib": ["ESNext"],
+    "types": ["bun"],
     "target": "ESNext",
     "module": "ESNext",
     "moduleDetection": "force",
@@ -10,9 +11,13 @@
     "allowImportingTsExtensions": false,
     "noEmit": false,
     "skipLibCheck": true,
-    "strict": false,
+    "strict": true,
     "esModuleInterop": true,
-    "resolveJsonModule": true
-  },
-  "files": ["src/server.ts"]
+    "resolveJsonModule": true,
+    "noFallthroughCasesInSwitch": false,
+    "noUncheckedIndexedAccess": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noPropertyAccessFromIndexSignature": false
+  }
 }

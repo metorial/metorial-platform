@@ -35,10 +35,10 @@ export class ProviderEnrichments extends IProviderEnrichments {
     );
 
     let shuttleServers = await shuttle.server.getMany({
-      serverIds: subspaceShuttleServersList.map(s => s.id)
+      serverIds: subspaceShuttleServersList.map((s: ShuttleServerRecord) => s.id)
     });
     let shuttleServersMap = new Map<string, ShuttleServer>(
-      shuttleServers.map(s => [s.id, s] as const)
+      shuttleServers.map((s: ShuttleServer) => [s.id, s] as const)
     );
 
     return {
@@ -83,10 +83,12 @@ export class ProviderEnrichments extends IProviderEnrichments {
     );
 
     let shuttleServerVersions = await shuttle.serverVersion.getMany({
-      serverVersionIds: subspaceShuttleServersList.map(s => s.id)
+      serverVersionIds: subspaceShuttleServersList.map(
+        (s: ShuttleServerVersionRecord) => s.id
+      )
     });
     let shuttleServerVersionsMap = new Map<string, ShuttleServerVersion>(
-      shuttleServerVersions.map(s => [s.id, s] as const)
+      shuttleServerVersions.map((s: ShuttleServerVersion) => [s.id, s] as const)
     );
 
     return {

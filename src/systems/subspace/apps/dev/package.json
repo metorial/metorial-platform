@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "bun \"$(ROOT=$(git rev-parse --show-toplevel); if [ -f \"$ROOT/scripts/dev-tools/src/cli.ts\" ]; then echo \"$ROOT/scripts/dev-tools/src/cli.ts\"; else echo \"$ROOT/oss/scripts/dev-tools/src/cli.ts\"; fi)\" watch-bun ./src/server.ts",
     "enterprise:dev": "bun run dev",
+    "check-types": "tsc --noEmit -p tsconfig.json",
     "frontend:build": "mkdir -p frontend/dist && cd ../public && bun frontend:build && cp -r ./frontend/dist ../dev/frontend"
   },
   "devDependencies": {
