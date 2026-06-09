@@ -3,6 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { subspaceProviderToolService } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
+import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instanceLegacyPath, instancePath } from '../../../middleware/instanceGroup';
 import { providerToolPresenter } from '../../../presenters';
@@ -45,14 +46,19 @@ export let providerToolController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            provider_version_id: v.string()
+            provider_version_id: v.string(),
+            provider_auth_method_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description:
+                'Filter to tools compatible with one auth method ID, or the common compatible subset for multiple auth method IDs.'
+            })
           })
         )
       )
       .do(async ctx => {
         let listInput = {
           instance: ctx.instance,
-          providerVersionId: ctx.query.provider_version_id
+          providerVersionId: ctx.query.provider_version_id,
+          providerAuthMethodIds: normalizeArrayParam(ctx.query.provider_auth_method_id)
         };
 
         let paginator = await subspaceProviderToolService.list(listInput);
