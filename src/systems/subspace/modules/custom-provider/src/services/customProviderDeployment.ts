@@ -22,6 +22,11 @@ import {
 } from '@metorial-subspace/list-utils';
 import { getTenantForShuttle, shuttle } from '@metorial-subspace/provider-shuttle/src/client';
 
+type ShuttleDeploymentStep = Awaited<
+  ReturnType<typeof shuttle.serverDeployment.getOutput>
+>[number];
+type ShuttleDeploymentLog = ShuttleDeploymentStep['logs'][number];
+
 let include = {
   customProvider: {
     include: {
@@ -175,12 +180,12 @@ class customProviderDeploymentServiceImpl {
     return {
       object: 'custom_provider.deployment.logs',
       customProviderDeploymentId: d.customProviderDeployment.id,
-      steps: steps.map(l => ({
+      steps: steps.map((l: ShuttleDeploymentStep) => ({
         ...l,
         id: shadowId('cpds_', [l.id]),
         object: 'custom_provider.deployment.step',
 
-        logs: l.logs.map((log: any) => ({
+        logs: l.logs.map((log: ShuttleDeploymentLog) => ({
           ...log,
           object: 'custom_provider.deployment.log'
         }))

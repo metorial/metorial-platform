@@ -31,6 +31,11 @@ let shuttleOAuthOutputSchema = z
   })
   .toJSONSchema();
 
+type ShuttleDiscovery = Awaited<ReturnType<typeof shuttle.serverDiscovery.create>>;
+type ShuttleDiscoveryTool = ShuttleDiscovery['tools'][number];
+type ShuttleDiscoveryPrompt = ShuttleDiscovery['prompts'][number];
+type ShuttleDiscoveryResourceTemplate = ShuttleDiscovery['resourceTemplates'][number];
+
 let promptArgumentsToZod = (
   args: {
     name: string;
@@ -241,7 +246,7 @@ export class ProviderCapabilities extends IProviderCapabilities {
 
       tools: discovery
         ? [
-            ...discovery.tools.map(t => ({
+            ...discovery.tools.map((t: ShuttleDiscoveryTool) => ({
               specId: `shuttle::${server.id}::tool::${t.name}`,
               callableId: t.name,
               key: `tool_${toolSlug(t.name)}`,
@@ -269,7 +274,7 @@ export class ProviderCapabilities extends IProviderCapabilities {
               metadata: {}
             })),
 
-            ...discovery.prompts.map(t => ({
+            ...discovery.prompts.map((t: ShuttleDiscoveryPrompt) => ({
               specId: `shuttle::${server.id}::tool::${t.name}`,
               callableId: t.name,
               key: `prompt_${toolSlug(t.name)}`,
@@ -294,7 +299,7 @@ export class ProviderCapabilities extends IProviderCapabilities {
               metadata: {}
             })),
 
-            ...discovery.resourceTemplates.map(t => ({
+            ...discovery.resourceTemplates.map((t: ShuttleDiscoveryResourceTemplate) => ({
               specId: `shuttle::${server.id}::tool::${t.name}`,
               callableId: t.uriTemplate,
               key: `resource_${toolSlug(t.name)}`,

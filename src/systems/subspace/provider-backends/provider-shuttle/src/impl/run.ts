@@ -21,6 +21,10 @@ import type { JSONRPCMessage } from '@modelcontextprotocol/sdk/types.js';
 import PQueue from 'p-queue';
 import { getTenantForShuttle, shuttle, shuttleLiveClient } from '../client';
 
+type ShuttleServerConnectionLog = NonNullable<
+  Awaited<ReturnType<typeof shuttle.serverConnection.getLogs>>
+>[number];
+
 export class ProviderRun extends IProviderRun {
   override async createProviderRun(
     data: ProviderRunCreateParam
@@ -102,7 +106,7 @@ export class ProviderRun extends IProviderRun {
           serverConnectionId: conn.id
         });
 
-        return (res ?? []).map(log => ({
+        return (res ?? []).map((log: ShuttleServerConnectionLog) => ({
           outputType: log.outputType,
           timestamp: log.timestamp,
           message: log.message

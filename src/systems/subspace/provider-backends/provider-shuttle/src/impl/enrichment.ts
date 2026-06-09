@@ -25,8 +25,13 @@ export class ProviderEnrichments extends IProviderEnrichments {
       },
       include: { providerVariants: true }
     });
+    type ShuttleServerRecord = (typeof subspaceShuttleServersList)[number];
     let shuttleServerByVariantId = new Map<string, (typeof subspaceShuttleServersList)[number]>(
-      subspaceShuttleServersList.flatMap(s => s.providerVariants.map(v => [v.id, s] as const))
+      subspaceShuttleServersList.flatMap((s: ShuttleServerRecord) =>
+        s.providerVariants.map(
+          (v: ShuttleServerRecord['providerVariants'][number]) => [v.id, s] as const
+        )
+      )
     );
 
     let shuttleServers = await shuttle.server.getMany({
@@ -68,8 +73,13 @@ export class ProviderEnrichments extends IProviderEnrichments {
       },
       include: { providerVersions: true }
     });
+    type ShuttleServerVersionRecord = (typeof subspaceShuttleServersList)[number];
     let shuttleServerByVersionId = new Map<string, (typeof subspaceShuttleServersList)[number]>(
-      subspaceShuttleServersList.flatMap(s => s.providerVersions.map(v => [v.id, s] as const))
+      subspaceShuttleServersList.flatMap((s: ShuttleServerVersionRecord) =>
+        s.providerVersions.map(
+          (v: ShuttleServerVersionRecord['providerVersions'][number]) => [v.id, s] as const
+        )
+      )
     );
 
     let shuttleServerVersions = await shuttle.serverVersion.getMany({

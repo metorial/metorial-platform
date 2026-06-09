@@ -44,6 +44,8 @@ let getBackendForServerType = (
       return 'mcp.function';
     case 'remote':
       return 'mcp.remote';
+    default:
+      throw new Error(`Unknown Shuttle server type: ${type}`);
   }
 };
 
