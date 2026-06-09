@@ -228,5 +228,5 @@ export interface GetProviderAuthConfigScopesParam {
 }
 
 export interface GetProviderAuthScopesRes {
-  scopes: string[];
+  scopes: string[] | null;
 }

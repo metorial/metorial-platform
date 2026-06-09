@@ -440,6 +440,13 @@ class providerAuthCredentialsServiceImpl {
           })
         ).scopes;
 
+        if (scopes === null) {
+          return await db.providerAuthCredentials.findUniqueOrThrow({
+            where: { oid: d.providerAuthCredentials.oid },
+            include
+          });
+        }
+
         return await db.providerAuthCredentials.update({
           where: { oid: d.providerAuthCredentials.oid },
           data: {

@@ -28,6 +28,7 @@ import type {
 import { IProviderAuth } from '@metorial-subspace/provider-utils';
 import { getTenantForSlates, slates } from '../client';
 import { enqueueAuthConfigProcessingSync } from '../queues/sync/authConfigProcessing';
+import { resolveSlateAuthConfigScopes } from './scopes';
 
 export class ProviderAuth extends IProviderAuth {
   override async onProviderAuthConfigVersionCreated(
@@ -416,12 +417,6 @@ export class ProviderAuth extends IProviderAuth {
       slateAuthConfigId: slateAuthConfig.id
     });
 
-    if (record.grantedScopes?.length) {
-      return { scopes: record.grantedScopes };
-    }
-
-    return {
-      scopes: record.oauthCredentials?.scopes ?? []
-    };
+    return { scopes: resolveSlateAuthConfigScopes(record) };
   }
 }

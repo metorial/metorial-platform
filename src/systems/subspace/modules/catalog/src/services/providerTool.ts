@@ -284,6 +284,10 @@ class providerToolServiceImpl {
       version
     };
 
+    if (hasVersionWithoutSpecification(ctx)) {
+      return Paginator.create(() => async input => paginateInMemory([], input));
+    }
+
     let grantedScopes = resolveGrantedScopes({
       authConfig: d.providerAuthConfig,
       authCredentials: d.providerAuthCredentials
