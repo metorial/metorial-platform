@@ -1,6 +1,7 @@
 import { v } from '@lowerdeck/validation';
 import { getConfig } from '@metorial/config';
 import { consumerAuthService } from '@metorial/module-consumer';
+import { flagService } from '@metorial/module-flags';
 import { projectBrandService } from '@metorial/module-organization';
 import { portalFromUrlApp } from '../group';
 import {
@@ -43,7 +44,10 @@ export let bootController = portalFromUrlApp.controller({
         portalUrl: ctx.portalUrl,
         publishableApiKey: getPortalPublishableApiKey({ portal: ctx.portal }),
         brand: await brandPresenter(brand),
-        portalMagicMcpUrl: `${getConfig().urls.apiUrl}/connect/portal/${ctx.portal.slug}`
+        portalMagicMcpUrl: `${getConfig().urls.apiUrl}/connect/portal/${ctx.portal.slug}`,
+        flags: await flagService.getFlags({
+          organization: ctx.portal.organization
+        })
       };
 
       if (!sessionRes) {
