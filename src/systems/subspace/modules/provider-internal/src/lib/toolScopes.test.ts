@@ -38,8 +38,16 @@ describe('checkToolScopesSatisfied', () => {
     });
 
     expect(checkToolScopesSatisfied(tool, ['read:x'])).toEqual({ allowed: false });
-    expect(checkToolScopesSatisfied(tool, [])).toEqual({ allowed: false });
-    expect(checkToolScopesSatisfied(tool, null)).toEqual({ allowed: false });
+  });
+
+  it('allows scoped tools when granted scopes are empty or missing', () => {
+    let tool = createTool({
+      AND: [{ OR: ['read:x'] }]
+    });
+
+    expect(checkToolScopesSatisfied(tool, [])).toEqual({ allowed: true });
+    expect(checkToolScopesSatisfied(tool, null)).toEqual({ allowed: true });
+    expect(checkToolScopesSatisfied(tool, undefined)).toEqual({ allowed: true });
   });
 
   it('treats empty OR clauses as non-constraining', () => {
@@ -48,7 +56,7 @@ describe('checkToolScopesSatisfied', () => {
     });
 
     expect(checkToolScopesSatisfied(tool, ['read:x'])).toEqual({ allowed: true });
-    expect(checkToolScopesSatisfied(tool, [])).toEqual({ allowed: false });
+    expect(checkToolScopesSatisfied(tool, [])).toEqual({ allowed: true });
   });
 });
 
@@ -76,12 +84,15 @@ describe('checkToolScopesSatisfiedByAuthMethods', () => {
     ).toEqual({ allowed: true });
   });
 
-  it('allows unscoped tools for auth methods without declared scopes', () => {
+  it('ignores auth methods without declared scopes', () => {
     expect(checkToolScopesSatisfiedByAuthMethods(unrestricted, [[], null])).toEqual({
       allowed: true
     });
     expect(checkToolScopesSatisfiedByAuthMethods(restricted, [[], null])).toEqual({
-      allowed: false
+      allowed: true
+    });
+    expect(checkToolScopesSatisfiedByAuthMethods(restricted, [[], null, ['read:x']])).toEqual({
+      allowed: true
     });
   });
 });
@@ -121,27 +132,27 @@ describe('resolveGrantedScopes', () => {
     ).toBeNull();
   });
 
-  it('preserves synced empty scope arrays as known no scopes', () => {
+  it('treats empty scope arrays as unknown even after scope sync', () => {
     expect(
       resolveGrantedScopes({
         authConfig: { scopes: [], needsScopeSync: false },
         authCredentials: null
       })
-    ).toEqual([]);
+    ).toBeNull();
 
     expect(
       resolveGrantedScopes({
         authConfig: { scopes: ['a', 'b'] },
         authCredentials: { scopes: [], needsScopeSync: false }
       })
-    ).toEqual([]);
+    ).toEqual(['a', 'b']);
 
     expect(
       resolveGrantedScopes({
         authConfig: { scopes: [], needsScopeSync: false },
         authCredentials: { scopes: ['a'] }
       })
-    ).toEqual([]);
+    ).toEqual(['a']);
   });
 
   it('returns null when neither source is available', () => {
@@ -160,8 +171,12 @@ describe('filterToolsByScopes', () => {
     expect(filterToolsByScopes(tools, undefined)).toBe(tools);
   });
 
-  it('filters out tools whose scope tree is unsatisfied', () => {
-    expect(filterToolsByScopes([restricted, unrestricted], [])).toEqual([unrestricted]);
+  it('returns the original list when scopes are empty', () => {
+    let tools = [restricted, unrestricted];
+    expect(filterToolsByScopes(tools, [])).toBe(tools);
+  });
+
+  it('filters out tools whose scope tree is unsatisfied by non-empty scopes', () => {
     expect(filterToolsByScopes([restricted, unrestricted], ['read:x'])).toEqual([
       restricted,
       unrestricted

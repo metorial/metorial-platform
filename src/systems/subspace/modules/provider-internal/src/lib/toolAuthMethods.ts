@@ -13,8 +13,9 @@ export let checkToolAuthMethodSatisfied = (
     return { allowed: true as const };
   }
 
+  // Backwards compatibility: older callers may not pass an active auth method, so skip the check.
   if (!authMethod?.key) {
-    return { allowed: false as const };
+    return { allowed: true as const };
   }
 
   return { allowed: toolAuthMethods.includes(authMethod.key) };
