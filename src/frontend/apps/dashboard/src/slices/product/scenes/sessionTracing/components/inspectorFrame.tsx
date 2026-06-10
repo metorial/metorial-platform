@@ -3,6 +3,7 @@ import { useCurrentInstance, useSession } from '@metorial/state';
 import { Button, CenteredSpinner, Error, Menu, theme } from '@metorial/ui';
 import { RiArrowDownSLine, RiFileList3Line } from '@remixicon/react';
 import { AnimatePresence, motion } from 'framer-motion';
+import type { ReactNode } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
@@ -87,6 +88,7 @@ export let InspectorFrame = (p: {
   sessionId: string;
   sessionTemplateId?: string | null;
   magicMcpServerId?: string | null;
+  modeSelector?: ReactNode;
   onOpenLogs?: () => void;
 }) => {
   let instance = useCurrentInstance();
@@ -210,17 +212,6 @@ export let InspectorFrame = (p: {
             </Button>
           </Menu>
 
-          {p.onOpenLogs && (
-            <Button
-              size="2"
-              variant="outline"
-              iconLeft={<RiFileList3Line />}
-              onClick={p.onOpenLogs}
-            >
-              Open Logs
-            </Button>
-          )}
-
           {p.magicMcpServerId ? (
             <Link
               to={Paths.instance.magicMcp.server(
@@ -248,6 +239,19 @@ export let InspectorFrame = (p: {
               </Button>
             </Link>
           ) : null}
+
+          {p.onOpenLogs && (
+            <Button
+              size="2"
+              variant="outline"
+              iconLeft={<RiFileList3Line />}
+              onClick={p.onOpenLogs}
+            >
+              Open Logs
+            </Button>
+          )}
+
+          {p.modeSelector}
         </ConnectionNavSection>
       </ConnectionNav>
 

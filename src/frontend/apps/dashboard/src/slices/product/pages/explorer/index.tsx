@@ -45,6 +45,7 @@ import { getProviderConfigSchemaCapabilities } from '../../lib/providerCreationC
 import { ProviderSearch } from '../../scenes/providers/search';
 import { ProviderSetupSections } from '../../scenes/sessionTemplates/addProviderPanelFlow';
 import { SessionTracingScene } from '../../scenes/sessionTracing';
+import type { ExplorerTabMode } from '../../scenes/sessionTracing/types';
 
 type ProviderSelection =
   | DashboardInstanceProvidersListOutput['items'][number]
@@ -161,6 +162,8 @@ export let ExplorerPage = () => {
   let providerIdParam = search.get('provider_id');
   let providerDeploymentIdParam = search.get('provider_deployment_id');
   let sessionIdParam = search.get('session_id');
+  let initialExplorerMode: ExplorerTabMode =
+    search.get('mode') == 'assistant' ? 'assistant' : 'manual';
   let sessionTemplateIdFromState =
     (location.state as { sessionTemplateId?: string } | null)?.sessionTemplateId ?? null;
   let magicMcpServerIdFromState =
@@ -903,6 +906,7 @@ export let ExplorerPage = () => {
             <SessionTracingScene
               session={session.data}
               initialExplorerTab
+              initialExplorerMode={initialExplorerMode}
               inspectorOptions={{
                 sessionTemplateId: resolvedSessionTemplateId,
                 magicMcpServerId: magicMcpServerIdFromState
