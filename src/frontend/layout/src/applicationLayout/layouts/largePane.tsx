@@ -22,10 +22,18 @@ let Outer = styled('div')`
 
 let Wrapper = styled('div')<{ $bottomOffset?: string }>`
   height: calc(100dvh - 70px - ${({ $bottomOffset }) => $bottomOffset ?? '0px'});
+  min-width: 0;
   background: ${theme.colors.background};
   border-radius: 10px;
   box-shadow: ${theme.shadows.large};
   overflow: auto;
+`;
+
+let Grid = styled('div')`
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  min-width: 0;
 `;
 
 export let LargePaneLayout = ({
@@ -33,20 +41,33 @@ export let LargePaneLayout = ({
   bottomOffset,
   height,
   onContentScroll,
+  right,
   Nav
 }: {
   children: React.ReactNode;
   bottomOffset?: string;
   height?: number | string;
   onContentScroll?: React.UIEventHandler<HTMLDivElement>;
+  right?: React.ReactNode;
   Nav: () => React.ReactNode;
 }) => {
+  let content = (
+    <Wrapper $bottomOffset={bottomOffset} onScroll={onContentScroll}>
+      {children}
+    </Wrapper>
+  );
+
   return (
     <RootLayout Nav={Nav} height={height}>
       <Outer>
-        <Wrapper $bottomOffset={bottomOffset} onScroll={onContentScroll}>
-          {children}
-        </Wrapper>
+        {right ? (
+          <Grid>
+            {content}
+            {right}
+          </Grid>
+        ) : (
+          content
+        )}
       </Outer>
     </RootLayout>
   );

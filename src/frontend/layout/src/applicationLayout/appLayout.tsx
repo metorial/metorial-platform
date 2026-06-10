@@ -251,7 +251,7 @@ let SidebarInnerTop = styled.div`
   padding: 10px 10px 0px 10px;
 `;
 
-let SidebarAnimatedInnerTop = styled(SidebarInnerTop)`
+let SidebarAnimatedItems = styled.div`
   animation: ${sidebarEnter} 0.26s cubic-bezier(0.22, 1, 0.36, 1);
 `;
 
@@ -283,6 +283,7 @@ export let AppLayout = ({
   mainGroups,
   bottomGroups,
   bottom,
+  sidebarTop,
   right,
   rightPanelOpen,
   onOpenAutoCollapsedSidebar,
@@ -299,6 +300,7 @@ export let AppLayout = ({
   mainGroups: ISidebarGroup[];
   bottomGroups?: ISidebarGroup[];
   bottom?: React.ReactNode;
+  sidebarTop?: React.ReactNode;
   right?: React.ReactNode;
   rightPanelOpen?: boolean;
   onOpenAutoCollapsedSidebar?: () => void;
@@ -611,23 +613,25 @@ export let AppLayout = ({
               <Sidebar>
                 <Shadow />
 
-                {sidebarTransition ? (
-                  <SidebarAnimatedInnerTop
-                    key={sidebarTransition.key}
-                    style={
-                      {
-                        ['--sidebar-enter-x' as string]:
-                          sidebarTransition.direction === 'backward' ? '-18px' : '18px'
-                      } as React.CSSProperties
-                    }
-                  >
+                <SidebarInnerTop>
+                  {sidebarTop}
+
+                  {sidebarTransition ? (
+                    <SidebarAnimatedItems
+                      key={sidebarTransition.key}
+                      style={
+                        {
+                          ['--sidebar-enter-x' as string]:
+                            sidebarTransition.direction === 'backward' ? '-18px' : '18px'
+                        } as React.CSSProperties
+                      }
+                    >
+                      <SidebarItems groups={mainGroups} id={id} />
+                    </SidebarAnimatedItems>
+                  ) : (
                     <SidebarItems groups={mainGroups} id={id} />
-                  </SidebarAnimatedInnerTop>
-                ) : (
-                  <SidebarInnerTop>
-                    <SidebarItems groups={mainGroups} id={id} />
-                  </SidebarInnerTop>
-                )}
+                  )}
+                </SidebarInnerTop>
 
                 {!mobile && (
                   <>

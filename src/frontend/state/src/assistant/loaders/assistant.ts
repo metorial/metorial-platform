@@ -8,6 +8,7 @@ import type {
   DashboardInstanceConversationsCreateBody,
   DashboardInstanceConversationsGetOutput,
   DashboardInstanceConversationsListQuery,
+  DashboardInstanceConversationsUpdateBody,
   DashboardInstanceConversationsMessagesCreateBody,
   DashboardInstanceConversationsMessagesGetOutput,
   DashboardInstanceConversationsMessagesListQuery
@@ -24,7 +25,8 @@ export type AssistantConversationMessage = DashboardInstanceConversationsMessage
 export type AssistantLiveState = AssistantRunState;
 export type AssistantLiveStateItem = AssistantRunStateItem;
 
-export let defaultAssistantSlug = 'skills';
+export let metorialAssistantSlug = 'test';
+export let defaultAssistantSlug = metorialAssistantSlug;
 
 type AssistantScope = {
   organizationId: string;
@@ -158,7 +160,10 @@ export let conversationLoader = createLoader({
   parents: [conversationsLoader],
   fetch: (i: ConversationScope) =>
     withAuth(sdk => sdk.assistant.conversations.get(i.instanceId, i.assistantConversationId)),
-  mutators: {}
+  mutators: {
+    update: (i: DashboardInstanceConversationsUpdateBody, { output: { id, instanceId } }) =>
+      withAuth(sdk => sdk.assistant.conversations.update(instanceId, id, i))
+  }
 });
 
 export let useConversation = (
@@ -166,7 +171,7 @@ export let useConversation = (
   instanceId: string | null | undefined,
   assistantConversationId: string | null | undefined
 ) => {
-  return conversationLoader.use(
+  let conversation = conversationLoader.use(
     organizationId && instanceId && assistantConversationId
       ? {
           organizationId,
@@ -175,6 +180,11 @@ export let useConversation = (
         }
       : null
   );
+
+  return {
+    ...conversation,
+    updateMutator: conversation.useMutator('update')
+  };
 };
 
 export let conversationMessagesLoader = createLoader({

@@ -216,7 +216,7 @@ let SidebarGroup = ({
                 style={{ justifyContent: 'center', padding: 0, width: 22 }}
                 className="collapsible"
               >
-                <RiAddLine size={14} />
+                <RiAddLine size={14} color={theme.colors.gray600} />
               </LabelBarButton>
             </Tooltip>
           )}
