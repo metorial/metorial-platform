@@ -791,6 +791,7 @@ type ProviderSetupSectionsProps = {
   defaultAuthConfigName?: string;
   providerDeploymentId?: string | null;
   fixedAuthMethodId?: string;
+  providerAuthMethodId?: string | null;
   fixedAuthCredentialsId?: string;
   selectedConfiguration: ConfigurationSelection;
   onSelectedConfigurationChange: (value: ConfigurationSelection) => void;
@@ -855,9 +856,16 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
   let showExistingAuthOptions = p.showExistingAuthOptions ?? true;
   let filterAvailableResources = p.filterAvailableResources ?? false;
   let autoStartManagedCredentialSetup = p.autoStartManagedCredentialSetup ?? false;
+  let providerAuthMethodId =
+    p.fixedAuthMethodId ?? inlineAuthMethodId ?? p.providerAuthMethodId ?? undefined;
   let tools = useProviderTools(
     p.instanceId,
-    showToolFilters && providerVersionId ? { providerVersionId } : null
+    showToolFilters && providerVersionId
+      ? {
+          providerVersionId,
+          ...(providerAuthMethodId ? { providerAuthMethodId } : {})
+        }
+      : null
   );
   let toolItems = tools.data?.items ?? [];
   let requiresProviderConfig =
@@ -876,8 +884,28 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
   let destructiveTools = normalizedTools.filter(tool => tool.group === 'destructive');
   let requiresAuthConfig = showAuthSection && provider.data?.type.auth.status == 'enabled';
   let pendingCreatedAuthConfigIdRef = useRef<string | null>(null);
+  let previousProviderAuthMethodIdRef = useRef<string | undefined>(providerAuthMethodId);
   let selectedToolKeys = p.selectedToolKeys ?? [];
   let toolFilterMode = p.toolFilterMode ?? 'all';
+  let selectedAuthConfigForMethod = useProviderAuthConfigs(
+    requiresAuthConfig && providerAuthMethodId && p.selectedAuthConfigId
+      ? p.instanceId
+      : null,
+    {
+      providerId: p.providerId,
+      id: p.selectedAuthConfigId,
+      limit: 1,
+      ...(filterAvailableResources
+        ? {
+            availableForUse: true,
+            availableForProviderDeploymentId: p.providerDeploymentId ?? undefined
+          }
+        : {
+            providerDeploymentId: p.providerDeploymentId ?? undefined
+          }),
+      providerAuthMethodId
+    }
+  );
 
   useEffect(() => {
     if (provider.isLoading || requiresProviderConfig) return;
@@ -925,6 +953,56 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
   ]);
 
   useEffect(() => {
+    if (previousProviderAuthMethodIdRef.current === providerAuthMethodId) return;
+
+    previousProviderAuthMethodIdRef.current = providerAuthMethodId;
+    let createdAuthConfigSelected =
+      createdAuthConfigSelection?.id === p.selectedAuthConfigId;
+    let pendingCreatedAuthConfigSelected =
+      pendingCreatedAuthConfigIdRef.current === p.selectedAuthConfigId;
+
+    if (createdAuthConfigSelected || pendingCreatedAuthConfigSelected) return;
+
+    pendingCreatedAuthConfigIdRef.current = null;
+    setCreatedAuthConfigSelection(null);
+    if (p.selectedAuthConfigId) {
+      p.onSelectedAuthConfigIdChange('');
+    }
+  }, [
+    providerAuthMethodId,
+    p.selectedAuthConfigId,
+    p.onSelectedAuthConfigIdChange,
+    createdAuthConfigSelection?.id
+  ]);
+
+  useEffect(() => {
+    if (!requiresAuthConfig) return;
+    if (!providerAuthMethodId) return;
+    if (!p.selectedAuthConfigId) return;
+    if (selectedAuthConfigForMethod.isLoading) return;
+
+    let authConfigMatchesMethod = (selectedAuthConfigForMethod.data?.items ?? []).some(
+      config => config.id === p.selectedAuthConfigId
+    );
+    let createdAuthConfigSelected =
+      createdAuthConfigSelection?.id === p.selectedAuthConfigId;
+
+    if (!authConfigMatchesMethod && !createdAuthConfigSelected) {
+      pendingCreatedAuthConfigIdRef.current = null;
+      setCreatedAuthConfigSelection(null);
+      p.onSelectedAuthConfigIdChange('');
+    }
+  }, [
+    requiresAuthConfig,
+    providerAuthMethodId,
+    p.selectedAuthConfigId,
+    p.onSelectedAuthConfigIdChange,
+    selectedAuthConfigForMethod.isLoading,
+    selectedAuthConfigForMethod.data?.items,
+    createdAuthConfigSelection?.id
+  ]);
+
+  useEffect(() => {
     if (!createdAuthConfigSelection) return;
     if (createdAuthConfigSelection.id !== p.selectedAuthConfigId) {
       setCreatedAuthConfigSelection(null);
@@ -933,7 +1011,7 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
 
   useEffect(() => {
     setInlineAuthMethodId(null);
-  }, [p.providerId, p.providerDeploymentId, p.fixedAuthMethodId]);
+  }, [p.providerId, p.providerDeploymentId, p.fixedAuthMethodId, p.providerAuthMethodId]);
 
   useEffect(() => {
     if (!showToolFilters || toolItems.length === 0) return;
@@ -1131,7 +1209,7 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
                           : {
                               providerDeploymentId: p.providerDeploymentId ?? undefined
                             }),
-                        providerAuthMethodId: p.fixedAuthMethodId ?? undefined
+                        providerAuthMethodId
                       });
 
                       return {
