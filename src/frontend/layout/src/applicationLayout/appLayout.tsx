@@ -1,7 +1,9 @@
-import { Spacer, theme } from '@metorial/ui';
+import { Popover, Spacer, Switch, theme } from '@metorial/ui';
 import { RiArrowLeftSLine, RiArrowRightSLine } from '@remixicon/react';
 import React, { useEffect, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
+import { appLayoutSidebarStateAtom } from './atom';
 import { ISidebarGroup, SidebarItems } from './components/sidebarItems';
 import { RootLayout } from './layouts/rootLayout';
 
@@ -10,6 +12,7 @@ let SIDEBAR_MIN_WIDTH = 220;
 let SIDEBAR_MAX_WIDTH = 420;
 let SIDEBAR_CLOSE_THRESHOLD = 75;
 let SIDEBAR_COLLAPSED_WIDTH = 10;
+let SIDEBAR_RIGHT_PANEL_COLLAPSE_THRESHOLD = 1200;
 
 let clampSidebarWidth = (width: number) =>
   Math.min(SIDEBAR_MAX_WIDTH, Math.max(SIDEBAR_MIN_WIDTH, width));
@@ -19,16 +22,27 @@ let getSidebarStorageKey = (id: string) => `metorial.app-layout.${id}.sidebar`;
 type PersistedSidebarState = {
   width: number;
   collapsed: boolean;
+  collapseSidebarWhenRightPanelOpen: boolean;
+  keepSidebarCollapsedOnPageSwitch: boolean;
+  autoCollapsedByRightPanel: boolean;
 };
+
+let defaultSidebarState = (): PersistedSidebarState => ({
+  width: SIDEBAR_DEFAULT_WIDTH,
+  collapsed: false,
+  collapseSidebarWhenRightPanelOpen: true,
+  keepSidebarCollapsedOnPageSwitch: false,
+  autoCollapsedByRightPanel: false
+});
 
 let readSidebarState = (id: string): PersistedSidebarState => {
   if (typeof window == 'undefined') {
-    return { width: SIDEBAR_DEFAULT_WIDTH, collapsed: false };
+    return defaultSidebarState();
   }
 
   try {
     let raw = window.localStorage.getItem(getSidebarStorageKey(id));
-    if (!raw) return { width: SIDEBAR_DEFAULT_WIDTH, collapsed: false };
+    if (!raw) return defaultSidebarState();
 
     let parsed = JSON.parse(raw) as Partial<PersistedSidebarState>;
     let width =
@@ -38,10 +52,13 @@ let readSidebarState = (id: string): PersistedSidebarState => {
 
     return {
       width,
-      collapsed: parsed.collapsed === true
+      collapsed: parsed.collapsed === true,
+      collapseSidebarWhenRightPanelOpen: parsed.collapseSidebarWhenRightPanelOpen !== false,
+      keepSidebarCollapsedOnPageSwitch: parsed.keepSidebarCollapsedOnPageSwitch === true,
+      autoCollapsedByRightPanel: parsed.autoCollapsedByRightPanel === true
     };
   } catch {
-    return { width: SIDEBAR_DEFAULT_WIDTH, collapsed: false };
+    return defaultSidebarState();
   }
 };
 
@@ -211,6 +228,13 @@ let SidebarToggleButton = styled.button<{ $visible: boolean }>`
   }
 `;
 
+let SidebarSettings = styled.div`
+  width: 350px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+`;
+
 let SidebarInnerTop = styled.div`
   padding: 10px 10px 0px 10px;
 `;
@@ -244,6 +268,9 @@ export let AppLayout = ({
   bottomGroups,
   bottom,
   right,
+  rightPanelOpen,
+  onOpenAutoCollapsedSidebar,
+  sidebarRightPanelCollapseThreshold = SIDEBAR_RIGHT_PANEL_COLLAPSE_THRESHOLD,
   children,
   Nav,
   height,
@@ -256,6 +283,9 @@ export let AppLayout = ({
   bottomGroups?: ISidebarGroup[];
   bottom?: React.ReactNode;
   right?: React.ReactNode;
+  rightPanelOpen?: boolean;
+  onOpenAutoCollapsedSidebar?: () => void;
+  sidebarRightPanelCollapseThreshold?: number;
   children: React.ReactNode;
   Nav: () => React.ReactNode;
   height?: number | string;
@@ -268,11 +298,24 @@ export let AppLayout = ({
 }) => {
   let [sidebarWidth, setSidebarWidth] = useState(() => readSidebarState(id).width);
   let [sidebarCollapsed, setSidebarCollapsed] = useState(() => readSidebarState(id).collapsed);
+  let [collapseSidebarWhenRightPanelOpen, setCollapseSidebarWhenRightPanelOpen] = useState(
+    () => readSidebarState(id).collapseSidebarWhenRightPanelOpen
+  );
+  let [keepSidebarCollapsedOnPageSwitch, setKeepSidebarCollapsedOnPageSwitch] = useState(
+    () => readSidebarState(id).keepSidebarCollapsedOnPageSwitch
+  );
+  let [autoCollapsedByRightPanel, setAutoCollapsedByRightPanel] = useState(
+    () => readSidebarState(id).autoCollapsedByRightPanel
+  );
   let [isResizingSidebar, setIsResizingSidebar] = useState(false);
   let [sidebarToggleVisible, setSidebarToggleVisible] = useState(false);
+  let [sidebarSettingsOpen, setSidebarSettingsOpen] = useState(false);
   let resizeStateRef = useRef<{ startX: number; startWidth: number } | null>(null);
   let layoutIdRef = useRef(id);
   let sidebarToggleHideTimeoutRef = useRef<number | null>(null);
+  let sidebarSettingsHoverTimeoutRef = useRef<number | null>(null);
+  let location = useLocation();
+  let locationPathRef = useRef(location.pathname);
 
   useEffect(() => {
     if (typeof window == 'undefined') return;
@@ -282,13 +325,23 @@ export let AppLayout = ({
         getSidebarStorageKey(id),
         JSON.stringify({
           width: sidebarWidth,
-          collapsed: sidebarCollapsed
+          collapsed: sidebarCollapsed,
+          collapseSidebarWhenRightPanelOpen,
+          keepSidebarCollapsedOnPageSwitch,
+          autoCollapsedByRightPanel
         } satisfies PersistedSidebarState)
       );
     }, 200);
 
     return () => window.clearTimeout(timeout);
-  }, [id, sidebarWidth, sidebarCollapsed]);
+  }, [
+    id,
+    sidebarWidth,
+    sidebarCollapsed,
+    collapseSidebarWhenRightPanelOpen,
+    keepSidebarCollapsedOnPageSwitch,
+    autoCollapsedByRightPanel
+  ]);
 
   useEffect(() => {
     if (layoutIdRef.current == id) return;
@@ -297,13 +350,90 @@ export let AppLayout = ({
     let sidebarState = readSidebarState(id);
     setSidebarWidth(sidebarState.width);
     setSidebarCollapsed(sidebarState.collapsed);
+    setCollapseSidebarWhenRightPanelOpen(sidebarState.collapseSidebarWhenRightPanelOpen);
+    setKeepSidebarCollapsedOnPageSwitch(sidebarState.keepSidebarCollapsedOnPageSwitch);
+    setAutoCollapsedByRightPanel(sidebarState.autoCollapsedByRightPanel);
     setSidebarToggleVisible(false);
   }, [id]);
+
+  useEffect(() => {
+    appLayoutSidebarStateAtom.set({
+      layoutId: id,
+      collapsed: sidebarCollapsed
+    });
+  }, [id, sidebarCollapsed]);
+
+  useEffect(() => {
+    return () => {
+      appLayoutSidebarStateAtom.set({
+        layoutId: null,
+        collapsed: false
+      });
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!collapseSidebarWhenRightPanelOpen || !rightPanelOpen) return;
+    if (typeof window == 'undefined') return;
+
+    let collapseIfNeeded = () => {
+      if (window.innerWidth < sidebarRightPanelCollapseThreshold && !sidebarCollapsed) {
+        setAutoCollapsedByRightPanel(true);
+        setSidebarCollapsed(true);
+      }
+    };
+
+    collapseIfNeeded();
+    window.addEventListener('resize', collapseIfNeeded);
+
+    return () => window.removeEventListener('resize', collapseIfNeeded);
+  }, [
+    collapseSidebarWhenRightPanelOpen,
+    rightPanelOpen,
+    sidebarCollapsed,
+    sidebarRightPanelCollapseThreshold
+  ]);
+
+  useEffect(() => {
+    if (rightPanelOpen !== false || !autoCollapsedByRightPanel) return;
+
+    if (sidebarCollapsed) {
+      setSidebarCollapsed(false);
+    }
+
+    setAutoCollapsedByRightPanel(false);
+  }, [autoCollapsedByRightPanel, rightPanelOpen, sidebarCollapsed]);
+
+  useEffect(() => {
+    if (locationPathRef.current == location.pathname) return;
+
+    locationPathRef.current = location.pathname;
+    let shouldStayCollapsedForRightPanel =
+      collapseSidebarWhenRightPanelOpen &&
+      rightPanelOpen &&
+      typeof window != 'undefined' &&
+      window.innerWidth < sidebarRightPanelCollapseThreshold;
+
+    if (!keepSidebarCollapsedOnPageSwitch && !shouldStayCollapsedForRightPanel) {
+      setAutoCollapsedByRightPanel(false);
+      setSidebarCollapsed(false);
+    }
+  }, [
+    collapseSidebarWhenRightPanelOpen,
+    keepSidebarCollapsedOnPageSwitch,
+    location.pathname,
+    rightPanelOpen,
+    sidebarRightPanelCollapseThreshold
+  ]);
 
   useEffect(() => {
     return () => {
       if (sidebarToggleHideTimeoutRef.current) {
         window.clearTimeout(sidebarToggleHideTimeoutRef.current);
+      }
+
+      if (sidebarSettingsHoverTimeoutRef.current) {
+        window.clearTimeout(sidebarSettingsHoverTimeoutRef.current);
       }
     };
   }, []);
@@ -323,6 +453,7 @@ export let AppLayout = ({
       let nextWidth = resizeState.startWidth + (event.clientX - resizeState.startX);
       if (nextWidth <= SIDEBAR_MIN_WIDTH - SIDEBAR_CLOSE_THRESHOLD) {
         setSidebarWidth(clampSidebarWidth(resizeState.startWidth));
+        setAutoCollapsedByRightPanel(false);
         setSidebarCollapsed(true);
         resizeStateRef.current = null;
         setIsResizingSidebar(false);
@@ -356,13 +487,22 @@ export let AppLayout = ({
       startX: event.clientX,
       startWidth: sidebarWidth
     };
+    if (sidebarCollapsed && autoCollapsedByRightPanel && rightPanelOpen) {
+      onOpenAutoCollapsedSidebar?.();
+    }
+    setAutoCollapsedByRightPanel(false);
     setSidebarCollapsed(false);
     setIsResizingSidebar(true);
     event.currentTarget.setPointerCapture(event.pointerId);
   };
 
   let toggleSidebarCollapsed = () => {
-    setSidebarCollapsed(current => !current);
+    if (sidebarCollapsed && autoCollapsedByRightPanel && rightPanelOpen) {
+      onOpenAutoCollapsedSidebar?.();
+    }
+
+    setAutoCollapsedByRightPanel(false);
+    setSidebarCollapsed(!sidebarCollapsed);
   };
 
   let showSidebarToggle = () => {
@@ -385,6 +525,24 @@ export let AppLayout = ({
     }, 180);
   };
 
+  let cancelSidebarSettingsHover = () => {
+    if (sidebarSettingsHoverTimeoutRef.current) {
+      window.clearTimeout(sidebarSettingsHoverTimeoutRef.current);
+      sidebarSettingsHoverTimeoutRef.current = null;
+    }
+  };
+
+  let scheduleSidebarSettingsHover = () => {
+    if (typeof window == 'undefined' || sidebarSettingsOpen) return;
+
+    cancelSidebarSettingsHover();
+    sidebarSettingsHoverTimeoutRef.current = window.setTimeout(() => {
+      setSidebarSettingsOpen(true);
+      setSidebarToggleVisible(true);
+      sidebarSettingsHoverTimeoutRef.current = null;
+    }, 2000);
+  };
+
   return (
     <RootLayout Nav={Nav} height={height}>
       <Wrapper
@@ -399,66 +557,68 @@ export let AppLayout = ({
           $resizing={isResizingSidebar}
           $width={sidebarWidth}
         >
-          <SidebarClip>
-            <Sidebar>
-              <Shadow />
+          {!sidebarCollapsed && (
+            <SidebarClip>
+              <Sidebar>
+                <Shadow />
 
-              {sidebarTransition ? (
-                <SidebarAnimatedInnerTop
-                  key={sidebarTransition.key}
-                  style={
-                    {
-                      ['--sidebar-enter-x' as string]:
-                        sidebarTransition.direction === 'backward' ? '-18px' : '18px'
-                    } as React.CSSProperties
-                  }
-                >
-                  <SidebarItems groups={mainGroups} id={id} />
-                </SidebarAnimatedInnerTop>
-              ) : (
-                <SidebarInnerTop>
-                  <SidebarItems groups={mainGroups} id={id} />
-                </SidebarInnerTop>
-              )}
+                {sidebarTransition ? (
+                  <SidebarAnimatedInnerTop
+                    key={sidebarTransition.key}
+                    style={
+                      {
+                        ['--sidebar-enter-x' as string]:
+                          sidebarTransition.direction === 'backward' ? '-18px' : '18px'
+                      } as React.CSSProperties
+                    }
+                  >
+                    <SidebarItems groups={mainGroups} id={id} />
+                  </SidebarAnimatedInnerTop>
+                ) : (
+                  <SidebarInnerTop>
+                    <SidebarItems groups={mainGroups} id={id} />
+                  </SidebarInnerTop>
+                )}
 
-              <Spacer />
-
-              <div
-                style={{
-                  position: 'sticky',
-                  bottom: 0,
-                  zIndex: 10
-                }}
-              >
-                <Shadow style={{ height: 20, transform: 'rotate(180deg)' }} />
+                <Spacer />
 
                 <div
                   style={{
-                    background: 'var(--lb-bg)'
+                    position: 'sticky',
+                    bottom: 0,
+                    zIndex: 10
                   }}
                 >
-                  {bottomGroups && (
-                    <SidebarInnerBottom>
-                      <SidebarItems groups={bottomGroups} id={`${id}-bottom`} />
-                    </SidebarInnerBottom>
-                  )}
+                  <Shadow style={{ height: 20, transform: 'rotate(180deg)' }} />
 
-                  {bottom && (
-                    <div
-                      style={{
-                        padding: '0px 10px 10px 10px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 10
-                      }}
-                    >
-                      {bottom}
-                    </div>
-                  )}
+                  <div
+                    style={{
+                      background: 'var(--lb-bg)'
+                    }}
+                  >
+                    {bottomGroups && (
+                      <SidebarInnerBottom>
+                        <SidebarItems groups={bottomGroups} id={`${id}-bottom`} />
+                      </SidebarInnerBottom>
+                    )}
+
+                    {bottom && (
+                      <div
+                        style={{
+                          padding: '0px 10px 10px 10px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 10
+                        }}
+                      >
+                        {bottom}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </Sidebar>
-          </SidebarClip>
+              </Sidebar>
+            </SidebarClip>
+          )}
 
           {!sidebarCollapsed && (
             <SidebarResizeGutter
@@ -481,19 +641,64 @@ export let AppLayout = ({
             onPointerLeave={hideSidebarToggle}
           />
 
-          <SidebarToggleButton
-            $visible={sidebarCollapsed || sidebarToggleVisible}
-            aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            onBlur={hideSidebarToggle}
-            onClick={toggleSidebarCollapsed}
-            onFocus={showSidebarToggle}
-            onPointerEnter={showSidebarToggle}
-            onPointerLeave={hideSidebarToggle}
-            type="button"
+          <Popover.Root
+            align="start"
+            open={sidebarSettingsOpen}
+            onOpenChange={setSidebarSettingsOpen}
+            side="right"
+            sideOffset={8}
+            trigger={
+              <SidebarToggleButton
+                $visible={sidebarCollapsed || sidebarToggleVisible || sidebarSettingsOpen}
+                aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                onBlur={() => {
+                  cancelSidebarSettingsHover();
+                  hideSidebarToggle();
+                }}
+                onClick={event => {
+                  event.preventDefault();
+                  cancelSidebarSettingsHover();
+                  setSidebarSettingsOpen(false);
+                  toggleSidebarCollapsed();
+                }}
+                onContextMenu={event => {
+                  event.preventDefault();
+                  cancelSidebarSettingsHover();
+                  showSidebarToggle();
+                  setSidebarSettingsOpen(true);
+                }}
+                onFocus={showSidebarToggle}
+                onPointerEnter={() => {
+                  showSidebarToggle();
+                  scheduleSidebarSettingsHover();
+                }}
+                onPointerLeave={() => {
+                  cancelSidebarSettingsHover();
+                  hideSidebarToggle();
+                }}
+                type="button"
+              >
+                {sidebarCollapsed ? <RiArrowRightSLine /> : <RiArrowLeftSLine />}
+              </SidebarToggleButton>
+            }
           >
-            {sidebarCollapsed ? <RiArrowRightSLine /> : <RiArrowLeftSLine />}
-          </SidebarToggleButton>
+            <Popover.Content>
+              <SidebarSettings>
+                <Switch
+                  checked={collapseSidebarWhenRightPanelOpen}
+                  label="Collapse sidebar when right panel opens"
+                  onCheckedChange={setCollapseSidebarWhenRightPanelOpen}
+                />
+
+                <Switch
+                  checked={keepSidebarCollapsedOnPageSwitch}
+                  label="Keep sidebar collapsed when switching pages"
+                  onCheckedChange={setKeepSidebarCollapsedOnPageSwitch}
+                />
+              </SidebarSettings>
+            </Popover.Content>
+          </Popover.Root>
 
           <Content
             onScroll={onContentScroll}

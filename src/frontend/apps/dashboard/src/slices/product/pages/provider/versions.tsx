@@ -29,7 +29,7 @@ export let ProviderVersionsPage = () => {
           let isCurrent = version.id === currentVersionId;
 
           return (
-            <Entity.Wrapper>
+            <Entity.Wrapper aligned>
               <Entity.Content>
                 <Entity.Field
                   prefix={

@@ -51,6 +51,11 @@ let Category = styled.div.withConfig({ shouldForwardProp: p => p !== '$mode' })<
   align-items: center;
   font-size: ${p => (p.$mode === 'home' ? '10px' : '12px')};
   font-weight: 500;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 export let ProvidersGrid = ({ mode = 'default', ...filter }: ProvidersGridProps) => {
@@ -61,7 +66,11 @@ export let ProvidersGrid = ({ mode = 'default', ...filter }: ProvidersGridProps)
   return renderWithPagination(providers)(providers => (
     <>
       {providers.data.items.length > 0 && (
-        <ItemGrid.Root columns={isHome ? 3 : undefined} width={isHome ? '220px' : '300px'}>
+        <ItemGrid.Root
+          columns={isHome ? 3 : undefined}
+          responsive={isHome}
+          width={isHome ? '220px' : '300px'}
+        >
           {providers.data.items.map(listing => {
             let providerId = listing.provider?.id;
             if (!providerId) return null;

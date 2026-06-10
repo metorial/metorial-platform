@@ -14,6 +14,7 @@ import { Avatar, Button, Entity, Spacer, Text } from '@metorial/ui';
 import { ID, SideBox } from '@metorial/ui-product';
 import dedent from 'dedent';
 import { Link } from 'react-router-dom';
+import styled from 'styled-components';
 import {
   createJavascriptSdkInstallInstruction,
   createPythonSdkInstallInstruction
@@ -23,6 +24,22 @@ import { useResolvedInstanceApiKeySecret } from '../scenes/apiKeys/useResolvedIn
 import { ProvidersGrid } from '../scenes/providers/grid';
 import { InstructionItem } from './provider/components/instructions';
 import { KeySelector } from './provider/components/keySelector';
+
+let WorkforceGrid = styled.div`
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr));
+`;
+
+let WorkforceLink = styled(Link)`
+  color: inherit;
+  min-width: 0;
+  text-decoration: none;
+
+  & > div {
+    min-width: 0;
+  }
+`;
 
 declare global {
   interface Window {
@@ -85,8 +102,8 @@ export let ProjectHomePage = () => {
     ) : (
       <>
         <Text>
-          Before you can use a provider, create a Magic MCP server or Integration from it.
-          You can do this using the Metorial API or by clicking the button below.
+          Before you can use a provider, create a Magic MCP server or Integration from it. You
+          can do this using the Metorial API or by clicking the button below.
         </Text>
 
         <Spacer height={10} />
@@ -228,15 +245,9 @@ export let ProjectHomePage = () => {
                 size="5"
               />
 
-              <div
-                style={{
-                  display: 'grid',
-                  gap: 10,
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))'
-                }}
-              >
+              <WorkforceGrid>
                 {portals.data?.items.map(p => (
-                  <Link to={Paths.instance.portal(...pathItems, p.id)} key={p.id}>
+                  <WorkforceLink to={Paths.instance.portal(...pathItems, p.id)} key={p.id}>
                     <Entity.Wrapper>
                       <Entity.Content>
                         <Entity.Field
@@ -259,9 +270,9 @@ export let ProjectHomePage = () => {
                         </Entity.Field>
                       </Entity.Content>
                     </Entity.Wrapper>
-                  </Link>
+                  </WorkforceLink>
                 ))}
-              </div>
+              </WorkforceGrid>
 
               <Spacer height={25} />
             </>
@@ -280,12 +291,7 @@ export let ProjectHomePage = () => {
             }
           />
 
-          <ProvidersGrid
-            mode="home"
-            limit={18}
-            orderByUse="last_deployment_at"
-            orderByRank
-          />
+          <ProvidersGrid mode="home" limit={18} orderByUse="last_deployment_at" orderByRank />
         </>
       ))}
     </ContentLayout>
