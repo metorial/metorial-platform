@@ -135,6 +135,7 @@ model Instance {
   sandbox                              Sandbox?
   oauthAuthorizations                  OAuthAuthorization[]
   oauthAuthorizationFlows              OAuthAuthorizationFlow[]
+  internalOAuthTokens                  InternalOAuthToken[]
 
   @@index([previousSlugs])
 }

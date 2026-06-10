@@ -32,6 +32,8 @@ let {
     },
     oAuthAuthorization: {
       findFirst: vi.fn(),
+      findFirstOrThrow: vi.fn(),
+      findMany: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
       updateMany: vi.fn(),
@@ -227,6 +229,7 @@ describe('oauthAuthorizationService', () => {
     mockDb.organizationMember.findFirst.mockResolvedValue(baseMember);
     mockDb.accessPolicyAssignment.findMany.mockResolvedValue([]);
     mockDb.serviceAccount.findFirst.mockResolvedValue(null);
+    mockDb.oAuthAuthorization.findMany.mockResolvedValue([]);
     mockDb.oAuthAuthorizationFlow.findFirst.mockResolvedValue(null);
     mockDb.oAuthAuthorizationFlow.upsert.mockImplementation(
       async ({ create, update }: any) => {
@@ -964,5 +967,111 @@ describe('oauthAuthorizationService', () => {
         deviceCode: 'device-1'
       })
     ).rejects.toThrow(ServiceError);
+  });
+
+  it('allows direct authorization get requests for non-internal apps', async () => {
+    mockDb.oAuthAuthorization.findFirst.mockResolvedValue({
+      oid: 300n,
+      id: 'oauth_auth_1',
+      oauthApplication: {
+        type: 'server_side'
+      }
+    });
+
+    await oauthAuthorizationService.getOAuthAuthorizationById({
+      organization: baseOrg,
+      oauthAuthorizationId: 'oauth_auth_1'
+    });
+
+    expect(mockDb.oAuthAuthorization.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          id: 'oauth_auth_1',
+          organizationOid: baseOrg.oid,
+          oauthApplication: {
+            type: {
+              not: 'internal'
+            }
+          }
+        })
+      })
+    );
+  });
+
+  it('keeps generic authorization lists visible for user and cli auth only', async () => {
+    let paginator = await oauthAuthorizationService.listOAuthAuthorizations({
+      organization: baseOrg
+    });
+    await paginator.run({});
+
+    expect(mockDb.oAuthAuthorization.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          oauthApplication: {
+            id: undefined,
+            type: {
+              in: ['user_facing', 'cli_auth']
+            }
+          }
+        })
+      })
+    );
+  });
+
+  it('allows revoking server-side service account authorizations through the public service', async () => {
+    mockDb.oAuthAuthorization.findFirstOrThrow.mockResolvedValue({
+      oid: 300n,
+      status: 'active',
+      oauthApplication: {
+        type: 'server_side'
+      },
+      oauthInstallation: {
+        organization: baseOrg,
+        appActor: null
+      }
+    });
+
+    await oauthAuthorizationService.revokeOAuthAuthorization({
+      oauthAuthorization: {
+        oid: 300n
+      } as any,
+      performedBy: baseMember.actor,
+      context: baseContext
+    });
+
+    expect(mockDb.oAuthAuthorization.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: 'revoked',
+          revokedAt: expect.any(Date)
+        })
+      })
+    );
+  });
+
+  it('blocks revoking internal authorizations through the public service', async () => {
+    mockDb.oAuthAuthorization.findFirstOrThrow.mockResolvedValue({
+      oid: 300n,
+      status: 'active',
+      oauthApplication: {
+        type: 'internal'
+      },
+      oauthInstallation: {
+        organization: baseOrg,
+        appActor: null
+      }
+    });
+
+    await expect(
+      oauthAuthorizationService.revokeOAuthAuthorization({
+        oauthAuthorization: {
+          oid: 300n
+        } as any,
+        performedBy: baseMember.actor,
+        context: baseContext
+      })
+    ).rejects.toThrow(ServiceError);
+
+    expect(mockDb.oAuthAuthorization.update).not.toHaveBeenCalled();
   });
 });

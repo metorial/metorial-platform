@@ -60,9 +60,65 @@ model OAuthApplication {
   oauthInstallations         OAuthInstallation[]
   oauthAuthorizations        OAuthAuthorization[]
   oauthAuthorizationRequests OAuthAuthorizationFlow[]
+  internalOAuthTokens        InternalOAuthToken[]
   serviceAccount             ServiceAccount?
 
   @@unique([organizationOid, systemIdentifier])
+}
+
+enum InternalOAuthTokenSubjectType {
+  member
+  machine
+}
+
+enum InternalOAuthTokenScopeType {
+  organization
+  instance
+}
+
+model InternalOAuthToken {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  cacheKeyHash String @unique
+
+  subjectType       InternalOAuthTokenSubjectType
+  subjectIdentifier String
+
+  scopeType InternalOAuthTokenScopeType
+  scopes    String[]
+  scopeHash String
+
+  oauthApplicationOid BigInt
+  oauthApplication    OAuthApplication @relation(fields: [oauthApplicationOid], references: [oid], onDelete: Cascade)
+
+  oauthInstallationOid BigInt
+  oauthInstallation    OAuthInstallation @relation(fields: [oauthInstallationOid], references: [oid], onDelete: Cascade)
+
+  oauthAuthorizationOid BigInt             @unique
+  oauthAuthorization    OAuthAuthorization @relation(fields: [oauthAuthorizationOid], references: [oid], onDelete: Cascade)
+
+  oauthTokenOid BigInt     @unique
+  oauthToken    OAuthToken @relation(fields: [oauthTokenOid], references: [oid], onDelete: Cascade)
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  organizationMemberOid BigInt?
+  organizationMember    OrganizationMember? @relation(fields: [organizationMemberOid], references: [oid], onDelete: Cascade)
+
+  machineAccessOid BigInt?
+  machineAccess    MachineAccess? @relation(fields: [machineAccessOid], references: [oid], onDelete: Cascade)
+
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([oauthApplicationOid, organizationOid])
+  @@index([expiresAt])
 }
 
 model OAuthApplicationClientSecret {
@@ -113,6 +169,7 @@ model OAuthInstallation {
 
   oauthAuthorizations        OAuthAuthorization[]
   oauthTokens                OAuthToken[]
+  internalOAuthTokens        InternalOAuthToken[]
   serverSideOAuthApplication OAuthApplication[]   @relation("ScopedInstallation")
 
   @@unique([oauthApplicationOid, organizationOid])
@@ -169,6 +226,7 @@ model OAuthAuthorization {
 
   oauthAuthorizationRequests OAuthAuthorizationFlow[]
   oauthTokens                OAuthToken[]
+  internalOAuthToken         InternalOAuthToken?
   cliDevices                 CliDevice[]
   serviceAccountCredential   ServiceAccountCredential?
 
@@ -252,4 +310,6 @@ model OAuthToken {
   createdAt            DateTime  @default(now())
   lastRefreshedAt      DateTime?
   lastUsedAt           DateTime?
+
+  internalOAuthToken InternalOAuthToken?
 }

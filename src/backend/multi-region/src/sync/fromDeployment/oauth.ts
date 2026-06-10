@@ -15,6 +15,7 @@ let syncOAuthApp = async (_app: { id: string }) => {
 
   // Only sync apps what we own
   if (app.isImportedFromOtherInstance) return;
+  if (app.type == 'internal') return;
 
   // // Only sync apps that can be used in other deployments
   // if (app.type == 'server_side') return;
@@ -132,6 +133,8 @@ let syncOAuthTokenToGlobal = async (d: {
 };
 
 Fabric.listen('machine_access.oauth_token.created:after', async event => {
+  if (event.oauthApplication.type == 'internal') return;
+
   addAfterTransactionHook(() =>
     syncOAuthTokenToGlobal({
       oauthToken: event.oauthToken,
@@ -141,6 +144,8 @@ Fabric.listen('machine_access.oauth_token.created:after', async event => {
 });
 
 Fabric.listen('machine_access.oauth_token.refreshed:after', async event => {
+  if (event.oauthApplication.type == 'internal') return;
+
   addAfterTransactionHook(() =>
     syncOAuthTokenToGlobal({
       oauthToken: event.oauthToken,

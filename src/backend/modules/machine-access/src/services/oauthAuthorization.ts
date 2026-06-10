@@ -893,6 +893,28 @@ class OAuthAuthorizationService {
     });
   }
 
+  async issueInternalOAuthToken(d: {
+    oauthAuthorization: OAuthAuthorizationWithRelations;
+    context?: Context;
+  }) {
+    if (d.oauthAuthorization.oauthApplication.type != 'internal') {
+      throw new ServiceError(
+        forbiddenError({
+          message: 'Only internal oauth applications support internal token issuance'
+        })
+      );
+    }
+
+    ensureAuthorizationUsable(d.oauthAuthorization);
+
+    return await this.issueOAuthToken({
+      oauthAuthorization: d.oauthAuthorization,
+      withRefreshToken: false,
+      accessTokenLifetimeSeconds: 24 * 60 * 60,
+      context: d.context
+    });
+  }
+
   private async refreshOAuthToken(d: {
     oauthToken: OAuthTokenWithRelations;
     withRefreshToken: boolean;
@@ -1320,6 +1342,14 @@ class OAuthAuthorizationService {
         include: authorizationInclude
       });
 
+      if (existingAuthorization.oauthApplication.type == 'internal') {
+        throw new ServiceError(
+          forbiddenError({
+            message: 'This oauth authorization cannot be revoked through the API'
+          })
+        );
+      }
+
       await Fabric.fire('machine_access.oauth_authorization.revoked:before', {
         oauthApplication: existingAuthorization.oauthApplication,
         oauthInstallation: existingAuthorization.oauthInstallation,
@@ -1364,7 +1394,12 @@ class OAuthAuthorizationService {
     let oauthAuthorization = await db.oAuthAuthorization.findFirst({
       where: {
         id: d.oauthAuthorizationId,
-        organizationOid: d.organization.oid
+        organizationOid: d.organization.oid,
+        oauthApplication: {
+          type: {
+            not: 'internal'
+          }
+        }
       },
       include: authorizationInclude
     });
@@ -1404,7 +1439,7 @@ class OAuthAuthorizationService {
                     }
                   : undefined,
                 type: {
-                  not: 'server_side'
+                  in: ['user_facing', 'cli_auth']
                 }
               }
             },

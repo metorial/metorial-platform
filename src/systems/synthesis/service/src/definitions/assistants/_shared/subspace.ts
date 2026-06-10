@@ -285,7 +285,7 @@ export class SubspaceAssistant {
     return {
       'Metorial-Proxy-URL': d.url,
       'Metorial-Agent-Client': JSON.stringify({
-        name: 'Metorial Explorer',
+        name: 'Metorial Assistant',
         type: 'system_client',
         foreignId: `synthesis:${d.tenant.id}:${d.environment.id}:${d.input.sessionId}`
       }),
