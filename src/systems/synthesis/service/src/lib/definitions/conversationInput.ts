@@ -1,4 +1,4 @@
-import { badRequestError, ServiceError, validationError } from '@lowerdeck/error';
+import { ServiceError, validationError } from '@lowerdeck/error';
 import type {
   Assistant,
   AssistantImplementation,
@@ -23,11 +23,8 @@ export let resolveAssistantConversationInput = async (d: {
 
   if (!assistantImplementation.input || !assistantImplementation.handleInput) {
     if (d.rawInputProvided) {
-      throw new ServiceError(
-        badRequestError({
-          message: 'This assistant does not accept conversation input.'
-        })
-      );
+      d.rawInput = {};
+      d.rawInputProvided = false;
     }
 
     return undefined;

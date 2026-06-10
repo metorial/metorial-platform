@@ -1,7 +1,7 @@
 import { db, type ModelProvider } from '../../db';
 import { getId } from '../../id';
 
-export type ProviderSlug = 'anthropic';
+export type ProviderSlug = string;
 
 export interface Provider {
   _persisted: ModelProvider;
