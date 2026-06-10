@@ -13,6 +13,7 @@ let SIDEBAR_MAX_WIDTH = 420;
 let SIDEBAR_CLOSE_THRESHOLD = 75;
 let SIDEBAR_COLLAPSED_WIDTH = 10;
 let SIDEBAR_RIGHT_PANEL_COLLAPSE_THRESHOLD = 1200;
+let SIDEBAR_MOBILE_EXPANDED_WIDTH = 'calc(100vw - 120px)';
 
 let clampSidebarWidth = (width: number) =>
   Math.min(SIDEBAR_MAX_WIDTH, Math.max(SIDEBAR_MIN_WIDTH, width));
@@ -95,12 +96,23 @@ let Wrapper = styled.div`
 let SidebarWrapper = styled.div<{
   $collapsed: boolean;
   $height?: number | string;
+  $mobile: boolean;
   $resizing: boolean;
   $width: number;
 }>`
   height: calc(${p => p.$height || '100dvh'} - 70px);
-  width: ${p => (p.$collapsed ? `${SIDEBAR_COLLAPSED_WIDTH}px` : `${p.$width}px`)};
-  min-width: ${p => (p.$collapsed ? `${SIDEBAR_COLLAPSED_WIDTH}px` : `${p.$width}px`)};
+  width: ${p =>
+    p.$collapsed
+      ? `${SIDEBAR_COLLAPSED_WIDTH}px`
+      : p.$mobile
+        ? SIDEBAR_MOBILE_EXPANDED_WIDTH
+        : `${p.$width}px`};
+  min-width: ${p =>
+    p.$collapsed
+      ? `${SIDEBAR_COLLAPSED_WIDTH}px`
+      : p.$mobile
+        ? SIDEBAR_MOBILE_EXPANDED_WIDTH
+        : `${p.$width}px`};
   overflow: visible;
   position: relative;
   transition: ${p =>
@@ -256,6 +268,10 @@ let Content = styled.div`
   border: 1px solid ${theme.colors.gray300};
 `;
 
+let ContentInner = styled.div<{ $hidden: boolean }>`
+  display: ${p => (p.$hidden ? 'none' : 'contents')};
+`;
+
 let Shadow = styled.div`
   height: 10px;
   background: linear-gradient(0deg, rgba(240, 240, 240, 0) 0%, rgba(240, 240, 240, 1) 100%);
@@ -276,6 +292,7 @@ export let AppLayout = ({
   height,
   bottomOffset,
   onContentScroll,
+  mobile = false,
   sidebarTransition
 }: {
   id: string;
@@ -291,21 +308,24 @@ export let AppLayout = ({
   height?: number | string;
   bottomOffset?: number | string;
   onContentScroll?: React.UIEventHandler<HTMLDivElement>;
+  mobile?: boolean;
   sidebarTransition?: {
     key: string;
     direction?: 'forward' | 'backward';
   };
 }) => {
   let [sidebarWidth, setSidebarWidth] = useState(() => readSidebarState(id).width);
-  let [sidebarCollapsed, setSidebarCollapsed] = useState(() => readSidebarState(id).collapsed);
+  let [sidebarCollapsed, setSidebarCollapsed] = useState(
+    () => mobile || readSidebarState(id).collapsed
+  );
   let [collapseSidebarWhenRightPanelOpen, setCollapseSidebarWhenRightPanelOpen] = useState(
     () => readSidebarState(id).collapseSidebarWhenRightPanelOpen
   );
   let [keepSidebarCollapsedOnPageSwitch, setKeepSidebarCollapsedOnPageSwitch] = useState(
     () => readSidebarState(id).keepSidebarCollapsedOnPageSwitch
   );
-  let [autoCollapsedByRightPanel, setAutoCollapsedByRightPanel] = useState(
-    () => readSidebarState(id).autoCollapsedByRightPanel
+  let [autoCollapsedByRightPanel, setAutoCollapsedByRightPanel] = useState(() =>
+    mobile ? false : readSidebarState(id).autoCollapsedByRightPanel
   );
   let [isResizingSidebar, setIsResizingSidebar] = useState(false);
   let [sidebarToggleVisible, setSidebarToggleVisible] = useState(false);
@@ -319,6 +339,7 @@ export let AppLayout = ({
 
   useEffect(() => {
     if (typeof window == 'undefined') return;
+    if (mobile) return;
 
     let timeout = window.setTimeout(() => {
       window.localStorage.setItem(
@@ -335,6 +356,7 @@ export let AppLayout = ({
 
     return () => window.clearTimeout(timeout);
   }, [
+    mobile,
     id,
     sidebarWidth,
     sidebarCollapsed,
@@ -357,6 +379,20 @@ export let AppLayout = ({
   }, [id]);
 
   useEffect(() => {
+    if (mobile) {
+      setAutoCollapsedByRightPanel(false);
+      setIsResizingSidebar(false);
+      setSidebarCollapsed(true);
+      return;
+    }
+
+    let sidebarState = readSidebarState(id);
+    setSidebarWidth(sidebarState.width);
+    setSidebarCollapsed(sidebarState.collapsed);
+    setAutoCollapsedByRightPanel(sidebarState.autoCollapsedByRightPanel);
+  }, [id, mobile]);
+
+  useEffect(() => {
     appLayoutSidebarStateAtom.set({
       layoutId: id,
       collapsed: sidebarCollapsed
@@ -373,6 +409,7 @@ export let AppLayout = ({
   }, []);
 
   useEffect(() => {
+    if (mobile) return;
     if (!collapseSidebarWhenRightPanelOpen || !rightPanelOpen) return;
     if (typeof window == 'undefined') return;
 
@@ -388,6 +425,7 @@ export let AppLayout = ({
 
     return () => window.removeEventListener('resize', collapseIfNeeded);
   }, [
+    mobile,
     collapseSidebarWhenRightPanelOpen,
     rightPanelOpen,
     sidebarCollapsed,
@@ -395,6 +433,7 @@ export let AppLayout = ({
   ]);
 
   useEffect(() => {
+    if (mobile) return;
     if (rightPanelOpen !== false || !autoCollapsedByRightPanel) return;
 
     if (sidebarCollapsed) {
@@ -402,12 +441,18 @@ export let AppLayout = ({
     }
 
     setAutoCollapsedByRightPanel(false);
-  }, [autoCollapsedByRightPanel, rightPanelOpen, sidebarCollapsed]);
+  }, [autoCollapsedByRightPanel, mobile, rightPanelOpen, sidebarCollapsed]);
 
   useEffect(() => {
     if (locationPathRef.current == location.pathname) return;
 
     locationPathRef.current = location.pathname;
+    if (mobile) {
+      setAutoCollapsedByRightPanel(false);
+      setSidebarCollapsed(true);
+      return;
+    }
+
     let shouldStayCollapsedForRightPanel =
       collapseSidebarWhenRightPanelOpen &&
       rightPanelOpen &&
@@ -422,6 +467,7 @@ export let AppLayout = ({
     collapseSidebarWhenRightPanelOpen,
     keepSidebarCollapsedOnPageSwitch,
     location.pathname,
+    mobile,
     rightPanelOpen,
     sidebarRightPanelCollapseThreshold
   ]);
@@ -439,7 +485,7 @@ export let AppLayout = ({
   }, []);
 
   useEffect(() => {
-    if (!isResizingSidebar || typeof window == 'undefined') return;
+    if (mobile || !isResizingSidebar || typeof window == 'undefined') return;
 
     let previousCursor = document.body.style.cursor;
     let previousUserSelect = document.body.style.userSelect;
@@ -479,9 +525,11 @@ export let AppLayout = ({
       window.removeEventListener('pointerup', handlePointerUp);
       window.removeEventListener('pointercancel', handlePointerUp);
     };
-  }, [isResizingSidebar]);
+  }, [isResizingSidebar, mobile]);
 
   let startSidebarResize = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (mobile) return;
+
     event.preventDefault();
     resizeStateRef.current = {
       startX: event.clientX,
@@ -554,6 +602,7 @@ export let AppLayout = ({
         <SidebarWrapper
           $collapsed={sidebarCollapsed}
           $height={height}
+          $mobile={mobile}
           $resizing={isResizingSidebar}
           $width={sidebarWidth}
         >
@@ -580,47 +629,51 @@ export let AppLayout = ({
                   </SidebarInnerTop>
                 )}
 
-                <Spacer />
+                {!mobile && (
+                  <>
+                    <Spacer />
 
-                <div
-                  style={{
-                    position: 'sticky',
-                    bottom: 0,
-                    zIndex: 10
-                  }}
-                >
-                  <Shadow style={{ height: 20, transform: 'rotate(180deg)' }} />
+                    <div
+                      style={{
+                        position: 'sticky',
+                        bottom: 0,
+                        zIndex: 10
+                      }}
+                    >
+                      <Shadow style={{ height: 20, transform: 'rotate(180deg)' }} />
 
-                  <div
-                    style={{
-                      background: 'var(--lb-bg)'
-                    }}
-                  >
-                    {bottomGroups && (
-                      <SidebarInnerBottom>
-                        <SidebarItems groups={bottomGroups} id={`${id}-bottom`} />
-                      </SidebarInnerBottom>
-                    )}
-
-                    {bottom && (
                       <div
                         style={{
-                          padding: '0px 10px 10px 10px',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: 10
+                          background: 'var(--lb-bg)'
                         }}
                       >
-                        {bottom}
+                        {bottomGroups && (
+                          <SidebarInnerBottom>
+                            <SidebarItems groups={bottomGroups} id={`${id}-bottom`} />
+                          </SidebarInnerBottom>
+                        )}
+
+                        {bottom && (
+                          <div
+                            style={{
+                              padding: '0px 10px 10px 10px',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: 10
+                            }}
+                          >
+                            {bottom}
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                </div>
+                    </div>
+                  </>
+                )}
               </Sidebar>
             </SidebarClip>
           )}
 
-          {!sidebarCollapsed && (
+          {!mobile && !sidebarCollapsed && (
             <SidebarResizeGutter
               $resizing={isResizingSidebar}
               role="separator"
@@ -649,7 +702,9 @@ export let AppLayout = ({
             sideOffset={8}
             trigger={
               <SidebarToggleButton
-                $visible={sidebarCollapsed || sidebarToggleVisible || sidebarSettingsOpen}
+                $visible={
+                  mobile || sidebarCollapsed || sidebarToggleVisible || sidebarSettingsOpen
+                }
                 aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
                 title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
                 onBlur={() => {
@@ -706,7 +761,7 @@ export let AppLayout = ({
               height: `calc(100dvh - 70px - ${bottomOffset ?? '0px'})`
             }}
           >
-            {children}
+            <ContentInner $hidden={mobile && !sidebarCollapsed}>{children}</ContentInner>
           </Content>
         </Outer>
 

@@ -17,6 +17,12 @@ let Header = styled.header`
   gap: 10px;
   justify-content: space-between;
   align-items: center;
+
+  @media (max-width: 600px) {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
 `;
 
 let HeaderContent = styled.div`

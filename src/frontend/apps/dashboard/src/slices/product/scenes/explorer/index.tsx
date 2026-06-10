@@ -90,16 +90,17 @@ let Hero = styled.div`
 
 let HeroTitle = styled.h1`
   margin: 0;
-  font-size: 34px;
+  font-size: 28px;
   line-height: 1.05;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: -0.04em;
 `;
 
-let HeroMeta = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+let Description = styled.p`
+  color: ${theme.colors.gray600};
+  font-size: 13px;
+  margin-top: 5px;
+  font-weight: 500;
 `;
 
 let MetaPill = styled.div<{ $tone?: 'default' | 'error' | 'success' }>`
@@ -321,11 +322,7 @@ let getErrorMessage = (error: unknown) => {
 
 let normalizeSearchValue = (value: string) => value.trim();
 
-let searchItems = <T,>(
-  items: T[],
-  query: string,
-  keys: IFuseOptions<T>['keys']
-) => {
+let searchItems = <T,>(items: T[], query: string, keys: IFuseOptions<T>['keys']) => {
   if (!query) return items;
 
   let fuse = new Fuse(items, {
@@ -1189,10 +1186,10 @@ export let ExplorerScene = ({ connection }: ExplorerSceneProps) => {
         <Hero>
           <Flex direction="column" gap={10}>
             <HeroTitle>{query.name}</HeroTitle>
-            <Text color="gray700" style={{ maxWidth: 760, lineHeight: 1.6 }}>
+            <Description>
               {query.description?.slice(0, 300) ??
                 `Explore the capabilities of the "${query.name}" provider on Metorial`}
-            </Text>
+            </Description>
           </Flex>
 
           {/* <Attributes

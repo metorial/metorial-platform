@@ -43,13 +43,12 @@ let Title = styled.h1`
   font-size: 28px;
   line-height: 1.1;
   text-align: center;
-  font-weight: 500;
-  color: #333;
+  font-weight: 600;
 `;
 
 let Description = styled.p`
   text-align: center;
-  color: ${theme.colors.gray700};
+  color: ${theme.colors.gray600};
   font-size: 13px;
   margin-top: 20px;
   font-weight: 500;
