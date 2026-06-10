@@ -38,6 +38,10 @@ import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { Explainer } from '../../../../components/explainer';
 import {
+  OpenExplorerButton,
+  type OpenExplorerMode
+} from '../../components/openExplorer';
+import {
   emptyConfigurationSelection,
   type ConfigurationSelection
 } from '../../lib/configSelection';
@@ -162,8 +166,10 @@ export let ExplorerPage = () => {
   let providerIdParam = search.get('provider_id');
   let providerDeploymentIdParam = search.get('provider_deployment_id');
   let sessionIdParam = search.get('session_id');
+  let modeParam = search.get('mode');
+  let hasExplorerModeParam = modeParam == 'manual' || modeParam == 'assistant';
   let initialExplorerMode: ExplorerTabMode =
-    search.get('mode') == 'assistant' ? 'assistant' : 'manual';
+    modeParam == 'assistant' ? 'assistant' : 'manual';
   let sessionTemplateIdFromState =
     (location.state as { sessionTemplateId?: string } | null)?.sessionTemplateId ?? null;
   let magicMcpServerIdFromState =
@@ -239,6 +245,7 @@ export let ExplorerPage = () => {
         providerConfigId?: string;
         providerConfigVaultId?: string;
         providerAuthConfigId?: string;
+        mode?: OpenExplorerMode;
         name?: string;
       }
     ) => {
@@ -272,6 +279,7 @@ export let ExplorerPage = () => {
           v => {
             v.set('session_id', res.id);
             v.set('provider_deployment_id', deploymentId);
+            if (options?.mode) v.set('mode', options.mode);
             return v;
           },
           { replace: true }
@@ -524,7 +532,10 @@ export let ExplorerPage = () => {
       resolvingProviderIdRef.current === providerIdToResolve);
 
   let createSessionWithSelectedSetup = useCallback(
-    async (deploymentId: string, options?: { name?: string }) => {
+    async (
+      deploymentId: string,
+      options?: { name?: string; mode?: OpenExplorerMode }
+    ) => {
       let providerConfigId =
         selectedConfiguration.kind === 'config' ? selectedConfiguration.id : undefined;
       let providerConfigVaultId =
@@ -557,7 +568,8 @@ export let ExplorerPage = () => {
         name: options?.name,
         providerConfigId,
         providerConfigVaultId,
-        providerAuthConfigId: selectedAuthConfigId || undefined
+        providerAuthConfigId: selectedAuthConfigId || undefined,
+        mode: options?.mode
       });
     },
     [
@@ -672,20 +684,35 @@ export let ExplorerPage = () => {
             footer={
               (showConfigSection || requiresAuthConfig) && (
                 <Flex gap={10}>
-                  <Button
-                    type="button"
-                    disabled={!canOpenExplorer}
-                    onClick={() => {
-                      if (!canOpenExplorer) return;
+                  {hasExplorerModeParam ? (
+                    <Button
+                      type="button"
+                      disabled={!canOpenExplorer}
+                      onClick={() => {
+                        if (!canOpenExplorer) return;
 
-                      createSessionWithSelectedSetup(providerDeploymentId, {
-                        name: `Explorer Session - ${new Date().toLocaleString()}`
-                      });
-                    }}
-                    loading={isCreatingSession}
-                  >
-                    Open Explorer
-                  </Button>
+                        createSessionWithSelectedSetup(providerDeploymentId, {
+                          name: `Explorer Session - ${new Date().toLocaleString()}`
+                        });
+                      }}
+                      loading={isCreatingSession}
+                    >
+                      Open Explorer
+                    </Button>
+                  ) : (
+                    <OpenExplorerButton
+                      disabled={!canOpenExplorer}
+                      onOpen={mode => {
+                        if (!canOpenExplorer) return;
+
+                        createSessionWithSelectedSetup(providerDeploymentId, {
+                          name: `Explorer Session - ${new Date().toLocaleString()}`,
+                          mode
+                        });
+                      }}
+                      loading={isCreatingSession}
+                    />
+                  )}
                 </Flex>
               )
             }

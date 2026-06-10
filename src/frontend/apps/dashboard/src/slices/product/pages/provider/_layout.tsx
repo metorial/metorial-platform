@@ -14,9 +14,10 @@ import {
   useProviderListing,
   useProviderVersions
 } from '@metorial/state';
-import { Avatar, Button, Callout, Flex, LinkTabs, Spacer } from '@metorial/ui';
+import { Avatar, Callout, Flex, LinkTabs, Spacer } from '@metorial/ui';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, Outlet, useLocation, useParams } from 'react-router-dom';
+import { OpenExplorerButton } from '../../components/openExplorer';
 import { UseProviderButton } from '../../scenes/providers/useProviderButton';
 import {
   ProviderVersionContext,
@@ -151,15 +152,13 @@ export let ProviderLayout = () => {
           description={listing?.description ?? providerData?.description ?? undefined}
           actions={
             <>
-              <Link
+            <OpenExplorerButton
+              variant="outline"
+              disabled={!providerData?.id}
                 to={Paths.instance.explorer(organization.data, project.data, instance.data, {
                   provider_id: providerData?.id
                 })}
-              >
-                <Button as="span" size="2" variant="outline">
-                  Open Explorer
-                </Button>
-              </Link>
+            />
 
               <UseProviderButton
                 providerId={providerData?.id}

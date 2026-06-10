@@ -1,17 +1,16 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, useCustomProvider } from '@metorial/state';
-import { Attributes, Badge, Button, RenderDate, Spacer } from '@metorial/ui';
-import { Box, ID, SideBox } from '@metorial/ui-product';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Attributes, RenderDate, Spacer } from '@metorial/ui';
+import { Box, ID } from '@metorial/ui-product';
+import { useParams } from 'react-router-dom';
+import { OpenExplorerBox } from '../../../components/openExplorer';
 import { CustomProviderEventsTable } from '../../../scenes/customProvider/events';
 import { getCustomProviderScmLink } from '../../../scenes/customProvider/utils';
 import { UsageScene } from '../../../scenes/usage/usage';
 
 export let CustomProviderOverviewPage = () => {
   let instance = useCurrentInstance();
-
-  let navigate = useNavigate();
 
   let { customProviderId } = useParams();
   let customProvider = useCustomProvider(instance.data?.id, customProviderId);
@@ -67,28 +66,18 @@ export let CustomProviderOverviewPage = () => {
 
         <Spacer height={15} />
 
-        <SideBox
+        <OpenExplorerBox
           title="Test Provider"
           description="Use the Metorial Explorer to test your custom provider."
-        >
-          <Button
-            as="span"
-            size="2"
-            disabled={!customProvider.data.provider?.id}
-            onClick={async () => {
-              navigate(
-                Paths.instance.explorer(
-                  instance.data?.organization,
-                  instance.data?.project,
-                  instance.data,
-                  { provider_id: customProvider.data.provider?.id }
-                )
-              );
-            }}
-          >
-            Test Provider
-          </Button>
-        </SideBox>
+          buttonLabel="Test Provider"
+          disabled={!customProvider.data.provider?.id}
+          to={Paths.instance.explorer(
+            instance.data?.organization,
+            instance.data?.project,
+            instance.data,
+            { provider_id: customProvider.data.provider?.id }
+          )}
+        />
 
         <Spacer height={15} />
 

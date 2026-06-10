@@ -8,9 +8,10 @@ import {
   useProviderListing
 } from '@metorial/state';
 import { Attributes, Button, Spacer, Text } from '@metorial/ui';
-import { Box, ID, SideBox, Table } from '@metorial/ui-product';
+import { Box, ID, Table } from '@metorial/ui-product';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import styled from 'styled-components';
+import { OpenExplorerBox } from '../../components/openExplorer';
 import { showCreateIntegrationProviderFirstFlow } from '../../scenes/integrations/providerPanelFlow';
 import { showMagicMcpServerCreateFlow } from '../../scenes/providerDeployments/magicMcpForm';
 import { Skills } from './components/skills';
@@ -66,23 +67,16 @@ export let ProviderOverviewPage = () => {
           ]}
         />
 
-        <SideBox
+        <OpenExplorerBox
           title="Test this provider"
           description="Use the Metorial Explorer to test this provider."
-        >
-          <Link
-            to={Paths.instance.explorer(
-              instance.data?.organization,
-              instance.data?.project,
-              instance.data,
-              { provider_id: provider.data?.id }
-            )}
-          >
-            <Button as="span" size="2">
-              Open Explorer
-            </Button>
-          </Link>
-        </SideBox>
+          to={Paths.instance.explorer(
+            instance.data?.organization,
+            instance.data?.project,
+            instance.data,
+            { provider_id: provider.data?.id }
+          )}
+        />
       </Header>
 
       <Spacer height={15} />
