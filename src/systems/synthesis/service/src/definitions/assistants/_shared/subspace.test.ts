@@ -65,4 +65,31 @@ describe('subspace assistant input validation', () => {
       })
     ).rejects.toThrow('Subspace session sess_1 is not active.');
   });
+
+  it('uses a system agent client for subspace mcp headers', async () => {
+    let { createSubspaceAssistantForTest } = await import('./subspace');
+    let subspaceAssistant = createSubspaceAssistantForTest({
+      session: {
+        get: vi.fn()
+      }
+    });
+
+    let headers = (subspaceAssistant as any).getMcpHeaders({
+      tenant: { id: 'ten_1' },
+      environment: { id: 'env_1' },
+      input: {
+        sessionId: 'sess_1',
+        solutionId: 'metorial-platform',
+        subspaceTenantId: 'tenant_1',
+        environmentId: 'production'
+      },
+      url: 'http://localhost:52072/metorial-platform/tenant_1/sessions/sess_1/mcp'
+    });
+
+    expect(JSON.parse(headers['Metorial-Agent-Client'])).toEqual({
+      name: 'Metorial Explorer',
+      type: 'system_client',
+      foreignId: 'synthesis:ten_1:env_1:sess_1'
+    });
+  });
 });

@@ -129,9 +129,7 @@ export class SubspaceAssistant {
     };
   }
 
-  async getCachedTools(d: {
-    connectionId: string;
-  }): Promise<SubspaceMcpToolList | null> {
+  async getCachedTools(d: { connectionId: string }): Promise<SubspaceMcpToolList | null> {
     let cache = await db.subspaceMcpToolCache.findFirst({
       where: {
         connectionId: d.connectionId,
@@ -142,10 +140,7 @@ export class SubspaceAssistant {
     return (cache?.tools as SubspaceMcpToolList | undefined) ?? null;
   }
 
-  async setCachedTools(d: {
-    connectionId: string;
-    tools: SubspaceMcpToolList;
-  }) {
+  async setCachedTools(d: { connectionId: string; tools: SubspaceMcpToolList }) {
     let now = new Date();
 
     await db.subspaceMcpToolCache.upsert({
@@ -291,9 +286,8 @@ export class SubspaceAssistant {
       'Metorial-Proxy-URL': d.url,
       'Metorial-Agent-Client': JSON.stringify({
         name: 'Metorial Explorer',
-        type: 'mcp_client_oauth',
-        foreignId: `synthesis:${d.tenant.id}:${d.environment.id}:${d.input.sessionId}`,
-        oauthRegistrationId: 'metorial-explorer'
+        type: 'system_client',
+        foreignId: `synthesis:${d.tenant.id}:${d.environment.id}:${d.input.sessionId}`
       }),
       'Metorial-Connection-Private-Metadata': JSON.stringify({
         source: 'synthesis',
