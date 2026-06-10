@@ -1,7 +1,8 @@
 import { tool } from "ai";
 import { z } from "zod";
-import path from "node:path";
+import { posix as path } from "node:path";
 import { type SkillInfo, scanSkillFiles } from "../lib/skills";
+import type { FsProvider } from "../providers/types";
 
 /**
  * Create a `skill` tool that lets the LLM load skill instructions into the conversation.
@@ -10,7 +11,7 @@ import { type SkillInfo, scanSkillFiles } from "../lib/skills";
  * knows what it can invoke. When called, it returns the skill's markdown body
  * along with a list of auxiliary files in the skill directory.
  */
-export function createSkillTool(skills: SkillInfo[]) {
+export function createSkillTool(skills: SkillInfo[], fs: FsProvider) {
   const byName = new Map(skills.map((s) => [s.name, s]));
 
   const listing = skills
@@ -41,7 +42,7 @@ export function createSkillTool(skills: SkillInfo[]) {
       }
 
       const dir = path.dirname(skill.location);
-      const files = await scanSkillFiles(dir);
+      const files = await scanSkillFiles(fs, dir);
 
       const parts = [
         `<skill_content name="${skill.name}">`,

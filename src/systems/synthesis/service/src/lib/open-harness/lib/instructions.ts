@@ -1,5 +1,5 @@
-import fs from 'node:fs/promises';
-import path from 'node:path';
+import { posix as path } from 'node:path';
+import type { FsProvider } from '../providers/types';
 
 const FILENAMES = ['AGENTS.md', 'CLAUDE.md'];
 
@@ -7,15 +7,24 @@ const FILENAMES = ['AGENTS.md', 'CLAUDE.md'];
  * Walk from `startDir` up to the filesystem root, returning the first
  * AGENTS.md or CLAUDE.md found. AGENTS.md takes precedence in each directory.
  */
-export async function findInstructions(startDir?: string): Promise<string | undefined> {
-  let dir = path.resolve(startDir ?? process.cwd());
+export async function findInstructions(
+  fs: FsProvider,
+  startDir?: string
+): Promise<string | undefined> {
+  assertVirtualFilesystem(fs);
+
+  let dir = fs.resolvePath(startDir ?? '.');
 
   while (true) {
     for (const name of FILENAMES) {
       const candidate = path.join(dir, name);
       try {
-        await fs.access(candidate);
-        const content = await fs.readFile(candidate, 'utf-8');
+        if (!(await fs.exists(candidate))) continue;
+
+        let stat = await fs.stat(candidate);
+        if (!stat.isFile) continue;
+
+        const content = await fs.readFile(candidate);
         return content.trim() || undefined;
       } catch {
         // not found, try next
@@ -30,11 +39,20 @@ export async function findInstructions(startDir?: string): Promise<string | unde
   return undefined;
 }
 
+function assertVirtualFilesystem(fs: FsProvider) {
+  if (fs.scope !== 'virtual') {
+    throw new Error('Instruction loading requires a virtual filesystem provider.');
+  }
+}
+
 /**
  * Build the instruction block that gets prepended to the system prompt.
  */
-export async function loadInstructions(startDir?: string): Promise<string | undefined> {
-  const content = await findInstructions(startDir);
+export async function loadInstructions(
+  fs: FsProvider,
+  startDir?: string
+): Promise<string | undefined> {
+  const content = await findInstructions(fs, startDir);
   if (!content) return undefined;
 
   return [

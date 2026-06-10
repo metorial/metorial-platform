@@ -34,6 +34,7 @@ import {
   type SubagentSessionsConfig,
   type SubagentSource
 } from './lib/subagents';
+import type { FsProvider } from './providers/types';
 import { Session } from './session';
 import { createSkillTool } from './tools/skill';
 
@@ -138,6 +139,12 @@ export class Agent {
   /** Static tools provided at construction time. */
   readonly tools?: ToolSet;
 
+  /**
+   * Filesystem provider used for harness-managed reads such as AGENTS.md and
+   * SKILL.md discovery. The agent never falls back to the host filesystem.
+   */
+  readonly filesystem?: FsProvider;
+
   /** MCP server configs — connected lazily on first run. */
   private mcpServerConfigs?: Record<string, MCPServerConfig>;
   private mcpConnection: MCPConnection | null = null;
@@ -155,6 +162,7 @@ export class Agent {
     model: LanguageModel;
     systemPrompt?: string;
     tools?: ToolSet;
+    filesystem?: FsProvider;
     maxSteps?: number;
     temperature?: number;
     maxTokens?: number;
@@ -213,6 +221,10 @@ export class Agent {
     this.subagents = options.subagents;
     this.subagentSessions = options.subagentSessions;
     this.subagentBackground = options.subagentBackground;
+    if (options.filesystem && options.filesystem.scope !== 'virtual') {
+      throw new Error('Agent filesystem provider must be virtual; host filesystem access is disabled.');
+    }
+    this.filesystem = options.filesystem;
     this.mcpServerConfigs = options.mcpServers;
     this.skillsConfig = options.skills;
     this.tools = options.tools;
@@ -255,7 +267,9 @@ export class Agent {
     }
 
     if (this.instructions && this.cachedInstructions === null) {
-      this.cachedInstructions = await loadInstructions();
+      this.cachedInstructions = this.filesystem
+        ? await loadInstructions(this.filesystem)
+        : undefined;
     }
 
     if (this.mcpServerConfigs && !this.mcpConnection) {
@@ -263,7 +277,13 @@ export class Agent {
     }
 
     if (this.skillsConfig && this.cachedSkills === null) {
-      this.cachedSkills = await discoverSkills(this.skillsConfig);
+      if (!this.filesystem) {
+        throw new Error(
+          'Agent skills require a filesystem provider; host filesystem access is disabled.'
+        );
+      }
+
+      this.cachedSkills = await discoverSkills(this.skillsConfig, this.filesystem);
     }
 
     const systemParts = [this.systemPrompt, this.cachedInstructions].filter(Boolean);
@@ -279,7 +299,9 @@ export class Agent {
     );
 
     const allTools: ToolSet = {
-      ...(this.cachedSkills?.length ? { skill: createSkillTool(this.cachedSkills) } : {}),
+      ...(this.cachedSkills?.length && this.filesystem
+        ? { skill: createSkillTool(this.cachedSkills, this.filesystem) }
+        : {}),
       ...(this.mcpConnection?.tools ?? {}),
       ...(this.tools ?? {}),
       ...(subagentTools ?? {})
@@ -514,6 +536,7 @@ function createChildFromTemplate(
     model: template.model,
     systemPrompt: template.systemPrompt,
     tools: template.tools,
+    filesystem: template.filesystem,
     maxSteps: template.maxSteps,
     temperature: template.temperature,
     maxTokens: template.maxTokens,

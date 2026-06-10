@@ -1,9 +1,9 @@
 import { createSandbox, implementation } from '../../../lib/definitions';
 import { detag } from '../../../lib/detag';
 import { Agent } from '../../../lib/open-harness';
+import { baseSystemPrompt } from '../../implementations/_systemPrompt';
 import { claudeSonnet46 } from '../../models/anthropic';
 import { webSearchTools } from '../../tools/webSearch';
-import { baseSystemPrompt } from '../../implementations/_systemPrompt';
 
 let systemPrompt = detag`
 ${baseSystemPrompt}
@@ -36,6 +36,7 @@ export let skillsAssistantImplementation = implementation({
       name: 'Skills Assistant',
       model: d.model.model,
       systemPrompt,
+      filesystem: sandbox.fs,
       tools: {
         ...sandbox.tools,
         ...webSearchTools

@@ -1,6 +1,5 @@
-import fs from 'node:fs/promises';
-import os from 'node:os';
-import path from 'node:path';
+import { posix as path } from 'node:path';
+import type { FsProvider } from '../providers/types';
 
 // ── Types ─────────────────────────────────────────────────────────────
 
@@ -18,10 +17,16 @@ export interface SkillInfo {
 export interface SkillsConfig {
   /**
    * Directories to scan for `** /SKILL.md` files.
-   * Supports absolute paths, relative paths (resolved from cwd), and `~/…` paths.
+   * Supports absolute paths, relative paths resolved by the provided filesystem
+   * provider, and `~/…` paths resolved from `homeDir`.
    * Later paths take precedence — a skill with the same name overwrites an earlier one.
    */
   paths?: string[];
+  /**
+   * Virtual home directory used to resolve `~/…` skill paths.
+   * Defaults to `/home/agent`.
+   */
+  homeDir?: string;
 }
 
 // ── Discovery ─────────────────────────────────────────────────────────
@@ -32,15 +37,20 @@ const SKILL_NAME_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
  * Scan configured paths for `SKILL.md` files and return parsed skill info.
  * Later paths overwrite earlier ones when names collide.
  */
-export async function discoverSkills(config: SkillsConfig): Promise<SkillInfo[]> {
+export async function discoverSkills(
+  config: SkillsConfig,
+  fs: FsProvider
+): Promise<SkillInfo[]> {
+  assertVirtualFilesystem(fs);
+
   const skills = new Map<string, SkillInfo>();
 
   for (const raw of config.paths ?? []) {
-    const resolved = resolvePath(raw);
-    const matches = await findSkillFiles(resolved);
+    const resolved = resolvePath(raw, config, fs);
+    const matches = await findSkillFiles(fs, resolved);
 
     for (const match of matches) {
-      const info = await parseSkillFile(match);
+      const info = await parseSkillFile(fs, match);
       if (info) {
         skills.set(info.name, info);
       }
@@ -86,10 +96,10 @@ function parseFrontmatter(raw: string): ParsedFrontmatter | null {
   return { data, content };
 }
 
-async function parseSkillFile(filePath: string): Promise<SkillInfo | null> {
+async function parseSkillFile(fs: FsProvider, filePath: string): Promise<SkillInfo | null> {
   let raw: string;
   try {
-    raw = await fs.readFile(filePath, 'utf-8');
+    raw = await fs.readFile(filePath);
   } catch {
     return null;
   }
@@ -125,32 +135,39 @@ async function parseSkillFile(filePath: string): Promise<SkillInfo | null> {
 
 // ── File system helpers ───────────────────────────────────────────────
 
-function resolvePath(raw: string): string {
+function resolvePath(raw: string, config: SkillsConfig, fs: FsProvider): string {
   if (raw.startsWith('~/')) {
-    return path.join(os.homedir(), raw.slice(2));
+    return fs.resolvePath(path.join(config.homeDir ?? '/home/agent', raw.slice(2)));
   }
-  return path.resolve(raw);
+  return fs.resolvePath(raw);
 }
 
 /**
  * Recursively find all `SKILL.md` files under `dir`.
  */
-async function findSkillFiles(dir: string): Promise<string[]> {
-  let entries;
-  try {
-    entries = await fs.readdir(dir, { withFileTypes: true, recursive: true });
-  } catch {
-    // Directory doesn't exist or isn't readable — silently skip
-    return [];
-  }
-
+async function findSkillFiles(fs: FsProvider, dir: string): Promise<string[]> {
   const results: string[] = [];
-  for (const entry of entries) {
-    if (entry.name === 'SKILL.md' && !entry.isDirectory()) {
-      const parent = entry.parentPath ?? (entry as any).path ?? dir;
-      results.push(path.join(parent, entry.name));
+
+  let visit = async (currentDir: string): Promise<void> => {
+    let entries;
+    try {
+      entries = await fs.readdir(currentDir);
+    } catch {
+      // Directory doesn't exist or isn't readable — silently skip
+      return;
     }
-  }
+
+    for (const entry of entries) {
+      let entryPath = path.join(currentDir, entry.name);
+      if (entry.isDirectory) {
+        await visit(entryPath);
+      } else if (entry.name === 'SKILL.md') {
+        results.push(entryPath);
+      }
+    }
+  };
+
+  await visit(dir);
   return results;
 }
 
@@ -158,23 +175,43 @@ async function findSkillFiles(dir: string): Promise<string[]> {
  * List auxiliary files in a skill directory (everything except SKILL.md).
  * Returns up to `limit` absolute paths.
  */
-export async function scanSkillFiles(dir: string, limit = 10): Promise<string[]> {
-  let entries;
-  try {
-    entries = await fs.readdir(dir, { withFileTypes: true, recursive: true });
-  } catch {
-    return [];
-  }
+export async function scanSkillFiles(
+  fs: FsProvider,
+  dir: string,
+  limit = 10
+): Promise<string[]> {
+  assertVirtualFilesystem(fs);
 
   const files: string[] = [];
-  for (const entry of entries) {
-    if (entry.isDirectory()) continue;
-    if (entry.name === 'SKILL.md') continue;
 
-    const parent = entry.parentPath ?? (entry as any).path ?? dir;
-    files.push(path.join(parent, entry.name));
+  let visit = async (currentDir: string): Promise<void> => {
+    if (files.length >= limit) return;
 
-    if (files.length >= limit) break;
-  }
+    let entries;
+    try {
+      entries = await fs.readdir(currentDir);
+    } catch {
+      return;
+    }
+
+    for (const entry of entries) {
+      if (files.length >= limit) return;
+
+      let entryPath = path.join(currentDir, entry.name);
+      if (entry.isDirectory) {
+        await visit(entryPath);
+      } else if (entry.name !== 'SKILL.md') {
+        files.push(entryPath);
+      }
+    }
+  };
+
+  await visit(dir);
   return files;
+}
+
+function assertVirtualFilesystem(fs: FsProvider) {
+  if (fs.scope !== 'virtual') {
+    throw new Error('Skill loading requires a virtual filesystem provider.');
+  }
 }

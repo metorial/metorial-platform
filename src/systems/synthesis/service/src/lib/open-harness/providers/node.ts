@@ -15,6 +15,8 @@ export interface NodeFsProviderOptions {
 }
 
 export class NodeFsProvider implements FsProvider {
+  readonly scope = 'host' as const;
+
   private cwd: string;
   private maxFileSize: number;
 

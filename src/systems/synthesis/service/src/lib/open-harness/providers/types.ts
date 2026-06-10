@@ -20,6 +20,9 @@ export interface DirEntry {
 }
 
 export interface FsProvider {
+  /** Whether this provider points at an isolated virtual filesystem or the host filesystem. */
+  readonly scope: 'virtual' | 'host';
+
   /** Read a file's full text content. Should throw if the file exceeds a reasonable size limit. */
   readFile(path: string): Promise<string>;
 
