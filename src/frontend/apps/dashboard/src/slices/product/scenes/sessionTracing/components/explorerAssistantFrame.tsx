@@ -142,8 +142,8 @@ export let ExplorerAssistantFrame = (p: {
           <AssistantStartScene
             assistantSlug="explorer"
             conversationInput={{ sessionId: p.sessionId }}
-            title="Explore this integration with an assistant"
-            description="Ask Metorial to inspect available tools, explain capabilities, and invoke this session's integrations for you."
+            title="Explore with Metorial Assistant"
+            description="Ask Metorial Assistant to inspect available tools, explain capabilities, and invoke the integration for you."
             suggestions={suggestions}
             layout="embedded"
             onOpenConversation={(conversationId, state) => {

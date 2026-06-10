@@ -7,11 +7,15 @@ import {
   useCurrentOrganization,
   useUser
 } from '@metorial/state';
-import { Text, theme } from '@metorial/ui';
-import React, { useEffect, useMemo, useState } from 'react';
+import { theme } from '@metorial/ui';
+import { useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
+import type {
+  AssistantConversationNavigationState,
+  AssistantModelOption,
+  AssistantSuggestion
+} from '../components';
 import { AssistantComposer } from '../components';
-import type { AssistantConversationNavigationState, AssistantModelOption, AssistantSuggestion } from '../components';
 
 let CenterLayout = styled.div<{ 'data-layout': 'page' | 'embedded' }>`
   display: flex;
@@ -43,9 +47,12 @@ let Title = styled.h1`
   color: #333;
 `;
 
-let Description = styled(Text)`
+let Description = styled.p`
   text-align: center;
   color: ${theme.colors.gray700};
+  font-size: 13px;
+  margin-top: 20px;
+  font-weight: 500;
 `;
 
 let defaultSuggestions: AssistantSuggestion[] = [
@@ -138,9 +145,9 @@ export let AssistantStartScene = (p: {
       <Hero>
         <div>
           <Title>{p.title ?? `How can I help you, ${user.data?.firstName}?`}</Title>
-        </div>
 
-        {p.description ? <Description>{p.description}</Description> : null}
+          {p.description ? <Description>{p.description}</Description> : null}
+        </div>
 
         <AssistantComposer
           value={draft}

@@ -280,7 +280,12 @@ export let ProjectHomePage = () => {
             }
           />
 
-          <ProvidersGrid limit={15} orderByUse="last_deployment_at" orderByRank />
+          <ProvidersGrid
+            mode="home"
+            limit={18}
+            orderByUse="last_deployment_at"
+            orderByRank
+          />
         </>
       ))}
     </ContentLayout>

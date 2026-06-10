@@ -1,6 +1,6 @@
-import React, { useMemo } from 'react';
 import { Select, Text, theme } from '@metorial/ui';
 import { RiArrowUpLine } from '@remixicon/react';
+import { useMemo } from 'react';
 import TextareaAutosize from 'react-textarea-autosize';
 import styled from 'styled-components';
 import { AssistantSuggestions } from './suggestions';
@@ -20,9 +20,9 @@ let ComposerCard = styled.div`
   flex-direction: column;
   gap: 12px;
   width: 100%;
-  background: ${theme.colors.gray100};
-  border: 1px solid color-mix(in srgb, ${theme.colors.foreground} 10%, transparent);
-  border-radius: 22px;
+  /* background: ${theme.colors.gray100}; */
+  border: 1px solid ${theme.colors.gray400};
+  border-radius: 12px;
   padding: 14px 14px 10px;
   box-shadow:
     0 1px 2px rgba(15, 23, 42, 0.05),
@@ -92,7 +92,8 @@ let SendButton = styled.button<{ 'data-disabled'?: 'true' | 'false' }>`
     p['data-disabled'] == 'true'
       ? `color-mix(in srgb, ${theme.colors.foreground} 10%, ${theme.colors.background})`
       : theme.colors.foreground};
-  color: ${p => (p['data-disabled'] == 'true' ? theme.colors.gray700 : theme.colors.background)};
+  color: ${p =>
+    p['data-disabled'] == 'true' ? theme.colors.gray700 : theme.colors.background};
   cursor: ${p => (p['data-disabled'] == 'true' ? 'not-allowed' : 'pointer')};
   transition:
     background 120ms ease,

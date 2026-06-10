@@ -2,37 +2,66 @@ import type { DashboardInstanceProviderListingsListQuery } from '@metorial/dashb
 import { renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, useProviderListings } from '@metorial/state';
-import { Avatar, Badge, Text } from '@metorial/ui';
+import { Avatar, Badge, Text, theme } from '@metorial/ui';
 import { ItemGrid } from '@metorial/ui-product';
 import { RiCheckLine } from '@remixicon/react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 
-let Categories = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+type ProvidersGridMode = 'default' | 'home';
+
+type ProvidersGridProps = DashboardInstanceProviderListingsListQuery & {
+  mode?: ProvidersGridMode;
+};
+
+let ProviderLink = styled(Link)`
+  color: inherit;
+  text-decoration: none;
+
+  &:hover > li,
+  &:focus-visible > li {
+    border-color: ${theme.colors.gray400};
+    box-shadow: ${theme.shadows.small};
+  }
 `;
 
-let Category = styled.div`
+let Categories = styled.div.withConfig({ shouldForwardProp: p => p !== '$mode' })<{
+  $mode: ProvidersGridMode;
+}>`
+  display: flex;
+  flex-wrap: wrap;
+  gap: ${p => (p.$mode === 'home' ? '4px' : '10px')};
+  ${p =>
+    p.$mode === 'home'
+      ? `
+    max-height: 40px;
+    overflow: hidden;
+  `
+      : ''}
+`;
+
+let Category = styled.div.withConfig({ shouldForwardProp: p => p !== '$mode' })<{
+  $mode: ProvidersGridMode;
+}>`
   background: #f0f0f0;
-  height: 26px;
+  height: ${p => (p.$mode === 'home' ? '18px' : '26px')};
   border-radius: 50px;
-  padding: 0 10px;
+  padding: 0 ${p => (p.$mode === 'home' ? '6px' : '10px')};
   display: flex;
   align-items: center;
-  font-size: 12px;
+  font-size: ${p => (p.$mode === 'home' ? '10px' : '12px')};
   font-weight: 500;
 `;
 
-export let ProvidersGrid = (filter: DashboardInstanceProviderListingsListQuery) => {
+export let ProvidersGrid = ({ mode = 'default', ...filter }: ProvidersGridProps) => {
   let instance = useCurrentInstance();
   let providers = useProviderListings(instance.data?.id, filter);
+  let isHome = mode === 'home';
 
   return renderWithPagination(providers)(providers => (
     <>
       {providers.data.items.length > 0 && (
-        <ItemGrid.Root width="300px">
+        <ItemGrid.Root columns={isHome ? 3 : undefined} width={isHome ? '220px' : '300px'}>
           {providers.data.items.map(listing => {
             let providerId = listing.provider?.id;
             if (!providerId) return null;
@@ -50,16 +79,14 @@ export let ProvidersGrid = (filter: DashboardInstanceProviderListingsListQuery) 
             );
 
             return (
-              <Link
-                key={listing.id}
-                to={href}
-                style={{ textDecoration: 'none', color: 'inherit' }}
-              >
+              <ProviderLink key={listing.id} to={href}>
                 <ItemGrid.Item
                   entity={{ id: listing.id, hasUsage: true }}
                   title={listing.name}
-                  description={description}
-                  height={250}
+                  description={isHome ? undefined : description}
+                  height={isHome ? 118 : 250}
+                  mode={isHome ? 'compactHorizontal' : 'default'}
+                  showCopyId={!isHome}
                   icon={
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <Avatar
@@ -67,35 +94,39 @@ export let ProvidersGrid = (filter: DashboardInstanceProviderListingsListQuery) 
                           name: listing.name,
                           photoUrl: listing.imageUrl
                         }}
-                        size={30}
-                        radius={5}
+                        size={isHome ? 24 : 30}
+                        radius={isHome ? 6 : 5}
                         imageFit="contain"
                       />
 
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                        {listing.attributes.isVerified && (
-                          <Badge size="1" color="blue">
-                            <RiCheckLine size={12} style={{ marginRight: 3 }} /> Verified
-                          </Badge>
-                        )}
+                      {!isHome && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                          {listing.attributes.isVerified && (
+                            <Badge size="1" color="blue">
+                              <RiCheckLine size={12} style={{ marginRight: 3 }} /> Verified
+                            </Badge>
+                          )}
 
-                        {listing.attributes.isOfficial && (
-                          <Badge size="1" color="gray">
-                            Official
-                          </Badge>
-                        )}
-                      </div>
+                          {listing.attributes.isOfficial && (
+                            <Badge size="1" color="gray">
+                              Official
+                            </Badge>
+                          )}
+                        </div>
+                      )}
                     </div>
                   }
                   bottom={
-                    <Categories>
+                    <Categories $mode={mode}>
                       {listing.categories.map(category => (
-                        <Category key={category.id}>{category.name}</Category>
+                        <Category $mode={mode} key={category.id}>
+                          {category.name}
+                        </Category>
                       ))}
                     </Categories>
                   }
                 />
-              </Link>
+              </ProviderLink>
             );
           })}
         </ItemGrid.Root>

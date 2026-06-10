@@ -74,7 +74,7 @@ export let OpenExplorerButton = (p: OpenExplorerButtonProps) => {
         },
         {
           id: 'assistant',
-          label: p.assistantLabel ?? 'AI Agent',
+          label: p.assistantLabel ?? 'Metorial Assistant',
           description: p.assistantDescription ?? 'Chat with an agent that can use the tools.'
         }
       ]}

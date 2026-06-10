@@ -203,8 +203,8 @@ export let AssistantConversationScene = (p: {
     typeof p.initialModelId == 'string'
       ? p.initialModelId
       : typeof locationState?.initialModelId == 'string'
-      ? locationState.initialModelId
-      : undefined;
+        ? locationState.initialModelId
+        : undefined;
 
   let modelOptions = useMemo(
     () => getModelOptions(history.conversation.data?.assistant.availableModels),
@@ -483,13 +483,6 @@ export let AssistantConversationScene = (p: {
       }}
     >
       <ConversationLayout data-layout={p.layout ?? 'page'}>
-        {p.renderHeader?.({
-          title: history.conversation.data?.title ?? history.conversation.data?.assistant.name,
-          assistantName: history.conversation.data?.assistant.name,
-          description:
-            "Ask follow-up questions, inspect tool activity, and review the assistant's file and shell work."
-        })}
-
         {history.streamError && <Error>{history.streamError}</Error>}
 
         <TranscriptPanel>
