@@ -117,6 +117,49 @@ describe('mcp.e2e', () => {
   );
 
   it(
+    'upserts system agent clients without oauth registrations',
+    { timeout: 120_000 },
+    async () => {
+      let ctx = await createMcpE2eContext(testDb, {
+        remoteServerBaseUrl: lifecycle.getRemoteServerBaseUrl(),
+        transportCase: defaultTransportCase
+      });
+      let foreignId = `system-client:${ctx.session.id}`;
+
+      let mcp = createMcpTestClient({
+        baseUrl: ctx.proxyUrl,
+        transportType: defaultTransportCase.clientTransport,
+        fetch: localFetch,
+        headers: {
+          'Metorial-Agent-Client': JSON.stringify({
+            name: 'Metorial Explorer',
+            type: 'system_client',
+            foreignId
+          })
+        }
+      });
+
+      try {
+        await mcp.connect();
+
+        let agentClient = await testDb.agentClient.findFirst({
+          where: { foreignId }
+        });
+        expect(agentClient).toBeTruthy();
+        expect(agentClient?.name).toBe('Metorial Explorer');
+        expect(agentClient?.type).toBe('system_client');
+
+        let registrationCount = await testDb.agentClientRegistration.count({
+          where: { agentClientOid: agentClient!.oid }
+        });
+        expect(registrationCount).toBe(0);
+      } finally {
+        await mcp.cleanup();
+      }
+    }
+  );
+
+  it(
     'continuously narrows deployment and session provider filters across tools, prompts, and resources',
     { timeout: 120_000 },
     async () => {
