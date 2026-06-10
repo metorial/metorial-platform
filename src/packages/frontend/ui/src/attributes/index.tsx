@@ -12,7 +12,8 @@ let Wrapper = styled('div')<{ $columns?: number }>`
   gap: 1px;
 
   background: ${theme.colors.gray300};
-  border: 1px solid ${theme.colors.gray300};
+  border: 1px solid ${theme.colors.gray400};
+  box-shadow: ${theme.shadows.small};
   border-radius: 10px;
   overflow: hidden;
 

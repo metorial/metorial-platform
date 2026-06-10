@@ -4,21 +4,68 @@ import copy from 'copy-to-clipboard';
 import React from 'react';
 import { styled } from 'styled-components';
 
-let Grid = styled.ul.withConfig({ shouldForwardProp: p => p !== 'width' })<{ width?: string }>`
+type ItemGridItemMode = 'default' | 'compactHorizontal';
+
+type ItemGridRootProps = React.ComponentPropsWithoutRef<'ul'> & {
+  width?: string;
+  columns?: number;
+  responsive?: boolean;
+  responsiveTwoColumnWidth?: string;
+  responsiveOneColumnWidth?: string;
+};
+
+let GridContainer = styled.div`
+  container-type: inline-size;
+  min-width: 0;
+  width: 100%;
+`;
+
+let Grid = styled.ul.withConfig({
+  shouldForwardProp: p =>
+    p !== 'width' &&
+    p !== 'columns' &&
+    p !== 'responsive' &&
+    p !== 'responsiveTwoColumnWidth' &&
+    p !== 'responsiveOneColumnWidth'
+})<{
+  width?: string;
+  columns?: number;
+  responsive?: boolean;
+  responsiveTwoColumnWidth?: string;
+  responsiveOneColumnWidth?: string;
+}>`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(${p => p.width ?? '300px'}, 1fr));
+  grid-template-columns: ${p =>
+    p.columns
+      ? `repeat(${p.columns}, minmax(0, 1fr))`
+      : `repeat(auto-fill, minmax(${p.width ?? '300px'}, 1fr))`};
   gap: 20px;
   list-style: none;
   padding: 0;
   margin: 0;
+
+  ${p =>
+    p.columns && p.responsive
+      ? `
+    @container (max-width: ${p.responsiveTwoColumnWidth ?? '920px'}) {
+      grid-template-columns: repeat(${Math.min(p.columns, 2)}, minmax(0, 1fr));
+    }
+
+    @container (max-width: ${p.responsiveOneColumnWidth ?? '500px'}) {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  `
+      : ''}
 `;
 
-let Wrapper = styled.li`
+let Wrapper = styled.li.withConfig({ shouldForwardProp: p => p !== '$mode' })<{
+  $mode?: ItemGridItemMode;
+}>`
   display: flex;
   flex-direction: column;
-  padding: 15px;
+  padding: ${p => (p.$mode === 'compactHorizontal' ? '12px' : '15px')};
   border: solid 1px ${theme.colors.gray300};
-  border-radius: 15px;
+  border-radius: ${p => (p.$mode === 'compactHorizontal' ? '12px' : '15px')};
   transition: all 0.2s;
 
   &[data-button='true'] {
@@ -26,6 +73,7 @@ let Wrapper = styled.li`
 
     &:hover,
     &:focus {
+      border: solid 1px ${theme.colors.gray400};
       box-shadow: ${theme.shadows.medium};
     }
   }
@@ -51,6 +99,35 @@ let IconSlot = styled.div`
   width: 100%;
 `;
 
+let CompactHeaderContent = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+`;
+
+let CompactTitleRow = styled.div.withConfig({ shouldForwardProp: p => p !== '$hasMenu' })<{
+  $hasMenu: boolean;
+}>`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-right: ${p => (p.$hasMenu ? '36px' : 0)};
+  min-width: 0;
+`;
+
+let CompactTitleWrapper = styled.div`
+  flex: 1;
+  min-width: 0;
+
+  h2 {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+`;
+
 let MenuWrapper = styled.div`
   position: absolute;
   top: 0;
@@ -71,7 +148,13 @@ let getButtonProps = (onClick: () => void) => ({
 });
 
 export let ItemGrid = {
-  Root: Grid,
+  Root: ({ responsive, ...props }: ItemGridRootProps) => {
+    let grid = <Grid responsive={responsive} {...props} />;
+
+    if (!responsive) return grid;
+
+    return <GridContainer>{grid}</GridContainer>;
+  },
   Item: ({
     title,
     description,
@@ -81,6 +164,7 @@ export let ItemGrid = {
     menu,
     onClick,
     bottom,
+    mode = 'default',
     small,
     height
   }: {
@@ -92,6 +176,7 @@ export let ItemGrid = {
     menu?: { label: string; onClick: () => void }[];
     onClick?: () => void;
     bottom?: React.ReactNode;
+    mode?: ItemGridItemMode;
     small?: boolean;
     height?: number;
   }) => {
@@ -103,23 +188,46 @@ export let ItemGrid = {
     return (
       <Wrapper
         {...(onClick ? getButtonProps(onClick) : {})}
+        $mode={mode}
         style={{
-          minHeight: height ?? (small ? 'unset' : 200)
+          height: mode === 'compactHorizontal' ? height : undefined,
+          minHeight: height ?? (mode === 'compactHorizontal' || small ? 'unset' : 200),
+          overflow: mode === 'compactHorizontal' && height ? 'hidden' : undefined
         }}
       >
         <Header>
-          <HeaderContent>
-            {icon && <IconSlot>{icon}</IconSlot>}
+          {mode === 'compactHorizontal' ? (
+            <CompactHeaderContent>
+              <CompactTitleRow $hasMenu={menuItems.length > 0}>
+                {icon}
 
-            <Title as="h2" size={small ? '3' : '4'} weight="strong">
-              {title}
-            </Title>
-            {description && (
-              <Text size="1" weight="medium" color="gray700">
-                {description}
-              </Text>
-            )}
-          </HeaderContent>
+                <CompactTitleWrapper>
+                  <Title as="h2" size="3" weight="strong">
+                    {title}
+                  </Title>
+                </CompactTitleWrapper>
+              </CompactTitleRow>
+
+              {description && (
+                <Text size="1" weight="medium" color="gray700">
+                  {description}
+                </Text>
+              )}
+            </CompactHeaderContent>
+          ) : (
+            <HeaderContent>
+              {icon && <IconSlot>{icon}</IconSlot>}
+
+              <Title as="h2" size={small ? '3' : '4'} weight="strong">
+                {title}
+              </Title>
+              {description && (
+                <Text size="1" weight="medium" color="gray700">
+                  {description}
+                </Text>
+              )}
+            </HeaderContent>
+          )}
 
           {menuItems.length > 0 && (
             <MenuWrapper onClick={e => e.stopPropagation()}>
