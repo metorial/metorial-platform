@@ -133,6 +133,8 @@ model Instance {
   consumerAuthTestAuthorizations       ConsumerAuthTestAuthorization[]
   environment                          Environment?
   sandbox                              Sandbox?
+  oauthAuthorizations                  OAuthAuthorization[]
+  oauthAuthorizationFlows              OAuthAuthorizationFlow[]
 
   @@index([previousSlugs])
 }

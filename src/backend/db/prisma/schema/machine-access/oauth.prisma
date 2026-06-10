@@ -7,6 +7,7 @@ enum OAuthApplicationType {
   user_facing
   cli_auth
   server_side
+  internal
 }
 
 enum OAuthAuthorizationAccessLevel {
@@ -21,6 +22,8 @@ model OAuthApplication {
   status      OAuthApplicationStatus
   type        OAuthApplicationType
   accessLevel OAuthAuthorizationAccessLevel
+
+  systemIdentifier String?
 
   name        String
   description String?
@@ -58,6 +61,8 @@ model OAuthApplication {
   oauthAuthorizations        OAuthAuthorization[]
   oauthAuthorizationRequests OAuthAuthorizationFlow[]
   serviceAccount             ServiceAccount?
+
+  @@unique([organizationOid, systemIdentifier])
 }
 
 model OAuthApplicationClientSecret {
@@ -142,6 +147,9 @@ model OAuthAuthorization {
   organizationOid BigInt
   organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
 
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
   userOid BigInt?
   user    User?   @relation(fields: [userOid], references: [oid], onDelete: Cascade)
 
@@ -207,6 +215,9 @@ model OAuthAuthorizationFlow {
 
   organizationOid BigInt
   organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
 
   codeChallengeMethod OAuthAuthorizationFlowChallengeMethod
   codeChallenge       String?
