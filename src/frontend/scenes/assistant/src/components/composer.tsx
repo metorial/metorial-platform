@@ -79,7 +79,7 @@ let HintText = styled(Text).attrs({
   white-space: nowrap;
 `;
 
-let SendButton = styled.button<{ $disabled?: boolean }>`
+let SendButton = styled.button<{ 'data-disabled'?: 'true' | 'false' }>`
   display: flex;
   align-items: center;
   justify-content: center;
@@ -89,22 +89,22 @@ let SendButton = styled.button<{ $disabled?: boolean }>`
   border: none;
   border-radius: 999px;
   background: ${p =>
-    p.$disabled
+    p['data-disabled'] == 'true'
       ? `color-mix(in srgb, ${theme.colors.foreground} 10%, ${theme.colors.background})`
       : theme.colors.foreground};
-  color: ${p => (p.$disabled ? theme.colors.gray700 : theme.colors.background)};
-  cursor: ${p => (p.$disabled ? 'not-allowed' : 'pointer')};
+  color: ${p => (p['data-disabled'] == 'true' ? theme.colors.gray700 : theme.colors.background)};
+  cursor: ${p => (p['data-disabled'] == 'true' ? 'not-allowed' : 'pointer')};
   transition:
     background 120ms ease,
     transform 120ms ease,
     opacity 120ms ease;
 
   &:hover {
-    transform: ${p => (p.$disabled ? 'none' : 'translateY(-1px)')};
+    transform: ${p => (p['data-disabled'] == 'true' ? 'none' : 'translateY(-1px)')};
   }
 
   &:active {
-    transform: ${p => (p.$disabled ? 'none' : 'translateY(0) scale(0.98)')};
+    transform: ${p => (p['data-disabled'] == 'true' ? 'none' : 'translateY(0) scale(0.98)')};
   }
 `;
 
@@ -176,7 +176,7 @@ export let AssistantComposer = (p: {
 
           <SendButton
             type="button"
-            $disabled={!canSubmit}
+            data-disabled={canSubmit ? 'false' : 'true'}
             disabled={!canSubmit}
             onClick={p.onSubmit}
             aria-label={p.submitLabel ?? 'Send'}

@@ -1,4 +1,3 @@
-import React from 'react';
 import type { AssistantConversationMessage, AssistantLiveStateItem } from '@metorial/state';
 import { Button, Error, Text, theme, useCopy } from '@metorial/ui';
 import {
@@ -10,6 +9,7 @@ import {
   RiEditLine,
   RiFileCopyLine
 } from '@remixicon/react';
+import React from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
 import TextareaAutosize from 'react-textarea-autosize';
 import remarkGfm from 'remark-gfm';
@@ -33,41 +33,42 @@ import {
 import { WebToolCard } from './tools/webTool';
 import type { AssistantTranscriptMessageMeta } from './types';
 
-let Row = styled.div<{ $align?: 'start' | 'end' }>`
+let Row = styled.div<{ 'data-align'?: 'start' | 'end' }>`
   display: flex;
   width: 100%;
-  justify-content: ${p => (p.$align == 'end' ? 'flex-end' : 'flex-start')};
+  justify-content: ${p => (p['data-align'] == 'end' ? 'flex-end' : 'flex-start')};
 `;
 
-let MessageColumn = styled.div<{ $tone?: 'user' | 'assistant' | 'system' }>`
+let MessageColumn = styled.div<{ 'data-tone'?: 'user' | 'assistant' | 'system' }>`
   display: flex;
   flex-direction: column;
   gap: 8px;
   width: 100%;
   max-width: min(760px, 92%);
-  align-items: ${p => (p.$tone == 'user' ? 'flex-end' : 'flex-start')};
+  align-items: ${p => (p['data-tone'] == 'user' ? 'flex-end' : 'flex-start')};
 `;
 
-let MessageSurface = styled.div<{ $tone?: 'user' | 'assistant' | 'system' }>`
-  width: ${p => (p.$tone == 'assistant' ? '100%' : 'auto')};
+let MessageSurface = styled.div<{ 'data-tone'?: 'user' | 'assistant' | 'system' }>`
+  width: ${p => (p['data-tone'] == 'assistant' ? '100%' : 'auto')};
   max-width: 100%;
-  border-radius: ${p => (p.$tone == 'user' ? '20px' : '16px')};
-  padding: ${p => (p.$tone == 'assistant' ? '0' : '12px 16px')};
+  border-radius: ${p => (p['data-tone'] == 'user' ? '20px' : '16px')};
+  padding: ${p => (p['data-tone'] == 'assistant' ? '0' : '12px 16px')};
   background: ${p =>
-    p.$tone == 'user'
+    p['data-tone'] == 'user'
       ? `color-mix(in srgb, ${theme.colors.foreground} 4%, ${theme.colors.background})`
-      : p.$tone == 'system'
+      : p['data-tone'] == 'system'
         ? theme.colors.gray100
         : 'transparent'};
-  box-shadow: ${p => (p.$tone == 'assistant' ? 'none' : '0 1px 2px rgba(15, 23, 42, 0.04)')};
+  box-shadow: ${p =>
+    p['data-tone'] == 'assistant' ? 'none' : '0 1px 2px rgba(15, 23, 42, 0.04)'};
 `;
 
-let MessageActions = styled.div<{ $tone?: 'user' | 'assistant' | 'system' }>`
+let MessageActions = styled.div<{ 'data-tone'?: 'user' | 'assistant' | 'system' }>`
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
   align-items: center;
-  justify-content: ${p => (p.$tone == 'user' ? 'flex-end' : 'flex-start')};
+  justify-content: ${p => (p['data-tone'] == 'user' ? 'flex-end' : 'flex-start')};
 `;
 
 let SiblingPositionText = styled(Text).attrs({
@@ -136,6 +137,14 @@ let MarkdownWrapper = styled.div`
 
   li + li {
     margin-top: 4px;
+  }
+
+  ul li {
+    list-style-type: disc;
+  }
+
+  ol li {
+    list-style-type: decimal;
   }
 
   code {
@@ -336,9 +345,9 @@ let MessageCard = (p: {
   let canSubmitEdit = !!p.editingValue?.trim() && !p.isSubmittingEdit;
 
   return (
-    <Row $align={role == 'user' ? 'end' : 'start'}>
-      <MessageColumn $tone={tone}>
-        <MessageSurface $tone={tone}>
+    <Row data-align={role == 'user' ? 'end' : 'start'}>
+      <MessageColumn data-tone={tone}>
+        <MessageSurface data-tone={tone}>
           {p.isEditing && canEdit ? (
             <InlineEditWrap>
               <InlineEditInput
@@ -369,7 +378,7 @@ let MessageCard = (p: {
           )}
         </MessageSurface>
 
-        <MessageActions $tone={tone}>
+        <MessageActions data-tone={tone}>
           {canNavigateSiblings && (
             <>
               <Button
@@ -470,7 +479,7 @@ let ReasoningCard = (p: { item: Extract<AssistantLiveStateItem, { type: 'reasoni
           )}
         </ToolHeaderMain>
         {p.item.status != 'completed' ? (
-          <ToolStatusBadge $status={p.item.status}>
+          <ToolStatusBadge data-status={p.item.status}>
             {getStatusLabel(p.item.status)}
           </ToolStatusBadge>
         ) : null}
@@ -500,7 +509,7 @@ let CompactionCard = (p: {
           <ToolDetail>{p.item.summary ?? 'Compressing conversation history.'}</ToolDetail>
         </ToolHeaderMain>
         {p.item.status != 'completed' ? (
-          <ToolStatusBadge $status={p.item.status}>
+          <ToolStatusBadge data-status={p.item.status}>
             {getStatusLabel(p.item.status)}
           </ToolStatusBadge>
         ) : null}

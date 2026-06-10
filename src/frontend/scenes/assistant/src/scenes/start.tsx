@@ -13,15 +13,16 @@ import styled from 'styled-components';
 import { AssistantComposer } from '../components';
 import type { AssistantConversationNavigationState, AssistantModelOption, AssistantSuggestion } from '../components';
 
-let CenterLayout = styled.div`
+let CenterLayout = styled.div<{ 'data-layout': 'page' | 'embedded' }>`
   display: flex;
   flex-direction: column;
   gap: 18px;
-  min-height: calc(100vh - 120px);
+  min-height: ${p => (p['data-layout'] == 'embedded' ? '100%' : 'calc(100vh - 120px)')};
   max-width: 1000px;
   margin: 0 auto;
-  padding: 50px 20px 0px 20px;
+  padding: ${p => (p['data-layout'] == 'embedded' ? '32px 20px' : '50px 20px 0px 20px')};
   justify-content: center;
+  box-sizing: border-box;
 `;
 
 let Hero = styled.div`
@@ -83,6 +84,8 @@ export let AssistantStartScene = (p: {
   title?: string;
   description?: string;
   suggestions?: AssistantSuggestion[];
+  conversationInput?: Record<string, unknown>;
+  layout?: 'page' | 'embedded';
   onOpenConversation: (
     conversationId: string,
     state: AssistantConversationNavigationState
@@ -116,7 +119,8 @@ export let AssistantStartScene = (p: {
     let [conversation] = await createConversation.mutate({
       organizationId: organization.data.id,
       instanceId: instance.data.id,
-      assistantId: assistant.data.id
+      assistantId: assistant.data.id,
+      input: p.conversationInput
     });
     if (!conversation) return;
 
@@ -130,7 +134,7 @@ export let AssistantStartScene = (p: {
   };
 
   return renderWithLoader({ organization, instance, assistant })(() => (
-    <CenterLayout>
+    <CenterLayout data-layout={p.layout ?? 'page'}>
       <Hero>
         <div>
           <Title>{p.title ?? `How can I help you, ${user.data?.firstName}?`}</Title>

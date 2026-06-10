@@ -31,16 +31,16 @@ let DiffTable = styled.div`
   line-height: 1.6;
 `;
 
-let DiffLine = styled.div<{ $type: DiffRow['type'] }>`
+let DiffLine = styled.div<{ 'data-type': DiffRow['type'] }>`
   display: grid;
   grid-template-columns: 52px 52px 22px minmax(0, 1fr);
   align-items: stretch;
   background: ${p =>
-    p.$type == 'add'
+    p['data-type'] == 'add'
       ? `color-mix(in srgb, ${theme.colors.green800} 8%, ${theme.colors.background})`
-      : p.$type == 'remove'
+      : p['data-type'] == 'remove'
         ? `color-mix(in srgb, ${theme.colors.red800} 8%, ${theme.colors.background})`
-        : p.$type == 'fold'
+        : p['data-type'] == 'fold'
           ? `color-mix(in srgb, ${theme.colors.foreground} 3%, ${theme.colors.background})`
           : 'transparent'};
 `;
@@ -53,14 +53,14 @@ let DiffLineNumber = styled.div`
   border-right: 1px solid color-mix(in srgb, ${theme.colors.foreground} 7%, transparent);
 `;
 
-let DiffMarker = styled.div<{ $type: DiffRow['type'] }>`
+let DiffMarker = styled.div<{ 'data-type': DiffRow['type'] }>`
   display: flex;
   align-items: center;
   justify-content: center;
   color: ${p =>
-    p.$type == 'add'
+    p['data-type'] == 'add'
       ? theme.colors.green800
-      : p.$type == 'remove'
+      : p['data-type'] == 'remove'
         ? theme.colors.red800
         : `color-mix(in srgb, ${theme.colors.foreground} 42%, transparent)`};
   user-select: none;
@@ -277,14 +277,14 @@ export let EditToolCard = (p: { item: EditItem }) => {
             <DiffWrapper>
               <DiffTable>
                 {diffRows.map((row, index) => (
-                  <DiffLine key={`${item.id}:${index}`} $type={row.type}>
+                  <DiffLine key={`${item.id}:${index}`} data-type={row.type}>
                     <DiffLineNumber>
                       {row.oldNumber ?? <EmptyCell>0</EmptyCell>}
                     </DiffLineNumber>
                     <DiffLineNumber>
                       {row.newNumber ?? <EmptyCell>0</EmptyCell>}
                     </DiffLineNumber>
-                    <DiffMarker $type={row.type}>{getDiffMarker(row.type)}</DiffMarker>
+                    <DiffMarker data-type={row.type}>{getDiffMarker(row.type)}</DiffMarker>
                     <DiffText>{row.text || ' '}</DiffText>
                   </DiffLine>
                 ))}

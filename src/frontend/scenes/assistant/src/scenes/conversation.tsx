@@ -25,14 +25,15 @@ let ConversationScrollContainer = styled.div`
   overflow: auto;
 `;
 
-let ConversationLayout = styled.div`
+let ConversationLayout = styled.div<{ 'data-layout': 'page' | 'embedded' }>`
   display: flex;
   flex-direction: column;
   gap: 18px;
   min-height: 100%;
   max-width: 1000px;
   margin: 0 auto;
-  padding: 50px 20px 0px 20px;
+  padding: ${p =>
+    p['data-layout'] == 'embedded' ? '24px 20px 0px 20px' : '50px 20px 0px 20px'};
   box-sizing: border-box;
 `;
 
@@ -147,6 +148,11 @@ let getComposerParentMessageId = (d: {
 };
 
 export let AssistantConversationScene = (p: {
+  assistantConversationId?: string;
+  initialPrompt?: string;
+  initialModelId?: string;
+  onInitialPromptConsumed?: () => void;
+  layout?: 'page' | 'embedded';
   suggestions?: AssistantSuggestion[];
   setRestrictHeight?: (enabled: boolean) => void;
   renderHeader?: (d: {
@@ -157,7 +163,8 @@ export let AssistantConversationScene = (p: {
 }) => {
   let navigate = useNavigate();
   let location = useLocation();
-  let { assistantConversationId } = useParams();
+  let { assistantConversationId: routeAssistantConversationId } = useParams();
+  let assistantConversationId = p.assistantConversationId ?? routeAssistantConversationId;
   let organization = useCurrentOrganization();
   let instance = useCurrentInstance();
   let history = useConversationHistory(
@@ -187,9 +194,15 @@ export let AssistantConversationScene = (p: {
   let autoScrollResetTimeoutRef = useRef<number | null>(null);
   let locationState = location.state as AssistantConversationNavigationState;
   let initialPrompt =
-    typeof locationState?.initialPrompt == 'string' ? locationState.initialPrompt.trim() : '';
+    typeof p.initialPrompt == 'string'
+      ? p.initialPrompt.trim()
+      : typeof locationState?.initialPrompt == 'string'
+        ? locationState.initialPrompt.trim()
+        : '';
   let initialModelId =
-    typeof locationState?.initialModelId == 'string'
+    typeof p.initialModelId == 'string'
+      ? p.initialModelId
+      : typeof locationState?.initialModelId == 'string'
       ? locationState.initialModelId
       : undefined;
 
@@ -234,7 +247,11 @@ export let AssistantConversationScene = (p: {
     if (!parentMessageId) return;
 
     didConsumeInitialPromptRef.current = true;
-    navigate(location.pathname, { replace: true, state: null });
+    if (p.onInitialPromptConsumed) {
+      p.onInitialPromptConsumed();
+    } else {
+      navigate(location.pathname, { replace: true, state: null });
+    }
 
     void history
       .submitMessage({
@@ -255,6 +272,7 @@ export let AssistantConversationScene = (p: {
     instance.data,
     location.pathname,
     navigate,
+    p.onInitialPromptConsumed,
     organization.data,
     selectedModelId
   ]);
@@ -464,7 +482,7 @@ export let AssistantConversationScene = (p: {
         shouldAutoScrollRef.current = false;
       }}
     >
-      <ConversationLayout>
+      <ConversationLayout data-layout={p.layout ?? 'page'}>
         {p.renderHeader?.({
           title: history.conversation.data?.title ?? history.conversation.data?.assistant.name,
           assistantName: history.conversation.data?.assistant.name,
