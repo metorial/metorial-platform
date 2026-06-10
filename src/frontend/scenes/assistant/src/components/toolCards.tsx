@@ -147,16 +147,43 @@ let MarkdownWrapper = styled.div`
     list-style-type: decimal;
   }
 
+  blockquote {
+    margin: 0 0 12px;
+    padding: 12px 14px;
+    border-left: 3px solid color-mix(in srgb, ${theme.colors.foreground} 18%, transparent);
+    border-radius: 10px;
+    background: color-mix(in srgb, ${theme.colors.foreground} 3%, ${theme.colors.background});
+    color: color-mix(in srgb, ${theme.colors.foreground} 82%, transparent);
+  }
+
+  blockquote p:last-child {
+    margin-bottom: 0;
+  }
+
   code {
-    font-family: 'Source Code Pro', monospace;
+    font-family: 'JetBrains Mono', 'Source Code Pro', ui-monospace, SFMono-Regular, Menlo, Monaco,
+      Consolas, monospace;
+    font-size: 0.92em;
     background: color-mix(in srgb, ${theme.colors.foreground} 6%, transparent);
     padding: 2px 5px;
     border-radius: 5px;
   }
 
+  pre {
+    margin: 0 0 12px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    border: 1px solid color-mix(in srgb, ${theme.colors.foreground} 9%, transparent);
+    border-radius: 12px;
+    background: color-mix(in srgb, ${theme.colors.foreground} 4%, ${theme.colors.background});
+    line-height: 1.6;
+  }
+
   pre code {
+    display: block;
     background: transparent;
     padding: 0;
+    border-radius: 0;
   }
 `;
 
@@ -272,6 +299,11 @@ let MarkdownTableCell = styled.td`
 `;
 
 let markdownComponents: Components = {
+  a: ({ children, ...props }) => (
+    <a {...props} target="_blank" rel="noreferrer noopener">
+      {children}
+    </a>
+  ),
   table: ({ children, ...props }) => (
     <MarkdownTableScroll>
       <MarkdownTable {...props}>{children}</MarkdownTable>

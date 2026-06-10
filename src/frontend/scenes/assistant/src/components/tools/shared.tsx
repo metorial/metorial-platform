@@ -1,5 +1,5 @@
 import { CodeBlock } from '@metorial/code';
-import { Text, theme } from '@metorial/ui';
+import { InputLabel, Text, theme } from '@metorial/ui';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useState, type ReactNode } from 'react';
 import styled from 'styled-components';
@@ -101,16 +101,10 @@ export let ToolContentStack = styled.div`
 export let ToolSection = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0px;
 `;
 
-export let ToolSectionLabel = styled(Text).attrs({
-  size: '1'
-})`
-  color: color-mix(in srgb, ${theme.colors.foreground} 56%, transparent);
-  font-weight: 600;
-  letter-spacing: 0.01em;
-`;
+export let ToolSectionLabel = InputLabel;
 
 export let ToolPathTag = styled.div`
   display: inline-flex;

@@ -70,10 +70,10 @@ export let McpToolCard = (p: { item: McpItem }) => {
       <ToolContentStack>
         {item.calls.map(call => (
           <CallBlock key={call.id}>
-            <div>
+            {/* <div>
               <CallTitle>{item.tool.name}</CallTitle>
               <CallSummary>{getCallSummary(call.input) ?? 'Tool call'}</CallSummary>
-            </div>
+            </div> */}
 
             <ToolSection>
               <ToolSectionLabel>Input</ToolSectionLabel>
