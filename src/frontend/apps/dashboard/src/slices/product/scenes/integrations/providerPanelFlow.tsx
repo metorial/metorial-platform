@@ -433,6 +433,7 @@ let IntegrationProviderAuthSection = (p: {
                     <Flex gap={8} align="end">
                       <div style={{ flex: 1 }}>
                         <Combobox
+                          key={p.selectedAuthMethodId || 'auth-credentials'}
                           label="Auth Credentials"
                           placeholder="Search auth credentials"
                           value={p.selectedAuthCredentialsId || null}
@@ -529,6 +530,7 @@ let IntegrationProviderSetupStep = (p: {
   let updateIntegrationProvider = useUpdateIntegrationProvider();
   let autoSubmitAttemptedRef = useRef(false);
   let managedAuthCredentialsDefaultedKeysRef = useRef(new Set<string>());
+  let manuallySelectedAuthMethodIdsRef = useRef(new Set<string>());
   let [createdAuthCredentialsSelection, setCreatedAuthCredentialsSelection] = useState<{
     id: string;
     label: string;
@@ -709,6 +711,7 @@ let IntegrationProviderSetupStep = (p: {
         selectedToolKeys: yup.array().of(yup.string().required()).defined()
       })
   });
+  let previousAuthMethodIdRef = useRef(form.values.selectedAuthMethodId);
   let selectedAuthMethod = authMethods.data?.items.find(
     method => method.id === form.values.selectedAuthMethodId
   );
@@ -718,7 +721,9 @@ let IntegrationProviderSetupStep = (p: {
     instance.data?.id,
     effectiveShowAuth && requiresAuthCredentials
       ? {
-          providerId: p.providerId,
+          ...(p.integrationProvider?.deployment.id
+            ? { providerDeploymentId: p.integrationProvider.deployment.id }
+            : { providerId: p.providerId }),
           ...(form.values.selectedAuthMethodId
             ? { providerAuthMethodId: form.values.selectedAuthMethodId }
             : {}),
@@ -752,6 +757,19 @@ let IntegrationProviderSetupStep = (p: {
     instance.data?.id,
     form.values.selectedAuthCredentialsId || null
   );
+  let resetSelectedAuthCredentials = () => {
+    form.setFieldValue('selectedAuthCredentialsId', '');
+    form.setFieldTouched('selectedAuthCredentialsId', false, false);
+    form.setFieldError('selectedAuthCredentialsId', undefined);
+    setCreatedAuthCredentialsSelection(null);
+  };
+
+  useEffect(() => {
+    if (previousAuthMethodIdRef.current === form.values.selectedAuthMethodId) return;
+
+    previousAuthMethodIdRef.current = form.values.selectedAuthMethodId;
+    resetSelectedAuthCredentials();
+  }, [form.values.selectedAuthMethodId]);
 
   useEffect(() => {
     if (!effectiveShowAuth) return;
@@ -772,10 +790,7 @@ let IntegrationProviderSetupStep = (p: {
     if (selectedAuthMethod?.type === 'oauth' && !oauthAutoRegistrationEnabled) return;
     if (!form.values.selectedAuthCredentialsId) return;
 
-    form.setFieldValue('selectedAuthCredentialsId', '');
-    form.setFieldTouched('selectedAuthCredentialsId', false, false);
-    form.setFieldError('selectedAuthCredentialsId', undefined);
-    setCreatedAuthCredentialsSelection(null);
+    resetSelectedAuthCredentials();
   }, [
     authMethods.isLoading,
     oauthAutoRegistrationEnabled,
@@ -790,6 +805,7 @@ let IntegrationProviderSetupStep = (p: {
     if (form.values.selectedAuthCredentialsId) return;
     if (managedAuthCredentials.isLoading) return;
     if (!preferredManagedAuthCredential) return;
+    if (manuallySelectedAuthMethodIdsRef.current.has(form.values.selectedAuthMethodId)) return;
     if (managedAuthCredentialsDefaultedKeysRef.current.has(managedAuthCredentialsDefaultKey)) {
       return;
     }
@@ -817,26 +833,21 @@ let IntegrationProviderSetupStep = (p: {
     if (!effectiveShowAuth) return;
     if (!form.values.selectedAuthCredentialsId) return;
     if (authCredentials.isLoading) return;
-    if (selectedAuthCredential.isLoading) return;
 
     let credentialExists = (authCredentials.data?.items ?? []).some(
       credential => credential.id === form.values.selectedAuthCredentialsId
     );
-    let selectedCredentialExists =
-      selectedAuthCredential.data?.id === form.values.selectedAuthCredentialsId;
+    let createdCredentialSelected =
+      createdAuthCredentialsSelection?.id === form.values.selectedAuthCredentialsId;
 
-    if (!credentialExists && !selectedCredentialExists) {
-      form.setFieldValue('selectedAuthCredentialsId', '');
-      form.setFieldTouched('selectedAuthCredentialsId', false, false);
-      form.setFieldError('selectedAuthCredentialsId', undefined);
-      setCreatedAuthCredentialsSelection(null);
+    if (!credentialExists && !createdCredentialSelected) {
+      resetSelectedAuthCredentials();
     }
   }, [
     effectiveShowAuth,
     authCredentials.isLoading,
     authCredentials.data?.items,
-    selectedAuthCredential.isLoading,
-    selectedAuthCredential.data?.id,
+    createdAuthCredentialsSelection?.id,
     form.values.selectedAuthCredentialsId
   ]);
 
@@ -916,28 +927,27 @@ let IntegrationProviderSetupStep = (p: {
           selectedAuthMethod={selectedAuthMethod}
           selectedAuthMethodId={form.values.selectedAuthMethodId}
           onSelectedAuthMethodIdChange={value => {
+            if (value === form.values.selectedAuthMethodId) return;
+
+            manuallySelectedAuthMethodIdsRef.current.add(value);
             form.setFieldValue('selectedAuthMethodId', value);
             form.setFieldTouched('selectedAuthMethodId', false, false);
             form.setFieldError('selectedAuthMethodId', undefined);
-
-            if (value !== form.values.selectedAuthMethodId) {
-              form.setFieldValue('selectedAuthCredentialsId', '');
-              form.setFieldTouched('selectedAuthCredentialsId', false, false);
-              form.setFieldError('selectedAuthCredentialsId', undefined);
-              setCreatedAuthCredentialsSelection(null);
-            }
+            resetSelectedAuthCredentials();
           }}
           selectedAuthCredentialsId={form.values.selectedAuthCredentialsId}
           selectedAuthCredentialsLabel={
-            selectedAuthCredential.data?.name ??
-            selectedAuthCredential.data?.id ??
-            (createdAuthCredentialsSelection?.id === form.values.selectedAuthCredentialsId
-              ? createdAuthCredentialsSelection.label
-              : undefined) ??
-            authCredentials.data?.items.find(
-              credential => credential.id === form.values.selectedAuthCredentialsId
-            )?.name ??
             form.values.selectedAuthCredentialsId
+              ? (selectedAuthCredential.data?.name ??
+                selectedAuthCredential.data?.id ??
+                (createdAuthCredentialsSelection?.id === form.values.selectedAuthCredentialsId
+                  ? createdAuthCredentialsSelection.label
+                  : undefined) ??
+                authCredentials.data?.items.find(
+                  credential => credential.id === form.values.selectedAuthCredentialsId
+                )?.name ??
+                form.values.selectedAuthCredentialsId)
+              : undefined
           }
           onSelectedAuthCredentialsIdChange={(value, credentials) => {
             managedAuthCredentialsDefaultedKeysRef.current.add(
