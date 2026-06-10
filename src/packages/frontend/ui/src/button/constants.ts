@@ -13,6 +13,61 @@ import { createTheme, createThemeToken } from '../theme/tokens';
 
 export type ButtonColor = ColorType | ColorKey;
 
+type ButtonVariantState = {
+  color: string;
+  background: string;
+  border: string;
+  shadow: string;
+  physicalShadow?: string;
+  transform?: string;
+};
+
+let physicalButtonShadow = {
+  offset: '2.8px',
+  defaultColor: 'rgba(0, 0, 0, 0.18)'
+};
+
+let createPhysicalButtonShadowColor = (color: string, amount = 55) =>
+  `color-mix(in srgb, ${color} ${amount}%, transparent)`;
+
+let createPhysicalButtonShadow = (color = physicalButtonShadow.defaultColor) =>
+  `0 ${physicalButtonShadow.offset} 0 ${color}`;
+
+let composeButtonShadow = (...shadows: string[]) => {
+  let enabledShadows = shadows.filter(shadow => shadow && shadow != 'none');
+  return enabledShadows.length ? enabledShadows.join(', ') : 'none';
+};
+
+let getButtonStateTransform = (state: { [key: string]: unknown; transform?: string }, fallback = 'none') =>
+  state.transform ?? fallback;
+
+let getButtonStatePhysicalShadow = (state: { [key: string]: unknown; physicalShadow?: string }) =>
+  state.physicalShadow ?? 'none';
+
+let createPhysicalSolidButtonStates = (
+  state: Omit<ButtonVariantState, 'shadow' | 'transform'>,
+  physicalShadowColor?: string
+) => ({
+  passive: {
+    ...state,
+    shadow: theme.shadows.small,
+    transform: 'translateY(0)'
+  },
+
+  active: {
+    ...state,
+    shadow: theme.shadows.medium,
+    physicalShadow: createPhysicalButtonShadow(physicalShadowColor),
+    transform: `translateY(-${physicalButtonShadow.offset})`
+  },
+
+  pressed: {
+    ...state,
+    shadow: theme.shadows.small,
+    transform: 'translateY(0)'
+  }
+});
+
 let colorTypes: ColorType[] = [
   'gray',
   'blue',
@@ -79,21 +134,32 @@ let getShiftedThemeColor = (
   return getThemeColorByFacet(parsed, shiftedFacet, fallback);
 };
 
+let getPhysicalButtonShadowColorForType = (color: ColorType) => {
+  if (color == 'black') return physicalButtonShadow.defaultColor;
+  if (color == 'white') return createPhysicalButtonShadowColor(theme.colors.gray400);
+  if (color == 'gray') return createPhysicalButtonShadowColor(theme.colors.gray900, 30);
+
+  return createPhysicalButtonShadowColor(theme.colors[getColorKey(color, '900')]);
+};
+
+let getPhysicalButtonShadowColorForKey = (
+  parsed: ReturnType<typeof parseColorKey> | null,
+  fallback: string
+) => {
+  if (parsed?.colorName == 'black') return physicalButtonShadow.defaultColor;
+  if (parsed?.colorName == 'white') return createPhysicalButtonShadowColor(theme.colors.gray400);
+  if (parsed?.colorName == 'gray') return createPhysicalButtonShadowColor(theme.colors.gray900, 30);
+
+  return createPhysicalButtonShadowColor(getShiftedThemeColor(parsed, 2, fallback));
+};
+
 let coloredButtonVariants = memo((color: ColorType) => ({
   solid: {
-    passive: {
+    ...createPhysicalSolidButtonStates({
       color: getForegroundColor(getColorKey(color, '900')),
       background: theme.colors[getColorKey(color, '700')],
-      border: theme.colors[getColorKey(color, '700')],
-      shadow: theme.shadows.small
-    },
-
-    active: {
-      color: getForegroundColor(getColorKey(color, '900')),
-      background: theme.colors[getColorKey(color, '700')],
-      border: theme.colors[getColorKey(color, '700')],
-      shadow: theme.shadows.medium
-    },
+      border: theme.colors[getColorKey(color, '700')]
+    }, getPhysicalButtonShadowColorForType(color)),
 
     spinner: {
       foreground: theme.colors.background,
@@ -106,14 +172,14 @@ let coloredButtonVariants = memo((color: ColorType) => ({
   outline: {
     passive: {
       color: theme.colors[getColorKey(color, '800')],
-      background: 'transparent',
+      background: theme.colors.background,
       border: theme.colors[getColorKey(color, '600')],
       shadow: 'none'
     },
 
     active: {
       color: theme.colors[getColorKey(color, '800')],
-      background: 'transparent',
+      background: theme.colors.background,
       border: theme.colors[getColorKey(color, '700')],
       shadow: 'none'
     },
@@ -175,19 +241,11 @@ let coloredButtonVariants = memo((color: ColorType) => ({
 
 let monoChromeButtonVariants = {
   solid: {
-    passive: {
+    ...createPhysicalSolidButtonStates({
       color: theme.colors.background,
       background: linearGradient(0, theme.colors.gray800, theme.colors.gray900),
-      border: 'transparent',
-      shadow: theme.shadows.small
-    },
-
-    active: {
-      color: theme.colors.background,
-      background: linearGradient(0, theme.colors.gray800, theme.colors.gray900),
-      border: 'transparent',
-      shadow: theme.shadows.medium
-    },
+      border: 'transparent'
+    }),
 
     spinner: {
       foreground: theme.colors.background,
@@ -200,14 +258,14 @@ let monoChromeButtonVariants = {
   outline: {
     passive: {
       color: theme.colors.foreground,
-      background: 'transparent',
+      background: theme.colors.background,
       border: theme.colors.gray300,
       shadow: 'none'
     },
 
     active: {
       color: theme.colors.foreground,
-      background: 'transparent',
+      background: theme.colors.background,
       border: theme.colors.gray400,
       shadow: 'none'
     },
@@ -280,19 +338,11 @@ let concreteButtonVariants = memo((color: ColorKey) => {
 
   return {
     solid: {
-      passive: {
+      ...createPhysicalSolidButtonStates({
         color: getForegroundColor(color),
         background: baseColor,
-        border: baseColor,
-        shadow: theme.shadows.small
-      },
-
-      active: {
-        color: getForegroundColor(color),
-        background: baseColor,
-        border: baseColor,
-        shadow: theme.shadows.medium
-      },
+        border: baseColor
+      }, getPhysicalButtonShadowColorForKey(parsed, baseColor)),
 
       spinner: {
         foreground: getForegroundColor(color),
@@ -305,14 +355,14 @@ let concreteButtonVariants = memo((color: ColorKey) => {
     outline: {
       passive: {
         color: baseColor,
-        background: 'transparent',
+        background: theme.colors.background,
         border: baseColor,
         shadow: 'none'
       },
 
       active: {
         color: baseColor,
-        background: 'transparent',
+        background: theme.colors.background,
         border: baseColor,
         shadow: 'none'
       },
@@ -431,12 +481,16 @@ export let buttonTheme = createTheme({
   passive_background: createThemeToken(),
   passive_border: createThemeToken(),
   passive_shadow: createThemeToken(),
+  passive_transform: createThemeToken(),
 
   active_color: createThemeToken(),
   active_background: createThemeToken(),
   active_border: createThemeToken(),
   active_shadow: createThemeToken(),
   active_transform: createThemeToken(),
+
+  pressed_shadow: createThemeToken(),
+  pressed_transform: createThemeToken(),
 
   spinner_foreground: createThemeToken(),
   spinner_background: createThemeToken()
@@ -452,19 +506,26 @@ let getColorButtonTheme = memo((color: ButtonColor | undefined, variant: ButtonV
           : monoChromeButtonVariants
       : monoChromeButtonVariants
   )[variant];
+  let pressed = 'pressed' in v ? v.pressed : v.active;
 
   return buttonTheme.setRootStyles({
     passive_color: v.passive.color,
     passive_background: v.passive.background,
     passive_border: v.passive.border,
     passive_shadow: shadow ? v.passive.shadow : 'none',
+    passive_transform: getButtonStateTransform(v.passive),
 
     active_color: v.active.color,
     active_background: v.active.background,
     active_border: v.active.border,
-    active_shadow: shadow ? v.active.shadow : 'none',
+    active_shadow: composeButtonShadow(
+      shadow ? v.active.shadow : 'none',
+      getButtonStatePhysicalShadow(v.active)
+    ),
+    active_transform: getButtonStateTransform(v.active),
 
-    active_transform: v.animateClickScale ? 'scale(0.98)' : 'none',
+    pressed_shadow: shadow ? pressed.shadow : 'none',
+    pressed_transform: getButtonStateTransform(pressed, v.animateClickScale ? 'scale(0.98)' : 'none'),
 
     spinner_foreground: v.spinner.foreground,
     spinner_background: v.spinner.background

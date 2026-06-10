@@ -21,7 +21,7 @@ import {
 } from '../lib/instructionPresets';
 import { ApiKeySecret } from '../scenes/apiKeys';
 import { useResolvedInstanceApiKeySecret } from '../scenes/apiKeys/useResolvedInstanceApiKeySecret';
-import { ProvidersGrid } from '../scenes/providers/grid';
+import { HomeProvidersTable } from '../scenes/providers/homeTable';
 import { InstructionItem } from './provider/components/instructions';
 import { KeySelector } from './provider/components/keySelector';
 
@@ -291,7 +291,7 @@ export let ProjectHomePage = () => {
             }
           />
 
-          <ProvidersGrid mode="home" limit={18} orderByUse="last_deployment_at" orderByRank />
+          <HomeProvidersTable limit={18} orderByUse="last_deployment_at" orderByRank />
         </>
       ))}
     </ContentLayout>
