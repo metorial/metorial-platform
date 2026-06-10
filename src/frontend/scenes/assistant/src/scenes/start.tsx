@@ -8,8 +8,9 @@ import {
   useUser
 } from '@metorial/state';
 import { theme } from '@metorial/ui';
-import { useEffect, useMemo, useState } from 'react';
-import styled from 'styled-components';
+import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
+import React, { useEffect, useId, useMemo, useState } from 'react';
+import styled, { keyframes } from 'styled-components';
 import type {
   AssistantConversationNavigationState,
   AssistantModelOption,
@@ -40,6 +41,118 @@ let Hero = styled.div`
   flex-direction: column;
   gap: 24px;
   margin: 0px auto;
+`;
+
+let brandGlow = keyframes`
+  0%,
+  100% {
+    opacity: 0.46;
+    transform: translate(-50%, calc(-50% + 3px)) scale(0.88);
+  }
+
+  45% {
+    opacity: 0.78;
+    transform: translate(-50%, calc(-50% + 8px)) scale(1.08);
+  }
+`;
+
+let brandFloat = keyframes`
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+
+  45% {
+    transform: translateY(-5px) scale(1.018);
+  }
+`;
+
+let brandSheen = keyframes`
+  0% {
+    transform: translateX(-95%) rotate(-8deg);
+    opacity: 0;
+  }
+
+  22% {
+    opacity: 0;
+  }
+
+  42% {
+    opacity: 0.82;
+  }
+
+  58% {
+    opacity: 0.3;
+  }
+
+  78%,
+  100% {
+    transform: translateX(105%) rotate(-8deg);
+    opacity: 0;
+  }
+`;
+
+let BrandIconWrap = styled.div`
+  display: flex;
+  justify-content: center;
+  margin-bottom: 18px;
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    width: 92px;
+    height: 52px;
+    top: 50%;
+    left: 50%;
+    border-radius: 999px;
+    background:
+      radial-gradient(circle at 36% 45%, rgba(200, 101, 230, 0.22), transparent 56%),
+      radial-gradient(circle at 66% 42%, rgba(77, 162, 223, 0.22), transparent 58%),
+      radial-gradient(circle at 58% 58%, rgba(220, 196, 37, 0.1), transparent 54%);
+    filter: blur(16px);
+    transform: translate(-50%, -50%) scale(0.92);
+    opacity: 0.62;
+    animation: ${brandGlow} 8s ease-in-out infinite;
+    pointer-events: none;
+  }
+`;
+
+let BrandIconMotion = styled(motion.div)`
+  position: relative;
+  z-index: 1;
+  transform-style: preserve-3d;
+  will-change: transform;
+`;
+
+let BrandIconShadow = styled(motion.div)`
+  position: absolute;
+  z-index: 0;
+  top: 50%;
+  left: 50%;
+  width: 80px;
+  height: 44px;
+  margin-top: -12px;
+  margin-left: -40px;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 45% 45%, rgba(77, 162, 223, 0.22), transparent 58%),
+    radial-gradient(circle at 58% 50%, rgba(200, 101, 230, 0.18), transparent 62%);
+  filter: blur(16px);
+  opacity: 0.72;
+  pointer-events: none;
+`;
+
+let BrandIconSvg = styled.svg`
+  width: 80px;
+  height: auto;
+  overflow: visible;
+  animation: ${brandFloat} 9s ease-in-out infinite;
+
+  .brand-sheen {
+    transform-origin: center;
+    animation: ${brandSheen} 6.5s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  }
 `;
 
 let Title = styled.h1`
@@ -89,8 +202,121 @@ let getModelOptions = (assistant: ReturnType<typeof useAssistant>['data']) => {
   );
 };
 
+let BRAND_ICON_INFLUENCE_RADIUS = 112;
+let BRAND_ICON_MAX_OFFSET = 16;
+
+let AssistantBrandIcon = () => {
+  let id = useId().replace(/:/g, '');
+  let gradientId = `assistant-brand-gradient-${id}`;
+  let highlightId = `assistant-brand-highlight-${id}`;
+  let maskId = `assistant-brand-mask-${id}`;
+  let glowId = `assistant-brand-glow-${id}`;
+  let iconPath =
+    'M21.8266 -1.98249e-08C20.6587 2.55214 21.8266 2.11861e-07 18.8359 6.53515L25.441 1.1984C25.441 1.1984 19.8937 11.2913 17.9649 14.3957C16.0362 17.5 13.1514 23.0018 8.20053 22.56C3.24968 22.1181 -0.405659 17.7465 0.0361938 12.7956C0.327707 9.5292 2.32981 6.82677 5.08021 5.49282L15.35 0.550123C13.953 2.30008 15.35 0.550116 11.7729 5.03115L21.8266 -1.98249e-08Z';
+  let targetX = useMotionValue(0);
+  let targetY = useMotionValue(0);
+  let x = useSpring(targetX, { stiffness: 140, damping: 18, mass: 0.7 });
+  let y = useSpring(targetY, { stiffness: 140, damping: 18, mass: 0.7 });
+  let shadowX = useTransform(x, value => -value * 0.45);
+  let shadowY = useTransform(y, value => -value * 0.7);
+  let rotateX = useTransform(y, [-BRAND_ICON_MAX_OFFSET, BRAND_ICON_MAX_OFFSET], [4, -4]);
+  let rotateY = useTransform(x, [-BRAND_ICON_MAX_OFFSET, BRAND_ICON_MAX_OFFSET], [-5, 5]);
+
+  let resetMagnet = () => {
+    targetX.set(0);
+    targetY.set(0);
+  };
+
+  let handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    let rect = event.currentTarget.getBoundingClientRect();
+    let centerX = rect.left + rect.width / 2;
+    let centerY = rect.top + rect.height / 2;
+    let deltaX = event.clientX - centerX;
+    let deltaY = event.clientY - centerY;
+    let distance = Math.hypot(deltaX, deltaY);
+
+    if (distance > BRAND_ICON_INFLUENCE_RADIUS) {
+      resetMagnet();
+      return;
+    }
+
+    let pull = distance / BRAND_ICON_INFLUENCE_RADIUS;
+    targetX.set((deltaX / BRAND_ICON_INFLUENCE_RADIUS) * BRAND_ICON_MAX_OFFSET * pull);
+    targetY.set((deltaY / BRAND_ICON_INFLUENCE_RADIUS) * BRAND_ICON_MAX_OFFSET * pull);
+  };
+
+  return (
+    <BrandIconWrap aria-hidden onPointerMove={handlePointerMove} onPointerLeave={resetMagnet}>
+      <BrandIconShadow style={{ x: shadowX, y: shadowY }} />
+      <BrandIconMotion style={{ x, y, rotateX, rotateY }}>
+        <BrandIconSvg width="26" height="23" viewBox="0 0 26 23" fill="none">
+          <defs>
+            <linearGradient
+              id={gradientId}
+              className="assistant-gradient"
+              x1="0"
+              y1="0"
+              x2="26"
+              y2="23"
+              gradientUnits="userSpaceOnUse"
+            >
+              <stop offset="0%" stopColor="#151722" />
+              <stop offset="20%" stopColor="#4DA2DF" />
+              <stop offset="56%" stopColor="#c865e6" />
+              <stop offset="78%" stopColor="#4DA2DF" />
+              <stop offset="100%" stopColor="#dcc425" />
+              <animateTransform
+                attributeName="gradientTransform"
+                type="translate"
+                values="-3 -1; 3 1.5; -3 -1"
+                dur="12s"
+                repeatCount="indefinite"
+              />
+            </linearGradient>
+            <linearGradient
+              id={highlightId}
+              x1="0"
+              y1="0"
+              x2="26"
+              y2="0"
+              gradientUnits="userSpaceOnUse"
+            >
+              <stop offset="0%" stopColor="#ffffff" stopOpacity="0" />
+              <stop offset="42%" stopColor="#ffffff" stopOpacity="0" />
+              <stop offset="52%" stopColor="#dcc425" stopOpacity="0.88" />
+              <stop offset="64%" stopColor="#ffffff" stopOpacity="0.54" />
+              <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
+            </linearGradient>
+            <radialGradient id={glowId} cx="50%" cy="42%" r="62%">
+              <stop offset="0%" stopColor="#ffffff" stopOpacity="0.26" />
+              <stop offset="52%" stopColor="#4DA2DF" stopOpacity="0.08" />
+              <stop offset="100%" stopColor="#4DA2DF" stopOpacity="0" />
+            </radialGradient>
+            <mask id={maskId}>
+              <path d={iconPath} fill="white" />
+            </mask>
+          </defs>
+          <g mask={`url(#${maskId})`}>
+            <rect x="-2" y="-2" width="30" height="27" fill={`url(#${gradientId})`} />
+            <rect x="-2" y="-2" width="30" height="27" fill={`url(#${glowId})`} />
+            <rect
+              className="brand-sheen"
+              x="-12"
+              y="-3"
+              width="18"
+              height="29"
+              fill={`url(#${highlightId})`}
+            />
+          </g>
+        </BrandIconSvg>
+      </BrandIconMotion>
+    </BrandIconWrap>
+  );
+};
+
 export let AssistantStartScene = (p: {
   assistantSlug?: string;
+  showBrandIcon?: boolean;
   title?: string;
   description?: string;
   suggestions?: AssistantSuggestion[];
@@ -147,6 +373,8 @@ export let AssistantStartScene = (p: {
     <CenterLayout data-layout={p.layout ?? 'page'}>
       <Hero>
         <div>
+          {p.showBrandIcon ? <AssistantBrandIcon /> : null}
+
           <Title>{p.title ?? `How can I help you, ${user.data?.firstName}?`}</Title>
 
           {p.description ? <Description>{p.description}</Description> : null}

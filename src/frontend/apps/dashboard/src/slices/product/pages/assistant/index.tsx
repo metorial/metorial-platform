@@ -16,6 +16,7 @@ export let AssistantPage = () => {
   return renderWithLoader({ organization, instance })(() => (
     <AssistantStartScene
       assistantSlug={metorialAssistantSlug}
+      showBrandIcon
       onOpenConversation={(conversationId, state) =>
         navigate(
           Paths.instance.assistantConversation(
