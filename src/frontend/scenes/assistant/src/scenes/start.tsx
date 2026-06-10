@@ -1,6 +1,6 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import {
-  defaultAssistantSlug,
+  metorialAssistantSlug,
   useAssistant,
   useCreateConversation,
   useCurrentInstance,
@@ -21,6 +21,8 @@ let CenterLayout = styled.div<{ 'data-layout': 'page' | 'embedded' }>`
   display: flex;
   flex-direction: column;
   gap: 18px;
+  width: 100%;
+  min-width: 0;
   min-height: ${p => (p['data-layout'] == 'embedded' ? '100%' : 'calc(100vh - 120px)')};
   max-width: 1000px;
   margin: 0 auto;
@@ -31,6 +33,8 @@ let CenterLayout = styled.div<{ 'data-layout': 'page' | 'embedded' }>`
 
 let Hero = styled.div`
   width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   max-width: 860px;
   display: flex;
   flex-direction: column;
@@ -102,7 +106,7 @@ export let AssistantStartScene = (p: {
   let assistant = useAssistant(
     organization.data?.id,
     instance.data?.id,
-    p.assistantSlug ?? defaultAssistantSlug
+    p.assistantSlug ?? metorialAssistantSlug
   );
   let createConversation = useCreateConversation();
   let user = useUser();

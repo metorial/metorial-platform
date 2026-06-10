@@ -1,7 +1,7 @@
 import { CodeBlock } from '@metorial/code';
 import { InputLabel, Text, theme } from '@metorial/ui';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import styled from 'styled-components';
 
 export let ToolSurfaceCard = styled.div<{
@@ -282,10 +282,17 @@ export let ToolDisclosureCard = (p: {
   children?: ReactNode;
 }) => {
   let hasContent = !!p.children;
-  let [isOpen, setIsOpen] = useState(p.defaultOpen ?? true);
+  let [isOpen, setIsOpen] = useState(() => {
+    if (p.autoCollapseOnComplete && p.status == 'completed') return false;
+    return p.defaultOpen ?? true;
+  });
+  let previousStatusRef = useRef(p.status);
 
   useEffect(() => {
-    if (p.autoCollapseOnComplete && p.status == 'completed') {
+    let previousStatus = previousStatusRef.current;
+    previousStatusRef.current = p.status;
+
+    if (p.autoCollapseOnComplete && previousStatus != 'completed' && p.status == 'completed') {
       setIsOpen(false);
     }
   }, [p.autoCollapseOnComplete, p.status]);

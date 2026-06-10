@@ -1,5 +1,6 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import {
+  conversationsLoader,
   useConversationHistory,
   useCurrentInstance,
   useCurrentOrganization
@@ -192,6 +193,10 @@ export let AssistantConversationScene = (p: {
   let autoScrollIgnoreUntilRef = useRef(0);
   let autoScrollTargetTopRef = useRef(0);
   let autoScrollResetTimeoutRef = useRef<number | null>(null);
+  let observedTitleRef = useRef<{
+    conversationId: string;
+    title: string | null;
+  } | null>(null);
   let locationState = location.state as AssistantConversationNavigationState;
   let initialPrompt =
     typeof p.initialPrompt == 'string'
@@ -214,6 +219,23 @@ export let AssistantConversationScene = (p: {
     referenceMessage: history.referenceMessage,
     rootMessageId: history.conversation.data?.rootMessageId
   });
+  let conversationTitle = history.conversation.data?.title?.trim() || null;
+
+  useEffect(() => {
+    if (!assistantConversationId || !history.conversation.data) return;
+
+    let previous = observedTitleRef.current;
+    observedTitleRef.current = {
+      conversationId: assistantConversationId,
+      title: conversationTitle
+    };
+
+    if (!previous) return;
+    if (previous.conversationId != assistantConversationId) return;
+    if (previous.title || !conversationTitle) return;
+
+    conversationsLoader.refetchAll();
+  }, [assistantConversationId, conversationTitle, history.conversation.data]);
 
   useEffect(() => {
     p.setRestrictHeight?.(true);
@@ -457,11 +479,16 @@ export let AssistantConversationScene = (p: {
     setEditingDraft('');
   };
 
-  return renderWithLoader({
-    organization,
-    instance,
-    conversation: history.conversation
-  })(() => (
+  return renderWithLoader(
+    {
+      organization,
+      instance,
+      conversation: history.conversation
+    },
+    {
+      spaceTop: 80
+    }
+  )(() => (
     <ConversationScrollContainer
       ref={scrollContainerRef}
       onScroll={() => {

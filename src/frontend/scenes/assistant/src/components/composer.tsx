@@ -1,4 +1,4 @@
-import { Select, Text, theme } from '@metorial/ui';
+import { Select, theme } from '@metorial/ui';
 import { RiArrowUpLine } from '@remixicon/react';
 import { useMemo } from 'react';
 import TextareaAutosize from 'react-textarea-autosize';
@@ -11,7 +11,9 @@ let ComposerRoot = styled.div`
   flex-direction: column;
   gap: 16px;
   width: 100%;
+  min-width: 0;
   margin: 0 auto;
+  box-sizing: border-box;
 `;
 
 let ComposerCard = styled.div`
@@ -20,6 +22,8 @@ let ComposerCard = styled.div`
   flex-direction: column;
   gap: 12px;
   width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   /* background: ${theme.colors.gray100}; */
   border: 1px solid ${theme.colors.gray400};
   border-radius: 12px;
@@ -35,6 +39,7 @@ let ComposerCard = styled.div`
 
 let ComposerInput = styled(TextareaAutosize)`
   width: 100%;
+  box-sizing: border-box;
   min-height: 44px;
   max-height: 132px;
   resize: none;
@@ -57,6 +62,7 @@ let ComposerFooter = styled.div`
   gap: 12px;
   align-items: center;
   justify-content: space-between;
+  min-width: 0;
 `;
 
 let FooterLeft = styled.div`
@@ -64,19 +70,15 @@ let FooterLeft = styled.div`
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+  flex: 1 1 auto;
   min-width: 0;
 `;
 
 let ModelSelectWrap = styled.div`
-  width: 320px;
+  width: 100%;
   max-width: 100%;
-`;
-
-let HintText = styled(Text).attrs({
-  size: '1'
-})`
-  color: color-mix(in srgb, ${theme.colors.foreground} 58%, transparent);
-  white-space: nowrap;
+  min-width: 0;
+  max-width: 200px;
 `;
 
 let SendButton = styled.button<{ 'data-disabled'?: 'true' | 'false' }>`
@@ -113,6 +115,7 @@ let SuggestionsWrap = styled.div`
   display: flex;
   justify-content: flex-start;
   width: 100%;
+  min-width: 0;
 `;
 
 export let AssistantComposer = (p: {
