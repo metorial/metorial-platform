@@ -12,8 +12,11 @@ import {
   useUser
 } from '@metorial/state';
 import { Avatar, Button, Entity, Spacer } from '@metorial/ui';
+import { SideBox } from '@metorial/ui-product';
 import { Link, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
+import { ApiKeySecret } from '../scenes/apiKeys';
+import { useResolvedInstanceApiKeySecret } from '../scenes/apiKeys/useResolvedInstanceApiKeySecret';
 import { HomeProvidersTable } from '../scenes/providers/homeTable';
 
 let WorkforceGrid = styled.div`
@@ -53,8 +56,8 @@ export let ProjectHomePage = () => {
   let hasDeployments = !!deployments.data?.items.length;
   let firstDeployment = deployments.data?.items[0];
 
-  // let { apiKeys, apiKeySecret, secretApiKey, setApiKeySecret, revealedApiKey } =
-  //   useResolvedInstanceApiKeySecret(instance.data?.id);
+  let { apiKeys, apiKeySecret, secretApiKey, setApiKeySecret, revealedApiKey } =
+    useResolvedInstanceApiKeySecret(instance.data?.id);
 
   let pathItems = [
     instance.data?.organization,
@@ -73,7 +76,7 @@ export let ProjectHomePage = () => {
 
       {renderWithLoader({ instance, deployments })(() => (
         <>
-          {assistantEnabled && (
+          {assistantEnabled ? (
             <AssistantStartScene
               assistantSlug={metorialAssistantSlug}
               showHeader={false}
@@ -91,42 +94,42 @@ export let ProjectHomePage = () => {
                 )
               }
             />
-          )}
-
-          {/* <div
-            style={{
-              display: 'grid',
-              gap: 20,
-              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))'
-            }}
-          >
-            <SideBox
-              title="Integrate Metorial"
-              description="Learn how to integrate Metorial with your AI app. We have guides for various programming languages and frameworks."
+          ) : (
+            <div
+              style={{
+                display: 'grid',
+                gap: 20,
+                gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))'
+              }}
             >
-              <Button
-                size="2"
-                onClick={() => {
-                  if (window.metorial_enterprise?.chrome?.showDocs) {
-                    window.metorial_enterprise.chrome.showDocs();
-                  } else {
-                    window.open('https://metorial.com/docs', '_blank');
-                  }
-                }}
-              >
-                Read the Docs
-              </Button>
-            </SideBox>
-
-            {secretApiKey && (
               <SideBox
-                title="Connect to Metorial"
-                description="Use this API key to connect to Metorial from your code."
+                title="Integrate Metorial"
+                description="Learn how to integrate Metorial with your AI app. We have guides for various programming languages and frameworks."
               >
-                <ApiKeySecret apiKey={secretApiKey} />
+                <Button
+                  size="2"
+                  onClick={() => {
+                    if (window.metorial_enterprise?.chrome?.showDocs) {
+                      window.metorial_enterprise.chrome.showDocs();
+                    } else {
+                      window.open('https://metorial.com/docs', '_blank');
+                    }
+                  }}
+                >
+                  Read the Docs
+                </Button>
               </SideBox>
-            )}
-          </div> */}
+
+              {secretApiKey && (
+                <SideBox
+                  title="Connect to Metorial"
+                  description="Use this API key to connect to Metorial from your code."
+                >
+                  <ApiKeySecret apiKey={secretApiKey} />
+                </SideBox>
+              )}
+            </div>
+          )}
 
           <Spacer height={25} />
 
