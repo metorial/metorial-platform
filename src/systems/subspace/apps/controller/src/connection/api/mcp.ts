@@ -54,7 +54,7 @@ export let mcpRouter = createHono().all(`/:key?`, async c => {
     c.res.headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, DELETE');
     c.res.headers.set(
       'Access-Control-Allow-Headers',
-      'Content-Type, Metorial-Proxy-URL, Metorial-Agent-Client, Metorial-Connection-Private-Metadata, Metorial-Ingress-Policy-Check, Metorial-Ingress-IP, MCP-Protocol-Version, MCP-Session-ID, Authorization'
+      'Content-Type, Metorial-Proxy-URL, Metorial-Agent-Client, Metorial-Connection-Private-Metadata, Metorial-Ingress-Policy-Check, Metorial-Ingress-IP, MCP-Protocol-Version, MCP-Session-ID, Authorization,  baggage, sentry-trace'
     );
     c.res.headers.set('Access-Control-Allow-Credentials', 'true');
     c.res.headers.set(
