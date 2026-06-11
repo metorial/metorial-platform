@@ -17,6 +17,11 @@ let Wrapper = styled.div`
     padding: 0 20px;
   }
 
+  &[data-theme='medium2'] {
+    max-width: 1000px;
+    padding: 0 20px;
+  }
+
   &[data-theme='large'] {
     max-width: 1220px;
     padding: 0 40px;
@@ -33,7 +38,7 @@ export let ContentLayout = ({
   variant = 'large'
 }: {
   children: React.ReactNode;
-  variant?: 'slim' | 'medium' | 'large' | 'full';
+  variant?: 'slim' | 'medium' | 'large' | 'full' | 'medium2';
 }) => {
   return <Wrapper data-theme={variant}>{children}</Wrapper>;
 };

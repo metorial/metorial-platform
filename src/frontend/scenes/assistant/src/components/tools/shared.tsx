@@ -206,6 +206,7 @@ let SummaryText = styled.p`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-size: 13px;
 `;
 
 let SummarySecondary = styled.p`

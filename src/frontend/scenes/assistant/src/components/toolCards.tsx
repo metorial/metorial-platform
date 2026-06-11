@@ -1,5 +1,6 @@
 import type { AssistantConversationMessage, AssistantLiveStateItem } from '@metorial/state';
 import { Button, Error, Text, theme, useCopy } from '@metorial/ui';
+import 'katex/dist/katex.min.css';
 import {
   RiArrowLeftSLine,
   RiArrowRightSLine,
@@ -12,7 +13,9 @@ import {
 import React from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
 import TextareaAutosize from 'react-textarea-autosize';
+import rehypeKatex from 'rehype-katex';
 import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
 import styled from 'styled-components';
 import { TextShimmer } from './textShimmer';
 import { BashToolCard } from './tools/bashTool';
@@ -185,6 +188,22 @@ let MarkdownWrapper = styled.div`
     padding: 0;
     border-radius: 0;
   }
+
+  img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+  }
+
+  .katex-display {
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 4px 0;
+  }
+
+  .katex {
+    font-size: 1.02em;
+  }
 `;
 
 let PlainTextWrapper = styled.div`
@@ -315,6 +334,9 @@ let markdownComponents: Components = {
   td: ({ children, ...props }) => <MarkdownTableCell {...props}>{children}</MarkdownTableCell>
 };
 
+let markdownRemarkPlugins = [remarkGfm, remarkMath];
+let markdownRehypePlugins = [rehypeKatex];
+
 let MessagePart = (p: {
   renderMarkdown?: boolean;
   animateText?: boolean;
@@ -338,7 +360,11 @@ let MessagePart = (p: {
 
     return (
       <MarkdownWrapper>
-        <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+        <ReactMarkdown
+          remarkPlugins={markdownRemarkPlugins}
+          rehypePlugins={markdownRehypePlugins}
+          components={markdownComponents}
+        >
           {text}
         </ReactMarkdown>
       </MarkdownWrapper>
@@ -521,7 +547,11 @@ let ReasoningCard = (p: { item: Extract<AssistantLiveStateItem, { type: 'reasoni
         <TextShimmer>{p.item.text || 'Thinking...'}</TextShimmer>
       ) : (
         <MarkdownWrapper>
-          <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+          <ReactMarkdown
+            remarkPlugins={markdownRemarkPlugins}
+            rehypePlugins={markdownRehypePlugins}
+            components={markdownComponents}
+          >
             {p.item.text}
           </ReactMarkdown>
         </MarkdownWrapper>

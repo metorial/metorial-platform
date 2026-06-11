@@ -1,6 +1,6 @@
 import { atom, useAtom } from '@metorial/data-hooks';
-import { Tooltip, theme } from '@metorial/ui';
-import { RiAddLine, RiArrowDownSLine } from '@remixicon/react';
+import { Menu, Tooltip, theme } from '@metorial/ui';
+import { RiAddLine, RiArrowDownSLine, RiMoreLine } from '@remixicon/react';
 import clsx from 'clsx';
 import { AnimatePresence, motion } from 'framer-motion';
 import React, { Fragment, useEffect, useState } from 'react';
@@ -12,6 +12,7 @@ export interface ISidebarItem {
   label: string;
   to?: string;
   onClick?: () => void;
+  menu?: { label: React.ReactNode; action: () => void; disabled?: boolean }[];
   getProps?: (props: { pathname: string; to: string }) => { isActive: boolean };
   enabled?: boolean;
   children?: {
@@ -124,6 +125,16 @@ let Item = styled('div').withConfig({
   }
 `;
 
+let ItemFrame = styled('div')`
+  position: relative;
+  min-width: 0;
+
+  &:hover ${Item},
+  &:focus-within ${Item} {
+    background: ${theme.colors.gray400};
+  }
+`;
+
 let Icon = styled('span')`
   display: flex;
   align-items: center;
@@ -138,7 +149,120 @@ let Text = styled('p')`
   font-size: 14px;
   flex-grow: 1;
   text-align: left;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
+
+let ActionButton = styled('button')`
+  display: block;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 0;
+  outline: none;
+`;
+
+let ItemMenuOverlay = styled('div')<{ $open: boolean }>`
+  position: absolute;
+  top: 50%;
+  right: 5px;
+  z-index: 2;
+  transform: translateY(-50%);
+  opacity: ${p => (p.$open ? 1 : 0)};
+  pointer-events: ${p => (p.$open ? 'auto' : 'none')};
+  transition: opacity 0.12s ease;
+
+  ${ItemFrame}:hover &,
+  ${ItemFrame}:focus-within & {
+    opacity: 1;
+    pointer-events: auto;
+  }
+`;
+
+let ItemMenuButton = styled('button')`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 6px;
+  background: ${theme.colors.gray500};
+  color: ${theme.colors.gray700};
+  cursor: pointer;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease;
+
+  &:hover,
+  &:focus {
+    color: ${theme.colors.foreground};
+  }
+`;
+
+let SidebarItemRow = ({
+  item
+}: {
+  item: ISidebarItem & {
+    isActive?: boolean;
+    childrenActive?: boolean;
+    children: NonNullable<ISidebarItem['children']>;
+  };
+}) => {
+  let [menuOpen, setMenuOpen] = useState(false);
+  let hasMenu = !!item.menu?.length;
+  let active = item.isActive && !item.childrenActive;
+  let itemContent = (
+    <Item
+      activeBackground={active || menuOpen}
+      activeBar={active}
+      activeColor={active}
+      style={hasMenu ? { paddingRight: 38 } : undefined}
+    >
+      <Icon>{item.icon}</Icon>
+      <Text>{item.label}</Text>
+    </Item>
+  );
+
+  return (
+    <ItemFrame>
+      {item.to ? (
+        <Link to={item.to} onClick={item.onClick}>
+          {itemContent}
+        </Link>
+      ) : (
+        <ActionButton onClick={item.onClick}>{itemContent}</ActionButton>
+      )}
+
+      {hasMenu && (
+        <ItemMenuOverlay
+          $open={menuOpen}
+          onClick={event => {
+            event.preventDefault();
+            event.stopPropagation();
+          }}
+        >
+          <Menu
+            label={`${item.label} options`}
+            items={item.menu!.map((menuItem, index) => ({
+              id: String(index),
+              label: menuItem.label,
+              disabled: menuItem.disabled
+            }))}
+            onItemClick={id => item.menu?.[Number(id)]?.action()}
+            setIsOpen={setMenuOpen}
+          >
+            <ItemMenuButton type="button" title={`${item.label} options`}>
+              <RiMoreLine size={18} />
+            </ItemMenuButton>
+          </Menu>
+        </ItemMenuOverlay>
+      )}
+    </ItemFrame>
+  );
+};
 
 let SidebarGroup = ({
   label,
@@ -235,38 +359,7 @@ let SidebarGroup = ({
             <Items>
               {items.map((item, index) => (
                 <Fragment key={index}>
-                  {item.to ? (
-                    <Link to={item.to} key={index} onClick={item.onClick}>
-                      <Item
-                        activeBackground={item.isActive && !item.childrenActive}
-                        activeBar={item.isActive && !item.childrenActive}
-                        activeColor={item.isActive && !item.childrenActive}
-                      >
-                        <Icon>{item.icon}</Icon>
-                        <Text>{item.label}</Text>
-                      </Item>
-                    </Link>
-                  ) : (
-                    <button
-                      onClick={item.onClick}
-                      key={index}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        padding: 0,
-                        outline: 'none'
-                      }}
-                    >
-                      <Item
-                        activeBackground={item.isActive && !item.childrenActive}
-                        activeBar={item.isActive && !item.childrenActive}
-                        activeColor={item.isActive && !item.childrenActive}
-                      >
-                        <Icon>{item.icon}</Icon>
-                        <Text>{item.label}</Text>
-                      </Item>
-                    </button>
-                  )}
+                  <SidebarItemRow item={item} />
 
                   <AnimatePresence>
                     {item.isActive && item.children.length && (

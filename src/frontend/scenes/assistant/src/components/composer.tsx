@@ -1,6 +1,6 @@
 import { Select, theme } from '@metorial/ui';
 import { RiArrowUpLine } from '@remixicon/react';
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import TextareaAutosize from 'react-textarea-autosize';
 import styled from 'styled-components';
 import { AssistantSuggestions } from './suggestions';
@@ -28,7 +28,7 @@ let ComposerCard = styled.div`
   border: 1px solid ${theme.colors.gray400};
   border-radius: 12px;
   padding: 14px 14px 10px;
-  box-shadow: ${theme.shadows.large};
+  box-shadow: ${theme.shadows.small};
   transition:
     border-color 120ms ease,
     box-shadow 120ms ease,
@@ -130,6 +130,7 @@ export let AssistantComposer = (p: {
   onSelectSuggestion?: (suggestion: AssistantSuggestion) => void;
   submitLabel?: string;
 }) => {
+  let inputRef = useRef<HTMLTextAreaElement | null>(null);
   let modelItems = useMemo(
     () =>
       (p.modelOptions ?? []).map(option => ({
@@ -141,11 +142,16 @@ export let AssistantComposer = (p: {
 
   let canSubmit = !!p.value.trim() && !p.isSubmitting && !p.disabled;
   let selectedModelId = p.selectedModelId ?? p.modelOptions?.[0]?.id;
+  let handleSelectSuggestion = (suggestion: AssistantSuggestion) => {
+    p.onSelectSuggestion?.(suggestion);
+    requestAnimationFrame(() => inputRef.current?.focus());
+  };
 
   return (
     <ComposerRoot>
       <ComposerCard>
         <ComposerInput
+          ref={inputRef}
           value={p.value}
           disabled={p.disabled}
           minRows={1}
@@ -194,7 +200,7 @@ export let AssistantComposer = (p: {
           <AssistantSuggestions
             suggestions={p.suggestions}
             disabled={p.disabled || p.isSubmitting}
-            onSelect={p.onSelectSuggestion}
+            onSelect={handleSelectSuggestion}
           />
         </SuggestionsWrap>
       )}

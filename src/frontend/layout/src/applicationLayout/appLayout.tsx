@@ -1,4 +1,4 @@
-import { Popover, Spacer, Switch, theme } from '@metorial/ui';
+import { Popover, Switch, theme } from '@metorial/ui';
 import { RiArrowLeftSLine, RiArrowRightSLine } from '@remixicon/react';
 import React, { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
@@ -131,20 +131,24 @@ let SidebarClip = styled.div`
 
 let Sidebar = styled.div`
   height: 100%;
-  overflow: auto;
+  overflow: hidden;
   padding: 0px;
   position: relative;
   width: 100%;
   min-width: ${SIDEBAR_MIN_WIDTH}px;
   flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-
-  scrollbar-width: thin;
-  scrollbar-color: ${theme.colors.gray400} ${theme.colors.gray200};
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
 
   opacity: 0;
   animation: ${fadeIn} 0.2s 0.05s cubic-bezier(0.26, 1.11, 0.87, 1.25) forwards;
+`;
+
+let SidebarTopScroll = styled.div`
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: ${theme.colors.gray400} ${theme.colors.gray200};
 
   &::-webkit-scrollbar {
     width: 4px;
@@ -257,6 +261,28 @@ let SidebarAnimatedItems = styled.div`
 
 let SidebarInnerBottom = styled.div`
   padding: 0px 10px 0px 10px;
+`;
+
+let SidebarBottom = styled.div`
+  background: var(--lb-bg);
+  position: relative;
+  z-index: 1;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: -20px;
+    height: 20px;
+    z-index: 1;
+    pointer-events: none;
+    background: linear-gradient(
+      180deg,
+      rgba(240, 240, 240, 0) 0%,
+      rgba(240, 240, 240, 0.85) 100%
+    );
+  }
 `;
 
 let Content = styled.div`
@@ -611,67 +637,51 @@ export let AppLayout = ({
           {!sidebarCollapsed && (
             <SidebarClip>
               <Sidebar>
-                <Shadow />
+                <SidebarTopScroll>
+                  <Shadow />
 
-                <SidebarInnerTop>
-                  {sidebarTop}
+                  <SidebarInnerTop>
+                    {sidebarTop}
 
-                  {sidebarTransition ? (
-                    <SidebarAnimatedItems
-                      key={sidebarTransition.key}
-                      style={
-                        {
-                          ['--sidebar-enter-x' as string]:
-                            sidebarTransition.direction === 'backward' ? '-18px' : '18px'
-                        } as React.CSSProperties
-                      }
-                    >
+                    {sidebarTransition ? (
+                      <SidebarAnimatedItems
+                        key={sidebarTransition.key}
+                        style={
+                          {
+                            ['--sidebar-enter-x' as string]:
+                              sidebarTransition.direction === 'backward' ? '-18px' : '18px'
+                          } as React.CSSProperties
+                        }
+                      >
+                        <SidebarItems groups={mainGroups} id={id} />
+                      </SidebarAnimatedItems>
+                    ) : (
                       <SidebarItems groups={mainGroups} id={id} />
-                    </SidebarAnimatedItems>
-                  ) : (
-                    <SidebarItems groups={mainGroups} id={id} />
-                  )}
-                </SidebarInnerTop>
+                    )}
+                  </SidebarInnerTop>
+                </SidebarTopScroll>
 
                 {!mobile && (
-                  <>
-                    <Spacer />
+                  <SidebarBottom>
+                    {bottomGroups && (
+                      <SidebarInnerBottom>
+                        <SidebarItems groups={bottomGroups} id={`${id}-bottom`} />
+                      </SidebarInnerBottom>
+                    )}
 
-                    <div
-                      style={{
-                        position: 'sticky',
-                        bottom: 0,
-                        zIndex: 10
-                      }}
-                    >
-                      <Shadow style={{ height: 20, transform: 'rotate(180deg)' }} />
-
+                    {bottom && (
                       <div
                         style={{
-                          background: 'var(--lb-bg)'
+                          padding: '0px 10px 10px 10px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 10
                         }}
                       >
-                        {bottomGroups && (
-                          <SidebarInnerBottom>
-                            <SidebarItems groups={bottomGroups} id={`${id}-bottom`} />
-                          </SidebarInnerBottom>
-                        )}
-
-                        {bottom && (
-                          <div
-                            style={{
-                              padding: '0px 10px 10px 10px',
-                              display: 'flex',
-                              flexDirection: 'column',
-                              gap: 10
-                            }}
-                          >
-                            {bottom}
-                          </div>
-                        )}
+                        {bottom}
                       </div>
-                    </div>
-                  </>
+                    )}
+                  </SidebarBottom>
                 )}
               </Sidebar>
             </SidebarClip>
