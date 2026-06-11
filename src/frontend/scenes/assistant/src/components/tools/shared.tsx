@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import styled from 'styled-components';
 
 export let ToolSurfaceCard = styled.div<{
-  'data-status'?: 'running' | 'completed' | 'failed';
+  'data-status'?: string;
 }>`
   display: flex;
   flex-direction: column;
@@ -207,13 +207,17 @@ let SummaryText = styled.p`
   overflow: hidden;
   text-overflow: ellipsis;
   font-size: 13px;
+  flex-shrink: 0;
+  max-width: 100%;
 `;
 
 let SummarySecondary = styled.p`
-  color: color-mix(in srgb, ${theme.colors.foreground} 56%, transparent);
+  color: ${theme.colors.gray600};
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-size: 13px;
+  flex-shrink: 1;
 `;
 
 let SummaryRight = styled.div`
@@ -277,7 +281,7 @@ let ChevronIcon = () => (
 export let ToolDisclosureCard = (p: {
   summary: string;
   secondaryText?: string | null;
-  status?: 'running' | 'completed' | 'failed';
+  status?: string;
   defaultOpen?: boolean;
   autoCollapseOnComplete?: boolean;
   children?: ReactNode;

@@ -43,6 +43,7 @@ export let ProjectHomePage = () => {
   let instance = useCurrentInstance();
   let user = useUser();
   let flags = useDashboardFlags();
+  let assistantEnabled = flags.data?.flags['assistant-enabled'] === true;
   let portalsEnabled =
     flags.data?.flags['portals-access'] && flags.data?.flags['paid-portals'];
 
@@ -72,23 +73,25 @@ export let ProjectHomePage = () => {
 
       {renderWithLoader({ instance, deployments })(() => (
         <>
-          <AssistantStartScene
-            assistantSlug={metorialAssistantSlug}
-            showHeader={false}
-            fullWidth
-            layout="embedded"
-            onOpenConversation={(conversationId, state) =>
-              navigate(
-                Paths.instance.assistantConversation(
-                  instance.data!.organization,
-                  instance.data!.project,
-                  instance.data!,
-                  conversationId
-                ),
-                { state }
-              )
-            }
-          />
+          {assistantEnabled && (
+            <AssistantStartScene
+              assistantSlug={metorialAssistantSlug}
+              showHeader={false}
+              fullWidth
+              layout="embedded"
+              onOpenConversation={(conversationId, state) =>
+                navigate(
+                  Paths.instance.assistantConversation(
+                    instance.data!.organization,
+                    instance.data!.project,
+                    instance.data!,
+                    conversationId
+                  ),
+                  { state }
+                )
+              }
+            />
+          )}
 
           {/* <div
             style={{

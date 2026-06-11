@@ -48,29 +48,54 @@ let getButtonStatePhysicalShadow = (state: {
   physicalShadow?: string;
 }) => state.physicalShadow ?? 'none';
 
-let createPhysicalSolidButtonStates = (
-  state: Omit<ButtonVariantState, 'shadow' | 'transform'>,
+let createPhysicalButtonStates = (
+  states: {
+    passive: Omit<ButtonVariantState, 'physicalShadow' | 'transform'>;
+    active: Omit<ButtonVariantState, 'physicalShadow' | 'transform'>;
+    pressed?: Omit<ButtonVariantState, 'physicalShadow' | 'transform'>;
+  },
   physicalShadowColor?: string
 ) => ({
   passive: {
-    ...state,
-    shadow: theme.shadows.small,
+    ...states.passive,
     transform: 'translateY(0)'
   },
 
   active: {
-    ...state,
-    shadow: theme.shadows.medium,
+    ...states.active,
     physicalShadow: createPhysicalButtonShadow(physicalShadowColor),
     transform: `translateY(-${physicalButtonShadow.offset})`
   },
 
   pressed: {
-    ...state,
-    shadow: theme.shadows.small,
-    transform: 'translateY(0)'
+    ...(states.pressed ?? states.passive),
+    transform: 'translateY(2px)'
   }
 });
+
+let createPhysicalSolidButtonStates = (
+  state: Omit<ButtonVariantState, 'shadow' | 'transform'>,
+  physicalShadowColor?: string
+) =>
+  createPhysicalButtonStates(
+    {
+      passive: {
+        ...state,
+        shadow: theme.shadows.small
+      },
+
+      active: {
+        ...state,
+        shadow: theme.shadows.medium
+      },
+
+      pressed: {
+        ...state,
+        shadow: theme.shadows.small
+      }
+    },
+    physicalShadowColor
+  );
 
 let colorTypes: ColorType[] = [
   'gray',
@@ -191,19 +216,24 @@ let coloredButtonVariants = memo((color: ColorType) => ({
   },
 
   outline: {
-    passive: {
-      color: theme.colors[getColorKey(color, '800')],
-      background: theme.colors.background,
-      border: theme.colors[getColorKey(color, '600')],
-      shadow: 'none'
-    },
+    ...createPhysicalButtonStates(
+      {
+        passive: {
+          color: theme.colors[getColorKey(color, '800')],
+          background: theme.colors.background,
+          border: theme.colors[getColorKey(color, '600')],
+          shadow: 'none'
+        },
 
-    active: {
-      color: theme.colors[getColorKey(color, '800')],
-      background: theme.colors.background,
-      border: theme.colors[getColorKey(color, '700')],
-      shadow: 'none'
-    },
+        active: {
+          color: theme.colors[getColorKey(color, '800')],
+          background: theme.colors.background,
+          border: theme.colors[getColorKey(color, '700')],
+          shadow: 'none'
+        }
+      },
+      getPhysicalButtonShadowColorForType(color)
+    ),
 
     spinner: {
       foreground: theme.colors[getColorKey(color, '900')],
@@ -214,19 +244,24 @@ let coloredButtonVariants = memo((color: ColorType) => ({
   },
 
   soft: {
-    passive: {
-      color: theme.colors[getColorKey(color, '800')],
-      background: theme.colors[getColorKey(color, '100')],
-      border: theme.colors[getColorKey(color, '100')],
-      shadow: 'none'
-    },
+    ...createPhysicalButtonStates(
+      {
+        passive: {
+          color: theme.colors[getColorKey(color, '800')],
+          background: theme.colors[getColorKey(color, '100')],
+          border: theme.colors[getColorKey(color, '100')],
+          shadow: 'none'
+        },
 
-    active: {
-      color: theme.colors[getColorKey(color, '800')],
-      background: theme.colors[getColorKey(color, '200')],
-      border: theme.colors[getColorKey(color, '200')],
-      shadow: 'none'
-    },
+        active: {
+          color: theme.colors[getColorKey(color, '800')],
+          background: theme.colors[getColorKey(color, '200')],
+          border: theme.colors[getColorKey(color, '200')],
+          shadow: 'none'
+        }
+      },
+      getPhysicalButtonShadowColorForType(color)
+    ),
 
     spinner: {
       foreground: theme.colors[getColorKey(color, '900')],
@@ -277,19 +312,24 @@ let monoChromeButtonVariants = {
   },
 
   outline: {
-    passive: {
-      color: theme.colors.foreground,
-      background: theme.colors.background,
-      border: theme.colors.gray400,
-      shadow: 'none'
-    },
+    ...createPhysicalButtonStates(
+      {
+        passive: {
+          color: theme.colors.foreground,
+          background: theme.colors.background,
+          border: theme.colors.gray400,
+          shadow: 'none'
+        },
 
-    active: {
-      color: theme.colors.foreground,
-      background: theme.colors.background,
-      border: theme.colors.gray500,
-      shadow: 'none'
-    },
+        active: {
+          color: theme.colors.foreground,
+          background: theme.colors.background,
+          border: theme.colors.gray500,
+          shadow: 'none'
+        }
+      },
+      getPhysicalButtonShadowColorForType('gray')
+    ),
 
     spinner: {
       foreground: theme.colors.foreground,
@@ -300,19 +340,24 @@ let monoChromeButtonVariants = {
   },
 
   soft: {
-    passive: {
-      color: theme.colors.foreground,
-      background: theme.colors.gray200,
-      border: theme.colors.gray100,
-      shadow: 'none'
-    },
+    ...createPhysicalButtonStates(
+      {
+        passive: {
+          color: theme.colors.foreground,
+          background: theme.colors.gray200,
+          border: theme.colors.gray100,
+          shadow: 'none'
+        },
 
-    active: {
-      color: theme.colors.foreground,
-      background: theme.colors.gray300,
-      border: theme.colors.gray200,
-      shadow: 'none'
-    },
+        active: {
+          color: theme.colors.foreground,
+          background: theme.colors.gray300,
+          border: theme.colors.gray200,
+          shadow: 'none'
+        }
+      },
+      getPhysicalButtonShadowColorForType('gray')
+    ),
 
     spinner: {
       foreground: theme.colors.foreground,
@@ -385,19 +430,24 @@ let concreteButtonVariants = memo((color: ColorKey) => {
     },
 
     outline: {
-      passive: {
-        color: baseColor,
-        background: theme.colors.background,
-        border: baseColor,
-        shadow: 'none'
-      },
+      ...createPhysicalButtonStates(
+        {
+          passive: {
+            color: baseColor,
+            background: theme.colors.background,
+            border: baseColor,
+            shadow: 'none'
+          },
 
-      active: {
-        color: baseColor,
-        background: theme.colors.background,
-        border: baseColor,
-        shadow: 'none'
-      },
+          active: {
+            color: baseColor,
+            background: theme.colors.background,
+            border: baseColor,
+            shadow: 'none'
+          }
+        },
+        getPhysicalButtonShadowColorForKey(parsed, baseColor)
+      ),
 
       spinner: {
         foreground: baseColor,
@@ -408,19 +458,24 @@ let concreteButtonVariants = memo((color: ColorKey) => {
     },
 
     soft: {
-      passive: {
-        color: baseColor,
-        background: softBackground,
-        border: softBackground,
-        shadow: 'none'
-      },
+      ...createPhysicalButtonStates(
+        {
+          passive: {
+            color: baseColor,
+            background: softBackground,
+            border: softBackground,
+            shadow: 'none'
+          },
 
-      active: {
-        color: baseColor,
-        background: softActiveBackground,
-        border: softActiveBackground,
-        shadow: 'none'
-      },
+          active: {
+            color: baseColor,
+            background: softActiveBackground,
+            border: softActiveBackground,
+            shadow: 'none'
+          }
+        },
+        getPhysicalButtonShadowColorForKey(parsed, baseColor)
+      ),
 
       spinner: {
         foreground: baseColor,
@@ -456,6 +511,13 @@ let concreteButtonVariants = memo((color: ColorKey) => {
 });
 
 export type ButtonVariant = 'solid' | 'outline' | 'soft' | 'ghost';
+
+let physicalButtonHoverByVariant: Record<ButtonVariant, boolean> = {
+  solid: true,
+  outline: true,
+  soft: true,
+  ghost: false
+};
 
 let sizes = {
   '1': {
@@ -540,6 +602,7 @@ let getColorButtonTheme = memo(
         : monoChromeButtonVariants
     )[variant];
     let pressed = 'pressed' in v ? v.pressed : v.active;
+    let enablePhysicalHover = physicalButtonHoverByVariant[variant];
 
     return buttonTheme.setRootStyles({
       passive_color: v.passive.color,
@@ -553,15 +616,14 @@ let getColorButtonTheme = memo(
       active_border: v.active.border,
       active_shadow: composeButtonShadow(
         shadow ? v.active.shadow : 'none',
-        getButtonStatePhysicalShadow(v.active)
+        enablePhysicalHover ? getButtonStatePhysicalShadow(v.active) : 'none'
       ),
-      active_transform: getButtonStateTransform(v.active),
+      active_transform: enablePhysicalHover ? getButtonStateTransform(v.active) : 'none',
 
-      pressed_shadow: shadow ? pressed.shadow : 'none',
-      pressed_transform: getButtonStateTransform(
-        pressed,
-        v.animateClickScale ? 'scale(0.98)' : 'none'
-      ),
+      pressed_shadow: enablePhysicalHover && shadow ? pressed.shadow : 'none',
+      pressed_transform: enablePhysicalHover
+        ? getButtonStateTransform(pressed, v.animateClickScale ? 'scale(0.98)' : 'none')
+        : 'none',
 
       spinner_foreground: v.spinner.foreground,
       spinner_background: v.spinner.background

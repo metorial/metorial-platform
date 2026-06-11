@@ -1885,6 +1885,11 @@ export let productHomeSlice = createSlice([
           },
           {
             path: 'assistant',
+            element: (
+              <FlaggedPage flag="assistant-enabled">
+                <Outlet />
+              </FlaggedPage>
+            ),
             children: [
               {
                 path: '',

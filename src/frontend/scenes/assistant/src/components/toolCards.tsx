@@ -1,6 +1,5 @@
 import type { AssistantConversationMessage, AssistantLiveStateItem } from '@metorial/state';
 import { Button, Error, Text, theme, useCopy } from '@metorial/ui';
-import 'katex/dist/katex.min.css';
 import {
   RiArrowLeftSLine,
   RiArrowRightSLine,
@@ -10,6 +9,7 @@ import {
   RiEditLine,
   RiFileCopyLine
 } from '@remixicon/react';
+import 'katex/dist/katex.min.css';
 import React from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
 import TextareaAutosize from 'react-textarea-autosize';
@@ -26,6 +26,7 @@ import {
   getStatusLabel,
   ToolContentStack,
   ToolDetail,
+  ToolDisclosureCard,
   ToolHeader,
   ToolHeaderMain,
   ToolPathTag,
@@ -164,7 +165,8 @@ let MarkdownWrapper = styled.div`
   }
 
   code {
-    font-family: 'JetBrains Mono', 'Source Code Pro', ui-monospace, SFMono-Regular, Menlo, Monaco,
+    font-family:
+      'JetBrains Mono', 'Source Code Pro', ui-monospace, SFMono-Regular, Menlo, Monaco,
       Consolas, monospace;
     font-size: 0.92em;
     background: color-mix(in srgb, ${theme.colors.foreground} 6%, transparent);
@@ -526,37 +528,40 @@ let MessageCard = (p: {
   );
 };
 
-let ReasoningCard = (p: { item: Extract<AssistantLiveStateItem, { type: 'reasoning' }> }) => {
-  return (
-    <ToolSurfaceCard>
-      <ToolHeader>
-        <ToolHeaderMain>
-          <ToolTitle>Thinking</ToolTitle>
-          {!!p.item.text && p.item.status == 'running' && (
-            <ToolDetail>{p.item.text}</ToolDetail>
-          )}
-        </ToolHeaderMain>
-        {p.item.status != 'completed' ? (
-          <ToolStatusBadge data-status={p.item.status}>
-            {getStatusLabel(p.item.status)}
-          </ToolStatusBadge>
-        ) : null}
-      </ToolHeader>
+let getReasoningPreview = (text?: string | null) => {
+  let preview = text?.replace(/\s+/g, ' ').trim();
+  if (!preview) return null;
+  return `${preview.slice(0, 250)}...`;
+};
 
-      {p.item.status == 'running' ? (
-        <TextShimmer>{p.item.text || 'Thinking...'}</TextShimmer>
-      ) : (
-        <MarkdownWrapper>
-          <ReactMarkdown
-            remarkPlugins={markdownRemarkPlugins}
-            rehypePlugins={markdownRehypePlugins}
-            components={markdownComponents}
-          >
-            {p.item.text}
-          </ReactMarkdown>
-        </MarkdownWrapper>
-      )}
-    </ToolSurfaceCard>
+let ReasoningCard = (p: { item: Extract<AssistantLiveStateItem, { type: 'reasoning' }> }) => {
+  let preview = getReasoningPreview(p.item.text);
+  let hasContent = p.item.status == 'running' || !!preview;
+
+  return (
+    <ToolDisclosureCard
+      summary={p.item.status == 'running' ? 'Thinking' : 'Thought'}
+      secondaryText={preview}
+      status={p.item.status}
+      defaultOpen={p.item.status == 'running'}
+      autoCollapseOnComplete={true}
+    >
+      {hasContent ? (
+        p.item.status == 'running' ? (
+          <TextShimmer>{p.item.text || 'Thinking...'}</TextShimmer>
+        ) : (
+          <MarkdownWrapper>
+            <ReactMarkdown
+              remarkPlugins={markdownRemarkPlugins}
+              rehypePlugins={markdownRehypePlugins}
+              components={markdownComponents}
+            >
+              {p.item.text}
+            </ReactMarkdown>
+          </MarkdownWrapper>
+        )
+      ) : undefined}
+    </ToolDisclosureCard>
   );
 };
 
