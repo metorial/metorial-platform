@@ -17,6 +17,8 @@ export let subspaceMagicMcpBackingService = createSubspaceService(
     'getServerSession',
     'listServerProviders',
     'resolveServerProviderBackingIds',
+    'resolveServerBackingIdsByIntegrationResource',
+    'resolveServerBackingIdsForIntegrationInstanceUsage',
     'getServerProvider',
     'createServerProvider',
     'updateServerProvider',

@@ -85,11 +85,19 @@ export let integrationInstanceInclude = {
   identityActor: true,
   identity: true,
   defaultSessionTemplate: true,
+  magicMcpServerBackings: {
+    orderBy: {
+      createdAt: 'asc' as const
+    },
+    take: 1,
+    select: {
+      id: true
+    }
+  },
   integrationInstanceProviders: {
     where: { status: 'active' as const, isParentDeleted: false },
     include: integrationInstanceProviderInclude
-  },
-  magicMcpServerBacking: true
+  }
 } as const;
 
 export let magicMcpBackingIntegrationInstanceInclude = {

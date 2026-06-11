@@ -73,6 +73,13 @@ export let MagicMcpServerLayout = () => {
     <ContentLayout>
       {renderWithLoader({ server })(({ server }) => {
         let serverLabel = server.data.name ?? server.data.id;
+        let canAddProviders = server.data.providerManagementMode === 'manual';
+        let addProviderDisabledReason =
+          server.data.providerManagementMode === 'inherited_from_integration'
+            ? 'Providers are inherited from the integration and cannot be changed here.'
+            : server.data.providerManagementMode === 'inherited_from_provider_template'
+              ? 'Providers are inherited from the provider template and cannot be changed here.'
+              : undefined;
 
         return (
           <>
@@ -104,11 +111,15 @@ export let MagicMcpServerLayout = () => {
 
                   <Button
                     size="2"
+                    disabled={!isTokensPage && !canAddProviders}
+                    title={!isTokensPage ? addProviderDisabledReason : undefined}
                     onClick={() => {
                       if (isTokensPage) {
                         createMagicMcpTokenModal();
                         return;
                       }
+
+                      if (!canAddProviders) return;
 
                       showAddProviderSidePanel({
                         instanceId: instance.data!.id,

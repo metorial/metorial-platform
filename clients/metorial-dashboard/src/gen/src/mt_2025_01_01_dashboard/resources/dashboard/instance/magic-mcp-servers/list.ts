@@ -136,6 +136,17 @@ export type DashboardInstanceMagicMcpServersListOutput = {
     createdAt: Date;
     updatedAt: Date;
   } & {
+    integrationId: string | null;
+    integrationInstanceId: string | null;
+    consumerOwners: {
+      consumerIntegrationId: string | null;
+      consumerId: string;
+      consumerProfileId: string;
+      consumerName: string;
+      consumerEmail: string;
+      consumerProfileName: string;
+      consumerProfileEmail: string;
+    }[];
     providers: ({
       object: 'magic_mcp.server.provider';
       id: string;
@@ -694,7 +705,50 @@ export let mapDashboardInstanceMagicMcpServersListOutput =
               ),
               metadata: mtMap.objectField('metadata', mtMap.passthrough()),
               createdAt: mtMap.objectField('created_at', mtMap.date()),
-              updatedAt: mtMap.objectField('updated_at', mtMap.date())
+              updatedAt: mtMap.objectField('updated_at', mtMap.date()),
+              integrationId: mtMap.objectField(
+                'integration_id',
+                mtMap.passthrough()
+              ),
+              integrationInstanceId: mtMap.objectField(
+                'integration_instance_id',
+                mtMap.passthrough()
+              ),
+              consumerOwners: mtMap.objectField(
+                'consumer_owners',
+                mtMap.array(
+                  mtMap.object({
+                    consumerIntegrationId: mtMap.objectField(
+                      'consumer_integration_id',
+                      mtMap.passthrough()
+                    ),
+                    consumerId: mtMap.objectField(
+                      'consumer_id',
+                      mtMap.passthrough()
+                    ),
+                    consumerProfileId: mtMap.objectField(
+                      'consumer_profile_id',
+                      mtMap.passthrough()
+                    ),
+                    consumerName: mtMap.objectField(
+                      'consumer_name',
+                      mtMap.passthrough()
+                    ),
+                    consumerEmail: mtMap.objectField(
+                      'consumer_email',
+                      mtMap.passthrough()
+                    ),
+                    consumerProfileName: mtMap.objectField(
+                      'consumer_profile_name',
+                      mtMap.passthrough()
+                    ),
+                    consumerProfileEmail: mtMap.objectField(
+                      'consumer_profile_email',
+                      mtMap.passthrough()
+                    )
+                  })
+                )
+              )
             })
           )
         ])
@@ -727,6 +781,12 @@ export type DashboardInstanceMagicMcpServersListQuery = {
     | undefined;
   magicMcpGroupId?: string | string[] | undefined;
   providerTemplateId?: string | string[] | undefined;
+  integrationInstanceId?: string | string[] | undefined;
+  owner?:
+    | 'organization'
+    | 'consumer'
+    | ('organization' | 'consumer')[]
+    | undefined;
   providerId?: string | string[] | undefined;
   consumerId?: string | string[] | undefined;
   consumerProfileId?: string | string[] | undefined;
@@ -767,6 +827,20 @@ export let mapDashboardInstanceMagicMcpServersListQuery = mtMap.union([
             mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
           )
         ])
+      ),
+      integrationInstanceId: mtMap.objectField(
+        'integration_instance_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      owner: mtMap.objectField(
+        'owner',
+        mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
       ),
       providerId: mtMap.objectField(
         'provider_id',

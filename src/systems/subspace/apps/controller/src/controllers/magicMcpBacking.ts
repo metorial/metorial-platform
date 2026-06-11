@@ -370,6 +370,58 @@ export let magicMcpBackingController = app.controller({
       return { magicMcpServerBackingIds };
     }),
 
+  resolveServerBackingIdsByIntegrationResource: tenantApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        environmentId: v.string(),
+        integrationId: v.optional(v.nullable(v.string())),
+        integrationInstanceId: v.optional(v.nullable(v.string()))
+      })
+    )
+    .do(async ctx => {
+      let magicMcpServerBackingIds =
+        await magicMcpServerBackingService.resolveMagicMcpServerBackingIdsByIntegrationResource(
+          {
+            tenant: ctx.tenant,
+            solution: ctx.solution,
+            environment: ctx.environment,
+            integrationId: ctx.input.integrationId,
+            integrationInstanceId: ctx.input.integrationInstanceId
+          }
+        );
+
+      return { magicMcpServerBackingIds };
+    }),
+
+  resolveServerBackingIdsForIntegrationInstanceUsage: tenantApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        environmentId: v.string(),
+        integrationInstanceId: v.string(),
+        ownerTypes: v.optional(
+          v.array(v.enumOf(['server_owned', 'provider_template', 'integration']))
+        )
+      })
+    )
+    .do(async ctx => {
+      let magicMcpServerBackingIds =
+        await magicMcpServerBackingService.resolveMagicMcpServerBackingIdsForIntegrationInstanceUsage(
+          {
+            tenant: ctx.tenant,
+            solution: ctx.solution,
+            environment: ctx.environment,
+            integrationInstanceId: ctx.input.integrationInstanceId,
+            ownerTypes: ctx.input.ownerTypes
+          }
+        );
+
+      return { magicMcpServerBackingIds };
+    }),
+
   getServerProvider: tenantApp
     .handler()
     .input(
