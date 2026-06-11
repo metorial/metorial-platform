@@ -1,4 +1,4 @@
-import { Button, Menu, Spacer, Text, theme, Title, toast } from '@metorial/ui';
+import { Button, getLink, Menu, Spacer, Text, theme, Title, toast } from '@metorial/ui';
 import { RiMore2Fill } from '@remixicon/react';
 import copy from 'copy-to-clipboard';
 import React from 'react';
@@ -63,16 +63,23 @@ let Wrapper = styled.li.withConfig({ shouldForwardProp: p => p !== '$mode' })<{
 }>`
   display: flex;
   flex-direction: column;
+  width: 100%;
   padding: ${p => (p.$mode === 'compactHorizontal' ? '12px' : '15px')};
+  background: none;
   border: solid 1px ${theme.colors.gray300};
   border-radius: ${p => (p.$mode === 'compactHorizontal' ? '12px' : '15px')};
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
   transition: all 0.2s;
 
   &[data-button='true'] {
     cursor: pointer;
 
     &:hover,
-    &:focus {
+    &:focus-visible,
+    a:focus-visible & {
       border: solid 1px ${theme.colors.gray400};
       box-shadow: ${theme.shadows.medium};
     }
@@ -135,17 +142,50 @@ let MenuWrapper = styled.div`
   z-index: 1;
 `;
 
-let getButtonProps = (onClick: () => void) => ({
-  onClick,
-  role: 'button',
-  tabIndex: 0,
-  onKeyPress: (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      onClick();
-    }
-  },
-  'data-button': 'true'
-});
+type ItemGridActionProps = {
+  href?: string;
+  onClick?: () => void;
+};
+
+let getActionProps = ({ href, onClick }: ItemGridActionProps) => {
+  if (onClick) {
+    return {
+      as: 'button' as const,
+      type: 'button' as const,
+      onClick,
+      'data-button': 'true'
+    };
+  }
+
+  if (href) {
+    return {
+      as: 'span' as const,
+      'data-button': 'true'
+    };
+  }
+
+  return {};
+};
+
+let wrapAction = (children: React.ReactNode, href?: string) => {
+  if (!href) return children;
+
+  let Link = getLink();
+
+  return (
+    <Link
+      to={href}
+      style={{
+        color: 'inherit',
+        display: 'flex',
+        minWidth: 0,
+        textDecoration: 'none'
+      }}
+    >
+      {children}
+    </Link>
+  );
+};
 
 export let ItemGrid = {
   Root: ({ responsive, ...props }: ItemGridRootProps) => {
@@ -162,6 +202,7 @@ export let ItemGrid = {
     entity,
     showCopyId = true,
     menu,
+    href,
     onClick,
     bottom,
     mode = 'default',
@@ -174,6 +215,7 @@ export let ItemGrid = {
     entity?: { id: string; hasUsage?: boolean };
     showCopyId?: boolean;
     menu?: { label: string; onClick: () => void }[];
+    href?: string;
     onClick?: () => void;
     bottom?: React.ReactNode;
     mode?: ItemGridItemMode;
@@ -185,9 +227,9 @@ export let ItemGrid = {
       ...(menu?.map((item, i) => ({ id: String(i), label: item.label })) ?? [])
     ];
 
-    return (
+    return wrapAction(
       <Wrapper
-        {...(onClick ? getButtonProps(onClick) : {})}
+        {...getActionProps({ href, onClick })}
         $mode={mode}
         style={{
           height: mode === 'compactHorizontal' ? height : undefined,
@@ -230,7 +272,12 @@ export let ItemGrid = {
           )}
 
           {menuItems.length > 0 && (
-            <MenuWrapper onClick={e => e.stopPropagation()}>
+            <MenuWrapper
+              onClick={e => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+            >
               <Menu
                 onItemClick={id => {
                   if (id == 'id' && entity) {
@@ -254,23 +301,26 @@ export let ItemGrid = {
             {bottom}
           </>
         )}
-      </Wrapper>
+      </Wrapper>,
+      onClick ? undefined : href
     );
   },
   CenteredItem: ({
     title,
     description,
     icon,
+    href,
     onClick
   }: {
     title: React.ReactNode;
     description?: React.ReactNode;
     icon: React.ReactNode;
+    href?: string;
     onClick?: () => void;
   }) => {
-    return (
+    return wrapAction(
       <Wrapper
-        {...(onClick ? getButtonProps(onClick) : {})}
+        {...getActionProps({ href, onClick })}
         style={{
           alignItems: 'center',
           justifyContent: 'center',
@@ -289,7 +339,8 @@ export let ItemGrid = {
             {description}
           </Text>
         )}
-      </Wrapper>
+      </Wrapper>,
+      onClick ? undefined : href
     );
   },
   RawItem: Wrapper

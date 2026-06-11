@@ -1,7 +1,7 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import { useCurrentInstance, useDashboardFlags } from '@metorial/state';
 import { ComingSoon, Upgrade } from '../../../../../components/emptyState';
-import { CustomProvidersTable } from '../../../scenes/customProvider/table';
+import { CustomProvidersGrid } from '../../../scenes/customProvider/table';
 
 export let CustomerProvidersPage = () => {
   let instance = useCurrentInstance();
@@ -20,7 +20,7 @@ export let CustomerProvidersPage = () => {
           description="Deploy custom MCP servers on the same reliable infra that runs every MCP server on Metorial. Implement custom behavior or fork existing servers."
         />
       ) : (
-        <CustomProvidersTable type={['function', 'container']} />
+        <CustomProvidersGrid type={['function', 'container']} />
       )}
     </>
   ));

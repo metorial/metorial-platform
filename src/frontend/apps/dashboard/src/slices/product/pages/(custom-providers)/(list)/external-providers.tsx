@@ -1,7 +1,7 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import { useCurrentInstance, useDashboardFlags } from '@metorial/state';
 import { ComingSoon, Upgrade } from '../../../../../components/emptyState';
-import { CustomProvidersTable } from '../../../scenes/customProvider/table';
+import { CustomProvidersGrid } from '../../../scenes/customProvider/table';
 
 export let ExternalProvidersPage = () => {
   let instance = useCurrentInstance();
@@ -20,7 +20,7 @@ export let ExternalProvidersPage = () => {
           description="Connect remote MCP servers to Metorial and enjoy managed OAuth, monitoring and more."
         />
       ) : (
-        <CustomProvidersTable type={['remote']} />
+        <CustomProvidersGrid type={['remote']} />
       )}
     </>
   ));

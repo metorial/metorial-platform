@@ -514,8 +514,8 @@ export type ButtonVariant = 'solid' | 'outline' | 'soft' | 'ghost';
 
 let physicalButtonHoverByVariant: Record<ButtonVariant, boolean> = {
   solid: true,
-  outline: true,
-  soft: true,
+  outline: false,
+  soft: false,
   ghost: false
 };
 

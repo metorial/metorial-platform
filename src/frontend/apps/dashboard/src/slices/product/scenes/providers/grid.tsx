@@ -2,10 +2,9 @@ import type { DashboardInstanceProviderListingsListQuery } from '@metorial/dashb
 import { renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, useProviderListings } from '@metorial/state';
-import { Avatar, Badge, Text, theme } from '@metorial/ui';
+import { Avatar, Badge, Text } from '@metorial/ui';
 import { ItemGrid } from '@metorial/ui-product';
 import { RiCheckLine } from '@remixicon/react';
-import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 
 type ProvidersGridMode = 'default' | 'home';
@@ -13,17 +12,6 @@ type ProvidersGridMode = 'default' | 'home';
 type ProvidersGridProps = DashboardInstanceProviderListingsListQuery & {
   mode?: ProvidersGridMode;
 };
-
-let ProviderLink = styled(Link)`
-  color: inherit;
-  text-decoration: none;
-
-  &:hover > li,
-  &:focus-visible > li {
-    border-color: ${theme.colors.gray400};
-    box-shadow: ${theme.shadows.small};
-  }
-`;
 
 let Categories = styled.div.withConfig({ shouldForwardProp: p => p !== '$mode' })<{
   $mode: ProvidersGridMode;
@@ -88,54 +76,54 @@ export let ProvidersGrid = ({ mode = 'default', ...filter }: ProvidersGridProps)
             );
 
             return (
-              <ProviderLink key={listing.id} to={href}>
-                <ItemGrid.Item
-                  entity={{ id: listing.id, hasUsage: true }}
-                  title={listing.name}
-                  description={isHome ? undefined : description}
-                  height={isHome ? 118 : 250}
-                  mode={isHome ? 'compactHorizontal' : 'default'}
-                  showCopyId={!isHome}
-                  icon={
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <Avatar
-                        entity={{
-                          name: listing.name,
-                          photoUrl: listing.imageUrl
-                        }}
-                        size={isHome ? 24 : 30}
-                        radius={isHome ? 6 : 5}
-                        imageFit="contain"
-                      />
+              <ItemGrid.Item
+                key={listing.id}
+                href={href}
+                entity={{ id: listing.id, hasUsage: true }}
+                title={listing.name}
+                description={isHome ? undefined : description}
+                height={isHome ? 118 : 250}
+                mode={isHome ? 'compactHorizontal' : 'default'}
+                showCopyId={!isHome}
+                icon={
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <Avatar
+                      entity={{
+                        name: listing.name,
+                        photoUrl: listing.imageUrl
+                      }}
+                      size={isHome ? 24 : 30}
+                      radius={isHome ? 6 : 5}
+                      imageFit="contain"
+                    />
 
-                      {!isHome && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                          {listing.attributes.isVerified && (
-                            <Badge size="1" color="blue">
-                              <RiCheckLine size={12} style={{ marginRight: 3 }} /> Verified
-                            </Badge>
-                          )}
+                    {!isHome && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                        {listing.attributes.isVerified && (
+                          <Badge size="1" color="blue">
+                            <RiCheckLine size={12} style={{ marginRight: 3 }} /> Verified
+                          </Badge>
+                        )}
 
-                          {listing.attributes.isOfficial && (
-                            <Badge size="1" color="gray">
-                              Official
-                            </Badge>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  }
-                  bottom={
-                    <Categories $mode={mode}>
-                      {listing.categories.map(category => (
-                        <Category $mode={mode} key={category.id}>
-                          {category.name}
-                        </Category>
-                      ))}
-                    </Categories>
-                  }
-                />
-              </ProviderLink>
+                        {listing.attributes.isOfficial && (
+                          <Badge size="1" color="gray">
+                            Official
+                          </Badge>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                }
+                bottom={
+                  <Categories $mode={mode}>
+                    {listing.categories.map(category => (
+                      <Category $mode={mode} key={category.id}>
+                        {category.name}
+                      </Category>
+                    ))}
+                  </Categories>
+                }
+              />
             );
           })}
         </ItemGrid.Root>
