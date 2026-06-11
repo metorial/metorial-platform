@@ -122,7 +122,7 @@ export let CustomProviderVersion = ({
     !!redeployInput &&
     !isDeploying &&
     (!customProviderEnv.isLoading || !isFunctionProvider);
-  let showRedeploy = customProvider?.type !== 'remote' && !isDeploying && !!redeployInput;
+  let showRedeploy = !isDeploying && !!redeployInput;
 
   let redeploy = async () => {
     if (!instance.data || !customProvider?.id || !redeployInput) return;
