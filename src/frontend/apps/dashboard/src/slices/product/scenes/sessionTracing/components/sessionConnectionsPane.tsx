@@ -305,7 +305,7 @@ export let SessionConnectionsPane = ({
             </LoadingWrap>
           )}
 
-          {!connectionCount && !isLoadingConnections && (
+          {!connectionCount && !isLoadingConnections && !groupedConnections.length && (
             <Callout color="gray">
               No connections yet. Once a client connects to this session, it will appear here.
             </Callout>

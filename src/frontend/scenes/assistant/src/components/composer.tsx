@@ -125,6 +125,7 @@ export let AssistantComposer = (p: {
   placeholder?: string;
   selectedModelId?: string;
   modelOptions?: AssistantModelOption[];
+  modelSelectorDisabled?: boolean;
   onSelectModel?: (modelId: string) => void;
   suggestions?: AssistantSuggestion[];
   onSelectSuggestion?: (suggestion: AssistantSuggestion) => void;
@@ -172,7 +173,7 @@ export let AssistantComposer = (p: {
                 <Select
                   label="Model"
                   hideLabel
-                  disabled={p.disabled}
+                  disabled={p.disabled || p.modelSelectorDisabled}
                   placeholder="Auto"
                   value={selectedModelId}
                   onChange={value => p.onSelectModel?.(value)}

@@ -417,6 +417,7 @@ export let AssistantConversationScene = (p: {
   }, []);
 
   let isSubmitting = isSubmittingComposer || history.isCreatingMessage;
+  let isGeneratingResponse = !history.isAssistantReady || history.isWaitingForResponse;
   let handleSubmit = async () => {
     if (!draft.trim()) return;
 
@@ -557,6 +558,7 @@ export let AssistantConversationScene = (p: {
             disabled={false}
             selectedModelId={selectedModelId}
             modelOptions={modelOptions}
+            modelSelectorDisabled={isGeneratingResponse}
             onSelectModel={setSelectedModelId}
             suggestions={p.suggestions ?? defaultSuggestions}
             onSelectSuggestion={suggestion => setDraft(suggestion.prompt)}

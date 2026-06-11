@@ -6,24 +6,10 @@ let google = provider({
   slug: 'google'
 });
 
-export let googleGemini3Flash = model({
-  model: gateway('google/gemini-3-flash'),
-  name: 'Gemini 3 Flash',
-  slug: 'gemini-3-flash',
-  provider: google
-});
-
-export let googleGemini3ProPreview = model({
-  model: gateway('google/gemini-3-pro-preview'),
-  name: 'Gemini 3 Pro Preview',
-  slug: 'gemini-3-pro-preview',
-  provider: google
-});
-
-export let googleGemini31FlashLitePreview = model({
-  model: gateway('google/gemini-3.1-flash-lite-preview'),
-  name: 'Gemini 3.1 Flash-Lite Preview',
-  slug: 'gemini-3-1-flash-lite-preview',
+export let googleGemini35Flash = model({
+  model: gateway('google/gemini-3.5-flash'),
+  name: 'Gemini 3.5 Flash',
+  slug: 'gemini-3-5-flash',
   provider: google
 });
 

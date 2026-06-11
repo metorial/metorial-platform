@@ -2,8 +2,23 @@ import { v } from '@lowerdeck/validation';
 import { implementation } from '../../../lib/definitions';
 import { detag } from '../../../lib/detag';
 import { Agent } from '../../../lib/open-harness';
+import {
+  deepseekV4Flash,
+  deepseekV4Pro,
+  googleGemini31ProPreview,
+  googleGemini35Flash,
+  metaLlama4Maverick,
+  metaLlama4Scout,
+  mistralCodestral,
+  mistralLarge3,
+  moonshotaiKimiK25,
+  moonshotaiKimiK26,
+  moonshotaiKimiK2Turbo,
+  xaiGrok41FastNonReasoning,
+  xaiGrok420NonReasoning
+} from '../../models';
 import { claudeSonnet46 } from '../../models/anthropic';
-import { openaiGpt54, openaiGpt55 } from '../../models/openai';
+import { openaiGpt54, openaiGpt55, openaiGptOss120b } from '../../models/openai';
 import { subspaceAssistant } from '../_shared/subspace';
 
 let systemPrompt = detag`
@@ -33,7 +48,25 @@ You are not a general assistant and should not attempt to answer non-integration
 
 export let explorerAssistantImplementation = implementation({
   defaultModel: claudeSonnet46,
-  availableModels: [claudeSonnet46, openaiGpt54, openaiGpt55],
+  availableModels: [
+    claudeSonnet46,
+    openaiGpt55,
+    openaiGpt54,
+    openaiGptOss120b,
+    deepseekV4Flash,
+    deepseekV4Pro,
+    googleGemini31ProPreview,
+    googleGemini35Flash,
+    metaLlama4Maverick,
+    metaLlama4Scout,
+    mistralLarge3,
+    mistralCodestral,
+    moonshotaiKimiK2Turbo,
+    moonshotaiKimiK25,
+    moonshotaiKimiK26,
+    xaiGrok420NonReasoning,
+    xaiGrok41FastNonReasoning
+  ],
   slug: 'explorer',
   name: 'Explorer Assistant',
 
