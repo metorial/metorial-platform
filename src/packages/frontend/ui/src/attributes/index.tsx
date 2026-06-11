@@ -11,7 +11,7 @@ let Wrapper = styled('div')<{ $columns?: number }>`
       : 'repeat(auto-fill, minmax(var(--width), 1fr))'};
   gap: 1px;
 
-  background: ${theme.colors.gray300};
+  background: ${theme.colors.background};
   border: 1px solid ${theme.colors.gray400};
   box-shadow: ${theme.shadows.small};
   border-radius: 10px;
@@ -33,6 +33,7 @@ let Wrapper = styled('div')<{ $columns?: number }>`
 
 let Attribute = styled('div')`
   background: ${theme.colors.background};
+  box-shadow: 0 0 0 1px ${theme.colors.gray400};
   padding: 15px;
   /* border-radius: 10px; */
   display: flex;

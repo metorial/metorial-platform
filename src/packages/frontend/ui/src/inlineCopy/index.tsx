@@ -17,10 +17,6 @@ let IconBox = styled(motion.div)`
   transition:
     background 0.2s ease,
     color 0.2s ease;
-
-  &[data-copied='true'] {
-    color: ${theme.colors.green900};
-  }
 `;
 
 let IconLayer = styled(motion.span)`

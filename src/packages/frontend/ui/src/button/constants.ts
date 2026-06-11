@@ -38,11 +38,15 @@ let composeButtonShadow = (...shadows: string[]) => {
   return enabledShadows.length ? enabledShadows.join(', ') : 'none';
 };
 
-let getButtonStateTransform = (state: { [key: string]: unknown; transform?: string }, fallback = 'none') =>
-  state.transform ?? fallback;
+let getButtonStateTransform = (
+  state: { [key: string]: unknown; transform?: string },
+  fallback = 'none'
+) => state.transform ?? fallback;
 
-let getButtonStatePhysicalShadow = (state: { [key: string]: unknown; physicalShadow?: string }) =>
-  state.physicalShadow ?? 'none';
+let getButtonStatePhysicalShadow = (state: {
+  [key: string]: unknown;
+  physicalShadow?: string;
+}) => state.physicalShadow ?? 'none';
 
 let createPhysicalSolidButtonStates = (
   state: Omit<ButtonVariantState, 'shadow' | 'transform'>,
@@ -85,9 +89,20 @@ let colorTypes: ColorType[] = [
   'black'
 ];
 
-let colorFacets: ColorFacet[] = ['100', '200', '300', '400', '500', '600', '700', '800', '900'];
+let colorFacets: ColorFacet[] = [
+  '100',
+  '200',
+  '300',
+  '400',
+  '500',
+  '600',
+  '700',
+  '800',
+  '900'
+];
 
-let isColorType = (color: ButtonColor): color is ColorType => colorTypes.includes(color as ColorType);
+let isColorType = (color: ButtonColor): color is ColorType =>
+  colorTypes.includes(color as ColorType);
 let isColorKey = (color: ButtonColor): color is ColorKey => color in colors;
 
 let parseColorKey = (color: ColorKey) => {
@@ -129,7 +144,8 @@ let getShiftedThemeColor = (
   if (!parsed) return fallback;
 
   let index = colorFacets.indexOf(parsed.facet);
-  let shiftedFacet = colorFacets[Math.min(Math.max(index + offset, 0), colorFacets.length - 1)];
+  let shiftedFacet =
+    colorFacets[Math.min(Math.max(index + offset, 0), colorFacets.length - 1)];
 
   return getThemeColorByFacet(parsed, shiftedFacet, fallback);
 };
@@ -147,19 +163,24 @@ let getPhysicalButtonShadowColorForKey = (
   fallback: string
 ) => {
   if (parsed?.colorName == 'black') return physicalButtonShadow.defaultColor;
-  if (parsed?.colorName == 'white') return createPhysicalButtonShadowColor(theme.colors.gray400);
-  if (parsed?.colorName == 'gray') return createPhysicalButtonShadowColor(theme.colors.gray900, 30);
+  if (parsed?.colorName == 'white')
+    return createPhysicalButtonShadowColor(theme.colors.gray400);
+  if (parsed?.colorName == 'gray')
+    return createPhysicalButtonShadowColor(theme.colors.gray900, 30);
 
   return createPhysicalButtonShadowColor(getShiftedThemeColor(parsed, 2, fallback));
 };
 
 let coloredButtonVariants = memo((color: ColorType) => ({
   solid: {
-    ...createPhysicalSolidButtonStates({
-      color: getForegroundColor(getColorKey(color, '900')),
-      background: theme.colors[getColorKey(color, '700')],
-      border: theme.colors[getColorKey(color, '700')]
-    }, getPhysicalButtonShadowColorForType(color)),
+    ...createPhysicalSolidButtonStates(
+      {
+        color: getForegroundColor(getColorKey(color, '900')),
+        background: theme.colors[getColorKey(color, '700')],
+        border: theme.colors[getColorKey(color, '700')]
+      },
+      getPhysicalButtonShadowColorForType(color)
+    ),
 
     spinner: {
       foreground: theme.colors.background,
@@ -259,14 +280,14 @@ let monoChromeButtonVariants = {
     passive: {
       color: theme.colors.foreground,
       background: theme.colors.background,
-      border: theme.colors.gray300,
+      border: theme.colors.gray400,
       shadow: 'none'
     },
 
     active: {
       color: theme.colors.foreground,
       background: theme.colors.background,
-      border: theme.colors.gray400,
+      border: theme.colors.gray500,
       shadow: 'none'
     },
 
@@ -328,21 +349,32 @@ let monoChromeButtonVariants = {
 let concreteButtonVariants = memo((color: ColorKey) => {
   let parsed = parseColorKey(color);
   let baseColor = theme.colors[color];
-  let softBackground = getThemeColorByFacet(parsed, '100', monoChromeButtonVariants.soft.passive.background);
+  let softBackground = getThemeColorByFacet(
+    parsed,
+    '100',
+    monoChromeButtonVariants.soft.passive.background
+  );
   let softActiveBackground = getThemeColorByFacet(
     parsed,
     '200',
     monoChromeButtonVariants.soft.active.background
   );
-  let spinnerBackground = getThemeColorByFacet(parsed, '200', monoChromeButtonVariants.soft.spinner.background);
+  let spinnerBackground = getThemeColorByFacet(
+    parsed,
+    '200',
+    monoChromeButtonVariants.soft.spinner.background
+  );
 
   return {
     solid: {
-      ...createPhysicalSolidButtonStates({
-        color: getForegroundColor(color),
-        background: baseColor,
-        border: baseColor
-      }, getPhysicalButtonShadowColorForKey(parsed, baseColor)),
+      ...createPhysicalSolidButtonStates(
+        {
+          color: getForegroundColor(color),
+          background: baseColor,
+          border: baseColor
+        },
+        getPhysicalButtonShadowColorForKey(parsed, baseColor)
+      ),
 
       spinner: {
         foreground: getForegroundColor(color),
@@ -496,41 +528,46 @@ export let buttonTheme = createTheme({
   spinner_background: createThemeToken()
 });
 
-let getColorButtonTheme = memo((color: ButtonColor | undefined, variant: ButtonVariant, shadow = true) => {
-  let v = (
-    color
-      ? isColorType(color)
-        ? coloredButtonVariants(color)
-        : isColorKey(color)
-          ? concreteButtonVariants(color)
-          : monoChromeButtonVariants
-      : monoChromeButtonVariants
-  )[variant];
-  let pressed = 'pressed' in v ? v.pressed : v.active;
+let getColorButtonTheme = memo(
+  (color: ButtonColor | undefined, variant: ButtonVariant, shadow = true) => {
+    let v = (
+      color
+        ? isColorType(color)
+          ? coloredButtonVariants(color)
+          : isColorKey(color)
+            ? concreteButtonVariants(color)
+            : monoChromeButtonVariants
+        : monoChromeButtonVariants
+    )[variant];
+    let pressed = 'pressed' in v ? v.pressed : v.active;
 
-  return buttonTheme.setRootStyles({
-    passive_color: v.passive.color,
-    passive_background: v.passive.background,
-    passive_border: v.passive.border,
-    passive_shadow: shadow ? v.passive.shadow : 'none',
-    passive_transform: getButtonStateTransform(v.passive),
+    return buttonTheme.setRootStyles({
+      passive_color: v.passive.color,
+      passive_background: v.passive.background,
+      passive_border: v.passive.border,
+      passive_shadow: shadow ? v.passive.shadow : 'none',
+      passive_transform: getButtonStateTransform(v.passive),
 
-    active_color: v.active.color,
-    active_background: v.active.background,
-    active_border: v.active.border,
-    active_shadow: composeButtonShadow(
-      shadow ? v.active.shadow : 'none',
-      getButtonStatePhysicalShadow(v.active)
-    ),
-    active_transform: getButtonStateTransform(v.active),
+      active_color: v.active.color,
+      active_background: v.active.background,
+      active_border: v.active.border,
+      active_shadow: composeButtonShadow(
+        shadow ? v.active.shadow : 'none',
+        getButtonStatePhysicalShadow(v.active)
+      ),
+      active_transform: getButtonStateTransform(v.active),
 
-    pressed_shadow: shadow ? pressed.shadow : 'none',
-    pressed_transform: getButtonStateTransform(pressed, v.animateClickScale ? 'scale(0.98)' : 'none'),
+      pressed_shadow: shadow ? pressed.shadow : 'none',
+      pressed_transform: getButtonStateTransform(
+        pressed,
+        v.animateClickScale ? 'scale(0.98)' : 'none'
+      ),
 
-    spinner_foreground: v.spinner.foreground,
-    spinner_background: v.spinner.background
-  });
-});
+      spinner_foreground: v.spinner.foreground,
+      spinner_background: v.spinner.background
+    });
+  }
+);
 
 export let getButtonStyles = (props: ButtonStyleProps) => {
   let size = sizes[props.size ?? '3'];
