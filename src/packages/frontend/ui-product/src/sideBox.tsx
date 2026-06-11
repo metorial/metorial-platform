@@ -3,7 +3,8 @@ import React from 'react';
 import { styled } from 'styled-components';
 
 let Wrapper = styled.div`
-  border: 1px solid ${theme.colors.gray300};
+  border: 1px solid ${theme.colors.gray400};
+  box-shadow: ${theme.shadows.small};
   border-radius: 12px;
   padding: 20px;
   display: flex;
@@ -16,6 +17,12 @@ let Header = styled.header`
   gap: 10px;
   justify-content: space-between;
   align-items: center;
+
+  @media (max-width: 600px) {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
 `;
 
 let HeaderContent = styled.div`

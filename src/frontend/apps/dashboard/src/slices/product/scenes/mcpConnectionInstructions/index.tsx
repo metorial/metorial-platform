@@ -44,7 +44,7 @@ let CredentialCard = styled.div`
   gap: 14px;
   padding: 12px 14px;
   border-radius: 12px;
-  border: 1px solid ${theme.colors.gray300};
+  border: 1px solid ${theme.colors.gray400};
   transition:
     border-color 0.2s ease,
     box-shadow 0.2s ease,
@@ -109,7 +109,7 @@ let IconButton = styled.button<{ $success?: boolean }>`
 
   &:hover {
     background: ${theme.colors.gray200};
-    border-color: ${theme.colors.gray300};
+    border-color: ${theme.colors.gray400};
     color: ${theme.colors.gray900};
   }
 
@@ -191,7 +191,7 @@ let ClientChip = styled.button<{ $active: boolean }>`
   justify-content: center;
   gap: 8px;
   border-radius: 12px;
-  border: 1px solid ${theme.colors.gray300};
+  border: 1px solid ${theme.colors.gray400};
   background: #fff;
   transition: all 0.2s ease;
   overflow: hidden;
@@ -310,7 +310,7 @@ let TimelineText = styled.div`
 
 let CodeCard = styled.div`
   border-radius: 12px;
-  border: 1px solid ${theme.colors.gray300};
+  border: 1px solid ${theme.colors.gray400};
   overflow: hidden;
   background: #fff;
   box-shadow: 0 6px 18px -14px rgba(0, 0, 0, 0.25);
@@ -322,7 +322,7 @@ let CodeCardHeader = styled.div`
   justify-content: space-between;
   padding: 6px 10px 6px 14px;
   background: ${theme.colors.gray100};
-  border-bottom: 1px solid ${theme.colors.gray300};
+  border-bottom: 1px solid ${theme.colors.gray400};
 `;
 
 let CodeCardLabel = styled.div`
@@ -418,8 +418,7 @@ let LuxeCodeBlock = ({
   let [revealed, setRevealed] = useState(false);
   let dotColor = languageDotColor[language] ?? theme.colors.gray500;
   let hasToken = !!token && code.includes(token);
-  let displayCode =
-    hasToken && token && !revealed ? maskTokenInValue(code, token) : code;
+  let displayCode = hasToken && token && !revealed ? maskTokenInValue(code, token) : code;
 
   return (
     <CodeCard>

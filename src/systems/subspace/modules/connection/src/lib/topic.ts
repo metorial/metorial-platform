@@ -7,6 +7,7 @@ import type {
 let INSTANCE_PREFIX = 'v1-spi-';
 let SESSION_PREFIX = 'v1-ses-';
 let MCP_PREFIX = 'v1-mcp-';
+let WORKER_HEALTH_TOPIC = 'v1-health-worker';
 
 export let topics = {
   instance: {
@@ -32,5 +33,10 @@ export let topics = {
   mcpConnection: {
     encode: (d: { session: Session; connection: SessionConnection }) =>
       `${MCP_PREFIX}${d.session.oid}-${d.connection.oid}`
+  },
+
+  workerHeartbeat: {
+    encode: () => WORKER_HEALTH_TOPIC,
+    is: (topic: string) => topic === WORKER_HEALTH_TOPIC
   }
 };

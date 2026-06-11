@@ -3,10 +3,12 @@ import { getSentry } from '@lowerdeck/sentry';
 import { serialize } from '@lowerdeck/serialize';
 import type {
   BroadcastMessage,
+  ConduitHeartbeatPong,
   ConduitInput,
   ConduitResult
 } from '@metorial-subspace/connection-utils';
 import { db, ID, type SessionMessage } from '@metorial-subspace/db';
+import { isConduitHeartbeatPing } from '../health/conduitHeartbeat';
 import { conduit } from '../lib/conduit';
 import { broadcastNats } from '../lib/nats';
 import { topics } from '../lib/topic';
@@ -26,6 +28,23 @@ const NO_OUTPUT_ERROR = {
 export let startReceiver = () => {
   let receiver = conduit.createConduitReceiver(async ctx => {
     ctx.extendTtl(1000 * 60);
+
+    if (topics.workerHeartbeat.is(ctx.topic)) {
+      ctx.extendTtl(5000);
+      ctx.onMessage(async data => {
+        if (!isConduitHeartbeatPing(data)) {
+          throw new Error('Invalid conduit heartbeat ping');
+        }
+
+        return {
+          type: 'health.pong',
+          id: data.id,
+          sentAt: data.sentAt,
+          receivedAt: Date.now()
+        } satisfies ConduitHeartbeatPong;
+      });
+      return;
+    }
 
     let topic = topics.instance.decode(ctx.topic);
     if (!topic) {

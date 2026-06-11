@@ -8,13 +8,21 @@ let isDev = process.env.NODE_ENV !== 'production';
 
 type Transports = 'sse' | 'streamable_http';
 
-let agentClientHeaderSchema = z.object({
-  name: z.string(),
-  type: z.literal('mcp_client_oauth'),
-  privateMetadata: z.record(z.string(), z.any()).optional(),
-  oauthRegistrationId: z.string(),
-  foreignId: z.string()
-});
+let agentClientHeaderSchema = z.discriminatedUnion('type', [
+  z.object({
+    name: z.string(),
+    type: z.literal('mcp_client_oauth'),
+    privateMetadata: z.record(z.string(), z.any()).optional(),
+    oauthRegistrationId: z.string(),
+    foreignId: z.string()
+  }),
+  z.object({
+    name: z.string(),
+    type: z.literal('system_client'),
+    privateMetadata: z.record(z.string(), z.any()).optional(),
+    foreignId: z.string()
+  })
+]);
 
 let privateMetadataHeaderSchema = z.record(z.string(), z.any());
 

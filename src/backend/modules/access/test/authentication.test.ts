@@ -797,6 +797,46 @@ describe('AuthenticationService', () => {
       }
     });
 
+    it('uses machine access user fallback for oauth organization tokens', async () => {
+      let mockOrg = { id: 'org-1', slug: 'test-org', name: 'Test Org' };
+      let mockActor = { id: 'actor-1', organizationId: 'org-1' };
+      let mockUser = { id: 'user-1' };
+      let mockMachineAccess = {
+        type: 'organization_management',
+        organization: mockOrg,
+        actor: mockActor,
+        user: mockUser
+      };
+      let mockOAuthToken = {
+        id: 'oauth-token-1',
+        oauthAuthorization: {
+          scopes: ['organization:read'],
+          user: null,
+          machineAccess: mockMachineAccess
+        }
+      };
+
+      vi.mocked(machineAccessAuthService.authenticateWithMachineAccessToken).mockResolvedValue(
+        {
+          type: 'oauth_token',
+          oauthToken: mockOAuthToken
+        } as any
+      );
+
+      let result = await authenticationService.authenticate({
+        type: 'api_key',
+        apiKey: 'metorial_oa_123',
+        context: mockContext
+      });
+
+      expect(result.type).toBe('machine');
+      if (result.type === 'machine') {
+        expect(result.oauthToken).toEqual(mockOAuthToken);
+        expect(result.user).toEqual(mockUser);
+        expect(result.orgScopes).toEqual(['organization:read']);
+      }
+    });
+
     it('should throw error if organization token is missing required fields', async () => {
       let mockMachineAccess = {
         type: 'organization_management',

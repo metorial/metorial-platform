@@ -75,13 +75,16 @@ class OAuthAuthorizationLogService {
           ...opts,
           where: {
             organizationOid: d.organization.oid,
-            oauthApplication: d.oauthApplicationIds
-              ? {
-                  id: {
+            oauthApplication: {
+              id: d.oauthApplicationIds
+                ? {
                     in: d.oauthApplicationIds
                   }
-                }
-              : undefined,
+                : undefined,
+              type: {
+                not: 'internal'
+              }
+            },
             user: d.userIds
               ? {
                   id: {

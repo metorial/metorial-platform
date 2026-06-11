@@ -79,11 +79,12 @@ export type MachineAccessInput =
 
 export type OAuthApplicationCreateInput = {
   status?: 'active' | 'archived';
-  type: 'user_facing' | 'server_side' | 'cli_auth';
+  type: 'user_facing' | 'server_side' | 'cli_auth' | 'internal';
   accessLevel: 'organization' | 'global';
+  systemIdentifier?: string | null;
   allowClientSecretlessTokenExchange?: boolean;
   name: string;
-  description?: string;
+  description?: string | null;
   websiteUrl?: string;
   privacyPolicyUrl?: string;
   termsOfServiceUrl?: string;

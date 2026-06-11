@@ -59,14 +59,6 @@ export let backendEnv: Env = [
   },
 
   {
-    key: 'SUBSPACE_SOLUTION',
-    defaultValue: 'metorial-enterprise'
-  },
-  {
-    key: 'SUBSPACE_URL',
-    defaultValue: 'http://localhost:52070/subspace-controller'
-  },
-  {
     key: 'CARGO_API_URL',
     defaultValue: 'http://localhost:52150/metorial-cargo'
   },

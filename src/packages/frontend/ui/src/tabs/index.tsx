@@ -16,7 +16,7 @@ let Inner = styled('div')`
   padding: 0;
   margin: 0;
   /* gap: PADDINGpx; */
-  border-bottom: 1px solid ${theme.colors.gray300};
+  border-bottom: 1px solid ${theme.colors.gray400};
   /* padding-bottom: 6px; */
   overflow-x: auto;
   white-space: nowrap;
@@ -192,7 +192,9 @@ export let Tabs = ({
     <Wrapper ref={setWrapperRef}>
       <Inner
         ref={setInnerRef}
-        onScroll={e => setScrollOffset(e.currentTarget.scrollLeft + (listRef?.scrollLeft ?? 0))}
+        onScroll={e =>
+          setScrollOffset(e.currentTarget.scrollLeft + (listRef?.scrollLeft ?? 0))
+        }
         style={{
           width: '100%',
 
@@ -207,7 +209,9 @@ export let Tabs = ({
       >
         <List
           ref={setListRef}
-          onScroll={e => setScrollOffset((innerRef?.scrollLeft ?? 0) + e.currentTarget.scrollLeft)}
+          onScroll={e =>
+            setScrollOffset((innerRef?.scrollLeft ?? 0) + e.currentTarget.scrollLeft)
+          }
           style={{
             width: maxWidth,
             gap

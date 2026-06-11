@@ -9,9 +9,13 @@ import {
   useIntegration,
   useIntegrationInstance
 } from '@metorial/state';
-import { Button, Flex, LinkTabs } from '@metorial/ui';
+import { Flex, LinkTabs } from '@metorial/ui';
 import { useState } from 'react';
 import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
+import {
+  OpenExplorerButton,
+  type OpenExplorerMode
+} from '../../../components/openExplorer';
 import { DeletedRecordCallout } from '../../../scenes/deletedRecordCallout';
 
 export let IntegrationInstanceLayout = () => {
@@ -26,7 +30,7 @@ export let IntegrationInstanceLayout = () => {
   let [isCreatingSession, setIsCreatingSession] = useState(false);
   let pathname = useLocation().pathname;
 
-  let handleOpenExplorer = async () => {
+  let handleOpenExplorer = async (mode: OpenExplorerMode) => {
     let activeIntegrationInstanceId = integrationInstance.data?.id ?? integrationInstanceId;
     if (
       isCreatingSession ||
@@ -47,7 +51,8 @@ export let IntegrationInstanceLayout = () => {
     if (res) {
       navigate(
         Paths.instance.explorer(organization.data, project.data, instance.data, {
-          session_id: res.id
+          session_id: res.id,
+          mode
         }),
         {
           state: { integrationInstanceId: activeIntegrationInstanceId }
@@ -90,15 +95,13 @@ export let IntegrationInstanceLayout = () => {
         actions={
           instance.data ? (
             <Flex gap={8}>
-              <Button
+              <OpenExplorerButton
                 size="2"
                 variant="outline"
-                onClick={handleOpenExplorer}
+                onOpen={handleOpenExplorer}
                 disabled={isCreatingSession || integrationInstance.data?.status !== 'active'}
                 loading={isCreatingSession}
-              >
-                Open Explorer
-              </Button>
+              />
             </Flex>
           ) : undefined
         }

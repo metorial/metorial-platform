@@ -121,6 +121,14 @@ class OAuthApplicationService {
         })
       );
     }
+
+    if (type == 'internal') {
+      throw new ServiceError(
+        forbiddenError({
+          message: 'Internal oauth applications are managed by internal services'
+        })
+      );
+    }
   }
 
   private assertGlobalUserFacingApplication(oauthApplication: OAuthApplication) {
@@ -757,6 +765,7 @@ class OAuthApplicationService {
   async createOAuthApplicationClientSecret(d: { oauthApplication: OAuthApplication }) {
     await this.assertApplicationActive(d.oauthApplication);
     this.assertApplicationOwnedLocally(d.oauthApplication);
+    this.assertSupportedType(d.oauthApplication.type);
 
     return await this.createClientSecret({
       oauthApplication: d.oauthApplication
@@ -781,6 +790,8 @@ class OAuthApplicationService {
       );
     }
 
+    this.assertSupportedType(d.oauthApplication.type);
+
     return oauthApplicationClientSecret;
   }
 
@@ -793,6 +804,7 @@ class OAuthApplicationService {
       }
     });
     this.assertApplicationOwnedLocally(oauthApplication);
+    this.assertSupportedType(oauthApplication.type);
 
     return await withTransaction(async db => {
       let updatedSecret = await db.oAuthApplicationClientSecret.update({

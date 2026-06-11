@@ -5,34 +5,60 @@ import { useCurrentInstance, useProviderListings } from '@metorial/state';
 import { Avatar, Badge, Text } from '@metorial/ui';
 import { ItemGrid } from '@metorial/ui-product';
 import { RiCheckLine } from '@remixicon/react';
-import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 
-let Categories = styled.div`
+type ProvidersGridMode = 'default' | 'home';
+
+type ProvidersGridProps = DashboardInstanceProviderListingsListQuery & {
+  mode?: ProvidersGridMode;
+};
+
+let Categories = styled.div.withConfig({ shouldForwardProp: p => p !== '$mode' })<{
+  $mode: ProvidersGridMode;
+}>`
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: ${p => (p.$mode === 'home' ? '4px' : '10px')};
+  ${p =>
+    p.$mode === 'home'
+      ? `
+    max-height: 40px;
+    overflow: hidden;
+  `
+      : ''}
 `;
 
-let Category = styled.div`
+let Category = styled.div.withConfig({ shouldForwardProp: p => p !== '$mode' })<{
+  $mode: ProvidersGridMode;
+}>`
   background: #f0f0f0;
-  height: 26px;
+  height: ${p => (p.$mode === 'home' ? '18px' : '26px')};
   border-radius: 50px;
-  padding: 0 10px;
+  padding: 0 ${p => (p.$mode === 'home' ? '6px' : '10px')};
   display: flex;
   align-items: center;
-  font-size: 12px;
+  font-size: ${p => (p.$mode === 'home' ? '10px' : '12px')};
   font-weight: 500;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
-export let ProvidersGrid = (filter: DashboardInstanceProviderListingsListQuery) => {
+export let ProvidersGrid = ({ mode = 'default', ...filter }: ProvidersGridProps) => {
   let instance = useCurrentInstance();
   let providers = useProviderListings(instance.data?.id, filter);
+  let isHome = mode === 'home';
 
   return renderWithPagination(providers)(providers => (
     <>
       {providers.data.items.length > 0 && (
-        <ItemGrid.Root width="300px">
+        <ItemGrid.Root
+          columns={isHome ? 3 : undefined}
+          responsive={isHome}
+          width={isHome ? '220px' : '300px'}
+        >
           {providers.data.items.map(listing => {
             let providerId = listing.provider?.id;
             if (!providerId) return null;
@@ -50,28 +76,28 @@ export let ProvidersGrid = (filter: DashboardInstanceProviderListingsListQuery) 
             );
 
             return (
-              <Link
+              <ItemGrid.Item
                 key={listing.id}
-                to={href}
-                style={{ textDecoration: 'none', color: 'inherit' }}
-              >
-                <ItemGrid.Item
-                  entity={{ id: listing.id, hasUsage: true }}
-                  title={listing.name}
-                  description={description}
-                  height={250}
-                  icon={
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <Avatar
-                        entity={{
-                          name: listing.name,
-                          photoUrl: listing.imageUrl
-                        }}
-                        size={30}
-                        radius={5}
-                        imageFit="contain"
-                      />
+                href={href}
+                entity={{ id: listing.id, hasUsage: true }}
+                title={listing.name}
+                description={isHome ? undefined : description}
+                height={isHome ? 118 : 250}
+                mode={isHome ? 'compactHorizontal' : 'default'}
+                showCopyId={!isHome}
+                icon={
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <Avatar
+                      entity={{
+                        name: listing.name,
+                        photoUrl: listing.imageUrl
+                      }}
+                      size={isHome ? 24 : 30}
+                      radius={isHome ? 6 : 5}
+                      imageFit="contain"
+                    />
 
+                    {!isHome && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                         {listing.attributes.isVerified && (
                           <Badge size="1" color="blue">
@@ -85,17 +111,19 @@ export let ProvidersGrid = (filter: DashboardInstanceProviderListingsListQuery) 
                           </Badge>
                         )}
                       </div>
-                    </div>
-                  }
-                  bottom={
-                    <Categories>
-                      {listing.categories.map(category => (
-                        <Category key={category.id}>{category.name}</Category>
-                      ))}
-                    </Categories>
-                  }
-                />
-              </Link>
+                    )}
+                  </div>
+                }
+                bottom={
+                  <Categories $mode={mode}>
+                    {listing.categories.map(category => (
+                      <Category $mode={mode} key={category.id}>
+                        {category.name}
+                      </Category>
+                    ))}
+                  </Categories>
+                }
+              />
             );
           })}
         </ItemGrid.Root>

@@ -287,11 +287,10 @@ class AuthenticationService {
         apiKey: res.type == 'api_key' ? res.secret!.apiKey : undefined,
         oauthToken: res.type == 'oauth_token' ? res.oauthToken! : undefined,
         machineAccess,
-        user: undefined,
-        // user:
-        //   (res.type == 'oauth_token'
-        //     ? res.oauthToken.oauthAuthorization.user
-        //     : machineAccess.user) ?? undefined,
+        user:
+          (res.type == 'oauth_token'
+            ? (res.oauthToken.oauthAuthorization.user ?? machineAccess.user)
+            : machineAccess.user) ?? undefined,
         orgScopes:
           res.type == 'oauth_token'
             ? (res.oauthToken!.oauthAuthorization.scopes as Scope[])
@@ -322,7 +321,7 @@ class AuthenticationService {
         machineAccess,
         user:
           (res.type == 'oauth_token'
-            ? res.oauthToken.oauthAuthorization.user
+            ? (res.oauthToken.oauthAuthorization.user ?? machineAccess.user)
             : machineAccess.user) ?? undefined,
         orgScopes:
           res.type == 'oauth_token'

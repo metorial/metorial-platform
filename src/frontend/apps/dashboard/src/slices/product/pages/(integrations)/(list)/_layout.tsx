@@ -20,7 +20,7 @@ export let IntegrationsListLayout = () => {
     <ContentLayout>
       <PageHeader
         title="Integrations"
-        description="Create reusable provider contracts and configure instances from them."
+        description="Create reusable provider contracts and create sessions and Magic MCP servers from them."
         actions={
           <Button
             size="2"

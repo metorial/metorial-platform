@@ -1,17 +1,19 @@
-import React, { useEffect, useState, type ReactNode } from 'react';
 import { CodeBlock } from '@metorial/code';
-import { Text, theme } from '@metorial/ui';
+import { InputLabel, Text, theme } from '@metorial/ui';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import styled from 'styled-components';
 
-export let ToolSurfaceCard = styled.div<{ $status?: 'running' | 'completed' | 'failed' }>`
+export let ToolSurfaceCard = styled.div<{
+  'data-status'?: string;
+}>`
   display: flex;
   flex-direction: column;
   width: 100%;
   border-radius: 16px;
   border: 1px solid
     ${p =>
-      p.$status == 'failed'
+      p['data-status'] == 'failed'
         ? `color-mix(in srgb, ${theme.colors.red800} 45%, transparent)`
         : `color-mix(in srgb, ${theme.colors.foreground} 8%, transparent)`};
   background: color-mix(in srgb, ${theme.colors.background} 88%, ${theme.colors.gray100});
@@ -64,7 +66,7 @@ export let ToolDetail = styled(Text).attrs({
   word-break: break-word;
 `;
 
-export let ToolStatusBadge = styled.span<{ $status?: string }>`
+export let ToolStatusBadge = styled.span<{ 'data-status'?: string }>`
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -72,15 +74,15 @@ export let ToolStatusBadge = styled.span<{ $status?: string }>`
   padding: 0 10px;
   border-radius: 999px;
   background: ${p =>
-    p.$status == 'failed'
+    p['data-status'] == 'failed'
       ? `color-mix(in srgb, ${theme.colors.red800} 12%, transparent)`
-      : p.$status == 'running'
+      : p['data-status'] == 'running'
         ? `color-mix(in srgb, ${theme.colors.orange800} 12%, transparent)`
         : `color-mix(in srgb, ${theme.colors.foreground} 6%, transparent)`};
   color: ${p =>
-    p.$status == 'failed'
+    p['data-status'] == 'failed'
       ? theme.colors.red800
-      : p.$status == 'running'
+      : p['data-status'] == 'running'
         ? theme.colors.orange800
         : `color-mix(in srgb, ${theme.colors.foreground} 62%, transparent)`};
   font-size: 11px;
@@ -99,16 +101,10 @@ export let ToolContentStack = styled.div`
 export let ToolSection = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0px;
 `;
 
-export let ToolSectionLabel = styled(Text).attrs({
-  size: '1'
-})`
-  color: color-mix(in srgb, ${theme.colors.foreground} 56%, transparent);
-  font-weight: 600;
-  letter-spacing: 0.01em;
-`;
+export let ToolSectionLabel = InputLabel;
 
 export let ToolPathTag = styled.div`
   display: inline-flex;
@@ -131,7 +127,7 @@ export let ToolMetaRow = styled.div`
 `;
 
 export let ToolMetaChip = styled.span<{
-  $tone?: 'default' | 'added' | 'removed' | 'warning' | 'danger';
+  'data-tone'?: 'default' | 'added' | 'removed' | 'warning' | 'danger';
 }>`
   display: inline-flex;
   align-items: center;
@@ -140,27 +136,27 @@ export let ToolMetaChip = styled.span<{
   border-radius: 999px;
   border: 1px solid
     ${p =>
-      p.$tone == 'added'
+      p['data-tone'] == 'added'
         ? `color-mix(in srgb, ${theme.colors.green800} 20%, transparent)`
-        : p.$tone == 'removed' || p.$tone == 'danger'
+        : p['data-tone'] == 'removed' || p['data-tone'] == 'danger'
           ? `color-mix(in srgb, ${theme.colors.red800} 20%, transparent)`
-          : p.$tone == 'warning'
+          : p['data-tone'] == 'warning'
             ? `color-mix(in srgb, ${theme.colors.orange800} 20%, transparent)`
             : `color-mix(in srgb, ${theme.colors.foreground} 10%, transparent)`};
   background: ${p =>
-    p.$tone == 'added'
+    p['data-tone'] == 'added'
       ? `color-mix(in srgb, ${theme.colors.green800} 9%, transparent)`
-      : p.$tone == 'removed' || p.$tone == 'danger'
+      : p['data-tone'] == 'removed' || p['data-tone'] == 'danger'
         ? `color-mix(in srgb, ${theme.colors.red800} 9%, transparent)`
-        : p.$tone == 'warning'
+        : p['data-tone'] == 'warning'
           ? `color-mix(in srgb, ${theme.colors.orange800} 9%, transparent)`
           : `color-mix(in srgb, ${theme.colors.foreground} 4%, transparent)`};
   color: ${p =>
-    p.$tone == 'added'
+    p['data-tone'] == 'added'
       ? theme.colors.green800
-      : p.$tone == 'removed' || p.$tone == 'danger'
+      : p['data-tone'] == 'removed' || p['data-tone'] == 'danger'
         ? theme.colors.red800
-        : p.$tone == 'warning'
+        : p['data-tone'] == 'warning'
           ? theme.colors.orange800
           : `color-mix(in srgb, ${theme.colors.foreground} 70%, transparent)`};
   font-size: 11px;
@@ -176,7 +172,7 @@ export let ScrollSection = styled.div`
   background: color-mix(in srgb, ${theme.colors.background} 96%, ${theme.colors.gray100});
 `;
 
-let SummaryButton = styled.button<{ $clickable: boolean }>`
+let SummaryButton = styled.button<{ 'data-clickable': 'true' | 'false' }>`
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -187,11 +183,11 @@ let SummaryButton = styled.button<{ $clickable: boolean }>`
   background: transparent;
   padding: 10px 12px;
   text-align: left;
-  cursor: ${p => (p.$clickable ? 'pointer' : 'default')};
+  cursor: ${p => (p['data-clickable'] == 'true' ? 'pointer' : 'default')};
 
   &:hover {
     background: ${p =>
-      p.$clickable
+      p['data-clickable'] == 'true'
         ? `color-mix(in srgb, ${theme.colors.foreground} 3%, transparent)`
         : 'transparent'};
   }
@@ -204,23 +200,24 @@ let SummaryMain = styled.div`
   min-width: 0;
 `;
 
-let SummaryText = styled(Text).attrs({
-  size: '2'
-})`
+let SummaryText = styled.p`
   font-weight: 500;
   color: ${theme.colors.foreground};
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-size: 13px;
+  flex-shrink: 0;
+  max-width: 100%;
 `;
 
-let SummarySecondary = styled(Text).attrs({
-  size: '1'
-})`
-  color: color-mix(in srgb, ${theme.colors.foreground} 56%, transparent);
+let SummarySecondary = styled.p`
+  color: ${theme.colors.gray600};
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-size: 13px;
+  flex-shrink: 1;
 `;
 
 let SummaryRight = styled.div`
@@ -230,17 +227,17 @@ let SummaryRight = styled.div`
   flex: 0 0 auto;
 `;
 
-let SummaryPill = styled.span<{ $status?: string }>`
+let SummaryPill = styled.span<{ 'data-status'?: string }>`
   display: inline-flex;
   align-items: center;
   min-height: 22px;
   padding: 0 9px;
   border-radius: 999px;
   background: ${p =>
-    p.$status == 'failed'
+    p['data-status'] == 'failed'
       ? `color-mix(in srgb, ${theme.colors.red800} 10%, transparent)`
       : `color-mix(in srgb, ${theme.colors.orange800} 10%, transparent)`};
-  color: ${p => (p.$status == 'failed' ? theme.colors.red800 : theme.colors.orange800)};
+  color: ${p => (p['data-status'] == 'failed' ? theme.colors.red800 : theme.colors.orange800)};
   font-size: 11px;
   font-weight: 600;
   line-height: 1;
@@ -261,7 +258,7 @@ let ContentArea = styled(motion.div)`
 `;
 
 let ContentInner = styled.div`
-  padding: 0 12px 12px;
+  padding: 0 12px 20px;
 `;
 
 export let getStatusLabel = (status?: string) => {
@@ -284,16 +281,23 @@ let ChevronIcon = () => (
 export let ToolDisclosureCard = (p: {
   summary: string;
   secondaryText?: string | null;
-  status?: 'running' | 'completed' | 'failed';
+  status?: string;
   defaultOpen?: boolean;
   autoCollapseOnComplete?: boolean;
   children?: ReactNode;
 }) => {
   let hasContent = !!p.children;
-  let [isOpen, setIsOpen] = useState(p.defaultOpen ?? true);
+  let [isOpen, setIsOpen] = useState(() => {
+    if (p.autoCollapseOnComplete && p.status == 'completed') return false;
+    return p.defaultOpen ?? true;
+  });
+  let previousStatusRef = useRef(p.status);
 
   useEffect(() => {
-    if (p.autoCollapseOnComplete && p.status == 'completed') {
+    let previousStatus = previousStatusRef.current;
+    previousStatusRef.current = p.status;
+
+    if (p.autoCollapseOnComplete && previousStatus != 'completed' && p.status == 'completed') {
       setIsOpen(false);
     }
   }, [p.autoCollapseOnComplete, p.status]);
@@ -301,10 +305,10 @@ export let ToolDisclosureCard = (p: {
   let showStatus = p.status == 'running' || p.status == 'failed';
 
   return (
-    <ToolSurfaceCard $status={p.status}>
+    <ToolSurfaceCard data-status={p.status}>
       <SummaryButton
         type="button"
-        $clickable={hasContent}
+        data-clickable={hasContent ? 'true' : 'false'}
         onClick={() => {
           if (!hasContent) return;
           setIsOpen(open => !open);
@@ -317,7 +321,7 @@ export let ToolDisclosureCard = (p: {
 
         <SummaryRight>
           {showStatus ? (
-            <SummaryPill $status={p.status}>{getStatusLabel(p.status)}</SummaryPill>
+            <SummaryPill data-status={p.status}>{getStatusLabel(p.status)}</SummaryPill>
           ) : null}
           {hasContent ? (
             <Chevron animate={{ rotate: isOpen ? 90 : 0 }} transition={{ duration: 0.16 }}>

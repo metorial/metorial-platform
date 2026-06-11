@@ -40,6 +40,7 @@ model ModelProvider {
 enum AssistantRunStatus {
   pending
   running
+  waiting_for_user
   completed
   cancelled
   failed

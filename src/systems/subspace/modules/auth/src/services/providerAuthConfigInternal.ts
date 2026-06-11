@@ -535,7 +535,7 @@ class providerAuthConfigInternalServiceImpl {
               })
             : null);
 
-        let scopes: string[] = [];
+        let scopes: string[] | null = [];
         if (currentVersion) {
           let backend = await getBackend({
             entity: {
@@ -548,6 +548,13 @@ class providerAuthConfigInternalServiceImpl {
             authConfigVersion: currentVersion
           });
           scopes = res.scopes;
+        }
+
+        if (scopes === null) {
+          return await db.providerAuthConfig.findUniqueOrThrow({
+            where: { oid: d.providerAuthConfig.oid },
+            include: providerAuthConfigInclude
+          });
         }
 
         return await db.providerAuthConfig.update({

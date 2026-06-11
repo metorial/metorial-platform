@@ -1,4 +1,3 @@
-import React from 'react';
 import type { AssistantConversationMessage, AssistantLiveStateItem } from '@metorial/state';
 import { Button, Error, Text, theme, useCopy } from '@metorial/ui';
 import {
@@ -10,9 +9,13 @@ import {
   RiEditLine,
   RiFileCopyLine
 } from '@remixicon/react';
+import 'katex/dist/katex.min.css';
+import React from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
 import TextareaAutosize from 'react-textarea-autosize';
+import rehypeKatex from 'rehype-katex';
 import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
 import styled from 'styled-components';
 import { TextShimmer } from './textShimmer';
 import { BashToolCard } from './tools/bashTool';
@@ -23,6 +26,7 @@ import {
   getStatusLabel,
   ToolContentStack,
   ToolDetail,
+  ToolDisclosureCard,
   ToolHeader,
   ToolHeaderMain,
   ToolPathTag,
@@ -33,41 +37,42 @@ import {
 import { WebToolCard } from './tools/webTool';
 import type { AssistantTranscriptMessageMeta } from './types';
 
-let Row = styled.div<{ $align?: 'start' | 'end' }>`
+let Row = styled.div<{ 'data-align'?: 'start' | 'end' }>`
   display: flex;
   width: 100%;
-  justify-content: ${p => (p.$align == 'end' ? 'flex-end' : 'flex-start')};
+  justify-content: ${p => (p['data-align'] == 'end' ? 'flex-end' : 'flex-start')};
 `;
 
-let MessageColumn = styled.div<{ $tone?: 'user' | 'assistant' | 'system' }>`
+let MessageColumn = styled.div<{ 'data-tone'?: 'user' | 'assistant' | 'system' }>`
   display: flex;
   flex-direction: column;
   gap: 8px;
   width: 100%;
   max-width: min(760px, 92%);
-  align-items: ${p => (p.$tone == 'user' ? 'flex-end' : 'flex-start')};
+  align-items: ${p => (p['data-tone'] == 'user' ? 'flex-end' : 'flex-start')};
 `;
 
-let MessageSurface = styled.div<{ $tone?: 'user' | 'assistant' | 'system' }>`
-  width: ${p => (p.$tone == 'assistant' ? '100%' : 'auto')};
+let MessageSurface = styled.div<{ 'data-tone'?: 'user' | 'assistant' | 'system' }>`
+  width: ${p => (p['data-tone'] == 'assistant' ? '100%' : 'auto')};
   max-width: 100%;
-  border-radius: ${p => (p.$tone == 'user' ? '20px' : '16px')};
-  padding: ${p => (p.$tone == 'assistant' ? '0' : '12px 16px')};
+  border-radius: ${p => (p['data-tone'] == 'user' ? '20px' : '16px')};
+  padding: ${p => (p['data-tone'] == 'assistant' ? '0' : '12px 16px')};
   background: ${p =>
-    p.$tone == 'user'
+    p['data-tone'] == 'user'
       ? `color-mix(in srgb, ${theme.colors.foreground} 4%, ${theme.colors.background})`
-      : p.$tone == 'system'
+      : p['data-tone'] == 'system'
         ? theme.colors.gray100
         : 'transparent'};
-  box-shadow: ${p => (p.$tone == 'assistant' ? 'none' : '0 1px 2px rgba(15, 23, 42, 0.04)')};
+  box-shadow: ${p =>
+    p['data-tone'] == 'assistant' ? 'none' : '0 1px 2px rgba(15, 23, 42, 0.04)'};
 `;
 
-let MessageActions = styled.div<{ $tone?: 'user' | 'assistant' | 'system' }>`
+let MessageActions = styled.div<{ 'data-tone'?: 'user' | 'assistant' | 'system' }>`
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
   align-items: center;
-  justify-content: ${p => (p.$tone == 'user' ? 'flex-end' : 'flex-start')};
+  justify-content: ${p => (p['data-tone'] == 'user' ? 'flex-end' : 'flex-start')};
 `;
 
 let SiblingPositionText = styled(Text).attrs({
@@ -138,16 +143,68 @@ let MarkdownWrapper = styled.div`
     margin-top: 4px;
   }
 
+  ul li {
+    list-style-type: disc;
+  }
+
+  ol li {
+    list-style-type: decimal;
+  }
+
+  blockquote {
+    margin: 0 0 12px;
+    padding: 12px 14px;
+    border-left: 3px solid color-mix(in srgb, ${theme.colors.foreground} 18%, transparent);
+    border-radius: 10px;
+    background: color-mix(in srgb, ${theme.colors.foreground} 3%, ${theme.colors.background});
+    color: color-mix(in srgb, ${theme.colors.foreground} 82%, transparent);
+  }
+
+  blockquote p:last-child {
+    margin-bottom: 0;
+  }
+
   code {
-    font-family: 'Source Code Pro', monospace;
+    font-family:
+      'JetBrains Mono', 'Source Code Pro', ui-monospace, SFMono-Regular, Menlo, Monaco,
+      Consolas, monospace;
+    font-size: 0.92em;
     background: color-mix(in srgb, ${theme.colors.foreground} 6%, transparent);
     padding: 2px 5px;
     border-radius: 5px;
   }
 
+  pre {
+    margin: 0 0 12px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    border: 1px solid color-mix(in srgb, ${theme.colors.foreground} 9%, transparent);
+    border-radius: 12px;
+    background: color-mix(in srgb, ${theme.colors.foreground} 4%, ${theme.colors.background});
+    line-height: 1.6;
+  }
+
   pre code {
+    display: block;
     background: transparent;
     padding: 0;
+    border-radius: 0;
+  }
+
+  img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+  }
+
+  .katex-display {
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 4px 0;
+  }
+
+  .katex {
+    font-size: 1.02em;
   }
 `;
 
@@ -263,6 +320,11 @@ let MarkdownTableCell = styled.td`
 `;
 
 let markdownComponents: Components = {
+  a: ({ children, ...props }) => (
+    <a {...props} target="_blank" rel="noreferrer noopener">
+      {children}
+    </a>
+  ),
   table: ({ children, ...props }) => (
     <MarkdownTableScroll>
       <MarkdownTable {...props}>{children}</MarkdownTable>
@@ -273,6 +335,9 @@ let markdownComponents: Components = {
   ),
   td: ({ children, ...props }) => <MarkdownTableCell {...props}>{children}</MarkdownTableCell>
 };
+
+let markdownRemarkPlugins = [remarkGfm, remarkMath];
+let markdownRehypePlugins = [rehypeKatex];
 
 let MessagePart = (p: {
   renderMarkdown?: boolean;
@@ -297,7 +362,11 @@ let MessagePart = (p: {
 
     return (
       <MarkdownWrapper>
-        <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+        <ReactMarkdown
+          remarkPlugins={markdownRemarkPlugins}
+          rehypePlugins={markdownRehypePlugins}
+          components={markdownComponents}
+        >
           {text}
         </ReactMarkdown>
       </MarkdownWrapper>
@@ -336,9 +405,9 @@ let MessageCard = (p: {
   let canSubmitEdit = !!p.editingValue?.trim() && !p.isSubmittingEdit;
 
   return (
-    <Row $align={role == 'user' ? 'end' : 'start'}>
-      <MessageColumn $tone={tone}>
-        <MessageSurface $tone={tone}>
+    <Row data-align={role == 'user' ? 'end' : 'start'}>
+      <MessageColumn data-tone={tone}>
+        <MessageSurface data-tone={tone}>
           {p.isEditing && canEdit ? (
             <InlineEditWrap>
               <InlineEditInput
@@ -369,7 +438,7 @@ let MessageCard = (p: {
           )}
         </MessageSurface>
 
-        <MessageActions $tone={tone}>
+        <MessageActions data-tone={tone}>
           {canNavigateSiblings && (
             <>
               <Button
@@ -459,33 +528,40 @@ let MessageCard = (p: {
   );
 };
 
-let ReasoningCard = (p: { item: Extract<AssistantLiveStateItem, { type: 'reasoning' }> }) => {
-  return (
-    <ToolSurfaceCard>
-      <ToolHeader>
-        <ToolHeaderMain>
-          <ToolTitle>Thinking</ToolTitle>
-          {!!p.item.text && p.item.status == 'running' && (
-            <ToolDetail>{p.item.text}</ToolDetail>
-          )}
-        </ToolHeaderMain>
-        {p.item.status != 'completed' ? (
-          <ToolStatusBadge $status={p.item.status}>
-            {getStatusLabel(p.item.status)}
-          </ToolStatusBadge>
-        ) : null}
-      </ToolHeader>
+let getReasoningPreview = (text?: string | null) => {
+  let preview = text?.replace(/\s+/g, ' ').trim();
+  if (!preview) return null;
+  return `${preview.slice(0, 250)}...`;
+};
 
-      {p.item.status == 'running' ? (
-        <TextShimmer>{p.item.text || 'Thinking...'}</TextShimmer>
-      ) : (
-        <MarkdownWrapper>
-          <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-            {p.item.text}
-          </ReactMarkdown>
-        </MarkdownWrapper>
-      )}
-    </ToolSurfaceCard>
+let ReasoningCard = (p: { item: Extract<AssistantLiveStateItem, { type: 'reasoning' }> }) => {
+  let preview = getReasoningPreview(p.item.text);
+  let hasContent = p.item.status == 'running' || !!preview;
+
+  return (
+    <ToolDisclosureCard
+      summary={p.item.status == 'running' ? 'Thinking' : 'Thought'}
+      secondaryText={preview}
+      status={p.item.status}
+      defaultOpen={p.item.status == 'running'}
+      autoCollapseOnComplete={true}
+    >
+      {hasContent ? (
+        p.item.status == 'running' ? (
+          <TextShimmer>{p.item.text || 'Thinking...'}</TextShimmer>
+        ) : (
+          <MarkdownWrapper>
+            <ReactMarkdown
+              remarkPlugins={markdownRemarkPlugins}
+              rehypePlugins={markdownRehypePlugins}
+              components={markdownComponents}
+            >
+              {p.item.text}
+            </ReactMarkdown>
+          </MarkdownWrapper>
+        )
+      ) : undefined}
+    </ToolDisclosureCard>
   );
 };
 
@@ -500,7 +576,7 @@ let CompactionCard = (p: {
           <ToolDetail>{p.item.summary ?? 'Compressing conversation history.'}</ToolDetail>
         </ToolHeaderMain>
         {p.item.status != 'completed' ? (
-          <ToolStatusBadge $status={p.item.status}>
+          <ToolStatusBadge data-status={p.item.status}>
             {getStatusLabel(p.item.status)}
           </ToolStatusBadge>
         ) : null}

@@ -1,4 +1,3 @@
-import React from 'react';
 import type { AssistantLiveStateItem } from '@metorial/state';
 import { Error } from '@metorial/ui';
 import styled from 'styled-components';
@@ -6,8 +5,6 @@ import {
   JsonBlock,
   ToolContentStack,
   ToolDisclosureCard,
-  ToolMetaChip,
-  ToolMetaRow,
   ToolSection,
   ToolSectionLabel,
   unwrapMcpOutput
@@ -19,7 +16,7 @@ let CallBlock = styled.div`
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 10px 0;
+  padding: 6px 10px 0;
 
   & + & {
     border-top: 1px solid color-mix(in srgb, currentColor 8%, transparent);
@@ -40,7 +37,9 @@ let CallSummary = styled.div`
 let getCallSummary = (input: unknown) => {
   if (!input || typeof input != 'object' || Array.isArray(input)) return null;
 
-  let entries = Object.entries(input).filter(([, value]) => value !== undefined && value !== null && value !== '');
+  let entries = Object.entries(input).filter(
+    ([, value]) => value !== undefined && value !== null && value !== ''
+  );
   if (!entries.length) return null;
 
   return entries
@@ -54,7 +53,9 @@ let getCallSummary = (input: unknown) => {
 
 export let McpToolCard = (p: { item: McpItem }) => {
   let item = p.item;
-  let status: 'running' | 'completed' | 'failed' = item.calls.some(call => call.status == 'failed')
+  let status: 'running' | 'completed' | 'failed' = item.calls.some(
+    call => call.status == 'failed'
+  )
     ? 'failed'
     : item.calls.some(call => call.status == 'running')
       ? 'running'
@@ -67,22 +68,12 @@ export let McpToolCard = (p: { item: McpItem }) => {
       defaultOpen={true}
     >
       <ToolContentStack>
-        <ToolMetaRow>
-          <ToolMetaChip>{item.calls.length} call{item.calls.length == 1 ? '' : 's'}</ToolMetaChip>
-          {item.calls.some(call => call.status == 'running') && (
-            <ToolMetaChip $tone="warning">running</ToolMetaChip>
-          )}
-          {item.calls.some(call => call.status == 'failed') && (
-            <ToolMetaChip $tone="danger">errors</ToolMetaChip>
-          )}
-        </ToolMetaRow>
-
         {item.calls.map(call => (
           <CallBlock key={call.id}>
-            <div>
+            {/* <div>
               <CallTitle>{item.tool.name}</CallTitle>
               <CallSummary>{getCallSummary(call.input) ?? 'Tool call'}</CallSummary>
-            </div>
+            </div> */}
 
             <ToolSection>
               <ToolSectionLabel>Input</ToolSectionLabel>

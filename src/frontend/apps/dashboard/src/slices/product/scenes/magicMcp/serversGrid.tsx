@@ -15,7 +15,7 @@ import {
 import { Avatar, Badge, Input, RenderDate, Spacer, Text, theme } from '@metorial/ui';
 import { ID, ItemGrid } from '@metorial/ui-product';
 import { useMemo, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 import { EmptyState } from '../../../../components/emptyState';
 import { Table as DashboardTable } from '../../../../components/table';
@@ -474,63 +474,59 @@ export let MagicMcpServersGrid = (filter: DashboardInstanceMagicMcpServersListQu
                       .filter(Boolean);
 
                     return (
-                      <Link
+                      <ItemGrid.Item
                         key={server.id}
-                        to={Paths.instance.magicMcp.server(
+                        href={Paths.instance.magicMcp.server(
                           organization.data,
                           project.data,
                           instance.data,
                           server.id
                         )}
-                        style={{ textDecoration: 'none', color: 'inherit' }}
-                      >
-                        <ItemGrid.Item
-                          entity={{ id: server.id, hasUsage: true }}
-                          title={server.name ?? 'Unknown Server'}
-                          description={server.description}
-                          height={220}
-                          icon={
-                            visibleProviders.length > 0 ? (
-                              <ProviderAvatarStack>
-                                {visibleProviders.map((provider, idx) => {
-                                  let listing = listingLookup.get(provider.provider.id);
-                                  let name =
-                                    listing?.name ??
-                                    provider.provider.name ??
-                                    provider.provider.slug;
+                        entity={{ id: server.id, hasUsage: true }}
+                        title={server.name ?? 'Unknown Server'}
+                        description={server.description}
+                        height={220}
+                        icon={
+                          visibleProviders.length > 0 ? (
+                            <ProviderAvatarStack>
+                              {visibleProviders.map((provider, idx) => {
+                                let listing = listingLookup.get(provider.provider.id);
+                                let name =
+                                  listing?.name ??
+                                  provider.provider.name ??
+                                  provider.provider.slug;
 
-                                  return (
-                                    <ProviderAvatarItem
-                                      key={provider.id ?? provider.provider.id}
-                                      $index={idx}
-                                    >
-                                      <Avatar
-                                        entity={{
-                                          name,
-                                          photoUrl: listing?.imageUrl ?? undefined
-                                        }}
-                                        size={30}
-                                        noTooltip
-                                        imageFit="contain"
-                                      />
-                                    </ProviderAvatarItem>
-                                  );
-                                })}
-                              </ProviderAvatarStack>
-                            ) : (
-                              <Avatar
-                                entity={{ name: server.name ?? 'Magic MCP Server' }}
-                                size={30}
-                              />
-                            )
-                          }
-                          bottom={
-                            <div style={{ display: 'flex' }}>
-                              <Alias>{aliases[0] ?? server.id}</Alias>
-                            </div>
-                          }
-                        />
-                      </Link>
+                                return (
+                                  <ProviderAvatarItem
+                                    key={provider.id ?? provider.provider.id}
+                                    $index={idx}
+                                  >
+                                    <Avatar
+                                      entity={{
+                                        name,
+                                        photoUrl: listing?.imageUrl ?? undefined
+                                      }}
+                                      size={30}
+                                      noTooltip
+                                      imageFit="contain"
+                                    />
+                                  </ProviderAvatarItem>
+                                );
+                              })}
+                            </ProviderAvatarStack>
+                          ) : (
+                            <Avatar
+                              entity={{ name: server.name ?? 'Magic MCP Server' }}
+                              size={30}
+                            />
+                          )
+                        }
+                        bottom={
+                          <div style={{ display: 'flex' }}>
+                            <Alias>{aliases[0] ?? server.id}</Alias>
+                          </div>
+                        }
+                      />
                     );
                   })}
                 </ItemGrid.Root>

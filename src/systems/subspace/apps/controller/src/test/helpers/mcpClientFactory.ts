@@ -14,18 +14,34 @@ export let createMcpTestClient = (opts: {
   baseUrl: string;
   transportType: 'sse' | 'streamable_http';
   fetch: FetchFn;
+  headers?: Record<string, string>;
 }): McpTestClient => {
   let url = new URL(opts.baseUrl);
+  let fetch: FetchFn = async (input, init) => {
+    let headers = new Headers(input instanceof Request ? input.headers : undefined);
+    if (opts.headers) {
+      new Headers(opts.headers).forEach((value, key) => headers.set(key, value));
+    }
+    if (init?.headers) {
+      new Headers(init.headers).forEach((value, key) => headers.set(key, value));
+    }
+
+    if (input instanceof Request) {
+      return await opts.fetch(new Request(input, { ...init, headers }));
+    }
+
+    return await opts.fetch(input, { ...init, headers });
+  };
 
   let transport =
     opts.transportType === 'streamable_http'
       ? new StreamableHTTPClientTransport(url, {
-          fetch: opts.fetch
+          fetch
         })
       : new SSEClientTransport(url, {
-          fetch: opts.fetch,
+          fetch,
           eventSourceInit: {
-            fetch: opts.fetch
+            fetch
           }
         });
 

@@ -14,6 +14,10 @@ import {
 import { Button, Flex, LinkTabs } from '@metorial/ui';
 import { useState } from 'react';
 import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
+import {
+  OpenExplorerButton,
+  type OpenExplorerMode
+} from '../../../components/openExplorer';
 import { createMagicMcpTokenModal } from '../../../scenes/magicMcp/tokensTable';
 import { showAddProviderSidePanel } from '../../../scenes/sessionTemplates/providersManager';
 
@@ -41,7 +45,7 @@ export let MagicMcpServerLayout = () => {
     server.data?.id ?? magicMcpServerId
   ] as const;
 
-  let handleOpenExplorer = async () => {
+  let handleOpenExplorer = async (mode: OpenExplorerMode) => {
     if (isCreatingSession || !instance.data || !magicMcpServerId) return;
 
     setIsCreatingSession(true);
@@ -55,7 +59,8 @@ export let MagicMcpServerLayout = () => {
     if (res) {
       navigate(
         Paths.instance.explorer(organization.data, project.data, instance.data, {
-          session_id: res.id
+          session_id: res.id,
+          mode
         }),
         {
           state: { magicMcpServerId: server.data?.id ?? magicMcpServerId }
@@ -68,6 +73,13 @@ export let MagicMcpServerLayout = () => {
     <ContentLayout>
       {renderWithLoader({ server })(({ server }) => {
         let serverLabel = server.data.name ?? server.data.id;
+        let canAddProviders = server.data.providerManagementMode === 'manual';
+        let addProviderDisabledReason =
+          server.data.providerManagementMode === 'inherited_from_integration'
+            ? 'Providers are inherited from the integration and cannot be changed here.'
+            : server.data.providerManagementMode === 'inherited_from_provider_template'
+              ? 'Providers are inherited from the provider template and cannot be changed here.'
+              : undefined;
 
         return (
           <>
@@ -90,22 +102,24 @@ export let MagicMcpServerLayout = () => {
               ]}
               actions={
                 <Flex gap={8}>
-                  <Button
+                  <OpenExplorerButton
                     size="2"
                     variant="outline"
-                    onClick={handleOpenExplorer}
+                    onOpen={handleOpenExplorer}
                     loading={isCreatingSession}
-                  >
-                    Open Explorer
-                  </Button>
+                  />
 
                   <Button
                     size="2"
+                    disabled={!isTokensPage && !canAddProviders}
+                    title={!isTokensPage ? addProviderDisabledReason : undefined}
                     onClick={() => {
                       if (isTokensPage) {
                         createMagicMcpTokenModal();
                         return;
                       }
+
+                      if (!canAddProviders) return;
 
                       showAddProviderSidePanel({
                         instanceId: instance.data!.id,

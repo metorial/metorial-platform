@@ -379,7 +379,7 @@ let StepHeaderActions = styled.div`
 `;
 
 let StepLogs = styled(motion.div)`
-  border-top: 1px solid ${theme.colors.gray300};
+  border-top: 1px solid ${theme.colors.gray400};
   background: ${theme.colors.gray100};
   max-height: 400px;
   overflow-y: auto;
@@ -401,7 +401,7 @@ let StepLogLine = styled.div`
   cursor: default;
 
   &:hover {
-    background: ${theme.colors.gray300};
+    background: ${theme.colors.gray400};
   }
 `;
 

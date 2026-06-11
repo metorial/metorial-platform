@@ -1,16 +1,14 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import {
-  Prisma,
-  db,
-  withTransaction
-} from '../db';
 import type { AssistantConversation, Environment, Tenant, TenantActor } from '../db';
-import { assistantService } from './assistant';
-import type { AvailableAssistant } from './assistant';
+import { db, Prisma, withTransaction } from '../db';
 import { getId } from '../id';
+import { getAssistantDefinition } from '../lib/definitions/assistantDefinition';
+import { resolveAssistantConversationInput } from '../lib/definitions/conversationInput';
 import type { State } from '../types';
+import type { AvailableAssistant } from './assistant';
+import { assistantService } from './assistant';
 import {
   assistantConversationParticipantInclude,
   assistantConversationParticipantService
@@ -45,15 +43,25 @@ let emptySerializedMessage = {
   messages: []
 } satisfies PrismaJson.AssistantMessageSerializedContent;
 
+let hasOwn = (value: object, key: string) => Object.prototype.hasOwnProperty.call(value, key);
+
+let toNullableJson = (value: unknown) => {
+  if (value === undefined) return undefined;
+  if (value === null) return Prisma.JsonNull;
+
+  return value as Prisma.InputJsonValue;
+};
+
 class AssistantConversationServiceImpl {
   private async enrichConversations(d: {
     tenant: Tenant;
     conversations: AssistantConversationWithRelations[];
   }): Promise<AssistantConversationWithAssistant[]> {
-    let assistantsById = await assistantService.getAvailableAssistantsByIds({
+    let assistants = await assistantService.getMany({
       tenant: d.tenant,
       assistantIds: d.conversations.map(conversation => conversation.assistant.id)
     });
+    let assistantsById = new Map(assistants.map(assistant => [assistant.id, assistant]));
 
     return d.conversations.map(conversation => {
       let availableAssistant = assistantsById.get(conversation.assistant.id);
@@ -178,11 +186,12 @@ class AssistantConversationServiceImpl {
     input: {
       assistantId: string;
       title?: string | null;
+      input?: unknown;
     };
   }) {
     this.ensureScope(d);
 
-    let assistant = await assistantService.getAvailableAssistant({
+    let assistant = await assistantService.get({
       tenant: d.tenant,
       assistantId: d.input.assistantId
     });
@@ -194,6 +203,17 @@ class AssistantConversationServiceImpl {
       throw new ServiceError(notFoundError('model', assistant.id));
     }
     let defaultModel = assistant.defaultModel;
+    let definition = await getAssistantDefinition(assistant.implementation.slug);
+    let conversationInput = await resolveAssistantConversationInput({
+      tenant: d.tenant,
+      environment: d.environment,
+      actor: d.actor,
+      assistant,
+      assistantInstance,
+      assistantImplementation: definition.implementation,
+      rawInput: d.input.input,
+      rawInputProvided: hasOwn(d.input, 'input')
+    });
 
     return await withTransaction(async tx => {
       let rootMessage = await tx.assistantMessage.create({
@@ -211,6 +231,7 @@ class AssistantConversationServiceImpl {
         data: {
           ...getId('assistantConversation'),
           title: d.input.title,
+          input: toNullableJson(conversationInput),
           assistantOid: assistant.oid,
           assistantInstanceOid: assistantInstance.oid,
           tenantOid: d.tenant.oid,

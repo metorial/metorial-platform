@@ -1,12 +1,10 @@
 export type MetorialEnterpriseChromeBridge = {
-  showContactSupportModal?: (d?: {
-    subject?: string;
-    message?: string;
-  }) => void;
+  showContactSupportModal?: (d?: { subject?: string; message?: string }) => void;
   showFeedbackModal?: () => void;
   showDocs?: () => void;
   showApi?: () => void;
   showChangelog?: () => void;
+  showAssistant?: () => void;
 };
 
 export type MetorialEnterpriseWindow = {

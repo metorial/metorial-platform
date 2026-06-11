@@ -5,6 +5,7 @@ import { styled } from 'styled-components';
 import { theme } from '..';
 import { ButtonSize, getButtonSize } from '../button/constants';
 import { InputDescription, InputLabel } from '../input';
+import type { ColorKey } from '../theme/colors';
 
 export type OptionToggleItem = {
   id: string;
@@ -20,18 +21,22 @@ let Wrapper = styled('div')`
   width: 100%;
 `;
 
-let Root = styled(RadixToggleGroup.Root)<{ $fullWidth?: boolean; $borderRadius: string }>`
+let Root = styled(RadixToggleGroup.Root)<{
+  $fullWidth?: boolean;
+  $borderRadius: string;
+  $background: ColorKey;
+}>`
   position: relative;
   display: inline-flex;
   width: ${({ $fullWidth }) => ($fullWidth ? '100%' : 'fit-content')};
   padding: 4px;
   border-radius: ${({ $borderRadius }) => $borderRadius};
-  background: ${theme.colors.gray300};
+  background: ${({ $background }) => theme.colors[$background]};
   isolation: isolate;
   transition: all 0.3s ease;
 
   &:focus-within {
-    background: ${theme.colors.gray300};
+    background: ${({ $background }) => theme.colors[$background]};
   }
 
   &[data-disabled] {
@@ -105,6 +110,7 @@ export let OptionToggle = ({
   ariaLabel,
   disabled,
   fullWidth,
+  background = 'gray300',
   size = '3'
 }: {
   items: OptionToggleItem[];
@@ -116,6 +122,7 @@ export let OptionToggle = ({
   ariaLabel?: string;
   disabled?: boolean;
   fullWidth?: boolean;
+  background?: ColorKey;
   size?: ButtonSize;
 }) => {
   let id = useId();
@@ -131,10 +138,7 @@ export let OptionToggle = ({
     setIndicator(current => {
       if (current === null && nextIndicator === null) return current;
       if (current && nextIndicator) {
-        if (
-          current.width === nextIndicator.width &&
-          current.left === nextIndicator.left
-        ) {
+        if (current.width === nextIndicator.width && current.left === nextIndicator.left) {
           return current;
         }
       }
@@ -226,6 +230,7 @@ export let OptionToggle = ({
         aria-labelledby={label ? labelId : undefined}
         $fullWidth={fullWidth}
         $borderRadius={sizeStyles.borderRadius}
+        $background={background}
       >
         <Indicator
           aria-hidden

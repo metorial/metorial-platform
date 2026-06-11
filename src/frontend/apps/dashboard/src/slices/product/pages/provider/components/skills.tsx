@@ -1,11 +1,13 @@
 import { AnimateHeight, Button, InfoTooltip, theme } from '@metorial/ui';
+import { Box } from '@metorial/ui-product';
 import { RiCheckLine } from '@remixicon/react';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 import styled from 'styled-components';
 
 let Wrapper = styled.div`
-  border: 1px solid ${theme.colors.gray300};
+  border: 1px solid ${theme.colors.gray400};
+  box-shadow: ${theme.shadows.small};
   border-radius: 8px;
   padding: 20px;
 `;
@@ -67,6 +69,60 @@ export let Skills = ({ skills }: { skills: string[] }) => {
   let hiddenSkills = skills.slice(DEFAULT_VISIBLE_SKILLS);
 
   return (
+    <Box
+      title="Provider Summary"
+      rightActions={
+        <InfoTooltip>
+          An AI generated overview of the provider's capabilities and features.
+        </InfoTooltip>
+      }
+    >
+      <AnimateHeight>
+        <>
+          <List>
+            {visibleSkills.map((skill, index) => (
+              <Item key={index}>
+                <RiCheckLine />
+                <p>{skill}</p>
+              </Item>
+            ))}
+
+            {showAll &&
+              hiddenSkills.map((skill, index) => (
+                <MotionItem
+                  key={`${index + DEFAULT_VISIBLE_SKILLS}-${skill}`}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{
+                    duration: 0.22,
+                    ease: 'easeOut',
+                    delay: index * 0.06
+                  }}
+                >
+                  <RiCheckLine />
+                  <p>{skill}</p>
+                </MotionItem>
+              ))}
+          </List>
+
+          {!showAll && hiddenSkills.length > 0 && (
+            <Actions>
+              <Button
+                type="button"
+                size="1"
+                variant="outline"
+                onClick={() => setShowAll(true)}
+              >
+                Show more
+              </Button>
+            </Actions>
+          )}
+        </>
+      </AnimateHeight>
+    </Box>
+  );
+
+  return (
     <Wrapper>
       <Header>
         <Title>Provider Summary</Title>
@@ -106,7 +162,12 @@ export let Skills = ({ skills }: { skills: string[] }) => {
 
           {!showAll && hiddenSkills.length > 0 && (
             <Actions>
-              <Button type="button" size="1" variant="outline" onClick={() => setShowAll(true)}>
+              <Button
+                type="button"
+                size="1"
+                variant="outline"
+                onClick={() => setShowAll(true)}
+              >
                 Show more
               </Button>
             </Actions>

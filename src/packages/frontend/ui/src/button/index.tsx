@@ -24,19 +24,27 @@ let Wrapper = styled('button')`
   background: ${buttonTheme.passive_background};
   border: solid 1px ${buttonTheme.passive_border};
   box-shadow: ${buttonTheme.passive_shadow};
-  transition: all 0.2s;
+  transform: ${buttonTheme.passive_transform};
+  transition:
+    color 0.2s,
+    background 0.2s,
+    border-color 0.2s,
+    box-shadow 0.2s,
+    transform 0.12s ease;
   user-select: none;
 
-  &:hover,
-  &:focus {
+  &:not(:disabled):hover,
+  &:not(:disabled):focus {
     color: ${buttonTheme.active_color};
     background: ${buttonTheme.active_background};
     border: solid 1px ${buttonTheme.active_border};
     box-shadow: ${buttonTheme.active_shadow};
+    transform: ${buttonTheme.active_transform};
   }
 
-  &:active {
-    transform: ${buttonTheme.active_transform};
+  &:not(:disabled):active {
+    box-shadow: ${buttonTheme.pressed_shadow};
+    transform: ${buttonTheme.pressed_transform};
   }
 
   &:disabled {

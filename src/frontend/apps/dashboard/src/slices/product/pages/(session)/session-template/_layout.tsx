@@ -9,9 +9,13 @@ import {
   useSessionTemplate,
   useSessionTemplateProviders
 } from '@metorial/state';
-import { Button, Flex, LinkTabs } from '@metorial/ui';
+import { Flex, LinkTabs } from '@metorial/ui';
 import { useState } from 'react';
 import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
+import {
+  OpenExplorerButton,
+  type OpenExplorerMode
+} from '../../../components/openExplorer';
 import { DeletedRecordCallout } from '../../../scenes/deletedRecordCallout';
 
 export let SessionTemplateLayout = () => {
@@ -35,7 +39,7 @@ export let SessionTemplateLayout = () => {
     template.data?.id ?? sessionTemplateId
   ] as const;
 
-  let handleOpenExplorer = async () => {
+  let handleOpenExplorer = async (mode: OpenExplorerMode) => {
     let activeSessionTemplateId = template.data?.id ?? sessionTemplateId;
     if (
       isCreatingSession ||
@@ -55,7 +59,8 @@ export let SessionTemplateLayout = () => {
     if (res) {
       navigate(
         Paths.instance.explorer(organization.data, project.data, instance.data, {
-          session_id: res.id
+          session_id: res.id,
+          mode
         }),
         {
           state: { sessionTemplateId: activeSessionTemplateId }
@@ -91,15 +96,13 @@ export let SessionTemplateLayout = () => {
         actions={
           instance.data ? (
             <Flex gap={8}>
-              <Button
+              <OpenExplorerButton
                 size="2"
                 variant="outline"
-                onClick={handleOpenExplorer}
+                onOpen={handleOpenExplorer}
                 disabled={isCreatingSession || !providers.data?.items?.length}
                 loading={isCreatingSession}
-              >
-                Open Explorer
-              </Button>
+              />
             </Flex>
           ) : undefined
         }

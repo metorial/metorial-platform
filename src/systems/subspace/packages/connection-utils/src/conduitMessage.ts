@@ -22,6 +22,19 @@ export type ConduitInput =
       mcpMessage: JSONRPCMessage;
     };
 
+export type ConduitHeartbeatPing = {
+  type: 'health.ping';
+  id: string;
+  sentAt: number;
+};
+
+export type ConduitHeartbeatPong = {
+  type: 'health.pong';
+  id: string;
+  sentAt: number;
+  receivedAt: number;
+};
+
 export type ConduitResult = {
   status: SessionMessageStatus;
   completedAt: Date | null;

@@ -7,7 +7,8 @@ import { theme } from '../theme';
 let LinkWrapper = styled('span')`
   padding: 20px;
   border-radius: 10px;
-  border: solid 1px ${theme.colors.gray300};
+  border: 1px solid ${theme.colors.gray400};
+  box-shadow: ${theme.shadows.small};
   display: flex;
   gap: 10px;
   transition: all 0.2s;
@@ -17,13 +18,13 @@ let LinkWrapper = styled('span')`
 
   &:hover,
   &:focus {
-    border-color: ${theme.colors.black100} !important;
-    transform: scale(1.02);
+    border-color: ${theme.colors.gray500} !important;
+    transform: scale(1.005);
     box-shadow: ${theme.shadows.medium};
   }
 
   &:active {
-    transform: scale(0.98);
+    transform: scale(0.995);
   }
 `;
 
