@@ -5,8 +5,8 @@ import { baseSystemPrompt } from '../../implementations/_systemPrompt';
 import { claudeSonnet46 } from '../../models/anthropic';
 import { webSearchTools } from '../../tools/webSearch';
 
-let systemPrompt = detag`
-${baseSystemPrompt}
+let systemPrompt = () => detag`
+${baseSystemPrompt()}
 
 <environment>
 You have access to a container for running shell commands and managing files.
@@ -35,7 +35,7 @@ export let skillsAssistantImplementation = implementation({
     return new Agent({
       name: 'Skills Assistant',
       model: d.model.model,
-      systemPrompt,
+      systemPrompt: systemPrompt(),
       filesystem: sandbox.fs,
       tools: {
         ...sandbox.tools,

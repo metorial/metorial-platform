@@ -70,8 +70,8 @@ import {
 } from '../../models';
 import { webSearchTools } from '../../tools/webSearch';
 
-let systemPrompt = detag`
-${baseSystemPrompt}
+let systemPrompt = () => detag`
+${baseSystemPrompt()}
 
 <environment>
 You have access to a container for running shell commands and managing files.
@@ -159,12 +159,16 @@ export let testAssistantImplementation = implementation({
   name: 'Test Assistant',
 
   async getAgent(d) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('Test Assistant is not available in production');
+    }
+
     let sandbox = await createSandbox();
 
     return new Agent({
       name: 'Test Assistant',
       model: d.model.model,
-      systemPrompt,
+      systemPrompt: systemPrompt(),
       filesystem: sandbox.fs,
       tools: {
         ...sandbox.tools,
