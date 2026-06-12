@@ -951,7 +951,11 @@ export let SkillTemplateLinkProvidersScene = (p: {
       return (
         <Box
           title="Template Providers"
-          description="Add providers and integrations that should be included when this template is used."
+          description={
+            p.readOnly
+              ? 'Providers and integrations admins have included with this template.'
+              : 'Add providers and integrations that should be included when this template is used.'
+          }
           rightActions={
             p.readOnly ? undefined : (
               <AddSkillItemMenu
@@ -964,7 +968,9 @@ export let SkillTemplateLinkProvidersScene = (p: {
           {skillTemplateItems.data.length === 0 ? (
             <EmptyState>
               <Text color="gray600" size="2">
-                No providers or integrations are linked to this template yet.
+                {p.readOnly
+                  ? 'No providers or integrations have been included by an admin yet.'
+                  : 'No providers or integrations are linked to this template yet.'}
               </Text>
             </EmptyState>
           ) : (
