@@ -51,19 +51,12 @@ let ProviderAvatarItem = styled.div<{ $index: number }>`
   box-shadow: 0 0 0 2px ${theme.colors.background};
 `;
 
+type SkillListItem = NonNullable<
+  NonNullable<ReturnType<typeof useSkills>>['data']
+>['items'][number];
+
 export let SkillGridCard = (p: {
-  skill: {
-    id: string;
-    name: string;
-    description?: string | null;
-    slug: string;
-    imageUrl?: string | null;
-    providers?: {
-      id: string;
-      name?: string | null;
-      slug: string;
-    }[];
-  };
+  skill: SkillListItem;
   listingLookup: Map<
     string,
     { name: string | null | undefined; imageUrl: string | null | undefined }

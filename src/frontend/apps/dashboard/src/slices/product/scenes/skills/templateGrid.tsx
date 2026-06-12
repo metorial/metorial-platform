@@ -36,13 +36,12 @@ let Description = styled.span`
   -webkit-box-orient: vertical;
 `;
 
+type SkillTemplateListItem = NonNullable<
+  NonNullable<ReturnType<typeof useSkillTemplates>>['data']
+>['items'][number];
+
 export let SkillTemplateGridCard = (p: {
-  skillTemplate: {
-    id: string;
-    name: string;
-    description?: string | null;
-    slug: string;
-  };
+  skillTemplate: SkillTemplateListItem;
   onClick?: () => void;
   menu?: {
     label: string;

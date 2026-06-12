@@ -33,13 +33,12 @@ let Description = styled.span`
   -webkit-box-orient: vertical;
 `;
 
+type SkillGroupListItem = NonNullable<
+  NonNullable<ReturnType<typeof useSkillGroups>>['data']
+>['items'][number];
+
 export let SkillGroupGridCard = (p: {
-  skillGroup: {
-    id: string;
-    name: string;
-    description?: string | null;
-    skills?: unknown[];
-  };
+  skillGroup: SkillGroupListItem;
   href?: string;
   onClick?: () => void;
 }) => (
