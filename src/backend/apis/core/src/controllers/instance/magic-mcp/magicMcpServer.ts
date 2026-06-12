@@ -7,7 +7,11 @@ import {
   consumerService,
   grantConsumerOwnedMagicMcpServerAccess
 } from '@metorial/module-consumer';
-import { ensureMagicMcpServerBacking, magicMcpServerService } from '@metorial/module-magic';
+import {
+  ensureMagicMcpServerBacking,
+  magicMcpServerService,
+  type MagicMcpServerOwnerFilter
+} from '@metorial/module-magic';
 import {
   subspaceIntegrationInstanceService,
   subspaceIntegrationService,
@@ -50,6 +54,45 @@ export let magicMcpServerGroup = instanceGroup.use(async ctx => {
 });
 
 let magicMcpServerStatusValues = ['active', 'archived', 'deleted'] as const;
+let magicMcpServerOwnerFilterValues = ['organization', 'consumer'] as const;
+
+let validateLinkedIntegrationInstanceForMagicMcpServer = async (d: {
+  instance: Parameters<typeof subspaceIntegrationInstanceService.get>[0]['instance'];
+  integrationInstanceId: string;
+}) => {
+  let integrationInstance = await subspaceIntegrationInstanceService.get({
+    instance: d.instance,
+    integrationInstanceId: d.integrationInstanceId
+  });
+
+  if (integrationInstance.status !== 'active') {
+    throw new ServiceError(
+      badRequestError({
+        message: 'Magic MCP servers can only be linked to active integration instances.',
+        code: 'integration_instance_not_active',
+        data: {
+          integration_instance_id: integrationInstance.id,
+          status: integrationInstance.status
+        }
+      })
+    );
+  }
+
+  if (!integrationInstance.providers.length) {
+    throw new ServiceError(
+      badRequestError({
+        message:
+          'Magic MCP servers require an integration instance with configured providers.',
+        code: 'integration_instance_has_no_providers',
+        data: {
+          integration_instance_id: integrationInstance.id
+        }
+      })
+    );
+  }
+
+  return integrationInstance;
+};
 
 let getAccessTagsForConsumerProfiles = async (d: {
   consumerProfiles: Awaited<
@@ -301,6 +344,13 @@ export let magicMcpServerController = Controller.create(
             ),
             magic_mcp_group_id: v.optional(v.union([v.string(), v.array(v.string())])),
             provider_template_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            integration_instance_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            owner: v.optional(
+              v.union([
+                v.enumOf([...magicMcpServerOwnerFilterValues]),
+                v.array(v.enumOf([...magicMcpServerOwnerFilterValues]))
+              ])
+            ),
             provider_id: v.optional(v.union([v.string(), v.array(v.string())])),
             consumer_id: v.optional(v.union([v.string(), v.array(v.string())])),
             consumer_profile_id: v.optional(v.union([v.string(), v.array(v.string())])),
@@ -324,6 +374,10 @@ export let magicMcpServerController = Controller.create(
           status: normalizeArrayParam<MagicMcpServerStatus>(ctx.query.status),
           groupIds: normalizeArrayParam(ctx.query.magic_mcp_group_id),
           providerTemplateIds: normalizeArrayParam(ctx.query.provider_template_id),
+          subspaceIntegrationInstanceIds: normalizeArrayParam(
+            ctx.query.integration_instance_id
+          ),
+          owners: normalizeArrayParam<MagicMcpServerOwnerFilter>(ctx.query.owner),
           providerIds: normalizeArrayParam(ctx.query.provider_id),
           ids: normalizeArrayParam(ctx.query.id),
           search: ctx.query.search,
@@ -672,6 +726,7 @@ export let magicMcpServerController = Controller.create(
           description: v.optional(v.string()),
           metadata: v.optional(v.record(v.any())),
           provider_template_id: v.optional(v.string()),
+          integration_instance_id: v.optional(v.string()),
           consumer_profile_id: v.optional(v.string())
         })
       )
@@ -686,6 +741,23 @@ export let magicMcpServerController = Controller.create(
             })
           : undefined;
 
+        if (ctx.body.provider_template_id && ctx.body.integration_instance_id) {
+          throw new ServiceError(
+            badRequestError({
+              message:
+                'provider_template_id and integration_instance_id cannot be specified together.',
+              code: 'magic_mcp_server_backing_conflict'
+            })
+          );
+        }
+
+        if (ctx.body.integration_instance_id) {
+          await validateLinkedIntegrationInstanceForMagicMcpServer({
+            instance: ctx.instance,
+            integrationInstanceId: ctx.body.integration_instance_id
+          });
+        }
+
         let magicMcpServer = await magicMcpServerService.createMagicMcpServer({
           organization: ctx.organization,
           performedBy: ctx.actor!,
@@ -695,7 +767,8 @@ export let magicMcpServerController = Controller.create(
             name: ctx.body.name,
             description: ctx.body.description,
             metadata: ctx.body.metadata,
-            providerTemplateId: ctx.body.provider_template_id
+            providerTemplateId: ctx.body.provider_template_id,
+            subspaceIntegrationInstanceId: ctx.body.integration_instance_id
           }
         });
 

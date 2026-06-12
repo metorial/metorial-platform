@@ -111,6 +111,11 @@ export interface SenderMangerProps {
     privateMetadata?: Record<string, any>;
     foreignId: string;
     oauthRegistrationId: string;
+  } | {
+    name: string;
+    type: 'system_client';
+    privateMetadata?: Record<string, any>;
+    foreignId: string;
   };
   connectionPrivateMetadata?: Record<string, any>;
   ingressPolicyCheck?: {

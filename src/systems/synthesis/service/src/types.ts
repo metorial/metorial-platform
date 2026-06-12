@@ -15,7 +15,7 @@ export type InputMessage = {
   parts: MessagePart[];
 };
 
-export type ItemStatus = 'running' | 'completed' | 'failed';
+export type ItemStatus = 'pending' | 'running' | 'waiting_for_user' | 'completed' | 'failed';
 
 export type Message = {
   role: 'user' | 'assistant' | 'system';
@@ -28,6 +28,10 @@ export type ToolCallState = {
   output?: unknown;
   error?: { message: string };
   status: ItemStatus;
+  handoff?: {
+    title: string;
+    description?: string;
+  };
 };
 
 export type FileExploreOperation = (
@@ -170,6 +174,13 @@ export type AssistantMessageSerializedContent = {
   messages: [number, unknown][];
 };
 
+export type AssistantRequestStatus =
+  | 'pending'
+  | 'waiting_for_user'
+  | 'completed'
+  | 'cancelled'
+  | 'failed';
+
 export type AssistantRunUsage = {
   inputTokens: number;
   outputTokens: number;
@@ -194,4 +205,16 @@ export type AssistantRunMetadata = {
   error?: {
     message: string;
   };
+};
+
+export type SubspaceMcpToolList = {
+  tools: Array<{
+    name: string;
+    title?: string;
+    description?: string;
+    inputSchema: Record<string, unknown>;
+    annotations?: Record<string, unknown>;
+    _meta?: Record<string, unknown>;
+  }>;
+  nextCursor?: string;
 };

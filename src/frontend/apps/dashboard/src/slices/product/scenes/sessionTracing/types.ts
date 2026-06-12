@@ -12,10 +12,12 @@ export type SessionEvent = DashboardInstanceSessionsEventsListOutput['items'][nu
 export type SessionConnection =
   DashboardInstanceSessionsConnectionsListOutput['items'][number];
 export type TracingConnectionItem = SessionConnection & { hasErrors?: boolean | null };
+export type ExplorerTabMode = 'manual' | 'assistant';
 export type PlaceholderConnectionItem = {
   kind: 'placeholder';
   id: string;
   tabId: string;
+  mode: ExplorerTabMode;
   label: string;
   createdAt: Date;
 };

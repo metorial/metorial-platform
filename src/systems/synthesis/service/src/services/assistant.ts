@@ -101,7 +101,7 @@ class AssistantServiceImpl {
     } satisfies Prisma.AssistantWhereInput;
   }
 
-  async getAvailableAssistant(d: { tenant: Tenant; assistantId: string }) {
+  async get(d: { tenant: Tenant; assistantId: string }) {
     await this.syncSystemAssistants();
 
     let assistant = await db.assistant.findFirst({
@@ -113,14 +113,11 @@ class AssistantServiceImpl {
     return (await this.enrichAssistants([assistant]))[0]!;
   }
 
-  async getAvailableAssistantsByIds(d: {
-    tenant: Tenant;
-    assistantIds: string[];
-  }) {
+  async getMany(d: { tenant: Tenant; assistantIds: string[] }) {
     await this.syncSystemAssistants();
 
     let assistantIds = Array.from(new Set(d.assistantIds));
-    if (!assistantIds.length) return new Map<string, AvailableAssistant>();
+    if (!assistantIds.length) return [];
 
     let assistants = await db.assistant.findMany({
       where: {
@@ -134,11 +131,15 @@ class AssistantServiceImpl {
       include: assistantInclude
     });
     let enriched = await this.enrichAssistants(assistants);
+    let assistantById = new Map(enriched.map(assistant => [assistant.id, assistant]));
 
-    return new Map(enriched.map(assistant => [assistant.id, assistant]));
+    return assistantIds.flatMap(assistantId => {
+      let assistant = assistantById.get(assistantId);
+      return assistant ? [assistant] : [];
+    });
   }
 
-  async listAvailableAssistants(d: { tenant: Tenant }) {
+  async list(d: { tenant: Tenant }) {
     await this.syncSystemAssistants();
 
     return Paginator.create(({ prisma }) =>

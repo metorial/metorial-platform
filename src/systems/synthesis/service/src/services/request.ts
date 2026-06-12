@@ -1,4 +1,4 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import type {
   AssistantConversation,
@@ -8,9 +8,14 @@ import type {
   TenantActor
 } from '../db';
 import { db, Prisma, withTransaction } from '../db';
-import { assistants } from '../definitions/assistants';
 import { getId } from '../id';
 import type { Implementation } from '../lib/definitions';
+import { getAssistantDefinition } from '../lib/definitions/assistantDefinition';
+import {
+  applyHandoffToolResponses,
+  getHandoffToolCalls,
+  getWaitingHandoffToolCalls
+} from '../lib/run';
 import { listenToAssistantRunDeltas } from '../lib/run/redisDeltas';
 import { createItemId, type AgentRunWireMessage } from '../lib/run/state';
 import { generateAssistantConversationTitleQueue } from '../queues/generateConversationTitle';
@@ -63,8 +68,6 @@ let inputMessageState = (input: InputMessage) =>
     ]
   }) satisfies State;
 
-type AssistantDefinition = Awaited<(typeof assistants)[keyof typeof assistants]>;
-
 export let assistantRequestInclude = {
   tenantActor: true,
   conversation: true,
@@ -86,21 +89,6 @@ export let assistantRequestInclude = {
 export type AssistantRequestWithRelations = Prisma.AssistantRequestGetPayload<{
   include: typeof assistantRequestInclude;
 }>;
-
-let getAssistantDefinition = async (
-  implementationSlug: string
-): Promise<AssistantDefinition> => {
-  let definitions = await Promise.all(Object.values(assistants));
-  let definition = definitions.find(
-    definition => definition.implementation._persisted.slug == implementationSlug
-  );
-
-  if (!definition) {
-    throw new ServiceError(notFoundError('assistant_implementation', implementationSlug));
-  }
-
-  return definition;
-};
 
 let chooseModel = (d: {
   implementation: Implementation;
@@ -379,6 +367,145 @@ class AssistantRequestServiceImpl {
     return result;
   }
 
+  async respondToAssistantHandoffs(d: {
+    tenant: Tenant;
+    environment: Environment;
+    actor: TenantActor;
+    conversation: AssistantConversation;
+    input: {
+      messageId: string;
+      responses: Array<{
+        toolCallId: string;
+        output: unknown;
+      }>;
+    };
+  }) {
+    if (!d.input.responses.length) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'At least one handoff response is required.'
+        })
+      );
+    }
+
+    let item = await db.assistantConversationItem.findFirst({
+      where: {
+        conversationOid: d.conversation.oid,
+        message: {
+          id: d.input.messageId
+        }
+      },
+      include: assistantConversationItemInclude
+    });
+    if (!item) throw new ServiceError(notFoundError('assistant_message', d.input.messageId));
+
+    await this.ensureScope({
+      tenant: d.tenant,
+      environment: d.environment,
+      actor: d.actor,
+      conversation: d.conversation
+    });
+
+    let message = item.message;
+    if (!message.request || message.status != 'waiting_for_user') {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Assistant message is not waiting for handoff responses.'
+        })
+      );
+    }
+    if (message.request.status != 'waiting_for_user') {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Assistant request is not waiting for handoff responses.'
+        })
+      );
+    }
+
+    let currentState = message.state as State;
+    let waitingBefore = getWaitingHandoffToolCalls(currentState);
+    if (!waitingBefore.length) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Assistant message has no waiting handoff tool calls.'
+        })
+      );
+    }
+
+    let applied: ReturnType<typeof applyHandoffToolResponses>;
+    try {
+      applied = applyHandoffToolResponses(currentState, d.input.responses);
+    } catch (error) {
+      throw new ServiceError(
+        badRequestError({
+          message: error instanceof Error ? error.message : 'Invalid handoff response.'
+        })
+      );
+    }
+
+    let shouldResume = applied.remaining.length == 0;
+    let waitingBeforeIds = new Set(waitingBefore.map(({ call }) => call.id));
+    let handoffById = new Map(
+      getHandoffToolCalls(applied.state).map(({ toolName, call }) => [call.id, { toolName, call }])
+    );
+    let resumeResponses = [...waitingBeforeIds].map(toolCallId => {
+      let handoff = handoffById.get(toolCallId)!;
+      return {
+        toolCallId,
+        toolName: handoff.toolName,
+        output: handoff.call.output
+      };
+    });
+
+    let updatedItem = await withTransaction(async tx => {
+      await tx.assistantMessage.update({
+        where: {
+          oid: message.oid
+        },
+        data: {
+          status: shouldResume ? 'pending' : 'waiting_for_user',
+          state: applied.state
+        }
+      });
+
+      await tx.assistantRequest.update({
+        where: {
+          oid: message.request!.oid
+        },
+        data: {
+          status: shouldResume ? 'pending' : 'waiting_for_user'
+        }
+      });
+
+      if (message.run) {
+        await tx.modelRun.update({
+          where: {
+            oid: message.run.oid
+          },
+          data: {
+            status: shouldResume ? 'pending' : 'waiting_for_user'
+          }
+        });
+      }
+
+      return await tx.assistantConversationItem.findUniqueOrThrow({
+        where: {
+          oid: item.oid
+        },
+        include: assistantConversationItemInclude
+      });
+    });
+
+    if (shouldResume) {
+      await processAssistantRequestQueue.add({
+        assistantRequestId: message.request.id,
+        handoffResponses: resumeResponses
+      });
+    }
+
+    return updatedItem;
+  }
+
   async listenToAssistantRequestDeltas(d: {
     requestId: string;
     signal?: AbortSignal;
@@ -388,7 +515,7 @@ class AssistantRequestServiceImpl {
     onMessage: (message: AgentRunWireMessage) => void | Promise<void>;
     onError?: (error: Error) => void | Promise<void>;
     onDone?: (message: {
-      status: 'completed' | 'cancelled' | 'failed';
+      status: 'completed' | 'waiting_for_user' | 'cancelled' | 'failed';
     }) => void | Promise<void>;
   }) {
     let request = await this.getAssistantRequestById({ requestId: d.requestId });

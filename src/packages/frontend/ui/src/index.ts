@@ -26,6 +26,7 @@ export * from './group';
 export * from './info';
 export * from './inlineCopy';
 export * from './input';
+export * from './link';
 export * from './linkTabs';
 export * from './logo';
 export * from './menu';

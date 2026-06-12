@@ -7,6 +7,7 @@ export let assistantMessagePresenter = (item: AssistantConversationItemWithMessa
   conversationItemId: item.id,
   conversationId: item.conversation.id,
   type: item.message.type,
+  status: item.message.status,
   runId: item.message.run?.id ?? null,
   requestId: item.message.request?.id ?? null,
   request: item.message.request

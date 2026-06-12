@@ -9,7 +9,7 @@ import {
 } from '@metorial/state';
 import { Avatar, Text, theme } from '@metorial/ui';
 import { ItemGrid } from '@metorial/ui-product';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { styled } from 'styled-components';
 import { EmptyState } from '../../../../components/emptyState';
 import { showSkillGroupFormModal } from './groupModal';
@@ -40,6 +40,7 @@ export let SkillGroupGridCard = (p: {
     description?: string | null;
     skills?: unknown[];
   };
+  href?: string;
   onClick?: () => void;
 }) => (
   <ItemGrid.Item
@@ -49,6 +50,7 @@ export let SkillGroupGridCard = (p: {
       <Description>{p.skillGroup.description || 'No description provided yet.'}</Description>
     }
     height={200}
+    href={p.href}
     onClick={p.onClick}
     icon={
       <Avatar
@@ -145,18 +147,16 @@ export let SkillGroupsGrid = (
       {skillGroups.data.items.length > 0 && (
         <ItemGrid.Root width="300px">
           {skillGroups.data.items.map(skillGroup => (
-            <Link
+            <SkillGroupGridCard
               key={skillGroup.id}
-              to={Paths.instance.skillGroup(
+              skillGroup={skillGroup}
+              href={Paths.instance.skillGroup(
                 organization.data,
                 project.data,
                 instance.data,
                 skillGroup.id
               )}
-              style={{ textDecoration: 'none', color: 'inherit' }}
-            >
-              <SkillGroupGridCard skillGroup={skillGroup} />
-            </Link>
+            />
           ))}
         </ItemGrid.Root>
       )}

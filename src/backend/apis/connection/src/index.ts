@@ -20,7 +20,7 @@ export let startMcpServer = (d: { port: number; authenticate: Authenticator<Auth
       );
       c.res.headers.set(
         'Access-Control-Allow-Headers',
-        'Content-Type, Authorization, metorial-version, mcp-protocol-version, MCP-Session-ID, Last-Event-ID'
+        'Content-Type, Authorization, metorial-version, mcp-protocol-version, MCP-Session-ID, Last-Event-ID, baggage, sentry-trace'
       );
       c.res.headers.set(
         'Access-Control-Expose-Headers',

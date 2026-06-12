@@ -7,7 +7,10 @@ import {
   Prisma,
   ProviderTemplate
 } from '@metorial/db';
-import { subspaceMagicMcpBackingService } from '@metorial/module-subspace';
+import {
+  subspaceIntegrationInstanceService,
+  subspaceMagicMcpBackingService
+} from '@metorial/module-subspace';
 
 let magicMcpEndpointBackingInclude = {
   consumerProfile: true,
@@ -22,7 +25,7 @@ type MagicMcpEndpointWithBackingRelations = Prisma.MagicMcpEndpointGetPayload<{
   include: typeof magicMcpEndpointBackingInclude;
 }>;
 
-type ConsumerOwner = {
+export type ConsumerOwner = {
   identityActorId?: string | null;
   identityId?: string | null;
 };
@@ -209,12 +212,21 @@ export let ensureMagicMcpServerBacking = async (d: {
         providerTemplateBackingId = providerTemplate.id;
       }
     }
+    let ownerIntegrationId: string | null = null;
+    if (d.server.subspaceIntegrationInstanceId && !providerTemplateBackingId) {
+      let integrationInstance = await subspaceIntegrationInstanceService.get({
+        instance: d.instance,
+        integrationInstanceId: d.server.subspaceIntegrationInstanceId
+      });
+      ownerIntegrationId = integrationInstance.integrationId;
+    }
 
     let providers = d.providers ?? undefined;
     let backing = await (subspaceMagicMcpBackingService.upsertServer as any)({
       instance: d.instance,
       magicMcpServerBackingId: d.server.id,
       providerTemplateBackingId,
+      ownerIntegrationId,
       ownerIntegrationInstanceId: d.server.subspaceIntegrationInstanceId,
       name: d.server.name,
       description: d.server.description,

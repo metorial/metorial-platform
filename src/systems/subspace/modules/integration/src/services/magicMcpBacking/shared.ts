@@ -133,6 +133,54 @@ export let getMagicMcpOwnerIntegration = <
   return backing.integration ?? null;
 };
 
+export type MagicMcpBackingPolicy = {
+  ownerType: MagicMcpOwnerType;
+  canMutateIntegrationProviders: boolean;
+  canMutateIntegrationInstanceProviders: boolean;
+  canArchiveProviders: boolean;
+  archivesIntegration: boolean;
+  archivesIntegrationInstance: boolean;
+};
+
+export let resolveMagicMcpBackingPolicy = (d: {
+  ownerType: MagicMcpOwnerType;
+  providerTemplateBackingOid?: bigint | null;
+  ownerIntegrationOid?: bigint | null;
+}): MagicMcpBackingPolicy => {
+  let ownerType = getMagicMcpOwnerType(d);
+
+  if (ownerType === 'server_owned') {
+    return {
+      ownerType,
+      canMutateIntegrationProviders: true,
+      canMutateIntegrationInstanceProviders: true,
+      canArchiveProviders: true,
+      archivesIntegration: true,
+      archivesIntegrationInstance: true
+    };
+  }
+
+  if (ownerType === 'provider_template') {
+    return {
+      ownerType,
+      canMutateIntegrationProviders: false,
+      canMutateIntegrationInstanceProviders: true,
+      canArchiveProviders: false,
+      archivesIntegration: false,
+      archivesIntegrationInstance: true
+    };
+  }
+
+  return {
+    ownerType,
+    canMutateIntegrationProviders: false,
+    canMutateIntegrationInstanceProviders: false,
+    canArchiveProviders: false,
+    archivesIntegration: false,
+    archivesIntegrationInstance: false
+  };
+};
+
 export let magicMcpEndpointBackingInclude = {
   integrationGroup: {
     include: integrationInstanceGroupInclude

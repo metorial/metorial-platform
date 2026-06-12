@@ -4,12 +4,13 @@ import { Text, Title } from '../text';
 import { theme } from '../theme';
 
 let GroupWrapper = styled('div')`
-  border: solid 1px ${theme.colors.gray300};
+  border: solid 1px ${theme.colors.gray400};
+  box-shadow: ${theme.shadows.small};
   border-radius: 10px;
   overflow: hidden;
 
   & > *:not(:last-child) {
-    border-bottom: solid 1px ${theme.colors.gray300};
+    border-bottom: solid 1px ${theme.colors.gray400};
   }
 `;
 
@@ -73,7 +74,7 @@ export let Group = {
     flex-direction: column;
 
     &:not(:last-child) {
-      border-bottom: solid 1px ${theme.colors.gray300};
+      border-bottom: solid 1px ${theme.colors.gray400};
     }
   `,
   Row: styled('main')`

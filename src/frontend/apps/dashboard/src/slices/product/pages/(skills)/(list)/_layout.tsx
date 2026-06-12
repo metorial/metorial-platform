@@ -95,7 +95,7 @@ export let SkillsListLayout = () => {
     <ContentLayout>
       <PageHeader
         title="Magic Skills"
-        description="Create reusable skills that can enable rich workflows across your agents."
+        description="Create reusable skills that can enable rich workflows across agents and teams."
         actions={
           action ? (
             <Button size="2" onClick={() => action.onClick()}>

@@ -3,10 +3,12 @@ import { theme } from '@metorial/ui';
 import { useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { EditorTabItem, EditorTabs } from '../../../../../components/editorTabs';
-import { TracingConnectionItem } from '../types';
+import { ExplorerTabMode, TracingConnectionItem } from '../types';
 import { CONNECT_TAB_ID } from '../utils';
 import { ConnectTabPanel } from './connectTabPanel';
 import { ConnectionLogs } from './connectionLogs';
+import { ExplorerAssistantFrame } from './explorerAssistantFrame';
+import { ExplorerModeToggle } from './explorerModeToggle';
 import { InspectorFrame } from './inspectorFrame';
 
 let PaneSection = styled.div`
@@ -76,22 +78,28 @@ let DetailEmptyState = styled.div`
 export let SessionTraceTabsPane = ({
   activeConnection,
   activeTabId,
+  assistantConversationIdByTabId,
   connectionIdByExplorerTabId,
   explorerTabIds,
+  explorerModeByTabId,
   focusedItemId,
   inspectorOptions,
   isExplorerActive,
   onCloseTab,
   onOpenConnection,
   onReorderTabs,
+  onSelectOrCreateExplorerMode,
   onSelectTab,
   openTabs,
+  setAssistantConversationId,
   session
 }: {
   activeConnection: TracingConnectionItem | null;
   activeTabId: string | null;
+  assistantConversationIdByTabId: Record<string, string>;
   connectionIdByExplorerTabId: Record<string, string>;
   explorerTabIds: string[];
+  explorerModeByTabId: Record<string, ExplorerTabMode>;
   focusedItemId?: string | null;
   inspectorOptions?: {
     sessionTemplateId?: string | null;
@@ -101,8 +109,10 @@ export let SessionTraceTabsPane = ({
   onCloseTab: (id: string) => void;
   onOpenConnection: (connectionId: string) => void;
   onReorderTabs: (sourceId: string, targetId: string, position: 'before' | 'after') => void;
+  onSelectOrCreateExplorerMode: (mode: ExplorerTabMode) => void;
   onSelectTab: (id: string) => void;
   openTabs: EditorTabItem[];
+  setAssistantConversationId: (tabId: string, conversationId: string) => void;
   session: DashboardInstanceSessionsGetOutput;
 }) => {
   let paneBodyRef = useRef<HTMLDivElement>(null);
@@ -134,14 +144,38 @@ export let SessionTraceTabsPane = ({
         if (!mountedExplorerTabIds.has(id)) return null;
 
         let connectionId = connectionIdByExplorerTabId[id];
+        let mode = explorerModeByTabId[id] ?? 'manual';
+        let modeSelector = (
+          <ExplorerModeToggle
+            value={mode}
+            onChange={nextMode => onSelectOrCreateExplorerMode(nextMode)}
+          />
+        );
+
         return (
           <ExplorerHost key={id} data-active={id === activeTabId}>
-            <InspectorFrame
-              sessionId={session.id}
-              sessionTemplateId={inspectorOptions?.sessionTemplateId}
-              magicMcpServerId={inspectorOptions?.magicMcpServerId}
-              onOpenLogs={connectionId ? () => onOpenConnection(connectionId) : undefined}
-            />
+            {mode === 'assistant' ? (
+              <ExplorerAssistantFrame
+                sessionId={session.id}
+                assistantConversationId={assistantConversationIdByTabId[id]}
+                modeSelector={modeSelector}
+                onOpenLogs={connectionId ? () => onOpenConnection(connectionId) : undefined}
+                onAssistantConversationIdChange={conversationId =>
+                  setAssistantConversationId(id, conversationId)
+                }
+                setRestrictHeight={enabled =>
+                  (window as any).metorial_setRestrictHeight?.(enabled)
+                }
+              />
+            ) : (
+              <InspectorFrame
+                sessionId={session.id}
+                sessionTemplateId={inspectorOptions?.sessionTemplateId}
+                magicMcpServerId={inspectorOptions?.magicMcpServerId}
+                modeSelector={modeSelector}
+                onOpenLogs={connectionId ? () => onOpenConnection(connectionId) : undefined}
+              />
+            )}
           </ExplorerHost>
         );
       })}

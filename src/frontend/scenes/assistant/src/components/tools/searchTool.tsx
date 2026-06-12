@@ -36,6 +36,16 @@ let OperationDetail = styled.div`
   min-width: 0;
 `;
 
+let EmptyNote = styled.div`
+  border-radius: 10px;
+  background: color-mix(in srgb, currentColor 4%, transparent);
+  border: 1px solid color-mix(in srgb, currentColor 8%, transparent);
+  color: color-mix(in srgb, currentColor 58%, transparent);
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 10px 12px;
+`;
+
 let getOperationTitle = (type: SearchItem['operations'][number]['type']) => {
   return type == 'read' ? 'Read' : 'Explore';
 };
@@ -70,24 +80,22 @@ let getExploredCount = (item: SearchItem) => {
 export let SearchToolCard = (p: { item: SearchItem }) => {
   let item = p.item;
   let exploredCount = getExploredCount(item);
-  let summary = item.operations.some(operation => operation.status == 'running')
+  let isRunning = item.operations.some(operation => operation.status == 'running');
+  let hasFailed = item.operations.some(operation => operation.status == 'failed');
+  let hasFoundFiles = exploredCount != null;
+  let showEmptyNote = !isRunning && !hasFailed && !hasFoundFiles;
+  let summary = isRunning
     ? 'Exploring files'
-    : exploredCount
+    : hasFoundFiles
       ? `Explored ${exploredCount} files`
       : 'Explored files';
 
   return (
     <ToolDisclosureCard
       summary={summary}
-      status={
-        item.operations.some(operation => operation.status == 'failed')
-          ? 'failed'
-          : item.operations.some(operation => operation.status == 'running')
-            ? 'running'
-            : 'completed'
-      }
+      status={hasFailed ? 'failed' : isRunning ? 'running' : 'completed'}
       defaultOpen={true}
-      autoCollapseOnComplete={!item.operations.some(operation => operation.status == 'failed')}
+      autoCollapseOnComplete={!hasFailed}
     >
       <ToolContentStack>
         <OperationList>
@@ -99,6 +107,8 @@ export let SearchToolCard = (p: { item: SearchItem }) => {
             </OperationRow>
           ))}
         </OperationList>
+
+        {showEmptyNote && <EmptyNote>No files were found for this exploration.</EmptyNote>}
       </ToolContentStack>
     </ToolDisclosureCard>
   );

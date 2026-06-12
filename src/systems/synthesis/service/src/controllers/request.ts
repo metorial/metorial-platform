@@ -135,5 +135,40 @@ export let requestController = app.controller({
         request: assistantRequestPresenter(request),
         message: assistantMessagePresenter(result.item)
       };
+    }),
+
+  respondToHandoffs: conversationActorApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        environmentId: v.string(),
+        conversationId: v.string(),
+        actorId: v.string(),
+        messageId: v.string(),
+        responses: v.array(
+          v.object({
+            toolCallId: v.string(),
+            output: v.any()
+          })
+        )
+      })
+    )
+    .do(async ctx => {
+      let item = await assistantRequestService.respondToAssistantHandoffs({
+        tenant: ctx.tenant,
+        environment: ctx.environment,
+        actor: ctx.actor,
+        conversation: ctx.conversation,
+        input: {
+          messageId: ctx.input.messageId,
+          responses: ctx.input.responses.map(response => ({
+            toolCallId: response.toolCallId,
+            output: response.output
+          }))
+        }
+      });
+
+      return assistantMessagePresenter(item);
     })
 });

@@ -117,6 +117,7 @@ let createOptimisticMessage = (d: {
     id: d.id,
     conversationItemId: d.id,
     type: 'user',
+    status: 'completed',
     assistantId: null,
     parentMessageId: d.parentMessageId,
     model: null,

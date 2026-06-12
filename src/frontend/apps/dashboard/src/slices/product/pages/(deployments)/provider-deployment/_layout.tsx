@@ -10,6 +10,7 @@ import {
 } from '@metorial/state';
 import { Button, LinkTabs } from '@metorial/ui';
 import { Link, Outlet, useLocation, useParams } from 'react-router-dom';
+import { OpenExplorerButton } from '../../../components/openExplorer';
 import { DeletedRecordCallout } from '../../../scenes/deletedRecordCallout';
 
 export let ProviderDeploymentLayout = () => {
@@ -72,15 +73,11 @@ export let ProviderDeploymentLayout = () => {
               </Button>
             </Link>
 
-            <Link
+            <OpenExplorerButton
               to={Paths.instance.explorer(organization.data, project.data, instance.data, {
                 provider_deployment_id: deployment.data?.id ?? providerDeploymentId
               })}
-            >
-              <Button as="span" size="2">
-                Open Explorer
-              </Button>
-            </Link>
+            />
           </>
         }
       />

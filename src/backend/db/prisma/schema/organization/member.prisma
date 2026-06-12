@@ -37,6 +37,7 @@ model OrganizationMember {
   usedInvites             OrganizationInviteJoin[]
   userConfigs             OrganizationUserConfig[]
   oauthAuthorizations     OAuthAuthorization[]
+  internalOAuthTokens     InternalOAuthToken[]
   policies                AccessPolicyAssignment[]
   apiKeyCreatedEmailSends ApiKeyCreatedEmailSend[]
   apiKeyExpiredEmailSends ApiKeyExpiredEmailSend[]

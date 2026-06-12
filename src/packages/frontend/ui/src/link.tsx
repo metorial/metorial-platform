@@ -7,9 +7,9 @@ type ILink = (props: {
   style?: React.CSSProperties;
 }) => React.ReactNode;
 
-let defaultLink: ILink = ({ to, children, className }) => {
+let defaultLink: ILink = ({ to, children, className, style }) => {
   return (
-    <a href={to} className={className}>
+    <a href={to} className={className} style={style}>
       {children}
     </a>
   );

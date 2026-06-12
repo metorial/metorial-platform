@@ -351,6 +351,51 @@ describe('oauthApplicationService', () => {
     expect(mockDb.oAuthApplication.update).not.toHaveBeenCalled();
   });
 
+  it('rejects managing internal oauth apps through the public application service', async () => {
+    await expect(
+      oauthApplicationService.updateOAuthApplication({
+        oauthApplication: {
+          oid: 'oauth-app-oid',
+          type: 'internal',
+          status: 'active',
+          accessLevel: 'organization',
+          isImportedFromOtherInstance: false
+        } as any,
+        organization: baseOrg,
+        performedBy: baseActor,
+        context: baseContext,
+        input: {
+          name: 'Internal App'
+        }
+      })
+    ).rejects.toThrow(ServiceError);
+
+    await expect(
+      oauthApplicationService.archiveOAuthApplication({
+        oauthApplication: {
+          oid: 'oauth-app-oid',
+          type: 'internal',
+          status: 'active',
+          isImportedFromOtherInstance: false
+        } as any,
+        organization: baseOrg,
+        performedBy: baseActor,
+        context: baseContext
+      })
+    ).rejects.toThrow(ServiceError);
+
+    await expect(
+      oauthApplicationService.createOAuthApplicationClientSecret({
+        oauthApplication: {
+          oid: 'oauth-app-oid',
+          type: 'internal',
+          status: 'active',
+          isImportedFromOtherInstance: false
+        } as any
+      })
+    ).rejects.toThrow(ServiceError);
+  });
+
   it('updates a global user-facing oauth app', async () => {
     mockDb.oAuthApplication.update.mockImplementationOnce(async ({ data }: any) => ({
       oid: 'oauth-app-oid',

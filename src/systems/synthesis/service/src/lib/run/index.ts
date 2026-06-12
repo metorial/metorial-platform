@@ -1,4 +1,3 @@
-import { Agent, DefaultCompactionStrategy, Session } from '@openharness/core';
 import type { FilePart, ModelMessage, TextPart } from 'ai';
 import type {
   Assistant,
@@ -8,13 +7,12 @@ import type {
   Tenant
 } from '../../db';
 import { summaryModel } from '../../definitions/models/_util';
-import type { InputMessage } from '../../types';
-import { getConversationHistory } from '../history/getHistory';
+import type { InputMessage, State } from '../../types';
 import type { Implementation, Model } from '../definitions';
-import {
-  AgentRunState
-} from './state';
+import { getConversationHistory } from '../history/getHistory';
+import { Agent, DefaultCompactionStrategy, Session } from '../open-harness';
 import type { AgentRunResult, AgentRunStateOptions, AgentRunWireMessage } from './state';
+import { AgentRunState } from './state';
 
 export * from './state';
 
@@ -22,6 +20,53 @@ export type AgentRunOptions = AgentRunStateOptions & {
   onSnapshot?: (snapshot: AgentRunWireMessage) => void | Promise<void>;
   snapshotIntervalMs?: number;
 };
+
+let deserializeMessages = (
+  serialized: PrismaJson.AssistantMessageSerializedContent
+): ModelMessage[] =>
+  serialized.messages
+    .map(([ts, msg]) => ({ ts, msg }))
+    .sort((a, b) => a.ts - b.ts)
+    .map(m => m.msg as ModelMessage);
+
+let inputMessageToModelMessages = (input: InputMessage): ModelMessage[] => [
+  {
+    role: 'user',
+    content: input.parts.map(p => {
+      if (p.type === 'text') {
+        return {
+          type: 'text' as const,
+          text: p.text
+        } satisfies TextPart;
+      }
+
+      if (p.type === 'file') {
+        return {
+          type: 'file' as const,
+          filename: p.filename,
+          mediaType: p.mediaType,
+          data: Buffer.from(p.data, p.encoding)
+        } satisfies FilePart;
+      }
+
+      throw new Error(`Unsupported part type: ${JSON.stringify(p)}`);
+    })
+  }
+];
+
+let handoffResponsesToModelMessages = (
+  responses: Array<{ toolCallId: string; toolName: string; output: unknown }>
+): ModelMessage[] => [
+  {
+    role: 'tool',
+    content: responses.map(response => ({
+      type: 'tool-result',
+      toolCallId: response.toolCallId,
+      toolName: response.toolName,
+      output: response.output
+    }))
+  } as ModelMessage
+];
 
 export class AgentRun {
   abortController = new AbortController();
@@ -51,57 +96,15 @@ export class AgentRun {
     });
   }
 
-  async run(d: {
-    input: InputMessage;
-    conversation: AssistantConversation;
-    lastMessageId: string;
-    historySize: number;
+  private async runSession(d: {
+    session: Session;
+    input: ModelMessage[];
+    initialState?: State;
     delta?: AgentRunOptions;
-  }): Promise<AgentRunResult> {
-    let session = await this.createSession();
-    let history = await getConversationHistory({
-      conversation: d.conversation,
-      lastMessageId: d.lastMessageId,
-      size: d.historySize
-    });
+  }) {
+    let iterator = d.session.send(d.input, { signal: this.abortController.signal });
 
-    session.messages.push(
-      ...history
-        .flatMap(m => m.serialized.messages)
-        .map(([ts, msg]) => ({ ts, msg }))
-        .sort((a, b) => a.ts - b.ts)
-        .map(m => m.msg as ModelMessage)
-    );
-
-    let iterator = session.send(
-      [
-        {
-          role: 'user',
-          content: d.input.parts.map(p => {
-            if (p.type === 'text') {
-              return {
-                type: 'text' as const,
-                text: p.text
-              } satisfies TextPart;
-            }
-
-            if (p.type === 'file') {
-              return {
-                type: 'file' as const,
-                filename: p.filename,
-                mediaType: p.mediaType,
-                data: Buffer.from(p.data, p.encoding)
-              } satisfies FilePart;
-            }
-
-            throw new Error(`Unsupported part type: ${JSON.stringify(p)}`);
-          })
-        }
-      ],
-      { signal: this.abortController.signal }
-    );
-
-    let runState = new AgentRunState(session.messages, d.delta);
+    let runState = new AgentRunState(d.session.messages, d.delta, d.initialState);
     let snapshotInterval: ReturnType<typeof setInterval> | undefined;
     let snapshotInFlight = false;
     let writeSnapshot = async () => {
@@ -138,5 +141,45 @@ export class AgentRun {
       if (snapshotInterval) clearInterval(snapshotInterval);
       await writeSnapshot();
     }
+  }
+
+  async run(d: {
+    input: InputMessage;
+    conversation: AssistantConversation;
+    lastMessageId: string;
+    historySize: number;
+    delta?: AgentRunOptions;
+  }): Promise<AgentRunResult> {
+    let session = await this.createSession();
+    let history = await getConversationHistory({
+      conversation: d.conversation,
+      lastMessageId: d.lastMessageId,
+      size: d.historySize
+    });
+
+    session.messages.push(...history.flatMap(m => deserializeMessages(m.serialized)));
+
+    return await this.runSession({
+      session,
+      input: inputMessageToModelMessages(d.input),
+      delta: d.delta
+    });
+  }
+
+  async resume(d: {
+    serialized: PrismaJson.AssistantMessageSerializedContent;
+    state: State;
+    responses: Array<{ toolCallId: string; toolName: string; output: unknown }>;
+    delta?: AgentRunOptions;
+  }): Promise<AgentRunResult> {
+    let session = await this.createSession();
+    session.messages.push(...deserializeMessages(d.serialized));
+
+    return await this.runSession({
+      session,
+      input: handoffResponsesToModelMessages(d.responses),
+      initialState: d.state,
+      delta: d.delta
+    });
   }
 }

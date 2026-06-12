@@ -1,31 +1,86 @@
-import { Button, Menu, Spacer, Text, theme, Title, toast } from '@metorial/ui';
+import { Button, getLink, Menu, Spacer, Text, theme, Title, toast } from '@metorial/ui';
 import { RiMore2Fill } from '@remixicon/react';
 import copy from 'copy-to-clipboard';
 import React from 'react';
 import { styled } from 'styled-components';
 
-let Grid = styled.ul.withConfig({ shouldForwardProp: p => p !== 'width' })<{ width?: string }>`
+type ItemGridItemMode = 'default' | 'compactHorizontal';
+
+type ItemGridRootProps = React.ComponentPropsWithoutRef<'ul'> & {
+  width?: string;
+  columns?: number;
+  responsive?: boolean;
+  responsiveTwoColumnWidth?: string;
+  responsiveOneColumnWidth?: string;
+};
+
+let GridContainer = styled.div`
+  container-type: inline-size;
+  min-width: 0;
+  width: 100%;
+`;
+
+let Grid = styled.ul.withConfig({
+  shouldForwardProp: p =>
+    p !== 'width' &&
+    p !== 'columns' &&
+    p !== 'responsive' &&
+    p !== 'responsiveTwoColumnWidth' &&
+    p !== 'responsiveOneColumnWidth'
+})<{
+  width?: string;
+  columns?: number;
+  responsive?: boolean;
+  responsiveTwoColumnWidth?: string;
+  responsiveOneColumnWidth?: string;
+}>`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(${p => p.width ?? '300px'}, 1fr));
+  grid-template-columns: ${p =>
+    p.columns
+      ? `repeat(${p.columns}, minmax(0, 1fr))`
+      : `repeat(auto-fill, minmax(${p.width ?? '300px'}, 1fr))`};
   gap: 20px;
   list-style: none;
   padding: 0;
   margin: 0;
+
+  ${p =>
+    p.columns && p.responsive
+      ? `
+    @container (max-width: ${p.responsiveTwoColumnWidth ?? '920px'}) {
+      grid-template-columns: repeat(${Math.min(p.columns, 2)}, minmax(0, 1fr));
+    }
+
+    @container (max-width: ${p.responsiveOneColumnWidth ?? '500px'}) {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  `
+      : ''}
 `;
 
-let Wrapper = styled.li`
+let Wrapper = styled.li.withConfig({ shouldForwardProp: p => p !== '$mode' })<{
+  $mode?: ItemGridItemMode;
+}>`
   display: flex;
   flex-direction: column;
-  padding: 15px;
+  width: 100%;
+  padding: ${p => (p.$mode === 'compactHorizontal' ? '12px' : '15px')};
+  background: none;
   border: solid 1px ${theme.colors.gray300};
-  border-radius: 15px;
+  border-radius: ${p => (p.$mode === 'compactHorizontal' ? '12px' : '15px')};
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
   transition: all 0.2s;
 
   &[data-button='true'] {
     cursor: pointer;
 
     &:hover,
-    &:focus {
+    &:focus-visible,
+    a:focus-visible & {
+      border: solid 1px ${theme.colors.gray400};
       box-shadow: ${theme.shadows.medium};
     }
   }
@@ -51,6 +106,35 @@ let IconSlot = styled.div`
   width: 100%;
 `;
 
+let CompactHeaderContent = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+`;
+
+let CompactTitleRow = styled.div.withConfig({ shouldForwardProp: p => p !== '$hasMenu' })<{
+  $hasMenu: boolean;
+}>`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-right: ${p => (p.$hasMenu ? '36px' : 0)};
+  min-width: 0;
+`;
+
+let CompactTitleWrapper = styled.div`
+  flex: 1;
+  min-width: 0;
+
+  h2 {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+`;
+
 let MenuWrapper = styled.div`
   position: absolute;
   top: 0;
@@ -58,20 +142,59 @@ let MenuWrapper = styled.div`
   z-index: 1;
 `;
 
-let getButtonProps = (onClick: () => void) => ({
-  onClick,
-  role: 'button',
-  tabIndex: 0,
-  onKeyPress: (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      onClick();
-    }
-  },
-  'data-button': 'true'
-});
+type ItemGridActionProps = {
+  href?: string;
+  onClick?: () => void;
+};
+
+let getActionProps = ({ href, onClick }: ItemGridActionProps) => {
+  if (onClick) {
+    return {
+      as: 'button' as const,
+      type: 'button' as const,
+      onClick,
+      'data-button': 'true'
+    };
+  }
+
+  if (href) {
+    return {
+      as: 'span' as const,
+      'data-button': 'true'
+    };
+  }
+
+  return {};
+};
+
+let wrapAction = (children: React.ReactNode, href?: string) => {
+  if (!href) return children;
+
+  let Link = getLink();
+
+  return (
+    <Link
+      to={href}
+      style={{
+        color: 'inherit',
+        display: 'flex',
+        minWidth: 0,
+        textDecoration: 'none'
+      }}
+    >
+      {children}
+    </Link>
+  );
+};
 
 export let ItemGrid = {
-  Root: Grid,
+  Root: ({ responsive, ...props }: ItemGridRootProps) => {
+    let grid = <Grid responsive={responsive} {...props} />;
+
+    if (!responsive) return grid;
+
+    return <GridContainer>{grid}</GridContainer>;
+  },
   Item: ({
     title,
     description,
@@ -79,8 +202,10 @@ export let ItemGrid = {
     entity,
     showCopyId = true,
     menu,
+    href,
     onClick,
     bottom,
+    mode = 'default',
     small,
     height
   }: {
@@ -90,8 +215,10 @@ export let ItemGrid = {
     entity?: { id: string; hasUsage?: boolean };
     showCopyId?: boolean;
     menu?: { label: string; onClick: () => void }[];
+    href?: string;
     onClick?: () => void;
     bottom?: React.ReactNode;
+    mode?: ItemGridItemMode;
     small?: boolean;
     height?: number;
   }) => {
@@ -100,29 +227,57 @@ export let ItemGrid = {
       ...(menu?.map((item, i) => ({ id: String(i), label: item.label })) ?? [])
     ];
 
-    return (
+    return wrapAction(
       <Wrapper
-        {...(onClick ? getButtonProps(onClick) : {})}
+        {...getActionProps({ href, onClick })}
+        $mode={mode}
         style={{
-          minHeight: height ?? (small ? 'unset' : 200)
+          height: mode === 'compactHorizontal' ? height : undefined,
+          minHeight: height ?? (mode === 'compactHorizontal' || small ? 'unset' : 200),
+          overflow: mode === 'compactHorizontal' && height ? 'hidden' : undefined
         }}
       >
         <Header>
-          <HeaderContent>
-            {icon && <IconSlot>{icon}</IconSlot>}
+          {mode === 'compactHorizontal' ? (
+            <CompactHeaderContent>
+              <CompactTitleRow $hasMenu={menuItems.length > 0}>
+                {icon}
 
-            <Title as="h2" size={small ? '3' : '4'} weight="strong">
-              {title}
-            </Title>
-            {description && (
-              <Text size="1" weight="medium" color="gray700">
-                {description}
-              </Text>
-            )}
-          </HeaderContent>
+                <CompactTitleWrapper>
+                  <Title as="h2" size="3" weight="strong">
+                    {title}
+                  </Title>
+                </CompactTitleWrapper>
+              </CompactTitleRow>
+
+              {description && (
+                <Text size="1" weight="medium" color="gray700">
+                  {description}
+                </Text>
+              )}
+            </CompactHeaderContent>
+          ) : (
+            <HeaderContent>
+              {icon && <IconSlot>{icon}</IconSlot>}
+
+              <Title as="h2" size={small ? '3' : '4'} weight="strong">
+                {title}
+              </Title>
+              {description && (
+                <Text size="1" weight="medium" color="gray700">
+                  {description}
+                </Text>
+              )}
+            </HeaderContent>
+          )}
 
           {menuItems.length > 0 && (
-            <MenuWrapper onClick={e => e.stopPropagation()}>
+            <MenuWrapper
+              onClick={e => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+            >
               <Menu
                 onItemClick={id => {
                   if (id == 'id' && entity) {
@@ -146,23 +301,26 @@ export let ItemGrid = {
             {bottom}
           </>
         )}
-      </Wrapper>
+      </Wrapper>,
+      onClick ? undefined : href
     );
   },
   CenteredItem: ({
     title,
     description,
     icon,
+    href,
     onClick
   }: {
     title: React.ReactNode;
     description?: React.ReactNode;
     icon: React.ReactNode;
+    href?: string;
     onClick?: () => void;
   }) => {
-    return (
+    return wrapAction(
       <Wrapper
-        {...(onClick ? getButtonProps(onClick) : {})}
+        {...getActionProps({ href, onClick })}
         style={{
           alignItems: 'center',
           justifyContent: 'center',
@@ -181,7 +339,8 @@ export let ItemGrid = {
             {description}
           </Text>
         )}
-      </Wrapper>
+      </Wrapper>,
+      onClick ? undefined : href
     );
   },
   RawItem: Wrapper

@@ -56,6 +56,7 @@ class OAuthAuthorizationInstallationService {
         | null;
     };
     organization: Organization;
+    appActor?: OrganizationActor;
   }) {
     return await withTransaction(async db => {
       let existing = await db.oAuthInstallation.findFirst({
@@ -72,11 +73,13 @@ class OAuthAuthorizationInstallationService {
         scopes: d.oauthApplication.scopes,
         organizationOid: d.organization.oid,
         oauthApplicationOid: d.oauthApplication.oid,
-        serverSideMachineAccessOid: d.oauthApplication.serverSideMachineAccessOid
+        serverSideMachineAccessOid: d.oauthApplication.serverSideMachineAccessOid,
+        ...(d.appActor ? { appActorOid: d.appActor.oid } : {})
       };
 
       if (existing) {
-        let needsUpdate = !matchesUpdate(existing, inner) || !existing.appActorOid;
+        let needsUpdate =
+          !matchesUpdate(existing, inner) || (!existing.appActorOid && !d.appActor);
         if (!needsUpdate) return existing;
       }
 
@@ -462,6 +465,14 @@ class OAuthAuthorizationInstallationService {
         include: installationInclude
       });
 
+      if (existingInstallation.oauthApplication.type == 'internal') {
+        throw new ServiceError(
+          forbiddenError({
+            message: 'This oauth installation cannot be revoked through the API'
+          })
+        );
+      }
+
       await Fabric.fire('machine_access.oauth_installation.revoked:before', {
         oauthApplication: existingInstallation.oauthApplication,
         oauthInstallation: existingInstallation,
@@ -514,7 +525,12 @@ class OAuthAuthorizationInstallationService {
     let oauthInstallation = await db.oAuthInstallation.findFirst({
       where: {
         id: d.oauthInstallationId,
-        organizationOid: d.organization.oid
+        organizationOid: d.organization.oid,
+        oauthApplication: {
+          type: {
+            not: 'internal'
+          }
+        }
       },
       include: installationInclude
     });
@@ -541,7 +557,7 @@ class OAuthAuthorizationInstallationService {
               status: d.statuses ? { in: d.statuses } : undefined,
               oauthApplication: {
                 id: d.oauthApplicationIds ? { in: d.oauthApplicationIds } : undefined,
-                type: { not: 'server_side' }
+                type: { in: ['user_facing', 'cli_auth'] }
               }
             },
             include: installationInclude

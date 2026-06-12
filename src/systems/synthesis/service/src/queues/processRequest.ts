@@ -1,17 +1,23 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { createQueue, QueueRetryError, type IQueue } from '@lowerdeck/queue';
-import { Prisma, db, withTransaction } from '../db';
-import { assistants } from '../definitions/assistants';
+import { db, withTransaction, type AssistantMessageStatus } from '../db';
 import { env } from '../env';
 import { getId } from '../id';
 import { type Model } from '../lib/definitions';
-import { AgentRun } from '../lib/run';
+import { getAssistantDefinition } from '../lib/definitions/assistantDefinition';
+import type { Agent } from '../lib/open-harness';
 import type { AgentRunUsage } from '../lib/run';
+import { AgentRun } from '../lib/run';
 import { createAssistantRunDeltaPublisher } from '../lib/run/redisDeltas';
 import type { InputMessage, State } from '../types';
 
 type ProcessAssistantRequestJob = {
   assistantRequestId: string;
+  handoffResponses?: Array<{
+    toolCallId: string;
+    toolName: string;
+    output: unknown;
+  }>;
 };
 
 export let processAssistantRequestQueue: IQueue<ProcessAssistantRequestJob, any> =
@@ -19,8 +25,6 @@ export let processAssistantRequestQueue: IQueue<ProcessAssistantRequestJob, any>
     name: 'assistant/request/process',
     redisUrl: env.service.REDIS_URL
   });
-
-type AssistantDefinition = Awaited<(typeof assistants)[keyof typeof assistants]>;
 
 let isRecord = (value: unknown): value is Record<string, unknown> =>
   !!value && typeof value == 'object' && !Array.isArray(value);
@@ -52,21 +56,6 @@ let getInputMessage = (state: unknown): InputMessage => {
   return {
     parts: item.message.parts
   };
-};
-
-let getAssistantDefinition = async (
-  implementationSlug: string
-): Promise<AssistantDefinition> => {
-  let definitions = await Promise.all(Object.values(assistants));
-  let definition = definitions.find(
-    definition => definition.implementation._persisted.slug == implementationSlug
-  );
-
-  if (!definition) {
-    throw new ServiceError(notFoundError('assistant_implementation', implementationSlug));
-  }
-
-  return definition;
 };
 
 let calculateCost = (usage: AgentRunUsage, model: Model): PrismaJson.AssistantRunCost => {
@@ -128,6 +117,15 @@ export let processAssistantRequestQueueProcessor = processAssistantRequestQueue.
     let parentMessage = request.message.parentMessage;
     let historySize = request.historySize ?? 100;
     let startedAt = new Date();
+    let existingAssistantMessage = await db.assistantMessage.findFirst({
+      where: {
+        requestOid: request.oid,
+        type: 'assistant'
+      },
+      orderBy: {
+        oid: 'desc'
+      }
+    });
     let run = await withTransaction(async tx => {
       let existingRun = await tx.modelRun.findFirst({
         where: {
@@ -181,21 +179,30 @@ export let processAssistantRequestQueueProcessor = processAssistantRequestQueue.
       }
     });
 
+    let agent: Agent | null = null;
+
     try {
       let definition = await getAssistantDefinition(
         conversation.assistant.implementation.slug
       );
-      let model = definition.implementation.availableModels.find(
+      let assistantImplementation = definition.implementation;
+      let model = assistantImplementation.availableModels.find(
         model => model._persisted.oid == request.modelOid
       );
       if (!model) throw new ServiceError(notFoundError('model', requestModel.id));
 
-      let agent = await definition.implementation.getAgent({
+      let getAgent = assistantImplementation.getAgent as (
+        d: Parameters<typeof assistantImplementation.getAgent>[0] & { input: unknown }
+      ) => ReturnType<typeof assistantImplementation.getAgent>;
+
+      agent = await getAgent({
+        input: assistantImplementation.input ? conversation.input : undefined,
         model,
         tenant: conversation.tenant,
         environment: conversation.environment,
         assistant: conversation.assistant,
-        assistantImplementation: definition.implementation._persisted
+        assistantInstance: conversation.assistantInstance,
+        assistantImplementation: assistantImplementation._persisted
       });
 
       let runner = new AgentRun(
@@ -204,49 +211,73 @@ export let processAssistantRequestQueueProcessor = processAssistantRequestQueue.
         conversation.tenant,
         conversation.environment,
         conversation.assistant,
-        definition.implementation._persisted,
-        definition.implementation
+        assistantImplementation._persisted,
+        assistantImplementation
       );
-      let result = await runner.run({
-        input: getInputMessage(inputMessage.state),
-        conversation,
-        lastMessageId: parentMessage.id,
-        historySize,
-        delta: publisher.delta
-      });
+      let result =
+        data.handoffResponses?.length && existingAssistantMessage
+          ? await runner.resume({
+              serialized: existingAssistantMessage.serialized,
+              state: existingAssistantMessage.state as State,
+              responses: data.handoffResponses,
+              delta: publisher.delta
+            })
+          : await runner.run({
+              input: getInputMessage(inputMessage.state),
+              conversation,
+              lastMessageId: parentMessage.id,
+              historySize,
+              delta: publisher.delta
+            });
       let completedAt = new Date();
       let cost = calculateCost(result.usage, model);
 
       await withTransaction(async tx => {
-        let assistantMessage = await tx.assistantMessage.create({
-          data: {
-            ...getId('assistantMessage'),
-            type: 'assistant',
-            runOid: run.oid,
-            requestOid: request.oid,
-            assistantOid: conversation.assistantOid,
-            assistantInstanceOid: conversation.assistantInstanceOid,
-            parentMessageOid: inputMessage.oid,
-            modelOid: model._persisted.oid,
-            state: result.state,
-            serialized: result.serialized
-          }
-        });
+        let messageStatus: AssistantMessageStatus =
+          result.status == 'waiting_for_user' ? 'waiting_for_user' : 'completed';
+        let assistantMessage = existingAssistantMessage
+          ? await tx.assistantMessage.update({
+              where: {
+                oid: existingAssistantMessage.oid
+              },
+              data: {
+                status: messageStatus,
+                state: result.state,
+                serialized: result.serialized
+              }
+            })
+          : await tx.assistantMessage.create({
+              data: {
+                ...getId('assistantMessage'),
+                type: 'assistant',
+                status: messageStatus,
+                runOid: run.oid,
+                requestOid: request.oid,
+                assistantOid: conversation.assistantOid,
+                assistantInstanceOid: conversation.assistantInstanceOid,
+                parentMessageOid: inputMessage.oid,
+                modelOid: model._persisted.oid,
+                state: result.state,
+                serialized: result.serialized
+              }
+            });
 
-        await tx.assistantConversationItem.create({
-          data: {
-            ...getId('assistantConversationItem'),
-            conversationOid: conversation.oid,
-            messageOid: assistantMessage.oid
-          }
-        });
+        if (!existingAssistantMessage) {
+          await tx.assistantConversationItem.create({
+            data: {
+              ...getId('assistantConversationItem'),
+              conversationOid: conversation.oid,
+              messageOid: assistantMessage.oid
+            }
+          });
+        }
 
         await tx.assistantRequest.update({
           where: {
             oid: request.oid
           },
           data: {
-            status: 'completed'
+            status: result.status
           }
         });
 
@@ -255,12 +286,14 @@ export let processAssistantRequestQueueProcessor = processAssistantRequestQueue.
             oid: run.oid
           },
           data: {
-            status: 'completed',
+            status: result.status,
             cost,
             metadata: {
               ...result.metadata,
               startedAt: startedAt.toISOString(),
-              completedAt: completedAt.toISOString(),
+              ...(result.status == 'completed'
+                ? { completedAt: completedAt.toISOString() }
+                : {}),
               durationMs: completedAt.getTime() - startedAt.getTime(),
               finalSnapshotIndex: result.snapshotIndex
             } satisfies PrismaJson.AssistantRunMetadata
@@ -268,7 +301,7 @@ export let processAssistantRequestQueueProcessor = processAssistantRequestQueue.
         });
       });
       await publisher.markDone({
-        status: 'completed'
+        status: result.status
       });
     } catch (error) {
       if (error instanceof QueueRetryError) throw error;
@@ -304,6 +337,7 @@ export let processAssistantRequestQueueProcessor = processAssistantRequestQueue.
         status: 'failed'
       });
     } finally {
+      await agent?.close();
       await publisher.close();
     }
   }

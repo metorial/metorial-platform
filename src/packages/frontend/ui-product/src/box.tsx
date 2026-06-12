@@ -3,7 +3,8 @@ import React from 'react';
 import { styled } from 'styled-components';
 
 let Wrapper = styled.div`
-  border: 1px solid ${theme.colors.gray300};
+   border: 1px solid ${theme.colors.gray400};
+   box-shadow: ${theme.shadows.small};
   border-radius: 12px;
   padding: 15px 20px;
 `;

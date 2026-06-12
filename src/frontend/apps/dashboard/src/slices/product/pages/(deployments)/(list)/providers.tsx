@@ -1,13 +1,12 @@
-import type { DashboardInstanceProviderListingsListQuery } from '@metorial/dashboard-sdk';
 import { Spacer } from '@metorial/ui';
 import { useState } from 'react';
 import { useFilterQuery } from '../../../../../components/table/components/query';
 import { TableFilterState } from '../../../../../components/table/filter';
-import { ProvidersGrid } from '../../../scenes/providers/grid';
 import {
   ProviderListingFilters,
   useProviderListingFilters
 } from '../../../scenes/providers/filters';
+import { ProvidersGrid } from '../../../scenes/providers/grid';
 
 export let ProvidersPage = () => {
   let [search, setSearch] = useState('');

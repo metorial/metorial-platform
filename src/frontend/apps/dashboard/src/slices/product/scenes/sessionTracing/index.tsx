@@ -4,6 +4,7 @@ import { DraggableSplitPane } from '../../../../components/draggableSplitPane';
 import { SessionConnectionsPane } from './components/sessionConnectionsPane';
 import { SessionTraceTabsPane } from './components/sessionTraceTabsPane';
 import { useSessionTracing } from './hooks/useSessionTracing';
+import type { ExplorerTabMode } from './types';
 
 let SplitPaneWrapper = styled.div`
   flex: 1;
@@ -23,18 +24,24 @@ export let SessionTracingScene = ({
   initialExplorerTab,
   initialConnectionId,
   focusedItemId,
+  initialExplorerMode,
   inspectorOptions
 }: {
   session: DashboardInstanceSessionsGetOutput;
   initialExplorerTab?: boolean;
   initialConnectionId?: string | null;
+  initialExplorerMode?: ExplorerTabMode;
   focusedItemId?: string | null;
   inspectorOptions?: {
     sessionTemplateId?: string | null;
     magicMcpServerId?: string | null;
   };
 }) => {
-  let tracing = useSessionTracing(session, { initialExplorerTab, initialConnectionId });
+  let tracing = useSessionTracing(session, {
+    initialExplorerTab,
+    initialConnectionId,
+    initialExplorerMode
+  });
 
   return (
     <SplitPaneWrapper>
@@ -57,6 +64,7 @@ export let SessionTracingScene = ({
             onOpenConnection={tracing.onOpenConnection}
             onOpenExplorerTab={tracing.onOpenExplorerTab}
             onSelectTab={tracing.setActiveTabId}
+            explorerModeByTabId={tracing.explorerModeByTabId}
             session={session}
             setConnectionRowElement={tracing.setConnectionRowElement}
           />
@@ -65,16 +73,20 @@ export let SessionTracingScene = ({
           <SessionTraceTabsPane
             activeConnection={tracing.activeConnection}
             activeTabId={tracing.activeTabId}
+            assistantConversationIdByTabId={tracing.assistantConversationIdByTabId}
             connectionIdByExplorerTabId={tracing.connectionIdByExplorerTabId}
             explorerTabIds={tracing.explorerTabIds}
+            explorerModeByTabId={tracing.explorerModeByTabId}
             focusedItemId={focusedItemId}
             inspectorOptions={inspectorOptions}
             isExplorerActive={tracing.isExplorerActive}
             onCloseTab={tracing.onCloseTab}
             onOpenConnection={tracing.onOpenConnection}
             onReorderTabs={tracing.onReorderTabs}
+            onSelectOrCreateExplorerMode={tracing.onSelectOrCreateExplorerMode}
             onSelectTab={tracing.setActiveTabId}
             openTabs={tracing.openTabs}
+            setAssistantConversationId={tracing.setAssistantConversationId}
             session={session}
           />
         }

@@ -29,6 +29,7 @@ let Root = styled(RadixSwitch.Root)`
   border: solid 1px ${theme.colors.gray300};
   position: relative;
   transition: all 0.3s ease;
+  flex-shrink: 0;
 
   &:focus {
     border: solid 1px ${theme.colors.blue900};

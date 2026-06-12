@@ -129,6 +129,17 @@ export type DashboardInstanceMagicMcpServersGetOutput = {
   createdAt: Date;
   updatedAt: Date;
 } & {
+  integrationId: string | null;
+  integrationInstanceId: string | null;
+  consumerOwners: {
+    consumerIntegrationId: string | null;
+    consumerId: string;
+    consumerProfileId: string;
+    consumerName: string;
+    consumerEmail: string;
+    consumerProfileName: string;
+    consumerProfileEmail: string;
+  }[];
   providers: ({
     object: 'magic_mcp.server.provider';
     id: string;
@@ -542,7 +553,44 @@ export let mapDashboardInstanceMagicMcpServersGetOutput = mtMap.union([
       description: mtMap.objectField('description', mtMap.passthrough()),
       metadata: mtMap.objectField('metadata', mtMap.passthrough()),
       createdAt: mtMap.objectField('created_at', mtMap.date()),
-      updatedAt: mtMap.objectField('updated_at', mtMap.date())
+      updatedAt: mtMap.objectField('updated_at', mtMap.date()),
+      integrationId: mtMap.objectField('integration_id', mtMap.passthrough()),
+      integrationInstanceId: mtMap.objectField(
+        'integration_instance_id',
+        mtMap.passthrough()
+      ),
+      consumerOwners: mtMap.objectField(
+        'consumer_owners',
+        mtMap.array(
+          mtMap.object({
+            consumerIntegrationId: mtMap.objectField(
+              'consumer_integration_id',
+              mtMap.passthrough()
+            ),
+            consumerId: mtMap.objectField('consumer_id', mtMap.passthrough()),
+            consumerProfileId: mtMap.objectField(
+              'consumer_profile_id',
+              mtMap.passthrough()
+            ),
+            consumerName: mtMap.objectField(
+              'consumer_name',
+              mtMap.passthrough()
+            ),
+            consumerEmail: mtMap.objectField(
+              'consumer_email',
+              mtMap.passthrough()
+            ),
+            consumerProfileName: mtMap.objectField(
+              'consumer_profile_name',
+              mtMap.passthrough()
+            ),
+            consumerProfileEmail: mtMap.objectField(
+              'consumer_profile_email',
+              mtMap.passthrough()
+            )
+          })
+        )
+      )
     })
   )
 ]);

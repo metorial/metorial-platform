@@ -13,5 +13,6 @@ export let FlatCreateSection = styled.div`
   gap: 12px;
   padding: 16px;
   border-radius: 14px;
-  border: 1px solid ${theme.colors.gray300};
+  border: 1px solid ${theme.colors.gray400};
+  box-shadow: ${theme.shadows.small};
 `;

@@ -5,6 +5,7 @@ import {
   useCurrentProject
 } from '@metorial/state';
 import { Button, Menu } from '@metorial/ui';
+import { RiArrowDownSLine } from '@remixicon/react';
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { showCreateIntegrationProviderFirstFlow } from '../integrations/providerPanelFlow';
@@ -70,7 +71,12 @@ export let UseProviderButton = (p: UseProviderButtonProps) => {
         }
       }}
     >
-      <Button disabled={isDisabled} size={p.size ?? '2'} variant={p.variant}>
+      <Button
+        disabled={isDisabled}
+        size={p.size ?? '2'}
+        variant={p.variant}
+        iconRight={<RiArrowDownSLine />}
+      >
         {p.children ?? 'Use Provider'}
       </Button>
     </Menu>

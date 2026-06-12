@@ -1,17 +1,12 @@
-import { Paginator } from '@lowerdeck/pagination';
-import { Service } from '@lowerdeck/service';
-import {
-  type Instance,
-  type Organization
-} from '@metorial/db';
+import { type Instance, type Organization } from '@metorial/db';
+import { assertAssistantScope } from '../lib/assertAssistantScope';
+import { createSynthesisService, getSynthesisServicePayload } from '../lib/synthesisService';
 import {
   enrichSynthesisActors,
-  type AssistantActorInput,
-  ensureSynthesisActor,
-  ensureSynthesisScope,
   getAssistantActorInput,
   getSynthesisActorsByIds,
   synthesis,
+  type AssistantActorInput,
   type EnrichedAssistantActor,
   type SynthesisScope
 } from '../synthesis';
@@ -67,115 +62,76 @@ export let enrichMessage = async (d: {
   };
 };
 
-class AssistantMessageServiceImpl {
-  private ensureScope(d: {
-    organization: Organization;
-    instance: Instance;
-    conversation: {
-      id: string;
-    };
-  } & AssistantActorInput) {
-    if (d.instance.organizationOid !== d.organization.oid) {
-      throw new Error('Assistant message scope is invalid');
-    }
+export let assistantMessageService = createSynthesisService(
+  'assistantMessageService',
+  synthesis.message,
+  ['get', 'list'],
+  inner => ({
+    get: async (
+      d: {
+        organization: Organization;
+        instance: Instance;
+        conversationId: string;
+        messageId: string;
+      } & AssistantActorInput
+    ) => {
+      assertAssistantScope(d);
 
-    if (d.actor && d.actor.organizationOid !== d.organization.oid) {
-      throw new Error('Assistant message scope is invalid');
-    }
-  }
-
-  async getAssistantMessageById(
-    d: {
-    organization: Organization;
-    instance: Instance;
-    conversation: {
-      id: string;
-    };
-    messageId: string;
-  } & AssistantActorInput
-  ) {
-    this.ensureScope(d);
-    let scope = await ensureSynthesisScope({
-      instance: d.instance
-    });
-    let actor = await ensureSynthesisActor({
-      scope,
-      ...getAssistantActorInput(d)
-    });
-    let item = await synthesis.message.get({
-      tenantId: scope.tenantId,
-      environmentId: scope.environmentId,
-      actorId: actor.id,
-      conversationId: d.conversation.id,
-      messageId: d.messageId
-    });
-
-    return await enrichMessage({
-      scope,
-      instance: d.instance,
-      message: item
-    });
-  }
-
-  async listAssistantMessages(
-    d: {
-    organization: Organization;
-    instance: Instance;
-    conversation: {
-      id: string;
-    };
-  } & AssistantActorInput
-  ) {
-    this.ensureScope(d);
-    let scope = await ensureSynthesisScope({
-      instance: d.instance
-    });
-    let actor = await ensureSynthesisActor({
-      scope,
-      ...getAssistantActorInput(d)
-    });
-
-    return Paginator.create(() => async input => {
-      let result = await synthesis.message.list({
-        tenantId: scope.tenantId,
-        environmentId: scope.environmentId,
-        actorId: actor.id,
-        conversationId: d.conversation.id,
-        ...input
+      let { context, payload } = await getSynthesisServicePayload({
+        instance: d.instance,
+        ...getAssistantActorInput(d),
+        conversationId: d.conversationId,
+        messageId: d.messageId
       });
-      let actorIds = Array.from(
-        new Set(
-          result.items
-            .map(item => item.request?.actorId)
-            .filter((actorId): actorId is string => !!actorId)
+
+      return await enrichMessage({
+        scope: context.scope,
+        instance: d.instance,
+        message: await synthesis.message.get(
+          payload as Parameters<typeof synthesis.message.get>[0]
         )
-      );
-      let actorsById = await getSynthesisActorsByIds({
-        scope,
-        actorIds
+      });
+    },
+
+    list: async (
+      d: {
+        organization: Organization;
+        instance: Instance;
+        conversationId: string;
+      } & AssistantActorInput
+    ) => {
+      assertAssistantScope(d);
+
+      let paginator = await inner.list({
+        instance: d.instance,
+        ...getAssistantActorInput(d),
+        conversationId: d.conversationId
       });
 
-      return {
-        items: await Promise.all(
-          result.items.map(message =>
+      return paginator.mapWithContext(async (items, context) => {
+        let actorIds = Array.from(
+          new Set(
+            items
+              .map(item => item.request?.actorId)
+              .filter((actorId): actorId is string => !!actorId)
+          )
+        );
+        let actorsById = await getSynthesisActorsByIds({
+          scope: context.scope,
+          actorIds
+        });
+
+        return await Promise.all(
+          items.map(message =>
             enrichMessage({
-              scope,
+              scope: context.scope,
               instance: d.instance,
               message,
               actorsById
             })
           )
-        ),
-        pagination: {
-          hasNextPage: result.pagination.has_more_after,
-          hasPreviousPage: result.pagination.has_more_before
-        }
-      };
-    });
-  }
-}
-
-export let assistantMessageService = Service.create(
-  'assistantMessageService',
-  () => new AssistantMessageServiceImpl()
-).build();
+        );
+      });
+    }
+  })
+);

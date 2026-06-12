@@ -1,5 +1,6 @@
 export * from './apiKey';
 export * from './cliDevice';
+export * from './internalOAuth';
 export * from './machineAccess';
 export * from './machineAccessAuth';
 export * from './oauthApplication';

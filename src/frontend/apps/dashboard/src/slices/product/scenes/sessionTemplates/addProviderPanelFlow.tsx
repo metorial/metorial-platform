@@ -24,9 +24,9 @@ import {
   Menu,
   OptionToggle,
   Text,
+  theme,
   Tooltip,
-  type ButtonSize,
-  theme
+  type ButtonSize
 } from '@metorial/ui';
 import { RiAddLine, RiArrowDownSLine, RiCheckLine } from '@remixicon/react';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -332,7 +332,8 @@ export let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
     hasVaults: false,
     isLoading: selectedConfigSchema.isLoading
   });
-  let shouldManageProviderConfig = !!configuredProviderRequiresConfig || !!p.ensureProviderConfig;
+  let shouldManageProviderConfig =
+    !!configuredProviderRequiresConfig || !!p.ensureProviderConfig;
   let configStateLoading = shouldManageProviderConfig && selectedConfigSchema.isLoading;
   let hasRequiredNonDefaultConfig =
     shouldManageProviderConfig &&
@@ -888,9 +889,7 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
   let selectedToolKeys = p.selectedToolKeys ?? [];
   let toolFilterMode = p.toolFilterMode ?? 'all';
   let selectedAuthConfigForMethod = useProviderAuthConfigs(
-    requiresAuthConfig && providerAuthMethodId && p.selectedAuthConfigId
-      ? p.instanceId
-      : null,
+    requiresAuthConfig && providerAuthMethodId && p.selectedAuthConfigId ? p.instanceId : null,
     {
       providerId: p.providerId,
       id: p.selectedAuthConfigId,
@@ -956,8 +955,7 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
     if (previousProviderAuthMethodIdRef.current === providerAuthMethodId) return;
 
     previousProviderAuthMethodIdRef.current = providerAuthMethodId;
-    let createdAuthConfigSelected =
-      createdAuthConfigSelection?.id === p.selectedAuthConfigId;
+    let createdAuthConfigSelected = createdAuthConfigSelection?.id === p.selectedAuthConfigId;
     let pendingCreatedAuthConfigSelected =
       pendingCreatedAuthConfigIdRef.current === p.selectedAuthConfigId;
 
@@ -984,8 +982,7 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
     let authConfigMatchesMethod = (selectedAuthConfigForMethod.data?.items ?? []).some(
       config => config.id === p.selectedAuthConfigId
     );
-    let createdAuthConfigSelected =
-      createdAuthConfigSelection?.id === p.selectedAuthConfigId;
+    let createdAuthConfigSelected = createdAuthConfigSelection?.id === p.selectedAuthConfigId;
 
     if (!authConfigMatchesMethod && !createdAuthConfigSelected) {
       pendingCreatedAuthConfigIdRef.current = null;
@@ -1437,7 +1434,7 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
             style={{
               height: '100%',
               minHeight: 0,
-              overflowY: 'auto',
+              // overflowY: 'auto',
               paddingRight: 6
             }}
           >

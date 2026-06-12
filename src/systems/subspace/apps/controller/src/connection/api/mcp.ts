@@ -8,13 +8,21 @@ let isDev = process.env.NODE_ENV !== 'production';
 
 type Transports = 'sse' | 'streamable_http';
 
-let agentClientHeaderSchema = z.object({
-  name: z.string(),
-  type: z.literal('mcp_client_oauth'),
-  privateMetadata: z.record(z.string(), z.any()).optional(),
-  oauthRegistrationId: z.string(),
-  foreignId: z.string()
-});
+let agentClientHeaderSchema = z.discriminatedUnion('type', [
+  z.object({
+    name: z.string(),
+    type: z.literal('mcp_client_oauth'),
+    privateMetadata: z.record(z.string(), z.any()).optional(),
+    oauthRegistrationId: z.string(),
+    foreignId: z.string()
+  }),
+  z.object({
+    name: z.string(),
+    type: z.literal('system_client'),
+    privateMetadata: z.record(z.string(), z.any()).optional(),
+    foreignId: z.string()
+  })
+]);
 
 let privateMetadataHeaderSchema = z.record(z.string(), z.any());
 
@@ -46,7 +54,7 @@ export let mcpRouter = createHono().all(`/:key?`, async c => {
     c.res.headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, DELETE');
     c.res.headers.set(
       'Access-Control-Allow-Headers',
-      'Content-Type, Metorial-Proxy-URL, Metorial-Agent-Client, Metorial-Connection-Private-Metadata, Metorial-Ingress-Policy-Check, Metorial-Ingress-IP, MCP-Protocol-Version, MCP-Session-ID, Authorization'
+      'Content-Type, Metorial-Proxy-URL, Metorial-Agent-Client, Metorial-Connection-Private-Metadata, Metorial-Ingress-Policy-Check, Metorial-Ingress-IP, MCP-Protocol-Version, MCP-Session-ID, Authorization,  baggage, sentry-trace'
     );
     c.res.headers.set('Access-Control-Allow-Credentials', 'true');
     c.res.headers.set(

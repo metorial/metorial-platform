@@ -15,6 +15,21 @@ import { type DateFilter, normalizeDateFilter } from '@metorial-subspace/list-ut
 import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
 import { indexAgentClientQueue } from '../queues/search/agentClient';
 
+type AgentClientInput =
+  | {
+      name: string;
+      type: 'mcp_client_oauth';
+      privateMetadata?: Record<string, any>;
+      foreignId: string;
+      oauthRegistrationId: string;
+    }
+  | {
+      name: string;
+      type: 'system_client';
+      privateMetadata?: Record<string, any>;
+      foreignId: string;
+    };
+
 class agentClientServiceImpl {
   async listAgentClients(d: {
     tenant: Tenant;
@@ -88,13 +103,7 @@ class agentClientServiceImpl {
     tenant: Tenant;
     solution: Solution;
     environment: Environment;
-    input: {
-      name: string;
-      type: AgentClientType;
-      privateMetadata?: Record<string, any>;
-      foreignId: string;
-      oauthRegistrationId: string;
-    };
+    input: AgentClientInput;
   }) {
     return await withTransaction(async db => {
       let newId = getId('agentClient');
@@ -126,20 +135,23 @@ class agentClientServiceImpl {
         }
       });
 
-      let agentClientRegistration = await db.agentClientRegistration.upsert({
-        where: { oauthRegistrationId: d.input.oauthRegistrationId },
-        create: {
-          ...getId('agentClientRegistration'),
+      let agentClientRegistration =
+        d.input.type === 'mcp_client_oauth'
+          ? await db.agentClientRegistration.upsert({
+              where: { oauthRegistrationId: d.input.oauthRegistrationId },
+              create: {
+                ...getId('agentClientRegistration'),
 
-          oauthRegistrationId: d.input.oauthRegistrationId,
-          privateMetadata: d.input.privateMetadata,
-          agentClientOid: agentClient.oid
-        },
-        update: {
-          privateMetadata: d.input.privateMetadata,
-          agentClientOid: agentClient.oid
-        }
-      });
+                oauthRegistrationId: d.input.oauthRegistrationId,
+                privateMetadata: d.input.privateMetadata,
+                agentClientOid: agentClient.oid
+              },
+              update: {
+                privateMetadata: d.input.privateMetadata,
+                agentClientOid: agentClient.oid
+              }
+            })
+          : null;
 
       let isNew = agentClient.id === newId.id;
       if (isNew) {
@@ -156,13 +168,7 @@ class agentClientServiceImpl {
     tenant: Tenant;
     solution: Solution;
     environment: Environment;
-    input: {
-      name: string;
-      type: AgentClientType;
-      privateMetadata?: Record<string, any>;
-      foreignId: string;
-      oauthRegistrationId: string;
-    };
+    input: AgentClientInput;
   }) {
     return await this.upsertAgentClient(d);
   }
