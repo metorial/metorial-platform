@@ -66,6 +66,7 @@
     "framer-motion": "^11.5.4",
     "fuse.js": "7.4.2",
     "json-schema": "^0.4.0",
+    "jsonschema": "^1.5.0",
     "lodash": "^4.17.21",
     "lodash.throttle": "^4.1.1",
     "nanoid": "^5.0.7",

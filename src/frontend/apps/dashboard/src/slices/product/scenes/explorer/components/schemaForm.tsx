@@ -1,8 +1,7 @@
 import { Button, Checkbox, Input, Select, Text, TextArrayInput, theme } from '@metorial/ui';
-import addFormats from 'ajv-formats';
-import Ajv2020 from 'ajv/dist/2020';
 import { getIn, setIn, useFormik } from 'formik';
 import type { JSONSchema7, JSONSchema7Definition } from 'json-schema';
+import { Validator } from 'jsonschema';
 import { useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { MarkdownDescription } from './markdownDescription';
@@ -103,18 +102,7 @@ let FieldError = styled.div`
   margin-top: -4px;
 `;
 
-let createAjv = () => {
-  let ajv = new Ajv2020({
-    allErrors: true,
-    strict: false,
-    allowUnionTypes: true,
-    validateSchema: false
-  });
-
-  addFormats(ajv as unknown as Parameters<typeof addFormats>[0]);
-
-  return ajv;
-};
+let jsonSchemaValidator = new Validator();
 
 let stripSchemaDialect = (schema?: JSONSchema7 | null): JSONSchema7 => {
   let normalized = normalizeSchema(schema);
@@ -189,22 +177,14 @@ let buildInitialValues = (schema?: JSONSchema7 | null): JsonObject => {
   return values;
 };
 
-let toPath = (instancePath: string) =>
-  instancePath
-    .replace(/^\//, '')
-    .split('/')
-    .filter(Boolean)
-    .map(segment => segment.replace(/~1/g, '/').replace(/~0/g, '~'))
-    .join('.');
-
-let mapAjvErrors = (errors: any[] | null | undefined) => {
+let mapValidationErrors = (errors: any[] | null | undefined) => {
   let mapped: Record<string, unknown> = {};
 
   for (let error of errors ?? []) {
-    let path = toPath(error.instancePath ?? '');
+    let path = error.property?.replace(/^instance\.?/, '') ?? '';
 
-    if (error.keyword === 'required' && error.params?.missingProperty) {
-      path = path ? `${path}.${error.params.missingProperty}` : error.params.missingProperty;
+    if (error.name === 'required' && typeof error.argument === 'string') {
+      path = path ? `${path}.${error.argument}` : error.argument;
     }
 
     let message = error.message ?? 'Invalid value';
@@ -489,22 +469,6 @@ export let SchemaForm = ({
   isSubmitting?: boolean;
 }) => {
   let normalizedSchema = useMemo(() => stripSchemaDialect(schema), [schema]);
-  let compiled = useMemo(() => {
-    let ajv = createAjv();
-
-    try {
-      return {
-        validator: ajv.compile(normalizedSchema),
-        compileError: null
-      };
-    } catch (error) {
-      return {
-        validator: null,
-        compileError:
-          error instanceof Error ? error.message : 'This schema could not be compiled.'
-      };
-    }
-  }, [normalizedSchema]);
 
   let formik = useFormik<JsonObject>({
     initialValues: buildInitialValues(normalizedSchema),
@@ -515,18 +479,17 @@ export let SchemaForm = ({
       let sanitizedValues = sanitizeOptionalValues(normalizedSchema, values) as JsonObject;
       let requiredFieldErrors = validateRequiredFields(normalizedSchema, sanitizedValues);
 
-      if (!compiled.validator) {
+      try {
+        let result = jsonSchemaValidator.validate(sanitizedValues, normalizedSchema as any);
+        if (result.valid) return requiredFieldErrors;
+        return mergeErrors(requiredFieldErrors, mapValidationErrors(result.errors));
+      } catch (error) {
         return mergeErrors(requiredFieldErrors, {
-          _form: compiled.compileError ?? 'This schema could not be compiled.'
+          _form: error instanceof Error ? error.message : 'This schema could not be validated.'
         });
       }
-
-      let valid = compiled.validator(sanitizedValues);
-      if (valid) return requiredFieldErrors;
-      return mergeErrors(requiredFieldErrors, mapAjvErrors(compiled.validator.errors));
     },
     onSubmit: async values => {
-      if (!compiled.validator) return;
       let sanitizedValues = sanitizeOptionalValues(normalizedSchema, values) as JsonObject;
       await onSubmit(sanitizedValues);
     }
@@ -571,7 +534,6 @@ export let SchemaForm = ({
           size="2"
           style={blackButtonStyle}
           loading={isSubmitting}
-          disabled={!compiled.validator}
         >
           {submitLabel}
         </Button>
