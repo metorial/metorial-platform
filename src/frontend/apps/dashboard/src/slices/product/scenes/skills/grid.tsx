@@ -51,6 +51,94 @@ let ProviderAvatarItem = styled.div<{ $index: number }>`
   box-shadow: 0 0 0 2px ${theme.colors.background};
 `;
 
+export let SkillGridCard = (p: {
+  skill: {
+    id: string;
+    name: string;
+    description?: string | null;
+    slug: string;
+    imageUrl?: string | null;
+    providers?: {
+      id: string;
+      name?: string | null;
+      slug: string;
+    }[];
+  };
+  listingLookup: Map<
+    string,
+    { name: string | null | undefined; imageUrl: string | null | undefined }
+  >;
+  onClick?: () => void;
+  menu?: {
+    label: string;
+    onClick: () => void;
+  }[];
+}) => {
+  let visibleProviders = (p.skill.providers ?? []).slice(0, 5);
+
+  return (
+    <ItemGrid.Item
+      entity={{ id: p.skill.id, hasUsage: true }}
+      title={p.skill.name}
+      description={
+        <Description>{p.skill.description || 'No description provided yet.'}</Description>
+      }
+      height={200}
+      onClick={p.onClick}
+      menu={p.menu}
+      icon={
+        visibleProviders.length > 0 ? (
+          <ProviderAvatarStack>
+            <ProviderAvatarItem $index={0}>
+              <Avatar
+                entity={{
+                  name: p.skill.name,
+                  imageUrl: p.skill.imageUrl
+                }}
+                size={30}
+                noTooltip
+                imageFit="contain"
+              />
+            </ProviderAvatarItem>
+            {visibleProviders.map((provider, idx) => {
+              let listing = p.listingLookup.get(provider.id);
+              let name = listing?.name ?? provider.name ?? provider.slug;
+
+              return (
+                <ProviderAvatarItem key={provider.id} $index={idx + 1}>
+                  <Avatar
+                    entity={{
+                      name,
+                      photoUrl: listing?.imageUrl ?? undefined
+                    }}
+                    size={30}
+                    noTooltip
+                    imageFit="contain"
+                  />
+                </ProviderAvatarItem>
+              );
+            })}
+          </ProviderAvatarStack>
+        ) : (
+          <Avatar
+            entity={{
+              name: p.skill.name,
+              imageUrl: p.skill.imageUrl
+            }}
+            size={30}
+            imageFit="contain"
+          />
+        )
+      }
+      bottom={
+        <div style={{ display: 'flex' }}>
+          <Alias>{p.skill.slug}</Alias>
+        </div>
+      }
+    />
+  );
+};
+
 export let SkillsGrid = (
   p: { instanceId: string } & Omit<
     DashboardInstanceSkillsListQuery,
@@ -183,88 +271,29 @@ export let SkillsGrid = (
         <>
           {skills.data.items.length > 0 && (
             <ItemGrid.Root width="300px">
-              {skills.data.items.map(skill => {
-                let visibleProviders = (skill.providers ?? []).slice(0, 5);
-
-                return (
-                  <ItemGrid.Item
-                    key={skill.id}
-                    entity={{ id: skill.id, hasUsage: true }}
-                    title={skill.name}
-                    description={
-                      <Description>
-                        {skill.description || 'No description provided yet.'}
-                      </Description>
-                    }
-                    height={200}
-                    onClick={() =>
-                      navigate(
-                        Paths.instance.skill(
-                          organization.data,
-                          project.data,
-                          instance.data,
-                          skill.id
-                        )
+              {skills.data.items.map(skill => (
+                <SkillGridCard
+                  key={skill.id}
+                  skill={skill}
+                  listingLookup={listingLookup}
+                  onClick={() =>
+                    navigate(
+                      Paths.instance.skill(
+                        organization.data,
+                        project.data,
+                        instance.data,
+                        skill.id
                       )
+                    )
+                  }
+                  menu={[
+                    {
+                      label: 'Duplicate Skill',
+                      onClick: () => duplicate(skill)
                     }
-                    menu={[
-                      {
-                        label: 'Duplicate Skill',
-                        onClick: () => duplicate(skill)
-                      }
-                    ]}
-                    icon={
-                      visibleProviders.length > 0 ? (
-                        <ProviderAvatarStack>
-                          <ProviderAvatarItem $index={0}>
-                            <Avatar
-                              entity={{
-                                name: skill.name,
-                                imageUrl: skill.imageUrl
-                              }}
-                              size={30}
-                              noTooltip
-                              imageFit="contain"
-                            />
-                          </ProviderAvatarItem>
-                          {visibleProviders.map((provider, idx) => {
-                            let listing = listingLookup.get(provider.id);
-                            let name = listing?.name ?? provider.name ?? provider.slug;
-
-                            return (
-                              <ProviderAvatarItem key={provider.id} $index={idx + 1}>
-                                <Avatar
-                                  entity={{
-                                    name,
-                                    photoUrl: listing?.imageUrl ?? undefined
-                                  }}
-                                  size={30}
-                                  noTooltip
-                                  imageFit="contain"
-                                />
-                              </ProviderAvatarItem>
-                            );
-                          })}
-                        </ProviderAvatarStack>
-                      ) : (
-                        <Avatar
-                          entity={{
-                            name: skill.name,
-                            imageUrl: skill.imageUrl
-                          }}
-                          size={30}
-                          imageFit="contain"
-                        />
-                      )
-                    }
-                    bottom={
-                      <div style={{ display: 'flex' }}>
-                        <Alias>{skill.slug}</Alias>
-                      </div>
-                    }
-                  />
-                );
-              })}
+                  ]}
+                />
+              ))}
             </ItemGrid.Root>
           )}
         </>

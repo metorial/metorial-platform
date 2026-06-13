@@ -33,6 +33,45 @@ let Description = styled.span`
   -webkit-box-orient: vertical;
 `;
 
+export let SkillGroupGridCard = (p: {
+  skillGroup: {
+    id: string;
+    name: string;
+    description?: string | null;
+    skills?: unknown[];
+  };
+  href?: string;
+  onClick?: () => void;
+}) => (
+  <ItemGrid.Item
+    entity={{ id: p.skillGroup.id, hasUsage: true }}
+    title={p.skillGroup.name}
+    description={
+      <Description>{p.skillGroup.description || 'No description provided yet.'}</Description>
+    }
+    height={200}
+    href={p.href}
+    onClick={p.onClick}
+    icon={
+      <Avatar
+        entity={{
+          name: p.skillGroup.name,
+          imageUrl: `https://avatar-cdn.metorial.com/${p.skillGroup.id}`
+        }}
+        size={30}
+      />
+    }
+    bottom={
+      <div style={{ display: 'flex' }}>
+        <Count>
+          {p.skillGroup.skills?.length ?? 0} skill
+          {(p.skillGroup.skills?.length ?? 0) === 1 ? '' : 's'}
+        </Count>
+      </div>
+    }
+  />
+);
+
 export let SkillGroupsGrid = (
   p: { instanceId: string } & Omit<
     DashboardInstanceSkillsGroupsListQuery,
@@ -108,39 +147,15 @@ export let SkillGroupsGrid = (
       {skillGroups.data.items.length > 0 && (
         <ItemGrid.Root width="300px">
           {skillGroups.data.items.map(skillGroup => (
-            <ItemGrid.Item
+            <SkillGroupGridCard
               key={skillGroup.id}
+              skillGroup={skillGroup}
               href={Paths.instance.skillGroup(
                 organization.data,
                 project.data,
                 instance.data,
                 skillGroup.id
               )}
-              entity={{ id: skillGroup.id, hasUsage: true }}
-              title={skillGroup.name}
-              description={
-                <Description>
-                  {skillGroup.description || 'No description provided yet.'}
-                </Description>
-              }
-              height={200}
-              icon={
-                <Avatar
-                  entity={{
-                    name: skillGroup.name,
-                    imageUrl: `https://avatar-cdn.metorial.com/${skillGroup.id}`
-                  }}
-                  size={30}
-                />
-              }
-              bottom={
-                <div style={{ display: 'flex' }}>
-                  <Count>
-                    {skillGroup.skills.length} skill
-                    {skillGroup.skills.length === 1 ? '' : 's'}
-                  </Count>
-                </div>
-              }
             />
           ))}
         </ItemGrid.Root>
