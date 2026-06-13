@@ -344,67 +344,65 @@ class ConsumerIntegrationServiceImpl {
     magicMcpTarget: ConsumerOwnedMagicMcpTarget;
     magicMcpSession: Pick<MagicMcpSession, 'oid' | 'instanceOid'>;
   }) {
-    return await withTransaction(async () => {
-      if (d.magicMcpTarget.type === 'server') {
-        let consumerIntegration = await this.upsertConsumerIntegration({
-          consumerProfile: d.consumerProfile,
-          magicMcpServer: d.magicMcpTarget.target,
-          isManaged: true
-        });
+    if (d.magicMcpTarget.type === 'server') {
+      let consumerIntegration = await this.upsertConsumerIntegration({
+        consumerProfile: d.consumerProfile,
+        magicMcpServer: d.magicMcpTarget.target,
+        isManaged: true
+      });
 
-        let session = await this.upsertConsumerIntegrationSession({
+      let session = await this.upsertConsumerIntegrationSession({
+        consumerProfile: d.consumerProfile,
+        consumerIntegration,
+        magicMcpSession: d.magicMcpSession
+      });
+
+      return {
+        consumerIntegrationEndpoints: [],
+        consumerIntegrations: [consumerIntegration],
+        consumerIntegrationSessions: [session]
+      };
+    }
+
+    let consumerIntegrationEndpoint = await this.upsertConsumerIntegrationEndpoint({
+      consumerProfile: d.consumerProfile,
+      magicMcpEndpoint: d.magicMcpTarget.target,
+      isManaged: d.magicMcpTarget.target.consumerProfileOid !== d.consumerProfile.oid
+    });
+    let seenServerOids = new Set<bigint>();
+    let consumerIntegrations: ConsumerIntegrationWithRelations[] = [];
+
+    for (let server of d.magicMcpTarget.target.servers) {
+      if (seenServerOids.has(server.magicMcpServerOid)) {
+        continue;
+      }
+
+      seenServerOids.add(server.magicMcpServerOid);
+      consumerIntegrations.push(
+        await this.upsertConsumerIntegration({
+          consumerProfile: d.consumerProfile,
+          magicMcpServer: server.magicMcpServer,
+          isManaged: true
+        })
+      );
+    }
+
+    let consumerIntegrationSessions = [];
+    for (let consumerIntegration of consumerIntegrations) {
+      consumerIntegrationSessions.push(
+        await this.upsertConsumerIntegrationSession({
           consumerProfile: d.consumerProfile,
           consumerIntegration,
           magicMcpSession: d.magicMcpSession
-        });
+        })
+      );
+    }
 
-        return {
-          consumerIntegrationEndpoints: [],
-          consumerIntegrations: [consumerIntegration],
-          consumerIntegrationSessions: [session]
-        };
-      }
-
-      let consumerIntegrationEndpoint = await this.upsertConsumerIntegrationEndpoint({
-        consumerProfile: d.consumerProfile,
-        magicMcpEndpoint: d.magicMcpTarget.target,
-        isManaged: d.magicMcpTarget.target.consumerProfileOid !== d.consumerProfile.oid
-      });
-      let seenServerOids = new Set<bigint>();
-      let consumerIntegrations: ConsumerIntegrationWithRelations[] = [];
-
-      for (let server of d.magicMcpTarget.target.servers) {
-        if (seenServerOids.has(server.magicMcpServerOid)) {
-          continue;
-        }
-
-        seenServerOids.add(server.magicMcpServerOid);
-        consumerIntegrations.push(
-          await this.upsertConsumerIntegration({
-            consumerProfile: d.consumerProfile,
-            magicMcpServer: server.magicMcpServer,
-            isManaged: true
-          })
-        );
-      }
-
-      let consumerIntegrationSessions = [];
-      for (let consumerIntegration of consumerIntegrations) {
-        consumerIntegrationSessions.push(
-          await this.upsertConsumerIntegrationSession({
-            consumerProfile: d.consumerProfile,
-            consumerIntegration,
-            magicMcpSession: d.magicMcpSession
-          })
-        );
-      }
-
-      return {
-        consumerIntegrationEndpoints: [consumerIntegrationEndpoint],
-        consumerIntegrations,
-        consumerIntegrationSessions
-      };
-    });
+    return {
+      consumerIntegrationEndpoints: [consumerIntegrationEndpoint],
+      consumerIntegrations,
+      consumerIntegrationSessions
+    };
   }
 
   async markMagicMcpResourcesConsumerReconciled(d: {

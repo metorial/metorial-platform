@@ -1,5 +1,5 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
-import { ID, Instance, withTransaction } from '@metorial/db';
+import { db, ID, Instance, MagicMcpSession, Prisma } from '@metorial/db';
 import {
   ensureMagicMcpEndpointBacking,
   ensureMagicMcpServerBacking,
@@ -122,6 +122,32 @@ export let ensureMagicMcpSubspaceSession = async (target: MagicMcpResolvedTarget
   return await ensureEndpointBackingSession(target);
 };
 
+let getLoadedMagicMcpSession = (target: MagicMcpResolvedTarget) => {
+  if (target.type === 'server') {
+    return target.target.subspaceSession ?? null;
+  }
+
+  let subspaceSession = target.target.subspaceSession;
+  if (Array.isArray(subspaceSession)) return subspaceSession[0] ?? null;
+
+  return subspaceSession ?? null;
+};
+
+let isCurrentMagicMcpSession = (
+  session: MagicMcpSession,
+  d: {
+    subspaceSessionId: string;
+    backingSessionId: string;
+  }
+) =>
+  session.subspaceSessionId === d.subspaceSessionId &&
+  session.subspaceSessionTemplateId === d.backingSessionId &&
+  session.isActive &&
+  session.expiresAt == null;
+
+let isUniqueConstraintError = (error: unknown) =>
+  error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
+
 export let syncMagicMcpSubspaceSession = async (
   target: MagicMcpResolvedTarget,
   subspaceSessionId: string,
@@ -132,37 +158,82 @@ export let syncMagicMcpSubspaceSession = async (
     subspaceSessionId,
     subspaceSessionTemplateId: backingSessionId,
     expiresAt: null,
-    isActive: true,
-    isConsumerReconciled: false
+    isActive: true
   };
 
-  return await withTransaction(async db => {
-    if (target.type === 'server') {
-      return await db.magicMcpSession.upsert({
-        where: {
+  let uniqueWhere =
+    target.type === 'server'
+      ? { magicMcpServerOid: target.target.oid }
+      : { magicMcpEndpointOid: target.target.oid };
+  let loadedSession = getLoadedMagicMcpSession(target);
+
+  if (
+    loadedSession &&
+    isCurrentMagicMcpSession(loadedSession, { subspaceSessionId, backingSessionId })
+  ) {
+    return loadedSession;
+  }
+
+  let existingSession =
+    loadedSession ??
+    (await db.magicMcpSession.findUnique({
+      where: uniqueWhere
+    }));
+
+  if (
+    existingSession &&
+    isCurrentMagicMcpSession(existingSession, { subspaceSessionId, backingSessionId })
+  ) {
+    return existingSession;
+  }
+
+  if (existingSession) {
+    return await db.magicMcpSession.update({
+      where: { oid: existingSession.oid },
+      data: {
+        ...baseData,
+        isConsumerReconciled: false
+      }
+    });
+  }
+
+  let createData =
+    target.type === 'server'
+      ? {
           magicMcpServerOid: target.target.oid
-        },
-        create: {
-          id: await ID.generateId('magicMcpServerSubspaceSession'),
-          magicMcpServerOid: target.target.oid,
-          ...baseData
-        },
-        update: baseData
-      });
+        }
+      : {
+          magicMcpEndpointOid: target.target.oid
+        };
+
+  try {
+    return await db.magicMcpSession.create({
+      data: {
+        id: await ID.generateId('magicMcpServerSubspaceSession'),
+        ...createData,
+        ...baseData,
+        isConsumerReconciled: false
+      }
+    });
+  } catch (error) {
+    if (!isUniqueConstraintError(error)) throw error;
+
+    let current = await db.magicMcpSession.findUniqueOrThrow({
+      where: uniqueWhere
+    });
+
+    if (isCurrentMagicMcpSession(current, { subspaceSessionId, backingSessionId })) {
+      return current;
     }
 
-    return await db.magicMcpSession.upsert({
-      where: {
-        magicMcpEndpointOid: target.target.oid
-      },
-      create: {
-        id: await ID.generateId('magicMcpServerSubspaceSession'),
-        magicMcpEndpointOid: target.target.oid,
-        ...baseData
-      },
-      update: baseData
+    return await db.magicMcpSession.update({
+      where: { oid: current.oid },
+      data: {
+        ...baseData,
+        isConsumerReconciled: false
+      }
     });
-  });
+  }
 };
 
 export type MagicMcpSubspaceMapping = Awaited<

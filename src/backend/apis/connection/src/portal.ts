@@ -1,4 +1,4 @@
-import { useRequestContext, useValidatedBody } from '@lowerdeck/hono';
+import { Context, useRequestContext, useValidatedBody } from '@lowerdeck/hono';
 import { v } from '@lowerdeck/validation';
 import { getConfig } from '@metorial/config';
 import { AuthInfo } from '@metorial/module-access';
@@ -12,7 +12,6 @@ import {
   consumerOAuthTokenService
 } from '@metorial/module-consumer';
 import { Authenticator } from '@metorial/rest';
-import { Context } from '@lowerdeck/hono';
 import { getMagicMcpTokenSecretFromRequest, handleMagicMcpRequest } from './magic';
 import {
   buildOAuthClientConfig,
@@ -111,13 +110,12 @@ export let createPortalHandler = (d: {
 
     portal: async ({ route }, c) => {
       let { instance, magicMcpTarget, base } = route;
-      let routeMagicMcpTargetIdOrAlias = magicMcpTarget?.target.id;
 
       let token = getMagicMcpTokenSecretFromRequest(c.req.raw, new URL(c.req.url));
       if (token) {
         return await handleMagicMcpRequest({
           c,
-          magicMcpTargetIdOrAlias: routeMagicMcpTargetIdOrAlias,
+          magicMcpTarget,
           instanceForTokenRouting: instance,
           authenticate: d.authenticate
         });

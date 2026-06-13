@@ -789,13 +789,18 @@ class MagicMcpTokenImpl {
     token: Pick<
       MagicMcpToken,
       'oid' | 'magicMcpServerOid' | 'magicMcpEndpointOid' | 'isGroupLocked'
-    >;
+    > & {
+      magicMcpServer?: Pick<MagicMcpServer, 'status'> | null;
+      magicMcpEndpoint?: Pick<MagicMcpEndpoint, 'oid' | 'status'> | null;
+    };
   }) {
     if (d.token.magicMcpServerOid) {
-      let magicMcpServer = await db.magicMcpServer.findUnique({
-        where: { oid: d.token.magicMcpServerOid },
-        select: { status: true }
-      });
+      let magicMcpServer =
+        d.token.magicMcpServer ??
+        (await db.magicMcpServer.findUnique({
+          where: { oid: d.token.magicMcpServerOid },
+          select: { status: true }
+        }));
 
       if (!magicMcpServer || magicMcpServer.status !== 'active') {
         return getInactiveLinkedResourceMessage('server');
@@ -803,13 +808,15 @@ class MagicMcpTokenImpl {
     }
 
     if (d.token.magicMcpEndpointOid) {
-      let magicMcpEndpoint = await db.magicMcpEndpoint.findUnique({
-        where: { oid: d.token.magicMcpEndpointOid },
-        select: {
-          oid: true,
-          status: true
-        }
-      });
+      let magicMcpEndpoint =
+        d.token.magicMcpEndpoint ??
+        (await db.magicMcpEndpoint.findUnique({
+          where: { oid: d.token.magicMcpEndpointOid },
+          select: {
+            oid: true,
+            status: true
+          }
+        }));
 
       if (!magicMcpEndpoint || magicMcpEndpoint.status !== 'active') {
         return getInactiveLinkedResourceMessage('endpoint');
