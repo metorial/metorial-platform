@@ -103,6 +103,12 @@ export let createPortalHandler = (d: {
         magicMcpTargetId
       });
     },
+    resolveConnectRoute: async ({ portalId, magicMcpTargetId }) => {
+      return await consumerOAuthRoutingService.resolvePortalMcpRoute({
+        portalId,
+        magicMcpTargetId
+      });
+    },
 
     metadata: async ({ route }, c) => {
       return c.json(buildOAuthClientConfig(route.base));
