@@ -68,13 +68,6 @@ let MagicMcpServerProvidersTable = (p: {
                 <Text size="1" color="gray600">
                   {provider.provider.slug ?? provider.provider.id}
                 </Text>
-                {provider.providerManagementMode !== 'manual' ? (
-                  <Text size="1" color="gray600">
-                    {provider.providerManagementMode === 'inherited_from_integration'
-                      ? 'Inherited from integration'
-                      : 'Inherited from provider template'}
-                  </Text>
-                ) : null}
               </div>,
               provider.config ? (
                 <Text size="2">{provider.config.name ?? provider.config.id}</Text>
@@ -98,7 +91,8 @@ let MagicMcpServerProvidersTable = (p: {
                       ? [
                           {
                             id: 'edit',
-                            label: 'Edit'
+                            label: 'Edit',
+                            disabled: provider.providerManagementMode !== 'manual'
                           }
                         ]
                       : []),
@@ -106,7 +100,8 @@ let MagicMcpServerProvidersTable = (p: {
                       ? [
                           {
                             id: 'delete',
-                            label: 'Delete'
+                            label: 'Delete',
+                            disabled: provider.providerManagementMode !== 'manual'
                           }
                         ]
                       : [])
