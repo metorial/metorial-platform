@@ -75,25 +75,26 @@ export let slateAttachmentCleanupSingleQueueProcessor =
     if (attachment && attachment.expiresAt >= now) return;
 
     if (attachment) {
-      await db.$transaction(async tx => {
-        let current = await tx.slateAttachment.findUnique({
-          where: {
-            oid: attachment.oid
-          }
-        });
-        if (!current || current.expiresAt >= now) return;
+      let current = await db.slateAttachment.findUnique({
+        where: {
+          oid: attachment.oid
+        }
+      });
 
-        await tx.slateInvocationAttachment.deleteMany({
+      if (current && current.expiresAt < now) {
+        await db.slateInvocationAttachment.deleteMany({
           where: {
             attachmentsOid: current.oid
           }
         });
-        await tx.slateAttachment.delete({
+
+        await db.slateAttachment.deleteMany({
           where: {
-            oid: current.oid
+            oid: current.oid,
+            expiresAt: { lt: now }
           }
         });
-      });
+      }
     }
 
     let isDigestStillTracked = await db.slateAttachment.findFirst({

@@ -1,6 +1,6 @@
 import { createCron } from '@lowerdeck/cron';
 import { createQueue } from '@lowerdeck/queue';
-import { db, withTransaction } from '@metorial-subspace/db';
+import { db } from '@metorial-subspace/db';
 import { env } from '../../env';
 import { getCutoffDate } from './_config';
 
@@ -58,29 +58,27 @@ export let callbackDeleteQueueProcessor = callbackDeleteQueue.process(async data
   });
   if (!callback || callback.status !== 'archived') return;
 
-  await withTransaction(async db => {
-    await db.callbackInstance.updateMany({
-      where: { callbackOid: callback.oid },
-      data: { isParentDeleted: true }
-    });
+  await db.callbackInstance.updateMany({
+    where: { callbackOid: callback.oid },
+    data: { isParentDeleted: true }
+  });
 
-    await db.callbackProviderTrigger.deleteMany({
-      where: { callbackOid: callback.oid }
-    });
+  await db.callbackProviderTrigger.deleteMany({
+    where: { callbackOid: callback.oid }
+  });
 
-    await db.callbackDestinationLink.deleteMany({
-      where: { callbackOid: callback.oid }
-    });
+  await db.callbackDestinationLink.deleteMany({
+    where: { callbackOid: callback.oid }
+  });
 
-    await db.callback.updateMany({
-      where: { oid: callback.oid },
-      data: {
-        status: 'deleted',
-        name: '[deleted]',
-        description: null,
-        metadata: {},
-        pollIntervalSecondsOverride: null
-      }
-    });
+  await db.callback.updateMany({
+    where: { oid: callback.oid },
+    data: {
+      status: 'deleted',
+      name: '[deleted]',
+      description: null,
+      metadata: {},
+      pollIntervalSecondsOverride: null
+    }
   });
 });
