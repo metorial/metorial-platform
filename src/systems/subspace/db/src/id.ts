@@ -1,5 +1,8 @@
 import { createIdGenerator, idType } from '@lowerdeck/id';
 import { Snowflake } from '@lowerdeck/snowflake';
+import { randomUUID } from 'crypto';
+import os from 'os';
+import Redis from 'ioredis';
 
 export let ID = createIdGenerator({
   tenant: idType.sorted('ktn'),
@@ -188,21 +191,280 @@ export let ID = createIdGenerator({
 
 let workerIdBits = 12;
 let workerIdMask = (1 << workerIdBits) - 1;
+let sequenceBits = 9;
+let epoch = new Date('2025-06-01T00:00:00Z');
 
-let workerId = (() => {
+let getRandomWorkerId = () => {
   let array = new Uint16Array(1);
   crypto.getRandomValues(array);
   return array[0]! & workerIdMask;
-})();
+};
 
-export let snowflake = new Snowflake({
-  workerId,
-  datacenterId: 0,
-  workerIdBits: workerIdBits,
-  datacenterIdBits: 0,
-  sequenceBits: 9,
-  epoch: new Date('2025-06-01T00:00:00Z')
-});
+let createSnowflake = (workerId: number) =>
+  new Snowflake({
+    workerId,
+    datacenterId: 0,
+    workerIdBits: workerIdBits,
+    datacenterIdBits: 0,
+    sequenceBits,
+    epoch
+  });
+
+export type SnowflakeGenerator = ReturnType<typeof createSnowflake>;
+export type RedisLeaseClient = {
+  set: (...args: any[]) => Promise<'OK' | null>;
+  eval: (...args: any[]) => Promise<unknown>;
+  quit: () => Promise<unknown>;
+  disconnect: () => void;
+};
+
+export type SnowflakeWorkerLease = {
+  workerId: number;
+  ownerId: string;
+  key: string;
+  redis: RedisLeaseClient;
+  generator: SnowflakeGenerator;
+  renewInterval: ReturnType<typeof setInterval> | null;
+  ownsRedisClient: boolean;
+  released: boolean;
+  renew: () => Promise<boolean>;
+  release: () => Promise<void>;
+};
+
+export type InitializeSnowflakeWorkerLeaseOptions = {
+  redisUrl?: string;
+  redis?: RedisLeaseClient;
+  ownerId?: string;
+  keyPrefix?: string;
+  ttlMs?: number;
+  renewIntervalMs?: number;
+  allowLocalFallback?: boolean;
+  fatal?: (error: Error) => void;
+  startWorkerId?: number;
+  autoRenew?: boolean;
+};
+
+let localSnowflake = createSnowflake(getRandomWorkerId());
+let activeSnowflake: SnowflakeGenerator | null = null;
+let activeLease: SnowflakeWorkerLease | null = null;
+let signalHandlersRegistered = false;
+
+let shouldRequireLease = () =>
+  process.env.NODE_ENV === 'production' || process.env.METORIAL_ENV === 'production';
+
+let createRedisClient = (redisUrl: string): Redis => {
+  let url = new URL(redisUrl);
+
+  return new Redis({
+    host: url.hostname,
+    port: Number.parseInt(url.port || '6379', 10),
+    username: url.username || undefined,
+    password: url.password || undefined,
+    db: Number.parseInt(url.pathname.slice(1) || '0', 10),
+    tls: url.protocol === 'rediss:' ? { rejectUnauthorized: false } : undefined,
+    retryStrategy: (times: number) => Math.min(times * 50, 3000),
+    maxRetriesPerRequest: 3,
+    enableReadyCheck: true,
+    lazyConnect: false,
+    keepAlive: 30000
+  });
+};
+
+let renewScript = `
+  if redis.call("get", KEYS[1]) == ARGV[1] then
+    redis.call("pexpire", KEYS[1], ARGV[2])
+    return 1
+  else
+    return 0
+  end
+`;
+
+let releaseScript = `
+  if redis.call("get", KEYS[1]) == ARGV[1] then
+    return redis.call("del", KEYS[1])
+  else
+    return 0
+  end
+`;
+
+let defaultFatal = (error: Error) => {
+  console.error(error);
+  process.exit(1);
+};
+
+let registerSignalHandlers = () => {
+  if (signalHandlersRegistered) return;
+  signalHandlersRegistered = true;
+
+  let releaseAndExit = (signal: NodeJS.Signals) => {
+    void releaseSnowflakeWorkerLease().finally(() => {
+      process.exit(signal === 'SIGINT' ? 130 : 143);
+    });
+  };
+
+  process.once('SIGTERM', releaseAndExit);
+  process.once('SIGINT', releaseAndExit);
+};
+
+let claimWorkerId = async (d: {
+  redis: RedisLeaseClient;
+  keyPrefix: string;
+  ownerId: string;
+  ttlMs: number;
+  startWorkerId?: number;
+}) => {
+  let start = d.startWorkerId ?? getRandomWorkerId();
+
+  for (let offset = 0; offset <= workerIdMask; offset++) {
+    let workerId = (start + offset) & workerIdMask;
+    let key = `${d.keyPrefix}:${workerId}`;
+    let result = await d.redis.set(key, d.ownerId, 'PX', d.ttlMs, 'NX');
+
+    if (result === 'OK') return { workerId, key };
+  }
+
+  throw new Error('Unable to claim a Snowflake worker ID lease');
+};
+
+export let createSnowflakeWorkerLease = async (
+  opts: InitializeSnowflakeWorkerLeaseOptions = {}
+) => {
+  if (!opts.redis && !opts.redisUrl) {
+    throw new Error('REDIS_URL is required to initialize the Snowflake worker lease');
+  }
+
+  let redis = (opts.redis ?? createRedisClient(opts.redisUrl!)) as RedisLeaseClient;
+  let ownsRedisClient = !opts.redis;
+  let ownerId = opts.ownerId ?? `${os.hostname()}:${process.pid}:${randomUUID()}`;
+  let keyPrefix = opts.keyPrefix ?? 'subspace:snowflake-worker';
+  let ttlMs = opts.ttlMs ?? 30_000;
+  let renewIntervalMs = opts.renewIntervalMs ?? Math.floor(ttlMs / 3);
+  let fatal = opts.fatal ?? defaultFatal;
+  let autoRenew = opts.autoRenew ?? true;
+  let claimed = await claimWorkerId({
+    redis,
+    keyPrefix,
+    ownerId,
+    ttlMs,
+    startWorkerId: opts.startWorkerId
+  });
+
+  let generator = createSnowflake(claimed.workerId);
+
+  let lease = {} as SnowflakeWorkerLease;
+  let deactivateLease = () => {
+    lease.released = true;
+    if (lease.renewInterval) clearInterval(lease.renewInterval);
+    if (activeLease === lease) {
+      activeLease = null;
+      activeSnowflake = null;
+    }
+  };
+
+  lease = {
+    workerId: claimed.workerId,
+    ownerId,
+    key: claimed.key,
+    redis,
+    generator,
+    ownsRedisClient,
+    released: false,
+    renewInterval: null,
+    renew: async () => {
+      let result = await redis.eval(renewScript, 1, claimed.key, ownerId, ttlMs);
+      return Number(result) === 1;
+    },
+    release: async () => {
+      if (lease.released) return;
+
+      deactivateLease();
+
+      try {
+        await redis.eval(releaseScript, 1, claimed.key, ownerId);
+      } finally {
+        if (ownsRedisClient) {
+          await redis.quit().catch(() => redis.disconnect());
+        }
+      }
+    }
+  };
+
+  if (autoRenew) {
+    lease.renewInterval = setInterval(() => {
+      void lease
+        .renew()
+        .then(renewed => {
+          if (renewed) return;
+
+          deactivateLease();
+          fatal(new Error(`Lost Snowflake worker ID lease for worker ${claimed.workerId}`));
+        })
+        .catch(error => {
+          deactivateLease();
+          fatal(error instanceof Error ? error : new Error(String(error)));
+        });
+    }, renewIntervalMs);
+
+    (lease.renewInterval as any).unref?.();
+  }
+
+  return lease;
+};
+
+export let initializeSnowflakeWorkerLease = async (
+  opts: InitializeSnowflakeWorkerLeaseOptions = {}
+) => {
+  if (activeLease) {
+    return {
+      workerId: activeLease.workerId,
+      ownerId: activeLease.ownerId,
+      key: activeLease.key
+    };
+  }
+
+  let allowLocalFallback = opts.allowLocalFallback ?? !shouldRequireLease();
+  if (!opts.redis && !opts.redisUrl) {
+    if (allowLocalFallback) {
+      activeSnowflake = localSnowflake;
+      return null;
+    }
+
+    throw new Error('REDIS_URL is required to initialize the Snowflake worker lease');
+  }
+
+  let lease = await createSnowflakeWorkerLease(opts);
+
+  activeSnowflake = lease.generator;
+  activeLease = lease;
+  registerSignalHandlers();
+
+  return {
+    workerId: lease.workerId,
+    ownerId: lease.ownerId,
+    key: lease.key
+  };
+};
+
+export let releaseSnowflakeWorkerLease = async () => {
+  if (!activeLease || activeLease.released) return;
+  await activeLease.release();
+};
+
+export let snowflake = {
+  nextId: () => {
+    let generator = activeSnowflake;
+
+    if (!generator) {
+      if (shouldRequireLease()) {
+        throw new Error('Snowflake worker lease has not been initialized');
+      }
+
+      generator = localSnowflake;
+    }
+
+    return generator.nextId();
+  }
+};
 
 export let getId = <K extends Parameters<typeof ID.generateIdSync>[0]>(model: K) => ({
   oid: snowflake.nextId(),

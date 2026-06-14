@@ -20,3 +20,6 @@ if (!process.env.REDIS_URL) {
     console.warn('Invalid REDIS_URL; leaving as-is.');
   }
 }
+
+let { initializeSnowflakeWorkerLease } = await import('@metorial-subspace/db');
+await initializeSnowflakeWorkerLease({ redisUrl: process.env.REDIS_URL });
