@@ -133,7 +133,7 @@ class AuthBootstrapService {
           allowDefaultDocumentUpdate: true,
           input: {
             document: adminDocument,
-            message: 'Reconcile default administrators policy'
+            message: 'Update default administrators policy'
           }
         });
       }

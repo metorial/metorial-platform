@@ -97,7 +97,7 @@ export let reconcileDefaultPoliciesSingleQueueProcessor =
           document: await authBootstrapService.getAdminPolicyDocument({
             organization: accessPolicy.organization
           }),
-          message: 'Reconcile default administrators policy'
+          message: 'Update default administrators policy'
         }
       });
 
