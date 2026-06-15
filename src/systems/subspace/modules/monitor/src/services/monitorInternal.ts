@@ -39,7 +39,7 @@ class monitorInternalServiceImpl {
       create: {
         ...getId('monitor'),
         key,
-        name: `ProtoGuard: ${d.filter.name}`,
+        name: `Protoguard: ${d.filter.name}`,
         description: d.filter.description,
         target: 'protoguard_filter',
         status: 'active',

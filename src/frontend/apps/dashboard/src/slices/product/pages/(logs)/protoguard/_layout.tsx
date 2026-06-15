@@ -17,7 +17,7 @@ export let ProtoGuardLayout = () => {
   return (
     <ContentLayout>
       <PageHeader
-        title="ProtoGuard"
+        title="Protoguard"
         description="Configure prompt-injection filters and alert thresholds for this instance."
       />
 

@@ -44,7 +44,7 @@ let getSourceFilterValue = (value: FilterPayload | undefined) =>
   getEnumListFilterValue(value, ['protoguard', 'specification_change']);
 
 let getAlertSourceLabel = (alert: MonitorAlert) => {
-  if (alert.protoGuardAlertId) return 'ProtoGuard';
+  if (alert.protoGuardAlertId) return 'Protoguard';
   if (alert.specificationChangeNotification) return 'Schema Change';
   return 'Monitor';
 };
@@ -297,13 +297,13 @@ let createAlertsTable = () =>
       {
         id: 'protoGuardAlertId',
         isDefault: false,
-        header: 'ProtoGuard Alert ID',
+        header: 'Protoguard Alert ID',
         render: alert => alert.protoGuardAlertId && <ID id={alert.protoGuardAlertId} />
       },
       {
         id: 'protoGuardRunId',
         isDefault: false,
-        header: 'ProtoGuard Run ID',
+        header: 'Protoguard Run ID',
         render: alert => alert.protoGuardRunId && <ID id={alert.protoGuardRunId} />
       },
       {
@@ -350,7 +350,7 @@ let createAlertsTable = () =>
         description: 'Filter by alert source',
         type: 'select',
         options: [
-          { id: 'protoguard', label: 'ProtoGuard' },
+          { id: 'protoguard', label: 'Protoguard' },
           { id: 'specification_change', label: 'Schema Change' }
         ]
       },
@@ -361,7 +361,7 @@ let createAlertsTable = () =>
         description: 'Filter by monitor target',
         type: 'select',
         options: [
-          { id: 'protoguard_filter', label: 'ProtoGuard Filter' },
+          { id: 'protoguard_filter', label: 'Protoguard Filter' },
           { id: 'schema_change', label: 'Schema Change' }
         ]
       },

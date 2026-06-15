@@ -8,7 +8,7 @@ import { tenantApp } from './tenant';
 
 export let protoGuardAlertApp = tenantApp.use(async ctx => {
   let alertId = ctx.body.alertId;
-  if (!alertId) throw new Error('ProtoGuard alert ID is required');
+  if (!alertId) throw new Error('Protoguard alert ID is required');
 
   let alert = await protoGuardAlertService.getAlertById({
     alertId,
