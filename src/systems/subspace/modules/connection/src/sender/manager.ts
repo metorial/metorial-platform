@@ -998,7 +998,7 @@ export class SenderManager {
 
     // The synthetic connection-failed tool has no backing provider instance;
     // complete the call immediately with a detailed error for the agent.
-    if (!resolved.instance) {
+    if (!resolved.instance && 'detail' in resolved) {
       return await this.completeConnectionFailedCall({
         provider: resolved.provider,
         tool: resolved.tool,
