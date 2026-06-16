@@ -270,6 +270,11 @@ export let projectToolCallingConfigurationType = PresentableType.create<{
   collectOperationDescriptionForToolCalls: boolean;
 }>()('project_tool_calling_configuration');
 
+export let projectIntegrationNamingConfigurationType = PresentableType.create<{
+  project: Project;
+  useIntegrationNames: boolean;
+}>()('project_integration_naming_configuration');
+
 export let tokenType = PresentableType.create<{
   token: {
     type:

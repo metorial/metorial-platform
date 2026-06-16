@@ -102,6 +102,7 @@ export let integrationController = Controller.create(
           name: v.string(),
           description: v.optional(v.string()),
           metadata: v.optional(v.record(v.any())),
+          use_integration_name_in_tool_names: v.optional(v.nullable(v.boolean())),
           can_attach_custom_tool_filters: v.optional(v.boolean()),
           can_attach_custom_provider_config: v.optional(v.boolean()),
           can_override_tool_filters: v.optional(v.boolean())
@@ -114,6 +115,8 @@ export let integrationController = Controller.create(
           name: ctx.body.name,
           description: ctx.body.description,
           metadata: ctx.body.metadata,
+          useIntegrationNameForSessionProviderNameTemplatesOverride:
+            ctx.body.use_integration_name_in_tool_names,
           canAttachCustomToolFilters: ctx.body.can_attach_custom_tool_filters,
           canAttachCustomProviderConfig: ctx.body.can_attach_custom_provider_config,
           canOverrideToolFilters: ctx.body.can_override_tool_filters
@@ -134,6 +137,7 @@ export let integrationController = Controller.create(
           name: v.optional(v.string()),
           description: v.optional(v.nullable(v.string())),
           metadata: v.optional(v.nullable(v.record(v.any()))),
+          use_integration_name_in_tool_names: v.optional(v.nullable(v.boolean())),
           can_attach_custom_tool_filters: v.optional(v.boolean()),
           can_attach_custom_provider_config: v.optional(v.boolean()),
           can_override_tool_filters: v.optional(v.boolean())
@@ -148,6 +152,8 @@ export let integrationController = Controller.create(
           name: ctx.body.name,
           description: ctx.body.description,
           metadata: ctx.body.metadata,
+          useIntegrationNameForSessionProviderNameTemplatesOverride:
+            ctx.body.use_integration_name_in_tool_names,
           canAttachCustomToolFilters: ctx.body.can_attach_custom_tool_filters,
           canAttachCustomProviderConfig: ctx.body.can_attach_custom_provider_config,
           canOverrideToolFilters: ctx.body.can_override_tool_filters

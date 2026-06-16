@@ -8,6 +8,7 @@ export * from './project';
 export * from './projectBrand';
 export * from './projectRetention';
 export * from './projectAuthConfigConfiguration';
+export * from './projectIntegrationNamingConfiguration';
 export * from './projectToolCallingConfiguration';
 export * from './sandbox';
 export * from './team';
