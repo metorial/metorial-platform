@@ -64,6 +64,7 @@ export let tenantController = app.controller({
         allowAuthConfigExport: v.optional(v.boolean()),
         allowAuthConfigImport: v.optional(v.boolean()),
         collectOperationDescriptionForToolCalls: v.optional(v.boolean()),
+        useIntegrationNamesForSessionProviderNameTemplates: v.optional(v.boolean()),
         environments: v.array(
           v.object({
             name: v.string(),
@@ -86,7 +87,9 @@ export let tenantController = app.controller({
           allowAuthConfigExport: ctx.input.allowAuthConfigExport,
           allowAuthConfigImport: ctx.input.allowAuthConfigImport,
           collectOperationDescriptionForToolCalls:
-            ctx.input.collectOperationDescriptionForToolCalls
+            ctx.input.collectOperationDescriptionForToolCalls,
+          useIntegrationNamesForSessionProviderNameTemplates:
+            ctx.input.useIntegrationNamesForSessionProviderNameTemplates
         }
       });
       return tenantPresenter(tenant);

@@ -95,7 +95,10 @@ export let integrationController = app.controller({
         privateMetadata: v.optional(v.record(v.any())),
         canAttachCustomToolFilters: v.optional(v.boolean()),
         canAttachCustomProviderConfig: v.optional(v.boolean()),
-        canOverrideToolFilters: v.optional(v.boolean())
+        canOverrideToolFilters: v.optional(v.boolean()),
+        useIntegrationNameForSessionProviderNameTemplatesOverride: v.optional(
+          v.nullable(v.boolean())
+        )
       })
     )
     .do(async ctx => {
@@ -110,7 +113,9 @@ export let integrationController = app.controller({
           privateMetadata: ctx.input.privateMetadata,
           canAttachCustomToolFilters: ctx.input.canAttachCustomToolFilters,
           canAttachCustomProviderConfig: ctx.input.canAttachCustomProviderConfig,
-          canOverrideToolFilters: ctx.input.canOverrideToolFilters
+          canOverrideToolFilters: ctx.input.canOverrideToolFilters,
+          useIntegrationNameForSessionProviderNameTemplatesOverride:
+            ctx.input.useIntegrationNameForSessionProviderNameTemplatesOverride
         }
       });
 
@@ -132,7 +137,10 @@ export let integrationController = app.controller({
         privateMetadata: v.optional(v.nullable(v.record(v.any()))),
         canAttachCustomToolFilters: v.optional(v.boolean()),
         canAttachCustomProviderConfig: v.optional(v.boolean()),
-        canOverrideToolFilters: v.optional(v.boolean())
+        canOverrideToolFilters: v.optional(v.boolean()),
+        useIntegrationNameForSessionProviderNameTemplatesOverride: v.optional(
+          v.nullable(v.boolean())
+        )
       })
     )
     .do(async ctx => {
@@ -148,7 +156,9 @@ export let integrationController = app.controller({
           privateMetadata: ctx.input.privateMetadata,
           canAttachCustomToolFilters: ctx.input.canAttachCustomToolFilters,
           canAttachCustomProviderConfig: ctx.input.canAttachCustomProviderConfig,
-          canOverrideToolFilters: ctx.input.canOverrideToolFilters
+          canOverrideToolFilters: ctx.input.canOverrideToolFilters,
+          useIntegrationNameForSessionProviderNameTemplatesOverride:
+            ctx.input.useIntegrationNameForSessionProviderNameTemplatesOverride
         }
       });
 

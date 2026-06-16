@@ -631,7 +631,10 @@ export class SenderManager {
       }
     });
 
-    return await sessionProviderNameTemplateService.ensureForSessionProviders(providers);
+    return await sessionProviderNameTemplateService.ensureForSessionProviders({
+      tenant: this.tenant,
+      providers
+    });
   }
 
   async listToolsIncludingInternalAndNonAllowed() {

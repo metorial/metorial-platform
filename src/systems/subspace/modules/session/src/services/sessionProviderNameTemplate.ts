@@ -1,6 +1,12 @@
 import { generatePlainId } from '@lowerdeck/id';
 import { Service } from '@lowerdeck/service';
-import { db, type Provider, type SessionProvider } from '@metorial-subspace/db';
+import {
+  db,
+  type Integration,
+  type Provider,
+  type SessionProvider,
+  type Tenant
+} from '@metorial-subspace/db';
 import {
   buildBaseSessionProviderNameTemplate,
   buildFallbackSessionProviderNameTemplate
@@ -8,26 +14,111 @@ import {
 
 type SessionProviderWithNameSource = SessionProvider & {
   provider: Pick<Provider, 'name'>;
+  fromTemplateProvider?: {
+    integrationInstanceProviderOid?: bigint | null;
+    integrationInstanceGroupProviderOid?: bigint | null;
+    integrationInstanceProvider?: {
+      integration: Pick<
+        Integration,
+        'name' | 'useIntegrationNameForSessionProviderNameTemplatesOverride'
+      >;
+    } | null;
+    integrationInstanceGroupProvider?: {
+      integration: Pick<
+        Integration,
+        'name' | 'useIntegrationNameForSessionProviderNameTemplatesOverride'
+      >;
+    } | null;
+  } | null;
 };
 
 let isUniqueConstraintError = (error: any) => error?.code === 'P2002';
 
+let pickIntegrationNameSource = (provider: SessionProviderWithNameSource) =>
+  provider.fromTemplateProvider?.integrationInstanceGroupProvider?.integration ??
+  provider.fromTemplateProvider?.integrationInstanceProvider?.integration ??
+  null;
+
+let resolveIntegrationNameSource = async (
+  provider: SessionProviderWithNameSource
+): Promise<Pick<
+  Integration,
+  'name' | 'useIntegrationNameForSessionProviderNameTemplatesOverride'
+> | null> => {
+  let loaded = pickIntegrationNameSource(provider);
+  if (loaded) return loaded;
+  if (!provider.fromTemplateProviderOid) return null;
+
+  let source = await db.sessionProvider.findFirst({
+    where: {
+      oid: provider.oid
+    },
+    select: {
+      fromTemplateProvider: {
+        select: {
+          integrationInstanceProvider: {
+            select: {
+              integration: {
+                select: {
+                  name: true,
+                  useIntegrationNameForSessionProviderNameTemplatesOverride: true
+                }
+              }
+            }
+          },
+          integrationInstanceGroupProvider: {
+            select: {
+              integration: {
+                select: {
+                  name: true,
+                  useIntegrationNameForSessionProviderNameTemplatesOverride: true
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  });
+
+  return (
+    source?.fromTemplateProvider?.integrationInstanceGroupProvider?.integration ??
+    source?.fromTemplateProvider?.integrationInstanceProvider?.integration ??
+    null
+  );
+};
+
+let resolveNameTemplateSourceName = async (d: {
+  tenant: Pick<Tenant, 'useIntegrationNamesForSessionProviderNameTemplates'>;
+  provider: SessionProviderWithNameSource;
+}) => {
+  let integration = await resolveIntegrationNameSource(d.provider);
+  if (!integration) return d.provider.provider.name;
+
+  let useIntegrationName =
+    integration.useIntegrationNameForSessionProviderNameTemplatesOverride ??
+    d.tenant.useIntegrationNamesForSessionProviderNameTemplates;
+
+  return useIntegrationName ? integration.name : d.provider.provider.name;
+};
+
 class sessionProviderNameTemplateServiceImpl {
-  async ensureForSessionProvider<ProviderType extends SessionProviderWithNameSource>(
-    provider: ProviderType
-  ): Promise<ProviderType & { nameTemplate: string }> {
+  async ensureForSessionProvider<ProviderType extends SessionProviderWithNameSource>(d: {
+    tenant: Pick<Tenant, 'useIntegrationNamesForSessionProviderNameTemplates'>;
+    provider: ProviderType;
+  }): Promise<ProviderType & { nameTemplate: string }> {
+    let { provider } = d;
+
     if (provider.nameTemplate) {
       return provider as ProviderType & { nameTemplate: string };
     }
 
+    let sourceName = await resolveNameTemplateSourceName(d);
     let templateCandidates = [
-      buildBaseSessionProviderNameTemplate(provider.provider.name),
-      buildFallbackSessionProviderNameTemplate(provider.provider.name, provider.tag),
+      buildBaseSessionProviderNameTemplate(sourceName),
+      buildFallbackSessionProviderNameTemplate(sourceName, provider.tag),
       ...Array.from({ length: 5 }, () =>
-        buildFallbackSessionProviderNameTemplate(
-          provider.provider.name,
-          generatePlainId(4).toLowerCase()
-        )
+        buildFallbackSessionProviderNameTemplate(sourceName, generatePlainId(4).toLowerCase())
       )
     ];
 
@@ -77,11 +168,17 @@ class sessionProviderNameTemplateServiceImpl {
     throw new Error(`Failed to initialize session provider name template: ${provider.id}`);
   }
 
-  async ensureForSessionProviders<ProviderType extends SessionProviderWithNameSource>(
-    providers: ProviderType[]
-  ): Promise<Array<ProviderType & { nameTemplate: string }>> {
+  async ensureForSessionProviders<ProviderType extends SessionProviderWithNameSource>(d: {
+    tenant: Pick<Tenant, 'useIntegrationNamesForSessionProviderNameTemplates'>;
+    providers: ProviderType[];
+  }): Promise<Array<ProviderType & { nameTemplate: string }>> {
     return await Promise.all(
-      providers.map(provider => this.ensureForSessionProvider(provider))
+      d.providers.map(provider =>
+        this.ensureForSessionProvider({
+          tenant: d.tenant,
+          provider
+        })
+      )
     );
   }
 }
