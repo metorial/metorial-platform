@@ -17,6 +17,7 @@ export type SkillsItemsCreateOutput = {
       canAttachCustomToolFilters: boolean;
       canAttachCustomProviderConfig: boolean;
       canOverrideToolFilters: boolean;
+      useIntegrationNameInToolNames: boolean | null;
     };
     createdAt: Date;
     updatedAt: Date;
@@ -62,6 +63,10 @@ export let mapSkillsItemsCreateOutput = mtMap.object<SkillsItemsCreateOutput>({
           ),
           canOverrideToolFilters: mtMap.objectField(
             'can_override_tool_filters',
+            mtMap.passthrough()
+          ),
+          useIntegrationNameInToolNames: mtMap.objectField(
+            'use_integration_name_in_tool_names',
             mtMap.passthrough()
           )
         })
