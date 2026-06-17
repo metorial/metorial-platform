@@ -4,6 +4,7 @@ import { getSentry } from '@lowerdeck/sentry';
 import { withTracingSuppressed } from '@lowerdeck/telemetry';
 import { db } from '@metorial-subspace/db';
 import { RedisClient } from 'bun';
+import { adminApp } from './api/admin';
 import { subspaceFrontendRPC } from './api/internal';
 import { app } from './api/public';
 
@@ -20,7 +21,13 @@ let server = Bun.serve({
   port: 52071
 });
 
+let adminServer = Bun.serve({
+  fetch: adminApp.fetch,
+  port: 52073
+});
+
 console.log(`Service running on http://localhost:${server.port}`);
+console.log(`Admin service running on http://localhost:${adminServer.port}`);
 
 if (process.env.NODE_ENV === 'production') {
   let startTime = Date.now();
