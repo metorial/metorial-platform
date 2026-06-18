@@ -12,6 +12,7 @@ import {
   useProvider,
   useProviderAuthCredential,
   useProviderAuthCredentials,
+  useProviderAuthMethod,
   useProviderAuthMethods,
   useProviderConfigSchemaTarget,
   useProviderListing,
@@ -364,6 +365,7 @@ let IntegrationProviderAuthSection = (p: {
   selectedAuthMethod:
     | {
         id: string;
+        name?: string | null;
         type: 'oauth' | 'token' | 'custom';
       }
     | undefined;
@@ -380,6 +382,12 @@ let IntegrationProviderAuthSection = (p: {
   authCredentialsError?: React.ReactNode;
 }) => {
   let authMethodItems = p.authMethods.data?.items ?? [];
+  let selectedAuthMethodInList = authMethodItems.some(
+    method => method.id === p.selectedAuthMethodId
+  );
+  let hasUnlistedSelectedAuthMethod = Boolean(
+    p.selectedAuthMethodId && p.selectedAuthMethod && !selectedAuthMethodInList
+  );
   let showAuthCredentials =
     p.selectedAuthMethod?.type === 'oauth' && !p.oauthAutoRegistrationEnabled;
 
@@ -387,36 +395,46 @@ let IntegrationProviderAuthSection = (p: {
     <Flex direction="column" gap={12}>
       {p.authMethods.isLoading ? (
         <CenteredSpinner />
-      ) : authMethodItems.length > 0 ? (
+      ) : authMethodItems.length > 0 || hasUnlistedSelectedAuthMethod ? (
         <>
-          <ConfigureSectionCard
-            title="Auth Method"
-            description="Choose how this integration authenticates with the provider."
-            requirement="required"
-            completed={Boolean(p.selectedAuthMethodId)}
-          >
-            <Flex direction="column" gap={10}>
-              <AuthMethodPicker
-                label="Authentication Method"
-                hideLabel
-                value={p.selectedAuthMethodId}
-                onChange={value => {
-                  p.onSelectedAuthMethodIdChange(value);
-                }}
-                items={authMethodItems.map(method => ({
-                  id: method.id,
-                  name: method.name,
-                  description: method.description
-                }))}
-              />
-              {p.authMethodError}
-              {p.selectedAuthMethod?.type === 'oauth' && p.oauthAutoRegistrationEnabled ? (
-                <Callout color="gray">
-                  OAuth credentials will be registered automatically for this provider.
-                </Callout>
-              ) : null}
-            </Flex>
-          </ConfigureSectionCard>
+          {authMethodItems.length > 0 ? (
+            <ConfigureSectionCard
+              title="Auth Method"
+              description="Choose how this integration authenticates with the provider."
+              requirement={hasUnlistedSelectedAuthMethod ? 'optional' : 'required'}
+              completed={Boolean(p.selectedAuthMethodId)}
+            >
+              <Flex direction="column" gap={10}>
+                <AuthMethodPicker
+                  label="Authentication Method"
+                  hideLabel
+                  value={selectedAuthMethodInList ? p.selectedAuthMethodId : ''}
+                  onChange={value => {
+                    p.onSelectedAuthMethodIdChange(value);
+                  }}
+                  items={authMethodItems.map(method => ({
+                    id: method.id,
+                    name: method.name,
+                    description: method.description
+                  }))}
+                />
+                {hasUnlistedSelectedAuthMethod ? (
+                  <Callout color="gray">
+                    This integration is using a previously selected auth method
+                    {p.selectedAuthMethod?.name
+                      ? ` (${p.selectedAuthMethod.name})`
+                      : ''}. Choose a new method only if you want to change it.
+                  </Callout>
+                ) : null}
+                {p.authMethodError}
+                {p.selectedAuthMethod?.type === 'oauth' && p.oauthAutoRegistrationEnabled ? (
+                  <Callout color="gray">
+                    OAuth credentials will be registered automatically for this provider.
+                  </Callout>
+                ) : null}
+              </Flex>
+            </ConfigureSectionCard>
+          ) : null}
 
           <AnimatePresence initial={false}>
             {showAuthCredentials ? (
@@ -563,14 +581,6 @@ let IntegrationProviderSetupStep = (p: {
   );
   let showConnectionMode =
     !!p.showAuthConfigModeToggle && visibility.provider.data?.type.auth.status == 'enabled';
-  // In update mode, skip the auth section entirely if the provider exposes no
-  // auth methods -- there is nothing the user can pick, so we shouldn't show
-  // an empty section. In create mode we keep the existing behavior so the
-  // empty-state copy still renders for transparency.
-  let effectiveShowAuth =
-    visibility.showAuth &&
-    !(showConnectionMode && authConfigMode == 'provided') &&
-    (!isUpdate || (!authMethods.isLoading && (authMethods.data?.items.length ?? 0) > 0));
   let effectiveShowAuthConfig = showConnectionMode && authConfigMode == 'provided';
   let oauthAutoRegistrationEnabled = getProviderOAuthAutoRegistrationEnabled(
     visibility.provider.data
@@ -579,9 +589,7 @@ let IntegrationProviderSetupStep = (p: {
   let submitProviderSetup = async (values: IntegrationProviderFormValues) => {
     if (!instance.data) return false;
 
-    let selectedAuthMethod = authMethods.data?.items.find(
-      method => method.id === values.selectedAuthMethodId
-    );
+    let selectedAuthMethod = getSelectedAuthMethodById(values.selectedAuthMethodId);
 
     let providerConfigId =
       values.selectedConfiguration.kind === 'config'
@@ -691,9 +699,7 @@ let IntegrationProviderSetupStep = (p: {
           : []
     },
     onSubmit: async values => {
-      let selectedAuthMethod = authMethods.data?.items.find(
-        method => method.id === values.selectedAuthMethodId
-      );
+      let selectedAuthMethod = getSelectedAuthMethodById(values.selectedAuthMethodId);
 
       if (effectiveShowAuth) {
         if (!values.selectedAuthMethodId) {
@@ -742,9 +748,42 @@ let IntegrationProviderSetupStep = (p: {
       })
   });
   let previousAuthMethodIdRef = useRef(form.values.selectedAuthMethodId);
-  let selectedAuthMethod = authMethods.data?.items.find(
+  let currentAuthMethod = useProviderAuthMethod(
+    instance.data?.id,
+    form.values.selectedAuthMethodId || null
+  );
+  function getSelectedAuthMethodById(authMethodId: string) {
+    return (
+      authMethods.data?.items.find(method => method.id === authMethodId) ??
+      (currentAuthMethod.data?.id === authMethodId ? currentAuthMethod.data : undefined)
+    );
+  }
+
+  let listedSelectedAuthMethod = authMethods.data?.items.find(
     method => method.id === form.values.selectedAuthMethodId
   );
+  let selectedAuthMethod = getSelectedAuthMethodById(form.values.selectedAuthMethodId);
+  let hasUnlistedSelectedAuthMethod = Boolean(
+    form.values.selectedAuthMethodId && selectedAuthMethod && !listedSelectedAuthMethod
+  );
+  let isSelectedAuthMethodLoading = Boolean(
+    form.values.selectedAuthMethodId &&
+      !listedSelectedAuthMethod &&
+      currentAuthMethod.isLoading
+  );
+  // In update mode, keep the auth section available when an existing provider
+  // references an older auth method that is no longer returned in the picker list.
+  let effectiveShowAuth =
+    visibility.showAuth &&
+    !(showConnectionMode && authConfigMode == 'provided') &&
+    (!isUpdate ||
+      authMethods.isLoading ||
+      isSelectedAuthMethodLoading ||
+      (authMethods.data?.items.length ?? 0) > 0 ||
+      hasUnlistedSelectedAuthMethod);
+  let selectedProviderAuthMethodId = effectiveShowAuth
+    ? listedSelectedAuthMethod?.id
+    : undefined;
   let requiresAuthCredentials =
     selectedAuthMethod?.type === 'oauth' && !oauthAutoRegistrationEnabled;
   let authCredentials = useProviderAuthCredentials(
@@ -909,7 +948,8 @@ let IntegrationProviderSetupStep = (p: {
     createIntegrationProvider.isPending ||
     updateIntegrationProvider.isPending;
   let isLoadingInitialData =
-    visibility.isLoading || (effectiveShowAuth && authMethods.isLoading);
+    visibility.isLoading ||
+    (effectiveShowAuth && (authMethods.isLoading || isSelectedAuthMethodLoading));
 
   useEffect(() => {
     // Update flows must always show the panel so the user can change settings;
@@ -1079,7 +1119,7 @@ let IntegrationProviderSetupStep = (p: {
         instanceId={instance.data!.id}
         providerId={p.providerId}
         providerDeploymentId={p.integrationProvider?.deployment.id}
-        providerAuthMethodId={form.values.selectedAuthMethodId || undefined}
+        providerAuthMethodId={selectedProviderAuthMethodId}
         providerName={visibility.providerName}
         showProviderSummary={false}
         selectedConfiguration={form.values.selectedConfiguration}
@@ -1399,6 +1439,23 @@ let IntegrationInstanceProviderPanel = (p: {
     instanceConfigId,
     isUpdate
   });
+  let inheritedAuthMethodId = p.integrationProvider.authMethod?.id;
+  let inheritedAuthMethods = useProviderAuthMethods(
+    instance.data?.id,
+    inheritedAuthMethodId && visibility.provider.data?.currentVersion?.id
+      ? { providerVersionId: visibility.provider.data.currentVersion.id }
+      : null
+  );
+  let fixedAuthMethodId =
+    inheritedAuthMethodId &&
+    (inheritedAuthMethods.data?.items ?? []).some(method => method.id === inheritedAuthMethodId)
+      ? inheritedAuthMethodId
+      : undefined;
+  let isInheritedAuthMethodLoading = Boolean(
+    inheritedAuthMethodId &&
+      visibility.provider.data?.currentVersion?.id &&
+      inheritedAuthMethods.isLoading
+  );
 
   let submitProviderSetup = async (values: IntegrationInstanceProviderFormValues) => {
     if (!instance.data || !providerId) return false;
@@ -1509,7 +1566,12 @@ let IntegrationInstanceProviderPanel = (p: {
     void submitProviderSetup(form.values);
   }, [isUpdate, visibility.isLoading, hasVisibleInputs, isSaving, form.values]);
 
-  if (!providerId || visibility.isLoading || (!hasVisibleInputs && isSaving)) {
+  if (
+    !providerId ||
+    visibility.isLoading ||
+    isInheritedAuthMethodLoading ||
+    (!hasVisibleInputs && isSaving)
+  ) {
     return <CenteredSpinner />;
   }
   // In create mode with nothing to configure, the auto-submit useEffect above
@@ -1547,7 +1609,7 @@ let IntegrationInstanceProviderPanel = (p: {
                 instanceId={instance.data!.id}
                 providerId={providerId}
                 providerDeploymentId={p.integrationProvider.deployment.id}
-                fixedAuthMethodId={p.integrationProvider.authMethod?.id}
+                fixedAuthMethodId={fixedAuthMethodId}
                 fixedAuthCredentialsId={p.integrationProvider.authCredentials?.id}
                 providerName={visibility.providerName}
                 selectedConfiguration={form.values.selectedConfiguration}

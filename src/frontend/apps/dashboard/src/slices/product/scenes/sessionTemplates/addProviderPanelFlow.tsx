@@ -6,6 +6,7 @@ import {
   useProvider,
   useProviderAuthConfig,
   useProviderAuthConfigs,
+  useProviderAuthMethod,
   useProviderConfigSchemaTarget,
   useProviderListing,
   useProviderTools
@@ -859,6 +860,7 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
   let autoStartManagedCredentialSetup = p.autoStartManagedCredentialSetup ?? false;
   let providerAuthMethodId =
     p.fixedAuthMethodId ?? inlineAuthMethodId ?? p.providerAuthMethodId ?? undefined;
+  let currentAuthMethod = useProviderAuthMethod(p.instanceId, providerAuthMethodId);
   let tools = useProviderTools(
     p.instanceId,
     showToolFilters && providerVersionId
