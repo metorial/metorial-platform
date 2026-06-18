@@ -646,6 +646,7 @@ services:
       ORIGIN_URL: http://origin:52090/metorial-origin
       REGISTRY_URL: https://metorial-saas-staging.registry.metorial-enterprise.com/metorial-registry-root
       FUNCTION_BAY_API_URL: http://function-bay:52030/metorial-function-bay
+      PROVIDER_TELEMETRY_ERROR_GROUPS_BUCKET_NAME: provider-telemetry-error-groups
 
     volumes:
       - ./apps/worker:/app/src/systems/subspace/apps/worker:ro
