@@ -53,13 +53,18 @@ let createCandidate = (
     messageId: string;
     occurredAt: string;
     providerSlug: string;
+    providerName: string;
     messageType: string;
     toolKey: string;
+    toolNativeKey: string;
+    toolName: string;
     methodOrToolKey: string | null;
   }> = {}
 ): ProviderTelemetryFailedMessageExportCandidate => {
   let occurredAt = new Date(input.occurredAt ?? '2026-06-18T00:10:00.000Z');
   let toolKey = input.toolKey ?? 'users.info';
+  let toolNativeKey = input.toolNativeKey ?? toolKey;
+  let toolName = input.toolName ?? 'Users Info';
 
   return {
     error: {
@@ -78,7 +83,8 @@ let createCandidate = (
             id: 'tc_1',
             toolKey,
             tool: {
-              name: 'Users Info'
+              key: toolNativeKey,
+              name: toolName
             }
           }
         : null
@@ -86,14 +92,14 @@ let createCandidate = (
     occurredAt,
     provider: {
       id: 'prv_1',
-      name: 'Slack',
+      name: input.providerName ?? 'Slack',
       slug: input.providerSlug ?? 'slack'
     },
     tool: toolKey
       ? {
           id: 'tc_1',
           key: toolKey,
-          name: 'Users Info'
+          name: toolName
         }
       : null
   };
@@ -138,10 +144,63 @@ describe('runProviderTelemetryErrorGroupsExport', () => {
     vi.clearAllMocks();
   });
 
+  it('no-ops when the export bucket is not configured', async () => {
+    let now = new Date('2026-06-18T00:15:00.000Z');
+    let storage = createStorage(undefined);
+    let listFailedMessages = vi.fn();
+
+    let result = await runProviderTelemetryErrorGroupsExport({
+      now,
+      storage,
+      bucketName: '',
+      listFailedMessages
+    });
+
+    expect(storage.upsertBucket).not.toHaveBeenCalled();
+    expect(storage.getObject).not.toHaveBeenCalled();
+    expect(storage.putObject).not.toHaveBeenCalled();
+    expect(listFailedMessages).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      exportedKeys: [],
+      state: null,
+      exportedCount: 0
+    });
+  });
+
+  it('no-ops when the configured export bucket is missing', async () => {
+    let now = new Date('2026-06-18T00:15:00.000Z');
+    let storage = createStorage(undefined);
+    storage.upsertBucket.mockRejectedValueOnce({ statusCode: 404 });
+    let listFailedMessages = vi.fn();
+
+    let result = await runProviderTelemetryErrorGroupsExport({
+      now,
+      storage,
+      bucketName: 'exports',
+      listFailedMessages
+    });
+
+    expect(storage.upsertBucket).toHaveBeenCalledWith('exports');
+    expect(storage.getObject).not.toHaveBeenCalled();
+    expect(storage.putObject).not.toHaveBeenCalled();
+    expect(listFailedMessages).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      exportedKeys: [],
+      state: null,
+      exportedCount: 0
+    });
+  });
+
   it('treats a missing v2 state object as a first run and exports individual failed message files', async () => {
     let now = new Date('2026-06-18T00:15:00.000Z');
     let storage = createStorage(undefined);
-    let candidate = createCandidate();
+    let candidate = createCandidate({
+      providerName: 'Elasticsearch',
+      providerSlug: 'elasticsearch',
+      toolKey: 'elasticsearch_search_documents',
+      toolNativeKey: 'search_documents',
+      toolName: 'Search Documents'
+    });
     let listFailedMessages = vi.fn(
       async (_input: ProviderTelemetryFailedMessagesExportListInput) => ({
         items: [candidate],
@@ -162,9 +221,7 @@ describe('runProviderTelemetryErrorGroupsExport', () => {
     });
 
     let unixSeconds = Math.floor(candidate.occurredAt.getTime() / 1000);
-    let expectedKey =
-      `provider-telemetry/error-groups/failed-messages/2026/06/18/msg_1/` +
-      `slack-tool_call-users.info-${unixSeconds}.json`;
+    let expectedKey = `provider-telemetry/elasticsearch-tool_call-search_documents-${unixSeconds}.json`;
 
     expect(storage.upsertBucket).toHaveBeenCalledWith('exports');
     expect(listFailedMessages).toHaveBeenCalledWith({
@@ -197,13 +254,13 @@ describe('runProviderTelemetryErrorGroupsExport', () => {
       message_id: 'msg_1',
       provider: {
         id: 'prv_1',
-        name: 'Slack',
-        slug: 'slack'
+        name: 'Elasticsearch',
+        slug: 'elasticsearch'
       },
       tool: {
         id: 'tc_1',
-        key: 'users.info',
-        name: 'Users Info'
+        key: 'elasticsearch_search_documents',
+        name: 'Search Documents'
       }
     });
     expect(exportFile.payload.input.data.email).toBe('[redacted-email]');

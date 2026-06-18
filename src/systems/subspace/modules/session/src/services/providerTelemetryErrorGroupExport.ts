@@ -104,16 +104,27 @@ export type ProviderTelemetryErrorGroupsExportDeps = {
 let getExporterEnv = () =>
   createValidatedEnv({
     storage: {
-      OBJECT_STORAGE_URL: v.string(),
-      PROVIDER_TELEMETRY_ERROR_GROUPS_BUCKET_NAME: v.string()
+      OBJECT_STORAGE_URL: v.optional(v.string()),
+      PROVIDER_TELEMETRY_ERROR_GROUPS_BUCKET_NAME: v.optional(v.string())
     }
   }).storage;
 
-let getDefaultStorage = () => {
+let getDefaultStorage = (bucketNameOverride?: string | null) => {
   let env = getExporterEnv();
+  let bucketName =
+    bucketNameOverride?.trim() || env.PROVIDER_TELEMETRY_ERROR_GROUPS_BUCKET_NAME?.trim();
+  if (!bucketName) return null;
+
+  let objectStorageUrl = env.OBJECT_STORAGE_URL?.trim();
+  if (!objectStorageUrl) {
+    throw new Error(
+      'OBJECT_STORAGE_URL is required when PROVIDER_TELEMETRY_ERROR_GROUPS_BUCKET_NAME is configured'
+    );
+  }
+
   return {
-    bucketName: env.PROVIDER_TELEMETRY_ERROR_GROUPS_BUCKET_NAME,
-    storage: new ObjectStorageClient(env.OBJECT_STORAGE_URL)
+    bucketName,
+    storage: new ObjectStorageClient(objectStorageUrl)
   };
 };
 
@@ -415,6 +426,7 @@ let sanitizeS3KeyComponent = (value: string | null | undefined) => {
 };
 
 let messageDetailForKey = (candidate: ProviderTelemetryFailedMessageExportCandidate) =>
+  candidate.message.toolCall?.tool?.key ??
   candidate.message.toolCall?.toolKey ??
   candidate.message.methodOrToolKey ??
   candidate.error.code ??
@@ -423,7 +435,6 @@ let messageDetailForKey = (candidate: ProviderTelemetryFailedMessageExportCandid
 export let getProviderTelemetryFailedMessageExportKey = (
   candidate: ProviderTelemetryFailedMessageExportCandidate
 ) => {
-  let [year, month, day] = candidate.occurredAt.toISOString().slice(0, 10).split('-');
   let unixSeconds = Math.floor(candidate.occurredAt.getTime() / 1000);
   let filename = [
     candidate.provider?.slug,
@@ -434,14 +445,7 @@ export let getProviderTelemetryFailedMessageExportKey = (
     .map(sanitizeS3KeyComponent)
     .join('-');
 
-  return [
-    'provider-telemetry/error-groups/failed-messages',
-    year,
-    month,
-    day,
-    sanitizeS3KeyComponent(candidate.message.id),
-    `${filename}.json`
-  ].join('/');
+  return ['provider-telemetry', `${filename}.json`].join('/');
 };
 
 let defaultPresentMessage = async (message: any) => {
@@ -473,13 +477,35 @@ let createExportFile = async (d: {
 export let runProviderTelemetryErrorGroupsExport = async (
   deps: ProviderTelemetryErrorGroupsExportDeps = {}
 ) => {
-  let defaults = deps.storage && deps.bucketName ? null : getDefaultStorage();
-  let storage = deps.storage ?? defaults!.storage;
-  let bucketName = deps.bucketName ?? defaults!.bucketName;
+  let explicitBucketName = deps.bucketName === undefined ? undefined : deps.bucketName.trim();
+  let defaultStorage =
+    deps.storage || explicitBucketName === '' ? null : getDefaultStorage(explicitBucketName);
+  let storage = deps.storage ?? defaultStorage?.storage;
+  let bucketName = explicitBucketName ?? defaultStorage?.bucketName;
   let now = deps.now ?? new Date();
   let presentMessage = deps.presentMessage ?? defaultPresentMessage;
 
-  await storage.upsertBucket(bucketName);
+  if (!storage || !bucketName) {
+    return {
+      exportedKeys: [],
+      state: null,
+      exportedCount: 0
+    };
+  }
+
+  try {
+    await storage.upsertBucket(bucketName);
+  } catch (error) {
+    if (isNotFoundError(error)) {
+      return {
+        exportedKeys: [],
+        state: null,
+        exportedCount: 0
+      };
+    }
+
+    throw error;
+  }
 
   let state = await readProviderTelemetryErrorGroupsExportState({ storage, bucketName });
   let watermarkBefore = state?.last_exported ?? null;
