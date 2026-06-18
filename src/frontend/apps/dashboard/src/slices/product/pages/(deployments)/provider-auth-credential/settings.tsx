@@ -11,7 +11,7 @@ import { Button, Callout, Input, Spacer } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
 import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { getScopeDoc, ProviderDocsLink } from '../../../lib/providerDocs';
+import { getAuthMethodOAuthScopesDoc, ProviderDocsLink } from '../../../lib/providerDocs';
 import { DeleteResourceDangerZone } from '../../../scenes/deleteResourceDangerZone';
 import { ScopePicker } from './components/scopePicker';
 
@@ -34,7 +34,7 @@ export let ProviderAuthCredentialSettingsPage = () => {
     [authMethods.data?.items]
   );
   let availableScopes = oauthMethod?.scopes ?? [];
-  let scopeDoc = getScopeDoc(providerListing.data, oauthMethod);
+  let oauthScopesDoc = getAuthMethodOAuthScopesDoc(providerListing.data, oauthMethod);
 
   let [selectedScopes, setSelectedScopes] = useState<string[] | null>(null);
 
@@ -108,7 +108,7 @@ export let ProviderAuthCredentialSettingsPage = () => {
           <Box
             title="Scopes"
             description="Select which OAuth scopes this credential should request."
-            rightActions={<ProviderDocsLink doc={scopeDoc}>Scope docs</ProviderDocsLink>}
+            rightActions={<ProviderDocsLink doc={oauthScopesDoc} />}
           >
             <ScopePicker
               scopes={availableScopes}

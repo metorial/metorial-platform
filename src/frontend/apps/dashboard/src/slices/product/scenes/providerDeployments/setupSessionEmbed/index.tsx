@@ -15,7 +15,7 @@ import { Button, Flex, Text } from '@metorial/ui';
 import { sortBy } from 'lodash';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Stepper } from '../../../../../components/stepper';
-import { getConfigDoc, getProviderDoc } from '../../../lib/providerDocs';
+import { getAuthMethodOAuthDoc } from '../../../lib/providerDocs';
 import { getProviderOAuthAutoRegistrationEnabled } from '../../../lib/providerOAuthAutoRegistration';
 import {
   ConnectStep,
@@ -213,8 +213,7 @@ export let ProviderSetupSessionEmbed = ({
   let projectBrandImageUrl = projectBrand.data?.imageUrl;
   let projectBrandName = projectBrand.data?.name ?? project.data?.name ?? 'Metorial';
   let providerImageUrl = provider.data?.publisher.imageUrl;
-  let providerDoc = getProviderDoc(providerListing.data);
-  let configDoc = getConfigDoc(providerListing.data);
+  let oauthDoc = getAuthMethodOAuthDoc(providerListing.data, selectedMethod);
 
   let visibleAuthCredentials = sortBy(authCredentials.data?.items ?? [], [
     credential => Number(!credential.isManaged),
@@ -882,8 +881,8 @@ export let ProviderSetupSessionEmbed = ({
     isManagedSelected,
     error,
     createCredentials,
-    providerDoc,
-    configDoc,
+    providerDoc: oauthDoc,
+    configDoc: oauthDoc,
     showHiddenMethodStep,
     includeMethodStep,
     skipMethodStep,
@@ -906,8 +905,8 @@ export let ProviderSetupSessionEmbed = ({
     hasManagedVisibleCredentials,
     createCredentials,
     createSetupSession,
-    providerDoc,
-    configDoc,
+    providerDoc: oauthDoc,
+    configDoc: oauthDoc,
     error,
     setupSession,
     setupWindowBlocked,
