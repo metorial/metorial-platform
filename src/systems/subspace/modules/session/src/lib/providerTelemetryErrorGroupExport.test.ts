@@ -12,9 +12,10 @@ let { db, enrichMessages, getProviderTelemetryErrorGroupsStorageTarget } = vi.ho
 
 vi.mock('@metorial-subspace/db', () => ({ db }));
 vi.mock('@metorial-subspace/connection-utils', () => ({
+  getOffloadedSessionMessage: vi.fn(),
   getProviderTelemetryErrorGroupsStorageTarget
 }));
-vi.mock('./sessionMessage', () => ({
+vi.mock('../services/sessionMessage', () => ({
   sessionMessageService: {
     enrichMessages
   }
@@ -403,14 +404,15 @@ describe('runProviderTelemetryErrorGroupsExport', () => {
     });
   });
 
-  it('uses a one-hour overlap from the existing high-water mark', async () => {
+  it('resumes after the existing high-water mark', async () => {
     let now = new Date('2026-06-18T00:15:00.000Z');
+    let watermark = {
+      occurred_at: '2026-06-18T00:00:00.000Z',
+      id: 'serr_b'
+    };
     let storage = createStorage({
       version: 2,
-      last_exported: {
-        occurred_at: '2026-06-18T00:00:00.000Z',
-        id: 'serr_b'
-      },
+      last_exported: watermark,
       last_checked_at: '2026-06-18T00:00:00.000Z'
     });
     let listFailedMessages = vi.fn(
@@ -430,7 +432,39 @@ describe('runProviderTelemetryErrorGroupsExport', () => {
 
     expect(listFailedMessages).toHaveBeenCalledWith({
       range: {
-        from: new Date('2026-06-17T23:00:00.000Z'),
+        from: new Date('2026-06-18T00:00:00.000Z'),
+        to: now
+      },
+      limit: 100,
+      after: watermark
+    });
+  });
+
+  it('uses last_checked_at as the next range start when no item was previously exported', async () => {
+    let now = new Date('2026-06-18T00:15:00.000Z');
+    let storage = createStorage({
+      version: 2,
+      last_exported: null,
+      last_checked_at: '2026-06-18T00:00:00.000Z'
+    });
+    let listFailedMessages = vi.fn(
+      async (_input: ProviderTelemetryFailedMessagesExportListInput) => ({
+        items: [],
+        nextWatermark: null,
+        hasMore: false
+      })
+    );
+
+    await runProviderTelemetryErrorGroupsExport({
+      now,
+      storage,
+      bucketName: 'exports',
+      listFailedMessages
+    });
+
+    expect(listFailedMessages).toHaveBeenCalledWith({
+      range: {
+        from: new Date('2026-06-18T00:00:00.000Z'),
         to: now
       },
       limit: 100,

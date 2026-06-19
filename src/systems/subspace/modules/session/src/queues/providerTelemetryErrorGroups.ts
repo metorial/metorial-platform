@@ -1,7 +1,7 @@
 import { createCron } from '@lowerdeck/cron';
 import { combineQueueProcessors, createQueue } from '@lowerdeck/queue';
 import { env } from '../env';
-import { runProviderTelemetryErrorGroupsExport } from '../services/providerTelemetryErrorGroupExport';
+import { providerTelemetryErrorGroupExportService } from '../services/providerTelemetryErrorGroupExport';
 
 export let providerTelemetryErrorGroupsExportQueue = createQueue<{}>({
   name: 'sub/ses/provider-error-groups/export',
@@ -27,7 +27,7 @@ let providerTelemetryErrorGroupsExportCron = createCron(
 
 let providerTelemetryErrorGroupsExportQueueProcessor =
   providerTelemetryErrorGroupsExportQueue.process(async () => {
-    await runProviderTelemetryErrorGroupsExport();
+    await providerTelemetryErrorGroupExportService.runProviderTelemetryErrorGroupsExport();
   });
 
 export let providerTelemetryErrorGroupsExportProcessors = combineQueueProcessors([

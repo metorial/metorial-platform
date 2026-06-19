@@ -22,7 +22,7 @@ vi.mock('@metorial-subspace/db', () => ({ db }));
 let from = new Date('2026-06-11T00:00:00.000Z');
 let to = new Date('2026-06-18T00:00:00.000Z');
 
-describe('createAdminProviderTelemetryErrorGroupsPaginator', () => {
+describe('adminProviderTelemetryErrorGroupService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     db.provider.findFirstOrThrow.mockResolvedValue({ oid: 10n });
@@ -31,8 +31,8 @@ describe('createAdminProviderTelemetryErrorGroupsPaginator', () => {
   });
 
   it('preserves admin Error Groups query filters, ordering, and pagination input', async () => {
-    let { createAdminProviderTelemetryErrorGroupsPaginator } =
-      await import('./adminProviderTelemetryErrorGroups');
+    let { adminProviderTelemetryErrorGroupService } =
+      await import('./adminProviderTelemetryErrorGroup');
     db.sessionErrorGroup.findMany.mockResolvedValue([{ id: 'serg_2' }, { id: 'serg_1' }]);
 
     let input = {
@@ -45,7 +45,7 @@ describe('createAdminProviderTelemetryErrorGroupsPaginator', () => {
       order: 'desc' as const,
       after: 'serg_cursor'
     };
-    let paginator = await createAdminProviderTelemetryErrorGroupsPaginator(input);
+    let paginator = await adminProviderTelemetryErrorGroupService.listErrorGroups(input);
     let result = await paginator.run(input);
 
     expect(db.provider.findFirstOrThrow).toHaveBeenCalledWith({
@@ -88,10 +88,10 @@ describe('createAdminProviderTelemetryErrorGroupsPaginator', () => {
   });
 
   it('returns an empty paginator when filter normalization resolves to no scope', async () => {
-    let { createAdminProviderTelemetryErrorGroupsPaginator } =
-      await import('./adminProviderTelemetryErrorGroups');
+    let { adminProviderTelemetryErrorGroupService } =
+      await import('./adminProviderTelemetryErrorGroup');
 
-    let paginator = await createAdminProviderTelemetryErrorGroupsPaginator({
+    let paginator = await adminProviderTelemetryErrorGroupService.listErrorGroups({
       tenantIds: [],
       range: { from, to },
       limit: 25,

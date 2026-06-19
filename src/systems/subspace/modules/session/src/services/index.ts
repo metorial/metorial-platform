@@ -1,3 +1,4 @@
+export * from './adminProviderTelemetryErrorGroup';
 export * from './ephemeralManagedSession';
 export * from './providerInvocation';
 export * from './providerRun';

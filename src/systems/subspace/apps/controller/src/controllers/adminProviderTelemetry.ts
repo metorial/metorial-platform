@@ -3,8 +3,8 @@ import { v } from '@lowerdeck/validation';
 import { db } from '@metorial-subspace/db';
 import { providerService } from '@metorial-subspace/module-catalog';
 import {
+  adminProviderTelemetryErrorGroupService,
   adminProviderTelemetryErrorGroupTypes,
-  createAdminProviderTelemetryErrorGroupsPaginator,
   providerInvocationService,
   providerRunLogsService,
   sessionMessageService
@@ -757,7 +757,7 @@ export let adminProviderTelemetryController = app.controller({
       )
     )
     .do(async ctx => {
-      let paginator = await createAdminProviderTelemetryErrorGroupsPaginator(ctx.input);
+      let paginator = await adminProviderTelemetryErrorGroupService.listErrorGroups(ctx.input);
       let list = await paginator.run(ctx.input);
       return Paginator.presentLight(list, adminProviderTelemetryErrorGroupPresenter);
     }),
