@@ -380,6 +380,10 @@ export let subspaceDevEnv: Env = [
     defaultValue: 'messages'
   },
   {
+    key: 'PROVIDER_TELEMETRY_ERROR_GROUPS_BUCKET_NAME',
+    defaultValue: 'provider-telemetry-error-groups'
+  },
+  {
     key: 'ORIGIN_URL',
     defaultValue: `http://localhost:52090/metorial-origin`
   },
