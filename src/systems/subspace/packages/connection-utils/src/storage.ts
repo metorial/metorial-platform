@@ -5,6 +5,17 @@ import { env } from './env';
 
 export let storage = new ObjectStorageClient(env.storage.OBJECT_STORAGE_URL);
 
+export let getProviderTelemetryErrorGroupsStorageTarget = (
+  bucketNameOverride?: string | null
+) => {
+  let bucketName =
+    bucketNameOverride?.trim() ||
+    env.storage.PROVIDER_TELEMETRY_ERROR_GROUPS_BUCKET_NAME?.trim();
+  if (!bucketName) return null;
+
+  return { storage, bucketName };
+};
+
 let initBuckets = async () => {
   await storage.upsertBucket(env.storage.MESSAGE_BUCKET_NAME);
 };

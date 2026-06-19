@@ -4,6 +4,7 @@ import { v } from '@lowerdeck/validation';
 export let env = createValidatedEnv({
   storage: {
     OBJECT_STORAGE_URL: v.string(),
-    MESSAGE_BUCKET_NAME: v.string()
+    MESSAGE_BUCKET_NAME: v.string(),
+    PROVIDER_TELEMETRY_ERROR_GROUPS_BUCKET_NAME: v.optional(v.string())
   }
 });

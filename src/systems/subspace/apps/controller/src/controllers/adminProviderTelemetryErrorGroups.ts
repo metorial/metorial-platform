@@ -27,41 +27,6 @@ export type AdminProviderTelemetryErrorGroupListInput = PaginatorInput & {
   types?: AdminProviderTelemetryErrorGroupType[];
 };
 
-export type AdminProviderTelemetryErrorGroup = {
-  object: 'admin.provider_error_group';
-  id: string;
-  type: string;
-  code: string;
-  message: string;
-  hash: string;
-  occurrence_count: number;
-  provider: {
-    id: string;
-    name: string;
-    slug: string;
-  } | null;
-  first_occurrence_id: string | null;
-  first_session_id: string | null;
-  first_provider_run_id: string | null;
-  tenant_id: string;
-  environment_id: string;
-  periods: {
-    starts_at: Date;
-    ends_at: Date;
-    occurrence_count: number;
-  }[];
-  created_at: Date;
-};
-
-export type AdminProviderTelemetryErrorGroupList = {
-  object: 'list';
-  items: AdminProviderTelemetryErrorGroup[];
-  pagination: {
-    has_more_after: boolean;
-    has_more_before: boolean;
-  };
-};
-
 let uniqueStrings = (values: (string | null | undefined)[]) =>
   Array.from(new Set(values.map(v => v?.trim()).filter(Boolean) as string[]));
 
@@ -85,14 +50,7 @@ let createdAtOrder = (order?: 'asc' | 'desc') => [
   { id: order ?? ('desc' as const) }
 ];
 
-let emptyList = (): AdminProviderTelemetryErrorGroupList => ({
-  object: 'list',
-  items: [],
-  pagination: {
-    has_more_after: false,
-    has_more_before: false
-  }
-});
+let emptyPaginator = () => Paginator.create(({ prisma }) => prisma(async () => []));
 
 let resolveProvider = async (providerId?: string) => {
   if (!providerId) return undefined;
@@ -183,43 +141,13 @@ export let resolveAdminProviderTelemetryScope = async (input: {
   };
 };
 
-export let presentAdminProviderTelemetryErrorGroup = (
-  group: any
-): AdminProviderTelemetryErrorGroup => ({
-  object: 'admin.provider_error_group',
-  id: group.id,
-  type: group.type,
-  code: group.code,
-  message: group.message,
-  hash: group.hash,
-  occurrence_count: group.occurrenceCount,
-  provider: group.provider
-    ? {
-        id: group.provider.id,
-        name: group.provider.name,
-        slug: group.provider.slug
-      }
-    : null,
-  first_occurrence_id: group.firstOccurrence?.id ?? null,
-  first_session_id: group.firstOccurrence?.session?.id ?? null,
-  first_provider_run_id: group.firstOccurrence?.providerRun?.id ?? null,
-  tenant_id: group.tenant.id,
-  environment_id: group.environment.id,
-  periods: group.sessionErrorGroupOccurrencePeriods.map((period: any) => ({
-    starts_at: period.startsAt,
-    ends_at: period.endsAt,
-    occurrence_count: period.occurrenceCount
-  })),
-  created_at: group.createdAt
-});
-
-export let listAdminProviderTelemetryErrorGroups = async (
+export let createAdminProviderTelemetryErrorGroupsPaginator = async (
   input: AdminProviderTelemetryErrorGroupListInput
-): Promise<AdminProviderTelemetryErrorGroupList> => {
+) => {
   let scope = await resolveAdminProviderTelemetryScope(input);
-  if (scope.isEmpty) return emptyList();
+  if (scope.isEmpty) return emptyPaginator();
 
-  let paginator = Paginator.create(
+  return Paginator.create(
     ({ prisma }) =>
       prisma(
         async opts =>
@@ -256,10 +184,4 @@ export let listAdminProviderTelemetryErrorGroups = async (
       ),
     { defaultOrder: 'desc' }
   );
-
-  let list = await paginator.run(input);
-  return (await Paginator.presentLight(
-    list,
-    presentAdminProviderTelemetryErrorGroup
-  )) as AdminProviderTelemetryErrorGroupList;
 };

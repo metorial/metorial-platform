@@ -1,7 +1,5 @@
-import { createValidatedEnv } from '@lowerdeck/env';
-import { v } from '@lowerdeck/validation';
+import { getProviderTelemetryErrorGroupsStorageTarget } from '@metorial-subspace/connection-utils';
 import { db } from '@metorial-subspace/db';
-import { ObjectStorageClient } from 'object-storage-client';
 import { sessionMessageService } from './sessionMessage';
 
 export let PROVIDER_TELEMETRY_FAILED_MESSAGES_STATE_KEY =
@@ -13,8 +11,7 @@ export let PROVIDER_TELEMETRY_ERROR_GROUPS_STATE_KEY =
 let DEFAULT_EXPORT_LOOKBACK_MS = 7 * 24 * 60 * 60 * 1000;
 let WATERMARK_OVERLAP_MS = 60 * 60 * 1000;
 let EXPORT_PAGE_SIZE = 100;
-let REDACTED = '[redacted]';
-let REDACTED_EMAIL = '[redacted-email]';
+let STRING_PLACEHOLDER = '[string]';
 
 export type ProviderTelemetryFailedMessagesExportWatermark = {
   occurred_at: string;
@@ -29,27 +26,6 @@ export type ProviderTelemetryFailedMessagesExportState = {
 
 export type ProviderTelemetryErrorGroupsExportState =
   ProviderTelemetryFailedMessagesExportState;
-
-export type ProviderTelemetryFailedMessageExportFile = {
-  object: 'admin.provider_error_group.failed_message_export';
-  version: 1;
-  generated_at: string;
-  occurred_at: string;
-  error_group_id: string;
-  error_id: string;
-  message_id: string;
-  provider: {
-    id: string;
-    name: string;
-    slug: string;
-  } | null;
-  tool: {
-    id: string;
-    key: string;
-    name: string | null;
-  } | null;
-  payload: unknown;
-};
 
 type ProviderTelemetryErrorGroupsExportStorage = {
   upsertBucket(bucket: string): Promise<unknown>;
@@ -85,53 +61,8 @@ export type ProviderTelemetryFailedMessagesExportListInput = {
   after?: ProviderTelemetryFailedMessagesExportWatermark | null;
 };
 
-export type ProviderTelemetryFailedMessagesExportList = {
-  items: ProviderTelemetryFailedMessageExportCandidate[];
-  nextWatermark: ProviderTelemetryFailedMessagesExportWatermark | null;
-  hasMore: boolean;
-};
-
-export type ProviderTelemetryErrorGroupsExportDeps = {
-  now?: Date;
-  bucketName?: string;
-  storage?: ProviderTelemetryErrorGroupsExportStorage;
-  listFailedMessages?: (
-    input: ProviderTelemetryFailedMessagesExportListInput
-  ) => Promise<ProviderTelemetryFailedMessagesExportList>;
-  presentMessage?: (message: any) => Promise<unknown>;
-};
-
-let getExporterEnv = () =>
-  createValidatedEnv({
-    storage: {
-      OBJECT_STORAGE_URL: v.optional(v.string()),
-      PROVIDER_TELEMETRY_ERROR_GROUPS_BUCKET_NAME: v.optional(v.string())
-    }
-  }).storage;
-
-let getDefaultStorage = (bucketNameOverride?: string | null) => {
-  let env = getExporterEnv();
-  let bucketName =
-    bucketNameOverride?.trim() || env.PROVIDER_TELEMETRY_ERROR_GROUPS_BUCKET_NAME?.trim();
-  if (!bucketName) return null;
-
-  let objectStorageUrl = env.OBJECT_STORAGE_URL?.trim();
-  if (!objectStorageUrl) {
-    throw new Error(
-      'OBJECT_STORAGE_URL is required when PROVIDER_TELEMETRY_ERROR_GROUPS_BUCKET_NAME is configured'
-    );
-  }
-
-  return {
-    bucketName,
-    storage: new ObjectStorageClient(objectStorageUrl)
-  };
-};
-
-let objectDataToString = (data: Buffer | Uint8Array | string) => {
-  if (typeof data === 'string') return data;
-  return Buffer.from(data).toString('utf8');
-};
+let objectDataToString = (data: Buffer | Uint8Array | string) =>
+  typeof data === 'string' ? data : Buffer.from(data).toString('utf8');
 
 let isNotFoundError = (error: unknown) =>
   !!error &&
@@ -205,7 +136,7 @@ let toolFromMessage = (message: any) => {
 
 export let listProviderTelemetryFailedMessagesForExport = async (
   input: ProviderTelemetryFailedMessagesExportListInput
-): Promise<ProviderTelemetryFailedMessagesExportList> => {
+) => {
   let limit = Math.max(1, Math.min(input.limit ?? EXPORT_PAGE_SIZE, EXPORT_PAGE_SIZE));
   let afterDate = input.after ? new Date(input.after.occurred_at) : null;
 
@@ -293,29 +224,18 @@ export let listProviderTelemetryFailedMessagesForExport = async (
   };
 };
 
-let collectFailedMessages = async (d: {
-  listFailedMessages: ProviderTelemetryErrorGroupsExportDeps['listFailedMessages'];
-  range: { from: Date; to: Date };
-}) => {
-  let items: ProviderTelemetryFailedMessageExportCandidate[] = [];
-  let after: ProviderTelemetryFailedMessagesExportWatermark | null = null;
-  let listFailedMessages =
-    d.listFailedMessages ?? listProviderTelemetryFailedMessagesForExport;
+export type ProviderTelemetryFailedMessagesExportList = Awaited<
+  ReturnType<typeof listProviderTelemetryFailedMessagesForExport>
+>;
 
-  while (true) {
-    let page = await listFailedMessages({
-      range: d.range,
-      limit: EXPORT_PAGE_SIZE,
-      after
-    });
-
-    items.push(...page.items);
-    if (!page.hasMore || !page.nextWatermark) break;
-
-    after = page.nextWatermark;
-  }
-
-  return items;
+export type ProviderTelemetryErrorGroupsExportDeps = {
+  now?: Date;
+  bucketName?: string;
+  storage?: ProviderTelemetryErrorGroupsExportStorage;
+  listFailedMessages?: (
+    input: ProviderTelemetryFailedMessagesExportListInput
+  ) => Promise<ProviderTelemetryFailedMessagesExportList>;
+  presentMessage?: (message: any) => Promise<unknown>;
 };
 
 let writeJsonObject = async (d: {
@@ -334,72 +254,11 @@ let writeJsonObject = async (d: {
   );
 };
 
-let normalizedKey = (key: string) => key.toLowerCase().replace(/[^a-z0-9]/g, '');
-
-let isIdKey = (key: string) => {
-  let normalized = normalizedKey(key);
-  return normalized === 'id' || normalized.endsWith('id') || normalized.endsWith('ids');
-};
-
-let isSensitiveKey = (key: string) => {
-  if (isIdKey(key)) return false;
-
-  let normalized = normalizedKey(key);
-  return [
-    'authorization',
-    'cookie',
-    'setcookie',
-    'token',
-    'accesstoken',
-    'refreshtoken',
-    'apikey',
-    'clientsecret',
-    'password',
-    'passwd',
-    'privatekey',
-    'secret',
-    'credential',
-    'credentials',
-    'privatemetadata'
-  ].some(part => normalized.includes(part));
-};
-
-let isSensitiveQueryParam = (key: string) =>
-  [
-    'token',
-    'accesstoken',
-    'refreshtoken',
-    'apikey',
-    'key',
-    'clientsecret',
-    'password',
-    'secret'
-  ].includes(normalizedKey(key));
-
-let redactUrlQuerySecrets = (value: string) =>
-  value.replace(/\bhttps?:\/\/[^\s"'<>]+/g, match => {
-    try {
-      let url = new URL(match);
-      for (let key of Array.from(url.searchParams.keys())) {
-        if (isSensitiveQueryParam(key)) url.searchParams.set(key, REDACTED);
-      }
-      return url.toString();
-    } catch (_err) {
-      return match;
-    }
-  });
-
-let redactString = (value: string) =>
-  redactUrlQuerySecrets(value)
-    .replace(/\b(Bearer|Basic)\s+[A-Za-z0-9._~+/=-]+/gi, `$1 ${REDACTED}`)
-    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, REDACTED_EMAIL);
-
-export let anonymizeProviderTelemetryExportValue = (value: unknown, key?: string): unknown => {
-  if (key && isSensitiveKey(key)) return REDACTED;
+export let anonymizeProviderTelemetryExportValue = (value: unknown): unknown => {
   if (value === null || value === undefined) return value;
   if (value instanceof Date) return value;
 
-  if (typeof value === 'string') return redactString(value);
+  if (typeof value === 'string') return STRING_PLACEHOLDER;
   if (typeof value !== 'object') return value;
   if (Array.isArray(value)) {
     return value.map(item => anonymizeProviderTelemetryExportValue(item));
@@ -408,7 +267,7 @@ export let anonymizeProviderTelemetryExportValue = (value: unknown, key?: string
   return Object.fromEntries(
     Object.entries(value).map(([entryKey, entryValue]) => [
       entryKey,
-      anonymizeProviderTelemetryExportValue(entryValue, entryKey)
+      anonymizeProviderTelemetryExportValue(entryValue)
     ])
   );
 };
@@ -425,22 +284,21 @@ let sanitizeS3KeyComponent = (value: string | null | undefined) => {
   return sanitized || 'unknown';
 };
 
-let messageDetailForKey = (candidate: ProviderTelemetryFailedMessageExportCandidate) =>
-  candidate.message.toolCall?.tool?.key ??
-  candidate.message.toolCall?.toolKey ??
-  candidate.message.methodOrToolKey ??
-  candidate.error.code ??
-  candidate.message.id;
-
-export let getProviderTelemetryFailedMessageExportKey = (
-  candidate: ProviderTelemetryFailedMessageExportCandidate
+export let getProviderTelemetryFailedMessagesExportChunkKey = (
+  candidates: ProviderTelemetryFailedMessageExportCandidate[]
 ) => {
-  let unixSeconds = Math.floor(candidate.occurredAt.getTime() / 1000);
+  let first = candidates[0];
+  let last = candidates[candidates.length - 1];
+  if (!first || !last) {
+    throw new Error('Cannot create a provider telemetry export chunk key without items');
+  }
+
   let filename = [
-    candidate.provider?.slug,
-    candidate.message.type,
-    messageDetailForKey(candidate),
-    String(unixSeconds)
+    'failed-messages',
+    String(Math.floor(first.occurredAt.getTime() / 1000)),
+    String(Math.floor(last.occurredAt.getTime() / 1000)),
+    first.error.id,
+    last.error.id
   ]
     .map(sanitizeS3KeyComponent)
     .join('-');
@@ -453,17 +311,13 @@ let defaultPresentMessage = async (message: any) => {
   return await sessionMessagePresenter(message);
 };
 
-let createExportFile = async (d: {
+let createExportItem = async (d: {
   candidate: ProviderTelemetryFailedMessageExportCandidate;
-  now: Date;
   presentMessage: (message: any) => Promise<unknown>;
-}): Promise<ProviderTelemetryFailedMessageExportFile> => {
+}) => {
   let payload = await d.presentMessage(d.candidate.message);
 
   return {
-    object: 'admin.provider_error_group.failed_message_export',
-    version: 1,
-    generated_at: d.now.toISOString(),
     occurred_at: d.candidate.occurredAt.toISOString(),
     error_group_id: d.candidate.error.group.id,
     error_id: d.candidate.error.id,
@@ -474,16 +328,44 @@ let createExportFile = async (d: {
   };
 };
 
+let createExportChunk = async (d: {
+  candidates: ProviderTelemetryFailedMessageExportCandidate[];
+  range: { from: Date; to: Date };
+  now: Date;
+  presentMessage: (message: any) => Promise<unknown>;
+}) => ({
+  object: 'admin.provider_error_group.failed_message_export_chunk',
+  version: 1,
+  generated_at: d.now.toISOString(),
+  range: {
+    from: d.range.from.toISOString(),
+    to: d.range.to.toISOString()
+  },
+  item_count: d.candidates.length,
+  items: await Promise.all(
+    d.candidates.map(candidate =>
+      createExportItem({
+        candidate,
+        presentMessage: d.presentMessage
+      })
+    )
+  )
+});
+
 export let runProviderTelemetryErrorGroupsExport = async (
   deps: ProviderTelemetryErrorGroupsExportDeps = {}
 ) => {
   let explicitBucketName = deps.bucketName === undefined ? undefined : deps.bucketName.trim();
   let defaultStorage =
-    deps.storage || explicitBucketName === '' ? null : getDefaultStorage(explicitBucketName);
+    deps.storage || explicitBucketName === ''
+      ? null
+      : getProviderTelemetryErrorGroupsStorageTarget(explicitBucketName);
   let storage = deps.storage ?? defaultStorage?.storage;
   let bucketName = explicitBucketName ?? defaultStorage?.bucketName;
   let now = deps.now ?? new Date();
   let presentMessage = deps.presentMessage ?? defaultPresentMessage;
+  let listFailedMessages =
+    deps.listFailedMessages ?? listProviderTelemetryFailedMessagesForExport;
 
   if (!storage || !bucketName) {
     return {
@@ -510,39 +392,50 @@ export let runProviderTelemetryErrorGroupsExport = async (
   let state = await readProviderTelemetryErrorGroupsExportState({ storage, bucketName });
   let watermarkBefore = state?.last_exported ?? null;
   let range = getExportRange(watermarkBefore, now);
-  let items = await collectFailedMessages({
-    listFailedMessages: deps.listFailedMessages,
-    range
-  });
-
   let exportedKeys: string[] = [];
+  let exportedCount = 0;
+  let lastExportedItem: ProviderTelemetryFailedMessageExportCandidate | null = null;
+  let after: ProviderTelemetryFailedMessagesExportWatermark | null = null;
 
-  for (let item of items) {
-    let exportKey = getProviderTelemetryFailedMessageExportKey(item);
-    let exportFile = await createExportFile({
-      candidate: item,
-      now,
-      presentMessage
+  while (true) {
+    let page = await listFailedMessages({
+      range,
+      limit: EXPORT_PAGE_SIZE,
+      after
     });
 
-    await writeJsonObject({
-      storage,
-      bucketName,
-      key: exportKey,
-      value: exportFile,
-      metadata: {
-        type: 'provider-telemetry-failed-message-export',
-        messageId: item.message.id,
-        errorId: item.error.id,
-        errorGroupId: item.error.group.id
-      }
-    });
+    if (page.items.length) {
+      let exportKey = getProviderTelemetryFailedMessagesExportChunkKey(page.items);
+      let exportChunk = await createExportChunk({
+        candidates: page.items,
+        range,
+        now,
+        presentMessage
+      });
 
-    exportedKeys.push(exportKey);
+      await writeJsonObject({
+        storage,
+        bucketName,
+        key: exportKey,
+        value: exportChunk,
+        metadata: {
+          type: 'provider-telemetry-failed-message-export-chunk',
+          itemCount: String(page.items.length)
+        }
+      });
+
+      exportedKeys.push(exportKey);
+      exportedCount += page.items.length;
+      lastExportedItem = page.items[page.items.length - 1]!;
+    }
+
+    if (!page.hasMore || !page.nextWatermark) break;
+
+    after = page.nextWatermark;
   }
 
-  let watermarkAfter = items.length
-    ? watermarkFromProviderTelemetryFailedMessage(items[items.length - 1]!)
+  let watermarkAfter = lastExportedItem
+    ? watermarkFromProviderTelemetryFailedMessage(lastExportedItem)
     : watermarkBefore;
   let nextState: ProviderTelemetryFailedMessagesExportState = {
     version: 2,
@@ -563,6 +456,6 @@ export let runProviderTelemetryErrorGroupsExport = async (
   return {
     exportedKeys,
     state: nextState,
-    exportedCount: exportedKeys.length
+    exportedCount
   };
 };

@@ -1,15 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-let { db, enrichMessages } = vi.hoisted(() => ({
+let { db, enrichMessages, getProviderTelemetryErrorGroupsStorageTarget } = vi.hoisted(() => ({
   db: {
     sessionError: {
       findMany: vi.fn()
     }
   },
-  enrichMessages: vi.fn(async (messages: any[]) => messages)
+  enrichMessages: vi.fn(async (messages: any[]) => messages),
+  getProviderTelemetryErrorGroupsStorageTarget: vi.fn()
 }));
 
 vi.mock('@metorial-subspace/db', () => ({ db }));
+vi.mock('@metorial-subspace/connection-utils', () => ({
+  getProviderTelemetryErrorGroupsStorageTarget
+}));
 vi.mock('./sessionMessage', () => ({
   sessionMessageService: {
     enrichMessages
@@ -19,6 +23,7 @@ vi.mock('./sessionMessage', () => ({
 import {
   PROVIDER_TELEMETRY_FAILED_MESSAGES_STATE_KEY,
   anonymizeProviderTelemetryExportValue,
+  getProviderTelemetryFailedMessagesExportChunkKey,
   listProviderTelemetryFailedMessagesForExport,
   runProviderTelemetryErrorGroupsExport,
   type ProviderTelemetryErrorGroupsExportState,
@@ -55,15 +60,15 @@ let createCandidate = (
     providerSlug: string;
     providerName: string;
     messageType: string;
-    toolKey: string;
+    toolKey: string | null;
     toolNativeKey: string;
     toolName: string;
     methodOrToolKey: string | null;
   }> = {}
 ): ProviderTelemetryFailedMessageExportCandidate => {
   let occurredAt = new Date(input.occurredAt ?? '2026-06-18T00:10:00.000Z');
-  let toolKey = input.toolKey ?? 'users.info';
-  let toolNativeKey = input.toolNativeKey ?? toolKey;
+  let toolKey = input.toolKey === undefined ? 'users.info' : input.toolKey;
+  let toolNativeKey = input.toolNativeKey ?? toolKey ?? 'unknown_tool';
   let toolName = input.toolName ?? 'Users Info';
 
   return {
@@ -80,7 +85,7 @@ let createCandidate = (
       methodOrToolKey: input.methodOrToolKey ?? 'fallback_method',
       toolCall: toolKey
         ? {
-            id: 'tc_1',
+            id: `tc_${input.messageId ?? '1'}`,
             toolKey,
             tool: {
               key: toolNativeKey,
@@ -97,7 +102,7 @@ let createCandidate = (
     },
     tool: toolKey
       ? {
-          id: 'tc_1',
+          id: `tc_${input.messageId ?? '1'}`,
           key: toolKey,
           name: toolName
         }
@@ -116,7 +121,10 @@ let createPresentedMessage = (candidate: ProviderTelemetryFailedMessageExportCan
     data: {
       email: 'alice@example.com',
       token: 'secret-token',
-      query: 'https://api.example.com/callback?client_secret=top-secret&safe=yes'
+      query: 'https://api.example.com/callback?client_secret=top-secret&safe=yes',
+      retryCount: 2,
+      ok: false,
+      missing: null
     }
   },
   toolCall: candidate.tool
@@ -167,6 +175,27 @@ describe('runProviderTelemetryErrorGroupsExport', () => {
     });
   });
 
+  it('uses the shared connection-utils storage target when storage is not injected', async () => {
+    let now = new Date('2026-06-18T00:15:00.000Z');
+    let storage = createStorage(undefined);
+    getProviderTelemetryErrorGroupsStorageTarget.mockReturnValueOnce({
+      storage,
+      bucketName: 'exports'
+    });
+
+    await runProviderTelemetryErrorGroupsExport({
+      now,
+      listFailedMessages: vi.fn(async () => ({
+        items: [],
+        nextWatermark: null,
+        hasMore: false
+      }))
+    });
+
+    expect(getProviderTelemetryErrorGroupsStorageTarget).toHaveBeenCalledWith(undefined);
+    expect(storage.upsertBucket).toHaveBeenCalledWith('exports');
+  });
+
   it('no-ops when the configured export bucket is missing', async () => {
     let now = new Date('2026-06-18T00:15:00.000Z');
     let storage = createStorage(undefined);
@@ -191,7 +220,7 @@ describe('runProviderTelemetryErrorGroupsExport', () => {
     });
   });
 
-  it('treats a missing v2 state object as a first run and exports individual failed message files', async () => {
+  it('treats a missing v2 state object as a first run and exports a failed-message chunk', async () => {
     let now = new Date('2026-06-18T00:15:00.000Z');
     let storage = createStorage(undefined);
     let candidate = createCandidate({
@@ -217,11 +246,10 @@ describe('runProviderTelemetryErrorGroupsExport', () => {
       storage,
       bucketName: 'exports',
       listFailedMessages,
-      presentMessage: async message => createPresentedMessage(candidate)
+      presentMessage: async () => createPresentedMessage(candidate)
     });
 
-    let unixSeconds = Math.floor(candidate.occurredAt.getTime() / 1000);
-    let expectedKey = `provider-telemetry/elasticsearch-tool_call-search_documents-${unixSeconds}.json`;
+    let expectedKey = getProviderTelemetryFailedMessagesExportChunkKey([candidate]);
 
     expect(storage.upsertBucket).toHaveBeenCalledWith('exports');
     expect(listFailedMessages).toHaveBeenCalledWith({
@@ -234,38 +262,51 @@ describe('runProviderTelemetryErrorGroupsExport', () => {
     });
     expect(storage.putObject).toHaveBeenCalledTimes(2);
     expect(storage.putObject.mock.calls[0]![1]).toBe(expectedKey);
+    expect(storage.putObject.mock.calls[0]![4]).toEqual({
+      type: 'provider-telemetry-failed-message-export-chunk',
+      itemCount: '1'
+    });
     expect(storage.putObject.mock.calls[1]![1]).toBe(
       PROVIDER_TELEMETRY_FAILED_MESSAGES_STATE_KEY
     );
-    expect(
-      storage.putObject.mock.calls.some(call =>
-        String(call[1]).includes('provider-telemetry/error-groups/runs/')
-      )
-    ).toBe(false);
 
-    let exportFile = parseJsonCall(storage.putObject.mock.calls[0]!);
-    expect(exportFile).toMatchObject({
-      object: 'admin.provider_error_group.failed_message_export',
+    let exportChunk = parseJsonCall(storage.putObject.mock.calls[0]!);
+    expect(exportChunk).toMatchObject({
+      object: 'admin.provider_error_group.failed_message_export_chunk',
       version: 1,
       generated_at: '2026-06-18T00:15:00.000Z',
-      occurred_at: '2026-06-18T00:10:00.000Z',
-      error_group_id: 'serg_1',
-      error_id: 'serr_1',
-      message_id: 'msg_1',
-      provider: {
-        id: 'prv_1',
-        name: 'Elasticsearch',
-        slug: 'elasticsearch'
+      range: {
+        from: '2026-06-11T00:15:00.000Z',
+        to: '2026-06-18T00:15:00.000Z'
       },
-      tool: {
-        id: 'tc_1',
-        key: 'elasticsearch_search_documents',
-        name: 'Search Documents'
-      }
+      item_count: 1,
+      items: [
+        {
+          occurred_at: '2026-06-18T00:10:00.000Z',
+          error_group_id: 'serg_1',
+          error_id: 'serr_1',
+          message_id: 'msg_1',
+          provider: {
+            id: 'prv_1',
+            name: 'Elasticsearch',
+            slug: 'elasticsearch'
+          },
+          tool: {
+            id: 'tc_1',
+            key: 'elasticsearch_search_documents',
+            name: 'Search Documents'
+          }
+        }
+      ]
     });
-    expect(exportFile.payload.input.data.email).toBe('[redacted-email]');
-    expect(exportFile.payload.input.data.token).toBe('[redacted]');
-    expect(exportFile.payload.error.data.authorization).toBe('[redacted]');
+    expect(exportChunk.items[0].payload.id).toBe('[string]');
+    expect(exportChunk.items[0].payload.input.data.email).toBe('[string]');
+    expect(exportChunk.items[0].payload.input.data.token).toBe('[string]');
+    expect(exportChunk.items[0].payload.input.data.query).toBe('[string]');
+    expect(exportChunk.items[0].payload.input.data.retryCount).toBe(2);
+    expect(exportChunk.items[0].payload.input.data.ok).toBe(false);
+    expect(exportChunk.items[0].payload.input.data.missing).toBeNull();
+    expect(exportChunk.items[0].payload.error.data.authorization).toBe('[string]');
 
     let stateFile = parseJsonCall(storage.putObject.mock.calls[1]!);
     expect(stateFile).toEqual({
@@ -283,6 +324,85 @@ describe('runProviderTelemetryErrorGroupsExport', () => {
     });
   });
 
+  it('exports each page as a chunk and counts exported messages', async () => {
+    let now = new Date('2026-06-18T00:15:00.000Z');
+    let storage = createStorage(undefined);
+    let first = createCandidate({
+      errorId: 'serr_1',
+      messageId: 'msg_1',
+      occurredAt: '2026-06-18T00:10:00.000Z'
+    });
+    let second = createCandidate({
+      errorId: 'serr_2',
+      messageId: 'msg_2',
+      occurredAt: '2026-06-18T00:11:00.000Z'
+    });
+    let third = createCandidate({
+      errorId: 'serr_3',
+      messageId: 'msg_3',
+      occurredAt: '2026-06-18T00:12:00.000Z'
+    });
+    let firstWatermark = {
+      occurred_at: '2026-06-18T00:10:00.000Z',
+      id: 'serr_1'
+    };
+    let listFailedMessages = vi.fn(
+      async (input: ProviderTelemetryFailedMessagesExportListInput) =>
+        input.after
+          ? {
+              items: [second, third],
+              nextWatermark: {
+                occurred_at: '2026-06-18T00:12:00.000Z',
+                id: 'serr_3'
+              },
+              hasMore: false
+            }
+          : {
+              items: [first],
+              nextWatermark: firstWatermark,
+              hasMore: true
+            }
+    );
+
+    let result = await runProviderTelemetryErrorGroupsExport({
+      now,
+      storage,
+      bucketName: 'exports',
+      listFailedMessages,
+      presentMessage: async message =>
+        createPresentedMessage(
+          [first, second, third].find(candidate => candidate.message.id === message.id)!
+        )
+    });
+
+    expect(listFailedMessages).toHaveBeenNthCalledWith(1, {
+      range: {
+        from: new Date('2026-06-11T00:15:00.000Z'),
+        to: now
+      },
+      limit: 100,
+      after: null
+    });
+    expect(listFailedMessages).toHaveBeenNthCalledWith(2, {
+      range: {
+        from: new Date('2026-06-11T00:15:00.000Z'),
+        to: now
+      },
+      limit: 100,
+      after: firstWatermark
+    });
+    expect(storage.putObject).toHaveBeenCalledTimes(3);
+    expect(result.exportedKeys).toEqual([
+      getProviderTelemetryFailedMessagesExportChunkKey([first]),
+      getProviderTelemetryFailedMessagesExportChunkKey([second, third])
+    ]);
+    expect(result.exportedCount).toBe(3);
+    expect(result.state?.last_exported).toEqual({
+      occurred_at: '2026-06-18T00:12:00.000Z',
+      id: 'serr_3'
+    });
+  });
+
   it('uses a one-hour overlap from the existing high-water mark', async () => {
     let now = new Date('2026-06-18T00:15:00.000Z');
     let storage = createStorage({
@@ -293,18 +413,10 @@ describe('runProviderTelemetryErrorGroupsExport', () => {
       },
       last_checked_at: '2026-06-18T00:00:00.000Z'
     });
-    let candidate = createCandidate({
-      errorId: 'serr_c',
-      messageId: 'msg_c',
-      occurredAt: '2026-06-18T00:05:00.000Z'
-    });
     let listFailedMessages = vi.fn(
       async (_input: ProviderTelemetryFailedMessagesExportListInput) => ({
-        items: [candidate],
-        nextWatermark: {
-          occurred_at: '2026-06-18T00:05:00.000Z',
-          id: 'serr_c'
-        },
+        items: [],
+        nextWatermark: null,
         hasMore: false
       })
     );
@@ -313,8 +425,7 @@ describe('runProviderTelemetryErrorGroupsExport', () => {
       now,
       storage,
       bucketName: 'exports',
-      listFailedMessages,
-      presentMessage: async () => createPresentedMessage(candidate)
+      listFailedMessages
     });
 
     expect(listFailedMessages).toHaveBeenCalledWith({
@@ -370,35 +481,39 @@ describe('runProviderTelemetryErrorGroupsExport', () => {
 });
 
 describe('anonymizeProviderTelemetryExportValue', () => {
-  it('redacts credential-like keys, bearer values, emails, and secret URL params without removing useful ids', () => {
+  it('replaces every string with a static placeholder while preserving structure', () => {
+    let date = new Date('2026-06-18T00:00:00.000Z');
     let anonymized = anonymizeProviderTelemetryExportValue({
       id: 'msg_1',
       messageId: 'msg_1',
       toolKey: 'users.info',
-      authorization: 'Bearer raw-token',
       nested: {
         email: 'person@example.com',
         text: 'Contact admin@example.com with Basic abc123',
         callbackUrl: 'https://example.com/callback?client_secret=secret-value&safe=yes',
-        credentials: {
-          access_token: 'token-value'
-        },
-        credentialId: 'cred_1'
+        retryCount: 2,
+        ok: true,
+        missing: null,
+        date,
+        values: ['a', 1, false]
       }
     }) as any;
 
-    expect(anonymized.id).toBe('msg_1');
-    expect(anonymized.messageId).toBe('msg_1');
-    expect(anonymized.toolKey).toBe('users.info');
-    expect(anonymized.authorization).toBe('[redacted]');
-    expect(anonymized.nested.email).toBe('[redacted-email]');
-    expect(anonymized.nested.text).toBe(
-      `Contact ${'[redacted-email]'} with Basic ${'[redacted]'}`
-    );
-    expect(anonymized.nested.callbackUrl).toContain('safe=yes');
-    expect(anonymized.nested.callbackUrl).not.toContain('secret-value');
-    expect(anonymized.nested.credentials).toBe('[redacted]');
-    expect(anonymized.nested.credentialId).toBe('cred_1');
+    expect(anonymized).toEqual({
+      id: '[string]',
+      messageId: '[string]',
+      toolKey: '[string]',
+      nested: {
+        email: '[string]',
+        text: '[string]',
+        callbackUrl: '[string]',
+        retryCount: 2,
+        ok: true,
+        missing: null,
+        date,
+        values: ['[string]', 1, false]
+      }
+    });
   });
 });
 

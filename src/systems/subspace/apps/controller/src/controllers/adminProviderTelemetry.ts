@@ -3,17 +3,20 @@ import { v } from '@lowerdeck/validation';
 import { db } from '@metorial-subspace/db';
 import { providerService } from '@metorial-subspace/module-catalog';
 import {
-  adminProviderTelemetryErrorGroupTypes,
-  listAdminProviderTelemetryErrorGroups,
   providerInvocationService,
   providerRunLogsService,
   sessionMessageService
 } from '@metorial-subspace/module-session';
 import {
+  adminProviderTelemetryErrorGroupPresenter,
   providerInvocationPresenter,
   sessionMessagePresenter
 } from '@metorial-subspace/presenters';
 import { app } from './_app';
+import {
+  adminProviderTelemetryErrorGroupTypes,
+  createAdminProviderTelemetryErrorGroupsPaginator
+} from './adminProviderTelemetryErrorGroups';
 
 let dateRangeValidator = v.object({
   from: v.optional(v.date()),
@@ -751,13 +754,15 @@ export let adminProviderTelemetryController = app.controller({
       Paginator.validate(
         v.object({
           ...telemetryScopeValidator,
-          types: v.optional(
-            v.array(v.enumOf([...adminProviderTelemetryErrorGroupTypes]))
-          )
+          types: v.optional(v.array(v.enumOf([...adminProviderTelemetryErrorGroupTypes])))
         })
       )
     )
-    .do(async ctx => listAdminProviderTelemetryErrorGroups(ctx.input)),
+    .do(async ctx => {
+      let paginator = await createAdminProviderTelemetryErrorGroupsPaginator(ctx.input);
+      let list = await paginator.run(ctx.input);
+      return Paginator.presentLight(list, adminProviderTelemetryErrorGroupPresenter);
+    }),
 
   getErrorGroup: app
     .handler()

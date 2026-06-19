@@ -2,6 +2,7 @@ export * from './actor';
 export * from './agent';
 export * from './agentClient';
 export * from './agentInstance';
+export * from './adminProviderTelemetryErrorGroup';
 export * from './authConfigError';
 export * from './authConfigErrorGlobal';
 export * from './authConfigEvent';
