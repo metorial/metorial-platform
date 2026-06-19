@@ -8,25 +8,6 @@ export let adminProviderTelemetryErrorGroupTypes = [
   'provider_discovery_failed'
 ] as const;
 
-export type AdminProviderTelemetryErrorGroupType =
-  (typeof adminProviderTelemetryErrorGroupTypes)[number];
-
-export type AdminProviderTelemetryDateRange = {
-  from?: Date;
-  to?: Date;
-};
-
-export type AdminProviderTelemetryErrorGroupListInput = PaginatorInput & {
-  providerId?: string;
-  tenantId?: string;
-  tenantIds?: string[];
-  tenantSearch?: string;
-  environmentId?: string;
-  environmentIds?: string[];
-  range?: AdminProviderTelemetryDateRange;
-  types?: AdminProviderTelemetryErrorGroupType[];
-};
-
 let uniqueStrings = (values: (string | null | undefined)[]) =>
   Array.from(new Set(values.map(v => v?.trim()).filter(Boolean) as string[]));
 
@@ -34,7 +15,7 @@ let uniqueBigints = (values: bigint[]) => Array.from(new Set(values));
 
 let oidFilter = (oids?: bigint[]) => (oids ? { in: oids } : undefined);
 
-export let withDefaultProviderTelemetryRange = (range?: AdminProviderTelemetryDateRange) => {
+let withDefaultProviderTelemetryRange = (range?: { from?: Date; to?: Date }) => {
   let to = range?.to ?? new Date();
   let from = range?.from ?? new Date(to.getTime() - 7 * 24 * 60 * 60 * 1000);
   let maxRangeMs = 90 * 24 * 60 * 60 * 1000;
@@ -68,14 +49,14 @@ let resolveProvider = async (providerId?: string) => {
   });
 };
 
-export let resolveAdminProviderTelemetryScope = async (input: {
+let resolveAdminProviderTelemetryScope = async (input: {
   providerId?: string;
   tenantId?: string;
   tenantIds?: string[];
   tenantSearch?: string;
   environmentId?: string;
   environmentIds?: string[];
-  range?: AdminProviderTelemetryDateRange;
+  range?: { from?: Date; to?: Date };
 }) => {
   let { from, to } = withDefaultProviderTelemetryRange(input.range);
   let provider = await resolveProvider(input.providerId);
@@ -142,7 +123,16 @@ export let resolveAdminProviderTelemetryScope = async (input: {
 };
 
 export let createAdminProviderTelemetryErrorGroupsPaginator = async (
-  input: AdminProviderTelemetryErrorGroupListInput
+  input: PaginatorInput & {
+    providerId?: string;
+    tenantId?: string;
+    tenantIds?: string[];
+    tenantSearch?: string;
+    environmentId?: string;
+    environmentIds?: string[];
+    range?: { from?: Date; to?: Date };
+    types?: (typeof adminProviderTelemetryErrorGroupTypes)[number][];
+  }
 ) => {
   let scope = await resolveAdminProviderTelemetryScope(input);
   if (scope.isEmpty) return emptyPaginator();

@@ -3,6 +3,8 @@ import { v } from '@lowerdeck/validation';
 import { db } from '@metorial-subspace/db';
 import { providerService } from '@metorial-subspace/module-catalog';
 import {
+  adminProviderTelemetryErrorGroupTypes,
+  createAdminProviderTelemetryErrorGroupsPaginator,
   providerInvocationService,
   providerRunLogsService,
   sessionMessageService
@@ -13,10 +15,6 @@ import {
   sessionMessagePresenter
 } from '@metorial-subspace/presenters';
 import { app } from './_app';
-import {
-  adminProviderTelemetryErrorGroupTypes,
-  createAdminProviderTelemetryErrorGroupsPaginator
-} from './adminProviderTelemetryErrorGroups';
 
 let dateRangeValidator = v.object({
   from: v.optional(v.date()),

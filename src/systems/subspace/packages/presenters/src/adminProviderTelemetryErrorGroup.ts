@@ -9,7 +9,7 @@ import type {
   Tenant
 } from '@metorial-subspace/db';
 
-export type AdminProviderTelemetryErrorGroupPresenterProps = SessionErrorGroup & {
+type AdminProviderTelemetryErrorGroupPresenterProps = SessionErrorGroup & {
   provider: Provider | null;
   tenant: Tenant;
   environment: Environment;
