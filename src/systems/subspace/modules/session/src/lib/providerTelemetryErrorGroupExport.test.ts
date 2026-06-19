@@ -118,6 +118,7 @@ let createPresentedMessage = (candidate: ProviderTelemetryFailedMessageExportCan
   id: candidate.message.id,
   type: candidate.message.type,
   status: 'failed',
+  source: 'model',
   input: {
     data: {
       email: 'alice@example.com',
@@ -128,23 +129,51 @@ let createPresentedMessage = (candidate: ProviderTelemetryFailedMessageExportCan
       missing: null
     }
   },
+  output: {
+    jsonrpc: '2.0',
+    id: 1,
+    error: {
+      code: -32000,
+      message: 'Tool call failed',
+      data: {
+        ok: false,
+        code: 'PROVIDER_ERROR',
+        message: 'Nested provider message',
+        details: {
+          Message: 'Case-insensitive message'
+        }
+      }
+    }
+  },
   toolCall: candidate.tool
     ? {
         id: candidate.tool.id,
         toolKey: candidate.tool.key,
+        rationale: 'User asked for this tool',
+        operation: 'call_tool',
         tool: {
+          id: 'tool_1',
           key: candidate.tool.key,
-          name: candidate.tool.name
+          name: candidate.tool.name,
+          providerId: candidate.provider?.id ?? null
         }
       }
     : null,
   error: {
     id: candidate.error.id,
     code: candidate.error.code,
+    message: 'Top-level provider error',
     data: {
       authorization: 'Bearer abc123',
-      message: 'Failed for bob@example.com'
-    }
+      code: 'PROVIDER_ERROR',
+      object: 'provider.error',
+      status: 500,
+      message: 'Failed for bob@example.com',
+      nested: {
+        MESSAGE: 'Uppercase message key'
+      }
+    },
+    groupId: candidate.error.group.id
   }
 });
 
@@ -300,14 +329,9 @@ describe('runProviderTelemetryErrorGroupsExport', () => {
         }
       ]
     });
-    expect(exportChunk.items[0].payload.id).toBe('[string]');
-    expect(exportChunk.items[0].payload.input.data.email).toBe('[string]');
-    expect(exportChunk.items[0].payload.input.data.token).toBe('[string]');
-    expect(exportChunk.items[0].payload.input.data.query).toBe('[string]');
-    expect(exportChunk.items[0].payload.input.data.retryCount).toBe(2);
-    expect(exportChunk.items[0].payload.input.data.ok).toBe(false);
-    expect(exportChunk.items[0].payload.input.data.missing).toBeNull();
-    expect(exportChunk.items[0].payload.error.data.authorization).toBe('[string]');
+    expect(exportChunk.items[0].payload).toEqual(
+      anonymizeProviderTelemetryExportValue(createPresentedMessage(candidate))
+    );
 
     let stateFile = parseJsonCall(storage.putObject.mock.calls[1]!);
     expect(stateFile).toEqual({
@@ -515,7 +539,7 @@ describe('runProviderTelemetryErrorGroupsExport', () => {
 });
 
 describe('anonymizeProviderTelemetryExportValue', () => {
-  it('replaces every string with a static placeholder while preserving structure', () => {
+  it('redacts payload strings while preserving safe diagnostic identifiers', () => {
     let date = new Date('2026-06-18T00:00:00.000Z');
     let anonymized = anonymizeProviderTelemetryExportValue({
       id: 'msg_1',
@@ -530,6 +554,47 @@ describe('anonymizeProviderTelemetryExportValue', () => {
         missing: null,
         date,
         values: ['a', 1, false]
+      },
+      output: {
+        error: {
+          code: -32000,
+          message: 'Output error message',
+          data: {
+            code: 'MCP_ERROR',
+            Message: 'Case-insensitive message',
+            values: ['visible', 2, false]
+          }
+        }
+      },
+      error: {
+        id: 'serr_1',
+        code: 'provider_error',
+        message: 'Top-level error message',
+        data: {
+          authorization: 'Bearer abc123',
+          object: 'provider.error',
+          status: 500,
+          message: 'Nested message',
+          nested: {
+            MESSAGE: 'Uppercase message'
+          }
+        }
+      },
+      toolCall: {
+        id: 'tc_1',
+        toolKey: 'users.info',
+        rationale: 'User asked for it',
+        operation: 'call_tool',
+        tool: {
+          id: 'tool_1',
+          key: 'users.info',
+          name: 'Users Info',
+          providerId: 'prv_1'
+        },
+        nested: {
+          operation: 'nested operation',
+          detail: 'visible detail'
+        }
       }
     }) as any;
 
@@ -546,6 +611,78 @@ describe('anonymizeProviderTelemetryExportValue', () => {
         missing: null,
         date,
         values: ['[string]', 1, false]
+      },
+      output: {
+        error: {
+          code: -32000,
+          data: {
+            code: 'MCP_ERROR',
+            values: ['[string]', 2, false]
+          }
+        }
+      },
+      error: {
+        id: 'serr_1',
+        code: 'provider_error',
+        data: {
+          authorization: '[string]',
+          object: 'provider.error',
+          status: 500,
+          nested: {}
+        }
+      },
+      toolCall: {
+        id: 'tc_1',
+        toolKey: 'users.info',
+        tool: {
+          id: 'tool_1',
+          key: 'users.info',
+          name: 'Users Info',
+          providerId: 'prv_1'
+        },
+        nested: {
+          detail: '[string]'
+        }
+      }
+    });
+  });
+
+  it('keeps preserve exceptions scoped by path and key', () => {
+    let anonymized = anonymizeProviderTelemetryExportValue({
+      detail: 'ordinary detail',
+      notToolCall: {
+        rationale: 'ordinary rationale',
+        operation: 'ordinary operation'
+      },
+      notError: {
+        message: 'ordinary message',
+        code: 'ordinary_code'
+      },
+      Error: {
+        code: 'CASE_INSENSITIVE_ERROR',
+        Message: 'removed message'
+      },
+      ToolCall: {
+        toolKey: 'case.insensitive.tool',
+        Operation: 'removed operation'
+      }
+    }) as any;
+
+    expect(anonymized).toEqual({
+      detail: '[string]',
+      notToolCall: {
+        rationale: '[string]',
+        operation: '[string]'
+      },
+      notError: {
+        message: '[string]',
+        code: '[string]'
+      },
+      Error: {
+        code: 'CASE_INSENSITIVE_ERROR'
+      },
+      ToolCall: {
+        toolKey: 'case.insensitive.tool'
       }
     });
   });
