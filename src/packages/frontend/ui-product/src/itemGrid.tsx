@@ -93,13 +93,16 @@ let Header = styled.header`
   position: relative;
 `;
 
-let HeaderContent = styled.div`
+let HeaderContent = styled.div.withConfig({ shouldForwardProp: p => p !== '$hasMenu' })<{
+  $hasMenu: boolean;
+}>`
   display: flex;
   flex-direction: column;
   gap: 5px;
   flex: 1;
   min-width: 0;
   max-width: 100%;
+  padding-right: ${p => (p.$hasMenu ? '46px' : 0)};
 `;
 
 let IconSlot = styled.div`
@@ -132,6 +135,18 @@ let CompactTitleWrapper = styled.div`
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+`;
+
+let TitleWrapper = styled.div`
+  min-width: 0;
+  max-width: 100%;
+
+  h2,
+  h3 {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
 `;
 
@@ -257,12 +272,14 @@ export let ItemGrid = {
               )}
             </CompactHeaderContent>
           ) : (
-            <HeaderContent>
+            <HeaderContent $hasMenu={menuItems.length > 0}>
               {icon && <IconSlot>{icon}</IconSlot>}
 
-              <Title as="h2" size={small ? '3' : '4'} weight="strong">
-                {title}
-              </Title>
+              <TitleWrapper>
+                <Title as="h2" size={small ? '3' : '4'} weight="strong">
+                  {title}
+                </Title>
+              </TitleWrapper>
               {description && (
                 <Text size="1" weight="medium" color="gray700">
                   {description}
@@ -330,9 +347,11 @@ export let ItemGrid = {
       >
         <div>{icon}</div>
 
-        <Title as="h3" size="4" weight="strong">
-          {title}
-        </Title>
+        <TitleWrapper>
+          <Title as="h3" size="4" weight="strong">
+            {title}
+          </Title>
+        </TitleWrapper>
 
         {description && (
           <Text size="1" weight="medium" color="gray700">
