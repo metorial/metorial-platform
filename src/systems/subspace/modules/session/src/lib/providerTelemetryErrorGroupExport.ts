@@ -13,7 +13,6 @@ export let PROVIDER_TELEMETRY_ERROR_GROUPS_STATE_KEY =
 
 let DEFAULT_EXPORT_LOOKBACK_MS = 7 * 24 * 60 * 60 * 1000;
 let EXPORT_PAGE_SIZE = 100;
-let STRING_PLACEHOLDER = '[string]';
 
 export type ProviderTelemetryFailedMessagesExportWatermark = {
   occurred_at: string;
@@ -258,95 +257,8 @@ let writeJsonObject = async (d: {
   );
 };
 
-let OMIT_PROVIDER_TELEMETRY_EXPORT_VALUE = Symbol('omitProviderTelemetryExportValue');
-
-type ProviderTelemetryExportSanitizerState = {
-  key: string | null;
-  inError: boolean;
-  inToolCall: boolean;
-};
-
-let ERROR_DIAGNOSTIC_STRING_KEYS = new Set(['id', 'code', 'object', 'groupid', 'type']);
-let TOOL_CALL_DIAGNOSTIC_STRING_KEYS = new Set(['id', 'toolkey', 'key', 'name', 'providerid']);
-
-let shouldOmitProviderTelemetryExportField = (
-  keyLower: string | null,
-  state: ProviderTelemetryExportSanitizerState
-) => {
-  if (state.inError && keyLower === 'message') return true;
-  if (state.inToolCall && (keyLower === 'rationale' || keyLower === 'operation')) {
-    return true;
-  }
-
-  return false;
-};
-
-let shouldPreserveProviderTelemetryExportString = (
-  keyLower: string | null,
-  state: ProviderTelemetryExportSanitizerState
-) => {
-  if (!keyLower) return false;
-  if (state.inError && ERROR_DIAGNOSTIC_STRING_KEYS.has(keyLower)) return true;
-  if (state.inToolCall && TOOL_CALL_DIAGNOSTIC_STRING_KEYS.has(keyLower)) return true;
-
-  return false;
-};
-
-let sanitizeProviderTelemetryExportValue = (
-  value: unknown,
-  state: ProviderTelemetryExportSanitizerState
-): unknown | typeof OMIT_PROVIDER_TELEMETRY_EXPORT_VALUE => {
-  let keyLower = state.key?.toLowerCase() ?? null;
-
-  if (shouldOmitProviderTelemetryExportField(keyLower, state)) {
-    return OMIT_PROVIDER_TELEMETRY_EXPORT_VALUE;
-  }
-
-  if (value === null || value === undefined) return value;
-  if (value instanceof Date) return value;
-  if (typeof value === 'string') {
-    if (shouldPreserveProviderTelemetryExportString(keyLower, state)) return value;
-    return STRING_PLACEHOLDER;
-  }
-  if (typeof value !== 'object') return value;
-
-  if (Array.isArray(value)) {
-    return value.map(item => {
-      let sanitized = sanitizeProviderTelemetryExportValue(item, {
-        ...state,
-        key: null
-      });
-
-      return sanitized === OMIT_PROVIDER_TELEMETRY_EXPORT_VALUE ? undefined : sanitized;
-    });
-  }
-
-  return Object.fromEntries(
-    Object.entries(value).flatMap(([entryKey, entryValue]) => {
-      let entryKeyLower = entryKey.toLowerCase();
-      let sanitized = sanitizeProviderTelemetryExportValue(entryValue, {
-        key: entryKey,
-        inError: state.inError || entryKeyLower === 'error',
-        inToolCall: state.inToolCall || entryKeyLower === 'toolcall'
-      });
-
-      return sanitized === OMIT_PROVIDER_TELEMETRY_EXPORT_VALUE ? [] : [[entryKey, sanitized]];
-    })
-  );
-};
-
-export let anonymizeProviderTelemetryExportValue = (value: unknown): unknown => {
-  let sanitized = sanitizeProviderTelemetryExportValue(value, {
-    key: null,
-    inError: false,
-    inToolCall: false
-  });
-
-  return sanitized === OMIT_PROVIDER_TELEMETRY_EXPORT_VALUE ? undefined : sanitized;
-};
-
-let sanitizeS3KeyComponent = (value: string | null | undefined) => {
-  let sanitized = String(value ?? '')
+let normalizeS3KeyComponent = (value: string | null | undefined) => {
+  let normalized = String(value ?? '')
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9._-]+/g, '_')
@@ -354,7 +266,7 @@ let sanitizeS3KeyComponent = (value: string | null | undefined) => {
     .replace(/^[-_.]+|[-_.]+$/g, '')
     .slice(0, 120);
 
-  return sanitized || 'unknown';
+  return normalized || 'unknown';
 };
 
 export let getProviderTelemetryFailedMessagesExportChunkKey = (
@@ -373,7 +285,7 @@ export let getProviderTelemetryFailedMessagesExportChunkKey = (
     first.error.id,
     last.error.id
   ]
-    .map(sanitizeS3KeyComponent)
+    .map(normalizeS3KeyComponent)
     .join('-');
 
   return ['provider-telemetry', `${filename}.json`].join('/');
@@ -446,7 +358,7 @@ let createExportItem = async (d: {
     message_id: d.candidate.message.id,
     provider: d.candidate.provider,
     tool: d.candidate.tool,
-    payload: anonymizeProviderTelemetryExportValue(payload)
+    payload
   };
 };
 

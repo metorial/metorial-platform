@@ -23,7 +23,6 @@ vi.mock('../services/sessionMessage', () => ({
 
 import {
   PROVIDER_TELEMETRY_FAILED_MESSAGES_STATE_KEY,
-  anonymizeProviderTelemetryExportValue,
   getProviderTelemetryFailedMessagesExportChunkKey,
   listProviderTelemetryFailedMessagesForExport,
   runProviderTelemetryErrorGroupsExport,
@@ -329,9 +328,7 @@ describe('runProviderTelemetryErrorGroupsExport', () => {
         }
       ]
     });
-    expect(exportChunk.items[0].payload).toEqual(
-      anonymizeProviderTelemetryExportValue(createPresentedMessage(candidate))
-    );
+    expect(exportChunk.items[0].payload).toEqual(createPresentedMessage(candidate));
 
     let stateFile = parseJsonCall(storage.putObject.mock.calls[1]!);
     expect(stateFile).toEqual({
@@ -535,156 +532,6 @@ describe('runProviderTelemetryErrorGroupsExport', () => {
     });
     expect(result.exportedKeys).toEqual([]);
     expect(result.exportedCount).toBe(0);
-  });
-});
-
-describe('anonymizeProviderTelemetryExportValue', () => {
-  it('redacts payload strings while preserving safe diagnostic identifiers', () => {
-    let date = new Date('2026-06-18T00:00:00.000Z');
-    let anonymized = anonymizeProviderTelemetryExportValue({
-      id: 'msg_1',
-      messageId: 'msg_1',
-      toolKey: 'users.info',
-      nested: {
-        email: 'person@example.com',
-        text: 'Contact admin@example.com with Basic abc123',
-        callbackUrl: 'https://example.com/callback?client_secret=secret-value&safe=yes',
-        retryCount: 2,
-        ok: true,
-        missing: null,
-        date,
-        values: ['a', 1, false]
-      },
-      output: {
-        error: {
-          code: -32000,
-          message: 'Output error message',
-          data: {
-            code: 'MCP_ERROR',
-            Message: 'Case-insensitive message',
-            values: ['visible', 2, false]
-          }
-        }
-      },
-      error: {
-        id: 'serr_1',
-        code: 'provider_error',
-        message: 'Top-level error message',
-        data: {
-          authorization: 'Bearer abc123',
-          object: 'provider.error',
-          status: 500,
-          message: 'Nested message',
-          nested: {
-            MESSAGE: 'Uppercase message'
-          }
-        }
-      },
-      toolCall: {
-        id: 'tc_1',
-        toolKey: 'users.info',
-        rationale: 'User asked for it',
-        operation: 'call_tool',
-        tool: {
-          id: 'tool_1',
-          key: 'users.info',
-          name: 'Users Info',
-          providerId: 'prv_1'
-        },
-        nested: {
-          operation: 'nested operation',
-          detail: 'visible detail'
-        }
-      }
-    }) as any;
-
-    expect(anonymized).toEqual({
-      id: '[string]',
-      messageId: '[string]',
-      toolKey: '[string]',
-      nested: {
-        email: '[string]',
-        text: '[string]',
-        callbackUrl: '[string]',
-        retryCount: 2,
-        ok: true,
-        missing: null,
-        date,
-        values: ['[string]', 1, false]
-      },
-      output: {
-        error: {
-          code: -32000,
-          data: {
-            code: 'MCP_ERROR',
-            values: ['[string]', 2, false]
-          }
-        }
-      },
-      error: {
-        id: 'serr_1',
-        code: 'provider_error',
-        data: {
-          authorization: '[string]',
-          object: 'provider.error',
-          status: 500,
-          nested: {}
-        }
-      },
-      toolCall: {
-        id: 'tc_1',
-        toolKey: 'users.info',
-        tool: {
-          id: 'tool_1',
-          key: 'users.info',
-          name: 'Users Info',
-          providerId: 'prv_1'
-        },
-        nested: {
-          detail: '[string]'
-        }
-      }
-    });
-  });
-
-  it('keeps preserve exceptions scoped by path and key', () => {
-    let anonymized = anonymizeProviderTelemetryExportValue({
-      detail: 'ordinary detail',
-      notToolCall: {
-        rationale: 'ordinary rationale',
-        operation: 'ordinary operation'
-      },
-      notError: {
-        message: 'ordinary message',
-        code: 'ordinary_code'
-      },
-      Error: {
-        code: 'CASE_INSENSITIVE_ERROR',
-        Message: 'removed message'
-      },
-      ToolCall: {
-        toolKey: 'case.insensitive.tool',
-        Operation: 'removed operation'
-      }
-    }) as any;
-
-    expect(anonymized).toEqual({
-      detail: '[string]',
-      notToolCall: {
-        rationale: '[string]',
-        operation: '[string]'
-      },
-      notError: {
-        message: '[string]',
-        code: '[string]'
-      },
-      Error: {
-        code: 'CASE_INSENSITIVE_ERROR'
-      },
-      ToolCall: {
-        toolKey: 'case.insensitive.tool'
-      }
-    });
   });
 });
 
