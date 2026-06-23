@@ -40,7 +40,7 @@ export default defineConfig(({ mode }) => {
   return withAliases(config, {
     '@metorial-platform-systems/signal-client': resolve(
       __dirname,
-      '../../_clients/signal/src/index.ts'
+      '../clients/signal/src/index.ts'
     )
   });
 });

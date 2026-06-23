@@ -438,6 +438,7 @@
         "@metorial-cargo/module-file": "^1.0.0",
         "@metorial-cargo/module-skill": "^1.0.0",
         "@metorial-cargo/module-store": "^1.0.0",
+        "@metorial-platform-systems/cargo-client": "1.0.0",
         "@prisma/adapter-pg": "^7.2.0",
         "@prisma/client": "^7.2.0",
         "@prisma/extension-read-replicas": "^0.5.0",
@@ -1455,40 +1456,6 @@
         "vite-plugin-html": "^3.2.2",
       },
     },
-    "src/metorial-frontend/config": {
-      "name": "@metorial/frontend-config",
-      "version": "1.0.0",
-      "devDependencies": {
-        "@lowerdeck/join-paths": "workspace:2.0.0",
-        "@lowerdeck/programmable-promise": "workspace:2.0.0",
-        "@metorial/tsconfig": "^1.0.0",
-        "typescript": "5.8.2",
-        "vitest": "^3.1.2",
-      },
-    },
-    "src/metorial-frontend/layout": {
-      "name": "@metorial/layout",
-      "version": "1.0.0",
-      "dependencies": {
-        "@metorial/data-hooks": "^1.0.0",
-        "@metorial/frontend-config": "^1.0.0",
-        "@metorial/state": "^1.0.0",
-        "@metorial/ui": "^1.0.0",
-        "@radix-ui/react-popover": "^1.1.13",
-        "@remixicon/react": "^4.6.0",
-        "clsx": "^2.1.1",
-        "framer-motion": "^12.12.1",
-        "react": "^19.1.0",
-        "react-router-dom": "^6.26.1",
-        "react-use": "^17.6.0",
-        "styled-components": "^6.1.13",
-      },
-      "devDependencies": {
-        "@metorial/tsconfig": "^1.0.0",
-        "typescript": "5.8.2",
-        "vitest": "^3.1.2",
-      },
-    },
     "src/metorial-frontend/packages/chart": {
       "name": "@metorial/chart",
       "version": "1.0.0",
@@ -1544,6 +1511,17 @@
         "vitest": "^0.34.6",
       },
     },
+    "src/metorial-frontend/packages/config": {
+      "name": "@metorial/frontend-config",
+      "version": "1.0.0",
+      "devDependencies": {
+        "@lowerdeck/join-paths": "workspace:2.0.0",
+        "@lowerdeck/programmable-promise": "workspace:2.0.0",
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.8.2",
+        "vitest": "^3.1.2",
+      },
+    },
     "src/metorial-frontend/packages/data-hooks": {
       "name": "@metorial/data-hooks",
       "version": "1.0.0",
@@ -1573,6 +1551,29 @@
         "@metorial/data-hooks": "^1.0.0",
         "@metorial/ui": "^1.0.0",
         "p-queue": "^8.1.0",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.8.2",
+        "vitest": "^3.1.2",
+      },
+    },
+    "src/metorial-frontend/packages/layout": {
+      "name": "@metorial/layout",
+      "version": "1.0.0",
+      "dependencies": {
+        "@metorial/data-hooks": "^1.0.0",
+        "@metorial/frontend-config": "^1.0.0",
+        "@metorial/state": "^1.0.0",
+        "@metorial/ui": "^1.0.0",
+        "@radix-ui/react-popover": "^1.1.13",
+        "@remixicon/react": "^4.6.0",
+        "clsx": "^2.1.1",
+        "framer-motion": "^12.12.1",
+        "react": "^19.1.0",
+        "react-router-dom": "^6.26.1",
+        "react-use": "^17.6.0",
+        "styled-components": "^6.1.13",
       },
       "devDependencies": {
         "@metorial/tsconfig": "^1.0.0",
@@ -1621,6 +1622,30 @@
         "react": "^19.1.0",
         "react-wrap-balancer": "^1.1.1",
         "styled-components": "^6.1.13",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.8.2",
+        "vitest": "^3.1.2",
+      },
+    },
+    "src/metorial-frontend/packages/state": {
+      "name": "@metorial/state",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/delay": "workspace:2.0.0",
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/programmable-promise": "workspace:2.0.0",
+        "@lowerdeck/sentry": "workspace:2.0.0",
+        "@metorial-platform-systems/synthesis-client": "1.0.0",
+        "@metorial/dashboard-sdk": "1.0.0-internal",
+        "@metorial/data-hooks": "^1.0.0",
+        "@metorial/frontend-config": "^1.0.0",
+        "@metorial/generated": "latest",
+        "@metorial/storage": "^1.0.0",
+        "@metorial/util-endpoint": "^1.0.0-rc.5",
+        "react": "^19.1.0",
+        "react-router-dom": "^6.26.1",
       },
       "devDependencies": {
         "@metorial/tsconfig": "^1.0.0",
@@ -1826,30 +1851,6 @@
       "devDependencies": {
         "@metorial/tsconfig": "^1.0.0",
         "@types/react-avatar-editor": "^13.0.4",
-        "typescript": "5.8.2",
-        "vitest": "^3.1.2",
-      },
-    },
-    "src/metorial-frontend/state": {
-      "name": "@metorial/state",
-      "version": "1.0.0",
-      "dependencies": {
-        "@lowerdeck/delay": "workspace:2.0.0",
-        "@lowerdeck/error": "workspace:2.0.0",
-        "@lowerdeck/programmable-promise": "workspace:2.0.0",
-        "@lowerdeck/sentry": "workspace:2.0.0",
-        "@metorial-platform-systems/synthesis-client": "1.0.0",
-        "@metorial/dashboard-sdk": "1.0.0-internal",
-        "@metorial/data-hooks": "^1.0.0",
-        "@metorial/frontend-config": "^1.0.0",
-        "@metorial/generated": "latest",
-        "@metorial/storage": "^1.0.0",
-        "@metorial/util-endpoint": "^1.0.0-rc.5",
-        "react": "^19.1.0",
-        "react-router-dom": "^6.26.1",
-      },
-      "devDependencies": {
-        "@metorial/tsconfig": "^1.0.0",
         "typescript": "5.8.2",
         "vitest": "^3.1.2",
       },
@@ -5647,7 +5648,7 @@
 
     "@metorial/forge": ["@metorial/forge@workspace:src/forge/service"],
 
-    "@metorial/frontend-config": ["@metorial/frontend-config@workspace:src/metorial-frontend/config"],
+    "@metorial/frontend-config": ["@metorial/frontend-config@workspace:src/metorial-frontend/packages/config"],
 
     "@metorial/function-bay": ["@metorial/function-bay@workspace:src/function-bay/service"],
 
@@ -5657,7 +5658,7 @@
 
     "@metorial/internal-clients": ["@metorial/internal-clients@workspace:src/metorial/internal-client"],
 
-    "@metorial/layout": ["@metorial/layout@workspace:src/metorial-frontend/layout"],
+    "@metorial/layout": ["@metorial/layout@workspace:src/metorial-frontend/packages/layout"],
 
     "@metorial/lock": ["@metorial/lock@workspace:src/metorial/packages/lock"],
 
@@ -5745,7 +5746,7 @@
 
     "@metorial/slates-registry": ["@metorial/slates-registry@workspace:src/slates/apps/registry"],
 
-    "@metorial/state": ["@metorial/state@workspace:src/metorial-frontend/state"],
+    "@metorial/state": ["@metorial/state@workspace:src/metorial-frontend/packages/state"],
 
     "@metorial/storage": ["@metorial/storage@workspace:src/metorial-frontend/packages/storage"],
 

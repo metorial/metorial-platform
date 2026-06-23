@@ -38,5 +38,11 @@ jobs:
       - name: Build Packages
         run: bunx turbo run --ui=stream build --filter=!./src/**
 
-      - name: Test
-        run: bunx turbo run --concurrency=1 --ui=stream test --filter=!./src/**
+      - name: Test Metorial Packages
+        run: bunx turbo run --concurrency=1 --ui=stream test --filter='./src/metorial/packages/*'
+
+      - name: Test Metorial Modules
+        run: bunx turbo run --concurrency=1 --ui=stream test --filter='./src/metorial/modules/*'
+
+      - name: Test Lowerdeck Packages
+        run: bunx turbo run --concurrency=1 --ui=stream test --filter='./src/lowerdeck/*'
