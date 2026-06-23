@@ -74,7 +74,13 @@
     "src/subspace/*/*/*/*/*",
     "src/synthesis/*",
     "src/synthesis/*/*",
-    "src/synthesis/*/*/*"
+    "src/synthesis/*/*/*",
+    "src/voyager/*",
+    "src/voyager/*/*",
+    "src/voyager/*/*/*",
+    "src/relay/*",
+    "src/relay/*/*",
+    "src/relay/*/*/*"
   ],
   "dependencies": {
     "sade": "^1.8.1",

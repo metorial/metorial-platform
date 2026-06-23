@@ -1,0 +1,36 @@
+import { createQueue, QueueRetryError } from '@lowerdeck/queue';
+import { db } from '../db';
+import { env } from '../env';
+import { sendEmailSingleQueue } from './sendEmailSingle';
+
+export let sendEmailQueue = createQueue<{ emailId: string }>({
+  name: 'fed/email/send_email',
+  redisUrl: env.service.REDIS_URL,
+  jobOpts: {
+    attempts: 10
+  },
+  workerOpts: {
+    limiter: {
+      duration: 60 * 1000,
+      max: 50
+    }
+  }
+});
+
+export let sendEmailQueueProcessor = sendEmailQueue.process(async data => {
+  let email = await db.outgoingEmail.findFirst({
+    where: {
+      id: data.emailId
+    },
+    include: {
+      destinations: true
+    }
+  });
+  if (!email) throw new QueueRetryError();
+
+  await sendEmailSingleQueue.addMany(
+    email.destinations.map(d => ({
+      destinationId: d.id
+    }))
+  );
+});

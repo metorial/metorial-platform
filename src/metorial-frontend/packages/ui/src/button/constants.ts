@@ -1,4 +1,5 @@
 import { memo } from '@lowerdeck/memo';
+import type { CSSProperties } from 'react';
 import { theme } from '../theme';
 import {
   ColorFacet,
@@ -631,7 +632,7 @@ let getColorButtonTheme = memo(
   }
 );
 
-export let getButtonStyles = (props: ButtonStyleProps) => {
+export let getButtonStyles = (props: ButtonStyleProps): CSSProperties => {
   let size = sizes[props.size ?? '3'];
 
   if (props.variant == 'ghost') {

@@ -1,0 +1,91 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "./generated"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+generator json {
+  provider = "prisma-json-types-generator"
+}
+
+model Tenant {
+  oid BigInt @id
+  id  String @unique
+
+  identifier String @unique
+
+  createdAt DateTime @default(now())
+}
+
+model Source {
+  oid BigInt @id
+  id  String @unique
+
+  identifier String @unique
+  name       String
+
+  createdAt DateTime @default(now())
+
+  indices Index[]
+}
+
+model Backend {
+  oid BigInt @id
+  id  String @unique
+
+  isDefault Boolean
+
+  identifier String @unique
+  name       String
+
+  createdAt DateTime @default(now())
+}
+
+model Index {
+  oid BigInt @id
+  id  String @unique
+
+  identifier String
+  name       String
+
+  sourceOid BigInt
+  source    Source @relation(fields: [sourceOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  records Record[]
+
+  @@unique([sourceOid, identifier])
+}
+
+model Record {
+  oid BigInt @id
+  id  String @unique
+
+  indexOid BigInt
+  index    Index  @relation(fields: [indexOid], references: [oid])
+
+  tenantOids       BigInt[]
+  isTenantSpecific Boolean
+
+  documentId String
+  body       Json
+  fields     Json
+  metadata   Json
+  hash       String
+
+  createdAt DateTime @default(now())
+
+  @@unique([indexOid, documentId])
+  @@index([tenantOids])
+  @@index([isTenantSpecific])
+}
