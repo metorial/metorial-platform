@@ -47,13 +47,13 @@ export let destinations: Destination[] = [
   {
     type: 'enterprise',
     env: frontendEnv,
-    path: 'federation/frontend/apps/marketplace'
+    path: 'src/metorial-frontend/apps/marketplace'
   },
 
   ...['core-api', 'worker', 'global-router'].map(v => ({
     type: 'enterprise' as const,
     env: backendEnv,
-    path: `federation/backend/apps/${v}`
+    path: `src/metorial/services/${v}`
   })),
 
   {
@@ -130,12 +130,12 @@ export let destinations: Destination[] = [
   {
     type: 'enterprise',
     env: horizonServiceEnv,
-    path: 'systems/horizon/apps/horizon'
+    path: 'src/horizon/apps/horizon'
   },
 
   ...['admin', 'dashboard', 'portal'].map(v => ({
     type: 'enterprise' as const,
     env: frontendEnv,
-    path: `federation/frontend/apps/${v}`
+    path: `src/metorial-frontend/apps/${v}`
   }))
 ];
