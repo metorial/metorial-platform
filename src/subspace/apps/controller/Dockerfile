@@ -12,7 +12,7 @@ RUN sh ./src/subspace/scripts/prepare-docker-build.sh
 
 # Generate Prisma client
 WORKDIR /app/src/subspace/db
-RUN bunx prisma generate
+RUN bun run prisma:generate
 
 ARG SENTRY_AUTH_TOKEN
 ENV SENTRY_AUTH_TOKEN=${SENTRY_AUTH_TOKEN}

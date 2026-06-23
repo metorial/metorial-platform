@@ -163,7 +163,7 @@ services:
   slates-registry:
     profiles: ['infra']
     build:
-      context: ../../../../..
+      context: ../../../../
       dockerfile: ./src/slates/apps/registry/dev.Dockerfile
     container_name: slates-hub-registry
     restart: unless-stopped
@@ -200,7 +200,7 @@ services:
   slates-hub:
     profiles: ['hub']
     build:
-      context: ../../../../..
+      context: ../../../../
       dockerfile: ./src/slates/apps/hub/dev.Dockerfile
     container_name: slates-hub-service
     restart: unless-stopped

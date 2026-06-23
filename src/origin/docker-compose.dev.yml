@@ -46,7 +46,7 @@ services:
 
   service:
     build:
-      context: ../../..
+      context: ../..
       dockerfile: ./src/origin/apps/service/Dockerfile.dev
     container_name: origin2-service
     restart: unless-stopped

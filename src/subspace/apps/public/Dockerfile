@@ -13,7 +13,7 @@ RUN bun run --cwd ./src/metorial-frontend/packages/ui build
 
 # Generate Prisma client
 WORKDIR /app/src/subspace/db
-RUN bunx prisma generate
+RUN bun run prisma:generate
 
 ARG SENTRY_AUTH_TOKEN
 ENV SENTRY_AUTH_TOKEN=${SENTRY_AUTH_TOKEN}

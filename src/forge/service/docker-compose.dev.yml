@@ -67,7 +67,7 @@ services:
   forge:
     profiles: ['service']
     build:
-      context: ../../../..
+      context: ../../..
       dockerfile: src/forge/service/dev.Dockerfile
     container_name: forge-service
     restart: unless-stopped

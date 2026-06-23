@@ -91,7 +91,7 @@ services:
   cargo:
     profiles: ['service']
     build:
-      context: ../../../..
+      context: ../../..
       dockerfile: src/cargo/service/dev.Dockerfile
     container_name: cargo-service
     restart: unless-stopped

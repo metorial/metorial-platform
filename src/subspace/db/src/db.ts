@@ -17,7 +17,19 @@ import type {
   CustomProviderFromUpdate
 } from './types';
 
-export type EntityImage = any;
+export type EntityImage =
+  | {
+      type: 'file';
+      fileId: string;
+      fileLinkId: string;
+      fileReferenceId: string;
+      fileUrl: string;
+      url?: string;
+    }
+  | { type: 'url'; url: string }
+  | { type: 'default' };
+
+type EntityImageOuter = EntityImage;
 
 let mainAdapter = new PrismaPg({
   connectionString: process.env.SUBSPACE_DATABASE_URL ?? process.env.DATABASE_URL
@@ -57,6 +69,8 @@ export let db = baseClient.$extends({
 
 declare global {
   namespace PrismaJson {
+    type EntityImage = EntityImageOuter;
+
     type PublisherSource = { type: 'github'; url: string; owner: string; repo?: string };
 
     type ProviderSpecificationValue = {

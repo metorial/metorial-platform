@@ -138,7 +138,7 @@ services:
   shuttle:
     profiles: ['service']
     build:
-      context: ../../../..
+      context: ../../..
       dockerfile: ./src/shuttle/service/dev.Dockerfile
     container_name: shuttle-service
     restart: unless-stopped

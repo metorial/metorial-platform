@@ -67,7 +67,7 @@ services:
   signal:
     profiles: ['service']
     build:
-      context: ../../../..
+      context: ../../..
       dockerfile: src/signal/service/dev.Dockerfile
     container_name: signal-service
     restart: unless-stopped

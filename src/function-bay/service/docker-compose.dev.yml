@@ -106,7 +106,7 @@ services:
   function-bay:
     profiles: ['service']
     build:
-      context: ../../../..
+      context: ../../..
       dockerfile: ./src/function-bay/service/dev.Dockerfile
     container_name: function-bay-service
     restart: unless-stopped

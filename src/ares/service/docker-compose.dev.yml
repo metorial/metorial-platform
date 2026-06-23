@@ -60,7 +60,7 @@ services:
   ares:
     profiles: ['service']
     build:
-      context: ../../../..
+      context: ../../..
       dockerfile: src/ares/service/dev.Dockerfile
     container_name: ares-service
     restart: unless-stopped

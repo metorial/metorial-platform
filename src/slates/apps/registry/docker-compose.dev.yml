@@ -46,7 +46,7 @@ services:
 
   slates-registry:
     build:
-      context: ../../../../..
+      context: ../../../../
       dockerfile: ./src/slates/apps/registry/dev.Dockerfile
     container_name: slates-registry-service
     restart: unless-stopped

@@ -39,7 +39,7 @@ services:
   nebula:
     profiles: ['service']
     build:
-      context: ../../../..
+      context: ../../..
       dockerfile: src/nebula/service/dev.Dockerfile
     container_name: nebula-service
     restart: unless-stopped
