@@ -32,8 +32,7 @@ jobs:
 
       - name: Generate Prisma Clients
         run: |
-          bunx turbo run --ui=stream prisma:generate --filter=!./src/**
-          bun run --cwd ./src/cargo/db prisma:generate
+          bunx turbo run --ui=stream prisma:generate
 
       - name: Build Packages
         run: |
