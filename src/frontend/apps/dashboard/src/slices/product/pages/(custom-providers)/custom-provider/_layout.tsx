@@ -68,7 +68,7 @@ export let CustomProviderLayout = () => {
                   organization.data,
                   project.data,
                   instance.data,
-                  customProvider.data.provider.id
+                  customProvider.data.provider.slug
                 )}
               >
                 <Button as="span" size="2" variant="outline">

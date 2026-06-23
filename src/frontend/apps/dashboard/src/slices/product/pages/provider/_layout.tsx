@@ -16,7 +16,7 @@ import {
 } from '@metorial/state';
 import { Avatar, Callout, Flex, LinkTabs, Spacer } from '@metorial/ui';
 import { useEffect, useMemo, useState } from 'react';
-import { Link, Outlet, useLocation, useParams } from 'react-router-dom';
+import { Link, Outlet, useLocation, useParams, useNavigate } from 'react-router-dom';
 import { OpenExplorerButton } from '../../components/openExplorer';
 import { UseProviderButton } from '../../scenes/providers/useProviderButton';
 import {
@@ -39,6 +39,15 @@ export let ProviderLayout = () => {
   let providerData: ProviderData | null = provider.data;
 
   let pathname = useLocation().pathname;
+  let navigate = useNavigate();
+
+  useEffect(() => {
+    if (!provider.data) return;
+
+    if (providerId !== provider.data.slug) {
+      navigate(pathname.replace(providerId ?? '', provider.data.slug), { replace: true });
+    }
+  }, [providerId, provider.data]);
 
   let versions = useProviderVersions(instance.data?.id, providerId);
   let allVersions: ProviderVersion[] = versions.data?.items ?? [];
@@ -136,8 +145,9 @@ export let ProviderLayout = () => {
     organization.data,
     project.data,
     instance.data,
-    providerData?.id ?? providerId
+    providerData?.slug ?? providerId
   ] as const;
+
   return (
     <ProviderVersionContext.Provider value={versionContext}>
       <ContentLayout>
@@ -152,13 +162,13 @@ export let ProviderLayout = () => {
           description={listing?.description ?? providerData?.description ?? undefined}
           actions={
             <>
-            <OpenExplorerButton
-              variant="outline"
-              disabled={!providerData?.id}
+              <OpenExplorerButton
+                variant="outline"
+                disabled={!providerData?.id}
                 to={Paths.instance.explorer(organization.data, project.data, instance.data, {
                   provider_id: providerData?.id
                 })}
-            />
+              />
 
               <UseProviderButton
                 providerId={providerData?.id}

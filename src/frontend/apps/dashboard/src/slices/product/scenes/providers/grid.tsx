@@ -60,8 +60,8 @@ export let ProvidersGrid = ({ mode = 'default', ...filter }: ProvidersGridProps)
           width={isHome ? '220px' : '300px'}
         >
           {providers.data.items.map(listing => {
-            let providerId = listing.provider?.id;
-            if (!providerId) return null;
+            let providerSlug = listing.provider?.slug;
+            if (!providerSlug) return null;
 
             let description = listing.description
               ? listing.description.slice(0, 100) +
@@ -72,7 +72,7 @@ export let ProvidersGrid = ({ mode = 'default', ...filter }: ProvidersGridProps)
               instance.data?.organization,
               instance.data?.project,
               instance.data,
-              providerId
+              providerSlug
             );
 
             return (

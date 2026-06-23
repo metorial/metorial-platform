@@ -43,7 +43,7 @@ export let ProvidersTable = ({
               instance.data?.organization,
               instance.data?.project,
               instance.data,
-              provider.id
+              provider.slug
             )
           }))}
       />
