@@ -40,6 +40,23 @@ export let assertMagicMcpTargetLinkedResourcesActive = async (
     );
   }
 
+  if (target.target.servers?.length) {
+    let hasInactiveServer = target.target.servers.some(
+      server => server.magicMcpServer.status !== 'active'
+    );
+
+    if (hasInactiveServer) {
+      throw new ServiceError(
+        preconditionFailedError({
+          message:
+            'The magic MCP endpoint is linked to one or more magic MCP servers that are no longer active'
+        })
+      );
+    }
+
+    return;
+  }
+
   let inactiveEndpointServerCount = await db.magicMcpEndpointServer.count({
     where: {
       magicMcpEndpointOid: target.target.oid,

@@ -1,5 +1,6 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
+import { differenceInMinutes } from 'date-fns';
 import { db } from '../../../db';
 import { getId } from '../../../id';
 import { OAuthDiscovery } from '../../../lib/oauth/discovery';
@@ -11,7 +12,9 @@ class remoteOAuthDiscoveryServiceImpl {
     let existingDoc = await db.remoteOAuthDiscoveryDocument.findUnique({
       where: { discoveryUrl: d.discoveryUrl }
     });
-    if (existingDoc) return existingDoc;
+    if (existingDoc && differenceInMinutes(new Date(), existingDoc.refreshedAt) < 15) {
+      return existingDoc;
+    }
 
     let doc = await OAuthDiscovery.discover(d.discoveryUrl);
     if (!doc) {

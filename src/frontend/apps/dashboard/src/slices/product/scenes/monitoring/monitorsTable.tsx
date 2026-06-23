@@ -146,7 +146,7 @@ let monitorsTable = new DashboardTable<MonitorsTableStateProps, Monitor>('monito
     {
       id: 'protoGuardFilterId',
       isDefault: false,
-      header: 'ProtoGuard Filter ID',
+      header: 'Protoguard Filter ID',
       render: monitor => monitor.protoGuardFilterId && <ID id={monitor.protoGuardFilterId} />
     },
     {
@@ -164,7 +164,7 @@ let monitorsTable = new DashboardTable<MonitorsTableStateProps, Monitor>('monito
       description: 'Filter by monitor target',
       type: 'select',
       options: [
-        { id: 'protoguard_filter', label: 'ProtoGuard Filter' },
+        { id: 'protoguard_filter', label: 'Protoguard Filter' },
         { id: 'schema_change', label: 'Schema Change' }
       ]
     },
@@ -196,8 +196,8 @@ let monitorsTable = new DashboardTable<MonitorsTableStateProps, Monitor>('monito
     {
       id: 'protoGuardFilterId',
       fields: ['protoGuardFilterId'],
-      label: 'ProtoGuard Filter ID',
-      description: 'Filter by ProtoGuard filter ID',
+      label: 'Protoguard Filter ID',
+      description: 'Filter by Protoguard filter ID',
       type: 'string'
     },
     {

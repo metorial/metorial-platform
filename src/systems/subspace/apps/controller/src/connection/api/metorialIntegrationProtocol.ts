@@ -82,7 +82,9 @@ export let metorialIntegrationProtocolRouter = createHono()
       throw new ServiceError(
         preconditionFailedError({
           message:
-            'Tool discovery failed for this connection. Please ensure that the provider supports tool discovery and that the connection is properly configured.'
+            toolRes.mcpError?.message ??
+            'Tool discovery failed for this connection. Please ensure that the provider supports tool discovery and that the connection is properly configured.',
+          _mcpError: toolRes.mcpError
         })
       );
     }

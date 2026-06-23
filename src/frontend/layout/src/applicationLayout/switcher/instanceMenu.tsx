@@ -266,7 +266,7 @@ export let SandboxButton = () => {
       }}
     >
       <Button size="2" color="gray400" shadow={false}>
-        Sandboxes
+        {instance.data?.type === 'development' ? 'Exit Sandbox' : 'Sandboxes'}
       </Button>
     </Menu>
   );

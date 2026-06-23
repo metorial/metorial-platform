@@ -79,11 +79,12 @@ export type MachineAccessInput =
 
 export type OAuthApplicationCreateInput = {
   status?: 'active' | 'archived';
-  type: 'user_facing' | 'server_side' | 'cli_auth';
+  type: 'user_facing' | 'server_side' | 'cli_auth' | 'internal';
   accessLevel: 'organization' | 'global';
+  systemIdentifier?: string | null;
   allowClientSecretlessTokenExchange?: boolean;
   name: string;
-  description?: string;
+  description?: string | null;
   websiteUrl?: string;
   privacyPolicyUrl?: string;
   termsOfServiceUrl?: string;
@@ -206,6 +207,8 @@ export interface FabricEvents {
   'organization.project.retention.updated:after': { organization: Organization, project: Project, performedBy: OrganizationActor; context?: Context; input: { logRetentionInDays?: number; enforceSessionExpiry?: boolean } };
   'organization.project.auth_config_configuration.updated:before': { organization: Organization, project: Project, performedBy: OrganizationActor; context?: Context; input: { allowAuthConfigExport?: boolean; allowAuthConfigImport?: boolean } };
   'organization.project.auth_config_configuration.updated:after': { organization: Organization, project: Project, performedBy: OrganizationActor; context?: Context; input: { allowAuthConfigExport?: boolean; allowAuthConfigImport?: boolean }; configuration: { allowAuthConfigExport: boolean; allowAuthConfigImport: boolean } };
+  'organization.project.integration_naming_configuration.updated:before': { organization: Organization, project: Project, performedBy: OrganizationActor; context?: Context; input: { useIntegrationNames?: boolean } };
+  'organization.project.integration_naming_configuration.updated:after': { organization: Organization, project: Project, performedBy: OrganizationActor; context?: Context; input: { useIntegrationNames?: boolean }; configuration: { useIntegrationNames: boolean } };
   'organization.project.tool_calling_configuration.updated:before': { organization: Organization, project: Project, performedBy: OrganizationActor; context?: Context; input: { collectOperationDescriptionForToolCalls?: boolean } };
   'organization.project.tool_calling_configuration.updated:after': { organization: Organization, project: Project, performedBy: OrganizationActor; context?: Context; input: { collectOperationDescriptionForToolCalls?: boolean }; configuration: { collectOperationDescriptionForToolCalls: boolean } };
   'organization.project.deleted:before': { organization: Organization, project: Project, performedBy: OrganizationActor; context?: Context };

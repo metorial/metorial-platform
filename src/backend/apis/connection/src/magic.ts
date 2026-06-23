@@ -5,12 +5,17 @@ import {
   unauthorizedError
 } from '@lowerdeck/error';
 import { createExecutionContext, provideExecutionContext } from '@lowerdeck/execution-context';
+import type { Context } from '@lowerdeck/hono';
 import { useRequestContext } from '@lowerdeck/hono';
+import { getSentry } from '@lowerdeck/sentry';
 import { extractToken } from '@metorial/bearer';
 import { Instance } from '@metorial/db';
 import { generateSnowflakeId } from '@metorial/id';
 import { AuthInfo } from '@metorial/module-access';
-import { consumerIntegrationService } from '@metorial/module-consumer';
+import {
+  consumerIntegrationService,
+  enqueueMaterializeMagicMcpSessionOwnership
+} from '@metorial/module-consumer';
 import {
   ensureMagicMcpSubspaceSession,
   magicMcpEndpointService,
@@ -25,8 +30,9 @@ import {
   type SubspaceProxyAgentClient
 } from '@metorial/module-subspace';
 import { Authenticator } from '@metorial/rest';
-import type { Context } from '@lowerdeck/hono';
 import { authenticateAndResolveInstance } from './getSession';
+
+let Sentry = getSentry();
 
 type MagicMcpTargetForRouting = Awaited<ReturnType<typeof resolveMagicMcpTargetByIdOrAlias>>;
 type MagicMcpTokenForRouting = Awaited<
@@ -85,6 +91,17 @@ let resolveMagicMcpTargetFromToken = async (d: { token: MagicMcpTokenForRouting 
   }
 
   return await resolveMagicMcpTargetByIdOrAlias(magicMcpTargetIdOrAlias);
+};
+
+let isMagicMcpTokenLinkedToTarget = (
+  token: MagicMcpTokenForRouting,
+  target: MagicMcpTargetForRouting
+) => {
+  if (target.type === 'server') {
+    return token.magicMcpServerOid === target.target.oid;
+  }
+
+  return token.magicMcpEndpointOid === target.target.oid;
 };
 
 let toApiKeyRequest = (request: Request, tokenSecret: string | null) => {
@@ -173,6 +190,7 @@ let resolveAgentClientForConsumerToken = (d: {
 
 export let resolveMagicMcpSubspaceSession = async (d: {
   magicMcpTargetIdOrAlias?: string;
+  magicMcpTarget?: MagicMcpTargetForRouting | null;
   instanceForTokenRouting?: Instance;
   request: Request;
   url: URL;
@@ -191,9 +209,11 @@ export let resolveMagicMcpSubspaceSession = async (d: {
     );
   }
 
-  let magicMcpTarget = d.magicMcpTargetIdOrAlias
-    ? await resolveMagicMcpTargetByIdOrAliasSafe(d.magicMcpTargetIdOrAlias)
-    : null;
+  let magicMcpTarget = d.magicMcpTarget
+    ? d.magicMcpTarget
+    : d.magicMcpTargetIdOrAlias
+      ? await resolveMagicMcpTargetByIdOrAliasSafe(d.magicMcpTargetIdOrAlias)
+      : null;
 
   let instance = magicMcpTarget?.target.instance ?? d.instanceForTokenRouting;
 
@@ -206,7 +226,9 @@ export let resolveMagicMcpSubspaceSession = async (d: {
 
   if (
     magicMcpToken &&
-    (!magicMcpTarget || magicMcpToken?.magicMcpEndpointOid || magicMcpToken?.magicMcpServerOid)
+    (!magicMcpTarget ||
+      ((magicMcpToken.magicMcpEndpointOid || magicMcpToken.magicMcpServerOid) &&
+        !isMagicMcpTokenLinkedToTarget(magicMcpToken, magicMcpTarget)))
   ) {
     let tokenTarget = await resolveMagicMcpTargetFromToken({ token: magicMcpToken });
 
@@ -237,13 +259,15 @@ export let resolveMagicMcpSubspaceSession = async (d: {
       magicMcpTarget
     });
 
-    await magicMcpTokenService.recordMagicMcpTokenUse({
-      token: magicMcpToken,
-      server: magicMcpTarget.type === 'server' ? magicMcpTarget.target : undefined,
-      endpoint: magicMcpTarget.type === 'endpoint' ? magicMcpTarget.target : undefined,
-      ip: d.ip,
-      ua: d.ua
-    });
+    magicMcpTokenService
+      .recordMagicMcpTokenUse({
+        token: magicMcpToken,
+        server: magicMcpTarget.type === 'server' ? magicMcpTarget.target : undefined,
+        endpoint: magicMcpTarget.type === 'endpoint' ? magicMcpTarget.target : undefined,
+        ip: d.ip,
+        ua: d.ua
+      })
+      .catch(error => Sentry.captureException(error));
   } else {
     consumerProfileForOwnership = await ensureMagicMcpApiKeyAccess({
       tokenSecret,
@@ -277,6 +301,7 @@ export let resolveMagicMcpSubspaceSession = async (d: {
 export let handleMagicMcpRequest = async (d: {
   c: Context;
   magicMcpTargetIdOrAlias?: string;
+  magicMcpTarget?: MagicMcpTargetForRouting | null;
   instanceForTokenRouting?: Instance;
   authenticate: Authenticator<AuthInfo>;
 }) => {
@@ -294,6 +319,7 @@ export let handleMagicMcpRequest = async (d: {
     async () => {
       let sessionInfo = await resolveMagicMcpSubspaceSession({
         magicMcpTargetIdOrAlias: d.magicMcpTargetIdOrAlias,
+        magicMcpTarget: d.magicMcpTarget,
         instanceForTokenRouting: d.instanceForTokenRouting,
         request,
         url,
@@ -317,11 +343,22 @@ export let handleMagicMcpRequest = async (d: {
               sessionInfo.subspaceSessionId
             );
             if (!sessionInfo.consumerProfileForOwnership) return;
+            if (magicMcpSession.isConsumerReconciled) return;
 
-            await consumerIntegrationService.materializeMagicMcpSessionOwnership({
-              consumerProfile: sessionInfo.consumerProfileForOwnership,
-              magicMcpTarget: sessionInfo.magicMcpTarget,
-              magicMcpSession
+            await enqueueMaterializeMagicMcpSessionOwnership({
+              consumerProfileOid: sessionInfo.consumerProfileForOwnership.oid.toString(),
+              magicMcpSessionOid: magicMcpSession.oid.toString(),
+              magicMcpTokenId: sessionInfo.magicMcpToken?.id,
+              magicMcpTarget:
+                sessionInfo.magicMcpTarget.type === 'server'
+                  ? {
+                      type: 'server',
+                      magicMcpServerId: sessionInfo.magicMcpTarget.target.id
+                    }
+                  : {
+                      type: 'endpoint',
+                      magicMcpEndpointId: sessionInfo.magicMcpTarget.target.id
+                    }
             });
           }
         }

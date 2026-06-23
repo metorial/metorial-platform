@@ -2,6 +2,7 @@ export * from './assistant';
 export * from './authConfigConfiguration';
 export * from './boot';
 export * from './flags';
+export * from './integrationNamingConfiguration';
 export * from './keyProvider';
 export * from './oauthAuthorizationRequest';
 export * from './organization';

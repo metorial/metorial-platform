@@ -22,6 +22,8 @@ model Tenant {
   onlyAllowTrustedProviders Boolean @default(false)
   isWhitelabel              Boolean @default(false)
 
+  useIntegrationNamesForSessionProviderNameTemplates Boolean @default(false)
+
   createdAt DateTime @default(now())
 
   logRetentionInDays   Int     @default(30)

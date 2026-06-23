@@ -134,9 +134,10 @@ export let sessionProviderController = app.controller({
       });
 
       let list = await paginator.run(ctx.input);
-      list.items = await sessionProviderNameTemplateService.ensureForSessionProviders(
-        list.items
-      );
+      list.items = await sessionProviderNameTemplateService.ensureForSessionProviders({
+        tenant: ctx.tenant,
+        providers: list.items
+      });
 
       return Paginator.presentLight(list, sessionProviderPresenter);
     }),

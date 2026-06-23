@@ -1,5 +1,9 @@
 import { withTracingSuppressed } from '@lowerdeck/telemetry';
 import { db } from '@metorial-subspace/db';
+import {
+  checkConduitHeartbeat,
+  checkNatsHealth
+} from '@metorial-subspace/module-connection/src/health';
 import { syncProtoGuardFilters } from '@metorial-subspace/module-connection/src/protoguard/registry';
 import { RedisClient } from 'bun';
 import { subspaceControllerApi } from './controllers';
@@ -27,6 +31,9 @@ if (process.env.NODE_ENV === 'production') {
           await db.backend.count();
 
           await redis.ping();
+
+          await checkNatsHealth();
+          await checkConduitHeartbeat();
 
           return new Response('OK');
         } catch (e) {

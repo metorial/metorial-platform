@@ -1,31 +1,23 @@
+import { ProviderListingsGetOutput } from '@metorial/dashboard-sdk';
 import { theme } from '@metorial/ui';
 import React from 'react';
 import styled from 'styled-components';
 
-export type ProviderDocReference = {
-  type?: string | null;
-  name: string;
-  url: string;
-};
+type ProviderListingDocs = ProviderListingsGetOutput['docs'];
 
-type ProviderListingDocs = {
-  provider?: ProviderDocReference[] | null;
-  config?: ProviderDocReference[] | null;
-  auth_methods?:
-    | {
-        key?: string | null;
-        name?: string | null;
-        type?: string | null;
-        docs?: ProviderDocReference[] | null;
-      }[]
-    | null;
-};
+export type ProviderDocReference =
+  NonNullable<ProviderListingDocs>['authMethods'][number]['docs'][number];
 
 type AuthMethodDocTarget = {
   key?: string | null;
   name?: string | null;
   type?: string | null;
 };
+
+export let AUTH_METHOD_DOC_TYPES = {
+  oauth: 'docs.auth.oauth',
+  oauthScopes: 'docs.auth.oauth_scopes'
+} as const;
 
 let DocsLink = styled.a`
   display: inline-flex;
@@ -50,9 +42,6 @@ let getDocs = (providerListing: unknown): ProviderListingDocs | null => {
   return docs as ProviderListingDocs;
 };
 
-let getFirstDoc = (docs: ProviderDocReference[] | null | undefined) =>
-  (docs ?? []).find(doc => !!doc?.url) ?? null;
-
 let matchesAuthMethod = (
   docMethod: AuthMethodDocTarget,
   authMethod?: AuthMethodDocTarget | null
@@ -66,27 +55,38 @@ let matchesAuthMethod = (
   return false;
 };
 
-export let getProviderDoc = (providerListing: unknown) =>
-  getFirstDoc(getDocs(providerListing)?.provider);
-
-export let getConfigDoc = (providerListing: unknown) =>
-  getFirstDoc(getDocs(providerListing)?.config);
-
-export let getAuthMethodDoc = (
+let findAuthMethodDocs = (
   providerListing: unknown,
   authMethod?: AuthMethodDocTarget | null
-) => {
+): ProviderDocReference[] => {
   let docs = getDocs(providerListing);
-  let authMethodDocs = docs?.auth_methods ?? [];
-  let exactMatch = authMethodDocs.find(docMethod => matchesAuthMethod(docMethod, authMethod));
+  if (!docs || !authMethod) return [];
 
-  return (
-    getFirstDoc(exactMatch?.docs) ?? getFirstDoc(authMethodDocs.flatMap(m => m.docs ?? []))
+  let authMethodEntry = (docs.authMethods ?? []).find(entry =>
+    matchesAuthMethod(entry, authMethod)
   );
+
+  return authMethodEntry?.docs ?? [];
 };
 
-export let getScopeDoc = (providerListing: unknown, authMethod?: AuthMethodDocTarget | null) =>
-  getAuthMethodDoc(providerListing, authMethod) ?? getProviderDoc(providerListing);
+let findAuthMethodDocByType = (
+  providerListing: unknown,
+  authMethod: AuthMethodDocTarget | null | undefined,
+  type: string
+) =>
+  findAuthMethodDocs(providerListing, authMethod).find(
+    doc => doc.type === type && !!doc.url
+  ) ?? null;
+
+export let getAuthMethodOAuthDoc = (
+  providerListing: unknown,
+  authMethod?: AuthMethodDocTarget | null
+) => findAuthMethodDocByType(providerListing, authMethod, AUTH_METHOD_DOC_TYPES.oauth);
+
+export let getAuthMethodOAuthScopesDoc = (
+  providerListing: unknown,
+  authMethod?: AuthMethodDocTarget | null
+) => findAuthMethodDocByType(providerListing, authMethod, AUTH_METHOD_DOC_TYPES.oauthScopes);
 
 export let ProviderDocsLink = ({
   doc,

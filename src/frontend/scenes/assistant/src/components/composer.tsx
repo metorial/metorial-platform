@@ -1,6 +1,6 @@
-import React, { useMemo } from 'react';
-import { Select, Text, theme } from '@metorial/ui';
+import { Select, theme } from '@metorial/ui';
 import { RiArrowUpLine } from '@remixicon/react';
+import { useMemo, useRef } from 'react';
 import TextareaAutosize from 'react-textarea-autosize';
 import styled from 'styled-components';
 import { AssistantSuggestions } from './suggestions';
@@ -11,7 +11,9 @@ let ComposerRoot = styled.div`
   flex-direction: column;
   gap: 16px;
   width: 100%;
+  min-width: 0;
   margin: 0 auto;
+  box-sizing: border-box;
 `;
 
 let ComposerCard = styled.div`
@@ -20,13 +22,13 @@ let ComposerCard = styled.div`
   flex-direction: column;
   gap: 12px;
   width: 100%;
-  background: ${theme.colors.gray100};
-  border: 1px solid color-mix(in srgb, ${theme.colors.foreground} 10%, transparent);
-  border-radius: 22px;
+  min-width: 0;
+  box-sizing: border-box;
+  /* background: ${theme.colors.gray100}; */
+  border: 1px solid ${theme.colors.gray400};
+  border-radius: 12px;
   padding: 14px 14px 10px;
-  box-shadow:
-    0 1px 2px rgba(15, 23, 42, 0.05),
-    0 10px 30px rgba(15, 23, 42, 0.04);
+  box-shadow: ${theme.shadows.small};
   transition:
     border-color 120ms ease,
     box-shadow 120ms ease,
@@ -35,6 +37,7 @@ let ComposerCard = styled.div`
 
 let ComposerInput = styled(TextareaAutosize)`
   width: 100%;
+  box-sizing: border-box;
   min-height: 44px;
   max-height: 132px;
   resize: none;
@@ -57,6 +60,7 @@ let ComposerFooter = styled.div`
   gap: 12px;
   align-items: center;
   justify-content: space-between;
+  min-width: 0;
 `;
 
 let FooterLeft = styled.div`
@@ -64,22 +68,18 @@ let FooterLeft = styled.div`
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+  flex: 1 1 auto;
   min-width: 0;
 `;
 
 let ModelSelectWrap = styled.div`
-  width: 320px;
+  width: 100%;
   max-width: 100%;
+  min-width: 0;
+  max-width: 200px;
 `;
 
-let HintText = styled(Text).attrs({
-  size: '1'
-})`
-  color: color-mix(in srgb, ${theme.colors.foreground} 58%, transparent);
-  white-space: nowrap;
-`;
-
-let SendButton = styled.button<{ $disabled?: boolean }>`
+let SendButton = styled.button<{ 'data-disabled'?: 'true' | 'false' }>`
   display: flex;
   align-items: center;
   justify-content: center;
@@ -89,22 +89,23 @@ let SendButton = styled.button<{ $disabled?: boolean }>`
   border: none;
   border-radius: 999px;
   background: ${p =>
-    p.$disabled
+    p['data-disabled'] == 'true'
       ? `color-mix(in srgb, ${theme.colors.foreground} 10%, ${theme.colors.background})`
       : theme.colors.foreground};
-  color: ${p => (p.$disabled ? theme.colors.gray700 : theme.colors.background)};
-  cursor: ${p => (p.$disabled ? 'not-allowed' : 'pointer')};
+  color: ${p =>
+    p['data-disabled'] == 'true' ? theme.colors.gray700 : theme.colors.background};
+  cursor: ${p => (p['data-disabled'] == 'true' ? 'not-allowed' : 'pointer')};
   transition:
     background 120ms ease,
     transform 120ms ease,
     opacity 120ms ease;
 
   &:hover {
-    transform: ${p => (p.$disabled ? 'none' : 'translateY(-1px)')};
+    transform: ${p => (p['data-disabled'] == 'true' ? 'none' : 'translateY(-1px)')};
   }
 
   &:active {
-    transform: ${p => (p.$disabled ? 'none' : 'translateY(0) scale(0.98)')};
+    transform: ${p => (p['data-disabled'] == 'true' ? 'none' : 'translateY(0) scale(0.98)')};
   }
 `;
 
@@ -112,6 +113,7 @@ let SuggestionsWrap = styled.div`
   display: flex;
   justify-content: flex-start;
   width: 100%;
+  min-width: 0;
 `;
 
 export let AssistantComposer = (p: {
@@ -123,11 +125,13 @@ export let AssistantComposer = (p: {
   placeholder?: string;
   selectedModelId?: string;
   modelOptions?: AssistantModelOption[];
+  modelSelectorDisabled?: boolean;
   onSelectModel?: (modelId: string) => void;
   suggestions?: AssistantSuggestion[];
   onSelectSuggestion?: (suggestion: AssistantSuggestion) => void;
   submitLabel?: string;
 }) => {
+  let inputRef = useRef<HTMLTextAreaElement | null>(null);
   let modelItems = useMemo(
     () =>
       (p.modelOptions ?? []).map(option => ({
@@ -139,15 +143,20 @@ export let AssistantComposer = (p: {
 
   let canSubmit = !!p.value.trim() && !p.isSubmitting && !p.disabled;
   let selectedModelId = p.selectedModelId ?? p.modelOptions?.[0]?.id;
+  let handleSelectSuggestion = (suggestion: AssistantSuggestion) => {
+    p.onSelectSuggestion?.(suggestion);
+    requestAnimationFrame(() => inputRef.current?.focus());
+  };
 
   return (
     <ComposerRoot>
       <ComposerCard>
         <ComposerInput
+          ref={inputRef}
           value={p.value}
           disabled={p.disabled}
           minRows={1}
-          placeholder={p.placeholder ?? 'Ask the Metorial Assistant...'}
+          placeholder={p.placeholder ?? 'How can I help you?'}
           onChange={event => p.onChange(event.currentTarget.value)}
           onKeyDown={event => {
             if (event.key == 'Enter' && !event.shiftKey) {
@@ -164,7 +173,7 @@ export let AssistantComposer = (p: {
                 <Select
                   label="Model"
                   hideLabel
-                  disabled={p.disabled}
+                  disabled={p.disabled || p.modelSelectorDisabled}
                   placeholder="Auto"
                   value={selectedModelId}
                   onChange={value => p.onSelectModel?.(value)}
@@ -176,7 +185,7 @@ export let AssistantComposer = (p: {
 
           <SendButton
             type="button"
-            $disabled={!canSubmit}
+            data-disabled={canSubmit ? 'false' : 'true'}
             disabled={!canSubmit}
             onClick={p.onSubmit}
             aria-label={p.submitLabel ?? 'Send'}
@@ -192,7 +201,7 @@ export let AssistantComposer = (p: {
           <AssistantSuggestions
             suggestions={p.suggestions}
             disabled={p.disabled || p.isSubmitting}
-            onSelect={p.onSelectSuggestion}
+            onSelect={handleSelectSuggestion}
           />
         </SuggestionsWrap>
       )}

@@ -36,6 +36,47 @@ let Description = styled.span`
   -webkit-box-orient: vertical;
 `;
 
+export let SkillTemplateGridCard = (p: {
+  skillTemplate: {
+    id: string;
+    name: string;
+    description?: string | null;
+    slug: string;
+  };
+  onClick?: () => void;
+  menu?: {
+    label: string;
+    onClick: () => void;
+  }[];
+}) => (
+  <ItemGrid.Item
+    entity={{ id: p.skillTemplate.id, hasUsage: true }}
+    title={p.skillTemplate.name}
+    description={
+      <Description>
+        {p.skillTemplate.description || 'No description provided yet.'}
+      </Description>
+    }
+    height={200}
+    onClick={p.onClick}
+    menu={p.menu}
+    icon={
+      <Avatar
+        entity={{
+          name: p.skillTemplate.name,
+          imageUrl: `https://avatar-cdn.metorial.com/${p.skillTemplate.id}`
+        }}
+        size={30}
+      />
+    }
+    bottom={
+      <div style={{ display: 'flex' }}>
+        <Alias>{p.skillTemplate.slug}</Alias>
+      </div>
+    }
+  />
+);
+
 export let SkillTemplatesGrid = (
   p: { instanceId: string } & Omit<
     DashboardInstanceSkillsTemplatesListQuery,
@@ -144,16 +185,9 @@ export let SkillTemplatesGrid = (
       {skillTemplates.data.items.length > 0 && (
         <ItemGrid.Root width="300px">
           {skillTemplates.data.items.map(skillTemplate => (
-            <ItemGrid.Item
+            <SkillTemplateGridCard
               key={skillTemplate.id}
-              entity={{ id: skillTemplate.id, hasUsage: true }}
-              title={skillTemplate.name}
-              description={
-                <Description>
-                  {skillTemplate.description || 'No description provided yet.'}
-                </Description>
-              }
-              height={200}
+              skillTemplate={skillTemplate}
               onClick={() =>
                 navigate(
                   Paths.instance.skillTemplate(
@@ -170,20 +204,6 @@ export let SkillTemplatesGrid = (
                   onClick: () => cloneAsSkill(skillTemplate)
                 }
               ]}
-              icon={
-                <Avatar
-                  entity={{
-                    name: skillTemplate.name,
-                    imageUrl: `https://avatar-cdn.metorial.com/${skillTemplate.id}`
-                  }}
-                  size={30}
-                />
-              }
-              bottom={
-                <div style={{ display: 'flex' }}>
-                  <Alias>{skillTemplate.slug}</Alias>
-                </div>
-              }
             />
           ))}
         </ItemGrid.Root>

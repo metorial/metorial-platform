@@ -25,6 +25,7 @@ export type SkillsTemplatesGetOutput = {
         canAttachCustomToolFilters: boolean;
         canAttachCustomProviderConfig: boolean;
         canOverrideToolFilters: boolean;
+        useIntegrationNameInToolNames: boolean | null;
       };
       createdAt: Date;
       updatedAt: Date;
@@ -89,6 +90,10 @@ export let mapSkillsTemplatesGetOutput = mtMap.object<SkillsTemplatesGetOutput>(
                   ),
                   canOverrideToolFilters: mtMap.objectField(
                     'can_override_tool_filters',
+                    mtMap.passthrough()
+                  ),
+                  useIntegrationNameInToolNames: mtMap.objectField(
+                    'use_integration_name_in_tool_names',
                     mtMap.passthrough()
                   )
                 })

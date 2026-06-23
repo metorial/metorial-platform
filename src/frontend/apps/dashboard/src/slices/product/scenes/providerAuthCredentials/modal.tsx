@@ -24,9 +24,8 @@ import {
 import { useEffect, useMemo, useState } from 'react';
 import { useProviderAuthCreationCapabilities } from '../../lib/providerCreationCapabilities';
 import {
-  getConfigDoc,
-  getProviderDoc,
-  getScopeDoc,
+  getAuthMethodOAuthDoc,
+  getAuthMethodOAuthScopesDoc,
   ProviderDocsLink
 } from '../../lib/providerDocs';
 import { ScopePickerField } from '../../pages/(deployments)/provider-auth-credential/components/scopePicker';
@@ -76,9 +75,8 @@ export let ProviderAuthCredentialsForm = ({
   let oauthMethodName = oauthMethod?.name ?? 'OAuth';
   let authCreation = useProviderAuthCreationCapabilities(instanceId, deploymentId, providerId);
   let providerListing = useProviderListing(instanceId, providerId);
-  let providerDoc = getProviderDoc(providerListing.data);
-  let configDoc = getConfigDoc(providerListing.data);
-  let scopeDoc = getScopeDoc(providerListing.data, oauthMethod);
+  let oauthDoc = getAuthMethodOAuthDoc(providerListing.data, oauthMethod);
+  let oauthScopesDoc = getAuthMethodOAuthScopesDoc(providerListing.data, oauthMethod);
   let availableScopes = oauthMethod?.scopes ?? [];
   let defaultScopes = useMemo(
     () => availableScopes.map(scope => scope.scope),
@@ -216,12 +214,15 @@ export let ProviderAuthCredentialsForm = ({
               Redirect URI
             </Text>
             <Text size="1" color="gray600" style={{ marginBottom: 5 }}>
-              You must configure this redirect URI in your OAuth app.
-              {configDoc ? (
-                <>
-                  <ProviderDocsLink doc={configDoc}>View config docs</ProviderDocsLink>
-                </>
-              ) : null}
+              <span>
+                You must configure this redirect URI in your OAuth app.
+                {oauthDoc ? (
+                  <>
+                    {' '}
+                    <ProviderDocsLink doc={oauthDoc} />
+                  </>
+                ) : null}
+              </span>
             </Text>
             <Copy value={redirectUri} />
             <Spacer size={10} />
@@ -241,7 +242,7 @@ export let ProviderAuthCredentialsForm = ({
         <Input
           label="Client ID"
           placeholder="Enter client ID from provider"
-          help={<ProviderDocsLink doc={providerDoc}>Provider docs</ProviderDocsLink>}
+          help={<ProviderDocsLink doc={oauthDoc} />}
           required
           {...form.getFieldProps('clientId')}
         />
@@ -265,7 +266,7 @@ export let ProviderAuthCredentialsForm = ({
               scopes={availableScopes}
               selectedScopes={effectiveScopes}
               onSelectedScopesChange={setSelectedScopes}
-              help={<ProviderDocsLink doc={scopeDoc}>Scope docs</ProviderDocsLink>}
+              help={<ProviderDocsLink doc={oauthScopesDoc} />}
             />
           </>
         )}

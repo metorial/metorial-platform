@@ -11,7 +11,7 @@ import {
 import { Avatar, Text, theme } from '@metorial/ui';
 import { ItemGrid } from '@metorial/ui-product';
 import { useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { styled } from 'styled-components';
 import { EmptyState } from '../../../../components/emptyState';
 import { showCreateIntegrationProviderFirstFlow } from './providerPanelFlow';
@@ -120,60 +120,56 @@ export let IntegrationsGrid = (
                 let visibleProviders = (integration.providers ?? []).slice(0, 5);
 
                 return (
-                  <Link
+                  <ItemGrid.Item
                     key={integration.id}
-                    to={Paths.instance.integration(
+                    href={Paths.instance.integration(
                       organization.data,
                       project.data,
                       instance.data,
                       integration.id
                     )}
-                    style={{ textDecoration: 'none', color: 'inherit' }}
-                  >
-                    <ItemGrid.Item
-                      entity={{ id: integration.id, hasUsage: true }}
-                      title={integration.name}
-                      description={integration.description}
-                      height={220}
-                      icon={
-                        visibleProviders.length > 0 ? (
-                          <ProviderAvatarStack>
-                            {visibleProviders.map((provider, idx) => {
-                              let listing = listingLookup.get(provider.provider.id);
-                              let name =
-                                listing?.name ??
-                                provider.provider.name ??
-                                provider.provider.slug;
+                    entity={{ id: integration.id, hasUsage: true }}
+                    title={integration.name}
+                    description={integration.description}
+                    height={220}
+                    icon={
+                      visibleProviders.length > 0 ? (
+                        <ProviderAvatarStack>
+                          {visibleProviders.map((provider, idx) => {
+                            let listing = listingLookup.get(provider.provider.id);
+                            let name =
+                              listing?.name ??
+                              provider.provider.name ??
+                              provider.provider.slug;
 
-                              return (
-                                <ProviderAvatarItem
-                                  key={provider.id ?? provider.provider.id}
-                                  $index={idx}
-                                >
-                                  <Avatar
-                                    entity={{
-                                      name,
-                                      photoUrl: listing?.imageUrl ?? undefined
-                                    }}
-                                    size={30}
-                                    noTooltip
-                                    imageFit="contain"
-                                  />
-                                </ProviderAvatarItem>
-                              );
-                            })}
-                          </ProviderAvatarStack>
-                        ) : (
-                          <Avatar entity={integration} size={30} />
-                        )
-                      }
-                      bottom={
-                        <div style={{ display: 'flex' }}>
-                          <Alias>{integration.slug}</Alias>
-                        </div>
-                      }
-                    />
-                  </Link>
+                            return (
+                              <ProviderAvatarItem
+                                key={provider.id ?? provider.provider.id}
+                                $index={idx}
+                              >
+                                <Avatar
+                                  entity={{
+                                    name,
+                                    photoUrl: listing?.imageUrl ?? undefined
+                                  }}
+                                  size={30}
+                                  noTooltip
+                                  imageFit="contain"
+                                />
+                              </ProviderAvatarItem>
+                            );
+                          })}
+                        </ProviderAvatarStack>
+                      ) : (
+                        <Avatar entity={integration} size={30} />
+                      )
+                    }
+                    bottom={
+                      <div style={{ display: 'flex' }}>
+                        <Alias>{integration.slug}</Alias>
+                      </div>
+                    }
+                  />
                 );
               })}
             </ItemGrid.Root>

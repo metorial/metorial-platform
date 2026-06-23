@@ -27,7 +27,7 @@ export let MonitorStatusBadge = ({ status }: { status: string }) => {
 export let MonitorTargetBadge = ({ target }: { target: string }) => {
   return (
     <Badge color={target === 'protoguard_filter' ? 'purple' : 'blue'}>
-      {target === 'protoguard_filter' ? 'ProtoGuard Filter' : 'Schema Change'}
+      {target === 'protoguard_filter' ? 'Protoguard Filter' : 'Schema Change'}
     </Badge>
   );
 };

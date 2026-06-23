@@ -34,7 +34,7 @@ import {
   subspaceMagicMcpBackingService,
   subspaceSessionTemplateService
 } from '@metorial/module-subspace';
-import { ensureMagicMcpServerBacking } from '../lib/backing';
+import { ensureMagicMcpServerBacking, type ConsumerOwner } from '../lib/backing';
 import {
   magicMcpServerCreatedQueue,
   magicMcpServerDeletedQueue,
@@ -44,6 +44,24 @@ import { getAccessTagFilter, getActiveStatusFilter } from './consumerAccess';
 
 let include = {
   aliases: true,
+  accessTagEntities: {
+    include: {
+      accessTagPolicy: true,
+      accessTag: {
+        include: {
+          consumerGroup: {
+            include: {
+              personalOwner: {
+                include: {
+                  consumer: true
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
   consumerIntegrations: {
     include: {
       consumer: true,
@@ -56,6 +74,18 @@ let include = {
 type MagicMcpServerWithRelations = Prisma.MagicMcpServerGetPayload<{
   include: typeof include;
 }>;
+
+export type MagicMcpServerOwnerFilter = 'organization' | 'consumer';
+
+let getOwnerSources = (owners?: MagicMcpServerOwnerFilter[]) => {
+  if (!owners?.length) return undefined;
+
+  let sources = new Set<MagicMcpServerSource>();
+  if (owners.includes('organization')) sources.add('manual');
+  if (owners.includes('consumer')) sources.add('consumer_provider_template');
+
+  return Array.from(sources);
+};
 
 let buildAlias = (name?: string | null) => {
   let base = slugify(name ?? '');
@@ -191,6 +221,7 @@ class MagicMcpServerImpl {
         providerAuthConfigId?: string | null;
         toolFilters?: any;
       }[];
+      consumerOwner?: ConsumerOwner;
     };
   }) {
     await Fabric.fire('magic_mcp.server.created:before', {
@@ -198,35 +229,39 @@ class MagicMcpServerImpl {
       instance: d.instance
     });
 
-    let magicMcpServer = await withTransaction(async db => {
-      return await db.magicMcpServer.create({
-        data: {
-          id: await ID.generateId('magicMcpServer'),
-          status: 'active',
-          source: d.input.source ?? 'manual',
-          isConsumerReconciled: true,
-          isSubspaceBackingReconciling: true,
-          providerTemplateId: d.input.providerTemplateId,
-          subspaceIntegrationInstanceId: d.input.subspaceIntegrationInstanceId,
-          name: d.input.name,
-          description: d.input.description,
-          metadata: d.input.metadata ?? {},
-          instanceOid: d.instance.oid,
-          aliases: {
-            create: {
-              slug: buildAlias(d.input.name)
+    let magicMcpServer = await withTransaction(
+      async db => {
+        return await db.magicMcpServer.create({
+          data: {
+            id: await ID.generateId('magicMcpServer'),
+            status: 'active',
+            source: d.input.source ?? 'manual',
+            isConsumerReconciled: true,
+            isSubspaceBackingReconciling: true,
+            providerTemplateId: d.input.providerTemplateId,
+            subspaceIntegrationInstanceId: d.input.subspaceIntegrationInstanceId,
+            name: d.input.name,
+            description: d.input.description,
+            metadata: d.input.metadata ?? {},
+            instanceOid: d.instance.oid,
+            aliases: {
+              create: {
+                slug: buildAlias(d.input.name)
+              }
             }
+          },
+          include: {
+            instance: true
           }
-        },
-        include: {
-          instance: true
-        }
-      });
-    });
+        });
+      },
+      { ifExists: true }
+    );
 
     await magicMcpServerCreatedQueue.add({
       magicMcpServerId: magicMcpServer.id,
       providers: d.input.providers,
+      owner: d.input.consumerOwner,
       isReconciliation: false
     });
 
@@ -299,11 +334,33 @@ class MagicMcpServerImpl {
     }
 
     let magicMcpServer = await withTransaction(async db => {
+      let endpointLinks = await db.magicMcpEndpointServer.findMany({
+        where: {
+          magicMcpServerOid: d.server.oid
+        },
+        select: {
+          magicMcpEndpointOid: true
+        }
+      });
+
       await db.magicMcpEndpointServer.deleteMany({
         where: {
           magicMcpServerOid: d.server.oid
         }
       });
+
+      if (endpointLinks.length) {
+        await db.magicMcpSession.updateMany({
+          where: {
+            magicMcpEndpointOid: {
+              in: endpointLinks.map(link => link.magicMcpEndpointOid)
+            }
+          },
+          data: {
+            isConsumerReconciled: false
+          }
+        });
+      }
 
       return await db.magicMcpServer.update({
         where: { id: d.server.id },
@@ -624,8 +681,10 @@ class MagicMcpServerImpl {
     search?: string;
     groupIds?: string[];
     providerTemplateIds?: string[];
+    subspaceIntegrationInstanceIds?: string[];
     providerIds?: string[];
     ids?: string[];
+    owners?: MagicMcpServerOwnerFilter[];
     preconfiguredOnly?: boolean;
     accessTags?: AnyAccessTagSelector;
     filterAccessTags?: AnyAccessTagSelector;
@@ -666,6 +725,7 @@ class MagicMcpServerImpl {
       status: d.status,
       activeStatus: 'active'
     });
+    let ownerSources = getOwnerSources(d.owners);
     let andFilters: Prisma.MagicMcpServerWhereInput[] = [];
 
     if (normalizedSearch) {
@@ -703,9 +763,32 @@ class MagicMcpServerImpl {
       }
     }
 
-    if (!d.accessTags && !d.filterAccessTags && !d.consumerSurface) {
+    if (!ownerSources && !d.accessTags && !d.filterAccessTags && !d.consumerSurface) {
       andFilters.push({
         source: 'manual'
+      });
+    }
+
+    if (d.subspaceIntegrationInstanceIds?.length) {
+      let backingIds = await Promise.all(
+        d.subspaceIntegrationInstanceIds.map(async integrationInstanceId => {
+          let { magicMcpServerBackingIds } =
+            await subspaceMagicMcpBackingService.resolveServerBackingIdsForIntegrationInstanceUsage(
+              {
+                instance: d.instance,
+                integrationInstanceId,
+                ownerTypes: ['server_owned', 'provider_template', 'integration']
+              }
+            );
+
+          return magicMcpServerBackingIds;
+        })
+      );
+
+      andFilters.push({
+        id: {
+          in: Array.from(new Set(backingIds.flat()))
+        }
       });
     }
 
@@ -731,7 +814,11 @@ class MagicMcpServerImpl {
             instanceOid: d.instance.oid,
             id: d.ids ? { in: d.ids } : undefined,
             status: statusFilter ? { in: statusFilter } : { not: 'archived' as const },
-            source: d.preconfiguredOnly ? { not: 'consumer_provider_template' } : undefined,
+            source: d.preconfiguredOnly
+              ? { not: 'consumer_provider_template' }
+              : ownerSources
+                ? { in: ownerSources }
+                : undefined,
             providerTemplateId: d.providerTemplateIds?.length
               ? { in: d.providerTemplateIds }
               : undefined,

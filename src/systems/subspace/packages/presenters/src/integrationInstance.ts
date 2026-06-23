@@ -7,7 +7,6 @@ import type {
   IntegrationInstanceProviderVersion,
   IntegrationProvider,
   IntegrationProviderVersion,
-  MagicMcpServerBacking,
   Provider,
   ProviderAuthConfig,
   ProviderAuthCredentials,
@@ -61,30 +60,36 @@ export let integrationInstancePresenter = (
         | null;
     })[];
     defaultSessionTemplate: SessionTemplate | null;
-    magicMcpServerBacking: MagicMcpServerBacking | null;
+    magicMcpServerBackings: {
+      id: string;
+    }[];
   }
-) => ({
-  object: 'integration.instance',
+) => {
+  let magicMcpServerBackingId = integrationInstance.magicMcpServerBackings[0]?.id ?? null;
 
-  id: integrationInstance.id,
-  status: integrationInstance.status,
+  return {
+    object: 'integration.instance',
 
-  name: integrationInstance.name,
-  description: integrationInstance.description,
-  metadata: integrationInstance.metadata,
-  privateMetadata: integrationInstance.privateMetadata,
+    id: integrationInstance.id,
+    status: integrationInstance.status,
 
-  integrationId: integrationInstance.integration.id,
-  identityActorId: integrationInstance.identityActor?.id ?? null,
-  identityId: integrationInstance.identity?.id ?? null,
-  defaultSessionTemplateId: integrationInstance.defaultSessionTemplate?.id ?? null,
-  magicMcpServerBackingId: integrationInstance.magicMcpServerBacking?.id ?? null,
+    name: integrationInstance.name,
+    description: integrationInstance.description,
+    metadata: integrationInstance.metadata,
+    privateMetadata: integrationInstance.privateMetadata,
 
-  providers: integrationInstance.integrationInstanceProviders.map(provider =>
-    integrationInstanceProviderPresenter(provider)
-  ),
+    integrationId: integrationInstance.integration.id,
+    identityActorId: integrationInstance.identityActor?.id ?? null,
+    identityId: integrationInstance.identity?.id ?? null,
+    defaultSessionTemplateId: integrationInstance.defaultSessionTemplate?.id ?? null,
+    magicMcpServerBackingId,
 
-  createdAt: integrationInstance.createdAt,
-  updatedAt: integrationInstance.updatedAt,
-  archivedAt: integrationInstance.archivedAt
-});
+    providers: integrationInstance.integrationInstanceProviders.map(provider =>
+      integrationInstanceProviderPresenter(provider)
+    ),
+
+    createdAt: integrationInstance.createdAt,
+    updatedAt: integrationInstance.updatedAt,
+    archivedAt: integrationInstance.archivedAt
+  };
+};

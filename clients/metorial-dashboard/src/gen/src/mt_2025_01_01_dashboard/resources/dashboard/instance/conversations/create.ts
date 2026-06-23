@@ -218,11 +218,13 @@ export let mapDashboardInstanceConversationsCreateOutput =
 export type DashboardInstanceConversationsCreateBody = {
   assistantId: string;
   title?: string | undefined;
+  input?: Record<string, any> | undefined;
 };
 
 export let mapDashboardInstanceConversationsCreateBody =
   mtMap.object<DashboardInstanceConversationsCreateBody>({
     assistantId: mtMap.objectField('assistant_id', mtMap.passthrough()),
-    title: mtMap.objectField('title', mtMap.passthrough())
+    title: mtMap.objectField('title', mtMap.passthrough()),
+    input: mtMap.objectField('input', mtMap.passthrough())
   });
 

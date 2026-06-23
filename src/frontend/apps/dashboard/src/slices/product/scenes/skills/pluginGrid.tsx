@@ -9,7 +9,7 @@ import {
 } from '@metorial/state';
 import { Avatar, Text, theme } from '@metorial/ui';
 import { ItemGrid } from '@metorial/ui-product';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { styled } from 'styled-components';
 import { EmptyState } from '../../../../components/emptyState';
 import { showSkillPluginFormModal } from './pluginModal';
@@ -104,45 +104,41 @@ export let SkillPluginsGrid = (
       {plugins.data.items.length > 0 && (
         <ItemGrid.Root width="300px">
           {plugins.data.items.map(plugin => (
-            <Link
+            <ItemGrid.Item
               key={plugin.id}
-              to={Paths.instance.skillPlugin(
+              href={Paths.instance.skillPlugin(
                 organization.data,
                 project.data,
                 instance.data,
                 plugin.id
               )}
-              style={{ textDecoration: 'none', color: 'inherit' }}
-            >
-              <ItemGrid.Item
-                entity={{ id: plugin.id, hasUsage: true }}
-                title={plugin.name}
-                description={
-                  <Description>
-                    {plugin.description || 'No description provided yet.'}
-                  </Description>
-                }
-                height={200}
-                icon={
-                  <Avatar
-                    entity={{
-                      name: plugin.name,
-                      photoUrl: plugin.imageUrl ?? undefined,
-                      imageUrl: `https://avatar-cdn.metorial.com/${plugin.id}`
-                    }}
-                    size={30}
-                    imageFit="contain"
-                  />
-                }
-                bottom={
-                  <div style={{ display: 'flex' }}>
-                    <Count>
-                      {plugin.skills.length} skill{plugin.skills.length === 1 ? '' : 's'}
-                    </Count>
-                  </div>
-                }
-              />
-            </Link>
+              entity={{ id: plugin.id, hasUsage: true }}
+              title={plugin.name}
+              description={
+                <Description>
+                  {plugin.description || 'No description provided yet.'}
+                </Description>
+              }
+              height={200}
+              icon={
+                <Avatar
+                  entity={{
+                    name: plugin.name,
+                    photoUrl: plugin.imageUrl ?? undefined,
+                    imageUrl: `https://avatar-cdn.metorial.com/${plugin.id}`
+                  }}
+                  size={30}
+                  imageFit="contain"
+                />
+              }
+              bottom={
+                <div style={{ display: 'flex' }}>
+                  <Count>
+                    {plugin.skills.length} skill{plugin.skills.length === 1 ? '' : 's'}
+                  </Count>
+                </div>
+              }
+            />
           ))}
         </ItemGrid.Root>
       )}

@@ -29,8 +29,8 @@ import {
 } from '../integrationProvider';
 import {
   getMagicMcpOwnerIntegration,
-  getMagicMcpOwnerType,
   magicMcpServerBackingInclude,
+  resolveMagicMcpBackingPolicy,
   withMagicMcpBackingLock
 } from './shared';
 
@@ -310,9 +310,9 @@ let getMagicMcpServerProviderByIdentityOrThrow = async (d: {
 
 let assertCanArchiveMagicMcpServerProvider = (d: {
   row: MagicMcpServerProvider;
-  ownerType: ReturnType<typeof getMagicMcpOwnerType>;
+  policy: ReturnType<typeof resolveMagicMcpBackingPolicy>;
 }) => {
-  if (d.ownerType === 'server_owned') return;
+  if (d.policy.canArchiveProviders) return;
 
   throw new ServiceError(
     badRequestError({
@@ -323,15 +323,29 @@ let assertCanArchiveMagicMcpServerProvider = (d: {
 };
 
 let assertCanMutateIntegrationProvider = (
-  ownerType: ReturnType<typeof getMagicMcpOwnerType>
+  policy: ReturnType<typeof resolveMagicMcpBackingPolicy>
 ) => {
-  if (ownerType === 'server_owned') return;
+  if (policy.canMutateIntegrationProviders) return;
 
   throw new ServiceError(
     badRequestError({
       message:
         'This magic MCP server inherits its integration providers and those providers cannot be changed directly.',
       code: 'magic_mcp_server_provider_inherited'
+    })
+  );
+};
+
+let assertCanMutateIntegrationInstanceProvider = (
+  policy: ReturnType<typeof resolveMagicMcpBackingPolicy>
+) => {
+  if (policy.canMutateIntegrationInstanceProviders) return;
+
+  throw new ServiceError(
+    badRequestError({
+      message:
+        'This magic MCP server is linked to an integration instance and its providers cannot be changed directly.',
+      code: 'magic_mcp_server_provider_linked'
     })
   );
 };
@@ -555,8 +569,8 @@ class magicMcpServerProviderServiceImpl {
       async () => {
         let created = await withTransaction(async () => {
           let backing = await loadMagicMcpServerBackingForProviders(d);
-          let ownerType = getMagicMcpOwnerType(backing);
-          assertCanMutateIntegrationProvider(ownerType);
+          let policy = resolveMagicMcpBackingPolicy(backing);
+          assertCanMutateIntegrationProvider(policy);
 
           let ownerIntegration = getMagicMcpOwnerIntegration(backing);
           if (!ownerIntegration) {
@@ -647,7 +661,7 @@ class magicMcpServerProviderServiceImpl {
       async () => {
         let updated = await withTransaction(async () => {
           let row = await getMagicMcpServerProviderOrThrow(d);
-          let ownerType = getMagicMcpOwnerType(row.magicMcpServerBacking);
+          let policy = resolveMagicMcpBackingPolicy(row.magicMcpServerBacking);
           let backing = await loadMagicMcpServerBackingForProviders({
             tenant: d.tenant,
             solution: d.solution,
@@ -678,7 +692,7 @@ class magicMcpServerProviderServiceImpl {
             providerDeploymentId = materialInput.providerDeploymentId ?? providerDeploymentId;
           }
 
-          if (ownerType === 'server_owned') {
+          if (policy.canMutateIntegrationProviders) {
             await integrationProviderService.updateIntegrationProvider({
               tenant: d.tenant,
               solution: d.solution,
@@ -703,6 +717,8 @@ class magicMcpServerProviderServiceImpl {
               })
             );
           }
+
+          assertCanMutateIntegrationInstanceProvider(policy);
 
           await integrationInstanceProviderService.setIntegrationInstanceProvider({
             tenant: d.tenant,
@@ -760,8 +776,8 @@ class magicMcpServerProviderServiceImpl {
     let row = await getMagicMcpServerProviderOrThrow(d);
     checkDeletedEdit(row, 'archive');
 
-    let ownerType = getMagicMcpOwnerType(row.magicMcpServerBacking);
-    assertCanArchiveMagicMcpServerProvider({ row, ownerType });
+    let policy = resolveMagicMcpBackingPolicy(row.magicMcpServerBacking);
+    assertCanArchiveMagicMcpServerProvider({ row, policy });
 
     if (row.integrationInstanceProvider) {
       await integrationInstanceProviderService.archiveIntegrationInstanceProvider({

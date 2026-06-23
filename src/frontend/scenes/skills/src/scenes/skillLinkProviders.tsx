@@ -252,6 +252,7 @@ let getSkillItemTableRow = (p: {
 let ProviderPicker = (p: {
   instanceId: string;
   excludeProviderIds: string[];
+  allowedProviderIds?: string[];
   onSelect: (providerId: string) => void;
   selectedId: string | null;
 }) => {
@@ -260,11 +261,18 @@ let ProviderPicker = (p: {
     () => new Set(p.excludeProviderIds),
     [p.excludeProviderIds]
   );
-  let providers = useProviderListings(p.instanceId, {
-    orderByRank: true,
-    limit: 30,
-    ...(search.trim() ? { search: search.trim() } : {})
-  });
+  let hasNoAllowedProviders = p.allowedProviderIds?.length === 0;
+  let providers = useProviderListings(
+    p.instanceId,
+    hasNoAllowedProviders
+      ? null
+      : {
+          orderByRank: true,
+          limit: 30,
+          ...(p.allowedProviderIds ? { id: p.allowedProviderIds } : {}),
+          ...(search.trim() ? { search: search.trim() } : {})
+        }
+  );
 
   return (
     <PickerStack>
@@ -277,61 +285,67 @@ let ProviderPicker = (p: {
       />
 
       <PickerScroll>
-        {renderWithPagination(providers, { hidePaginationWhenUnavailable: true })(
-          providers => {
-            let items = providers.data.items.filter(
-              listing => !excludedProviderIds.has(listing.provider.id)
-            );
+        {hasNoAllowedProviders ? (
+          <Text size="2" color="gray600">
+            No providers are available for this portal.
+          </Text>
+        ) : (
+          renderWithPagination(providers, { hidePaginationWhenUnavailable: true })(
+            providers => {
+              let items = providers.data.items.filter(
+                listing => !excludedProviderIds.has(listing.provider.id)
+              );
 
-            if (items.length === 0) {
+              if (items.length === 0) {
+                return (
+                  <Text size="2" color="gray600">
+                    {search.trim()
+                      ? 'No providers match your search.'
+                      : 'All available providers are already linked to this skill.'}
+                  </Text>
+                );
+              }
+
               return (
-                <Text size="2" color="gray600">
-                  {search.trim()
-                    ? 'No providers match your search.'
-                    : 'All available providers are already linked to this skill.'}
-                </Text>
+                <ItemGrid.Root width="270px">
+                  {items.map(listing => {
+                    let name = listing.name ?? listing.provider.name ?? listing.provider.slug;
+
+                    return (
+                      <ItemGrid.Item
+                        key={listing.provider.id}
+                        title={name}
+                        description={truncate(listing.description)}
+                        height={220}
+                        onClick={() => {
+                          if (!p.selectedId) p.onSelect(listing.provider.id);
+                        }}
+                        icon={
+                          <Avatar
+                            entity={{
+                              name,
+                              photoUrl: listing.imageUrl ?? undefined
+                            }}
+                            size={30}
+                            radius={5}
+                            noTooltip
+                            imageFit="contain"
+                          />
+                        }
+                        bottom={
+                          <CardCategories>
+                            {(listing.categories ?? []).slice(0, 2).map(category => (
+                              <CardCategory key={category.id}>{category.name}</CardCategory>
+                            ))}
+                          </CardCategories>
+                        }
+                      />
+                    );
+                  })}
+                </ItemGrid.Root>
               );
             }
-
-            return (
-              <ItemGrid.Root width="270px">
-                {items.map(listing => {
-                  let name = listing.name ?? listing.provider.name ?? listing.provider.slug;
-
-                  return (
-                    <ItemGrid.Item
-                      key={listing.provider.id}
-                      title={name}
-                      description={truncate(listing.description)}
-                      height={220}
-                      onClick={() => {
-                        if (!p.selectedId) p.onSelect(listing.provider.id);
-                      }}
-                      icon={
-                        <Avatar
-                          entity={{
-                            name,
-                            photoUrl: listing.imageUrl ?? undefined
-                          }}
-                          size={30}
-                          radius={5}
-                          noTooltip
-                          imageFit="contain"
-                        />
-                      }
-                      bottom={
-                        <CardCategories>
-                          {(listing.categories ?? []).slice(0, 2).map(category => (
-                            <CardCategory key={category.id}>{category.name}</CardCategory>
-                          ))}
-                        </CardCategories>
-                      }
-                    />
-                  );
-                })}
-              </ItemGrid.Root>
-            );
-          }
+          )
         )}
       </PickerScroll>
     </PickerStack>
@@ -341,6 +355,7 @@ let ProviderPicker = (p: {
 let IntegrationPicker = (p: {
   instanceId: string;
   excludeIntegrationIds: string[];
+  allowedIntegrationIds?: string[];
   onSelect: (integrationId: string) => void;
   selectedId: string | null;
 }) => {
@@ -349,10 +364,12 @@ let IntegrationPicker = (p: {
     () => new Set(p.excludeIntegrationIds),
     [p.excludeIntegrationIds]
   );
-  let integrations = useIntegrations(p.instanceId, {
+  let hasNoAllowedIntegrations = p.allowedIntegrationIds?.length === 0;
+  let integrations = useIntegrations(hasNoAllowedIntegrations ? null : p.instanceId, {
     order: 'desc',
     status: ['active'],
     limit: 30,
+    ...(p.allowedIntegrationIds ? { id: p.allowedIntegrationIds } : {}),
     ...(search.trim() ? { search: search.trim() } : {})
   });
   let providerIds = useMemo(
@@ -379,66 +396,72 @@ let IntegrationPicker = (p: {
       />
 
       <PickerScroll>
-        {renderWithPagination(integrations, { hidePaginationWhenUnavailable: true })(
-          integrations =>
-            renderWithLoader({ providerListings })(({ providerListings }) => {
-              let listingLookup = new Map<
-                string,
-                { name: string | null | undefined; imageUrl: string | null | undefined }
-              >();
+        {hasNoAllowedIntegrations ? (
+          <Text size="2" color="gray600">
+            No integrations are available for this portal.
+          </Text>
+        ) : (
+          renderWithPagination(integrations, { hidePaginationWhenUnavailable: true })(
+            integrations =>
+              renderWithLoader({ providerListings })(({ providerListings }) => {
+                let listingLookup = new Map<
+                  string,
+                  { name: string | null | undefined; imageUrl: string | null | undefined }
+                >();
 
-              for (let listing of providerListings.data) {
-                let preview = {
-                  name: listing.name ?? listing.provider.name,
-                  imageUrl: listing.imageUrl
-                };
+                for (let listing of providerListings.data) {
+                  let preview = {
+                    name: listing.name ?? listing.provider.name,
+                    imageUrl: listing.imageUrl
+                  };
 
-                listingLookup.set(listing.id, preview);
-                listingLookup.set(listing.provider.id, preview);
-              }
+                  listingLookup.set(listing.id, preview);
+                  listingLookup.set(listing.provider.id, preview);
+                }
 
-              let items = integrations.data.items.filter(
-                integration => !excludedIntegrationIds.has(integration.id)
-              );
-
-              if (items.length === 0) {
-                return (
-                  <Text size="2" color="gray600">
-                    {search.trim()
-                      ? 'No integrations match your search.'
-                      : 'All available integrations are already linked to this skill.'}
-                  </Text>
+                let items = integrations.data.items.filter(
+                  integration => !excludedIntegrationIds.has(integration.id)
                 );
-              }
 
-              return (
-                <ItemGrid.Root width="270px">
-                  {items.map((integration: IntegrationPreview) => (
-                    <ItemGrid.Item
-                      key={integration.id}
-                      title={integration.name}
-                      description={truncate(integration.description)}
-                      height={220}
-                      onClick={() => {
-                        if (!p.selectedId) p.onSelect(integration.id);
-                      }}
-                      icon={
-                        <IntegrationProviderAvatarStack
-                          integration={integration}
-                          fallbackName={integration.name}
-                          providerListings={listingLookup}
-                        />
-                      }
-                      bottom={
-                        <CardCategories>
-                          <CardCategory>{integration.slug}</CardCategory>
-                        </CardCategories>
-                      }
-                    />
-                  ))}
-                </ItemGrid.Root>
-              );
-            })
+                if (items.length === 0) {
+                  return (
+                    <Text size="2" color="gray600">
+                      {search.trim()
+                        ? 'No integrations match your search.'
+                        : 'All available integrations are already linked to this skill.'}
+                    </Text>
+                  );
+                }
+
+                return (
+                  <ItemGrid.Root width="270px">
+                    {items.map((integration: IntegrationPreview) => (
+                      <ItemGrid.Item
+                        key={integration.id}
+                        title={integration.name}
+                        description={truncate(integration.description)}
+                        height={220}
+                        onClick={() => {
+                          if (!p.selectedId) p.onSelect(integration.id);
+                        }}
+                        icon={
+                          <IntegrationProviderAvatarStack
+                            integration={integration}
+                            fallbackName={integration.name}
+                            providerListings={listingLookup}
+                          />
+                        }
+                        bottom={
+                          <CardCategories>
+                            <CardCategory>{integration.slug}</CardCategory>
+                          </CardCategories>
+                        }
+                      />
+                    ))}
+                  </ItemGrid.Root>
+                );
+              })
+          )
         )}
       </PickerScroll>
     </PickerStack>
@@ -451,6 +474,8 @@ let SkillItemPickerPanel = (p: {
   skillId: string;
   excludeProviderIds: string[];
   excludeIntegrationIds: string[];
+  allowedProviderIds?: string[];
+  allowedIntegrationIds?: string[];
   close: () => void;
   onComplete: () => Promise<void> | void;
 }) => {
@@ -505,6 +530,7 @@ let SkillItemPickerPanel = (p: {
           <ProviderPicker
             instanceId={p.instanceId}
             excludeProviderIds={p.excludeProviderIds}
+            allowedProviderIds={p.allowedProviderIds}
             selectedId={selectedId}
             onSelect={handleSelect}
           />
@@ -512,6 +538,7 @@ let SkillItemPickerPanel = (p: {
           <IntegrationPicker
             instanceId={p.instanceId}
             excludeIntegrationIds={p.excludeIntegrationIds}
+            allowedIntegrationIds={p.allowedIntegrationIds}
             selectedId={selectedId}
             onSelect={handleSelect}
           />
@@ -529,6 +556,8 @@ let showSkillItemPickerPanel = (p: {
   skillId: string;
   excludeProviderIds: string[];
   excludeIntegrationIds: string[];
+  allowedProviderIds?: string[];
+  allowedIntegrationIds?: string[];
   onComplete: () => Promise<void> | void;
 }) =>
   showModal(({ dialogProps, close }) => (
@@ -543,6 +572,8 @@ let SkillTemplateItemPickerPanel = (p: {
   skillTemplateId: string;
   excludeProviderIds: string[];
   excludeIntegrationIds: string[];
+  allowedProviderIds?: string[];
+  allowedIntegrationIds?: string[];
   close: () => void;
   onComplete: () => Promise<void> | void;
 }) => {
@@ -597,6 +628,7 @@ let SkillTemplateItemPickerPanel = (p: {
           <ProviderPicker
             instanceId={p.instanceId}
             excludeProviderIds={p.excludeProviderIds}
+            allowedProviderIds={p.allowedProviderIds}
             selectedId={selectedId}
             onSelect={handleSelect}
           />
@@ -604,6 +636,7 @@ let SkillTemplateItemPickerPanel = (p: {
           <IntegrationPicker
             instanceId={p.instanceId}
             excludeIntegrationIds={p.excludeIntegrationIds}
+            allowedIntegrationIds={p.allowedIntegrationIds}
             selectedId={selectedId}
             onSelect={handleSelect}
           />
@@ -621,6 +654,8 @@ let showSkillTemplateItemPickerPanel = (p: {
   skillTemplateId: string;
   excludeProviderIds: string[];
   excludeIntegrationIds: string[];
+  allowedProviderIds?: string[];
+  allowedIntegrationIds?: string[];
   onComplete: () => Promise<void> | void;
 }) =>
   showModal(({ dialogProps, close }) => (
@@ -655,6 +690,8 @@ let AddSkillItemMenu = (p: {
 export let SkillLinkProvidersScene = (p: {
   instanceId: string | null | undefined;
   skillId: string | null | undefined;
+  allowedProviderIds?: string[];
+  allowedIntegrationIds?: string[];
 }) => {
   let skillItems = useAllSkillItems(p.instanceId, p.skillId, {
     order: 'asc',
@@ -720,6 +757,8 @@ export let SkillLinkProvidersScene = (p: {
       skillId: p.skillId,
       excludeProviderIds: linkedProviderIds,
       excludeIntegrationIds: linkedIntegrationIds,
+      allowedProviderIds: p.allowedProviderIds,
+      allowedIntegrationIds: p.allowedIntegrationIds,
       onComplete: async () => {
         await skillItems.refetch();
       }
@@ -801,6 +840,8 @@ export let SkillTemplateLinkProvidersScene = (p: {
   instanceId: string | null | undefined;
   skillTemplateId: string | null | undefined;
   readOnly?: boolean;
+  allowedProviderIds?: string[];
+  allowedIntegrationIds?: string[];
 }) => {
   let skillTemplateItems = useAllSkillTemplateItems(p.instanceId, p.skillTemplateId, {
     order: 'asc'
@@ -865,6 +906,8 @@ export let SkillTemplateLinkProvidersScene = (p: {
       skillTemplateId: p.skillTemplateId,
       excludeProviderIds: linkedProviderIds,
       excludeIntegrationIds: linkedIntegrationIds,
+      allowedProviderIds: p.allowedProviderIds,
+      allowedIntegrationIds: p.allowedIntegrationIds,
       onComplete: async () => {
         await skillTemplateItems.refetch();
       }
@@ -908,7 +951,11 @@ export let SkillTemplateLinkProvidersScene = (p: {
       return (
         <Box
           title="Template Providers"
-          description="Add providers and integrations that should be included when this template is used."
+          description={
+            p.readOnly
+              ? 'Providers and integrations admins have included with this template.'
+              : 'Add providers and integrations that should be included when this template is used.'
+          }
           rightActions={
             p.readOnly ? undefined : (
               <AddSkillItemMenu
@@ -921,7 +968,9 @@ export let SkillTemplateLinkProvidersScene = (p: {
           {skillTemplateItems.data.length === 0 ? (
             <EmptyState>
               <Text color="gray600" size="2">
-                No providers or integrations are linked to this template yet.
+                {p.readOnly
+                  ? 'No providers or integrations have been included by an admin yet.'
+                  : 'No providers or integrations are linked to this template yet.'}
               </Text>
             </EmptyState>
           ) : (

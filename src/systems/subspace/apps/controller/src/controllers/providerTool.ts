@@ -36,7 +36,8 @@ export let providerToolController = app.controller({
           environmentId: v.optional(v.string()),
           providerVersionId: v.string(),
           providerAuthConfigId: v.optional(v.string()),
-          providerAuthCredentialsId: v.optional(v.string())
+          providerAuthCredentialsId: v.optional(v.string()),
+          providerAuthMethodIds: v.optional(v.array(v.string()))
         })
       )
     )
@@ -74,7 +75,8 @@ export let providerToolController = app.controller({
         solution: ctx.solution,
         providerVersion,
         providerAuthConfig,
-        providerAuthCredentials
+        providerAuthCredentials,
+        providerAuthMethodIds: ctx.input.providerAuthMethodIds
       });
 
       let list = await paginator.run(ctx.input);

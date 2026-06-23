@@ -143,7 +143,7 @@ let RedirectUriField = (p: {
         {p.configDoc ? (
           <>
             {' '}
-            <ProviderDocsLink doc={p.configDoc}>View config docs</ProviderDocsLink>
+            <ProviderDocsLink doc={p.configDoc} />
           </>
         ) : null}
       </Text>
@@ -178,7 +178,7 @@ let NewCredentialsFields = (p: {
         disabled={p.disabled}
         onChange={e => p.credentialsForm.setFieldValue('newCredClientId', e.target.value)}
         placeholder="Enter client ID from provider"
-        help={<ProviderDocsLink doc={p.providerDoc}>Provider docs</ProviderDocsLink>}
+        help={<ProviderDocsLink doc={p.providerDoc} />}
       />
       <p.credentialsForm.RenderError field="newCredClientId" />
 

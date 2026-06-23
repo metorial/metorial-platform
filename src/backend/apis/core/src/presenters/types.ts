@@ -7,6 +7,9 @@ import {
   AccessPolicyVersion,
   AccessRole,
   AccessRoleVersion,
+  AccessTag,
+  AccessTagEntity,
+  AccessTagPolicy,
   ApiKey,
   ApiKeySecret,
   ApiKeyType,
@@ -266,6 +269,11 @@ export let projectToolCallingConfigurationType = PresentableType.create<{
   project: Project;
   collectOperationDescriptionForToolCalls: boolean;
 }>()('project_tool_calling_configuration');
+
+export let projectIntegrationNamingConfigurationType = PresentableType.create<{
+  project: Project;
+  useIntegrationNames: boolean;
+}>()('project_integration_naming_configuration');
 
 export let tokenType = PresentableType.create<{
   token: {
@@ -635,6 +643,20 @@ export let flagsType = PresentableType.create<{
 export let magicMcpServerType = PresentableType.create<{
   magicMcpServer: MagicMcpServer & {
     aliases: MagicMcpServerAlias[];
+    accessTagEntities?: (AccessTagEntity & {
+      accessTagPolicy: AccessTagPolicy;
+      accessTag: AccessTag & {
+        consumerGroup:
+          | (ConsumerGroup & {
+              personalOwner:
+                | (ConsumerProfile & {
+                    consumer: Consumer;
+                  })
+                | null;
+            })
+          | null;
+      };
+    })[];
     consumerIntegrations: (ConsumerIntegration & {
       consumer: Consumer;
       consumerProfile: ConsumerProfile;

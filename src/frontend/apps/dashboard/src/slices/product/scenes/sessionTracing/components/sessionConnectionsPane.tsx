@@ -14,6 +14,7 @@ import { RiArrowDownSLine, RiCompass3Line } from '@remixicon/react';
 import { ReactNode, RefObject } from 'react';
 import styled from 'styled-components';
 import {
+  ExplorerTabMode,
   GroupedConnectionItems,
   PlaceholderConnectionItem,
   TracingConnectionItem
@@ -200,6 +201,7 @@ export let SessionConnectionsPane = ({
   activeTabId,
   connectionCount,
   explorerTabIdByConnectionId,
+  explorerModeByTabId,
   groupedConnections,
   isLoadingConnections,
   isLoadingMoreConnections,
@@ -217,6 +219,7 @@ export let SessionConnectionsPane = ({
   activeTabId?: string | null;
   connectionCount: number;
   explorerTabIdByConnectionId: Map<string, string>;
+  explorerModeByTabId: Record<string, ExplorerTabMode>;
   groupedConnections: GroupedConnectionItems[];
   isLoadingConnections: boolean;
   isLoadingMoreConnections: boolean;
@@ -225,7 +228,7 @@ export let SessionConnectionsPane = ({
   onOpenAssignedExplorer: (connectionId: string) => void;
   onOpenConnectTab: () => void;
   onOpenConnection: (connectionId: string) => void;
-  onOpenExplorerTab: () => void;
+  onOpenExplorerTab: (mode?: ExplorerTabMode) => void;
   onSelectTab: (tabId: string) => void;
   session: DashboardInstanceSessionsGetOutput;
   setConnectionRowElement: (connectionId: string, element: HTMLDivElement | null) => void;
@@ -247,11 +250,17 @@ export let SessionConnectionsPane = ({
                 id: 'explorer',
                 label: 'Metorial Explorer',
                 description: 'Use the built-in explorer to inspect the provider.'
+              },
+              {
+                id: 'assistant',
+                label: 'Explorer Assistant',
+                description: 'Chat with an assistant that can use this session.'
               }
             ]}
             onItemClick={id => {
               if (id === 'external') onOpenConnectTab();
-              else if (id === 'explorer') onOpenExplorerTab();
+              else if (id === 'explorer') onOpenExplorerTab('manual');
+              else if (id === 'assistant') onOpenExplorerTab('assistant');
             }}
           >
             <Button size="2" variant="outline" iconRight={<RiArrowDownSLine size={14} />}>
@@ -279,6 +288,7 @@ export let SessionConnectionsPane = ({
                     activeConnectionId={activeConnectionId}
                     connection={item}
                     explorerTabIdByConnectionId={explorerTabIdByConnectionId}
+                    explorerModeByTabId={explorerModeByTabId}
                     onOpenAssignedExplorer={onOpenAssignedExplorer}
                     onOpenConnection={onOpenConnection}
                     session={session}
@@ -295,7 +305,7 @@ export let SessionConnectionsPane = ({
             </LoadingWrap>
           )}
 
-          {!connectionCount && !isLoadingConnections && (
+          {!connectionCount && !isLoadingConnections && !groupedConnections.length && (
             <Callout color="gray">
               No connections yet. Once a client connects to this session, it will appear here.
             </Callout>
@@ -310,6 +320,7 @@ let SessionConnectionRow = ({
   activeConnectionId,
   connection,
   explorerTabIdByConnectionId,
+  explorerModeByTabId,
   onOpenAssignedExplorer,
   onOpenConnection,
   session,
@@ -318,6 +329,7 @@ let SessionConnectionRow = ({
   activeConnectionId?: string | null;
   connection: TracingConnectionItem;
   explorerTabIdByConnectionId: Map<string, string>;
+  explorerModeByTabId: Record<string, ExplorerTabMode>;
   onOpenAssignedExplorer: (connectionId: string) => void;
   onOpenConnection: (connectionId: string) => void;
   session: DashboardInstanceSessionsGetOutput;
@@ -335,7 +347,9 @@ let SessionConnectionRow = ({
     );
   }
 
-  if (explorerTabIdByConnectionId.has(connection.id)) {
+  let explorerTabId = explorerTabIdByConnectionId.get(connection.id);
+  if (explorerTabId) {
+    let mode = explorerModeByTabId[explorerTabId] ?? 'manual';
     meta.push(
       <Button
         key="explorer"
@@ -347,7 +361,7 @@ let SessionConnectionRow = ({
           onOpenAssignedExplorer(connection.id);
         }}
       >
-        Open Explorer
+        {mode === 'assistant' ? 'Open Assistant' : 'Open Explorer'}
       </Button>
     );
   }
@@ -420,11 +434,13 @@ let PlaceholderConnectionRow = ({
           <ConnectionTitle>{item.label}</ConnectionTitle>
         </ConnectionMain>
 
-        <ConnectionButtonMeta>
-          <Text size="1" color="gray600">
-            Connecting…
-          </Text>
-        </ConnectionButtonMeta>
+        {item.mode === 'manual' && (
+          <ConnectionButtonMeta>
+            <Text size="1" color="gray600">
+              Connecting…
+            </Text>
+          </ConnectionButtonMeta>
+        )}
       </ConnectionButtonRow>
     </ConnectionButton>
   );

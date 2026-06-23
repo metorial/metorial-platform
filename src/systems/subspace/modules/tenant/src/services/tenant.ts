@@ -3,8 +3,8 @@ import { generatePlainId } from '@lowerdeck/id';
 import { Service } from '@lowerdeck/service';
 import { db, type EnvironmentType, getId } from '@metorial-subspace/db';
 import { reconcileTenantManagedBackingsQueue } from '@metorial-subspace/module-auth/src/queues/reconcile';
-import { networkInternalService } from '@metorial-subspace/module-enclave';
 import { reconcileProviderDeploymentMonitorForEnvironmentQueue } from '@metorial-subspace/module-deployment/src/queues/reconcile/providerDeploymentMonitor';
+import { networkInternalService } from '@metorial-subspace/module-enclave';
 import { tenantLogRetentionSyncQueue } from '../queues/retention/sync';
 
 let include = {};
@@ -21,6 +21,7 @@ class tenantServiceImpl {
       allowAuthConfigExport?: boolean;
       allowAuthConfigImport?: boolean;
       collectOperationDescriptionForToolCalls?: boolean;
+      useIntegrationNamesForSessionProviderNameTemplates?: boolean;
       environments: {
         name: string;
         identifier: string;
@@ -48,7 +49,9 @@ class tenantServiceImpl {
           allowAuthConfigExport: d.input.allowAuthConfigExport,
           allowAuthConfigImport: d.input.allowAuthConfigImport,
           collectOperationDescriptionForToolCalls:
-            d.input.collectOperationDescriptionForToolCalls
+            d.input.collectOperationDescriptionForToolCalls,
+          useIntegrationNamesForSessionProviderNameTemplates:
+            d.input.useIntegrationNamesForSessionProviderNameTemplates
         },
         create: {
           ...getId('tenant'),
@@ -62,6 +65,8 @@ class tenantServiceImpl {
           allowAuthConfigImport: d.input.allowAuthConfigImport ?? false,
           collectOperationDescriptionForToolCalls:
             d.input.collectOperationDescriptionForToolCalls ?? true,
+          useIntegrationNamesForSessionProviderNameTemplates:
+            d.input.useIntegrationNamesForSessionProviderNameTemplates ?? false,
 
           urlKey: generatePlainId(10).toLowerCase()
         }

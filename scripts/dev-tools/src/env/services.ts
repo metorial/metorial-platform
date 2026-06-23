@@ -139,6 +139,12 @@ export let synthesisServiceEnv: Env = [
   {
     key: 'SCOUT_TOKEN',
     isRequired: false
+  },
+  { key: 'SUBSPACE_SOLUTION', defaultValue: 'metorial-dev' },
+  { key: 'SUBSPACE_URL', defaultValue: 'http://localhost:52070/subspace-controller' },
+  {
+    key: 'SUBSPACE_CONNECTION_URL',
+    defaultValue: 'http://localhost:52072'
   }
 ];
 
@@ -372,6 +378,10 @@ export let subspaceDevEnv: Env = [
   {
     key: 'MESSAGE_BUCKET_NAME',
     defaultValue: 'messages'
+  },
+  {
+    key: 'PROVIDER_TELEMETRY_ERROR_GROUPS_BUCKET_NAME',
+    defaultValue: 'provider-telemetry-error-groups'
   },
   {
     key: 'ORIGIN_URL',

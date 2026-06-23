@@ -18,6 +18,7 @@ model Tenant {
   assistantConfig        AssistantConfig?
   assistantInstances     AssistantInstance[]
   assistantConversations AssistantConversation[]
+  subspaceMcpConnections SubspaceMcpConnection[]
   modelRuns              ModelRun[]
 }
 
@@ -36,6 +37,7 @@ model Environment {
   createdAt DateTime @default(now())
 
   assistantConversations AssistantConversation[]
+  subspaceMcpConnections SubspaceMcpConnection[]
 
   @@unique([tenantOid, identifier])
   @@index([tenantOid])

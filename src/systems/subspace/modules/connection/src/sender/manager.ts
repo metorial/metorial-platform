@@ -17,6 +17,7 @@ import {
   ID,
   type ProviderAuthConfig,
   type ProviderAuthCredentials,
+  type ProviderAuthMethod,
   type ProviderDeployment,
   type Session,
   type SessionConnection,
@@ -37,6 +38,7 @@ import {
 import { enclaveIngressPolicyService } from '@metorial-subspace/module-enclave';
 import {
   checkToolAccess,
+  checkToolAuthMethodSatisfied,
   checkToolScopesSatisfied,
   providerDeploymentConfigPairInternalService,
   providerDeploymentInternalService,
@@ -56,6 +58,13 @@ import {
 } from '../const';
 import { env } from '../env';
 import { conduit } from '../lib/conduit';
+import {
+  buildConnectionFailedDetail,
+  buildConnectionFailedTool,
+  CONNECTION_FAILED_TOOL_KEY,
+  type ConnectionFailedProvider
+} from '../lib/connectionFailedTool';
+import { isSyntheticTool } from '../lib/syntheticTool';
 import { topics } from '../lib/topic';
 import { completeMessage } from '../shared/completeMessage';
 import { createError } from '../shared/createError';
@@ -103,13 +112,20 @@ export interface SenderMangerProps {
   tenantId: string;
   connectionToken?: string;
   transport: SessionConnectionTransport;
-  agentClient?: {
-    name: string;
-    type: 'mcp_client_oauth';
-    privateMetadata?: Record<string, any>;
-    foreignId: string;
-    oauthRegistrationId: string;
-  };
+  agentClient?:
+    | {
+        name: string;
+        type: 'mcp_client_oauth';
+        privateMetadata?: Record<string, any>;
+        foreignId: string;
+        oauthRegistrationId: string;
+      }
+    | {
+        name: string;
+        type: 'system_client';
+        privateMetadata?: Record<string, any>;
+        foreignId: string;
+      };
   connectionPrivateMetadata?: Record<string, any>;
   ingressPolicyCheck?: {
     sourceIp: string;
@@ -509,14 +525,21 @@ export class SenderManager {
               }
         });
 
+        let detail = buildConnectionFailedDetail({
+          provider: fullProvider,
+          discoveryError: rec?.error
+        });
+
         return {
           status: 'discovery_failed' as const,
+          discoveryError: rec?.error ?? null,
+          detail,
           mcpError:
             rec?.error?.type == 'mcp_error'
-              ? rec.error.error
+              ? { ...rec.error.error, message: detail.shortMessage }
               : {
                   code: -32603,
-                  message: 'Failed to discover provider specification'
+                  message: detail.shortMessage
                 }
         };
       }
@@ -543,7 +566,10 @@ export class SenderManager {
       provider: { name: string };
       deployment: ProviderDeployment;
       authConfig?:
-        | (ProviderAuthConfig & { authCredentials?: ProviderAuthCredentials | null })
+        | (ProviderAuthConfig & {
+            authCredentials?: ProviderAuthCredentials | null;
+            authMethod?: ProviderAuthMethod | null;
+          })
         | null;
     }
   ) {
@@ -555,7 +581,7 @@ export class SenderManager {
       };
     }
 
-    if (res.status === 'discovery_failed') return res;
+    if (res.status === 'discovery_failed') return { ...res, provider };
 
     let specificationOid = await resolveProviderToolListingSpecificationOid({
       pairVersion: res.instance.pairVersion
@@ -567,6 +593,10 @@ export class SenderManager {
         })
       : [];
 
+    let authMethodFilteredTools = tools.filter(
+      tool => checkToolAuthMethodSatisfied(tool, provider.authConfig?.authMethod).allowed
+    );
+
     let grantedScopes = resolveGrantedScopes({
       authConfig: provider.authConfig,
       authCredentials: provider.authConfig?.authCredentials
@@ -574,8 +604,10 @@ export class SenderManager {
 
     let scopeFilteredTools =
       grantedScopes === null
-        ? tools
-        : tools.filter(tool => checkToolScopesSatisfied(tool, grantedScopes).allowed);
+        ? authMethodFilteredTools
+        : authMethodFilteredTools.filter(
+            tool => checkToolScopesSatisfied(tool, grantedScopes).allowed
+          );
 
     return {
       status: 'ok' as const,
@@ -595,11 +627,14 @@ export class SenderManager {
         provider: true,
         deployment: true,
         config: true,
-        authConfig: { include: { authCredentials: true } }
+        authConfig: { include: { authCredentials: true, authMethod: true } }
       }
     });
 
-    return await sessionProviderNameTemplateService.ensureForSessionProviders(providers);
+    return await sessionProviderNameTemplateService.ensureForSessionProviders({
+      tenant: this.tenant,
+      providers
+    });
   }
 
   async listToolsIncludingInternalAndNonAllowed() {
@@ -609,23 +644,37 @@ export class SenderManager {
       providers.map(provider => this.listToolsForProvider(provider))
     );
 
-    for (let res of discoveryRes) {
-      if (res.status === 'discovery_failed') {
+    let failedRes = discoveryRes.filter(
+      (res): res is Extract<typeof res, { status: 'discovery_failed' }> =>
+        res.status === 'discovery_failed'
+    );
+
+    let tools = discoveryRes.flatMap(r => (r.status == 'ok' ? r.tools : []));
+
+    if (failedRes.length > 0) {
+      // Only surface the hard discovery error when no provider could be
+      // discovered. Otherwise the session keeps working and we inject a
+      // synthetic `{provider}_connection_failed` tool per failed provider.
+      if (failedRes.length === discoveryRes.length) {
         return {
           status: 'discovery_failed' as const,
-          mcpError: res.mcpError
+          mcpError: failedRes[0]!.mcpError
         };
+      }
+
+      for (let failed of failedRes) {
+        tools.push(
+          buildConnectionFailedTool(
+            failed.provider,
+            failed.detail
+          ) as unknown as (typeof tools)[number]
+        );
       }
     }
 
-    let tools = discoveryRes
-      .map(r => (r.status == 'ok' ? r.tools : []))
-      .flat()
-      .sort((a, b) => a.id.localeCompare(b.id));
-
     return {
       status: 'ok' as const,
-      tools
+      tools: tools.sort((a, b) => a.id.localeCompare(b.id))
     };
   }
 
@@ -636,7 +685,8 @@ export class SenderManager {
     return {
       status: 'ok' as const,
       tools: allToolsRes.tools.filter(
-        tool => checkToolAccess(tool, tool.sessionProvider, 'list').allowed
+        tool =>
+          isSyntheticTool(tool) || checkToolAccess(tool, tool.sessionProvider, 'list').allowed
       )
     };
   }
@@ -665,7 +715,7 @@ export class SenderManager {
         provider: true,
         deployment: true,
         config: true,
-        authConfig: { include: { authCredentials: true } }
+        authConfig: { include: { authCredentials: true, authMethod: true } }
       }
     });
     if (!provider) throw new ServiceError(notFoundError('provider', d.tag));
@@ -702,7 +752,10 @@ export class SenderManager {
     provider: SessionProvider & {
       provider: { name: string };
       authConfig?:
-        | (ProviderAuthConfig & { authCredentials?: ProviderAuthCredentials | null })
+        | (ProviderAuthConfig & {
+            authCredentials?: ProviderAuthCredentials | null;
+            authMethod?: ProviderAuthMethod | null;
+          })
         | null;
     };
     originalToolName: string;
@@ -714,7 +767,7 @@ export class SenderManager {
     if (instanceRes.status === 'discovery_failed') {
       throw new ServiceError(
         preconditionFailedError({
-          message: 'Failed to discover provider specification',
+          message: instanceRes.detail.shortMessage,
           _mcpError: instanceRes.mcpError
         })
       );
@@ -747,6 +800,16 @@ export class SenderManager {
       throw new ServiceError(badRequestError({ message: 'Tool access not allowed' }));
     }
 
+    let authMethodCheck = checkToolAuthMethodSatisfied(
+      tool,
+      d.provider.authConfig?.authMethod
+    );
+    if (!authMethodCheck.allowed) {
+      throw new ServiceError(
+        badRequestError({ message: 'Tool is not available for this authentication method' })
+      );
+    }
+
     let grantedScopes = resolveGrantedScopes({
       authConfig: d.provider.authConfig,
       authCredentials: d.provider.authConfig?.authCredentials
@@ -771,6 +834,18 @@ export class SenderManager {
         sessionProvider: d.provider,
         sessionProviderInstance: instanceRes.instance
       }
+    };
+  }
+
+  private async resolveConnectionFailedTool(provider: ConnectionFailedProvider) {
+    let instanceRes = await this.ensureProviderInstance(provider);
+    if (!instanceRes || instanceRes.status !== 'discovery_failed') return null;
+
+    return {
+      provider,
+      instance: null,
+      detail: instanceRes.detail,
+      tool: buildConnectionFailedTool(provider, instanceRes.detail)
     };
   }
 
@@ -803,6 +878,16 @@ export class SenderManager {
       throw new ServiceError(badRequestError({ message: 'Invalid tool ID format' }));
     }
 
+    // If the requested tool is the synthetic `{provider}_connection_failed`
+    // tool of a provider that failed discovery, resolve it without dispatching
+    // to a real provider instance.
+    for (let match of matches) {
+      if (match!.originalToolName === CONNECTION_FAILED_TOOL_KEY) {
+        let synthetic = await this.resolveConnectionFailedTool(match!.provider);
+        if (synthetic) return synthetic;
+      }
+    }
+
     for (let match of matches) {
       let resolved = await this.getProviderToolByResolvedName(match!);
       if (resolved) return resolved;
@@ -819,7 +904,7 @@ export class SenderManager {
     if (toolsRes.status === 'discovery_failed') {
       throw new ServiceError(
         preconditionFailedError({
-          message: 'Failed to discover provider specification',
+          message: toolsRes.detail.shortMessage,
           _mcpError: toolsRes.mcpError
         })
       );
@@ -841,6 +926,62 @@ export class SenderManager {
     });
   }
 
+  private async completeConnectionFailedCall(d: {
+    provider: SessionProvider;
+    tool: { key: string };
+    detail: ReturnType<typeof buildConnectionFailedDetail>;
+    participant: SessionParticipant;
+    callProps: CallToolProps;
+  }) {
+    let extractedToolCall = extractToolCallOperation({
+      input: d.callProps.input,
+      rationale: d.callProps.rationale,
+      operation: d.callProps.operation
+    });
+
+    let system = await upsertParticipant({
+      session: this.session,
+      from: { type: 'system' }
+    });
+
+    // The connection-failed tool is synthetic and has no ProviderTool row, so
+    // we pass `methodOrToolKey` (not `tool`) to avoid creating a toolCall with
+    // an invalid foreign key. The message is completed immediately with a
+    // detailed, agent-targeted error explaining the failure.
+    let message = await this.createMessage({
+      status: 'failed',
+      type: d.callProps.transport === 'mcp' ? 'mcp_message' : 'tool_call',
+      source: 'client',
+      input: extractedToolCall.input,
+      rationale: extractedToolCall.rationale,
+      operation: extractedToolCall.operation,
+      senderParticipant: d.participant,
+      responderParticipant: system,
+      failureReason: 'provider_error',
+      clientMcpId: d.callProps.clientMcpId,
+      transport: d.callProps.transport,
+      methodOrToolKey: d.tool.key,
+      isProductive: true,
+      provider: d.provider,
+      parentMessage: d.callProps.parentMessage,
+      output: {
+        type: 'error',
+        data: {
+          code: 'provider_connection_failed',
+          message: d.detail.longMessage,
+          ...d.detail.data
+        }
+      }
+    });
+
+    return {
+      message,
+      output: message.output,
+      status: message.status,
+      completedAt: message.completedAt
+    } satisfies ConduitResult;
+  }
+
   async callTool(d: CallToolProps) {
     let connection = this.connection;
     if (!connection) {
@@ -856,7 +997,22 @@ export class SenderManager {
       throw new Error('Connection participant not loaded');
     }
 
-    let { provider, tool, instance } = await this.getToolById({ toolId: d.toolId });
+    let resolved = await this.getToolById({ toolId: d.toolId });
+
+    // The synthetic connection-failed tool has no backing provider instance;
+    // complete the call immediately with a detailed error for the agent.
+    if (!resolved.instance && 'detail' in resolved) {
+      return await this.completeConnectionFailedCall({
+        provider: resolved.provider,
+        tool: resolved.tool,
+        detail: resolved.detail,
+        participant,
+        callProps: d
+      });
+    }
+
+    let { provider, tool, instance } = resolved;
+
     let extractedToolCall = extractToolCallOperation({
       input: d.input,
       rationale: d.rationale,

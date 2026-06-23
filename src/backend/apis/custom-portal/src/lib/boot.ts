@@ -1,3 +1,4 @@
+import type { Flags } from '@metorial/module-flags';
 import { instancePresenter, portalPresenter, sessionPresenter } from '../presenters';
 import { brandPresenter } from '../presenters/brand';
 
@@ -8,6 +9,7 @@ type PortalBootSharedResponse = {
   publishableApiKey: string;
   brand: Awaited<ReturnType<typeof brandPresenter>>;
   portalMagicMcpUrl: string;
+  flags: Flags;
 };
 
 export let createUnauthenticatedPortalBootResponse = async (d: PortalBootSharedResponse) => ({

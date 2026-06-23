@@ -5,7 +5,8 @@ import { EntityContext } from './context';
 
 let Wrapper = styled('div')`
   border-radius: 12px;
-  border: 1px solid ${theme.colors.gray300};
+  border: 1px solid ${theme.colors.gray400};
+  box-shadow: ${theme.shadows.small};
   display: flex;
   flex-direction: column;
   position: relative;

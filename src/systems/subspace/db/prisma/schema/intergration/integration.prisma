@@ -23,6 +23,8 @@ model Integration {
   canAttachCustomProviderConfig Boolean
   canOverrideToolFilters        Boolean
 
+  useIntegrationNameForSessionProviderNameTemplatesOverride Boolean?
+
   currentVersionIndex Int
 
   currentVersionOid BigInt?

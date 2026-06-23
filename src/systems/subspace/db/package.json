@@ -6,6 +6,7 @@
   "private": true,
   "version": "1.0.0",
   "scripts": {
+    "test": "bun test ./src/id.test.ts",
     "typecheck": "tsc --noEmit",
     "prisma:generate": "bun prisma generate --schema prisma/schema --config ../prisma.config.ts",
     "prisma:push": "sh -c 'set -a; . .env; set +a; bun prisma db push --accept-data-loss --schema prisma/schema --config ../prisma.config.ts'"
@@ -30,6 +31,7 @@
     "@prisma/client": "^7.2.0",
     "@prisma/extension-read-replicas": "^0.5.0",
     "dotenv": "^17.2.3",
+    "ioredis": "^5.11.1",
     "p-queue": "^9.1.0",
     "prisma": "^7.2.0",
     "prisma-json-types-generator": "^4.0.1"

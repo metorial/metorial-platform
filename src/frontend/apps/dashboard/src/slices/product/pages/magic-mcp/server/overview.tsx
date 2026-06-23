@@ -1,13 +1,22 @@
 import { renderWithLoader } from '@metorial/data-hooks';
-import { useCurrentInstance, useMagicMcpServer, useMagicMcpTokens } from '@metorial/state';
+import { Paths } from '@metorial/frontend-config';
+import {
+  useCurrentInstance,
+  useCurrentOrganization,
+  useCurrentProject,
+  useMagicMcpServer,
+  useMagicMcpTokens
+} from '@metorial/state';
 import { Attributes, Flex, RenderDate, Text } from '@metorial/ui';
 import { Box, ID } from '@metorial/ui-product';
 import { useEffect, useRef, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { McpConnectionInstructionsScene } from '../../../scenes/mcpConnectionInstructions';
 
 export let MagicMcpServerOverviewPage = () => {
   let instance = useCurrentInstance();
+  let organization = useCurrentOrganization();
+  let project = useCurrentProject();
   let { magicMcpServerId } = useParams();
 
   let server = useMagicMcpServer(instance.data?.id, magicMcpServerId);
@@ -82,43 +91,79 @@ export let MagicMcpServerOverviewPage = () => {
     tokens.isLoading
   ]);
 
-  return renderWithLoader({ server, tokens })(({ server, tokens }) => {
-    let streamableHttpUrl = server.data.endpoints[0]?.url;
-    let createdToken =
-      createdInitialToken?.instanceId === instance.data?.id &&
-      createdInitialToken?.serverId === server.data.id
-        ? createdInitialToken
-        : null;
-    let activeToken =
-      tokens.data.items.find(t => t.status === 'active' && t.server?.id === server.data.id) ??
-      createdToken;
-    let activeTokenSecret = activeToken?.secret;
-    let fullUrl =
-      streamableHttpUrl && activeTokenSecret
-        ? `${streamableHttpUrl}?key=${activeTokenSecret}`
-        : null;
+  return renderWithLoader({ server, tokens, organization, project, instance })(
+    ({ server, tokens, organization, project, instance }) => {
+      let streamableHttpUrl = server.data.endpoints[0]?.url;
+      let createdToken =
+        createdInitialToken?.instanceId === instance.data?.id &&
+        createdInitialToken?.serverId === server.data.id
+          ? createdInitialToken
+          : null;
+      let activeToken =
+        tokens.data.items.find(
+          t => t.status === 'active' && t.server?.id === server.data.id
+        ) ?? createdToken;
+      let activeTokenSecret = activeToken?.secret;
+      let consumerOwners = server.data.consumerOwners;
+      let consumerOwner = consumerOwners[0];
 
-    return (
-      <Flex direction="column" gap={16}>
-        <Attributes
-          itemWidth="300px"
-          attributes={[
-            {
-              label: 'ID',
-              content: <ID id={server.data.id} />
-            },
-            {
-              label: 'Server Identifier',
-              content: <ID id={server.data.endpoints[0]?.alias ?? '...'} />
-            },
-            {
-              label: 'Created At',
-              content: <RenderDate date={server.data.createdAt} />
-            }
-          ]}
-        />
+      let fullUrl =
+        streamableHttpUrl && activeTokenSecret
+          ? `${streamableHttpUrl}?key=${activeTokenSecret}`
+          : null;
 
-        {/* <Spacer height={16} />
+      return (
+        <Flex direction="column" gap={16}>
+          <Attributes
+            itemWidth="300px"
+            attributes={[
+              {
+                label: 'ID',
+                content: <ID id={server.data.id} />
+              },
+              {
+                label: 'Server Identifier',
+                content: <ID id={server.data.endpoints[0]?.alias ?? '...'} />
+              },
+              {
+                label: 'Created At',
+                content: <RenderDate date={server.data.createdAt} />
+              }
+            ]}
+          />
+
+          {consumerOwner && (
+            <Attributes
+              itemWidth="300px"
+              attributes={[
+                {
+                  label: 'Name',
+                  content: consumerOwner.consumerProfileName || consumerOwner.consumerName
+                },
+                {
+                  label: 'Email',
+                  content: (
+                    <Link
+                      to={Paths.instance.identity.consumer(
+                        organization.data,
+                        project.data,
+                        instance.data,
+                        consumerOwner.consumerId
+                      )}
+                    >
+                      {consumerOwner.consumerProfileEmail || consumerOwner.consumerEmail}
+                    </Link>
+                  )
+                },
+                {
+                  label: 'Consumer ID',
+                  content: <ID id={consumerOwner.consumerId} />
+                }
+              ]}
+            />
+          )}
+
+          {/* <Spacer height={16} />
 
             <Copy
               label="Primary Endpoint"
@@ -126,7 +171,7 @@ export let MagicMcpServerOverviewPage = () => {
               copyValue={streamableHttpUrl ?? ''}
             /> */}
 
-        {/* <Box
+          {/* <Box
             title="Providers"
             description="Sessions created through this server inherit providers from its session template."
             rightActions={
@@ -190,32 +235,33 @@ export let MagicMcpServerOverviewPage = () => {
             </Flex>
           </Box> */}
 
-        <Box
-          title={`Connect to ${server.data.name ?? 'Magic MCP Server'}`}
-          description="Use this Magic MCP endpoint to connect to your server."
-        >
-          <McpConnectionInstructionsScene
-            name={server.data.name ?? 'Magic MCP Server'}
-            tokenLabel="Magic MCP Token"
-            tokenValue={activeTokenSecret ?? null}
-            tokenCopyValue={activeTokenSecret ?? ''}
-            endpointLabel="Endpoint"
-            endpointValue={fullUrl ?? streamableHttpUrl ?? '...'}
-            endpointCopyValue={fullUrl ?? streamableHttpUrl ?? ''}
-            snippetUrl={streamableHttpUrl ?? null}
-            snippetToken={activeTokenSecret ?? null}
-            emptyState={
-              <Flex direction="column" gap={12} style={{ alignItems: 'flex-start' }}>
-                <Text size="2">
-                  {creatingInitialToken
-                    ? 'Creating a Magic MCP token for this server...'
-                    : 'No active Magic MCP token found for this server. Create one from the Tokens tab to connect clients.'}
-                </Text>
-              </Flex>
-            }
-          />
-        </Box>
-      </Flex>
-    );
-  });
+          <Box
+            title={`Connect to ${server.data.name ?? 'Magic MCP Server'}`}
+            description="Use this Magic MCP endpoint to connect to your server."
+          >
+            <McpConnectionInstructionsScene
+              name={server.data.name ?? 'Magic MCP Server'}
+              tokenLabel="Magic MCP Token"
+              tokenValue={activeTokenSecret ?? null}
+              tokenCopyValue={activeTokenSecret ?? ''}
+              endpointLabel="Endpoint"
+              endpointValue={fullUrl ?? streamableHttpUrl ?? '...'}
+              endpointCopyValue={fullUrl ?? streamableHttpUrl ?? ''}
+              snippetUrl={streamableHttpUrl ?? null}
+              snippetToken={activeTokenSecret ?? null}
+              emptyState={
+                <Flex direction="column" gap={12} style={{ alignItems: 'flex-start' }}>
+                  <Text size="2">
+                    {creatingInitialToken
+                      ? 'Creating a Magic MCP token for this server...'
+                      : 'No active Magic MCP token found for this server. Create one from the Tokens tab to connect clients.'}
+                  </Text>
+                </Flex>
+              }
+            />
+          </Box>
+        </Flex>
+      );
+    }
+  );
 };

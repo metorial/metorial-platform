@@ -50,7 +50,7 @@ vi.mock('@lowerdeck/service', () => ({
   }
 }));
 
-import { db } from '@metorial/db';
+import { db, withTransaction } from '@metorial/db';
 import { consumerIntegrationService } from '../src/services/consumerEntities/consumerIntegration';
 
 describe('consumerIntegrationService', () => {
@@ -150,6 +150,7 @@ describe('consumerIntegrationService', () => {
     );
     expect(db.consumerIntegrationSession.upsert).toHaveBeenCalledTimes(2);
     expect(result.consumerIntegrationSessions).toHaveLength(2);
+    expect(withTransaction).not.toHaveBeenCalled();
   });
 
   it('forces managed integrations back to owned when explicitly created by a consumer', async () => {

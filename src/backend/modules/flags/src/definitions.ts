@@ -10,6 +10,7 @@ export type Flags = {
   'identity-management': boolean;
   'portals-access': boolean;
   'skills-enabled': boolean;
+  'assistant-enabled': boolean;
   'advanced-security-management-enabled': boolean;
   'networking-enabled': boolean;
 
@@ -40,6 +41,7 @@ export let defaultFlags: Flags = {
   'portals-access': false,
   'identity-management': false,
   'skills-enabled': false,
+  'assistant-enabled': false,
   'advanced-security-management-enabled': false,
   'networking-enabled': false,
 

@@ -12,13 +12,33 @@ vi.mock('../src/lib/magicMcpConnectHealth', () => ({
   assertMagicMcpTargetReadyForConnect: vi.fn()
 }));
 
-vi.mock('@metorial/db', () => ({
-  db: {},
-  ID: {
-    generateId: vi.fn()
-  },
-  withTransaction: vi.fn()
-}));
+vi.mock('@metorial/db', () => {
+  let db = {
+    magicMcpSession: {
+      findUnique: vi.fn(),
+      findUniqueOrThrow: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn()
+    }
+  };
+
+  return {
+    db,
+    ID: {
+      generateId: vi.fn(async prefix => `${prefix}-id`)
+    },
+    Prisma: {
+      PrismaClientKnownRequestError: class PrismaClientKnownRequestError extends Error {
+        code: string;
+
+        constructor(message: string, code: string) {
+          super(message);
+          this.code = code;
+        }
+      }
+    }
+  };
+});
 
 import {
   ensureMagicMcpEndpointBacking,
@@ -28,7 +48,11 @@ import {
   assertMagicMcpTargetLinkedResourcesActive,
   assertMagicMcpTargetReadyForConnect
 } from '../src/lib/magicMcpConnectHealth';
-import { ensureMagicMcpSubspaceSession } from '../src/lib/ensureSession';
+import { db } from '@metorial/db';
+import {
+  ensureMagicMcpSubspaceSession,
+  syncMagicMcpSubspaceSession
+} from '../src/lib/ensureSession';
 
 describe('ensureMagicMcpSubspaceSession', () => {
   beforeEach(() => {
@@ -97,5 +121,76 @@ describe('ensureMagicMcpSubspaceSession', () => {
     });
     expect(assertMagicMcpTargetReadyForConnect).toHaveBeenCalled();
     expect(result).toBe('ems_endpoint');
+  });
+
+  it('does not write when the loaded magic MCP session mapping is current', async () => {
+    let subspaceSession = {
+      oid: 1n,
+      id: 'mms_1',
+      instanceOid: 10n,
+      subspaceSessionId: 'sess_1',
+      subspaceSessionTemplateId: 'template_1',
+      isActive: true,
+      expiresAt: null,
+      isConsumerReconciled: true
+    } as any;
+
+    let result = await syncMagicMcpSubspaceSession(
+      {
+        type: 'server',
+        target: {
+          oid: 20n,
+          instance: { oid: 10n },
+          subspaceSession
+        }
+      } as any,
+      'sess_1',
+      'template_1'
+    );
+
+    expect(result).toBe(subspaceSession);
+    expect(db.magicMcpSession.findUnique).not.toHaveBeenCalled();
+    expect(db.magicMcpSession.create).not.toHaveBeenCalled();
+    expect(db.magicMcpSession.update).not.toHaveBeenCalled();
+  });
+
+  it('clears reconciliation only when the session mapping changes', async () => {
+    (db.magicMcpSession.update as any).mockResolvedValue({
+      oid: 1n,
+      subspaceSessionId: 'sess_2',
+      subspaceSessionTemplateId: 'template_1',
+      isConsumerReconciled: false
+    });
+
+    await syncMagicMcpSubspaceSession(
+      {
+        type: 'endpoint',
+        target: {
+          oid: 20n,
+          instance: { oid: 10n },
+          subspaceSession: [
+            {
+              oid: 1n,
+              subspaceSessionId: 'sess_1',
+              subspaceSessionTemplateId: 'template_1',
+              isActive: true,
+              expiresAt: null,
+              isConsumerReconciled: true
+            }
+          ]
+        }
+      } as any,
+      'sess_2',
+      'template_1'
+    );
+
+    expect(db.magicMcpSession.update).toHaveBeenCalledWith({
+      where: { oid: 1n },
+      data: expect.objectContaining({
+        subspaceSessionId: 'sess_2',
+        subspaceSessionTemplateId: 'template_1',
+        isConsumerReconciled: false
+      })
+    });
   });
 });

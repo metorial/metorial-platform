@@ -74,7 +74,7 @@ export let fileCleanupManyProcessor = fileCleanupManyQueue.process(async data =>
   await fileCleanupSingleQueue.addManyWithOps(
     files.map(file => ({
       data: { fileId: file.id },
-      opts: { id: file.oid.toString() }
+      opts: { id: `file-cleanup:${file.oid.toString()}` }
     }))
   );
 

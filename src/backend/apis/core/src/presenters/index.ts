@@ -131,6 +131,7 @@ import {
   v1ProjectPresenter,
   v1ProjectRetentionPresenter,
   v1ProjectAuthConfigConfigurationPresenter,
+  v1ProjectIntegrationNamingConfigurationPresenter,
   v1ProjectToolCallingConfigurationPresenter,
   v1ProviderAuthConfigErrorGroupPresenter,
   v1ProviderAuthConfigErrorPresenter,
@@ -327,6 +328,7 @@ import {
   projectBrandType,
   projectRetentionType,
   projectAuthConfigConfigurationType,
+  projectIntegrationNamingConfigurationType,
   projectToolCallingConfigurationType,
   projectType,
   protoGuardAlertType,
@@ -581,6 +583,14 @@ export let projectToolCallingConfigurationPresenter = declarePresenter(
   {
     mt_2025_01_01_dashboard: v1ProjectToolCallingConfigurationPresenter,
     mt_2026_01_01_magnetar: v1ProjectToolCallingConfigurationPresenter
+  }
+);
+
+export let projectIntegrationNamingConfigurationPresenter = declarePresenter(
+  projectIntegrationNamingConfigurationType,
+  {
+    mt_2025_01_01_dashboard: v1ProjectIntegrationNamingConfigurationPresenter,
+    mt_2026_01_01_magnetar: v1ProjectIntegrationNamingConfigurationPresenter
   }
 );
 

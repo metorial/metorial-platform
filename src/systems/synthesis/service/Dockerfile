@@ -12,8 +12,8 @@ COPY . .
 # Install CA certificates and native build tools for dependency install scripts
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates python3 python3-setuptools make g++ && rm -rf /var/lib/apt/lists/*
 
-# Install dependencies from the OSS workspace
-RUN bun install --linker=hoisted
+# Install dependencies and build local workspace clients before bundling
+RUN sh ./src/systems/synthesis/scripts/prepare-docker-build.sh
 
 # Generate Prisma client and build the service from the monorepo path
 WORKDIR /app/src/systems/synthesis/service

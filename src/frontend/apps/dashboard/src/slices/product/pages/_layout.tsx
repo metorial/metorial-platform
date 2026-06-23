@@ -79,6 +79,7 @@ export let ProjectPageLayout = () => {
     EntityParam
   ];
   let dashboardFlags = useDashboardFlags();
+  let assistantEnabled = !!dashboardFlags.data?.flags['assistant-enabled'];
   let networkingEnabled = !!dashboardFlags.data?.flags['networking-enabled'];
 
   return (
@@ -125,7 +126,8 @@ export let ProjectPageLayout = () => {
               to: Paths.instance.providerDeployments(...params),
               getProps: i => ({
                 isActive:
-                  checkPath(i, { exact: true }) || checkProviderDeploymentDetailPath(i.pathname)
+                  checkPath(i, { exact: true }) ||
+                  checkProviderDeploymentDetailPath(i.pathname)
               })
             },
 
@@ -216,12 +218,18 @@ export let ProjectPageLayout = () => {
               to: Paths.instance.explorer(...params),
               getProps: i => ({ isActive: checkPath(i, { exact: true }) })
             },
-            {
-              icon: <RiChatVoiceAiLine />,
-              label: 'Assistant',
-              to: Paths.instance.assistant(...params),
-              getProps: i => ({ isActive: checkPath(i) })
-            },
+            ...(assistantEnabled
+              ? [
+                  {
+                    icon: <RiChatVoiceAiLine />,
+                    label: 'Assistant',
+                    to: Paths.instance.assistant(...params),
+                    getProps: (i: { pathname: string; to: string }) => ({
+                      isActive: checkPath(i)
+                    })
+                  }
+                ]
+              : []),
 
             {
               icon: <RiWebhookLine />,
@@ -243,60 +251,60 @@ export let ProjectPageLayout = () => {
           ]
         },
 
-        ...(networkingEnabled ?
-          [
-            {
-              label: 'Compute',
-              collapsible: true,
-              items: [
-                {
-                  icon: <RiShieldKeyholeLine />,
-                  label: 'Overview',
-                  to: Paths.instance.security(...params),
-                  getProps: (i: { pathname: string; to: string }) => ({
-                    isActive: checkPath(i, { exact: true })
-                  })
-                },
-                {
-                  icon: <RiFlowChart />,
-                  label: 'Network',
-                  to: Paths.instance.network(...params),
-                  getProps: (i: { pathname: string; to: string }) => ({
-                    isActive:
-                      checkPath(i, { exact: true }) ||
-                      i.pathname.includes('/network/firewall/')
-                  }),
-                  children: [
-                    {
-                      label: 'Firewalls',
-                      to: Paths.instance.networkFirewalls(...params),
-                      getProps: (i: { pathname: string; to: string }) => ({
-                        isActive:
-                          checkPath(i, { exact: true }) ||
-                          i.pathname.includes('/network/firewall/')
-                      })
-                    },
-                    {
-                      label: 'Network Settings',
-                      to: Paths.instance.networkSettings(...params),
-                      getProps: (i: { pathname: string; to: string }) => ({
-                        isActive: checkPath(i, { exact: true })
-                      })
-                    }
-                  ]
-                },
-                {
-                  icon: <RiServerLine />,
-                  label: 'Enclaves',
-                  to: Paths.instance.networkEnclaves(...params),
-                  getProps: (i: { pathname: string; to: string }) => ({
-                    isActive: checkPath(i, { exact: true })
-                  })
-                }
-              ]
-            }
-          ]
-        : []),
+        ...(networkingEnabled
+          ? [
+              {
+                label: 'Compute',
+                collapsible: true,
+                items: [
+                  {
+                    icon: <RiShieldKeyholeLine />,
+                    label: 'Overview',
+                    to: Paths.instance.security(...params),
+                    getProps: (i: { pathname: string; to: string }) => ({
+                      isActive: checkPath(i, { exact: true })
+                    })
+                  },
+                  {
+                    icon: <RiFlowChart />,
+                    label: 'Network',
+                    to: Paths.instance.network(...params),
+                    getProps: (i: { pathname: string; to: string }) => ({
+                      isActive:
+                        checkPath(i, { exact: true }) ||
+                        i.pathname.includes('/network/firewall/')
+                    }),
+                    children: [
+                      {
+                        label: 'Firewalls',
+                        to: Paths.instance.networkFirewalls(...params),
+                        getProps: (i: { pathname: string; to: string }) => ({
+                          isActive:
+                            checkPath(i, { exact: true }) ||
+                            i.pathname.includes('/network/firewall/')
+                        })
+                      },
+                      {
+                        label: 'Network Settings',
+                        to: Paths.instance.networkSettings(...params),
+                        getProps: (i: { pathname: string; to: string }) => ({
+                          isActive: checkPath(i, { exact: true })
+                        })
+                      }
+                    ]
+                  },
+                  {
+                    icon: <RiServerLine />,
+                    label: 'Enclaves',
+                    to: Paths.instance.networkEnclaves(...params),
+                    getProps: (i: { pathname: string; to: string }) => ({
+                      isActive: checkPath(i, { exact: true })
+                    })
+                  }
+                ]
+              }
+            ]
+          : []),
 
         {
           label: 'Gateway',

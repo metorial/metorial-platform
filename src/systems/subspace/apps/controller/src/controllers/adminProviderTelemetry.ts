@@ -3,11 +3,14 @@ import { v } from '@lowerdeck/validation';
 import { db } from '@metorial-subspace/db';
 import { providerService } from '@metorial-subspace/module-catalog';
 import {
+  adminProviderTelemetryErrorGroupService,
+  adminProviderTelemetryErrorGroupTypes,
   providerInvocationService,
   providerRunLogsService,
   sessionMessageService
 } from '@metorial-subspace/module-session';
 import {
+  adminProviderTelemetryErrorGroupPresenter,
   providerInvocationPresenter,
   sessionMessagePresenter
 } from '@metorial-subspace/presenters';
@@ -749,89 +752,14 @@ export let adminProviderTelemetryController = app.controller({
       Paginator.validate(
         v.object({
           ...telemetryScopeValidator,
-          types: v.optional(
-            v.array(
-              v.enumOf([
-                'message_processing_timeout',
-                'message_processing_provider_error',
-                'message_processing_system_error',
-                'provider_discovery_failed'
-              ])
-            )
-          )
+          types: v.optional(v.array(v.enumOf([...adminProviderTelemetryErrorGroupTypes])))
         })
       )
     )
     .do(async ctx => {
-      let scope = await resolveTelemetryScope(ctx.input);
-      if (scope.isEmpty) return emptyList();
-
-      let paginator = Paginator.create(
-        ({ prisma }) =>
-          prisma(
-            async opts =>
-              await db.sessionErrorGroup.findMany({
-                ...opts,
-                orderBy: createdAtOrder(ctx.input.order),
-                where: {
-                  providerOid: scope.provider?.oid,
-                  tenantOid: oidFilter(scope.tenantOids),
-                  environmentOid: oidFilter(scope.environmentOids),
-                  type: ctx.input.types ? { in: ctx.input.types } : undefined,
-                  instances: {
-                    some: {
-                      createdAt: { gte: scope.from, lte: scope.to }
-                    }
-                  }
-                },
-                include: {
-                  provider: true,
-                  tenant: true,
-                  environment: true,
-                  firstOccurrence: {
-                    include: {
-                      session: true,
-                      providerRun: true
-                    }
-                  },
-                  sessionErrorGroupOccurrencePeriods: {
-                    where: { startsAt: { lte: scope.to }, endsAt: { gte: scope.from } },
-                    orderBy: { startsAt: 'asc' }
-                  }
-                }
-              })
-          ),
-        { defaultOrder: 'desc' }
-      );
-
+      let paginator = await adminProviderTelemetryErrorGroupService.listErrorGroups(ctx.input);
       let list = await paginator.run(ctx.input);
-      return Paginator.presentLight(list, group => ({
-        object: 'admin.provider_error_group',
-        id: group.id,
-        type: group.type,
-        code: group.code,
-        message: group.message,
-        hash: group.hash,
-        occurrence_count: group.occurrenceCount,
-        provider: group.provider
-          ? {
-              id: group.provider.id,
-              name: group.provider.name,
-              slug: group.provider.slug
-            }
-          : null,
-        first_occurrence_id: group.firstOccurrence?.id ?? null,
-        first_session_id: group.firstOccurrence?.session?.id ?? null,
-        first_provider_run_id: group.firstOccurrence?.providerRun?.id ?? null,
-        tenant_id: group.tenant.id,
-        environment_id: group.environment.id,
-        periods: group.sessionErrorGroupOccurrencePeriods.map(period => ({
-          starts_at: period.startsAt,
-          ends_at: period.endsAt,
-          occurrence_count: period.occurrenceCount
-        })),
-        created_at: group.createdAt
-      }));
+      return Paginator.presentLight(list, adminProviderTelemetryErrorGroupPresenter);
     }),
 
   getErrorGroup: app

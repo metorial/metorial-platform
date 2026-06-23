@@ -20,6 +20,7 @@ export let v1AssistantMessagePresenter = Presenter.create(assistantMessageType)
       id: assistantConversationItem.id,
       conversation_item_id: assistantConversationItem.conversationItemId,
       type: assistantConversationItem.type,
+      status: assistantConversationItem.status,
       assistant_id: assistantConversationItem.assistantId ?? null,
       parent_message_id: assistantConversationItem.parentMessageId ?? null,
       model: assistantConversationItem.model
@@ -48,13 +49,20 @@ export let v1AssistantMessagePresenter = Presenter.create(assistantMessageType)
       id: v.string(),
       conversation_item_id: v.string(),
       type: v.enumOf(['root', 'user', 'assistant']),
+      status: v.enumOf(['pending', 'waiting_for_user', 'completed']),
       assistant_id: v.nullable(v.string()),
       parent_message_id: v.nullable(v.string()),
       model: v.nullable(assistantModelSchema),
       request: v.object({
         object: v.literal('assistant.request'),
         id: v.string(),
-        status: v.enumOf(['pending', 'completed', 'cancelled', 'failed']),
+        status: v.enumOf([
+          'pending',
+          'waiting_for_user',
+          'completed',
+          'cancelled',
+          'failed'
+        ]),
         actor: v.nullable(documentParticipantActorSchema),
         created_at: v.date(),
         updated_at: v.date()

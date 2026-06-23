@@ -16,6 +16,8 @@ export let tenantPresenter = (tenant: Tenant) => ({
   allowAuthConfigImport: tenant.allowAuthConfigImport,
 
   collectOperationDescriptionForToolCalls: tenant.collectOperationDescriptionForToolCalls,
+  useIntegrationNamesForSessionProviderNameTemplates:
+    tenant.useIntegrationNamesForSessionProviderNameTemplates,
 
   createdAt: tenant.createdAt
 });

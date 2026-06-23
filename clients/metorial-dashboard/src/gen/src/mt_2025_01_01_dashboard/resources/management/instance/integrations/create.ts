@@ -12,6 +12,7 @@ export type ManagementInstanceIntegrationsCreateOutput = {
     canAttachCustomToolFilters: boolean;
     canAttachCustomProviderConfig: boolean;
     canOverrideToolFilters: boolean;
+    useIntegrationNameInToolNames: boolean | null;
   };
   implementation:
     | { type: 'provider_template'; providerTemplateId: string }
@@ -145,6 +146,10 @@ export let mapManagementInstanceIntegrationsCreateOutput =
         ),
         canOverrideToolFilters: mtMap.objectField(
           'can_override_tool_filters',
+          mtMap.passthrough()
+        ),
+        useIntegrationNameInToolNames: mtMap.objectField(
+          'use_integration_name_in_tool_names',
           mtMap.passthrough()
         )
       })
@@ -377,6 +382,7 @@ export type ManagementInstanceIntegrationsCreateBody = {
   name: string;
   description?: string | undefined;
   metadata?: Record<string, any> | undefined;
+  useIntegrationNameInToolNames?: boolean | null | undefined;
   canAttachCustomToolFilters?: boolean | undefined;
   canAttachCustomProviderConfig?: boolean | undefined;
   canOverrideToolFilters?: boolean | undefined;
@@ -387,6 +393,10 @@ export let mapManagementInstanceIntegrationsCreateBody =
     name: mtMap.objectField('name', mtMap.passthrough()),
     description: mtMap.objectField('description', mtMap.passthrough()),
     metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+    useIntegrationNameInToolNames: mtMap.objectField(
+      'use_integration_name_in_tool_names',
+      mtMap.passthrough()
+    ),
     canAttachCustomToolFilters: mtMap.objectField(
       'can_attach_custom_tool_filters',
       mtMap.passthrough()

@@ -37,6 +37,7 @@ export let buildOAuthClientConfig = (base: string) => ({
 
 type OAuthRouteHandlers<TInput, TRoute> = {
   resolveRoute: (route: TInput) => Promise<TRoute>;
+  resolveConnectRoute?: (route: TInput, c: Context) => Promise<TRoute>;
   metadata: (d: { route: TRoute }, c: Context) => Promise<Response>;
   portal: (d: { route: TRoute }, c: Context) => Promise<Response>;
   protectedResource: (d: { route: TRoute }, c: Context) => Promise<Response>;
@@ -112,10 +113,22 @@ let createOAuthRouteServers = <TInput, TRoute>(d: {
   handlers: OAuthRouteHandlers<TInput, TRoute>;
 }) => {
   let resolveRoute = async (c: Context) => await d.handlers.resolveRoute(d.parseRouteInput(c));
+  let resolveConnectRoute = async (c: Context) => {
+    let input = d.parseRouteInput(c);
+    if (d.handlers.resolveConnectRoute) {
+      return await d.handlers.resolveConnectRoute(input, c);
+    }
+
+    return await d.handlers.resolveRoute(input);
+  };
 
   let withResolvedRoute =
-    (handler: (d: { route: TRoute }, c: Context) => Promise<Response>) => async (c: Context) =>
-      await handler({ route: await resolveRoute(c) }, c);
+    (
+      handler: (d: { route: TRoute }, c: Context) => Promise<Response>,
+      resolver: (c: Context) => Promise<TRoute> = resolveRoute
+    ) =>
+    async (c: Context) =>
+      await handler({ route: await resolver(c) }, c);
 
   let metadataServer = createConnectionHono();
   for (let path of d.paths.metadata) {
@@ -124,7 +137,10 @@ let createOAuthRouteServers = <TInput, TRoute>(d: {
 
   let connectServer = createConnectionHono();
   for (let path of d.paths.connect) {
-    connectServer = connectServer.all(path, withResolvedRoute(d.handlers.portal));
+    connectServer = connectServer.all(
+      path,
+      withResolvedRoute(d.handlers.portal, resolveConnectRoute)
+    );
   }
 
   for (let path of d.paths.metadata) {

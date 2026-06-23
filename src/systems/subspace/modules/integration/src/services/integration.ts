@@ -79,6 +79,7 @@ type IntegrationWriteInput = {
   canAttachCustomToolFilters?: boolean;
   canAttachCustomProviderConfig?: boolean;
   canOverrideToolFilters?: boolean;
+  useIntegrationNameForSessionProviderNameTemplatesOverride?: boolean | null;
 };
 
 class integrationServiceImpl {
@@ -106,6 +107,8 @@ class integrationServiceImpl {
         canOverrideToolFilters || (d.input.canAttachCustomToolFilters ?? true),
       canAttachCustomProviderConfig: d.input.canAttachCustomProviderConfig ?? false,
       canOverrideToolFilters,
+      useIntegrationNameForSessionProviderNameTemplatesOverride:
+        d.input.useIntegrationNameForSessionProviderNameTemplatesOverride ?? null,
       currentVersionIndex: 0,
       tenantOid: d.tenant.oid,
       solutionOid: d.solution.oid,
@@ -128,7 +131,9 @@ class integrationServiceImpl {
         ? true
         : input.canAttachCustomToolFilters,
       canAttachCustomProviderConfig: input.canAttachCustomProviderConfig,
-      canOverrideToolFilters: input.canOverrideToolFilters
+      canOverrideToolFilters: input.canOverrideToolFilters,
+      useIntegrationNameForSessionProviderNameTemplatesOverride:
+        input.useIntegrationNameForSessionProviderNameTemplatesOverride
     };
   }
 
@@ -232,6 +237,7 @@ class integrationServiceImpl {
       canAttachCustomToolFilters?: boolean;
       canAttachCustomProviderConfig?: boolean;
       canOverrideToolFilters?: boolean;
+      useIntegrationNameForSessionProviderNameTemplatesOverride?: boolean | null;
     };
   }) {
     return await withTransaction(async db => {
@@ -276,6 +282,7 @@ class integrationServiceImpl {
       canAttachCustomToolFilters?: boolean;
       canAttachCustomProviderConfig?: boolean;
       canOverrideToolFilters?: boolean;
+      useIntegrationNameForSessionProviderNameTemplatesOverride?: boolean | null;
     };
   }) {
     return await withTransaction(async db => {
@@ -347,6 +354,7 @@ class integrationServiceImpl {
       canAttachCustomToolFilters?: boolean;
       canAttachCustomProviderConfig?: boolean;
       canOverrideToolFilters?: boolean;
+      useIntegrationNameForSessionProviderNameTemplatesOverride?: boolean | null;
     };
   }) {
     checkTenant(d, d.integration);
@@ -376,7 +384,9 @@ class integrationServiceImpl {
           privateMetadata: d.input.privateMetadata,
           canAttachCustomToolFilters,
           canAttachCustomProviderConfig: d.input.canAttachCustomProviderConfig,
-          canOverrideToolFilters
+          canOverrideToolFilters,
+          useIntegrationNameForSessionProviderNameTemplatesOverride:
+            d.input.useIntegrationNameForSessionProviderNameTemplatesOverride
         },
         include: integrationInclude
       });

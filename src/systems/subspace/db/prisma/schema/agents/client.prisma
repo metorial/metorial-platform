@@ -1,5 +1,6 @@
 enum AgentClientType {
   mcp_client_oauth
+  system_client
 }
 
 model AgentClient {

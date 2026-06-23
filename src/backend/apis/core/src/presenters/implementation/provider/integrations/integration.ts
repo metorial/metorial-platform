@@ -20,7 +20,9 @@ export let v1IntegrationPresenter = Presenter.create(integrationType)
     configuration: {
       can_attach_custom_tool_filters: integration.canAttachCustomToolFilters,
       can_attach_custom_provider_config: integration.canAttachCustomProviderConfig,
-      can_override_tool_filters: integration.canOverrideToolFilters
+      can_override_tool_filters: integration.canOverrideToolFilters,
+      use_integration_name_in_tool_names:
+        integration.useIntegrationNameForSessionProviderNameTemplatesOverride
     },
 
     implementation: integration.providerTemplateBackingId
@@ -56,7 +58,8 @@ export let v1IntegrationPresenter = Presenter.create(integrationType)
       configuration: v.object({
         can_attach_custom_tool_filters: v.boolean(),
         can_attach_custom_provider_config: v.boolean(),
-        can_override_tool_filters: v.boolean()
+        can_override_tool_filters: v.boolean(),
+        use_integration_name_in_tool_names: v.nullable(v.boolean())
       }),
       implementation: v.nullable(
         v.union([
@@ -89,7 +92,9 @@ export let v1IntegrationPreviewPresenter = Object.assign(
     configuration: {
       can_attach_custom_tool_filters: integration.canAttachCustomToolFilters,
       can_attach_custom_provider_config: integration.canAttachCustomProviderConfig,
-      can_override_tool_filters: integration.canOverrideToolFilters
+      can_override_tool_filters: integration.canOverrideToolFilters,
+      use_integration_name_in_tool_names:
+        integration.useIntegrationNameForSessionProviderNameTemplatesOverride
     },
     created_at: integration.createdAt,
     updated_at: integration.updatedAt,
@@ -106,7 +111,8 @@ export let v1IntegrationPreviewPresenter = Object.assign(
       configuration: v.object({
         can_attach_custom_tool_filters: v.boolean(),
         can_attach_custom_provider_config: v.boolean(),
-        can_override_tool_filters: v.boolean()
+        can_override_tool_filters: v.boolean(),
+        use_integration_name_in_tool_names: v.nullable(v.boolean())
       }),
       created_at: v.date(),
       updated_at: v.date(),

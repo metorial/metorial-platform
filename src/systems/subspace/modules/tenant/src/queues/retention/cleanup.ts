@@ -1,7 +1,7 @@
 import { createCron } from '@lowerdeck/cron';
 import { createQueue } from '@lowerdeck/queue';
 import { sessionMessageBucketRecord, storage } from '@metorial-subspace/connection-utils';
-import { db, withTransaction } from '@metorial-subspace/db';
+import { db } from '@metorial-subspace/db';
 import { env } from '../../env';
 import { getConnectionRetentionWhere } from '@metorial-subspace/list-utils';
 import {
@@ -218,75 +218,73 @@ let cleanupProviderRuns = async (d: { tenantOid: bigint; cutoffDate: Date }) => 
     deleteMany: async records => {
       let providerRunOids = records.map(record => record.oid);
 
-      await withTransaction(async tx => {
-        let slateSessions = await tx.slateSession.findMany({
-          where: { providerRunOid: { in: providerRunOids } },
+      let slateSessions = await db.slateSession.findMany({
+        where: { providerRunOid: { in: providerRunOids } },
+        select: { oid: true }
+      });
+      let slateSessionOids = slateSessions.map(session => session.oid);
+
+      if (slateSessionOids.length > 0) {
+        let slateToolCalls = await db.slateToolCall.findMany({
+          where: { sessionOid: { in: slateSessionOids } },
           select: { oid: true }
         });
-        let slateSessionOids = slateSessions.map(session => session.oid);
+        let slateToolCallOids = slateToolCalls.map(toolCall => toolCall.oid);
 
-        if (slateSessionOids.length > 0) {
-          let slateToolCalls = await tx.slateToolCall.findMany({
-            where: { sessionOid: { in: slateSessionOids } },
-            select: { oid: true }
+        if (slateToolCallOids.length > 0) {
+          await db.sessionMessage.updateMany({
+            where: { slateToolCallOid: { in: slateToolCallOids } },
+            data: { slateToolCallOid: null }
           });
-          let slateToolCallOids = slateToolCalls.map(toolCall => toolCall.oid);
 
-          if (slateToolCallOids.length > 0) {
-            await tx.sessionMessage.updateMany({
-              where: { slateToolCallOid: { in: slateToolCallOids } },
-              data: { slateToolCallOid: null }
-            });
-
-            await tx.slateToolCall.deleteMany({
-              where: { oid: { in: slateToolCallOids } }
-            });
-          }
-
-          await tx.slateSession.deleteMany({
-            where: { oid: { in: slateSessionOids } }
+          await db.slateToolCall.deleteMany({
+            where: { oid: { in: slateToolCallOids } }
           });
         }
 
-        await tx.shuttleConnection.deleteMany({
-          where: { providerRunOid: { in: providerRunOids } }
+        await db.slateSession.deleteMany({
+          where: { oid: { in: slateSessionOids } }
         });
+      }
 
-        await tx.providerRunUsageRecord.deleteMany({
-          where: { providerRunOid: { in: providerRunOids } }
-        });
+      await db.shuttleConnection.deleteMany({
+        where: { providerRunOid: { in: providerRunOids } }
+      });
 
-        await Promise.all([
-          tx.sessionEvent.updateMany({
-            where: { providerRunOid: { in: providerRunOids } },
-            data: {
-              providerRunOid: null,
-              isParentDeleted: true
-            }
-          }),
-          tx.sessionMessage.updateMany({
-            where: { providerRunOid: { in: providerRunOids } },
-            data: {
-              providerRunOid: null,
-              isParentDeleted: true
-            }
-          }),
-          tx.sessionError.updateMany({
-            where: { providerRunOid: { in: providerRunOids } },
-            data: {
-              providerRunOid: null,
-              isParentDeleted: true
-            }
-          }),
-          tx.toolCall.updateMany({
-            where: { providerRunOid: { in: providerRunOids } },
-            data: { providerRunOid: null }
-          })
-        ]);
+      await db.providerRunUsageRecord.deleteMany({
+        where: { providerRunOid: { in: providerRunOids } }
+      });
 
-        await tx.providerRun.deleteMany({
-          where: { oid: { in: providerRunOids } }
-        });
+      await Promise.all([
+        db.sessionEvent.updateMany({
+          where: { providerRunOid: { in: providerRunOids } },
+          data: {
+            providerRunOid: null,
+            isParentDeleted: true
+          }
+        }),
+        db.sessionMessage.updateMany({
+          where: { providerRunOid: { in: providerRunOids } },
+          data: {
+            providerRunOid: null,
+            isParentDeleted: true
+          }
+        }),
+        db.sessionError.updateMany({
+          where: { providerRunOid: { in: providerRunOids } },
+          data: {
+            providerRunOid: null,
+            isParentDeleted: true
+          }
+        }),
+        db.toolCall.updateMany({
+          where: { providerRunOid: { in: providerRunOids } },
+          data: { providerRunOid: null }
+        })
+      ]);
+
+      await db.providerRun.deleteMany({
+        where: { oid: { in: providerRunOids } }
       });
     }
   });
@@ -330,53 +328,51 @@ let cleanupSessionConnections = async (d: { tenantOid: bigint; cutoffDate: Date 
     deleteMany: async records => {
       let connectionOids = records.map(record => record.oid);
 
-      await withTransaction(async tx => {
-        await Promise.all([
-          tx.sessionEvent.updateMany({
-            where: { connectionOid: { in: connectionOids } },
-            data: {
-              connectionOid: null,
-              isParentDeleted: true
-            }
-          }),
-          tx.sessionMessage.updateMany({
-            where: { connectionOid: { in: connectionOids } },
-            data: {
-              connectionOid: null,
-              isParentDeleted: true
-            }
-          }),
-          tx.sessionError.updateMany({
-            where: { connectionOid: { in: connectionOids } },
-            data: {
-              connectionOid: null,
-              isParentDeleted: true
-            }
-          }),
-          tx.sessionWarning.updateMany({
-            where: { connectionOid: { in: connectionOids } },
-            data: {
-              connectionOid: null,
-              isParentDeleted: true
-            }
-          }),
-          tx.protoGuardRun.updateMany({
-            where: { connectionOid: { in: connectionOids } },
-            data: {
-              connectionOid: null
-            }
-          }),
-          tx.protoGuardAlert.updateMany({
-            where: { connectionOid: { in: connectionOids } },
-            data: {
-              connectionOid: null
-            }
-          })
-        ]);
+      await Promise.all([
+        db.sessionEvent.updateMany({
+          where: { connectionOid: { in: connectionOids } },
+          data: {
+            connectionOid: null,
+            isParentDeleted: true
+          }
+        }),
+        db.sessionMessage.updateMany({
+          where: { connectionOid: { in: connectionOids } },
+          data: {
+            connectionOid: null,
+            isParentDeleted: true
+          }
+        }),
+        db.sessionError.updateMany({
+          where: { connectionOid: { in: connectionOids } },
+          data: {
+            connectionOid: null,
+            isParentDeleted: true
+          }
+        }),
+        db.sessionWarning.updateMany({
+          where: { connectionOid: { in: connectionOids } },
+          data: {
+            connectionOid: null,
+            isParentDeleted: true
+          }
+        }),
+        db.protoGuardRun.updateMany({
+          where: { connectionOid: { in: connectionOids } },
+          data: {
+            connectionOid: null
+          }
+        }),
+        db.protoGuardAlert.updateMany({
+          where: { connectionOid: { in: connectionOids } },
+          data: {
+            connectionOid: null
+          }
+        })
+      ]);
 
-        await tx.sessionConnection.deleteMany({
-          where: { oid: { in: connectionOids } }
-        });
+      await db.sessionConnection.deleteMany({
+        where: { oid: { in: connectionOids } }
       });
     }
   });

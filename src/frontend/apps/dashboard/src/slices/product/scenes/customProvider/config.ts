@@ -88,7 +88,7 @@ export let remoteServerTemplates = [
 
   return {
     ...t,
-    imageUrl: `https://camo-cdn.metorial.com/pub?url=${encodeURIComponent(`https://logos.metorial.com/?url=${encodeURIComponent(rootOrigin)}`)}`
+    imageUrl: `https://favicons.metorial-cdn.com/?url=${encodeURIComponent(rootOrigin)}`
   };
 });
 

@@ -10,7 +10,7 @@ export let theme = createTheme({
   },
 
   shadows: {
-    small: createThemeToken('0 2px 4px rgba(0, 0, 0, 0.1)'),
+    small: createThemeToken('0 1px 4px rgba(0, 0, 0, 0.08)'),
     medium: createThemeToken('0 4px 8px rgba(0, 0, 0, 0.1)'),
     large: createThemeToken('0 8px 16px rgba(0, 0, 0, 0.1)')
   }

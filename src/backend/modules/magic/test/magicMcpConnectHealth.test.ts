@@ -43,6 +43,25 @@ describe('magicMcpConnectHealth', () => {
     ).rejects.toThrow('no longer active');
   });
 
+  it('uses loaded endpoint server statuses without counting again', async () => {
+    await assertMagicMcpTargetLinkedResourcesActive({
+      type: 'endpoint',
+      target: {
+        oid: 10n,
+        status: 'active',
+        servers: [
+          {
+            magicMcpServer: {
+              status: 'active'
+            }
+          }
+        ]
+      }
+    } as any);
+
+    expect(magicMcpEndpointServerCount).not.toHaveBeenCalled();
+  });
+
   it('rejects servers without active subspace providers', async () => {
     listServerProviders.mockResolvedValue({
       items: []

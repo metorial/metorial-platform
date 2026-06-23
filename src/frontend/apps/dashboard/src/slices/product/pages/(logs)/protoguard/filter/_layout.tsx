@@ -11,11 +11,10 @@ import {
   useCurrentProject,
   useProtoGuardConfig
 } from '@metorial/state';
-import { Button, Flex, Text } from '@metorial/ui';
+import { Button, Text } from '@metorial/ui';
 import { RiArrowLeftSLine } from '@remixicon/react';
 import { Link, Outlet, useLocation, useParams } from 'react-router-dom';
 import styled from 'styled-components';
-import { ProtoGuardSeverityBadge } from '../../../../scenes/monitoring/badges';
 
 let OutletWrapper = styled.div`
   flex: 1;
@@ -36,7 +35,7 @@ export let ProtoGuardFilterLayout = () => {
       header={
         <Link to={Paths.instance.protoguard(organization.data, project.data, instance.data)}>
           <Button size="2" variant="outline" iconLeft={<RiArrowLeftSLine />}>
-            Back to ProtoGuard
+            Back to Protoguard
           </Button>
         </Link>
       }
@@ -48,7 +47,7 @@ export let ProtoGuardFilterLayout = () => {
           return (
             <ContentPanelLayout title="Filter not found">
               <Text size="2" color="gray600">
-                This ProtoGuard filter does not exist in the current configuration.
+                This Protoguard filter does not exist in the current configuration.
               </Text>
             </ContentPanelLayout>
           );
@@ -60,7 +59,7 @@ export let ProtoGuardFilterLayout = () => {
             description={filter.description ?? undefined}
             breadcrumbs={[
               {
-                label: 'ProtoGuard',
+                label: 'Protoguard',
                 to: Paths.instance.protoguard(organization.data, project.data, instance.data)
               },
               {

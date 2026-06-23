@@ -4,8 +4,9 @@ import {
   type GetDecryptedAuthConfigParam,
   type GetDecryptedAuthConfigRes,
   type GetProviderAuthConfigScopesParam,
+  type GetProviderAuthConfigScopesRes,
   type GetProviderAuthCredentialsScopesParam,
-  type GetProviderAuthScopesRes,
+  type GetProviderAuthCredentialsScopesRes,
   type ProviderAuthConfigCreateParam,
   type ProviderAuthConfigCreateRes,
   type ProviderAuthConfigDeleteParam,
@@ -80,13 +81,13 @@ export class ProviderAuth extends IProviderAuth {
 
   override async getProviderAuthCredentialsScopes(
     _data: GetProviderAuthCredentialsScopesParam
-  ): Promise<GetProviderAuthScopesRes> {
+  ): Promise<GetProviderAuthCredentialsScopesRes> {
     return { scopes: [] };
   }
 
   override async getProviderAuthConfigScopes(
     _data: GetProviderAuthConfigScopesParam
-  ): Promise<GetProviderAuthScopesRes> {
+  ): Promise<GetProviderAuthConfigScopesRes> {
     return { scopes: [] };
   }
 }

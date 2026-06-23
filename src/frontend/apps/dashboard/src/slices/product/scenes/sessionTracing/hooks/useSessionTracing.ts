@@ -8,6 +8,7 @@ import { theme } from '@metorial/ui';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { EditorTabItem } from '../../../../../components/editorTabs';
 import {
+  ExplorerTabMode,
   GroupedConnectionItems,
   PlaceholderConnectionItem,
   TracingConnectionItem
@@ -25,10 +26,15 @@ import {
 
 export let useSessionTracing = (
   session: DashboardInstanceSessionsGetOutput,
-  options?: { initialExplorerTab?: boolean; initialConnectionId?: string | null }
+  options?: {
+    initialExplorerTab?: boolean;
+    initialConnectionId?: string | null;
+    initialExplorerMode?: ExplorerTabMode;
+  }
 ) => {
   let initialExplorerTab = options?.initialExplorerTab ?? false;
   let initialConnectionId = options?.initialConnectionId ?? null;
+  let initialExplorerMode = options?.initialExplorerMode ?? 'manual';
   let instance = useCurrentInstance();
   let instanceId = instance.data?.id;
   let [openTabIds, setOpenTabIds] = useState<string[]>([]);
@@ -36,8 +42,14 @@ export let useSessionTracing = (
   let [didInitializeTabs, setDidInitializeTabs] = useState(false);
   let [explorerTabCounter, setExplorerTabCounter] = useState(0);
   let [pendingExplorerTabs, setPendingExplorerTabs] = useState<
-    { tabId: string; createdAt: number }[]
+    { tabId: string; createdAt: number; mode: ExplorerTabMode }[]
   >([]);
+  let [explorerModeByTabId, setExplorerModeByTabId] = useState<
+    Record<string, ExplorerTabMode>
+  >({});
+  let [assistantConversationIdByTabId, setAssistantConversationIdByTabId] = useState<
+    Record<string, string>
+  >({});
   let [explorerConnectionByTabId, setExplorerConnectionByTabId] = useState<
     Record<string, string>
   >({});
@@ -91,6 +103,8 @@ export let useSessionTracing = (
     setDidInitializeTabs(false);
     setExplorerTabCounter(0);
     setPendingExplorerTabs([]);
+    setExplorerModeByTabId({});
+    setAssistantConversationIdByTabId({});
     setExplorerConnectionByTabId({});
   }, [session.id]);
 
@@ -193,7 +207,8 @@ export let useSessionTracing = (
       let tabId = `${EXPLORER_TAB_PREFIX}0__`;
       setExplorerTabCounter(1);
       setOpenTabIds([tabId]);
-      setPendingExplorerTabs([{ tabId, createdAt: Date.now() }]);
+      setExplorerModeByTabId({ [tabId]: initialExplorerMode });
+      setPendingExplorerTabs([{ tabId, createdAt: Date.now(), mode: initialExplorerMode }]);
       setActiveTabId(tabId);
       setDidInitializeTabs(true);
       return;
@@ -215,7 +230,13 @@ export let useSessionTracing = (
     setOpenTabIds([firstConnection.id]);
     setActiveTabId(firstConnection.id);
     setDidInitializeTabs(true);
-  }, [connectionItems, didInitializeTabs, initialConnectionId, initialExplorerTab]);
+  }, [
+    connectionItems,
+    didInitializeTabs,
+    initialConnectionId,
+    initialExplorerMode,
+    initialExplorerTab
+  ]);
 
   useEffect(() => {
     let previousIds = previousConnectionIdsRef.current;
@@ -304,7 +325,8 @@ export let useSessionTracing = (
         kind: 'placeholder',
         id: `__placeholder_${tab.tabId}`,
         tabId: tab.tabId,
-        label: 'Metorial Explorer',
+        mode: tab.mode,
+        label: tab.mode === 'assistant' ? 'Explorer Assistant' : 'Metorial Explorer',
         createdAt: new Date(tab.createdAt)
       })),
     [pendingExplorerTabs]
@@ -336,18 +358,50 @@ export let useSessionTracing = (
     setActiveTabId(CONNECT_TAB_ID);
   }, []);
 
-  let openExplorerTab = useCallback(() => {
+  let openExplorerTab = useCallback((mode: ExplorerTabMode = 'manual') => {
     let nextId = `${EXPLORER_TAB_PREFIX}${explorerTabCounter}__`;
     setExplorerTabCounter(c => c + 1);
+    setExplorerModeByTabId(current => ({ ...current, [nextId]: mode }));
     setOpenTabIds(current => [...current, nextId]);
-    setPendingExplorerTabs(current => [...current, { tabId: nextId, createdAt: Date.now() }]);
+    setPendingExplorerTabs(current => [
+      ...current,
+      { tabId: nextId, createdAt: Date.now(), mode }
+    ]);
     setActiveTabId(nextId);
   }, [explorerTabCounter]);
+
+  let selectOrCreateExplorerMode = useCallback(
+    (mode: ExplorerTabMode) => {
+      let existingTabId = openTabIds.find(
+        tabId => isExplorerTabId(tabId) && (explorerModeByTabId[tabId] ?? 'manual') === mode
+      );
+
+      if (existingTabId) {
+        setActiveTabId(existingTabId);
+        return;
+      }
+
+      openExplorerTab(mode);
+    },
+    [explorerModeByTabId, openExplorerTab, openTabIds]
+  );
 
   let closeTab = useCallback(
     (tabId: string) => {
       if (isExplorerTabId(tabId)) {
         setPendingExplorerTabs(current => current.filter(t => t.tabId !== tabId));
+        setExplorerModeByTabId(current => {
+          if (!(tabId in current)) return current;
+          let next = { ...current };
+          delete next[tabId];
+          return next;
+        });
+        setAssistantConversationIdByTabId(current => {
+          if (!(tabId in current)) return current;
+          let next = { ...current };
+          delete next[tabId];
+          return next;
+        });
         setExplorerConnectionByTabId(current => {
           if (!(tabId in current)) return current;
           let next = { ...current };
@@ -380,17 +434,35 @@ export let useSessionTracing = (
 
   let explorerNumberById = useMemo(() => {
     let map = new Map<string, number>();
-    let idx = 0;
+    let counts: Record<ExplorerTabMode, number> = {
+      manual: 0,
+      assistant: 0
+    };
+
     for (let id of openTabIds) {
       if (isExplorerTabId(id)) {
-        idx++;
-        map.set(id, idx);
+        let mode = explorerModeByTabId[id] ?? 'manual';
+        counts[mode]++;
+        map.set(id, counts[mode]);
       }
     }
-    return map;
-  }, [openTabIds]);
 
-  let totalExplorerTabs = explorerNumberById.size;
+    return map;
+  }, [explorerModeByTabId, openTabIds]);
+
+  let explorerCountByMode = useMemo(() => {
+    let counts: Record<ExplorerTabMode, number> = {
+      manual: 0,
+      assistant: 0
+    };
+
+    for (let id of openTabIds) {
+      if (!isExplorerTabId(id)) continue;
+      counts[explorerModeByTabId[id] ?? 'manual']++;
+    }
+
+    return counts;
+  }, [explorerModeByTabId, openTabIds]);
 
   let openTabs = useMemo<EditorTabItem[]>(
     () =>
@@ -405,12 +477,14 @@ export let useSessionTracing = (
           }
 
           if (isExplorerTabId(id)) {
+            let mode = explorerModeByTabId[id] ?? 'manual';
             let n = explorerNumberById.get(id);
+            let baseLabel = mode === 'assistant' ? 'Explorer Assistant' : 'Metorial Explorer';
             return {
               id,
               label:
-                totalExplorerTabs > 1 && n ? `Metorial Explorer ${n}` : 'Metorial Explorer',
-              accentColor: theme.colors.purple700
+                explorerCountByMode[mode] > 1 && n ? `${baseLabel} ${n}` : baseLabel,
+              accentColor: mode === 'assistant' ? theme.colors.blue700 : theme.colors.purple700
             };
           }
 
@@ -427,7 +501,14 @@ export let useSessionTracing = (
           };
         })
         .filter((tab): tab is NonNullable<typeof tab> => Boolean(tab)),
-    [connectionsById, explorerNumberById, openTabIds, session, totalExplorerTabs]
+    [
+      connectionsById,
+      explorerCountByMode,
+      explorerModeByTabId,
+      explorerNumberById,
+      openTabIds,
+      session
+    ]
   );
 
   let isExplorerActive = activeTabId ? isExplorerTabId(activeTabId) : false;
@@ -435,6 +516,16 @@ export let useSessionTracing = (
     activeTabId && activeTabId !== CONNECT_TAB_ID && !isExplorerActive
       ? (connectionsById.get(activeTabId) ?? null)
       : null;
+
+  let setAssistantConversationId = useCallback(
+    (tabId: string, conversationId: string) => {
+      setAssistantConversationIdByTabId(current => ({
+        ...current,
+        [tabId]: conversationId
+      }));
+    },
+    []
+  );
 
   let openAssignedExplorer = useCallback(
     (connectionId: string) => {
@@ -465,10 +556,12 @@ export let useSessionTracing = (
   return {
     activeConnection,
     activeTabId,
+    assistantConversationIdByTabId,
     connectionCount: connectionItems.length,
     connectionIdByExplorerTabId: explorerConnectionByTabId,
     explorerTabIdByConnectionId,
     explorerTabIds,
+    explorerModeByTabId,
     groupedConnections,
     isExplorerActive,
     isLoadingConnections: connections.isLoading,
@@ -481,8 +574,10 @@ export let useSessionTracing = (
     onOpenConnection: openConnection,
     onOpenExplorerTab: openExplorerTab,
     onReorderTabs,
+    onSelectOrCreateExplorerMode: selectOrCreateExplorerMode,
     openTabs,
     setActiveTabId,
+    setAssistantConversationId,
     setConnectionRowElement
   };
 };

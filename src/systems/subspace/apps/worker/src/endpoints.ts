@@ -1,5 +1,6 @@
 import { withTracingSuppressed } from '@lowerdeck/telemetry';
 import { db } from '@metorial-subspace/db';
+import { checkNatsHealth } from '@metorial-subspace/module-connection/src/health';
 import { RedisClient } from 'bun';
 
 let redis = new RedisClient(process.env.REDIS_URL?.replace('rediss://', 'redis://'), {
@@ -14,6 +15,8 @@ if (process.env.NODE_ENV === 'production') {
           await db.backend.count();
 
           await redis.ping();
+
+          await checkNatsHealth();
 
           return new Response('OK');
         } catch (e) {

@@ -84,6 +84,7 @@ export interface SpecificationTool {
   };
 
   scopes?: SpecificationActionScopes | null;
+  authMethods?: string[] | null;
 
   metadata: Record<string, any>;
 }

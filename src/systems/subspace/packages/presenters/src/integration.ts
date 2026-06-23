@@ -69,6 +69,8 @@ export let integrationPresenter = (
   canAttachCustomToolFilters: integration.canAttachCustomToolFilters,
   canAttachCustomProviderConfig: integration.canAttachCustomProviderConfig,
   canOverrideToolFilters: integration.canOverrideToolFilters,
+  useIntegrationNameForSessionProviderNameTemplatesOverride:
+    integration.useIntegrationNameForSessionProviderNameTemplatesOverride,
 
   providerTemplateBackingId: integration.providerTemplateBacking?.id ?? null,
   magicMcpServerBackingId: integration.magicMcpServerBacking?.id ?? null,
@@ -100,6 +102,8 @@ export let integrationPreviewPresenter = (integration: Integration) => ({
   canAttachCustomToolFilters: integration.canAttachCustomToolFilters,
   canAttachCustomProviderConfig: integration.canAttachCustomProviderConfig,
   canOverrideToolFilters: integration.canOverrideToolFilters,
+  useIntegrationNameForSessionProviderNameTemplatesOverride:
+    integration.useIntegrationNameForSessionProviderNameTemplatesOverride,
 
   createdAt: integration.createdAt,
   updatedAt: integration.updatedAt,

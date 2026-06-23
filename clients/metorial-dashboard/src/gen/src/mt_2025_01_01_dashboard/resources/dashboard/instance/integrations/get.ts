@@ -12,6 +12,7 @@ export type DashboardInstanceIntegrationsGetOutput = {
     canAttachCustomToolFilters: boolean;
     canAttachCustomProviderConfig: boolean;
     canOverrideToolFilters: boolean;
+    useIntegrationNameInToolNames: boolean | null;
   };
   implementation:
     | { type: 'provider_template'; providerTemplateId: string }
@@ -145,6 +146,10 @@ export let mapDashboardInstanceIntegrationsGetOutput =
         ),
         canOverrideToolFilters: mtMap.objectField(
           'can_override_tool_filters',
+          mtMap.passthrough()
+        ),
+        useIntegrationNameInToolNames: mtMap.objectField(
+          'use_integration_name_in_tool_names',
           mtMap.passthrough()
         )
       })

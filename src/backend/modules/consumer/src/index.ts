@@ -3,6 +3,7 @@ import { combineQueueProcessors } from '@metorial/queue';
 import { sendApprovedConsumerAccessRequestEmailQueueProcessor } from './queues/accessRequest/sendApprovedConsumerAccessRequestEmail';
 import { sendRejectedConsumerAccessRequestEmailQueueProcessor } from './queues/accessRequest/sendRejectedConsumerAccessRequestEmail';
 import { consumerLifecycleQueueProcessor } from './queues/lifecycle';
+import { materializeMagicMcpSessionOwnershipQueueProcessor } from './queues/materializeMagicMcpSessionOwnership';
 import { consumerSearchQueueProcessor } from './queues/search';
 import {
   reconcileConsumerActorQueueProcessor,
@@ -23,6 +24,7 @@ export * from './lib/magicMcpServerAccess';
 export * from './lib/magicMcpTokenAccess';
 export * from './lib/oauth';
 export * from './portalUrlTemplate';
+export * from './queues/materializeMagicMcpSessionOwnership';
 export * from './services';
 
 export let consumerQueueProcessor = combineQueueProcessors([
@@ -32,6 +34,7 @@ export let consumerQueueProcessor = combineQueueProcessors([
   sendRejectedConsumerAccessRequestEmailQueueProcessor,
   syncIdentityConsumerQueueProcessor,
   reconcileConsumerActorQueueProcessor,
+  materializeMagicMcpSessionOwnershipQueueProcessor,
 
   syncOrgMemberQueueProcessor,
   syncOrgMemberConsumerQueueProcessor,
