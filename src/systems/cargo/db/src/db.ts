@@ -7,7 +7,8 @@ import { readReplicas } from '@prisma/extension-read-replicas';
 import { AsyncLocalStorage } from 'async_hooks';
 import PQueue from 'p-queue';
 import { PrismaClient } from '../prisma/generated/client';
-export type { EntityImage } from '../../../_shared/entityImage';
+
+export type EntityImage = any;
 
 let mainAdapter = new PrismaPg({
   connectionString: process.env.CARGO_DATABASE_URL ?? process.env.DATABASE_URL

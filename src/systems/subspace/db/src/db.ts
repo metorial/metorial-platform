@@ -16,7 +16,8 @@ import type {
   CustomProviderFrom,
   CustomProviderFromUpdate
 } from './types';
-export type { EntityImage } from '../../../_shared/entityImage';
+
+export type EntityImage = any;
 
 let mainAdapter = new PrismaPg({
   connectionString: process.env.SUBSPACE_DATABASE_URL ?? process.env.DATABASE_URL
