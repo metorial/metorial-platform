@@ -70,10 +70,12 @@ model Instance {
   status InstanceStatus
 
   slug          String   @unique
+  oldSlug       String?  @unique
   previousSlugs String[]
   name          String
 
-  hasBeenReconciled Boolean @default(false)
+  hasBeenReconciled  Boolean @default(false)
+  hasBeenReconciled2 Boolean @default(false)
 
   projectOid BigInt
   project    Project @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
@@ -138,4 +140,6 @@ model Instance {
   internalOAuthTokens                  InternalOAuthToken[]
 
   @@index([previousSlugs])
+  @@index([oldSlug])
+  @@index([slug])
 }

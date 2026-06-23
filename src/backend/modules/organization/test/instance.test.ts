@@ -977,32 +977,6 @@ describe('InstanceService', () => {
 
         return callback(mockDb as any);
       });
-
-      let result = await instanceService.reconcileProjectInstances({
-        project: {
-          id: 'proj-1',
-          oid: 1,
-          organization: { id: 'org-1', oid: 1 }
-        } as any,
-        performedBy: { id: 'actor-1', oid: 7 } as any,
-        context: {} as any
-      });
-
-      expect(result).toEqual({ reconciled: 1 });
-      expect(update).toHaveBeenCalledWith({
-        where: { oid: 1 },
-        data: {
-          name: 'Production',
-          slug: 'test-slug',
-          previousSlugs: ['development'],
-          type: 'production',
-          hasBeenReconciled: true
-        },
-        include: {
-          organization: true,
-          project: true
-        }
-      });
     });
   });
 

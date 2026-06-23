@@ -31,7 +31,7 @@ export let createInstance = (
         if (res) {
           close();
           if (project_.organization) {
-            navigate(
+            window.location.replace(
               Paths.instance(project_.organization, res.instance.project, res.instance)
             );
           }

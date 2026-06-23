@@ -12,7 +12,7 @@ let InstancePaths = Object.assign(
   ) => {
     if (!instance || !project || !organization) return '#';
 
-    return joinPaths('i', organization.slug, project.slug, instance.slug, ...subPages);
+    return joinPaths('i', instance.slug, ...subPages);
   },
   {
     home: (organization: EntityParam, project: EntityParam, instance: EntityParam) =>

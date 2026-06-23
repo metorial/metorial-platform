@@ -32,7 +32,7 @@ let getInstanceSlug = createSlugGenerator(
   async slug =>
     !(await db.instance.findFirst({
       where: {
-        OR: [{ slug }, { previousSlugs: { has: slug } }]
+        OR: [{ slug }, { oldSlug: slug }, { previousSlugs: { has: slug } }]
       }
     }))
 );
@@ -261,6 +261,21 @@ class InstanceService {
     return sandbox;
   }
 
+  async generateInstanceSlug(d: {
+    project: Project;
+    input: {
+      name: string;
+      type: InstanceType;
+    };
+  }) {
+    return await getInstanceSlug({
+      input:
+        d.input.type === 'development'
+          ? `${d.project.name}-${d.input.name}-${generateCode(5)}`
+          : `${d.project.name}`
+    });
+  }
+
   async createInstance(d: {
     project: Project;
     organization: Organization;
@@ -278,14 +293,17 @@ class InstanceService {
         await this.ensureCanCreateProductionInstance({ project: d.project });
       }
 
+      let slug = await this.generateInstanceSlug(d);
+
       let instance = await db.instance.create({
         data: {
           id: await ID.generateId('instance'),
           status: 'active',
-          slug: await getInstanceSlug({ input: `${d.input.name}-${generateCode(5)}` }),
+          slug,
           name: d.input.name,
           type: d.input.type,
           hasBeenReconciled: true,
+          hasBeenReconciled2: true,
           organizationOid: d.organization.oid,
           projectOid: d.project.oid
         },
@@ -787,94 +805,6 @@ class InstanceService {
           })
       )
     );
-  }
-
-  async reconcileProjectInstances(d: {
-    project: Project & { organization: Organization };
-    performedBy: OrganizationActor;
-    context: Context;
-  }) {
-    return withTransaction(async db => {
-      let instances = await db.instance.findMany({
-        where: {
-          projectOid: d.project.oid,
-          status: 'active',
-          hasBeenReconciled: false
-        },
-        orderBy: { createdAt: 'asc' },
-        include: {
-          organization: true,
-          project: true
-        }
-      });
-
-      if (instances.length === 0) return { reconciled: 0 };
-
-      let productionInstance = await db.instance.findFirst({
-        where: {
-          projectOid: d.project.oid,
-          status: 'active',
-          type: 'production'
-        },
-        select: {
-          id: true
-        }
-      });
-      let promotedInstanceId: string | undefined;
-
-      if (!productionInstance) {
-        let oldestDevelopmentInstance = instances[0];
-        let slug = await getInstanceSlug({ input: `Production-${generateCode(5)}` });
-
-        let instance = await db.instance.update({
-          where: { oid: oldestDevelopmentInstance.oid },
-          data: {
-            name: 'Production',
-            slug,
-            previousSlugs: getNextPreviousSlugs({
-              previousSlugs: oldestDevelopmentInstance.previousSlugs ?? [],
-              currentSlug: oldestDevelopmentInstance.slug,
-              nextSlug: slug
-            }),
-            type: 'production',
-            hasBeenReconciled: true
-          },
-          include: {
-            organization: true,
-            project: true
-          }
-        });
-
-        promotedInstanceId = instance.id;
-
-        await this.syncInstanceCompanions({
-          instance,
-          performedBy: d.performedBy
-        });
-      }
-
-      for (let instance of instances) {
-        if (instance.id === promotedInstanceId) continue;
-
-        await this.syncInstanceCompanions({
-          instance,
-          performedBy: d.performedBy
-        });
-
-        await db.instance.update({
-          where: { oid: instance.oid },
-          data: {
-            hasBeenReconciled: true
-          }
-        });
-      }
-
-      await addAfterTransactionHook(() =>
-        syncSubspaceTenantQueue.add({ projectId: d.project.id })
-      );
-
-      return { reconciled: instances.length };
-    });
   }
 }
 
