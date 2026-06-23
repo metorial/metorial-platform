@@ -26,6 +26,7 @@
     "@metorial-subspace/module-deployment": "^1.0.0",
     "@metorial-subspace/module-provider-internal": "^1.0.0",
     "@metorial-subspace/module-tenant": "^1.0.0",
+    "openredaction": "^1.1.2",
     "p-queue": "^8.0.1"
   },
   "devDependencies": {

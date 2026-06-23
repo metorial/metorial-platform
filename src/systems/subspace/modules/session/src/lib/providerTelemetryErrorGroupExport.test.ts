@@ -23,7 +23,6 @@ vi.mock('../services/sessionMessage', () => ({
 
 import {
   PROVIDER_TELEMETRY_FAILED_MESSAGES_STATE_KEY,
-  anonymizeProviderTelemetryExportValue,
   getProviderTelemetryFailedMessagesExportChunkKey,
   listProviderTelemetryFailedMessagesForExport,
   runProviderTelemetryErrorGroupsExport,
@@ -122,11 +121,13 @@ let createPresentedMessage = (candidate: ProviderTelemetryFailedMessageExportCan
   input: {
     data: {
       email: 'alice@example.com',
-      token: 'secret-token',
+      token: 'Bearer abcdefghijklmnopqrstuvwxyz012345',
+      phone: '+1 202-555-0110',
       query: 'https://api.example.com/callback?client_secret=top-secret&safe=yes',
       retryCount: 2,
       ok: false,
-      missing: null
+      missing: null,
+      createdAt: new Date('2026-06-18T00:09:00.000Z')
     }
   },
   output: {
@@ -164,7 +165,7 @@ let createPresentedMessage = (candidate: ProviderTelemetryFailedMessageExportCan
     code: candidate.error.code,
     message: 'Top-level provider error',
     data: {
-      authorization: 'Bearer abc123',
+      authorization: 'Bearer abcdefghijklmnopqrstuvwxyz012345',
       code: 'PROVIDER_ERROR',
       object: 'provider.error',
       status: 500,
@@ -174,7 +175,8 @@ let createPresentedMessage = (candidate: ProviderTelemetryFailedMessageExportCan
       }
     },
     groupId: candidate.error.group.id
-  }
+  },
+  createdAt: new Date('2026-06-18T00:10:00.000Z')
 });
 
 describe('runProviderTelemetryErrorGroupsExport', () => {
@@ -329,9 +331,49 @@ describe('runProviderTelemetryErrorGroupsExport', () => {
         }
       ]
     });
-    expect(exportChunk.items[0].payload).toEqual(
-      anonymizeProviderTelemetryExportValue(createPresentedMessage(candidate))
-    );
+    let payload = exportChunk.items[0].payload;
+    expect(payload).toMatchObject({
+      object: 'session.message',
+      id: 'msg_1',
+      type: 'tool_call',
+      status: 'failed',
+      source: 'model',
+      input: {
+        data: {
+          token: '[REDACTED]',
+          phone: '[REDACTED]',
+          retryCount: 2,
+          ok: false,
+          missing: null,
+          createdAt: '2026-06-18T00:09:00.000Z'
+        }
+      },
+      toolCall: {
+        id: 'tc_1',
+        toolKey: 'elasticsearch_search_documents',
+        rationale: '[REDACTED]',
+        operation: 'call_tool',
+        tool: {
+          id: 'tool_1',
+          key: 'elasticsearch_search_documents',
+          name: '[REDACTED]',
+          providerId: 'prv_1'
+        }
+      },
+      error: {
+        id: 'serr_1',
+        code: 'provider_error',
+        message: '[REDACTED]',
+        data: {
+          authorization: '[REDACTED]',
+          code: 'PROVIDER_ERROR',
+          object: 'provider.error',
+          status: 500
+        },
+        groupId: 'serg_1'
+      },
+      createdAt: '2026-06-18T00:10:00.000Z'
+    });
 
     let stateFile = parseJsonCall(storage.putObject.mock.calls[1]!);
     expect(stateFile).toEqual({
@@ -346,6 +388,183 @@ describe('runProviderTelemetryErrorGroupsExport', () => {
       exportedKeys: [expectedKey],
       state: stateFile,
       exportedCount: 1
+    });
+  });
+
+  it('redacts a broad set of OpenRedaction-supported PII categories in export payloads', async () => {
+    let now = new Date('2026-06-18T00:15:00.000Z');
+    let storage = createStorage(undefined);
+    let candidate = createCandidate();
+    let listFailedMessages = vi.fn(
+      async (_input: ProviderTelemetryFailedMessagesExportListInput) => ({
+        items: [candidate],
+        nextWatermark: {
+          occurred_at: '2026-06-18T00:10:00.000Z',
+          id: 'serr_1'
+        },
+        hasMore: false
+      })
+    );
+
+    await runProviderTelemetryErrorGroupsExport({
+      now,
+      storage,
+      bucketName: 'exports',
+      listFailedMessages,
+      presentMessage: async () => ({
+        object: 'session.message',
+        id: candidate.message.id,
+        status: 'failed',
+        input: {
+          samples: {
+            personal: {
+              name: 'John Smith',
+              phone: '+1 202-555-0110',
+              address: '123 Main Street, Springfield, IL 62704'
+            },
+            financial: {
+              creditCard: '4111 1111 1111 1111',
+              iban: 'IBAN GB82 WEST 1234 5698 7654 32',
+              routingNumber: 'routing number 021000021',
+              swiftBic: 'SWIFT BIC DEUTDEFF',
+              bankAccount: 'bank account 12345678',
+              vatNumber: 'VAT GB123456789'
+            },
+            government: {
+              passport: 'Passport A1234567',
+              taxId: 'Tax ID 12-3456789'
+            },
+            healthcare: {
+              medicalRecord: 'MRN MR123456',
+              nhsNumber: 'NHS 943 476 5919',
+              deaNumber: 'DEA AB1234563',
+              npiNumber: 'NPI 1234567893',
+              providerLicense: 'Provider license AB123456'
+            },
+            digitalIdentity: {
+              jwt: [
+                'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9',
+                'eyJzdWIiOiIxMjM0NTY3ODkwIn0',
+                's5x9IXdBaxnU7D6yH4bVq9U1xIr3W5y33C0w6eLLq3s'
+              ].join('.'),
+              bearer: 'Bearer abcdefghijklmnopqrstuvwxyz012345',
+              macAddress: '00:1B:44:11:3A:B7',
+              bitcoinAddress: '1BoatSLRHtKNngkdXEeobR76b53LETtpyT',
+              ethereumAddress: '0x742d35Cc6634C0532925a3b844Bc454e4438f44e'
+            },
+            education: {
+              studentId: 'Student ID AB123456',
+              teachingLicense: 'Teacher license EDU123456'
+            },
+            transportation: {
+              vin: 'VIN 1HGCM82633A004352',
+              fedexTracking: 'FedEx tracking 123456789012',
+              upsTracking: 'UPS tracking 1Z999AA10123456784',
+              licensePlate: 'Plate ABC1234'
+            },
+            insuranceAndLegal: {
+              policyNumber: 'Policy AB12345678',
+              claimId: 'Claim 1234567890',
+              caseNumber: 'Case CV-2024-123456'
+            },
+            professionalAndProperty: {
+              nursingLicense: 'RN-123456',
+              cpaLicense: 'CPA-123456',
+              parcelNumber: 'APN-123-456-789'
+            },
+            operationalMetadata: {
+              providerSlug: 'slack',
+              toolKey: 'users_info',
+              statusCode: 500,
+              retryable: false,
+              tags: ['provider_error', 'tool_call']
+            }
+          },
+          safeDiagnostics: {
+            retryCount: 2,
+            ok: false,
+            missing: null
+          }
+        },
+        createdAt: new Date('2026-06-18T00:10:00.000Z')
+      })
+    });
+
+    let exportChunk = parseJsonCall(storage.putObject.mock.calls[0]!);
+    let payload = exportChunk.items[0].payload;
+
+    expect(payload.input.samples).toEqual({
+      personal: {
+        name: '[REDACTED]',
+        phone: '[REDACTED]',
+        address: '[REDACTED]'
+      },
+      financial: {
+        creditCard: '[REDACTED]',
+        iban: '[REDACTED]',
+        routingNumber: '[REDACTED]',
+        swiftBic: '[REDACTED]',
+        bankAccount: '[REDACTED]',
+        vatNumber: '[REDACTED]'
+      },
+      government: {
+        passport: '[REDACTED]',
+        taxId: '[REDACTED]'
+      },
+      healthcare: {
+        medicalRecord: '[REDACTED]',
+        nhsNumber: '[REDACTED]',
+        deaNumber: '[REDACTED]',
+        npiNumber: '[REDACTED]',
+        providerLicense: '[REDACTED]'
+      },
+      digitalIdentity: {
+        jwt: '[REDACTED]',
+        bearer: '[REDACTED]',
+        macAddress: '[REDACTED]',
+        bitcoinAddress: '[REDACTED]',
+        ethereumAddress: '[REDACTED]'
+      },
+      education: {
+        studentId: '[REDACTED]',
+        teachingLicense: '[REDACTED]'
+      },
+      transportation: {
+        vin: '[REDACTED]',
+        fedexTracking: '[REDACTED]',
+        upsTracking: '[REDACTED]',
+        licensePlate: '[REDACTED]'
+      },
+      insuranceAndLegal: {
+        policyNumber: '[REDACTED]',
+        claimId: '[REDACTED]',
+        caseNumber: '[REDACTED]'
+      },
+      professionalAndProperty: {
+        nursingLicense: '[REDACTED]',
+        cpaLicense: '[REDACTED]',
+        parcelNumber: '[REDACTED]'
+      },
+      operationalMetadata: {
+        providerSlug: 'slack',
+        toolKey: 'users_info',
+        statusCode: 500,
+        retryable: false,
+        tags: ['provider_error', 'tool_call']
+      }
+    });
+    expect(payload).toMatchObject({
+      object: 'session.message',
+      id: 'msg_1',
+      status: 'failed',
+      input: {
+        safeDiagnostics: {
+          retryCount: 2,
+          ok: false,
+          missing: null
+        }
+      },
+      createdAt: '2026-06-18T00:10:00.000Z'
     });
   });
 
@@ -535,156 +754,6 @@ describe('runProviderTelemetryErrorGroupsExport', () => {
     });
     expect(result.exportedKeys).toEqual([]);
     expect(result.exportedCount).toBe(0);
-  });
-});
-
-describe('anonymizeProviderTelemetryExportValue', () => {
-  it('redacts payload strings while preserving safe diagnostic identifiers', () => {
-    let date = new Date('2026-06-18T00:00:00.000Z');
-    let anonymized = anonymizeProviderTelemetryExportValue({
-      id: 'msg_1',
-      messageId: 'msg_1',
-      toolKey: 'users.info',
-      nested: {
-        email: 'person@example.com',
-        text: 'Contact admin@example.com with Basic abc123',
-        callbackUrl: 'https://example.com/callback?client_secret=secret-value&safe=yes',
-        retryCount: 2,
-        ok: true,
-        missing: null,
-        date,
-        values: ['a', 1, false]
-      },
-      output: {
-        error: {
-          code: -32000,
-          message: 'Output error message',
-          data: {
-            code: 'MCP_ERROR',
-            Message: 'Case-insensitive message',
-            values: ['visible', 2, false]
-          }
-        }
-      },
-      error: {
-        id: 'serr_1',
-        code: 'provider_error',
-        message: 'Top-level error message',
-        data: {
-          authorization: 'Bearer abc123',
-          object: 'provider.error',
-          status: 500,
-          message: 'Nested message',
-          nested: {
-            MESSAGE: 'Uppercase message'
-          }
-        }
-      },
-      toolCall: {
-        id: 'tc_1',
-        toolKey: 'users.info',
-        rationale: 'User asked for it',
-        operation: 'call_tool',
-        tool: {
-          id: 'tool_1',
-          key: 'users.info',
-          name: 'Users Info',
-          providerId: 'prv_1'
-        },
-        nested: {
-          operation: 'nested operation',
-          detail: 'visible detail'
-        }
-      }
-    }) as any;
-
-    expect(anonymized).toEqual({
-      id: '[string]',
-      messageId: '[string]',
-      toolKey: '[string]',
-      nested: {
-        email: '[string]',
-        text: '[string]',
-        callbackUrl: '[string]',
-        retryCount: 2,
-        ok: true,
-        missing: null,
-        date,
-        values: ['[string]', 1, false]
-      },
-      output: {
-        error: {
-          code: -32000,
-          data: {
-            code: 'MCP_ERROR',
-            values: ['[string]', 2, false]
-          }
-        }
-      },
-      error: {
-        id: 'serr_1',
-        code: 'provider_error',
-        data: {
-          authorization: '[string]',
-          object: 'provider.error',
-          status: 500,
-          nested: {}
-        }
-      },
-      toolCall: {
-        id: 'tc_1',
-        toolKey: 'users.info',
-        tool: {
-          id: 'tool_1',
-          key: 'users.info',
-          name: 'Users Info',
-          providerId: 'prv_1'
-        },
-        nested: {
-          detail: '[string]'
-        }
-      }
-    });
-  });
-
-  it('keeps preserve exceptions scoped by path and key', () => {
-    let anonymized = anonymizeProviderTelemetryExportValue({
-      detail: 'ordinary detail',
-      notToolCall: {
-        rationale: 'ordinary rationale',
-        operation: 'ordinary operation'
-      },
-      notError: {
-        message: 'ordinary message',
-        code: 'ordinary_code'
-      },
-      Error: {
-        code: 'CASE_INSENSITIVE_ERROR',
-        Message: 'removed message'
-      },
-      ToolCall: {
-        toolKey: 'case.insensitive.tool',
-        Operation: 'removed operation'
-      }
-    }) as any;
-
-    expect(anonymized).toEqual({
-      detail: '[string]',
-      notToolCall: {
-        rationale: '[string]',
-        operation: '[string]'
-      },
-      notError: {
-        message: '[string]',
-        code: '[string]'
-      },
-      Error: {
-        code: 'CASE_INSENSITIVE_ERROR'
-      },
-      ToolCall: {
-        toolKey: 'case.insensitive.tool'
-      }
-    });
   });
 });
 
