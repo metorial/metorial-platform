@@ -25,7 +25,7 @@
     "@lowerdeck/slugify": "workspace:2.0.0",
     "@lowerdeck/canonicalize": "workspace:2.0.0",
     "date-fns": "^4.1.0",
-    "react": "^19.1.0",
+    "react": "19.1.1",
     "@lowerdeck/hash": "workspace:2.0.0",
     "@lowerdeck/env": "workspace:2.0.0",
     "@lowerdeck/validation": "workspace:2.0.0"

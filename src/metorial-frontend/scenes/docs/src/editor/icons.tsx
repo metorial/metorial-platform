@@ -1,6 +1,4 @@
-import type { SVGProps } from 'react';
-
-let Svg = (props: SVGProps<SVGSVGElement>) => (
+let Svg = (props: any) => (
   <svg
     viewBox="0 0 24 24"
     width="16"

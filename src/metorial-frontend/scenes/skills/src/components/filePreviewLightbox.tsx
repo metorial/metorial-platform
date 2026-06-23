@@ -783,7 +783,7 @@ export let SkillFilePreviewLightbox = (p: {
       }}
     >
       <RadixDialog.Trigger asChild>
-        <TriggerButton data-tree-primary-action ref={p.triggerRef} type="button">
+        <TriggerButton data-tree-primary-action ref={p.triggerRef as any} type="button">
           {p.children}
         </TriggerButton>
       </RadixDialog.Trigger>

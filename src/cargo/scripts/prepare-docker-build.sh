@@ -8,3 +8,4 @@ cd /app
 bun install --linker=hoisted
 
 bunx turbo run --ui=stream build --filter=@metorial-platform-systems/origin-client
+bunx turbo run --ui=stream build --filter=@metorial-platform-systems/voyager-client

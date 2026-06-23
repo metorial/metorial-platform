@@ -332,7 +332,7 @@ export let TextEditor = (p: {
   );
 
   let editor = useEditor({
-    extensions: ext,
+    extensions: ext as any,
     content: p.content,
     onUpdate: ({ editor }) => {
       // @ts-ignore

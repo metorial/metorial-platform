@@ -11,7 +11,7 @@
   "dependencies": {
     "@metorial/ui": "^1.0.0",
     "apexcharts": "^4.7.0",
-    "react": "^19.1.0",
+    "react": "19.1.1",
     "react-apexcharts": "^1.7.0"
   },
   "devDependencies": {

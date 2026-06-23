@@ -27,13 +27,13 @@ export let Readme = ({ readme, imageRoot }: { readme: string; imageRoot?: string
         remarkPlugins={[remarkGfm]}
         components={{
           img: ({ node, ...props }) => {
-            if (isServer) return <img {...props} />;
+            if (isServer) return <img {...(props as any)} />;
 
             let src = props.src as string;
             if (src.startsWith('http'))
               return (
                 <Zoom>
-                  <img {...props} />
+                  <img {...(props as any)} />
                 </Zoom>
               );
 
@@ -42,7 +42,7 @@ export let Readme = ({ readme, imageRoot }: { readme: string; imageRoot?: string
                 let url = new URL(src, imageRoot);
                 return (
                   <Zoom>
-                    <img {...props} src={url.href} />
+                    <img {...(props as any)} src={url.href} />
                   </Zoom>
                 );
               } catch (e) {}

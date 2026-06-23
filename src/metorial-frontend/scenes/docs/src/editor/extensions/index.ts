@@ -1,4 +1,14 @@
 import { StarterKit } from '@tiptap/starter-kit';
+import '@tiptap/extension-blockquote';
+import '@tiptap/extension-bold';
+import '@tiptap/extension-bullet-list';
+import '@tiptap/extension-code';
+import '@tiptap/extension-horizontal-rule';
+import '@tiptap/extension-italic';
+import '@tiptap/extension-link';
+import '@tiptap/extension-ordered-list';
+import '@tiptap/extension-paragraph';
+import '@tiptap/extension-strike';
 import Image from '@tiptap/extension-image';
 import TableRow from '@tiptap/extension-table-row';
 import TableHeader from '@tiptap/extension-table-header';
@@ -12,6 +22,7 @@ import Highlight from '@tiptap/extension-highlight';
 import Subscript from '@tiptap/extension-subscript';
 import Superscript from '@tiptap/extension-superscript';
 import TextAlign from '@tiptap/extension-text-align';
+import Underline from '@tiptap/extension-underline';
 import CharacterCount from '@tiptap/extension-character-count';
 import { Markdown } from 'tiptap-markdown';
 
@@ -66,6 +77,7 @@ export let buildExtensions = () => [
     multicolor: false
   }),
 
+  Underline,
   Subscript,
   Superscript,
   Typography,

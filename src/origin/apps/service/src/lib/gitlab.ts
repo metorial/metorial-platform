@@ -3,7 +3,9 @@ import { badRequestError, ServiceError } from '@lowerdeck/error';
 import type { ScmBackend, ScmInstallation } from '../../prisma/generated/client';
 import { db } from '../db';
 
-export let createGitLabClient = (backend?: ScmBackend) => {
+type GitLabClient = InstanceType<typeof Gitlab>;
+
+export let createGitLabClient = (backend?: ScmBackend): GitLabClient => {
   let host = backend?.webUrl ?? 'https://gitlab.com';
   let oauthToken = undefined; // Will be set when we have a token
 
@@ -13,7 +15,10 @@ export let createGitLabClient = (backend?: ScmBackend) => {
   });
 };
 
-export let createGitLabClientWithToken = (token: string, backend?: ScmBackend) => {
+export let createGitLabClientWithToken = (
+  token: string,
+  backend?: ScmBackend
+): GitLabClient => {
   let host = backend?.webUrl ?? 'https://gitlab.com';
 
   return new Gitlab({
@@ -134,7 +139,7 @@ export let refreshGitLabAccessToken = async (i: {
 
 export let createGitLabClientWithInstallation = async (
   installation: ScmInstallation & { backend: ScmBackend }
-) => {
+): Promise<GitLabClient> => {
   if (!installation.accessToken) {
     throw new ServiceError(badRequestError({ message: 'Access token not found' }));
   }

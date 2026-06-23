@@ -188,8 +188,8 @@ let wrapAction = (children: React.ReactNode, href?: string) => {
 };
 
 export let ItemGrid = {
-  Root: ({ responsive, ...props }: ItemGridRootProps) => {
-    let grid = <Grid responsive={responsive} {...props} />;
+  Root: ({ responsive, style, ...props }: ItemGridRootProps) => {
+    let grid = <Grid responsive={responsive} style={style as any} {...props} />;
 
     if (!responsive) return grid;
 

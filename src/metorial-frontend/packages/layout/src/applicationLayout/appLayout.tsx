@@ -650,7 +650,7 @@ export let AppLayout = ({
                           {
                             ['--sidebar-enter-x' as string]:
                               sidebarTransition.direction === 'backward' ? '-18px' : '18px'
-                          } as React.CSSProperties
+                          } as any
                         }
                       >
                         <SidebarItems groups={mainGroups} id={id} />
