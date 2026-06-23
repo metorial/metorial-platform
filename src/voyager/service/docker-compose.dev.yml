@@ -12,6 +12,7 @@ services:
       POSTGRES_DB: voyager
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./init-test-db.sh:/docker-entrypoint-initdb.d/init-test-db.sh
     networks:
       - voyager-network
     healthcheck:
