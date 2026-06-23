@@ -46,4 +46,4 @@ jobs:
         run: bunx turbo run --concurrency=1 --ui=stream test --filter='./src/metorial/modules/*'
 
       - name: Test Lowerdeck Packages
-        run: bunx turbo run --concurrency=1 --ui=stream test --filter='./src/lowerdeck/*'
+        run: bunx turbo run --concurrency=1 --ui=stream test --filter='./src/lowerdeck/**'

@@ -76,7 +76,7 @@
     "@metorial-io/pages": "^1.0.0",
     "@metorial-io/ui": "^1.0.0",
     "@metorial-io/ui-product": "^1.0.0",
-    "@metorial-platform-systems/relay-client": "workspace:*",
+    "@metorial-platform-systems/relay-client": "1.0.0",
     "@prisma/adapter-pg": "^7.4.1",
     "@prisma/client": "^7.4.1",
     "@sentry/bun": "^10.38.0",

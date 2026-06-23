@@ -172,7 +172,7 @@
         "@metorial-io/pages": "^1.0.0",
         "@metorial-io/ui": "^1.0.0",
         "@metorial-io/ui-product": "^1.0.0",
-        "@metorial-services/relay-client": "^1.0.5",
+        "@metorial-platform-systems/relay-client": "workspace:*",
         "@prisma/adapter-pg": "^7.4.1",
         "@prisma/client": "^7.4.1",
         "@sentry/bun": "^10.38.0",
@@ -332,7 +332,7 @@
         "@lowerdeck/env": "workspace:2.0.0",
         "@lowerdeck/programmable-promise": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
-        "@metorial-services/voyager-client": "^1.0.1",
+        "@metorial-platform-systems/voyager-client": "workspace:*",
       },
       "devDependencies": {
         "@types/bun": "latest",
@@ -2191,7 +2191,7 @@
         "@lowerdeck/programmable-promise": "workspace:2.0.0",
         "@lowerdeck/service": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
-        "@metorial-services/relay-client": "^1.0.5",
+        "@metorial-platform-systems/relay-client": "workspace:*",
         "@metorial/db": "^1.0.0",
         "@metorial/queue": "^1.0.0",
       },
@@ -2425,7 +2425,7 @@
       "dependencies": {
         "@lowerdeck/env": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
-        "@metorial-services/voyager-client": "^1.0.1",
+        "@metorial-platform-systems/voyager-client": "workspace:*",
       },
       "devDependencies": {
         "@metorial/tsconfig": "^1.0.0",
@@ -3097,9 +3097,9 @@
         "vitest": "^3.1.2",
       },
     },
-    "src/relay/clients/typescript": {
-      "name": "@metorial-services/relay-client",
-      "version": "1.0.5",
+    "src/relay/clients/relay": {
+      "name": "@metorial-platform-systems/relay-client",
+      "version": "1.0.0",
       "dependencies": {
         "@lowerdeck/rpc-client": "workspace:2.0.0",
         "@react-email/components": "^1.0.7",
@@ -4259,7 +4259,7 @@
         "@lowerdeck/env": "workspace:2.0.0",
         "@lowerdeck/programmable-promise": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
-        "@metorial-services/voyager-client": "^1.0.1",
+        "@metorial-platform-systems/voyager-client": "workspace:*",
       },
       "devDependencies": {
         "@types/bun": "latest",
@@ -4691,9 +4691,9 @@
         "typescript": "^5",
       },
     },
-    "src/voyager/clients/typescript": {
-      "name": "@metorial-services/voyager-client",
-      "version": "1.0.1",
+    "src/voyager/clients/voyager": {
+      "name": "@metorial-platform-systems/voyager-client",
+      "version": "1.0.0",
       "dependencies": {
         "@lowerdeck/rpc-client": "workspace:2.0.0",
       },
@@ -5660,6 +5660,8 @@
 
     "@metorial-platform-systems/origin-client": ["@metorial-platform-systems/origin-client@workspace:src/origin/clients/origin"],
 
+    "@metorial-platform-systems/relay-client": ["@metorial-platform-systems/relay-client@workspace:src/relay/clients/relay"],
+
     "@metorial-platform-systems/shuttle-client": ["@metorial-platform-systems/shuttle-client@workspace:src/shuttle/clients/shuttle"],
 
     "@metorial-platform-systems/signal-client": ["@metorial-platform-systems/signal-client@workspace:src/signal/clients/signal"],
@@ -5670,17 +5672,15 @@
 
     "@metorial-platform-systems/synthesis-client": ["@metorial-platform-systems/synthesis-client@workspace:src/synthesis/clients/synthesis"],
 
-    "@metorial-services/registry-client": ["@metorial-services/registry-client@1.0.0", "", { "dependencies": { "@lowerdeck/rpc-client": "^1.0.3", "@lowerdeck/rpc-server": "^1.0.6", "@lowerdeck/validation": "^1.0.4" } }, "sha512-6A3tb7rtxex7GlygF6W832p8zoW5I1tkEzEpGzlhjA7wWIwPKVIlYF2XxKhua3z2+kXRKUW6WKjKwc+P81TIdw=="],
+    "@metorial-platform-systems/voyager-client": ["@metorial-platform-systems/voyager-client@workspace:src/voyager/clients/voyager"],
 
-    "@metorial-services/relay-client": ["@metorial-services/relay-client@workspace:src/relay/clients/typescript"],
+    "@metorial-services/registry-client": ["@metorial-services/registry-client@1.0.0", "", { "dependencies": { "@lowerdeck/rpc-client": "^1.0.3", "@lowerdeck/rpc-server": "^1.0.6", "@lowerdeck/validation": "^1.0.4" } }, "sha512-6A3tb7rtxex7GlygF6W832p8zoW5I1tkEzEpGzlhjA7wWIwPKVIlYF2XxKhua3z2+kXRKUW6WKjKwc+P81TIdw=="],
 
     "@metorial-services/scout-client": ["@metorial-services/scout-client@1.0.0", "", { "dependencies": { "@lowerdeck/rpc-client": "^1.0.2" } }, "sha512-iZUt3ot1libD7mDh/9K5O/oYmuZGWxaxEIuTypzz0UQY0Ra4BFWwtfB88VwQCew58Fz6S2wf6iDsFLsq+/2s7w=="],
 
     "@metorial-services/slates-registry-client": ["@metorial-services/slates-registry-client@workspace:src/slates/clients/registry"],
 
     "@metorial-services/slates-registry-internal-client": ["@metorial-services/slates-registry-internal-client@workspace:src/slates/clients/registry-internal"],
-
-    "@metorial-services/voyager-client": ["@metorial-services/voyager-client@workspace:src/voyager/clients/typescript"],
 
     "@metorial-subspace/app-controller": ["@metorial-subspace/app-controller@workspace:src/subspace/apps/controller"],
 
@@ -9754,6 +9754,10 @@
 
     "@metorial-platform-systems/origin-client/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
+    "@metorial-platform-systems/relay-client/@types/node": ["@types/node@25.9.4", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-dszCsrKb5U7ZsVZBWiHFklTloVl0mSEnWH/iZXfZUlI4rzCUnsvGmgqfuVRHL54ugE7/wRuxEIXRa2iMZ+BG6g=="],
+
+    "@metorial-platform-systems/relay-client/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
+
     "@metorial-platform-systems/shuttle-client/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
     "@metorial-platform-systems/signal-client/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
@@ -9764,17 +9768,13 @@
 
     "@metorial-platform-systems/synthesis-client/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
-    "@metorial-services/relay-client/@types/node": ["@types/node@25.9.4", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-dszCsrKb5U7ZsVZBWiHFklTloVl0mSEnWH/iZXfZUlI4rzCUnsvGmgqfuVRHL54ugE7/wRuxEIXRa2iMZ+BG6g=="],
+    "@metorial-platform-systems/voyager-client/@types/node": ["@types/node@25.9.4", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-dszCsrKb5U7ZsVZBWiHFklTloVl0mSEnWH/iZXfZUlI4rzCUnsvGmgqfuVRHL54ugE7/wRuxEIXRa2iMZ+BG6g=="],
 
-    "@metorial-services/relay-client/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
+    "@metorial-platform-systems/voyager-client/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
     "@metorial-services/slates-registry-client/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
     "@metorial-services/slates-registry-internal-client/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
-
-    "@metorial-services/voyager-client/@types/node": ["@types/node@25.9.4", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-dszCsrKb5U7ZsVZBWiHFklTloVl0mSEnWH/iZXfZUlI4rzCUnsvGmgqfuVRHL54ugE7/wRuxEIXRa2iMZ+BG6g=="],
-
-    "@metorial-services/voyager-client/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
     "@metorial-subspace/app-controller/@types/minimatch": ["@types/minimatch@6.0.0", "", { "dependencies": { "minimatch": "*" } }, "sha512-zmPitbQ8+6zNutpwgcQuLcsEpn/Cj54Kbn7L5pX0Os5kdWplB7xPgEh/g+SWOB/qmows2gpuCaPyduq8ZZRnxA=="],
 
@@ -10720,9 +10720,9 @@
 
     "@metorial-platform-systems/origin-client/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
-    "@metorial-services/relay-client/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+    "@metorial-platform-systems/relay-client/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
-    "@metorial-services/voyager-client/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+    "@metorial-platform-systems/voyager-client/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
     "@metorial-subspace/app-controller/vitest/@vitest/expect": ["@vitest/expect@4.0.17", "", { "dependencies": { "@standard-schema/spec": "^1.0.0", "@types/chai": "^5.2.2", "@vitest/spy": "4.0.17", "@vitest/utils": "4.0.17", "chai": "^6.2.1", "tinyrainbow": "^3.0.3" } }, "sha512-mEoqP3RqhKlbmUmntNDDCJeTDavDR+fVYkSOw8qRwJFaW/0/5zA9zFeTrHqNtcmwh6j26yMmwx2PqUDPzt5ZAQ=="],
 
