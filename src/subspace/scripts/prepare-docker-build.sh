@@ -21,6 +21,7 @@ bunx turbo run --ui=stream build --filter=@metorial-platform-systems/function-ba
 bunx turbo run --ui=stream build --filter=@metorial-platform-systems/signal-client
 bunx turbo run --ui=stream build --filter=@metorial-platform-systems/synthesis-client
 bunx turbo run --ui=stream build --filter=@metorial-platform-systems/cargo-client
+bunx turbo run --ui=stream build --filter=@metorial-services/voyager-client
 
 # bunx turbo run --ui=stream build --filter=./src/slates/packages/**
 bunx turbo run --ui=stream build --filter=./src/shuttle/sdk/packages/**

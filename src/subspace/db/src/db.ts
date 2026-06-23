@@ -69,6 +69,7 @@ export let db = baseClient.$extends({
 
 declare global {
   namespace PrismaJson {
+    // @ts-ignore
     type EntityImage = EntityImageOuter;
 
     type PublisherSource = { type: 'github'; url: string; owner: string; repo?: string };
