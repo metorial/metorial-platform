@@ -102,15 +102,15 @@ The Relay service will be available at `http://localhost:25050`
 ### Installation
 
 ```bash
-npm install @metorial-services/relay-client
-yarn add @metorial-services/relay-client
-bun add @metorial-services/relay-client
+npm install @metorial-platform-systems/relay-client
+yarn add @metorial-platform-systems/relay-client
+bun add @metorial-platform-systems/relay-client
 ```
 
 ### Basic Usage
 
 ```typescript
-import { createRelayClient } from '@metorial-services/relay-client';
+import { createRelayClient } from '@metorial-platform-systems/relay-client';
 
 let client = createRelayClient({
   endpoint: 'http://localhost:25050',

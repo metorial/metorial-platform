@@ -4,7 +4,7 @@ import {
   createRelayClient,
   type EmailIdentity,
   type ITemplate
-} from '@metorial-services/relay-client';
+} from '@metorial-platform-systems/relay-client';
 import { env } from './env';
 
 export let relay: ReturnType<typeof createRelayClient> = createRelayClient({

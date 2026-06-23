@@ -1,6 +1,6 @@
 import { delay } from '@lowerdeck/delay';
 import { ProgrammablePromise } from '@lowerdeck/programmable-promise';
-import { createVoyagerClient } from '@metorial-services/voyager-client';
+import { createVoyagerClient } from '@metorial-platform-systems/voyager-client';
 import { env } from './env';
 
 let getIndexName = (suffix?: string) =>
@@ -29,7 +29,10 @@ export let voyagerSource = voyagerSourceProm.promise;
       voyagerSourceProm.resolve(source);
       return;
     } catch (error) {
-      console.error('Failed to create Cargo source in Voyager, retrying in 5 seconds...', error);
+      console.error(
+        'Failed to create Cargo source in Voyager, retrying in 5 seconds...',
+        error
+      );
     }
 
     await delay(5000);

@@ -87,15 +87,15 @@ The Voyager service will be available at `http://localhost:52060`
 ### Installation
 
 ```bash
-npm install @metorial-services/voyager-client
-yarn add @metorial-services/voyager-client
-bun add @metorial-services/voyager-client
+npm install @metorial-platform-systems/voyager-client
+yarn add @metorial-platform-systems/voyager-client
+bun add @metorial-platform-systems/voyager-client
 ```
 
 ### Basic Usage
 
 ```typescript
-import { createVoyagerClient } from '@metorial-services/voyager-client';
+import { createVoyagerClient } from '@metorial-platform-systems/voyager-client';
 
 let client = createVoyagerClient({
   endpoint: 'http://localhost:52060',

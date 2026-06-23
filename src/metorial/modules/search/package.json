@@ -9,7 +9,7 @@
     "lint": "prettier src/**/*.ts --check"
   },
   "dependencies": {
-    "@metorial-services/voyager-client": "^1.0.1",
+    "@metorial-platform-systems/voyager-client": "workspace:*",
     "@lowerdeck/env": "workspace:2.0.0",
     "@lowerdeck/validation": "workspace:2.0.0"
   },
