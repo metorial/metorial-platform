@@ -38,6 +38,6 @@ export default defineConfig(({ mode }) => {
   });
 
   return withAliases(config, {
-    '@metorial-services/ares-client': resolve(__dirname, '../clients/typescript/src/index.ts')
+    '@metorial-platform-systems/ares-client': resolve(__dirname, '../clients/ares/src/index.ts')
   });
 });

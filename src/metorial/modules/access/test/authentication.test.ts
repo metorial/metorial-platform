@@ -63,7 +63,7 @@ vi.mock('@lowerdeck/tokens', () => ({
   Tokens: vi.fn(() => mocks.consumerTokens)
 }));
 
-vi.mock('@metorial-services/ares-client', () => ({
+vi.mock('@metorial-platform-systems/ares-client', () => ({
   createAresInternalClient: mocks.createAresInternalClient
 }));
 

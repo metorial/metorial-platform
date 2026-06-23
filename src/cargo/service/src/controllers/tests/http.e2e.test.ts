@@ -5,7 +5,7 @@ import {
   downloadFile,
   getFileDownloadUrl,
   uploadFile
-} from '@metorial-platform-systems/cargo-client';
+} from '../../../../clients/cargo/src/index';
 import { cargoClient } from '../../test/client';
 import { cleanDatabase } from '../../test/setup';
 
