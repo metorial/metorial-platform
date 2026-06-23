@@ -9,13 +9,15 @@ import {
   nebulaServiceEnv,
   originCodeBucketEnv,
   originServiceEnv,
+  relayServiceEnv,
   signalServiceEnv,
   synthesisServiceEnv,
   shuttleServiceEnv,
   slatesHubEnv,
   slatesRegistryEnv,
   subspaceDbEnv,
-  subspaceDevEnv
+  subspaceDevEnv,
+  voyagerServiceEnv
 } from './services';
 import type { Destination } from './type';
 
@@ -121,6 +123,16 @@ export let destinations: Destination[] = [
     type: 'oss',
     env: functionBayServiceEnv,
     path: 'src/function-bay/service'
+  },
+  {
+    type: 'oss',
+    env: voyagerServiceEnv,
+    path: 'src/voyager/service'
+  },
+  {
+    type: 'oss',
+    env: relayServiceEnv,
+    path: 'src/relay/service'
   },
   {
     type: 'oss',
