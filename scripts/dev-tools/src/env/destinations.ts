@@ -23,13 +23,13 @@ export let destinations: Destination[] = [
   {
     type: 'oss',
     env: frontendEnv,
-    path: 'src/frontend/apps/dashboard'
+    path: 'src/metorial-frontend/apps/dashboard'
   },
 
   {
     type: 'oss',
     env: backendEnv,
-    path: 'src/backend/apps/api'
+    path: 'src/metorial/services/api'
   },
 
   // {
@@ -59,73 +59,73 @@ export let destinations: Destination[] = [
   {
     type: 'oss',
     env: subspaceDevEnv,
-    path: 'src/systems/subspace/apps/dev'
+    path: 'src/subspace/apps/dev'
   },
   {
     type: 'oss',
     env: subspaceDbEnv,
-    path: 'src/systems/subspace/db'
+    path: 'src/subspace/db'
   },
 
   {
     type: 'oss',
     env: signalServiceEnv,
-    path: 'src/systems/signal/service'
+    path: 'src/signal/service'
   },
   {
     type: 'oss',
     env: synthesisServiceEnv,
-    path: 'src/systems/synthesis/service'
+    path: 'src/synthesis/service'
   },
   {
     type: 'oss',
     env: cargoServiceEnv,
-    path: 'src/systems/cargo/service'
+    path: 'src/cargo/service'
   },
   {
     type: 'oss',
     env: slatesHubEnv,
-    path: 'src/systems/slates/apps/hub'
+    path: 'src/slates/apps/hub'
   },
   {
     type: 'oss',
     env: slatesRegistryEnv,
-    path: 'src/systems/slates/apps/registry'
+    path: 'src/slates/apps/registry'
   },
   {
     type: 'oss',
     env: originServiceEnv,
-    path: 'src/systems/origin/apps/service'
+    path: 'src/origin/apps/service'
   },
   {
     type: 'oss',
     env: originCodeBucketEnv,
-    path: 'src/systems/origin/apps/code-bucket'
+    path: 'src/origin/apps/code-bucket'
   },
   {
     type: 'oss',
     env: shuttleServiceEnv,
-    path: 'src/systems/shuttle/service'
+    path: 'src/shuttle/service'
   },
   {
     type: 'oss',
     env: forgeServiceEnv,
-    path: 'src/systems/forge/service'
+    path: 'src/forge/service'
   },
   {
     type: 'oss',
     env: nebulaServiceEnv,
-    path: 'src/systems/nebula/service'
+    path: 'src/nebula/service'
   },
   {
     type: 'oss',
     env: functionBayServiceEnv,
-    path: 'src/systems/function-bay/service'
+    path: 'src/function-bay/service'
   },
   {
     type: 'oss',
     env: aresServiceEnv,
-    path: 'src/systems/ares/service'
+    path: 'src/ares/service'
   },
   {
     type: 'enterprise',

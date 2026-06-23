@@ -51,7 +51,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: ./src/systems/synthesis/service/Dockerfile
+          file: ./src/synthesis/service/Dockerfile
           platforms: linux/amd64
           push: false
           tags: ${{ steps.meta.outputs.tags }}

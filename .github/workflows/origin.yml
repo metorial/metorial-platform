@@ -23,10 +23,10 @@ jobs:
         service:
           - name: origin
             image: ghcr.io/metorial/mte-origin
-            dockerfile: ./src/systems/origin/apps/service/Dockerfile
+            dockerfile: ./src/origin/apps/service/Dockerfile
           - name: code-bucket
             image: ghcr.io/metorial/mte-code-bucket
-            dockerfile: ./src/systems/origin/apps/code-bucket/Dockerfile
+            dockerfile: ./src/origin/apps/code-bucket/Dockerfile
 
     steps:
       - name: Checkout repository

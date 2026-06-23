@@ -51,7 +51,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: ./src/systems/forge/service/Dockerfile
+          file: ./src/forge/service/Dockerfile
           platforms: linux/amd64
           push: false
           tags: ${{ steps.meta.outputs.tags }}
@@ -67,7 +67,7 @@ jobs:
     uses: metorial/.github/.github/workflows/reusable-e2e-tests.yml@main
     secrets: inherit
     with:
-      service_directory: src/systems/forge/service
+      service_directory: src/forge/service
       compose_project_prefix: forge-ci
       compose_profiles: 'infra service'
       wait_services: |
@@ -76,4 +76,4 @@ jobs:
         forge-object-storage
         forge-service
       test_container: forge-service
-      test_command: cd /app/src/systems/forge/service && bun run test
+      test_command: cd /app/src/forge/service && bun run test

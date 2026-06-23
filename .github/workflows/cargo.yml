@@ -51,7 +51,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: ./src/systems/cargo/service/Dockerfile
+          file: ./src/cargo/service/Dockerfile
           platforms: linux/amd64
           push: false
           tags: ${{ steps.meta.outputs.tags }}
@@ -67,7 +67,7 @@ jobs:
     uses: metorial/.github/.github/workflows/reusable-e2e-tests.yml@main
     secrets: inherit
     with:
-      service_directory: src/systems/cargo/service
+      service_directory: src/cargo/service
       compose_project_prefix: cargo-ci
       compose_profiles: 'infra service'
       wait_services: |
@@ -76,4 +76,4 @@ jobs:
         cargo-object-storage
         cargo-service
       test_container: cargo-service
-      test_command: cd /app/src/systems/cargo/service && bun run test
+      test_command: cd /app/src/cargo/service && bun run test

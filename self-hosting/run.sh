@@ -215,16 +215,16 @@ PIDS_FILE="$SCRIPT_DIR/.server_pids"
 
 # Find repository root
 REPO_ROOT="$SCRIPT_DIR"
-while [ ! -d "$REPO_ROOT/src/frontend/apps/dashboard" ] && [ "$REPO_ROOT" != "/" ]; do
+while [ ! -d "$REPO_ROOT/src/metorial-frontend/apps/dashboard" ] && [ "$REPO_ROOT" != "/" ]; do
     REPO_ROOT="$(dirname "$REPO_ROOT")"
 done
 
 if [ "$REPO_ROOT" = "/" ]; then
-    print_error "Could not find repository root with src/frontend/apps/dashboard"
+    print_error "Could not find repository root with src/metorial-frontend/apps/dashboard"
     exit 1
 fi
 
-FRONTEND_DIR="$REPO_ROOT/src/frontend/apps/dashboard"
+FRONTEND_DIR="$REPO_ROOT/src/metorial-frontend/apps/dashboard"
 BUILD_OUTPUT_DIR="$FRONTEND_DIR/dist"
 INSPECTOR_DIR="$REPO_ROOT/vendor/mcp-inspector"
 INSPECTOR_BUILD_OUTPUT_DIR="$INSPECTOR_DIR/dist"

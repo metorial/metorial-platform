@@ -15,7 +15,7 @@ if (args[0] == 'start') {
 
   console.log('1. Preparing DB');
 
-  let dbPackage = join(__dirname, '../../../src/backend/db');
+  let dbPackage = join(__dirname, '../../../src/metorial/db');
 
   let pgUser = process.env.PGUSER || 'postgres';
   let pgPassword = process.env.PGPASSWORD || 'postgres';

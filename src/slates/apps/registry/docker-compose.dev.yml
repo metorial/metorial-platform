@@ -1,0 +1,90 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: slates-registry-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: slates-registry
+      POSTGRES_PASSWORD: slates-registry
+      POSTGRES_DB: slates-registry
+    volumes:
+      - postgres_data3:/var/lib/postgresql/data
+    networks:
+      - slates-registry-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: slates-registry-redis
+    restart: unless-stopped
+    networks:
+      - slates-registry-network
+
+  object-storage:
+    image: ghcr.io/metorial/object-storage:latest
+    ports:
+      - '65010:52010'
+    volumes:
+      - object-store-data:/app/data
+    environment:
+      RUST_LOG: info
+      AWS_ACCESS_KEY_ID: ${OBJECT_STORAGE_AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${OBJECT_STORAGE_AWS_SECRET_ACCESS_KEY}
+      AWS_REGION: ${OBJECT_STORAGE_AWS_REGION}
+
+      OBJECT_STORE__SERVER__HOST: 0.0.0.0
+      OBJECT_STORE__SERVER__PORT: 52010
+      OBJECT_STORE__BACKEND__TYPE: s3
+      OBJECT_STORE__BACKEND__REGION: ${OBJECT_STORAGE_AWS_REGION}
+      OBJECT_STORE__BACKEND__PHYSICAL_BUCKET: ${OBJECT_STORAGE_AWS_S3_BUCKET}
+
+    container_name: slates-registry-object-storage
+    restart: unless-stopped
+    networks:
+      - slates-registry-network
+
+  slates-registry:
+    build:
+      context: ../../../../..
+      dockerfile: ./src/slates/apps/registry/dev.Dockerfile
+    container_name: slates-registry-service
+    restart: unless-stopped
+    ports:
+      - '52040:52040'
+      - '52041:52041'
+      - '52042:52042'
+    environment:
+      DATABASE_URL: postgresql://slates-registry:slates-registry@postgres:5432/slates-registry
+      REDIS_URL: redis://redis:6379/0
+      OBJECT_STORAGE_URL: http://object-storage:52010
+      PACKAGE_BUCKET_NAME: slates-registry-packages
+      SERVICE_PUBLIC_URL: http://localhost:52040
+      PUBLIC_ACCESS_PERMITTED: 'true'
+      ARES_AUTH_URL: ${ARES_AUTH_URL}
+      ARES_CLIENT_ID: ${ARES_CLIENT_ID}
+    volumes:
+      - ./src:/app/src/slates/apps/registry/src:ro
+      - ./admin:/app/src/slates/apps/registry/admin:ro
+      - ./package.json:/app/src/slates/apps/registry/package.json:ro
+      - ./tsconfig.json:/app/src/slates/apps/registry/tsconfig.json:ro
+      - ./prisma:/app/src/slates/apps/registry/prisma
+      - ./prisma.config.ts:/app/src/slates/apps/registry/prisma.config.ts:ro
+      - ../../packages:/app/src/slates/packages:ro
+      - /app/node_modules
+    depends_on:
+      - postgres
+      - redis
+      - object-storage
+    networks:
+      - slates-registry-network
+
+volumes:
+  postgres_data3:
+    driver: local
+  object-store-data:
+    driver: local
+
+networks:
+  slates-registry-network:
+    driver: bridge

@@ -22,9 +22,9 @@ jobs:
       matrix:
         service:
           - name: controller
-            dockerfile: ./src/systems/subspace/apps/controller/Dockerfile
+            dockerfile: ./src/subspace/apps/controller/Dockerfile
           - name: worker
-            dockerfile: ./src/systems/subspace/apps/worker/Dockerfile
+            dockerfile: ./src/subspace/apps/worker/Dockerfile
 
     steps:
       - name: Checkout repository
@@ -67,7 +67,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: ./src/systems/subspace/apps/public/Dockerfile
+          file: ./src/subspace/apps/public/Dockerfile
           push: false
           build-args: |
             SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
@@ -80,7 +80,7 @@ jobs:
     uses: metorial/.github/.github/workflows/reusable-e2e-tests.yml@main
     secrets: inherit
     with:
-      service_directory: src/systems/subspace
+      service_directory: src/subspace
       compose_project_prefix: subspace-ci
       compose_profiles: 'infra'
       wait_services: |
@@ -97,4 +97,4 @@ jobs:
         subspace-mcp-test-server
         subspace-controller-test-service
       test_container: subspace-controller-test-service
-      test_command: cd /app/src/systems/subspace/apps/controller && set -a && . ./.env.ci && set +a && bunx prisma db push --schema ../../db/prisma/schema --config ../../db/prisma.config.ts && bunx prisma generate --schema ../../db/prisma/schema --config ../../db/prisma.config.ts && bun run test:ci
+      test_command: cd /app/src/subspace/apps/controller && set -a && . ./.env.ci && set +a && bunx prisma db push --schema ../../db/prisma/schema --config ../../db/prisma.config.ts && bunx prisma generate --schema ../../db/prisma/schema --config ../../db/prisma.config.ts && bun run test:ci
