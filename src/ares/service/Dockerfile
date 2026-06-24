@@ -36,6 +36,11 @@ COPY --from=builder /app/src/ares/service/prisma.config.ts /app/prisma.config.ts
 COPY --from=builder /app/node_modules /app/node_modules
 COPY --from=builder /app/src/ares/service/package.json /app/package.json
 
+# Bun installs workspace packages as symlinks into node_modules. Preserve the
+# relay and lowerdeck workspace targets those symlinks resolve to at runtime.
+COPY --from=builder /app/src/relay /app/src/relay
+COPY --from=builder /app/src/lowerdeck /app/src/lowerdeck
+
 # Copy built frontends
 COPY --from=builder /app/src/ares/service/frontend/auth/dist /app/frontend/auth/dist
 COPY --from=builder /app/src/ares/service/frontend/admin/dist /app/frontend/admin/dist
