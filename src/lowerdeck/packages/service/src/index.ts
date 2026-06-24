@@ -37,7 +37,11 @@ export class Service<Methods extends object> {
     let methods: Record<string, any> = {};
     let self = this;
 
-    let properties = Object.getOwnPropertyNames(Object.getPrototypeOf(this.#methods));
+    let prototype = Object.getPrototypeOf(this.#methods);
+    let ownProperties = Object.getOwnPropertyNames(this.#methods);
+    let prototypeProperties =
+      prototype && prototype !== Object.prototype ? Object.getOwnPropertyNames(prototype) : [];
+    let properties = [...new Set([...ownProperties, ...prototypeProperties])];
 
     for (let methodName of properties) {
       if (methodName === 'constructor') continue;
