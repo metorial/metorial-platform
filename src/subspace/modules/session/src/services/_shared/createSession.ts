@@ -1,10 +1,10 @@
 import {
   addAfterTransactionHook,
-  db,
   type Environment,
   getId,
   type Solution,
-  type Tenant
+  type Tenant,
+  withTransaction
 } from '@metorial-subspace/db';
 import { sessionCreatedQueue } from '../../queues/lifecycle/session';
 import { sessionProviderInclude } from '../sessionProvider';

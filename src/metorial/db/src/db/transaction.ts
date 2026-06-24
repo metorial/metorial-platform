@@ -22,7 +22,8 @@ export let withTransaction = async <T>(
   let tdb = tdbStorage.getStore();
 
   if (tdb || opts?.ifExists) {
-    return await cb(tdb?.tdb ?? db);
+    // @ts-ignore
+    return await (cb as any)((tdb?.tdb ?? db) as any);
   } else {
     let afterHooks: Array<() => Promise<void | any>> = [];
 
