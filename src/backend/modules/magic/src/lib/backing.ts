@@ -207,7 +207,7 @@ export let ensureMagicMcpServerBacking = async (d: {
           id: d.server.providerTemplateId
         }
       });
-      if (providerTemplate) {
+      if (!providerTemplate.hasSubspaceBacking || !providerTemplate.subspaceIntegrationId) {
         await ensureProviderTemplateBacking({ instance: d.instance, providerTemplate });
         providerTemplateBackingId = providerTemplate.id;
       }
