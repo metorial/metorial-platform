@@ -1,16 +1,9 @@
 import { combineQueueProcessors } from '@lowerdeck/queue';
 import { archiveIntegrationInstanceQueueProcessor } from './archiveIntegrationInstance';
 import {
-  integrationInstanceGroupArchiveProvidersManyQueueProcessor,
-  integrationInstanceGroupArchivedQueueProcessor,
-  integrationInstanceGroupCreatedQueueProcessor,
-  integrationInstanceGroupUpdatedQueueProcessor
-} from './integrationInstanceGroup';
-import { integrationInstanceGroupProviderSetQueueProcessor } from './integrationInstanceGroupProvider';
-import {
-  integrationArchivedQueueProcessor,
   integrationArchiveInstancesManyQueueProcessor,
   integrationArchiveProvidersManyQueueProcessor,
+  integrationArchivedQueueProcessor,
   integrationCreatedQueueProcessor,
   integrationDeletedQueueProcessor,
   integrationUpdatedQueueProcessor
@@ -23,6 +16,13 @@ import {
   integrationInstanceUpdatedQueueProcessor
 } from './integrationInstance';
 import {
+  integrationInstanceGroupArchiveProvidersManyQueueProcessor,
+  integrationInstanceGroupArchivedQueueProcessor,
+  integrationInstanceGroupCreatedQueueProcessor,
+  integrationInstanceGroupUpdatedQueueProcessor
+} from './integrationInstanceGroup';
+import { integrationInstanceGroupProviderSetQueueProcessor } from './integrationInstanceGroupProvider';
+import {
   integrationInstanceProviderSetQueueProcessor,
   integrationInstanceProviderSyncGroupProvidersManyQueueProcessor
 } from './integrationInstanceProvider';
@@ -31,7 +31,9 @@ import {
   integrationProviderArchiveInstanceProvidersManyQueueProcessor,
   integrationProviderArchivedQueueProcessor,
   integrationProviderCreatedQueueProcessor,
-  integrationProviderUpdatedQueueProcessor
+  integrationProviderUpdatedQueueProcessor,
+  integrationProviderUpdatedSyncIntegrationInstanceGroupSessionsQueueProcessor,
+  integrationProviderUpdatedSyncIntegrationInstanceSessionsQueueProcessor
 } from './integrationProvider';
 import { magicMcpBackingReconcileQueueProcessor } from './magicMcpBackingReconcile';
 
@@ -60,5 +62,7 @@ export let lifecycleQueues = combineQueueProcessors([
   integrationProviderArchivedQueueProcessor,
   integrationProviderArchiveInstanceProvidersManyQueueProcessor,
   integrationProviderArchiveGroupProvidersManyQueueProcessor,
-  magicMcpBackingReconcileQueueProcessor
+  magicMcpBackingReconcileQueueProcessor,
+  integrationProviderUpdatedSyncIntegrationInstanceSessionsQueueProcessor,
+  integrationProviderUpdatedSyncIntegrationInstanceGroupSessionsQueueProcessor
 ]);

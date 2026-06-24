@@ -237,13 +237,14 @@ export let integrationProviderArchivedQueueProcessor =
     });
     if (!integrationProvider || integrationProvider.status !== 'archived') return;
 
+    await indexIntegrationQueue.add({ integrationId: integrationProvider.integration.id });
+
     await integrationProviderArchiveInstanceProvidersManyQueue.add({
       integrationProviderId: data.integrationProviderId
     });
     await integrationProviderArchiveGroupProvidersManyQueue.add({
       integrationProviderId: data.integrationProviderId
     });
-    await indexIntegrationQueue.add({ integrationId: integrationProvider.integration.id });
     await reconcileSkillProviderLinksForIntegrationProviderQueue.add({
       integrationProviderId: data.integrationProviderId
     });

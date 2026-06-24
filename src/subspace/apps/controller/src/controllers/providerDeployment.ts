@@ -103,13 +103,14 @@ export let providerDeploymentController = app.controller({
       })
     )
     .do(async ctx => {
-      let providerDeployments = await providerDeploymentService.getManyProviderDeploymentsByIds({
-        tenant: ctx.tenant,
-        environment: ctx.environment,
-        solution: ctx.solution,
-        ids: ctx.input.ids,
-        allowDeleted: ctx.input.allowDeleted
-      });
+      let providerDeployments =
+        await providerDeploymentService.getManyProviderDeploymentsByIds({
+          tenant: ctx.tenant,
+          environment: ctx.environment,
+          solution: ctx.solution,
+          ids: ctx.input.ids,
+          allowDeleted: ctx.input.allowDeleted
+        });
 
       return providerDeployments.map(providerDeploymentPresenter);
     }),
@@ -222,9 +223,10 @@ export let providerDeploymentController = app.controller({
         );
       }
 
-      let lockedVersion: Awaited<
-        ReturnType<typeof providerVersionService.getProviderVersionById>
-      > | null | undefined = undefined;
+      let lockedVersion:
+        | Awaited<ReturnType<typeof providerVersionService.getProviderVersionById>>
+        | null
+        | undefined = undefined;
 
       if (ctx.input.lockedProviderVersionId !== undefined) {
         if (ctx.input.lockedProviderVersionId === null) {

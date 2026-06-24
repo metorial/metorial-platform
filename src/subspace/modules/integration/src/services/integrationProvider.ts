@@ -43,6 +43,7 @@ import {
   providerDeploymentInternalService
 } from '@metorial-subspace/module-provider-internal';
 import { checkTenant } from '@metorial-subspace/module-tenant';
+import { integrationProviderVersionInclude } from '../lib/integrationIncludes';
 import {
   createIntegrationProviderVersion,
   createIntegrationVersion,
@@ -54,7 +55,6 @@ import {
   integrationProviderCreatedQueue,
   integrationProviderUpdatedQueue
 } from '../queues/lifecycle/integrationProvider';
-import { integrationProviderVersionInclude } from '../lib/integrationIncludes';
 
 export let integrationProviderInclude = {
   integration: true,
@@ -483,6 +483,11 @@ class integrationProviderServiceImpl {
         );
       }
 
+      let toolFilter =
+        d.input.toolFilters === undefined && existing?.currentVersion
+          ? (existing.currentVersion.toolFilter as PrismaJson.ToolFilter)
+          : normalizeIntegrationProviderToolFilter(d.input.toolFilters);
+
       let activeProviderCount = await db.integrationProvider.count({
         where: {
           integrationOid: d.integration.oid,
@@ -492,11 +497,6 @@ class integrationProviderServiceImpl {
       if (activeProviderCount >= MAX_INTEGRATION_PROVIDERS) {
         throw new ServiceError(maxIntegrationProvidersError());
       }
-
-      let toolFilter =
-        d.input.toolFilters === undefined && existing?.currentVersion
-          ? (existing.currentVersion.toolFilter as PrismaJson.ToolFilter)
-          : normalizeIntegrationProviderToolFilter(d.input.toolFilters);
 
       let newId = getId('integrationProvider');
       let integrationProvider = existing
