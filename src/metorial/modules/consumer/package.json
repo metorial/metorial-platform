@@ -22,7 +22,6 @@
     "@metorial/context": "1.0.0",
     "@metorial/db": "1.0.0",
     "@metorial/module-access": "1.0.0",
-    "@metorial/module-file": "1.0.0",
     "@metorial/module-magic": "1.0.0",
     "@metorial/module-machine-access": "1.0.0",
     "@metorial/module-organization": "1.0.0",
