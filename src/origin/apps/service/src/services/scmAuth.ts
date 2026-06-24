@@ -305,7 +305,7 @@ class scmAuthServiceImpl {
         externalAccountLogin: user.username,
         externalAccountName: user.name || user.username,
         externalAccountEmail: user.email || null,
-        externalAccountImageUrl: user.avatar_url || null
+        externalAccountImageUrl: user.avatar_url != null ? String(user.avatar_url) : null
       };
 
       let createdInstallation = await db.scmInstallation.upsert({

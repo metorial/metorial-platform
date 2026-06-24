@@ -376,7 +376,7 @@ class scmRepoServiceImpl {
       });
 
       let repoData = {
-        name: project.name,
+        name: String(project.name),
         identifier: `${hostname}/${project.path_with_namespace}`,
         provider: i.installation.provider,
         externalId: project.id.toString(),
@@ -385,10 +385,10 @@ class scmRepoServiceImpl {
         accountOid: account.oid,
         installationOid: i.installation.oid,
         externalIsPrivate: project.visibility === 'private',
-        externalName: project.path,
-        defaultBranch: project.default_branch,
-        externalOwner: project.namespace.path,
-        externalUrl: project.web_url
+        externalName: String(project.path),
+        defaultBranch: String(project.default_branch),
+        externalOwner: String(project.namespace.path),
+        externalUrl: String(project.web_url)
       };
 
       let repo = await db.scmRepository.upsert({
@@ -868,10 +868,10 @@ class scmRepoServiceImpl {
             sha: commit.id,
             branchName: branch,
 
-            pusherEmail: commit.author_email || null,
-            pusherName: commit.author_name || null,
+            pusherEmail: commit.author_email != null ? String(commit.author_email) : null,
+            pusherName: commit.author_name != null ? String(commit.author_name) : null,
 
-            senderIdentifier: `${hostname}/${commit.author_name}`,
+            senderIdentifier: `${hostname}/${commit.author_name != null ? String(commit.author_name) : 'unknown'}`,
             commitMessage: commit.message
           },
           include: { repo: { include: { account: true } } }

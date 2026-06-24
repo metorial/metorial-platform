@@ -6,7 +6,9 @@ import type {
 import { repositoryPresenter } from './repository';
 
 export let scmRepositoryPushPresenter = (
-  push: ScmRepositoryPush & { repo: ScmRepository & { account: ScmAccount } }
+  push: ScmRepositoryPush & {
+    repo?: (ScmRepository & { account?: ScmAccount | null }) | null;
+  }
 ) => ({
   object: 'origin#scmRepositoryPush' as const,
 
