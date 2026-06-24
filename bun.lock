@@ -2031,6 +2031,8 @@
       "dependencies": {
         "@lowerdeck/env": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
+        "@metorial/cache": "^1.0.0",
+        "@metorial/db": "^1.0.0",
       },
       "devDependencies": {
         "@metorial/tsconfig": "^1.0.0",
@@ -2257,6 +2259,8 @@
         "@metorial/fabric": "^1.0.0",
         "@metorial/id": "^1.0.0",
         "@metorial/internal-clients": "1.0.0",
+        "@metorial/module-consumer": "^1.0.0",
+        "@metorial/module-subspace": "^1.0.0",
         "@metorial/queue": "^1.0.0",
         "object-storage-client": "^0.2.5",
       },
@@ -2407,14 +2411,19 @@
         "@metorial/fabric": "^1.0.0",
         "@metorial/id": "^1.0.0",
         "@metorial/internal-clients": "^1.0.0",
+        "@metorial/module-access": "^1.0.0",
+        "@metorial/module-community": "^1.0.0",
+        "@metorial/module-consumer": "^1.0.0",
         "@metorial/module-email": "^1.0.0",
         "@metorial/module-file": "^1.0.0",
+        "@metorial/module-subspace": "^1.0.0",
         "@metorial/queue": "^1.0.0",
         "date-fns": "^4.1.0",
         "react": "19.1.1",
       },
       "devDependencies": {
         "@metorial/tsconfig": "^1.0.0",
+        "@types/react": "19.2.14",
         "typescript": "5.8.2",
         "vitest": "^3.1.2",
       },
@@ -2649,6 +2658,7 @@
       "version": "1.0.0",
       "dependencies": {
         "@lowerdeck/cron": "workspace:2.0.0",
+        "@metorial/config": "^1.0.0",
         "@metorial/queue": "^1.0.0",
       },
       "devDependencies": {
@@ -2688,6 +2698,8 @@
         "@lowerdeck/emitter": "workspace:2.0.0",
         "@metorial/context": "^1.0.0",
         "@metorial/db": "^1.0.0",
+        "@metorial/module-machine-access": "^1.0.0",
+        "@metorial/module-subspace": "^1.0.0",
       },
       "devDependencies": {
         "@metorial/tsconfig": "^1.0.0",
@@ -2766,6 +2778,7 @@
       "dependencies": {
         "@lowerdeck/queue": "workspace:2.0.0",
         "@metorial/config": "^1.0.0",
+        "bullmq": "^5.34.3",
       },
       "devDependencies": {
         "@metorial/tsconfig": "^1.0.0",
@@ -2786,6 +2799,7 @@
         "@metorial/config": "^1.0.0",
         "@metorial/id": "^1.0.0",
         "bullmq": "^5.34.3",
+        "ioredis": "^5.7.0",
         "mitt": "^3.0.1",
         "nanoid": "^5.0.7",
         "p-queue": "^8.0.1",

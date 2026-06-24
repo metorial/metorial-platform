@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "bullmq": "^5.34.3",
+    "ioredis": "^5.7.0",
     "mitt": "^3.0.1",
     "nanoid": "^5.0.7",
     "p-queue": "^8.0.1",

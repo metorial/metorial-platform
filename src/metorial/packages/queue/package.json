@@ -10,7 +10,8 @@
   },
   "dependencies": {
     "@metorial/config": "^1.0.0",
-    "@lowerdeck/queue": "workspace:2.0.0"
+    "@lowerdeck/queue": "workspace:2.0.0",
+    "bullmq": "^5.34.3"
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",
