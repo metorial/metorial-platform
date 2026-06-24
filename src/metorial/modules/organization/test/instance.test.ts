@@ -945,67 +945,6 @@ describe('InstanceService', () => {
     });
   });
 
-  describe('reconcileProjectInstances', () => {
-    it('should promote the oldest development instance when a project has no production instance', async () => {
-      let developmentInstance = {
-        id: 'inst-1',
-        oid: 1,
-        slug: 'development',
-        previousSlugs: [],
-        name: 'Development',
-        type: 'development',
-        status: 'active',
-        project: { id: 'proj-1', oid: 1 },
-        organization: { id: 'org-1', oid: 1 }
-      };
-      let productionInstance = {
-        ...developmentInstance,
-        name: 'Production',
-        type: 'production',
-        slug: 'test-slug'
-      };
-      let update = vi.fn().mockResolvedValue(productionInstance);
-
-      vi.mocked(withTransaction).mockImplementation(async callback => {
-        let mockDb = withCompanionMocks({
-          instance: {
-            findMany: vi.fn().mockResolvedValue([developmentInstance]),
-            findFirst: vi.fn().mockResolvedValue(null),
-            update
-          }
-        });
-
-        return callback(mockDb as any);
-      });
-
-      let result = await instanceService.reconcileProjectInstances({
-        project: {
-          id: 'proj-1',
-          oid: 1,
-          organization: { id: 'org-1', oid: 1 }
-        } as any,
-        performedBy: { id: 'actor-1', oid: 7 } as any,
-        context: {} as any
-      });
-
-      expect(result).toEqual({ reconciled: 1 });
-      expect(update).toHaveBeenCalledWith({
-        where: { oid: 1 },
-        data: {
-          name: 'Production',
-          slug: 'test-slug',
-          previousSlugs: ['development'],
-          type: 'production',
-          hasBeenReconciled: true
-        },
-        include: {
-          organization: true,
-          project: true
-        }
-      });
-    });
-  });
-
   describe('edge cases', () => {
     it('should handle transaction failures', async () => {
       vi.mocked(withTransaction).mockRejectedValue(new Error('Transaction failed'));

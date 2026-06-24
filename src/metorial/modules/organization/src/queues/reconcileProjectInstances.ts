@@ -1,26 +1,25 @@
 import { createCron } from '@metorial/cron';
 import { db } from '@metorial/db';
 import { combineQueueProcessors, createQueue, QueueRetryError } from '@metorial/queue';
-import { instanceService } from '../services/instance';
-import { organizationActorService } from '../services/organizationActor';
+import { instanceService } from '../services';
 
 export let RECONCILE_PROJECT_INSTANCES_BATCH_SIZE = 500;
 
 export let reconcileProjectInstancesCron = createCron(
   {
-    name: 'org/project-instances/reconcile/cron',
+    name: 'org/instances/reconcile/cron',
     cron: '0 5 * * *'
   },
   async () => {
     await reconcileProjectInstancesSearchQueue.add(
       {},
-      { id: 'org-project-instances-reconcile-search' }
+      { id: 'org-instances-reconcile-search' }
     );
   }
 );
 
 export let reconcileProjectInstancesSearchQueue = createQueue<{ cursor?: string }>({
-  name: 'org/project-instances/reconcile/search'
+  name: 'org/instances/reconcile/search'
 });
 
 setTimeout(() => {
@@ -29,16 +28,11 @@ setTimeout(() => {
 
 export let reconcileProjectInstancesSearchQueueProcessor =
   reconcileProjectInstancesSearchQueue.process(async data => {
-    let projects = await db.project.findMany({
+    let instances = await db.instance.findMany({
       where: {
         status: 'active',
         id: data.cursor ? { gt: data.cursor } : undefined,
-        instances: {
-          some: {
-            status: 'active',
-            hasBeenReconciled: false
-          }
-        }
+        hasBeenReconciled2: false
       },
       orderBy: { id: 'asc' },
       take: RECONCILE_PROJECT_INSTANCES_BATCH_SIZE,
@@ -46,46 +40,56 @@ export let reconcileProjectInstancesSearchQueueProcessor =
         id: true
       }
     });
-    if (projects.length === 0) return;
+    if (instances.length === 0) return;
 
-    for (let project of projects) {
-      await reconcileProjectInstancesQueue.add(
-        {
-          projectId: project.id
-        },
-        { id: project.id }
-      );
-    }
+    await reconcileProjectInstancesQueue.addMany(
+      instances.map(instance => ({
+        instanceId: instance.id
+      }))
+    );
 
-    let lastProject = projects[projects.length - 1];
-    if (!lastProject) return;
+    let lastInstance = instances[instances.length - 1];
+    if (!lastInstance) return;
 
     await reconcileProjectInstancesSearchQueue.add({
-      cursor: lastProject.id
+      cursor: lastInstance.id
     });
   });
 
-export let reconcileProjectInstancesQueue = createQueue<{ projectId: string }>({
-  name: 'org/project-instances/reconcile/project',
+export let reconcileProjectInstancesQueue = createQueue<{ instanceId: string }>({
+  name: 'org/instances/reconcile/instance',
   workerOpts: { concurrency: 5 }
 });
 
 export let reconcileProjectInstancesQueueProcessor = reconcileProjectInstancesQueue.process(
   async data => {
-    let project = await db.project.findUnique({
-      where: { id: data.projectId },
-      include: { organization: true }
+    let instance = await db.instance.findUnique({
+      where: { id: data.instanceId },
+      include: { project: true }
     });
-    if (!project) throw new QueueRetryError();
+    if (!instance) throw new QueueRetryError();
 
-    let systemActor = await organizationActorService.getSystemActor({
-      organization: project.organization
+    if (instance.oldSlug) return;
+
+    let slug = await instanceService.generateInstanceSlug({
+      project: instance.project,
+      input: instance
     });
 
-    await instanceService.reconcileProjectInstances({
-      project,
-      performedBy: systemActor,
-      context: { ip: '0.0.0.0', ua: 'Metorial' }
+    await db.instance.updateMany({
+      where: {
+        id: data.instanceId,
+        oldSlug: null,
+        hasBeenReconciled2: false
+      },
+      data: {
+        hasBeenReconciled2: true,
+        slug,
+        oldSlug: instance.slug,
+        previousSlugs: {
+          push: instance.slug
+        }
+      }
     });
   }
 );
