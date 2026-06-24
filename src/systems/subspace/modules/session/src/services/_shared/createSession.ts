@@ -1,10 +1,10 @@
 import {
   addAfterTransactionHook,
-  db,
   type Environment,
   getId,
   type Solution,
-  type Tenant
+  type Tenant,
+  withTransaction
 } from '@metorial-subspace/db';
 import { sessionCreatedQueue } from '../../queues/lifecycle/session';
 import { sessionProviderInclude } from '../sessionProvider';
@@ -23,10 +23,6 @@ export let sessionInclude = {
 };
 
 export let createSessionRecord = async (d: {
-  db: {
-    session: typeof db.session;
-    sessionTemplate: typeof db.sessionTemplate;
-  };
   tenant: Tenant;
   solution: Solution;
   environment: Environment;
@@ -42,69 +38,71 @@ export let createSessionRecord = async (d: {
   isEphemeral: boolean;
   ephemeralManagedSessionOid?: bigint | null;
 }) => {
-  let templateId = d.input.providers.find(
-    provider => provider.sessionTemplateId
-  )?.sessionTemplateId;
-  let templateIdentity =
-    d.identityActorOid === undefined && d.identityOid === undefined && templateId
-      ? await d.db.sessionTemplate.findFirst({
-          where: {
-            id: templateId,
+  return withTransaction(async db => {
+    let templateId = d.input.providers.find(
+      provider => provider.sessionTemplateId
+    )?.sessionTemplateId;
+    let templateIdentity =
+      d.identityActorOid === undefined && d.identityOid === undefined && templateId
+        ? await db.sessionTemplate.findFirst({
+            where: {
+              id: templateId,
+              tenantOid: d.tenant.oid,
+              solutionOid: d.solution.oid,
+              environmentOid: d.environment.oid,
+              status: 'active'
+            },
+            select: {
+              identityActorOid: true,
+              identityOid: true
+            }
+          })
+        : null;
+
+    let session = await db.session.create({
+      data: {
+        ...getId('session'),
+        status: 'active',
+
+        isEphemeral: d.isEphemeral,
+
+        name: d.input.name?.trim() || undefined,
+        description: d.input.description?.trim() || undefined,
+        metadata: d.input.metadata,
+        privateMetadata: d.input.privateMetadata,
+
+        tenantOid: d.tenant.oid,
+        solutionOid: d.solution.oid,
+        environmentOid: d.environment.oid,
+        identityActorOid: d.identityActorOid ?? templateIdentity?.identityActorOid ?? null,
+        identityOid: d.identityOid ?? templateIdentity?.identityOid ?? null,
+        ephemeralManagedSessionOid: d.ephemeralManagedSessionOid ?? undefined,
+
+        sessionEvents: {
+          create: {
+            ...getId('sessionEvent'),
+            type: 'session_created',
             tenantOid: d.tenant.oid,
             solutionOid: d.solution.oid,
-            environmentOid: d.environment.oid,
-            status: 'active'
-          },
-          select: {
-            identityActorOid: true,
-            identityOid: true
+            environmentOid: d.environment.oid
           }
-        })
-      : null;
-
-  let session = await d.db.session.create({
-    data: {
-      ...getId('session'),
-      status: 'active',
-
-      isEphemeral: d.isEphemeral,
-
-      name: d.input.name?.trim() || undefined,
-      description: d.input.description?.trim() || undefined,
-      metadata: d.input.metadata,
-      privateMetadata: d.input.privateMetadata,
-
-      tenantOid: d.tenant.oid,
-      solutionOid: d.solution.oid,
-      environmentOid: d.environment.oid,
-      identityActorOid: d.identityActorOid ?? templateIdentity?.identityActorOid ?? null,
-      identityOid: d.identityOid ?? templateIdentity?.identityOid ?? null,
-      ephemeralManagedSessionOid: d.ephemeralManagedSessionOid ?? undefined,
-
-      sessionEvents: {
-        create: {
-          ...getId('sessionEvent'),
-          type: 'session_created',
-          tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
-          environmentOid: d.environment.oid
         }
-      }
-    },
-    include: sessionInclude
+      },
+      include: sessionInclude
+    });
+
+    session.providers = await sessionProviderInputService.createSessionProvidersForInput({
+      tenant: d.tenant,
+      solution: d.solution,
+      environment: d.environment,
+      session,
+      providers: d.input.providers
+    });
+
+    await addAfterTransactionHook(async () =>
+      sessionCreatedQueue.add({ sessionId: session.id })
+    );
+
+    return session;
   });
-
-  session.providers = await sessionProviderInputService.createSessionProvidersForInput({
-    tenant: d.tenant,
-    solution: d.solution,
-    environment: d.environment,
-    session,
-    providers: d.input.providers
-  });
-
-  await addAfterTransactionHook(async () =>
-    sessionCreatedQueue.add({ sessionId: session.id })
-  );
-
-  return session;
 };

@@ -180,7 +180,6 @@ class ephemeralManagedSessionServiceImpl {
       });
 
       let session = await createSessionRecord({
-        db: db,
         tenant: d.tenant,
         solution: d.solution,
         environment: d.environment,
@@ -389,7 +388,6 @@ class ephemeralManagedSessionServiceImpl {
 
       return await withTransaction(async db => {
         let session = await createSessionRecord({
-          db: db,
           tenant: ephemeralManagedSession.tenant,
           solution: ephemeralManagedSession.solution,
           environment: ephemeralManagedSession.environment,

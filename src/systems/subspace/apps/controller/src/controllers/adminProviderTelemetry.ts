@@ -4,7 +4,6 @@ import { db } from '@metorial-subspace/db';
 import { providerService } from '@metorial-subspace/module-catalog';
 import {
   adminProviderTelemetryErrorGroupService,
-  adminProviderTelemetryErrorGroupTypes,
   providerInvocationService,
   providerRunLogsService,
   sessionMessageService
@@ -752,7 +751,16 @@ export let adminProviderTelemetryController = app.controller({
       Paginator.validate(
         v.object({
           ...telemetryScopeValidator,
-          types: v.optional(v.array(v.enumOf([...adminProviderTelemetryErrorGroupTypes])))
+          types: v.optional(
+            v.array(
+              v.enumOf([
+                'message_processing_timeout',
+                'message_processing_provider_error',
+                'message_processing_system_error',
+                'provider_discovery_failed'
+              ])
+            )
+          )
         })
       )
     )
