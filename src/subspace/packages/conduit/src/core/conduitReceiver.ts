@@ -66,6 +66,7 @@ export class ConduitReceiver {
       maxProcessingMs: 300000,
       maxInFlight: 2000,
       handlerConcurrency: 256,
+      maxOrphanedHandlers: config.config?.maxOrphanedHandlers ?? config.config?.handlerConcurrency ?? 256,
       ...config.config
     };
 

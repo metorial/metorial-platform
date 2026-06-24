@@ -81,6 +81,7 @@ let getReceiverConfig = (config?: Partial<ReceiverConfig>): ReceiverConfig => ({
   maxProcessingMs: 300000,
   maxInFlight: 2000,
   handlerConcurrency: 256,
+  maxOrphanedHandlers: config?.handlerConcurrency ?? 256,
   ...config
 });
 

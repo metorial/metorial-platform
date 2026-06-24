@@ -33,7 +33,7 @@ if (process.env.HEARTBEAT_URL) {
         await import('@metorial-subspace/module-connection/src/health');
 
       await checkNatsHealth();
-      await checkConduitHeartbeat();
+      await checkConduitHeartbeat({ failOnEmptyFleet: true });
       await fetch(process.env.HEARTBEAT_URL!, { method: 'POST' });
     } catch (error) {
       await captureHeartbeatError(error);

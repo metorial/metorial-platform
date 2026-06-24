@@ -62,6 +62,12 @@ export class Receiver {
   private dedupHitCount = 0;
   private healthTick = 0;
 
+  // Handlers that breached the ceiling but are still running (JS promises can't
+  // be cancelled). Tracked for observability and as a wedge signal - we cannot
+  // stop them, so a worker accumulating too many gets recycled via isHealthy().
+  private orphanedHandlers: Set<Promise<unknown>> = new Set();
+  private orphanedCeilingTotal = 0;
+
   constructor(
     private coordination: ICoordinationAdapter,
     private transport: ITransportAdapter,
@@ -158,6 +164,7 @@ export class Receiver {
     this.processingMessages.clear();
     this.inFlightById.clear();
     this.topicChains.clear();
+    this.orphanedHandlers.clear();
     console.log(`CONDUIT.receiver.stop.done receiverId=${this.receiverId}`);
   }
 
@@ -304,6 +311,9 @@ export class Receiver {
     });
 
     let ceilingTimer: Timer | undefined;
+    // Declared out here so the catch can register a still-running handler as an
+    // orphan when the ceiling wins the race.
+    let handlerPromise: Promise<unknown> | undefined;
 
     try {
       // Race the handler against a hard ceiling so a never-returning provider
@@ -315,7 +325,8 @@ export class Receiver {
         );
       });
 
-      let result = await Promise.race([this.handler(message.topic, message.payload), ceiling]);
+      handlerPromise = this.handler(message.topic, message.payload);
+      let result = await Promise.race([handlerPromise, ceiling]);
 
       return {
         messageId: message.messageId,
@@ -326,9 +337,19 @@ export class Receiver {
     } catch (err) {
       if (err instanceof HandlerCeilingError) {
         this.ceilingAbortCount++;
+        // The handler promise is still pending and cannot be cancelled. Track it
+        // so the leaked work is observable and counts toward the wedge threshold;
+        // forget it once it eventually settles (also avoids unhandledRejection).
+        if (handlerPromise) {
+          let orphan = handlerPromise;
+          this.orphanedHandlers.add(orphan);
+          this.orphanedCeilingTotal++;
+          let forget = () => this.orphanedHandlers.delete(orphan);
+          orphan.then(forget, forget);
+        }
         Sentry.captureException(err);
         console.error(
-          `CONDUIT.receiver.processMessage.ceiling receiverId=${this.receiverId} messageId=${message.messageId} topic=${message.topic} maxProcessingMs=${this.config.maxProcessingMs} totalCeilingAborts=${this.ceilingAbortCount}`
+          `CONDUIT.receiver.processMessage.ceiling receiverId=${this.receiverId} messageId=${message.messageId} topic=${message.topic} maxProcessingMs=${this.config.maxProcessingMs} totalCeilingAborts=${this.ceilingAbortCount} orphaned=${this.orphanedHandlers.size}`
         );
         return {
           messageId: message.messageId,
@@ -542,6 +563,13 @@ export class Receiver {
     // Still starting up (subscribing): nothing to be unhealthy about yet.
     if (!this.ready) return true;
 
+    // Too many ceiling-orphaned handlers still running: we can't cancel them, so
+    // recycle this worker (stops ownership renewal + fails the ECS health check)
+    // to terminate the leaked provider work with the process.
+    if (this.orphanedHandlers.size >= this.config.maxOrphanedHandlers) {
+      return false;
+    }
+
     let now = Date.now();
     let limit = this.config.maxProcessingMs + STUCK_GRACE_MS;
     for (let processing of this.processingMessages.values()) {
@@ -567,7 +595,7 @@ export class Receiver {
     if (this.healthTick % 30 === 0 && this.inFlightById.size > 0) {
       let s = this.getStats();
       console.log(
-        `CONDUIT.receiver.stats receiverId=${this.receiverId} healthy=${healthy} inFlight=${s.inFlight} activeTopics=${s.activeTopics} processing=${s.processing} slotsAvail=${s.handlerSlotsAvailable} waiting=${s.handlerWaiting} dispatched=${s.dispatched} shed=${s.shed} ceilingAborts=${s.ceilingAborts} dedupHits=${s.dedupHits} sinceProgressMs=${Date.now() - s.lastProgressAt}`
+        `CONDUIT.receiver.stats receiverId=${this.receiverId} healthy=${healthy} inFlight=${s.inFlight} activeTopics=${s.activeTopics} processing=${s.processing} slotsAvail=${s.handlerSlotsAvailable} waiting=${s.handlerWaiting} dispatched=${s.dispatched} shed=${s.shed} ceilingAborts=${s.ceilingAborts} dedupHits=${s.dedupHits} orphaned=${s.orphaned} orphanedTotal=${s.orphanedTotal} sinceProgressMs=${Date.now() - s.lastProgressAt}`
       );
     }
   }
@@ -587,6 +615,8 @@ export class Receiver {
     shed: number;
     ceilingAborts: number;
     dedupHits: number;
+    orphaned: number;
+    orphanedTotal: number;
   } {
     return {
       inFlight: this.inFlightById.size,
@@ -598,7 +628,9 @@ export class Receiver {
       dispatched: this.dispatchedCount,
       shed: this.shedCount,
       ceilingAborts: this.ceilingAbortCount,
-      dedupHits: this.dedupHitCount
+      dedupHits: this.dedupHitCount,
+      orphaned: this.orphanedHandlers.size,
+      orphanedTotal: this.orphanedCeilingTotal
     };
   }
 
