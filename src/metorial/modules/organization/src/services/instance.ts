@@ -276,6 +276,21 @@ class InstanceService {
     return sandbox;
   }
 
+  async generateInstanceSlug(d: {
+    project: Project;
+    input: {
+      name: string;
+      type: InstanceType;
+    };
+  }) {
+    return await getInstanceSlug({
+      input:
+        d.input.type === 'development'
+          ? `${d.project.name}-${d.input.name}-${generateCode(5)}`
+          : `${d.project.name}`
+    });
+  }
+
   async createInstance(d: {
     project: Project;
     organization: Organization;
@@ -806,7 +821,6 @@ class InstanceService {
       )
     );
   }
-
 }
 
 export let instanceService = Service.create(

@@ -60,7 +60,7 @@ export let CustomProviderListingPage = () => {
             instance.data?.organization,
             instance.data?.project,
             instance.data,
-            customProvider.data?.provider?.id ?? customProvider.data?.id
+            customProvider.data?.provider?.slug ?? customProvider.data?.id
           )}
         >
           <Button as="span" size="2" variant="outline">

@@ -3,7 +3,8 @@ import { SimpleSidebarLayout } from '@metorial/layout';
 import {
   useCurrentInstance,
   useCurrentOrganization,
-  useCurrentProject
+  useCurrentProject,
+  useProvider
 } from '@metorial/state';
 import { Select } from '@metorial/ui';
 import { Outlet, useParams } from 'react-router-dom';
@@ -13,7 +14,10 @@ export let ProviderCapabilitiesLayout = () => {
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
   let instance = useCurrentInstance();
+
   let { providerId } = useParams();
+  let provider = useProvider(instance.data?.id, providerId);
+
   let { selectedVersionId, setSelectedVersionId, currentVersionId, allVersions } =
     useProviderVersionContext();
 
@@ -21,7 +25,7 @@ export let ProviderCapabilitiesLayout = () => {
     organization.data,
     project.data,
     instance.data,
-    providerId
+    provider.data?.slug ?? providerId
   ] as const;
 
   return (

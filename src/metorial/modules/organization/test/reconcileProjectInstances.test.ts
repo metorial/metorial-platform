@@ -1,14 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-let { reconcileProjectInstancesCronHandler } = vi.hoisted(() => ({
-  reconcileProjectInstancesCronHandler: undefined as (() => Promise<void>) | undefined
-}));
+let reconcileProjectInstancesCronHandler:
+  | (() => Promise<void>)
+  | undefined;
+
+process.env.REDIS_URL = 'redis://localhost:6379';
 
 vi.mock('@metorial/db', () => ({
   db: {
-    project: {
+    instance: {
       findMany: vi.fn(),
-      findUnique: vi.fn()
+      findUnique: vi.fn(),
+      updateMany: vi.fn()
     }
   }
 }));
@@ -17,6 +20,14 @@ vi.mock('@metorial/cron', () => ({
   createCron: vi.fn((_config, handler) => {
     reconcileProjectInstancesCronHandler = handler;
     return { handler };
+  })
+}));
+
+vi.mock('@metorial/config', () => ({
+  getConfig: () => ({
+    service: {
+      REDIS_URL: 'redis://localhost:6379'
+    }
   })
 }));
 
@@ -36,28 +47,28 @@ vi.mock('@metorial/queue', () => ({
   }
 }));
 
-vi.mock('../src/services/instance', () => ({
+vi.mock('@metorial/internal-clients', () => ({
+  ensureInternalProjectTenant: vi.fn(),
+  ensureInternalScope: vi.fn()
+}));
+
+vi.mock('../src/services', () => ({
   instanceService: {
-    reconcileProjectInstances: vi.fn()
+    generateInstanceSlug: vi.fn()
   }
 }));
 
-vi.mock('../src/services/organizationActor', () => ({
-  organizationActorService: {
-    getSystemActor: vi.fn()
-  }
-}));
+const { db } = await import('@metorial/db');
+const { instanceService } = await import('../src/services');
 
-import { db } from '@metorial/db';
-import { instanceService } from '../src/services/instance';
-import { organizationActorService } from '../src/services/organizationActor';
-import {
-  reconcileProjectInstancesCron,
-  reconcileProjectInstancesQueueProcessor,
-  reconcileProjectInstancesQueue,
-  reconcileProjectInstancesSearchQueue,
-  reconcileProjectInstancesSearchQueueProcessor
-} from '../src/queues/reconcileProjectInstances';
+let reconcileProjectInstancesModule:
+  | typeof import('../src/queues/reconcileProjectInstances')
+  | undefined;
+
+let getModule = async () => {
+  reconcileProjectInstancesModule ??= await import('../src/queues/reconcileProjectInstances');
+  return reconcileProjectInstancesModule;
+};
 
 describe('reconcileProjectInstances queues', () => {
   beforeEach(() => {
@@ -65,70 +76,93 @@ describe('reconcileProjectInstances queues', () => {
   });
 
   it('creates a daily cron that enqueues the search queue', async () => {
+    let {
+      reconcileProjectInstancesCron,
+      reconcileProjectInstancesSearchQueue
+    } = await getModule();
+
     expect(reconcileProjectInstancesCron).toBeDefined();
 
     await reconcileProjectInstancesCronHandler!();
 
     expect(reconcileProjectInstancesSearchQueue.add).toHaveBeenCalledWith(
       {},
-      { id: 'org-project-instances-reconcile-search' }
+      { id: 'org-instances-reconcile-search' }
     );
   });
 
-  it('fans out active projects into single reconcile jobs', async () => {
-    vi.mocked(db.project.findMany).mockResolvedValue([
-      { id: 'proj-1' },
-      { id: 'proj-2' }
+  it('fans out active instances into single reconcile jobs', async () => {
+    let {
+      reconcileProjectInstancesQueue,
+      reconcileProjectInstancesSearchQueue,
+      reconcileProjectInstancesSearchQueueProcessor
+    } = await getModule();
+
+    (db.instance.findMany as any).mockResolvedValue([
+      { id: 'instance-1' },
+      { id: 'instance-2' }
     ] as any);
 
     await (reconcileProjectInstancesSearchQueueProcessor as any).handler({});
 
-    expect(db.project.findMany).toHaveBeenCalledWith({
+    expect(db.instance.findMany).toHaveBeenCalledWith({
       where: {
         status: 'active',
         id: undefined,
-        instances: {
-          some: {
-            status: 'active',
-            hasBeenReconciled: false
-          }
-        }
+        hasBeenReconciled2: false
       },
       orderBy: { id: 'asc' },
       take: 500,
       select: { id: true }
     });
-    expect(reconcileProjectInstancesQueue.add).toHaveBeenCalledWith(
-      { projectId: 'proj-1' },
-      { id: 'proj-1' }
-    );
-    expect(reconcileProjectInstancesQueue.add).toHaveBeenCalledWith(
-      { projectId: 'proj-2' },
-      { id: 'proj-2' }
-    );
+    expect(reconcileProjectInstancesQueue.addMany).toHaveBeenCalledWith([
+      { instanceId: 'instance-1' },
+      { instanceId: 'instance-2' }
+    ]);
     expect(reconcileProjectInstancesSearchQueue.add).toHaveBeenCalledWith({
-      cursor: 'proj-2'
+      cursor: 'instance-2'
     });
   });
 
-  it('delegates single project reconciliation to instanceService', async () => {
-    let project = {
-      id: 'proj-1',
-      organization: { id: 'org-1' }
-    };
-    let systemActor = { id: 'actor-system' };
+  it('reconciles a single instance by generating a slug and updating it', async () => {
+    let { reconcileProjectInstancesQueueProcessor } = await getModule();
 
-    vi.mocked(db.project.findUnique).mockResolvedValue(project as any);
-    vi.mocked(organizationActorService.getSystemActor).mockResolvedValue(systemActor as any);
+    let instance = {
+      id: 'instance-1',
+      slug: 'old-slug',
+      oldSlug: null,
+      project: { id: 'project-1', name: 'Project One' }
+    };
+
+    (db.instance.findUnique as any).mockResolvedValue(instance as any);
+    (instanceService.generateInstanceSlug as any).mockResolvedValue('new-slug' as any);
 
     await (reconcileProjectInstancesQueueProcessor as any).handler({
-      projectId: 'proj-1'
+      instanceId: 'instance-1'
     });
 
-    expect(instanceService.reconcileProjectInstances).toHaveBeenCalledWith({
-      project,
-      performedBy: systemActor,
-      context: { ip: '0.0.0.0', ua: 'Metorial' }
+    expect(db.instance.findUnique).toHaveBeenCalledWith({
+      where: { id: 'instance-1' },
+      include: { project: true }
+    });
+    expect(instanceService.generateInstanceSlug).toHaveBeenCalledWith({
+      project: instance.project,
+      input: instance
+    });
+    expect(db.instance.updateMany).toHaveBeenCalledWith({
+      where: {
+        id: 'instance-1',
+        oldSlug: null,
+        hasBeenReconciled2: false
+      },
+      data: {
+        hasBeenReconciled2: true,
+        slug: 'new-slug',
+        oldSlug: 'old-slug',
+        previousSlugs: {
+          push: 'old-slug'
+        }
+      }
     });
   });
 });

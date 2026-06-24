@@ -115,14 +115,14 @@ export let HomeProvidersTable = (filter: DashboardInstanceProviderListingsListQu
       {providers.data.items.length > 0 && (
         <Table>
           {providers.data.items.map(listing => {
-            let providerId = listing.provider?.id;
-            if (!providerId) return null;
+            let providerSlug = listing.provider?.slug;
+            if (!providerSlug) return null;
 
             let href = Paths.instance.provider(
               instance.data?.organization,
               instance.data?.project,
               instance.data,
-              providerId
+              providerSlug
             );
 
             return (
