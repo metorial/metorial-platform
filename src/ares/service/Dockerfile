@@ -15,6 +15,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
 # Install dependencies from the OSS workspace
 RUN bun install --linker=hoisted
 
+# Build the relay client so ncc can inline it from its exported dist entrypoint.
+RUN bun run --cwd /app/src/relay/clients/relay build
+
 # Generate Prisma client and build the service from the monorepo path
 WORKDIR /app/src/ares/service
 RUN bun prisma generate
@@ -35,11 +38,6 @@ COPY --from=builder /app/src/ares/service/prisma /app/prisma
 COPY --from=builder /app/src/ares/service/prisma.config.ts /app/prisma.config.ts
 COPY --from=builder /app/node_modules /app/node_modules
 COPY --from=builder /app/src/ares/service/package.json /app/package.json
-
-# Bun installs workspace packages as symlinks into node_modules. Preserve the
-# relay and lowerdeck workspace targets those symlinks resolve to at runtime.
-COPY --from=builder /app/src/relay /app/src/relay
-COPY --from=builder /app/src/lowerdeck /app/src/lowerdeck
 
 # Copy built frontends
 COPY --from=builder /app/src/ares/service/frontend/auth/dist /app/frontend/auth/dist
