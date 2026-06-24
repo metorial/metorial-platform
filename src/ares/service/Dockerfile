@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
 # Install dependencies from the OSS workspace
 RUN bun install --linker=hoisted
 
-# Build the relay client so ncc can inline it from its exported dist entrypoint.
+# Build the relay client so its dist/ exports exist in the runtime image.
 RUN bun run --cwd /app/src/relay/clients/relay build
 
 # Generate Prisma client and build the service from the monorepo path
