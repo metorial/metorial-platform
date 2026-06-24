@@ -41,6 +41,15 @@ export interface CheckConduitHeartbeatOpts {
   timeoutMs?: number;
   now?: () => number;
   id?: string;
+  /**
+   * Whether a totally empty fleet (no active receivers) should fail the check.
+   *
+   * Defaults to `true` so the external heartbeat (BetterUptime) still alerts on a
+   * full worker outage. ECS liveness passes `false`: replacing the controller
+   * can't bring workers back, so an empty fleet should not churn the instance.
+   */
+  failOnEmptyFleet?: boolean;
+  coordination?: Pick<ICoordinationAdapter, 'getActiveReceivers'>;
 }
 
 let heartbeatSender: ConduitHeartbeatSender | null = null;
@@ -88,6 +97,18 @@ let checkConduitHeartbeatLegacy = async (opts: CheckConduitHeartbeatOpts = {}) =
   let timeoutMs = opts.timeoutMs ?? HEARTBEAT_TIMEOUT_MS;
   let sender = opts.sender ?? (await getHeartbeatSender());
   let topic = topics.workerHeartbeat.encode();
+
+  // For callers that tolerate an empty fleet (ECS liveness), short-circuit before
+  // the send so a worker outage - which makes the send throw "No receiver
+  // available" - doesn't churn this instance. The external heartbeat keeps the
+  // default (failOnEmptyFleet) and still alerts.
+  if (opts.failOnEmptyFleet === false) {
+    let coordination = opts.coordination ?? conduit.coordination;
+    let active = await coordination.getActiveReceivers().catch(() => null);
+    if (active && active.length === 0) {
+      return { emptyFleet: true } as const;
+    }
+  }
 
   let ping = {
     type: 'health.ping',
@@ -151,6 +172,8 @@ export interface CheckConduitHeartbeatFleetOpts {
   now?: () => number;
   startupGraceMs?: number;
   failureThreshold?: number;
+  /** See {@link CheckConduitHeartbeatOpts.failOnEmptyFleet}. Defaults to `true`. */
+  failOnEmptyFleet?: boolean;
 }
 
 let isHealthyPong = (response: ConduitResponse): boolean =>
@@ -173,6 +196,19 @@ export let checkConduitHeartbeatFleet = async (opts: CheckConduitHeartbeatFleetO
     throw new ConduitHeartbeatError(
       `Conduit heartbeat failed: could not list active receivers: ${err instanceof Error ? err.message : String(err)}`,
       err instanceof Error ? err : undefined
+    );
+  }
+
+  // An empty fleet means a total worker outage. The external heartbeat fails
+  // here (so BetterUptime alerts), but ECS liveness passes `failOnEmptyFleet:
+  // false` so it doesn't churn the controller - replacing it can't bring the
+  // workers back.
+  if (receivers.length === 0) {
+    if (opts.failOnEmptyFleet === false) {
+      return { activeReceivers: 0, probed: 0, emptyFleet: true };
+    }
+    throw new ConduitHeartbeatError(
+      'Conduit heartbeat failed: no active receivers in the fleet'
     );
   }
 
@@ -206,12 +242,18 @@ export let checkConduitHeartbeatFleet = async (opts: CheckConduitHeartbeatFleetO
       } catch {
         // Re-fetch the active set: if the receiver has since left the pool it is
         // leaving (deploy / scale-in / crash-replace), not wedged - discount it.
-        let stillActive: string[] = [];
+        let stillActive: string[] | null = null;
         try {
           stillActive = await coordination.getActiveReceivers();
         } catch {
-          stillActive = receivers;
+          stillActive = null; // coordination uncertain
         }
+
+        // Can't confirm state during a coordination blip: skip this cycle so a
+        // transient error doesn't accumulate toward the wedged threshold for an
+        // otherwise-healthy receiver.
+        if (stillActive === null) return;
+
         if (!stillActive.includes(id)) {
           receiverFirstSeenAt.delete(id);
           receiverConsecutiveFailures.delete(id);

@@ -30,6 +30,8 @@ export interface ReceiverConfig {
   maxInFlight: number;
 
   handlerConcurrency: number;
+
+  maxOrphanedHandlers: number;
 }
 
 export interface SenderConfig {
@@ -87,7 +89,8 @@ export const DEFAULT_CONFIG: ConduitConfig = {
     timeoutExtensionThreshold: 1000,
     maxProcessingMs: 300000,
     maxInFlight: 2000,
-    handlerConcurrency: 256
+    handlerConcurrency: 256,
+    maxOrphanedHandlers: 256
   },
   sender: {
     defaultTimeout: 5000,

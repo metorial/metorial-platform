@@ -33,7 +33,7 @@ if (process.env.NODE_ENV === 'production') {
           await redis.ping();
 
           await checkNatsHealth();
-          await checkConduitHeartbeat();
+          await checkConduitHeartbeat({ failOnEmptyFleet: false });
 
           return new Response('OK');
         } catch (e) {
