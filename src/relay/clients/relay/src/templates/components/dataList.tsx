@@ -1,11 +1,21 @@
 import { Column, Row, Section, Text } from '@react-email/components';
+import type { CSSProperties, ReactElement } from 'react';
 
-let container = {
+type DataListItem = {
+  label: string;
+  value: string;
+};
+
+let container: CSSProperties = {
   // background: '#efefef',
   // border: '1px solid #ccc'
 };
 
-export let DataList = ({ items }: { items: { label: string; value: string }[] }) => {
+type DataListProps = {
+  items: DataListItem[];
+};
+
+export let DataList = ({ items }: DataListProps): ReactElement => {
   return (
     <Section style={container}>
       {items.map(({ label, value }, i) => (

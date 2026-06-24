@@ -1,6 +1,11 @@
 import { Section, Text } from '@react-email/components';
+import type { ReactElement } from 'react';
 
-export let Code = ({ code }: { code: string }) => {
+type CodeProps = {
+  code: string;
+};
+
+export let Code = ({ code }: CodeProps): ReactElement => {
   let first3 = code.slice(0, 3);
   let last3 = code.slice(3, 6);
 
