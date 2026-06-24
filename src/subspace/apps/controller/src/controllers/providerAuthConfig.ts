@@ -284,7 +284,9 @@ export let providerAuthConfigController = app.controller({
           description: ctx.input.description,
           metadata: ctx.input.metadata,
           privateMetadata: ctx.input.privateMetadata,
-          toolFilters: normalizeToolFilters(ctx.input.toolFilters)
+          ...(ctx.input.toolFilters !== undefined
+            ? { toolFilters: normalizeToolFilters(ctx.input.toolFilters) }
+            : {})
         }
       });
 

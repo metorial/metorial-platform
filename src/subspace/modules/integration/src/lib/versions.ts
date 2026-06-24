@@ -1,3 +1,4 @@
+import { canonicalize } from '@lowerdeck/canonicalize';
 import { db, getId, Prisma, withTransaction } from '@metorial-subspace/db';
 import { normalizeToolFilters } from '../../../provider-internal/src/lib/toolFilter';
 export { hasMaterialIntegrationProviderChange } from './material';
@@ -110,12 +111,45 @@ export let createIntegrationInstanceProviderVersion = async (d: {
   isOverrideToolFilter?: boolean;
 }) => {
   return await withTransaction(async tx => {
+    let current = await tx.integrationInstanceProvider.findUnique({
+      where: { oid: d.integrationInstanceProviderOid },
+      select: {
+        currentVersion: {
+          select: {
+            oid: true,
+            status: true,
+            integrationProviderVersionOid: true,
+            configOid: true,
+            authConfigOid: true,
+            toolFilter: true,
+            isOverrideToolFilter: true
+          }
+        }
+      }
+    });
+
+    let toolFilterForStorage = d.toolFilter ?? Prisma.JsonNull;
+    let toolFilterForComparison = d.toolFilter ?? null;
+    let normalizedIsOverrideToolFilter = d.isOverrideToolFilter ?? false;
+    if (
+      current?.currentVersion?.status === d.status &&
+      current.currentVersion.integrationProviderVersionOid ===
+        d.integrationProviderVersionOid &&
+      current.currentVersion.configOid === (d.configOid ?? null) &&
+      current.currentVersion.authConfigOid === (d.authConfigOid ?? null) &&
+      canonicalize(current.currentVersion.toolFilter ?? null) ===
+        canonicalize(toolFilterForComparison) &&
+      current.currentVersion.isOverrideToolFilter === normalizedIsOverrideToolFilter
+    ) {
+      return current.currentVersion;
+    }
+
     let version = await tx.integrationInstanceProviderVersion.create({
       data: {
         ...getId('integrationInstanceProviderVersion'),
         status: d.status,
-        toolFilter: d.toolFilter ?? Prisma.JsonNull,
-        isOverrideToolFilter: d.isOverrideToolFilter ?? false,
+        toolFilter: toolFilterForStorage,
+        isOverrideToolFilter: normalizedIsOverrideToolFilter,
         integrationInstanceProviderOid: d.integrationInstanceProviderOid,
         integrationProviderVersionOid: d.integrationProviderVersionOid,
         configOid: d.configOid,

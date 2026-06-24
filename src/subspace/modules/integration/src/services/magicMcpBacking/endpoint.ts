@@ -41,6 +41,10 @@ type UpsertMagicMcpEndpointBackingInput = {
   };
 };
 
+let hasToolFiltersInput = (
+  input: UpsertMagicMcpEndpointBackingInput['input']['servers'][number] | undefined
+) => !!input && Object.prototype.hasOwnProperty.call(input, 'toolFilters');
+
 class magicMcpEndpointBackingServiceImpl {
   async upsertMagicMcpEndpointBacking(d: UpsertMagicMcpEndpointBackingInput) {
     let actorOid = await resolveActorOid({
@@ -173,6 +177,9 @@ class magicMcpEndpointBackingServiceImpl {
           let servers = [];
           for (let serverInput of d.input.servers) {
             let serverBacking = serverBackingsById.get(serverInput.magicMcpServerBackingId)!;
+            let toolFiltersUpdate = hasToolFiltersInput(serverInput)
+              ? { toolFilters: serverInput.toolFilters ?? Prisma.JsonNull }
+              : {};
             let server = await db.magicMcpEndpointServerBacking.upsert({
               where: { id: serverInput.id },
               create: {
@@ -185,7 +192,7 @@ class magicMcpEndpointBackingServiceImpl {
               update: {
                 magicMcpEndpointBackingOid: persistedBacking.oid,
                 magicMcpServerBackingOid: serverBacking.oid,
-                toolFilters: serverInput.toolFilters ?? Prisma.JsonNull
+                ...toolFiltersUpdate
               }
             });
             servers.push({ ...server, magicMcpServerBacking: serverBacking });

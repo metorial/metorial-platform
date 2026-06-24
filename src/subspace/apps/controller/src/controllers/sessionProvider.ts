@@ -222,7 +222,9 @@ export let sessionProviderController = app.controller({
         solution: ctx.solution,
 
         input: {
-          toolFilters: normalizeToolFilters(ctx.input.toolFilters)
+          ...(ctx.input.toolFilters !== undefined
+            ? { toolFilters: normalizeToolFilters(ctx.input.toolFilters) }
+            : {})
         }
       });
 

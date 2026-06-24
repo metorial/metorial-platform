@@ -5,25 +5,28 @@ import { enqueueSyncIntegrationInstanceGroupSessionTemplatesMany } from '@metori
 import { enqueueSyncIntegrationInstanceSessionTemplatesMany } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedSessionTemplate';
 import { reconcileSkillProviderLinksForIntegrationProviderQueue } from '@metorial-subspace/module-skills/src/queues/reconciler/reconcileSkillProviderLink';
 import { env } from '../../env';
+import { integrationInstanceProviderService } from '../../services/integrationInstanceProvider';
 import { indexIntegrationQueue } from '../search/integration';
 import { indexIntegrationInstanceQueue } from '../search/integrationInstance';
 import { enqueueIntegrationInstanceProvidersSet } from './integrationInstanceProvider';
-
-let indexParentIntegration = async (integrationProviderId: string) => {
-  let integrationProvider = await db.integrationProvider.findUnique({
-    where: { id: integrationProviderId },
-    include: { integration: true }
-  });
-  if (!integrationProvider) return;
-
-  await indexIntegrationQueue.add({ integrationId: integrationProvider.integration.id });
-};
 
 let syncIntegrationInstanceSessionTemplates = async (integrationInstanceIds: string[]) => {
   if (integrationInstanceIds.length === 0) return;
 
   await enqueueSyncIntegrationInstanceSessionTemplatesMany(
     integrationInstanceIds.map(integrationInstanceId => ({ integrationInstanceId }))
+  );
+};
+
+let syncIntegrationInstanceGroupSessionTemplates = async (
+  integrationInstanceGroupIds: string[]
+) => {
+  if (integrationInstanceGroupIds.length === 0) return;
+
+  await enqueueSyncIntegrationInstanceGroupSessionTemplatesMany(
+    integrationInstanceGroupIds.map(integrationInstanceGroupId => ({
+      integrationInstanceGroupId
+    }))
   );
 };
 
@@ -40,7 +43,7 @@ export let integrationProviderCreatedQueueProcessor = integrationProviderCreated
     });
     if (!integrationProvider) throw new QueueRetryError();
 
-    await indexParentIntegration(data.integrationProviderId);
+    await indexIntegrationQueue.add({ integrationId: integrationProvider.integration.id });
     await reconcileSkillProviderLinksForIntegrationProviderQueue.add({
       integrationProviderId: data.integrationProviderId
     });
@@ -59,12 +62,167 @@ export let integrationProviderUpdatedQueue = createQueue<{ integrationProviderId
 
 export let integrationProviderUpdatedQueueProcessor = integrationProviderUpdatedQueue.process(
   async data => {
-    await indexParentIntegration(data.integrationProviderId);
+    let integrationProvider = await db.integrationProvider.findUnique({
+      where: { id: data.integrationProviderId },
+      include: { integration: true }
+    });
+    if (!integrationProvider) return;
+
+    await indexIntegrationQueue.add({ integrationId: integrationProvider.integration.id });
     await reconcileSkillProviderLinksForIntegrationProviderQueue.add({
+      integrationProviderId: data.integrationProviderId
+    });
+
+    await integrationProviderUpdatedSyncIntegrationInstanceSessionsQueue.add({
+      integrationProviderId: data.integrationProviderId
+    });
+    await integrationProviderUpdatedSyncIntegrationInstanceGroupSessionsQueue.add({
       integrationProviderId: data.integrationProviderId
     });
   }
 );
+
+export let integrationProviderUpdatedSyncIntegrationInstanceSessionsQueue = createQueue<{
+  integrationProviderId: string;
+  cursor?: string;
+}>({
+  name: 'sub/int/lc/integrationProvider/updated/instance',
+  redisUrl: env.service.REDIS_URL
+});
+
+export let integrationProviderUpdatedSyncIntegrationInstanceSessionsQueueProcessor =
+  integrationProviderUpdatedSyncIntegrationInstanceSessionsQueue.process(async data => {
+    let integrationProvider = await db.integrationProvider.findUnique({
+      where: { id: data.integrationProviderId },
+      select: { oid: true, currentVersionOid: true }
+    });
+    if (!integrationProvider) return;
+
+    let integrationInstanceProviders = await db.integrationInstanceProvider.findMany({
+      where: {
+        integrationProviderOid: integrationProvider.oid,
+        status: 'active',
+        isParentDeleted: false,
+        id: data.cursor ? { gt: data.cursor } : undefined
+      },
+      orderBy: { id: 'asc' },
+      take: 100,
+      select: {
+        integrationInstance: { select: { id: true } },
+        oid: true,
+        currentVersion: {
+          select: {
+            integrationProviderVersionOid: true,
+            configOid: true,
+            authConfigOid: true,
+            toolFilter: true,
+            isOverrideToolFilter: true
+          }
+        },
+        id: true
+      }
+    });
+    if (!integrationInstanceProviders.length) return;
+
+    await integrationInstanceProviderService.repinIntegrationInstanceProvidersToIntegrationProviderVersion(
+      {
+        integrationProviderVersionOid: integrationProvider.currentVersionOid,
+        integrationInstanceProviders
+      }
+    );
+
+    await syncIntegrationInstanceSessionTemplates(
+      Array.from(
+        new Set(integrationInstanceProviders.map(provider => provider.integrationInstance.id))
+      )
+    );
+
+    let lastIntegrationInstanceProvider =
+      integrationInstanceProviders[integrationInstanceProviders.length - 1];
+    if (!lastIntegrationInstanceProvider) return;
+
+    await integrationProviderUpdatedSyncIntegrationInstanceSessionsQueue.add({
+      integrationProviderId: data.integrationProviderId,
+      cursor: lastIntegrationInstanceProvider.id
+    });
+  });
+
+export let integrationProviderUpdatedSyncIntegrationInstanceGroupSessionsQueue = createQueue<{
+  integrationProviderId: string;
+  cursor?: string;
+}>({
+  name: 'sub/int/lc/integrationProvider/updated/group',
+  redisUrl: env.service.REDIS_URL
+});
+
+export let integrationProviderUpdatedSyncIntegrationInstanceGroupSessionsQueueProcessor =
+  integrationProviderUpdatedSyncIntegrationInstanceGroupSessionsQueue.process(async data => {
+    let integrationProvider = await db.integrationProvider.findUnique({
+      where: { id: data.integrationProviderId },
+      select: { oid: true, currentVersionOid: true }
+    });
+    if (!integrationProvider) return;
+
+    let integrationInstanceGroupProviders = await db.integrationInstanceGroupProvider.findMany(
+      {
+        where: {
+          integrationProviderOid: integrationProvider.oid,
+          status: 'active',
+          isParentDeleted: false,
+          id: data.cursor ? { gt: data.cursor } : undefined
+        },
+        orderBy: { id: 'asc' },
+        take: 100,
+        select: {
+          integrationInstanceGroup: { select: { id: true } },
+          integrationInstanceProvider: {
+            select: {
+              oid: true,
+              currentVersion: {
+                select: {
+                  integrationProviderVersionOid: true,
+                  configOid: true,
+                  authConfigOid: true,
+                  toolFilter: true,
+                  isOverrideToolFilter: true
+                }
+              }
+            }
+          },
+          id: true
+        }
+      }
+    );
+    if (!integrationInstanceGroupProviders.length) return;
+
+    await integrationInstanceProviderService.repinIntegrationInstanceProvidersToIntegrationProviderVersion(
+      {
+        integrationProviderVersionOid: integrationProvider.currentVersionOid,
+        integrationInstanceProviders: integrationInstanceGroupProviders.map(
+          provider => provider.integrationInstanceProvider
+        )
+      }
+    );
+
+    await syncIntegrationInstanceGroupSessionTemplates(
+      Array.from(
+        new Set(
+          integrationInstanceGroupProviders.map(
+            provider => provider.integrationInstanceGroup.id
+          )
+        )
+      )
+    );
+
+    let lastProvider =
+      integrationInstanceGroupProviders[integrationInstanceGroupProviders.length - 1];
+    if (!lastProvider) return;
+
+    await integrationProviderUpdatedSyncIntegrationInstanceGroupSessionsQueue.add({
+      integrationProviderId: data.integrationProviderId,
+      cursor: lastProvider.id
+    });
+  });
 
 export let integrationProviderArchivedQueue = createQueue<{ integrationProviderId: string }>({
   name: 'sub/int/lc/integrationProvider/archived',
@@ -85,7 +243,7 @@ export let integrationProviderArchivedQueueProcessor =
     await integrationProviderArchiveGroupProvidersManyQueue.add({
       integrationProviderId: data.integrationProviderId
     });
-    await indexParentIntegration(data.integrationProviderId);
+    await indexIntegrationQueue.add({ integrationId: integrationProvider.integration.id });
     await reconcileSkillProviderLinksForIntegrationProviderQueue.add({
       integrationProviderId: data.integrationProviderId
     });

@@ -109,6 +109,7 @@ describe('integration version helpers', () => {
   });
 
   it('creates instance provider versions through the active transaction client', async () => {
+    tx.integrationInstanceProvider.findUnique.mockResolvedValue(null);
     tx.integrationInstanceProviderVersion.create.mockResolvedValue({
       oid: 20n
     });
@@ -124,6 +125,67 @@ describe('integration version helpers', () => {
     expect(tx.integrationInstanceProvider.updateMany).toHaveBeenCalled();
     expect(globalDb.integrationInstanceProviderVersion.create).not.toHaveBeenCalled();
     expect(globalDb.integrationInstanceProvider.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('does not create a duplicate instance provider version when current material matches', async () => {
+    let currentVersion = {
+      oid: 20n,
+      status: 'active',
+      integrationProviderVersionOid: 30n,
+      configOid: 40n,
+      authConfigOid: null,
+      toolFilter: { type: 'v1.allow_all' },
+      isOverrideToolFilter: false
+    };
+    tx.integrationInstanceProvider.findUnique.mockResolvedValue({
+      currentVersion
+    });
+
+    let version = await createIntegrationInstanceProviderVersion({
+      integrationInstanceProviderOid: 10n,
+      status: 'active',
+      integrationProviderVersionOid: 30n,
+      configOid: 40n,
+      authConfigOid: null,
+      toolFilter: { type: 'v1.allow_all' },
+      isOverrideToolFilter: false
+    });
+
+    expect(version).toBe(currentVersion);
+    expect(tx.integrationInstanceProviderVersion.create).not.toHaveBeenCalled();
+    expect(tx.integrationInstanceProvider.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('compares instance provider version tool filters canonically', async () => {
+    let currentVersion = {
+      oid: 20n,
+      status: 'active',
+      integrationProviderVersionOid: 30n,
+      configOid: null,
+      authConfigOid: null,
+      toolFilter: {
+        type: 'v1.filter',
+        filters: [{ keys: ['tool-a'], type: 'tool_keys' }]
+      },
+      isOverrideToolFilter: false
+    };
+    tx.integrationInstanceProvider.findUnique.mockResolvedValue({
+      currentVersion
+    });
+
+    let version = await createIntegrationInstanceProviderVersion({
+      integrationInstanceProviderOid: 10n,
+      status: 'active',
+      integrationProviderVersionOid: 30n,
+      toolFilter: {
+        filters: [{ type: 'tool_keys', keys: ['tool-a'] }],
+        type: 'v1.filter'
+      } as PrismaJson.ToolFilter
+    });
+
+    expect(version).toBe(currentVersion);
+    expect(tx.integrationInstanceProviderVersion.create).not.toHaveBeenCalled();
+    expect(tx.integrationInstanceProvider.updateMany).not.toHaveBeenCalled();
   });
 
   it('refreshes integration instance status through the active transaction client', async () => {

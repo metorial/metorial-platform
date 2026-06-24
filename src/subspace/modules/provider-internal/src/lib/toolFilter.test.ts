@@ -77,6 +77,40 @@ let toolKeysFilter = (keys: string[]): PrismaJson.ToolFilter => ({
 });
 
 describe('buildIntegrationProviderToolFilterChain', () => {
+  it('preserves integration provider filters when instance provider filters are inherited', () => {
+    let addTool = createTool('add');
+    let divideTool = createTool('divide');
+    let chain = buildIntegrationProviderToolFilterChain({
+      integrationProviderToolFilter: toolKeysFilter(['add']),
+      integrationInstanceProviderToolFilter: null,
+      integrationInstanceProviderIsOverride: false
+    });
+
+    expect(checkToolAccess(addTool, [chain as PrismaJson.ToolFilter], 'list')).toEqual({
+      allowed: true
+    });
+    expect(checkToolAccess(divideTool, [chain as PrismaJson.ToolFilter], 'list')).toEqual({
+      allowed: false
+    });
+  });
+
+  it('does not let non-override allow-all instance filters clear parent filters', () => {
+    let addTool = createTool('add');
+    let divideTool = createTool('divide');
+    let chain = buildIntegrationProviderToolFilterChain({
+      integrationProviderToolFilter: toolKeysFilter(['add']),
+      integrationInstanceProviderToolFilter: { type: 'v1.allow_all' },
+      integrationInstanceProviderIsOverride: false
+    });
+
+    expect(checkToolAccess(addTool, [chain as PrismaJson.ToolFilter], 'list')).toEqual({
+      allowed: true
+    });
+    expect(checkToolAccess(divideTool, [chain as PrismaJson.ToolFilter], 'list')).toEqual({
+      allowed: false
+    });
+  });
+
   it('stacks integration provider and instance provider filters as ANDed filters', () => {
     let addTool = createTool('add');
     let divideTool = createTool('divide');
