@@ -210,7 +210,6 @@ class sessionServiceImpl {
   }) {
     return withTransaction(async db =>
       createSessionRecord({
-        db,
         tenant: d.tenant,
         solution: d.solution,
         environment: d.environment,

@@ -9,9 +9,6 @@ import { sessionMessageService } from '../services/sessionMessage';
 export let PROVIDER_TELEMETRY_FAILED_MESSAGES_STATE_KEY =
   'provider-telemetry/error-groups/failed-messages/state.json';
 
-export let PROVIDER_TELEMETRY_ERROR_GROUPS_STATE_KEY =
-  PROVIDER_TELEMETRY_FAILED_MESSAGES_STATE_KEY;
-
 let DEFAULT_EXPORT_LOOKBACK_MS = 7 * 24 * 60 * 60 * 1000;
 let EXPORT_PAGE_SIZE = 100;
 
@@ -72,7 +69,7 @@ let isNotFoundError = (error: unknown) =>
   'statusCode' in error &&
   (error as { statusCode?: number }).statusCode === 404;
 
-export let readProviderTelemetryErrorGroupsExportState = async (d: {
+let readProviderTelemetryErrorGroupsExportState = async (d: {
   storage: ProviderTelemetryErrorGroupsExportStorage;
   bucketName: string;
 }) => {
@@ -105,7 +102,7 @@ let getExportRange = (
   return { from, to: now };
 };
 
-export let watermarkFromProviderTelemetryFailedMessage = (
+let watermarkFromProviderTelemetryFailedMessage = (
   item: Pick<ProviderTelemetryFailedMessageExportCandidate, 'error' | 'occurredAt'>
 ): ProviderTelemetryFailedMessagesExportWatermark => ({
   occurred_at: item.occurredAt.toISOString(),
@@ -258,16 +255,12 @@ let writeJsonObject = async (d: {
   );
 };
 
-let providerTelemetryExportRedactionOptions = {
+let providerTelemetryExportRedactor = new OpenRedaction({
   deterministic: true,
   redactionMode: 'placeholder' as const,
   enableLearning: false,
   enableCache: true
-};
-
-let providerTelemetryExportRedactor = new OpenRedaction(
-  providerTelemetryExportRedactionOptions
-);
+});
 let providerTelemetryExportJsonProcessor = new JsonProcessor();
 
 let normalizeJsonValue = (value: unknown) => {

@@ -81,6 +81,9 @@ let toNullableJson = (value: Prisma.InputJsonValue | null | undefined) => {
   return value;
 };
 
+let hasToolFiltersInput = (input: MagicMcpEndpointServerInput | undefined) =>
+  !!input && Object.prototype.hasOwnProperty.call(input, 'toolFilters');
+
 let dedupeServerInputs = (servers?: MagicMcpEndpointServerInput[]) => {
   if (!servers?.length) return [];
 
@@ -442,6 +445,11 @@ class MagicMcpEndpointImpl {
       if (servers.length) {
         await Promise.all(
           servers.map(async server => {
+            let serverInput = serverInputsById.get(server.id);
+            let toolFiltersUpdate = hasToolFiltersInput(serverInput)
+              ? { toolFilters: toNullableJson(serverInput?.toolFilters) }
+              : {};
+
             return db.magicMcpEndpointServer.upsert({
               where: {
                 magicMcpEndpointOid_magicMcpServerOid: {
@@ -453,15 +461,9 @@ class MagicMcpEndpointImpl {
                 id: await ID.generateId('magicMcpEndpoint'),
                 magicMcpEndpointOid: d.endpoint.oid,
                 magicMcpServerOid: server.oid,
-                toolFilters: toNullableJson(
-                  serverInputsById.get(server.id)?.toolFilters ?? null
-                )
+                toolFilters: toNullableJson(serverInput?.toolFilters ?? null)
               },
-              update: {
-                toolFilters: toNullableJson(
-                  serverInputsById.get(server.id)?.toolFilters ?? null
-                )
-              }
+              update: toolFiltersUpdate
             });
           })
         );
