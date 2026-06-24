@@ -30,10 +30,11 @@ if (process.env.HEARTBEAT_URL) {
 
   let sendHeartbeat = async () => {
     try {
-      let { checkNatsHealth } =
+      let { checkNatsHealth, checkConduitSelfHealth } =
         await import('@metorial-subspace/module-connection/src/health');
 
       await checkNatsHealth();
+      await checkConduitSelfHealth();
       await fetch(process.env.HEARTBEAT_URL!, { method: 'POST' });
     } catch (error) {
       await captureHeartbeatError(error);

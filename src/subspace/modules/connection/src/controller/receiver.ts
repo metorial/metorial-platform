@@ -25,6 +25,12 @@ const NO_OUTPUT_ERROR = {
   data: { code: 'no_result', message: 'Provided did not return a result' }
 } satisfies PrismaJson.SessionMessageOutput;
 
+let connectionReceiver:
+  | (ReturnType<typeof conduit.createConduitReceiver> & { started: Promise<void> })
+  | null = null;
+
+export let getConnectionReceiver = () => connectionReceiver;
+
 export let startReceiver = () => {
   let receiver = conduit.createConduitReceiver(async ctx => {
     ctx.extendTtl(1000 * 60);
@@ -331,5 +337,6 @@ export let startReceiver = () => {
     console.error('Error starting Connection Controller receiver:', err);
   });
 
-  return Object.assign(receiver, { started });
+  connectionReceiver = Object.assign(receiver, { started });
+  return connectionReceiver;
 };

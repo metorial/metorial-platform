@@ -1,5 +1,6 @@
 import { withTracingSuppressed } from '@lowerdeck/telemetry';
 import { db } from '@metorial-subspace/db';
+import { getConnectionReceiver } from '@metorial-subspace/module-connection';
 import { checkNatsHealth } from '@metorial-subspace/module-connection/src/health';
 import { RedisClient } from 'bun';
 
@@ -17,6 +18,11 @@ if (process.env.NODE_ENV === 'production') {
           await redis.ping();
 
           await checkNatsHealth();
+
+          let receiver = getConnectionReceiver();
+          if (receiver && receiver.isReady() && !receiver.isHealthy()) {
+            return new Response('Service Unavailable', { status: 503 });
+          }
 
           return new Response('OK');
         } catch (e) {
