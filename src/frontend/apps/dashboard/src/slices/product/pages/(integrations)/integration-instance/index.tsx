@@ -170,7 +170,7 @@ let LinkedMagicMcpServersBox = (p: {
       {renderWithPagination(servers)(servers => (
         <>
           <Table
-            headers={['Name', 'Providers', 'Created']}
+            headers={['Name', 'Type', 'Created']}
             data={servers.data.items.map(server => {
               let providerManagementMode = getProviderManagementMode(
                 server.providerManagementMode
