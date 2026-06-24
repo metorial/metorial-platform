@@ -155,12 +155,13 @@ describe('Unlimited Timeout Extensions', () => {
       defaultTimeout: 3000
     });
 
-    // Send mix of fast and slow messages concurrently
+    // Send mix of fast and slow messages to DIFFERENT topics so they run
+    // concurrently (same topic is serialized).
     const promises = [
-      sender.send('concurrent-ext-topic', { id: 1, slow: false }),
-      sender.send('concurrent-ext-topic', { id: 2, slow: true }),
-      sender.send('concurrent-ext-topic', { id: 3, slow: false }),
-      sender.send('concurrent-ext-topic', { id: 4, slow: true })
+      sender.send('concurrent-ext-1', { id: 1, slow: false }),
+      sender.send('concurrent-ext-2', { id: 2, slow: true }),
+      sender.send('concurrent-ext-3', { id: 3, slow: false }),
+      sender.send('concurrent-ext-4', { id: 4, slow: true })
     ];
 
     const responses = await Promise.all(promises);
@@ -174,4 +175,38 @@ describe('Unlimited Timeout Extensions', () => {
     await receiver.stop();
     await conduit.close();
   }, 25000);
+
+  test('extensions are capped at maxProcessingMs (handler is aborted)', async () => {
+    const conduit = createConduit();
+
+    // A handler that would run far longer than the ceiling. Extensions must NOT
+    // keep it alive indefinitely - it is aborted once maxProcessingMs elapses.
+    const receiver = conduit.createReceiver(
+      async (_topic, _payload) => {
+        await new Promise(resolve => setTimeout(resolve, 30000));
+        return { processed: true };
+      },
+      {
+        timeoutExtensionThreshold: 500,
+        maxProcessingMs: 1500
+      }
+    );
+
+    await receiver.start();
+
+    const sender = conduit.createSender({ defaultTimeout: 1000 });
+
+    const start = Date.now();
+    const response = await sender.send('capped-topic', { data: 'test' });
+    const elapsed = Date.now() - start;
+
+    expect(response.success).toBe(false);
+    expect(response.error).toBe('handler exceeded max processing time');
+    // Aborted near the ceiling, not after the full 30s handler.
+    expect(elapsed).toBeLessThan(6000);
+
+    await sender.close();
+    await receiver.stop();
+    await conduit.close();
+  }, 20000);
 });

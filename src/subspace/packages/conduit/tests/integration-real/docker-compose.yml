@@ -1,0 +1,16 @@
+# Redis + NATS for the conduit real-infra integration suite.
+# Dedicated, non-dev ports (dev compose uses 56379/56222) so this never clashes
+# with a running dev stack. Ports are overridable via env for parallel/local runs.
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - '${CONDUIT_TEST_REDIS_PORT:-56390}:6379'
+    command: ['redis-server', '--save', '', '--appendonly', 'no']
+
+  nats:
+    image: nats:2-alpine
+    command: ['-js', '-m', '8222']
+    ports:
+      - '${CONDUIT_TEST_NATS_PORT:-56290}:4222'
+      - '${CONDUIT_TEST_NATS_HTTP_PORT:-56291}:8222'
