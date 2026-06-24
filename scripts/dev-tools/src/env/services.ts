@@ -203,7 +203,7 @@ export let cargoServiceEnv: Env = [
   },
   {
     key: 'VOYAGER_URL',
-    defaultValue: 'http://services:52060/metorial-voyager'
+    defaultValue: 'http://localhost:52060/metorial-voyager'
   }
 ];
 
@@ -369,7 +369,7 @@ export let subspaceDevEnv: Env = [
   },
   {
     key: 'VOYAGER_URL',
-    defaultValue: 'http://services:52060/metorial-voyager'
+    defaultValue: 'http://localhost:52060/metorial-voyager'
   },
   {
     key: 'OBJECT_STORAGE_URL',
