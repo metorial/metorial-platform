@@ -17,6 +17,8 @@ export type {
   TopicContext,
   TopicHandler
 } from './core/conduitReceiver';
+export { CONDUIT_HEALTH_TOPIC, isConduitHealthPong } from './core/health';
+export type { ConduitHealthPong } from './core/health';
 export { MessageCache } from './core/messageCache';
 export { OwnershipManager } from './core/ownershipManager';
 export type { OwnershipLossCallback } from './core/ownershipManager';
@@ -64,6 +66,7 @@ let getSenderConfig = (config?: Partial<SenderConfig>): SenderConfig => ({
   topicOwnershipTtl: 5000,
   inFlightCacheTtl: 20000,
   maxInFlightMessages: 1000,
+  healthPingTimeout: 1500,
   ...config
 });
 
@@ -75,6 +78,9 @@ let getReceiverConfig = (config?: Partial<ReceiverConfig>): ReceiverConfig => ({
   messageCacheTtl: 60000,
   messageCacheSize: 10000,
   timeoutExtensionThreshold: 1000,
+  maxProcessingMs: 300000,
+  maxInFlight: 2000,
+  handlerConcurrency: 256,
   ...config
 });
 

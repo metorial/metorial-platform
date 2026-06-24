@@ -7,12 +7,23 @@ import type { ReceiverConfig } from '../types/config';
 import type { ConduitMessage, TimeoutExtension } from '../types/message';
 import type { ConduitResponse } from '../types/response';
 import type { TopicResponseBroadcast } from '../types/topicListener';
+import { CONDUIT_HEALTH_TOPIC, type ConduitHealthPong } from './health';
 import { MessageCache } from './messageCache';
 import { OwnershipManager } from './ownershipManager';
+import { Semaphore } from './semaphore';
 
 let Sentry = getSentry();
 
 export type MessageHandler = (topic: string, payload: unknown) => Promise<unknown>;
+
+const STUCK_GRACE_MS = 30000;
+
+class HandlerCeilingError extends Error {
+  constructor(public readonly limitMs: number) {
+    super(`handler exceeded max processing time (${limitMs}ms)`);
+    this.name = 'HandlerCeilingError';
+  }
+}
 
 interface ProcessingMessage {
   message: ConduitMessage;
@@ -28,9 +39,28 @@ export class Receiver {
   private heartbeatInterval: Timer | null = null;
   private subscriptionId: string | null = null;
   private running = false;
+  private ready = false;
   private readonly conduitId: string;
   private processingMessages: Map<string, ProcessingMessage> = new Map();
   private timeoutCheckInterval: Timer | null = null;
+
+  // Per-topic FIFO chains: same-topic messages run in arrival order, different
+  // topics run concurrently. Removes cross-session head-of-line blocking while
+  // preserving per-session ordering.
+  private topicChains: Map<string, Promise<void>> = new Map();
+  // Messages currently queued/executing, keyed by messageId, for in-flight
+  // dedup (a sender retry reuses the same messageId).
+  private inFlightById: Map<string, Promise<ConduitResponse>> = new Map();
+  private handlerSemaphore: Semaphore;
+  private lastProgressAt = Date.now();
+  private lastHealthy = true;
+
+  // Observability counters.
+  private dispatchedCount = 0;
+  private shedCount = 0;
+  private ceilingAbortCount = 0;
+  private dedupHitCount = 0;
+  private healthTick = 0;
 
   constructor(
     private coordination: ICoordinationAdapter,
@@ -42,12 +72,15 @@ export class Receiver {
     this.conduitId = conduitId;
     this.receiverId = `receiver-${crypto.randomUUID()}`;
     this.messageCache = new MessageCache(config.messageCacheSize, config.messageCacheTtl);
+    this.handlerSemaphore = new Semaphore(config.handlerConcurrency);
     this.ownershipManager = new OwnershipManager(
       this.receiverId,
       coordination,
       config.ownershipRenewalInterval,
       config.topicOwnershipTtl
     );
+    // Stop renewing ownership when unhealthy so topics get reassigned.
+    this.ownershipManager.setHealthCheck(() => this.isHealthy());
   }
 
   async start(): Promise<void> {
@@ -61,7 +94,13 @@ export class Receiver {
       `CONDUIT.receiver.start receiverId=${this.receiverId} conduitId=${this.conduitId}`
     );
 
-    // Register receiver
+    // Subscribe to messages FIRST. We must be listening before we advertise
+    // ourselves as an active receiver, otherwise a freshly-started worker would
+    // be in the active pool (and pingable / assignable) while not yet draining.
+    await this.subscribe();
+    this.ready = true;
+
+    // Now register the receiver (only after we are actually listening).
     await this.coordination.registerReceiver(this.receiverId, this.config.heartbeatTtl);
     console.log(
       `CONDUIT.receiver.start.registered receiverId=${this.receiverId} heartbeatTtl=${this.config.heartbeatTtl}`
@@ -73,11 +112,9 @@ export class Receiver {
     // Start ownership renewal
     this.ownershipManager.start();
 
-    // Start shared timeout check interval
+    // Start shared timeout/health check interval
     this.startTimeoutChecker();
 
-    // Subscribe to messages
-    await this.subscribe();
     console.log(`CONDUIT.receiver.start.done receiverId=${this.receiverId}`);
   }
 
@@ -91,6 +128,7 @@ export class Receiver {
       `CONDUIT.receiver.stop receiverId=${this.receiverId} processingMessages=${this.processingMessages.size}`
     );
     this.running = false;
+    this.ready = false;
 
     // Stop heartbeat
     this.stopHeartbeat();
@@ -116,8 +154,10 @@ export class Receiver {
     // Cleanup cache
     this.messageCache.destroy();
 
-    // Clear processing messages
+    // Clear processing/in-flight state
     this.processingMessages.clear();
+    this.inFlightById.clear();
+    this.topicChains.clear();
     console.log(`CONDUIT.receiver.stop.done receiverId=${this.receiverId}`);
   }
 
@@ -131,58 +171,152 @@ export class Receiver {
   }
 
   private async handleMessage(data: Uint8Array): Promise<void> {
+    let message: ConduitMessage;
     try {
-      // Decode message
       let decoder = new TextDecoder();
       let messageStr = decoder.decode(data);
-      let message: ConduitMessage = serialize.decode(messageStr);
+      message = serialize.decode(messageStr);
+    } catch (err) {
+      Sentry.captureException(err);
+      console.error(
+        'CONDUIT.receiver.handleMessage.decode_error receiverId=' + this.receiverId,
+        err
+      );
+      // If we can't even parse/decode, we can't respond.
+      return;
+    }
 
-      // Check if we've seen this message before
+    // Dispatch happened: the read loop is alive and handed us a message.
+    this.lastProgressAt = Date.now();
+    this.dispatchedCount++;
+
+    // Reserved health topic: answer directly so a successful pong proves this
+    // receiver's read loop is draining. Bypasses the user handler and the
+    // per-topic queue so it is never blocked behind a slow topic.
+    if (message.topic === CONDUIT_HEALTH_TOPIC) {
+      await this.sendHealthPong(message).catch(err => {
+        console.error('CONDUIT.receiver.health_pong.error receiverId=' + this.receiverId, err);
+      });
+      return;
+    }
+
+    try {
+      // Already-completed response (post-completion dedup).
       let cachedResponse = this.messageCache.get(message.messageId);
       if (cachedResponse) {
-        // Return cached response
         await this.sendResponse(message, cachedResponse);
         return;
       }
 
-      // Add topic to ownership (we're processing it now)
+      // In-flight dedup: a retry of a message we are still processing must NOT
+      // run the handler twice. Attach to the existing in-flight promise and
+      // re-send its response to this retry's reply subject.
+      let inFlight = this.inFlightById.get(message.messageId);
+      if (inFlight) {
+        this.dedupHitCount++;
+        try {
+          let response = await inFlight;
+          await this.sendResponse(message, response);
+        } catch (err) {
+          Sentry.captureException(err);
+        }
+        return;
+      }
+
+      // Backpressure: shed when over the in-flight cap so memory stays bounded.
+      // Respond with failure so the sender fails/retries fast rather than hanging.
+      if (this.inFlightById.size >= this.config.maxInFlight) {
+        this.shedCount++;
+        console.warn(
+          `CONDUIT.receiver.shed receiverId=${this.receiverId} messageId=${message.messageId} topic=${message.topic} inFlight=${this.inFlightById.size} maxInFlight=${this.config.maxInFlight} totalShed=${this.shedCount}`
+        );
+        await this.sendResponse(message, {
+          messageId: message.messageId,
+          success: false,
+          error: 'receiver overloaded (in-flight cap exceeded)',
+          processedAt: Date.now()
+        }).catch(() => {});
+        return;
+      }
+
+      // Add topic to ownership (we're processing it now).
       this.ownershipManager.addTopic(message.topic);
 
-      // Process message
-      let response = await this.processMessage(message);
+      // Run on the per-topic FIFO chain (serial within topic, concurrent across
+      // topics), and register as in-flight for dedup.
+      let resultPromise = this.runOnTopic(message.topic, () => this.processMessage(message));
+      this.inFlightById.set(message.messageId, resultPromise);
 
-      // Cache the response
+      let response: ConduitResponse;
+      try {
+        response = await resultPromise;
+      } catch (err) {
+        // processMessage is designed not to throw, but guard regardless.
+        Sentry.captureException(err);
+        let error = err instanceof Error ? err : new Error(String(err));
+        response = {
+          messageId: message.messageId,
+          success: false,
+          error: error.message,
+          processedAt: Date.now()
+        };
+      } finally {
+        this.inFlightById.delete(message.messageId);
+      }
+
+      // Cache the response and reply.
       this.messageCache.set(message.messageId, response);
-
-      // Send response
       await this.sendResponse(message, response);
     } catch (err) {
       Sentry.captureException(err);
       console.error('CONDUIT.receiver.handleMessage.error receiverId=' + this.receiverId, err);
-      // If we can't even parse/decode, we can't respond
     }
   }
 
+  private runOnTopic<T>(topic: string, fn: () => Promise<T>): Promise<T> {
+    let prev = this.topicChains.get(topic) ?? Promise.resolve();
+    let result = prev.then(fn, fn);
+    let chain = result.then(
+      () => {},
+      () => {}
+    );
+    this.topicChains.set(topic, chain);
+    chain.then(() => {
+      // Clean up only if no newer work was chained after us.
+      if (this.topicChains.get(topic) === chain) {
+        this.topicChains.delete(topic);
+      }
+    });
+    return result;
+  }
+
   private async processMessage(message: ConduitMessage): Promise<ConduitResponse> {
+    // Bound the number of handlers executing concurrently (does not block the
+    // transport read loop - we are already off it here).
+    await this.handlerSemaphore.acquire();
+
+    const now = Date.now();
+    this.processingMessages.set(message.messageId, {
+      message,
+      startTime: now,
+      lastExtensionSentAt: 0,
+      currentDeadline: now + message.timeout
+    });
+
+    let ceilingTimer: Timer | undefined;
+
     try {
-      // Track message for timeout extension monitoring
-      const now = Date.now();
-      this.processingMessages.set(message.messageId, {
-        message,
-        startTime: now,
-        lastExtensionSentAt: 0, // No extension sent yet
-        currentDeadline: now + message.timeout
+      // Race the handler against a hard ceiling so a never-returning provider
+      // call cannot hold this slot forever.
+      let ceiling = new Promise<never>((_, reject) => {
+        ceilingTimer = setTimeout(
+          () => reject(new HandlerCeilingError(this.config.maxProcessingMs)),
+          this.config.maxProcessingMs
+        );
       });
 
-      // Call user handler
-      let result = await this.handler(message.topic, message.payload);
+      let result = await Promise.race([this.handler(message.topic, message.payload), ceiling]);
 
-      let elapsed = Date.now() - now;
-
-      // Remove from tracking
-      this.processingMessages.delete(message.messageId);
-
-      // Create success response
       return {
         messageId: message.messageId,
         success: true,
@@ -190,25 +324,60 @@ export class Receiver {
         processedAt: Date.now()
       };
     } catch (err) {
+      if (err instanceof HandlerCeilingError) {
+        this.ceilingAbortCount++;
+        Sentry.captureException(err);
+        console.error(
+          `CONDUIT.receiver.processMessage.ceiling receiverId=${this.receiverId} messageId=${message.messageId} topic=${message.topic} maxProcessingMs=${this.config.maxProcessingMs} totalCeilingAborts=${this.ceilingAbortCount}`
+        );
+        return {
+          messageId: message.messageId,
+          success: false,
+          error: 'handler exceeded max processing time',
+          processedAt: Date.now()
+        };
+      }
+
       Sentry.captureException(err);
-
-      // Remove from tracking
-      this.processingMessages.delete(message.messageId);
-
       let error = err instanceof Error ? err : new Error(String(err));
-
       console.error(
         `CONDUIT.receiver.processMessage.error receiverId=${this.receiverId} messageId=${message.messageId} topic=${message.topic}:`,
         error
       );
-
-      // Create error response
       return {
         messageId: message.messageId,
         success: false,
         error: error.message,
         processedAt: Date.now()
       };
+    } finally {
+      if (ceilingTimer) clearTimeout(ceilingTimer);
+      this.processingMessages.delete(message.messageId);
+      this.lastProgressAt = Date.now();
+      this.handlerSemaphore.release();
+    }
+  }
+
+  private async sendHealthPong(message: ConduitMessage): Promise<void> {
+    let pong: ConduitHealthPong = {
+      type: 'conduit.health.pong',
+      receiverId: this.receiverId,
+      at: Date.now()
+    };
+    let response: ConduitResponse = {
+      messageId: message.messageId,
+      success: true,
+      result: pong,
+      processedAt: Date.now()
+    };
+
+    let encoder = new TextEncoder();
+    let data = encoder.encode(serialize.encode(response));
+
+    if (this.isMemoryTransport()) {
+      await (this.transport as MemoryTransport).reply(message.replySubject, data);
+    } else {
+      await this.transport.publish(message.replySubject, data);
     }
   }
 
@@ -222,6 +391,7 @@ export class Receiver {
       this.checkTimeouts().catch(err => {
         console.error('Error checking timeouts:', err);
       });
+      this.evaluateHealth();
     }, 1000);
   }
 
@@ -239,10 +409,16 @@ export class Receiver {
     for (let [messageId, processing] of this.processingMessages.entries()) {
       let remaining = processing.currentDeadline - now;
 
-      // If we're getting close to deadline and haven't sent extension recently, send it
-      // Allow unlimited extensions, but rate-limit them (at least 1 second between extensions)
+      // Cap extensions at the hard processing ceiling: once a message has been
+      // running for maxProcessingMs it will be aborted by processMessage, so we
+      // stop extending its deadline instead of allowing unlimited extensions.
+      const reachedCeiling = now - processing.startTime >= this.config.maxProcessingMs;
+
+      // If we're getting close to deadline and haven't sent extension recently, send it.
+      // Rate-limit extensions (at least 1 second between them).
       const timeSinceLastExtension = now - processing.lastExtensionSentAt;
       const shouldSendExtension =
+        !reachedCeiling &&
         remaining < threshold &&
         remaining > 0 &&
         (processing.lastExtensionSentAt === 0 || timeSinceLastExtension >= 1000);
@@ -335,6 +511,16 @@ export class Receiver {
     }
 
     this.heartbeatInterval = setInterval(() => {
+      // Gate the Redis heartbeat on health: a wedged receiver stops renewing so
+      // its TTL expires and it drops out of the active pool, letting senders
+      // reassign its topics to a healthy receiver (recovery without a restart).
+      if (!this.isHealthy()) {
+        console.warn(
+          `CONDUIT.receiver.heartbeat_skipped_unhealthy receiverId=${this.receiverId}`
+        );
+        return;
+      }
+
       this.coordination
         .registerReceiver(this.receiverId, this.config.heartbeatTtl)
         .catch(err => {
@@ -349,6 +535,71 @@ export class Receiver {
       clearInterval(this.heartbeatInterval);
       this.heartbeatInterval = null;
     }
+  }
+
+  isHealthy(): boolean {
+    if (!this.running) return false;
+    // Still starting up (subscribing): nothing to be unhealthy about yet.
+    if (!this.ready) return true;
+
+    let now = Date.now();
+    let limit = this.config.maxProcessingMs + STUCK_GRACE_MS;
+    for (let processing of this.processingMessages.values()) {
+      if (now - processing.startTime > limit) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private evaluateHealth(): void {
+    let healthy = this.isHealthy();
+    if (healthy !== this.lastHealthy) {
+      this.lastHealthy = healthy;
+      console.warn(
+        `CONDUIT.receiver.health_flip receiverId=${this.receiverId} healthy=${healthy} inFlight=${this.inFlightById.size} activeTopics=${this.topicChains.size} processing=${this.processingMessages.size} sinceProgressMs=${Date.now() - this.lastProgressAt}`
+      );
+    }
+
+    // Periodic stats log (every ~30s) while there is work in flight, so the
+    // next incident is diagnosable from logs alone.
+    this.healthTick++;
+    if (this.healthTick % 30 === 0 && this.inFlightById.size > 0) {
+      let s = this.getStats();
+      console.log(
+        `CONDUIT.receiver.stats receiverId=${this.receiverId} healthy=${healthy} inFlight=${s.inFlight} activeTopics=${s.activeTopics} processing=${s.processing} slotsAvail=${s.handlerSlotsAvailable} waiting=${s.handlerWaiting} dispatched=${s.dispatched} shed=${s.shed} ceilingAborts=${s.ceilingAborts} dedupHits=${s.dedupHits} sinceProgressMs=${Date.now() - s.lastProgressAt}`
+      );
+    }
+  }
+
+  isReady(): boolean {
+    return this.ready;
+  }
+
+  getStats(): {
+    inFlight: number;
+    activeTopics: number;
+    processing: number;
+    handlerSlotsAvailable: number;
+    handlerWaiting: number;
+    lastProgressAt: number;
+    dispatched: number;
+    shed: number;
+    ceilingAborts: number;
+    dedupHits: number;
+  } {
+    return {
+      inFlight: this.inFlightById.size,
+      activeTopics: this.topicChains.size,
+      processing: this.processingMessages.size,
+      handlerSlotsAvailable: this.handlerSemaphore.getAvailable(),
+      handlerWaiting: this.handlerSemaphore.getWaiting(),
+      lastProgressAt: this.lastProgressAt,
+      dispatched: this.dispatchedCount,
+      shed: this.shedCount,
+      ceilingAborts: this.ceilingAbortCount,
+      dedupHits: this.dedupHitCount
+    };
   }
 
   getReceiverId(): string {

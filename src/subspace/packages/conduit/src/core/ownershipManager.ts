@@ -10,6 +10,7 @@ export class OwnershipManager {
   private topicTtls: Map<string, number> = new Map(); // Per-topic TTLs
   private renewalInterval: Timer | null = null;
   private ownershipLossCallbacks: OwnershipLossCallback[] = [];
+  private healthCheck: (() => boolean) | null = null;
 
   constructor(
     private receiverId: string,
@@ -17,6 +18,10 @@ export class OwnershipManager {
     private renewalIntervalMs: number,
     private ownershipTtl: number
   ) {}
+
+  setHealthCheck(healthCheck: () => boolean): void {
+    this.healthCheck = healthCheck;
+  }
 
   start(): void {
     if (this.renewalInterval) {
@@ -74,6 +79,15 @@ export class OwnershipManager {
   }
 
   private async renewOwnerships(): Promise<void> {
+    // If the receiver is unhealthy, stop renewing so ownership TTLs expire and
+    // topics get reassigned to a healthy receiver.
+    if (this.healthCheck && !this.healthCheck()) {
+      console.warn(
+        `CONDUIT.ownership.renewal_skipped_unhealthy receiverId=${this.receiverId} ownedTopics=${this.ownedTopics.size}`
+      );
+      return;
+    }
+
     let renewals = Array.from(this.ownedTopics).map(async topic => {
       try {
         // Use per-topic TTL if available, otherwise use default

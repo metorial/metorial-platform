@@ -24,6 +24,12 @@ export interface ReceiverConfig {
   messageCacheSize: number;
 
   timeoutExtensionThreshold: number;
+
+  maxProcessingMs: number;
+
+  maxInFlight: number;
+
+  handlerConcurrency: number;
 }
 
 export interface SenderConfig {
@@ -40,6 +46,11 @@ export interface SenderConfig {
   inFlightCacheTtl: number;
 
   maxInFlightMessages: number;
+
+  /**
+   * Default timeout (ms) for a direct per-receiver health ping (`pingReceiver`).
+   */
+  healthPingTimeout: number;
 }
 
 export type CoordinationConfig = { type: 'redis'; redis: RedisConfig } | { type: 'memory' };
@@ -73,7 +84,10 @@ export const DEFAULT_CONFIG: ConduitConfig = {
     ownershipRenewalInterval: 10000, // Renew at TTL/3 for safety margin
     messageCacheTtl: 60000,
     messageCacheSize: 10000,
-    timeoutExtensionThreshold: 1000
+    timeoutExtensionThreshold: 1000,
+    maxProcessingMs: 300000,
+    maxInFlight: 2000,
+    handlerConcurrency: 256
   },
   sender: {
     defaultTimeout: 5000,
@@ -82,7 +96,8 @@ export const DEFAULT_CONFIG: ConduitConfig = {
     retryBackoffMultiplier: 1.5,
     topicOwnershipTtl: 5000,
     inFlightCacheTtl: 60000,
-    maxInFlightMessages: 1000
+    maxInFlightMessages: 1000,
+    healthPingTimeout: 1500
   },
   coordination: {
     type: 'memory'

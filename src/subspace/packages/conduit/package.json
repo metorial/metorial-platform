@@ -10,7 +10,9 @@
     "example:topic-listener": "bun run example-topic-listener.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:ui": "vitest --ui"
+    "test:ui": "vitest --ui",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "test:integration:watch": "vitest --config vitest.integration.config.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",
