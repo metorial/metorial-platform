@@ -43,6 +43,7 @@ import {
   providerDeploymentInternalService
 } from '@metorial-subspace/module-provider-internal';
 import { checkTenant } from '@metorial-subspace/module-tenant';
+import { integrationProviderVersionInclude } from '../lib/integrationIncludes';
 import {
   createIntegrationProviderVersion,
   createIntegrationVersion,
@@ -54,7 +55,6 @@ import {
   integrationProviderCreatedQueue,
   integrationProviderUpdatedQueue
 } from '../queues/lifecycle/integrationProvider';
-import { integrationProviderVersionInclude } from '../lib/integrationIncludes';
 
 export let integrationProviderInclude = {
   integration: true,
@@ -463,8 +463,6 @@ class integrationProviderServiceImpl {
       input: d.input
     });
 
-    let toolFilter = normalizeIntegrationProviderToolFilter(d.input.toolFilters);
-
     return await withTransaction(async db => {
       let existing = await db.integrationProvider.findUnique({
         where: {
@@ -484,6 +482,11 @@ class integrationProviderServiceImpl {
           })
         );
       }
+
+      let toolFilter =
+        d.input.toolFilters === undefined && existing?.currentVersion
+          ? (existing.currentVersion.toolFilter as PrismaJson.ToolFilter)
+          : normalizeIntegrationProviderToolFilter(d.input.toolFilters);
 
       let activeProviderCount = await db.integrationProvider.count({
         where: {
@@ -558,7 +561,6 @@ class integrationProviderServiceImpl {
       environment: d.environment,
       providerDeploymentId: d.input.providerDeploymentId
     });
-    let toolFilter = normalizeIntegrationProviderToolFilter(d.input.toolFilters);
     let inferredAuth = await inferReconciliationAuthMaterial({
       tenant: d.tenant,
       solution: d.solution,
@@ -576,6 +578,11 @@ class integrationProviderServiceImpl {
         },
         include: { currentVersion: true }
       });
+
+      let toolFilter =
+        d.input.toolFilters === undefined && existing?.currentVersion
+          ? (existing.currentVersion.toolFilter as PrismaJson.ToolFilter)
+          : normalizeIntegrationProviderToolFilter(d.input.toolFilters);
 
       if (existing?.status !== 'active') {
         let activeProviderCount = await db.integrationProvider.count({

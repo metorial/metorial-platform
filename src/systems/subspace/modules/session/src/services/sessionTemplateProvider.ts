@@ -34,6 +34,7 @@ import {
   resolveProviders,
   resolveSessionTemplates
 } from '@metorial-subspace/list-utils';
+import { buildIntegrationProviderToolFilterChain } from '@metorial-subspace/module-provider-internal';
 import { checkTenant } from '@metorial-subspace/module-tenant';
 import {
   enqueueSessionTemplateProvidersCreated,
@@ -61,8 +62,6 @@ let include = {
   }
 };
 export let sessionTemplateProviderInclude = include;
-
-let allowAllToolFilter = (): PrismaJson.ToolFilter => ({ type: 'v1.allow_all' });
 
 let assertCanWriteSessionTemplateProvider = (
   provider: Pick<SessionTemplateProvider, 'integrationInstanceProviderOid'> & {
@@ -333,11 +332,18 @@ class sessionTemplateProviderServiceImpl {
 
         for (let provider of instanceProviders) {
           let currentVersion = provider.currentVersion!;
+          let toolFilter = buildIntegrationProviderToolFilterChain({
+            canAttachCustomToolFilters: provider.integration.canAttachCustomToolFilters,
+            canOverrideToolFilters: provider.integration.canOverrideToolFilters,
+            integrationProviderToolFilter: currentVersion.integrationProviderVersion
+              .toolFilter as PrismaJson.ToolFilter | null,
+            integrationInstanceProviderToolFilter:
+              currentVersion.toolFilter as PrismaJson.ToolFilter | null,
+            integrationInstanceProviderIsOverride: currentVersion.isOverrideToolFilter
+          });
           let data = {
             status: 'active' as const,
-            toolFilter:
-              (currentVersion.toolFilter as PrismaJson.ToolFilter | null) ??
-              allowAllToolFilter(),
+            toolFilter,
             sessionTemplateOid: d.sessionTemplate.oid,
             providerOid: provider.integrationProvider.providerOid,
             deploymentOid: currentVersion.integrationProviderVersion.deploymentOid,
@@ -409,6 +415,7 @@ class sessionTemplateProviderServiceImpl {
           },
           orderBy: { id: 'asc' },
           include: {
+            integration: true,
             integrationProvider: true,
             integrationInstanceProvider: {
               include: {
@@ -480,7 +487,7 @@ class sessionTemplateProviderServiceImpl {
           existing?: (typeof existingProviders)[number];
           data: {
             status: 'active';
-            toolFilter: PrismaJson.ToolFilter;
+            toolFilter: PrismaJson.ToolFilterChain;
             sessionTemplateOid: bigint;
             providerOid: bigint;
             deploymentOid: bigint;
@@ -528,10 +535,21 @@ class sessionTemplateProviderServiceImpl {
 
         for (let provider of groupProviders) {
           let currentVersion = provider.integrationInstanceProvider.currentVersion!;
+          let toolFilter = buildIntegrationProviderToolFilterChain({
+            canAttachCustomToolFilters: provider.integration.canAttachCustomToolFilters,
+            canOverrideToolFilters: provider.integration.canOverrideToolFilters,
+            integrationProviderToolFilter: currentVersion.integrationProviderVersion
+              .toolFilter as PrismaJson.ToolFilter | null,
+            integrationInstanceProviderToolFilter:
+              currentVersion.toolFilter as PrismaJson.ToolFilter | null,
+            integrationInstanceProviderIsOverride: currentVersion.isOverrideToolFilter,
+            integrationInstanceGroupProviderToolFilter:
+              provider.toolFilter as PrismaJson.ToolFilter | null,
+            integrationInstanceGroupProviderIsOverride: provider.isOverrideToolFilter
+          });
           let data = {
             status: 'active' as const,
-            toolFilter:
-              (provider.toolFilter as PrismaJson.ToolFilter | null) ?? allowAllToolFilter(),
+            toolFilter,
             sessionTemplateOid: d.sessionTemplate.oid,
             providerOid: provider.integrationProvider.providerOid,
             deploymentOid: currentVersion.integrationProviderVersion.deploymentOid,

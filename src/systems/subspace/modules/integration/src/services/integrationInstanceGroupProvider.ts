@@ -55,6 +55,33 @@ let stripToolFilterOverrideFlag = (
   };
 };
 
+export let resolveIntegrationInstanceGroupProviderToolFilterInput = (d: {
+  inputToolFilters?: PrismaJson.ToolFilter | null;
+  existingToolFilter?: PrismaJson.ToolFilter | null;
+  existingIsOverrideToolFilter?: boolean | null;
+}) => {
+  let inputToolFilter =
+    d.inputToolFilters === undefined
+      ? undefined
+      : d.inputToolFilters === null
+        ? null
+        : normalizeToolFilters(d.inputToolFilters);
+  let isOverrideToolFilter =
+    d.inputToolFilters === null
+      ? false
+      : (inputToolFilter?.ignoreParentFilters ?? d.existingIsOverrideToolFilter ?? false);
+  let toolFilter =
+    d.inputToolFilters === undefined
+      ? d.existingToolFilter
+        ? stripToolFilterOverrideFlag(normalizeToolFilters(d.existingToolFilter))
+        : null
+      : inputToolFilter
+        ? stripToolFilterOverrideFlag(inputToolFilter)
+        : null;
+
+  return { toolFilter, isOverrideToolFilter };
+};
+
 class integrationInstanceGroupProviderServiceImpl {
   async listIntegrationInstanceGroupProviders(d: {
     tenant: Tenant;
@@ -356,20 +383,12 @@ class integrationInstanceGroupProviderServiceImpl {
 
         let input = d.input[idx]!;
         let existing = existingBySourceProviderOid.get(sourceProvider.oid);
-        let inputToolFilter =
-          input.toolFilters === undefined
-            ? undefined
-            : normalizeToolFilters(input.toolFilters);
-        let isOverrideToolFilter =
-          inputToolFilter?.ignoreParentFilters ?? existing?.isOverrideToolFilter ?? false;
-        let toolFilter =
-          input.toolFilters === undefined
-            ? existing?.toolFilter
-              ? stripToolFilterOverrideFlag(
-                  normalizeToolFilters(existing.toolFilter as PrismaJson.ToolFilter)
-                )
-              : null
-            : stripToolFilterOverrideFlag(inputToolFilter!);
+        let { toolFilter, isOverrideToolFilter } =
+          resolveIntegrationInstanceGroupProviderToolFilterInput({
+            inputToolFilters: input.toolFilters,
+            existingToolFilter: existing?.toolFilter as PrismaJson.ToolFilter | null,
+            existingIsOverrideToolFilter: existing?.isOverrideToolFilter
+          });
 
         let groupProvider = await db.integrationInstanceGroupProvider.upsert({
           where: {

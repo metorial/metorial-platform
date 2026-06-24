@@ -222,7 +222,7 @@ export let ensureMagicMcpServerBacking = async (d: {
     }
 
     let providers = d.providers ?? undefined;
-    let backing = await (subspaceMagicMcpBackingService.upsertServer as any)({
+    let backing = await subspaceMagicMcpBackingService.upsertServer({
       instance: d.instance,
       magicMcpServerBackingId: d.server.id,
       providerTemplateBackingId,
@@ -308,7 +308,7 @@ export let ensureMagicMcpEndpointBacking = async (d: {
     }
 
     let maxSessionDurationInMinutes = await getMagicMcpSessionDuration(d.instance);
-    let backing = await (subspaceMagicMcpBackingService.upsertEndpoint as any)({
+    let backing = await subspaceMagicMcpBackingService.upsertEndpoint({
       instance: d.instance,
       magicMcpEndpointBackingId: endpoint.id,
       name: endpoint.name,
@@ -355,7 +355,7 @@ export let waitForMagicMcpServerBackingReady = async (d: {
       latest.isSubspaceBackingReconciling
     ) {
       try {
-        let backing = await (subspaceMagicMcpBackingService.getServer as any)({
+        let backing = await subspaceMagicMcpBackingService.getServer({
           instance: d.instance,
           magicMcpServerBackingId: latest.id
         });
@@ -404,7 +404,7 @@ export let waitForMagicMcpEndpointBackingReady = async (d: {
       latest.isSubspaceBackingReconciling
     ) {
       try {
-        let backing = await (subspaceMagicMcpBackingService.getEndpoint as any)({
+        let backing = await subspaceMagicMcpBackingService.getEndpoint({
           instance: d.instance,
           magicMcpEndpointBackingId: latest.id
         });

@@ -73,8 +73,7 @@ export let sessionTemplateProviderController = app.controller({
         integrationInstanceGroupIds: ctx.input.integrationInstanceGroupIds,
         integrationProviderIds: ctx.input.integrationProviderIds,
         integrationInstanceProviderIds: ctx.input.integrationInstanceProviderIds,
-        integrationInstanceGroupProviderIds:
-          ctx.input.integrationInstanceGroupProviderIds,
+        integrationInstanceGroupProviderIds: ctx.input.integrationInstanceGroupProviderIds,
 
         createdAt: ctx.input.createdAt,
         updatedAt: ctx.input.updatedAt
@@ -186,7 +185,9 @@ export let sessionTemplateProviderController = app.controller({
           solution: ctx.solution,
 
           input: {
-            toolFilters: normalizeToolFilters(ctx.input.toolFilters)
+            ...(ctx.input.toolFilters !== undefined
+              ? { toolFilters: normalizeToolFilters(ctx.input.toolFilters) }
+              : {})
           }
         });
 

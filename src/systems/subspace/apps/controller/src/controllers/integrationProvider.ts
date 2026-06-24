@@ -136,7 +136,9 @@ export let integrationProviderController = app.controller({
           name: ctx.input.name,
           description: ctx.input.description,
           metadata: ctx.input.metadata,
-          toolFilters: normalizeToolFilters(ctx.input.toolFilters)
+          ...(ctx.input.toolFilters !== undefined
+            ? { toolFilters: normalizeToolFilters(ctx.input.toolFilters) }
+            : {})
         }
       });
 
@@ -177,7 +179,9 @@ export let integrationProviderController = app.controller({
           name: ctx.input.name,
           description: ctx.input.description,
           metadata: ctx.input.metadata,
-          toolFilters: normalizeToolFilters(ctx.input.toolFilters)
+          ...(ctx.input.toolFilters !== undefined
+            ? { toolFilters: normalizeToolFilters(ctx.input.toolFilters) }
+            : {})
         }
       });
 

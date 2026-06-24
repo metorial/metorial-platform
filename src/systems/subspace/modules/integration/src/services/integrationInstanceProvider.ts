@@ -804,6 +804,40 @@ class integrationInstanceProviderServiceImpl {
     return integrationInstanceProvider;
   }
 
+  async repinIntegrationInstanceProvidersToIntegrationProviderVersion(d: {
+    integrationProviderVersionOid: bigint | null;
+    integrationInstanceProviders: {
+      oid: bigint;
+      currentVersion?: {
+        integrationProviderVersionOid: bigint;
+        configOid?: bigint | null;
+        authConfigOid?: bigint | null;
+        toolFilter?: PrismaJson.ToolFilter | null;
+        isOverrideToolFilter?: boolean | null;
+      } | null;
+    }[];
+  }) {
+    if (!d.integrationProviderVersionOid) return;
+
+    for (let integrationInstanceProvider of d.integrationInstanceProviders) {
+      let currentVersion = integrationInstanceProvider.currentVersion;
+      if (!currentVersion) continue;
+      if (currentVersion.integrationProviderVersionOid === d.integrationProviderVersionOid) {
+        continue;
+      }
+
+      await createIntegrationInstanceProviderVersion({
+        integrationInstanceProviderOid: integrationInstanceProvider.oid,
+        status: 'active',
+        integrationProviderVersionOid: d.integrationProviderVersionOid,
+        configOid: currentVersion.configOid,
+        authConfigOid: currentVersion.authConfigOid,
+        toolFilter: currentVersion.toolFilter,
+        isOverrideToolFilter: currentVersion.isOverrideToolFilter ?? false
+      });
+    }
+  }
+
   async setMagicMcpIntegrationInstanceProviders(d: {
     tenant: Tenant;
     solution: Solution;
