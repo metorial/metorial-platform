@@ -8,9 +8,18 @@ let redis = new RedisClient(process.env.REDIS_URL?.replace('rediss://', 'redis:/
 });
 
 if (process.env.NODE_ENV === 'production') {
+  let startTime = Date.now();
+  let hour = 60 * 60 * 1000;
+  let maxUptime = hour * 2 + Math.random() * hour * 1;
+
   Bun.serve({
     fetch: async _ =>
       await withTracingSuppressed(async () => {
+        let uptime = Date.now() - startTime;
+        if (uptime > maxUptime) {
+          return new Response('Service Unavailable', { status: 503 });
+        }
+
         try {
           await db.backend.count();
 
