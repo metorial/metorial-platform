@@ -7,11 +7,15 @@ import {
   mapDashboardInstanceConversationsMessagesCreateBody,
   mapDashboardInstanceConversationsMessagesCreateOutput,
   mapDashboardInstanceConversationsMessagesGetOutput,
+  mapDashboardInstanceConversationsMessagesHandoffResponsesBody,
+  mapDashboardInstanceConversationsMessagesHandoffResponsesOutput,
   mapDashboardInstanceConversationsMessagesListOutput,
   mapDashboardInstanceConversationsMessagesListQuery,
   type DashboardInstanceConversationsMessagesCreateBody,
   type DashboardInstanceConversationsMessagesCreateOutput,
   type DashboardInstanceConversationsMessagesGetOutput,
+  type DashboardInstanceConversationsMessagesHandoffResponsesBody,
+  type DashboardInstanceConversationsMessagesHandoffResponsesOutput,
   type DashboardInstanceConversationsMessagesListOutput,
   type DashboardInstanceConversationsMessagesListQuery
 } from '../resources';
@@ -133,6 +137,40 @@ export class MetorialConversationsMessagesEndpoint {
 
     return this._get(request).transform(
       mapDashboardInstanceConversationsMessagesGetOutput
+    );
+  }
+
+  /**
+   * @name Respond to assistant handoffs
+   * @description Submit one or more client handoff tool responses for a waiting message.
+   *
+   * @param `assistantConversationId` - string
+   * @param `assistantMessageId` - string
+   * @param `body` - DashboardInstanceConversationsMessagesHandoffResponsesBody
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardInstanceConversationsMessagesHandoffResponsesOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  handoffResponses(
+    assistantConversationId: string,
+    assistantMessageId: string,
+    body: DashboardInstanceConversationsMessagesHandoffResponsesBody,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceConversationsMessagesHandoffResponsesOutput> {
+    let path = `conversations/${assistantConversationId}/messages/${assistantMessageId}/handoff-responses`;
+
+    let request = {
+      path,
+      body: mapDashboardInstanceConversationsMessagesHandoffResponsesBody.transformTo(
+        body
+      ),
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._post(request).transform(
+      mapDashboardInstanceConversationsMessagesHandoffResponsesOutput
     );
   }
 }

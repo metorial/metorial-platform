@@ -24,7 +24,7 @@ import {
 
 /**
  * @name Provider Templates controller
- * @description Provider templates are reusable, consumer-facing wrappers around provider deployments.
+ * @description Provider templates are reusable, consumer-facing wrappers around integrations.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -112,7 +112,7 @@ export class MetorialManagementInstanceProviderTemplatesEndpoint {
 
   /**
    * @name Create provider template
-   * @description Creates a new provider template from an existing provider deployment or creates a minimal backing deployment first.
+   * @description Creates a new provider template from an existing integration.
    *
    * @param `instanceId` - string
    * @param `body` - DashboardInstanceProviderTemplatesCreateBody
