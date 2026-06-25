@@ -30,17 +30,17 @@ console.log(`Service running on http://localhost:${server.port}`);
 console.log(`Admin service running on http://localhost:${adminServer.port}`);
 
 if (process.env.NODE_ENV === 'production') {
-  let startTime = Date.now();
-  let hour = 60 * 60 * 1000;
-  let maxUptime = hour * 4 + Math.random() * hour * 2;
+  // let startTime = Date.now();
+  // let hour = 60 * 60 * 1000;
+  // let maxUptime = hour * 4 + Math.random() * hour * 2;
 
   Bun.serve({
     fetch: async _ =>
       await withTracingSuppressed(async () => {
-        let uptime = Date.now() - startTime;
-        if (uptime > maxUptime) {
-          return new Response('Service Unavailable', { status: 503 });
-        }
+        // let uptime = Date.now() - startTime;
+        // if (uptime > maxUptime) {
+        //   return new Response('Service Unavailable', { status: 503 });
+        // }
 
         try {
           await db.backend.count();
