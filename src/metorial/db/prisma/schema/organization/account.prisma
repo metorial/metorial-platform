@@ -1,13 +1,6 @@
-enum AccountType {
-  organization
-  // enterprise
-}
-
 model Account {
   oid BigInt @id @default(autoincrement())
   id  String @unique
-
-  type AccountType
 
   ownerOrganizationOid BigInt?
   ownerOrganization    Organization? @relation("AccountOwnerOrganization", fields: [ownerOrganizationOid], references: [oid], onDelete: Cascade)
