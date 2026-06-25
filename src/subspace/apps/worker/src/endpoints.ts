@@ -30,11 +30,13 @@ if (process.env.NODE_ENV === 'production') {
 
           let receiver = getConnectionReceiver();
           if (receiver && receiver.isReady() && !receiver.isHealthy()) {
+            console.error('Connection receiver is unhealthy');
             return new Response('Service Unavailable', { status: 503 });
           }
 
           return new Response('OK');
         } catch (e) {
+          console.error('Health check failed:', e);
           return new Response('Service Unavailable', { status: 503 });
         }
       }),
