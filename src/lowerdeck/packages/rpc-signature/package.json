@@ -1,5 +1,5 @@
 {
-  "name": "@lowerdeck/rpc-client",
+  "name": "@lowerdeck/rpc-signature",
   "version": "2.0.0",
   "publishConfig": {
     "access": "public"
@@ -27,19 +27,10 @@
     "test": "vitest run --passWithNoTests",
     "lint": "prettier src/**/*.ts --check"
   },
+  "dependencies": {},
   "devDependencies": {
     "@lowerdeck/tsconfig": "workspace:2.0.0",
-    "typescript": "^5.9.3",
-    "vitest": "^3.2.4"
-  },
-  "dependencies": {
-    "@opentelemetry/api": "^1.9.0",
-    "@lowerdeck/canonicalize": "workspace:2.0.0",
-    "@lowerdeck/error": "workspace:2.0.0",
-    "@lowerdeck/id": "workspace:2.0.0",
-    "@lowerdeck/memo": "workspace:2.0.0",
-    "@lowerdeck/proxy": "workspace:2.0.0",
-    "@lowerdeck/rpc-signature": "workspace:2.0.0",
-    "@lowerdeck/serialize": "workspace:2.0.0"
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.2"
   }
 }

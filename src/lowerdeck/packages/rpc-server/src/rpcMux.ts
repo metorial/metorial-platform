@@ -7,6 +7,7 @@ import {
 import { createExecutionContext, provideExecutionContext } from '@lowerdeck/execution-context';
 import { generateCustomId } from '@lowerdeck/id';
 import { memo } from '@lowerdeck/memo';
+import { rpcSignatureHeader, verifyRpcSignature } from '@lowerdeck/rpc-signature';
 import { getSentry } from '@lowerdeck/sentry';
 import { serialize } from '@lowerdeck/serialize';
 import {
@@ -69,6 +70,7 @@ export let rpcMux = (
   opts: {
     path: string;
     allowRootSpan?: boolean;
+    getSignatureToken?: (request: Request) => Promise<string> | string;
     cors?: {
       headers?: string[];
     } & ({ domains: string[] } | { check: (origin: string) => boolean });
@@ -118,7 +120,10 @@ export let rpcMux = (
 
       let url = new URL(req.url);
 
-      let additionalCorsHeaders = opts.cors?.headers?.join(', ');
+      let corsHeaderList = [...(opts.cors?.headers ?? [])];
+      if (opts.getSignatureToken) corsHeaderList.push(rpcSignatureHeader);
+
+      let additionalCorsHeaders = corsHeaderList.join(', ');
       if (additionalCorsHeaders) additionalCorsHeaders = `, ${additionalCorsHeaders}`.trim();
 
       let corsHeaders: Record<string, string> = corsOk
@@ -159,15 +164,48 @@ export let rpcMux = (
         );
       }
 
+      let signatureHeader = req.headers.get(rpcSignatureHeader);
+      let signatureToken: string | null = null;
+
+      if (opts.getSignatureToken) {
+        if (!signatureHeader)
+          return new Response('Unauthorized', { status: 401, headers: corsHeaders });
+
+        try {
+          signatureToken = await opts.getSignatureToken(req.clone());
+        } catch {
+          return new Response('Unauthorized', { status: 401, headers: corsHeaders });
+        }
+
+        if (!signatureToken) {
+          return new Response('Unauthorized', { status: 401, headers: corsHeaders });
+        }
+      }
+
+      let bodyText = '';
       let body: any = null;
 
       try {
-        body = serialize.decode(await req.text());
+        bodyText = await req.text();
+        body = serialize.decode(bodyText);
       } catch (e) {
         return new Response(
           JSON.stringify(notAcceptableError({ message: 'Invalid JSON' }).toResponse()),
           { status: 406 }
         );
+      }
+
+      if (
+        opts.getSignatureToken &&
+        !verifyRpcSignature({
+          token: signatureToken!,
+          method: req.method,
+          url: req.url,
+          body: bodyText,
+          signatureHeader
+        })
+      ) {
+        return new Response('Unauthorized', { status: 401, headers: corsHeaders });
       }
 
       let sentryTraceHeaders = req.headers.get('sentry-trace');
@@ -238,7 +276,7 @@ export let rpcMux = (
                         headers: req.headers,
                         query: url.searchParams,
                         body,
-                        rawBody: body,
+                        rawBody: bodyText,
                         ip,
                         requestId: id,
 

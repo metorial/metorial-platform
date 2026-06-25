@@ -37,6 +37,7 @@
     "@lowerdeck/execution-context": "workspace:2.0.0",
     "@lowerdeck/id": "workspace:2.0.0",
     "@lowerdeck/memo": "workspace:2.0.0",
+    "@lowerdeck/rpc-signature": "workspace:2.0.0",
     "@lowerdeck/sentry": "workspace:2.0.0",
     "@lowerdeck/serialize": "workspace:2.0.0",
     "@lowerdeck/telemetry": "workspace:2.0.0",

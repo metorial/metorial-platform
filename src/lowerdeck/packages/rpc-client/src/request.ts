@@ -1,5 +1,6 @@
 import { canonicalize } from '@lowerdeck/canonicalize';
 import { internalServerError, isServiceError, ServiceError } from '@lowerdeck/error';
+import { createRpcSignatureHeader, rpcSignatureHeader } from '@lowerdeck/rpc-signature';
 import { serialize } from '@lowerdeck/serialize';
 import { generateRequestId } from './shared/requester';
 import type { Call, Requester } from './shared/requester';
@@ -26,7 +27,7 @@ let calls: {
   };
 } = {};
 
-let runCalls = (
+let runCalls = async (
   call: Call,
   c: {
     call: Call;
@@ -36,23 +37,35 @@ let runCalls = (
 ) => {
   let url = new URL(call.endpoint);
   url.search = new URLSearchParams(call.query).toString();
+  let body = serialize.encode({
+    calls: c
+      .map(x => ({
+        id: x.call.id,
+        name: x.call.name,
+        payload: x.call.payload
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name))
+  });
+
+  let headers: Record<string, string> = {
+    'Content-Type': 'application/rpc+json',
+    ...c[0]!.call.headers
+  };
+
+  if (call.getSignatureToken) {
+    headers[rpcSignatureHeader] = createRpcSignatureHeader({
+      token: await call.getSignatureToken(),
+      timestamp: Date.now(),
+      method: 'POST',
+      url,
+      body
+    });
+  }
 
   fetch(url.toString(), {
     method: 'POST',
-
-    headers: {
-      'Content-Type': 'application/rpc+json',
-      ...c[0]!.call.headers
-    },
-    body: serialize.encode({
-      calls: c
-        .map(x => ({
-          id: x.call.id,
-          name: x.call.name,
-          payload: x.call.payload
-        }))
-        .sort((a, b) => a.name.localeCompare(b.name))
-    }),
+    headers,
+    body,
     credentials: 'include',
 
     // @ts-ignore
@@ -128,7 +141,7 @@ let runCalls = (
 let performRequest = (call: Call) => {
   if (isServer) {
     return new Promise((resolve, reject) => {
-      runCalls(call, [{ call, resolve, reject }]);
+      runCalls(call, [{ call, resolve, reject }]).catch(reject);
     });
   }
 
@@ -143,16 +156,13 @@ let performRequest = (call: Call) => {
 
   if (current.to) clearTimeout(current.to);
 
-  current.to = setTimeout(
-    () => {
-      let c = calls[key]!.calls;
-      calls[key]!.calls = [];
-      calls[key]!.to = null;
+  current.to = setTimeout(() => {
+    let c = calls[key]!.calls;
+    calls[key]!.calls = [];
+    calls[key]!.to = null;
 
-      runCalls(call, c);
-    },
-    10
-  );
+    runCalls(call, c).catch(e => c.forEach(x => x.reject(e)));
+  }, 10);
 
   return promise;
 };

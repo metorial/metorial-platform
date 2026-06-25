@@ -6,6 +6,7 @@ export interface ClientOpts {
   endpoint: string;
   headers?: Record<string, string | undefined>;
   getHeaders?: () => Promise<Record<string, string>> | Record<string, string>;
+  getSignatureToken?: () => Promise<string> | string;
   onRequest?: (d: {
     endpoint: string;
     name: string;
@@ -82,6 +83,7 @@ export let clientBuilder =
               payload: data,
               name: path.slice(0, -1).join(':'),
               headers,
+              getSignatureToken: clientOpts.getSignatureToken,
               query: requestOpts?.query,
               context
             });
@@ -93,6 +95,7 @@ export let clientBuilder =
               payload: data,
               name: path.join(':'),
               headers,
+              getSignatureToken: clientOpts.getSignatureToken,
               query: requestOpts?.query,
               context
             })

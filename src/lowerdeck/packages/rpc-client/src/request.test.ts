@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
+import { rpcSignatureHeader, verifyRpcSignature } from '@lowerdeck/rpc-signature';
 import { request } from './request';
 
 describe('request', () => {
@@ -66,6 +67,80 @@ describe('request', () => {
       ok: true,
       object: 'custom',
       value: 1
+    });
+  });
+
+  test('signs the final request body when a signature token provider is configured', async () => {
+    let token = 'rpc-secret';
+
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      let body = init?.body as string;
+      let headers = init?.headers as Record<string, string>;
+      let id = JSON.parse(body).calls[0].id;
+
+      expect(headers[rpcSignatureHeader]).toBeDefined();
+      expect(
+        verifyRpcSignature({
+          token,
+          method: 'POST',
+          url: String(input),
+          body,
+          signatureHeader: headers[rpcSignatureHeader]
+        })
+      ).toBe(true);
+
+      return new Response(
+        JSON.stringify({
+          __typename: 'rpc.response',
+          calls: [{ id, status: 200, result: null }]
+        }),
+        { status: 200, headers: { 'content-type': 'application/json' } }
+      );
+    });
+
+    await expect(
+      request({
+        endpoint: 'http://localhost/rpc',
+        name: 'health:check',
+        payload: {},
+        headers: {},
+        getSignatureToken: () => token,
+        context: {}
+      })
+    ).resolves.toMatchObject({
+      data: null,
+      status: 200
+    });
+  });
+
+  test('does not include a signature header when no token provider is configured', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (_input, init) => {
+      let body = JSON.parse(init?.body as string);
+      let headers = init?.headers as Record<string, string>;
+      let id = body.calls[0].id;
+
+      expect(headers[rpcSignatureHeader]).toBeUndefined();
+
+      return new Response(
+        JSON.stringify({
+          __typename: 'rpc.response',
+          calls: [{ id, status: 200, result: null }]
+        }),
+        { status: 200, headers: { 'content-type': 'application/json' } }
+      );
+    });
+
+    await expect(
+      request({
+        endpoint: 'http://localhost/rpc',
+        name: 'health:check',
+        payload: {},
+        headers: {},
+        context: {}
+      })
+    ).resolves.toMatchObject({
+      data: null,
+      status: 200
     });
   });
 });
