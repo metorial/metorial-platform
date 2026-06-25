@@ -59,7 +59,8 @@ export let createServer =
     let run = async (
       req: ServiceRequest,
       call: { id: string; name: string; payload: any },
-      reqId: string
+      reqId: string,
+      initialContext: any = {}
     ): Promise<{
       response: any;
       status: number;
@@ -79,7 +80,7 @@ export let createServer =
             };
           }
 
-          let response = await handler.run(request, {});
+          let response = await handler.run(request, initialContext);
 
           return {
             status: 200,
@@ -193,14 +194,15 @@ export let createServer =
           payload: any;
         }[];
         requestId: string;
-      }
+      },
+      initialContext: any = {}
     ): Promise<{
       status: number;
       body: any;
     }> => {
       let callRes = await Promise.all(
         body.calls.map(async (call, i) => {
-          let res = await run(req, call as any, body.requestId);
+          let res = await run(req, call as any, body.requestId, initialContext);
 
           try {
             opts.onRequest?.({

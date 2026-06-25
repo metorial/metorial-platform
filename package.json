@@ -140,6 +140,7 @@
     "@lowerdeck/redis": "workspace:2.0.0",
     "@lowerdeck/rpc-client": "workspace:2.0.0",
     "@lowerdeck/rpc-server": "workspace:2.0.0",
+    "@lowerdeck/rpc-signature": "workspace:2.0.0",
     "@lowerdeck/sentry": "workspace:2.0.0",
     "@lowerdeck/serialize": "workspace:2.0.0",
     "@lowerdeck/service": "workspace:2.0.0",

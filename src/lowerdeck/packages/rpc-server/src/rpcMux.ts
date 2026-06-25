@@ -70,7 +70,12 @@ export let rpcMux = (
   opts: {
     path: string;
     allowRootSpan?: boolean;
-    getSignatureToken?: (request: Request) => Promise<string> | string;
+    getSignatureToken?: (
+      request: Request
+    ) =>
+      | Promise<string | { secret: string; context?: Record<string, any> }>
+      | string
+      | { secret: string; context?: Record<string, any> };
     cors?: {
       headers?: string[];
     } & ({ domains: string[] } | { check: (origin: string) => boolean });
@@ -86,7 +91,8 @@ export let rpcMux = (
           name: string;
           payload: any;
         }[];
-      }
+      },
+      initialContext?: any
     ) => Promise<{
       status: number;
       body: {
@@ -166,13 +172,20 @@ export let rpcMux = (
 
       let signatureHeader = req.headers.get(rpcSignatureHeader);
       let signatureToken: string | null = null;
+      let signatureContext: Record<string, any> | undefined;
 
       if (opts.getSignatureToken) {
         if (!signatureHeader)
           return new Response('Unauthorized', { status: 401, headers: corsHeaders });
 
         try {
-          signatureToken = await opts.getSignatureToken(req.clone());
+          let signatureResult = await opts.getSignatureToken(req.clone());
+          if (typeof signatureResult == 'string') {
+            signatureToken = signatureResult;
+          } else {
+            signatureToken = signatureResult.secret;
+            signatureContext = signatureResult.context;
+          }
         } catch {
           return new Response('Unauthorized', { status: 401, headers: corsHeaders });
         }
@@ -395,10 +408,14 @@ export let rpcMux = (
                           await Promise.all(
                             Array.from(callsByRpc.entries()).map(async ([rpcIndex, calls]) => {
                               let rpc = rpcs[rpcIndex]!;
-                              let res = await rpc.runMany(request, {
-                                requestId: id,
-                                calls
-                              });
+                              let res = await rpc.runMany(
+                                request,
+                                {
+                                  requestId: id,
+                                  calls
+                                },
+                                signatureContext
+                              );
 
                               resRef.status = Math.max(resRef.status, res.status);
                               resRef.body.calls.push(...res.body.calls);

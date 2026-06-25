@@ -1,6 +1,5 @@
 {
   "lockfileVersion": 1,
-  "configVersion": 1,
   "workspaces": {
     "": {
       "name": "@metorial/oss",
@@ -1153,6 +1152,7 @@
         "@lowerdeck/id": "workspace:2.0.0",
         "@lowerdeck/memo": "workspace:2.0.0",
         "@lowerdeck/proxy": "workspace:2.0.0",
+        "@lowerdeck/rpc-signature": "workspace:2.0.0",
         "@lowerdeck/serialize": "workspace:2.0.0",
         "@opentelemetry/api": "^1.9.0",
       },
@@ -1170,6 +1170,7 @@
         "@lowerdeck/execution-context": "workspace:2.0.0",
         "@lowerdeck/id": "workspace:2.0.0",
         "@lowerdeck/memo": "workspace:2.0.0",
+        "@lowerdeck/rpc-signature": "workspace:2.0.0",
         "@lowerdeck/sentry": "workspace:2.0.0",
         "@lowerdeck/serialize": "workspace:2.0.0",
         "@lowerdeck/telemetry": "workspace:2.0.0",
@@ -1180,6 +1181,15 @@
         "@lowerdeck/tsconfig": "workspace:2.0.0",
         "typescript": "^5.9.3",
         "vitest": "^3.2.4",
+      },
+    },
+    "src/lowerdeck/packages/rpc-signature": {
+      "name": "@lowerdeck/rpc-signature",
+      "version": "2.0.0",
+      "devDependencies": {
+        "@lowerdeck/tsconfig": "workspace:2.0.0",
+        "typescript": "^5.8.3",
+        "vitest": "^3.1.2",
       },
     },
     "src/lowerdeck/packages/sentry": {
@@ -4832,6 +4842,7 @@
     "@lowerdeck/redis": "workspace:2.0.0",
     "@lowerdeck/rpc-client": "workspace:2.0.0",
     "@lowerdeck/rpc-server": "workspace:2.0.0",
+    "@lowerdeck/rpc-signature": "workspace:2.0.0",
     "@lowerdeck/sentry": "workspace:2.0.0",
     "@lowerdeck/serialize": "workspace:2.0.0",
     "@lowerdeck/service": "workspace:2.0.0",
@@ -5607,6 +5618,8 @@
     "@lowerdeck/rpc-client": ["@lowerdeck/rpc-client@workspace:src/lowerdeck/packages/rpc-client"],
 
     "@lowerdeck/rpc-server": ["@lowerdeck/rpc-server@workspace:src/lowerdeck/packages/rpc-server"],
+
+    "@lowerdeck/rpc-signature": ["@lowerdeck/rpc-signature@workspace:src/lowerdeck/packages/rpc-signature"],
 
     "@lowerdeck/sentry": ["@lowerdeck/sentry@workspace:src/lowerdeck/packages/sentry"],
 
@@ -9737,6 +9750,8 @@
     "@lowerdeck/rpc-client/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
     "@lowerdeck/rpc-server/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
+
+    "@lowerdeck/rpc-signature/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
     "@lowerdeck/shadow-id/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 

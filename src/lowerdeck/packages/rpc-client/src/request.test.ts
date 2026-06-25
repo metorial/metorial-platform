@@ -104,7 +104,56 @@ describe('request', () => {
         name: 'health:check',
         payload: {},
         headers: {},
-        getSignatureToken: () => token,
+        signature: token,
+        context: {}
+      })
+    ).resolves.toMatchObject({
+      data: null,
+      status: 200
+    });
+  });
+
+  test('includes headers paired with the signature secret', async () => {
+    let token = 'rpc-secret';
+
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      let body = init?.body as string;
+      let headers = init?.headers as Record<string, string>;
+      let id = JSON.parse(body).calls[0].id;
+
+      expect(headers['metorial-cell-id']).toBe('eu1');
+      expect(headers['metorial-cell-token-id']).toBe('cell-token-1');
+      expect(
+        verifyRpcSignature({
+          token,
+          method: 'POST',
+          url: String(input),
+          body,
+          signatureHeader: headers[rpcSignatureHeader]
+        })
+      ).toBe(true);
+
+      return new Response(
+        JSON.stringify({
+          __typename: 'rpc.response',
+          calls: [{ id, status: 200, result: null }]
+        }),
+        { status: 200, headers: { 'content-type': 'application/json' } }
+      );
+    });
+
+    await expect(
+      request({
+        endpoint: 'http://localhost/rpc',
+        name: 'health:check',
+        payload: {},
+        headers: {
+          'metorial-cell-id': 'eu1',
+          'metorial-cell-token-id': 'cell-token-1'
+        },
+        signature: {
+          secret: token
+        },
         context: {}
       })
     ).resolves.toMatchObject({

@@ -2,11 +2,18 @@ import { context as otelContext, propagation, trace } from '@opentelemetry/api';
 import { proxy } from '@lowerdeck/proxy';
 import type { Requester } from './requester';
 
+export type SignatureTokenResult =
+  | string
+  | {
+      secret: string;
+      headers?: Record<string, string>;
+    };
+
 export interface ClientOpts {
   endpoint: string;
   headers?: Record<string, string | undefined>;
   getHeaders?: () => Promise<Record<string, string>> | Record<string, string>;
-  getSignatureToken?: () => Promise<string> | string;
+  getSignatureToken?: () => Promise<SignatureTokenResult> | SignatureTokenResult;
   onRequest?: (d: {
     endpoint: string;
     name: string;
@@ -61,9 +68,12 @@ export let clientBuilder =
         }
       ) =>
         await withContext(async context => {
+          let signature = await clientOpts.getSignatureToken?.();
+
           let headers = {
             ...clientOpts.headers,
             ...(await clientOpts.getHeaders?.()),
+            ...(typeof signature == 'object' ? signature.headers : undefined),
             ...requestOpts?.headers
           };
 
@@ -83,7 +93,10 @@ export let clientBuilder =
               payload: data,
               name: path.slice(0, -1).join(':'),
               headers,
-              getSignatureToken: clientOpts.getSignatureToken,
+              signature:
+                typeof signature == 'string'
+                  ? signature
+                  : signature && { ...signature, headers: undefined },
               query: requestOpts?.query,
               context
             });
@@ -95,7 +108,10 @@ export let clientBuilder =
               payload: data,
               name: path.join(':'),
               headers,
-              getSignatureToken: clientOpts.getSignatureToken,
+              signature:
+                typeof signature == 'string'
+                  ? signature
+                  : signature && { ...signature, headers: undefined },
               query: requestOpts?.query,
               context
             })

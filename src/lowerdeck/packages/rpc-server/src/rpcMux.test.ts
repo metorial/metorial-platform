@@ -6,12 +6,18 @@ import { rpcMux } from './rpcMux';
 import { createServer } from './server';
 
 let createTestRpc = (
-  opts: { getSignatureToken?: (request: Request) => Promise<string> | string } = {}
+  opts: {
+    getSignatureToken?:
+      | ((
+          request: Request
+        ) => Promise<string | { secret: string; context?: Record<string, any> }>)
+      | ((request: Request) => string | { secret: string; context?: Record<string, any> });
+  } = {}
 ) => {
-  let app = new Group().controller({
-    ping: new Group()
+  let app = new Group<{ auth?: string }>().controller({
+    ping: new Group<{ auth?: string }>()
       .handler()
-      .do(async ctx => ({ ok: true, input: ctx.input, rawBody: ctx.rawBody }))
+      .do(async ctx => ({ ok: true, input: ctx.input, rawBody: ctx.rawBody, auth: ctx.auth }))
   });
 
   return rpcMux({ path: '/', getSignatureToken: opts.getSignatureToken }, [
@@ -106,5 +112,28 @@ describe('rpcMux signatures', () => {
 
     expect(response.status).toBe(200);
     expect(responseBody.calls[0].result.ok).toBe(true);
+  });
+
+  test('passes signature context through to handlers', async () => {
+    let rpc = createTestRpc({
+      getSignatureToken: async () => ({
+        secret: 'rpc-secret',
+        context: { auth: 'verified' }
+      })
+    });
+    let body = createRpcBody();
+    let signatureHeader = createRpcSignatureHeader({
+      token: 'rpc-secret',
+      timestamp: Date.now(),
+      method: 'POST',
+      url: 'https://example.test/rpc?batch=1',
+      body
+    });
+
+    let response = await rpc.fetch(createRpcRequest({ body, signatureHeader }));
+    let responseBody = serialize.decode(await response.text()) as any;
+
+    expect(response.status).toBe(200);
+    expect(responseBody.calls[0].result.auth).toBe('verified');
   });
 });

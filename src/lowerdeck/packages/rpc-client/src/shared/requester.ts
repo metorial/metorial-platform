@@ -16,14 +16,24 @@ export interface Call {
   payload: any;
   endpoint: string;
   headers: Record<string, string>;
-  getSignatureToken?: () => Promise<string> | string;
+  signature?:
+    | string
+    | {
+        secret: string;
+        headers?: Record<string, string | undefined>;
+      };
   query?: Record<string, string>;
 }
 
 export type Requester = (
   call: Omit<Call, 'id' | 'headers' | 'query'> & {
     headers: Record<string, string | undefined>;
-    getSignatureToken?: () => Promise<string> | string;
+    signature?:
+      | string
+      | {
+          secret: string;
+          headers?: Record<string, string | undefined>;
+        };
     query?: Record<string, string | undefined>;
     context: any;
   }
