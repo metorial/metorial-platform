@@ -1,12 +1,4 @@
-import {
-  db,
-  ID,
-  Instance,
-  MagicMcpEndpoint,
-  MagicMcpServer,
-  Prisma,
-  ProviderTemplate
-} from '@metorial/db';
+import { db, ID, Instance, MagicMcpEndpoint, MagicMcpServer, Prisma } from '@metorial/db';
 import {
   subspaceIntegrationInstanceService,
   subspaceMagicMcpBackingService
@@ -118,65 +110,6 @@ let toBackingToolFilter = (toolFilter: unknown) => {
   return toolFilter;
 };
 
-export let ensureProviderTemplateBacking = async (d: {
-  instance: Instance;
-  providerTemplate: ProviderTemplate;
-  providers?: {
-    providerId: string;
-    providerDeploymentId?: string | null;
-    providerAuthMethodId?: string | null;
-    providerAuthCredentialsId?: string | null;
-    providerConfigId?: string | null;
-    name?: string;
-    description?: string | null;
-    metadata?: Record<string, unknown> | null;
-    toolFilters?: any;
-  }[];
-  toolFilters?: any;
-}) =>
-  withLocalBackingLock(`provider-template:${d.providerTemplate.id}`, async () => {
-    let backing = await subspaceMagicMcpBackingService.reconcileProviderTemplate({
-      instance: d.instance,
-      providerTemplateId: d.providerTemplate.id,
-      name: d.providerTemplate.name,
-      description: d.providerTemplate.description,
-      metadata: d.providerTemplate.metadata as Record<string, any>,
-      providerDeploymentId: d.providerTemplate.legacyProviderDeploymentId,
-      providers: d.providers,
-      ...(d.toolFilters !== undefined ? { toolFilters: d.toolFilters } : {})
-    });
-
-    if (
-      !d.providerTemplate.hasSubspaceBacking ||
-      d.providerTemplate.subspaceIntegrationId !== backing.integrationId
-    ) {
-      return await db.providerTemplate.update({
-        where: { oid: d.providerTemplate.oid },
-        data: {
-          hasSubspaceBacking: true,
-          subspaceIntegrationId: backing.integrationId
-        }
-      });
-    }
-
-    return d.providerTemplate;
-  });
-
-export let ensureProviderTemplateBackingFromIntegration = async (d: {
-  instance: Instance;
-  providerTemplateId: string;
-  integrationId: string;
-}) =>
-  withLocalBackingLock(
-    `provider-template-integration:${d.integrationId}`,
-    async () =>
-      await subspaceMagicMcpBackingService.upsertProviderTemplateFromIntegration({
-        instance: d.instance,
-        providerTemplateId: d.providerTemplateId,
-        integrationId: d.integrationId
-      })
-  );
-
 export let ensureMagicMcpServerBacking = async (d: {
   instance: Instance;
   server: MagicMcpServer;
@@ -199,19 +132,8 @@ export let ensureMagicMcpServerBacking = async (d: {
         }),
       getMagicMcpSessionDuration(d.instance)
     ]);
-    let providerTemplateBackingId: string | null = null;
-    if (d.server.providerTemplateId) {
-      let providerTemplate = await db.providerTemplate.findFirst({
-        where: {
-          instanceOid: d.instance.oid,
-          id: d.server.providerTemplateId
-        }
-      });
-      if (providerTemplate) {
-        await ensureProviderTemplateBacking({ instance: d.instance, providerTemplate });
-        providerTemplateBackingId = providerTemplate.id;
-      }
-    }
+    let providerTemplateBackingId = d.server.providerTemplateId ?? null;
+
     let ownerIntegrationId: string | null = null;
     if (d.server.subspaceIntegrationInstanceId && !providerTemplateBackingId) {
       let integrationInstance = await subspaceIntegrationInstanceService.get({

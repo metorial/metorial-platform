@@ -17,10 +17,7 @@ import {
   type AnyAccessTagSelector
 } from '@metorial/module-access';
 import { searchProviderTemplateIds } from '@metorial/module-search';
-import {
-  ensureProviderTemplateBacking,
-  ensureProviderTemplateBackingFromIntegration
-} from '../lib/backing';
+import { subspaceMagicMcpBackingService } from '@metorial/module-subspace';
 import {
   providerTemplateArchivedQueue,
   providerTemplateCreatedQueue,
@@ -31,32 +28,12 @@ export type EnrichedProviderTemplate = ProviderTemplate & {
   subspaceIntegrationId: string | null;
 };
 
-export type ProviderTemplateProviderInput = {
-  providerId: string;
-  providerDeploymentId?: string | null;
-  providerAuthMethodId?: string | null;
-  providerAuthCredentialsId?: string | null;
-  providerConfigId?: string | null;
-  name?: string;
-  description?: string | null;
-  metadata?: Record<string, unknown> | null;
-  toolFilters?: any;
-};
-
 type ProviderTemplateCreateInput = {
   name: string;
   description?: string;
   metadata?: Record<string, unknown>;
-} & (
-  | {
-      providers: ProviderTemplateProviderInput[];
-      integrationId?: never;
-    }
-  | {
-      providers?: never;
-      integrationId: string;
-    }
-);
+  integrationId: string;
+};
 
 class ProviderTemplateServiceImpl {
   private async getActiveProviderTemplateByIntegrationId(d: {
@@ -107,14 +84,7 @@ class ProviderTemplateServiceImpl {
       });
     }
 
-    let backedProviderTemplate = providerTemplate.hasSubspaceBacking
-      ? providerTemplate
-      : await ensureProviderTemplateBacking({
-          instance: d.instance,
-          providerTemplate
-        });
-
-    return backedProviderTemplate;
+    return providerTemplate;
   }
 
   async createProviderTemplate(d: {
@@ -122,80 +92,55 @@ class ProviderTemplateServiceImpl {
     instance: Instance;
     input: ProviderTemplateCreateInput;
   }): Promise<EnrichedProviderTemplate> {
-    if (d.input.integrationId) {
-      let integrationId = d.input.integrationId;
-      let existing = await this.getActiveProviderTemplateByIntegrationId({
-        instance: d.instance,
-        integrationId
-      });
-      if (existing) return existing;
-
-      let backing = await ensureProviderTemplateBackingFromIntegration({
-        instance: d.instance,
-        providerTemplateId: await ID.generateId('providerTemplate'),
-        integrationId
-      });
-
-      existing = await this.getActiveProviderTemplateByIntegrationId({
-        instance: d.instance,
-        integrationId: backing.integrationId
-      });
-      if (existing) return existing;
-
-      try {
-        let providerTemplate = await withTransaction(async db => {
-          return await db.providerTemplate.create({
-            data: {
-              id: backing.id,
-              status: 'active',
-              name: d.input.name,
-              description: d.input.description,
-              metadata: d.input.metadata ?? {},
-              organizationOid: d.organization.oid,
-              instanceOid: d.instance.oid,
-              hasSubspaceBacking: true,
-              subspaceIntegrationId: backing.integrationId
-            }
-          });
-        });
-
-        await providerTemplateCreatedQueue.add({ providerTemplateId: providerTemplate.id });
-        return providerTemplate;
-      } catch (error) {
-        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-          let providerTemplate = await this.getProviderTemplateByIntegrationId({
-            instance: d.instance,
-            integrationId: backing.integrationId
-          });
-          if (providerTemplate) return providerTemplate;
-        }
-
-        throw error;
-      }
-    }
-
-    let providerTemplate = await withTransaction(async db => {
-      return await db.providerTemplate.create({
-        data: {
-          id: await ID.generateId('providerTemplate'),
-          status: 'active',
-          name: d.input.name,
-          description: d.input.description,
-          metadata: d.input.metadata ?? {},
-          organizationOid: d.organization.oid,
-          instanceOid: d.instance.oid
-        }
-      });
-    });
-
-    await providerTemplateCreatedQueue.add({ providerTemplateId: providerTemplate.id });
-    let backedProviderTemplate = await ensureProviderTemplateBacking({
+    let integrationId = d.input.integrationId;
+    let existing = await this.getActiveProviderTemplateByIntegrationId({
       instance: d.instance,
-      providerTemplate,
-      providers: d.input.providers
+      integrationId
+    });
+    if (existing) return existing;
+
+    let backing = await subspaceMagicMcpBackingService.upsertProviderTemplateFromIntegration({
+      instance: d.instance,
+      providerTemplateId: await ID.generateId('providerTemplate'),
+      integrationId
     });
 
-    return backedProviderTemplate;
+    existing = await this.getActiveProviderTemplateByIntegrationId({
+      instance: d.instance,
+      integrationId: backing.integrationId
+    });
+    if (existing) return existing;
+
+    try {
+      let providerTemplate = await withTransaction(async db => {
+        return await db.providerTemplate.create({
+          data: {
+            id: backing.id,
+            status: 'active',
+            name: d.input.name,
+            description: d.input.description,
+            metadata: d.input.metadata ?? {},
+            organizationOid: d.organization.oid,
+            instanceOid: d.instance.oid,
+            hasSubspaceBacking: true,
+            subspaceIntegrationId: backing.integrationId
+          }
+        });
+      });
+
+      await providerTemplateCreatedQueue.add({ providerTemplateId: providerTemplate.id });
+      return providerTemplate;
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        let providerTemplate = await this.getProviderTemplateByIntegrationId({
+          instance: d.instance,
+          integrationId: backing.integrationId
+        });
+        if (providerTemplate) return providerTemplate;
+      }
+
+      throw error;
+    }
   }
 
   async updateProviderTemplate(d: {
@@ -205,7 +150,6 @@ class ProviderTemplateServiceImpl {
       name?: string;
       description?: string;
       metadata?: Record<string, unknown>;
-      providers?: ProviderTemplateProviderInput[];
     };
   }): Promise<EnrichedProviderTemplate> {
     if (d.providerTemplate.status != 'active') {
@@ -230,13 +174,17 @@ class ProviderTemplateServiceImpl {
     });
 
     await providerTemplateUpdatedQueue.add({ providerTemplateId: providerTemplate.id });
-    let backedProviderTemplate = await ensureProviderTemplateBacking({
-      instance: d.instance,
-      providerTemplate,
-      providers: d.input.providers
-    });
+    if (providerTemplate.hasSubspaceBacking) {
+      await subspaceMagicMcpBackingService.upsertProviderTemplate({
+        instance: d.instance,
+        providerTemplateId: providerTemplate.id,
+        name: providerTemplate.name,
+        description: providerTemplate.description,
+        metadata: providerTemplate.metadata as Record<string, any>
+      });
+    }
 
-    return backedProviderTemplate;
+    return providerTemplate;
   }
 
   async archiveProviderTemplate(d: {
@@ -262,6 +210,13 @@ class ProviderTemplateServiceImpl {
         }
       });
     });
+
+    if (providerTemplate.hasSubspaceBacking) {
+      await subspaceMagicMcpBackingService.archiveProviderTemplate({
+        instance: d.instance,
+        providerTemplateBackingId: providerTemplate.id
+      });
+    }
 
     await providerTemplateArchivedQueue.add({ providerTemplateId: providerTemplate.id });
 

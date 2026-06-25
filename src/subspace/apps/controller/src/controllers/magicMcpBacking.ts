@@ -1,6 +1,6 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
-import { v, type ValidationTypeValue } from '@lowerdeck/validation';
+import { v } from '@lowerdeck/validation';
 import {
   magicMcpEndpointBackingService,
   magicMcpServerBackingService,
@@ -19,51 +19,11 @@ import { createdAtValidator, updatedAtValidator } from './_dateFilter';
 import { normalizeToolFilters, toolFiltersValidator } from './sessionProvider';
 import { tenantApp } from './tenant';
 
-type ProviderTemplateBackingProviderInput = {
-  providerId: string;
-  providerDeploymentId?: string | null;
-  providerAuthMethodId?: string | null;
-  providerAuthCredentialsId?: string | null;
-  providerConfigId?: string | null;
-  name?: string;
-  description?: string | null;
-  metadata?: Record<string, any> | null;
-  toolFilters?: PrismaJson.ToolFilter | null;
-};
-
 let backingProviderValidator = v.object({
   providerDeploymentId: v.string(),
   providerConfigId: v.optional(v.nullable(v.string())),
   providerAuthConfigId: v.optional(v.nullable(v.string())),
   toolFilters: toolFiltersValidator
-});
-
-let providerTemplateBackingProviderValidator = v.object({
-  providerId: v.string(),
-  providerDeploymentId: v.optional(v.nullable(v.string())),
-  providerAuthMethodId: v.optional(v.nullable(v.string())),
-  providerAuthCredentialsId: v.optional(v.nullable(v.string())),
-  providerConfigId: v.optional(v.nullable(v.string())),
-  name: v.optional(v.string()),
-  description: v.optional(v.nullable(v.string())),
-  metadata: v.optional(v.nullable(v.record(v.any()))),
-  toolFilters: toolFiltersValidator
-});
-
-let normalizeProviderTemplateBackingProvider = (
-  provider: ValidationTypeValue<typeof providerTemplateBackingProviderValidator>
-): ProviderTemplateBackingProviderInput => ({
-  providerId: provider.providerId!,
-  providerDeploymentId: provider.providerDeploymentId,
-  providerAuthMethodId: provider.providerAuthMethodId,
-  providerAuthCredentialsId: provider.providerAuthCredentialsId,
-  providerConfigId: provider.providerConfigId,
-  name: provider.name,
-  description: provider.description,
-  metadata: provider.metadata,
-  ...(provider.toolFilters !== undefined
-    ? { toolFilters: normalizeToolFilters(provider.toolFilters) }
-    : {})
 });
 
 let endpointServerValidator = v.object({
@@ -83,14 +43,11 @@ export let magicMcpBackingController = app.controller({
         name: v.string(),
         description: v.optional(v.nullable(v.string())),
         metadata: v.optional(v.nullable(v.record(v.any()))),
-        privateMetadata: v.optional(v.nullable(v.record(v.any()))),
-        providerDeploymentId: v.optional(v.nullable(v.string())),
-        providers: v.optional(v.array(providerTemplateBackingProviderValidator)),
-        toolFilters: toolFiltersValidator
+        privateMetadata: v.optional(v.nullable(v.record(v.any())))
       })
     )
     .do(async ctx => {
-      let backing = await providerTemplateBackingService.upsertProviderTemplateBacking({
+      let backing = await providerTemplateBackingService.updateProviderTemplateBacking({
         tenant: ctx.tenant,
         solution: ctx.solution,
         environment: ctx.environment,
@@ -99,50 +56,7 @@ export let magicMcpBackingController = app.controller({
           name: ctx.input.name,
           description: ctx.input.description,
           metadata: ctx.input.metadata,
-          privateMetadata: ctx.input.privateMetadata,
-          providerDeploymentId: ctx.input.providerDeploymentId,
-          providers: ctx.input.providers?.map(normalizeProviderTemplateBackingProvider),
-          ...(ctx.input.toolFilters !== undefined
-            ? { toolFilters: normalizeToolFilters(ctx.input.toolFilters) }
-            : {})
-        }
-      });
-
-      return providerTemplateBackingPresenter(backing);
-    }),
-
-  reconcileProviderTemplate: tenantApp
-    .handler()
-    .input(
-      v.object({
-        tenantId: v.string(),
-        environmentId: v.string(),
-        providerTemplateId: v.string(),
-        name: v.string(),
-        description: v.optional(v.nullable(v.string())),
-        metadata: v.optional(v.nullable(v.record(v.any()))),
-        privateMetadata: v.optional(v.nullable(v.record(v.any()))),
-        providerDeploymentId: v.optional(v.nullable(v.string())),
-        providers: v.optional(v.array(providerTemplateBackingProviderValidator)),
-        toolFilters: toolFiltersValidator
-      })
-    )
-    .do(async ctx => {
-      let backing = await providerTemplateBackingService.reconcileProviderTemplateBacking({
-        tenant: ctx.tenant,
-        solution: ctx.solution,
-        environment: ctx.environment,
-        input: {
-          providerTemplateId: ctx.input.providerTemplateId,
-          name: ctx.input.name,
-          description: ctx.input.description,
-          metadata: ctx.input.metadata,
-          privateMetadata: ctx.input.privateMetadata,
-          providerDeploymentId: ctx.input.providerDeploymentId,
-          providers: ctx.input.providers?.map(normalizeProviderTemplateBackingProvider),
-          ...(ctx.input.toolFilters !== undefined
-            ? { toolFilters: normalizeToolFilters(ctx.input.toolFilters) }
-            : {})
+          privateMetadata: ctx.input.privateMetadata
         }
       });
 

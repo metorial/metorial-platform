@@ -10,50 +10,12 @@ import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { providerTemplatePresenter } from '../../../presenters';
 
-let providerTemplateProviderValidator = v.object({
-  provider_id: v.string(),
-  provider_deployment_id: v.optional(v.nullable(v.string())),
-  provider_auth_method_id: v.optional(v.nullable(v.string())),
-  provider_auth_credentials_id: v.optional(v.nullable(v.string())),
-  provider_config_id: v.optional(v.nullable(v.string())),
-  name: v.optional(v.string()),
-  description: v.optional(v.nullable(v.string())),
-  metadata: v.optional(v.nullable(v.record(v.any()))),
-  tool_filters: v.optional(v.any())
-});
-
 let providerTemplateCreateBodyValidator = v.object({
   name: v.string(),
   description: v.optional(v.string()),
   metadata: v.optional(v.record(v.any())),
-  providers: v.optional(v.array(providerTemplateProviderValidator)),
-  integration_id: v.optional(v.string())
+  integration_id: v.string()
 });
-
-let normalizeProviderTemplateProviders = (
-  providers: {
-    provider_id: string;
-    provider_deployment_id?: string | null;
-    provider_auth_method_id?: string | null;
-    provider_auth_credentials_id?: string | null;
-    provider_config_id?: string | null;
-    name?: string;
-    description?: string | null;
-    metadata?: Record<string, any> | null;
-    tool_filters?: any;
-  }[]
-) =>
-  providers.map(provider => ({
-    providerId: provider.provider_id,
-    providerDeploymentId: provider.provider_deployment_id,
-    providerAuthMethodId: provider.provider_auth_method_id,
-    providerAuthCredentialsId: provider.provider_auth_credentials_id,
-    providerConfigId: provider.provider_config_id,
-    name: provider.name,
-    description: provider.description,
-    metadata: provider.metadata,
-    toolFilters: provider.tool_filters
-  }));
 
 let providerTemplateGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerTemplateId) {
@@ -78,7 +40,7 @@ export let providerTemplateController = Controller.create(
   {
     name: 'Provider Templates',
     description:
-      'Provider templates are reusable, consumer-facing wrappers around provider deployments.'
+      'Provider templates are reusable, consumer-facing wrappers around integrations.'
   },
   {
     list: instanceGroup
@@ -154,23 +116,13 @@ export let providerTemplateController = Controller.create(
       .post(instancePath('provider-templates', 'providerTemplates.create'), {
         name: 'Create provider template',
         description:
-          'Creates a new provider template from an existing provider deployment or creates a minimal backing deployment first.'
+          'Creates a new provider template from an existing integration.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.deployment:write'] }))
       .use(hasFlags(['paid-portals', 'portals-access']))
       .body('default', providerTemplateCreateBodyValidator)
       .output(providerTemplatePresenter)
       .do(async ctx => {
-        if (!!ctx.body.integration_id === !!ctx.body.providers) {
-          throw new ServiceError(
-            badRequestError({
-              message: 'Provide exactly one of providers or integration_id.',
-              description:
-                'Provider templates can be created from provider definitions or an existing integration, but not both.'
-            })
-          );
-        }
-
         let providerTemplate = await providerTemplateService.createProviderTemplate({
           organization: ctx.organization,
           instance: ctx.instance,
@@ -178,11 +130,7 @@ export let providerTemplateController = Controller.create(
             name: ctx.body.name,
             description: ctx.body.description,
             metadata: ctx.body.metadata,
-            ...(ctx.body.integration_id
-              ? { integrationId: ctx.body.integration_id }
-              : {
-                  providers: normalizeProviderTemplateProviders(ctx.body.providers!)
-                })
+            integrationId: ctx.body.integration_id
           }
         });
 
@@ -206,8 +154,7 @@ export let providerTemplateController = Controller.create(
         v.object({
           name: v.optional(v.string()),
           description: v.optional(v.string()),
-          metadata: v.optional(v.record(v.any())),
-          providers: v.optional(v.array(providerTemplateProviderValidator))
+          metadata: v.optional(v.record(v.any()))
         })
       )
       .output(providerTemplatePresenter)
@@ -218,10 +165,7 @@ export let providerTemplateController = Controller.create(
           input: {
             name: ctx.body.name,
             description: ctx.body.description,
-            metadata: ctx.body.metadata,
-            providers: ctx.body.providers
-              ? normalizeProviderTemplateProviders(ctx.body.providers)
-              : undefined
+            metadata: ctx.body.metadata
           }
         });
 
