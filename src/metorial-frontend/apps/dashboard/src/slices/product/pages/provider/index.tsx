@@ -30,11 +30,13 @@ export let ProviderOverviewPage = () => {
   let provider = useProvider(instance.data?.id, providerId);
 
   let listing = useProviderListing(instance.data?.id, providerId);
-  let providerFilterQuery = providerId ? `?providerId=${encodeURIComponent(providerId)}` : '';
+  let providerFilterQuery = providerId
+    ? `?providerId=${encodeURIComponent(provider.data?.id ?? providerId)}`
+    : '';
   let integrations = useIntegrations(
     instance.data?.id && providerId ? instance.data.id : null,
     {
-      providerId,
+      providerId: provider.data?.id ?? providerId,
       status: ['active'],
       limit: 15,
       order: 'desc'
@@ -43,7 +45,7 @@ export let ProviderOverviewPage = () => {
   let magicMcpServers = useMagicMcpServers(
     instance.data?.id && providerId ? instance.data.id : null,
     {
-      providerId,
+      providerId: provider.data?.id ?? providerId,
       status: ['active'],
       limit: 15,
       order: 'desc'
