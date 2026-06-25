@@ -11,7 +11,7 @@ let redis = new RedisClient(process.env.REDIS_URL?.replace('rediss://', 'redis:/
 if (process.env.NODE_ENV === 'production') {
   let startTime = Date.now();
   let hour = 60 * 60 * 1000;
-  let maxUptime = hour * 2 + Math.random() * hour * 1;
+  let maxUptime = hour * 10 + Math.random() * hour * 10; // 10-16 hours
 
   Bun.serve({
     fetch: async _ =>
