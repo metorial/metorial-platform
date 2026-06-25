@@ -1,0 +1,29 @@
+enum AccountType {
+  organization
+  // enterprise
+}
+
+model Account {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  type AccountType
+
+  ownerOrganizationOid BigInt?
+  ownerOrganization    Organization? @relation("AccountOwnerOrganization", fields: [ownerOrganizationOid], references: [oid], onDelete: Cascade)
+
+  rootOwnerAccountOid BigInt?
+  rootOwnerAccount    Account?  @relation("AccountRootOwnerAccount", fields: [rootOwnerAccountOid], references: [oid], onDelete: Cascade)
+  allChildAccounts    Account[] @relation("AccountRootOwnerAccount")
+
+  ownerAccountOid     BigInt?
+  ownerAccount        Account?  @relation("AccountOwnerAccount", fields: [ownerAccountOid], references: [oid], onDelete: Cascade)
+  directChildAccounts Account[] @relation("AccountOwnerAccount")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  workspaces        Workspace[]
+  namespaces        Namespace[]
+  workspaceProfiles WorkspaceProfile[]
+}

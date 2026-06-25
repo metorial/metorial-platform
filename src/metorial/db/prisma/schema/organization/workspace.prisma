@@ -1,0 +1,76 @@
+enum WorkspaceType {
+  organization
+  portal
+}
+
+model Workspace {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  type WorkspaceType
+
+  name String
+  slug String @unique
+
+  accountOid BigInt
+  account    Account @relation(fields: [accountOid], references: [oid], onDelete: Cascade)
+
+  organizationOid BigInt?       @unique
+  organization    Organization? @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  portalOid BigInt? @unique
+  portal    Portal? @relation(fields: [portalOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  sites    Site[]
+  profiles WorkspaceProfile[]
+}
+
+model GlobalProfile {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  name  String
+  email String @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  workspaceProfiles WorkspaceProfile[]
+}
+
+model WorkspaceProfile {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  name  String
+  email String
+
+  accountOid BigInt
+  account    Account @relation(fields: [accountOid], references: [oid], onDelete: Cascade)
+
+  workspaceOid BigInt
+  workspace    Workspace @relation(fields: [workspaceOid], references: [oid], onDelete: Cascade)
+
+  globalProfileOid BigInt
+  globalProfile    GlobalProfile @relation(fields: [globalProfileOid], references: [oid], onDelete: Cascade)
+
+  userOid BigInt? @unique
+  user    User?   @relation(fields: [userOid], references: [oid], onDelete: Cascade)
+
+  consumerOid BigInt?
+  consumer    Consumer? @relation(fields: [consumerOid], references: [oid], onDelete: Cascade)
+
+  instanceConsumerOid BigInt?
+  instanceConsumer    InstanceConsumer? @relation(fields: [instanceConsumerOid], references: [oid], onDelete: Cascade)
+
+  consumerProfileOid BigInt?          @unique
+  consumerProfile    ConsumerProfile? @relation(fields: [consumerProfileOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([workspaceOid, globalProfileOid])
+}

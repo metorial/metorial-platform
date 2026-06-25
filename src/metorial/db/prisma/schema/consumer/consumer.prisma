@@ -37,6 +37,7 @@ model Consumer {
   invites              ConsumerInvite[]
   createdSkills        Skill[]
   consumerSkills       ConsumerSkill[]
+  workspaceProfiles    WorkspaceProfile[]
 
   @@unique([email, organizationOid])
 }
@@ -62,9 +63,11 @@ model InstanceConsumer {
 
   isPending Boolean @default(false)
 
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @default(now()) @updatedAt
-  consumerActors ConsumerActor[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  consumerActors    ConsumerActor[]
+  workspaceProfiles WorkspaceProfile[]
 
   @@unique([instanceOid, consumerOid])
 }
@@ -129,6 +132,7 @@ model ConsumerProfile {
   invite                         ConsumerInvite?
   createdSkills                  Skill[]
   consumerSkills                 ConsumerSkill[]
+  workspaceProfile               WorkspaceProfile?
 
   @@unique([surfaceOid, aresUserId])
   @@unique([email, surfaceOid])

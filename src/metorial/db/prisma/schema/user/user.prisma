@@ -46,6 +46,7 @@ model User {
   oauthAuthorizationFlows OAuthAuthorizationFlow[]
   apiKeyCreatedEmailSends ApiKeyCreatedEmailSend[]
   apiKeyExpiredEmailSends ApiKeyExpiredEmailSend[]
+  workspaceProfile        WorkspaceProfile?
 }
 
 model UserSession {

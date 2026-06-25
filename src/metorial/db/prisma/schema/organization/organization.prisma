@@ -88,6 +88,9 @@ model Organization {
   consumerClients                ConsumerClient[]
   consumerAuthClients            ConsumerAuthClient[]
   consumerAuthTestAuthorizations ConsumerAuthTestAuthorization[]
+  workspace                      Workspace?
+  accounts                       Account[]                       @relation("AccountOwnerOrganization")
+  sites                          Site[]
 
   @@index([authVersion])
   @@index([previousSlugs])

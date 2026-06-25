@@ -1,0 +1,66 @@
+enum NamespaceVariant {
+  fixed_domain
+  custom_subdomain
+}
+
+model NamespaceType {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  variant NamespaceVariant
+
+  slug String @unique
+
+  createdAt DateTime @default(now())
+
+  namespaces Namespace[]
+}
+
+model Namespace {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  slug String @unique
+
+  domainIdentifier String?
+  isDefault        Boolean @default(false)
+
+  accountOid BigInt
+  account    Account @relation(fields: [accountOid], references: [oid], onDelete: Cascade)
+
+  typeOid BigInt
+  type    NamespaceType @relation(fields: [typeOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  compartments Site[]
+
+  @@unique([domainIdentifier, typeOid])
+}
+
+model Site {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  slug           String  @unique
+  pathIdentifier String?
+
+  namespaceOid BigInt
+  namespace    Namespace @relation(fields: [namespaceOid], references: [oid], onDelete: Cascade)
+
+  workspaceOid BigInt    @unique
+  workspace    Workspace @relation(fields: [workspaceOid], references: [oid], onDelete: Cascade)
+
+  organizationOid BigInt?
+  organization    Organization? @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  portalOid BigInt?
+  portal    Portal? @relation(fields: [portalOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([namespaceOid, workspaceOid])
+  @@unique([namespaceOid, pathIdentifier])
+}
