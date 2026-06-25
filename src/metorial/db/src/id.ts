@@ -12,6 +12,7 @@ export let ID = createIdGenerator({
   organizationInvite: idType.sorted('oin'),
   organizationActor: idType.sorted('oac'),
   organizationInviteJoin: idType.sorted('oij'),
+  account: idType.sorted('acc'),
 
   project: idType.sorted('prj'),
   projectBrand: idType.sorted('pbr'),
