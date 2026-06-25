@@ -1,0 +1,44 @@
+{
+  "name": "@metorial-services/slates-registry-internal-client",
+  "version": "1.0.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "src/**",
+    "dist/**",
+    "README.md",
+    "package.json"
+  ],
+  "author": "Tobias Herber",
+  "license": "FSL 1.1",
+  "type": "module",
+  "source": "src/index.ts",
+  "exports": {
+    "types": "./dist/index.d.ts",
+    "require": "./dist/index.cjs",
+    "import": "./dist/index.js",
+    "default": "./dist/index.js"
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "dist/index.d.ts",
+  "unpkg": "./dist/index.js",
+  "scripts": {
+    "test": "vitest run --passWithNoTests",
+    "lint": "prettier src/**/*.ts --check",
+    "build:client": "tsup src/index.ts --format cjs,esm --dts --clean --out-dir dist --no-splitting",
+    "prepublish": "bun run build:client",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@lowerdeck/rpc-client": "workspace:2.0.0"
+  },
+  "devDependencies": {
+    "dts-bundle-generator": "^9.5.1",
+    "microbundle": "^0.15.1",
+    "tsup": "^8.5.1",
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.2"
+  }
+}

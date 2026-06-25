@@ -1,0 +1,69 @@
+{
+  "name": "@metorial-platform-systems/slates-client",
+  "version": "1.0.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "src/**",
+    "dist/**",
+    "README.md",
+    "package.json"
+  ],
+  "author": "Tobias Herber",
+  "license": "FSL 1.1",
+  "type": "module",
+  "exports": {
+    "types": "./dist/index.d.ts",
+    "require": "./dist/index.cjs",
+    "import": "./dist/index.js",
+    "default": "./dist/index.js"
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "test": "vitest run --passWithNoTests",
+    "lint": "prettier src/**/*.ts --check",
+    "build": "tsup",
+    "prepublish": "bun run build",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@lowerdeck/api-key": "workspace:2.0.0",
+    "@lowerdeck/api-mux": "workspace:2.0.0",
+    "@lowerdeck/cache": "workspace:2.0.0",
+    "@lowerdeck/canonicalize": "workspace:2.0.0",
+    "@lowerdeck/cron": "workspace:2.0.0",
+    "@lowerdeck/delay": "workspace:2.0.0",
+    "@lowerdeck/encryption": "workspace:2.0.0",
+    "@lowerdeck/env": "workspace:2.0.0",
+    "@lowerdeck/error": "workspace:2.0.0",
+    "@lowerdeck/hash": "workspace:2.0.0",
+    "@lowerdeck/hono": "workspace:2.0.0",
+    "@lowerdeck/id": "workspace:2.0.0",
+    "@lowerdeck/lock": "workspace:2.0.0",
+    "@lowerdeck/once": "workspace:2.0.0",
+    "@lowerdeck/pagination": "workspace:2.0.0",
+    "@lowerdeck/programmable-promise": "workspace:2.0.0",
+    "@lowerdeck/queue": "workspace:2.0.0",
+    "@lowerdeck/rpc-client": "workspace:2.0.0",
+    "@lowerdeck/rpc-server": "workspace:2.0.0",
+    "@lowerdeck/sentry": "workspace:2.0.0",
+    "@lowerdeck/serialize": "workspace:2.0.0",
+    "@lowerdeck/service": "workspace:2.0.0",
+    "@lowerdeck/shadow-id": "workspace:2.0.0",
+    "@lowerdeck/slugify": "workspace:2.0.0",
+    "@lowerdeck/snowflake": "workspace:2.0.0",
+    "@lowerdeck/telemetry": "workspace:2.0.0",
+    "@lowerdeck/testing-tools": "workspace:2.0.0",
+    "@lowerdeck/validation": "workspace:2.0.0",
+    "@metorial-platform-systems/function-bay-client": "workspace:*"
+  },
+  "devDependencies": {
+    "tsup": "^8.5.1",
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.2",
+    "@types/minimatch": "^5"
+  }
+}

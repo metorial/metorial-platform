@@ -203,7 +203,7 @@ export let cargoServiceEnv: Env = [
   },
   {
     key: 'VOYAGER_URL',
-    defaultValue: 'http://services:52060/metorial-voyager'
+    defaultValue: 'http://localhost:52060/metorial-voyager'
   }
 ];
 
@@ -369,7 +369,7 @@ export let subspaceDevEnv: Env = [
   },
   {
     key: 'VOYAGER_URL',
-    defaultValue: 'http://services:52060/metorial-voyager'
+    defaultValue: 'http://localhost:52060/metorial-voyager'
   },
   {
     key: 'OBJECT_STORAGE_URL',
@@ -623,22 +623,32 @@ export let functionBayServiceEnv: Env = [
     key: 'FORGE_API_URL',
     defaultValue: `http://${HOSTNAME}:52020/metorial-forge`
   }
-  // {
-  //   key: 'LAMBDA_AWS_REGION',
-  //   isRequired: false
-  // },
-  // {
-  //   key: 'LAMBDA_AWS_ACCESS_KEY_ID',
-  //   isRequired: false
-  // },
-  // {
-  //   key: 'LAMBDA_AWS_SECRET_ACCESS_KEY',
-  //   isRequired: false
-  // },
-  // {
-  //   key: 'LAMBDA_EXECUTION_ROLE_ARN',
-  //   isRequired: false
-  // }
+];
+
+export let voyagerServiceEnv: Env = [
+  {
+    key: 'DATABASE_URL',
+    defaultValue: 'postgresql://postgres:postgres@localhost:35432/voyager'
+  },
+  {
+    key: 'SEARCH_DATABASE_URL',
+    defaultValue: 'postgresql://postgres:postgres@localhost:35432/voyager-search'
+  },
+  {
+    key: 'REDIS_URL',
+    defaultValue: 'redis://localhost:36379/0'
+  }
+];
+
+export let relayServiceEnv: Env = [
+  {
+    key: 'DATABASE_URL',
+    defaultValue: 'postgresql://postgres:postgres@localhost:35432/relay'
+  },
+  {
+    key: 'REDIS_URL',
+    defaultValue: 'redis://localhost:36379/0'
+  }
 ];
 
 export let aresServiceEnv: Env = [

@@ -1,0 +1,197 @@
+services:
+  postgres:
+    profiles: ['infra']
+    image: postgres:16-alpine
+    container_name: shuttle-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: shuttle
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-test-db.sh:/docker-entrypoint-initdb.d/init-test-db.sh
+    ports:
+      - '35432:5432'
+    networks:
+      - shuttle-network
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    profiles: ['infra']
+    image: redis:7-alpine
+    container_name: shuttle-redis
+    restart: unless-stopped
+    ports:
+      - '36379:6379'
+    networks:
+      - shuttle-network
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  object-storage:
+    profiles: ['infra']
+    image: ghcr.io/metorial/object-storage:latest
+    container_name: shuttle-object-storage
+    restart: unless-stopped
+    volumes:
+      - object-store-data:/app/data
+    environment:
+      RUST_LOG: info
+      OBJECT_STORE__SERVER__HOST: 0.0.0.0
+      OBJECT_STORE__SERVER__PORT: 52010
+      OBJECT_STORE__BACKEND__TYPE: ${OBJECT_STORAGE_BACKEND_TYPE:-local}
+      OBJECT_STORE__BACKEND__ROOT_PATH: ${OBJECT_STORAGE_BACKEND_ROOT_PATH:-/app/data}
+      OBJECT_STORE__BACKEND__REGION: ${OBJECT_STORAGE_AWS_REGION:-us-east-1}
+      OBJECT_STORE__BACKEND__PHYSICAL_BUCKET: ${OBJECT_STORAGE_AWS_S3_BUCKET:-shuttle-local}
+      AWS_ACCESS_KEY_ID: ${OBJECT_STORAGE_AWS_ACCESS_KEY_ID:-test}
+      AWS_SECRET_ACCESS_KEY: ${OBJECT_STORAGE_AWS_SECRET_ACCESS_KEY:-test}
+      AWS_REGION: ${OBJECT_STORAGE_AWS_REGION:-us-east-1}
+    ports:
+      - '35010:52010'
+    networks:
+      - shuttle-network
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -f http://localhost:52010/health || exit 1']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  forge:
+    profiles: ['infra']
+    image: ghcr.io/metorial/forge:latest
+    container_name: shuttle-forge
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/forge
+      REDIS_URL: redis://redis:6379/0
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+      DEFAULT_PROVIDER: aws.code-build
+      OBJECT_STORAGE_URL: http://object-storage:52010
+      LOG_BUCKET_NAME: logs
+      ARTIFACT_BUCKET_NAME: artifacts
+      CODE_BUILD_AWS_REGION: ${CODE_BUILD_AWS_REGION:-us-east-1}
+      CODE_BUILD_AWS_ACCESS_KEY_ID: ${CODE_BUILD_AWS_ACCESS_KEY_ID:-test}
+      CODE_BUILD_AWS_SECRET_ACCESS_KEY: ${CODE_BUILD_AWS_SECRET_ACCESS_KEY:-test}
+      CODE_BUILD_PROJECT_NAME: ${CODE_BUILD_PROJECT_NAME:-}
+      CODE_BUILD_ROLE_ARN: ${CODE_BUILD_ROLE_ARN:-}
+    ports:
+      - '35022:52020'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      object-storage:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -s http://localhost:52020/ > /dev/null || exit 1']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - shuttle-network
+
+  function-bay:
+    profiles: ['infra']
+    image: ghcr.io/metorial/function-bay:latest
+    container_name: shuttle-function-bay
+    restart: unless-stopped
+    ports:
+      - '35030:52030'
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/function-bay
+      REDIS_URL: redis://redis:6379/0
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+      DEFAULT_PROVIDER: ${DEFAULT_PROVIDER:-aws.lambda}
+      OBJECT_STORAGE_URL: http://object-storage:52010
+      BUNDLE_BUCKET_NAME: bundles
+      FORGE_API_URL: http://forge:52020/metorial-forge
+      LAMBDA_AWS_REGION: ${LAMBDA_AWS_REGION:-us-east-1}
+      LAMBDA_AWS_ACCESS_KEY_ID: ${LAMBDA_AWS_ACCESS_KEY_ID:-test}
+      LAMBDA_AWS_SECRET_ACCESS_KEY: ${LAMBDA_AWS_SECRET_ACCESS_KEY:-test}
+      LAMBDA_ROLE_ARN: ${LAMBDA_ROLE_ARN:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      object-storage:
+        condition: service_healthy
+      forge:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -s http://localhost:52030/ > /dev/null || exit 1']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - shuttle-network
+
+  shuttle:
+    profiles: ['service']
+    build:
+      context: ../../..
+      dockerfile: ./src/shuttle/service/dev.Dockerfile
+    container_name: shuttle-service
+    restart: unless-stopped
+    ports:
+      - '35080:52080'
+      - '35081:52081'
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      PROVIDER_OAUTH_URL: ${PROVIDER_OAUTH_URL}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+      HOLOPOD_HTTP_ENDPOINT: ${HOLOPOD_HTTP_ENDPOINT}
+      OBJECT_STORAGE_URL: ${OBJECT_STORAGE_URL}
+      LOGS_BUCKET_NAME: ${LOGS_BUCKET_NAME}
+      FUNCTION_BAY_API_URL: ${FUNCTION_BAY_API_URL}
+      FUNCTION_BAY_TENANT_IDENTIFIER: ${FUNCTION_BAY_TENANT_IDENTIFIER}
+      FUNCTION_BAY_DEFAULT_MEMORY_MB: ${FUNCTION_BAY_DEFAULT_MEMORY_MB}
+      FUNCTION_BAY_DEFAULT_TIMEOUT_SECONDS: ${FUNCTION_BAY_DEFAULT_TIMEOUT_SECONDS}
+    volumes:
+      - ./src:/app/src/shuttle/service/src:ro
+      - ./package.json:/app/src/shuttle/service/package.json:ro
+      - ./tsconfig.json:/app/src/shuttle/service/tsconfig.json:ro
+      - ./prisma:/app/src/shuttle/service/prisma
+      - ./prisma.config.ts:/app/src/shuttle/service/prisma.config.ts:ro
+      - ../sdk:/app/src/shuttle/sdk
+      - /app/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      object-storage:
+        condition: service_healthy
+      function-bay:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          "bun -e \"fetch('http://localhost:52080/').then(()=>process.exit(0)).catch(()=>process.exit(1))\""
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - shuttle-network
+
+volumes:
+  postgres_data:
+    driver: local
+  object-store-data:
+    driver: local
+
+networks:
+  shuttle-network:
+    driver: bridge

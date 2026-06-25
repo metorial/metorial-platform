@@ -1,0 +1,73 @@
+services:
+  postgres:
+    profiles: ['infra']
+    image: postgres:16-alpine
+    container_name: voyager-postgres
+    restart: unless-stopped
+    ports:
+      - '25432:5432'
+    environment:
+      POSTGRES_USER: voyager
+      POSTGRES_PASSWORD: voyager
+      POSTGRES_DB: voyager
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-test-db.sh:/docker-entrypoint-initdb.d/init-test-db.sh
+    networks:
+      - voyager-network
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U voyager']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    profiles: ['infra']
+    image: redis:7-alpine
+    container_name: voyager-redis
+    restart: unless-stopped
+    networks:
+      - voyager-network
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  voyager:
+    profiles: ['service']
+    build:
+      context: ../../..
+      dockerfile: src/voyager/service/dev.Dockerfile
+    container_name: voyager-service
+    restart: unless-stopped
+    ports:
+      - '52060:52060'
+    environment:
+      DATABASE_URL: postgresql://voyager:voyager@postgres:5432/voyager
+      SEARCH_DATABASE_URL: postgresql://voyager:voyager@postgres:5432/voyager-search
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          "bun -e \"fetch('http://localhost:52060/').then(()=>process.exit(0)).catch(()=>process.exit(1))\""
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - voyager-network
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  voyager-network:
+    driver: bridge

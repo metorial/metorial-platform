@@ -51,7 +51,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: ./src/systems/function-bay/service/Dockerfile
+          file: ./src/function-bay/service/Dockerfile
           platforms: linux/amd64
           push: false
           tags: ${{ steps.meta.outputs.tags }}
@@ -67,7 +67,7 @@ jobs:
     uses: metorial/.github/.github/workflows/reusable-e2e-tests.yml@main
     secrets: inherit
     with:
-      service_directory: src/systems/function-bay/service
+      service_directory: src/function-bay/service
       compose_project_prefix: function-bay-ci
       compose_profiles: 'infra service'
       wait_services: |
@@ -77,4 +77,4 @@ jobs:
         function-bay-forge
         function-bay-service
       test_container: function-bay-service
-      test_command: cd /app/src/systems/function-bay/service && bun run test
+      test_command: cd /app/src/function-bay/service && bun run test

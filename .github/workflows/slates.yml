@@ -23,10 +23,10 @@ jobs:
         service:
           - name: hub
             image: ghcr.io/metorial/slates-hub
-            dockerfile: ./src/systems/slates/apps/hub/Dockerfile
+            dockerfile: ./src/slates/apps/hub/Dockerfile
           - name: registry
             image: ghcr.io/metorial/slates-registry
-            dockerfile: ./src/systems/slates/apps/registry/Dockerfile
+            dockerfile: ./src/slates/apps/registry/Dockerfile
 
     steps:
       - name: Checkout repository
@@ -78,7 +78,7 @@ jobs:
     uses: metorial/.github/.github/workflows/reusable-e2e-tests.yml@main
     secrets: inherit
     with:
-      service_directory: src/systems/slates/apps/hub
+      service_directory: src/slates/apps/hub
       compose_project_prefix: slates-hub-ci
       compose_profiles: 'hub infra'
       wait_mode: healthy
@@ -91,4 +91,4 @@ jobs:
         slates-hub-function-bay
         slates-hub-registry
       test_container: slates-hub-service
-      test_command: cd /app/src/systems/slates/apps/hub && bun run test
+      test_command: cd /app/src/slates/apps/hub && bun run test

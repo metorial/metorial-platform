@@ -51,7 +51,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: ./src/systems/shuttle/service/Dockerfile
+          file: ./src/shuttle/service/Dockerfile
           # platforms: linux/amd64,linux/arm64
           platforms: linux/amd64
           push: false
@@ -68,7 +68,7 @@ jobs:
   #   uses: metorial/.github/.github/workflows/reusable-e2e-tests.yml@main
   #   secrets: inherit
   #   with:
-  #     service_directory: src/systems/shuttle/service
+  #     service_directory: src/shuttle/service
   #     compose_project_prefix: shuttle-ci
   #     compose_profiles: 'infra service'
   #     wait_services: |
@@ -79,4 +79,4 @@ jobs:
   #       shuttle-function-bay
   #       @metorial/shuttle
   #     test_container: @metorial/shuttle
-  #     test_command: cd /app/src/systems/shuttle/service && bun run test
+  #     test_command: cd /app/src/shuttle/service && bun run test

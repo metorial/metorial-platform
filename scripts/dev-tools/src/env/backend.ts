@@ -167,7 +167,7 @@ export let backendEnv: Env = [
   },
   {
     key: 'VOYAGER_URL',
-    defaultValue: 'http://services:52060/metorial-voyager'
+    defaultValue: 'http://localhost:52060/metorial-voyager'
   },
   {
     key: 'NEBULA_API_URL',

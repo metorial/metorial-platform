@@ -53,7 +53,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: ./src/systems/nebula/service/Dockerfile
+          file: ./src/nebula/service/Dockerfile
           platforms: linux/amd64
           push: false
           tags: ${{ steps.meta.outputs.tags }}
@@ -69,7 +69,7 @@ jobs:
     uses: metorial/.github/.github/workflows/reusable-e2e-tests.yml@main
     secrets: inherit
     with:
-      service_directory: src/systems/nebula/service
+      service_directory: src/nebula/service
       checkout_submodules: true
       compose_project_prefix: nebula-ci
       compose_profiles: 'infra service'
@@ -78,4 +78,4 @@ jobs:
         nebula-redis
         nebula-service
       test_container: nebula-service
-      test_command: cd /app && bun run test
+      test_command: cd /app/src/nebula/service && bun run test

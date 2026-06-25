@@ -1,0 +1,30 @@
+{
+  "name": "@metorial/layout",
+  "version": "1.0.0",
+  "author": "Tobias Herber",
+  "license": "FSL-1.1",
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "vitest run --passWithNoTests",
+    "lint": "prettier src/**/*.ts --check"
+  },
+  "dependencies": {
+    "@metorial/data-hooks": "^1.0.0",
+    "@metorial/frontend-config": "^1.0.0",
+    "@metorial/state": "^1.0.0",
+    "@metorial/ui": "^1.0.0",
+    "@radix-ui/react-popover": "^1.1.13",
+    "@remixicon/react": "^4.6.0",
+    "clsx": "^2.1.1",
+    "framer-motion": "^12.12.1",
+    "react": "19.1.1",
+    "react-router-dom": "^6.26.1",
+    "react-use": "^17.6.0",
+    "styled-components": "^6.1.13"
+  },
+  "devDependencies": {
+    "@metorial/tsconfig": "^1.0.0",
+    "typescript": "5.8.2",
+    "vitest": "^3.1.2"
+  }
+}

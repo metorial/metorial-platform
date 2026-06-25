@@ -1,0 +1,114 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: origin2-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - origin-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: origin2-redis
+    restart: unless-stopped
+    networks:
+      - origin-network
+
+  object-storage:
+    image: ghcr.io/metorial/object-storage:latest
+    volumes:
+      - object-store-data:/app/data
+    environment:
+      RUST_LOG: info
+      AWS_ACCESS_KEY_ID: ${OBJECT_STORAGE_AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${OBJECT_STORAGE_AWS_SECRET_ACCESS_KEY}
+      AWS_REGION: ${OBJECT_STORAGE_AWS_REGION}
+
+      OBJECT_STORE__SERVER__HOST: 0.0.0.0
+      OBJECT_STORE__SERVER__PORT: 52010
+      OBJECT_STORE__BACKEND__TYPE: s3
+      OBJECT_STORE__BACKEND__REGION: ${OBJECT_STORAGE_AWS_REGION}
+      OBJECT_STORE__BACKEND__PHYSICAL_BUCKET: ${OBJECT_STORAGE_AWS_S3_BUCKET}
+
+    container_name: origin2-object-storage
+    restart: unless-stopped
+    ports:
+      - '52010:52010'
+    networks:
+      - origin-network
+
+  service:
+    build:
+      context: ../..
+      dockerfile: ./src/origin/apps/service/Dockerfile.dev
+    container_name: origin2-service
+    restart: unless-stopped
+    ports:
+      - '52090:52090'  # Origin API
+      - '52093:52093'  # SCM Controller
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/postgres
+      REDIS_URL: redis://redis:6379/0
+      ORIGIN_SERVICE_PUBLIC_URL: http://localhost:52093
+      OBJECT_STORAGE_URL: http://object-storage:52010
+      CODE_BUCKET_OBJECT_STORAGE_BUCKET: code-bucket
+      CODE_BUCKET_SERVICE_URL: code-bucket:5050
+      CODE_BUCKET_EDITOR_URL: ${CODE_BUCKET_EDITOR_URL:-http://localhost:52092}
+      SCM_GITHUB_APP_ID: ${SCM_GITHUB_APP_ID}
+      SCM_GITHUB_APP_PRIVATE_KEY_BASE_64: ${SCM_GITHUB_APP_PRIVATE_KEY_BASE_64}
+      SCM_GITHUB_APP_CLIENT_ID: ${SCM_GITHUB_APP_CLIENT_ID}
+      SCM_GITHUB_APP_CLIENT_SECRET: ${SCM_GITHUB_APP_CLIENT_SECRET}
+      SCM_GITHUB_APP_SLUG: ${SCM_GITHUB_APP_SLUG}
+    volumes:
+      - ./apps/service/src:/app/src/origin/apps/service/src:ro
+      - ./apps/service/prisma:/app/src/origin/apps/service/prisma:ro
+      - ./apps/service/prisma.config.ts:/app/src/origin/apps/service/prisma.config.ts:ro
+      - ./apps/code-bucket/index.ts:/app/node_modules/@metorial/code-bucket-service-generated/index.ts:ro
+      - ./apps/code-bucket/ts-proto-gen:/app/node_modules/@metorial/code-bucket-service-generated/ts-proto-gen:ro
+    depends_on:
+      - postgres
+      - redis
+      - code-bucket
+    networks:
+      - origin-network
+
+  code-bucket:
+    build:
+      context: ./apps
+      dockerfile: ./code-bucket/Dockerfile
+    container_name: origin2-code-bucket
+    restart: unless-stopped
+    ports:
+      - '52091:52091'  # HTTP API
+      - '52092:52092'  # VSCode Workspace
+    environment:
+      CODE_BUCKET_JWT_SECRET: dev-secret-change-in-production
+      CODE_BUCKET_OBJECT_STORAGE_BUCKET: code-bucket
+      CODE_BUCKET_OBJECT_STORAGE_ENDPOINT: http://object-storage:52010
+      CODE_BUCKET_REDIS_URL: redis://redis:6379
+      CODE_BUCKET_HTTP_ADDRESS: ':52091'
+      CODE_BUCKET_WORKSPACE_ADDRESS: ':52092'
+      CODE_BUCKET_RPC_ADDRESS: ':5050'
+      CODE_BUCKET_EDITOR_API_URL: ${CODE_BUCKET_EDITOR_API_URL:-http://localhost:52091}
+    depends_on:
+      - redis
+      - object-storage
+    networks:
+      - origin-network
+
+volumes:
+  postgres_data:
+    driver: local
+  object-store-data:
+    driver: local
+
+networks:
+  origin-network:
+    driver: bridge

@@ -1,0 +1,44 @@
+{
+  "name": "@function-bay/utils",
+  "version": "1.0.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "src/**",
+    "dist/**",
+    "README.md",
+    "package.json"
+  ],
+  "author": "Tobias Herber",
+  "license": "Apache 2",
+  "type": "module",
+  "source": "src/index.ts",
+  "exports": {
+    "types": "./dist/index.d.ts",
+    "require": "./dist/index.cjs",
+    "import": "./dist/index.js",
+    "default": "./dist/index.js"
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "dist/index.d.ts",
+  "unpkg": "./dist/index.js",
+  "scripts": {
+    "test": "vitest run --passWithNoTests",
+    "lint": "prettier src/**/*.ts --check",
+    "build": "tsup src/index.ts --format cjs,esm --dts --clean --out-dir dist --no-splitting"
+  },
+  "devDependencies": {
+    "@function-bay/tsconfig": "^1.0.0",
+    "microbundle": "^0.15.1",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  },
+  "dependencies": {
+    "@lowerdeck/env": "workspace:2.0.0",
+    "@lowerdeck/validation": "workspace:2.0.0",
+    "jszip": "^3.10.1"
+  }
+}

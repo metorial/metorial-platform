@@ -423,6 +423,7 @@ export type DashboardInstanceMagicMcpServersCreateBody = {
   description?: string | undefined;
   metadata?: Record<string, any> | undefined;
   providerTemplateId?: string | undefined;
+  integrationInstanceId?: string | undefined;
   consumerProfileId?: string | undefined;
 };
 
@@ -433,6 +434,10 @@ export let mapDashboardInstanceMagicMcpServersCreateBody =
     metadata: mtMap.objectField('metadata', mtMap.passthrough()),
     providerTemplateId: mtMap.objectField(
       'provider_template_id',
+      mtMap.passthrough()
+    ),
+    integrationInstanceId: mtMap.objectField(
+      'integration_instance_id',
       mtMap.passthrough()
     ),
     consumerProfileId: mtMap.objectField(

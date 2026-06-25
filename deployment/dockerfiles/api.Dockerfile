@@ -1,5 +1,5 @@
 ARG PACKAGE_NAME=@metorial/app-api
-ARG PACKAGE_DIRECTORY=src/backend/apps/api
+ARG PACKAGE_DIRECTORY=src/metorial/services/api
 
 FROM oven/bun:1.2.20-debian AS bun_base
 
@@ -18,8 +18,8 @@ WORKDIR /app
 
 COPY /clients/metorial-dashboard ./clients/metorial-dashboard
 COPY /clients/metorial-consumer ./clients/metorial-consumer
-COPY /src/backend ./src/backend
-COPY /src/packages ./src/packages
+COPY /src/metorial ./src/metorial
+COPY /src/lowerdeck ./src/lowerdeck
 
 COPY /package.json ./package.json
 COPY /turbo.json ./turbo.json
@@ -31,7 +31,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
 
 RUN bun install
 
-# RUN bun turbo run build --filter=./oss/src/packages/** --concurrency=1 --ui=stream
+# RUN bun turbo run build --filter=./oss/src/metorial/packages/** --concurrency=1 --ui=stream
 RUN bun turbo run prisma:generate --concurrency=1 --log-prefix=task
 RUN bun turbo run oss:server:build --filter=${PACKAGE_NAME} --concurrency=1 --log-prefix=task
 
@@ -49,7 +49,7 @@ COPY /deployment/skeleton .
 
 # Copy the required prisma schema files
 # The migrations of these files will be applied by the runner
-COPY "/src/backend/db/prisma" ./prisma/oss
+COPY "/src/metorial/db/prisma" ./prisma/oss
 
 RUN apt-get update && apt-get install -y --no-install-recommends python3 python3-setuptools make g++ && rm -rf /var/lib/apt/lists/*
 

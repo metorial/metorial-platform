@@ -1,0 +1,123 @@
+services:
+  postgres:
+    profiles: ['infra']
+    image: postgres:16-alpine
+    container_name: forge-postgres
+    restart: unless-stopped
+    ports:
+      - '55432:5432'
+    environment:
+      POSTGRES_USER: forge
+      POSTGRES_PASSWORD: forge
+      POSTGRES_DB: forge
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-test-db.sh:/docker-entrypoint-initdb.d/init-test-db.sh
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U forge']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - forge-network
+
+  redis:
+    profiles: ['infra']
+    image: redis:7-alpine
+    container_name: forge-redis
+    restart: unless-stopped
+    ports:
+      - '56379:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - forge-network
+
+  object-storage:
+    profiles: ['infra']
+    image: ghcr.io/metorial/object-storage:latest
+    container_name: forge-object-storage
+    restart: unless-stopped
+    ports:
+      - '55010:52010'
+    volumes:
+      - object-store-data:/app/data
+    environment:
+      RUST_LOG: info
+      AWS_ACCESS_KEY_ID: ${OBJECT_STORAGE_AWS_ACCESS_KEY_ID:-test}
+      AWS_SECRET_ACCESS_KEY: ${OBJECT_STORAGE_AWS_SECRET_ACCESS_KEY:-test}
+      AWS_REGION: ${OBJECT_STORAGE_AWS_REGION:-us-east-1}
+      OBJECT_STORE__SERVER__HOST: 0.0.0.0
+      OBJECT_STORE__SERVER__PORT: 52010
+      OBJECT_STORE__BACKEND__TYPE: ${OBJECT_STORAGE_BACKEND_TYPE:-local}
+      OBJECT_STORE__BACKEND__ROOT_PATH: ${OBJECT_STORAGE_BACKEND_ROOT_PATH:-/app/data}
+      OBJECT_STORE__BACKEND__REGION: ${OBJECT_STORAGE_AWS_REGION:-us-east-1}
+      OBJECT_STORE__BACKEND__PHYSICAL_BUCKET: ${OBJECT_STORAGE_AWS_S3_BUCKET:-forge-local}
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -f http://localhost:52010/health || exit 1']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - forge-network
+
+  forge:
+    profiles: ['service']
+    build:
+      context: ../../..
+      dockerfile: src/forge/service/dev.Dockerfile
+    container_name: forge-service
+    restart: unless-stopped
+    ports:
+      - '55020:52020'
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql://forge:forge@postgres:5432/forge}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+      DEFAULT_PROVIDER: ${DEFAULT_PROVIDER:-aws.code-build}
+
+      OBJECT_STORAGE_URL: ${OBJECT_STORAGE_URL:-http://object-storage:52010}
+      LOG_BUCKET_NAME: ${LOG_BUCKET_NAME:-logs}
+      ARTIFACT_BUCKET_NAME: ${ARTIFACT_BUCKET_NAME:-artifacts}
+
+      CODE_BUILD_AWS_REGION: ${CODE_BUILD_AWS_REGION:-us-east-1}
+      CODE_BUILD_AWS_ACCESS_KEY_ID: ${CODE_BUILD_AWS_ACCESS_KEY_ID:-test}
+      CODE_BUILD_AWS_SECRET_ACCESS_KEY: ${CODE_BUILD_AWS_SECRET_ACCESS_KEY:-test}
+      CODE_BUILD_PROJECT_NAME: ${CODE_BUILD_PROJECT_NAME:-}
+      CODE_BUILD_ROLE_ARN: ${CODE_BUILD_ROLE_ARN:-}
+    volumes:
+      - ./src:/app/src/forge/service/src:ro
+      - ./package.json:/app/src/forge/service/package.json:ro
+      - ./tsconfig.json:/app/src/forge/service/tsconfig.json:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      object-storage:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          "bun -e \"fetch('http://localhost:52020/').then(()=>process.exit(0)).catch(()=>process.exit(1))\""
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - forge-network
+
+volumes:
+  postgres_data:
+    driver: local
+  object-store-data:
+    driver: local
+
+networks:
+  forge-network:
+    driver: bridge

@@ -11,7 +11,7 @@ export IS_INIT=true
 
 IS_ENTERPRISE=false
 
-if [ -d "../../../../federation" ]; then
+if [ -d "../../../../src/metorial" ]; then
   IS_ENTERPRISE=true
   echo "Running Metorial Enterprise"
 else

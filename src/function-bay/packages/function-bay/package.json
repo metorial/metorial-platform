@@ -1,0 +1,41 @@
+{
+  "name": "function-bay",
+  "version": "1.0.16",
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "cli.js",
+    "src/**",
+    "dist/**",
+    "README.md",
+    "package.json"
+  ],
+  "author": "Tobias Herber",
+  "license": "Apache 2",
+  "source": "src/index.ts",
+  "main": "./dist/index.cjs",
+  "bin": {
+    "function-bay": "./cli.js"
+  },
+  "scripts": {
+    "test": "vitest run --passWithNoTests",
+    "lint": "prettier src/**/*.ts --check",
+    "build": "rm -rf ./dist && tsup",
+    "prepublish": "npm run build"
+  },
+  "devDependencies": {
+    "microbundle": "^0.15.1",
+    "@function-bay/tsconfig": "^1.0.0",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4",
+    "tsup": "^8.5.1"
+  },
+  "dependencies": {
+    "@function-bay/build": "^1.0.0",
+    "@function-bay/types": "^1.0.0",
+    "@function-bay/utils": "^1.0.0",
+    "@lowerdeck/validation": "workspace:2.0.0",
+    "@types/bun": "^1.3.5"
+  }
+}

@@ -29,20 +29,7 @@ export type ManagementInstanceProviderTemplatesCreateBody = {
   name: string;
   description?: string | undefined;
   metadata?: Record<string, any> | undefined;
-  providers?:
-    | {
-        providerId: string;
-        providerDeploymentId?: string | null | undefined;
-        providerAuthMethodId?: string | null | undefined;
-        providerAuthCredentialsId?: string | null | undefined;
-        providerConfigId?: string | null | undefined;
-        name?: string | undefined;
-        description?: string | null | undefined;
-        metadata?: Record<string, any> | null | undefined;
-        toolFilters?: any | undefined;
-      }[]
-    | undefined;
-  integrationId?: string | undefined;
+  integrationId: string;
 };
 
 export let mapManagementInstanceProviderTemplatesCreateBody =
@@ -50,34 +37,6 @@ export let mapManagementInstanceProviderTemplatesCreateBody =
     name: mtMap.objectField('name', mtMap.passthrough()),
     description: mtMap.objectField('description', mtMap.passthrough()),
     metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-    providers: mtMap.objectField(
-      'providers',
-      mtMap.array(
-        mtMap.object({
-          providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-          providerDeploymentId: mtMap.objectField(
-            'provider_deployment_id',
-            mtMap.passthrough()
-          ),
-          providerAuthMethodId: mtMap.objectField(
-            'provider_auth_method_id',
-            mtMap.passthrough()
-          ),
-          providerAuthCredentialsId: mtMap.objectField(
-            'provider_auth_credentials_id',
-            mtMap.passthrough()
-          ),
-          providerConfigId: mtMap.objectField(
-            'provider_config_id',
-            mtMap.passthrough()
-          ),
-          name: mtMap.objectField('name', mtMap.passthrough()),
-          description: mtMap.objectField('description', mtMap.passthrough()),
-          metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-          toolFilters: mtMap.objectField('tool_filters', mtMap.passthrough())
-        })
-      )
-    ),
     integrationId: mtMap.objectField('integration_id', mtMap.passthrough())
   });
 

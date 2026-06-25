@@ -1,0 +1,37 @@
+{
+  "name": "@metorial-subspace/provider-slates",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "version": "1.0.0",
+  "main": "src/index.ts",
+  "scripts": {},
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@lowerdeck/cache": "workspace:2.0.0",
+    "@lowerdeck/cron": "workspace:2.0.0",
+    "@lowerdeck/delay": "workspace:2.0.0",
+    "@lowerdeck/env": "workspace:2.0.0",
+    "@lowerdeck/error": "workspace:2.0.0",
+    "@lowerdeck/hash": "workspace:2.0.0",
+    "@lowerdeck/id": "workspace:2.0.0",
+    "@lowerdeck/lock": "workspace:2.0.0",
+    "@lowerdeck/queue": "workspace:2.0.0",
+    "@lowerdeck/slugify": "workspace:2.0.0",
+    "@lowerdeck/validation": "workspace:2.0.0",
+    "@metorial-services/registry-client": "^1.0.0",
+    "@metorial-platform-systems/slates-client": "^1.0.0",
+    "@metorial-subspace/db": "^1.0.0",
+    "@metorial-subspace/module-catalog": "^1.0.0",
+    "@metorial-subspace/module-provider-internal": "^1.0.0",
+    "@metorial-subspace/provider-utils": "^1.0.0",
+    "p-queue": "^9.1.0",
+    "@lowerdeck/canonicalize": "workspace:2.0.0",
+    "@lowerdeck/case": "workspace:2.0.0"
+  }
+}

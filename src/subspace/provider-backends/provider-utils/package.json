@@ -1,0 +1,23 @@
+{
+  "name": "@metorial-subspace/provider-utils",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "version": "1.0.0",
+  "main": "src/index.ts",
+  "scripts": {},
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@lowerdeck/base62": "workspace:2.0.0",
+    "@metorial-subspace/db": "^1.0.0",
+    "@modelcontextprotocol/sdk": "^1.25.3",
+    "@lowerdeck/canonicalize": "workspace:2.0.0",
+    "@lowerdeck/hash": "workspace:2.0.0",
+    "@lowerdeck/id": "workspace:2.0.0"
+  }
+}

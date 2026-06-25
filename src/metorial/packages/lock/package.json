@@ -1,0 +1,22 @@
+{
+  "name": "@metorial/lock",
+  "version": "1.0.0",
+  "author": "Tobias Herber",
+  "license": "FSL-1.1",
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "vitest run --passWithNoTests",
+    "lint": "prettier src/**/*.ts --check"
+  },
+  "dependencies": {
+    "@lowerdeck/lock": "workspace:2.0.0",
+    "@metorial/redis": "^1.0.0",
+    "@types/bun": "^1.2.11",
+    "superjson": "^2.2.5"
+  },
+  "devDependencies": {
+    "@metorial/tsconfig": "^1.0.0",
+    "typescript": "5.8.2",
+    "vitest": "^3.1.2"
+  }
+}
