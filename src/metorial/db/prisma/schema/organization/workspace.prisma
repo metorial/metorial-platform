@@ -10,7 +10,6 @@ model Workspace {
   type WorkspaceType
 
   name String
-  slug String @unique
 
   accountOid BigInt
   account    Account @relation(fields: [accountOid], references: [oid], onDelete: Cascade)
@@ -32,13 +31,26 @@ model GlobalProfile {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
-  name  String
-  email String @unique
+  name String
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
   workspaceProfiles WorkspaceProfile[]
+  emails            GlobalProfileEmail[]
+}
+
+model GlobalProfileEmail {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  email String @unique
+
+  globalProfileOid BigInt
+  globalProfile    GlobalProfile @relation(fields: [globalProfileOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 }
 
 model WorkspaceProfile {

@@ -9,7 +9,7 @@ model NamespaceType {
 
   variant NamespaceVariant
 
-  slug String @unique
+  identifier String @unique
 
   createdAt DateTime @default(now())
 
