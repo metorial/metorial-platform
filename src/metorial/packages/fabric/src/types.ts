@@ -353,6 +353,12 @@ export interface FabricEvents {
   'workspace.updated:after':
     | { workspace: Workspace; organization: Organization }
     | { workspace: Workspace; portal: Portal };
+  'workspace.deleted:before':
+    | { workspace: Workspace; organization: Organization }
+    | { workspace: Workspace; portal: Portal };
+  'workspace.deleted:after':
+    | { workspace: Workspace; organization: Organization }
+    | { workspace: Workspace; portal: Portal };
 
   'workspace_profile.created:before':
     | { consumerProfile: ConsumerProfile }
@@ -366,11 +372,19 @@ export interface FabricEvents {
   'workspace_profile.updated:after':
     | { workspaceProfile: WorkspaceProfile; consumerProfile: ConsumerProfile }
     | { workspaceProfile: WorkspaceProfile; organizationMember: OrganizationMember };
+  'workspace_profile.deleted:before':
+    | { workspaceProfile: WorkspaceProfile; consumerProfile: ConsumerProfile }
+    | { workspaceProfile: WorkspaceProfile; organizationMember: OrganizationMember };
+  'workspace_profile.deleted:after':
+    | { workspaceProfile: WorkspaceProfile; consumerProfile: ConsumerProfile }
+    | { workspaceProfile: WorkspaceProfile; organizationMember: OrganizationMember };
 
   'consumer.profile.created:before': { surface: ConsumerSurface };
   'consumer.profile.created:after': { consumerProfile: ConsumerProfile, surface: ConsumerSurface };
   'consumer.profile.updated:before': { consumerProfile: ConsumerProfile, surface: ConsumerSurface };
   'consumer.profile.updated:after': { consumerProfile: ConsumerProfile, surface: ConsumerSurface };
+  'consumer.profile.deleted:before': { consumerProfile: ConsumerProfile, surface: ConsumerSurface };
+  'consumer.profile.deleted:after': { consumerProfile: ConsumerProfile, surface: ConsumerSurface };
 
   'consumer.auth_tenant.created:before': { organization: Organization; instance: Instance };
   'consumer.auth_tenant.created:after': { organization: Organization, consumerAuthTenant: ConsumerAuthTenant, consumerSurface: ConsumerSurface };

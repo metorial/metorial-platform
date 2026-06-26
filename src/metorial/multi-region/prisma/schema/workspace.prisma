@@ -1,0 +1,14 @@
+enum WorkspaceType {
+  organization
+  portal
+}
+
+model Workspace {
+  id String @id
+
+  type WorkspaceType
+  name String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}

@@ -107,7 +107,8 @@ class ConsumerOAuthTestAuthorizationService {
     let consumerProfile = await db.consumerProfile.findFirst({
       where: {
         id: d.input.consumerProfileId,
-        instanceOid: d.instance.oid
+        instanceOid: d.instance.oid,
+        status: 'active'
       },
       include: {
         surface: {

@@ -78,9 +78,16 @@ enum ConsumerProfileInviteStatus {
   accepted
 }
 
+enum ConsumerProfileStatus {
+  active
+  deleted
+}
+
 model ConsumerProfile {
   oid BigInt @id @default(autoincrement())
   id  String @unique
+
+  status ConsumerProfileStatus @default(active)
 
   aresUserId   String?
   ssoGroupIds  String[]                    @default([])
@@ -114,8 +121,9 @@ model ConsumerProfile {
   personalConsumerGroupOid BigInt        @unique
   personalConsumerGroup    ConsumerGroup @relation("ConsumerProfilePersonalGroup", fields: [personalConsumerGroupOid], references: [oid], onDelete: Cascade)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
 
   consumerSessions               ConsumerSession[]
   groups                         ConsumerProfileGroup[]

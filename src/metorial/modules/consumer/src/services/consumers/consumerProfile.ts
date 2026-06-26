@@ -1,4 +1,5 @@
 import { conflictError, notFoundError, ServiceError } from '@lowerdeck/error';
+import { generatePlainId } from '@lowerdeck/id';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
@@ -74,6 +75,16 @@ export let ensureProfileLock = createLock({
 });
 
 class ConsumerProfileServiceImpl {
+  private ensureConsumerProfileActive(consumerProfile: Pick<ConsumerProfile, 'status'>) {
+    if (consumerProfile.status != 'active') {
+      throw new ServiceError(
+        conflictError({
+          message: 'Consumer profile is already deleted.'
+        })
+      );
+    }
+  }
+
   private async getAssignableGroupsOrThrow(d: {
     consumerProfile: Pick<ConsumerProfile, 'surfaceOid'>;
     groupIds: string[];
@@ -198,7 +209,8 @@ class ConsumerProfileServiceImpl {
     let consumerProfile = await db.consumerProfile.findFirst({
       where: {
         surfaceOid: d.consumerSurface.oid,
-        id: d.consumerProfileId
+        id: d.consumerProfileId,
+        status: 'active'
       },
       include
     });
@@ -302,6 +314,7 @@ class ConsumerProfileServiceImpl {
 
     let andParts: Prisma.ConsumerProfileWhereInput[] = [
       { surfaceOid: d.consumerSurface.oid },
+      { status: 'active' },
       ...(groupMembershipWhere ? [groupMembershipWhere] : []),
       ...(inviteStatusWhere ? [inviteStatusWhere] : []),
       ...(emails?.length ? [{ email: { in: emails } }] : []),
@@ -342,7 +355,8 @@ class ConsumerProfileServiceImpl {
       where: {
         instanceOid: d.consumer.instanceOid,
         consumerOid: d.consumer.consumerOid,
-        id: d.consumerProfileId
+        id: d.consumerProfileId,
+        status: 'active'
       },
       include
     });
@@ -362,7 +376,8 @@ class ConsumerProfileServiceImpl {
           ...opts,
           where: {
             instanceOid: d.consumer.instanceOid,
-            consumerOid: d.consumer.consumerOid
+            consumerOid: d.consumer.consumerOid,
+            status: 'active'
           },
           include
         });
@@ -390,7 +405,8 @@ class ConsumerProfileServiceImpl {
     let consumerProfile = await db.consumerProfile.findFirst({
       where: {
         instanceOid: d.instance.oid,
-        id: d.consumerProfileId
+        id: d.consumerProfileId,
+        status: 'active'
       },
       include
     });
@@ -413,6 +429,7 @@ class ConsumerProfileServiceImpl {
       consumerProfiles: await db.consumerProfile.findMany({
         where: {
           instanceOid: d.instance.oid,
+          status: 'active',
           id: {
             in: d.consumerProfileIds
           }
@@ -429,6 +446,43 @@ class ConsumerProfileServiceImpl {
       name: d.name,
       rejectIfActiveProfileExists: true
     });
+  }
+
+  async deleteConsumerProfile(d: { consumerProfile: ConsumerProfileWithRelations }) {
+    this.ensureConsumerProfileActive(d.consumerProfile);
+
+    let consumerProfile = await withTransaction(async db => {
+      await Fabric.fire('consumer.profile.deleted:before', {
+        consumerProfile: d.consumerProfile,
+        surface: d.consumerProfile.surface
+      });
+
+      let consumerProfile = await db.consumerProfile.update({
+        where: {
+          oid: d.consumerProfile.oid
+        },
+        data: {
+          status: 'deleted',
+          deletedAt: new Date(),
+          name: '[deleted]',
+          email: `${generatePlainId()}@deleted.metorial.com`
+        },
+        include
+      });
+
+      await Fabric.fire('consumer.profile.deleted:after', {
+        consumerProfile,
+        surface: consumerProfile.surface
+      });
+
+      return consumerProfile;
+    });
+
+    await consumerProfileUpdatedQueue.add({
+      consumerProfileId: consumerProfile.id
+    });
+
+    return await this.enrichConsumerProfile({ consumerProfile });
   }
 
   async ensureConsumerProfile(d: {
@@ -497,10 +551,15 @@ class ConsumerProfileServiceImpl {
                   surfaceOid: d.surface.oid
                 }
               ]
-            }
+            },
+            include: { surface: { include: { portal: true } } }
           });
           if (existingProfile) {
-            if (d.rejectIfActiveProfileExists && existingProfile.inviteStatus != 'invited') {
+            if (
+              d.rejectIfActiveProfileExists &&
+              existingProfile.status == 'active' &&
+              existingProfile.inviteStatus != 'invited'
+            ) {
               throw new ServiceError(
                 conflictError({
                   message: 'Consumer already has an active profile for this portal.'
@@ -522,6 +581,7 @@ class ConsumerProfileServiceImpl {
                 oid: existingProfile.oid
               },
               data: {
+                status: 'active',
                 aresUserId: d.aresUserId,
                 email: d.email,
                 name: d.name,
@@ -530,6 +590,7 @@ class ConsumerProfileServiceImpl {
                 organizationMemberOid: d.member?.oid ?? instanceConsumer.organizationMemberOid,
                 organizationActorOid:
                   d.member?.actorOid ?? instanceConsumer.organizationActorOid,
+                deletedAt: null,
                 ssoGroupIds,
                 ssoRoles
               },
@@ -596,6 +657,7 @@ class ConsumerProfileServiceImpl {
             consumerProfile: await db.consumerProfile.create({
               data: {
                 id: await ID.generateId('consumerProfile'),
+                status: 'active',
                 aresUserId: d.aresUserId,
                 email: d.email,
                 name: d.name,

@@ -126,6 +126,7 @@ class ConsumerAuthServiceImpl {
           in: ['pending', 'accepted']
         },
         consumerProfile: {
+          status: 'active',
           email: {
             equals: email,
             mode: 'insensitive'

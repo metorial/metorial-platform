@@ -148,6 +148,32 @@ export let portalConsumerProfileController = Controller.create(
         });
       }),
 
+    delete: consumerProfileGroup
+      .delete(
+        instancePath(
+          'portals/:portalId/consumer-profile/:consumerProfileId',
+          'portals.consumerProfiles.delete'
+        ),
+        {
+          name: 'Delete portal consumer profile',
+          description: 'Soft-deletes a portal consumer profile.'
+        }
+      )
+      .use(checkAccess({ possibleScopes: ['instance.portal.consumers:write'] }))
+      .use(hasFlags(['paid-portals', 'portals-access']))
+      .output(consumerProfilePresenter)
+      .do(async ctx => {
+        let consumerProfile = await consumerProfileService.deleteConsumerProfile({
+          consumerProfile: ctx.consumerProfile
+        });
+
+        return consumerProfilePresenter.present({
+          consumerProfile,
+          instanceConsumer: consumerProfile.instanceConsumer,
+          assignedConsumerGroups: []
+        });
+      }),
+
     assignGroups: consumerProfileGroup
       .post(
         instancePath(

@@ -105,6 +105,7 @@ class ConsumerAccessRequestServiceImpl {
             await db.consumerProfile.findMany({
               where: {
                 surfaceOid: d.consumerSurface.oid,
+                status: 'active',
                 consumer: {
                   instanceConsumers: {
                     some: {
@@ -129,6 +130,7 @@ class ConsumerAccessRequestServiceImpl {
       ? await db.consumerProfile.findMany({
           where: {
             surfaceOid: d.consumerSurface.oid,
+            status: 'active',
             id: {
               in: d.consumerProfileIds
             }

@@ -51,7 +51,8 @@ let getInclude = (d: { instanceOid: bigint }) => ({
       organizationMember: true,
       profiles: {
         where: {
-          instanceOid: d.instanceOid
+          instanceOid: d.instanceOid,
+          status: 'active' as const
         },
         include: {
           surface: true
@@ -248,7 +249,8 @@ class ConsumerServiceImpl {
       await db.consumerProfile.updateMany({
         where: {
           instanceOid: d.instance.oid,
-          consumerOid: consumer.oid
+          consumerOid: consumer.oid,
+          status: 'active'
         },
         data: {
           name: d.input.name,
@@ -318,7 +320,8 @@ class ConsumerServiceImpl {
       await db.consumerProfile.updateMany({
         where: {
           instanceOid: d.consumer.instanceOid,
-          consumerOid: d.consumer.consumerOid
+          consumerOid: d.consumer.consumerOid,
+          status: 'active'
         },
         data: {
           name,
@@ -427,6 +430,7 @@ class ConsumerServiceImpl {
     let hasActiveProfiles = await db.consumerProfile.count({
       where: {
         consumerOid: d.consumer.oid,
+        status: 'active',
         inviteStatus: {
           in: activeInviteStatuses
         }
@@ -436,6 +440,7 @@ class ConsumerServiceImpl {
       where: {
         consumerOid: d.consumer.oid,
         instanceOid: d.instance.oid,
+        status: 'active',
         inviteStatus: {
           in: activeInviteStatuses
         }

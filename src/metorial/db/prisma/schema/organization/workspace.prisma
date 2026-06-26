@@ -3,11 +3,18 @@ enum WorkspaceType {
   portal
 }
 
+enum WorkspaceStatus {
+  active
+  archived
+  deleted
+}
+
 model Workspace {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
   type WorkspaceType
+  status WorkspaceStatus @default(active)
 
   name String
 
@@ -20,6 +27,7 @@ model Workspace {
   portalOid BigInt? @unique
   portal    Portal? @relation(fields: [portalOid], references: [oid], onDelete: Cascade)
 
+  deletedAt DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
@@ -53,9 +61,16 @@ model GlobalProfileEmail {
   updatedAt DateTime @default(now()) @updatedAt
 }
 
+enum WorkspaceProfileStatus {
+  active
+  deleted
+}
+
 model WorkspaceProfile {
   oid BigInt @id @default(autoincrement())
   id  String @unique
+
+  status WorkspaceProfileStatus @default(active)
 
   name  String
   email String
@@ -84,6 +99,7 @@ model WorkspaceProfile {
   consumerProfileOid BigInt?          @unique
   consumerProfile    ConsumerProfile? @relation(fields: [consumerProfileOid], references: [oid], onDelete: Cascade)
 
+  deletedAt DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 

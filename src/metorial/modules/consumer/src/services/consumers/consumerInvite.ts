@@ -169,6 +169,7 @@ class ConsumerInviteServiceImpl {
     if (emails?.length) {
       andParts.push({
         consumerProfile: {
+          status: 'active',
           email: {
             in: emails
           }
