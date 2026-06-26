@@ -25,6 +25,63 @@ const NO_OUTPUT_ERROR = {
   data: { code: 'no_result', message: 'Provided did not return a result' }
 } satisfies PrismaJson.SessionMessageOutput;
 
+let connectionReceiver:
+  | (ReturnType<typeof conduit.createConduitReceiver> & { started: Promise<void> })
+  | null = null;
+let connectionReceiverHealthInterval: Timer | null = null;
+let lastConnectionReceiverHealthState: { ready: boolean; healthy: boolean } | null = null;
+
+export let getConnectionReceiver = () => connectionReceiver;
+
+let stopConnectionReceiverHealthLogging = () => {
+  if (connectionReceiverHealthInterval) {
+    clearInterval(connectionReceiverHealthInterval);
+    connectionReceiverHealthInterval = null;
+  }
+};
+
+let startConnectionReceiverHealthLogging = (
+  receiver: ReturnType<typeof conduit.createConduitReceiver>
+) => {
+  stopConnectionReceiverHealthLogging();
+  lastConnectionReceiverHealthState = null;
+
+  connectionReceiverHealthInterval = setInterval(() => {
+    let ready = receiver.isReady();
+    let healthy = receiver.isHealthy();
+    let previous = lastConnectionReceiverHealthState;
+    lastConnectionReceiverHealthState = { ready, healthy };
+
+    if (!previous || (previous.ready === ready && previous.healthy === healthy)) {
+      return;
+    }
+
+    let stats = receiver.getStats();
+    let handledTopics = receiver.getHandledTopics();
+    let ownedTopics = receiver.getOwnedTopics();
+    let summary =
+      `receiverId=${receiver.getReceiverId()} ready=${ready} healthy=${healthy} ` +
+      `ownedTopics=${ownedTopics.length} handledTopics=${handledTopics.length} ` +
+      `inFlight=${stats.inFlight} processing=${stats.processing} ` +
+      `slotsAvail=${stats.handlerSlotsAvailable} waiting=${stats.handlerWaiting} ` +
+      `dispatched=${stats.dispatched} shed=${stats.shed} ` +
+      `ceilingAborts=${stats.ceilingAborts} dedupHits=${stats.dedupHits} ` +
+      `orphaned=${stats.orphaned} orphanedTotal=${stats.orphanedTotal} ` +
+      `sinceProgressMs=${Date.now() - stats.lastProgressAt}`;
+
+    if (previous.healthy && !healthy) {
+      console.error(
+        `CONNECTION.receiver.unhealthy ${summary} ownedTopicList=${JSON.stringify(ownedTopics)} handledTopicList=${JSON.stringify(handledTopics)}`
+      );
+      return;
+    }
+
+    if (!previous.healthy && healthy) {
+      console.warn(`CONNECTION.receiver.recovered ${summary}`);
+    }
+  }, 1000);
+};
+
 export let startReceiver = () => {
   let receiver = conduit.createConduitReceiver(async ctx => {
     ctx.extendTtl(1000 * 60);
@@ -330,6 +387,10 @@ export let startReceiver = () => {
   started.catch(err => {
     console.error('Error starting Connection Controller receiver:', err);
   });
+  started.then(() => {
+    startConnectionReceiverHealthLogging(receiver);
+  });
 
-  return Object.assign(receiver, { started });
+  connectionReceiver = Object.assign(receiver, { started });
+  return connectionReceiver;
 };

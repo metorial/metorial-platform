@@ -23,6 +23,7 @@ model Cell {
   globalLeases                      GlobalLease[]
   cellTokens                        CellToken[]
   workspaces                        Workspace[]
+  instances                         Instance[]
 }
 
 model CellToken {

@@ -1,23 +1,17 @@
-import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
-import { Hash } from '@lowerdeck/hash';
+import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import { slugify } from '@lowerdeck/slugify';
 import {
   db,
   type Environment,
-  type Integration,
-  type IntegrationProvider,
   snowflake,
   type Solution,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
 import { integrationService } from '../integration';
-import { integrationProviderService, MAX_INTEGRATION_PROVIDERS } from '../integrationProvider';
-import { reconcileMagicMcpServerProvidersForBacking } from './serverProvider';
 import { magicMcpProviderTemplateBackingInclude, withMagicMcpBackingLock } from './shared';
 
-type UpsertProviderTemplateBackingInput = {
+type UpdateProviderTemplateBackingInput = {
   tenant: Tenant;
   solution: Solution;
   environment: Environment;
@@ -27,9 +21,6 @@ type UpsertProviderTemplateBackingInput = {
     description?: string | null;
     metadata?: Record<string, any> | null;
     privateMetadata?: Record<string, any> | null;
-    providerDeploymentId?: string | null;
-    toolFilters?: PrismaJson.ToolFilter | null;
-    providers?: ProviderTemplateBackingProviderInput[];
   };
 };
 
@@ -43,186 +34,42 @@ type UpsertProviderTemplateBackingFromIntegrationInput = {
   };
 };
 
-type ProviderTemplateBackingProviderInput = {
-  providerId: string;
-  providerDeploymentId?: string | null;
-  providerAuthMethodId?: string | null;
-  providerAuthCredentialsId?: string | null;
-  providerConfigId?: string | null;
-  name?: string;
-  description?: string | null;
-  metadata?: Record<string, any> | null;
-  toolFilters?: PrismaJson.ToolFilter | null;
-};
-
 class providerTemplateBackingServiceImpl {
-  private normalizeProviderInput(providerInput: ProviderTemplateBackingProviderInput) {
-    return {
-      ...providerInput,
-      providerDeploymentId: providerInput.providerDeploymentId ?? undefined,
-      providerAuthMethodId: providerInput.providerAuthMethodId ?? undefined,
-      providerAuthCredentialsId: providerInput.providerAuthCredentialsId ?? undefined,
-      providerConfigId: providerInput.providerConfigId ?? undefined,
-      description:
-        providerInput.description === undefined ? undefined : providerInput.description,
-      metadata: providerInput.metadata ?? undefined
-    };
-  }
+  async updateProviderTemplateBacking(d: UpdateProviderTemplateBackingInput) {
+    await withMagicMcpBackingLock(
+      `provider_template:${d.input.providerTemplateId}`,
+      async () => {
+        let existing = await db.providerTemplateBacking.findUnique({
+          where: { id: d.input.providerTemplateId },
+          include: magicMcpProviderTemplateBackingInclude
+        });
+        if (!existing) {
+          throw new ServiceError(
+            notFoundError('provider_template', d.input.providerTemplateId)
+          );
+        }
 
-  private async syncIntegrationProviders(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    integration: Integration;
-    providers: ProviderTemplateBackingProviderInput[];
-  }) {
-    if (d.providers.length > MAX_INTEGRATION_PROVIDERS) {
-      throw new ServiceError(
-        badRequestError({
-          message: `Cannot associate more than ${MAX_INTEGRATION_PROVIDERS} providers to an integration`
-        })
-      );
-    }
-
-    let existing = await db.integrationProvider.findMany({
-      where: {
-        integrationOid: d.integration.oid
-      },
-      include: {
-        provider: true
-      }
-    });
-    let existingByProviderId = new Map(
-      existing.map(provider => [provider.provider.id, provider])
-    );
-    let touchedProviderIds = new Set<string>();
-
-    for (let providerInput of d.providers) {
-      touchedProviderIds.add(providerInput.providerId);
-      let existingProvider = existingByProviderId.get(providerInput.providerId);
-
-      if (existingProvider?.status === 'active') {
-        await integrationProviderService.updateIntegrationProvider({
+        await integrationService.updateIntegration({
           tenant: d.tenant,
           solution: d.solution,
           environment: d.environment,
-          integrationProvider: existingProvider as IntegrationProvider,
-          input: this.normalizeProviderInput(providerInput)
-        });
-        continue;
-      }
-
-      await integrationProviderService.createIntegrationProvider({
-        tenant: d.tenant,
-        solution: d.solution,
-        environment: d.environment,
-        integration: d.integration,
-        input: {
-          ...this.normalizeProviderInput(providerInput),
-          description: providerInput.description ?? undefined
-        }
-      });
-    }
-
-    for (let existingProvider of existing) {
-      if (touchedProviderIds.has(existingProvider.provider.id)) continue;
-      if (existingProvider.status !== 'active') continue;
-
-      await integrationProviderService.archiveIntegrationProvider({
-        tenant: d.tenant,
-        solution: d.solution,
-        environment: d.environment,
-        integrationProvider: existingProvider
-      });
-    }
-  }
-
-  async upsertProviderTemplateBacking(d: UpsertProviderTemplateBackingInput) {
-    await withMagicMcpBackingLock(
-      `provider_template:${d.input.providerTemplateId}`,
-      async () =>
-        await withTransaction(async db => {
-          let existing = await db.providerTemplateBacking.findUnique({
-            where: { id: d.input.providerTemplateId },
-            include: magicMcpProviderTemplateBackingInclude
-          });
-
-          let hasProvidersWithoutConfig =
-            !!d.input.providers && d.input.providers.some(p => !p.providerConfigId);
-
-          let integration = await integrationService.upsertMagicMcpIntegration({
-            tenant: d.tenant,
-            solution: d.solution,
-            environment: d.environment,
-            integration: existing?.integration,
-            input: {
-              slug: `template-${slugify(d.input.name)}-${(await Hash.sha256(d.input.providerTemplateId)).slice(0, 6)}`,
-              name: d.input.name,
-              description: d.input.description,
-              metadata: d.input.metadata,
-              privateMetadata: d.input.privateMetadata,
-              canAttachCustomToolFilters: true,
-              canAttachCustomProviderConfig: hasProvidersWithoutConfig,
-              canOverrideToolFilters: false
-            }
-          });
-
-          await db.providerTemplateBacking.upsert({
-            where: { id: d.input.providerTemplateId },
-            create: {
-              oid: snowflake.nextId(),
-              id: d.input.providerTemplateId,
-              integrationOid: integration.oid
-            },
-            update: {
-              integrationOid: integration.oid
-            }
-          });
-
-          if (d.input.providers) {
-            await this.syncIntegrationProviders({
-              tenant: d.tenant,
-              solution: d.solution,
-              environment: d.environment,
-              integration,
-              providers: d.input.providers
-            });
-          } else if (d.input.providerDeploymentId) {
-            await integrationProviderService.ensureIntegrationProviderForDeployment({
-              tenant: d.tenant,
-              solution: d.solution,
-              environment: d.environment,
-              integration,
-              input: {
-                providerDeploymentId: d.input.providerDeploymentId,
-                toolFilters: d.input.toolFilters
-              }
-            });
+          integration: existing.integration,
+          input: {
+            name: d.input.name,
+            description: d.input.description,
+            metadata: d.input.metadata,
+            privateMetadata: d.input.privateMetadata
           }
-        })
+        });
+      }
     );
 
-    let backing = await db.providerTemplateBacking.findUniqueOrThrow({
-      where: { id: d.input.providerTemplateId },
-      include: magicMcpProviderTemplateBackingInclude
+    return await this.getProviderTemplateBackingById({
+      tenant: d.tenant,
+      solution: d.solution,
+      environment: d.environment,
+      providerTemplateBackingId: d.input.providerTemplateId
     });
-
-    let linkedBackings = await db.magicMcpServerBacking.findMany({
-      where: {
-        providerTemplateBackingOid: backing.oid
-      },
-      select: { id: true }
-    });
-    for (let linkedBacking of linkedBackings) {
-      await reconcileMagicMcpServerProvidersForBacking({
-        tenant: d.tenant,
-        solution: d.solution,
-        environment: d.environment,
-        magicMcpServerBackingId: linkedBacking.id
-      });
-    }
-
-    return backing;
   }
 
   async upsertProviderTemplateBackingFromIntegration(
@@ -336,10 +183,6 @@ class providerTemplateBackingServiceImpl {
       },
       include: magicMcpProviderTemplateBackingInclude
     });
-  }
-
-  async reconcileProviderTemplateBacking(d: UpsertProviderTemplateBackingInput) {
-    return await this.upsertProviderTemplateBacking(d);
   }
 
   async archiveProviderTemplateBacking(d: {

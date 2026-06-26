@@ -28,14 +28,21 @@ import { generateCode } from '@metorial/id';
 import { differenceInMinutes } from 'date-fns';
 import { syncSubspaceTenantQueue } from '../queues/syncSubspaceTenant';
 
-let getInstanceSlug = createSlugGenerator(
-  async slug =>
-    !(await db.instance.findFirst({
-      where: {
-        OR: [{ slug }, { oldSlug: slug }, { previousSlugs: { has: slug } }]
-      }
-    }))
-);
+let getInstanceSlug = createSlugGenerator(async slug => {
+  let instance = await db.instance.findFirst({
+    where: {
+      OR: [{ slug }, { oldSlug: slug }, { previousSlugs: { has: slug } }]
+    }
+  });
+  if (instance) return false;
+
+  let cellInstance = await db.cellInstance.findFirst({
+    where: { slug }
+  });
+  if (cellInstance) return false;
+
+  return true;
+});
 
 let getNextPreviousSlugs = (d: {
   previousSlugs: string[];
@@ -78,7 +85,11 @@ class InstanceService {
     }
   }
 
-  private async reclaimInstanceSlugOrThrow(d: { slug: string; instance?: Instance }) {
+  private async reclaimInstanceSlugOrThrow(d: {
+    slug: string;
+    instance?: Instance;
+    canOverrideSlug?: boolean;
+  }) {
     await withTransaction(
       async db => {
         let currentSlugInstance = await db.instance.findFirst({
@@ -89,11 +100,20 @@ class InstanceService {
         });
 
         if (currentSlugInstance) {
-          throw new ServiceError(
-            conflictError({
-              message: 'An instance with this slug already exists'
-            })
-          );
+          if (!d.canOverrideSlug) {
+            throw new ServiceError(
+              conflictError({
+                message: 'An instance with this slug already exists'
+              })
+            );
+          }
+
+          await db.instance.update({
+            where: { oid: currentSlugInstance.oid },
+            data: {
+              slug: `${currentSlugInstance.slug}-${generateCode(3)}`
+            }
+          });
         }
 
         let previousSlugInstances = await db.instance.findMany({
@@ -338,6 +358,7 @@ class InstanceService {
     organization: Organization;
     performedBy: OrganizationActor;
     context: Context;
+    canOverrideSlug?: boolean;
     input: {
       name?: string;
       slug?: string;

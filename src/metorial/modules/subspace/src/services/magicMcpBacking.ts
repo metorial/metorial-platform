@@ -1,12 +1,10 @@
-import type { Instance } from '@metorial/db';
 import { createSubspaceService } from '../lib/subspaceService';
-import { getTenantForSubspace, subspace } from '../subspace';
+import { subspace } from '../subspace';
 
 export let subspaceMagicMcpBackingService = createSubspaceService(
   subspace.magicMcpBacking,
   [
     'upsertProviderTemplate',
-    'reconcileProviderTemplate',
     'upsertProviderTemplateFromIntegration',
     'upsertServer',
     'upsertEndpoint',

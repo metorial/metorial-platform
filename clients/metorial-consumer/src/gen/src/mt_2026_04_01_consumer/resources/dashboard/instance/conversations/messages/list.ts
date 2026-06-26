@@ -6,6 +6,7 @@ export type DashboardInstanceConversationsMessagesListOutput = {
     id: string;
     conversationItemId: string;
     type: 'root' | 'user' | 'assistant';
+    status: 'pending' | 'waiting_for_user' | 'completed';
     assistantId: string | null;
     parentMessageId: string | null;
     model: {
@@ -25,7 +26,12 @@ export type DashboardInstanceConversationsMessagesListOutput = {
     request: {
       object: 'assistant.request';
       id: string;
-      status: 'pending' | 'completed' | 'cancelled' | 'failed';
+      status:
+        | 'pending'
+        | 'waiting_for_user'
+        | 'completed'
+        | 'cancelled'
+        | 'failed';
       actor: {
         type: 'organization_actor' | 'consumer' | 'unknown';
         name: string;
@@ -82,6 +88,7 @@ export let mapDashboardInstanceConversationsMessagesListOutput =
             mtMap.passthrough()
           ),
           type: mtMap.objectField('type', mtMap.passthrough()),
+          status: mtMap.objectField('status', mtMap.passthrough()),
           assistantId: mtMap.objectField('assistant_id', mtMap.passthrough()),
           parentMessageId: mtMap.objectField(
             'parent_message_id',

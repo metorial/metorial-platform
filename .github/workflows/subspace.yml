@@ -72,6 +72,34 @@ jobs:
           build-args: |
             SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
 
+  conduit-integration:
+    name: 'Conduit Integration (Redis + NATS)'
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+          token: ${{ secrets.GH_TOKEN }}
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install Packages
+        run: bun i --linker=hoisted
+
+      # Docker is preinstalled on ubuntu-latest. The Vitest globalSetup brings the
+      # Redis + NATS containers up (and tears them down), so no `services:` block
+      # is needed and local == CI via the same compose-driven setup.
+      - name: Run conduit integration tests
+        run: bun run test:integration
+        working-directory: src/subspace/packages/conduit
+
   test:
     name: 'Subspace Test'
     permissions:

@@ -554,6 +554,35 @@ let presentAdminRun = (run: any) => ({
   completed_at: run.completedAt
 });
 
+let SESSION_TRACE_LIMITS = {
+  messages: 100,
+  runs: 30,
+  runsWithLogs: 15,
+  logEntriesPerRun: 500,
+  logFetchConcurrency: 5
+};
+
+let mapWithConcurrency = async <T, R>(
+  items: T[],
+  concurrency: number,
+  fn: (item: T, index: number) => Promise<R>
+): Promise<R[]> => {
+  let results = new Array<R>(items.length);
+  let cursor = 0;
+
+  let runWorker = async () => {
+    while (true) {
+      let index = cursor++;
+      if (index >= items.length) return;
+      results[index] = await fn(items[index]!, index);
+    }
+  };
+
+  let workerCount = Math.max(1, Math.min(concurrency, items.length));
+  await Promise.all(Array.from({ length: workerCount }, runWorker));
+  return results;
+};
+
 export let adminProviderTelemetryController = app.controller({
   listProviders: app
     .handler()
@@ -1540,7 +1569,7 @@ export let adminProviderTelemetryController = app.controller({
             providerRun: true
           },
           orderBy: { createdAt: 'asc' },
-          take: 500
+          take: SESSION_TRACE_LIMITS.messages
         }),
         db.providerRun.findMany({
           where: {
@@ -1558,7 +1587,7 @@ export let adminProviderTelemetryController = app.controller({
             sessionErrors: { take: 20, orderBy: { createdAt: 'desc' } }
           },
           orderBy: { createdAt: 'asc' },
-          take: 200
+          take: SESSION_TRACE_LIMITS.runs
         })
       ]);
 
@@ -1572,16 +1601,35 @@ export let adminProviderTelemetryController = app.controller({
           sessionMessageIds: messages.map(message => message.id)
         }
       });
-      let logs = await Promise.all(
-        runs.map(async run =>
-          providerRunLogsService.getProviderRunLogs({
+
+      // Run logs are unbounded per run, so only fetch them for the most recent
+      // runs, with bounded concurrency and a per-run line cap. Each log entry
+      // still carries its providerRunId, so the client can match logs to runs
+      // by id even though we don't return logs for every run.
+      let runsForLogs = runs.slice(-SESSION_TRACE_LIMITS.runsWithLogs);
+      let logs = await mapWithConcurrency(
+        runsForLogs,
+        SESSION_TRACE_LIMITS.logFetchConcurrency,
+        async run => {
+          let runLogs = await providerRunLogsService.getProviderRunLogs({
             tenant,
             environment,
             solution: ctx.solution,
             providerRun: run,
             inputs: {}
-          })
-        )
+          });
+
+          if (runLogs.logs.length > SESSION_TRACE_LIMITS.logEntriesPerRun) {
+            return {
+              ...runLogs,
+              logs: runLogs.logs.slice(-SESSION_TRACE_LIMITS.logEntriesPerRun),
+              logsTruncated: true,
+              totalLogCount: runLogs.logs.length
+            };
+          }
+
+          return runLogs;
+        }
       );
 
       return {
@@ -1592,7 +1640,15 @@ export let adminProviderTelemetryController = app.controller({
         ),
         runs: runs.map(presentAdminRun),
         invocations: await Promise.all(invocations.map(providerInvocationPresenter)),
-        logs
+        logs,
+        limits: {
+          messages_limit: SESSION_TRACE_LIMITS.messages,
+          messages_truncated: rawMessages.length >= SESSION_TRACE_LIMITS.messages,
+          runs_limit: SESSION_TRACE_LIMITS.runs,
+          runs_truncated: runs.length >= SESSION_TRACE_LIMITS.runs,
+          runs_with_logs_limit: SESSION_TRACE_LIMITS.runsWithLogs,
+          log_entries_per_run_limit: SESSION_TRACE_LIMITS.logEntriesPerRun
+        }
       };
     }),
 

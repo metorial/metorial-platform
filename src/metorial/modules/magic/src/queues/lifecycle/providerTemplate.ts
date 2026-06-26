@@ -1,6 +1,5 @@
 import { db } from '@metorial/db';
 import { consumerProviderTemplateReadRoles } from '@metorial/module-access';
-import { subspaceMagicMcpBackingService } from '@metorial/module-subspace';
 import { createQueue } from '@metorial/queue';
 import { indexProviderTemplateSearchQueue } from '../search/providerTemplate';
 
@@ -40,18 +39,6 @@ export let providerTemplateArchivedQueueProcessor = providerTemplateArchivedQueu
       }
     });
     if (!providerTemplate || providerTemplate.status !== 'archived') return;
-
-    if (providerTemplate.hasSubspaceBacking) {
-      let instance = await db.instance.findUnique({
-        where: { oid: providerTemplate.instanceOid }
-      });
-      if (instance) {
-        await subspaceMagicMcpBackingService.archiveProviderTemplate({
-          instance,
-          providerTemplateBackingId: providerTemplate.id
-        });
-      }
-    }
 
     await db.accessTagEntity.deleteMany({
       where: {

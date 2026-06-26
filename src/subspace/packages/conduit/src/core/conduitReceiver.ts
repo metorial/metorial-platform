@@ -63,6 +63,10 @@ export class ConduitReceiver {
       messageCacheTtl: 60000,
       messageCacheSize: 10000,
       timeoutExtensionThreshold: 1000,
+      maxProcessingMs: 300000,
+      maxInFlight: 2000,
+      handlerConcurrency: 256,
+      maxOrphanedHandlers: config.config?.maxOrphanedHandlers ?? config.config?.handlerConcurrency ?? 256,
       ...config.config
     };
 
@@ -349,6 +353,18 @@ export class ConduitReceiver {
 
   isRunning(): boolean {
     return this.receiver.isRunning();
+  }
+
+  isHealthy(): boolean {
+    return this.receiver.isHealthy();
+  }
+
+  isReady(): boolean {
+    return this.receiver.isReady();
+  }
+
+  getStats() {
+    return this.receiver.getStats();
   }
 
   getHandledTopics(): string[] {

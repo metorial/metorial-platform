@@ -12,6 +12,7 @@ import type {
   TopicResponseBroadcast,
   TopicSubscription
 } from '../types/topicListener';
+import { CONDUIT_HEALTH_TOPIC } from './health';
 import { RetryManager } from './retryManager';
 
 let Sentry = getSentry();
@@ -84,6 +85,93 @@ export class Sender {
 
       return await this.sendMessage(message, actualTimeout);
     }, `Send message ${messageId} to topic ${topic}`);
+  }
+
+  async pingReceiver(receiverId: string, timeoutMs?: number): Promise<ConduitResponse> {
+    let timeout = timeoutMs ?? this.config.healthPingTimeout;
+    let messageId = this.generateMessageId();
+    let subject = `conduit.${this.conduitId}.receiver.${receiverId}.${CONDUIT_HEALTH_TOPIC}`;
+    let replySubject = `_INBOX.${crypto.randomUUID()}`;
+
+    return new Promise<ConduitResponse>((resolve, reject) => {
+      let settled = false;
+      let subscriptionId: string | undefined;
+
+      let finish = (fn: () => void) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutHandle);
+        if (subscriptionId) {
+          this.safeUnsubscribe(subscriptionId).catch(() => {});
+        }
+        fn();
+      };
+
+      let timeoutHandle = setTimeout(() => {
+        finish(() =>
+          reject(
+            new ConduitSendError(
+              `Health ping timeout after ${timeout}ms`,
+              messageId,
+              CONDUIT_HEALTH_TOPIC,
+              0
+            )
+          )
+        );
+      }, timeout);
+
+      this.transport
+        .subscribe(replySubject, async (data: Uint8Array) => {
+          try {
+            let response = serialize.decode(new TextDecoder().decode(data)) as ConduitResponse;
+            finish(() => resolve(response));
+          } catch (err) {
+            finish(() =>
+              reject(
+                new ConduitSendError(
+                  `Health ping response parse error: ${err instanceof Error ? err.message : String(err)}`,
+                  messageId,
+                  CONDUIT_HEALTH_TOPIC,
+                  0,
+                  err instanceof Error ? err : new Error(String(err))
+                )
+              )
+            );
+          }
+        })
+        .then(subId => {
+          subscriptionId = subId;
+          if (settled) {
+            this.safeUnsubscribe(subId).catch(() => {});
+            return;
+          }
+
+          let message: ConduitMessage = {
+            messageId,
+            topic: CONDUIT_HEALTH_TOPIC,
+            payload: { type: 'conduit.health.ping' },
+            replySubject,
+            timeout,
+            sentAt: Date.now(),
+            retryCount: 0
+          };
+          let data = new TextEncoder().encode(serialize.encode(message));
+          return this.transport.publish(subject, data);
+        })
+        .catch(err => {
+          finish(() =>
+            reject(
+              new ConduitSendError(
+                `Health ping error: ${err instanceof Error ? err.message : String(err)}`,
+                messageId,
+                CONDUIT_HEALTH_TOPIC,
+                0,
+                err instanceof Error ? err : new Error(String(err))
+              )
+            )
+          );
+        });
+    });
   }
 
   async subscribeTopic(topic: string, listener: TopicListener): Promise<TopicSubscription> {

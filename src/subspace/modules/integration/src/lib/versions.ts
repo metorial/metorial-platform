@@ -16,6 +16,14 @@ export let createIntegrationProviderVersion = async (d: {
   configOid?: bigint | null;
   toolFilter: PrismaJson.ToolFilter;
 }) => {
+  try {
+    throw new Error('debug' + d.integrationProviderOid);
+  } catch (e) {
+    console.error('createIntegrationProviderVersion', e);
+  }
+
+  console.log('createIntegrationProviderVersion', d);
+
   return await withTransaction(async db => {
     let integrationProvider = await db.integrationProvider.update({
       where: { oid: d.integrationProviderOid },

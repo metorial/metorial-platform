@@ -218,10 +218,12 @@ export let mapConversationsCreateOutput =
 export type ConversationsCreateBody = {
   assistantId: string;
   title?: string | undefined;
+  input?: Record<string, any> | undefined;
 };
 
 export let mapConversationsCreateBody = mtMap.object<ConversationsCreateBody>({
   assistantId: mtMap.objectField('assistant_id', mtMap.passthrough()),
-  title: mtMap.objectField('title', mtMap.passthrough())
+  title: mtMap.objectField('title', mtMap.passthrough()),
+  input: mtMap.objectField('input', mtMap.passthrough())
 });
 
