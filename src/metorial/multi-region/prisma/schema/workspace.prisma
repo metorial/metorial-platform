@@ -3,11 +3,26 @@ enum WorkspaceType {
   portal
 }
 
+enum WorkspaceStatus {
+  active
+  inactive
+  deleted
+}
+
 model Workspace {
   id String @id
 
-  type WorkspaceType
+  type   WorkspaceType
+  status WorkspaceStatus
+
   name String
+
+  accountId      String
+  portalId       String?
+  organizationId String?
+
+  ownerOid Int
+  owner    Cell @relation(fields: [ownerOid], references: [oid])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt

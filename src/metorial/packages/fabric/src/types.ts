@@ -5,6 +5,7 @@ import {
   AccessRole,
   ApiKey,
   ConsumerAuthTenant,
+  ConsumerInvite,
   ConsumerProfile,
   ConsumerSurface,
   Instance,
@@ -33,6 +34,7 @@ import {
   User,
   UserSession,
   Workspace,
+  WorkspaceInvite,
   WorkspaceProfile
 } from '@metorial/db';
 import type { OAuthAuthorizationRequestWithRelations } from '@metorial/module-machine-access';
@@ -385,6 +387,28 @@ export interface FabricEvents {
   'consumer.profile.updated:after': { consumerProfile: ConsumerProfile, surface: ConsumerSurface };
   'consumer.profile.deleted:before': { consumerProfile: ConsumerProfile, surface: ConsumerSurface };
   'consumer.profile.deleted:after': { consumerProfile: ConsumerProfile, surface: ConsumerSurface };
+
+  'consumer.invite.created:before': { consumerProfile: ConsumerProfile, consumerSurface: ConsumerSurface, performedBy: OrganizationActor };
+  'consumer.invite.created:after': { consumerInvite: ConsumerInvite, consumerProfile: ConsumerProfile, consumerSurface: ConsumerSurface, performedBy: OrganizationActor };
+  'consumer.invite.updated:before': { consumerProfile: ConsumerProfile, consumerSurface: ConsumerSurface, performedBy: OrganizationActor, consumerInviteId: string };
+  'consumer.invite.updated:after': { consumerInvite: ConsumerInvite, consumerProfile: ConsumerProfile, consumerSurface: ConsumerSurface, performedBy: OrganizationActor };
+
+  'workspace_invite.created:before':
+    | { consumerInvite: ConsumerInvite }
+    | { organizationInvite: OrganizationInvite };
+  'workspace_invite.created:after':
+    | { workspaceInvite: WorkspaceInvite; consumerInvite: ConsumerInvite }
+    | { workspaceInvite: WorkspaceInvite; organizationInvite: OrganizationInvite };
+  'workspace_invite.updated:before':
+    | { workspaceInvite: WorkspaceInvite; consumerInvite: ConsumerInvite }
+    | { workspaceInvite: WorkspaceInvite; organizationInvite: OrganizationInvite };
+  'workspace_invite.updated:after':
+    | { workspaceInvite: WorkspaceInvite; consumerInvite: ConsumerInvite }
+    | { workspaceInvite: WorkspaceInvite; organizationInvite: OrganizationInvite };
+  'workspace_invite.deleted:before':
+    | { workspaceInvite: WorkspaceInvite; organizationInvite: OrganizationInvite };
+  'workspace_invite.deleted:after':
+    | { workspaceInvite: WorkspaceInvite; organizationInvite: OrganizationInvite };
 
   'consumer.auth_tenant.created:before': { organization: Organization; instance: Instance };
   'consumer.auth_tenant.created:after': { organization: Organization, consumerAuthTenant: ConsumerAuthTenant, consumerSurface: ConsumerSurface };

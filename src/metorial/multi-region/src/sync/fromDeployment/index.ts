@@ -29,6 +29,11 @@ import {
   syncUserSingleQueueProcessor,
   syncUsersManyQueueProcessor
 } from './user';
+import {
+  syncWorkspacesCron,
+  syncWorkspacesManyQueueProcessor,
+  syncWorkspacesSingleQueueProcessor
+} from './workspace';
 
 export let fromDeploymentSyncProcessors = combineQueueProcessors([
   syncOrgsCron,
@@ -53,5 +58,9 @@ export let fromDeploymentSyncProcessors = combineQueueProcessors([
 
   syncAppsCron,
   syncAppsManyQueueProcessor,
-  syncOAuthAppSingleQueueProcessor
+  syncOAuthAppSingleQueueProcessor,
+
+  syncWorkspacesCron,
+  syncWorkspacesManyQueueProcessor,
+  syncWorkspacesSingleQueueProcessor
 ]);
