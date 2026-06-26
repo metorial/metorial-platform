@@ -5,6 +5,11 @@ import {
   syncConsumerSurfacesManyQueueProcessor
 } from './consumerSurface';
 import {
+  syncInstancesCron,
+  syncInstanceSingleQueueProcessor,
+  syncInstancesManyQueueProcessor
+} from './instace';
+import {
   syncAppsCron,
   syncAppsManyQueueProcessor,
   syncOAuthAppSingleQueueProcessor
@@ -53,5 +58,9 @@ export let fromDeploymentSyncProcessors = combineQueueProcessors([
 
   syncAppsCron,
   syncAppsManyQueueProcessor,
-  syncOAuthAppSingleQueueProcessor
+  syncOAuthAppSingleQueueProcessor,
+
+  syncInstancesCron,
+  syncInstancesManyQueueProcessor,
+  syncInstanceSingleQueueProcessor
 ]);

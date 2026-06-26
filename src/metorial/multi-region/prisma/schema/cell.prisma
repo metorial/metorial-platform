@@ -19,4 +19,5 @@ model Cell {
   oauthTokens                       OAuthToken[]
   oauthJwks                         OAuthJwk[]
   globalLeases                      GlobalLease[]
+  instances                         Instance[]
 }

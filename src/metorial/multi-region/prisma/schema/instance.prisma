@@ -1,0 +1,26 @@
+enum InstanceType {
+  development
+  production
+}
+
+enum InstanceStatus {
+  active
+  deleted
+}
+
+model Instance {
+  id String @id
+
+  type   InstanceType
+  status InstanceStatus
+
+  slug String
+  name String
+
+  ownerOid Int
+  owner    Cell @relation(fields: [ownerOid], references: [oid])
+
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+}

@@ -3,6 +3,7 @@ import { createQueue } from '@metorial/queue';
 import { cell } from '../../cell';
 import { globalDB } from '../../db';
 import { syncConsumerSurfaceToDeploymentQueue } from './consumerSurface';
+import { syncInstanceToDeploymentQueue } from './instance';
 import { syncOAuthAppToDeploymentQueue } from './oauth';
 import { syncOrganizationToDeploymentQueue } from './organization';
 import { syncPortalToDeploymentQueue } from './portal';
@@ -58,6 +59,23 @@ export let syncToDeploymentQueueProcessor = syncToDeploymentQueue.process(async 
     );
 
     organizationCursor = organizations[organizations.length - 1].id as string;
+  }
+
+  let instanceCursor: string | undefined = undefined;
+  while (true) {
+    let instances = await globalDB.instance.findMany({
+      where: {
+        id: { gt: instanceCursor },
+        updatedAt: timeRange
+      },
+      orderBy: { id: 'asc' },
+      take: 100
+    });
+    if (instances.length === 0) break;
+
+    await syncInstanceToDeploymentQueue.addMany(instances.map(instance => ({ instance })));
+
+    instanceCursor = instances[instances.length - 1].id as string;
   }
 
   let portalCursor: string | undefined = undefined;

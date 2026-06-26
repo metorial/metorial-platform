@@ -28,14 +28,21 @@ import { generateCode } from '@metorial/id';
 import { differenceInMinutes } from 'date-fns';
 import { syncSubspaceTenantQueue } from '../queues/syncSubspaceTenant';
 
-let getInstanceSlug = createSlugGenerator(
-  async slug =>
-    !(await db.instance.findFirst({
-      where: {
-        OR: [{ slug }, { oldSlug: slug }, { previousSlugs: { has: slug } }]
-      }
-    }))
-);
+let getInstanceSlug = createSlugGenerator(async slug => {
+  let instance = await db.instance.findFirst({
+    where: {
+      OR: [{ slug }, { oldSlug: slug }, { previousSlugs: { has: slug } }]
+    }
+  });
+  if (instance) return false;
+
+  let cellInstance = await db.cellInstance.findFirst({
+    where: { slug }
+  });
+  if (cellInstance) return false;
+
+  return true;
+});
 
 let getNextPreviousSlugs = (d: {
   previousSlugs: string[];
