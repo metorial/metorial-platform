@@ -31,7 +31,9 @@ import {
   TeamMember,
   TeamProject,
   User,
-  UserSession
+  UserSession,
+  Workspace,
+  WorkspaceProfile
 } from '@metorial/db';
 import type { OAuthAuthorizationRequestWithRelations } from '@metorial/module-machine-access';
 import type {
@@ -339,8 +341,36 @@ export interface FabricEvents {
   'portal.archived:before': { portal: Portal };
   'portal.archived:after': { portal: Portal };
 
+  'workspace.created:before':
+    | { organization: Organization }
+    | { portal: Portal };
+  'workspace.created:after':
+    | { workspace: Workspace; organization: Organization }
+    | { workspace: Workspace; portal: Portal };
+  'workspace.updated:before':
+    | { workspace: Workspace; organization: Organization }
+    | { workspace: Workspace; portal: Portal };
+  'workspace.updated:after':
+    | { workspace: Workspace; organization: Organization }
+    | { workspace: Workspace; portal: Portal };
+
+  'workspace_profile.created:before':
+    | { consumerProfile: ConsumerProfile }
+    | { organizationMember: OrganizationMember };
+  'workspace_profile.created:after':
+    | { workspaceProfile: WorkspaceProfile; consumerProfile: ConsumerProfile }
+    | { workspaceProfile: WorkspaceProfile; organizationMember: OrganizationMember };
+  'workspace_profile.updated:before':
+    | { workspaceProfile: WorkspaceProfile; consumerProfile: ConsumerProfile }
+    | { workspaceProfile: WorkspaceProfile; organizationMember: OrganizationMember };
+  'workspace_profile.updated:after':
+    | { workspaceProfile: WorkspaceProfile; consumerProfile: ConsumerProfile }
+    | { workspaceProfile: WorkspaceProfile; organizationMember: OrganizationMember };
+
   'consumer.profile.created:before': { surface: ConsumerSurface };
   'consumer.profile.created:after': { consumerProfile: ConsumerProfile, surface: ConsumerSurface };
+  'consumer.profile.updated:before': { consumerProfile: ConsumerProfile, surface: ConsumerSurface };
+  'consumer.profile.updated:after': { consumerProfile: ConsumerProfile, surface: ConsumerSurface };
 
   'consumer.auth_tenant.created:before': { organization: Organization; instance: Instance };
   'consumer.auth_tenant.created:after': { organization: Organization, consumerAuthTenant: ConsumerAuthTenant, consumerSurface: ConsumerSurface };

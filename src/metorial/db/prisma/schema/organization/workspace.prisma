@@ -69,8 +69,11 @@ model WorkspaceProfile {
   globalProfileOid BigInt
   globalProfile    GlobalProfile @relation(fields: [globalProfileOid], references: [oid], onDelete: Cascade)
 
-  userOid BigInt? @unique
+  userOid BigInt?
   user    User?   @relation(fields: [userOid], references: [oid], onDelete: Cascade)
+
+  organizationMemberOid BigInt?             @unique
+  organizationMember    OrganizationMember? @relation(fields: [organizationMemberOid], references: [oid], onDelete: Cascade)
 
   consumerOid BigInt?
   consumer    Consumer? @relation(fields: [consumerOid], references: [oid], onDelete: Cascade)

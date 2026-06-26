@@ -508,6 +508,11 @@ class ConsumerProfileServiceImpl {
               );
             }
 
+            await Fabric.fire('consumer.profile.updated:before', {
+              consumerProfile: existingProfile,
+              surface: existingProfile.surface
+            });
+
             let nextInviteStatus =
               d.aresUserId && existingProfile.inviteStatus == 'invited'
                 ? ('accepted' as const)
@@ -622,6 +627,11 @@ class ConsumerProfileServiceImpl {
 
       await consumerProfileCreatedQueue.add({ consumerProfileId: res.consumerProfile.id });
     } else {
+      await Fabric.fire('consumer.profile.updated:after', {
+        consumerProfile: res.consumerProfile,
+        surface: res.consumerProfile.surface
+      });
+
       await consumerProfileUpdatedQueue.add({ consumerProfileId: res.consumerProfile.id });
     }
 
