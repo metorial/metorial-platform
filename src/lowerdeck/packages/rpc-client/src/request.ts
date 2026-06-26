@@ -53,7 +53,7 @@ let runCalls = async (
   };
 
   if (call.signature) {
-    headers[rpcSignatureHeader] = createRpcSignatureHeader({
+    headers[rpcSignatureHeader] = await createRpcSignatureHeader({
       token: typeof call.signature == 'string' ? call.signature : call.signature.secret,
       timestamp: Date.now(),
       method: 'POST',

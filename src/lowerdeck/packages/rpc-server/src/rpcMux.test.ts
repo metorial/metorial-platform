@@ -83,7 +83,7 @@ describe('rpcMux signatures', () => {
   test('rejects stale signatures when a signature provider is configured', async () => {
     let rpc = createTestRpc({ getSignatureToken: () => 'rpc-secret' });
     let body = createRpcBody();
-    let signatureHeader = createRpcSignatureHeader({
+    let signatureHeader = await createRpcSignatureHeader({
       token: 'rpc-secret',
       timestamp: Date.now() - 60_001,
       method: 'POST',
@@ -99,7 +99,7 @@ describe('rpcMux signatures', () => {
   test('accepts valid signatures when a signature provider is configured', async () => {
     let rpc = createTestRpc({ getSignatureToken: async () => 'rpc-secret' });
     let body = createRpcBody();
-    let signatureHeader = createRpcSignatureHeader({
+    let signatureHeader = await createRpcSignatureHeader({
       token: 'rpc-secret',
       timestamp: Date.now(),
       method: 'POST',
@@ -122,7 +122,7 @@ describe('rpcMux signatures', () => {
       })
     });
     let body = createRpcBody();
-    let signatureHeader = createRpcSignatureHeader({
+    let signatureHeader = await createRpcSignatureHeader({
       token: 'rpc-secret',
       timestamp: Date.now(),
       method: 'POST',

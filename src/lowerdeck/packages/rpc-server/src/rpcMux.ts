@@ -210,13 +210,13 @@ export let rpcMux = (
 
       if (
         opts.getSignatureToken &&
-        !verifyRpcSignature({
+        !(await verifyRpcSignature({
           token: signatureToken!,
           method: req.method,
           url: req.url,
           body: bodyText,
           signatureHeader
-        })
+        }))
       ) {
         return new Response('Unauthorized', { status: 401, headers: corsHeaders });
       }

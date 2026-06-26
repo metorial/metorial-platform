@@ -1,5 +1,3 @@
-import { createHmac, timingSafeEqual } from 'node:crypto';
-
 export let rpcSignatureHeader = 'metorial-rpc-signature';
 export let rpcSignatureVersion = 'v1';
 export let defaultRpcSignatureMaxAgeMs = 60_000;
@@ -18,6 +16,9 @@ export type RpcSignatureVerificationInput = Omit<RpcSignatureInput, 'timestamp'>
   maxAgeMs?: number;
 };
 
+let encoder = new TextEncoder();
+let importedKeys = new Map<string, CryptoKey>();
+
 let getPathAndSearch = (url: string | URL) => {
   let parsedUrl = typeof url == 'string' ? new URL(url) : url;
   return `${parsedUrl.pathname}${parsedUrl.search}`;
@@ -31,6 +32,26 @@ let getCanonicalPayload = (input: RpcSignatureInput) =>
     getPathAndSearch(input.url),
     input.body
   ].join('\n');
+
+let importHmacKey = async (token: string) => {
+  if (importedKeys.has(token)) return importedKeys.get(token)!;
+
+  let key = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(token),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+
+  importedKeys.set(token, key);
+  return key;
+};
+
+let bufferToHex = (buffer: ArrayBuffer) =>
+  Array.from(new Uint8Array(buffer))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
 
 let parseRpcSignatureHeader = (signatureHeader: string | null | undefined) => {
   if (!signatureHeader) return null;
@@ -66,21 +87,31 @@ let parseRpcSignatureHeader = (signatureHeader: string | null | undefined) => {
 };
 
 let signaturesMatch = (expected: string, actual: string) => {
-  let expectedBuffer = Buffer.from(expected, 'hex');
-  let actualBuffer = Buffer.from(actual, 'hex');
+  if (expected.length != actual.length) return false;
 
-  if (expectedBuffer.length != actualBuffer.length) return false;
+  let mismatch = 0;
+  for (let i = 0; i < expected.length; i++) {
+    mismatch |= expected.charCodeAt(i) ^ actual.charCodeAt(i);
+  }
 
-  return timingSafeEqual(expectedBuffer, actualBuffer);
+  return mismatch === 0;
 };
 
-export let createRpcSignature = (input: RpcSignatureInput) =>
-  createHmac('sha256', input.token).update(getCanonicalPayload(input)).digest('hex');
+export let createRpcSignature = async (input: RpcSignatureInput) => {
+  let key = await importHmacKey(input.token);
+  let signatureBuffer = await crypto.subtle.sign(
+    'HMAC',
+    key,
+    encoder.encode(getCanonicalPayload(input))
+  );
 
-export let createRpcSignatureHeader = (input: RpcSignatureInput) =>
-  `t=${input.timestamp},${rpcSignatureVersion}=${createRpcSignature(input)}`;
+  return bufferToHex(signatureBuffer);
+};
 
-export let verifyRpcSignature = (input: RpcSignatureVerificationInput) => {
+export let createRpcSignatureHeader = async (input: RpcSignatureInput) =>
+  `t=${input.timestamp},${rpcSignatureVersion}=${await createRpcSignature(input)}`;
+
+export let verifyRpcSignature = async (input: RpcSignatureVerificationInput) => {
   let parsedSignature = parseRpcSignatureHeader(input.signatureHeader);
   if (!parsedSignature) return false;
 
@@ -88,7 +119,7 @@ export let verifyRpcSignature = (input: RpcSignatureVerificationInput) => {
   let maxAgeMs = input.maxAgeMs ?? defaultRpcSignatureMaxAgeMs;
   if (Math.abs(now - parsedSignature.timestamp) > maxAgeMs) return false;
 
-  let expected = createRpcSignature({
+  let expected = await createRpcSignature({
     ...input,
     timestamp: parsedSignature.timestamp
   });

@@ -80,7 +80,7 @@ describe('request', () => {
 
       expect(headers[rpcSignatureHeader]).toBeDefined();
       expect(
-        verifyRpcSignature({
+        await verifyRpcSignature({
           token,
           method: 'POST',
           url: String(input),
@@ -124,7 +124,7 @@ describe('request', () => {
       expect(headers['metorial-cell-id']).toBe('eu1');
       expect(headers['metorial-cell-token-id']).toBe('cell-token-1');
       expect(
-        verifyRpcSignature({
+        await verifyRpcSignature({
           token,
           method: 'POST',
           url: String(input),

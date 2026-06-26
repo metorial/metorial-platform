@@ -9,59 +9,54 @@ let baseInput = {
   body: '{"calls":[]}'
 };
 
-let verifyBase = (overrides: Partial<Parameters<typeof verifyRpcSignature>[0]> = {}) =>
+let verifyBase = async (overrides: Partial<Parameters<typeof verifyRpcSignature>[0]> = {}) =>
   verifyRpcSignature({
     token: baseInput.token,
     method: baseInput.method,
     url: baseInput.url,
     body: baseInput.body,
-    signatureHeader: createRpcSignatureHeader(baseInput),
+    signatureHeader: await createRpcSignatureHeader(baseInput),
     now: baseInput.timestamp,
     ...overrides
   });
 
 describe('rpc signatures', () => {
-  test('creates headers with embedded timestamp and signature', () => {
-    expect(createRpcSignatureHeader(baseInput)).toMatch(/^t=\d+,v1=[a-f0-9]{64}$/);
+  test('creates headers with embedded timestamp and signature', async () => {
+    expect(await createRpcSignatureHeader(baseInput)).toMatch(/^t=\d+,v1=[a-f0-9]{64}$/);
   });
 
-  test('verifies a valid signature', () => {
-    expect(verifyBase()).toBe(true);
+  test('verifies a valid signature', async () => {
+    expect(await verifyBase()).toBe(true);
   });
 
-  test('rejects modified signed fields', () => {
-    expect(verifyBase({ body: '{"calls":[{"id":"changed"}]}' })).toBe(false);
-    expect(verifyBase({ url: 'https://eu1.metorial.test/sync?batch=2' })).toBe(false);
-    expect(verifyBase({ method: 'PUT' })).toBe(false);
-    expect(verifyBase({ token: 'different-token-secret' })).toBe(false);
+  test('rejects modified signed fields', async () => {
+    expect(await verifyBase({ body: '{"calls":[{"id":"changed"}]}' })).toBe(false);
+    expect(await verifyBase({ url: 'https://eu1.metorial.test/sync?batch=2' })).toBe(false);
+    expect(await verifyBase({ method: 'PUT' })).toBe(false);
+    expect(await verifyBase({ token: 'different-token-secret' })).toBe(false);
   });
 
-  test('rejects stale signatures', () => {
-    expect(verifyBase({ now: baseInput.timestamp + 60_001 })).toBe(false);
+  test('rejects stale signatures', async () => {
+    expect(await verifyBase({ now: baseInput.timestamp + 60_001 })).toBe(false);
   });
 
-  test('rejects missing and malformed signature fields', () => {
-    expect(verifyBase({ signatureHeader: null })).toBe(false);
-    expect(verifyBase({ signatureHeader: 'v1=abc' })).toBe(false);
-    expect(verifyBase({ signatureHeader: 't=1800000000000' })).toBe(false);
-    expect(verifyBase({ signatureHeader: 't=1800000000000,v1=not-hex' })).toBe(false);
-    expect(verifyBase({ signatureHeader: 't=not-a-number,v1=' + 'a'.repeat(64) })).toBe(false);
+  test('rejects missing and malformed signature fields', async () => {
+    expect(await verifyBase({ signatureHeader: null })).toBe(false);
+    expect(await verifyBase({ signatureHeader: 'v1=abc' })).toBe(false);
+    expect(await verifyBase({ signatureHeader: 't=1800000000000' })).toBe(false);
+    expect(await verifyBase({ signatureHeader: 't=1800000000000,v1=not-hex' })).toBe(false);
+    expect(await verifyBase({ signatureHeader: 't=not-a-number,v1=' + 'a'.repeat(64) })).toBe(false);
   });
 
-  test('rejects unequal-length signatures without throwing', () => {
-    expect(() =>
+  test('rejects unequal-length signatures without throwing', async () => {
+    await expect(
       verifyBase({ signatureHeader: `t=${baseInput.timestamp},v1=${'a'.repeat(62)}` })
-    ).not.toThrow();
-
-    expect(
-      verifyBase({ signatureHeader: `t=${baseInput.timestamp},v1=${'a'.repeat(62)}` })
-    ).toBe(false);
+    ).resolves.toBe(false);
   });
 
-  test('rejects equal-length mismatched signatures without throwing', () => {
+  test('rejects equal-length mismatched signatures without throwing', async () => {
     let signatureHeader = `t=${baseInput.timestamp},v1=${'a'.repeat(64)}`;
 
-    expect(() => verifyBase({ signatureHeader })).not.toThrow();
-    expect(verifyBase({ signatureHeader })).toBe(false);
+    await expect(verifyBase({ signatureHeader })).resolves.toBe(false);
   });
 });
