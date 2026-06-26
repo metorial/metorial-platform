@@ -179,6 +179,9 @@ model ConsumerInvite {
   acceptedAt DateTime?
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @default(now()) @updatedAt
+  expiresAt  DateTime  @default(now())
+
+  workspaceInvite WorkspaceInvite?
 
   @@unique([surfaceOid, consumerOid])
 }

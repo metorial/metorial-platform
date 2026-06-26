@@ -1,8 +1,17 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { ConsumerSurface, db, ID, OrganizationActor, Prisma } from '@metorial/db';
+import {
+  ConsumerSurface,
+  db,
+  ID,
+  OrganizationActor,
+  Prisma,
+  withTransaction
+} from '@metorial/db';
+import { Fabric } from '@metorial/fabric';
 import { searchConsumerIds } from '@metorial/module-search';
+import { addDays } from 'date-fns';
 import {
   consumerInviteCreatedQueue,
   consumerInviteUpdatedQueue
@@ -47,45 +56,80 @@ class ConsumerInviteServiceImpl {
       rejectIfActiveProfileExists: true
     });
 
-    let existingInvite = await db.consumerInvite.findUnique({
-      where: {
-        consumerProfileOid: consumerProfile.oid
-      },
-      select: {
-        id: true
-      }
-    });
-    let invite = existingInvite
-      ? await db.consumerInvite.update({
-          where: {
-            consumerProfileOid: consumerProfile.oid
-          },
-          data: {
-            status: 'pending',
-            message: d.input.message,
-            invitedByOid: d.performedBy.oid,
-            acceptedAt: null
-          },
-          include
-        })
-      : await db.consumerInvite.create({
-          data: {
-            id: await ID.generateId('consumerInvite'),
-            status: 'pending',
-            message: d.input.message,
-            organizationOid: d.consumerSurface.organizationOid,
-            instanceOid: d.consumerSurface.instanceOid,
-            surfaceOid: d.consumerSurface.oid,
-            consumerOid: consumerProfile.consumerOid,
-            consumerProfileOid: consumerProfile.oid,
-            invitedByOid: d.performedBy.oid
-          },
-          include
+    let { invite, existingInvite } = await withTransaction(async db => {
+      let existingInvite = await db.consumerInvite.findUnique({
+        where: {
+          consumerProfileOid: consumerProfile.oid
+        },
+        select: {
+          id: true,
+          oid: true
+        }
+      });
+
+      if (existingInvite) {
+        await Fabric.fire('consumer.invite.updated:before', {
+          consumerProfile,
+          consumerSurface: d.consumerSurface,
+          performedBy: d.performedBy,
+          consumerInviteId: existingInvite.id
         });
+      } else {
+        await Fabric.fire('consumer.invite.created:before', {
+          consumerProfile,
+          consumerSurface: d.consumerSurface,
+          performedBy: d.performedBy
+        });
+      }
+
+      let invite = existingInvite
+        ? await db.consumerInvite.update({
+            where: {
+              consumerProfileOid: consumerProfile.oid
+            },
+            data: {
+              status: 'pending',
+              message: d.input.message,
+              invitedByOid: d.performedBy.oid,
+              acceptedAt: null,
+              expiresAt: addDays(new Date(), 14)
+            },
+            include
+          })
+        : await db.consumerInvite.create({
+            data: {
+              id: await ID.generateId('consumerInvite'),
+              status: 'pending',
+              message: d.input.message,
+              expiresAt: addDays(new Date(), 14),
+              organizationOid: d.consumerSurface.organizationOid,
+              instanceOid: d.consumerSurface.instanceOid,
+              surfaceOid: d.consumerSurface.oid,
+              consumerOid: consumerProfile.consumerOid,
+              consumerProfileOid: consumerProfile.oid,
+              invitedByOid: d.performedBy.oid
+            },
+            include
+          });
+
+      return { invite, existingInvite };
+    });
 
     if (existingInvite) {
+      await Fabric.fire('consumer.invite.updated:after', {
+        consumerInvite: invite,
+        consumerProfile,
+        consumerSurface: d.consumerSurface,
+        performedBy: d.performedBy
+      });
       await consumerInviteUpdatedQueue.add({ consumerInviteId: invite.id });
     } else {
+      await Fabric.fire('consumer.invite.created:after', {
+        consumerInvite: invite,
+        consumerProfile,
+        consumerSurface: d.consumerSurface,
+        performedBy: d.performedBy
+      });
       await consumerInviteCreatedQueue.add({ consumerInviteId: invite.id });
     }
 

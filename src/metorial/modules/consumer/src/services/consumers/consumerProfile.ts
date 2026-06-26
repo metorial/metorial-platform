@@ -698,6 +698,32 @@ class ConsumerProfileServiceImpl {
     }
 
     if (updatedInviteIds.length > 0) {
+      let updatedInvites = await db.consumerInvite.findMany({
+        where: {
+          id: {
+            in: updatedInviteIds
+          }
+        },
+        include: {
+          consumerProfile: true,
+          invitedBy: true,
+          surface: {
+            include: {
+              portal: true
+            }
+          }
+        }
+      });
+
+      for (let updatedInvite of updatedInvites) {
+        await Fabric.fire('consumer.invite.updated:after', {
+          consumerInvite: updatedInvite,
+          consumerProfile: updatedInvite.consumerProfile,
+          consumerSurface: updatedInvite.surface,
+          performedBy: updatedInvite.invitedBy
+        });
+      }
+
       await consumerInviteUpdatedQueue.addMany(
         updatedInviteIds.map(consumerInviteId => ({ consumerInviteId }))
       );

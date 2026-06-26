@@ -97,7 +97,8 @@ model OrganizationInvite {
   acceptedAt DateTime?
   rejectedAt DateTime?
 
-  joins OrganizationInviteJoin[]
+  joins           OrganizationInviteJoin[]
+  workspaceInvite WorkspaceInvite?
 
   @@index([email])
 }

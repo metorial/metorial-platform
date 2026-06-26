@@ -13,7 +13,7 @@ model Workspace {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
-  type WorkspaceType
+  type   WorkspaceType
   status WorkspaceStatus @default(active)
 
   name String
@@ -28,11 +28,12 @@ model Workspace {
   portal    Portal? @relation(fields: [portalOid], references: [oid], onDelete: Cascade)
 
   deletedAt DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
 
   sites    Site[]
   profiles WorkspaceProfile[]
+  invites  WorkspaceInvite[]
 }
 
 model GlobalProfile {
@@ -46,6 +47,7 @@ model GlobalProfile {
 
   workspaceProfiles WorkspaceProfile[]
   emails            GlobalProfileEmail[]
+  workspaceInvites  WorkspaceInvite[]
 }
 
 model GlobalProfileEmail {
@@ -100,8 +102,46 @@ model WorkspaceProfile {
   consumerProfile    ConsumerProfile? @relation(fields: [consumerProfileOid], references: [oid], onDelete: Cascade)
 
   deletedAt DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+
+  @@unique([workspaceOid, globalProfileOid])
+}
+
+enum WorkspaceInviteStatus {
+  pending
+  accepted
+  rejected
+  deleted
+}
+
+model WorkspaceInvite {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status WorkspaceInviteStatus @default(pending)
+
+  email String
+
+  accountOid BigInt
+  account    Account @relation(fields: [accountOid], references: [oid], onDelete: Cascade)
+
+  workspaceOid BigInt
+  workspace    Workspace @relation(fields: [workspaceOid], references: [oid], onDelete: Cascade)
+
+  globalProfileOid BigInt
+  globalProfile    GlobalProfile @relation(fields: [globalProfileOid], references: [oid], onDelete: Cascade)
+
+  consumerInviteOid BigInt?         @unique
+  consumerInvite    ConsumerInvite? @relation(fields: [consumerInviteOid], references: [oid], onDelete: Cascade)
+
+  organizationInviteOid BigInt?             @unique
+  organizationInvite    OrganizationInvite? @relation(fields: [organizationInviteOid], references: [oid], onDelete: Cascade)
+
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+  expiresAt DateTime
 
   @@unique([workspaceOid, globalProfileOid])
 }
