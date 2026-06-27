@@ -7,7 +7,8 @@ model GlobalProfile {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  emails GlobalProfileEmail[]
+  emails            GlobalProfileEmail[]
+  workspaceProfiles WorkspaceProfile[]
 }
 
 model GlobalProfileEmail {

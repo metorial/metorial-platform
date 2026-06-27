@@ -24,6 +24,37 @@ model Workspace {
   ownerOid Int
   owner    Cell @relation(fields: [ownerOid], references: [oid])
 
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @default(now()) @updatedAt
+  workspaceProfiles WorkspaceProfile[]
+}
+
+enum WorkspaceProfileStatus {
+  active
+  deleted
+}
+
+model WorkspaceProfile {
+  id String @id
+
+  status WorkspaceProfileStatus @default(active)
+
+  name  String
+  email String
+
+  accountId            String
+  userId               String?
+  organizationMemberId String?
+  consumerId           String?
+  consumerProfileId    String?
+  instanceConsumerId   String?
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  globalProfileId String
+  globalProfile   GlobalProfile @relation(fields: [globalProfileId], references: [id], onDelete: Cascade)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 }
