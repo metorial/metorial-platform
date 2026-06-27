@@ -24,7 +24,107 @@ let calls: {
   };
 } = {};
 
+let runCalls = (
+  call: Call,
+  c: {
+    call: Call;
+    resolve: (value: any) => void;
+    reject: (error: any) => void;
+  }[]
+) => {
+  let rejectAsUnableToReachServer = (error: any, stage: string) => {
+    c.forEach(x =>
+      x.reject(new ServiceError(internalServerError({ message: 'Unable to reach server' })))
+    );
+  };
+
+  let url: URL;
+  let body: string;
+
+  try {
+    url = new URL(call.endpoint);
+    url.search = new URLSearchParams(call.query).toString();
+    body = serialize.encode({
+      calls: c
+        .map(x => ({
+          id: x.call.id,
+          name: x.call.name,
+          payload: x.call.payload
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name))
+    });
+  } catch (e) {
+    rejectAsUnableToReachServer(e, 'prepare');
+    return;
+  }
+
+  fetch(url.toString(), {
+    method: 'POST',
+
+    headers: {
+      'Content-Type': 'application/rpc+json',
+      ...c[0].call.headers
+    },
+    body,
+    credentials: 'include',
+    referrerPolicy: c[0].call.referrerPolicy,
+
+    // @ts-ignore
+    keepalive: false
+  })
+    .then(async res => ({
+      res: serialize.decode(
+        (await res.json()) as {
+          calls: {
+            id: string;
+            status: number;
+            result: any;
+          }[];
+        }
+      ),
+
+      headers: res.headers
+    }))
+    .then(({ res, headers }) => {
+      if (res.__typename == 'error') {
+        let err = ServiceError.fromResponse(res);
+        c.forEach(x => x.reject(err));
+        return;
+      }
+
+      for (let call of c) {
+        let callRes = res.calls.find((x: any) => x.id == call.call.id);
+        if (!callRes) {
+          let err = new ServiceError(internalServerError({ message: 'Call not returned' }));
+          call.reject(err);
+          return;
+        }
+
+        if (callRes.status >= 200 && callRes.status < 300) {
+          call.resolve({
+            data: callRes.result,
+            status: callRes.status,
+            headers
+          });
+          continue;
+        }
+
+        let err = ServiceError.fromResponse(callRes.result);
+        call.reject(err);
+      }
+    })
+    .catch(e => {
+      rejectAsUnableToReachServer(e, 'fetch-or-response');
+    });
+};
+
 let performRequest = (call: Call) => {
+  if (call.disableBatching) {
+    return new Promise((resolve, reject) => {
+      runCalls(call, [{ call, resolve, reject }]);
+    });
+  }
+
   let key = `${canonicalize(call.headers)}${canonicalize(call.query)}${call.endpoint}${canonicalize(call.referrerPolicy ?? null)}`;
 
   if (!calls[key]) calls[key] = { calls: [], to: null };
@@ -36,107 +136,13 @@ let performRequest = (call: Call) => {
 
   if (current.to) clearTimeout(current.to);
 
-  current.to = setTimeout(
-    () => {
-      let c = calls[key].calls;
-      calls[key].calls = [];
-      calls[key].to = null;
+  current.to = setTimeout(() => {
+    let c = calls[key].calls;
+    calls[key].calls = [];
+    calls[key].to = null;
 
-      let rejectAsUnableToReachServer = (error: any, stage: string) => {
-        c.forEach(x =>
-          x.reject(
-            new ServiceError(internalServerError({ message: 'Unable to reach server' }))
-          )
-        );
-      };
-
-      let url: URL;
-      let body: string;
-
-      try {
-        url = new URL(call.endpoint);
-        url.search = new URLSearchParams(call.query).toString();
-        body = serialize.encode({
-          calls: c
-            .map(x => ({
-              id: x.call.id,
-              name: x.call.name,
-              payload: x.call.payload
-            }))
-            .sort((a, b) => a.name.localeCompare(b.name))
-        });
-      } catch (e) {
-        rejectAsUnableToReachServer(e, 'prepare');
-        return;
-      }
-
-      fetch(url.toString(), {
-        method: 'POST',
-
-        headers: {
-          'Content-Type': 'application/rpc+json',
-          ...c[0].call.headers
-        },
-        body,
-        credentials: 'include',
-        referrerPolicy: c[0].call.referrerPolicy,
-
-        // @ts-ignore
-        keepalive: false
-      })
-        .then(async res => ({
-          res: serialize.decode(
-            (await res.json()) as {
-              calls: {
-                id: string;
-                status: number;
-                result: any;
-              }[];
-            }
-          ),
-
-          headers: res.headers
-        }))
-        .then(({ res, headers }) => {
-          if (res.__typename == 'error') {
-            let err = ServiceError.fromResponse(res);
-            c.forEach(x => x.reject(err));
-            return;
-          }
-
-          for (let call of c) {
-            let callRes = res.calls.find((x: any) => x.id == call.call.id);
-            if (!callRes) {
-              let err = new ServiceError(
-                internalServerError({ message: 'Call not returned' })
-              );
-              call.reject(err);
-              return;
-            }
-
-            if (callRes.status >= 200 && callRes.status < 300) {
-              call.resolve({
-                // data: O;
-                // status: number;
-                // headers: Record<string, string>;
-
-                data: callRes.result,
-                status: callRes.status,
-                headers
-              });
-              continue;
-            }
-
-            let err = ServiceError.fromResponse(callRes.result);
-            call.reject(err);
-          }
-        })
-        .catch(e => {
-          rejectAsUnableToReachServer(e, 'fetch-or-response');
-        });
-    },
-    isServer ? 0 : 10
-  );
+    runCalls(call, c);
+  }, isServer ? 0 : 10);
 
   return promise;
 };

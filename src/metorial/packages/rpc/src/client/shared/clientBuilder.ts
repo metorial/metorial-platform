@@ -15,20 +15,19 @@ export interface ClientOpts {
   }) => any;
 }
 
+export interface ClientRequestOpts {
+  headers?: Record<string, string | undefined>;
+  query?: Record<string, string | undefined>;
+  disableBatching?: boolean;
+}
+
 let noopWithContext = (cb: (ctx: any) => any) => cb({});
 
 export let clientBuilder =
   (request: Requester, withContext: (cb: (ctx: any) => any) => any = noopWithContext) =>
   <T extends object>(clientOpts: ClientOpts) =>
     proxy<T>(
-      async (
-        path,
-        data,
-        requestOpts?: {
-          headers?: Record<string, string | undefined>;
-          query?: Record<string, string | undefined>;
-        }
-      ) =>
+      async (path, data, requestOpts?: ClientRequestOpts) =>
         await withContext(async context => {
           let headers = {
             ...clientOpts.headers,
@@ -52,6 +51,7 @@ export let clientBuilder =
               headers,
               query: requestOpts?.query,
               referrerPolicy: clientOpts.referrerPolicy,
+              disableBatching: requestOpts?.disableBatching,
               context
             });
           }
@@ -64,6 +64,7 @@ export let clientBuilder =
               headers,
               query: requestOpts?.query,
               referrerPolicy: clientOpts.referrerPolicy,
+              disableBatching: requestOpts?.disableBatching,
               context
             })
           ).data;

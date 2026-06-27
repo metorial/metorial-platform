@@ -100,11 +100,19 @@ export type InferClient<
   >
     ? ((
         input: I,
-        opts?: { headers?: Record<string, string>; query?: Record<string, string> }
+        opts?: {
+          headers?: Record<string, string>;
+          query?: Record<string, string>;
+          disableBatching?: boolean;
+        }
       ) => Promise<O>) & {
         getFull: (
           input: I,
-          opts?: { headers?: Record<string, string>; query?: Record<string, string> }
+          opts?: {
+            headers?: Record<string, string>;
+            query?: Record<string, string>;
+            disableBatching?: boolean;
+          }
         ) => Promise<{
           data: O;
           status: number;
