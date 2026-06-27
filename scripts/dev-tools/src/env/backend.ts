@@ -175,5 +175,8 @@ export let backendEnv: Env = [
   },
   { key: 'AI_GATEWAY_API_KEY', isRequired: false },
   { key: 'SCOUT_URL', isRequired: false },
-  { key: 'SCOUT_TOKEN', isRequired: false }
+  { key: 'SCOUT_TOKEN', isRequired: false },
+
+  { key: 'EXTERNAL_MULTI_REGION_ENDPOINT', defaultValue: 'http://localhost:4323' },
+  { key: 'INTERNAL_MULTI_REGION_ENDPOINT', defaultValue: 'http://localhost:4323' }
 ];
